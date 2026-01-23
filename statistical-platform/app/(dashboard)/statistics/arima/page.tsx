@@ -14,9 +14,7 @@ import {
   CheckCircle2,
   Info,
   TrendingUp,
-  BarChart3,
-  Clock
-,
+  Clock,
   FileText,
   Activity
 } from 'lucide-react'
@@ -25,6 +23,8 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
+import type { Interpretation } from '@/types/statistics'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
@@ -54,12 +54,11 @@ export default function ARIMAPage() {
   const { state, actions } = useStatisticsPage<ARIMAResults, ARIMAVariables>({
     initialStep: 0,
     withUploadedData: true,
-    withError: false
+    withError: true
   })
-  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing } = state
+  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
   const [activeResultTab, setActiveResultTab] = useState('summary')
-  const [activeTab, setActiveTab] = useState('summary')
   const [orderP, setOrderP] = useState(1)
   const [orderD, setOrderD] = useState(1)
   const [orderQ, setOrderQ] = useState(1)
@@ -139,7 +138,7 @@ export default function ARIMAPage() {
 
       setAnalysisTimestamp(new Date())
       actions.completeAnalysis?.(analysisResult, 3)
-      setActiveTab('summary')
+      setActiveResultTab('summary')
     } catch (error) {
       console.error('ARIMA error:', error)
       actions.setError?.(error instanceof Error ? error.message : 'Analysis failed.')
@@ -214,7 +213,7 @@ export default function ARIMAPage() {
     <DataUploadStep
       onUploadComplete={createDataUploadHandler(
         actions.setUploadedData,
-        () => actions.setCurrentStep?.(1),
+        () => actions.setCurrentStep?.(2),
         'arima'
       )}
     />
@@ -402,6 +401,16 @@ export default function ARIMAPage() {
           timestamp={analysisTimestamp ?? undefined}
         />
 
+        <ResultInterpretation
+          title="ARIMA 모델 해석"
+          result={{
+            summary: `ARIMA(${results.order.p},${results.order.d},${results.order.q}) 모델이 ${results.sampleSize}개 관측치로 적합되었습니다. ${results.forecast.length}기간 예측이 생성되었습니다.`,
+            details: `모델 적합도: AIC = ${results.aic !== null ? results.aic.toFixed(2) : 'N/A'}, BIC = ${results.bic !== null ? results.bic.toFixed(2) : 'N/A'}. MSE = ${results.statistics.mse.toFixed(4)}. 잔차 평균 = ${results.statistics.residualMean.toFixed(6)} (${Math.abs(results.statistics.residualMean) < 0.01 ? '0에 가까움 - 양호' : '편향 가능성'}).`,
+            recommendation: `AIC/BIC 값이 낮을수록 모델 적합도가 좋습니다. ${Math.abs(results.statistics.residualMean) < 0.01 ? '잔차가 0 근처에 분포하여 편향 없는 예측을 시사합니다.' : ''} 다른 ARIMA 차수와 비교하여 최적 모델을 찾으세요.`,
+            caution: Math.abs(results.statistics.residualMean) >= 0.01 ? '잔차 평균이 0에서 멀어 모델 파라미터 조정을 고려하세요.' : undefined
+          } satisfies Interpretation}
+        />
+
         <ContentTabs
               tabs={[
                 { id: 'summary', label: 'Summary', icon: FileText },
@@ -523,7 +532,7 @@ export default function ARIMAPage() {
         </div>
       </div>
     )
-  }, [results, activeTab, uploadedData, selectedVariables, analysisTimestamp])
+  }, [results, activeResultTab, uploadedData, selectedVariables, analysisTimestamp])
 
   return (
     <TwoPanelLayout

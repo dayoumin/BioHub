@@ -23,6 +23,7 @@ import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPa
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 
 // Services & Hooks
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
@@ -692,97 +693,27 @@ export default function FactorAnalysisPage() {
           </ContentTabsContent>
 
           <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>결과 해석 및 권장사항</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-semibold mb-2">표본 적절성 평가</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      {results.kmo >= 0.6 ? (
-                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-muted-foreground" />
-                      )}
-                      <span>
-                        KMO 값 {results.kmo.toFixed(3)}는{' '}
-                        {results.kmo >= 0.9 ? '훌륭한' :
-                         results.kmo >= 0.8 ? '우수한' :
-                         results.kmo >= 0.7 ? '양호한' :
-                         results.kmo >= 0.6 ? '보통의' : '부적절한'} 표본 적절성을 나타냅니다.
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {results.bartlettTest.significant ? (
-                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-muted-foreground" />
-                      )}
-                      <span>
-                        Bartlett 구형성 검정은 {results.bartlettTest.significant ? '유의하여' : '유의하지 않아'}{' '}
-                        요인분석이 {results.bartlettTest.significant ? '적절합니다' : '부적절할 수 있습니다'}.
-                        (χ² = {results.bartlettTest.statistic.toFixed(2)}, p = {results.bartlettTest.pValue.toFixed(4)})
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">요인 구조 해석</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                      <span>
-                        {results.numFactors}개 요인이 전체 분산의{' '}
-                        {results.varianceExplained.cumulative[results.numFactors - 1]?.toFixed(1)}%를 설명합니다.
-                      </span>
-                    </div>
-
-                    {results.varianceExplained.cumulative[results.numFactors - 1] >= 60 ? (
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                        <span>분산설명력이 60% 이상으로 양호합니다.</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                        <span>분산설명력이 60% 미만입니다. 요인 수 조정을 고려해보세요.</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">분석 방법론</h4>
-                  <div className="text-sm space-y-1">
-                    <p>• <strong>분석 유형:</strong> {results.method === 'exploratory' ? '탐색적 요인분석 (EFA)' : '확인적 요인분석 (CFA)'}</p>
-                    <p>• <strong>추출 방법:</strong> {
-                      results.extraction === 'principal' ? '주성분 분석' :
-                      results.extraction === 'maximum_likelihood' ? '최대우도법' : '주축 분해법'
-                    }</p>
-                    <p>• <strong>회전 방법:</strong> {
-                      results.rotation === 'none' ? '회전 없음' :
-                      results.rotation === 'varimax' ? 'Varimax (직교회전)' :
-                      results.rotation === 'promax' ? 'Promax (사각회전)' : 'Oblimin (사각회전)'
-                    }</p>
-                    <p>• <strong>요인 수:</strong> {results.numFactors}개 (고유값 ≥ 1.0 기준)</p>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">후속 분석 제안</h4>
-                  <div className="text-sm space-y-1">
-                    <p>• 요인점수를 계산하여 회귀분석이나 군집분석에 활용</p>
-                    <p>• 신뢰도 분석을 통해 각 요인의 내적 일관성 검토</p>
-                    <p>• 확인적 요인분석(CFA)으로 요인 구조 검증</p>
-                    <p>• 요인 로딩이 낮은 변수들에 대한 추가 검토</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <ResultInterpretation
+              result={{
+                summary: `KMO 값 ${results.kmo.toFixed(3)}로 ${
+                  results.kmo >= 0.9 ? '훌륭한' :
+                  results.kmo >= 0.8 ? '우수한' :
+                  results.kmo >= 0.7 ? '양호한' :
+                  results.kmo >= 0.6 ? '보통의' : '부적절한'
+                } 표본 적절성을 보입니다. ${results.numFactors}개 요인이 전체 분산의 ${results.varianceExplained.cumulative[results.numFactors - 1]?.toFixed(1)}%를 설명합니다.`,
+                details: `Bartlett 검정: χ² = ${results.bartlettTest.statistic.toFixed(2)}, p = ${results.bartlettTest.pValue.toFixed(4)} (${results.bartlettTest.significant ? '유의함' : '비유의'})
+분석 유형: ${results.method === 'exploratory' ? '탐색적 요인분석 (EFA)' : '확인적 요인분석 (CFA)'}
+추출 방법: ${results.extraction === 'principal' ? '주성분 분석' : results.extraction === 'maximum_likelihood' ? '최대우도법' : '주축 분해법'}
+회전 방법: ${results.rotation === 'none' ? '회전 없음' : results.rotation === 'varimax' ? 'Varimax' : results.rotation === 'promax' ? 'Promax' : 'Oblimin'}`,
+                recommendation: `${results.varianceExplained.cumulative[results.numFactors - 1] >= 60
+                  ? '분산설명력이 60% 이상으로 양호합니다.'
+                  : '분산설명력이 60% 미만입니다. 요인 수 조정을 고려해보세요.'} 요인점수를 활용한 후속 분석(회귀, 군집)과 신뢰도 분석을 권장합니다.`,
+                caution: results.kmo < 0.6 || !results.bartlettTest.significant
+                  ? 'KMO 값이 낮거나 Bartlett 검정이 유의하지 않아 요인분석 적합성이 의심됩니다. 변수 선택을 재검토해주세요.'
+                  : '요인 로딩이 0.3 미만인 변수는 제외를 고려하세요. 확인적 요인분석(CFA)으로 구조 검증을 권장합니다.'
+              }}
+              title="요인분석 결과 해석"
+            />
           </ContentTabsContent>
         </div>
 

@@ -24,6 +24,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
@@ -479,77 +480,29 @@ export default function ClusterAnalysisPage() {
           </ContentTabsContent>
 
           <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>결과 해석 및 권장사항</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-semibold mb-2">군집화 품질 평가</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      {results.silhouetteScore > 0.5 ? (
-                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                      ) : results.silhouetteScore > 0.25 ? (
-                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-muted-foreground" />
-                      )}
-                      <span>
-                        실루엣 스코어 {results.silhouetteScore.toFixed(3)}는{' '}
-                        {results.silhouetteScore > 0.5 ? '매우 좋은' :
-                         results.silhouetteScore > 0.25 ? '보통' : '약한'} 군집화를 의미합니다.
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                      <span>
-                        전체 분산의 {((results.betweenClusterSS / results.totalSS) * 100).toFixed(1)}%가
-                        군집 간 차이로 설명됩니다.
-                      </span>
-                    </div>
-
-                    {results.davies_bouldin_score < 1 && (
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                        <span>
-                          Davies-Bouldin 지수 {results.davies_bouldin_score.toFixed(3)}는
-                          잘 분리된 군집을 나타냅니다.
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">군집별 특성</h4>
-                  <div className="space-y-2 text-sm">
-                    {results.clusterStatistics.map((stat) => (
-                      <div key={stat.cluster} className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span>
-                          군집 {stat.cluster}: {stat.size}개 데이터 포인트
-                          ({((stat.size / (uploadedData?.data.length ?? 1)) * 100).toFixed(1)}%)
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">분석 방법론</h4>
-                  <div className="text-sm space-y-1">
-                    <p>• <strong>방법:</strong> K-means 군집분석</p>
-                    <p>• <strong>군집 수:</strong> {results.numClusters}개</p>
-                    <p>• <strong>변수:</strong> {selectedVariables?.all?.join(', ') ?? 'N/A'}</p>
-                    {results.optimalK && (
-                      <p>• <strong>최적화:</strong> 엘보우 방법과 실루엣 분석을 통한 최적 군집 수 결정</p>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <ResultInterpretation
+              result={{
+                summary: `${results.numClusters}개 군집으로 분류되었습니다. 실루엣 스코어 ${results.silhouetteScore.toFixed(3)}로 ${
+                  results.silhouetteScore > 0.5 ? '매우 좋은' :
+                  results.silhouetteScore > 0.25 ? '보통의' : '약한'
+                } 군집화 품질을 보입니다. 전체 분산의 ${((results.betweenClusterSS / results.totalSS) * 100).toFixed(1)}%가 군집 간 차이로 설명됩니다.`,
+                details: `Calinski-Harabasz 지수: ${results.calinski_harabasz_score.toFixed(2)}
+Davies-Bouldin 지수: ${results.davies_bouldin_score.toFixed(3)}
+총 제곱합(TSS): ${results.totalSS.toFixed(2)}
+군집 간 제곱합(BSS): ${results.betweenClusterSS.toFixed(2)}
+군집 내 제곱합(WSS): ${results.totalWithinSS.toFixed(2)}
+군집별 크기: ${results.clusterStatistics.map(s => `군집${s.cluster}=${s.size}`).join(', ')}`,
+                recommendation: `${results.silhouetteScore > 0.5
+                  ? '군집화 품질이 우수합니다. 각 군집의 특성을 분석하여 의미 있는 명명을 권장합니다.'
+                  : results.silhouetteScore > 0.25
+                    ? '군집화 품질이 보통입니다. 다른 군집 수나 방법을 시도해 볼 수 있습니다.'
+                    : '군집화 품질이 낮습니다. 변수 선택이나 군집 수 조정을 권장합니다.'}`,
+                caution: results.davies_bouldin_score >= 1
+                  ? 'Davies-Bouldin 지수가 1 이상으로 군집 간 분리가 명확하지 않습니다. 이상치 제거나 변수 스케일링을 고려해주세요.'
+                  : '군집분석 결과는 초기 중심점 선택에 따라 달라질 수 있습니다. 여러 번 실행하여 결과의 안정성을 확인하세요.'
+              }}
+              title="군집분석 결과 해석"
+            />
           </ContentTabsContent>
 
           <ContentTabsContent tabId="visualization" show={activeResultTab === 'visualization'} className="mt-4">

@@ -30,6 +30,7 @@ import { ResultContextHeader } from '@/components/statistics/common/ResultContex
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { extractColumnData } from '@/lib/utils/data-extraction'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
@@ -550,44 +551,37 @@ export default function CoxRegressionPage() {
           </ContentTabsContent>
 
           <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Results Interpretation</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {results.covariateNames.map((name, idx) => {
+            <ResultInterpretation
+              result={{
+                summary: (() => {
+                  const sigCovs = results.covariateNames.filter((_, idx) => results.pValues[idx] < 0.05)
+                  if (sigCovs.length === 0) {
+                    return `No covariates reached statistical significance (p < 0.05). The model includes ${results.covariateNames.length} covariate(s) with ${results.totalEvents} events out of ${results.sampleSize} observations.`
+                  }
+                  return `${sigCovs.length} of ${results.covariateNames.length} covariate(s) are statistically significant (p < 0.05): ${sigCovs.join(', ')}. The model includes ${results.totalEvents} events out of ${results.sampleSize} observations.`
+                })(),
+                details: results.covariateNames.map((name, idx) => {
                   const hr = results.hazardRatios[idx]
                   const pVal = results.pValues[idx]
-                  const isSignificant = pVal < 0.05
-
-                  return (
-                    <div key={name} className="border-b pb-3 last:border-b-0">
-                      <h4 className="font-semibold mb-1">
-                        {name}
-                        {isSignificant && <Badge className="ml-2" variant="default">Significant</Badge>}
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        {hr > 1
-                          ? `A one-unit increase in ${name} is associated with a ${((hr - 1) * 100).toFixed(1)}% increase in hazard.`
-                          : hr < 1
-                            ? `A one-unit increase in ${name} is associated with a ${((1 - hr) * 100).toFixed(1)}% decrease in hazard.`
-                            : `${name} has no effect on hazard.`}
-                        {!isSignificant && ' (not statistically significant)'}
-                      </p>
-                    </div>
-                  )
-                })}
-
-                <div className="mt-4">
-                  <h4 className="font-semibold mb-2">Model Assumptions</h4>
-                  <ul className="text-sm space-y-1 text-muted-foreground">
-                    <li>Verify proportional hazards assumption using Schoenfeld residuals</li>
-                    <li>Check for influential observations</li>
-                    <li>Consider time-varying covariates if assumption violated</li>
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
+                  const ci = results.confidenceIntervals[idx]
+                  return `${name}: HR = ${hr.toFixed(3)} (95% CI: ${ci ? `${Math.exp(ci.lower).toFixed(3)}-${Math.exp(ci.upper).toFixed(3)}` : 'N/A'}), p = ${pVal < 0.001 ? '< 0.001' : pVal.toFixed(4)}`
+                }).join('\n'),
+                recommendation: (() => {
+                  const sigCovs = results.covariateNames.filter((_, idx) => results.pValues[idx] < 0.05)
+                  const hrInterpretations = sigCovs.map((name) => {
+                    const idx = results.covariateNames.indexOf(name)
+                    const hr = results.hazardRatios[idx]
+                    if (hr > 1) return `${name}: ${((hr - 1) * 100).toFixed(1)}% increased hazard per unit`
+                    if (hr < 1) return `${name}: ${((1 - hr) * 100).toFixed(1)}% decreased hazard per unit`
+                    return `${name}: no effect on hazard`
+                  })
+                  if (hrInterpretations.length === 0) return 'Consider alternative predictors or larger sample size.'
+                  return `Significant effects: ${hrInterpretations.join('; ')}`
+                })(),
+                caution: 'Verify proportional hazards assumption using Schoenfeld residuals. Check for influential observations and consider time-varying covariates if assumption is violated.'
+              }}
+              title="Cox Regression Results"
+            />
           </ContentTabsContent>
         </div>
       </div>
