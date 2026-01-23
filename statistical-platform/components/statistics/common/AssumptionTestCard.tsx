@@ -80,6 +80,7 @@ export function AssumptionTestCard({
   // 전체 가정 충족 여부
   const allPassed = tests.every(test => test.passed === true)
   const hasViolations = tests.some(test => test.passed === false)
+  const hasIncomplete = tests.some(test => test.passed === null)
   const hasWarnings = tests.some(test => test.severity === 'medium')
 
   // 심각도에 따른 색상 결정
@@ -151,9 +152,14 @@ export function AssumptionTestCard({
             </Collapsible>
           </div>
         </div>
-        {!allPassed && (
+        {hasViolations && (
           <CardDescription className="mt-1 text-sm font-medium">
             일부 통계적 가정이 충족되지 않았습니다
+          </CardDescription>
+        )}
+        {!allPassed && hasIncomplete && !hasViolations && (
+          <CardDescription className="mt-1 text-sm font-medium text-muted-foreground">
+            일부 검정이 아직 완료되지 않았습니다
           </CardDescription>
         )}
       </CardHeader>

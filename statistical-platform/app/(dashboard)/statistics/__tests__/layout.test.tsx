@@ -1,11 +1,12 @@
 import { render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
 import StatisticsLayout from '../layout'
 import { usePyodide } from '@/components/providers/PyodideProvider'
 
 // Mock PyodideProvider
-jest.mock('@/components/providers/PyodideProvider', () => ({
+vi.mock('@/components/providers/PyodideProvider', () => ({
   PyodideProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="pyodide-provider">{children}</div>,
-  usePyodide: jest.fn()
+  usePyodide: vi.fn()
 }))
 
 describe('StatisticsLayout', () => {
@@ -31,8 +32,8 @@ describe('StatisticsLayout', () => {
       isLoading: false,
       error: null,
       service: {
-        oneSampleTTest: jest.fn(),
-        normalityTest: jest.fn()
+        oneSampleTTest: vi.fn(),
+        normalityTest: vi.fn()
       }
     })
 

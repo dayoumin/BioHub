@@ -1,4 +1,5 @@
 import React from 'react'
+import { vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { EasyExplanation } from '../EasyExplanation'
@@ -8,25 +9,25 @@ import { StatisticalResultCard } from '../StatisticalResultCard'
 import { useSettingsStore } from '@/lib/stores/settings-store'
 
 // Mock useRouter
-const mockPush = jest.fn()
-jest.mock('next/navigation', () => ({
+const mockPush = vi.fn()
+vi.mock('next/navigation', () => ({
     useRouter: () => ({
         push: mockPush,
     }),
 }))
 
 // Mock Settings Store
-jest.mock('@/lib/stores/settings-store', () => ({
-    useSettingsStore: jest.fn(),
+vi.mock('@/lib/stores/settings-store', () => ({
+    useSettingsStore: vi.fn(),
 }))
 
 describe('Result Page Improvements', () => {
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
             // Default mock for store
             ; (useSettingsStore as unknown as jest.Mock).mockReturnValue({
                 userLevel: 'beginner',
-                setUserLevel: jest.fn(),
+                setUserLevel: vi.fn(),
             })
     })
 
@@ -129,7 +130,7 @@ describe('Result Page Improvements', () => {
         it('should render EasyExplanation in beginner mode', () => {
             ; (useSettingsStore as unknown as jest.Mock).mockReturnValue({
                 userLevel: 'beginner',
-                setUserLevel: jest.fn(),
+                setUserLevel: vi.fn(),
             })
 
             // Pass expandable={false} to ensure content is visible
@@ -141,7 +142,7 @@ describe('Result Page Improvements', () => {
         it('should hide EasyExplanation in expert mode', () => {
             ; (useSettingsStore as unknown as jest.Mock).mockReturnValue({
                 userLevel: 'expert',
-                setUserLevel: jest.fn(),
+                setUserLevel: vi.fn(),
             })
 
             render(<StatisticalResultCard result={mockResult} expandable={false} />)
@@ -149,7 +150,7 @@ describe('Result Page Improvements', () => {
         })
 
         it('should allow changing user level', () => {
-            const setUserLevel = jest.fn()
+            const setUserLevel = vi.fn()
                 ; (useSettingsStore as unknown as jest.Mock).mockReturnValue({
                     userLevel: 'beginner',
                     setUserLevel,

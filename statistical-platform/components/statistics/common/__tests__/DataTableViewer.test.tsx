@@ -1,4 +1,5 @@
 import React from 'react'
+import { vi } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import { DataTableViewer } from '../DataTableViewer'
 
@@ -14,14 +15,14 @@ const mockData = [
 const mockColumns = ['id', 'name', 'age', 'score']
 
 // Mock URL.createObjectURL and URL.revokeObjectURL
-const mockCreateObjectURL = jest.fn(() => 'mock-url')
-const mockRevokeObjectURL = jest.fn()
+const mockCreateObjectURL = vi.fn(() => 'mock-url')
+const mockRevokeObjectURL = vi.fn()
 global.URL.createObjectURL = mockCreateObjectURL
 global.URL.revokeObjectURL = mockRevokeObjectURL
 
 describe('DataTableViewer', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('렌더링', () => {
@@ -268,7 +269,7 @@ describe('DataTableViewer', () => {
 
   describe('제어 컴포넌트', () => {
     it('open prop으로 Sheet 상태를 제어할 수 있어야 함', () => {
-      const onOpenChange = jest.fn()
+      const onOpenChange = vi.fn()
 
       render(
         <DataTableViewer

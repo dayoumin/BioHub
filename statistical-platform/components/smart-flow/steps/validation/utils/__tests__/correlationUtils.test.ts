@@ -7,7 +7,7 @@
  * 3. Results match expected statistical values
  */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it, expect } from 'vitest'
 import { getPairedNumericData, calculateCorrelationMatrix, calculateCorrelation } from '../correlationUtils'
 
 describe('correlationUtils', () => {

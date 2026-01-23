@@ -1,4 +1,5 @@
 import React from 'react'
+import { vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { AssumptionTestCard, AssumptionSummary, AssumptionProgress, type AssumptionTest } from '../AssumptionTestCard'
@@ -138,7 +139,7 @@ describe('AssumptionTestCard', () => {
 
   describe('콜백 함수', () => {
     it('위반 시 onViolation 콜백이 호출되어야 함', () => {
-      const mockOnViolation = jest.fn()
+      const mockOnViolation = vi.fn()
       render(
         <AssumptionTestCard
           tests={[mockTests[1]]}

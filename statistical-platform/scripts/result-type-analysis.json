@@ -1,0 +1,3404 @@
+{
+  "summary": {
+    "totalPages": 48,
+    "analyzedPages": 48,
+    "errors": 0,
+    "uniqueFields": 263
+  },
+  "fieldFrequency": [
+    {
+      "field": "pValue",
+      "count": 24,
+      "percentage": "50.0"
+    },
+    {
+      "field": "statistic",
+      "count": 14,
+      "percentage": "29.2"
+    },
+    {
+      "field": "interpretation",
+      "count": 14,
+      "percentage": "29.2"
+    },
+    {
+      "field": "df",
+      "count": 10,
+      "percentage": "20.8"
+    },
+    {
+      "field": "confidenceInterval",
+      "count": 10,
+      "percentage": "20.8"
+    },
+    {
+      "field": "effectSize",
+      "count": 10,
+      "percentage": "20.8"
+    },
+    {
+      "field": "n",
+      "count": 10,
+      "percentage": "20.8"
+    },
+    {
+      "field": "significant",
+      "count": 8,
+      "percentage": "16.7"
+    },
+    {
+      "field": "variable",
+      "count": 5,
+      "percentage": "10.4"
+    },
+    {
+      "field": "mean",
+      "count": 4,
+      "percentage": "8.3"
+    },
+    {
+      "field": "successCount",
+      "count": 3,
+      "percentage": "6.3"
+    },
+    {
+      "field": "totalCount",
+      "count": 3,
+      "percentage": "6.3"
+    },
+    {
+      "field": "method",
+      "count": 3,
+      "percentage": "6.3"
+    },
+    {
+      "field": "std",
+      "count": 3,
+      "percentage": "6.3"
+    },
+    {
+      "field": "testType",
+      "count": 3,
+      "percentage": "6.3"
+    },
+    {
+      "field": "variable1",
+      "count": 3,
+      "percentage": "6.3"
+    },
+    {
+      "field": "variable2",
+      "count": 3,
+      "percentage": "6.3"
+    },
+    {
+      "field": "medianDiff",
+      "count": 3,
+      "percentage": "6.3"
+    },
+    {
+      "field": "value",
+      "count": 3,
+      "percentage": "6.3"
+    },
+    {
+      "field": "model_type",
+      "count": 3,
+      "percentage": "6.3"
+    },
+    {
+      "field": "observedProportion",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "total",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "nConditions",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "assumptions",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "normality",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "shapiroWilk",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "coefficients",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "variables",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "totalVariance",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "model",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "median",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "min",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "max",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "skewness",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "kurtosis",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "nGroups",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "trend",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "contingencyTable",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "group",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "nTotal",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "zScore",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "confidenceLevel",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "conclusion",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "model_info",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "link_function",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "n_observations",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "n_predictors",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "convergence",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "iterations",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "zStatistic",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "statistics",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "field": "mainEffects",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "factor",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "partialEtaSquared",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "observedPower",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "factor1",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "factor2",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "factor3",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "interaction12",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "interaction13",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "interaction23",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "interaction123",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "order",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "expectedProbability",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "alternative",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "lower",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "upper",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "categories",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "cramersV",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "crosstab",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "marginals",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "rowTotals",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "columnTotals",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "numClusters",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "clusterAssignments",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "centroids",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "inertia",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "silhouetteScore",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "calinski_harabasz_score",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "davies_bouldin_score",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "withinClusterSumSquares",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "totalWithinSS",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "betweenClusterSS",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "totalSS",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "clusterSizes",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "clusterStatistics",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "cluster",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "size",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "centroid",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "withinSS",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "avgSilhouette",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "qStatistic",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "nSubjects",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "conditionSuccessRates",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "condition",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "successRate",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "correlationMatrix",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "pairwiseCorrelations",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "scatterPlots",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "hazardRatios",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "pValues",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "totalCases",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "validCases",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "missingCases",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "analysisDate",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "functions",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "selectedFunctions",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "groupCentroids",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "classificationResults",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "accuracy",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "confusionMatrix",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "equalityTests",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "boxM",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "parameters",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "variableType",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "validCount",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "missingCount",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "missingPercent",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "descriptive",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "mode",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "q1",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "q3",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "iqr",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "outliers",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "outliersCount",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "numFactors",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "extraction",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "rotation",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "factorLoadings",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "communalities",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "eigenvalues",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "varianceExplained",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "cumulative",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "percentage",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "nBlocks",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "kendallW",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "survivalFunction",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "times",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "events",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "nRisk",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "medianSurvival",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "totalEvents",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "totalCensored",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "etaSquared",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "statisticKS",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "criticalValue",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "sampleSizes",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "n1",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "n2",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "h",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "p",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "z",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "tau",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "s",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "var_s",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "slope",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "intercept",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "uValue",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "nobs1",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "nobs2",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "rankSum1",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "rankSum2",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "overallTests",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "test",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "approximate_f",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "numerator_df",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "denominator_df",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "both_positive",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "first_positive_second_negative",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "first_negative_second_positive",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "both_negative",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "descriptives",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "sem",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "count",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "fixedEffects",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "effect",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "coefficient",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "standardError",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "tValue",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "significance",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "grandMedian",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "groupStats",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "aboveMedian",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "belowMedian",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "andersonDarling",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "dagostinoK2",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "jarqueBera",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "lilliefors",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "overallConclusion",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "descriptiveStats",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "sampleMean",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "sampleStd",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "testValue",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "tStatistic",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "meanDifference",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "seRror",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "independence",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "randomSample",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "correlations",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "partial_corr",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "t_stat",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "control_vars",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "components",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "selectedComponents",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "rotationMatrix",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "transformedData",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "variableContributions",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "qualityMetrics",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "kmo",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "bartlett",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "distribution",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "log_likelihood",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "analysisType",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "inputParameters",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "alpha",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "power",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "testProportion",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "continuityCorrection",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "cronbachAlpha",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "standardizedAlpha",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "itemCount",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "itemStatistics",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "item",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "stdDev",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "correctedItemTotal",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "alphaIfDeleted",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "fStatistic",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "numerator",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "denominator",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "totalRuns",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "expectedRuns",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "variance",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "runSequence",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "seasonal",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "residual",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "observed",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "period",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "seasonalStrength",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "trendStrength",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "trendMean",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "seasonalRange",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "residualStd",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "beforeVariable",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "afterVariable",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "nPositive",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "nNegative",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "nTies",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "adf",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "lags",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "criticalValues",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "final_model",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "r_squared",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "adj_r_squared",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "f_statistic",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "f_p_value",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "aic",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "bic",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "rmse",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "mean1",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "mean2",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "std1",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "std2",
+      "count": 1,
+      "percentage": "2.1"
+    },
+    {
+      "field": "cohensD",
+      "count": 1,
+      "percentage": "2.1"
+    }
+  ],
+  "categories": {
+    "핵심 공통 (80%+)": [],
+    "빈번 공통 (50-80%)": [
+      {
+        "field": "pValue",
+        "count": 24,
+        "percentage": 50
+      }
+    ],
+    "선택 공통 (20-50%)": [
+      {
+        "field": "statistic",
+        "count": 14,
+        "percentage": 29.166666666666668
+      },
+      {
+        "field": "interpretation",
+        "count": 14,
+        "percentage": 29.166666666666668
+      },
+      {
+        "field": "df",
+        "count": 10,
+        "percentage": 20.833333333333336
+      },
+      {
+        "field": "confidenceInterval",
+        "count": 10,
+        "percentage": 20.833333333333336
+      },
+      {
+        "field": "effectSize",
+        "count": 10,
+        "percentage": 20.833333333333336
+      },
+      {
+        "field": "n",
+        "count": 10,
+        "percentage": 20.833333333333336
+      }
+    ],
+    "고유 (<20%)": [
+      {
+        "field": "significant",
+        "count": 8,
+        "percentage": 16.666666666666664
+      },
+      {
+        "field": "variable",
+        "count": 5,
+        "percentage": 10.416666666666668
+      },
+      {
+        "field": "mean",
+        "count": 4,
+        "percentage": 8.333333333333332
+      },
+      {
+        "field": "successCount",
+        "count": 3,
+        "percentage": 6.25
+      },
+      {
+        "field": "totalCount",
+        "count": 3,
+        "percentage": 6.25
+      },
+      {
+        "field": "method",
+        "count": 3,
+        "percentage": 6.25
+      },
+      {
+        "field": "std",
+        "count": 3,
+        "percentage": 6.25
+      },
+      {
+        "field": "testType",
+        "count": 3,
+        "percentage": 6.25
+      },
+      {
+        "field": "variable1",
+        "count": 3,
+        "percentage": 6.25
+      },
+      {
+        "field": "variable2",
+        "count": 3,
+        "percentage": 6.25
+      },
+      {
+        "field": "medianDiff",
+        "count": 3,
+        "percentage": 6.25
+      },
+      {
+        "field": "value",
+        "count": 3,
+        "percentage": 6.25
+      },
+      {
+        "field": "model_type",
+        "count": 3,
+        "percentage": 6.25
+      },
+      {
+        "field": "observedProportion",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "total",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "nConditions",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "assumptions",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "normality",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "shapiroWilk",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "coefficients",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "variables",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "totalVariance",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "model",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "median",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "min",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "max",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "skewness",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "kurtosis",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "nGroups",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "trend",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "contingencyTable",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "group",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "nTotal",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "zScore",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "confidenceLevel",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "conclusion",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "model_info",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "link_function",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "n_observations",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "n_predictors",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "convergence",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "iterations",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "zStatistic",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "statistics",
+        "count": 2,
+        "percentage": 4.166666666666666
+      },
+      {
+        "field": "mainEffects",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "factor",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "partialEtaSquared",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "observedPower",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "factor1",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "factor2",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "factor3",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "interaction12",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "interaction13",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "interaction23",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "interaction123",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "order",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "expectedProbability",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "alternative",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "lower",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "upper",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "categories",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "cramersV",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "crosstab",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "marginals",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "rowTotals",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "columnTotals",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "numClusters",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "clusterAssignments",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "centroids",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "inertia",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "silhouetteScore",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "calinski_harabasz_score",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "davies_bouldin_score",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "withinClusterSumSquares",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "totalWithinSS",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "betweenClusterSS",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "totalSS",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "clusterSizes",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "clusterStatistics",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "cluster",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "size",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "centroid",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "withinSS",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "avgSilhouette",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "qStatistic",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "nSubjects",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "conditionSuccessRates",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "condition",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "successRate",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "correlationMatrix",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "pairwiseCorrelations",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "scatterPlots",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "hazardRatios",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "pValues",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "totalCases",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "validCases",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "missingCases",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "analysisDate",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "functions",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "selectedFunctions",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "groupCentroids",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "classificationResults",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "accuracy",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "confusionMatrix",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "equalityTests",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "boxM",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "parameters",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "variableType",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "validCount",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "missingCount",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "missingPercent",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "descriptive",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "mode",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "q1",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "q3",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "iqr",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "outliers",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "outliersCount",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "numFactors",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "extraction",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "rotation",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "factorLoadings",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "communalities",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "eigenvalues",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "varianceExplained",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "cumulative",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "percentage",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "nBlocks",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "kendallW",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "survivalFunction",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "times",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "events",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "nRisk",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "medianSurvival",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "totalEvents",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "totalCensored",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "etaSquared",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "statisticKS",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "criticalValue",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "sampleSizes",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "n1",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "n2",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "h",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "p",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "z",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "tau",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "s",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "var_s",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "slope",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "intercept",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "uValue",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "nobs1",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "nobs2",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "rankSum1",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "rankSum2",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "overallTests",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "test",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "approximate_f",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "numerator_df",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "denominator_df",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "both_positive",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "first_positive_second_negative",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "first_negative_second_positive",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "both_negative",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "descriptives",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "sem",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "count",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "fixedEffects",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "effect",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "coefficient",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "standardError",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "tValue",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "significance",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "grandMedian",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "groupStats",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "aboveMedian",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "belowMedian",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "andersonDarling",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "dagostinoK2",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "jarqueBera",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "lilliefors",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "overallConclusion",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "descriptiveStats",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "sampleMean",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "sampleStd",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "testValue",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "tStatistic",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "meanDifference",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "seRror",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "independence",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "randomSample",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "correlations",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "partial_corr",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "t_stat",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "control_vars",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "components",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "selectedComponents",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "rotationMatrix",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "transformedData",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "variableContributions",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "qualityMetrics",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "kmo",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "bartlett",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "distribution",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "log_likelihood",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "analysisType",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "inputParameters",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "alpha",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "power",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "testProportion",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "continuityCorrection",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "cronbachAlpha",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "standardizedAlpha",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "itemCount",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "itemStatistics",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "item",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "stdDev",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "correctedItemTotal",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "alphaIfDeleted",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "fStatistic",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "numerator",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "denominator",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "totalRuns",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "expectedRuns",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "variance",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "runSequence",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "seasonal",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "residual",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "observed",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "period",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "seasonalStrength",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "trendStrength",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "trendMean",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "seasonalRange",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "residualStd",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "beforeVariable",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "afterVariable",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "nPositive",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "nNegative",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "nTies",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "adf",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "lags",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "criticalValues",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "final_model",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "r_squared",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "adj_r_squared",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "f_statistic",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "f_p_value",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "aic",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "bic",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "rmse",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "mean1",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "mean2",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "std1",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "std2",
+        "count": 1,
+        "percentage": 2.083333333333333
+      },
+      {
+        "field": "cohensD",
+        "count": 1,
+        "percentage": 2.083333333333333
+      }
+    ]
+  },
+  "pages": [
+    {
+      "page": "ancova",
+      "typeName": "ANCOVAResult",
+      "fields": [
+        "mainEffects",
+        "factor",
+        "statistic",
+        "pValue",
+        "degreesOfFreedom",
+        "partialEtaSquared",
+        "observedPower"
+      ],
+      "fieldCount": 7
+    },
+    {
+      "page": "anova",
+      "typeName": "MultiFactorANOVAResults",
+      "fields": [
+        "factor1",
+        "factor2",
+        "factor3",
+        "interaction12",
+        "interaction13",
+        "interaction23",
+        "interaction123"
+      ],
+      "fieldCount": 7
+    },
+    {
+      "page": "arima",
+      "typeName": "ARIMAResults",
+      "fields": [
+        "order"
+      ],
+      "fieldCount": 1
+    },
+    {
+      "page": "binomial-test",
+      "typeName": "BinomialTestResult",
+      "fields": [
+        "pValue",
+        "successCount",
+        "totalCount",
+        "observedProportion",
+        "expectedProbability",
+        "alternative",
+        "significant",
+        "interpretation",
+        "confidenceInterval",
+        "lower",
+        "upper"
+      ],
+      "fieldCount": 11
+    },
+    {
+      "page": "chi-square",
+      "typeName": "ResultContextHeader",
+      "fields": [
+        "[외부 import]"
+      ],
+      "source": "@/components/statistics/common/ResultContextHeader"
+    },
+    {
+      "page": "chi-square-goodness",
+      "typeName": "ChiSquareGoodnessResult",
+      "fields": [
+        "statistic",
+        "pValue",
+        "degreesOfFreedom",
+        "categories",
+        "effectSize",
+        "cramersV",
+        "interpretation"
+      ],
+      "fieldCount": 7
+    },
+    {
+      "page": "chi-square-independence",
+      "typeName": "ChiSquareIndependenceResult",
+      "fields": [
+        "statistic",
+        "pValue",
+        "degreesOfFreedom",
+        "crosstab",
+        "marginals",
+        "rowTotals",
+        "columnTotals",
+        "total"
+      ],
+      "fieldCount": 8
+    },
+    {
+      "page": "cluster",
+      "typeName": "ClusterAnalysisResult",
+      "fields": [
+        "method",
+        "numClusters",
+        "clusterAssignments",
+        "centroids",
+        "inertia",
+        "silhouetteScore",
+        "calinski_harabasz_score",
+        "davies_bouldin_score",
+        "withinClusterSumSquares",
+        "totalWithinSS",
+        "betweenClusterSS",
+        "totalSS",
+        "clusterSizes",
+        "clusterStatistics",
+        "cluster",
+        "size",
+        "centroid",
+        "withinSS",
+        "avgSilhouette"
+      ],
+      "fieldCount": 19
+    },
+    {
+      "page": "cochran-q",
+      "typeName": "CochranQTestResult",
+      "fields": [
+        "qStatistic",
+        "pValue",
+        "df",
+        "significant",
+        "interpretation",
+        "nSubjects",
+        "nConditions",
+        "conditionSuccessRates",
+        "condition",
+        "successRate",
+        "successCount"
+      ],
+      "fieldCount": 11
+    },
+    {
+      "page": "correlation",
+      "typeName": "CorrelationResults",
+      "fields": [
+        "correlationMatrix",
+        "pairwiseCorrelations",
+        "scatterPlots",
+        "assumptions",
+        "normality",
+        "shapiroWilk"
+      ],
+      "fieldCount": 6
+    },
+    {
+      "page": "cox-regression",
+      "typeName": "CoxRegressionResults",
+      "fields": [
+        "coefficients",
+        "hazardRatios",
+        "pValues",
+        "confidenceIntervals"
+      ],
+      "fieldCount": 4
+    },
+    {
+      "page": "descriptive",
+      "typeName": "DescriptiveResults",
+      "fields": [
+        "variables",
+        "totalCases",
+        "validCases",
+        "missingCases",
+        "analysisDate"
+      ],
+      "fieldCount": 5
+    },
+    {
+      "page": "discriminant",
+      "typeName": "DiscriminantResult",
+      "fields": [
+        "functions",
+        "totalVariance",
+        "selectedFunctions",
+        "groupCentroids",
+        "classificationResults",
+        "accuracy",
+        "confusionMatrix",
+        "equalityTests",
+        "boxM",
+        "statistic",
+        "pValue",
+        "significant"
+      ],
+      "fieldCount": 12
+    },
+    {
+      "page": "dose-response",
+      "typeName": "DoseResponseResult",
+      "fields": [
+        "model",
+        "parameters"
+      ],
+      "fieldCount": 2
+    },
+    {
+      "page": "explore-data",
+      "typeName": "ExploreResults",
+      "fields": [
+        "variable",
+        "variableType",
+        "totalCount",
+        "validCount",
+        "missingCount",
+        "missingPercent",
+        "descriptive",
+        "mean",
+        "median",
+        "mode",
+        "std",
+        "min",
+        "max",
+        "q1",
+        "q3",
+        "iqr",
+        "skewness",
+        "kurtosis",
+        "outliers",
+        "outliersCount"
+      ],
+      "fieldCount": 20
+    },
+    {
+      "page": "factor-analysis",
+      "typeName": "FactorAnalysisResult",
+      "fields": [
+        "method",
+        "numFactors",
+        "extraction",
+        "rotation",
+        "factorLoadings",
+        "communalities",
+        "eigenvalues",
+        "varianceExplained",
+        "total",
+        "cumulative",
+        "percentage"
+      ],
+      "fieldCount": 11
+    },
+    {
+      "page": "friedman",
+      "typeName": "FriedmanResult",
+      "fields": [
+        "statistic",
+        "pValue",
+        "degreesOfFreedom",
+        "nBlocks",
+        "nConditions",
+        "effectSize",
+        "kendallW",
+        "interpretation"
+      ],
+      "fieldCount": 8
+    },
+    {
+      "page": "kaplan-meier",
+      "typeName": "KaplanMeierResults",
+      "fields": [
+        "survivalFunction",
+        "times",
+        "events",
+        "nRisk",
+        "medianSurvival",
+        "sampleSize",
+        "totalEvents",
+        "totalCensored"
+      ],
+      "fieldCount": 8
+    },
+    {
+      "page": "kruskal-wallis",
+      "typeName": "KruskalWallisResult",
+      "fields": [
+        "statistic",
+        "pValue",
+        "degreesOfFreedom",
+        "nGroups",
+        "totalN",
+        "effectSize",
+        "etaSquared",
+        "interpretation"
+      ],
+      "fieldCount": 8
+    },
+    {
+      "page": "ks-test",
+      "typeName": "KSTestResult",
+      "fields": [
+        "testType",
+        "variable1",
+        "variable2",
+        "statisticKS",
+        "pValue",
+        "criticalValue",
+        "significant",
+        "interpretation",
+        "effectSize",
+        "sampleSizes",
+        "n1",
+        "n2"
+      ],
+      "fieldCount": 12
+    },
+    {
+      "page": "mann-kendall",
+      "typeName": "MannKendallResult",
+      "fields": [
+        "trend",
+        "h",
+        "p",
+        "z",
+        "tau",
+        "s",
+        "var_s",
+        "slope",
+        "intercept"
+      ],
+      "fieldCount": 9
+    },
+    {
+      "page": "mann-whitney",
+      "typeName": "MannWhitneyResult",
+      "fields": [
+        "statistic",
+        "pValue",
+        "uValue",
+        "nobs1",
+        "nobs2",
+        "medianDiff",
+        "rankSum1",
+        "rankSum2",
+        "effectSize",
+        "value",
+        "interpretation"
+      ],
+      "fieldCount": 11
+    },
+    {
+      "page": "manova",
+      "typeName": "ManovaResult",
+      "fields": [
+        "overallTests",
+        "test",
+        "statistic",
+        "approximate_f",
+        "numerator_df",
+        "denominator_df",
+        "pValue"
+      ],
+      "fieldCount": 7
+    },
+    {
+      "page": "mcnemar",
+      "typeName": "McNemarTestResult",
+      "fields": [
+        "variable1",
+        "variable2",
+        "contingencyTable",
+        "both_positive",
+        "first_positive_second_negative",
+        "first_negative_second_positive",
+        "both_negative"
+      ],
+      "fieldCount": 7
+    },
+    {
+      "page": "means-plot",
+      "typeName": "MeansPlotResults",
+      "fields": [
+        "descriptives",
+        "group",
+        "mean",
+        "std",
+        "sem",
+        "count",
+        "ciLower",
+        "ciUpper"
+      ],
+      "fieldCount": 8
+    },
+    {
+      "page": "mixed-model",
+      "typeName": "MixedModelResult",
+      "fields": [
+        "fixedEffects",
+        "effect",
+        "coefficient",
+        "standardError",
+        "tValue",
+        "pValue",
+        "ci95Lower",
+        "ci95Upper",
+        "significance"
+      ],
+      "fieldCount": 9
+    },
+    {
+      "page": "mood-median",
+      "typeName": "MoodMedianTestResult",
+      "fields": [
+        "statistic",
+        "pValue",
+        "grandMedian",
+        "contingencyTable",
+        "significant",
+        "interpretation",
+        "nGroups",
+        "nTotal",
+        "groupStats",
+        "group",
+        "n",
+        "median",
+        "aboveMedian",
+        "belowMedian"
+      ],
+      "fieldCount": 14
+    },
+    {
+      "page": "non-parametric",
+      "typeName": "WilcoxonResult",
+      "fields": [
+        "statistic",
+        "pValue",
+        "nobs",
+        "zScore",
+        "medianDiff",
+        "effectSize",
+        "value",
+        "interpretation"
+      ],
+      "fieldCount": 8
+    },
+    {
+      "page": "normality-test",
+      "typeName": "NormalityResults",
+      "fields": [
+        "variable",
+        "sampleSize",
+        "shapiroWilk",
+        "andersonDarling",
+        "dagostinoK2",
+        "jarqueBera",
+        "lilliefors",
+        "overallConclusion",
+        "descriptiveStats",
+        "mean",
+        "std",
+        "skewness",
+        "kurtosis",
+        "min",
+        "max"
+      ],
+      "fieldCount": 15
+    },
+    {
+      "page": "one-sample-t",
+      "typeName": "OneSampleTResults",
+      "fields": [
+        "variable",
+        "sampleSize",
+        "sampleMean",
+        "sampleStd",
+        "testValue",
+        "tStatistic",
+        "degreesOfFreedom",
+        "pValue",
+        "confidenceLevel",
+        "ciLower",
+        "ciUpper",
+        "effectSize",
+        "meanDifference",
+        "seRror",
+        "interpretation",
+        "conclusion",
+        "assumptions",
+        "normality",
+        "independence",
+        "randomSample"
+      ],
+      "fieldCount": 20
+    },
+    {
+      "page": "ordinal-regression",
+      "typeName": "OrdinalRegressionResult",
+      "fields": [
+        "model_info",
+        "model_type",
+        "link_function",
+        "n_observations",
+        "n_predictors",
+        "convergence",
+        "iterations"
+      ],
+      "fieldCount": 7
+    },
+    {
+      "page": "partial-correlation",
+      "typeName": "PartialCorrelationResults",
+      "fields": [
+        "correlations",
+        "variable1",
+        "variable2",
+        "partial_corr",
+        "p_value",
+        "t_stat",
+        "df",
+        "control_vars"
+      ],
+      "fieldCount": 8
+    },
+    {
+      "page": "pca",
+      "typeName": "PCAResult",
+      "fields": [
+        "components",
+        "totalVariance",
+        "selectedComponents",
+        "rotationMatrix",
+        "transformedData",
+        "variableContributions",
+        "qualityMetrics",
+        "kmo",
+        "bartlett",
+        "statistic",
+        "pValue",
+        "significant"
+      ],
+      "fieldCount": 12
+    },
+    {
+      "page": "poisson",
+      "typeName": "PoissonRegressionResult",
+      "fields": [
+        "model_info",
+        "model_type",
+        "link_function",
+        "distribution",
+        "n_observations",
+        "n_predictors",
+        "convergence",
+        "iterations",
+        "log_likelihood"
+      ],
+      "fieldCount": 9
+    },
+    {
+      "page": "power-analysis",
+      "typeName": "PowerAnalysisResult",
+      "fields": [
+        "testType",
+        "analysisType",
+        "inputParameters",
+        "alpha",
+        "power",
+        "effectSize",
+        "sampleSize"
+      ],
+      "fieldCount": 7
+    },
+    {
+      "page": "proportion-test",
+      "typeName": "ProportionTestResults",
+      "fields": [
+        "variable",
+        "successCount",
+        "totalCount",
+        "observedProportion",
+        "testProportion",
+        "zStatistic",
+        "pValue",
+        "confidenceLevel",
+        "ciLower",
+        "ciUpper",
+        "method",
+        "interpretation",
+        "conclusion",
+        "effectSize",
+        "continuityCorrection"
+      ],
+      "fieldCount": 15
+    },
+    {
+      "page": "regression",
+      "typeName": "AssumptionTestResult",
+      "fields": [
+        "[type alias - 별도 분석 필요]"
+      ],
+      "source": "type-alias"
+    },
+    {
+      "page": "reliability",
+      "typeName": "ReliabilityResult",
+      "fields": [
+        "cronbachAlpha",
+        "standardizedAlpha",
+        "itemCount",
+        "sampleSize",
+        "itemStatistics",
+        "item",
+        "mean",
+        "stdDev",
+        "correctedItemTotal",
+        "alphaIfDeleted"
+      ],
+      "fieldCount": 10
+    },
+    {
+      "page": "repeated-measures-anova",
+      "typeName": "RepeatedMeasuresResults",
+      "fields": [
+        "fStatistic",
+        "pValue",
+        "df",
+        "numerator",
+        "denominator"
+      ],
+      "fieldCount": 5
+    },
+    {
+      "page": "response-surface",
+      "typeName": "ResponseSurfaceResult",
+      "fields": [
+        "model_type",
+        "coefficients"
+      ],
+      "fieldCount": 2
+    },
+    {
+      "page": "runs-test",
+      "typeName": "RunsTestResult",
+      "fields": [
+        "variable",
+        "totalRuns",
+        "expectedRuns",
+        "variance",
+        "zStatistic",
+        "pValue",
+        "significant",
+        "interpretation",
+        "runSequence",
+        "statistics"
+      ],
+      "fieldCount": 10
+    },
+    {
+      "page": "seasonal-decompose",
+      "typeName": "SeasonalDecomposeResults",
+      "fields": [
+        "trend",
+        "seasonal",
+        "residual",
+        "observed",
+        "period",
+        "model",
+        "seasonalStrength",
+        "trendStrength",
+        "statistics",
+        "trendMean",
+        "seasonalRange",
+        "residualStd"
+      ],
+      "fieldCount": 12
+    },
+    {
+      "page": "sign-test",
+      "typeName": "SignTestResult",
+      "fields": [
+        "beforeVariable",
+        "afterVariable",
+        "nPositive",
+        "nNegative",
+        "nTies",
+        "nTotal",
+        "pValue",
+        "significant",
+        "interpretation",
+        "testType"
+      ],
+      "fieldCount": 10
+    },
+    {
+      "page": "stationarity-test",
+      "typeName": "StationarityResults",
+      "fields": [
+        "adf",
+        "statistic",
+        "pValue",
+        "lags",
+        "nobs",
+        "criticalValues"
+      ],
+      "fieldCount": 6
+    },
+    {
+      "page": "stepwise",
+      "typeName": "StepwiseResults",
+      "fields": [
+        "final_model",
+        "variables",
+        "r_squared",
+        "adj_r_squared",
+        "f_statistic",
+        "f_p_value",
+        "aic",
+        "bic",
+        "rmse"
+      ],
+      "fieldCount": 9
+    },
+    {
+      "page": "t-test",
+      "typeName": "StatisticalResultCard",
+      "fields": [
+        "[외부 import]"
+      ],
+      "source": "@/components/statistics/common/StatisticalResultCard"
+    },
+    {
+      "page": "welch-t",
+      "typeName": "WelchTResult",
+      "fields": [
+        "statistic",
+        "pValue",
+        "df",
+        "mean1",
+        "mean2",
+        "std1",
+        "std2",
+        "cohensD"
+      ],
+      "fieldCount": 8
+    },
+    {
+      "page": "wilcoxon",
+      "typeName": "WilcoxonResult",
+      "fields": [
+        "statistic",
+        "pValue",
+        "nobs",
+        "zScore",
+        "medianDiff",
+        "effectSize",
+        "value",
+        "interpretation"
+      ],
+      "fieldCount": 8
+    }
+  ],
+  "errors": []
+}

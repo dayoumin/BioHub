@@ -11,12 +11,13 @@
  */
 
 import React from 'react'
+import { vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Mock framer-motion
-jest.mock('framer-motion', () => ({
+vi.mock('framer-motion', () => ({
   motion: {
     div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
   },
@@ -24,7 +25,7 @@ jest.mock('framer-motion', () => ({
 }))
 
 // Mock lucide-react icons
-jest.mock('lucide-react', () => ({
+vi.mock('lucide-react', () => ({
   Calculator: () => <div>Calculator Icon</div>,
   Target: () => <div>Target Icon</div>,
   BarChart3: () => <div>BarChart3 Icon</div>,
@@ -41,29 +42,29 @@ jest.mock('lucide-react', () => ({
 }))
 
 // Mock DataUploadStep
-jest.mock('@/components/smart-flow/steps/DataUploadStep', () => ({
+vi.mock('@/components/smart-flow/steps/DataUploadStep', () => ({
   DataUploadStep: () => <div>Data Upload Step</div>,
 }))
 
 // Mock VariableSelector
-jest.mock('@/components/variable-selection/VariableSelector', () => ({
+vi.mock('@/components/variable-selection/VariableSelector', () => ({
   VariableSelector: () => <div>Variable Selector</div>,
-  VariableAssignment: jest.fn(),
+  VariableAssignment: vi.fn(),
 }))
 
 // Mock StatisticsPageLayout
-jest.mock('@/components/statistics/StatisticsPageLayout', () => ({
+vi.mock('@/components/statistics/StatisticsPageLayout', () => ({
   StatisticsPageLayout: ({ children }: any) => <div>{children}</div>,
-  StatisticsStep: jest.fn(),
+  StatisticsStep: vi.fn(),
 }))
 
 // Mock StatisticsTable
-jest.mock('@/components/statistics/common/StatisticsTable', () => ({
+vi.mock('@/components/statistics/common/StatisticsTable', () => ({
   StatisticsTable: () => <div>Statistics Table</div>,
 }))
 
 // Mock recharts
-jest.mock('recharts', () => ({
+vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: any) => <div>{children}</div>,
   BarChart: ({ children }: any) => <div>{children}</div>,
   Bar: () => <div />,
@@ -75,7 +76,7 @@ jest.mock('recharts', () => ({
 }))
 
 // Mock Pyodide service
-jest.mock('@/hooks/use-pyodide-service', () => ({
+vi.mock('@/hooks/use-pyodide-service', () => ({
   usePyodideService: () => ({
     pyodideService: null,
   }),

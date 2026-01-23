@@ -9,14 +9,15 @@
  */
 
 import { ChatStorageIndexedDB } from '../chat-storage-indexed-db'
+import { vi } from 'vitest'
 import { IndexedDBManager } from '../indexed-db-manager'
 import type { ChatSession } from '@/lib/types/chat'
 
 // Mock BroadcastChannel
-global.BroadcastChannel = jest.fn(() => ({
-  postMessage: jest.fn(),
-  close: jest.fn(),
-  addEventListener: jest.fn(),
+global.BroadcastChannel = vi.fn(() => ({
+  postMessage: vi.fn(),
+  close: vi.fn(),
+  addEventListener: vi.fn(),
 })) as unknown as typeof BroadcastChannel
 
 describe('ChatStorageIndexedDB - Initialization Timing', () => {
@@ -138,7 +139,7 @@ describe('ChatStorageIndexedDB - Initialization Timing', () => {
 
       // 첫 번째 호출에서 실패
       let callCount = 0
-      jest.spyOn(IndexedDBManager.prototype, 'initialize').mockImplementation(async () => {
+      vi.spyOn(IndexedDBManager.prototype, 'initialize').mockImplementation(async () => {
         callCount++
         if (callCount === 1) {
           throw new Error('Simulated initialization failure')
@@ -154,7 +155,7 @@ describe('ChatStorageIndexedDB - Initialization Timing', () => {
       await expect(ChatStorageIndexedDB.initialize()).resolves.toBeUndefined()
 
       // Mock 복원
-      jest.restoreAllMocks()
+      vi.restoreAllMocks()
     })
   })
 
@@ -242,7 +243,7 @@ describe('ChatStorageIndexedDB - Initialization Timing', () => {
   describe('Error cases', () => {
     it('should throw error when manager fails to initialize after retry', async () => {
       // IndexedDB가 완전히 사용 불가능한 상황 시뮬레이션
-      jest.spyOn(IndexedDBManager.prototype, 'initialize').mockRejectedValue(
+      vi.spyOn(IndexedDBManager.prototype, 'initialize').mockRejectedValue(
         new Error('IndexedDB not supported')
       )
 
@@ -250,7 +251,7 @@ describe('ChatStorageIndexedDB - Initialization Timing', () => {
       await expect(ChatStorageIndexedDB.initialize()).rejects.toThrow()
 
       // Mock 복원
-      jest.restoreAllMocks()
+      vi.restoreAllMocks()
     })
 
     it('should handle database not initialized error gracefully', async () => {

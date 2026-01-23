@@ -4,7 +4,7 @@
  * 문서 청킹 로직 검증
  */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it, expect } from 'vitest'
 import {
   chunkDocument,
   estimateTokens,

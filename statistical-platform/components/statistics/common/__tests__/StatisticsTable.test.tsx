@@ -1,4 +1,5 @@
 import React from 'react'
+import { vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { StatisticsTable, type TableColumn } from '../StatisticsTable'
@@ -6,13 +7,13 @@ import { StatisticsTable, type TableColumn } from '../StatisticsTable'
 // Mock clipboard API
 Object.assign(navigator, {
   clipboard: {
-    writeText: jest.fn(),
+    writeText: vi.fn(),
   },
 })
 
 // Mock URL.createObjectURL
-global.URL.createObjectURL = jest.fn(() => 'blob:mock-url')
-global.URL.revokeObjectURL = jest.fn()
+global.URL.createObjectURL = vi.fn(() => 'blob:mock-url')
+global.URL.revokeObjectURL = vi.fn()
 
 describe('StatisticsTable', () => {
   const mockColumns: TableColumn[] = [
@@ -358,9 +359,9 @@ describe('StatisticsTable', () => {
       const downloadButton = screen.getByTitle('CSV 다운로드')
 
       // DOM에 임시 a 태그 생성을 모킹
-      const createElementSpy = jest.spyOn(document, 'createElement')
-      const appendChildSpy = jest.spyOn(document.body, 'appendChild')
-      const removeChildSpy = jest.spyOn(document.body, 'removeChild')
+      const createElementSpy = vi.spyOn(document, 'createElement')
+      const appendChildSpy = vi.spyOn(document.body, 'appendChild')
+      const removeChildSpy = vi.spyOn(document.body, 'removeChild')
 
       fireEvent.click(downloadButton)
 
@@ -369,7 +370,7 @@ describe('StatisticsTable', () => {
     })
 
     it('커스텀 액션이 실행되어야 함', () => {
-      const mockAction = jest.fn()
+      const mockAction = vi.fn()
 
       render(
         <StatisticsTable
@@ -394,7 +395,7 @@ describe('StatisticsTable', () => {
 
   describe('행 클릭 이벤트', () => {
     it('행 클릭 시 콜백이 호출되어야 함', () => {
-      const mockOnRowClick = jest.fn()
+      const mockOnRowClick = vi.fn()
 
       render(
         <StatisticsTable

@@ -11,6 +11,7 @@
  */
 
 import React from 'react'
+import { vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ProjectsSection } from './ProjectsSection'
@@ -59,19 +60,19 @@ const mockSession2: ChatSession = {
 
 // Mock 핸들러
 const mockHandlers = {
-  onToggleProject: jest.fn(),
-  onSelectSession: jest.fn(),
-  onToggleFavorite: jest.fn(),
-  onDeleteSession: jest.fn(),
-  onMoveSession: jest.fn(),
-  onEditProject: jest.fn(),
-  onDeleteProject: jest.fn(),
-  onCreateProject: jest.fn(),
+  onToggleProject: vi.fn(),
+  onSelectSession: vi.fn(),
+  onToggleFavorite: vi.fn(),
+  onDeleteSession: vi.fn(),
+  onMoveSession: vi.fn(),
+  onEditProject: vi.fn(),
+  onDeleteProject: vi.fn(),
+  onCreateProject: vi.fn(),
 }
 
 describe('ProjectsSection', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('렌더링', () => {

@@ -9,7 +9,7 @@
  * 2. non-parametric/page.tsx - 3단계 플로우 (인덱스  0, 1, 2)
  */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it, expect } from 'vitest'
 import type { StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 
 describe('단계 상태 계산 로직 검증', () => {

@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import userEvent from '@testing-library/user-event'
 import { DndContext } from '@dnd-kit/core'
 import { DroppableRoleZone } from '../DroppableRoleZone'
@@ -67,7 +68,7 @@ describe('DroppableRoleZone', () => {
   })
 
   it('변수 제거 버튼을 클릭하면 onRemoveVariable 호출되어야 함', () => {
-    const mockRemove = jest.fn()
+    const mockRemove = vi.fn()
 
     render(
       <DndContext>
@@ -204,7 +205,7 @@ describe('DroppableRoleZone', () => {
   })
 
   it('하이라이트는 1초 후 제거되어야 함', () => {
-    jest.useFakeTimers()
+    vi.useFakeTimers()
 
     const { rerender } = render(
       <DndContext>
@@ -230,17 +231,17 @@ describe('DroppableRoleZone', () => {
     expect(badge?.className).toContain('bg-primary/10')
 
     act(() => {
-      jest.advanceTimersByTime(1000)
+      vi.advanceTimersByTime(1000)
     })
 
     const badgeAfter = screen.getByText('그룹').parentElement
     expect(badgeAfter?.className).not.toContain('bg-primary/10')
 
-    jest.useRealTimers()
+    vi.useRealTimers()
   })
 
   it('연속 추가 시 마지막 변수만 1초 동안 하이라이트되어야 함', () => {
-    jest.useFakeTimers()
+    vi.useFakeTimers()
 
     const { rerender } = render(
       <DndContext>
@@ -263,7 +264,7 @@ describe('DroppableRoleZone', () => {
     )
 
     act(() => {
-      jest.advanceTimersByTime(500)
+      vi.advanceTimersByTime(500)
     })
 
     rerender(
@@ -282,18 +283,18 @@ describe('DroppableRoleZone', () => {
     expect(badge그룹?.className).not.toContain('bg-primary/10')
 
     act(() => {
-      jest.advanceTimersByTime(500)
+      vi.advanceTimersByTime(500)
     })
 
     expect(screen.getByText('처리').parentElement?.className).toContain('bg-primary/10')
 
     act(() => {
-      jest.advanceTimersByTime(500)
+      vi.advanceTimersByTime(500)
     })
 
     expect(screen.getByText('처리').parentElement?.className).not.toContain('bg-primary/10')
 
-    jest.useRealTimers()
+    vi.useRealTimers()
   })
 
   // Tooltip 기능 테스트 (2025-11-24 추가)
@@ -500,7 +501,7 @@ describe('DroppableRoleZone', () => {
     })
 
     it('Info 버튼 클릭 시 이벤트 전파가 중단되어야 함', () => {
-      const onClick = jest.fn()
+      const onClick = vi.fn()
       render(
         <DndContext>
           <DroppableRoleZone

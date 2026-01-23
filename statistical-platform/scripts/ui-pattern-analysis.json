@@ -1,0 +1,163 @@
+{
+  "summary": {
+    "totalPages": 48,
+    "analyzedPatterns": 12,
+    "commonComponents": 10
+  },
+  "patterns": [
+    {
+      "name": "resultCard",
+      "description": "결과 카드 섹션",
+      "pageCount": 48,
+      "percentage": "100.0"
+    },
+    {
+      "name": "statisticDisplay",
+      "description": "검정통계량 표시",
+      "pageCount": 48,
+      "percentage": "100.0"
+    },
+    {
+      "name": "interpretationSection",
+      "description": "해석/결론 섹션",
+      "pageCount": 45,
+      "percentage": "93.8"
+    },
+    {
+      "name": "chartSection",
+      "description": "차트/시각화 섹션",
+      "pageCount": 39,
+      "percentage": "81.3"
+    },
+    {
+      "name": "summaryCard",
+      "description": "요약 카드 섹션",
+      "pageCount": 32,
+      "percentage": "66.7"
+    },
+    {
+      "name": "assumptionSection",
+      "description": "가정 검정 섹션",
+      "pageCount": 28,
+      "percentage": "58.3"
+    },
+    {
+      "name": "dfDisplay",
+      "description": "자유도 표시",
+      "pageCount": 17,
+      "percentage": "35.4"
+    },
+    {
+      "name": "confidenceInterval",
+      "description": "신뢰구간 표시",
+      "pageCount": 15,
+      "percentage": "31.3"
+    },
+    {
+      "name": "effectSizeInterpret",
+      "description": "효과크기 해석",
+      "pageCount": 14,
+      "percentage": "29.2"
+    },
+    {
+      "name": "pValueDisplay",
+      "description": "p-value 표시 (< 0.001 처리)",
+      "pageCount": 12,
+      "percentage": "25.0"
+    },
+    {
+      "name": "significanceCheck",
+      "description": "유의성 판단 (p < 0.05)",
+      "pageCount": 11,
+      "percentage": "22.9"
+    },
+    {
+      "name": "postHocSection",
+      "description": "사후검정 섹션",
+      "pageCount": 9,
+      "percentage": "18.8"
+    }
+  ],
+  "componentUsage": [
+    {
+      "name": "ResultContextHeader",
+      "count": 48,
+      "percentage": "100.0"
+    },
+    {
+      "name": "StatisticsTable",
+      "count": 46,
+      "percentage": "95.8"
+    },
+    {
+      "name": "PValueBadge",
+      "count": 19,
+      "percentage": "39.6"
+    },
+    {
+      "name": "AssumptionTestCard",
+      "count": 3,
+      "percentage": "6.3"
+    },
+    {
+      "name": "EffectSizeCard",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "name": "StatisticalResultCard",
+      "count": 2,
+      "percentage": "4.2"
+    },
+    {
+      "name": "ConfidenceIntervalDisplay",
+      "count": 0,
+      "percentage": "0.0"
+    },
+    {
+      "name": "ResultInterpretation",
+      "count": 0,
+      "percentage": "0.0"
+    },
+    {
+      "name": "EasyExplanation",
+      "count": 0,
+      "percentage": "0.0"
+    },
+    {
+      "name": "NextStepsCard",
+      "count": 0,
+      "percentage": "0.0"
+    }
+  ],
+  "opportunities": [
+    {
+      "pattern": "효과크기 표시",
+      "patternPages": 14,
+      "compPages": 2,
+      "gap": 12,
+      "recommendation": "EffectSizeCard 컴포넌트 활용 확대"
+    },
+    {
+      "pattern": "신뢰구간 표시",
+      "patternPages": 15,
+      "compPages": 0,
+      "gap": 15,
+      "recommendation": "ConfidenceIntervalDisplay 컴포넌트 활용 시작"
+    },
+    {
+      "pattern": "가정 검정 섹션",
+      "patternPages": 28,
+      "compPages": 3,
+      "gap": 25,
+      "recommendation": "AssumptionTestCard 컴포넌트 활용 확대"
+    },
+    {
+      "pattern": "해석/결론 섹션",
+      "patternPages": 45,
+      "compPages": 0,
+      "gap": 45,
+      "recommendation": "ResultInterpretation 컴포넌트 활용 시작"
+    }
+  ]
+}
