@@ -275,12 +275,6 @@ export function EffectSizeGuidelines({ type = 'cohens_d', className }: EffectSiz
       { label: '중간', range: '0.5 - 0.8', color: 'bg-orange-100' },
       { label: '큼', range: '> 0.8', color: 'bg-red-100' }
     ],
-    cohen_d: [
-      { label: '무시할 만함', range: '< 0.2', color: 'bg-gray-100' },
-      { label: '작음', range: '0.2 - 0.5', color: 'bg-yellow-100' },
-      { label: '중간', range: '0.5 - 0.8', color: 'bg-orange-100' },
-      { label: '큼', range: '> 0.8', color: 'bg-red-100' }
-    ],
     hedges_g: [
       { label: '무시할 만함', range: '< 0.2', color: 'bg-gray-100' },
       { label: '작음', range: '0.2 - 0.5', color: 'bg-yellow-100' },

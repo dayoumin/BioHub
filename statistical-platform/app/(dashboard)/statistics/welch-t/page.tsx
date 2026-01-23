@@ -672,14 +672,10 @@ export default function WelchTPage() {
 
             {/* 효과크기 - 공통 컴포넌트 */}
             <EffectSizeCard
-              effectSizes={[{
-                name: "Cohen's d",
-                value: results.effectSize,
-                interpretation: results.effectSize < 0.2 ? '매우 작음' :
-                  results.effectSize < 0.5 ? '작음' :
-                  results.effectSize < 0.8 ? '중간' : '큼',
-                formula: "d = (M₁ - M₂) / √((s₁² + s₂²) / 2)"
-              }]}
+              title="Cohen's d"
+              value={results.effectSize}
+              type="cohens_d"
+              description="d = (M₁ - M₂) / √((s₁² + s₂²) / 2)"
             />
           </ContentTabsContent>
 

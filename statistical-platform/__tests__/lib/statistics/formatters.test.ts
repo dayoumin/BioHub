@@ -125,11 +125,11 @@ describe('formatters.ts', () => {
 
   describe('interpretEffectSize', () => {
     it('should interpret Cohen\'s d correctly', () => {
-      expect(interpretEffectSize(0.1, 'cohen_d')).toBe('매우 작음')
-      expect(interpretEffectSize(0.3, 'cohen_d')).toBe('작음')
-      expect(interpretEffectSize(0.6, 'cohen_d')).toBe('중간')
-      expect(interpretEffectSize(0.9, 'cohen_d')).toBe('큼')
-      expect(interpretEffectSize(1.5, 'cohen_d')).toBe('매우 큼')
+      expect(interpretEffectSize(0.1, 'cohens_d')).toBe('매우 작음')
+      expect(interpretEffectSize(0.3, 'cohens_d')).toBe('작음')
+      expect(interpretEffectSize(0.6, 'cohens_d')).toBe('중간')
+      expect(interpretEffectSize(0.9, 'cohens_d')).toBe('큼')
+      expect(interpretEffectSize(1.5, 'cohens_d')).toBe('매우 큼')
     })
 
     it('should interpret eta_squared correctly', () => {
@@ -187,11 +187,11 @@ describe('formatters.ts', () => {
   })
 
   describe('interpretEffectSizeEn', () => {
-    it('should return English strings for cohen_d', () => {
-      expect(interpretEffectSizeEn(0.1, 'cohen_d')).toBe('negligible')
-      expect(interpretEffectSizeEn(0.3, 'cohen_d')).toBe('small')
-      expect(interpretEffectSizeEn(0.6, 'cohen_d')).toBe('medium')
-      expect(interpretEffectSizeEn(0.9, 'cohen_d')).toBe('large')
+    it('should return English strings for cohens_d', () => {
+      expect(interpretEffectSizeEn(0.1, 'cohens_d')).toBe('negligible')
+      expect(interpretEffectSizeEn(0.3, 'cohens_d')).toBe('small')
+      expect(interpretEffectSizeEn(0.6, 'cohens_d')).toBe('medium')
+      expect(interpretEffectSizeEn(0.9, 'cohens_d')).toBe('large')
     })
 
     it('should use effectType parameter name (not type)', () => {

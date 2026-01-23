@@ -204,15 +204,14 @@ export function formatStatisticalResult(
 export function interpretEffectSize(
   effectSize: number,
   effectType:
-    | 'cohen_d' | 'cohens_d' | 'hedges_g' | 'glass_delta'
+    | 'cohens_d' | 'cohens_d' | 'hedges_g' | 'glass_delta'
     | 'eta_squared' | 'partial_eta_squared' | 'omega_squared' | 'epsilon_squared'
-    | 'r' | 'r_squared' | 'phi' | 'cramers_v' | 'w' = 'cohen_d'
+    | 'r' | 'r_squared' | 'phi' | 'cramers_v' | 'w' = 'cohens_d'
 ): string {
   const absValue = Math.abs(effectSize)
 
   switch (effectType) {
     // Cohen's d 계열 (표준화된 평균 차이)
-    case 'cohen_d':
     case 'cohens_d':
     case 'hedges_g':
     case 'glass_delta':
@@ -310,12 +309,12 @@ export function interpretPValueEn(pValue: number, alpha: number = 0.05): string 
  */
 export function interpretEffectSizeEn(
   effectSize: number,
-  effectType: 'cohen_d' | 'eta_squared' | 'r' = 'cohen_d'
+  effectType: 'cohens_d' | 'eta_squared' | 'r' = 'cohens_d'
 ): string {
   const absValue = Math.abs(effectSize)
 
   switch (effectType) {
-    case 'cohen_d':
+    case 'cohens_d':
       if (absValue < 0.2) return 'negligible'
       if (absValue < 0.5) return 'small'
       if (absValue < 0.8) return 'medium'

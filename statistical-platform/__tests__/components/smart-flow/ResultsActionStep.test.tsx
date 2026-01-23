@@ -54,7 +54,7 @@ vi.mock('@/lib/statistics/result-converter', () => ({
     alpha: 0.05,
     effectSize: {
       value: 0.72,
-      type: 'cohen_d'
+      type: 'cohens_d'
     }
   })
 }))
@@ -125,7 +125,7 @@ describe('ResultsActionStep - StatisticalResultCard Integration', () => {
         interpretation: 'Test',
         effectSize: {
           value: 0.72,
-          type: 'cohen_d',
+          type: 'cohens_d',
           interpretation: 'medium'
         }
       }

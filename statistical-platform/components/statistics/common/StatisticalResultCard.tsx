@@ -38,7 +38,7 @@ import {
 // 효과크기 타입별 툴팁 설명
 function getEffectSizeTooltip(type?: string): string {
   switch (type) {
-    case 'cohen_d':
+    case 'cohens_d':
       return "Cohen's d: 두 그룹 평균 차이를 표준편차로 나눈 값. |d| < 0.2 작음, 0.2-0.8 중간, > 0.8 큼"
     case 'eta_squared':
       return "Eta squared (η²): 총 분산 중 그룹 간 차이로 설명되는 비율. < 0.01 작음, 0.01-0.06 중간, > 0.14 큼"
@@ -58,7 +58,7 @@ function getEffectSizeInterpretation(value: number, type?: string): string {
   const absValue = Math.abs(value)
 
   switch (type) {
-    case 'cohen_d':
+    case 'cohens_d':
       if (absValue < 0.2) return '작음'
       if (absValue < 0.5) return '작음~중간'
       if (absValue < 0.8) return '중간'
@@ -101,7 +101,7 @@ export interface StatisticalResult {
   // 효과크기
   effectSize?: {
     value: number
-    type?: 'cohen_d' | 'eta_squared' | 'r' | 'phi' | 'cramers_v'
+    type?: 'cohens_d' | 'eta_squared' | 'r' | 'phi' | 'cramers_v'
     ci?: [number, number]
   }
 

@@ -757,14 +757,10 @@ export default function ProportionTestPage(): React.ReactElement {
 
           {/* 효과크기 - 공통 컴포넌트 */}
           <EffectSizeCard
-            effectSizes={[{
-              name: "Cohen's h (효과크기)",
-              value: results.effectSize,
-              interpretation: results.effectSize < 0.2 ? '작은 효과' :
-                results.effectSize < 0.5 ? '중간 효과' :
-                results.effectSize < 0.8 ? '큰 효과' : '매우 큰 효과',
-              formula: "h = 2(arcsin(√p̂) - arcsin(√p₀))"
-            }]}
+            title="Cohen's h (효과크기)"
+            value={results.effectSize}
+            type="phi"
+            description="h = 2(arcsin(√p̂) - arcsin(√p₀))"
           />
         </ContentTabsContent>
 

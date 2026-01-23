@@ -297,7 +297,7 @@ export default function TTestPage() {
       alpha: 0.05,
       effectSize: testResult.effect_size ? {
         value: testResult.effect_size.cohens_d,
-        type: 'cohen_d'
+        type: 'cohens_d'
       } : undefined,
       confidenceInterval: testResult.ciLower !== undefined && testResult.ciUpper !== undefined && testResult.mean_diff !== undefined ? {
         estimate: testResult.mean_diff,

@@ -37,7 +37,7 @@ describe('Result Page Improvements', () => {
                 <EasyExplanation
                     pValue={0.023}
                     isSignificant={true}
-                    effectSize={{ value: 0.8, type: 'cohen_d' }}
+                    effectSize={{ value: 0.8, type: 'cohens_d' }}
                 />
             )
             // Use getAllByText for percentages as they might appear in visual blocks too
@@ -123,7 +123,7 @@ describe('Result Page Improvements', () => {
             pValue: 0.02,
             statisticName: 't',
             df: 18,
-            effectSize: { value: 0.5, type: 'cohen_d' },
+            effectSize: { value: 0.5, type: 'cohens_d' },
             assumptions: [{ name: 'Normality', passed: true, pValue: 0.5 }],
         } as any
 

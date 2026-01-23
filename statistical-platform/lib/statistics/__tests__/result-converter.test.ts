@@ -57,11 +57,11 @@ describe('convertToStatisticalResult', () => {
 
       expect(result.effectSize).toEqual({
         value: 0.72,
-        type: 'cohen_d'
+        type: 'cohens_d'
       })
     })
 
-    it('should convert EffectSizeInfo object with cohen_d type', () => {
+    it('should convert EffectSizeInfo object with cohens_d type', () => {
       const effectSizeInfo: EffectSizeInfo = {
         value: 0.8,
         type: "Cohen's d",
@@ -80,7 +80,7 @@ describe('convertToStatisticalResult', () => {
 
       expect(result.effectSize).toEqual({
         value: 0.8,
-        type: 'cohen_d'
+        type: 'cohens_d'
       })
     })
 
@@ -123,7 +123,7 @@ describe('convertToStatisticalResult', () => {
 
       expect(result.effectSize).toEqual({
         value: 0.5,
-        type: 'cohen_d' // default fallback
+        type: 'cohens_d' // default fallback
       })
     })
 
@@ -144,7 +144,7 @@ describe('convertToStatisticalResult', () => {
 
       const result = convertToStatisticalResult(input)
 
-      expect(result.effectSize?.type).toBe('cohen_d')
+      expect(result.effectSize?.type).toBe('cohens_d')
     })
   })
 

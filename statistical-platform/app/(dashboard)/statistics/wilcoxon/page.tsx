@@ -622,12 +622,10 @@ export default function WilcoxonPage() {
             {/* 효과크기 - 공통 컴포넌트 */}
             <div className="mt-4">
               <EffectSizeCard
-                effectSizes={[{
-                  name: "효과크기 (r)",
-                  value: analysisResult.effectSize.value,
-                  interpretation: analysisResult.effectSize.interpretation,
-                  formula: "r = Z / √N"
-                }]}
+                title="효과크기 (r)"
+                value={analysisResult.effectSize.value}
+                type="r"
+                description="r = Z / √N"
               />
             </div>
           </ContentTabsContent>

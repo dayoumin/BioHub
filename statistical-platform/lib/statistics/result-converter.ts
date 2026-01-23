@@ -19,15 +19,15 @@ function convertEffectSize(
   if (typeof effectSize === 'number') {
     return {
       value: effectSize,
-      type: 'cohen_d' // 기본값
+      type: 'cohens_d' // 기본값
     }
   }
 
   // EffectSizeInfo -> StatisticalResult effectSize
-  const typeMap: Record<string, 'cohen_d' | 'eta_squared' | 'r' | 'phi' | 'cramers_v'> = {
-    "cohen's d": 'cohen_d',
-    "cohen_d": 'cohen_d',
-    "d": 'cohen_d',
+  const typeMap: Record<string, 'cohens_d' | 'eta_squared' | 'r' | 'phi' | 'cramers_v'> = {
+    "cohen's d": 'cohens_d',
+    "cohens_d": 'cohens_d',
+    "d": 'cohens_d',
     "eta-squared": 'eta_squared',
     "eta_squared": 'eta_squared',
     "eta²": 'eta_squared',
@@ -46,7 +46,7 @@ function convertEffectSize(
 
   return {
     value: effectSize.value,
-    type: typeMap[normalizedType] || 'cohen_d'
+    type: typeMap[normalizedType] || 'cohens_d'
   }
 }
 

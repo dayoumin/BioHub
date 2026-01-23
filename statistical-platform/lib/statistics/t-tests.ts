@@ -53,7 +53,7 @@ export async function oneSampleTTest(
   `)
   
   const parsedResult = JSON.parse(result)
-  parsedResult.interpretation = `${parsedResult.interpretation}. Effect size: ${interpretEffectSize(parsedResult.effectSize, 'cohen_d')}`
+  parsedResult.interpretation = `${parsedResult.interpretation}. Effect size: ${interpretEffectSize(parsedResult.effectSize, 'cohens_d')}`
   return parsedResult
 }
 
@@ -119,7 +119,7 @@ export async function twoSampleTTest(
   `)
   
   const parsedResult = JSON.parse(result)
-  parsedResult.interpretation = `${parsedResult.interpretation}. Effect size: ${interpretEffectSize(parsedResult.effectSize, 'cohen_d')}`
+  parsedResult.interpretation = `${parsedResult.interpretation}. Effect size: ${interpretEffectSize(parsedResult.effectSize, 'cohens_d')}`
   return parsedResult
 }
 
@@ -182,7 +182,7 @@ export async function pairedTTest(
   `)
   
   const parsedResult = JSON.parse(result)
-  parsedResult.interpretation = `${parsedResult.interpretation}. Effect size: ${interpretEffectSize(parsedResult.effectSize, 'cohen_d')}`
+  parsedResult.interpretation = `${parsedResult.interpretation}. Effect size: ${interpretEffectSize(parsedResult.effectSize, 'cohens_d')}`
   return parsedResult
 }
 

@@ -575,35 +575,26 @@ export default function DiscriminantPage() {
             />
           )}
 
-          {/* 해석 가이드 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">결과 해석 가이드</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertTitle>판별함수 해석</AlertTitle>
-                <AlertDescription>
-                  <div className="mt-2 space-y-2 text-sm">
-                    <p><strong>정준상관 &gt; 0.3:</strong> 해당 함수는 그룹 구별에 유의미</p>
-                    <p><strong>계수 절댓값 &gt; 0.5:</strong> 해당 변수가 판별에 중요한 역할</p>
-                    <p><strong>분류 정확도 &gt; 70%:</strong> 실용적인 분류 모델</p>
-                  </div>
-                </AlertDescription>
-              </Alert>
-
-              <div className="bg-muted p-4 rounded-lg">
-                <h4 className="font-medium mb-2">활용 방안</h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• 새로운 관찰치를 기존 그룹으로 분류</li>
-                  <li>• 그룹 간 차이를 만드는 주요 변수 파악</li>
-                  <li>• 분류 정확도를 높이기 위한 변수 조합 탐색</li>
-                  <li>• 잘못 분류된 케이스 분석으로 모델 개선</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
+          {/* 결과 해석 - 공통 컴포넌트 */}
+          <ResultInterpretation
+            result={{
+              summary: `분류 정확도 ${(results.accuracy * 100).toFixed(1)}%로 ${
+                results.accuracy >= 0.9 ? '매우 우수한' :
+                results.accuracy >= 0.8 ? '우수한' :
+                results.accuracy >= 0.7 ? '양호한' : '개선이 필요한'
+              } 판별 모델입니다. ${results.functions.length}개의 판별함수가 전체 분산의 ${results.totalVariance.toFixed(1)}%를 설명합니다.`,
+              details: `Wilks' Lambda: ${results.equalityTests.wilksLambda.statistic.toFixed(4)} (p = ${results.equalityTests.wilksLambda.pValue.toFixed(4)})
+Box's M 검정: ${results.equalityTests.boxM.statistic.toFixed(2)} (p = ${results.equalityTests.boxM.pValue.toFixed(4)})
+주요 판별함수: ${results.functions.slice(0, 2).map(f => `함수${f.functionNumber} (분산 ${f.varianceExplained.toFixed(1)}%, 정준상관 ${f.canonicalCorrelation.toFixed(3)})`).join(', ')}`,
+              recommendation: results.accuracy >= 0.7
+                ? '분류 정확도가 양호합니다. 새로운 관찰치 분류, 그룹 간 차이 변수 파악, 잘못 분류된 케이스 분석을 권장합니다.'
+                : '분류 정확도가 낮습니다. 변수 선택 재검토, 이상치 확인, 추가 변수 탐색을 고려해주세요.',
+              caution: !results.equalityTests.boxM.significant
+                ? '공분산 행렬 동질성 가정(Box\'s M)이 충족됩니다.'
+                : '공분산 행렬 동질성 가정이 위반되었습니다. 결과 해석에 주의가 필요합니다.'
+            }}
+            title="판별분석 결과 해석"
+          />
 
           {/* 액션 버튼 */}
           <div className="flex gap-3 justify-center pt-4">
