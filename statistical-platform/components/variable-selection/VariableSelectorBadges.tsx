@@ -50,7 +50,7 @@ export function VariableSelectorBadges({
   columns,
   selectedValue,
   onSelect,
-  _multiSelect = false,
+  multiSelect = false,
   placeholder = 'No columns available',
   maxBadgeWidth = 200,
   className = '',

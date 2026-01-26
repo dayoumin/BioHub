@@ -7,7 +7,7 @@
 
 import { StatisticalExecutor, StatisticalExecutorResult } from '@/lib/services/statistical-executor'
 
-import { vi } from 'vitest'
+import { vi, Mock } from 'vitest'
 // Define mock type explicitly
 interface MockPyodideStats {
   discriminantAnalysis: jest.Mock

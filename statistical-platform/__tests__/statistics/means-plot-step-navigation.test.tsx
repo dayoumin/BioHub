@@ -15,6 +15,9 @@ vi.mock('@/hooks/use-statistics-page', () => ({
   useStatisticsPage: vi.fn()
 }))
 
+// Import the mocked module to use vi.mocked()
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
+
 vi.mock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
   PyodideCoreService: {
     getInstance: vi.fn().mockReturnValue({
@@ -50,8 +53,8 @@ describe('Means Plot Page - Step Navigation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
 
-    const { useStatisticsPage } = require('@/hooks/use-statistics-page')
-    useStatisticsPage.mockReturnValue({
+    const mockedUseStatisticsPage = vi.mocked(useStatisticsPage)
+    mockedUseStatisticsPage.mockReturnValue({
       state: {
         currentStep: 3,
         uploadedData: {
@@ -96,9 +99,9 @@ describe('Means Plot Page - Step Navigation', () => {
     })
 
     it('요인변수 Badge 클릭 시 변수만 선택되고 Step 이동하지 않음', async () => {
-      const { useStatisticsPage } = require('@/hooks/use-statistics-page')
+      const mockedUseStatisticsPage = vi.mocked(useStatisticsPage)
 
-      useStatisticsPage.mockReturnValue({
+      mockedUseStatisticsPage.mockReturnValue({
         state: {
           currentStep: 3,
           uploadedData: {
@@ -135,9 +138,9 @@ describe('Means Plot Page - Step Navigation', () => {
     })
 
     it('"다음 단계" 버튼 클릭 시에만 Step 4로 이동하고 분석 실행', async () => {
-      const { useStatisticsPage } = require('@/hooks/use-statistics-page')
+      const mockedUseStatisticsPage = vi.mocked(useStatisticsPage)
 
-      useStatisticsPage.mockReturnValue({
+      mockedUseStatisticsPage.mockReturnValue({
         state: {
           currentStep: 3,
           uploadedData: {
@@ -170,9 +173,9 @@ describe('Means Plot Page - Step Navigation', () => {
     })
 
     it('변수 미선택 시 "다음 단계" 버튼 비활성화', () => {
-      const { useStatisticsPage } = require('@/hooks/use-statistics-page')
+      const mockedUseStatisticsPage = vi.mocked(useStatisticsPage)
 
-      useStatisticsPage.mockReturnValue({
+      mockedUseStatisticsPage.mockReturnValue({
         state: {
           currentStep: 3,
           uploadedData: {
@@ -196,9 +199,9 @@ describe('Means Plot Page - Step Navigation', () => {
     })
 
     it('종속변수만 선택 시 "다음 단계" 버튼 비활성화', () => {
-      const { useStatisticsPage } = require('@/hooks/use-statistics-page')
+      const mockedUseStatisticsPage = vi.mocked(useStatisticsPage)
 
-      useStatisticsPage.mockReturnValue({
+      mockedUseStatisticsPage.mockReturnValue({
         state: {
           currentStep: 3,
           uploadedData: {
@@ -224,9 +227,9 @@ describe('Means Plot Page - Step Navigation', () => {
 
   describe('Badge 선택/해제 토글', () => {
     it('선택된 종속변수를 다시 클릭하면 선택 해제됨', async () => {
-      const { useStatisticsPage } = require('@/hooks/use-statistics-page')
+      const mockedUseStatisticsPage = vi.mocked(useStatisticsPage)
 
-      useStatisticsPage.mockReturnValue({
+      mockedUseStatisticsPage.mockReturnValue({
         state: {
           currentStep: 3,
           uploadedData: {

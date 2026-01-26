@@ -11,7 +11,7 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { vi } from 'vitest'
+import { vi, Mock } from 'vitest'
 import { SettingsModal } from '@/components/layout/settings-modal'
 import { ChatStorage } from '@/lib/services/chat-storage'
 

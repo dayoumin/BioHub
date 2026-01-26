@@ -15,6 +15,9 @@ vi.mock('@/hooks/use-statistics-page', () => ({
   useStatisticsPage: vi.fn()
 }))
 
+// Import the mocked module to use vi.mocked()
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
+
 vi.mock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
   PyodideCoreService: {
     getInstance: vi.fn().mockReturnValue({
@@ -39,8 +42,8 @@ describe('One-Sample t-Test Page - Step Navigation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
 
-    const { useStatisticsPage } = require('@/hooks/use-statistics-page')
-    useStatisticsPage.mockReturnValue({
+    const mockedUseStatisticsPage = vi.mocked(useStatisticsPage)
+    mockedUseStatisticsPage.mockReturnValue({
       state: {
         currentStep: 3,
         uploadedData: {
@@ -84,9 +87,9 @@ describe('One-Sample t-Test Page - Step Navigation', () => {
     })
 
     it('여러 변수 중 하나를 선택할 수 있음 (단일 선택)', async () => {
-      const { useStatisticsPage } = require('@/hooks/use-statistics-page')
+      const mockedUseStatisticsPage = vi.mocked(useStatisticsPage)
 
-      useStatisticsPage.mockReturnValue({
+      mockedUseStatisticsPage.mockReturnValue({
         state: {
           currentStep: 3,
           uploadedData: {
@@ -122,9 +125,9 @@ describe('One-Sample t-Test Page - Step Navigation', () => {
     })
 
     it('"분석 실행" 버튼 클릭 시에만 Step 4로 이동하고 분석 실행', async () => {
-      const { useStatisticsPage } = require('@/hooks/use-statistics-page')
+      const mockedUseStatisticsPage = vi.mocked(useStatisticsPage)
 
-      useStatisticsPage.mockReturnValue({
+      mockedUseStatisticsPage.mockReturnValue({
         state: {
           currentStep: 3,
           uploadedData: {
@@ -157,9 +160,9 @@ describe('One-Sample t-Test Page - Step Navigation', () => {
     })
 
     it('변수 미선택 시 "분석 실행" 버튼 비활성화', () => {
-      const { useStatisticsPage } = require('@/hooks/use-statistics-page')
+      const mockedUseStatisticsPage = vi.mocked(useStatisticsPage)
 
-      useStatisticsPage.mockReturnValue({
+      mockedUseStatisticsPage.mockReturnValue({
         state: {
           currentStep: 3,
           uploadedData: {
@@ -183,9 +186,9 @@ describe('One-Sample t-Test Page - Step Navigation', () => {
     })
 
     it('검정값(testValue) 없으면 "분석 실행" 버튼 비활성화', () => {
-      const { useStatisticsPage } = require('@/hooks/use-statistics-page')
+      const mockedUseStatisticsPage = vi.mocked(useStatisticsPage)
 
-      useStatisticsPage.mockReturnValue({
+      mockedUseStatisticsPage.mockReturnValue({
         state: {
           currentStep: 3,
           uploadedData: {

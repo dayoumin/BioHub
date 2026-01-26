@@ -10,7 +10,7 @@
 
 import { OllamaRAGProvider } from '@/lib/rag/providers/ollama-provider'
 
-import { vi } from 'vitest'
+import { vi, Mock } from 'vitest'
 // Fetch mock
 global.fetch = vi.fn()
 

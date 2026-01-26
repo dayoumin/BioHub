@@ -10,7 +10,6 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { vi } from 'vitest'
 import {
   RAGService,
   queryRAG,
@@ -40,15 +39,13 @@ describe('RAGService', () => {
     RAGService.instance = null
 
     // ✅ Fetch 전역 모킹 설정 (Ollama 서버 대신)
-    // @ts-expect-error - 전역 fetch 모킹
     global.fetch = vi.fn().mockResolvedValue(mockOllamaTagsResponse)
   })
 
   afterEach(() => {
     // 테스트 후 fetch 모킹 정리
-    vi.clearAllMocks()
-    // @ts-expect-error - 모킹 제거
-    delete global.fetch
+    vi.clearAllMocks();
+    (global as unknown as { fetch?: typeof fetch }).fetch = undefined
   })
 
   describe('Singleton Pattern', () => {
@@ -260,7 +257,6 @@ describe('Utility Functions', () => {
     it('should return empty array if metadata file is not found', async () => {
       // 모의 fetch 설정
       const originalFetch = global.fetch
-      // @ts-expect-error - 모의 처리
       global.fetch = vi.fn().mockResolvedValueOnce({
         ok: false,
         status: 404,
@@ -289,7 +285,6 @@ describe('Utility Functions', () => {
       ]
 
       const originalFetch = global.fetch
-      // @ts-expect-error - 모의 처리
       global.fetch = vi.fn().mockResolvedValueOnce({
         ok: true,
         json: async () => mockStores,

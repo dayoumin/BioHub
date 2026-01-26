@@ -49,11 +49,11 @@ vi.mock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
 }))
 
 describe('Data Management Service', () => {
-  let mockReset: jest.Mock
-  let mockResetSession: jest.Mock
-  let mockClearCache: jest.Mock
-  let mockClearAllHistory: jest.Mock
-  let mockDispose: jest.Mock
+  let mockReset: Mock
+  let mockResetSession: Mock
+  let mockClearCache: Mock
+  let mockClearAllHistory: Mock
+  let mockDispose: Mock
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -217,8 +217,8 @@ describe('Data Management Service', () => {
 })
 
 describe('Integration with UI Components', () => {
-  let mockResetSession: jest.Mock
-  let mockClearCache: jest.Mock
+  let mockResetSession: Mock
+  let mockClearCache: Mock
 
   beforeEach(() => {
     vi.clearAllMocks()

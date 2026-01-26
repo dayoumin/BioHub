@@ -8,7 +8,6 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { vi } from 'vitest'
 import { RAGService, queryRAG } from '../rag-service'
 import type { RAGContext } from '../providers/base-provider'
 

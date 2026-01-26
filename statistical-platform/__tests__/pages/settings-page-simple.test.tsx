@@ -197,7 +197,7 @@ describe('IndexedDB cleanup graceful degradation', () => {
   })
 
   it('indexedDB.databases가 에러를 던져도 graceful하게 처리되어야 함', async () => {
-    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation()
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
     const mockIndexedDB = {
       databases: vi.fn().mockRejectedValue(new Error('Not supported')),

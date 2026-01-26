@@ -8,7 +8,7 @@
  */
 
 import { OllamaRAGProvider } from '@/lib/rag/providers/ollama-provider'
-import { vi } from 'vitest'
+import { vi, Mock } from 'vitest'
 import type { RAGContext } from '@/lib/rag/providers/base-provider'
 
 // Fetch mock

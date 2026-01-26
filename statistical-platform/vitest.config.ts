@@ -32,7 +32,6 @@ export default defineConfig({
     ],
     testTimeout: 30000,
     pool: 'forks',
-    maxForks: 2,
     coverage: {
       provider: 'v8',
       include: [

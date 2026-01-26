@@ -5,7 +5,7 @@
  */
 
 import { getAvailableVectorStores } from '@/lib/rag/rag-service'
-import { vi } from 'vitest'
+import { vi, Mock } from 'vitest'
 import type { VectorStore } from '@/lib/rag/providers/base-provider'
 
 // Mock fetch for testing

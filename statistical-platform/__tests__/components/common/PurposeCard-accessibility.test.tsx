@@ -163,7 +163,7 @@ describe('PurposeCard - Accessibility (ARIA Radio)', () => {
       const { container } = render(<PurposeCard {...defaultProps} selected={true} />)
 
       // ✅ Check icon 렌더링됨 (lucide-react Check 컴포넌트)
-      const checkIcon = container.querySelector('.text-primary.shrink-0')
+      const checkIcon = container.querySelector('.text-primary-foreground')
       expect(checkIcon).toBeInTheDocument()
     })
 
@@ -200,7 +200,7 @@ describe('PurposeCard - Accessibility (ARIA Radio)', () => {
     })
 
     it('should render examples when provided', () => {
-      render(<PurposeCard {...defaultProps} examples="예: 테스트 예시" />)
+      render(<PurposeCard {...defaultProps} examples="테스트 예시" />)
 
       expect(screen.getByText('예: 테스트 예시')).toBeInTheDocument()
     })

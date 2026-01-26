@@ -7,7 +7,7 @@
 
 import { OllamaRAGProvider } from '@/lib/rag/providers/ollama-provider'
 
-import { vi } from 'vitest'
+import { vi, Mock } from 'vitest'
 describe('OllamaRAGProvider - Think Tag Removal', () => {
   let provider: OllamaRAGProvider
 

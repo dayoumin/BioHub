@@ -7,7 +7,7 @@
  * - 에러 처리 검증
  */
 
-import { describe, it, expect, jest, beforeEach } from '@jest/globals'
+import { vi } from 'vitest'
 import * as path from 'path'
 
 // 테스트할 설정값 (semantic-rechunk.ts에서 export 필요)

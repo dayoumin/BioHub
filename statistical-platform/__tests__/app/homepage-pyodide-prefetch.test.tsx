@@ -81,7 +81,7 @@ describe('Homepage Pyodide Prefetch', () => {
 
   it('should silently catch initialization errors', async () => {
     // Arrange: Make initialize reject
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation()
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     mockInitialize.mockRejectedValueOnce(new Error('Network error'))
 
     render(<HomePage />)

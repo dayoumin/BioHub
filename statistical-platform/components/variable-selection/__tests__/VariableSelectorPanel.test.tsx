@@ -318,7 +318,7 @@ describe('VariableSelectorPanel', () => {
 
     it('존재하지 않는 methodId는 빈 역할을 반환해야 함', () => {
       // console.warn이 호출됨을 확인
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation()
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
       render(
         <TestWrapper>

@@ -4,7 +4,7 @@
 
 import { checkOllamaStatus } from '@/lib/rag/utils/ollama-check'
 
-import { vi } from 'vitest'
+import { vi, Mock } from 'vitest'
 // fetch 모킹
 global.fetch = vi.fn()
 

@@ -37,7 +37,7 @@ describe('E2E: Smart Analysis Removal', () => {
 
       expect(content).toContain('href="/smart-flow"')
       expect(content).not.toContain('href="/smart-analysis"')
-      expect(content).toContain('스마트 분석 시작하기')
+      expect(content).toContain('분석 시작하기')
     })
 
     it('app/(dashboard)/dashboard/page.tsx should reference /smart-flow', () => {

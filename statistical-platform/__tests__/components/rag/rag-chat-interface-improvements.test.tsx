@@ -246,8 +246,8 @@ describe('RAG Chat Interface Improvements', () => {
   describe('P3: 스트리밍 에러 로깅', () => {
     it('스트리밍 실패 시 에러 로깅이 되어야 함', async () => {
       // console.error mock
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation()
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation()
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
       // fetch를 실패하도록 mock
       global.fetch = vi.fn(() =>
