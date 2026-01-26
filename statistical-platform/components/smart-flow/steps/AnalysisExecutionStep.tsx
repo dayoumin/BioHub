@@ -302,13 +302,22 @@ export function AnalysisExecutionStep({
     }
   }
 
-  // 컴포넌트 마운트 시 분석 실행
+  // 컴포넌트 마운트 시 분석 실행 (variableMapping이 유효할 때만)
   useEffect(() => {
-    if (!isCancelled && !analysisResult) {
+    // variableMapping 유효성 검사: groupVar 또는 dependentVar가 있어야 함
+    const hasValidMapping = variableMapping && (
+      (variableMapping as Record<string, unknown>).groupVar ||
+      (variableMapping as Record<string, unknown>).dependentVar ||
+      (variableMapping as Record<string, unknown>).variables
+    )
+
+    if (!isCancelled && !analysisResult && hasValidMapping) {
+      logger.info('Starting analysis with variableMapping', { variableMapping })
       runAnalysis()
+    } else if (!hasValidMapping && !analysisResult) {
+      logger.warn('Waiting for valid variableMapping', { variableMapping })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // 의도적으로 빈 배열 사용
+  }, [isCancelled, analysisResult, variableMapping, runAnalysis])
 
   // 예상 시간 업데이트
   useEffect(() => {

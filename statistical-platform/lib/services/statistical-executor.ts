@@ -265,6 +265,13 @@ export class StatisticalExecutor {
     const group = getGroup()
     const variablesArray = getVariablesArray()
 
+    // 디버깅: 변수 추출 결과 로깅
+    logger.info('prepareData: Variable extraction', {
+      variables,
+      extracted: { dependent, independent, group, variablesArray },
+      dataColumns: data.length > 0 ? Object.keys(data[0]) : []
+    })
+
     // 변수 추출
     const arrays: PreparedArrays = {}
     const prepared: PreparedData = {
@@ -349,6 +356,13 @@ export class StatisticalExecutor {
             return typeof val === 'number' ? val : Number(val)
           })
           .filter((v: number) => !isNaN(v))
+      })
+
+      // 디버깅: 그룹 분할 결과 로깅
+      logger.info('prepareData: Group split result', {
+        groupColumn: group,
+        uniqueGroups: groups,
+        groupSizes: Object.entries(byGroup).map(([k, v]) => ({ group: k, count: v.length }))
       })
     }
 
