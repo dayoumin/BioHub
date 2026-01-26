@@ -23,7 +23,6 @@ const mockGetState = {
   loadHistoryFromDB: vi.fn().mockResolvedValue(undefined)
 }
 
-// @ts-expect-error - Adding getState to mock
 vi.mocked(useSmartFlowStore).getState = vi.fn().mockReturnValue(mockGetState)
 
 // Mock SmartFlowLayout

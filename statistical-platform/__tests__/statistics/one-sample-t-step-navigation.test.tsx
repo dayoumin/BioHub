@@ -36,7 +36,12 @@ describe('One-Sample t-Test Page - Step Navigation', () => {
     setSelectedVariables: vi.fn(),
     startAnalysis: vi.fn(),
     completeAnalysis: vi.fn(),
-    setError: vi.fn()
+    setError: vi.fn(),
+    nextStep: vi.fn(),
+    prevStep: vi.fn(),
+    updateVariableMapping: vi.fn(),
+    setResults: vi.fn(),
+    reset: vi.fn()
   }
 
   beforeEach(() => {
@@ -45,8 +50,9 @@ describe('One-Sample t-Test Page - Step Navigation', () => {
     const mockedUseStatisticsPage = vi.mocked(useStatisticsPage)
     mockedUseStatisticsPage.mockReturnValue({
       state: {
-        currentStep: 3,
-        uploadedData: {
+          currentStep: 3,
+          variableMapping: {},
+          uploadedData: {
           fileName: 'test.csv',
           data: [
             { age: 25, height: 170, weight: 65 },
@@ -92,6 +98,7 @@ describe('One-Sample t-Test Page - Step Navigation', () => {
       mockedUseStatisticsPage.mockReturnValue({
         state: {
           currentStep: 3,
+          variableMapping: {},
           uploadedData: {
             fileName: 'test.csv',
             data: [
@@ -130,6 +137,7 @@ describe('One-Sample t-Test Page - Step Navigation', () => {
       mockedUseStatisticsPage.mockReturnValue({
         state: {
           currentStep: 3,
+          variableMapping: {},
           uploadedData: {
             fileName: 'test.csv',
             data: [{ age: 25, height: 170 }],
@@ -165,6 +173,7 @@ describe('One-Sample t-Test Page - Step Navigation', () => {
       mockedUseStatisticsPage.mockReturnValue({
         state: {
           currentStep: 3,
+          variableMapping: {},
           uploadedData: {
             fileName: 'test.csv',
             data: [{ age: 25 }],
@@ -191,6 +200,7 @@ describe('One-Sample t-Test Page - Step Navigation', () => {
       mockedUseStatisticsPage.mockReturnValue({
         state: {
           currentStep: 3,
+          variableMapping: {},
           uploadedData: {
             fileName: 'test.csv',
             data: [{ age: 25 }],
