@@ -8,7 +8,7 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { vi } from 'vitest'
+import { vi, Mock } from 'vitest'
 import { RAGAssistantCompact } from '@/components/rag/rag-assistant-compact'
 import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexed-db'
 import type { ChatSession } from '@/lib/types/chat'
@@ -76,8 +76,8 @@ describe('RAGAssistantCompact - 헤더 UI', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    ;(ChatStorageIndexedDB.loadSessions as jest.Mock).mockResolvedValue(mockSessions)
-    ;(ChatStorageIndexedDB.createNewSession as jest.Mock).mockResolvedValue({
+    ;(ChatStorageIndexedDB.loadSessions as Mock).mockResolvedValue(mockSessions)
+    ;(ChatStorageIndexedDB.createNewSession as Mock).mockResolvedValue({
       id: 'new-session',
       title: '새 대화',
       messages: [],
@@ -132,7 +132,7 @@ describe('RAGAssistantCompact - 헤더 UI', () => {
   })
 
   it('세션 탭 클릭 시 세션 전환', async () => {
-    ;(ChatStorageIndexedDB.loadSession as jest.Mock).mockImplementation((id) => {
+    ;(ChatStorageIndexedDB.loadSession as Mock).mockImplementation((id) => {
       const session = mockSessions.find((s) => s.id === id)
       return Promise.resolve(session)
     })
@@ -165,7 +165,7 @@ describe('RAGAssistantCompact - 헤더 UI', () => {
       },
     ]
 
-    ;(ChatStorageIndexedDB.loadSessions as jest.Mock).mockResolvedValue(longTitleSessions)
+    ;(ChatStorageIndexedDB.loadSessions as Mock).mockResolvedValue(longTitleSessions)
 
     render(<RAGAssistantCompact />)
 
@@ -218,8 +218,8 @@ describe('RAGAssistantCompact - 헤더 UI', () => {
   })
 
   it('즐겨찾기 토글 버튼 클릭 시 isFavorite 상태 변경', async () => {
-    ;(ChatStorageIndexedDB.toggleFavorite as jest.Mock).mockResolvedValue(undefined)
-    ;(ChatStorageIndexedDB.loadSessions as jest.Mock).mockResolvedValue(
+    ;(ChatStorageIndexedDB.toggleFavorite as Mock).mockResolvedValue(undefined)
+    ;(ChatStorageIndexedDB.loadSessions as Mock).mockResolvedValue(
       mockSessions.map((s) =>
         s.id === 'session-1' ? { ...s, isFavorite: true } : s
       )

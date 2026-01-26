@@ -1,43 +1,68 @@
 /**
  * SmartFlowLayout Component Tests
  *
- * 목적: Phase A 리팩토링 검증
- * - SmartFlowLayout 렌더링 테스트
- * - Props 전달 테스트
- * - 히스토리/도움말 토글 테스트
- * - TwoPanelLayout 통합 테스트
+ * 목적: SmartFlowLayout v7 렌더링 검증
+ * - 헤더 렌더링 (NIFS 통계 분석 로고)
+ * - 히스토리/도움말 패널 토글
+ * - 분석 중 오버레이
  */
 
-import { describe, it, beforeEach, vi } from 'vitest'
 import { vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { SmartFlowLayout } from '@/components/smart-flow/layouts/SmartFlowLayout'
 
-// Mock TwoPanelLayout
-vi.mock('@/components/statistics/layouts/TwoPanelLayout', () => ({
-  TwoPanelLayout: ({ children, analysisTitle, analysisSubtitle }: {
-    children: React.ReactNode
-    analysisTitle?: string
-    analysisSubtitle?: string
-  }) => (
-    <div data-testid="two-panel-layout">
-      <div data-testid="analysis-title">{analysisTitle}</div>
-      <div data-testid="analysis-subtitle">{analysisSubtitle}</div>
-      {children}
-    </div>
-  )
+// Mock next/navigation
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  usePathname: () => '/smart-flow',
+}))
+
+// Mock next/link
+vi.mock('next/link', () => ({
+  default: ({ children, href }: { children: React.ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+}))
+
+// Mock FloatingStepIndicator
+vi.mock('@/components/common/FloatingStepIndicator', () => ({
+  FloatingStepIndicator: ({ currentStep }: { currentStep: number }) => (
+    <div data-testid="step-indicator">Step {currentStep}</div>
+  ),
+}))
+
+// Mock UI Context
+vi.mock('@/contexts/ui-context', () => ({
+  useUI: () => ({
+    openChatPanel: vi.fn(),
+    openSettings: vi.fn(),
+    openHelp: vi.fn(),
+    isSettingsOpen: false,
+    isHelpOpen: false,
+    closeSettings: vi.fn(),
+    closeHelp: vi.fn(),
+  }),
+}))
+
+// Mock modals
+vi.mock('@/components/layout/settings-modal', () => ({
+  SettingsModal: () => null,
+}))
+vi.mock('@/components/layout/help-modal', () => ({
+  HelpModal: () => null,
 }))
 
 describe('SmartFlowLayout', () => {
   const defaultProps = {
     currentStep: 1,
     steps: [
-      { id: 1, label: '데이터 업로드', completed: false },
-      { id: 2, label: '데이터 요약', completed: false },
-      { id: 3, label: '분석 목적', completed: false }
+      { id: 1, label: '탐색', completed: false },
+      { id: 2, label: '방법', completed: false },
+      { id: 3, label: '변수', completed: false },
+      { id: 4, label: '분석', completed: false },
     ],
-    children: <div data-testid="test-content">Test Content</div>
+    children: <div data-testid="test-content">Test Content</div>,
   }
 
   beforeEach(() => {
@@ -48,33 +73,15 @@ describe('SmartFlowLayout', () => {
     it('컴포넌트가 정상적으로 렌더링되어야 함', () => {
       render(<SmartFlowLayout {...defaultProps} />)
 
-      // 헤더에 "스마트 통계 분석" 텍스트가 있는지 확인 (getAllByText로 중복 허용)
-      const titles = screen.getAllByText('스마트 통계 분석')
-      expect(titles.length).toBeGreaterThanOrEqual(1)
+      // 헤더에 "NIFS 통계 분석" 링크가 있는지 확인
+      expect(screen.getByText('NIFS 통계 분석')).toBeInTheDocument()
       expect(screen.getByTestId('test-content')).toBeInTheDocument()
     })
 
-    it('TwoPanelLayout에 올바른 Props가 전달되어야 함', () => {
+    it('스텝 인디케이터가 렌더링되어야 함', () => {
       render(<SmartFlowLayout {...defaultProps} />)
 
-      expect(screen.getByTestId('analysis-title')).toHaveTextContent('스마트 통계 분석')
-      expect(screen.getByTestId('analysis-subtitle')).toHaveTextContent('AI-powered Statistical Analysis')
-    })
-
-    it('헤더에 분석 히스토리와 도움말 버튼이 표시되어야 함', () => {
-      const onHistoryToggle = vi.fn()
-      const onHelpToggle = vi.fn()
-
-      render(
-        <SmartFlowLayout
-          {...defaultProps}
-          onHistoryToggle={onHistoryToggle}
-          onHelpToggle={onHelpToggle}
-        />
-      )
-
-      expect(screen.getByText('분석 히스토리')).toBeInTheDocument()
-      expect(screen.getByText('데이터 제한 안내')).toBeInTheDocument()
+      expect(screen.getByTestId('step-indicator')).toBeInTheDocument()
     })
   })
 
@@ -116,13 +123,14 @@ describe('SmartFlowLayout', () => {
         />
       )
 
-      const historyButton = screen.getByText('분석 히스토리')
+      // title 속성으로 버튼 찾기
+      const historyButton = screen.getByTitle('분석 히스토리')
       fireEvent.click(historyButton)
 
       expect(onHistoryToggle).toHaveBeenCalledTimes(1)
     })
 
-    it('히스토리 패널의 X 버튼 클릭 시 onHistoryToggle이 호출되어야 함', () => {
+    it('히스토리 패널의 닫기 버튼 클릭 시 onHistoryToggle이 호출되어야 함', () => {
       const onHistoryToggle = vi.fn()
 
       render(
@@ -134,14 +142,12 @@ describe('SmartFlowLayout', () => {
         />
       )
 
-      // X 버튼은 2개 (히스토리 + 도움말 각각)
-      const closeButtons = screen.getAllByRole('button')
-      const historyCloseButton = closeButtons.find(btn =>
-        btn.closest('[data-testid]')?.textContent?.includes('분석 히스토리')
-      )
-
-      if (historyCloseButton) {
-        fireEvent.click(historyCloseButton)
+      // 히스토리 카드 헤더의 버튼 찾기 (X 버튼)
+      const historyTitle = screen.getByText('📊 분석 히스토리')
+      const cardHeader = historyTitle.closest('div')?.parentElement
+      const closeButton = cardHeader?.querySelector('button')
+      if (closeButton) {
+        fireEvent.click(closeButton)
         expect(onHistoryToggle).toHaveBeenCalled()
       }
     })
@@ -174,22 +180,6 @@ describe('SmartFlowLayout', () => {
       expect(screen.getByText('메모리별 권장 크기')).toBeInTheDocument()
     })
 
-    it('도움말 토글 버튼 클릭 시 onHelpToggle이 호출되어야 함', () => {
-      const onHelpToggle = vi.fn()
-
-      render(
-        <SmartFlowLayout
-          {...defaultProps}
-          onHelpToggle={onHelpToggle}
-        />
-      )
-
-      const helpButton = screen.getByText('데이터 제한 안내')
-      fireEvent.click(helpButton)
-
-      expect(onHelpToggle).toHaveBeenCalledTimes(1)
-    })
-
     it('systemMemory가 제공되면 감지된 메모리가 표시되어야 함', () => {
       render(
         <SmartFlowLayout
@@ -218,8 +208,7 @@ describe('SmartFlowLayout', () => {
   })
 
   describe('분석 중 상태', () => {
-    it('isAnalyzing이 true일 때 TwoPanelLayout에 전달되어야 함', () => {
-      // 이 테스트는 TwoPanelLayout mock을 확장하여 검증 가능
+    it('isAnalyzing이 true일 때 오버레이가 표시되어야 함', () => {
       render(
         <SmartFlowLayout
           {...defaultProps}
@@ -228,40 +217,47 @@ describe('SmartFlowLayout', () => {
         />
       )
 
-      // TwoPanelLayout이 올바른 props를 받았는지 확인
-      expect(screen.getByTestId('two-panel-layout')).toBeInTheDocument()
+      expect(screen.getByText('분석 중...')).toBeInTheDocument()
+    })
+
+    it('isAnalyzing이 false일 때 오버레이가 표시되지 않아야 함', () => {
+      render(
+        <SmartFlowLayout
+          {...defaultProps}
+          isAnalyzing={false}
+        />
+      )
+
+      expect(screen.queryByText('분석 중...')).not.toBeInTheDocument()
     })
   })
 
-  // Note: bottomPreview prop이 SmartFlowLayoutProps에서 제거되어 테스트 삭제됨
-
   describe('접근성', () => {
-    it('버튼에 아이콘과 텍스트가 모두 있어야 함', () => {
+    it('헤더 아이콘 버튼들이 title 속성을 가져야 함', () => {
       render(
         <SmartFlowLayout
           {...defaultProps}
           onHistoryToggle={vi.fn()}
-          onHelpToggle={vi.fn()}
         />
       )
 
-      // 버튼에 텍스트가 있는지 확인
-      expect(screen.getByText('분석 히스토리')).toBeInTheDocument()
-      expect(screen.getByText('데이터 제한 안내')).toBeInTheDocument()
+      expect(screen.getByTitle('분석 히스토리')).toBeInTheDocument()
+      expect(screen.getByTitle('AI 챗봇')).toBeInTheDocument()
+      expect(screen.getByTitle('도움말')).toBeInTheDocument()
+      expect(screen.getByTitle('설정')).toBeInTheDocument()
     })
   })
 
   describe('CSS 클래스', () => {
-    it('커스텀 className이 TwoPanelLayout에 전달되어야 함', () => {
-      render(
+    it('커스텀 className이 적용되어야 함', () => {
+      const { container } = render(
         <SmartFlowLayout
           {...defaultProps}
           className="custom-class"
         />
       )
 
-      // TwoPanelLayout이 렌더링되었는지 확인 (className은 mock에서 확인 불가)
-      expect(screen.getByTestId('two-panel-layout')).toBeInTheDocument()
+      expect(container.firstChild).toHaveClass('custom-class')
     })
   })
 })

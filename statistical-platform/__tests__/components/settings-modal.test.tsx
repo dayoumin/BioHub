@@ -54,7 +54,7 @@ describe('SettingsModal', () => {
     })
 
     // ChatStorage 기본값 설정
-    ;(ChatStorage.loadSettings as jest.Mock).mockReturnValue({
+    ;(ChatStorage.loadSettings as Mock).mockReturnValue({
       floatingButtonEnabled: false,
       theme: 'system',
     })
@@ -113,7 +113,7 @@ describe('SettingsModal', () => {
     })
 
     it('ChatStorage에서 플로팅 버튼 설정을 로드해야 함', () => {
-      ;(ChatStorage.loadSettings as jest.Mock).mockReturnValue({
+      ;(ChatStorage.loadSettings as Mock).mockReturnValue({
         floatingButtonEnabled: true,
         theme: 'system',
       })
@@ -222,7 +222,7 @@ describe('SettingsModal', () => {
 
   describe('동적 텍스트', () => {
     it('플로팅 버튼이 활성화되면 적절한 메시지가 표시되어야 함', () => {
-      ;(ChatStorage.loadSettings as jest.Mock).mockReturnValue({
+      ;(ChatStorage.loadSettings as Mock).mockReturnValue({
         floatingButtonEnabled: true,
         theme: 'system',
       })
@@ -233,7 +233,7 @@ describe('SettingsModal', () => {
     })
 
     it('플로팅 버튼이 비활성화되면 적절한 메시지가 표시되어야 함', () => {
-      ;(ChatStorage.loadSettings as jest.Mock).mockReturnValue({
+      ;(ChatStorage.loadSettings as Mock).mockReturnValue({
         floatingButtonEnabled: false,
         theme: 'system',
       })

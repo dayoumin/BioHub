@@ -3,15 +3,14 @@
  */
 
 import React from 'react'
-import { vi } from 'vitest'
-import { describe, it, vi, beforeEach, afterEach } from 'vitest'
+import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { FeedbackPanel } from '@/components/feedback/FeedbackPanel'
 
 // Mock fetch
-const mockFetch = vi.fn() as jest.MockedFunction<typeof fetch>
-global.fetch = mockFetch
+const mockFetch = vi.fn()
+global.fetch = mockFetch as unknown as typeof fetch
 
 // Mock localStorage
 const localStorageMock = {
@@ -22,6 +21,14 @@ const localStorageMock = {
 }
 Object.defineProperty(window, 'localStorage', { value: localStorageMock })
 
+// Mock next/image
+vi.mock('next/image', () => ({
+  default: (props: Record<string, unknown>) => {
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+    return React.createElement('img', props)
+  },
+}))
+
 describe('FeedbackPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -29,11 +36,11 @@ describe('FeedbackPanel', () => {
     mockFetch.mockResolvedValue({
       ok: true,
       json: async () => ({
-        votes: { 'ind-ttest': 5, 'pearson': 3 },
+        votes: { 't-test': 5, 'correlation': 3 },
         vote_details: [],
         comments: [],
       }),
-    } as Response)
+    })
   })
 
   afterEach(() => {
@@ -44,7 +51,7 @@ describe('FeedbackPanel', () => {
     it('renders floating button when closed', () => {
       render(<FeedbackPanel />)
 
-      // Should show the floating button with tooltip text
+      // Should show the floating button
       const button = screen.getByRole('button')
       expect(button).toBeInTheDocument()
     })
@@ -56,7 +63,8 @@ describe('FeedbackPanel', () => {
       fireEvent.click(button)
 
       await waitFor(() => {
-        expect(screen.getByText('어떤 분석을 점검할까요?')).toBeInTheDocument()
+        // 새로운 UI: "한참 작업 중이예요" 메시지
+        expect(screen.getByText(/한참 작업 중이예요/)).toBeInTheDocument()
       })
     })
   })
@@ -69,9 +77,10 @@ describe('FeedbackPanel', () => {
       fireEvent.click(screen.getByRole('button'))
 
       await waitFor(() => {
-        expect(screen.getByText('점검 요청')).toBeInTheDocument()
-        expect(screen.getByText('순위')).toBeInTheDocument()
-        expect(screen.getByText('메모')).toBeInTheDocument()
+        // 새로운 탭 이름
+        expect(screen.getByText('순위투표')).toBeInTheDocument()
+        expect(screen.getByText('인기순위')).toBeInTheDocument()
+        expect(screen.getByText('자유의견')).toBeInTheDocument()
       })
     })
 
@@ -82,9 +91,10 @@ describe('FeedbackPanel', () => {
       fireEvent.click(screen.getByRole('button'))
 
       await waitFor(() => {
-        expect(screen.getByText('비교 분석')).toBeInTheDocument()
-        expect(screen.getByText('상관/회귀')).toBeInTheDocument()
-        expect(screen.getByText('비모수 검정')).toBeInTheDocument()
+        // 새로운 카테고리 이름
+        expect(screen.getByText('비교 분석 (차이 검정)')).toBeInTheDocument()
+        expect(screen.getByText('관계 분석 (상관/회귀)')).toBeInTheDocument()
+        expect(screen.getByText('비모수/범주형 검정')).toBeInTheDocument()
       })
     })
 
@@ -95,14 +105,15 @@ describe('FeedbackPanel', () => {
       fireEvent.click(screen.getByRole('button'))
 
       await waitFor(() => {
-        expect(screen.getByText('순위')).toBeInTheDocument()
+        expect(screen.getByText('인기순위')).toBeInTheDocument()
       })
 
-      // Click ranking tab
-      fireEvent.click(screen.getByText('순위'))
+      // Click ranking tab (인기순위)
+      fireEvent.click(screen.getByText('인기순위'))
 
+      // 인기순위 탭은 method list를 보여줌 (votes가 있으면)
       await waitFor(() => {
-        expect(screen.getByText('현재까지 가장 많이 요청된 분석 방법')).toBeInTheDocument()
+        expect(screen.getByText('인기순위')).toBeInTheDocument()
       })
     })
 
@@ -113,16 +124,18 @@ describe('FeedbackPanel', () => {
       fireEvent.click(screen.getByRole('button'))
 
       await waitFor(() => {
-        expect(screen.getByText('메모')).toBeInTheDocument()
+        expect(screen.getByText('자유의견')).toBeInTheDocument()
       })
 
-      // Click memo tab
-      fireEvent.click(screen.getByText('메모'))
+      // Click memo tab (자유의견)
+      fireEvent.click(screen.getByText('자유의견'))
 
       await waitFor(() => {
-        expect(screen.getByText('자유롭게 의견을 남겨주세요')).toBeInTheDocument()
-        expect(screen.getByText('버그 신고')).toBeInTheDocument()
-        expect(screen.getByText('기능 요청')).toBeInTheDocument()
+        // 새로운 UI: 카테고리 버튼들
+        expect(screen.getByText('버그')).toBeInTheDocument()
+        expect(screen.getByText('기능')).toBeInTheDocument()
+        expect(screen.getByText('개선')).toBeInTheDocument()
+        expect(screen.getByText('기타')).toBeInTheDocument()
       })
     })
 
@@ -133,7 +146,7 @@ describe('FeedbackPanel', () => {
       fireEvent.click(screen.getByRole('button'))
 
       await waitFor(() => {
-        expect(screen.getByText('어떤 분석을 점검할까요?')).toBeInTheDocument()
+        expect(screen.getByText(/한참 작업 중이예요/)).toBeInTheDocument()
       })
 
       // Find and click the close button (X)
@@ -143,9 +156,9 @@ describe('FeedbackPanel', () => {
         fireEvent.click(closeButton)
       }
 
-      // Panel should close, showing floating button again
+      // Panel should close
       await waitFor(() => {
-        expect(screen.queryByText('어떤 분석을 점검할까요?')).not.toBeInTheDocument()
+        expect(screen.queryByText(/한참 작업 중이예요/)).not.toBeInTheDocument()
       })
     })
   })
@@ -167,11 +180,11 @@ describe('FeedbackPanel', () => {
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ votes: {}, vote_details: [], comments: [] }),
-        } as Response)
+        })
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ success: true, method_id: 'ind-ttest', votes: 1 }),
-        } as Response)
+          json: async () => ({ success: true, method_id: 't-test', votes: 1 }),
+        })
 
       render(<FeedbackPanel />)
 
@@ -179,17 +192,24 @@ describe('FeedbackPanel', () => {
       fireEvent.click(screen.getByRole('button'))
 
       await waitFor(() => {
-        expect(screen.getByText('Independent t-test')).toBeInTheDocument()
+        expect(screen.getByText('비교 분석 (차이 검정)')).toBeInTheDocument()
+      })
+
+      // Expand the category
+      fireEvent.click(screen.getByText('비교 분석 (차이 검정)'))
+
+      await waitFor(() => {
+        expect(screen.getByText('t검정 (독립/대응)')).toBeInTheDocument()
       })
 
       // Click on a method to vote
-      fireEvent.click(screen.getByText('Independent t-test'))
+      fireEvent.click(screen.getByText('t검정 (독립/대응)'))
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith('/api/feedback', expect.objectContaining({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'vote', method_id: 'ind-ttest' }),
+          body: JSON.stringify({ type: 'vote', method_id: 't-test' }),
         }))
       })
     })
@@ -199,11 +219,11 @@ describe('FeedbackPanel', () => {
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ votes: {}, vote_details: [], comments: [] }),
-        } as Response)
+        })
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ success: true, method_id: 'ind-ttest', votes: 1 }),
-        } as Response)
+          json: async () => ({ success: true, method_id: 't-test', votes: 1 }),
+        })
 
       render(<FeedbackPanel />)
 
@@ -211,23 +231,30 @@ describe('FeedbackPanel', () => {
       fireEvent.click(screen.getByRole('button'))
 
       await waitFor(() => {
-        expect(screen.getByText('Independent t-test')).toBeInTheDocument()
+        expect(screen.getByText('비교 분석 (차이 검정)')).toBeInTheDocument()
+      })
+
+      // Expand the category
+      fireEvent.click(screen.getByText('비교 분석 (차이 검정)'))
+
+      await waitFor(() => {
+        expect(screen.getByText('t검정 (독립/대응)')).toBeInTheDocument()
       })
 
       // Click on a method to vote
-      fireEvent.click(screen.getByText('Independent t-test'))
+      fireEvent.click(screen.getByText('t검정 (독립/대응)'))
 
       await waitFor(() => {
         expect(localStorageMock.setItem).toHaveBeenCalledWith(
           'feedback_voted_ids',
-          expect.stringContaining('ind-ttest')
+          expect.stringContaining('t-test')
         )
       })
     })
   })
 
   describe('Comment functionality', () => {
-    it('disables submit button when no category selected', async () => {
+    it('disables submit button when comment is empty', async () => {
       render(<FeedbackPanel />)
 
       // Open the panel
@@ -235,21 +262,23 @@ describe('FeedbackPanel', () => {
 
       // Switch to memo tab
       await waitFor(() => {
-        expect(screen.getByText('메모')).toBeInTheDocument()
+        expect(screen.getByText('자유의견')).toBeInTheDocument()
       })
-      fireEvent.click(screen.getByText('메모'))
+      fireEvent.click(screen.getByText('자유의견'))
 
       await waitFor(() => {
-        const textarea = screen.getByPlaceholderText('어떤 생각이든 좋아요...')
-        fireEvent.change(textarea, { target: { value: 'Test comment' } })
+        // 새로운 placeholder
+        const textarea = screen.getByPlaceholderText(/버그, 아이디어 등 자유롭게/)
+        expect(textarea).toBeInTheDocument()
       })
 
-      // Submit button should be disabled without category
-      const submitButton = screen.getByRole('button', { name: /보내기/i })
-      expect(submitButton).toBeDisabled()
+      // Submit button should be disabled without content
+      const submitButtons = screen.getAllByRole('button')
+      const sendButton = submitButtons.find(btn => btn.querySelector('.lucide-send'))
+      expect(sendButton).toBeDisabled()
     })
 
-    it('enables submit button when category and content provided', async () => {
+    it('enables submit button when content provided', async () => {
       render(<FeedbackPanel />)
 
       // Open the panel
@@ -257,22 +286,20 @@ describe('FeedbackPanel', () => {
 
       // Switch to memo tab
       await waitFor(() => {
-        expect(screen.getByText('메모')).toBeInTheDocument()
+        expect(screen.getByText('자유의견')).toBeInTheDocument()
       })
-      fireEvent.click(screen.getByText('메모'))
+      fireEvent.click(screen.getByText('자유의견'))
 
       await waitFor(() => {
-        // Select a category
-        fireEvent.click(screen.getByText('버그 신고'))
-
         // Enter comment
-        const textarea = screen.getByPlaceholderText('어떤 생각이든 좋아요...')
+        const textarea = screen.getByPlaceholderText(/버그, 아이디어 등 자유롭게/)
         fireEvent.change(textarea, { target: { value: 'Test comment' } })
       })
 
       // Submit button should be enabled
-      const submitButton = screen.getByRole('button', { name: /보내기/i })
-      expect(submitButton).not.toBeDisabled()
+      const submitButtons = screen.getAllByRole('button')
+      const sendButton = submitButtons.find(btn => btn.querySelector('.lucide-send'))
+      expect(sendButton).not.toBeDisabled()
     })
   })
 })

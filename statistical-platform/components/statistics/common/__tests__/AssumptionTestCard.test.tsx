@@ -4,6 +4,11 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { AssumptionTestCard, AssumptionSummary, AssumptionProgress, type AssumptionTest } from '../AssumptionTestCard'
 
+// Mock next/navigation
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}))
+
 describe('AssumptionTestCard', () => {
   const mockTests: AssumptionTest[] = [
     {
@@ -58,7 +63,6 @@ describe('AssumptionTestCard', () => {
   describe('테스트 결과 표시', () => {
     it('통과한 테스트에 체크 아이콘이 표시되어야 함', () => {
       const { container } = render(<AssumptionTestCard tests={[mockTests[0]]} />)
-      const checkIcon = container.querySelector('[data-testid*="check"]')
       // SVG 아이콘 존재 여부로 간접 확인
       const svgs = container.querySelectorAll('svg')
       expect(svgs.length).toBeGreaterThan(0)
@@ -82,7 +86,6 @@ describe('AssumptionTestCard', () => {
 
     it('null p-value는 처리되어야 함', () => {
       render(<AssumptionTestCard tests={[mockTests[2]]} />)
-      // null 값인 경우 PValueBadge가 N/A를 표시하는지는 PValueBadge 테스트에서 확인
       expect(screen.getByText('독립성 검정')).toBeInTheDocument()
     })
   })
@@ -128,12 +131,6 @@ describe('AssumptionTestCard', () => {
 
       // 초기 상태는 펼쳐짐
       expect(screen.getByText('정규성 검정')).toBeVisible()
-
-      // 접기
-      if (toggleButton) {
-        fireEvent.click(toggleButton)
-        // Collapsible 컴포넌트 동작 테스트
-      }
     })
   })
 
@@ -169,7 +166,7 @@ describe('AssumptionSummary', () => {
 
   it('모든 가정이 충족되면 성공 아이콘이 표시되어야 함', () => {
     const passedTests = mockTests.filter(t => t.passed)
-    const { container } = render(<AssumptionSummary tests={passedTests} />)
+    render(<AssumptionSummary tests={passedTests} />)
     expect(screen.getByText('가정 검정: 2/2 충족')).toBeInTheDocument()
   })
 })

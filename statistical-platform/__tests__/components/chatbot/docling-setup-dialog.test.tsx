@@ -3,7 +3,7 @@
  */
 
 import React from 'react'
-import { vi } from 'vitest'
+import { vi, Mock } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { DoclingSetupDialog } from '@/components/rag/docling-setup-dialog'
 
@@ -29,7 +29,7 @@ describe('DoclingSetupDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     // 기본적으로 Docling 서버 미실행 상태
-    ;(global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Connection refused'))
+    ;(global.fetch as Mock).mockRejectedValueOnce(new Error('Connection refused'))
   })
 
   it('다이얼로그가 올바르게 렌더링됨', async () => {
@@ -54,8 +54,8 @@ describe('DoclingSetupDialog', () => {
 
   it('Docling 서버가 실행 중이면 "✓ 설치됨" 표시 및 Step 4로 이동', async () => {
     // 이전 mock 초기화 후 새로 설정
-    ;(global.fetch as jest.Mock).mockReset()
-    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+    ;(global.fetch as Mock).mockReset()
+    ;(global.fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ status: 'healthy' }),
     })
@@ -73,8 +73,8 @@ describe('DoclingSetupDialog', () => {
 
   it('fetch 타임아웃 시 Docling 미설치로 처리', async () => {
     // 이전 mock 초기화 후 AbortSignal 타임아웃 시뮬레이션
-    ;(global.fetch as jest.Mock).mockReset()
-    ;(global.fetch as jest.Mock).mockRejectedValueOnce(
+    ;(global.fetch as Mock).mockReset()
+    ;(global.fetch as Mock).mockRejectedValueOnce(
       Object.assign(new Error('The operation was aborted due to timeout'), {
         name: 'AbortError',
       }),
@@ -119,14 +119,14 @@ describe('DoclingSetupDialog', () => {
 
   it('Step 4에서 연결 재시도 버튼 클릭 시 onRetry 호출', async () => {
     // 이전 mock 초기화 후 새로 설정
-    ;(global.fetch as jest.Mock).mockReset()
+    ;(global.fetch as Mock).mockReset()
     // 첫 번째 호출: 초기 서버 체크 (성공)
-    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+    ;(global.fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ status: 'healthy' }),
     })
     // 두 번째 호출: 재시도 시 서버 체크 (성공)
-    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+    ;(global.fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ status: 'healthy' }),
     })
@@ -213,8 +213,8 @@ describe('DoclingSetupDialog', () => {
 
   it('Dialog 재오픈 시 상태 초기화', async () => {
     // 첫 렌더링: Docling 서버 실행 중
-    ;(global.fetch as jest.Mock).mockReset()
-    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+    ;(global.fetch as Mock).mockReset()
+    ;(global.fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ status: 'healthy' }),
     })
@@ -233,8 +233,8 @@ describe('DoclingSetupDialog', () => {
     )
 
     // Docling 서버 미실행으로 변경
-    ;(global.fetch as jest.Mock).mockReset()
-    ;(global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Connection refused'))
+    ;(global.fetch as Mock).mockReset()
+    ;(global.fetch as Mock).mockRejectedValueOnce(new Error('Connection refused'))
 
     // Dialog 다시 열기
     rerender(

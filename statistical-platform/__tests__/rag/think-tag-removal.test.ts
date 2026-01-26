@@ -23,7 +23,7 @@ describe('OllamaRAGProvider - Think Tag Removal', () => {
     })
 
     // Ollama 서버 모킹 (초기화용)
-    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+    ;(global.fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         models: [{ name: 'nomic-embed-text' }, { name: 'qwen2.5:3b' }]
@@ -49,7 +49,7 @@ describe('OllamaRAGProvider - Think Tag Removal', () => {
 t-test는 두 그룹의 평균을 비교하는 통계 검정 방법입니다.`
 
       // Ollama API 응답 모킹
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           response: responseWithThink
@@ -75,7 +75,7 @@ t-test는 두 그룹의 평균을 비교하는 통계 검정 방법입니다.`
 
 답변 2부분`
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           response: responseWithMultipleThinks
@@ -103,7 +103,7 @@ Let me think about this...
 
 t-test는 평균 비교 검정입니다.`
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           response: responseWithSensitive
@@ -125,7 +125,7 @@ Internal reasoning here
 
 실제 답변입니다.`
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           response: responseWithoutHyphen
@@ -148,7 +148,7 @@ Internal reasoning here
 
 내용입니다.`
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           response: responseWithLeadingSensitive
@@ -187,7 +187,7 @@ Now, I should explain the differences...
 - 정규성
 - 등분산성`
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           response: complexResponse
@@ -225,7 +225,7 @@ t-test는 두 그룹의 평균을 비교하는 검정입니다.
 - 대응표본 t-test
 - 일표본 t-test`
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           response: normalResponse
@@ -239,7 +239,7 @@ t-test는 두 그룹의 평균을 비교하는 검정입니다.
     })
 
     it('빈 답변은 빈 문자열로 반환해야 함', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           response: '   '
@@ -256,7 +256,7 @@ t-test는 두 그룹의 평균을 비교하는 검정입니다.
 이것은 추론 과정입니다.
 </think>`
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           response: onlyThink
@@ -279,7 +279,7 @@ t-test는 두 그룹의 평균을 비교하는 검정입니다.
 
 설명입니다.`
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           response: responseWithCodeBlock

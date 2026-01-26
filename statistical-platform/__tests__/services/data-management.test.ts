@@ -13,7 +13,7 @@ import {
   ClearDataOptions
 } from '@/lib/services/data-management'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
-import { vi } from 'vitest'
+import { vi, Mock } from 'vitest'
 import { useAnalysisCacheStore } from '@/lib/stores/analysis-cache-store'
 import * as indexeddb from '@/lib/utils/indexeddb'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
@@ -62,17 +62,17 @@ describe('Data Management Service', () => {
     mockReset = vi.fn()
     mockResetSession = vi.fn()
     mockClearCache = vi.fn()
-    mockClearAllHistory = indexeddb.clearAllHistory as jest.Mock
+    mockClearAllHistory = indexeddb.clearAllHistory as Mock
     mockDispose = vi.fn()
 
-    ;(useSmartFlowStore.getState as jest.Mock).mockReturnValue({
+    ;(useSmartFlowStore.getState as Mock).mockReturnValue({
       reset: mockReset,
       resetSession: mockResetSession
     })
-    ;(useAnalysisCacheStore.getState as jest.Mock).mockReturnValue({
+    ;(useAnalysisCacheStore.getState as Mock).mockReturnValue({
       clearCache: mockClearCache
     })
-    ;(PyodideCoreService.getInstance as jest.Mock).mockReturnValue({
+    ;(PyodideCoreService.getInstance as Mock).mockReturnValue({
       dispose: mockDispose
     })
   })
@@ -226,11 +226,11 @@ describe('Integration with UI Components', () => {
     mockResetSession = vi.fn()
     mockClearCache = vi.fn()
 
-    ;(useSmartFlowStore.getState as jest.Mock).mockReturnValue({
+    ;(useSmartFlowStore.getState as Mock).mockReturnValue({
       reset: vi.fn(),
       resetSession: mockResetSession
     })
-    ;(useAnalysisCacheStore.getState as jest.Mock).mockReturnValue({
+    ;(useAnalysisCacheStore.getState as Mock).mockReturnValue({
       clearCache: mockClearCache
     })
   })
@@ -255,7 +255,7 @@ describe('Integration with UI Components', () => {
 
   it('REGRESSION: startNewAnalysis must NOT call reset() which clears history', async () => {
     const mockReset = vi.fn()
-    ;(useSmartFlowStore.getState as jest.Mock).mockReturnValue({
+    ;(useSmartFlowStore.getState as Mock).mockReturnValue({
       reset: mockReset,
       resetSession: mockResetSession
     })

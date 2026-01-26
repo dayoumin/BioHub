@@ -89,14 +89,14 @@ describe('PurposeInputStep', () => {
             setSelectedMethod: vi.fn(),
             setDetectedVariables: vi.fn()
         }
-        ;(useSmartFlowStore as unknown as jest.Mock).mockImplementation(
+        ;(useSmartFlowStore as unknown as Mock).mockImplementation(
             (selector: (state: typeof defaultStoreState) => unknown) => selector(defaultStoreState)
         )
 
         const defaultSettingsState = {
             useOllamaForRecommendation: false
         }
-        ;(useSettingsStore as unknown as jest.Mock).mockImplementation(
+        ;(useSettingsStore as unknown as Mock).mockImplementation(
             (selector: (state: typeof defaultSettingsState) => unknown) => selector(defaultSettingsState)
         )
     })
@@ -196,7 +196,7 @@ describe('PurposeInputStep', () => {
                 confidence: 0.9,
                 reasoning: ['Two groups detected', 'Numeric variable']
             }
-            ;(DecisionTreeRecommender.recommendWithoutAssumptions as jest.Mock).mockReturnValue(mockResult)
+            ;(DecisionTreeRecommender.recommendWithoutAssumptions as Mock).mockReturnValue(mockResult)
 
             render(
                 <PurposeInputStep
@@ -228,7 +228,7 @@ describe('PurposeInputStep', () => {
                 setSelectedMethod: mockSetSelectedMethod,
                 setDetectedVariables: mockSetDetectedVariables
             }
-            ;(useSmartFlowStore as unknown as jest.Mock).mockImplementation(
+            ;(useSmartFlowStore as unknown as Mock).mockImplementation(
                 (selector: (state: typeof mockStoreState) => unknown) => selector(mockStoreState)
             )
 
@@ -237,7 +237,7 @@ describe('PurposeInputStep', () => {
                 confidence: 0.9,
                 reasoning: ['Reason']
             }
-            ;(DecisionTreeRecommender.recommendWithoutAssumptions as jest.Mock).mockReturnValue(mockResult)
+            ;(DecisionTreeRecommender.recommendWithoutAssumptions as Mock).mockReturnValue(mockResult)
 
             render(
                 <PurposeInputStep

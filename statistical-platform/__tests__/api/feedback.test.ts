@@ -4,17 +4,15 @@
  * Tests for feedback API logic (unit tests without Next.js runtime)
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-
-import { vi } from 'vitest'
 // Mock @vercel/kv with proper types
+import { vi } from 'vitest'
 const mockKv = {
-  hgetall: jest.fn<(_key: string) => Promise<Record<string, number> | null>>(),
-  lrange: jest.fn<(_key: string, _start: number, _end: number) => Promise<unknown[]>>(),
-  hincrby: jest.fn<(_key: string, _field: string, _increment: number) => Promise<number>>(),
-  lpush: jest.fn<(_key: string, _value: unknown) => Promise<number>>(),
-  hget: jest.fn<(_key: string, _field: string) => Promise<number | null>>(),
-  del: jest.fn<(_key: string) => Promise<number>>(),
+  hgetall: vi.fn(),
+  lrange: vi.fn(),
+  hincrby: vi.fn(),
+  lpush: vi.fn(),
+  hget: vi.fn(),
+  del: vi.fn(),
 }
 
 vi.mock('@vercel/kv', () => ({
@@ -27,7 +25,7 @@ interface Vote {
   timestamp: number
 }
 
-interface Comment {
+interface FeedbackComment {
   id: string
   category: string
   content: string
@@ -37,7 +35,7 @@ interface Comment {
 interface FeedbackData {
   votes: Record<string, number>
   vote_details: Vote[]
-  comments: Comment[]
+  comments: FeedbackComment[]
 }
 
 // Helper functions that mirror API logic (for unit testing)
@@ -51,7 +49,7 @@ async function getFeedback(): Promise<FeedbackData> {
   return {
     votes: (votes as Record<string, number>) || {},
     vote_details: (voteDetails as Vote[]) || [],
-    comments: (comments as Comment[]) || [],
+    comments: (comments as FeedbackComment[]) || [],
   }
 }
 
@@ -65,8 +63,8 @@ async function submitVote(methodId: string): Promise<{ success: boolean; votes: 
   return { success: true, votes: newCount }
 }
 
-async function submitComment(category: string, content: string): Promise<{ success: boolean; comment: Comment }> {
-  const comment: Comment = {
+async function submitComment(category: string, content: string): Promise<{ success: boolean; comment: FeedbackComment }> {
+  const comment: FeedbackComment = {
     id: `comment_${Date.now()}`,
     category,
     content,

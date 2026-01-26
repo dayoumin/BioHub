@@ -56,7 +56,7 @@ describe('OllamaRAGProvider', () => {
   describe('Initialization', () => {
     it('should check Ollama server connection', async () => {
       // Mock Ollama API response
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           models: [
@@ -73,7 +73,7 @@ describe('OllamaRAGProvider', () => {
     })
 
     it('should throw error if Ollama server is not available', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: false,
         statusText: 'Not Found'
       })
@@ -82,7 +82,7 @@ describe('OllamaRAGProvider', () => {
     })
 
     it('should throw error if embedding model is not installed', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           models: [
@@ -95,7 +95,7 @@ describe('OllamaRAGProvider', () => {
     })
 
     it('should throw error if inference model is not installed', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           models: [
@@ -115,7 +115,7 @@ describe('OllamaRAGProvider', () => {
         // inferenceModel 미지정 - 자동 감지
       })
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           models: [
@@ -138,7 +138,7 @@ describe('OllamaRAGProvider', () => {
         // inferenceModel 미지정 - 자동 감지
       })
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           models: [
@@ -162,7 +162,7 @@ describe('OllamaRAGProvider', () => {
         // inferenceModel 미지정 - 자동 감지
       })
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           models: [
@@ -186,7 +186,7 @@ describe('OllamaRAGProvider', () => {
         // inferenceModel 미지정
       })
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           models: [
@@ -214,7 +214,7 @@ describe('OllamaRAGProvider', () => {
         // inferenceModel 미지정
       })
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           models: [
@@ -248,7 +248,7 @@ describe('OllamaRAGProvider', () => {
         // inferenceModel 미지정
       })
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           models: [
@@ -269,7 +269,7 @@ describe('OllamaRAGProvider', () => {
 
   describe('SQLite DB Loading', () => {
     it('should load dummy documents', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           models: [
@@ -289,7 +289,7 @@ describe('OllamaRAGProvider', () => {
 
   describe('Keyword Search', () => {
     beforeEach(async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           models: [
@@ -328,7 +328,7 @@ describe('OllamaRAGProvider', () => {
 
   describe('Cleanup', () => {
     it('should cleanup resources', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           models: [

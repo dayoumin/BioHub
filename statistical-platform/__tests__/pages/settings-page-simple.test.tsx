@@ -7,7 +7,7 @@
  */
 
 import { render, screen } from '@testing-library/react'
-import { vi } from 'vitest'
+import { vi, Mock } from 'vitest'
 import SettingsPage from '@/app/(dashboard)/settings/page'
 import { ChatStorage } from '@/lib/services/chat-storage'
 
@@ -48,7 +48,7 @@ describe('SettingsPage - Simple Tests', () => {
     })
 
     // ChatStorage 기본값
-    ;(ChatStorage.loadSettings as jest.Mock).mockReturnValue({
+    ;(ChatStorage.loadSettings as Mock).mockReturnValue({
       floatingButtonEnabled: true,
       theme: 'system',
     })

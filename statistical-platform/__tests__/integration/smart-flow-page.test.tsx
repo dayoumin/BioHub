@@ -8,8 +8,7 @@
  * - Hook 최적화 검증
  */
 
-import { describe, it, beforeEach, vi } from 'vitest'
-import { vi } from 'vitest'
+import { vi, Mock } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import SmartFlowPage from '@/app/smart-flow/page'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
@@ -99,12 +98,12 @@ describe('SmartFlowPage Integration Tests', () => {
     reset: vi.fn(),
     navigateToStep: vi.fn(),
     canNavigateToStep: vi.fn().mockReturnValue(true),
-    loadHistoryFromDB: jest.fn<() => Promise<void>>().mockResolvedValue(undefined)
+    loadHistoryFromDB: vi.fn().mockResolvedValue(undefined)
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
-    ;(useSmartFlowStore as unknown as jest.Mock).mockReturnValue(mockStore)
+    ;(useSmartFlowStore as unknown as Mock).mockReturnValue(mockStore)
   })
 
   describe('초기 렌더링', () => {
@@ -132,7 +131,7 @@ describe('SmartFlowPage Integration Tests', () => {
 
   describe('Step 변경', () => {
     it('Step 2에서 DataValidationStep이 표시되어야 함', () => {
-      (useSmartFlowStore as unknown as jest.Mock).mockReturnValue({
+      (useSmartFlowStore as unknown as Mock).mockReturnValue({
         ...mockStore,
         currentStep: 2
       })
@@ -144,7 +143,7 @@ describe('SmartFlowPage Integration Tests', () => {
     })
 
     it('Step 3에서 DataExplorationStep이 표시되어야 함', () => {
-      (useSmartFlowStore as unknown as jest.Mock).mockReturnValue({
+      (useSmartFlowStore as unknown as Mock).mockReturnValue({
         ...mockStore,
         currentStep: 3
       })
@@ -155,7 +154,7 @@ describe('SmartFlowPage Integration Tests', () => {
     })
 
     it('Step 4에서 PurposeInputStep이 표시되어야 함', () => {
-      (useSmartFlowStore as unknown as jest.Mock).mockReturnValue({
+      (useSmartFlowStore as unknown as Mock).mockReturnValue({
         ...mockStore,
         currentStep: 4
       })
@@ -166,7 +165,7 @@ describe('SmartFlowPage Integration Tests', () => {
     })
 
     it('Step 5에서 VariableSelectionStep이 표시되어야 함', () => {
-      (useSmartFlowStore as unknown as jest.Mock).mockReturnValue({
+      (useSmartFlowStore as unknown as Mock).mockReturnValue({
         ...mockStore,
         currentStep: 5
       })
@@ -177,7 +176,7 @@ describe('SmartFlowPage Integration Tests', () => {
     })
 
     it('Step 6에서 AnalysisExecutionStep이 표시되어야 함', () => {
-      (useSmartFlowStore as unknown as jest.Mock).mockReturnValue({
+      (useSmartFlowStore as unknown as Mock).mockReturnValue({
         ...mockStore,
         currentStep: 6
       })
@@ -188,7 +187,7 @@ describe('SmartFlowPage Integration Tests', () => {
     })
 
     it('Step 7에서 ResultsActionStep이 표시되어야 함', () => {
-      (useSmartFlowStore as unknown as jest.Mock).mockReturnValue({
+      (useSmartFlowStore as unknown as Mock).mockReturnValue({
         ...mockStore,
         currentStep: 7
       })
@@ -201,7 +200,7 @@ describe('SmartFlowPage Integration Tests', () => {
 
   describe('에러 처리', () => {
     it('에러가 있을 때 에러 메시지가 표시되어야 함', () => {
-      (useSmartFlowStore as unknown as jest.Mock).mockReturnValue({
+      (useSmartFlowStore as unknown as Mock).mockReturnValue({
         ...mockStore,
         error: '테스트 에러 메시지'
       })
@@ -221,7 +220,7 @@ describe('SmartFlowPage Integration Tests', () => {
 
   describe('데이터 미리보기', () => {
     it('uploadedData가 있을 때 bottomPreview가 전달되어야 함', () => {
-      (useSmartFlowStore as unknown as jest.Mock).mockReturnValue({
+      (useSmartFlowStore as unknown as Mock).mockReturnValue({
         ...mockStore,
         uploadedData: [{ col1: 'value1' }],
         uploadedFileName: 'test.csv'

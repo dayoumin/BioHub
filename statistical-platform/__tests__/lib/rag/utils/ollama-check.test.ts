@@ -15,7 +15,7 @@ describe('checkOllamaStatus - Ollama 연결 확인', () => {
 
   describe('성공 케이스', () => {
     it('Ollama 서버 연결 및 모델 설치 확인', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValue({
+      ;(global.fetch as Mock).mockResolvedValue({
         ok: true,
         json: async () => ({
           models: [
@@ -38,7 +38,7 @@ describe('checkOllamaStatus - Ollama 연결 확인', () => {
       const embeddingModels = ['qwen3-embedding', 'nomic-embed-text', 'mxbai-embed-large']
 
       for (const model of embeddingModels) {
-        ;(global.fetch as jest.Mock).mockResolvedValue({
+        ;(global.fetch as Mock).mockResolvedValue({
           ok: true,
           json: async () => ({
             models: [{ name: model }, { name: 'qwen3:4b' }],
@@ -55,7 +55,7 @@ describe('checkOllamaStatus - Ollama 연결 확인', () => {
       const inferenceModels = ['qwen3:4b', 'gemma:7b', 'mistral:latest', 'llama2', 'neural-chat']
 
       for (const model of inferenceModels) {
-        ;(global.fetch as jest.Mock).mockResolvedValue({
+        ;(global.fetch as Mock).mockResolvedValue({
           ok: true,
           json: async () => ({
             models: [{ name: 'qwen3-embedding:0.6b' }, { name: model }],
@@ -71,7 +71,7 @@ describe('checkOllamaStatus - Ollama 연결 확인', () => {
 
   describe('실패 케이스', () => {
     it('Ollama 서버 미응답 시 에러 처리', async () => {
-      ;(global.fetch as jest.Mock).mockRejectedValue(new Error('fetch failed'))
+      ;(global.fetch as Mock).mockRejectedValue(new Error('fetch failed'))
 
       const status = await checkOllamaStatus()
 
@@ -82,7 +82,7 @@ describe('checkOllamaStatus - Ollama 연결 확인', () => {
     })
 
     it('Ollama 서버 응답 에러 (500)', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValue({
+      ;(global.fetch as Mock).mockResolvedValue({
         ok: false,
         status: 500,
       })
@@ -94,7 +94,7 @@ describe('checkOllamaStatus - Ollama 연결 확인', () => {
     })
 
     it('설치된 모델이 없는 경우', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValue({
+      ;(global.fetch as Mock).mockResolvedValue({
         ok: true,
         json: async () => ({
           models: [],
@@ -110,7 +110,7 @@ describe('checkOllamaStatus - Ollama 연결 확인', () => {
     })
 
     it('임베딩 모델만 없는 경우', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValue({
+      ;(global.fetch as Mock).mockResolvedValue({
         ok: true,
         json: async () => ({
           models: [{ name: 'qwen3:4b' }],
@@ -125,7 +125,7 @@ describe('checkOllamaStatus - Ollama 연결 확인', () => {
     })
 
     it('추론 모델만 없는 경우', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValue({
+      ;(global.fetch as Mock).mockResolvedValue({
         ok: true,
         json: async () => ({
           models: [{ name: 'qwen3-embedding:0.6b' }],
@@ -144,7 +144,7 @@ describe('checkOllamaStatus - Ollama 연결 확인', () => {
     it('사용자 정의 엔드포인트 사용', async () => {
       const customEndpoint = 'http://192.168.1.100:11434'
 
-      ;(global.fetch as jest.Mock).mockResolvedValue({
+      ;(global.fetch as Mock).mockResolvedValue({
         ok: true,
         json: async () => ({
           models: [{ name: 'qwen3-embedding:0.6b' }, { name: 'qwen3:4b' }],
@@ -165,7 +165,7 @@ describe('checkOllamaStatus - Ollama 연결 확인', () => {
 
   describe('타임아웃 처리', () => {
     it('3초 타임아웃 설정 확인', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValue({
+      ;(global.fetch as Mock).mockResolvedValue({
         ok: true,
         json: async () => ({
           models: [{ name: 'qwen3-embedding:0.6b' }, { name: 'qwen3:4b' }],

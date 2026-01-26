@@ -5,7 +5,7 @@
  */
 
 import { render, screen, waitFor } from '@testing-library/react'
-import { vi } from 'vitest'
+import { vi, Mock } from 'vitest'
 import { RAGAssistantCompact } from '@/components/rag/rag-assistant-compact'
 import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexed-db'
 
@@ -62,7 +62,7 @@ describe('RAG Assistant Compact - UI 개선 테스트', () => {
         updatedAt: Date.now(),
       }
 
-      ;(ChatStorageIndexedDB.loadSessions as jest.Mock).mockResolvedValue([mockSession])
+      ;(ChatStorageIndexedDB.loadSessions as Mock).mockResolvedValue([mockSession])
 
       const { container } = render(<RAGAssistantCompact />)
 
@@ -80,7 +80,7 @@ describe('RAG Assistant Compact - UI 개선 테스트', () => {
         { id: '3', title: '세 번째 매우 긴 세션 제목입니다', messages: [], createdAt: Date.now(), updatedAt: Date.now() },
       ]
 
-      ;(ChatStorageIndexedDB.loadSessions as jest.Mock).mockResolvedValue(mockSessions)
+      ;(ChatStorageIndexedDB.loadSessions as Mock).mockResolvedValue(mockSessions)
 
       const { container } = render(<RAGAssistantCompact />)
 
@@ -101,7 +101,7 @@ describe('RAG Assistant Compact - UI 개선 테스트', () => {
         updatedAt: Date.now(),
       }
 
-      ;(ChatStorageIndexedDB.loadSessions as jest.Mock).mockResolvedValue([mockSession])
+      ;(ChatStorageIndexedDB.loadSessions as Mock).mockResolvedValue([mockSession])
 
       render(<RAGAssistantCompact />)
 
@@ -118,7 +118,7 @@ describe('RAG Assistant Compact - UI 개선 테스트', () => {
         { id: '3', title: '다른 세션 2', messages: [], createdAt: Date.now(), updatedAt: Date.now() },
       ]
 
-      ;(ChatStorageIndexedDB.loadSessions as jest.Mock).mockResolvedValue(mockSessions)
+      ;(ChatStorageIndexedDB.loadSessions as Mock).mockResolvedValue(mockSessions)
 
       render(<RAGAssistantCompact />)
 
@@ -143,7 +143,7 @@ describe('RAG Assistant Compact - UI 개선 테스트', () => {
         updatedAt: Date.now(),
       }
 
-      ;(ChatStorageIndexedDB.loadSessions as jest.Mock).mockResolvedValue([mockSession])
+      ;(ChatStorageIndexedDB.loadSessions as Mock).mockResolvedValue([mockSession])
 
       render(<RAGAssistantCompact />)
 
@@ -164,7 +164,7 @@ describe('RAG Assistant Compact - UI 개선 테스트', () => {
         updatedAt: Date.now(),
       }
 
-      ;(ChatStorageIndexedDB.loadSessions as jest.Mock).mockResolvedValue([mockSession])
+      ;(ChatStorageIndexedDB.loadSessions as Mock).mockResolvedValue([mockSession])
 
       const { container } = render(<RAGAssistantCompact />)
 
@@ -190,7 +190,7 @@ describe('RAG Assistant Compact - UI 개선 테스트', () => {
         updatedAt: Date.now(),
       }
 
-      ;(ChatStorageIndexedDB.loadSessions as jest.Mock).mockResolvedValue([mockSession])
+      ;(ChatStorageIndexedDB.loadSessions as Mock).mockResolvedValue([mockSession])
 
       render(<RAGAssistantCompact />)
 
@@ -209,7 +209,7 @@ describe('RAG Assistant Compact - UI 개선 테스트', () => {
         updatedAt: Date.now(),
       }
 
-      ;(ChatStorageIndexedDB.loadSessions as jest.Mock).mockResolvedValue([mockSession])
+      ;(ChatStorageIndexedDB.loadSessions as Mock).mockResolvedValue([mockSession])
 
       const { container } = render(<RAGAssistantCompact />)
 
@@ -230,7 +230,7 @@ describe('RAG Assistant Compact - UI 개선 테스트', () => {
         updatedAt: Date.now(),
       }
 
-      ;(ChatStorageIndexedDB.loadSessions as jest.Mock).mockResolvedValue([mockSession])
+      ;(ChatStorageIndexedDB.loadSessions as Mock).mockResolvedValue([mockSession])
 
       const { container } = render(<RAGAssistantCompact />)
 
@@ -249,7 +249,7 @@ describe('RAG Assistant Compact - UI 개선 테스트', () => {
         updatedAt: Date.now(),
       }
 
-      ;(ChatStorageIndexedDB.loadSessions as jest.Mock).mockResolvedValue([mockSession])
+      ;(ChatStorageIndexedDB.loadSessions as Mock).mockResolvedValue([mockSession])
 
       const { container } = render(<RAGAssistantCompact />)
 
@@ -262,8 +262,8 @@ describe('RAG Assistant Compact - UI 개선 테스트', () => {
 
   describe('Edge Cases', () => {
     it('세션이 없을 때 에러가 발생하지 않아야 함', async () => {
-      ;(ChatStorageIndexedDB.loadSessions as jest.Mock).mockResolvedValue([])
-      ;(ChatStorageIndexedDB.createNewSession as jest.Mock).mockResolvedValue({
+      ;(ChatStorageIndexedDB.loadSessions as Mock).mockResolvedValue([])
+      ;(ChatStorageIndexedDB.createNewSession as Mock).mockResolvedValue({
         id: 'new-session',
         title: '새 대화',
         messages: [],
@@ -280,7 +280,7 @@ describe('RAG Assistant Compact - UI 개선 테스트', () => {
     })
 
     it('currentSession이 null일 때 제목이 표시되지 않아야 함', async () => {
-      ;(ChatStorageIndexedDB.loadSessions as jest.Mock).mockResolvedValue([])
+      ;(ChatStorageIndexedDB.loadSessions as Mock).mockResolvedValue([])
 
       render(<RAGAssistantCompact />)
 

@@ -37,7 +37,7 @@ describe('RAGService', () => {
 
   describe('Initialization', () => {
     it('should initialize Ollama provider successfully', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           models: [
@@ -55,7 +55,7 @@ describe('RAGService', () => {
     })
 
     it('should handle Ollama server not available', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: false,
         statusText: 'Not Found'
       })

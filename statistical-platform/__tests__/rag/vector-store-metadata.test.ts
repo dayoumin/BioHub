@@ -31,7 +31,7 @@ describe('getAvailableVectorStores', () => {
         }
       ]
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => mockStores
       })
@@ -66,7 +66,7 @@ describe('getAvailableVectorStores', () => {
         }
       ]
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => mockStores
       })
@@ -91,7 +91,7 @@ describe('getAvailableVectorStores', () => {
         }
       ]
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => mockStores
       })
@@ -110,7 +110,7 @@ describe('getAvailableVectorStores', () => {
 
   describe('에러 처리', () => {
     it('파일이 없을 때 빈 배열 반환해야 함', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: false,
         status: 404
       })
@@ -121,7 +121,7 @@ describe('getAvailableVectorStores', () => {
     })
 
     it('fetch 실패 시 빈 배열 반환해야 함', async () => {
-      ;(global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'))
+      ;(global.fetch as Mock).mockRejectedValueOnce(new Error('Network error'))
 
       const stores = await getAvailableVectorStores()
 
@@ -129,7 +129,7 @@ describe('getAvailableVectorStores', () => {
     })
 
     it('잘못된 JSON 형식일 때 빈 배열 반환해야 함', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => {
           throw new Error('Invalid JSON')
@@ -156,7 +156,7 @@ describe('getAvailableVectorStores', () => {
         }
       ]
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => mockStores
       })
@@ -179,7 +179,7 @@ describe('getAvailableVectorStores', () => {
         }
       ]
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => mockStores
       })
@@ -202,7 +202,7 @@ describe('getAvailableVectorStores', () => {
         }
       ]
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => mockStores
       })
@@ -225,7 +225,7 @@ describe('getAvailableVectorStores', () => {
         }
       ]
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => mockStores
       })
@@ -238,7 +238,7 @@ describe('getAvailableVectorStores', () => {
 
   describe('빌드 시나리오', () => {
     it('빈 배열도 처리할 수 있어야 함', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => []
       })
@@ -271,7 +271,7 @@ describe('getAvailableVectorStores', () => {
         }
       ]
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => mockStores
       })

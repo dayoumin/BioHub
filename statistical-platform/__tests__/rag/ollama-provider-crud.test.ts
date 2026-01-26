@@ -29,7 +29,7 @@ describe('OllamaRAGProvider - CRUD Operations', () => {
     })
 
     // Ollama 서버 모킹 (초기화용)
-    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+    ;(global.fetch as Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         models: [{ name: 'nomic-embed-text' }, { name: 'qwen2.5:3b' }]

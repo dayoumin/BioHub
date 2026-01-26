@@ -8,7 +8,6 @@
  * - 에러 발생 시 에러 메시지 표시
  */
 
-import { describe, it, beforeEach, vi } from 'vitest'
 import { vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
