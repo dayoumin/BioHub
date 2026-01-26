@@ -23,7 +23,7 @@ describe('checkOllamaStatus', () => {
   describe('AbortController Timeout Polyfill', () => {
     it('should use AbortController instead of AbortSignal.timeout', async () => {
       // Mock successful response
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           models: [
@@ -49,7 +49,7 @@ describe('checkOllamaStatus', () => {
 
     it('should abort request after 3000ms timeout', async () => {
       // Mock fetch that respects AbortController
-      ;(global.fetch as jest.Mock).mockImplementationOnce(
+      ;(global.fetch as ReturnType<typeof vi.fn>).mockImplementationOnce(
         (_url: string, options: RequestInit) =>
           new Promise((resolve, reject) => {
             const signal = options.signal as AbortSignal
@@ -68,7 +68,7 @@ describe('checkOllamaStatus', () => {
       vi.advanceTimersByTime(3000)
 
       // Wait a bit for promise to settle
-      await jest.runAllTimersAsync()
+      await vi.runAllTimersAsync()
 
       const result = await promise
 
@@ -80,7 +80,7 @@ describe('checkOllamaStatus', () => {
     it('should clear timeout after successful response', async () => {
       const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
 
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           models: [{ name: 'qwen2.5:7b' }],
@@ -98,7 +98,7 @@ describe('checkOllamaStatus', () => {
     it('should clear timeout after error', async () => {
       const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
 
-      ;(global.fetch as jest.Mock).mockRejectedValueOnce(
+      ;(global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
         new Error('Network error')
       )
 
@@ -113,7 +113,7 @@ describe('checkOllamaStatus', () => {
 
   describe('Ollama Server Connection', () => {
     it('should detect embedding and inference models', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           models: [
@@ -133,7 +133,7 @@ describe('checkOllamaStatus', () => {
     })
 
     it('should return error when server is unavailable', async () => {
-      ;(global.fetch as jest.Mock).mockRejectedValueOnce(
+      ;(global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
         new Error('Failed to fetch')
       )
 
@@ -144,7 +144,7 @@ describe('checkOllamaStatus', () => {
     })
 
     it('should return error when response is not ok', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: false,
         status: 500,
       })
@@ -156,7 +156,7 @@ describe('checkOllamaStatus', () => {
     })
 
     it('should handle empty model list', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           models: [],
@@ -174,7 +174,7 @@ describe('checkOllamaStatus', () => {
 
   describe('Model Detection Logic', () => {
     it('should not confuse embedding models as inference models', async () => {
-      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           models: [
@@ -201,7 +201,7 @@ describe('checkOllamaStatus', () => {
       ]
 
       for (const testCase of testCases) {
-        ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+        ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
           ok: true,
           json: async () => ({
             models: [{ name: testCase.name }],

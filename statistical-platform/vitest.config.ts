@@ -14,6 +14,8 @@ export default defineConfig({
     ],
     exclude: [
       'node_modules',
+      'out/**',
+      '.next/**',
       'e2e/**',
       '__tests__/statistics/r-spss-validation.test.ts',
       '__tests__/statistics/nist-validation.test.ts',
@@ -22,6 +24,8 @@ export default defineConfig({
       '__tests__/statistics/statistical-validation.test.ts',
       // RAG 테스트 전체 제외 (ESM import 이슈로 인해)
       '__tests__/rag/**',
+      // WASM 로드 필요 (Node.js 환경 불가)
+      '__tests__/integration/rag-sql-wasm.test.ts',
       'components/rag/__tests__/**',
       'lib/rag/__tests__/**',
       '__tests__/components/rag/**',

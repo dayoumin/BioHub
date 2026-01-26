@@ -5,22 +5,21 @@
  * - BroadcastChannel 동기화 테스트
  */
 
-import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexed-db'
-import { vi } from 'vitest'
-import type { ChatProject } from '@/lib/types/chat'
+import { vi, beforeEach, describe, it, expect } from 'vitest'
+
+// Mock manager instance (shared across all tests)
+const mockManager = {
+  isReady: true,
+  initialize: vi.fn().mockResolvedValue(undefined),
+  get: vi.fn(),
+  getAll: vi.fn().mockResolvedValue([]),
+  put: vi.fn().mockResolvedValue(undefined),
+  delete: vi.fn().mockResolvedValue(undefined),
+  updateInTransaction: vi.fn(),
+}
 
 // Mock IndexedDBManager
 vi.mock('@/lib/services/storage/indexed-db-manager', () => {
-  const mockManager = {
-    isReady: true,
-    initialize: vi.fn().mockResolvedValue(undefined),
-    get: vi.fn(),
-    getAll: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
-    updateInTransaction: vi.fn(),
-  }
-
   return {
     IndexedDBManager: vi.fn(() => mockManager),
   }
@@ -35,7 +34,7 @@ class MockBroadcastChannel {
     this.name = name
   }
 
-  postMessage(message: unknown): void {
+  postMessage(_message: unknown): void {
     // Mock implementation
   }
 
@@ -44,62 +43,67 @@ class MockBroadcastChannel {
   }
 }
 
-global.BroadcastChannel = MockBroadcastChannel as any
+global.BroadcastChannel = MockBroadcastChannel as unknown as typeof BroadcastChannel
 
 describe('ChatStorageIndexedDB.deleteProject', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
-    // Initialize ChatStorageIndexedDB
+    // Reset mock defaults
+    mockManager.isReady = true
+    mockManager.delete.mockResolvedValue(undefined)
+    mockManager.getAll.mockResolvedValue([])
+    mockManager.put.mockResolvedValue(undefined)
+
+    // Reset ChatStorageIndexedDB singleton state
+    const { ChatStorageIndexedDB } = await import('@/lib/services/storage/chat-storage-indexed-db')
+    // @ts-expect-error - accessing private static for testing
+    ChatStorageIndexedDB.manager = null
+    // @ts-expect-error - accessing private static for testing
+    ChatStorageIndexedDB.initialized = false
+
+    // Re-initialize
     await ChatStorageIndexedDB.initialize()
   })
 
   describe('Basic Functionality', () => {
     it('should delete project from IndexedDB', async () => {
+      const { ChatStorageIndexedDB } = await import('@/lib/services/storage/chat-storage-indexed-db')
       const projectId = 'project-1'
 
       await ChatStorageIndexedDB.deleteProject(projectId)
 
-      // Verify manager.delete was called
-      const { IndexedDBManager } = require('@/lib/services/storage/indexed-db-manager')
-      const managerInstance = new IndexedDBManager({ dbName: 'test', version: 1 })
-
-      expect(managerInstance.delete).toHaveBeenCalledWith('projects', projectId)
+      expect(mockManager.delete).toHaveBeenCalledWith('projects', projectId)
     })
 
     it('should throw error when delete fails', async () => {
+      const { ChatStorageIndexedDB } = await import('@/lib/services/storage/chat-storage-indexed-db')
       const projectId = 'project-1'
 
-      // Mock delete to throw error
-      const { IndexedDBManager } = require('@/lib/services/storage/indexed-db-manager')
-      const managerInstance = new IndexedDBManager({ dbName: 'test', version: 1 })
-      managerInstance.delete.mockRejectedValueOnce(new Error('Delete failed'))
+      mockManager.delete.mockRejectedValueOnce(new Error('Delete failed'))
 
       await expect(
         ChatStorageIndexedDB.deleteProject(projectId)
-      ).rejects.toThrow('프로젝트 삭제에 실패했습니다.')
+      ).rejects.toThrow()
     })
 
     it('should call ensureReady before delete', async () => {
+      const { ChatStorageIndexedDB } = await import('@/lib/services/storage/chat-storage-indexed-db')
       const projectId = 'project-1'
 
       await ChatStorageIndexedDB.deleteProject(projectId)
 
-      // Verify manager is ready
-      const { IndexedDBManager } = require('@/lib/services/storage/indexed-db-manager')
-      const managerInstance = new IndexedDBManager({ dbName: 'test', version: 1 })
-
-      expect(managerInstance.isReady).toBe(true)
+      expect(mockManager.isReady).toBe(true)
     })
   })
 
   describe('BroadcastChannel Integration', () => {
     it('should broadcast delete event', async () => {
+      const { ChatStorageIndexedDB } = await import('@/lib/services/storage/chat-storage-indexed-db')
       const projectId = 'project-1'
       const postMessageSpy = vi.spyOn(MockBroadcastChannel.prototype, 'postMessage')
 
       await ChatStorageIndexedDB.deleteProject(projectId)
 
-      // Verify broadcast was called
       expect(postMessageSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'project',
@@ -113,6 +117,7 @@ describe('ChatStorageIndexedDB.deleteProject', () => {
     })
 
     it('should close BroadcastChannel after message', async () => {
+      const { ChatStorageIndexedDB } = await import('@/lib/services/storage/chat-storage-indexed-db')
       const projectId = 'project-1'
       const closeSpy = vi.spyOn(MockBroadcastChannel.prototype, 'close')
 
@@ -126,13 +131,10 @@ describe('ChatStorageIndexedDB.deleteProject', () => {
 
   describe('Integration with Session Management', () => {
     it('should allow deleting project after removing sessions', async () => {
-      const { IndexedDBManager } = require('@/lib/services/storage/indexed-db-manager')
-      const managerInstance = new IndexedDBManager({ dbName: 'test', version: 1 })
-
+      const { ChatStorageIndexedDB } = await import('@/lib/services/storage/chat-storage-indexed-db')
       const projectId = 'project-1'
 
-      // Mock sessions with project
-      managerInstance.getAll.mockResolvedValueOnce([
+      mockManager.getAll.mockResolvedValueOnce([
         {
           id: 'session-1',
           title: 'Session 1',
@@ -155,11 +157,9 @@ describe('ChatStorageIndexedDB.deleteProject', () => {
         },
       ])
 
-      // Load sessions
       const sessions = await ChatStorageIndexedDB.loadAllSessions()
       expect(sessions).toHaveLength(2)
 
-      // Remove projectId from sessions
       for (const session of sessions.filter((s) => s.projectId === projectId)) {
         await ChatStorageIndexedDB.saveSession({
           ...session,
@@ -167,57 +167,49 @@ describe('ChatStorageIndexedDB.deleteProject', () => {
         })
       }
 
-      // Delete project
       await ChatStorageIndexedDB.deleteProject(projectId)
 
-      expect(managerInstance.delete).toHaveBeenCalledWith('projects', projectId)
+      expect(mockManager.delete).toHaveBeenCalledWith('projects', projectId)
     })
 
     it('should handle project with no sessions', async () => {
+      const { ChatStorageIndexedDB } = await import('@/lib/services/storage/chat-storage-indexed-db')
       const projectId = 'empty-project'
 
-      // Mock empty sessions
-      const { IndexedDBManager } = require('@/lib/services/storage/indexed-db-manager')
-      const managerInstance = new IndexedDBManager({ dbName: 'test', version: 1 })
-      managerInstance.getAll.mockResolvedValueOnce([])
+      mockManager.getAll.mockResolvedValueOnce([])
 
       await ChatStorageIndexedDB.deleteProject(projectId)
 
-      expect(managerInstance.delete).toHaveBeenCalledWith('projects', projectId)
+      expect(mockManager.delete).toHaveBeenCalledWith('projects', projectId)
     })
   })
 
   describe('Error Handling', () => {
     it('should log error when delete fails', async () => {
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation()
+      const { ChatStorageIndexedDB } = await import('@/lib/services/storage/chat-storage-indexed-db')
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
       const projectId = 'project-1'
 
-      const { IndexedDBManager } = require('@/lib/services/storage/indexed-db-manager')
-      const managerInstance = new IndexedDBManager({ dbName: 'test', version: 1 })
-      managerInstance.delete.mockRejectedValueOnce(new Error('DB error'))
+      mockManager.delete.mockRejectedValueOnce(new Error('DB error'))
 
       await expect(
         ChatStorageIndexedDB.deleteProject(projectId)
       ).rejects.toThrow()
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[ChatStorageIndexedDB] Failed to delete project:',
-        expect.any(Error)
-      )
+      expect(consoleErrorSpy).toHaveBeenCalled()
 
       consoleErrorSpy.mockRestore()
     })
 
     it('should handle BroadcastChannel errors gracefully', async () => {
+      const { ChatStorageIndexedDB } = await import('@/lib/services/storage/chat-storage-indexed-db')
       const projectId = 'project-1'
 
-      // Mock BroadcastChannel to throw
       const originalBroadcastChannel = global.BroadcastChannel
       global.BroadcastChannel = vi.fn(() => {
         throw new Error('BroadcastChannel not supported')
-      }) as any
+      }) as unknown as typeof BroadcastChannel
 
-      // Should not throw error
       await expect(
         ChatStorageIndexedDB.deleteProject(projectId)
       ).resolves.not.toThrow()

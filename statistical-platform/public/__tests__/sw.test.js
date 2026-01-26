@@ -1,3 +1,5 @@
+import { vi } from 'vitest'
+
 /**
  * Service Worker 테스트
  *
@@ -12,7 +14,7 @@ describe('Service Worker - localhost bypass', () => {
 
   beforeEach(() => {
     // Mock fetch 함수
-    mockFetch = jest.fn()
+    mockFetch = vi.fn()
 
     // Service Worker의 fetch 이벤트 핸들러 모의 구현
     fetchHandler = (event) => {
@@ -37,7 +39,7 @@ describe('Service Worker - localhost bypass', () => {
 
     // Mock 이벤트 객체
     mockEvent = {
-      respondWith: jest.fn(),
+      respondWith: vi.fn(),
       request: null
     }
   })
@@ -122,7 +124,7 @@ describe('Service Worker - 통합 시나리오', () => {
 
     requests.forEach(({ url, shouldBypass }) => {
       const mockEvent = {
-        respondWith: jest.fn(),
+        respondWith: vi.fn(),
         request: { url, method: 'GET' }
       }
 
