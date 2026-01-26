@@ -160,18 +160,18 @@ describe('PurposeCard - Accessibility (ARIA Radio)', () => {
     })
 
     it('should show check icon when selected', () => {
-      const { container } = render(<PurposeCard {...defaultProps} selected={true} />)
+      render(<PurposeCard {...defaultProps} selected={true} />)
 
-      // ✅ Check icon 렌더링됨 (lucide-react Check 컴포넌트)
-      const checkIcon = container.querySelector('.text-primary-foreground')
+      // ✅ Check icon 렌더링됨 (data-testid 사용)
+      const checkIcon = screen.getByTestId('check-icon')
       expect(checkIcon).toBeInTheDocument()
     })
 
     it('should NOT show check icon when not selected', () => {
-      const { container } = render(<PurposeCard {...defaultProps} selected={false} />)
+      render(<PurposeCard {...defaultProps} selected={false} />)
 
       // ✅ Check icon 렌더링 안 됨
-      const checkIcon = container.querySelector('.text-primary.shrink-0')
+      const checkIcon = screen.queryByTestId('check-icon')
       expect(checkIcon).not.toBeInTheDocument()
     })
 

@@ -86,7 +86,7 @@ export function PurposeCard({
       {/* Selection Indicator (Corner) */}
       {selected && (
         <div className="absolute top-0 right-0 p-1.5 bg-primary rounded-bl-xl shadow-sm animate-in fade-in zoom-in duration-200">
-          <Check className="w-3.5 h-3.5 text-primary-foreground" />
+          <Check className="w-3.5 h-3.5 text-primary-foreground" data-testid="check-icon" />
         </div>
       )}
 

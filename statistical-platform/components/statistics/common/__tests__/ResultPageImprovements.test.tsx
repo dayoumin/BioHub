@@ -1,11 +1,10 @@
 import React from 'react'
-import { vi } from 'vitest'
+import { vi, Mock } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { EasyExplanation } from '../EasyExplanation'
 import { NextStepsCard } from '../NextStepsCard'
 import { AssumptionTestCard } from '../AssumptionTestCard'
-import { StatisticalResultCard } from '../StatisticalResultCard'
 import { useSettingsStore } from '@/lib/stores/settings-store'
 
 // Mock useRouter
@@ -24,11 +23,11 @@ vi.mock('@/lib/stores/settings-store', () => ({
 describe('Result Page Improvements', () => {
     beforeEach(() => {
         vi.clearAllMocks()
-            // Default mock for store
-            ; (useSettingsStore as unknown as jest.Mock).mockReturnValue({
-                userLevel: 'beginner',
-                setUserLevel: vi.fn(),
-            })
+        // Default mock for store
+        ;(useSettingsStore as unknown as Mock).mockReturnValue({
+            userLevel: 'beginner',
+            setUserLevel: vi.fn(),
+        })
     })
 
     describe('EasyExplanation', () => {
@@ -112,57 +111,6 @@ describe('Result Page Improvements', () => {
             const button = screen.getAllByText(/이동/)[0]
             fireEvent.click(button)
             expect(mockPush).toHaveBeenCalledWith('/statistics/mann-whitney')
-        })
-    })
-
-    // Skip: StatisticalResultCard doesn't integrate EasyExplanation or user level toggle
-    describe.skip('StatisticalResultCard Integration', () => {
-        const mockResult = {
-            testName: 'Independent t-test',
-            testType: 't-test',
-            statistic: 2.5,
-            pValue: 0.02,
-            statisticName: 't',
-            df: 18,
-            effectSize: { value: 0.5, type: 'cohens_d' },
-            assumptions: [{ name: 'Normality', passed: true, pValue: 0.5 }],
-        } as any
-
-        it('should render EasyExplanation in beginner mode', () => {
-            ; (useSettingsStore as unknown as jest.Mock).mockReturnValue({
-                userLevel: 'beginner',
-                setUserLevel: vi.fn(),
-            })
-
-            // Pass expandable={false} to ensure content is visible
-            render(<StatisticalResultCard result={mockResult} expandable={false} />)
-            expect(screen.getByText(/이 결과가 의미하는 것은?/)).toBeInTheDocument()
-            expect(screen.queryByText(/주요 결과/)).toBeInTheDocument()
-        })
-
-        it('should hide EasyExplanation in expert mode', () => {
-            ; (useSettingsStore as unknown as jest.Mock).mockReturnValue({
-                userLevel: 'expert',
-                setUserLevel: vi.fn(),
-            })
-
-            render(<StatisticalResultCard result={mockResult} expandable={false} />)
-            expect(screen.queryByText(/이 결과가 의미하는 것은?/)).not.toBeInTheDocument()
-        })
-
-        it('should allow changing user level', () => {
-            const setUserLevel = vi.fn()
-                ; (useSettingsStore as unknown as jest.Mock).mockReturnValue({
-                    userLevel: 'beginner',
-                    setUserLevel,
-                })
-
-            render(<StatisticalResultCard result={mockResult} expandable={false} />)
-
-            const expertLabel = screen.getByText('전문가')
-            fireEvent.click(expertLabel)
-
-            expect(setUserLevel).toHaveBeenCalledWith('expert')
         })
     })
 })
