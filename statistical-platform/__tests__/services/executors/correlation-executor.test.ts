@@ -15,6 +15,7 @@ import { vi } from 'vitest'
 vi.mock('@/lib/services/pyodide-statistics', () => ({
   pyodideStats: {
     initialize: vi.fn().mockResolvedValue(undefined),
+    isInitialized: vi.fn().mockReturnValue(true),
     correlationTest: vi.fn().mockImplementation(
       (_x: number[], _y: number[], method: string) => {
         // Return realistic correlation results based on method

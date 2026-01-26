@@ -7,8 +7,8 @@
 
 import { vi, beforeEach, describe, it, expect } from 'vitest'
 
-// Mock manager instance (shared across all tests)
-const mockManager = {
+// vi.hoisted로 mock 정의 (hoisting 문제 해결)
+const mockManager = vi.hoisted(() => ({
   isReady: true,
   initialize: vi.fn().mockResolvedValue(undefined),
   get: vi.fn(),
@@ -16,12 +16,20 @@ const mockManager = {
   put: vi.fn().mockResolvedValue(undefined),
   delete: vi.fn().mockResolvedValue(undefined),
   updateInTransaction: vi.fn(),
-}
+}))
 
-// Mock IndexedDBManager
+// Mock IndexedDBManager - class 형태로 mock 생성
 vi.mock('@/lib/services/storage/indexed-db-manager', () => {
   return {
-    IndexedDBManager: vi.fn(() => mockManager),
+    IndexedDBManager: class MockIndexedDBManager {
+      isReady = mockManager.isReady
+      initialize = mockManager.initialize
+      get = mockManager.get
+      getAll = mockManager.getAll
+      put = mockManager.put
+      delete = mockManager.delete
+      updateInTransaction = mockManager.updateInTransaction
+    },
   }
 })
 

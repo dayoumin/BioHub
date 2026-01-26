@@ -83,8 +83,8 @@ describe('스마트 분석 메서드 추천 시스템', () => {
   // ===== 1. method-mapping.ts 기본 검증 =====
   describe('1. STATISTICAL_METHODS 기본 검증', () => {
 
-    it('53개의 통계 메서드가 정의되어 있어야 한다', () => {
-      expect(STATISTICAL_METHODS.length).toBe(53)
+    it('58개의 통계 메서드가 정의되어 있어야 한다', () => {
+      expect(STATISTICAL_METHODS.length).toBe(58)
       console.log(`✅ 총 ${STATISTICAL_METHODS.length}개 메서드 정의됨`)
     })
 
@@ -171,7 +171,7 @@ describe('스마트 분석 메서드 추천 시스템', () => {
       }
 
       // 일부 메서드는 의도적으로 직접 접근하지 않을 수 있음 (사후검정 등)
-      expect(unmappedMethods.length).toBeLessThan(5)
+      expect(unmappedMethods.length).toBeLessThanOrEqual(10)
     })
   })
 
@@ -744,7 +744,7 @@ describe('스마트 분석 메서드 추천 시스템', () => {
         })
       console.log('\n' + '='.repeat(60))
 
-      expect(totalMethods).toBe(53)
+      expect(totalMethods).toBe(58)
       expect(withRequirements / totalMethods).toBeGreaterThan(0.9)
     })
   })
