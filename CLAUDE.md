@@ -125,7 +125,7 @@ npm run dev
 - 💻 **Statistics Pattern** (DEV) - 통계 페이지 코딩 표준
 - 🛡️ **Type Guards** (DEV) - 타입 가드 라이브러리
 - 💬 **RAG Components** (DEV) - RAG 시스템 컴포넌트
-- 🧪 **Test Snippets** (DEV) - Jest 테스트 패턴
+- 🧪 **Test Snippets** (DEV) - Vitest 테스트 패턴
 
 ---
 
@@ -262,19 +262,20 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ### 5. 테스트 프레임워크 규칙 (CRITICAL)
 
-**이 프로젝트는 Jest를 사용합니다 (Vitest 아님!)**
+**이 프로젝트는 Vitest를 사용합니다**
 
 **필수 규칙**:
-- ✅ **테스트 파일은 항상 Jest 문법 사용**
-- ❌ Vitest import 절대 금지 (`import { describe, it } from 'vitest'` ❌)
-- ✅ Jest import 사용 (`import { describe, it } from '@jest/globals'` 또는 전역 사용)
+- ✅ **Mock 함수**: `vi.fn()`, `vi.mock()`, `vi.spyOn()`
+- ✅ **globals: true** 설정으로 `describe`, `it`, `expect` 전역 사용
+- ✅ Mock 타입 사용 시: `import { vi, Mock } from 'vitest'`
 
 **테스트 실행**:
 ```bash
-npm test              # 모든 테스트
+npm test              # 모든 테스트 (Vitest)
 npm test [파일명]     # 특정 파일
-npm test:watch        # watch 모드
-npm test:coverage     # 커버리지
+npm run test:watch    # watch 모드
+npm run test:coverage # 커버리지
+npm run test:jest     # Jest (성능 테스트 전용)
 ```
 
 ---
