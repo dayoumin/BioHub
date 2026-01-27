@@ -228,4 +228,429 @@ describe('useAnalysisGuide', () => {
       expect(result.current.methodMetadata?.id).toBe('logistic-regression')
     })
   })
+  describe('1차 배치 스키마 확장 검증', () => {
+    const extendedMethods = [
+      'one-sample-t',
+      'paired-t',
+      'one-way-anova',
+      'simple-regression',
+      'chi-square-independence',
+      'mann-whitney'
+    ]
+
+    it.each(extendedMethods)('%s 메서드에 dataFormat이 정의되어 있어야 함', (methodId) => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === methodId)
+      expect(method).toBeDefined()
+      expect(method?.dataFormat).toBeDefined()
+      expect(method?.dataFormat?.type).toMatch(/^(wide|long|both)$/)
+      expect(method?.dataFormat?.columns?.length).toBeGreaterThan(0)
+    })
+
+    it.each(extendedMethods)('%s 메서드에 settings가 정의되어 있어야 함', (methodId) => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === methodId)
+      expect(method).toBeDefined()
+      expect(method?.settings).toBeDefined()
+      // alpha 설정은 모든 통계 메서드에 공통
+      expect(method?.settings?.alpha).toBeDefined()
+    })
+
+    it.each(extendedMethods)('%s 메서드에 sampleData가 정의되어 있어야 함', (methodId) => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === methodId)
+      expect(method).toBeDefined()
+      expect(method?.sampleData).toBeDefined()
+      expect(method?.sampleData?.headers?.length).toBeGreaterThan(0)
+      expect(method?.sampleData?.rows?.length).toBeGreaterThan(0)
+    })
+
+    it('one-sample-t에 testValue 설정이 있어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'one-sample-t')
+      expect(method?.settings?.testValue).toBeDefined()
+      expect(method?.settings?.testValue?.default).toBe(0)
+    })
+
+    it('one-way-anova에 postHoc 설정이 있어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'one-way-anova')
+      expect(method?.settings?.postHoc).toBeDefined()
+      expect(method?.settings?.postHoc?.options?.length).toBeGreaterThan(0)
+    })
+
+    it('chi-square-independence에 yatesCorrection 설정이 있어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'chi-square-independence')
+      expect(method?.settings?.yatesCorrection).toBeDefined()
+    })
+
+    it('mann-whitney에 exactTest 설정이 있어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'mann-whitney')
+      expect(method?.settings?.exactTest).toBeDefined()
+    })
+  })
+
+  describe('2차 배치 메타데이터 확장 검증', () => {
+    const batch2Methods = [
+      'welch-t',
+      'wilcoxon-signed-rank',
+      'kruskal-wallis',
+      'multiple-regression',
+      'two-way-anova',
+      'pearson-correlation'
+    ]
+
+    it.each(batch2Methods)('%s 메서드에 dataFormat이 정의되어 있어야 함', (methodId) => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === methodId)
+      expect(method).toBeDefined()
+      expect(method?.dataFormat).toBeDefined()
+      expect(method?.dataFormat?.type).toMatch(/^(wide|long|both)$/)
+    })
+
+    it.each(batch2Methods)('%s 메서드에 settings가 정의되어 있어야 함', (methodId) => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === methodId)
+      expect(method?.settings).toBeDefined()
+      expect(method?.settings?.alpha).toBeDefined()
+    })
+
+    it.each(batch2Methods)('%s 메서드에 sampleData가 정의되어 있어야 함', (methodId) => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === methodId)
+      expect(method?.sampleData).toBeDefined()
+      expect(method?.sampleData?.rows?.length).toBeGreaterThan(0)
+    })
+
+    it('kruskal-wallis에 postHoc과 pAdjust 설정이 있어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'kruskal-wallis')
+      expect(method?.settings?.postHoc).toBeDefined()
+      expect(method?.settings?.pAdjust).toBeDefined()
+    })
+
+    it('multiple-regression에 vifThreshold 설정이 있어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'multiple-regression')
+      expect(method?.settings?.vifThreshold).toBeDefined()
+    })
+
+    it('two-way-anova에 ssType 설정이 있어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'two-way-anova')
+      expect(method?.settings?.ssType).toBeDefined()
+    })
+
+    it('pearson-correlation에 pairwise 설정이 있어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'pearson-correlation')
+      expect(method?.settings?.pairwise).toBeDefined()
+    })
+  })
+
+  describe('3차 배치 메타데이터 확장 검증', () => {
+    const batch3Methods = [
+      'spearman-correlation',
+      'kendall-correlation',
+      'partial-correlation',
+      'three-way-anova',
+      'friedman',
+      'sign-test'
+    ]
+
+    it.each(batch3Methods)('%s 메서드에 dataFormat이 정의되어 있어야 함', (methodId) => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === methodId)
+      expect(method?.dataFormat).toBeDefined()
+    })
+
+    it.each(batch3Methods)('%s 메서드에 settings와 sampleData가 정의되어 있어야 함', (methodId) => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === methodId)
+      expect(method?.settings?.alpha).toBeDefined()
+      expect(method?.sampleData?.rows?.length).toBeGreaterThan(0)
+    })
+
+    it('상관분석 4개 모두 완료 확인', () => {
+      const correlationMethods = ['pearson-correlation', 'spearman-correlation', 'kendall-correlation', 'partial-correlation']
+      correlationMethods.forEach(id => {
+        const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === id)
+        expect(method?.dataFormat).toBeDefined()
+        expect(method?.settings).toBeDefined()
+        expect(method?.sampleData).toBeDefined()
+      })
+    })
+  })
+
+  describe('4차 배치 메타데이터 확장 검증', () => {
+    const batch4Methods = [
+      'runs-test',
+      'kolmogorov-smirnov',
+      'mcnemar',
+      'chi-square-goodness',
+      'fisher-exact',
+      'normality-test'
+    ]
+
+    it.each(batch4Methods)('%s 메서드에 확장 필드가 정의되어 있어야 함', (methodId) => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === methodId)
+      expect(method?.dataFormat).toBeDefined()
+      expect(method?.settings?.alpha).toBeDefined()
+      expect(method?.sampleData).toBeDefined()
+    })
+
+    it('카이제곱 검정 3개 모두 완료 확인', () => {
+      const chiMethods = ['chi-square-independence', 'chi-square-goodness', 'fisher-exact']
+      chiMethods.forEach(id => {
+        const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === id)
+        expect(method?.dataFormat).toBeDefined()
+      })
+    })
+
+    it('진단검정(normality-test)에 testMethod 설정이 있어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'normality-test')
+      expect(method?.settings?.testMethod).toBeDefined()
+    })
+  })
+
+  describe('5차 배치 메타데이터 확장 검증', () => {
+    const batch5Methods = [
+      'factor-analysis',
+      'pca',
+      'kaplan-meier',
+      'cox-regression',
+      'arima',
+      'seasonal-decompose'
+    ]
+
+    it.each(batch5Methods)('%s 메서드에 확장 필드가 정의되어 있어야 함', (methodId) => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === methodId)
+      expect(method?.dataFormat).toBeDefined()
+      expect(method?.settings?.alpha).toBeDefined()
+      expect(method?.sampleData).toBeDefined()
+    })
+
+    it('고급분석 2개 완료 확인 (factor-analysis, pca)', () => {
+      const advancedMethods = ['factor-analysis', 'pca']
+      advancedMethods.forEach(id => {
+        const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === id)
+        expect(method?.dataFormat).toBeDefined()
+      })
+    })
+
+    it('생존분석 2개 완료 확인 (kaplan-meier, cox-regression)', () => {
+      const survivalMethods = ['kaplan-meier', 'cox-regression']
+      survivalMethods.forEach(id => {
+        const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === id)
+        expect(method?.dataFormat).toBeDefined()
+        expect(method?.settings).toBeDefined()
+      })
+    })
+
+    it('시계열 2개 완료 확인 (arima, seasonal-decompose)', () => {
+      const timeseriesMethods = ['arima', 'seasonal-decompose']
+      timeseriesMethods.forEach(id => {
+        const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === id)
+        expect(method?.dataFormat).toBeDefined()
+      })
+    })
+
+    it('factor-analysis에 rotation 설정이 있어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'factor-analysis')
+      expect(method?.settings?.rotation).toBeDefined()
+    })
+
+    it('kaplan-meier에 confidenceLevel 설정이 있어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'kaplan-meier')
+      expect(method?.settings?.confidenceLevel).toBeDefined()
+    })
+  })
+
+  describe('6차 배치 메타데이터 확장 검증', () => {
+    const batch6Methods = [
+      'stepwise-regression',
+      'logistic-regression',
+      'ordinal-regression',
+      'poisson-regression',
+      'cochran-q',
+      'mood-median'
+    ]
+
+    it.each(batch6Methods)('%s 메서드에 확장 필드가 정의되어 있어야 함', (methodId) => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === methodId)
+      expect(method?.dataFormat).toBeDefined()
+      expect(method?.settings?.alpha).toBeDefined()
+      expect(method?.sampleData).toBeDefined()
+    })
+
+    it('회귀분석 4개 완료 확인', () => {
+      const regressionMethods = ['stepwise-regression', 'logistic-regression', 'ordinal-regression', 'poisson-regression']
+      regressionMethods.forEach(id => {
+        const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === id)
+        expect(method?.dataFormat).toBeDefined()
+      })
+    })
+
+    it('비모수 2개 완료 확인 (cochran-q, mood-median)', () => {
+      const nonparamMethods = ['cochran-q', 'mood-median']
+      nonparamMethods.forEach(id => {
+        const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === id)
+        expect(method?.dataFormat).toBeDefined()
+      })
+    })
+
+    it('stepwise-regression에 method와 criterion 설정이 있어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'stepwise-regression')
+      expect(method?.settings?.method).toBeDefined()
+      expect(method?.settings?.criterion).toBeDefined()
+    })
+
+    it('logistic-regression에 regularization 설정이 있어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'logistic-regression')
+      expect(method?.settings?.regularization).toBeDefined()
+    })
+
+    it('poisson-regression에 model 설정이 있어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'poisson-regression')
+      expect(method?.settings?.model).toBeDefined()
+    })
+  })
+
+  describe('7차 배치 메타데이터 확장 검증', () => {
+    const batch7Methods = [
+      'ancova',
+      'repeated-measures-anova',
+      'manova',
+      'mixed-model',
+      'response-surface',
+      'stationarity-test'
+    ]
+
+    it.each(batch7Methods)('%s 메서드에 확장 필드가 정의되어 있어야 함', (methodId) => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === methodId)
+      expect(method?.dataFormat).toBeDefined()
+      expect(method?.settings?.alpha).toBeDefined()
+      expect(method?.sampleData).toBeDefined()
+    })
+
+    it('GLM 5개 완료 확인 (ancova, rm-anova, manova, mixed-model, response-surface)', () => {
+      const glmMethods = ['ancova', 'repeated-measures-anova', 'manova', 'mixed-model', 'response-surface']
+      glmMethods.forEach(id => {
+        const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === id)
+        expect(method?.dataFormat).toBeDefined()
+      })
+    })
+
+    it('시계열 3개 모두 완료 확인', () => {
+      const timeseriesMethods = ['arima', 'seasonal-decompose', 'stationarity-test']
+      timeseriesMethods.forEach(id => {
+        const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === id)
+        expect(method?.dataFormat).toBeDefined()
+      })
+    })
+
+    it('ancova에 ssType 설정이 있어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'ancova')
+      expect(method?.settings?.ssType).toBeDefined()
+    })
+
+    it('manova에 testStatistic 설정이 있어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'manova')
+      expect(method?.settings?.testStatistic).toBeDefined()
+    })
+
+    it('mixed-model은 long format이어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'mixed-model')
+      expect(method?.dataFormat?.type).toBe('long')
+    })
+  })
+
+  describe('8차 배치 메타데이터 확장 검증', () => {
+    const batch8Methods = [
+      'descriptive-stats',
+      'frequency-table',
+      'reliability-analysis',
+      'mann-kendall-test',
+      'cluster-analysis',
+      'discriminant-analysis'
+    ]
+
+    it.each(batch8Methods)('%s 메서드에 확장 필드가 정의되어 있어야 함', (methodId) => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === methodId)
+      expect(method?.dataFormat).toBeDefined()
+      expect(method?.settings?.alpha).toBeDefined()
+      expect(method?.sampleData).toBeDefined()
+    })
+
+    it('기술통계 3개 완료 확인', () => {
+      const descMethods = ['descriptive-stats', 'frequency-table', 'reliability-analysis']
+      descMethods.forEach(id => {
+        const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === id)
+        expect(method?.dataFormat).toBeDefined()
+      })
+    })
+
+    it('고급분석 4개 모두 완료 확인', () => {
+      const advancedMethods = ['factor-analysis', 'pca', 'cluster-analysis', 'discriminant-analysis']
+      advancedMethods.forEach(id => {
+        const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === id)
+        expect(method?.dataFormat).toBeDefined()
+      })
+    })
+
+    it('cluster-analysis에 method와 nClusters 설정이 있어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'cluster-analysis')
+      expect(method?.settings?.method).toBeDefined()
+      expect(method?.settings?.nClusters).toBeDefined()
+    })
+
+    it('discriminant-analysis에 validation 설정이 있어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'discriminant-analysis')
+      expect(method?.settings?.validation).toBeDefined()
+    })
+
+    it('mann-kendall-test에 senSlope 설정이 있어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'mann-kendall-test')
+      expect(method?.settings?.senSlope).toBeDefined()
+    })
+  })
+
+  describe('9차 배치 (최종) 메타데이터 확장 검증', () => {
+    const batch9Methods = [
+      'cross-tabulation',
+      'explore-data',
+      'one-sample-proportion',
+      'means-plot',
+      'dose-response',
+      'power-analysis'
+    ]
+
+    it.each(batch9Methods)('%s 메서드에 확장 필드가 정의되어 있어야 함', (methodId) => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === methodId)
+      expect(method?.dataFormat).toBeDefined()
+      expect(method?.settings?.alpha).toBeDefined()
+      expect(method?.sampleData).toBeDefined()
+    })
+
+    it('기술통계 5개 모두 완료 확인', () => {
+      const descMethods = ['descriptive-stats', 'frequency-table', 'cross-tabulation', 'explore-data', 'reliability-analysis']
+      descMethods.forEach(id => {
+        const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === id)
+        expect(method?.dataFormat).toBeDefined()
+      })
+    })
+
+    it('평균비교 6개 모두 완료 확인', () => {
+      const compareMethods = ['one-sample-t', 'two-sample-t', 'paired-t', 'welch-t', 'one-sample-proportion', 'means-plot']
+      compareMethods.forEach(id => {
+        const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === id)
+        expect(method?.dataFormat).toBeDefined()
+      })
+    })
+
+    it('유틸리티 2개 완료 확인', () => {
+      const utilMethods = ['dose-response', 'power-analysis']
+      utilMethods.forEach(id => {
+        const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === id)
+        expect(method?.dataFormat).toBeDefined()
+      })
+    })
+
+    it('power-analysis는 데이터 열이 없어야 함 (파라미터 기반)', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'power-analysis')
+      expect(method?.dataFormat?.columns?.length).toBe(0)
+    })
+
+    it('모든 56개 메서드에 dataFormat이 정의되어 있어야 함', () => {
+      const methodsWithDataFormat = STATISTICAL_METHOD_REQUIREMENTS.filter(m => m.dataFormat !== undefined)
+      expect(methodsWithDataFormat.length).toBe(56)
+    })
+  })
+
 })

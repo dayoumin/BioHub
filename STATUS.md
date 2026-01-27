@@ -1,6 +1,6 @@
 # 프로젝트 상태
 
-**최종 업데이트**: 2025-12-17
+**최종 업데이트**: 2026-01-27
 
 ---
 
@@ -19,10 +19,21 @@
 | **Golden Values 테스트** | 44/44 (100%) ✅ - 5개 라이브러리 |
 | **Methods Registry** | 64개 메서드 (4 Workers) ✅ NEW |
 | **E2E 테스트** | 2/48 (Playwright) 🔄 |
+| **Analysis Guide** | 45/49 페이지 적용 ✅ NEW |
 
 ---
 
 ## 📅 최근 작업 (7일)
+
+### 2026-01-27 (월)
+- ✅ **Analysis Guide 구현 완료** - 사용자 가이드 시스템
+  - 56개 메서드 메타데이터 확장 (dataFormat, settings, sampleData)
+  - 5개 가이드 컴포넌트 구현 (AnalysisGuidePanel, DataFormatGuide, SettingTooltip, AssumptionChecklist, useAnalysisGuide)
+  - 45개 통계 페이지에 가이드 적용 완료
+  - 138개 테스트 통과
+- ✅ **문서 업데이트**
+  - ANALYSIS_GUIDE_IMPLEMENTATION_PLAN.md 완료 처리
+  - SCHEMA_EXTENSION_CHECKLIST.md 56/56 완료
 
 ### 2025-12-17 (화)
 - ✅ **Methods Registry SSOT Phase 1.5 + Phase 2 완료** (8b0e614)
@@ -97,7 +108,7 @@
 | 작업 | 설명 |
 |------|------|
 | **E2E 테스트 확장** | 현재 2개 → 10개 이상으로 확대 |
-| **QuestionFlow 버그 수정** | 버튼 클릭 시 타이머 클린업 누락 |
+| ~~Analysis Guide 구현~~ | ✅ 완료 (2026-01-27) |
 | **ConversationalQuestion lint** | isEditableElement 의존성 배열 누락 |
 
 ### 선택적 (필요시)
