@@ -35,6 +35,11 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
+// Guide Components
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide, INTEGRATED_PAGE_METHOD_MAPS } from '@/hooks/use-analysis-guide'
+
 // Data interfaces
 interface CorrelationResult {
   var1: string
@@ -121,6 +126,15 @@ export default function CorrelationPage() {
 
   // Page-specific state
   const [correlationType, setCorrelationType] = useState<'pearson' | 'spearman' | 'kendall' | 'partial' | ''>('')
+
+  // Guide components - useAnalysisGuide hook 사용 (dynamic based on correlationType)
+  // Note: 'partial'은 별도 method ID가 없으므로 null 반환
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    getMethodId: () => {
+      if (!correlationType || correlationType === 'partial') return null
+      return INTEGRATED_PAGE_METHOD_MAPS.correlation[correlationType] || null
+    }
+  })
 
   // 입력 모드 (원시데이터 vs 상관행렬 직접 입력)
   const [inputMode, setInputMode] = useState<'raw' | 'matrix'>('raw')
@@ -610,6 +624,26 @@ export default function CorrelationPage() {
               </PurposeCard>
             ))}
           </div>
+
+          {/* Analysis Guide Panel - correlationType 선택 시 표시 */}
+          {methodMetadata && (
+            <AnalysisGuidePanel
+              method={methodMetadata}
+              sections={['variables', 'assumptions', 'dataFormat', 'sampleData']}
+              defaultExpanded={['variables']}
+            />
+          )}
+
+          {/* Assumption Checklist - correlationType 선택 시 표시 */}
+          {assumptionItems.length > 0 && (
+            <AssumptionChecklist
+              assumptions={assumptionItems}
+              showProgress={true}
+              collapsible={true}
+              title="분석 전 가정 확인"
+              description={`${methodMetadata?.name || '상관분석'}의 기본 가정을 확인해주세요.`}
+            />
+          )}
         </div>
       )}
 

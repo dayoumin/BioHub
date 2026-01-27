@@ -42,6 +42,57 @@ export interface VariableRequirement {
   example?: string        // 예시
 }
 
+// ============================================================================
+// 가이드 컴포넌트용 확장 타입 (Phase 1)
+// ============================================================================
+
+/**
+ * 데이터 형식 안내
+ */
+export interface DataFormatGuide {
+  type: 'wide' | 'long' | 'both'
+  description: string
+  columns: {
+    name: string
+    description: string
+    example: string
+    required?: boolean
+  }[]
+}
+
+/**
+ * 설정값 옵션
+ */
+export interface SettingOption {
+  value: string | number
+  label: string
+  description: string
+}
+
+/**
+ * 설정값 설명
+ */
+export interface SettingDescription {
+  label: string
+  description: string
+  options?: SettingOption[]
+  default?: string | number | null
+  range?: { min: number; max: number }
+}
+
+/**
+ * 예시 데이터 테이블
+ */
+export interface SampleDataTable {
+  headers: string[]
+  rows: (string | number)[][]
+  description?: string
+}
+
+// ============================================================================
+// 메인 인터페이스
+// ============================================================================
+
 export interface StatisticalMethodRequirements {
   id: string
   name: string
@@ -52,6 +103,11 @@ export interface StatisticalMethodRequirements {
   assumptions: string[]
   variables: VariableRequirement[]
   notes?: string[]        // 추가 주의사항
+
+  // 가이드 컴포넌트용 확장 필드 (선택적)
+  dataFormat?: DataFormatGuide
+  settings?: Record<string, SettingDescription>
+  sampleData?: SampleDataTable
 }
 
 /**
@@ -251,7 +307,76 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
         example: '성별_암수'
       }
     ],
-    notes: ['그룹 변수는 정확히 2개 수준만 가져야 함']
+    notes: ['그룹 변수는 정확히 2개 수준만 가져야 함'],
+
+    // 가이드 컴포넌트용 확장 필드
+    dataFormat: {
+      type: 'wide',
+      description: '각 행이 하나의 개체(관측치)를 나타냅니다. 종속 변수(측정값)와 그룹 변수(집단 구분)가 각각 열로 구성됩니다.',
+      columns: [
+        {
+          name: 'ID',
+          description: '개체 식별자 (선택)',
+          example: '1, 2, 3...',
+          required: false
+        },
+        {
+          name: '측정값',
+          description: '비교하고자 하는 연속형 변수',
+          example: '체중(g), 키(cm), 점수',
+          required: true
+        },
+        {
+          name: '그룹',
+          description: '두 집단을 구분하는 변수 (정확히 2개 수준)',
+          example: '처리군/대조군, 암/수, A/B',
+          required: true
+        }
+      ]
+    },
+    settings: {
+      alpha: {
+        label: '유의수준 (α)',
+        description: '통계적 유의성을 판단하는 기준입니다. 일반적으로 0.05를 사용하며, 더 엄격한 기준이 필요하면 0.01을 사용합니다.',
+        default: 0.05,
+        range: { min: 0.001, max: 0.1 }
+      },
+      alternative: {
+        label: '대립가설',
+        description: '검정 방향을 선택합니다. 방향성에 대한 사전 가설이 없으면 양측 검정을 사용합니다.',
+        options: [
+          { value: 'two-sided', label: '양측 검정', description: '두 집단의 평균이 다른지 검정 (μ₁ ≠ μ₂)' },
+          { value: 'greater', label: '단측 검정 (greater)', description: '첫 번째 집단의 평균이 더 큰지 검정 (μ₁ > μ₂)' },
+          { value: 'less', label: '단측 검정 (less)', description: '첫 번째 집단의 평균이 더 작은지 검정 (μ₁ < μ₂)' }
+        ],
+        default: 'two-sided'
+      },
+      equalVar: {
+        label: '등분산 가정',
+        description: '두 집단의 분산이 같다고 가정할지 선택합니다. Levene 검정 결과가 유의하면 등분산 가정을 사용하지 않는 것이 좋습니다.',
+        options: [
+          { value: 'true', label: 'Student t-검정', description: '등분산 가정 사용 (두 집단의 분산이 같다고 가정)' },
+          { value: 'false', label: 'Welch t-검정', description: '등분산 가정 미사용 (분산이 다를 수 있음, 더 안전한 선택)' }
+        ],
+        default: 'false'
+      }
+    },
+    sampleData: {
+      headers: ['ID', '체중(g)', '처리군'],
+      rows: [
+        [1, 245, '대조군'],
+        [2, 238, '대조군'],
+        [3, 251, '대조군'],
+        [4, 243, '대조군'],
+        [5, 256, '대조군'],
+        [6, 278, '처리군'],
+        [7, 285, '처리군'],
+        [8, 269, '처리군'],
+        [9, 292, '처리군'],
+        [10, 281, '처리군']
+      ],
+      description: '처리군과 대조군의 체중 비교 (각 5마리)'
+    }
   },
   {
     id: 'paired-t',
@@ -1187,7 +1312,66 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
         example: 'Pass/Fail, Yes/No, 0/1, Defective/Good'
       }
     ],
-    notes: ['정확한 p-value 계산', '양측/단측 검정 지원', '귀무가설 확률(p₀) 설정 가능']
+    notes: ['정확한 p-value 계산', '양측/단측 검정 지원', '귀무가설 확률(p₀) 설정 가능'],
+
+    // 가이드 컴포넌트용 확장 필드
+    dataFormat: {
+      type: 'wide',
+      description: '각 행이 하나의 관측치(시행)를 나타냅니다.',
+      columns: [
+        {
+          name: 'ID',
+          description: '관측치 식별자 (선택)',
+          example: '1, 2, 3...',
+          required: false
+        },
+        {
+          name: '결과',
+          description: '성공/실패를 나타내는 값',
+          example: '성공, 실패 또는 1, 0 또는 Yes, No',
+          required: true
+        }
+      ]
+    },
+    settings: {
+      probability: {
+        label: '귀무가설 확률 (p₀)',
+        description: '검정하고자 하는 기대 성공 확률입니다. 예를 들어, 동전 던지기에서 앞면이 나올 확률이 50%인지 검정하려면 0.5를 입력합니다.',
+        default: 0.5,
+        range: { min: 0, max: 1 }
+      },
+      alternative: {
+        label: '대립가설',
+        description: '검정 방향을 선택합니다.',
+        options: [
+          { value: 'two-sided', label: '양측 검정', description: '성공 확률이 p₀와 다른지 검정 (p ≠ p₀)' },
+          { value: 'greater', label: '단측 검정 (greater)', description: '성공 확률이 p₀보다 큰지 검정 (p > p₀)' },
+          { value: 'less', label: '단측 검정 (less)', description: '성공 확률이 p₀보다 작은지 검정 (p < p₀)' }
+        ],
+        default: 'two-sided'
+      },
+      successValue: {
+        label: '성공 기준값',
+        description: '어떤 값을 "성공"으로 간주할지 선택합니다. 이진 변수의 경우 자동 감지되며, 범주형 변수의 경우 선택이 필요합니다.',
+        default: null
+      }
+    },
+    sampleData: {
+      headers: ['ID', '검사결과'],
+      rows: [
+        [1, '합격'],
+        [2, '불합격'],
+        [3, '합격'],
+        [4, '합격'],
+        [5, '불합격'],
+        [6, '합격'],
+        [7, '합격'],
+        [8, '불합격'],
+        [9, '합격'],
+        [10, '합격']
+      ],
+      description: '10명의 시험 결과 (합격률이 50%인지 검정)'
+    }
   },
 
   {
@@ -1560,6 +1744,93 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
       }
     ],
     notes: ['ADF: 단위근 귀무가설', 'KPSS: 정상성 귀무가설', '두 검정 결합 권장']
+  },
+
+  // ========================================
+  // 11. 진단 검정 (Diagnostic Tests) - 1개
+  // ========================================
+  {
+    id: 'normality-test',
+    name: '정규성 검정',
+    category: 'diagnostic',
+    description: '데이터가 정규분포를 따르는지 종합 검정 (Shapiro-Wilk, Anderson-Darling 등)',
+    minSampleSize: 3,
+    assumptions: [],
+    variables: [
+      {
+        role: 'dependent',
+        label: '검정 변수',
+        types: ['continuous'],
+        required: true,
+        multiple: false,
+        description: '정규성을 검정할 연속형 변수',
+        example: '체중, 키, 점수'
+      }
+    ],
+    notes: [
+      'Shapiro-Wilk: n < 5000에서 가장 강력',
+      'Anderson-Darling: 꼬리 부분에 민감',
+      "D'Agostino K²: 왜도와 첨도 동시 검정",
+      'Jarque-Bera: 대표본에서 사용',
+      'Lilliefors: 평균과 분산 추정 시 사용'
+    ]
+  },
+
+  // ========================================
+  // 12. 용량-반응 분석 (Dose-Response) - 1개
+  // ========================================
+  {
+    id: 'dose-response',
+    name: '용량-반응 분석',
+    category: 'regression',
+    description: '용량과 반응 간의 비선형 관계 모델링 (EC50, IC50 추정)',
+    minSampleSize: 6,
+    assumptions: ['독립 관측', '측정 오차 일정'],
+    variables: [
+      {
+        role: 'independent',
+        label: '용량 변수',
+        types: ['continuous'],
+        required: true,
+        multiple: false,
+        description: '약물/처리 농도 또는 용량',
+        example: '농도(μM), 투여량(mg/kg)'
+      },
+      {
+        role: 'dependent',
+        label: '반응 변수',
+        types: ['continuous'],
+        required: true,
+        multiple: false,
+        description: '측정된 반응 또는 효과',
+        example: '억제율(%), 활성도, 생존율'
+      }
+    ],
+    notes: [
+      '4-매개변수 로지스틱(4PL)이 표준',
+      'EC50: 50% 효과 농도',
+      'IC50: 50% 억제 농도',
+      'Hill 기울기: 곡선의 가파른 정도'
+    ]
+  },
+
+  // ========================================
+  // 13. 검정력 분석 (Power Analysis) - 1개
+  // ========================================
+  {
+    id: 'power-analysis',
+    name: '검정력 분석',
+    category: 'utility',
+    description: '통계 검정의 검정력 계산 및 필요 표본크기 추정',
+    minSampleSize: 0,  // 데이터 없이도 가능
+    assumptions: [],
+    variables: [],  // 데이터 기반이 아닌 파라미터 기반
+    notes: [
+      '사전 검정력 분석: 필요 표본크기 결정',
+      '사후 검정력 분석: 실제 검정력 계산',
+      '효과크기: Cohen의 d, f, r 등 사용',
+      '일반적으로 80% 이상 검정력 권장'
+    ]
   }
 ]
 

@@ -31,6 +31,9 @@ import { useStatisticsPage , type UploadedData } from '@/hooks/use-statistics-pa
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 interface ResponseSurfaceResult {
   model_type: string
@@ -541,6 +544,11 @@ export default function ResponseSurfacePage() {
     withUploadedData: true,
     withError: true
   })
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'response-surface'
+  })
   const { currentStep, uploadedData, error } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
   const [activeResultTab, setActiveResultTab] = useState('coefficients')
@@ -701,6 +709,25 @@ export default function ResponseSurfacePage() {
           </div>
         </CardContent>
       </Card>
+
+      
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          showProgress={true}
+          collapsible={true}
+          title="Analysis Assumptions"
+          description="Response Surface assumptions to verify before analysis."
+        />
+      )}
 
       <div className="flex justify-center">
         <Button onClick={() => actions.setCurrentStep(1)} size="lg">

@@ -43,6 +43,11 @@ import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 // Services & Types
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
+
+// Guide Components
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
@@ -111,6 +116,11 @@ export default function ChiSquareIndependencePage() {
   })
   const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+
+  // Guide components - useAnalysisGuide hook 사용
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'chi-square-independence'
+  })
   const [activeResultTab, setActiveResultTab] = useState('crosstab')
 
   // Breadcrumbs - useMemo로 최적화
@@ -383,13 +393,33 @@ export default function ChiSquareIndependencePage() {
         </AlertDescription>
       </Alert>
 
+      {/* Analysis Guide Panel */}
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {/* Assumption Checklist */}
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          showProgress={true}
+          collapsible={true}
+          title="분석 전 가정 확인"
+          description="카이제곱 독립성 검정의 기본 가정을 확인해주세요."
+        />
+      )}
+
       <div className="flex justify-end">
         <Button onClick={() => actions.setCurrentStep(1)}>
           다음: 데이터 업로드
         </Button>
       </div>
     </div>
-  ), [actions])
+  ), [actions, methodMetadata, assumptionItems])
 
   return (
     <TwoPanelLayout

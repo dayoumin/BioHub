@@ -32,6 +32,9 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTestCard'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 import {
   Calculator,
   AlertTriangle,
@@ -40,14 +43,12 @@ import {
   Info,
   BarChart3,
   Target,
-  Hash
-,
+  Hash,
   FileText,
   Shield,
   TrendingUp,
   Percent,
-  MessageSquare
-,
+  MessageSquare,
   Table
 } from 'lucide-react'
 
@@ -141,6 +142,11 @@ export default function PoissonRegressionPage() {
     initialStep: 0,
     withUploadedData: true,
     withError: true
+  })
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'poisson-regression'
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
@@ -237,79 +243,96 @@ export default function PoissonRegressionPage() {
 
   // Step 0: 방법 소개
   const renderMethodIntroduction = useCallback(() => (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Calculator className="w-5 h-5" />
-          포아송 회귀분석 소개
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div>
-          <h3 className="text-lg font-medium mb-3">포아송 회귀분석이란?</h3>
-          <p className="text-muted-foreground mb-4">
-            종속변수가 비음의 정수인 카운트 데이터(count data)를 분석하는 일반화선형모델(GLM)입니다.
-            포아송 분포를 가정하며 로그 연결함수를 사용하여 발생률(rate)을 모델링합니다.
-          </p>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calculator className="w-5 h-5" />
+            포아송 회귀분석 소개
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <h3 className="text-lg font-medium mb-3">포아송 회귀분석이란?</h3>
+            <p className="text-muted-foreground mb-4">
+              종속변수가 비음의 정수인 카운트 데이터(count data)를 분석하는 일반화선형모델(GLM)입니다.
+              포아송 분포를 가정하며 로그 연결함수를 사용하여 발생률(rate)을 모델링합니다.
+            </p>
 
-          <div className="grid md:grid-cols-2 gap-4 mb-6">
-            <div className="bg-muted p-4 rounded-lg">
-              <h4 className="font-medium mb-2 flex items-center">
-                <Calculator className="w-4 h-4 mr-2" />
-                주요 특징
-              </h4>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• 카운트 데이터 전용</li>
-                <li>• 포아송 분포 가정</li>
-                <li>• 로그 연결함수 사용</li>
-                <li>• 발생률 비(Rate Ratio) 해석</li>
-              </ul>
-            </div>
-
-            <div className="bg-muted p-4 rounded-lg">
-              <h4 className="font-medium mb-2 flex items-center">
-                <Target className="w-4 h-4 mr-2" />
-                적용 예시
-              </h4>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• 질병 발생 건수</li>
-                <li>• 교통사고 발생 횟수</li>
-                <li>• 고객 방문 횟수</li>
-                <li>• 결함 발생 개수</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h3 className="text-lg font-medium mb-3">포아송 회귀의 가정</h3>
-          <div className="space-y-3">
-            {[
-              '포아송 분포: 평균과 분산이 같음',
-              '독립성: 관측치들이 서로 독립',
-              '선형성: 로그(평균)이 예측변수와 선형관계',
-              '과산포 없음: 분산 = 평균 (과산포 시 음이항 회귀 고려)'
-            ].map((assumption, index) => (
-              <div key={index} className="flex items-center space-x-3">
-                <Badge variant="outline" className="w-6 h-6 rounded-full p-0 flex items-center justify-center text-xs">
-                  {index + 1}
-                </Badge>
-                <span className="text-sm">{assumption}</span>
+            <div className="grid md:grid-cols-2 gap-4 mb-6">
+              <div className="bg-muted p-4 rounded-lg">
+                <h4 className="font-medium mb-2 flex items-center">
+                  <Calculator className="w-4 h-4 mr-2" />
+                  주요 특징
+                </h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• 카운트 데이터 전용</li>
+                  <li>• 포아송 분포 가정</li>
+                  <li>• 로그 연결함수 사용</li>
+                  <li>• 발생률 비(Rate Ratio) 해석</li>
+                </ul>
               </div>
-            ))}
-          </div>
-        </div>
 
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            포아송 회귀에서 <strong>과산포(Overdispersion)</strong>가 발생하면 표준오차가 과소추정될 수 있습니다.
-            이 경우 준-포아송 모델이나 음이항 회귀분석을 고려해야 합니다.
-          </AlertDescription>
-        </Alert>
-      </CardContent>
-    </Card>
-  ), [])
+              <div className="bg-muted p-4 rounded-lg">
+                <h4 className="font-medium mb-2 flex items-center">
+                  <Target className="w-4 h-4 mr-2" />
+                  적용 예시
+                </h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• 질병 발생 건수</li>
+                  <li>• 교통사고 발생 횟수</li>
+                  <li>• 고객 방문 횟수</li>
+                  <li>• 결함 발생 개수</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-medium mb-3">포아송 회귀의 가정</h3>
+            <div className="space-y-3">
+              {[
+                '포아송 분포: 평균과 분산이 같음',
+                '독립성: 관측치들이 서로 독립',
+                '선형성: 로그(평균)이 예측변수와 선형관계',
+                '과산포 없음: 분산 = 평균 (과산포 시 음이항 회귀 고려)'
+              ].map((assumption, index) => (
+                <div key={index} className="flex items-center space-x-3">
+                  <Badge variant="outline" className="w-6 h-6 rounded-full p-0 flex items-center justify-center text-xs">
+                    {index + 1}
+                  </Badge>
+                  <span className="text-sm">{assumption}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              포아송 회귀에서 <strong>과산포(Overdispersion)</strong>가 발생하면 표준오차가 과소추정될 수 있습니다.
+              이 경우 준-포아송 모델이나 음이항 회귀분석을 고려해야 합니다.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions', 'dataFormat', 'sampleData']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          title="분석 전 가정 확인"
+        />
+      )}
+    </div>
+  ), [methodMetadata, assumptionItems])
 
   // Step 1: 데이터 업로드
   const renderDataUpload = useCallback(() => (

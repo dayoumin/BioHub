@@ -31,6 +31,9 @@ import { CheckCircle2, AlertCircle, Activity, Target, TrendingUp ,
 } from 'lucide-react'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 interface NormalityTest {
   variable: string
@@ -114,6 +117,11 @@ export default function PartialCorrelationPage() {
     withUploadedData: true,
     withError: true,
     initialStep: 0
+  })
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'partial-correlation'
   })
   const { currentStep, uploadedData, selectedVariables, isAnalyzing, results, error } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
@@ -346,6 +354,25 @@ export default function PartialCorrelationPage() {
           특히 매개효과나 억제효과를 탐지하는 데 유용합니다.
         </AlertDescription>
       </Alert>
+
+      
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          showProgress={true}
+          collapsible={true}
+          title="Analysis Assumptions"
+          description="Partial Correlation assumptions to verify before analysis."
+        />
+      )}
 
       <div className="flex justify-center">
         <Button onClick={handleIntroductionNext} size="lg">

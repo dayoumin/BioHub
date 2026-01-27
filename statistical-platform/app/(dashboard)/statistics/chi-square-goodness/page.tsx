@@ -45,6 +45,11 @@ import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 // Hooks & Utils
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
+
+// Guide Components
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
@@ -96,6 +101,11 @@ export default function ChiSquareGoodnessPage() {
   })
 
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+
+  // Guide components - useAnalysisGuide hook 사용
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'chi-square-goodness'
+  })
 
   // Page-specific state
   const [expectedProportions, setExpectedProportions] = useState<Record<string, number>>({})
@@ -175,13 +185,33 @@ export default function ChiSquareGoodnessPage() {
         </AlertDescription>
       </Alert>
 
+      {/* Analysis Guide Panel */}
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {/* Assumption Checklist */}
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          showProgress={true}
+          collapsible={true}
+          title="분석 전 가정 확인"
+          description="카이제곱 적합도 검정의 기본 가정을 확인해주세요."
+        />
+      )}
+
       <div className="flex justify-end">
         <Button onClick={() => actions.setCurrentStep(1)}>
           다음: 데이터 업로드
         </Button>
       </div>
     </div>
-  ), [actions])
+  ), [actions, methodMetadata, assumptionItems])
 
   // Event handlers with useCallback
   const handleDataUploadComplete = useCallback(

@@ -25,6 +25,11 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
+
+// Guide Components
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
@@ -68,6 +73,11 @@ export default function McNemarTestPage() {
     initialStep: 0
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+
+  // Guide components - useAnalysisGuide hook 사용
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'mcnemar'
+  })
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Breadcrumbs (useMemo)
@@ -369,6 +379,26 @@ export default function McNemarTestPage() {
         </div>
       </div>
 
+      {/* Analysis Guide Panel */}
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {/* Assumption Checklist */}
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          showProgress={true}
+          collapsible={true}
+          title="분석 전 가정 확인"
+          description="McNemar 검정의 기본 가정을 확인해주세요."
+        />
+      )}
+
       <div className="text-center">
         <Button
           onClick={() => actions.setCurrentStep?.(1)}
@@ -378,7 +408,7 @@ export default function McNemarTestPage() {
         </Button>
       </div>
     </div>
-  ), [actions])
+  ), [actions, methodMetadata, assumptionItems])
 
   const renderDataUpload = useCallback(() => (
     <DataUploadStep

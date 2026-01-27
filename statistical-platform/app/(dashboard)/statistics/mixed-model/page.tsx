@@ -48,6 +48,9 @@ import type { UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 // Data interfaces
 interface DataRow {
@@ -137,6 +140,11 @@ export default function MixedModelPage() {
   const { state, actions } = useStatisticsPage<MixedModelResult, MixedModelVariables>({
     withUploadedData: true,
     withError: true
+  })
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'mixed-model'
   })
   const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
@@ -365,9 +373,24 @@ export default function MixedModelPage() {
             다음: 데이터 업로드
           </Button>
         </div>
+
+        {methodMetadata && (
+          <AnalysisGuidePanel
+            method={methodMetadata}
+            sections={['variables', 'assumptions', 'dataFormat', 'sampleData']}
+            defaultExpanded={['variables']}
+          />
+        )}
+
+        {assumptionItems.length > 0 && (
+          <AssumptionChecklist
+            assumptions={assumptionItems}
+            title="분석 전 가정 확인"
+          />
+        )}
       </div>
     )
-  }, [actions])
+  }, [actions, methodMetadata, assumptionItems])
 
   const renderDataUpload = useCallback(() => {
     return (

@@ -33,6 +33,9 @@ import { ResultInterpretation } from '@/components/statistics/common/ResultInter
 import { extractColumnData } from '@/lib/utils/data-extraction'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import type { InterpretationResult } from '@/lib/interpretation/engine'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 interface KaplanMeierResults {
   survivalFunction: number[]
@@ -54,6 +57,11 @@ export default function KaplanMeierPage() {
     initialStep: 0,
     withUploadedData: true,
     withError: false
+  })
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'kaplan-meier'
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
@@ -157,7 +165,8 @@ export default function KaplanMeierPage() {
   ], [currentStep, uploadedData, selectedVariables, results])
 
   const renderMethodIntroduction = useCallback(() => (
-    <Card>
+    <div className="space-y-6">
+      <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Heart className="w-5 h-5" />
@@ -220,8 +229,24 @@ export default function KaplanMeierPage() {
           </ul>
         </div>
       </CardContent>
-    </Card>
-  ), [])
+      </Card>
+
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions', 'dataFormat', 'sampleData']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          title="분석 전 가정 확인"
+        />
+      )}
+    </div>
+  ), [methodMetadata, assumptionItems])
 
   const renderDataUpload = useCallback(() => (
     <DataUploadStep

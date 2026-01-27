@@ -30,6 +30,9 @@ import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-pag
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 // 요인분석 결과 인터페이스
 interface FactorAnalysisResult {
@@ -76,6 +79,11 @@ export default function FactorAnalysisPage() {
   const { state, actions } = useStatisticsPage<FactorAnalysisResult, FactorAnalysisVariables>({
     withUploadedData: true,
     withError: true
+  })
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'factor-analysis'
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
@@ -266,13 +274,32 @@ export default function FactorAnalysisPage() {
         </AlertDescription>
       </Alert>
 
+      
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          showProgress={true}
+          collapsible={true}
+          title="Analysis Assumptions"
+          description="Factor Analysis assumptions to verify before analysis."
+        />
+      )}
+
       <div className="flex justify-end">
         <Button onClick={() => actions.setCurrentStep?.(1)}>
           다음: 데이터 업로드
         </Button>
       </div>
     </div>
-  ), [actions])
+  ), [actions, methodMetadata, assumptionItems])
 
   // 변수 선택 페이지 (Step 2)
   const variableSelectionStep = useMemo(() => (

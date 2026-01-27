@@ -47,6 +47,9 @@ import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-pag
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 // Data interfaces
 interface DataRow {
@@ -135,6 +138,11 @@ export default function ANCOVAPage() {
   const { state, actions } = useStatisticsPage<ANCOVAResult, ANCOVAVariables>({
     withUploadedData: true,
     withError: true
+  })
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'ancova'
   })
   const { currentStep, uploadedData, selectedVariables: _selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
@@ -325,13 +333,32 @@ export default function ANCOVAPage() {
         </ul>
       </div>
 
+      
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          showProgress={true}
+          collapsible={true}
+          title="Analysis Assumptions"
+          description="ANCOVA assumptions to verify before analysis."
+        />
+      )}
+
       <div className="flex justify-end">
         <Button onClick={() => actions.setCurrentStep(1)}>
           다음: 데이터 업로드
         </Button>
       </div>
     </div>
-  ), [actions])
+  ), [actions, methodMetadata, assumptionItems])
 
   return (
     <TwoPanelLayout

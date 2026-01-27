@@ -36,14 +36,22 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Calculator, Upload, Settings, BarChart3, Info, CheckCircle2, AlertCircle } from 'lucide-react'
+
+import { VariableSelectorBadges } from '@/components/variable-selection'
+import { AnalysisButton } from '@/components/statistics/common/AnalysisButton'
 
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
+
+// Guide Components
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { SettingLabel } from '@/components/statistics/common/SettingTooltip'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { ConfidenceIntervalDisplay } from '@/components/statistics/common/ConfidenceIntervalDisplay'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
@@ -94,6 +102,7 @@ export default function BinomialTestPage(): React.ReactElement {
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
+
   // 최근 사용 통계 자동 추가
   useEffect(() => {
     addToRecentStatistics('binomial-test')
@@ -121,6 +130,11 @@ export default function BinomialTestPage(): React.ReactElement {
     { label: '통계 분석', href: '/statistics' },
     { label: '이항 검정', href: '/statistics/binomial-test' }
   ], [])
+
+  // Guide components - useAnalysisGuide hook 사용
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'binomial-test'
+  })
 
   // ============================================================================
   // Event Handlers
@@ -334,27 +348,25 @@ export default function BinomialTestPage(): React.ReactElement {
         </div>
       </Card>
 
-      <Card className="p-6">
-        <h3 className="font-semibold text-lg mb-3">주요 특징</h3>
-        <ul className="space-y-2">
-          <li className="flex items-start gap-2">
-            <CheckCircle2 className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
-            <span className="text-sm">이진 데이터 (0/1, 성공/실패, 예/아니오)</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <CheckCircle2 className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
-            <span className="text-sm">귀무가설 확률(p₀) 설정 가능</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <CheckCircle2 className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
-            <span className="text-sm">양측/단측 검정 지원</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <CheckCircle2 className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
-            <span className="text-sm">정확한 p-value 계산 (이산분포)</span>
-          </li>
-        </ul>
-      </Card>
+      {/* Analysis Guide Panel - variable-requirements.ts 메타데이터 활용 */}
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'dataFormat', 'sampleData']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {/* Assumption Checklist */}
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          showProgress={true}
+          collapsible={true}
+          title="분석 전 가정 확인"
+          description="이항 검정의 기본 가정을 확인해주세요."
+        />
+      )}
 
       <Card className="p-6">
         <h3 className="font-semibold text-lg mb-3">사용 예시</h3>
@@ -388,7 +400,7 @@ export default function BinomialTestPage(): React.ReactElement {
         다음 단계로
       </Button>
     </div>
-  ), [actions])
+  ), [actions, methodMetadata, assumptionItems])
 
   const renderDataUpload = useCallback(() => (
     <DataUploadStep onUploadComplete={handleDataUpload} />
@@ -407,23 +419,11 @@ export default function BinomialTestPage(): React.ReactElement {
             성공/실패를 나타내는 이진 변수를 선택하세요.
           </p>
 
-          <div className="flex flex-wrap gap-2">
-            {uploadedData.columns.map((col: string) => {
-              const isSelected = currentDependent === col
-
-              return (
-                <Badge
-                  key={col}
-                  variant={isSelected ? 'default' : 'outline'}
-                  className="cursor-pointer px-4 py-2"
-                  onClick={() => { handleVariableSelect(col) }}
-                >
-                  {col}
-                  {isSelected && <CheckCircle2 className="w-4 h-4 ml-2" />}
-                </Badge>
-              )
-            })}
-          </div>
+          <VariableSelectorBadges
+            columns={uploadedData.columns}
+            selectedValue={currentDependent}
+            onSelect={handleVariableSelect}
+          />
 
           {!currentDependent && (
             <Alert className="mt-4">
@@ -442,7 +442,11 @@ export default function BinomialTestPage(): React.ReactElement {
             <div className="space-y-4">
               {/* 성공 기준값 선택 */}
               <div className="space-y-2">
-                <Label htmlFor="success-value">성공 기준값</Label>
+                {methodMetadata?.settings?.successValue ? (
+                  <SettingLabel setting={methodMetadata.settings.successValue} />
+                ) : (
+                  <Label htmlFor="success-value">성공 기준값</Label>
+                )}
                 <Select
                   value={analysisOptions.successValue?.toString() ?? ''}
                   onValueChange={(value) => {
@@ -473,7 +477,11 @@ export default function BinomialTestPage(): React.ReactElement {
 
               {/* 귀무가설 확률 */}
               <div className="space-y-2">
-                <Label htmlFor="probability">귀무가설 확률 (p₀)</Label>
+                {methodMetadata?.settings?.probability ? (
+                  <SettingLabel setting={methodMetadata.settings.probability} />
+                ) : (
+                  <Label htmlFor="probability">귀무가설 확률 (p₀)</Label>
+                )}
                 <Input
                   id="probability"
                   type="number"
@@ -491,14 +499,15 @@ export default function BinomialTestPage(): React.ReactElement {
                     }
                   }}
                 />
-                <p className="text-xs text-muted-foreground">
-                  귀무가설에서 가정하는 성공 확률 (기본값: 0.5)
-                </p>
               </div>
 
               {/* 대립가설 */}
               <div className="space-y-2">
-                <Label htmlFor="alternative">대립가설</Label>
+                {methodMetadata?.settings?.alternative ? (
+                  <SettingLabel setting={methodMetadata.settings.alternative} />
+                ) : (
+                  <Label htmlFor="alternative">대립가설</Label>
+                )}
                 <Select
                   value={analysisOptions.alternative}
                   onValueChange={(value) => {
@@ -517,28 +526,22 @@ export default function BinomialTestPage(): React.ReactElement {
                     <SelectItem value="greater">단측 검정 (p &gt; p₀)</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">
-                  {analysisOptions.alternative === 'two-sided'
-                    ? '성공 확률이 p₀과 다른지 검정'
-                    : analysisOptions.alternative === 'less'
-                    ? '성공 확률이 p₀보다 낮은지 검정'
-                    : '성공 확률이 p₀보다 높은지 검정'}
-                </p>
               </div>
 
-              <Button
+              <AnalysisButton
+                isAnalyzing={isAnalyzing}
+                canAnalyze={!!currentDependent && analysisOptions.successValue !== null}
                 onClick={handleNextStep}
-                disabled={isAnalyzing || !currentDependent || analysisOptions.successValue === null}
+                label="다음 단계"
+                analyzingLabel="분석 중..."
                 className="w-full"
-              >
-                {isAnalyzing ? '분석 중...' : '다음 단계'}
-              </Button>
+              />
             </div>
           </Card>
         )}
       </div>
     )
-  }, [uploadedData, selectedVariables, uniqueValues, analysisOptions, isAnalyzing, handleVariableSelect, handleNextStep])
+  }, [uploadedData, selectedVariables, uniqueValues, analysisOptions, isAnalyzing, handleVariableSelect, handleNextStep, methodMetadata])
 
   const renderResults = useCallback(() => {
     if (!results) return null

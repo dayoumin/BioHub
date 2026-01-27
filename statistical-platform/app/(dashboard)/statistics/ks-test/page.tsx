@@ -34,6 +34,9 @@ import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.ser
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 // K-S 검정 타입 정의
 interface KSTestResult {
@@ -73,6 +76,11 @@ export default function KolmogorovSmirnovTestPage() {
   })
   const { currentStep, uploadedData, selectedVariables, isAnalyzing, results, error } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'kolmogorov-smirnov'
+  })
 
   const steps = useMemo(() => {
     const baseSteps = [
@@ -330,13 +338,31 @@ export default function KolmogorovSmirnovTestPage() {
         </AlertDescription>
       </Alert>
 
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          showProgress={true}
+          collapsible={true}
+          title="분석 전 가정 확인"
+          description="Kolmogorov-Smirnov 검정의 기본 가정을 확인해주세요."
+        />
+      )}
+
       <div className="flex justify-center">
         <Button onClick={() => actions.setCurrentStep(1)} size="lg">
           데이터 업로드하기
         </Button>
       </div>
     </div>
-  ), [actions])
+  ), [actions, methodMetadata, assumptionItems])
 
   const renderVariableSelection = useCallback(() => {
     if (!uploadedData) return null

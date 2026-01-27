@@ -27,6 +27,11 @@ import { ResultContextHeader } from '@/components/statistics/common/ResultContex
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { runTTest, type TTestResult } from '@/lib/statistics/t-test-helpers'
 
+// Guide Components
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide, INTEGRATED_PAGE_METHOD_MAPS } from '@/hooks/use-analysis-guide'
+
 interface TTestVariables {
   group?: string | string[]
   value?: string | string[]
@@ -246,6 +251,11 @@ export default function TTestPage() {
     { label: 't-검정' }
   ]
 
+  // Guide components - useAnalysisGuide hook 사용 (dynamic based on testType)
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    getMethodId: () => testType ? INTEGRATED_PAGE_METHOD_MAPS.tTest[testType] : null
+  })
+
   // TTestResult -> StatisticalResult 변환
   const convertToStatisticalResult = useCallback((testResult: TTestResult): StatisticalResult => {
     const testTypeLabels: Record<string, string> = {
@@ -378,6 +388,26 @@ export default function TTestPage() {
                 />
               </CardContent>
             </Card>
+          )}
+
+          {/* Analysis Guide Panel - testType 선택 시 표시 */}
+          {methodMetadata && (
+            <AnalysisGuidePanel
+              method={methodMetadata}
+              sections={['variables', 'assumptions', 'dataFormat', 'sampleData']}
+              defaultExpanded={['variables']}
+            />
+          )}
+
+          {/* Assumption Checklist - testType 선택 시 표시 */}
+          {assumptionItems.length > 0 && (
+            <AssumptionChecklist
+              assumptions={assumptionItems}
+              showProgress={true}
+              collapsible={true}
+              title="분석 전 가정 확인"
+              description={`${methodMetadata?.name || 't-검정'}의 기본 가정을 확인해주세요.`}
+            />
           )}
         </div>
       )}

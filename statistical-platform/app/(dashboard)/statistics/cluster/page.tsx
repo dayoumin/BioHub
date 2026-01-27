@@ -27,6 +27,9 @@ import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 // 군집분석 결과 인터페이스
 interface ClusterAnalysisResult {
@@ -68,6 +71,11 @@ export default function ClusterAnalysisPage() {
     withUploadedData: true,
     withError: true,
     initialStep: 0
+  })
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'cluster-analysis'
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
@@ -582,8 +590,23 @@ Davies-Bouldin 지수: ${results.davies_bouldin_score.toFixed(3)}
           K-means: 구형 군집에 적합, 빠른 속도. 계층적 군집분석: 덴드로그램 제공, 군집 수 유연. 실루엣 분석: 군집 품질 평가.
         </p>
       </div>
+
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions', 'dataFormat', 'sampleData']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          title="분석 전 가정 확인"
+        />
+      )}
     </div>
-  ), [])
+  ), [methodMetadata, assumptionItems])
 
   const renderDataUpload = useCallback(() => (
     <DataUploadStep

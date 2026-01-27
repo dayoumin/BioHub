@@ -33,6 +33,9 @@ import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { extractColumnData } from '@/lib/utils/data-extraction'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 interface SeasonalDecomposeResults {
   trend: number[]
@@ -59,6 +62,11 @@ export default function SeasonalDecomposePage() {
     initialStep: 0,
     withUploadedData: true,
     withError: false
+  })
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'seasonal-decompose'
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
@@ -168,7 +176,8 @@ export default function SeasonalDecomposePage() {
   ], [currentStep, uploadedData, selectedVariables, results])
 
   const renderMethodIntroduction = useCallback(() => (
-    <Card>
+    <div className="space-y-6">
+      <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Activity className="w-5 h-5" />
@@ -213,8 +222,24 @@ export default function SeasonalDecomposePage() {
           </ul>
         </div>
       </CardContent>
-    </Card>
-  ), [])
+      </Card>
+
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions', 'dataFormat', 'sampleData']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          title="분석 전 가정 확인"
+        />
+      )}
+    </div>
+  ), [methodMetadata, assumptionItems])
 
   const renderDataUpload = useCallback(() => (
     <DataUploadStep

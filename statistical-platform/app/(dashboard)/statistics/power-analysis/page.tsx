@@ -35,6 +35,9 @@ import { ResultContextHeader } from '@/components/statistics/common/ResultContex
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 interface PowerAnalysisResult {
   testType: string
@@ -80,6 +83,11 @@ export default function PowerAnalysisPage() {
     withUploadedData: false,
     withError: true,
     initialStep: 0
+  })
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'power-analysis'
   })
   const { currentStep, results, isAnalyzing, error } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
@@ -383,6 +391,7 @@ export default function PowerAnalysisPage() {
       <div className="space-y-6">
         {/* 1단계: 검정 선택 */}
         {currentStep === 0 && (
+          <>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -444,6 +453,22 @@ export default function PowerAnalysisPage() {
               </div>
             </CardContent>
           </Card>
+
+          {methodMetadata && (
+            <AnalysisGuidePanel
+              method={methodMetadata}
+              sections={['variables', 'assumptions', 'dataFormat', 'sampleData']}
+              defaultExpanded={['variables']}
+            />
+          )}
+
+          {assumptionItems.length > 0 && (
+            <AssumptionChecklist
+              assumptions={assumptionItems}
+              title="분석 전 가정 확인"
+            />
+          )}
+          </>
         )}
 
         {/* 2단계: 모수 설정 */}

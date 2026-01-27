@@ -33,6 +33,9 @@ import { ResultInterpretation } from '@/components/statistics/common/ResultInter
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import type { FisherExactTestResult } from '@/types/pyodide-results'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 export default function FisherExactTestPage() {
   // 최근 사용 통계 자동 추가
@@ -48,6 +51,11 @@ export default function FisherExactTestPage() {
 
   // Analysis timestamp state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'fisher-exact'
+  })
 
   // Pyodide Core Service (singleton - stable across renders)
   const pyodideCore = useMemo(() => PyodideCoreService.getInstance(), [])
@@ -193,6 +201,24 @@ export default function FisherExactTestPage() {
             Fisher 정확 검정은 소표본에서 정확한 p-value를 제공합니다. 카이제곱 검정은 근사값을 사용하므로 표본이 작을 때 부정확할 수 있습니다.
           </AlertDescription>
         </Alert>
+
+        {methodMetadata && (
+          <AnalysisGuidePanel
+            method={methodMetadata}
+            sections={['variables', 'assumptions']}
+            defaultExpanded={['variables']}
+          />
+        )}
+
+        {assumptionItems.length > 0 && (
+          <AssumptionChecklist
+            assumptions={assumptionItems}
+            showProgress={true}
+            collapsible={true}
+            title="분석 전 가정 확인"
+            description="Fisher 정확 검정의 기본 가정을 확인해주세요."
+          />
+        )}
       </CardContent>
     </Card>
   )

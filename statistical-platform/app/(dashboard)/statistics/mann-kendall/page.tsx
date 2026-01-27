@@ -45,6 +45,9 @@ import { ResultContextHeader } from '@/components/statistics/common/ResultContex
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { extractRowValue } from '@/lib/utils/data-extraction'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 interface MannKendallResult {
   trend: 'increasing' | 'decreasing' | 'no trend'
@@ -75,6 +78,11 @@ export default function MannKendallPage() {
     withUploadedData: true,
     withError: true,
     initialStep: 0
+  })
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'mann-kendall-test'
   })
   const { currentStep, uploadedData, selectedVariables, results, error, isAnalyzing } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
@@ -295,6 +303,25 @@ export default function MannKendallPage() {
         </AlertDescription>
       </Alert>
 
+      
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          showProgress={true}
+          collapsible={true}
+          title="Analysis Assumptions"
+          description="Mann-Kendall Test assumptions to verify before analysis."
+        />
+      )}
+
       <div className="flex justify-end">
         <Button onClick={() => actions.setCurrentStep(1)} size="lg">
           다음 단계: 데이터 업로드
@@ -302,7 +329,7 @@ export default function MannKendallPage() {
         </Button>
       </div>
     </div>
-  ), [actions])
+  ), [actions, methodMetadata, assumptionItems])
 
   // Render: Step 2 - Data Upload
   const renderDataUpload = useCallback(() => (

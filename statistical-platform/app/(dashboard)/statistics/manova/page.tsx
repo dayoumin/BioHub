@@ -48,6 +48,9 @@ import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.ser
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 // Data interfaces
 interface DataRow {
@@ -163,6 +166,11 @@ export default function ManovaPage() {
   const { state, actions } = useStatisticsPage<ManovaResult, MANOVAVariables>({
     withUploadedData: true,
     withError: true
+  })
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'manova'
   })
   const { currentStep, uploadedData, selectedVariables: _selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
@@ -334,8 +342,23 @@ export default function ManovaPage() {
           <li>• <strong>Roy&apos;s Max Root:</strong> 가장 자유롭지만 가정에 민감</li>
         </ul>
       </div>
+
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions', 'dataFormat', 'sampleData']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          title="분석 전 가정 확인"
+        />
+      )}
     </div>
-  ), [])
+  ), [methodMetadata, assumptionItems])
 
   const renderDataUpload = useCallback(() => (
     <div className="space-y-6">

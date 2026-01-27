@@ -28,6 +28,9 @@ import type { UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 interface DoseResponseResult {
   model: string
@@ -512,6 +515,11 @@ export default function DoseResponsePage() {
     withUploadedData: true,
     withError: true
   })
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'dose-response'
+  })
   const { currentStep, uploadedData, error, results } = state
 
   const [selectedModel, setSelectedModel] = useState('logistic4')
@@ -620,6 +628,25 @@ export default function DoseResponsePage() {
           </div>
         </CardContent>
       </Card>
+      
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          showProgress={true}
+          collapsible={true}
+          title="Analysis Assumptions"
+          description="Dose-Response Analysis assumptions to verify before analysis."
+        />
+      )}
+
       <div className="flex justify-end">
         <Button onClick={() => actions.setCurrentStep(1)}>
           다음 단계

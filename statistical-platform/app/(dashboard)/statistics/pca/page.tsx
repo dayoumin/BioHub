@@ -39,6 +39,9 @@ import { ResultContextHeader } from '@/components/statistics/common/ResultContex
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 // 데이터 인터페이스
 // 로컬 인터페이스 제거: types/statistics.ts의 PCAVariables 사용
@@ -88,6 +91,11 @@ export default function PCAPage() {
   const { state, actions } = useStatisticsPage<PCAResult, PCAVariables>({
     withUploadedData: true,
     withError: true
+  })
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'pca'
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
@@ -477,7 +485,26 @@ export default function PCAPage() {
           </AlertDescription>
         </Alert>
 
-            <div className="text-center">
+            
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          showProgress={true}
+          collapsible={true}
+          title="Analysis Assumptions"
+          description="PCA assumptions to verify before analysis."
+        />
+      )}
+
+      <div className="text-center">
               <Button
                 onClick={() => actions.setCurrentStep(1)}
                 className="w-full md:w-auto"
@@ -489,7 +516,7 @@ export default function PCAPage() {
         </CardContent>
       </Card>
     </div>
-  ), [actions])
+  ), [actions, methodMetadata, assumptionItems])
 
   const renderDataUpload = useCallback(() => (
     <Card>

@@ -40,6 +40,9 @@ import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTes
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 
 import { openDataWindow } from '@/lib/utils/open-data-window'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 interface StepwiseResults {
   final_model: {
     variables: string[]
@@ -106,6 +109,11 @@ export default function StepwiseRegressionPage() {
     withUploadedData: true,
     withError: true,
     initialStep: 0
+  })
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'stepwise-regression'
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
@@ -423,13 +431,32 @@ export default function StepwiseRegressionPage() {
         </AlertDescription>
       </Alert>
 
+      
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          showProgress={true}
+          collapsible={true}
+          title="Analysis Assumptions"
+          description="Stepwise Regression assumptions to verify before analysis."
+        />
+      )}
+
       <div className="flex justify-center">
         <Button onClick={() => actions.setCurrentStep(1)} size="lg">
           데이터 업로드하기
         </Button>
       </div>
     </div>
-  ), [actions])
+  ), [actions, methodMetadata, assumptionItems])
 
   const renderResults = useCallback(() => {
     if (isAnalyzing) {

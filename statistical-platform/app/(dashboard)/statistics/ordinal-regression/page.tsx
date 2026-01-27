@@ -33,6 +33,9 @@ import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.ser
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 import {
   TrendingUp,
   AlertTriangle,
@@ -40,13 +43,11 @@ import {
   ArrowRight,
   Info,
   BarChart3,
-  Target
-,
+  Target,
   FileText,
   Gauge,
   Shield,
-  MessageSquare
-,
+  MessageSquare,
   Table
 } from 'lucide-react'
 
@@ -134,6 +135,11 @@ export default function OrdinalRegressionPage() {
   const { state, actions } = useStatisticsPage<OrdinalRegressionResult>({
     withUploadedData: true,
     withError: true
+  })
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'ordinal-regression'
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
@@ -349,8 +355,23 @@ export default function OrdinalRegressionPage() {
           이는 독립변수의 효과가 모든 임계값에서 동일하다는 가정으로, 위반 시 부분 비례 오즈 모델을 고려해야 합니다.
         </AlertDescription>
       </Alert>
+
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions', 'dataFormat', 'sampleData']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          title="분석 전 가정 확인"
+        />
+      )}
     </div>
-  ), [])
+  ), [methodMetadata, assumptionItems])
 
   const renderDataUpload = useCallback(() => (
     <div className="space-y-6">

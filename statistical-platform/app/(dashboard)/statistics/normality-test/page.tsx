@@ -37,6 +37,9 @@ import { AssumptionTestCard, type AssumptionTest } from '@/components/statistics
 import type { InterpretationResult } from '@/lib/interpretation/engine'
 import { extractColumnData } from '@/lib/utils/data-extraction'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 interface NormalityTestResult {
   test: string
@@ -79,6 +82,11 @@ export default function NormalityTestPage() {
     withError: false
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing } = state
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'normality-test'
+  })
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
   const [activeResultTab, setActiveResultTab] = useState('summary')
   const [activeTab, setActiveTab] = useState('summary')
@@ -288,9 +296,34 @@ export default function NormalityTestPage() {
             <li>• 적절한 통계 방법 선택</li>
           </ul>
         </div>
+
+        {methodMetadata && (
+          <AnalysisGuidePanel
+            method={methodMetadata}
+            sections={['variables', 'assumptions']}
+            defaultExpanded={['variables']}
+          />
+        )}
+
+        {assumptionItems.length > 0 && (
+          <AssumptionChecklist
+            assumptions={assumptionItems}
+            showProgress={true}
+            collapsible={true}
+            title="분석 전 가정 확인"
+            description="정규성 검정의 기본 가정을 확인해주세요."
+          />
+        )}
+
+        <Button
+          onClick={() => actions.setCurrentStep?.(1)}
+          className="w-full"
+        >
+          시작하기
+        </Button>
       </CardContent>
     </Card>
-  ), [])
+  ), [actions, methodMetadata, assumptionItems])
 
   // Step 1: 데이터 업로드
   const renderDataUpload = useCallback(() => (

@@ -22,6 +22,9 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 interface RepeatedMeasuresVariables {
   subjectId?: string
@@ -97,6 +100,11 @@ export default function RepeatedMeasuresANOVAPage() {
     withUploadedData: true,
     withError: true,
     initialStep: 1
+  })
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'repeated-measures-anova'
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
@@ -320,36 +328,53 @@ export default function RepeatedMeasuresANOVAPage() {
 
   // Step 1: Data Upload
   const renderStep1 = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Layers className="w-5 h-5" />
-          데이터 업로드
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <DataUploadStep
-          onUploadComplete={handleDataUpload}
-          onNext={handleNext}
-          canGoNext={!!uploadedData}
-          currentStep={currentStep}
-          totalSteps={STEPS.length}
+    <div className="space-y-6">
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions', 'dataFormat', 'sampleData']}
+          defaultExpanded={['variables']}
         />
+      )}
 
-        <Alert className="mt-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>데이터 형식 안내:</strong>
-            <ul className="list-disc list-inside mt-2 space-y-1">
-              <li>각 행은 하나의 피험자를 나타냅니다</li>
-              <li>피험자 ID 열이 필요합니다 (예: SubjectID, 개체번호)</li>
-              <li>각 열은 서로 다른 시간대의 측정값입니다 (예: Week1, Week2, Week3)</li>
-              <li>최소 2명의 피험자와 2개의 시간대가 필요합니다</li>
-            </ul>
-          </AlertDescription>
-        </Alert>
-      </CardContent>
-    </Card>
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          title="분석 전 가정 확인"
+        />
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Layers className="w-5 h-5" />
+            데이터 업로드
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DataUploadStep
+            onUploadComplete={handleDataUpload}
+            onNext={handleNext}
+            canGoNext={!!uploadedData}
+            currentStep={currentStep}
+            totalSteps={STEPS.length}
+          />
+
+          <Alert className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>데이터 형식 안내:</strong>
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>각 행은 하나의 피험자를 나타냅니다</li>
+                <li>피험자 ID 열이 필요합니다 (예: SubjectID, 개체번호)</li>
+                <li>각 열은 서로 다른 시간대의 측정값입니다 (예: Week1, Week2, Week3)</li>
+                <li>최소 2명의 피험자와 2개의 시간대가 필요합니다</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    </div>
   )
 
   // Step 2: Variable Selection

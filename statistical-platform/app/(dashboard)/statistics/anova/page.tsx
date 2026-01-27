@@ -38,6 +38,19 @@ import {
   type GroupResult as HelperGroupResult
 } from '@/lib/statistics/anova-helpers'
 
+// Guide Components
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
+
+// ANOVA 페이지 전용 메서드 ID 매핑 (camelCase → kebab-case method ID)
+const ANOVA_METHOD_MAP: Record<string, string> = {
+  'oneWay': 'one-way-anova',
+  'twoWay': 'two-way-anova',
+  'threeWay': 'three-way-anova',
+  'repeated': 'repeated-measures-anova'
+}
+
 interface GroupResult {
   name: string
   mean: number
@@ -152,6 +165,11 @@ export default function ANOVAPage() {
 
   const [anovaType, setAnovaType] = useState<'oneWay' | 'twoWay' | 'threeWay' | 'repeated' | ''>('')
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+
+  // Guide components - useAnalysisGuide hook 사용 (dynamic based on anovaType)
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    getMethodId: () => anovaType ? ANOVA_METHOD_MAP[anovaType] : null
+  })
 
   const anovaTypeInfo = {
     oneWay: {
@@ -410,6 +428,26 @@ export default function ANOVAPage() {
               </Card>
             ))}
           </div>
+
+          {/* Analysis Guide Panel - anovaType 선택 시 표시 */}
+          {methodMetadata && (
+            <AnalysisGuidePanel
+              method={methodMetadata}
+              sections={['variables', 'assumptions', 'dataFormat', 'sampleData']}
+              defaultExpanded={['variables']}
+            />
+          )}
+
+          {/* Assumption Checklist - anovaType 선택 시 표시 */}
+          {assumptionItems.length > 0 && (
+            <AssumptionChecklist
+              assumptions={assumptionItems}
+              showProgress={true}
+              collapsible={true}
+              title="분석 전 가정 확인"
+              description={`${methodMetadata?.name || 'ANOVA'}의 기본 가정을 확인해주세요.`}
+            />
+          )}
         </div>
       )}
 

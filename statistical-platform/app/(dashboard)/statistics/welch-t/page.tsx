@@ -34,6 +34,9 @@ import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTes
 import { ConfidenceIntervalDisplay } from '@/components/statistics/common/ConfidenceIntervalDisplay'
 import { openDataWindow } from '@/lib/utils/open-data-window'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 import {
   Calculator,
   GitBranch,
@@ -44,11 +47,9 @@ import {
   CheckCircle2,
   XCircle,
   Target,
-  TrendingUp
-,
+  TrendingUp,
   FileText,
-  Shield
-,
+  Shield,
   Table
 } from 'lucide-react'
 
@@ -107,6 +108,11 @@ export default function WelchTPage() {
     withUploadedData: true,
     withError: true,
     initialStep: 0
+  })
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'welch-t'
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
@@ -386,13 +392,32 @@ export default function WelchTPage() {
         </AlertDescription>
       </Alert>
 
+      
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          showProgress={true}
+          collapsible={true}
+          title="Analysis Assumptions"
+          description="Welch's t-Test assumptions to verify before analysis."
+        />
+      )}
+
       <div className="flex justify-center">
         <Button onClick={() => actions.setCurrentStep(1)} size="lg">
           데이터 업로드하기
         </Button>
       </div>
     </div>
-  ), [actions])
+  ), [actions, methodMetadata, assumptionItems])
 
   const renderVariableSelection = useCallback(() => {
     if (!uploadedData) return null

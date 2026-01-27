@@ -42,6 +42,9 @@ import type { InterpretationResult } from '@/lib/interpretation/engine'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 interface OneSampleTResults {
   variable: string
@@ -76,6 +79,11 @@ export default function OneSampleTPage() {
   const { state, actions } = useStatisticsPage<OneSampleTResults, OneSampleTVariables>({
     withUploadedData: true,
     withError: true
+  })
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'one-sample-t'
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing } = state
   const [activeTab, setActiveTab] = useState('summary')
@@ -468,6 +476,21 @@ export default function OneSampleTPage() {
           데이터 업로드하기
         </Button>
       </div>
+
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions', 'dataFormat', 'sampleData']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          title="분석 전 가정 확인"
+        />
+      )}
     </div>
   )
 

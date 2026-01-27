@@ -37,6 +37,11 @@ import { ResultInterpretation } from '@/components/statistics/common/ResultInter
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
+// Guide Components
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
+
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
@@ -104,6 +109,11 @@ export default function WilcoxonPage() {
     initialStep: 0
   })
   const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
+
+  // Guide components - useAnalysisGuide hook 사용
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'wilcoxon-signed-rank'
+  })
 
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
   const [activeResultTab, setActiveResultTab] = useState('statistics')
@@ -288,13 +298,33 @@ export default function WilcoxonPage() {
         </AlertDescription>
       </Alert>
 
+      {/* Analysis Guide Panel */}
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {/* Assumption Checklist */}
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          showProgress={true}
+          collapsible={true}
+          title="분석 전 가정 확인"
+          description="Wilcoxon 부호순위 검정의 기본 가정을 확인해주세요."
+        />
+      )}
+
       <div className="flex justify-center">
         <Button onClick={() => actions.setCurrentStep(1)} size="lg">
           데이터 업로드하기
         </Button>
       </div>
     </div>
-  ), [actions])
+  ), [actions, methodMetadata, assumptionItems])
 
   const renderVariableSelection = useCallback(() => {
     if (!uploadedData) return null

@@ -51,6 +51,11 @@ import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/u
 import { DataPreviewPanel } from '@/components/statistics/common/DataPreviewPanel'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
+// Guide Components
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide, INTEGRATED_PAGE_METHOD_MAPS } from '@/hooks/use-analysis-guide'
+
 type AssumptionTestResult = {
   testName: string
   statistic: number | null
@@ -106,6 +111,11 @@ export default function RegressionPage() {
 
   // Page-specific state
   const [regressionType, setRegressionType] = useState<'simple' | 'multiple' | 'logistic' | ''>('')
+
+  // Guide components - useAnalysisGuide hook 사용 (dynamic based on regressionType)
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    getMethodId: () => regressionType ? INTEGRATED_PAGE_METHOD_MAPS.regression[regressionType] : null
+  })
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
@@ -593,8 +603,28 @@ export default function RegressionPage() {
           </p>
         </motion.div>
       )}
+
+      {/* Analysis Guide Panel - regressionType 선택 시 표시 */}
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions', 'dataFormat', 'sampleData']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {/* Assumption Checklist - regressionType 선택 시 표시 */}
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          showProgress={true}
+          collapsible={true}
+          title="분석 전 가정 확인"
+          description={`${methodMetadata?.name || '회귀분석'}의 기본 가정을 확인해주세요.`}
+        />
+      )}
     </div>
-  ), [regressionType, regressionTypeInfo, handleMethodSelect])
+  ), [regressionType, regressionTypeInfo, handleMethodSelect, methodMetadata, assumptionItems])
 
   const renderDataUpload = useCallback(() => (
     <div className="space-y-4">

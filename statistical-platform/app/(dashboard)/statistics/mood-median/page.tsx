@@ -31,6 +31,9 @@ import { ResultInterpretation } from '@/components/statistics/common/ResultInter
 import { AssumptionTestCard, type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
 import type { InterpretationResult } from '@/lib/interpretation/engine'
 import { openDataWindow } from '@/lib/utils/open-data-window'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 // ============================================================================
 // 타입 정의
@@ -81,6 +84,11 @@ export default function MoodMedianTestPage() {
     withUploadedData: true,
     withError: true
     // initialStep: 0 (기본값)
+  })
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'mood-median'
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
@@ -393,6 +401,25 @@ export default function MoodMedianTestPage() {
         </AlertDescription>
       </Alert>
 
+      
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          showProgress={true}
+          collapsible={true}
+          title="Analysis Assumptions"
+          description="Mood's Median Test assumptions to verify before analysis."
+        />
+      )}
+
       <div className="flex justify-end">
         <Button onClick={() => actions.setCurrentStep?.(1)} className="flex items-center space-x-2">
           <span>다음: 데이터 업로드</span>
@@ -400,7 +427,7 @@ export default function MoodMedianTestPage() {
         </Button>
       </div>
     </div>
-  ), [actions])
+  ), [actions, methodMetadata, assumptionItems])
 
   const renderVariableSelection = useCallback(() => {
     const selectedDependent = selectedVariables?.dependent || ''

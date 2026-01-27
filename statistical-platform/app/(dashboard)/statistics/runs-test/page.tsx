@@ -26,6 +26,9 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import { openDataWindow } from '@/lib/utils/open-data-window'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 // 런 검정 관련 타입 정의
 type RunValue = string | number | boolean
@@ -71,6 +74,11 @@ export default function RunsTestPage() {
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'runs-test'
+  })
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
@@ -320,6 +328,24 @@ export default function RunsTestPage() {
         </AlertDescription>
       </Alert>
 
+      {methodMetadata && (
+        <AnalysisGuidePanel
+          method={methodMetadata}
+          sections={['variables', 'assumptions']}
+          defaultExpanded={['variables']}
+        />
+      )}
+
+      {assumptionItems.length > 0 && (
+        <AssumptionChecklist
+          assumptions={assumptionItems}
+          showProgress={true}
+          collapsible={true}
+          title="분석 전 가정 확인"
+          description="런 검정의 기본 가정을 확인해주세요."
+        />
+      )}
+
       <div className="flex justify-end">
         <Button onClick={() => actions.setCurrentStep?.(1)} className="flex items-center space-x-2">
           <span>다음: 데이터 업로드</span>
@@ -327,7 +353,7 @@ export default function RunsTestPage() {
         </Button>
       </div>
     </div>
-  ), [actions])
+  ), [actions, methodMetadata, assumptionItems])
 
   const renderVariableSelection = useCallback(() => {
     const selectedDependent = selectedVariables?.dependent || ''

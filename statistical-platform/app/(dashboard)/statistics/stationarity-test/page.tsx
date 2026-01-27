@@ -34,6 +34,9 @@ import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { extractColumnData } from '@/lib/utils/data-extraction'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuidePanel'
+import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
+import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 interface StationarityResults {
   adf: {
@@ -75,6 +78,11 @@ export default function StationarityTestPage() {
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
   const [activeResultTab, setActiveResultTab] = useState('summary')
   const [regression, setRegression] = useState<'c' | 'ct'>('c')
+
+  // Analysis Guide Hook
+  const { methodMetadata, assumptionItems } = useAnalysisGuide({
+    methodId: 'stationarity-test'
+  })
 
   const breadcrumbs = useMemo(() => [
     { label: 'Statistics', href: '/statistics' },
@@ -195,9 +203,34 @@ export default function StationarityTestPage() {
             <li>No missing values in sequence</li>
           </ul>
         </div>
+
+        {methodMetadata && (
+          <AnalysisGuidePanel
+            method={methodMetadata}
+            sections={['variables', 'assumptions']}
+            defaultExpanded={['variables']}
+          />
+        )}
+
+        {assumptionItems.length > 0 && (
+          <AssumptionChecklist
+            assumptions={assumptionItems}
+            showProgress={true}
+            collapsible={true}
+            title="분석 전 가정 확인"
+            description="정상성 검정의 기본 가정을 확인해주세요."
+          />
+        )}
+
+        <Button
+          onClick={() => actions.setCurrentStep?.(1)}
+          className="w-full"
+        >
+          Start Analysis
+        </Button>
       </CardContent>
     </Card>
-  ), [])
+  ), [actions, methodMetadata, assumptionItems])
 
   const renderDataUpload = useCallback(() => (
     <DataUploadStep
