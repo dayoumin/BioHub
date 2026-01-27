@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/sonner"
 import { ClientProviders } from "@/components/providers/ClientProviders"
 import { UIProvider } from "@/contexts/ui-context"
 import { LayoutContent } from "@/components/layout/layout-content"
-import { MobileWarning } from "@/components/layout/mobile-warning"
 import { GlobalFeedbackPanel } from "@/components/feedback/GlobalFeedbackPanel"
 
 // 외부망 환경에서 Google Fonts 접근 불가 시 시스템 폰트 사용
@@ -56,8 +55,6 @@ export default function RootLayout({
               <LayoutContent />
             </div>
 
-            {/* 모바일 경고 */}
-            <MobileWarning />
 
             {/* 전역 피드백 패널 */}
             <GlobalFeedbackPanel />

@@ -431,6 +431,12 @@
     @apply border-border outline-ring/50;
   }
 
+  /* PC 전용 - 최소 창 크기 제한 (1024x600) */
+  html {
+    min-width: 1024px;
+    min-height: 600px;
+  }
+
   /* Modern Thin Scrollbar - 전역 적용 (Grok 스타일) */
   html,
   body {

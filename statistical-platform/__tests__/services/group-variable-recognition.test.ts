@@ -9,7 +9,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock data - 독립표본 t-검정용 테스트 데이터
-const createTestData = () => [
+const createTestData = (): Array<Record<string, unknown>> => [
   { ID: 1, '성별': '수', '체중_g': 175, '체장_cm': 70 },
   { ID: 2, '성별': '수', '체중_g': 178, '체장_cm': 75 },
   { ID: 3, '성별': '수', '체중_g': 180, '체장_cm': 72 },
