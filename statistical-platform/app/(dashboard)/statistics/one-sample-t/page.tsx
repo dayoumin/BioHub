@@ -35,6 +35,7 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
+import { TestStatisticDisplay } from '@/components/statistics/common/TestStatisticDisplay'
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import { ConfidenceIntervalDisplay } from '@/components/statistics/common/ConfidenceIntervalDisplay'
 import { AssumptionTestCard, type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
@@ -728,6 +729,16 @@ export default function OneSampleTPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* 검정 통계량 - APA 형식 */}
+          <TestStatisticDisplay
+            name="t"
+            value={results.tStatistic}
+            df={results.degreesOfFreedom}
+            pValue={results.pValue}
+            alpha={0.05}
+            size="default"
+          />
 
           {/* 결과 해석 */}
           <ResultInterpretation

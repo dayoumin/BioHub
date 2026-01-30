@@ -52,6 +52,7 @@ import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPa
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
+import { TestStatisticDisplay } from '@/components/statistics/common/TestStatisticDisplay'
 import { ConfidenceIntervalDisplay } from '@/components/statistics/common/ConfidenceIntervalDisplay'
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
@@ -763,6 +764,15 @@ export default function ProportionTestPage(): React.ReactElement {
             <h3 className="text-lg font-semibold mb-4">검정 요약</h3>
             {renderSummaryCards()}
           </div>
+          {/* 검정 통계량 - APA 형식 */}
+          <TestStatisticDisplay
+            name="Z"
+            value={results.zStatistic}
+            pValue={results.pValue}
+            alpha={0.05}
+            size="default"
+          />
+
           {/* 결과 해석 - 공통 컴포넌트 */}
           <ResultInterpretation
             result={{

@@ -28,6 +28,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { PyodideWorker } from "@/lib/services/pyodide/core/pyodide-worker.enum"
 import { StatisticsTable, TableColumn } from "@/components/statistics/common/StatisticsTable"
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
+import { TestStatisticDisplay } from '@/components/statistics/common/TestStatisticDisplay'
 import { AssumptionTestCard, type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
 import type { InterpretationResult } from '@/lib/interpretation/engine'
 import { openDataWindow } from '@/lib/utils/open-data-window'
@@ -705,6 +706,16 @@ export default function MoodMedianTestPage() {
           testType="mood-median"
           showRecommendations={false}
           showDetails={true}
+        />
+
+        {/* 검정 통계량 - APA 형식 */}
+        <TestStatisticDisplay
+          name="χ²"
+          value={results.statistic}
+          df={results.nGroups - 1}
+          pValue={results.pValue}
+          alpha={0.05}
+          size="default"
         />
 
         {/* 결과 해석 */}

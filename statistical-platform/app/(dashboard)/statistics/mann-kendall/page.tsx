@@ -13,6 +13,7 @@ import type { MannKendallVariables } from '@/types/statistics'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
+import { TestStatisticDisplay } from '@/components/statistics/common/TestStatisticDisplay'
 import { AssumptionTestCard, type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
 import type { InterpretationResult } from '@/lib/interpretation/engine'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -545,6 +546,16 @@ export default function MannKendallPage() {
             <div className="space-y-4">
 
           <ContentTabsContent tabId="statistics" show={activeResultTab === 'statistics'}>
+            {/* 검정 통계량 - APA 형식 */}
+            <TestStatisticDisplay
+              name="Z"
+              value={results.z}
+              pValue={results.p}
+              alpha={0.05}
+              size="default"
+              className="mb-4"
+            />
+
             <Card>
               <CardHeader>
                 <CardTitle>Mann-Kendall 통계량</CardTitle>

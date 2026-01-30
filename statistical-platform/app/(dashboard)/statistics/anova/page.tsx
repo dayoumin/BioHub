@@ -25,6 +25,7 @@ import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
+import { TestStatisticDisplay } from '@/components/statistics/common/TestStatisticDisplay'
 import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTestCard'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
@@ -682,25 +683,15 @@ export default function ANOVAPage() {
               </Alert>
             </div>
           ) : (
-            // 일원 ANOVA 요약 (기존 방식)
-            <Alert className="border-blue-500 bg-muted">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                <div className="mt-2 space-y-2">
-                  <p className="text-sm">
-                    F({results.dfBetween}, {results.dfWithin}) = <strong>{results.fStatistic.toFixed(2)}</strong>,
-                    p = <strong>{results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}</strong>
-                  </p>
-                  <p className="text-sm">
-                    효과 크기 (η²) = <strong>{results.etaSquared.toFixed(3)}</strong>
-                    ({interpretEffectSize(results.etaSquared)})
-                  </p>
-                  <p className="text-sm">
-                    {results.pValue < 0.05 ? '✅ 그룹 간 평균 차이가 통계적으로 유의합니다.' : '❌ 그룹 간 평균 차이가 유의하지 않습니다.'}
-                  </p>
-                </div>
-              </AlertDescription>
-            </Alert>
+            // 일원 ANOVA 요약 - TestStatisticDisplay 사용
+            <TestStatisticDisplay
+              name="F"
+              value={results.fStatistic}
+              df={{ numerator: results.dfBetween, denominator: results.dfWithin }}
+              pValue={results.pValue}
+              alpha={0.05}
+              size="default"
+            />
           )}
 
           {/* ANOVA 테이블 */}
