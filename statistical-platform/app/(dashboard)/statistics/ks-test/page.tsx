@@ -26,6 +26,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
+import { TestStatisticDisplay } from '@/components/statistics/common/TestStatisticDisplay'
 import { AssumptionTestCard, type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
 import type { InterpretationResult } from '@/lib/interpretation/engine'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
@@ -505,53 +506,16 @@ export default function KolmogorovSmirnovTestPage() {
           timestamp={analysisTimestamp ?? undefined}
         />
 
-        {/* 주요 결과 요약 */}
-        <Alert className={significant ? "border-error-border bg-muted" : "border-success-border bg-muted"}>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>검정 결과</AlertTitle>
-          <AlertDescription>
-            <div className="mt-2 space-y-2">
-              <p className="font-medium">
-                D = {statisticKS.toFixed(4)}, p = {pValue.toFixed(3)}
-              </p>
-              <p>
-                {significant
-                  ? "❌ 분포가 유의하게 다릅니다 (p < 0.05)"
-                  : "✅ 분포가 유의하게 다르지 않습니다 (p ≥ 0.05)"}
-              </p>
-              <p className="text-sm text-muted-foreground">{interpretation}</p>
-            </div>
-          </AlertDescription>
-        </Alert>
-
-        {/* 검정 통계량 */}
+        {/* 주요 결과 카드 - TestStatisticDisplay + 표본 정보 */}
         <div className="grid md:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">검정 통계량</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="text-center p-3 bg-primary/10 rounded-lg">
-                <p className="font-medium">K-S 통계량 (D)</p>
-                <p className="text-2xl font-bold text-primary">{statisticKS.toFixed(4)}</p>
-              </div>
-              <Separator />
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>p-value</span>
-                  <Badge variant={significant ? "destructive" : "default"}>
-                    {pValue < 0.001 ? '< 0.001' : pValue.toFixed(3)}
-                  </Badge>
-                </div>
-                {criticalValue && (
-                  <div className="flex justify-between">
-                    <span>임계값 (α = 0.05)</span>
-                    <Badge variant="outline">{criticalValue.toFixed(4)}</Badge>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <TestStatisticDisplay
+            name="D"
+            value={statisticKS}
+            pValue={pValue}
+            showFormatted={true}
+            showCopyButton={true}
+            size="default"
+          />
 
           <Card>
             <CardHeader>

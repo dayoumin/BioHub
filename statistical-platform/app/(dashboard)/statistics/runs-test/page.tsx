@@ -462,25 +462,6 @@ export default function RunsTestPage() {
           sampleSize={statistics.totalN}
           timestamp={analysisTimestamp ?? undefined}
         />
-        {/* 주요 결과 요약 */}
-        <Alert className={significant ? "border-error-border bg-muted" : "border-success-border bg-muted"}>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>검정 결과</AlertTitle>
-          <AlertDescription>
-            <div className="mt-2 space-y-2">
-              <p className="font-medium">
-                Z = {zStatistic.toFixed(3)}, p = {pValue.toFixed(3)}
-              </p>
-              <p>
-                {significant
-                  ? "❌ 데이터가 무작위 패턴을 따르지 않습니다 (p < 0.05)"
-                  : "✅ 데이터가 무작위 패턴을 따르는 것으로 보입니다 (p ≥ 0.05)"}
-              </p>
-              <p className="text-sm text-muted-foreground">{interpretation}</p>
-            </div>
-          </AlertDescription>
-        </Alert>
-
         {/* 런 통계량 */}
         <div className="grid md:grid-cols-2 gap-4">
           <Card>

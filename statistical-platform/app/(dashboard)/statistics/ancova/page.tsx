@@ -39,6 +39,7 @@ import { VariableSelectorModern } from '@/components/variable-selection/Variable
 import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
+import { TestStatisticDisplay } from '@/components/statistics/common/TestStatisticDisplay'
 import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTestCard'
 
 // Services & Types
@@ -449,46 +450,26 @@ export default function ANCOVAPage() {
             sampleSize={uploadedData?.data?.length}
             timestamp={analysisTimestamp ?? undefined}
           />
-          {/* 주요 결과 카드 */}
-          <div className="grid md:grid-cols-3 gap-4">
-            <Card className="border-2">
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-primary">
-                    {analysisResult.mainEffects[0].statistic.toFixed(2)}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">F 통계량</p>
-                  <p className="text-xs text-muted-foreground">
-                    df = ({analysisResult.mainEffects[0].degreesOfFreedom[0]}, {analysisResult.mainEffects[0].degreesOfFreedom[1]})
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-2">
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <div className="text-2xl font-bold">
-                    <PValueBadge value={analysisResult.mainEffects[0].pValue} size="lg" />
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">유의확률</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-2">
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-muted-foreground">
-                    {analysisResult.mainEffects[0].partialEtaSquared.toFixed(3)}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">부분 η²</p>
-                  <Badge variant="outline" className="mt-1">
-                    {getEffectSizeInterpretation(analysisResult.mainEffects[0].partialEtaSquared).level}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
+          {/* 주요 결과 카드 - TestStatisticDisplay + EffectSizeCard */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <TestStatisticDisplay
+              name="F"
+              value={analysisResult.mainEffects[0].statistic}
+              df={{ numerator: analysisResult.mainEffects[0].degreesOfFreedom[0], denominator: analysisResult.mainEffects[0].degreesOfFreedom[1] }}
+              pValue={analysisResult.mainEffects[0].pValue}
+              showFormatted={true}
+              showCopyButton={true}
+              size="default"
+            />
+            <EffectSizeCard
+              title="부분 η² (Partial Eta Squared)"
+              value={analysisResult.mainEffects[0].partialEtaSquared}
+              type="partial_eta_squared"
+              description="집단 효과가 설명하는 분산 비율"
+              showInterpretation={true}
+              showVisualScale={false}
+              className="border-2"
+            />
           </div>
 
           {/* 상세 결과 탭 */}
@@ -746,26 +727,15 @@ export default function ANCOVAPage() {
                     </ul>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <EffectSizeCard
-                      title="부분 η² (효과 크기)"
-                      value={analysisResult.mainEffects[0].partialEtaSquared}
-                      type="eta_squared"
-                      description="집단 효과가 설명하는 분산 비율"
-                      showVisualScale={true}
-                      showInterpretation={true}
-                    />
-
-                    <div className="p-4 bg-muted rounded-lg">
-                      <h4 className="font-medium mb-2">공변량 기여도</h4>
-                      <p className="text-sm">
-                        R² 증가분 = {(analysisResult.covariates[0].partialEtaSquared * 100).toFixed(1)}%
-                        <br />
-                        <span className="text-muted-foreground">
-                          공변량으로 인한 검정력 향상
-                        </span>
-                      </p>
-                    </div>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-2">공변량 기여도</h4>
+                    <p className="text-sm">
+                      R² 증가분 = {(analysisResult.covariates[0].partialEtaSquared * 100).toFixed(1)}%
+                      <br />
+                      <span className="text-muted-foreground">
+                        공변량으로 인한 검정력 향상
+                      </span>
+                    </p>
                   </div>
                 </CardContent>
               </Card>

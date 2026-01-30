@@ -585,28 +585,6 @@ export default function McNemarTestPage() {
           sampleSize={results.sampleSize}
           timestamp={analysisTimestamp ?? undefined}
         />
-        {/* 주요 결과 요약 */}
-        <Alert className={significant ? "border-error-border bg-muted" : "border-success-border bg-muted"}>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>검정 결과</AlertTitle>
-          <AlertDescription>
-            <div className="mt-2 space-y-2">
-              <p className="font-medium">
-                χ² = {mcnemarStatistic.toFixed(4)}, p = {pValue.toFixed(3)}
-              </p>
-              <p>
-                {significant
-                  ? "❌ 두 처리간 유의한 차이가 있습니다 (p < 0.05)"
-                  : "✅ 두 처리간 유의한 차이가 없습니다 (p ≥ 0.05)"}
-              </p>
-              <p className="text-sm text-muted-foreground">{interpretation}</p>
-              {continuityCorrection && (
-                <p className="text-xs text-muted-foreground">연속성 수정이 적용되었습니다 (불일치 쌍 &lt; 25)</p>
-              )}
-            </div>
-          </AlertDescription>
-        </Alert>
-
         {/* 2x2 분할표 */}
         <Card>
           <CardHeader>

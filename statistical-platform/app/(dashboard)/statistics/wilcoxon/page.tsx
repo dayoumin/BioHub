@@ -481,6 +481,7 @@ export default function WilcoxonPage() {
             title="효과크기 (r)"
             value={analysisResult.effectSize.value}
             type="r"
+            description="r = Z / √N"
             showInterpretation={true}
             showVisualScale={false}
             className="border-2"
@@ -631,15 +632,6 @@ export default function WilcoxonPage() {
               title="Wilcoxon 부호순위 검정 결과 해석"
             />
 
-            {/* 효과크기 - 공통 컴포넌트 */}
-            <div className="mt-4">
-              <EffectSizeCard
-                title="효과크기 (r)"
-                value={analysisResult.effectSize.value}
-                type="r"
-                description="r = Z / √N"
-              />
-            </div>
           </ContentTabsContent>
 
           <ContentTabsContent tabId="visualization" show={activeResultTab === 'visualization'}>

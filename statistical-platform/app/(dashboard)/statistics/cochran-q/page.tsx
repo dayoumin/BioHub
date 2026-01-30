@@ -26,6 +26,7 @@ import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPa
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
+import { TestStatisticDisplay } from '@/components/statistics/common/TestStatisticDisplay'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
@@ -626,49 +627,17 @@ export default function CochranQTestPage() {
           sampleSize={results.nSubjects}
           timestamp={analysisTimestamp ?? undefined}
         />
-        {/* 주요 결과 요약 */}
-        <Alert className={significant ? "border-error-border bg-muted" : "border-success-border bg-muted"}>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>검정 결과</AlertTitle>
-          <AlertDescription>
-            <div className="mt-2 space-y-2">
-              <p className="font-medium">
-                Q = {qStatistic.toFixed(4)}, df = {df}, p = {pValue.toFixed(3)}
-              </p>
-              <p>
-                {significant
-                  ? "❌ 조건 간 유의한 차이가 있습니다 (p < 0.05)"
-                  : "✅ 조건 간 유의한 차이가 없습니다 (p ≥ 0.05)"}
-              </p>
-              <p className="text-sm text-muted-foreground">{interpretation}</p>
-            </div>
-          </AlertDescription>
-        </Alert>
-
-        {/* 검정 통계량 */}
+        {/* 주요 결과 카드 - TestStatisticDisplay + 표본 정보 */}
         <div className="grid md:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">검정 통계량</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="text-center p-3 bg-primary/10 rounded-lg">
-                <p className="font-medium">Cochran Q</p>
-                <p className="text-2xl font-bold text-primary">{qStatistic.toFixed(4)}</p>
-              </div>
-              <Separator />
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>p-value</span>
-                  <PValueBadge value={pValue} />
-                </div>
-                <div className="flex justify-between">
-                  <span>자유도</span>
-                  <Badge variant="outline">{df}</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <TestStatisticDisplay
+            name="Q"
+            value={qStatistic}
+            df={df}
+            pValue={pValue}
+            showFormatted={true}
+            showCopyButton={true}
+            size="default"
+          />
 
           <Card>
             <CardHeader>

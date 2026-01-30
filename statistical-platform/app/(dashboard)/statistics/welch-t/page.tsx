@@ -30,6 +30,7 @@ import { escapeHtml } from '@/lib/utils/html-escape'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
+import { TestStatisticDisplay } from '@/components/statistics/common/TestStatisticDisplay'
 import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTestCard'
 import { ConfidenceIntervalDisplay } from '@/components/statistics/common/ConfidenceIntervalDisplay'
 import { openDataWindow } from '@/lib/utils/open-data-window'
@@ -630,56 +631,26 @@ export default function WelchTPage() {
           
 
           <ContentTabsContent tabId="summary" show={activeResultTab === 'summary'} className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Welch t 통계량</p>
-                      <p className="text-2xl font-bold">{results.welchStatistic.toFixed(2)}</p>
-                    </div>
-                    <Calculator className="w-8 h-8 text-muted-foreground/20" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">조정된 자유도</p>
-                      <p className="text-2xl font-bold">{results.adjustedDF.toFixed(1)}</p>
-                    </div>
-                    <GitBranch className="w-8 h-8 text-muted-foreground/20" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">p-값</p>
-                      <p className="text-2xl font-bold">
-                        {results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}
-                      </p>
-                    </div>
-                    <BarChart3 className={`w-8 h-8 ${isSignificant ? 'text-stat-significant' : 'text-stat-non-significant'}`} />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">효과크기</p>
-                      <p className="text-2xl font-bold">{results.effectSize.toFixed(2)}</p>
-                    </div>
-                    <BarChart3 className="w-8 h-8 text-muted-foreground/20" />
-                  </div>
-                </CardContent>
-              </Card>
+            {/* 주요 결과 카드 - TestStatisticDisplay + EffectSizeCard */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <TestStatisticDisplay
+                name="t"
+                value={results.welchStatistic}
+                df={results.adjustedDF}
+                pValue={results.pValue}
+                showFormatted={true}
+                showCopyButton={true}
+                size="default"
+              />
+              <EffectSizeCard
+                title="효과크기 (Cohen's d)"
+                value={results.effectSize}
+                type="cohens_d"
+                description="d = (M₁ - M₂) / √((s₁² + s₂²) / 2)"
+                showInterpretation={true}
+                showVisualScale={false}
+                className="border-2"
+              />
             </div>
 
             {/* 결과 해석 - 공통 컴포넌트 */}
@@ -695,13 +666,6 @@ export default function WelchTPage() {
               title="Welch t-검정 결과 해석"
             />
 
-            {/* 효과크기 - 공통 컴포넌트 */}
-            <EffectSizeCard
-              title="Cohen's d"
-              value={results.effectSize}
-              type="cohens_d"
-              description="d = (M₁ - M₂) / √((s₁² + s₂²) / 2)"
-            />
           </ContentTabsContent>
 
           <ContentTabsContent tabId="results" show={activeResultTab === 'results'} className="space-y-6">

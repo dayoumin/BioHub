@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
+import { TestStatisticDisplay } from '@/components/statistics/common/TestStatisticDisplay'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
@@ -537,24 +538,16 @@ export default function RepeatedMeasuresANOVAPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">F-통계량</p>
-                <p className="text-2xl font-bold">{results.fStatistic.toFixed(3)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">p-value</p>
-                <p className="text-2xl font-bold">{results.pValue.toFixed(4)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">자유도 (분자)</p>
-                <p className="text-xl font-semibold">{results.df.numerator.toFixed(0)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">자유도 (분모)</p>
-                <p className="text-xl font-semibold">{results.df.denominator.toFixed(0)}</p>
-              </div>
-            </div>
+            {/* 주요 결과 카드 - TestStatisticDisplay */}
+            <TestStatisticDisplay
+              name="F"
+              value={results.fStatistic}
+              df={{ numerator: results.df.numerator, denominator: results.df.denominator }}
+              pValue={results.pValue}
+              showFormatted={true}
+              showCopyButton={true}
+              size="default"
+            />
 
             <ResultInterpretation
               result={{
