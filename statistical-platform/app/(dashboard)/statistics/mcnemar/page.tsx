@@ -38,6 +38,7 @@ import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
+import { TestStatisticDisplay } from '@/components/statistics/common/TestStatisticDisplay'
 import type { InterpretationResult } from '@/lib/interpretation/engine'
 
 // McNemar 검정 결과 타입
@@ -678,36 +679,18 @@ export default function McNemarTestPage() {
           </CardContent>
         </Card>
 
-        {/* 검정 통계량 */}
+        {/* 검정 통계량 - TestStatisticDisplay + 표본 정보 */}
         <div className="grid md:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">검정 통계량</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="text-center p-3 bg-primary/10 rounded-lg">
-                <p className="font-medium">McNemar χ²</p>
-                <p className="text-2xl font-bold text-primary">{mcnemarStatistic.toFixed(4)}</p>
-              </div>
-              <Separator />
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>p-value</span>
-                  <Badge variant={significant ? "destructive" : "default"}>
-                    {pValue < 0.001 ? '< 0.001' : pValue.toFixed(3)}
-                  </Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span>자유도</span>
-                  <Badge variant="outline">1</Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span>불일치 쌍</span>
-                  <Badge variant="secondary">{discordantPairs}</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* TestStatisticDisplay: χ²(1) + p-value + APA 복사 */}
+          <TestStatisticDisplay
+            name="χ²"
+            value={mcnemarStatistic}
+            df={1}
+            pValue={pValue}
+            showFormatted={true}
+            showCopyButton={true}
+            size="default"
+          />
 
           <Card>
             <CardHeader>

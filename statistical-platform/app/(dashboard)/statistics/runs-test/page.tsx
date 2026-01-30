@@ -12,6 +12,7 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
+import { TestStatisticDisplay } from '@/components/statistics/common/TestStatisticDisplay'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import {
   Shuffle,
@@ -515,32 +516,15 @@ export default function RunsTestPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">검정 통계량</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="text-center p-3 bg-primary/10 rounded-lg">
-                <p className="font-medium">Z-통계량</p>
-                <p className="text-2xl font-bold text-primary">{zStatistic.toFixed(3)}</p>
-              </div>
-              <Separator />
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>p-value</span>
-                  <Badge variant={significant ? "destructive" : "default"}>
-                    {pValue < 0.001 ? '< 0.001' : pValue.toFixed(3)}
-                  </Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span>유의수준 (α = 0.05)</span>
-                  <Badge variant={significant ? "destructive" : "secondary"}>
-                    {significant ? "기각" : "채택"}
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* TestStatisticDisplay: Z 통계량 + p-value + APA 복사 */}
+          <TestStatisticDisplay
+            name="Z"
+            value={zStatistic}
+            pValue={pValue}
+            showFormatted={true}
+            showCopyButton={true}
+            size="default"
+          />
         </div>
 
         {/* 런 시퀀스 */}

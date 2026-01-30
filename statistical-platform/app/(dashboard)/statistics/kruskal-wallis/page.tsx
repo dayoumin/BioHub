@@ -35,6 +35,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
+import { TestStatisticDisplay } from '@/components/statistics/common/TestStatisticDisplay'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
@@ -614,31 +615,17 @@ export default function KruskalWallisPage() {
           timestamp={analysisTimestamp ?? undefined}
         />
 
-        {/* 주요 결과 카드 */}
-        <div className="grid md:grid-cols-3 gap-4">
-          <Card className="border-2">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-primary">
-                  {analysisResult.statistic.toFixed(3)}
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">H 통계량</p>
-                <p className="text-xs text-muted-foreground">df = {analysisResult.degreesOfFreedom}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold">
-                  <PValueBadge value={analysisResult.pValue} size="lg" />
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">유의확률</p>
-              </div>
-            </CardContent>
-          </Card>
-
+        {/* 주요 결과 카드 - TestStatisticDisplay + EffectSizeCard */}
+        <div className="grid md:grid-cols-2 gap-4">
+          <TestStatisticDisplay
+            name="H"
+            value={analysisResult.statistic}
+            df={analysisResult.degreesOfFreedom}
+            pValue={analysisResult.pValue}
+            showFormatted={true}
+            showCopyButton={true}
+            size="default"
+          />
           <EffectSizeCard
             title="효과크기 (η²)"
             value={analysisResult.effectSize.etaSquared}

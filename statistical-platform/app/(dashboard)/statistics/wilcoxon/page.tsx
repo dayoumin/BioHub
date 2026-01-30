@@ -35,6 +35,7 @@ import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
+import { TestStatisticDisplay } from '@/components/statistics/common/TestStatisticDisplay'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Guide Components
@@ -466,43 +467,24 @@ export default function WilcoxonPage() {
           <p className="text-gray-600">대응표본 비모수 검정 결과</p>
         </div>
 
-        {/* 주요 결과 카드 */}
-        <div className="grid md:grid-cols-3 gap-4">
-          <Card className="border-2">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-primary">
-                  {analysisResult.statistic.toFixed(1)}
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">W 통계량</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-2xl font-bold">
-                  <PValueBadge value={analysisResult.pValue} size="lg" />
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">유의확률</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-muted-foreground">
-                  {analysisResult.effectSize.value.toFixed(3)}
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">효과크기 (r)</p>
-                <Badge variant="outline" className="mt-1">
-                  {analysisResult.effectSize.interpretation}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
+        {/* 주요 결과 카드 - TestStatisticDisplay + EffectSizeCard */}
+        <div className="grid md:grid-cols-2 gap-4">
+          <TestStatisticDisplay
+            name="W"
+            value={analysisResult.statistic}
+            pValue={analysisResult.pValue}
+            showFormatted={true}
+            showCopyButton={true}
+            size="default"
+          />
+          <EffectSizeCard
+            title="효과크기 (r)"
+            value={analysisResult.effectSize.value}
+            type="r"
+            showInterpretation={true}
+            showVisualScale={false}
+            className="border-2"
+          />
         </div>
 
         {/* 상세 결과 탭 */}

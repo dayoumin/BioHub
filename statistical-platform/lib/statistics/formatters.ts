@@ -398,3 +398,76 @@ export function interpretHomogeneity(pValue: number, alpha: number = 0.05): {
 
   return { isHomogeneous, interpretation }
 }
+
+// ============================================================================
+// APA 형식 포맷팅 함수
+// ============================================================================
+
+/**
+ * 자유도 포맷팅 (APA 형식)
+ * @param df 자유도 (단일 숫자 또는 {numerator, denominator})
+ * @returns 포맷된 문자열 예: "(28)" 또는 "(2, 45)"
+ */
+export function formatDf(df?: number | { numerator: number; denominator: number }): string {
+  if (df === undefined) return ''
+  if (typeof df === 'number') return `(${df})`
+  return `(${df.numerator}, ${df.denominator})`
+}
+
+/**
+ * p-value APA 형식 포맷팅 (선행 0 제거)
+ * @param pValue p-value
+ * @returns 포맷된 문자열 예: "= .021" 또는 "< .001"
+ */
+export function formatPValueAPA(pValue: number): string {
+  if (pValue < 0.001) return '< .001'
+  return `= ${pValue.toFixed(3).replace('0.', '.')}`
+}
+
+/**
+ * APA 형식 통계 결과 문자열 생성
+ * @param name 통계량 이름 (t, F, χ², U, H 등)
+ * @param value 통계량 값
+ * @param df 자유도 (선택)
+ * @param pValue p-value (선택)
+ * @returns APA 형식 문자열 예: "t(28) = 2.456, p = .021"
+ */
+export function generateAPAString(
+  name: string,
+  value: number,
+  df?: number | { numerator: number; denominator: number },
+  pValue?: number
+): string {
+  const dfStr = formatDf(df)
+  const statStr = `${name}${dfStr} = ${formatNumber(value, 3)}`
+
+  if (pValue !== undefined) {
+    return `${statStr}, p ${formatPValueAPA(pValue)}`
+  }
+  return statStr
+}
+
+/**
+ * 효과크기 포함 전체 APA 형식 문자열 생성
+ * @param name 통계량 이름
+ * @param value 통계량 값
+ * @param df 자유도
+ * @param pValue p-value
+ * @param effectSize 효과크기 (선택)
+ * @returns 전체 APA 형식 문자열 예: "t(28) = 2.456, p = .021, d = 0.650"
+ */
+export function generateFullAPAString(
+  name: string,
+  value: number,
+  df: number | { numerator: number; denominator: number } | undefined,
+  pValue: number,
+  effectSize?: { value: number; type: string }
+): string {
+  let result = generateAPAString(name, value, df, pValue)
+
+  if (effectSize) {
+    result += `, ${effectSize.type} = ${formatNumber(effectSize.value, 3)}`
+  }
+
+  return result
+}

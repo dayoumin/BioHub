@@ -41,6 +41,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
+import { TestStatisticDisplay } from '@/components/statistics/common/TestStatisticDisplay'
 
 // Hooks & Utils
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
@@ -569,30 +570,17 @@ export default function ChiSquareGoodnessPage() {
             sampleSize={results.totalN}
             timestamp={analysisTimestamp ?? undefined}
           />
-          {/* 주요 결과 카드 */}
-          <div className="grid md:grid-cols-3 gap-4">
-            <Card className="border-2">
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-primary">
-                    {results.statistic.toFixed(3)}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">χ² 통계량</p>
-                  <p className="text-xs text-muted-foreground">df = {results.degreesOfFreedom}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-2">
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <div className="text-2xl font-bold">
-                    <PValueBadge value={results.pValue} size="lg" />
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">유의확률</p>
-                </div>
-              </CardContent>
-            </Card>
+          {/* 주요 결과 카드 - TestStatisticDisplay + EffectSizeCard */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <TestStatisticDisplay
+              name="χ²"
+              value={results.statistic}
+              df={results.degreesOfFreedom}
+              pValue={results.pValue}
+              showFormatted={true}
+              showCopyButton={true}
+              size="default"
+            />
 
             <EffectSizeCard
               title="Cramér's V"
