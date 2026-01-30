@@ -63,7 +63,19 @@
       "Bash(__tests__/pyodide/worker-function-mapping.test.ts)",
       "Bash(git reset:*)",
       "Bash(tail:*)",
-      "Bash(ollama rm:*)"
+      "Bash(ollama rm:*)",
+      "Bash(pnpm run dev:*)",
+      "mcp__playwright__playwright_navigate",
+      "mcp__playwright__playwright_screenshot",
+      "mcp__playwright__playwright_close",
+      "mcp__playwright__playwright_click",
+      "mcp__playwright__playwright_console_logs",
+      "mcp__playwright__playwright_fill",
+      "Bash(timeout:*)",
+      "Bash(xargs:*)",
+      "Bash(pnpm test:*)",
+      "mcp__playwright__playwright_evaluate",
+      "Bash(npx playwright test:*)"
     ],
     "deny": [],
     "ask": []

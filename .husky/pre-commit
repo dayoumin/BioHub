@@ -2,3 +2,6 @@
 
 # Design System 메타데이터 동기화 체크
 node .husky/check-design-system-sync.js
+
+# Test Impact Analysis (informational only)
+node statistical-platform/scripts/check-test-impact.js

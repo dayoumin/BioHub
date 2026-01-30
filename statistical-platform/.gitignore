@@ -61,3 +61,11 @@ public/rag-data/
 # Pyodide (오프라인 배포용, 800MB+, CDN 사용 권장)
 public/pyodide/
 .temp/
+
+# Test status (local only)
+test-results/test-status.json
+
+# E2E Test Results
+e2e/results/
+test-results/
+playwright-report/

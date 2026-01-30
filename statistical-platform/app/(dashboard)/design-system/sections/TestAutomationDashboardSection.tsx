@@ -1294,6 +1294,71 @@ export function TestAutomationDashboardSection() {
         </CardContent>
       </Card>
 
+      {/* Impact Analysis Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5" />
+            Test Impact Analysis
+          </CardTitle>
+          <CardDescription>
+            Track which methods need revalidation after code changes
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="p-4 rounded-lg border bg-blue-50 dark:bg-blue-950/20">
+              <h4 className="font-medium text-blue-700 dark:text-blue-400 mb-2">How it works</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• <code className="text-xs bg-muted px-1 rounded">git commit</code> triggers impact analysis via pre-commit hook</li>
+                <li>• Changed files are mapped to affected statistical methods</li>
+                <li>• Console shows which methods may need revalidation</li>
+              </ul>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 rounded-lg border">
+                <div className="text-2xl font-bold text-orange-600">4</div>
+                <div className="text-xs text-muted-foreground">Python Workers</div>
+              </div>
+              <div className="p-3 rounded-lg border">
+                <div className="text-2xl font-bold text-purple-600">47</div>
+                <div className="text-xs text-muted-foreground">Methods Mapped</div>
+              </div>
+            </div>
+
+            <div className="text-sm">
+              <h5 className="font-medium mb-2">Worker Coverage</h5>
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="font-mono">worker1-descriptive</span>
+                  <span className="text-muted-foreground">4 methods</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="font-mono">worker2-hypothesis</span>
+                  <span className="text-muted-foreground">8 methods</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="font-mono">worker3-nonparametric-anova</span>
+                  <span className="text-muted-foreground">16 methods</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="font-mono">worker4-regression-advanced</span>
+                  <span className="text-muted-foreground">19 methods</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground">
+              <strong>Files:</strong><br />
+              • <code>lib/test-automation/file-method-mapping.ts</code><br />
+              • <code>test-results/test-status.json</code> (local)<br />
+              • <code>scripts/check-test-impact.js</code>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* How to Run Tests */}
       <Card>
         <CardHeader>

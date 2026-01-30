@@ -1,0 +1,150 @@
+{
+  "$schema": "./worker-method-mapping.schema.json",
+  "version": "1.0.0",
+  "description": "Single Source of Truth: Python Worker -> Statistics Method mapping",
+  "lastUpdated": "2026-01-27",
+  "workers": {
+    "worker1-descriptive.py": {
+      "description": "Descriptive statistics worker",
+      "methods": [
+        "descriptive",
+        "normality-test",
+        "explore-data",
+        "means-plot"
+      ]
+    },
+    "worker2-hypothesis.py": {
+      "description": "Hypothesis testing worker",
+      "methods": [
+        "t-test",
+        "welch-t",
+        "one-sample-t",
+        "chi-square",
+        "chi-square-goodness",
+        "chi-square-independence",
+        "correlation",
+        "partial-correlation"
+      ]
+    },
+    "worker3-nonparametric-anova.py": {
+      "description": "ANOVA and nonparametric worker",
+      "methods": [
+        "anova",
+        "repeated-measures-anova",
+        "ancova",
+        "manova",
+        "mixed-model",
+        "mann-whitney",
+        "wilcoxon",
+        "kruskal-wallis",
+        "friedman",
+        "sign-test",
+        "mcnemar",
+        "cochran-q",
+        "binomial-test",
+        "runs-test",
+        "ks-test",
+        "mood-median"
+      ]
+    },
+    "worker4-regression-advanced.py": {
+      "description": "Regression and advanced analysis worker",
+      "methods": [
+        "regression",
+        "stepwise",
+        "ordinal-regression",
+        "poisson",
+        "dose-response",
+        "response-surface",
+        "pca",
+        "factor-analysis",
+        "cluster",
+        "discriminant",
+        "arima",
+        "seasonal-decompose",
+        "stationarity-test",
+        "mann-kendall",
+        "kaplan-meier",
+        "cox-regression",
+        "reliability",
+        "power-analysis",
+        "proportion-test"
+      ]
+    }
+  },
+  "globalImpactFiles": [
+    {
+      "pattern": "workers/python/helpers.py",
+      "impactLevel": "critical",
+      "description": "Shared Python helper functions"
+    },
+    {
+      "pattern": "lib/services/pyodide-core.ts",
+      "impactLevel": "critical",
+      "description": "Pyodide core service"
+    },
+    {
+      "pattern": "hooks/use-statistics-page.ts",
+      "impactLevel": "critical",
+      "description": "Core statistics page hook"
+    },
+    {
+      "pattern": "lib/services/pyodide-statistics.ts",
+      "impactLevel": "critical",
+      "description": "Pyodide statistics wrapper"
+    },
+    {
+      "pattern": "components/statistics/common/",
+      "impactLevel": "high",
+      "description": "Shared statistics components"
+    },
+    {
+      "pattern": "components/variable-selection/",
+      "impactLevel": "high",
+      "description": "Variable selection components"
+    },
+    {
+      "pattern": "types/statistics.ts",
+      "impactLevel": "medium",
+      "description": "Statistics type definitions"
+    },
+    {
+      "pattern": "lib/constants/statistical-methods.ts",
+      "impactLevel": "medium",
+      "description": "Statistical methods registry"
+    },
+    {
+      "pattern": "lib/constants/variable-requirements.ts",
+      "impactLevel": "medium",
+      "description": "Variable requirements config"
+    },
+    {
+      "pattern": "__tests__/workers/golden-values/",
+      "impactLevel": "low",
+      "description": "Golden value test data"
+    }
+  ],
+  "stateTransitionRules": {
+    "description": "test-status.json state transition rules",
+    "states": {
+      "pass": "E2E test passed",
+      "fail": "E2E test failed",
+      "untested": "Never tested"
+    },
+    "transitions": [
+      {
+        "trigger": "code_change_detected",
+        "action": "set needsRevalidation: true (keep current status)"
+      },
+      {
+        "trigger": "e2e_test_pass",
+        "action": "set status: 'pass', needsRevalidation: false"
+      },
+      {
+        "trigger": "e2e_test_fail",
+        "action": "set status: 'fail', needsRevalidation: false"
+      }
+    ],
+    "uiPriority": "fail > needsRevalidation > pass > untested"
+  }
+}
