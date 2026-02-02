@@ -49,34 +49,94 @@ export async function verifyDataLoaded(page: Page): Promise<boolean> {
 // ===========================================
 
 export async function navigateToStep2(page: Page): Promise<boolean> {
-  const nextButton = page.getByRole('button', { name: /다음 단계로|다음|Next|진행/ });
+  try {
+    // "다음 단계로" 또는 "검토 완료" 버튼 찾기
+    const nextButton = page.getByRole('button', { name: /다음 단계로|다음|Next|진행|검토 완료/ });
 
-  if (await nextButton.count() > 0) {
+    // 버튼이 활성화될 때까지 대기
+    await nextButton.first().waitFor({ state: 'visible', timeout: 10000 });
+
+    // 버튼이 활성화되었는지 확인
+    const isEnabled = await nextButton.first().isEnabled();
+    if (!isEnabled) {
+      console.log('[navigateToStep2] 버튼이 비활성화 상태입니다');
+      return false;
+    }
+
     await nextButton.first().click();
-    await page.waitForTimeout(3000);
-    return true;
-  }
+    console.log('[navigateToStep2] Step 2로 이동 완료');
 
-  return false;
+    // Step 2가 로드될 때까지 대기
+    await page.waitForTimeout(2000);
+    return true;
+  } catch (error) {
+    console.error('[navigateToStep2] 에러:', error);
+    return false;
+  }
 }
 
 export async function selectPurpose(page: Page, purpose: 'group-comparison' | 'correlation' | 'distribution' | 'prediction'): Promise<boolean> {
+  // NEW: Check if AI Chat interface is showing first (2025 UI/UX)
+  // If so, click "단계별 가이드" to go to traditional category selection
+  const guidedButton = page.locator('text=/단계별 가이드/').first();
+  const aiChatInput = page.locator('text=/어떤 분석이 필요하세요/').first();
+
+  if (await aiChatInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+    console.log('[selectPurpose] AI Chat 화면 감지, 단계별 가이드로 이동');
+    if (await guidedButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await guidedButton.click();
+      await page.waitForTimeout(2000);
+    }
+  }
+
+  // Category mapping (대분류)
+  const categoryMap: Record<string, string> = {
+    'group-comparison': '그룹.*비교|집단.*비교|비교',
+    'correlation': '관계.*분석|상관',
+    'distribution': '분포.*분석|빈도',
+    'prediction': '예측.*모델|회귀'
+  };
+
+  // Subcategory/Purpose mapping (중분류 또는 기존 목적)
   const purposeMap: Record<string, string> = {
-    'group-comparison': '그룹.*비교|집단.*차이|차이',
+    'group-comparison': '그룹.*비교|집단.*차이|차이|두.*그룹|세.*그룹',
     'correlation': '관계|상관',
     'distribution': '분포|빈도',
     'prediction': '예측|모델링|회귀'
   };
 
+  // Try to find category card first (new 2025 UI/UX)
+  const categoryPattern = categoryMap[purpose];
+  const categoryCard = page.locator(`text=/${categoryPattern}/`).first();
+
+  if (await categoryCard.isVisible({ timeout: 3000 }).catch(() => false)) {
+    console.log(`[selectPurpose] Category card found: ${categoryPattern}`);
+    await categoryCard.click();
+    await page.waitForTimeout(2000);
+
+    // After selecting category, there might be subcategory selection
+    // Look for any clickable subcategory or proceed button
+    const subcategoryCard = page.locator(`text=/${purposeMap[purpose]}/`).first();
+    if (await subcategoryCard.isVisible({ timeout: 2000 }).catch(() => false)) {
+      console.log(`[selectPurpose] Subcategory card found`);
+      await subcategoryCard.click();
+      await page.waitForTimeout(2000);
+    }
+
+    return true;
+  }
+
+  // Fallback: try legacy purpose selection pattern
   const pattern = purposeMap[purpose];
   const purposeCard = page.locator(`text=/${pattern}/`).first();
 
-  if (await purposeCard.isVisible()) {
+  if (await purposeCard.isVisible({ timeout: 3000 }).catch(() => false)) {
     await purposeCard.click();
     await page.waitForTimeout(3000);
     return true;
   }
 
+  console.log('[selectPurpose] Purpose card not found');
   return false;
 }
 
@@ -153,16 +213,31 @@ export async function clickRunAnalysis(page: Page): Promise<boolean> {
 
 export async function waitForPyodide(page: Page, timeout = 30000): Promise<boolean> {
   try {
-    // Pyodide 로딩 완료 대기
-    await page.waitForFunction(() => {
-      // @ts-ignore
-      return window.__PYODIDE_READY__ === true || document.querySelector('[data-pyodide-ready="true"]');
-    }, { timeout });
-    return true;
-  } catch {
-    // Pyodide 상태를 직접 확인할 수 없는 경우, 시간 기반 대기
-    await page.waitForTimeout(10000);
-    return true;
+    // Pyodide 로딩 모달이 나타날 때까지 대기
+    const modal = page.locator('text=통계 엔진 초기화');
+
+    // 모달이 나타나는지 확인 (최대 3초)
+    const modalAppeared = await modal.waitFor({ state: 'visible', timeout: 3000 }).then(() => true).catch(() => false);
+
+    if (modalAppeared) {
+      console.log('[waitForPyodide] Pyodide 로딩 모달 감지됨, 완료 대기 중...');
+
+      // 모달이 사라질 때까지 대기
+      await modal.waitFor({ state: 'hidden', timeout });
+
+      // 추가로 성공 메시지 대기 (3초 동안 표시됨)
+      await page.waitForTimeout(1000);
+
+      console.log('[waitForPyodide] Pyodide 초기화 완료');
+      return true;
+    } else {
+      // 모달이 나타나지 않았다면 이미 로드된 상태
+      console.log('[waitForPyodide] Pyodide 이미 로드됨 (모달 없음)');
+      return true;
+    }
+  } catch (error) {
+    console.error('[waitForPyodide] 타임아웃:', error);
+    return false;
   }
 }
 
@@ -185,22 +260,61 @@ export async function waitForAnalysis(page: Page, timeout = 60000): Promise<bool
 }
 
 export async function waitForProgressComplete(page: Page, timeout = 90000): Promise<boolean> {
+  const startTime = Date.now();
+
   try {
-    // 진행 바가 100%가 되거나 결과가 표시될 때까지 대기
+    console.log('[waitForProgressComplete] 분석 완료 대기 중...');
+
+    // 여러 완료 지표를 확인
     await page.waitForFunction(() => {
+      // 1. 진행 바 확인
       const progressBar = document.querySelector('[role="progressbar"]');
       if (progressBar) {
         const value = progressBar.getAttribute('aria-valuenow');
-        if (value && parseInt(value) >= 100) return true;
+        if (value && parseInt(value) >= 100) {
+          console.log('Progress bar at 100%');
+          return true;
+        }
       }
 
-      // 또는 결과 컨테이너가 나타남
-      const results = document.querySelector('[data-testid*="result"], .results, .analysis-results');
-      return !!results;
+      // 2. 결과 텍스트 확인
+      const bodyText = document.body.innerText;
+      if (bodyText.includes('분석 완료') || bodyText.includes('분석이 완료') || bodyText.includes('결과')) {
+        console.log('Analysis complete text found');
+        return true;
+      }
+
+      // 3. 통계 결과 확인 (p-value, 통계량 등)
+      if (bodyText.match(/p\s*[=<]/i) || bodyText.match(/t\s*=/i) || bodyText.match(/F\s*=/i)) {
+        console.log('Statistical results found');
+        return true;
+      }
+
+      // 4. Step indicator 확인 (결과 단계)
+      const stepIndicators = document.querySelectorAll('[class*="step"]');
+      for (const step of stepIndicators) {
+        if (step.textContent && step.textContent.includes('결과')) {
+          console.log('Results step found');
+          return true;
+        }
+      }
+
+      return false;
     }, { timeout });
 
+    const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`[waitForProgressComplete] 분석 완료! (소요시간: ${elapsedTime}초)`);
     return true;
-  } catch {
+  } catch (error) {
+    const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.error(`[waitForProgressComplete] 타임아웃 (${elapsedTime}초 경과):`, error);
+
+    // 현재 페이지 상태 로깅
+    const url = page.url();
+    const title = await page.title();
+    console.log(`[waitForProgressComplete] 현재 URL: ${url}`);
+    console.log(`[waitForProgressComplete] 현재 Title: ${title}`);
+
     return false;
   }
 }
@@ -285,4 +399,82 @@ export async function logAnalysisProgress(page: Page): Promise<string[]> {
   }
 
   return logs;
+}
+
+/**
+ * 모든 단계를 진행하고 분석을 실행하는 통합 헬퍼
+ * Step 1 (데이터) → Step 2 (방법) → Step 3 (변수) → Step 4 (분석)
+ */
+export async function runFullAnalysisFlow(
+  page: Page,
+  filename: string,
+  purpose: 'group-comparison' | 'correlation' | 'distribution' | 'prediction',
+  options?: {
+    methodPattern?: string;
+    skipMethodSelection?: boolean;
+  }
+): Promise<boolean> {
+  console.log(`[runFullAnalysisFlow] 시작: ${filename} - ${purpose}`);
+
+  // Step 1: 데이터 업로드
+  console.log('[runFullAnalysisFlow] Step 1: 데이터 업로드');
+  const uploaded = await uploadFile(page, filename);
+  if (!uploaded) {
+    console.error('[runFullAnalysisFlow] 파일 업로드 실패');
+    return false;
+  }
+
+  const dataLoaded = await verifyDataLoaded(page);
+  if (!dataLoaded) {
+    console.error('[runFullAnalysisFlow] 데이터 로드 검증 실패');
+    return false;
+  }
+
+  // Step 2: 방법 선택
+  console.log('[runFullAnalysisFlow] Step 2: 방법 선택');
+  const navigated = await navigateToStep2(page);
+  if (!navigated) {
+    console.error('[runFullAnalysisFlow] Step 2 이동 실패');
+    return false;
+  }
+
+  const purposeSelected = await selectPurpose(page, purpose);
+  if (!purposeSelected) {
+    console.error('[runFullAnalysisFlow] 목적 선택 실패');
+    return false;
+  }
+
+  // 방법 선택 (옵션)
+  if (options?.methodPattern && !options.skipMethodSelection) {
+    await page.waitForTimeout(2000);
+    const methodCard = page.locator(`text=/${options.methodPattern}/i`).first();
+    if (await methodCard.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await methodCard.click();
+      console.log(`[runFullAnalysisFlow] 방법 선택: ${options.methodPattern}`);
+    }
+  }
+
+  // Step 3으로 이동 (변수 선택은 자동이거나 수동)
+  await page.waitForTimeout(3000);
+  const nextButton = page.getByRole('button', { name: /다음|계속|진행/ });
+  if (await nextButton.count() > 0) {
+    const isVisible = await nextButton.first().isVisible().catch(() => false);
+    if (isVisible) {
+      await nextButton.first().click();
+      console.log('[runFullAnalysisFlow] Step 3으로 이동');
+      await page.waitForTimeout(2000);
+    }
+  }
+
+  // Step 4: 분석 실행 대기
+  console.log('[runFullAnalysisFlow] Step 4: 분석 실행 대기');
+  const analysisComplete = await waitForProgressComplete(page, 90000);
+
+  if (analysisComplete) {
+    console.log('[runFullAnalysisFlow] 분석 완료!');
+  } else {
+    console.error('[runFullAnalysisFlow] 분석 타임아웃');
+  }
+
+  return analysisComplete;
 }

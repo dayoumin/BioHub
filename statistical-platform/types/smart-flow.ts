@@ -531,8 +531,9 @@ export interface SmartFlowState {
  * Guided Flow 단계
  */
 export type GuidedFlowStep =
-  | 'category'     // 대분류 선택 (NEW)
-  | 'subcategory'  // 중분류 선택 (NEW)
+  | 'ai-chat'      // AI 자연어 입력 (NEW - 기본 시작점)
+  | 'category'     // 대분류 선택
+  | 'subcategory'  // 중분류 선택
   | 'purpose'      // 목적 선택 (legacy, 호환성 유지)
   | 'questions'    // 조건 질문
   | 'result'       // 추천 결과
@@ -642,6 +643,16 @@ export interface GuidedFlowState {
   autoAnswers: Record<string, AutoAnswerResult>
   result: DecisionResult | null
   previousStep: GuidedFlowStep | null
+  /** AI 자연어 입력 (NEW) */
+  aiChatInput: string | null
+  /** AI 추천 결과 (NEW) */
+  aiRecommendation: AIRecommendation | null
+  /** AI 응답 텍스트 - 스트리밍용 (NEW) */
+  aiResponseText: string | null
+  /** AI 에러 메시지 (NEW) */
+  aiError: string | null
+  /** AI 로딩 상태 (NEW) */
+  isAiLoading: boolean
 }
 
 /**
@@ -659,6 +670,13 @@ export type GuidedFlowAction =
   | { type: 'SELECT_METHOD'; method: StatisticalMethod }
   | { type: 'CONFIRM' }
   | { type: 'RESET' }
+  // AI Chat 관련 액션 (NEW)
+  | { type: 'SET_AI_INPUT'; input: string }
+  | { type: 'START_AI_CHAT' }
+  | { type: 'SET_AI_RESPONSE'; text: string }
+  | { type: 'SET_AI_RECOMMENDATION'; recommendation: AIRecommendation }
+  | { type: 'AI_CHAT_ERROR'; error: string }
+  | { type: 'GO_TO_GUIDED' }  // AI에서 단계별 가이드로 이동
 
 
 // ============================================

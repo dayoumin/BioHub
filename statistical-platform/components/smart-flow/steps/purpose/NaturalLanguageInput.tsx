@@ -1,0 +1,443 @@
+'use client'
+
+/**
+ * NaturalLanguageInput - AI Chat 기반 분석 방법 추천
+ *
+ * 사용자가 자연어로 분석 목적을 입력하면 LLM이 적절한 통계 방법을 추천합니다.
+ */
+
+import { memo, useState, useCallback, useRef, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import {
+  Send,
+  Sparkles,
+  List,
+  ArrowRight,
+  Loader2,
+  MessageSquare,
+  Check,
+  AlertTriangle,
+  ChevronDown
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
+import type { AIRecommendation, StatisticalMethod, ValidationResults, StatisticalAssumptions } from '@/types/smart-flow'
+
+interface NaturalLanguageInputProps {
+  /** AI 입력 텍스트 */
+  inputValue: string
+  /** AI 응답 텍스트 (스트리밍) */
+  responseText: string | null
+  /** AI 에러 메시지 */
+  error?: string | null
+  /** AI 추천 결과 */
+  recommendation: AIRecommendation | null
+  /** 로딩 상태 */
+  isLoading: boolean
+  /** 입력 변경 핸들러 */
+  onInputChange: (value: string) => void
+  /** 추천 요청 핸들러 */
+  onSubmit: () => void
+  /** 추천 방법 선택 핸들러 */
+  onSelectMethod: (method: StatisticalMethod) => void
+  /** 단계별 가이드로 이동 */
+  onGoToGuided: () => void
+  /** 전체 목록 보기 */
+  onBrowseAll: () => void
+  /** 비활성화 */
+  disabled?: boolean
+  /** 데이터 검증 결과 */
+  validationResults?: ValidationResults | null
+  /** 가정 검정 결과 */
+  assumptionResults?: StatisticalAssumptions | null
+}
+
+const EXAMPLE_PROMPTS = [
+  '두 그룹의 평균 차이를 비교하고 싶어요',
+  '변수 간의 상관관계를 알고 싶어요',
+  '시간에 따른 추세를 분석하고 싶어요',
+  '여러 그룹의 평균을 동시에 비교하고 싶어요'
+]
+
+export const NaturalLanguageInput = memo(function NaturalLanguageInput({
+  inputValue,
+  responseText,
+  error,
+  recommendation,
+  isLoading,
+  onInputChange,
+  onSubmit,
+  onSelectMethod,
+  onGoToGuided,
+  onBrowseAll,
+  disabled = false
+}: NaturalLanguageInputProps) {
+  const prefersReducedMotion = useReducedMotion()
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [showAlternatives, setShowAlternatives] = useState(false)
+
+  // Enter 키 처리
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      if (inputValue.trim() && !isLoading) {
+        onSubmit()
+      }
+    }
+  }, [inputValue, isLoading, onSubmit])
+
+  // 예시 클릭
+  const handleExampleClick = useCallback((example: string) => {
+    onInputChange(example)
+    textareaRef.current?.focus()
+  }, [onInputChange])
+
+  // 추천 방법 선택
+  const handleSelectRecommended = useCallback(() => {
+    if (recommendation?.method) {
+      onSelectMethod(recommendation.method)
+    }
+  }, [recommendation, onSelectMethod])
+
+  // 대안 선택
+  const handleSelectAlternative = useCallback((alt: NonNullable<AIRecommendation['alternatives']>[number]) => {
+    const method: StatisticalMethod = {
+      id: alt.id,
+      name: alt.name,
+      description: alt.description || '',
+      category: alt.category || 'advanced'
+    }
+    onSelectMethod(method)
+  }, [onSelectMethod])
+
+  return (
+    <div className="space-y-6">
+      {/* 헤더 */}
+      <div className="text-center space-y-2">
+        <div className="flex items-center justify-center gap-2">
+          <MessageSquare className="w-6 h-6 text-primary" />
+          <h2 className="text-xl font-semibold">
+            어떤 분석이 필요하세요?
+          </h2>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          분석하고 싶은 내용을 자연스럽게 입력하세요. AI가 적합한 통계 방법을 추천해드립니다.
+        </p>
+      </div>
+
+      {/* 입력 영역 */}
+      <Card className="border-2 border-dashed border-primary/20 hover:border-primary/40 transition-colors">
+        <CardContent className="p-4 space-y-3">
+          <Textarea
+            ref={textareaRef}
+            value={inputValue}
+            onChange={(e) => onInputChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder='예: "두 그룹의 평균이 다른지 비교하고 싶어요"'
+            className="min-h-[80px] resize-none border-0 focus-visible:ring-0 text-base"
+            disabled={disabled || isLoading}
+          />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono">Enter</kbd>
+              <span>전송</span>
+              <span className="mx-1">|</span>
+              <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono">Shift+Enter</kbd>
+              <span>줄바꿈</span>
+            </div>
+            <Button
+              onClick={onSubmit}
+              disabled={disabled || isLoading || !inputValue.trim()}
+              className="gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  분석 중...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  추천받기
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 예시 프롬프트 */}
+      {!recommendation && !isLoading && (
+        <motion.div
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-2"
+        >
+          <p className="text-sm text-muted-foreground">예시:</p>
+          <div className="flex flex-wrap gap-2">
+            {EXAMPLE_PROMPTS.map((example, index) => (
+              <Button
+                key={index}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+                onClick={() => handleExampleClick(example)}
+                disabled={disabled}
+              >
+                {example}
+              </Button>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* 에러 표시 */}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+          >
+            <Card className="border-destructive/50 bg-destructive/5" role="alert" aria-live="polite">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-destructive">오류 발생</p>
+                    <p className="text-sm text-muted-foreground mt-1">{error}</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3"
+                      onClick={onGoToGuided}
+                    >
+                      단계별 가이드로 이동
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* AI 응답 (스트리밍) */}
+      <AnimatePresence mode="wait">
+        {(isLoading || responseText) && !error && (
+          <motion.div
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+          >
+            <Card className="bg-muted/30">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <p className="text-sm font-medium">AI 분석</p>
+                    {isLoading && !responseText ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        데이터를 분석하고 있습니다...
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {responseText}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 추천 결과 카드 */}
+      <AnimatePresence>
+        {recommendation && (
+          <motion.div
+            initial={prefersReducedMotion ? {} : { opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            className="space-y-4"
+          >
+            {/* 메인 추천 */}
+            <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10">
+              <CardContent className="p-4 space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <Check className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs">
+                          <Sparkles className="w-3 h-3 mr-1" />
+                          AI 추천
+                        </Badge>
+                        {recommendation.confidence && (
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-xs",
+                              recommendation.confidence >= 0.8 && "border-green-500 text-green-600",
+                              recommendation.confidence >= 0.5 && recommendation.confidence < 0.8 && "border-yellow-500 text-yellow-600",
+                              recommendation.confidence < 0.5 && "border-red-500 text-red-600"
+                            )}
+                          >
+                            {Math.round(recommendation.confidence * 100)}% 확신
+                          </Badge>
+                        )}
+                      </div>
+                      <h3 className="text-lg font-bold mt-1">
+                        {recommendation.method.name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {recommendation.method.description}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 추천 근거 */}
+                {recommendation.reasoning && recommendation.reasoning.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t">
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      <span className="w-4 h-0.5 bg-primary rounded" />
+                      추천 근거
+                    </p>
+                    <ul className="space-y-1.5">
+                      {recommendation.reasoning.map((reason, index) => (
+                        <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
+                          <span className="text-primary mt-0.5">•</span>
+                          {reason}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* 가정 검정 결과 */}
+                {recommendation.assumptions && recommendation.assumptions.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    {recommendation.assumptions.map((assumption, index) => (
+                      <Badge
+                        key={index}
+                        variant={assumption.passed ? "default" : "destructive"}
+                        className="text-xs"
+                      >
+                        {assumption.passed ? <Check className="w-3 h-3 mr-1" /> : <AlertTriangle className="w-3 h-3 mr-1" />}
+                        {assumption.name}
+                        {assumption.pValue !== undefined && ` (p=${assumption.pValue.toFixed(3)})`}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                {/* 선택 버튼 */}
+                <Button
+                  onClick={handleSelectRecommended}
+                  className="w-full gap-2 mt-2"
+                  size="lg"
+                  disabled={disabled}
+                >
+                  이 방법으로 분석하기
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* 대안 */}
+            {recommendation.alternatives && recommendation.alternatives.length > 0 && (
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAlternatives(!showAlternatives)}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <motion.span
+                    animate={{ rotate: showAlternatives ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </motion.span>
+                  다른 선택지 ({recommendation.alternatives.length}개)
+                </button>
+
+                <AnimatePresence>
+                  {showAlternatives && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="grid grid-cols-1 md:grid-cols-2 gap-2"
+                    >
+                      {recommendation.alternatives.map((alt, index) => (
+                        <Card
+                          key={index}
+                          className="cursor-pointer hover:border-primary/50 transition-colors"
+                          onClick={() => handleSelectAlternative(alt)}
+                        >
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div>
+                                <p className="font-medium text-sm">{alt.name}</p>
+                                <p className="text-xs text-muted-foreground line-clamp-1">
+                                  {alt.description}
+                                </p>
+                              </div>
+                              <Button size="sm" variant="ghost">
+                                선택
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 하단 링크 */}
+      <div className="flex items-center justify-center gap-4 pt-4 border-t">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onGoToGuided}
+          disabled={disabled || isLoading}
+          className="gap-1.5 text-muted-foreground hover:text-foreground"
+        >
+          <List className="w-4 h-4" />
+          단계별 가이드
+        </Button>
+        <span className="text-muted-foreground">|</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onBrowseAll}
+          disabled={disabled || isLoading}
+          className="gap-1.5 text-muted-foreground hover:text-foreground"
+        >
+          <List className="w-4 h-4" />
+          전체 목록 보기
+        </Button>
+      </div>
+    </div>
+  )
+})
+
+export default NaturalLanguageInput

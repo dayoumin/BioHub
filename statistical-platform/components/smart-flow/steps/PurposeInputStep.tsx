@@ -30,6 +30,9 @@ import { flowReducer, initialFlowState, flowActions } from './purpose/FlowStateM
 import { CategorySelector } from './purpose/CategorySelector'
 import { SubcategorySelector } from './purpose/SubcategorySelector'
 
+// NEW: Natural Language Input (AI Chat)
+import { NaturalLanguageInput } from './purpose/NaturalLanguageInput'
+
 /**
  * Phase 5: PurposeInputStep with Method Browser
  *
@@ -522,6 +525,95 @@ export function PurposeInputStep({
     }
   }, [flowState, isNavigating, setSelectedMethod, setDetectedVariables, onPurposeSubmit, validationResults])
 
+  // ============================================
+  // AI Chat Handlers (NEW)
+  // ============================================
+  const handleAiInputChange = useCallback((value: string) => {
+    flowDispatch(flowActions.setAiInput(value))
+  }, [])
+
+  const handleAiSubmit = useCallback(async () => {
+    if (!flowState.aiChatInput?.trim()) return
+
+    flowDispatch(flowActions.startAiChat())
+
+    try {
+      // Ollama 사용 가능 여부 확인
+      const isOllamaAvailable = await ollamaRecommender.checkHealth()
+
+      if (!isOllamaAvailable) {
+        // Fallback: 키워드 기반 추천
+        logger.info('[AI Chat] Ollama unavailable, using keyword-based fallback')
+        const { recommendation: fallbackRec, responseText: fallbackText } =
+          ollamaRecommender.keywordBasedRecommend(flowState.aiChatInput)
+
+        flowDispatch(flowActions.setAiResponse(fallbackText))
+        flowDispatch(flowActions.setAiRecommendation(fallbackRec))
+        return
+      }
+
+      // 자연어 기반 추천 요청 (Ollama)
+      const { recommendation: aiRec, responseText } = await ollamaRecommender.recommendFromNaturalLanguage(
+        flowState.aiChatInput,
+        validationResults ?? null,
+        assumptionResults ?? null,
+        data ?? null
+      )
+
+      if (responseText) {
+        flowDispatch(flowActions.setAiResponse(responseText))
+      }
+
+      if (aiRec) {
+        flowDispatch(flowActions.setAiRecommendation(aiRec))
+      } else {
+        // Ollama 파싱 실패 시에도 키워드 기반 fallback
+        logger.warn('[AI Chat] Ollama parsing failed, using keyword-based fallback')
+        const { recommendation: fallbackRec, responseText: fallbackText } =
+          ollamaRecommender.keywordBasedRecommend(flowState.aiChatInput)
+
+        flowDispatch(flowActions.setAiResponse(fallbackText))
+        flowDispatch(flowActions.setAiRecommendation(fallbackRec))
+      }
+    } catch (error) {
+      logger.error('AI Chat error', { error })
+      // 에러 발생 시에도 키워드 기반 fallback 시도
+      try {
+        const { recommendation: fallbackRec, responseText: fallbackText } =
+          ollamaRecommender.keywordBasedRecommend(flowState.aiChatInput || '')
+
+        flowDispatch(flowActions.setAiResponse(fallbackText))
+        flowDispatch(flowActions.setAiRecommendation(fallbackRec))
+      } catch {
+        flowDispatch(flowActions.aiChatError('오류가 발생했습니다. 다시 시도해주세요.'))
+      }
+    }
+  }, [flowState.aiChatInput, validationResults, assumptionResults, data])
+
+  const handleAiSelectMethod = useCallback(async (method: StatisticalMethod) => {
+    if (isNavigating) return
+
+    setIsNavigating(true)
+
+    try {
+      setSelectedMethod(method)
+      const detectedVars = extractDetectedVariables(method.id, validationResults, flowState.aiRecommendation)
+      setDetectedVariables(detectedVars)
+
+      if (onPurposeSubmit) {
+        await onPurposeSubmit('AI 추천 분석', method)
+      }
+    } catch (error) {
+      logger.error('Navigation failed', { error })
+    } finally {
+      setIsNavigating(false)
+    }
+  }, [isNavigating, setSelectedMethod, setDetectedVariables, validationResults, flowState.aiRecommendation, onPurposeSubmit])
+
+  const handleGoToGuided = useCallback(() => {
+    flowDispatch(flowActions.goToGuided())
+  }, [])
+
   // Cleanup
   useEffect(() => {
     return () => {
@@ -532,7 +624,27 @@ export function PurposeInputStep({
   return (
     <div className="w-full h-full flex flex-col space-y-6">
       <AnimatePresence mode="wait">
-        {/* NEW: Category Selection (2025 UI/UX) */}
+        {/* NEW: AI Chat - Natural Language Input (2025 UI/UX) */}
+        {flowState.step === 'ai-chat' && (
+          <NaturalLanguageInput
+            key="ai-chat"
+            inputValue={flowState.aiChatInput || ''}
+            responseText={flowState.aiResponseText}
+            error={flowState.aiError}
+            recommendation={flowState.aiRecommendation}
+            isLoading={flowState.isAiLoading}
+            onInputChange={handleAiInputChange}
+            onSubmit={handleAiSubmit}
+            onSelectMethod={handleAiSelectMethod}
+            onGoToGuided={handleGoToGuided}
+            onBrowseAll={handleBrowseAll}
+            disabled={isNavigating}
+            validationResults={validationResults}
+            assumptionResults={assumptionResults}
+          />
+        )}
+
+        {/* Category Selection (단계별 가이드) */}
         {flowState.step === 'category' && (
           <CategorySelector
             key="category"

@@ -451,6 +451,429 @@ Respond ONLY in valid JSON format (no extra text).
       }
     }
   }
+
+  // ============================================
+  // 자연어 입력 기반 추천 (NEW)
+  // ============================================
+
+  private naturalLanguageSystemPrompt = `당신은 통계 분석 전문가 AI 어시스턴트입니다.
+사용자가 자연어로 분석 목적을 설명하면, 가장 적합한 통계 방법을 추천해주세요.
+
+응답 형식:
+1. 먼저 사용자의 질문을 이해했다는 짧은 설명 (1-2문장, 한국어)
+2. 그 다음 JSON 형식으로 추천 결과
+
+예시 응답:
+두 그룹의 평균을 비교하시려는군요. 데이터의 정규성이 충족되어 **독립표본 t-검정**을 추천드립니다.
+
+\`\`\`json
+{
+  "methodId": "independent-t-test",
+  "methodName": "독립표본 t-검정",
+  "confidence": 0.9,
+  "reasoning": [
+    "두 독립적인 그룹의 평균 비교에 적합",
+    "데이터가 정규분포를 따름",
+    "연속형 종속변수 분석에 적합"
+  ],
+  "alternatives": [
+    {
+      "id": "mann-whitney",
+      "name": "Mann-Whitney U 검정",
+      "description": "정규성 가정이 충족되지 않을 때 사용"
+    },
+    {
+      "id": "welch-t",
+      "name": "Welch t-검정",
+      "description": "등분산 가정이 충족되지 않을 때 사용"
+    }
+  ]
+}
+\`\`\`
+
+사용 가능한 통계 방법 ID:
+- 평균 비교: independent-t-test, paired-t-test, one-sample-t-test, welch-t
+- 분산분석: one-way-anova, two-way-anova, repeated-measures-anova, ancova
+- 비모수: mann-whitney, wilcoxon-signed-rank, kruskal-wallis, friedman
+- 상관분석: pearson-correlation, spearman-correlation, kendall-correlation
+- 회귀분석: simple-linear-regression, multiple-linear-regression, logistic-regression
+- 카이제곱: chi-square-independence, chi-square-goodness-of-fit
+- 기술통계: descriptive-stats
+- 시계열: arima, time-series-decomposition
+- 생존분석: kaplan-meier, cox-regression
+- 다변량: pca, factor-analysis, cluster-analysis
+
+중요: 반드시 한국어로 응답하세요.`
+
+  /**
+   * 자연어 입력 기반 추천 프롬프트 구성
+   */
+  private buildNaturalLanguagePrompt(
+    userInput: string,
+    validationResults: ValidationResults | null,
+    assumptionResults: StatisticalAssumptions | null,
+    data: DataRow[] | null
+  ): string {
+    const n = data?.length || 0
+    const columns = validationResults?.columns || validationResults?.columnStats || []
+    const numericVars = columns.filter(c => c.type === 'numeric').map(c => c.name)
+    const categoricalVars = columns.filter(c => c.type === 'categorical').map(c => c.name)
+
+    // 가정 검정 결과 요약
+    let assumptionSummary = ''
+    if (assumptionResults) {
+      if (assumptionResults.normality?.shapiroWilk) {
+        const { pValue, isNormal } = assumptionResults.normality.shapiroWilk
+        assumptionSummary += `- 정규성: ${isNormal ? '충족' : '미충족'} (Shapiro-Wilk p=${pValue?.toFixed(3) || 'N/A'})\n`
+      }
+      if (assumptionResults.homogeneity?.levene) {
+        const { pValue, equalVariance } = assumptionResults.homogeneity.levene
+        assumptionSummary += `- 등분산성: ${equalVariance ? '충족' : '미충족'} (Levene p=${pValue?.toFixed(3) || 'N/A'})\n`
+      }
+    }
+
+    return `사용자 질문: "${userInput}"
+
+데이터 정보:
+- 표본 크기: ${n}개
+- 수치형 변수 (${numericVars.length}개): ${numericVars.slice(0, 5).join(', ')}${numericVars.length > 5 ? '...' : ''}
+- 범주형 변수 (${categoricalVars.length}개): ${categoricalVars.slice(0, 5).join(', ')}${categoricalVars.length > 5 ? '...' : ''}
+
+${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : '(가정 검정 결과 없음)'}
+
+위 정보를 바탕으로 가장 적합한 통계 방법을 추천해주세요.`
+  }
+
+  /**
+   * 자연어 입력 기반 추천 (비스트리밍)
+   */
+  async recommendFromNaturalLanguage(
+    userInput: string,
+    validationResults: ValidationResults | null,
+    assumptionResults: StatisticalAssumptions | null,
+    data: DataRow[] | null
+  ): Promise<{ recommendation: AIRecommendation | null; responseText: string }> {
+    try {
+      const prompt = this.buildNaturalLanguagePrompt(
+        userInput,
+        validationResults,
+        assumptionResults,
+        data
+      )
+
+      logger.info('[Ollama] Natural language recommendation request', {
+        userInput: userInput.substring(0, 50),
+        sampleSize: data?.length || 0
+      })
+
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 15000) // 15초 타임아웃
+
+      const response = await fetch(`${this.config.host}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: this.config.model,
+          prompt,
+          system: this.naturalLanguageSystemPrompt,
+          stream: false,
+          options: {
+            temperature: this.config.temperature,
+            num_predict: 1200 // 더 긴 응답 허용
+          }
+        }),
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        throw new Error(`Ollama request failed: ${response.status}`)
+      }
+
+      const ollamaResponse: OllamaResponse = await response.json()
+      const fullResponse = ollamaResponse.response
+
+      // JSON 추출 (코드 블록 또는 직접 JSON)
+      const recommendation = this.parseNaturalLanguageResponse(fullResponse)
+
+      // 설명 텍스트 추출 (JSON 이전 부분)
+      const jsonMatch = fullResponse.match(/```json[\s\S]*?```|\{[\s\S]*\}/)
+      const responseText = jsonMatch
+        ? fullResponse.substring(0, fullResponse.indexOf(jsonMatch[0])).trim()
+        : fullResponse
+
+      logger.info('[Ollama] Natural language recommendation SUCCESS', {
+        methodId: recommendation?.method.id,
+        hasResponseText: !!responseText
+      })
+
+      return { recommendation, responseText }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      logger.error('[Ollama] Natural language recommendation FAILED', { error: errorMessage })
+      return { recommendation: null, responseText: '' }
+    }
+  }
+
+  /**
+   * 자연어 응답 파싱
+   */
+  private parseNaturalLanguageResponse(response: string): AIRecommendation | null {
+    try {
+      // 코드 블록에서 JSON 추출
+      const codeBlockMatch = response.match(/```json\s*([\s\S]*?)\s*```/)
+      let jsonStr = codeBlockMatch ? codeBlockMatch[1] : null
+
+      // 코드 블록 없으면 직접 JSON 찾기
+      if (!jsonStr) {
+        const jsonMatch = response.match(/\{[\s\S]*\}/)
+        jsonStr = jsonMatch ? jsonMatch[0] : null
+      }
+
+      if (!jsonStr) {
+        logger.error('[Ollama] No JSON found in natural language response')
+        return null
+      }
+
+      const parsed = JSON.parse(jsonStr)
+
+      if (!parsed.methodId || !parsed.methodName) {
+        logger.error('[Ollama] Missing required fields', { parsed })
+        return null
+      }
+
+      const recommendation: AIRecommendation = {
+        method: {
+          id: parsed.methodId,
+          name: parsed.methodName,
+          description: parsed.reasoning?.[0] || '',
+          category: this.getCategoryFromMethodId(parsed.methodId)
+        },
+        confidence: parsed.confidence || 0.8,
+        reasoning: parsed.reasoning || [],
+        assumptions: parsed.assumptions?.map((a: { name: string; passed: boolean; pValue?: number }) => ({
+          name: a.name,
+          passed: a.passed,
+          pValue: a.pValue
+        })) || [],
+        alternatives: parsed.alternatives?.map((alt: { id: string; name: string; description?: string }) => ({
+          id: alt.id,
+          name: alt.name,
+          description: alt.description || '',
+          category: this.getCategoryFromMethodId(alt.id)
+        })) || []
+      }
+
+      return recommendation
+    } catch (error) {
+      logger.error('[Ollama] Natural language JSON parsing failed', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      })
+      return null
+    }
+  }
+
+  /**
+   * 자연어 입력 기반 스트리밍 추천
+   */
+  async *recommendFromNaturalLanguageStream(
+    userInput: string,
+    validationResults: ValidationResults | null,
+    assumptionResults: StatisticalAssumptions | null,
+    data: DataRow[] | null
+  ): AsyncGenerator<{ type: 'text' | 'recommendation'; content: string | AIRecommendation }> {
+    const prompt = this.buildNaturalLanguagePrompt(
+      userInput,
+      validationResults,
+      assumptionResults,
+      data
+    )
+
+    const response = await fetch(`${this.config.host}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: this.config.model,
+        prompt,
+        system: this.naturalLanguageSystemPrompt,
+        stream: true,
+        options: {
+          temperature: this.config.temperature,
+          num_predict: 1200
+        }
+      })
+    })
+
+    const reader = response.body?.getReader()
+    if (!reader) return
+
+    const decoder = new TextDecoder()
+    let fullText = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      const chunk = decoder.decode(value)
+      const lines = chunk.split('\n').filter(Boolean)
+
+      for (const line of lines) {
+        try {
+          const json = JSON.parse(line)
+          if (json.response) {
+            fullText += json.response
+            yield { type: 'text', content: json.response }
+          }
+        } catch (e) {
+          // 파싱 오류 무시
+        }
+      }
+    }
+
+    // 스트리밍 완료 후 JSON 파싱하여 추천 결과 반환
+    const recommendation = this.parseNaturalLanguageResponse(fullText)
+    if (recommendation) {
+      yield { type: 'recommendation', content: recommendation }
+    }
+  }
+
+  // ============================================
+  // 키워드 기반 Fallback 추천 (Ollama 불가 시)
+  // ============================================
+
+  /**
+   * 키워드 기반 Fallback 추천
+   * Ollama 서버 불가 시 간단한 키워드 매칭으로 추천
+   */
+  keywordBasedRecommend(userInput: string): { recommendation: AIRecommendation; responseText: string } {
+    const input = userInput.toLowerCase()
+
+    // 키워드 → 통계 방법 매핑
+    const keywordMap: Array<{
+      keywords: string[]
+      method: { id: string; name: string; description: string; category: AIRecommendation['method']['category'] }
+      alternatives: Array<{ id: string; name: string; description: string }>
+      reasoning: string[]
+    }> = [
+      // 평균 비교 (2그룹)
+      {
+        keywords: ['평균', '차이', '비교', '두 그룹', '2그룹', '두 집단', 't검정', 't-test'],
+        method: { id: 't-test', name: '독립표본 t-검정', description: '두 독립적인 그룹의 평균 비교', category: 't-test' },
+        alternatives: [
+          { id: 'mann-whitney', name: 'Mann-Whitney U 검정', description: '정규성 가정 미충족 시' },
+          { id: 'welch-t', name: 'Welch t-검정', description: '등분산 가정 미충족 시' }
+        ],
+        reasoning: ['두 그룹의 평균 비교에 적합', '독립적인 표본 비교', '연속형 변수 분석']
+      },
+      // 대응표본
+      {
+        keywords: ['대응', '사전', '사후', '전후', '짝지은', 'paired', '반복측정'],
+        method: { id: 'paired-t', name: '대응표본 t-검정', description: '동일 대상의 사전-사후 비교', category: 't-test' },
+        alternatives: [
+          { id: 'wilcoxon', name: 'Wilcoxon 부호순위 검정', description: '정규성 가정 미충족 시' }
+        ],
+        reasoning: ['동일 대상의 전후 비교', '대응되는 표본 분석', '사전-사후 효과 측정']
+      },
+      // 3그룹 이상 비교
+      {
+        keywords: ['여러 그룹', '3그룹', '세 그룹', '다중 비교', 'anova', '분산분석', '세 집단', '네 그룹'],
+        method: { id: 'anova', name: '일원배치 분산분석', description: '세 개 이상 그룹의 평균 비교', category: 'anova' },
+        alternatives: [
+          { id: 'kruskal-wallis', name: 'Kruskal-Wallis 검정', description: '정규성 가정 미충족 시' },
+          { id: 'welch-anova', name: 'Welch ANOVA', description: '등분산 가정 미충족 시' }
+        ],
+        reasoning: ['세 개 이상 그룹 비교', '집단 간 차이 검정', '일원배치 설계']
+      },
+      // 상관관계
+      {
+        keywords: ['상관', '관계', '연관', '관련', 'correlation', '상관계수'],
+        method: { id: 'pearson-correlation', name: 'Pearson 상관분석', description: '두 연속형 변수 간 선형 관계', category: 'correlation' },
+        alternatives: [
+          { id: 'spearman-correlation', name: 'Spearman 상관분석', description: '비선형 관계 또는 서열 변수' },
+          { id: 'kendall-correlation', name: 'Kendall 상관분석', description: '소표본 또는 순위 데이터' }
+        ],
+        reasoning: ['두 변수 간 관계 분석', '선형 관계 측정', '연속형 변수 간 상관']
+      },
+      // 회귀분석
+      {
+        keywords: ['회귀', '예측', '영향', '효과', 'regression', '종속변수', '독립변수'],
+        method: { id: 'regression', name: '단순 선형 회귀', description: '한 변수가 다른 변수에 미치는 영향', category: 'regression' },
+        alternatives: [
+          { id: 'multiple-regression', name: '다중 회귀분석', description: '여러 독립변수 사용 시' },
+          { id: 'logistic-regression', name: '로지스틱 회귀', description: '이분형 종속변수' }
+        ],
+        reasoning: ['변수 간 영향 관계 분석', '예측 모델 구축', '인과관계 추정']
+      },
+      // 카이제곱
+      {
+        keywords: ['범주', '빈도', '교차', '독립성', '카이제곱', 'chi-square', '카이스퀘어'],
+        method: { id: 'chi-square-independence', name: '카이제곱 독립성 검정', description: '두 범주형 변수 간 독립성 검정', category: 'chi-square' },
+        alternatives: [
+          { id: 'fisher-exact', name: 'Fisher 정확 검정', description: '소표본 또는 기대빈도 낮을 때' },
+          { id: 'chi-square-gof', name: '적합도 검정', description: '관측 vs 기대 빈도 비교' }
+        ],
+        reasoning: ['범주형 변수 분석', '변수 간 독립성 검정', '빈도 데이터 분석']
+      },
+      // 시계열
+      {
+        keywords: ['시계열', '추세', '트렌드', 'time series', 'arima', '월별', '연도별', '계절'],
+        method: { id: 'arima', name: 'ARIMA 분석', description: '시계열 데이터 예측 및 분석', category: 'advanced' },
+        alternatives: [
+          { id: 'time-series-decomposition', name: '시계열 분해', description: '추세, 계절성 분리' }
+        ],
+        reasoning: ['시간에 따른 패턴 분석', '추세 및 계절성 파악', '미래 값 예측']
+      },
+      // 생존분석
+      {
+        keywords: ['생존', '사건', '생존율', 'survival', 'kaplan', 'cox', '사망', '이탈'],
+        method: { id: 'kaplan-meier', name: 'Kaplan-Meier 분석', description: '생존 곡선 추정', category: 'advanced' },
+        alternatives: [
+          { id: 'cox-regression', name: 'Cox 회귀', description: '공변량이 생존에 미치는 영향' }
+        ],
+        reasoning: ['사건 발생까지의 시간 분석', '생존 확률 추정', '중도절단 데이터 처리']
+      },
+      // 기술통계 (기본) - 가장 마지막에 배치 (다른 매칭 없을 때 기본값)
+      {
+        keywords: ['기술통계', '요약', '기초통계', 'descriptive', '통계량', '표준편차'],
+        method: { id: 'descriptive-stats', name: '기술통계', description: '데이터의 기본 특성 요약', category: 'descriptive' },
+        alternatives: [],
+        reasoning: ['데이터 기본 특성 파악', '평균, 표준편차 등 계산', '분포 확인']
+      }
+    ]
+
+    // 키워드 매칭
+    let bestMatch = keywordMap[keywordMap.length - 1] // 기본값: 기술통계
+    let maxScore = 0
+
+    for (const mapping of keywordMap) {
+      const score = mapping.keywords.filter(kw => input.includes(kw)).length
+      if (score > maxScore) {
+        maxScore = score
+        bestMatch = mapping
+      }
+    }
+
+    const recommendation: AIRecommendation = {
+      method: bestMatch.method,
+      confidence: Math.min(0.5 + maxScore * 0.1, 0.85), // 키워드 기반이므로 최대 0.85
+      reasoning: bestMatch.reasoning,
+      assumptions: [],
+      alternatives: bestMatch.alternatives.map(alt => ({
+        ...alt,
+        category: this.getCategoryFromMethodId(alt.id)
+      }))
+    }
+
+    const responseText = `키워드 분석 결과, **${bestMatch.method.name}**을(를) 추천드립니다.\n\n(참고: AI 서버 연결 불가로 키워드 기반 추천을 제공합니다. 더 정확한 추천을 원하시면 '단계별 가이드'를 이용해주세요.)`
+
+    logger.info('[Ollama] Keyword-based fallback recommendation', {
+      methodId: recommendation.method.id,
+      keywordScore: maxScore
+    })
+
+    return { recommendation, responseText }
+  }
 }
 
 // 싱글톤 인스턴스
