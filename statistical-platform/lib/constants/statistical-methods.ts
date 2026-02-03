@@ -27,6 +27,10 @@ export interface StatisticalMethodWithAliases extends StatisticalMethod {
   hasOwnPage?: boolean
   /** Parent page for embedded methods */
   parentPageId?: string
+  /** Korean display name */
+  koreanName?: string
+  /** Korean description */
+  koreanDescription?: string
 }
 
 /**
@@ -44,6 +48,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Two independent groups mean comparison',
     category: 't-test',
     aliases: ['independent-t', 'independent-t-test', 'student-t'],
+    koreanName: '독립표본 t-검정',
+    koreanDescription: '두 독립 그룹의 평균 차이 검정',
   },
   'welch-t': {
     id: 'welch-t',
@@ -51,6 +57,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Two groups mean comparison without equal variance assumption',
     category: 't-test',
     aliases: ['welch-t-test'],
+    koreanName: 'Welch t-검정',
+    koreanDescription: '등분산 가정 없이 두 그룹 평균 비교',
   },
   'one-sample-t': {
     id: 'one-sample-t',
@@ -58,6 +66,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Sample mean vs population mean comparison',
     category: 't-test',
     aliases: ['one-sample-t-test'],
+    koreanName: '단일표본 t-검정',
+    koreanDescription: '표본 평균과 모집단 평균 비교',
   },
   'paired-t': {
     id: 'paired-t',
@@ -67,6 +77,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     aliases: ['paired-t-test', 'dependent-t'],
     hasOwnPage: false,
     parentPageId: 't-test',
+    koreanName: '대응표본 t-검정',
+    koreanDescription: '같은 대상을 전/후 측정하여 평균 차이 검정',
   },
 
   // ============================================
@@ -78,6 +90,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Three or more groups mean comparison',
     category: 'anova',
     aliases: ['one-way-anova', 'oneway-anova'],
+    koreanName: '일원분산분석 (ANOVA)',
+    koreanDescription: '3개 이상 독립 그룹의 평균 차이 검정',
   },
   'welch-anova': {
     id: 'welch-anova',
@@ -87,6 +101,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     aliases: ['welch-f'],
     hasOwnPage: false,
     parentPageId: 'anova',
+    koreanName: 'Welch ANOVA',
+    koreanDescription: '등분산 가정 없이 3개 이상 그룹 비교',
   },
   'repeated-measures-anova': {
     id: 'repeated-measures-anova',
@@ -94,6 +110,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Within-subjects factor analysis',
     category: 'anova',
     aliases: ['repeated-anova', 'rm-anova'],
+    koreanName: '반복측정 분산분석',
+    koreanDescription: '같은 대상을 여러 시점에서 측정',
   },
   'ancova': {
     id: 'ancova',
@@ -101,6 +119,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Analysis of Covariance',
     category: 'anova',
     aliases: ['analysis-of-covariance'],
+    koreanName: '공분산분석 (ANCOVA)',
+    koreanDescription: '공변량 통제 후 그룹 비교',
   },
   'manova': {
     id: 'manova',
@@ -108,6 +128,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Multivariate Analysis of Variance',
     category: 'anova',
     aliases: ['multivariate-anova'],
+    koreanName: '다변량 분산분석 (MANOVA)',
+    koreanDescription: '여러 종속변수의 그룹 간 차이',
   },
   'mixed-model': {
     id: 'mixed-model',
@@ -115,6 +137,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Fixed and random effects analysis',
     category: 'anova',
     aliases: ['mixed-effects', 'linear-mixed-model', 'lmm'],
+    koreanName: '혼합효과 모형',
+    koreanDescription: '고정효과와 랜덤효과 포함 분석',
   },
 
   // ============================================
@@ -126,6 +150,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Two independent groups nonparametric comparison',
     category: 'nonparametric',
     aliases: ['mann-whitney-u', 'wilcoxon-rank-sum'],
+    koreanName: 'Mann-Whitney U 검정',
+    koreanDescription: '두 독립 그룹의 비모수 비교',
   },
   'wilcoxon': {
     id: 'wilcoxon',
@@ -133,6 +159,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Paired samples nonparametric comparison',
     category: 'nonparametric',
     aliases: ['wilcoxon-signed-rank', 'wilcoxon-test'],
+    koreanName: 'Wilcoxon 부호순위 검정',
+    koreanDescription: '대응표본의 비모수 검정',
   },
   'kruskal-wallis': {
     id: 'kruskal-wallis',
@@ -140,6 +168,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Three or more groups nonparametric comparison',
     category: 'nonparametric',
     aliases: ['kruskal-wallis-h'],
+    koreanName: 'Kruskal-Wallis 검정',
+    koreanDescription: '3개 이상 그룹의 비모수 비교',
   },
   'friedman': {
     id: 'friedman',
@@ -147,6 +177,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Repeated measures nonparametric comparison',
     category: 'nonparametric',
     aliases: ['friedman-test'],
+    koreanName: 'Friedman 검정',
+    koreanDescription: '반복측정의 비모수 대안',
   },
   'sign-test': {
     id: 'sign-test',
@@ -154,6 +186,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Paired samples sign test',
     category: 'nonparametric',
     aliases: [],
+    koreanName: '부호 검정',
+    koreanDescription: '대응표본의 방향성 검정',
   },
   'mcnemar': {
     id: 'mcnemar',
@@ -161,6 +195,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Paired nominal data comparison',
     category: 'nonparametric',
     aliases: ['mcnemar-test'],
+    koreanName: 'McNemar 검정',
+    koreanDescription: '대응 이진 데이터 비교',
   },
   'cochran-q': {
     id: 'cochran-q',
@@ -168,6 +204,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Multiple related samples binary comparison',
     category: 'nonparametric',
     aliases: ['cochran-q-test'],
+    koreanName: 'Cochran Q 검정',
+    koreanDescription: '다중 대응 이진 비교',
   },
   'binomial-test': {
     id: 'binomial-test',
@@ -175,6 +213,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Binary outcome probability test',
     category: 'nonparametric',
     aliases: ['binomial'],
+    koreanName: '이항 검정',
+    koreanDescription: '이진 결과 확률 검정',
   },
   'runs-test': {
     id: 'runs-test',
@@ -182,6 +222,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Randomness test',
     category: 'nonparametric',
     aliases: ['wald-wolfowitz'],
+    koreanName: '런 검정',
+    koreanDescription: '무작위성 검정',
   },
   'ks-test': {
     id: 'ks-test',
@@ -189,6 +231,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Distribution comparison test',
     category: 'nonparametric',
     aliases: ['kolmogorov-smirnov', 'ks-2samp'],
+    koreanName: 'Kolmogorov-Smirnov 검정',
+    koreanDescription: '두 분포 비교',
   },
   'mood-median': {
     id: 'mood-median',
@@ -196,6 +240,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Median comparison across groups',
     category: 'nonparametric',
     aliases: ['mood-median-test'],
+    koreanName: 'Mood 중앙값 검정',
+    koreanDescription: '그룹 간 중앙값 비교',
   },
   'non-parametric': {
     id: 'non-parametric',
@@ -215,6 +261,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Pearson/Spearman correlation',
     category: 'correlation',
     aliases: ['pearson', 'spearman', 'pearson-correlation', 'spearman-correlation'],
+    koreanName: 'Pearson 상관분석',
+    koreanDescription: '두 연속형 변수의 선형 상관관계',
   },
   'partial-correlation': {
     id: 'partial-correlation',
@@ -222,6 +270,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Correlation controlling for variables',
     category: 'correlation',
     aliases: ['partial-corr'],
+    koreanName: '편상관분석',
+    koreanDescription: '제3변수 통제 후 상관관계',
   },
 
   // ============================================
@@ -233,6 +283,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Simple/multiple linear regression',
     category: 'regression',
     aliases: ['linear-regression', 'multiple-regression', 'ols'],
+    koreanName: '선형 회귀',
+    koreanDescription: '예측 변수로 결과 예측',
   },
   'logistic-regression': {
     id: 'logistic-regression',
@@ -242,6 +294,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     aliases: ['logistic', 'binomial-regression'],
     hasOwnPage: false,
     parentPageId: 'regression',
+    koreanName: '로지스틱 회귀',
+    koreanDescription: '이진 결과 예측',
   },
   'poisson': {
     id: 'poisson',
@@ -249,6 +303,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Count data regression',
     category: 'regression',
     aliases: ['poisson-regression'],
+    koreanName: '포아송 회귀',
+    koreanDescription: '빈도/개수 데이터 예측',
   },
   'ordinal-regression': {
     id: 'ordinal-regression',
@@ -256,6 +312,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Ordered categorical outcome regression',
     category: 'regression',
     aliases: ['ordinal-logistic'],
+    koreanName: '순서형 로지스틱 회귀',
+    koreanDescription: '순서형 범주 예측',
   },
   'stepwise': {
     id: 'stepwise',
@@ -263,6 +321,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Automatic variable selection regression',
     category: 'regression',
     aliases: ['stepwise-regression', 'forward-selection', 'backward-elimination'],
+    koreanName: '단계적 회귀',
+    koreanDescription: '자동 변수 선택 회귀',
   },
   'dose-response': {
     id: 'dose-response',
@@ -270,6 +330,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'EC50/IC50 curve fitting',
     category: 'regression',
     aliases: ['dose-response-curve', 'ec50', 'ic50'],
+    koreanName: '용량-반응 분석',
+    koreanDescription: 'EC50/IC50 곡선 피팅',
   },
   'response-surface': {
     id: 'response-surface',
@@ -277,6 +339,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Optimization experiments analysis',
     category: 'regression',
     aliases: ['rsm', 'response-surface-methodology'],
+    koreanName: '반응표면 분석',
+    koreanDescription: '최적화 실험 분석',
   },
 
   // ============================================
@@ -296,6 +360,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Distribution fit test',
     category: 'chi-square',
     aliases: ['goodness-of-fit', 'chi-square-gof'],
+    koreanName: '카이제곱 적합도 검정',
+    koreanDescription: '관찰 빈도와 기대 빈도 비교',
   },
   'chi-square-independence': {
     id: 'chi-square-independence',
@@ -303,6 +369,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Categorical variables independence test',
     category: 'chi-square',
     aliases: ['independence-test', 'contingency-table'],
+    koreanName: '카이제곱 독립성 검정',
+    koreanDescription: '두 범주형 변수의 독립성 검정',
   },
 
   // ============================================
@@ -314,6 +382,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Summary statistics',
     category: 'descriptive',
     aliases: ['descriptive-stats', 'summary-statistics'],
+    koreanName: '기술통계량',
+    koreanDescription: '평균, 표준편차, 분위수 등 요약',
   },
   'normality-test': {
     id: 'normality-test',
@@ -321,6 +391,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Shapiro-Wilk, Kolmogorov-Smirnov normality tests',
     category: 'descriptive',
     aliases: ['shapiro-wilk', 'normality'],
+    koreanName: '정규성 검정',
+    koreanDescription: 'Shapiro-Wilk, K-S 검정',
   },
   'explore-data': {
     id: 'explore-data',
@@ -328,6 +400,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Data exploration and visualization',
     category: 'descriptive',
     aliases: ['data-exploration', 'eda'],
+    koreanName: '데이터 탐색',
+    koreanDescription: '데이터 탐색 및 시각화',
   },
   'means-plot': {
     id: 'means-plot',
@@ -335,6 +409,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Group means visualization with CI',
     category: 'descriptive',
     aliases: ['means-comparison-plot'],
+    koreanName: '평균 도표',
+    koreanDescription: '그룹별 평균과 신뢰구간 시각화',
   },
 
   // ============================================
@@ -346,6 +422,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Autoregressive Integrated Moving Average',
     category: 'timeseries',
     aliases: ['arima-model', 'time-series-arima'],
+    koreanName: 'ARIMA',
+    koreanDescription: '시계열 예측 모형',
   },
   'seasonal-decompose': {
     id: 'seasonal-decompose',
@@ -353,6 +431,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Time series decomposition',
     category: 'timeseries',
     aliases: ['stl-decomposition', 'decomposition'],
+    koreanName: 'STL 분해',
+    koreanDescription: '추세, 계절성, 잔차 분리',
   },
   'stationarity-test': {
     id: 'stationarity-test',
@@ -360,6 +440,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'ADF, KPSS stationarity tests',
     category: 'timeseries',
     aliases: ['adf-test', 'kpss-test'],
+    koreanName: 'ADF 정상성 검정',
+    koreanDescription: 'Augmented Dickey-Fuller 검정',
   },
   'mann-kendall': {
     id: 'mann-kendall',
@@ -367,6 +449,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Time series trend detection',
     category: 'timeseries',
     aliases: ['mk-test', 'trend-test'],
+    koreanName: 'Mann-Kendall 추세 검정',
+    koreanDescription: '시계열 추세 탐지',
   },
 
   // ============================================
@@ -378,6 +462,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Survival curve estimation',
     category: 'survival',
     aliases: ['km-curve', 'survival-curve', 'log-rank'],
+    koreanName: 'Kaplan-Meier 추정',
+    koreanDescription: '생존 곡선 추정',
   },
   'cox-regression': {
     id: 'cox-regression',
@@ -385,6 +471,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Survival regression with covariates',
     category: 'survival',
     aliases: ['cox-ph', 'proportional-hazards'],
+    koreanName: 'Cox 비례위험 회귀',
+    koreanDescription: '생존에 영향을 미치는 요인 분석',
   },
 
   // ============================================
@@ -396,6 +484,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Dimensionality reduction',
     category: 'pca',
     aliases: ['principal-components'],
+    koreanName: '주성분 분석 (PCA)',
+    koreanDescription: '차원 축소',
   },
   'factor-analysis': {
     id: 'factor-analysis',
@@ -403,6 +493,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Latent factor extraction',
     category: 'advanced',
     aliases: ['efa', 'exploratory-factor-analysis'],
+    koreanName: '요인 분석',
+    koreanDescription: '잠재 요인 추출',
   },
   'cluster': {
     id: 'cluster',
@@ -410,6 +502,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'K-means, hierarchical clustering',
     category: 'clustering',
     aliases: ['cluster-analysis', 'k-means', 'hierarchical-clustering'],
+    koreanName: '군집 분석',
+    koreanDescription: 'K-means, 계층적 군집화',
   },
   'discriminant': {
     id: 'discriminant',
@@ -417,6 +511,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Group classification',
     category: 'advanced',
     aliases: ['discriminant-analysis', 'lda', 'linear-discriminant'],
+    koreanName: '판별 분석',
+    koreanDescription: '그룹 분류',
   },
 
   // ============================================
@@ -428,6 +524,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Sample size and power calculation',
     category: 'design',
     aliases: ['sample-size', 'statistical-power'],
+    koreanName: '검정력 분석',
+    koreanDescription: '표본 크기 및 검정력 계산',
   },
   'reliability': {
     id: 'reliability',
@@ -435,6 +533,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: "Cronbach's alpha, internal consistency",
     category: 'psychometrics',
     aliases: ['reliability-analysis', 'cronbach-alpha'],
+    koreanName: '신뢰도 분석',
+    koreanDescription: 'Cronbach 알파, 내적 일관성',
   },
   'proportion-test': {
     id: 'proportion-test',
@@ -442,6 +542,8 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'One/two sample proportion test',
     category: 'nonparametric',
     aliases: ['z-test-proportion', 'one-sample-proportion'],
+    koreanName: '비율 검정',
+    koreanDescription: '단일/두 표본 비율 비교',
   },
 }
 
@@ -525,6 +627,27 @@ export function isValidMethodId(id: string): boolean {
   return getMethodByIdOrAlias(id) !== null
 }
 
+
+/**
+ * Get Korean name for a method
+ * @param id - Method ID
+ * @returns Korean name or English name as fallback
+ */
+export function getKoreanName(id: string): string {
+  const method = STATISTICAL_METHODS[id]
+  return method?.koreanName ?? method?.name ?? id
+}
+
+/**
+ * Get Korean description for a method
+ * @param id - Method ID
+ * @returns Korean description or English description as fallback
+ */
+export function getKoreanDescription(id: string): string {
+  const method = STATISTICAL_METHODS[id]
+  return method?.koreanDescription ?? method?.description ?? ''
+}
+
 // ============================================
 // Category Definitions
 // ============================================
@@ -534,6 +657,8 @@ export const METHOD_CATEGORIES = {
     name: 'T-Test',
     description: 'Mean comparison tests',
     methods: ['t-test', 'welch-t', 'one-sample-t', 'paired-t'],
+    koreanName: '독립표본 t-검정',
+    koreanDescription: '두 독립 그룹의 평균 차이 검정',
   },
   anova: {
     name: 'ANOVA',
