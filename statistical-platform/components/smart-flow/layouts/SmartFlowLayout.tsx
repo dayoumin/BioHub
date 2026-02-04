@@ -1,11 +1,7 @@
 'use client'
 
-import React, { ReactNode } from 'react'
+import React, { ReactNode, useMemo, useCallback } from 'react'
 import Link from 'next/link'
-import { cn } from '@/lib/utils'
-import { useUI } from '@/contexts/ui-context'
-import { SettingsModal } from '@/components/layout/settings-modal'
-import { HelpModal } from '@/components/layout/help-modal'
 import {
   Clock,
   HelpCircle,
@@ -14,11 +10,24 @@ import {
   Target,
   Settings,
   Play,
-  MessageCircle
+  MessageCircle,
+  ChevronRight,
+  Loader2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import { FloatingStepIndicator, type StepItem } from '@/components/common/FloatingStepIndicator'
+import { cn } from '@/lib/utils'
+import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import { useUI } from '@/contexts/ui-context'
+import { SettingsModal } from '@/components/layout/settings-modal'
+import { HelpModal } from '@/components/layout/help-modal'
 
 // 4단계 스텝 정의
 const STEPS: StepItem[] = [
@@ -43,12 +52,22 @@ export interface SmartFlowLayoutProps {
   onHelpToggle?: () => void
   systemMemory?: number | null
   historyPanel?: ReactNode
+  historyCount?: number // 히스토리 개수 (0이면 아이콘 숨김)
 
   // 분석 상태
   isAnalyzing?: boolean
   analyzingMessage?: string
 
+  // 스테퍼 표시 여부 (Hub 페이지에서는 숨김)
+  showStepper?: boolean
+  showHub?: boolean
+
   className?: string
+  // 플로팅 네비게이션 버튼
+  canGoNext?: boolean
+  onNext?: () => void
+  nextLabel?: string
+  showFloatingNav?: boolean
 }
 
 /**
@@ -71,15 +90,24 @@ export function SmartFlowLayout({
   onHelpToggle,
   systemMemory,
   historyPanel,
+  historyCount = 0,
   isAnalyzing = false,
   analyzingMessage,
+  showStepper = true,
+  showHub = false,
+  canGoNext = false,
+  onNext,
+  nextLabel = '다음 단계로',
+  showFloatingNav = true,
   className
 }: SmartFlowLayoutProps) {
   // STEPS에 completed 정보 병합
-  const stepsWithCompleted: StepItem[] = STEPS.map(step => ({
-    ...step,
-    completed: steps.find(s => s.id === step.id)?.completed ?? false
-  }))
+  const stepsWithCompleted: StepItem[] = useMemo(() =>
+    STEPS.map(step => ({
+      ...step,
+      completed: steps.find(s => s.id === step.id)?.completed ?? false
+    }))
+  , [steps])
 
   // 전역 UI 컨텍스트 (채팅, 설정, 도움말 모달)
   const {
@@ -92,38 +120,45 @@ export function SmartFlowLayout({
     closeHelp: closeGlobalHelp,
   } = useUI()
 
+  // 로고 클릭 시 Hub로 돌아가기
+  const resetSession = useSmartFlowStore(state => state.resetSession)
+
+  const handleLogoClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    resetSession()
+  }, [resetSession])
+
   return (
     <div className={cn("min-h-full bg-background", className)}>
       {/* ===== 헤더 (Sticky) ===== */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b shadow-sm">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex items-center justify-between h-14">
-            {/* 좌측: 로고 + 히스토리 버튼 */}
+            {/* 좌측: 로고 */}
             <div className="flex items-center gap-3">
               <Link
                 href="/"
+                onClick={handleLogoClick}
                 className="text-lg font-bold text-foreground hover:text-primary transition-colors"
               >
                 NIFS 통계 분석
               </Link>
-              {onHistoryToggle && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onHistoryToggle}
-                  className={cn(
-                    "h-8 px-2 gap-1.5",
-                    showHistory && "bg-muted"
-                  )}
-                  title="분석 히스토리"
-                >
-                  <Clock className="w-4 h-4" />
-                </Button>
-              )}
             </div>
 
-            {/* 우측: 앱 아이콘 (채팅, 도움말, 설정) */}
+            {/* 우측: 앱 아이콘 (히스토리, 채팅, 도움말, 설정) */}
             <div className="flex items-center gap-1">
+              {/* 히스토리 토글 버튼 (기록 있을 때만 표시) */}
+              {onHistoryToggle && (historyCount > 0 || showHistory) && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn("h-10 w-10", showHistory && "bg-muted")}
+                  onClick={onHistoryToggle}
+                  title={showHistory ? "히스토리 닫기" : `히스토리 (${historyCount}개)`}
+                >
+                  <Clock className="h-5 w-5" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -156,75 +191,77 @@ export function SmartFlowLayout({
         </div>
       </header>
 
-      {/* ===== 스테퍼 (Sticky, 헤더 아래) ===== */}
-      <FloatingStepIndicator
-        steps={stepsWithCompleted}
-        currentStep={currentStep}
-        onStepChange={onStepChange}
-        topOffset="3.5rem"
-      />
+      {/* ===== 스테퍼 (조건부 표시) ===== */}
+      {showStepper && (
+        <FloatingStepIndicator
+          steps={stepsWithCompleted}
+          currentStep={currentStep}
+          onStepChange={onStepChange}
+          topOffset="3.5rem"
+        />
+      )}
 
-      {/* ===== 메인 콘텐츠 ===== */}
-      <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-        {/* SmartFlow 전용 도움말 패널 */}
-        {showHelp && onHelpToggle && (
-          <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/30">
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-lg">💾 데이터 크기 가이드</CardTitle>
-                <Button variant="ghost" size="sm" onClick={onHelpToggle}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-medium mb-2">현재 제한사항</h4>
-                  <ul className="text-sm space-y-1 text-muted-foreground">
-                    <li>• 최대 파일: 50MB</li>
-                    <li>• 최대 데이터: 100,000행 × 1,000열</li>
-                    <li>• 권장: 10,000행 이하 (빠른 처리)</li>
-                  </ul>
+      {/* ===== 메인 콘텐츠 영역 ===== */}
+      <main className="max-w-6xl mx-auto">
+        <div className="px-6 py-8 space-y-6">
+          {/* SmartFlow 전용 도움말 패널 */}
+          {showHelp && onHelpToggle && (
+            <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/30">
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-lg">데이터 크기 가이드</CardTitle>
+                  <Button variant="ghost" size="sm" onClick={onHelpToggle}>
+                    <X className="w-4 h-4" />
+                  </Button>
                 </div>
-                <div>
-                  <h4 className="font-medium mb-2">메모리별 권장 크기</h4>
-                  <ul className="text-sm space-y-1 text-muted-foreground">
-                    <li>• 4GB RAM: ~10,000행</li>
-                    <li>• 8GB RAM: ~30,000행</li>
-                    <li>• 16GB RAM: ~60,000행</li>
-                    {systemMemory && (
-                      <li className="font-medium text-blue-700 dark:text-blue-300">
-                        → 감지된 메모리: {systemMemory}GB
-                      </li>
-                    )}
-                  </ul>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-medium mb-2">현재 제한사항</h4>
+                    <ul className="text-sm space-y-1 text-muted-foreground">
+                      <li>• 최대 파일: 50MB</li>
+                      <li>• 최대 데이터: 100,000행 × 1,000열</li>
+                      <li>• 권장: 10,000행 이하</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-medium mb-2">메모리별 권장 크기</h4>
+                    <ul className="text-sm space-y-1 text-muted-foreground">
+                      <li>• 4GB RAM: ~10,000행</li>
+                      <li>• 8GB RAM: ~30,000행</li>
+                      <li>• 16GB RAM: ~60,000행</li>
+                      {systemMemory && (
+                        <li className="font-medium text-blue-700 dark:text-blue-300">
+                          → 감지된 메모리: {systemMemory}GB
+                        </li>
+                      )}
+                    </ul>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          )}
 
-        {/* 히스토리 패널 */}
-        {showHistory && historyPanel && onHistoryToggle && (
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-lg">📊 분석 히스토리</CardTitle>
-                <Button variant="ghost" size="sm" onClick={onHistoryToggle}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {historyPanel}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 메인 콘텐츠 */}
-        {children}
+          {/* 메인 콘텐츠 */}
+          {children}
+        </div>
       </main>
+
+      {/* ===== 플로팅 히스토리 패널 (Sheet) ===== */}
+      <Sheet open={showHistory} onOpenChange={(open) => !open && onHistoryToggle?.()}>
+        <SheetContent side="right" className="w-96 sm:w-[400px] overflow-y-auto">
+          <SheetHeader className="pb-4 border-b">
+            <SheetTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              분석 히스토리
+            </SheetTitle>
+          </SheetHeader>
+          <div className="py-4">
+            {historyPanel}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* 분석 중 오버레이 */}
       {isAnalyzing && (
@@ -243,6 +280,35 @@ export function SmartFlowLayout({
       {/* 전역 모달들 */}
       <SettingsModal open={isSettingsOpen} onOpenChange={closeSettings} />
       <HelpModal open={isHelpOpen} onOpenChange={closeGlobalHelp} />
+      {/* ===== 플로팅 네비게이션 버튼 ===== */}
+      {showFloatingNav && !showHub && onNext && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+          <Button
+            onClick={onNext}
+            disabled={!canGoNext || isAnalyzing}
+            size="lg"
+            className={cn(
+              "shadow-lg px-6 gap-2 transition-all",
+              canGoNext && !isAnalyzing
+                ? "bg-primary hover:bg-primary/90"
+                : "bg-muted text-muted-foreground"
+            )}
+          >
+            {isAnalyzing ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                분석 중...
+              </>
+            ) : (
+              <>
+                {nextLabel}
+                <ChevronRight className="w-4 h-4" />
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+
     </div>
   )
 }
