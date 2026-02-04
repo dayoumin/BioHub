@@ -214,11 +214,13 @@ export default function HomePage() {
   }, [quickAnalysisMode, selectedMethod, navigateToStep, goToNextStep])
 
   // Floating navigation button logic
+  // Note: canProceedToNext() reads uploadedFile/uploadedData/validationResults/selectedMethod/variableMapping
+  // internally via get(), so we must include those as deps for proper reactivity
   const canProceedWithFloatingNav = useMemo(() => {
     if (showHub) return false
     if (currentStep === 4 && results) return false // 결과 페이지에서는 숨김
     return canProceedToNext()
-  }, [showHub, currentStep, results, canProceedToNext])
+  }, [showHub, currentStep, results, canProceedToNext, uploadedData, uploadedFileName, validationResults, selectedMethod, variableMapping])
 
   const getNextStepLabel = useMemo(() => {
     switch (currentStep) {

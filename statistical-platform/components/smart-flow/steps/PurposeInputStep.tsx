@@ -2,17 +2,19 @@
 
 import { useState, useMemo, useCallback, useEffect, useReducer } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { TrendingUp, GitCompare, PieChart, LineChart, Clock, Heart, ArrowRight, List, Layers, Calculator } from 'lucide-react'
+import { TrendingUp, GitCompare, PieChart, LineChart, Clock, Heart, ArrowRight, ArrowLeft, List, Layers, Calculator, Sparkles, Info, Target } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { FilterToggle } from '@/components/ui/filter-toggle'
 import { PurposeCard } from '@/components/common/analysis/PurposeCard'
 import { AIAnalysisProgress } from '@/components/common/analysis/AIAnalysisProgress'
 import type { PurposeInputStepProps } from '@/types/smart-flow-navigation'
 import type { AnalysisPurpose, AIRecommendation, ColumnStatistics, StatisticalMethod, AutoAnswerResult, AnalysisCategory, SubcategoryDefinition } from '@/types/smart-flow'
 import { logger } from '@/lib/utils/logger'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import { StepHeader } from '@/components/smart-flow/common'
 import { useSettingsStore } from '@/lib/stores/settings-store'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { DecisionTreeRecommender } from '@/lib/services/decision-tree-recommender'
@@ -204,9 +206,14 @@ export function PurposeInputStep({
   // NEW: Guided Flow state
   const [flowState, flowDispatch] = useReducer(flowReducer, initialFlowState)
 
+  // Store에서 초기 입력 모드 가져오기 (useState보다 먼저 선언)
+  const storePurposeInputMode = useSmartFlowStore(state => state.purposeInputMode)
+
   const [selectedPurpose, setSelectedPurpose] = useState<AnalysisPurpose | null>(null)
   // Note: Variable selection is handled in VariableSelectionStep
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  // NEW: 입력 모드 (AI 추천 vs 직접 선택) - store에서 초기값 가져옴
+  const [inputMode, setInputMode] = useState<'ai' | 'browse'>(storePurposeInputMode)
   const [aiProgress, setAiProgress] = useState(0)
   const [recommendation, setRecommendation] = useState<AIRecommendation | null>(null)
   const [analysisError, setAnalysisError] = useState(false)
@@ -215,6 +222,18 @@ export function PurposeInputStep({
   // NEW: Manual method selection (user override)
   const [manualSelectedMethod, setManualSelectedMethod] = useState<StatisticalMethod | null>(null)
   const [activeTab, setActiveTab] = useState<'recommended' | 'browse'>('recommended')
+
+  // NEW: 입력 모드 변경 핸들러
+  const handleInputModeChange = useCallback((mode: 'ai' | 'browse') => {
+    setInputMode(mode)
+    if (mode === 'ai') {
+      // AI 추천 모드로 전환 - reset()이 ai-chat 초기 상태로 설정
+      flowDispatch(flowActions.reset())
+    } else {
+      // 직접 선택 모드로 전환 - browseAll()이 browse 단계로 설정
+      flowDispatch(flowActions.browseAll())
+    }
+  }, [flowDispatch])
 
   // WCAG 2.3.3: prefers-reduced-motion
   const prefersReducedMotion = useReducedMotion()
@@ -406,7 +425,7 @@ export function PurposeInputStep({
 
   // Confirm and proceed
   const handleConfirmMethod = useCallback(async () => {
-    if (!finalSelectedMethod || !selectedPurpose || isNavigating || isAnalyzing) return
+    if (!finalSelectedMethod || (!selectedPurpose && !manualSelectedMethod) || isNavigating || isAnalyzing) return
 
     setIsNavigating(true)
 
@@ -435,7 +454,7 @@ export function PurposeInputStep({
     } finally {
       setIsNavigating(false)
     }
-  }, [finalSelectedMethod, selectedPurpose, isNavigating, isAnalyzing, recommendation, setSelectedMethod, setDetectedVariables, onPurposeSubmit, validationResults])
+  }, [finalSelectedMethod, selectedPurpose, manualSelectedMethod, isNavigating, isAnalyzing, recommendation, setSelectedMethod, setDetectedVariables, onPurposeSubmit, validationResults])
 
   // NEW: Progressive Questions handlers (2025 UI/UX)
   const handleCategorySelect = useCallback((category: AnalysisCategory) => {
@@ -614,6 +633,19 @@ export function PurposeInputStep({
     flowDispatch(flowActions.goToGuided())
   }, [])
 
+  // Store의 purposeInputMode 변경 시 동기화
+  useEffect(() => {
+    if (storePurposeInputMode !== inputMode) {
+      setInputMode(storePurposeInputMode)
+      // flowState도 동기화
+      if (storePurposeInputMode === 'browse') {
+        flowDispatch(flowActions.browseAll())
+      } else {
+        flowDispatch(flowActions.reset())
+      }
+    }
+  }, [storePurposeInputMode]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Cleanup
   useEffect(() => {
     return () => {
@@ -622,7 +654,23 @@ export function PurposeInputStep({
   }, [])
 
   return (
-    <div className="w-full h-full flex flex-col space-y-6">
+    <div className="space-y-6">
+      {/* 헤더 */}
+      <StepHeader icon={Target} title="분석 방법 선택" />
+
+      {/* 입력 모드 탭 (AI 추천 vs 직접 선택) */}
+      <div className="flex items-center justify-between">
+        <FilterToggle
+          options={[
+            { id: 'ai', label: 'AI가 추천', icon: Sparkles },
+            { id: 'browse', label: '직접 선택', icon: List }
+          ]}
+          value={inputMode}
+          onChange={(mode) => handleInputModeChange(mode as 'ai' | 'browse')}
+          ariaLabel="분석 방법 선택 모드"
+        />
+      </div>
+
       <AnimatePresence mode="wait">
         {/* NEW: AI Chat - Natural Language Input (2025 UI/UX) */}
         {flowState.step === 'ai-chat' && (
@@ -706,15 +754,15 @@ export function PurposeInputStep({
                   onClick={handleGuidedBack}
                   className="gap-1"
                 >
-                  <ArrowRight className="w-4 h-4 rotate-180" />
+                  <ArrowLeft className="w-4 h-4" />
                   뒤로
                 </Button>
                 <h3 className="text-lg font-semibold">
                   전체 분석 방법
                 </h3>
               </div>
-              {/* Action Button */}
-              {finalSelectedMethod && selectedPurpose && !isAnalyzing && (
+              {/* Action Button - browse 모드에서는 수동 선택만으로 진행 가능 */}
+              {finalSelectedMethod && (selectedPurpose || manualSelectedMethod) && !isAnalyzing && (
                 <div data-testid="selected-method-bar" className="flex items-center gap-3">
                   <div className="text-sm">
                     <span className="text-muted-foreground">선택:</span>
@@ -827,6 +875,7 @@ export function PurposeInputStep({
       {/* Initial guidance */}
       {!selectedPurpose && !isAnalyzing && flowState.step === 'purpose' && (
         <Alert>
+          <Info className="h-4 w-4" />
           <AlertDescription>
             위에서 분석 목적을 선택하면 단계별 질문을 통해 최적의 통계 방법을 추천합니다.
           </AlertDescription>
