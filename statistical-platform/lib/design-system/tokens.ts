@@ -1,44 +1,7 @@
 /**
  * Design System Tokens
- * Centralized design values for consistent theming
+ * Theme definitions for consistent component styling
  */
-
-export const designTokens = {
-  colors: {
-    // Semantic colors
-    primary: "hsl(var(--primary))",
-    primaryForeground: "hsl(var(--primary-foreground))",
-    background: "hsl(var(--background))",
-    foreground: "hsl(var(--foreground))",
-    muted: "hsl(var(--muted))",
-    mutedForeground: "hsl(var(--muted-foreground))",
-    border: "hsl(var(--border))",
-    card: "hsl(var(--card))",
-    cardForeground: "hsl(var(--card-foreground))",
-  },
-  
-  spacing: {
-    xs: "0.5rem",
-    sm: "0.75rem", 
-    md: "1rem",
-    lg: "1.5rem",
-    xl: "2rem",
-    "2xl": "3rem",
-  },
-  
-  borderRadius: {
-    sm: "calc(var(--radius) - 4px)",
-    md: "calc(var(--radius) - 2px)", 
-    lg: "var(--radius)",
-    xl: "calc(var(--radius) + 4px)",
-  },
-  
-  shadows: {
-    sm: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
-    md: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-    lg: "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
-  }
-} as const
 
 /**
  * Theme Definitions
@@ -89,17 +52,6 @@ export const themes = {
     }
   },
   
-  spss: {
-    name: "SPSS Classic", 
-    description: "Traditional statistical software styling",
-    // Future implementation
-  },
-  
-  rstudio: {
-    name: "R Studio",
-    description: "R Studio inspired design",
-    // Future implementation  
-  }
 } as const
 
 /**

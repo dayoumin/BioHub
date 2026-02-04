@@ -241,49 +241,30 @@
   --sidebar-width: 16rem;
   --content-max-width: 80rem;
 
-  /* Track Colors - Analysis (Blue to Purple) */
+  /* Track Colors - Analysis (Monochrome Gradient) */
   --track-analysis-from: #404040;
-  /* blue-500 */
   --track-analysis-to: #1a1a1a;
-  /* purple-500 */
   --track-analysis-hover-from: #2a2a2a;
-  /* blue-600 */
   --track-analysis-hover-to: #0a0a0a;
-  /* purple-600 */
   --track-analysis-bg-from: #f5f5f5;
-  /* blue-50 */
   --track-analysis-bg-to: #e5e5e5;
-  /* purple-50 */
 
-  /* Track Colors - Design (Emerald to Cyan) */
+  /* Track Colors - Design (Monochrome Gradient) */
   --track-design-from: #505050;
-  /* emerald-500 */
   --track-design-to: #2a2a2a;
-  /* cyan-500 */
   --track-design-hover-from: #3a3a3a;
-  /* emerald-600 */
   --track-design-hover-to: #1a1a1a;
-  /* cyan-600 */
   --track-design-bg-from: #f5f5f5;
-  /* emerald-50 */
   --track-design-bg-to: #e5e5e5;
-  /* cyan-50 */
 
-  /* Experimental Design Page Colors (Blue to Purple) */
+  /* Experimental Design Page Colors (Monochrome) */
   --experimental-bg-from: #e5e5e5;
-  /* blue-100 */
   --experimental-bg-to: #f5f5f5;
-  /* purple-100 */
   --experimental-text-from: #2a2a2a;
-  /* blue-600 */
   --experimental-text-to: #1a1a1a;
-  /* purple-600 */
   --experimental-success: #404040;
-  /* emerald-500 */
   --experimental-success-light: #e5e5e5;
-  /* emerald-100 */
   --experimental-success-text: #2a2a2a;
-  /* emerald-700 */
 }
 
 .dark {
@@ -568,39 +549,6 @@
     color: var(--stat-highly-significant);
   }
 
-  /* Difficulty Level Utilities */
-  .difficulty-beginner {
-    color: var(--difficulty-beginner);
-  }
-
-  .difficulty-intermediate {
-    color: var(--difficulty-intermediate);
-  }
-
-  .difficulty-advanced {
-    color: var(--difficulty-advanced);
-  }
-
-  .difficulty-expert {
-    color: var(--difficulty-expert);
-  }
-
-  /* Data Status Utilities */
-  .data-active {
-    color: var(--data-active);
-  }
-
-  .data-processed {
-    color: var(--data-processed);
-  }
-
-  .data-error {
-    color: var(--data-error);
-  }
-
-  .data-pending {
-    color: var(--data-pending);
-  }
 
   /* Background variants */
   .bg-stat-significant {
@@ -611,21 +559,6 @@
     background-color: var(--stat-non-significant);
   }
 
-  .bg-difficulty-beginner {
-    background-color: var(--difficulty-beginner);
-  }
-
-  .bg-difficulty-intermediate {
-    background-color: var(--difficulty-intermediate);
-  }
-
-  .bg-difficulty-advanced {
-    background-color: var(--difficulty-advanced);
-  }
-
-  .bg-difficulty-expert {
-    background-color: var(--difficulty-expert);
-  }
 
   /* Success, Warning, Info variants */
   .text-success {
@@ -697,37 +630,6 @@
   }
 
   /* Animation utilities */
-  .fade-in {
-    animation: fadeIn 0.3s ease-in-out;
-  }
-
-  .slide-up {
-    animation: slideUp 0.4s ease-out;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-
-    to {
-      opacity: 1;
-    }
-  }
-
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(1rem);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Fade-in with translateY animation */
   @keyframes fade-in {
     from {
       opacity: 0;

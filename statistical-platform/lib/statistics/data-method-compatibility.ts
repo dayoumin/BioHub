@@ -383,9 +383,10 @@ function checkVariableRequirements(
   const reasons: string[] = []
 
   // Track remaining available variables by type
+  // Binary variables can also satisfy categorical requirements (binary ⊂ categorical)
   const remaining = {
     continuous: dataSummary.continuousCount,
-    categorical: dataSummary.categoricalCount,
+    categorical: dataSummary.categoricalCount + dataSummary.binaryCount,
     binary: dataSummary.binaryCount,
     ordinal: dataSummary.ordinalCount,
     date: dataSummary.dateCount,
@@ -423,6 +424,12 @@ function checkVariableRequirements(
         remaining.continuous = Math.max(0, remaining.continuous - minCount)
       } else if (bestType === 'continuous') {
         remaining.count = Math.max(0, remaining.count - minCount)
+      }
+      // Binary ⊂ categorical: they share a pool (like continuous/count)
+      if (bestType === 'categorical') {
+        remaining.binary = Math.max(0, remaining.binary - minCount)
+      } else if (bestType === 'binary') {
+        remaining.categorical = Math.max(0, remaining.categorical - minCount)
       }
     }
   }

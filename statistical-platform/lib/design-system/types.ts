@@ -1,7 +1,7 @@
 /**
  * Design System Types
- * 
- * Comprehensive type definitions for the design system
+ *
+ * Type definitions for design system components
  */
 
 import { LucideIcon } from 'lucide-react'
@@ -94,53 +94,3 @@ export interface StatisticalCategory {
   bgColor?: string
   borderColor?: string
 }
-
-// Theme Context Types
-export interface ThemeContextValue {
-  theme: ThemeName
-  setTheme: (theme: ThemeName) => void
-  getStyles: (component: string, variant?: string) => string
-  currentTheme: Theme
-}
-
-// Component Variant Types
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'outline'
-export type CardVariant = 'default' | 'hover' | 'active' | 'loading'
-export type TabVariant = 'default' | 'active'
-
-// Responsive Types
-export type Breakpoint = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
-export type ResponsiveValue<T> = T | Partial<Record<Breakpoint, T>>
-
-// Animation Types
-export interface AnimationConfig {
-  duration: number
-  easing: string
-  delay?: number
-}
-
-// Accessibility Types
-export interface A11yProps {
-  'aria-label'?: string
-  'aria-labelledby'?: string
-  'aria-describedby'?: string
-  role?: string
-}
-
-// Design Token Types
-export interface DesignTokens {
-  colors: Record<string, string>
-  spacing: Record<string, string>
-  borderRadius: Record<string, string>
-  shadows: Record<string, string>
-  typography?: Record<string, string>
-  zIndex?: Record<string, number>
-}
-
-// Export utility types
-export type DeepPartial<T> = {
-  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P]
-}
-
-export type ExtractKeys<T> = keyof T
-export type ExtractValues<T> = T[keyof T]

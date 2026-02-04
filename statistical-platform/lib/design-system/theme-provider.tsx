@@ -88,14 +88,3 @@ export function useComponentStyles<T extends ComponentName>(
   return getStyles(component, variant)
 }
 
-/**
- * HOC for theme-aware components
- */
-export function withTheme<P extends object>(
-  Component: React.ComponentType<P>
-) {
-  return function ThemedComponent(props: P) {
-    const theme = useTheme()
-    return <Component {...props} theme={theme} />
-  }
-}
