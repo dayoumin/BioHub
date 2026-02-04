@@ -25,7 +25,8 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Settings, Loader2, RefreshCw } from 'lucide-react'
+import { Settings, Loader2, RefreshCw, ExternalLink } from 'lucide-react'
+import Link from 'next/link'
 import { VectorStoreSelector } from '@/components/rag/vector-store-selector'
 import type { VectorStore, SearchMode } from '@/lib/rag/providers/base-provider'
 
@@ -87,9 +88,17 @@ export function ModelSettings({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Settings className="h-5 w-5" />
-          모델 설정
+        <CardTitle className="flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            모델 설정
+          </span>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/rag/models">
+              <ExternalLink className="h-3.5 w-3.5 mr-1" />
+              모델 관리
+            </Link>
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">

@@ -55,7 +55,7 @@ const MODEL_FAMILY_PRIORITIES: Record<string, number> = {
   'phi': 14,
 }
 
-interface OllamaSystemInfo {
+export interface OllamaSystemInfo {
   memory?: {
     total: number        // 총 메모리 (bytes)
   }
@@ -66,7 +66,7 @@ interface OllamaSystemInfo {
   }>
 }
 
-interface OllamaModelDetail {
+export interface OllamaModelDetail {
   parent_model?: string
   format?: string
   family?: string
@@ -75,7 +75,7 @@ interface OllamaModelDetail {
   quantization_level?: string
 }
 
-interface OllamaModel {
+export interface OllamaModel {
   name: string
   model?: string
   size?: number
@@ -125,7 +125,7 @@ function getQuantizationOverhead(quantLevel: string | undefined): number {
  * @param model - Ollama 모델 정보
  * @returns 필요한 VRAM (GB)
  */
-function calculateModelVram(model: OllamaModel): number {
+export function calculateModelVram(model: OllamaModel): number {
   const paramSize = parseParameterSize(model.details?.parameter_size)
   const overhead = getQuantizationOverhead(model.details?.quantization_level)
 
