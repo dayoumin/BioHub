@@ -10,7 +10,7 @@
  *   npm run setup:pyodide
  *
  * 환경 변수:
- *   PYODIDE_VERSION - Pyodide 버전 (기본값: v0.28.3)
+ *   PYODIDE_VERSION - Pyodide 버전 (기본값: v0.29.3)
  */
 
 const fs = require('fs');
@@ -19,7 +19,7 @@ const https = require('https');
 const { execSync } = require('child_process');
 
 // 설정
-const PYODIDE_VERSION = process.env.PYODIDE_VERSION || '0.29.0';
+const PYODIDE_VERSION = process.env.PYODIDE_VERSION || '0.29.3';
 const PYODIDE_BASE_URL = 'https://github.com/pyodide/pyodide/releases/download';
 const OUTPUT_DIR = path.join(__dirname, '../../public/pyodide');
 const TEMP_DIR = path.join(__dirname, '../../.temp');

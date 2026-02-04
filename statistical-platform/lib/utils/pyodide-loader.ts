@@ -144,7 +144,7 @@ export async function loadPyodideWithPackages(
 /**
  * Pyodide 버전 정보를 가져옵니다
  *
- * @returns Pyodide 버전 (예: 'v0.28.3')
+ * @returns Pyodide 버전 (예: 'v0.29.3')
  */
 export function getPyodideVersion(): string {
   return cdnUrls.version

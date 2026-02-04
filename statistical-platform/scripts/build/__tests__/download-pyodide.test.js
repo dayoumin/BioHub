@@ -155,23 +155,23 @@ describe('download-pyodide.js - File Existence Check', () => {
   describe('환경 변수 지원', () => {
     it('PYODIDE_VERSION 환경변수를 지원해야 함', () => {
       // Given: 환경변수 설정 로직
-      const PYODIDE_VERSION = process.env.PYODIDE_VERSION || 'v0.28.3';
+      const PYODIDE_VERSION = process.env.PYODIDE_VERSION || 'v0.29.3';
 
       // When/Then: 기본값 사용
       if (!process.env.PYODIDE_VERSION) {
-        expect(PYODIDE_VERSION).toBe('v0.28.3');
+        expect(PYODIDE_VERSION).toBe('v0.29.3');
       }
     });
 
     it('다운로드 URL이 올바르게 생성되어야 함', () => {
       // Given: URL 생성 로직
-      const PYODIDE_VERSION = 'v0.28.3';
+      const PYODIDE_VERSION = 'v0.29.3';
       const PYODIDE_BASE_URL = 'https://github.com/pyodide/pyodide/releases/download';
       const DOWNLOAD_URL = `${PYODIDE_BASE_URL}/${PYODIDE_VERSION}/pyodide-${PYODIDE_VERSION}.tar.bz2`;
 
       // When/Then: 올바른 URL
       expect(DOWNLOAD_URL).toBe(
-        'https://github.com/pyodide/pyodide/releases/download/v0.28.3/pyodide-v0.28.3.tar.bz2'
+        'https://github.com/pyodide/pyodide/releases/download/v0.29.3/pyodide-v0.29.3.tar.bz2'
       );
     });
   });

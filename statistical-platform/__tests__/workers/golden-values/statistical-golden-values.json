@@ -3,7 +3,7 @@
   "description": "Python 통계 라이브러리로 검증된 통계 검증용 기대값",
   "lastUpdated": "2025-12-17",
   "verificationSources": {
-    "scipy": "SciPy 1.14.1 via Pyodide 0.28.3",
+    "scipy": "SciPy 1.14.1 via Pyodide 0.29.3",
     "statsmodels": "statsmodels 0.14.1",
     "pingouin": "pingouin 0.5.4",
     "sklearn": "scikit-learn 1.4.0",
@@ -1059,7 +1059,7 @@
     ]
   },
 
-  "partialCorrelation": [
+  "partial_correlation": [
     {
       "name": "controlling single variable",
       "input": {
@@ -1073,7 +1073,7 @@
       },
       "tolerance": 0.2,
       "library": "pingouin",
-      "code": "pg.partial_corr(data, x='x', y='y', covar='z')"
+      "code": "pg.partialCorr(data, x='x', y='y', covar='z')"
     }
   ],
 

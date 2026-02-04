@@ -23,7 +23,7 @@ import type { PyodideInterface } from '@/types/pyodide'
  */
 function createMockPyodide(): PyodideInterface {
   return {
-    version: 'v0.28.3',
+    version: 'v0.29.3',
     loadPackage: async (_packages: string | string[] | readonly string[]) => { /* no-op */ },
     runPython: (_code: string) => null,
     runPythonAsync: async (_code: string) => null,
@@ -132,7 +132,7 @@ describe('Pyodide Init Logic - Real Function Tests', () => {
 
       expect(result.isValid).toBe(true)
       expect(result.errors).toHaveLength(0)
-      expect(result.version).toBe('v0.28.3')
+      expect(result.version).toBe('v0.29.3')
     })
 
     it('should return invalid for null Pyodide', () => {
@@ -144,7 +144,7 @@ describe('Pyodide Init Logic - Real Function Tests', () => {
 
     it('should detect missing FS', () => {
       const incompletePyodide = {
-        version: 'v0.28.3',
+        version: 'v0.29.3',
         loadPackage: async () => {},
         runPythonAsync: async () => ''
       } as unknown as PyodideInterface
@@ -158,7 +158,7 @@ describe('Pyodide Init Logic - Real Function Tests', () => {
     it('should validate expected version', () => {
       const pyodide = createMockPyodide()
 
-      const result = validateInitialization(pyodide, 'v0.28.3')
+      const result = validateInitialization(pyodide, 'v0.29.3')
 
       expect(result.isValid).toBe(true)
     })
@@ -166,10 +166,10 @@ describe('Pyodide Init Logic - Real Function Tests', () => {
     it('should fail for version mismatch', () => {
       const pyodide = createMockPyodide()
 
-      const result = validateInitialization(pyodide, 'v0.29.0')
+      const result = validateInitialization(pyodide, 'v0.30.0')
 
       expect(result.isValid).toBe(false)
-      expect(result.errors).toContain('Version mismatch: expected v0.29.0, got v0.28.3')
+      expect(result.errors).toContain('Version mismatch: expected v0.30.0, got v0.29.3')
     })
   })
 

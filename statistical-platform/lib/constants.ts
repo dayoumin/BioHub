@@ -23,7 +23,7 @@ export const STATISTICS = {
 
 // Pyodide 로딩 관련 상수
 // 단일 진실 공급원 (Single Source of Truth) - 모든 파일은 이 상수를 참조해야 함
-const PYODIDE_VERSION = 'v0.28.3'
+const PYODIDE_VERSION = 'v0.29.3'
 
 export const PYODIDE = {
   // 버전 관리

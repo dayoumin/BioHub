@@ -23,7 +23,7 @@ type RunPythonAsyncFn = (code: string) => Promise<unknown>
  */
 function createMockPyodide(): PyodideInterface {
   return {
-    version: 'v0.28.3',
+    version: 'v0.29.3',
     loadPackage: vi.fn() as Mock<LoadPackageFn>,
     runPython: vi.fn() as Mock<(code: string) => unknown>,
     runPythonAsync: vi.fn() as Mock<RunPythonAsyncFn>,

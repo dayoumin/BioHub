@@ -6,10 +6,10 @@
  * - NumPy, SciPy, statsmodels 등 패키지 캐싱
  * - 두 번째 방문부터 즉시 로드 (2~3초 → 0.3초)
  *
- * @version 1.0.0
+ * @version 1.1.0
  */
 
-const CACHE_VERSION = 'v1.0.0'
+const CACHE_VERSION = 'v1.1.0'
 const PYODIDE_CACHE = `pyodide-cache-${CACHE_VERSION}`
 const APP_CACHE = `app-cache-${CACHE_VERSION}`
 

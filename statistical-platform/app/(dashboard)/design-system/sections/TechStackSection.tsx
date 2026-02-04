@@ -192,7 +192,7 @@ export function TechStackSection() {
                   { name: 'TypeScript', version: '5.x', color: 'bg-blue-600 text-white' },
                   { name: 'Tailwind CSS', version: '4.x', color: 'bg-cyan-500 text-white' },
                   { name: 'shadcn/ui', version: 'latest', color: 'bg-zinc-800 text-white' },
-                  { name: 'Pyodide', version: '0.28.3', color: 'bg-yellow-500 text-black' },
+                  { name: 'Pyodide', version: '0.29.3', color: 'bg-yellow-500 text-black' },
                   { name: 'Zustand', version: '5.x', color: 'bg-orange-500 text-white' },
                   { name: 'LangChain', version: '1.x', color: 'bg-green-600 text-white' },
                 ].map((tech) => (

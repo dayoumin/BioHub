@@ -111,7 +111,7 @@ actions.completeAnalysis(result, 3);
 export const GOLDEN_VALUES_TEST_INFO = {
   description: '5개 Python 라이브러리로 검증된 통계 계산 기대값',
   verificationSources: {
-    scipy: 'SciPy 1.14.1 via Pyodide 0.28.3',
+    scipy: 'SciPy 1.14.1 via Pyodide 0.29.3',
     statsmodels: 'statsmodels 0.14.1',
     pingouin: 'pingouin 0.5.4',
     sklearn: 'scikit-learn 1.4.0',

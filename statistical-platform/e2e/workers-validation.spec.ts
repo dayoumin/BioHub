@@ -3,12 +3,12 @@
  *
  * 실제 브라우저에서 Pyodide를 로드하여 Python 코드 실행
  *
- * NOTE: Pyodide v0.28.3 사용 (NumPy 2.2.5, SciPy 1.14.1)
+ * NOTE: Pyodide v0.29.3 사용
  */
 
 import { test, expect } from '@playwright/test';
 
-const PYODIDE_VERSION = 'v0.28.3';
+const PYODIDE_VERSION = 'v0.29.3';
 
 // Pyodide 로드 및 Worker 초기화 헬퍼 함수
 async function loadPyodideAndWorker(page: any, workerFile: string) {

@@ -81,12 +81,12 @@ print('[Python] ✓ helpers module registered in sys.modules')
  * Pyodide 초기화 단계 검증
  *
  * @param pyodide - Pyodide 인스턴스
- * @param expectedVersion - 예상 버전 (예: 'v0.28.3')
+ * @param expectedVersion - 예상 버전 (예: 'v0.29.3')
  * @returns 초기화 상태
  *
  * @example
  * ```typescript
- * const state = validateInitialization(pyodide, 'v0.28.3')
+ * const state = validateInitialization(pyodide, 'v0.29.3')
  * if (!state.isValid) {
  *   throw new Error(state.errors.join(', '))
  * }
