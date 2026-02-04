@@ -153,26 +153,41 @@ describe('download-pyodide.js - File Existence Check', () => {
   });
 
   describe('환경 변수 지원', () => {
-    it('PYODIDE_VERSION 환경변수를 지원해야 함', () => {
-      // Given: 환경변수 설정 로직
-      const PYODIDE_VERSION = process.env.PYODIDE_VERSION || 'v0.29.3';
+    // 스크립트 파일에서 실제 기본값을 추출
+    const scriptPath = path.join(__dirname, '../download-pyodide.js');
+    const scriptContent = fs.readFileSync(scriptPath, 'utf8');
 
-      // When/Then: 기본값 사용
-      if (!process.env.PYODIDE_VERSION) {
-        expect(PYODIDE_VERSION).toBe('v0.29.3');
-      }
+    it('스크립트의 기본 버전이 constants.ts의 PYODIDE_VERSION과 일치해야 함', () => {
+      // Given: 스크립트에서 기본값 추출 (패턴: || '0.29.3')
+      const match = scriptContent.match(/process\.env\.PYODIDE_VERSION\s*\|\|\s*'([^']+)'/);
+      expect(match).not.toBeNull();
+
+      const scriptDefault = match[1]; // e.g. '0.29.3'
+
+      // When: constants.ts에서 버전 추출
+      const constantsPath = path.join(__dirname, '../../../lib/constants.ts');
+      const constantsContent = fs.readFileSync(constantsPath, 'utf8');
+      const constantsMatch = constantsContent.match(/const PYODIDE_VERSION\s*=\s*'v([^']+)'/);
+      expect(constantsMatch).not.toBeNull();
+
+      const constantsVersion = constantsMatch[1]; // e.g. '0.29.3'
+
+      // Then: 두 버전이 일치해야 함
+      expect(scriptDefault).toBe(constantsVersion);
     });
 
-    it('다운로드 URL이 올바르게 생성되어야 함', () => {
-      // Given: URL 생성 로직
-      const PYODIDE_VERSION = 'v0.29.3';
+    it('다운로드 URL이 스크립트의 실제 기본값으로 올바르게 생성되어야 함', () => {
+      // Given: 스크립트에서 기본값 추출
+      const match = scriptContent.match(/process\.env\.PYODIDE_VERSION\s*\|\|\s*'([^']+)'/);
+      const PYODIDE_VERSION = match[1];
       const PYODIDE_BASE_URL = 'https://github.com/pyodide/pyodide/releases/download';
       const DOWNLOAD_URL = `${PYODIDE_BASE_URL}/${PYODIDE_VERSION}/pyodide-${PYODIDE_VERSION}.tar.bz2`;
 
-      // When/Then: 올바른 URL
-      expect(DOWNLOAD_URL).toBe(
-        'https://github.com/pyodide/pyodide/releases/download/v0.29.3/pyodide-v0.29.3.tar.bz2'
+      // When/Then: URL 형식 검증
+      expect(DOWNLOAD_URL).toMatch(
+        /^https:\/\/github\.com\/pyodide\/pyodide\/releases\/download\/[\d.]+\/pyodide-[\d.]+\.tar\.bz2$/
       );
+      expect(DOWNLOAD_URL).toContain(PYODIDE_VERSION);
     });
   });
 });
