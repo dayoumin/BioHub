@@ -26,9 +26,10 @@ import {
   getHistory,
   deleteHistory,
   clearAllHistory,
-  isIndexedDBAvailable,
-  type HistoryRecord
-} from '@/lib/utils/indexeddb'
+  initStorage
+} from '@/lib/utils/storage'
+import type { HistoryRecord } from '@/lib/utils/storage-types'
+import { isIndexedDBAvailable } from '@/lib/utils/adapters/indexeddb-adapter'
 import { transformExecutorResult } from '@/lib/utils/result-transformer'
 import type { AnalysisResult as ExecutorResult } from '@/lib/services/executors/types'
 
@@ -50,12 +51,27 @@ export interface DetectedVariables {
 }
 
 /**
- * 스토어(Store)란?
- * - 전역 상태 저장소입니다. 이 프로젝트는 Zustand를 사용해 화면(컴포넌트) 전반에서 공유되는 상태를 한 곳에서 관리합니다.
- * - 목적: 단계(currentStep), 업로드 데이터(uploadedData), 검증 결과(validationResults), 선택한 방법(selectedMethod) 등
- *   여러 컴포넌트가 함께 쓰는 값을 "단일 출처(Single Source of Truth)"로 유지하여 일관성 있게 흐름을 제어합니다.
- * - 장점: 어떤 컴포넌트에서 값을 바꿔도 다른 컴포넌트가 즉시 반영하고, 다음 단계 활성화 같은 조건도 한 곳(canProceedToNext)에서 관리할 수 있습니다.
- * - 지속성: IndexedDB에 분석 결과를 영구 저장합니다 (원본 데이터는 제외).
+ * Smart Flow Store - 전역 상태 관리
+ *
+ * ====== 저장소 전략 (Storage Strategy) ======
+ *
+ * 1. IndexedDB (영구 저장)
+ *    - 용도: 분석 히스토리 (analysisHistory)
+ *    - 위치: lib/utils/indexeddb.ts
+ *    - 최대: 100개 레코드
+ *
+ * 2. sessionStorage (세션 유지)
+ *    - 용도: 현재 진행 중인 분석 상태
+ *    - 저장 항목: currentStep, uploadedData, selectedMethod, results 등
+ *    - ❌ analysisHistory는 제외 (partialize에서 명시적 제외)
+ *
+ * 3. localStorage (별도 관리)
+ *    - 용도: 즐겨찾기 (statPlatform_favorites)
+ *    - 이 스토어에서 관리하지 않음
+ *
+ * ====== 마이그레이션 ======
+ * loadHistoryFromDB()에 기존 sessionStorage → IndexedDB 마이그레이션 코드 포함
+ * (기존 사용자 데이터 보존용, 한 번 실행 후 자동 삭제)
  */
 
 // Smart Flow 총 단계 수 (2025-11-26: 5 → 4단계로 축소)
@@ -116,6 +132,15 @@ interface SmartFlowState {
   analysisHistory: AnalysisHistory[]
   currentHistoryId: string | null
 
+  // 재분석 모드
+  isReanalysisMode: boolean
+
+  // 허브 & 빠른 분석 모드
+  showHub: boolean
+  quickAnalysisMode: boolean
+  // Step 2 입력 모드 (AI 추천 vs 직접 선택)
+  purposeInputMode: 'ai' | 'browse'
+
   // 상태
   isLoading: boolean
   error: string | null
@@ -146,7 +171,12 @@ interface SmartFlowState {
   deleteFromHistory: (historyId: string) => Promise<void>
   clearHistory: () => Promise<void>
   loadHistoryFromDB: () => Promise<void>
-  
+  loadSettingsFromHistory: (historyId: string) => Promise<void>
+  setIsReanalysisMode: (mode: boolean) => void
+  setShowHub: (show: boolean) => void
+  setQuickAnalysisMode: (mode: boolean) => void
+  setPurposeInputMode: (mode: 'ai' | 'browse') => void
+
   // 네비게이션
   canNavigateToStep: (step: number) => boolean
   navigateToStep: (step: number) => void
@@ -181,6 +211,10 @@ const initialState = {
   currentHistoryId: null,
   isLoading: false,
   error: null,
+  isReanalysisMode: false,
+  showHub: true,
+  quickAnalysisMode: false,
+  purposeInputMode: 'ai' as const,
 }
 
 export const useSmartFlowStore = create<SmartFlowState>()(
@@ -273,7 +307,11 @@ export const useSmartFlowStore = create<SmartFlowState>()(
       setresults: (results) => set({ results: results }),
       setLoading: (loading) => set({ isLoading: loading }),
       setError: (error) => set({ error: error }),
-      
+      setIsReanalysisMode: (mode) => set({ isReanalysisMode: mode }),
+      setShowHub: (show) => set({ showHub: show }),
+      setQuickAnalysisMode: (mode) => set({ quickAnalysisMode: mode }),
+      setPurposeInputMode: (mode) => set({ purposeInputMode: mode }),
+
       // 히스토리 관리 (IndexedDB)
       saveToHistory: async (name) => {
         const state = get()
@@ -297,7 +335,9 @@ export const useSmartFlowStore = create<SmartFlowState>()(
           } : null,
           dataFileName: state.uploadedFile?.name || 'unknown',
           dataRowCount: state.uploadedData?.length || 0,
-          results: state.results as unknown as Record<string, unknown> | null
+          results: state.results as unknown as Record<string, unknown> | null,
+          variableMapping: state.variableMapping,
+          analysisPurpose: state.analysisPurpose
         }
 
         try {
@@ -374,6 +414,41 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         }))
       },
 
+      loadSettingsFromHistory: async (historyId) => {
+        const record = await getHistory(historyId)
+        if (!record) return
+
+        set({
+          // 데이터 초기화 (새로 업로드해야 함)
+          uploadedData: null,
+          uploadedFile: null,
+          uploadedFileName: null,
+          validationResults: null,
+          results: null,
+          error: null,
+          dataCharacteristics: null,
+          dataSummary: null,
+          assumptionResults: null,
+
+          // 설정 복원
+          selectedMethod: record.method ? {
+            id: record.method.id,
+            name: record.method.name,
+            category: record.method.category as StatisticalMethod['category'],
+            description: record.method.description ?? ''
+          } : null,
+          variableMapping: record.variableMapping ?? null,
+          analysisPurpose: record.analysisPurpose ?? '',
+
+          // 재분석 모드 활성화
+          isReanalysisMode: true,
+
+          // Step 1로 이동
+          currentStep: 1,
+          completedSteps: [],
+        })
+      },
+
       clearHistory: async () => {
         await clearAllHistory()
         set({
@@ -390,7 +465,17 @@ export const useSmartFlowStore = create<SmartFlowState>()(
           return
         }
 
-        // ⚠️ 마이그레이션: 기존 sessionStorage 히스토리를 IndexedDB로 복사
+        // Storage Facade 초기화 (Turso URL 있으면 Hybrid 모드)
+        await initStorage()
+
+        /**
+         * ====== 마이그레이션 (일회성) ======
+         * 배경: 과거에는 analysisHistory가 sessionStorage에 저장되었음
+         * 현재: IndexedDB로 변경됨 (영구 저장, 브라우저 종료 후에도 유지)
+         * 동작: sessionStorage에 기존 히스토리가 있고 IndexedDB가 비어있으면 복사
+         * 완료 후: sessionStorage에서 analysisHistory 삭제
+         * 제거 시점: 충분한 시간이 지난 후 (2025-Q2 이후 제거 가능)
+         */
         try {
           const sessionData = sessionStorage.getItem('smart-flow-storage')
           if (sessionData) {
@@ -576,6 +661,10 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         currentHistoryId: null,
         isLoading: false,
         error: null,
+        isReanalysisMode: false,
+        showHub: true,
+        quickAnalysisMode: false,
+        purposeInputMode: 'ai',
         // Preserve history
         analysisHistory: state.analysisHistory
       })),
@@ -609,6 +698,12 @@ export const useSmartFlowStore = create<SmartFlowState>()(
             console.error('[Rehydrate] Failed to recalculate compatibility:', error)
           }
         }
+
+        // 진행 중인 분석이 있으면 Hub 숨기고 해당 Step으로 이동
+        if (state && (state.uploadedData || state.selectedMethod || state.results)) {
+          state.showHub = false
+          console.log('[Rehydrate] Restored in-progress analysis, hiding Hub')
+        }
       },
       partialize: (state) => ({
         currentStep: state.currentStep,
@@ -623,7 +718,11 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         detectedVariables: state.detectedVariables,
         results: state.results,
         uploadedFileName: state.uploadedFileName,
-        // ❌ analysisHistory 제외 (IndexedDB에서 관리)
+        /**
+         * ❌ analysisHistory 제외
+         * 이유: IndexedDB에서 영구 관리 (sessionStorage는 세션 종료 시 삭제됨)
+         * 로드: loadHistoryFromDB()에서 IndexedDB → UI 상태로 불러옴
+         */
         // ❌ File 객체는 직렬화 불가
       }),
     }
