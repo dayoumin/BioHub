@@ -31,7 +31,14 @@ const nextConfig: NextConfig = {
   // Redirects for moved pages are handled client-side in the pages themselves
 
   experimental: {
-    optimizePackageImports: ['lucide-react', '@/components/ui']
+    reactCompiler: true,
+    optimizePackageImports: [
+      'lucide-react',
+      '@/components/ui',
+      'recharts',
+      'framer-motion',
+      'date-fns',
+    ]
   },
   eslint: {
     ignoreDuringBuilds: true, // TODO: 배포 전 false로 복구 후 any 타입 수정 필요

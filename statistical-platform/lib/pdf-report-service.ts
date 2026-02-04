@@ -3,9 +3,15 @@
  * 통계 분석 결과를 PDF 문서로 내보내기
  */
 
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
 import { format } from 'date-fns'
+
+// Dynamic imports for code splitting (jsPDF ~500KB, html2canvas ~200KB)
+async function getJsPDF(): Promise<typeof import('jspdf')> {
+  return import('jspdf')
+}
+async function getHtml2Canvas(): Promise<typeof import('html2canvas')> {
+  return import('html2canvas')
+}
 
 export interface ReportData {
   title: string
@@ -26,6 +32,7 @@ export interface ReportData {
  * HTML 요소를 캔버스 이미지로 변환
  */
 export async function elementToImage(element: HTMLElement): Promise<string> {
+  const { default: html2canvas } = await getHtml2Canvas()
   const canvas = await html2canvas(element, {
     scale: 2,
     logging: false,
@@ -38,7 +45,8 @@ export async function elementToImage(element: HTMLElement): Promise<string> {
 /**
  * 통계 분석 결과를 PDF로 생성
  */
-export async function generateStatisticalReport(data: ReportData): Promise<jsPDF> {
+export async function generateStatisticalReport(data: ReportData): Promise<InstanceType<typeof import('jspdf').default>> {
+  const { default: jsPDF } = await getJsPDF()
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -133,13 +141,13 @@ export async function generateStatisticalReport(data: ReportData): Promise<jsPDF
     }
     
     // R-squared (회귀분석)
-    if (result.r_squared !== undefined) {
-      pdf.text(`R²: ${formatNumber(result.r_squared)}`, margin + 5, yPosition)
+    if (result.rSquared !== undefined) {
+      pdf.text(`R²: ${formatNumber(result.rSquared)}`, margin + 5, yPosition)
       yPosition += 6
     }
     
-    if (result.adj_r_squared !== undefined) {
-      pdf.text(`Adjusted R²: ${formatNumber(result.adj_r_squared)}`, margin + 5, yPosition)
+    if (result.adjRSquared !== undefined) {
+      pdf.text(`Adjusted R²: ${formatNumber(result.adjRSquared)}`, margin + 5, yPosition)
       yPosition += 6
     }
     
@@ -226,8 +234,8 @@ export async function generateStatisticalReport(data: ReportData): Promise<jsPDF
           pdf.addPage()
           yPosition = margin
         }
-        const sig = coef.p_value < 0.05 ? '*' : ''
-        pdf.text(`${coef.name}: ${formatNumber(coef.coefficient)} (SE=${formatNumber(coef.std_error)}) ${sig}`, 
+        const sig = coef.pValue < 0.05 ? '*' : ''
+        pdf.text(`${coef.name}: ${formatNumber(coef.coefficient)} (SE=${formatNumber(coef.stdError)}) ${sig}`, 
           margin + 5, yPosition)
         yPosition += 5
       })
@@ -270,7 +278,7 @@ export async function generateStatisticalReport(data: ReportData): Promise<jsPDF
 /**
  * PDF 다운로드
  */
-export function downloadPDF(pdf: jsPDF, filename: string = 'statistical-report.pdf') {
+export function downloadPDF(pdf: InstanceType<typeof import('jspdf').default>, filename: string = 'statistical-report.pdf') {
   pdf.save(filename)
 }
 

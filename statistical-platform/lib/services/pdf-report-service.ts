@@ -1,6 +1,12 @@
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
-import { AnalysisResult, DataRow } from '@/types/smart-flow'
+import { AnalysisResult } from '@/types/smart-flow'
+
+// Dynamic imports for code splitting (jsPDF ~500KB, html2canvas ~200KB)
+async function getJsPDF(): Promise<typeof import('jspdf')> {
+  return import('jspdf')
+}
+async function getHtml2Canvas(): Promise<typeof import('html2canvas')> {
+  return import('html2canvas')
+}
 
 // 한글 폰트를 위한 설정 (나중에 폰트 파일 추가 필요)
 interface ReportData {
@@ -20,6 +26,7 @@ export class PDFReportService {
    * PDF 보고서 생성
    */
   static async generateReport(data: ReportData): Promise<void> {
+    const { default: jsPDF } = await getJsPDF()
     const pdf = new jsPDF('p', 'mm', 'a4')
     const pageWidth = pdf.internal.pageSize.getWidth()
     const pageHeight = pdf.internal.pageSize.getHeight()
@@ -205,6 +212,7 @@ export class PDFReportService {
         yPosition += lineHeight
 
         // HTML 요소를 이미지로 변환
+        const { default: html2canvas } = await getHtml2Canvas()
         const canvas = await html2canvas(data.chartElement, {
           scale: 2,
           backgroundColor: '#ffffff'

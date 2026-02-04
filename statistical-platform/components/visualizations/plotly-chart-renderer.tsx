@@ -1,8 +1,6 @@
 'use client'
 
 import React, { useEffect, useRef } from 'react'
-// @ts-expect-error - plotly.js-basic-dist types not available
-import Plotly from 'plotly.js-basic-dist'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Download, Maximize2, Camera } from 'lucide-react'
@@ -23,56 +21,76 @@ export function PlotlyChartRenderer({
   onDownload
 }: PlotlyChartRendererProps) {
   const chartRef = useRef<HTMLDivElement>(null)
-  const chartId = useRef<string>('plotly-chart-default')
 
-  useEffect(() => {
-    // 클라이언트 사이드에서만 ID 생성
-    chartId.current = `plotly-chart-${Date.now()}-${Math.random()}`
-  }, [])
+  // Plotly 인스턴스를 ref로 관리 (dynamic import)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const plotlyRef = useRef<any>(null)
+  const cleanupRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     if (!chartRef.current || !chartData) return
 
-    // Plotly 차트 렌더링
-    const config = {
-      responsive: true,
-      displayModeBar: true,
-      displaylogo: false,
-      modeBarButtonsToRemove: ['lasso2d', 'select2d'],
-      modeBarButtonsToAdd: [],
-      toImageButtonOptions: {
-        format: 'png',
-        filename: `chart-export`,
-        height: 800,
-        width: 1200,
-        scale: 2
-      },
-      ...chartData.config
-    }
+    let cancelled = false
+    const currentElement = chartRef.current
 
-    Plotly.newPlot(chartRef.current, chartData.data, chartData.layout, config)
+    async function renderChart() {
+      // Dynamic import: plotly.js-basic-dist (~2MB)
+      if (!plotlyRef.current) {
+        // @ts-expect-error - plotly.js-basic-dist types not available
+        const mod = await import('plotly.js-basic-dist')
+        plotlyRef.current = mod.default || mod
+      }
+      const Plotly = plotlyRef.current
+      if (cancelled || !currentElement) return
 
-    // 윈도우 리사이즈 대응
-    const handleResize = () => {
-      if (chartRef.current) {
-        Plotly.Plots.resize(chartRef.current)
+      const config = {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+        modeBarButtonsToAdd: [],
+        toImageButtonOptions: {
+          format: 'png',
+          filename: `chart-export`,
+          height: 800,
+          width: 1200,
+          scale: 2
+        },
+        ...chartData.config
+      }
+
+      Plotly.newPlot(currentElement, chartData.data, chartData.layout, config)
+
+      const handleResize = () => {
+        Plotly.Plots.resize(currentElement)
+      }
+
+      window.addEventListener('resize', handleResize)
+
+      // Store cleanup in ref (not on DOM element)
+      cleanupRef.current = () => {
+        window.removeEventListener('resize', handleResize)
+        Plotly.purge(currentElement)
       }
     }
 
-    window.addEventListener('resize', handleResize)
+    renderChart().catch((error) => {
+      if (!cancelled) {
+        console.error('Failed to render Plotly chart:', error)
+      }
+    })
 
     return () => {
-      window.removeEventListener('resize', handleResize)
-      if (chartRef.current) {
-        Plotly.purge(chartRef.current)
-      }
+      cancelled = true
+      cleanupRef.current?.()
+      cleanupRef.current = null
     }
   }, [chartData])
 
   const downloadAsImage = () => {
-    if (!chartRef.current) return
-    
-    Plotly.downloadImage(chartRef.current, {
+    if (!chartRef.current || !plotlyRef.current) return
+
+    plotlyRef.current.downloadImage(chartRef.current, {
       format: 'png',
       width: 1200,
       height: 800,
@@ -178,7 +196,6 @@ export function PlotlyChartRenderer({
       <CardContent>
         <div 
           ref={chartRef}
-          id={chartId.current}
           className="w-full h-[500px]"
         />
       </CardContent>

@@ -1,5 +1,13 @@
-import * as XLSX from 'xlsx'
 import { DataRow } from '@/types/smart-flow'
+
+// Dynamic import for code splitting (xlsx ~1MB)
+let _xlsxPromise: Promise<typeof import('xlsx')> | null = null
+function getXLSX(): Promise<typeof import('xlsx')> {
+  if (!_xlsxPromise) {
+    _xlsxPromise = import('xlsx')
+  }
+  return _xlsxPromise
+}
 
 export interface ExcelProcessingOptions {
   sheetIndex?: number
@@ -19,6 +27,7 @@ export class ExcelProcessor {
    * Excel 파일에서 시트 목록을 가져옵니다
    */
   static async getSheetList(file: File): Promise<SheetInfo[]> {
+    const XLSX = await getXLSX()
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
 
@@ -59,6 +68,7 @@ export class ExcelProcessor {
   ): Promise<DataRow[]> {
     const { sheetIndex = 0, maxRows = 500000, headerRow = 0 } = options
 
+    const XLSX = await getXLSX()
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
 
@@ -120,6 +130,7 @@ export class ExcelProcessor {
     startRow: number,
     endRow: number
   ): Promise<DataRow[]> {
+    const XLSX = await getXLSX()
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
 
