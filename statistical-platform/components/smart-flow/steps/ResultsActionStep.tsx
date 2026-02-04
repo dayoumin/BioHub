@@ -1,20 +1,79 @@
 'use client'
 
-import { Save, FileDown, Copy, RotateCcw, FileText, RefreshCw } from 'lucide-react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import {
+  Save,
+  FileDown,
+  Copy,
+  RotateCcw,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  MoreHorizontal,
+  RefreshCw,
+  FileText,
+  MessageSquare,
+  Sparkles
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { AnalysisResult } from '@/types/smart-flow'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { PDFReportService } from '@/lib/services/pdf-report-service'
 import { startNewAnalysis } from '@/lib/services/data-management'
-import { useState, useRef, useEffect, useMemo } from 'react'
-import { StatisticalResultCard } from '@/components/statistics/common/StatisticalResultCard'
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
-import { AnalysisInfoCard } from '@/components/smart-flow/components/AnalysisInfoCard'
 import { TemplateSaveModal } from '@/components/smart-flow/TemplateSaveModal'
+import { cn } from '@/lib/utils'
+import { CollapsibleSection, StatisticCard } from '@/components/smart-flow/common'
+import { useUI } from '@/contexts/ui-context'
+import { checkOllamaStatus, OllamaStatus } from '@/lib/rag/utils/ollama-check'
 
 interface ResultsActionStepProps {
   results: AnalysisResult | null
+}
+
+// 효과크기 해석
+function getEffectSizeInterpretation(value: number, type?: string): string {
+  const absValue = Math.abs(value)
+  switch (type) {
+    case 'cohensD':
+      if (absValue < 0.2) return '작음'
+      if (absValue < 0.5) return '중간'
+      if (absValue < 0.8) return '큼'
+      return '매우 큼'
+    case 'etaSquared':
+      if (absValue < 0.01) return '작음'
+      if (absValue < 0.06) return '중간'
+      if (absValue < 0.14) return '큼'
+      return '매우 큼'
+    default:
+      if (absValue < 0.2) return '작음'
+      if (absValue < 0.5) return '중간'
+      return '큼'
+  }
+}
+
+// p-value 포맷팅
+function formatPValue(p: number): string {
+  if (p < 0.001) return '< .001'
+  if (p < 0.01) return '< .01'
+  if (p < 0.05) return '< .05'
+  return p.toFixed(3)
 }
 
 export function ResultsActionStep({ results }: ResultsActionStepProps) {
@@ -22,7 +81,18 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const chartRef = useRef<HTMLDivElement>(null)
+  // AI 채팅 상태
+  const [ollamaStatus, setOllamaStatus] = useState<OllamaStatus | null>(null)
+  const { openChatPanel } = useUI()
+
+  // Ollama 상태 확인
+  useEffect(() => {
+    checkOllamaStatus().then(setOllamaStatus).catch(() => setOllamaStatus(null))
+  }, [])
+
+
   const {
     saveToHistory,
     reset,
@@ -30,7 +100,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     setUploadedData,
     setUploadedFile,
     setValidationResults,
-    setresults,
+    setResults,
+    setIsReanalysisMode,
     uploadedData,
     variableMapping,
     uploadedFileName,
@@ -38,6 +109,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     validationResults,
     assumptionResults
   } = useSmartFlowStore()
+
   const savedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const copiedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -53,7 +125,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const statisticalResult = useMemo(() => {
     if (!results) return null
 
-    // 변수 목록 추출
     const variables: string[] = []
     if (variableMapping?.dependentVar) {
       if (Array.isArray(variableMapping.dependentVar)) {
@@ -81,71 +152,72 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     })
   }, [results, uploadedData, variableMapping])
 
-  const handleSaveToHistory = async () => {
+  // 유의성 판단
+  const isSignificant = useMemo(() => {
+    if (!statisticalResult) return false
+    return statisticalResult.pValue < (statisticalResult.alpha || 0.05)
+  }, [statisticalResult])
+
+  // 가정 충족 여부
+  const assumptionsPassed = useMemo(() => {
+    if (!statisticalResult?.assumptions) return true
+    return statisticalResult.assumptions.every(a => a.passed !== false)
+  }, [statisticalResult])
+
+  // Handlers
+  const handleSaveToHistory = useCallback(async () => {
     const defaultName = `분석 ${new Date().toLocaleString('ko-KR')}`
     const name = prompt('분석 이름을 입력하세요:', defaultName)
 
     if (name && name.trim()) {
-      // XSS 방지를 위한 입력 검증
-      const sanitizedName = name.trim().slice(0, 100) // 최대 100자 제한
-
+      const sanitizedName = name.trim().slice(0, 100)
       try {
         await saveToHistory(sanitizedName)
         setIsSaved(true)
-        toast.success('히스토리에 저장되었습니다 (IndexedDB)', {
-          description: sanitizedName
-        })
+        toast.success('저장되었습니다')
 
-        // 이전 타이머 정리
         if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current)
-
         savedTimeoutRef.current = setTimeout(() => {
           setIsSaved(false)
           savedTimeoutRef.current = null
         }, 3000)
       } catch (err) {
-        toast.error('히스토리 저장에 실패했습니다', {
+        toast.error('저장 실패', {
           description: err instanceof Error ? err.message : '알 수 없는 오류'
         })
       }
     }
-  }
+  }, [saveToHistory])
 
-  // 데이터 변경 후 재분석 (설정 유지)
-  const handleReanalyze = () => {
-    // 데이터만 초기화하고 설정은 유지
+  const handleReanalyze = useCallback(() => {
     setUploadedData(null)
     setUploadedFile(null)
     setValidationResults(null)
-    setresults(null)
-    // Step 1로 이동
+    setResults(null)
+    setIsReanalysisMode(true)
     setCurrentStep(1)
-    toast.info('새 데이터를 업로드하세요', {
-      description: '이전 분석 설정이 유지됩니다'
-    })
-  }
 
-  const handleNewAnalysis = async () => {
+    toast.info('새 데이터를 업로드하세요', {
+      description: selectedMethod ? `${selectedMethod.name} 분석이 준비되어 있습니다` : ''
+    })
+  }, [setUploadedData, setUploadedFile, setValidationResults, setResults, setIsReanalysisMode, setCurrentStep, selectedMethod])
+
+  const handleNewAnalysis = useCallback(async () => {
     try {
       await startNewAnalysis()
-      toast.info('새 분석을 시작합니다', {
-        description: '데이터와 캐시가 초기화되었습니다'
-      })
+      toast.info('새 분석을 시작합니다')
     } catch (error) {
       console.error('Failed to start new analysis:', error)
-      // Fallback to basic reset
       reset()
       toast.info('새 분석을 시작합니다')
     }
-  }
+  }, [reset])
 
-  const handleGeneratePDF = async () => {
+  const handleGeneratePDF = useCallback(async () => {
     if (!results) return
-
     setIsGeneratingPDF(true)
 
     try {
-      // 데이터 정보 안전하게 구성
       const dataInfo = uploadedData && uploadedData.length > 0 ? {
         totalRows: uploadedData.length,
         columnCount: Object.keys(uploadedData[0] || {}).length,
@@ -160,21 +232,25 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         chartElement: chartRef.current
       })
 
-      toast.success('PDF 보고서가 생성되었습니다', {
-        description: '다운로드 폴더를 확인해주세요'
-      })
+      toast.success('PDF 보고서가 생성되었습니다')
     } catch (error) {
       console.error('PDF 생성 실패:', error)
-      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류'
-      toast.error('PDF 생성에 실패했습니다', {
-        description: errorMessage
-      })
+      toast.error('PDF 생성에 실패했습니다')
     } finally {
       setIsGeneratingPDF(false)
     }
-  }
+  }, [results, uploadedData])
 
-  const handleCopyResults = async () => {
+  
+  const handleAIChat = useCallback(() => {
+    // 분석 결과를 채팅 컨텍스트로 전달 (향후 구현 예정)
+    openChatPanel()
+    toast.info('AI 도우미가 열렸습니다', {
+      description: '분석 결과에 대해 질문해 보세요'
+    })
+  }, [openChatPanel])
+
+  const handleCopyResults = useCallback(async () => {
     if (!results) return
 
     try {
@@ -182,24 +258,20 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       await navigator.clipboard.writeText(summary)
 
       setIsCopied(true)
-      toast.success('결과가 클립보드에 복사되었습니다')
+      toast.success('복사되었습니다')
 
-      // 이전 타이머 정리
       if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current)
-
       copiedTimeoutRef.current = setTimeout(() => {
         setIsCopied(false)
         copiedTimeoutRef.current = null
       }, 2000)
     } catch (err) {
       console.error('복사 실패:', err)
-      toast.error('클립보드 복사에 실패했습니다', {
-        description: '브라우저 권한을 확인해주세요'
-      })
+      toast.error('복사 실패')
     }
-  }
+  }, [results])
 
-  if (!results) {
+  if (!results || !statisticalResult) {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">분석을 먼저 실행해주세요.</p>
@@ -208,104 +280,258 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   }
 
   return (
-    <div className="space-y-6" ref={chartRef}>
-      {/* 분석 정보 카드 */}
-      <AnalysisInfoCard
-        fileName={uploadedFileName}
-        dataRows={uploadedData?.length}
-        dataColumns={uploadedData && uploadedData.length > 0 ? Object.keys(uploadedData[0]).length : undefined}
-        method={selectedMethod}
-        timestamp={new Date()}
-        variableMapping={variableMapping}
-        validationResults={validationResults}
-        assumptionResults={assumptionResults}
-      />
+    <TooltipProvider>
+      <div className="space-y-6" ref={chartRef}>
+        {/* ===== 메인 결과 카드 ===== */}
+        <Card className={cn(
+          "overflow-hidden",
+          !assumptionsPassed ? "border-amber-300" :
+          isSignificant ? "border-green-300" : "border-gray-200"
+        )}>
+          {/* 헤더: 분석명 + 시간 */}
+          <CardHeader className="pb-3 bg-muted/30">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                {!assumptionsPassed ? (
+                  <AlertCircle className="w-5 h-5 text-amber-500" />
+                ) : isSignificant ? (
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                ) : (
+                  <XCircle className="w-5 h-5 text-gray-400" />
+                )}
+                {statisticalResult.testName}
+              </CardTitle>
+              <span className="text-xs text-muted-foreground">
+                {new Date().toLocaleString('ko-KR', {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </span>
+            </div>
+          </CardHeader>
 
-      {/* StatisticalResultCard - 핵심 결과만 표시 */}
-      {statisticalResult && (
-        <StatisticalResultCard
-          result={statisticalResult}
-          showAssumptions={true}
-          showEffectSize={true}
-          showConfidenceInterval={true}
-          showInterpretation={true}
-          showActions={false}  // 아래에 커스텀 액션 버튼 사용
-          expandable={false}   // 기본 펼침 상태
-        />
-      )}
+          <CardContent className="pt-4 space-y-4">
+            {/* ===== 핵심 결론 (1줄) ===== */}
+            <div className={cn(
+              "p-3 rounded-lg text-center font-medium",
+              !assumptionsPassed ? "bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200" :
+              isSignificant ? "bg-green-50 text-green-800 dark:bg-green-950/30 dark:text-green-200" :
+              "bg-gray-50 text-gray-600 dark:bg-gray-900/30 dark:text-gray-300"
+            )}>
+              {!assumptionsPassed ? (
+                "⚠️ 일부 가정 미충족 - 결과 해석에 주의 필요"
+              ) : isSignificant ? (
+                "✓ 통계적으로 유의한 차이가 있습니다"
+              ) : (
+                "통계적으로 유의한 차이가 없습니다"
+              )}
+            </div>
 
-      {/* 액션 버튼 */}
-      <div className="space-y-3">
-        {/* 템플릿 저장 버튼 */}
-        <Button
-          className="w-full"
-          variant="outline"
-          onClick={() => setTemplateModalOpen(true)}
-        >
-          <FileText className="w-4 h-4 mr-2" />
-          템플릿으로 저장
-        </Button>
+            {/* ===== 핵심 숫자 3개 ===== */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* 통계량 */}
+              <StatisticCard label="통계량" tooltip="검정통계량: 귀무가설 하에서 표본 데이터가 얼마나 극단적인지 나타냅니다.">
+                <p className="text-xl font-bold font-mono">
+                  {statisticalResult.statisticName || 't'} = {statisticalResult.statistic.toFixed(2)}
+                </p>
+                {statisticalResult.df && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    df = {Array.isArray(statisticalResult.df) ? statisticalResult.df.join(', ') : statisticalResult.df}
+                  </p>
+                )}
+              </StatisticCard>
 
-        <div className="flex gap-3">
+              {/* p-value */}
+              <StatisticCard label="유의확률" tooltip="p < 0.05이면 통계적으로 유의합니다.">
+                <p className={cn(
+                  "text-xl font-bold font-mono",
+                  isSignificant ? "text-green-600 dark:text-green-400" : "text-gray-500"
+                )}>
+                  p {formatPValue(statisticalResult.pValue)}
+                </p>
+                <Badge variant={isSignificant ? "default" : "secondary"} className="mt-1 text-xs">
+                  {isSignificant ? '유의함' : '유의하지 않음'}
+                </Badge>
+              </StatisticCard>
+
+              {/* 효과크기 */}
+              <StatisticCard label="효과크기" tooltip="효과크기: 실질적인 효과의 크기를 나타냅니다. 작음(<0.2), 중간(0.2-0.5), 큼(>0.5)">
+                {statisticalResult.effectSize ? (
+                  <>
+                    <p className="text-xl font-bold font-mono">
+                      {statisticalResult.effectSize.value.toFixed(2)}
+                    </p>
+                    <Badge variant="outline" className="mt-1 text-xs">
+                      {getEffectSizeInterpretation(statisticalResult.effectSize.value, statisticalResult.effectSize.type)}
+                    </Badge>
+                  </>
+                ) : (
+                  <p className="text-xl font-bold text-muted-foreground">-</p>
+                )}
+              </StatisticCard>
+            </div>
+
+            {/* ===== 해석 ===== */}
+            {statisticalResult.interpretation && (
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-100 dark:border-blue-900">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  💡 {statisticalResult.interpretation}
+                </p>
+              </div>
+            )}
+
+            {/* ===== 상세 정보 (접기/펼치기) ===== */}
+            <CollapsibleSection
+              label="상세 정보"
+              open={detailsOpen}
+              onOpenChange={setDetailsOpen}
+              contentClassName="pt-3 space-y-3"
+            >
+                {/* 데이터 정보 */}
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {uploadedFileName && (
+                    <div>
+                      <span className="text-muted-foreground">파일: </span>
+                      <span className="font-medium">{uploadedFileName}</span>
+                    </div>
+                  )}
+                  {uploadedData && (
+                    <div>
+                      <span className="text-muted-foreground">데이터: </span>
+                      <span className="font-medium">{uploadedData.length}행 × {Object.keys(uploadedData[0] || {}).length}열</span>
+                    </div>
+                  )}
+                  {statisticalResult.variables && (
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground">변수: </span>
+                      <span className="font-medium">{statisticalResult.variables.join(', ')}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* 가정 검정 */}
+                {statisticalResult.assumptions && statisticalResult.assumptions.length > 0 && (
+                  <div className="pt-2 border-t">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">가정 검정</p>
+                    <div className="flex flex-wrap gap-2">
+                      {statisticalResult.assumptions.map((a, i) => (
+                        <Badge
+                          key={i}
+                          variant="outline"
+                          className={cn(
+                            "text-xs",
+                            a.passed ? "border-green-300 text-green-700" : "border-red-300 text-red-700"
+                          )}
+                        >
+                          {a.passed ? '✓' : '✗'} {a.name}
+                          {a.pValue !== null && ` (p=${a.pValue.toFixed(3)})`}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+            </CollapsibleSection>
+          </CardContent>
+        </Card>
+
+        {/* ===== 액션 버튼 (1줄) ===== */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Primary Actions */}
           <Button
-            className="flex-1"
-            onClick={handleSaveToHistory}
             variant={isSaved ? "default" : "outline"}
-          >
-            <Save className="w-4 h-4 mr-2" />
-            {isSaved ? '저장됨!' : '히스토리 저장'}
-          </Button>
-          <Button
+            size="sm"
+            onClick={handleSaveToHistory}
             className="flex-1"
+          >
+            <Save className="w-4 h-4 mr-1.5" />
+            {isSaved ? '저장됨' : '저장'}
+          </Button>
+
+          <Button
             variant="outline"
+            size="sm"
             onClick={handleGeneratePDF}
             disabled={isGeneratingPDF}
+            className="flex-1"
           >
-            {isGeneratingPDF ? (
-              <>
-                <FileDown className="w-4 h-4 mr-2 animate-pulse" />
-                생성 중...
-              </>
-            ) : (
-              <>
-                <FileDown className="w-4 h-4 mr-2" />
-                PDF 보고서
-              </>
-            )}
+            <FileDown className="w-4 h-4 mr-1.5" />
+            {isGeneratingPDF ? '생성중...' : 'PDF'}
           </Button>
-        </div>
 
-        <div className="flex gap-3">
           <Button
             variant="outline"
-            className="flex-1"
+            size="sm"
             onClick={handleCopyResults}
-            disabled={!results}
-          >
-            <Copy className="w-4 h-4 mr-2" />
-            {isCopied ? '복사됨!' : '결과 복사'}
-          </Button>
-          <Button
-            variant="default"
             className="flex-1"
-            onClick={handleNewAnalysis}
           >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            새 분석 시작
+            <Copy className="w-4 h-4 mr-1.5" />
+            {isCopied ? '복사됨' : '복사'}
           </Button>
-        </div>
-      </div>
 
-      {/* 템플릿 저장 모달 */}
-      <TemplateSaveModal
-        open={templateModalOpen}
-        onOpenChange={setTemplateModalOpen}
-        onSaved={() => {
-          toast.success('템플릿이 저장되었습니다', {
-            description: '다음 분석 시 템플릿을 불러올 수 있습니다'
-          })
-        }}
-      />
-    </div>
+          {/* AI Chat Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAIChat}
+                  disabled={!ollamaStatus?.hasInferenceModel}
+                  className={cn(
+                    "flex-1",
+                    ollamaStatus?.hasInferenceModel
+                      ? "border-purple-300 text-purple-700 hover:bg-purple-50 dark:border-purple-700 dark:text-purple-300 dark:hover:bg-purple-950/30"
+                      : ""
+                  )}
+                >
+                  <Sparkles className="w-4 h-4 mr-1.5" />
+                  AI 해석
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {!ollamaStatus?.hasInferenceModel && (
+              <TooltipContent>
+                <p>AI 모델(Ollama)이 설정되지 않았습니다</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+
+          {/* More Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setTemplateModalOpen(true)}>
+                <FileText className="w-4 h-4 mr-2" />
+                템플릿으로 저장
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleReanalyze}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                다른 데이터로 재분석
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleNewAnalysis}>
+                <RotateCcw className="w-4 h-4 mr-2" />
+                새 분석 시작
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* 템플릿 저장 모달 */}
+        <TemplateSaveModal
+          open={templateModalOpen}
+          onOpenChange={setTemplateModalOpen}
+          onSaved={() => {
+            toast.success('템플릿이 저장되었습니다')
+          }}
+        />
+      </div>
+    </TooltipProvider>
   )
 }

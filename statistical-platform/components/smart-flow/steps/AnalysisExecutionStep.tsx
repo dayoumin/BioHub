@@ -3,6 +3,14 @@
 import { useEffect, useState, useCallback } from 'react'
 import { BarChart3, CheckCircle2, Loader2, AlertCircle, Pause, Play, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { StatisticalExecutor } from '@/lib/services/executors'
@@ -10,6 +18,7 @@ import type { StatisticalExecutorResult as ExecutorResult } from '@/lib/services
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import { transformExecutorResult } from '@/lib/utils/result-transformer'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import { StepHeader, StatusIndicator, CollapsibleSection } from '@/components/smart-flow/common'
 import { logger } from '@/lib/utils/logger'
 import type { AnalysisExecutionStepProps } from '@/types/smart-flow-navigation'
 import type { StatisticalMethod } from '@/lib/statistics/method-mapping'
@@ -329,25 +338,31 @@ export function AnalysisExecutionStep({
   }, [uploadedData])
 
   return (
-    <div className="w-full h-full flex flex-col space-y-6">
+    <div className="space-y-6">
+      {/* 헤더 패턴: Icon + Title + Method Badge */}
+      <StepHeader
+          icon={BarChart3}
+          title="분석 실행"
+          badge={selectedMethod ? { label: selectedMethod.name } : undefined}
+        />
+
       {/* 오류 표시 */}
       {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-          {/* 메인 진행 상황 - 완료 시 간소화 */}
-          {progress === 100 ? (
-            /* 완료 시: 간소화된 배너 */
-            <div className="bg-success-bg dark:bg-success-bg border border-success-border rounded-lg p-4 flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
-              <span className="font-medium">분석이 완료되었습니다</span>
-            </div>
-          ) : (
-            /* 진행 중: 전체 프로그레스 UI */
-            <div className="bg-background rounded-lg p-8 text-center">
+      {/* 메인 진행 상황 */}
+      {progress === 100 ? (
+        /* 완료 시: 성공 배너 (green 패턴) */
+        <StatusIndicator status="success" title="분석이 완료되었습니다" />
+      ) : (
+        /* 진행 중: Card 래핑 프로그레스 UI */
+        <Card>
+          <CardContent className="pt-8 pb-6">
+            <div className="text-center">
               <div className="mb-6">
                 <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-4">
                   <BarChart3 className="w-10 h-10 text-primary animate-pulse" />
@@ -375,7 +390,7 @@ export function AnalysisExecutionStep({
                   return (
                     <div key={stage.id} className="flex items-center gap-3">
                       {isCompleted ? (
-                        <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
+                        <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
                       ) : isCurrent ? (
                         <Loader2 className="w-5 h-5 text-primary animate-spin flex-shrink-0" />
                       ) : (
@@ -388,9 +403,6 @@ export function AnalysisExecutionStep({
                       }`}>
                         {stage.label}
                       </span>
-                      {isCompleted && (
-                        <span className="text-xs text-success ml-auto">✓</span>
-                      )}
                     </div>
                   )
                 })}
@@ -399,24 +411,37 @@ export function AnalysisExecutionStep({
               {/* 컨트롤 버튼 */}
               {!error && (
                 <div className="flex justify-center gap-3 mt-6">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handlePauseResume}
-                    disabled={progress >= 75}
-                  >
-                    {isPaused ? (
-                      <>
-                        <Play className="w-4 h-4 mr-2" />
-                        계속
-                      </>
-                    ) : (
-                      <>
-                        <Pause className="w-4 h-4 mr-2" />
-                        일시정지
-                      </>
-                    )}
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={progress >= 75 ? 0 : undefined}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handlePauseResume}
+                            disabled={progress >= 75}
+                          >
+                            {isPaused ? (
+                              <>
+                                <Play className="w-4 h-4 mr-2" />
+                                계속
+                              </>
+                            ) : (
+                              <>
+                                <Pause className="w-4 h-4 mr-2" />
+                                일시정지
+                              </>
+                            )}
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      {progress >= 75 && (
+                        <TooltipContent>
+                          <p>75% 이후에는 일시정지할 수 없습니다</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
 
                   <Button
                     variant="outline"
@@ -429,81 +454,31 @@ export function AnalysisExecutionStep({
                 </div>
               )}
             </div>
-          )}
+          </CardContent>
+        </Card>
+      )}
 
-          {/* 상세 실행 로그 */}
-          <div className="bg-muted/50 rounded-lg">
-            <button
-              onClick={() => setShowDetailedLog(!showDetailedLog)}
-              className="w-full p-4 text-left flex items-center justify-between hover:bg-muted/70 transition-colors"
-            >
-              <span className="font-medium text-sm">
-                {showDetailedLog ? '▼' : '▶'} 상세 실행 로그
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {executionLog.length}개 항목
-              </span>
-            </button>
-
-            {showDetailedLog && (
-              <div className="px-4 pb-4">
-                <div className="bg-background rounded border p-3 max-h-48 overflow-y-auto">
-                  {executionLog.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">로그가 없습니다</p>
-                  ) : (
-                    <div className="space-y-1">
-                      {executionLog.map((log, index) => (
-                        <div key={index} className="text-xs font-mono text-muted-foreground">
-                          {log}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+      {/* 상세 실행 로그 (Collapsible) */}
+      <CollapsibleSection
+        label={`상세 실행 로그 (${executionLog.length}개)`}
+        open={showDetailedLog}
+        onOpenChange={setShowDetailedLog}
+        contentClassName="pt-2"
+      >
+        <div className="bg-muted/50 rounded-lg border p-3 max-h-48 overflow-y-auto">
+          {executionLog.length === 0 ? (
+            <p className="text-sm text-muted-foreground">로그가 없습니다</p>
+          ) : (
+            <div className="space-y-1">
+              {executionLog.map((log, index) => (
+                <div key={index} className="text-xs font-mono text-muted-foreground">
+                  {log}
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* 분석 정보 */}
-          <div className="bg-muted/30 rounded-lg p-4">
-            <h4 className="font-medium mb-3 flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              분석 정보
-            </h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">선택된 방법:</span>
-                <span className="ml-2 font-medium">{selectedMethod?.name || '없음'}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">데이터 크기:</span>
-                <span className="ml-2 font-medium">{uploadedData?.length || 0}행</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">신뢰수준:</span>
-                <span className="ml-2 font-medium">95%</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">통계 엔진:</span>
-                <span className="ml-2 font-medium">SciPy (Pyodide)</span>
-              </div>
+              ))}
             </div>
-          </div>
-
-          {/* 성공 시 결과 미리보기 */}
-          {analysisResult && (
-            <Alert className="bg-success-bg dark:bg-success-bg border-success-border">
-              <CheckCircle2 className="h-4 w-4 text-success" />
-              <AlertDescription>
-                <strong>분석 완료!</strong>
-                <div className="mt-2 text-sm">
-                  <p>통계량: {analysisResult.mainResults.statistic.toFixed(4)}</p>
-                  <p>p-value: {analysisResult.mainResults.pvalue.toFixed(4)}</p>
-                  <p>{analysisResult.mainResults.interpretation}</p>
-                </div>
-              </AlertDescription>
-            </Alert>
           )}
+        </div>
+      </CollapsibleSection>
     </div>
   )
 }
