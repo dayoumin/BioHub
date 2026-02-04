@@ -54,7 +54,7 @@ def dunn_test_manual(groups, alpha=0.05):
                 'group1': i,
                 'group2': j,
                 'z': z,
-                'p_value': p,
+                'pValue': p,
                 'significant': p < alpha
             })
 
@@ -97,7 +97,7 @@ def games_howell_manual(groups, alpha=0.05):
                 'group2': j,
                 't': t,
                 'df': df,
-                'p_value': p,
+                'pValue': p,
                 'significant': p < alpha
             })
 
@@ -120,7 +120,7 @@ print("=" * 60)
 dunn_results = dunn_test_manual(groups)
 for r in dunn_results:
     print(f"Group {r['group1']+1} vs Group {r['group2']+1}:")
-    print(f"  Z = {r['z']:.4f}, p = {r['p_value']:.4f}, significant = {r['significant']}")
+    print(f"  Z = {r['z']:.4f}, p = {r['pValue']:.4f}, significant = {r['significant']}")
 
 print("\n" + "=" * 60)
 print("Games-Howell Test 결과 (우리 구현)")
@@ -129,7 +129,7 @@ print("=" * 60)
 gh_results = games_howell_manual(groups)
 for r in gh_results:
     print(f"Group {r['group1']+1} vs Group {r['group2']+1}:")
-    print(f"  t = {r['t']:.4f}, df = {r['df']:.2f}, p = {r['p_value']:.4f}, significant = {r['significant']}")
+    print(f"  t = {r['t']:.4f}, df = {r['df']:.2f}, p = {r['pValue']:.4f}, significant = {r['significant']}")
 
 print("\n" + "=" * 60)
 print("검증: Kruskal-Wallis + Mann-Whitney (대체 방법)")

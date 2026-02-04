@@ -44,46 +44,46 @@ import { AnalysisGuidePanel } from '@/components/statistics/common/AnalysisGuide
 import { AssumptionChecklist } from '@/components/statistics/common/AssumptionChecklist'
 import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 interface StepwiseResults {
-  final_model: {
+  finalModel: {
     variables: string[]
-    r_squared: number
-    adj_r_squared: number
-    f_statistic: number
-    f_p_value: number
+    rSquared: number
+    adjRSquared: number
+    fStatistic: number
+    fPValue: number
     aic: number
     bic: number
     rmse: number
   }
-  step_history: Array<{
+  stepHistory: Array<{
     step: number
     action: 'add' | 'remove'
     variable: string
-    r_squared: number
-    adj_r_squared: number
-    f_change: number
-    f_change_p: number
-    criterion_value: number
+    rSquared: number
+    adjRSquared: number
+    fChange: number
+    fChangeP: number
+    criterionValue: number
   }>
   coefficients: Array<{
     variable: string
     coefficient: number
-    std_error: number
-    t_statistic: number
-    p_value: number
+    stdError: number
+    tStatistic: number
+    pValue: number
     beta: number
     vif: number
   }>
-  model_diagnostics: {
-    durbin_watson: number
-    jarque_bera_p: number
-    breusch_pagan_p: number
-    condition_number: number
+  modelDiagnostics: {
+    durbinWatson: number
+    jarqueBeraP: number
+    breuschPaganP: number
+    conditionNumber: number
   }
-  excluded_variables: Array<{
+  excludedVariables: Array<{
     variable: string
-    partial_corr: number
-    t_for_inclusion: number
-    p_value: number
+    partialCorr: number
+    tForInclusion: number
+    pValue: number
   }>
   interpretation: {
     summary: string
@@ -274,46 +274,46 @@ export default function StepwiseRegressionPage() {
 
       // Convert camelCase to snake_case for StepwiseResults interface
       const results: StepwiseResults = {
-        final_model: {
+        finalModel: {
           variables: result.finalModel.variables,
-          r_squared: result.finalModel.rSquared,
-          adj_r_squared: result.finalModel.adjRSquared,
-          f_statistic: result.finalModel.fStatistic,
-          f_p_value: result.finalModel.fPValue,
+          rSquared: result.finalModel.rSquared,
+          adjRSquared: result.finalModel.adjRSquared,
+          fStatistic: result.finalModel.fStatistic,
+          fPValue: result.finalModel.fPValue,
           aic: result.finalModel.aic,
           bic: result.finalModel.bic,
           rmse: result.finalModel.rmse
         },
-        step_history: result.stepHistory.map(step => ({
+        stepHistory: result.stepHistory.map(step => ({
           step: step.step,
           action: step.action as 'add' | 'remove',
           variable: step.variable,
-          r_squared: step.rSquared,
-          adj_r_squared: step.adjRSquared,
-          f_change: step.fChange,
-          f_change_p: step.fChangeP,
-          criterion_value: step.criterionValue
+          rSquared: step.rSquared,
+          adjRSquared: step.adjRSquared,
+          fChange: step.fChange,
+          fChangeP: step.fChangeP,
+          criterionValue: step.criterionValue
         })),
         coefficients: result.coefficients.map(coef => ({
           variable: coef.variable,
           coefficient: coef.coefficient,
-          std_error: coef.stdError,
-          t_statistic: coef.tStatistic,
-          p_value: coef.pValue,
+          stdError: coef.stdError,
+          tStatistic: coef.tStatistic,
+          pValue: coef.pValue,
           beta: coef.beta,
           vif: coef.vif
         })),
-        model_diagnostics: {
-          durbin_watson: result.modelDiagnostics.durbinWatson,
-          jarque_bera_p: result.modelDiagnostics.jarqueBeraP,
-          breusch_pagan_p: result.modelDiagnostics.breuschPaganP,
-          condition_number: result.modelDiagnostics.conditionNumber
+        modelDiagnostics: {
+          durbinWatson: result.modelDiagnostics.durbinWatson,
+          jarqueBeraP: result.modelDiagnostics.jarqueBeraP,
+          breuschPaganP: result.modelDiagnostics.breuschPaganP,
+          conditionNumber: result.modelDiagnostics.conditionNumber
         },
-        excluded_variables: result.excludedVariables.map(ev => ({
+        excludedVariables: result.excludedVariables.map(ev => ({
           variable: ev.variable,
-          partial_corr: ev.partialCorr,
-          t_for_inclusion: ev.tForInclusion,
-          p_value: ev.pValue
+          partialCorr: ev.partialCorr,
+          tForInclusion: ev.tForInclusion,
+          pValue: ev.pValue
         })),
         interpretation: result.interpretation
       }
@@ -481,7 +481,7 @@ export default function StepwiseRegressionPage() {
 
     if (!results) return null
 
-    const modelFit = getModelFitInterpretation(results.final_model.r_squared)
+    const modelFit = getModelFitInterpretation(results.finalModel.rSquared)
 
     return (
       <div className="space-y-6">
@@ -526,7 +526,7 @@ export default function StepwiseRegressionPage() {
                   <div className="space-y-4">
                     <div className={`text-center p-4 border rounded-lg ${modelFit.bg}`}>
                       <div className="text-3xl font-bold text-muted-foreground mb-2">
-                        {results.final_model.r_squared.toFixed(3)}
+                        {results.finalModel.rSquared.toFixed(3)}
                       </div>
                       <div className="text-sm text-gray-600 mb-2">R² (결정계수)</div>
                       <Badge className={`${modelFit.color} bg-opacity-20`}>
@@ -535,7 +535,7 @@ export default function StepwiseRegressionPage() {
                     </div>
                     <div className="text-center p-4 border rounded-lg">
                       <div className="text-2xl font-bold text-muted-foreground">
-                        {results.final_model.adj_r_squared.toFixed(3)}
+                        {results.finalModel.adjRSquared.toFixed(3)}
                       </div>
                       <div className="text-sm text-gray-600">수정된 R²</div>
                     </div>
@@ -544,38 +544,38 @@ export default function StepwiseRegressionPage() {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600">선택된 변수</span>
-                      <span className="font-semibold">{results.final_model.variables.length}개</span>
+                      <span className="font-semibold">{results.finalModel.variables.length}개</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">F 통계량</span>
-                      <span className="font-semibold">{results.final_model.f_statistic.toFixed(2)}</span>
+                      <span className="font-semibold">{results.finalModel.fStatistic.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">F p값</span>
-                      <span className={`font-semibold ${results.final_model.f_p_value < 0.05 ? 'text-muted-foreground' : ''}`}>
-                        {results.final_model.f_p_value.toFixed(4)}
+                      <span className={`font-semibold ${results.finalModel.fPValue < 0.05 ? 'text-muted-foreground' : ''}`}>
+                        {results.finalModel.fPValue.toFixed(4)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">AIC</span>
-                      <span className="font-semibold">{results.final_model.aic.toFixed(1)}</span>
+                      <span className="font-semibold">{results.finalModel.aic.toFixed(1)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">BIC</span>
-                      <span className="font-semibold">{results.final_model.bic.toFixed(1)}</span>
+                      <span className="font-semibold">{results.finalModel.bic.toFixed(1)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">RMSE</span>
-                      <span className="font-semibold">{results.final_model.rmse.toFixed(3)}</span>
+                      <span className="font-semibold">{results.finalModel.rmse.toFixed(3)}</span>
                     </div>
                   </div>
                 </div>
 
-                {results.final_model.variables.length > 0 && (
+                {results.finalModel.variables.length > 0 && (
                   <div className="mt-4 p-3 bg-muted rounded-lg">
                     <h4 className="font-semibold mb-2">선택된 변수</h4>
                     <div className="flex flex-wrap gap-1">
-                      {results.final_model.variables.map((variable, index) => (
+                      {results.finalModel.variables.map((variable, index) => (
                         <Badge key={index} variant="secondary" className="bg-muted">
                           {variable}
                         </Badge>
@@ -596,7 +596,7 @@ export default function StepwiseRegressionPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {results.step_history.length > 0 ? (
+                {results.stepHistory.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse border border-gray-300">
                       <thead>
@@ -612,7 +612,7 @@ export default function StepwiseRegressionPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {results.step_history.map((step, index) => (
+                        {results.stepHistory.map((step, index) => (
                           <tr key={index} className="hover:bg-gray-50">
                             <td className="border border-gray-300 px-4 py-2 font-medium">{step.step}</td>
                             <td className="border border-gray-300 px-4 py-2">
@@ -625,15 +625,15 @@ export default function StepwiseRegressionPage() {
                               </Badge>
                             </td>
                             <td className="border border-gray-300 px-4 py-2 font-medium">{step.variable}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-right">{step.r_squared.toFixed(3)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-right">{step.adj_r_squared.toFixed(3)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-right">{step.f_change.toFixed(2)}</td>
+                            <td className="border border-gray-300 px-4 py-2 text-right">{step.rSquared.toFixed(3)}</td>
+                            <td className="border border-gray-300 px-4 py-2 text-right">{step.adjRSquared.toFixed(3)}</td>
+                            <td className="border border-gray-300 px-4 py-2 text-right">{step.fChange.toFixed(2)}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right">
-                              <span className={step.f_change_p < 0.05 ? 'text-muted-foreground font-medium' : ''}>
-                                {step.f_change_p.toFixed(4)}
+                              <span className={step.fChangeP < 0.05 ? 'text-muted-foreground font-medium' : ''}>
+                                {step.fChangeP.toFixed(4)}
                               </span>
                             </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right">{step.criterion_value.toFixed(1)}</td>
+                            <td className="border border-gray-300 px-4 py-2 text-right">{step.criterionValue.toFixed(1)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -679,15 +679,15 @@ export default function StepwiseRegressionPage() {
                           <tr key={index} className="hover:bg-gray-50">
                             <td className="border border-gray-300 px-4 py-2 font-medium">{coef.variable}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right">{coef.coefficient.toFixed(3)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-right">{coef.std_error.toFixed(3)}</td>
+                            <td className="border border-gray-300 px-4 py-2 text-right">{coef.stdError.toFixed(3)}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right">
                               {coef.variable === '상수' ? '-' : coef.beta.toFixed(3)}
                             </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right">{coef.t_statistic.toFixed(2)}</td>
+                            <td className="border border-gray-300 px-4 py-2 text-right">{coef.tStatistic.toFixed(2)}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right">
-                              <span className={coef.p_value < 0.05 ? 'text-muted-foreground font-medium' : ''}>
-                                {coef.p_value.toFixed(4)}
-                                {coef.p_value < 0.05 && <span className="ml-1">*</span>}
+                              <span className={coef.pValue < 0.05 ? 'text-muted-foreground font-medium' : ''}>
+                                {coef.pValue.toFixed(4)}
+                                {coef.pValue < 0.05 && <span className="ml-1">*</span>}
                               </span>
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right">
@@ -714,7 +714,7 @@ export default function StepwiseRegressionPage() {
               </CardContent>
             </Card>
 
-            {results.excluded_variables.length > 0 && (
+            {results.excludedVariables.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle>제외된 변수</CardTitle>
@@ -734,12 +734,12 @@ export default function StepwiseRegressionPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {results.excluded_variables.map((variable, index) => (
+                        {results.excludedVariables.map((variable, index) => (
                           <tr key={index} className="hover:bg-gray-50">
                             <td className="border border-gray-300 px-4 py-2 font-medium">{variable.variable}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-right">{variable.partial_corr.toFixed(3)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-right">{variable.t_for_inclusion.toFixed(3)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-right">{variable.p_value.toFixed(3)}</td>
+                            <td className="border border-gray-300 px-4 py-2 text-right">{variable.partialCorr.toFixed(3)}</td>
+                            <td className="border border-gray-300 px-4 py-2 text-right">{variable.tForInclusion.toFixed(3)}</td>
+                            <td className="border border-gray-300 px-4 py-2 text-right">{variable.pValue.toFixed(3)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -759,45 +759,45 @@ export default function StepwiseRegressionPage() {
                   name: '자기상관성 (Durbin-Watson)',
                   testName: 'Durbin-Watson',
                   pValue: null,
-                  statistic: results.model_diagnostics.durbin_watson,
-                  passed: Math.abs(results.model_diagnostics.durbin_watson - 2) < 0.5,
+                  statistic: results.modelDiagnostics.durbinWatson,
+                  passed: Math.abs(results.modelDiagnostics.durbinWatson - 2) < 0.5,
                   description: '잔차의 자기상관을 검정합니다. 값이 2에 가까울수록 자기상관이 없습니다.',
-                  details: `DW = ${results.model_diagnostics.durbin_watson.toFixed(3)} (이상값: 2)`,
+                  details: `DW = ${results.modelDiagnostics.durbinWatson.toFixed(3)} (이상값: 2)`,
                   recommendation: '자기상관이 있으면 시계열 모델이나 Newey-West 표준오차를 고려하세요.',
-                  severity: Math.abs(results.model_diagnostics.durbin_watson - 2) < 0.5 ? 'low' : 'medium'
+                  severity: Math.abs(results.modelDiagnostics.durbinWatson - 2) < 0.5 ? 'low' : 'medium'
                 },
                 {
                   name: '잔차 정규성 (Jarque-Bera)',
                   testName: 'Jarque-Bera',
-                  pValue: results.model_diagnostics.jarque_bera_p,
+                  pValue: results.modelDiagnostics.jarqueBeraP,
                   statistic: undefined,
-                  passed: results.model_diagnostics.jarque_bera_p > 0.05,
+                  passed: results.modelDiagnostics.jarqueBeraP > 0.05,
                   description: '잔차가 정규분포를 따르는지 검정합니다.',
-                  details: `p = ${results.model_diagnostics.jarque_bera_p.toFixed(4)}`,
+                  details: `p = ${results.modelDiagnostics.jarqueBeraP.toFixed(4)}`,
                   recommendation: '정규성이 위배되면 부트스트랩이나 비모수 방법을 고려하세요.',
-                  severity: results.model_diagnostics.jarque_bera_p > 0.05 ? 'low' : 'medium'
+                  severity: results.modelDiagnostics.jarqueBeraP > 0.05 ? 'low' : 'medium'
                 },
                 {
                   name: '등분산성 (Breusch-Pagan)',
                   testName: 'Breusch-Pagan',
-                  pValue: results.model_diagnostics.breusch_pagan_p,
+                  pValue: results.modelDiagnostics.breuschPaganP,
                   statistic: undefined,
-                  passed: results.model_diagnostics.breusch_pagan_p > 0.05,
+                  passed: results.modelDiagnostics.breuschPaganP > 0.05,
                   description: '잔차의 분산이 일정한지 검정합니다.',
-                  details: `p = ${results.model_diagnostics.breusch_pagan_p.toFixed(4)}`,
+                  details: `p = ${results.modelDiagnostics.breuschPaganP.toFixed(4)}`,
                   recommendation: '이분산이 있으면 가중최소제곱법(WLS)이나 robust 표준오차를 사용하세요.',
-                  severity: results.model_diagnostics.breusch_pagan_p > 0.05 ? 'low' : 'medium'
+                  severity: results.modelDiagnostics.breuschPaganP > 0.05 ? 'low' : 'medium'
                 },
                 {
                   name: '다중공선성 (조건수)',
                   testName: 'Condition Number',
                   pValue: null,
-                  statistic: results.model_diagnostics.condition_number,
-                  passed: results.model_diagnostics.condition_number < 30,
+                  statistic: results.modelDiagnostics.conditionNumber,
+                  passed: results.modelDiagnostics.conditionNumber < 30,
                   description: '예측변수 간 다중공선성을 검정합니다. 조건수 < 30이 권장됩니다.',
-                  details: `조건수 = ${results.model_diagnostics.condition_number.toFixed(1)}`,
+                  details: `조건수 = ${results.modelDiagnostics.conditionNumber.toFixed(1)}`,
                   recommendation: '다중공선성이 높으면 변수 제거나 릿지 회귀를 고려하세요.',
-                  severity: results.model_diagnostics.condition_number < 30 ? 'low' : results.model_diagnostics.condition_number < 100 ? 'medium' : 'high'
+                  severity: results.modelDiagnostics.conditionNumber < 30 ? 'low' : results.modelDiagnostics.conditionNumber < 100 ? 'medium' : 'high'
                 }
               ]}
             />
@@ -807,20 +807,20 @@ export default function StepwiseRegressionPage() {
             <ResultInterpretation
               result={{
                 summary: results.interpretation.summary,
-                details: `최종 모델: R² = ${results.final_model.r_squared.toFixed(4)}, 수정 R² = ${results.final_model.adj_r_squared.toFixed(4)}, F = ${results.final_model.f_statistic.toFixed(2)}, p = ${results.final_model.f_p_value.toFixed(4)}. 선택된 변수 ${results.final_model.variables.length}개.`,
+                details: `최종 모델: R² = ${results.finalModel.rSquared.toFixed(4)}, 수정 R² = ${results.finalModel.adjRSquared.toFixed(4)}, F = ${results.finalModel.fStatistic.toFixed(2)}, p = ${results.finalModel.fPValue.toFixed(4)}. 선택된 변수 ${results.finalModel.variables.length}개.`,
                 recommendation: results.interpretation.recommendations.join(' '),
                 caution: (() => {
                   const warnings: string[] = []
-                  if (Math.abs(results.model_diagnostics.durbin_watson - 2) >= 0.5) {
+                  if (Math.abs(results.modelDiagnostics.durbinWatson - 2) >= 0.5) {
                     warnings.push('자기상관 문제가 의심됩니다.')
                   }
-                  if (results.model_diagnostics.jarque_bera_p <= 0.05) {
+                  if (results.modelDiagnostics.jarqueBeraP <= 0.05) {
                     warnings.push('잔차의 정규성 가정이 위배될 수 있습니다.')
                   }
-                  if (results.model_diagnostics.breusch_pagan_p <= 0.05) {
+                  if (results.modelDiagnostics.breuschPaganP <= 0.05) {
                     warnings.push('등분산성 가정이 위배될 수 있습니다.')
                   }
-                  if (results.model_diagnostics.condition_number >= 30) {
+                  if (results.modelDiagnostics.conditionNumber >= 30) {
                     warnings.push('다중공선성 문제가 있습니다.')
                   }
                   if (results.coefficients.some(c => c.variable !== '상수' && c.vif > 10)) {

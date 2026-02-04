@@ -9,6 +9,83 @@ import { AnalysisResult, EffectSizeInfo, StatisticalAssumptions } from '@/types/
 import { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
 
 /**
+ * 추가 결과 테이블 인터페이스
+ */
+interface AdditionalTable {
+  title: string
+  columns: { key: string; label: string }[]
+  data: Record<string, string | number>[]
+}
+
+/**
+ * 추가 결과 테이블 생성 (groupStats, postHoc, coefficients)
+ */
+function buildAdditionalResults(result: AnalysisResult): AdditionalTable[] | undefined {
+  const tables: AdditionalTable[] = []
+
+  // 1. 그룹별 기술통계 (가장 기본적인 정보, 먼저 표시)
+  if (result.groupStats?.length) {
+    tables.push({
+      title: '그룹별 기술통계',
+      columns: [
+        { key: 'name', label: '그룹' },
+        { key: 'n', label: '표본수' },
+        { key: 'mean', label: '평균' },
+        { key: 'std', label: '표준편차' }
+      ],
+      data: result.groupStats.map(g => ({
+        name: g.name ?? '',
+        n: g.n,
+        mean: g.mean?.toFixed(3) ?? '-',
+        std: g.std?.toFixed(3) ?? '-'
+      }))
+    })
+  }
+
+  // 2. 사후검정 결과 (ANOVA 등)
+  if (result.postHoc?.length) {
+    tables.push({
+      title: '사후검정 결과',
+      columns: [
+        { key: 'comparison', label: '비교' },
+        { key: 'meanDiff', label: '평균차' },
+        { key: 'pvalue', label: 'p-value' },
+        { key: 'significant', label: '유의성' }
+      ],
+      data: result.postHoc.map(ph => ({
+        comparison: `${ph.group1} vs ${ph.group2}`,
+        meanDiff: ph.meanDiff?.toFixed(3) ?? '-',
+        pvalue: ph.pvalue?.toFixed(4) ?? '-',
+        significant: ph.significant ? '유의함 *' : '-'
+      }))
+    })
+  }
+
+  // 3. 회귀계수 (회귀분석)
+  if (result.coefficients?.length) {
+    tables.push({
+      title: '회귀계수',
+      columns: [
+        { key: 'name', label: '변수' },
+        { key: 'value', label: '계수 (B)' },
+        { key: 'stdError', label: '표준오차' },
+        { key: 'tValue', label: 't값' },
+        { key: 'pvalue', label: 'p-value' }
+      ],
+      data: result.coefficients.map(c => ({
+        name: c.name,
+        value: c.value?.toFixed(4) ?? '-',
+        stdError: c.stdError?.toFixed(4) ?? '-',
+        tValue: c.tValue?.toFixed(3) ?? '-',
+        pvalue: c.pvalue?.toFixed(4) ?? '-'
+      }))
+    })
+  }
+
+  return tables.length > 0 ? tables : undefined
+}
+
+/**
  * 효과크기 타입을 StatisticalResult 형식으로 변환
  */
 function convertEffectSize(
@@ -19,26 +96,26 @@ function convertEffectSize(
   if (typeof effectSize === 'number') {
     return {
       value: effectSize,
-      type: 'cohens_d' // 기본값
+      type: 'cohensD' // 기본값
     }
   }
 
   // EffectSizeInfo -> StatisticalResult effectSize
-  const typeMap: Record<string, 'cohens_d' | 'eta_squared' | 'r' | 'phi' | 'cramers_v'> = {
-    "cohen's d": 'cohens_d',
-    "cohens_d": 'cohens_d',
-    "d": 'cohens_d',
-    "eta-squared": 'eta_squared',
-    "eta_squared": 'eta_squared',
-    "eta²": 'eta_squared',
-    "η²": 'eta_squared',
+  const typeMap: Record<string, 'cohensD' | 'etaSquared' | 'r' | 'phi' | 'cramersV'> = {
+    "cohen's d": 'cohensD',
+    "cohensD": 'cohensD',
+    "d": 'cohensD',
+    "eta-squared": 'etaSquared',
+    "etaSquared": 'etaSquared',
+    "eta²": 'etaSquared',
+    "η²": 'etaSquared',
     "pearson r": 'r',
     "r": 'r',
     "correlation": 'r',
     "phi": 'phi',
     "φ": 'phi',
-    "cramer's v": 'cramers_v',
-    "cramers_v": 'cramers_v',
+    "cramer's v": 'cramersV',
+    "cramersV": 'cramersV',
   }
 
   // effectSize.type이 undefined인 경우 방어
@@ -46,7 +123,7 @@ function convertEffectSize(
 
   return {
     value: effectSize.value,
-    type: typeMap[normalizedType] || 'cohens_d'
+    type: typeMap[normalizedType] || 'cohensD'
   }
 }
 
@@ -318,7 +395,10 @@ export function convertToStatisticalResult(
     sampleSize: options?.sampleSize,
     groups: options?.groups ?? result.groupStats?.length,
     variables: options?.variables,
-    timestamp: options?.timestamp ?? new Date()
+    timestamp: options?.timestamp ?? new Date(),
+
+    // 추가 결과 테이블 (groupStats, postHoc, coefficients)
+    additionalResults: buildAdditionalResults(result)
   }
 }
 

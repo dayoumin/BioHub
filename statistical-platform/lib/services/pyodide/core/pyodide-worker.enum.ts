@@ -37,7 +37,7 @@ export enum PyodideWorker {
    * - chi_square_test
    * - z_test
    * - binomial_test
-   * - partial_correlation
+   * - partialCorrelation
    * - etc.
    */
   Hypothesis = 2,

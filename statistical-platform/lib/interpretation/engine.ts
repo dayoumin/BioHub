@@ -300,8 +300,8 @@ function getInterpretationByMethod(
   // 정규화 후: 'poissonregression', '포아송회귀', '포아송' 모두 매칭
   if (methodLower.includes('poisson') || methodLower.includes('포아송')) {
     const hasCoefficients = results.coefficients && results.coefficients.length > 0
-    const modelInfo = results.additional as { pseudo_r_squared_mcfadden?: number; aic?: number }
-    const pseudoR2 = modelInfo?.pseudo_r_squared_mcfadden
+    const modelInfo = results.additional as { pseudoRSquaredMcfadden?: number; aic?: number }
+    const pseudoR2 = modelInfo?.pseudoRSquaredMcfadden
 
     // 예측변수 필터링 (intercept/const 제외, case-insensitive)
     const predictors = hasCoefficients
@@ -332,8 +332,8 @@ function getInterpretationByMethod(
   // 정규화 후: 'ordinalregression', '순서형회귀', '순서형' 모두 매칭
   if (methodLower.includes('ordinal') || methodLower.includes('순서형')) {
     const hasCoefficients = results.coefficients && results.coefficients.length > 0
-    const modelInfo = results.additional as { pseudo_r_squared?: number; aic?: number }
-    const pseudoR2 = modelInfo?.pseudo_r_squared
+    const modelInfo = results.additional as { pseudoRSquared?: number; aic?: number }
+    const pseudoR2 = modelInfo?.pseudoRSquared
 
     // 예측변수 필터링 (intercept/const 제외, case-insensitive)
     const predictors = hasCoefficients
@@ -364,8 +364,8 @@ function getInterpretationByMethod(
   // 정규화 후: 'logistic', '로지스틱', 'binary' 모두 매칭
   if (methodLower.includes('logistic') || methodLower.includes('로지스틱') || methodLower.includes('binary')) {
     const hasCoefficients = results.coefficients && results.coefficients.length > 0
-    const modelInfo = results.additional as { pseudo_r_squared?: number; accuracy?: number; aic?: number }
-    const pseudoR2 = modelInfo?.pseudo_r_squared
+    const modelInfo = results.additional as { pseudoRSquared?: number; accuracy?: number; aic?: number }
+    const pseudoR2 = modelInfo?.pseudoRSquared
     const accuracy = modelInfo?.accuracy
 
     // 예측변수 필터링 (intercept/const 제외, case-insensitive)
@@ -464,11 +464,11 @@ function getInterpretationByMethod(
       rSquared?: number
       adjRSquared?: number
       adjustedRSquared?: number
-      model_type?: string
+      modelType?: string
     }
     const rSquared = modelInfo?.rSquared
     const adjRSquared = modelInfo?.adjRSquared ?? modelInfo?.adjustedRSquared
-    const modelType = modelInfo?.model_type || '2차 모델'
+    const modelType = modelInfo?.modelType || '2차 모델'
 
     return {
       title: '반응표면 분석 결과',
@@ -490,13 +490,13 @@ function getInterpretationByMethod(
   if (methodLower.includes('dose') || methodLower.includes('용량') || methodLower.includes('response curve')) {
     const modelInfo = results.additional as {
       model?: string
-      r_squared?: number
+      rSquared?: number
       aic?: number
       ec50?: number
       ic50?: number
       hill_slope?: number
     }
-    const rSquared = modelInfo?.r_squared
+    const rSquared = modelInfo?.rSquared
     const ec50 = modelInfo?.ec50
     const ic50 = modelInfo?.ic50
     const modelType = modelInfo?.model || '용량-반응 모델'
@@ -521,12 +521,12 @@ function getInterpretationByMethod(
   if (methodLower.includes('mixed') || methodLower.includes('혼합') || methodLower.includes('lme') || methodLower.includes('lmm')) {
     const hasCoefficients = results.coefficients && results.coefficients.length > 0
     const modelInfo = results.additional as {
-      marginal_r_squared?: number
-      conditional_r_squared?: number
+      marginalRSquared?: number
+      conditionalRSquared?: number
       icc?: number
     }
-    const marginalR2 = modelInfo?.marginal_r_squared
-    const conditionalR2 = modelInfo?.conditional_r_squared
+    const marginalR2 = modelInfo?.marginalRSquared
+    const conditionalR2 = modelInfo?.conditionalRSquared
     const icc = modelInfo?.icc
 
     // 유의한 고정효과 개수 (Intercept 제외)

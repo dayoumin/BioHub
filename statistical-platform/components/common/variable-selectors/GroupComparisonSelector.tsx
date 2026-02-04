@@ -161,18 +161,18 @@ export function GroupComparisonSelector({
             disabled={!validation.isValid}
             className="gap-2"
           >
-            Start Analysis
+            분석 시작
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Group Variable */}
+        {/* 집단 변수 */}
         <Card>
           <CardHeader className="pb-3 bg-orange-50 dark:bg-orange-950/30">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-base">Group Variable</CardTitle>
+              <CardTitle className="text-base">집단 변수</CardTitle>
               <span className="text-destructive">*</span>
               {groupVar && (
                 <Badge variant="secondary" className="ml-auto">
@@ -235,11 +235,11 @@ export function GroupComparisonSelector({
           </CardContent>
         </Card>
 
-        {/* Dependent Variable */}
+        {/* 종속 변수 */}
         <Card>
           <CardHeader className="pb-3 bg-green-50 dark:bg-green-950/30">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-base">Dependent Variable (Y)</CardTitle>
+              <CardTitle className="text-base">종속 변수 (Y)</CardTitle>
               <span className="text-destructive">*</span>
               {dependentVar && <Badge variant="default" className="ml-auto">{dependentVar}</Badge>}
             </div>

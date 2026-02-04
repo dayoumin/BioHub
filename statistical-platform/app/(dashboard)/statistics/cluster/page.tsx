@@ -39,8 +39,8 @@ interface ClusterAnalysisResult {
   centroids?: number[][]
   inertia?: number
   silhouetteScore: number
-  calinski_harabasz_score: number
-  davies_bouldin_score: number
+  calinskiHarabaszScore: number
+  daviesBouldinScore: number
   withinClusterSumSquares: number[]
   totalWithinSS: number
   betweenClusterSS: number
@@ -367,7 +367,7 @@ export default function ClusterAnalysisPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {results.calinski_harabasz_score.toFixed(2)}
+                {results.calinskiHarabaszScore.toFixed(2)}
               </div>
               <p className="text-xs text-muted-foreground">
                 높을수록 좋은 군집화
@@ -382,7 +382,7 @@ export default function ClusterAnalysisPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {results.davies_bouldin_score.toFixed(3)}
+                {results.daviesBouldinScore.toFixed(3)}
               </div>
               <p className="text-xs text-muted-foreground">
                 낮을수록 좋은 군집화
@@ -464,11 +464,11 @@ export default function ClusterAnalysisPage() {
                   </div>
                   <div className="flex justify-between">
                     <span>Calinski-Harabasz:</span>
-                    <span className="font-mono">{results.calinski_harabasz_score.toFixed(2)}</span>
+                    <span className="font-mono">{results.calinskiHarabaszScore.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Davies-Bouldin:</span>
-                    <span className="font-mono">{results.davies_bouldin_score.toFixed(3)}</span>
+                    <span className="font-mono">{results.daviesBouldinScore.toFixed(3)}</span>
                   </div>
                   {results.optimalK && (
                     <div className="border-t pt-2 space-y-2">
@@ -494,8 +494,8 @@ export default function ClusterAnalysisPage() {
                   results.silhouetteScore > 0.5 ? '매우 좋은' :
                   results.silhouetteScore > 0.25 ? '보통의' : '약한'
                 } 군집화 품질을 보입니다. 전체 분산의 ${((results.betweenClusterSS / results.totalSS) * 100).toFixed(1)}%가 군집 간 차이로 설명됩니다.`,
-                details: `Calinski-Harabasz 지수: ${results.calinski_harabasz_score.toFixed(2)}
-Davies-Bouldin 지수: ${results.davies_bouldin_score.toFixed(3)}
+                details: `Calinski-Harabasz 지수: ${results.calinskiHarabaszScore.toFixed(2)}
+Davies-Bouldin 지수: ${results.daviesBouldinScore.toFixed(3)}
 총 제곱합(TSS): ${results.totalSS.toFixed(2)}
 군집 간 제곱합(BSS): ${results.betweenClusterSS.toFixed(2)}
 군집 내 제곱합(WSS): ${results.totalWithinSS.toFixed(2)}
@@ -505,7 +505,7 @@ Davies-Bouldin 지수: ${results.davies_bouldin_score.toFixed(3)}
                   : results.silhouetteScore > 0.25
                     ? '군집화 품질이 보통입니다. 다른 군집 수나 방법을 시도해 볼 수 있습니다.'
                     : '군집화 품질이 낮습니다. 변수 선택이나 군집 수 조정을 권장합니다.'}`,
-                caution: results.davies_bouldin_score >= 1
+                caution: results.daviesBouldinScore >= 1
                   ? 'Davies-Bouldin 지수가 1 이상으로 군집 간 분리가 명확하지 않습니다. 이상치 제거나 변수 스케일링을 고려해주세요.'
                   : '군집분석 결과는 초기 중심점 선택에 따라 달라질 수 있습니다. 여러 번 실행하여 결과의 안정성을 확인하세요.'
               }}

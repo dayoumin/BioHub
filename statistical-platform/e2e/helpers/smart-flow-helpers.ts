@@ -403,7 +403,7 @@ export async function logAnalysisProgress(page: Page): Promise<string[]> {
 
 /**
  * 모든 단계를 진행하고 분석을 실행하는 통합 헬퍼
- * Step 1 (데이터) → Step 2 (방법) → Step 3 (변수) → Step 4 (분석)
+ * Hub → Step 1 (데이터) → Step 2 (방법) → Step 3 (변수) → Step 4 (분석)
  */
 export async function runFullAnalysisFlow(
   page: Page,
@@ -415,6 +415,14 @@ export async function runFullAnalysisFlow(
   }
 ): Promise<boolean> {
   console.log(`[runFullAnalysisFlow] 시작: ${filename} - ${purpose}`);
+
+  // Hub 페이지에서 "데이터 업로드" 클릭 (2025 UI/UX)
+  const hubUploadButton = page.locator('text=/데이터 업로드/').first();
+  if (await hubUploadButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+    console.log('[runFullAnalysisFlow] Hub 페이지 감지, 데이터 업로드 진입점 클릭');
+    await hubUploadButton.click();
+    await page.waitForTimeout(1000);
+  }
 
   // Step 1: 데이터 업로드
   console.log('[runFullAnalysisFlow] Step 1: 데이터 업로드');

@@ -161,7 +161,7 @@ interface SmartFlowState {
   setSelectedMethod: (method: StatisticalMethod | null) => void
   setVariableMapping: (mapping: VariableMapping | null) => void
   setDetectedVariables: (vars: DetectedVariables | null) => void
-  setresults: (results: AnalysisResult | null) => void
+  setResults: (results: AnalysisResult | null) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
   
@@ -304,7 +304,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
       setSelectedMethod: (method) => set({ selectedMethod: method }),
       setVariableMapping: (mapping) => set({ variableMapping: mapping }),
       setDetectedVariables: (vars) => set({ detectedVariables: vars }),
-      setresults: (results) => set({ results: results }),
+      setResults: (results) => set({ results: results }),
       setLoading: (loading) => set({ isLoading: loading }),
       setError: (error) => set({ error: error }),
       setIsReanalysisMode: (mode) => set({ isReanalysisMode: mode }),

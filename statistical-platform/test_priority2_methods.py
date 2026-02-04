@@ -18,24 +18,24 @@ import json
 # Regression 그룹 (9개)
 # ============================================================================
 
-def curve_estimation(x_values, y_values, model_type='linear'):
+def curve_estimation(x_values, y_values, modelType='linear'):
     """곡선추정"""
     x = np.array(x_values)
     y = np.array(y_values)
 
-    if model_type == 'linear':
+    if modelType == 'linear':
         coeffs = np.polyfit(x, y, 1)
         predictions = np.polyval(coeffs, x)
 
-    elif model_type == 'quadratic':
+    elif modelType == 'quadratic':
         coeffs = np.polyfit(x, y, 2)
         predictions = np.polyval(coeffs, x)
 
-    elif model_type == 'cubic':
+    elif modelType == 'cubic':
         coeffs = np.polyfit(x, y, 3)
         predictions = np.polyval(coeffs, x)
 
-    elif model_type == 'exponential':
+    elif modelType == 'exponential':
         log_y = np.log(y)
         coeffs_linear = np.polyfit(x, log_y, 1)
         a = np.exp(coeffs_linear[1])
@@ -43,12 +43,12 @@ def curve_estimation(x_values, y_values, model_type='linear'):
         coeffs = [a, b]
         predictions = a * np.exp(b * x)
 
-    elif model_type == 'logarithmic':
+    elif modelType == 'logarithmic':
         log_x = np.log(x)
         coeffs = np.polyfit(log_x, y, 1)
         predictions = coeffs[0] * np.log(x) + coeffs[1]
 
-    elif model_type == 'power':
+    elif modelType == 'power':
         log_x = np.log(x)
         log_y = np.log(y)
         coeffs_linear = np.polyfit(log_x, log_y, 1)
@@ -59,12 +59,12 @@ def curve_estimation(x_values, y_values, model_type='linear'):
 
     ss_res = np.sum((y - predictions) ** 2)
     ss_tot = np.sum((y - np.mean(y)) ** 2)
-    r_squared = 1 - (ss_res / ss_tot)
+    rSquared = 1 - (ss_res / ss_tot)
 
     return {
-        'modelType': model_type,
+        'modelType': modelType,
         'coefficients': [float(c) for c in coeffs],
-        'rSquared': float(r_squared),
+        'rSquared': float(rSquared),
         'predictions': [float(p) for p in predictions],
         'residuals': [float(r) for r in (y - predictions)]
     }
@@ -80,7 +80,7 @@ def stepwise_regression(y_values, x_matrix, variable_names,
     if method == 'forward':
         selected = []
         remaining = list(range(n_vars))
-        r_squared_history = []
+        rSquared_history = []
 
         while remaining:
             best_pval = 1.0
@@ -101,13 +101,13 @@ def stepwise_regression(y_values, x_matrix, variable_names,
                 remaining.remove(best_var)
                 X_current = sm.add_constant(X[:, selected])
                 model_current = sm.OLS(y, X_current).fit()
-                r_squared_history.append(model_current.rsquared)
+                rSquared_history.append(model_current.rsquared)
             else:
                 break
 
     elif method == 'backward':
         selected = list(range(n_vars))
-        r_squared_history = []
+        rSquared_history = []
 
         while len(selected) > 0:
             X_test = sm.add_constant(X[:, selected])
@@ -121,21 +121,21 @@ def stepwise_regression(y_values, x_matrix, variable_names,
                 if selected:
                     X_current = sm.add_constant(X[:, selected])
                     model_current = sm.OLS(y, X_current).fit()
-                    r_squared_history.append(model_current.rsquared)
+                    rSquared_history.append(model_current.rsquared)
             else:
                 break
 
     if selected:
         X_final = sm.add_constant(X[:, selected])
-        final_model = sm.OLS(y, X_final).fit()
+        finalModel = sm.OLS(y, X_final).fit()
 
         return {
             'selectedVariables': [variable_names[i] for i in selected],
             'selectedIndices': selected,
-            'rSquaredAtStep': r_squared_history,
-            'finalCoefficients': [float(c) for c in final_model.params],
-            'finalRSquared': float(final_model.rsquared),
-            'adjustedRSquared': float(final_model.rsquared_adj)
+            'rSquaredAtStep': rSquared_history,
+            'finalCoefficients': [float(c) for c in finalModel.params],
+            'finalRSquared': float(finalModel.rsquared),
+            'adjustedRSquared': float(finalModel.rsquared_adj)
         }
     else:
         return {'selectedVariables': [], 'finalRSquared': 0.0}
@@ -195,15 +195,15 @@ def scheffe_test(groups):
             mean_diff = group_means[i] - group_means[j]
             se = np.sqrt(mse * (1/group_ns[i] + 1/group_ns[j]))
             f_stat = (mean_diff ** 2) / ((k - 1) * se ** 2)
-            p_value = 1 - stats.f.cdf(f_stat, k - 1, df_within)
+            pValue = 1 - stats.f.cdf(f_stat, k - 1, df_within)
 
             comparisons.append({
                 'group1': i,
                 'group2': j,
                 'meanDiff': float(mean_diff),
                 'fStatistic': float(f_stat),
-                'pValue': float(p_value),
-                'significant': p_value < 0.05
+                'pValue': float(pValue),
+                'significant': pValue < 0.05
             })
 
     return {
@@ -381,7 +381,7 @@ def test_edge_cases():
     print("✅ Edge Cases PASSED")
 
 
-def test_statistical_correctness():
+def testStatistical_correctness():
     """통계적 정확성 검증"""
     print("\n=== Test 7: Statistical Correctness ===")
 
@@ -422,7 +422,7 @@ if __name__ == '__main__':
         test_poisson_regression()
         test_scheffe_test()
         test_edge_cases()
-        test_statistical_correctness()
+        testStatistical_correctness()
 
         print("\n" + "=" * 60)
         print("✅ ALL TESTS PASSED!")

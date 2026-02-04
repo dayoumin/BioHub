@@ -24,10 +24,10 @@ export async function oneSampleTTest(
     pop_mean = ${populationMean}
     
     # T-test 수행
-    t_stat, p_value = stats.ttest_1samp(data, pop_mean)
+    t_stat, pValue = stats.ttest_1samp(data, pop_mean)
     
     # 효과크기 (Cohen's d) 계산
-    cohens_d = (np.mean(data) - pop_mean) / np.std(data, ddof=1)
+    cohensD = (np.mean(data) - pop_mean) / np.std(data, ddof=1)
     
     # 신뢰구간 계산
     mean = np.mean(data)
@@ -37,23 +37,23 @@ export async function oneSampleTTest(
     result = {
         'testName': 'One-sample t-test',
         'statistic': float(t_stat),
-        'pValue': float(p_value),
+        'pValue': float(pValue),
         'degreesOfFreedom': int(len(data) - 1),
-        'effectSize': float(cohens_d),
+        'effectSize': float(cohensD),
         'confidenceInterval': [float(ci[0]), float(ci[1])],
         'sampleMean': float(mean),
         'populationMean': float(pop_mean),
         'sampleStd': float(np.std(data, ddof=1)),
         'n': int(len(data)),
-        'interpretation': f"The sample mean ({'is' if p_value < 0.05 else 'is not'} significantly different from {pop_mean} (p = {p_value:.4f})",
-        'isSignificant': p_value < 0.05
+        'interpretation': f"The sample mean ({'is' if pValue < 0.05 else 'is not'} significantly different from {pop_mean} (p = {pValue:.4f})",
+        'isSignificant': pValue < 0.05
     }
     
     json.dumps(result)
   `)
   
   const parsedResult = JSON.parse(result)
-  parsedResult.interpretation = `${parsedResult.interpretation}. Effect size: ${interpretEffectSize(parsedResult.effectSize, 'cohens_d')}`
+  parsedResult.interpretation = `${parsedResult.interpretation}. Effect size: ${interpretEffectSize(parsedResult.effectSize, 'cohensD')}`
   return parsedResult
 }
 
@@ -79,17 +79,17 @@ export async function twoSampleTTest(
     
     # T-test 수행
     if ${equalVar}:
-        t_stat, p_value = stats.ttest_ind(group1, group2, equal_var=True)
-        test_name = "Independent t-test"
+        t_stat, pValue = stats.ttest_ind(group1, group2, equal_var=True)
+        testName = "Independent t-test"
     else:
-        t_stat, p_value = stats.ttest_ind(group1, group2, equal_var=False)
-        test_name = "Welch's t-test"
+        t_stat, pValue = stats.ttest_ind(group1, group2, equal_var=False)
+        testName = "Welch's t-test"
     
     # 효과크기 (Cohen's d) 계산
     pooled_std = np.sqrt(((len(group1)-1)*np.var(group1, ddof=1) + 
                           (len(group2)-1)*np.var(group2, ddof=1)) / 
                           (len(group1)+len(group2)-2))
-    cohens_d = (np.mean(group1) - np.mean(group2)) / pooled_std
+    cohensD = (np.mean(group1) - np.mean(group2)) / pooled_std
     
     # 신뢰구간 계산
     mean_diff = np.mean(group1) - np.mean(group2)
@@ -98,11 +98,11 @@ export async function twoSampleTTest(
     ci = stats.t.interval(0.95, df, loc=mean_diff, scale=se)
     
     result = {
-        'testName': test_name,
+        'testName': testName,
         'statistic': float(t_stat),
-        'pValue': float(p_value),
+        'pValue': float(pValue),
         'degreesOfFreedom': int(df),
-        'effectSize': float(cohens_d),
+        'effectSize': float(cohensD),
         'confidenceInterval': [float(ci[0]), float(ci[1])],
         'mean1': float(np.mean(group1)),
         'mean2': float(np.mean(group2)),
@@ -111,15 +111,15 @@ export async function twoSampleTTest(
         'n1': int(len(group1)),
         'n2': int(len(group2)),
         'meanDifference': float(mean_diff),
-        'interpretation': f"The difference between groups is {'statistically significant' if p_value < 0.05 else 'not statistically significant'} (p = {p_value:.4f})",
-        'isSignificant': p_value < 0.05
+        'interpretation': f"The difference between groups is {'statistically significant' if pValue < 0.05 else 'not statistically significant'} (p = {pValue:.4f})",
+        'isSignificant': pValue < 0.05
     }
     
     json.dumps(result)
   `)
   
   const parsedResult = JSON.parse(result)
-  parsedResult.interpretation = `${parsedResult.interpretation}. Effect size: ${interpretEffectSize(parsedResult.effectSize, 'cohens_d')}`
+  parsedResult.interpretation = `${parsedResult.interpretation}. Effect size: ${interpretEffectSize(parsedResult.effectSize, 'cohensD')}`
   return parsedResult
 }
 
@@ -148,7 +148,7 @@ export async function pairedTTest(
     after = np.array(${JSON.stringify(after)})
     
     # Paired t-test 수행
-    t_stat, p_value = stats.ttest_rel(before, after)
+    t_stat, pValue = stats.ttest_rel(before, after)
     
     # 차이값 계산
     differences = after - before
@@ -156,7 +156,7 @@ export async function pairedTTest(
     std_diff = np.std(differences, ddof=1)
     
     # 효과크기 (Cohen's d) 계산
-    cohens_d = mean_diff / std_diff
+    cohensD = mean_diff / std_diff
     
     # 신뢰구간 계산
     sem = stats.sem(differences)
@@ -165,24 +165,24 @@ export async function pairedTTest(
     result = {
         'testName': 'Paired t-test',
         'statistic': float(t_stat),
-        'pValue': float(p_value),
+        'pValue': float(pValue),
         'degreesOfFreedom': int(len(differences) - 1),
-        'effectSize': float(cohens_d),
+        'effectSize': float(cohensD),
         'confidenceInterval': [float(ci[0]), float(ci[1])],
         'meanBefore': float(np.mean(before)),
         'meanAfter': float(np.mean(after)),
         'meanDifference': float(mean_diff),
         'stdDifference': float(std_diff),
         'n': int(len(before)),
-        'interpretation': f"The change is {'statistically significant' if p_value < 0.05 else 'not statistically significant'} (p = {p_value:.4f})",
-        'isSignificant': p_value < 0.05
+        'interpretation': f"The change is {'statistically significant' if pValue < 0.05 else 'not statistically significant'} (p = {pValue:.4f})",
+        'isSignificant': pValue < 0.05
     }
     
     json.dumps(result)
   `)
   
   const parsedResult = JSON.parse(result)
-  parsedResult.interpretation = `${parsedResult.interpretation}. Effect size: ${interpretEffectSize(parsedResult.effectSize, 'cohens_d')}`
+  parsedResult.interpretation = `${parsedResult.interpretation}. Effect size: ${interpretEffectSize(parsedResult.effectSize, 'cohensD')}`
   return parsedResult
 }
 

@@ -645,7 +645,7 @@ export default function WelchTPage() {
               <EffectSizeCard
                 title="효과크기 (Cohen's d)"
                 value={results.effectSize}
-                type="cohens_d"
+                type="cohensD"
                 description="d = (M₁ - M₂) / √((s₁² + s₂²) / 2)"
                 showInterpretation={true}
                 showVisualScale={false}

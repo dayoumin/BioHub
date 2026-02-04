@@ -511,7 +511,7 @@ function decidePrediction(answers: Record<string, string>): DecisionResult {
   const outcomeType = answers.outcome_type
   const predictorCount = answers.predictor_count
   const variableSelection = answers.variable_selection
-  const modelType = answers.model_type
+  const modelType = answers.modelType
 
   const reasoning: ReasoningStep[] = []
 

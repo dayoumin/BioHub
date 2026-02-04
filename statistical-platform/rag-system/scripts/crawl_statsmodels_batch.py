@@ -40,7 +40,7 @@ STATSMODELS_FUNCTIONS = {
     "statsmodels.stats.contingency_tables.cochrans_q": "Cochran's Q 검정",
 
     # E. 검정 통계량 - 2개
-    "statsmodels.stats.stattools.durbin_watson": "Durbin-Watson 검정",
+    "statsmodels.stats.stattools.durbinWatson": "Durbin-Watson 검정",
     "statsmodels.stats.weightstats.ztest": "Z-검정 (평균)",
 
     # F. 시계열 분석 - 8개

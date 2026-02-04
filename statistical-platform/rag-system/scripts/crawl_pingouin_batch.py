@@ -25,7 +25,7 @@ PINGOUIN_FUNCTIONS = {
     "cronbach_alpha": "크론바흐 알파 (신뢰도)",
 
     # Additional common pingouin functions (for future reference)
-    # "partial_corr": "부분 상관계수",
+    # "partialCorr": "부분 상관계수",
     # "rm_corr": "반복측정 상관분석",
     # "power_ttest": "t-검정 검정력 분석",
 }

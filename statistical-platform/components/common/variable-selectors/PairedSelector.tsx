@@ -137,7 +137,7 @@ export function PairedSelector({
             disabled={!validation.isValid}
             className="gap-2"
           >
-            Start Analysis
+            분석 시작
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>

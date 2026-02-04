@@ -37,24 +37,24 @@ interface DoseResponseResult {
   parameters: {
     [key: string]: number
   }
-  fitted_values: number[]
+  fittedValues: number[]
   residuals: number[]
-  r_squared: number
+  rSquared: number
   aic: number
   bic: number
   ec50?: number
-  hill_slope?: number
+  hillSlope?: number
   top?: number
   bottom?: number
   ic50?: number
   ed50?: number
-  confidence_intervals: {
+  confidenceIntervals: {
     [key: string]: [number, number]
   }
-  goodness_of_fit: {
-    chi_square: number
-    p_value: number
-    degrees_freedom: number
+  goodnessOfFit: {
+    chiSquare: number
+    pValue: number
+    degreesFreedom: number
   }
 }
 
@@ -153,7 +153,7 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
       const params: Record<string, number[] | string | Record<string, number>> = {
         dose_data: doseData,
         response_data: responseData,
-        model_type: selectedModel
+        modelType: selectedModel
       }
 
       if (constraintsEnabled && (bottomConstraint || topConstraint)) {
@@ -328,10 +328,10 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  R² = {result.r_squared.toFixed(4)}
+                  R² = {result.rSquared.toFixed(4)}
                 </div>
-                <Badge className={getModelQuality(result.r_squared).color}>
-                  {getModelQuality(result.r_squared).label}
+                <Badge className={getModelQuality(result.rSquared).color}>
+                  {getModelQuality(result.rSquared).label}
                 </Badge>
               </CardContent>
             </Card>
@@ -352,14 +352,14 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
               </Card>
             )}
 
-            {result.hill_slope && (
+            {result.hillSlope && (
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Hill 기울기</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {result.hill_slope.toFixed(4)}
+                    {result.hillSlope.toFixed(4)}
                   </div>
                   <div className="text-sm text-muted-foreground">
                     곡선의 가파른 정도
@@ -395,9 +395,9 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
                       <div key={param} className="flex justify-between items-center p-3 border rounded-lg">
                         <div>
                           <span className="font-semibold">{param}</span>
-                          {result.confidence_intervals[param] && (
+                          {result.confidenceIntervals[param] && (
                             <div className="text-xs text-muted-foreground">
-                              95% CI: [{result.confidence_intervals[param][0].toFixed(4)}, {result.confidence_intervals[param][1].toFixed(4)}]
+                              95% CI: [{result.confidenceIntervals[param][0].toFixed(4)}, {result.confidenceIntervals[param][1].toFixed(4)}]
                             </div>
                           )}
                         </div>
@@ -419,7 +419,7 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
                     <div className="space-y-3">
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">R-squared</span>
-                        <span className="font-mono">{result.r_squared.toFixed(6)}</span>
+                        <span className="font-mono">{result.rSquared.toFixed(6)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">AIC</span>
@@ -433,15 +433,15 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
                     <div className="space-y-3">
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">χ² 통계량</span>
-                        <span className="font-mono">{result.goodness_of_fit.chi_square.toFixed(4)}</span>
+                        <span className="font-mono">{result.goodnessOfFit.chiSquare.toFixed(4)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">p-value</span>
-                        <span className="font-mono">{result.goodness_of_fit.p_value.toFixed(4)}</span>
+                        <span className="font-mono">{result.goodnessOfFit.pValue.toFixed(4)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">자유도</span>
-                        <span className="font-mono">{result.goodness_of_fit.degrees_freedom}</span>
+                        <span className="font-mono">{result.goodnessOfFit.degreesFreedom}</span>
                       </div>
                     </div>
                   </div>
@@ -453,14 +453,14 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
               {/* 결과 해석 - 공통 컴포넌트 */}
               <ResultInterpretation
                 result={{
-                  summary: `R² = ${result.r_squared.toFixed(4)} - ${getModelQuality(result.r_squared).label}한 적합도를 보입니다.` +
+                  summary: `R² = ${result.rSquared.toFixed(4)} - ${getModelQuality(result.rSquared).label}한 적합도를 보입니다.` +
                     (result.ec50 ? ` EC50 = ${result.ec50.toFixed(4)} (50% 효과 농도).` : ''),
-                  details: `R² = ${result.r_squared.toFixed(4)}, AIC = ${result.aic.toFixed(2)}, BIC = ${result.bic.toFixed(2)}, χ² = ${result.goodness_of_fit.chi_square.toFixed(4)}, p = ${result.goodness_of_fit.p_value.toFixed(4)}` +
-                    (result.hill_slope ? `, Hill 기울기 = ${result.hill_slope.toFixed(4)}` : ''),
-                  recommendation: result.goodness_of_fit.p_value > 0.05
+                  details: `R² = ${result.rSquared.toFixed(4)}, AIC = ${result.aic.toFixed(2)}, BIC = ${result.bic.toFixed(2)}, χ² = ${result.goodnessOfFit.chiSquare.toFixed(4)}, p = ${result.goodnessOfFit.pValue.toFixed(4)}` +
+                    (result.hillSlope ? `, Hill 기울기 = ${result.hillSlope.toFixed(4)}` : ''),
+                  recommendation: result.goodnessOfFit.pValue > 0.05
                     ? '모델이 데이터에 적절히 적합됩니다. 신뢰구간을 확인하여 매개변수의 정밀도를 평가하세요.'
                     : '모델 적합도에 문제가 있을 수 있습니다. 다른 모델을 시도하거나 데이터를 검토하세요.',
-                  caution: result.r_squared < 0.80
+                  caution: result.rSquared < 0.80
                     ? '적합도가 낮습니다. 모델 개선이나 다른 모델 검토가 필요합니다.'
                     : '모델 적합 시 이상치와 데이터 범위를 확인하세요.'
                 }}
@@ -737,7 +737,7 @@ export default function DoseResponsePage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">모델 적합도</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{results.r_squared?.toFixed(4) || 'N/A'}</div>
+                <div className="text-2xl font-bold">{results.rSquared?.toFixed(4) || 'N/A'}</div>
                 <p className="text-xs text-muted-foreground">R² (결정계수)</p>
               </CardContent>
             </Card>
@@ -809,14 +809,14 @@ export default function DoseResponsePage() {
           </Card>
 
           {/* 신뢰구간 */}
-          {results.confidence_intervals && (
+          {results.confidenceIntervals && (
             <Card>
               <CardHeader>
                 <CardTitle>신뢰구간 (95%)</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {Object.entries(results.confidence_intervals).map(([param, ci]) => (
+                  {Object.entries(results.confidenceIntervals).map(([param, ci]) => (
                     <div key={param} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                       <span className="font-medium">{param}</span>
                       <span className="text-sm">

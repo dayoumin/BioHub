@@ -307,8 +307,8 @@ export default function TTestPage() {
       pValue: testResult.pvalue,
       alpha: 0.05,
       effectSize: testResult.effect_size ? {
-        value: testResult.effect_size.cohens_d,
-        type: 'cohens_d'
+        value: testResult.effect_size.cohensD,
+        type: 'cohensD'
       } : undefined,
       confidenceInterval: testResult.ciLower !== undefined && testResult.ciUpper !== undefined && testResult.mean_diff !== undefined ? {
         estimate: testResult.mean_diff,
@@ -318,7 +318,7 @@ export default function TTestPage() {
       } : undefined,
       assumptions,
       interpretation: testResult.pvalue < 0.05
-        ? `검정 결과 p-value(${testResult.pvalue.toFixed(4)})가 유의수준 0.05보다 작아 귀무가설을 기각합니다. 두 집단(또는 조건) 간에 통계적으로 유의한 차이가 있습니다.${testResult.effect_size ? ` Cohen's d = ${testResult.effect_size.cohens_d.toFixed(3)}로 ${testResult.effect_size.interpretation}를 나타냅니다.` : ''}`
+        ? `검정 결과 p-value(${testResult.pvalue.toFixed(4)})가 유의수준 0.05보다 작아 귀무가설을 기각합니다. 두 집단(또는 조건) 간에 통계적으로 유의한 차이가 있습니다.${testResult.effect_size ? ` Cohen's d = ${testResult.effect_size.cohensD.toFixed(3)}로 ${testResult.effect_size.interpretation}를 나타냅니다.` : ''}`
         : `검정 결과 p-value(${testResult.pvalue.toFixed(4)})가 유의수준 0.05보다 커서 귀무가설을 기각할 수 없습니다. 두 집단(또는 조건) 간에 통계적으로 유의한 차이가 없습니다.`,
       recommendations: testResult.pvalue < 0.05 ? [
         '효과크기를 함께 보고하여 실질적 유의성을 평가하세요',

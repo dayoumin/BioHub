@@ -35,7 +35,7 @@ worker3 = load_worker('worker3_nonparametric_anova', 'worker3-nonparametric-anov
 
 # 워커 함수 import
 from worker4_regression_advanced import linear_regression, multiple_regression, pca_analysis
-from worker2_hypothesis import partial_correlation_analysis
+from worker2_hypothesis import partialCorrelation_analysis
 from worker3_nonparametric_anova import repeated_measures_anova
 
 # 테스트 결과 저장 (standalone 실행용)
@@ -182,7 +182,7 @@ def test_multiple_regression_assumptions():
 # Test 3: Partial Correlation Assumption Tests
 # =============================================================================
 
-def test_partial_correlation_assumptions():
+def test_partialCorrelation_assumptions():
     """편상관 가정 검정 테스트"""
 
     # 테스트 데이터
@@ -198,7 +198,7 @@ def test_partial_correlation_assumptions():
         for _ in range(n)
     ]
 
-    result = partial_correlation_analysis(
+    result = partialCorrelation_analysis(
         data,
         analysis_vars=['x', 'y', 'z'],
         control_vars=['control']
@@ -225,7 +225,7 @@ def test_partial_correlation_assumptions():
 
     return True
 
-def test_partial_correlation_multicollinearity():
+def test_partialCorrelation_multicollinearity():
     """통제변수 간 높은 상관이 있을 때 다중공선성 경고"""
 
     # 높은 상관관계를 가진 통제변수
@@ -244,7 +244,7 @@ def test_partial_correlation_multicollinearity():
         for i in range(n)
     ]
 
-    result = partial_correlation_analysis(
+    result = partialCorrelation_analysis(
         data,
         analysis_vars=['x', 'y'],
         control_vars=['control1', 'control2']
@@ -432,8 +432,8 @@ if __name__ == '__main__':
     run_test("다중회귀 가정 검정", test_multiple_regression_assumptions)
 
     print("\n[3] Partial Correlation 가정 검정")
-    run_test("편상관 가정 검정", test_partial_correlation_assumptions)
-    run_test("다중공선성 감지", test_partial_correlation_multicollinearity)
+    run_test("편상관 가정 검정", test_partialCorrelation_assumptions)
+    run_test("다중공선성 감지", test_partialCorrelation_multicollinearity)
 
     print("\n[4] Repeated Measures ANOVA 구형성 검정")
     run_test("3+ 시점 구형성 검정", test_repeated_measures_sphericity)

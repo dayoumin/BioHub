@@ -57,7 +57,7 @@ function createMockData(method: string, significant: boolean) {
         ];
         base.additional.rSquared = significant ? 0.7 : 0.1;
         if (methodLower.includes('logistic')) base.additional.accuracy = 0.85;
-        if (methodLower.includes('poisson')) base.additional.pseudo_r_squared_mcfadden = 0.6;
+        if (methodLower.includes('poisson')) base.additional.pseudoRSquaredMcfadden = 0.6;
     }
 
     if (methodLower.includes('anova') || methodLower.includes('kruskal')) {
@@ -101,7 +101,7 @@ function createMockData(method: string, significant: boolean) {
             ...base.additional,
             rSquared: significant ? 0.88 : 0.45,
             adjRSquared: significant ? 0.85 : 0.55,
-            model_type: 'second_order',
+            modelType: 'second_order',
             modelCoefficients: [
                 { name: 'Intercept', value: 5.1 },
                 { name: 'x1', value: significant ? 2.1 : 0.5 },

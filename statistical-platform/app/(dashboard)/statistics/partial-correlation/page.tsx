@@ -81,24 +81,24 @@ interface PartialCorrelationResults {
   correlations: Array<{
     variable1: string
     variable2: string
-    partial_corr: number
-    p_value: number
-    t_stat: number
+    partialCorr: number
+    pValue: number
+    tStat: number
     df: number
-    control_vars: string[]
+    controlVars: string[]
   }>
-  zero_order_correlations: Array<{
+  zeroOrderCorrelations: Array<{
     variable1: string
     variable2: string
     correlation: number
-    p_value: number
+    pValue: number
   }>
   summary: {
-    n_pairs: number
-    significant_pairs: number
-    mean_partial_corr: number
-    max_partial_corr: number
-    min_partial_corr: number
+    nPairs: number
+    significantPairs: number
+    meanPartialCorr: number
+    maxPartialCorr: number
+    minPartialCorr: number
   }
   interpretation: {
     summary: string
@@ -179,10 +179,10 @@ export default function PartialCorrelationPage() {
           recommendations: string[]
         }
         assumptions?: PartialCorrelationAssumptions
-      }>(PyodideWorker.Hypothesis, 'partial_correlation_analysis', {
+      }>(PyodideWorker.Hypothesis, 'partialCorrelation_analysis', {
         data: uploadedData.data as never,
         analysis_vars: variables.dependent as never,
-        control_vars: (variables.covariate || []) as never
+        controlVars: (variables.covariate || []) as never
       })
 
       // Python camelCase → TypeScript snake_case 변환
@@ -190,24 +190,24 @@ export default function PartialCorrelationPage() {
         correlations: result.correlations.map(c => ({
           variable1: c.variable1,
           variable2: c.variable2,
-          partial_corr: c.partialCorr,
-          p_value: c.pValue,
-          t_stat: c.tStat,
+          partialCorr: c.partialCorr,
+          pValue: c.pValue,
+          tStat: c.tStat,
           df: c.df,
-          control_vars: c.controlVars
+          controlVars: c.controlVars
         })),
-        zero_order_correlations: result.zeroOrderCorrelations.map(z => ({
+        zeroOrderCorrelations: result.zeroOrderCorrelations.map(z => ({
           variable1: z.variable1,
           variable2: z.variable2,
           correlation: z.correlation,
-          p_value: z.pValue
+          pValue: z.pValue
         })),
         summary: {
-          n_pairs: result.summary.nPairs,
-          significant_pairs: result.summary.significantPairs,
-          mean_partial_corr: result.summary.meanPartialCorr,
-          max_partial_corr: result.summary.maxPartialCorr,
-          min_partial_corr: result.summary.minPartialCorr
+          nPairs: result.summary.nPairs,
+          significantPairs: result.summary.significantPairs,
+          meanPartialCorr: result.summary.meanPartialCorr,
+          maxPartialCorr: result.summary.maxPartialCorr,
+          minPartialCorr: result.summary.minPartialCorr
         },
         interpretation: result.interpretation,
         assumptions: result.assumptions
@@ -575,25 +575,25 @@ export default function PartialCorrelationPage() {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600">분석된 변수 쌍</span>
-                      <span className="font-semibold">{results.summary.n_pairs}개</span>
+                      <span className="font-semibold">{results.summary.nPairs}개</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">통계적 유의한 쌍</span>
-                      <span className="font-semibold text-muted-foreground">{results.summary.significant_pairs}개</span>
+                      <span className="font-semibold text-muted-foreground">{results.summary.significantPairs}개</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">평균 편상관계수</span>
-                      <span className="font-semibold">{results.summary.mean_partial_corr.toFixed(3)}</span>
+                      <span className="font-semibold">{results.summary.meanPartialCorr.toFixed(3)}</span>
                     </div>
                   </div>
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600">최대 편상관계수</span>
-                      <span className="font-semibold text-muted-foreground">{results.summary.max_partial_corr.toFixed(3)}</span>
+                      <span className="font-semibold text-muted-foreground">{results.summary.maxPartialCorr.toFixed(3)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">최소 편상관계수</span>
-                      <span className="font-semibold text-muted-foreground">{results.summary.min_partial_corr.toFixed(3)}</span>
+                      <span className="font-semibold text-muted-foreground">{results.summary.minPartialCorr.toFixed(3)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">통제변수 수</span>
@@ -719,20 +719,20 @@ export default function PartialCorrelationPage() {
                     { key: 'strength', header: '강도', type: 'custom', align: 'center', formatter: (v) => v }
                   ] as const}
                   data={results.correlations.map((corr, index) => {
-                    const strength = getCorrelationStrength(corr.partial_corr)
+                    const strength = getCorrelationStrength(corr.partialCorr)
                     return {
                       variable1: corr.variable1,
                       variable2: corr.variable2,
                       partialCorr: (
                         <span className={`font-semibold ${strength.color}`}>
-                          {corr.partial_corr.toFixed(3)}
-                          {corr.p_value < 0.05 && <span className="text-red-500">*</span>}
+                          {corr.partialCorr.toFixed(3)}
+                          {corr.pValue < 0.05 && <span className="text-red-500">*</span>}
                         </span>
                       ),
-                      tStat: corr.t_stat,
+                      tStat: corr.tStat,
                       pValue: (
-                        <span className={corr.p_value < 0.05 ? 'text-muted-foreground font-medium' : ''}>
-                          {corr.p_value.toFixed(4)}
+                        <span className={corr.pValue < 0.05 ? 'text-muted-foreground font-medium' : ''}>
+                          {corr.pValue.toFixed(4)}
                         </span>
                       ),
                       df: corr.df,
@@ -770,8 +770,8 @@ export default function PartialCorrelationPage() {
                     { key: 'interpretation', header: '해석', type: 'custom', align: 'center', formatter: (v) => v }
                   ] as const}
                   data={results.correlations.map((corr, index) => {
-                    const zeroOrder = results.zero_order_correlations[index]
-                    const difference = corr.partial_corr - zeroOrder.correlation
+                    const zeroOrder = results.zeroOrderCorrelations[index]
+                    const difference = corr.partialCorr - zeroOrder.correlation
                     const absChange = Math.abs(difference)
 
                     let changeInterpretation = { text: '변화 없음', color: 'text-gray-600', bg: 'bg-gray-50' }
@@ -786,7 +786,7 @@ export default function PartialCorrelationPage() {
                     return {
                       variablePair: `${corr.variable1} - ${corr.variable2}`,
                       zeroOrder: zeroOrder.correlation,
-                      partial: corr.partial_corr,
+                      partial: corr.partialCorr,
                       difference: (
                         <span className={`font-medium ${changeInterpretation.color}`}>
                           {difference > 0 ? '+' : ''}{difference.toFixed(3)}
@@ -811,9 +811,9 @@ export default function PartialCorrelationPage() {
               result={{
                 title: '편상관분석 결과 해석',
                 summary: results.interpretation.summary,
-                statistical: `분석된 변수 쌍: ${results.summary.n_pairs}개, 유의한 쌍: ${results.summary.significant_pairs}개, 평균 편상관계수: ${results.summary.mean_partial_corr.toFixed(3)}, 범위: [${results.summary.min_partial_corr.toFixed(3)}, ${results.summary.max_partial_corr.toFixed(3)}], 통제변수 수: ${selectedVariables?.covariate?.length || 0}개`,
-                practical: results.summary.significant_pairs > 0
-                  ? `통제변수의 영향을 제거한 후에도 ${results.summary.significant_pairs}개의 변수 쌍에서 유의한 상관관계가 발견되었습니다. 이는 해당 변수들 간의 관계가 통제변수와 독립적임을 의미합니다. ${results.interpretation.recommendations.join(' ')}`
+                statistical: `분석된 변수 쌍: ${results.summary.nPairs}개, 유의한 쌍: ${results.summary.significantPairs}개, 평균 편상관계수: ${results.summary.meanPartialCorr.toFixed(3)}, 범위: [${results.summary.minPartialCorr.toFixed(3)}, ${results.summary.maxPartialCorr.toFixed(3)}], 통제변수 수: ${selectedVariables?.covariate?.length || 0}개`,
+                practical: results.summary.significantPairs > 0
+                  ? `통제변수의 영향을 제거한 후에도 ${results.summary.significantPairs}개의 변수 쌍에서 유의한 상관관계가 발견되었습니다. 이는 해당 변수들 간의 관계가 통제변수와 독립적임을 의미합니다. ${results.interpretation.recommendations.join(' ')}`
                   : `통제변수의 영향을 제거한 후 유의한 상관관계가 발견되지 않았습니다. 이는 원래의 상관관계가 통제변수에 의해 매개되었을 가능성을 시사합니다. ${results.interpretation.recommendations.join(' ')}`
               } satisfies InterpretationResult}
             />

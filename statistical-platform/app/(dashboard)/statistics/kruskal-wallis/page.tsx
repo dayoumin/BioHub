@@ -629,7 +629,7 @@ export default function KruskalWallisPage() {
           <EffectSizeCard
             title="효과크기 (η²)"
             value={analysisResult.effectSize.etaSquared}
-            type="eta_squared"
+            type="etaSquared"
             description="전체 변동 중 집단 간 차이로 설명되는 비율"
             showVisualScale={true}
             showInterpretation={true}

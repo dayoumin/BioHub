@@ -710,7 +710,7 @@ export default function OneSampleTPage() {
             <EffectSizeCard
               title="효과크기 (Cohen's d)"
               value={results.effectSize}
-              type="cohens_d"
+              type="cohensD"
               showInterpretation={true}
               showVisualScale={true}
             />

@@ -61,9 +61,9 @@ interface ManovaResult {
   overallTests: {
     test: string
     statistic: number
-    approximate_f: number
-    numerator_df: number
-    denominator_df: number
+    approximateF: number
+    numeratorDf: number
+    denominatorDf: number
     pValue: number
   }[]
   univariateTests: {
@@ -474,8 +474,8 @@ export default function ManovaPage() {
                       data={analysisResult.overallTests.map(test => ({
                         test: test.test,
                         statistic: test.statistic,
-                        approximateF: test.approximate_f,
-                        df: `${test.numerator_df}, ${test.denominator_df}`,
+                        approximateF: test.approximateF,
+                        df: `${test.numeratorDf}, ${test.denominatorDf}`,
                         pValue: <PValueBadge value={test.pValue} />,
                         interpretation: (
                           <Badge variant={test.pValue < 0.05 ? "default" : "outline"}>

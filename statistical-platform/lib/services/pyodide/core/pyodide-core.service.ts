@@ -225,6 +225,8 @@ export interface PyodideLoadingProgress {
   progress: number // 0-100
   message: string
   estimatedSize?: string // 예: "6MB", "12MB"
+  /** 캐시에서 복원 중인지 여부 */
+  fromCache?: boolean
 }
 
 /**
@@ -320,12 +322,16 @@ export class PyodideCoreService {
 
     this.loadPromise = (async () => {
       try {
+        // Service Worker 캐시 여부 감지
+        const isCached = await this.checkServiceWorkerCache()
+
         // 1. Pyodide 런타임 로드 (6MB)
         this.emitProgress({
           stage: 'runtime',
           progress: 0,
-          message: 'Pyodide 런타임 로딩 중...',
-          estimatedSize: '6MB'
+          message: isCached ? '캐시에서 Pyodide 복원 중...' : 'Pyodide 런타임 로딩 중...',
+          estimatedSize: '6MB',
+          fromCache: isCached
         })
 
         this.pyodide = await this._loadPyodide()
@@ -333,16 +339,18 @@ export class PyodideCoreService {
         this.emitProgress({
           stage: 'runtime',
           progress: 25,
-          message: 'Pyodide 런타임 로드 완료',
-          estimatedSize: '6MB'
+          message: isCached ? 'Pyodide 복원 완료' : 'Pyodide 런타임 로드 완료',
+          estimatedSize: '6MB',
+          fromCache: isCached
         })
 
         // 2. NumPy 로드 (12MB)
         this.emitProgress({
           stage: 'numpy',
           progress: 25,
-          message: 'NumPy 패키지 로딩 중...',
-          estimatedSize: '12MB'
+          message: isCached ? '캐시에서 NumPy 복원 중...' : 'NumPy 패키지 로딩 중...',
+          estimatedSize: '12MB',
+          fromCache: isCached
         })
 
         await this.pyodide.loadPackage(['numpy'])
@@ -350,16 +358,18 @@ export class PyodideCoreService {
         this.emitProgress({
           stage: 'numpy',
           progress: 50,
-          message: 'NumPy 패키지 로드 완료',
-          estimatedSize: '12MB'
+          message: isCached ? 'NumPy 복원 완료' : 'NumPy 패키지 로드 완료',
+          estimatedSize: '12MB',
+          fromCache: isCached
         })
 
         // 3. SciPy 로드 (25MB)
         this.emitProgress({
           stage: 'scipy',
           progress: 50,
-          message: 'SciPy 패키지 로딩 중...',
-          estimatedSize: '25MB'
+          message: isCached ? '캐시에서 SciPy 복원 중...' : 'SciPy 패키지 로딩 중...',
+          estimatedSize: '25MB',
+          fromCache: isCached
         })
 
         await this.pyodide.loadPackage(['scipy'])
@@ -367,8 +377,9 @@ export class PyodideCoreService {
         this.emitProgress({
           stage: 'scipy',
           progress: 85,
-          message: 'SciPy 패키지 로드 완료',
-          estimatedSize: '25MB'
+          message: isCached ? 'SciPy 복원 완료' : 'SciPy 패키지 로드 완료',
+          estimatedSize: '25MB',
+          fromCache: isCached
         })
 
         // 4. helpers.py 로드 (5KB)
@@ -376,7 +387,8 @@ export class PyodideCoreService {
           stage: 'helpers',
           progress: 85,
           message: '헬퍼 모듈 로딩 중...',
-          estimatedSize: '5KB'
+          estimatedSize: '5KB',
+          fromCache: isCached
         })
 
         const helpersResponse = await fetch('/workers/python/helpers.py')
@@ -398,10 +410,11 @@ export class PyodideCoreService {
         this.emitProgress({
           stage: 'complete',
           progress: 100,
-          message: '통계 엔진 준비 완료'
+          message: isCached ? '통계 엔진 복원 완료' : '통계 엔진 준비 완료',
+          fromCache: isCached
         })
 
-        console.log('✅ Pyodide 초기화 완료 (NumPy + SciPy + helpers)')
+        console.log(`✅ Pyodide 초기화 완료 (NumPy + SciPy + helpers)${isCached ? ' [캐시]' : ''}`)
       } catch (error) {
         this.isLoading = false
         const errorMessage = error instanceof Error ? error.message : String(error)
@@ -669,6 +682,29 @@ json.dumps(result)
   // ========================================
   // Private 메서드
   // ========================================
+
+  /**
+   * Service Worker 캐시에 Pyodide 파일이 있는지 확인
+   *
+   * @returns 캐시 존재 여부
+   */
+  private async checkServiceWorkerCache(): Promise<boolean> {
+    try {
+      if (typeof caches === 'undefined') return false
+
+      // sw.js의 캐시 이름 패턴: pyodide-cache-v{VERSION}
+      const allCacheNames = await caches.keys()
+      const pyodideCacheName = allCacheNames.find(name => name.startsWith('pyodide-cache-'))
+      if (!pyodideCacheName) return false
+
+      const cache = await caches.open(pyodideCacheName)
+      const keys = await cache.keys()
+      // .wasm 파일이 캐시에 있어야 실질적 캐시로 판단
+      return keys.some(req => req.url.includes('.wasm'))
+    } catch {
+      return false
+    }
+  }
 
   /**
    * Pyodide CDN 로드

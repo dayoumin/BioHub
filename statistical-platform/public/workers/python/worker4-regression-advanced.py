@@ -1014,8 +1014,8 @@ def cluster_analysis(data, method='kmeans', nClusters=3, linkage='ward', distanc
         'centroids': centroids.tolist(),
         'inertia': inertia,
         'silhouetteScore': silhouette,
-        'calinski_harabasz_score': calinski,
-        'davies_bouldin_score': davies,
+        'calinskiHarabaszScore': calinski,
+        'daviesBouldinScore': davies,
         'withinClusterSumSquares': within_ss,
         'totalWithinSS': total_within_ss,
         'betweenClusterSS': between_ss,
@@ -1609,13 +1609,13 @@ def dose_response_analysis(doseData, responseData, modelType='logistic4', constr
         model_func = logistic4_model
         initial_guess = [y_max, 1.0, x_mid, y_min]
         bounds = ([0, 0.1, x_min, 0], [2*y_max, 10, x_max, y_max])
-        param_names = ['top', 'hill_slope', 'ec50', 'bottom']
+        param_names = ['top', 'hillSlope', 'ec50', 'bottom']
 
     elif modelType == 'logistic3':
         model_func = logistic3_model
         initial_guess = [y_max, 1.0, x_mid]
         bounds = ([0, 0.1, x_min], [2*y_max, 10, x_max])
-        param_names = ['top', 'hill_slope', 'ec50']
+        param_names = ['top', 'hillSlope', 'ec50']
 
     elif modelType == 'weibull':
         model_func = weibull_model
@@ -1705,16 +1705,16 @@ def dose_response_analysis(doseData, responseData, modelType='logistic4', constr
     result_dict = {
         'model': modelType,
         'parameters': parameters,
-        'fitted_values': fitted_values.tolist(),
+        'fittedValues': fitted_values.tolist(),
         'residuals': residuals.tolist(),
-        'r_squared': r_squared,
+        'rSquared': r_squared,
         'aic': aic,
         'bic': bic,
-        'confidence_intervals': confidence_intervals,
-        'goodness_of_fit': {
-            'chi_square': chi_square,
-            'p_value': p_value,
-            'degrees_freedom': int(df)
+        'confidenceIntervals': confidence_intervals,
+        'goodnessOfFit': {
+            'chiSquare': chi_square,
+            'pValue': p_value,
+            'degreesFreedom': int(df)
         }
     }
 
@@ -1723,8 +1723,8 @@ def dose_response_analysis(doseData, responseData, modelType='logistic4', constr
         result_dict['ec50'] = parameters['ec50']
         result_dict['ed50'] = parameters['ec50']
 
-    if 'hill_slope' in parameters:
-        result_dict['hill_slope'] = parameters['hill_slope']
+    if 'hillSlope' in parameters:
+        result_dict['hillSlope'] = parameters['hillSlope']
 
     if 'top' in parameters:
         result_dict['top'] = parameters['top']

@@ -36,7 +36,7 @@ describe('Result Page Improvements', () => {
                 <EasyExplanation
                     pValue={0.023}
                     isSignificant={true}
-                    effectSize={{ value: 0.8, type: 'cohens_d' }}
+                    effectSize={{ value: 0.8, type: 'cohensD' }}
                 />
             )
             // Use getAllByText for percentages as they might appear in visual blocks too

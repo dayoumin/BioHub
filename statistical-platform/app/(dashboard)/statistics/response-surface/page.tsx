@@ -36,23 +36,23 @@ import { AssumptionChecklist } from '@/components/statistics/common/AssumptionCh
 import { useAnalysisGuide } from '@/hooks/use-analysis-guide'
 
 interface ResponseSurfaceResult {
-  model_type: string
+  modelType: string
   coefficients: {
     [key: string]: number
   }
-  fitted_values: number[]
+  fittedValues: number[]
   residuals: number[]
-  r_squared: number
-  adjusted_r_squared: number
-  f_statistic: number
-  f_pvalue: number
+  rSquared: number
+  adjustedRSquared: number
+  fStatistic: number
+  fPvalue: number
   anova_table: {
     source: string[]
     df: number[]
     ss: number[]
     ms: number[]
     f_value: number[]
-    p_value: number[]
+    pValue: number[]
   }
   optimization: {
     stationary_point: number[]
@@ -201,28 +201,28 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
         data: uploadedData.data as never,
         dependent_var: typedVariables.dependent,
         predictor_vars: predictorVars as never,
-        model_type: selectedModel,
+        modelType: selectedModel,
         include_interaction: includeInteraction,
         include_quadratic: includeQuadratic
       })
 
       // Convert camelCase to snake_case for ResponseSurfaceResult interface
       const analysisResult: ResponseSurfaceResult = {
-        model_type: result.modelType,
+        modelType: result.modelType,
         coefficients: result.coefficients,
-        fitted_values: result.fittedValues,
+        fittedValues: result.fittedValues,
         residuals: result.residuals,
-        r_squared: result.rSquared,
-        adjusted_r_squared: result.adjustedRSquared,
-        f_statistic: result.fStatistic,
-        f_pvalue: result.fPvalue,
+        rSquared: result.rSquared,
+        adjustedRSquared: result.adjustedRSquared,
+        fStatistic: result.fStatistic,
+        fPvalue: result.fPvalue,
         anova_table: {
           source: result.anovaTable.source,
           df: result.anovaTable.df,
           ss: result.anovaTable.ss,
           ms: result.anovaTable.ms,
           f_value: result.anovaTable.fValue,
-          p_value: result.anovaTable.pValue
+          pValue: result.anovaTable.pValue
         },
         optimization: {
           stationary_point: result.optimization.stationaryPoint,
@@ -287,10 +287,10 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  R² = {result.r_squared.toFixed(4)}
+                  R² = {result.rSquared.toFixed(4)}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  수정 R² = {result.adjusted_r_squared.toFixed(4)}
+                  수정 R² = {result.adjustedRSquared.toFixed(4)}
                 </div>
               </CardContent>
             </Card>
@@ -301,10 +301,10 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  F = {result.f_statistic.toFixed(2)}
+                  F = {result.fStatistic.toFixed(2)}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  p-value = {result.f_pvalue < 0.001 ? '< 0.001' : result.f_pvalue.toFixed(4)}
+                  p-value = {result.fPvalue < 0.001 ? '< 0.001' : result.fPvalue.toFixed(4)}
                 </div>
               </CardContent>
             </Card>
@@ -384,10 +384,10 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
                       ss: result.anova_table.ss[index].toFixed(4),
                       ms: result.anova_table.ms[index].toFixed(4),
                       fValue: result.anova_table.f_value[index] > 0 ? result.anova_table.f_value[index].toFixed(4) : '-',
-                      pValue: result.anova_table.p_value[index] > 0 ? (
-                        <PValueBadge value={result.anova_table.p_value[index]} />
+                      pValue: result.anova_table.pValue[index] > 0 ? (
+                        <PValueBadge value={result.anova_table.pValue[index]} />
                       ) : '-',
-                      _highlighted: result.anova_table.p_value[index] > 0 && result.anova_table.p_value[index] < 0.05
+                      _highlighted: result.anova_table.pValue[index] > 0 && result.anova_table.pValue[index] < 0.05
                     }))}
                   />
                 </CardContent>
@@ -466,11 +466,11 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="text-muted-foreground">R²: </span>
-                          {result.r_squared.toFixed(4)} ({(result.r_squared * 100).toFixed(1)}% 설명)
+                          {result.rSquared.toFixed(4)} ({(result.rSquared * 100).toFixed(1)}% 설명)
                         </div>
                         <div>
                           <span className="text-muted-foreground">수정 R²: </span>
-                          {result.adjusted_r_squared.toFixed(4)}
+                          {result.adjustedRSquared.toFixed(4)}
                         </div>
                       </div>
                     </div>
@@ -504,12 +504,12 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
           {/* 결과 해석 - 공통 컴포넌트 */}
           <ResultInterpretation
             result={{
-              summary: `모델 적합도 R² = ${result.r_squared.toFixed(4)} (${(result.r_squared * 100).toFixed(1)}% 설명력), 수정 R² = ${result.adjusted_r_squared.toFixed(4)}. ${result.f_pvalue < 0.05 ? '모델이 통계적으로 유의합니다.' : '모델이 통계적으로 유의하지 않습니다.'}`,
-              details: `F = ${result.f_statistic.toFixed(2)}, p = ${result.f_pvalue < 0.001 ? '< 0.001' : result.f_pvalue.toFixed(4)}. 임계점 분석 결과: ${getNatureLabel(result.optimization.nature).label}.`,
+              summary: `모델 적합도 R² = ${result.rSquared.toFixed(4)} (${(result.rSquared * 100).toFixed(1)}% 설명력), 수정 R² = ${result.adjustedRSquared.toFixed(4)}. ${result.fPvalue < 0.05 ? '모델이 통계적으로 유의합니다.' : '모델이 통계적으로 유의하지 않습니다.'}`,
+              details: `F = ${result.fStatistic.toFixed(2)}, p = ${result.fPvalue < 0.001 ? '< 0.001' : result.fPvalue.toFixed(4)}. 임계점 분석 결과: ${getNatureLabel(result.optimization.nature).label}.`,
               recommendation: (() => {
-                const baseRec = result.r_squared >= 0.8
+                const baseRec = result.rSquared >= 0.8
                   ? '모델 적합도가 우수합니다.'
-                  : result.r_squared >= 0.5
+                  : result.rSquared >= 0.5
                   ? '모델 적합도가 적절합니다. 추가 변수나 교호작용 항을 고려해보세요.'
                   : '모델 적합도가 낮습니다. 모델 형태 변경이나 추가 데이터 수집을 고려하세요.'
 

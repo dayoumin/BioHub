@@ -53,73 +53,73 @@ import {
 } from 'lucide-react'
 
 interface PoissonRegressionResult {
-  model_info: {
-    model_type: string
-    link_function: string
+  modelInfo: {
+    modelType: string
+    linkFunction: string
     distribution: string
-    n_observations: number
-    n_predictors: number
+    nObservations: number
+    nPredictors: number
     convergence: boolean
     iterations: number
-    log_likelihood: number
+    logLikelihood: number
   }
   coefficients: {
     variable: string
     coefficient: number
-    std_error: number
-    z_value: number
-    p_value: number
+    stdError: number
+    zValue: number
+    pValue: number
     ciLower: number
     ciUpper: number
-    exp_coefficient: number
+    expCoefficient: number
     irrCiLower: number
     irrCiUpper: number
   }[]
-  model_fit: {
+  modelFit: {
     deviance: number
-    pearson_chi2: number
+    pearsonChi2: number
     aic: number
     bic: number
-    pseudo_r_squared_mcfadden: number
-    pseudo_r_squared_deviance: number
-    dispersion_parameter: number
+    pseudoRSquaredMcfadden: number
+    pseudoRSquaredDeviance: number
+    dispersionParameter: number
   }
   assumptions: {
     overdispersion: {
-      test_name: string
+      testName: string
       statistic: number
-      p_value: number
-      dispersion_ratio: number
-      assumption_met: boolean
+      pValue: number
+      dispersionRatio: number
+      assumptionMet: boolean
     }
     linearity: {
-      test_name: string
-      p_value: number
-      assumption_met: boolean
+      testName: string
+      pValue: number
+      assumptionMet: boolean
     }
     independence: {
-      durbin_watson: number
-      assumption_met: boolean
+      durbinWatson: number
+      assumptionMet: boolean
     }
   }
-  predicted_values: {
+  predictedValues: {
     observation: number
-    actual_count: number
-    predicted_count: number
+    actualCount: number
+    predictedCount: number
     residual: number
-    pearson_residual: number
-    deviance_residual: number
+    pearsonResidual: number
+    devianceResidual: number
   }[]
-  goodness_of_fit: {
-    pearson_gof: {
+  goodnessOfFit: {
+    pearsonGof: {
       statistic: number
       df: number
-      p_value: number
+      pValue: number
     }
-    deviance_gof: {
+    devianceGof: {
       statistic: number
       df: number
-      p_value: number
+      pValue: number
     }
   }
   rate_ratios: {
@@ -521,24 +521,24 @@ export default function PoissonRegressionPage() {
                       <CardContent className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-sm">모델 유형:</span>
-                          <span className="text-sm font-medium">{results.model_info.model_type}</span>
+                          <span className="text-sm font-medium">{results.modelInfo.modelType}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">분포:</span>
-                          <span className="text-sm font-medium">{results.model_info.distribution}</span>
+                          <span className="text-sm font-medium">{results.modelInfo.distribution}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">연결함수:</span>
-                          <span className="text-sm font-medium">{results.model_info.link_function}</span>
+                          <span className="text-sm font-medium">{results.modelInfo.linkFunction}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">관측치 수:</span>
-                          <span className="text-sm font-medium">{results.model_info.n_observations}</span>
+                          <span className="text-sm font-medium">{results.modelInfo.nObservations}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">수렴:</span>
                           <span className="text-sm font-medium">
-                            {results.model_info.convergence ? '성공' : '실패'} ({results.model_info.iterations}회)
+                            {results.modelInfo.convergence ? '성공' : '실패'} ({results.modelInfo.iterations}회)
                           </span>
                         </div>
                       </CardContent>
@@ -551,23 +551,23 @@ export default function PoissonRegressionPage() {
                       <CardContent className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-sm">AIC:</span>
-                          <span className="text-sm font-medium">{results.model_fit.aic.toFixed(2)}</span>
+                          <span className="text-sm font-medium">{results.modelFit.aic.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">BIC:</span>
-                          <span className="text-sm font-medium">{results.model_fit.bic.toFixed(2)}</span>
+                          <span className="text-sm font-medium">{results.modelFit.bic.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">편차:</span>
-                          <span className="text-sm font-medium">{results.model_fit.deviance.toFixed(2)}</span>
+                          <span className="text-sm font-medium">{results.modelFit.deviance.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">McFadden R²:</span>
-                          <span className="text-sm font-medium">{results.model_fit.pseudo_r_squared_mcfadden.toFixed(3)}</span>
+                          <span className="text-sm font-medium">{results.modelFit.pseudoRSquaredMcfadden.toFixed(3)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">산포 계수:</span>
-                          <span className="text-sm font-medium">{results.model_fit.dispersion_parameter.toFixed(3)}</span>
+                          <span className="text-sm font-medium">{results.modelFit.dispersionParameter.toFixed(3)}</span>
                         </div>
                       </CardContent>
                     </Card>
@@ -582,11 +582,11 @@ export default function PoissonRegressionPage() {
                     columns={[
                       { key: 'variable', header: '변수', type: 'text' },
                       { key: 'coefficient', header: '계수', type: 'number', formatter: (v) => v.toFixed(4) },
-                      { key: 'std_error', header: '표준오차', type: 'number', formatter: (v) => v.toFixed(4) },
-                      { key: 'z_value', header: 'z', type: 'number', formatter: (v) => v.toFixed(3) },
-                      { key: 'p_value', header: 'p-value', type: 'pvalue' },
+                      { key: 'stdError', header: '표준오차', type: 'number', formatter: (v) => v.toFixed(4) },
+                      { key: 'zValue', header: 'z', type: 'number', formatter: (v) => v.toFixed(3) },
+                      { key: 'pValue', header: 'p-value', type: 'pvalue' },
                       { key: 'ci', header: '95% CI', type: 'custom', formatter: (_, row) => `[${row.ciLower.toFixed(3)}, ${row.ciUpper.toFixed(3)}]` },
-                      { key: 'exp_coefficient', header: 'exp(β)', type: 'number', formatter: (v) => v.toFixed(3) },
+                      { key: 'expCoefficient', header: 'exp(β)', type: 'number', formatter: (v) => v.toFixed(3) },
                       { key: 'irr_ci', header: 'IRR CI', type: 'custom', formatter: (_, row) => `[${row.irrCiLower.toFixed(3)}, ${row.irrCiUpper.toFixed(3)}]` }
                     ] as TableColumn[]}
                     data={results.coefficients}
@@ -606,7 +606,7 @@ export default function PoissonRegressionPage() {
                           formatter={(value: number) => [value.toFixed(3), 'IRR']}
                           labelFormatter={(label: string) => `Variable: ${label}`}
                         />
-                        <Bar dataKey="exp_coefficient" fill="#10b981" />
+                        <Bar dataKey="expCoefficient" fill="#10b981" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -620,36 +620,36 @@ export default function PoissonRegressionPage() {
                   tests={[
                     {
                       name: '과산포 검정 (Overdispersion)',
-                      testName: results.assumptions.overdispersion.test_name,
-                      pValue: results.assumptions.overdispersion.p_value,
-                      statistic: results.assumptions.overdispersion.dispersion_ratio,
-                      passed: results.assumptions.overdispersion.assumption_met,
+                      testName: results.assumptions.overdispersion.testName,
+                      pValue: results.assumptions.overdispersion.pValue,
+                      statistic: results.assumptions.overdispersion.dispersionRatio,
+                      passed: results.assumptions.overdispersion.assumptionMet,
                       description: '분산이 평균과 같은지 검정합니다. 포아송 분포는 평균=분산을 가정합니다.',
-                      details: `산포비 = ${results.assumptions.overdispersion.dispersion_ratio.toFixed(3)}`,
+                      details: `산포비 = ${results.assumptions.overdispersion.dispersionRatio.toFixed(3)}`,
                       recommendation: '과산포가 감지되면 준-포아송 모델이나 음이항 회귀분석을 고려하세요.',
-                      severity: results.assumptions.overdispersion.assumption_met ? 'low' : 'high'
+                      severity: results.assumptions.overdispersion.assumptionMet ? 'low' : 'high'
                     },
                     {
                       name: '적합도 검정 (Pearson)',
                       testName: 'Pearson Chi-square',
-                      pValue: results.goodness_of_fit.pearson_gof.p_value,
-                      statistic: results.goodness_of_fit.pearson_gof.statistic,
-                      passed: results.goodness_of_fit.pearson_gof.p_value > 0.05,
+                      pValue: results.goodnessOfFit.pearsonGof.pValue,
+                      statistic: results.goodnessOfFit.pearsonGof.statistic,
+                      passed: results.goodnessOfFit.pearsonGof.pValue > 0.05,
                       description: 'Pearson 카이제곱 적합도 검정입니다.',
-                      details: `χ² = ${results.goodness_of_fit.pearson_gof.statistic.toFixed(2)}, df = ${results.goodness_of_fit.pearson_gof.df}`,
+                      details: `χ² = ${results.goodnessOfFit.pearsonGof.statistic.toFixed(2)}, df = ${results.goodnessOfFit.pearsonGof.df}`,
                       recommendation: 'p < 0.05이면 모델 적합도가 낮을 수 있습니다.',
-                      severity: results.goodness_of_fit.pearson_gof.p_value > 0.05 ? 'low' : 'medium'
+                      severity: results.goodnessOfFit.pearsonGof.pValue > 0.05 ? 'low' : 'medium'
                     },
                     {
                       name: '적합도 검정 (Deviance)',
                       testName: 'Deviance',
-                      pValue: results.goodness_of_fit.deviance_gof.p_value,
-                      statistic: results.goodness_of_fit.deviance_gof.statistic,
-                      passed: results.goodness_of_fit.deviance_gof.p_value > 0.05,
+                      pValue: results.goodnessOfFit.devianceGof.pValue,
+                      statistic: results.goodnessOfFit.devianceGof.statistic,
+                      passed: results.goodnessOfFit.devianceGof.pValue > 0.05,
                       description: 'Deviance 적합도 검정입니다.',
-                      details: `Deviance = ${results.goodness_of_fit.deviance_gof.statistic.toFixed(2)}, df = ${results.goodness_of_fit.deviance_gof.df}`,
+                      details: `Deviance = ${results.goodnessOfFit.devianceGof.statistic.toFixed(2)}, df = ${results.goodnessOfFit.devianceGof.df}`,
                       recommendation: 'p < 0.05이면 모델 개선이 필요할 수 있습니다.',
-                      severity: results.goodness_of_fit.deviance_gof.p_value > 0.05 ? 'low' : 'medium'
+                      severity: results.goodnessOfFit.devianceGof.pValue > 0.05 ? 'low' : 'medium'
                     }
                   ]}
                 />
@@ -661,13 +661,13 @@ export default function PoissonRegressionPage() {
                   <StatisticsTable
                     columns={[
                       { key: 'observation', header: '관측치', type: 'number' },
-                      { key: 'actual_count', header: '실제값', type: 'number' },
-                      { key: 'predicted_count', header: '예측값', type: 'number', formatter: (v) => v.toFixed(2) },
+                      { key: 'actualCount', header: '실제값', type: 'number' },
+                      { key: 'predictedCount', header: '예측값', type: 'number', formatter: (v) => v.toFixed(2) },
                       { key: 'residual', header: '잔차', type: 'number', formatter: (v) => v.toFixed(3) },
-                      { key: 'pearson_residual', header: 'Pearson 잔차', type: 'number', formatter: (v) => v.toFixed(3) },
-                      { key: 'deviance_residual', header: '편차 잔차', type: 'number', formatter: (v) => v.toFixed(3) }
+                      { key: 'pearsonResidual', header: 'Pearson 잔차', type: 'number', formatter: (v) => v.toFixed(3) },
+                      { key: 'devianceResidual', header: '편차 잔차', type: 'number', formatter: (v) => v.toFixed(3) }
                     ] as TableColumn[]}
-                    data={results.predicted_values.slice(0, 10)}
+                    data={results.predictedValues.slice(0, 10)}
                     compactMode
                   />
                 </div>
@@ -676,15 +676,15 @@ export default function PoissonRegressionPage() {
                   <h4 className="font-medium mb-3">실제값 vs 예측값</h4>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
-                      <ScatterChart data={results.predicted_values.slice(0, 10)}>
+                      <ScatterChart data={results.predictedValues.slice(0, 10)}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="predicted_count" name="예측값" />
-                        <YAxis dataKey="actual_count" name="실제값" />
+                        <XAxis dataKey="predictedCount" name="예측값" />
+                        <YAxis dataKey="actualCount" name="실제값" />
                         <RechartsTooltip
-                          formatter={(value: number, name: string) => [value.toFixed(2), name === 'actual_count' ? '실제값' : '예측값']}
+                          formatter={(value: number, name: string) => [value.toFixed(2), name === 'actualCount' ? '실제값' : '예측값']}
                         />
-                        <Scatter dataKey="actual_count" fill="#3b82f6" />
-                        <Line dataKey="predicted_count" stroke="#ef4444" strokeWidth={2} dot={false} />
+                        <Scatter dataKey="actualCount" fill="#3b82f6" />
+                        <Line dataKey="predictedCount" stroke="#ef4444" strokeWidth={2} dot={false} />
                       </ScatterChart>
                     </ResponsiveContainer>
                   </div>
@@ -730,12 +730,12 @@ export default function PoissonRegressionPage() {
               <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="space-y-4">
                 <ResultInterpretation
                   result={{
-                    summary: `모델 적합도: McFadden R² = ${results.model_fit.pseudo_r_squared_mcfadden.toFixed(3)}로, 모델이 데이터의 변동을 ${(results.model_fit.pseudo_r_squared_mcfadden * 100).toFixed(1)}% 설명합니다. ${results.model_fit.pseudo_r_squared_mcfadden >= 0.1 ? '포아송 회귀 기준 양호한 적합도입니다.' : '적합도가 다소 낮을 수 있습니다.'}`,
-                    details: `과산포 검정 결과 산포비 = ${results.assumptions.overdispersion.dispersion_ratio.toFixed(3)}. ${results.assumptions.overdispersion.assumption_met ? '포아송 분포 가정이 적절합니다.' : '과산포가 존재합니다.'} Deviance = ${results.model_fit.deviance.toFixed(2)}, AIC = ${results.model_fit.aic.toFixed(2)}.`,
-                    recommendation: results.assumptions.overdispersion.assumption_met
+                    summary: `모델 적합도: McFadden R² = ${results.modelFit.pseudoRSquaredMcfadden.toFixed(3)}로, 모델이 데이터의 변동을 ${(results.modelFit.pseudoRSquaredMcfadden * 100).toFixed(1)}% 설명합니다. ${results.modelFit.pseudoRSquaredMcfadden >= 0.1 ? '포아송 회귀 기준 양호한 적합도입니다.' : '적합도가 다소 낮을 수 있습니다.'}`,
+                    details: `과산포 검정 결과 산포비 = ${results.assumptions.overdispersion.dispersionRatio.toFixed(3)}. ${results.assumptions.overdispersion.assumptionMet ? '포아송 분포 가정이 적절합니다.' : '과산포가 존재합니다.'} Deviance = ${results.modelFit.deviance.toFixed(2)}, AIC = ${results.modelFit.aic.toFixed(2)}.`,
+                    recommendation: results.assumptions.overdispersion.assumptionMet
                       ? '현재 포아송 모델이 적절합니다. 발생률비(IRR)를 통해 각 예측변수의 효과를 해석하세요.'
                       : '과산포가 존재하므로 준-포아송(Quasi-Poisson) 모델이나 음이항 회귀(Negative Binomial Regression)를 고려해야 합니다.',
-                    caution: results.model_fit.pseudo_r_squared_mcfadden < 0.1
+                    caution: results.modelFit.pseudoRSquaredMcfadden < 0.1
                       ? '모델 설명력이 낮습니다. 추가 예측변수 도입이나 다른 모델 고려가 필요합니다.'
                       : undefined
                   }}

@@ -164,18 +164,18 @@ export function MultipleRegressionSelector({
             disabled={!validation.isValid}
             className="gap-2"
           >
-            Start Analysis
+            분석 시작
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Dependent Variable (Y) */}
+        {/* 종속 변수 (Y) */}
         <Card>
           <CardHeader className="pb-3 bg-green-50 dark:bg-green-950/30">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-base">Dependent Variable (Y)</CardTitle>
+              <CardTitle className="text-base">종속 변수 (Y)</CardTitle>
               <span className="text-destructive">*</span>
               {dependentVar && <Badge variant="default" className="ml-auto">{dependentVar}</Badge>}
             </div>
@@ -216,11 +216,11 @@ export function MultipleRegressionSelector({
           </CardContent>
         </Card>
 
-        {/* Independent Variables (X) */}
+        {/* 독립 변수 (X) */}
         <Card>
           <CardHeader className="pb-3 bg-blue-50 dark:bg-blue-950/30">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-base">Independent Variables (X)</CardTitle>
+              <CardTitle className="text-base">독립 변수 (X)</CardTitle>
               <span className="text-destructive">*</span>
               <Badge variant="outline" className="ml-auto">
                 {independentVars.length} / {maxIndependent}

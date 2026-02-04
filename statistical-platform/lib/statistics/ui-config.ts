@@ -244,7 +244,7 @@ export const STATISTICAL_ANALYSIS_CONFIG: AnalysisCategory[] = [
         relatedTests: ['simpleLinearRegression']
       },
       {
-        id: "partialCorrelation",
+        id: "partial_correlation",
         name: "편상관분석",
         nameEn: "Partial Correlation",
         description: "제3변수의 영향을 제거한 상관관계",

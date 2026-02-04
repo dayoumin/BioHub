@@ -190,13 +190,13 @@ export function transformExecutorResult(
     // Regression-specific metrics (Phase 3 fix)
     aic: additionalInfo?.aic,
     bic: additionalInfo?.bic,
-    pseudo_r_squared_mcfadden: additionalInfo?.pseudo_r_squared_mcfadden,
-    pseudo_r_squared_nagelkerke: additionalInfo?.pseudo_r_squared_nagelkerke,
-    pseudo_r_squared_cox_snell: additionalInfo?.pseudo_r_squared_cox_snell,
-    pseudo_r_squared: additionalInfo?.pseudo_r_squared,
+    pseudoRSquaredMcfadden: additionalInfo?.pseudoRSquaredMcfadden,
+    pseudoRSquaredNagelkerke: additionalInfo?.pseudoRSquaredNagelkerke,
+    pseudoRSquaredCoxSnell: additionalInfo?.pseudoRSquaredCoxSnell,
+    pseudoRSquared: additionalInfo?.pseudoRSquared,
     finalVariables: additionalInfo?.finalVariables,
     deviance: additionalInfo?.deviance,
-    log_likelihood: additionalInfo?.log_likelihood
+    logLikelihood: additionalInfo?.logLikelihood
   }
 
   // 시각화 데이터 변환

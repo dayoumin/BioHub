@@ -464,7 +464,7 @@ export default function ANCOVAPage() {
             <EffectSizeCard
               title="부분 η² (Partial Eta Squared)"
               value={analysisResult.mainEffects[0].partialEtaSquared}
-              type="partial_eta_squared"
+              type="partialEtaSquared"
               description="집단 효과가 설명하는 분산 비율"
               showInterpretation={true}
               showVisualScale={false}

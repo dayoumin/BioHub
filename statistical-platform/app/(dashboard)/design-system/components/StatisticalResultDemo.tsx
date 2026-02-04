@@ -19,7 +19,7 @@ export function StatisticalResultDemo() {
     alpha: 0.05,
     effectSize: {
       value: 0.72,
-      type: 'cohens_d' as const
+      type: 'cohensD' as const
     },
     confidenceInterval: {
       estimate: 5.23,
@@ -119,7 +119,7 @@ const result = {
   df: 48,
   pValue: 0.0009,
   alpha: 0.05,
-  effectSize: { value: 0.72, type: 'cohens_d' },
+  effectSize: { value: 0.72, type: 'cohensD' },
   // ... more fields
 }
 

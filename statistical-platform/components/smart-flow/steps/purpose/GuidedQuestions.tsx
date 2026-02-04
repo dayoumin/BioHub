@@ -62,8 +62,8 @@ const CONDITIONAL_QUESTIONS: Record<string, (answers: Record<string, string>) =>
   // variable_selection: only for multiple predictors
   'variable_selection': (answers) => answers.predictor_count === '2+',
 
-  // model_type: only for continuous outcome
-  'model_type': (answers) => answers.outcome_type === 'continuous',
+  // modelType: only for continuous outcome
+  'modelType': (answers) => answers.outcome_type === 'continuous',
 
   // distribution_goal: only for frequency analysis
   'distribution_goal': (answers) => answers.analysis_type === 'frequency' || answers.analysis_type === 'explore',

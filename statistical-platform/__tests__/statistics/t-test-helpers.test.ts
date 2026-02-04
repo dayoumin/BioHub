@@ -314,7 +314,7 @@ describe('T-Test Helpers', () => {
 
       expect(result.type).toBe('paired')
       expect(result.df).toBe(24)
-      expect(result.effect_size?.cohens_d).toBe(0.9)
+      expect(result.effect_size?.cohensD).toBe(0.9)
     })
   })
 

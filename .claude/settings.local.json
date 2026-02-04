@@ -75,7 +75,18 @@
       "Bash(xargs:*)",
       "Bash(pnpm test:*)",
       "mcp__playwright__playwright_evaluate",
-      "Bash(npx playwright test:*)"
+      "Bash(npx playwright test:*)",
+      "Bash(pnpm run lint:*)",
+      "Bash(pnpm run build:*)",
+      "Bash(npx vitest:*)",
+      "WebFetch(domain:docs.turso.tech)",
+      "WebFetch(domain:typedb.com)",
+      "Bash(cmd /c \"taskkill /PID 108320 /F /T\")",
+      "WebFetch(domain:pyodide.org)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(pnpm tsc:*)",
+      "Bash(powershell -Command \"pnpm tsc --noEmit 2>&1 | Select-String -Pattern ''pyodide|ts-expect-error''\")"
     ],
     "deny": [],
     "ask": []

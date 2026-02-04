@@ -102,7 +102,7 @@
       "percentage": "6.3"
     },
     {
-      "field": "model_type",
+      "field": "modelType",
       "count": 3,
       "percentage": "6.3"
     },
@@ -222,22 +222,22 @@
       "percentage": "4.2"
     },
     {
-      "field": "model_info",
+      "field": "modelInfo",
       "count": 2,
       "percentage": "4.2"
     },
     {
-      "field": "link_function",
+      "field": "linkFunction",
       "count": 2,
       "percentage": "4.2"
     },
     {
-      "field": "n_observations",
+      "field": "nObservations",
       "count": 2,
       "percentage": "4.2"
     },
     {
-      "field": "n_predictors",
+      "field": "nPredictors",
       "count": 2,
       "percentage": "4.2"
     },
@@ -827,17 +827,17 @@
       "percentage": "2.1"
     },
     {
-      "field": "approximate_f",
+      "field": "approximateF",
       "count": 1,
       "percentage": "2.1"
     },
     {
-      "field": "numerator_df",
+      "field": "numeratorDf",
       "count": 1,
       "percentage": "2.1"
     },
     {
-      "field": "denominator_df",
+      "field": "denominatorDf",
       "count": 1,
       "percentage": "2.1"
     },
@@ -1002,7 +1002,7 @@
       "percentage": "2.1"
     },
     {
-      "field": "partial_corr",
+      "field": "partialCorr",
       "count": 1,
       "percentage": "2.1"
     },
@@ -1062,7 +1062,7 @@
       "percentage": "2.1"
     },
     {
-      "field": "log_likelihood",
+      "field": "logLikelihood",
       "count": 1,
       "percentage": "2.1"
     },
@@ -1257,27 +1257,27 @@
       "percentage": "2.1"
     },
     {
-      "field": "final_model",
+      "field": "finalModel",
       "count": 1,
       "percentage": "2.1"
     },
     {
-      "field": "r_squared",
+      "field": "rSquared",
       "count": 1,
       "percentage": "2.1"
     },
     {
-      "field": "adj_r_squared",
+      "field": "adjRSquared",
       "count": 1,
       "percentage": "2.1"
     },
     {
-      "field": "f_statistic",
+      "field": "fStatistic",
       "count": 1,
       "percentage": "2.1"
     },
     {
-      "field": "f_p_value",
+      "field": "f_pValue",
       "count": 1,
       "percentage": "2.1"
     },
@@ -1425,7 +1425,7 @@
         "percentage": 6.25
       },
       {
-        "field": "model_type",
+        "field": "modelType",
         "count": 3,
         "percentage": 6.25
       },
@@ -1545,22 +1545,22 @@
         "percentage": 4.166666666666666
       },
       {
-        "field": "model_info",
+        "field": "modelInfo",
         "count": 2,
         "percentage": 4.166666666666666
       },
       {
-        "field": "link_function",
+        "field": "linkFunction",
         "count": 2,
         "percentage": 4.166666666666666
       },
       {
-        "field": "n_observations",
+        "field": "nObservations",
         "count": 2,
         "percentage": 4.166666666666666
       },
       {
-        "field": "n_predictors",
+        "field": "nPredictors",
         "count": 2,
         "percentage": 4.166666666666666
       },
@@ -2150,17 +2150,17 @@
         "percentage": 2.083333333333333
       },
       {
-        "field": "approximate_f",
+        "field": "approximateF",
         "count": 1,
         "percentage": 2.083333333333333
       },
       {
-        "field": "numerator_df",
+        "field": "numeratorDf",
         "count": 1,
         "percentage": 2.083333333333333
       },
       {
-        "field": "denominator_df",
+        "field": "denominatorDf",
         "count": 1,
         "percentage": 2.083333333333333
       },
@@ -2325,7 +2325,7 @@
         "percentage": 2.083333333333333
       },
       {
-        "field": "partial_corr",
+        "field": "partialCorr",
         "count": 1,
         "percentage": 2.083333333333333
       },
@@ -2385,7 +2385,7 @@
         "percentage": 2.083333333333333
       },
       {
-        "field": "log_likelihood",
+        "field": "logLikelihood",
         "count": 1,
         "percentage": 2.083333333333333
       },
@@ -2580,27 +2580,27 @@
         "percentage": 2.083333333333333
       },
       {
-        "field": "final_model",
+        "field": "finalModel",
         "count": 1,
         "percentage": 2.083333333333333
       },
       {
-        "field": "r_squared",
+        "field": "rSquared",
         "count": 1,
         "percentage": 2.083333333333333
       },
       {
-        "field": "adj_r_squared",
+        "field": "adjRSquared",
         "count": 1,
         "percentage": 2.083333333333333
       },
       {
-        "field": "f_statistic",
+        "field": "fStatistic",
         "count": 1,
         "percentage": 2.083333333333333
       },
       {
-        "field": "f_p_value",
+        "field": "f_pValue",
         "count": 1,
         "percentage": 2.083333333333333
       },
@@ -2996,9 +2996,9 @@
         "overallTests",
         "test",
         "statistic",
-        "approximate_f",
-        "numerator_df",
-        "denominator_df",
+        "approximateF",
+        "numeratorDf",
+        "denominatorDf",
         "pValue"
       ],
       "fieldCount": 7
@@ -3137,11 +3137,11 @@
       "page": "ordinal-regression",
       "typeName": "OrdinalRegressionResult",
       "fields": [
-        "model_info",
-        "model_type",
-        "link_function",
-        "n_observations",
-        "n_predictors",
+        "modelInfo",
+        "modelType",
+        "linkFunction",
+        "nObservations",
+        "nPredictors",
         "convergence",
         "iterations"
       ],
@@ -3154,8 +3154,8 @@
         "correlations",
         "variable1",
         "variable2",
-        "partial_corr",
-        "p_value",
+        "partialCorr",
+        "pValue",
         "t_stat",
         "df",
         "control_vars"
@@ -3185,15 +3185,15 @@
       "page": "poisson",
       "typeName": "PoissonRegressionResult",
       "fields": [
-        "model_info",
-        "model_type",
-        "link_function",
+        "modelInfo",
+        "modelType",
+        "linkFunction",
         "distribution",
-        "n_observations",
-        "n_predictors",
+        "nObservations",
+        "nPredictors",
         "convergence",
         "iterations",
-        "log_likelihood"
+        "logLikelihood"
       ],
       "fieldCount": 9
     },
@@ -3274,7 +3274,7 @@
       "page": "response-surface",
       "typeName": "ResponseSurfaceResult",
       "fields": [
-        "model_type",
+        "modelType",
         "coefficients"
       ],
       "fieldCount": 2
@@ -3349,12 +3349,12 @@
       "page": "stepwise",
       "typeName": "StepwiseResults",
       "fields": [
-        "final_model",
+        "finalModel",
         "variables",
-        "r_squared",
-        "adj_r_squared",
-        "f_statistic",
-        "f_p_value",
+        "rSquared",
+        "adjRSquared",
+        "fStatistic",
+        "f_pValue",
         "aic",
         "bic",
         "rmse"

@@ -27,7 +27,7 @@ export async function mannWhitneyU(
     group2 = np.array(${JSON.stringify(group2)})
     
     # Mann-Whitney U test
-    statistic, p_value = stats.mannwhitneyu(group1, group2, alternative='${alternative}')
+    statistic, pValue = stats.mannwhitneyu(group1, group2, alternative='${alternative}')
     
     # 효과크기 (r = Z / sqrt(N))
     n1, n2 = len(group1), len(group2)
@@ -55,7 +55,7 @@ export async function mannWhitneyU(
     result = {
         'testName': 'Mann-Whitney U Test',
         'statistic': float(statistic),
-        'pValue': float(p_value),
+        'pValue': float(pValue),
         'zScore': float(z_score),
         'effectSize': float(effect_size_r),
         'median1': float(median1),
@@ -64,8 +64,8 @@ export async function mannWhitneyU(
         'n2': int(n2),
         'hodgesLehmann': float(hodges_lehmann),
         'alternative': '${alternative}',
-        'interpretation': f"Groups {'differ' if p_value < 0.05 else 'do not differ'} significantly (p = {p_value:.4f}). Effect size r = {effect_size_r:.3f}",
-        'isSignificant': p_value < 0.05
+        'interpretation': f"Groups {'differ' if pValue < 0.05 else 'do not differ'} significantly (p = {pValue:.4f}). Effect size r = {effect_size_r:.3f}",
+        'isSignificant': pValue < 0.05
     }
     
     json.dumps(result)
@@ -104,14 +104,14 @@ export async function wilcoxonSignedRank(
     # Wilcoxon signed-rank test
     if y is not None:
         # 대응표본 검정
-        statistic, p_value = stats.wilcoxon(x, y, alternative='${alternative}')
+        statistic, pValue = stats.wilcoxon(x, y, alternative='${alternative}')
         differences = x - y
         test_type = 'Paired samples'
         median_diff = np.median(differences)
         n_pairs = len(x)
     else:
         # 일표본 검정 (중앙값 = 0)
-        statistic, p_value = stats.wilcoxon(x, alternative='${alternative}')
+        statistic, pValue = stats.wilcoxon(x, alternative='${alternative}')
         differences = x
         test_type = 'One sample (median = 0)'
         median_diff = np.median(x)
@@ -136,14 +136,14 @@ export async function wilcoxonSignedRank(
     result = {
         'testName': f'Wilcoxon Signed-Rank Test ({test_type})',
         'statistic': float(statistic),
-        'pValue': float(p_value),
+        'pValue': float(pValue),
         'zScore': float(z_score) if n > 20 else None,
         'effectSize': float(effect_size_r),
         'medianDifference': float(median_diff),
         'n': int(n_pairs),
         'alternative': '${alternative}',
-        'interpretation': f"{'Significant' if p_value < 0.05 else 'No significant'} difference found (p = {p_value:.4f})",
-        'isSignificant': p_value < 0.05
+        'interpretation': f"{'Significant' if pValue < 0.05 else 'No significant'} difference found (p = {pValue:.4f})",
+        'isSignificant': pValue < 0.05
     }
     
     json.dumps(result)
@@ -173,7 +173,7 @@ export async function kruskalWallis(
     group_names = ${JSON.stringify(names)}
     
     # Kruskal-Wallis test
-    statistic, p_value = stats.kruskal(*groups)
+    statistic, pValue = stats.kruskal(*groups)
     
     # 그룹별 중앙값과 평균 순위
     all_data = np.concatenate(groups)
@@ -199,18 +199,18 @@ export async function kruskalWallis(
     # 효과크기 (Epsilon-squared)
     n_total = len(all_data)
     df = len(groups) - 1
-    epsilon_squared = (statistic - df) / (n_total - df - 1) if n_total > df + 1 else 0
+    epsilonSquared = (statistic - df) / (n_total - df - 1) if n_total > df + 1 else 0
     
     result = {
         'testName': 'Kruskal-Wallis Test',
         'statistic': float(statistic),
-        'pValue': float(p_value),
+        'pValue': float(pValue),
         'degreesOfFreedom': int(df),
-        'effectSize': float(epsilon_squared),
+        'effectSize': float(epsilonSquared),
         'groups': group_info,
-        'interpretation': f"Groups {'differ' if p_value < 0.05 else 'do not differ'} significantly (p = {p_value:.4f})",
-        'isSignificant': p_value < 0.05,
-        'requiresPostHoc': p_value < 0.05 and len(groups) > 2
+        'interpretation': f"Groups {'differ' if pValue < 0.05 else 'do not differ'} significantly (p = {pValue:.4f})",
+        'isSignificant': pValue < 0.05,
+        'requiresPostHoc': pValue < 0.05 and len(groups) > 2
     }
     
     json.dumps(result)
@@ -286,31 +286,31 @@ export async function dunnTest(
         z = abs(diff) / se if se > 0 else 0
         
         # p-value (양측검정)
-        p_value = 2 * (1 - stats.norm.cdf(abs(z)))
+        pValue = 2 * (1 - stats.norm.cdf(abs(z)))
         
         comparisons.append({
             'group1': group_names[i],
             'group2': group_names[j],
             'meanRankDiff': float(diff),
             'zScore': float(z),
-            'pValue': float(p_value),
+            'pValue': float(pValue),
             'comparison': f"{group_names[i]} vs {group_names[j]}"
         })
     
     # p-value 조정
     if p_adjust != 'none' and len(comparisons) > 1:
-        p_values = [c['pValue'] for c in comparisons]
+        pValues = [c['pValue'] for c in comparisons]
         
         if p_adjust == 'bonferroni':
-            adjusted_p = [min(p * len(comparisons), 1.0) for p in p_values]
+            adjusted_p = [min(p * len(comparisons), 1.0) for p in pValues]
         elif p_adjust == 'holm':
             # Holm-Bonferroni method
-            sorted_indices = np.argsort(p_values)
-            adjusted_p = [0] * len(p_values)
+            sorted_indices = np.argsort(pValues)
+            adjusted_p = [0] * len(pValues)
             for rank, idx in enumerate(sorted_indices):
-                adjusted_p[idx] = min(p_values[idx] * (len(p_values) - rank), 1.0)
+                adjusted_p[idx] = min(pValues[idx] * (len(pValues) - rank), 1.0)
         else:
-            adjusted_p = p_values
+            adjusted_p = pValues
         
         for i, comp in enumerate(comparisons):
             comp['adjustedPValue'] = float(adjusted_p[i])
@@ -347,14 +347,14 @@ export async function chiSquareTest(
     
     if observed.ndim == 2:
         # 독립성 검정 (2차원 분할표)
-        chi2_stat, p_value, dof, expected_freq = stats.chi2_contingency(observed)
+        chi2_stat, pValue, dof, expected_freq = stats.chi2_contingency(observed)
         test_type = 'Independence Test'
         
         # Cramér's V (효과크기)
         n = observed.sum()
         min_dim = min(observed.shape[0] - 1, observed.shape[1] - 1)
-        cramers_v = np.sqrt(chi2_stat / (n * min_dim)) if n > 0 and min_dim > 0 else 0
-        effect_size = cramers_v
+        cramersV = np.sqrt(chi2_stat / (n * min_dim)) if n > 0 and min_dim > 0 else 0
+        effect_size = cramersV
         
         result_data = {
             'observed': observed.tolist(),
@@ -367,7 +367,7 @@ export async function chiSquareTest(
             # 균등분포 가정
             expected = np.ones_like(observed) * np.mean(observed)
         
-        chi2_stat, p_value = stats.chisquare(observed, expected)
+        chi2_stat, pValue = stats.chisquare(observed, expected)
         dof = len(observed) - 1
         test_type = 'Goodness of Fit Test'
         
@@ -384,12 +384,12 @@ export async function chiSquareTest(
     result = {
         'testName': f'Chi-Square {test_type}',
         'statistic': float(chi2_stat),
-        'pValue': float(p_value),
+        'pValue': float(pValue),
         'degreesOfFreedom': int(dof),
         'effectSize': float(effect_size),
         'data': result_data,
-        'interpretation': f"{'Significant' if p_value < 0.05 else 'No significant'} association found (p = {p_value:.4f})",
-        'isSignificant': p_value < 0.05
+        'interpretation': f"{'Significant' if pValue < 0.05 else 'No significant'} association found (p = {pValue:.4f})",
+        'isSignificant': pValue < 0.05
     }
     
     json.dumps(result)

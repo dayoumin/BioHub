@@ -8,6 +8,8 @@
  * - 최대 100개 히스토리 저장
  */
 
+import type { VariableMapping } from '@/lib/statistics/variable-mapping'
+
 const DB_NAME = 'smart-flow-history'
 const DB_VERSION = 1
 const STORE_NAME = 'analyses'
@@ -27,6 +29,10 @@ export interface HistoryRecord {
   dataFileName: string
   dataRowCount: number
   results: Record<string, unknown> | null
+
+  // 재분석용 설정 저장
+  variableMapping?: VariableMapping | null
+  analysisPurpose?: string
 }
 
 /**

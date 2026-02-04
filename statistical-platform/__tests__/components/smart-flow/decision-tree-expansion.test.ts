@@ -309,7 +309,7 @@ describe('DecisionTree - 확장된 Purpose', () => {
     it('용량-반응 분석 -> dose-response', () => {
       const result = decide({
         purpose: 'prediction',
-        answers: { model_type: 'dose_response' }
+        answers: { modelType: 'dose_response' }
       })
 
       expect(result.method.id).toBe('dose-response')
@@ -319,7 +319,7 @@ describe('DecisionTree - 확장된 Purpose', () => {
     it('최적화 실험 -> response-surface', () => {
       const result = decide({
         purpose: 'prediction',
-        answers: { model_type: 'optimization' }
+        answers: { modelType: 'optimization' }
       })
 
       expect(result.method.id).toBe('response-surface')

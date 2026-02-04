@@ -835,14 +835,14 @@ export default function ANOVAPage() {
               <EffectSizeCard
                 title="Eta Squared"
                 value={results.etaSquared}
-                type="eta_squared"
+                type="etaSquared"
                 description="집단 간 분산이 전체 분산에서 차지하는 비율"
                 showVisualScale={true}
               />
               <EffectSizeCard
                 title="Omega Squared"
                 value={results.omegaSquared}
-                type="omega_squared"
+                type="omegaSquared"
                 description="모집단 효과크기의 편향 보정 추정치"
                 showVisualScale={true}
               />
@@ -899,7 +899,7 @@ function convertTwoWayWorkerResultToTable(
     interaction: { fStatistic: number; pValue: number; df: number }
     residual: { df: number }
     anovaTable: {
-      sum_sq: Record<string, number>
+      sumSq: Record<string, number>
       df: Record<string, number>
       F: Record<string, number>
       'PR(>F)': Record<string, number>
@@ -915,7 +915,7 @@ function convertTwoWayWorkerResultToTable(
   f: number | null
   p: number | null
 }> {
-  const getSS = (key: string) => workerResult.anovaTable.sum_sq[key] ?? 0
+  const getSS = (key: string) => workerResult.anovaTable.sumSq[key] ?? 0
   const getDF = (key: string) => workerResult.anovaTable.df[key] ?? 1
   const getMS = (key: string) => {
     const ss = getSS(key)
@@ -978,7 +978,7 @@ function convertThreeWayWorkerResultToTable(
     interaction123: { fStatistic: number; pValue: number; df: number }
     residual: { df: number }
     anovaTable: {
-      sum_sq: Record<string, number>
+      sumSq: Record<string, number>
       df: Record<string, number>
       F: Record<string, number>
       'PR(>F)': Record<string, number>
@@ -995,7 +995,7 @@ function convertThreeWayWorkerResultToTable(
   f: number | null
   p: number | null
 }> {
-  const getSS = (key: string) => workerResult.anovaTable.sum_sq[key] ?? 0
+  const getSS = (key: string) => workerResult.anovaTable.sumSq[key] ?? 0
   const getDF = (key: string) => workerResult.anovaTable.df[key] ?? 1
   const getMS = (key: string) => {
     const ss = getSS(key)

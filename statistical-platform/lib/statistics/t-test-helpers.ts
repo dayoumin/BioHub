@@ -22,7 +22,7 @@ export interface TTestResult {
   ciUpper?: number
   mean_diff?: number
   effect_size?: {
-    cohens_d: number
+    cohensD: number
     interpretation: string
   }
   assumptions?: {
@@ -273,7 +273,7 @@ export async function runOneSampleTTestSummary(
     ciLower: result.ciLower,
     ciUpper: result.ciUpper,
     effect_size: {
-      cohens_d: result.cohensD,
+      cohensD: result.cohensD,
       interpretation: interpretEffectSize(result.cohensD)
     },
     sample_stats: {
@@ -313,7 +313,7 @@ export async function runTwoSampleTTestSummary(
     ciLower: result.ciLower,
     ciUpper: result.ciUpper,
     effect_size: {
-      cohens_d: result.cohensD,
+      cohensD: result.cohensD,
       interpretation: interpretEffectSize(result.cohensD)
     },
     sample_stats: {
@@ -350,7 +350,7 @@ export async function runPairedTTestSummary(
     ciLower: result.ciLower,
     ciUpper: result.ciUpper,
     effect_size: {
-      cohens_d: result.cohensD,
+      cohensD: result.cohensD,
       interpretation: interpretEffectSize(result.cohensD)
     }
   }
@@ -391,7 +391,7 @@ export async function runOneSampleTTestRaw(
     ciLower: undefined,
     ciUpper: undefined,
     effect_size: {
-      cohens_d: cohensD,
+      cohensD: cohensD,
       interpretation: interpretEffectSize(cohensD)
     }
   }
@@ -430,7 +430,7 @@ export async function runTwoSampleTTestRaw(
     df: result.n1 + result.n2 - 2,
     mean_diff: result.mean1 - result.mean2,
     effect_size: {
-      cohens_d: result.cohensD,
+      cohensD: result.cohensD,
       interpretation: interpretEffectSize(result.cohensD)
     },
     sample_stats: {
@@ -474,7 +474,7 @@ export async function runPairedTTestRaw(
     df: result.nPairs - 1,
     mean_diff: result.meanDiff,
     effect_size: {
-      cohens_d: cohensD,
+      cohensD: cohensD,
       interpretation: interpretEffectSize(cohensD)
     }
   }

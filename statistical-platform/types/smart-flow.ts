@@ -456,10 +456,9 @@ export interface AnalysisResult {
     // Phase 4: Advanced Statistics (기존 필드 유지)
     model?: string
     // Phase 4: Advanced Statistics (추가 필드)
-    model_type?: string
-    r_squared?: number  // snake_case 버전 (Python Worker 호환)
-    marginal_r_squared?: number
-    conditional_r_squared?: number
+    modelType?: string
+    marginalRSquared?: number
+    conditionalRSquared?: number
     icc?: number
     analysisType?: 'a-priori' | 'post-hoc' | 'compromise'
     sampleSize?: number
@@ -471,13 +470,13 @@ export interface AnalysisResult {
     aic?: number
     bic?: number
     itemTotalCorrelations?: number[]
-    pseudo_r_squared_mcfadden?: number  // McFadden pseudo R² (Poisson, Ordinal)
-    pseudo_r_squared_nagelkerke?: number  // Nagelkerke pseudo R² (Ordinal, Logistic)
-    pseudo_r_squared_cox_snell?: number  // Cox-Snell pseudo R² (Ordinal, Logistic)
-    pseudo_r_squared?: number  // Generic pseudo R² (Ordinal, Logistic)
+    pseudoRSquaredMcfadden?: number  // McFadden pseudo R² (Poisson, Ordinal)
+    pseudoRSquaredNagelkerke?: number  // Nagelkerke pseudo R² (Ordinal, Logistic)
+    pseudoRSquaredCoxSnell?: number  // Cox-Snell pseudo R² (Ordinal, Logistic)
+    pseudoRSquared?: number  // Generic pseudo R² (Ordinal, Logistic)
     finalVariables?: string[]  // Selected variables in stepwise regression
     deviance?: number  // Model deviance
-    log_likelihood?: number  // Log-likelihood
+    logLikelihood?: number  // Log-likelihood
     // Discriminant Analysis
     wilksLambda?: {
       pValue?: number

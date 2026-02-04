@@ -125,18 +125,18 @@ describe('formatters.ts', () => {
 
   describe('interpretEffectSize', () => {
     it('should interpret Cohen\'s d correctly', () => {
-      expect(interpretEffectSize(0.1, 'cohens_d')).toBe('매우 작음')
-      expect(interpretEffectSize(0.3, 'cohens_d')).toBe('작음')
-      expect(interpretEffectSize(0.6, 'cohens_d')).toBe('중간')
-      expect(interpretEffectSize(0.9, 'cohens_d')).toBe('큼')
-      expect(interpretEffectSize(1.5, 'cohens_d')).toBe('매우 큼')
+      expect(interpretEffectSize(0.1, 'cohensD')).toBe('매우 작음')
+      expect(interpretEffectSize(0.3, 'cohensD')).toBe('작음')
+      expect(interpretEffectSize(0.6, 'cohensD')).toBe('중간')
+      expect(interpretEffectSize(0.9, 'cohensD')).toBe('큼')
+      expect(interpretEffectSize(1.5, 'cohensD')).toBe('매우 큼')
     })
 
-    it('should interpret eta_squared correctly', () => {
-      expect(interpretEffectSize(0.005, 'eta_squared')).toBe('매우 작음')
-      expect(interpretEffectSize(0.03, 'eta_squared')).toBe('작음')
-      expect(interpretEffectSize(0.10, 'eta_squared')).toBe('중간')
-      expect(interpretEffectSize(0.20, 'eta_squared')).toBe('큼')
+    it('should interpret etaSquared correctly', () => {
+      expect(interpretEffectSize(0.005, 'etaSquared')).toBe('매우 작음')
+      expect(interpretEffectSize(0.03, 'etaSquared')).toBe('작음')
+      expect(interpretEffectSize(0.10, 'etaSquared')).toBe('중간')
+      expect(interpretEffectSize(0.20, 'etaSquared')).toBe('큼')
     })
   })
 
@@ -187,17 +187,17 @@ describe('formatters.ts', () => {
   })
 
   describe('interpretEffectSizeEn', () => {
-    it('should return English strings for cohens_d', () => {
-      expect(interpretEffectSizeEn(0.1, 'cohens_d')).toBe('negligible')
-      expect(interpretEffectSizeEn(0.3, 'cohens_d')).toBe('small')
-      expect(interpretEffectSizeEn(0.6, 'cohens_d')).toBe('medium')
-      expect(interpretEffectSizeEn(0.9, 'cohens_d')).toBe('large')
+    it('should return English strings for cohensD', () => {
+      expect(interpretEffectSizeEn(0.1, 'cohensD')).toBe('negligible')
+      expect(interpretEffectSizeEn(0.3, 'cohensD')).toBe('small')
+      expect(interpretEffectSizeEn(0.6, 'cohensD')).toBe('medium')
+      expect(interpretEffectSizeEn(0.9, 'cohensD')).toBe('large')
     })
 
     it('should use effectType parameter name (not type)', () => {
       // Verify the function signature uses effectType (unified with Korean version)
-      // eta_squared: < 0.01 negligible, < 0.06 small, < 0.14 medium, >= 0.14 large
-      expect(interpretEffectSizeEn(0.10, 'eta_squared')).toBe('medium')  // 0.06 <= 0.10 < 0.14
+      // etaSquared: < 0.01 negligible, < 0.06 small, < 0.14 medium, >= 0.14 large
+      expect(interpretEffectSizeEn(0.10, 'etaSquared')).toBe('medium')  // 0.06 <= 0.10 < 0.14
       // r: < 0.1 negligible, < 0.3 small, < 0.5 medium, < 0.7 large, >= 0.7 very large
       expect(interpretEffectSizeEn(0.4, 'r')).toBe('medium')  // 0.3 <= 0.4 < 0.5
     })

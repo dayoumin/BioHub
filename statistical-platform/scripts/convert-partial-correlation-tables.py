@@ -24,19 +24,19 @@ TABLE1_OLD = '''                <div className="overflow-x-auto">
                     </thead>
                     <tbody>
                       {results.correlations.map((corr, index) => {
-                        const strength = getCorrelationStrength(corr.partial_corr)
+                        const strength = getCorrelationStrength(corr.partialCorr)
                         return (
                           <tr key={index} className="hover:bg-gray-50">
                             <td className="border border-gray-300 px-4 py-2 font-medium">{corr.variable1}</td>
                             <td className="border border-gray-300 px-4 py-2 font-medium">{corr.variable2}</td>
                             <td className={`border border-gray-300 px-4 py-2 text-right font-semibold ${strength.color}`}>
-                              {corr.partial_corr.toFixed(3)}
-                              {corr.p_value < 0.05 && <span className="text-red-500">*</span>}
+                              {corr.partialCorr.toFixed(3)}
+                              {corr.pValue < 0.05 && <span className="text-red-500">*</span>}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right">{corr.t_stat.toFixed(3)}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right">
-                              <span className={corr.p_value < 0.05 ? 'text-muted-foreground font-medium' : ''}>
-                                {corr.p_value.toFixed(4)}
+                              <span className={corr.pValue < 0.05 ? 'text-muted-foreground font-medium' : ''}>
+                                {corr.pValue.toFixed(4)}
                               </span>
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right">{corr.df}</td>
@@ -64,20 +64,20 @@ TABLE1_NEW = '''                <StatisticsTable
                     { key: 'strength', header: '강도', type: 'custom', align: 'center', formatter: (v) => v }
                   ] as const}
                   data={results.correlations.map((corr, index) => {
-                    const strength = getCorrelationStrength(corr.partial_corr)
+                    const strength = getCorrelationStrength(corr.partialCorr)
                     return {
                       variable1: corr.variable1,
                       variable2: corr.variable2,
                       partialCorr: (
                         <span className={`font-semibold ${strength.color}`}>
-                          {corr.partial_corr.toFixed(3)}
-                          {corr.p_value < 0.05 && <span className="text-red-500">*</span>}
+                          {corr.partialCorr.toFixed(3)}
+                          {corr.pValue < 0.05 && <span className="text-red-500">*</span>}
                         </span>
                       ),
                       tStat: corr.t_stat,
                       pValue: (
-                        <span className={corr.p_value < 0.05 ? 'text-muted-foreground font-medium' : ''}>
-                          {corr.p_value.toFixed(4)}
+                        <span className={corr.pValue < 0.05 ? 'text-muted-foreground font-medium' : ''}>
+                          {corr.pValue.toFixed(4)}
                         </span>
                       ),
                       df: corr.df,
@@ -107,7 +107,7 @@ TABLE2_OLD = '''                <div className="overflow-x-auto">
                     <tbody>
                       {results.correlations.map((corr, index) => {
                         const zeroOrder = results.zero_order_correlations[index]
-                        const difference = corr.partial_corr - zeroOrder.correlation
+                        const difference = corr.partialCorr - zeroOrder.correlation
                         const absChange = Math.abs(difference)
 
                         let changeInterpretation = { text: '변화 없음', color: 'text-gray-600', bg: 'bg-gray-50' }
@@ -128,7 +128,7 @@ TABLE2_OLD = '''                <div className="overflow-x-auto">
                               {zeroOrder.correlation.toFixed(3)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-semibold">
-                              {corr.partial_corr.toFixed(3)}
+                              {corr.partialCorr.toFixed(3)}
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right font-medium">
                               <span className={changeInterpretation.color}>
@@ -158,7 +158,7 @@ TABLE2_NEW = '''                <StatisticsTable
                   ] as const}
                   data={results.correlations.map((corr, index) => {
                     const zeroOrder = results.zero_order_correlations[index]
-                    const difference = corr.partial_corr - zeroOrder.correlation
+                    const difference = corr.partialCorr - zeroOrder.correlation
                     const absChange = Math.abs(difference)
 
                     let changeInterpretation = { text: '변화 없음', color: 'text-gray-600', bg: 'bg-gray-50' }
@@ -173,7 +173,7 @@ TABLE2_NEW = '''                <StatisticsTable
                     return {
                       variablePair: `${corr.variable1} - ${corr.variable2}`,
                       zeroOrder: zeroOrder.correlation,
-                      partial: corr.partial_corr,
+                      partial: corr.partialCorr,
                       difference: (
                         <span className={`font-medium ${changeInterpretation.color}`}>
                           {difference > 0 ? '+' : ''}{difference.toFixed(3)}

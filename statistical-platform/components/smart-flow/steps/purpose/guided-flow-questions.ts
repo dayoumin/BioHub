@@ -215,7 +215,7 @@ export const PREDICTION_QUESTIONS: GuidedQuestion[] = [
     ]
   },
   {
-    id: 'model_type',
+    id: 'modelType',
     required: false,
     question: '특수한 모형 유형이 필요한가요?',
     options: [

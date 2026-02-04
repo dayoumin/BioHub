@@ -46,10 +46,10 @@ interface McNemarTestResult {
   variable1: string
   variable2: string
   contingencyTable: {
-    both_positive: number
-    first_positive_second_negative: number
-    first_negative_second_positive: number
-    both_negative: number
+    bothPositive: number
+    firstPositiveSecondNegative: number
+    firstNegativeSecondPositive: number
+    bothNegative: number
   }
   mcnemarStatistic: number
   pValue: number
@@ -168,14 +168,14 @@ export default function McNemarTestPage() {
       }).filter(pair => pair.val1 !== null && pair.val2 !== null) as Array<{val1: number, val2: number}>
 
       // 2x2 contingency table
-      const both_positive = pairs.filter(p => p.val1 === 1 && p.val2 === 1).length
-      const first_positive_second_negative = pairs.filter(p => p.val1 === 1 && p.val2 === 0).length
-      const first_negative_second_positive = pairs.filter(p => p.val1 === 0 && p.val2 === 1).length
-      const both_negative = pairs.filter(p => p.val1 === 0 && p.val2 === 0).length
+      const bothPositive = pairs.filter(p => p.val1 === 1 && p.val2 === 1).length
+      const firstPositiveSecondNegative = pairs.filter(p => p.val1 === 1 && p.val2 === 0).length
+      const firstNegativeSecondPositive = pairs.filter(p => p.val1 === 0 && p.val2 === 1).length
+      const bothNegative = pairs.filter(p => p.val1 === 0 && p.val2 === 0).length
 
       const contingencyTable = [
-        [both_positive, first_positive_second_negative],
-        [first_negative_second_positive, both_negative]
+        [bothPositive, firstPositiveSecondNegative],
+        [firstNegativeSecondPositive, bothNegative]
       ]
 
       // 2️⃣ pyodideStats 래퍼 호출
@@ -204,10 +204,10 @@ export default function McNemarTestPage() {
         variable1,
         variable2,
         contingencyTable: {
-          both_positive,
-          first_positive_second_negative,
-          first_negative_second_positive,
-          both_negative
+          bothPositive,
+          firstPositiveSecondNegative,
+          firstNegativeSecondPositive,
+          bothNegative
         },
         mcnemarStatistic: pythonResult.statistic,
         pValue: pythonResult.pValue,
@@ -612,38 +612,38 @@ export default function McNemarTestPage() {
                   <tr>
                     <td className="border border-gray-300 p-3">Positive</td>
                     <td className="border border-gray-300 p-3 text-center bg-muted">
-                      <div className="font-bold">{contingencyTable.both_positive}</div>
+                      <div className="font-bold">{contingencyTable.bothPositive}</div>
                       <div className="text-xs text-gray-500">(a)</div>
                     </td>
                     <td className="border border-gray-300 p-3 text-center bg-muted">
-                      <div className="font-bold">{contingencyTable.first_positive_second_negative}</div>
+                      <div className="font-bold">{contingencyTable.firstPositiveSecondNegative}</div>
                       <div className="text-xs text-gray-500">(b)</div>
                     </td>
                     <td className="border border-gray-300 p-3 text-center font-medium">
-                      {contingencyTable.both_positive + contingencyTable.first_positive_second_negative}
+                      {contingencyTable.bothPositive + contingencyTable.firstPositiveSecondNegative}
                     </td>
                   </tr>
                   <tr>
                     <td className="border border-gray-300 p-3">Negative</td>
                     <td className="border border-gray-300 p-3 text-center bg-muted">
-                      <div className="font-bold">{contingencyTable.first_negative_second_positive}</div>
+                      <div className="font-bold">{contingencyTable.firstNegativeSecondPositive}</div>
                       <div className="text-xs text-gray-500">(c)</div>
                     </td>
                     <td className="border border-gray-300 p-3 text-center bg-muted">
-                      <div className="font-bold">{contingencyTable.both_negative}</div>
+                      <div className="font-bold">{contingencyTable.bothNegative}</div>
                       <div className="text-xs text-gray-500">(d)</div>
                     </td>
                     <td className="border border-gray-300 p-3 text-center font-medium">
-                      {contingencyTable.first_negative_second_positive + contingencyTable.both_negative}
+                      {contingencyTable.firstNegativeSecondPositive + contingencyTable.bothNegative}
                     </td>
                   </tr>
                   <tr className="bg-gray-50 font-medium">
                     <td className="border border-gray-300 p-3">합계</td>
                     <td className="border border-gray-300 p-3 text-center">
-                      {contingencyTable.both_positive + contingencyTable.first_negative_second_positive}
+                      {contingencyTable.bothPositive + contingencyTable.firstNegativeSecondPositive}
                     </td>
                     <td className="border border-gray-300 p-3 text-center">
-                      {contingencyTable.first_positive_second_negative + contingencyTable.both_negative}
+                      {contingencyTable.firstPositiveSecondNegative + contingencyTable.bothNegative}
                     </td>
                     <td className="border border-gray-300 p-3 text-center">{sampleSize}</td>
                   </tr>
@@ -652,7 +652,7 @@ export default function McNemarTestPage() {
             </div>
             <div className="mt-3 text-xs text-gray-600">
               <p>• 불일치 쌍 (b + c): {discordantPairs}개</p>
-              <p>• 일치 쌍 (a + d): {contingencyTable.both_positive + contingencyTable.both_negative}개</p>
+              <p>• 일치 쌍 (a + d): {contingencyTable.bothPositive + contingencyTable.bothNegative}개</p>
             </div>
           </CardContent>
         </Card>
@@ -719,7 +719,7 @@ export default function McNemarTestPage() {
           result={{
             title: 'McNemar 검정 결과 해석',
             summary: significant
-              ? `두 처리 간에 통계적으로 유의한 차이가 있습니다 (χ² = ${mcnemarStatistic.toFixed(3)}, p = ${pValue < 0.001 ? '< 0.001' : pValue.toFixed(3)}). 불일치 쌍 수 = ${discordantPairs}개로, ${contingencyTable.first_positive_second_negative > contingencyTable.first_negative_second_positive ? '첫 번째 처리에서 양성 → 음성 전환이 더 많았습니다' : '두 번째 처리에서 양성 → 음성 전환이 더 많았습니다'}.`
+              ? `두 처리 간에 통계적으로 유의한 차이가 있습니다 (χ² = ${mcnemarStatistic.toFixed(3)}, p = ${pValue < 0.001 ? '< 0.001' : pValue.toFixed(3)}). 불일치 쌍 수 = ${discordantPairs}개로, ${contingencyTable.firstPositiveSecondNegative > contingencyTable.firstNegativeSecondPositive ? '첫 번째 처리에서 양성 → 음성 전환이 더 많았습니다' : '두 번째 처리에서 양성 → 음성 전환이 더 많았습니다'}.`
               : `두 처리 간에 통계적으로 유의한 차이가 없습니다 (χ² = ${mcnemarStatistic.toFixed(3)}, p = ${pValue.toFixed(3)}). 불일치 쌍 수 = ${discordantPairs}개로, 두 처리의 효과가 유사합니다.`,
             statistical: `McNemar χ² = ${mcnemarStatistic.toFixed(4)}, df = 1, p = ${pValue < 0.001 ? '< 0.001' : pValue.toFixed(4)}, n = ${sampleSize}, 불일치 쌍 = ${discordantPairs}${effectSize && isFinite(effectSize) ? `, Odds Ratio = ${effectSize.toFixed(3)}` : ''}${continuityCorrection ? ' (연속성 수정 적용)' : ''}`,
             practical: effectSize && isFinite(effectSize)

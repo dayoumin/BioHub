@@ -1722,8 +1722,8 @@ export class PyodideStatisticsService {
           group1: groupNames[i],
           group2: groupNames[j],
           mean_diff: result.meanDiff,
-          t_statistic: result.statistic,
-          p_value: result.pValue,
+          tStatistic: result.statistic,
+          pValue: result.pValue,
           adjusted_p: adjusted_p,
           significant: adjusted_p < alpha
         })

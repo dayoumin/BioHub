@@ -213,7 +213,7 @@ export async function createInteractiveScatterPlot(
     
     # 회귀선 추가
     if ${showRegression}:
-        slope, intercept, r_value, p_value, std_err = stats.linregress(x_data, y_data)
+        slope, intercept, r_value, pValue, std_err = stats.linregress(x_data, y_data)
         x_line = np.array([x_data.min(), x_data.max()])
         y_line = slope * x_line + intercept
         
@@ -226,7 +226,7 @@ export async function createInteractiveScatterPlot(
             hovertemplate=
                 f'y = {slope:.3f}x + {intercept:.3f}<br>' +
                 f'R² = {r_value**2:.3f}<br>' +
-                f'p-value = {p_value:.4f}<br>' +
+                f'p-value = {pValue:.4f}<br>' +
                 '<extra></extra>'
         ))
         
@@ -515,11 +515,11 @@ export async function createInteractiveQQPlot(
     ))
     
     # Shapiro-Wilk 검정 결과 추가
-    statistic, p_value = stats.shapiro(data)
+    statistic, pValue = stats.shapiro(data)
     
     fig.update_layout(
         title={
-            'text': f'{title}<br><sub>Shapiro-Wilk: W={statistic:.4f}, p={p_value:.4f}</sub>',
+            'text': f'{title}<br><sub>Shapiro-Wilk: W={statistic:.4f}, p={pValue:.4f}</sub>',
             'x': 0.5,
             'xanchor': 'center'
         },

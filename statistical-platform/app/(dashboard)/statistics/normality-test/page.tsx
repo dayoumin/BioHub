@@ -45,7 +45,7 @@ interface NormalityTestResult {
   test: string
   statistic: number
   pValue: number
-  critical_value?: number
+  criticalValue?: number
   conclusion: 'normal' | 'not_normal'
   interpretation: string
   recommendation: string

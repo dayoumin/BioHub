@@ -30,14 +30,14 @@ export async function simpleLinearRegression(
     y = np.array(${JSON.stringify(y)})
     
     # 선형 회귀 수행
-    slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
+    slope, intercept, r_value, pValue, std_err = stats.linregress(x, y)
     
     # 예측값과 잔차 계산
-    fitted_values = slope * x + intercept
-    residuals = y - fitted_values
+    fittedValues = slope * x + intercept
+    residuals = y - fittedValues
     
     # R-squared
-    r_squared = r_value ** 2
+    rSquared = r_value ** 2
     
     # 신뢰구간 계산
     n = len(x)
@@ -60,27 +60,27 @@ export async function simpleLinearRegression(
     ss_regression = ss_total - ss_residual
     ms_regression = ss_regression / 1
     ms_residual = ss_residual / df
-    f_statistic = ms_regression / ms_residual if ms_residual > 0 else 0
+    fStatistic = ms_regression / ms_residual if ms_residual > 0 else 0
     
     result = {
         'testName': 'Simple Linear Regression',
         'slope': float(slope),
         'intercept': float(intercept),
-        'rSquared': float(r_squared),
+        'rSquared': float(rSquared),
         'correlation': float(r_value),
-        'pValue': float(p_value),
+        'pValue': float(pValue),
         'standardError': float(std_err),
-        'fStatistic': float(f_statistic),
+        'fStatistic': float(fStatistic),
         'degreesOfFreedom': int(df),
         'residuals': [float(r) for r in residuals],
-        'fittedValues': [float(f) for f in fitted_values],
+        'fittedValues': [float(f) for f in fittedValues],
         'confidenceInterval': {
             'slope': [float(slope_ci[0]), float(slope_ci[1])],
             'intercept': [float(intercept_ci[0]), float(intercept_ci[1])]
         },
         'equation': f"y = {slope:.4f}x + {intercept:.4f}",
-        'interpretation': f"The model explains {r_squared*100:.1f}% of variance. Relationship is {'significant' if p_value < 0.05 else 'not significant'} (p = {p_value:.4f})",
-        'isSignificant': p_value < 0.05
+        'interpretation': f"The model explains {rSquared*100:.1f}% of variance. Relationship is {'significant' if pValue < 0.05 else 'not significant'} (p = {pValue:.4f})",
+        'isSignificant': pValue < 0.05
     }
     
     json.dumps(result)
@@ -131,25 +131,25 @@ export async function multipleRegression(
         coefficients = np.linalg.pinv(X_with_intercept) @ y
     
     # 예측값과 잔차
-    fitted_values = X_with_intercept @ coefficients
-    residuals = y - fitted_values
+    fittedValues = X_with_intercept @ coefficients
+    residuals = y - fittedValues
     
     # R-squared
     ss_total = np.sum((y - np.mean(y)) ** 2)
     ss_residual = np.sum(residuals ** 2)
-    r_squared = 1 - (ss_residual / ss_total) if ss_total > 0 else 0
+    rSquared = 1 - (ss_residual / ss_total) if ss_total > 0 else 0
     
     # Adjusted R-squared
     n, p = X.shape[0], X.shape[1]
-    adj_r_squared = 1 - (1 - r_squared) * (n - 1) / (n - p - 1)
+    adjRSquared = 1 - (1 - rSquared) * (n - 1) / (n - p - 1)
     
     # F-statistic
     df_model = p
     df_residual = n - p - 1
     ms_model = (ss_total - ss_residual) / df_model if df_model > 0 else 0
     ms_residual = ss_residual / df_residual if df_residual > 0 else 1
-    f_statistic = ms_model / ms_residual if ms_residual > 0 else 0
-    f_pvalue = 1 - stats.f.cdf(f_statistic, df_model, df_residual) if df_residual > 0 else 1
+    fStatistic = ms_model / ms_residual if ms_residual > 0 else 0
+    f_pvalue = 1 - stats.f.cdf(fStatistic, df_model, df_residual) if df_residual > 0 else 1
     
     # 계수별 표준오차와 p-value
     se_residual = np.sqrt(ms_residual)
@@ -160,7 +160,7 @@ export async function multipleRegression(
         se_coefficients = np.ones(len(coefficients)) * se_residual
     
     t_values = coefficients / se_coefficients
-    p_values = 2 * (1 - stats.t.cdf(np.abs(t_values), df_residual))
+    pValues = 2 * (1 - stats.t.cdf(np.abs(t_values), df_residual))
     
     # 계수 정보 구성
     coef_info = []
@@ -169,7 +169,7 @@ export async function multipleRegression(
         'coefficient': float(coefficients[0]),
         'standardError': float(se_coefficients[0]),
         'tValue': float(t_values[0]),
-        'pValue': float(p_values[0])
+        'pValue': float(pValues[0])
     })
     
     for i, name in enumerate(feature_names):
@@ -178,15 +178,15 @@ export async function multipleRegression(
             'coefficient': float(coefficients[i + 1]),
             'standardError': float(se_coefficients[i + 1]),
             'tValue': float(t_values[i + 1]),
-            'pValue': float(p_values[i + 1])
+            'pValue': float(pValues[i + 1])
         })
     
     result = {
         'testName': 'Multiple Linear Regression',
         'coefficients': coef_info,
-        'rSquared': float(r_squared),
-        'adjustedRSquared': float(adj_r_squared),
-        'fStatistic': float(f_statistic),
+        'rSquared': float(rSquared),
+        'adjustedRSquared': float(adjRSquared),
+        'fStatistic': float(fStatistic),
         'pValue': float(f_pvalue),
         'degreesOfFreedom': {
             'model': int(df_model),
@@ -194,7 +194,7 @@ export async function multipleRegression(
             'total': int(n - 1)
         },
         'residualStandardError': float(se_residual),
-        'interpretation': f"Model explains {r_squared*100:.1f}% of variance (adjusted: {adj_r_squared*100:.1f}%). Model is {'significant' if f_pvalue < 0.05 else 'not significant'} (p = {f_pvalue:.4f})",
+        'interpretation': f"Model explains {rSquared*100:.1f}% of variance (adjusted: {adjRSquared*100:.1f}%). Model is {'significant' if f_pvalue < 0.05 else 'not significant'} (p = {f_pvalue:.4f})",
         'isSignificant': f_pvalue < 0.05
     }
     
@@ -239,7 +239,7 @@ export async function logisticRegression(
     X_with_intercept = np.column_stack([np.ones(n), X])
     
     # Logistic regression using maximum likelihood
-    def neg_log_likelihood(beta):
+    def neg_logLikelihood(beta):
         z = X_with_intercept @ beta
         # Clip to prevent overflow
         z = np.clip(z, -500, 500)
@@ -253,7 +253,7 @@ export async function logisticRegression(
     initial_beta = np.zeros(p + 1)
     
     # Optimize
-    result_opt = minimize(neg_log_likelihood, initial_beta, method='BFGS')
+    result_opt = minimize(neg_logLikelihood, initial_beta, method='BFGS')
     coefficients = result_opt.x
     
     # Predictions
@@ -268,7 +268,7 @@ export async function logisticRegression(
     # Null model (only intercept)
     p0 = np.mean(y)
     null_ll = n * (p0 * np.log(p0) + (1 - p0) * np.log(1 - p0)) if p0 > 0 and p0 < 1 else 0
-    model_ll = -neg_log_likelihood(coefficients)
+    model_ll = -neg_logLikelihood(coefficients)
     
     # Pseudo R-squared (McFadden)
     pseudo_r2 = 1 - (model_ll / null_ll) if null_ll != 0 else 0
@@ -362,14 +362,14 @@ export async function correlationAnalysis(
     
     # 상관계수 계산
     if method == 'pearson':
-        corr, p_value = stats.pearsonr(x, y)
-        test_name = "Pearson Correlation"
+        corr, pValue = stats.pearsonr(x, y)
+        testName = "Pearson Correlation"
     elif method == 'spearman':
-        corr, p_value = stats.spearmanr(x, y)
-        test_name = "Spearman Rank Correlation"
+        corr, pValue = stats.spearmanr(x, y)
+        testName = "Spearman Rank Correlation"
     else:  # kendall
-        corr, p_value = stats.kendalltau(x, y)
-        test_name = "Kendall's Tau"
+        corr, pValue = stats.kendalltau(x, y)
+        testName = "Kendall's Tau"
     
     # 신뢰구간 (Fisher Z transformation for Pearson)
     n = len(x)
@@ -395,18 +395,18 @@ export async function correlationAnalysis(
         strength = 'very strong'
     
     # 결정계수 (R-squared)
-    r_squared = corr ** 2 if method == 'pearson' else None
+    rSquared = corr ** 2 if method == 'pearson' else None
     
     result = {
-        'testName': test_name,
+        'testName': testName,
         'correlation': float(corr),
-        'pValue': float(p_value),
+        'pValue': float(pValue),
         'confidenceInterval': [float(ci[0]), float(ci[1])],
-        'rSquared': float(r_squared) if r_squared is not None else None,
+        'rSquared': float(rSquared) if rSquared is not None else None,
         'strength': strength,
         'n': int(n),
-        'interpretation': f"{'Positive' if corr > 0 else 'Negative'} {strength} correlation (r = {corr:.3f}). {'Significant' if p_value < 0.05 else 'Not significant'} (p = {p_value:.4f})",
-        'isSignificant': p_value < 0.05
+        'interpretation': f"{'Positive' if corr > 0 else 'Negative'} {strength} correlation (r = {corr:.3f}). {'Significant' if pValue < 0.05 else 'Not significant'} (p = {pValue:.4f})",
+        'isSignificant': pValue < 0.05
     }
     
     json.dumps(result)

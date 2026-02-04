@@ -61,7 +61,7 @@
           "signature": "interpretEffectSize(effectSize: number, effectType?: EffectSizeType): string",
           "purpose": "Get Korean interpretation for effect size",
           "example": "interpretEffectSize(0.65, 'cohen_d') // '중간'\\ninterpretEffectSize(0.25, 'cohen_d') // '작음'",
-          "rules": ["Supports: cohen_d, eta_squared, omega_squared, r, phi, cramers_v", "Uses EFFECT_SIZE constants"]
+          "rules": ["Supports: cohen_d, etaSquared, omegaSquared, r, phi, cramersV", "Uses EFFECT_SIZE constants"]
         },
         {
           "name": "interpretCorrelation",
@@ -92,10 +92,10 @@
         },
         {
           "name": "interpretEffectSizeEn",
-          "signature": "interpretEffectSizeEn(effectSize: number, effectType?: 'cohen_d' | 'eta_squared' | 'r'): string",
+          "signature": "interpretEffectSizeEn(effectSize: number, effectType?: 'cohen_d' | 'etaSquared' | 'r'): string",
           "purpose": "Get English interpretation for effect size",
           "example": "interpretEffectSizeEn(0.65, 'cohen_d') // 'medium'",
-          "rules": ["Supports: cohen_d, eta_squared, r", "Unified with Korean version parameter naming"]
+          "rules": ["Supports: cohen_d, etaSquared, r", "Unified with Korean version parameter naming"]
         },
         {
           "name": "interpretCorrelationEn",
@@ -158,7 +158,7 @@
   "parameterNamingConvention": {
     "description": "Standard parameter names for statistical functions",
     "rules": [
-      { "concept": "p-value", "paramName": "pValue", "bad": ["p", "pvalue", "p_value"] },
+      { "concept": "p-value", "paramName": "pValue", "bad": ["p", "pvalue", "pValue"] },
       { "concept": "Effect size value", "paramName": "effectSize", "bad": ["value", "d", "effect"] },
       { "concept": "Effect size type", "paramName": "effectType", "bad": ["type", "kind"] },
       { "concept": "Correlation coefficient", "paramName": "r", "alternative": "correlation" },

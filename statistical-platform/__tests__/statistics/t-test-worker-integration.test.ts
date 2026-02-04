@@ -122,7 +122,7 @@ describe('T-Test Worker Integration', () => {
         df: workerResult.n1 + workerResult.n2 - 2, // 2
         mean_diff: workerResult.mean1 - workerResult.mean2, // -10
         effect_size: {
-          cohens_d: workerResult.cohensD,
+          cohensD: workerResult.cohensD,
           interpretation: interpretEffectSize(workerResult.cohensD)
         },
         sample_stats: {
@@ -135,7 +135,7 @@ describe('T-Test Worker Integration', () => {
       expect(finalResult.statistic).toBe(-5.0)
       expect(finalResult.df).toBe(2)
       expect(finalResult.mean_diff).toBe(-10)
-      expect(finalResult.effect_size.cohens_d).toBe(-3.536)
+      expect(finalResult.effect_size.cohensD).toBe(-3.536)
       expect(finalResult.effect_size.interpretation).toBe('큰 효과')
       expect(finalResult.sample_stats.group1.mean).toBe(11)
       expect(finalResult.sample_stats.group2.mean).toBe(21)

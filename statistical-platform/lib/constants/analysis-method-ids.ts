@@ -26,7 +26,7 @@ export const ANALYSIS_METHOD_IDS = {
   LOGISTIC_REGRESSION: 'logistic_regression',
 
   // 기타
-  CHI_SQUARE: 'chi_square',
+  CHI_SQUARE: 'chiSquare',
   NORMALITY_TEST: 'normality_test',
   DESCRIPTIVE_STATS: 'descriptive_stats'
 } as const

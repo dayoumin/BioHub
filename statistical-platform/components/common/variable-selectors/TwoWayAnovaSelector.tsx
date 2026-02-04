@@ -149,7 +149,7 @@ export function TwoWayAnovaSelector({
             disabled={!validation.isValid}
             className="gap-2"
           >
-            Start Analysis
+            분석 시작
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
@@ -235,11 +235,11 @@ export function TwoWayAnovaSelector({
         </Card>
       </div>
 
-      {/* Dependent Variable */}
+      {/* 종속 변수 */}
       <Card>
         <CardHeader className="pb-3 bg-green-50 dark:bg-green-950/30">
           <div className="flex items-center gap-2">
-            <CardTitle className="text-base">Dependent Variable (Y)</CardTitle>
+            <CardTitle className="text-base">종속 변수 (Y)</CardTitle>
             <span className="text-destructive">*</span>
             {dependentVar && <Badge variant="default" className="ml-auto">{dependentVar}</Badge>}
           </div>

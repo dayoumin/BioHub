@@ -252,7 +252,7 @@ const EXPECTED_PARAM_SIGNATURES: Array<{
   { tsMethod: 'oneSampleProportionTest', worker: 1, pyFunc: 'one_sample_proportion_test',
     tsParams: ['success_count', 'total_count', 'null_proportion'], pyParams: ['success_count', 'total_count', 'null_proportion', 'alternative'] },
   { tsMethod: 'performBonferroni', worker: 1, pyFunc: 'bonferroni_correction',
-    tsParams: ['p_values', 'alpha'], pyParams: ['p_values', 'alpha'] },
+    tsParams: ['pValues', 'alpha'], pyParams: ['pValues', 'alpha'] },
 
   // Worker 2
   { tsMethod: 'twoSampleTTest', worker: 2, pyFunc: 't_test_two_sample',
@@ -276,9 +276,9 @@ const EXPECTED_PARAM_SIGNATURES: Array<{
   { tsMethod: 'repeatedMeasuresAnovaWorker', worker: 3, pyFunc: 'repeated_measures_anova',
     tsParams: ['data_matrix', 'subject_ids', 'time_labels'], pyParams: ['data_matrix', 'subject_ids', 'time_labels'] },
   { tsMethod: 'ancovaWorker', worker: 3, pyFunc: 'ancova',
-    tsParams: ['y_values', 'group_values', 'covariates'], pyParams: ['y_values', 'group_values', 'covariates'] },
+    tsParams: ['y_values', 'groupValues', 'covariates'], pyParams: ['y_values', 'groupValues', 'covariates'] },
   { tsMethod: 'manovaWorker', worker: 3, pyFunc: 'manova',
-    tsParams: ['data_matrix', 'group_values', 'var_names'], pyParams: ['data_matrix', 'group_values', 'var_names'] },
+    tsParams: ['data_matrix', 'groupValues', 'var_names'], pyParams: ['data_matrix', 'groupValues', 'var_names'] },
 
   // Worker 3 - Nonparametric
   { tsMethod: 'mcnemarTestWorker', worker: 3, pyFunc: 'mcnemar_test',

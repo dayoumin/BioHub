@@ -10,8 +10,11 @@
 
 import { vi, Mock } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
-import SmartFlowPage from '@/app/smart-flow/page'
+import HomePage from '@/app/page'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+
+// HomePage를 SmartFlowPage 별칭으로 사용 (기존 테스트 호환)
+const SmartFlowPage = HomePage
 
 // Mock Zustand store
 vi.mock('@/lib/stores/smart-flow-store', () => ({
@@ -93,7 +96,7 @@ describe('SmartFlowPage Integration Tests', () => {
     setValidationResults: vi.fn(),
     setAnalysisPurpose: vi.fn(),
     setSelectedMethod: vi.fn(),
-    setresults: vi.fn(),
+    setResults: vi.fn(),
     setError: vi.fn(),
     canProceedToNext: vi.fn().mockReturnValue(true),
     goToNextStep: vi.fn(),

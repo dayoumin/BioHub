@@ -38,15 +38,15 @@ import {
 // 효과크기 타입별 툴팁 설명
 function getEffectSizeTooltip(type?: string): string {
   switch (type) {
-    case 'cohens_d':
+    case 'cohensD':
       return "Cohen's d: 두 그룹 평균 차이를 표준편차로 나눈 값. |d| < 0.2 작음, 0.2-0.8 중간, > 0.8 큼"
-    case 'eta_squared':
+    case 'etaSquared':
       return "Eta squared (η²): 총 분산 중 그룹 간 차이로 설명되는 비율. < 0.01 작음, 0.01-0.06 중간, > 0.14 큼"
     case 'r':
       return "상관계수 r: 두 변수 간 선형 관계 강도. |r| < 0.1 작음, 0.1-0.3 중간, > 0.5 큼"
     case 'phi':
       return "Phi (φ): 2×2 분할표에서의 연관성 강도. 해석은 r과 동일"
-    case 'cramers_v':
+    case 'cramersV':
       return "Cramer's V: 분할표에서의 연관성 강도. 자유도에 따라 해석이 달라짐"
     default:
       return "효과크기는 통계적 유의성과 별개로 실질적인 효과의 크기를 나타냅니다."
@@ -58,12 +58,12 @@ function getEffectSizeInterpretation(value: number, type?: string): string {
   const absValue = Math.abs(value)
 
   switch (type) {
-    case 'cohens_d':
+    case 'cohensD':
       if (absValue < 0.2) return '작음'
       if (absValue < 0.5) return '작음~중간'
       if (absValue < 0.8) return '중간'
       return '큼'
-    case 'eta_squared':
+    case 'etaSquared':
       if (absValue < 0.01) return '작음'
       if (absValue < 0.06) return '중간'
       if (absValue < 0.14) return '중간~큼'
@@ -74,7 +74,7 @@ function getEffectSizeInterpretation(value: number, type?: string): string {
       if (absValue < 0.3) return '중간'
       if (absValue < 0.5) return '중간~큼'
       return '큼'
-    case 'cramers_v':
+    case 'cramersV':
       if (absValue < 0.1) return '작음'
       if (absValue < 0.3) return '중간'
       return '큼'
@@ -101,7 +101,7 @@ export interface StatisticalResult {
   // 효과크기
   effectSize?: {
     value: number
-    type?: 'cohens_d' | 'eta_squared' | 'r' | 'phi' | 'cramers_v'
+    type?: 'cohensD' | 'etaSquared' | 'r' | 'phi' | 'cramersV'
     ci?: [number, number]
   }
 
@@ -123,12 +123,12 @@ export interface StatisticalResult {
     recommendation?: string
   }>
 
-  // 추가 결과 테이블
-  additionalResults?: {
+  // 추가 결과 테이블 (배열 지원 - 여러 테이블 표시)
+  additionalResults?: Array<{
     title: string
     columns: any[]
     data: any[]
-  }
+  }>
 
   // 해석 및 권장사항
   interpretation?: string
@@ -378,15 +378,16 @@ export function StatisticalResultCard({
                   )}
                 </div>
 
-                {/* 추가 결과 테이블 */}
-                {result.additionalResults && (
+                {/* 추가 결과 테이블 (여러 개 지원) */}
+                {result.additionalResults && result.additionalResults.map((table, index) => (
                   <StatisticsTable
-                    title={result.additionalResults.title}
-                    columns={result.additionalResults.columns}
-                    data={result.additionalResults.data}
+                    key={index}
+                    title={table.title}
+                    columns={table.columns}
+                    data={table.data}
                     compactMode={true}
                   />
-                )}
+                ))}
               </TabsContent>
 
               {/* 가정 검정 탭 */}

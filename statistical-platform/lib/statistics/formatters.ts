@@ -204,27 +204,27 @@ export function formatStatisticalResult(
 export function interpretEffectSize(
   effectSize: number,
   effectType:
-    | 'cohens_d' | 'cohens_d' | 'hedges_g' | 'glass_delta'
-    | 'eta_squared' | 'partial_eta_squared' | 'omega_squared' | 'epsilon_squared'
-    | 'r' | 'r_squared' | 'phi' | 'cramers_v' | 'w' = 'cohens_d'
+    | 'cohensD' | 'cohensD' | 'hedgesG' | 'glassDelta'
+    | 'etaSquared' | 'partialEtaSquared' | 'omegaSquared' | 'epsilonSquared'
+    | 'r' | 'rSquared' | 'phi' | 'cramersV' | 'w' = 'cohensD'
 ): string {
   const absValue = Math.abs(effectSize)
 
   switch (effectType) {
     // Cohen's d 계열 (표준화된 평균 차이)
-    case 'cohens_d':
-    case 'hedges_g':
-    case 'glass_delta':
+    case 'cohensD':
+    case 'hedgesG':
+    case 'glassDelta':
       if (absValue < EFFECT_SIZE.SMALL) return '매우 작음'
       if (absValue < EFFECT_SIZE.MEDIUM) return '작음'
       if (absValue < EFFECT_SIZE.LARGE) return '중간'
       if (absValue < EFFECT_SIZE.VERY_LARGE) return '큼'
       return '매우 큼'
     // Eta squared 계열 (분산 설명 비율)
-    case 'eta_squared':
-    case 'partial_eta_squared':
-    case 'omega_squared':
-    case 'epsilon_squared':
+    case 'etaSquared':
+    case 'partialEtaSquared':
+    case 'omegaSquared':
+    case 'epsilonSquared':
       if (absValue < 0.01) return '매우 작음'
       if (absValue < 0.06) return '작음'
       if (absValue < 0.14) return '중간'
@@ -235,7 +235,7 @@ export function interpretEffectSize(
       if (absValue < 0.3) return '작음'
       if (absValue < 0.5) return '중간'
       return '큼'
-    case 'r_squared':
+    case 'rSquared':
       // R²는 0-1 범위, Cohen (1988) 기준
       if (absValue < 0.01) return '무시할 수준'
       if (absValue < 0.09) return '작음'
@@ -243,7 +243,7 @@ export function interpretEffectSize(
       return '큼'
     // 범주형 변수 연관성
     case 'phi':
-    case 'cramers_v':
+    case 'cramersV':
       if (absValue < 0.1) return '무시할 수준'
       if (absValue < 0.3) return '작음'
       if (absValue < 0.5) return '중간'
@@ -309,17 +309,17 @@ export function interpretPValueEn(pValue: number, alpha: number = 0.05): string 
  */
 export function interpretEffectSizeEn(
   effectSize: number,
-  effectType: 'cohens_d' | 'eta_squared' | 'r' = 'cohens_d'
+  effectType: 'cohensD' | 'etaSquared' | 'r' = 'cohensD'
 ): string {
   const absValue = Math.abs(effectSize)
 
   switch (effectType) {
-    case 'cohens_d':
+    case 'cohensD':
       if (absValue < 0.2) return 'negligible'
       if (absValue < 0.5) return 'small'
       if (absValue < 0.8) return 'medium'
       return 'large'
-    case 'eta_squared':
+    case 'etaSquared':
       if (absValue < 0.01) return 'negligible'
       if (absValue < 0.06) return 'small'
       if (absValue < 0.14) return 'medium'

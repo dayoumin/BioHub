@@ -148,7 +148,7 @@ jest.mock('@/lib/services/pyodide-statistics', () => ({
       }),
       arimaForecast: jest.fn().mockResolvedValue({
         forecast: [6, 7, 8],
-        confidence_intervals: [
+        confidenceIntervals: [
           [5, 7],
           [6, 8],
           [7, 9],
@@ -156,7 +156,7 @@ jest.mock('@/lib/services/pyodide-statistics', () => ({
       }),
       sarimaForecast: jest.fn().mockResolvedValue({
         forecast: [6, 7, 8],
-        confidence_intervals: [
+        confidenceIntervals: [
           [5, 7],
           [6, 8],
           [7, 9],
@@ -176,8 +176,8 @@ jest.mock('@/lib/services/pyodide-statistics', () => ({
         hazard_ratios: {},
       }),
       manova: jest.fn().mockResolvedValue({
-        test_statistic: 0.5,
-        p_value: 0.05,
+        testStatistic: 0.5,
+        pValue: 0.05,
       }),
     }),
   },

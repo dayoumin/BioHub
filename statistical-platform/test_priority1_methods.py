@@ -133,18 +133,18 @@ try:
 
         # 정확 검정
         result_exact = stats.binomtest(success_count, total_count, null_proportion, alternative=alternative)
-        p_value_exact = result_exact.pvalue
+        pValue_exact = result_exact.pvalue
 
         # 정규근사
         se = np.sqrt(null_proportion * (1 - null_proportion) / total_count)
-        z_statistic = (sample_proportion - null_proportion) / se
+        zStatistic = (sample_proportion - null_proportion) / se
 
         if alternative == 'two-sided':
-            p_value_approx = 2 * (1 - stats.norm.cdf(abs(z_statistic)))
+            pValue_approx = 2 * (1 - stats.norm.cdf(abs(zStatistic)))
         elif alternative == 'greater':
-            p_value_approx = 1 - stats.norm.cdf(z_statistic)
+            pValue_approx = 1 - stats.norm.cdf(zStatistic)
         else:
-            p_value_approx = stats.norm.cdf(z_statistic)
+            pValue_approx = stats.norm.cdf(zStatistic)
 
         # Wilson Score CI
         z_critical = stats.norm.ppf(1 - alpha/2)
@@ -157,8 +157,8 @@ try:
 
         return {
             'sampleProportion': float(sample_proportion),
-            'pValueExact': float(p_value_exact),
-            'pValueApprox': float(p_value_approx),
+            'pValueExact': float(pValue_exact),
+            'pValueApprox': float(pValue_approx),
             'confidenceInterval': {'lower': float(ci_lower), 'upper': float(ci_upper)}
         }
 
@@ -192,8 +192,8 @@ try:
 
         n = len(values)
         sample_mean = np.mean(values)
-        z_statistic = (sample_mean - popmean) / (popstd / np.sqrt(n))
-        p_value = 2 * (1 - stats.norm.cdf(abs(z_statistic)))
+        zStatistic = (sample_mean - popmean) / (popstd / np.sqrt(n))
+        pValue = 2 * (1 - stats.norm.cdf(abs(zStatistic)))
 
         z_critical = stats.norm.ppf(0.975)
         margin = z_critical * (popstd / np.sqrt(n))
@@ -202,8 +202,8 @@ try:
 
         return {
             'sampleMean': float(sample_mean),
-            'zStatistic': float(z_statistic),
-            'pValue': float(p_value),
+            'zStatistic': float(zStatistic),
+            'pValue': float(pValue),
             'confidenceInterval': {'lower': float(ci_lower), 'upper': float(ci_upper)}
         }
 
@@ -227,7 +227,7 @@ print("\n[Test 5] partialCorrelation")
 try:
     import statsmodels.api as sm
 
-    def partial_correlation(data_matrix, var_index1, var_index2, control_indices):
+    def partialCorrelation(data_matrix, var_index1, var_index2, control_indices):
         data_matrix = np.array(data_matrix)
         n, p = data_matrix.shape
 
@@ -239,7 +239,7 @@ try:
 
         if len(control_indices) == 0:
             from scipy.stats import pearsonr
-            corr, p_value = pearsonr(x1, x2)
+            corr, pValue = pearsonr(x1, x2)
             df = n - 2
         else:
             Z = data_matrix[:, control_indices]
@@ -253,13 +253,13 @@ try:
             corr, _ = pearsonr(resid1, resid2)
             df = n - len(control_indices) - 2
 
-        t_statistic = corr * np.sqrt(df) / np.sqrt(1 - corr**2) if abs(corr) < 1 else np.inf
+        tStatistic = corr * np.sqrt(df) / np.sqrt(1 - corr**2) if abs(corr) < 1 else np.inf
         from scipy.stats import t as t_dist
-        p_value = 2 * (1 - t_dist.cdf(abs(t_statistic), df))
+        pValue = 2 * (1 - t_dist.cdf(abs(tStatistic), df))
 
         return {
             'correlation': float(corr),
-            'pValue': float(p_value),
+            'pValue': float(pValue),
             'df': int(df)
         }
 
@@ -272,11 +272,11 @@ try:
     data = np.column_stack([x1, x2, z])
 
     # 일반 상관 (z 통제 안함)
-    result_no_control = partial_correlation(data, 0, 1, [])
+    result_no_control = partialCorrelation(data, 0, 1, [])
     test_result("일반 상관 계산", abs(result_no_control['correlation']) < 1)
 
     # 부분상관 (z 통제)
-    result_control = partial_correlation(data, 0, 1, [2])
+    result_control = partialCorrelation(data, 0, 1, [2])
     test_result("부분상관 계산", abs(result_control['correlation']) < abs(result_no_control['correlation']))
 
 except Exception as e:
@@ -346,11 +346,11 @@ try:
         else:
             statistic = (b - c)**2 / (b + c) if (b + c) > 0 else 0
 
-        p_value = 1 - stats.chi2.cdf(statistic, df=1)
+        pValue = 1 - stats.chi2.cdf(statistic, df=1)
 
         return {
             'statistic': float(statistic),
-            'pValue': float(p_value),
+            'pValue': float(pValue),
             'continuityCorrection': bool(use_correction)
         }
 

@@ -52,8 +52,8 @@ type NonParametricTest =
 interface TestDescription {
   name: string
   description: string
-  use_cases: string[]
-  parametric_equivalent: string
+  useCases: string[]
+  parametricEquivalent: string
   icon: React.ReactNode
   requiredVariables: {
     independent?: number
@@ -130,12 +130,12 @@ const testDescriptions: Record<NonParametricTest, TestDescription> = {
   'mann-whitney': {
     name: 'Mann-Whitney U 검정',
     description: '두 독립 표본 간 중앙값 차이를 검정합니다.',
-    use_cases: [
+    useCases: [
       '두 독립 그룹 간 비교',
       '정규성 가정 위반 시',
       '순서형 데이터 분석'
     ],
-    parametric_equivalent: '독립표본 t-test',
+    parametricEquivalent: '독립표본 t-test',
     icon: <Users className="w-5 h-5" />,
     requiredVariables: {
       dependent: 1,
@@ -145,12 +145,12 @@ const testDescriptions: Record<NonParametricTest, TestDescription> = {
   'wilcoxon': {
     name: 'Wilcoxon 부호순위 검정',
     description: '대응 표본 간 중앙값 차이를 검정합니다.',
-    use_cases: [
+    useCases: [
       '대응 표본 비교',
       '사전-사후 측정',
       '짝지어진 데이터'
     ],
-    parametric_equivalent: '대응표본 t-test',
+    parametricEquivalent: '대응표본 t-test',
     icon: <Shuffle className="w-5 h-5" />,
     requiredVariables: {
       dependent: 2,
@@ -160,12 +160,12 @@ const testDescriptions: Record<NonParametricTest, TestDescription> = {
   'kruskal-wallis': {
     name: 'Kruskal-Wallis 검정',
     description: '세 개 이상 독립 표본 간 중앙값 차이를 검정합니다.',
-    use_cases: [
+    useCases: [
       '다중 그룹 비교',
       '정규성/등분산성 위반',
       '순서형 데이터의 일원분산분석'
     ],
-    parametric_equivalent: '일원분산분석 (One-way ANOVA)',
+    parametricEquivalent: '일원분산분석 (One-way ANOVA)',
     icon: <BarChart3 className="w-5 h-5" />,
     requiredVariables: {
       dependent: 1,
@@ -175,12 +175,12 @@ const testDescriptions: Record<NonParametricTest, TestDescription> = {
   'friedman': {
     name: 'Friedman 검정',
     description: '반복측정 설계에서 세 개 이상 조건 간 차이를 검정합니다.',
-    use_cases: [
+    useCases: [
       '반복측정 설계',
       '시간에 따른 변화',
       '블록 설계'
     ],
-    parametric_equivalent: '반복측정 분산분석',
+    parametricEquivalent: '반복측정 분산분석',
     icon: <TrendingUp className="w-5 h-5" />,
     requiredVariables: {
       dependent: 3,
@@ -295,7 +295,7 @@ export default function NonParametricTestPage() {
           type: 'r',
           ci: undefined
         },
-        additionalResults: {
+        additionalResults: [{
           title: '기술통계량',
           columns: [
             { key: 'measure', header: '측정시점', type: 'text' },
@@ -327,7 +327,7 @@ export default function NonParametricTestPage() {
               range: `양성: ${wilcoxonRes.descriptives.differences.positive}, 음성: ${wilcoxonRes.descriptives.differences.negative}`
             }
           ]
-        },
+        }],
         interpretation: `Wilcoxon 부호순위 검정 결과, ${wilcoxonRes.pValue < alphaValue ? '통계적으로 유의한' : '통계적으로 유의하지 않은'} 차이가 발견되었습니다 (W = ${workerResult.statistic.toFixed(2)}, p = ${workerResult.pValue.toFixed(4)}). 효과크기 r = ${wilcoxonRes.effectSize.value.toFixed(3)}로 ${wilcoxonRes.effectSize.interpretation}입니다.`,
         recommendations: [
           '중앙값 차이와 효과크기를 함께 보고하세요',
@@ -344,7 +344,7 @@ export default function NonParametricTestPage() {
         df: (workerResult as KruskalWallisResult).df,
         effectSize: {
           value: 0, // 추후 계산 가능
-          type: 'eta_squared',
+          type: 'etaSquared',
           ci: undefined
         },
         interpretation: `Kruskal-Wallis 검정 결과, ${workerResult.pValue < alphaValue ? '그룹 간 통계적으로 유의한' : '그룹 간 통계적으로 유의하지 않은'} 차이가 발견되었습니다 (H = ${workerResult.statistic.toFixed(2)}, df = ${(workerResult as KruskalWallisResult).df}, p = ${workerResult.pValue.toFixed(4)}).`,
@@ -380,7 +380,7 @@ export default function NonParametricTestPage() {
         ...baseResult,
         effectSize: {
           value: 0, // 추후 계산 가능
-          type: 'eta_squared',
+          type: 'etaSquared',
           ci: undefined
         },
         interpretation: `Friedman 검정 결과, ${workerResult.pValue < alphaValue ? '조건 간 통계적으로 유의한' : '조건 간 통계적으로 유의하지 않은'} 차이가 발견되었습니다 (χ² = ${workerResult.statistic.toFixed(2)}, p = ${workerResult.pValue.toFixed(4)}).`,
@@ -629,7 +629,7 @@ export default function NonParametricTestPage() {
                     </p>
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary" className="text-xs">
-                        모수 대응: {desc.parametric_equivalent}
+                        모수 대응: {desc.parametricEquivalent}
                       </Badge>
                     </div>
                   </div>
@@ -643,7 +643,7 @@ export default function NonParametricTestPage() {
             <AlertTitle>선택된 검정: {currentTest.name}</AlertTitle>
             <AlertDescription>
               <ul className="list-disc list-inside mt-2 space-y-1">
-                {currentTest.use_cases.map((useCase, idx) => (
+                {currentTest.useCases.map((useCase, idx) => (
                   <li key={idx}>{useCase}</li>
                 ))}
               </ul>

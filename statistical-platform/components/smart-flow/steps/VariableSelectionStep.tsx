@@ -10,7 +10,7 @@
 import React, { useMemo, useCallback } from 'react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { AlertCircle, Settings2 } from 'lucide-react'
+import { AlertCircle, Settings2, Sparkles } from 'lucide-react'
 import { VariableSelectorToggle } from '@/components/common/VariableSelectorToggle'
 import {
   TwoWayAnovaSelector,
@@ -20,6 +20,7 @@ import {
   PairedSelector
 } from '@/components/common/variable-selectors'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import { StepHeader } from '@/components/smart-flow/common'
 import { validateVariableMapping } from '@/lib/statistics/variable-mapping'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 
@@ -315,19 +316,16 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Settings2 className="h-5 w-5 text-primary" />
-        <div className="text-xl font-semibold">변수 선택</div>
-        {selectedMethod && (
-          <Badge variant="secondary" className="ml-auto">
-            {selectedMethod.name}
-          </Badge>
-        )}
-      </div>
+      <StepHeader
+          icon={Settings2}
+          title="변수 선택"
+          badge={selectedMethod ? { label: selectedMethod.name } : undefined}
+        />
 
       {/* AI Detected Variables Info */}
       {detectedVariables && (
-        <Alert className="bg-blue-50 dark:bg-blue-950/30 border-blue-200">
+        <Alert className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+          <Sparkles className="h-4 w-4 text-blue-500" />
           <AlertDescription className="text-sm">
             <span className="font-medium">AI 추천 변수: </span>
             {detectedVariables.factors && (

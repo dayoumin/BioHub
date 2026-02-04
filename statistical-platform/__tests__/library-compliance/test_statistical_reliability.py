@@ -134,7 +134,7 @@ class TestKaplanMeier:
         for i in range(len(surv_func) - 1):
             assert surv_func[i] >= surv_func[i + 1], "Survival function should be monotonically decreasing"
 
-    def test_kaplan_meier_requires_min_observations(self):
+    def test_kaplan_meier_requires_minObservations(self):
         kaplan_meier_survival = worker4.kaplan_meier_survival
 
         times = [1]
@@ -173,7 +173,7 @@ class TestZTest:
 class TestCohensD:
     """Test Cohen's d effect size using pingouin"""
 
-    def test_cohens_d_in_t_test(self):
+    def test_cohensD_in_t_test(self):
         t_test_two_sample = worker2.t_test_two_sample
 
         group1 = [10, 12, 11, 13, 10, 12]
@@ -292,14 +292,14 @@ class TestPCA:
 class TestDurbinWatson:
     """Test Durbin-Watson test using statsmodels"""
 
-    def test_durbin_watson_basic(self):
-        durbin_watson_test = worker4.durbin_watson_test
+    def test_durbinWatson_basic(self):
+        durbinWatson_test = worker4.durbinWatson_test
 
         # Residuals with no autocorrelation
         np.random.seed(42)
         residuals = np.random.randn(50).tolist()
 
-        result = durbin_watson_test(residuals)
+        result = durbinWatson_test(residuals)
 
         assert 'statistic' in result
         assert 'interpretation' in result
@@ -307,13 +307,13 @@ class TestDurbinWatson:
         assert isinstance(result['statistic'], float)
         assert 0 <= result['statistic'] <= 4  # DW statistic range
 
-    def test_durbin_watson_positive_autocorrelation(self):
-        durbin_watson_test = worker4.durbin_watson_test
+    def test_durbinWatson_positive_autocorrelation(self):
+        durbinWatson_test = worker4.durbinWatson_test
 
         # Create positive autocorrelation
         residuals = [1, 1.1, 1.2, 1.1, 1, 0.9, 0.8, 0.9, 1, 1.1] * 5
 
-        result = durbin_watson_test(residuals)
+        result = durbinWatson_test(residuals)
 
         # Positive autocorrelation should have DW < 2
         assert result['statistic'] < 2
@@ -398,8 +398,8 @@ class TestLibraryComplianceSummary:
             pass
 
         try:
-            durbin_watson_test = worker4.durbin_watson_test
-            result = durbin_watson_test([1, 2, 3, 4, 5])
+            durbinWatson_test = worker4.durbinWatson_test
+            result = durbinWatson_test([1, 2, 3, 4, 5])
             test_results['Durbin-Watson'] = 'statistic' in result
         except Exception:
             pass

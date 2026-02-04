@@ -56,50 +56,50 @@ interface DataRow {
 }
 
 interface OrdinalRegressionResult {
-  model_info: {
-    model_type: string
-    link_function: string
-    n_observations: number
-    n_predictors: number
+  modelInfo: {
+    modelType: string
+    linkFunction: string
+    nObservations: number
+    nPredictors: number
     convergence: boolean
     iterations: number
   }
   coefficients: {
     variable: string
     coefficient: number
-    std_error: number
-    z_value: number
-    p_value: number
+    stdError: number
+    zValue: number
+    pValue: number
     ciLower: number
     ciUpper: number
-    odds_ratio: number
+    oddsRatio: number
     orCiLower: number
     orCiUpper: number
   }[]
   thresholds: {
     threshold: string
     coefficient: number
-    std_error: number
-    z_value: number
-    p_value: number
+    stdError: number
+    zValue: number
+    pValue: number
     ciLower: number
     ciUpper: number
   }[]
-  model_fit: {
+  modelFit: {
     deviance: number
     aic: number
     bic: number
-    log_likelihood: number
-    pseudo_r_squared_mcfadden: number
-    pseudo_r_squared_nagelkerke: number
-    pseudo_r_squared_cox_snell: number
+    logLikelihood: number
+    pseudoRSquaredMcfadden: number
+    pseudoRSquaredNagelkerke: number
+    pseudoRSquaredCoxSnell: number
   }
   assumptions: {
-    proportional_odds: {
-    test_name: string
-    test_statistic: number
-    p_value: number
-    assumption_met: boolean
+    proportionalOdds: {
+    testName: string
+    testStatistic: number
+    pValue: number
+    assumptionMet: boolean
     }
     multicollinearity: {
     variable: string
@@ -107,21 +107,21 @@ interface OrdinalRegressionResult {
     tolerance: number
     }[]
   }
-  predicted_probabilities: {
+  predictedProbabilities: {
     observation: number
     category_1_prob: number
     category_2_prob: number
     category_3_prob: number
-    predicted_category: number
-    actual_category: number
+    predictedCategory: number
+    actualCategory: number
   }[]
-  classification_metrics: {
+  classificationMetrics: {
     accuracy: number
-    confusion_matrix: number[][]
-    category_labels: string[]
+    confusionMatrix: number[][]
+    categoryLabels: string[]
     precision: number[]
     recall: number[]
-    f1_score: number[]
+    f1Score: number[]
   }
 }
 
@@ -563,24 +563,24 @@ export default function OrdinalRegressionPage() {
                       <CardContent className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-sm">모델 유형:</span>
-                          <span className="text-sm font-medium">{results.model_info.model_type}</span>
+                          <span className="text-sm font-medium">{results.modelInfo.modelType}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">연결 함수:</span>
-                          <span className="text-sm font-medium">{results.model_info.link_function}</span>
+                          <span className="text-sm font-medium">{results.modelInfo.linkFunction}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">관측치 수:</span>
-                          <span className="text-sm font-medium">{results.model_info.n_observations}</span>
+                          <span className="text-sm font-medium">{results.modelInfo.nObservations}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">예측변수 수:</span>
-                          <span className="text-sm font-medium">{results.model_info.n_predictors}</span>
+                          <span className="text-sm font-medium">{results.modelInfo.nPredictors}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">수렴:</span>
                           <span className="text-sm font-medium">
-                            {results.model_info.convergence ? '성공' : '실패'} ({results.model_info.iterations}회)
+                            {results.modelInfo.convergence ? '성공' : '실패'} ({results.modelInfo.iterations}회)
                           </span>
                         </div>
                       </CardContent>
@@ -593,23 +593,23 @@ export default function OrdinalRegressionPage() {
                       <CardContent className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-sm">AIC:</span>
-                          <span className="text-sm font-medium">{results.model_fit.aic.toFixed(2)}</span>
+                          <span className="text-sm font-medium">{results.modelFit.aic.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">BIC:</span>
-                          <span className="text-sm font-medium">{results.model_fit.bic.toFixed(2)}</span>
+                          <span className="text-sm font-medium">{results.modelFit.bic.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">McFadden R²:</span>
-                          <span className="text-sm font-medium">{results.model_fit.pseudo_r_squared_mcfadden.toFixed(3)}</span>
+                          <span className="text-sm font-medium">{results.modelFit.pseudoRSquaredMcfadden.toFixed(3)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">Nagelkerke R²:</span>
-                          <span className="text-sm font-medium">{results.model_fit.pseudo_r_squared_nagelkerke.toFixed(3)}</span>
+                          <span className="text-sm font-medium">{results.modelFit.pseudoRSquaredNagelkerke.toFixed(3)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">정확도:</span>
-                          <span className="text-sm font-medium">{(results.classification_metrics.accuracy * 100).toFixed(1)}%</span>
+                          <span className="text-sm font-medium">{(results.classificationMetrics.accuracy * 100).toFixed(1)}%</span>
                         </div>
                       </CardContent>
                     </Card>
@@ -624,9 +624,9 @@ export default function OrdinalRegressionPage() {
                     columns={[
                       { key: 'variable', header: '변수', type: 'text' },
                       { key: 'coefficient', header: '계수', type: 'number' },
-                      { key: 'std_error', header: '표준오차', type: 'number' },
-                      { key: 'z_value', header: 'z', type: 'number' },
-                      { key: 'p_value', header: 'p-value', type: 'pvalue' },
+                      { key: 'stdError', header: '표준오차', type: 'number' },
+                      { key: 'zValue', header: 'z', type: 'number' },
+                      { key: 'pValue', header: 'p-value', type: 'pvalue' },
                       {
                         key: 'ci',
                         header: '95% CI',
@@ -640,7 +640,7 @@ export default function OrdinalRegressionPage() {
                           return '-'
                         }
                       },
-                      { key: 'odds_ratio', header: '오즈비', type: 'number' },
+                      { key: 'oddsRatio', header: '오즈비', type: 'number' },
                       {
                         key: 'or_ci',
                         header: '오즈비 CI',
@@ -658,12 +658,12 @@ export default function OrdinalRegressionPage() {
                     data={results.coefficients.map(coef => ({
                       variable: coef.variable,
                       coefficient: coef.coefficient,
-                      std_error: coef.std_error,
-                      z_value: coef.z_value,
-                      p_value: coef.p_value,
+                      stdError: coef.stdError,
+                      zValue: coef.zValue,
+                      pValue: coef.pValue,
                       ciLower: coef.ciLower,
                       ciUpper: coef.ciUpper,
-                      odds_ratio: coef.odds_ratio,
+                      oddsRatio: coef.oddsRatio,
                       orCiLower: coef.orCiLower,
                       orCiUpper: coef.orCiUpper
                     }))}
@@ -683,7 +683,7 @@ export default function OrdinalRegressionPage() {
                           formatter={(value: number) => [value.toFixed(3), 'Odds Ratio']}
                           labelFormatter={(label: string) => `Variable: ${label}`}
                         />
-                        <Bar dataKey="odds_ratio" fill="#3b82f6" />
+                        <Bar dataKey="oddsRatio" fill="#3b82f6" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -697,9 +697,9 @@ export default function OrdinalRegressionPage() {
                     columns={[
                       { key: 'threshold', header: '임계값', type: 'text' },
                       { key: 'coefficient', header: '계수', type: 'number' },
-                      { key: 'std_error', header: '표준오차', type: 'number' },
-                      { key: 'z_value', header: 'z', type: 'number' },
-                      { key: 'p_value', header: 'p-value', type: 'pvalue' },
+                      { key: 'stdError', header: '표준오차', type: 'number' },
+                      { key: 'zValue', header: 'z', type: 'number' },
+                      { key: 'pValue', header: 'p-value', type: 'pvalue' },
                       {
                         key: 'ci',
                         header: '95% CI',
@@ -717,9 +717,9 @@ export default function OrdinalRegressionPage() {
                     data={results.thresholds.map(threshold => ({
                       threshold: threshold.threshold,
                       coefficient: threshold.coefficient,
-                      std_error: threshold.std_error,
-                      z_value: threshold.z_value,
-                      p_value: threshold.p_value,
+                      stdError: threshold.stdError,
+                      zValue: threshold.zValue,
+                      pValue: threshold.pValue,
                       ciLower: threshold.ciLower,
                       ciUpper: threshold.ciUpper
                     }))}
@@ -743,16 +743,16 @@ export default function OrdinalRegressionPage() {
                     {
                       name: '비례 오즈 가정',
                       description: '독립변수의 효과가 모든 임계값에서 동일한지 검정합니다',
-                      testName: results.assumptions.proportional_odds.test_name,
-                      pValue: results.assumptions.proportional_odds.p_value,
-                      passed: results.assumptions.proportional_odds.assumption_met,
-                      details: results.assumptions.proportional_odds.assumption_met
+                      testName: results.assumptions.proportionalOdds.testName,
+                      pValue: results.assumptions.proportionalOdds.pValue,
+                      passed: results.assumptions.proportionalOdds.assumptionMet,
+                      details: results.assumptions.proportionalOdds.assumptionMet
                         ? '비례 오즈 가정이 충족됩니다. 표준 서열 회귀모델을 사용할 수 있습니다.'
                         : '비례 오즈 가정이 위반되었습니다. 부분 비례 오즈 모델을 고려하세요.',
-                      recommendation: !results.assumptions.proportional_odds.assumption_met
+                      recommendation: !results.assumptions.proportionalOdds.assumptionMet
                         ? '부분 비례 오즈 모델 또는 다항 로지스틱 회귀 고려'
                         : undefined,
-                      severity: !results.assumptions.proportional_odds.assumption_met ? 'high' : undefined
+                      severity: !results.assumptions.proportionalOdds.assumptionMet ? 'high' : undefined
                     } satisfies AssumptionTest,
                     ...results.assumptions.multicollinearity.map(vif => ({
                       name: `다중공선성: ${vif.variable}`,
@@ -798,15 +798,15 @@ export default function OrdinalRegressionPage() {
                         type: 'custom',
                         formatter: (value: unknown) => `${((value as number) * 100).toFixed(1)}%`
                       },
-                      { key: 'predicted_category', header: '예측 범주', type: 'number' },
-                      { key: 'actual_category', header: '실제 범주', type: 'number' },
+                      { key: 'predictedCategory', header: '예측 범주', type: 'number' },
+                      { key: 'actualCategory', header: '실제 범주', type: 'number' },
                       {
                         key: 'accuracy',
                         header: '정확성',
                         type: 'custom',
                         formatter: (_value: unknown, row: StatTableRow) => {
-                          const predicted = row?.predicted_category as number | undefined
-                          const actual = row?.actual_category as number | undefined
+                          const predicted = row?.predictedCategory as number | undefined
+                          const actual = row?.actualCategory as number | undefined
                           if (predicted === undefined || actual === undefined) return '-'
                           return predicted === actual ? (
                             <Badge variant="default">정확</Badge>
@@ -816,13 +816,13 @@ export default function OrdinalRegressionPage() {
                         }
                       }
                     ] as TableColumn[]}
-                    data={results.predicted_probabilities.slice(0, 10).map(pred => ({
+                    data={results.predictedProbabilities.slice(0, 10).map(pred => ({
                       observation: pred.observation,
                       category_1_prob: pred.category_1_prob,
                       category_2_prob: pred.category_2_prob,
                       category_3_prob: pred.category_3_prob,
-                      predicted_category: pred.predicted_category,
-                      actual_category: pred.actual_category
+                      predictedCategory: pred.predictedCategory,
+                      actualCategory: pred.actualCategory
                     }))}
                     compactMode
                   />
@@ -839,8 +839,8 @@ export default function OrdinalRegressionPage() {
                           { key: 'pred_2', header: '보통', type: 'number' },
                           { key: 'pred_3', header: '만족', type: 'number' }
                         ] as TableColumn[]}
-                        data={results.classification_metrics.confusion_matrix.map((row, i) => ({
-                          actual: results.classification_metrics.category_labels[i],
+                        data={results.classificationMetrics.confusionMatrix.map((row, i) => ({
+                          actual: results.classificationMetrics.categoryLabels[i],
                           pred_1: row[0],
                           pred_2: row[1],
                           pred_3: row[2],
@@ -856,23 +856,23 @@ export default function OrdinalRegressionPage() {
                       <div className="space-y-3">
                         <div className="flex justify-between">
                           <span>전체 정확도:</span>
-                          <span className="font-medium">{(results.classification_metrics.accuracy * 100).toFixed(1)}%</span>
+                          <span className="font-medium">{(results.classificationMetrics.accuracy * 100).toFixed(1)}%</span>
                         </div>
-                        {results.classification_metrics.category_labels.map((label, i) => (
+                        {results.classificationMetrics.categoryLabels.map((label, i) => (
                           <div key={i}>
                             <div className="text-sm font-medium text-gray-700">{label}</div>
                             <div className="ml-4 space-y-1">
                               <div className="flex justify-between text-sm">
                                 <span>정밀도:</span>
-                                <span>{(results.classification_metrics.precision[i] * 100).toFixed(1)}%</span>
+                                <span>{(results.classificationMetrics.precision[i] * 100).toFixed(1)}%</span>
                               </div>
                               <div className="flex justify-between text-sm">
                                 <span>재현율:</span>
-                                <span>{(results.classification_metrics.recall[i] * 100).toFixed(1)}%</span>
+                                <span>{(results.classificationMetrics.recall[i] * 100).toFixed(1)}%</span>
                               </div>
                               <div className="flex justify-between text-sm">
                                 <span>F1-점수:</span>
-                                <span>{(results.classification_metrics.f1_score[i] * 100).toFixed(1)}%</span>
+                                <span>{(results.classificationMetrics.f1Score[i] * 100).toFixed(1)}%</span>
                               </div>
                             </div>
                           </div>
@@ -911,11 +911,11 @@ export default function OrdinalRegressionPage() {
                 <ResultInterpretation
                   result={{
                     title: '서열 회귀분석 결과 해석',
-                    summary: `McFadden R² = ${results.model_fit.pseudo_r_squared_mcfadden.toFixed(3)}으로 모델이 데이터의 ${(results.model_fit.pseudo_r_squared_mcfadden * 100).toFixed(1)}%를 설명합니다. 모델의 전체 예측 정확도는 ${(results.classification_metrics.accuracy * 100).toFixed(1)}%입니다.`,
-                    statistical: `Ordinal Logistic Regression: n = ${results.model_info.n_observations}, AIC = ${results.model_fit.aic.toFixed(2)}, BIC = ${results.model_fit.bic.toFixed(2)}, McFadden R² = ${results.model_fit.pseudo_r_squared_mcfadden.toFixed(3)}, Nagelkerke R² = ${results.model_fit.pseudo_r_squared_nagelkerke.toFixed(3)}, 정확도 = ${(results.classification_metrics.accuracy * 100).toFixed(1)}%`,
-                    practical: results.model_fit.pseudo_r_squared_mcfadden >= 0.2
-                      ? `McFadden R² ≥ 0.2로 양호한 모델 적합도를 보입니다. 각 독립변수의 오즈비를 통해 종속변수 범주에 미치는 영향력을 해석할 수 있습니다. 비례 오즈 가정이 ${results.assumptions.proportional_odds.assumption_met ? '충족되어 표준 서열 회귀모델이 적합합니다' : '위반되어 부분 비례 오즈 모델을 고려해야 합니다'}.`
-                      : `McFadden R² < 0.2로 모델 설명력이 낮습니다. 추가 예측 변수를 고려하거나 다른 모델링 방법을 검토하세요. 비례 오즈 가정이 ${results.assumptions.proportional_odds.assumption_met ? '충족됩니다' : '위반되었습니다'}.`
+                    summary: `McFadden R² = ${results.modelFit.pseudoRSquaredMcfadden.toFixed(3)}으로 모델이 데이터의 ${(results.modelFit.pseudoRSquaredMcfadden * 100).toFixed(1)}%를 설명합니다. 모델의 전체 예측 정확도는 ${(results.classificationMetrics.accuracy * 100).toFixed(1)}%입니다.`,
+                    statistical: `Ordinal Logistic Regression: n = ${results.modelInfo.nObservations}, AIC = ${results.modelFit.aic.toFixed(2)}, BIC = ${results.modelFit.bic.toFixed(2)}, McFadden R² = ${results.modelFit.pseudoRSquaredMcfadden.toFixed(3)}, Nagelkerke R² = ${results.modelFit.pseudoRSquaredNagelkerke.toFixed(3)}, 정확도 = ${(results.classificationMetrics.accuracy * 100).toFixed(1)}%`,
+                    practical: results.modelFit.pseudoRSquaredMcfadden >= 0.2
+                      ? `McFadden R² ≥ 0.2로 양호한 모델 적합도를 보입니다. 각 독립변수의 오즈비를 통해 종속변수 범주에 미치는 영향력을 해석할 수 있습니다. 비례 오즈 가정이 ${results.assumptions.proportionalOdds.assumptionMet ? '충족되어 표준 서열 회귀모델이 적합합니다' : '위반되어 부분 비례 오즈 모델을 고려해야 합니다'}.`
+                      : `McFadden R² < 0.2로 모델 설명력이 낮습니다. 추가 예측 변수를 고려하거나 다른 모델링 방법을 검토하세요. 비례 오즈 가정이 ${results.assumptions.proportionalOdds.assumptionMet ? '충족됩니다' : '위반되었습니다'}.`
                   } satisfies InterpretationResult}
                 />
               </ContentTabsContent>

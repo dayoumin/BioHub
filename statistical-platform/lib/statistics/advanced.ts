@@ -460,11 +460,11 @@ export async function arimaForecast(
         forecast = [data[-1]] * steps
     
     # 신뢰구간 (간단한 근사)
-    std_error = np.std(differenced) if len(differenced) > 0 else 1
+    stdError = np.std(differenced) if len(differenced) > 0 else 1
     z_score = 1.96  # 95% 신뢰구간
     
-    forecast_lower = [f - z_score * std_error * np.sqrt(i+1) for i, f in enumerate(forecast)]
-    forecast_upper = [f + z_score * std_error * np.sqrt(i+1) for i, f in enumerate(forecast)]
+    forecast_lower = [f - z_score * stdError * np.sqrt(i+1) for i, f in enumerate(forecast)]
+    forecast_upper = [f + z_score * stdError * np.sqrt(i+1) for i, f in enumerate(forecast)]
     
     # 모델 적합도 (잔차 분석)
     if p > 0 and len(X) > 0:

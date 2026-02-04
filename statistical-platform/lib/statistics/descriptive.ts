@@ -40,11 +40,11 @@ export async function calculateDescriptiveStats(data: number[]): Promise<Descrip
     
     # 정규성 검정 (Shapiro-Wilk)
     if len(data) >= 3:
-        stat, p_value = stats.shapiro(data)
+        stat, pValue = stats.shapiro(data)
         normal_test = {
             'statistic': float(stat),
-            'pValue': float(p_value),
-            'isNormal': p_value >= 0.05
+            'pValue': float(pValue),
+            'isNormal': pValue >= 0.05
         }
     else:
         normal_test = {

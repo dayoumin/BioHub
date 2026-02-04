@@ -57,7 +57,7 @@ interface MannKendallResult {
   z: number
   tau: number
   s: number
-  var_s: number
+  varS: number
   slope: number
   intercept: number
 }
@@ -183,7 +183,7 @@ export default function MannKendallPage() {
         z: result.zScore,
         tau: result.tau,
         s: 0, // Worker에서 반환하지 않으므로 0으로 설정
-        var_s: 0, // Worker에서 반환하지 않으므로 0으로 설정
+        varS: 0, // Worker에서 반환하지 않으므로 0으로 설정
         slope: result.senSlope,
         intercept: result.intercept
       }
@@ -579,7 +579,7 @@ export default function MannKendallPage() {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">분산 (Var(S))</span>
-                      <span className="font-mono">{results.var_s.toFixed(2)}</span>
+                      <span className="font-mono">{results.varS.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">절편</span>

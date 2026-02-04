@@ -402,14 +402,14 @@ export class DataValidationService {
             try {
               const result = await pyodide.callWorkerMethod<{
                 statistic: number
-                p_value: number
+                pValue: number
               }>(3, 'shapiro_wilk_test', { data: colData })
 
               normalityResults.push({
                 variable: colStat.name,
                 statistic: result.statistic,
-                pValue: result.p_value,
-                isNormal: result.p_value >= 0.05
+                pValue: result.pValue,
+                isNormal: result.pValue >= 0.05
               })
             } catch (err) {
               console.warn(`Shapiro-Wilk 검정 실패 (${colStat.name})`, err)

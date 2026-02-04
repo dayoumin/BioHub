@@ -5,6 +5,8 @@ import {
   Clock,
   Trash2,
   RotateCcw,
+  RefreshCw,
+  Eye,
   Database,
   BarChart3,
   FileText,
@@ -59,6 +61,7 @@ export function AnalysisHistoryPanel() {
     analysisHistory,
     currentHistoryId,
     loadFromHistory,
+    loadSettingsFromHistory,
     deleteFromHistory,
     clearHistory,
     saveToHistory,
@@ -93,6 +96,11 @@ export function AnalysisHistoryPanel() {
 
   const handleLoad = async (historyId: string) => {
     await loadFromHistory(historyId)
+  }
+
+  // 같은 방법으로 새 데이터 분석 (재분석 모드)
+  const handleReanalyze = async (historyId: string) => {
+    await loadSettingsFromHistory(historyId)
   }
 
   const handleDelete = async (historyId: string) => {
@@ -130,38 +138,29 @@ export function AnalysisHistoryPanel() {
 
   if (analysisHistory.length === 0) {
     return (
-      <Card className="p-6 text-center">
-        <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-        <h3 className="text-lg font-semibold mb-2">분석 히스토리가 없습니다</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          완료된 분석이 자동으로 저장됩니다
-        </p>
-        <Button variant="outline" size="sm" onClick={handleNewAnalysis}>
-          <Plus className="w-4 h-4 mr-1" />
-          새 분석 시작
-        </Button>
-      </Card>
+      <div className="text-center py-8 text-muted-foreground">
+        <Clock className="w-10 h-10 mx-auto mb-3 opacity-50" />
+        <p className="text-sm">분석 히스토리가 없습니다</p>
+        <p className="text-xs mt-1">완료된 분석이 자동으로 저장됩니다</p>
+      </div>
     )
   }
 
   return (
     <div className="space-y-4">
-      {/* 헤더 및 검색/필터 */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold flex items-center gap-2">
-          <Clock className="w-5 h-5" />
-          분석 히스토리 ({analysisHistory.length})
-        </h3>
-        
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
+      {/* 액션 버튼 (헤더는 Sheet에서 표시) */}
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-muted-foreground">{analysisHistory.length}개 기록</span>
+
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
             size="sm"
             onClick={handleSaveCurrent}
           >
             현재 분석 저장
           </Button>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className={filterMethod ? 'bg-muted' : ''}>
@@ -279,13 +278,34 @@ export function AnalysisHistoryPanel() {
               </div>
               
               <div className="flex items-center gap-1 ml-2">
+                {/* 저장된 결과 보기 */}
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleLoad(item.id)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleLoad(item.id)
+                  }}
+                  title="저장된 결과 보기"
                 >
-                  <RotateCcw className="w-4 h-4" />
+                  <Eye className="w-4 h-4" />
                 </Button>
+
+                {/* 같은 방법으로 새 데이터 분석 */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleReanalyze(item.id)
+                  }}
+                  title="이 방법으로 새 데이터 분석"
+                  className="text-primary hover:text-primary"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+
+                {/* 삭제 */}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -293,6 +313,7 @@ export function AnalysisHistoryPanel() {
                     e.stopPropagation()
                     setDeleteConfirmId(item.id)
                   }}
+                  title="삭제"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>

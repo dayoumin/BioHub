@@ -585,7 +585,7 @@ export default function ChiSquareGoodnessPage() {
             <EffectSizeCard
               title="Cramér's V"
               value={results.effectSize.cramersV}
-              type="cramers_v"
+              type="cramersV"
               description="범주형 변수 간 연관성 강도"
               showVisualScale={true}
               showInterpretation={true}

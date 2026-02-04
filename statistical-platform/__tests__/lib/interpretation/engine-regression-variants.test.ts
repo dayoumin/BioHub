@@ -25,7 +25,7 @@ describe('Interpretation Engine Regression Variants (Phase 3)', () => {
           { name: 'X2', value: -0.2, stdError: 0.04, tValue: -5.0, pvalue: 0.001 }
         ],
         additional: {
-          pseudo_r_squared_mcfadden: 0.25,
+          pseudoRSquaredMcfadden: 0.25,
           aic: 150.5
         },
         interpretation: ''
@@ -53,7 +53,7 @@ describe('Interpretation Engine Regression Variants (Phase 3)', () => {
           { name: 'X1', value: 0.1, stdError: 0.1, tValue: 1.0, pvalue: 0.3 }
         ],
         additional: {
-          pseudo_r_squared_mcfadden: 0.05
+          pseudoRSquaredMcfadden: 0.05
         },
         interpretation: ''
       }
@@ -96,7 +96,7 @@ describe('Interpretation Engine Regression Variants (Phase 3)', () => {
           { name: 'X3', value: 0.2, stdError: 0.05, tValue: 4.0, pvalue: 0.001 }
         ],
         additional: {
-          pseudo_r_squared: 0.30,
+          pseudoRSquared: 0.30,
           aic: 200.5
         },
         interpretation: ''
@@ -123,7 +123,7 @@ describe('Interpretation Engine Regression Variants (Phase 3)', () => {
           { name: 'X1', value: 0.05, stdError: 0.1, tValue: 0.5, pvalue: 0.6 }
         ],
         additional: {
-          pseudo_r_squared: 0.02
+          pseudoRSquared: 0.02
         },
         interpretation: ''
       }
@@ -165,7 +165,7 @@ describe('Interpretation Engine Regression Variants (Phase 3)', () => {
           { name: 'X2', value: -0.4, stdError: 0.08, tValue: -5.0, pvalue: 0.001 }
         ],
         additional: {
-          pseudo_r_squared: 0.35,
+          pseudoRSquared: 0.35,
           accuracy: 0.85,
           aic: 180.5
         },
@@ -195,7 +195,7 @@ describe('Interpretation Engine Regression Variants (Phase 3)', () => {
           { name: 'X1', value: 0.1, stdError: 0.1, tValue: 1.0, pvalue: 0.3 }
         ],
         additional: {
-          pseudo_r_squared: 0.03,
+          pseudoRSquared: 0.03,
           accuracy: 0.55
         },
         interpretation: ''
@@ -457,7 +457,7 @@ describe('Interpretation Engine Regression Variants (Phase 3)', () => {
           { name: 'X1', value: 0.8, stdError: 0.08, tValue: 10.0, pvalue: 0.00001 }
         ],
         additional: {
-          pseudo_r_squared: 0.45
+          pseudoRSquared: 0.45
         },
         interpretation: ''
       }

@@ -49,14 +49,14 @@ data2 = np.array(${JSON.stringify(data2)})
 # t-검정 수행
 if "${type}" == "independent":
     result = stats.ttest_ind(data1, data2)
-    test_name = "독립표본 t-검정"
+    testName = "독립표본 t-검정"
 else:
     result = stats.ttest_rel(data1, data2)
-    test_name = "대응표본 t-검정"
+    testName = "대응표본 t-검정"
 
 # 효과크기 계산 (Cohen's d)
 pooled_std = np.sqrt((np.std(data1)**2 + np.std(data2)**2) / 2)
-cohens_d = (np.mean(data1) - np.mean(data2)) / pooled_std
+cohensD = (np.mean(data1) - np.mean(data2)) / pooled_std
 
 # 95% 신뢰구간
 mean_diff = np.mean(data1) - np.mean(data2)
@@ -71,22 +71,22 @@ else:
     interpretation = f"두 그룹 간 평균 차이가 통계적으로 유의하지 않습니다 (p = {result.pvalue:.4f} > 0.05)"
 
 # 효과크기 해석
-if abs(cohens_d) < 0.2:
+if abs(cohensD) < 0.2:
     effect_interpretation = "효과크기가 작습니다"
-elif abs(cohens_d) < 0.5:
+elif abs(cohensD) < 0.5:
     effect_interpretation = "효과크기가 중간입니다"
-elif abs(cohens_d) < 0.8:
+elif abs(cohensD) < 0.8:
     effect_interpretation = "효과크기가 큽니다"
 else:
     effect_interpretation = "효과크기가 매우 큽니다"
 
-interpretation += f". {effect_interpretation} (d = {abs(cohens_d):.2f})."
+interpretation += f". {effect_interpretation} (d = {abs(cohensD):.2f})."
 
 output = {
-    "method": test_name,
+    "method": testName,
     "statistic": float(result.statistic),
     "pValue": float(result.pvalue),
-    "effectSize": float(cohens_d),
+    "effectSize": float(cohensD),
     "confidence": {
         "lower": float(ci_lower),
         "upper": float(ci_upper)
@@ -120,10 +120,10 @@ x = np.array(${JSON.stringify(x)})
 y = np.array(${JSON.stringify(y)})
 
 # Pearson 상관계수
-r, p_value = stats.pearsonr(x, y)
+r, pValue = stats.pearsonr(x, y)
 
 # R-squared
-r_squared = r ** 2
+rSquared = r ** 2
 
 # 95% 신뢰구간 (Fisher z-transformation)
 z = np.arctanh(r)
@@ -144,18 +144,18 @@ else:
 direction = "양의" if r > 0 else "음의"
 
 # 결과 해석
-if p_value < 0.05:
-    interpretation = f"{strength} {direction} 상관관계가 있습니다 (r = {r:.3f}, p = {p_value:.4f})"
+if pValue < 0.05:
+    interpretation = f"{strength} {direction} 상관관계가 있습니다 (r = {r:.3f}, p = {pValue:.4f})"
 else:
-    interpretation = f"통계적으로 유의한 상관관계가 없습니다 (r = {r:.3f}, p = {p_value:.4f})"
+    interpretation = f"통계적으로 유의한 상관관계가 없습니다 (r = {r:.3f}, p = {pValue:.4f})"
 
-interpretation += f". 결정계수는 {r_squared:.3f}로, 변수 x가 y 변동의 {r_squared*100:.1f}%를 설명합니다."
+interpretation += f". 결정계수는 {rSquared:.3f}로, 변수 x가 y 변동의 {rSquared*100:.1f}%를 설명합니다."
 
 output = {
     "method": "Pearson 상관분석",
     "statistic": float(r),
-    "pValue": float(p_value),
-    "effectSize": float(r_squared),
+    "pValue": float(pValue),
+    "effectSize": float(rSquared),
     "confidence": {
         "lower": float(ci_lower),
         "upper": float(ci_upper)
@@ -189,10 +189,10 @@ x = np.array(${JSON.stringify(x)})
 y = np.array(${JSON.stringify(y)})
 
 # 선형회귀
-slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
+slope, intercept, r_value, pValue, std_err = stats.linregress(x, y)
 
 # R-squared
-r_squared = r_value ** 2
+rSquared = r_value ** 2
 
 # 예측값
 y_pred = slope * x + intercept
@@ -210,19 +210,19 @@ slope_ci_lower = slope - t_critical * std_err
 slope_ci_upper = slope + t_critical * std_err
 
 # 결과 해석
-if p_value < 0.05:
-    interpretation = f"회귀모델이 통계적으로 유의합니다 (p = {p_value:.4f}). "
+if pValue < 0.05:
+    interpretation = f"회귀모델이 통계적으로 유의합니다 (p = {pValue:.4f}). "
     interpretation += f"X가 1 증가할 때 Y는 {slope:.3f} 변화합니다. "
 else:
-    interpretation = f"회귀모델이 통계적으로 유의하지 않습니다 (p = {p_value:.4f}). "
+    interpretation = f"회귀모델이 통계적으로 유의하지 않습니다 (p = {pValue:.4f}). "
 
-interpretation += f"모델은 전체 변동의 {r_squared*100:.1f}%를 설명합니다 (R² = {r_squared:.3f})."
+interpretation += f"모델은 전체 변동의 {rSquared*100:.1f}%를 설명합니다 (R² = {rSquared:.3f})."
 
 output = {
     "method": "단순선형회귀분석",
     "statistic": float(slope),
-    "pValue": float(p_value),
-    "effectSize": float(r_squared),
+    "pValue": float(pValue),
+    "effectSize": float(rSquared),
     "confidence": {
         "lower": float(slope_ci_lower),
         "upper": float(slope_ci_upper)
@@ -261,20 +261,20 @@ import json
 data = np.array(${JSON.stringify(data)})
 
 # Shapiro-Wilk 검정
-statistic, p_value = stats.shapiro(data)
+statistic, pValue = stats.shapiro(data)
 
 # 정규성 판단 (유의수준 0.05)
-is_normal = p_value > 0.05
+is_normal = pValue > 0.05
 
 # 해석
 if is_normal:
-    interpretation = f"데이터가 정규분포를 따릅니다 (W = {statistic:.4f}, p = {p_value:.4f} > 0.05)"
+    interpretation = f"데이터가 정규분포를 따릅니다 (W = {statistic:.4f}, p = {pValue:.4f} > 0.05)"
 else:
-    interpretation = f"데이터가 정규분포를 따르지 않습니다 (W = {statistic:.4f}, p = {p_value:.4f} < 0.05)"
+    interpretation = f"데이터가 정규분포를 따르지 않습니다 (W = {statistic:.4f}, p = {pValue:.4f} < 0.05)"
 
 output = {
     "statistic": float(statistic),
-    "pValue": float(p_value),
+    "pValue": float(pValue),
     "isNormal": is_normal,
     "interpretation": interpretation
 }
@@ -310,20 +310,20 @@ group1 = np.array(${JSON.stringify(group1)})
 group2 = np.array(${JSON.stringify(group2)})
 
 # Levene's test (center='median'이 더 robust)
-statistic, p_value = stats.levene(group1, group2, center='median')
+statistic, pValue = stats.levene(group1, group2, center='median')
 
 # 등분산성 판단 (유의수준 0.05)
-is_homogeneous = p_value > 0.05
+is_homogeneous = pValue > 0.05
 
 # 해석
 if is_homogeneous:
-    interpretation = f"두 그룹의 분산이 같습니다 (F = {statistic:.4f}, p = {p_value:.4f} > 0.05)"
+    interpretation = f"두 그룹의 분산이 같습니다 (F = {statistic:.4f}, p = {pValue:.4f} > 0.05)"
 else:
-    interpretation = f"두 그룹의 분산이 다릅니다 (F = {statistic:.4f}, p = {p_value:.4f} < 0.05)"
+    interpretation = f"두 그룹의 분산이 다릅니다 (F = {statistic:.4f}, p = {pValue:.4f} < 0.05)"
 
 output = {
     "statistic": float(statistic),
-    "pValue": float(p_value),
+    "pValue": float(pValue),
     "isHomogeneous": is_homogeneous,
     "interpretation": interpretation
 }
@@ -477,22 +477,22 @@ if test_type in ["regression"]:
 if test_type in ["regression", "correlation"]:
     # 상관계수와 결정계수
     r, p = stats.pearsonr(data1, data2)
-    r_squared = r**2
+    rSquared = r**2
     
     # 스피어만 순위상관 (비선형 관계 감지)
     rho, rho_p = stats.spearmanr(data1, data2)
     
     # 선형성 판단: Pearson과 Spearman 상관계수 차이
     linearity_diff = abs(r - rho)
-    is_linear = linearity_diff < 0.1 and r_squared > 0.1
+    is_linear = linearity_diff < 0.1 and rSquared > 0.1
     
     results["linearity"] = {
         "pearsonR": float(r),
         "spearmanRho": float(rho),
-        "rSquared": float(r_squared),
+        "rSquared": float(rSquared),
         "difference": float(linearity_diff),
         "isLinear": is_linear,
-        "interpretation": f"선형 관계 {'있음' if is_linear else '약함'} (R²={r_squared:.3f})"
+        "interpretation": f"선형 관계 {'있음' if is_linear else '약함'} (R²={rSquared:.3f})"
     }
 
 # 5. 이상치 검정 (IQR method + Z-score + Grubbs[정규성 만족 시])
@@ -548,13 +548,13 @@ min_sample = 30  # 중심극한정리
 
 # Cohen's d 계산 (효과크기)
 pooled_std = np.sqrt(((n1-1)*np.var(data1, ddof=1) + (n2-1)*np.var(data2, ddof=1)) / (n1+n2-2))
-cohens_d = abs(np.mean(data1) - np.mean(data2)) / pooled_std if pooled_std > 0 else 0
+cohensD = abs(np.mean(data1) - np.mean(data2)) / pooled_std if pooled_std > 0 else 0
 
 # 검정력 계산 (근사)
 from math import sqrt
-if cohens_d > 0 and n1 > 1 and n2 > 1:
+if cohensD > 0 and n1 > 1 and n2 > 1:
     # 간단한 사후 검정력 계산
-    delta = cohens_d * sqrt(n1*n2/(n1+n2))
+    delta = cohensD * sqrt(n1*n2/(n1+n2))
     # 근사 검정력 (정규분포 기반)
     power = 1 - stats.norm.cdf(1.96 - delta) if delta > 0 else 0.05
 else:
@@ -564,7 +564,7 @@ results["sampleSize"] = {
     "group1Size": n1,
     "group2Size": n2,
     "isAdequate": n1 >= min_sample and n2 >= min_sample,
-    "cohensD": float(cohens_d) if cohens_d else 0,
+    "cohensD": float(cohensD) if cohensD else 0,
     "estimatedPower": float(power) if power else None,
     "interpretation": f"표본 크기 {'적절' if n1 >= min_sample and n2 >= min_sample else '부족'} (n1={n1}, n2={n2})"
 }
@@ -592,7 +592,7 @@ groups = ${JSON.stringify(groups)}
 groups = [np.array(g) for g in groups]
 
 # One-way ANOVA
-f_statistic, p_value = stats.f_oneway(*groups)
+fStatistic, pValue = stats.f_oneway(*groups)
 
 # 효과크기 (eta-squared) 계산
 all_data = np.concatenate(groups)
@@ -605,30 +605,30 @@ ssb = sum(len(g) * (np.mean(g) - grand_mean) ** 2 for g in groups)
 sst = np.sum((all_data - grand_mean) ** 2)
 
 # eta-squared
-eta_squared = ssb / sst
+etaSquared = ssb / sst
 
 # 결과 해석
-if p_value < 0.05:
-    interpretation = f"그룹 간 평균 차이가 통계적으로 유의합니다 (F = {f_statistic:.3f}, p = {p_value:.4f}). "
+if pValue < 0.05:
+    interpretation = f"그룹 간 평균 차이가 통계적으로 유의합니다 (F = {fStatistic:.3f}, p = {pValue:.4f}). "
     interpretation += "사후검정을 통해 어느 그룹 간 차이가 있는지 확인이 필요합니다."
 else:
-    interpretation = f"그룹 간 평균 차이가 통계적으로 유의하지 않습니다 (F = {f_statistic:.3f}, p = {p_value:.4f})."
+    interpretation = f"그룹 간 평균 차이가 통계적으로 유의하지 않습니다 (F = {fStatistic:.3f}, p = {pValue:.4f})."
 
 # 효과크기 해석
-if eta_squared < 0.01:
+if etaSquared < 0.01:
     effect_interpretation = "효과크기가 작습니다"
-elif eta_squared < 0.06:
+elif etaSquared < 0.06:
     effect_interpretation = "효과크기가 중간입니다"
 else:
     effect_interpretation = "효과크기가 큽니다"
 
-interpretation += f" {effect_interpretation} (η² = {eta_squared:.3f})."
+interpretation += f" {effect_interpretation} (η² = {etaSquared:.3f})."
 
 output = {
     "method": "일원분산분석 (One-way ANOVA)",
-    "statistic": float(f_statistic),
-    "pValue": float(p_value),
-    "effectSize": float(eta_squared),
+    "statistic": float(fStatistic),
+    "pValue": float(pValue),
+    "effectSize": float(etaSquared),
     "interpretation": interpretation
 }
 

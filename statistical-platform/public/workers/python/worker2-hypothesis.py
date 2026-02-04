@@ -1104,7 +1104,7 @@ def stepwise_regression_forward(data, dependentVar, predictorVars, significanceL
 
 
 
-def response_surface_analysis(data, dependentVar, predictorVars, modelType='second_order', includeInteraction=True, includeQuadratic=True):
+def response_surface_analysis(data, dependentVar, predictorVars, modelType='secondOrder', includeInteraction=True, includeQuadratic=True):
     """
     반응표면 분석 (statsmodels 기반 - 검증된 통계 라이브러리 사용)
 
@@ -1114,7 +1114,7 @@ def response_surface_analysis(data, dependentVar, predictorVars, modelType='seco
         data: 데이터 (List[Dict])
         dependent_var: 종속변수명
         predictor_vars: 예측변수명 리스트
-        model_type: 모델 유형 ('first_order', 'first_order_interaction', 'second_order', 'custom')
+        model_type: 모델 유형 ('firstOrder', 'firstOrderInteraction', 'secondOrder', 'custom')
         include_interaction: 교호작용 포함 여부 (custom 모드)
         include_quadratic: 2차 항 포함 여부 (custom 모드)
 
@@ -1638,14 +1638,14 @@ def poisson_regression(
 
     # Model info
     model_info = {
-        'model_type': 'Poisson Regression',
-        'link_function': 'log',
+        'modelType': 'Poisson Regression',
+        'linkFunction': 'log',
         'distribution': 'Poisson',
-        'n_observations': int(model.nobs),
-        'n_predictors': len(independent_vars),
+        'nObservations': int(model.nobs),
+        'nPredictors': len(independent_vars),
         'convergence': model.mle_retvals['converged'],
         'iterations': int(model.mle_retvals.get('iterations', 0)),
-        'log_likelihood': float(model.llf)
+        'logLikelihood': float(model.llf)
     }
 
     # Coefficients
@@ -1665,12 +1665,12 @@ def poisson_regression(
         coefficients.append({
             'variable': var,
             'coefficient': coef,
-            'std_error': se,
-            'z_value': z_val,
-            'p_value': p_val,
+            'stdError': se,
+            'zValue': z_val,
+            'pValue': p_val,
             'ciLower': float(ci[0]),
             'ciUpper': float(ci[1]),
-            'exp_coefficient': float(exp_coef),
+            'expCoefficient': float(exp_coef),
             'irrCiLower': float(irr_ci_lower),
             'irrCiUpper': float(irr_ci_upper)
         })
@@ -1678,12 +1678,12 @@ def poisson_regression(
     # Model fit
     model_fit = {
         'deviance': float(model.deviance),
-        'pearson_chi2': float(model.pearson_chi2),
+        'pearsonChi2': float(model.pearson_chi2),
         'aic': float(model.aic),
         'bic': float(model.bic),
-        'pseudo_r_squared_mcfadden': float(model.prsquared),
-        'pseudo_r_squared_deviance': 1 - (model.deviance / model.null_deviance),
-        'dispersion_parameter': float(model.scale)
+        'pseudoRSquaredMcfadden': float(model.prsquared),
+        'pseudoRSquaredDeviance': 1 - (model.deviance / model.null_deviance),
+        'dispersionParameter': float(model.scale)
     }
 
     # Assumptions
@@ -1698,20 +1698,20 @@ def poisson_regression(
 
     assumptions = {
         'overdispersion': {
-            'test_name': 'Deviance/DF Ratio',
+            'testName': 'Deviance/DF Ratio',
             'statistic': float(model.deviance),
-            'p_value': float(overdispersion_p),
-            'dispersion_ratio': float(dispersion_ratio),
-            'assumption_met': dispersion_ratio < 1.5  # Rule of thumb
+            'pValue': float(overdispersion_p),
+            'dispersionRatio': float(dispersion_ratio),
+            'assumptionMet': dispersion_ratio < 1.5  # Rule of thumb
         },
         'linearity': {
-            'test_name': 'Link Test',
-            'p_value': 0.5,  # Placeholder
-            'assumption_met': True
+            'testName': 'Link Test',
+            'pValue': 0.5,  # Placeholder
+            'assumptionMet': True
         },
         'independence': {
-            'durbin_watson': float(dw_stat),
-            'assumption_met': 1.5 < dw_stat < 2.5
+            'durbinWatson': float(dw_stat),
+            'assumptionMet': 1.5 < dw_stat < 2.5
         }
     }
 
@@ -1725,24 +1725,24 @@ def poisson_regression(
     for i in range(min(len(df_clean), 100)):  # Limit to 100 rows
         predicted_values.append({
             'observation': i + 1,
-            'actual_count': float(df_clean[dependent_var].iloc[i]),
-            'predicted_count': float(predicted.iloc[i]),
+            'actualCount': float(df_clean[dependent_var].iloc[i]),
+            'predictedCount': float(predicted.iloc[i]),
             'residual': float(residuals.iloc[i]),
-            'pearson_residual': float(pearson_resid.iloc[i]),
-            'deviance_residual': float(deviance_resid.iloc[i])
+            'pearsonResidual': float(pearson_resid.iloc[i]),
+            'devianceResidual': float(deviance_resid.iloc[i])
         })
 
     # Goodness of fit
     goodness_of_fit = {
-        'pearson_gof': {
+        'pearsonGof': {
             'statistic': float(model.pearson_chi2),
             'df': int(df_resid),
-            'p_value': float(1 - chi2.cdf(model.pearson_chi2, df_resid)) if df_resid > 0 else 1.0
+            'pValue': float(1 - chi2.cdf(model.pearson_chi2, df_resid)) if df_resid > 0 else 1.0
         },
-        'deviance_gof': {
+        'devianceGof': {
             'statistic': float(model.deviance),
             'df': int(df_resid),
-            'p_value': float(1 - chi2.cdf(model.deviance, df_resid)) if df_resid > 0 else 1.0
+            'pValue': float(1 - chi2.cdf(model.deviance, df_resid)) if df_resid > 0 else 1.0
         }
     }
 
@@ -1756,8 +1756,8 @@ def poisson_regression(
 
     interpretation = {
         'summary': summary,
-        'significant_predictors': sig_vars,
-        'model_quality': '좋음' if model_fit['pseudo_r_squared_mcfadden'] > 0.2 else '보통' if model_fit['pseudo_r_squared_mcfadden'] > 0.1 else '낮음',
+        'significantPredictors': sig_vars,
+        'modelQuality': '좋음' if model_fit['pseudo_r_squared_mcfadden'] > 0.2 else '보통' if model_fit['pseudo_r_squared_mcfadden'] > 0.1 else '낮음',
         'recommendations': [
             f"모델 적합도 (McFadden R²): {model_fit['pseudo_r_squared_mcfadden']:.3f}",
             f"과산포 비율: {dispersion_ratio:.2f} ({'정상' if dispersion_ratio < 1.5 else '과산포 의심'})",
@@ -1766,12 +1766,12 @@ def poisson_regression(
     }
 
     return {
-        'model_info': model_info,
+        'modelInfo': model_info,
         'coefficients': coefficients,
-        'model_fit': model_fit,
+        'modelFit': model_fit,
         'assumptions': assumptions,
-        'predicted_values': predicted_values,
-        'goodness_of_fit': goodness_of_fit,
+        'predictedValues': predicted_values,
+        'goodnessOfFit': goodness_of_fit,
         'interpretation': interpretation
     }
 
@@ -1828,10 +1828,10 @@ def ordinal_regression(
 
     # Model info
     model_info = {
-        'model_type': 'Proportional Odds Model',
-        'link_function': 'logit',
-        'n_observations': int(len(df_clean)),
-        'n_predictors': int(X.shape[1]),
+        'modelType': 'Proportional Odds Model',
+        'linkFunction': 'logit',
+        'nObservations': int(len(df_clean)),
+        'nPredictors': int(X.shape[1]),
         'convergence': _safe_bool(result.mle_retvals['converged']),
         'iterations': int(result.mle_retvals.get('iterations', 0))
     }
@@ -1864,12 +1864,12 @@ def ordinal_regression(
         coefficients.append({
             'variable': var,
             'coefficient': coef,
-            'std_error': se,
-            'z_value': z,
-            'p_value': p,
+            'stdError': se,
+            'zValue': z,
+            'pValue': p,
             'ciLower': ci_lower,
             'ciUpper': ci_upper,
-            'odds_ratio': odds_ratio,
+            'oddsRatio': odds_ratio,
             'orCiLower': or_ci_lower,
             'orCiUpper': or_ci_upper
         })
@@ -1887,9 +1887,9 @@ def ordinal_regression(
         thresholds.append({
             'threshold': threshold_names[i],
             'coefficient': float(threshold_values[i]),
-            'std_error': float(threshold_std_errors[i]),
-            'z_value': float(threshold_z_values[i]),
-            'p_value': float(threshold_p_values[i]),
+            'stdError': float(threshold_std_errors[i]),
+            'zValue': float(threshold_z_values[i]),
+            'pValue': float(threshold_p_values[i]),
             'ciLower': float(ci[0]),
             'ciUpper': float(ci[1])
         })
@@ -1912,10 +1912,10 @@ def ordinal_regression(
         'deviance': float(-2 * log_likelihood),
         'aic': aic,
         'bic': bic,
-        'log_likelihood': log_likelihood,
-        'pseudo_r_squared_mcfadden': float(pseudo_r2_mcfadden),
-        'pseudo_r_squared_nagelkerke': float(nagelkerke),
-        'pseudo_r_squared_cox_snell': float(cox_snell)
+        'logLikelihood': log_likelihood,
+        'pseudoRSquaredMcfadden': float(pseudo_r2_mcfadden),
+        'pseudoRSquaredNagelkerke': float(nagelkerke),
+        'pseudoRSquaredCoxSnell': float(cox_snell)
     }
 
     # Assumptions: Proportional Odds Test (Brant test approximation)
@@ -1953,11 +1953,11 @@ def ordinal_regression(
             })
 
     assumptions = {
-        'proportional_odds': {
-            'test_name': 'Proportional Odds Test',
-            'test_statistic': float(chi2_stat),
-            'p_value': float(po_p_value),
-            'assumption_met': _safe_bool(po_assumption_met)
+        'proportionalOdds': {
+            'testName': 'Proportional Odds Test',
+            'testStatistic': float(chi2_stat),
+            'pValue': float(po_p_value),
+            'assumptionMet': _safe_bool(po_assumption_met)
         },
         'multicollinearity': multicollinearity
     }
@@ -1972,8 +1972,8 @@ def ordinal_regression(
     for i in range(max_pred):
         prob_dict = {
             'observation': i + 1,
-            'predicted_category': int(y_pred[i]),
-            'actual_category': int(y_codes[i])
+            'predictedCategory': int(y_pred[i]),
+            'actualCategory': int(y_codes[i])
         }
         # Add category probabilities
         for j in range(n_categories):
@@ -1989,21 +1989,21 @@ def ordinal_regression(
 
     classification_metrics = {
         'accuracy': accuracy,
-        'confusion_matrix': cm.tolist(),
-        'category_labels': category_labels,
+        'confusionMatrix': cm.tolist(),
+        'categoryLabels': category_labels,
         'precision': [float(p) for p in precision],
         'recall': [float(r) for r in recall],
-        'f1_score': [float(f) for f in f1]
+        'f1Score': [float(f) for f in f1]
     }
 
     return {
-        'model_info': model_info,
+        'modelInfo': model_info,
         'coefficients': coefficients,
         'thresholds': thresholds,
-        'model_fit': model_fit,
+        'modelFit': model_fit,
         'assumptions': assumptions,
-        'predicted_probabilities': predicted_probabilities,
-        'classification_metrics': classification_metrics
+        'predictedProbabilities': predicted_probabilities,
+        'classificationMetrics': classification_metrics
     }
 
 
@@ -2276,9 +2276,9 @@ def manova(
                 overall_tests.append({
                     'test': test_name,
                     'statistic': float(test_row['Value']),
-                    'approximate_f': float(test_row['F Value']),
-                    'numerator_df': float(test_row['Num DF']),
-                    'denominator_df': float(test_row['Den DF']),
+                    'approximateF': float(test_row['F Value']),
+                    'numeratorDf': float(test_row['Num DF']),
+                    'denominatorDf': float(test_row['Den DF']),
                     'pValue': float(test_row['Pr > F'])
                 })
 
@@ -2431,13 +2431,13 @@ def manova(
         'sphericity': None,  # Not applicable for MANOVA
         'outliers': {
             'method': 'Mahalanobis Distance',
-            'n_outliers': 0,
-            'outlier_indices': []
+            'nOutliers': 0,
+            'outlierIndices': []
         },
         'multicollinearity': {
-            'correlation_matrix': [[1.0, 0.3], [0.3, 1.0]],
-            'max_correlation': 0.3,
-            'is_acceptable': True
+            'correlationMatrix': [[1.0, 0.3], [0.3, 1.0]],
+            'maxCorrelation': 0.3,
+            'isAcceptable': True
         }
     }
 

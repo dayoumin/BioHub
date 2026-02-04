@@ -14,14 +14,14 @@ describe('Batch 4 NEW Critical Bugs - Session 3 Fixes', () => {
       // DoseResponseAnalysis 컴포넌트 내부 로직
       const result = {
         model: 'logistic4',
-        r_squared: 0.95,
+        rSquared: 0.95,
         ec50: 0.123456,
         parameters: { bottom: 0, top: 100, ec50: 0.123, hillSlope: 1.5 }
       }
 
       // DoseResponseAnalysis는 자체 result 상태가 있고 항상 표시
       expect(result).toBeDefined()
-      expect(result.r_squared).toBeGreaterThan(0.9)
+      expect(result.rSquared).toBeGreaterThan(0.9)
     })
 
     it('Step 3에서 부모 DoseResponsePage가 results를 사용해 결과 표시해야 함', () => {
@@ -30,29 +30,29 @@ describe('Batch 4 NEW Critical Bugs - Session 3 Fixes', () => {
         currentStep: 3,
         results: {
           model: 'logistic4',
-          r_squared: 0.95,
+          rSquared: 0.95,
           ec50: 0.123456,
           aic: 45.2,
           bic: 50.1,
           parameters: { bottom: 0, top: 100 },
-          confidence_intervals: { ec50: [0.1, 0.15] },
+          confidenceIntervals: { ec50: [0.1, 0.15] },
           residuals: [0.1, -0.2, 0.05],
-          fitted_values: [10, 20, 30]
+          fittedValues: [10, 20, 30]
         }
       }
 
       // Step 3 조건: currentStep === 3 && results
       expect(parentState.currentStep).toBe(3)
       expect(parentState.results).toBeDefined()
-      expect(parentState.results.r_squared).toBeDefined()
+      expect(parentState.results.rSquared).toBeDefined()
       expect(parentState.results.aic).toBeDefined()
-      expect(parentState.results.confidence_intervals).toBeDefined()
+      expect(parentState.results.confidenceIntervals).toBeDefined()
     })
 
     it('completeAnalysis 호출 후 Step 3으로 이동해야 함', () => {
       const analysisResult = {
         model: 'logistic4',
-        r_squared: 0.95,
+        rSquared: 0.95,
         ec50: 0.123,
         parameters: {}
       }
@@ -140,7 +140,7 @@ describe('Batch 4 NEW Critical Bugs - Session 3 Fixes', () => {
       const params = {
         dose_data: [0.1, 1, 10, 100],
         response_data: [10, 50, 90, 99],
-        model_type: 'logistic4',
+        modelType: 'logistic4',
         constraints: { bottom: 0, top: 100 } // ✅ 이제 허용됨
       }
 
@@ -221,7 +221,7 @@ describe('Batch 4 NEW Critical Bugs - Session 3 Fixes', () => {
     it('Worker 3 메서드가 two-sided만 지원함을 확인', () => {
       // worker3-nonparametric-anova.py
       // def mann_whitney_test(group1, group2):
-      //     statistic, p_value = stats.mannwhitneyu(group1, group2, alternative='two-sided')
+      //     statistic, pValue = stats.mannwhitneyu(group1, group2, alternative='two-sided')
 
       const workerMethod = {
         name: 'mann_whitney_test',
@@ -240,21 +240,21 @@ describe('Batch 4 NEW Critical Bugs - Session 3 Fixes', () => {
       const workerParams = {
         dose_data: [0.1, 1, 10],
         response_data: [10, 50, 90],
-        model_type: 'logistic4',
+        modelType: 'logistic4',
         constraints: { bottom: 0, top: 100 } // ✅ Bug #2 Fix
       }
 
       // 2. 분석 완료
       const analysisResult = {
         model: 'logistic4',
-        r_squared: 0.95,
+        rSquared: 0.95,
         ec50: 1.23,
         parameters: workerParams.constraints,
         aic: 45,
         bic: 50,
         residuals: [0.1, -0.2],
-        fitted_values: [10, 50, 90],
-        confidence_intervals: { ec50: [1.0, 1.5] }
+        fittedValues: [10, 50, 90],
+        confidenceIntervals: { ec50: [1.0, 1.5] }
       }
 
       // 3. completeAnalysis 호출
@@ -264,8 +264,8 @@ describe('Batch 4 NEW Critical Bugs - Session 3 Fixes', () => {
       // 4. Step 3에서 결과 표시 확인 (Bug #1 Fix)
       expect(newStep).toBe(3)
       expect(storedResults).toBeDefined()
-      expect(storedResults.r_squared).toBe(0.95)
-      expect(storedResults.confidence_intervals).toBeDefined()
+      expect(storedResults.rSquared).toBe(0.95)
+      expect(storedResults.confidenceIntervals).toBeDefined()
     })
 
     it('non-parametric: UI 간소화 → 오해 방지', () => {

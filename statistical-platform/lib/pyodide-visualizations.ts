@@ -173,7 +173,7 @@ export async function createScatterPlot(
     
     # Add regression line if requested
     if ${showRegression}:
-        slope, intercept, r_value, p_value, std_err = stats.linregress(x_data, y_data)
+        slope, intercept, r_value, pValue, std_err = stats.linregress(x_data, y_data)
         line_x = np.array([x_data.min(), x_data.max()])
         line_y = slope * line_x + intercept
         ax.plot(line_x, line_y, 'r-', linewidth=2, 

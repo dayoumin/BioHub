@@ -629,17 +629,17 @@ export interface ValidationResult {
  * - 공통 컴포넌트: EffectSizeCard
  */
 export type EffectSizeType =
-  | 'cohens_d'       // Cohen's d (t-test)
-  | 'hedges_g'       // Hedges' g (소표본 보정)
-  | 'glass_delta'    // Glass's Δ (통제집단 기준)
-  | 'eta_squared'    // η² (ANOVA)
-  | 'partial_eta_squared' // Partial η² (부분 에타제곱)
-  | 'omega_squared'  // ω² (ANOVA, 편향 보정)
-  | 'epsilon_squared' // ε² (Kruskal-Wallis)
+  | 'cohensD'       // Cohen's d (t-test)
+  | 'hedgesG'       // Hedges' g (소표본 보정)
+  | 'glassDelta'    // Glass's Δ (통제집단 기준)
+  | 'etaSquared'    // η² (ANOVA)
+  | 'partialEtaSquared' // Partial η² (부분 에타제곱)
+  | 'omegaSquared'  // ω² (ANOVA, 편향 보정)
+  | 'epsilonSquared' // ε² (Kruskal-Wallis)
   | 'r'              // Pearson r (상관)
-  | 'r_squared'      // R² (결정계수)
+  | 'rSquared'      // R² (결정계수)
   | 'phi'            // φ (2x2 카이제곱)
-  | 'cramers_v'      // Cramér's V (카이제곱)
+  | 'cramersV'      // Cramér's V (카이제곱)
   | 'w'              // Kendall's W (일치도)
 
 /**

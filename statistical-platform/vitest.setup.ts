@@ -150,7 +150,7 @@ vi.mock('@/lib/services/pyodide-statistics', () => ({
       }),
       arimaForecast: vi.fn().mockResolvedValue({
         forecast: [6, 7, 8],
-        confidence_intervals: [
+        confidenceIntervals: [
           [5, 7],
           [6, 8],
           [7, 9],
@@ -158,7 +158,7 @@ vi.mock('@/lib/services/pyodide-statistics', () => ({
       }),
       sarimaForecast: vi.fn().mockResolvedValue({
         forecast: [6, 7, 8],
-        confidence_intervals: [
+        confidenceIntervals: [
           [5, 7],
           [6, 8],
           [7, 9],
@@ -178,8 +178,8 @@ vi.mock('@/lib/services/pyodide-statistics', () => ({
         hazard_ratios: {},
       }),
       manova: vi.fn().mockResolvedValue({
-        test_statistic: 0.5,
-        p_value: 0.05,
+        testStatistic: 0.5,
+        pValue: 0.05,
       }),
     }),
   },

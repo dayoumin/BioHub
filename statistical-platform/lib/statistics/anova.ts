@@ -32,7 +32,7 @@ export async function oneWayANOVA(
     group_names = ${JSON.stringify(names)}
     
     # ANOVA 수행
-    f_stat, p_value = stats.f_oneway(*[np.array(g) for g in groups_data])
+    f_stat, pValue = stats.f_oneway(*[np.array(g) for g in groups_data])
     
     # 그룹별 통계
     group_means = [float(np.mean(g)) for g in groups_data]
@@ -46,7 +46,7 @@ export async function oneWayANOVA(
     # 효과크기 (eta-squared) 계산
     ss_between = sum(n * (mean - grand_mean)**2 for n, mean in zip(group_ns, group_means))
     ss_total = sum((x - grand_mean)**2 for g in groups_data for x in g)
-    eta_squared = ss_between / ss_total if ss_total != 0 else 0
+    etaSquared = ss_between / ss_total if ss_total != 0 else 0
     
     # 자유도
     df_between = len(groups_data) - 1
@@ -59,7 +59,7 @@ export async function oneWayANOVA(
     result = {
         'testName': 'One-way ANOVA',
         'statistic': float(f_stat),
-        'pValue': float(p_value),
+        'pValue': float(pValue),
         'fStatistic': float(f_stat),
         'dfBetween': int(df_between),
         'dfWithin': int(df_within),
@@ -70,9 +70,9 @@ export async function oneWayANOVA(
         'groupSizes': group_ns,
         'groupNames': group_names,
         'grandMean': grand_mean,
-        'etaSquared': float(eta_squared),
-        'interpretation': f"Groups {'differ' if p_value < 0.05 else 'do not differ'} significantly (p = {p_value:.4f})",
-        'isSignificant': p_value < 0.05
+        'etaSquared': float(etaSquared),
+        'interpretation': f"Groups {'differ' if pValue < 0.05 else 'do not differ'} significantly (p = {pValue:.4f})",
+        'isSignificant': pValue < 0.05
     }
     
     json.dumps(result)
@@ -97,7 +97,7 @@ export async function oneWayANOVA(
     parsedResult.postHoc = postHocResults
   }
   
-  parsedResult.interpretation = `${parsedResult.interpretation}. Effect size (η²): ${interpretEffectSize(parsedResult.etaSquared, 'eta_squared')}`
+  parsedResult.interpretation = `${parsedResult.interpretation}. Effect size (η²): ${interpretEffectSize(parsedResult.etaSquared, 'etaSquared')}`
   return parsedResult
 }
 
@@ -264,7 +264,7 @@ export async function tukeyHSD(
         t_crit = stats.t.ppf(1 - alpha_adj/2, df)
         
         # p-value 근사
-        p_value = 2 * (1 - stats.t.cdf(abs(mean_diff) / se, df))
+        pValue = 2 * (1 - stats.t.cdf(abs(mean_diff) / se, df))
         
         # 신뢰구간
         ci_lower = mean_diff - t_crit * se
@@ -274,10 +274,10 @@ export async function tukeyHSD(
             'group1': group_names[i],
             'group2': group_names[j],
             'meanDiff': float(mean_diff),
-            'pValue': float(p_value),
+            'pValue': float(pValue),
             'ciLower': float(ci_lower),
             'ciUpper': float(ci_upper),
-            'significant': p_value < alpha_adj
+            'significant': pValue < alpha_adj
         })
     
     json.dumps(comparisons)
@@ -317,7 +317,7 @@ export async function bonferroniPostHoc(
         group2 = np.array(groups_data[j])
         
         # t-검정 수행
-        t_stat, p_value = stats.ttest_ind(group1, group2)
+        t_stat, pValue = stats.ttest_ind(group1, group2)
         
         # 평균 차이와 신뢰구간
         mean_diff = np.mean(group1) - np.mean(group2)
@@ -335,11 +335,11 @@ export async function bonferroniPostHoc(
             'group1': group_names[i],
             'group2': group_names[j],
             'meanDiff': float(mean_diff),
-            'pValue': float(p_value),
-            'adjustedPValue': float(min(p_value * n_comparisons, 1.0)),
+            'pValue': float(pValue),
+            'adjustedPValue': float(min(pValue * n_comparisons, 1.0)),
             'ciLower': float(ci_lower),
             'ciUpper': float(ci_upper),
-            'significant': p_value < alpha_adj
+            'significant': pValue < alpha_adj
         })
     
     json.dumps(comparisons)
@@ -389,7 +389,7 @@ export async function gamesHowellPostHoc(
         t_stat = (mean1 - mean2) / se
         
         # p-value
-        p_value = 2 * (1 - stats.t.cdf(abs(t_stat), df))
+        pValue = 2 * (1 - stats.t.cdf(abs(t_stat), df))
         
         # 신뢰구간
         t_crit = stats.t.ppf(1 - alpha/2, df)
@@ -401,10 +401,10 @@ export async function gamesHowellPostHoc(
             'group1': group_names[i],
             'group2': group_names[j],
             'meanDiff': float(mean_diff),
-            'pValue': float(p_value),
+            'pValue': float(pValue),
             'ciLower': float(ci_lower),
             'ciUpper': float(ci_upper),
-            'significant': p_value < alpha,
+            'significant': pValue < alpha,
             'df': float(df)
         })
     

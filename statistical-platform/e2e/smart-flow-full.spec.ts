@@ -9,7 +9,9 @@ import {
   selectPurpose,
   waitForAnalysis,
   waitForProgressComplete,
+  waitForPyodide,
   verifyResults,
+  runFullAnalysisFlow,
   type ResultVerificationOptions
 } from './helpers/smart-flow-helpers';
 
@@ -19,8 +21,18 @@ test.setTimeout(120000); // 2분
 test.describe('Smart Flow - Full Analysis Flow', () => {
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/smart-flow');
-    await page.waitForLoadState('networkidle');
+    // Smart Flow Hub는 이제 루트(/)에 있음 (/smart-flow는 / 로 리다이렉트)
+    await page.goto('/');
+    await page.waitForLoadState('domcontentloaded');
+
+    // Pyodide 초기화 대기 (첫 방문 시 10-15초 소요)
+    console.log('[beforeEach] Pyodide 초기화 대기 중...');
+    const pyodideReady = await waitForPyodide(page, 30000);
+    if (!pyodideReady) {
+      console.warn('[beforeEach] Pyodide 초기화 타임아웃, 테스트 계속 진행');
+    } else {
+      console.log('[beforeEach] Pyodide 초기화 완료');
+    }
   });
 
   // ===========================================
@@ -30,37 +42,15 @@ test.describe('Smart Flow - Full Analysis Flow', () => {
   test.describe('Critical: Complete Analysis Flows', () => {
 
     test('FF-001: 독립표본 t-검정 전체 흐름', async ({ page }) => {
-      // Step 1: 데이터 업로드
-      const uploaded = await uploadFile(page, 't-test.csv');
-      expect(uploaded).toBeTruthy();
+      // 전체 분석 흐름 실행
+      const completed = await runFullAnalysisFlow(page, 't-test.csv', 'group-comparison', {
+        methodPattern: 't-검정|t.*test'
+      });
 
-      const dataLoaded = await verifyDataLoaded(page);
-      expect(dataLoaded).toBeTruthy();
+      expect(completed).toBeTruthy();
 
-      // Step 2: 방법 선택
-      await navigateToStep2(page);
-      await selectPurpose(page, 'group-comparison');
-      await page.waitForTimeout(3000);
-
-      // AI 추천 또는 수동 선택 대기
-      const methodRecommended = await page.locator('text=/t-검정|추천|권장/').count() > 0;
-      if (methodRecommended) {
-        // 추천된 방법 선택
-        const selectButton = page.locator('text=/이 방법으로|선택|확인/').first();
-        if (await selectButton.isVisible()) {
-          await selectButton.click();
-          await page.waitForTimeout(2000);
-        }
-      }
-
-      // Step 3: 변수 선택 (자동 감지 또는 수동)
-      await page.waitForTimeout(3000);
-
-      // Step 4: 분석 실행 대기
-      const analysisComplete = await waitForProgressComplete(page, 90000);
-
-      // Step 5: 결과 검증
-      if (analysisComplete) {
+      // 결과 검증
+      if (completed) {
         const { success, details } = await verifyResults(page, {
           hasStatistic: true,
           hasPValue: true,
@@ -70,38 +60,17 @@ test.describe('Smart Flow - Full Analysis Flow', () => {
 
         console.log('Result verification:', details);
         expect(success).toBeTruthy();
-      } else {
-        // 분석이 완료되지 않은 경우 - 현재 상태 확인
-        await expect(page).toHaveURL(/\/smart-flow/);
       }
     });
 
     test('FF-002: 일원분산분석(ANOVA) 전체 흐름', async ({ page }) => {
-      // Step 1: 데이터 업로드
-      const uploaded = await uploadFile(page, 'anova.csv');
-      expect(uploaded).toBeTruthy();
+      const completed = await runFullAnalysisFlow(page, 'anova.csv', 'group-comparison', {
+        methodPattern: 'ANOVA|분산분석'
+      });
 
-      const dataLoaded = await verifyDataLoaded(page);
-      expect(dataLoaded).toBeTruthy();
+      expect(completed).toBeTruthy();
 
-      // Step 2: 방법 선택
-      await navigateToStep2(page);
-      await selectPurpose(page, 'group-comparison');
-      await page.waitForTimeout(3000);
-
-      // ANOVA 선택 (3개 이상 그룹)
-      const anovaOption = page.locator('text=/ANOVA|분산분석|3개.*그룹/').first();
-      if (await anovaOption.isVisible()) {
-        await anovaOption.click();
-        await page.waitForTimeout(2000);
-      }
-
-      // Step 3-4: 변수 선택 및 분석
-      await page.waitForTimeout(3000);
-      const analysisComplete = await waitForProgressComplete(page, 90000);
-
-      // Step 5: 결과 검증
-      if (analysisComplete) {
+      if (completed) {
         const { success, details } = await verifyResults(page, {
           hasStatistic: true,  // F 통계량
           hasPValue: true,
@@ -110,30 +79,17 @@ test.describe('Smart Flow - Full Analysis Flow', () => {
 
         console.log('ANOVA Result verification:', details);
         expect(success).toBeTruthy();
-      } else {
-        await expect(page).toHaveURL(/\/smart-flow/);
       }
     });
 
     test('FF-003: 상관분석 전체 흐름', async ({ page }) => {
-      // Step 1: 데이터 업로드
-      const uploaded = await uploadFile(page, 'correlation.csv');
-      expect(uploaded).toBeTruthy();
+      const completed = await runFullAnalysisFlow(page, 'correlation.csv', 'correlation', {
+        methodPattern: '상관|correlation'
+      });
 
-      const dataLoaded = await verifyDataLoaded(page);
-      expect(dataLoaded).toBeTruthy();
+      expect(completed).toBeTruthy();
 
-      // Step 2: 방법 선택
-      await navigateToStep2(page);
-      await selectPurpose(page, 'correlation');
-      await page.waitForTimeout(3000);
-
-      // Step 3-4: 변수 선택 및 분석
-      await page.waitForTimeout(3000);
-      const analysisComplete = await waitForProgressComplete(page, 90000);
-
-      // Step 5: 결과 검증
-      if (analysisComplete) {
+      if (completed) {
         const { success, details } = await verifyResults(page, {
           hasStatistic: true,  // r
           hasPValue: true
@@ -141,30 +97,17 @@ test.describe('Smart Flow - Full Analysis Flow', () => {
 
         console.log('Correlation Result verification:', details);
         expect(success).toBeTruthy();
-      } else {
-        await expect(page).toHaveURL(/\/smart-flow/);
       }
     });
 
     test('FF-004: 단순회귀분석 전체 흐름', async ({ page }) => {
-      // Step 1: 데이터 업로드
-      const uploaded = await uploadFile(page, 'regression.csv');
-      expect(uploaded).toBeTruthy();
+      const completed = await runFullAnalysisFlow(page, 'regression.csv', 'prediction', {
+        methodPattern: '회귀|regression'
+      });
 
-      const dataLoaded = await verifyDataLoaded(page);
-      expect(dataLoaded).toBeTruthy();
+      expect(completed).toBeTruthy();
 
-      // Step 2: 방법 선택
-      await navigateToStep2(page);
-      await selectPurpose(page, 'prediction');
-      await page.waitForTimeout(3000);
-
-      // Step 3-4: 변수 선택 및 분석
-      await page.waitForTimeout(3000);
-      const analysisComplete = await waitForProgressComplete(page, 90000);
-
-      // Step 5: 결과 검증
-      if (analysisComplete) {
+      if (completed) {
         const { success, details } = await verifyResults(page, {
           hasStatistic: true,  // F, t
           hasPValue: true
@@ -172,30 +115,17 @@ test.describe('Smart Flow - Full Analysis Flow', () => {
 
         console.log('Regression Result verification:', details);
         expect(success).toBeTruthy();
-      } else {
-        await expect(page).toHaveURL(/\/smart-flow/);
       }
     });
 
     test('FF-005: 카이제곱 검정 전체 흐름', async ({ page }) => {
-      // Step 1: 데이터 업로드
-      const uploaded = await uploadFile(page, 'chi-square.csv');
-      expect(uploaded).toBeTruthy();
+      const completed = await runFullAnalysisFlow(page, 'chi-square.csv', 'distribution', {
+        methodPattern: '카이제곱|chi.*square'
+      });
 
-      const dataLoaded = await verifyDataLoaded(page);
-      expect(dataLoaded).toBeTruthy();
+      expect(completed).toBeTruthy();
 
-      // Step 2: 방법 선택
-      await navigateToStep2(page);
-      await selectPurpose(page, 'distribution');
-      await page.waitForTimeout(3000);
-
-      // Step 3-4: 변수 선택 및 분석
-      await page.waitForTimeout(3000);
-      const analysisComplete = await waitForProgressComplete(page, 90000);
-
-      // Step 5: 결과 검증
-      if (analysisComplete) {
+      if (completed) {
         const { success, details } = await verifyResults(page, {
           hasStatistic: true,  // χ²
           hasPValue: true
@@ -203,8 +133,6 @@ test.describe('Smart Flow - Full Analysis Flow', () => {
 
         console.log('Chi-square Result verification:', details);
         expect(success).toBeTruthy();
-      } else {
-        await expect(page).toHaveURL(/\/smart-flow/);
       }
     });
   });
@@ -216,157 +144,87 @@ test.describe('Smart Flow - Full Analysis Flow', () => {
   test.describe('High: Additional Analysis Flows', () => {
 
     test('FF-006: 대응표본 t-검정 전체 흐름', async ({ page }) => {
-      const uploaded = await uploadFile(page, 'paired-t-test.csv');
-      expect(uploaded).toBeTruthy();
+      const completed = await runFullAnalysisFlow(page, 'paired-t-test.csv', 'group-comparison', {
+        methodPattern: '대응|paired'
+      });
 
-      const dataLoaded = await verifyDataLoaded(page);
-      expect(dataLoaded).toBeTruthy();
+      expect(completed).toBeTruthy();
 
-      await navigateToStep2(page);
-      await selectPurpose(page, 'group-comparison');
-      await page.waitForTimeout(5000);
-
-      // 대응표본 선택
-      const pairedOption = page.locator('text=/대응|paired|사전.*사후/i').first();
-      if (await pairedOption.isVisible()) {
-        await pairedOption.click();
-        await page.waitForTimeout(2000);
-      }
-
-      const analysisComplete = await waitForProgressComplete(page, 90000);
-
-      if (analysisComplete) {
-        const { success } = await verifyResults(page, {
+      if (completed) {
+        const { success, details } = await verifyResults(page, {
           hasStatistic: true,
           hasPValue: true
         });
+        console.log('Paired t-test Result verification:', details);
         expect(success).toBeTruthy();
-      } else {
-        await expect(page).toHaveURL(/\/smart-flow/);
       }
     });
 
     test('FF-007: 일표본 t-검정 전체 흐름', async ({ page }) => {
-      const uploaded = await uploadFile(page, 'one-sample-t.csv');
-      expect(uploaded).toBeTruthy();
+      const completed = await runFullAnalysisFlow(page, 'one-sample-t.csv', 'group-comparison', {
+        methodPattern: '일표본|one.*sample'
+      });
 
-      const dataLoaded = await verifyDataLoaded(page);
-      expect(dataLoaded).toBeTruthy();
+      expect(completed).toBeTruthy();
 
-      await navigateToStep2(page);
-      await selectPurpose(page, 'group-comparison');
-      await page.waitForTimeout(5000);
-
-      // 일표본 선택
-      const oneSampleOption = page.locator('text=/일표본|one.*sample|단일/i').first();
-      if (await oneSampleOption.isVisible()) {
-        await oneSampleOption.click();
-        await page.waitForTimeout(2000);
-      }
-
-      const analysisComplete = await waitForProgressComplete(page, 90000);
-
-      if (analysisComplete) {
-        const { success } = await verifyResults(page, {
+      if (completed) {
+        const { success, details } = await verifyResults(page, {
           hasStatistic: true,
           hasPValue: true
         });
+        console.log('One-sample t-test Result verification:', details);
         expect(success).toBeTruthy();
-      } else {
-        await expect(page).toHaveURL(/\/smart-flow/);
       }
     });
 
     test('FF-008: Mann-Whitney U 검정 전체 흐름', async ({ page }) => {
-      const uploaded = await uploadFile(page, 'mann-whitney.csv');
-      expect(uploaded).toBeTruthy();
+      const completed = await runFullAnalysisFlow(page, 'mann-whitney.csv', 'group-comparison', {
+        methodPattern: 'Mann.*Whitney|비모수'
+      });
 
-      const dataLoaded = await verifyDataLoaded(page);
-      expect(dataLoaded).toBeTruthy();
+      expect(completed).toBeTruthy();
 
-      await navigateToStep2(page);
-      await selectPurpose(page, 'group-comparison');
-      await page.waitForTimeout(5000);
-
-      // 비모수 검정 선택
-      const mannWhitneyOption = page.locator('text=/Mann.*Whitney|비모수|U.*검정/i').first();
-      if (await mannWhitneyOption.isVisible()) {
-        await mannWhitneyOption.click();
-        await page.waitForTimeout(2000);
-      }
-
-      const analysisComplete = await waitForProgressComplete(page, 90000);
-
-      if (analysisComplete) {
-        const { success } = await verifyResults(page, {
+      if (completed) {
+        const { success, details } = await verifyResults(page, {
           hasStatistic: true,  // U
           hasPValue: true
         });
+        console.log('Mann-Whitney Result verification:', details);
         expect(success).toBeTruthy();
-      } else {
-        await expect(page).toHaveURL(/\/smart-flow/);
       }
     });
 
     test('FF-009: Kruskal-Wallis 검정 전체 흐름', async ({ page }) => {
-      const uploaded = await uploadFile(page, 'kruskal-wallis.csv');
-      expect(uploaded).toBeTruthy();
+      const completed = await runFullAnalysisFlow(page, 'kruskal-wallis.csv', 'group-comparison', {
+        methodPattern: 'Kruskal.*Wallis|비모수.*분산'
+      });
 
-      const dataLoaded = await verifyDataLoaded(page);
-      expect(dataLoaded).toBeTruthy();
+      expect(completed).toBeTruthy();
 
-      await navigateToStep2(page);
-      await selectPurpose(page, 'group-comparison');
-      await page.waitForTimeout(5000);
-
-      // Kruskal-Wallis 선택
-      const kwOption = page.locator('text=/Kruskal.*Wallis|비모수.*분산/i').first();
-      if (await kwOption.isVisible()) {
-        await kwOption.click();
-        await page.waitForTimeout(2000);
-      }
-
-      const analysisComplete = await waitForProgressComplete(page, 90000);
-
-      if (analysisComplete) {
-        const { success } = await verifyResults(page, {
+      if (completed) {
+        const { success, details } = await verifyResults(page, {
           hasStatistic: true,  // H
           hasPValue: true
         });
+        console.log('Kruskal-Wallis Result verification:', details);
         expect(success).toBeTruthy();
-      } else {
-        await expect(page).toHaveURL(/\/smart-flow/);
       }
     });
 
     test('FF-010: 다중회귀분석 전체 흐름', async ({ page }) => {
-      const uploaded = await uploadFile(page, 'regression.csv');
-      expect(uploaded).toBeTruthy();
+      const completed = await runFullAnalysisFlow(page, 'regression.csv', 'prediction', {
+        methodPattern: '다중.*회귀|multiple.*regression'
+      });
 
-      const dataLoaded = await verifyDataLoaded(page);
-      expect(dataLoaded).toBeTruthy();
+      expect(completed).toBeTruthy();
 
-      await navigateToStep2(page);
-      await selectPurpose(page, 'prediction');
-      await page.waitForTimeout(5000);
-
-      // 다중회귀 선택
-      const multipleRegOption = page.locator('text=/다중.*회귀|multiple.*regression/i').first();
-      if (await multipleRegOption.isVisible()) {
-        await multipleRegOption.click();
-        await page.waitForTimeout(2000);
-      }
-
-      const analysisComplete = await waitForProgressComplete(page, 90000);
-
-      if (analysisComplete) {
-        const { success } = await verifyResults(page, {
+      if (completed) {
+        const { success, details } = await verifyResults(page, {
           hasStatistic: true,
           hasPValue: true
         });
+        console.log('Multiple regression Result verification:', details);
         expect(success).toBeTruthy();
-      } else {
-        await expect(page).toHaveURL(/\/smart-flow/);
       }
     });
   });

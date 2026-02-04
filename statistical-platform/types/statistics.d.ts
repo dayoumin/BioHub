@@ -151,7 +151,7 @@ export interface HomogeneityTestResult {
  */
 export interface EffectSize {
   value: number
-  type: 'cohens_d' | 'hedges_g' | 'glass_delta' | 'eta_squared' | 'omega_squared' | 'epsilon_squared' | 'r'
+  type: 'cohensD' | 'hedgesG' | 'glassDelta' | 'etaSquared' | 'omegaSquared' | 'epsilonSquared' | 'r'
   interpretation: 'negligible' | 'small' | 'medium' | 'large'
   confidenceInterval?: {
     lower: number

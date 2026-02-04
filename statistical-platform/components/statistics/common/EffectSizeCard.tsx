@@ -15,7 +15,7 @@ import {
 interface EffectSizeCardProps {
   title: string
   value: number | null | undefined
-  type?: 'cohens_d' | 'hedges_g' | 'glass_delta' | 'eta_squared' | 'partial_eta_squared' | 'omega_squared' | 'epsilon_squared' | 'r' | 'r_squared' | 'phi' | 'cramers_v' | 'w'
+  type?: 'cohensD' | 'hedgesG' | 'glassDelta' | 'etaSquared' | 'partialEtaSquared' | 'omegaSquared' | 'epsilonSquared' | 'r' | 'rSquared' | 'phi' | 'cramersV' | 'w'
   description?: string
   showInterpretation?: boolean
   showVisualScale?: boolean
@@ -30,7 +30,7 @@ interface EffectSizeCardProps {
 export function EffectSizeCard({
   title,
   value,
-  type = 'cohens_d',
+  type = 'cohensD',
   description,
   showInterpretation = true,
   showVisualScale = true,
@@ -56,18 +56,18 @@ export function EffectSizeCard({
   // 효과크기를 0-100 스케일로 변환 (시각화용)
   const getProgressValue = () => {
     switch (type) {
-      case 'cohens_d':
-      case 'hedges_g':
-      case 'glass_delta':
+      case 'cohensD':
+      case 'hedgesG':
+      case 'glassDelta':
         return Math.min(absValue * 50, 100) // 0-2 범위를 0-100으로
-      case 'eta_squared':
-      case 'partial_eta_squared':
-      case 'omega_squared':
-      case 'epsilon_squared':
+      case 'etaSquared':
+      case 'partialEtaSquared':
+      case 'omegaSquared':
+      case 'epsilonSquared':
       case 'r':
-      case 'r_squared':
+      case 'rSquared':
       case 'phi':
-      case 'cramers_v':
+      case 'cramersV':
       case 'w':
         return absValue * 100 // 이미 0-1 범위
       default:
@@ -96,17 +96,17 @@ export function EffectSizeCard({
 
   // 효과크기 타입별 설명
   const typeDescriptions: Record<string, string> = {
-    cohens_d: "Cohen's d - 표준화된 평균 차이",
-    hedges_g: "Hedges' g - 소표본 보정 효과크기",
-    glass_delta: "Glass's Δ - 통제집단 기준 효과크기",
-    eta_squared: 'η² - 설명된 분산의 비율',
-    partial_eta_squared: 'Partial η² - 부분 에타제곱',
-    omega_squared: 'ω² - 조정된 설명 분산',
-    epsilon_squared: 'ε² - Kruskal-Wallis 효과크기',
+    cohensD: "Cohen's d - 표준화된 평균 차이",
+    hedgesG: "Hedges' g - 소표본 보정 효과크기",
+    glassDelta: "Glass's Δ - 통제집단 기준 효과크기",
+    etaSquared: 'η² - 설명된 분산의 비율',
+    partialEtaSquared: 'Partial η² - 부분 에타제곱',
+    omegaSquared: 'ω² - 조정된 설명 분산',
+    epsilonSquared: 'ε² - Kruskal-Wallis 효과크기',
     r: 'r - 상관계수 효과크기',
-    r_squared: 'R² - 결정계수',
+    rSquared: 'R² - 결정계수',
     phi: 'φ - 2×2 분할표 연관성',
-    cramers_v: "Cramér's V - 명목 변수 연관성",
+    cramersV: "Cramér's V - 명목 변수 연관성",
     w: "Kendall's W - 일치도 계수"
   }
 
@@ -228,7 +228,7 @@ export function EffectSizeComparison({ items, className }: EffectSizeComparisonP
       {items.map((item, index) => {
         const absValue = Math.abs(item.value || 0)
         const percentage = maxEffect > 0 ? (absValue / maxEffect) * 100 : 0
-        const interpretation = item.value ? interpretEffectSize(item.value, item.type || 'cohens_d') : 'N/A'
+        const interpretation = item.value ? interpretEffectSize(item.value, item.type || 'cohensD') : 'N/A'
 
         return (
           <div key={index} className="space-y-1">
@@ -267,42 +267,42 @@ interface EffectSizeGuidelinesProps {
   className?: string
 }
 
-export function EffectSizeGuidelines({ type = 'cohens_d', className }: EffectSizeGuidelinesProps) {
+export function EffectSizeGuidelines({ type = 'cohensD', className }: EffectSizeGuidelinesProps) {
   const guidelines = {
-    cohens_d: [
+    cohensD: [
       { label: '무시할 만함', range: '< 0.2', color: 'bg-gray-100' },
       { label: '작음', range: '0.2 - 0.5', color: 'bg-yellow-100' },
       { label: '중간', range: '0.5 - 0.8', color: 'bg-orange-100' },
       { label: '큼', range: '> 0.8', color: 'bg-red-100' }
     ],
-    hedges_g: [
+    hedgesG: [
       { label: '무시할 만함', range: '< 0.2', color: 'bg-gray-100' },
       { label: '작음', range: '0.2 - 0.5', color: 'bg-yellow-100' },
       { label: '중간', range: '0.5 - 0.8', color: 'bg-orange-100' },
       { label: '큼', range: '> 0.8', color: 'bg-red-100' }
     ],
-    glass_delta: [
+    glassDelta: [
       { label: '무시할 만함', range: '< 0.2', color: 'bg-gray-100' },
       { label: '작음', range: '0.2 - 0.5', color: 'bg-yellow-100' },
       { label: '중간', range: '0.5 - 0.8', color: 'bg-orange-100' },
       { label: '큼', range: '> 0.8', color: 'bg-red-100' }
     ],
-    eta_squared: [
+    etaSquared: [
       { label: '작음', range: '< 0.01', color: 'bg-gray-100' },
       { label: '중간', range: '0.01 - 0.06', color: 'bg-yellow-100' },
       { label: '큼', range: '> 0.14', color: 'bg-orange-100' }
     ],
-    partial_eta_squared: [
+    partialEtaSquared: [
       { label: '작음', range: '< 0.01', color: 'bg-gray-100' },
       { label: '중간', range: '0.01 - 0.06', color: 'bg-yellow-100' },
       { label: '큼', range: '> 0.14', color: 'bg-orange-100' }
     ],
-    omega_squared: [
+    omegaSquared: [
       { label: '작음', range: '< 0.01', color: 'bg-gray-100' },
       { label: '중간', range: '0.01 - 0.06', color: 'bg-yellow-100' },
       { label: '큼', range: '> 0.14', color: 'bg-orange-100' }
     ],
-    epsilon_squared: [
+    epsilonSquared: [
       { label: '작음', range: '< 0.01', color: 'bg-gray-100' },
       { label: '중간', range: '0.01 - 0.06', color: 'bg-yellow-100' },
       { label: '큼', range: '> 0.14', color: 'bg-orange-100' }
@@ -312,7 +312,7 @@ export function EffectSizeGuidelines({ type = 'cohens_d', className }: EffectSiz
       { label: '중간', range: '0.3 - 0.5', color: 'bg-yellow-100' },
       { label: '강함', range: '> 0.5', color: 'bg-orange-100' }
     ],
-    r_squared: [
+    rSquared: [
       { label: '작음', range: '< 0.09', color: 'bg-gray-100' },
       { label: '중간', range: '0.09 - 0.25', color: 'bg-yellow-100' },
       { label: '큼', range: '> 0.25', color: 'bg-orange-100' }
@@ -322,7 +322,7 @@ export function EffectSizeGuidelines({ type = 'cohens_d', className }: EffectSiz
       { label: '중간', range: '0.3 - 0.5', color: 'bg-yellow-100' },
       { label: '강함', range: '> 0.5', color: 'bg-orange-100' }
     ],
-    cramers_v: [
+    cramersV: [
       { label: '약함', range: '< 0.3', color: 'bg-gray-100' },
       { label: '중간', range: '0.3 - 0.5', color: 'bg-yellow-100' },
       { label: '강함', range: '> 0.5', color: 'bg-orange-100' }
@@ -335,7 +335,7 @@ export function EffectSizeGuidelines({ type = 'cohens_d', className }: EffectSiz
     ]
   }
 
-  const currentGuidelines = guidelines[type as keyof typeof guidelines] || guidelines.cohens_d
+  const currentGuidelines = guidelines[type as keyof typeof guidelines] || guidelines.cohensD
 
   return (
     <Card className={cn('bg-gray-50', className)}>
