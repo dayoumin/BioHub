@@ -26,7 +26,7 @@ import type { ColumnInfo } from '@/lib/statistics/variable-mapping'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Settings2 } from 'lucide-react'
+import { Settings2, Zap } from 'lucide-react'
 // Note: favorites 기능은 ChatCentricHub 내부에서 처리됨
 
 // ===== Main Page Component =====
@@ -106,9 +106,11 @@ export default function HomePage() {
       { id: 4, label: '분석' }
     ].map((step) => ({
       ...step,
-      completed: completedSteps.includes(step.id)
+      completed: (quickAnalysisMode && step.id === 2)
+        ? true
+        : completedSteps.includes(step.id)
     }))
-  }, [completedSteps])
+  }, [completedSteps, quickAnalysisMode])
 
   // Handlers
   const handleStepClick = useCallback((stepId: number) => {
@@ -229,16 +231,9 @@ export default function HomePage() {
   }, [currentStep, quickAnalysisMode])
 
   const handleFloatingNext = useCallback(() => {
-    if (currentStep === 1) {
-      handleStep1Next()
-    } else if (currentStep === 2) {
-      // Step 2 handled internally by PurposeInputStep
-    } else if (currentStep === 3) {
-      // Step 3 handled internally by VariableSelectionStep
-    } else {
-      goToNextStep()
-    }
-  }, [currentStep, handleStep1Next, goToNextStep])
+    // Step 1에서만 사용 (Step 2, 3은 각 스텝 내부에서 처리)
+    handleStep1Next()
+  }, [handleStep1Next])
 
 
   return (
@@ -260,7 +255,7 @@ export default function HomePage() {
       canGoNext={canProceedWithFloatingNav}
       onNext={handleFloatingNext}
       nextLabel={getNextStepLabel}
-      showFloatingNav={currentStep !== 4 || !results}
+      showFloatingNav={currentStep === 1 && !showHub}
     >
       {/* ===== Hub Page (Chat-Centric Style) ===== */}
       {showHub && (
@@ -291,6 +286,47 @@ export default function HomePage() {
                     <p className="text-sm text-muted-foreground mt-1">
                       이전 설정으로 새 데이터를 분석합니다. 아래에서 데이터를 업로드하세요.
                     </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+
+          {/* 빠른 분석 모드 안내 */}
+          {!isReanalysisMode && quickAnalysisMode && selectedMethod && (
+            <Card className="mb-6 border-amber-300/50 bg-amber-50/50 dark:border-amber-700/50 dark:bg-amber-950/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                    <Zap className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">빠른 분석</Badge>
+                      <span className="font-medium">{selectedMethod.name}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      데이터를 업로드하면 바로 변수 선택으로 이동합니다.
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => { setQuickAnalysisMode(false) }}
+                    >
+                      일반 분석
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => { setQuickAnalysisMode(false); navigateToStep(2) }}
+                    >
+                      방법 변경
+                    </Button>
                   </div>
                 </div>
               </CardContent>

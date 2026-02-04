@@ -13,19 +13,19 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { FilterToggle } from '@/components/ui/filter-toggle'
-import { X, ChartScatter, Loader2, ListOrdered, ArrowRight, Sparkles, ExternalLink, BarChart3, GitCommitHorizontal, Flame } from 'lucide-react'
+import { X, ChartScatter, Loader2, ListOrdered, ArrowRight, Sparkles, ExternalLink, BarChart3, GitCommitHorizontal, Flame, AlertTriangle, Lightbulb, Search, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ValidationResults, DataRow, StatisticalAssumptions } from '@/types/smart-flow'
 import { DataProfileSummary } from '@/components/common/analysis/DataProfileSummary'
 import { usePyodide } from '@/components/providers/PyodideProvider'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import { StepHeader } from '@/components/smart-flow/common'
 import { logger } from '@/lib/utils/logger'
 import { Histogram } from '@/components/charts/histogram'
 import { BoxPlot } from '@/components/charts/boxplot'
 import { openDataWindow } from '@/lib/utils/open-data-window'
 import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { StepNavigation } from '@/components/smart-flow/StepNavigation'
 import { CorrelationHeatmap } from '@/components/smart-flow/steps/validation/charts/CorrelationHeatmap'
 import { OutlierDetailPanel, OutlierInfo } from '@/components/common/analysis/OutlierDetailPanel'
 import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
@@ -33,6 +33,7 @@ import { TemplateSelector } from '@/components/smart-flow/TemplateSelector'
 import { TemplateManagePanel } from '@/components/smart-flow/TemplateManagePanel'
 import { useTemplateStore } from '@/lib/stores/template-store'
 import type { AnalysisTemplate } from '@/types/smart-flow'
+import { getExplorationProfile } from '@/lib/utils/exploration-profile'
 
 interface DataExplorationStepProps {
   validationResults: ValidationResults | null
@@ -98,8 +99,14 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   void _onPrevious // Suppress unused warning
   // Pyodide 및 Store
   const { isLoaded: pyodideLoaded, service: pyodideService } = usePyodide()
-  const { uploadedFile, uploadedFileName } = useSmartFlowStore()
+  const { uploadedFile, uploadedFileName, selectedMethod, quickAnalysisMode } = useSmartFlowStore()
   // Note: setAssumptionResults는 useEffect에서 getState()로 직접 접근 (의존성 루프 방지)
+
+  // 빠른 분석 모드: 방법에 맞는 탐색 프로필
+  const profile = useMemo(
+    () => getExplorationProfile(quickAnalysisMode ? selectedMethod : null),
+    [quickAnalysisMode, selectedMethod]
+  )
 
   // 템플릿 관련 상태
   const { recentTemplates, loadTemplates: loadTemplatesFromDB } = useTemplateStore()
@@ -133,6 +140,13 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
   // 차트 타입 상태 (변수 전환 시에도 유지)
   const [chartType, setChartType] = useState<'histogram' | 'boxplot'>('histogram')
+
+  // 빠른 분석 모드: 방법에 맞는 기본 차트 타입 동기화
+  useEffect(() => {
+    if (quickAnalysisMode && selectedMethod) {
+      setChartType(profile.defaultChartType)
+    }
+  }, [quickAnalysisMode, selectedMethod, profile.defaultChartType])
   // 박스플롯 다중 변수 선택 상태
   const [selectedBoxplotVars, setSelectedBoxplotVars] = useState<string[]>([])
   // 히스토그램용 단일 변수 선택
@@ -791,10 +805,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     return (
       <div className="space-y-6">
         {/* 헤더 */}
-        <div className="flex items-center gap-2">
-          <ChartScatter className="h-5 w-5 text-primary" />
-          <h2 className="text-xl font-semibold">데이터 탐색</h2>
-        </div>
+        <StepHeader icon={ChartScatter} title="데이터 탐색" />
 
         {/* 안내 카드 + 업로드 영역 (컴팩트 레이아웃) */}
         <Card className="border-dashed border-2 border-muted-foreground/25">
@@ -869,19 +880,14 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     return (
       <div className="space-y-6">
         {/* 헤더 + 다음 단계 버튼 */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ChartScatter className="h-5 w-5 text-primary" />
-            <h2 className="text-xl font-semibold">데이터 탐색</h2>
+        <StepHeader icon={ChartScatter} title="데이터 탐색" />
+
+        {quickAnalysisMode && profile.focusHint && data.length > 0 && (
+          <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 text-sm">
+            <Lightbulb className="h-4 w-4 text-blue-500 flex-shrink-0" />
+            <span className="text-blue-700 dark:text-blue-300">{profile.focusHint}</span>
           </div>
-          <StepNavigation
-            showNext={true}
-            onNext={onNext}
-            nextLabel="다음 단계로"
-            disableNext={!canProceedToNext}
-            className="mt-0 pt-0 border-t-0"
-          />
-        </div>
+        )}
 
         <DataProfileSummary
           sampleSize={data.length}
@@ -923,7 +929,8 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           </CardContent>
         </Card>
 
-        <Card className="border-warning-border bg-warning-bg">
+        {!quickAnalysisMode && (
+        <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
           <CardContent className="py-6">
             <div className="text-center text-muted-foreground">
               <p>상관분석에는 수치형 변수가 2개 이상 필요합니다.</p>
@@ -932,6 +939,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
             </div>
           </CardContent>
         </Card>
+        )}
 
       </div>
     )
@@ -940,19 +948,14 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   return (
     <div className="space-y-6">
       {/* 헤더 + 다음 단계 버튼 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <ChartScatter className="h-5 w-5 text-primary" />
-          <h2 className="text-xl font-semibold">데이터 탐색</h2>
+      <StepHeader icon={ChartScatter} title="데이터 탐색" />
+
+      {quickAnalysisMode && profile.focusHint && data.length > 0 && (
+        <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 text-sm">
+          <Lightbulb className="h-4 w-4 text-blue-500 flex-shrink-0" />
+          <span className="text-blue-700 dark:text-blue-300">{profile.focusHint}</span>
         </div>
-        <StepNavigation
-          showNext={true}
-          onNext={onNext}
-          nextLabel="다음 단계로"
-          disableNext={!canProceedToNext}
-          className="mt-0 pt-0 border-t-0"
-        />
-      </div>
+      )}
 
       {/* 데이터 요약 (공통 컴포넌트) */}
       {validationResults && (
@@ -1043,13 +1046,13 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
                       <div className="flex items-start gap-2">
 
-                        <span className="text-yellow-600 dark:text-yellow-400">⚠️</span>
+                        <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
 
                         <div className="text-sm leading-5">
 
                           <div className="font-medium text-yellow-800 dark:text-yellow-200">
 
-                            ⚠️ 이상치 감지: {varsWithOutliers.length}개 변수에서 총 {totalOutliers}개
+                            이상치 감지: {varsWithOutliers.length}개 변수에서 총 {totalOutliers}개
 
                           </div>
 
@@ -1159,7 +1162,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
                 {/* 해석 가이드 */}
                 <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p className="font-medium mb-1">💡 해석 기준:</p>
+                  <p className="font-medium mb-1 flex items-center gap-1"><Lightbulb className="h-3.5 w-3.5" />해석 기준:</p>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                     <div><strong>왜도</strong>: |값| &gt; 2 → 심한 비대칭 (⚠ 표시)</div>
                     <div><strong>첨도</strong>: |값| &gt; 7 → 극단값 많음 (⚠ 표시)</div>
@@ -1260,8 +1263,8 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       </Card>
 
       {/* 가정 검정 결과 카드 */}
-      {isAssumptionLoading && (
-        <Card className="border-highlight-border bg-highlight-bg">
+      {profile.assumptionTests !== 'hidden' && isAssumptionLoading && (
+        <Card className={cn("border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20", profile.assumptionTests === 'secondary' && 'opacity-50 border-l-2 border-l-muted-foreground/30')}>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -1276,10 +1279,15 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         </Card>
       )}
 
-      {!isAssumptionLoading && assumptionResults && (
-        <Card className="border-highlight-border bg-highlight-bg">
+      {profile.assumptionTests !== 'hidden' && !isAssumptionLoading && assumptionResults && (
+        <Card className={cn("border-highlight-border bg-highlight-bg", profile.assumptionTests === 'secondary' && 'opacity-50 border-l-2 border-l-muted-foreground/30')}>
+          {profile.assumptionTests === 'secondary' && (
+            <div className="px-4 pt-3">
+              <Badge variant="outline" className="text-[10px] text-muted-foreground">참고</Badge>
+            </div>
+          )}
           <CardHeader>
-            <CardTitle className="text-base">🔍 통계적 가정 검증</CardTitle>
+            <CardTitle className="text-base flex items-center gap-1.5"><Search className="h-4 w-4" />통계적 가정 검증</CardTitle>
             <CardDescription>
               이 결과를 바탕으로 적절한 통계 검정 방법을 선택하세요.
             </CardDescription>
@@ -1290,7 +1298,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               {assumptionResults.normality?.shapiroWilk && (
                 <div className="p-3 bg-white dark:bg-background rounded-lg border">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-sm">📊 정규성 검정 (Shapiro-Wilk)</span>
+                    <span className="font-medium text-sm flex items-center gap-1.5"><BarChart3 className="h-3.5 w-3.5" />정규성 검정 (Shapiro-Wilk)</span>
                     <Badge variant={assumptionResults.normality.shapiroWilk.isNormal ? "default" : "secondary"}>
                       {assumptionResults.normality.shapiroWilk.isNormal ? '정규분포' : '비정규분포'}
                     </Badge>
@@ -1317,7 +1325,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               {assumptionResults.homogeneity?.levene && (
                 <div className="p-3 bg-white dark:bg-background rounded-lg border">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-sm">📏 등분산성 검정 (Levene)</span>
+                    <span className="font-medium text-sm flex items-center gap-1.5"><BarChart3 className="h-3.5 w-3.5" />등분산성 검정 (Levene)</span>
                     <Badge variant={assumptionResults.homogeneity.levene.equalVariance ? "default" : "secondary"}>
                       {assumptionResults.homogeneity.levene.equalVariance ? '등분산' : '이분산'}
                     </Badge>
@@ -1345,7 +1353,8 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       )}
 
       {/* 데이터 분포 시각화 */}
-      <Card>
+      {profile.distribution !== 'hidden' && (
+      <Card className={cn(profile.distribution === 'secondary' && 'opacity-50 border-l-2 border-l-muted-foreground/30')}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
@@ -1437,7 +1446,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                       onClick={() => toggleBoxplotVar(varName)}
                       className="text-xs"
                     >
-                      {selectedBoxplotVars.includes(varName) && <span className="mr-1">✓</span>}
+                      {selectedBoxplotVars.includes(varName) && <Check className="h-3 w-3 mr-1" />}
                       {varName}
                     </Button>
                   ))}
@@ -1458,9 +1467,11 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* ContentTabs: 산점도 vs 상관 히트맵 */}
-      <div className="w-full">
+      {(profile.scatterplots !== 'hidden' || profile.correlationHeatmap !== 'hidden') && (
+      <div className={cn("w-full", profile.scatterplots === 'secondary' && profile.correlationHeatmap === 'secondary' && 'opacity-50 border-l-2 border-l-muted-foreground/30')}>
         <ContentTabs
           tabs={[
             { id: 'scatterplots', label: '산점도', icon: ChartScatter },
@@ -1682,6 +1693,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           </Card>
         </ContentTabsContent>
       </div>
+      )}
 
       {/* 이상치 상세 모달 */}
       {selectedOutlierVar && (() => {

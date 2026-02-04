@@ -1305,6 +1305,180 @@ STATISTICS_EXAMPLES.oneWayAnova = {
 **총 예상 시간**: 5-6주 (Phase 13-1, 13-2만 구현 시)
 
 
+## 🤖 Phase 14: RAG 시스템 고도화 (예정)
+
+**목표**: 벡터스토어/모델 관리 UI + 검색 품질 향상
+
+**배경** (2026-02-04):
+- Phase 8에서 기본 RAG 시스템 구축 완료 (Ollama + sql.js + IndexedDB)
+- 현재 벡터스토어는 사전빌드만 지원, 모델 관리는 Ollama CLI에서만 가능
+- 사용자가 직접 벡터스토어 생성/삭제/선택 및 모델 관리가 필요
+
+### 아키텍처 결정 및 근거
+
+**핵심 제약**: `output: 'export'` (static HTML) 유지 필수
+- 현재 Vercel 배포 + 오프라인 HTML 배포 모두 static export 기반
+- API Routes 추가 시 static export 불가 → 배포 방식 전면 변경 필요
+- 따라서 모든 기능은 **브라우저 + Ollama REST API**로 구현
+
+**LightRAG 등 외부 프레임워크 미도입 이유**:
+- LightRAG, RAGFlow 등은 모두 Python 백엔드 필수 → static export와 양립 불가
+- 통계 분석이 본업, RAG는 보조 기능 → 백엔드 추가는 과도한 복잡도
+- 사용자 = 수산과학 연구자 → RAG 인프라 운영 능력 제한적
+- 폐쇄망 배포 시나리오 존재 → 추가 서버 설치 부담
+
+**모델 관리가 서버 없이 가능한 이유**:
+- Ollama가 REST API 제공 (`/api/tags`, `/api/pull`, `/api/delete`)
+- 브라우저에서 직접 HTTP 호출 가능
+- 백엔드/프록시 불필요
+
+**벡터스토어 CRUD가 서버 없이 가능한 이유**:
+- sql.js (WASM SQLite)가 브라우저에서 실행
+- IndexedDB로 영구 저장
+- Ollama Embedding API로 임베딩 생성
+- 이미 DocumentManager에 재빌드 로직 존재 → UI만 확장
+
+**참고 문서** (전역 docs 레포):
+- [HYBRID_RAG_RESEARCH.md](https://github.com/dayoumin/docs/blob/main/rag/HYBRID_RAG_RESEARCH.md) - Hybrid RAG 기술 조사
+- [RAG_PRODUCTION_GUIDE.md](https://github.com/dayoumin/docs/blob/main/rag/RAG_PRODUCTION_GUIDE.md) - 프로덕션 방법론
+
+---
+
+### Phase 14-1: 모델 관리 UI (우선순위: High)
+
+**목표**: Ollama REST API 기반 모델 관리 기능
+
+**근거**: 현재 모델 추가/삭제는 Ollama CLI에서만 가능하여 사용자 접근성 낮음.
+Ollama가 이미 REST API를 제공하므로 브라우저 UI만 추가하면 됨.
+
+**Ollama API 활용**:
+| API | 용도 | static export |
+|-----|------|:---:|
+| `GET /api/tags` | 설치된 모델 목록 | ✅ |
+| `POST /api/pull` | 모델 다운로드 (추가) | ✅ |
+| `DELETE /api/delete` | 모델 삭제 | ✅ |
+| `POST /api/show` | 모델 상세 정보 | ✅ |
+
+**UI 기능**:
+- 설치된 모델 목록 조회 (임베딩 + 추론 분리 표시)
+- 새 모델 다운로드 (진행률 표시)
+- 모델 삭제 (확인 다이얼로그)
+- 모델 상세 정보 (크기, 파라미터 수, 양자화 정보)
+- 추천 모델 목록 (임베딩/추론별)
+
+**산출물**:
+- `components/rag/ModelManager.tsx` - 모델 관리 UI
+- `lib/rag/services/ollama-model-service.ts` - Ollama API 래퍼
+
+**예상 시간**: 1-2일
+
+---
+
+### Phase 14-2: 벡터스토어 CRUD (우선순위: High)
+
+**목표**: 브라우저 내 벡터스토어 생성/삭제/선택
+
+**근거**: 현재 벡터스토어는 빌드 시 Python으로 사전 생성만 가능.
+사용자가 도메인별 벡터스토어를 만들고 선택 사용하는 기능 필요.
+이미 DocumentManager에 문서 CRUD + 재빌드 로직이 존재하므로 UI 확장으로 충분.
+
+**기술 스택**: sql.js (WASM SQLite) + IndexedDB + Ollama Embedding API
+
+**벡터스토어 생성 플로우**:
+```
+사용자 문서 업로드 (PDF, MD, HWP)
+    │
+    ▼
+청킹 (문서 유형별 전략 - Parent-Child 권장)
+    │
+    ▼
+Ollama /api/embeddings 호출 (임베딩 모델 선택)
+    │
+    ▼
+sql.js로 벡터 DB 생성 (브라우저 내)
+    │
+    ▼
+IndexedDB에 저장 (세션 간 유지)
+```
+
+**UI 기능**:
+- 벡터스토어 목록 (사전빌드 + 사용자 생성 통합)
+- 새 벡터스토어 생성 (문서 업로드 → 임베딩 → DB 생성)
+- 벡터스토어 삭제
+- 벡터스토어 선택 (기존 VectorStoreSelector 활성화)
+- 메타데이터 표시 (문서 수, 크기, 임베딩 모델, 차원)
+- 생성 진행률 표시 (% + 현재 문서)
+
+**산출물**:
+- `components/rag/VectorStoreManager.tsx` - 벡터스토어 CRUD UI
+- `lib/rag/services/vector-store-service.ts` - 벡터스토어 생성/삭제 로직
+- `components/rag/VectorStoreSelector.tsx` - 기존 컴포넌트 활성화
+
+**예상 시간**: 2-3일
+
+---
+
+### Phase 14-3: 검색 품질 개선 (우선순위: Medium)
+
+**목표**: Hybrid Search 고도화
+
+**근거**: 현재 FTS5 + Vector Hybrid 검색이 기본 RRF만 적용.
+HYBRID_RAG_RESEARCH.md 조사 결과 Parent-Child Retrieval + Query Rewriting으로
+15-30% precision 향상 가능. 서버 없이 클라이언트에서 구현 가능.
+
+**개선 사항**:
+- FTS5 + Vector 하이브리드 검색 RRF 가중치 최적화
+- 청킹 전략 개선 (Parent-Child Retrieval)
+  - 작은 청크의 정밀 매칭 + 큰 청크의 풍부한 컨텍스트
+- Query Rewriting (LLM 기반 질문 변환)
+  - 사용자 질문과 벡터 DB 문서 간 semantic gap 해소
+- Top-K 동적 조정
+
+**예상 시간**: 2-3일
+
+---
+
+### Phase 14-4: 서버 모드 + LightRAG (우선순위: Low, 선택적)
+
+**목표**: Knowledge Graph 기반 Hybrid RAG (백엔드 필요 시)
+
+**근거**: Phase 14-1~3으로 충분할 가능성 높음.
+Knowledge Graph가 필요한 경우는: 엔티티 5개+ 쿼리, 멀티홉 추론 필요 시.
+현재 통계 문서 RAG 용도에서는 벡터 검색으로 충분.
+
+**조건**: Phase 14-1~3 완료 후, KG 필요성이 확인된 경우에만 진행
+
+**변경 사항**:
+- `output: 'export'` 제거 → Next.js API Routes 활용
+- 또는 별도 FastAPI 서버 + LightRAG
+- Feature flag로 "클라이언트 모드 / 서버 모드" 분기
+
+**추가 기능**:
+- LightRAG mix mode (Vector + KG 동시 검색)
+- Reranker (BAAI/bge-reranker-v2-m3)
+- Entity Resolution 파이프라인
+- Knowledge Graph 시각화
+
+**예상 시간**: 1-2주
+
+---
+
+### Phase 14 구현 우선순위
+
+| 기능 | 우선순위 | 예상 시간 | static export | 서버 필요 |
+|------|---------|---------|:---:|:---:|
+| 모델 관리 UI | High | 1-2일 | ✅ 유지 | ❌ |
+| 벡터스토어 CRUD | High | 2-3일 | ✅ 유지 | ❌ |
+| 검색 품질 개선 | Medium | 2-3일 | ✅ 유지 | ❌ |
+| LightRAG 통합 | Low | 1-2주 | ❌ 제거 | ✅ |
+
+**Phase 14-1~3 총 예상 시간**: 5-8일 (서버 불필요, HTML 배포 유지)
+
+**판단 기준**: Phase 14-3 완료 후 검색 품질이 부족하면 14-4 검토.
+벤치마크 기준: Gold-Standard QA 100개 질문 대비 정확도 85% 미만이면 KG 도입 고려.
+
+---
+
 ## 🔮 장기 비전
 
 ### 기술적 목표
@@ -1319,7 +1493,7 @@ STATISTICS_EXAMPLES.oneWayAnova = {
 
 ---
 
-**최종 업데이트**: 2025-11-27
+**최종 업데이트**: 2026-02-04
 **현재 Phase**: 5-2 (구현 검증 및 TypeScript 래퍼 추가)
 **현재 진행률**: 43/55 (78%) → 목표 55/55 (100%)
 **다음 마일스톤**: Phase 5-3 (Worker Pool Lazy Loading)
