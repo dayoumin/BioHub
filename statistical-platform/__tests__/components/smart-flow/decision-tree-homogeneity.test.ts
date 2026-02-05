@@ -275,7 +275,7 @@ describe('DecisionTree - homogeneity 답변 반영', () => {
 
       expect(result.reasoning).toHaveLength(4)
       expect(result.reasoning[3].step).toBe('등분산성')
-      expect(result.reasoning[3].description).toContain('Welch ANOVA')
+      expect(result.reasoning[3].description).toContain('Welch 검정')
     })
   })
 

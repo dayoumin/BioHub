@@ -253,7 +253,7 @@ describe('Batch 4-13: non-parametric 페이지 마이그레이션 검증', () =>
     })
 
     it('모수 대응 검정 정보가 있어야 함', () => {
-      expect(fileContent).toMatch(/parametric_equivalent/)
+      expect(fileContent).toMatch(/parametricEquivalent/)
     })
   })
 

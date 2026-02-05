@@ -243,6 +243,55 @@ pnpm test:coverage    # 커버리지
 pnpm test:jest        # Jest (성능 테스트 전용)
 ```
 
+### 5-1. UI 테스트 3층 아키텍처 (CRITICAL - UI 변경 시 테스트 깨짐 방지)
+
+**원칙**: UI 구조 변경에도 테스트가 깨지지 않는 레이어 분리
+
+| 레이어 | 테스트 대상 | 방법 | UI 변경 시 |
+|--------|-----------|------|-----------|
+| **L1: Store/Logic** | 상태 전이, 비즈니스 로직 | Zustand store 직접 조작 | **안 깨짐** |
+| **L2: data-testid** | 핵심 요소 존재 확인 | `data-testid` 속성 | **거의 안 깨짐** |
+| **L3: E2E** | 실제 유저 플로우 | Playwright 브라우저 | 깨질 수 있음 |
+
+**L1 패턴 (Store-level) - 우선 사용**:
+```typescript
+// ✅ 좋은 예: Store 상태 직접 검증 (UI 변경 무관)
+it('재분석 시 데이터가 초기화된다', () => {
+  const store = useSmartFlowStore.getState()
+  store.setResults(null)
+  store.setUploadedData(null)
+  store.setIsReanalysisMode(true)
+  store.setCurrentStep(1)
+  expect(useSmartFlowStore.getState().isReanalysisMode).toBe(true)
+  expect(useSmartFlowStore.getState().uploadedData).toBeNull()
+})
+
+// ❌ 나쁜 예: DOM 텍스트에 결합 (UI 텍스트 바뀌면 깨짐)
+it('재분석 버튼이 있다', () => {
+  fireEvent.click(screen.getByText('다른 데이터로 재분석'))
+})
+```
+
+**L2 패턴 (data-testid) - 렌더링 확인용**:
+```typescript
+// ✅ 좋은 예: data-testid로 존재 확인 (텍스트 무관)
+expect(screen.getByTestId('results-action-step')).toBeInTheDocument()
+
+// ❌ 나쁜 예: 특정 텍스트에 결합
+expect(screen.getByText('📊 분석 히스토리')).toBeInTheDocument()
+```
+
+**금지 패턴**:
+- ❌ `screen.getByText('특정 버튼 텍스트')` - 텍스트 변경 시 깨짐
+- ❌ `screen.getByRole('button', { name: /특정 패턴/ })` - 라벨 변경 시 깨짐
+- ❌ Radix UI Portal 내부 요소 클릭 (JSDOM 한계) - Store-level로 대체
+
+**UI 수정 시 반드시**:
+1. 기존 `data-testid` 속성 유지 (삭제/변경 금지)
+2. 새 핵심 요소 추가 시 `data-testid` 부여
+3. 비즈니스 로직 변경 시 L1 테스트 추가/수정
+4. `pnpm test --run` 실행하여 깨짐 확인
+
 ---
 
 ### 6. 코드 스타일

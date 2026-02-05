@@ -1059,7 +1059,7 @@
     ]
   },
 
-  "partial_correlation": [
+  "partialCorrelation": [
     {
       "name": "controlling single variable",
       "input": {

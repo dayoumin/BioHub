@@ -106,6 +106,19 @@ export interface StatisticalExecutorResult {
       totalVariance: number
       firstFunctionVariance: number
     }
+    // 정규성 검정
+    isNormal?: boolean
+    // 일표본 t 기술통계
+    descriptive?: {
+      mean: number
+      sd: number
+      n: number
+      testValue: number
+    }
+    // 시계열 분석
+    isStationary?: boolean
+    trendSlope?: number
+    seasonalPeriod?: number
   }
 
   // 시각화용 데이터
@@ -443,6 +456,41 @@ export class StatisticalExecutor {
     data: PreparedData
   ): Promise<AnalysisResult> {
     const values = data.arrays.dependent || data.arrays.independent?.[0] || []
+
+    // 정규성 검정: Shapiro-Wilk 실행
+    if (method.id === 'normality-test' || method.id === 'shapiro-wilk') {
+      const normResult = await pyodideStats.shapiroWilkTest(values)
+      return {
+        metadata: {
+          method: method.id,
+          methodName: method.name,
+          timestamp: '',
+          duration: 0,
+          dataInfo: {
+            totalN: values.length,
+            missingRemoved: 0
+          }
+        },
+        mainResults: {
+          statistic: normResult.statistic,
+          pvalue: normResult.pValue,
+          significant: normResult.pValue < 0.05,
+          interpretation: normResult.pValue < 0.05
+            ? `Shapiro-Wilk W = ${normResult.statistic.toFixed(4)}, p = ${normResult.pValue.toFixed(4)} → 정규성 가정을 기각합니다 (정규분포가 아닐 수 있음)`
+            : `Shapiro-Wilk W = ${normResult.statistic.toFixed(4)}, p = ${normResult.pValue.toFixed(4)} → 정규성 가정을 유지합니다`
+        },
+        additionalInfo: {
+          isNormal: normResult.isNormal
+        },
+        visualizationData: {
+          type: 'histogram',
+          data: { values }
+        },
+        rawResults: normResult
+      }
+    }
+
+    // 기본 기술통계
     const stats = await pyodideStats.descriptiveStats(values)
 
     return {
@@ -484,6 +532,65 @@ export class StatisticalExecutor {
     method: StatisticalMethod,
     data: PreparedData
   ): Promise<AnalysisResult> {
+    // 일표본 t-검정 분기
+    if (method.id === 'one-sample-t' || method.id === 'one-sample-t-test') {
+      const values = data.arrays.dependent || data.arrays.independent?.[0] || []
+      if (values.length < 2) {
+        throw new Error('일표본 t-검정을 위해 최소 2개 이상의 관측치가 필요합니다')
+      }
+      const testValue = Number(data.variables.testValue ?? 0)
+      if (isNaN(testValue)) {
+        throw new Error('기준값(μ₀)이 유효한 숫자가 아닙니다')
+      }
+      const result = await pyodideStats.oneSampleTTest(values, testValue)
+
+      // Cohen's d = (mean - mu) / sd
+      const mean = values.reduce((s, v) => s + v, 0) / values.length
+      const sd = Math.sqrt(values.reduce((s, v) => s + (v - mean) ** 2, 0) / (values.length - 1))
+      const cohensD = sd > 0 ? Math.abs(mean - testValue) / sd : 0
+
+      return {
+        metadata: {
+          method: method.id,
+          methodName: method.name,
+          timestamp: '',
+          duration: 0,
+          dataInfo: {
+            totalN: values.length,
+            missingRemoved: 0,
+            groups: 1
+          }
+        },
+        mainResults: {
+          statistic: result.statistic ?? 0,
+          pvalue: result.pValue ?? 1,
+          df: result.df,
+          significant: (result.pValue ?? 1) < 0.05,
+          interpretation: (result.pValue ?? 1) < 0.05
+            ? `표본 평균이 기준값(${testValue})과 유의한 차이가 있습니다`
+            : `표본 평균이 기준값(${testValue})과 유의한 차이가 없습니다`
+        },
+        additionalInfo: {
+          effectSize: {
+            type: "Cohen's d",
+            value: cohensD,
+            interpretation: this.interpretCohensD(cohensD)
+          },
+          descriptive: {
+            mean,
+            sd,
+            n: values.length,
+            testValue
+          }
+        },
+        visualizationData: {
+          type: 'histogram',
+          data: [{ values, label: '표본' }]
+        },
+        rawResults: result
+      }
+    }
+
     let group1: number[], group2: number[]
     let groupNames: string[] = []
 
@@ -807,11 +914,34 @@ export class StatisticalExecutor {
 
     // 유의한 경우 사후검정
     // Games-Howell: 이분산 가정 (등분산 가정 불필요) - 더 robust
-    // Tukey HSD: 등분산 가정
-    let postHoc = null
+    // Tukey HSD: 등분산 가정 (fallback)
+    let postHoc: unknown = null
     if (result.pValue < 0.05 && groups.length > 2) {
-      // Games-Howell 사용 (이분산에 robust)
-      postHoc = await pyodideStats.gamesHowellTest(groups, groupNames)
+      try {
+        // Games-Howell 사용 (이분산에 robust)
+        const ghResult = await pyodideStats.gamesHowellTest(groups, groupNames)
+        // comparisons 배열 추출 (transformer에서 Array.isArray 기대)
+        postHoc = ghResult?.comparisons ?? ghResult
+      } catch (ghError) {
+        logger.warn('Games-Howell 사후검정 실패, Tukey HSD로 시도합니다', ghError)
+        try {
+          const tukeyResult = await pyodideStats.tukeyHSD(groups)
+          // tukeyHSD도 { comparisons: [...] } 형태 → 배열 추출
+          const comps = tukeyResult?.comparisons
+          if (Array.isArray(comps)) {
+            postHoc = comps.map((c: { group1: number; group2: number; meanDiff: number; pValue: number; reject: boolean }) => ({
+              group1: groupNames[c.group1] ?? `Group ${c.group1 + 1}`,
+              group2: groupNames[c.group2] ?? `Group ${c.group2 + 1}`,
+              meanDiff: c.meanDiff,
+              pvalue: c.pValue,
+              significant: c.reject
+            }))
+          }
+        } catch (tukeyError) {
+          logger.warn('Tukey HSD 사후검정도 실패, 사후검정 없이 진행합니다', tukeyError)
+          postHoc = null
+        }
+      }
     }
 
     return {
@@ -1429,33 +1559,95 @@ export class StatisticalExecutor {
       seasonalPeriods: 12
     })
 
-    return {
-      metadata: {
-        method: method.id,
-        methodName: method.name,
-        timestamp: '',
-        duration: 0,
-        dataInfo: {
-          totalN: timeData.length,
-          missingRemoved: 0
+    const baseMeta = {
+      method: method.id,
+      methodName: method.name,
+      timestamp: '',
+      duration: 0,
+      dataInfo: {
+        totalN: timeData.length,
+        missingRemoved: 0
+      }
+    }
+
+    // method.id별 결과 표현 분기
+    switch (method.id) {
+      case 'stationarity-test': {
+        // ADF 검정 결과가 rawResults에 이미 반환됨
+        const adfStat = result.adfStatistic ?? 0
+        const adfP = result.adfPValue ?? 1
+        const isStationary = result.isStationary ?? adfP < 0.05
+        return {
+          metadata: baseMeta,
+          mainResults: {
+            statistic: adfStat,
+            pvalue: adfP,
+            significant: isStationary,
+            interpretation: isStationary
+              ? `ADF 통계량 = ${Number(adfStat).toFixed(4)}, p = ${Number(adfP).toFixed(4)} → 시계열이 정상 (stationary)입니다`
+              : `ADF 통계량 = ${Number(adfStat).toFixed(4)}, p = ${Number(adfP).toFixed(4)} → 시계열이 비정상 (non-stationary)입니다`
+          },
+          additionalInfo: { isStationary },
+          visualizationData: {
+            type: 'time-series',
+            data: { values: timeData, trend: result.trend }
+          },
+          rawResults: result
         }
-      },
-      mainResults: {
-        statistic: Array.isArray(result.trend) ? result.trend[0] : (result.trend || 0),
-        pvalue: 1, // Time series doesn't have p-value
-        significant: false,
-        interpretation: '시계열 분석 완료'
-      },
-      additionalInfo: {},
-      visualizationData: {
-        type: 'time-series',
-        data: {
-          values: timeData,
-          trend: result.trend,
-          seasonal: result.seasonal
+      }
+
+      case 'seasonal-decompose': {
+        // 계절 분해: trend, seasonal, residual 컴포넌트
+        const trendSlope = Array.isArray(result.trend) && result.trend.length >= 2
+          ? (result.trend[result.trend.length - 1] - result.trend[0]) / result.trend.length
+          : 0
+        return {
+          metadata: baseMeta,
+          mainResults: {
+            statistic: trendSlope,
+            pvalue: 1, // 계절 분해는 가설검정이 아님
+            significant: false,
+            interpretation: `추세 기울기: ${trendSlope.toFixed(4)}. 시계열이 추세, 계절성, 잔차 성분으로 분해되었습니다.`
+          },
+          additionalInfo: {
+            trendSlope,
+            seasonalPeriod: 12
+          },
+          visualizationData: {
+            type: 'time-series',
+            data: {
+              values: timeData,
+              trend: result.trend,
+              seasonal: result.seasonal,
+              residual: result.residual
+            }
+          },
+          rawResults: result
         }
-      },
-      rawResults: result
+      }
+
+      default: {
+        // 기본 시계열 분석 (ARIMA 등)
+        return {
+          metadata: baseMeta,
+          mainResults: {
+            statistic: Array.isArray(result.trend) ? result.trend[0] : (result.trend || 0),
+            pvalue: 1,
+            significant: false,
+            interpretation: '시계열 분석 완료'
+          },
+          additionalInfo: {},
+          visualizationData: {
+            type: 'time-series',
+            data: {
+              values: timeData,
+              trend: result.trend,
+              seasonal: result.seasonal
+            }
+          },
+          rawResults: result
+        }
+      }
     }
   }
 
@@ -1710,7 +1902,7 @@ export class StatisticalExecutor {
           },
           mainResults: {
             statistic: result.achievedPower || result.requiredSampleSize || 0,
-            pvalue: result.alpha,
+            pvalue: typeof result.alpha === 'number' ? result.alpha : 0.05,
             significant: (result.achievedPower || 0) >= 0.8,
             interpretation: `${analysisType} 분석 완료: ${result.requiredSampleSize ? `필요 표본 크기 ${result.requiredSampleSize}` : `검정력 ${(result.achievedPower || 0).toFixed(3)}`}`
           },

@@ -1,10 +1,10 @@
 /**
  * SmartFlowLayout Component Tests
  *
- * 목적: SmartFlowLayout v7 렌더링 검증
- * - 헤더 렌더링 (NIFS 통계 분석 로고)
- * - 히스토리/도움말 패널 토글
- * - 분석 중 오버레이
+ * 전략: L2 (data-testid) + props 기반 렌더링 검증
+ * - 컴포넌트 props에 따른 조건부 렌더링 확인
+ * - Radix Sheet (히스토리)은 JSDOM Portal 한계 → Sheet mock으로 해결
+ * - title 속성으로 접근성 검증
  */
 
 import { vi } from 'vitest'
@@ -20,8 +20,8 @@ vi.mock('next/navigation', () => ({
 
 // Mock next/link
 vi.mock('next/link', () => ({
-  default: ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
+  default: ({ children, href, onClick }: { children: React.ReactNode; href: string; onClick?: (e: React.MouseEvent) => void }) => (
+    <a href={href} onClick={onClick}>{children}</a>
   ),
 }))
 
@@ -45,12 +45,34 @@ vi.mock('@/contexts/ui-context', () => ({
   }),
 }))
 
+// Mock store (resetSession만 필요)
+vi.mock('@/lib/stores/smart-flow-store', () => ({
+  useSmartFlowStore: (selector: (state: { resetSession: () => void }) => unknown) =>
+    selector({ resetSession: vi.fn() })
+}))
+
 // Mock modals
 vi.mock('@/components/layout/settings-modal', () => ({
   SettingsModal: () => null,
 }))
 vi.mock('@/components/layout/help-modal', () => ({
   HelpModal: () => null,
+}))
+
+// Mock Radix Sheet (JSDOM Portal 한계 해결)
+vi.mock('@/components/ui/sheet', () => ({
+  Sheet: ({ children, open }: { children: React.ReactNode; open?: boolean }) => (
+    open ? <div data-testid="sheet-container">{children}</div> : null
+  ),
+  SheetContent: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="sheet-content">{children}</div>
+  ),
+  SheetHeader: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+  SheetTitle: ({ children }: { children: React.ReactNode }) => (
+    <h3>{children}</h3>
+  ),
 }))
 
 describe('SmartFlowLayout', () => {
@@ -73,7 +95,6 @@ describe('SmartFlowLayout', () => {
     it('컴포넌트가 정상적으로 렌더링되어야 함', () => {
       render(<SmartFlowLayout {...defaultProps} />)
 
-      // 헤더에 "NIFS 통계 분석" 링크가 있는지 확인
       expect(screen.getByText('NIFS 통계 분석')).toBeInTheDocument()
       expect(screen.getByTestId('test-content')).toBeInTheDocument()
     })
@@ -86,75 +107,67 @@ describe('SmartFlowLayout', () => {
   })
 
   describe('히스토리 패널', () => {
-    it('showHistory가 false일 때 히스토리 패널이 보이지 않아야 함', () => {
+    it('showHistory=false일 때 히스토리 Sheet가 렌더링되지 않아야 함', () => {
       render(
         <SmartFlowLayout
           {...defaultProps}
           showHistory={false}
           historyPanel={<div data-testid="history-panel">History</div>}
           onHistoryToggle={vi.fn()}
+          historyCount={5}
         />
       )
 
-      expect(screen.queryByTestId('history-panel')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('sheet-container')).not.toBeInTheDocument()
     })
 
-    it('showHistory가 true일 때 히스토리 패널이 보여야 함', () => {
+    it('showHistory=true일 때 히스토리 Sheet가 렌더링되어야 함', () => {
       render(
         <SmartFlowLayout
           {...defaultProps}
           showHistory={true}
           historyPanel={<div data-testid="history-panel">History</div>}
           onHistoryToggle={vi.fn()}
+          historyCount={5}
         />
       )
 
+      expect(screen.getByTestId('sheet-container')).toBeInTheDocument()
       expect(screen.getByTestId('history-panel')).toBeInTheDocument()
-      expect(screen.getByText('📊 분석 히스토리')).toBeInTheDocument()
     })
 
-    it('히스토리 토글 버튼 클릭 시 onHistoryToggle이 호출되어야 함', () => {
+    it('historyCount > 0일 때 히스토리 토글 버튼이 표시되어야 함', () => {
       const onHistoryToggle = vi.fn()
 
       render(
         <SmartFlowLayout
           {...defaultProps}
           onHistoryToggle={onHistoryToggle}
+          historyCount={3}
         />
       )
 
-      // title 속성으로 버튼 찾기
-      const historyButton = screen.getByTitle('분석 히스토리')
+      const historyButton = screen.getByTitle('히스토리 (3개)')
       fireEvent.click(historyButton)
 
       expect(onHistoryToggle).toHaveBeenCalledTimes(1)
     })
 
-    it('히스토리 패널의 닫기 버튼 클릭 시 onHistoryToggle이 호출되어야 함', () => {
-      const onHistoryToggle = vi.fn()
-
+    it('historyCount=0이면 히스토리 버튼이 숨겨져야 함', () => {
       render(
         <SmartFlowLayout
           {...defaultProps}
-          showHistory={true}
-          historyPanel={<div>History</div>}
-          onHistoryToggle={onHistoryToggle}
+          onHistoryToggle={vi.fn()}
+          historyCount={0}
         />
       )
 
-      // 히스토리 카드 헤더의 버튼 찾기 (X 버튼)
-      const historyTitle = screen.getByText('📊 분석 히스토리')
-      const cardHeader = historyTitle.closest('div')?.parentElement
-      const closeButton = cardHeader?.querySelector('button')
-      if (closeButton) {
-        fireEvent.click(closeButton)
-        expect(onHistoryToggle).toHaveBeenCalled()
-      }
+      expect(screen.queryByTitle(/히스토리/)).not.toBeInTheDocument()
     })
   })
 
   describe('도움말 패널', () => {
-    it('showHelp가 false일 때 도움말 패널이 보이지 않아야 함', () => {
+    it('showHelp=false일 때 도움말 패널이 보이지 않아야 함', () => {
       render(
         <SmartFlowLayout
           {...defaultProps}
@@ -163,10 +176,10 @@ describe('SmartFlowLayout', () => {
         />
       )
 
-      expect(screen.queryByText('💾 데이터 크기 가이드')).not.toBeInTheDocument()
+      expect(screen.queryByText('데이터 크기 가이드')).not.toBeInTheDocument()
     })
 
-    it('showHelp가 true일 때 도움말 패널이 보여야 함', () => {
+    it('showHelp=true일 때 도움말 패널이 보여야 함', () => {
       render(
         <SmartFlowLayout
           {...defaultProps}
@@ -175,7 +188,7 @@ describe('SmartFlowLayout', () => {
         />
       )
 
-      expect(screen.getByText('💾 데이터 크기 가이드')).toBeInTheDocument()
+      expect(screen.getByText('데이터 크기 가이드')).toBeInTheDocument()
       expect(screen.getByText('현재 제한사항')).toBeInTheDocument()
       expect(screen.getByText('메모리별 권장 크기')).toBeInTheDocument()
     })
@@ -238,13 +251,14 @@ describe('SmartFlowLayout', () => {
         <SmartFlowLayout
           {...defaultProps}
           onHistoryToggle={vi.fn()}
+          historyCount={1}
         />
       )
 
-      expect(screen.getByTitle('분석 히스토리')).toBeInTheDocument()
       expect(screen.getByTitle('AI 챗봇')).toBeInTheDocument()
       expect(screen.getByTitle('도움말')).toBeInTheDocument()
       expect(screen.getByTitle('설정')).toBeInTheDocument()
+      expect(screen.getByTitle('히스토리 (1개)')).toBeInTheDocument()
     })
   })
 

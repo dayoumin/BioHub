@@ -1,9 +1,20 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+/**
+ * PurposeInputStep Tests
+ *
+ * 전략: L1 (Store-level) + L2 (data-testid)
+ *
+ * NOTE: PurposeInputStep은 ai-chat → category → subcategory → questions → browse
+ * 등 복잡한 FlowStateMachine으로 재설계됨.
+ * DOM 인터랙션 테스트는 각 하위 컴포넌트(NaturalLanguageInput, CategorySelector,
+ * SubcategorySelector, GuidedQuestions, MethodBrowser)의 개별 테스트에서 수행.
+ * 전체 플로우 통합 테스트는 Playwright E2E에서 수행.
+ */
+
+import { render, screen } from '@testing-library/react'
 import { vi, Mock } from 'vitest'
 import { PurposeInputStep } from '@/components/smart-flow/steps/PurposeInputStep'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { useSettingsStore } from '@/lib/stores/settings-store'
-import { DecisionTreeRecommender } from '@/lib/services/decision-tree-recommender'
 
 vi.mock('@/lib/stores/smart-flow-store', () => ({
     useSmartFlowStore: vi.fn()
@@ -41,21 +52,41 @@ vi.mock('@/lib/hooks/useReducedMotion', () => ({
     useReducedMotion: vi.fn().mockReturnValue(false)
 }))
 
+// Mock subcomponents with data-testid (UI 변경에 안전)
+vi.mock('@/components/smart-flow/steps/purpose/NaturalLanguageInput', () => ({
+    NaturalLanguageInput: () => <div data-testid="natural-language-input">AI Chat</div>
+}))
+
+vi.mock('@/components/smart-flow/steps/purpose/CategorySelector', () => ({
+    CategorySelector: () => <div data-testid="category-selector">Categories</div>
+}))
+
+vi.mock('@/components/smart-flow/steps/purpose/SubcategorySelector', () => ({
+    SubcategorySelector: () => <div data-testid="subcategory-selector">Subcategories</div>
+}))
+
+vi.mock('@/components/smart-flow/steps/purpose/GuidedQuestions', () => ({
+    GuidedQuestions: () => <div data-testid="guided-questions">Questions</div>
+}))
+
+vi.mock('@/components/smart-flow/steps/purpose/RecommendationResult', () => ({
+    RecommendationResult: () => <div data-testid="recommendation-result">Recommendation</div>
+}))
+
+vi.mock('@/components/smart-flow/steps/purpose/MethodBrowser', () => ({
+    MethodBrowser: () => <div data-testid="method-browser">Browser</div>
+}))
+
 vi.mock('@/components/common/analysis/PurposeCard', () => ({
-    PurposeCard: ({ title, onClick, selected }: { title: string; onClick: () => void; selected: boolean }) => (
-        <button data-testid={`purpose-card-${title}`} onClick={onClick} aria-selected={selected}>
+    PurposeCard: ({ title, onClick }: { title: string; onClick: () => void }) => (
+        <button data-testid={`purpose-card-${title}`} onClick={onClick}>
             {title}
         </button>
     )
 }))
 
-vi.mock('@/components/smart-flow/steps/purpose/MethodBrowser', () => ({
-    MethodBrowser: ({ selectedMethod, recommendedMethodId }: { selectedMethod: { name: string } | null; recommendedMethodId?: string }) => (
-        <div data-testid="method-browser">
-            <span data-testid="method-browser-selected">{selectedMethod?.name || 'None'}</span>
-            <span data-testid="method-browser-recommended">{recommendedMethodId || 'None'}</span>
-        </div>
-    )
+vi.mock('@/components/common/analysis/AIAnalysisProgress', () => ({
+    AIAnalysisProgress: () => null
 }))
 
 describe('PurposeInputStep', () => {
@@ -67,27 +98,15 @@ describe('PurposeInputStep', () => {
     }
     const mockData = [{ age: 20, group: 'A' }]
 
-    const goToQuestions = async () => {
-        fireEvent.click(screen.getByRole('button', { name: /차이\/비교 분석/ }))
-
-        await waitFor(() => {
-            expect(screen.getByRole('heading', { name: /어떤 분석/ })).toBeInTheDocument()
-        }, { timeout: 3000 })
-
-        fireEvent.click(screen.getByRole('button', { name: /평균/ }))
-
-        await waitFor(() => {
-            expect(screen.getByText('직접 선택')).toBeInTheDocument()
-        }, { timeout: 3000 })
-    }
-
     beforeEach(() => {
         vi.clearAllMocks()
 
         const defaultStoreState = {
             assumptionResults: {},
             setSelectedMethod: vi.fn(),
-            setDetectedVariables: vi.fn()
+            setDetectedVariables: vi.fn(),
+            purposeInputMode: 'ai' as const,
+            methodCompatibility: null,
         }
         ;(useSmartFlowStore as unknown as Mock).mockImplementation(
             (selector: (state: typeof defaultStoreState) => unknown) => selector(defaultStoreState)
@@ -101,7 +120,7 @@ describe('PurposeInputStep', () => {
         )
     })
 
-    it('renders category selection cards', () => {
+    it('renders without crashing', () => {
         render(
             <PurposeInputStep
                 onPurposeSubmit={vi.fn()}
@@ -110,12 +129,11 @@ describe('PurposeInputStep', () => {
             />
         )
 
-        expect(screen.getByRole('heading', { name: /무엇을 알고/ })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: /차이\/비교 분석/ })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: /관계 분석/ })).toBeInTheDocument()
+        // StepHeader always renders
+        expect(screen.getByText('분석 방법 선택')).toBeInTheDocument()
     })
 
-    it('shows Guided Questions when subcategory is selected (new flow)', async () => {
+    it('initial state shows NaturalLanguageInput (ai-chat mode)', () => {
         render(
             <PurposeInputStep
                 onPurposeSubmit={vi.fn()}
@@ -124,12 +142,11 @@ describe('PurposeInputStep', () => {
             />
         )
 
-        await goToQuestions()
+        expect(screen.getByTestId('natural-language-input')).toBeInTheDocument()
     })
 
-        // Skip: Integration test relying on goToQuestions() helper - flaky due to auto-answer behavior
-    it.skip('shows back button in Guided Questions step', async () => {
-        render(
+    it('renders mode toggle section', () => {
+        const { container } = render(
             <PurposeInputStep
                 onPurposeSubmit={vi.fn()}
                 validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
@@ -137,138 +154,20 @@ describe('PurposeInputStep', () => {
             />
         )
 
-        await goToQuestions()
-
-        expect(screen.getByRole('button', { name: /목적 선택으로/ })).toBeInTheDocument()
+        // FilterToggle area exists (aria-label로 확인)
+        const toggleArea = container.querySelector('[aria-label="분석 방법 선택 모드"]')
+        expect(toggleArea).toBeInTheDocument()
     })
 
-        // Skip: Integration test relying on goToQuestions() helper - flaky due to auto-answer behavior
-    it.skip('can go back to subcategory selection from questions', async () => {
+    it('does not crash with null validationResults', () => {
         render(
             <PurposeInputStep
                 onPurposeSubmit={vi.fn()}
-                validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
-                data={mockData}
+                validationResults={null}
+                data={null}
             />
         )
 
-        await goToQuestions()
-        fireEvent.click(screen.getByRole('button', { name: /목적 선택으로/ }))
-
-        await waitFor(() => {
-            expect(screen.getByRole('heading', { name: /어떤 분석/ })).toBeInTheDocument()
-        }, { timeout: 3000 })
-    })
-
-        // Skip: Integration test relying on goToQuestions() helper - flaky due to auto-answer behavior
-    it.skip('does not show legacy method selection UI in questions step', async () => {
-        render(
-            <PurposeInputStep
-                onPurposeSubmit={vi.fn()}
-                validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
-                data={mockData}
-            />
-        )
-
-        await goToQuestions()
-
-        expect(screen.queryByText('분석 방법 선택')).not.toBeInTheDocument()
-    })
-
-    describe('Browse Mode (전체 방법 보기)', () => {
-            // Skip: Integration test relying on goToQuestions() helper - flaky due to auto-answer behavior
-    it.skip('enters browse mode from questions and renders MethodBrowser', async () => {
-            render(
-                <PurposeInputStep
-                    onPurposeSubmit={vi.fn()}
-                    validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
-                    data={mockData}
-                />
-            )
-
-            await goToQuestions()
-            fireEvent.click(screen.getByText('직접 선택'))
-
-            await waitFor(() => {
-                expect(screen.getByTestId('method-browser')).toBeInTheDocument()
-            }, { timeout: 3000 })
-        })
-
-            // Skip: Integration test relying on goToQuestions() helper - flaky due to auto-answer behavior
-    it.skip('passes recommended method id into MethodBrowser in browse mode', async () => {
-            const mockResult = {
-                method: { id: 't-test', name: 'Independent t-test', description: 'Compare means', category: 'compare' },
-                confidence: 0.9,
-                reasoning: ['Two groups detected', 'Numeric variable']
-            }
-            ;(DecisionTreeRecommender.recommendWithoutAssumptions as Mock).mockReturnValue(mockResult)
-
-            render(
-                <PurposeInputStep
-                    onPurposeSubmit={vi.fn()}
-                    validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
-                    data={mockData}
-                />
-            )
-
-            await goToQuestions()
-            fireEvent.click(screen.getByText('직접 선택'))
-
-            await waitFor(() => {
-                expect(screen.getByTestId('method-browser')).toBeInTheDocument()
-            }, { timeout: 3000 })
-
-            await waitFor(() => {
-                expect(screen.getByTestId('method-browser-recommended')).toHaveTextContent('t-test')
-            }, { timeout: 3000 })
-        })
-
-        it('shows selected-method-bar and calls onPurposeSubmit', async () => {
-            const mockOnPurposeSubmit = vi.fn()
-            const mockSetSelectedMethod = vi.fn()
-            const mockSetDetectedVariables = vi.fn()
-
-            const mockStoreState = {
-                assumptionResults: {},
-                setSelectedMethod: mockSetSelectedMethod,
-                setDetectedVariables: mockSetDetectedVariables
-            }
-            ;(useSmartFlowStore as unknown as Mock).mockImplementation(
-                (selector: (state: typeof mockStoreState) => unknown) => selector(mockStoreState)
-            )
-
-            const mockResult = {
-                method: { id: 't-test', name: 'Independent t-test', description: 'Compare means', category: 'compare' },
-                confidence: 0.9,
-                reasoning: ['Reason']
-            }
-            ;(DecisionTreeRecommender.recommendWithoutAssumptions as Mock).mockReturnValue(mockResult)
-
-            render(
-                <PurposeInputStep
-                    onPurposeSubmit={mockOnPurposeSubmit}
-                    validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
-                    data={mockData}
-                />
-            )
-
-            await goToQuestions()
-            fireEvent.click(screen.getByText('직접 선택'))
-
-            await waitFor(() => {
-                expect(screen.getByTestId('selected-method-bar')).toBeInTheDocument()
-            }, { timeout: 3000 })
-
-            expect(screen.getByTestId('final-selected-method-name')).toHaveTextContent('Independent t-test')
-
-            fireEvent.click(screen.getByRole('button', { name: /분석/ }))
-
-            await waitFor(() => {
-                expect(mockSetSelectedMethod).toHaveBeenCalledWith(mockResult.method)
-                expect(mockSetDetectedVariables).toHaveBeenCalled()
-                expect(mockOnPurposeSubmit).toHaveBeenCalledWith(expect.any(String), mockResult.method)
-            }, { timeout: 3000 })
-        })
+        expect(screen.getByText('분석 방법 선택')).toBeInTheDocument()
     })
 })
-

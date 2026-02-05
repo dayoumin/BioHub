@@ -12,8 +12,10 @@ import {
   MoreHorizontal,
   RefreshCw,
   FileText,
-  MessageSquare,
-  Sparkles
+  Sparkles,
+  BarChart3,
+  Lightbulb,
+  ChevronRight
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -42,6 +44,11 @@ import { cn } from '@/lib/utils'
 import { CollapsibleSection, StatisticCard } from '@/components/smart-flow/common'
 import { useUI } from '@/contexts/ui-context'
 import { checkOllamaStatus, OllamaStatus } from '@/lib/rag/utils/ollama-check'
+import { ConfidenceIntervalDisplay } from '@/components/statistics/common/ConfidenceIntervalDisplay'
+import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
+import { AssumptionTestCard, type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { formatStatisticalResult } from '@/lib/statistics/formatters'
 
 interface ResultsActionStepProps {
   results: AnalysisResult | null
@@ -70,6 +77,7 @@ function getEffectSizeInterpretation(value: number, type?: string): string {
 
 // p-value 포맷팅
 function formatPValue(p: number): string {
+  if (p == null || isNaN(p)) return '-'
   if (p < 0.001) return '< .001'
   if (p < 0.01) return '< .01'
   if (p < 0.05) return '< .05'
@@ -81,7 +89,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
-  const [detailsOpen, setDetailsOpen] = useState(false)
+  const [detailedResultsOpen, setDetailedResultsOpen] = useState(false)
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false)
   const chartRef = useRef<HTMLDivElement>(null)
   // AI 채팅 상태
   const [ollamaStatus, setOllamaStatus] = useState<OllamaStatus | null>(null)
@@ -106,8 +115,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     variableMapping,
     uploadedFileName,
     selectedMethod,
-    validationResults,
-    assumptionResults
   } = useSmartFlowStore()
 
   const savedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -162,6 +169,61 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const assumptionsPassed = useMemo(() => {
     if (!statisticalResult?.assumptions) return true
     return statisticalResult.assumptions.every(a => a.passed !== false)
+  }, [statisticalResult])
+
+  // 가정 미충족 시 진단 섹션 자동 열림
+  useEffect(() => {
+    if (!assumptionsPassed) {
+      setDiagnosticsOpen(true)
+    }
+  }, [assumptionsPassed])
+
+  // AssumptionTest[] 매핑 (AssumptionTestCard용)
+  const assumptionTests = useMemo((): AssumptionTest[] => {
+    if (!statisticalResult?.assumptions) return []
+    return statisticalResult.assumptions.map((a) => ({
+      name: a.name,
+      description: a.description,
+      statistic: a.testStatistic,
+      testStatistic: a.testStatistic,
+      pValue: a.pValue,
+      passed: a.passed,
+      recommendation: a.recommendation,
+      severity: a.severity ?? (a.passed === false ? 'medium' as const : 'low' as const),
+      alpha: 0.05,
+    }))
+  }, [statisticalResult])
+
+  // Layer 2 표시 여부 (상세 결과 + 메타데이터)
+  const hasDetailedResults = useMemo(() => {
+    if (!statisticalResult) return false
+    return !!(
+      statisticalResult.confidenceInterval ||
+      statisticalResult.effectSize ||
+      (statisticalResult.additionalResults && statisticalResult.additionalResults.length > 0) ||
+      uploadedFileName ||
+      uploadedData
+    )
+  }, [statisticalResult, uploadedFileName, uploadedData])
+
+  // Layer 3 표시 여부 (가정검정, 권장사항 중 하나라도 있을 때)
+  const hasDiagnostics = useMemo(() => {
+    if (!statisticalResult) return false
+    return !!(
+      (statisticalResult.assumptions && statisticalResult.assumptions.length > 0) ||
+      (statisticalResult.recommendations && statisticalResult.recommendations.length > 0)
+    )
+  }, [statisticalResult])
+
+  // APA 형식 요약
+  const apaFormat = useMemo(() => {
+    if (!statisticalResult || statisticalResult.df === undefined) return null
+    return formatStatisticalResult(
+      statisticalResult.statisticName || 'Statistic',
+      statisticalResult.statistic,
+      statisticalResult.df,
+      statisticalResult.pValue
+    )
   }, [statisticalResult])
 
   // Handlers
@@ -334,7 +396,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               {/* 통계량 */}
               <StatisticCard label="통계량" tooltip="검정통계량: 귀무가설 하에서 표본 데이터가 얼마나 극단적인지 나타냅니다.">
                 <p className="text-xl font-bold font-mono">
-                  {statisticalResult.statisticName || 't'} = {statisticalResult.statistic.toFixed(2)}
+                  {statisticalResult.statisticName || 't'} = {(statisticalResult.statistic ?? 0).toFixed(2)}
                 </p>
                 {statisticalResult.df && (
                   <p className="text-xs text-muted-foreground mt-1">
@@ -361,7 +423,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 {statisticalResult.effectSize ? (
                   <>
                     <p className="text-xl font-bold font-mono">
-                      {statisticalResult.effectSize.value.toFixed(2)}
+                      {(statisticalResult.effectSize.value ?? 0).toFixed(2)}
                     </p>
                     <Badge variant="outline" className="mt-1 text-xs">
                       {getEffectSizeInterpretation(statisticalResult.effectSize.value, statisticalResult.effectSize.type)}
@@ -382,15 +444,66 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               </div>
             )}
 
-            {/* ===== 상세 정보 (접기/펼치기) ===== */}
-            <CollapsibleSection
-              label="상세 정보"
-              open={detailsOpen}
-              onOpenChange={setDetailsOpen}
-              contentClassName="pt-3 space-y-3"
-            >
-                {/* 데이터 정보 */}
-                <div className="grid grid-cols-2 gap-2 text-sm">
+            {/* ===== Layer 2: 상세 결과 (접기/펼치기) ===== */}
+            {hasDetailedResults && (
+              <CollapsibleSection
+                label="상세 결과"
+                open={detailedResultsOpen}
+                onOpenChange={setDetailedResultsOpen}
+                contentClassName="pt-3 space-y-4"
+                icon={<BarChart3 className="h-3.5 w-3.5" />}
+              >
+                {/* 신뢰구간 */}
+                {statisticalResult.confidenceInterval && (
+                  <ConfidenceIntervalDisplay
+                    label="신뢰구간"
+                    lower={statisticalResult.confidenceInterval.lower}
+                    upper={statisticalResult.confidenceInterval.upper}
+                    estimate={statisticalResult.confidenceInterval.estimate}
+                    level={Math.round((statisticalResult.confidenceInterval.level ?? 0.95) * 100)}
+                    showVisualization
+                    showInterpretation
+                    className="border-0 shadow-none bg-transparent"
+                  />
+                )}
+
+                {/* 효과크기 상세 스케일 */}
+                {statisticalResult.effectSize && (
+                  <EffectSizeCard
+                    title="효과크기 상세"
+                    value={statisticalResult.effectSize.value}
+                    type={statisticalResult.effectSize.type}
+                    showInterpretation
+                    showVisualScale
+                    className="border-0 shadow-none bg-transparent"
+                  />
+                )}
+
+                {/* 추가 결과 테이블 (그룹통계, 사후검정, 회귀계수) */}
+                {statisticalResult.additionalResults?.map((table, idx) => (
+                  <StatisticsTable
+                    key={idx}
+                    title={table.title}
+                    columns={(table.columns as Array<{ key: string; label: string }>).map(col => ({
+                      key: col.key,
+                      header: col.label,
+                    }))}
+                    data={table.data}
+                    compactMode
+                    className="border-0 shadow-none"
+                  />
+                ))}
+
+                {/* APA 형식 요약 */}
+                {apaFormat && (
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">APA 형식</p>
+                    <code className="text-sm font-mono">{apaFormat}</code>
+                  </div>
+                )}
+
+                {/* 메타데이터 */}
+                <div className="grid grid-cols-2 gap-2 text-sm pt-2 border-t">
                   {uploadedFileName && (
                     <div>
                       <span className="text-muted-foreground">파일: </span>
@@ -410,29 +523,57 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                     </div>
                   )}
                 </div>
+              </CollapsibleSection>
+            )}
 
-                {/* 가정 검정 */}
-                {statisticalResult.assumptions && statisticalResult.assumptions.length > 0 && (
-                  <div className="pt-2 border-t">
-                    <p className="text-xs font-medium text-muted-foreground mb-2">가정 검정</p>
-                    <div className="flex flex-wrap gap-2">
-                      {statisticalResult.assumptions.map((a, i) => (
-                        <Badge
-                          key={i}
-                          variant="outline"
-                          className={cn(
-                            "text-xs",
-                            a.passed ? "border-green-300 text-green-700" : "border-red-300 text-red-700"
-                          )}
-                        >
-                          {a.passed ? '✓' : '✗'} {a.name}
-                          {a.pValue !== null && ` (p=${a.pValue.toFixed(3)})`}
-                        </Badge>
+            {/* ===== Layer 3: 진단 & 권장 (접기/펼치기) ===== */}
+            {hasDiagnostics && (
+              <CollapsibleSection
+                label="진단 & 권장"
+                open={diagnosticsOpen}
+                onOpenChange={setDiagnosticsOpen}
+                contentClassName="pt-3 space-y-4"
+                icon={<Lightbulb className="h-3.5 w-3.5" />}
+                badge={
+                  !assumptionsPassed ? (
+                    <Badge variant="outline" className="text-xs border-amber-300 text-amber-700">
+                      주의
+                    </Badge>
+                  ) : undefined
+                }
+              >
+                {/* 가정 검정 상세 */}
+                {assumptionTests.length > 0 && (
+                  <AssumptionTestCard
+                    tests={assumptionTests}
+                    testType={statisticalResult.testType}
+                    showRecommendations
+                    showDetails
+                    className="border-0 shadow-none bg-transparent"
+                  />
+                )}
+
+                {/* 권장사항 */}
+                {statisticalResult.recommendations && statisticalResult.recommendations.length > 0 && (
+                  <div className="space-y-2" data-testid="recommendations-section">
+                    <p className="text-sm font-medium flex items-center gap-1.5">
+                      <Lightbulb className="w-3.5 h-3.5 text-blue-600" />
+                      권장사항
+                    </p>
+                    <ul className="space-y-1.5">
+                      {statisticalResult.recommendations.map((rec, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
+                          <ChevronRight className="w-3 h-3 mt-1 shrink-0" />
+                          <span>{rec}</span>
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   </div>
                 )}
-            </CollapsibleSection>
+
+
+              </CollapsibleSection>
+            )}
           </CardContent>
         </Card>
 

@@ -121,6 +121,7 @@ export interface StatisticalResult {
     pValue: number | null
     passed: boolean | null
     recommendation?: string
+    severity?: 'low' | 'medium' | 'high'
   }>
 
   // 추가 결과 테이블 (배열 지원 - 여러 테이블 표시)

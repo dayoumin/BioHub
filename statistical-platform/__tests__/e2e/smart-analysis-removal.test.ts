@@ -31,25 +31,25 @@ describe('E2E: Smart Analysis Removal', () => {
   })
 
   describe('Source Code Verification', () => {
-    it('app/page.tsx should redirect to dashboard (smart-flow accessible from there)', () => {
+    it('app/page.tsx should be the Smart Flow main page', () => {
       const homePagePath = path.join(__dirname, '../../app/page.tsx')
       const content = fs.readFileSync(homePagePath, 'utf-8')
 
-      // 홈 페이지는 대시보드로 리다이렉트 (스마트 분석은 대시보드에서 접근)
-      expect(content).toContain("redirect('/dashboard')")
+      // 홈 페이지가 Smart Flow 메인 페이지 (대시보드 리다이렉트 아님)
+      expect(content).toContain('useSmartFlowStore')
       expect(content).not.toContain('href="/smart-analysis"')
     })
 
-    it('app/(dashboard)/dashboard/page.tsx should reference /smart-flow', () => {
+    it('app/(dashboard)/dashboard/page.tsx should redirect to root', () => {
       const dashboardPagePath = path.join(
         __dirname,
         '../../app/(dashboard)/dashboard/page.tsx'
       )
       const content = fs.readFileSync(dashboardPagePath, 'utf-8')
 
-      expect(content).toContain('href="/smart-flow"')
+      // 대시보드는 루트(/)로 리다이렉트 (Smart Flow가 루트 페이지로 통합됨)
+      expect(content).toContain("redirect('/')")
       expect(content).not.toContain('href="/smart-analysis"')
-      expect(content).toContain('스마트 분석')
     })
   })
 

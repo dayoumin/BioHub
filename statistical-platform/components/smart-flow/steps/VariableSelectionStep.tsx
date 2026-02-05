@@ -17,7 +17,8 @@ import {
   CorrelationSelector,
   GroupComparisonSelector,
   MultipleRegressionSelector,
-  PairedSelector
+  PairedSelector,
+  OneSampleSelector
 } from '@/components/common/variable-selectors'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { StepHeader } from '@/components/smart-flow/common'
@@ -34,6 +35,11 @@ interface VariableSelectionStepProps {
  */
 function getSelectorType(methodId: string | undefined): string {
   if (!methodId) return 'default'
+
+  // One-sample t-test
+  if (methodId === 'one-sample-t' || methodId === 'one-sample-t-test') {
+    return 'one-sample'
+  }
 
   // Two-way ANOVA
   if (methodId === 'two-way-anova' || methodId === 'three-way-anova') {
@@ -150,6 +156,11 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     const result: Partial<VariableMapping> = {}
 
     switch (selectorType) {
+      case 'one-sample':
+        // OneSampleSelector expects dependentVar only
+        result.dependentVar = detectedVariables.dependentCandidate
+        break
+
       case 'two-way-anova':
         // TwoWayAnovaSelector expects groupVar as "factor1,factor2"
         if (detectedVariables.factors && detectedVariables.factors.length >= 2) {
@@ -234,6 +245,16 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     }
 
     switch (selectorType) {
+      case 'one-sample':
+        return (
+          <OneSampleSelector
+            {...commonProps}
+            onComplete={handleComplete}
+            title="일표본 t-검정 변수 선택"
+            description="검정할 변수와 기준값(μ₀)을 입력하세요"
+          />
+        )
+
       case 'two-way-anova':
         return (
           <TwoWayAnovaSelector

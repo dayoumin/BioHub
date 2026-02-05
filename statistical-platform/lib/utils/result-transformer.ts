@@ -59,7 +59,7 @@ export function transformExecutorResult(
 
   // 사후검정 결과 변환
   let postHoc: PostHocResult[] | undefined
-  if (additionalInfo?.postHoc) {
+  if (additionalInfo?.postHoc && Array.isArray(additionalInfo.postHoc)) {
     postHoc = additionalInfo.postHoc.map((item: {
       group1: string | number
       group2: string | number

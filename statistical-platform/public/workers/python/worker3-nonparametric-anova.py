@@ -528,6 +528,7 @@ def sign_test(before, after):
     result = binomtest(n_positive, n_total, 0.5)
 
     return {
+        'statistic': int(n_positive),
         'nPositive': int(n_positive),
         'nNegative': int(n_negative),
         'nTies': int(n_ties),

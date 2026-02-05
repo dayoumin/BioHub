@@ -145,6 +145,7 @@ function convertAssumptions(
         description: 'Shapiro-Wilk 검정',
         pValue: assumptions.normality.group1.pValue ?? null,
         passed: assumptions.normality.group1.isNormal,
+        severity: assumptions.normality.group1.isNormal ? 'low' : 'medium',
         recommendation: assumptions.normality.group1.isNormal
           ? undefined
           : '비모수 검정 사용을 고려하세요'
@@ -157,6 +158,7 @@ function convertAssumptions(
         description: 'Shapiro-Wilk 검정',
         pValue: assumptions.normality.group2.pValue ?? null,
         passed: assumptions.normality.group2.isNormal,
+        severity: assumptions.normality.group2.isNormal ? 'low' : 'medium',
         recommendation: assumptions.normality.group2.isNormal
           ? undefined
           : '비모수 검정 사용을 고려하세요'
@@ -171,6 +173,7 @@ function convertAssumptions(
         testStatistic: assumptions.normality.shapiroWilk.statistic,
         pValue: assumptions.normality.shapiroWilk.pValue ?? null,
         passed: assumptions.normality.shapiroWilk.isNormal,
+        severity: assumptions.normality.shapiroWilk.isNormal ? 'low' : 'medium',
         recommendation: assumptions.normality.shapiroWilk.isNormal
           ? undefined
           : '비모수 검정 사용을 고려하세요'
@@ -187,6 +190,7 @@ function convertAssumptions(
         testStatistic: assumptions.homogeneity.levene.statistic,
         pValue: assumptions.homogeneity.levene.pValue ?? null,
         passed: assumptions.homogeneity.levene.equalVariance,
+        severity: assumptions.homogeneity.levene.equalVariance ? 'low' : 'medium',
         recommendation: assumptions.homogeneity.levene.equalVariance
           ? undefined
           : "Welch's t-검정 사용을 고려하세요"
@@ -200,6 +204,7 @@ function convertAssumptions(
         testStatistic: assumptions.homogeneity.bartlett.statistic,
         pValue: assumptions.homogeneity.bartlett.pValue ?? null,
         passed: assumptions.homogeneity.bartlett.equalVariance,
+        severity: assumptions.homogeneity.bartlett.equalVariance ? 'low' : 'medium',
         recommendation: assumptions.homogeneity.bartlett.equalVariance
           ? undefined
           : "Welch's ANOVA 사용을 고려하세요"
@@ -215,6 +220,7 @@ function convertAssumptions(
       testStatistic: assumptions.independence.durbin.statistic,
       pValue: assumptions.independence.durbin.pValue ?? null,
       passed: assumptions.independence.durbin.isIndependent,
+      severity: assumptions.independence.durbin.isIndependent ? 'low' : 'high',
       recommendation: assumptions.independence.durbin.isIndependent
         ? undefined
         : '자기상관을 고려한 모델을 사용하세요'
@@ -252,7 +258,7 @@ function getStatisticName(method: string): string {
     return 'H'
   }
   if (methodLower.includes('회귀') || methodLower.includes('regression')) {
-    return 'β'
+    return 'F'
   }
 
   return 'Statistic'

@@ -286,8 +286,8 @@ describe('convertToStatisticalResult', () => {
       { method: 'Wilcoxon 부호순위 검정', expectedStat: 'W', expectedType: 'Wilcoxon Signed-Rank Test' },
       { method: 'Kruskal-Wallis 검정', expectedStat: 'H', expectedType: 'Kruskal-Wallis H Test' },
       { method: '카이제곱 검정', expectedStat: 'χ²', expectedType: 'Chi-Square Test' },
-      { method: '단순회귀분석', expectedStat: 'β', expectedType: 'Simple Linear Regression' },
-      { method: '다중회귀분석', expectedStat: 'β', expectedType: 'Multiple Linear Regression' },
+      { method: '단순회귀분석', expectedStat: 'F', expectedType: 'Simple Linear Regression' },
+      { method: '다중회귀분석', expectedStat: 'F', expectedType: 'Multiple Linear Regression' },
     ]
 
     testCases.forEach(({ method, expectedStat, expectedType }) => {
