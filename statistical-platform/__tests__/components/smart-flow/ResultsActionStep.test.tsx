@@ -29,7 +29,9 @@ function computeLayerVisibility(
 
   const hasDiagnostics = !!(
     (sr.assumptions && sr.assumptions.length > 0) ||
-    (sr.recommendations && sr.recommendations.length > 0)
+    (sr.recommendations && sr.recommendations.length > 0) ||
+    (sr.warnings && sr.warnings.length > 0) ||
+    (sr.alternatives && sr.alternatives.length > 0)
   )
 
   const assumptionsPassed = sr.assumptions
@@ -346,6 +348,116 @@ describe('Part 1: Layer 조건 시뮬레이션 (순수 로직)', () => {
       }
       const vis = computeLayerVisibility(sr)
       expect(vis.hasDiagnostics).toBe(false)
+    })
+
+    it('warnings만 있으면 hasDiagnostics=true', () => {
+      const sr: StatisticalResult = {
+        testName: 't-검정',
+        statistic: 2.0,
+        statisticName: 't',
+        pValue: 0.05,
+        alpha: 0.05,
+        warnings: ['표본 크기가 작습니다'],
+        timestamp: new Date()
+      }
+      const vis = computeLayerVisibility(sr)
+      expect(vis.hasDiagnostics).toBe(true)
+    })
+
+    it('alternatives만 있으면 hasDiagnostics=true', () => {
+      const sr: StatisticalResult = {
+        testName: 't-검정',
+        statistic: 2.0,
+        statisticName: 't',
+        pValue: 0.05,
+        alpha: 0.05,
+        alternatives: [{ name: 'Mann-Whitney U', reason: '비모수 대안' }],
+        timestamp: new Date()
+      }
+      const vis = computeLayerVisibility(sr)
+      expect(vis.hasDiagnostics).toBe(true)
+    })
+
+    it('모든 필드 빈 배열이면 hasDiagnostics=false', () => {
+      const sr: StatisticalResult = {
+        testName: 't-검정',
+        statistic: 2.0,
+        statisticName: 't',
+        pValue: 0.05,
+        alpha: 0.05,
+        recommendations: [],
+        warnings: [],
+        alternatives: [],
+        timestamp: new Date()
+      }
+      const vis = computeLayerVisibility(sr)
+      expect(vis.hasDiagnostics).toBe(false)
+    })
+  })
+
+  describe('Scenario 9: warnings/alternatives dedup 로직', () => {
+    it('warnings는 assumptionTests가 있으면 숨김 (중복 방지)', () => {
+      // AssumptionTestCard가 이미 가정 관련 경고를 표시하므로
+      // warnings는 assumptionTests가 없을 때만 렌더링
+      const sr: StatisticalResult = {
+        testName: 't-검정',
+        statistic: 2.0,
+        statisticName: 't',
+        pValue: 0.01,
+        alpha: 0.05,
+        warnings: ['정규성 가정을 확인하세요'],
+        assumptions: [{ name: '정규성', pValue: 0.02, passed: false }],
+        timestamp: new Date()
+      }
+      // assumptions 존재 → assumptionTests.length > 0 → warnings 숨김
+      const hasAssumptions = (sr.assumptions?.length ?? 0) > 0
+      const showWarnings = (sr.warnings?.length ?? 0) > 0 && !hasAssumptions
+      expect(showWarnings).toBe(false)
+    })
+
+    it('warnings는 assumptionTests가 없으면 표시', () => {
+      const sr: StatisticalResult = {
+        testName: 't-검정',
+        statistic: 2.0,
+        statisticName: 't',
+        pValue: 0.01,
+        alpha: 0.05,
+        warnings: ['표본 크기가 너무 작습니다'],
+        timestamp: new Date()
+      }
+      const hasAssumptions = (sr.assumptions?.length ?? 0) > 0
+      const showWarnings = (sr.warnings?.length ?? 0) > 0 && !hasAssumptions
+      expect(showWarnings).toBe(true)
+    })
+
+    it('alternatives는 testType이 있으면 숨김 (AssumptionTestCard에서 표시)', () => {
+      const sr: StatisticalResult = {
+        testName: 't-검정',
+        statistic: 2.0,
+        statisticName: 't',
+        pValue: 0.01,
+        alpha: 0.05,
+        testType: 't-test',
+        alternatives: [{ name: 'Mann-Whitney U', reason: '비모수 대안' }],
+        timestamp: new Date()
+      }
+      // testType 존재 → AssumptionTestCard가 getAlternatives(testType)으로 표시 → 숨김
+      const showAlternatives = (sr.alternatives?.length ?? 0) > 0 && !sr.testType
+      expect(showAlternatives).toBe(false)
+    })
+
+    it('alternatives는 testType이 없으면 표시', () => {
+      const sr: StatisticalResult = {
+        testName: 't-검정',
+        statistic: 2.0,
+        statisticName: 't',
+        pValue: 0.01,
+        alpha: 0.05,
+        alternatives: [{ name: 'Mann-Whitney U', reason: '비모수 대안' }],
+        timestamp: new Date()
+      }
+      const showAlternatives = (sr.alternatives?.length ?? 0) > 0 && !sr.testType
+      expect(showAlternatives).toBe(true)
     })
   })
 

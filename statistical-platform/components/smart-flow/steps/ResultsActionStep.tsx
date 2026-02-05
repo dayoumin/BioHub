@@ -18,6 +18,7 @@ import {
   ChevronRight
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -206,12 +207,14 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     )
   }, [statisticalResult, uploadedFileName, uploadedData])
 
-  // Layer 3 표시 여부 (가정검정, 권장사항 중 하나라도 있을 때)
+  // Layer 3 표시 여부 (가정검정, 권장사항, 경고, 대안 중 하나라도 있을 때)
   const hasDiagnostics = useMemo(() => {
     if (!statisticalResult) return false
     return !!(
       (statisticalResult.assumptions && statisticalResult.assumptions.length > 0) ||
-      (statisticalResult.recommendations && statisticalResult.recommendations.length > 0)
+      (statisticalResult.recommendations && statisticalResult.recommendations.length > 0) ||
+      (statisticalResult.warnings && statisticalResult.warnings.length > 0) ||
+      (statisticalResult.alternatives && statisticalResult.alternatives.length > 0)
     )
   }, [statisticalResult])
 
@@ -571,6 +574,39 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                   </div>
                 )}
 
+                {/* 경고 (generateWarnings()는 가정 관련 경고만 생성 → AssumptionTestCard와 중복 제거) */}
+                {statisticalResult.warnings && statisticalResult.warnings.length > 0 &&
+                  assumptionTests.length === 0 && (
+                  <Alert variant="destructive" data-testid="warnings-section">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>주의사항</AlertTitle>
+                    <AlertDescription>
+                      <ul className="mt-1 space-y-1">
+                        {statisticalResult.warnings.map((warning, idx) => (
+                          <li key={idx} className="text-sm">{warning}</li>
+                        ))}
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* 대안 분석 방법 (AssumptionTestCard가 testType으로 이미 표시하는 경우 중복 제거) */}
+                {statisticalResult.alternatives && statisticalResult.alternatives.length > 0 &&
+                  !statisticalResult.testType && (
+                  <div className="space-y-2" data-testid="alternatives-section">
+                    <p className="text-sm font-medium">대안 분석 방법</p>
+                    <div className="space-y-1.5">
+                      {statisticalResult.alternatives.map((alt, idx) => (
+                        <div key={idx} className={cn("p-2.5 rounded-lg border text-sm",
+                          alt.action ? "hover:bg-muted/50 cursor-pointer transition-colors" : ""
+                        )} onClick={alt.action}>
+                          <span className="font-medium">{alt.name}</span>
+                          <span className="text-muted-foreground ml-1.5">{alt.reason}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
               </CollapsibleSection>
             )}
