@@ -1,12 +1,20 @@
 'use client'
 
 /**
- * MainHub - 메인 페이지 허브 (Bento Grid 레이아웃)
+ * ChatCentricHub - Main Hub (Editorial Monochrome Design)
  *
- * Features:
- * 1. Bento Grid: 데이터 업로드 (좌측 대형), 방법 선택 + 히스토리 (우측 스택)
- * 2. 빠른 분석 바 (커스터마이징 가능, 그룹별 편집)
- * 3. 하단 검색창 (LLM 있을 때만)
+ * Design: "Scientific Precision" aesthetic
+ * - Dot grid background (graph paper motif)
+ * - SVG normal distribution curve decoration
+ * - Strong typographic hierarchy with monochrome palette
+ * - Staggered entrance animations via Framer Motion
+ *
+ * Functional entry points (preserved):
+ * 1. Data upload (primary CTA)
+ * 2. Method browse (card)
+ * 3. AI recommendation (card + search)
+ * 4. Recent analysis history (card)
+ * 5. Quick analysis bar (customizable pills)
  */
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
@@ -20,20 +28,18 @@ import {
   Loader2,
   Check,
   ChevronDown,
-  ChevronRight,
   Settings2,
   ArrowRight,
   Zap,
   Clock,
   X,
-  FileSpreadsheet,
   ArrowUpRight
 } from 'lucide-react'
 
 // UI Components
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent } from '@/components/ui/card'
+// Card/CardContent removed in favor of styled div elements
 import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
@@ -68,7 +74,6 @@ interface ChatCentricHubProps {
 const STORAGE_KEY = 'main-hub-quick-analysis'
 const DEFAULT_QUICK_METHODS = ['t-test', 'anova', 'correlation', 'regression', 'chi-square']
 
-// Category labels for grouping
 const CATEGORY_LABELS: Record<string, string> = {
   't-test': 'T-검정',
   'anova': '분산분석 (ANOVA)',
@@ -86,7 +91,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   'psychometrics': '심리측정'
 }
 
-// Methods grouped by category (for edit dialog)
 const METHODS_BY_CATEGORY = Object.entries(STATISTICAL_METHODS).reduce((acc, [id, method]) => {
   if (method.hasOwnPage !== false) {
     const cat = method.category
@@ -99,6 +103,93 @@ const METHODS_BY_CATEGORY = Object.entries(STATISTICAL_METHODS).reduce((acc, [id
   }
   return acc
 }, {} as Record<string, Array<{ id: string; name: string; description: string }>>)
+
+// ===== Animation Variants =====
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.1 }
+  }
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] as const }
+  }
+}
+
+// ===== SVG Decorations =====
+
+function NormalDistributionSVG({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 600 220"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      {/* Baseline */}
+      <line x1="0" y1="198" x2="600" y2="198" stroke="currentColor" strokeOpacity="0.06" />
+
+      {/* σ gridlines */}
+      {[100, 200, 300, 400, 500].map((x) => (
+        <line
+          key={x}
+          x1={x} y1="18" x2={x} y2="198"
+          stroke="currentColor"
+          strokeOpacity={x === 300 ? '0.06' : '0.03'}
+          strokeDasharray="3 6"
+        />
+      ))}
+
+      {/* Curve fill */}
+      <path
+        d="M 0,198 C 33,197 67,190 100,176 C 117,169 133,158 150,142 C 167,126 183,108 200,91 C 217,68 233,50 250,41 C 267,30 283,22 300,20 C 317,22 333,30 350,41 C 367,50 383,68 400,91 C 417,108 433,126 450,142 C 467,158 483,169 500,176 C 533,190 567,197 600,198 Z"
+        fill="currentColor"
+        fillOpacity="0.025"
+      />
+
+      {/* Curve stroke */}
+      <path
+        d="M 0,198 C 33,197 67,190 100,176 C 117,169 133,158 150,142 C 167,126 183,108 200,91 C 217,68 233,50 250,41 C 267,30 283,22 300,20 C 317,22 333,30 350,41 C 367,50 383,68 400,91 C 417,108 433,126 450,142 C 467,158 483,169 500,176 C 533,190 567,197 600,198"
+        stroke="currentColor"
+        strokeOpacity="0.10"
+        strokeWidth="1.5"
+      />
+
+      {/* Scatter points (following distribution density) */}
+      {/* Center cluster */}
+      <circle cx="282" cy="50" r="1.5" fill="currentColor" opacity="0.12" />
+      <circle cx="312" cy="44" r="1.5" fill="currentColor" opacity="0.10" />
+      <circle cx="296" cy="32" r="1.5" fill="currentColor" opacity="0.08" />
+      <circle cx="322" cy="55" r="1.5" fill="currentColor" opacity="0.12" />
+      <circle cx="268" cy="58" r="1.5" fill="currentColor" opacity="0.10" />
+      <circle cx="306" cy="38" r="1.5" fill="currentColor" opacity="0.08" />
+      {/* Middle */}
+      <circle cx="218" cy="98" r="1.5" fill="currentColor" opacity="0.08" />
+      <circle cx="382" cy="92" r="1.5" fill="currentColor" opacity="0.08" />
+      <circle cx="238" cy="80" r="1.5" fill="currentColor" opacity="0.06" />
+      <circle cx="362" cy="76" r="1.5" fill="currentColor" opacity="0.06" />
+      {/* Tails */}
+      <circle cx="152" cy="146" r="1.5" fill="currentColor" opacity="0.05" />
+      <circle cx="448" cy="148" r="1.5" fill="currentColor" opacity="0.05" />
+      <circle cx="108" cy="170" r="1.5" fill="currentColor" opacity="0.04" />
+      <circle cx="492" cy="172" r="1.5" fill="currentColor" opacity="0.04" />
+
+      {/* σ labels */}
+      <text x="300" y="214" textAnchor="middle" fill="currentColor" opacity="0.12" fontSize="9" fontFamily="var(--font-mono, monospace)">μ</text>
+      <text x="200" y="214" textAnchor="middle" fill="currentColor" opacity="0.08" fontSize="8" fontFamily="var(--font-mono, monospace)">-1σ</text>
+      <text x="400" y="214" textAnchor="middle" fill="currentColor" opacity="0.08" fontSize="8" fontFamily="var(--font-mono, monospace)">+1σ</text>
+      <text x="100" y="214" textAnchor="middle" fill="currentColor" opacity="0.06" fontSize="8" fontFamily="var(--font-mono, monospace)">-2σ</text>
+      <text x="500" y="214" textAnchor="middle" fill="currentColor" opacity="0.06" fontSize="8" fontFamily="var(--font-mono, monospace)">+2σ</text>
+    </svg>
+  )
+}
 
 // ===== Helper Functions =====
 
@@ -141,6 +232,10 @@ function formatTimeAgo(date: Date): string {
   return date.toLocaleDateString('ko-KR')
 }
 
+// Category count for display
+const TOTAL_METHODS = Object.values(STATISTICAL_METHODS).filter(m => m.hasOwnPage !== false).length
+const TOTAL_CATEGORIES = Object.keys(METHODS_BY_CATEGORY).length
+
 // ===== Component =====
 
 export function ChatCentricHub({
@@ -168,14 +263,14 @@ export function ChatCentricHub({
   const [showAlternatives, setShowAlternatives] = useState(false)
   const [ollamaAvailable, setOllamaAvailable] = useState<boolean | null>(null)
 
-  // Check Ollama availability with timeout
+  // Check Ollama availability
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (ollamaAvailable === null) {
         setOllamaAvailable(false)
         logger.warn('[MainHub] Ollama check timed out')
       }
-    }, 3000) // 3초 타임아웃
+    }, 3000)
 
     ollamaRecommender.checkHealth().then(available => {
       clearTimeout(timeoutId)
@@ -188,7 +283,7 @@ export function ChatCentricHub({
 
     return () => clearTimeout(timeoutId)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // 마운트 시 1회만 실행
+  }, [])
 
   // Load quick methods
   useEffect(() => {
@@ -209,7 +304,7 @@ export function ChatCentricHub({
       .filter(Boolean) as Array<{ id: string; name: string; description: string }>
   }, [quickMethods])
 
-  // Recent history (last 3 for card display)
+  // Recent history
   const recentHistory = useMemo(() => {
     return analysisHistory.slice(0, 3).map(h => ({
       ...h,
@@ -217,7 +312,8 @@ export function ChatCentricHub({
     }))
   }, [analysisHistory])
 
-  // Handlers
+  // === Handlers ===
+
   const handleOpenEdit = useCallback(() => {
     setEditingMethods([...quickMethods])
     setShowEditDialog(true)
@@ -287,7 +383,6 @@ export function ChatCentricHub({
     setShowAlternatives(false)
 
     try {
-      // ollamaAvailable은 이미 체크됨 (마운트 시)
       if (!ollamaAvailable) {
         applyFallback()
         return
@@ -352,179 +447,207 @@ export function ChatCentricHub({
     setShowAlternatives(false)
   }, [])
 
-  // Ollama check loading
+  // Animation: parent container controls stagger; sections inherit via variants prop.
+  // When prefersReducedMotion, parent has no variants/initial/animate, so children stay static.
+
+  // Loading state
   if (ollamaAvailable === null) {
     return (
-      <div className="w-full max-w-5xl mx-auto flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      <div className="w-full max-w-5xl mx-auto flex items-center justify-center py-20">
+        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
       </div>
     )
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6">
-      {/* Bento Grid Layout */}
-      <div className="grid grid-cols-1 md:grid-cols-5 md:grid-rows-[auto_auto] gap-4 md:gap-5">
-        {/* 좌측: 데이터 업로드 (대형 카드) - 2 rows span */}
-        <Card
-          className={cn(
-            "md:col-span-3 md:row-span-2 cursor-pointer group relative overflow-hidden",
-            "border-2 border-transparent hover:border-primary/50",
-            "bg-gradient-to-br from-background via-background to-primary/5",
-            "shadow-lg hover:shadow-xl transition-all duration-300",
-            "hover:scale-[1.01]",
-            "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-          )}
-          onClick={onStartWithData}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onStartWithData()}
-        >
-          {/* Background decoration */}
-          <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+    <motion.div
+      className="w-full max-w-5xl mx-auto"
+      {...(prefersReducedMotion ? {} : { variants: containerVariants, initial: 'hidden' as const, animate: 'visible' as const })}
+    >
+      {/* ====== Hero Section ====== */}
+      <motion.div variants={itemVariants}>
+        <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card mb-8">
+          {/* Dot grid background */}
+          <div
+            className="absolute inset-0 opacity-[0.35] dark:opacity-[0.15] pointer-events-none"
+            style={{
+              backgroundImage: 'radial-gradient(circle, currentColor 0.5px, transparent 0.5px)',
+              backgroundSize: '20px 20px'
+            }}
+          />
 
-          <CardContent className="p-8 md:p-10 h-full flex flex-col justify-center relative">
-            <div className="flex items-center gap-4 mb-6">
-              <div className={cn(
-                "w-16 h-16 rounded-2xl flex items-center justify-center",
-                "bg-primary/10 group-hover:bg-primary/20",
-                "transition-all duration-300 group-hover:scale-110"
-              )}>
-                <Upload className="h-8 w-8 text-primary" />
-              </div>
-              <div>
-                <Badge variant="secondary" className="mb-2">시작하기</Badge>
-                <h2 className="text-2xl font-bold">데이터 업로드</h2>
-              </div>
-            </div>
+          {/* SVG decoration */}
+          <NormalDistributionSVG
+            className="absolute right-0 top-1/2 -translate-y-1/2 w-[55%] h-auto text-foreground opacity-80 pointer-events-none select-none hidden lg:block"
+          />
 
-            <p className="text-muted-foreground mb-6 max-w-md">
-              CSV, Excel 파일을 업로드하고 AI 기반 자동 분석을 시작하세요.
-              데이터 특성에 맞는 최적의 분석 방법을 추천받을 수 있습니다.
-            </p>
-
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                <FileSpreadsheet className="w-4 h-4" />
-                <span>CSV, XLSX</span>
+          <div className="relative z-10 px-10 py-14 lg:py-16">
+            <div className="max-w-lg">
+              {/* Eyebrow */}
+              <div className="flex items-center gap-2 mb-6">
+                <span className="text-xs font-mono tracking-widest uppercase text-muted-foreground">
+                  Statistical Analysis Platform
+                </span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4" />
+
+              {/* Heading */}
+              <h1 className="text-3xl lg:text-4xl font-bold tracking-tight leading-[1.15] mb-4">
+                데이터에서 인사이트까지,
+                <br />
+                <span className="text-muted-foreground">과학적으로.</span>
+              </h1>
+
+              {/* Description */}
+              <p className="text-muted-foreground text-sm leading-relaxed mb-8 max-w-md">
+                CSV, Excel 파일을 업로드하면 AI가 데이터 특성을 분석하고
+                최적의 통계 방법을 추천합니다. 전문가 수준의 분석을 몇 번의 클릭으로.
+              </p>
+
+              {/* Stats */}
+              <div className="flex items-center gap-6 mb-8 text-xs text-muted-foreground font-mono">
+                <span>{TOTAL_METHODS}개 분석 도구</span>
+                <span className="w-px h-3 bg-border" />
+                <span>{TOTAL_CATEGORIES}개 카테고리</span>
+                <span className="w-px h-3 bg-border" />
                 <span>AI 추천</span>
               </div>
-            </div>
 
-            <div className={cn(
-              "absolute bottom-6 right-6 w-10 h-10 rounded-full",
-              "bg-primary/10 flex items-center justify-center",
-              "group-hover:bg-primary group-hover:text-primary-foreground",
-              "transition-all duration-300"
-            )}>
-              <ArrowUpRight className="w-5 h-5" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 우측 상단: 방법 선택 */}
-        <Card
-          className={cn(
-            "md:col-span-2 cursor-pointer group relative overflow-hidden",
-            "border-2 border-transparent hover:border-emerald-500/50",
-            "bg-gradient-to-br from-background to-emerald-500/5",
-            "shadow-md hover:shadow-lg transition-all duration-300",
-            "hover:scale-[1.02]",
-            "focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-          )}
-          onClick={onStartWithBrowse}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onStartWithBrowse()}
-        >
-          <CardContent className="p-6 h-full flex flex-col justify-between">
-            <div>
-              <div className={cn(
-                "w-12 h-12 rounded-xl flex items-center justify-center mb-4",
-                "bg-emerald-500/10 group-hover:bg-emerald-500/20",
-                "transition-colors duration-300"
-              )}>
-                <List className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <h3 className="font-bold text-lg mb-1">방법 선택</h3>
-              <p className="text-sm text-muted-foreground">
-                43개 통계 분석 방법 중 선택
-              </p>
-            </div>
-            <div className="flex items-center gap-1 text-sm text-emerald-600 dark:text-emerald-400 mt-4">
-              <span>둘러보기</span>
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 우측 하단: 히스토리 */}
-        <Card
-          className={cn(
-            "md:col-span-2 relative overflow-hidden min-h-[180px]",
-            "border-2 border-transparent hover:border-amber-500/50",
-            "bg-gradient-to-br from-background to-amber-500/5",
-            "shadow-md hover:shadow-lg transition-all duration-300"
-          )}
-        >
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
+              {/* CTAs */}
               <div className="flex items-center gap-3">
-                <div className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center",
-                  "bg-amber-500/10"
-                )}>
-                  <History className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                <Button
+                  size="lg"
+                  className="gap-2 px-6 h-11 text-sm font-medium"
+                  onClick={onStartWithData}
+                  data-testid="hub-upload-card"
+                >
+                  <Upload className="w-4 h-4" />
+                  데이터 업로드로 시작
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="gap-2 px-5 h-11 text-sm"
+                  onClick={onStartWithBrowse}
+                >
+                  <List className="w-4 h-4" />
+                  분석 방법 둘러보기
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ====== Action Cards (3-column) ====== */}
+      <motion.div variants={itemVariants}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {/* Card 1: Method Browse */}
+          <button
+            type="button"
+            className={cn(
+              "group relative text-left rounded-xl border border-border/60",
+              "bg-card hover:bg-accent/50 p-6",
+              "transition-all duration-200 hover:border-foreground/15",
+              "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            )}
+            onClick={onStartWithBrowse}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-9 h-9 rounded-lg bg-foreground/[0.05] flex items-center justify-center">
+                <List className="w-4 h-4 text-foreground/70" />
+              </div>
+              <Badge variant="secondary" className="text-[10px] font-mono">
+                {TOTAL_METHODS}
+              </Badge>
+            </div>
+            <h3 className="font-semibold text-sm mb-1">분석 도구</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed mb-4">
+              T-검정, ANOVA, 회귀분석 등 {TOTAL_CATEGORIES}개 카테고리의 전체 목록을 탐색합니다
+            </p>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+              <span>탐색하기</span>
+              <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </div>
+          </button>
+
+          {/* Card 2: AI Recommendation */}
+          <button
+            type="button"
+            className={cn(
+              "group relative text-left rounded-xl border border-border/60",
+              "bg-card hover:bg-accent/50 p-6",
+              "transition-all duration-200 hover:border-foreground/15",
+              "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            )}
+            onClick={onGoToDetailedAI}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-9 h-9 rounded-lg bg-foreground/[0.05] flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-foreground/70" />
+              </div>
+              <span className="w-1.5 h-1.5 rounded-full bg-foreground/20" />
+            </div>
+            <h3 className="font-semibold text-sm mb-1">AI 추천</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed mb-4">
+              분석 목적을 자연어로 설명하면 데이터에 맞는 최적의 방법을 추천합니다
+            </p>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+              <span>시작하기</span>
+              <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </div>
+          </button>
+
+          {/* Card 3: Recent Analysis */}
+          <div
+            className={cn(
+              "relative rounded-xl border border-border/60",
+              "bg-card p-6"
+            )}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-lg bg-foreground/[0.05] flex items-center justify-center">
+                  <History className="w-4 h-4 text-foreground/70" />
                 </div>
-                <div>
-                  <h3 className="font-semibold">최근 분석</h3>
-                  {analysisHistory.length > 0 && (
-                    <Badge variant="secondary" className="text-xs mt-0.5">
-                      {analysisHistory.length}개
-                    </Badge>
-                  )}
-                </div>
+                <h3 className="font-semibold text-sm">최근 분석</h3>
               </div>
               <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs h-7"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onShowHistory()
-                  }}
-                >
-                  {analysisHistory.length > 3 ? '전체 보기' : '히스토리'}
-                </Button>
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-muted-foreground"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onShowHistory()
+                }}
+              >
+                {analysisHistory.length > 3 ? '전체 보기' : '히스토리'}
+              </Button>
             </div>
 
             {recentHistory.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {recentHistory.map((item, index) => (
                   <button
                     key={item.id || index}
                     type="button"
                     className={cn(
-                      "w-full text-left p-2.5 rounded-lg",
-                      "bg-muted/50 hover:bg-muted",
-                      "transition-colors cursor-pointer"
+                      "w-full text-left px-3 py-2 rounded-lg",
+                      "hover:bg-accent/70 transition-colors"
                     )}
                     onClick={() => handleHistorySelect(item)}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-sm truncate">
+                      <span className="font-medium text-xs truncate">
                         {item.method?.name || '알 수 없음'}
                       </span>
-                      <span className="text-xs text-muted-foreground shrink-0 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
+                      <span className="text-[10px] text-muted-foreground shrink-0 flex items-center gap-0.5 font-mono">
+                        <Clock className="w-2.5 h-2.5" />
                         {item.timeAgo}
                       </span>
                     </div>
                     {item.dataFileName && (
-                      <p className="text-xs text-muted-foreground truncate mt-1">
+                      <p className="text-[10px] text-muted-foreground truncate mt-0.5">
                         {item.dataFileName}
                       </p>
                     )}
@@ -532,76 +655,73 @@ export function ChatCentricHub({
                 ))}
               </div>
             ) : (
-              <div className="text-center py-4">
-                <p className="text-sm text-muted-foreground">
+              <div className="py-4 text-center">
+                <p className="text-xs text-muted-foreground">
                   아직 분석 기록이 없습니다
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  첫 분석을 시작해보세요!
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  첫 분석을 시작해보세요
                 </p>
               </div>
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </div>
+      </motion.div>
 
-      {/* Quick Analysis Bar */}
-      <Card className="border shadow-sm">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-amber-500" />
-              <span className="text-sm font-medium">빠른 분석</span>
-              <span className="text-xs text-muted-foreground">
-                자주 사용하는 방법을 바로 시작
-              </span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs gap-1"
-              onClick={handleOpenEdit}
-            >
-              <Settings2 className="w-3.5 h-3.5" />
-              편집
-            </Button>
+      {/* ====== Quick Analysis Bar ====== */}
+      <motion.div variants={itemVariants}>
+        <div className="flex items-center gap-3 px-1 mb-6">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Zap className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-xs font-medium text-muted-foreground">빠른 분석</span>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="h-px flex-1 bg-border/60" />
+
+          <div className="flex flex-wrap items-center gap-1.5">
             {quickMethodsInfo.map((method) => (
-              <Button
+              <button
                 key={method.id}
-                variant="outline"
-                size="sm"
-                className="h-8 text-xs hover:bg-primary hover:text-primary-foreground transition-colors"
+                type="button"
+                className={cn(
+                  "h-7 px-3 rounded-md text-[11px] font-medium",
+                  "border border-border/80 bg-card",
+                  "hover:bg-foreground hover:text-background hover:border-foreground",
+                  "transition-all duration-150",
+                  "focus-visible:ring-2 focus-visible:ring-ring"
+                )}
                 onClick={() => handleQuickAnalysis(method.id)}
+                title={method.description}
               >
                 {method.name}
-              </Button>
+              </button>
             ))}
             {quickMethodsInfo.length === 0 && (
-              <span className="text-sm text-muted-foreground">
-                편집을 눌러 빠른 분석 방법을 추가하세요
-              </span>
+              <span className="text-xs text-muted-foreground">편집으로 추가</span>
             )}
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Search Bar (LLM available only) */}
+          <button
+            type="button"
+            className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            onClick={handleOpenEdit}
+            title="빠른 분석 편집"
+          >
+            <Settings2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </motion.div>
+
+      {/* ====== AI Search (Ollama available only) ====== */}
       {ollamaAvailable && (
-        <Card className="border shadow-sm">
-          <CardContent className="p-4 space-y-4">
-            <div className="flex items-center gap-2 text-sm">
-              <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-violet-500 dark:text-violet-400" />
-              </div>
-              <div>
-                <p className="font-medium">AI 추천</p>
-                <p className="text-xs text-muted-foreground">
-                  분석 목적을 설명하면 적절한 방법을 추천해드립니다
-                </p>
-              </div>
+        <motion.div variants={itemVariants}>
+          <div className="rounded-xl border border-border/60 bg-card p-5 mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-xs font-medium">AI 분석 추천</span>
+              <span className="text-[10px] text-muted-foreground">
+                분석 목적을 설명하면 적절한 방법을 추천합니다
+              </span>
             </div>
 
             <div className="relative">
@@ -611,7 +731,7 @@ export function ChatCentricHub({
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 placeholder='예: "두 그룹의 평균이 다른지 비교하고 싶어요"'
-                className="min-h-[60px] resize-none pr-24"
+                className="min-h-[56px] resize-none pr-24 text-sm"
                 disabled={isLoading}
               />
               <div className="absolute right-2 bottom-2 flex gap-1">
@@ -619,23 +739,23 @@ export function ChatCentricHub({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-7 w-7"
                     onClick={handleClearSearch}
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-3.5 h-3.5" />
                   </Button>
                 )}
                 <Button
                   size="sm"
-                  className="h-8 gap-1"
+                  className="h-7 gap-1 text-xs"
                   onClick={handleSubmit}
                   disabled={isLoading || !inputValue.trim()}
                 >
                   {isLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <>
-                      <Send className="w-4 h-4" />
+                      <Send className="w-3.5 h-3.5" />
                       전송
                     </>
                   )}
@@ -647,50 +767,50 @@ export function ChatCentricHub({
             <AnimatePresence>
               {recommendation && (
                 <motion.div
-                  initial={prefersReducedMotion ? {} : { opacity: 0, y: 10 }}
+                  initial={prefersReducedMotion ? {} : { opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className="space-y-3"
+                  className="mt-4 space-y-3"
                 >
-                  {/* Response Text */}
+                  {/* Response text */}
                   {responseText && (
-                    <div className="bg-muted/50 rounded-lg p-3">
+                    <div className="bg-accent/50 rounded-lg px-4 py-3">
                       <div className="flex items-start gap-2">
-                        <Sparkles className="w-4 h-4 text-violet-500 dark:text-violet-400 mt-0.5 shrink-0" />
-                        <p className="text-sm text-muted-foreground">
+                        <Sparkles className="w-3.5 h-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                        <p className="text-xs text-muted-foreground leading-relaxed">
                           {responseText}
                         </p>
                       </div>
                     </div>
                   )}
 
-                  {/* Recommendation */}
-                  <div className="border-2 border-primary/30 bg-primary/5 rounded-lg p-4">
+                  {/* Recommended method */}
+                  <div className="border border-foreground/15 bg-foreground/[0.02] rounded-lg p-4">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                          <Check className="w-5 h-5 text-primary" />
+                        <div className="w-9 h-9 rounded-lg bg-foreground/[0.06] flex items-center justify-center">
+                          <Check className="w-4 h-4 text-foreground/70" />
                         </div>
                         <div>
-                          <p className="font-semibold">{recommendation.method.name}</p>
-                          <p className="text-xs text-muted-foreground line-clamp-1">
+                          <p className="font-semibold text-sm">{recommendation.method.name}</p>
+                          <p className="text-[11px] text-muted-foreground line-clamp-1">
                             {recommendation.method.description}
                           </p>
                         </div>
                       </div>
-                      <Button onClick={handleSelectRecommended} className="gap-1 shrink-0">
+                      <Button onClick={handleSelectRecommended} size="sm" className="gap-1 shrink-0 h-8 text-xs">
                         시작
-                        <ArrowRight className="w-4 h-4" />
+                        <ArrowRight className="w-3.5 h-3.5" />
                       </Button>
                     </div>
 
                     {/* Alternatives */}
                     {recommendation.alternatives && recommendation.alternatives.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-primary/20">
+                      <div className="mt-3 pt-3 border-t border-border/60">
                         <button
                           type="button"
                           onClick={() => setShowAlternatives(!showAlternatives)}
-                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
                         >
                           <ChevronDown className={cn("w-3 h-3 transition-transform", showAlternatives && "rotate-180")} />
                           다른 선택지 ({recommendation.alternatives.length}개)
@@ -702,19 +822,19 @@ export function ChatCentricHub({
                               initial={{ opacity: 0, height: 0 }}
                               animate={{ opacity: 1, height: 'auto' }}
                               exit={{ opacity: 0, height: 0 }}
-                              className="mt-2 space-y-1"
+                              className="mt-2 space-y-0.5"
                             >
                               {recommendation.alternatives.map((alt, i) => (
                                 <button
                                   key={i}
                                   type="button"
-                                  className="w-full text-left p-2 rounded-md hover:bg-muted transition-colors text-sm"
+                                  className="w-full text-left px-3 py-2 rounded-md hover:bg-accent transition-colors text-xs"
                                   onClick={() => handleSelectAlternative(alt)}
                                 >
                                   <span className="font-medium">{alt.name}</span>
                                   {alt.description && (
-                                    <span className="text-muted-foreground ml-2 text-xs">
-                                      - {alt.description}
+                                    <span className="text-muted-foreground ml-2 text-[10px]">
+                                      {alt.description}
                                     </span>
                                   )}
                                 </button>
@@ -726,13 +846,13 @@ export function ChatCentricHub({
                     )}
                   </div>
 
-                  {/* Link to detailed AI */}
+                  {/* Detailed AI link */}
                   <div className="text-center">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={onGoToDetailedAI}
-                      className="text-xs text-muted-foreground"
+                      className="text-[11px] text-muted-foreground h-7"
                     >
                       더 자세한 분석이 필요하신가요?
                     </Button>
@@ -740,11 +860,11 @@ export function ChatCentricHub({
                 </motion.div>
               )}
             </AnimatePresence>
-          </CardContent>
-        </Card>
+          </div>
+        </motion.div>
       )}
 
-      {/* Quick Analysis Edit Dialog */}
+      {/* ====== Quick Analysis Edit Dialog ====== */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="sm:max-w-lg max-h-[80vh]">
           <DialogHeader>
@@ -795,7 +915,7 @@ export function ChatCentricHub({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   )
 }
 
