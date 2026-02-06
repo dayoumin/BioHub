@@ -557,6 +557,20 @@ vi.mock('@/components/statistics/common/StatisticsTable', () => ({
   )
 }))
 
+vi.mock('@/components/smart-flow/ResultsVisualization', () => ({
+  ResultsVisualization: () => <div data-testid="results-visualization" />
+}))
+
+vi.mock('@/components/smart-flow/steps/results/MethodSpecificResults', () => ({
+  MethodSpecificResults: () => <div data-testid="method-specific-results" />
+}))
+
+vi.mock('@/lib/services/result-interpreter', () => ({
+  requestInterpretation: vi.fn().mockResolvedValue(
+    '## 한줄 요약\n테스트 해석입니다.\n\n## 상세 해석\n상세 내용입니다.'
+  ),
+}))
+
 // Store mock
 const defaultStoreState = {
   saveToHistory: vi.fn(),
@@ -893,7 +907,8 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       expect(screen.getByText('저장')).toBeInTheDocument()
       expect(screen.getByText('PDF')).toBeInTheDocument()
       expect(screen.getByText('복사')).toBeInTheDocument()
-      expect(screen.getByText('AI 해석')).toBeInTheDocument()
+      // AI 해석은 자동 인라인 표시로 변경됨 (버튼 제거)
+      expect(screen.getByTestId('ai-interpretation-section')).toBeInTheDocument()
     })
   })
 })

@@ -33,7 +33,8 @@ export const initialFlowState: GuidedFlowState = {
   aiRecommendation: null,
   aiResponseText: null,
   aiError: null,
-  isAiLoading: false
+  isAiLoading: false,
+  aiProvider: null
 }
 
 /**
@@ -97,6 +98,12 @@ export function flowReducer(
         ...state,
         isAiLoading: false,
         aiError: action.error
+      }
+
+    case 'SET_AI_PROVIDER':
+      return {
+        ...state,
+        aiProvider: action.provider
       }
 
     case 'GO_TO_GUIDED':
@@ -369,6 +376,11 @@ export const flowActions = {
 
   goToGuided: (): GuidedFlowAction => ({
     type: 'GO_TO_GUIDED'
+  }),
+
+  setAiProvider: (provider: 'openrouter' | 'ollama' | 'keyword'): GuidedFlowAction => ({
+    type: 'SET_AI_PROVIDER',
+    provider
   }),
 
   // ============================================

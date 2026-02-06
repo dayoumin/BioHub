@@ -5,7 +5,8 @@ import {
   StatisticalMethod,
   AnalysisResult,
   DataRow,
-  StatisticalAssumptions
+  StatisticalAssumptions,
+  SuggestedSettings
 } from '@/types/smart-flow'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import { DataCharacteristics } from '@/lib/statistics/data-type-detector'
@@ -48,6 +49,10 @@ export interface DetectedVariables {
   numericVars?: string[]
   /** Paired variables for paired tests */
   pairedVars?: [string, string]
+  /** Independent variables for regression (LLM enhanced) */
+  independentVars?: string[]
+  /** Covariate variables for ANCOVA (LLM enhanced) */
+  covariates?: string[]
 }
 
 /**
@@ -124,6 +129,8 @@ interface SmartFlowState {
 
   // AI 감지 변수 (Step 2 -> Step 3 전달용)
   detectedVariables: DetectedVariables | null
+  // AI 추천 설정 (Step 2 -> Step 4 전달용)
+  suggestedSettings: SuggestedSettings | null
 
   // 분석 결과
   results: AnalysisResult | null
@@ -161,6 +168,7 @@ interface SmartFlowState {
   setSelectedMethod: (method: StatisticalMethod | null) => void
   setVariableMapping: (mapping: VariableMapping | null) => void
   setDetectedVariables: (vars: DetectedVariables | null) => void
+  setSuggestedSettings: (settings: SuggestedSettings | null) => void
   setResults: (results: AnalysisResult | null) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
@@ -206,6 +214,7 @@ const initialState = {
   selectedMethod: null,
   variableMapping: null,
   detectedVariables: null,
+  suggestedSettings: null,
   results: null,
   analysisHistory: [],
   currentHistoryId: null,
@@ -304,6 +313,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
       setSelectedMethod: (method) => set({ selectedMethod: method }),
       setVariableMapping: (mapping) => set({ variableMapping: mapping }),
       setDetectedVariables: (vars) => set({ detectedVariables: vars }),
+      setSuggestedSettings: (settings) => set({ suggestedSettings: settings }),
       setResults: (results) => set({ results: results }),
       setLoading: (loading) => set({ isLoading: loading }),
       setError: (error) => set({ error: error }),
@@ -657,6 +667,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         selectedMethod: null,
         variableMapping: null,
         detectedVariables: null,
+        suggestedSettings: null,
         results: null,
         currentHistoryId: null,
         isLoading: false,
@@ -716,6 +727,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         selectedMethod: state.selectedMethod,
         variableMapping: state.variableMapping,
         detectedVariables: state.detectedVariables,
+        suggestedSettings: state.suggestedSettings,
         results: state.results,
         uploadedFileName: state.uploadedFileName,
         /**

@@ -41,11 +41,13 @@ import { PDFReportService } from '@/lib/services/pdf-report-service'
 import { startNewAnalysis } from '@/lib/services/data-management'
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
 import { TemplateSaveModal } from '@/components/smart-flow/TemplateSaveModal'
+import ReactMarkdown from 'react-markdown'
 import { cn } from '@/lib/utils'
 import { CollapsibleSection, StatisticCard } from '@/components/smart-flow/common'
-import { useUI } from '@/contexts/ui-context'
-import { checkOllamaStatus, OllamaStatus } from '@/lib/rag/utils/ollama-check'
 import { ConfidenceIntervalDisplay } from '@/components/statistics/common/ConfidenceIntervalDisplay'
+import { MethodSpecificResults } from '@/components/smart-flow/steps/results/MethodSpecificResults'
+import { ResultsVisualization } from '@/components/smart-flow/ResultsVisualization'
+import { requestInterpretation, type InterpretationContext } from '@/lib/services/result-interpreter'
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import { AssumptionTestCard, type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
@@ -53,6 +55,25 @@ import { formatStatisticalResult } from '@/lib/statistics/formatters'
 
 interface ResultsActionStepProps {
   results: AnalysisResult | null
+}
+
+// AI 해석 텍스트를 2단 구조로 분리 (한줄 요약 / 상세 해석)
+export function splitInterpretation(text: string): { summary: string; detail: string } {
+  // "### 상세 해석" 기준으로 분리
+  const detailPattern = /###\s*상세\s*해석/
+  const match = text.match(detailPattern)
+
+  if (match?.index !== undefined) {
+    const summary = text.substring(0, match.index).trim()
+    const detail = text.substring(match.index).trim()
+    // summary에서 "### 한줄 요약" 헤더 제거
+    const cleanSummary = summary.replace(/###\s*한줄\s*요약\s*\n?/, '').trim()
+    return { summary: cleanSummary, detail }
+  }
+
+  // 패턴 미매칭: 전체를 summary로
+  const cleanText = text.replace(/###\s*한줄\s*요약\s*\n?/, '').trim()
+  return { summary: cleanText, detail: '' }
 }
 
 // 효과크기 해석
@@ -90,17 +111,17 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
-  const [detailedResultsOpen, setDetailedResultsOpen] = useState(false)
+  const [detailedResultsOpen, setDetailedResultsOpen] = useState(true)
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false)
   const chartRef = useRef<HTMLDivElement>(null)
-  // AI 채팅 상태
-  const [ollamaStatus, setOllamaStatus] = useState<OllamaStatus | null>(null)
-  const { openChatPanel } = useUI()
 
-  // Ollama 상태 확인
-  useEffect(() => {
-    checkOllamaStatus().then(setOllamaStatus).catch(() => setOllamaStatus(null))
-  }, [])
+  // AI 해석 상태
+  const [interpretation, setInterpretation] = useState<string | null>(null)
+  const [isInterpreting, setIsInterpreting] = useState(false)
+  const [interpretError, setInterpretError] = useState<string | null>(null)
+  const [detailedInterpretOpen, setDetailedInterpretOpen] = useState(false)
+  const interpretAbortRef = useRef<AbortController | null>(null)
+  const interpretedResultRef = useRef<string | null>(null) // 캐시 key (results.method + pValue)
 
 
   const {
@@ -306,14 +327,71 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }
   }, [results, uploadedData])
 
-  
-  const handleAIChat = useCallback(() => {
-    // 분석 결과를 채팅 컨텍스트로 전달 (향후 구현 예정)
-    openChatPanel()
-    toast.info('AI 도우미가 열렸습니다', {
-      description: '분석 결과에 대해 질문해 보세요'
-    })
-  }, [openChatPanel])
+  // AI 해석 요청 (스트리밍)
+  const handleInterpretation = useCallback(async () => {
+    if (!results) return
+
+    // 캐시: 같은 결과면 재호출 안 함
+    const cacheKey = `${results.method}:${results.pValue}:${results.statistic}`
+    if (interpretedResultRef.current === cacheKey) return
+
+    setIsInterpreting(true)
+    setInterpretError(null)
+    setInterpretation('')
+
+    const controller = new AbortController()
+    interpretAbortRef.current = controller
+
+    try {
+      const variables: string[] = []
+      if (variableMapping?.dependentVar) {
+        if (Array.isArray(variableMapping.dependentVar)) variables.push(...variableMapping.dependentVar)
+        else variables.push(variableMapping.dependentVar)
+      }
+      if (variableMapping?.independentVar) {
+        if (Array.isArray(variableMapping.independentVar)) variables.push(...variableMapping.independentVar)
+        else variables.push(variableMapping.independentVar)
+      }
+      if (variableMapping?.groupVar) variables.push(variableMapping.groupVar)
+
+      const ctx: InterpretationContext = {
+        results,
+        sampleSize: uploadedData?.length,
+        variables: variables.length > 0 ? variables : undefined,
+        uploadedFileName: uploadedFileName ?? undefined
+      }
+
+      let accumulated = ''
+      await requestInterpretation(
+        ctx,
+        (chunk) => {
+          accumulated += chunk
+          setInterpretation(accumulated)
+        },
+        controller.signal
+      )
+
+      interpretedResultRef.current = cacheKey
+    } catch (error) {
+      if (controller.signal.aborted) return
+      const msg = error instanceof Error ? error.message : 'AI 해석 중 오류가 발생했습니다.'
+      setInterpretError(msg)
+    } finally {
+      setIsInterpreting(false)
+      interpretAbortRef.current = null
+    }
+  }, [results, uploadedData, variableMapping, uploadedFileName])
+
+  // 결과 로드 시 자동 AI 해석 요청
+  useEffect(() => {
+    if (results && interpretation === null && !isInterpreting) {
+      handleInterpretation()
+    }
+    return () => {
+      interpretAbortRef.current?.abort()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [results?.method, results?.pValue, results?.statistic])
 
   const handleCopyResults = useCallback(async () => {
     if (!results) return
@@ -352,7 +430,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           "overflow-hidden",
           !assumptionsPassed ? "border-amber-300" :
           isSignificant ? "border-green-300" : "border-gray-200"
-        )}>
+        )} data-testid="results-main-card">
           {/* 헤더: 분석명 + 시간 */}
           <CardHeader className="pb-3 bg-muted/30">
             <div className="flex items-center justify-between">
@@ -447,10 +525,98 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               </div>
             )}
 
+            {/* ===== AI 해석 (인라인 2단 구조) ===== */}
+            <div className="space-y-2" data-testid="ai-interpretation-section">
+              {/* 로딩 중 */}
+              {isInterpreting && !interpretation && (
+                <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-100 dark:border-purple-900 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-purple-500 animate-pulse" />
+                  <span className="text-sm text-purple-700 dark:text-purple-300">AI가 결과를 해석하고 있어요...</span>
+                </div>
+              )}
+
+              {/* 한줄 요약 (항상 표시) */}
+              {interpretation && (() => {
+                const { summary, detail } = splitInterpretation(interpretation)
+                return (
+                  <>
+                    <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-100 dark:border-purple-900">
+                      <div className="flex items-start gap-2">
+                        <Sparkles className="w-4 h-4 text-purple-500 mt-0.5 shrink-0" />
+                        <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed flex-1">
+                          <ReactMarkdown>{summary}</ReactMarkdown>
+                          {isInterpreting && (
+                            <span className="inline-block w-1.5 h-4 bg-purple-500 animate-pulse ml-0.5 align-text-bottom" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 상세 해석 (펼침) */}
+                    {detail && (
+                      <CollapsibleSection
+                        label="상세 해석"
+                        open={detailedInterpretOpen}
+                        onOpenChange={setDetailedInterpretOpen}
+                        contentClassName="pt-2"
+                        icon={<Sparkles className="h-3.5 w-3.5 text-purple-500" />}
+                      >
+                        <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
+                          <ReactMarkdown>{detail}</ReactMarkdown>
+                        </div>
+                      </CollapsibleSection>
+                    )}
+
+                    {/* 다시 해석 */}
+                    {!isInterpreting && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          interpretedResultRef.current = null
+                          setInterpretation(null)
+                          handleInterpretation()
+                        }}
+                        className="text-xs text-muted-foreground h-6 px-2"
+                      >
+                        <RefreshCw className="w-3 h-3 mr-1" />
+                        다시 해석
+                      </Button>
+                    )}
+                  </>
+                )
+              })()}
+
+              {/* 에러 표시 */}
+              {interpretError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="text-sm">
+                    {interpretError}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        interpretedResultRef.current = null
+                        handleInterpretation()
+                      }}
+                      className="ml-2 text-xs h-6 px-2"
+                    >
+                      다시 시도
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+
+            {/* ===== 시각화 ===== */}
+            <ResultsVisualization results={results} />
+
             {/* ===== Layer 2: 상세 결과 (접기/펼치기) ===== */}
             {hasDetailedResults && (
               <CollapsibleSection
                 label="상세 결과"
+                data-testid="detailed-results-section"
                 open={detailedResultsOpen}
                 onOpenChange={setDetailedResultsOpen}
                 contentClassName="pt-3 space-y-4"
@@ -497,6 +663,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                   />
                 ))}
 
+                {/* 방법별 추가 메트릭 */}
+                <MethodSpecificResults results={results} />
+
                 {/* APA 형식 요약 */}
                 {apaFormat && (
                   <div className="p-3 bg-muted/50 rounded-lg">
@@ -533,6 +702,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             {hasDiagnostics && (
               <CollapsibleSection
                 label="진단 & 권장"
+                data-testid="diagnostics-section"
                 open={diagnosticsOpen}
                 onOpenChange={setDiagnosticsOpen}
                 contentClassName="pt-3 space-y-4"
@@ -614,7 +784,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         </Card>
 
         {/* ===== 액션 버튼 (1줄) ===== */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap" data-testid="action-buttons">
           {/* Primary Actions */}
           <Button
             variant={isSaved ? "default" : "outline"}
@@ -646,34 +816,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             <Copy className="w-4 h-4 mr-1.5" />
             {isCopied ? '복사됨' : '복사'}
           </Button>
-
-          {/* AI Chat Button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAIChat}
-                  disabled={!ollamaStatus?.hasInferenceModel}
-                  className={cn(
-                    "flex-1",
-                    ollamaStatus?.hasInferenceModel
-                      ? "border-purple-300 text-purple-700 hover:bg-purple-50 dark:border-purple-700 dark:text-purple-300 dark:hover:bg-purple-950/30"
-                      : ""
-                  )}
-                >
-                  <Sparkles className="w-4 h-4 mr-1.5" />
-                  AI 해석
-                </Button>
-              </span>
-            </TooltipTrigger>
-            {!ollamaStatus?.hasInferenceModel && (
-              <TooltipContent>
-                <p>AI 모델(Ollama)이 설정되지 않았습니다</p>
-              </TooltipContent>
-            )}
-          </Tooltip>
 
           {/* More Menu */}
           <DropdownMenu>

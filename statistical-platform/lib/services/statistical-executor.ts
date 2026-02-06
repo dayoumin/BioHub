@@ -5,6 +5,7 @@
 
 import { pyodideStats } from './pyodide-statistics'
 import { StatisticalMethod } from '../statistics/method-mapping'
+import type { SuggestedSettings } from '@/types/smart-flow'
 import { logger } from '../utils/logger'
 import { CorrelationExecutor } from './executors/correlation-executor'
 
@@ -155,14 +156,20 @@ export class StatisticalExecutor {
    *   - independentVar/independent: 독립변수
    *   - groupVar/group: 그룹변수
    *   - 기타 고급 변수 역할 지원
+   * @param settings - LLM 추천 분석 설정 (선택)
+   *   - alpha: 유의수준 (기본 0.05) — 현재 적용됨
+   *   - postHoc: 사후검정 방법 — 향후 지원 예정
+   *   - alternative: 검정 방향 — 향후 지원 예정
    */
   async executeMethod(
     method: StatisticalMethod,
     data: unknown[],
-    variables: Record<string, unknown> = {}
+    variables: Record<string, unknown> = {},
+    settings?: SuggestedSettings | null
   ): Promise<AnalysisResult> {
     this.startTime = Date.now()
-    logger.info(`통계 분석 시작: ${method.name}`, { methodId: method.id })
+    const alpha = settings?.alpha ?? 0.05
+    logger.info(`통계 분석 시작: ${method.name}`, { methodId: method.id, alpha, settings: settings ? Object.keys(settings) : [] })
 
     try {
       // 데이터 준비 (unknown[] -> Record<string, unknown>[]로 캐스팅)
@@ -221,6 +228,21 @@ export class StatisticalExecutor {
       // 메타데이터 추가
       result.metadata.duration = (Date.now() - this.startTime) / 1000
       result.metadata.timestamp = new Date().toISOString()
+
+      // Custom alpha 적용: p-value가 의미있는 값일 때만 (기술통계 등 p=1은 제외)
+      if (alpha !== 0.05 && result.mainResults.pvalue < 1) {
+        const wasSignificant = result.mainResults.significant
+        result.mainResults.significant = result.mainResults.pvalue < alpha
+        // significance 판정이 바뀌면 원본 해석에 alpha 기준 보충 문구 추가
+        if (wasSignificant !== result.mainResults.significant && result.mainResults.interpretation) {
+          const pStr = result.mainResults.pvalue < 0.001 ? '<.001' : result.mainResults.pvalue.toFixed(4)
+          const alphaNote = result.mainResults.significant
+            ? `단, 유의수준 α=${alpha} 기준으로는 유의합니다 (p=${pStr}).`
+            : `단, 유의수준 α=${alpha} 기준으로는 유의하지 않습니다 (p=${pStr}).`
+          result.mainResults.interpretation = `${result.mainResults.interpretation} ${alphaNote}`
+        }
+        logger.info(`Custom alpha 적용: α=${alpha}, significant=${result.mainResults.significant}`)
+      }
 
       logger.info(`통계 분석 완료: ${method.name}`, {
         duration: result.metadata.duration,
@@ -1923,19 +1945,64 @@ export class StatisticalExecutor {
 
   /**
    * 카이제곱 검정 실행
+   * raw data에서 contingency table을 구성한 후 chi_square_independence_test 호출
    */
   private async executeChiSquare(
     method: StatisticalMethod,
     data: PreparedData
   ): Promise<AnalysisResult> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await pyodideStats.chiSquare(data.data as any) as {
-      statistic: number
-      pvalue: number
-      df: number
-      cramersV?: number
-      contingencyTable?: number[][]
+    // 독립변수(행)와 종속변수(열) 추출 - VariableMapping 호환 (independentVar/independent 모두 지원)
+    const rawIndependent = data.variables.independentVar || data.variables.independent || data.variables.groupVar || data.variables.group
+    const independentVar = rawIndependent
+      ? (Array.isArray(rawIndependent) ? (rawIndependent as string[])[0] : rawIndependent as string)
+      : undefined
+
+    const rawDependent = data.variables.dependentVar || data.variables.dependent
+    const dependentVar = rawDependent
+      ? (Array.isArray(rawDependent) ? (rawDependent as string[])[0] : rawDependent as string)
+      : undefined
+
+    if (!independentVar || !dependentVar) {
+      throw new Error('카이제곱 검정을 위해 독립변수와 종속변수가 필요합니다')
     }
+
+    // raw data에서 contingency table 구성
+    const crosstab = new Map<string, Map<string, number>>()
+    data.data.forEach(row => {
+      const rowVal = String(row[independentVar] ?? '')
+      const colVal = String(row[dependentVar] ?? '')
+      if (!rowVal || !colVal) return
+
+      if (!crosstab.has(rowVal)) {
+        crosstab.set(rowVal, new Map())
+      }
+      const innerMap = crosstab.get(rowVal)!
+      innerMap.set(colVal, (innerMap.get(colVal) || 0) + 1)
+    })
+
+    // 모든 고유 열 값 수집
+    const colLabels: string[] = []
+    const allColValues = new Set<string>()
+    crosstab.forEach(innerMap => {
+      innerMap.forEach((_, col) => allColValues.add(col))
+    })
+    colLabels.push(...Array.from(allColValues))
+
+    // contingency table 배열 구성
+    const contingencyTable: number[][] = []
+    const rowLabels: string[] = []
+    crosstab.forEach((innerMap, rowLabel) => {
+      rowLabels.push(rowLabel)
+      const row: number[] = colLabels.map(col => innerMap.get(col) || 0)
+      contingencyTable.push(row)
+    })
+
+    if (contingencyTable.length === 0 || contingencyTable[0].length === 0) {
+      throw new Error('유효한 교차표를 생성할 수 없습니다')
+    }
+
+    // chi_square_independence_test 호출 (Cramer's V 포함)
+    const result = await pyodideStats.chiSquareIndependenceTest(contingencyTable)
 
     return {
       metadata: {
@@ -1949,24 +2016,29 @@ export class StatisticalExecutor {
         }
       },
       mainResults: {
-        statistic: result.statistic,
-        pvalue: result.pvalue,
-        df: result.df,
-        significant: result.pvalue < 0.05,
-        interpretation: result.pvalue < 0.05 ?
+        statistic: result.chiSquare,
+        pvalue: result.pValue,
+        df: result.degreesOfFreedom,
+        significant: result.reject,
+        interpretation: result.reject ?
           '변수 간 유의한 연관성이 있습니다' :
           '변수 간 유의한 연관성이 없습니다'
       },
       additionalInfo: {
-        effectSize: result.cramersV ? {
+        effectSize: {
           type: "Cramer's V",
           value: result.cramersV,
           interpretation: this.interpretCramersV(result.cramersV)
-        } : undefined
+        }
       },
       visualizationData: {
         type: 'contingency-table',
-        data: result.contingencyTable
+        data: {
+          matrix: contingencyTable,
+          expected: result.expectedMatrix,
+          rowLabels,
+          colLabels
+        }
       },
       rawResults: result
     }

@@ -19,6 +19,7 @@ import { useSettingsStore } from '@/lib/stores/settings-store'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { DecisionTreeRecommender } from '@/lib/services/decision-tree-recommender'
 import { ollamaRecommender } from '@/lib/services/ollama-recommender'
+import { llmRecommender } from '@/lib/services/llm-recommender'
 import { MethodBrowser } from './purpose/MethodBrowser'
 import { getMethodsGroupedByCategory, getAllMethodsGrouped } from '@/lib/statistics/method-catalog'
 import type { MethodGroup } from '@/lib/statistics/method-catalog'
@@ -141,6 +142,11 @@ const mergeMethodGroups = (primary: MethodGroup[], fallback: MethodGroup[]): Met
 
 /**
  * Extract detected variables based on method and validation results
+ *
+ * 우선순위:
+ * 1. recommendation.variableAssignments (LLM enhanced — 상세 역할별 매핑)
+ * 2. recommendation.detectedVariables (기존 기본 감지)
+ * 3. 데이터 기반 추론 (컬럼 타입별 첫 번째 선택)
  */
 function extractDetectedVariables(
   methodId: string,
@@ -152,6 +158,8 @@ function extractDetectedVariables(
   numericVars?: string[]
   factors?: string[]
   pairedVars?: [string, string]
+  independentVars?: string[]
+  covariates?: string[]
 } {
   const numericCols = validationResults?.columns
     ?.filter((col: ColumnStatistics) => col.type === 'numeric')
@@ -166,23 +174,80 @@ function extractDetectedVariables(
     numericVars?: string[]
     factors?: string[]
     pairedVars?: [string, string]
+    independentVars?: string[]
+    covariates?: string[]
   } = {}
 
-  // Group variable from recommendation or first categorical
+  // ─── 1순위: LLM variableAssignments ───
+  const va = recommendation?.variableAssignments
+  if (va) {
+    // LLM 환각 방지: 실제 데이터 컬럼에 존재하는 변수명만 허용
+    const allCols = [...numericCols, ...categoricalCols]
+    const validCol = (name: string) => allCols.includes(name)
+
+    // Dependent
+    if (va.dependent?.[0] && validCol(va.dependent[0])) {
+      detectedVars.dependentCandidate = va.dependent[0]
+    }
+    // Factor (ANOVA group)
+    const validFactors = va.factor?.filter(validCol)
+    if (validFactors?.length) {
+      if (validFactors.length === 1) {
+        detectedVars.groupVariable = validFactors[0]
+      } else {
+        detectedVars.factors = validFactors
+      }
+    }
+    // Independent (regression, t-test group)
+    const validIndep = va.independent?.filter(validCol)
+    if (validIndep?.length) {
+      detectedVars.independentVars = validIndep
+      // LLM이 factor 없이 independent만 보낸 경우,
+      // 첫 번째 independent가 categorical이면 group-comparison용 groupVariable로 전환
+      // (예: t-test에서 factor 대신 independent에 그룹 변수를 넣는 LLM 패턴 대응)
+      // factor가 이미 설정됐으면 스킵 (factor 우선)
+      if (!detectedVars.groupVariable && categoricalCols.includes(validIndep[0])) {
+        detectedVars.groupVariable = validIndep[0]
+      }
+    }
+    // Covariate (ANCOVA)
+    const validCov = va.covariate?.filter(validCol)
+    if (validCov?.length) {
+      detectedVars.covariates = validCov
+    }
+    // Within (paired/repeated measures)
+    if (va.within?.length === 2 && validCol(va.within[0]) && validCol(va.within[1])) {
+      detectedVars.pairedVars = [va.within[0], va.within[1]]
+    }
+    // Between (between-subjects factor)
+    if (va.between?.length && validCol(va.between[0]) && !detectedVars.groupVariable) {
+      detectedVars.groupVariable = va.between[0]
+    }
+    // 유효한 할당이 1건이라도 있으면 1순위 결과 반환
+    // 전부 환각이면 2순위 폴백으로 폴스루
+    const hasAnyValid = detectedVars.dependentCandidate || detectedVars.groupVariable
+      || detectedVars.factors?.length || detectedVars.independentVars?.length
+      || detectedVars.covariates?.length || detectedVars.pairedVars
+    if (hasAnyValid) {
+      detectedVars.numericVars = numericCols
+      return detectedVars
+    }
+  }
+
+  // ─── 2순위: 기존 detectedVariables (하위 호환) ───
   if (recommendation?.detectedVariables?.groupVariable?.name) {
     detectedVars.groupVariable = recommendation.detectedVariables.groupVariable.name
   } else if (categoricalCols.length > 0) {
     detectedVars.groupVariable = categoricalCols[0]
   }
 
-  // Dependent candidate from recommendation or first numeric
   if (recommendation?.detectedVariables?.dependentVariables?.[0]) {
     detectedVars.dependentCandidate = recommendation.detectedVariables.dependentVariables[0]
   } else if (numericCols.length > 0) {
     detectedVars.dependentCandidate = numericCols[0]
   }
 
-  // Method-specific detection
+  // ─── 3순위: 메서드별 데이터 기반 추론 ───
   if (methodId === 'two-way-anova' || methodId === 'three-way-anova') {
     detectedVars.factors = categoricalCols.slice(0, 2)
   } else if (methodId === 'paired-t-test' || methodId === 'paired-t' || methodId === 'wilcoxon' || methodId === 'wilcoxon-signed-rank') {
@@ -245,6 +310,7 @@ export function PurposeInputStep({
   const assumptionResults = useSmartFlowStore(state => state.assumptionResults)
   const setSelectedMethod = useSmartFlowStore(state => state.setSelectedMethod)
   const setDetectedVariables = useSmartFlowStore(state => state.setDetectedVariables)
+  const setSuggestedSettings = useSmartFlowStore(state => state.setSuggestedSettings)
   const methodCompatibility = useSmartFlowStore(state => state.methodCompatibility)
 
   // Data profile for MethodBrowser
@@ -440,6 +506,7 @@ export function PurposeInputStep({
         recommendation
       )
       setDetectedVariables(detectedVars)
+      setSuggestedSettings(recommendation?.suggestedSettings ?? null)
       logger.info('Detected variables saved to store', { methodId: finalSelectedMethod.id, detectedVars })
 
       // Call parent callback
@@ -454,7 +521,7 @@ export function PurposeInputStep({
     } finally {
       setIsNavigating(false)
     }
-  }, [finalSelectedMethod, selectedPurpose, manualSelectedMethod, isNavigating, isAnalyzing, recommendation, setSelectedMethod, setDetectedVariables, onPurposeSubmit, validationResults])
+  }, [finalSelectedMethod, selectedPurpose, manualSelectedMethod, isNavigating, isAnalyzing, recommendation, setSelectedMethod, setDetectedVariables, setSuggestedSettings, onPurposeSubmit, validationResults])
 
   // NEW: Progressive Questions handlers (2025 UI/UX)
   const handleCategorySelect = useCallback((category: AnalysisCategory) => {
@@ -530,6 +597,7 @@ export function PurposeInputStep({
       // Extract and save detected variables (using shared helper)
       const detectedVars = extractDetectedVariables(method.id, validationResults)
       setDetectedVariables(detectedVars)
+      setSuggestedSettings(null)
 
       if (onPurposeSubmit) {
         await onPurposeSubmit(
@@ -542,7 +610,7 @@ export function PurposeInputStep({
     } finally {
       setIsNavigating(false)
     }
-  }, [flowState, isNavigating, setSelectedMethod, setDetectedVariables, onPurposeSubmit, validationResults])
+  }, [flowState, isNavigating, setSelectedMethod, setDetectedVariables, setSuggestedSettings, onPurposeSubmit, validationResults])
 
   // ============================================
   // AI Chat Handlers (NEW)
@@ -553,61 +621,36 @@ export function PurposeInputStep({
 
   const handleAiSubmit = useCallback(async () => {
     if (!flowState.aiChatInput?.trim()) return
+    // 중복 제출 방지
+    if (flowState.isAiLoading) return
 
     flowDispatch(flowActions.startAiChat())
 
     try {
-      // Ollama 사용 가능 여부 확인
-      const isOllamaAvailable = await ollamaRecommender.checkHealth()
+      const { recommendation, responseText, provider } =
+        await llmRecommender.recommendFromNaturalLanguage(
+          flowState.aiChatInput,
+          validationResults ?? null,
+          assumptionResults ?? null,
+          data ?? null
+        )
 
-      if (!isOllamaAvailable) {
-        // Fallback: 키워드 기반 추천
-        logger.info('[AI Chat] Ollama unavailable, using keyword-based fallback')
-        const { recommendation: fallbackRec, responseText: fallbackText } =
-          ollamaRecommender.keywordBasedRecommend(flowState.aiChatInput)
-
-        flowDispatch(flowActions.setAiResponse(fallbackText))
-        flowDispatch(flowActions.setAiRecommendation(fallbackRec))
-        return
-      }
-
-      // 자연어 기반 추천 요청 (Ollama)
-      const { recommendation: aiRec, responseText } = await ollamaRecommender.recommendFromNaturalLanguage(
-        flowState.aiChatInput,
-        validationResults ?? null,
-        assumptionResults ?? null,
-        data ?? null
-      )
+      flowDispatch(flowActions.setAiProvider(provider))
 
       if (responseText) {
         flowDispatch(flowActions.setAiResponse(responseText))
       }
 
-      if (aiRec) {
-        flowDispatch(flowActions.setAiRecommendation(aiRec))
+      if (recommendation) {
+        flowDispatch(flowActions.setAiRecommendation(recommendation))
       } else {
-        // Ollama 파싱 실패 시에도 키워드 기반 fallback
-        logger.warn('[AI Chat] Ollama parsing failed, using keyword-based fallback')
-        const { recommendation: fallbackRec, responseText: fallbackText } =
-          ollamaRecommender.keywordBasedRecommend(flowState.aiChatInput)
-
-        flowDispatch(flowActions.setAiResponse(fallbackText))
-        flowDispatch(flowActions.setAiRecommendation(fallbackRec))
+        flowDispatch(flowActions.aiChatError('추천 결과를 생성하지 못했습니다. 다시 시도해주세요.'))
       }
     } catch (error) {
       logger.error('AI Chat error', { error })
-      // 에러 발생 시에도 키워드 기반 fallback 시도
-      try {
-        const { recommendation: fallbackRec, responseText: fallbackText } =
-          ollamaRecommender.keywordBasedRecommend(flowState.aiChatInput || '')
-
-        flowDispatch(flowActions.setAiResponse(fallbackText))
-        flowDispatch(flowActions.setAiRecommendation(fallbackRec))
-      } catch {
-        flowDispatch(flowActions.aiChatError('오류가 발생했습니다. 다시 시도해주세요.'))
-      }
+      flowDispatch(flowActions.aiChatError('오류가 발생했습니다. 다시 시도해주세요.'))
     }
-  }, [flowState.aiChatInput, validationResults, assumptionResults, data])
+  }, [flowState.aiChatInput, flowState.isAiLoading, validationResults, assumptionResults, data])
 
   const handleAiSelectMethod = useCallback(async (method: StatisticalMethod) => {
     if (isNavigating) return
@@ -618,6 +661,7 @@ export function PurposeInputStep({
       setSelectedMethod(method)
       const detectedVars = extractDetectedVariables(method.id, validationResults, flowState.aiRecommendation)
       setDetectedVariables(detectedVars)
+      setSuggestedSettings(flowState.aiRecommendation?.suggestedSettings ?? null)
 
       if (onPurposeSubmit) {
         await onPurposeSubmit('AI 추천 분석', method)
@@ -627,7 +671,7 @@ export function PurposeInputStep({
     } finally {
       setIsNavigating(false)
     }
-  }, [isNavigating, setSelectedMethod, setDetectedVariables, validationResults, flowState.aiRecommendation, onPurposeSubmit])
+  }, [isNavigating, setSelectedMethod, setDetectedVariables, setSuggestedSettings, validationResults, flowState.aiRecommendation, onPurposeSubmit])
 
   const handleGoToGuided = useCallback(() => {
     flowDispatch(flowActions.goToGuided())
@@ -688,7 +732,7 @@ export function PurposeInputStep({
             onBrowseAll={handleBrowseAll}
             disabled={isNavigating}
             validationResults={validationResults}
-            assumptionResults={assumptionResults}
+            provider={flowState.aiProvider}
           />
         )}
 

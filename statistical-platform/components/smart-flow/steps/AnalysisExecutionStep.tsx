@@ -56,8 +56,11 @@ export function AnalysisExecutionStep({
   const [estimatedTime, setEstimatedTime] = useState(5) // 초 단위
   const [analysisResult, setAnalysisResult] = useState<ExecutorResult | null>(null)
 
-  // Store에서 데이터 가져오기
-  const { uploadedData, validationResults, setAssumptionResults } = useSmartFlowStore()
+  // Store에서 필요한 데이터만 개별 selector로 구독 (불필요한 리렌더링 방지)
+  const uploadedData = useSmartFlowStore(state => state.uploadedData)
+  const validationResults = useSmartFlowStore(state => state.validationResults)
+  const setAssumptionResults = useSmartFlowStore(state => state.setAssumptionResults)
+  const suggestedSettings = useSmartFlowStore(state => state.suggestedSettings)
 
   /**
    * 로그 추가 함수
@@ -239,10 +242,16 @@ export function AnalysisExecutionStep({
       // Stage 4: 주 분석 실행
       addLog(`${selectedMethod.name} 실행`)
 
+      // LLM 추천 설정이 있으면 executor에 전달 (alpha, postHoc 등)
+      if (suggestedSettings) {
+        addLog(`AI 추천 설정 적용: α=${suggestedSettings.alpha ?? 0.05}`)
+      }
+
       const result = await executor.executeMethod(
         selectedMethod,
         uploadedData,
-        (variableMapping as Record<string, unknown>) || {}
+        (variableMapping as Record<string, unknown>) || {},
+        suggestedSettings
       )
 
       if (isCancelled) return
@@ -290,7 +299,7 @@ export function AnalysisExecutionStep({
       setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다')
       addLog(`❌ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`)
     }
-  }, [uploadedData, selectedMethod, variableMapping, isCancelled, updateStage, addLog, onAnalysisComplete, onNext])
+  }, [uploadedData, selectedMethod, variableMapping, suggestedSettings, isCancelled, updateStage, addLog, onAnalysisComplete, onNext])
 
   /**
    * 일시정지/재개 처리

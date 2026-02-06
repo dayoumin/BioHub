@@ -154,7 +154,7 @@ export interface VariableSelection {
 export interface AIRecommendation {
   /** 추천 방법 */
   method: StatisticalMethod
-  /** 신뢰도 (0-100) */
+  /** 신뢰도 (0-1 범위, LLM 반환값 그대로. UI에서 Math.round(confidence * 100)으로 표시) */
   confidence: number
   /** 추천 이유 목록 */
   reasoning: string[]
@@ -177,6 +177,36 @@ export interface AIRecommendation {
     }
     dependentVariables?: string[]
   }
+
+  // === LLM Enhanced Recommendation fields ===
+
+  /** LLM이 추천한 변수 할당 (실제 데이터 컬럼명 → 역할 매핑) */
+  variableAssignments?: {
+    dependent?: string[]
+    independent?: string[]
+    factor?: string[]
+    covariate?: string[]
+    within?: string[]
+    between?: string[]
+  }
+  /** 분석 설정 제안 */
+  suggestedSettings?: SuggestedSettings
+  /** 데이터/가정 관련 경고 */
+  warnings?: string[]
+  /** 전처리 제안 */
+  dataPreprocessing?: string[]
+  /** 모호성 감지 노트 (질문이 여러 관점 포함 시) */
+  ambiguityNote?: string
+}
+
+/**
+ * LLM이 추천한 분석 설정 (Step 2 → Step 4 전달용)
+ */
+export interface SuggestedSettings {
+  alpha?: number
+  postHoc?: string
+  alternative?: 'two-sided' | 'less' | 'greater'
+  [key: string]: unknown
 }
 
 /**
@@ -652,6 +682,8 @@ export interface GuidedFlowState {
   aiError: string | null
   /** AI 로딩 상태 (NEW) */
   isAiLoading: boolean
+  /** AI provider 정보 (NEW) */
+  aiProvider: 'openrouter' | 'ollama' | 'keyword' | null
 }
 
 /**
@@ -676,6 +708,7 @@ export type GuidedFlowAction =
   | { type: 'SET_AI_RECOMMENDATION'; recommendation: AIRecommendation }
   | { type: 'AI_CHAT_ERROR'; error: string }
   | { type: 'GO_TO_GUIDED' }  // AI에서 단계별 가이드로 이동
+  | { type: 'SET_AI_PROVIDER'; provider: 'openrouter' | 'ollama' | 'keyword' }
 
 
 // ============================================

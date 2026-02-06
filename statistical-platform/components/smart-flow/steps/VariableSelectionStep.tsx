@@ -77,7 +77,7 @@ function getSelectorType(methodId: string | undefined): string {
     return 'multiple-regression'
   }
 
-  // Group comparison (t-test, one-way ANOVA, nonparametric)
+  // Group comparison (t-test, one-way ANOVA, ANCOVA, nonparametric)
   if (
     methodId === 't-test' ||
     methodId === 'two-sample-t' ||
@@ -85,6 +85,7 @@ function getSelectorType(methodId: string | undefined): string {
     methodId === 'welch-t' ||
     methodId === 'one-way-anova' ||
     methodId === 'anova' ||
+    methodId === 'ancova' ||
     methodId === 'mann-whitney' ||
     methodId === 'kruskal-wallis'
   ) {
@@ -157,25 +158,25 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
     switch (selectorType) {
       case 'one-sample':
-        // OneSampleSelector expects dependentVar only
         result.dependentVar = detectedVariables.dependentCandidate
         break
 
       case 'two-way-anova':
-        // TwoWayAnovaSelector expects groupVar as "factor1,factor2"
         if (detectedVariables.factors && detectedVariables.factors.length >= 2) {
           result.groupVar = detectedVariables.factors.slice(0, 2).join(',')
         }
         result.dependentVar = detectedVariables.dependentCandidate
+        // Covariate for ANCOVA
+        if (detectedVariables.covariates?.length) {
+          result.covariate = detectedVariables.covariates
+        }
         break
 
       case 'correlation':
-        // CorrelationSelector expects variables array
         result.variables = detectedVariables.numericVars
         break
 
       case 'paired':
-        // PairedSelector expects variables as [var1, var2]
         if (detectedVariables.pairedVars) {
           result.variables = detectedVariables.pairedVars
         } else if (detectedVariables.numericVars && detectedVariables.numericVars.length >= 2) {
@@ -184,10 +185,11 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         break
 
       case 'multiple-regression':
-        // MultipleRegressionSelector expects dependentVar + independentVar (array)
         result.dependentVar = detectedVariables.dependentCandidate
-        if (detectedVariables.numericVars && detectedVariables.numericVars.length > 1) {
-          // Exclude dependent from independents
+        // LLM enhanced: use independentVars directly
+        if (detectedVariables.independentVars?.length) {
+          result.independentVar = detectedVariables.independentVars.join(',')
+        } else if (detectedVariables.numericVars && detectedVariables.numericVars.length > 1) {
           const independents = detectedVariables.numericVars.filter(
             v => v !== detectedVariables.dependentCandidate
           )
@@ -196,18 +198,27 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         break
 
       case 'group-comparison':
-        // GroupComparisonSelector expects groupVar + dependentVar
         result.groupVar = detectedVariables.groupVariable
         result.dependentVar = detectedVariables.dependentCandidate
+        // Covariate for ANCOVA-style group comparison
+        if (detectedVariables.covariates?.length) {
+          result.covariate = detectedVariables.covariates
+        }
         break
 
       default:
-        // Default selector: dependentVar + independentVar
         result.dependentVar = detectedVariables.dependentCandidate
-        if (detectedVariables.numericVars && detectedVariables.numericVars.length > 1) {
+        // LLM enhanced: use independentVars if available
+        if (detectedVariables.independentVars?.length) {
+          result.independentVar = detectedVariables.independentVars[0]
+        } else if (detectedVariables.numericVars && detectedVariables.numericVars.length > 1) {
           result.independentVar = detectedVariables.numericVars.find(
             v => v !== detectedVariables.dependentCandidate
           )
+        }
+        // Covariate
+        if (detectedVariables.covariates?.length) {
+          result.covariate = detectedVariables.covariates
         }
         break
     }
@@ -349,14 +360,20 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           <Sparkles className="h-4 w-4 text-blue-500" />
           <AlertDescription className="text-sm">
             <span className="font-medium">AI 추천 변수: </span>
-            {detectedVariables.factors && (
-              <span>요인: {detectedVariables.factors.join(', ')} </span>
+            {detectedVariables.dependentCandidate && (
+              <Badge variant="outline" className="mr-1 text-xs bg-blue-100 dark:bg-blue-900/50">종속: {detectedVariables.dependentCandidate}</Badge>
             )}
             {detectedVariables.groupVariable && (
-              <span>집단: {detectedVariables.groupVariable} </span>
+              <Badge variant="outline" className="mr-1 text-xs bg-green-100 dark:bg-green-900/50">집단: {detectedVariables.groupVariable}</Badge>
             )}
-            {detectedVariables.dependentCandidate && (
-              <span>종속: {detectedVariables.dependentCandidate}</span>
+            {detectedVariables.factors && detectedVariables.factors.length > 0 && (
+              <Badge variant="outline" className="mr-1 text-xs bg-green-100 dark:bg-green-900/50">요인: {detectedVariables.factors.join(', ')}</Badge>
+            )}
+            {detectedVariables.independentVars && detectedVariables.independentVars.length > 0 && (
+              <Badge variant="outline" className="mr-1 text-xs bg-purple-100 dark:bg-purple-900/50">독립: {detectedVariables.independentVars.join(', ')}</Badge>
+            )}
+            {detectedVariables.covariates && detectedVariables.covariates.length > 0 && (
+              <Badge variant="outline" className="mr-1 text-xs bg-gray-100 dark:bg-gray-800">공변량: {detectedVariables.covariates.join(', ')}</Badge>
             )}
           </AlertDescription>
         </Alert>

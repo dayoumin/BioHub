@@ -107,6 +107,17 @@ vi.mock('@/components/statistics/common/StatisticsTable', () => ({
 vi.mock('@/lib/statistics/formatters', () => ({
   formatStatisticalResult: vi.fn(() => null)
 }))
+vi.mock('@/components/smart-flow/ResultsVisualization', () => ({
+  ResultsVisualization: () => null
+}))
+vi.mock('@/components/smart-flow/steps/results/MethodSpecificResults', () => ({
+  MethodSpecificResults: () => null
+}))
+vi.mock('@/lib/services/result-interpreter', () => ({
+  requestInterpretation: vi.fn().mockResolvedValue(
+    '## 한줄 요약\n테스트 해석입니다.\n\n## 상세 해석\n상세 내용입니다.'
+  ),
+}))
 
 describe('ResultsActionStep - 렌더링 테스트', () => {
   const mockResults: AnalysisResult = {

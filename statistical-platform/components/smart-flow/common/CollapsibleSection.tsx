@@ -17,6 +17,7 @@ export interface CollapsibleSectionProps {
   children: ReactNode
   icon?: ReactNode
   badge?: ReactNode
+  'data-testid'?: string
 }
 
 export function CollapsibleSection({
@@ -27,9 +28,10 @@ export function CollapsibleSection({
   children,
   icon,
   badge,
+  'data-testid': testId,
 }: CollapsibleSectionProps) {
   return (
-    <Collapsible open={open} onOpenChange={onOpenChange}>
+    <Collapsible open={open} onOpenChange={onOpenChange} data-testid={testId}>
       <CollapsibleTrigger asChild>
         <Button variant="ghost" className="w-full justify-between" size="sm">
           <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
