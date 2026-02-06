@@ -685,6 +685,54 @@ app/layout.tsx (Root Layout)
 
 **목표**: 프로덕션 환경 배포를 위한 인프라 구성
 
+#### 10-0. Cloudflare Pages 배포 (개인용 - 즉시 가능) ⭐ NEW
+
+**현재 상태**: `output: 'export'` (정적 빌드)이므로 Cloudflare Pages에 바로 배포 가능
+
+| 항목 | 현재 상태 | Cloudflare Pages 제한 | 판정 |
+|------|----------|---------------------|------|
+| 빌드 크기 | ~34MB | 제한 없음 | OK |
+| 최대 파일 | 4.4MB (Plotly 청크) | 25MB | OK |
+| 서버 런타임 | 없음 (순수 정적) | 정적만 가능 | OK |
+| Pyodide | CDN 로드 (~40MB) | 사용자 브라우저 캐싱 | OK |
+| API routes | 없음 | 없음 | OK |
+
+**배포 명령**:
+```bash
+cd statistical-platform
+pnpm build
+npx wrangler pages deploy out --project-name=statistical-platform
+```
+
+**필수 설정**:
+- `public/_redirects`: `/* /index.html 200` (SPA 라우팅)
+- `public/_headers`: Pyodide WASM 장기 캐시 (`max-age=31536000`)
+- Pages 대시보드: `NEXT_PUBLIC_*` 환경변수 설정 (빌드 시 주입)
+
+**서비스 전환 시 필요 사항**:
+
+| 문제 | 개인용 | 서비스 시 |
+|------|--------|----------|
+| API 키 노출 | `NEXT_PUBLIC_` 브라우저 노출 | Cloudflare Workers 프록시 필수 |
+| 사용자 인증 | 없음 | Cloudflare Access 또는 자체 auth |
+| Rate Limiting | 본인만 사용 | Workers에서 사용자별 제한 |
+| 대역폭 | 무료 100GB/월 (~2,500명) | 유료 플랜 검토 |
+| CORS 프록시 | 불필요 | NCBI 등 일부 API 필요 |
+
+**Workers 프록시 아키텍처** (서비스 시):
+```
+[브라우저] → Cloudflare Pages (정적 파일)
+         → Cloudflare Workers (/api/*)
+            ├─ /api/llm → OpenRouter (키 숨김)
+            ├─ /api/ncbi → NCBI Entrez (CORS 프록시)
+            └─ /api/fishbase → FishBase (CORS 프록시)
+```
+
+**아키텍처 장점**:
+- 통계 계산 전부 브라우저(Pyodide)에서 실행 → 서버 컴퓨팅 비용 = 0
+- 사용자 데이터가 서버를 거치지 않음 → 프라이버시 강점
+- 동시 접속 스케일링 문제 없음
+
 #### 10-1. 빌드 및 배포 설정
 - ✅ 프로덕션 빌드 최적화
   - 환경 변수 관리 (.env.production)
@@ -695,8 +743,8 @@ app/layout.tsx (Root Layout)
   - 자동 테스트 실행
   - 자동 배포 스크립트
 - ✅ 호스팅 플랫폼 선정
-  - Vercel / Netlify / AWS 중 선택
-  - CDN 설정
+  - ✅ **Cloudflare Pages** 선정 (정적 배포, 무료 티어 충분)
+  - CDN 설정 (Cloudflare 내장)
   - 도메인 연결
 
 #### 10-2. 모니터링 및 분석
@@ -745,151 +793,21 @@ app/layout.tsx (Root Layout)
 
 ### Phase 10.5: 결과 내보내기 기능 (예정)
 
-**목표**: 통계 분석 결과를 다양한 형식으로 내보내기
+**목표**: 통계 결과 + LLM 해석을 함께 내보내기
 
-**현재 상태** (2025-11-10):
-- ❌ **UI 제거 완료**: 17개 파일에서 작동하지 않던 "결과 내보내기" 탭 삭제
-- ❌ **기능 미구현**: 실제 내보내기 기능은 아직 없음
+**내보내기 내용**:
+- 기본 통계 결과 (테이블, 가정검정, 사후검정 등)
+- LLM 해석 텍스트 (한줄 요약 + 상세 해석)
 
-#### 10.5-1. CSV/Excel 내보내기 (우선순위: High)
+**구현 우선순위**:
 
-**기능**:
-- 결과 테이블 → CSV/XLSX 변환
-- 다중 시트 지원 (요약, 상세, 가정검정 등)
-- 한글 인코딩 지원 (UTF-8 BOM)
-- 파일명 자동 생성 (통계명_날짜_시간.xlsx)
+| 순위 | 기능 | 예상 시간 | 사용 시나리오 |
+|------|------|----------|-------------|
+| 1 | **클립보드 복사 (HTML)** | 반나절 | 결과 → 논문/보고서에 서식 유지 붙여넣기 |
+| 2 | **CSV 내보내기** | 0.5일 | 결과 테이블 데이터 재활용 |
+| 3 | **PDF 리포트** | 필요시 | 독립 문서로 공유/인쇄 |
 
-**라이브러리**:
-- CSV: 브라우저 내장 `Blob` API + `TextEncoder`
-- Excel: `xlsx` 라이브러리 (이미 프로젝트에서 사용 중)
-
-**예상 시간**: 1-2일
-
-**구현 예제**:
-```typescript
-// lib/services/export-service.ts
-export async function exportToExcel(results: StatisticalResults) {
-  const workbook = XLSX.utils.book_new()
-
-  // Sheet 1: 요약
-  const summaryData = [
-    ['분석 방법', results.method],
-    ['분석 일시', results.date],
-    ['표본 크기', results.n]
-  ]
-  const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
-  XLSX.utils.book_append_sheet(workbook, summarySheet, '요약')
-
-  // Sheet 2: 결과 테이블
-  const resultsSheet = XLSX.utils.json_to_sheet(results.table)
-  XLSX.utils.book_append_sheet(workbook, resultsSheet, '결과')
-
-  // 다운로드
-  XLSX.writeFile(workbook, `${results.method}_${Date.now()}.xlsx`)
-}
-```
-
-#### 10.5-2. PDF 리포트 (우선순위: Medium)
-
-**기능**:
-- 전문적인 통계 리포트 생성 (SPSS Output 스타일)
-- 차트, 테이블, 해석 포함
-- 목차, 페이지 번호, 헤더/푸터
-- A4 페이지 레이아웃 (출판 품질)
-
-**라이브러리**:
-- Option 1: `jsPDF` + `jspdf-autotable` (가볍고 빠름)
-- Option 2: `pdfmake` (더 고급, 복잡한 레이아웃 지원)
-
-**예상 시간**: 3-4일
-
-**리포트 구조**:
-1. 표지 (통계명, 분석자, 날짜)
-2. 목차
-3. 분석 개요 (목적, 가설, 데이터 설명)
-4. 기술통계
-5. 가정 검정 결과
-6. 주 분석 결과 (테이블 + 차트)
-7. 사후 검정 (필요 시)
-8. 해석 및 결론
-9. 부록 (원본 데이터 요약)
-
-#### 10.5-3. SPSS 형식 내보내기 (우선순위: Low)
-
-**배경**:
-- `.sav` 파일 생성은 브라우저에서 불가능 (바이너리 포맷 복잡)
-- 대안: **SPSS Syntax 파일 (.sps)** 생성 (더 실용적)
-
-**기능**:
-- SPSS Syntax 파일 생성
-- 사용자가 SPSS에서 실행 가능한 명령어 제공
-- 데이터 + 분석 코드 포함
-
-**예상 시간**: 2-3일
-
-**Syntax 예제**:
-```sps
-* 기술통계 분석 - 2025-11-10.
-DATA LIST FREE / 변수1 변수2 변수3.
-BEGIN DATA.
-23.5 45.2 67.8
-24.1 46.7 68.3
-...
-END DATA.
-
-DESCRIPTIVES VARIABLES=변수1 변수2 변수3
-  /STATISTICS=MEAN STDDEV MIN MAX.
-```
-
-#### 10.5-4. 클립보드 복사 (우선순위: High)
-
-**기능**:
-- 테이블 → 클립보드 (탭 구분)
-- Excel/Word에 직접 붙여넣기 가능
-- HTML 포맷 지원 (서식 유지)
-
-**API**: `navigator.clipboard.write()`
-
-**예상 시간**: 1시간
-
-**구현 예제**:
-```typescript
-async function copyTableToClipboard(data: any[]) {
-  // 탭 구분 텍스트
-  const tsv = data.map(row => Object.values(row).join('\t')).join('\n')
-
-  // HTML 테이블
-  const html = `<table>${data.map(row =>
-    `<tr>${Object.values(row).map(cell => `<td>${cell}</td>`).join('')}</tr>`
-  ).join('')}</table>`
-
-  await navigator.clipboard.write([
-    new ClipboardItem({
-      'text/plain': new Blob([tsv], { type: 'text/plain' }),
-      'text/html': new Blob([html], { type: 'text/html' })
-    })
-  ])
-}
-```
-
-#### 10.5-5. 구현 우선순위
-
-| 기능 | 우선순위 | 예상 시간 | 사용 빈도 | 비고 |
-|------|---------|---------|----------|------|
-| **클립보드 복사** | High | 1시간 | ⭐⭐⭐⭐⭐ | 가장 빠르고 편리 |
-| **CSV 내보내기** | High | 0.5일 | ⭐⭐⭐⭐⭐ | 범용성 높음 |
-| **Excel 내보내기** | High | 1일 | ⭐⭐⭐⭐ | 전문가용 |
-| **PDF 리포트** | Medium | 3-4일 | ⭐⭐⭐ | 출판/보고서용 |
-| **SPSS Syntax** | Low | 2-3일 | ⭐⭐ | SPSS 사용자만 |
-
-**총 예상 시간**: 1-2주 (High 우선순위만 구현 시 2-3일)
-
-**의존성**:
-- Phase 9 완료 (코드 품질 보증)
-- 타입 안전성 100% 달성
-
-**문서**:
-- 📝 EXPORT_FEATURES_DESIGN.md (작성 예정)
+**의존성**: LLM 결과 해석 포맷 확정 후 진행
 
 ---
 
@@ -1010,78 +928,23 @@ async function copyTableToClipboard(data: any[]) {
 
 ---
 
-## 🧪 Phase 11: 자동화 테스트 시스템 (예정)
+## 🧪 Phase 11: E2E 테스트 (예정)
 
-**목표**: 43개 통계 앱의 해석 엔진을 인간 개입 없이 완벽하게 검증
+**목표**: 핵심 사용자 플로우의 브라우저 기반 자동 검증
 
-**배경**:
-- 현재 해석 엔진: 31+/43 통계 커버리지 (72%+)
-- 수동 검증의 한계: 43개 통계 × 3 시나리오 = 129개 케이스
-- 필요성: 코드 수정 시 회귀(regression) 자동 탐지
+**현재 상태**:
+- ✅ Golden Values 테스트 44/44 통과 (통계 계산 정확성 보장)
+- ✅ Vitest 단위 테스트 214개 (Store/로직 검증)
+- 🔄 E2E 12개 기반 구축 완료
 
-**4단계 자동화 전략**:
-
-### Phase 11-1: Golden Snapshot 테스트 (우선순위: 최상)
-**기간**: 14시간 (2일)
 **내용**:
-- 43개 통계 × 3 시나리오 = 129개 스냅샷 JSON 생성
-- 각 시나리오: significant-large-effect, nonsignificant, boundary-case
-- Jest 스냅샷 테스트 자동화
-- 해석 텍스트 변경 시 자동 diff 비교
+- Playwright로 실제 사용자 플로우 검증
+- 데이터 업로드 → 분석 → 결과 확인 → LLM 해석 표시
+- 핵심 통계 메서드 우선 커버
 
 **산출물**:
-- `__tests__/lib/interpretation/snapshots/*.json` (129개)
-- `__tests__/lib/interpretation/snapshots.test.ts`
-
-### Phase 11-2: Contract 테스트 (우선순위: 높음)
-**기간**: 9시간 (1-2일)
-**내용**:
-- Zod 스키마로 입력/출력 검증
-- 경계값 테스트 (p=0.049 vs 0.051, r=±1, etc.)
-- Edge case 방어 (NaN, Infinity, 범위 벗어남)
-- 타입 안전성 강화
-
-**산출물**:
-- `lib/interpretation/schemas.ts` (Zod 스키마)
-- `__tests__/lib/interpretation/contracts.test.ts`
-
-### Phase 11-3: E2E 테스트 (우선순위: 중간)
-**기간**: 40시간 (5일)
-**내용**:
-- Playwright로 실제 결과 페이지 검증
-- 43개 통계 × 2 시나리오 = 86개 E2E 테스트
-- 브라우저 자동화 (데이터 업로드 → 분석 → 해석 확인)
-- 병렬 실행으로 시간 단축
-
-**산출물**:
-- `e2e/statistics/*.spec.ts` (43개)
-- `e2e/fixtures/*.csv` (86개)
-- `playwright.config.ts`
-
-### Phase 11-4: CI/CD 통합 (우선순위: 중간)
-**기간**: 5시간 (1일)
-**내용**:
-- GitHub Actions 워크플로우
-- PR마다 자동 테스트 실행
-- 테스트 커버리지 리포트 (Codecov)
-- 실패 시 알림 (Slack/Email)
-
-**산출물**:
-- `.github/workflows/automated-tests.yml`
-- 커버리지 배지 (README.md)
-
-**총 예상 시간**: 68시간 (~8.5 작업일)
-
-**성공 지표**:
-- [ ] 129개 Golden Snapshot 테스트 100% 통과
-- [ ] Contract 테스트 커버리지 >80%
-- [ ] E2E 테스트 43/43 통계 커버 (100%)
-- [ ] CI/CD 파이프라인 안정적 작동 (성공률 >95%)
-
-**참조 문서**:
-- [AUTOMATED_TESTING_ROADMAP.md](statistical-platform/docs/AUTOMATED_TESTING_ROADMAP.md) - 상세 계획
-- [INTERPRETATION_TEST_PLAN.md](statistical-platform/docs/INTERPRETATION_TEST_PLAN.md) - 테스트 전략
-- [INTERPRETATION_ENGINE_COVERAGE.md](statistical-platform/docs/INTERPRETATION_ENGINE_COVERAGE.md) - 현재 커버리지
+- `e2e/statistics/*.spec.ts`
+- `e2e/fixtures/*.csv`
 
 ---
 
@@ -1227,83 +1090,31 @@ STATISTICS_EXAMPLES.oneWayAnova = {
 
 ---
 
-## 📊 Phase 13: AI-Enhanced Result Interpretation (예정)
+## Phase 13: LLM 분석 추천 + 결과 해석 (2026-02-05 ~ 02-06) ✅
 
-**목표**: AHP App 분석을 통한 결과 해석 및 학술 보고서 기능 추가
+**목표**: 자연어 입력 → AI 분석 추천 + 결과 해석
 
-**참조**: [AHP_APP_FEATURES_PROPOSAL.md](statistical-platform/docs/proposals/AHP_APP_FEATURES_PROPOSAL.md)
+**성과**:
+- ✅ OpenRouter 3단 폴백 (GLM-4.5-Air → DeepSeek-R1T → DeepSeek-R1T2)
+- ✅ `AIRecommendation` 확장: variableAssignments, suggestedSettings, warnings, dataPreprocessing, ambiguityNote
+- ✅ 시스템 프롬프트 + 데이터 컨텍스트 (skewness, topCategories, PII 필터링)
+- ✅ 변수 할당 유효성 검증 (LLM 환각 방지)
+- ✅ NaturalLanguageInput UI: 추천 카드 (변수 미리보기, 경고, 전처리, 모호성 대응)
+- ✅ 결과 해석: 스트리밍 AI 해석 (한줄 요약 + 상세), SSE 버퍼링 수정
+- ✅ 변수 자동 할당: extractDetectedVariables() 3단 우선순위, store 연동
+- ✅ 단위 테스트 29개 + 통합 테스트 20개
 
-**배경** (2025-11-27):
-- AHP App (연구자 의사결정 플랫폼) 분석 완료
-- AI 기반 해석의 hallucination 위험으로 **규칙 기반 접근** 채택
-- 기존 `lib/interpretation/engine.ts` 확장 방식으로 구현
+**핵심 산출물**:
+- `lib/services/openrouter-recommender.ts` — 추천 + 스트리밍 API
+- `lib/services/result-interpreter.ts` — 결과 해석 프롬프트 빌더
+- `components/smart-flow/steps/purpose/NaturalLanguageInput.tsx` — AI 입력 UI
+- `study/PLAN-LLM-ENHANCED-RECOMMENDATION.md` — 구현 계획 (Phase 1-3 + 부록)
 
-### Phase 13-1: Rule-based Insights Engine (우선순위: High)
+**문서**: [PLAN-LLM-ENHANCED-RECOMMENDATION.md](study/PLAN-LLM-ENHANCED-RECOMMENDATION.md)
 
-**목표**: 분석 결과에 대한 맞춤형 인사이트 자동 생성
-
-**원리**: AI가 아닌 **통계학 규칙 기반** → 신뢰성 보장
-
-**인사이트 유형**:
-- significant_finding: 유의한 결과 발견
-- small_effect_warning: 유의하나 효과크기 작음
-- sample_size_warning: 표본 크기 주의
-- assumption_violation: 가정 검정 실패
-- recommendation: 다음 분석 권장
-
-**산출물**:
-- `lib/interpretation/insight-rules.ts` - 규칙 정의
-- `lib/interpretation/insights-engine.ts` - 인사이트 생성 엔진
-- `components/statistics/common/InsightsPanel.tsx` - UI 컴포넌트
-
-**예상 시간**: 2주
+> 이전 Phase 13 (Rule-based Insights)은 LLM 기반 해석으로 대체됨.
 
 ---
-
-### Phase 13-2: Academic Report Generator (우선순위: Medium)
-
-**목표**: 통계 분석 결과를 학술 논문 형식으로 자동 변환
-
-**원리**: **템플릿 + 데이터 삽입** (AI 의존도 낮음)
-
-**보고서 구조**:
-1. 표지 (분석명, 분석자, 날짜)
-2. 분석 개요 (목적, 가설, 데이터 설명)
-3. 기술통계
-4. 가정 검정 결과
-5. 주 분석 결과 (테이블 + 차트)
-6. 해석 및 결론 (규칙 기반)
-7. 부록 (원본 데이터 요약)
-
-**지원 형식**:
-- PDF (jsPDF + jspdf-autotable)
-- DOCX (docx.js)
-- APA/KCI/SSCI 인용 스타일
-
-**예상 시간**: 3주
-
----
-
-### Phase 13-3: RAG-based Interpretation (우선순위: Low, Optional)
-
-**목표**: RAG를 활용한 통계 개념 설명 강화
-
-**⚠️ 주의**: 결과 해석이 아닌 **개념 설명**에만 사용
-
-**예상 시간**: 1주 (선택적)
-
----
-
-### 구현 우선순위
-
-| 기능 | 우선순위 | 예상 시간 | 위험도 |
-|------|---------|---------|--------|
-| Rule-based Insights | High | 2주 | Low |
-| Academic Report (PDF) | Medium | 3주 | Low |
-| RAG Interpretation | Low | 1주 | Medium |
-
-**총 예상 시간**: 5-6주 (Phase 13-1, 13-2만 구현 시)
-
 
 ## 🤖 Phase 14: RAG 시스템 고도화 (예정)
 
@@ -1479,26 +1290,247 @@ Knowledge Graph가 필요한 경우는: 엔티티 5개+ 쿼리, 멀티홉 추론
 
 ---
 
+## 🧬 Phase 15: BioResearch Platform — 생물학 연구자 통합 도구 (예정)
+
+**목표**: 통계 분석 플랫폼을 생물학 연구자 올인원 도구로 확장
+**원칙**: 단순 AI wrapper가 아닌, 실제 계산/검증/가공 엔진
+**전략**: 빌드(핵심) + 연결+가공(외부 API) + 안함(기존 도구 충분)
+**상세 계획서**: [PLAN-BIORESEARCH-PLATFORM.md](study/PLAN-BIORESEARCH-PLATFORM.md)
+
+### 플랫폼 포지셔닝
+
+```
+현재: "통계 분석 도구" (범용)
+  ↓
+목표: "생물학 연구자 올인원 플랫폼" (도메인 특화)
+  = 통계 + 학명검증 + 생태지수 + 성장분석 + 문헌도구 + 논문도구
+```
+
+### 핵심 차별점
+
+- **데이터 프라이버시**: 모든 계산 브라우저 내 실행 (서버 전송 없음)
+- **워크플로우 연결**: 외부 API 조회 → 우리 엔진 가공 → 논문 도구 출력
+- **도메인 특화**: 수산/해양/생물학 용어, 기준값 내장
+- **단순 조회가 아닌 가공**: GBIF 좌표 → 공간통계, 논문 검색 → 트렌드 분석
+
+### 아키텍처
+
+```
+┌─────────────────────────────────────────────────┐
+│          BioResearch Platform (브라우저)           │
+│                                                  │
+│  ┌──────────┐  ┌──────────┐  ┌───────────────┐  │
+│  │ 계산 엔진  │  │ 외부 연결  │  │ 출력 도구     │  │
+│  │ (Pyodide) │  │ (API Hub) │  │ (Export)     │  │
+│  │           │  │           │  │              │  │
+│  │ 통계 분석  │  │ WoRMS    │  │ APA 표       │  │
+│  │ 생태 지수  │  │ FishBase │  │ 논문 초안     │  │
+│  │ 성장 곡선  │  │ GBIF     │  │ PDF 보고서   │  │
+│  │ 메타분석   │  │ NCBI     │  │ 분석 로그    │  │
+│  │ 개체군유전 │  │ OpenAlex │  │ 서지정보     │  │
+│  └──────────┘  └──────────┘  └───────────────┘  │
+│                      │                           │
+│  ┌───────────────────┴───────────────────────┐   │
+│  │         워크플로우 허브 (연결 레이어)         │   │
+│  │  "GBIF 좌표 → 공간통계 → 분포 지도 → 논문"   │   │
+│  │  "분석 결과 → OpenAlex → 유사 선행연구"      │   │
+│  └───────────────────────────────────────────┘   │
+│                                                  │
+│  Cloudflare Pages (정적) + Workers (API 프록시)   │
+└─────────────────────────────────────────────────┘
+```
+
+### 외부 API → 우리가 가공하는 것 (핵심 가치)
+
+| 외부 데이터 | 가져오는 것 | 우리가 가공하는 것 |
+|------------|-----------|-----------------|
+| **GBIF** 좌표 데이터 | 종별 채집 기록 (위경도) | 분포 지도 (Leaflet) + 공간 통계 (Moran's I, 밀도) + 시기별 출현 패턴 |
+| **FishBase** 성장 파라미터 | L∞, K, t₀ 기록값 | 사용자 데이터와 **자동 비교** ("본 연구 L∞=42cm vs FishBase 45cm") |
+| **OpenAlex** 논문 메타데이터 | 제목, 저자, 인용 수 | 연도별 트렌드 + 주요 저자 네트워크 + 키워드 공출현 |
+| **NCBI** 유전자/서열 | TaxID, FASTA 서열 | 서열 통계 (GC%, 길이) + 유사도 행렬 → 클러스터 분석 |
+| **분석 결과** (내부) | 통계량, p-value, 효과크기 | APA Methods/Results 자동 생성 + 관련 논문 자동 검색 |
+
+### 분석 → 논문 파이프라인 (Module D 핵심)
+
+```
+[ANOVA 분석 완료 → 버튼 하나]
+    │
+    ├─ Methods: "일원배치 분산분석을 실시하였다 (F(2,57)=4.23, p=.019)"
+    ├─ Results: "사료 A(M=245.3)와 사료 C(M=212.8) 간 유의한 차이 (p=.014)"
+    ├─ APA Table: Source | SS | df | MS | F | p | η²
+    ├─ Figure + Caption: 자동 생성
+    └─ 관련 선행연구: OpenAlex 자동 검색 → "유사 분석을 한 논문 10건"
+```
+
+### 구현 로드맵
+
+#### Phase 15-1: 생태 분석 도구 — 2주
+
+기존 Pyodide 엔진 확장. 외부 의존 없음, 즉시 시작 가능.
+
+| 기능 | 시간 | 기술 |
+|------|------|------|
+| 생물다양성 지수 (Shannon, Simpson, Margalef, Pielou) | 2일 | scipy, numpy |
+| 성장 곡선 분석 (von Bertalanffy, Gompertz) | 2일 | scipy.optimize |
+| 체장-체중 관계식 (W=aL^b) | 1일 | scipy.stats |
+| CPUE 분석 (시계열) | 2일 | statsmodels |
+| 수질 기준 판정 | 1일 | 규칙 기반 |
+
+#### Phase 15-2: 종 정보 허브 — 2주
+
+학명 하나로 모든 생물 정보 한 화면에.
+
+| 기능 | 시간 | API |
+|------|------|-----|
+| WoRMS 연동 + 학명 검증 통합 | 2일 | WoRMS REST (CORS ✅) |
+| FishBase 연동 + 생태정보 | 2일 | FishBase API |
+| GBIF 연동 + 분포 지도 | 3일 | GBIF API (CORS ✅) + Leaflet |
+| GBIF 데이터 → 공간 통계 가공 | 2일 | Pyodide |
+| Cloudflare Workers CORS 프록시 | 1일 | Wrangler |
+
+#### Phase 15-3: 문헌 도구 — 1.5주
+
+논문 검색 + 결과 통계 가공 + 메타분석.
+
+| 기능 | 시간 | API |
+|------|------|-----|
+| OpenAlex 논문 검색 | 2일 | OpenAlex (CORS ✅) |
+| 검색 결과 통계 가공 (트렌드, 저자 네트워크) | 2일 | Pyodide |
+| CrossRef DOI → 서지정보 + 인용 형식 변환 | 1일 | CrossRef (CORS ✅) |
+| 메타분석 (Forest plot, 이질성 검정) | 2일 | Pyodide + Plotly |
+
+#### Phase 15-4: 논문 작성 도구 — 1.5주
+
+분석 결과 → 논문 구성요소 자동 생성.
+
+| 기능 | 시간 | 기술 |
+|------|------|------|
+| 분석 → Methods/Results 자동 생성 | 3일 | 템플릿 + LLM 보조 |
+| APA 표 자동 포맷팅 | 2일 | 규칙 기반 |
+| Figure caption 생성 | 1일 | 템플릿 |
+| 분석 히스토리 로그 (자동 저장) | 2일 | IndexedDB |
+
+#### Phase 15-5: NCBI 연결 + 개체군 유전학 — 2주
+
+| 기능 | 시간 | 기술 |
+|------|------|------|
+| NCBI Entrez 연동 (Workers 프록시) | 2일 | Cloudflare Workers |
+| 서열 기본 통계 (GC%, 길이 분포) | 1일 | Pyodide |
+| 개체군 유전학 (Fst, AMOVA, Hardy-Weinberg) | 4일 | Pyodide (scipy) |
+| Haplotype network 시각화 | 3일 | D3.js 또는 Plotly |
+
+#### Phase 15-6: 데이터 도구 + 통합 — 1주
+
+| 기능 | 시간 |
+|------|------|
+| 와이드↔롱 변환 | 1일 |
+| 이상치/결측치 도구 | 1일 |
+| 단위 변환 | 0.5일 |
+| 전체 통합 테스트 + UX | 2일 |
+
+### 빌드 vs 연결 vs 안함 정리
+
+| 전략 | 대상 | 이유 |
+|------|------|------|
+| **빌드** | 통계, 생태지수, 성장곡선, 논문도구, 메타분석, 개체군유전, 분석로그 | 핵심 가치, Pyodide 확장 |
+| **연결+가공** | WoRMS, FishBase, GBIF, NCBI, OpenAlex, CrossRef | API 조회 → 통계 가공 |
+| **안함** | 풀 ELN(Benchling), 프로젝트관리(Notion), BLAST, AlphaFold, 이미지AI | 기존 도구가 최고 |
+
+### 총 일정
+
+| Phase | 기간 | 의존성 |
+|-------|------|--------|
+| 15-1 생태 분석 | 2주 | 없음 (즉시) |
+| 15-2 종 정보 허브 | 2주 | Cloudflare 배포 후 |
+| 15-3 문헌 도구 | 1.5주 | 15-2와 병렬 가능 |
+| 15-4 논문 작성 | 1.5주 | 15-1 완료 후 |
+| 15-5 NCBI + 유전 | 2주 | 15-2 Workers 후 |
+| 15-6 데이터 도구 | 1주 | 아무때나 |
+| **합계** | **~10주** | |
+
+---
+
+## ☁️ Phase 16: Cloudflare Workers 백엔드 (KV / R2 / D1) (예정)
+
+**목표**: 분석 히스토리 영구 저장 + 데이터셋 보관 + 세션 캐시
+**전략**: 어댑터 패턴으로 클라우드(Cloudflare) + 내부망(Docker) 양쪽 배포
+**브랜치**: `feature/cloudflare-backend` (별도 분기)
+**의존성**: Phase 10-0 (Cloudflare Pages 배포) + LLM 브랜치 머지 후
+**상세 계획서**: [PLAN-CLOUDFLARE-BACKEND.md](study/PLAN-CLOUDFLARE-BACKEND.md)
+
+### 배경
+
+현재 순수 클라이언트 앱 → 브라우저 닫으면 모든 데이터 소멸.
+Cloudflare $5/월 플랜 내에서 추가 비용 없이 백엔드 기능 추가 가능.
+
+### 핵심 기능
+
+| 서비스 | 용도 | 내부망 대체 |
+|--------|------|-----------|
+| **D1** | 분석 히스토리, 사용자 설정, 분석 템플릿 | SQLite (better-sqlite3) |
+| **R2** | CSV/데이터 파일 보관 ("이전 데이터셋" 재사용) | MinIO 또는 로컬 파일 |
+| **KV** | Smart Flow 세션 상태, LLM 응답 캐시 | Redis 또는 인메모리 |
+
+### 아키텍처
+
+```
+[브라우저] → Cloudflare Pages (정적 파일)
+          → Cloudflare Workers (/api/*)
+             ├── D1: 분석 결과 저장/조회
+             ├── R2: 데이터셋 업로드/다운로드
+             └── KV: 세션 캐시, LLM 캐시
+
+[내부망] → Nginx (정적 파일)
+        → Node.js + Hono (/api/*)
+           ├── SQLite: 동일 스키마
+           ├── 로컬 파일: 동일 API
+           └── Redis: 동일 캐시
+```
+
+### 구현 순서
+
+| Phase | 내용 | 예상 시간 |
+|-------|------|----------|
+| A | 프로젝트 구조 (workers/, Hono, wrangler.toml) | 0.5일 |
+| B | D1 분석 히스토리 API + 프론트엔드 연동 | 2일 |
+| C | R2 데이터셋 보관 + 파일 선택 UI | 1.5일 |
+| D | KV 세션 캐시 + LLM 캐시 | 1일 |
+| E | 내부망 어댑터 (LocalAdapter + Docker Compose) | 1일 |
+| F | 테스트 + 배포 가이드 | 1일 |
+| **합계** | | **~7일** |
+
+### 비용
+
+- Cloudflare $5/월 플랜: **추가 $0** (모든 무료 한도 내)
+- 내부망: **$0** (오픈소스 + 기존 서버)
+
+---
+
 ## 🔮 장기 비전
 
 ### 기술적 목표
 - 통계 메서드: 100개 이상 구현
+- 생태 분석 도구: 10개 이상
+- 외부 API 연동: 6개 이상
 - 성능: SPSS 급 반응 속도 (<1초)
 - 플랫폼: 웹 + 데스크탑 + 모바일
 
 ### 사용자 경험 목표
 - 새 사용자 온보딩: <10분
 - 일반적인 분석 완료: <5분
+- 분석 → 논문 표/그래프: 버튼 하나
 - 전문가 만족도: >4.5/5
 
 ---
 
-**최종 업데이트**: 2026-02-04
+**최종 업데이트**: 2026-02-06
 **현재 Phase**: 5-2 (구현 검증 및 TypeScript 래퍼 추가)
 **현재 진행률**: 43/55 (78%) → 목표 55/55 (100%)
 **다음 마일스톤**: Phase 5-3 (Worker Pool Lazy Loading)
 
 **최근 완료**:
+- Cloudflare Workers 백엔드 계획 수립 (KV/R2/D1 + 내부망 어댑터) (2026-02-06)
+- BioResearch Platform 계획 수립 + Cloudflare 배포 가이드 (2026-02-06)
 - 결과 페이지 전문가 수준 통일 + StatisticalResultCard 간소화 (2025-11-27)
 - ResultContextHeader 43개 통계 페이지 적용 (2025-11-27)
 
