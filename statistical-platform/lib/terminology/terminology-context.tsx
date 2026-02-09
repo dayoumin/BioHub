@@ -8,7 +8,7 @@
  * - 런타임에 도메인 전환 가능 (수산과학 ↔ 범용 통계)
  */
 
-import React, { createContext, useState, useCallback, useMemo } from 'react'
+import React, { createContext, useState, useCallback, useMemo, useEffect } from 'react'
 import type { TerminologyContextValue, TerminologyDictionary } from './terminology-types'
 import { aquaculture } from './domains/aquaculture'
 import { generic } from './domains/generic'
@@ -55,6 +55,16 @@ export function TerminologyProvider({
   initialDomain = DEFAULT_DOMAIN
 }: TerminologyProviderProps) {
   const [currentDomain, setCurrentDomain] = useState(initialDomain)
+
+  // 컴포넌트 마운트 시 localStorage에서 저장된 도메인 불러오기
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedDomain = localStorage.getItem('terminology-domain')
+      if (savedDomain && TERMINOLOGY_REGISTRY[savedDomain]) {
+        setCurrentDomain(savedDomain)
+      }
+    }
+  }, [])
 
   // 도메인 변경 핸들러
   const setDomain = useCallback((domain: string) => {
