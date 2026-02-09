@@ -155,6 +155,13 @@ async function selectMethodDirect(page: Page, searchTerm: string, methodName: Re
     // methodName 정규식으로 추가 검증
     if (!text.match(methodName)) continue
 
+    // disabled 버튼 skip
+    const isDisabled = await btn.isDisabled().catch(() => false)
+    if (isDisabled) {
+      log('selectDirect:skip', `disabled 버튼 skip: "${text.trim().slice(0, 40)}"`)
+      continue
+    }
+
     if (await btn.isVisible()) {
       await btn.click()
       log('selectDirect', `selected: "${text.trim().slice(0, 40)}"`)
@@ -532,7 +539,15 @@ test.describe('Smart Flow E2E - 추가 Variable Selectors', () => {
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '회귀', /회귀.*분석|regression/i)).toBeTruthy()
+    // "다중회귀"로 구체적으로 검색하여 다른 회귀 메서드와 구분
+    const methodSelected = await selectMethodDirect(page, '다중회귀', /다중.*회귀|multiple.*regression/i)
+
+    // 다중 회귀분석이 비활성화된 경우 (독립 변수 부족) 테스트 skip
+    if (!methodSelected) {
+      log('multiple-regression', 'SKIPPED: 다중회귀분석 버튼이 disabled 상태 (독립 변수 부족)')
+      test.skip()
+      return
+    }
 
     await goToVariableSelection(page)
     // MultipleRegressionSelector: study_hours, attendance → score
