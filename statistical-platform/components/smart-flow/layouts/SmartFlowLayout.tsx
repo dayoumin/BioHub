@@ -28,6 +28,7 @@ import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { useUI } from '@/contexts/ui-context'
 import { SettingsModal } from '@/components/layout/settings-modal'
 import { HelpModal } from '@/components/layout/help-modal'
+import { DomainSwitcher } from '@/components/terminology/DomainSwitcher'
 
 // 4단계 스텝 정의
 const STEPS: StepItem[] = [
@@ -177,6 +178,10 @@ export function SmartFlowLayout({
               >
                 <HelpCircle className="h-5 w-5" />
               </Button>
+
+              {/* Domain Switcher */}
+              <DomainSwitcher compact />
+
               <Button
                 variant="ghost"
                 size="icon"

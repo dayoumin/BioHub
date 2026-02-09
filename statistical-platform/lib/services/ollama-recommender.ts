@@ -18,6 +18,10 @@ import type {
   DataRow
 } from '@/types/smart-flow'
 import { logger } from '@/lib/utils/logger'
+import {
+  AnonymizationService,
+  ResponseDeanonymizer
+} from './anonymization'
 
 interface OllamaConfig {
   host: string
@@ -216,11 +220,21 @@ Categories:
     data: DataRow[]
   ): Promise<AIRecommendation | null> {
     try {
+      // ✅ 1단계: 익명화 수행
+      const anonymizationResult = AnonymizationService.anonymize(validationResults, 20)
+      const anonymizedValidation = anonymizationResult?.anonymized || validationResults
+      const mapping = anonymizationResult?.mapping
+
+      logger.info('[Ollama] Anonymization applied', {
+        hasMapping: !!mapping,
+        anonymizedVars: mapping?.variables.length || 0
+      })
+
       // ✅ 프롬프트 구성 (assumptionResults 반영)
       const prompt = this.buildPromptWithAssumptions(
         purpose,
         assumptionResults,
-        validationResults,
+        anonymizedValidation,
         data
       )
 
@@ -257,7 +271,15 @@ Categories:
       }
 
       const ollamaResponse: OllamaResponse = await response.json()
-      const recommendation = this.parseOllamaResponse(ollamaResponse.response)
+      let recommendation = this.parseOllamaResponse(ollamaResponse.response)
+
+      // ✅ 2단계: 응답 역변환 (익명화된 변수명 → 원본)
+      if (recommendation && mapping) {
+        recommendation = ResponseDeanonymizer.deanonymizeRecommendation(
+          recommendation,
+          mapping
+        )
+      }
 
       if (recommendation) {
         logger.info('[Ollama] Recommendation SUCCESS', {
@@ -554,9 +576,19 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
     data: DataRow[] | null
   ): Promise<{ recommendation: AIRecommendation | null; responseText: string }> {
     try {
+      // ✅ 1단계: 익명화 수행
+      const anonymizationResult = AnonymizationService.anonymize(validationResults, 20)
+      const anonymizedValidation = anonymizationResult?.anonymized || validationResults
+      const mapping = anonymizationResult?.mapping
+
+      logger.info('[Ollama] Anonymization applied', {
+        hasMapping: !!mapping,
+        anonymizedVars: mapping?.variables.length || 0
+      })
+
       const prompt = this.buildNaturalLanguagePrompt(
         userInput,
-        validationResults,
+        anonymizedValidation,
         assumptionResults,
         data
       )
@@ -595,13 +627,25 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
       const fullResponse = ollamaResponse.response
 
       // JSON 추출 (코드 블록 또는 직접 JSON)
-      const recommendation = this.parseNaturalLanguageResponse(fullResponse)
+      let recommendation = this.parseNaturalLanguageResponse(fullResponse)
 
       // 설명 텍스트 추출 (JSON 이전 부분)
       const jsonMatch = fullResponse.match(/```json[\s\S]*?```|\{[\s\S]*\}/)
-      const responseText = jsonMatch
+      let responseText = jsonMatch
         ? fullResponse.substring(0, fullResponse.indexOf(jsonMatch[0])).trim()
         : fullResponse
+
+      // ✅ 2단계: 응답 역변환 (익명화된 변수명 → 원본)
+      if (recommendation && mapping) {
+        recommendation = ResponseDeanonymizer.deanonymizeRecommendation(
+          recommendation,
+          mapping
+        )
+        responseText = ResponseDeanonymizer.deanonymizeText(
+          responseText,
+          mapping
+        )
+      }
 
       logger.info('[Ollama] Natural language recommendation SUCCESS', {
         methodId: recommendation?.method.id,

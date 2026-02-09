@@ -22,6 +22,11 @@ import {
   getKoreanName
 } from '@/lib/constants/statistical-methods'
 import { logger } from '@/lib/utils/logger'
+import {
+  AnonymizationService,
+  ResponseDeanonymizer,
+  type AnonymizationMapping
+} from './anonymization'
 
 /**
  * 기본 모델 Fallback 체인 (무료 모델 우선)
@@ -136,12 +141,22 @@ export class OpenRouterRecommender {
     assumptionResults: StatisticalAssumptions | null,
     _data: DataRow[] | null
   ): Promise<{ recommendation: AIRecommendation | null; responseText: string }> {
-    const systemPrompt = this.getSystemPrompt()
-    const userPrompt = this.buildUserPrompt(userInput, validationResults, assumptionResults)
+    // ✅ 1단계: 익명화 수행
+    const anonymizationResult = AnonymizationService.anonymize(validationResults, 20)
+    const anonymizedValidation = anonymizationResult?.anonymized || validationResults
+    const mapping = anonymizationResult?.mapping
 
-    // 실제 컬럼명 세트 (변수 검증용)
+    logger.info('[OpenRouter] Anonymization applied', {
+      hasMapping: !!mapping,
+      anonymizedVars: mapping?.variables.length || 0
+    })
+
+    const systemPrompt = this.getSystemPrompt()
+    const userPrompt = this.buildUserPrompt(userInput, anonymizedValidation, assumptionResults)
+
+    // 실제 컬럼명 세트 (변수 검증용) - 익명화된 이름 사용
     const validColumnNames = new Set(
-      (validationResults?.columns || []).map((c: ColumnStatistics) => c.name)
+      (anonymizedValidation?.columns || []).map((c: ColumnStatistics) => c.name)
     )
 
     // 모델 fallback 체인: 순서대로 시도
@@ -157,6 +172,20 @@ export class OpenRouterRecommender {
               validColumnNames
             )
           }
+
+          // ✅ 2단계: 응답 역변환 (익명화된 변수명 → 원본)
+          if (result.recommendation && mapping) {
+            result.recommendation = ResponseDeanonymizer.deanonymizeRecommendation(
+              result.recommendation,
+              mapping
+            )
+            // responseText도 역변환
+            result.responseText = ResponseDeanonymizer.deanonymizeText(
+              result.responseText,
+              mapping
+            )
+          }
+
           return result
         }
         // 응답은 받았지만 파싱 실패 → 다음 모델 시도
