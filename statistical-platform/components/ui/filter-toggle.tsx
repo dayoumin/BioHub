@@ -81,6 +81,7 @@ export function FilterToggle({
             aria-checked={isActive}
             onClick={() => !option.disabled && onChange(option.id)}
             disabled={option.disabled}
+            data-testid={`filter-${option.id}`}
             className={cn(
               "inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-all",
               sizeClasses[size],

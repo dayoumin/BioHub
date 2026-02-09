@@ -292,6 +292,13 @@ expect(screen.getByText('📊 분석 히스토리')).toBeInTheDocument()
 3. 비즈니스 로직 변경 시 L1 테스트 추가/수정
 4. `pnpm test --run` 실행하여 깨짐 확인
 
+**E2E Selector Registry** (`e2e/selectors.ts`):
+- 모든 E2E용 `data-testid`를 중앙 관리하는 계약 파일
+- UI 컴포넌트와 E2E 테스트가 이 값을 공유
+- ⚠️ **기존 testid 삭제/변경 절대 금지** (E2E 깨짐)
+- 새 인터랙티브 요소 추가 시 여기에 등록
+- E2E 실행: `pnpm build && npx playwright test --config=e2e/playwright-e2e.config.ts`
+
 ---
 
 ### 6. 코드 스타일

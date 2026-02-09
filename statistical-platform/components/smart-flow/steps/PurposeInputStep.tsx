@@ -819,6 +819,7 @@ export function PurposeInputStep({
                     onClick={handleConfirmMethod}
                     disabled={isNavigating}
                     className="gap-2"
+                    data-testid="confirm-method-btn"
                   >
                     이 방법으로 분석하기
                     <ArrowRight className="w-4 h-4" />

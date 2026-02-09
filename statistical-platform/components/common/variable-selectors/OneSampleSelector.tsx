@@ -194,6 +194,7 @@ export function OneSampleSelector({
           onClick={handleSubmit}
           disabled={!validation.isValid}
           className="ml-auto"
+          data-testid="run-analysis-btn"
         >
           분석 시작
           <ArrowRight className="ml-2 h-4 w-4" />

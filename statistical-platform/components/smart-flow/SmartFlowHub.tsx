@@ -177,6 +177,7 @@ export function SmartFlowHub({
         <Card
           className="cursor-pointer hover:border-primary hover:shadow-md transition-all group"
           onClick={onStartWithData}
+          data-testid="hub-upload-card"
         >
           <CardContent className="p-4 text-center">
             <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">

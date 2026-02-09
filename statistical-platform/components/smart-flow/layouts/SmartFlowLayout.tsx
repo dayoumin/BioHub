@@ -287,6 +287,7 @@ export function SmartFlowLayout({
             onClick={onNext}
             disabled={!canGoNext || isAnalyzing}
             size="lg"
+            data-testid="floating-next-btn"
             className={cn(
               "shadow-lg px-6 gap-2 transition-all",
               canGoNext && !isAnalyzing

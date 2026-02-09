@@ -133,7 +133,7 @@ export function DataProfileSummary({
 
   return (
     <TooltipProvider>
-      <Card className={`animate-in fade-in duration-500 ${config.bgColor} ${config.borderColor} border ${className || ''}`}>
+      <Card className={`animate-in fade-in duration-500 ${config.bgColor} ${config.borderColor} border ${className || ''}`} data-testid="data-profile-summary">
         <CardContent className="py-3">
           {/* 메인 요약 행 */}
           <div className="flex items-center gap-3 flex-wrap">

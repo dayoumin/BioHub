@@ -96,6 +96,7 @@ export const FloatingStepIndicator = memo(function FloatingStepIndicator({
                     disabled={!canClick}
                     aria-current={isActive ? 'step' : undefined}
                     aria-label={`${step.label} (Step ${step.id}${isCompleted ? ', completed' : ''})`}
+                    data-testid={`stepper-step-${step.id}`}
                     className={cn(
                       "flex items-center gap-2 px-3 py-1.5 rounded-full transition-all text-sm",
                       canClick && "hover:bg-muted cursor-pointer",

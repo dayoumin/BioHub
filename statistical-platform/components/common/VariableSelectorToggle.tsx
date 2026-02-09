@@ -126,6 +126,7 @@ export function VariableSelectorToggle({
             onClick={handleSubmit}
             disabled={!isValid}
             className="gap-2"
+            data-testid="run-analysis-btn"
           >
             분석 시작
             <ArrowRight className="h-4 w-4" />

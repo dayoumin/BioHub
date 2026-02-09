@@ -289,6 +289,7 @@ export function MethodBrowser({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
+            data-testid="method-search-input"
           />
         </div>
         <div className="flex items-center gap-1">
