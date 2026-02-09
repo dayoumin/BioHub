@@ -384,10 +384,23 @@ def two_way_anova(dataValues, factor1Values, factor2Values):
         'residual': {
             'df': float(anova_table.loc['Residual', 'df'])
         },
-        'anovaTable': anova_table.to_dict()
+        'anovaTable': _clean_nan_for_json(anova_table.to_dict())
     }
 
     return result
+
+
+def _clean_nan_for_json(obj):
+    """Recursively replace NaN with None for JSON serialization"""
+    import math
+    if isinstance(obj, dict):
+        return {k: _clean_nan_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_clean_nan_for_json(item) for item in obj]
+    elif isinstance(obj, float) and math.isnan(obj):
+        return None
+    else:
+        return obj
 
 
 def tukey_hsd(groups):

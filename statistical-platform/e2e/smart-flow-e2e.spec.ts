@@ -135,17 +135,28 @@ async function selectMethodDirect(page: Page, searchTerm: string, methodName: Re
     await page.waitForTimeout(1500)
   }
 
-  // 메서드 클릭 (메서드명은 데이터 의존이라 텍스트 매칭 OK)
-  const allMatches = page.locator(`text=${methodName}`)
+  // 메서드 클릭: 버튼 요소만 찾기
+  const allMatches = page.locator(`button:has-text("${searchTerm}")`)
   const matchCount = await allMatches.count()
+  log('selectDirect:debug', `Found ${matchCount} buttons matching "${searchTerm}"`)
+
   for (let i = 0; i < matchCount; i++) {
-    const el = allMatches.nth(i)
-    const text = await el.textContent() || ''
-    // 카테고리 skip: "회귀분석 6" 같은 형식 (끝에 공백+숫자)
-    if (text.match(/\s+\d+\s*$/)) continue
+    const btn = allMatches.nth(i)
+    const text = await btn.textContent() || ''
+    log('selectDirect:debug', `[${i}] button text="${text}" | isCategory=${!!text.match(/\s*\d+\s*$/)}`)
+
+    // 카테고리 skip: "회귀분석 6" 또는 "회귀분석6" (끝에 숫자)
+    if (text.match(/\s*\d+\s*$/)) {
+      log('selectDirect:skip', `카테고리 skip: "${text}"`)
+      continue
+    }
     if (text.includes('methods matching') || text.includes('Selected:')) continue
-    if (await el.isVisible()) {
-      await el.click()
+
+    // methodName 정규식으로 추가 검증
+    if (!text.match(methodName)) continue
+
+    if (await btn.isVisible()) {
+      await btn.click()
       log('selectDirect', `selected: "${text.trim().slice(0, 40)}"`)
       await page.waitForTimeout(1500)
       return true

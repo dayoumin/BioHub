@@ -120,6 +120,8 @@ export interface StatisticalExecutorResult {
     isStationary?: boolean
     trendSlope?: number
     seasonalPeriod?: number
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any
   }
 
   // 시각화용 데이터
@@ -302,6 +304,7 @@ export class StatisticalExecutor {
 
     // 디버깅: 변수 추출 결과 로깅
     logger.info('prepareData: Variable extraction', {
+      methodId: method.id,
       variables,
       extracted: { dependent, independent, group, variablesArray },
       dataColumns: data.length > 0 ? Object.keys(data[0]) : []
@@ -315,6 +318,23 @@ export class StatisticalExecutor {
       arrays: arrays,
       totalN: data.length,
       missingRemoved: 0
+    }
+
+    // Two-way ANOVA 특수 처리: group을 "factor1,factor2" 형태로 유지
+    if (method.id === 'two-way-anova') {
+      logger.info('[two-way-anova] prepareData: Preserving group as factor string', {
+        group,
+        dependent,
+        dataSize: data.length
+      })
+      // group과 dependent를 그대로 prepared.variables에 유지
+      prepared.variables = {
+        ...variables,
+        group: group,
+        dependent: dependent
+      }
+      // 원본 데이터 유지 (executeANOVA에서 직접 처리)
+      return prepared
     }
 
     // 종속변수 추출
@@ -716,14 +736,29 @@ export class StatisticalExecutor {
       const dependentVar = (data.variables.dependent as string[] | undefined)?.[0]
       const rawData = data.data as Array<Record<string, unknown>>
 
+      logger.info('[two-way-anova] Debug variables:', {
+        groupVar,
+        dependentVar,
+        rawDataLength: rawData?.length,
+        allVariables: JSON.stringify(data.variables)
+      })
+
       if (!groupVar || !dependentVar || !rawData) {
-        throw new Error('이원 ANOVA를 위해 2개의 요인 변수와 종속 변수가 필요합니다')
+        logger.error('[two-way-anova] Missing variables:', {
+          hasGroupVar: !!groupVar,
+          hasDependentVar: !!dependentVar,
+          hasRawData: !!rawData,
+          rawDataLength: rawData?.length
+        })
+        throw new Error(`이원 ANOVA 변수 누락: groupVar=${!!groupVar}, dependent=${!!dependentVar}, rawData=${!!rawData && rawData.length > 0}`)
       }
 
       // groupVar format: "factor1,factor2"
       const factors = groupVar.split(',').map(f => f.trim())
+      logger.info('[two-way-anova] Parsed factors:', { factors, factorCount: factors.length })
+
       if (factors.length !== 2) {
-        throw new Error(`이원 ANOVA를 위해 정확히 2개의 요인이 필요합니다 (현재: ${factors.length}개)`)
+        throw new Error(`이원 ANOVA를 위해 정확히 2개의 요인이 필요합니다 (현재: ${factors.length}개, groupVar="${groupVar}")`)
       }
 
       const [factor1Name, factor2Name] = factors
@@ -752,7 +787,41 @@ export class StatisticalExecutor {
         throw new Error('유효한 데이터가 없습니다. 모든 행이 null 또는 유효하지 않은 값입니다.')
       }
 
-      const result = await pyodideStats.twoWayAnova(formattedData)
+      let result = await pyodideStats.twoWayAnova(formattedData)
+
+      logger.info('[two-way-anova] Raw Python worker result:', {
+        hasResult: !!result,
+        resultType: typeof result,
+        isString: typeof result === 'string',
+        isObject: typeof result === 'object' && result !== null,
+        resultConstructor: result ? result.constructor.name : 'null',
+        rawResultPreview: String(result).slice(0, 300)
+      })
+
+      // If result is a string, parse it
+      if (typeof result === 'string') {
+        logger.info('[two-way-anova] Result is string, parsing JSON')
+        try {
+          result = JSON.parse(result) as any
+          logger.info('[two-way-anova] JSON parsing successful:', {
+            parsedType: typeof result,
+            parsedKeys: result ? Object.keys(result) : []
+          })
+        } catch (e) {
+          throw new Error(`이원 ANOVA 결과 JSON 파싱 실패: ${e instanceof Error ? e.message : String(e)}`)
+        }
+      }
+
+      // Type guard
+      if (!result || typeof result !== 'object') {
+        throw new Error(`이원 ANOVA 결과가 올바르지 않습니다 (type=${typeof result})`)
+      }
+      if (!(result as any).factor1 || !(result as any).factor2 || !(result as any).interaction) {
+        throw new Error(
+          `이원 ANOVA 결과 구조 오류 (factor1=${!!(result as any).factor1}, ` +
+          `factor2=${!!(result as any).factor2}, interaction=${!!(result as any).interaction})`
+        )
+      }
 
       return {
         metadata: {
