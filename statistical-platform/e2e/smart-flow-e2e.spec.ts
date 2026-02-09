@@ -407,6 +407,157 @@ test.describe('Smart Flow E2E - 직접 선택 방식', () => {
   })
 })
 
+test.describe('Smart Flow E2E - 추가 Variable Selectors', () => {
+
+  test('일표본 t-검정 (OneSampleSelector): 업로드 → 직접선택 → 분석 → 결과', async ({ page }) => {
+    await navigateToUploadStep(page)
+    expect(await uploadCSV(page, 'one-sample-t.csv')).toBeTruthy()
+    await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
+
+    await goToMethodSelection(page)
+    expect(await selectMethodDirect(page, '일표본', /일표본.*t.*검정|one.*sample.*t/i)).toBeTruthy()
+
+    await goToVariableSelection(page)
+    // OneSampleSelector: value 변수 1개만 선택 (자동 할당 예상)
+    const runBtn = page.locator(S.runAnalysisBtn)
+    await runBtn.waitFor({ state: 'visible', timeout: 15000 })
+    await page.waitForTimeout(500)
+
+    await clickAnalysisRun(page)
+    expect(await waitForResults(page, 120000)).toBeTruthy()
+
+    const r = await verifyStatisticalResults(page)
+    log('one-sample-t', r.details)
+    expect(r.hasStatistic).toBeTruthy()
+    expect(r.hasPValue).toBeTruthy()
+
+    await page.screenshot({ path: 'e2e/results/screenshots/one-sample-t-result.png', fullPage: true })
+  })
+
+  test('대응표본 t-검정 (PairedSelector): 업로드 → 직접선택 → 분석 → 결과', async ({ page }) => {
+    await navigateToUploadStep(page)
+    expect(await uploadCSV(page, 'paired-t-test.csv')).toBeTruthy()
+    await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
+
+    await goToMethodSelection(page)
+    expect(await selectMethodDirect(page, '대응표본', /대응표본.*t.*검정|paired.*t/i)).toBeTruthy()
+
+    await goToVariableSelection(page)
+    // PairedSelector: pre, post 변수 2개 선택
+    const runBtn = page.locator(S.runAnalysisBtn)
+    await runBtn.waitFor({ state: 'visible', timeout: 15000 })
+    await page.waitForTimeout(500)
+
+    // 변수 자동 할당 확인
+    if (!await runBtn.isEnabled().catch(() => false)) {
+      // 수동 선택 필요시
+      const preBtn = page.locator('button:not([disabled])').filter({ hasText: 'pre' })
+      const postBtn = page.locator('button:not([disabled])').filter({ hasText: 'post' })
+      if (await preBtn.count() > 0) {
+        await preBtn.first().click()
+        await page.waitForTimeout(500)
+      }
+      if (await postBtn.count() > 0) {
+        await postBtn.first().click()
+        await page.waitForTimeout(500)
+      }
+    }
+
+    await clickAnalysisRun(page)
+    expect(await waitForResults(page, 120000)).toBeTruthy()
+
+    const r = await verifyStatisticalResults(page)
+    log('paired-t', r.details)
+    expect(r.hasStatistic).toBeTruthy()
+    expect(r.hasPValue).toBeTruthy()
+
+    await page.screenshot({ path: 'e2e/results/screenshots/paired-t-result.png', fullPage: true })
+  })
+
+  test('이원 분산분석 (TwoWayAnovaSelector): 업로드 → 직접선택 → 분석 → 결과', async ({ page }) => {
+    await navigateToUploadStep(page)
+    expect(await uploadCSV(page, 'twoway-anova-test.csv')).toBeTruthy()
+    await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
+
+    await goToMethodSelection(page)
+    expect(await selectMethodDirect(page, '이원', /이원.*분산|two.*way.*anova/i)).toBeTruthy()
+
+    await goToVariableSelection(page)
+    // TwoWayAnovaSelector: factor1, factor2, value
+    const runBtn = page.locator(S.runAnalysisBtn)
+    await runBtn.waitFor({ state: 'visible', timeout: 15000 })
+    await page.waitForTimeout(500)
+
+    // 변수 자동 할당 확인
+    if (!await runBtn.isEnabled().catch(() => false)) {
+      // factor1, factor2 선택
+      const f1Btn = page.locator('button:not([disabled])').filter({ hasText: 'factor1' })
+      const f2Btn = page.locator('button:not([disabled])').filter({ hasText: 'factor2' })
+      const vBtn = page.locator('button:not([disabled])').filter({ hasText: 'value' })
+
+      if (await f1Btn.count() > 0) await f1Btn.first().click()
+      await page.waitForTimeout(500)
+      if (await f2Btn.count() > 0) await f2Btn.first().click()
+      await page.waitForTimeout(500)
+      if (await vBtn.count() > 0) await vBtn.last().click() // 종속변수는 마지막
+      await page.waitForTimeout(500)
+    }
+
+    await clickAnalysisRun(page)
+    expect(await waitForResults(page, 120000)).toBeTruthy()
+
+    const r = await verifyStatisticalResults(page)
+    log('two-way-anova', r.details)
+    expect(r.hasStatistic).toBeTruthy()
+    expect(r.hasPValue).toBeTruthy()
+
+    await page.screenshot({ path: 'e2e/results/screenshots/two-way-anova-result.png', fullPage: true })
+  })
+
+  test('다중 회귀분석 (MultipleRegressionSelector): 업로드 → 직접선택 → 분석 → 결과', async ({ page }) => {
+    await navigateToUploadStep(page)
+    expect(await uploadCSV(page, 'regression.csv')).toBeTruthy()
+    await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
+
+    await goToMethodSelection(page)
+    expect(await selectMethodDirect(page, '회귀', /회귀.*분석|regression/i)).toBeTruthy()
+
+    await goToVariableSelection(page)
+    // MultipleRegressionSelector: study_hours, attendance → score
+    const runBtn = page.locator(S.runAnalysisBtn)
+    await runBtn.waitFor({ state: 'visible', timeout: 15000 })
+    await page.waitForTimeout(500)
+
+    // 변수 자동 할당 확인
+    if (!await runBtn.isEnabled().catch(() => false)) {
+      // 독립변수: study_hours, attendance
+      const studyBtn = page.locator('button:not([disabled])').filter({ hasText: 'study_hours' })
+      const attendBtn = page.locator('button:not([disabled])').filter({ hasText: 'attendance' })
+      const scoreBtn = page.locator('button:not([disabled])').filter({ hasText: 'score' })
+
+      if (await studyBtn.count() > 0) await studyBtn.first().click()
+      await page.waitForTimeout(500)
+      if (await attendBtn.count() > 0) await attendBtn.first().click()
+      await page.waitForTimeout(500)
+      if (await scoreBtn.count() > 0) {
+        const cnt = await scoreBtn.count()
+        await scoreBtn.nth(cnt > 1 ? 1 : 0).click() // 종속변수 section
+      }
+      await page.waitForTimeout(500)
+    }
+
+    await clickAnalysisRun(page)
+    expect(await waitForResults(page, 120000)).toBeTruthy()
+
+    const r = await verifyStatisticalResults(page)
+    log('regression', r.details)
+    expect(r.hasStatistic).toBeTruthy()
+    expect(r.hasPValue).toBeTruthy()
+
+    await page.screenshot({ path: 'e2e/results/screenshots/regression-result.png', fullPage: true })
+  })
+})
+
 test.describe('Smart Flow E2E - LLM 추천 방식', () => {
 
   test('독립표본 t-검정 (LLM 추천): 업로드 → AI 질문 → 추천 수락 → 분석 → 결과', async ({ page }) => {

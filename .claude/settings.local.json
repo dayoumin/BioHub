@@ -86,7 +86,14 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(pnpm tsc:*)",
-      "Bash(powershell -Command \"pnpm tsc --noEmit 2>&1 | Select-String -Pattern ''pyodide|ts-expect-error''\")"
+      "Bash(powershell -Command \"pnpm tsc --noEmit 2>&1 | Select-String -Pattern ''pyodide|ts-expect-error''\")",
+      "Bash(pnpm dev:*)",
+      "Bash(E2E_BASE_URL=http://localhost:3005 npx playwright test:*)",
+      "Bash(netstat:*)",
+      "Bash(powershell:*)",
+      "Bash(pnpm next build:*)",
+      "WebFetch(domain:www.buildwithclaude.com)",
+      "Bash(claude plugin install:*)"
     ],
     "deny": [],
     "ask": []

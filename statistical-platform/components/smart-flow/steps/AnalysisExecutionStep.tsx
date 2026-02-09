@@ -24,6 +24,7 @@ import type { AnalysisExecutionStepProps } from '@/types/smart-flow-navigation'
 import type { StatisticalMethod } from '@/lib/statistics/method-mapping'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import type { StatisticalAssumptions } from '@/types/smart-flow'
+import { useTerminology } from '@/hooks/use-terminology'
 
 // 진행 단계 정의
 const EXECUTION_STAGES = [
@@ -44,6 +45,9 @@ export function AnalysisExecutionStep({
   canGoNext,
   canGoPrevious
 }: AnalysisExecutionStepProps) {
+  // Terminology System
+  const t = useTerminology()
+
   // 상태 관리
   const [progress, setProgress] = useState(0)
   const [currentStage, setCurrentStage] = useState(EXECUTION_STAGES[0])
@@ -351,7 +355,7 @@ export function AnalysisExecutionStep({
       {/* 헤더 패턴: Icon + Title + Method Badge */}
       <StepHeader
           icon={BarChart3}
-          title="분석 실행"
+          title={t.smartFlow.stepTitles.analysisExecution}
           badge={selectedMethod ? { label: selectedMethod.name } : undefined}
         />
 
@@ -366,7 +370,7 @@ export function AnalysisExecutionStep({
       {/* 메인 진행 상황 */}
       {progress === 100 ? (
         /* 완료 시: 성공 배너 (green 패턴) */
-        <StatusIndicator status="success" title="분석이 완료되었습니다" />
+        <StatusIndicator status="success" title={t.smartFlow.statusMessages.analysisComplete} />
       ) : (
         /* 진행 중: Card 래핑 프로그레스 UI */
         <Card>

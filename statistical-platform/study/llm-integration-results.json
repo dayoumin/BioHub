@@ -1,0 +1,168 @@
+{
+  "timestamp": "2026-02-09T04:58:22.443Z",
+  "totalTests": 20,
+  "passed": 20,
+  "failed": 0,
+  "quality": {
+    "validMethodIds": 11,
+    "invalidMethodIds": [],
+    "avgConfidence": 0.7,
+    "featuresUsed": {
+      "variableAssignments": 6,
+      "warnings": 2,
+      "ambiguityNote": 1,
+      "suggestedSettings": 1
+    }
+  },
+  "results": [
+    {
+      "scenario": "A1: Clear ANOVA (Iris)",
+      "status": "PASS",
+      "duration": 71039,
+      "methodId": "anova",
+      "confidence": 0.85,
+      "hasVariableAssignments": true,
+      "hasSuggestedSettings": true,
+      "alternativeCount": 2,
+      "isValidMethodId": true
+    },
+    {
+      "scenario": "A2: Clear t-test (2 groups)",
+      "status": "PASS",
+      "duration": 17117,
+      "methodId": "t-test",
+      "confidence": 0.85,
+      "hasVariableAssignments": true,
+      "isValidMethodId": true
+    },
+    {
+      "scenario": "A3: Ambiguous query",
+      "status": "PASS",
+      "duration": 18744,
+      "methodId": "descriptive",
+      "confidence": 0.85,
+      "hasAmbiguityNote": true,
+      "alternativeCount": 2,
+      "isValidMethodId": true
+    },
+    {
+      "scenario": "A4: Non-normal data + assumption violation",
+      "status": "PASS",
+      "duration": 18735,
+      "methodId": "kruskal-wallis",
+      "confidence": 0.9,
+      "hasWarnings": true,
+      "isValidMethodId": true
+    },
+    {
+      "scenario": "A5: High missing data",
+      "status": "PASS",
+      "duration": 16823,
+      "methodId": "anova",
+      "confidence": 0.85,
+      "hasWarnings": true,
+      "isValidMethodId": true
+    },
+    {
+      "scenario": "A6: Hallucination prevention",
+      "status": "PASS",
+      "duration": 22017,
+      "methodId": "anova",
+      "hasVariableAssignments": true,
+      "isValidMethodId": true
+    },
+    {
+      "scenario": "A7: Korean column names",
+      "status": "PASS",
+      "duration": 170301,
+      "methodId": "t-test",
+      "confidence": 0.85,
+      "hasVariableAssignments": true,
+      "isValidMethodId": true
+    },
+    {
+      "scenario": "A8: Correlation/regression",
+      "status": "PASS",
+      "duration": 21294,
+      "methodId": "correlation",
+      "confidence": 0.85,
+      "isValidMethodId": true
+    },
+    {
+      "scenario": "A9: Categorical-only → chi-square",
+      "status": "PASS",
+      "duration": 12157,
+      "methodId": "chi-square-independence",
+      "confidence": 0.9,
+      "isValidMethodId": true
+    },
+    {
+      "scenario": "A10: No data context",
+      "status": "PASS",
+      "duration": 17182,
+      "methodId": "t-test",
+      "confidence": 0.75,
+      "hasVariableAssignments": true,
+      "isValidMethodId": true
+    },
+    {
+      "scenario": "B1: Significant t-test interpretation",
+      "status": "PASS",
+      "duration": 14522,
+      "responsePreview": "결국 치료 그룹(treatment)이 대조 그룹(control)보다 평균이 8점 높고, 이 차이는 통계적으로 유의미해요. 효과크기도 크다는 것을 알 수 있어요. 신뢰구간을 보면 두 그룹의 평균 차이가 3.2점에서 12.8점 사이일 가능성이 95%에요."
+    },
+    {
+      "scenario": "B2: Non-significant ANOVA",
+      "status": "PASS",
+      "duration": 12426,
+      "responsePreview": "세 그룹(A, B, C) 간 평균 차이가 통계적으로 유의하지 않아요. 결국 이 데이터에서는 그룹별 차이가 거의 없다고 볼 수 있어요. 효과크기도 작아서 실질적 의미는 크지 않네요."
+    },
+    {
+      "scenario": "B3: Assumption violation interpretation",
+      "status": "PASS",
+      "duration": 169606,
+      "responsePreview": "웰치 t-검정 결과 두 집단 간에 통계적으로 유의미한 차이가 있었어요(p=0.038). 효과 크기는 Cohen's d=0.55로 중간 정도의 효과를 보였어요. 다만 정규성과 등분산성 가정이 모두 위배되어 결과 해석에 신중이 필요해요."
+    },
+    {
+      "scenario": "B4: Regression with R² and coefficients",
+      "status": "PASS",
+      "duration": 39188,
+      "responsePreview": "height 변수는 종속변수에 통계적으로 매우 유의미한 영향을 미치고 있어요. p-value가 0.0001로 유의수준 0.05보다 훨씬 작아 결과가 매우 신뢰할 수 있고, height가 1단위 증가할 때마다 종속변수는 평균적으로 0.72단위 증가하는 것으로 나타났어요. 모델은 전체 변이의 약 31.6%를 설명하며, 효과크기 0.68로 중간에서 큰 효과를 보"
+    },
+    {
+      "scenario": "B5: Correlation interpretation",
+      "status": "PASS",
+      "duration": 41066,
+      "responsePreview": "var1과 var2 사이에는 강한 양의 상관관계가 있어요. 통계적으로 매우 유의하며(p < 0.001), 실제로도 두 변수가 함께 변하는 정도가 크다는 뜻이에요. 95% 신뢰구간을 보면 상관계수가 0.68에서 0.85 사이일 확률이 높아요."
+    },
+    {
+      "scenario": "B6: Post-hoc ANOVA interpretation",
+      "status": "PASS",
+      "duration": 155624,
+      "responsePreview": "세 그룹(setosa, versicolor, virginica) 간 평균 차이가 통계적으로 유의미해요. 특히 setosa와 다른 두 그룹의 차이가 가장 크고, 모든 그룹 간 비교에서 유의미한 차이가 나타났네요. 결국 이 변수는 세 그룹을 구분하는 데 효과적이라는 뜻이에요."
+    },
+    {
+      "scenario": "C1: splitInterpretation on real LLM output",
+      "status": "PASS",
+      "duration": 29234,
+      "responsePreview": "summary=119chars, detail=1228chars"
+    },
+    {
+      "scenario": "C2: filterInvalidVariables in live",
+      "status": "PASS",
+      "duration": 54282,
+      "methodId": "anova",
+      "hasVariableAssignments": true,
+      "isValidMethodId": true
+    },
+    {
+      "scenario": "C3: PII filter in buildDataContext",
+      "status": "PASS"
+    },
+    {
+      "scenario": "C4: Health check + API connectivity",
+      "status": "PASS",
+      "duration": 0
+    }
+  ]
+}

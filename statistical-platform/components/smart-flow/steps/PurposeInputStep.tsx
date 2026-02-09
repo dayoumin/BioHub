@@ -36,6 +36,9 @@ import { SubcategorySelector } from './purpose/SubcategorySelector'
 // NEW: Natural Language Input (AI Chat)
 import { NaturalLanguageInput } from './purpose/NaturalLanguageInput'
 
+// Terminology System
+import { useTerminology } from '@/hooks/use-terminology'
+
 /**
  * Phase 5: PurposeInputStep with Method Browser
  *
@@ -268,6 +271,9 @@ export function PurposeInputStep({
   validationResults,
   data
 }: PurposeInputStepProps) {
+  // Terminology System
+  const t = useTerminology()
+
   // NEW: Guided Flow state
   const [flowState, flowDispatch] = useReducer(flowReducer, initialFlowState)
 
@@ -700,7 +706,7 @@ export function PurposeInputStep({
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      <StepHeader icon={Target} title="분석 방법 선택" />
+      <StepHeader icon={Target} title={t.smartFlow.stepTitles.purposeInput} />
 
       {/* 입력 모드 탭 (AI 추천 vs 직접 선택) */}
       <div className="flex items-center justify-between">
@@ -913,7 +919,7 @@ export function PurposeInputStep({
       {isAnalyzing && (
         <AIAnalysisProgress
           progress={aiProgress}
-          title="데이터 분석 중..."
+          title={t.smartFlow.statusMessages.analyzing}
         />
       )}
 

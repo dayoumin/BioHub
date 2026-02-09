@@ -34,6 +34,7 @@ import { TemplateManagePanel } from '@/components/smart-flow/TemplateManagePanel
 import { useTemplateStore } from '@/lib/stores/template-store'
 import type { AnalysisTemplate } from '@/types/smart-flow'
 import { getExplorationProfile } from '@/lib/utils/exploration-profile'
+import { useTerminology } from '@/hooks/use-terminology'
 
 interface DataExplorationStepProps {
   validationResults: ValidationResults | null
@@ -97,6 +98,9 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   onTemplateSelect
 }: DataExplorationStepProps) {
   void _onPrevious // Suppress unused warning
+  // Terminology System
+  const t = useTerminology()
+
   // Pyodide 및 Store
   const { isLoaded: pyodideLoaded, service: pyodideService } = usePyodide()
   const { uploadedFile, uploadedFileName, selectedMethod, quickAnalysisMode } = useSmartFlowStore()
@@ -805,7 +809,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     return (
       <div className="space-y-6">
         {/* 헤더 */}
-        <StepHeader icon={ChartScatter} title="데이터 탐색" />
+        <StepHeader icon={ChartScatter} title={t.smartFlow.stepTitles.dataExploration} />
 
         {/* 안내 카드 + 업로드 영역 (컴팩트 레이아웃) */}
         <Card className="border-dashed border-2 border-muted-foreground/25">
@@ -880,7 +884,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     return (
       <div className="space-y-6">
         {/* 헤더 + 다음 단계 버튼 */}
-        <StepHeader icon={ChartScatter} title="데이터 탐색" />
+        <StepHeader icon={ChartScatter} title={t.smartFlow.stepTitles.dataExploration} />
 
         {quickAnalysisMode && profile.focusHint && data.length > 0 && (
           <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 text-sm">
@@ -948,7 +952,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   return (
     <div className="space-y-6">
       {/* 헤더 + 다음 단계 버튼 */}
-      <StepHeader icon={ChartScatter} title="데이터 탐색" />
+      <StepHeader icon={ChartScatter} title={t.smartFlow.stepTitles.dataExploration} />
 
       {quickAnalysisMode && profile.focusHint && data.length > 0 && (
         <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 text-sm">

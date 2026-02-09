@@ -93,43 +93,30 @@ export class RegressionExecutor extends BaseExecutor {
 
       const result = await pyodideStats.multipleRegression(X, y)
 
-      // Adjusted R² 계산 (n > k + 1 보호)
-      const n = y.length
-      const k = X[0].length
-      let adjustedRSquared: number | null = null
-      if (n > k + 1) {
-        adjustedRSquared = 1 - ((1 - result.rSquared) * (n - 1) / (n - k - 1))
-      }
-
-      // interpretation 생성
-      const adjRSquaredText = adjustedRSquared !== null
-        ? `, Adj. R² = ${adjustedRSquared.toFixed(4)}`
-        : ' (Adj. R² 계산 불가: 표본 부족)'
-
       return {
         metadata: this.createMetadata('다중회귀분석', y.length, startTime),
         mainResults: {
           statistic: result.fStatistic,
-          pvalue: result.pValue,
-          interpretation: `R² = ${result.rSquared.toFixed(4)}${adjRSquaredText}, ${this.interpretPValue(result.pValue)}`
+          pvalue: result.fPValue,
+          interpretation: `R² = ${result.rSquared.toFixed(4)}, Adj. R² = ${result.adjustedRSquared.toFixed(4)}, ${this.interpretPValue(result.fPValue)}`
         },
         additionalInfo: {
-          coefficients: result.coefficients.map((coef: any, i: number) => ({
+          coefficients: result.coefficients.map((coef: number, i: number) => ({
             name: i === 0 ? '절편' : `변수 ${i}`,
-            value: coef.value,
-            stdError: coef.stdError,
-            tValue: coef.tValue,
-            pvalue: coef.pValue
+            value: coef,
+            stdError: result.stdErrors[i],
+            tValue: result.tValues[i],
+            pvalue: result.pValues[i]
           })),
           rSquared: result.rSquared,
-          adjustedRSquared: adjustedRSquared ?? undefined,
+          adjustedRSquared: result.adjustedRSquared,
           vif: result.vif,
           residuals: result.residuals
         },
         visualizationData: {
           type: 'residual-plot',
           data: {
-            fitted: result.predictions,
+            fitted: result.fittedValues,
             residuals: result.residuals
           }
         }
@@ -154,23 +141,29 @@ export class RegressionExecutor extends BaseExecutor {
         metadata: this.createMetadata('로지스틱 회귀', y.length, startTime),
         mainResults: {
           statistic: result.accuracy,
-          pvalue: result.pValue,
-          interpretation: `정확도: ${(result.accuracy * 100).toFixed(1)}%, ${this.interpretPValue(result.pValue)}`
+          pvalue: result.llrPValue,
+          interpretation: `정확도: ${(result.accuracy * 100).toFixed(1)}%, ${this.interpretPValue(result.llrPValue)}`
         },
         additionalInfo: {
-          coefficients: result.coefficients,
+          coefficients: result.coefficients.map((coef: number, i: number) => ({
+            name: i === 0 ? '절편' : `변수 ${i}`,
+            value: coef,
+            stdError: result.stdErrors[i],
+            tValue: result.zValues[i],
+            pvalue: result.pValues[i]
+          })),
           accuracy: result.accuracy,
-          precision: result.precision,
-          recall: result.recall,
-          f1Score: result.f1Score,
+          precision: result.confusionMatrix.precision,
+          recall: result.confusionMatrix.recall,
+          f1Score: result.confusionMatrix.f1Score,
           confusionMatrix: result.confusionMatrix
         },
         visualizationData: {
           type: 'roc-curve',
           data: {
-            fpr: result.rocCurve?.fpr,
-            tpr: result.rocCurve?.tpr,
-            auc: result.rocAuc
+            fpr: result.rocCurve.map(p => p.fpr),
+            tpr: result.rocCurve.map(p => p.tpr),
+            auc: result.auc
           }
         }
       }
@@ -204,12 +197,18 @@ export class RegressionExecutor extends BaseExecutor {
         metadata: this.createMetadata(`${degree}차 다항회귀`, x.length, startTime),
         mainResults: {
           statistic: result.rSquared,
-          pvalue: result.pValue,
+          pvalue: result.fPValue,
           interpretation: `R² = ${result.rSquared.toFixed(4)}, ${degree}차 다항식 적합`
         },
         additionalInfo: {
           degree,
-          coefficients: result.coefficients,
+          coefficients: result.coefficients.map((coef: number, i: number) => ({
+            name: i === 0 ? '절편' : `x^${i}`,
+            value: coef,
+            stdError: result.stdErrors[i],
+            tValue: result.tValues[i],
+            pvalue: result.pValues[i]
+          })),
           rSquared: result.rSquared,
           residuals: result.residuals
         },
@@ -219,7 +218,7 @@ export class RegressionExecutor extends BaseExecutor {
             x,
             y,
             degree,
-            fitted: result.predictions
+            fitted: result.fittedValues
           }
         }
       }

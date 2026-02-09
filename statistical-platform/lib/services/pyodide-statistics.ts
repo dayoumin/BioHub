@@ -1,5 +1,5 @@
 /**
- * ⚠️⚠️⚠️ IMPORTANT: Python Worker 호출 래퍼 전용 파일 ⚠️⚠️⚠️
+ * ⚠️⚠️⚠️ IMPORTANT: Python Worker 호출 래퍼 전용 파일 ���️⚠️⚠️
  *
  * 이 파일은 Python Worker를 호출하는 TypeScript 래퍼만 포함합니다.
  *
@@ -199,6 +199,83 @@ type NegativeBinomialRegressionResult = {
   pValues: number[]
   aic: number
   bic: number
+}
+
+/**
+ * 가정 검정 항목 타입 (다중회귀 assumptions 내부)
+ */
+type RegressionAssumptionTest = {
+  testName: string
+  statistic: number | null
+  pValue?: number | null
+  passed: boolean | null
+  interpretation: string
+}
+
+/**
+ * 다중회귀분석 결과 타입 (multiple_regression)
+ */
+type MultipleRegressionResult = {
+  coefficients: number[]
+  stdErrors: number[]
+  tValues: number[]
+  pValues: number[]
+  ciLower: number[]
+  ciUpper: number[]
+  rSquared: number
+  adjustedRSquared: number
+  fStatistic: number
+  fPValue: number
+  residualStdError: number
+  residuals: number[]
+  fittedValues: number[]
+  vif: number[]
+  nObservations: number
+  nPredictors: number
+  assumptions: {
+    independence: RegressionAssumptionTest
+    normality: RegressionAssumptionTest
+    homoscedasticity: RegressionAssumptionTest
+  }
+}
+
+/**
+ * 로지스틱 회귀 혼동행렬 타입
+ */
+type ConfusionMatrixResult = {
+  tp: number
+  fp: number
+  tn: number
+  fn: number
+  precision: number
+  recall: number
+  f1Score: number
+}
+
+/**
+ * 로지스틱 회귀분석 결과 타입 (logistic_regression)
+ */
+type LogisticRegressionResult = {
+  coefficients: number[]
+  stdErrors: number[]
+  zValues: number[]
+  pValues: number[]
+  ciLower: number[]
+  ciUpper: number[]
+  predictions: number[]
+  predictedClass: number[]
+  accuracy: number
+  confusionMatrix: ConfusionMatrixResult
+  sensitivity: number
+  specificity: number
+  rocCurve: Array<{ fpr: number; tpr: number }>
+  auc: number
+  aic: number
+  bic: number
+  pseudoRSquared: number
+  llrPValue: number
+  nObservations: number
+  nPredictors: number
 }
 
 export class PyodideStatisticsService {
@@ -1553,8 +1630,8 @@ export class PyodideStatisticsService {
     X: number[][],  // 독립변수들
     y: number[],    // 종속변수
     variableNames: string[] = []
-  ): Promise<any> {
-    return this.core.callWorkerMethod<any>(
+  ): Promise<MultipleRegressionResult> {
+    return this.core.callWorkerMethod<MultipleRegressionResult>(
       4,
       'multiple_regression',
       { X, y },
@@ -1569,8 +1646,8 @@ export class PyodideStatisticsService {
     X: number[][],  // 독립변수들
     y: number[],    // 종속변수 (0 또는 1)
     variableNames: string[] = []
-  ): Promise<any> {
-    return this.core.callWorkerMethod<any>(
+  ): Promise<LogisticRegressionResult> {
+    return this.core.callWorkerMethod<LogisticRegressionResult>(
       4,
       'logistic_regression',
       { X, y },

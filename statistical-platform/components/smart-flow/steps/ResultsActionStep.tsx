@@ -394,14 +394,72 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   }, [results?.method, results?.pValue, results?.statistic])
 
   const handleCopyResults = useCallback(async () => {
-    if (!results) return
+    if (!results || !statisticalResult) return
 
     try {
-      const summary = PDFReportService.generateSummaryText(results)
-      await navigator.clipboard.writeText(summary)
+      // ---- plain text 버전 ----
+      const plainText = PDFReportService.generateSummaryText(results)
+      const aiPlain = interpretation
+        ? `\n\n--- AI 해석 ---\n${interpretation}`
+        : ''
+
+      // ---- HTML 버전 ----
+      const pVal = results.pValue < 0.001 ? '< .001' : results.pValue.toFixed(4)
+      const esValue = results.effectSize !== undefined
+        ? (typeof results.effectSize === 'number'
+          ? results.effectSize.toFixed(4)
+          : results.effectSize.value.toFixed(4))
+        : '-'
+
+      let html = `<h3>${statisticalResult.testName}</h3>`
+      html += `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:14px">`
+      html += `<thead><tr style="background:#f3f4f6"><th>항목</th><th>값</th></tr></thead><tbody>`
+      html += `<tr><td>통계량 (${statisticalResult.statisticName || 't'})</td><td><b>${(statisticalResult.statistic ?? 0).toFixed(4)}</b></td></tr>`
+      if (statisticalResult.df !== undefined) {
+        const dfStr = Array.isArray(statisticalResult.df) ? statisticalResult.df.join(', ') : String(statisticalResult.df)
+        html += `<tr><td>자유도 (df)</td><td>${dfStr}</td></tr>`
+      }
+      html += `<tr><td>p-value</td><td><b>${pVal}</b></td></tr>`
+      html += `<tr><td>효과크기</td><td>${esValue}</td></tr>`
+      if (results.confidence) {
+        html += `<tr><td>95% 신뢰구간</td><td>[${results.confidence.lower.toFixed(4)}, ${results.confidence.upper.toFixed(4)}]</td></tr>`
+      }
+      html += `</tbody></table>`
+
+      if (statisticalResult.interpretation) {
+        html += `<p><b>해석:</b> ${statisticalResult.interpretation}</p>`
+      }
+      if (apaFormat) {
+        html += `<p><b>APA:</b> <i>${apaFormat}</i></p>`
+      }
+
+      // AI 해석 (있을 때만) — 마크다운 원문을 pre로 감싸서 서식 유지
+      if (interpretation) {
+        const { summary, detail } = splitInterpretation(interpretation)
+        html += `<hr/><h4>AI 해석</h4>`
+        html += `<pre style="white-space:pre-wrap;font-family:inherit;margin:0">${summary}</pre>`
+        if (detail) {
+          html += `<pre style="white-space:pre-wrap;font-family:inherit;margin:8px 0 0">${detail}</pre>`
+        }
+      }
+
+      // ClipboardItem API (HTML + plain text 동시 제공)
+      if (typeof ClipboardItem !== 'undefined') {
+        const htmlBlob = new Blob([html], { type: 'text/html' })
+        const textBlob = new Blob([plainText + aiPlain], { type: 'text/plain' })
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/html': htmlBlob,
+            'text/plain': textBlob,
+          }),
+        ])
+      } else {
+        // 폴백: plain text only
+        await navigator.clipboard.writeText(plainText + aiPlain)
+      }
 
       setIsCopied(true)
-      toast.success('복사되었습니다')
+      toast.success(interpretation ? '결과 + AI 해석이 복사되었습니다' : '결과가 복사되었습니다')
 
       if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current)
       copiedTimeoutRef.current = setTimeout(() => {
@@ -412,7 +470,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       console.error('복사 실패:', err)
       toast.error('복사 실패')
     }
-  }, [results])
+  }, [results, statisticalResult, interpretation, apaFormat])
 
   if (!results || !statisticalResult) {
     return (

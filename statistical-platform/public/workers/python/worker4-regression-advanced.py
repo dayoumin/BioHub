@@ -225,6 +225,8 @@ def multiple_regression(X, y):
         'fStatistic': float(model.fvalue),
         'fPValue': float(model.f_pvalue),
         'residualStdError': float(np.sqrt(model.scale)),
+        'residuals': [float(r) for r in model.resid],
+        'fittedValues': [float(f) for f in model.fittedvalues],
         'vif': vif_values,
         'nObservations': int(len(y_clean)),
         'nPredictors': int(X_clean.shape[1]),
@@ -309,6 +311,7 @@ def logistic_regression(X, y):
         'aic': float(model.aic),
         'bic': float(model.bic),
         'pseudoRSquared': float(model.prsquared),
+        'llrPValue': float(model.llr_pvalue),
         'nObservations': int(len(y_clean)),
         'nPredictors': int(X_clean.shape[1])
     }
