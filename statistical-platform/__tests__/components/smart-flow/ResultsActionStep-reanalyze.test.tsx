@@ -227,7 +227,7 @@ describe('ResultsActionStep - 재분석 로직 (Store-level)', () => {
   it('"새 분석 시작"은 모든 상태를 초기화한다', async () => {
     const { startNewAnalysis } = await import('@/lib/services/data-management')
 
-    await (startNewAnalysis as ReturnType<typeof vi.fn>)()
+    await startNewAnalysis()
 
     expect(startNewAnalysis).toHaveBeenCalled()
   })

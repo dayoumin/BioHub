@@ -2,6 +2,8 @@
  * PDFReportService (lib/services/) Dynamic Import 테스트
  */
 
+import { vi } from 'vitest'
+
 const mockSave = vi.fn()
 const mockText = vi.fn()
 const mockSetFontSize = vi.fn()
@@ -89,7 +91,7 @@ describe('PDFReportService Dynamic Import', () => {
     it('분석 방법이 포함되어야 함', async () => {
       await PDFReportService.generateReport(sampleData)
 
-      const textCalls = mockText.mock.calls.map((call: unknown[]) => call[0])
+      const textCalls = mockText.mock.calls.map((call: unknown[]) => call[0]) as string[]
       expect(textCalls.some((t: string) => t.includes('Independent Samples T-Test'))).toBe(true)
     })
   })

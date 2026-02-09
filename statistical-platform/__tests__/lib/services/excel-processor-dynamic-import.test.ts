@@ -4,6 +4,8 @@
  * - 각 메서드가 XLSX를 올바르게 사용하는지 검증
  */
 
+import { vi } from 'vitest'
+
 const mockRead = vi.fn()
 const mockSheetToJson = vi.fn()
 const mockDecodeRange = vi.fn()

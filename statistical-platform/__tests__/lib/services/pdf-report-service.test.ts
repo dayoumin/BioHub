@@ -5,6 +5,8 @@
  * - 보고서 생성 플로우 검증
  */
 
+import { vi } from 'vitest'
+
 const mockSave = vi.fn()
 const mockText = vi.fn()
 const mockSetFontSize = vi.fn()
@@ -90,7 +92,7 @@ describe('PDF Report Service (lib/pdf-report-service.ts)', () => {
     it('제목과 메타데이터가 포함되어야 함', async () => {
       await generateStatisticalReport(sampleReportData)
 
-      const textCalls = mockText.mock.calls.map((call: unknown[]) => call[0])
+      const textCalls = mockText.mock.calls.map((call: unknown[]) => call[0]) as string[]
       expect(textCalls).toContain('T-Test Analysis')
       expect(textCalls.some((t: string) => t.includes('sample.csv'))).toBe(true)
     })
@@ -98,7 +100,7 @@ describe('PDF Report Service (lib/pdf-report-service.ts)', () => {
     it('통계 결과가 포함되어야 함', async () => {
       await generateStatisticalReport(sampleReportData)
 
-      const textCalls = mockText.mock.calls.map((call: unknown[]) => call[0])
+      const textCalls = mockText.mock.calls.map((call: unknown[]) => call[0]) as string[]
       expect(textCalls.some((t: string) => t.includes('2.456'))).toBe(true)
       expect(textCalls.some((t: string) => t.includes('0.023'))).toBe(true)
       expect(textCalls.some((t: string) => t.includes('0.650'))).toBe(true)
