@@ -154,6 +154,10 @@ export interface SmartFlowText {
     downloadResults: string
     backToHub: string
   }
+  /** 결과 섹션 제목 */
+  resultSections: {
+    effectSizeDetail: string
+  }
 }
 
 /**

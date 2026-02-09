@@ -52,6 +52,7 @@ import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import { AssumptionTestCard, type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { formatStatisticalResult } from '@/lib/statistics/formatters'
+import { useTerminology } from '@/hooks/use-terminology'
 
 interface ResultsActionStepProps {
   results: AnalysisResult | null
@@ -107,6 +108,9 @@ function formatPValue(p: number): string {
 }
 
 export function ResultsActionStep({ results }: ResultsActionStepProps) {
+  // Terminology System
+  const t = useTerminology()
+
   const [isSaved, setIsSaved] = useState(false)
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
@@ -697,7 +701,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 {/* 효과크기 상세 스케일 */}
                 {statisticalResult.effectSize && (
                   <EffectSizeCard
-                    title="효과크기 상세"
+                    title={t.smartFlow.resultSections.effectSizeDetail}
                     value={statisticalResult.effectSize.value}
                     type={statisticalResult.effectSize.type}
                     showInterpretation

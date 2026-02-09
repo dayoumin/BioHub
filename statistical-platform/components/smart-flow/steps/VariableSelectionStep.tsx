@@ -24,6 +24,7 @@ import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { StepHeader } from '@/components/smart-flow/common'
 import { validateVariableMapping } from '@/lib/statistics/variable-mapping'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
+import { useTerminology } from '@/hooks/use-terminology'
 
 interface VariableSelectionStepProps {
   onComplete?: () => void
@@ -97,6 +98,9 @@ function getSelectorType(methodId: string | undefined): string {
 }
 
 export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionStepProps) {
+  // Terminology System
+  const t = useTerminology()
+
   const {
     uploadedData,
     selectedMethod,
@@ -261,8 +265,6 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           <OneSampleSelector
             {...commonProps}
             onComplete={handleComplete}
-            title="일표본 t-검정 변수 선택"
-            description="검정할 변수와 기준값(μ₀)을 입력하세요"
           />
         )
 
@@ -271,8 +273,6 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           <TwoWayAnovaSelector
             {...commonProps}
             onComplete={handleComplete}
-            title="이원분산분석 변수 선택"
-            description="2개의 범주형 요인과 1개의 수치형 종속변수를 선택하세요"
           />
         )
 
@@ -281,8 +281,6 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           <CorrelationSelector
             {...commonProps}
             onComplete={handleComplete}
-            title="상관분석 변수 선택"
-            description="상관분석을 위해 2개 이상의 수치형 변수를 선택하세요"
             minVariables={2}
             maxVariables={10}
           />
@@ -293,12 +291,6 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           <PairedSelector
             {...commonProps}
             onComplete={handleComplete}
-            title="대응표본 선택"
-            description="비교할 두 개의 관련 측정값을 선택하세요"
-            labels={{
-              first: '시점 1 / 사전',
-              second: '시점 2 / 사후'
-            }}
           />
         )
 
@@ -307,8 +299,6 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           <MultipleRegressionSelector
             {...commonProps}
             onComplete={handleComplete}
-            title="다중회귀분석 변수 선택"
-            description="종속변수(Y)와 여러 독립변수(X)를 선택하세요"
             minIndependent={2}
             maxIndependent={10}
           />
@@ -319,8 +309,6 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           <GroupComparisonSelector
             {...commonProps}
             onComplete={handleComplete}
-            title="집단비교 변수 선택"
-            description="집단변수와 종속변수를 선택하세요"
             requireTwoGroups={
               selectedMethod?.id === 't-test' ||
               selectedMethod?.id === 'two-sample-t' ||
@@ -338,8 +326,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
             data={uploadedData}
             onComplete={handleLegacyComplete}
             onBack={handleBack}
-            title="변수 선택"
-            description="분석을 위한 종속변수와 독립변수를 선택하세요"
+            title={t.smartFlow.stepTitles.variableSelection}
           />
         )
     }
@@ -350,7 +337,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
       {/* Header */}
       <StepHeader
           icon={Settings2}
-          title="변수 선택"
+          title={t.smartFlow.stepTitles.variableSelection}
           badge={selectedMethod ? { label: selectedMethod.name } : undefined}
         />
 

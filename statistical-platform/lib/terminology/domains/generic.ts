@@ -148,6 +148,9 @@ export const generic: TerminologyDictionary = {
       reanalyze: 'Reanalyze with Different Data',
       downloadResults: 'Download Results',
       backToHub: 'Back to Hub'
+    },
+    resultSections: {
+      effectSizeDetail: 'Effect Size Details'
     }
   }
 }

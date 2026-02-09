@@ -148,6 +148,9 @@ export const aquaculture: TerminologyDictionary = {
       reanalyze: '다른 데이터로 재분석',
       downloadResults: '결과 다운로드',
       backToHub: '처음으로'
+    },
+    resultSections: {
+      effectSizeDetail: '효과크기 상세'
     }
   }
 }
