@@ -6,6 +6,7 @@ import { ClientProviders } from "@/components/providers/ClientProviders"
 import { UIProvider } from "@/contexts/ui-context"
 import { LayoutContent } from "@/components/layout/layout-content"
 import { GlobalFeedbackPanel } from "@/components/feedback/GlobalFeedbackPanel"
+import { TerminologyProvider } from "@/lib/terminology"
 
 // 외부망 환경에서 Google Fonts 접근 불가 시 시스템 폰트 사용
 const systemFontClass = "font-sans"
@@ -41,8 +42,9 @@ export default function RootLayout({
     <html lang="ko" suppressHydrationWarning>
       <body className={systemFontClass}>
         <ClientProviders>
-          <UIProvider>
-            <div className="flex h-screen overflow-hidden">
+          <TerminologyProvider initialDomain="aquaculture">
+            <UIProvider>
+              <div className="flex h-screen overflow-hidden">
               {/* 메인 영역 */}
               <div className="flex-1 flex flex-col overflow-hidden">
                 <ConditionalHeader />
@@ -68,7 +70,8 @@ export default function RootLayout({
                 className: 'font-medium',
               }}
             />
-          </UIProvider>
+            </UIProvider>
+          </TerminologyProvider>
         </ClientProviders>
       </body>
     </html>

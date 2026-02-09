@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils'
 import { analyzeDataset } from '@/lib/services/variable-type-detector'
 import { isRecord } from '@/lib/utils/type-guards'
 import type { VariableSelectorProps } from './types'
+import { useTerminology } from '@/hooks/use-terminology'
 
 interface GroupComparisonSelectorProps extends VariableSelectorProps {
   /** Require exactly 2 groups (for t-test) */
@@ -33,12 +34,19 @@ export function GroupComparisonSelector({
   onComplete,
   onBack,
   initialSelection,
-  title = 'Group Comparison Variable Selection',
-  description = 'Select a group variable and a dependent variable to compare',
+  title,
+  description,
   className,
   requireTwoGroups = false,
   methodName
 }: GroupComparisonSelectorProps) {
+  // Terminology
+  const t = useTerminology()
+
+  // Use terminology defaults if not provided
+  const displayTitle = title ?? t.selectorUI.titles.groupComparison
+  const displayDescription = description ?? t.selectorUI.descriptions.groupComparison
+
   // State
   const [groupVar, setGroupVar] = useState<string | null>(
     initialSelection?.groupVar || null
@@ -92,13 +100,13 @@ export function GroupComparisonSelector({
     const errors: string[] = []
 
     if (!groupVar) {
-      errors.push('Group variable is required')
+      errors.push(t.validation.groupRequired)
     } else if (requireTwoGroups && selectedGroupCount !== 2) {
-      errors.push(`t-test requires exactly 2 groups (found ${selectedGroupCount})`)
+      errors.push(t.validation.twoGroupsRequired(selectedGroupCount))
     }
 
     if (!dependentVar) {
-      errors.push('Dependent variable is required')
+      errors.push(t.validation.dependentRequired)
     }
 
     return {
@@ -143,10 +151,10 @@ export function GroupComparisonSelector({
           <Users className="h-5 w-5 text-primary" />
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-semibold">{title}</h2>
+              <h2 className="text-xl font-semibold">{displayTitle}</h2>
               {methodName && <Badge variant="outline">{methodName}</Badge>}
             </div>
-            <p className="text-sm text-muted-foreground">{description}</p>
+            <p className="text-sm text-muted-foreground">{displayDescription}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -169,21 +177,21 @@ export function GroupComparisonSelector({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 집단 변수 */}
+        {/* Group Variable */}
         <Card>
           <CardHeader className="pb-3 bg-orange-50 dark:bg-orange-950/30">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-base">집단 변수</CardTitle>
+              <CardTitle className="text-base">{t.variables.group.title}</CardTitle>
               <span className="text-destructive">*</span>
               {groupVar && (
                 <Badge variant="secondary" className="ml-auto">
-                  {groupVar} ({selectedGroupCount} groups)
+                  {groupVar} ({selectedGroupCount} {t.selectorUI.labels.groups})
                 </Badge>
               )}
             </div>
             <CardDescription className="text-xs">
-              Categorical variable defining groups to compare
-              {requireTwoGroups && ' (must have exactly 2 groups)'}
+              {t.variables.group.description}
+              {requireTwoGroups && ` - ${t.validation.twoGroupsRequired(2).split('(')[0].trim()}`}
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-4 max-h-64 overflow-y-auto">
@@ -236,16 +244,16 @@ export function GroupComparisonSelector({
           </CardContent>
         </Card>
 
-        {/* 종속 변수 */}
+        {/* Dependent Variable */}
         <Card>
           <CardHeader className="pb-3 bg-green-50 dark:bg-green-950/30">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-base">종속 변수 (Y)</CardTitle>
+              <CardTitle className="text-base">{t.variables.dependent.title}</CardTitle>
               <span className="text-destructive">*</span>
               {dependentVar && <Badge variant="default" className="ml-auto">{dependentVar}</Badge>}
             </div>
             <CardDescription className="text-xs">
-              Numeric variable to compare across groups
+              {t.variables.dependent.description}
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-4 max-h-64 overflow-y-auto">
@@ -303,7 +311,7 @@ export function GroupComparisonSelector({
         <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-700 dark:text-green-300">
-            All variables selected. Ready for analysis.
+            {t.success.allVariablesSelected}
           </AlertDescription>
         </Alert>
       ) : validation.errors.length > 0 && (groupVar || dependentVar) && (

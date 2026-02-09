@@ -18,16 +18,22 @@ import { cn } from '@/lib/utils'
 import { analyzeDataset } from '@/lib/services/variable-type-detector'
 import { isRecord } from '@/lib/utils/type-guards'
 import type { VariableSelectorProps } from './types'
+import { useTerminology } from '@/hooks/use-terminology'
 
 export function TwoWayAnovaSelector({
   data,
   onComplete,
   onBack,
   initialSelection,
-  title = 'Two-way ANOVA Variable Selection',
-  description = 'Select 2 categorical factors and 1 dependent variable',
+  title,
+  description,
   className
 }: VariableSelectorProps) {
+  // Terminology
+  const t = useTerminology()
+  const displayTitle = title ?? t.selectorUI.titles.twoWayAnova
+  const displayDescription = description ?? t.selectorUI.descriptions.twoWayAnova
+
   // Parse initial factors if provided
   const initialFactors = useMemo(() => {
     if (initialSelection?.groupVar) {
@@ -83,16 +89,16 @@ export function TwoWayAnovaSelector({
   const validation = useMemo(() => {
     const errors: string[] = []
 
-    if (!factor1) errors.push('Factor 1 is required')
-    if (!factor2) errors.push('Factor 2 is required')
-    if (factor1 && factor2 && factor1 === factor2) errors.push('Factor 1 and Factor 2 must be different')
-    if (!dependentVar) errors.push('Dependent variable is required')
+    if (!factor1) errors.push(t.validation.factorRequired)
+    if (!factor2) errors.push(t.validation.factorRequired)
+    if (factor1 && factor2 && factor1 === factor2) errors.push(t.validation.differentVariablesRequired)
+    if (!dependentVar) errors.push(t.validation.dependentRequired)
 
     return {
       isValid: errors.length === 0,
       errors
     }
-  }, [factor1, factor2, dependentVar])
+  }, [factor1, factor2, dependentVar, t])
 
   // Toggle handlers
   const toggleFactor1 = useCallback((name: string) => {
@@ -133,8 +139,8 @@ export function TwoWayAnovaSelector({
         <div className="flex items-center gap-3">
           <Layers className="h-5 w-5 text-primary" />
           <div>
-            <h2 className="text-xl font-semibold">{title}</h2>
-            <p className="text-sm text-muted-foreground">{description}</p>
+            <h2 className="text-xl font-semibold">{displayTitle}</h2>
+            <p className="text-sm text-muted-foreground">{displayDescription}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -236,16 +242,16 @@ export function TwoWayAnovaSelector({
         </Card>
       </div>
 
-      {/* 종속 변수 */}
+      {/* Dependent Variable */}
       <Card>
         <CardHeader className="pb-3 bg-green-50 dark:bg-green-950/30">
           <div className="flex items-center gap-2">
-            <CardTitle className="text-base">종속 변수 (Y)</CardTitle>
+            <CardTitle className="text-base">{t.variables.dependent.title}</CardTitle>
             <span className="text-destructive">*</span>
             {dependentVar && <Badge variant="default" className="ml-auto">{dependentVar}</Badge>}
           </div>
           <CardDescription className="text-xs">
-            Numeric outcome variable to analyze
+            {t.variables.dependent.description}
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-4">
@@ -294,7 +300,7 @@ export function TwoWayAnovaSelector({
         <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-700 dark:text-green-300">
-            All variables selected. Ready for analysis.
+            {t.success.allVariablesSelected}
           </AlertDescription>
         </Alert>
       ) : validation.errors.length > 0 && (factor1 || factor2 || dependentVar) && (

@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils'
 import { analyzeDataset } from '@/lib/services/variable-type-detector'
 import { isRecord } from '@/lib/utils/type-guards'
 import type { VariableSelectorProps } from './types'
+import { useTerminology } from '@/hooks/use-terminology'
 
 interface MultipleRegressionSelectorProps extends VariableSelectorProps {
   /** Minimum number of independent variables (default: 1) */
@@ -31,12 +32,17 @@ export function MultipleRegressionSelector({
   onComplete,
   onBack,
   initialSelection,
-  title = 'Multiple Regression Variable Selection',
-  description = 'Select dependent (Y) and independent (X) variables',
+  title,
+  description,
   className,
   minIndependent = 1,
   maxIndependent = 10
 }: MultipleRegressionSelectorProps) {
+  // Terminology
+  const t = useTerminology()
+  const displayTitle = title ?? t.selectorUI.titles.multipleRegression
+  const displayDescription = description ?? t.selectorUI.descriptions.multipleRegression
+
   // State
   const [dependentVar, setDependentVar] = useState<string | null>(
     typeof initialSelection?.dependentVar === 'string' ? initialSelection.dependentVar : null
@@ -87,20 +93,20 @@ export function MultipleRegressionSelector({
     const errors: string[] = []
 
     if (!dependentVar) {
-      errors.push('Dependent variable (Y) is required')
+      errors.push(t.validation.dependentRequired)
     }
     if (independentVars.length < minIndependent) {
-      errors.push(`At least ${minIndependent} independent variable(s) required`)
+      errors.push(t.validation.independentRequired)
     }
     if (independentVars.length > maxIndependent) {
-      errors.push(`Maximum ${maxIndependent} independent variables allowed`)
+      errors.push(t.validation.maxVariablesExceeded(maxIndependent))
     }
 
     return {
       isValid: errors.length === 0,
       errors
     }
-  }, [dependentVar, independentVars, minIndependent, maxIndependent])
+  }, [dependentVar, independentVars, minIndependent, maxIndependent, t])
 
   // Toggle dependent
   const toggleDependent = useCallback((name: string) => {
@@ -148,8 +154,8 @@ export function MultipleRegressionSelector({
         <div className="flex items-center gap-3">
           <LineChart className="h-5 w-5 text-primary" />
           <div>
-            <h2 className="text-xl font-semibold">{title}</h2>
-            <p className="text-sm text-muted-foreground">{description}</p>
+            <h2 className="text-xl font-semibold">{displayTitle}</h2>
+            <p className="text-sm text-muted-foreground">{displayDescription}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -172,16 +178,16 @@ export function MultipleRegressionSelector({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 종속 변수 (Y) */}
+        {/* Dependent Variable (Y) */}
         <Card>
           <CardHeader className="pb-3 bg-green-50 dark:bg-green-950/30">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-base">종속 변수 (Y)</CardTitle>
+              <CardTitle className="text-base">{t.variables.dependent.title}</CardTitle>
               <span className="text-destructive">*</span>
               {dependentVar && <Badge variant="default" className="ml-auto">{dependentVar}</Badge>}
             </div>
             <CardDescription className="text-xs">
-              The outcome variable to predict
+              {t.variables.dependent.description}
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-4 max-h-64 overflow-y-auto">
@@ -217,18 +223,18 @@ export function MultipleRegressionSelector({
           </CardContent>
         </Card>
 
-        {/* 독립 변수 (X) */}
+        {/* Independent Variables (X) */}
         <Card>
           <CardHeader className="pb-3 bg-blue-50 dark:bg-blue-950/30">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-base">독립 변수 (X)</CardTitle>
+              <CardTitle className="text-base">{t.variables.independent.title}</CardTitle>
               <span className="text-destructive">*</span>
               <Badge variant="outline" className="ml-auto">
                 {independentVars.length} / {maxIndependent}
               </Badge>
             </div>
             <CardDescription className="text-xs">
-              Predictor variables (select {minIndependent}+)
+              {t.variables.independent.description}
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-4 max-h-64 overflow-y-auto">
@@ -310,8 +316,7 @@ export function MultipleRegressionSelector({
         <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-700 dark:text-green-300">
-            {independentVars.length === 1 ? 'Simple' : 'Multiple'} regression model ready.
-            {independentVars.length} predictor(s) selected.
+            {t.success.allVariablesSelected}
           </AlertDescription>
         </Alert>
       ) : validation.errors.length > 0 && (dependentVar || independentVars.length > 0) && (

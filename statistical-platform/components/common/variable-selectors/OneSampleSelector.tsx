@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils'
 import { analyzeDataset } from '@/lib/services/variable-type-detector'
 import { isRecord } from '@/lib/utils/type-guards'
 import type { VariableSelectorProps } from './types'
+import { useTerminology } from '@/hooks/use-terminology'
 
 interface OneSampleSelectorProps extends VariableSelectorProps {
   /** Default test value */
@@ -33,11 +34,16 @@ export function OneSampleSelector({
   onComplete,
   onBack,
   initialSelection,
-  title = '일표본 t-검정 변수 선택',
-  description = '검정할 변수와 기준값(μ₀)을 입력하세요',
+  title,
+  description,
   className,
   defaultTestValue = 0
 }: OneSampleSelectorProps) {
+  // Terminology
+  const t = useTerminology()
+  const displayTitle = title ?? t.selectorUI.titles.oneSample
+  const displayDescription = description ?? t.selectorUI.descriptions.oneSample
+
   const [selectedVar, setSelectedVar] = useState<string | null>(
     typeof initialSelection?.dependentVar === 'string' ? initialSelection.dependentVar : null
   )
@@ -82,10 +88,10 @@ export function OneSampleSelector({
 
   const validation = useMemo(() => {
     const errors: string[] = []
-    if (!selectedVar) errors.push('검정 변수를 선택하세요')
+    if (!selectedVar) errors.push(t.validation.dependentRequired)
     if (!isTestValueValid) errors.push('유효한 기준값을 입력하세요')
     return { isValid: errors.length === 0, errors }
-  }, [selectedVar, isTestValueValid])
+  }, [selectedVar, isTestValueValid, t])
 
   const handleSubmit = useCallback(() => {
     if (!validation.isValid || !selectedVar) return
@@ -111,9 +117,9 @@ export function OneSampleSelector({
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-blue-500" />
-            {title}
+            {displayTitle}
           </CardTitle>
-          <CardDescription>{description}</CardDescription>
+          <CardDescription>{displayDescription}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Variable Selection */}

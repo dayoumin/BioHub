@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils'
 import { analyzeDataset } from '@/lib/services/variable-type-detector'
 import { isRecord } from '@/lib/utils/type-guards'
 import type { VariableSelectorProps } from './types'
+import { useTerminology } from '@/hooks/use-terminology'
 
 interface CorrelationSelectorProps extends VariableSelectorProps {
   /** Minimum number of variables required (default: 2) */
@@ -30,12 +31,17 @@ export function CorrelationSelector({
   onComplete,
   onBack,
   initialSelection,
-  title = 'Correlation Variable Selection',
-  description = 'Select 2 or more numeric variables to analyze correlations',
+  title,
+  description,
   className,
   minVariables = 2,
   maxVariables = 10
 }: CorrelationSelectorProps) {
+  // Terminology
+  const t = useTerminology()
+  const displayTitle = title ?? t.selectorUI.titles.correlation
+  const displayDescription = description ?? t.selectorUI.descriptions.correlation
+
   // State - array of selected variables
   const [selectedVars, setSelectedVars] = useState<string[]>(
     initialSelection?.variables || []
@@ -69,17 +75,17 @@ export function CorrelationSelector({
     const errors: string[] = []
 
     if (selectedVars.length < minVariables) {
-      errors.push(`Select at least ${minVariables} variables`)
+      errors.push(t.validation.minVariablesRequired(minVariables))
     }
     if (selectedVars.length > maxVariables) {
-      errors.push(`Maximum ${maxVariables} variables allowed`)
+      errors.push(t.validation.maxVariablesExceeded(maxVariables))
     }
 
     return {
       isValid: errors.length === 0 && selectedVars.length >= minVariables,
       errors
     }
-  }, [selectedVars, minVariables, maxVariables])
+  }, [selectedVars, minVariables, maxVariables, t])
 
   // Toggle variable selection
   const toggleVariable = useCallback((name: string) => {
@@ -130,8 +136,8 @@ export function CorrelationSelector({
         <div className="flex items-center gap-3">
           <TrendingUp className="h-5 w-5 text-primary" />
           <div>
-            <h2 className="text-xl font-semibold">{title}</h2>
-            <p className="text-sm text-muted-foreground">{description}</p>
+            <h2 className="text-xl font-semibold">{displayTitle}</h2>
+            <p className="text-sm text-muted-foreground">{displayDescription}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -272,7 +278,7 @@ export function CorrelationSelector({
         <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-700 dark:text-green-300">
-            {selectedVars.length} variables selected. Ready for correlation analysis.
+            {t.success.allVariablesSelected}
           </AlertDescription>
         </Alert>
       ) : selectedVars.length > 0 && (

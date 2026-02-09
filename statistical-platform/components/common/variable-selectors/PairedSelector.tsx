@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils'
 import { analyzeDataset } from '@/lib/services/variable-type-detector'
 import { isRecord } from '@/lib/utils/type-guards'
 import type { VariableSelectorProps } from './types'
+import { useTerminology } from '@/hooks/use-terminology'
 
 interface PairedSelectorProps extends VariableSelectorProps {
   /** Labels for the two measurements */
@@ -30,11 +31,21 @@ export function PairedSelector({
   onComplete,
   onBack,
   initialSelection,
-  title = 'Paired Samples Variable Selection',
-  description = 'Select two related measurements to compare (e.g., before/after)',
+  title,
+  description,
   className,
-  labels = { first: 'Time 1 / Before', second: 'Time 2 / After' }
+  labels
 }: PairedSelectorProps) {
+  // Terminology
+  const t = useTerminology()
+  const displayTitle = title ?? t.selectorUI.titles.paired
+  const displayDescription = description ?? t.selectorUI.descriptions.paired
+  const defaultLabels = {
+    first: t.variables.pairedFirst.title,
+    second: t.variables.pairedSecond.title
+  }
+  const displayLabels = labels ?? defaultLabels
+
   // State
   const [var1, setVar1] = useState<string | null>(
     initialSelection?.variables?.[0] || null
@@ -71,15 +82,15 @@ export function PairedSelector({
   const validation = useMemo(() => {
     const errors: string[] = []
 
-    if (!var1) errors.push(`${labels.first} variable is required`)
-    if (!var2) errors.push(`${labels.second} variable is required`)
-    if (var1 && var2 && var1 === var2) errors.push('Please select two different variables')
+    if (!var1) errors.push(`${displayLabels.first} ${t.validation.dependentRequired.split(' ')[0]}`)
+    if (!var2) errors.push(`${displayLabels.second} ${t.validation.dependentRequired.split(' ')[0]}`)
+    if (var1 && var2 && var1 === var2) errors.push(t.validation.differentVariablesRequired)
 
     return {
       isValid: errors.length === 0 && var1 !== null && var2 !== null && var1 !== var2,
       errors
     }
-  }, [var1, var2, labels])
+  }, [var1, var2, displayLabels, t])
 
   // Toggle handlers
   const toggleVar1 = useCallback((name: string) => {
@@ -121,8 +132,8 @@ export function PairedSelector({
         <div className="flex items-center gap-3">
           <ArrowLeftRight className="h-5 w-5 text-primary" />
           <div>
-            <h2 className="text-xl font-semibold">{title}</h2>
-            <p className="text-sm text-muted-foreground">{description}</p>
+            <h2 className="text-xl font-semibold">{displayTitle}</h2>
+            <p className="text-sm text-muted-foreground">{displayDescription}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -149,7 +160,7 @@ export function PairedSelector({
         <Card>
           <CardHeader className="pb-3 bg-blue-50 dark:bg-blue-950/30">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-base">{labels.first}</CardTitle>
+              <CardTitle className="text-base">{displayLabels.first}</CardTitle>
               <span className="text-destructive">*</span>
               {var1 && <Badge variant="secondary" className="ml-auto">{var1}</Badge>}
             </div>
@@ -194,7 +205,7 @@ export function PairedSelector({
         <Card>
           <CardHeader className="pb-3 bg-orange-50 dark:bg-orange-950/30">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-base">{labels.second}</CardTitle>
+              <CardTitle className="text-base">{displayLabels.second}</CardTitle>
               <span className="text-destructive">*</span>
               {var2 && <Badge variant="secondary" className="ml-auto">{var2}</Badge>}
             </div>
@@ -268,7 +279,7 @@ export function PairedSelector({
         <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-700 dark:text-green-300">
-            Both variables selected. Ready for paired comparison.
+            {t.success.allVariablesSelected}
           </AlertDescription>
         </Alert>
       ) : validation.errors.length > 0 && (var1 || var2) && (
