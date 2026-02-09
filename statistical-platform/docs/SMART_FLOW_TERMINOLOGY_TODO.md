@@ -22,14 +22,14 @@
 
 ## 📝 남은 작업 (Step 5-7)
 
-### Step 5: Smart Flow Step 파일 수정 (3개 우선)
+### Step 5: Smart Flow Step 파일 수정 (3개 우선) ✅
 
-#### 5-1. PurposeInputStep.tsx ⏳
+#### 5-1. PurposeInputStep.tsx ✅
 **파일**: `components/smart-flow/steps/PurposeInputStep.tsx`
 **하드코딩 텍스트**:
-- [ ] Line 703: `title="분석 방법 선택"` → `t.smartFlow.stepTitles.purposeInput`
-- [ ] Line 714: `ariaLabel="분석 방법 선택 모드"` → (그대로 유지 또는 별도 키)
-- [ ] Line 916: `title="데이터 분석 중..."` → `t.smartFlow.statusMessages.analyzing`
+- [x] Line 703: `title="분석 방법 선택"` → `t.smartFlow.stepTitles.purposeInput`
+- [x] Line 714: `ariaLabel="분석 방법 선택 모드"` → (그대로 유지)
+- [x] Line 916: `title="데이터 분석 중..."` → `t.smartFlow.statusMessages.analyzing`
 
 **작업 순서**:
 1. useTerminology import 추가
@@ -41,11 +41,11 @@
 
 ---
 
-#### 5-2. AnalysisExecutionStep.tsx ⏳
+#### 5-2. AnalysisExecutionStep.tsx ✅
 **파일**: `components/smart-flow/steps/AnalysisExecutionStep.tsx`
 **하드코딩 텍스트**:
-- [ ] Line 354: `title="분석 실행"` → `t.smartFlow.stepTitles.analysisExecution`
-- [ ] Line 369: `title="분석이 완료되었습니다"` → `t.smartFlow.statusMessages.analysisComplete`
+- [x] Line 354: `title="분석 실행"` → `t.smartFlow.stepTitles.analysisExecution`
+- [x] Line 369: `title="분석이 완료되었습니다"` → `t.smartFlow.statusMessages.analysisComplete`
 
 **작업 순서**:
 1. useTerminology import 추가
@@ -57,12 +57,12 @@
 
 ---
 
-#### 5-3. DataExplorationStep.tsx ⏳
+#### 5-3. DataExplorationStep.tsx ✅
 **파일**: `components/smart-flow/steps/DataExplorationStep.tsx`
 **하드코딩 텍스트**:
-- [ ] Line 808: `title="데이터 탐색"` → `t.smartFlow.stepTitles.dataExploration`
-- [ ] Line 883: `title="데이터 탐색"` → (동일)
-- [ ] Line 951: `title="데이터 탐색"` → (동일)
+- [x] Line 808: `title="데이터 탐색"` → `t.smartFlow.stepTitles.dataExploration`
+- [x] Line 883: `title="데이터 탐색"` → (동일)
+- [x] Line 951: `title="데이터 탐색"` → (동일)
 
 **작업 순서**:
 1. useTerminology import 추가
@@ -125,17 +125,17 @@ pnpm dev
 | **Step 2** | Terminology 타입 추가 | ✅ 완료 | 10분 |
 | **Step 3** | aquaculture.ts 수정 | ✅ 완료 | 5분 |
 | **Step 4** | generic.ts 수정 | ✅ 완료 | 5분 |
-| **Step 5** | Step 파일 수정 (3개) | ⏳ 대기 | 30분 예상 |
+| **Step 5** | Step 파일 수정 (3개) | ✅ 완료 | 30분 |
 | **Step 6** | DomainSwitcher 배치 | ⏳ 대기 | 15분 예상 |
 | **Step 7** | 최종 검증 | ⏳ 대기 | 20분 예상 |
-| **총계** | | 30% 완료 | 1시간 35분 예상 |
+| **총계** | | 60% 완료 | 약 40분 남음 |
 
 ---
 
 ## 🎯 현재 중단점
 
-**현재 위치**: Step 4 완료
-**다음 작업**: Step 5-1 (PurposeInputStep.tsx 수정)
+**현재 위치**: Step 5 완료
+**다음 작업**: Step 6 (DomainSwitcher 헤더 배치)
 **커밋 준비**: ✅
 
 ---

@@ -710,6 +710,98 @@ export class StatisticalExecutor {
     method: StatisticalMethod,
     data: PreparedData
   ): Promise<AnalysisResult> {
+    // Two-way ANOVA는 별도 처리
+    if (method.id === 'two-way-anova') {
+      const groupVar = data.variables.group as string | undefined
+      const dependentVar = (data.variables.dependent as string[] | undefined)?.[0]
+      const rawData = data.data as Array<Record<string, unknown>>
+
+      if (!groupVar || !dependentVar || !rawData) {
+        throw new Error('이원 ANOVA를 위해 2개의 요인 변수와 종속 변수가 필요합니다')
+      }
+
+      // groupVar format: "factor1,factor2"
+      const factors = groupVar.split(',').map(f => f.trim())
+      if (factors.length !== 2) {
+        throw new Error(`이원 ANOVA를 위해 정확히 2개의 요인이 필요합니다 (현재: ${factors.length}개)`)
+      }
+
+      const [factor1Name, factor2Name] = factors
+
+      // 데이터 포맷팅: { factor1, factor2, value }[]
+      const formattedData = rawData
+        .map(row => {
+          const factor1Value = row[factor1Name]
+          const factor2Value = row[factor2Name]
+          const depValue = row[dependentVar]
+
+          if (factor1Value == null || factor2Value == null || depValue == null) return null
+
+          const numValue = typeof depValue === 'number' ? depValue : Number(depValue)
+          if (!Number.isFinite(numValue)) return null
+
+          return {
+            factor1: String(factor1Value),
+            factor2: String(factor2Value),
+            value: numValue
+          }
+        })
+        .filter((item): item is { factor1: string; factor2: string; value: number } => item !== null)
+
+      if (formattedData.length === 0) {
+        throw new Error('유효한 데이터가 없습니다. 모든 행이 null 또는 유효하지 않은 값입니다.')
+      }
+
+      const result = await pyodideStats.twoWayAnova(formattedData)
+
+      return {
+        metadata: {
+          method: method.id,
+          methodName: method.name,
+          timestamp: '',
+          duration: 0,
+          dataInfo: {
+            totalN: formattedData.length,
+            missingRemoved: rawData.length - formattedData.length,
+            groups: 0
+          }
+        },
+        mainResults: {
+          statistic: result.factor1.fStatistic,
+          pvalue: result.factor1.pValue,
+          df: result.factor1.df,
+          significant: result.factor1.pValue < 0.05,
+          interpretation: result.factor1.pValue < 0.05 ?
+            '주 효과 또는 상호작용 효과가 유의합니다' :
+            '주 효과 및 상호작용 효과가 유의하지 않습니다'
+        },
+        additionalInfo: {
+          factor1: {
+            name: factor1Name,
+            fStatistic: result.factor1.fStatistic,
+            pvalue: result.factor1.pValue,
+            df: result.factor1.df
+          },
+          factor2: {
+            name: factor2Name,
+            fStatistic: result.factor2.fStatistic,
+            pvalue: result.factor2.pValue,
+            df: result.factor2.df
+          },
+          interaction: {
+            fStatistic: result.interaction.fStatistic,
+            pvalue: result.interaction.pValue,
+            df: result.interaction.df
+          }
+        },
+        visualizationData: {
+          type: 'interaction-plot',
+          data: formattedData
+        },
+        rawResults: result
+      }
+    }
+
     const byGroup = data.arrays.byGroup || {}
     const groupNames = Object.keys(byGroup)
     const groups = Object.values(byGroup) as number[][]

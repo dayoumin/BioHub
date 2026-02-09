@@ -141,7 +141,8 @@ async function selectMethodDirect(page: Page, searchTerm: string, methodName: Re
   for (let i = 0; i < matchCount; i++) {
     const el = allMatches.nth(i)
     const text = await el.textContent() || ''
-    if (text.match(/\d+\s*$/) && text.includes('/')) continue
+    // 카테고리 skip: "회귀분석 6" 같은 형식 (끝에 공백+숫자)
+    if (text.match(/\s+\d+\s*$/)) continue
     if (text.includes('methods matching') || text.includes('Selected:')) continue
     if (await el.isVisible()) {
       await el.click()
