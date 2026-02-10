@@ -12,6 +12,61 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { SmartFlowLayout } from '@/components/smart-flow/layouts/SmartFlowLayout'
 
+// Mock Terminology hooks (TerminologyProvider 없이 테스트)
+vi.mock('@/hooks/use-terminology', () => ({
+  useTerminology: () => ({
+    domain: 'generic',
+    displayName: '범용 통계',
+    variables: {},
+    validation: {},
+    success: {},
+    selectorUI: {},
+    smartFlow: {
+      stepTitles: {},
+      statusMessages: {},
+      buttons: {},
+      resultSections: {},
+      stepShortLabels: { exploration: '탐색', method: '방법', variable: '변수', analysis: '분석' },
+      executionStages: {
+        prepare: { label: '', message: '' }, preprocess: { label: '', message: '' },
+        assumptions: { label: '', message: '' }, analysis: { label: '', message: '' },
+        additional: { label: '', message: '' }, finalize: { label: '', message: '' },
+      },
+      layout: {
+        appTitle: 'NIFS 통계 분석',
+        historyTitle: '분석 히스토리',
+        historyClose: '히스토리 닫기',
+        historyCount: (n: number) => `히스토리 (${n}개)`,
+        aiChatbot: 'AI 챗봇',
+        helpLabel: '도움말',
+        settingsLabel: '설정',
+        nextStep: '다음 단계',
+        analyzingDefault: '분석 중...',
+        dataSizeGuide: '데이터 크기 가이드',
+        currentLimits: '현재 제한사항',
+        memoryRecommendation: '메모리별 권장 크기',
+        detectedMemory: (gb: number) => `→ 감지된 메모리: ${gb}GB`,
+      },
+      execution: {
+        runningTitle: '', resumeButton: '', pauseButton: '', cancelButton: '',
+        pauseDisabledTooltip: '', cancelConfirm: '',
+        logSectionLabel: () => '', noLogs: '', dataRequired: '',
+      },
+    },
+    purposeInput: {
+      purposes: {}, inputModes: { aiRecommend: '', directSelect: '', modeAriaLabel: '' },
+      buttons: { back: '', allMethods: '', useThisMethod: '' },
+      labels: { selectionPrefix: '', directBadge: '', purposeHeading: '' },
+      messages: { purposeHelp: '', guidanceAlert: '' },
+    },
+  }),
+  useTerminologyContext: () => ({
+    dictionary: { domain: 'generic', displayName: '범용 통계' },
+    setDomain: vi.fn(),
+    currentDomain: 'generic',
+  }),
+}))
+
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),

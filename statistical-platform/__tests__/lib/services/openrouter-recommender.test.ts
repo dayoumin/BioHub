@@ -287,7 +287,8 @@ describe('OpenRouterRecommender', () => {
 
     it('topCategories가 범주형 변수 상세에 표시된다', () => {
       const context = recommender.buildDataContext(baseValidation)
-      expect(context).toContain('## 범주형 변수 상세')
+      // Markdown-KV 형식: ### species (범주형) 하위에 분포 표시
+      expect(context).toContain('species (범주형)')
       expect(context).toContain('setosa(50)')
       expect(context).toContain('versicolor(50)')
     })
@@ -318,7 +319,7 @@ describe('OpenRouterRecommender', () => {
       expect(context).not.toContain('STU001')
     })
 
-    it('모든 범주형이 ID이면 범주형 상세 섹션 자체가 없다', () => {
+    it('모든 범주형이 ID이면 topCategories 분포가 표시되지 않는다', () => {
       const validationAllId: ValidationResults = {
         ...baseValidation,
         columns: [
@@ -335,7 +336,8 @@ describe('OpenRouterRecommender', () => {
       }
 
       const context = recommender.buildDataContext(validationAllId)
-      expect(context).not.toContain('## 범주형 변수 상세')
+      // ID 컬럼의 topCategories 값은 제외
+      expect(context).not.toContain('ID001')
     })
 
     it('데이터가 없으면 안내 메시지 반환', () => {
@@ -343,7 +345,7 @@ describe('OpenRouterRecommender', () => {
       expect(context).toContain('데이터가 업로드되지 않았습니다')
     })
 
-    it('skewness가 없으면 "-"로 표시', () => {
+    it('skewness가 없으면 왜도 줄이 생략된다', () => {
       const noSkew: ValidationResults = {
         ...baseValidation,
         columns: [{
@@ -359,8 +361,9 @@ describe('OpenRouterRecommender', () => {
         } as ColumnStatistics]
       }
       const context = recommender.buildDataContext(noSkew)
-      // 왜도 열에 '-' 표시
-      expect(context).toMatch(/col1.*numeric.*-/)
+      // Markdown-KV 형식: skewness 없으면 왜도 줄 자체가 없음
+      expect(context).toContain('col1 (수치형)')
+      expect(context).not.toContain('왜도')
     })
 
     it('20개 초과 컬럼은 절단 메시지 표시', () => {

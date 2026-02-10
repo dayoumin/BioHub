@@ -26,6 +26,8 @@ export default defineConfig({
       '__tests__/rag/**',
       // WASM 로드 필요 (Node.js 환경 불가)
       '__tests__/integration/rag-sql-wasm.test.ts',
+      // 실제 OpenRouter API 호출 (API 키 필요 + 3분+ 소요)
+      '__tests__/integration/llm-recommendation.test.ts',
       'components/rag/__tests__/**',
       'lib/rag/__tests__/**',
       '__tests__/components/rag/**',

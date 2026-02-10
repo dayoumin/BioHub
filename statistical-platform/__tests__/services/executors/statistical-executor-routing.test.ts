@@ -53,6 +53,7 @@ vi.mock('@/lib/services/pyodide-statistics', () => ({
     // Chi-square methods (actual name)
     chiSquare: vi.fn().mockResolvedValue({ statistic: 12.5, pvalue: 0.002, df: 4, cramersV: 0.3 }),
     chiSquareTest: vi.fn().mockResolvedValue({ statistic: 12.5, pValue: 0.002, df: 4 }),
+    chiSquareIndependenceTest: vi.fn().mockResolvedValue({ statistic: 12.5, pValue: 0.002, df: 4, cramersV: 0.3 }),
     // Regression methods (actual name)
     regression: vi.fn().mockResolvedValue({ rSquared: 0.85, pvalue: 0.001, fStatistic: 45.2, df: 28, predictions: [] }),
     simpleLinearRegression: vi.fn().mockResolvedValue({ slope: 1.5, intercept: 2.0, rSquared: 0.85, pValue: 0.001 }),

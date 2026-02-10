@@ -17,6 +17,52 @@ import { ResultsActionStep } from '@/components/smart-flow/steps/ResultsActionSt
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import type { AnalysisResult } from '@/types/smart-flow'
 
+// Mock Terminology hooks (TerminologyProvider 없이 테스트)
+vi.mock('@/hooks/use-terminology', () => ({
+  useTerminology: () => ({
+    domain: 'generic',
+    displayName: '범용 통계',
+    variables: {},
+    validation: {},
+    success: {},
+    selectorUI: {},
+    smartFlow: {
+      stepTitles: {},
+      stepShortLabels: { exploration: '', method: '', variable: '', analysis: '' },
+      statusMessages: {},
+      buttons: {},
+      resultSections: { effectSizeDetail: 'Effect Size Details' },
+      executionStages: {
+        prepare: { label: '', message: '' }, preprocess: { label: '', message: '' },
+        assumptions: { label: '', message: '' }, analysis: { label: '', message: '' },
+        additional: { label: '', message: '' }, finalize: { label: '', message: '' },
+      },
+      layout: {
+        appTitle: '', historyTitle: '', historyClose: '',
+        historyCount: () => '', aiChatbot: '', helpLabel: '', settingsLabel: '',
+        nextStep: '', analyzingDefault: '', dataSizeGuide: '', currentLimits: '',
+        memoryRecommendation: '', detectedMemory: () => '',
+      },
+      execution: {
+        runningTitle: '', resumeButton: '', pauseButton: '', cancelButton: '',
+        pauseDisabledTooltip: '', cancelConfirm: '',
+        logSectionLabel: () => '', noLogs: '', dataRequired: '',
+      },
+    },
+    purposeInput: {
+      purposes: {}, inputModes: { aiRecommend: '', directSelect: '', modeAriaLabel: '' },
+      buttons: { back: '', allMethods: '', useThisMethod: '' },
+      labels: { selectionPrefix: '', directBadge: '', purposeHeading: '' },
+      messages: { purposeHelp: '', guidanceAlert: '' },
+    },
+  }),
+  useTerminologyContext: () => ({
+    dictionary: { domain: 'generic', displayName: '범용 통계' },
+    setDomain: vi.fn(),
+    currentDomain: 'generic',
+  }),
+}))
+
 // Mock sonner toast
 vi.mock('sonner', () => ({
   toast: {

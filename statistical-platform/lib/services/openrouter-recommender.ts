@@ -396,7 +396,9 @@ ${userInput}`
         } else if (col.type === 'categorical') {
           context += `\n### ${col.name} (범주형)\n`
           context += `- 카테고리 수: ${col.uniqueValues ?? '-'}\n`
-          if (col.topCategories?.length) {
+          // PII 필터: ID 컬럼의 topCategories는 제외 (개인정보 보호)
+          const isIdColumn = col.idDetection?.isId === true
+          if (col.topCategories?.length && !isIdColumn) {
             const cats = col.topCategories.slice(0, 6)
               .map(c => `${c.value}(${c.count})`).join(', ')
             context += `- 분포: ${cats}\n`

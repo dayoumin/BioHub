@@ -16,6 +16,58 @@ import { PurposeInputStep } from '@/components/smart-flow/steps/PurposeInputStep
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { useSettingsStore } from '@/lib/stores/settings-store'
 
+// Mock Terminology hooks (TerminologyProvider 없이 테스트)
+const mockPurpose = { title: 'Mock', description: 'Mock desc', examples: 'Mock ex' }
+vi.mock('@/hooks/use-terminology', () => ({
+    useTerminology: () => ({
+        domain: 'generic',
+        displayName: '범용 통계',
+        variables: {},
+        validation: {},
+        success: {},
+        selectorUI: {},
+        smartFlow: {
+            stepTitles: { purposeInput: '분석 방법 선택' },
+            stepShortLabels: { exploration: '', method: '', variable: '', analysis: '' },
+            statusMessages: { analyzing: 'Analyzing...' },
+            buttons: {},
+            resultSections: {},
+            executionStages: {
+                prepare: { label: '', message: '' }, preprocess: { label: '', message: '' },
+                assumptions: { label: '', message: '' }, analysis: { label: '', message: '' },
+                additional: { label: '', message: '' }, finalize: { label: '', message: '' },
+            },
+            layout: {
+                appTitle: '', historyTitle: '', historyClose: '',
+                historyCount: () => '', aiChatbot: '', helpLabel: '', settingsLabel: '',
+                nextStep: '', analyzingDefault: '', dataSizeGuide: '', currentLimits: '',
+                memoryRecommendation: '', detectedMemory: () => '',
+            },
+            execution: {
+                runningTitle: '', resumeButton: '', pauseButton: '', cancelButton: '',
+                pauseDisabledTooltip: '', cancelConfirm: '',
+                logSectionLabel: () => '', noLogs: '', dataRequired: '',
+            },
+        },
+        purposeInput: {
+            purposes: {
+                compare: mockPurpose, relationship: mockPurpose, distribution: mockPurpose,
+                prediction: mockPurpose, timeseries: mockPurpose, survival: mockPurpose,
+                multivariate: mockPurpose, utility: mockPurpose,
+            },
+            inputModes: { aiRecommend: 'AI 추천', directSelect: '직접 선택', modeAriaLabel: '분석 방법 선택 모드' },
+            buttons: { back: '뒤로', allMethods: '전체', useThisMethod: '선택' },
+            labels: { selectionPrefix: '선택:', directBadge: '직접', purposeHeading: '분석 목적' },
+            messages: { purposeHelp: '도움말', guidanceAlert: '안내' },
+        },
+    }),
+    useTerminologyContext: () => ({
+        dictionary: { domain: 'generic', displayName: '범용 통계' },
+        setDomain: vi.fn(),
+        currentDomain: 'generic',
+    }),
+}))
+
 vi.mock('@/lib/stores/smart-flow-store', () => ({
     useSmartFlowStore: vi.fn()
 }))
