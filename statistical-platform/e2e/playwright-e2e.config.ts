@@ -27,6 +27,7 @@ export default defineConfig({
     baseURL: process.env.E2E_BASE_URL || 'http://localhost:3005',
     headless: true,
     screenshot: 'only-on-failure',
+    serviceWorkers: 'block',
   },
 
   // Production 빌드 서버 자동 실행 (E2E_BASE_URL 미설정 시)

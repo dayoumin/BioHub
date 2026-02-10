@@ -301,10 +301,13 @@ async function mockOpenRouterAPI(page: Page, methodId: string, methodName: strin
     alternatives: [{ id: 'mann-whitney', name: 'Mann-Whitney U 검정', description: '비모수 대안' }]
   })
 
-  const sseBody = `data: {"id":"mock","choices":[{"delta":{"content":"${mockResponse.replace(/"/g, '\\"')}"}}]}\n\ndata: [DONE]\n\n`
+  const jsonBody = JSON.stringify({
+    id: 'mock',
+    choices: [{ message: { content: mockResponse } }]
+  })
 
-  await page.route('**/openrouter.ai/**', (route) => {
-    route.fulfill({ status: 200, contentType: 'text/event-stream', body: sseBody })
+  await page.route(/openrouter\.ai/, (route) => {
+    route.fulfill({ status: 200, contentType: 'application/json', body: jsonBody })
   })
   log('mockAPI', `mocked: ${methodId}`)
 }
@@ -588,11 +591,11 @@ test.describe('Smart Flow E2E - 추가 Variable Selectors', () => {
 test.describe('Smart Flow E2E - LLM 추천 방식', () => {
 
   test('독립표본 t-검정 (LLM 추천): 업로드 → AI 질문 → 추천 수락 → 분석 → 결과', async ({ page }) => {
-    await mockOpenRouterAPI(page, 't-test', '독립표본 t-검정')
-
     await navigateToUploadStep(page)
     expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
+
+    await mockOpenRouterAPI(page, 't-test', '독립표본 t-검정')
 
     await goToMethodSelection(page)
     expect(await selectMethodViaLLM(page, '두 그룹의 평균이 다른지 비교하고 싶어요')).toBeTruthy()
