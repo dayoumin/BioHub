@@ -18,10 +18,6 @@ import type {
   DataRow
 } from '@/types/smart-flow'
 import { logger } from '@/lib/utils/logger'
-import {
-  AnonymizationService,
-  ResponseDeanonymizer
-} from './anonymization'
 
 interface OllamaConfig {
   host: string
@@ -229,21 +225,10 @@ Categories:
     data: DataRow[]
   ): Promise<AIRecommendation | null> {
     try {
-      // ✅ 1단계: 익명화 수행
-      const anonymizationResult = AnonymizationService.anonymize(validationResults, 20)
-      const anonymizedValidation = anonymizationResult?.anonymized || validationResults
-      const mapping = anonymizationResult?.mapping
-
-      logger.info('[Ollama] Anonymization applied', {
-        hasMapping: !!mapping,
-        anonymizedVars: mapping?.variables.length || 0
-      })
-
-      // ✅ 프롬프트 구성 (assumptionResults 반영)
       const prompt = this.buildPromptWithAssumptions(
         purpose,
         assumptionResults,
-        anonymizedValidation,
+        validationResults,
         data
       )
 
@@ -281,14 +266,6 @@ Categories:
 
       const ollamaResponse: OllamaResponse = await response.json()
       let recommendation = this.parseOllamaResponse(ollamaResponse.response)
-
-      // ✅ 2단계: 응답 역변환 (익명화된 변수명 → 원본)
-      if (recommendation && mapping) {
-        recommendation = ResponseDeanonymizer.deanonymizeRecommendation(
-          recommendation,
-          mapping
-        )
-      }
 
       if (recommendation) {
         // 소규모 모델 경고 추가
@@ -629,19 +606,9 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
     data: DataRow[] | null
   ): Promise<{ recommendation: AIRecommendation | null; responseText: string }> {
     try {
-      // ✅ 1단계: 익명화 수행
-      const anonymizationResult = AnonymizationService.anonymize(validationResults, 20)
-      const anonymizedValidation = anonymizationResult?.anonymized || validationResults
-      const mapping = anonymizationResult?.mapping
-
-      logger.info('[Ollama] Anonymization applied', {
-        hasMapping: !!mapping,
-        anonymizedVars: mapping?.variables.length || 0
-      })
-
       const prompt = this.buildNaturalLanguagePrompt(
         userInput,
-        anonymizedValidation,
+        validationResults,
         assumptionResults,
         data
       )
@@ -687,18 +654,6 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
       let responseText = jsonMatch
         ? fullResponse.substring(0, fullResponse.indexOf(jsonMatch[0])).trim()
         : fullResponse
-
-      // ✅ 2단계: 응답 역변환 (익명화된 변수명 → 원본)
-      if (recommendation && mapping) {
-        recommendation = ResponseDeanonymizer.deanonymizeRecommendation(
-          recommendation,
-          mapping
-        )
-        responseText = ResponseDeanonymizer.deanonymizeText(
-          responseText,
-          mapping
-        )
-      }
 
       // 소규모 모델 경고 추가
       if (recommendation) {
