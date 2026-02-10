@@ -684,13 +684,15 @@ export const useSmartFlowStore = create<SmartFlowState>()(
       name: 'smart-flow-storage',
       // Fix 5-B: persist 버전 관리 (향후 스키마 변경 시 migration 경로 제공)
       version: 2,
-      migrate: (persistedState: unknown, version: number) => {
-        const state = persistedState as Record<string, unknown>
+      migrate: (persistedState, version) => {
+        const state = persistedState as Partial<SmartFlowState>
         if (version < 2) {
           // v1 → v2: detectedVariables에 independentVars, covariates 추가
           // suggestedSettings, purposeInputMode 필드 추가
           // 기존 값은 그대로 유지, 새 필드는 초기값으로
-          state.suggestedSettings = state.suggestedSettings ?? null
+          if (!('suggestedSettings' in state)) {
+            (state as Record<string, unknown>).suggestedSettings = null
+          }
         }
         return state as SmartFlowState
       },

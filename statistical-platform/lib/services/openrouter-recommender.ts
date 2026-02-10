@@ -143,10 +143,11 @@ export class OpenRouterRecommender {
         clearTimeout(timeoutId)
       }
     } catch {
-      // 네트워크 에러/타임아웃 — 낙관적으로 true (실제 요청 시 fallback)
-      this.healthCache = { isAvailable: true, timestamp: Date.now(), ttl: 1 * 60 * 1000 }
-      logger.warn('[OpenRouter] Health check network error, optimistically available')
-      return true
+      // R2-D: 네트워크 에러/타임아웃 → false 반환 (Ollama 등 로컬 fallback으로 빠르게 전환)
+      // 이전: 낙관적 true → 30초 x 3모델 = 최대 90초 대기 후 실패
+      this.healthCache = { isAvailable: false, timestamp: Date.now(), ttl: 1 * 60 * 1000 }
+      logger.warn('[OpenRouter] Health check network error, marking unavailable')
+      return false
     }
   }
 
@@ -295,7 +296,11 @@ export class OpenRouterRecommender {
    * DeepSeek R1 등의 reasoning_content에서 추론 과정 제거
    */
   private stripThinkingTags(content: string): string {
-    return content.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
+    // R2-A: 완전한 <think>...</think> 제거 + 닫히지 않은 <think>... (응답 잘림) 제거
+    return content
+      .replace(/<think>[\s\S]*?<\/think>/g, '')
+      .replace(/<think>[\s\S]*$/g, '')
+      .trim()
   }
 
   /**
@@ -327,9 +332,9 @@ export class OpenRouterRecommender {
       }
     }
 
-    // 밸런싱 실패 → fallback으로 greedy 매칭
-    const fallback = content.match(/\{[\s\S]*\}/)
-    return fallback ? fallback[0] : null
+    // R2-E: 밸런싱 실패 = 불완전 JSON → null 반환 (다음 모델로 fallback)
+    // greedy 매칭은 garbage 포함 가능하므로 사용하지 않음
+    return null
   }
 
   /**
@@ -687,17 +692,17 @@ ${userInput}`
     logger.info('[OpenRouter Stream] Trying model', { model })
 
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), this.config.timeout)
+    // R2-B: 타임아웃을 fetch + 스트림 읽기 전체에 적용 (영구 대기 방지)
+    const streamTimeout = this.config.timeout * 3 // 스트리밍은 fetch 대비 3배 여유
+    const timeoutId = setTimeout(() => controller.abort(), streamTimeout)
 
     // 외부 signal과 내부 timeout 병합
     if (signal) {
       signal.addEventListener('abort', () => controller.abort(), { once: true })
     }
 
-    // Fix 2-C: try/finally로 clearTimeout 보장
-    let response: Response
     try {
-      response = await fetch(`${this.config.baseUrl}/chat/completions`, {
+      const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -717,60 +722,59 @@ ${userInput}`
         }),
         signal: controller.signal
       })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error')
+        if (response.status === 401 || response.status === 403) {
+          this.healthCache = { isAvailable: false, timestamp: Date.now(), ttl: 5 * 60 * 1000 }
+        }
+        throw new Error(`API ${response.status}: ${errorText}`)
+      }
+
+      const reader = response.body?.getReader()
+      if (!reader) return null
+
+      const decoder = new TextDecoder()
+      let hasContent = false
+      let buffer = '' // SSE 불완전 라인 버퍼링 (TCP 패킷 경계 대응)
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() || '' // 마지막 불완전 라인 보관
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue
+            const data = line.slice(6).trim()
+            if (data === '[DONE]') continue
+
+            try {
+              const parsed = JSON.parse(data)
+              const delta = parsed.choices?.[0]?.delta?.content
+              if (delta) {
+                hasContent = true
+                onChunk(delta)
+              }
+            } catch {
+              // SSE 파싱 실패 무시
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock()
+      }
+
+      if (!hasContent) return null
+
+      logger.info('[OpenRouter Stream] Completed', { model })
+      return { model }
     } finally {
       clearTimeout(timeoutId)
     }
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error')
-      // Fix 2-B: 인증 실패 시 5분 캐시 (키가 바뀌지 않으므로 재시도 낭비 방지)
-      if (response.status === 401 || response.status === 403) {
-        this.healthCache = { isAvailable: false, timestamp: Date.now(), ttl: 5 * 60 * 1000 }
-      }
-      throw new Error(`API ${response.status}: ${errorText}`)
-    }
-
-    const reader = response.body?.getReader()
-    if (!reader) return null
-
-    const decoder = new TextDecoder()
-    let hasContent = false
-    let buffer = '' // SSE 불완전 라인 버퍼링 (TCP 패킷 경계 대응)
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || '' // 마지막 불완전 라인 보관
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          const data = line.slice(6).trim()
-          if (data === '[DONE]') continue
-
-          try {
-            const parsed = JSON.parse(data)
-            const delta = parsed.choices?.[0]?.delta?.content
-            if (delta) {
-              hasContent = true
-              onChunk(delta)
-            }
-          } catch {
-            // SSE 파싱 실패 무시
-          }
-        }
-      }
-    } finally {
-      reader.releaseLock()
-    }
-
-    if (!hasContent) return null
-
-    logger.info('[OpenRouter Stream] Completed', { model })
-    return { model }
   }
 
   /**
