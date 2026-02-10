@@ -205,6 +205,15 @@ Categories:
   }
 
   /**
+   * 로컬 모델 사용 시 정확도 경고 추가
+   */
+  private addModelSizeWarning(recommendation: AIRecommendation): AIRecommendation {
+    const warnings = recommendation.warnings || []
+    warnings.push('로컬 모델은 추천 정확도가 제한적입니다.')
+    return { ...recommendation, warnings }
+  }
+
+  /**
    * LLM 기반 AI 추천 (Phase 4-B)
    *
    * @param purpose - 분석 목적 (compare, relationship, distribution, prediction, timeseries)
@@ -282,6 +291,8 @@ Categories:
       }
 
       if (recommendation) {
+        // 소규모 모델 경고 추가
+        recommendation = this.addModelSizeWarning(recommendation)
         logger.info('[Ollama] Recommendation SUCCESS', {
           methodId: recommendation.method.id,
           confidence: recommendation.confidence
@@ -332,6 +343,27 @@ Categories:
       ? `Levene: p=${assumptionResults.homogeneity.levene.pValue !== undefined ? assumptionResults.homogeneity.levene.pValue.toFixed(3) : 'N/A'} (${assumptionResults.homogeneity.levene.equalVariance ? '등분산성 충족' : '등분산성 미충족'})`
       : '등분산성 검정 미실시'
 
+    // 변수 상세 통계 (Markdown-KV 형식)
+    let variableDetails = ''
+    const columns = (validationResults.columns || []).slice(0, 20)
+    for (const col of columns) {
+      if (col.type === 'numeric') {
+        variableDetails += `\n### ${col.name} (numeric)\n`
+        if (col.mean !== undefined) variableDetails += `- Mean: ${col.mean.toFixed(2)}\n`
+        if (col.std !== undefined) variableDetails += `- Std: ${col.std.toFixed(2)}\n`
+        if (col.min !== undefined && col.max !== undefined) variableDetails += `- Range: ${col.min.toFixed(2)} ~ ${col.max.toFixed(2)}\n`
+        if (col.skewness !== undefined) variableDetails += `- Skewness: ${col.skewness.toFixed(2)}\n`
+        variableDetails += `- Unique: ${col.uniqueValues ?? '-'}\n`
+      } else if (col.type === 'categorical') {
+        variableDetails += `\n### ${col.name} (categorical)\n`
+        variableDetails += `- Categories: ${col.uniqueValues ?? '-'}\n`
+        if (col.topCategories?.length) {
+          const cats = col.topCategories.slice(0, 6).map(c => `${c.value}(${c.count})`).join(', ')
+          variableDetails += `- Distribution: ${cats}\n`
+        }
+      }
+    }
+
     return `
 Analysis Purpose: ${purposeMap[purpose]}
 
@@ -339,7 +371,7 @@ Data Characteristics:
 - Sample size: ${n} rows
 - Numeric variables: ${numericVars}
 - Categorical variables: ${categoricalVars}
-
+${variableDetails}
 Statistical Assumption Test Results:
 - Normality: ${normalityInfo}
 - Homogeneity of Variance: ${homogeneityInfo}
@@ -554,13 +586,34 @@ Respond ONLY in valid JSON format (no extra text).
       }
     }
 
+    // 변수 상세 통계 (Markdown-KV 형식)
+    let variableDetails = ''
+    const displayCols = columns.slice(0, 20)
+    for (const col of displayCols) {
+      if (col.type === 'numeric') {
+        variableDetails += `\n### ${col.name} (수치형)\n`
+        if (col.mean !== undefined) variableDetails += `- 평균: ${col.mean.toFixed(2)}\n`
+        if (col.std !== undefined) variableDetails += `- 표준편차: ${col.std.toFixed(2)}\n`
+        if (col.min !== undefined && col.max !== undefined) variableDetails += `- 범위: ${col.min.toFixed(2)} ~ ${col.max.toFixed(2)}\n`
+        if (col.skewness !== undefined) variableDetails += `- 왜도: ${col.skewness.toFixed(2)}\n`
+        variableDetails += `- 고유값: ${col.uniqueValues ?? '-'}\n`
+      } else if (col.type === 'categorical') {
+        variableDetails += `\n### ${col.name} (범주형)\n`
+        variableDetails += `- 카테고리 수: ${col.uniqueValues ?? '-'}\n`
+        if (col.topCategories?.length) {
+          const cats = col.topCategories.slice(0, 6).map(c => `${c.value}(${c.count})`).join(', ')
+          variableDetails += `- 분포: ${cats}\n`
+        }
+      }
+    }
+
     return `사용자 질문: "${userInput}"
 
 데이터 정보:
 - 표본 크기: ${n}개
 - 수치형 변수 (${numericVars.length}개): ${numericVars.slice(0, 5).join(', ')}${numericVars.length > 5 ? '...' : ''}
 - 범주형 변수 (${categoricalVars.length}개): ${categoricalVars.slice(0, 5).join(', ')}${categoricalVars.length > 5 ? '...' : ''}
-
+${variableDetails}
 ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : '(가정 검정 결과 없음)'}
 
 위 정보를 바탕으로 가장 적합한 통계 방법을 추천해주세요.`
@@ -645,6 +698,11 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
           responseText,
           mapping
         )
+      }
+
+      // 소규모 모델 경고 추가
+      if (recommendation) {
+        recommendation = this.addModelSizeWarning(recommendation)
       }
 
       logger.info('[Ollama] Natural language recommendation SUCCESS', {

@@ -79,19 +79,19 @@ describe('[Scenario 5] 한글 변수명 케이스', () => {
     expect(anonymizedNames).toEqual(['Var1', 'Var2', 'Var3', 'Var4', 'Var5'])
   })
 
-  it('한글 범주값이 A, B로 익명화되어야 함', () => {
+  it('한글 범주값이 V{colIndex}_A, V{colIndex}_B 형식으로 익명화되어야 함', () => {
     const result = AnonymizationService.anonymize(mockKoreanData as ValidationResults, 20)
 
     const genderCol = result!.anonymized.columns!.find(c => c.name === 'Var2')
     expect(genderCol!.topCategories).toEqual([
-      { value: 'A', count: 45 },
-      { value: 'B', count: 35 }
+      { value: 'V2_A', count: 45 },
+      { value: 'V2_B', count: 35 }
     ])
 
     const smokingCol = result!.anonymized.columns!.find(c => c.name === 'Var5')
     expect(smokingCol!.topCategories).toEqual([
-      { value: 'A', count: 55 },
-      { value: 'B', count: 25 }
+      { value: 'V5_A', count: 55 },
+      { value: 'V5_B', count: 25 }
     ])
   })
 
@@ -118,23 +118,23 @@ describe('[Scenario 5] 한글 변수명 케이스', () => {
 
     expect(result!.mapping.categories['성별']).toEqual({
       original: ['남성', '여성'],
-      anonymized: ['A', 'B'],
-      mapping: { '남성': 'A', '여성': 'B' },
-      reverseMapping: { 'A': '남성', 'B': '여성' }
+      anonymized: ['V2_A', 'V2_B'],
+      mapping: { '남성': 'V2_A', '여성': 'V2_B' },
+      reverseMapping: { 'V2_A': '남성', 'V2_B': '여성' }
     })
 
     expect(result!.mapping.categories['흡연여부']).toEqual({
       original: ['비흡연', '흡연'],
-      anonymized: ['A', 'B'],
-      mapping: { '비흡연': 'A', '흡연': 'B' },
-      reverseMapping: { 'A': '비흡연', 'B': '흡연' }
+      anonymized: ['V5_A', 'V5_B'],
+      mapping: { '비흡연': 'V5_A', '흡연': 'V5_B' },
+      reverseMapping: { 'V5_A': '비흡연', 'V5_B': '흡연' }
     })
   })
 
   it('한글 텍스트 역변환이 정확해야 함', () => {
     const result = AnonymizationService.anonymize(mockKoreanData as ValidationResults, 20)
 
-    const text = 'Var1과 Var2 간의 관계를 분석합니다. GroupA는 GroupB보다 높습니다.'
+    const text = 'Var1과 Var2 간의 관계를 분석합니다. V2_A는 V2_B보다 높습니다.'
     const deanonymized = AnonymizationService.deanonymizeText(text, result!.mapping)
 
     expect(deanonymized).toBe('나이과 성별 간의 관계를 분석합니다. 남성는 여성보다 높습니다.')
@@ -146,9 +146,9 @@ describe('[Scenario 5] 한글 변수명 케이스', () => {
     const text = `
 분석 결과 요약:
 - Var1의 평균은 42.5세입니다.
-- Var2에서 GroupA가 45명, GroupB가 35명입니다.
+- Var2에서 V2_A가 45명, V2_B가 35명입니다.
 - Var3와 Var4는 양의 상관관계를 보입니다.
-- Var5에서 GroupA가 대다수를 차지합니다.
+- Var5에서 V5_A가 대다수를 차지합니다.
     `.trim()
 
     const deanonymized = AnonymizationService.deanonymizeText(text, result!.mapping)
@@ -171,7 +171,7 @@ describe('[Scenario 5] 한글 변수명 케이스', () => {
       },
       confidence: 0.85,
       reasoning: [
-        'Var2는 2개 그룹(GroupA, GroupB)으로 나뉩니다.',
+        'Var2는 2개 그룹(V2_A, V2_B)으로 나뉩니다.',
         'Var3는 정규분포를 따릅니다.',
         'Var1과 Var5는 공변량으로 사용 가능합니다.'
       ],
@@ -201,8 +201,8 @@ describe('[Scenario 5] 한글 변수명 케이스', () => {
   it('한글 범주값 역변환', () => {
     const result = AnonymizationService.anonymize(mockKoreanData as ValidationResults, 20)
 
-    expect(AnonymizationService.deanonymizeCategory('성별', 'A', result!.mapping)).toBe('남성')
-    expect(AnonymizationService.deanonymizeCategory('성별', 'B', result!.mapping)).toBe('여성')
-    expect(AnonymizationService.deanonymizeCategory('흡연여부', 'A', result!.mapping)).toBe('비흡연')
+    expect(AnonymizationService.deanonymizeCategory('성별', 'V2_A', result!.mapping)).toBe('남성')
+    expect(AnonymizationService.deanonymizeCategory('성별', 'V2_B', result!.mapping)).toBe('여성')
+    expect(AnonymizationService.deanonymizeCategory('흡연여부', 'V5_A', result!.mapping)).toBe('비흡연')
   })
 })

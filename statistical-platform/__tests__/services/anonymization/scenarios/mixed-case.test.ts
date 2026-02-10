@@ -129,24 +129,24 @@ describe('[Scenario 7] 혼합 케이스 (통합)', () => {
   it('한글과 영문 범주값이 모두 익명화되어야 함', () => {
     const result = AnonymizationService.anonymize(mockMixedData as ValidationResults, 20)
 
-    // 한글 범주형 (성별)
+    // 한글 범주형 (성별) - selectedColumns에서 index 2 → colIndex=3
     const genderMapping = result!.mapping.categories['성별']
     expect(genderMapping.mapping).toEqual({
-      '남성': 'A',
-      '여성': 'B'
+      '남성': 'V3_A',
+      '여성': 'V3_B'
     })
 
-    // 영문 범주형 (smoking_status)
+    // 영문 범주형 (smoking_status) - selectedColumns에서 index 3 → colIndex=4
     const smokingMapping = result!.mapping.categories['smoking_status']
     expect(smokingMapping.mapping).toEqual({
-      'Never': 'A',
-      'Former': 'B',
-      'Current': 'C'
+      'Never': 'V4_A',
+      'Former': 'V4_B',
+      'Current': 'V4_C'
     })
 
-    // 영문 범주형 (region)
+    // 영문 범주형 (region) - selectedColumns에서 index 5 → colIndex=6
     const regionMapping = result!.mapping.categories['region']
-    expect(regionMapping.anonymized).toEqual(['A', 'B', 'C', 'D', 'E'])
+    expect(regionMapping.anonymized).toEqual(['V6_A', 'V6_B', 'V6_C', 'V6_D', 'V6_E'])
   })
 
   it('복잡한 혼합 텍스트 역변환', () => {
@@ -161,9 +161,9 @@ describe('[Scenario 7] 혼합 케이스 (통합)', () => {
 - Var5의 평균: 24.8
 
 ### 범주형 분포
-- Var3: GroupA 80명, GroupB 70명
-- Var4: GroupA 70명, GroupB 50명, GroupC 30명
-- Var6: GroupA가 가장 많음 (40명)
+- Var3: V3_A 80명, V3_B 70명
+- Var4: V4_A 70명, V4_B 50명, V4_C 30명
+- Var6: V6_A가 가장 많음 (40명)
 
 ### 추천 분석
 Var2를 종속변수로, Var3를 독립변수로 사용하여 독립표본 t-test를 수행합니다.
@@ -195,9 +195,9 @@ Var4와 Var6는 공변량으로 고려할 수 있습니다.
       confidence: 0.92,
       reasoning: [
         'Var2는 정규분포를 따릅니다.',
-        'Var3는 2개 그룹(GroupA, GroupB)으로 나뉩니다.',
+        'Var3는 2개 그룹(V3_A, V3_B)으로 나뉩니다.',
         'Var1은 연속형 공변량으로 적합합니다.',
-        'Var4(GroupA, GroupB, GroupC)와 Var6(GroupA-E)도 고려 가능합니다.'
+        'Var4(V4_A, V4_B, V4_C)와 Var6(V6_A-E)도 고려 가능합니다.'
       ],
       assumptions: [
         { name: 'Var2 정규성', passed: true, pValue: 0.234 },

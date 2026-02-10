@@ -404,38 +404,42 @@ ${userInput}`
 - 수치형 변수 (${numericCols.length}개): ${numericCols.slice(0, 10).map((c: ColumnStatistics) => c.name).join(', ')}${numericCols.length > 10 ? ` 외 ${numericCols.length - 10}개` : ''}
 - 범주형 변수 (${categoricalCols.length}개): ${categoricalCols.slice(0, 10).map((c: ColumnStatistics) => c.name).join(', ')}${categoricalCols.length > 10 ? ` 외 ${categoricalCols.length - 10}개` : ''}`
 
-    // 변수 상세 통계 (최대 20개)
+    // 변수 상세 통계 (최대 20개, Markdown-KV 형식 — LLM 이해도 최적)
     const displayColumns = columns.slice(0, 20)
     if (displayColumns.length > 0) {
       context += '\n\n## 변수 상세 통계\n'
-      context += '| 변수명 | 타입 | 평균 | 표준편차 | 최솟값 | 최댓값 | 왜도 | 고유값 | 결측 |\n'
-      context += '|--------|------|------|---------|--------|--------|------|--------|------|\n'
 
       for (const col of displayColumns) {
-        const mean = col.mean !== undefined ? col.mean.toFixed(2) : '-'
-        const std = col.std !== undefined ? col.std.toFixed(2) : '-'
-        const min = col.min !== undefined ? col.min.toFixed(2) : '-'
-        const max = col.max !== undefined ? col.max.toFixed(2) : '-'
-        const skewness = col.skewness !== undefined ? col.skewness.toFixed(2) : '-'
-        context += `| ${col.name} | ${col.type} | ${mean} | ${std} | ${min} | ${max} | ${skewness} | ${col.uniqueValues ?? '-'} | ${col.missingCount ?? 0} |\n`
+        if (col.type === 'numeric') {
+          context += `\n### ${col.name} (수치형)\n`
+          if (col.mean !== undefined) context += `- 평균: ${col.mean.toFixed(2)}\n`
+          if (col.std !== undefined) context += `- 표준편차: ${col.std.toFixed(2)}\n`
+          if (col.min !== undefined && col.max !== undefined) context += `- 범위: ${col.min.toFixed(2)} ~ ${col.max.toFixed(2)}\n`
+          if (col.median !== undefined) context += `- 중앙값: ${col.median.toFixed(2)}\n`
+          if (col.skewness !== undefined) context += `- 왜도: ${col.skewness.toFixed(2)}\n`
+          if (col.kurtosis !== undefined) context += `- 첨도: ${col.kurtosis.toFixed(2)}\n`
+          context += `- 고유값: ${col.uniqueValues ?? '-'}\n`
+          if (col.missingCount) context += `- 결측: ${col.missingCount}\n`
+          if (col.outliers?.length) context += `- 이상치: ${col.outliers.length}개\n`
+        } else if (col.type === 'categorical') {
+          context += `\n### ${col.name} (범주형)\n`
+          context += `- 카테고리 수: ${col.uniqueValues ?? '-'}\n`
+          if (col.topCategories?.length) {
+            const cats = col.topCategories.slice(0, 6)
+              .map(c => `${c.value}(${c.count})`).join(', ')
+            context += `- 분포: ${cats}\n`
+          }
+          if (col.missingCount) context += `- 결측: ${col.missingCount}\n`
+        } else {
+          context += `\n### ${col.name} (혼합형)\n`
+          context += `- 수치값: ${col.numericCount}개, 텍스트: ${col.textCount}개\n`
+          context += `- 고유값: ${col.uniqueValues ?? '-'}\n`
+          if (col.missingCount) context += `- 결측: ${col.missingCount}\n`
+        }
       }
 
       if (columns.length > 20) {
         context += `\n(외 ${columns.length - 20}개 변수 생략)`
-      }
-    }
-
-    // 범주형 변수 상세 (topCategories) — ID 컬럼 제외 후 필터
-    const categoricalWithTop = categoricalCols
-      .filter((c: ColumnStatistics) => c.topCategories?.length && !c.idDetection?.isId)
-      .slice(0, 10)
-
-    if (categoricalWithTop.length > 0) {
-      context += '\n\n## 범주형 변수 상세\n'
-      for (const col of categoricalWithTop) {
-        const cats = col.topCategories!.slice(0, 6)
-          .map(c => `${c.value}(${c.count})`).join(', ')
-        context += `- ${col.name}: ${cats}\n`
       }
     }
 

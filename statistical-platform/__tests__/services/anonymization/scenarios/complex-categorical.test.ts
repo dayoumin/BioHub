@@ -77,53 +77,53 @@ describe('[Scenario 6] 복잡한 범주형 케이스', () => {
     expect(regionCol!.type).toBe('categorical')
     expect(regionCol!.topCategories).toHaveLength(6)
 
-    // 지역명이 A, B, C, D, E, F로 익명화
-    expect(regionCol!.topCategories![0].value).toBe('A')
-    expect(regionCol!.topCategories![5].value).toBe('F')
+    // 지역명이 V1_A, V1_B, V1_C, V1_D, V1_E, V1_F로 익명화
+    expect(regionCol!.topCategories![0].value).toBe('V1_A')
+    expect(regionCol!.topCategories![5].value).toBe('V1_F')
   })
 
   it('많은 카테고리도 알파벳으로 익명화되어야 함', () => {
     const result = AnonymizationService.anonymize(mockComplexCategorical as ValidationResults, 20)
 
-    // 지역: 6개 카테고리 → A, B, C, D, E, F
+    // 지역: 6개 카테고리 → V1_A, V1_B, V1_C, V1_D, V1_E, V1_F
     const regionMapping = result!.mapping.categories['지역']
-    expect(regionMapping.anonymized).toEqual(['A', 'B', 'C', 'D', 'E', 'F'])
+    expect(regionMapping.anonymized).toEqual(['V1_A', 'V1_B', 'V1_C', 'V1_D', 'V1_E', 'V1_F'])
     expect(regionMapping.mapping).toEqual({
-      '서울': 'A',
-      '부산': 'B',
-      '대구': 'C',
-      '인천': 'D',
-      '광주': 'E',
-      '대전': 'F'
+      '서울': 'V1_A',
+      '부산': 'V1_B',
+      '대구': 'V1_C',
+      '인천': 'V1_D',
+      '광주': 'V1_E',
+      '대전': 'V1_F'
     })
 
-    // 부서: 5개 카테고리 → A, B, C, D, E
+    // 부서: 5개 카테고리 → V2_A, V2_B, V2_C, V2_D, V2_E
     const deptMapping = result!.mapping.categories['부서']
-    expect(deptMapping.anonymized).toEqual(['A', 'B', 'C', 'D', 'E'])
+    expect(deptMapping.anonymized).toEqual(['V2_A', 'V2_B', 'V2_C', 'V2_D', 'V2_E'])
 
-    // 직급: 5개 카테고리 → A, B, C, D, E
+    // 직급: 5개 카테고리 → V3_A, V3_B, V3_C, V3_D, V3_E
     const rankMapping = result!.mapping.categories['직급']
-    expect(rankMapping.anonymized).toEqual(['A', 'B', 'C', 'D', 'E'])
+    expect(rankMapping.anonymized).toEqual(['V3_A', 'V3_B', 'V3_C', 'V3_D', 'V3_E'])
   })
 
   it('범주 빈도는 보존되어야 함', () => {
     const result = AnonymizationService.anonymize(mockComplexCategorical as ValidationResults, 20)
 
     const regionCol = result!.anonymized.columns!.find(c => c.name === 'Var1')
-    expect(regionCol!.topCategories![0]).toEqual({ value: 'A', count: 45 }) // 서울 45명
-    expect(regionCol!.topCategories![1]).toEqual({ value: 'B', count: 30 }) // 부산 30명
+    expect(regionCol!.topCategories![0]).toEqual({ value: 'V1_A', count: 45 }) // 서울 45명
+    expect(regionCol!.topCategories![1]).toEqual({ value: 'V1_B', count: 30 }) // 부산 30명
 
     const deptCol = result!.anonymized.columns!.find(c => c.name === 'Var2')
-    expect(deptCol!.topCategories![0]).toEqual({ value: 'A', count: 40 }) // 영업부 40명
+    expect(deptCol!.topCategories![0]).toEqual({ value: 'V2_A', count: 40 }) // 영업부 40명
   })
 
   it('복잡한 텍스트 역변환', () => {
     const result = AnonymizationService.anonymize(mockComplexCategorical as ValidationResults, 20)
 
     const text = `
-Var1에서 GroupA가 가장 많고(45명), GroupB가 그 다음(30명)입니다.
-Var2에서 GroupA와 GroupB가 주요 그룹입니다.
-Var3에서 GroupA가 80명으로 가장 많습니다.
+Var1에서 V1_A가 가장 많고(45명), V1_B가 그 다음(30명)입니다.
+Var2에서 V2_A와 V2_B가 주요 그룹입니다.
+Var3에서 V3_A가 80명으로 가장 많습니다.
 Var4는 Var3와 상관관계가 있습니다.
     `.trim()
 
@@ -141,8 +141,8 @@ Var4는 Var3와 상관관계가 있습니다.
 
     const regionMapping = result!.mapping.categories['지역']
     expect(regionMapping.anonymized.length).toBe(6)
-    expect(regionMapping.anonymized[0]).toBe('A')
-    expect(regionMapping.anonymized[5]).toBe('F')
+    expect(regionMapping.anonymized[0]).toBe('V1_A')
+    expect(regionMapping.anonymized[5]).toBe('V1_F')
   })
 
   it('수치형 변수는 정상적으로 처리되어야 함', () => {
@@ -157,13 +157,13 @@ Var4는 Var3와 상관관계가 있습니다.
   it('여러 범주형 변수의 동일한 알파벳 코드는 다른 의미임', () => {
     const result = AnonymizationService.anonymize(mockComplexCategorical as ValidationResults, 20)
 
-    // 'A'가 각 변수마다 다른 의미
-    // Var1 (지역)의 A = 서울
-    // Var2 (부서)의 A = 영업부
-    // Var3 (직급)의 A = 사원
+    // 각 변수마다 고유한 접두사 사용
+    // Var1 (지역)의 V1_A = 서울
+    // Var2 (부서)의 V2_A = 영업부
+    // Var3 (직급)의 V3_A = 사원
 
-    expect(result!.mapping.categories['지역'].mapping['서울']).toBe('A')
-    expect(result!.mapping.categories['부서'].mapping['영업부']).toBe('A')
-    expect(result!.mapping.categories['직급'].mapping['사원']).toBe('A')
+    expect(result!.mapping.categories['지역'].mapping['서울']).toBe('V1_A')
+    expect(result!.mapping.categories['부서'].mapping['영업부']).toBe('V2_A')
+    expect(result!.mapping.categories['직급'].mapping['사원']).toBe('V3_A')
   })
 })

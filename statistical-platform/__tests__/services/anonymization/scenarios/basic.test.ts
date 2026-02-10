@@ -80,22 +80,22 @@ describe('[Scenario 1] 기본 케이스 - 수치형 + 범주형', () => {
     expect(anonymizedNames).toEqual(['Var1', 'Var2', 'Var3', 'Var4', 'Var5'])
   })
 
-  it('범주형 값이 A, B, C로 익명화되어야 함', () => {
+  it('범주형 값이 V{colIndex}_A, V{colIndex}_B 형식으로 익명화되어야 함', () => {
     const result = AnonymizationService.anonymize(mockValidationResults as ValidationResults, 20)
 
     const genderCol = result!.anonymized.columns!.find(c => c.name === 'Var4')
     expect(genderCol).toBeDefined()
     expect(genderCol!.topCategories).toEqual([
-      { value: 'A', count: 55 },
-      { value: 'B', count: 45 }
+      { value: 'V4_A', count: 55 },
+      { value: 'V4_B', count: 45 }
     ])
 
     const groupCol = result!.anonymized.columns!.find(c => c.name === 'Var5')
     expect(groupCol).toBeDefined()
     expect(groupCol!.topCategories).toEqual([
-      { value: 'A', count: 35 },
-      { value: 'B', count: 30 },
-      { value: 'C', count: 35 }
+      { value: 'V5_A', count: 35 },
+      { value: 'V5_B', count: 30 },
+      { value: 'V5_C', count: 35 }
     ])
   })
 
@@ -112,9 +112,9 @@ describe('[Scenario 1] 기본 케이스 - 수치형 + 범주형', () => {
 
     expect(result!.mapping.categories['gender']).toEqual({
       original: ['Male', 'Female'],
-      anonymized: ['A', 'B'],
-      mapping: { 'Male': 'A', 'Female': 'B' },
-      reverseMapping: { 'A': 'Male', 'B': 'Female' }
+      anonymized: ['V4_A', 'V4_B'],
+      mapping: { 'Male': 'V4_A', 'Female': 'V4_B' },
+      reverseMapping: { 'V4_A': 'Male', 'V4_B': 'Female' }
     })
   })
 
@@ -131,20 +131,20 @@ describe('[Scenario 1] 기본 케이스 - 수치형 + 범주형', () => {
   it('범주값 역변환이 정확해야 함', () => {
     const result = AnonymizationService.anonymize(mockValidationResults as ValidationResults, 20)
 
-    const original = AnonymizationService.deanonymizeCategory('gender', 'A', result!.mapping)
+    const original = AnonymizationService.deanonymizeCategory('gender', 'V4_A', result!.mapping)
     expect(original).toBe('Male')
 
-    const original2 = AnonymizationService.deanonymizeCategory('group', 'C', result!.mapping)
+    const original2 = AnonymizationService.deanonymizeCategory('group', 'V5_C', result!.mapping)
     expect(original2).toBe('Treatment B')
   })
 
   it('텍스트 역변환이 정확해야 함', () => {
     const result = AnonymizationService.anonymize(mockValidationResults as ValidationResults, 20)
 
-    const text = 'Var1과 Var4 간의 관계를 분석합니다. GroupA와 GroupB를 비교합니다.'
+    const text = 'Var1과 Var4 간의 관계를 분석합니다. V4_A와 V4_B를 비교합니다.'
     const deanonymized = AnonymizationService.deanonymizeText(text, result!.mapping)
 
-    expect(deanonymized).toBe('age과 gender 간의 관계를 분석합니다. Control와 Treatment A를 비교합니다.')
+    expect(deanonymized).toBe('age과 gender 간의 관계를 분석합니다. Male와 Female를 비교합니다.')
   })
 
   it('AI 추천 결과 역변환이 정확해야 함', () => {
@@ -161,7 +161,7 @@ describe('[Scenario 1] 기본 케이스 - 수치형 + 범주형', () => {
       reasoning: [
         'Var1은 정규분포를 따름',
         'Var4는 2개 그룹을 가짐',
-        'GroupA와 GroupB 비교 가능'
+        'V4_A와 V4_B 비교 가능'
       ],
       assumptions: [
         { name: 'Var1 정규성', passed: true, pValue: 0.123 }

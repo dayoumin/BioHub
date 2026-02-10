@@ -88,13 +88,13 @@ describe('[Scenario 2] 민감 정보 케이스', () => {
     expect(hospitalCol).toBeDefined()
     expect(hospitalCol!.type).toBe('categorical')
 
-    // 병원명이 A, B, C, D, E로 익명화됨
+    // 병원명이 V1_A, V1_B, V1_C, V1_D, V1_E로 익명화됨 (selectedColumns에서 index 0 → colIndex=1)
     expect(hospitalCol!.topCategories).toEqual([
-      { value: 'A', count: 15 },
-      { value: 'B', count: 12 },
-      { value: 'C', count: 10 },
-      { value: 'D', count: 8 },
-      { value: 'E', count: 5 }
+      { value: 'V1_A', count: 15 },
+      { value: 'V1_B', count: 12 },
+      { value: 'V1_C', count: 10 },
+      { value: 'V1_D', count: 8 },
+      { value: 'V1_E', count: 5 }
     ])
   })
 
@@ -112,18 +112,18 @@ describe('[Scenario 2] 민감 정보 케이스', () => {
     const hospitalMapping = result!.mapping.categories['병원명']
     expect(hospitalMapping).toBeDefined()
     expect(hospitalMapping.mapping).toEqual({
-      '서울대병원': 'A',
-      '삼성서울병원': 'B',
-      '세브란스병원': 'C',
-      '아산병원': 'D',
-      '서울성모병원': 'E'
+      '서울대병원': 'V1_A',
+      '삼성서울병원': 'V1_B',
+      '세브란스병원': 'V1_C',
+      '아산병원': 'V1_D',
+      '서울성모병원': 'V1_E'
     })
   })
 
   it('역변환 시 병원명이 복원되어야 함', () => {
     const result = AnonymizationService.anonymize(mockSensitiveData as ValidationResults, 20)
 
-    const text = 'Var1에서 GroupA가 가장 많습니다.'
+    const text = 'Var1에서 V1_A가 가장 많습니다.'
     const deanonymized = AnonymizationService.deanonymizeText(text, result!.mapping)
 
     expect(deanonymized).toBe('병원명에서 서울대병원가 가장 많습니다.')

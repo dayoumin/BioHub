@@ -1,7 +1,7 @@
 /**
  * LLM 응답 역변환 서비스
  *
- * 익명화된 변수명(Var1, Var2)과 범주값(A, B)을
+ * 익명화된 변수명(Var1, Var2)과 범주값(V1_A, V1_B)을
  * 원본 변수명과 값으로 복원
  */
 
@@ -49,6 +49,26 @@ export class ResponseDeanonymizer {
       name: AnonymizationService.deanonymizeText(assumption.name, mapping)
     }))
 
+    // 5. variableAssignments 복원 (Var1 → 원본 변수명)
+    const deanonymizedAssignments = recommendation.variableAssignments
+      ? this.deanonymizeVariableAssignments(recommendation.variableAssignments, mapping)
+      : undefined
+
+    // 6. warnings 복원
+    const deanonymizedWarnings = recommendation.warnings?.map(w =>
+      AnonymizationService.deanonymizeText(w, mapping)
+    )
+
+    // 7. dataPreprocessing 복원
+    const deanonymizedPreprocessing = recommendation.dataPreprocessing?.map(p =>
+      AnonymizationService.deanonymizeText(p, mapping)
+    )
+
+    // 8. ambiguityNote 복원
+    const deanonymizedAmbiguityNote = recommendation.ambiguityNote
+      ? AnonymizationService.deanonymizeText(recommendation.ambiguityNote, mapping)
+      : undefined
+
     const result: AIRecommendation = {
       ...recommendation,
       method: {
@@ -57,7 +77,11 @@ export class ResponseDeanonymizer {
       },
       reasoning: deanonymizedReasoning,
       alternatives: deanonymizedAlternatives,
-      assumptions: deanonymizedAssumptions
+      assumptions: deanonymizedAssumptions,
+      variableAssignments: deanonymizedAssignments,
+      warnings: deanonymizedWarnings,
+      dataPreprocessing: deanonymizedPreprocessing,
+      ambiguityNote: deanonymizedAmbiguityNote
     }
 
     logger.info('[Deanonymizer] Recommendation restored', {
@@ -66,6 +90,33 @@ export class ResponseDeanonymizer {
     })
 
     return result
+  }
+
+  /**
+   * variableAssignments 역변환 (Var1, Var2 → 원본 변수명)
+   */
+  private static deanonymizeVariableAssignments(
+    assignments: NonNullable<AIRecommendation['variableAssignments']>,
+    mapping: AnonymizationMapping
+  ): AIRecommendation['variableAssignments'] {
+    const reverseMap = new Map<string, string>()
+    for (const v of mapping.variables) {
+      reverseMap.set(v.anonymized, v.original)
+    }
+
+    const restore = (names?: string[]): string[] | undefined => {
+      if (!names) return undefined
+      return names.map(n => reverseMap.get(n) ?? n)
+    }
+
+    return {
+      dependent: restore(assignments.dependent),
+      independent: restore(assignments.independent),
+      factor: restore(assignments.factor),
+      covariate: restore(assignments.covariate),
+      within: restore(assignments.within),
+      between: restore(assignments.between)
+    }
   }
 
   /**
@@ -92,7 +143,7 @@ export class ResponseDeanonymizer {
    */
   static validateDeanonymization(
     original: string,
-    anonymized: string,
+    _anonymized: string,
     deanonymized: string
   ): {
     isValid: boolean

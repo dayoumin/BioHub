@@ -8,7 +8,7 @@
  *
  * 전략:
  * - 변수명: Var1, Var2, Var3, ...
- * - 범주값: CategoryA, CategoryB, CategoryC, ...
+ * - 범주값: V1_A, V1_B, V2_A, V2_B, ... (변수 접두사로 고유성 보장)
  * - ID 컬럼: 자동 제외
  * - 최대 20개 변수 제한
  */
@@ -96,14 +96,22 @@ export class AnonymizationService {
         name: varMap.anonymized
       }
 
-      // 범주형 변수의 topCategories 익명화
-      if (col.type === 'categorical' && col.topCategories) {
+      // 범주형 변수의 topCategories + topValues 익명화
+      if (col.type === 'categorical') {
         const catMap = categoryMapping[col.name]
         if (catMap) {
-          anonymizedCol.topCategories = col.topCategories.map(tc => ({
-            value: catMap.mapping[tc.value] || tc.value,
-            count: tc.count
-          }))
+          if (col.topCategories) {
+            anonymizedCol.topCategories = col.topCategories.map(tc => ({
+              value: catMap.mapping[tc.value] || tc.value,
+              count: tc.count
+            }))
+          }
+          if (col.topValues) {
+            anonymizedCol.topValues = col.topValues.map(tv => ({
+              value: catMap.mapping[tv.value] || tv.value,
+              count: tv.count
+            }))
+          }
         }
       }
 
@@ -112,7 +120,9 @@ export class AnonymizationService {
 
     const anonymized: ValidationResults = {
       ...validationResults,
-      columns: anonymizedColumns
+      columns: anonymizedColumns,
+      columnStats: anonymizedColumns,
+      variables: anonymizedColumns.map(c => c.name)
     }
 
     const mapping: AnonymizationMapping = {
@@ -164,9 +174,13 @@ export class AnonymizationService {
     for (const col of categoricalColumns) {
       if (!col.topCategories) continue
 
+      // 변수 인덱스 찾기 (Var1→1, Var2→2)
+      const colIndex = columns.indexOf(col) + 1
+
       const original = col.topCategories.map(tc => tc.value)
+      // 변수 접두사 + 알파벳으로 고유한 범주 ID 생성 (V1_A, V1_B, V2_A, V2_B)
       const anonymized = original.map((_, i) =>
-        String.fromCharCode(65 + i) // A, B, C, ...
+        `V${colIndex}_${String.fromCharCode(65 + i)}`
       )
 
       const mapping: Record<string, string> = {}
@@ -240,29 +254,13 @@ export class AnonymizationService {
       result = result.replace(regex, varMap.original)
     }
 
-    // 범주값 복원 (A, B, C → 원본)
-    // ⚠️ 주의: 범주값은 변수명과 함께 사용될 때만 정확하게 복원 가능
-    // 예: "Var2에서 A" → "성별에서 남성"
-    // 단독 "GroupA"는 어떤 변수의 A인지 불명확하여 복원 불가
-    for (const [varName, catMap] of Object.entries(mapping.categories)) {
+    // 범주값 복원 (V1_A, V1_B → 원본)
+    // 변수 접두사 포함이므로 고유하게 역변환 가능
+    for (const [, catMap] of Object.entries(mapping.categories)) {
       for (const [anonymized, original] of Object.entries(catMap.reverseMapping)) {
-        // 패턴 1: "Group" + 알파벳 (예: GroupA → 실제값)
-        // 패턴 2: "Category" + 알파벳
-        // 패턴 3: 괄호 안의 알파벳 목록 (예: (A, B, C) → (남성, 여성, ...))
-        const patterns = [
-          { pattern: `Group${anonymized}\\b`, replacement: original },
-          { pattern: `Category${anonymized}\\b`, replacement: original },
-          // 괄호 안에서만 매칭 (더 안전)
-          {
-            pattern: `\\(([^)]*?)\\b${anonymized}\\b([^)]*)\\)`,
-            replacement: `($1${original}$2)`
-          }
-        ]
-
-        for (const { pattern, replacement } of patterns) {
-          const regex = new RegExp(pattern, 'g')
-          result = result.replace(regex, replacement)
-        }
+        // V1_A 형식은 고유하므로 단순 치환으로 안전
+        const regex = new RegExp(anonymized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
+        result = result.replace(regex, original)
       }
     }
 

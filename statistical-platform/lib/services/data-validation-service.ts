@@ -269,6 +269,32 @@ export class DataValidationService {
       stats.q1 = sorted[Math.floor(n * 0.25)]
       stats.q3 = sorted[Math.floor(n * 0.75)]
 
+      // 왜도(skewness) 계산: Fisher 공식 (n >= 3 필요)
+      if (n >= 3 && stats.std > 0) {
+        let sumCubedDiffs = 0
+        for (let i = 0; i < n; i++) {
+          const diff = (numericValues[i] - stats.mean) / stats.std
+          sumCubedDiffs += diff * diff * diff
+        }
+        stats.skewness = (n / ((n - 1) * (n - 2))) * sumCubedDiffs
+      }
+
+      // 첨도(kurtosis) 계산: excess kurtosis (정규분포 = 0)
+      if (n >= 4 && stats.std > 0) {
+        let sumFourthDiffs = 0
+        for (let i = 0; i < n; i++) {
+          const diff = (numericValues[i] - stats.mean) / stats.std
+          sumFourthDiffs += diff * diff * diff * diff
+        }
+        const rawKurtosis = (n * (n + 1)) / ((n - 1) * (n - 2) * (n - 3)) * sumFourthDiffs
+        stats.kurtosis = rawKurtosis - (3 * (n - 1) * (n - 1)) / ((n - 2) * (n - 3))
+      }
+
+      // 변동계수(CV) 계산
+      if (stats.mean !== 0) {
+        stats.cv = (stats.std / Math.abs(stats.mean)) * 100
+      }
+
       // IQR 기반 이상치 탐지 (정렬된 배열 활용)
       const iqr = stats.q3 - stats.q1
       const lowerBound = stats.q1 - 1.5 * iqr
