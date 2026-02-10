@@ -64,8 +64,8 @@ export class DataTypeDetector {
 
     if (numericRatio >= 0.95) {
       // 대부분 숫자인 경우
-      if (uniqueValues.size > 10) {
-        return 'continuous' // 연속형
+      if (uniqueValues.size > 5) {
+        return 'continuous' // 연속형 (threshold synced with variable-type-detector)
       } else if (this.hasOrderedPattern(Array.from(uniqueValues))) {
         return 'ordinal' // 순서형 (예: 1,2,3,4,5 평점)
       } else {

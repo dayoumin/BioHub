@@ -787,41 +787,46 @@ export class StatisticalExecutor {
         throw new Error('유효한 데이터가 없습니다. 모든 행이 null 또는 유효하지 않은 값입니다.')
       }
 
-      let result = await pyodideStats.twoWayAnova(formattedData)
+      type TwoWayAnovaResult = {
+        factor1: { fStatistic: number; pValue: number; df: number }
+        factor2: { fStatistic: number; pValue: number; df: number }
+        interaction: { fStatistic: number; pValue: number; df: number }
+        residual: { df: number }
+        anovaTable: Record<string, unknown>
+      }
+
+      let rawResult: unknown = await pyodideStats.twoWayAnova(formattedData)
 
       logger.info('[two-way-anova] Raw Python worker result:', {
-        hasResult: !!result,
-        resultType: typeof result,
-        isString: typeof result === 'string',
-        isObject: typeof result === 'object' && result !== null,
-        resultConstructor: result ? result.constructor.name : 'null',
-        rawResultPreview: String(result).slice(0, 300)
+        hasResult: !!rawResult,
+        resultType: typeof rawResult,
+        rawResultPreview: String(rawResult).slice(0, 300)
       })
 
-      // If result is a string, parse it
-      if (typeof result === 'string') {
+      // Worker may return JSON string instead of object
+      if (typeof rawResult === 'string') {
         logger.info('[two-way-anova] Result is string, parsing JSON')
         try {
-          result = JSON.parse(result) as any
-          logger.info('[two-way-anova] JSON parsing successful:', {
-            parsedType: typeof result,
-            parsedKeys: result ? Object.keys(result) : []
-          })
+          rawResult = JSON.parse(rawResult)
         } catch (e) {
           throw new Error(`이원 ANOVA 결과 JSON 파싱 실패: ${e instanceof Error ? e.message : String(e)}`)
         }
       }
 
       // Type guard
-      if (!result || typeof result !== 'object') {
-        throw new Error(`이원 ANOVA 결과가 올바르지 않습니다 (type=${typeof result})`)
+      if (!rawResult || typeof rawResult !== 'object') {
+        throw new Error(`이원 ANOVA 결과가 올바르지 않습니다 (type=${typeof rawResult})`)
       }
-      if (!(result as any).factor1 || !(result as any).factor2 || !(result as any).interaction) {
+
+      const parsed = rawResult as Record<string, unknown>
+      if (!parsed.factor1 || !parsed.factor2 || !parsed.interaction) {
         throw new Error(
-          `이원 ANOVA 결과 구조 오류 (factor1=${!!(result as any).factor1}, ` +
-          `factor2=${!!(result as any).factor2}, interaction=${!!(result as any).interaction})`
+          `이원 ANOVA 결과 구조 오류 (factor1=${!!parsed.factor1}, ` +
+          `factor2=${!!parsed.factor2}, interaction=${!!parsed.interaction})`
         )
       }
+
+      const result = rawResult as TwoWayAnovaResult
 
       return {
         metadata: {

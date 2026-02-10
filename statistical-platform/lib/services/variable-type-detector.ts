@@ -85,8 +85,8 @@ const THRESHOLDS = {
   // 이진변수로 분류할 고유값 수
   BINARY_UNIQUE_COUNT: 2,
 
-  // 서열변수로 분류할 최대 고유값 수
-  ORDINAL_MAX_UNIQUE: 10,
+  // 서열변수로 분류할 최대 고유값 수 (data-method-compatibility.ts와 동기화)
+  ORDINAL_MAX_UNIQUE: 5,
 
   // Count 변수로 분류할 조건
   COUNT_MAX_VALUE: 1000000, // 백만 이하
@@ -227,10 +227,6 @@ function classifyNumericVariable(
     if (min === 0 && max <= THRESHOLDS.COUNT_MAX_VALUE) {
       // 고유값이 적으면 서열변수
       if (uniqueCount <= THRESHOLDS.ORDINAL_MAX_UNIQUE) {
-        return 'ordinal'
-      }
-      // 고유값이 10개 이하면 서열형으로
-      if (uniqueCount <= 10) {
         return 'ordinal'
       }
       // Count 변수로 분류

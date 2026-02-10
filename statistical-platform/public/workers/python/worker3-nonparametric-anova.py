@@ -778,7 +778,7 @@ def repeated_measures_anova(dataMatrix, subjectIds, timeLabels):
         },
         'sphericityEpsilon': sphericity_result.get('epsilonGG', 1.0),
         'sphericity': sphericity_result,
-        'anovaTable': res.anova_table.to_dict()
+        'anovaTable': _clean_nan_for_json(res.anova_table.to_dict())
     }
 
 
@@ -825,7 +825,7 @@ def ancova(yValues, groupValues, covariates):
         'fStatisticCovariate': [float(anova_table.loc[f'cov{i}', 'F']) for i in range(len(covariates))],
         'pValueCovariate': [float(anova_table.loc[f'cov{i}', 'PR(>F)']) for i in range(len(covariates))],
         'adjustedMeans': [{'group': g, 'mean': float(m)} for g, m in group_means.items()],
-        'anovaTable': anova_table.to_dict()
+        'anovaTable': _clean_nan_for_json(anova_table.to_dict())
     }
 
 
@@ -1163,7 +1163,7 @@ def three_way_anova(dataValues, factor1Values, factor2Values, factor3Values):
         'residual': {
             'df': float(anova_table.loc['Residual', 'df'])
         },
-        'anovaTable': anova_table.to_dict()
+        'anovaTable': _clean_nan_for_json(anova_table.to_dict())
     }
 
     return result

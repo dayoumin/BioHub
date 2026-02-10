@@ -1067,7 +1067,7 @@ export function extractDataSummary(
         variablesByType.binary.push(col.name)
         groupLevels.set(col.name, col.uniqueValues)
       } else if (col.uniqueValues <= 5) {
-        // Could be ordinal or coded categorical (lowered from 10 to 5)
+        // Ordinal or coded categorical (synced: variable-type-detector, data-type-detector)
         variablesByType.ordinal.push(col.name)
         groupLevels.set(col.name, col.uniqueValues)
       } else {
