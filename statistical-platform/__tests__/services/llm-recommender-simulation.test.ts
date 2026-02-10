@@ -75,10 +75,17 @@ describe('OpenRouter LLM 추천 시뮬레이션', () => {
       isValid: true,
       totalRows: 100,
       totalColumns: 2,
+      columnCount: 2,
+      missingValues: 0,
+      dataType: 'mixed',
+      errors: [] as string[],
+      warnings: [] as string[],
       columns: [
         {
           name: 'income',
           type: 'numeric' as const,
+          numericCount: 100,
+          textCount: 0,
           mean: 55000,
           std: 15000,
           min: 20000,
@@ -95,6 +102,8 @@ describe('OpenRouter LLM 추천 시뮬레이션', () => {
         {
           name: 'education',
           type: 'categorical' as const,
+          numericCount: 0,
+          textCount: 100,
           uniqueValues: 4,
           missingCount: 0,
           topCategories: [
@@ -191,9 +200,14 @@ describe('OpenRouter LLM 추천 시뮬레이션', () => {
         isValid: true,
         totalRows: 50,
         totalColumns: 2,
+        columnCount: 2,
+        missingValues: 0,
+        dataType: 'mixed',
+        errors: [] as string[],
+        warnings: [] as string[],
         columns: [
-          { name: 'score', type: 'numeric' as const, mean: 75, std: 10, uniqueValues: 45, missingCount: 0 },
-          { name: 'group', type: 'categorical' as const, uniqueValues: 2, missingCount: 0, topCategories: [{ value: 'A', count: 25 }, { value: 'B', count: 25 }] }
+          { name: 'score', type: 'numeric' as const, numericCount: 50, textCount: 0, mean: 75, std: 10, uniqueValues: 45, missingCount: 0 },
+          { name: 'group', type: 'categorical' as const, numericCount: 0, textCount: 50, uniqueValues: 2, missingCount: 0, topCategories: [{ value: 'A', count: 25 }, { value: 'B', count: 25 }] }
         ],
         columnStats: [],
         variables: ['score', 'group']
@@ -282,8 +296,8 @@ describe('Ollama 로컬 모델 경고', () => {
       totalRows: 50,
       totalColumns: 2,
       columns: [
-        { name: 'score', type: 'numeric' as const, mean: 75, std: 10, uniqueValues: 45, missingCount: 0 },
-        { name: 'group', type: 'categorical' as const, uniqueValues: 2, missingCount: 0 }
+        { name: 'score', type: 'numeric' as const, numericCount: 50, textCount: 0, mean: 75, std: 10, uniqueValues: 45, missingCount: 0 },
+        { name: 'group', type: 'categorical' as const, numericCount: 0, textCount: 50, uniqueValues: 2, missingCount: 0 }
       ],
       columnStats: [],
       variables: ['score', 'group']
@@ -342,10 +356,17 @@ describe('Markdown-KV 프롬프트 형식 검증', () => {
         isValid: true,
         totalRows: 200,
         totalColumns: 4,
+        columnCount: 4,
+        missingValues: 7,
+        dataType: 'mixed',
+        errors: [] as string[],
+        warnings: [] as string[],
         columns: [
           {
             name: 'age',
             type: 'numeric' as const,
+            numericCount: 198,
+            textCount: 0,
             mean: 45.5,
             std: 12.3,
             min: 18,
@@ -362,6 +383,8 @@ describe('Markdown-KV 프롬프트 형식 검증', () => {
           {
             name: 'gender',
             type: 'categorical' as const,
+            numericCount: 0,
+            textCount: 200,
             uniqueValues: 2,
             missingCount: 0,
             topCategories: [
@@ -372,6 +395,8 @@ describe('Markdown-KV 프롬프트 형식 검증', () => {
           {
             name: 'blood_pressure',
             type: 'numeric' as const,
+            numericCount: 195,
+            textCount: 0,
             mean: 125.3,
             std: 18.5,
             min: 90,
@@ -388,6 +413,8 @@ describe('Markdown-KV 프롬프트 형식 검증', () => {
           {
             name: 'treatment',
             type: 'categorical' as const,
+            numericCount: 0,
+            textCount: 200,
             uniqueValues: 3,
             missingCount: 0,
             topCategories: [
