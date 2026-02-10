@@ -5,19 +5,59 @@
  * 2025 UI/UX 현대화 + AI Chat:
  * - ai-chat → (옵션) questions → result
  * - 또는 category → subcategory → questions → result (기존 가이드)
+ *
+ * Fix 3-A: previousStep 단일값 → stepHistory 스택으로 변경
+ * Fix 3-B: AI 상태 유지/초기화 일관성 보장
  */
 
 import type {
   GuidedFlowState,
   GuidedFlowAction,
+  GuidedFlowStep,
   StatisticalMethod,
   AnalysisCategory,
   AIRecommendation
 } from '@/types/smart-flow'
 import { decide } from './DecisionTree'
 
+/** AI 관련 상태만 추출 (유지/초기화 시 일관된 처리를 위해) */
+interface AiState {
+  aiChatInput: string | null
+  aiRecommendation: AIRecommendation | null
+  aiResponseText: string | null
+  aiError: string | null
+  isAiLoading: boolean
+  aiProvider: 'openrouter' | 'ollama' | 'keyword' | null
+}
+
+/** 현재 상태에서 AI 관련 필드만 추출 */
+function preserveAiState(state: GuidedFlowState): AiState {
+  return {
+    aiChatInput: state.aiChatInput,
+    aiRecommendation: state.aiRecommendation,
+    aiResponseText: state.aiResponseText,
+    aiError: state.aiError,
+    isAiLoading: state.isAiLoading,
+    aiProvider: state.aiProvider,
+  }
+}
+
+const INITIAL_AI_STATE: AiState = {
+  aiChatInput: null,
+  aiRecommendation: null,
+  aiResponseText: null,
+  aiError: null,
+  isAiLoading: false,
+  aiProvider: null,
+}
+
+/** Fix 3-A: 히스토리 스택에 현재 step을 push */
+function pushHistory(state: GuidedFlowState): GuidedFlowStep[] {
+  return [...state.stepHistory, state.step]
+}
+
 /**
- * 초기 상태 (ai-chat부터 시작 - NEW!)
+ * 초기 상태 (ai-chat부터 시작)
  */
 export const initialFlowState: GuidedFlowState = {
   step: 'ai-chat',
@@ -27,14 +67,8 @@ export const initialFlowState: GuidedFlowState = {
   answers: {},
   autoAnswers: {},
   result: null,
-  previousStep: null,
-  // AI Chat 관련 (NEW)
-  aiChatInput: null,
-  aiRecommendation: null,
-  aiResponseText: null,
-  aiError: null,
-  isAiLoading: false,
-  aiProvider: null
+  stepHistory: [],
+  ...INITIAL_AI_STATE,
 }
 
 /**
@@ -46,7 +80,7 @@ export function flowReducer(
 ): GuidedFlowState {
   switch (action.type) {
     // ============================================
-    // AI Chat 관련 액션 (NEW)
+    // AI Chat 관련 액션
     // ============================================
     case 'SET_AI_INPUT':
       return {
@@ -107,12 +141,11 @@ export function flowReducer(
       }
 
     case 'GO_TO_GUIDED':
-      // AI Chat에서 단계별 가이드로 이동
+      // AI Chat에서 단계별 가이드로 이동 — AI 상태 유지
       return {
         ...state,
         step: 'category',
-        previousStep: 'ai-chat',
-        // AI 상태는 유지 (돌아올 수 있도록)
+        stepHistory: pushHistory(state),
       }
 
     // ============================================
@@ -128,7 +161,7 @@ export function flowReducer(
         answers: {},
         autoAnswers: {},
         result: null,
-        previousStep: 'category'
+        stepHistory: pushHistory(state),
       }
 
     case 'SELECT_SUBCATEGORY':
@@ -140,7 +173,7 @@ export function flowReducer(
         answers: action.presetAnswers || {},
         autoAnswers: {},
         result: null,
-        previousStep: 'subcategory'
+        stepHistory: pushHistory(state),
       }
 
     case 'SELECT_PURPOSE':
@@ -151,7 +184,7 @@ export function flowReducer(
         answers: {},
         autoAnswers: {},
         result: null,
-        previousStep: state.step
+        stepHistory: pushHistory(state),
       }
 
     case 'ANSWER_QUESTION':
@@ -175,7 +208,7 @@ export function flowReducer(
           : state.answers
       }
 
-    case 'COMPLETE_QUESTIONS':
+    case 'COMPLETE_QUESTIONS': {
       if (!state.selectedPurpose) {
         return state
       }
@@ -189,97 +222,41 @@ export function flowReducer(
         ...state,
         step: 'result',
         result,
-        previousStep: 'questions'
+        stepHistory: pushHistory(state),
       }
+    }
 
     case 'BROWSE_ALL':
       return {
         ...state,
         step: 'browse',
-        previousStep: state.step
+        stepHistory: pushHistory(state),
       }
 
-    case 'GO_BACK':
-      if (!state.previousStep) {
-        // ai-chat이 첫 화면이므로 previousStep 없으면 ai-chat으로
+    // Fix 3-A: GO_BACK은 스택에서 pop — 하드코딩 제거
+    case 'GO_BACK': {
+      if (state.stepHistory.length === 0) {
+        // 히스토리 없으면 초기 상태로 (AI 상태 유지)
         return {
-          ...initialFlowState
+          ...initialFlowState,
+          ...preserveAiState(state),
         }
       }
 
-      // ai-chat으로 돌아갈 때
-      if (state.previousStep === 'ai-chat') {
-        return {
-          ...state,
-          step: 'ai-chat',
-          selectedCategory: null,
-          selectedSubcategory: null,
-          selectedPurpose: null,
-          answers: {},
-          autoAnswers: {},
-          result: null,
-          previousStep: null
-          // AI 상태는 유지
-        }
-      }
+      const history = [...state.stepHistory]
+      const prevStep = history.pop()!
 
-      // category로 돌아갈 때
-      if (state.previousStep === 'category') {
-        return {
-          ...state,
-          step: 'category',
-          selectedCategory: null,
-          selectedSubcategory: null,
-          selectedPurpose: null,
-          answers: {},
-          autoAnswers: {},
-          result: null,
-          previousStep: 'ai-chat'
-        }
-      }
-
-      // subcategory로 돌아갈 때
-      if (state.previousStep === 'subcategory') {
-        return {
-          ...state,
-          step: 'subcategory',
-          selectedSubcategory: null,
-          selectedPurpose: null,
-          answers: {},
-          autoAnswers: {},
-          result: null,
-          previousStep: 'category'
-        }
-      }
-
-      // questions로 돌아갈 때
-      if (state.previousStep === 'questions') {
-        return {
-          ...state,
-          step: 'questions',
-          result: null,
-          previousStep: 'subcategory'
-        }
-      }
-
-      // purpose로 돌아갈 때 (legacy)
-      if (state.previousStep === 'purpose') {
-        return {
-          ...state,
-          step: 'purpose',
-          selectedPurpose: null,
-          answers: {},
-          autoAnswers: {},
-          result: null,
-          previousStep: 'category'
-        }
-      }
+      // Fix 3-B: AI 상태는 항상 유지 (ai-chat으로 돌아가든 아니든)
+      // 선택 데이터만 현재 step에 맞게 정리
+      const cleanState = cleanSelectionForStep(state, prevStep)
 
       return {
         ...state,
-        step: state.previousStep,
-        previousStep: null
+        ...cleanState,
+        step: prevStep,
+        stepHistory: history,
       }
+    }
 
     case 'SELECT_METHOD':
       return {
@@ -292,7 +269,7 @@ export function flowReducer(
           ],
           alternatives: []
         },
-        previousStep: state.step
+        stepHistory: pushHistory(state),
       }
 
     case 'CONFIRM':
@@ -303,6 +280,57 @@ export function flowReducer(
 
     default:
       return state
+  }
+}
+
+/**
+ * 뒤로 갈 때 목적지 step에 맞게 선택 데이터 정리
+ * AI 상태는 건드리지 않음 (Fix 3-B)
+ */
+function cleanSelectionForStep(
+  state: GuidedFlowState,
+  targetStep: GuidedFlowStep
+): Partial<GuidedFlowState> {
+  switch (targetStep) {
+    case 'ai-chat':
+      return {
+        selectedCategory: null,
+        selectedSubcategory: null,
+        selectedPurpose: null,
+        answers: {},
+        autoAnswers: {},
+        result: null,
+      }
+    case 'category':
+      return {
+        selectedCategory: null,
+        selectedSubcategory: null,
+        selectedPurpose: null,
+        answers: {},
+        autoAnswers: {},
+        result: null,
+      }
+    case 'subcategory':
+      return {
+        selectedSubcategory: null,
+        selectedPurpose: null,
+        answers: {},
+        autoAnswers: {},
+        result: null,
+      }
+    case 'questions':
+      return {
+        result: null,
+      }
+    case 'purpose':
+      return {
+        selectedPurpose: null,
+        answers: {},
+        autoAnswers: {},
+        result: null,
+      }
+    default:
+      return {}
   }
 }
 
@@ -348,7 +376,7 @@ export function canProceed(
  */
 export const flowActions = {
   // ============================================
-  // AI Chat 액션 (NEW)
+  // AI Chat 액션
   // ============================================
   setAiInput: (input: string): GuidedFlowAction => ({
     type: 'SET_AI_INPUT',

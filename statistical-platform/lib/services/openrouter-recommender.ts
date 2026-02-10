@@ -27,6 +27,11 @@ import { logger } from '@/lib/utils/logger'
  * 기본 모델 Fallback 체인 (무료 모델 우선)
  * - 무료 모델은 언제든 중단될 수 있으므로 여러 개 지정
  * - env에서 쉼표 구분으로 오버라이드 가능
+ *
+ * ⚠️ API 키 노출 주의 (Fix 2-F):
+ * NEXT_PUBLIC_ 접두사로 클라이언트 번들에 포함됨.
+ * 현재 무료 모델만 사용하므로 과금 위험 없음.
+ * 유료 모델 전환 시 반드시 서버 사이드 API Route로 이동 필요.
  */
 const DEFAULT_MODELS = [
   'z-ai/glm-4.5-air:free',               // 131K context, CJK 언어 우수, JSON 출력 정확
@@ -97,7 +102,10 @@ export class OpenRouterRecommender {
   }
 
   /**
-   * Health check: API 키 존재 여부 확인 + 캐싱
+   * Health check: API 키 존재 여부 확인 + 경량 API 검증 + 캐싱
+   *
+   * Fix 2-A: API 키 존재만이 아닌 실제 연결 검증 (models 엔드포인트 사용, 3초 타임아웃)
+   * 실패 시 빠르게 false 반환하여 30초 타임아웃 회피
    */
   async checkHealth(): Promise<boolean> {
     // 캐시 체크
@@ -113,10 +121,33 @@ export class OpenRouterRecommender {
       return false
     }
 
-    // API 키가 있으면 사용 가능으로 판단 (실제 요청 시 실패하면 fallback)
-    this.healthCache = { isAvailable: true, timestamp: Date.now(), ttl: 5 * 60 * 1000 }
-    logger.info('[OpenRouter] API key found, provider available')
-    return true
+    // 경량 API 검증: /models 엔드포인트로 키 유효성 확인 (3초 타임아웃)
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 3000)
+      try {
+        const res = await fetch(`${this.config.baseUrl}/models`, {
+          headers: { 'Authorization': `Bearer ${this.config.apiKey}` },
+          signal: controller.signal
+        })
+        if (res.ok) {
+          this.healthCache = { isAvailable: true, timestamp: Date.now(), ttl: 5 * 60 * 1000 }
+          logger.info('[OpenRouter] Health check passed')
+          return true
+        }
+        // 401/403 = 키 무효
+        this.healthCache = { isAvailable: false, timestamp: Date.now(), ttl: 5 * 60 * 1000 }
+        logger.warn(`[OpenRouter] Health check failed: ${res.status}`)
+        return false
+      } finally {
+        clearTimeout(timeoutId)
+      }
+    } catch {
+      // 네트워크 에러/타임아웃 — 낙관적으로 true (실제 요청 시 fallback)
+      this.healthCache = { isAvailable: true, timestamp: Date.now(), ttl: 1 * 60 * 1000 }
+      logger.warn('[OpenRouter] Health check network error, optimistically available')
+      return true
+    }
   }
 
   /**
@@ -197,41 +228,46 @@ export class OpenRouterRecommender {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeout)
 
-    const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.config.apiKey}`,
-        'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
-        'X-Title': 'Statistical Analysis Platform'
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ] satisfies OpenRouterMessage[],
-        temperature: this.config.temperature,
-        max_tokens: this.config.maxTokens
-      }),
-      signal: controller.signal
-    })
-
-    clearTimeout(timeoutId)
+    // Fix 2-C: try/finally로 clearTimeout 보장 (fetch throw 시에도 정리)
+    let response: Response
+    try {
+      response = await fetch(`${this.config.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.config.apiKey}`,
+          'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
+          'X-Title': 'Statistical Analysis Platform'
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ] satisfies OpenRouterMessage[],
+          temperature: this.config.temperature,
+          max_tokens: this.config.maxTokens
+        }),
+        signal: controller.signal
+      })
+    } finally {
+      clearTimeout(timeoutId)
+    }
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error')
-      // 인증 실패 시 전체 캐시 무효화 (다른 모델도 같은 키 사용)
+      // Fix 2-B: 인증 실패 시 5분 캐시 (키가 바뀌지 않으므로 재시도 낭비 방지)
       if (response.status === 401 || response.status === 403) {
-        this.healthCache = { isAvailable: false, timestamp: Date.now(), ttl: 1 * 60 * 1000 }
+        this.healthCache = { isAvailable: false, timestamp: Date.now(), ttl: 5 * 60 * 1000 }
       }
       throw new Error(`API ${response.status}: ${errorText}`)
     }
 
     const data: OpenRouterResponse = await response.json()
     const msg = data.choices?.[0]?.message
-    // thinking 모델(DeepSeek R1 등)은 content가 빈 문자열이고 reasoning_content에 응답이 들어감
-    const content = msg?.content?.trim() || msg?.reasoning_content || ''
+    // Fix 2-D: thinking 모델 <think> 태그 제거 후 사용
+    const rawContent = msg?.content?.trim() || msg?.reasoning_content || ''
+    const content = this.stripThinkingTags(rawContent)
 
     logger.info('[OpenRouter] Response received', {
       model: data.model || model,
@@ -252,6 +288,48 @@ export class OpenRouterRecommender {
     }
 
     return { recommendation, responseText }
+  }
+
+  /**
+   * Fix 2-D: thinking 모델의 <think>...</think> 태그 제거
+   * DeepSeek R1 등의 reasoning_content에서 추론 과정 제거
+   */
+  private stripThinkingTags(content: string): string {
+    return content.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
+  }
+
+  /**
+   * Fix 2-E: 중괄호 밸런싱으로 첫 번째 완전한 JSON 객체 추출
+   * greedy regex 대신 사용하여 다중 JSON 시 파싱 실패 방지
+   */
+  private extractBalancedJson(content: string): string | null {
+    const start = content.indexOf('{')
+    if (start === -1) return null
+
+    let depth = 0
+    let inString = false
+    let escape = false
+
+    for (let i = start; i < content.length; i++) {
+      const ch = content[i]
+
+      if (escape) { escape = false; continue }
+      if (ch === '\\' && inString) { escape = true; continue }
+      if (ch === '"') { inString = !inString; continue }
+      if (inString) continue
+
+      if (ch === '{') depth++
+      else if (ch === '}') {
+        depth--
+        if (depth === 0) {
+          return content.substring(start, i + 1)
+        }
+      }
+    }
+
+    // 밸런싱 실패 → fallback으로 greedy 매칭
+    const fallback = content.match(/\{[\s\S]*\}/)
+    return fallback ? fallback[0] : null
   }
 
   /**
@@ -447,17 +525,17 @@ ${userInput}`
    * LLM 응답에서 설명 텍스트 추출 (JSON 이전 부분)
    */
   private extractExplanationText(content: string): string {
-    // 코드블록 우선, 없으면 첫 번째 { ~ 마지막 } (non-greedy 불가하므로 코드블록 패턴만)
+    // 코드블록 우선
     const codeBlockMatch = content.match(/```json[\s\S]*?```/)
     if (codeBlockMatch) {
       const beforeJson = content.substring(0, content.indexOf(codeBlockMatch[0])).trim()
       return beforeJson || content.replace(/```json[\s\S]*?```/, '').trim()
     }
 
-    // 코드블록 없이 JSON만 있는 경우
-    const jsonMatch = content.match(/\{[\s\S]*\}/)
-    if (jsonMatch) {
-      const beforeJson = content.substring(0, content.indexOf(jsonMatch[0])).trim()
+    // Fix 2-E: 밸런싱된 JSON 추출 사용 (greedy 매칭 방지)
+    const jsonStr = this.extractBalancedJson(content)
+    if (jsonStr) {
+      const beforeJson = content.substring(0, content.indexOf(jsonStr)).trim()
       return beforeJson || ''
     }
 
@@ -473,10 +551,9 @@ ${userInput}`
       const codeBlockMatch = content.match(/```json\s*([\s\S]*?)\s*```/)
       let jsonStr = codeBlockMatch ? codeBlockMatch[1] : null
 
-      // 코드 블록 없으면 직접 JSON 찾기
+      // Fix 2-E: 코드 블록 없으면 중괄호 밸런싱으로 JSON 추출 (greedy 매칭 방지)
       if (!jsonStr) {
-        const jsonMatch = content.match(/\{[\s\S]*\}/)
-        jsonStr = jsonMatch ? jsonMatch[0] : null
+        jsonStr = this.extractBalancedJson(content)
       }
 
       if (!jsonStr) {
@@ -617,33 +694,38 @@ ${userInput}`
       signal.addEventListener('abort', () => controller.abort(), { once: true })
     }
 
-    const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.config.apiKey}`,
-        'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
-        'X-Title': 'Statistical Analysis Platform'
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ] satisfies OpenRouterMessage[],
-        temperature,
-        max_tokens: maxTokens,
-        stream: true
-      }),
-      signal: controller.signal
-    })
-
-    clearTimeout(timeoutId)
+    // Fix 2-C: try/finally로 clearTimeout 보장
+    let response: Response
+    try {
+      response = await fetch(`${this.config.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.config.apiKey}`,
+          'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
+          'X-Title': 'Statistical Analysis Platform'
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ] satisfies OpenRouterMessage[],
+          temperature,
+          max_tokens: maxTokens,
+          stream: true
+        }),
+        signal: controller.signal
+      })
+    } finally {
+      clearTimeout(timeoutId)
+    }
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error')
+      // Fix 2-B: 인증 실패 시 5분 캐시 (키가 바뀌지 않으므로 재시도 낭비 방지)
       if (response.status === 401 || response.status === 403) {
-        this.healthCache = { isAvailable: false, timestamp: Date.now(), ttl: 1 * 60 * 1000 }
+        this.healthCache = { isAvailable: false, timestamp: Date.now(), ttl: 5 * 60 * 1000 }
       }
       throw new Error(`API ${response.status}: ${errorText}`)
     }

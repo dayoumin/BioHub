@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect, useReducer } from 'react'
+import React, { useState, useMemo, useCallback, useEffect, useReducer } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { TrendingUp, GitCompare, PieChart, LineChart, Clock, Heart, ArrowRight, ArrowLeft, List, Layers, Calculator, Sparkles, Info, Target } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -101,6 +101,9 @@ const mergeMethodGroups = (primary: MethodGroup[], fallback: MethodGroup[]): Met
 }
 
 
+/** 그룹 비교 메서드 카테고리 (independent → groupVariable 자동 전환 대상) */
+const GROUP_COMPARISON_CATEGORIES = new Set(['t-test', 'anova', 'chi-square', 'nonparametric'])
+
 /**
  * Extract detected variables based on method and validation results
  *
@@ -121,6 +124,8 @@ function extractDetectedVariables(
   pairedVars?: [string, string]
   independentVars?: string[]
   covariates?: string[]
+  /** LLM이 제안했으나 데이터에 없어서 필터된 변수명 목록 */
+  filteredOutVars?: string[]
 } {
   const numericCols = validationResults?.columns
     ?.filter((col: ColumnStatistics) => col.type === 'numeric')
@@ -128,6 +133,10 @@ function extractDetectedVariables(
   const categoricalCols = validationResults?.columns
     ?.filter((col: ColumnStatistics) => col.type === 'categorical')
     ?.map((col: ColumnStatistics) => col.name) || []
+  // Fix 1-A: 모든 컬럼 이름 (mixed 포함) — OpenRouter 필터와 동일한 기준
+  const allCols = new Set(
+    validationResults?.columns?.map((col: ColumnStatistics) => col.name) || []
+  )
 
   const detectedVars: {
     groupVariable?: string
@@ -137,14 +146,26 @@ function extractDetectedVariables(
     pairedVars?: [string, string]
     independentVars?: string[]
     covariates?: string[]
+    filteredOutVars?: string[]
   } = {}
 
   // ─── 1순위: LLM variableAssignments ───
   const va = recommendation?.variableAssignments
   if (va) {
-    // LLM 환각 방지: 실제 데이터 컬럼에 존재하는 변수명만 허용
-    const allCols = [...numericCols, ...categoricalCols]
-    const validCol = (name: string) => allCols.includes(name)
+    // Fix 1-A: Set 기반 검증 (mixed 타입 컬럼도 포함, OpenRouter 필터와 동일 기준)
+    const validCol = (name: string) => allCols.has(name)
+
+    // Fix 1-B: 필터된 변수 추적
+    const filteredOut: string[] = []
+    const trackFiltered = (arr?: string[]) => {
+      arr?.forEach(name => { if (!validCol(name)) filteredOut.push(name) })
+    }
+    trackFiltered(va.dependent)
+    trackFiltered(va.independent)
+    trackFiltered(va.factor)
+    trackFiltered(va.covariate)
+    trackFiltered(va.within)
+    trackFiltered(va.between)
 
     // Dependent
     if (va.dependent?.[0] && validCol(va.dependent[0])) {
@@ -163,11 +184,13 @@ function extractDetectedVariables(
     const validIndep = va.independent?.filter(validCol)
     if (validIndep?.length) {
       detectedVars.independentVars = validIndep
-      // LLM이 factor 없이 independent만 보낸 경우,
-      // 첫 번째 independent가 categorical이면 group-comparison용 groupVariable로 전환
-      // (예: t-test에서 factor 대신 independent에 그룹 변수를 넣는 LLM 패턴 대응)
-      // factor가 이미 설정됐으면 스킵 (factor 우선)
-      if (!detectedVars.groupVariable && categoricalCols.includes(validIndep[0])) {
+      // Fix 1-C: 그룹 비교 메서드일 때만 independent → groupVariable 전환
+      // regression 등에서는 independent를 그대로 유지
+      const methodInfo = recommendation?.method
+      const isGroupComparison = methodInfo?.category
+        ? GROUP_COMPARISON_CATEGORIES.has(methodInfo.category)
+        : false
+      if (isGroupComparison && !detectedVars.groupVariable && categoricalCols.includes(validIndep[0])) {
         detectedVars.groupVariable = validIndep[0]
       }
     }
@@ -184,6 +207,17 @@ function extractDetectedVariables(
     if (va.between?.length && validCol(va.between[0]) && !detectedVars.groupVariable) {
       detectedVars.groupVariable = va.between[0]
     }
+
+    // Fix 1-B: 필터된 변수 정보 저장 (UI에서 경고 표시 가능)
+    if (filteredOut.length > 0) {
+      detectedVars.filteredOutVars = filteredOut
+      logger.warn('LLM variable hallucination detected', {
+        filteredOut,
+        totalSuggested: filteredOut.length + Object.values(detectedVars).filter(Boolean).length,
+        methodId
+      })
+    }
+
     // 유효한 할당이 1건이라도 있으면 1순위 결과 반환
     // 전부 환각이면 2순위 폴백으로 폴스루
     const hasAnyValid = detectedVars.dependentCandidate || detectedVars.groupVariable
@@ -196,14 +230,17 @@ function extractDetectedVariables(
   }
 
   // ─── 2순위: 기존 detectedVariables (하위 호환) ───
-  if (recommendation?.detectedVariables?.groupVariable?.name) {
-    detectedVars.groupVariable = recommendation.detectedVariables.groupVariable.name
+  // Fix 1-D: 2순위에서도 실제 컬럼 존재 여부 검증
+  const legacyGroup = recommendation?.detectedVariables?.groupVariable?.name
+  if (legacyGroup && allCols.has(legacyGroup)) {
+    detectedVars.groupVariable = legacyGroup
   } else if (categoricalCols.length > 0) {
     detectedVars.groupVariable = categoricalCols[0]
   }
 
-  if (recommendation?.detectedVariables?.dependentVariables?.[0]) {
-    detectedVars.dependentCandidate = recommendation.detectedVariables.dependentVariables[0]
+  const legacyDependent = recommendation?.detectedVariables?.dependentVariables?.[0]
+  if (legacyDependent && allCols.has(legacyDependent)) {
+    detectedVars.dependentCandidate = legacyDependent
   } else if (numericCols.length > 0) {
     detectedVars.dependentCandidate = numericCols[0]
   }
@@ -652,18 +689,24 @@ export function PurposeInputStep({
     flowDispatch(flowActions.goToGuided())
   }, [])
 
-  // Store의 purposeInputMode 변경 시 동기화
+  // Fix 3-C: Store의 purposeInputMode 변경 시 동기화
+  // 이전 값을 useRef로 추적하여 불필요한 실행 방지
+  const prevStoreModeRef = React.useRef(storePurposeInputMode)
   useEffect(() => {
-    if (storePurposeInputMode !== inputMode) {
-      setInputMode(storePurposeInputMode)
-      // flowState도 동기화
-      if (storePurposeInputMode === 'browse') {
-        flowDispatch(flowActions.browseAll())
-      } else {
-        flowDispatch(flowActions.reset())
-      }
+    // 실제로 store 값이 변경된 경우에만 동기화 (초기 렌더 제외)
+    if (prevStoreModeRef.current === storePurposeInputMode) return
+    prevStoreModeRef.current = storePurposeInputMode
+
+    setInputMode(storePurposeInputMode)
+    // flowState 동기화: reset() 대신 개별 액션 사용 (AI 상태 보존)
+    if (storePurposeInputMode === 'browse') {
+      flowDispatch(flowActions.browseAll())
+    } else {
+      // ai 모드: category/browse에서 ai-chat으로 돌아가기
+      // reset()은 AI 상태를 초기화하므로 사용하지 않음
+      flowDispatch(flowActions.goBack())
     }
-  }, [storePurposeInputMode]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [storePurposeInputMode, flowDispatch])
 
   // Cleanup
   useEffect(() => {

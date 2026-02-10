@@ -671,7 +671,8 @@ export interface GuidedFlowState {
   answers: Record<string, string>
   autoAnswers: Record<string, AutoAnswerResult>
   result: DecisionResult | null
-  previousStep: GuidedFlowStep | null
+  /** 네비게이션 히스토리 스택 (Fix 3-A: previousStep 단일값 → 스택) */
+  stepHistory: GuidedFlowStep[]
   /** AI 자연어 입력 (NEW) */
   aiChatInput: string | null
   /** AI 추천 결과 (NEW) */

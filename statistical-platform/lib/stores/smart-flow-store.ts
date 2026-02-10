@@ -682,6 +682,18 @@ export const useSmartFlowStore = create<SmartFlowState>()(
     }),
     {
       name: 'smart-flow-storage',
+      // Fix 5-B: persist 버전 관리 (향후 스키마 변경 시 migration 경로 제공)
+      version: 2,
+      migrate: (persistedState: unknown, version: number) => {
+        const state = persistedState as Record<string, unknown>
+        if (version < 2) {
+          // v1 → v2: detectedVariables에 independentVars, covariates 추가
+          // suggestedSettings, purposeInputMode 필드 추가
+          // 기존 값은 그대로 유지, 새 필드는 초기값으로
+          state.suggestedSettings = state.suggestedSettings ?? null
+        }
+        return state as SmartFlowState
+      },
       storage: createJSONStorage(() => sessionStorage),
       onRehydrateStorage: () => (state) => {
         // Rehydrate 시 results가 old executor 형식인 경우 변환
@@ -736,6 +748,8 @@ export const useSmartFlowStore = create<SmartFlowState>()(
          * 로드: loadHistoryFromDB()에서 IndexedDB → UI 상태로 불러옴
          */
         // ❌ File 객체는 직렬화 불가
+        // Fix 5-A: purposeInputMode는 의도적으로 persist하지 않음
+        // 새로고침 시 항상 'ai' 모드로 시작 (사용자 경험 일관성)
       }),
     }
   )

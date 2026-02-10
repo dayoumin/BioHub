@@ -1,14 +1,9 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
-import { BarChart3, CheckCircle2, Loader2, AlertCircle, Pause, Play, X } from 'lucide-react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
+import { BarChart3, CheckCircle2, Loader2, AlertCircle, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+// Fix 4-C: Tooltip imports 제거 (일시정지 버튼 제거로 불필요)
 import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -65,7 +60,8 @@ export function AnalysisExecutionStep({
   const [currentStage, setCurrentStage] = useState(executionStages[0])
   const [completedStages, setCompletedStages] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [isPaused, setIsPaused] = useState(false)
+  // Fix 4-B: useRef로 취소 플래그 관리 (stale closure 방지)
+  const cancelledRef = useRef(false)
   const [isCancelled, setIsCancelled] = useState(false)
   const [executionLog, setExecutionLog] = useState<string[]>([])
   const [showDetailedLog, setShowDetailedLog] = useState(false)
@@ -130,7 +126,7 @@ export function AnalysisExecutionStep({
         addLog('통계 엔진 준비 완료')
       }
 
-      if (isCancelled) return
+      if (cancelledRef.current) return
 
       setCompletedStages(['prepare'])
       updateStage('preprocess', 20)
@@ -149,7 +145,7 @@ export function AnalysisExecutionStep({
         addLog(`결측값 처리 완료 (제거: ${missingCount}개)`)
       }
 
-      if (isCancelled) return
+      if (cancelledRef.current) return
 
       setCompletedStages(prev => [...prev, 'preprocess'])
       updateStage('assumptions', 35)
@@ -250,7 +246,7 @@ export function AnalysisExecutionStep({
         }
       }
 
-      if (isCancelled) return
+      if (cancelledRef.current) return
 
       setCompletedStages(prev => [...prev, 'assumptions'])
       updateStage('analysis', 60)
@@ -258,9 +254,17 @@ export function AnalysisExecutionStep({
       // Stage 4: 주 분석 실행
       addLog(`${selectedMethod.name} 실행`)
 
-      // LLM 추천 설정이 있으면 executor에 전달 (alpha, postHoc 등)
+      // Fix 4-A: 실제 적용되는 설정만 로그에 표시 (현재 alpha만 지원)
       if (suggestedSettings) {
-        addLog(`AI 추천 설정 적용: α=${suggestedSettings.alpha ?? 0.05}`)
+        const appliedAlpha = suggestedSettings.alpha ?? 0.05
+        addLog(`AI 추천 설정 적용: α=${appliedAlpha}`)
+        // postHoc, alternative는 아직 미지원 — 추천만 표시
+        if (suggestedSettings.postHoc) {
+          addLog(`ℹ️ AI 추천 사후검정: ${suggestedSettings.postHoc} (향후 지원 예정)`)
+        }
+        if (suggestedSettings.alternative) {
+          addLog(`ℹ️ AI 추천 검정 방향: ${suggestedSettings.alternative} (향후 지원 예정)`)
+        }
       }
 
       const result = await executor.executeMethod(
@@ -270,7 +274,7 @@ export function AnalysisExecutionStep({
         suggestedSettings
       )
 
-      if (isCancelled) return
+      if (cancelledRef.current) return
 
       setCompletedStages(prev => [...prev, 'analysis'])
       updateStage('additional', 80)
@@ -283,7 +287,7 @@ export function AnalysisExecutionStep({
         addLog('신뢰구간 계산 완료')
       }
 
-      if (isCancelled) return
+      if (cancelledRef.current) return
 
       setCompletedStages(prev => [...prev, 'additional'])
       updateStage('finalize', 95)
@@ -315,21 +319,14 @@ export function AnalysisExecutionStep({
       setError(err instanceof Error ? err.message : t.smartFlow.execution.unknownError)
       addLog(`❌ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`)
     }
-  }, [uploadedData, selectedMethod, variableMapping, suggestedSettings, isCancelled, updateStage, addLog, onAnalysisComplete, onNext, t, executionStages])
+  }, [uploadedData, selectedMethod, variableMapping, suggestedSettings, updateStage, addLog, onAnalysisComplete, onNext, t, executionStages])
 
   /**
-   * 일시정지/재개 처리
-   */
-  const handlePauseResume = () => {
-    setIsPaused(!isPaused)
-    addLog(isPaused ? '분석 재개' : '분석 일시정지')
-  }
-
-  /**
-   * 취소 처리
+   * 취소 처리 (Fix 4-B: ref로 즉시 반영)
    */
   const handleCancel = () => {
     if (window.confirm(t.smartFlow.execution.cancelConfirm)) {
+      cancelledRef.current = true
       setIsCancelled(true)
       addLog('사용자가 분석을 취소했습니다')
       if (onPrevious) onPrevious()
@@ -433,41 +430,9 @@ export function AnalysisExecutionStep({
                 })}
               </div>
 
-              {/* 컨트롤 버튼 */}
+              {/* 취소 버튼 (Fix 4-C: 동작하지 않는 일시정지 버튼 제거) */}
               {!error && (
                 <div className="flex justify-center gap-3 mt-6">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span tabIndex={progress >= 75 ? 0 : undefined}>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handlePauseResume}
-                            disabled={progress >= 75}
-                          >
-                            {isPaused ? (
-                              <>
-                                <Play className="w-4 h-4 mr-2" />
-                                {t.smartFlow.execution.resumeButton}
-                              </>
-                            ) : (
-                              <>
-                                <Pause className="w-4 h-4 mr-2" />
-                                {t.smartFlow.execution.pauseButton}
-                              </>
-                            )}
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      {progress >= 75 && (
-                        <TooltipContent>
-                          <p>{t.smartFlow.execution.pauseDisabledTooltip}</p>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
-
                   <Button
                     variant="outline"
                     size="sm"
