@@ -523,18 +523,22 @@ vi.mock('@/hooks/use-terminology', () => ({
         historyCount: () => '', aiChatbot: '', helpLabel: '', settingsLabel: '',
         nextStep: '', analyzingDefault: '', dataSizeGuide: '', currentLimits: '',
         memoryRecommendation: '', detectedMemory: () => '',
+        limitFileSize: '', limitDataSize: '', limitRecommended: '',
+        memoryTier4GB: '', memoryTier8GB: '', memoryTier16GB: '',
       },
       execution: {
         runningTitle: '', resumeButton: '', pauseButton: '', cancelButton: '',
         pauseDisabledTooltip: '', cancelConfirm: '',
         logSectionLabel: () => '', noLogs: '', dataRequired: '',
+        unknownError: '', estimatedTimeRemaining: () => '',
       },
     },
     purposeInput: {
       purposes: {}, inputModes: { aiRecommend: '', directSelect: '', modeAriaLabel: '' },
       buttons: { back: '', allMethods: '', useThisMethod: '' },
       labels: { selectionPrefix: '', directBadge: '', purposeHeading: '' },
-      messages: { purposeHelp: '', guidanceAlert: '' },
+      messages: { purposeHelp: '', guidanceAlert: '', aiRecommendError: '', genericError: '' },
+      aiLabels: { recommendTitle: '' },
     },
   }),
   useTerminologyContext: () => ({

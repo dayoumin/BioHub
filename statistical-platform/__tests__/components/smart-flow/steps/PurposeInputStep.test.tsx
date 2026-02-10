@@ -42,11 +42,14 @@ vi.mock('@/hooks/use-terminology', () => ({
                 historyCount: () => '', aiChatbot: '', helpLabel: '', settingsLabel: '',
                 nextStep: '', analyzingDefault: '', dataSizeGuide: '', currentLimits: '',
                 memoryRecommendation: '', detectedMemory: () => '',
+                limitFileSize: '', limitDataSize: '', limitRecommended: '',
+                memoryTier4GB: '', memoryTier8GB: '', memoryTier16GB: '',
             },
             execution: {
                 runningTitle: '', resumeButton: '', pauseButton: '', cancelButton: '',
                 pauseDisabledTooltip: '', cancelConfirm: '',
                 logSectionLabel: () => '', noLogs: '', dataRequired: '',
+                unknownError: '', estimatedTimeRemaining: () => '',
             },
         },
         purposeInput: {
@@ -58,7 +61,8 @@ vi.mock('@/hooks/use-terminology', () => ({
             inputModes: { aiRecommend: 'AI 추천', directSelect: '직접 선택', modeAriaLabel: '분석 방법 선택 모드' },
             buttons: { back: '뒤로', allMethods: '전체', useThisMethod: '선택' },
             labels: { selectionPrefix: '선택:', directBadge: '직접', purposeHeading: '분석 목적' },
-            messages: { purposeHelp: '도움말', guidanceAlert: '안내' },
+            messages: { purposeHelp: '도움말', guidanceAlert: '안내', aiRecommendError: '추천 실패', genericError: '오류 발생' },
+            aiLabels: { recommendTitle: 'AI 추천' },
         },
     }),
     useTerminologyContext: () => ({

@@ -433,7 +433,7 @@ pnpm setup:pyodide   # Pyodide 다운로드 (200MB)
 - **[CLAUDE.md](CLAUDE.md)** - AI 코딩 규칙 (이 파일)
 - **[README.md](README.md)** - 프로젝트 개요
 - **[ROADMAP.md](ROADMAP.md)** - 개발 로드맵
-- **[STATUS.md](STATUS.md)** - 프로젝트 현황 + 최근 작업 (7일)
+- **[TODO.md](TODO.md)** - 프로젝트 현황 + 할일 + 최근 작업 (7일)
 
 ### statistical-platform/docs/ (구현 상세)
 - [AI-CODING-RULES.md](statistical-platform/docs/AI-CODING-RULES.md) - any → unknown 예제
@@ -443,9 +443,9 @@ pnpm setup:pyodide   # Pyodide 다운로드 (200MB)
 - [SMART_FLOW_UX_IMPROVEMENTS.md](statistical-platform/docs/SMART_FLOW_UX_IMPROVEMENTS.md) - Smart Flow UX 개선 계획
 
 ### 문서 관리 규칙
-- **STATUS.md**: 현황 + 최근 7일 작업 기록 (통합 관리)
+- **TODO.md**: 현황 + 할일 + 최근 7일 작업 기록 (통합 관리)
 - **archive/dailywork/**: 7일 이상 된 작업 기록 보관
-- ❌ 분석/검토 문서: 새 파일 생성 금지 → STATUS.md에 요약만 추가
+- ❌ 분석/검토 문서: 새 파일 생성 금지 → TODO.md에 요약만 추가
 
 ---
 

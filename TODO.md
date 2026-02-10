@@ -1,6 +1,6 @@
-# 프로젝트 상태
+# 프로젝트 현황 + 할일
 
-**최종 업데이트**: 2026-02-06
+**최종 업데이트**: 2026-02-10
 
 ---
 
@@ -155,6 +155,7 @@
 | 작업 | 설명 |
 |------|------|
 | **결과 클립보드 복사** | 기본 결과 + LLM 해석 → HTML 서식 복사 |
+| **Terminology 텍스트 연결 (~150개)** | 인프라 완료, 하드코딩 텍스트 10%만 연결됨. 전체 연결 전까지 DomainSwitcher는 개발자 전용. 상세: `docs/TERMINOLOGY_REMAINING_TODO.md` |
 
 ### LLM 독립 (언제든 가능)
 | 작업 | 설명 |
@@ -170,7 +171,7 @@
 |------|------|
 | **[README.md](README.md)** | 프로젝트 개요 |
 | **[ROADMAP.md](ROADMAP.md)** | 전체 Phase 계획 |
-| **[STATUS.md](STATUS.md)** | 현황 + 최근 작업 (이 파일) |
+| **[TODO.md](TODO.md)** | 현황 + 할일 + 최근 작업 (이 파일) |
 | **[CLAUDE.md](CLAUDE.md)** | AI 코딩 규칙 |
 
 **상세 문서**: `statistical-platform/docs/`

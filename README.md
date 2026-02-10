@@ -147,7 +147,7 @@ Statics/
 ├── README.md                 # 프로젝트 소개 (이 파일)
 ├── CLAUDE.md                 # AI 코딩 규칙
 ├── ROADMAP.md                # 개발 로드맵
-├── STATUS.md                 # 현황 + 최근 작업 (7일)
+├── TODO.md                   # 현황 + 할일 + 최근 작업 (7일)
 │
 └── statistical-platform/     # Next.js 15 앱
     ├── app/                  # App Router
@@ -286,7 +286,7 @@ ollama pull mxbai-embed-large  # Ollama 임베딩 모델
   - E2E 테스트 (Playwright)
 - **Phase 12**: Tauri 데스크탑 앱 (향후 검토)
 
-**상세**: [ROADMAP.md](ROADMAP.md) | [STATUS.md](STATUS.md)
+**상세**: [ROADMAP.md](ROADMAP.md) | [TODO.md](TODO.md)
 
 ---
 

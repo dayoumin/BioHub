@@ -10,7 +10,24 @@
  */
 
 import { render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
 import { FitScoreIndicator, FitScoreBadge, getFitLevel } from '@/components/smart-flow/visualization/FitScoreIndicator'
+
+// Mock useTerminology (FitScoreIndicator/FitScoreBadge uses useTerminology())
+vi.mock('@/hooks/use-terminology', () => ({
+    useTerminology: () => ({
+        fitScore: {
+            levels: {
+                excellent: { label: '매우 적합', shortLabel: '최적', description: '데이터에 매우 적합합니다' },
+                good: { label: '적합', shortLabel: '적합', description: '데이터와 잘 맞습니다' },
+                caution: { label: '주의 필요', shortLabel: '주의', description: '일부 조건이 충족되지 않습니다' },
+                poor: { label: '부적합', shortLabel: '부적합', description: '다른 방법을 고려하세요' },
+                unknown: { label: '평가 불가', shortLabel: '평가 불가', description: '데이터 정보가 부족합니다' },
+            },
+        },
+    }),
+    useTerminologyContext: () => ({ dictionary: { domain: 'generic' }, setDomain: vi.fn(), currentDomain: 'generic' }),
+}))
 
 describe('FitScoreIndicator', () => {
   describe('점수별 등급 분류', () => {

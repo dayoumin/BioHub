@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { BarChart3, CheckCircle2, Loader2, AlertCircle, Pause, Play, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,7 +10,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { StatisticalExecutor } from '@/lib/services/executors'
@@ -21,20 +20,23 @@ import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { StepHeader, StatusIndicator, CollapsibleSection } from '@/components/smart-flow/common'
 import { logger } from '@/lib/utils/logger'
 import type { AnalysisExecutionStepProps } from '@/types/smart-flow-navigation'
-import type { StatisticalMethod } from '@/lib/statistics/method-mapping'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import type { StatisticalAssumptions } from '@/types/smart-flow'
 import { useTerminology } from '@/hooks/use-terminology'
 
-// 진행 단계 정의
-const EXECUTION_STAGES = [
-  { id: 'prepare', label: '분석 환경 준비', range: [0, 15], message: '분석 환경 준비 중...' },
-  { id: 'preprocess', label: '데이터 전처리', range: [15, 30], message: '데이터 전처리 중...' },
-  { id: 'assumptions', label: '통계적 가정 검증', range: [30, 50], message: '통계적 가정 검증 중...' },
-  { id: 'analysis', label: '통계 분석 실행', range: [50, 75], message: '통계 분석 실행 중...' },
-  { id: 'additional', label: '추가 통계량 계산', range: [75, 90], message: '추가 통계량 계산 중...' },
-  { id: 'finalize', label: '결과 정리', range: [90, 100], message: '결과 정리 중...' }
-]
+// Stage IDs (순서 고정)
+const STAGE_IDS = ['prepare', 'preprocess', 'assumptions', 'analysis', 'additional', 'finalize'] as const
+type StageId = typeof STAGE_IDS[number]
+
+// 진행률 범위 정의
+const STAGE_RANGES: Record<StageId, [number, number]> = {
+  prepare: [0, 15],
+  preprocess: [15, 30],
+  assumptions: [30, 50],
+  analysis: [50, 75],
+  additional: [75, 90],
+  finalize: [90, 100]
+}
 
 export function AnalysisExecutionStep({
   selectedMethod,
@@ -48,9 +50,19 @@ export function AnalysisExecutionStep({
   // Terminology System
   const t = useTerminology()
 
+  // 실행 단계 (terminology 기반)
+  const executionStages = useMemo(() =>
+    STAGE_IDS.map(id => ({
+      id,
+      label: t.smartFlow.executionStages[id].label,
+      range: STAGE_RANGES[id],
+      message: t.smartFlow.executionStages[id].message
+    }))
+  , [t])
+
   // 상태 관리
   const [progress, setProgress] = useState(0)
-  const [currentStage, setCurrentStage] = useState(EXECUTION_STAGES[0])
+  const [currentStage, setCurrentStage] = useState(executionStages[0])
   const [completedStages, setCompletedStages] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isPaused, setIsPaused] = useState(false)
@@ -83,20 +95,20 @@ export function AnalysisExecutionStep({
    * 진행 단계 업데이트
    */
   const updateStage = useCallback((stageId: string, progressValue: number) => {
-    const stage = EXECUTION_STAGES.find(s => s.id === stageId)
+    const stage = executionStages.find(s => s.id === stageId)
     if (stage) {
       setCurrentStage(stage)
       setProgress(progressValue)
       addLog(stage.label + ' 시작')
     }
-  }, [addLog])
+  }, [addLog, executionStages])
 
   /**
    * 분석 실행 함수
    */
   const runAnalysis = useCallback(async () => {
     if (!uploadedData || !selectedMethod) {
-      setError('분석에 필요한 데이터나 방법이 선택되지 않았습니다.')
+      setError(t.smartFlow.execution.dataRequired)
       return
     }
 
@@ -300,10 +312,10 @@ export function AnalysisExecutionStep({
 
     } catch (err) {
       logger.error('분석 실행 오류', err)
-      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다')
+      setError(err instanceof Error ? err.message : t.smartFlow.execution.unknownError)
       addLog(`❌ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`)
     }
-  }, [uploadedData, selectedMethod, variableMapping, suggestedSettings, isCancelled, updateStage, addLog, onAnalysisComplete, onNext])
+  }, [uploadedData, selectedMethod, variableMapping, suggestedSettings, isCancelled, updateStage, addLog, onAnalysisComplete, onNext, t, executionStages])
 
   /**
    * 일시정지/재개 처리
@@ -317,7 +329,7 @@ export function AnalysisExecutionStep({
    * 취소 처리
    */
   const handleCancel = () => {
-    if (window.confirm('정말 취소하시겠습니까?\n현재까지 계산된 결과는 저장되지 않습니다.')) {
+    if (window.confirm(t.smartFlow.execution.cancelConfirm)) {
       setIsCancelled(true)
       addLog('사용자가 분석을 취소했습니다')
       if (onPrevious) onPrevious()
@@ -381,7 +393,7 @@ export function AnalysisExecutionStep({
                   <BarChart3 className="w-10 h-10 text-primary animate-pulse" />
                 </div>
 
-                <h3 className="text-xl font-semibold mb-2">분석 수행 중</h3>
+                <h3 className="text-xl font-semibold mb-2">{t.smartFlow.execution.runningTitle}</h3>
                 <p className="text-muted-foreground">{currentStage.message}</p>
               </div>
 
@@ -390,13 +402,13 @@ export function AnalysisExecutionStep({
                 <Progress value={progress} className="h-3" />
                 <div className="flex justify-between text-sm text-muted-foreground mt-2">
                   <span>{progress}%</span>
-                  <span>예상 남은 시간: {Math.ceil(estimatedTime * (100 - progress) / 100)}초</span>
+                  <span>{t.smartFlow.execution.estimatedTimeRemaining(Math.ceil(estimatedTime * (100 - progress) / 100))}</span>
                 </div>
               </div>
 
               {/* 단계별 진행 상황 */}
               <div className="max-w-md mx-auto text-left space-y-3">
-                {EXECUTION_STAGES.map((stage) => {
+                {executionStages.map((stage) => {
                   const isCompleted = completedStages.includes(stage.id)
                   const isCurrent = currentStage.id === stage.id && !isCompleted
 
@@ -437,12 +449,12 @@ export function AnalysisExecutionStep({
                             {isPaused ? (
                               <>
                                 <Play className="w-4 h-4 mr-2" />
-                                계속
+                                {t.smartFlow.execution.resumeButton}
                               </>
                             ) : (
                               <>
                                 <Pause className="w-4 h-4 mr-2" />
-                                일시정지
+                                {t.smartFlow.execution.pauseButton}
                               </>
                             )}
                           </Button>
@@ -450,7 +462,7 @@ export function AnalysisExecutionStep({
                       </TooltipTrigger>
                       {progress >= 75 && (
                         <TooltipContent>
-                          <p>75% 이후에는 일시정지할 수 없습니다</p>
+                          <p>{t.smartFlow.execution.pauseDisabledTooltip}</p>
                         </TooltipContent>
                       )}
                     </Tooltip>
@@ -462,7 +474,7 @@ export function AnalysisExecutionStep({
                     onClick={handleCancel}
                   >
                     <X className="w-4 h-4 mr-2" />
-                    취소
+                    {t.smartFlow.execution.cancelButton}
                   </Button>
                 </div>
               )}
@@ -473,14 +485,14 @@ export function AnalysisExecutionStep({
 
       {/* 상세 실행 로그 (Collapsible) */}
       <CollapsibleSection
-        label={`상세 실행 로그 (${executionLog.length}개)`}
+        label={t.smartFlow.execution.logSectionLabel(executionLog.length)}
         open={showDetailedLog}
         onOpenChange={setShowDetailedLog}
         contentClassName="pt-2"
       >
         <div className="bg-muted/50 rounded-lg border p-3 max-h-48 overflow-y-auto">
           {executionLog.length === 0 ? (
-            <p className="text-sm text-muted-foreground">로그가 없습니다</p>
+            <p className="text-sm text-muted-foreground">{t.smartFlow.execution.noLogs}</p>
           ) : (
             <div className="space-y-1">
               {executionLog.map((log, index) => (

@@ -1,12 +1,12 @@
 {
-  "timestamp": "2026-02-09T04:58:22.443Z",
+  "timestamp": "2026-02-10T02:32:10.502Z",
   "totalTests": 20,
   "passed": 20,
   "failed": 0,
   "quality": {
     "validMethodIds": 11,
     "invalidMethodIds": [],
-    "avgConfidence": 0.7,
+    "avgConfidence": 0.67,
     "featuresUsed": {
       "variableAssignments": 6,
       "warnings": 2,
@@ -18,7 +18,7 @@
     {
       "scenario": "A1: Clear ANOVA (Iris)",
       "status": "PASS",
-      "duration": 71039,
+      "duration": 53895,
       "methodId": "anova",
       "confidence": 0.85,
       "hasVariableAssignments": true,
@@ -29,7 +29,7 @@
     {
       "scenario": "A2: Clear t-test (2 groups)",
       "status": "PASS",
-      "duration": 17117,
+      "duration": 35940,
       "methodId": "t-test",
       "confidence": 0.85,
       "hasVariableAssignments": true,
@@ -38,26 +38,26 @@
     {
       "scenario": "A3: Ambiguous query",
       "status": "PASS",
-      "duration": 18744,
-      "methodId": "descriptive",
-      "confidence": 0.85,
+      "duration": 51456,
+      "methodId": "anova",
+      "confidence": 0.7,
       "hasAmbiguityNote": true,
-      "alternativeCount": 2,
+      "alternativeCount": 3,
       "isValidMethodId": true
     },
     {
       "scenario": "A4: Non-normal data + assumption violation",
       "status": "PASS",
-      "duration": 18735,
+      "duration": 33707,
       "methodId": "kruskal-wallis",
-      "confidence": 0.9,
+      "confidence": 0.85,
       "hasWarnings": true,
       "isValidMethodId": true
     },
     {
       "scenario": "A5: High missing data",
       "status": "PASS",
-      "duration": 16823,
+      "duration": 56451,
       "methodId": "anova",
       "confidence": 0.85,
       "hasWarnings": true,
@@ -66,7 +66,7 @@
     {
       "scenario": "A6: Hallucination prevention",
       "status": "PASS",
-      "duration": 22017,
+      "duration": 56633,
       "methodId": "anova",
       "hasVariableAssignments": true,
       "isValidMethodId": true
@@ -74,7 +74,7 @@
     {
       "scenario": "A7: Korean column names",
       "status": "PASS",
-      "duration": 170301,
+      "duration": 92201,
       "methodId": "t-test",
       "confidence": 0.85,
       "hasVariableAssignments": true,
@@ -83,15 +83,15 @@
     {
       "scenario": "A8: Correlation/regression",
       "status": "PASS",
-      "duration": 21294,
+      "duration": 34130,
       "methodId": "correlation",
-      "confidence": 0.85,
+      "confidence": 0.9,
       "isValidMethodId": true
     },
     {
       "scenario": "A9: Categorical-only → chi-square",
       "status": "PASS",
-      "duration": 12157,
+      "duration": 25213,
       "methodId": "chi-square-independence",
       "confidence": 0.9,
       "isValidMethodId": true
@@ -99,58 +99,58 @@
     {
       "scenario": "A10: No data context",
       "status": "PASS",
-      "duration": 17182,
+      "duration": 56980,
       "methodId": "t-test",
-      "confidence": 0.75,
+      "confidence": 0.65,
       "hasVariableAssignments": true,
       "isValidMethodId": true
     },
     {
       "scenario": "B1: Significant t-test interpretation",
       "status": "PASS",
-      "duration": 14522,
-      "responsePreview": "결국 치료 그룹(treatment)이 대조 그룹(control)보다 평균이 8점 높고, 이 차이는 통계적으로 유의미해요. 효과크기도 크다는 것을 알 수 있어요. 신뢰구간을 보면 두 그룹의 평균 차이가 3.2점에서 12.8점 사이일 가능성이 95%에요."
+      "duration": 58497,
+      "responsePreview": "독립표본 t-검정 결과에 따르면 control 그룹과 treatment 그룹 간에 통계적으로 유의미한 차이가 있었어요(t(58)=3.45, p=.002). treatment 그룹의 평균 점수(80.30)가 control 그룹(72.30)보다 약 8점 높았으며, 이 차이는 큰 효과 크기(Cohen's d=0.82)를 보였어요. 95% 신뢰구간 분석 결과(3."
     },
     {
       "scenario": "B2: Non-significant ANOVA",
       "status": "PASS",
-      "duration": 12426,
-      "responsePreview": "세 그룹(A, B, C) 간 평균 차이가 통계적으로 유의하지 않아요. 결국 이 데이터에서는 그룹별 차이가 거의 없다고 볼 수 있어요. 효과크기도 작아서 실질적 의미는 크지 않네요."
+      "duration": 76198,
+      "responsePreview": "일원분산분석 결과, 세 그룹 간에 통계적으로 유의한 차이가 없었어요 (F(2,97)=0.89, p=.42). 효과크기(eta-squared)는 .02로 매우 작아 실질적인 차이도 거의 없는 것으로 나타났습니다. 결론적으로 A, B, C 세 그룹은 분석된 변수에서 유의미한 차이를 보이지 않는다고 할 수 있어요."
     },
     {
       "scenario": "B3: Assumption violation interpretation",
       "status": "PASS",
-      "duration": 169606,
-      "responsePreview": "웰치 t-검정 결과 두 집단 간에 통계적으로 유의미한 차이가 있었어요(p=0.038). 효과 크기는 Cohen's d=0.55로 중간 정도의 효과를 보였어요. 다만 정규성과 등분산성 가정이 모두 위배되어 결과 해석에 신중이 필요해요."
+      "duration": 47802,
+      "responsePreview": "웰치 t-검정 결과 두 집단 간에 통계적으로 유의미한 차이가 발견되었어요(p=0.038). 효과크기(Cohen's d=0.55)는 중간 정도로, 실무적으로도 의미 있는 차이라고 볼 수 있어요. 다만 정규성과 등분산성 가정이 모두 미충족되어 결과 해석에 신중을 기해야 해요."
     },
     {
       "scenario": "B4: Regression with R² and coefficients",
       "status": "PASS",
-      "duration": 39188,
-      "responsePreview": "height 변수는 종속변수에 통계적으로 매우 유의미한 영향을 미치고 있어요. p-value가 0.0001로 유의수준 0.05보다 훨씬 작아 결과가 매우 신뢰할 수 있고, height가 1단위 증가할 때마다 종속변수는 평균적으로 0.72단위 증가하는 것으로 나타났어요. 모델은 전체 변이의 약 31.6%를 설명하며, 효과크기 0.68로 중간에서 큰 효과를 보"
+      "duration": 58900,
+      "responsePreview": "height 변수는 종속변수에 통계적으로 매우 유의미한 영향을 미치네요(p < 0.001). height가 1단위 증가할 때마다 종속변수가 0.72단위 증가하는 양의 관계를 보여요. 모델 전체도 유의미하며(F = 45.2, p < 0.001), height 변수가 종속변수의 변동성을 약 31.6% 설명하지만, 여전히 다른 중요한 변수들이 존재할 수 있어요."
     },
     {
       "scenario": "B5: Correlation interpretation",
       "status": "PASS",
-      "duration": 41066,
-      "responsePreview": "var1과 var2 사이에는 강한 양의 상관관계가 있어요. 통계적으로 매우 유의하며(p < 0.001), 실제로도 두 변수가 함께 변하는 정도가 크다는 뜻이에요. 95% 신뢰구간을 보면 상관계수가 0.68에서 0.85 사이일 확률이 높아요."
+      "duration": 83296,
+      "responsePreview": "var1과 var2 사이에는 강한 양의 상관관계가 존재하며(p < .001), 이 관계는 통계적으로 매우 유의미합니다. 상관계수 0.78은 두 변수가 함께 증가하거나 감소하는 경향이 강함을 나타내며, 95% 신뢰구간(0.68~0.85)에 따르면 이 관계는 표본 오차에 의한 것이 아니라 실제로 존재하는 관계일 가능성이 높습니다. 결국 두 변수는 서로 밀접한 "
     },
     {
       "scenario": "B6: Post-hoc ANOVA interpretation",
       "status": "PASS",
-      "duration": 155624,
-      "responsePreview": "세 그룹(setosa, versicolor, virginica) 간 평균 차이가 통계적으로 유의미해요. 특히 setosa와 다른 두 그룹의 차이가 가장 크고, 모든 그룹 간 비교에서 유의미한 차이가 나타났네요. 결국 이 변수는 세 그룹을 구분하는 데 효과적이라는 뜻이에요."
+      "duration": 80484,
+      "responsePreview": "세 그룹(setosa, versicolor, virginica) 간에 통계적으로 매우 유의미한 차이가 있어요(p < 0.001). 이 차이는 실제로도 큰 영향을 미치는 것으로 확인되었고(eta-squared = 0.18), 모든 그룹 쌍 간에도 유의미한 평균 차이가 존재해요. 특히 setosa 그룹은 다른 두 그룹보다 분석 변수에서 현저히 낮은 값을 보이고"
     },
     {
       "scenario": "C1: splitInterpretation on real LLM output",
       "status": "PASS",
-      "duration": 29234,
-      "responsePreview": "summary=119chars, detail=1228chars"
+      "duration": 48143,
+      "responsePreview": "summary=138chars, detail=246chars"
     },
     {
       "scenario": "C2: filterInvalidVariables in live",
       "status": "PASS",
-      "duration": 54282,
+      "duration": 57265,
       "methodId": "anova",
       "hasVariableAssignments": true,
       "isValidMethodId": true

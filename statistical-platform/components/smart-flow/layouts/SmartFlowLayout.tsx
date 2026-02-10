@@ -29,14 +29,10 @@ import { useUI } from '@/contexts/ui-context'
 import { SettingsModal } from '@/components/layout/settings-modal'
 import { HelpModal } from '@/components/layout/help-modal'
 import { DomainSwitcher } from '@/components/terminology/DomainSwitcher'
+import { useTerminology } from '@/hooks/use-terminology'
 
-// 4단계 스텝 정의
-const STEPS: StepItem[] = [
-  { id: 1, label: '탐색', icon: BarChart3 },
-  { id: 2, label: '방법', icon: Target },
-  { id: 3, label: '변수', icon: Settings },
-  { id: 4, label: '분석', icon: Play },
-]
+// Step icons (라벨은 terminology에서 동적으로 가져옴)
+const STEP_ICONS = [BarChart3, Target, Settings, Play] as const
 
 
 
@@ -98,17 +94,30 @@ export function SmartFlowLayout({
   showHub = false,
   canGoNext = false,
   onNext,
-  nextLabel = '다음 단계로',
+  nextLabel,
   showFloatingNav = true,
   className
 }: SmartFlowLayoutProps) {
+  const t = useTerminology()
+
+  // 4단계 스텝 정의 (terminology 기반)
+  const STEPS: StepItem[] = useMemo(() => {
+    const labels = t.smartFlow.stepShortLabels
+    return [
+      { id: 1, label: labels.exploration, icon: STEP_ICONS[0] },
+      { id: 2, label: labels.method, icon: STEP_ICONS[1] },
+      { id: 3, label: labels.variable, icon: STEP_ICONS[2] },
+      { id: 4, label: labels.analysis, icon: STEP_ICONS[3] },
+    ]
+  }, [t])
+
   // STEPS에 completed 정보 병합
   const stepsWithCompleted: StepItem[] = useMemo(() =>
     STEPS.map(step => ({
       ...step,
       completed: steps.find(s => s.id === step.id)?.completed ?? false
     }))
-  , [steps])
+  , [steps, STEPS])
 
   // 전역 UI 컨텍스트 (채팅, 설정, 도움말 모달)
   const {
@@ -129,6 +138,8 @@ export function SmartFlowLayout({
     resetSession()
   }, [resetSession])
 
+  const resolvedNextLabel = nextLabel ?? t.smartFlow.layout.nextStep
+
   return (
     <div className={cn("min-h-full bg-background", className)}>
       {/* ===== 헤더 (Sticky) ===== */}
@@ -142,7 +153,7 @@ export function SmartFlowLayout({
                 onClick={handleLogoClick}
                 className="text-lg font-bold text-foreground hover:text-primary transition-colors"
               >
-                NIFS 통계 분석
+                {t.smartFlow.layout.appTitle}
               </Link>
             </div>
 
@@ -155,7 +166,7 @@ export function SmartFlowLayout({
                   size="icon"
                   className={cn("h-10 w-10", showHistory && "bg-muted")}
                   onClick={onHistoryToggle}
-                  title={showHistory ? "히스토리 닫기" : `히스토리 (${historyCount}개)`}
+                  title={showHistory ? t.smartFlow.layout.historyClose : t.smartFlow.layout.historyCount(historyCount)}
                 >
                   <Clock className="h-5 w-5" />
                 </Button>
@@ -165,7 +176,7 @@ export function SmartFlowLayout({
                 size="icon"
                 className="h-10 w-10"
                 onClick={openChatPanel}
-                title="AI 챗봇"
+                title={t.smartFlow.layout.aiChatbot}
               >
                 <MessageCircle className="h-5 w-5" />
               </Button>
@@ -174,7 +185,7 @@ export function SmartFlowLayout({
                 size="icon"
                 className="h-10 w-10"
                 onClick={openGlobalHelp}
-                title="도움말"
+                title={t.smartFlow.layout.helpLabel}
               >
                 <HelpCircle className="h-5 w-5" />
               </Button>
@@ -187,7 +198,7 @@ export function SmartFlowLayout({
                 size="icon"
                 className="h-10 w-10"
                 onClick={openSettings}
-                title="설정"
+                title={t.smartFlow.layout.settingsLabel}
               >
                 <Settings className="h-5 w-5" />
               </Button>
@@ -214,7 +225,7 @@ export function SmartFlowLayout({
             <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/30">
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-center">
-                  <CardTitle className="text-lg">데이터 크기 가이드</CardTitle>
+                  <CardTitle className="text-lg">{t.smartFlow.layout.dataSizeGuide}</CardTitle>
                   <Button variant="ghost" size="sm" onClick={onHelpToggle}>
                     <X className="w-4 h-4" />
                   </Button>
@@ -223,22 +234,22 @@ export function SmartFlowLayout({
               <CardContent className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <h4 className="font-medium mb-2">현재 제한사항</h4>
+                    <h4 className="font-medium mb-2">{t.smartFlow.layout.currentLimits}</h4>
                     <ul className="text-sm space-y-1 text-muted-foreground">
-                      <li>• 최대 파일: 50MB</li>
-                      <li>• 최대 데이터: 100,000행 × 1,000열</li>
-                      <li>• 권장: 10,000행 이하</li>
+                      <li>• {t.smartFlow.layout.limitFileSize}</li>
+                      <li>• {t.smartFlow.layout.limitDataSize}</li>
+                      <li>• {t.smartFlow.layout.limitRecommended}</li>
                     </ul>
                   </div>
                   <div>
-                    <h4 className="font-medium mb-2">메모리별 권장 크기</h4>
+                    <h4 className="font-medium mb-2">{t.smartFlow.layout.memoryRecommendation}</h4>
                     <ul className="text-sm space-y-1 text-muted-foreground">
-                      <li>• 4GB RAM: ~10,000행</li>
-                      <li>• 8GB RAM: ~30,000행</li>
-                      <li>• 16GB RAM: ~60,000행</li>
+                      <li>• {t.smartFlow.layout.memoryTier4GB}</li>
+                      <li>• {t.smartFlow.layout.memoryTier8GB}</li>
+                      <li>• {t.smartFlow.layout.memoryTier16GB}</li>
                       {systemMemory && (
                         <li className="font-medium text-blue-700 dark:text-blue-300">
-                          → 감지된 메모리: {systemMemory}GB
+                          {t.smartFlow.layout.detectedMemory(systemMemory)}
                         </li>
                       )}
                     </ul>
@@ -259,7 +270,7 @@ export function SmartFlowLayout({
           <SheetHeader className="pb-4 border-b">
             <SheetTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5" />
-              분석 히스토리
+              {t.smartFlow.layout.historyTitle}
             </SheetTitle>
           </SheetHeader>
           <div className="py-4">
@@ -275,7 +286,7 @@ export function SmartFlowLayout({
             <CardContent className="pt-6 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
               <p className="text-sm text-muted-foreground">
-                {analyzingMessage || '분석 중...'}
+                {analyzingMessage || t.smartFlow.layout.analyzingDefault}
               </p>
             </CardContent>
           </Card>
@@ -303,11 +314,11 @@ export function SmartFlowLayout({
             {isAnalyzing ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                분석 중...
+                {t.smartFlow.layout.analyzingDefault}
               </>
             ) : (
               <>
-                {nextLabel}
+                {resolvedNextLabel}
                 <ChevronRight className="w-4 h-4" />
               </>
             )}

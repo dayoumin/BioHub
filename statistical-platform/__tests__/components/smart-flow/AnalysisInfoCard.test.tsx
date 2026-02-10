@@ -10,9 +10,54 @@
  */
 
 import { render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
 import { AnalysisInfoCard } from '@/components/smart-flow/components/AnalysisInfoCard'
 import { StatisticalMethod, ValidationResults, StatisticalAssumptions } from '@/types/smart-flow'
 import { VariableMapping } from '@/lib/statistics/variable-mapping'
+
+// Mock useTerminology (AnalysisInfoCard uses useTerminology())
+vi.mock('@/hooks/use-terminology', () => ({
+    useTerminology: () => ({
+        analysisInfo: {
+            cardTitle: '분석 정보',
+            labels: {
+                fileName: '파일명',
+                dataSize: '데이터 크기',
+                method: '분석 방법',
+                analysisTime: '분석 시간',
+                dataQuality: '데이터 품질',
+                assumptions: '가정 검정',
+                variables: '변수 구성',
+            },
+            variableRoles: {
+                dependent: '종속변수',
+                independent: '독립변수',
+                group: '그룹변수',
+                factor: 'Factor 변수',
+                paired: 'Paired 변수',
+            },
+            dataQuality: {
+                missingValues: (count: number, percent: string) => `결측값 ${count}개 (${percent}%)`,
+                duplicateRows: (count: number) => `중복 행 ${count}개`,
+                warnings: (count: number) => `${count}개 경고`,
+            },
+            assumptions: {
+                normality: '정규성',
+                homogeneity: '등분산성',
+                independence: '독립성',
+                met: '충족',
+                partialViolation: '일부 위반',
+                allGroupsNormal: '모든 그룹 정규',
+                someGroupsNonNormal: '일부 그룹 비정규',
+            },
+            units: {
+                rows: '행',
+                nVariables: (count: number) => `${count}개 변수`,
+            },
+        },
+    }),
+    useTerminologyContext: () => ({ dictionary: { domain: 'generic' }, setDomain: vi.fn(), currentDomain: 'generic' }),
+}))
 
 describe('AnalysisInfoCard', () => {
   // Test fixtures
@@ -79,13 +124,13 @@ describe('AnalysisInfoCard', () => {
     it('displays data size correctly', () => {
       render(<AnalysisInfoCard dataRows={150} dataColumns={8} />)
       // Text is split across elements, use regex to match partial content
-      expect(screen.getByText(/150행/)).toBeInTheDocument()
+      expect(screen.getByText(/150\s*행/)).toBeInTheDocument()
       expect(screen.getByText(/8개 변수/)).toBeInTheDocument()
     })
 
     it('formats large row counts with locale string', () => {
       render(<AnalysisInfoCard dataRows={10000} />)
-      expect(screen.getByText('10,000행')).toBeInTheDocument()
+      expect(screen.getByText(/10,000\s*행/)).toBeInTheDocument()
     })
 
     it('displays method name when provided', () => {

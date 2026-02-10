@@ -38,6 +38,7 @@ import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { startNewAnalysis } from '@/lib/services/data-management'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
+import { useTerminology } from '@/hooks/use-terminology'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,6 +51,7 @@ import {
 } from '@/components/ui/alert-dialog'
 
 export function AnalysisHistoryPanel() {
+  const t = useTerminology()
   const [searchQuery, setSearchQuery] = useState('')
   const [filterMethod, setFilterMethod] = useState<string | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
@@ -140,8 +142,8 @@ export function AnalysisHistoryPanel() {
     return (
       <div className="text-center py-8 text-muted-foreground">
         <Clock className="w-10 h-10 mx-auto mb-3 opacity-50" />
-        <p className="text-sm">분석 히스토리가 없습니다</p>
-        <p className="text-xs mt-1">완료된 분석이 자동으로 저장됩니다</p>
+        <p className="text-sm">{t.history.empty.title}</p>
+        <p className="text-xs mt-1">{t.history.empty.description}</p>
       </div>
     )
   }
@@ -150,7 +152,7 @@ export function AnalysisHistoryPanel() {
     <div className="space-y-4">
       {/* 액션 버튼 (헤더는 Sheet에서 표시) */}
       <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">{analysisHistory.length}개 기록</span>
+        <span className="text-sm text-muted-foreground">{t.history.recordCount(analysisHistory.length)}</span>
 
         <div className="flex items-center gap-1">
           <Button
@@ -158,7 +160,7 @@ export function AnalysisHistoryPanel() {
             size="sm"
             onClick={handleSaveCurrent}
           >
-            현재 분석 저장
+            {t.history.buttons.saveCurrent}
           </Button>
 
           <DropdownMenu>
@@ -168,10 +170,10 @@ export function AnalysisHistoryPanel() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuLabel>분석 방법 필터</DropdownMenuLabel>
+              <DropdownMenuLabel>{t.history.labels.filterByMethod}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setFilterMethod(null)}>
-                전체 보기
+                {t.history.labels.showAll}
               </DropdownMenuItem>
               {uniqueMethods.map(method => (
                 <DropdownMenuItem
@@ -188,7 +190,7 @@ export function AnalysisHistoryPanel() {
             variant="ghost"
             size="sm"
             onClick={() => setShowClearConfirm(true)}
-            title="전체 삭제"
+            title={t.history.buttons.clearAll}
           >
             <Trash2 className="w-4 h-4" />
           </Button>
@@ -199,7 +201,7 @@ export function AnalysisHistoryPanel() {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
         <Input
-          placeholder="히스토리 검색..."
+          placeholder={t.history.labels.searchPlaceholder}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-9"
@@ -221,7 +223,7 @@ export function AnalysisHistoryPanel() {
                   <h4 className="font-medium">{item.name}</h4>
                   {currentHistoryId === item.id && (
                     <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                      현재
+                      {t.history.labels.current}
                     </span>
                   )}
                 </div>
@@ -229,11 +231,11 @@ export function AnalysisHistoryPanel() {
                 <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
                   <span className="flex items-center gap-1">
                     <Database className="w-3 h-3" />
-                    {item.dataRowCount}행
+                    {item.dataRowCount} {t.history.labels.rows}
                   </span>
                   <span className="flex items-center gap-1">
                     <BarChart3 className="w-3 h-3" />
-                    {item.method?.name || '분석 방법 없음'}
+                    {item.method?.name || t.history.labels.noMethod}
                   </span>
                   <span className="flex items-center gap-1">
                     <FileText className="w-3 h-3" />
@@ -242,14 +244,14 @@ export function AnalysisHistoryPanel() {
                 </div>
                 
                 <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                  {item.purpose || '분석 목적 없음'}
+                  {item.purpose || t.history.labels.noPurpose}
                 </p>
                 
                 {/* 주요 결과 표시 */}
                 {item.results && typeof item.results === 'object' && 'pValue' in item.results && (
                   <div className="flex items-center gap-3 text-xs">
                     <span>
-                      p-value: <strong className={
+                      {t.history.labels.pValue} <strong className={
                         (typeof item.results.pValue === 'number' && item.results.pValue < 0.05) ? 'text-gray-900 dark:text-gray-100' : 'text-gray-600'
                       }>
                         {typeof item.results.pValue === 'number' ? item.results.pValue.toFixed(4) : 'N/A'}
@@ -257,7 +259,7 @@ export function AnalysisHistoryPanel() {
                     </span>
                     {'effectSize' in item.results && item.results.effectSize != null && (
                       <span>
-                        효과크기: <strong>
+                        {t.history.labels.effectSize} <strong>
                           {typeof item.results.effectSize === 'number'
                             ? item.results.effectSize.toFixed(2)
                             : typeof item.results.effectSize === 'object' && 'value' in item.results.effectSize
@@ -286,7 +288,7 @@ export function AnalysisHistoryPanel() {
                     e.stopPropagation()
                     handleLoad(item.id)
                   }}
-                  title="저장된 결과 보기"
+                  title={t.history.tooltips.viewResults}
                 >
                   <Eye className="w-4 h-4" />
                 </Button>
@@ -299,7 +301,7 @@ export function AnalysisHistoryPanel() {
                     e.stopPropagation()
                     handleReanalyze(item.id)
                   }}
-                  title="이 방법으로 새 데이터 분석"
+                  title={t.history.tooltips.reanalyze}
                   className="text-primary hover:text-primary"
                 >
                   <RefreshCw className="w-4 h-4" />
@@ -313,7 +315,7 @@ export function AnalysisHistoryPanel() {
                     e.stopPropagation()
                     setDeleteConfirmId(item.id)
                   }}
-                  title="삭제"
+                  title={t.history.tooltips.delete}
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -327,17 +329,17 @@ export function AnalysisHistoryPanel() {
       <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>분석 히스토리 삭제</AlertDialogTitle>
+            <AlertDialogTitle>{t.history.dialogs.deleteTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              이 분석 히스토리를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+              {t.history.dialogs.deleteDescription}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogCancel>{t.history.buttons.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
             >
-              삭제
+              {t.history.buttons.delete}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -347,19 +349,18 @@ export function AnalysisHistoryPanel() {
       <AlertDialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>전체 히스토리 삭제</AlertDialogTitle>
+            <AlertDialogTitle>{t.history.dialogs.clearTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              모든 분석 히스토리({analysisHistory.length}개)를 삭제하시겠습니까?
-              이 작업은 되돌릴 수 없습니다.
+              {t.history.dialogs.clearDescription(analysisHistory.length)}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogCancel>{t.history.buttons.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleClearAll}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              전체 삭제
+              {t.history.buttons.clearAll}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -369,18 +370,18 @@ export function AnalysisHistoryPanel() {
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>현재 분석 저장</DialogTitle>
+            <DialogTitle>{t.history.dialogs.saveTitle}</DialogTitle>
             <DialogDescription>
-              현재 분석에 이름을 지정하여 저장합니다.
+              {t.history.dialogs.saveDescription}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <Label htmlFor="save-name">분석 이름</Label>
+            <Label htmlFor="save-name">{t.history.dialogs.analysisName}</Label>
             <Input
               id="save-name"
               value={saveName}
               onChange={(e) => setSaveName(e.target.value)}
-              placeholder="예: 2024년 실험 데이터 t-검정"
+              placeholder={t.history.dialogs.savePlaceholder}
               className="mt-2"
               autoFocus
               onKeyDown={(e) => {
@@ -392,10 +393,10 @@ export function AnalysisHistoryPanel() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
-              취소
+              {t.history.buttons.cancel}
             </Button>
             <Button onClick={handleSaveConfirm} disabled={!saveName.trim()}>
-              저장
+              {t.history.buttons.save}
             </Button>
           </DialogFooter>
         </DialogContent>

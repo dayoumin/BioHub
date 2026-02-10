@@ -49,63 +49,21 @@ import { useTerminology } from '@/hooks/use-terminology'
  * 4. "Browse All" tab to see entire method catalog
  */
 
-const ANALYSIS_PURPOSES = [
-  {
-    id: 'compare' as AnalysisPurpose,
-    icon: <GitCompare className="w-5 h-5" />,
-    title: '그룹 간 차이 비교',
-    description: '두 개 이상의 그룹을 비교하여 평균이나 비율의 차이를 검정합니다.',
-    examples: '예: 양식장별 어류 성장률 비교, 사료 종류에 따른 체중 증가 비교, 해역별 수온 차이'
-  },
-  {
-    id: 'relationship' as AnalysisPurpose,
-    icon: <TrendingUp className="w-5 h-5" />,
-    title: '변수 간 관계 분석',
-    description: '두 개 이상의 변수 사이의 상관관계나 연관성을 분석합니다.',
-    examples: '예: 수온과 어류 성장률의 관계, 염분과 생존율의 관계, 체장과 체중의 관계'
-  },
-  {
-    id: 'distribution' as AnalysisPurpose,
-    icon: <PieChart className="w-5 h-5" />,
-    title: '분포와 빈도 분석',
-    description: '데이터의 분포 형태를 파악하고 각 범주의 빈도를 분석합니다.',
-    examples: '예: 어류 체장 분포, 어종별 어획량 비율, 해역별 플랑크톤 밀도 분포'
-  },
-  {
-    id: 'prediction' as AnalysisPurpose,
-    icon: <LineChart className="w-5 h-5" />,
-    title: '예측 모델링',
-    description: '독립변수를 사용하여 종속변수를 예측하는 모델을 만듭니다.',
-    examples: '예: 수온으로 어획량 예측, 사료량으로 성장률 예측, 환경요인으로 폐사율 예측'
-  },
-  {
-    id: 'timeseries' as AnalysisPurpose,
-    icon: <Clock className="w-5 h-5" />,
-    title: '시계열 분석',
-    description: '시간에 따른 데이터의 변화 패턴을 분석하고 미래를 예측합니다.',
-    examples: '예: 월별 어획량 추이, 연도별 양식 생산량 변화, 계절별 수온 패턴'
-  },
-  {
-    id: 'survival' as AnalysisPurpose,
-    icon: <Heart className="w-5 h-5" />,
-    title: '생존 분석',
-    description: '시간에 따른 사건 발생까지의 기간을 분석하고 위험 요인을 파악합니다.',
-    examples: '예: 치어 생존기간, 양식 시설 내구연수, 질병 발생 후 폐사까지 시간'
-  },
-  {
-    id: 'multivariate' as AnalysisPurpose,
-    icon: <Layers className="w-5 h-5" />,
-    title: '다변량 분석',
-    description: '여러 변수를 동시에 분석하여 차원 축소, 요인 추출, 군집화를 수행합니다.',
-    examples: '예: 수질 지표 차원 축소(PCA), 양식장 유형화(군집), 어종 분류(판별분석)'
-  },
-  {
-    id: 'utility' as AnalysisPurpose,
-    icon: <Calculator className="w-5 h-5" />,
-    title: '연구 설계 도구',
-    description: '표본 크기 계산, 검정력 분석, 측정 도구 신뢰도 평가를 수행합니다.',
-    examples: '예: 실험 설계 시 필요 표본수, 설문지 신뢰도(Cronbach α), 검정력 계산'
-  }
+// Purpose icons (텍스트는 terminology에서 동적으로 가져옴)
+const PURPOSE_ICONS: Record<string, React.ReactNode> = {
+  compare: <GitCompare className="w-5 h-5" />,
+  relationship: <TrendingUp className="w-5 h-5" />,
+  distribution: <PieChart className="w-5 h-5" />,
+  prediction: <LineChart className="w-5 h-5" />,
+  timeseries: <Clock className="w-5 h-5" />,
+  survival: <Heart className="w-5 h-5" />,
+  multivariate: <Layers className="w-5 h-5" />,
+  utility: <Calculator className="w-5 h-5" />,
+}
+
+const PURPOSE_IDS: AnalysisPurpose[] = [
+  'compare', 'relationship', 'distribution', 'prediction',
+  'timeseries', 'survival', 'multivariate', 'utility'
 ]
 
 
@@ -273,6 +231,17 @@ export function PurposeInputStep({
 }: PurposeInputStepProps) {
   // Terminology System
   const t = useTerminology()
+
+  // 분석 목적 카드 (terminology 기반)
+  const analysisPurposes = useMemo(() =>
+    PURPOSE_IDS.map(id => ({
+      id,
+      icon: PURPOSE_ICONS[id],
+      title: t.purposeInput.purposes[id].title,
+      description: t.purposeInput.purposes[id].description,
+      examples: t.purposeInput.purposes[id].examples
+    }))
+  , [t])
 
   // NEW: Guided Flow state
   const [flowState, flowDispatch] = useReducer(flowReducer, initialFlowState)
@@ -518,7 +487,7 @@ export function PurposeInputStep({
       // Call parent callback
       if (onPurposeSubmit) {
         await onPurposeSubmit(
-          ANALYSIS_PURPOSES.find(p => p.id === selectedPurpose)?.title || '',
+          analysisPurposes.find(p => p.id === selectedPurpose)?.title || '',
           finalSelectedMethod
         )
       }
@@ -527,7 +496,7 @@ export function PurposeInputStep({
     } finally {
       setIsNavigating(false)
     }
-  }, [finalSelectedMethod, selectedPurpose, manualSelectedMethod, isNavigating, isAnalyzing, recommendation, setSelectedMethod, setDetectedVariables, setSuggestedSettings, onPurposeSubmit, validationResults])
+  }, [finalSelectedMethod, selectedPurpose, manualSelectedMethod, isNavigating, isAnalyzing, recommendation, setSelectedMethod, setDetectedVariables, setSuggestedSettings, onPurposeSubmit, validationResults, analysisPurposes])
 
   // NEW: Progressive Questions handlers (2025 UI/UX)
   const handleCategorySelect = useCallback((category: AnalysisCategory) => {
@@ -607,7 +576,7 @@ export function PurposeInputStep({
 
       if (onPurposeSubmit) {
         await onPurposeSubmit(
-          ANALYSIS_PURPOSES.find(p => p.id === flowState.selectedPurpose)?.title || '',
+          analysisPurposes.find(p => p.id === flowState.selectedPurpose)?.title || '',
           method
         )
       }
@@ -616,7 +585,7 @@ export function PurposeInputStep({
     } finally {
       setIsNavigating(false)
     }
-  }, [flowState, isNavigating, setSelectedMethod, setDetectedVariables, setSuggestedSettings, onPurposeSubmit, validationResults])
+  }, [flowState, isNavigating, setSelectedMethod, setDetectedVariables, setSuggestedSettings, onPurposeSubmit, validationResults, analysisPurposes])
 
   // ============================================
   // AI Chat Handlers (NEW)
@@ -650,13 +619,13 @@ export function PurposeInputStep({
       if (recommendation) {
         flowDispatch(flowActions.setAiRecommendation(recommendation))
       } else {
-        flowDispatch(flowActions.aiChatError('추천 결과를 생성하지 못했습니다. 다시 시도해주세요.'))
+        flowDispatch(flowActions.aiChatError(t.purposeInput.messages.aiRecommendError))
       }
     } catch (error) {
       logger.error('AI Chat error', { error })
-      flowDispatch(flowActions.aiChatError('오류가 발생했습니다. 다시 시도해주세요.'))
+      flowDispatch(flowActions.aiChatError(t.purposeInput.messages.genericError))
     }
-  }, [flowState.aiChatInput, flowState.isAiLoading, validationResults, assumptionResults, data])
+  }, [flowState.aiChatInput, flowState.isAiLoading, validationResults, assumptionResults, data, t])
 
   const handleAiSelectMethod = useCallback(async (method: StatisticalMethod) => {
     if (isNavigating) return
@@ -670,14 +639,14 @@ export function PurposeInputStep({
       setSuggestedSettings(flowState.aiRecommendation?.suggestedSettings ?? null)
 
       if (onPurposeSubmit) {
-        await onPurposeSubmit('AI 추천 분석', method)
+        await onPurposeSubmit(t.purposeInput.aiLabels.recommendTitle, method)
       }
     } catch (error) {
       logger.error('Navigation failed', { error })
     } finally {
       setIsNavigating(false)
     }
-  }, [isNavigating, setSelectedMethod, setDetectedVariables, setSuggestedSettings, validationResults, flowState.aiRecommendation, onPurposeSubmit])
+  }, [isNavigating, setSelectedMethod, setDetectedVariables, setSuggestedSettings, validationResults, flowState.aiRecommendation, onPurposeSubmit, t])
 
   const handleGoToGuided = useCallback(() => {
     flowDispatch(flowActions.goToGuided())
@@ -712,12 +681,12 @@ export function PurposeInputStep({
       <div className="flex items-center justify-between">
         <FilterToggle
           options={[
-            { id: 'ai', label: 'AI가 추천', icon: Sparkles },
-            { id: 'browse', label: '직접 선택', icon: List }
+            { id: 'ai', label: t.purposeInput.inputModes.aiRecommend, icon: Sparkles },
+            { id: 'browse', label: t.purposeInput.inputModes.directSelect, icon: List }
           ]}
           value={inputMode}
           onChange={(mode) => handleInputModeChange(mode as 'ai' | 'browse')}
-          ariaLabel="분석 방법 선택 모드"
+          ariaLabel={t.purposeInput.inputModes.modeAriaLabel}
         />
       </div>
 
@@ -805,20 +774,20 @@ export function PurposeInputStep({
                   className="gap-1"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  뒤로
+                  {t.purposeInput.buttons.back}
                 </Button>
                 <h3 className="text-lg font-semibold">
-                  전체 분석 방법
+                  {t.purposeInput.buttons.allMethods}
                 </h3>
               </div>
               {/* Action Button - browse 모드에서는 수동 선택만으로 진행 가능 */}
               {finalSelectedMethod && (selectedPurpose || manualSelectedMethod) && !isAnalyzing && (
                 <div data-testid="selected-method-bar" className="flex items-center gap-3">
                   <div className="text-sm">
-                    <span className="text-muted-foreground">선택:</span>
+                    <span className="text-muted-foreground">{t.purposeInput.labels.selectionPrefix}</span>
                     <span data-testid="final-selected-method-name" className="ml-1 font-semibold">{finalSelectedMethod.name}</span>
                     {manualSelectedMethod && (
-                      <Badge variant="outline" className="ml-2 text-xs">직접 선택</Badge>
+                      <Badge variant="outline" className="ml-2 text-xs">{t.purposeInput.labels.directBadge}</Badge>
                     )}
                   </div>
                   <Button
@@ -827,7 +796,7 @@ export function PurposeInputStep({
                     className="gap-2"
                     data-testid="confirm-method-btn"
                   >
-                    이 방법으로 분석하기
+                    {t.purposeInput.buttons.useThisMethod}
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 </div>
@@ -852,16 +821,16 @@ export function PurposeInputStep({
       {/* Header with Action Button (상단 배치) */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold" id="purpose-selection-label">
-          어떤 분석을 하고 싶으신가요?
+          {t.purposeInput.labels.purposeHeading}
         </h3>
         {/* Action Button - browse step에서 상단에 표시 */}
         {finalSelectedMethod && selectedPurpose && !isAnalyzing && (
           <div data-testid="selected-method-bar" className="flex items-center gap-3">
             <div className="text-sm">
-              <span className="text-muted-foreground">선택:</span>
+              <span className="text-muted-foreground">{t.purposeInput.labels.selectionPrefix}</span>
               <span data-testid="final-selected-method-name" className="ml-1 font-semibold">{finalSelectedMethod.name}</span>
               {manualSelectedMethod && (
-                <Badge variant="outline" className="ml-2 text-xs">직접 선택</Badge>
+                <Badge variant="outline" className="ml-2 text-xs">{t.purposeInput.labels.directBadge}</Badge>
               )}
             </div>
             <Button
@@ -869,7 +838,7 @@ export function PurposeInputStep({
               disabled={isNavigating}
               className="gap-2"
             >
-              이 방법으로 분석하기
+              {t.purposeInput.buttons.useThisMethod}
               <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
@@ -884,7 +853,7 @@ export function PurposeInputStep({
           aria-describedby="purpose-selection-help"
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
         >
-          {ANALYSIS_PURPOSES.map((purpose, index) => (
+          {analysisPurposes.map((purpose, index) => (
             <div
               key={purpose.id}
               className={prefersReducedMotion ? '' : 'animate-slide-in'}
@@ -911,7 +880,7 @@ export function PurposeInputStep({
           ))}
         </div>
         <div id="purpose-selection-help" className="sr-only">
-          5개 중 하나의 분석 목적을 선택하세요. 선택하면 AI가 최적의 통계 방법을 추천합니다.
+          {t.purposeInput.messages.purposeHelp}
         </div>
       </div>
 
@@ -928,7 +897,7 @@ export function PurposeInputStep({
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription>
-            위에서 분석 목적을 선택하면 단계별 질문을 통해 최적의 통계 방법을 추천합니다.
+            {t.purposeInput.messages.guidanceAlert}
           </AlertDescription>
         </Alert>
       )}
