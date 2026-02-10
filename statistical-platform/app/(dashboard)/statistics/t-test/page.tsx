@@ -435,7 +435,7 @@ export default function TTestPage() {
                   <TabsTrigger value="summary">요약통계</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="raw" className="mt-4">
+                <TabsContent value="raw" className="mt-4 space-y-4">
                   <DataUploadStep onUploadComplete={handleDataUpload} />
                 </TabsContent>
 

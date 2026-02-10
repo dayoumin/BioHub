@@ -28,6 +28,7 @@ import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { CorrelationHeatmap } from '@/components/smart-flow/steps/validation/charts/CorrelationHeatmap'
 import { OutlierDetailPanel, OutlierInfo } from '@/components/common/analysis/OutlierDetailPanel'
+import { DataPrepGuide } from '@/components/statistics/common/DataPrepGuide'
 import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { TemplateSelector } from '@/components/smart-flow/TemplateSelector'
 import { TemplateManagePanel } from '@/components/smart-flow/TemplateManagePanel'
@@ -836,6 +837,12 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           </CardContent>
         </Card>
 
+        {/* 데이터 준비 안내: 빠른 분석이면 방법별, 아니면 범용 */}
+        <DataPrepGuide
+          methodId={quickAnalysisMode && selectedMethod ? selectedMethod.id : undefined}
+          defaultCollapsed
+        />
+
         {/* 템플릿 선택 영역 (저장된 템플릿이 있을 때만 표시) */}
         {recentTemplates.length > 0 && (
           <Card>
@@ -933,6 +940,15 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           </CardContent>
         </Card>
 
+        {/* 빠른 분석: 업로드 직후 데이터 적합성 검증 */}
+        {quickAnalysisMode && selectedMethod && (
+          <DataPrepGuide
+            methodId={selectedMethod.id}
+            uploadedData={data}
+            defaultCollapsed
+          />
+        )}
+
         {!quickAnalysisMode && (
         <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
           <CardContent className="py-6">
@@ -990,6 +1006,15 @@ export const DataExplorationStep = memo(function DataExplorationStep({
             homogeneity: assumptionResults?.homogeneity?.levene?.equalVariance ?? null,
             isLoading: isAssumptionLoading
           }}
+        />
+      )}
+
+      {/* 빠른 분석: 업로드 직후 데이터 적합성 검증 */}
+      {quickAnalysisMode && selectedMethod && (
+        <DataPrepGuide
+          methodId={selectedMethod.id}
+          uploadedData={data}
+          defaultCollapsed
         />
       )}
 
