@@ -10,8 +10,7 @@
 
 import { describe, it, expect } from 'vitest'
 
-// splitInterpretation 함수 복제 (ResultsActionStep에서 export됨)
-import { splitInterpretation } from '@/components/smart-flow/steps/ResultsActionStep'
+import { splitInterpretation } from '@/lib/services/export/export-data-builder'
 
 // =====================================================
 // HTML 생성 로직 추출 (handleCopyResults 내부 로직)

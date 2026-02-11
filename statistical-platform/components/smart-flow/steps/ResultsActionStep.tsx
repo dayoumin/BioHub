@@ -39,6 +39,7 @@ import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { PDFReportService } from '@/lib/services/pdf-report-service'
 import { startNewAnalysis } from '@/lib/services/data-management'
 import { ExportDropdown } from '@/components/smart-flow/ExportDropdown'
+import { splitInterpretation } from '@/lib/services/export/export-data-builder'
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
 import { TemplateSaveModal } from '@/components/smart-flow/TemplateSaveModal'
 import ReactMarkdown from 'react-markdown'
@@ -57,25 +58,6 @@ import type { ResultsText } from '@/lib/terminology/terminology-types'
 
 interface ResultsActionStepProps {
   results: AnalysisResult | null
-}
-
-// AI 해석 텍스트를 2단 구조로 분리 (한줄 요약 / 상세 해석)
-export function splitInterpretation(text: string): { summary: string; detail: string } {
-  // "### 상세 해석" 기준으로 분리
-  const detailPattern = /###\s*상세\s*해석/
-  const match = text.match(detailPattern)
-
-  if (match?.index !== undefined) {
-    const summary = text.substring(0, match.index).trim()
-    const detail = text.substring(match.index).trim()
-    // summary에서 "### 한줄 요약" 헤더 제거
-    const cleanSummary = summary.replace(/###\s*한줄\s*요약\s*\n?/, '').trim()
-    return { summary: cleanSummary, detail }
-  }
-
-  // 패턴 미매칭: 전체를 summary로
-  const cleanText = text.replace(/###\s*한줄\s*요약\s*\n?/, '').trim()
-  return { summary: cleanText, detail: '' }
 }
 
 // 효과크기 해석
@@ -847,7 +829,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             interpretation={interpretation}
             apaFormat={apaFormat}
             dataInfo={exportDataInfo}
-            chartElement={chartRef.current}
             t={t.results}
           />
 

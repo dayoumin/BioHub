@@ -4,7 +4,7 @@
  * AI 해석 2단 구조 (한줄 요약 / 상세 해석) 분리 로직 검증
  */
 
-import { splitInterpretation } from '@/components/smart-flow/steps/ResultsActionStep'
+import { splitInterpretation } from '@/lib/services/export/export-data-builder'
 
 describe('splitInterpretation', () => {
   it('정상적인 2단 구조를 분리한다', () => {

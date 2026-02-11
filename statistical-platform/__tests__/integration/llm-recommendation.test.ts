@@ -15,7 +15,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { resolve } from 'path'
 import { OpenRouterRecommender } from '@/lib/services/openrouter-recommender'
 import { buildInterpretationPrompt } from '@/lib/services/result-interpreter'
-import { splitInterpretation } from '@/components/smart-flow/steps/ResultsActionStep'
+import { splitInterpretation } from '@/lib/services/export/export-data-builder'
 import { getMethodByIdOrAlias } from '@/lib/constants/statistical-methods'
 import type {
   ValidationResults,
