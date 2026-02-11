@@ -1002,7 +1002,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
       expect(screen.getByText('저장')).toBeInTheDocument()
-      expect(screen.getByText('PDF')).toBeInTheDocument()
+      expect(screen.getByTestId('export-dropdown')).toBeInTheDocument()
       expect(screen.getByText('복사')).toBeInTheDocument()
       // AI 해석은 자동 인라인 표시로 변경됨 (버튼 제거)
       expect(screen.getByTestId('ai-interpretation-section')).toBeInTheDocument()

@@ -6,6 +6,8 @@
  * - 타입 안전성을 보장하며 중앙 집중식 관리
  */
 
+import type { GuidedQuestion, CategoryDefinition } from '@/types/smart-flow'
+
 /**
  * 변수 타입별 용어
  */
@@ -145,6 +147,36 @@ export interface ExecutionStageText {
 }
 
 /**
+ * 분석 실행 로그 메시지 텍스트
+ */
+export interface ExecutionLogsText {
+  stageStart: (label: string) => string
+  engineReadyCached: string
+  engineLoading: string
+  engineReady: string
+  dataLoaded: (n: number) => string
+  missingHandled: (count: number) => string
+  normalityTestStart: string
+  normalityTestDone: (p: string) => string
+  normalityTestFailed: string
+  homogeneityTestStart: string
+  homogeneityTestDone: (p: string) => string
+  homogeneityTestFailed: string
+  assumptionSkipped: string
+  methodExecuting: (name: string) => string
+  aiSettingsApplied: (alpha: number) => string
+  aiPostHoc: (method: string) => string
+  aiAlternative: (direction: string) => string
+  effectSizeDone: string
+  confidenceIntervalDone: string
+  analysisDone: string
+  totalTime: (seconds: string) => string
+  errorPrefix: (message: string) => string
+  userCancelled: string
+  locale: string
+}
+
+/**
  * Smart Flow UI 텍스트
  */
 export interface SmartFlowText {
@@ -230,6 +262,8 @@ export interface SmartFlowText {
     unknownError: string
     estimatedTimeRemaining: (seconds: number) => string
   }
+  /** 분석 실행 로그 메시지 */
+  executionLogs: ExecutionLogsText
 }
 
 /**
@@ -730,6 +764,10 @@ export interface ResultsText {
     saveTemplate: string
     reanalyze: string
     newAnalysis: string
+    export: string
+    exporting: string
+    exportDocx: string
+    exportExcel: string
   }
   /** 저장 관련 */
   save: {
@@ -746,6 +784,8 @@ export interface ResultsText {
     newAnalysis: string
     pdfSuccess: string
     pdfError: string
+    exportSuccess: string
+    exportError: string
     copyWithAi: string
     copySuccess: string
     copyError: string
@@ -1422,6 +1462,18 @@ export interface ResultsVisualizationText {
     preparing: (method: string) => string
     seeBelow: string
   }
+  methodCategories: {
+    test: string
+    correlation: string
+    regression: string
+    nonparametric: string
+    pca: string
+    factor: string
+    cluster: string
+    kMeans: string
+    reliability: string
+    power: string
+  }
 }
 
 /**
@@ -1602,6 +1654,254 @@ export interface MethodManagerText {
 }
 
 /**
+ * 결정 트리 텍스트
+ */
+export interface DecisionTreeText {
+  steps: {
+    normality: string
+    homogeneity: string
+    groupCount: string
+    sampleType: string
+    variableType: string
+    comparisonTarget: string
+    analysisType: string
+    variableCount: string
+    predictorCount: string
+    outcomeVariable: string
+    modelType: string
+    variableSelection: string
+    designType: string
+    dependentVariable: string
+    covariate: string
+    analysisPurpose: string
+    seasonality: string
+    defaultStep: string
+  }
+  descriptions: {
+    singleSample: string
+    twoGroupComparison: string
+    threeOrMoreGroupComparison: string
+    pairedSample: string
+    independentSample: string
+    sampleVsPopulation: string
+    binaryProportionTest: string
+    oneSampleTTest: string
+    studentTTest: string
+    repeatedMeasurement: string
+    binaryCochranQ: string
+    binaryMcNemar: string
+    independentGroup: string
+    mixedDesignMixedModel: string
+    multivariateMANOVA: string
+    covariateANCOVA: string
+    oneWayANOVA: string
+    medianComparisonMood: string
+    correlationAnalysis: string
+    allNumeric: string
+    twoVariables: string
+    threeOrMoreVariables: string
+    categoricalIncluded: string
+    predictionRegression: string
+    simpleRegression: string
+    multipleRegression: string
+    categoricalLogistic: string
+    dataExploration: string
+    meanVisualization: string
+    binaryProbabilityTest: string
+    randomnessTest: string
+    twoDistributionComparison: string
+    descriptiveStats: string
+    numericMeanStd: string
+    categoricalFreqRatio: string
+    normalityTest: string
+    frequencyAnalysis: string
+    doseResponseAnalysis: string
+    optimizationExperiment: string
+    autoVariableStepwise: string
+    simpleModel: string
+    multipleModel: string
+    continuousLinearRegression: string
+    binaryLogisticRegression: string
+    countPoissonRegression: string
+    multiclassMultinomialLogistic: string
+    ordinalOrdinalLogistic: string
+    futureForecast: string
+    seasonalSARIMA: string
+    noSeasonalARIMA: string
+    patternDecomposition: string
+    stationarityTest: string
+    trendTest: string
+    timeseriesAnalysis: string
+    survivalCurveEstimation: string
+    groupSurvivalComparison: string
+    hazardFactorAnalysis: string
+    covariateYesCox: string
+    covariateNone: string
+    dimensionReduction: string
+    latentFactorExtraction: string
+    similarGrouping: string
+    groupClassification: string
+    multivariateAnalysis: string
+    sampleSizeCalculation: string
+    powerCalculation: string
+    reliabilityMeasurement: string
+    utilityAnalysis: string
+    defaultDescriptive: string
+    proportionComparison: string
+    normalMetParametric: string
+    normalNotMetNonparametric: string
+    normalMetPrefix: string
+    normalNotMetPrefix: string
+    homoMet: string
+    homoMetPrefix: string
+    homoNotMetWelch: string
+    homoUncheckedWelch: string
+  }
+  reasons: {
+    exactTestNeeded: string
+    signRankWhenNotNormal: string
+    cltRobustN30: string
+    cltRobustNPerGroup30: string
+    crosstabForm: string
+    ordinalData: string
+    safeAlternativeUncertain: string
+    ordinalOrDirectional: string
+    noEqualVarianceNeeded: string
+    nonparametricAlternative: string
+    equalVarianceConfirmed: string
+    robustN30: string
+    twoTimepoints: string
+    sphericityViolated: string
+    simpleRepeatedMeasure: string
+    individualDVAnalysis: string
+    covariateNotNeeded: string
+    fullDistributionComparison: string
+    medianComparisonPurpose: string
+    simpleCorrelation: string
+    spearmanForOrdinal: string
+    descriptiveOnly: string
+    descriptiveTableAlternative: string
+    largeApproximation: string
+    medianDifference: string
+    detailedExploration: string
+    comparisonDistribution: string
+    expectedFrequency: string
+    binaryRateTest: string
+    explorationWithViz: string
+    linearRelationship: string
+    simplePrediction: string
+    allVariablesIncluded: string
+    variableSelectionNeeded: string
+    discriminantAlternative: string
+    ordinalCategory: string
+    ignoreOrder: string
+    seasonalPatternAnalysis: string
+    logRankForGroupComparison: string
+    covariateControlNeeded: string
+    addCovariate: string
+    latentFactorInterpretation: string
+    dimensionReductionOnly: string
+    groupAlreadyDefined: string
+    binaryClassification: string
+    groupNotDefined: string
+  }
+  warnings: {
+    sphericity: string
+    randomEffects: string
+    multivariateNormality: string
+    regressionHomogeneity: string
+    spearmanOutliers: string
+    doseResponseRange: string
+    experimentalDesign: string
+    overfittingCrossValidation: string
+    multicollinearity: string
+    rocAucHosmerLemeshow: string
+    overdispersion: string
+    arimaSeasonalOption: string
+    kpssAdditional: string
+    autocorrelationModifiedMK: string
+    proportionalHazards: string
+    sampleSizePrereqs: string
+    minItemsRequired: string
+  }
+}
+
+/**
+ * 자동 응답 근거 텍스트
+ */
+export interface AutoAnswerEvidenceText {
+  normality: {
+    cltGroupSize: (size: number) => string
+    cltSampleSize: (n: number) => string
+    noTestResult: string
+    shapiroNormal: (pValueStr: string) => string
+    shapiroNotNormal: (pValueStr: string) => string
+    allGroupsNormal: string
+    someGroupsNotNormal: string
+    cannotDetermine: string
+  }
+  variableType: {
+    noInfo: string
+    allNumeric: (count: number) => string
+    includesCategorical: string
+    pleaseCheck: string
+  }
+  outcomeType: {
+    noDependentSelected: string
+    dependentNotFound: string
+    binaryVariable: (name: string) => string
+    multiclassVariable: (name: string, count: number) => string
+    possibleCountData: (name: string) => string
+    continuousVariable: (name: string) => string
+    pleaseCheckOutcome: string
+  }
+  predictorCount: {
+    noIndependentSelected: string
+    onePredictor: string
+    multiplePredictors: (count: number) => string
+  }
+  covariateCount: {
+    noCovariateSelected: string
+    covariatesSelected: (count: number) => string
+  }
+  homogeneity: {
+    noTestResult: string
+    leveneNoP: string
+    leveneEqual: (pValueStr: string) => string
+    leveneNotEqual: (pValueStr: string) => string
+    bartlettNoP: string
+    bartlettEqual: (pValueStr: string) => string
+    bartlettNotEqual: (pValueStr: string) => string
+    cannotDetermine: string
+  }
+  seasonality: {
+    needsAnalysis: string
+  }
+}
+
+/**
+ * 차트 라벨 텍스트
+ */
+export interface ChartLabelsText {
+  theoreticalNormal: string
+  theoreticalQuantile: string
+  observedValue: string
+  distributionTitle: (colName: string) => string
+  value: string
+  frequency: string
+  errorMessage: string
+}
+
+/**
+ * 흐름 상태 머신 텍스트
+ */
+export interface FlowStateMachineText {
+  evidencePrefix: (index: number) => string
+  directSelection: string
+  directSelectionDescription: string
+}
+
+/**
  * 전체 용어 사전 인터페이스
  */
 export interface TerminologyDictionary {
@@ -1667,6 +1967,18 @@ export interface TerminologyDictionary {
   reanalysis: ReanalysisText
   /** 방법 관리 텍스트 */
   methodManager: MethodManagerText
+  /** 결정 트리 텍스트 */
+  decisionTree: DecisionTreeText
+  /** 가이드 질문 데이터 (목적별 전체 질문 배열) */
+  guidedQuestionData: Record<string, GuidedQuestion[]>
+  /** 점진적 질문 카테고리 데이터 */
+  progressiveCategoryData: CategoryDefinition[]
+  /** 자동 응답 근거 텍스트 */
+  autoAnswerEvidence: AutoAnswerEvidenceText
+  /** 차트 라벨 텍스트 */
+  chartLabels: ChartLabelsText
+  /** 흐름 상태 머신 텍스트 */
+  flowStateMachine: FlowStateMachineText
   /** 통계 방법 용어 (선택적) */
   methods?: Record<string, StatisticalMethodTerminology>
 }

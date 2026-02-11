@@ -27,7 +27,7 @@ import type { MethodGroup } from '@/lib/statistics/method-catalog'
 // NEW: Guided Flow imports
 import { GuidedQuestions } from './purpose/GuidedQuestions'
 import { RecommendationResult } from './purpose/RecommendationResult'
-import { flowReducer, initialFlowState, flowActions } from './purpose/FlowStateMachine'
+import { createFlowReducer, initialFlowState, flowActions } from './purpose/FlowStateMachine'
 
 // NEW: Progressive Questions imports (2025 UI/UX)
 import { CategorySelector } from './purpose/CategorySelector'
@@ -280,7 +280,11 @@ export function PurposeInputStep({
     }))
   , [t])
 
-  // NEW: Guided Flow state
+  // NEW: Guided Flow state (Terminology 사전 주입)
+  const flowReducer = useMemo(
+    () => createFlowReducer(t.decisionTree, t.flowStateMachine),
+    [t.decisionTree, t.flowStateMachine]
+  )
   const [flowState, flowDispatch] = useReducer(flowReducer, initialFlowState)
 
   // Store에서 초기 입력 모드 가져오기 (useState보다 먼저 선언)

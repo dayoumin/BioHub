@@ -13,8 +13,8 @@ import { GitCompare, TrendingUp, LineChart, Layers, Sparkles } from 'lucide-reac
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
+import { useTerminology } from '@/hooks/use-terminology'
 import type { AnalysisCategory, CategoryDefinition } from '@/types/smart-flow'
-import { CATEGORIES } from './progressive-questions'
 import {
   cardVariants,
   containerVariants,
@@ -47,6 +47,8 @@ export const CategorySelector = memo(function CategorySelector({
   disabled = false,
   className,
 }: CategorySelectorProps) {
+  const t = useTerminology()
+  const categories = t.progressiveCategoryData
   const prefersReducedMotion = useReducedMotion()
   const variants = prefersReducedMotion
     ? getReducedMotionVariants(cardVariants)
@@ -79,7 +81,7 @@ export const CategorySelector = memo(function CategorySelector({
         animate="visible"
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
       >
-        {CATEGORIES.map((category, index) => {
+        {categories.map((category, index) => {
           const IconComponent = ICON_MAP[category.icon as keyof typeof ICON_MAP]
           const isRecommended = recommendedCategory === category.id
 

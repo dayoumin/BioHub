@@ -9,10 +9,25 @@
  */
 
 import type { Data, Layout } from 'plotly.js'
+import type { ChartLabelsText } from '@/lib/terminology/terminology-types'
 import {
   calculateBasicStats,
   generateTheoreticalQuantiles
 } from './statisticalTests'
+
+/**
+ * 차트 라벨 기본값 (한국어)
+ * labels 파라미터 생략 시 하위 호환성을 위해 사용
+ */
+const DEFAULT_CHART_LABELS: ChartLabelsText = {
+  theoreticalNormal: '이론적 정규분포',
+  theoreticalQuantile: '이론적 분위수',
+  observedValue: '관측값',
+  distributionTitle: (colName: string) => `분포: ${colName}`,
+  value: '값',
+  frequency: '빈도',
+  errorMessage: '통계 검정 오류',
+}
 
 /**
  * Q-Q Plot 데이터 생성
@@ -28,8 +43,11 @@ import {
  */
 export function createQQPlotData(
   values: number[],
-  columnName: string
+  columnName: string,
+  labels?: ChartLabelsText
 ): Data[] {
+  const l = labels || DEFAULT_CHART_LABELS
+
   if (values.length === 0) {
     return []
   }
@@ -60,7 +78,7 @@ export function createQQPlotData(
       }),
       mode: 'lines',
       type: 'scatter',
-      name: '이론적 정규분포',
+      name: l.theoreticalNormal,
       line: {
         color: 'rgba(219, 64, 82, 0.7)',
         dash: 'dash'
@@ -129,20 +147,22 @@ export function createBoxPlotData(
  * @param columnName - 컬럼명
  * @returns Plotly 레이아웃 객체
  */
-export function getQQPlotLayout(columnName: string): Partial<Layout> {
+export function getQQPlotLayout(columnName: string, labels?: ChartLabelsText): Partial<Layout> {
+  const l = labels || DEFAULT_CHART_LABELS
+
   return {
     title: {
       text: `Q-Q Plot: ${columnName}`
     },
     xaxis: {
       title: {
-        text: '이론적 분위수'
+        text: l.theoreticalQuantile
       },
       gridcolor: '#e5e7eb'
     },
     yaxis: {
       title: {
-        text: '관측값'
+        text: l.observedValue
       },
       gridcolor: '#e5e7eb'
     },
@@ -159,20 +179,22 @@ export function getQQPlotLayout(columnName: string): Partial<Layout> {
  * @param columnName - 컬럼명
  * @returns Plotly 레이아웃 객체
  */
-export function getHistogramLayout(columnName: string): Partial<Layout> {
+export function getHistogramLayout(columnName: string, labels?: ChartLabelsText): Partial<Layout> {
+  const l = labels || DEFAULT_CHART_LABELS
+
   return {
     title: {
-      text: `분포: ${columnName}`
+      text: l.distributionTitle(columnName)
     },
     xaxis: {
       title: {
-        text: '값'
+        text: l.value
       },
       gridcolor: '#e5e7eb'
     },
     yaxis: {
       title: {
-        text: '빈도'
+        text: l.frequency
       },
       gridcolor: '#e5e7eb'
     },
@@ -188,14 +210,16 @@ export function getHistogramLayout(columnName: string): Partial<Layout> {
  * @param columnName - 컬럼명
  * @returns Plotly 레이아웃 객체
  */
-export function getBoxPlotLayout(columnName: string): Partial<Layout> {
+export function getBoxPlotLayout(columnName: string, labels?: ChartLabelsText): Partial<Layout> {
+  const l = labels || DEFAULT_CHART_LABELS
+
   return {
     title: {
       text: `Box Plot: ${columnName}`
     },
     yaxis: {
       title: {
-        text: '값'
+        text: l.value
       },
       gridcolor: '#e5e7eb'
     },

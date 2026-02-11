@@ -77,15 +77,17 @@ export function AnalysisExecutionStep({
   /**
    * 로그 추가 함수
    */
+  const logs = t.smartFlow.executionLogs
+
   const addLog = useCallback((message: string) => {
-    const timestamp = new Date().toLocaleTimeString('ko-KR', {
+    const timestamp = new Date().toLocaleTimeString(logs.locale, {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit'
     })
     setExecutionLog(prev => [...prev, `[${timestamp}] ${message}`])
     logger.info(message)
-  }, [])
+  }, [logs.locale])
 
   /**
    * 진행 단계 업데이트
@@ -95,7 +97,7 @@ export function AnalysisExecutionStep({
     if (stage) {
       setCurrentStage(stage)
       setProgress(progressValue)
-      addLog(stage.label + ' 시작')
+      addLog(logs.stageStart(stage.label))
     }
   }, [addLog, executionStages])
 
@@ -118,12 +120,12 @@ export function AnalysisExecutionStep({
       // Pyodide가 이미 초기화되어 있으면 빠르게 진행
       const isAlreadyInitialized = pyodideStats.isInitialized()
       if (isAlreadyInitialized) {
-        addLog('통계 엔진 준비 완료 (캐시됨)')
+        addLog(logs.engineReadyCached)
         setProgress(15) // 빠르게 진행
       } else {
-        addLog('통계 엔진을 불러오는 중... (3-5초 소요)')
+        addLog(logs.engineLoading)
         await pyodideStats.initialize()
-        addLog('통계 엔진 준비 완료')
+        addLog(logs.engineReady)
       }
 
       if (cancelledRef.current) return
@@ -135,14 +137,14 @@ export function AnalysisExecutionStep({
       await new Promise(resolve => setTimeout(resolve, 500))
 
       // 데이터 정보 로깅
-      addLog(`데이터 로드 완료 (n=${uploadedData.length})`)
+      addLog(logs.dataLoaded(uploadedData.length))
 
       // 결측값 처리
       const missingCount = uploadedData.filter(row =>
         Object.values(row).some(v => v === null || v === undefined || v === '')
       ).length
       if (missingCount > 0) {
-        addLog(`결측값 처리 완료 (제거: ${missingCount}개)`)
+        addLog(logs.missingHandled(missingCount))
       }
 
       if (cancelledRef.current) return
@@ -168,7 +170,7 @@ export function AnalysisExecutionStep({
               .filter((val): val is number => typeof val === 'number' && !isNaN(val))
 
             if (numericData.length >= 3) {
-              addLog('정규성 검정 (Shapiro-Wilk) 시작...')
+              addLog(logs.normalityTestStart)
               const pyodideCore = PyodideCoreService.getInstance()
               const shapiroResult = await pyodideCore.shapiroWilkTest(numericData)
 
@@ -180,12 +182,12 @@ export function AnalysisExecutionStep({
                     isNormal: shapiroResult.pValue > 0.05
                   }
                 }
-                addLog(`정규성 검정 완료 (p=${shapiroResult.pValue.toFixed(4)})`)
+                addLog(logs.normalityTestDone(shapiroResult.pValue.toFixed(4)))
               }
             }
           } catch (error) {
             logger.warn('Shapiro-Wilk 검정 실패', { error })
-            addLog('정규성 검정 실패 (데이터 부족 또는 오류)')
+            addLog(logs.normalityTestFailed)
           }
         }
 
@@ -215,7 +217,7 @@ export function AnalysisExecutionStep({
               // 2개 이상의 그룹이 있고, 각 그룹에 3개 이상의 데이터가 있을 때
               const groups = Array.from(groupMap.values())
               if (groups.length >= 2 && groups.every(g => g.length >= 3)) {
-                addLog('등분산성 검정 (Levene) 시작...')
+                addLog(logs.homogeneityTestStart)
                 const pyodideCore = PyodideCoreService.getInstance()
                 const leveneResult = await pyodideCore.leveneTest(groups)
 
@@ -227,13 +229,13 @@ export function AnalysisExecutionStep({
                       equalVariance: leveneResult.pValue > 0.05
                     }
                   }
-                  addLog(`등분산성 검정 완료 (p=${leveneResult.pValue.toFixed(4)})`)
+                  addLog(logs.homogeneityTestDone(leveneResult.pValue.toFixed(4)))
                 }
               }
             }
           } catch (error) {
             logger.warn('Levene 검정 실패', { error })
-            addLog('등분산성 검정 실패 (데이터 부족 또는 오류)')
+            addLog(logs.homogeneityTestFailed)
           }
         }
 
@@ -242,7 +244,7 @@ export function AnalysisExecutionStep({
           setAssumptionResults(assumptions)
           logger.info('가정 검정 결과 저장 완료', { assumptions })
         } else {
-          addLog('가정 검정 스킵 (조건 미충족)')
+          addLog(logs.assumptionSkipped)
         }
       }
 
@@ -252,18 +254,18 @@ export function AnalysisExecutionStep({
       updateStage('analysis', 60)
 
       // Stage 4: 주 분석 실행
-      addLog(`${selectedMethod.name} 실행`)
+      addLog(logs.methodExecuting(selectedMethod.name))
 
       // Fix 4-A: 실제 적용되는 설정만 로그에 표시 (현재 alpha만 지원)
       if (suggestedSettings) {
         const appliedAlpha = suggestedSettings.alpha ?? 0.05
-        addLog(`AI 추천 설정 적용: α=${appliedAlpha}`)
+        addLog(logs.aiSettingsApplied(appliedAlpha))
         // postHoc, alternative는 아직 미지원 — 추천만 표시
         if (suggestedSettings.postHoc) {
-          addLog(`ℹ️ AI 추천 사후검정: ${suggestedSettings.postHoc} (향후 지원 예정)`)
+          addLog(logs.aiPostHoc(suggestedSettings.postHoc))
         }
         if (suggestedSettings.alternative) {
-          addLog(`ℹ️ AI 추천 검정 방향: ${suggestedSettings.alternative} (향후 지원 예정)`)
+          addLog(logs.aiAlternative(suggestedSettings.alternative))
         }
       }
 
@@ -281,10 +283,10 @@ export function AnalysisExecutionStep({
 
       // Stage 5: 추가 계산
       if (result.additionalInfo.effectSize) {
-        addLog('효과크기 계산 완료')
+        addLog(logs.effectSizeDone)
       }
       if (result.additionalInfo.confidenceInterval) {
-        addLog('신뢰구간 계산 완료')
+        addLog(logs.confidenceIntervalDone)
       }
 
       if (cancelledRef.current) return
@@ -294,10 +296,10 @@ export function AnalysisExecutionStep({
 
       // Stage 6: 결과 정리
       await new Promise(resolve => setTimeout(resolve, 300))
-      addLog('분석 완료!')
+      addLog(logs.analysisDone)
 
       const totalTime = ((Date.now() - startTime) / 1000).toFixed(1)
-      addLog(`총 소요 시간: ${totalTime}초`)
+      addLog(logs.totalTime(totalTime))
 
       setCompletedStages(prev => [...prev, 'finalize'])
       setProgress(100)
@@ -317,9 +319,9 @@ export function AnalysisExecutionStep({
     } catch (err) {
       logger.error('분석 실행 오류', err)
       setError(err instanceof Error ? err.message : t.smartFlow.execution.unknownError)
-      addLog(`❌ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`)
+      addLog(logs.errorPrefix(err instanceof Error ? err.message : t.smartFlow.execution.unknownError))
     }
-  }, [uploadedData, selectedMethod, variableMapping, suggestedSettings, updateStage, addLog, onAnalysisComplete, onNext, t, executionStages])
+  }, [uploadedData, selectedMethod, variableMapping, suggestedSettings, updateStage, addLog, onAnalysisComplete, onNext, t, executionStages, logs])
 
   /**
    * 취소 처리 (Fix 4-B: ref로 즉시 반영)
@@ -328,7 +330,7 @@ export function AnalysisExecutionStep({
     if (window.confirm(t.smartFlow.execution.cancelConfirm)) {
       cancelledRef.current = true
       setIsCancelled(true)
-      addLog('사용자가 분석을 취소했습니다')
+      addLog(logs.userCancelled)
       if (onPrevious) onPrevious()
     }
   }

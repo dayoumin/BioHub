@@ -154,16 +154,26 @@ export const CATEGORIES: CategoryDefinition[] = [
 
 /**
  * 대분류 ID로 CategoryDefinition 찾기
+ * @param categories - 용어 사전에서 제공하는 카테고리 배열 (기본값: CATEGORIES)
  */
-export function getCategoryById(categoryId: AnalysisCategory): CategoryDefinition | undefined {
-  return CATEGORIES.find((cat) => cat.id === categoryId)
+export function getCategoryById(
+  categoryId: AnalysisCategory,
+  categories?: CategoryDefinition[],
+): CategoryDefinition | undefined {
+  const source = categories || CATEGORIES
+  return source.find((cat) => cat.id === categoryId)
 }
 
 /**
  * 중분류 ID로 SubcategoryDefinition 찾기
+ * @param categories - 용어 사전에서 제공하는 카테고리 배열 (기본값: CATEGORIES)
  */
-export function getSubcategoryById(subcategoryId: string): SubcategoryDefinition | undefined {
-  for (const category of CATEGORIES) {
+export function getSubcategoryById(
+  subcategoryId: string,
+  categories?: CategoryDefinition[],
+): SubcategoryDefinition | undefined {
+  const source = categories || CATEGORIES
+  for (const category of source) {
     const subcategory = category.subcategories.find((sub) => sub.id === subcategoryId)
     if (subcategory) {
       return subcategory
@@ -174,19 +184,29 @@ export function getSubcategoryById(subcategoryId: string): SubcategoryDefinition
 
 /**
  * 중분류 ID로 해당 대분류 찾기
+ * @param categories - 용어 사전에서 제공하는 카테고리 배열 (기본값: CATEGORIES)
  */
-export function getCategoryBySubcategoryId(subcategoryId: string): CategoryDefinition | undefined {
-  return CATEGORIES.find((cat) =>
+export function getCategoryBySubcategoryId(
+  subcategoryId: string,
+  categories?: CategoryDefinition[],
+): CategoryDefinition | undefined {
+  const source = categories || CATEGORIES
+  return source.find((cat) =>
     cat.subcategories.some((sub) => sub.id === subcategoryId)
   )
 }
 
 /**
  * AnalysisPurpose로 관련 중분류들 찾기
+ * @param categories - 용어 사전에서 제공하는 카테고리 배열 (기본값: CATEGORIES)
  */
-export function getSubcategoriesByPurpose(purpose: AnalysisPurpose): SubcategoryDefinition[] {
+export function getSubcategoriesByPurpose(
+  purpose: AnalysisPurpose,
+  categories?: CategoryDefinition[],
+): SubcategoryDefinition[] {
+  const source = categories || CATEGORIES
   const result: SubcategoryDefinition[] = []
-  for (const category of CATEGORIES) {
+  for (const category of source) {
     for (const subcategory of category.subcategories) {
       if (subcategory.mapsToPurpose === purpose) {
         result.push(subcategory)

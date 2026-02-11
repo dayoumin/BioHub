@@ -84,7 +84,7 @@ export function GuidedQuestions({
   assumptionResults
 }: GuidedQuestionsProps) {
   const t = useTerminology()
-  const questions = getQuestionsForPurpose(purpose)
+  const questions = getQuestionsForPurpose(purpose, t.guidedQuestionData)
   const [uiMode, setUIMode] = useState<UIMode>('conversational')
   const [openOverrides, setOpenOverrides] = useState<Record<string, boolean>>({})
   const [advancedOpen, setAdvancedOpen] = useState(false)
@@ -104,11 +104,11 @@ export function GuidedQuestions({
   const assumptionAutoAnswers = useMemo(() => {
     const result: Partial<Record<AssumptionQuestionId, AutoAnswerResult>> = {}
     for (const id of ASSUMPTION_QUESTION_IDS) {
-      const auto = getAutoAnswer(id, autoAnswerContext)
+      const auto = getAutoAnswer(id, autoAnswerContext, t.autoAnswerEvidence)
       if (auto) result[id] = auto
     }
     return result
-  }, [autoAnswerContext])
+  }, [autoAnswerContext, t.autoAnswerEvidence])
 
   const shouldReplaceAssumptionQuestionWithBadge = useCallback((
     questionId: string,
@@ -159,7 +159,7 @@ export function GuidedQuestions({
         const result = getAutoAnswer(q.id, {
           validationResults,
           assumptionResults
-        })
+        }, t.autoAnswerEvidence)
         if (result) {
           onSetAutoAnswer(q.id, result)
 
@@ -171,7 +171,7 @@ export function GuidedQuestions({
         }
       }
     })
-  }, [questions, autoAnswers, validationResults, assumptionResults, answers, onSetAutoAnswer, onAnswerQuestion])
+  }, [questions, autoAnswers, validationResults, assumptionResults, answers, onSetAutoAnswer, onAnswerQuestion, t.autoAnswerEvidence])
 
   useEffect(() => {
     for (const id of ASSUMPTION_QUESTION_IDS) {

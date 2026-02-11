@@ -4,6 +4,8 @@
  *
  * 이 파일은 lib/constants/statistical-methods.ts의 공통 정의를 사용합니다.
  * 한글 이름은 로컬에서 오버라이드합니다.
+ *
+ * Terminology System: 모든 사용자 대면 문자열은 DecisionTreeText 사전을 통해 제공됩니다.
  */
 
 import type {
@@ -12,12 +14,14 @@ import type {
   DecisionResult,
   ReasoningStep
 } from '@/types/smart-flow'
+import type { DecisionTreeText } from '@/lib/terminology/terminology-types'
 import {
   STATISTICAL_METHODS,
   getMethodByIdOrAlias,
   getKoreanName,
   getKoreanDescription,
 } from '@/lib/constants/statistical-methods'
+import { aquaculture } from '@/lib/terminology/domains/aquaculture'
 
 // ============================================
 // 헬퍼 함수
@@ -55,41 +59,35 @@ function getMethod(idOrAlias: string, options?: { useLegacyId?: boolean }): Stat
 // ============================================
 
 /** 정규성 reasoning step */
-const STEP_NORMALITY = (isNormal: boolean, suggestion?: string): ReasoningStep => ({
-  step: '정규성',
+const STEP_NORMALITY = (dt: DecisionTreeText, isNormal: boolean, suggestion?: string): ReasoningStep => ({
+  step: dt.steps.normality,
   description: isNormal
-    ? (suggestion ? `정규분포 충족 → ${suggestion}` : '정규분포 충족 → 모수 검정')
-    : (suggestion ? `정규분포 미충족 → ${suggestion}` : '정규분포 미충족 → 비모수 검정')
+    ? (suggestion ? `${dt.descriptions.normalMetPrefix} → ${suggestion}` : dt.descriptions.normalMetParametric)
+    : (suggestion ? `${dt.descriptions.normalNotMetPrefix} → ${suggestion}` : dt.descriptions.normalNotMetNonparametric)
 })
 
 /** 등분산성 reasoning step */
-const STEP_HOMOGENEITY = (homogeneity: string, suggestion?: string): ReasoningStep => ({
-  step: '등분산성',
+const STEP_HOMOGENEITY = (dt: DecisionTreeText, homogeneity: string, suggestion?: string): ReasoningStep => ({
+  step: dt.steps.homogeneity,
   description: homogeneity === 'yes'
-    ? (suggestion ? `등분산 충족 → ${suggestion}` : '등분산 충족')
+    ? (suggestion ? `${dt.descriptions.homoMetPrefix} → ${suggestion}` : dt.descriptions.homoMet)
     : homogeneity === 'no'
-      ? '등분산 미충족 → Welch 검정'
-      : '등분산 미확인 → Welch 검정 (안전)'
+      ? dt.descriptions.homoNotMetWelch
+      : dt.descriptions.homoUncheckedWelch
 })
 
 /** 그룹 수 reasoning step */
-const STEP_GROUP_COUNT = (count: string): ReasoningStep => ({
-  step: '그룹 수',
-  description: count === '1' ? '단일 표본' :
-               count === '2' ? '2개 그룹 비교' :
-               '3개 이상 그룹 비교'
+const STEP_GROUP_COUNT = (dt: DecisionTreeText, count: string): ReasoningStep => ({
+  step: dt.steps.groupCount,
+  description: count === '1' ? dt.descriptions.singleSample :
+               count === '2' ? dt.descriptions.twoGroupComparison :
+               dt.descriptions.threeOrMoreGroupComparison
 })
 
 /** 표본 유형 reasoning step */
-const STEP_SAMPLE_TYPE = (isPaired: boolean): ReasoningStep => ({
-  step: '표본 유형',
-  description: isPaired ? '대응표본 (같은 대상 전/후)' : '독립표본 (서로 다른 대상)'
-})
-
-/** 변수 유형 reasoning step */
-const STEP_VARIABLE_TYPE = (type: string, suggestion?: string): ReasoningStep => ({
-  step: '변수 유형',
-  description: suggestion ? `${type} → ${suggestion}` : type
+const STEP_SAMPLE_TYPE = (dt: DecisionTreeText, isPaired: boolean): ReasoningStep => ({
+  step: dt.steps.sampleType,
+  description: isPaired ? dt.descriptions.pairedSample : dt.descriptions.independentSample
 })
 
 // ============================================
@@ -141,198 +139,203 @@ function createResult(
 /** 단일 표본 비교 (vs 모집단) */
 function decideCompare_SingleSample(
   answers: Record<string, string>,
-  reasoning: ReasoningStep[]
+  reasoning: ReasoningStep[],
+  dt: DecisionTreeText
 ): DecisionResult {
   const { normality, variable_type: variableType } = answers
 
-  reasoning.push({ step: '비교 대상', description: '표본 vs 모집단' })
+  reasoning.push({ step: dt.steps.comparisonTarget, description: dt.descriptions.sampleVsPopulation })
 
   if (variableType === 'binary') {
-    reasoning.push(STEP_VARIABLE_TYPE('이진형', '비율 검정'))
+    reasoning.push({ step: dt.steps.variableType, description: dt.descriptions.binaryProportionTest })
     return createResult('proportion-test', reasoning, [
-      { id: 'binomial-test', reason: '정확 검정이 필요할 때' }
+      { id: 'binomial-test', reason: dt.reasons.exactTestNeeded }
     ])
   }
 
   if (normality === 'yes') {
-    reasoning.push(STEP_NORMALITY(true, '단일표본 t-검정'))
+    reasoning.push(STEP_NORMALITY(dt, true, dt.descriptions.oneSampleTTest))
     return createResult('one-sample-t', reasoning, [
-      { id: 'wilcoxon', reason: '정규성 미충족시 부호순위 검정' }
+      { id: 'wilcoxon', reason: dt.reasons.signRankWhenNotNormal }
     ])
   }
 
-  reasoning.push(STEP_NORMALITY(false))
+  reasoning.push(STEP_NORMALITY(dt, false))
   return createResult('sign-test', reasoning, [
-    { id: 'one-sample-t', reason: 'n>=30이면 중심극한정리로 강건' }
+    { id: 'one-sample-t', reason: dt.reasons.cltRobustN30 }
   ])
 }
 
 /** 비율 비교 */
-function decideCompare_Proportion(reasoning: ReasoningStep[]): DecisionResult {
-  reasoning.push({ step: '비교 대상', description: '비율 비교' })
+function decideCompare_Proportion(reasoning: ReasoningStep[], dt: DecisionTreeText): DecisionResult {
+  reasoning.push({ step: dt.steps.comparisonTarget, description: dt.descriptions.proportionComparison })
   return createResult('proportion-test', reasoning, [
-    { id: 'chi-square-independence', reason: '교차표 형태일 때' }
+    { id: 'chi-square-independence', reason: dt.reasons.crosstabForm }
   ])
 }
 
 /** 2그룹 대응표본 비교 */
 function decideCompare_TwoGroups_Paired(
   answers: Record<string, string>,
-  reasoning: ReasoningStep[]
+  reasoning: ReasoningStep[],
+  dt: DecisionTreeText
 ): DecisionResult {
   const { normality, variable_type: variableType } = answers
 
-  reasoning.push(STEP_SAMPLE_TYPE(true))
+  reasoning.push(STEP_SAMPLE_TYPE(dt, true))
 
   // 이진 범주형 대응 데이터 → McNemar
   if (variableType === 'binary') {
-    reasoning.push(STEP_VARIABLE_TYPE('이진 범주형', 'McNemar 검정'))
+    reasoning.push({ step: dt.steps.variableType, description: dt.descriptions.binaryMcNemar })
     return createResult('mcnemar', reasoning, [
-      { id: 'sign-test', reason: '순서형 데이터일 때' }
+      { id: 'sign-test', reason: dt.reasons.ordinalData }
     ])
   }
 
   if (normality === 'yes') {
-    reasoning.push(STEP_NORMALITY(true))
+    reasoning.push(STEP_NORMALITY(dt, true))
     return createResult('paired-t', reasoning, [
-      { id: 'wilcoxon', reason: '정규성이 불확실할 때 안전한 대안', useLegacyId: true }
+      { id: 'wilcoxon', reason: dt.reasons.safeAlternativeUncertain, useLegacyId: true }
     ], { useLegacyId: true })
   }
 
-  reasoning.push(STEP_NORMALITY(false))
+  reasoning.push(STEP_NORMALITY(dt, false))
   return createResult('wilcoxon', reasoning, [
-    { id: 'sign-test', reason: '순서형 또는 방향성만 중요할 때' },
-    { id: 'paired-t', reason: 'n>=30이면 중심극한정리로 강건', useLegacyId: true }
+    { id: 'sign-test', reason: dt.reasons.ordinalOrDirectional },
+    { id: 'paired-t', reason: dt.reasons.cltRobustN30, useLegacyId: true }
   ], { useLegacyId: true })
 }
 
 /** 2그룹 독립표본 비교 */
 function decideCompare_TwoGroups_Independent(
   answers: Record<string, string>,
-  reasoning: ReasoningStep[]
+  reasoning: ReasoningStep[],
+  dt: DecisionTreeText
 ): DecisionResult {
   const { normality, homogeneity } = answers
 
-  reasoning.push(STEP_SAMPLE_TYPE(false))
+  reasoning.push(STEP_SAMPLE_TYPE(dt, false))
 
   if (normality === 'yes') {
-    reasoning.push(STEP_NORMALITY(true))
+    reasoning.push(STEP_NORMALITY(dt, true))
 
     if (homogeneity === 'yes') {
-      reasoning.push(STEP_HOMOGENEITY('yes', 'Student t-검정'))
+      reasoning.push(STEP_HOMOGENEITY(dt, 'yes', dt.descriptions.studentTTest))
       return createResult('independent-t', reasoning, [
-        { id: 'welch-t', reason: '등분산 가정 없이도 사용 가능', useLegacyId: true },
-        { id: 'mann-whitney', reason: '비모수 대안', useLegacyId: true }
+        { id: 'welch-t', reason: dt.reasons.noEqualVarianceNeeded, useLegacyId: true },
+        { id: 'mann-whitney', reason: dt.reasons.nonparametricAlternative, useLegacyId: true }
       ], { useLegacyId: true })
     }
 
-    reasoning.push(STEP_HOMOGENEITY(homogeneity))
+    reasoning.push(STEP_HOMOGENEITY(dt, homogeneity))
     return createResult('welch-t', reasoning, [
-      { id: 'independent-t', reason: '등분산 확인시 사용 가능', useLegacyId: true },
-      { id: 'mann-whitney', reason: '비모수 대안', useLegacyId: true }
+      { id: 'independent-t', reason: dt.reasons.equalVarianceConfirmed, useLegacyId: true },
+      { id: 'mann-whitney', reason: dt.reasons.nonparametricAlternative, useLegacyId: true }
     ], { useLegacyId: true })
   }
 
-  reasoning.push(STEP_NORMALITY(false))
+  reasoning.push(STEP_NORMALITY(dt, false))
   return createResult('mann-whitney', reasoning, [
-    { id: 'welch-t', reason: 'n>=30이면 강건', useLegacyId: true }
+    { id: 'welch-t', reason: dt.reasons.robustN30, useLegacyId: true }
   ], { useLegacyId: true })
 }
 
 /** 3그룹 이상 반복측정 비교 */
 function decideCompare_MultiGroups_Repeated(
   answers: Record<string, string>,
-  reasoning: ReasoningStep[]
+  reasoning: ReasoningStep[],
+  dt: DecisionTreeText
 ): DecisionResult {
   const { normality, variable_type: variableType } = answers
 
-  reasoning.push({ step: '표본 유형', description: '반복측정 (같은 대상 여러 시점)' })
+  reasoning.push({ step: dt.steps.sampleType, description: dt.descriptions.repeatedMeasurement })
 
   // 이진 범주형 반복측정 → Cochran Q
   if (variableType === 'binary') {
-    reasoning.push(STEP_VARIABLE_TYPE('이진 범주형', 'Cochran Q 검정'))
+    reasoning.push({ step: dt.steps.variableType, description: dt.descriptions.binaryCochranQ })
     return createResult('cochran-q', reasoning, [
-      { id: 'mcnemar', reason: '2시점만 비교할 때' }
+      { id: 'mcnemar', reason: dt.reasons.twoTimepoints }
     ])
   }
 
   if (normality === 'yes') {
-    reasoning.push(STEP_NORMALITY(true))
+    reasoning.push(STEP_NORMALITY(dt, true))
     return createResult('repeated-anova', reasoning, [
-      { id: 'friedman', reason: '구형성 가정 위반시', useLegacyId: true }
-    ], { useLegacyId: true, warnings: ['구형성 검정(Mauchly)을 확인하세요. 위반시 Greenhouse-Geisser 보정 적용'] })
+      { id: 'friedman', reason: dt.reasons.sphericityViolated, useLegacyId: true }
+    ], { useLegacyId: true, warnings: [dt.warnings.sphericity] })
   }
 
-  reasoning.push(STEP_NORMALITY(false))
+  reasoning.push(STEP_NORMALITY(dt, false))
   return createResult('friedman', reasoning, [
-    { id: 'repeated-anova', reason: 'n>=30이면 강건', useLegacyId: true }
+    { id: 'repeated-anova', reason: dt.reasons.robustN30, useLegacyId: true }
   ], { useLegacyId: true })
 }
 
 /** 3그룹 이상 독립표본 비교 */
 function decideCompare_MultiGroups_Independent(
   answers: Record<string, string>,
-  reasoning: ReasoningStep[]
+  reasoning: ReasoningStep[],
+  dt: DecisionTreeText
 ): DecisionResult {
   const { normality, homogeneity, has_covariate, outcome_count, design_type, comparison_target } = answers
 
-  reasoning.push({ step: '표본 유형', description: '독립 그룹' })
+  reasoning.push({ step: dt.steps.sampleType, description: dt.descriptions.independentGroup })
 
   // 혼합 설계
   if (design_type === 'mixed') {
-    reasoning.push({ step: '설계 유형', description: '혼합 설계 → 혼합효과 모형' })
+    reasoning.push({ step: dt.steps.designType, description: dt.descriptions.mixedDesignMixedModel })
     return createResult('mixed-model', reasoning, [
-      { id: 'repeated-anova', reason: '단순 반복측정일 때', useLegacyId: true }
-    ], { warnings: ['랜덤효과 구조를 신중히 선택해야 합니다'] })
+      { id: 'repeated-anova', reason: dt.reasons.simpleRepeatedMeasure, useLegacyId: true }
+    ], { warnings: [dt.warnings.randomEffects] })
   }
 
   // 다변량 종속변수 → MANOVA
   if (outcome_count === '2+') {
-    reasoning.push({ step: '종속변수', description: '다변량 → MANOVA' })
+    reasoning.push({ step: dt.steps.dependentVariable, description: dt.descriptions.multivariateMANOVA })
     return createResult('manova', reasoning, [
-      { id: 'one-way-anova', reason: '종속변수 개별 분석시', useLegacyId: true }
-    ], { warnings: ['다변량 정규성, Box M 검정 확인 필요'] })
+      { id: 'one-way-anova', reason: dt.reasons.individualDVAnalysis, useLegacyId: true }
+    ], { warnings: [dt.warnings.multivariateNormality] })
   }
 
   // 공변량 존재 → ANCOVA
   if (has_covariate === 'yes') {
-    reasoning.push({ step: '공변량', description: '공변량 통제 → ANCOVA' })
+    reasoning.push({ step: dt.steps.covariate, description: dt.descriptions.covariateANCOVA })
     return createResult('ancova', reasoning, [
-      { id: 'one-way-anova', reason: '공변량 통제 불필요시', useLegacyId: true }
-    ], { warnings: ['회귀 기울기 동질성 가정 확인 필요'] })
+      { id: 'one-way-anova', reason: dt.reasons.covariateNotNeeded, useLegacyId: true }
+    ], { warnings: [dt.warnings.regressionHomogeneity] })
   }
 
   if (normality === 'yes') {
-    reasoning.push(STEP_NORMALITY(true))
+    reasoning.push(STEP_NORMALITY(dt, true))
 
     if (homogeneity === 'yes') {
-      reasoning.push(STEP_HOMOGENEITY('yes', '일원분산분석'))
+      reasoning.push(STEP_HOMOGENEITY(dt, 'yes', dt.descriptions.oneWayANOVA))
       return createResult('one-way-anova', reasoning, [
-        { id: 'welch-anova', reason: '등분산 가정 없이도 사용 가능', useLegacyId: true },
-        { id: 'kruskal-wallis', reason: '비모수 대안', useLegacyId: true }
+        { id: 'welch-anova', reason: dt.reasons.noEqualVarianceNeeded, useLegacyId: true },
+        { id: 'kruskal-wallis', reason: dt.reasons.nonparametricAlternative, useLegacyId: true }
       ], { useLegacyId: true })
     }
 
-    reasoning.push(STEP_HOMOGENEITY(homogeneity))
+    reasoning.push(STEP_HOMOGENEITY(dt, homogeneity))
     return createResult('welch-anova', reasoning, [
-      { id: 'one-way-anova', reason: '등분산 확인시 사용 가능', useLegacyId: true },
-      { id: 'kruskal-wallis', reason: '비모수 대안', useLegacyId: true }
+      { id: 'one-way-anova', reason: dt.reasons.equalVarianceConfirmed, useLegacyId: true },
+      { id: 'kruskal-wallis', reason: dt.reasons.nonparametricAlternative, useLegacyId: true }
     ], { useLegacyId: true })
   }
 
-  reasoning.push(STEP_NORMALITY(false))
+  reasoning.push(STEP_NORMALITY(dt, false))
 
   // 중앙값 비교가 목적이면 Mood 중앙값 검정
   if (comparison_target === 'median') {
-    reasoning.push({ step: '비교 대상', description: '중앙값 비교 → Mood 검정' })
+    reasoning.push({ step: dt.steps.comparisonTarget, description: dt.descriptions.medianComparisonMood })
     return createResult('mood-median', reasoning, [
-      { id: 'kruskal-wallis', reason: '분포 전체 비교시', useLegacyId: true }
+      { id: 'kruskal-wallis', reason: dt.reasons.fullDistributionComparison, useLegacyId: true }
     ])
   }
 
   return createResult('kruskal-wallis', reasoning, [
-    { id: 'mood-median', reason: '중앙값 비교가 목적일 때' },
-    { id: 'welch-anova', reason: 'n/그룹>=30이면 강건', useLegacyId: true }
+    { id: 'mood-median', reason: dt.reasons.medianComparisonPurpose },
+    { id: 'welch-anova', reason: dt.reasons.cltRobustNPerGroup30, useLegacyId: true }
   ], { useLegacyId: true })
 }
 
@@ -341,39 +344,39 @@ function decideCompare_MultiGroups_Independent(
  * 그룹 간 차이 비교 결정 트리
  * 서브 함수로 분리하여 가독성 향상
  */
-function decideCompare(answers: Record<string, string>): DecisionResult {
+function decideCompare(answers: Record<string, string>, dt: DecisionTreeText): DecisionResult {
   const { group_count, sample_type, comparison_target } = answers
   const reasoning: ReasoningStep[] = []
 
   // 단일 표본 비교 (vs 모집단)
   if (comparison_target === 'population' || group_count === '1') {
-    return decideCompare_SingleSample(answers, reasoning)
+    return decideCompare_SingleSample(answers, reasoning, dt)
   }
 
   // 비율 비교
   if (comparison_target === 'proportion') {
-    return decideCompare_Proportion(reasoning)
+    return decideCompare_Proportion(reasoning, dt)
   }
 
   // 2개 그룹
   if (group_count === '2') {
-    reasoning.push(STEP_GROUP_COUNT('2'))
+    reasoning.push(STEP_GROUP_COUNT(dt, '2'))
     return sample_type === 'paired'
-      ? decideCompare_TwoGroups_Paired(answers, reasoning)
-      : decideCompare_TwoGroups_Independent(answers, reasoning)
+      ? decideCompare_TwoGroups_Paired(answers, reasoning, dt)
+      : decideCompare_TwoGroups_Independent(answers, reasoning, dt)
   }
 
   // 3개 이상 그룹
-  reasoning.push(STEP_GROUP_COUNT('3+'))
+  reasoning.push(STEP_GROUP_COUNT(dt, '3+'))
   return sample_type === 'paired'
-    ? decideCompare_MultiGroups_Repeated(answers, reasoning)
-    : decideCompare_MultiGroups_Independent(answers, reasoning)
+    ? decideCompare_MultiGroups_Repeated(answers, reasoning, dt)
+    : decideCompare_MultiGroups_Independent(answers, reasoning, dt)
 }
 
 /**
  * 변수 간 관계 분석 결정 트리
  */
-function decideRelationship(answers: Record<string, string>): DecisionResult {
+function decideRelationship(answers: Record<string, string>, dt: DecisionTreeText): DecisionResult {
   const relationType = answers.relationship_type
   const variableCount = answers.variable_count
   const variableType = answers.variable_type
@@ -382,40 +385,40 @@ function decideRelationship(answers: Record<string, string>): DecisionResult {
 
   // 상관분석
   if (relationType === 'correlation') {
-    reasoning.push({ step: '분석 유형', description: '상관관계 분석' })
+    reasoning.push({ step: dt.steps.analysisType, description: dt.descriptions.correlationAnalysis })
 
     if (variableType === 'numeric') {
-      reasoning.push({ step: '변수 유형', description: '모두 수치형' })
+      reasoning.push({ step: dt.steps.variableType, description: dt.descriptions.allNumeric })
 
       if (variableCount === '2') {
-        reasoning.push({ step: '변수 수', description: '2개 변수' })
+        reasoning.push({ step: dt.steps.variableCount, description: dt.descriptions.twoVariables })
         // NOTE: Spearman은 correlation 페이지 내 옵션으로 제공됨
         return createResult('correlation', reasoning, [], {
-          warnings: ['정규성 미충족/이상치 존재시 Spearman 옵션 선택']
+          warnings: [dt.warnings.spearmanOutliers]
         })
       } else {
-        reasoning.push({ step: '변수 수', description: '3개 이상 변수' })
+        reasoning.push({ step: dt.steps.variableCount, description: dt.descriptions.threeOrMoreVariables })
         return createResult('partial-correlation', reasoning, [
-          { id: 'correlation', reason: '단순 상관 행렬' }
+          { id: 'correlation', reason: dt.reasons.simpleCorrelation }
         ])
       }
     } else {
-      reasoning.push({ step: '변수 유형', description: '범주형 포함' })
+      reasoning.push({ step: dt.steps.variableType, description: dt.descriptions.categoricalIncluded })
       return createResult('chi-square-independence', reasoning, [
-        { id: 'correlation', reason: '순서형 변수일 때 Spearman 사용' }
+        { id: 'correlation', reason: dt.reasons.spearmanForOrdinal }
       ])
     }
   }
 
   // 예측/회귀
-  reasoning.push({ step: '분석 유형', description: '예측/회귀 분석' })
-  reasoning.push({ step: '변수 수', description: variableCount === '2' ? '단순 회귀' : '다중 회귀' })
+  reasoning.push({ step: dt.steps.analysisType, description: dt.descriptions.predictionRegression })
+  reasoning.push({ step: dt.steps.variableCount, description: variableCount === '2' ? dt.descriptions.simpleRegression : dt.descriptions.multipleRegression })
 
   if (variableType === 'numeric') {
-    reasoning.push({ step: '변수 유형', description: '모두 수치형' })
+    reasoning.push({ step: dt.steps.variableType, description: dt.descriptions.allNumeric })
     return createResult('regression', reasoning)
   } else {
-    reasoning.push({ step: '변수 유형', description: '범주형 포함 → 로지스틱 회귀' })
+    reasoning.push({ step: dt.steps.variableType, description: dt.descriptions.categoricalLogistic })
     return createResult('logistic-regression', reasoning)
   }
 }
@@ -423,7 +426,7 @@ function decideRelationship(answers: Record<string, string>): DecisionResult {
 /**
  * 분포와 빈도 분석 결정 트리
  */
-function decideDistribution(answers: Record<string, string>): DecisionResult {
+function decideDistribution(answers: Record<string, string>, dt: DecisionTreeText): DecisionResult {
   const analysisType = answers.analysis_type
   const variableType = answers.variable_type
   const distributionGoal = answers.distribution_goal
@@ -432,82 +435,82 @@ function decideDistribution(answers: Record<string, string>): DecisionResult {
 
   // 데이터 탐색
   if (analysisType === 'explore' || distributionGoal === 'explore') {
-    reasoning.push({ step: '분석 유형', description: '데이터 탐색' })
+    reasoning.push({ step: dt.steps.analysisType, description: dt.descriptions.dataExploration })
     return createResult('explore-data', reasoning, [
-      { id: 'descriptive', reason: '기술통계만 필요할 때' }
+      { id: 'descriptive', reason: dt.reasons.descriptiveOnly }
     ])
   }
 
   // 평균 시각화
   if (distributionGoal === 'visualize_means') {
-    reasoning.push({ step: '분석 유형', description: '평균 시각화' })
+    reasoning.push({ step: dt.steps.analysisType, description: dt.descriptions.meanVisualization })
     return createResult('means-plot', reasoning, [
-      { id: 'descriptive', reason: '기술통계표로 대체' }
+      { id: 'descriptive', reason: dt.reasons.descriptiveTableAlternative }
     ])
   }
 
   // 이항 확률 검정
   if (analysisType === 'test_probability' || distributionGoal === 'test_probability') {
-    reasoning.push({ step: '분석 유형', description: '이진 확률 검정' })
+    reasoning.push({ step: dt.steps.analysisType, description: dt.descriptions.binaryProbabilityTest })
     return createResult('binomial-test', reasoning, [
-      { id: 'proportion-test', reason: '대표본 근사 사용시' }
+      { id: 'proportion-test', reason: dt.reasons.largeApproximation }
     ])
   }
 
   // 무작위성 검정
   if (distributionGoal === 'randomness') {
-    reasoning.push({ step: '분석 유형', description: '무작위성 검정' })
+    reasoning.push({ step: dt.steps.analysisType, description: dt.descriptions.randomnessTest })
     return createResult('runs-test', reasoning)
   }
 
   // 두 분포 비교
   if (distributionGoal === 'distribution_compare') {
-    reasoning.push({ step: '분석 유형', description: '두 분포 비교' })
+    reasoning.push({ step: dt.steps.analysisType, description: dt.descriptions.twoDistributionComparison })
     return createResult('ks-test', reasoning, [
-      { id: 'mann-whitney', reason: '중앙값 차이가 관심일 때' }
+      { id: 'mann-whitney', reason: dt.reasons.medianDifference }
     ])
   }
 
   if (analysisType === 'describe') {
-    reasoning.push({ step: '분석 유형', description: '기술통계' })
+    reasoning.push({ step: dt.steps.analysisType, description: dt.descriptions.descriptiveStats })
 
     if (variableType === 'numeric') {
-      reasoning.push({ step: '변수 유형', description: '수치형 → 평균, 표준편차 등' })
+      reasoning.push({ step: dt.steps.variableType, description: dt.descriptions.numericMeanStd })
       return createResult('descriptive', reasoning, [
-        { id: 'explore-data', reason: '상세 탐색 필요시' }
+        { id: 'explore-data', reason: dt.reasons.detailedExploration }
       ])
     } else {
-      reasoning.push({ step: '변수 유형', description: '범주형 → 빈도, 비율' })
+      reasoning.push({ step: dt.steps.variableType, description: dt.descriptions.categoricalFreqRatio })
       return createResult('descriptive', reasoning)
     }
   }
 
   if (analysisType === 'normality') {
-    reasoning.push({ step: '분석 유형', description: '정규성 검정' })
+    reasoning.push({ step: dt.steps.analysisType, description: dt.descriptions.normalityTest })
     return createResult('normality-test', reasoning, [
-      { id: 'ks-test', reason: '비교 분포가 있을 때' }
+      { id: 'ks-test', reason: dt.reasons.comparisonDistribution }
     ])
   }
 
   // frequency
-  reasoning.push({ step: '분석 유형', description: '빈도 분석' })
+  reasoning.push({ step: dt.steps.analysisType, description: dt.descriptions.frequencyAnalysis })
 
   if (variableType === 'categorical') {
     return createResult('descriptive', reasoning, [
-      { id: 'chi-square-goodness', reason: '기대 빈도와 비교시' },
-      { id: 'binomial-test', reason: '이진 비율 검정시' }
+      { id: 'chi-square-goodness', reason: dt.reasons.expectedFrequency },
+      { id: 'binomial-test', reason: dt.reasons.binaryRateTest }
     ])
   }
 
   return createResult('descriptive', reasoning, [
-    { id: 'explore-data', reason: '시각화 포함 탐색시' }
+    { id: 'explore-data', reason: dt.reasons.explorationWithViz }
   ])
 }
 
 /**
  * 예측 모델링 결정 트리
  */
-function decidePrediction(answers: Record<string, string>): DecisionResult {
+function decidePrediction(answers: Record<string, string>, dt: DecisionTreeText): DecisionResult {
   const outcomeType = answers.outcome_type
   const predictorCount = answers.predictor_count
   const variableSelection = answers.variable_selection
@@ -517,59 +520,59 @@ function decidePrediction(answers: Record<string, string>): DecisionResult {
 
   // 특수 모형 유형 분기
   if (modelType === 'dose_response') {
-    reasoning.push({ step: '모형 유형', description: '용량-반응 분석' })
+    reasoning.push({ step: dt.steps.modelType, description: dt.descriptions.doseResponseAnalysis })
     return createResult('dose-response', reasoning, [
-      { id: 'regression', reason: '선형 관계 가정시' }
-    ], { warnings: ['EC50/IC50 계산에 충분한 농도 범위 필요'] })
+      { id: 'regression', reason: dt.reasons.linearRelationship }
+    ], { warnings: [dt.warnings.doseResponseRange] })
   }
 
   if (modelType === 'optimization') {
-    reasoning.push({ step: '모형 유형', description: '최적화 실험' })
+    reasoning.push({ step: dt.steps.modelType, description: dt.descriptions.optimizationExperiment })
     return createResult('response-surface', reasoning, [
-      { id: 'regression', reason: '단순 예측만 필요시' }
-    ], { warnings: ['실험 설계(CCD, BBD 등)가 적절해야 합니다'] })
+      { id: 'regression', reason: dt.reasons.simplePrediction }
+    ], { warnings: [dt.warnings.experimentalDesign] })
   }
 
   // 자동 변수 선택 → 단계적 회귀
   if (variableSelection === 'automatic' && predictorCount === '2+') {
-    reasoning.push({ step: '변수 선택', description: '자동 변수 선택 → 단계적 회귀' })
+    reasoning.push({ step: dt.steps.variableSelection, description: dt.descriptions.autoVariableStepwise })
     return createResult('stepwise', reasoning, [
-      { id: 'regression', reason: '모든 변수 포함시' }
-    ], { warnings: ['과적합 주의, 교차검증 권장'] })
+      { id: 'regression', reason: dt.reasons.allVariablesIncluded }
+    ], { warnings: [dt.warnings.overfittingCrossValidation] })
   }
 
-  reasoning.push({ step: '예측 변수 수', description: predictorCount === '1' ? '단순 모형' : '다중 모형' })
+  reasoning.push({ step: dt.steps.predictorCount, description: predictorCount === '1' ? dt.descriptions.simpleModel : dt.descriptions.multipleModel })
 
   switch (outcomeType) {
     case 'continuous':
-      reasoning.push({ step: '결과 변수', description: '연속형 → 선형 회귀' })
+      reasoning.push({ step: dt.steps.outcomeVariable, description: dt.descriptions.continuousLinearRegression })
       return createResult('regression', reasoning, [
-        { id: 'stepwise', reason: '변수 선택이 필요할 때' }
-      ], predictorCount === '2+' ? { warnings: ['다중공선성(VIF), 잔차 정규성 확인 필요'] } : undefined)
+        { id: 'stepwise', reason: dt.reasons.variableSelectionNeeded }
+      ], predictorCount === '2+' ? { warnings: [dt.warnings.multicollinearity] } : undefined)
 
     case 'binary':
-      reasoning.push({ step: '결과 변수', description: '이진형 → 로지스틱 회귀' })
+      reasoning.push({ step: dt.steps.outcomeVariable, description: dt.descriptions.binaryLogisticRegression })
       return createResult('logistic-regression', reasoning, [
-        { id: 'discriminant', reason: '판별 분석 대안' }
-      ], { warnings: ['ROC-AUC, Hosmer-Lemeshow 검정으로 적합도 확인'] })
+        { id: 'discriminant', reason: dt.reasons.discriminantAlternative }
+      ], { warnings: [dt.warnings.rocAucHosmerLemeshow] })
 
     case 'count':
-      reasoning.push({ step: '결과 변수', description: '빈도/개수 → 포아송 회귀' })
+      reasoning.push({ step: dt.steps.outcomeVariable, description: dt.descriptions.countPoissonRegression })
       return createResult('poisson', reasoning, [], {
-        warnings: ['과산포(overdispersion) 확인 - 있으면 음이항 회귀 고려']
+        warnings: [dt.warnings.overdispersion]
       })
 
     case 'multiclass':
-      reasoning.push({ step: '결과 변수', description: '다범주 → 다항 로지스틱' })
+      reasoning.push({ step: dt.steps.outcomeVariable, description: dt.descriptions.multiclassMultinomialLogistic })
       return createResult('logistic-regression', reasoning, [
-        { id: 'ordinal-regression', reason: '순서형 범주일 때' },
-        { id: 'discriminant', reason: '판별 분석 대안' }
+        { id: 'ordinal-regression', reason: dt.reasons.ordinalCategory },
+        { id: 'discriminant', reason: dt.reasons.discriminantAlternative }
       ])
 
     case 'ordinal':
-      reasoning.push({ step: '결과 변수', description: '순서형 → 순서형 로지스틱' })
+      reasoning.push({ step: dt.steps.outcomeVariable, description: dt.descriptions.ordinalOrdinalLogistic })
       return createResult('ordinal-regression', reasoning, [
-        { id: 'logistic-regression', reason: '순서 무시시' }
+        { id: 'logistic-regression', reason: dt.reasons.ignoreOrder }
       ])
 
     default:
@@ -580,7 +583,7 @@ function decidePrediction(answers: Record<string, string>): DecisionResult {
 /**
  * 시계열 분석 결정 트리
  */
-function decideTimeseries(answers: Record<string, string>): DecisionResult {
+function decideTimeseries(answers: Record<string, string>, dt: DecisionTreeText): DecisionResult {
   const goal = answers.goal
   const seasonality = answers.seasonality
 
@@ -588,37 +591,37 @@ function decideTimeseries(answers: Record<string, string>): DecisionResult {
 
   switch (goal) {
     case 'forecast':
-      reasoning.push({ step: '분석 목적', description: '미래 예측' })
+      reasoning.push({ step: dt.steps.analysisPurpose, description: dt.descriptions.futureForecast })
 
       if (seasonality === 'yes') {
-        reasoning.push({ step: '계절성', description: '계절성 있음 → SARIMA' })
+        reasoning.push({ step: dt.steps.seasonality, description: dt.descriptions.seasonalSARIMA })
         // NOTE: SARIMA는 arima 페이지 내 옵션으로 제공됨
         return createResult('arima', reasoning, [
-          { id: 'seasonal-decompose', reason: '계절 패턴 분석 후 예측시' }
-        ], { warnings: ['ARIMA 페이지에서 계절성 옵션(SARIMA) 선택'] })
+          { id: 'seasonal-decompose', reason: dt.reasons.seasonalPatternAnalysis }
+        ], { warnings: [dt.warnings.arimaSeasonalOption] })
       } else {
-        reasoning.push({ step: '계절성', description: '계절성 없음 → ARIMA' })
+        reasoning.push({ step: dt.steps.seasonality, description: dt.descriptions.noSeasonalARIMA })
         return createResult('arima', reasoning)
       }
 
     case 'decompose':
-      reasoning.push({ step: '분석 목적', description: '패턴 분해' })
+      reasoning.push({ step: dt.steps.analysisPurpose, description: dt.descriptions.patternDecomposition })
       return createResult('seasonal-decompose', reasoning)
 
     case 'stationarity':
-      reasoning.push({ step: '분석 목적', description: '정상성 검정' })
+      reasoning.push({ step: dt.steps.analysisPurpose, description: dt.descriptions.stationarityTest })
       return createResult('stationarity-test', reasoning, [], {
-        warnings: ['KPSS 검정도 함께 수행하면 더 신뢰할 수 있습니다']
+        warnings: [dt.warnings.kpssAdditional]
       })
 
     case 'trend_test':
-      reasoning.push({ step: '분석 목적', description: '추세 검정' })
+      reasoning.push({ step: dt.steps.analysisPurpose, description: dt.descriptions.trendTest })
       return createResult('mann-kendall', reasoning, [
-        { id: 'regression', reason: '선형 추세 검정시' }
-      ], { warnings: ['자기상관이 있으면 Modified MK 사용 권장'] })
+        { id: 'regression', reason: dt.reasons.simplePrediction }
+      ], { warnings: [dt.warnings.autocorrelationModifiedMK] })
 
     default:
-      reasoning.push({ step: '기본', description: '시계열 분석' })
+      reasoning.push({ step: dt.steps.defaultStep, description: dt.descriptions.timeseriesAnalysis })
       return createResult('arima', reasoning)
   }
 }
@@ -626,7 +629,7 @@ function decideTimeseries(answers: Record<string, string>): DecisionResult {
 /**
  * 생존 분석 결정 트리
  */
-function decideSurvival(answers: Record<string, string>): DecisionResult {
+function decideSurvival(answers: Record<string, string>, dt: DecisionTreeText): DecisionResult {
   const goal = answers.goal
   const covariateCount = answers.covariate_count
 
@@ -634,30 +637,30 @@ function decideSurvival(answers: Record<string, string>): DecisionResult {
 
   switch (goal) {
     case 'curve':
-      reasoning.push({ step: '분석 목적', description: '생존 곡선 추정' })
+      reasoning.push({ step: dt.steps.analysisPurpose, description: dt.descriptions.survivalCurveEstimation })
       // NOTE: Log-rank 검정은 kaplan-meier 페이지 내 옵션으로 제공됨
       return createResult('kaplan-meier', reasoning, [], {
-        warnings: ['그룹 비교시 Log-rank 검정 옵션 사용']
+        warnings: [dt.reasons.logRankForGroupComparison]
       })
 
     case 'compare':
-      reasoning.push({ step: '분석 목적', description: '그룹 간 생존 비교' })
+      reasoning.push({ step: dt.steps.analysisPurpose, description: dt.descriptions.groupSurvivalComparison })
       return createResult('kaplan-meier', reasoning, [
-        { id: 'cox-regression', reason: '공변량 통제가 필요할 때' }
+        { id: 'cox-regression', reason: dt.reasons.covariateControlNeeded }
       ])
 
     case 'hazard':
-      reasoning.push({ step: '분석 목적', description: '위험 요인 분석' })
+      reasoning.push({ step: dt.steps.analysisPurpose, description: dt.descriptions.hazardFactorAnalysis })
 
       if (covariateCount === '1+') {
-        reasoning.push({ step: '공변량', description: '공변량 있음 → Cox 회귀' })
+        reasoning.push({ step: dt.steps.covariate, description: dt.descriptions.covariateYesCox })
         return createResult('cox-regression', reasoning, [], {
-          warnings: ['비례위험 가정 확인 필요 (Schoenfeld 잔차)']
+          warnings: [dt.warnings.proportionalHazards]
         })
       } else {
-        reasoning.push({ step: '공변량', description: '공변량 없음' })
+        reasoning.push({ step: dt.steps.covariate, description: dt.descriptions.covariateNone })
         return createResult('kaplan-meier', reasoning, [
-          { id: 'cox-regression', reason: '공변량 추가시' }
+          { id: 'cox-regression', reason: dt.reasons.addCovariate }
         ])
       }
 
@@ -669,38 +672,38 @@ function decideSurvival(answers: Record<string, string>): DecisionResult {
 /**
  * 다변량 분석 결정 트리
  */
-function decideMultivariate(answers: Record<string, string>): DecisionResult {
+function decideMultivariate(answers: Record<string, string>, dt: DecisionTreeText): DecisionResult {
   const goal = answers.goal
   const reasoning: ReasoningStep[] = []
 
   switch (goal) {
     case 'dimension_reduction':
-      reasoning.push({ step: '분석 목적', description: '차원 축소' })
+      reasoning.push({ step: dt.steps.analysisPurpose, description: dt.descriptions.dimensionReduction })
       return createResult('pca', reasoning, [
-        { id: 'factor-analysis', reason: '잠재 요인 해석이 필요할 때' }
+        { id: 'factor-analysis', reason: dt.reasons.latentFactorInterpretation }
       ])
 
     case 'latent_factors':
-      reasoning.push({ step: '분석 목적', description: '잠재 요인 추출' })
+      reasoning.push({ step: dt.steps.analysisPurpose, description: dt.descriptions.latentFactorExtraction })
       return createResult('factor-analysis', reasoning, [
-        { id: 'pca', reason: '차원 축소만 필요할 때' }
+        { id: 'pca', reason: dt.reasons.dimensionReductionOnly }
       ])
 
     case 'grouping':
-      reasoning.push({ step: '분석 목적', description: '유사 대상 그룹화' })
+      reasoning.push({ step: dt.steps.analysisPurpose, description: dt.descriptions.similarGrouping })
       return createResult('cluster', reasoning, [
-        { id: 'discriminant', reason: '그룹이 이미 정의되어 있을 때' }
+        { id: 'discriminant', reason: dt.reasons.groupAlreadyDefined }
       ])
 
     case 'classification':
-      reasoning.push({ step: '분석 목적', description: '그룹 분류/예측' })
+      reasoning.push({ step: dt.steps.analysisPurpose, description: dt.descriptions.groupClassification })
       return createResult('discriminant', reasoning, [
-        { id: 'logistic-regression', reason: '이진 분류일 때' },
-        { id: 'cluster', reason: '그룹이 정의되지 않았을 때' }
+        { id: 'logistic-regression', reason: dt.reasons.binaryClassification },
+        { id: 'cluster', reason: dt.reasons.groupNotDefined }
       ])
 
     default:
-      reasoning.push({ step: '기본', description: '다변량 분석' })
+      reasoning.push({ step: dt.steps.defaultStep, description: dt.descriptions.multivariateAnalysis })
       return createResult('pca', reasoning)
   }
 }
@@ -708,29 +711,29 @@ function decideMultivariate(answers: Record<string, string>): DecisionResult {
 /**
  * 유틸리티 분석 결정 트리
  */
-function decideUtility(answers: Record<string, string>): DecisionResult {
+function decideUtility(answers: Record<string, string>, dt: DecisionTreeText): DecisionResult {
   const goal = answers.goal
   const reasoning: ReasoningStep[] = []
 
   switch (goal) {
     case 'sample_size':
-      reasoning.push({ step: '분석 목적', description: '표본 크기 계산' })
+      reasoning.push({ step: dt.steps.analysisPurpose, description: dt.descriptions.sampleSizeCalculation })
       return createResult('power-analysis', reasoning, [], {
-        warnings: ['연구 설계, 효과 크기, 유의수준을 미리 정해야 합니다']
+        warnings: [dt.warnings.sampleSizePrereqs]
       })
 
     case 'power':
-      reasoning.push({ step: '분석 목적', description: '검정력 계산' })
+      reasoning.push({ step: dt.steps.analysisPurpose, description: dt.descriptions.powerCalculation })
       return createResult('power-analysis', reasoning)
 
     case 'reliability':
-      reasoning.push({ step: '분석 목적', description: '측정 도구 신뢰도' })
+      reasoning.push({ step: dt.steps.analysisPurpose, description: dt.descriptions.reliabilityMeasurement })
       return createResult('reliability', reasoning, [], {
-        warnings: ['항목이 3개 이상 필요합니다']
+        warnings: [dt.warnings.minItemsRequired]
       })
 
     default:
-      reasoning.push({ step: '기본', description: '유틸리티 분석' })
+      reasoning.push({ step: dt.steps.defaultStep, description: dt.descriptions.utilityAnalysis })
       return createResult('power-analysis', reasoning)
   }
 }
@@ -746,28 +749,30 @@ export interface DecisionPath {
 
 /**
  * 사용자 응답을 기반으로 통계 방법 결정
+ * @param path - 분석 목적 + 사용자 응답
+ * @param dt - 결정 트리 텍스트 사전 (Terminology System). 생략 시 aquaculture 기본값 사용.
  */
-export function decide(path: DecisionPath): DecisionResult {
+export function decide(path: DecisionPath, dt: DecisionTreeText = aquaculture.decisionTree): DecisionResult {
   switch (path.purpose) {
     case 'compare':
-      return decideCompare(path.answers)
+      return decideCompare(path.answers, dt)
     case 'relationship':
-      return decideRelationship(path.answers)
+      return decideRelationship(path.answers, dt)
     case 'distribution':
-      return decideDistribution(path.answers)
+      return decideDistribution(path.answers, dt)
     case 'prediction':
-      return decidePrediction(path.answers)
+      return decidePrediction(path.answers, dt)
     case 'timeseries':
-      return decideTimeseries(path.answers)
+      return decideTimeseries(path.answers, dt)
     case 'survival':
-      return decideSurvival(path.answers)
+      return decideSurvival(path.answers, dt)
     case 'multivariate':
-      return decideMultivariate(path.answers)
+      return decideMultivariate(path.answers, dt)
     case 'utility':
-      return decideUtility(path.answers)
+      return decideUtility(path.answers, dt)
     default:
       // Fallback
-      return createResult('descriptive', [{ step: '기본', description: '기본 기술통계 분석' }])
+      return createResult('descriptive', [{ step: dt.steps.defaultStep, description: dt.descriptions.defaultDescriptive }])
   }
 }
 

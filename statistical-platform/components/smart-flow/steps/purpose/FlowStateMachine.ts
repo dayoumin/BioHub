@@ -8,6 +8,8 @@
  *
  * Fix 3-A: previousStep 단일값 → stepHistory 스택으로 변경
  * Fix 3-B: AI 상태 유지/초기화 일관성 보장
+ *
+ * Terminology System: createFlowReducer() 팩토리 패턴으로 텍스트 사전 주입
  */
 
 import type {
@@ -18,7 +20,9 @@ import type {
   AnalysisCategory,
   AIRecommendation
 } from '@/types/smart-flow'
+import type { DecisionTreeText, FlowStateMachineText } from '@/lib/terminology/terminology-types'
 import { decide } from './DecisionTree'
+import { aquaculture } from '@/lib/terminology/domains/aquaculture'
 
 /** AI 관련 상태만 추출 (유지/초기화 시 일관된 처리를 위해) */
 interface AiState {
@@ -72,11 +76,37 @@ export const initialFlowState: GuidedFlowState = {
 }
 
 /**
- * 상태 리듀서
+ * 팩토리 함수: Terminology 사전을 주입하여 리듀서 생성
+ * @param dt - DecisionTree 텍스트 사전
+ * @param fsm - FlowStateMachine 텍스트 사전
+ */
+export function createFlowReducer(dt: DecisionTreeText, fsm: FlowStateMachineText) {
+  return function reducer(
+    state: GuidedFlowState,
+    action: GuidedFlowAction
+  ): GuidedFlowState {
+    return flowReducerWithText(state, action, dt, fsm)
+  }
+}
+
+/**
+ * 상태 리듀서 (하위 호환: 기본 aquaculture 사전 사용)
  */
 export function flowReducer(
   state: GuidedFlowState,
   action: GuidedFlowAction
+): GuidedFlowState {
+  return flowReducerWithText(state, action, aquaculture.decisionTree, aquaculture.flowStateMachine)
+}
+
+/**
+ * 내부 리듀서 구현 (텍스트 사전 매개변수 포함)
+ */
+function flowReducerWithText(
+  state: GuidedFlowState,
+  action: GuidedFlowAction,
+  dt: DecisionTreeText,
+  fsm: FlowStateMachineText
 ): GuidedFlowState {
   switch (action.type) {
     // ============================================
@@ -112,7 +142,7 @@ export function flowReducer(
         result: {
           method: action.recommendation.method,
           reasoning: action.recommendation.reasoning.map((r, i) => ({
-            step: `근거 ${i + 1}`,
+            step: fsm.evidencePrefix(i),
             description: r
           })),
           alternatives: action.recommendation.alternatives?.map(alt => ({
@@ -216,7 +246,7 @@ export function flowReducer(
       const result = decide({
         purpose: state.selectedPurpose,
         answers: state.answers
-      })
+      }, dt)
 
       return {
         ...state,
@@ -265,7 +295,7 @@ export function flowReducer(
         result: {
           method: action.method,
           reasoning: [
-            { step: '직접 선택', description: '사용자가 직접 분석 방법을 선택했습니다' }
+            { step: fsm.directSelection, description: fsm.directSelectionDescription }
           ],
           alternatives: []
         },

@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
+import { useTerminology } from '@/hooks/use-terminology'
 import type { AnalysisCategory, CategoryDefinition, SubcategoryDefinition } from '@/types/smart-flow'
 import { getCategoryById } from './progressive-questions'
 import {
@@ -50,8 +51,9 @@ export const SubcategorySelector = memo(function SubcategorySelector({
   disabled = false,
   className,
 }: SubcategorySelectorProps) {
+  const t = useTerminology()
   const prefersReducedMotion = useReducedMotion()
-  const category = getCategoryById(categoryId)
+  const category = getCategoryById(categoryId, t.progressiveCategoryData)
 
   if (!category) {
     return null

@@ -9,6 +9,7 @@ import type {
   StatisticalAssumptions,
   ColumnStatistics
 } from '@/types/smart-flow'
+import type { AutoAnswerEvidenceText } from '@/lib/terminology/terminology-types'
 
 interface AutoAnswerContext {
   validationResults?: ValidationResults | null
@@ -18,13 +19,14 @@ interface AutoAnswerContext {
     independent?: string[]
     group?: string
   }
+  evidence?: AutoAnswerEvidenceText
 }
 
 /**
  * 정규성 질문 자동 응답
  */
 function getAutoAnswerNormality(context: AutoAnswerContext): AutoAnswerResult {
-  const { assumptionResults, validationResults } = context
+  const { assumptionResults, validationResults, evidence: ev } = context
 
   // 정규성 검정 결과가 있는지 확인 (빈 객체 {} 체크)
   const hasNormalityResult = assumptionResults?.normality &&
@@ -66,7 +68,7 @@ function getAutoAnswerNormality(context: AutoAnswerContext): AutoAnswerResult {
           value: 'yes',
           confidence: 'low',  // 추정치이므로 low
           source: 'heuristic',
-          evidence: `추정 최소 그룹 크기 ≈ ${estimatedMinGroupSize} ≥ 30 (CLT 적용 가능, 확인 권장)`,
+          evidence: ev?.normality.cltGroupSize(estimatedMinGroupSize) ?? `추정 최소 그룹 크기 ≈ ${estimatedMinGroupSize} ≥ 30 (CLT 적용 가능, 확인 권장)`,
           requiresConfirmation: true  // 사용자 확인 필요
         }
       }
@@ -76,7 +78,7 @@ function getAutoAnswerNormality(context: AutoAnswerContext): AutoAnswerResult {
         value: 'yes',
         confidence: 'medium',
         source: 'heuristic',
-        evidence: `n=${sampleSize} ≥ 30 (중심극한정리에 의해 정규성 가정 가능)`,
+        evidence: ev?.normality.cltSampleSize(sampleSize) ?? `n=${sampleSize} ≥ 30 (중심극한정리에 의해 정규성 가정 가능)`,
         requiresConfirmation: false
       }
     }
@@ -86,7 +88,7 @@ function getAutoAnswerNormality(context: AutoAnswerContext): AutoAnswerResult {
       value: 'check',
       confidence: 'unknown',
       source: 'none',
-      evidence: '정규성 검정 결과가 없습니다',
+      evidence: ev?.normality.noTestResult ?? '정규성 검정 결과가 없습니다',
       requiresConfirmation: true
     }
   }
@@ -100,7 +102,7 @@ function getAutoAnswerNormality(context: AutoAnswerContext): AutoAnswerResult {
       value: 'check',
       confidence: 'unknown',
       source: 'none',
-      evidence: '정규성 검정 결과가 없습니다',
+      evidence: ev?.normality.noTestResult ?? '정규성 검정 결과가 없습니다',
       requiresConfirmation: true
     }
   }
@@ -115,7 +117,7 @@ function getAutoAnswerNormality(context: AutoAnswerContext): AutoAnswerResult {
         value: 'yes',
         confidence: pValue !== undefined && pValue > 0.1 ? 'high' : 'medium',
         source: 'assumptionResults',
-        evidence: `Shapiro-Wilk p=${pValueStr} > 0.05 (정규분포 충족)`,
+        evidence: ev?.normality.shapiroNormal(pValueStr) ?? `Shapiro-Wilk p=${pValueStr} > 0.05 (정규분포 충족)`,
         requiresConfirmation: false
       }
     } else {
@@ -123,7 +125,7 @@ function getAutoAnswerNormality(context: AutoAnswerContext): AutoAnswerResult {
         value: 'no',
         confidence: 'high',
         source: 'assumptionResults',
-        evidence: `Shapiro-Wilk p=${pValueStr} ≤ 0.05 (정규분포 미충족)`,
+        evidence: ev?.normality.shapiroNotNormal(pValueStr) ?? `Shapiro-Wilk p=${pValueStr} ≤ 0.05 (정규분포 미충족)`,
         requiresConfirmation: false
       }
     }
@@ -139,7 +141,7 @@ function getAutoAnswerNormality(context: AutoAnswerContext): AutoAnswerResult {
         value: 'yes',
         confidence: 'medium',
         source: 'assumptionResults',
-        evidence: '모든 그룹이 정규분포를 따릅니다',
+        evidence: ev?.normality.allGroupsNormal ?? '모든 그룹이 정규분포를 따릅니다',
         requiresConfirmation: false
       }
     } else {
@@ -147,7 +149,7 @@ function getAutoAnswerNormality(context: AutoAnswerContext): AutoAnswerResult {
         value: 'no',
         confidence: 'medium',
         source: 'assumptionResults',
-        evidence: '일부 그룹이 정규분포를 따르지 않습니다',
+        evidence: ev?.normality.someGroupsNotNormal ?? '일부 그룹이 정규분포를 따르지 않습니다',
         requiresConfirmation: true
       }
     }
@@ -157,7 +159,7 @@ function getAutoAnswerNormality(context: AutoAnswerContext): AutoAnswerResult {
     value: 'check',
     confidence: 'unknown',
     source: 'none',
-    evidence: '정규성을 확인할 수 없습니다',
+    evidence: ev?.normality.cannotDetermine ?? '정규성을 확인할 수 없습니다',
     requiresConfirmation: true
   }
 }
@@ -166,14 +168,14 @@ function getAutoAnswerNormality(context: AutoAnswerContext): AutoAnswerResult {
  * 변수 유형 질문 자동 응답
  */
 function getAutoAnswerVariableType(context: AutoAnswerContext): AutoAnswerResult {
-  const { validationResults, selectedVariables } = context
+  const { validationResults, selectedVariables, evidence: ev } = context
 
   if (!validationResults?.columnStats && !validationResults?.columns) {
     return {
       value: 'numeric',
       confidence: 'unknown',
       source: 'none',
-      evidence: '변수 정보가 없습니다',
+      evidence: ev?.variableType.noInfo ?? '변수 정보가 없습니다',
       requiresConfirmation: true
     }
   }
@@ -207,7 +209,7 @@ function getAutoAnswerVariableType(context: AutoAnswerContext): AutoAnswerResult
       value: 'numeric',
       confidence: 'high',
       source: 'validationResults',
-      evidence: `분석 변수가 모두 수치형입니다 (${targetColumns.length}개)`,
+      evidence: ev?.variableType.allNumeric(targetColumns.length) ?? `분석 변수가 모두 수치형입니다 (${targetColumns.length}개)`,
       requiresConfirmation: false
     }
   } else if (hasCategorical) {
@@ -215,7 +217,7 @@ function getAutoAnswerVariableType(context: AutoAnswerContext): AutoAnswerResult
       value: 'mixed',
       confidence: 'high',
       source: 'validationResults',
-      evidence: '범주형 변수가 포함되어 있습니다',
+      evidence: ev?.variableType.includesCategorical ?? '범주형 변수가 포함되어 있습니다',
       requiresConfirmation: false
     }
   }
@@ -224,7 +226,7 @@ function getAutoAnswerVariableType(context: AutoAnswerContext): AutoAnswerResult
     value: 'numeric',
     confidence: 'low',
     source: 'heuristic',
-    evidence: '변수 유형을 확인해주세요',
+    evidence: ev?.variableType.pleaseCheck ?? '변수 유형을 확인해주세요',
     requiresConfirmation: true
   }
 }
@@ -233,14 +235,14 @@ function getAutoAnswerVariableType(context: AutoAnswerContext): AutoAnswerResult
  * 결과 변수 유형 자동 응답 (예측 모델링용)
  */
 function getAutoAnswerOutcomeType(context: AutoAnswerContext): AutoAnswerResult {
-  const { validationResults, selectedVariables } = context
+  const { validationResults, selectedVariables, evidence: ev } = context
 
   if (!selectedVariables?.dependent) {
     return {
       value: 'continuous',
       confidence: 'unknown',
       source: 'none',
-      evidence: '종속 변수가 선택되지 않았습니다',
+      evidence: ev?.outcomeType.noDependentSelected ?? '종속 변수가 선택되지 않았습니다',
       requiresConfirmation: true
     }
   }
@@ -253,7 +255,7 @@ function getAutoAnswerOutcomeType(context: AutoAnswerContext): AutoAnswerResult 
       value: 'continuous',
       confidence: 'unknown',
       source: 'none',
-      evidence: '종속 변수 정보를 찾을 수 없습니다',
+      evidence: ev?.outcomeType.dependentNotFound ?? '종속 변수 정보를 찾을 수 없습니다',
       requiresConfirmation: true
     }
   }
@@ -265,7 +267,7 @@ function getAutoAnswerOutcomeType(context: AutoAnswerContext): AutoAnswerResult 
         value: 'binary',
         confidence: 'high',
         source: 'validationResults',
-        evidence: `${dependentCol.name}은 2개 범주를 가진 이진 변수입니다`,
+        evidence: ev?.outcomeType.binaryVariable(dependentCol.name) ?? `${dependentCol.name}은 2개 범주를 가진 이진 변수입니다`,
         requiresConfirmation: false
       }
     } else if (dependentCol.uniqueValues > 2) {
@@ -273,7 +275,7 @@ function getAutoAnswerOutcomeType(context: AutoAnswerContext): AutoAnswerResult 
         value: 'multiclass',
         confidence: 'high',
         source: 'validationResults',
-        evidence: `${dependentCol.name}은 ${dependentCol.uniqueValues}개 범주를 가집니다`,
+        evidence: ev?.outcomeType.multiclassVariable(dependentCol.name, dependentCol.uniqueValues) ?? `${dependentCol.name}은 ${dependentCol.uniqueValues}개 범주를 가집니다`,
         requiresConfirmation: false
       }
     }
@@ -290,7 +292,7 @@ function getAutoAnswerOutcomeType(context: AutoAnswerContext): AutoAnswerResult 
         value: 'count',
         confidence: 'low',
         source: 'heuristic',
-        evidence: `${dependentCol.name}이 빈도/개수 데이터일 수 있습니다`,
+        evidence: ev?.outcomeType.possibleCountData(dependentCol.name) ?? `${dependentCol.name}이 빈도/개수 데이터일 수 있습니다`,
         requiresConfirmation: true
       }
     }
@@ -299,7 +301,7 @@ function getAutoAnswerOutcomeType(context: AutoAnswerContext): AutoAnswerResult 
       value: 'continuous',
       confidence: 'high',
       source: 'validationResults',
-      evidence: `${dependentCol.name}은 연속형 수치 변수입니다`,
+      evidence: ev?.outcomeType.continuousVariable(dependentCol.name) ?? `${dependentCol.name}은 연속형 수치 변수입니다`,
       requiresConfirmation: false
     }
   }
@@ -308,7 +310,7 @@ function getAutoAnswerOutcomeType(context: AutoAnswerContext): AutoAnswerResult 
     value: 'continuous',
     confidence: 'low',
     source: 'heuristic',
-    evidence: '결과 변수 유형을 확인해주세요',
+    evidence: ev?.outcomeType.pleaseCheckOutcome ?? '결과 변수 유형을 확인해주세요',
     requiresConfirmation: true
   }
 }
@@ -317,7 +319,7 @@ function getAutoAnswerOutcomeType(context: AutoAnswerContext): AutoAnswerResult 
  * 예측 변수 개수 자동 응답
  */
 function getAutoAnswerPredictorCount(context: AutoAnswerContext): AutoAnswerResult {
-  const { selectedVariables } = context
+  const { selectedVariables, evidence: ev } = context
   const count = selectedVariables?.independent?.length ?? 0
 
   if (count === 0) {
@@ -325,7 +327,7 @@ function getAutoAnswerPredictorCount(context: AutoAnswerContext): AutoAnswerResu
       value: '1',
       confidence: 'unknown',
       source: 'none',
-      evidence: '독립 변수가 선택되지 않았습니다',
+      evidence: ev?.predictorCount.noIndependentSelected ?? '독립 변수가 선택되지 않았습니다',
       requiresConfirmation: true
     }
   }
@@ -335,7 +337,7 @@ function getAutoAnswerPredictorCount(context: AutoAnswerContext): AutoAnswerResu
       value: '1',
       confidence: 'high',
       source: 'validationResults',
-      evidence: `1개의 예측 변수가 선택되었습니다`,
+      evidence: ev?.predictorCount.onePredictor ?? '1개의 예측 변수가 선택되었습니다',
       requiresConfirmation: false
     }
   }
@@ -344,7 +346,7 @@ function getAutoAnswerPredictorCount(context: AutoAnswerContext): AutoAnswerResu
     value: '2+',
     confidence: 'high',
     source: 'validationResults',
-    evidence: `${count}개의 예측 변수가 선택되었습니다`,
+    evidence: ev?.predictorCount.multiplePredictors(count) ?? `${count}개의 예측 변수가 선택되었습니다`,
     requiresConfirmation: false
   }
 }
@@ -353,7 +355,7 @@ function getAutoAnswerPredictorCount(context: AutoAnswerContext): AutoAnswerResu
  * 공변량 개수 자동 응답 (생존분석용)
  */
 function getAutoAnswerCovariateCount(context: AutoAnswerContext): AutoAnswerResult {
-  const { selectedVariables } = context
+  const { selectedVariables, evidence: ev } = context
   const count = selectedVariables?.independent?.length ?? 0
 
   if (count === 0) {
@@ -361,7 +363,7 @@ function getAutoAnswerCovariateCount(context: AutoAnswerContext): AutoAnswerResu
       value: '0',
       confidence: 'medium',
       source: 'validationResults',
-      evidence: '공변량이 선택되지 않았습니다',
+      evidence: ev?.covariateCount.noCovariateSelected ?? '공변량이 선택되지 않았습니다',
       requiresConfirmation: false
     }
   }
@@ -370,7 +372,7 @@ function getAutoAnswerCovariateCount(context: AutoAnswerContext): AutoAnswerResu
     value: '1+',
     confidence: 'high',
     source: 'validationResults',
-    evidence: `${count}개의 공변량이 선택되었습니다`,
+    evidence: ev?.covariateCount.covariatesSelected(count) ?? `${count}개의 공변량이 선택되었습니다`,
     requiresConfirmation: false
   }
 }
@@ -380,7 +382,7 @@ function getAutoAnswerCovariateCount(context: AutoAnswerContext): AutoAnswerResu
  * 등분산성 질문 자동 응답
  */
 function getAutoAnswerHomogeneity(context: AutoAnswerContext): AutoAnswerResult {
-  const { assumptionResults } = context
+  const { assumptionResults, evidence: ev } = context
 
   // 가정 검정 결과가 없으면 unknown
   if (!assumptionResults?.homogeneity) {
@@ -388,7 +390,7 @@ function getAutoAnswerHomogeneity(context: AutoAnswerContext): AutoAnswerResult 
       value: 'check',
       confidence: 'unknown',
       source: 'none',
-      evidence: '등분산성 검정 결과가 없습니다',
+      evidence: ev?.homogeneity.noTestResult ?? '등분산성 검정 결과가 없습니다',
       requiresConfirmation: true
     }
   }
@@ -405,7 +407,7 @@ function getAutoAnswerHomogeneity(context: AutoAnswerContext): AutoAnswerResult 
         value: equalVariance ? 'yes' : 'no',
         confidence: 'low',  // pValue 없으면 low confidence
         source: 'assumptionResults',
-        evidence: 'Levene 검정 결과 있음 (p-value 정보 없음)',
+        evidence: ev?.homogeneity.leveneNoP ?? 'Levene 검정 결과 있음 (p-value 정보 없음)',
         requiresConfirmation: true  // 사용자 확인 필요
       }
     }
@@ -417,7 +419,7 @@ function getAutoAnswerHomogeneity(context: AutoAnswerContext): AutoAnswerResult 
         value: 'yes',
         confidence: pValue > 0.1 ? 'high' : 'medium',
         source: 'assumptionResults',
-        evidence: `Levene p=${pValueStr} > 0.05 (등분산 충족)`,
+        evidence: ev?.homogeneity.leveneEqual(pValueStr) ?? `Levene p=${pValueStr} > 0.05 (등분산 충족)`,
         requiresConfirmation: false
       }
     } else {
@@ -425,7 +427,7 @@ function getAutoAnswerHomogeneity(context: AutoAnswerContext): AutoAnswerResult 
         value: 'no',
         confidence: 'high',
         source: 'assumptionResults',
-        evidence: `Levene p=${pValueStr} ≤ 0.05 (등분산 미충족 → Welch 권장)`,
+        evidence: ev?.homogeneity.leveneNotEqual(pValueStr) ?? `Levene p=${pValueStr} ≤ 0.05 (등분산 미충족 → Welch 권장)`,
         requiresConfirmation: false
       }
     }
@@ -441,7 +443,7 @@ function getAutoAnswerHomogeneity(context: AutoAnswerContext): AutoAnswerResult 
         value: equalVariance ? 'yes' : 'no',
         confidence: 'low',
         source: 'assumptionResults',
-        evidence: 'Bartlett 검정 결과 있음 (p-value 정보 없음)',
+        evidence: ev?.homogeneity.bartlettNoP ?? 'Bartlett 검정 결과 있음 (p-value 정보 없음)',
         requiresConfirmation: true
       }
     }
@@ -453,7 +455,7 @@ function getAutoAnswerHomogeneity(context: AutoAnswerContext): AutoAnswerResult 
         value: 'yes',
         confidence: pValue > 0.1 ? 'high' : 'medium',
         source: 'assumptionResults',
-        evidence: `Bartlett p=${pValueStr} > 0.05 (등분산 충족)`,
+        evidence: ev?.homogeneity.bartlettEqual(pValueStr) ?? `Bartlett p=${pValueStr} > 0.05 (등분산 충족)`,
         requiresConfirmation: false
       }
     } else {
@@ -461,7 +463,7 @@ function getAutoAnswerHomogeneity(context: AutoAnswerContext): AutoAnswerResult 
         value: 'no',
         confidence: 'high',
         source: 'assumptionResults',
-        evidence: `Bartlett p=${pValueStr} ≤ 0.05 (등분산 미충족 → Welch 권장)`,
+        evidence: ev?.homogeneity.bartlettNotEqual(pValueStr) ?? `Bartlett p=${pValueStr} ≤ 0.05 (등분산 미충족 → Welch 권장)`,
         requiresConfirmation: false
       }
     }
@@ -471,7 +473,7 @@ function getAutoAnswerHomogeneity(context: AutoAnswerContext): AutoAnswerResult 
     value: 'check',
     confidence: 'unknown',
     source: 'none',
-    evidence: '등분산성을 확인할 수 없습니다',
+    evidence: ev?.homogeneity.cannotDetermine ?? '등분산성을 확인할 수 없습니다',
     requiresConfirmation: true
   }
 }
@@ -480,13 +482,14 @@ function getAutoAnswerHomogeneity(context: AutoAnswerContext): AutoAnswerResult 
  * 계절성 자동 감지 (시계열용)
  * TODO: 실제 ACF/PACF 분석 결과 활용
  */
-function getAutoAnswerSeasonality(_context: AutoAnswerContext): AutoAnswerResult {
+function getAutoAnswerSeasonality(context: AutoAnswerContext): AutoAnswerResult {
+  const ev = context.evidence
   // 현재는 자동 감지 불가
   return {
     value: 'unknown',
     confidence: 'unknown',
     source: 'none',
-    evidence: '계절성은 데이터를 분석해야 확인할 수 있습니다',
+    evidence: ev?.seasonality.needsAnalysis ?? '계절성은 데이터를 분석해야 확인할 수 있습니다',
     requiresConfirmation: true
   }
 }
@@ -497,32 +500,38 @@ function getAutoAnswerSeasonality(_context: AutoAnswerContext): AutoAnswerResult
 
 /**
  * 질문 ID에 따른 자동 응답 생성
+ * @param questionId - 질문 ID
+ * @param context - 자동 응답 컨텍스트
+ * @param evidence - 용어 사전에서 제공하는 근거 텍스트 (선택적, 없으면 하드코딩된 한국어 기본값 사용)
  */
 export function getAutoAnswer(
   questionId: string,
-  context: AutoAnswerContext
+  context: AutoAnswerContext,
+  evidence?: AutoAnswerEvidenceText
 ): AutoAnswerResult | null {
+  const ctx = evidence ? { ...context, evidence } : context
+
   switch (questionId) {
     case 'normality':
-      return getAutoAnswerNormality(context)
+      return getAutoAnswerNormality(ctx)
 
     case 'variable_type':
-      return getAutoAnswerVariableType(context)
+      return getAutoAnswerVariableType(ctx)
 
     case 'outcome_type':
-      return getAutoAnswerOutcomeType(context)
+      return getAutoAnswerOutcomeType(ctx)
 
     case 'predictor_count':
-      return getAutoAnswerPredictorCount(context)
+      return getAutoAnswerPredictorCount(ctx)
 
     case 'covariate_count':
-      return getAutoAnswerCovariateCount(context)
+      return getAutoAnswerCovariateCount(ctx)
 
     case 'homogeneity':
-      return getAutoAnswerHomogeneity(context)
+      return getAutoAnswerHomogeneity(ctx)
 
     case 'seasonality':
-      return getAutoAnswerSeasonality(context)
+      return getAutoAnswerSeasonality(ctx)
 
     default:
       return null
@@ -531,15 +540,19 @@ export function getAutoAnswer(
 
 /**
  * 모든 autoAnswer 가능한 질문에 대해 자동 응답 생성
+ * @param questionIds - 질문 ID 배열
+ * @param context - 자동 응답 컨텍스트
+ * @param evidence - 용어 사전에서 제공하는 근거 텍스트 (선택적, 없으면 하드코딩된 한국어 기본값 사용)
  */
 export function generateAutoAnswers(
   questionIds: string[],
-  context: AutoAnswerContext
+  context: AutoAnswerContext,
+  evidence?: AutoAnswerEvidenceText
 ): Record<string, AutoAnswerResult> {
   const results: Record<string, AutoAnswerResult> = {}
 
   for (const id of questionIds) {
-    const answer = getAutoAnswer(id, context)
+    const answer = getAutoAnswer(id, context, evidence)
     if (answer) {
       results[id] = answer
     }

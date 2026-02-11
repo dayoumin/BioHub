@@ -13,6 +13,7 @@ import { useState, useCallback } from 'react'
 import { PyodideStatisticsService } from '@/lib/services/pyodide-statistics'
 import { DataRow } from '@/types/smart-flow'
 import { logger } from '@/lib/utils/logger'
+import { useTerminology } from '@/hooks/use-terminology'
 
 export interface NormalityTestResult {
   shapiroWilk?: {
@@ -70,6 +71,7 @@ export function useNormalityTest({
   normalityRule = 'any',
   alpha = 0.05
 }: UseNormalityTestOptions): UseNormalityTestReturn {
+  const t = useTerminology()
   const [normalityTests, setNormalityTests] = useState<Record<string, NormalityTestResult>>({})
   const [isCalculating, setIsCalculating] = useState(false)
 
@@ -173,11 +175,11 @@ export function useNormalityTest({
       setNormalityTests(normalityResults)
     } catch (error) {
       console.error('Statistical tests error:', error)
-      logger.error('통계 검정 오류', error)
+      logger.error(t.chartLabels.errorMessage, error)
     } finally {
       setIsCalculating(false)
     }
-  }, [pyodideService, pyodideLoading, pyodideLoaded, normalityRule, alpha, isCalculating])
+  }, [pyodideService, pyodideLoading, pyodideLoaded, normalityRule, alpha, isCalculating, t])
 
   const clearResults = useCallback(() => {
     setNormalityTests({})

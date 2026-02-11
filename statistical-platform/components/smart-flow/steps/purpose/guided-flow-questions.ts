@@ -323,7 +323,13 @@ export const QUESTIONS_BY_PURPOSE: Record<AnalysisPurpose, GuidedQuestion[]> = {
 
 /**
  * 주어진 목적에 대한 질문 목록 반환
+ * @param purpose - 분석 목적
+ * @param questionData - 용어 사전에서 제공하는 질문 데이터 (선택적, 없으면 하드코딩된 기본값 사용)
  */
-export function getQuestionsForPurpose(purpose: AnalysisPurpose): GuidedQuestion[] {
-  return QUESTIONS_BY_PURPOSE[purpose] || []
+export function getQuestionsForPurpose(
+  purpose: AnalysisPurpose,
+  questionData?: Record<string, GuidedQuestion[]>
+): GuidedQuestion[] {
+  const data = questionData ?? QUESTIONS_BY_PURPOSE
+  return data[purpose] || []
 }

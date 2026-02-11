@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import {
   Save,
-  FileDown,
   Copy,
   RotateCcw,
   CheckCircle2,
@@ -39,6 +38,7 @@ import { AnalysisResult } from '@/types/smart-flow'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { PDFReportService } from '@/lib/services/pdf-report-service'
 import { startNewAnalysis } from '@/lib/services/data-management'
+import { ExportDropdown } from '@/components/smart-flow/ExportDropdown'
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
 import { TemplateSaveModal } from '@/components/smart-flow/TemplateSaveModal'
 import ReactMarkdown from 'react-markdown'
@@ -113,7 +113,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const t = useTerminology()
 
   const [isSaved, setIsSaved] = useState(false)
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
   const [detailedResultsOpen, setDetailedResultsOpen] = useState(true)
@@ -304,33 +303,16 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }
   }, [reset])
 
-  const handleGeneratePDF = useCallback(async () => {
-    if (!results) return
-    setIsGeneratingPDF(true)
-
-    try {
-      const dataInfo = uploadedData && uploadedData.length > 0 ? {
-        totalRows: uploadedData.length,
-        columnCount: Object.keys(uploadedData[0] || {}).length,
-        variables: Object.keys(uploadedData[0] || {})
-      } : undefined
-
-      await PDFReportService.generateReport({
-        title: `${results.method} Analysis Report`,
-        date: new Date(),
-        analysisResult: results,
-        dataInfo,
-        chartElement: chartRef.current
-      })
-
-      toast.success(t.results.toast.pdfSuccess)
-    } catch (error) {
-      console.error('PDF generation failed:', error)
-      toast.error(t.results.toast.pdfError)
-    } finally {
-      setIsGeneratingPDF(false)
+  // 내보내기용 데이터 정보
+  const exportDataInfo = useMemo(() => {
+    if (!uploadedData || uploadedData.length === 0) return null
+    return {
+      fileName: uploadedFileName ?? null,
+      totalRows: uploadedData.length,
+      columnCount: Object.keys(uploadedData[0] || {}).length,
+      variables: Object.keys(uploadedData[0] || {}),
     }
-  }, [results, uploadedData])
+  }, [uploadedData, uploadedFileName])
 
   // AI 해석 요청 (스트리밍)
   const handleInterpretation = useCallback(async () => {
@@ -859,16 +841,15 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             {isSaved ? t.results.buttons.saved : t.results.buttons.save}
           </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleGeneratePDF}
-            disabled={isGeneratingPDF}
-            className="flex-1"
-          >
-            <FileDown className="w-4 h-4 mr-1.5" />
-            {isGeneratingPDF ? t.results.buttons.generating : t.results.buttons.pdf}
-          </Button>
+          <ExportDropdown
+            results={results}
+            statisticalResult={statisticalResult}
+            interpretation={interpretation}
+            apaFormat={apaFormat}
+            dataInfo={exportDataInfo}
+            chartElement={chartRef.current}
+            t={t.results}
+          />
 
           <Button
             variant="outline"
