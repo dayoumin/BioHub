@@ -59,6 +59,8 @@ import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { logger } from '@/lib/utils/logger'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import type { AIRecommendation, StatisticalMethod } from '@/types/smart-flow'
+import { useTerminology } from '@/hooks/use-terminology'
+import type { HubText } from '@/lib/terminology/terminology-types'
 
 // ===== Types =====
 
@@ -73,23 +75,6 @@ interface ChatCentricHubProps {
 
 const STORAGE_KEY = 'main-hub-quick-analysis'
 const DEFAULT_QUICK_METHODS = ['t-test', 'anova', 'correlation', 'regression', 'chi-square']
-
-const CATEGORY_LABELS: Record<string, string> = {
-  't-test': 'T-검정',
-  'anova': '분산분석 (ANOVA)',
-  'nonparametric': '비모수 검정',
-  'correlation': '상관분석',
-  'regression': '회귀분석',
-  'chi-square': '범주형 분석',
-  'descriptive': '기술통계',
-  'timeseries': '시계열분석',
-  'survival': '생존분석',
-  'pca': '차원축소',
-  'clustering': '군집분석',
-  'advanced': '고급 분석',
-  'design': '실험설계',
-  'psychometrics': '심리측정'
-}
 
 const METHODS_BY_CATEGORY = Object.entries(STATISTICAL_METHODS).reduce((acc, [id, method]) => {
   if (method.hasOwnPage !== false) {
@@ -218,18 +203,18 @@ function saveQuickMethods(methods: string[]): void {
   }
 }
 
-function formatTimeAgo(date: Date): string {
+function formatTimeAgo(date: Date, texts: HubText['timeAgo']): string {
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
   const diffMin = Math.floor(diffMs / 60000)
   const diffHour = Math.floor(diffMs / 3600000)
   const diffDay = Math.floor(diffMs / 86400000)
 
-  if (diffMin < 1) return '방금 전'
-  if (diffMin < 60) return `${diffMin}분 전`
-  if (diffHour < 24) return `${diffHour}시간 전`
-  if (diffDay < 7) return `${diffDay}일 전`
-  return date.toLocaleDateString('ko-KR')
+  if (diffMin < 1) return texts.justNow
+  if (diffMin < 60) return texts.minutesAgo(diffMin)
+  if (diffHour < 24) return texts.hoursAgo(diffHour)
+  if (diffDay < 7) return texts.daysAgo(diffDay)
+  return date.toLocaleDateString()
 }
 
 // Category count for display
@@ -244,6 +229,7 @@ export function ChatCentricHub({
   onShowHistory,
   onGoToDetailedAI
 }: ChatCentricHubProps) {
+  const t = useTerminology()
   const prefersReducedMotion = useReducedMotion()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -308,9 +294,9 @@ export function ChatCentricHub({
   const recentHistory = useMemo(() => {
     return analysisHistory.slice(0, 3).map(h => ({
       ...h,
-      timeAgo: formatTimeAgo(new Date(h.timestamp))
+      timeAgo: formatTimeAgo(new Date(h.timestamp), t.hub.timeAgo)
     }))
-  }, [analysisHistory])
+  }, [analysisHistory, t])
 
   // === Handlers ===
 
@@ -492,24 +478,23 @@ export function ChatCentricHub({
 
               {/* Heading */}
               <h1 className="text-3xl lg:text-4xl font-bold tracking-tight leading-[1.15] mb-4">
-                데이터에서 인사이트까지,
+                {t.hub.hero.heading}
                 <br />
-                <span className="text-muted-foreground">과학적으로.</span>
+                <span className="text-muted-foreground">{t.hub.hero.subheading}</span>
               </h1>
 
               {/* Description */}
               <p className="text-muted-foreground text-sm leading-relaxed mb-8 max-w-md">
-                CSV, Excel 파일을 업로드하면 AI가 데이터 특성을 분석하고
-                최적의 통계 방법을 추천합니다. 전문가 수준의 분석을 몇 번의 클릭으로.
+                {t.hub.hero.description}
               </p>
 
               {/* Stats */}
               <div className="flex items-center gap-6 mb-8 text-xs text-muted-foreground font-mono">
-                <span>{TOTAL_METHODS}개 분석 도구</span>
+                <span>{t.hub.hero.statMethods(TOTAL_METHODS)}</span>
                 <span className="w-px h-3 bg-border" />
-                <span>{TOTAL_CATEGORIES}개 카테고리</span>
+                <span>{t.hub.hero.statCategories(TOTAL_CATEGORIES)}</span>
                 <span className="w-px h-3 bg-border" />
-                <span>AI 추천</span>
+                <span>{t.hub.hero.statAi}</span>
               </div>
 
               {/* CTAs */}
@@ -521,7 +506,7 @@ export function ChatCentricHub({
                   data-testid="hub-upload-card"
                 >
                   <Upload className="w-4 h-4" />
-                  데이터 업로드로 시작
+                  {t.hub.hero.uploadButton}
                   <ArrowRight className="w-4 h-4" />
                 </Button>
                 <Button
@@ -531,7 +516,7 @@ export function ChatCentricHub({
                   onClick={onStartWithBrowse}
                 >
                   <List className="w-4 h-4" />
-                  분석 방법 둘러보기
+                  {t.hub.hero.browseButton}
                 </Button>
               </div>
             </div>
@@ -561,12 +546,12 @@ export function ChatCentricHub({
                 {TOTAL_METHODS}
               </Badge>
             </div>
-            <h3 className="font-semibold text-sm mb-1">분석 도구</h3>
+            <h3 className="font-semibold text-sm mb-1">{t.hub.cards.methodsTitle}</h3>
             <p className="text-xs text-muted-foreground leading-relaxed mb-4">
-              T-검정, ANOVA, 회귀분석 등 {TOTAL_CATEGORIES}개 카테고리의 전체 목록을 탐색합니다
+              {t.hub.cards.methodsDescription(TOTAL_CATEGORIES)}
             </p>
             <div className="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-foreground transition-colors">
-              <span>탐색하기</span>
+              <span>{t.hub.cards.methodsLink}</span>
               <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
             </div>
           </button>
@@ -588,12 +573,12 @@ export function ChatCentricHub({
               </div>
               <span className="w-1.5 h-1.5 rounded-full bg-foreground/20" />
             </div>
-            <h3 className="font-semibold text-sm mb-1">AI 추천</h3>
+            <h3 className="font-semibold text-sm mb-1">{t.hub.cards.aiTitle}</h3>
             <p className="text-xs text-muted-foreground leading-relaxed mb-4">
-              분석 목적을 자연어로 설명하면 데이터에 맞는 최적의 방법을 추천합니다
+              {t.hub.cards.aiDescription}
             </p>
             <div className="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-foreground transition-colors">
-              <span>시작하기</span>
+              <span>{t.hub.cards.aiLink}</span>
               <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
             </div>
           </button>
@@ -610,7 +595,7 @@ export function ChatCentricHub({
                 <div className="w-9 h-9 rounded-lg bg-foreground/[0.05] flex items-center justify-center">
                   <History className="w-4 h-4 text-foreground/70" />
                 </div>
-                <h3 className="font-semibold text-sm">최근 분석</h3>
+                <h3 className="font-semibold text-sm">{t.hub.cards.recentTitle}</h3>
               </div>
               <Button
                 variant="ghost"
@@ -621,7 +606,7 @@ export function ChatCentricHub({
                   onShowHistory()
                 }}
               >
-                {analysisHistory.length > 3 ? '전체 보기' : '히스토리'}
+                {analysisHistory.length > 3 ? t.hub.cards.viewAll : t.hub.cards.historyLabel}
               </Button>
             </div>
 
@@ -639,7 +624,7 @@ export function ChatCentricHub({
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium text-xs truncate">
-                        {item.method?.name || '알 수 없음'}
+                        {item.method?.name || t.hub.cards.unknownMethod}
                       </span>
                       <span className="text-[10px] text-muted-foreground shrink-0 flex items-center gap-0.5 font-mono">
                         <Clock className="w-2.5 h-2.5" />
@@ -657,10 +642,10 @@ export function ChatCentricHub({
             ) : (
               <div className="py-4 text-center">
                 <p className="text-xs text-muted-foreground">
-                  아직 분석 기록이 없습니다
+                  {t.hub.cards.emptyTitle}
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  첫 분석을 시작해보세요
+                  {t.hub.cards.emptyDescription}
                 </p>
               </div>
             )}
@@ -673,7 +658,7 @@ export function ChatCentricHub({
         <div className="flex items-center gap-3 px-1 mb-6">
           <div className="flex items-center gap-1.5 shrink-0">
             <Zap className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-xs font-medium text-muted-foreground">빠른 분석</span>
+            <span className="text-xs font-medium text-muted-foreground">{t.hub.quickAnalysis.title}</span>
           </div>
 
           <div className="h-px flex-1 bg-border/60" />
@@ -697,7 +682,7 @@ export function ChatCentricHub({
               </button>
             ))}
             {quickMethodsInfo.length === 0 && (
-              <span className="text-xs text-muted-foreground">편집으로 추가</span>
+              <span className="text-xs text-muted-foreground">{t.hub.quickAnalysis.emptyPlaceholder}</span>
             )}
           </div>
 
@@ -705,7 +690,7 @@ export function ChatCentricHub({
             type="button"
             className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             onClick={handleOpenEdit}
-            title="빠른 분석 편집"
+            title={t.hub.quickAnalysis.editTooltip}
           >
             <Settings2 className="w-3.5 h-3.5" />
           </button>
@@ -718,9 +703,9 @@ export function ChatCentricHub({
           <div className="rounded-xl border border-border/60 bg-card p-5 mb-6">
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="text-xs font-medium">AI 분석 추천</span>
+              <span className="text-xs font-medium">{t.hub.aiSearch.title}</span>
               <span className="text-[10px] text-muted-foreground">
-                분석 목적을 설명하면 적절한 방법을 추천합니다
+                {t.hub.aiSearch.description}
               </span>
             </div>
 
@@ -730,7 +715,7 @@ export function ChatCentricHub({
                 value={inputValue}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
-                placeholder='예: "두 그룹의 평균이 다른지 비교하고 싶어요"'
+                placeholder={t.hub.aiSearch.placeholder}
                 className="min-h-[56px] resize-none pr-24 text-sm"
                 disabled={isLoading}
               />
@@ -756,7 +741,7 @@ export function ChatCentricHub({
                   ) : (
                     <>
                       <Send className="w-3.5 h-3.5" />
-                      전송
+                      {t.hub.aiSearch.sendButton}
                     </>
                   )}
                 </Button>
@@ -799,7 +784,7 @@ export function ChatCentricHub({
                         </div>
                       </div>
                       <Button onClick={handleSelectRecommended} size="sm" className="gap-1 shrink-0 h-8 text-xs">
-                        시작
+                        {t.hub.aiSearch.startButton}
                         <ArrowRight className="w-3.5 h-3.5" />
                       </Button>
                     </div>
@@ -813,7 +798,7 @@ export function ChatCentricHub({
                           className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
                         >
                           <ChevronDown className={cn("w-3 h-3 transition-transform", showAlternatives && "rotate-180")} />
-                          다른 선택지 ({recommendation.alternatives.length}개)
+                          {t.hub.aiSearch.alternatives(recommendation.alternatives.length)}
                         </button>
 
                         <AnimatePresence>
@@ -854,7 +839,7 @@ export function ChatCentricHub({
                       onClick={onGoToDetailedAI}
                       className="text-[11px] text-muted-foreground h-7"
                     >
-                      더 자세한 분석이 필요하신가요?
+                      {t.hub.aiSearch.detailedLink}
                     </Button>
                   </div>
                 </motion.div>
@@ -868,14 +853,14 @@ export function ChatCentricHub({
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="sm:max-w-lg max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>빠른 분석 편집</DialogTitle>
+            <DialogTitle>{t.hub.editDialog.title}</DialogTitle>
           </DialogHeader>
           <ScrollArea className="max-h-[50vh] pr-4">
             <div className="space-y-6 py-4">
               {Object.entries(METHODS_BY_CATEGORY).map(([category, methods]) => (
                 <div key={category} className="space-y-2">
                   <h4 className="text-sm font-semibold text-muted-foreground">
-                    {CATEGORY_LABELS[category] || category}
+                    {t.hub.categoryLabels[category] || category}
                   </h4>
                   <div className="grid grid-cols-2 gap-1">
                     {methods.map((method) => (
@@ -900,15 +885,15 @@ export function ChatCentricHub({
           <DialogFooter>
             <div className="flex items-center justify-between w-full">
               <span className="text-xs text-muted-foreground">
-                {editingMethods.length}개 선택됨
+                {t.hub.editDialog.selectedCount(editingMethods.length)}
               </span>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setShowEditDialog(false)}>
-                  취소
+                  {t.hub.editDialog.cancel}
                 </Button>
                 <Button onClick={handleSaveEdit}>
                   <Check className="w-4 h-4 mr-1" />
-                  저장
+                  {t.hub.editDialog.save}
                 </Button>
               </div>
             </div>

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { FitScoreIndicator, FitScoreBadge } from '@/components/smart-flow/visualization/FitScoreIndicator'
+import { useTerminology } from '@/hooks/use-terminology'
 import type { StatisticalMethod } from '@/types/smart-flow'
 
 interface DataProfile {
@@ -139,11 +140,13 @@ function RequirementsChecklist({
   dataProfile: DataProfile | null
   assumptionResults?: AssumptionResults
 }) {
+  const t = useTerminology()
+
   if (!dataProfile) {
     return (
       <div className="text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg">
         <Info className="w-4 h-4 inline mr-1" />
-        데이터 프로파일 정보가 없습니다
+        {t.methodSelector.noDataProfile}
       </div>
     )
   }
@@ -152,26 +155,26 @@ function RequirementsChecklist({
 
   return (
     <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
-      <h5 className="text-xs font-medium text-muted-foreground">적합도 상세</h5>
+      <h5 className="text-xs font-medium text-muted-foreground">{t.methodSelector.fitScoreDetails}</h5>
 
       <div className="space-y-1.5">
         {methodReq?.minSampleSize && (
           <ChecklistItem
             passed={dataProfile.totalRows >= methodReq.minSampleSize}
-            label={`샘플 크기: ${dataProfile.totalRows}개 (최소 ${methodReq.minSampleSize}개 필요)`}
+            label={t.methodSelector.sampleSizeRequirement(dataProfile.totalRows, methodReq.minSampleSize)}
           />
         )}
 
         {methodReq?.variableTypes?.includes('numeric') && (
           <ChecklistItem
             passed={dataProfile.numericVars > 0}
-            label={`수치형 변수: ${dataProfile.numericVars}개`}
+            label={t.methodSelector.numericVarsCount(dataProfile.numericVars)}
           />
         )}
         {methodReq?.variableTypes?.includes('categorical') && (
           <ChecklistItem
             passed={dataProfile.categoricalVars > 0}
-            label={`범주형 변수: ${dataProfile.categoricalVars}개`}
+            label={t.methodSelector.categoricalVarsCount(dataProfile.categoricalVars)}
           />
         )}
 
@@ -184,7 +187,7 @@ function RequirementsChecklist({
           return (
             <ChecklistItem
               passed={normalityPassed}
-              label={`정규성: ${normalityPassed === undefined ? '검정 필요' : normalityPassed ? '충족' : '불충족'}`}
+              label={`${t.methodSelector.assumptions.normality}: ${normalityPassed === undefined ? t.methodSelector.assumptions.needsTest : normalityPassed ? t.methodSelector.assumptions.met : t.methodSelector.assumptions.notMet}`}
               type="warning"
             />
           )
@@ -198,7 +201,7 @@ function RequirementsChecklist({
           return (
             <ChecklistItem
               passed={homogeneityPassed}
-              label={`등분산성: ${homogeneityPassed === undefined ? '검정 필요' : homogeneityPassed ? '충족' : '불충족'}`}
+              label={`${t.methodSelector.assumptions.homogeneity}: ${homogeneityPassed === undefined ? t.methodSelector.assumptions.needsTest : homogeneityPassed ? t.methodSelector.assumptions.met : t.methodSelector.assumptions.notMet}`}
               type="warning"
             />
           )
@@ -236,6 +239,8 @@ function MethodItem({
   onToggleExpand: () => void
   isExpanded: boolean
 }) {
+  const t = useTerminology()
+
   return (
     <div
       className={`border-2 rounded-lg transition-all ${
@@ -257,7 +262,7 @@ function MethodItem({
               {isRecommended && (
                 <Badge variant="default" className="text-xs bg-amber-500 hover:bg-amber-600">
                   <Sparkles className="w-3 h-3 mr-1" />
-                  추천
+                  {t.methodSelector.recommendedBadge}
                 </Badge>
               )}
               {method.subcategory && (
@@ -267,7 +272,7 @@ function MethodItem({
               )}
               {!canUse && (
                 <Badge variant="destructive" className="text-xs">
-                  요구사항 미충족
+                  {t.methodSelector.requirementNotMet}
                 </Badge>
               )}
             </div>
@@ -304,7 +309,7 @@ function MethodItem({
       {dataProfile && method.requirements && (
         <Collapsible open={isExpanded} onOpenChange={() => onToggleExpand()}>
           <CollapsibleTrigger className="w-full px-3 pb-2 text-xs text-primary hover:underline flex items-center justify-center gap-1 border-t border-border/50 pt-2">
-            {isExpanded ? '간략히 보기' : '자세히 보기'}
+            {isExpanded ? t.methodSelector.showBrief : t.methodSelector.showDetails}
             <ChevronDown className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
           </CollapsibleTrigger>
           <CollapsibleContent>
@@ -331,6 +336,7 @@ export function MethodSelector({
   checkMethodRequirements,
   recommendedMethods = []
 }: MethodSelectorProps) {
+  const t = useTerminology()
   const [searchQuery, setSearchQuery] = useState('')
   const [focusedIndex, setFocusedIndex] = useState(0)
   const [expandedMethod, setExpandedMethod] = useState<string | null>(null)
@@ -432,7 +438,7 @@ export function MethodSelector({
         <Input
           ref={inputRef}
           type="text"
-          placeholder="통계 방법 검색... (↑↓ 이동, Enter 선택)"
+          placeholder={t.methodSelector.searchPlaceholder}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -453,12 +459,12 @@ export function MethodSelector({
       {/* 결과 카운트 */}
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>
-          {filteredMethods.length}개 방법
-          {searchQuery && ` (검색: "${searchQuery}")`}
+          {t.methodSelector.methodCount(filteredMethods.length)}
+          {searchQuery && ` (${t.methodSelector.searchPrefix}"${searchQuery}")`}
         </span>
         {selectedMethod && (
           <span className="text-primary font-medium">
-            선택됨: {selectedMethod.name}
+            {t.methodSelector.selected}{selectedMethod.name}
           </span>
         )}
       </div>
@@ -471,7 +477,7 @@ export function MethodSelector({
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-xs font-medium text-amber-600 dark:text-amber-400 sticky top-0 bg-background/95 backdrop-blur py-1 z-10">
                 <Sparkles className="w-3.5 h-3.5" />
-                AI 추천 ({groupedMethods.recommended.length})
+                {t.methodSelector.aiRecommended(groupedMethods.recommended.length)}
               </div>
               <div className="grid gap-2">
                 {groupedMethods.recommended.map((method) => {
@@ -511,7 +517,7 @@ export function MethodSelector({
             <div className="space-y-2">
               {groupedMethods.recommended.length > 0 && (
                 <div className="text-xs font-medium text-muted-foreground sticky top-0 bg-background/95 backdrop-blur py-1 z-10">
-                  기타 방법 ({groupedMethods.others.length})
+                  {t.methodSelector.otherMethods(groupedMethods.others.length)}
                 </div>
               )}
               <div className="grid gap-2">
@@ -551,12 +557,12 @@ export function MethodSelector({
           {filteredMethods.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">"{searchQuery}"에 해당하는 방법이 없습니다</p>
+              <p className="text-sm">{t.methodSelector.noSearchResults(searchQuery)}</p>
               <button
                 onClick={() => setSearchQuery('')}
                 className="text-xs text-primary hover:underline mt-2"
               >
-                검색 초기화
+                {t.methodSelector.clearSearch}
               </button>
             </div>
           )}

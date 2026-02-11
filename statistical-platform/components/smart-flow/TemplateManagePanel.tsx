@@ -58,6 +58,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@/components/ui/alert-dialog'
+import { useTerminology } from '@/hooks/use-terminology'
 import { useTemplateStore } from '@/lib/stores/template-store'
 import type { AnalysisTemplate, TemplateListOptions } from '@/types/smart-flow'
 
@@ -79,6 +80,7 @@ export const TemplateManagePanel = memo(function TemplateManagePanel({
   onOpenChange,
   onSelect
 }: TemplateManagePanelProps) {
+  const t = useTerminology()
   const {
     templates,
     isLoading,
@@ -180,44 +182,22 @@ export const TemplateManagePanel = memo(function TemplateManagePanel({
     const hours = Math.floor(diff / 3600000)
     const days = Math.floor(diff / 86400000)
 
-    if (minutes < 1) return '방금 전'
-    if (minutes < 60) return `${minutes}분 전`
-    if (hours < 24) return `${hours}시간 전`
-    if (days < 7) return `${days}일 전`
-    return new Date(timestamp).toLocaleDateString('ko-KR')
-  }, [])
+    if (minutes < 1) return t.template.timeAgo.justNow
+    if (minutes < 60) return t.template.timeAgo.minutesAgo(minutes)
+    if (hours < 24) return t.template.timeAgo.hoursAgo(hours)
+    if (days < 7) return t.template.timeAgo.daysAgo(days)
+    return new Date(timestamp).toLocaleDateString()
+  }, [t])
 
-  // 카테고리 한글 변환
+  // 카테고리 라벨 변환
   const getCategoryLabel = useCallback((category: string): string => {
-    const labels: Record<string, string> = {
-      'descriptive': '기술통계',
-      't-test': 't-검정',
-      'anova': '분산분석',
-      'regression': '회귀분석',
-      'correlation': '상관분석',
-      'chi-square': '카이제곱',
-      'nonparametric': '비모수',
-      'advanced': '고급분석',
-      'timeseries': '시계열',
-      'pca': 'PCA',
-      'clustering': '군집분석',
-      'psychometrics': '심리측정',
-      'design': '실험설계',
-      'survival': '생존분석'
-    }
-    return labels[category] || category
-  }, [])
+    return t.template.methodCategories[category] || category
+  }, [t])
 
   // 정렬 옵션 라벨
   const getSortLabel = useCallback((sortBy: TemplateListOptions['sortBy']): string => {
-    const labels: Record<string, string> = {
-      'recent': '최근 사용',
-      'usage': '사용 빈도',
-      'name': '이름',
-      'created': '생성일'
-    }
-    return labels[sortBy] || sortBy
-  }, [])
+    return t.template.sortOptions[sortBy] || sortBy
+  }, [t])
 
   return (
     <>
@@ -226,10 +206,10 @@ export const TemplateManagePanel = memo(function TemplateManagePanel({
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              템플릿 관리
+              {t.template.manageTitle}
             </SheetTitle>
             <SheetDescription>
-              저장된 분석 템플릿을 관리하고 선택합니다
+              {t.template.manageDescription}
             </SheetDescription>
           </SheetHeader>
 
@@ -239,7 +219,7 @@ export const TemplateManagePanel = memo(function TemplateManagePanel({
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="템플릿 검색..."
+                  placeholder={t.template.placeholders.search}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9"
@@ -253,10 +233,10 @@ export const TemplateManagePanel = memo(function TemplateManagePanel({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="recent">최근 사용</SelectItem>
-                  <SelectItem value="usage">사용 빈도</SelectItem>
-                  <SelectItem value="name">이름</SelectItem>
-                  <SelectItem value="created">생성일</SelectItem>
+                  <SelectItem value="recent">{t.template.sortOptions.recent}</SelectItem>
+                  <SelectItem value="usage">{t.template.sortOptions.usage}</SelectItem>
+                  <SelectItem value="name">{t.template.sortOptions.name}</SelectItem>
+                  <SelectItem value="created">{t.template.sortOptions.created}</SelectItem>
                 </SelectContent>
               </Select>
               <Button variant="outline" size="icon" onClick={toggleSortOrder}>
@@ -277,9 +257,9 @@ export const TemplateManagePanel = memo(function TemplateManagePanel({
               ) : templates.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                  <p className="font-medium">저장된 템플릿이 없습니다</p>
+                  <p className="font-medium">{t.template.empty.title}</p>
                   <p className="text-sm mt-1">
-                    분석 완료 후 &quot;템플릿으로 저장&quot;을 클릭하세요
+                    {t.template.empty.description}
                   </p>
                 </div>
               ) : (
@@ -310,7 +290,7 @@ export const TemplateManagePanel = memo(function TemplateManagePanel({
                               {formatRelativeTime(template.lastUsedAt || template.createdAt)}
                             </span>
                             {template.usageCount > 0 && (
-                              <span>{template.usageCount}회 사용</span>
+                              <span>{t.template.usageCount(template.usageCount)}</span>
                             )}
                           </div>
                         </div>
@@ -332,7 +312,7 @@ export const TemplateManagePanel = memo(function TemplateManagePanel({
                               startEdit(template)
                             }}>
                               <Edit2 className="h-4 w-4 mr-2" />
-                              수정
+                              {t.template.buttons.edit}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
@@ -343,7 +323,7 @@ export const TemplateManagePanel = memo(function TemplateManagePanel({
                               className="text-destructive focus:text-destructive"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
-                              삭제
+                              {t.template.buttons.delete}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -364,7 +344,7 @@ export const TemplateManagePanel = memo(function TemplateManagePanel({
                   className="w-full text-destructive hover:text-destructive"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  모든 템플릿 삭제
+                  {t.template.buttons.deleteAll}
                 </Button>
               </div>
             )}
@@ -376,14 +356,14 @@ export const TemplateManagePanel = memo(function TemplateManagePanel({
       <Dialog open={!!editingTemplate} onOpenChange={(open) => !open && setEditingTemplate(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>템플릿 수정</DialogTitle>
+            <DialogTitle>{t.template.editTitle}</DialogTitle>
             <DialogDescription>
-              템플릿 이름과 설명을 수정합니다
+              {t.template.editDescription}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">이름</Label>
+              <Label htmlFor="edit-name">{t.template.labels.name}</Label>
               <Input
                 id="edit-name"
                 value={editName}
@@ -392,7 +372,7 @@ export const TemplateManagePanel = memo(function TemplateManagePanel({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-description">설명</Label>
+              <Label htmlFor="edit-description">{t.template.labels.description}</Label>
               <Textarea
                 id="edit-description"
                 value={editDescription}
@@ -404,13 +384,13 @@ export const TemplateManagePanel = memo(function TemplateManagePanel({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingTemplate(null)}>
-              취소
+              {t.template.buttons.cancel}
             </Button>
             <Button onClick={handleSaveEdit} disabled={isSaving || !editName.trim()}>
               {isSaving ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : null}
-              저장
+              {t.template.buttons.save}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -420,16 +400,16 @@ export const TemplateManagePanel = memo(function TemplateManagePanel({
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>템플릿 삭제</AlertDialogTitle>
+            <AlertDialogTitle>{t.template.dialogs.deleteTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              &quot;{deleteTarget?.name}&quot; 템플릿을 삭제하시겠습니까?
-              <br />이 작업은 되돌릴 수 없습니다.
+              {t.template.dialogs.deleteConfirm(deleteTarget?.name || '')}
+              <br />{t.template.dialogs.irreversible}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogCancel>{t.template.buttons.cancel}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              삭제
+              {t.template.buttons.delete}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -441,20 +421,20 @@ export const TemplateManagePanel = memo(function TemplateManagePanel({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
-              모든 템플릿 삭제
+              {t.template.dialogs.clearTitle}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              저장된 모든 템플릿({templates.length}개)을 삭제하시겠습니까?
-              <br />이 작업은 되돌릴 수 없습니다.
+              {t.template.dialogs.clearConfirm(templates.length)}
+              <br />{t.template.dialogs.irreversible}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogCancel>{t.template.buttons.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleClearAll}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              모두 삭제
+              {t.template.buttons.deleteAllConfirm}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

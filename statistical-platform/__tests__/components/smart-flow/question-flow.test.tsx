@@ -12,6 +12,19 @@ import { ProgressIndicator } from '@/components/smart-flow/steps/purpose/Progres
 import { ConversationalQuestion } from '@/components/smart-flow/steps/purpose/ConversationalQuestion'
 import type { GuidedQuestion, AutoAnswerResult } from '@/types/smart-flow'
 
+// Mock: Terminology
+vi.mock('@/hooks/use-terminology', async () => {
+  const { aquaculture } = await import('@/lib/terminology/domains/aquaculture')
+  return {
+    useTerminology: () => aquaculture,
+    useTerminologyContext: () => ({
+      dictionary: aquaculture,
+      setDomain: vi.fn(),
+      currentDomain: 'aquaculture',
+    }),
+  }
+})
+
 // Mock questions for testing
 const mockQuestions: GuidedQuestion[] = [
   {

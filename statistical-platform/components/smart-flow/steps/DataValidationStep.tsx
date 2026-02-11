@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { DataValidationStepProps } from '@/types/smart-flow-navigation'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import { useTerminology } from '@/hooks/use-terminology'
 import { logger } from '@/lib/utils/logger'
 
 // Type guard for ValidationResults with columnStats
@@ -29,6 +30,8 @@ export const DataValidationStep = memo(function DataValidationStep({
     setDataCharacteristics,
     setAssumptionResults
   } = useSmartFlowStore()
+
+  const t = useTerminology()
 
   // 가정 검정은 Step 2 (DataExplorationStep)에서 수행
 
@@ -89,14 +92,14 @@ export const DataValidationStep = memo(function DataValidationStep({
         if (has2Groups) {
           analyses.push({
             emoji: '⚖️',
-            text: '2집단 비교 (t-검정, Mann-Whitney)'
+            text: t.dataValidation.recommendations.twoGroupComparison
           })
         }
 
         if (hasMultipleGroups) {
           analyses.push({
             emoji: '📈',
-            text: '다집단 비교 (ANOVA, Kruskal-Wallis)'
+            text: t.dataValidation.recommendations.multiGroupComparison
           })
         }
       }
@@ -106,7 +109,7 @@ export const DataValidationStep = memo(function DataValidationStep({
     if (continuousColumns.length >= 2) {
       analyses.push({
         emoji: '🔗',
-        text: '상관분석 (Pearson, Spearman)'
+        text: t.dataValidation.recommendations.correlation
       })
     }
 
@@ -114,7 +117,7 @@ export const DataValidationStep = memo(function DataValidationStep({
     if (continuousColumns.length >= 2) {
       analyses.push({
         emoji: '📉',
-        text: '회귀분석 (예측 모델)'
+        text: t.dataValidation.recommendations.regression
       })
     }
 
@@ -125,12 +128,12 @@ export const DataValidationStep = memo(function DataValidationStep({
     if (validCategoricalForChiSquare.length >= 2) {
       analyses.push({
         emoji: '🎲',
-        text: '카이제곱 검정 (범주형 연관성)'
+        text: t.dataValidation.recommendations.chiSquare
       })
     }
 
     return analyses
-  }, [numericColumns, categoricalColumns, validationResults?.totalRows])
+  }, [numericColumns, categoricalColumns, validationResults?.totalRows, t])
 
   // 기본 데이터 특성 저장
   useEffect(() => {
@@ -186,7 +189,7 @@ export const DataValidationStep = memo(function DataValidationStep({
   if (!validationResults || !data) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">데이터를 먼저 업로드해주세요.</p>
+        <p className="text-muted-foreground">{t.dataValidation.status.dataRequired}</p>
       </div>
     )
   }
@@ -213,9 +216,9 @@ export const DataValidationStep = memo(function DataValidationStep({
               <CheckCircle2 className="w-6 h-6 text-success" />
             )}
             <span>
-              {hasErrors ? '데이터 검증 실패' :
-               hasWarnings ? '데이터 검증 완료 (경고 있음)' :
-               '데이터 준비 완료'}
+              {hasErrors ? t.dataValidation.status.failed :
+               hasWarnings ? t.dataValidation.status.warningComplete :
+               t.dataValidation.status.readyComplete}
             </span>
           </CardTitle>
         </CardHeader>
@@ -223,49 +226,49 @@ export const DataValidationStep = memo(function DataValidationStep({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {/* 표본 크기 */}
             <div className="p-3 bg-white dark:bg-background rounded-lg border">
-              <p className="text-xs text-muted-foreground mb-1">표본 크기</p>
+              <p className="text-xs text-muted-foreground mb-1">{t.dataValidation.labels.sampleSize}</p>
               <p className="text-2xl font-bold">{validationResults.totalRows}</p>
               <Badge variant="outline" className="mt-1">
-                {validationResults.totalRows >= 30 ? '대표본' : '소표본'}
+                {validationResults.totalRows >= 30 ? t.dataValidation.badges.largeSample : t.dataValidation.badges.smallSample}
               </Badge>
             </div>
 
             {/* 변수 */}
             <div className="p-3 bg-white dark:bg-background rounded-lg border">
-              <p className="text-xs text-muted-foreground mb-1">분석 가능 변수</p>
+              <p className="text-xs text-muted-foreground mb-1">{t.dataValidation.labels.analyzableVariables}</p>
               <p className="text-lg font-semibold">
-                수치형 {numericColumns.length}개
+                {t.dataValidation.labels.numeric} {numericColumns.length}{t.dataValidation.units.count}
               </p>
               <p className="text-sm text-muted-foreground">
-                범주형 {categoricalColumns.length}개
+                {t.dataValidation.labels.categorical} {categoricalColumns.length}{t.dataValidation.units.count}
               </p>
               {columnStats?.some(s => s.idDetection?.isId) && (
                 <p className="text-xs text-amber-600 mt-1">
-                  🔑 ID 제외: {columnStats.filter(s => s.idDetection?.isId).length}개
+                  {t.dataValidation.idDetection.label} {columnStats.filter(s => s.idDetection?.isId).length}{t.dataValidation.units.count}
                 </p>
               )}
             </div>
 
             {/* 데이터 품질 */}
             <div className="p-3 bg-white dark:bg-background rounded-lg border">
-              <p className="text-xs text-muted-foreground mb-1">데이터 품질</p>
+              <p className="text-xs text-muted-foreground mb-1">{t.dataValidation.labels.dataQuality}</p>
               <p className="text-2xl font-bold">
-                {validationResults.missingValues === 0 ? '완벽' :
-                 validationResults.missingValues < validationResults.totalRows * 0.05 ? '양호' : '주의'}
+                {validationResults.missingValues === 0 ? t.dataValidation.quality.perfect :
+                 validationResults.missingValues < validationResults.totalRows * 0.05 ? t.dataValidation.quality.good : t.dataValidation.quality.caution}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                결측 {validationResults.missingValues}개 ({((validationResults.missingValues / (validationResults.totalRows * validationResults.columnCount)) * 100).toFixed(1)}%)
+                {t.dataValidation.labels.missing} {validationResults.missingValues}{t.dataValidation.units.count} ({((validationResults.missingValues / (validationResults.totalRows * validationResults.columnCount)) * 100).toFixed(1)}%)
               </p>
             </div>
 
             {/* 파일 정보 */}
             <div className="p-3 bg-white dark:bg-background rounded-lg border">
-              <p className="text-xs text-muted-foreground mb-1">업로드 파일</p>
+              <p className="text-xs text-muted-foreground mb-1">{t.dataValidation.labels.uploadedFile}</p>
               <p className="text-sm font-medium truncate" title={uploadedFile?.name || uploadedFileName || ''}>
-                {uploadedFile?.name || uploadedFileName || '파일명 없음'}
+                {uploadedFile?.name || uploadedFileName || t.dataValidation.fallback.noFileName}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                {validationResults.columnCount}개 컬럼
+                {t.dataValidation.labels.columnsCount(validationResults.columnCount)}
               </p>
             </div>
           </div>
@@ -273,7 +276,7 @@ export const DataValidationStep = memo(function DataValidationStep({
           {/* 에러/경고 메시지 */}
           {(hasErrors || hasWarnings) && (
             <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-              <p className="text-sm font-medium mb-2">확인 필요 사항</p>
+              <p className="text-sm font-medium mb-2">{t.dataValidation.sections.needsAttention}</p>
               <ul className="text-sm space-y-1">
                 {validationResults.errors?.map((error: string, idx: number) => (
                   <li key={`error-${idx}`} className="text-error">• {error}</li>
@@ -290,7 +293,7 @@ export const DataValidationStep = memo(function DataValidationStep({
       {/* 경고 메시지 (버튼은 상단으로 이동) */}
       {hasWarnings && !hasErrors && (
         <div className="text-xs text-warning text-center bg-warning-bg border border-warning-border rounded-lg p-2">
-          ⚠ 경고 사항이 있지만 분석을 계속할 수 있습니다
+          {t.dataValidation.warnings.canContinue}
         </div>
       )}
 
@@ -298,7 +301,7 @@ export const DataValidationStep = memo(function DataValidationStep({
       {!hasErrors && recommendedAnalyses.length > 0 && (
         <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
           <CardHeader>
-            <CardTitle className="text-base">💡 이 데이터로 할 수 있는 분석</CardTitle>
+            <CardTitle className="text-base">{t.dataValidation.recommendations.title}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -310,7 +313,7 @@ export const DataValidationStep = memo(function DataValidationStep({
               ))}
             </div>
             <p className="text-xs text-muted-foreground mt-3">
-              💡 다음 단계에서 분석 목적을 선택하면 AI가 최적의 방법을 추천합니다.
+              {t.dataValidation.recommendations.hint}
             </p>
           </CardContent>
         </Card>
@@ -322,18 +325,18 @@ export const DataValidationStep = memo(function DataValidationStep({
       {!hasErrors && hasColumnStats(validationResults) && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">📋 변수 요약</CardTitle>
+            <CardTitle className="text-base">{t.dataValidation.sections.variableSummary}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="text-left p-2 font-medium">변수명</th>
-                    <th className="text-center p-2 font-medium">유형</th>
-                    <th className="text-center p-2 font-medium">고유값</th>
-                    <th className="text-center p-2 font-medium">결측</th>
-                    <th className="text-center p-2 font-medium">분석 제외</th>
+                    <th className="text-left p-2 font-medium">{t.dataValidation.table.variableName}</th>
+                    <th className="text-center p-2 font-medium">{t.dataValidation.table.type}</th>
+                    <th className="text-center p-2 font-medium">{t.dataValidation.table.uniqueValues}</th>
+                    <th className="text-center p-2 font-medium">{t.dataValidation.table.missing}</th>
+                    <th className="text-center p-2 font-medium">{t.dataValidation.table.excluded}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -349,7 +352,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                       </td>
                       <td className="p-2 text-center">
                         <Badge variant={col.type === 'numeric' ? 'default' : 'secondary'}>
-                          {col.type === 'numeric' ? '수치형' : '범주형'}
+                          {col.type === 'numeric' ? t.dataValidation.badges.numeric : t.dataValidation.badges.categorical}
                         </Badge>
                       </td>
                       <td className="p-2 text-center text-muted-foreground">{col.uniqueValues}</td>
@@ -357,7 +360,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                       <td className="p-2 text-center">
                         {col.idDetection?.isId ? (
                           <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50">
-                            ID/일련번호
+                            {t.dataValidation.badges.idSequential}
                           </Badge>
                         ) : (
                           <span className="text-muted-foreground text-xs">-</span>
@@ -369,15 +372,15 @@ export const DataValidationStep = memo(function DataValidationStep({
               </table>
               {validationResults.columnStats && validationResults.columnStats.length > 10 && (
                 <p className="text-xs text-muted-foreground mt-2 text-center">
-                  외 {validationResults.columnStats.length - 10}개 변수... (다음 단계에서 전체 확인)
+                  {t.dataValidation.labels.otherVariables(validationResults.columnStats.length - 10)}
                 </p>
               )}
               {/* ID/일련번호 감지 안내 */}
               {validationResults.columnStats?.some(col => col.idDetection?.isId) && (
                 <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded text-xs">
-                  <span className="font-medium text-amber-700 dark:text-amber-400">🔑 ID/일련번호 감지:</span>
+                  <span className="font-medium text-amber-700 dark:text-amber-400">{t.dataValidation.idDetection.heading}</span>
                   <span className="text-amber-600 dark:text-amber-500 ml-1">
-                    표시된 변수는 자동 생성된 식별자로 보입니다. 통계 분석에서 자동으로 제외됩니다.
+                    {t.dataValidation.idDetection.explanation}
                   </span>
                 </div>
               )}

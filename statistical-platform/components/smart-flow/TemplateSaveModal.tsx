@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Save, Loader2, FileText } from 'lucide-react'
+import { useTerminology } from '@/hooks/use-terminology'
 import { useTemplateStore } from '@/lib/stores/template-store'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import type { StatisticalMethod } from '@/types/smart-flow'
@@ -38,6 +39,7 @@ export const TemplateSaveModal = memo(function TemplateSaveModal({
   onOpenChange,
   onSaved
 }: TemplateSaveModalProps) {
+  const t = useTerminology()
   const { createTemplate } = useTemplateStore()
   const {
     selectedMethod,
@@ -75,12 +77,12 @@ export const TemplateSaveModal = memo(function TemplateSaveModal({
   // 저장 처리
   const handleSave = useCallback(async () => {
     if (!name.trim()) {
-      setError('템플릿 이름을 입력해주세요.')
+      setError(t.template.errors.nameRequired)
       return
     }
 
     if (!selectedMethod || !variableMapping) {
-      setError('분석 설정이 완료되지 않았습니다.')
+      setError(t.template.errors.settingsIncomplete)
       return
     }
 
@@ -104,7 +106,7 @@ export const TemplateSaveModal = memo(function TemplateSaveModal({
       onSaved?.()
       onOpenChange(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '저장 중 오류가 발생했습니다.')
+      setError(err instanceof Error ? err.message : t.template.errors.saveFailed)
     } finally {
       setIsSaving(false)
     }
@@ -118,29 +120,14 @@ export const TemplateSaveModal = memo(function TemplateSaveModal({
     uploadedData,
     createTemplate,
     onSaved,
-    onOpenChange
+    onOpenChange,
+    t
   ])
 
-  // 카테고리 한글 변환
+  // 카테고리 라벨 변환
   const getCategoryLabel = useCallback((category: string): string => {
-    const labels: Record<string, string> = {
-      'descriptive': '기술통계',
-      't-test': 't-검정',
-      'anova': '분산분석',
-      'regression': '회귀분석',
-      'correlation': '상관분석',
-      'chi-square': '카이제곱',
-      'nonparametric': '비모수',
-      'advanced': '고급분석',
-      'timeseries': '시계열',
-      'pca': 'PCA',
-      'clustering': '군집분석',
-      'psychometrics': '심리측정',
-      'design': '실험설계',
-      'survival': '생존분석'
-    }
-    return labels[category] || category
-  }, [])
+    return t.template.methodCategories[category] || category
+  }, [t])
 
   if (!selectedMethod) return null
 
@@ -150,10 +137,10 @@ export const TemplateSaveModal = memo(function TemplateSaveModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            템플릿으로 저장
+            {t.template.saveTitle}
           </DialogTitle>
           <DialogDescription>
-            현재 분석 설정을 템플릿으로 저장하면 나중에 새 데이터로 빠르게 동일 분석을 수행할 수 있습니다.
+            {t.template.saveDescription}
           </DialogDescription>
         </DialogHeader>
 
@@ -169,16 +156,16 @@ export const TemplateSaveModal = memo(function TemplateSaveModal({
             {variableMapping && (
               <div className="text-xs text-muted-foreground space-y-1">
                 {variableMapping.dependentVar && (
-                  <div>종속변수: {Array.isArray(variableMapping.dependentVar) ? variableMapping.dependentVar.join(', ') : variableMapping.dependentVar}</div>
+                  <div>{t.template.variableLabels.dependent}: {Array.isArray(variableMapping.dependentVar) ? variableMapping.dependentVar.join(', ') : variableMapping.dependentVar}</div>
                 )}
                 {variableMapping.independentVar && (
-                  <div>독립변수: {Array.isArray(variableMapping.independentVar) ? variableMapping.independentVar.join(', ') : variableMapping.independentVar}</div>
+                  <div>{t.template.variableLabels.independent}: {Array.isArray(variableMapping.independentVar) ? variableMapping.independentVar.join(', ') : variableMapping.independentVar}</div>
                 )}
                 {variableMapping.groupVar && (
-                  <div>그룹변수: {variableMapping.groupVar}</div>
+                  <div>{t.template.variableLabels.group}: {variableMapping.groupVar}</div>
                 )}
                 {variableMapping.between && (
-                  <div>요인: {Array.isArray(variableMapping.between) ? variableMapping.between.join(', ') : variableMapping.between}</div>
+                  <div>{t.template.variableLabels.factor}: {Array.isArray(variableMapping.between) ? variableMapping.between.join(', ') : variableMapping.between}</div>
                 )}
               </div>
             )}
@@ -186,24 +173,24 @@ export const TemplateSaveModal = memo(function TemplateSaveModal({
 
           {/* 이름 입력 */}
           <div className="space-y-2">
-            <Label htmlFor="template-name">템플릿 이름 *</Label>
+            <Label htmlFor="template-name">{t.template.labels.nameRequired}</Label>
             <Input
               id="template-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="예: 실험 데이터 t-test"
+              placeholder={t.template.placeholders.name}
               maxLength={50}
             />
           </div>
 
           {/* 설명 입력 */}
           <div className="space-y-2">
-            <Label htmlFor="template-description">설명 (선택)</Label>
+            <Label htmlFor="template-description">{t.template.labels.descriptionOptional}</Label>
             <Textarea
               id="template-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="나중에 참고할 메모를 입력하세요"
+              placeholder={t.template.placeholders.description}
               maxLength={200}
               rows={3}
             />
@@ -222,18 +209,18 @@ export const TemplateSaveModal = memo(function TemplateSaveModal({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
-            취소
+            {t.template.buttons.cancel}
           </Button>
           <Button onClick={handleSave} disabled={isSaving || !name.trim()}>
             {isSaving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                저장 중...
+                {t.template.buttons.saving}
               </>
             ) : (
               <>
                 <Save className="h-4 w-4 mr-2" />
-                저장
+                {t.template.buttons.save}
               </>
             )}
           </Button>

@@ -4,6 +4,7 @@ import { memo } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { useTerminology } from '@/hooks/use-terminology'
 import type { ColumnStatistics } from '@/types/smart-flow'
 
 interface OutlierAnalysisCardProps {
@@ -13,6 +14,9 @@ interface OutlierAnalysisCardProps {
 export const OutlierAnalysisCard = memo(function OutlierAnalysisCard({
   columnStats
 }: OutlierAnalysisCardProps) {
+  const t = useTerminology()
+  const vd = t.validationDetails.outlier
+
   const numericColumnsWithOutliers = columnStats.filter(
     s => s.type === 'numeric' && s.outliers && s.outliers.length > 0
   )
@@ -26,7 +30,7 @@ export const OutlierAnalysisCard = memo(function OutlierAnalysisCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <AlertTriangle className="h-5 w-5" />
-          이상치 분석
+          {vd.title}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -46,7 +50,7 @@ export const OutlierAnalysisCard = memo(function OutlierAnalysisCard({
                               outlierPercent > 10 ? "warning" : "secondary"}
                       className="text-xs"
                     >
-                      {outlierCount}개 이상치 ({outlierPercent.toFixed(1)}%)
+                      {vd.outlierCount(outlierCount, outlierPercent)}
                     </Badge>
                   </div>
 
@@ -54,40 +58,40 @@ export const OutlierAnalysisCard = memo(function OutlierAnalysisCard({
                     <>
                       <div className="grid grid-cols-2 gap-3 text-sm mb-3">
                         <div>
-                          <span className="text-muted-foreground">탐지 방법:</span>
+                          <span className="text-muted-foreground">{vd.detectionMethod}:</span>
                           <span className="ml-2">IQR × 1.5</span>
                         </div>
                         <div>
-                          <span className="text-muted-foreground">위치:</span>
+                          <span className="text-muted-foreground">{vd.position}:</span>
                           <span className="ml-2">
-                            {stat.outliers?.filter((v: number) => v < (stat.q25! - 1.5 * ((stat.q75 || 0) - (stat.q25 || 0)))).length}개 하단,
-                            {stat.outliers?.filter((v: number) => v > (stat.q75! + 1.5 * ((stat.q75 || 0) - (stat.q25 || 0)))).length}개 상단
+                            {vd.lowerCount(stat.outliers?.filter((v: number) => v < (stat.q25! - 1.5 * ((stat.q75 || 0) - (stat.q25 || 0)))).length ?? 0)},
+                            {vd.upperCount(stat.outliers?.filter((v: number) => v > (stat.q75! + 1.5 * ((stat.q75 || 0) - (stat.q25 || 0)))).length ?? 0)}
                           </span>
                         </div>
                       </div>
 
                       <div className="p-2 bg-muted/30 rounded text-xs">
-                        <p className="font-medium mb-1">이상치 값:</p>
+                        <p className="font-medium mb-1">{vd.outlierValues}:</p>
                         <p className="font-mono">
                           {stat.outliers?.slice(0, 10).map((v: number) => v.toFixed(2)).join(', ')}
-                          {(stat.outliers?.length ?? 0) > 10 && ` ... 외 ${(stat.outliers?.length ?? 0) - 10}개`}
+                          {(stat.outliers?.length ?? 0) > 10 && vd.moreValues((stat.outliers?.length ?? 0) - 10)}
                         </p>
                       </div>
 
                       {/* 처리 방법 제안 */}
                       <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-950/20 rounded text-xs">
-                        <p className="font-medium text-amber-900 dark:text-amber-100 mb-1">💡 처리 방법:</p>
+                        <p className="font-medium text-amber-900 dark:text-amber-100 mb-1">{vd.treatmentTitle}</p>
                         {outlierPercent < 5 ? (
                           <p className="text-amber-700 dark:text-amber-300">
-                            • 5% 미만: 그대로 진행 가능, 로버스트 통계 고려
+                            {vd.treatmentUnder5}
                           </p>
                         ) : outlierPercent < 10 ? (
                           <p className="text-amber-700 dark:text-amber-300">
-                            • 5-10%: Winsorization, Trimming 고려
+                            {vd.treatment5to10}
                           </p>
                         ) : (
                           <p className="text-amber-700 dark:text-amber-300">
-                            • 10% 초과: 원인 파악 필수, 제거 또는 변환
+                            {vd.treatmentOver10}
                           </p>
                         )}
                       </div>
@@ -95,7 +99,7 @@ export const OutlierAnalysisCard = memo(function OutlierAnalysisCard({
                   )}
 
                   {outlierCount === 0 && (
-                    <p className="text-sm text-muted-foreground">이상치가 발견되지 않았습니다</p>
+                    <p className="text-sm text-muted-foreground">{vd.noOutliers}</p>
                   )}
                 </div>
               )

@@ -30,6 +30,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
+import { useTerminology } from '@/hooks/use-terminology'
 
 interface SmartFlowHubProps {
   /** 데이터 업로드부터 시작 */
@@ -51,17 +52,36 @@ interface QuickMethod {
   icon: LucideIcon
 }
 
-const ALL_QUICK_METHODS: QuickMethod[] = [
-  { id: 't-test', name: 't-검정', icon: GitCompare },
-  { id: 'anova', name: 'ANOVA', icon: BarChart3 },
-  { id: 'correlation', name: '상관분석', icon: TrendingUp },
-  { id: 'regression', name: '회귀분석', icon: LineChart },
-  { id: 'chi-square', name: '카이제곱', icon: PieChart },
-  { id: 'paired-t-test', name: '대응표본 t-검정', icon: GitCompare },
-  { id: 'mann-whitney', name: 'Mann-Whitney U', icon: BarChart3 },
-  { id: 'wilcoxon', name: 'Wilcoxon', icon: BarChart3 },
-  { id: 'kruskal-wallis', name: 'Kruskal-Wallis', icon: BarChart3 },
-  { id: 'fisher-exact', name: 'Fisher 정확 검정', icon: PieChart },
+/** Default quick method names (fallback when terminology not available) */
+const QUICK_METHOD_DEFAULTS: Record<string, string> = {
+  't-test': 't-검정',
+  'anova': 'ANOVA',
+  'correlation': '상관분석',
+  'regression': '회귀분석',
+  'chi-square': '카이제곱',
+  'paired-t-test': '대응표본 t-검정',
+  'mann-whitney': 'Mann-Whitney U',
+  'wilcoxon': 'Wilcoxon',
+  'kruskal-wallis': 'Kruskal-Wallis',
+  'fisher-exact': 'Fisher 정확 검정',
+}
+
+const QUICK_METHOD_ICONS: Record<string, LucideIcon> = {
+  't-test': GitCompare,
+  'anova': BarChart3,
+  'correlation': TrendingUp,
+  'regression': LineChart,
+  'chi-square': PieChart,
+  'paired-t-test': GitCompare,
+  'mann-whitney': BarChart3,
+  'wilcoxon': BarChart3,
+  'kruskal-wallis': BarChart3,
+  'fisher-exact': PieChart,
+}
+
+const ALL_QUICK_METHOD_IDS = [
+  't-test', 'anova', 'correlation', 'regression', 'chi-square',
+  'paired-t-test', 'mann-whitney', 'wilcoxon', 'kruskal-wallis', 'fisher-exact',
 ]
 
 // 기본 빠른 분석 방법 (첫 방문 시)
@@ -109,6 +129,8 @@ export function SmartFlowHub({
   onStartWithHistory,
   onQuickAnalysis
 }: SmartFlowHubProps) {
+  const t = useTerminology()
+  const hub = t.hub
   const { analysisHistory } = useSmartFlowStore()
 
   // 빠른 분석 방법 상태 (LocalStorage 연동)
@@ -143,10 +165,22 @@ export function SmartFlowHub({
     )
   }
 
+  // 빠른 분석 방법 목록 (terminology 적용)
+  const quickMethodNames: Record<string, string> = hub.quickMethodNames ?? QUICK_METHOD_DEFAULTS
+
+  const allQuickMethods: QuickMethod[] = useMemo(() => {
+    return ALL_QUICK_METHOD_IDS.map(id => ({
+      id,
+      name: quickMethodNames[id] ?? QUICK_METHOD_DEFAULTS[id] ?? id,
+      icon: QUICK_METHOD_ICONS[id] ?? BarChart3,
+    }))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quickMethodNames])
+
   // 선택된 빠른 분석 방법들
   const selectedQuickMethods = useMemo(() => {
-    return ALL_QUICK_METHODS.filter(m => quickMethods.includes(m.id))
-  }, [quickMethods])
+    return allQuickMethods.filter(m => quickMethods.includes(m.id))
+  }, [quickMethods, allQuickMethods])
 
   // 히스토리 기반 인기 방법 (사용 빈도)
   const popularFromHistory = useMemo(() => {
@@ -183,7 +217,7 @@ export function SmartFlowHub({
             <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
               <Upload className="w-6 h-6 text-primary" />
             </div>
-            <div className="font-medium text-sm">데이터 업로드</div>
+            <div className="font-medium text-sm">{hub.entryPoints.dataUpload}</div>
           </CardContent>
         </Card>
 
@@ -196,7 +230,7 @@ export function SmartFlowHub({
             <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-violet-500/10 flex items-center justify-center group-hover:bg-violet-500/20 transition-colors">
               <MessageSquare className="w-6 h-6 text-violet-500" />
             </div>
-            <div className="font-medium text-sm">AI 추천</div>
+            <div className="font-medium text-sm">{hub.entryPoints.aiRecommend}</div>
           </CardContent>
         </Card>
 
@@ -209,7 +243,7 @@ export function SmartFlowHub({
             <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
               <List className="w-6 h-6 text-emerald-500" />
             </div>
-            <div className="font-medium text-sm">방법 선택</div>
+            <div className="font-medium text-sm">{hub.entryPoints.methodSelect}</div>
           </CardContent>
         </Card>
 
@@ -222,7 +256,7 @@ export function SmartFlowHub({
             <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors">
               <History className="w-6 h-6 text-amber-500" />
             </div>
-            <div className="font-medium text-sm">히스토리</div>
+            <div className="font-medium text-sm">{hub.entryPoints.history}</div>
             {analysisHistory.length > 0 && (
               <Badge
                 variant="secondary"
@@ -240,7 +274,7 @@ export function SmartFlowHub({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">빠른 분석</span>
+            <span className="text-sm font-medium">{hub.quickAnalysis.title}</span>
           </div>
           <Button
             variant="ghost"
@@ -249,7 +283,7 @@ export function SmartFlowHub({
             onClick={handleOpenEdit}
           >
             <Settings2 className="w-3 h-3 mr-1" />
-            편집
+            {hub.quickAnalysis.editButton}
           </Button>
         </div>
 
@@ -271,7 +305,7 @@ export function SmartFlowHub({
           })}
           {selectedQuickMethods.length === 0 && (
             <span className="text-sm text-muted-foreground">
-              편집을 눌러 빠른 분석 방법을 추가하세요
+              {hub.quickAnalysis.emptyPlaceholder}
             </span>
           )}
         </div>
@@ -279,7 +313,7 @@ export function SmartFlowHub({
         {/* 히스토리 기반 추천 */}
         {popularFromHistory.length > 0 && (
           <div className="pt-2 border-t">
-            <span className="text-xs text-muted-foreground mr-2">자주 사용:</span>
+            <span className="text-xs text-muted-foreground mr-2">{hub.quickAnalysis.frequentlyUsed}</span>
             {popularFromHistory.map((method) => method && (
               <Button
                 key={method.id}
@@ -302,10 +336,10 @@ export function SmartFlowHub({
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>빠른 분석 편집</DialogTitle>
+            <DialogTitle>{hub.editDialog.title}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-2 py-4">
-            {ALL_QUICK_METHODS.map((method) => (
+            {allQuickMethods.map((method) => (
               <label
                 key={method.id}
                 className="flex items-center gap-2 p-2 rounded-md hover:bg-muted cursor-pointer"
@@ -321,11 +355,11 @@ export function SmartFlowHub({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
-              취소
+              {hub.editDialog.cancel}
             </Button>
             <Button onClick={handleSaveEdit}>
               <Check className="w-4 h-4 mr-1" />
-              저장
+              {hub.editDialog.save}
             </Button>
           </DialogFooter>
         </DialogContent>

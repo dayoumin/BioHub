@@ -11,6 +11,7 @@ import { QuestionFlow } from './QuestionFlow'
 import { getQuestionsForPurpose } from './guided-flow-questions'
 import { getAutoAnswer } from './auto-answer'
 import { cn } from '@/lib/utils'
+import { useTerminology } from '@/hooks/use-terminology'
 import type {
   AnalysisPurpose,
   AutoAnswerResult,
@@ -23,18 +24,6 @@ type UIMode = 'conversational' | 'classic'
 
 const ASSUMPTION_QUESTION_IDS = ['normality', 'homogeneity'] as const
 type AssumptionQuestionId = typeof ASSUMPTION_QUESTION_IDS[number]
-
-// Purpose display names
-const PURPOSE_NAMES: Record<AnalysisPurpose, string> = {
-  compare: '그룹 간 차이 비교',
-  relationship: '변수 간 관계 분석',
-  distribution: '분포와 빈도 분석',
-  prediction: '예측 모델링',
-  timeseries: '시계열 분석',
-  survival: '생존 분석',
-  multivariate: '다변량 분석',
-  utility: '연구 설계 도구'
-}
 
 // Conditional question logic
 const CONDITIONAL_QUESTIONS: Record<string, (answers: Record<string, string>) => boolean> = {
@@ -94,6 +83,7 @@ export function GuidedQuestions({
   validationResults,
   assumptionResults
 }: GuidedQuestionsProps) {
+  const t = useTerminology()
   const questions = getQuestionsForPurpose(purpose)
   const [uiMode, setUIMode] = useState<UIMode>('conversational')
   const [openOverrides, setOpenOverrides] = useState<Record<string, boolean>>({})
@@ -208,9 +198,9 @@ export function GuidedQuestions({
         if (!auto || auto.source !== 'assumptionResults' || auto.confidence === 'unknown') return null
 
         const isOverridden = answers[id] !== undefined && answers[id] !== auto.value
-        const title = id === 'normality' ? '정규성' : '등분산성'
+        const title = t.guidedQuestions.assumptionLabels[id]
         const statusText =
-          auto.value === 'yes' ? '충족' : auto.value === 'no' ? '위반' : '확인 필요'
+          auto.value === 'yes' ? t.guidedQuestions.assumptionStatus.met : auto.value === 'no' ? t.guidedQuestions.assumptionStatus.violated : t.guidedQuestions.assumptionStatus.needsCheck
 
         return (
           <div key={id} className="flex items-start justify-between gap-3 p-3 rounded-lg border bg-background">
@@ -220,16 +210,16 @@ export function GuidedQuestions({
                   variant="outline"
                   className={cn(
                     'shrink-0',
-                    statusText === '충족' && 'border-emerald-500/30 text-emerald-700 bg-emerald-500/10',
-                    statusText === '위반' && 'border-rose-500/30 text-rose-700 bg-rose-500/10',
-                    statusText === '확인 필요' && 'border-amber-500/30 text-amber-700 bg-amber-500/10'
+                    auto.value === 'yes' && 'border-emerald-500/30 text-emerald-700 bg-emerald-500/10',
+                    auto.value === 'no' && 'border-rose-500/30 text-rose-700 bg-rose-500/10',
+                    auto.value !== 'yes' && auto.value !== 'no' && 'border-amber-500/30 text-amber-700 bg-amber-500/10'
                   )}
                 >
                   {title}: {statusText}
                 </Badge>
                 {isOverridden && (
                   <Badge variant="secondary" className="shrink-0">
-                    수동 설정
+                    {t.guidedQuestions.badges.manualOverride}
                   </Badge>
                 )}
               </div>
@@ -250,7 +240,7 @@ export function GuidedQuestions({
                   setUIMode('classic')
                 }}
               >
-                수정하기
+                {t.guidedQuestions.buttons.modify}
               </Button>
 
               {openOverrides[id] && !isOverridden && (
@@ -262,7 +252,7 @@ export function GuidedQuestions({
                     setOpenOverrides(prev => ({ ...prev, [id]: false }))
                   }}
                 >
-                  자동 적용
+                  {t.guidedQuestions.buttons.autoApply}
                 </Button>
               )}
             </div>
@@ -275,11 +265,11 @@ export function GuidedQuestions({
 
     return (
       <div className="space-y-2">
-        <div className="text-sm font-medium text-foreground">가정 검정 결과</div>
+        <div className="text-sm font-medium text-foreground">{t.guidedQuestions.sections.assumptionResults}</div>
         <div className="space-y-2">{items}</div>
       </div>
     )
-  }, [answers, assumptionAutoAnswers, onAnswerQuestion, openOverrides, shouldShowQuestion])
+  }, [answers, assumptionAutoAnswers, onAnswerQuestion, openOverrides, shouldShowQuestion, t])
 
   // Conversational mode (Typeform style)
   if (uiMode === 'conversational') {
@@ -294,7 +284,7 @@ export function GuidedQuestions({
         {/* Header with mode toggle */}
         <div className="flex items-center justify-between">
           <Badge variant="outline" className="gap-1.5">
-            {PURPOSE_NAMES[purpose]}
+            {t.purposeInput.purposes[purpose]?.title ?? purpose}
           </Badge>
 
           <div className="flex items-center gap-2">
@@ -305,7 +295,7 @@ export function GuidedQuestions({
               className="gap-1.5 text-muted-foreground hover:text-foreground"
             >
               <List className="h-4 w-4" />
-              직접 선택
+              {t.guidedQuestions.buttons.directSelect}
             </Button>
 
             <Button
@@ -313,7 +303,7 @@ export function GuidedQuestions({
               size="icon"
               onClick={() => setUIMode('classic')}
               className="text-muted-foreground hover:text-foreground"
-              title="클래식 모드로 전환"
+              title={t.guidedQuestions.tooltips.switchToClassic}
             >
               <LayoutGrid className="h-4 w-4" />
             </Button>
@@ -351,12 +341,12 @@ export function GuidedQuestions({
           className="gap-1.5 text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          뒤로
+          {t.guidedQuestions.buttons.back}
         </Button>
 
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">
-            {PURPOSE_NAMES[purpose]}
+            {t.purposeInput.purposes[purpose]?.title ?? purpose}
           </span>
 
           <Button
@@ -364,7 +354,7 @@ export function GuidedQuestions({
             size="icon"
             onClick={() => setUIMode('conversational')}
             className="text-muted-foreground hover:text-foreground"
-            title="대화형 모드로 전환"
+            title={t.guidedQuestions.tooltips.switchToConversational}
           >
             <MessageSquare className="h-4 w-4" />
           </Button>
@@ -375,10 +365,10 @@ export function GuidedQuestions({
       <Card>
         <CardHeader className="pb-4">
           <CardTitle className="text-lg">
-            데이터 조건을 알려주세요
+            {t.guidedQuestions.card.title}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            정확한 분석 방법 추천을 위해 몇 가지 질문에 답해주세요
+            {t.guidedQuestions.card.description}
           </p>
         </CardHeader>
 
@@ -414,7 +404,7 @@ export function GuidedQuestions({
                       onClick={() => setOpenOverrides(prev => ({ ...prev, [question.id]: false }))}
                       className="text-muted-foreground hover:text-foreground"
                     >
-                      닫기
+                      {t.guidedQuestions.buttons.close}
                     </Button>
                   </div>
                 )}
@@ -425,10 +415,10 @@ export function GuidedQuestions({
           {optionalQuestions.length > 0 && (
             <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
               <div className="flex items-center justify-between">
-                <div className="text-sm font-medium text-foreground">고급 옵션</div>
+                <div className="text-sm font-medium text-foreground">{t.guidedQuestions.sections.advancedOptions}</div>
                 <CollapsibleTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-1.5">
-                    {advancedOpen ? '숨기기' : '펴기'}
+                    {advancedOpen ? t.guidedQuestions.buttons.collapse : t.guidedQuestions.buttons.expand}
                     <ChevronDown className={cn('h-4 w-4 transition-transform', advancedOpen && 'rotate-180')} />
                   </Button>
                 </CollapsibleTrigger>
@@ -464,7 +454,7 @@ export function GuidedQuestions({
                             onClick={() => setOpenOverrides(prev => ({ ...prev, [question.id]: false }))}
                             className="text-muted-foreground hover:text-foreground"
                           >
-                            닫기
+                            {t.guidedQuestions.buttons.close}
                           </Button>
                         </div>
                       )}
@@ -486,7 +476,7 @@ export function GuidedQuestions({
           className="gap-1.5 text-muted-foreground hover:text-foreground"
         >
           <List className="h-4 w-4" />
-          전체 방법에서 직접 선택
+          {t.guidedQuestions.buttons.browseAll}
         </Button>
 
         <Button
@@ -494,7 +484,7 @@ export function GuidedQuestions({
           disabled={!allRequiredAnswered}
           className="gap-1.5"
         >
-          다음
+          {t.guidedQuestions.buttons.next}
         </Button>
       </div>
     </div>

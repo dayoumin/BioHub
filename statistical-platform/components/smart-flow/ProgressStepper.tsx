@@ -3,6 +3,7 @@
 import { cn } from '@/lib/utils'
 import { StepConfig } from '@/types/smart-flow'
 import { CheckCircle2 } from 'lucide-react'
+import { useTerminology } from '@/hooks/use-terminology'
 
 interface ProgressStepperProps {
   steps: StepConfig[]
@@ -21,6 +22,7 @@ export function ProgressStepper({
   variant = 'gray',
   className
 }: ProgressStepperProps) {
+  const t = useTerminology()
   // 색상 variant별 스타일
   const getProgressBarColors = () => {
     if (variant === 'blue-purple') {
@@ -69,7 +71,7 @@ export function ProgressStepper({
               key={step.id}
               onClick={() => isClickable && onStepClick(step.id)}
               disabled={!isClickable}
-              aria-label={`${step.name} 단계로 이동`}
+              aria-label={t.smartFlow.layout.stepTooltip(step.name)}
               aria-current={isActive ? 'step' : undefined}
               className={cn(
                 "flex flex-col items-center group transition-all duration-300",

@@ -34,6 +34,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
+import { useTerminology } from '@/hooks/use-terminology'
 import type { AIRecommendation, StatisticalMethod, ValidationResults, ColumnStatistics } from '@/types/smart-flow'
 import type { LlmProvider } from '@/lib/services/llm-recommender'
 
@@ -66,19 +67,6 @@ interface NaturalLanguageInputProps {
   provider?: LlmProvider | null
 }
 
-const EXAMPLE_PROMPTS = [
-  '두 그룹의 평균 차이를 비교하고 싶어요',
-  '변수 간의 상관관계를 알고 싶어요',
-  '시간에 따른 추세를 분석하고 싶어요',
-  '여러 그룹의 평균을 동시에 비교하고 싶어요'
-]
-
-const PROVIDER_LABELS: Record<LlmProvider, string> = {
-  openrouter: 'Cloud AI',
-  ollama: 'Local AI',
-  keyword: '키워드'
-}
-
 export const NaturalLanguageInput = memo(function NaturalLanguageInput({
   inputValue,
   responseText,
@@ -94,11 +82,25 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
   validationResults,
   provider
 }: NaturalLanguageInputProps) {
+  const t = useTerminology()
   const prefersReducedMotion = useReducedMotion()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [showAlternatives, setShowAlternatives] = useState(false)
   const [showPreprocessing, setShowPreprocessing] = useState(false)
   const [loadingStage, setLoadingStage] = useState(0)
+
+  // Provider labels (Cloud AI / Local AI are not Korean, keyword comes from terminology)
+  const providerLabels: Record<LlmProvider, string> = useMemo(() => ({
+    openrouter: 'Cloud AI',
+    ollama: 'Local AI',
+    keyword: t.naturalLanguageInput.providers.keyword
+  }), [t])
+
+  // Example prompts from terminology
+  const examplePrompts = useMemo(() => t.naturalLanguageInput.examples, [t])
+
+  // Loading messages from terminology
+  const loadingMessages = useMemo(() => t.naturalLanguageInput.loadingMessages, [t])
 
   // ambiguityNote 있으면 alternatives 기본 펼침
   useEffect(() => {
@@ -118,12 +120,6 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
     const t2 = setTimeout(() => setLoadingStage(2), 5000)
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [isLoading])
-
-  const loadingMessages = [
-    '데이터를 분석하고 있습니다...',
-    '통계 방법을 비교하고 있습니다...',
-    '최적의 분석 방법을 찾고 있습니다...'
-  ]
 
   // 데이터 요약 계산
   const dataSummary = useMemo(() => {
@@ -185,11 +181,11 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
         <div className="flex items-center justify-center gap-2">
           <MessageSquare className="w-6 h-6 text-primary" />
           <h2 className="text-xl font-semibold">
-            어떤 분석이 필요하세요?
+            {t.purposeInput.labels.purposeHeading}
           </h2>
         </div>
         <p className="text-sm text-muted-foreground">
-          분석하고 싶은 내용을 자연스럽게 입력하세요. AI가 적합한 통계 방법을 추천해드립니다.
+          {t.naturalLanguageInput.description}
         </p>
       </div>
 
@@ -200,20 +196,20 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <Database className="w-4 h-4" />
-                <span>{dataSummary.totalRows}행 x {dataSummary.totalCols}열</span>
+                <span>{t.naturalLanguageInput.dataSummary.dimension(dataSummary.totalRows, dataSummary.totalCols)}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Hash className="w-4 h-4 text-blue-500" />
-                <span>수치형 {dataSummary.numericCount}개</span>
+                <span>{t.naturalLanguageInput.dataSummary.numeric(dataSummary.numericCount)}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Tag className="w-4 h-4 text-green-500" />
-                <span>범주형 {dataSummary.categoricalCount}개</span>
+                <span>{t.naturalLanguageInput.dataSummary.categorical(dataSummary.categoricalCount)}</span>
               </div>
             </div>
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <Shield className="w-3 h-3" />
-              원시 데이터는 전송되지 않으며, 요약 통계만 AI에 전달됩니다.
+              {t.naturalLanguageInput.dataSummary.privacyNotice}
             </p>
           </CardContent>
         </Card>
@@ -227,7 +223,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
             value={inputValue}
             onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder='예: "두 그룹의 평균이 다른지 비교하고 싶어요"'
+            placeholder={t.naturalLanguageInput.input.placeholder}
             className="min-h-[80px] resize-none border-0 focus-visible:ring-0 text-base"
             disabled={disabled || isLoading}
             data-testid="ai-chat-input"
@@ -235,10 +231,10 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono">Enter</kbd>
-              <span>전송</span>
+              <span>{t.naturalLanguageInput.input.sendHint}</span>
               <span className="mx-1">|</span>
               <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono">Shift+Enter</kbd>
-              <span>줄바꿈</span>
+              <span>{t.naturalLanguageInput.input.newlineHint}</span>
             </div>
             <Button
               onClick={onSubmit}
@@ -249,12 +245,12 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  분석 중...
+                  {t.naturalLanguageInput.buttons.analyzing}
                 </>
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  추천받기
+                  {t.naturalLanguageInput.buttons.getRecommendation}
                 </>
               )}
             </Button>
@@ -269,9 +265,9 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
           animate={{ opacity: 1, y: 0 }}
           className="space-y-2"
         >
-          <p className="text-sm text-muted-foreground">예시:</p>
+          <p className="text-sm text-muted-foreground">{t.naturalLanguageInput.examplesLabel}</p>
           <div className="flex flex-wrap gap-2" data-testid="example-prompts">
-            {EXAMPLE_PROMPTS.map((example, index) => (
+            {examplePrompts.map((example, index) => (
               <Button
                 key={index}
                 variant="outline"
@@ -302,7 +298,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                     <AlertTriangle className="h-4 w-4 text-destructive" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-destructive">오류 발생</p>
+                    <p className="text-sm font-medium text-destructive">{t.naturalLanguageInput.error.title}</p>
                     <p className="text-sm text-muted-foreground mt-1">{error}</p>
                     <Button
                       variant="outline"
@@ -310,7 +306,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                       className="mt-3"
                       onClick={onGoToGuided}
                     >
-                      단계별 가이드로 이동
+                      {t.naturalLanguageInput.buttons.goToGuided}
                     </Button>
                   </div>
                 </div>
@@ -336,10 +332,10 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                   </div>
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium">AI 분석</p>
+                      <p className="text-sm font-medium">{t.naturalLanguageInput.aiAnalysis.label}</p>
                       {provider && (
                         <Badge variant="outline" className="text-xs">
-                          {PROVIDER_LABELS[provider]}
+                          {providerLabels[provider]}
                         </Badge>
                       )}
                     </div>
@@ -382,7 +378,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary" className="text-xs">
                           <Sparkles className="w-3 h-3 mr-1" />
-                          AI 추천
+                          {t.naturalLanguageInput.recommendation.badgeLabel}
                         </Badge>
                         {recommendation.confidence && (
                           <Badge
@@ -394,7 +390,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                               recommendation.confidence < 0.5 && "border-red-500 text-red-600"
                             )}
                           >
-                            {Math.round(recommendation.confidence * 100)}% 확신
+                            {Math.round(recommendation.confidence * 100)}{t.naturalLanguageInput.recommendation.confidenceUnit}
                           </Badge>
                         )}
                       </div>
@@ -421,12 +417,12 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                   <div className="space-y-2 pt-2 border-t">
                     <p className="text-sm font-medium flex items-center gap-2">
                       <span className="w-4 h-0.5 bg-primary rounded" />
-                      추천 근거
+                      {t.naturalLanguageInput.recommendation.reasoningTitle}
                     </p>
                     <ul className="space-y-1.5">
                       {recommendation.reasoning.map((reason, index) => (
                         <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
-                          <span className="text-primary mt-0.5">•</span>
+                          <span className="text-primary mt-0.5">&bull;</span>
                           {reason}
                         </li>
                       ))}
@@ -437,36 +433,36 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                 {/* 변수 할당 미리보기 */}
                 {recommendation.variableAssignments && (
                   <div data-testid="variable-assignments" className="space-y-2 pt-2 border-t">
-                    <p className="text-sm font-medium">변수 할당</p>
+                    <p className="text-sm font-medium">{t.naturalLanguageInput.recommendation.variableAssignmentTitle}</p>
                     <div className="flex flex-wrap gap-1.5">
                       {recommendation.variableAssignments.dependent?.map(v => (
                         <Badge key={`dep-${v}`} variant="outline" className="text-xs border-blue-300 text-blue-700 dark:border-blue-600 dark:text-blue-300">
-                          {v} <span className="ml-1 opacity-60">종속</span>
+                          {v} <span className="ml-1 opacity-60">{t.naturalLanguageInput.recommendation.variableRoles.dependent}</span>
                         </Badge>
                       ))}
                       {recommendation.variableAssignments.independent?.map(v => (
                         <Badge key={`ind-${v}`} variant="outline" className="text-xs border-emerald-300 text-emerald-700 dark:border-emerald-600 dark:text-emerald-300">
-                          {v} <span className="ml-1 opacity-60">독립</span>
+                          {v} <span className="ml-1 opacity-60">{t.naturalLanguageInput.recommendation.variableRoles.independent}</span>
                         </Badge>
                       ))}
                       {recommendation.variableAssignments.factor?.map(v => (
                         <Badge key={`fac-${v}`} variant="outline" className="text-xs border-green-300 text-green-700 dark:border-green-600 dark:text-green-300">
-                          {v} <span className="ml-1 opacity-60">요인</span>
+                          {v} <span className="ml-1 opacity-60">{t.naturalLanguageInput.recommendation.variableRoles.factor}</span>
                         </Badge>
                       ))}
                       {recommendation.variableAssignments.covariate?.map(v => (
                         <Badge key={`cov-${v}`} variant="outline" className="text-xs border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-400">
-                          {v} <span className="ml-1 opacity-60">공변량</span>
+                          {v} <span className="ml-1 opacity-60">{t.naturalLanguageInput.recommendation.variableRoles.covariate}</span>
                         </Badge>
                       ))}
                       {recommendation.variableAssignments.within?.map(v => (
                         <Badge key={`wit-${v}`} variant="outline" className="text-xs border-purple-300 text-purple-700 dark:border-purple-600 dark:text-purple-300">
-                          {v} <span className="ml-1 opacity-60">피험자내</span>
+                          {v} <span className="ml-1 opacity-60">{t.naturalLanguageInput.recommendation.variableRoles.within}</span>
                         </Badge>
                       ))}
                       {recommendation.variableAssignments.between?.map(v => (
                         <Badge key={`bet-${v}`} variant="outline" className="text-xs border-orange-300 text-orange-700 dark:border-orange-600 dark:text-orange-300">
-                          {v} <span className="ml-1 opacity-60">피험자간</span>
+                          {v} <span className="ml-1 opacity-60">{t.naturalLanguageInput.recommendation.variableRoles.between}</span>
                         </Badge>
                       ))}
                     </div>
@@ -516,7 +512,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                       >
                         <ChevronDown className="w-3.5 h-3.5" />
                       </motion.span>
-                      전처리 제안 ({recommendation.dataPreprocessing.length}개)
+                      {t.naturalLanguageInput.recommendation.preprocessingTitle(recommendation.dataPreprocessing.length)}
                     </button>
                     <AnimatePresence>
                       {showPreprocessing && (
@@ -547,7 +543,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                     disabled={disabled}
                     data-testid="select-recommended-method"
                   >
-                    이 방법으로 분석하기
+                    {t.naturalLanguageInput.buttons.selectMethod}
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                   <Button
@@ -559,7 +555,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                     data-testid="retry-question"
                   >
                     <RotateCcw className="w-4 h-4" />
-                    다시 질문
+                    {t.naturalLanguageInput.buttons.retry}
                   </Button>
                 </div>
               </CardContent>
@@ -580,7 +576,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                   >
                     <ChevronDown className="w-4 h-4" />
                   </motion.span>
-                  다른 선택지 ({recommendation.alternatives.length}개)
+                  {t.naturalLanguageInput.recommendation.alternativesTitle(recommendation.alternatives.length)}
                 </button>
 
                 <AnimatePresence>
@@ -606,7 +602,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                                 </p>
                               </div>
                               <Button size="sm" variant="ghost">
-                                선택
+                                {t.naturalLanguageInput.buttons.select}
                               </Button>
                             </div>
                           </CardContent>
@@ -631,7 +627,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
           className="gap-1.5 text-muted-foreground hover:text-foreground"
         >
           <List className="w-4 h-4" />
-          단계별 가이드
+          {t.naturalLanguageInput.buttons.guidedQuestions}
         </Button>
         <span className="text-muted-foreground">|</span>
         <Button
@@ -642,7 +638,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
           className="gap-1.5 text-muted-foreground hover:text-foreground"
         >
           <List className="w-4 h-4" />
-          전체 목록 보기
+          {t.naturalLanguageInput.buttons.browseAll}
         </Button>
       </div>
     </div>

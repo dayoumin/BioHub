@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { QUESTION_TYPES, checkMethodRequirements } from '@/lib/statistics/method-mapping'
 import { FitScoreIndicator, FitScoreBadge } from '@/components/smart-flow/visualization/FitScoreIndicator'
+import { useTerminology } from '@/hooks/use-terminology'
 import type { StatisticalMethod } from '@/types/smart-flow'
 
 interface RecommendedMethodsProps {
@@ -71,9 +72,13 @@ function ChecklistItem({
 function calculateFitScore(
   method: StatisticalMethod,
   dataProfile?: RecommendedMethodsProps['dataProfile'],
-  assumptionResults?: RecommendedMethodsProps['assumptionResults']
+  assumptionResults?: RecommendedMethodsProps['assumptionResults'],
+  assumptionLabels?: { normality: string; homogeneity: string }
 ): number {
   if (!dataProfile) return 0
+
+  const normalityLabel = assumptionLabels?.normality ?? '정규성'
+  const homogeneityLabel = assumptionLabels?.homogeneity ?? '등분산성'
 
   const methodReq = method.requirements
   let passedCount = 0
@@ -100,7 +105,7 @@ function calculateFitScore(
   // 가정 체크
   if (methodReq?.assumptions) {
     methodReq.assumptions.forEach((assumption) => {
-      if (assumption === '정규성') {
+      if (assumption === normalityLabel) {
         const normalityPassed =
           assumptionResults?.normality?.shapiroWilk?.isNormal ??
           assumptionResults?.normality?.kolmogorovSmirnov?.isNormal ??
@@ -112,7 +117,7 @@ function calculateFitScore(
         }
       }
 
-      if (assumption === '등분산성') {
+      if (assumption === homogeneityLabel) {
         const homogeneityPassed =
           assumptionResults?.homogeneity?.levene?.equalVariance ??
           assumptionResults?.homogeneity?.bartlett?.equalVariance ??
@@ -133,17 +138,19 @@ function calculateFitScore(
 function RecommendationDetails({
   method,
   dataProfile,
-  assumptionResults
+  assumptionResults,
+  text
 }: {
   method: StatisticalMethod
   dataProfile?: RecommendedMethodsProps['dataProfile']
   assumptionResults?: RecommendedMethodsProps['assumptionResults']
+  text: ReturnType<typeof useTerminology>['recommendedMethods']
 }) {
   if (!dataProfile) {
     return (
       <div className="text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg">
         <Info className="w-4 h-4 inline mr-1" />
-        데이터 프로파일 정보가 없습니다
+        {text.noDataProfile}
       </div>
     )
   }
@@ -153,14 +160,14 @@ function RecommendationDetails({
 
   return (
     <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
-      <h5 className="text-xs font-medium text-muted-foreground">적합도 상세</h5>
+      <h5 className="text-xs font-medium text-muted-foreground">{text.fitScoreDetails}</h5>
 
       <div className="space-y-1.5">
         {/* 샘플 크기 */}
         {methodReq?.minSampleSize && (
           <ChecklistItem
             passed={dataProfile.totalRows >= methodReq.minSampleSize}
-            label={`샘플 크기: ${dataProfile.totalRows}개 (최소 ${methodReq.minSampleSize}개 필요)`}
+            label={text.sampleSize(dataProfile.totalRows, methodReq.minSampleSize)}
           />
         )}
 
@@ -168,18 +175,18 @@ function RecommendationDetails({
         {methodReq?.variableTypes?.includes('numeric') && (
           <ChecklistItem
             passed={dataProfile.numericVars > 0}
-            label={`수치형 변수: ${dataProfile.numericVars}개`}
+            label={text.numericVars(dataProfile.numericVars)}
           />
         )}
         {methodReq?.variableTypes?.includes('categorical') && (
           <ChecklistItem
             passed={dataProfile.categoricalVars > 0}
-            label={`범주형 변수: ${dataProfile.categoricalVars}개`}
+            label={text.categoricalVars(dataProfile.categoricalVars)}
           />
         )}
 
         {/* 가정 검정 */}
-        {methodReq?.assumptions?.includes('정규성') && (() => {
+        {methodReq?.assumptions?.includes(text.assumptionLabels.normality) && (() => {
           const normalityPassed =
             assumptionResults?.normality?.shapiroWilk?.isNormal ??
             assumptionResults?.normality?.kolmogorovSmirnov?.isNormal ??
@@ -188,12 +195,12 @@ function RecommendationDetails({
           return (
             <ChecklistItem
               passed={normalityPassed}
-              label={`정규성: ${normalityPassed === undefined ? '검정 필요' : normalityPassed ? '충족' : '불충족 → 비모수 검정 권장'}`}
+              label={`${text.assumptionLabels.normality}: ${normalityPassed === undefined ? text.assumptionStatus.needsCheck : normalityPassed ? text.assumptionStatus.met : text.assumptionStatus.normalityFailed}`}
               type="warning"
             />
           )
         })()}
-        {methodReq?.assumptions?.includes('등분산성') && (() => {
+        {methodReq?.assumptions?.includes(text.assumptionLabels.homogeneity) && (() => {
           const homogeneityPassed =
             assumptionResults?.homogeneity?.levene?.equalVariance ??
             assumptionResults?.homogeneity?.bartlett?.equalVariance ??
@@ -202,7 +209,7 @@ function RecommendationDetails({
           return (
             <ChecklistItem
               passed={homogeneityPassed}
-              label={`등분산성: ${homogeneityPassed === undefined ? '검정 필요' : homogeneityPassed ? '충족' : '불충족 → Welch 검정 권장'}`}
+              label={`${text.assumptionLabels.homogeneity}: ${homogeneityPassed === undefined ? text.assumptionStatus.needsCheck : homogeneityPassed ? text.assumptionStatus.met : text.assumptionStatus.homogeneityFailed}`}
               type="warning"
             />
           )
@@ -234,6 +241,8 @@ export function RecommendedMethods({
   dataProfile,
   assumptionResults
 }: RecommendedMethodsProps) {
+  const t = useTerminology()
+  const text = t.recommendedMethods
   const [expandedMethod, setExpandedMethod] = useState<string | null>(null)
 
   return (
@@ -242,8 +251,8 @@ export function RecommendedMethods({
       <div className="flex gap-2">
         <Button onClick={onToggle} variant="outline" className="flex-1">
           <Sparkles className="w-4 h-4 mr-2" />
-          스마트 추천 방법 {showRecommendations ? '숨기기' : '보기'}
-          {methods.length > 0 && ` (${methods.length}개)`}
+          {text.smartRecommend} {showRecommendations ? text.hide : text.show}
+          {methods.length > 0 && ` (${text.methodCount(methods.length)})`}
         </Button>
       </div>
 
@@ -252,11 +261,11 @@ export function RecommendedMethods({
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-lg p-4 space-y-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-amber-500" />
-            <h4 className="font-medium text-sm">데이터 기반 AI 추천</h4>
+            <h4 className="font-medium text-sm">{text.aiRecommendTitle}</h4>
           </div>
 
           {methods.map((method) => {
-            const fitScore = calculateFitScore(method, dataProfile, assumptionResults)
+            const fitScore = calculateFitScore(method, dataProfile, assumptionResults, text.assumptionLabels)
             const isExpanded = expandedMethod === method.id
             const isSelected = selectedMethod?.id === method.id
 
@@ -288,7 +297,7 @@ export function RecommendedMethods({
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <span className="font-semibold text-sm">{method.name}</span>
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200">
-                          추천
+                          {text.recommendedBadge}
                         </Badge>
                       </div>
 
@@ -317,7 +326,7 @@ export function RecommendedMethods({
                     onOpenChange={(open) => setExpandedMethod(open ? method.id : null)}
                   >
                     <CollapsibleTrigger className="w-full px-4 pb-3 text-xs text-primary hover:underline flex items-center justify-center gap-1 border-t border-border/50 pt-2 mt-1">
-                      {isExpanded ? '간략히 보기' : '자세히 보기'}
+                      {isExpanded ? text.showBrief : text.showDetails}
                       <ChevronDown className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                     </CollapsibleTrigger>
                     <CollapsibleContent>
@@ -326,6 +335,7 @@ export function RecommendedMethods({
                           method={method}
                           dataProfile={dataProfile}
                           assumptionResults={assumptionResults}
+                          text={text}
                         />
                       </div>
                     </CollapsibleContent>

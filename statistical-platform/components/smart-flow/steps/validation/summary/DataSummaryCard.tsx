@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle2, AlertTriangle, XCircle, Info } from 'lucide-react'
 import { ValidationResults } from '@/types/smart-flow'
+import { useTerminology } from '@/hooks/use-terminology'
 
 interface DataSummaryCardProps {
   validationResults: ValidationResults
@@ -13,6 +14,9 @@ interface DataSummaryCardProps {
 export const DataSummaryCard = memo(function DataSummaryCard({
   validationResults
 }: DataSummaryCardProps) {
+  const t = useTerminology()
+  const vs = t.validationSummary
+
   const hasErrors = validationResults.errors.length > 0
   const hasWarnings = validationResults.warnings.length > 0
 
@@ -20,35 +24,35 @@ export const DataSummaryCard = memo(function DataSummaryCard({
     <Card className="border-primary/20">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          <span>데이터 검증 결과</span>
+          <span>{vs.cardTitle}</span>
           <Badge
             variant={hasErrors ? 'destructive' : hasWarnings ? 'secondary' : 'default'}
             className="ml-2"
           >
             {hasErrors
-              ? `${validationResults.errors.length}개 오류`
+              ? vs.errorCount(validationResults.errors.length)
               : hasWarnings
-              ? `${validationResults.warnings.length}개 경고`
-              : '정상'}
+              ? vs.warningCount(validationResults.warnings.length)
+              : vs.statusNormal}
           </Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">총 행 수</p>
+            <p className="text-sm text-muted-foreground">{vs.summaryLabels.totalRows}</p>
             <p className="text-2xl font-bold">{validationResults.totalRows}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">총 열 수</p>
+            <p className="text-sm text-muted-foreground">{vs.summaryLabels.totalColumns}</p>
             <p className="text-2xl font-bold">{validationResults.totalColumns}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">결측값</p>
+            <p className="text-sm text-muted-foreground">{vs.summaryLabels.missingValues}</p>
             <p className="text-2xl font-bold">{validationResults.missingValues}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">중복 행</p>
+            <p className="text-sm text-muted-foreground">{vs.summaryLabels.duplicateRows}</p>
             <p className="text-2xl font-bold">{validationResults.duplicateRows || 0}</p>
           </div>
         </div>
@@ -57,7 +61,7 @@ export const DataSummaryCard = memo(function DataSummaryCard({
           <div className="space-y-2">
             <h4 className="text-sm font-semibold flex items-center gap-2">
               <XCircle className="h-4 w-4 text-destructive" />
-              오류
+              {vs.sectionLabels.errors}
             </h4>
             <ul className="space-y-1">
               {validationResults.errors.map((error, idx) => (
@@ -71,7 +75,7 @@ export const DataSummaryCard = memo(function DataSummaryCard({
           <div className="space-y-2">
             <h4 className="text-sm font-semibold flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-yellow-600" />
-              경고
+              {vs.sectionLabels.warnings}
             </h4>
             <ul className="space-y-1">
               {validationResults.warnings.map((warning, idx) => (
@@ -84,7 +88,7 @@ export const DataSummaryCard = memo(function DataSummaryCard({
         {!hasErrors && !hasWarnings && (
           <div className="flex items-center gap-2 text-success">
             <CheckCircle2 className="h-4 w-4" />
-            <span className="text-sm">모든 데이터 검증을 통과했습니다.</span>
+            <span className="text-sm">{vs.allPassedMessage}</span>
           </div>
         )}
       </CardContent>

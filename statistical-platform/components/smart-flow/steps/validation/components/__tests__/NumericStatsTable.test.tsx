@@ -6,8 +6,22 @@
  */
 
 import { render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
 import { NumericStatsTable } from '../NumericStatsTable'
 import type { ColumnStatistics } from '@/types/smart-flow'
+
+// Mock: Terminology
+vi.mock('@/hooks/use-terminology', async () => {
+  const { aquaculture } = await import('@/lib/terminology/domains/aquaculture')
+  return {
+    useTerminology: () => aquaculture,
+    useTerminologyContext: () => ({
+      dictionary: aquaculture,
+      setDomain: vi.fn(),
+      currentDomain: 'aquaculture',
+    }),
+  }
+})
 
 describe('NumericStatsTable', () => {
   const mockNumericColumns: ColumnStatistics[] = [

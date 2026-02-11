@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { Upload, AlertCircle, Loader2, Clock, FileSpreadsheet, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { getUserFriendlyErrorMessage } from '@/lib/constants/error-messages'
+import { useTerminology } from '@/hooks/use-terminology'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { useDropzone } from 'react-dropzone'
@@ -46,6 +47,7 @@ export function DataUploadStep({
   existingFileName,
   compact = false
 }: DataUploadStepProps & { existingFileName?: string; compact?: boolean }) {
+  const t = useTerminology()
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [progress, setProgress] = useState<ProcessingProgress | null>(null)
@@ -110,10 +112,10 @@ export function DataUploadStep({
     const maxSize = isCSV ? 100 * 1024 * 1024 : isExcel ? 20 * 1024 * 1024 : DATA_LIMITS.MAX_FILE_SIZE
 
     if (file.size > maxSize) {
-      const errorMsg = `파일이 너무 큽니다. 최대 ${maxSize / 1024 / 1024}MB까지 가능합니다.`
+      const errorMsg = t.dataUpload.errors.fileTooLarge(maxSize / 1024 / 1024)
       setError(errorMsg)
-      toast.error('파일 크기 초과', {
-        description: `현재: ${(file.size / 1024 / 1024).toFixed(1)}MB`
+      toast.error(t.dataUpload.errors.fileSizeExceeded, {
+        description: t.dataUpload.errors.currentFileSize((file.size / 1024 / 1024).toFixed(1))
       })
       setIsUploading(false)
       return
@@ -127,7 +129,7 @@ export function DataUploadStep({
         if (!securityCheck.isValid) {
           const errorMsg = getUserFriendlyErrorMessage(securityCheck.error || 'File security validation failed')
           setError(errorMsg)
-          toast.error('파일 검증 실패', {
+          toast.error(t.dataUpload.errors.validationFailed, {
             description: errorMsg
           })
           setIsUploading(false)
@@ -161,9 +163,9 @@ export function DataUploadStep({
           })
 
           if (dataRows.length === 0) {
-            setError('파일에 데이터가 없습니다.')
-            toast.error('데이터 없음', {
-              description: '파일에 처리 가능한 데이터가 없습니다'
+            setError(t.dataUpload.errors.noDataInFile)
+            toast.error(t.dataUpload.errors.noDataTitle, {
+              description: t.dataUpload.errors.noValidData
             })
             setIsUploading(false)
             return
@@ -172,8 +174,8 @@ export function DataUploadStep({
           setUploadedFileName(file.name)
           addToRecentFiles(file.name, file.size, dataRows.length)
           onUploadComplete(file, dataRows)
-          toast.success('파일 업로드 성공', {
-            description: `${dataRows.length.toLocaleString()}행의 데이터를 불러왔습니다`
+          toast.success(t.dataUpload.success.fileUploaded, {
+            description: t.dataUpload.success.dataLoaded(dataRows.length.toLocaleString())
           })
           setIsUploading(false)
           setProgress(null)
@@ -192,17 +194,17 @@ export function DataUploadStep({
 
               const dataRows = result.data as DataRow[]
               if (dataRows.length > DATA_LIMITS.MAX_ROWS) {
-                const errorMsg = `데이터가 너무 많습니다. 최대 ${DATA_LIMITS.MAX_ROWS.toLocaleString()}행까지 가능합니다.`
+                const errorMsg = t.dataUpload.errors.tooManyRows(DATA_LIMITS.MAX_ROWS.toLocaleString())
                 setError(errorMsg)
-                toast.error('데이터 크기 초과', {
-                  description: `현재: ${dataRows.length.toLocaleString()}행`
+                toast.error(t.dataUpload.errors.dataSizeExceeded, {
+                  description: t.dataUpload.errors.currentRowCount(dataRows.length.toLocaleString())
                 })
                 setIsUploading(false)
                 return
               }
 
               if (dataRows.length === 0) {
-                setError('파일에 데이터가 없습니다.')
+                setError(t.dataUpload.errors.noDataInFile)
                 setIsUploading(false)
                 return
               }
@@ -210,8 +212,8 @@ export function DataUploadStep({
               setUploadedFileName(file.name)
               addToRecentFiles(file.name, file.size, dataRows.length)
               onUploadComplete(file, dataRows)
-              toast.success('파일 업로드 성공', {
-                description: `${dataRows.length.toLocaleString()}행의 데이터를 불러왔습니다`
+              toast.success(t.dataUpload.success.fileUploaded, {
+                description: t.dataUpload.success.dataLoaded(dataRows.length.toLocaleString())
               })
               setIsUploading(false)
             },
@@ -225,7 +227,7 @@ export function DataUploadStep({
           })
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : '파일 처리 중 오류가 발생했습니다.')
+        setError(err instanceof Error ? err.message : t.dataUpload.errors.processingError)
         setIsUploading(false)
         setProgress(null)
       }
@@ -235,8 +237,8 @@ export function DataUploadStep({
         // Excel 파일 유효성 검증
         const validation = ExcelProcessor.validateExcelFile(file)
         if (!validation.isValid) {
-          setError(validation.error || 'Excel 파일 검증 실패')
-          toast.error('Excel 파일 오류', {
+          setError(validation.error || t.dataUpload.errors.excelValidationFailed)
+          toast.error(t.dataUpload.errors.excelFileError, {
             description: validation.error
           })
           setIsUploading(false)
@@ -256,8 +258,8 @@ export function DataUploadStep({
           setUploadedFileName(file.name)
           addToRecentFiles(file.name, file.size, data.length)
           onUploadComplete(file, data)
-          toast.success('Excel 파일 업로드 성공', {
-            description: `${data.length.toLocaleString()}행의 데이터를 불러왔습니다`
+          toast.success(t.dataUpload.success.excelFileUploaded, {
+            description: t.dataUpload.success.dataLoaded(data.length.toLocaleString())
           })
           setIsUploading(false)
         } else {
@@ -265,22 +267,22 @@ export function DataUploadStep({
           setExcelSheets(sheets)
           setPendingExcelFile(file)
           setIsUploading(false)
-          toast.info('시트 선택', {
-            description: `${sheets.length}개의 시트가 발견되었습니다. 분석할 시트를 선택하세요.`
+          toast.info(t.dataUpload.toast.selectSheet, {
+            description: t.dataUpload.toast.sheetsFoundDescription(sheets.length)
           })
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Excel 파일 처리 중 오류가 발생했습니다.')
+        setError(err instanceof Error ? err.message : t.dataUpload.errors.excelProcessingError)
         setIsUploading(false)
       }
     } else {
-      setError('지원하지 않는 파일 형식입니다.')
-      toast.error('지원하지 않는 파일 형식', {
-        description: 'CSV 파일을 업로드해주세요'
+      setError(t.dataUpload.errors.unsupportedFormat)
+      toast.error(t.dataUpload.errors.unsupportedFormatTitle, {
+        description: t.dataUpload.errors.csvRequired
       })
       setIsUploading(false)
     }
-  }, [onUploadComplete])
+  }, [onUploadComplete, addToRecentFiles, t])
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -304,8 +306,8 @@ export function DataUploadStep({
       setUploadedFileName(pendingExcelFile.name)
       addToRecentFiles(pendingExcelFile.name, pendingExcelFile.size, data.length)
       onUploadComplete(pendingExcelFile, data)
-      toast.success('Excel 시트 로드 성공', {
-        description: `${data.length.toLocaleString()}행의 데이터를 불러왔습니다`
+      toast.success(t.dataUpload.success.sheetLoaded, {
+        description: t.dataUpload.success.dataLoaded(data.length.toLocaleString())
       })
 
       // 상태 초기화
@@ -314,10 +316,10 @@ export function DataUploadStep({
       setSelectedSheet(0)
       setIsUploading(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Excel 시트 처리 중 오류가 발생했습니다.')
+      setError(err instanceof Error ? err.message : t.dataUpload.errors.sheetProcessingError)
       setIsUploading(false)
     }
-  }, [pendingExcelFile, selectedSheet, onUploadComplete])
+  }, [pendingExcelFile, selectedSheet, onUploadComplete, addToRecentFiles, t])
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
@@ -348,12 +350,12 @@ export function DataUploadStep({
           {isUploading ? (
             <>
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              업로드 중...
+              {t.dataUpload.buttons.uploading}
             </>
           ) : (
             <>
               <RefreshCw className="h-3.5 w-3.5" />
-              파일 변경
+              {t.dataUpload.buttons.changeFile}
             </>
           )}
         </Button>
@@ -380,10 +382,10 @@ export function DataUploadStep({
     const hours = Math.floor(diff / 3600000)
     const days = Math.floor(diff / 86400000)
 
-    if (minutes < 1) return '방금 전'
-    if (minutes < 60) return `${minutes}분 전`
-    if (hours < 24) return `${hours}시간 전`
-    if (days < 7) return `${days}일 전`
+    if (minutes < 1) return t.hub.timeAgo.justNow
+    if (minutes < 60) return t.hub.timeAgo.minutesAgo(minutes)
+    if (hours < 24) return t.hub.timeAgo.hoursAgo(hours)
+    if (days < 7) return t.hub.timeAgo.daysAgo(days)
     return new Date(timestamp).toLocaleDateString()
   }
 
@@ -402,11 +404,11 @@ export function DataUploadStep({
           <input {...getInputProps()} />
           <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
           <h3 className="text-sm font-medium mb-1">
-            {isDragActive ? '파일을 놓으세요' : '파일을 드래그하거나 클릭하여 업로드'}
+            {isDragActive ? t.dataUpload.labels.dropHere : t.dataUpload.labels.dragOrClick}
           </h3>
-          <p className="text-xs text-muted-foreground mb-2">최대 100,000행 | 지원 형식: CSV, Excel</p>
+          <p className="text-xs text-muted-foreground mb-2">{t.dataUpload.labels.fileSpecifications}</p>
           <Button variant="outline" size="sm" disabled={isUploading}>
-            {isUploading ? '업로드 중...' : '파일 선택'}
+            {isUploading ? t.dataUpload.buttons.uploading : t.dataUpload.buttons.selectFile}
           </Button>
         </div>
       ) : (
@@ -418,7 +420,7 @@ export function DataUploadStep({
           <div {...getRootProps()}>
             <input {...getInputProps()} />
             <Button variant="outline" size="sm" disabled={isUploading}>
-              파일 변경
+              {t.dataUpload.buttons.changeFile}
             </Button>
           </div>
         </div>
@@ -429,7 +431,7 @@ export function DataUploadStep({
         <div className="space-y-2">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
-            <span>최근 업로드한 파일</span>
+            <span>{t.dataUpload.labels.recentFiles}</span>
           </div>
           <div className="grid gap-1.5">
             {recentFiles.map((file) => (
@@ -442,7 +444,7 @@ export function DataUploadStep({
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{file.name}</p>
                     <p className="text-xs text-muted-foreground">
-                      {file.rows.toLocaleString()}행 · {formatFileSize(file.size)} · {formatRelativeTime(file.uploadedAt)}
+                      {t.dataUpload.labels.fileMetadata(file.rows.toLocaleString(), formatFileSize(file.size), formatRelativeTime(file.uploadedAt))}
                     </p>
                   </div>
                 </div>
@@ -454,7 +456,7 @@ export function DataUploadStep({
                     e.stopPropagation()
                     removeRecentFile(file.name)
                   }}
-                  aria-label="최근 파일 삭제"
+                  aria-label={t.dataUpload.buttons.deleteRecentFile}
                 >
                   <X className="h-3 w-3" />
                 </Button>
@@ -462,7 +464,7 @@ export function DataUploadStep({
             ))}
           </div>
           <p className="text-xs text-muted-foreground">
-            * 최근 파일 목록은 참고용입니다. 파일을 다시 업로드해주세요.
+            {t.dataUpload.labels.recentFilesNote}
           </p>
         </div>
       )}
@@ -471,9 +473,9 @@ export function DataUploadStep({
       {excelSheets && excelSheets.length > 1 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Excel 시트 선택</CardTitle>
+            <CardTitle className="text-base">{t.dataUpload.labels.selectSheet}</CardTitle>
             <CardDescription>
-              {excelSheets.length}개의 시트가 발견되었습니다. 분석할 시트를 선택하세요.
+              {t.dataUpload.labels.sheetsFound(excelSheets.length)}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -482,12 +484,12 @@ export function DataUploadStep({
               onValueChange={(value) => setSelectedSheet(parseInt(value))}
             >
               <SelectTrigger>
-                <SelectValue placeholder="시트를 선택하세요" />
+                <SelectValue placeholder={t.dataUpload.labels.selectSheetPlaceholder} />
               </SelectTrigger>
               <SelectContent>
                 {excelSheets.map((sheet) => (
                   <SelectItem key={sheet.index} value={sheet.index.toString()}>
-                    {sheet.name} ({sheet.rows.toLocaleString()}행 × {sheet.cols}열)
+                    {t.dataUpload.labels.sheetInfo(sheet.name, sheet.rows.toLocaleString(), sheet.cols)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -501,10 +503,10 @@ export function DataUploadStep({
                   setSelectedSheet(0)
                 }}
               >
-                취소
+                {t.dataUpload.buttons.cancel}
               </Button>
               <Button onClick={handleSheetSelect} disabled={isUploading}>
-                {isUploading ? '불러오는 중...' : '선택한 시트 불러오기'}
+                {isUploading ? t.dataUpload.buttons.loading : t.dataUpload.buttons.loadSelectedSheet}
               </Button>
             </div>
           </CardContent>
@@ -516,14 +518,14 @@ export function DataUploadStep({
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">
-              처리 중... {progress.processedRows.toLocaleString()} / {progress.totalRows.toLocaleString()}행
+              {t.dataUpload.labels.processing(progress.processedRows.toLocaleString(), progress.totalRows.toLocaleString())}
             </span>
             <span className="font-medium">{Math.round(progress.percentage)}%</span>
           </div>
           <Progress value={progress.percentage} className="h-2" />
           {progress.estimatedTimeRemaining && progress.estimatedTimeRemaining > 0 && (
             <p className="text-xs text-muted-foreground text-right">
-              예상 남은 시간: {progress.estimatedTimeRemaining}초
+              {t.dataUpload.labels.estimatedTime(progress.estimatedTimeRemaining)}
             </p>
           )}
         </div>
@@ -535,10 +537,10 @@ export function DataUploadStep({
           <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
           <div className="space-y-1">
             <p className="text-sm font-medium text-yellow-900 dark:text-yellow-100">
-              메모리 사용량 높음
+              {t.dataUpload.warnings.highMemoryTitle}
             </p>
             <p className="text-xs text-yellow-700 dark:text-yellow-300">
-              브라우저 메모리 사용량이 높습니다. 다른 탭을 닫거나 더 작은 데이터셋을 사용해주세요.
+              {t.dataUpload.warnings.highMemoryDescription}
             </p>
           </div>
         </div>
@@ -557,7 +559,7 @@ export function DataUploadStep({
           <div className="flex items-center space-x-2">
             <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
             <p className="text-sm text-blue-900 dark:text-blue-100">
-              파일을 분석하고 있습니다...
+              {t.dataUpload.labels.analyzing}
             </p>
           </div>
         </div>
@@ -568,7 +570,7 @@ export function DataUploadStep({
         <div className="bg-muted/50 rounded-lg p-3">
           <p className="text-xs text-muted-foreground flex items-start gap-1.5">
             <span>💡</span>
-            <span>첫 번째 행은 변수명(헤더)이어야 합니다. Excel 파일의 경우 여러 시트가 있으면 선택할 수 있습니다.</span>
+            <span>{t.dataUpload.labels.helpText}</span>
           </p>
         </div>
       )}

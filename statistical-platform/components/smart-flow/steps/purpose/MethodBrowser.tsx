@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn } from '@/lib/utils'
 import type { StatisticalMethod } from '@/types/smart-flow'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import { useTerminology } from '@/hooks/use-terminology'
 import type { CompatibilityResult, CompatibilityStatus } from '@/lib/statistics/data-method-compatibility'
 import { getCompatibilityForMethod } from '@/lib/statistics/data-method-compatibility'
 
@@ -90,6 +91,7 @@ export function MethodBrowser({
   onMethodSelect,
   dataProfile
 }: MethodBrowserProps) {
+  const t = useTerminology()
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
 
@@ -240,12 +242,12 @@ export function MethodBrowser({
                 <Sparkles className={cn("w-5 h-5", canUse ? "text-amber-500" : "text-gray-400")} />
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold">AI Recommended</span>
-                    <Badge variant="secondary" className="text-xs">Best Match</Badge>
+                    <span className="font-semibold">{t.methodBrowser.aiRecommendation.label}</span>
+                    <Badge variant="secondary" className="text-xs">{t.methodBrowser.aiRecommendation.badge}</Badge>
                     {!canUse && (
                       <Badge variant="destructive" className="text-xs">
                         <AlertCircle className="w-3 h-3 mr-1" />
-                        Requirements not met
+                        {t.methodBrowser.requirementsNotMet}
                       </Badge>
                     )}
                   </div>
@@ -269,10 +271,10 @@ export function MethodBrowser({
                 {selectedMethod?.id === recommendedMethod.id ? (
                   <>
                     <Check className="w-4 h-4 mr-1" />
-                    Selected
+                    {t.methodBrowser.selectedLabel}
                   </>
                 ) : (
-                  'Use This'
+                  t.methodBrowser.useThisButton
                 )}
               </Button>
             </div>
@@ -285,7 +287,7 @@ export function MethodBrowser({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search methods..."
+            placeholder={t.methodBrowser.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -305,12 +307,12 @@ export function MethodBrowser({
       {/* Method Count */}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          {totalMethods} methods
+          {totalMethods} {t.methodBrowser.methodsLabel}
           {searchQuery && ` matching "${searchQuery}"`}
         </span>
         {selectedMethod && (
           <span className="text-primary font-medium">
-            Selected: {selectedMethod.name}
+            {t.methodBrowser.selectedPrefix}{selectedMethod.name}
           </span>
         )}
       </div>
@@ -355,12 +357,12 @@ export function MethodBrowser({
                         },
                         warning: {
                           icon: <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />,
-                          badge: <Badge variant="outline" className="text-xs border-amber-300 text-amber-600 bg-amber-50 dark:bg-amber-950/30">주의</Badge>,
+                          badge: <Badge variant="outline" className="text-xs border-amber-300 text-amber-600 bg-amber-50 dark:bg-amber-950/30">{t.methodBrowser.compatibilityStatus.warning}</Badge>,
                           borderClass: 'border-amber-200 dark:border-amber-800'
                         },
                         incompatible: {
                           icon: <AlertCircle className="w-3.5 h-3.5 text-destructive" />,
-                          badge: <Badge variant="destructive" className="text-xs">불가</Badge>,
+                          badge: <Badge variant="destructive" className="text-xs">{t.methodBrowser.compatibilityStatus.incompatible}</Badge>,
                           borderClass: 'border-destructive/30'
                         }
                       }
@@ -441,7 +443,7 @@ export function MethodBrowser({
                             <TooltipContent side="right" className="max-w-xs">
                               <div className="space-y-1">
                                 <p className="font-medium text-sm">
-                                  {requirements.status === 'incompatible' ? '사용 불가' : '주의 필요'}
+                                  {requirements.status === 'incompatible' ? t.methodBrowser.tooltips.incompatible : t.methodBrowser.tooltips.warning}
                                 </p>
                                 <ul className="text-xs space-y-0.5">
                                   {requirements.warnings.map((w, i) => (
@@ -468,12 +470,12 @@ export function MethodBrowser({
           {filteredGroups.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p>No methods found for "{searchQuery}"</p>
+              <p>{t.methodBrowser.noResultsMessage(searchQuery)}</p>
               <button
                 onClick={() => setSearchQuery('')}
                 className="text-primary hover:underline text-sm mt-2"
               >
-                Clear search
+                {t.methodBrowser.clearSearchButton}
               </button>
             </div>
           )}

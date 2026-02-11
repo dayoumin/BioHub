@@ -540,6 +540,52 @@ vi.mock('@/hooks/use-terminology', () => ({
       messages: { purposeHelp: '', guidanceAlert: '', aiRecommendError: '', genericError: '' },
       aiLabels: { recommendTitle: '' },
     },
+    results: {
+      effectSizeLabels: { small: '작음', medium: '중간', large: '큼', veryLarge: '매우 큼' },
+      noResults: '분석을 먼저 실행해주세요.',
+      conclusion: {
+        assumptionWarning: '⚠️ 일부 가정 미충족 - 결과 해석에 주의 필요',
+        significant: '✓ 통계적으로 유의한 차이가 있습니다',
+        notSignificant: '통계적으로 유의한 차이가 없습니다',
+      },
+      statistics: {
+        statistic: '통계량', statisticTooltip: '',
+        pValue: '유의확률', pValueTooltip: '',
+        effectSize: '효과크기', effectSizeTooltip: '',
+        significant: '유의함', notSignificant: '유의하지 않음',
+      },
+      ai: { loading: 'AI가 결과를 해석하고 있어요...', detailedLabel: '상세 해석', reinterpret: '다시 해석', retry: '다시 시도', defaultError: 'AI 해석 중 오류가 발생했습니다.' },
+      sections: {
+        detailedResults: '상세 결과', confidenceInterval: '신뢰구간',
+        apaFormat: 'APA 형식', diagnostics: '진단 & 권장', caution: '주의',
+        recommendations: '권장사항', warnings: '주의사항', alternatives: '대안 분석 방법',
+      },
+      metadata: {
+        file: '파일: ', data: '데이터: ', variables: '변수: ',
+        rowsCols: (r: number, c: number) => `${r}행 × ${c}열`,
+      },
+      buttons: {
+        saved: '저장됨', save: '저장', generating: '생성중...', pdf: 'PDF',
+        copied: '복사됨', copy: '복사', saveTemplate: '템플릿으로 저장',
+        reanalyze: '다른 데이터로 재분석', newAnalysis: '새 분석 시작',
+      },
+      save: {
+        defaultName: (d: string) => `분석 ${d}`, promptMessage: '분석 이름을 입력하세요:',
+        success: '저장되었습니다', errorTitle: '저장 실패', unknownError: '알 수 없는 오류',
+      },
+      toast: {
+        reanalyzeReady: '새 데이터를 업로드하세요', reanalyzeMethod: (n: string) => `${n} 분석이 준비되어 있습니다`,
+        newAnalysis: '새 분석을 시작합니다', pdfSuccess: 'PDF 보고서가 생성되었습니다', pdfError: 'PDF 생성에 실패했습니다',
+        copyWithAi: '결과 + AI 해석이 복사되었습니다', copySuccess: '결과가 복사되었습니다', copyError: '복사 실패',
+        templateSaved: '템플릿이 저장되었습니다',
+      },
+      clipboard: {
+        itemHeader: '항목', valueHeader: '값',
+        statistic: (n: string) => `통계량 (${n})`, df: '자유도 (df)', effectSize: '효과크기',
+        confidenceInterval: '95% 신뢰구간', interpretation: '해석:',
+        aiInterpretation: 'AI 해석', aiSeparator: '--- AI 해석 ---',
+      },
+    },
   }),
   useTerminologyContext: () => ({
     dictionary: { domain: 'generic', displayName: '범용 통계' },

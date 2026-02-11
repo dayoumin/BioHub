@@ -3,6 +3,7 @@
 import { memo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { useTerminology } from '@/hooks/use-terminology'
 import type { ColumnStatistics } from '@/types/smart-flow'
 import { VALIDATION_CONSTANTS } from '../utils'
 
@@ -13,6 +14,9 @@ interface CategoricalFrequencyCardProps {
 export const CategoricalFrequencyCard = memo(function CategoricalFrequencyCard({
   columnStats
 }: CategoricalFrequencyCardProps) {
+  const t = useTerminology()
+  const vd = t.validationDetails.categorical
+
   const categoricalColumns = columnStats.filter(s => s.type === 'categorical')
 
   if (categoricalColumns.length === 0) {
@@ -22,7 +26,7 @@ export const CategoricalFrequencyCard = memo(function CategoricalFrequencyCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>범주형 변수 빈도 분석</CardTitle>
+        <CardTitle>{vd.title}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -39,13 +43,13 @@ export const CategoricalFrequencyCard = memo(function CategoricalFrequencyCard({
                   <h4 className="font-medium">{stat.name}</h4>
                   <div className="flex gap-2">
                     <Badge variant="secondary">
-                      {stat.uniqueValues}개 카테고리
+                      {vd.categoryCount(stat.uniqueValues)}
                     </Badge>
                     {hasSkewedDistribution && (
-                      <Badge variant="warning" className="text-xs">편향 분포</Badge>
+                      <Badge variant="warning" className="text-xs">{vd.skewedDistribution}</Badge>
                     )}
                     {hasSparseCategories && !hasSkewedDistribution && (
-                      <Badge variant="warning" className="text-xs">희소 카테고리</Badge>
+                      <Badge variant="warning" className="text-xs">{vd.sparseCategory}</Badge>
                     )}
                   </div>
                 </div>
@@ -55,8 +59,8 @@ export const CategoricalFrequencyCard = memo(function CategoricalFrequencyCard({
                       const percentage = ((val.count / totalValidCount) * 100).toFixed(1)
                       return (
                         <div key={vidx} className="flex items-center gap-3">
-                          <span className="text-sm flex-1 truncate">{val.value || '(빈 값)'}</span>
-                          <span className="text-sm text-muted-foreground">{val.count}개</span>
+                          <span className="text-sm flex-1 truncate">{val.value || vd.emptyValue}</span>
+                          <span className="text-sm text-muted-foreground">{vd.itemCount(val.count)}</span>
                           <div className="w-24">
                             <div className="h-2 bg-secondary rounded-full overflow-hidden">
                               <div
@@ -71,16 +75,16 @@ export const CategoricalFrequencyCard = memo(function CategoricalFrequencyCard({
                     })}
                     {stat.uniqueValues > VALIDATION_CONSTANTS.MAX_DISPLAY_CATEGORIES && (
                       <p className="text-xs text-muted-foreground mt-2">
-                        ... 외 {stat.uniqueValues - VALIDATION_CONSTANTS.MAX_DISPLAY_CATEGORIES}개 카테고리
+                        {vd.moreCategories(stat.uniqueValues - VALIDATION_CONSTANTS.MAX_DISPLAY_CATEGORIES)}
                       </p>
                     )}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">빈도 정보 없음</p>
+                  <p className="text-sm text-muted-foreground">{vd.noFrequencyInfo}</p>
                 )}
                 {stat.missingCount > 0 && (
                   <div className="mt-2 text-xs text-muted-foreground">
-                    결측값: {stat.missingCount}개
+                    {vd.missingCount(stat.missingCount)}
                   </div>
                 )}
               </div>

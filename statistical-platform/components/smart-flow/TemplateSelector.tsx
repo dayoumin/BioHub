@@ -19,6 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
+import { useTerminology } from '@/hooks/use-terminology'
 import { useTemplateStore } from '@/lib/stores/template-store'
 import type { AnalysisTemplate } from '@/types/smart-flow'
 import { cn } from '@/lib/utils'
@@ -47,6 +48,7 @@ export const TemplateSelector = memo(function TemplateSelector({
   maxItems = 5,
   className
 }: TemplateSelectorProps) {
+  const t = useTerminology()
   const {
     recentTemplates,
     isLoading,
@@ -79,33 +81,17 @@ export const TemplateSelector = memo(function TemplateSelector({
     const hours = Math.floor(diff / 3600000)
     const days = Math.floor(diff / 86400000)
 
-    if (minutes < 1) return '방금 전'
-    if (minutes < 60) return `${minutes}분 전`
-    if (hours < 24) return `${hours}시간 전`
-    if (days < 7) return `${days}일 전`
-    return new Date(timestamp).toLocaleDateString('ko-KR')
-  }, [])
+    if (minutes < 1) return t.template.timeAgo.justNow
+    if (minutes < 60) return t.template.timeAgo.minutesAgo(minutes)
+    if (hours < 24) return t.template.timeAgo.hoursAgo(hours)
+    if (days < 7) return t.template.timeAgo.daysAgo(days)
+    return new Date(timestamp).toLocaleDateString()
+  }, [t])
 
-  // 카테고리 한글 변환
+  // 카테고리 라벨 변환
   const getCategoryLabel = useCallback((category: string): string => {
-    const labels: Record<string, string> = {
-      'descriptive': '기술통계',
-      't-test': 't-검정',
-      'anova': '분산분석',
-      'regression': '회귀분석',
-      'correlation': '상관분석',
-      'chi-square': '카이제곱',
-      'nonparametric': '비모수',
-      'advanced': '고급분석',
-      'timeseries': '시계열',
-      'pca': 'PCA',
-      'clustering': '군집분석',
-      'psychometrics': '심리측정',
-      'design': '실험설계',
-      'survival': '생존분석'
-    }
-    return labels[category] || category
-  }, [])
+    return t.template.methodCategories[category] || category
+  }, [t])
 
   // 템플릿이 없으면 표시 안 함
   if (recentTemplates.length === 0 && !isLoading) {
@@ -121,14 +107,14 @@ export const TemplateSelector = memo(function TemplateSelector({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <FileText className="h-4 w-4" />
-            <span>저장된 템플릿</span>
+            <span>{t.template.savedTemplates}</span>
             <Badge variant="secondary" className="text-xs">
               {recentTemplates.length}
             </Badge>
           </div>
           {recentTemplates.length > maxItems && onViewAll && (
             <Button variant="ghost" size="sm" onClick={onViewAll} className="h-7 text-xs">
-              전체보기
+              {t.template.buttons.viewAll}
               <ChevronRight className="h-3 w-3 ml-1" />
             </Button>
           )}
@@ -137,7 +123,7 @@ export const TemplateSelector = memo(function TemplateSelector({
         {isLoading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
             <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            불러오는 중...
+            {t.template.loading}
           </div>
         ) : (
           <div className="flex flex-wrap gap-2">
@@ -155,7 +141,7 @@ export const TemplateSelector = memo(function TemplateSelector({
                 <span className="truncate max-w-[120px]">{template.name}</span>
                 {template.usageCount > 0 && (
                   <span className="text-[10px] text-muted-foreground">
-                    ({template.usageCount}회)
+                    ({t.template.usageCountShort(template.usageCount)})
                   </span>
                 )}
               </Button>
@@ -173,9 +159,9 @@ export const TemplateSelector = memo(function TemplateSelector({
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            저장된 템플릿
+            {t.template.savedTemplates}
           </CardTitle>
-          <Badge variant="outline">{recentTemplates.length}개</Badge>
+          <Badge variant="outline">{t.template.templateCount(recentTemplates.length)}</Badge>
         </div>
       </CardHeader>
       <CardContent className="p-0">
@@ -220,7 +206,7 @@ export const TemplateSelector = memo(function TemplateSelector({
                         {formatRelativeTime(template.lastUsedAt || template.createdAt)}
                       </span>
                       {template.usageCount > 0 && (
-                        <span>{template.usageCount}회 사용</span>
+                        <span>{t.template.usageCount(template.usageCount)}</span>
                       )}
                     </div>
                   </div>
@@ -243,7 +229,7 @@ export const TemplateSelector = memo(function TemplateSelector({
                         className="text-destructive focus:text-destructive"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
-                        삭제
+                        {t.template.buttons.delete}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

@@ -10,6 +10,7 @@ import type { StatisticalMethod } from '@/types/smart-flow'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import type { CompatibilityResult, CompatibilityIssue } from '@/lib/utils/variable-compatibility'
 import { formatCompatibilityIssue } from '@/lib/utils/variable-compatibility'
+import { useTerminology } from '@/hooks/use-terminology'
 
 interface ReanalysisPanelProps {
   /** 선택된 통계 방법 */
@@ -27,27 +28,9 @@ interface ReanalysisPanelProps {
 }
 
 /**
- * 변수 역할 한글 레이블
- */
-const ROLE_LABELS: Record<string, string> = {
-  dependentVar: '종속변수',
-  independentVar: '독립변수',
-  groupVar: '그룹변수',
-  timeVar: '시간변수',
-  variables: '분석변수',
-  covariate: '공변량',
-  within: '개체내 요인',
-  between: '개체간 요인',
-  blocking: '블록변수',
-  event: '이벤트변수',
-  censoring: '중도절단변수',
-  weight: '가중치변수'
-}
-
-/**
  * 변수 매핑 요약 표시
  */
-function VariableMappingSummary({ mapping }: { mapping: VariableMapping | null }) {
+function VariableMappingSummary({ mapping, roleLabels }: { mapping: VariableMapping | null; roleLabels: Record<string, string> }) {
   if (!mapping) return null
 
   const entries = Object.entries(mapping).filter(
@@ -59,7 +42,7 @@ function VariableMappingSummary({ mapping }: { mapping: VariableMapping | null }
   return (
     <div className="space-y-2">
       {entries.map(([role, value]) => {
-        const label = ROLE_LABELS[role] || role
+        const label = roleLabels[role] || role
         const displayValue = Array.isArray(value) ? value.join(', ') : value
         return (
           <div key={role} className="flex items-center gap-2 text-sm">
@@ -113,6 +96,9 @@ export function ReanalysisPanel({
   onEditVariables,
   isAnalyzing = false
 }: ReanalysisPanelProps) {
+  const t = useTerminology()
+  const reanalysis = t.reanalysis
+  const roleLabels: Record<string, string> = reanalysis.variableRoles
   const isCompatible = compatibility?.isCompatible ?? false
   const issues = compatibility?.issues ?? []
   const summary = compatibility?.summary
@@ -122,10 +108,10 @@ export function ReanalysisPanel({
       <CardHeader className="pb-4">
         <div className="flex items-center gap-2">
           <Settings2 className="w-5 h-5 text-primary" />
-          <CardTitle className="text-lg">재분석 모드</CardTitle>
+          <CardTitle className="text-lg">{reanalysis.title}</CardTitle>
         </div>
         <CardDescription>
-          이전 분석 설정을 새 데이터에 적용합니다
+          {reanalysis.description}
         </CardDescription>
       </CardHeader>
 
@@ -153,9 +139,9 @@ export function ReanalysisPanel({
         <div className="space-y-2">
           <h4 className="text-sm font-medium flex items-center gap-2">
             <Info className="w-4 h-4" />
-            저장된 변수 설정
+            {reanalysis.savedVariableSettings}
           </h4>
-          <VariableMappingSummary mapping={variableMapping} />
+          <VariableMappingSummary mapping={variableMapping} roleLabels={roleLabels} />
         </div>
 
         <Separator />
@@ -167,27 +153,27 @@ export function ReanalysisPanel({
             <Alert className="bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800">
               <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
               <AlertTitle className="text-green-800 dark:text-green-200">
-                모든 변수가 일치합니다
+                {reanalysis.allVariablesMatch}
               </AlertTitle>
               <AlertDescription className="text-green-700 dark:text-green-300">
                 {summary && (
                   <span>
-                    {summary.matched}개 변수 확인 완료.{' '}
+                    {reanalysis.matchedCount(summary.matched)}{' '}
                     {summary.typeMismatch > 0 && (
                       <span className="text-yellow-600">
-                        (타입 주의: {summary.typeMismatch}개)
+                        ({reanalysis.typeMismatchWarning(summary.typeMismatch)})
                       </span>
                     )}
                   </span>
                 )}
-                {' '}바로 분석할 수 있습니다.
+                {' '}{reanalysis.readyToAnalyze}
               </AlertDescription>
             </Alert>
 
             {/* 타입 경고가 있는 경우 표시 */}
             {issues.length > 0 && (
               <div className="text-sm space-y-1">
-                <p className="text-muted-foreground">타입 주의사항:</p>
+                <p className="text-muted-foreground">{reanalysis.typeCaution}</p>
                 <CompatibilityIssueList issues={issues} />
               </div>
             )}
@@ -201,12 +187,12 @@ export function ReanalysisPanel({
               {isAnalyzing ? (
                 <>
                   <span className="animate-spin mr-2">⏳</span>
-                  분석 중...
+                  {reanalysis.analyzing}
                 </>
               ) : (
                 <>
                   <Play className="w-5 h-5 mr-2" />
-                  분석 실행
+                  {reanalysis.runAnalysis}
                 </>
               )}
             </Button>
@@ -216,14 +202,14 @@ export function ReanalysisPanel({
           <div className="space-y-4">
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>변수가 일치하지 않습니다</AlertTitle>
+              <AlertTitle>{reanalysis.variablesMismatch}</AlertTitle>
               <AlertDescription>
                 {summary && (
                   <span>
-                    필요한 {summary.totalRequired}개 변수 중 {summary.missing}개가 없습니다.
+                    {reanalysis.missingVariables(summary.totalRequired, summary.missing)}
                   </span>
                 )}
-                {' '}변수를 다시 선택해주세요.
+                {' '}{reanalysis.pleaseReselectVariables}
               </AlertDescription>
             </Alert>
 
@@ -239,17 +225,17 @@ export function ReanalysisPanel({
                 onClick={onEditVariables}
               >
                 <Settings2 className="w-4 h-4 mr-2" />
-                변수 다시 선택
+                {reanalysis.editVariables}
               </Button>
               <Button
                 variant="default"
                 className="flex-1"
                 onClick={onRunAnalysis}
                 disabled={true}
-                title="변수 매핑을 먼저 수정해주세요"
+                title={reanalysis.fixMappingFirst}
               >
                 <Play className="w-4 h-4 mr-2" />
-                분석 실행
+                {reanalysis.runAnalysis}
               </Button>
             </div>
           </div>

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { BarChart, LineChart } from 'lucide-react'
 import { ColumnStatistics } from '@/types/smart-flow'
 import { TableSkeleton } from './TableSkeleton'
+import { useTerminology } from '@/hooks/use-terminology'
 
 interface ColumnStatsTableProps {
   columnStats: ColumnStatistics[]
@@ -18,6 +19,9 @@ export const ColumnStatsTable = memo(function ColumnStatsTable({
   onColumnClick,
   isLoading = false
 }: ColumnStatsTableProps) {
+  const t = useTerminology()
+  const vs = t.validationSummary
+
   if (isLoading) {
     return <TableSkeleton rows={5} columns={6} />
   }
@@ -26,12 +30,12 @@ export const ColumnStatsTable = memo(function ColumnStatsTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b">
-            <th className="text-left p-2">변수명</th>
-            <th className="text-left p-2">타입</th>
-            <th className="text-left p-2">결측값</th>
-            <th className="text-left p-2">고유값</th>
-            <th className="text-left p-2">통계</th>
-            <th className="text-left p-2">작업</th>
+            <th className="text-left p-2">{vs.tableHeaders.variableName}</th>
+            <th className="text-left p-2">{vs.tableHeaders.type}</th>
+            <th className="text-left p-2">{vs.tableHeaders.missingValues}</th>
+            <th className="text-left p-2">{vs.tableHeaders.uniqueValues}</th>
+            <th className="text-left p-2">{vs.tableHeaders.statistics}</th>
+            <th className="text-left p-2">{vs.tableHeaders.actions}</th>
           </tr>
         </thead>
         <tbody>
@@ -40,7 +44,7 @@ export const ColumnStatsTable = memo(function ColumnStatsTable({
               <td className="p-2 font-medium">{stat.name}</td>
               <td className="p-2">
                 <Badge variant={stat.type === 'numeric' ? 'default' : stat.type === 'categorical' ? 'secondary' : 'outline'}>
-                  {stat.type === 'numeric' ? '숫자형' : stat.type === 'categorical' ? '범주형' : '혼합'}
+                  {stat.type === 'numeric' ? vs.typeLabels.numeric : stat.type === 'categorical' ? vs.typeLabels.categorical : vs.typeLabels.mixed}
                 </Badge>
               </td>
               <td className="p-2">
@@ -52,13 +56,13 @@ export const ColumnStatsTable = memo(function ColumnStatsTable({
               <td className="p-2">
                 {stat.type === 'numeric' ? (
                   <div className="text-xs">
-                    <div>평균: {stat.mean?.toFixed(2)}</div>
-                    <div>표준편차: {stat.std?.toFixed(2)}</div>
+                    <div>{vs.statistics.meanLabel}: {stat.mean?.toFixed(2)}</div>
+                    <div>{vs.statistics.stdDevLabel}: {stat.std?.toFixed(2)}</div>
                   </div>
                 ) : stat.type === 'categorical' && stat.topCategories ? (
                   <div className="text-xs">
-                    <div>최빈값: {stat.topCategories[0]?.value}</div>
-                    <div>빈도: {stat.topCategories[0]?.count}</div>
+                    <div>{vs.statistics.modeLabel}: {stat.topCategories[0]?.value}</div>
+                    <div>{vs.statistics.frequencyLabel}: {stat.topCategories[0]?.count}</div>
                   </div>
                 ) : (
                   <span className="text-muted-foreground">-</span>
@@ -70,14 +74,14 @@ export const ColumnStatsTable = memo(function ColumnStatsTable({
                   variant="ghost"
                   onClick={() => onColumnClick(stat)}
                   className="h-7"
-                  aria-label={`${stat.name} 변수 상세 보기`}
+                  aria-label={vs.viewDetailAriaLabel(stat.name)}
                 >
                   {stat.type === 'numeric' ? (
                     <LineChart className="h-4 w-4" aria-hidden="true" />
                   ) : (
                     <BarChart className="h-4 w-4" aria-hidden="true" />
                   )}
-                  <span className="ml-1">보기</span>
+                  <span className="ml-1">{vs.buttons.view}</span>
                 </Button>
               </td>
             </tr>

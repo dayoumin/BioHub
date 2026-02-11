@@ -5,6 +5,7 @@ import { PlotlyChartImproved } from '@/components/charts/PlotlyChartImproved'
 import { getHeatmapLayout } from '@/lib/plotly-config'
 import { CORRELATION_HEATMAP_COLORS } from '../constants/chartStyles'
 import type { Data } from 'plotly.js'
+import { useTerminology } from '@/hooks/use-terminology'
 
 interface CorrelationHeatmapProps {
   matrix: number[][]
@@ -17,6 +18,9 @@ export const CorrelationHeatmap = memo(function CorrelationHeatmap({
   labels,
   height = 400
 }: CorrelationHeatmapProps) {
+  const t = useTerminology()
+  const vs = t.validationSummary
+
   return (
     <PlotlyChartImproved
       data={[{
@@ -30,10 +34,10 @@ export const CorrelationHeatmap = memo(function CorrelationHeatmap({
         text: matrix.map(row => row.map(val => val.toFixed(2))),
         texttemplate: '%{text}',
         textfont: { size: 10, color: '#000' },
-        hovertemplate: '%{x} vs %{y}: %{z:.2f}<extra></extra>'
+        hovertemplate: vs.heatmapHoverTemplate
       } as unknown as Data]}
       layout={getHeatmapLayout({
-        title: { text: '변수 간 상관관계' },
+        title: { text: vs.correlationTitle },
         height: height
       })}
       config={{

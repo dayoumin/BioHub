@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Sparkles, Check, Info } from 'lucide-react'
+import { useTerminology } from '@/hooks/use-terminology'
 import type { GuidedQuestion, AutoAnswerResult } from '@/types/smart-flow'
 
 interface ConversationalQuestionProps {
@@ -22,6 +23,8 @@ export function ConversationalQuestion({
   autoAnswer,
   direction = 'forward'
 }: ConversationalQuestionProps) {
+  const t = useTerminology()
+  const text = t.conversationalQuestion
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Auto-answer 정보
@@ -85,9 +88,9 @@ export function ConversationalQuestion({
               )}
             >
               <Sparkles className="h-3.5 w-3.5" />
-              {autoAnswer.confidence === 'high' && 'AI가 데이터를 분석했습니다'}
-              {autoAnswer.confidence === 'medium' && 'AI 추천 (확인 필요)'}
-              {autoAnswer.confidence === 'low' && 'AI 참고 정보'}
+              {autoAnswer.confidence === 'high' && text.aiAnalyzed}
+              {autoAnswer.confidence === 'medium' && text.aiRecommendNeedsCheck}
+              {autoAnswer.confidence === 'low' && text.aiReferenceInfo}
             </Badge>
           </div>
         )}
@@ -150,7 +153,7 @@ export function ConversationalQuestion({
                       className="text-xs bg-primary/5 text-primary border-primary/20"
                     >
                       <Sparkles className="h-3 w-3 mr-1" />
-                      추천
+                      {text.recommendedBadge}
                     </Badge>
                   )}
                 </div>
@@ -194,7 +197,7 @@ export function ConversationalQuestion({
 
       {/* 키보드 힌트 */}
       <p className="text-xs text-muted-foreground text-center">
-        숫자 키(1-{question.options.length})로 선택하거나 클릭하세요
+        {text.keyboardHint(question.options.length)}
       </p>
     </div>
   )

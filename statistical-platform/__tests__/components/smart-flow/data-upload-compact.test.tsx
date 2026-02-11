@@ -12,6 +12,26 @@ import { vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 
+// ===== Mock: Terminology =====
+vi.mock('@/hooks/use-terminology', () => ({
+  useTerminology: () => ({
+    domain: 'aquaculture', displayName: '수산과학',
+    variables: {}, validation: {}, success: {}, selectorUI: {},
+    smartFlow: { stepTitles: {}, stepShortLabels: { exploration: '', method: '', variable: '', analysis: '' }, statusMessages: {}, buttons: {}, resultSections: { effectSizeDetail: '' }, executionStages: { prepare: { label: '', message: '' }, preprocess: { label: '', message: '' }, assumptions: { label: '', message: '' }, analysis: { label: '', message: '' }, additional: { label: '', message: '' }, finalize: { label: '', message: '' } }, layout: { appTitle: '', historyTitle: '', historyClose: '', historyCount: () => '', aiChatbot: '', helpLabel: '', settingsLabel: '', nextStep: '', analyzingDefault: '', dataSizeGuide: '', currentLimits: '', memoryRecommendation: '', detectedMemory: () => '', limitFileSize: '', limitDataSize: '', limitRecommended: '', memoryTier4GB: '', memoryTier8GB: '', memoryTier16GB: '' }, execution: { runningTitle: '', resumeButton: '', pauseButton: '', cancelButton: '', pauseDisabledTooltip: '', cancelConfirm: '', logSectionLabel: () => '', noLogs: '', dataRequired: '', unknownError: '', estimatedTimeRemaining: () => '' } },
+    purposeInput: { purposes: {}, inputModes: { aiRecommend: '', directSelect: '', modeAriaLabel: '' }, buttons: { back: '', allMethods: '', useThisMethod: '' }, labels: { selectionPrefix: '', directBadge: '', purposeHeading: '' }, messages: { purposeHelp: '', guidanceAlert: '', aiRecommendError: '', genericError: '' }, aiLabels: { recommendTitle: '' } },
+    dataExploration: { empty: { title: '', description: '' }, features: { descriptiveTitle: '', descriptiveDesc: '', distributionTitle: '', distributionDesc: '', correlationTitle: '', correlationDesc: '' }, tabs: { dataSummary: '', fullDataView: () => '', statistics: '', preview: '' }, headers: { variableName: '', count: '', mean: '', stdDev: '', median: '', min: '', max: '', skewness: '', kurtosis: '', outliers: '' }, interpretGuide: { title: '', skewness: '', kurtosis: '', outlierDef: '', nDef: '' }, outlier: { detected: () => '', variableDetail: () => '', moreVars: () => '', count: () => '', info: () => '' }, chartTypes: { histogram: '', boxplot: '', ariaLabel: '' }, distribution: { title: '', description: '' }, histogram: { title: () => '', yAxisLabel: '' }, boxplot: { selectInstruction: '', singleTitle: () => '', multipleTitle: () => '' }, scatterTabs: { scatter: '', heatmap: '' }, scatter: { variableRelation: '', xAxis: '', yAxis: '' }, correlation: { coefficient: '', determination: '', strong: '', medium: '', weak: '' }, heatmap: { title: '', description: '', calculating: '', variableCount: () => '' }, heatmapGuide: { title: '', strongPositive: '', strongNegative: '', noCorrelation: '', veryStrong: '' }, strongCorrelations: { title: '' }, strength: { weak: '', medium: '', strong: '', veryStrong: '' }, assumptions: { loading: '', loadingDescription: '', badge: '', title: '', description: '' }, normality: { title: '', normal: '', nonNormal: '', statLabel: '', normalInterpretation: '', nonNormalInterpretation: '' }, homogeneity: { title: '', equal: '', unequal: '', statLabel: '', equalInterpretation: '', unequalInterpretation: '' }, highlight: { description: () => '', clearButton: '', notFound: '' }, preview: { title: '', topN: () => '', viewAll: () => '', fullDataInstruction: () => '' }, warnings: { fewNumericVars: '', correlationRequires: '', currentStatus: () => '', nextStepHint: '' }, fallbackFileName: '' },
+    dataUpload: {
+      buttons: { selectFile: '파일 선택', changeFile: '파일 변경', uploading: '업로드 중...', cancel: '취소', loadSelectedSheet: '이 시트로 분석', loading: '불러오는 중...', deleteRecentFile: '최근 파일 삭제' },
+      labels: { dragOrClick: '파일을 드래그하거나 클릭하여 업로드', dropHere: '여기에 파일을 놓으세요', fileSpecifications: '첫 번째 행은 변수명으로 사용됩니다 (CSV, Excel 지원)', helpText: '첫 번째 행은 변수명으로 사용됩니다', recentFiles: '최근 업로드한 파일', recentFilesNote: '* 최근 파일 목록은 참고용입니다.', selectSheet: '시트 선택', sheetsFound: () => '', selectSheetPlaceholder: '시트를 선택하세요', sheetInfo: () => '', processing: () => '', estimatedTime: () => '', analyzing: '분석 중...', fileMetadata: () => '' },
+      errors: { fileTooLarge: () => '', fileSizeExceeded: '', currentFileSize: () => '', validationFailed: '', noDataInFile: '', noDataTitle: '', noValidData: '', tooManyRows: () => '', dataSizeExceeded: '', currentRowCount: () => '', processingError: '', excelValidationFailed: '', excelFileError: '', excelProcessingError: '', unsupportedFormat: '', unsupportedFormatTitle: '', csvRequired: '', sheetProcessingError: '' },
+      success: { fileUploaded: '', dataLoaded: () => '', excelFileUploaded: '', sheetLoaded: '' },
+      toast: { selectSheet: '', sheetsFoundDescription: () => '' },
+      warnings: { highMemoryTitle: '', highMemoryDescription: '' },
+    },
+  }),
+  useTerminologyContext: () => ({ dictionary: { domain: 'aquaculture', displayName: '수산과학' }, setDomain: vi.fn(), currentDomain: 'aquaculture' }),
+}))
+
 // open 함수를 외부에서 접근 가능하도록 설정
 const mockOpen = vi.fn()
 
@@ -89,7 +109,8 @@ describe('DataUploadStep compact 모드', () => {
       )
 
       // 전체 UI에서는 도움말이 표시됨
-      expect(screen.getByText(/첫 번째 행은 변수명/i)).toBeInTheDocument()
+      const helpTexts = screen.getAllByText(/첫 번째 행은 변수명/i)
+      expect(helpTexts.length).toBeGreaterThan(0)
     })
 
     it('RefreshCw 아이콘이 버튼에 포함되어야 함', () => {

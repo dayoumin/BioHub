@@ -132,7 +132,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     if (!data || data.length === 0) return
     const columns = Object.keys(data[0])
     openDataWindow({
-      fileName: uploadedFile?.name || uploadedFileName || '업로드된 데이터',
+      fileName: uploadedFile?.name || uploadedFileName || t.dataExploration.fallbackFileName,
       columns,
       data
     })
@@ -771,17 +771,17 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         const { r, r2 } = calculateCorrelation(data1, data2)
 
         const absR = Math.abs(r)
-        let strength = '약한'
+        let strength = t.dataExploration.strength.weak
         let color = 'bg-correlation-weak'
 
         if (absR >= 0.7) {
-          strength = '매우 강한'
+          strength = t.dataExploration.strength.veryStrong
           color = 'bg-correlation-medium-neg'
         } else if (absR >= 0.5) {
-          strength = '강한'
+          strength = t.dataExploration.strength.strong
           color = 'bg-correlation-medium-neg dark:bg-orange-950'
         } else if (absR >= 0.3) {
-          strength = '중간'
+          strength = t.dataExploration.strength.medium
           color = 'bg-correlation-weak dark:bg-yellow-950'
         }
 
@@ -791,7 +791,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
     // 상관계수 절대값 내림차순 정렬
     return matrix.sort((a, b) => Math.abs(b.r) - Math.abs(a.r))
-  }, [numericVariables, getPairedData])
+  }, [numericVariables, getPairedData, t])
 
   // 로딩 상태 관리 (useEffect로 부작용 분리)
   useEffect(() => {
@@ -820,9 +820,9 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                 <ChartScatter className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold mb-1">데이터를 업로드하여 시작하세요</h3>
+                <h3 className="text-lg font-semibold mb-1">{t.dataExploration.empty.title}</h3>
                 <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                  CSV 또는 Excel 파일을 업로드하면 데이터 요약, 분포 시각화, 상관관계 분석을 자동으로 수행합니다.
+                  {t.dataExploration.empty.description}
                 </p>
               </div>
               {onUploadComplete && (
@@ -868,18 +868,18 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="p-4 bg-muted/30 rounded-lg">
             <ListOrdered className="h-5 w-5 text-primary mb-2" />
-            <h4 className="font-medium text-sm">기초 통계량</h4>
-            <p className="text-xs text-muted-foreground mt-1">평균, 표준편차, 사분위수, 왜도/첨도 등</p>
+            <h4 className="font-medium text-sm">{t.dataExploration.features.descriptiveTitle}</h4>
+            <p className="text-xs text-muted-foreground mt-1">{t.dataExploration.features.descriptiveDesc}</p>
           </div>
           <div className="p-4 bg-muted/30 rounded-lg">
             <BarChart3 className="h-5 w-5 text-primary mb-2" />
-            <h4 className="font-medium text-sm">분포 시각화</h4>
-            <p className="text-xs text-muted-foreground mt-1">히스토그램, 박스플롯, 이상치 탐지</p>
+            <h4 className="font-medium text-sm">{t.dataExploration.features.distributionTitle}</h4>
+            <p className="text-xs text-muted-foreground mt-1">{t.dataExploration.features.distributionDesc}</p>
           </div>
           <div className="p-4 bg-muted/30 rounded-lg">
             <Flame className="h-5 w-5 text-primary mb-2" />
-            <h4 className="font-medium text-sm">상관관계 분석</h4>
-            <p className="text-xs text-muted-foreground mt-1">산점도, 상관 히트맵, 추세선</p>
+            <h4 className="font-medium text-sm">{t.dataExploration.features.correlationTitle}</h4>
+            <p className="text-xs text-muted-foreground mt-1">{t.dataExploration.features.correlationDesc}</p>
           </div>
         </div>
       </div>
@@ -914,7 +914,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                 : 'nonparametric'
           }
           status="warning"
-          warnings={['수치형 변수가 2개 미만입니다. 상관분석이 제한됩니다.']}
+          warnings={[t.dataExploration.warnings.fewNumericVars]}
           assumptionSummary={{
             normality: assumptionResults?.normality?.shapiroWilk?.isNormal ?? null,
             homogeneity: assumptionResults?.homogeneity?.levene?.equalVariance ?? null,
@@ -926,12 +926,12 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base">데이터 미리보기</CardTitle>
-                <CardDescription>상위 {Math.min(20, data.length)}행</CardDescription>
+                <CardTitle className="text-base">{t.dataExploration.preview.title}</CardTitle>
+                <CardDescription>{t.dataExploration.preview.topN(Math.min(20, data.length))}</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={handleOpenDataInNewWindow} className="gap-2">
                 <ExternalLink className="w-4 h-4" />
-                전체 보기 ({data.length}행)
+                {t.dataExploration.preview.viewAll(data.length)}
               </Button>
             </div>
           </CardHeader>
@@ -953,9 +953,9 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
           <CardContent className="py-6">
             <div className="text-center text-muted-foreground">
-              <p>상관분석에는 수치형 변수가 2개 이상 필요합니다.</p>
-              <p className="text-sm mt-2">현재: 수치형 {numericVariables.length}개, 범주형 {categoricalVariables.length}개</p>
-              <p className="text-sm mt-1">다음 단계에서 적합한 분석 방법을 선택할 수 있습니다.</p>
+              <p>{t.dataExploration.warnings.correlationRequires}</p>
+              <p className="text-sm mt-2">{t.dataExploration.warnings.currentStatus(numericVariables.length, categoricalVariables.length)}</p>
+              <p className="text-sm mt-1">{t.dataExploration.warnings.nextStepHint}</p>
             </div>
           </CardContent>
         </Card>
@@ -1024,7 +1024,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <ListOrdered className="h-5 w-5" />
-              데이터 요약
+              {t.dataExploration.tabs.dataSummary}
             </CardTitle>
             <Button
               variant="outline"
@@ -1033,15 +1033,15 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               className="gap-2"
             >
               <ExternalLink className="w-4 h-4" />
-              전체 데이터 보기 ({data.length}행)
+              {t.dataExploration.tabs.fullDataView(data.length)}
             </Button>
           </div>
         </CardHeader>
         <CardContent>
           <ContentTabs
             tabs={[
-              { id: 'statistics', label: '기초 통계량', icon: ListOrdered },
-              { id: 'preview', label: '데이터 미리보기', icon: BarChart3, badge: highlightedRows.length > 0 ? highlightedRows.length : undefined }
+              { id: 'statistics', label: t.dataExploration.tabs.statistics, icon: ListOrdered },
+              { id: 'preview', label: t.dataExploration.tabs.preview, icon: BarChart3, badge: highlightedRows.length > 0 ? highlightedRows.length : undefined }
             ]}
             activeTab={activeDataTab}
             onTabChange={setActiveDataTab}
@@ -1081,7 +1081,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
                           <div className="font-medium text-yellow-800 dark:text-yellow-200">
 
-                            이상치 감지: {varsWithOutliers.length}개 변수에서 총 {totalOutliers}개
+                            {t.dataExploration.outlier.detected(varsWithOutliers.length, totalOutliers)}
 
                           </div>
 
@@ -1089,9 +1089,9 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
                             <div className="mt-1 text-yellow-700 dark:text-yellow-300 text-xs">
 
-                              {varsWithOutliers.slice(0, 5).map(v => `${v.name}(${v.outlierCount}개)`).join(', ')}
+                              {varsWithOutliers.slice(0, 5).map(v => t.dataExploration.outlier.variableDetail(v.name, v.outlierCount)).join(', ')}
 
-                              {varsWithOutliers.length > 5 && ` 외 ${varsWithOutliers.length - 5}개 변수`}
+                              {varsWithOutliers.length > 5 && ` ${t.dataExploration.outlier.moreVars(varsWithOutliers.length - 5)}`}
 
                             </div>
 
@@ -1113,29 +1113,29 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
                       <tr className="border-b">
 
-                        <th className="text-left p-2 font-semibold whitespace-nowrap">변수명</th>
+                        <th className="text-left p-2 font-semibold whitespace-nowrap">{t.dataExploration.headers.variableName}</th>
 
-                        <th className="text-right p-2 font-semibold whitespace-nowrap">N</th>
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">{t.dataExploration.headers.count}</th>
 
-                        <th className="text-right p-2 font-semibold whitespace-nowrap">평균</th>
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">{t.dataExploration.headers.mean}</th>
 
-                        <th className="text-right p-2 font-semibold whitespace-nowrap">표준편차</th>
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">{t.dataExploration.headers.stdDev}</th>
 
-                        <th className="text-right p-2 font-semibold whitespace-nowrap">중앙값</th>
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">{t.dataExploration.headers.median}</th>
 
-                        <th className="text-right p-2 font-semibold whitespace-nowrap">최소</th>
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">{t.dataExploration.headers.min}</th>
 
-                        <th className="text-right p-2 font-semibold whitespace-nowrap">최대</th>
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">{t.dataExploration.headers.max}</th>
 
                         <th className="text-right p-2 font-semibold whitespace-nowrap">Q1</th>
 
                         <th className="text-right p-2 font-semibold whitespace-nowrap">Q3</th>
 
-                        <th className="text-right p-2 font-semibold whitespace-nowrap">왜도</th>
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">{t.dataExploration.headers.skewness}</th>
 
-                        <th className="text-right p-2 font-semibold whitespace-nowrap">첨도</th>
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">{t.dataExploration.headers.kurtosis}</th>
 
-                        <th className="text-right p-2 font-semibold whitespace-nowrap">이상치</th>
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">{t.dataExploration.headers.outliers}</th>
 
                       </tr>
 
@@ -1173,7 +1173,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                                   className="text-xs cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors"
                                   onClick={() => handleOpenOutlierModal(col.name)}
                                 >
-                                  {col.outlierCount}개
+                                  {t.dataExploration.outlier.count(col.outlierCount)}
                                 </Badge>
                               ) : (
                                 <span className="text-muted-foreground">-</span>
@@ -1191,12 +1191,12 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
                 {/* 해석 가이드 */}
                 <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p className="font-medium mb-1 flex items-center gap-1"><Lightbulb className="h-3.5 w-3.5" />해석 기준:</p>
+                  <p className="font-medium mb-1 flex items-center gap-1"><Lightbulb className="h-3.5 w-3.5" />{t.dataExploration.interpretGuide.title}</p>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                    <div><strong>왜도</strong>: |값| &gt; 2 → 심한 비대칭 (⚠ 표시)</div>
-                    <div><strong>첨도</strong>: |값| &gt; 7 → 극단값 많음 (⚠ 표시)</div>
-                    <div><strong>이상치</strong>: IQR × 1.5 범위 벗어난 값</div>
-                    <div><strong>N</strong>: 유효한 값의 개수 (결측 제외)</div>
+                    <div>{t.dataExploration.interpretGuide.skewness}</div>
+                    <div>{t.dataExploration.interpretGuide.kurtosis}</div>
+                    <div>{t.dataExploration.interpretGuide.outlierDef}</div>
+                    <div>{t.dataExploration.interpretGuide.nDef}</div>
                   </div>
                 </div>
               </div>
@@ -1212,7 +1212,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                       <div className="flex items-center gap-2 text-sm">
                         <span className="text-yellow-600 dark:text-yellow-400">●</span>
                         <span className="font-medium text-yellow-800 dark:text-yellow-200">
-                          {highlightedColumn} 변수의 이상치 {highlightedRows.length}개가 강조 표시되었습니다
+                          {t.dataExploration.highlight.description(highlightedColumn ?? '', highlightedRows.length)}
                         </span>
                       </div>
                       <Button
@@ -1223,7 +1223,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                           setHighlightedColumn(undefined)
                         }}
                       >
-                        하이라이트 해제
+                        {t.dataExploration.highlight.clearButton}
                       </Button>
                     </div>
                     {highlightedPreview.rowIndices.length > 0 ? (
@@ -1239,7 +1239,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                       />
                     ) : (
                       <div className="p-3 text-sm text-muted-foreground border rounded-md bg-muted/30">
-                        선택한 행을 찾을 수 없습니다. 데이터가 변경되었는지 확인해주세요.
+                        {t.dataExploration.highlight.notFound}
                       </div>
                     )}
                   </>
@@ -1284,7 +1284,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
                 {/* 전체 보기 안내 */}
                 <div className="text-center text-sm text-muted-foreground py-2">
-                  전체 데이터({data.length}행)를 보려면 상단의 &quot;전체 데이터 보기&quot; 버튼을 클릭하세요.
+                  {t.dataExploration.preview.fullDataInstruction(data.length)}
                 </div>
               </div>
           </ContentTabsContent>
@@ -1297,12 +1297,12 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              통계적 가정 검증 중...
+              {t.dataExploration.assumptions.loading}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              정규성, 등분산성 검정을 수행하고 있습니다. 잠시만 기다려주세요.
+              {t.dataExploration.assumptions.loadingDescription}
             </p>
           </CardContent>
         </Card>
@@ -1312,13 +1312,13 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         <Card className={cn("border-highlight-border bg-highlight-bg", profile.assumptionTests === 'secondary' && 'opacity-50 border-l-2 border-l-muted-foreground/30')}>
           {profile.assumptionTests === 'secondary' && (
             <div className="px-4 pt-3">
-              <Badge variant="outline" className="text-[10px] text-muted-foreground">참고</Badge>
+              <Badge variant="outline" className="text-[10px] text-muted-foreground">{t.dataExploration.assumptions.badge}</Badge>
             </div>
           )}
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-1.5"><Search className="h-4 w-4" />통계적 가정 검증</CardTitle>
+            <CardTitle className="text-base flex items-center gap-1.5"><Search className="h-4 w-4" />{t.dataExploration.assumptions.title}</CardTitle>
             <CardDescription>
-              이 결과를 바탕으로 적절한 통계 검정 방법을 선택하세요.
+              {t.dataExploration.assumptions.description}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -1327,14 +1327,14 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               {assumptionResults.normality?.shapiroWilk && (
                 <div className="p-3 bg-white dark:bg-background rounded-lg border">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-sm flex items-center gap-1.5"><BarChart3 className="h-3.5 w-3.5" />정규성 검정 (Shapiro-Wilk)</span>
+                    <span className="font-medium text-sm flex items-center gap-1.5"><BarChart3 className="h-3.5 w-3.5" />{t.dataExploration.normality.title}</span>
                     <Badge variant={assumptionResults.normality.shapiroWilk.isNormal ? "default" : "secondary"}>
-                      {assumptionResults.normality.shapiroWilk.isNormal ? '정규분포' : '비정규분포'}
+                      {assumptionResults.normality.shapiroWilk.isNormal ? t.dataExploration.normality.normal : t.dataExploration.normality.nonNormal}
                     </Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
-                      <span className="text-muted-foreground">통계량: </span>
+                      <span className="text-muted-foreground">{t.dataExploration.normality.statLabel} </span>
                       <span className="font-mono">{(assumptionResults.normality.shapiroWilk.statistic ?? 0).toFixed(4)}</span>
                     </div>
                     <div>
@@ -1344,8 +1344,8 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">
                     {assumptionResults.normality.shapiroWilk.isNormal
-                      ? '✓ 정규분포 가정을 만족합니다 (p ≥ 0.05). 모수 검정 사용 가능합니다.'
-                      : '⚠ 정규분포 가정을 만족하지 않습니다 (p < 0.05). 비모수 검정 고려가 필요합니다.'}
+                      ? t.dataExploration.normality.normalInterpretation
+                      : t.dataExploration.normality.nonNormalInterpretation}
                   </p>
                 </div>
               )}
@@ -1354,14 +1354,14 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               {assumptionResults.homogeneity?.levene && (
                 <div className="p-3 bg-white dark:bg-background rounded-lg border">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-sm flex items-center gap-1.5"><BarChart3 className="h-3.5 w-3.5" />등분산성 검정 (Levene)</span>
+                    <span className="font-medium text-sm flex items-center gap-1.5"><BarChart3 className="h-3.5 w-3.5" />{t.dataExploration.homogeneity.title}</span>
                     <Badge variant={assumptionResults.homogeneity.levene.equalVariance ? "default" : "secondary"}>
-                      {assumptionResults.homogeneity.levene.equalVariance ? '등분산' : '이분산'}
+                      {assumptionResults.homogeneity.levene.equalVariance ? t.dataExploration.homogeneity.equal : t.dataExploration.homogeneity.unequal}
                     </Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
-                      <span className="text-muted-foreground">통계량: </span>
+                      <span className="text-muted-foreground">{t.dataExploration.homogeneity.statLabel} </span>
                       <span className="font-mono">{(assumptionResults.homogeneity.levene.statistic ?? 0).toFixed(4)}</span>
                     </div>
                     <div>
@@ -1371,8 +1371,8 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">
                     {assumptionResults.homogeneity.levene.equalVariance
-                      ? '✓ 등분산 가정을 만족합니다 (p ≥ 0.05).'
-                      : '⚠ 등분산 가정을 만족하지 않습니다 (p < 0.05). Welch 검정 고려가 필요합니다.'}
+                      ? t.dataExploration.homogeneity.equalInterpretation
+                      : t.dataExploration.homogeneity.unequalInterpretation}
                   </p>
                 </div>
               )}
@@ -1387,22 +1387,22 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
-            데이터 분포 시각화
+            {t.dataExploration.distribution.title}
           </CardTitle>
           <CardDescription>
-            수치형 변수들의 분포를 히스토그램 또는 박스플롯으로 확인합니다
+            {t.dataExploration.distribution.description}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* 차트 타입 선택 (FilterToggle) */}
           <FilterToggle
             options={[
-              { id: 'histogram', label: '히스토그램', icon: BarChart3 },
-              { id: 'boxplot', label: '박스플롯', icon: GitCommitHorizontal }
+              { id: 'histogram', label: t.dataExploration.chartTypes.histogram, icon: BarChart3 },
+              { id: 'boxplot', label: t.dataExploration.chartTypes.boxplot, icon: GitCommitHorizontal }
             ]}
             value={chartType}
             onChange={(value) => setChartType(value as 'histogram' | 'boxplot')}
-            ariaLabel="차트 타입 선택"
+            ariaLabel={t.dataExploration.chartTypes.ariaLabel}
           />
 
           {/* 히스토그램 모드: 단일 변수 선택 */}
@@ -1444,15 +1444,15 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                   <div className="space-y-4">
                     <Histogram
                       data={colData}
-                      title={`${selectedHistogramVar} 분포`}
+                      title={t.dataExploration.histogram.title(selectedHistogramVar)}
                       xAxisLabel={selectedHistogramVar}
-                      yAxisLabel="빈도"
+                      yAxisLabel={t.dataExploration.histogram.yAxisLabel}
                       bins={10}
                       showCard={false}
                     />
                     {outliers.length > 0 && (
                       <div className="text-xs bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 p-3 rounded-lg">
-                        <span className="font-medium">이상치:</span> {outliers.length}개 발견 (범위: &lt;{lowerBound.toFixed(2)} 또는 &gt;{upperBound.toFixed(2)})
+                        {t.dataExploration.outlier.info(outliers.length, lowerBound.toFixed(2), upperBound.toFixed(2))}
                       </div>
                     )}
                   </div>
@@ -1465,7 +1465,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           {chartType === 'boxplot' && (
             <>
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">변수를 클릭하여 비교할 변수를 선택하세요 (최대 8개)</p>
+                <p className="text-xs text-muted-foreground">{t.dataExploration.boxplot.selectInstruction}</p>
                 <div className="flex flex-wrap gap-1">
                   {numericVariables.slice(0, 8).map(varName => (
                     <Button
@@ -1485,8 +1485,8 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                 <BoxPlot
                   data={boxplotMultiData as Array<{name: string; min: number; q1: number; median: number; q3: number; max: number; mean: number; std: number; outliers: number[]}>}
                   title={selectedBoxplotVars.length === 1
-                    ? `${selectedBoxplotVars[0]} 박스플롯`
-                    : `변수 분포 비교 (${selectedBoxplotVars.length}개)`}
+                    ? t.dataExploration.boxplot.singleTitle(selectedBoxplotVars[0])
+                    : t.dataExploration.boxplot.multipleTitle(selectedBoxplotVars.length)}
                   showMean={true}
                   showOutliers={true}
                   height={350}
@@ -1503,8 +1503,8 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       <div className={cn("w-full", profile.scatterplots === 'secondary' && profile.correlationHeatmap === 'secondary' && 'opacity-50 border-l-2 border-l-muted-foreground/30')}>
         <ContentTabs
           tabs={[
-            { id: 'scatterplots', label: '산점도', icon: ChartScatter },
-            { id: 'heatmap', label: '상관 히트맵', icon: Flame }
+            { id: 'scatterplots', label: t.dataExploration.scatterTabs.scatter, icon: ChartScatter },
+            { id: 'heatmap', label: t.dataExploration.scatterTabs.heatmap, icon: Flame }
           ]}
           activeTab={explorationTab}
           onTabChange={(id) => setExplorationTab(id as 'scatterplots' | 'heatmap')}
@@ -1528,7 +1528,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                       <div className="p-1.5 rounded-md bg-primary/10">
                         <ChartScatter className="h-4 w-4 text-primary" />
                       </div>
-                      <span className="font-medium text-sm">변수 관계 분석</span>
+                      <span className="font-medium text-sm">{t.dataExploration.scatter.variableRelation}</span>
                     </div>
                     {scatterplots.length > 1 && (
                       <Button
@@ -1546,7 +1546,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                   <div className="flex items-center gap-3">
                     {/* X축 선택 */}
                     <div className="flex-1">
-                      <label className="text-xs text-muted-foreground mb-1.5 block">X축 (독립변수)</label>
+                      <label className="text-xs text-muted-foreground mb-1.5 block">{t.dataExploration.scatter.xAxis}</label>
                       <Select
                         value={config.xVariable}
                         onValueChange={(value) => updateXVariable(config.id, value)}
@@ -1573,7 +1573,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
                     {/* Y축 선택 */}
                     <div className="flex-1">
-                      <label className="text-xs text-muted-foreground mb-1.5 block">Y축 (종속변수)</label>
+                      <label className="text-xs text-muted-foreground mb-1.5 block">{t.dataExploration.scatter.yAxis}</label>
                       <Select
                         value={config.yVariable}
                         onValueChange={(value) => updateYVariable(config.id, value)}
@@ -1597,7 +1597,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                 <div className="px-5 py-2.5 border-b bg-gradient-to-r from-primary/5 to-transparent flex items-center justify-between">
                   <div className="flex items-center gap-4 text-sm">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-muted-foreground">상관계수</span>
+                      <span className="text-muted-foreground">{t.dataExploration.correlation.coefficient}</span>
                       <Badge
                         variant={Math.abs(r) >= 0.7 ? "default" : Math.abs(r) >= 0.4 ? "secondary" : "outline"}
                         className="font-mono text-xs"
@@ -1606,7 +1606,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                       </Badge>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-muted-foreground">결정계수</span>
+                      <span className="text-muted-foreground">{t.dataExploration.correlation.determination}</span>
                       <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">
                         R² = {r2.toFixed(3)}
                       </span>
@@ -1617,7 +1617,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                   </div>
                   <Badge variant="outline" className="text-xs gap-1">
                     <Sparkles className="h-3 w-3" />
-                    {Math.abs(r) >= 0.7 ? '강한 상관' : Math.abs(r) >= 0.4 ? '중간 상관' : '약한 상관'}
+                    {Math.abs(r) >= 0.7 ? t.dataExploration.correlation.strong : Math.abs(r) >= 0.4 ? t.dataExploration.correlation.medium : t.dataExploration.correlation.weak}
                   </Badge>
                 </div>
 
@@ -1642,9 +1642,9 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         <ContentTabsContent show={explorationTab === 'heatmap'}>
           <Card>
             <CardHeader>
-              <CardTitle>상관계수 히트맵</CardTitle>
+              <CardTitle>{t.dataExploration.heatmap.title}</CardTitle>
               <CardDescription>
-                모든 수치형 변수 쌍의 상관관계를 시각화합니다
+                {t.dataExploration.heatmap.description}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1652,9 +1652,9 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   <div className="text-center">
-                    <p className="text-sm font-medium">상관계수 계산 중...</p>
+                    <p className="text-sm font-medium">{t.dataExploration.heatmap.calculating}</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {numericVariables.length}개 변수 분석
+                      {t.dataExploration.heatmap.variableCount(numericVariables.length)}
                     </p>
                   </div>
                 </div>
@@ -1688,19 +1688,19 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
                   {/* 해석 가이드 */}
                   <div className="mt-4 text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <p className="font-medium mb-1">상관계수 해석:</p>
+                    <p className="font-medium mb-1">{t.dataExploration.heatmapGuide.title}</p>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                      <div><span className="inline-block w-3 h-3 rounded bg-red-500 mr-1"></span> <strong>r = +1</strong>: 강한 양의 상관</div>
-                      <div><span className="inline-block w-3 h-3 rounded bg-blue-500 mr-1"></span> <strong>r = -1</strong>: 강한 음의 상관</div>
-                      <div><span className="inline-block w-3 h-3 rounded bg-gray-200 mr-1"></span> <strong>r = 0</strong>: 상관 없음</div>
-                      <div><strong>|r| &gt;= 0.7</strong>: 매우 강한 상관</div>
+                      <div><span className="inline-block w-3 h-3 rounded bg-red-500 mr-1"></span> <strong>r = +1</strong>: {t.dataExploration.heatmapGuide.strongPositive}</div>
+                      <div><span className="inline-block w-3 h-3 rounded bg-blue-500 mr-1"></span> <strong>r = -1</strong>: {t.dataExploration.heatmapGuide.strongNegative}</div>
+                      <div><span className="inline-block w-3 h-3 rounded bg-gray-200 mr-1"></span> <strong>r = 0</strong>: {t.dataExploration.heatmapGuide.noCorrelation}</div>
+                      <div><strong>|r| &gt;= 0.7</strong>: {t.dataExploration.heatmapGuide.veryStrong}</div>
                     </div>
                   </div>
 
                   {/* 강한 상관관계 목록 */}
                   {correlationMatrix.filter(c => Math.abs(c.r) >= 0.5).length > 0 && (
                     <div className="mt-4">
-                      <p className="text-sm font-medium mb-2">주요 상관관계 (|r| &gt;= 0.5)</p>
+                      <p className="text-sm font-medium mb-2">{t.dataExploration.strongCorrelations.title}</p>
                       <div className="space-y-1">
                         {correlationMatrix
                           .filter(c => Math.abs(c.r) >= 0.5)

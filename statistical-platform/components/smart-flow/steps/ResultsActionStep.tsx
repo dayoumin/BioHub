@@ -53,6 +53,7 @@ import { AssumptionTestCard, type AssumptionTest } from '@/components/statistics
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { formatStatisticalResult } from '@/lib/statistics/formatters'
 import { useTerminology } from '@/hooks/use-terminology'
+import type { ResultsText } from '@/lib/terminology/terminology-types'
 
 interface ResultsActionStepProps {
   results: AnalysisResult | null
@@ -78,23 +79,23 @@ export function splitInterpretation(text: string): { summary: string; detail: st
 }
 
 // 효과크기 해석
-function getEffectSizeInterpretation(value: number, type?: string): string {
+function getEffectSizeInterpretation(value: number, type: string | undefined, labels: ResultsText['effectSizeLabels']): string {
   const absValue = Math.abs(value)
   switch (type) {
     case 'cohensD':
-      if (absValue < 0.2) return '작음'
-      if (absValue < 0.5) return '중간'
-      if (absValue < 0.8) return '큼'
-      return '매우 큼'
+      if (absValue < 0.2) return labels.small
+      if (absValue < 0.5) return labels.medium
+      if (absValue < 0.8) return labels.large
+      return labels.veryLarge
     case 'etaSquared':
-      if (absValue < 0.01) return '작음'
-      if (absValue < 0.06) return '중간'
-      if (absValue < 0.14) return '큼'
-      return '매우 큼'
+      if (absValue < 0.01) return labels.small
+      if (absValue < 0.06) return labels.medium
+      if (absValue < 0.14) return labels.large
+      return labels.veryLarge
     default:
-      if (absValue < 0.2) return '작음'
-      if (absValue < 0.5) return '중간'
-      return '큼'
+      if (absValue < 0.2) return labels.small
+      if (absValue < 0.5) return labels.medium
+      return labels.large
   }
 }
 
@@ -256,15 +257,15 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
   // Handlers
   const handleSaveToHistory = useCallback(async () => {
-    const defaultName = `분석 ${new Date().toLocaleString('ko-KR')}`
-    const name = prompt('분석 이름을 입력하세요:', defaultName)
+    const defaultName = t.results.save.defaultName(new Date().toLocaleString())
+    const name = prompt(t.results.save.promptMessage, defaultName)
 
     if (name && name.trim()) {
       const sanitizedName = name.trim().slice(0, 100)
       try {
         await saveToHistory(sanitizedName)
         setIsSaved(true)
-        toast.success('저장되었습니다')
+        toast.success(t.results.save.success)
 
         if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current)
         savedTimeoutRef.current = setTimeout(() => {
@@ -272,8 +273,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           savedTimeoutRef.current = null
         }, 3000)
       } catch (err) {
-        toast.error('저장 실패', {
-          description: err instanceof Error ? err.message : '알 수 없는 오류'
+        toast.error(t.results.save.errorTitle, {
+          description: err instanceof Error ? err.message : t.results.save.unknownError
         })
       }
     }
@@ -287,19 +288,19 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     setIsReanalysisMode(true)
     setCurrentStep(1)
 
-    toast.info('새 데이터를 업로드하세요', {
-      description: selectedMethod ? `${selectedMethod.name} 분석이 준비되어 있습니다` : ''
+    toast.info(t.results.toast.reanalyzeReady, {
+      description: selectedMethod ? t.results.toast.reanalyzeMethod(selectedMethod.name) : ''
     })
   }, [setUploadedData, setUploadedFile, setValidationResults, setResults, setIsReanalysisMode, setCurrentStep, selectedMethod])
 
   const handleNewAnalysis = useCallback(async () => {
     try {
       await startNewAnalysis()
-      toast.info('새 분석을 시작합니다')
+      toast.info(t.results.toast.newAnalysis)
     } catch (error) {
       console.error('Failed to start new analysis:', error)
       reset()
-      toast.info('새 분석을 시작합니다')
+      toast.info(t.results.toast.newAnalysis)
     }
   }, [reset])
 
@@ -322,10 +323,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         chartElement: chartRef.current
       })
 
-      toast.success('PDF 보고서가 생성되었습니다')
+      toast.success(t.results.toast.pdfSuccess)
     } catch (error) {
-      console.error('PDF 생성 실패:', error)
-      toast.error('PDF 생성에 실패했습니다')
+      console.error('PDF generation failed:', error)
+      toast.error(t.results.toast.pdfError)
     } finally {
       setIsGeneratingPDF(false)
     }
@@ -378,7 +379,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       interpretedResultRef.current = cacheKey
     } catch (error) {
       if (controller.signal.aborted) return
-      const msg = error instanceof Error ? error.message : 'AI 해석 중 오류가 발생했습니다.'
+      const msg = error instanceof Error ? error.message : t.results.ai.defaultError
       setInterpretError(msg)
     } finally {
       setIsInterpreting(false)
@@ -404,7 +405,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       // ---- plain text 버전 ----
       const plainText = PDFReportService.generateSummaryText(results)
       const aiPlain = interpretation
-        ? `\n\n--- AI 해석 ---\n${interpretation}`
+        ? `\n\n${t.results.clipboard.aiSeparator}\n${interpretation}`
         : ''
 
       // ---- HTML 버전 ----
@@ -417,21 +418,21 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
       let html = `<h3>${statisticalResult.testName}</h3>`
       html += `<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-size:14px">`
-      html += `<thead><tr style="background:#f3f4f6"><th>항목</th><th>값</th></tr></thead><tbody>`
-      html += `<tr><td>통계량 (${statisticalResult.statisticName || 't'})</td><td><b>${(statisticalResult.statistic ?? 0).toFixed(4)}</b></td></tr>`
+      html += `<thead><tr style="background:#f3f4f6"><th>${t.results.clipboard.itemHeader}</th><th>${t.results.clipboard.valueHeader}</th></tr></thead><tbody>`
+      html += `<tr><td>${t.results.clipboard.statistic(statisticalResult.statisticName || 't')}</td><td><b>${(statisticalResult.statistic ?? 0).toFixed(4)}</b></td></tr>`
       if (statisticalResult.df !== undefined) {
         const dfStr = Array.isArray(statisticalResult.df) ? statisticalResult.df.join(', ') : String(statisticalResult.df)
-        html += `<tr><td>자유도 (df)</td><td>${dfStr}</td></tr>`
+        html += `<tr><td>${t.results.clipboard.df}</td><td>${dfStr}</td></tr>`
       }
       html += `<tr><td>p-value</td><td><b>${pVal}</b></td></tr>`
-      html += `<tr><td>효과크기</td><td>${esValue}</td></tr>`
+      html += `<tr><td>${t.results.clipboard.effectSize}</td><td>${esValue}</td></tr>`
       if (results.confidence) {
-        html += `<tr><td>95% 신뢰구간</td><td>[${results.confidence.lower.toFixed(4)}, ${results.confidence.upper.toFixed(4)}]</td></tr>`
+        html += `<tr><td>${t.results.clipboard.confidenceInterval}</td><td>[${results.confidence.lower.toFixed(4)}, ${results.confidence.upper.toFixed(4)}]</td></tr>`
       }
       html += `</tbody></table>`
 
       if (statisticalResult.interpretation) {
-        html += `<p><b>해석:</b> ${statisticalResult.interpretation}</p>`
+        html += `<p><b>${t.results.clipboard.interpretation}</b> ${statisticalResult.interpretation}</p>`
       }
       if (apaFormat) {
         html += `<p><b>APA:</b> <i>${apaFormat}</i></p>`
@@ -440,7 +441,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       // AI 해석 (있을 때만) — 마크다운 원문을 pre로 감싸서 서식 유지
       if (interpretation) {
         const { summary, detail } = splitInterpretation(interpretation)
-        html += `<hr/><h4>AI 해석</h4>`
+        html += `<hr/><h4>${t.results.clipboard.aiInterpretation}</h4>`
         html += `<pre style="white-space:pre-wrap;font-family:inherit;margin:0">${summary}</pre>`
         if (detail) {
           html += `<pre style="white-space:pre-wrap;font-family:inherit;margin:8px 0 0">${detail}</pre>`
@@ -463,7 +464,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       }
 
       setIsCopied(true)
-      toast.success(interpretation ? '결과 + AI 해석이 복사되었습니다' : '결과가 복사되었습니다')
+      toast.success(interpretation ? t.results.toast.copyWithAi : t.results.toast.copySuccess)
 
       if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current)
       copiedTimeoutRef.current = setTimeout(() => {
@@ -471,15 +472,15 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         copiedTimeoutRef.current = null
       }, 2000)
     } catch (err) {
-      console.error('복사 실패:', err)
-      toast.error('복사 실패')
+      console.error('Copy failed:', err)
+      toast.error(t.results.toast.copyError)
     }
   }, [results, statisticalResult, interpretation, apaFormat])
 
   if (!results || !statisticalResult) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">분석을 먼저 실행해주세요.</p>
+        <p className="text-muted-foreground">{t.results.noResults}</p>
       </div>
     )
   }
@@ -526,18 +527,18 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               "bg-gray-50 text-gray-600 dark:bg-gray-900/30 dark:text-gray-300"
             )}>
               {!assumptionsPassed ? (
-                "⚠️ 일부 가정 미충족 - 결과 해석에 주의 필요"
+                t.results.conclusion.assumptionWarning
               ) : isSignificant ? (
-                "✓ 통계적으로 유의한 차이가 있습니다"
+                t.results.conclusion.significant
               ) : (
-                "통계적으로 유의한 차이가 없습니다"
+                t.results.conclusion.notSignificant
               )}
             </div>
 
             {/* ===== 핵심 숫자 3개 ===== */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* 통계량 */}
-              <StatisticCard label="통계량" tooltip="검정통계량: 귀무가설 하에서 표본 데이터가 얼마나 극단적인지 나타냅니다.">
+              <StatisticCard label={t.results.statistics.statistic} tooltip={t.results.statistics.statisticTooltip}>
                 <p className="text-xl font-bold font-mono">
                   {statisticalResult.statisticName || 't'} = {(statisticalResult.statistic ?? 0).toFixed(2)}
                 </p>
@@ -549,7 +550,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               </StatisticCard>
 
               {/* p-value */}
-              <StatisticCard label="유의확률" tooltip="p < 0.05이면 통계적으로 유의합니다.">
+              <StatisticCard label={t.results.statistics.pValue} tooltip={t.results.statistics.pValueTooltip}>
                 <p className={cn(
                   "text-xl font-bold font-mono",
                   isSignificant ? "text-green-600 dark:text-green-400" : "text-gray-500"
@@ -557,19 +558,19 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                   p {formatPValue(statisticalResult.pValue)}
                 </p>
                 <Badge variant={isSignificant ? "default" : "secondary"} className="mt-1 text-xs">
-                  {isSignificant ? '유의함' : '유의하지 않음'}
+                  {isSignificant ? t.results.statistics.significant : t.results.statistics.notSignificant}
                 </Badge>
               </StatisticCard>
 
               {/* 효과크기 */}
-              <StatisticCard label="효과크기" tooltip="효과크기: 실질적인 효과의 크기를 나타냅니다. 작음(<0.2), 중간(0.2-0.5), 큼(>0.5)">
+              <StatisticCard label={t.results.statistics.effectSize} tooltip={t.results.statistics.effectSizeTooltip}>
                 {statisticalResult.effectSize ? (
                   <>
                     <p className="text-xl font-bold font-mono">
                       {(statisticalResult.effectSize.value ?? 0).toFixed(2)}
                     </p>
                     <Badge variant="outline" className="mt-1 text-xs">
-                      {getEffectSizeInterpretation(statisticalResult.effectSize.value, statisticalResult.effectSize.type)}
+                      {getEffectSizeInterpretation(statisticalResult.effectSize.value, statisticalResult.effectSize.type, t.results.effectSizeLabels)}
                     </Badge>
                   </>
                 ) : (
@@ -593,7 +594,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               {isInterpreting && !interpretation && (
                 <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-100 dark:border-purple-900 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-purple-500 animate-pulse" />
-                  <span className="text-sm text-purple-700 dark:text-purple-300">AI가 결과를 해석하고 있어요...</span>
+                  <span className="text-sm text-purple-700 dark:text-purple-300">{t.results.ai.loading}</span>
                 </div>
               )}
 
@@ -617,7 +618,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                     {/* 상세 해석 (펼침) */}
                     {detail && (
                       <CollapsibleSection
-                        label="상세 해석"
+                        label={t.results.ai.detailedLabel}
                         open={detailedInterpretOpen}
                         onOpenChange={setDetailedInterpretOpen}
                         contentClassName="pt-2"
@@ -642,7 +643,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                         className="text-xs text-muted-foreground h-6 px-2"
                       >
                         <RefreshCw className="w-3 h-3 mr-1" />
-                        다시 해석
+                        {t.results.ai.reinterpret}
                       </Button>
                     )}
                   </>
@@ -664,7 +665,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                       }}
                       className="ml-2 text-xs h-6 px-2"
                     >
-                      다시 시도
+                      {t.results.ai.retry}
                     </Button>
                   </AlertDescription>
                 </Alert>
@@ -677,7 +678,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             {/* ===== Layer 2: 상세 결과 (접기/펼치기) ===== */}
             {hasDetailedResults && (
               <CollapsibleSection
-                label="상세 결과"
+                label={t.results.sections.detailedResults}
                 data-testid="detailed-results-section"
                 open={detailedResultsOpen}
                 onOpenChange={setDetailedResultsOpen}
@@ -687,7 +688,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 {/* 신뢰구간 */}
                 {statisticalResult.confidenceInterval && (
                   <ConfidenceIntervalDisplay
-                    label="신뢰구간"
+                    label={t.results.sections.confidenceInterval}
                     lower={statisticalResult.confidenceInterval.lower}
                     upper={statisticalResult.confidenceInterval.upper}
                     estimate={statisticalResult.confidenceInterval.estimate}
@@ -731,7 +732,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 {/* APA 형식 요약 */}
                 {apaFormat && (
                   <div className="p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xs text-muted-foreground mb-1">APA 형식</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t.results.sections.apaFormat}</p>
                     <code className="text-sm font-mono">{apaFormat}</code>
                   </div>
                 )}
@@ -740,19 +741,19 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 <div className="grid grid-cols-2 gap-2 text-sm pt-2 border-t">
                   {uploadedFileName && (
                     <div>
-                      <span className="text-muted-foreground">파일: </span>
+                      <span className="text-muted-foreground">{t.results.metadata.file} </span>
                       <span className="font-medium">{uploadedFileName}</span>
                     </div>
                   )}
                   {uploadedData && (
                     <div>
-                      <span className="text-muted-foreground">데이터: </span>
-                      <span className="font-medium">{uploadedData.length}행 × {Object.keys(uploadedData[0] || {}).length}열</span>
+                      <span className="text-muted-foreground">{t.results.metadata.data} </span>
+                      <span className="font-medium">{t.results.metadata.rowsCols(uploadedData.length, Object.keys(uploadedData[0] || {}).length)}</span>
                     </div>
                   )}
                   {statisticalResult.variables && (
                     <div className="col-span-2">
-                      <span className="text-muted-foreground">변수: </span>
+                      <span className="text-muted-foreground">{t.results.metadata.variables} </span>
                       <span className="font-medium">{statisticalResult.variables.join(', ')}</span>
                     </div>
                   )}
@@ -763,7 +764,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             {/* ===== Layer 3: 진단 & 권장 (접기/펼치기) ===== */}
             {hasDiagnostics && (
               <CollapsibleSection
-                label="진단 & 권장"
+                label={t.results.sections.diagnostics}
                 data-testid="diagnostics-section"
                 open={diagnosticsOpen}
                 onOpenChange={setDiagnosticsOpen}
@@ -772,7 +773,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 badge={
                   !assumptionsPassed ? (
                     <Badge variant="outline" className="text-xs border-amber-300 text-amber-700">
-                      주의
+                      {t.results.sections.caution}
                     </Badge>
                   ) : undefined
                 }
@@ -793,7 +794,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                   <div className="space-y-2" data-testid="recommendations-section">
                     <p className="text-sm font-medium flex items-center gap-1.5">
                       <Lightbulb className="w-3.5 h-3.5 text-blue-600" />
-                      권장사항
+                      {t.results.sections.recommendations}
                     </p>
                     <ul className="space-y-1.5">
                       {statisticalResult.recommendations.map((rec, idx) => (
@@ -811,7 +812,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                   assumptionTests.length === 0 && (
                   <Alert variant="destructive" data-testid="warnings-section">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>주의사항</AlertTitle>
+                    <AlertTitle>{t.results.sections.warnings}</AlertTitle>
                     <AlertDescription>
                       <ul className="mt-1 space-y-1">
                         {statisticalResult.warnings.map((warning, idx) => (
@@ -826,7 +827,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 {statisticalResult.alternatives && statisticalResult.alternatives.length > 0 &&
                   !statisticalResult.testType && (
                   <div className="space-y-2" data-testid="alternatives-section">
-                    <p className="text-sm font-medium">대안 분석 방법</p>
+                    <p className="text-sm font-medium">{t.results.sections.alternatives}</p>
                     <div className="space-y-1.5">
                       {statisticalResult.alternatives.map((alt, idx) => (
                         <div key={idx} className={cn("p-2.5 rounded-lg border text-sm",
@@ -855,7 +856,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             className="flex-1"
           >
             <Save className="w-4 h-4 mr-1.5" />
-            {isSaved ? '저장됨' : '저장'}
+            {isSaved ? t.results.buttons.saved : t.results.buttons.save}
           </Button>
 
           <Button
@@ -866,7 +867,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             className="flex-1"
           >
             <FileDown className="w-4 h-4 mr-1.5" />
-            {isGeneratingPDF ? '생성중...' : 'PDF'}
+            {isGeneratingPDF ? t.results.buttons.generating : t.results.buttons.pdf}
           </Button>
 
           <Button
@@ -876,7 +877,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             className="flex-1"
           >
             <Copy className="w-4 h-4 mr-1.5" />
-            {isCopied ? '복사됨' : '복사'}
+            {isCopied ? t.results.buttons.copied : t.results.buttons.copy}
           </Button>
 
           {/* More Menu */}
@@ -889,16 +890,16 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setTemplateModalOpen(true)}>
                 <FileText className="w-4 h-4 mr-2" />
-                템플릿으로 저장
+                {t.results.buttons.saveTemplate}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleReanalyze}>
                 <RefreshCw className="w-4 h-4 mr-2" />
-                다른 데이터로 재분석
+                {t.results.buttons.reanalyze}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleNewAnalysis}>
                 <RotateCcw className="w-4 h-4 mr-2" />
-                새 분석 시작
+                {t.results.buttons.newAnalysis}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -909,7 +910,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           open={templateModalOpen}
           onOpenChange={setTemplateModalOpen}
           onSaved={() => {
-            toast.success('템플릿이 저장되었습니다')
+            toast.success(t.results.toast.templateSaved)
           }}
         />
       </div>

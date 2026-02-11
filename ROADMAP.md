@@ -1044,36 +1044,45 @@ STATISTICS_EXAMPLES.oneWayAnova = {
 
 ---
 
-### Phase 12-3: 다중 도메인 지원 UI (예정)
+### Phase 12-3: 다국어 + 다중 도메인 지원 (예정)
 
-**목표**: 사용자가 도메인을 선택하여 맞춤형 예시 제공
+**목표**: 언어와 도메인을 분리하여 확장 가능한 구조 구축
+
+**현재 상태** (2026-02):
+- Terminology System 완성: `useTerminology()` 훅 기반, 25+ 컴포넌트 전환 완료
+- 사전 2개: `aquaculture` (한국어+수산과학), `generic` (영어+범용)
+- 런타임 전환 가능: `setDomain()` + localStorage 유지
+
+**설계 원칙**:
+- 한국어는 수산과학 도메인만 특화, 나머지 도메인은 영어 기반 `generic`을 표준으로 통일
+- 새 언어 추가 시 `generic` 사전을 번역 → 코드 수정 없이 사전 파일만 추가
+- `TerminologyDictionary` 타입이 모든 필드를 required로 강제 → 번역 누락 시 컴파일 에러
+
+**확장 전략**:
+```
+현재:   aquaculture (한국어) ← 수산과학 특화
+        generic (영어)       ← 표준 (모든 언어의 base)
+
+향후:   generic-ja (일본어)  ← generic 번역
+        generic-zh (중국어)  ← generic 번역
+        aquaculture (한국어) ← 수산과학만 유지
+```
 
 **기능**:
-- 스마트 플로우 Step 0에 도메인 선택 추가
+- 스마트 플로우 Step 0에 도메인/언어 선택 추가
 - Context 기반 예시 동적 전환
-- 4가지 도메인 지원:
-  - 🐟 수산과학 (기본) - 넙치, 수온, 사료 등
+- fallback 체인: `aquaculture-ko` → `generic-ko` → `generic-en`
+- 도메인 지원:
+  - 🐟 수산과학 (한국어 기본) - 넙치, 수온, 사료 등
   - 🏥 의료/보건 - 환자, 치료법, 혈압 등
   - 📚 교육 - 학생, 점수, 학습시간 등
   - 🌐 일반 - 추상적 변수명
 
-**구현 예시**:
-```tsx
-<RadioGroup value={domain} onValueChange={setDomain}>
-  <RadioGroupItem value="fisheries" id="fisheries" />
-  <Label htmlFor="fisheries">
-    🐟 수산과학 (넙치, 수온, 사료 등)
-  </Label>
-  {/* 기타 도메인 옵션... */}
-</RadioGroup>
-```
-
-**예상 시간**: 3일
+**예상 시간**: 5일 (fallback 체인 구현 포함)
 
 **예상 효과**:
-- 범용성 확보 (타 분야 연구자도 사용 가능)
-- 맞춤형 사용자 경험 제공
-- "수산과학 특화" + "다목적 활용" 동시 달성
+- 범용성 확보 (타 분야 연구자 + 해외 사용자)
+- "수산과학 특화" + "다국어 서비스" 동시 달성
 
 ---
 

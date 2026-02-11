@@ -2,6 +2,7 @@
 
 import { Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTerminology } from '@/hooks/use-terminology'
 
 interface Assumption {
     name: string
@@ -18,6 +19,7 @@ export function AssumptionResultChart({
     assumptions,
     className
 }: AssumptionResultChartProps) {
+    const t = useTerminology()
     const passedCount = assumptions.filter(a => a.passed).length
     const totalCount = assumptions.length
     const passRate = (passedCount / totalCount) * 100
@@ -33,7 +35,7 @@ export function AssumptionResultChart({
                     />
                 </div>
                 <span className="text-sm font-medium whitespace-nowrap">
-                    {passedCount}/{totalCount} 통과
+                    {passedCount}/{totalCount} {t.dataExploration.assumptions.passed}
                 </span>
             </div>
 
@@ -58,12 +60,12 @@ export function AssumptionResultChart({
                             {assumption.passed ? (
                                 <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
                                     <Check className="w-4 h-4" />
-                                    <span className="text-xs font-medium">통과</span>
+                                    <span className="text-xs font-medium">{t.dataExploration.assumptions.passed}</span>
                                 </div>
                             ) : (
                                 <div className="flex items-center gap-1 text-red-600 dark:text-red-400">
                                     <X className="w-4 h-4" />
-                                    <span className="text-xs font-medium">불충족</span>
+                                    <span className="text-xs font-medium">{t.dataExploration.assumptions.failed}</span>
                                 </div>
                             )}
                         </div>

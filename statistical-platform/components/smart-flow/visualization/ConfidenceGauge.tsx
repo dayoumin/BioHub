@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
+import { useTerminology } from '@/hooks/use-terminology'
 
 interface ConfidenceGaugeProps {
     value: number // 0-100
@@ -14,6 +15,7 @@ export function ConfidenceGauge({
     size = 'md',
     className
 }: ConfidenceGaugeProps) {
+    const t = useTerminology()
     // Animation state
     const [animatedValue, setAnimatedValue] = useState(0)
 
@@ -70,7 +72,7 @@ export function ConfidenceGauge({
                 <span className={cn("font-bold", config.fontSize, colorClass)}>
                     {Math.round(animatedValue)}%
                 </span>
-                <span className="text-xs text-muted-foreground mt-1">신뢰도</span>
+                <span className="text-xs text-muted-foreground mt-1">{t.fitScore.confidenceLabel}</span>
             </div>
         </div>
     )

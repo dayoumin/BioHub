@@ -10,6 +10,7 @@ import { ColumnStatistics } from '@/types/smart-flow'
 import { getNumericColumnData } from '../utils/correlationUtils'
 import type { Data } from 'plotly.js'
 import { BarChart3, GitCommitHorizontal } from 'lucide-react'
+import { useTerminology } from '@/hooks/use-terminology'
 
 interface ColumnDetailModalProps {
   column: ColumnStatistics | null
@@ -24,6 +25,8 @@ export const ColumnDetailModal = memo(function ColumnDetailModal({
   onOpenChange,
   data
 }: ColumnDetailModalProps) {
+  const t = useTerminology()
+  const vs = t.validationSummary
   const [chartType, setChartType] = useState<'histogram' | 'boxplot'>('histogram')
 
   if (!column) return null
@@ -34,7 +37,7 @@ export const ColumnDetailModal = memo(function ColumnDetailModal({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[1400px] w-[90vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{column.name} 상세 분석</DialogTitle>
+          <DialogTitle>{vs.detailAnalysisTitle(column.name)}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -42,13 +45,13 @@ export const ColumnDetailModal = memo(function ColumnDetailModal({
             <>
               <FilterToggle
                 options={[
-                  { id: 'histogram', label: '히스토그램', icon: BarChart3 },
-                  { id: 'boxplot', label: '박스플롯', icon: GitCommitHorizontal }
+                  { id: 'histogram', label: vs.chartTypes.histogram, icon: BarChart3 },
+                  { id: 'boxplot', label: vs.chartTypes.boxplot, icon: GitCommitHorizontal }
                 ]}
                 value={chartType}
                 onChange={(value) => setChartType(value as 'histogram' | 'boxplot')}
                 size="md"
-                ariaLabel="차트 타입 선택"
+                ariaLabel={vs.chartTypes.ariaLabel}
               />
 
               {chartType === 'histogram' && (
@@ -60,12 +63,12 @@ export const ColumnDetailModal = memo(function ColumnDetailModal({
                       ...CHART_STYLES.histogram,
                       nbinsx: 20,
                       name: column.name,
-                      hovertemplate: '%{x}: %{y}개<extra></extra>'
+                      hovertemplate: vs.histogramHoverTemplate
                     } as Data]}
                     layout={getModalLayout({
                       title: { text: '' },
                       xaxis: { title: { text: column.name } },
-                      yaxis: { title: { text: '빈도' } },
+                      yaxis: { title: { text: vs.axisLabels.frequency } },
                       height: 380,
                       showlegend: false,
                       margin: { l: 50, r: 30, t: 20, b: 50 }
@@ -108,22 +111,22 @@ export const ColumnDetailModal = memo(function ColumnDetailModal({
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                 <div className="bg-muted rounded p-3">
-                  <p className="text-sm text-muted-foreground">평균</p>
+                  <p className="text-sm text-muted-foreground">{vs.statistics.mean}</p>
                   <p className="text-lg font-bold">{column.mean?.toFixed(2)}</p>
                 </div>
                 <div className="bg-muted rounded p-3">
-                  <p className="text-sm text-muted-foreground">표준편차</p>
+                  <p className="text-sm text-muted-foreground">{vs.statistics.stdDev}</p>
                   <p className="text-lg font-bold">{column.std?.toFixed(2)}</p>
                 </div>
                 <div className="bg-muted rounded p-3">
-                  <p className="text-sm text-muted-foreground">최소/최대</p>
+                  <p className="text-sm text-muted-foreground">{vs.statistics.minMax}</p>
                   <p className="text-lg font-bold">
                     {column.min?.toFixed(2)} / {column.max?.toFixed(2)}
                   </p>
                 </div>
                 <div className="bg-muted rounded p-3">
-                  <p className="text-sm text-muted-foreground">이상치</p>
-                  <p className="text-lg font-bold">{column.outliers?.length || 0}개</p>
+                  <p className="text-sm text-muted-foreground">{vs.statistics.outliers}</p>
+                  <p className="text-lg font-bold">{vs.outlierCount(column.outliers?.length || 0)}</p>
                 </div>
               </div>
             </>
@@ -132,12 +135,12 @@ export const ColumnDetailModal = memo(function ColumnDetailModal({
               <BarChartComponent
                 categories={column.topCategories.map(c => c.value)}
                 values={column.topCategories.map(c => c.count)}
-                title="카테고리별 빈도"
+                title={vs.categoryFrequencyTitle}
                 orientation="h"
               />
             </div>
           ) : (
-            <p className="text-muted-foreground">혼합 타입 변수는 시각화가 제한됩니다.</p>
+            <p className="text-muted-foreground">{vs.mixedTypeMessage}</p>
           )}
         </div>
       </DialogContent>

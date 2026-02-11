@@ -9,6 +9,19 @@ import { vi } from 'vitest'
 import { VariableMappingDisplay } from '@/components/smart-flow/steps/purpose/VariableMappingDisplay'
 import { VariableMapping } from '@/lib/statistics/variable-mapping'
 
+// Mock: Terminology
+vi.mock('@/hooks/use-terminology', async () => {
+  const { aquaculture } = await import('@/lib/terminology/domains/aquaculture')
+  return {
+    useTerminology: () => aquaculture,
+    useTerminologyContext: () => ({
+      dictionary: aquaculture,
+      setDomain: vi.fn(),
+      currentDomain: 'aquaculture',
+    }),
+  }
+})
+
 describe('VariableMappingDisplay - Array Formatting', () => {
   const mockOnClose = vi.fn()
 

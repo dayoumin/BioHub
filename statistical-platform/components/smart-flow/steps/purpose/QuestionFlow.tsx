@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft, ArrowRight, RotateCcw } from 'lucide-react'
 import { ProgressIndicator } from './ProgressIndicator'
 import { ConversationalQuestion } from './ConversationalQuestion'
+import { useTerminology } from '@/hooks/use-terminology'
 import type { GuidedQuestion, AutoAnswerResult } from '@/types/smart-flow'
 
 interface QuestionFlowProps {
@@ -27,6 +28,8 @@ export function QuestionFlow({
   onBack,
   shouldShowQuestion
 }: QuestionFlowProps) {
+  const t = useTerminology()
+  const text = t.questionFlowNav
   // 현재 질문 인덱스 (필터된 질문 기준)
   const [currentIndex, setCurrentIndex] = useState(0)
   // 애니메이션 방향
@@ -194,7 +197,7 @@ export function QuestionFlow({
           className="gap-1.5 text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          {currentIndex === 0 ? '목적 선택으로' : '이전'}
+          {currentIndex === 0 ? text.backToPurpose : text.previous}
         </Button>
 
         {/* 처음부터 다시 */}
@@ -210,7 +213,7 @@ export function QuestionFlow({
             className="gap-1.5 text-muted-foreground hover:text-foreground"
           >
             <RotateCcw className="h-4 w-4" />
-            처음부터
+            {text.restart}
           </Button>
         )}
       </div>
@@ -239,7 +242,7 @@ export function QuestionFlow({
       {/* 하단 버튼 */}
       <div className="flex items-center justify-between pt-6 mt-auto border-t">
         <p className="text-xs text-muted-foreground">
-          Enter로 진행 · Esc로 취소
+          {text.keyboardHint}
         </p>
 
         <Button
@@ -248,7 +251,7 @@ export function QuestionFlow({
           className="gap-2"
           size="lg"
         >
-          {isLastQuestion ? '결과 확인' : '다음'}
+          {isLastQuestion ? text.viewResults : text.next}
           <ArrowRight className="h-4 w-4" />
         </Button>
       </div>

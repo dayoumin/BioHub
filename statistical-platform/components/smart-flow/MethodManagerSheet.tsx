@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/collapsible'
 import { cn } from '@/lib/utils'
 import { STATISTICS_MENU, DATA_TOOLS_MENU, type StatisticsCategory } from '@/lib/statistics/menu-config'
+import { useTerminology } from '@/hooks/use-terminology'
 
 interface MethodManagerSheetProps {
   open: boolean
@@ -34,6 +35,8 @@ export function MethodManagerSheet({
   onSelectCategory,
   onSelectMethod
 }: MethodManagerSheetProps) {
+  const t = useTerminology()
+  const methodManager = t.methodManager
   const [expandedCategories, setExpandedCategories] = useState<string[]>([])
 
   const toggleCategory = (categoryId: string) => {
@@ -64,7 +67,7 @@ export function MethodManagerSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-80 sm:w-96 overflow-y-auto">
         <SheetHeader className="pb-4 border-b">
-          <SheetTitle>통계 방법 관리</SheetTitle>
+          <SheetTitle>{methodManager.title}</SheetTitle>
         </SheetHeader>
 
         <div className="py-4 space-y-1">
@@ -109,7 +112,7 @@ export function MethodManagerSheet({
                     size="sm"
                     className="h-8 w-8 p-0 text-primary"
                     onClick={() => handleCategoryClick(category)}
-                    title={`${category.title} 분석 시작`}
+                    title={methodManager.startAnalysis(category.title)}
                   >
                     <Play className="h-4 w-4" />
                   </Button>
@@ -151,7 +154,7 @@ export function MethodManagerSheet({
                         >
                           {item.title}
                           {!item.implemented && (
-                            <span className="ml-1 text-xs text-muted-foreground">(준비중)</span>
+                            <span className="ml-1 text-xs text-muted-foreground">{methodManager.notReady}</span>
                           )}
                         </button>
                       </div>

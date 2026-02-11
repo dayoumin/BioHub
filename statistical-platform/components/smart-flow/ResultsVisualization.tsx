@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { useTerminology } from '@/hooks/use-terminology'
 import {
   BarChart,
   Bar,
@@ -117,6 +118,8 @@ interface ResultsVisualizationProps {
 }
 
 export function ResultsVisualization({ results }: ResultsVisualizationProps) {
+  const t = useTerminology()
+  const rv = t.resultsVisualization
   const { uploadedData, selectedMethod } = useSmartFlowStore()
 
   // 대용량 데이터 샘플링 함수
@@ -207,7 +210,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
   if (results.method?.includes('검정') || results.method?.includes('ANOVA')) {
     return (
       <Card className="p-6 bg-gradient-to-br from-blue-50/30 to-success-bg/30 dark:from-blue-950/20 dark:to-success-bg/20">
-        <h4 className="text-lg font-semibold mb-4">📊 그룹 간 평균 비교 (평균 ± 표준편차)</h4>
+        <h4 className="text-lg font-semibold mb-4">{rv.groupComparison.title}</h4>
 
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={chartData.groupData}>
@@ -219,7 +222,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
             <Bar
               dataKey="mean"
               fill={CHART_COLORS.primary()}
-              name="평균"
+              name={rv.labels.mean}
               label={{ position: 'top', formatter: (label) => typeof label === 'number' ? label.toFixed(2) : String(label) }}
               radius={[8, 8, 0, 0]}
             >
@@ -235,8 +238,8 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
           {chartData.groupData.map((group, index) => (
             <div key={index} className="bg-muted/50 rounded p-3">
               <p className="font-medium">{group.name}</p>
-              <p>평균: {group.mean.toFixed(2)} ± {group.std.toFixed(2)}</p>
-              <p>표본 크기: {group.n}</p>
+              <p>{rv.labels.mean}: {group.mean.toFixed(2)} ± {group.std.toFixed(2)}</p>
+              <p>{rv.labels.sampleSize}: {group.n}</p>
             </div>
           ))}
         </div>
@@ -244,7 +247,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
         {results.pValue < 0.05 && (
           <div className="mt-4 p-3 bg-success-bg dark:bg-success-bg rounded">
             <p className="text-sm">
-              ✅ 통계적으로 유의한 차이가 있습니다 (p = {results.pValue.toFixed(4)})
+              {rv.significantDifference(results.pValue.toFixed(4))}
             </p>
           </div>
         )}
@@ -256,7 +259,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
   if (results.method?.includes('상관')) {
     return (
       <Card className="p-6 bg-gradient-to-br from-purple-50/30 to-pink-50/30 dark:from-purple-950/20 dark:to-pink-950/20">
-        <h4 className="text-lg font-semibold mb-4">📊 상관관계 분석</h4>
+        <h4 className="text-lg font-semibold mb-4">{rv.correlation.title}</h4>
         
         <ResponsiveContainer width="100%" height={300}>
           <ScatterChart>
@@ -264,9 +267,9 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
             <XAxis dataKey="x" name="X" />
             <YAxis dataKey="y" name="Y" />
             <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-            <Scatter 
-              name="데이터" 
-              data={chartData.scatterData} 
+            <Scatter
+              name={rv.labels.data}
+              data={chartData.scatterData}
               fill="#3b82f6"
             />
             {/* 추세선 추가 가능 */}
@@ -275,11 +278,11 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
 
         <div className="mt-4 grid grid-cols-3 gap-4">
           <div className="bg-muted/50 rounded p-3">
-            <p className="text-sm text-muted-foreground">상관계수</p>
+            <p className="text-sm text-muted-foreground">{rv.correlation.coefficientLabel}</p>
             <p className="text-lg font-bold">{results.statistic.toFixed(3)}</p>
           </div>
           <div className="bg-muted/50 rounded p-3">
-            <p className="text-sm text-muted-foreground">결정계수</p>
+            <p className="text-sm text-muted-foreground">{rv.correlation.determinationLabel}</p>
             <p className="text-lg font-bold">
               {results.effectSize
                 ? (typeof results.effectSize === 'number'
@@ -320,28 +323,28 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
 
     return (
       <Card className="p-6 bg-gradient-to-br from-orange-50/30 to-red-50/30 dark:from-orange-950/20 dark:to-red-950/20">
-        <h4 className="text-lg font-semibold mb-4">📊 회귀분석 결과</h4>
+        <h4 className="text-lg font-semibold mb-4">{rv.regression.title}</h4>
         
         <ResponsiveContainer width="100%" height={300}>
           <ScatterChart>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="x" name="독립변수" />
-            <YAxis dataKey="y" name="종속변수" />
+            <XAxis dataKey="x" name={rv.regression.independentVar} />
+            <YAxis dataKey="y" name={rv.regression.dependentVar} />
             <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-            <Scatter 
-              name="데이터" 
-              data={chartData.scatterData} 
+            <Scatter
+              name={rv.labels.data}
+              data={chartData.scatterData}
               fill="#3b82f6"
             />
             {lineData.length > 0 && (
-              <Line 
+              <Line
                 data={lineData}
                 type="monotone"
                 dataKey="y"
                 stroke={CHART_COLORS.destructive()}
                 strokeWidth={2}
                 dot={false}
-                name="회귀선"
+                name={rv.regression.regressionLine}
               />
             )}
           </ScatterChart>
@@ -349,7 +352,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
 
         <div className="mt-4 space-y-3">
           <div className="bg-muted/50 rounded p-3">
-            <p className="text-sm font-medium">회귀방정식</p>
+            <p className="text-sm font-medium">{rv.regression.equationLabel}</p>
             <p className="font-mono mt-1">
               Y = {slope.toFixed(3)}X {intercept >= 0 ? '+' : ''} {intercept.toFixed(3)}
             </p>
@@ -387,7 +390,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
       results.method?.includes('비모수')) {
     return (
       <Card className="p-6 bg-gradient-to-br from-teal-50/30 to-cyan-50/30 dark:from-teal-950/20 dark:to-cyan-950/20">
-        <h4 className="text-lg font-semibold mb-4">📊 비모수 검정 결과 (중위수/평균 ± 분산)</h4>
+        <h4 className="text-lg font-semibold mb-4">{rv.nonparametric.title}</h4>
 
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={chartData.groupData}>
@@ -399,7 +402,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
             <Bar
               dataKey="mean"
               fill={CHART_COLORS.accent()}
-              name="중위수/평균"
+              name={rv.nonparametric.medianMean}
               label={{ position: 'top', formatter: (label) => typeof label === 'number' ? label.toFixed(2) : String(label) }}
               radius={[8, 8, 0, 0]}
             >
@@ -415,8 +418,8 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
           {chartData.groupData.map((group, index) => (
             <div key={index} className="bg-muted/50 rounded p-3">
               <p className="font-medium">{group.name}</p>
-              <p>중위수/평균: {group.mean.toFixed(2)}</p>
-              <p>표본 크기: {group.n}</p>
+              <p>{rv.nonparametric.medianMean}: {group.mean.toFixed(2)}</p>
+              <p>{rv.labels.sampleSize}: {group.n}</p>
             </div>
           ))}
         </div>
@@ -424,7 +427,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
         {results.pValue < 0.05 && (
           <div className="mt-4 p-3 bg-teal-100 dark:bg-teal-900/30 rounded">
             <p className="text-sm">
-              ✅ 통계적으로 유의한 차이가 있습니다 (p = {results.pValue.toFixed(4)})
+              {rv.significantDifference(results.pValue.toFixed(4))}
             </p>
           </div>
         )}
@@ -447,7 +450,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
 
     return (
       <Card className="p-6 bg-gradient-to-br from-indigo-50/30 to-violet-50/30 dark:from-indigo-950/20 dark:to-violet-950/20">
-        <h4 className="text-lg font-semibold mb-4">📊 분산 설명률</h4>
+        <h4 className="text-lg font-semibold mb-4">{rv.pca.title}</h4>
 
         {varianceData.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
@@ -457,24 +460,20 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
               <YAxis unit="%" />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
-              <Bar dataKey="variance" fill="#6366f1" name="개별 분산" radius={[4, 4, 0, 0]} />
-              <Line type="monotone" dataKey="cumulative" stroke={CHART_COLORS.accent()} name="누적 분산" />
+              <Bar dataKey="variance" fill="#6366f1" name={rv.pca.individualVariance} radius={[4, 4, 0, 0]} />
+              <Line type="monotone" dataKey="cumulative" stroke={CHART_COLORS.accent()} name={rv.pca.cumulativeVariance} />
             </BarChart>
           </ResponsiveContainer>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
-            <p>분산 설명률 데이터가 없습니다.</p>
+            <p>{rv.pca.noDataMessage}</p>
           </div>
         )}
 
         {varianceData.length > 0 && (
           <div className="mt-4 p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded text-sm">
             <p>
-              총 {varianceData.length}개 주성분이 전체 분산의{' '}
-              <span className="font-medium">
-                {varianceData[varianceData.length - 1]?.cumulative.toFixed(1)}%
-              </span>
-              를 설명합니다.
+              {rv.pca.summary(varianceData.length, varianceData[varianceData.length - 1]?.cumulative.toFixed(1) ?? '0')}
             </p>
           </div>
         )}
@@ -488,16 +487,16 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
 
     return (
       <Card className="p-6 bg-gradient-to-br from-emerald-50/30 to-green-50/30 dark:from-emerald-950/20 dark:to-green-950/20">
-        <h4 className="text-lg font-semibold mb-4">📊 군집 분석 결과</h4>
+        <h4 className="text-lg font-semibold mb-4">{rv.cluster.title}</h4>
 
         <ResponsiveContainer width="100%" height={300}>
           <ScatterChart>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="x" name="차원 1" />
-            <YAxis dataKey="y" name="차원 2" />
+            <XAxis dataKey="x" name={rv.cluster.dimension1} />
+            <YAxis dataKey="y" name={rv.cluster.dimension2} />
             <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
             <Scatter
-              name="데이터"
+              name={rv.labels.data}
               data={chartData.scatterData}
               fill="#10b981"
             />
@@ -513,7 +512,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
           )}
           {results.additional?.clusters && (
             <div className="bg-muted/50 rounded p-3">
-              <p className="text-muted-foreground">군집 수</p>
+              <p className="text-muted-foreground">{rv.cluster.clusterCount}</p>
               <p className="text-lg font-bold">{new Set(results.additional.clusters).size}</p>
             </div>
           )}
@@ -525,13 +524,13 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
   // 신뢰도 분석 - 항목별 상관 바 차트
   if (results.method?.includes('신뢰도') || results.method?.includes('Cronbach')) {
     const itemData = results.additional?.itemTotalCorrelations?.map((corr, idx) => ({
-      name: `항목 ${idx + 1}`,
+      name: rv.reliability.itemLabel(idx + 1),
       correlation: corr
     })) || []
 
     return (
       <Card className="p-6 bg-gradient-to-br from-amber-50/30 to-yellow-50/30 dark:from-amber-950/20 dark:to-yellow-950/20">
-        <h4 className="text-lg font-semibold mb-4">📊 항목-총점 상관</h4>
+        <h4 className="text-lg font-semibold mb-4">{rv.reliability.title}</h4>
 
         {itemData.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
@@ -552,7 +551,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
           </ResponsiveContainer>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
-            <p>항목 상관 데이터가 없습니다.</p>
+            <p>{rv.reliability.noDataMessage}</p>
           </div>
         )}
 
@@ -561,7 +560,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
             <p className="text-sm">
               Cronbach's α = <span className="font-bold">{results.additional.alpha.toFixed(3)}</span>
               {' '}
-              ({results.additional.alpha >= 0.7 ? '수용 가능' : '낮음'})
+              ({results.additional.alpha >= 0.7 ? rv.reliability.acceptable : rv.reliability.low})
             </p>
           </div>
         )}
@@ -581,16 +580,16 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
 
     return (
       <Card className="p-6 bg-gradient-to-br from-rose-50/30 to-pink-50/30 dark:from-rose-950/20 dark:to-pink-950/20">
-        <h4 className="text-lg font-semibold mb-4">📊 검정력 곡선</h4>
+        <h4 className="text-lg font-semibold mb-4">{rv.power.title}</h4>
 
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={powerCurveData}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="n" name="표본 크기" />
+            <XAxis dataKey="n" name={rv.labels.sampleSize} />
             <YAxis unit="%" domain={[0, 100]} />
             <Tooltip content={<CustomTooltip />} />
             <ReferenceLine y={80} stroke={CHART_COLORS.destructive()} strokeDasharray="5 5" label="80%" />
-            <Line type="monotone" dataKey="power" stroke={CHART_COLORS.primary()} strokeWidth={2} name="검정력" />
+            <Line type="monotone" dataKey="power" stroke={CHART_COLORS.primary()} strokeWidth={2} name={rv.power.powerLabel} />
           </LineChart>
         </ResponsiveContainer>
 
@@ -599,7 +598,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
             const power = results.additional.power
             return (
               <div className="bg-muted/50 rounded p-3">
-                <p className="text-muted-foreground">현재 검정력</p>
+                <p className="text-muted-foreground">{rv.power.currentPower}</p>
                 <p className={`text-lg font-bold ${power >= 0.8 ? 'text-green-600' : 'text-yellow-600'}`}>
                   {(power * 100).toFixed(1)}%
                 </p>
@@ -608,7 +607,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
           })()}
           {results.additional?.requiredSampleSize !== undefined && (
             <div className="bg-muted/50 rounded p-3">
-              <p className="text-muted-foreground">필요 표본 크기</p>
+              <p className="text-muted-foreground">{rv.power.requiredSampleSize}</p>
               <p className="text-lg font-bold">{results.additional.requiredSampleSize}</p>
             </div>
           )}
@@ -620,10 +619,10 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
   // 기본 - 시각화 준비 중
   return (
     <Card className="p-6">
-      <h4 className="text-lg font-semibold mb-4">📊 분석 결과 시각화</h4>
+      <h4 className="text-lg font-semibold mb-4">{rv.fallback.title}</h4>
       <div className="text-center py-8 text-muted-foreground">
-        <p>이 분석 유형({results.method})에 대한 시각화를 준비 중입니다.</p>
-        <p className="text-sm mt-2">결과 데이터는 아래 섹션에서 확인할 수 있습니다.</p>
+        <p>{rv.fallback.preparing(results.method)}</p>
+        <p className="text-sm mt-2">{rv.fallback.seeBelow}</p>
       </div>
     </Card>
   )

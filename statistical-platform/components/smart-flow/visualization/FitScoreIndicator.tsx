@@ -86,11 +86,11 @@ interface FitConfig {
 
 // Default text fallback (for getFitLevel utility that can't use hooks)
 const DEFAULT_LEVEL_TEXT: Record<FitLevel, FitScoreLevelText> = {
-  excellent: { label: '매우 적합', shortLabel: '최적', description: '데이터에 매우 적합합니다' },
-  good: { label: '적합', shortLabel: '적합', description: '데이터와 잘 맞습니다' },
-  caution: { label: '주의 필요', shortLabel: '주의', description: '일부 조건이 충족되지 않습니다' },
-  poor: { label: '부적합', shortLabel: '부적합', description: '다른 방법을 고려하세요' },
-  unknown: { label: '평가 불가', shortLabel: '평가 불가', description: '데이터 정보가 부족합니다' },
+  excellent: { label: 'Excellent Fit', shortLabel: 'Optimal', description: 'Highly suitable for your data' },
+  good: { label: 'Good Fit', shortLabel: 'Good', description: 'Works well with your data' },
+  caution: { label: 'Use with Caution', shortLabel: 'Caution', description: 'Some conditions are not met' },
+  poor: { label: 'Poor Fit', shortLabel: 'Poor', description: 'Consider alternative methods' },
+  unknown: { label: 'Cannot Evaluate', shortLabel: 'Unknown', description: 'Insufficient data information' },
 }
 
 /**
