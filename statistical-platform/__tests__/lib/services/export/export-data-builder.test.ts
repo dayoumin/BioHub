@@ -166,7 +166,7 @@ describe('buildExportData - APA & AI', () => {
 
     expect(data.aiInterpretation).not.toBeNull()
     expect(data.aiInterpretation!.summary).toBe('분석 요약입니다.')
-    expect(data.aiInterpretation!.detail).toContain('상세 해석')
+    expect(data.aiInterpretation!.detail).toContain('상세 내용입니다.')
   })
 
   it('AI 해석 null이면 null', () => {

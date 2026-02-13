@@ -20,7 +20,7 @@ describe('splitInterpretation', () => {
 
     expect(summary).toContain('두 그룹 간에 통계적으로 유의한 차이')
     expect(summary).not.toContain('### 한줄 요약')
-    expect(detail).toContain('### 상세 해석')
+    expect(detail).not.toContain('### 상세 해석')
     expect(detail).toContain('통계량 해석')
     expect(detail).toContain('효과크기')
   })

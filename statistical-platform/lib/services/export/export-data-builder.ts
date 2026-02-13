@@ -23,9 +23,10 @@ export function splitInterpretation(text: string): { summary: string; detail: st
 
   if (match?.index !== undefined) {
     const summary = text.substring(0, match.index).trim()
-    const detail = text.substring(match.index).trim()
+    const rawDetail = text.substring(match.index).trim()
     const cleanSummary = summary.replace(/###\s*한줄\s*요약\s*\n?/, '').trim()
-    return { summary: cleanSummary, detail }
+    const cleanDetail = rawDetail.replace(/###\s*상세\s*해석\s*\n?/, '').trim()
+    return { summary: cleanSummary, detail: cleanDetail }
   }
 
   const cleanText = text.replace(/###\s*한줄\s*요약\s*\n?/, '').trim()

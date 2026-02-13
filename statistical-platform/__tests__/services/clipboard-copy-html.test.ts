@@ -80,7 +80,7 @@ describe('클립보드 HTML 복사 로직 시뮬레이션', () => {
       const text = '### 한줄 요약\n요약 내용\n\n### 상세 해석\n상세 내용'
       const { summary, detail } = splitInterpretation(text)
       expect(summary).toBe('요약 내용')
-      expect(detail).toContain('### 상세 해석')
+      expect(detail).not.toContain('### 상세 해석')
       expect(detail).toContain('상세 내용')
     })
 

@@ -576,16 +576,11 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 return (
                   <>
                     <div className="p-3.5 bg-violet-50 dark:bg-violet-950/20 rounded-xl border border-violet-100 dark:border-violet-900/50">
-                      <div className="flex items-start gap-2.5">
-                        <div className="w-6 h-6 rounded-md bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <Sparkles className="w-3.5 h-3.5 text-violet-500" />
-                        </div>
-                        <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed flex-1">
-                          <ReactMarkdown>{summary}</ReactMarkdown>
-                          {isInterpreting && (
-                            <span className="inline-block w-1.5 h-4 bg-purple-500 animate-pulse ml-0.5 align-text-bottom" />
-                          )}
-                        </div>
+                      <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
+                        <ReactMarkdown>{summary}</ReactMarkdown>
+                        {isInterpreting && (
+                          <span className="inline-block w-1.5 h-4 bg-purple-500 animate-pulse ml-0.5 align-text-bottom" />
+                        )}
                       </div>
                     </div>
 
