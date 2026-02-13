@@ -653,6 +653,11 @@ export const generic: TerminologyDictionary = {
       currentStatus: (numeric: number, categorical: number) => `Current: ${numeric} numeric, ${categorical} categorical`,
       nextStepHint: 'You can select a suitable analysis method in the next step.',
     },
+    replaceMode: {
+      title: 'Upload a different data file',
+      cancel: 'Cancel',
+      button: 'Replace Data',
+    },
     fallbackFileName: 'Uploaded Data',
   },
 

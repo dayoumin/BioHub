@@ -659,6 +659,11 @@ export const aquaculture: TerminologyDictionary = {
       currentStatus: (numeric: number, categorical: number) => `현재: 수치형 ${numeric}개, 범주형 ${categorical}개`,
       nextStepHint: '다음 단계에서 적합한 분석 방법을 선택할 수 있습니다.',
     },
+    replaceMode: {
+      title: '다른 데이터 파일을 업로드하세요',
+      cancel: '취소',
+      button: '데이터 교체',
+    },
     fallbackFileName: '업로드된 데이터',
   },
 

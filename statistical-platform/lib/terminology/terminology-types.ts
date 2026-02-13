@@ -693,6 +693,12 @@ export interface DataExplorationText {
     currentStatus: (numeric: number, categorical: number) => string
     nextStepHint: string
   }
+  /** 데이터 교체 모드 */
+  replaceMode?: {
+    title: string
+    cancel: string
+    button: string
+  }
   /** 단위/기타 */
   fallbackFileName: string
 }

@@ -4,16 +4,7 @@ import { memo, useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Scatterplot } from '@/components/charts/scatterplot'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select'
-import { FilterToggle } from '@/components/ui/filter-toggle'
-import { X, ChartScatter, Loader2, ListOrdered, ArrowRight, Sparkles, ExternalLink, BarChart3, GitCommitHorizontal, Flame, AlertTriangle, Lightbulb, Search, Check } from 'lucide-react'
+import { ChartScatter, ListOrdered, ExternalLink, BarChart3, Flame, AlertTriangle, Lightbulb, Upload } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ValidationResults, DataRow, StatisticalAssumptions } from '@/types/smart-flow'
 import { DataProfileSummary } from '@/components/common/analysis/DataProfileSummary'
@@ -21,12 +12,12 @@ import { usePyodide } from '@/components/providers/PyodideProvider'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { StepHeader } from '@/components/smart-flow/common'
 import { logger } from '@/lib/utils/logger'
-import { Histogram } from '@/components/charts/histogram'
-import { BoxPlot } from '@/components/charts/boxplot'
+import { AssumptionTestsSection } from './exploration/AssumptionTestsSection'
+import { DistributionChartSection } from './exploration/DistributionChartSection'
+import { ScatterHeatmapSection } from './exploration/ScatterHeatmapSection'
 import { openDataWindow } from '@/lib/utils/open-data-window'
 import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { CorrelationHeatmap } from '@/components/smart-flow/steps/validation/charts/CorrelationHeatmap'
 import { OutlierDetailPanel, OutlierInfo } from '@/components/common/analysis/OutlierDetailPanel'
 import { DataPrepGuide } from '@/components/statistics/common/DataPrepGuide'
 import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
@@ -117,6 +108,9 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   const { recentTemplates, loadTemplates: loadTemplatesFromDB } = useTemplateStore()
   const [templatePanelOpen, setTemplatePanelOpen] = useState(false)
 
+  // 데이터 교체 모드 (기존 데이터 있을 때 재업로드 허용)
+  const [isReplaceMode, setIsReplaceMode] = useState(false)
+
   // 템플릿 목록 로드
   useEffect(() => {
     loadTemplatesFromDB()
@@ -143,19 +137,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   const [assumptionResults, setLocalAssumptionResults] = useState<StatisticalAssumptions | null>(null)
   const assumptionRunId = useRef(0)
 
-  // 차트 타입 상태 (변수 전환 시에도 유지)
-  const [chartType, setChartType] = useState<'histogram' | 'boxplot'>('histogram')
-
-  // 빠른 분석 모드: 방법에 맞는 기본 차트 타입 동기화
-  useEffect(() => {
-    if (quickAnalysisMode && selectedMethod) {
-      setChartType(profile.defaultChartType)
-    }
-  }, [quickAnalysisMode, selectedMethod, profile.defaultChartType])
-  // 박스플롯 다중 변수 선택 상태
-  const [selectedBoxplotVars, setSelectedBoxplotVars] = useState<string[]>([])
-  // 히스토그램용 단일 변수 선택
-  const [selectedHistogramVar, setSelectedHistogramVar] = useState<string>('')
 
   // 이상치 상세 모달 상태
   const [outlierModalOpen, setOutlierModalOpen] = useState(false)
@@ -164,8 +145,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   // 데이터 미리보기 탭에서 하이라이트할 행들
   const [highlightedRows, setHighlightedRows] = useState<number[]>([])
 
-  // 산점도/히트맵 탭 상태 (ContentTabs 스타일용)
-  const [explorationTab, setExplorationTab] = useState<'scatterplots' | 'heatmap'>('scatterplots')
   const [highlightedColumn, setHighlightedColumn] = useState<string | undefined>(undefined)
 
 
@@ -216,109 +195,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     return validationResults.columnStats.filter(col => col.type === 'numeric' && !col.idDetection?.isId)
   }, [validationResults])
 
-  // 이전 numericVariables 추적 (데이터셋 변경 감지용)
-  const prevNumericVarsRef = useRef<string[]>([])
-
-  // 히스토그램/박스플롯 선택 상태 추적용 ref (무한 루프 방지)
-  const selectedHistogramVarRef = useRef(selectedHistogramVar)
-  const selectedBoxplotVarsRef = useRef(selectedBoxplotVars)
-  
-  // ref 동기화
-  useEffect(() => {
-    selectedHistogramVarRef.current = selectedHistogramVar
-  }, [selectedHistogramVar])
-  
-  useEffect(() => {
-    selectedBoxplotVarsRef.current = selectedBoxplotVars
-  }, [selectedBoxplotVars])
-
-  // 차트 변수 초기화 및 데이터셋 변경 시 재동기화
-  useEffect(() => {
-    const prevVars = prevNumericVarsRef.current
-    const currentVars = numericVariables
-    const currentHistogramVar = selectedHistogramVarRef.current
-    const currentBoxplotVars = selectedBoxplotVarsRef.current
-
-    // 데이터셋이 변경되었는지 확인 (변수 목록이 다른 경우)
-    const isDatasetChanged = prevVars.length > 0 && (
-      prevVars.length !== currentVars.length ||
-      !prevVars.every(v => currentVars.includes(v))
-    )
-
-    if (currentVars.length > 0) {
-      // 히스토그램: 초기화 또는 데이터셋 변경 시 재설정
-      if (currentHistogramVar === '' || isDatasetChanged || !currentVars.includes(currentHistogramVar)) {
-        setSelectedHistogramVar(currentVars[0])
-      }
-
-      // 박스플롯: 초기화 또는 데이터셋 변경 시 재설정
-      if (currentBoxplotVars.length === 0 || isDatasetChanged) {
-        setSelectedBoxplotVars(currentVars.slice(0, Math.min(3, currentVars.length)))
-      } else {
-        // 기존 선택 중 유효하지 않은 변수 필터링
-        const validVars = currentBoxplotVars.filter(v => currentVars.includes(v))
-        if (validVars.length !== currentBoxplotVars.length) {
-          setSelectedBoxplotVars(validVars.length > 0 ? validVars : currentVars.slice(0, Math.min(3, currentVars.length)))
-        }
-      }
-    }
-
-    // 현재 변수 목록 저장
-    prevNumericVarsRef.current = currentVars
-  }, [numericVariables])
-
-  // 박스플롯 변수 토글
-  const toggleBoxplotVar = useCallback((varName: string) => {
-    setSelectedBoxplotVars(prev => {
-      if (prev.includes(varName)) {
-        if (prev.length <= 1) return prev
-        return prev.filter(v => v !== varName)
-      } else {
-        if (prev.length >= 8) return prev
-        return [...prev, varName]
-      }
-    })
-  }, [])
-
-  // 박스플롯 다중 변수 데이터 계산
-  const boxplotMultiData = useMemo(() => {
-    return selectedBoxplotVars.map(varName => {
-      const colData = data
-        .map(row => row[varName])
-        .filter(v => v !== null && v !== undefined && v !== '')
-        .map(Number)
-        .filter(v => !isNaN(v))
-
-      if (colData.length === 0) return null
-
-      const sortedData = [...colData].sort((a, b) => a - b)
-      const q1Index = Math.floor(sortedData.length * 0.25)
-      const q3Index = Math.floor(sortedData.length * 0.75)
-      const medianIndex = Math.floor(sortedData.length * 0.5)
-      const q1 = sortedData[q1Index] || 0
-      const q3 = sortedData[q3Index] || 0
-      const median = sortedData[medianIndex] || 0
-      const iqr = q3 - q1
-      const mean = colData.reduce((a, b) => a + b, 0) / colData.length
-      const std = Math.sqrt(colData.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / colData.length)
-
-      const lowerBound = q1 - 1.5 * iqr
-      const upperBound = q3 + 1.5 * iqr
-      const outliers = colData.filter(v => v < lowerBound || v > upperBound)
-
-      return {
-        name: varName,
-        min: Math.min(...colData),
-        q1,
-        median,
-        q3,
-        max: Math.max(...colData),
-        mean,
-        std,
-        outliers
-      }
-    }).filter(Boolean)
-  }, [data, selectedBoxplotVars])
 
   const getNumericValues = useCallback((columnName: string): number[] => {
     return data
@@ -489,8 +365,8 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   // Scatterplot 구성 목록
   const [scatterplots, setScatterplots] = useState<ScatterplotConfig[]>([])
 
-  // 로딩 상태 (상관계수 행렬 계산용)
-  const [isCalculating, setIsCalculating] = useState(false)
+  // 히트맵 데이터 준비 여부 (useMemo 기반 동기 계산)
+  // Note: isCalculating 제거됨 — correlationMatrix/heatmapMatrix는 useMemo로 동기 계산되므로 로딩 상태 불필요
 
   // 가정 검정 자동 실행 (Step 2: 데이터 탐색)
   useEffect(() => {
@@ -691,60 +567,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     }
   }, [getVariableDataRaw])
 
-  // 새 Scatterplot 추가
-  const addScatterplot = useCallback(() => {
-    if (numericVariables.length < 2) return
-
-    const newId = String(scatterplots.length + 1)
-    const usedPairs = scatterplots.map(s => `${s.xVariable}-${s.yVariable}`)
-
-    // 사용되지 않은 변수 조합 찾기
-    let xVar = numericVariables[0]
-    let yVar = numericVariables[1]
-
-    for (const x of numericVariables) {
-      for (const y of numericVariables) {
-        if (x !== y && !usedPairs.includes(`${x}-${y}`)) {
-          xVar = x
-          yVar = y
-          break
-        }
-      }
-    }
-
-    const newConfig: ScatterplotConfig = {
-      id: newId,
-      xVariable: xVar,
-      yVariable: yVar
-    }
-
-    setScatterplots(prev => [...prev, newConfig])
-  }, [numericVariables, scatterplots])
-
-  // Scatterplot 삭제
-  const removeScatterplot = useCallback((id: string) => {
-    setScatterplots(prev => prev.filter(s => s.id !== id))
-  }, [])
-
-  // X축 변수 변경
-  const updateXVariable = useCallback((id: string, newX: string) => {
-    setScatterplots(prev => prev.map(s => {
-      if (s.id !== id) return s
-      // X=Y ��지: X가 현재 Y와 같으면 Y를 다른 변수로 변경
-      const needNewY = s.yVariable === newX
-      const newY = needNewY
-        ? numericVariables.find(v => v !== newX) || s.yVariable
-        : s.yVariable
-      return { ...s, xVariable: newX, yVariable: newY }
-    }))
-  }, [numericVariables])
-
-  // Y축 변수 변경 (단일 선택)
-  const updateYVariable = useCallback((id: string, newY: string) => {
-    setScatterplots(prev => prev.map(s =>
-      s.id === id ? { ...s, yVariable: newY } : s
-    ))
-  }, [])
 
 
 
@@ -793,42 +615,87 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     return matrix.sort((a, b) => Math.abs(b.r) - Math.abs(a.r))
   }, [numericVariables, getPairedData, t])
 
-  // 로딩 상태 관리 (useEffect로 부작용 분리)
-  useEffect(() => {
-    if (numericVariables.length >= 2) {
-      setIsCalculating(true)
-      // 동기 계산이므로 즉시 완료
-      const timer = setTimeout(() => setIsCalculating(false), 0)
-      return () => clearTimeout(timer)
-    } else {
-      setIsCalculating(false)
-    }
-  }, [numericVariables.length])
+  // 히트맵 2D 행렬 (Map 기반 O(1) 조회로 성능 최적화)
+  const heatmapMatrix = useMemo(() => {
+    if (numericVariables.length < 2) return [] as number[][]
 
-  // 데이터 없을 때: 컴팩트한 업로드 영역 + 안내 메시지
-  if (!validationResults || !data || data.length === 0) {
+    const n = numericVariables.length
+    const corrMap = new Map<string, number>()
+    correlationMatrix.forEach(({ var1, var2, r }) => {
+      corrMap.set(`${var1}|${var2}`, r)
+      corrMap.set(`${var2}|${var1}`, r)
+    })
+
+    const matrix: number[][] = Array(n).fill(null).map(() => Array(n).fill(0))
+    for (let i = 0; i < n; i++) {
+      matrix[i][i] = 1
+      for (let j = i + 1; j < n; j++) {
+        const r = corrMap.get(`${numericVariables[i]}|${numericVariables[j]}`) ?? 0
+        matrix[i][j] = r
+        matrix[j][i] = r
+      }
+    }
+    return matrix
+  }, [numericVariables, correlationMatrix])
+
+  // 데이터 교체 완료 핸들러
+  const handleReplaceUploadComplete = useCallback((file: File, newData: DataRow[]) => {
+    setIsReplaceMode(false)
+    onUploadComplete?.(file, newData)
+  }, [onUploadComplete])
+
+  // 데이터 없을 때 또는 교체 모드: 업로드 영역 표시
+  if (!validationResults || !data || data.length === 0 || isReplaceMode) {
     return (
       <div className="space-y-6">
         {/* 헤더 */}
         <StepHeader icon={ChartScatter} title={t.smartFlow.stepTitles.dataExploration} />
 
+        {/* 데이터 교체 모드 배너 */}
+        {isReplaceMode && (
+          <Card className="border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-950/20">
+            <CardContent className="py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Upload className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                    {t.dataExploration.replaceMode?.title ?? '다른 데이터 파일을 업로드하세요'}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsReplaceMode(false)}
+                  className="text-xs h-7"
+                >
+                  {t.dataExploration.replaceMode?.cancel ?? '취소'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* 안내 카드 + 업로드 영역 (컴팩트 레이아웃) */}
         <Card className="border-dashed border-2 border-muted-foreground/25">
           <CardContent className="py-8">
             <div className="text-center space-y-4">
-              <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <ChartScatter className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-1">{t.dataExploration.empty.title}</h3>
-                <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                  {t.dataExploration.empty.description}
-                </p>
-              </div>
+              {!isReplaceMode && (
+                <>
+                  <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <ChartScatter className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-1">{t.dataExploration.empty.title}</h3>
+                    <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                      {t.dataExploration.empty.description}
+                    </p>
+                  </div>
+                </>
+              )}
               {onUploadComplete && (
                 <div className="pt-2">
                   <DataUploadStep
-                    onUploadComplete={onUploadComplete}
+                    onUploadComplete={isReplaceMode ? handleReplaceUploadComplete : onUploadComplete}
                     existingFileName={existingFileName}
                   />
                 </div>
@@ -1034,15 +901,29 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               </div>
               {t.dataExploration.tabs.dataSummary}
             </CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleOpenDataInNewWindow}
-              className="gap-2 shadow-sm"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              {t.dataExploration.tabs.fullDataView(data.length)}
-            </Button>
+            <div className="flex items-center gap-2">
+              {onUploadComplete && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsReplaceMode(true)}
+                  className="gap-1.5 text-muted-foreground hover:text-foreground"
+                  data-testid="replace-data-button"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  {t.dataExploration.replaceMode?.button ?? '데이터 교체'}
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOpenDataInNewWindow}
+                className="gap-2 shadow-sm"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                {t.dataExploration.tabs.fullDataView(data.length)}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -1283,451 +1164,31 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         </CardContent>
       </Card>
 
-      {/* 가정 검정 결과 카드 */}
-      {profile.assumptionTests !== 'hidden' && isAssumptionLoading && (
-        <Card className={cn("border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20", profile.assumptionTests === 'secondary' && 'opacity-50 border-l-2 border-l-muted-foreground/30')}>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {t.dataExploration.assumptions.loading}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              {t.dataExploration.assumptions.loadingDescription}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {profile.assumptionTests !== 'hidden' && !isAssumptionLoading && assumptionResults && (
-        <Card className={cn("border-border/40 shadow-sm overflow-hidden", profile.assumptionTests === 'secondary' && 'opacity-50 border-l-2 border-l-muted-foreground/30')}>
-          {profile.assumptionTests === 'secondary' && (
-            <div className="px-4 pt-3">
-              <Badge variant="outline" className="text-[10px] text-muted-foreground">{t.dataExploration.assumptions.badge}</Badge>
-            </div>
-          )}
-          <CardHeader className="bg-muted/10">
-            <CardTitle className="text-base flex items-center gap-2.5 tracking-tight">
-              <div className="p-1.5 rounded-md bg-primary/10">
-                <Search className="h-4 w-4 text-primary" />
-              </div>
-              {t.dataExploration.assumptions.title}
-            </CardTitle>
-            <CardDescription>
-              {t.dataExploration.assumptions.description}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {/* 정규성 검정 결과 */}
-              {assumptionResults.normality?.shapiroWilk && (
-                <div className="p-4 bg-background rounded-xl border border-border/40">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-semibold text-sm flex items-center gap-2 tracking-tight">
-                      <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
-                      {t.dataExploration.normality.title}
-                    </span>
-                    <Badge variant={assumptionResults.normality.shapiroWilk.isNormal ? "default" : "secondary"} className="text-[10px]">
-                      {assumptionResults.normality.shapiroWilk.isNormal ? t.dataExploration.normality.normal : t.dataExploration.normality.nonNormal}
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="bg-muted/30 rounded-lg px-3 py-2">
-                      <span className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">{t.dataExploration.normality.statLabel}</span>
-                      <div className="font-mono text-sm font-medium tabular-nums mt-0.5">{(assumptionResults.normality.shapiroWilk.statistic ?? 0).toFixed(4)}</div>
-                    </div>
-                    <div className="bg-muted/30 rounded-lg px-3 py-2">
-                      <span className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">p-value</span>
-                      <div className="font-mono text-sm font-medium tabular-nums mt-0.5">{(assumptionResults.normality.shapiroWilk.pValue ?? 0).toFixed(4)}</div>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
-                    {assumptionResults.normality.shapiroWilk.isNormal
-                      ? t.dataExploration.normality.normalInterpretation
-                      : t.dataExploration.normality.nonNormalInterpretation}
-                  </p>
-                </div>
-              )}
-
-              {/* 등분산성 검정 결과 */}
-              {assumptionResults.homogeneity?.levene && (
-                <div className="p-4 bg-background rounded-xl border border-border/40">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-semibold text-sm flex items-center gap-2 tracking-tight">
-                      <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
-                      {t.dataExploration.homogeneity.title}
-                    </span>
-                    <Badge variant={assumptionResults.homogeneity.levene.equalVariance ? "default" : "secondary"} className="text-[10px]">
-                      {assumptionResults.homogeneity.levene.equalVariance ? t.dataExploration.homogeneity.equal : t.dataExploration.homogeneity.unequal}
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="bg-muted/30 rounded-lg px-3 py-2">
-                      <span className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">{t.dataExploration.homogeneity.statLabel}</span>
-                      <div className="font-mono text-sm font-medium tabular-nums mt-0.5">{(assumptionResults.homogeneity.levene.statistic ?? 0).toFixed(4)}</div>
-                    </div>
-                    <div className="bg-muted/30 rounded-lg px-3 py-2">
-                      <span className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">p-value</span>
-                      <div className="font-mono text-sm font-medium tabular-nums mt-0.5">{(assumptionResults.homogeneity.levene.pValue ?? 0).toFixed(4)}</div>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
-                    {assumptionResults.homogeneity.levene.equalVariance
-                      ? t.dataExploration.homogeneity.equalInterpretation
-                      : t.dataExploration.homogeneity.unequalInterpretation}
-                  </p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* 가정 검정 결과 */}
+      <AssumptionTestsSection
+        assumptionResults={assumptionResults}
+        isLoading={isAssumptionLoading}
+        visibility={profile.assumptionTests}
+      />
 
       {/* 데이터 분포 시각화 */}
-      {profile.distribution !== 'hidden' && (
-      <Card className={cn("border-border/40 shadow-sm overflow-hidden", profile.distribution === 'secondary' && 'opacity-50 border-l-2 border-l-muted-foreground/30')}>
-        <CardHeader className="bg-muted/10">
-          <CardTitle className="flex items-center gap-2.5 text-base tracking-tight">
-            <div className="p-1.5 rounded-md bg-primary/10">
-              <BarChart3 className="h-4 w-4 text-primary" />
-            </div>
-            {t.dataExploration.distribution.title}
-          </CardTitle>
-          <CardDescription>
-            {t.dataExploration.distribution.description}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* 차트 타입 선택 (FilterToggle) */}
-          <FilterToggle
-            options={[
-              { id: 'histogram', label: t.dataExploration.chartTypes.histogram, icon: BarChart3 },
-              { id: 'boxplot', label: t.dataExploration.chartTypes.boxplot, icon: GitCommitHorizontal }
-            ]}
-            value={chartType}
-            onChange={(value) => setChartType(value as 'histogram' | 'boxplot')}
-            ariaLabel={t.dataExploration.chartTypes.ariaLabel}
-          />
+      <DistributionChartSection
+        data={data}
+        numericVariables={numericVariables}
+        visibility={profile.distribution}
+        defaultChartType={profile.defaultChartType ?? 'histogram'}
+      />
 
-          {/* 히스토그램 모드: 단일 변수 선택 */}
-          {chartType === 'histogram' && (
-            <>
-              <div className="flex flex-wrap gap-1">
-                {numericVariables.slice(0, 8).map(varName => (
-                  <Button
-                    key={varName}
-                    variant={selectedHistogramVar === varName ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedHistogramVar(varName)}
-                    className="text-xs"
-                  >
-                    {varName}
-                  </Button>
-                ))}
-              </div>
-              {selectedHistogramVar && (() => {
-                const colData = data
-                  .map(row => row[selectedHistogramVar])
-                  .filter(v => v !== null && v !== undefined && v !== '')
-                  .map(Number)
-                  .filter(v => !isNaN(v))
-
-                if (colData.length === 0) return null
-
-                const sortedData = [...colData].sort((a, b) => a - b)
-                const q1Index = Math.floor(sortedData.length * 0.25)
-                const q3Index = Math.floor(sortedData.length * 0.75)
-                const q1 = sortedData[q1Index] || 0
-                const q3 = sortedData[q3Index] || 0
-                const iqr = q3 - q1
-                const lowerBound = q1 - 1.5 * iqr
-                const upperBound = q3 + 1.5 * iqr
-                const outliers = colData.filter(v => v < lowerBound || v > upperBound)
-
-                return (
-                  <div className="space-y-4">
-                    <Histogram
-                      data={colData}
-                      title={t.dataExploration.histogram.title(selectedHistogramVar)}
-                      xAxisLabel={selectedHistogramVar}
-                      yAxisLabel={t.dataExploration.histogram.yAxisLabel}
-                      bins={10}
-                      showCard={false}
-                    />
-                    {outliers.length > 0 && (
-                      <div className="text-xs bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 p-3 rounded-lg">
-                        {t.dataExploration.outlier.info(outliers.length, lowerBound.toFixed(2), upperBound.toFixed(2))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })()}
-            </>
-          )}
-
-          {/* 박스플롯 모드: 다중 변수 선택 */}
-          {chartType === 'boxplot' && (
-            <>
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">{t.dataExploration.boxplot.selectInstruction}</p>
-                <div className="flex flex-wrap gap-1">
-                  {numericVariables.slice(0, 8).map(varName => (
-                    <Button
-                      key={varName}
-                      variant={selectedBoxplotVars.includes(varName) ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => toggleBoxplotVar(varName)}
-                      className="text-xs"
-                    >
-                      {selectedBoxplotVars.includes(varName) && <Check className="h-3 w-3 mr-1" />}
-                      {varName}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              {boxplotMultiData.length > 0 && (
-                <BoxPlot
-                  data={boxplotMultiData as Array<{name: string; min: number; q1: number; median: number; q3: number; max: number; mean: number; std: number; outliers: number[]}>}
-                  title={selectedBoxplotVars.length === 1
-                    ? t.dataExploration.boxplot.singleTitle(selectedBoxplotVars[0])
-                    : t.dataExploration.boxplot.multipleTitle(selectedBoxplotVars.length)}
-                  showMean={true}
-                  showOutliers={true}
-                  height={350}
-                />
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-      )}
-
-      {/* ContentTabs: 산점도 vs 상관 히트맵 */}
-      {(profile.scatterplots !== 'hidden' || profile.correlationHeatmap !== 'hidden') && (
-      <div className={cn("w-full", profile.scatterplots === 'secondary' && profile.correlationHeatmap === 'secondary' && 'opacity-50 border-l-2 border-l-muted-foreground/30')}>
-        <ContentTabs
-          tabs={[
-            { id: 'scatterplots', label: t.dataExploration.scatterTabs.scatter, icon: ChartScatter },
-            { id: 'heatmap', label: t.dataExploration.scatterTabs.heatmap, icon: Flame }
-          ]}
-          activeTab={explorationTab}
-          onTabChange={(id) => setExplorationTab(id as 'scatterplots' | 'heatmap')}
-          className="mb-4"
-        />
-
-        {/* 산점도 Tab Content */}
-        <ContentTabsContent show={explorationTab === 'scatterplots'}>
-          <div className="space-y-4">
-          {scatterplots.map(config => {
-            const { x: xData, y: yData } = getPairedData(config.xVariable, config.yVariable)
-            const scatterData = xData.map((x, i) => ({ x, y: yData[i] }))
-            const { r, r2 } = calculateCorrelation(xData, yData)
-
-            return (
-              <Card key={config.id} className="overflow-hidden border border-border/40 shadow-sm bg-card rounded-xl">
-                {/* 모던 헤더 - 변수 선택 영역 */}
-                <div className="px-5 py-4 border-b border-border/30 bg-muted/15">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-md bg-primary/10">
-                        <ChartScatter className="h-4 w-4 text-primary" />
-                      </div>
-                      <span className="font-medium text-sm">{t.dataExploration.scatter.variableRelation}</span>
-                    </div>
-                    {scatterplots.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeScatterplot(config.id)}
-                        className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* 현대적 X → Y 변수 선택 UI */}
-                  <div className="flex items-center gap-3">
-                    {/* X축 선택 */}
-                    <div className="flex-1">
-                      <label className="text-xs text-muted-foreground mb-1.5 block">{t.dataExploration.scatter.xAxis}</label>
-                      <Select
-                        value={config.xVariable}
-                        onValueChange={(value) => updateXVariable(config.id, value)}
-                      >
-                        <SelectTrigger className="h-9 bg-background border-border/50 hover:border-primary/50 transition-colors">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {numericVariables.map(v => (
-                            <SelectItem key={v} value={v} disabled={v === config.yVariable}>
-                              {v}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* 화살표 */}
-                    <div className="flex items-end pb-0.5">
-                      <div className="p-2 rounded-full bg-primary/5">
-                        <ArrowRight className="h-4 w-4 text-primary/70" />
-                      </div>
-                    </div>
-
-                    {/* Y축 선택 */}
-                    <div className="flex-1">
-                      <label className="text-xs text-muted-foreground mb-1.5 block">{t.dataExploration.scatter.yAxis}</label>
-                      <Select
-                        value={config.yVariable}
-                        onValueChange={(value) => updateYVariable(config.id, value)}
-                      >
-                        <SelectTrigger className="h-9 bg-background border-border/50 hover:border-primary/50 transition-colors">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {numericVariables.map(v => (
-                            <SelectItem key={v} value={v} disabled={v === config.xVariable}>
-                              {v}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 상관계수 뱃지 바 */}
-                <div className="px-5 py-2.5 border-b bg-gradient-to-r from-primary/5 to-transparent flex items-center justify-between">
-                  <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-muted-foreground">{t.dataExploration.correlation.coefficient}</span>
-                      <Badge
-                        variant={Math.abs(r) >= 0.7 ? "default" : Math.abs(r) >= 0.4 ? "secondary" : "outline"}
-                        className="font-mono text-xs"
-                      >
-                        r = {r >= 0 ? '+' : ''}{r.toFixed(3)}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-muted-foreground">{t.dataExploration.correlation.determination}</span>
-                      <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">
-                        R² = {r2.toFixed(3)}
-                      </span>
-                    </div>
-                    <div className="text-muted-foreground">
-                      n = {xData.length}
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="text-xs gap-1">
-                    <Sparkles className="h-3 w-3" />
-                    {Math.abs(r) >= 0.7 ? t.dataExploration.correlation.strong : Math.abs(r) >= 0.4 ? t.dataExploration.correlation.medium : t.dataExploration.correlation.weak}
-                  </Badge>
-                </div>
-
-                {/* 그래프 영역 */}
-                <CardContent className="p-5">
-                  <Scatterplot
-                    data={scatterData}
-                    title={`${config.xVariable} vs ${config.yVariable}`}
-                    xAxisLabel={config.xVariable}
-                    yAxisLabel={config.yVariable}
-                    showTrendLine={true}
-                    correlationCoefficient={r}
-                  />
-                </CardContent>
-              </Card>
-            )
-          })}
-          </div>
-        </ContentTabsContent>
-
-        {/* 상관 히트맵 Tab Content */}
-        <ContentTabsContent show={explorationTab === 'heatmap'}>
-          <Card className="border-border/40 shadow-sm overflow-hidden rounded-xl">
-            <CardHeader className="bg-muted/10">
-              <CardTitle className="text-base tracking-tight">{t.dataExploration.heatmap.title}</CardTitle>
-              <CardDescription>
-                {t.dataExploration.heatmap.description}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isCalculating ? (
-                <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <div className="text-center">
-                    <p className="text-sm font-medium">{t.dataExploration.heatmap.calculating}</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {t.dataExploration.heatmap.variableCount(numericVariables.length)}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {/* 히트맵 시각화 */}
-                  {numericVariables.length >= 2 && (
-                    <CorrelationHeatmap
-                      matrix={(() => {
-                        // 상관계수 행렬 생성
-                        const n = numericVariables.length
-                        const matrix: number[][] = Array(n).fill(null).map(() => Array(n).fill(0))
-                        for (let i = 0; i < n; i++) {
-                          matrix[i][i] = 1 // 대각선은 1
-                          for (let j = i + 1; j < n; j++) {
-                            const corr = correlationMatrix.find(
-                              c => (c.var1 === numericVariables[i] && c.var2 === numericVariables[j]) ||
-                                (c.var1 === numericVariables[j] && c.var2 === numericVariables[i])
-                            )
-                            const r = corr?.r ?? 0
-                            matrix[i][j] = r
-                            matrix[j][i] = r
-                          }
-                        }
-                        return matrix
-                      })()}
-                      labels={numericVariables}
-                      height={Math.max(350, numericVariables.length * 40)}
-                    />
-                  )}
-
-                  {/* 해석 가이드 */}
-                  <div className="mt-4 text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <p className="font-medium mb-1">{t.dataExploration.heatmapGuide.title}</p>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                      <div><span className="inline-block w-3 h-3 rounded bg-red-500 mr-1"></span> <strong>r = +1</strong>: {t.dataExploration.heatmapGuide.strongPositive}</div>
-                      <div><span className="inline-block w-3 h-3 rounded bg-blue-500 mr-1"></span> <strong>r = -1</strong>: {t.dataExploration.heatmapGuide.strongNegative}</div>
-                      <div><span className="inline-block w-3 h-3 rounded bg-gray-200 mr-1"></span> <strong>r = 0</strong>: {t.dataExploration.heatmapGuide.noCorrelation}</div>
-                      <div><strong>|r| &gt;= 0.7</strong>: {t.dataExploration.heatmapGuide.veryStrong}</div>
-                    </div>
-                  </div>
-
-                  {/* 강한 상관관계 목록 */}
-                  {correlationMatrix.filter(c => Math.abs(c.r) >= 0.5).length > 0 && (
-                    <div className="mt-4">
-                      <p className="text-sm font-medium mb-2">{t.dataExploration.strongCorrelations.title}</p>
-                      <div className="space-y-1">
-                        {correlationMatrix
-                          .filter(c => Math.abs(c.r) >= 0.5)
-                          .slice(0, 5)
-                          .map(({ var1, var2, r }) => (
-                            <div key={`${var1}-${var2}`} className="flex items-center justify-between text-sm p-2 bg-muted/50 rounded">
-                              <span>{var1} - {var2}</span>
-                              <Badge variant={Math.abs(r) >= 0.7 ? 'default' : 'secondary'}>
-                                r = {r >= 0 ? '+' : ''}{r.toFixed(3)}
-                              </Badge>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </ContentTabsContent>
-      </div>
-      )}
+      {/* 산점도 / 상관 히트맵 */}
+      <ScatterHeatmapSection
+        numericVariables={numericVariables}
+        correlationMatrix={correlationMatrix}
+        heatmapMatrix={heatmapMatrix}
+        scatterVisibility={profile.scatterplots}
+        heatmapVisibility={profile.correlationHeatmap}
+        getPairedData={getPairedData}
+        initialScatterplots={scatterplots}
+      />
 
       {/* 이상치 상세 모달 */}
       {selectedOutlierVar && (() => {
