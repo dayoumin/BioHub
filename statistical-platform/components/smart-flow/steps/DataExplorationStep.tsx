@@ -27,6 +27,7 @@ import { useTemplateStore } from '@/lib/stores/template-store'
 import type { AnalysisTemplate } from '@/types/smart-flow'
 import { getExplorationProfile } from '@/lib/utils/exploration-profile'
 import { useTerminology } from '@/hooks/use-terminology'
+import { calculateCorrelation } from './exploration/correlation-utils'
 
 interface DataExplorationStepProps {
   validationResults: ValidationResults | null
@@ -37,12 +38,6 @@ interface DataExplorationStepProps {
   existingFileName?: string
   /** 템플릿 선택 시 콜백 */
   onTemplateSelect?: (template: AnalysisTemplate) => void
-}
-
-interface ScatterplotConfig {
-  id: string
-  xVariable: string
-  yVariable: string  // 단일 Y축 (심플 UI)
 }
 
 /**
@@ -57,39 +52,16 @@ interface AssumptionPayload {
   normalityRule: 'any' | 'all' | 'majority'
 }
 
-/**
- * 상관계수 계산 (Pearson correlation coefficient)
- */
-function calculateCorrelation(x: number[], y: number[]): { r: number; r2: number; n: number } {
-  // x와 y는 이미 row-wise paired (길이 동일 보장)
-  const n = x.length
-  if (n < 2 || x.length !== y.length) return { r: 0, r2: 0, n: 0 }
-
-  const sumX = x.reduce((sum, val) => sum + val, 0)
-  const sumY = y.reduce((sum, val) => sum + val, 0)
-  const sumXY = x.reduce((sum, val, i) => sum + val * y[i], 0)
-  const sumXX = x.reduce((sum, val) => sum + val * val, 0)
-  const sumYY = y.reduce((sum, val) => sum + val * val, 0)
-
-  const numerator = n * sumXY - sumX * sumY
-  const denominator = Math.sqrt((n * sumXX - sumX * sumX) * (n * sumYY - sumY * sumY))
-
-  const r = denominator === 0 ? 0 : numerator / denominator
-  const r2 = r * r
-
-  return { r, r2, n }
-}
-
 export const DataExplorationStep = memo(function DataExplorationStep({
   validationResults,
   data,
-  onNext,
+  onNext: _onNext, // Reserved for future use (step navigation handled by store)
   onPrevious: _onPrevious, // Reserved for future use
   onUploadComplete,
   existingFileName,
   onTemplateSelect
 }: DataExplorationStepProps) {
-  void _onPrevious // Suppress unused warning
+  void _onNext; void _onPrevious // Suppress unused warnings
   // Terminology System
   const t = useTerminology()
 
@@ -130,13 +102,12 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       columns,
       data
     })
-  }, [data, uploadedFile, uploadedFileName])
+  }, [data, uploadedFile, uploadedFileName, t])
 
   // 가정 검정 상태
   const [isAssumptionLoading, setIsAssumptionLoading] = useState(false)
   const [assumptionResults, setLocalAssumptionResults] = useState<StatisticalAssumptions | null>(null)
   const assumptionRunId = useRef(0)
-
 
   // 이상치 상세 모달 상태
   const [outlierModalOpen, setOutlierModalOpen] = useState(false)
@@ -146,7 +117,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   const [highlightedRows, setHighlightedRows] = useState<number[]>([])
 
   const [highlightedColumn, setHighlightedColumn] = useState<string | undefined>(undefined)
-
 
   // 이상치가 포함된 행만 미리보기에서 확인하기 위한 필터링 데이터
   const highlightedPreview = useMemo(() => {
@@ -194,7 +164,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     if (!validationResults?.columnStats) return []
     return validationResults.columnStats.filter(col => col.type === 'numeric' && !col.idDetection?.isId)
   }, [validationResults])
-
 
   const getNumericValues = useCallback((columnName: string): number[] => {
     return data
@@ -353,18 +322,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     setActiveDataTab('preview')
   }, [selectedOutlierVar])
 
-  // 다음 단계 진행 가능 여부 (데이터 검증 통과 필수)
-  const canProceedToNext = useMemo(() => {
-    // validationResults가 없거나 isValid가 false면 진행 불가
-    if (!validationResults?.isValid) return false
-    // 데이터가 없으면 진행 불가
-    if (!data || data.length === 0) return false
-    return true
-  }, [validationResults, data])
-
-  // Scatterplot 구성 목록
-  const [scatterplots, setScatterplots] = useState<ScatterplotConfig[]>([])
-
   // 히트맵 데이터 준비 여부 (useMemo 기반 동기 계산)
   // Note: isCalculating 제거됨 — correlationMatrix/heatmapMatrix는 useMemo로 동기 계산되므로 로딩 상태 불필요
 
@@ -484,61 +441,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     }
   }, [data, validationResults, pyodideLoaded, pyodideService, numericVariables, categoricalVariables]) // assumptionResults 제거 (무한 루프 원인)
 
-  // 산점도 상태 추적용 ref (무한 루프 방지)
-  const scatterplotsRef = useRef(scatterplots)
-  useEffect(() => {
-    scatterplotsRef.current = scatterplots
-  }, [scatterplots])
-
-  // 산점도 초기화 및 데이터셋 변경 시 재동기화
-  useEffect(() => {
-    const currentScatterplots = scatterplotsRef.current
-
-    if (numericVariables.length < 2) {
-      // 수치형 변수가 2개 미만이면 산점도 초기화
-      if (currentScatterplots.length > 0) {
-        setScatterplots([])
-      }
-      return
-    }
-
-    // 산점도가 없으면 초기화
-    if (currentScatterplots.length === 0) {
-      setScatterplots([{
-        id: '1',
-        xVariable: numericVariables[0],
-        yVariable: numericVariables[1]
-      }])
-      return
-    }
-
-    // 기존 산점도의 변수가 유효한지 검증 및 재설정
-    const updatedScatterplots = currentScatterplots.map(sp => {
-      const xValid = numericVariables.includes(sp.xVariable)
-      const yValid = numericVariables.includes(sp.yVariable)
-
-      if (xValid && yValid) {
-        return sp // 변경 없음
-      }
-
-      // 유효하지 않은 변수 대체
-      const newX = xValid ? sp.xVariable : numericVariables[0]
-      const newY = yValid && newX !== sp.yVariable
-        ? sp.yVariable
-        : numericVariables.find(v => v !== newX) || numericVariables[1]
-
-      return { ...sp, xVariable: newX, yVariable: newY }
-    })
-
-    // 변경이 있을 때만 업데이트
-    const hasChanges = updatedScatterplots.some((sp, i) =>
-      sp.xVariable !== currentScatterplots[i].xVariable || sp.yVariable !== currentScatterplots[i].yVariable
-    )
-    if (hasChanges) {
-      setScatterplots(updatedScatterplots)
-    }
-  }, [numericVariables]) // scatterplots 의존성 제거
-
   // 변수 데이터 추출 (Raw - 필터링 없음, row index 유지)
   const getVariableDataRaw = useCallback((variableName: string): Array<number | null> => {
     return data.map(row => {
@@ -566,9 +468,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       y: paired.map(p => p.y)
     }
   }, [getVariableDataRaw])
-
-
-
 
   // 상관계수 행렬 계산 (순수 함수 - 부작용 제거)
   const correlationMatrix = useMemo(() => {
@@ -1056,9 +955,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                         )
                       })}
                     </tbody>
-
-
-
                   </table>
                 </div>
 
@@ -1187,7 +1083,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         scatterVisibility={profile.scatterplots}
         heatmapVisibility={profile.correlationHeatmap}
         getPairedData={getPairedData}
-        initialScatterplots={scatterplots}
       />
 
       {/* 이상치 상세 모달 */}

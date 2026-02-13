@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useState, useMemo, useCallback } from 'react'
+import { memo, useState, useMemo, useCallback, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { FilterToggle } from '@/components/ui/filter-toggle'
@@ -19,6 +19,7 @@ interface DistributionChartSectionProps {
 }
 
 function getPercentile(sorted: number[], p: number): number {
+  if (sorted.length === 0) return 0
   const idx = p * (sorted.length - 1)
   const low = Math.floor(idx)
   const high = Math.ceil(idx)
@@ -39,6 +40,29 @@ export const DistributionChartSection = memo(function DistributionChartSection({
   const [selectedBoxplotVars, setSelectedBoxplotVars] = useState<string[]>(
     numericVariables.slice(0, Math.min(3, numericVariables.length))
   )
+
+  // defaultChartType prop 변경 시 동기화 (빠른 분석 모드 전환)
+  useEffect(() => {
+    setChartType(defaultChartType)
+  }, [defaultChartType])
+
+  // numericVariables 변경 시 선택 상태 동기화 (데이터 교체)
+  useEffect(() => {
+    if (numericVariables.length === 0) return
+
+    // 히스토그램: 현재 선택이 유효하지 않으면 첫 번째로 재설정
+    setSelectedHistogramVar(prev => {
+      if (prev === '' || !numericVariables.includes(prev)) return numericVariables[0]
+      return prev
+    })
+
+    // 박스플롯: 유효하지 않은 변수 필터링 후 재설정
+    setSelectedBoxplotVars(prev => {
+      const valid = prev.filter(v => numericVariables.includes(v))
+      if (valid.length > 0) return valid
+      return numericVariables.slice(0, Math.min(3, numericVariables.length))
+    })
+  }, [numericVariables])
 
   const toggleBoxplotVar = useCallback((varName: string) => {
     setSelectedBoxplotVars(prev => {

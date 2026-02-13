@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useState, useCallback } from 'react'
+import { memo, useState, useCallback, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,40 +17,8 @@ import { Scatterplot } from '@/components/charts/scatterplot'
 import { CorrelationHeatmap } from '@/components/smart-flow/steps/validation/charts/CorrelationHeatmap'
 import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { useTerminology } from '@/hooks/use-terminology'
-
-interface ScatterplotConfig {
-  id: string
-  xVariable: string
-  yVariable: string
-}
-
-interface CorrelationPair {
-  var1: string
-  var2: string
-  r: number
-  r2: number
-  strength: string
-  color: string
-}
-
-function calculateCorrelation(x: number[], y: number[]): { r: number; r2: number; n: number } {
-  const n = x.length
-  if (n < 2 || x.length !== y.length) return { r: 0, r2: 0, n: 0 }
-
-  const sumX = x.reduce((sum, val) => sum + val, 0)
-  const sumY = y.reduce((sum, val) => sum + val, 0)
-  const sumXY = x.reduce((sum, val, i) => sum + val * y[i], 0)
-  const sumXX = x.reduce((sum, val) => sum + val * val, 0)
-  const sumYY = y.reduce((sum, val) => sum + val * val, 0)
-
-  const numerator = n * sumXY - sumX * sumY
-  const denominator = Math.sqrt((n * sumXX - sumX * sumX) * (n * sumYY - sumY * sumY))
-
-  const r = denominator === 0 ? 0 : numerator / denominator
-  const r2 = r * r
-
-  return { r, r2, n }
-}
+import { calculateCorrelation } from './correlation-utils'
+import type { ScatterplotConfig, CorrelationPair } from './correlation-utils'
 
 interface ScatterHeatmapSectionProps {
   numericVariables: string[]
@@ -59,7 +27,6 @@ interface ScatterHeatmapSectionProps {
   scatterVisibility: 'primary' | 'secondary' | 'hidden'
   heatmapVisibility: 'primary' | 'secondary' | 'hidden'
   getPairedData: (var1: string, var2: string) => { x: number[]; y: number[] }
-  initialScatterplots: ScatterplotConfig[]
 }
 
 export const ScatterHeatmapSection = memo(function ScatterHeatmapSection({
@@ -68,13 +35,56 @@ export const ScatterHeatmapSection = memo(function ScatterHeatmapSection({
   heatmapMatrix,
   scatterVisibility,
   heatmapVisibility,
-  getPairedData,
-  initialScatterplots
+  getPairedData
 }: ScatterHeatmapSectionProps) {
   const t = useTerminology()
 
   const [explorationTab, setExplorationTab] = useState<'scatterplots' | 'heatmap'>('scatterplots')
-  const [scatterplots, setScatterplots] = useState<ScatterplotConfig[]>(initialScatterplots)
+  const [scatterplots, setScatterplots] = useState<ScatterplotConfig[]>([])
+
+  // 산점도 상태 추적용 ref (useEffect 내 무한 루프 방지)
+  const scatterplotsRef = useRef(scatterplots)
+  useEffect(() => {
+    scatterplotsRef.current = scatterplots
+  }, [scatterplots])
+
+  // 산점도 초기화 및 numericVariables 변경 시 동기화
+  useEffect(() => {
+    const current = scatterplotsRef.current
+
+    if (numericVariables.length < 2) {
+      if (current.length > 0) setScatterplots([])
+      return
+    }
+
+    // 산점도가 없으면 초기화
+    if (current.length === 0) {
+      setScatterplots([{
+        id: '1',
+        xVariable: numericVariables[0],
+        yVariable: numericVariables[1]
+      }])
+      return
+    }
+
+    // 기존 산점도의 변수가 유효한지 검증 및 재설정
+    const updated = current.map(sp => {
+      const xValid = numericVariables.includes(sp.xVariable)
+      const yValid = numericVariables.includes(sp.yVariable)
+      if (xValid && yValid) return sp
+
+      const newX = xValid ? sp.xVariable : numericVariables[0]
+      const newY = yValid && newX !== sp.yVariable
+        ? sp.yVariable
+        : numericVariables.find(v => v !== newX) || numericVariables[1]
+      return { ...sp, xVariable: newX, yVariable: newY }
+    })
+
+    const hasChanges = updated.some((sp, i) =>
+      sp.xVariable !== current[i].xVariable || sp.yVariable !== current[i].yVariable
+    )
+    if (hasChanges) setScatterplots(updated)
+  }, [numericVariables])
 
   const updateXVariable = useCallback((id: string, newX: string) => {
     setScatterplots(prev => prev.map(s =>
