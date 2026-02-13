@@ -18,18 +18,39 @@ import type {
 
 /** AI 해석을 요약/상세로 분리 */
 export function splitInterpretation(text: string): { summary: string; detail: string } {
+  // 1) 명시적 `### 상세 해석` 헤더가 있으면 정확히 분리
   const detailPattern = /###\s*상세\s*해석/
   const match = text.match(detailPattern)
 
   if (match?.index !== undefined) {
     const summary = text.substring(0, match.index).trim()
     const rawDetail = text.substring(match.index).trim()
-    const cleanSummary = summary.replace(/###\s*한줄\s*요약\s*\n?/, '').trim()
-    const cleanDetail = rawDetail.replace(/###\s*상세\s*해석\s*\n?/, '').trim()
+    const cleanSummary = summary.replace(/###\s*한줄\s*요약\s*\r?\n?/, '').trim()
+    const cleanDetail = rawDetail.replace(/###\s*상세\s*해석\s*\r?\n?/, '').trim()
     return { summary: cleanSummary, detail: cleanDetail }
   }
 
-  const cleanText = text.replace(/###\s*한줄\s*요약\s*\n?/, '').trim()
+  // 2) 헤더 없지만 볼드 소제목(**...**)이 있으면 첫 소제목 기준으로 분리
+  const cleanText = text.replace(/###\s*한줄\s*요약\s*\r?\n?/, '').trim()
+  const boldHeadingMatch = cleanText.match(/\r?\n\s*\*\*[^*]+\*\*/)
+  if (boldHeadingMatch?.index !== undefined && boldHeadingMatch.index > 10) {
+    const summary = cleanText.substring(0, boldHeadingMatch.index).trim()
+    const detail = cleanText.substring(boldHeadingMatch.index).trim()
+    if (summary.length > 10 && detail.length > 20) {
+      return { summary, detail }
+    }
+  }
+
+  // 3) 빈 줄(\n\n) 기준: 첫 단락을 요약, 나머지를 상세
+  const paragraphs = cleanText.split(/\r?\n\r?\n+/)
+  if (paragraphs.length >= 2) {
+    const summary = paragraphs[0].trim()
+    const detail = paragraphs.slice(1).join('\n\n').trim()
+    if (summary.length > 10 && detail.length > 30) {
+      return { summary, detail }
+    }
+  }
+
   return { summary: cleanText, detail: '' }
 }
 

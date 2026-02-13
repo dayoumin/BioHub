@@ -244,7 +244,6 @@ describe('ResultsActionStep - 렌더링 테스트', () => {
     })
 
     expect(screen.getByText('저장')).toBeInTheDocument()
-    expect(screen.getByTestId('export-dropdown')).toBeInTheDocument()
     expect(screen.getByText('복사')).toBeInTheDocument()
   })
 

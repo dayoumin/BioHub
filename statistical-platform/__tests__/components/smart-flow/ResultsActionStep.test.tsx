@@ -6,7 +6,7 @@
  */
 
 import React from 'react'
-import { render, screen, act } from '@testing-library/react'
+import { render, screen, act, fireEvent, waitFor } from '@testing-library/react'
 import { vi } from 'vitest'
 import type { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
 import type { AnalysisResult } from '@/types/smart-flow'
@@ -568,6 +568,7 @@ vi.mock('@/hooks/use-terminology', () => ({
         saved: '저장됨', save: '저장', generating: '생성중...', pdf: 'PDF',
         copied: '복사됨', copy: '복사', saveTemplate: '템플릿으로 저장',
         reanalyze: '다른 데이터로 재분석', newAnalysis: '새 분석 시작',
+        export: '내보내기', exporting: '내보내는 중...', exportDocx: 'Word (.docx)', exportExcel: 'Excel (.xlsx)',
       },
       save: {
         defaultName: (d: string) => `분석 ${d}`, promptMessage: '분석 이름을 입력하세요:',
@@ -597,6 +598,15 @@ vi.mock('@/hooks/use-terminology', () => ({
 vi.mock('@/lib/services/export/export-data-builder', () => ({
   splitInterpretation: vi.fn((text: string) => ({ summary: text, detail: '' })),
   generateSummaryText: vi.fn().mockReturnValue('Summary text'),
+}))
+
+// ExportService mock
+const mockExportService = vi.hoisted(() => ({
+  export: vi.fn().mockResolvedValue({ success: true, fileName: 't-test_분석결과_20260213.docx' })
+}))
+
+vi.mock('@/lib/services/export/export-service', () => ({
+  ExportService: mockExportService,
 }))
 
 vi.mock('@/lib/services/data-management', () => ({
@@ -986,8 +996,8 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
 
   })
 
-  describe('액션 버튼', () => {
-    it('저장, PDF, 복사, AI 해석 버튼 표시', () => {
+  describe('액션 버튼 레이아웃', () => {
+    beforeEach(() => {
       mockConvert.mockReturnValue({
         testName: 't-검정',
         statistic: 2.456,
@@ -996,14 +1006,297 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
         df: 28,
         alpha: 0.05,
       } as StatisticalResult)
+    })
 
+    it('저장, 복사 버튼 + AI 해석 섹션이 표시된다', () => {
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
       expect(screen.getByText('저장')).toBeInTheDocument()
-      expect(screen.getByTestId('export-dropdown')).toBeInTheDocument()
       expect(screen.getByText('복사')).toBeInTheDocument()
-      // AI 해석은 자동 인라인 표시로 변경됨 (버튼 제거)
       expect(screen.getByTestId('ai-interpretation-section')).toBeInTheDocument()
+    })
+
+    it('action-buttons 영역이 존재한다', () => {
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      expect(screen.getByTestId('action-buttons')).toBeInTheDocument()
+    })
+
+    it('재분석, 새 분석, 템플릿 버튼이 모두 직접 노출된다 (⋯ 메뉴 없음)', () => {
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      expect(screen.getByText('다른 데이터로 재분석')).toBeInTheDocument()
+      expect(screen.getByText('새 분석 시작')).toBeInTheDocument()
+      expect(screen.getByText('템플릿으로 저장')).toBeInTheDocument()
+    })
+  })
+
+  describe('파일 저장 시뮬레이션 (handleSaveAsFile)', () => {
+    const fullStatResult = {
+      testName: '독립표본 t-검정',
+      statistic: 2.456,
+      statisticName: 't',
+      pValue: 0.018,
+      df: 28,
+      alpha: 0.05,
+      interpretation: '두 그룹 간 유의한 차이가 있습니다.',
+    } as StatisticalResult
+
+    beforeEach(() => {
+      vi.clearAllMocks()
+      mockStoreState = { ...defaultStoreState }
+      mockConvert.mockReturnValue(fullStatResult)
+      mockExportService.export.mockResolvedValue({
+        success: true,
+        fileName: 't-test_분석결과_20260213.docx',
+      })
+    })
+
+    it('저장 버튼 클릭 → ExportService.export("docx") 호출', async () => {
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      const saveBtn = screen.getByText('저장')
+      await act(async () => {
+        fireEvent.click(saveBtn)
+      })
+
+      expect(mockExportService.export).toHaveBeenCalledTimes(1)
+      const callArgs = mockExportService.export.mock.calls[0]
+      expect(callArgs[1]).toBe('docx')
+    })
+
+    it('저장 성공 → 배너에 fileName 표시', async () => {
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      const saveBtn = screen.getByText('저장')
+      await act(async () => {
+        fireEvent.click(saveBtn)
+      })
+
+      // 배너가 나타나고 fileName 표시
+      await waitFor(() => {
+        expect(screen.getByText(/t-test_분석결과_20260213\.docx/)).toBeInTheDocument()
+      })
+    })
+
+    it('저장 성공 → 버튼 텍스트 "저장됨"으로 변경', async () => {
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      const saveBtn = screen.getByText('저장')
+      await act(async () => {
+        fireEvent.click(saveBtn)
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('저장됨')).toBeInTheDocument()
+      })
+    })
+
+    it('저장 성공 → IndexedDB 히스토리에도 자동 저장', async () => {
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      const saveBtn = screen.getByText('저장')
+      await act(async () => {
+        fireEvent.click(saveBtn)
+      })
+
+      await waitFor(() => {
+        expect(mockStoreState.saveToHistory).toHaveBeenCalledTimes(1)
+      })
+    })
+
+    it('저장 실패 → 에러 토스트', async () => {
+      const { toast } = await import('sonner')
+      mockExportService.export.mockResolvedValue({
+        success: false,
+        error: '파일 생성에 실패했습니다.',
+      })
+
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      const saveBtn = screen.getByText('저장')
+      await act(async () => {
+        fireEvent.click(saveBtn)
+      })
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalled()
+      })
+    })
+
+    it('ExportService 예외 → 에러 토스트', async () => {
+      const { toast } = await import('sonner')
+      mockExportService.export.mockRejectedValue(new Error('네트워크 오류'))
+
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      const saveBtn = screen.getByText('저장')
+      await act(async () => {
+        fireEvent.click(saveBtn)
+      })
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalled()
+      })
+    })
+
+    it('ExportResult에 fileName 없으면 폴백 이름 사용', async () => {
+      mockExportService.export.mockResolvedValue({
+        success: true,
+        // fileName 없음 → 폴백
+      })
+
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      const saveBtn = screen.getByText('저장')
+      await act(async () => {
+        fireEvent.click(saveBtn)
+      })
+
+      await waitFor(() => {
+        // 폴백: testName || selectedMethod.name || 'Analysis' + .docx
+        expect(screen.getByText(/독립표본 t-검정\.docx/)).toBeInTheDocument()
+      })
+    })
+
+    it('저장 성공 후 재저장 실패 → 이전 성공 배너가 사라진다', async () => {
+      const { toast } = await import('sonner')
+
+      // 1차: 성공
+      mockExportService.export.mockResolvedValue({
+        success: true,
+        fileName: 'first_save.docx',
+      })
+
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      const saveBtn = screen.getByText('저장')
+      await act(async () => {
+        fireEvent.click(saveBtn)
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText(/first_save\.docx/)).toBeInTheDocument()
+      })
+
+      // 2차: 실패
+      mockExportService.export.mockResolvedValue({
+        success: false,
+        error: '디스크 공간 부족',
+      })
+
+      const savedBtn = screen.getByText('저장됨')
+      await act(async () => {
+        fireEvent.click(savedBtn)
+      })
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalled()
+      })
+
+      // 이전 성공 배너가 사라져야 함
+      expect(screen.queryByText(/first_save\.docx/)).not.toBeInTheDocument()
+    })
+
+    it('results=null 일 때 저장 버튼 동작 안 함 (early return)', async () => {
+      mockConvert.mockReturnValue(null)
+      renderWithAct(<ResultsActionStep results={null} />)
+
+      // results=null → 안내 메시지만 표시
+      expect(screen.queryByText('저장')).not.toBeInTheDocument()
+      expect(mockExportService.export).not.toHaveBeenCalled()
+    })
+
+    it('ExportContext 구조가 올바르게 전달된다', async () => {
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      const saveBtn = screen.getByText('저장')
+      await act(async () => {
+        fireEvent.click(saveBtn)
+      })
+
+      await waitFor(() => {
+        expect(mockExportService.export).toHaveBeenCalledTimes(1)
+      })
+
+      const [context, format] = mockExportService.export.mock.calls[0]
+      // format 기본값 = 'docx'
+      expect(format).toBe('docx')
+      // ExportContext 필수 필드 존재 확인
+      expect(context).toHaveProperty('analysisResult')
+      expect(context).toHaveProperty('statisticalResult')
+      expect(context).toHaveProperty('aiInterpretation')
+      expect(context).toHaveProperty('apaFormat')
+      expect(context).toHaveProperty('dataInfo')
+      // analysisResult = baseResults 전달 확인
+      expect(context.analysisResult).toBe(baseResults)
+    })
+
+    it('isExporting 중 저장 버튼에 "내보내는 중..." 텍스트 표시', async () => {
+      // 느린 export mock (resolve 제어)
+      let resolveExport: (v: { success: boolean; fileName: string }) => void
+      mockExportService.export.mockImplementation(
+        () => new Promise(resolve => { resolveExport = resolve })
+      )
+
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      const saveBtn = screen.getByText('저장')
+      await act(async () => {
+        fireEvent.click(saveBtn)
+      })
+
+      // 비동기 진행 중 → "내보내는 중..." 텍스트
+      expect(screen.getByText('내보내는 중...')).toBeInTheDocument()
+
+      // resolve 후 → 복원
+      await act(async () => {
+        resolveExport!({ success: true, fileName: 'test.docx' })
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('저장됨')).toBeInTheDocument()
+      })
+    })
+  })
+
+  describe('재분석/새분석 시뮬레이션', () => {
+    beforeEach(() => {
+      mockConvert.mockReturnValue({
+        testName: 't-검정',
+        statistic: 2.456,
+        statisticName: 't',
+        pValue: 0.018,
+        df: 28,
+        alpha: 0.05,
+      } as StatisticalResult)
+    })
+
+    it('재분석 클릭 → store 초기화 + step 1로 이동', async () => {
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      const reanalyzeBtn = screen.getByText('다른 데이터로 재분석')
+      await act(async () => {
+        fireEvent.click(reanalyzeBtn)
+      })
+
+      expect(mockStoreState.setUploadedData).toHaveBeenCalledWith(null)
+      expect(mockStoreState.setUploadedFile).toHaveBeenCalledWith(null)
+      expect(mockStoreState.setResults).toHaveBeenCalledWith(null)
+      expect(mockStoreState.setIsReanalysisMode).toHaveBeenCalledWith(true)
+      expect(mockStoreState.setCurrentStep).toHaveBeenCalledWith(1)
+    })
+
+    it('새 분석 클릭 → startNewAnalysis 호출', async () => {
+      const { startNewAnalysis } = await import('@/lib/services/data-management')
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      const newAnalysisBtn = screen.getByText('새 분석 시작')
+      await act(async () => {
+        fireEvent.click(newAnalysisBtn)
+      })
+
+      expect(startNewAnalysis).toHaveBeenCalledTimes(1)
     })
   })
 })

@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  MoreHorizontal,
   RefreshCw,
   FileText,
   Sparkles,
@@ -25,19 +24,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { AnalysisResult } from '@/types/smart-flow'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { startNewAnalysis } from '@/lib/services/data-management'
-import { ExportDropdown } from '@/components/smart-flow/ExportDropdown'
+import { ExportService } from '@/lib/services/export/export-service'
+import type { ExportFormat, ExportContext } from '@/lib/services/export/export-types'
 import { splitInterpretation, generateSummaryText } from '@/lib/services/export/export-data-builder'
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
 import { TemplateSaveModal } from '@/components/smart-flow/TemplateSaveModal'
@@ -94,6 +88,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const t = useTerminology()
 
   const [isSaved, setIsSaved] = useState(false)
+  const [savedName, setSavedName] = useState<string | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
   const [detailedResultsOpen, setDetailedResultsOpen] = useState(true)
@@ -104,7 +100,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const [interpretation, setInterpretation] = useState<string | null>(null)
   const [isInterpreting, setIsInterpreting] = useState(false)
   const [interpretError, setInterpretError] = useState<string | null>(null)
-  const [detailedInterpretOpen, setDetailedInterpretOpen] = useState(false)
+  const [detailedInterpretOpen, setDetailedInterpretOpen] = useState(true)
   const interpretAbortRef = useRef<AbortController | null>(null)
   const interpretedResultRef = useRef<string | null>(null) // 캐시 key (results.method + pValue)
 
@@ -235,30 +231,69 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     )
   }, [statisticalResult])
 
+  // 내보내기용 데이터 정보
+  const exportDataInfo = useMemo(() => {
+    if (!uploadedData || uploadedData.length === 0) return null
+    return {
+      fileName: uploadedFileName ?? null,
+      totalRows: uploadedData.length,
+      columnCount: Object.keys(uploadedData[0] || {}).length,
+      variables: Object.keys(uploadedData[0] || {}),
+    }
+  }, [uploadedData, uploadedFileName])
+
   // Handlers
-  const handleSaveToHistory = useCallback(async () => {
-    const defaultName = t.results.save.defaultName(new Date().toLocaleString())
-    const name = prompt(t.results.save.promptMessage, defaultName)
+  // 파일 저장 (DOCX/Excel 다운로드)
+  const handleSaveAsFile = useCallback(async (format: ExportFormat = 'docx') => {
+    if (!results || !statisticalResult) return
+    setIsExporting(true)
 
-    if (name && name.trim()) {
-      const sanitizedName = name.trim().slice(0, 100)
-      try {
-        await saveToHistory(sanitizedName)
+    // 이전 성공 상태 초기화 (실패 시 오래된 배너 잔류 방지)
+    if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current)
+    setIsSaved(false)
+    setSavedName(null)
+
+    try {
+      const context: ExportContext = {
+        analysisResult: results,
+        statisticalResult,
+        aiInterpretation: interpretation,
+        apaFormat,
+        dataInfo: exportDataInfo,
+      }
+
+      const result = await ExportService.export(context, format)
+
+      if (result.success) {
+        // 실제 다운로드 파일명 사용 (없으면 폴백)
+        const displayName = result.fileName
+          ?? `${statisticalResult.testName || selectedMethod?.name || 'Analysis'}.${format}`
         setIsSaved(true)
-        toast.success(t.results.save.success)
+        setSavedName(displayName)
 
-        if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current)
+        // IndexedDB에도 자동 저장 (히스토리용)
+        const historyLabel = statisticalResult.testName || selectedMethod?.name || 'Analysis'
+        const historyName = `${historyLabel} — ${new Date().toLocaleString('ko-KR', {
+          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        })}`
+        await saveToHistory(historyName).catch(() => { /* 히스토리 저장 실패 무시 */ })
+
         savedTimeoutRef.current = setTimeout(() => {
           setIsSaved(false)
+          setSavedName(null)
           savedTimeoutRef.current = null
-        }, 3000)
-      } catch (err) {
-        toast.error(t.results.save.errorTitle, {
-          description: err instanceof Error ? err.message : t.results.save.unknownError
-        })
+        }, 5000)
+      } else {
+        toast.error(t.results.save.errorTitle, { description: result.error })
       }
+    } catch (err) {
+      toast.error(t.results.save.errorTitle, {
+        description: err instanceof Error ? err.message : t.results.save.unknownError
+      })
+    } finally {
+      setIsExporting(false)
     }
-  }, [saveToHistory])
+  }, [results, statisticalResult, interpretation, apaFormat, exportDataInfo, selectedMethod, saveToHistory])
 
   const handleReanalyze = useCallback(() => {
     setUploadedData(null)
@@ -283,17 +318,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       toast.info(t.results.toast.newAnalysis)
     }
   }, [reset])
-
-  // 내보내기용 데이터 정보
-  const exportDataInfo = useMemo(() => {
-    if (!uploadedData || uploadedData.length === 0) return null
-    return {
-      fileName: uploadedFileName ?? null,
-      totalRows: uploadedData.length,
-      columnCount: Object.keys(uploadedData[0] || {}).length,
-      variables: Object.keys(uploadedData[0] || {}),
-    }
-  }, [uploadedData, uploadedFileName])
 
   // AI 해석 요청 (스트리밍)
   const handleInterpretation = useCallback(async () => {
@@ -815,61 +839,116 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           </CardContent>
         </Card>
 
-        {/* ===== 액션 버튼 (1줄) ===== */}
-        <div className="flex items-center gap-2 flex-wrap p-3 bg-muted/20 border border-border/20 rounded-xl" data-testid="action-buttons">
-          {/* Primary Actions */}
-          <Button
-            variant={isSaved ? "default" : "outline"}
-            size="sm"
-            onClick={handleSaveToHistory}
-            className="flex-1 shadow-sm"
-          >
-            <Save className="w-3.5 h-3.5 mr-1.5" />
-            {isSaved ? t.results.buttons.saved : t.results.buttons.save}
-          </Button>
+        {/* ===== 저장 확인 배너 (인라인, 중앙) ===== */}
+        {savedName && (
+          <div className="flex items-center justify-center gap-2.5 p-3.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center flex-shrink-0">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div className="text-sm">
+              <span className="font-semibold text-emerald-800 dark:text-emerald-200">
+                {t.results.save.success}
+              </span>
+              <span className="text-emerald-600 dark:text-emerald-400 ml-1.5">
+                — {savedName}
+              </span>
+            </div>
+          </div>
+        )}
 
-          <ExportDropdown
-            results={results}
-            statisticalResult={statisticalResult}
-            interpretation={interpretation}
-            apaFormat={apaFormat}
-            dataInfo={exportDataInfo}
-            t={t.results}
-          />
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCopyResults}
-            className="flex-1 shadow-sm"
-          >
-            <Copy className="w-3.5 h-3.5 mr-1.5" />
-            {isCopied ? t.results.buttons.copied : t.results.buttons.copy}
-          </Button>
-
-          {/* More Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="shadow-sm">
-                <MoreHorizontal className="w-4 h-4" />
+        {/* ===== 액션 버튼 (모든 버튼 직접 노출) ===== */}
+        <div className="space-y-2" data-testid="action-buttons">
+          {/* Row 1: 출력 액션 */}
+          <div className="flex items-center gap-2 p-3 bg-muted/20 border border-border/20 rounded-xl">
+            {/* 저장 (DOCX 기본 + Excel 드롭다운) */}
+            <div className="flex flex-1">
+              <Button
+                variant={isSaved ? "default" : "outline"}
+                size="sm"
+                onClick={() => handleSaveAsFile('docx')}
+                disabled={isExporting}
+                className={cn(
+                  "flex-1 rounded-r-none border-r-0 shadow-sm",
+                  isSaved && "bg-emerald-600 hover:bg-emerald-600 text-white"
+                )}
+              >
+                {isSaved ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                ) : (
+                  <Save className="w-3.5 h-3.5 mr-1.5" />
+                )}
+                {isExporting ? t.results.buttons.exporting : isSaved ? t.results.buttons.saved : t.results.buttons.save}
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setTemplateModalOpen(true)}>
-                <FileText className="w-4 h-4 mr-2" />
-                {t.results.buttons.saveTemplate}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleReanalyze}>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                {t.results.buttons.reanalyze}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleNewAnalysis}>
-                <RotateCcw className="w-4 h-4 mr-2" />
-                {t.results.buttons.newAnalysis}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isExporting}
+                    className="px-1.5 rounded-l-none shadow-sm"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5 rotate-90" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleSaveAsFile('docx')}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    {t.results.buttons.exportDocx}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleSaveAsFile('xlsx')}>
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    {t.results.buttons.exportExcel}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* 복사 */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopyResults}
+              className={cn("flex-1 shadow-sm", isCopied && "bg-blue-600 hover:bg-blue-600 text-white border-blue-600")}
+            >
+              {isCopied ? (
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+              ) : (
+                <Copy className="w-3.5 h-3.5 mr-1.5" />
+              )}
+              {isCopied ? t.results.buttons.copied : t.results.buttons.copy}
+            </Button>
+          </div>
+
+          {/* Row 2: 워크플로우 액션 */}
+          <div className="flex items-center gap-2 p-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleReanalyze}
+              className="flex-1 text-muted-foreground hover:text-foreground"
+            >
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+              {t.results.buttons.reanalyze}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleNewAnalysis}
+              className="flex-1 text-muted-foreground hover:text-foreground"
+            >
+              <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+              {t.results.buttons.newAnalysis}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setTemplateModalOpen(true)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <FileText className="w-3.5 h-3.5 mr-1.5" />
+              {t.results.buttons.saveTemplate}
+            </Button>
+          </div>
         </div>
 
         {/* 템플릿 저장 모달 */}
