@@ -2,7 +2,7 @@
  * Auto-generated from methods-registry.json
  * DO NOT EDIT MANUALLY
  *
- * Generated: 2026-02-13T01:15:28.597Z
+ * Generated: 2026-02-13T03:43:32.286Z
  */
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -152,7 +152,7 @@ export interface MannKendallTestResult {
 
 export interface BonferroniCorrectionResult {
   adjustedPValues: number[]
-  significantResults: Array<{ group1: string; group2: string; pValue: number; significant: boolean }>
+  significantResults: Array<{ group1: string; group2: string; meanDiff?: number; pValue: number; significant: boolean }>
   alpha: number
   correctedAlpha: number
 }
@@ -610,7 +610,7 @@ export interface TwoWayAnovaResult {
 }
 
 export interface TukeyHsdResult {
-  comparisons: Array<{ group1: string; group2: string; pValue: number; significant: boolean }>
+  comparisons: Array<{ group1: string; group2: string; meanDiff?: number; pValue: number; significant: boolean }>
 }
 
 export interface SignTestResult {
@@ -668,15 +668,15 @@ export interface ManovaResult {
 }
 
 export interface ScheffeTestResult {
-  comparisons: Array<{ group1: string; group2: string; pValue: number; significant: boolean }>
+  comparisons: Array<{ group1: string; group2: string; meanDiff?: number; pValue: number; significant: boolean }>
 }
 
 export interface DunnTestResult {
-  comparisons: Array<{ group1: string; group2: string; pValue: number; significant: boolean }>
+  comparisons: Array<{ group1: string; group2: string; meanDiff?: number; pValue: number; significant: boolean }>
 }
 
 export interface GamesHowellTestResult {
-  comparisons: Array<{ group1: string; group2: string; pValue: number; significant: boolean }>
+  comparisons: Array<{ group1: string; group2: string; meanDiff?: number; pValue: number; significant: boolean }>
 }
 
 

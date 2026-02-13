@@ -62,7 +62,7 @@ export interface ExecutorAnalysisResult {
     postHoc?: Array<{
       group1: string
       group2: string
-      meanDiff: number
+      meanDiff?: number
       pvalue: number
       significant: boolean
     }>

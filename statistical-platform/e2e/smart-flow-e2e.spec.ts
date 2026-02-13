@@ -291,9 +291,10 @@ async function verifyStatisticalResults(page: Page) {
 // ========================================
 
 async function mockOpenRouterAPI(page: Page, methodId: string, methodName: string) {
-  const mockResponse = JSON.stringify({
+  const mockRecommendation = JSON.stringify({
     methodId,
-    reasoning: `데이터 분석 결과 ${methodName}이(가) 적합합니다.`,
+    methodName,
+    reasoning: [`데이터 분석 결과 ${methodName}이(가) 적합합니다.`],
     confidence: 0.9,
     variableAssignments: { dependent: ['value'], factor: ['group'] },
     suggestedSettings: { alpha: 0.05 },
@@ -301,12 +302,18 @@ async function mockOpenRouterAPI(page: Page, methodId: string, methodName: strin
     alternatives: [{ id: 'mann-whitney', name: 'Mann-Whitney U 검정', description: '비모수 대안' }]
   })
 
-  const jsonBody = JSON.stringify({
-    id: 'mock',
-    choices: [{ message: { content: mockResponse } }]
-  })
-
   await page.route(/openrouter\.ai/, (route) => {
+    const url = route.request().url()
+    // /models 엔드포인트 (health check) → 단순 200 응답
+    if (url.includes('/models')) {
+      route.fulfill({ status: 200, contentType: 'application/json', body: '{"data":[]}' })
+      return
+    }
+    // /chat/completions (추천 요청) → 모킹된 추천 응답
+    const jsonBody = JSON.stringify({
+      id: 'mock',
+      choices: [{ message: { content: mockRecommendation } }]
+    })
     route.fulfill({ status: 200, contentType: 'application/json', body: jsonBody })
   })
   log('mockAPI', `mocked: ${methodId}`)

@@ -413,7 +413,7 @@ function returnsToInterface(methodName, returns) {
     } else if (key === 'confidenceInterval') {
       type = 'unknown' // Can be number[] or Record<string, number[]>
     } else if (key === 'comparisons' || key === 'significantResults') {
-      type = 'Array<{ group1: string; group2: string; pValue: number; significant: boolean }>'
+      type = 'Array<{ group1: string; group2: string; meanDiff?: number; pValue: number; significant: boolean }>'
     } else if (key === 'anovaTable' || key === 'descriptives' || key === 'equalityTests' || key === 'assumptions') {
       type = 'Record<string, unknown>'
     } else if (key === 'groupCentroids' || key === 'classificationResults') {

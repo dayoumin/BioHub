@@ -1120,7 +1120,7 @@ export class StatisticalExecutor {
             postHoc = comps.map(c => ({
               group1: c.group1,
               group2: c.group2,
-              meanDiff: 0,
+              meanDiff: c.meanDiff ?? 0,
               pvalue: c.pValue,
               significant: c.significant
             }))

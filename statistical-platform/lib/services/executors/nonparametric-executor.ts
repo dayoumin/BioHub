@@ -210,7 +210,6 @@ export class NonparametricExecutor extends BaseExecutor {
           postHoc: result.comparisons.map(comp => ({
             group1: comp.group1,
             group2: comp.group2,
-            meanDiff: 0,
             pvalue: comp.pValue,
             significant: comp.significant
           }))
