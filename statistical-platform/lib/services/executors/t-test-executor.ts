@@ -33,12 +33,7 @@ export class TTestExecutor extends BaseExecutor {
           statistic: result.statistic,
           pvalue: result.pValue,
           df: result.df,
-          interpretation: `${this.interpretPValue(result.pValue)}. 표본 평균(${stats.mean.toFixed(2)})과 모집단 평균(${populationMean}) 간 차이 검정`,
-          confidenceInterval: result.confidenceInterval ? {
-            lower: result.confidenceInterval.lower,
-            upper: result.confidenceInterval.upper,
-            level: 0.95
-          } : undefined
+          interpretation: `${this.interpretPValue(result.pValue)}. 표본 평균(${stats.mean.toFixed(2)})과 모집단 평균(${populationMean}) 간 차이 검정`
         },
         additionalInfo: {
           effectSize: {

@@ -828,8 +828,9 @@ describe('Edge Cases and Boundary Conditions', () => {
 
         const map = getStructuralCompatibilityMap(data)
 
-        // Should have entries for all methods
-        expect(map.size).toBe(STATISTICAL_METHOD_REQUIREMENTS.length)
+        // Should have entries for all unique methods
+        const uniqueMethodIds = new Set(STATISTICAL_METHOD_REQUIREMENTS.map(m => m.id))
+        expect(map.size).toBe(uniqueMethodIds.size)
       })
 
       it('should correctly categorize methods by structural compatibility', () => {

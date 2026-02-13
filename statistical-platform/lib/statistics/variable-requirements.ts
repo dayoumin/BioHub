@@ -2362,6 +2362,203 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
       description: '운전자별 교통사고 횟수(카운트)와 예측 변수들'
     }
   },
+  {
+    id: 'binary-logistic',
+    name: '이항 로지스틱 회귀',
+    category: 'regression',
+    description: '이진 종속변수에 대한 로지스틱 회귀분석',
+    minSampleSize: 50,
+    assumptions: ['선형성(로짓)', '독립성', '다중공선성 없음'],
+    variables: [
+      {
+        role: 'dependent',
+        label: '종속 변수',
+        types: ['binary'],
+        required: true,
+        multiple: false,
+        description: '0 또는 1의 값을 가지는 이진 변수',
+        example: '성공/실패, 생존/사망'
+      },
+      {
+        role: 'independent',
+        label: '독립 변수',
+        types: ['continuous', 'categorical'],
+        required: true,
+        multiple: true,
+        minCount: 1,
+        description: '예측에 사용할 변수들',
+        example: '연령, 투여량, 성별'
+      }
+    ],
+    dataFormat: {
+      type: 'wide',
+      description: '각 행이 하나의 관측치입니다. 이진 종속변수와 독립변수들이 열로 구성됩니다.',
+      columns: [
+        { name: 'ID', description: '관측치 식별자', example: '1, 2, 3...', required: false },
+        { name: '종속변수', description: '이진 결과 변수 (0/1)', example: '반응(Yes/No)', required: true },
+        { name: '독립변수들', description: '설명 변수들', example: '나이, 수치', required: true }
+      ]
+    },
+    settings: {
+      alpha: { label: '유의수준 (α)', description: '통계적 유의성 기준', default: 0.05, range: { min: 0.001, max: 0.1 } },
+      rocCurve: {
+        label: 'ROC 곡선',
+        description: 'ROC 곡선 및 AUC 출력 여부',
+        default: 'yes',
+        options: [
+          { value: 'yes', label: '예', description: 'ROC 곡선 그리기' },
+          { value: 'no', label: '아니오', description: '생략' }
+        ]
+      }
+    },
+    sampleData: {
+      headers: ['ID', '반응여부', '농도', '온도'],
+      rows: [
+        [1, 1, 0.5, 20], [2, 0, 0.2, 21], [3, 1, 0.6, 19], [4, 1, 0.8, 22], [5, 0, 0.3, 20]
+      ],
+      description: '농도와 온도에 따른 반응 여부(1/0)'
+    }
+  },
+  {
+    id: 'multinomial-logistic',
+    name: '다항 로지스틱 회귀',
+    category: 'regression',
+    description: '3개 이상의 범주를 가진 종속변수 예측',
+    minSampleSize: 50,
+    assumptions: ['독립성', '다중공선성 없음'],
+    variables: [
+      {
+        role: 'dependent',
+        label: '종속 변수',
+        types: ['categorical'],
+        required: true,
+        multiple: false,
+        description: '3개 이상의 범주를 가진 변수',
+        example: '선호도(상/중/하), 정당(A/B/C)'
+      },
+      {
+        role: 'independent',
+        label: '독립 변수',
+        types: ['continuous', 'categorical'],
+        required: true,
+        multiple: true,
+        minCount: 1,
+        description: '예측에 사용할 변수들',
+        example: '소득, 연령, 지역'
+      }
+    ],
+    dataFormat: {
+      type: 'wide',
+      description: '종속변수가 3개 이상의 범주를 가집니다.',
+      columns: [
+        { name: 'ID', description: '식별자', example: '1, 2, 3...', required: false },
+        { name: '종속변수', description: '다범주 변수', example: '선택(A/B/C)', required: true },
+        { name: '독립변수들', description: '설명 변수들', example: '소득, 연령', required: true }
+      ]
+    },
+    settings: {
+      alpha: { label: '유의수준', description: '통계적 유의성 기준', default: 0.05, range: { min: 0.001, max: 0.1 } }
+    },
+    sampleData: {
+      headers: ['ID', '선호브랜드', '연령', '소득'],
+      rows: [
+        [1, 'BrandA', 25, 3000], [2, 'BrandB', 35, 4500], [3, 'BrandC', 42, 5000], [4, 'BrandA', 22, 2800]
+      ],
+      description: '연령/소득에 따른 브랜드 선호 예측'
+    }
+  },
+  {
+    id: 'probit-regression',
+    name: '프로빗 회귀',
+    category: 'regression',
+    description: '정규누적분포함수를 이용한 이진 회귀',
+    minSampleSize: 50,
+    assumptions: ['정규성(잠재변수)', '독립성'],
+    variables: [
+      {
+        role: 'dependent',
+        label: '종속 변수',
+        types: ['binary'],
+        required: true,
+        multiple: false,
+        description: '이진 결과 변수 (0/1)',
+        example: '구매/미구매'
+      },
+      {
+        role: 'independent',
+        label: '독립 변수',
+        types: ['continuous', 'categorical'],
+        required: true,
+        multiple: true,
+        minCount: 1,
+        description: '예측 변수들',
+        example: '가격, 광고노출'
+      }
+    ],
+    dataFormat: {
+      type: 'wide',
+      description: '이진 종속변수와 예측변수로 구성됩니다.',
+      columns: [
+        { name: 'ID', description: '관측치 식별자', example: '1, 2, 3...', required: false },
+        { name: '종속변수', description: '0 또는 1', example: '구매(1)/미구매(0)', required: true },
+        { name: '독립변수', description: '예측 변수', example: '가격', required: true }
+      ]
+    },
+    settings: {
+      alpha: { label: '유의수준', description: '통계적 유의성 기준', default: 0.05, range: { min: 0.001, max: 0.1 } }
+    },
+    sampleData: {
+      headers: ['ID', '수락여부', '제시가격'],
+      rows: [[1, 1, 500], [2, 0, 200], [3, 1, 450], [4, 0, 100]],
+      description: '가격에 따른 제안 수락 여부 (Probit)'
+    }
+  },
+  {
+    id: 'negative-binomial-regression',
+    name: '음이항 회귀',
+    category: 'regression',
+    description: '과분산이 있는 카운트 데이터 예측',
+    minSampleSize: 50,
+    assumptions: ['독립성'],
+    variables: [
+      {
+        role: 'dependent',
+        label: '종속 변수',
+        types: ['count'],
+        required: true,
+        multiple: false,
+        description: '카운트 변수 (과분산 존재)',
+        example: '병원 방문 횟수, 결석 일수'
+      },
+      {
+        role: 'independent',
+        label: '독립 변수',
+        types: ['continuous', 'categorical'],
+        required: true,
+        multiple: true,
+        minCount: 1,
+        description: '예측 변수들',
+        example: '건강상태, 나이'
+      }
+    ],
+    dataFormat: {
+      type: 'wide',
+      description: '카운트 데이터(종속)와 설명변수로 구성됩니다.',
+      columns: [
+        { name: 'ID', description: '관측치 식별자', example: '1, 2, 3...', required: false },
+        { name: '종속변수', description: '카운트 값 (0, 1, 2...)', example: '횟수', required: true },
+        { name: '독립변수', description: '설명 변수', example: '나이, 조건', required: true }
+      ]
+    },
+    settings: {
+      alpha: { label: '유의수준', description: '통계적 유의성 기준', default: 0.05, range: { min: 0.001, max: 0.1 } }
+    },
+    sampleData: {
+      headers: ['ID', '결석일수', '통학거리', '성적'],
+      rows: [[1, 5, 10, 70], [2, 0, 2, 90], [3, 12, 15, 60], [4, 2, 5, 85]],
+      description: '학생들의 결석 일수 예측 (과분산 고려)'
+    }
+  },
 
   // ========================================
   // 6. 비모수 검정 (Nonparametric) - 8개
@@ -3798,6 +3995,457 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
         ['P04', 48, 0, 45, 'I'], ['P05', 18, 1, 58, 'II'], ['P06', 30, 1, 65, 'III']
       ],
       description: '암 환자 생존 분석 (연령, 병기가 생존에 미치는 영향)'
+    }
+  },
+  {
+    id: 'power-analysis',
+    name: '사전 검정력 분석',
+    category: 'basic',
+    description: '연구 설계 전 필요한 표본 크기 추정',
+    minSampleSize: 2,
+    assumptions: [],
+    variables: [],
+    notes: ['효과 크기, 유의수준, 검정력 기반'],
+    dataFormat: {
+      type: 'wide',
+      description: '분석에 필요한 파라미터들을 설정합니다.',
+      columns: [
+        { name: '파라미터', description: '검정력 분석에 필요한 파라미터', example: '유의수준, 검정력', required: true },
+        { name: '값', description: '파라미터 값', example: '0.05, 0.8', required: true }
+      ]
+    },
+    settings: {
+      power: { label: '목표 검정력 (1-β)', description: '2종 오류 회피 확률', default: 0.8, range: { min: 0.5, max: 0.99 } },
+      effectSize: { label: '효과 크기 (d)', description: '감지하고자 하는 최소 차이', default: 0.5, range: { min: 0.1, max: 2.0 } }
+    },
+    sampleData: {
+      headers: ['파라미터', '값'],
+      rows: [['유의수준', 0.05], ['검정력', 0.8], ['효과크기', 0.5]],
+      description: '사전 검정력 분석을 위한 파라미터 설정'
+    }
+  },
+
+  // ========================================
+  // 6. 회귀분석 (Regression) - 확장 (Worker 4)
+  // ========================================
+  {
+    id: 'linear-regression',
+    name: '단순 선형 회귀',
+    category: 'regression',
+    description: '하나의 독립변수와 종속변수 간의 선형 관계',
+    minSampleSize: 3,
+    assumptions: ['선형성', '독립성', '등분산성', '정규성'],
+    variables: [
+      {
+        role: 'dependent',
+        label: '종속 변수 (Y)',
+        types: ['continuous'],
+        required: true,
+        multiple: false,
+        description: '예측하고자 하는 변수',
+        example: '매출액'
+      },
+      {
+        role: 'independent',
+        label: '독립 변수 (X)',
+        types: ['continuous'],
+        required: true,
+        multiple: false,
+        description: '설명 변수',
+        example: '광고비'
+      }
+    ],
+    notes: ['잔차 분석 포함'],
+
+    dataFormat: {
+      type: 'wide',
+      description: '각 행이 하나의 관측치입니다. 종속변수와 독립변수가 각각 열로 구성됩니다.',
+      columns: [
+        { name: 'ID', description: '관측치 식별자', example: '1, 2, 3...', required: false },
+        { name: '종속변수', description: '예측할 연속형 변수', example: '매출액', required: true },
+        { name: '독립변수', description: '설명할 연속형 변수', example: '광고비', required: true }
+      ]
+    },
+    settings: {
+      alpha: { label: '유의수준 (α)', description: '통계적 유의성 기준', default: 0.05, range: { min: 0.001, max: 0.1 } }
+    },
+    sampleData: {
+      headers: ['ID', '매출액', '광고비'],
+      rows: [
+        [1, 500, 20],
+        [2, 600, 25],
+        [3, 550, 22],
+        [4, 700, 30],
+        [5, 450, 18]
+      ],
+      description: '광고비에 따른 매출액 예측'
+    }
+  },
+  {
+    id: 'multiple-regression',
+    name: '다중 회귀분석',
+    category: 'regression',
+    description: '여러 독립변수와 종속변수 간의 선형 관계',
+    minSampleSize: 10,
+    assumptions: ['선형성', '다중공선성 없음', '독립성', '등분산성', '정규성'],
+    variables: [
+      {
+        role: 'dependent',
+        label: '종속 변수 (Y)',
+        types: ['continuous'],
+        required: true,
+        multiple: false,
+        description: '예측하고자 하는 변수',
+        example: '집값'
+      },
+      {
+        role: 'independent',
+        label: '독립 변수 (X)',
+        types: ['continuous', 'categorical'],
+        required: true,
+        multiple: true,
+        minCount: 1,
+        description: '설명 변수들',
+        example: '면적, 방개수, 연식'
+      }
+    ],
+    notes: ['VIF 확인 필요'],
+
+    dataFormat: {
+      type: 'wide',
+      description: '각 행이 하나의 관측치입니다. 종속변수와 여러 독립변수가 열로 구성됩니다.',
+      columns: [
+        { name: 'ID', description: '관측치 식별자', example: '1, 2, 3...', required: false },
+        { name: '종속변수', description: '예측할 연속형 변수', example: '집값', required: true },
+        { name: '독립변수1', description: '첫 번째 설명 변수', example: '면적', required: true },
+        { name: '독립변수N', description: '추가 설명 변수들', example: '방개수, 연식', required: true }
+      ]
+    },
+    settings: {
+      alpha: { label: '유의수준 (α)', description: '통계적 유의성 기준', default: 0.05, range: { min: 0.001, max: 0.1 } }
+    },
+    sampleData: {
+      headers: ['ID', '집값', '면적', '방개수', '연식'],
+      rows: [
+        [1, 50000, 84, 3, 5],
+        [2, 45000, 75, 3, 10],
+        [3, 60000, 102, 4, 3],
+        [4, 35000, 59, 2, 15],
+        [5, 55000, 84, 3, 2]
+      ],
+      description: '면적, 방개수, 연식에 따른 집값 예측'
+    }
+  },
+  {
+    id: 'logistic-regression',
+    name: '로지스틱 회귀',
+    category: 'regression',
+    description: '이진 종속변수에 대한 회귀분석',
+    minSampleSize: 20,
+    assumptions: ['독립성', '비례승산', '선형성(Logit)'],
+    variables: [
+      {
+        role: 'dependent',
+        label: '종속 변수 (Y)',
+        types: ['binary'],
+        required: true,
+        multiple: false,
+        description: '이진 결과 변수 (0/1)',
+        example: '구매여부(1=구매, 0=미구매)'
+      },
+      {
+        role: 'independent',
+        label: '독립 변수 (X)',
+        types: ['continuous', 'categorical'],
+        required: true,
+        multiple: true,
+        minCount: 1,
+        description: '설명 변수들',
+        example: '나이, 소득, 성별'
+      }
+    ],
+    notes: ['오즈비(Odds Ratio) 해석'],
+
+    dataFormat: {
+      type: 'wide',
+      description: '각 행이 하나의 관측치입니다. 이진 종속변수와 설명 변수들이 열로 구성됩니다.',
+      columns: [
+        { name: 'ID', description: '관측치 식별자', example: '1, 2, 3...', required: false },
+        { name: '결과변수', description: '이진 종속 변수 (0/1)', example: '구매여부, 재발여부', required: true },
+        { name: '설명변수', description: '결과를 예측할 변수들', example: '나이, 소득', required: true }
+      ]
+    },
+    settings: {
+      alpha: { label: '유의수준 (α)', description: '통계적 유의성 기준', default: 0.05, range: { min: 0.001, max: 0.1 } }
+    },
+    sampleData: {
+      headers: ['ID', '구매여부', '나이', '소득'],
+      rows: [
+        [1, 1, 35, 5000],
+        [2, 0, 28, 3000],
+        [3, 1, 45, 7000],
+        [4, 0, 32, 3500],
+        [5, 1, 50, 8000]
+      ],
+      description: '나이와 소득에 따른 구매여부 예측'
+    }
+  },
+  {
+    id: 'pca-analysis',
+    name: '주성분 분석 (PCA)',
+    category: 'advanced',
+    description: '차원 축소를 통한 데이터 구조 파악',
+    minSampleSize: 20,
+    assumptions: ['선형성', '큰 분산', '상관관계'],
+    variables: [
+      {
+        role: 'dependent',
+        label: '분석 변수',
+        types: ['continuous'],
+        required: true,
+        multiple: true,
+        minCount: 2,
+        description: '차원을 축소할 연속형 변수들',
+        example: '키, 몸무게, 흉전, 흉위'
+      }
+    ],
+    notes: ['스크리 도표, 설명된 분산 비율 제공'],
+
+    dataFormat: {
+      type: 'wide',
+      description: '각 행이 하나의 관측치입니다. 분석할 여러 연속형 변수가 열로 구성됩니다.',
+      columns: [
+        { name: 'ID', description: '관측치 식별자', example: '1, 2, 3...', required: false },
+        { name: '분석변수', description: '차원을 축소할 연속형 변수들', example: 'Var1, Var2...', required: true }
+      ]
+    },
+    settings: {
+      nComponents: {
+        label: '주성분 개수',
+        description: '추출할 성분 수 (0 = 자동)',
+        default: 0,
+        range: { min: 0, max: 10 }
+      }
+    },
+    sampleData: {
+      headers: ['ID', '키', '몸무게', '흉위', '좌고'],
+      rows: [
+        [1, 175, 70, 95, 90],
+        [2, 180, 75, 100, 92],
+        [3, 168, 62, 88, 85],
+        [4, 182, 80, 105, 94],
+        [5, 172, 68, 92, 88]
+      ],
+      description: '신체 계측 데이터의 차원 축소'
+    }
+  },
+  {
+    id: 'stepwise-regression',
+    name: '단계적 회귀분석',
+    category: 'regression',
+    description: '변수 선택법을 이용한 회귀 모형 구축',
+    minSampleSize: 20,
+    assumptions: ['선형성', '독립성', '등분산성', '정규성'],
+    variables: [
+      {
+        role: 'dependent',
+        label: '종속 변수 (Y)',
+        types: ['continuous'],
+        required: true,
+        multiple: false,
+        description: '예측하고자 하는 변수',
+        example: '매출액'
+      },
+      {
+        role: 'independent',
+        label: '후보 변수들 (X)',
+        types: ['continuous', 'categorical'],
+        required: true,
+        multiple: true,
+        minCount: 2,
+        description: '선택 대상 독립 변수들',
+        example: '광고비, 가격, 매장크기, 인구수'
+      }
+    ],
+    notes: ['전진 선택, 후진 제거 지원'],
+    dataFormat: {
+      type: 'wide',
+      description: '각 행이 관측치입니다. 종속변수와 여러 후보 독립변수가 필요합니다.',
+      columns: [
+        { name: 'ID', description: '식별자', example: '1, 2, 3...', required: false },
+        { name: '종속변수', description: '예측 대상 변수', example: '매출액', required: true },
+        { name: '후보변수들', description: '선택될 가능성이 있는 변수들', example: '광고비, 가격', required: true }
+      ]
+    },
+    settings: {
+      method: {
+        label: '선택 방법',
+        description: '변수 선택 알고리즘',
+        default: 'forward',
+        options: [
+          { value: 'forward', label: '전진 선택법', description: '변수를 하나씩 추가' },
+          { value: 'backward', label: '후진 제거법', description: '변수를 하나씩 제거' }
+        ]
+      },
+      threshold: { label: '진입/제거 기준 (p)', description: '변수 선택 유의수준', default: 0.05, range: { min: 0.001, max: 0.2 } }
+    },
+    sampleData: {
+      headers: ['ID', '매출', '광고TV', '광고SNS', '가격', '매장수'],
+      rows: [
+        [1, 100, 10, 5, 20, 2],
+        [2, 120, 12, 6, 19, 2],
+        [3, 110, 11, 4, 21, 3],
+        [4, 130, 15, 8, 18, 3],
+        [5, 95, 9, 3, 22, 1]
+      ],
+      description: '매출에 영향을 미치는 주요 요인 선별'
+    }
+  },
+  {
+    id: 'curve-estimation',
+    name: '곡선 추정',
+    category: 'regression',
+    description: '다양한 곡선 모형 적합 (선형, 2차, 지수 등)',
+    minSampleSize: 5,
+    assumptions: ['독립성'],
+    variables: [
+      {
+        role: 'dependent',
+        label: '종속 변수 (Y)',
+        types: ['continuous'],
+        required: true,
+        multiple: false,
+        description: '반응 변수',
+        example: '성장률'
+      },
+      {
+        role: 'independent',
+        label: '독립 변수 (X)',
+        types: ['continuous'],
+        required: true,
+        multiple: false,
+        description: '설명 변수',
+        example: '시간'
+      }
+    ],
+    dataFormat: {
+      type: 'wide',
+      description: 'X와 Y 변수가 필요합니다.',
+      columns: [
+        { name: 'X', description: '독립변수', example: '시간', required: true },
+        { name: 'Y', description: '종속변수', example: '박테리아수', required: true }
+      ]
+    },
+    settings: {
+      modelType: {
+        label: '모형 유형',
+        description: '적합할 곡선 모형',
+        default: 'linear',
+        options: [
+          { value: 'linear', label: '선형 (Linear)', description: 'y = a + bx' },
+          { value: 'quadratic', label: '2차 (Quadratic)', description: 'y = a + bx + cx²' },
+          { value: 'cubic', label: '3차 (Cubic)', description: 'y = a + bx + cx² + dx³' },
+          { value: 'exponential', label: '지수 (Exponential)', description: 'y = a * exp(bx)' },
+          { value: 'logarithmic', label: '로그 (Logarithmic)', description: 'y = a + b * ln(x)' },
+          { value: 'power', label: '거듭제곱 (Power)', description: 'y = a * x^b' }
+        ]
+      }
+    },
+    sampleData: {
+      headers: ['시간', '박테리아수'],
+      rows: [
+        [0, 100], [1, 150], [2, 225], [3, 338], [4, 506]
+      ],
+      description: '시간에 따른 박테리아 증가 (지수 모형)'
+    }
+  },
+  {
+    id: 'nonlinear-regression',
+    name: '비선형 회귀',
+    category: 'regression',
+    description: '사용자 정의 비선형 모형 적합',
+    minSampleSize: 5,
+    assumptions: ['독립성'],
+    variables: [
+      {
+        role: 'dependent',
+        label: '종속 변수 (Y)',
+        types: ['continuous'],
+        required: true,
+        multiple: false,
+        description: '반응 변수',
+        example: '반응속도'
+      },
+      {
+        role: 'independent',
+        label: '독립 변수 (X)',
+        types: ['continuous'],
+        required: true,
+        multiple: false,
+        description: '설명 변수',
+        example: '농도'
+      }
+    ],
+    dataFormat: {
+      type: 'wide',
+      description: '관측치별 X, Y 데이터입니다.',
+      columns: [
+        { name: 'X', description: '독립변수', example: '농도', required: true },
+        { name: 'Y', description: '종속변수', example: '반응속도', required: true }
+      ]
+    },
+    settings: {
+      modelType: {
+        label: '모형',
+        description: '적합할 비선형 모형',
+        default: 'exponential',
+        options: [
+          { value: 'exponential', label: '지수 성장/감소', description: 'y = a * exp(bx)' },
+          { value: 'logistic', label: '로지스틱 성장', description: 'y = L / (1 + exp(-k(x-x0)))' },
+          { value: 'gompertz', label: 'Gompertz', description: 'y = a * exp(-b * exp(-cx))' },
+          { value: 'hyperbolic', label: 'Hyperbolic (Michaelis-Menten)', description: 'y = ax / (b + x)' }
+        ]
+      }
+    },
+    sampleData: {
+      headers: ['농도', '반응속도'],
+      rows: [
+        [0.1, 0.5], [0.2, 0.8], [0.5, 1.5], [1.0, 2.2], [2.0, 2.8], [5.0, 3.1]
+      ],
+      description: '기질 농도에 따른 효소 반응 속도 (Michaelis-Menten)'
+    }
+  },
+  {
+    id: 'durbin-watson-test',
+    name: 'Durbin-Watson 검정',
+    category: 'regression',
+    description: '잔차의 자기상관성 검정',
+    minSampleSize: 10,
+    assumptions: ['회귀분석 잔차 사용'],
+    variables: [
+      {
+        role: 'dependent',
+        label: '잔차 (Residuals)',
+        types: ['continuous'],
+        required: true,
+        multiple: false,
+        description: '회귀분석 잔차 또는 시계열 데이터',
+        example: '잔차값'
+      }
+    ],
+    dataFormat: {
+      type: 'wide',
+      description: '시계열 순서대로 정렬된 잔차 데이터가 필요합니다.',
+      columns: [
+        { name: '순서', description: '시간 순서', example: '1, 2, 3...', required: false },
+        { name: '잔차', description: '회귀분석 잔차', example: '0.5, -0.2...', required: true }
+      ]
+    },
+    settings: {}, // 설정 없음
+    sampleData: {
+      headers: ['순서', '잔차'],
+      rows: [[1, 0.5], [2, 0.4], [3, -0.2], [4, -0.5], [5, 0.1]],
+      description: '회귀 잔차의 자기상관성 확인'
     }
   },
 

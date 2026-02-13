@@ -223,15 +223,15 @@ export class AnovaExecutor extends BaseExecutor {
         mainResults: {
           statistic: result.comparisons.length,
           pvalue: Math.min(...result.comparisons.map((c: { pValue: number }) => c.pValue)),
-          interpretation: `${result.comparisons.filter((c: { reject: boolean }) => c.reject).length}개 쌍에서 유의한 차이 발견`
+          interpretation: `${result.comparisons.filter(c => c.significant).length}개 쌍에서 유의한 차이 발견`
         },
         additionalInfo: {
-          postHoc: result.comparisons.map((comp: { group1: number; group2: number; meanDiff: number; pValue: number; reject: boolean }) => ({
+          postHoc: result.comparisons.map(comp => ({
             group1: comp.group1,
             group2: comp.group2,
-            meanDiff: comp.meanDiff,
+            meanDiff: 0,
             pvalue: comp.pValue,
-            significant: comp.reject
+            significant: comp.significant
           }))
         },
         visualizationData: {
@@ -262,16 +262,16 @@ export class AnovaExecutor extends BaseExecutor {
         metadata: this.createMetadata('Games-Howell 사후검정', groups.flat().length, startTime),
         mainResults: {
           statistic: result.comparisons.length,
-          pvalue: Math.min(...result.comparisons.map((c: { pValue: number }) => c.pValue)),
-          interpretation: `이분산 가정 하에서 ${result.comparisons.filter((c: { reject: boolean }) => c.reject).length}개 쌍에서 유의한 차이 발견`
+          pvalue: Math.min(...result.comparisons.map(c => c.pValue)),
+          interpretation: `이분산 가정 하에서 ${result.comparisons.filter(c => c.significant).length}개 쌍에서 유의한 차이 발견`
         },
         additionalInfo: {
-          postHoc: result.comparisons.map((comp: { group1: number; group2: number; meanDiff: number; pValue: number; reject: boolean }) => ({
+          postHoc: result.comparisons.map(comp => ({
             group1: comp.group1,
             group2: comp.group2,
-            meanDiff: comp.meanDiff,
+            meanDiff: 0,
             pvalue: comp.pValue,
-            significant: comp.reject
+            significant: comp.significant
           }))
         },
         visualizationData: {

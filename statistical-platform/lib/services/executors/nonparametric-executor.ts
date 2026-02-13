@@ -166,18 +166,17 @@ export class NonparametricExecutor extends BaseExecutor {
         mainResults: {
           statistic: result.statistic,
           pvalue: result.pvalue,
+          df: result.df,
           interpretation: `${this.interpretPValue(result.pvalue)}. ${k}개 반복측정 조건 간 차이 검정`
         },
         additionalInfo: {
-          rankings: result.rankings,
           blocks: n,
           treatments: k
         },
         visualizationData: {
           type: 'line',
           data: {
-            conditions: data[0].map((_, i) => `조건 ${i + 1}`),
-            meanRanks: result.rankings
+            conditions: data[0].map((_, i) => `조건 ${i + 1}`)
           }
         }
       }
@@ -204,17 +203,16 @@ export class NonparametricExecutor extends BaseExecutor {
         metadata: this.createMetadata("Dunn's 사후검정", groups.flat().length, startTime),
         mainResults: {
           statistic: result.comparisons.length,
-          pvalue: Math.min(...result.comparisons.map((c: { pValueAdj: number }) => c.pValueAdj)),
-          interpretation: `Bonferroni 보정 후 ${result.comparisons.filter((c: { pValueAdj: number }) => c.pValueAdj < 0.05).length}개 쌍에서 유의한 차이`
+          pvalue: Math.min(...result.comparisons.map(c => c.pValue)),
+          interpretation: `Bonferroni 보정 후 ${result.comparisons.filter(c => c.pValue < 0.05).length}개 쌍에서 유의한 차이`
         },
         additionalInfo: {
-          postHoc: result.comparisons.map((comp: { group1: number; group2: number; zStatistic: number; pValue: number; pValueAdj: number }) => ({
+          postHoc: result.comparisons.map(comp => ({
             group1: comp.group1,
             group2: comp.group2,
-            zStatistic: comp.zStatistic,
+            meanDiff: 0,
             pvalue: comp.pValue,
-            pvalueAdjusted: comp.pValueAdj,
-            significant: comp.pValueAdj < 0.05
+            significant: comp.significant
           }))
         },
         visualizationData: {

@@ -31,6 +31,25 @@
 
 ## 📅 최근 작업 (7일)
 
+### 2026-02-13 (목)
+- ✅ **Phase 5-2: Pyodide 리팩토링 완료**
+  - Task 0: `methods-registry.json` 타입 오류 수정 + 재생성 (`runs_test`, `partial_correlation`)
+  - Task 1: `callWorkerMethod` → Generated 래퍼 전환 (11/12, wilcoxon 유지)
+    - 변환: factorAnalysis, clusterAnalysis, timeSeriesAnalysis, twoWayAnova
+    - `METHOD_PARAM_OVERRIDES` 메커니즘 추가 (파라미터 타입 오버라이드)
+    - `METHOD_TYPE_OVERRIDES` 확장 (mcnemar_test, runs_test)
+    - factorAnalysis 파라미터 버그 수정 (`data` → `dataMatrix`)
+  - Task 2: `any` 타입 35개 → 0개 제거
+    - t-test df 버그 수정 (Python이 df 미반환 → JS에서 계산)
+    - 불필요한 `as any` 캐스트 15+ 제거 (Generated 타입으로 충분)
+    - `Promise<any>` 15개 → 구체적 타입으로 전환
+    - `checkAllAssumptions` 타입 안전 누적 객체
+  - Task 3: TypeScript 0 에러 + 4973 테스트 통과
+    - executor 타입 정합 (anova, t-test, nonparametric, statistical)
+    - 사후검정 타입 통일 (`reject` → `significant`, `group1: number` → `string`)
+- ✅ **결과 내보내기 기능** (DOCX/Excel + 클립보드 개선)
+- ✅ **Terminology System Phase 1-3** 완료
+
 ### 2026-02-06 (목)
 - ✅ **LLM Enhanced Recommendation Phase 3: 변수 자동 할당** 구현
   - `extractDetectedVariables()` 3단 우선순위: variableAssignments → detectedVariables → 데이터추론
@@ -162,8 +181,12 @@
 | 작업 | 설명 |
 |------|------|
 | **Phase 15-1: Bio-Tools** | 12개 생물학 분석, `/bio-tools/` 5페이지 구현 ([상세](study/PLAN-BIO-STATISTICS-AUDIT.md)) |
-| **Phase 5-2: Pyodide 리팩토링** | pyodide-statistics.ts 타입/Worker 호출 → Generated Wrapper 교체 |
 | **Phase 5-3: Design Polish** | Step Transition, Dashboard Layout, Loading UI 개선 |
+
+### 완료 (Phase 5-2)
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| **Phase 5-2: Pyodide 리팩토링** | callWorkerMethod → Generated Wrapper 전환 + any 타입 35개 제거 | ✅ 완료 |
 
 ---
 

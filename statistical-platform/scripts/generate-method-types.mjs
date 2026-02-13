@@ -42,8 +42,8 @@ function paramToType(param) {
 
   // 2D 행렬 (number[][])
   if (name === 'observedMatrix' || name === 'contingencyTable' ||
-      name === 'itemsMatrix' || name === 'table' || name === 'covariateData' ||
-      name === 'X') {
+    name === 'itemsMatrix' || name === 'table' || name === 'covariateData' ||
+    name === 'X') {
     type = 'number[][]'
   }
   // 그룹/요인 값 (string | number 혼합 가능)
@@ -79,8 +79,10 @@ function paramToType(param) {
   else if (name === 'before' || name === 'after' || name === 'sequence') {
     type = 'number[]'
   }
-  else if (name === 'times' || name === 'events' || name === 'covariates') {
+  else if (name === 'times' || name === 'events') {
     type = 'number[]'
+  } else if (name === 'covariates') {
+    type = 'number[] | number[][]'
   }
   else if (name === 'pValues' || name === 'observed' || name === 'expected') {
     type = 'number[]'
@@ -138,7 +140,7 @@ function paramToType(param) {
   }
   // 문자열
   else if (name === 'method' || name === 'alternative' || name === 'rotation' ||
-           name === 'linkage' || name === 'distance') {
+    name === 'linkage' || name === 'distance') {
     type = 'string'
   }
   else if (name === 'modelType' || name === 'testType' || name === 'analysisType' || name === 'pAdjust') {
@@ -165,11 +167,58 @@ function paramToType(param) {
 }
 
 /**
+ * 메서드별 타입 오버라이드 (key-name 추론이 부정확한 경우)
+ * 동일 key가 메서드마다 다른 타입을 갖는 경우 사용
+ */
+const METHOD_TYPE_OVERRIDES = {
+  'time_series_analysis': {
+    'trend': 'number[]',         // decomposed trend component (not string)
+    'adfStatistic': 'number',
+    'adfPValue': 'number',
+    'isStationary': 'boolean',
+  },
+  'cluster_analysis': {
+    'nClusters': 'number',
+    'clusterAssignments': 'number[]',
+    'centroids': 'number[][]',
+    'clusterSizes': 'number[]',
+  },
+  'two_way_anova': {
+    'residual': '{ df: number; sumSq: number; meanSq: number; fStatistic: number; pValue: number }',
+  },
+  'logistic_regression': {
+    'confusionMatrix': '{ tp: number; fp: number; tn: number; fn: number; precision: number; recall: number; f1Score: number }',
+  },
+  'mcnemar_test': {
+    'discordantPairs': '{ b: number; c: number }',
+  },
+  'runs_test': {
+    'zStatistic': 'number',
+    'n1': 'number',
+    'n2': 'number',
+  },
+  'linear_regression': {
+    'stdErr': 'number',
+    'slopeCi': '{ lower: number; upper: number }',
+    'interceptCi': '{ lower: number; upper: number }',
+    'slopeTValue': 'number',
+    'interceptTValue': 'number',
+    'confidenceInterval': '{ lower: number[]; upper: number[] }',
+    'isSignificant': 'boolean',
+  },
+}
+
+/**
  * 반환값 키를 TypeScript 타입으로 변환
  */
 function returnsToInterface(methodName, returns) {
   const interfaceName = `${toPascalCase(methodName)}Result`
+  const overrides = METHOD_TYPE_OVERRIDES[methodName] || {}
   const fields = returns.map(key => {
+    // 메서드별 오버라이드 우선 적용
+    if (overrides[key]) {
+      return `  ${key}: ${overrides[key]}`
+    }
     let type = 'unknown'
 
     // ========================================
@@ -202,16 +251,28 @@ function returnsToInterface(methodName, returns) {
     else if (key === 'df' || key === 'dfBetween' || key === 'dfWithin' || key === 'degreesOfFreedom') {
       type = 'number'
     }
+    // 분석 메타
+    else if (key === 'nFactors' || key === 'selectedFunctions' || key === 'selectedComponents') {
+      type = 'number'
+    } else if (key === 'totalVarianceExplained') {
+      type = 'number'
+    }
     // 효과 크기
     else if (key === 'cohensD' || key === 'etaSquared' || key === 'omegaSquared' || key === 'cramersV') {
       type = 'number'
     } else if (key === 'effectSize' || key === 'oddsRatio' || key === 'inertia') {
       type = 'number'
     }
-    // 회귀
-    else if (key === 'rSquared' || key === 'adjRSquared' || key === 'slope' || key === 'intercept') {
+    // 회귀 (스칼라)
+    else if (key === 'rSquared' || key === 'adjRSquared' || key === 'adjustedRSquared' || key === 'slope' || key === 'intercept') {
       type = 'number'
     } else if (key === 'accuracy' || key === 'auc' || key === 'dispersion') {
+      type = 'number'
+    } else if (key === 'fPValue' || key === 'llrPValue' || key === 'residualStdError') {
+      type = 'number'
+    } else if (key === 'sensitivity' || key === 'specificity' || key === 'pseudoRSquared') {
+      type = 'number'
+    } else if (key === 'aic' || key === 'bic' || key === 'nObservations' || key === 'nPredictors') {
       type = 'number'
     }
     // 표본 크기
@@ -280,8 +341,22 @@ function returnsToInterface(methodName, returns) {
     // ========================================
     // 4. 숫자 배열 (number[])
     // ========================================
-    else if (key === 'coefficients' || key === 'loadings' || key === 'eigenvalues') {
+    else if (key === 'coefficients' || key === 'eigenvalues') {
       type = 'number[]'
+    }
+    // 회귀 배열
+    else if (key === 'stdErrors' || key === 'tValues' || key === 'zValues') {
+      type = 'number[]'
+    } else if (key === 'ciLower' || key === 'ciUpper') {
+      type = 'number[]'
+    } else if (key === 'residuals' || key === 'fittedValues' || key === 'vif') {
+      type = 'number[]'
+    } else if (key === 'predictedClass') {
+      type = 'number[]'
+    }
+    // 2D 숫자 배열 (명시적)
+    else if (key === 'loadings') {
+      type = 'number[][]'
     } else if (key === 'clusters' || key === 'predictions' || key === 'scores') {
       type = 'number[]'
     } else if (key.includes('forecast') || key === 'acf' || key === 'pacf' || key === 'seasonal' || key === 'residual') {
@@ -298,11 +373,15 @@ function returnsToInterface(methodName, returns) {
       type = 'number[]'
     } else if (key === 'communalities' || key === 'explainedVariance' || key === 'cumulativeVariance') {
       type = 'number[]'
-    } else if (key === 'explainedVarianceRatio' || key === 'totalVariance') {
+    } else if (key === 'explainedVarianceRatio') {
       type = 'number[]'
+    } else if (key === 'totalVariance') {
+      type = 'number'
     } else if (key === 'hazardRatios' || key === 'oddsRatios' || key === 'incidenceRateRatios') {
       type = 'number[]'
-    } else if (key === 'survivalProbabilities' || key === 'thresholds') {
+    } else if (key === 'survivalProbabilities' || key === 'survivalFunction' || key === 'thresholds') {
+      type = 'number[]'
+    } else if (key === 'nRisk' || key === 'events' || key === 'times') {
       type = 'number[]'
     } else if (key === 'adjustedMeans') {
       type = 'number[]'
@@ -329,12 +408,18 @@ function returnsToInterface(methodName, returns) {
     // ========================================
     // 7. 객체/복합 타입
     // ========================================
-    else if (key === 'confidenceInterval' || key === 'confidenceIntervals') {
+    else if (key === 'confidenceIntervals') {
       type = '{ lower: number; upper: number }[]'
+    } else if (key === 'confidenceInterval') {
+      type = 'unknown' // Can be number[] or Record<string, number[]>
     } else if (key === 'comparisons' || key === 'significantResults') {
       type = 'Array<{ group1: string; group2: string; pValue: number; significant: boolean }>'
-    } else if (key === 'anovaTable' || key === 'descriptives') {
+    } else if (key === 'anovaTable' || key === 'descriptives' || key === 'equalityTests' || key === 'assumptions') {
       type = 'Record<string, unknown>'
+    } else if (key === 'groupCentroids' || key === 'classificationResults') {
+      type = 'unknown[]'
+    } else if (key === 'rocCurve') {
+      type = 'Array<{ fpr: number; tpr: number }>'
     } else if (key === 'factor1' || key === 'factor2' || key === 'interaction') {
       type = '{ fStatistic: number; pValue: number; df: number }'
     } else if (key === 'plotData') {
@@ -368,15 +453,33 @@ function toCamelCase(str) {
 }
 
 /**
+ * 메서드별 파라미터 타입 오버라이드
+ * key-name 추론이 부정확한 경우 사용
+ */
+const METHOD_PARAM_OVERRIDES = {
+  'frequency_analysis': {
+    'values': '(string | number)[]',
+  },
+  'runs_test': {
+    'sequence': '(string | number)[]',
+  },
+  'discriminant_analysis': {
+    'groups': '(string | number)[]',
+  },
+}
+
+/**
  * 메서드 래퍼 함수 생성
  */
 function generateMethodWrapper(workerNum, methodName, definition) {
   const funcName = toCamelCase(methodName)
   const resultType = `${toPascalCase(methodName)}Result`
+  const paramOverrides = METHOD_PARAM_OVERRIDES[methodName] || {}
 
   const params = definition.params.map(p => {
     const { name, optional, type } = paramToType(p)
-    return `${name}${optional ? '?' : ''}: ${type}`
+    const finalType = paramOverrides[name] || type
+    return `${name}${optional ? '?' : ''}: ${finalType}`
   }).join(', ')
 
   const paramNames = definition.params.map(p => {

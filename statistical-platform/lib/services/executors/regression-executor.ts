@@ -161,8 +161,8 @@ export class RegressionExecutor extends BaseExecutor {
         visualizationData: {
           type: 'roc-curve',
           data: {
-            fpr: result.rocCurve.map(p => p.fpr),
-            tpr: result.rocCurve.map(p => p.tpr),
+            fpr: (result.rocCurve as Array<{ fpr: number; tpr: number }>).map(p => p.fpr),
+            tpr: (result.rocCurve as Array<{ fpr: number; tpr: number }>).map(p => p.tpr),
             auc: result.auc
           }
         }

@@ -29,254 +29,9 @@
  * 이유: 래퍼 타입과 페이지 기대 타입 불일치 시 이중 유지보수 발생
  */
 
-import type {
-  PyodideInterface,
-  StatisticalTestResult,
-  DescriptiveStatsResult,
-  NormalityTestResult,
-  OutlierResult,
-  CorrelationResult,
-  HomogeneityTestResult,
-  ANOVAResult,
-  TukeyHSDResult,
-  RegressionResult
-} from '@/types/pyodide'
+import type { PyodideInterface } from '@/types/pyodide'
 import { PyodideCoreService } from './pyodide/core/pyodide-core.service'
-
-// ========================================
-// Worker 4 타입 정의
-// ========================================
-
-// Priority 1 메서드 타입 (3개)
-
-/**
- * 선형 회귀분석 결과 타입 (linear_regression)
- */
-type LinearRegressionResult = {
-  slope: number
-  intercept: number
-  rSquared: number
-  pValue: number
-  stdErr: number
-  nPairs: number
-}
-
-/**
- * 주성분 분석 결과 타입 (pca_analysis)
- */
-type PCAAnalysisResult = {
-  components: number[][]
-  explainedVariance: number[]
-  explainedVarianceRatio: number[]
-  cumulativeVariance: number[]
-}
-
-/**
- * Durbin-Watson 검정 결과 타입 (durbin_watson_test)
- */
-type DurbinWatsonTestResult = {
-  statistic: number
-  interpretation: string
-  isIndependent: boolean
-}
-
-// Priority 2 메서드 타입 (9개)
-
-/**
- * 곡선 추정 결과 타입
- */
-type CurveEstimationResult = {
-  modelType: string
-  coefficients: number[]
-  rSquared: number
-  predictions: number[]
-  residuals: number[]
-  nPairs: number
-}
-
-/**
- * 비선형 회귀 결과 타입
- */
-type NonlinearRegressionResult = {
-  modelType: string
-  parameters: number[]
-  parameterErrors: number[]
-  rSquared: number
-  predictions: number[]
-  residuals: number[]
-  nPairs: number
-}
-
-/**
- * 단계적 회귀 결과 타입
- */
-type StepwiseRegressionResult = {
-  selectedVariables: string[]
-  selectedIndices?: number[]
-  rSquaredHistory?: number[]
-  coefficients: number[]
-  stdErrors?: number[]
-  tValues?: number[]
-  pValues?: number[]
-  rSquared: number
-  adjustedRSquared?: number
-}
-
-/**
- * 이항 로지스틱 회귀 결과 타입
- */
-type BinaryLogisticResult = {
-  coefficients: number[]
-  stdErrors: number[]
-  zValues: number[]
-  pValues: number[]
-  predictions: number[]
-  accuracy: number
-  aic: number
-  bic: number
-  pseudoRSquared: number
-}
-
-/**
- * 다항 로지스틱 회귀 결과 타입
- */
-type MultinomialLogisticResult = {
-  coefficients: number[][]
-  pValues: number[][]
-  predictions: number[][]
-  accuracy: number
-  aic: number
-  bic: number
-}
-
-/**
- * 순서형 로지스틱 회귀 결과 타입
- */
-type OrdinalLogisticResult = {
-  coefficients: number[]
-  stdErrors: number[]
-  zValues: number[]
-  pValues: number[]
-  aic: number
-  bic: number
-}
-
-/**
- * 프로빗 회귀 결과 타입
- */
-type ProbitRegressionResult = {
-  coefficients: number[]
-  stdErrors: number[]
-  zValues: number[]
-  pValues: number[]
-  predictions: number[]
-  accuracy: number
-  aic: number
-  bic: number
-}
-
-/**
- * 포아송 회귀 결과 타입
- */
-type PoissonRegressionResult = {
-  coefficients: number[]
-  stdErrors: number[]
-  zValues: number[]
-  pValues: number[]
-  deviance: number
-  pearsonChi2: number
-  aic: number
-  bic: number
-}
-
-/**
- * 음이항 회귀 결과 타입
- */
-type NegativeBinomialRegressionResult = {
-  coefficients: number[]
-  stdErrors: number[]
-  zValues: number[]
-  pValues: number[]
-  aic: number
-  bic: number
-}
-
-/**
- * 가정 검정 항목 타입 (다중회귀 assumptions 내부)
- */
-type RegressionAssumptionTest = {
-  testName: string
-  statistic: number | null
-  pValue?: number | null
-  passed: boolean | null
-  interpretation: string
-}
-
-/**
- * 다중회귀분석 결과 타입 (multiple_regression)
- */
-type MultipleRegressionResult = {
-  coefficients: number[]
-  stdErrors: number[]
-  tValues: number[]
-  pValues: number[]
-  ciLower: number[]
-  ciUpper: number[]
-  rSquared: number
-  adjustedRSquared: number
-  fStatistic: number
-  fPValue: number
-  residualStdError: number
-  residuals: number[]
-  fittedValues: number[]
-  vif: number[]
-  nObservations: number
-  nPredictors: number
-  assumptions: {
-    independence: RegressionAssumptionTest
-    normality: RegressionAssumptionTest
-    homoscedasticity: RegressionAssumptionTest
-  }
-}
-
-/**
- * 로지스틱 회귀 혼동행렬 타입
- */
-type ConfusionMatrixResult = {
-  tp: number
-  fp: number
-  tn: number
-  fn: number
-  precision: number
-  recall: number
-  f1Score: number
-}
-
-/**
- * 로지스틱 회귀분석 결과 타입 (logistic_regression)
- */
-type LogisticRegressionResult = {
-  coefficients: number[]
-  stdErrors: number[]
-  zValues: number[]
-  pValues: number[]
-  ciLower: number[]
-  ciUpper: number[]
-  predictions: number[]
-  predictedClass: number[]
-  accuracy: number
-  confusionMatrix: ConfusionMatrixResult
-  sensitivity: number
-  specificity: number
-  rocCurve: Array<{ fpr: number; tpr: number }>
-  auc: number
-  aic: number
-  bic: number
-  pseudoRSquared: number
-  llrPValue: number
-  nObservations: number
-  nPredictors: number
-}
+import * as Generated from '@/lib/generated/method-types.generated'
 
 export class PyodideStatisticsService {
   private static instance: PyodideStatisticsService | null = null
@@ -360,21 +115,8 @@ export class PyodideStatisticsService {
   /**
    * Levene 등분산성 검정 - Worker 2 사용
    */
-  async leveneTest(groups: number[][]): Promise<{
-    statistic: number
-    pValue: number
-    equalVariance: boolean
-  }> {
-    return this.core.callWorkerMethod<{
-      statistic: number
-      pValue: number
-      equalVariance: boolean
-    }>(
-      2,
-      'levene_test',
-      { groups },
-      { errorMessage: 'Levene test 실행 실패' }
-    )
+  async leveneTest(groups: number[][]): Promise<Generated.LeveneTestResult> {
+    return Generated.leveneTest(groups)
   }
 
   /**
@@ -399,42 +141,16 @@ export class PyodideStatisticsService {
    * Bartlett's test for homogeneity of variances - Worker 2 사용
    * Levene's test보다 정규성에 민감하지만 더 강력한 검정
    */
-  async bartlettTest(groups: number[][]): Promise<{
-    statistic: number
-    pValue: number
-    equalVariance: boolean
-  }> {
-    return this.core.callWorkerMethod<{
-      statistic: number
-      pValue: number
-      equalVariance: boolean
-    }>(
-      2,
-      'bartlett_test',
-      { groups },
-      { errorMessage: 'Bartlett test 실행 실패' }
-    )
+  async bartlettTest(groups: number[][]): Promise<Generated.BartlettTestResult> {
+    return Generated.bartlettTest(groups)
   }
 
   /**
    * Kolmogorov-Smirnov test for normality - Worker 1 사용
    * Shapiro-Wilk보다 큰 표본에 적합
    */
-  async kolmogorovSmirnovTest(data: number[]): Promise<{
-    statistic: number
-    pValue: number
-    isNormal: boolean
-  }> {
-    return this.core.callWorkerMethod<{
-      statistic: number
-      pValue: number
-      isNormal: boolean
-    }>(
-      1,
-      'kolmogorov_smirnov_test',
-      { data },
-      { errorMessage: 'K-S test 실행 실패' }
-    )
+  async kolmogorovSmirnovTest(data: number[]): Promise<Generated.KolmogorovSmirnovTestResult> {
+    return Generated.kolmogorovSmirnovTest(data)
   }
 
   /**
@@ -475,11 +191,11 @@ export class PyodideStatisticsService {
     residuals?: number[]
   }): Promise<{
     normality?: {
-      shapiroWilk?: NormalityTestResult
+      shapiroWilk?: Generated.NormalityTestResult
       kolmogorovSmirnov?: { statistic: number; pValue: number; isNormal: boolean }
     }
     homogeneity?: {
-      levene?: HomogeneityTestResult
+      levene?: Generated.LeveneTestResult
       bartlett?: { statistic: number; pValue: number; equalVariance: boolean }
     }
     independence?: {
@@ -490,8 +206,21 @@ export class PyodideStatisticsService {
       reasons: string[]
       recommendations: string[]
     }
-    }> {
-    const results: any = {
+  }> {
+    const results: {
+      normality: {
+        shapiroWilk?: Generated.NormalityTestResult & { isNormal: boolean }
+        kolmogorovSmirnov?: { statistic: number; pValue: number; isNormal: boolean }
+      }
+      homogeneity: {
+        levene?: Generated.LeveneTestResult
+        bartlett?: { statistic: number; pValue: number; equalVariance: boolean }
+      }
+      independence: {
+        durbinWatson?: { statistic: number; interpretation: string; isIndependent: boolean }
+      }
+      summary: { canUseParametric: boolean; reasons: string[]; recommendations: string[] }
+    } = {
       normality: {},
       homogeneity: {},
       independence: {},
@@ -580,55 +309,16 @@ export class PyodideStatisticsService {
    * @param data 숫자 배열
    * @returns 평균, 중앙값, 표준편차 등
    */
-  async descriptiveStats(data: number[]): Promise<{
-    mean: number
-    median: number
-    std: number
-    min: number
-    max: number
-    q1: number
-    q3: number
-    skewness: number
-    kurtosis: number
-  }> {
-    return this.core.callWorkerMethod<{
-      mean: number
-      median: number
-      std: number
-      min: number
-      max: number
-      q1: number
-      q3: number
-      skewness: number
-      kurtosis: number
-    }>(
-      1,
-      'descriptive_stats',
-      { data },
-      { errorMessage: 'Descriptive stats 실행 실패' }
-    )
+  async descriptiveStats(data: number[]): Promise<Generated.DescriptiveStatsResult> {
+    return Generated.descriptiveStats(data)
   }
 
   /**
    * 정규성 검정 (Normality Test - Shapiro-Wilk)
    */
-  async normalityTest(data: number[], alpha: number = 0.05): Promise<{
-    statistic: number
-    pValue: number
-    isNormal: boolean
-    alpha: number
-  }> {
-    return this.core.callWorkerMethod<{
-      statistic: number
-      pValue: number
-      isNormal: boolean
-      alpha: number
-    }>(
-      1,
-      'normality_test',
-      { data, alpha },
-      { errorMessage: 'Normality test 실행 실패' }
-    )
+  async normalityTest(data: number[], alpha: number = 0.05): Promise<Generated.NormalityTestResult & { alpha: number }> {
+    const result = await Generated.normalityTest(data, alpha)
+    return { ...result, alpha }
   }
 
   /**
@@ -639,68 +329,26 @@ export class PyodideStatisticsService {
     outlierCount: number
     method: string
   }> {
-    return this.core.callWorkerMethod<{
-      outlierIndices: number[]
-      outlierCount: number
-      method: string
-    }>(
-      1,
-      'outlier_detection',
-      { data, method },
-      { errorMessage: 'Outlier detection 실행 실패' }
-    )
+    const result = await Generated.outlierDetection(data, method)
+    return {
+      outlierIndices: result.outlierIndices,
+      outlierCount: result.outlierValues.length,
+      method: result.method
+    }
   }
 
   /**
    * 빈도분석 (Frequency Analysis)
    */
-  async frequencyAnalysis(values: (string | number)[]): Promise<{
-    categories: string[]
-    frequencies: number[]
-    percentages: number[]
-    cumulativePercentages: number[]
-    total: number
-    uniqueCount: number
-  }> {
-    return this.core.callWorkerMethod<{
-      categories: string[]
-      frequencies: number[]
-      percentages: number[]
-      cumulativePercentages: number[]
-      total: number
-      uniqueCount: number
-    }>(
-      1,
-      'frequency_analysis',
-      { values },
-      { errorMessage: 'Frequency analysis 실행 실패' }
-    )
+  async frequencyAnalysis(values: (string | number)[]): Promise<Generated.FrequencyAnalysisResult> {
+    return Generated.frequencyAnalysis(values)
   }
 
   /**
    * 교차표 분석 (Crosstab Analysis)
    */
-  async crosstabAnalysis(rowValues: (string | number)[], colValues: (string | number)[]): Promise<{
-    rowCategories: string[]
-    colCategories: string[]
-    observedMatrix: number[][]
-    rowTotals: number[]
-    colTotals: number[]
-    grandTotal: number
-  }> {
-    return this.core.callWorkerMethod<{
-      rowCategories: string[]
-      colCategories: string[]
-      observedMatrix: number[][]
-      rowTotals: number[]
-      colTotals: number[]
-      grandTotal: number
-    }>(
-      1,
-      'crosstab_analysis',
-      { rowValues, colValues },
-      { errorMessage: 'Crosstab analysis 실행 실패' }
-    )
+  async crosstabAnalysis(rowValues: (string | number)[], colValues: (string | number)[]): Promise<Generated.CrosstabAnalysisResult> {
+    return Generated.crosstabAnalysis(rowValues, colValues)
   }
 
   /**
@@ -712,69 +360,23 @@ export class PyodideStatisticsService {
     nullProportion: number = 0.5,
     alternative: 'two-sided' | 'greater' | 'less' = 'two-sided',
     alpha: number = 0.05
-  ): Promise<{
-    sampleProportion: number
-    nullProportion: number
-    zStatistic: number
-    pValueExact: number
-    pValueApprox: number
-    significant: boolean
-    alpha: number
-  }> {
-    return this.core.callWorkerMethod<{
-      sampleProportion: number
-      nullProportion: number
-      zStatistic: number
-      pValueExact: number
-      pValueApprox: number
-      significant: boolean
-      alpha: number
-    }>(
-      1,
-      'one_sample_proportion_test',
-      { successCount, totalCount, nullProportion, alternative, alpha },
-      { errorMessage: 'One-sample proportion test 실행 실패' }
-    )
+  ): Promise<Generated.OneSampleProportionTestResult> {
+    return Generated.oneSampleProportionTest(successCount, totalCount, nullProportion, alternative, alpha)
   }
 
   /**
    * 신뢰도 분석 (Cronbach's Alpha) - Worker 1 버전
    */
-  async cronbachAlphaWorker(itemsMatrix: number[][]): Promise<{
-    alpha: number
-    nItems: number
-    nRespondents: number
-  }> {
-    return this.core.callWorkerMethod<{
-      alpha: number
-      nItems: number
-      nRespondents: number
-    }>(
-      1,
-      'cronbach_alpha',
-      { itemsMatrix },
-      { errorMessage: "Cronbach's alpha 실행 실패" }
-    )
+  async cronbachAlphaWorker(itemsMatrix: number[][]): Promise<Generated.CronbachAlphaResult> {
+    return Generated.cronbachAlpha(itemsMatrix)
   }
 
   /**
    * 상관계수 계산 (Correlation Test) - Worker 2
    */
-  async correlationTest(x: number[], y: number[], method: 'pearson' | 'spearman' | 'kendall' = 'pearson'): Promise<{
-    correlation: number
-    pValue: number
-    method: string
-  }> {
-    return this.core.callWorkerMethod<{
-      correlation: number
-      pValue: number
-      method: string
-    }>(
-      2,
-      'correlation_test',
-      { x, y, method },
-      { errorMessage: 'Correlation test 실행 실패' }
-    )
+  async correlationTest(x: number[], y: number[], method: 'pearson' | 'spearman' | 'kendall' = 'pearson'): Promise<Generated.CorrelationTestResult & { method: string }> {
+    const result = await Generated.correlationTest(x, y, method)
+    return { ...result, method }
   }
 
   /**
@@ -816,49 +418,24 @@ export class PyodideStatisticsService {
   /**
    * 이표본 t-검정 (Two-Sample t-Test) - Worker 2
    */
-  async tTestTwoSample(group1: number[], group2: number[], equalVar: boolean = true): Promise<{
-    statistic: number
-    pValue: number
-    df: number
-    mean1: number
-    mean2: number
-    meanDiff: number
-  }> {
-    return this.core.callWorkerMethod<{
-      statistic: number
-      pValue: number
-      df: number
-      mean1: number
-      mean2: number
-      meanDiff: number
-    }>(
-      2,
-      't_test_two_sample',
-      { group1, group2, equalVar },
-      { errorMessage: 'Two-sample t-test 실행 실패' }
-    )
+  async tTestTwoSample(group1: number[], group2: number[], equalVar: boolean = true): Promise<Generated.TTestTwoSampleResult & { df: number; meanDiff: number }> {
+    const result = await Generated.tTestTwoSample(group1, group2, equalVar)
+    return {
+      ...result,
+      df: result.n1 + result.n2 - 2,
+      meanDiff: result.mean1 - result.mean2
+    }
   }
 
   /**
    * 대응표본 t-검정 (Paired t-Test) - Worker 2
    */
-  async tTestPaired(values1: number[], values2: number[]): Promise<{
-    statistic: number
-    pValue: number
-    df: number
-    meanDiff: number
-  }> {
-    return this.core.callWorkerMethod<{
-      statistic: number
-      pValue: number
-      df: number
-      meanDiff: number
-    }>(
-      2,
-      't_test_paired',
-      { values1, values2 },
-      { errorMessage: 'Paired t-test 실행 실패' }
-    )
+  async tTestPaired(values1: number[], values2: number[]): Promise<Generated.TTestPairedResult & { df: number }> {
+    const result = await Generated.tTestPaired(values1, values2)
+    return {
+      ...result,
+      df: result.nPairs - 1
+    }
   }
 
   /**
@@ -961,65 +538,34 @@ export class PyodideStatisticsService {
   /**
    * 일표본 t-검정 (One-Sample t-Test) - Worker 2
    */
-  async tTestOneSample(data: number[], popmean: number = 0): Promise<{
-    statistic: number
-    pValue: number
-    df: number
-    sampleMean: number
-  }> {
-    return this.core.callWorkerMethod<{
-      statistic: number
-      pValue: number
-      df: number
-      sampleMean: number
-    }>(
-      2,
-      't_test_one_sample',
-      { data, popmean },
-      { errorMessage: 'One-sample t-test 실행 실패' }
-    )
+  async tTestOneSample(data: number[], popmean: number = 0): Promise<Generated.TTestOneSampleResult & { df: number }> {
+    const result = await Generated.tTestOneSample(data, popmean)
+    return {
+      ...result,
+      df: result.n - 1
+    }
   }
 
   /**
    * Z-검정 (Z-Test) - Worker 2
    */
-  async zTestWorker(data: number[], popmean: number, popstd: number): Promise<{
-    zStatistic: number
-    pValue: number
-    sampleMean: number
-  }> {
-    return this.core.callWorkerMethod<{
-      zStatistic: number
-      pValue: number
-      sampleMean: number
-    }>(
-      2,
-      'z_test',
-      { data, popmean, popstd },
-      { errorMessage: 'Z-test 실행 실패' }
-    )
+  async zTestWorker(data: number[], popmean: number, popstd: number): Promise<Generated.ZTestResult & { zStatistic: number }> {
+    const result = await Generated.zTest(data, popmean, popstd)
+    return {
+      ...result,
+      zStatistic: result.statistic,
+    }
   }
 
   /**
    * 카이제곱 검정 (Chi-Square Test) - Worker 2
    */
-  async chiSquareTestWorker(observedMatrix: number[][], yatesCorrection: boolean = false): Promise<{
-    chiSquare: number
-    pValue: number
-    df: number
-    expectedMatrix: number[][]
-  }> {
-    return this.core.callWorkerMethod<{
-      chiSquare: number
-      pValue: number
-      df: number
-      expectedMatrix: number[][]
-    }>(
-      2,
-      'chi_square_test',
-      { observedMatrix, yatesCorrection },
-      { errorMessage: 'Chi-square test 실행 실패' }
-    )
+  async chiSquareTestWorker(observedMatrix: number[][], yatesCorrection: boolean = false): Promise<Generated.ChiSquareTestResult & { chiSquare: number }> {
+    const result = await Generated.chiSquareTest(observedMatrix, yatesCorrection)
+    return {
+      ...result,
+      chiSquare: result.statistic
+    }
   }
 
   /**
@@ -1030,26 +576,8 @@ export class PyodideStatisticsService {
     totalCount: number,
     probability: number = 0.5,
     alternative: 'two-sided' | 'greater' | 'less' = 'two-sided'
-  ): Promise<{
-    pValue: number
-    successCount: number
-    totalCount: number
-  }> {
-    return this.core.callWorkerMethod<{
-      pValue: number
-      successCount: number
-      totalCount: number
-    }>(
-      2,
-      'binomial_test',
-      {
-        successCount,
-        totalCount,
-        probability,
-        alternative
-      },
-      { errorMessage: 'Binomial test 실행 실패' }
-    )
+  ): Promise<Generated.BinomialTestResult> {
+    return Generated.binomialTest(successCount, totalCount, probability, alternative)
   }
 
   /**
@@ -1060,36 +588,8 @@ export class PyodideStatisticsService {
     xIdx: number,
     yIdx: number,
     controlIndices: number[]
-  ): Promise<{
-    correlation: number
-    pValue: number
-    df: number
-    nObservations: number
-    confidenceInterval: {
-      lower: number
-      upper: number
-    }
-    }> {
-    return this.core.callWorkerMethod<{
-      correlation: number
-      pValue: number
-      df: number
-      nObservations: number
-      confidenceInterval: {
-        lower: number
-        upper: number
-      }
-    }>(
-      2,
-      'partial_correlation',
-      {
-        dataMatrix,
-        xIdx,
-        yIdx,
-        controlIndices
-      },
-      { errorMessage: 'Partial correlation 실행 실패' }
-    )
+  ): Promise<Generated.PartialCorrelationResult> {
+    return Generated.partialCorrelation(dataMatrix, xIdx, yIdx, controlIndices)
   }
 
   /**
@@ -1257,11 +757,8 @@ export class PyodideStatisticsService {
    * Tukey HSD 사후검정 (레거시 API)
    * @see tukeyHSDWorker - 새 메서드 사용 권장
    */
-  async tukeyHSD(groups: number[][]): Promise<any> {
-    const result = await this.tukeyHSDWorker(groups)
-    return {
-      comparisons: result.comparisons
-    }
+  async tukeyHSD(groups: number[][]): Promise<Generated.TukeyHsdResult> {
+    return this.tukeyHSDWorker(groups)
   }
 
 
@@ -1292,10 +789,17 @@ export class PyodideStatisticsService {
     components: number[][]
   }> {
     const result = await this.pcaAnalysis(data, 2)
+    // components는 2D 배열 [[eigenvalue, variance%, cumVar%, ...], ...]
+    // explainedVariance는 각 컴포넌트의 분산비율 추출
+    const explainedVariance = Array.isArray(result.components)
+      ? result.components.map((c: number[]) => c[1] ?? 0)
+      : []
+    const totalExplainedVariance = result.totalVariance || 0
+
     return {
       components: result.components,
-      explainedVariance: result.explainedVariance,
-      totalExplainedVariance: result.cumulativeVariance[result.cumulativeVariance.length - 1]
+      explainedVariance,
+      totalExplainedVariance
     }
   }
 
@@ -1322,13 +826,13 @@ export class PyodideStatisticsService {
   async friedman(data: number[][]): Promise<{
     statistic: number
     pvalue: number
-    rankings: number[]
+    df: number
   }> {
     const result = await this.friedmanTestWorker(data)
     return {
       statistic: result.statistic,
       pvalue: result.pValue,
-      rankings: result.rankings
+      df: result.df
     }
   }
 
@@ -1339,24 +843,9 @@ export class PyodideStatisticsService {
   async factorAnalysis(data: number[][], options: {
     nFactors?: number
     rotation?: 'varimax' | 'quartimax' | 'oblimin'
-  } = {}): Promise<{
-    loadings: number[][]
-    communalities: number[]
-    explainedVariance: number[]
-    eigenvalues: number[]
-  }> {
+  } = {}): Promise<Generated.FactorAnalysisResult> {
     const { nFactors = 2, rotation = 'varimax' } = options
-    return this.core.callWorkerMethod<{
-      loadings: number[][]
-      communalities: number[]
-      explainedVariance: number[]
-      eigenvalues: number[]
-    }>(
-      4,
-      'factor_analysis',
-      { data, nFactors, rotation },
-      { errorMessage: 'Factor analysis 실행 실패' }
-    )
+    return Generated.factorAnalysis(data, nFactors, rotation)
   }
 
   /**
@@ -1367,35 +856,13 @@ export class PyodideStatisticsService {
     method?: 'kmeans' | 'hierarchical' | 'dbscan'
     linkage?: 'ward' | 'complete' | 'average' | 'single'
     distance?: 'euclidean' | 'manhattan' | 'cosine'
-  } = {}): Promise<{
-    nClusters: number
-    clusterAssignments: number[]
-    centroids: number[][]
-
+  } = {}): Promise<Generated.ClusterAnalysisResult & {
     // Backward-compatible aliases used across the app
     clusters: number[]
     centers: number[][]
-
-    silhouetteScore: number
-    inertia: number
-    clusterSizes: number[]
   }> {
     const { nClusters = 3, method = 'kmeans', linkage = 'ward', distance = 'euclidean' } = options
-
-    const result = await this.core.callWorkerMethod<{
-      nClusters: number
-      clusterAssignments: number[]
-      centroids: number[][]
-      inertia: number
-      silhouetteScore: number
-      clusterSizes: number[]
-    }>(
-      4,
-      'cluster_analysis',
-      { data, nClusters, method, linkage, distance },
-      { errorMessage: 'Cluster analysis 실행 실패' }
-    )
-
+    const result = await Generated.clusterAnalysis(data, method, nClusters, linkage, distance)
     return {
       ...result,
       clusters: result.clusterAssignments,
@@ -1409,32 +876,9 @@ export class PyodideStatisticsService {
    */
   async timeSeriesAnalysis(data: number[], options: {
     seasonalPeriods?: number
-  } = {}): Promise<{
-    trend?: number[]
-    seasonal?: number[]
-    residual?: number[]
-    acf?: number[]
-    pacf?: number[]
-    adfStatistic?: number
-    adfPValue?: number
-    isStationary?: boolean
-  }> {
+  } = {}): Promise<Generated.TimeSeriesAnalysisResult> {
     const { seasonalPeriods = 12 } = options
-    return this.core.callWorkerMethod<{
-      trend?: number[]
-      seasonal?: number[]
-      residual?: number[]
-      acf?: number[]
-      pacf?: number[]
-      adfStatistic?: number
-      adfPValue?: number
-      isStationary?: boolean
-    }>(
-      4,
-      'time_series_analysis',
-      { dataValues: data, seasonalPeriods },
-      { errorMessage: 'Time series analysis 실행 실패' }
-    )
+    return Generated.timeSeriesAnalysis(data, seasonalPeriods)
   }
 
   // ========== Wrapper 메서드들 (StatisticalCalculator와의 호환성) ==========
@@ -1442,18 +886,19 @@ export class PyodideStatisticsService {
   /**
    * 기술통계 계산
    */
-  async calculateDescriptiveStatistics(data: number[]): Promise<any> {
+  async calculateDescriptiveStatistics(data: number[]): Promise<Generated.DescriptiveStatsResult> {
     return this.descriptiveStats(data)
   }
 
   /**
    * 정규성 검정
    */
-  async testNormality(data: number[], alpha: number = 0.05): Promise<any> {
+  async testNormality(data: number[], alpha: number = 0.05): Promise<Generated.NormalityTestResult & { isNormal: boolean }> {
     const result = await this.shapiroWilkTest(data)
     return {
       ...result,
-      isNormal: result.pValue > alpha
+      isNormal: result.pValue > alpha,
+      interpretation: result.pValue > alpha ? 'Normal distribution' : 'Non-normal distribution'
     }
   }
 
@@ -1461,14 +906,14 @@ export class PyodideStatisticsService {
   /**
    * 등분산 검정
    */
-  async testHomogeneity(groups: number[][], method: string = 'levene'): Promise<any> {
+  async testHomogeneity(groups: number[][], method: string = 'levene'): Promise<Generated.LeveneTestResult> {
     return this.leveneTest(groups)
   }
 
   /**
    * 일표본 t-검정 - Worker 2 래퍼
    */
-  async oneSampleTTest(data: number[], popmean: number, alternative: string = 'two-sided'): Promise<any> {
+  async oneSampleTTest(data: number[], popmean: number, alternative: string = 'two-sided'): Promise<{ statistic: number; pValue: number; df: number }> {
     const result = await this.tTestOneSample(data, popmean)
     return {
       statistic: result.statistic,
@@ -1481,7 +926,7 @@ export class PyodideStatisticsService {
   /**
    * 독립표본 t-검정 - Worker 2 래퍼
    */
-  async twoSampleTTest(group1: number[], group2: number[], equalVar: boolean = true): Promise<any> {
+  async twoSampleTTest(group1: number[], group2: number[], equalVar: boolean = true): Promise<{ statistic: number; pValue: number; df: number; mean1: number; mean2: number; meanDiff: number }> {
     const result = await this.tTestTwoSample(group1, group2, equalVar)
     return {
       statistic: result.statistic,
@@ -1497,7 +942,7 @@ export class PyodideStatisticsService {
   /**
    * 대응표본 t-검정 - Worker 2 래퍼
    */
-  async pairedTTest(values1: number[], values2: number[], alternative: string = 'two-sided'): Promise<any> {
+  async pairedTTest(values1: number[], values2: number[], alternative: string = 'two-sided'): Promise<{ statistic: number; pValue: number; df: number; meanDiff: number }> {
     const result = await this.tTestPaired(values1, values2)
     return {
       statistic: result.statistic,
@@ -1511,7 +956,7 @@ export class PyodideStatisticsService {
   /**
    * 일원분산분석 - Worker 3 래퍼
    */
-  async oneWayANOVA(groups: number[][]): Promise<any> {
+  async oneWayANOVA(groups: number[][]): Promise<{ fStatistic: number; pValue: number; dfBetween: number; dfWithin: number }> {
     const result = await this.oneWayAnovaWorker(groups)
     return {
       fStatistic: result.fStatistic,
@@ -1525,13 +970,13 @@ export class PyodideStatisticsService {
   /**
    * 단순선형회귀 - 기존 regression 래퍼
    */
-  async simpleLinearRegression(xValues: number[], yValues: number[]): Promise<any> {
+  async simpleLinearRegression(xValues: number[], yValues: number[]): Promise<{ slope: number; intercept: number; rSquared: number; fStatistic: number; pvalue: number }> {
     const result = await this.regression(xValues, yValues)
     return {
-      slope: result.slope,
-      intercept: result.intercept,
+      slope: result.slope ?? 0,
+      intercept: result.intercept ?? 0,
       rSquared: result.rSquared,
-      fStatistic: result.fStatistic,
+      fStatistic: result.fStatistic ?? 0,
       pvalue: result.pvalue
     }
   }
@@ -1540,7 +985,7 @@ export class PyodideStatisticsService {
   /**
    * 카이제곱 검정 - Worker 2 래퍼
    */
-  async chiSquareTest(observedMatrix: number[][], correction: boolean = false): Promise<any> {
+  async chiSquareTest(observedMatrix: number[][], correction: boolean = false): Promise<{ statistic: number; pValue: number; df: number }> {
     const result = await this.chiSquareTestWorker(observedMatrix, correction)
     return {
       statistic: result.chiSquare,
@@ -1553,7 +998,12 @@ export class PyodideStatisticsService {
   /**
    * 주성분 분석 - 기존 pca 래퍼
    */
-  async performPCA(dataMatrix: number[][], columns: string[], nComponents?: number, standardize: boolean = true): Promise<any> {
+  async performPCA(dataMatrix: number[][], columns: string[], nComponents?: number, standardize: boolean = true): Promise<{
+    components: number[][]
+    explainedVarianceRatio: number[]
+    cumulativeVariance: number[]
+    totalExplainedVariance: number
+  }> {
     const result = await this.pca(dataMatrix)
 
     // 누적 분산 계산
@@ -1579,30 +1029,12 @@ export class PyodideStatisticsService {
    */
   async twoWayAnova(
     data: Array<{ factor1: string; factor2: string; value: number }>
-  ): Promise<{
-    factor1: { fStatistic: number; pValue: number; df: number }
-    factor2: { fStatistic: number; pValue: number; df: number }
-    interaction: { fStatistic: number; pValue: number; df: number }
-    residual: { df: number }
-    anovaTable: Record<string, any>
-  }> {
-    // 데이터 변환: { factor1, factor2, value }[] → data_values, factor1_values, factor2_values
+  ): Promise<Generated.TwoWayAnovaResult> {
+    // 데이터 변환: { factor1, factor2, value }[] → dataValues, factor1Values, factor2Values
     const dataValues = data.map(d => d.value)
     const factor1Values = data.map(d => d.factor1)
     const factor2Values = data.map(d => d.factor2)
-
-    return this.core.callWorkerMethod<{
-      factor1: { fStatistic: number; pValue: number; df: number }
-      factor2: { fStatistic: number; pValue: number; df: number }
-      interaction: { fStatistic: number; pValue: number; df: number }
-      residual: { df: number }
-      anovaTable: Record<string, any>
-    }>(
-      3,
-      'two_way_anova',
-      { dataValues, factor1Values, factor2Values },
-      { errorMessage: 'Two-way ANOVA 실행 실패' }
-    )
+    return Generated.twoWayAnova(dataValues, factor1Values, factor2Values)
   }
 
   /**
@@ -1612,13 +1044,16 @@ export class PyodideStatisticsService {
     groups: number[][],
     groupNames: string[],
     alpha: number = 0.05
-  ): Promise<any> {
-    // Worker 3의 tukeyHSD 사용
+  ): Promise<{
+    comparisons: Generated.TukeyHsdResult['comparisons']
+    alpha: number
+    reject_count: number
+  }> {
     const result = await this.tukeyHSD(groups)
     return {
       comparisons: result.comparisons,
       alpha,
-      reject_count: result.comparisons.filter((c: any) => c.reject || c.pValue < alpha).length
+      reject_count: result.comparisons.filter(c => c.significant || c.pValue < alpha).length
     }
   }
 
@@ -1630,13 +1065,8 @@ export class PyodideStatisticsService {
     X: number[][],  // 독립변수들
     y: number[],    // 종속변수
     variableNames: string[] = []
-  ): Promise<MultipleRegressionResult> {
-    return this.core.callWorkerMethod<MultipleRegressionResult>(
-      4,
-      'multiple_regression',
-      { X, y },
-      { errorMessage: 'Multiple regression 실행 실패' }
-    )
+  ): Promise<Generated.MultipleRegressionResult> {
+    return Generated.multipleRegression(X, y)
   }
 
   /**
@@ -1646,19 +1076,14 @@ export class PyodideStatisticsService {
     X: number[][],  // 독립변수들
     y: number[],    // 종속변수 (0 또는 1)
     variableNames: string[] = []
-  ): Promise<LogisticRegressionResult> {
-    return this.core.callWorkerMethod<LogisticRegressionResult>(
-      4,
-      'logistic_regression',
-      { X, y },
-      { errorMessage: 'Logistic regression 실행 실패' }
-    )
+  ): Promise<Generated.LogisticRegressionResult> {
+    return Generated.logisticRegression(X, y)
   }
 
   /**
    * 상관 분석
    */
-  async calculateCorrelation(columnsData: Record<string, number[]>, method: string = 'pearson'): Promise<any> {
+  async calculateCorrelation(columnsData: Record<string, number[]>, method: string = 'pearson'): Promise<{ matrix: number[][] }> {
     const columns = Object.keys(columnsData)
     const matrix = []
 
@@ -1706,19 +1131,14 @@ export class PyodideStatisticsService {
     groupNames: string[],
     pAdjust: string = 'holm',
     alpha: number = 0.05
-  ): Promise<any> {
-    const baseResult = await this.core.callWorkerMethod<any>(
-      3,
-      'dunn_test',
-      { groups, pAdjust },
-      { errorMessage: 'Dunn test 실행 실패' }
-    )
+  ): Promise<Generated.DunnTestResult & { alpha: number }> {
+    const baseResult = await Generated.dunnTest(groups, pAdjust)
 
-    // groupNames 맵핑 추가
-    const comparisons = baseResult.comparisons.map((comp: any) => ({
+    // groupNames 맵핑 추가 (Python Worker는 int 인덱스 반환)
+    const comparisons = baseResult.comparisons.map((comp) => ({
       ...comp,
-      group1: groupNames[comp.group1] || comp.group1,
-      group2: groupNames[comp.group2] || comp.group2
+      group1: groupNames[Number(comp.group1)] ?? String(comp.group1),
+      group2: groupNames[Number(comp.group2)] ?? String(comp.group2)
     }))
 
     return {
@@ -1751,33 +1171,34 @@ export class PyodideStatisticsService {
     groups: number[][],
     groupNames: string[],
     alpha: number = 0.05
-  ): Promise<any> {
-    const baseResult = await this.core.callWorkerMethod<any>(
-      3,
-      'games_howell_test',
-      { groups },
-      { errorMessage: 'Games-Howell test 실행 실패' }
-    )
+  ): Promise<Generated.GamesHowellTestResult & { alpha: number; significant_count: number }> {
+    const baseResult = await Generated.gamesHowellTest(groups)
 
-    // groupNames 맵핑 추가
-    const comparisons = baseResult.comparisons.map((comp: any) => ({
+    // groupNames 맵핑 추가 (Python Worker는 int 인덱스 반환)
+    const comparisons = baseResult.comparisons.map((comp) => ({
       ...comp,
-      group1: groupNames[comp.group1] || comp.group1,
-      group2: groupNames[comp.group2] || comp.group2
+      group1: groupNames[Number(comp.group1)] ?? String(comp.group1),
+      group2: groupNames[Number(comp.group2)] ?? String(comp.group2)
     }))
 
     return {
       ...baseResult,
       comparisons,
       alpha,
-      significant_count: comparisons.filter((c: any) => c.pValue < alpha).length
+      significant_count: comparisons.filter((c) => c.pValue < alpha).length
     }
   }
 
   /**
    * Bonferroni 사후검정 - Worker 2 t-test 사용
    */
-  async performBonferroni(groups: number[][], groupNames: string[], alpha: number = 0.05): Promise<any> {
+  async performBonferroni(groups: number[][], groupNames: string[], alpha: number = 0.05): Promise<{
+    comparisons: Array<{ group1: string; group2: string; mean_diff: number; tStatistic: number; pValue: number; adjusted_p: number; significant: boolean }>
+    num_comparisons: number
+    original_alpha: number
+    adjusted_alpha: number
+    significant_count: number
+  }> {
     await this.initialize()
     await this.core.ensureWorker2Loaded()
 
@@ -1827,70 +1248,28 @@ export class PyodideStatisticsService {
     pValue: number
     uStatistic: number
   }> {
-    return this.core.callWorkerMethod<{
-      statistic: number
-      pValue: number
-      uStatistic: number
-    }>(
-      3,
-      'mann_whitney_test',
-      { group1, group2 },
-      { errorMessage: 'Mann-Whitney test 실행 실패' }
-    )
+    const result = await Generated.mannWhitneyTest(group1, group2)
+    return {
+      statistic: result.statistic,
+      pValue: result.pValue,
+      uStatistic: result.statistic
+    }
   }
 
-  async wilcoxonTestWorker(values1: number[], values2: number[]): Promise<{
-    statistic: number
-    pValue: number
-  }> {
-    return this.core.callWorkerMethod<{
-      statistic: number
-      pValue: number
-    }>(
-      3,
-      'wilcoxon_test',
-      { values1, values2 },
-      { errorMessage: 'Wilcoxon test 실행 실패' }
-    )
+  async wilcoxonTestWorker(values1: number[], values2: number[]): Promise<Generated.WilcoxonTestResult> {
+    return Generated.wilcoxonTest(values1, values2)
   }
 
-  async kruskalWallisTestWorker(groups: number[][]): Promise<{
-    statistic: number
-    pValue: number
-    df: number
-  }> {
-    return this.core.callWorkerMethod<{
-      statistic: number
-      pValue: number
-      df: number
-    }>(
-      3,
-      'kruskal_wallis_test',
-      { groups },
-      { errorMessage: 'Kruskal-Wallis test 실행 실패' }
-    )
+  async kruskalWallisTestWorker(groups: number[][]): Promise<Generated.KruskalWallisTestResult> {
+    return Generated.kruskalWallisTest(groups)
   }
 
-  async friedmanTestWorker(groups: number[][]): Promise<{
-    statistic: number
-    pValue: number
-    rankings: number[]
-  }> {
-    return this.core.callWorkerMethod<{
-      statistic: number
-      pValue: number
-      rankings: number[]
-    }>(
-      3,
-      'friedman_test',
-      { groups },
-      { errorMessage: 'Friedman test 실행 실패' }
-    )
+  async friedmanTestWorker(groups: number[][]): Promise<Generated.FriedmanTestResult> {
+    return Generated.friedmanTest(groups)
   }
 
-  async oneWayAnovaWorker(groups: number[][]): Promise<{
+  async oneWayAnovaWorker(groups: number[][]): Promise<Generated.OneWayAnovaResult & {
     fStatistic: number
-    pValue: number
     dfBetween: number
     dfWithin: number
     etaSquared: number
@@ -1899,22 +1278,13 @@ export class PyodideStatisticsService {
     ssWithin: number
     ssTotal: number
   }> {
-    return this.core.callWorkerMethod<{
-      fStatistic: number
-      pValue: number
-      dfBetween: number
-      dfWithin: number
-      etaSquared: number
-      omegaSquared: number
-      ssBetween: number
-      ssWithin: number
-      ssTotal: number
-    }>(
-      3,
-      'one_way_anova',
-      { groups },
-      { errorMessage: 'One-way ANOVA 실행 실���' }
-    )
+    const result = await Generated.oneWayAnova(groups)
+    return {
+      ...result,
+      ssBetween: (result as unknown as Record<string, number>).ssBetween ?? 0,
+      ssWithin: (result as unknown as Record<string, number>).ssWithin ?? 0,
+      ssTotal: (result as unknown as Record<string, number>).ssTotal ?? 0
+    }
   }
 
   async twoWayAnovaWorker(dataValues: number[], factor1Values: (string | number)[], factor2Values: (string | number)[]): Promise<{
@@ -1922,224 +1292,60 @@ export class PyodideStatisticsService {
     mainEffect2: { fStatistic: number; pValue: number }
     interaction: { fStatistic: number; pValue: number }
   }> {
-    return this.core.callWorkerMethod<{
-      mainEffect1: { fStatistic: number; pValue: number }
-      mainEffect2: { fStatistic: number; pValue: number }
-      interaction: { fStatistic: number; pValue: number }
-    }>(
-      3,
-      'two_way_anova',
-      { dataValues, factor1Values, factor2Values },
-      { errorMessage: 'Two-way ANOVA 실행 실패' }
-    )
+    const result = await Generated.twoWayAnova(dataValues, factor1Values, factor2Values)
+    return {
+      mainEffect1: { fStatistic: result.factor1.fStatistic, pValue: result.factor1.pValue },
+      mainEffect2: { fStatistic: result.factor2.fStatistic, pValue: result.factor2.pValue },
+      interaction: { fStatistic: result.interaction.fStatistic, pValue: result.interaction.pValue }
+    }
   }
 
-  async tukeyHSDWorker(groups: number[][]): Promise<{
-    comparisons: Array<{
-      group1: number
-      group2: number
-      meanDiff: number
-      pValue: number
-      reject: boolean
-    }>
-  }> {
-    return this.core.callWorkerMethod<{
-      comparisons: Array<{
-        group1: number
-        group2: number
-        meanDiff: number
-        pValue: number
-        reject: boolean
-      }>
-    }>(
-      3,
-      'tukey_hsd',
-      { groups },
-      { errorMessage: 'Tukey HSD test 실행 실패' }
-    )
+  async tukeyHSDWorker(groups: number[][]): Promise<Generated.TukeyHsdResult> {
+    return Generated.tukeyHsd(groups)
   }
 
-  async signTestWorker(before: number[], after: number[]): Promise<{
-    statistic: number
-    pValue: number
-    nPositive: number
-    nNegative: number
-    nTies: number
-  }> {
-    return this.core.callWorkerMethod<{
-      statistic: number
-      pValue: number
-      nPositive: number
-      nNegative: number
-      nTies: number
-    }>(
-      3,
-      'sign_test',
-      { before, after },
-      { errorMessage: 'Sign test 실행 실패' }
-    )
+  async signTestWorker(before: number[], after: number[]): Promise<Generated.SignTestResult> {
+    return Generated.signTest(before, after)
   }
 
-  async runsTestWorker(sequence: (number | string)[]): Promise<{
-    nRuns: number
-    expectedRuns: number
-    n1: number
-    n2: number
-    zStatistic: number
-    pValue: number
-  }> {
-    return this.core.callWorkerMethod<{
-      nRuns: number
-      expectedRuns: number
-      n1: number
-      n2: number
-      zStatistic: number
-      pValue: number
-    }>(
-      3,
-      'runs_test',
-      { sequence },
-      { errorMessage: 'Runs test 실행 실패' }
-    )
+  async runsTestWorker(sequence: (number | string)[]): Promise<Generated.RunsTestResult> {
+    return Generated.runsTest(sequence)
   }
 
-  async mcnemarTestWorker(contingencyTable: number[][]): Promise<{
-    statistic: number
-    pValue: number
-    continuityCorrection: boolean
-    discordantPairs: { b: number; c: number }
-  }> {
-    return this.core.callWorkerMethod<{
-      statistic: number
-      pValue: number
-      continuityCorrection: boolean
-      discordantPairs: { b: number; c: number }
-    }>(
-      3,
-      'mcnemar_test',
-      { contingencyTable },
-      { errorMessage: 'McNemar test 실행 실패' }
-    )
+  async mcnemarTestWorker(contingencyTable: number[][]): Promise<Generated.McnemarTestResult> {
+    return Generated.mcnemarTest(contingencyTable)
   }
 
-  async cochranQTestWorker(dataMatrix: number[][]): Promise<{
-    qStatistic: number
-    pValue: number
-    df: number
-  }> {
-    return this.core.callWorkerMethod<{
-      qStatistic: number
-      pValue: number
-      df: number
-    }>(
-      3,
-      'cochran_q_test',
-      { dataMatrix },
-      { errorMessage: 'Cochran Q test 실행 실패' }
-    )
+  async cochranQTestWorker(dataMatrix: number[][]): Promise<Generated.CochranQTestResult> {
+    return Generated.cochranQTest(dataMatrix)
   }
 
-  async moodMedianTestWorker(groups: number[][]): Promise<{
-    statistic: number
-    pValue: number
-    grandMedian: number
-  }> {
-    return this.core.callWorkerMethod<{
-      statistic: number
-      pValue: number
-      grandMedian: number
-    }>(
-      3,
-      'mood_median_test',
-      { groups },
-      { errorMessage: 'Mood median test 실행 실패' }
-    )
+  async moodMedianTestWorker(groups: number[][]): Promise<Generated.MoodMedianTestResult> {
+    return Generated.moodMedianTest(groups)
   }
 
   async repeatedMeasuresAnovaWorker(
     dataMatrix: number[][],
     subjectIds: (string | number)[],
     timeLabels: (string | number)[]
-  ): Promise<{
-    fStatistic: number
-    pValue: number
-    df: { between: number; within: number }
-  }> {
-    return this.core.callWorkerMethod<{
-      fStatistic: number
-      pValue: number
-      df: { between: number; within: number }
-    }>(
-      3,
-      'repeated_measures_anova',
-      { dataMatrix, subjectIds, timeLabels },
-      { errorMessage: 'Repeated measures ANOVA 실행 실패' }
-    )
+  ): Promise<Generated.RepeatedMeasuresAnovaResult> {
+    return Generated.repeatedMeasuresAnova(dataMatrix, subjectIds, timeLabels)
   }
 
-  async ancovaWorker(yValues: number[], groupValues: (string | number)[], covariates: number[][]): Promise<{
-    fStatistic: number
-    pValue: number
-    adjustedMeans: number[]
-  }> {
-    return this.core.callWorkerMethod<{
-      fStatistic: number
-      pValue: number
-      adjustedMeans: number[]
-    }>(
-      3,
-      'ancova',
-      { yValues, groupValues, covariates },
-      { errorMessage: 'ANCOVA 실행 실패' }
-    )
+  async ancovaWorker(yValues: number[], groupValues: (string | number)[], covariates: number[][]): Promise<Generated.AncovaResult> {
+    return Generated.ancova(yValues, groupValues, covariates)
   }
 
   async manovaWorker(
     dataMatrix: number[][],
     groupValues: (string | number)[],
     varNames: string[]
-  ): Promise<{
-    wilksLambda: number
-    fStatistic: number
-    pValue: number
-  }> {
-    return this.core.callWorkerMethod<{
-      wilksLambda: number
-      fStatistic: number
-      pValue: number
-    }>(
-      3,
-      'manova',
-      { dataMatrix, groupValues, varNames },
-      { errorMessage: 'MANOVA 실행 실패' }
-    )
+  ): Promise<Generated.ManovaResult> {
+    return Generated.manova(dataMatrix, groupValues, varNames)
   }
 
-  async scheffeTestWorker(groups: number[][]): Promise<{
-    comparisons: Array<{
-      group1: number
-      group2: number
-      meanDiff: number
-      fStatistic: number
-      pValue: number
-      reject: boolean
-    }>
-  }> {
-    return this.core.callWorkerMethod<{
-      comparisons: Array<{
-        group1: number
-        group2: number
-        meanDiff: number
-        fStatistic: number
-        pValue: number
-        reject: boolean
-      }>
-    }>(
-      3,
-      'scheffe_test',
-      { groups },
-      { errorMessage: 'Scheffe test 실행 실패' }
-    )
+  async scheffeTestWorker(groups: number[][]): Promise<Generated.ScheffeTestResult> {
+    return Generated.scheffeTest(groups)
   }
 
   // ========================================
@@ -2166,13 +1372,8 @@ export class PyodideStatisticsService {
     xValues: number[],
     yValues: number[],
     modelType: 'linear' | 'quadratic' | 'cubic' | 'exponential' | 'logarithmic' | 'power' = 'linear'
-  ): Promise<CurveEstimationResult> {
-    return this.core.callWorkerMethod<CurveEstimationResult>(
-      4,
-      'curve_estimation',
-      { xValues, yValues, modelType },
-      { errorMessage: 'Curve estimation 실행 실패' }
-    )
+  ): Promise<Generated.CurveEstimationResult> {
+    return Generated.curveEstimation(xValues, yValues, modelType)
   }
 
   /**
@@ -2196,18 +1397,8 @@ export class PyodideStatisticsService {
     yValues: number[],
     modelType: 'exponential' | 'logistic' | 'gompertz' | 'power' | 'hyperbolic' = 'exponential',
     initialGuess: number[] | null = null
-  ): Promise<NonlinearRegressionResult> {
-    return this.core.callWorkerMethod<NonlinearRegressionResult>(
-      4,
-      'nonlinear_regression',
-      {
-        xValues,
-        yValues,
-        modelType,
-        initialGuess
-      },
-      { errorMessage: 'Nonlinear regression 실행 실패' }
-    )
+  ): Promise<Generated.NonlinearRegressionResult> {
+    return Generated.nonlinearRegression(xValues, yValues, modelType, initialGuess)
   }
 
   /**
@@ -2232,19 +1423,14 @@ export class PyodideStatisticsService {
     method: 'forward' | 'backward' = 'forward',
     entryThreshold: number = 0.05,
     stayThreshold: number = 0.10
-  ): Promise<StepwiseRegressionResult> {
-    return this.core.callWorkerMethod<StepwiseRegressionResult>(
-      4,
-      'stepwise_regression',
-      {
-        yValues,
-        xMatrix,
-        variableNames,
-        method,
-        entryThreshold,
-        stayThreshold
-      },
-      { errorMessage: 'Stepwise regression 실행 실패' }
+  ): Promise<Generated.StepwiseRegressionResult> {
+    return Generated.stepwiseRegression(
+      yValues,
+      xMatrix,
+      variableNames ?? undefined,
+      method,
+      entryThreshold,
+      stayThreshold
     )
   }
 
@@ -2261,13 +1447,8 @@ export class PyodideStatisticsService {
   async binaryLogistic(
     xMatrix: number[][],
     yValues: number[]
-  ): Promise<BinaryLogisticResult> {
-    return this.core.callWorkerMethod<BinaryLogisticResult>(
-      4,
-      'binary_logistic',
-      { xMatrix, yValues },
-      { errorMessage: 'Binary logistic regression 실행 실패' }
-    )
+  ): Promise<Generated.BinaryLogisticResult> {
+    return Generated.binaryLogistic(xMatrix, yValues)
   }
 
   /**
@@ -2283,13 +1464,8 @@ export class PyodideStatisticsService {
   async multinomialLogistic(
     xMatrix: number[][],
     yValues: number[]
-  ): Promise<MultinomialLogisticResult> {
-    return this.core.callWorkerMethod<MultinomialLogisticResult>(
-      4,
-      'multinomial_logistic',
-      { xMatrix, yValues },
-      { errorMessage: 'Multinomial logistic regression 실행 실패' }
-    )
+  ): Promise<Generated.MultinomialLogisticResult> {
+    return Generated.multinomialLogistic(xMatrix, yValues)
   }
 
   /**
@@ -2305,13 +1481,8 @@ export class PyodideStatisticsService {
   async ordinalLogistic(
     xMatrix: number[][],
     yValues: number[]
-  ): Promise<OrdinalLogisticResult> {
-    return this.core.callWorkerMethod<OrdinalLogisticResult>(
-      4,
-      'ordinal_logistic',
-      { xMatrix, yValues },
-      { errorMessage: 'Ordinal logistic regression 실행 실패' }
-    )
+  ): Promise<Generated.OrdinalLogisticResult> {
+    return Generated.ordinalLogistic(xMatrix, yValues)
   }
 
   /**
@@ -2327,13 +1498,8 @@ export class PyodideStatisticsService {
   async probitRegression(
     xMatrix: number[][],
     yValues: number[]
-  ): Promise<ProbitRegressionResult> {
-    return this.core.callWorkerMethod<ProbitRegressionResult>(
-      4,
-      'probit_regression',
-      { xMatrix, yValues },
-      { errorMessage: 'Probit regression 실행 실패' }
-    )
+  ): Promise<Generated.ProbitRegressionResult> {
+    return Generated.probitRegression(xMatrix, yValues)
   }
 
   /**
@@ -2349,13 +1515,8 @@ export class PyodideStatisticsService {
   async poissonRegression(
     xMatrix: number[][],
     yValues: number[]
-  ): Promise<PoissonRegressionResult> {
-    return this.core.callWorkerMethod<PoissonRegressionResult>(
-      4,
-      'poisson_regression',
-      { xMatrix, yValues },
-      { errorMessage: 'Poisson regression 실행 실패' }
-    )
+  ): Promise<Generated.PoissonRegressionResult> {
+    return Generated.poissonRegression(xMatrix, yValues)
   }
 
   /**
@@ -2371,13 +1532,8 @@ export class PyodideStatisticsService {
   async negativeBinomialRegression(
     xMatrix: number[][],
     yValues: number[]
-  ): Promise<NegativeBinomialRegressionResult> {
-    return this.core.callWorkerMethod<NegativeBinomialRegressionResult>(
-      4,
-      'negative_binomial_regression',
-      { xMatrix, yValues },
-      { errorMessage: 'Negative binomial regression 실행 실패' }
-    )
+  ): Promise<Generated.NegativeBinomialRegressionResult> {
+    return Generated.negativeBinomialRegression(xMatrix, yValues)
   }
 
   // ========================================
@@ -2398,13 +1554,8 @@ export class PyodideStatisticsService {
   async linearRegression(
     x: number[],
     y: number[]
-  ): Promise<LinearRegressionResult> {
-    return this.core.callWorkerMethod<LinearRegressionResult>(
-      4,
-      'linear_regression',
-      { x, y },
-      { errorMessage: 'Linear regression 실행 실패' }
-    )
+  ): Promise<Generated.LinearRegressionResult> {
+    return Generated.linearRegression(x, y)
   }
 
   /**
@@ -2422,13 +1573,8 @@ export class PyodideStatisticsService {
   async pcaAnalysis(
     data: number[][],
     nComponents: number = 2
-  ): Promise<PCAAnalysisResult> {
-    return this.core.callWorkerMethod<PCAAnalysisResult>(
-      4,
-      'pca_analysis',
-      { data, nComponents },
-      { errorMessage: 'PCA analysis 실행 실패' }
-    )
+  ): Promise<Generated.PcaAnalysisResult> {
+    return Generated.pcaAnalysis(data, nComponents)
   }
 
   /**
@@ -2445,13 +1591,12 @@ export class PyodideStatisticsService {
    */
   async durbinWatsonTest(
     residuals: number[]
-  ): Promise<DurbinWatsonTestResult> {
-    return this.core.callWorkerMethod<DurbinWatsonTestResult>(
-      4,
-      'durbin_watson_test',
-      { residuals },
-      { errorMessage: 'Durbin-Watson test 실행 실패' }
-    )
+  ): Promise<Generated.DurbinWatsonTestResult & { isIndependent: boolean }> {
+    const result = await Generated.durbinWatsonTest(residuals)
+    return {
+      ...result,
+      isIndependent: result.statistic >= 1.5 && result.statistic <= 2.5
+    }
   }
 
   /**
@@ -2465,29 +1610,8 @@ export class PyodideStatisticsService {
     observed: number[],
     expected?: number[] | null,
     alpha: number = 0.05
-  ): Promise<{
-    chiSquare: number
-    pValue: number
-    degreesOfFreedom: number
-    criticalValue: number
-    reject: boolean
-    observed: number[]
-    expected: number[]
-  }> {
-    return this.core.callWorkerMethod<{
-      chiSquare: number
-      pValue: number
-      degreesOfFreedom: number
-      criticalValue: number
-      reject: boolean
-      observed: number[]
-      expected: number[]
-    }>(
-      2,
-      'chi_square_goodness_test',
-      { observed, expected: expected ?? null, alpha },
-      { errorMessage: 'Chi-square goodness of fit test 실행 실패' }
-    )
+  ): Promise<Generated.ChiSquareGoodnessTestResult> {
+    return Generated.chiSquareGoodnessTest(observed, expected ?? undefined, alpha)
   }
 
   /**
@@ -2497,31 +1621,8 @@ export class PyodideStatisticsService {
     observedMatrix: number[][],
     yatesCorrection: boolean = false,
     alpha: number = 0.05
-  ): Promise<{
-    chiSquare: number
-    pValue: number
-    degreesOfFreedom: number
-    criticalValue: number
-    reject: boolean
-    cramersV: number
-    observedMatrix: number[][]
-    expectedMatrix: number[][]
-  }> {
-    return this.core.callWorkerMethod<{
-      chiSquare: number
-      pValue: number
-      degreesOfFreedom: number
-      criticalValue: number
-      reject: boolean
-      cramersV: number
-      observedMatrix: number[][]
-      expectedMatrix: number[][]
-    }>(
-      2,
-      'chi_square_independence_test',
-      { observedMatrix, yatesCorrection, alpha },
-      { errorMessage: 'Chi-square independence test 실행 실패' }
-    )
+  ): Promise<Generated.ChiSquareIndependenceTestResult> {
+    return Generated.chiSquareIndependenceTest(observedMatrix, yatesCorrection, alpha)
   }
 
 
@@ -2533,7 +1634,7 @@ export class PyodideStatisticsService {
   /**
    * 별칭: calculateDescriptiveStats → descriptiveStats
    */
-  async calculateDescriptiveStats(data: number[]): Promise<any> {
+  async calculateDescriptiveStats(data: number[]): Promise<Generated.DescriptiveStatsResult> {
     return this.descriptiveStats(data)
   }
 
@@ -2560,50 +1661,16 @@ export class PyodideStatisticsService {
    * K-S 일표본 검정 (정규성 검정) - Worker 1
    * Python ks_test_one_sample(values)
    */
-  async ksTestOneSample(values: number[]): Promise<{
-    statistic: number
-    pValue: number
-    n: number
-    significant: boolean
-    interpretation: string
-  }> {
-    return this.core.callWorkerMethod<{
-      statistic: number
-      pValue: number
-      n: number
-      significant: boolean
-      interpretation: string
-    }>(
-      1,
-      'ks_test_one_sample',
-      { values },
-      { errorMessage: 'K-S one sample test 실행 실패' }
-    )
+  async ksTestOneSample(values: number[]): Promise<Generated.KsTestOneSampleResult> {
+    return Generated.ksTestOneSample(values)
   }
 
   /**
    * K-S 이표본 검정 - Worker 1
    * Python ks_test_two_sample(values1, values2)
    */
-  async ksTestTwoSample(values1: number[], values2: number[]): Promise<{
-    statistic: number
-    pValue: number
-    n1: number
-    n2: number
-    significant: boolean
-  }> {
-    return this.core.callWorkerMethod<{
-      statistic: number
-      pValue: number
-      n1: number
-      n2: number
-      significant: boolean
-    }>(
-      1,
-      'ks_test_two_sample',
-      { values1, values2 },
-      { errorMessage: 'K-S two sample test 실행 실패' }
-    )
+  async ksTestTwoSample(values1: number[], values2: number[]): Promise<Generated.KsTestTwoSampleResult> {
+    return Generated.ksTestTwoSample(values1, values2)
   }
 
   // ========================================
@@ -2617,55 +1684,8 @@ export class PyodideStatisticsService {
   async discriminantAnalysis(
     data: number[][],
     groups: (string | number)[]
-  ): Promise<{
-    functions: Array<{
-      functionNumber: number
-      eigenvalue: number
-      varianceExplained: number
-      cumulativeVariance: number
-      canonicalCorrelation: number
-      coefficients: Record<string, number>
-    }>
-    totalVariance: number
-    selectedFunctions: number
-    groupCentroids: Array<{ group: string; centroids: Record<string, number> }>
-    classificationResults: Array<{
-      originalGroup: string
-      predictedGroup: string
-      probability: number
-      correct: boolean
-    }>
-    accuracy: number
-    confusionMatrix: Record<string, Record<string, number>>
-    interpretation: string
-  }> {
-    return this.core.callWorkerMethod<{
-      functions: Array<{
-        functionNumber: number
-        eigenvalue: number
-        varianceExplained: number
-        cumulativeVariance: number
-        canonicalCorrelation: number
-        coefficients: Record<string, number>
-      }>
-      totalVariance: number
-      selectedFunctions: number
-      groupCentroids: Array<{ group: string; centroids: Record<string, number> }>
-      classificationResults: Array<{
-        originalGroup: string
-        predictedGroup: string
-        probability: number
-        correct: boolean
-      }>
-      accuracy: number
-      confusionMatrix: Record<string, Record<string, number>>
-      interpretation: string
-    }>(
-      4,
-      'discriminant_analysis',
-      { data, groups },
-      { errorMessage: 'Discriminant analysis 실행 실패' }
-    )
+  ): Promise<Generated.DiscriminantAnalysisResult> {
+    return Generated.discriminantAnalysis(data, groups)
   }
 
   // ========================================
@@ -2678,25 +1698,8 @@ export class PyodideStatisticsService {
   async kaplanMeierSurvival(
     times: number[],
     events: number[]
-  ): Promise<{
-    survivalFunction: number[]
-    times: number[]
-    events: number[]
-    nRisk: number[]
-    medianSurvival: number | null
-  }> {
-    return this.core.callWorkerMethod<{
-      survivalFunction: number[]
-      times: number[]
-      events: number[]
-      nRisk: number[]
-      medianSurvival: number | null
-    }>(
-      4,
-      'kaplan_meier_survival',
-      { times, events },
-      { errorMessage: 'Kaplan-Meier survival analysis 실행 실패' }
-    )
+  ): Promise<Generated.KaplanMeierSurvivalResult> {
+    return Generated.kaplanMeierSurvival(times, events)
   }
 
   /**
@@ -2708,25 +1711,8 @@ export class PyodideStatisticsService {
     events: number[],
     covariateData: number[][],
     covariateNames: string[]
-  ): Promise<{
-    coefficients: number[]
-    hazardRatios: number[]
-    pValues: number[]
-    confidenceIntervals: Array<{ lower: number; upper: number }>
-    concordance: number | null
-  }> {
-    return this.core.callWorkerMethod<{
-      coefficients: number[]
-      hazardRatios: number[]
-      pValues: number[]
-      confidenceIntervals: Array<{ lower: number; upper: number }>
-      concordance: number | null
-    }>(
-      4,
-      'cox_regression',
-      { times, events, covariateData, covariateNames },
-      { errorMessage: 'Cox regression 실행 실패' }
-    )
+  ): Promise<Generated.CoxRegressionResult> {
+    return Generated.coxRegression(times, events, covariateData, covariateNames)
   }
 
   // ========================================
@@ -2746,32 +1732,15 @@ export class PyodideStatisticsService {
       sampleSize?: number
       sides?: 'two-sided' | 'one-sided'
     }
-  ): Promise<{
-    requiredSampleSize: number | null
-    achievedPower: number | null
-    effectSize: number
-    alpha: number
-    interpretation: string
-  }> {
-    return this.core.callWorkerMethod<{
-      requiredSampleSize: number | null
-      achievedPower: number | null
-      effectSize: number
-      alpha: number
-      interpretation: string
-    }>(
-      2,
-      'power_analysis',
-      {
-        testType,
-        analysisType,
-        alpha: params.alpha,
-        power: params.power,
-        effectSize: params.effectSize,
-        sampleSize: params.sampleSize ?? 30,
-        sides: params.sides || 'two-sided'
-      },
-      { errorMessage: 'Power analysis 실행 실패' }
+  ): Promise<Generated.PowerAnalysisResult> {
+    return Generated.powerAnalysis(
+      testType,
+      analysisType,
+      params.alpha,
+      params.power,
+      params.effectSize,
+      params.sampleSize,
+      params.sides === 'one-sided' ? 1 : 2
     )
   }
 

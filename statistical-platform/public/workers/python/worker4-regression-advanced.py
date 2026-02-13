@@ -121,6 +121,15 @@ def linear_regression(x, y):
         'interceptCi': intercept_ci,
         'slopeTValue': slope_t,
         'interceptTValue': intercept_t,
+        'residuals': [float(r) for r in residuals],
+        'fittedValues': [float(f) for f in predicted],
+        'equation': f"y = {slope:.4f}x + {intercept:.4f}",
+        'confidenceInterval': {
+            'slope': [float(slope_ci[0]), float(slope_ci[1])],
+            'intercept': [float(intercept_ci[0]), float(intercept_ci[1])]
+        },
+        'interpretation': f"The model explains {(r_value**2)*100:.1f}% of variance. Relationship is {'significant' if p_value < 0.05 else 'not significant'} (p = {p_value:.4f})",
+        'isSignificant': bool(p_value < 0.05),
         'assumptions': assumptions
     }
 

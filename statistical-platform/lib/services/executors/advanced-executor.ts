@@ -18,27 +18,28 @@ export class AdvancedExecutor extends BaseExecutor {
 
       const result = await pyodideStats.pcaAnalysis(data, nComponents)
 
-      const totalVariance = result.explainedVarianceRatio.reduce((a: number, b: number) => a + b, 0)
+      const totalVariance = result.totalVariance || 0
 
       return {
         metadata: this.createMetadata('주성분분석', data.length, startTime),
         mainResults: {
           statistic: totalVariance,
           pvalue: 1,
-          interpretation: `첫 ${nComponents}개 주성분이 전체 분산의 ${(totalVariance * 100).toFixed(1)}%를 설명`
+          interpretation: result.interpretation || `첫 ${nComponents}개 주성분이 전체 분산의 ${(totalVariance * 100).toFixed(1)}%를 설명`
         },
         additionalInfo: {
           components: result.components,
-          explainedVarianceRatio: result.explainedVarianceRatio,
-          explainedVariance: result.explainedVariance,
-          cumulativeVariance: result.cumulativeVariance,
+          selectedComponents: result.selectedComponents,
+          variableContributions: result.variableContributions,
+          qualityMetrics: result.qualityMetrics,
+          screeData: result.screeData,
           nComponents
         },
         visualizationData: {
           type: 'pca-biplot',
           data: {
-            transformedData: result.components,
-            loadings: result.components
+            transformedData: result.transformedData,
+            loadings: result.rotationMatrix
           }
         }
       }

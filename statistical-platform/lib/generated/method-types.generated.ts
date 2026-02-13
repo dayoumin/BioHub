@@ -2,7 +2,7 @@
  * Auto-generated from methods-registry.json
  * DO NOT EDIT MANUALLY
  *
- * Generated: 2025-12-17T22:58:41.226Z
+ * Generated: 2026-02-13T01:15:28.597Z
  */
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -192,7 +192,7 @@ export async function outlierDetection(data: number[] | number[][], method?: str
  * 빈도분석
  * @worker Worker 1
  */
-export async function frequencyAnalysis(values: number[] | number[][]): Promise<FrequencyAnalysisResult> {
+export async function frequencyAnalysis(values: (string | number)[]): Promise<FrequencyAnalysisResult> {
   return callWorkerMethod<FrequencyAnalysisResult>(1, 'frequency_analysis', { values })
 }
 
@@ -305,8 +305,8 @@ export interface TTestOneSampleSummaryResult {
   pValue: number
   df: number
   meanDiff: number
-  ciLower: unknown
-  ciUpper: unknown
+  ciLower: number[]
+  ciUpper: number[]
   cohensD: number
   n: number
   mean: number
@@ -319,8 +319,8 @@ export interface TTestTwoSampleSummaryResult {
   pValue: number
   df: number
   meanDiff: number
-  ciLower: unknown
-  ciUpper: unknown
+  ciLower: number[]
+  ciUpper: number[]
   cohensD: number
   mean1: number
   mean2: number
@@ -336,8 +336,8 @@ export interface TTestPairedSummaryResult {
   pValue: number
   df: number
   meanDiff: number
-  ciLower: unknown
-  ciUpper: unknown
+  ciLower: number[]
+  ciUpper: number[]
   cohensD: number
   nPairs: number
   stdDiff: unknown
@@ -376,7 +376,8 @@ export interface PartialCorrelationResult {
   correlation: number
   pValue: number
   df: number
-  confidenceInterval: { lower: number; upper: number }[]
+  nObservations: number
+  confidenceInterval: unknown
 }
 
 export interface LeveneTestResult {
@@ -404,7 +405,7 @@ export interface ChiSquareGoodnessTestResult {
 export interface ChiSquareIndependenceTestResult {
   chiSquare: number
   pValue: number
-  df: number
+  degreesOfFreedom: number
   criticalValue: number
   reject: boolean
   cramersV: number
@@ -604,7 +605,7 @@ export interface TwoWayAnovaResult {
   factor1: { fStatistic: number; pValue: number; df: number }
   factor2: { fStatistic: number; pValue: number; df: number }
   interaction: { fStatistic: number; pValue: number; df: number }
-  residual: number[]
+  residual: { df: number; sumSq: number; meanSq: number; fStatistic: number; pValue: number }
   anovaTable: Record<string, unknown>
 }
 
@@ -621,17 +622,19 @@ export interface SignTestResult {
 }
 
 export interface RunsTestResult {
-  statistic: number
-  pValue: number
   nRuns: number
   expectedRuns: number
+  n1: number
+  n2: number
+  zStatistic: number
+  pValue: number
 }
 
 export interface McnemarTestResult {
   statistic: number
   pValue: number
   continuityCorrection: boolean
-  discordantPairs: number
+  discordantPairs: { b: number; c: number }
 }
 
 export interface CochranQTestResult {
@@ -745,7 +748,7 @@ export async function signTest(before: number[], after: number[]): Promise<SignT
  * 런 검정
  * @worker Worker 3
  */
-export async function runsTest(sequence: number[]): Promise<RunsTestResult> {
+export async function runsTest(sequence: (string | number)[]): Promise<RunsTestResult> {
   return callWorkerMethod<RunsTestResult>(3, 'runs_test', { sequence })
 }
 
@@ -785,7 +788,7 @@ export async function repeatedMeasuresAnova(dataMatrix: number[][], subjectIds: 
  * 공분산분석
  * @worker Worker 3
  */
-export async function ancova(yValues: number[] | number[][], groupValues: (string | number)[], covariates: number[]): Promise<AncovaResult> {
+export async function ancova(yValues: number[] | number[][], groupValues: (string | number)[], covariates: number[] | number[][]): Promise<AncovaResult> {
   return callWorkerMethod<AncovaResult>(3, 'ancova', { yValues, groupValues, covariates })
 }
 
@@ -830,33 +833,75 @@ export interface LinearRegressionResult {
   slope: number
   intercept: number
   rSquared: number
-  adjRSquared: number
   pValue: number
-  standardError: number
+  stdErr: number
+  nPairs: number
+  slopeCi: { lower: number; upper: number }
+  interceptCi: { lower: number; upper: number }
+  slopeTValue: number
+  interceptTValue: number
+  residuals: number[]
+  fittedValues: number[]
+  equation: string
+  confidenceInterval: { lower: number[]; upper: number[] }
+  interpretation: string
+  isSignificant: boolean
+  assumptions: Record<string, unknown>
 }
 
 export interface MultipleRegressionResult {
   coefficients: number[]
+  stdErrors: number[]
+  tValues: number[]
+  pValues: number[]
+  ciLower: number[]
+  ciUpper: number[]
   rSquared: number
-  adjRSquared: number
+  adjustedRSquared: number
   fStatistic: number
-  pValue: number
+  fPValue: number
+  residualStdError: number
+  residuals: number[]
+  fittedValues: number[]
+  vif: number[]
+  nObservations: number
+  nPredictors: number
+  assumptions: Record<string, unknown>
 }
 
 export interface LogisticRegressionResult {
   coefficients: number[]
+  stdErrors: number[]
+  zValues: number[]
+  pValues: number[]
+  ciLower: number[]
+  ciUpper: number[]
+  predictions: number[]
+  predictedClass: number[]
   accuracy: number
+  confusionMatrix: { tp: number; fp: number; tn: number; fn: number; precision: number; recall: number; f1Score: number }
+  sensitivity: number
+  specificity: number
+  rocCurve: Array<{ fpr: number; tpr: number }>
   auc: number
-  confusionMatrix: number[][]
+  aic: number
+  bic: number
+  pseudoRSquared: number
+  llrPValue: number
+  nObservations: number
+  nPredictors: number
 }
 
 export interface PcaAnalysisResult {
   components: number[][]
-  explainedVariance: number[]
-  explainedVarianceRatio: number[]
-  cumulativeVariance: number[]
-  loadings: number[]
-  scores: number[]
+  totalVariance: number
+  selectedComponents: number
+  rotationMatrix: unknown
+  transformedData: unknown
+  variableContributions: unknown
+  qualityMetrics: unknown
+  screeData: unknown
+  interpretation: string
 }
 
 export interface CurveEstimationResult {
@@ -917,30 +962,33 @@ export interface NegativeBinomialRegressionResult {
 }
 
 export interface FactorAnalysisResult {
-  loadings: number[]
+  loadings: number[][]
   communalities: number[]
   explainedVariance: number[]
+  explainedVarianceRatio: number[]
+  totalVarianceExplained: number
+  nFactors: number
   eigenvalues: number[]
 }
 
 export interface ClusterAnalysisResult {
-  nClusters: unknown
-  clusterAssignments: unknown
-  centroids: unknown
+  nClusters: number
+  clusterAssignments: number[]
+  centroids: number[][]
   inertia: number
   silhouetteScore: number
-  clusterSizes: unknown
+  clusterSizes: number[]
 }
 
 export interface TimeSeriesAnalysisResult {
-  trend: string
+  trend: number[]
   seasonal: number[]
   residual: number[]
   acf: number[]
   pacf: number[]
-  adfStatistic: unknown
-  adfPValue: unknown
-  isStationary: unknown
+  adfStatistic: number
+  adfPValue: number
+  isStationary: boolean
 }
 
 export interface DurbinWatsonTestResult {
@@ -949,17 +997,22 @@ export interface DurbinWatsonTestResult {
 }
 
 export interface DiscriminantAnalysisResult {
-  coefficients: number[]
-  totalVariance: number[]
   functions: unknown[]
-  predictions: number[]
+  totalVariance: number
+  selectedFunctions: number
+  groupCentroids: unknown[]
+  classificationResults: unknown[]
+  accuracy: number
   confusionMatrix: number[][]
+  equalityTests: Record<string, unknown>
   interpretation: string
 }
 
 export interface KaplanMeierSurvivalResult {
-  survivalProbabilities: number[]
-  confidenceIntervals: { lower: number; upper: number }[]
+  survivalFunction: number[]
+  times: number[]
+  events: number[]
+  nRisk: number[]
   medianSurvival: number
 }
 
@@ -1112,7 +1165,7 @@ export async function durbinWatsonTest(residuals: number[]): Promise<DurbinWatso
  * 판별분석
  * @worker Worker 4
  */
-export async function discriminantAnalysis(data: number[] | number[][], groups: number[][] | number[]): Promise<DiscriminantAnalysisResult> {
+export async function discriminantAnalysis(data: number[] | number[][], groups: (string | number)[]): Promise<DiscriminantAnalysisResult> {
   return callWorkerMethod<DiscriminantAnalysisResult>(4, 'discriminant_analysis', { data, groups })
 }
 

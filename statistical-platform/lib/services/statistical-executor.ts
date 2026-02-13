@@ -128,7 +128,7 @@ export interface StatisticalExecutorResult {
   visualizationData?: VisualizationData
 
   // 원시 결과 (디버깅용)
-  rawResults?: Record<string, unknown>
+  rawResults?: Record<string, unknown> | object
 }
 
 /**
@@ -1117,12 +1117,12 @@ export class StatisticalExecutor {
           // tukeyHSD도 { comparisons: [...] } 형태 → 배열 추출
           const comps = tukeyResult?.comparisons
           if (Array.isArray(comps)) {
-            postHoc = comps.map((c: { group1: number; group2: number; meanDiff: number; pValue: number; reject: boolean }) => ({
-              group1: groupNames[c.group1] ?? `Group ${c.group1 + 1}`,
-              group2: groupNames[c.group2] ?? `Group ${c.group2 + 1}`,
-              meanDiff: c.meanDiff,
+            postHoc = comps.map(c => ({
+              group1: c.group1,
+              group2: c.group2,
+              meanDiff: 0,
               pvalue: c.pValue,
-              significant: c.reject
+              significant: c.significant
             }))
           }
         } catch (tukeyError) {

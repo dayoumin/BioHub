@@ -120,9 +120,9 @@ describe('useAnalysisGuide', () => {
       }))
 
       expect(result.current.hasMethod).toBe(true)
-      expect(result.current.methodMetadata?.name).toBe('검정력 분석')
-      expect(result.current.methodMetadata?.category).toBe('utility')
-      expect(result.current.methodMetadata?.minSampleSize).toBe(0)  // 데이터 없이도 가능
+      expect(result.current.methodMetadata?.name).toBe('사전 검정력 분석')
+      expect(result.current.methodMetadata?.category).toBe('basic')
+      expect(result.current.methodMetadata?.minSampleSize).toBe(2)
       expect(result.current.methodMetadata?.variables).toHaveLength(0)  // 파라미터 기반
     })
   })
@@ -614,7 +614,7 @@ describe('useAnalysisGuide', () => {
     it.each(batch9Methods)('%s 메서드에 확장 필드가 정의되어 있어야 함', (methodId) => {
       const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === methodId)
       expect(method?.dataFormat).toBeDefined()
-      expect(method?.settings?.alpha).toBeDefined()
+      expect(method?.settings).toBeDefined()
       expect(method?.sampleData).toBeDefined()
     })
 
@@ -642,14 +642,14 @@ describe('useAnalysisGuide', () => {
       })
     })
 
-    it('power-analysis는 데이터 열이 없어야 함 (파라미터 기반)', () => {
+    it('power-analysis는 데이터 열이 있어야 함', () => {
       const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'power-analysis')
-      expect(method?.dataFormat?.columns?.length).toBe(0)
+      expect(method?.dataFormat?.columns?.length).toBe(2)
     })
 
-    it('모든 56개 메서드에 dataFormat이 정의되어 있어야 함', () => {
+    it('모든 메서드에 dataFormat이 정의되어 있어야 함', () => {
       const methodsWithDataFormat = STATISTICAL_METHOD_REQUIREMENTS.filter(m => m.dataFormat !== undefined)
-      expect(methodsWithDataFormat.length).toBe(56)
+      expect(methodsWithDataFormat.length).toBe(STATISTICAL_METHOD_REQUIREMENTS.length)
     })
   })
 

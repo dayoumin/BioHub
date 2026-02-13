@@ -9,71 +9,196 @@
   "worker1": {
     "name": "descriptive",
     "description": "기술통계 및 기본 검정",
-    "packages": ["numpy", "scipy"],
+    "packages": [
+      "numpy",
+      "scipy"
+    ],
     "methods": {
       "descriptive_stats": {
-        "params": ["data", "confidenceLevel?"],
-        "returns": ["mean", "median", "mode", "std", "variance", "min", "max", "q1", "q3", "iqr", "skewness", "kurtosis", "n"],
+        "params": [
+          "data",
+          "confidenceLevel?"
+        ],
+        "returns": [
+          "mean",
+          "median",
+          "mode",
+          "std",
+          "variance",
+          "min",
+          "max",
+          "q1",
+          "q3",
+          "iqr",
+          "skewness",
+          "kurtosis",
+          "n"
+        ],
         "description": "기술통계량 계산"
       },
       "normality_test": {
-        "params": ["data", "alpha?"],
-        "returns": ["statistic", "pValue", "isNormal", "interpretation"],
+        "params": [
+          "data",
+          "alpha?"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "isNormal",
+          "interpretation"
+        ],
         "description": "Shapiro-Wilk 정규성 검정"
       },
       "outlier_detection": {
-        "params": ["data", "method?"],
-        "returns": ["outlierIndices", "outlierValues", "lowerBound", "upperBound", "method"],
+        "params": [
+          "data",
+          "method?"
+        ],
+        "returns": [
+          "outlierIndices",
+          "outlierValues",
+          "lowerBound",
+          "upperBound",
+          "method"
+        ],
         "description": "이상치 탐지 (IQR/Z-score)"
       },
       "frequency_analysis": {
-        "params": ["values"],
-        "returns": ["categories", "frequencies", "percentages", "cumulativePercentages", "total", "uniqueCount"],
+        "params": [
+          "values"
+        ],
+        "returns": [
+          "categories",
+          "frequencies",
+          "percentages",
+          "cumulativePercentages",
+          "total",
+          "uniqueCount"
+        ],
         "description": "빈도분석"
       },
       "crosstab_analysis": {
-        "params": ["rowValues", "colValues"],
-        "returns": ["rowCategories", "colCategories", "observedMatrix", "rowTotals", "colTotals", "grandTotal"],
+        "params": [
+          "rowValues",
+          "colValues"
+        ],
+        "returns": [
+          "rowCategories",
+          "colCategories",
+          "observedMatrix",
+          "rowTotals",
+          "colTotals",
+          "grandTotal"
+        ],
         "description": "교차분석"
       },
       "one_sample_proportion_test": {
-        "params": ["successCount", "totalCount", "nullProportion?", "alternative?", "alpha?"],
-        "returns": ["sampleProportion", "nullProportion", "pValue", "zStatistic", "pValueExact", "pValueApprox", "significant", "alpha"],
+        "params": [
+          "successCount",
+          "totalCount",
+          "nullProportion?",
+          "alternative?",
+          "alpha?"
+        ],
+        "returns": [
+          "sampleProportion",
+          "nullProportion",
+          "pValue",
+          "zStatistic",
+          "pValueExact",
+          "pValueApprox",
+          "significant",
+          "alpha"
+        ],
         "description": "일표본 비율검정"
       },
       "cronbach_alpha": {
-        "params": ["itemsMatrix"],
-        "returns": ["alpha", "nItems", "nRespondents"],
+        "params": [
+          "itemsMatrix"
+        ],
+        "returns": [
+          "alpha",
+          "nItems",
+          "nRespondents"
+        ],
         "description": "크론바흐 알파 신뢰도"
       },
       "kolmogorov_smirnov_test": {
-        "params": ["data"],
-        "returns": ["statistic", "pValue", "isNormal"],
+        "params": [
+          "data"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "isNormal"
+        ],
         "description": "K-S 정규성 검정"
       },
       "ks_test_one_sample": {
-        "params": ["values"],
-        "returns": ["statistic", "pValue", "n", "significant", "interpretation"],
+        "params": [
+          "values"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "n",
+          "significant",
+          "interpretation"
+        ],
         "description": "일표본 K-S 검정"
       },
       "ks_test_two_sample": {
-        "params": ["values1", "values2"],
-        "returns": ["statistic", "pValue", "n1", "n2", "significant"],
+        "params": [
+          "values1",
+          "values2"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "n1",
+          "n2",
+          "significant"
+        ],
         "description": "이표본 K-S 검정"
       },
       "mann_kendall_test": {
-        "params": ["data"],
-        "returns": ["trend", "statistic", "pValue", "tau", "slope", "intercept"],
+        "params": [
+          "data"
+        ],
+        "returns": [
+          "trend",
+          "statistic",
+          "pValue",
+          "tau",
+          "slope",
+          "intercept"
+        ],
         "description": "Mann-Kendall 추세 검정"
       },
       "bonferroni_correction": {
-        "params": ["pValues", "alpha?"],
-        "returns": ["adjustedPValues", "significantResults", "alpha", "correctedAlpha"],
+        "params": [
+          "pValues",
+          "alpha?"
+        ],
+        "returns": [
+          "adjustedPValues",
+          "significantResults",
+          "alpha",
+          "correctedAlpha"
+        ],
         "description": "Bonferroni 다중비교 보정"
       },
       "means_plot_data": {
-        "params": ["data", "dependentVar", "factorVar"],
-        "returns": ["descriptives", "plotData", "interpretation"],
+        "params": [
+          "data",
+          "dependentVar",
+          "factorVar"
+        ],
+        "returns": [
+          "descriptives",
+          "plotData",
+          "interpretation"
+        ],
         "description": "평균 플롯 데이터"
       }
     }
@@ -81,91 +206,290 @@
   "worker2": {
     "name": "hypothesis",
     "description": "가설검정 및 상관분석",
-    "packages": ["numpy", "scipy", "statsmodels", "pandas"],
+    "packages": [
+      "numpy",
+      "scipy",
+      "statsmodels",
+      "pandas"
+    ],
     "methods": {
       "t_test_two_sample": {
-        "params": ["group1", "group2", "equalVar?"],
-        "returns": ["statistic", "pValue", "cohensD", "mean1", "mean2", "std1", "std2", "n1", "n2"],
+        "params": [
+          "group1",
+          "group2",
+          "equalVar?"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "cohensD",
+          "mean1",
+          "mean2",
+          "std1",
+          "std2",
+          "n1",
+          "n2"
+        ],
         "description": "독립표본 t-검정"
       },
       "t_test_paired": {
-        "params": ["values1", "values2"],
-        "returns": ["statistic", "pValue", "meanDiff", "nPairs"],
+        "params": [
+          "values1",
+          "values2"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "meanDiff",
+          "nPairs"
+        ],
         "description": "대응표본 t-검정"
       },
       "t_test_one_sample": {
-        "params": ["data", "popmean?"],
-        "returns": ["statistic", "pValue", "sampleMean", "sampleStd", "n"],
+        "params": [
+          "data",
+          "popmean?"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "sampleMean",
+          "sampleStd",
+          "n"
+        ],
         "description": "일표본 t-검정"
       },
       "t_test_one_sample_summary": {
-        "params": ["mean", "std", "n", "popmean?", "alpha?"],
-        "returns": ["statistic", "pValue", "df", "meanDiff", "ciLower", "ciUpper", "cohensD", "n", "mean", "std", "reject"],
+        "params": [
+          "mean",
+          "std",
+          "n",
+          "popmean?",
+          "alpha?"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "df",
+          "meanDiff",
+          "ciLower",
+          "ciUpper",
+          "cohensD",
+          "n",
+          "mean",
+          "std",
+          "reject"
+        ],
         "description": "일표본 t-검정 (요약통계)"
       },
       "t_test_two_sample_summary": {
-        "params": ["mean1", "std1", "n1", "mean2", "std2", "n2", "equalVar?", "alpha?"],
-        "returns": ["statistic", "pValue", "df", "meanDiff", "ciLower", "ciUpper", "cohensD", "mean1", "mean2", "std1", "std2", "n1", "n2", "reject"],
+        "params": [
+          "mean1",
+          "std1",
+          "n1",
+          "mean2",
+          "std2",
+          "n2",
+          "equalVar?",
+          "alpha?"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "df",
+          "meanDiff",
+          "ciLower",
+          "ciUpper",
+          "cohensD",
+          "mean1",
+          "mean2",
+          "std1",
+          "std2",
+          "n1",
+          "n2",
+          "reject"
+        ],
         "description": "독립표본 t-검정 (요약통계)"
       },
       "t_test_paired_summary": {
-        "params": ["meanDiff", "stdDiff", "nPairs", "alpha?"],
-        "returns": ["statistic", "pValue", "df", "meanDiff", "ciLower", "ciUpper", "cohensD", "nPairs", "stdDiff", "reject"],
+        "params": [
+          "meanDiff",
+          "stdDiff",
+          "nPairs",
+          "alpha?"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "df",
+          "meanDiff",
+          "ciLower",
+          "ciUpper",
+          "cohensD",
+          "nPairs",
+          "stdDiff",
+          "reject"
+        ],
         "description": "대응표본 t-검정 (요약통계)"
       },
       "z_test": {
-        "params": ["data", "popmean", "popstd"],
-        "returns": ["statistic", "pValue", "sampleMean", "n"],
+        "params": [
+          "data",
+          "popmean",
+          "popstd"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "sampleMean",
+          "n"
+        ],
         "description": "Z-검정"
       },
       "chi_square_test": {
-        "params": ["observedMatrix", "yatesCorrection?"],
-        "returns": ["statistic", "pValue", "df", "expectedMatrix"],
+        "params": [
+          "observedMatrix",
+          "yatesCorrection?"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "df",
+          "expectedMatrix"
+        ],
         "description": "카이제곱 검정"
       },
       "binomial_test": {
-        "params": ["successCount", "totalCount", "probability?", "alternative?"],
-        "returns": ["pValue", "successCount", "totalCount", "proportion", "expectedProportion"],
+        "params": [
+          "successCount",
+          "totalCount",
+          "probability?",
+          "alternative?"
+        ],
+        "returns": [
+          "pValue",
+          "successCount",
+          "totalCount",
+          "proportion",
+          "expectedProportion"
+        ],
         "description": "이항검정"
       },
       "correlation_test": {
-        "params": ["x", "y", "method?"],
-        "returns": ["correlation", "pValue", "n"],
+        "params": [
+          "x",
+          "y",
+          "method?"
+        ],
+        "returns": [
+          "correlation",
+          "pValue",
+          "n"
+        ],
         "description": "상관계수 검정"
       },
       "partial_correlation": {
-        "params": ["dataMatrix", "xIdx", "yIdx", "controlIndices"],
-        "returns": ["correlation", "pValue", "df", "confidenceInterval"],
+        "params": [
+          "dataMatrix",
+          "xIdx",
+          "yIdx",
+          "controlIndices"
+        ],
+        "returns": [
+          "correlation",
+          "pValue",
+          "df",
+          "nObservations",
+          "confidenceInterval"
+        ],
         "description": "편상관분석"
       },
       "levene_test": {
-        "params": ["groups"],
-        "returns": ["statistic", "pValue", "equalVariance"],
+        "params": [
+          "groups"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "equalVariance"
+        ],
         "description": "Levene 등분산 검정"
       },
       "bartlett_test": {
-        "params": ["groups"],
-        "returns": ["statistic", "pValue", "equalVariance"],
+        "params": [
+          "groups"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "equalVariance"
+        ],
         "description": "Bartlett 등분산 검정"
       },
       "chi_square_goodness_test": {
-        "params": ["observed", "expected?", "alpha?"],
-        "returns": ["chiSquare", "pValue", "degreesOfFreedom", "criticalValue", "reject", "observed", "expected"],
+        "params": [
+          "observed",
+          "expected?",
+          "alpha?"
+        ],
+        "returns": [
+          "chiSquare",
+          "pValue",
+          "degreesOfFreedom",
+          "criticalValue",
+          "reject",
+          "observed",
+          "expected"
+        ],
         "description": "카이제곱 적합도 검정"
       },
       "chi_square_independence_test": {
-        "params": ["observedMatrix", "yatesCorrection?", "alpha?"],
-        "returns": ["chiSquare", "pValue", "df", "criticalValue", "reject", "cramersV", "observedMatrix", "expectedMatrix"],
+        "params": [
+          "observedMatrix",
+          "yatesCorrection?",
+          "alpha?"
+        ],
+        "returns": [
+          "chiSquare",
+          "pValue",
+          "degreesOfFreedom",
+          "criticalValue",
+          "reject",
+          "cramersV",
+          "observedMatrix",
+          "expectedMatrix"
+        ],
         "description": "카이제곱 독립성 검정"
       },
       "fisher_exact_test": {
-        "params": ["table", "alternative?", "alpha?"],
-        "returns": ["pValue", "oddsRatio"],
+        "params": [
+          "table",
+          "alternative?",
+          "alpha?"
+        ],
+        "returns": [
+          "pValue",
+          "oddsRatio"
+        ],
         "description": "Fisher 정확검정"
       },
       "power_analysis": {
-        "params": ["testType", "analysisType", "alpha?", "power?", "effectSize?", "sampleSize?", "sides?"],
-        "returns": ["requiredSampleSize", "achievedPower", "effectSize", "alpha", "interpretation"],
+        "params": [
+          "testType",
+          "analysisType",
+          "alpha?",
+          "power?",
+          "effectSize?",
+          "sampleSize?",
+          "sides?"
+        ],
+        "returns": [
+          "requiredSampleSize",
+          "achievedPower",
+          "effectSize",
+          "alpha",
+          "interpretation"
+        ],
         "description": "검정력 분석"
       }
     }
@@ -173,96 +497,225 @@
   "worker3": {
     "name": "nonparametric-anova",
     "description": "비모수 검정 및 분산분석",
-    "packages": ["numpy", "scipy", "statsmodels", "pandas", "scikit-learn"],
+    "packages": [
+      "numpy",
+      "scipy",
+      "statsmodels",
+      "pandas",
+      "scikit-learn"
+    ],
     "methods": {
       "mann_whitney_test": {
-        "params": ["group1", "group2"],
-        "returns": ["statistic", "pValue", "effectSize"],
+        "params": [
+          "group1",
+          "group2"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "effectSize"
+        ],
         "description": "Mann-Whitney U 검정"
       },
       "wilcoxon_test": {
-        "params": ["values1", "values2"],
-        "returns": ["statistic", "pValue", "effectSize"],
+        "params": [
+          "values1",
+          "values2"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "effectSize"
+        ],
         "description": "Wilcoxon 부호순위 검정"
       },
       "kruskal_wallis_test": {
-        "params": ["groups"],
-        "returns": ["statistic", "pValue", "df"],
+        "params": [
+          "groups"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "df"
+        ],
         "description": "Kruskal-Wallis H 검정"
       },
       "friedman_test": {
-        "params": ["groups"],
-        "returns": ["statistic", "pValue", "df"],
+        "params": [
+          "groups"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "df"
+        ],
         "description": "Friedman 검정"
       },
       "one_way_anova": {
-        "params": ["groups"],
-        "returns": ["fStatistic", "pValue", "dfBetween", "dfWithin", "etaSquared", "omegaSquared"],
+        "params": [
+          "groups"
+        ],
+        "returns": [
+          "fStatistic",
+          "pValue",
+          "dfBetween",
+          "dfWithin",
+          "etaSquared",
+          "omegaSquared"
+        ],
         "description": "일원 분산분석"
       },
       "two_way_anova": {
-        "params": ["dataValues", "factor1Values", "factor2Values"],
-        "returns": ["factor1", "factor2", "interaction", "residual", "anovaTable"],
+        "params": [
+          "dataValues",
+          "factor1Values",
+          "factor2Values"
+        ],
+        "returns": [
+          "factor1",
+          "factor2",
+          "interaction",
+          "residual",
+          "anovaTable"
+        ],
         "description": "이원 분산분석"
       },
       "tukey_hsd": {
-        "params": ["groups"],
-        "returns": ["comparisons"],
+        "params": [
+          "groups"
+        ],
+        "returns": [
+          "comparisons"
+        ],
         "description": "Tukey HSD 사후검정"
       },
       "sign_test": {
-        "params": ["before", "after"],
-        "returns": ["statistic", "pValue", "nPositive", "nNegative", "nTies"],
+        "params": [
+          "before",
+          "after"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "nPositive",
+          "nNegative",
+          "nTies"
+        ],
         "description": "부호 검정"
       },
       "runs_test": {
-        "params": ["sequence"],
-        "returns": ["statistic", "pValue", "nRuns", "expectedRuns"],
+        "params": [
+          "sequence"
+        ],
+        "returns": [
+          "nRuns",
+          "expectedRuns",
+          "n1",
+          "n2",
+          "zStatistic",
+          "pValue"
+        ],
         "description": "런 검정"
       },
       "mcnemar_test": {
-        "params": ["contingencyTable"],
-        "returns": ["statistic", "pValue", "continuityCorrection", "discordantPairs"],
+        "params": [
+          "contingencyTable"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "continuityCorrection",
+          "discordantPairs"
+        ],
         "description": "McNemar 검정"
       },
       "cochran_q_test": {
-        "params": ["dataMatrix"],
-        "returns": ["qStatistic", "pValue", "df"],
+        "params": [
+          "dataMatrix"
+        ],
+        "returns": [
+          "qStatistic",
+          "pValue",
+          "df"
+        ],
         "description": "Cochran Q 검정"
       },
       "mood_median_test": {
-        "params": ["groups"],
-        "returns": ["statistic", "pValue", "grandMedian"],
+        "params": [
+          "groups"
+        ],
+        "returns": [
+          "statistic",
+          "pValue",
+          "grandMedian"
+        ],
         "description": "Mood 중앙값 검정"
       },
       "repeated_measures_anova": {
-        "params": ["dataMatrix", "subjectIds", "timeLabels"],
-        "returns": ["fStatistic", "pValue", "df"],
+        "params": [
+          "dataMatrix",
+          "subjectIds",
+          "timeLabels"
+        ],
+        "returns": [
+          "fStatistic",
+          "pValue",
+          "df"
+        ],
         "description": "반복측정 분산분석"
       },
       "ancova": {
-        "params": ["yValues", "groupValues", "covariates"],
-        "returns": ["fStatistic", "pValue", "adjustedMeans"],
+        "params": [
+          "yValues",
+          "groupValues",
+          "covariates"
+        ],
+        "returns": [
+          "fStatistic",
+          "pValue",
+          "adjustedMeans"
+        ],
         "description": "공분산분석"
       },
       "manova": {
-        "params": ["dataMatrix", "groupValues", "varNames"],
-        "returns": ["wilksLambda", "fStatistic", "pValue"],
+        "params": [
+          "dataMatrix",
+          "groupValues",
+          "varNames"
+        ],
+        "returns": [
+          "wilksLambda",
+          "fStatistic",
+          "pValue"
+        ],
         "description": "다변량 분산분석"
       },
       "scheffe_test": {
-        "params": ["groups"],
-        "returns": ["comparisons"],
+        "params": [
+          "groups"
+        ],
+        "returns": [
+          "comparisons"
+        ],
         "description": "Scheffe 사후검정"
       },
       "dunn_test": {
-        "params": ["groups", "pAdjust?"],
-        "returns": ["comparisons"],
+        "params": [
+          "groups",
+          "pAdjust?"
+        ],
+        "returns": [
+          "comparisons"
+        ],
         "description": "Dunn 사후검정"
       },
       "games_howell_test": {
-        "params": ["groups"],
-        "returns": ["comparisons"],
+        "params": [
+          "groups"
+        ],
+        "returns": [
+          "comparisons"
+        ],
         "description": "Games-Howell 사후검정"
       }
     }
@@ -270,106 +723,338 @@
   "worker4": {
     "name": "regression-advanced",
     "description": "회귀분석 및 고급 통계",
-    "packages": ["numpy", "scipy", "statsmodels", "scikit-learn"],
+    "packages": [
+      "numpy",
+      "scipy",
+      "statsmodels",
+      "scikit-learn"
+    ],
     "methods": {
       "linear_regression": {
-        "params": ["x", "y"],
-        "returns": ["slope", "intercept", "rSquared", "adjRSquared", "pValue", "standardError"],
+        "params": [
+          "x",
+          "y"
+        ],
+        "returns": [
+          "slope",
+          "intercept",
+          "rSquared",
+          "pValue",
+          "stdErr",
+          "nPairs",
+          "slopeCi",
+          "interceptCi",
+          "slopeTValue",
+          "interceptTValue",
+          "residuals",
+          "fittedValues",
+          "equation",
+          "confidenceInterval",
+          "interpretation",
+          "isSignificant",
+          "assumptions"
+        ],
         "description": "단순 선형회귀"
       },
       "multiple_regression": {
-        "params": ["X", "y"],
-        "returns": ["coefficients", "rSquared", "adjRSquared", "fStatistic", "pValue"],
+        "params": [
+          "X",
+          "y"
+        ],
+        "returns": [
+          "coefficients",
+          "stdErrors",
+          "tValues",
+          "pValues",
+          "ciLower",
+          "ciUpper",
+          "rSquared",
+          "adjustedRSquared",
+          "fStatistic",
+          "fPValue",
+          "residualStdError",
+          "residuals",
+          "fittedValues",
+          "vif",
+          "nObservations",
+          "nPredictors",
+          "assumptions"
+        ],
         "description": "다중 회귀분석"
       },
       "logistic_regression": {
-        "params": ["X", "y"],
-        "returns": ["coefficients", "accuracy", "auc", "confusionMatrix"],
+        "params": [
+          "X",
+          "y"
+        ],
+        "returns": [
+          "coefficients",
+          "stdErrors",
+          "zValues",
+          "pValues",
+          "ciLower",
+          "ciUpper",
+          "predictions",
+          "predictedClass",
+          "accuracy",
+          "confusionMatrix",
+          "sensitivity",
+          "specificity",
+          "rocCurve",
+          "auc",
+          "aic",
+          "bic",
+          "pseudoRSquared",
+          "llrPValue",
+          "nObservations",
+          "nPredictors"
+        ],
         "description": "로지스틱 회귀"
       },
       "pca_analysis": {
-        "params": ["data", "nComponents?"],
-        "returns": ["components", "explainedVariance", "explainedVarianceRatio", "cumulativeVariance", "loadings", "scores"],
+        "params": [
+          "data",
+          "nComponents?"
+        ],
+        "returns": [
+          "components",
+          "totalVariance",
+          "selectedComponents",
+          "rotationMatrix",
+          "transformedData",
+          "variableContributions",
+          "qualityMetrics",
+          "screeData",
+          "interpretation"
+        ],
         "description": "주성분 분석"
       },
       "curve_estimation": {
-        "params": ["xValues", "yValues", "modelType?"],
-        "returns": ["parameters", "rSquared", "equation", "predictions"],
+        "params": [
+          "xValues",
+          "yValues",
+          "modelType?"
+        ],
+        "returns": [
+          "parameters",
+          "rSquared",
+          "equation",
+          "predictions"
+        ],
         "description": "곡선 추정"
       },
       "nonlinear_regression": {
-        "params": ["xValues", "yValues", "modelType?", "initialGuess?"],
-        "returns": ["parameters", "rSquared", "equation", "predictions"],
+        "params": [
+          "xValues",
+          "yValues",
+          "modelType?",
+          "initialGuess?"
+        ],
+        "returns": [
+          "parameters",
+          "rSquared",
+          "equation",
+          "predictions"
+        ],
         "description": "비선형 회귀"
       },
       "stepwise_regression": {
-        "params": ["yValues", "xMatrix", "variableNames?", "method?", "entryThreshold?", "stayThreshold?"],
-        "returns": ["selectedVariables", "coefficients", "rSquared", "steps"],
+        "params": [
+          "yValues",
+          "xMatrix",
+          "variableNames?",
+          "method?",
+          "entryThreshold?",
+          "stayThreshold?"
+        ],
+        "returns": [
+          "selectedVariables",
+          "coefficients",
+          "rSquared",
+          "steps"
+        ],
         "description": "단계적 회귀"
       },
       "binary_logistic": {
-        "params": ["xMatrix", "yValues"],
-        "returns": ["coefficients", "oddsRatios", "pValues", "accuracy", "auc"],
+        "params": [
+          "xMatrix",
+          "yValues"
+        ],
+        "returns": [
+          "coefficients",
+          "oddsRatios",
+          "pValues",
+          "accuracy",
+          "auc"
+        ],
         "description": "이항 로지스틱 회귀"
       },
       "multinomial_logistic": {
-        "params": ["xMatrix", "yValues"],
-        "returns": ["coefficients", "accuracy"],
+        "params": [
+          "xMatrix",
+          "yValues"
+        ],
+        "returns": [
+          "coefficients",
+          "accuracy"
+        ],
         "description": "다항 로지스틱 회귀"
       },
       "ordinal_logistic": {
-        "params": ["xMatrix", "yValues"],
-        "returns": ["coefficients", "thresholds"],
+        "params": [
+          "xMatrix",
+          "yValues"
+        ],
+        "returns": [
+          "coefficients",
+          "thresholds"
+        ],
         "description": "순서형 로지스틱 회귀"
       },
       "probit_regression": {
-        "params": ["xMatrix", "yValues"],
-        "returns": ["coefficients", "pValues", "marginalEffects"],
+        "params": [
+          "xMatrix",
+          "yValues"
+        ],
+        "returns": [
+          "coefficients",
+          "pValues",
+          "marginalEffects"
+        ],
         "description": "프로빗 회귀"
       },
       "poisson_regression": {
-        "params": ["xMatrix", "yValues"],
-        "returns": ["coefficients", "pValues", "incidenceRateRatios"],
+        "params": [
+          "xMatrix",
+          "yValues"
+        ],
+        "returns": [
+          "coefficients",
+          "pValues",
+          "incidenceRateRatios"
+        ],
         "description": "포아송 회귀"
       },
       "negative_binomial_regression": {
-        "params": ["xMatrix", "yValues"],
-        "returns": ["coefficients", "pValues", "dispersion"],
+        "params": [
+          "xMatrix",
+          "yValues"
+        ],
+        "returns": [
+          "coefficients",
+          "pValues",
+          "dispersion"
+        ],
         "description": "음이항 회귀"
       },
       "factor_analysis": {
-        "params": ["dataMatrix", "nFactors?", "rotation?"],
-        "returns": ["loadings", "communalities", "explainedVariance", "eigenvalues"],
+        "params": [
+          "dataMatrix",
+          "nFactors?",
+          "rotation?"
+        ],
+        "returns": [
+          "loadings",
+          "communalities",
+          "explainedVariance",
+          "explainedVarianceRatio",
+          "totalVarianceExplained",
+          "nFactors",
+          "eigenvalues"
+        ],
         "description": "요인분석"
       },
       "cluster_analysis": {
-        "params": ["data", "method?", "nClusters?", "linkage?", "distance?"],
-        "returns": ["nClusters", "clusterAssignments", "centroids", "inertia", "silhouetteScore", "clusterSizes"],
+        "params": [
+          "data",
+          "method?",
+          "nClusters?",
+          "linkage?",
+          "distance?"
+        ],
+        "returns": [
+          "nClusters",
+          "clusterAssignments",
+          "centroids",
+          "inertia",
+          "silhouetteScore",
+          "clusterSizes"
+        ],
         "description": "군집분석"
       },
       "time_series_analysis": {
-        "params": ["dataValues", "seasonalPeriods?"],
-        "returns": ["trend", "seasonal", "residual", "acf", "pacf", "adfStatistic", "adfPValue", "isStationary"],
+        "params": [
+          "dataValues",
+          "seasonalPeriods?"
+        ],
+        "returns": [
+          "trend",
+          "seasonal",
+          "residual",
+          "acf",
+          "pacf",
+          "adfStatistic",
+          "adfPValue",
+          "isStationary"
+        ],
         "description": "시계열 분석"
       },
       "durbin_watson_test": {
-        "params": ["residuals"],
-        "returns": ["statistic", "interpretation"],
+        "params": [
+          "residuals"
+        ],
+        "returns": [
+          "statistic",
+          "interpretation"
+        ],
         "description": "Durbin-Watson 자기상관 검정"
       },
       "discriminant_analysis": {
-        "params": ["data", "groups"],
-        "returns": ["coefficients", "totalVariance", "functions", "predictions", "confusionMatrix", "interpretation"],
+        "params": [
+          "data",
+          "groups"
+        ],
+        "returns": [
+          "functions",
+          "totalVariance",
+          "selectedFunctions",
+          "groupCentroids",
+          "classificationResults",
+          "accuracy",
+          "confusionMatrix",
+          "equalityTests",
+          "interpretation"
+        ],
         "description": "판별분석"
       },
       "kaplan_meier_survival": {
-        "params": ["times", "events"],
-        "returns": ["survivalProbabilities", "confidenceIntervals", "medianSurvival"],
+        "params": [
+          "times",
+          "events"
+        ],
+        "returns": [
+          "survivalFunction",
+          "times",
+          "events",
+          "nRisk",
+          "medianSurvival"
+        ],
         "description": "Kaplan-Meier 생존분석"
       },
       "cox_regression": {
-        "params": ["times", "events", "covariateData", "covariateNames"],
-        "returns": ["coefficients", "hazardRatios", "pValues", "confidenceIntervals", "concordance"],
+        "params": [
+          "times",
+          "events",
+          "covariateData",
+          "covariateNames"
+        ],
+        "returns": [
+          "coefficients",
+          "hazardRatios",
+          "pValues",
+          "confidenceIntervals",
+          "concordance"
+        ],
         "description": "Cox 비례위험모형"
       }
     }
