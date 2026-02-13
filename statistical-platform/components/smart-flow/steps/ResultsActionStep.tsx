@@ -36,10 +36,9 @@ import {
 } from '@/components/ui/tooltip'
 import { AnalysisResult } from '@/types/smart-flow'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
-import { PDFReportService } from '@/lib/services/pdf-report-service'
 import { startNewAnalysis } from '@/lib/services/data-management'
 import { ExportDropdown } from '@/components/smart-flow/ExportDropdown'
-import { splitInterpretation } from '@/lib/services/export/export-data-builder'
+import { splitInterpretation, generateSummaryText } from '@/lib/services/export/export-data-builder'
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
 import { TemplateSaveModal } from '@/components/smart-flow/TemplateSaveModal'
 import ReactMarkdown from 'react-markdown'
@@ -367,7 +366,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
     try {
       // ---- plain text 버전 ----
-      const plainText = PDFReportService.generateSummaryText(results)
+      const plainText = generateSummaryText(results)
       const aiPlain = interpretation
         ? `\n\n${t.results.clipboard.aiSeparator}\n${interpretation}`
         : ''

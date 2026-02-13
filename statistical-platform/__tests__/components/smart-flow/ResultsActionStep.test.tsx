@@ -594,11 +594,9 @@ vi.mock('@/hooks/use-terminology', () => ({
   }),
 }))
 
-vi.mock('@/lib/services/pdf-report-service', () => ({
-  PDFReportService: {
-    generateReport: vi.fn(),
-    generateSummaryText: vi.fn().mockReturnValue('Summary text')
-  }
+vi.mock('@/lib/services/export/export-data-builder', () => ({
+  splitInterpretation: vi.fn((text: string) => ({ summary: text, detail: '' })),
+  generateSummaryText: vi.fn().mockReturnValue('Summary text'),
 }))
 
 vi.mock('@/lib/services/data-management', () => ({

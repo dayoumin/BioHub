@@ -251,3 +251,50 @@ export function downloadBlob(blob: Blob, fileName: string): void {
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
 }
+
+/**
+ * 클립보드 복사용 plain text 요약 생성
+ */
+export function generateSummaryText(result: AnalysisResult): string {
+  const pValueText = result.pValue < 0.001 ? '< 0.001' : result.pValue.toFixed(4)
+
+  let summary = `Statistical Analysis Summary\n`
+  summary += `========================\n\n`
+  summary += `Method: ${result.method}\n`
+  summary += `Test Statistic: ${result.statistic.toFixed(4)}\n`
+  summary += `p-value: ${pValueText}\n`
+
+  if (result.effectSize !== undefined) {
+    const esValue = typeof result.effectSize === 'number'
+      ? result.effectSize
+      : result.effectSize.value
+    summary += `Effect Size: ${esValue.toFixed(4)}\n`
+  }
+
+  if (result.confidence) {
+    summary += `95% CI: [${result.confidence.lower.toFixed(4)}, ${result.confidence.upper.toFixed(4)}]\n`
+  }
+
+  summary += `\nInterpretation:\n${result.interpretation}\n`
+
+  if (result.assumptions) {
+    summary += `\nAssumptions:\n`
+    if (result.assumptions.normality) {
+      const norm = result.assumptions.normality
+      if (norm.group1) {
+        summary += `- Normality (Group 1): ${norm.group1.isNormal ? 'Met' : 'Violated'} (p=${norm.group1?.pValue !== undefined ? norm.group1?.pValue.toFixed(4) : 'N/A'})\n`
+      }
+      if (norm.group2) {
+        summary += `- Normality (Group 2): ${norm.group2.isNormal ? 'Met' : 'Violated'} (p=${norm.group2?.pValue !== undefined ? norm.group2?.pValue.toFixed(4) : 'N/A'})\n`
+      }
+    }
+    if (result.assumptions.homogeneity) {
+      const equalVariance = result.assumptions.homogeneity.levene?.equalVariance ?? result.assumptions.homogeneity.bartlett?.equalVariance ?? false
+      const pValue = result.assumptions.homogeneity.levene?.pValue ?? result.assumptions.homogeneity.bartlett?.pValue
+      const pValueStr = pValue !== undefined ? pValue.toFixed(4) : 'N/A'
+      summary += `- Equal Variance: ${equalVariance ? 'Met' : 'Violated'} (p=${pValueStr})\n`
+    }
+  }
+
+  return summary
+}
