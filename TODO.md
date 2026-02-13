@@ -181,7 +181,7 @@
 | 작업 | 설명 |
 |------|------|
 | **Phase 15-1: Bio-Tools** | 12개 생물학 분석, `/bio-tools/` 5페이지 구현 ([상세](study/PLAN-BIO-STATISTICS-AUDIT.md)) |
-| **Phase 5-3: Design Polish** | Step Transition, Dashboard Layout, Loading UI 개선 |
+| **Design Polish** | Step Transition, Dashboard Layout, Loading UI 개선 |
 
 ### 완료 (Phase 5-2)
 | 작업 | 설명 | 상태 |
