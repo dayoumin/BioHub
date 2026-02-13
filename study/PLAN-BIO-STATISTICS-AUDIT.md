@@ -11,7 +11,7 @@
 |------|------|
 | **최근 사용 빈도** | 2023-2025 논문에서 실제로 많이 인용/사용되는가? |
 | **Python 구현 가능성** | scipy/numpy/statsmodels/scikit-learn으로 Pyodide에서 구현 가능한가? |
-| **기존 도구와 차별성** | 이미 구현된 51개 메서드와 겹치지 않는가? |
+| **기존 도구와 차별성** | 이미 구현된 43개 메서드와 겹치지 않는가? |
 | **타겟 사용자 관련성** | 수산과학/생태학/생물학 연구자가 실제로 필요로 하는가? |
 | **정통성** | 검증된 통계 방법론인가? (유행성 기법 제외) |
 
@@ -74,10 +74,14 @@
 
 ```python
 # Shannon: H' = -Σ(pi * ln(pi))
-# Simpson: 1 - Σ(pi²)
+# Simpson Dominance: D = Σ(pi²)
+# Simpson Diversity: 1 - D = 1 - Σ(pi²)   ← 가장 흔히 보고됨
+# Simpson Reciprocal: 1/D = 1/Σ(pi²)
 # Margalef: (S-1) / ln(N)
 # Pielou: H' / ln(S)
 ```
+
+> **Simpson 지수 출력**: 3가지 변형(Dominance D, Diversity 1-D, Reciprocal 1/D) 모두 계산하여 출력. 논문에서 가장 많이 보고되는 것은 **Diversity (1-D)**이므로 이를 기본값으로 표시.
 
 #### 2. 종 희박화 곡선 (Rarefaction Curve)
 
@@ -263,30 +267,30 @@ H₀: 그룹간 centroid가 동일
 
 | 분석 | 예상 시간 | Worker |
 |------|----------|--------|
-| 다양성 지수 4종 | 1일 | Worker 1 (descriptive 확장) |
-| Rarefaction | 0.5일 | Worker 1 |
-| Beta Diversity | 0.5일 | Worker 1 |
-| NMDS | 1일 | Worker 4 (scikit-learn) |
-| PERMANOVA | 1일 | Worker 3 (nonparametric 확장) |
-| Mantel Test | 0.5일 | Worker 3 |
+| 다양성 지수 4종 | 1일 | Worker 5 (ecology) |
+| Rarefaction | 0.5일 | Worker 5 |
+| Beta Diversity | 0.5일 | Worker 5 |
+| NMDS | 1일 | Worker 5 (scikit-learn MDS) |
+| PERMANOVA | 1일 | Worker 5 (순열 검정) |
+| Mantel Test | 0.5일 | Worker 5 |
 | **소계** | **4.5일** | |
 
 ### Phase B: 수산과학 (0.5주)
 
 | 분석 | 예상 시간 | Worker |
 |------|----------|--------|
-| VBGF + Gompertz + Logistic (AIC 비교) | 1.5일 | Worker 4 |
-| 체장-체중 관계식 + 비만도 | 0.5일 | Worker 4 |
+| VBGF + Gompertz + Logistic (AIC 비교) | 1.5일 | Worker 6 (bio/growth) |
+| 체장-체중 관계식 + 비만도 | 0.5일 | Worker 6 |
 | **소계** | **2일** | |
 
 ### Phase C: 범용 (1주)
 
 | 분석 | 예상 시간 | Worker |
 |------|----------|--------|
-| 메타분석 (Forest/Funnel plot) | 2일 | Worker 4 (statsmodels) |
-| ROC/AUC | 1일 | Worker 4 (scikit-learn) |
-| ICC (6 types) | 1일 | Worker 1 |
-| Hardy-Weinberg | 0.5일 | Worker 2 |
+| 메타분석 (Forest/Funnel plot) | 2일 | Worker 6 (statsmodels) |
+| ROC/AUC | 1일 | Worker 6 (scikit-learn) |
+| ICC (6 types) | 1일 | Worker 6 |
+| Hardy-Weinberg | 0.5일 | Worker 6 |
 | **소계** | **4.5일** | |
 
 ### 총합: 약 11일 (2.5주)
@@ -343,6 +347,22 @@ Phase A → B → C 순서 권장 (시너지 + 난이도 순)
 | **내장 패키지로 직접 구현** | 다양성 지수, Rarefaction, 베타 다양성, NMDS, PERMANOVA, Mantel, VBGF, 체장-체중, 메타분석, ROC/AUC, ICC, HW 검정 | **가장 안정적**. 외부 의존성 0 |
 | **pingouin micropip 설치** | ICC 검증용 참고 (실제 구현은 직접) | 설치 가능하나 Worker에서 micropip 사용은 복잡도 증가 |
 | **직접 구현 불가 → 보류** | SEM, 고급 공간 분석 | semopy 미지원, 구현 난이도 과다 |
+
+### 차트 렌더링 전략
+
+기존 프로젝트 패턴을 따름:
+- **Python**: 데이터 계산만 담당 (좌표, 통계량, 거리행렬 등)
+- **JavaScript (Recharts)**: 시각화 렌더링 담당 (차트, 그래프)
+- ❌ matplotlib 서버 렌더링 안 함 (Pyodide 환경에서 PNG 직접 생성 불가)
+
+| 시각화 | Python 출력 | JS 렌더링 |
+|--------|------------|----------|
+| Rarefaction Curve | `{sampleSizes: [...], speciesEstimates: [...]}` | Recharts LineChart |
+| NMDS Ordination | `{coordinates: [{x, y, group}], stress: 0.12}` | Recharts ScatterChart |
+| Forest Plot | `{studies: [{name, effectSize, ci, weight}]}` | 커스텀 Recharts |
+| Funnel Plot | `{studies: [{effectSize, se}], funnel: {...}}` | Recharts ScatterChart |
+| ROC Curve | `{fpr: [...], tpr: [...], auc: 0.85}` | Recharts AreaChart |
+| Growth Curve | `{observed: [...], fitted: [...], params: {...}}` | Recharts LineChart |
 
 ### 참고 소스
 

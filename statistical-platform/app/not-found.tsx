@@ -38,16 +38,13 @@ export default function NotFound() {
             </p>
             <div className="flex flex-wrap gap-2 justify-center">
               <Button asChild variant="ghost" size="sm">
-                <Link href="/smart-flow">스마트 분석</Link>
+                <Link href="/">스마트 분석</Link>
               </Button>
               <Button asChild variant="ghost" size="sm">
-                <Link href="/statistics/t-test">T-검정</Link>
+                <Link href="/about">플랫폼 소개</Link>
               </Button>
               <Button asChild variant="ghost" size="sm">
-                <Link href="/statistics/anova">ANOVA</Link>
-              </Button>
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/statistics/correlation">상관분석</Link>
+                <Link href="/dashboard">대시보드</Link>
               </Button>
             </div>
           </div>

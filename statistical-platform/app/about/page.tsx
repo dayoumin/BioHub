@@ -64,7 +64,7 @@ export default function AboutPage() {
               >
                 <Link href="/statistics">
                   <BarChart3 className="mr-2 h-5 w-5" />
-                  전통적 분석 도구
+                  개별 분석 도구 (직접 접근)
                 </Link>
               </Button>
             </div>

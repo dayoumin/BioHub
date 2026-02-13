@@ -308,13 +308,13 @@ export function FileUpload({ onUploadComplete, className, enableSmartAnalysis = 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button
                     onClick={() => {
-                      // Navigate to statistics page with this dataset selected
-                      window.location.href = `/statistics?dataset=${uploadState.uploadedDataset?.id}`
+                      // Navigate to Smart Flow (main analysis entry point)
+                      window.location.href = '/'
                     }}
                     className="flex items-center gap-2"
                   >
                     <BarChart3 className="h-4 w-4" />
-                    {uploadState.showSmartAnalysis ? 'Manual Analysis' : 'Start Statistical Analysis'}
+                    스마트 분석 시작
                   </Button>
                   
                   <Button 

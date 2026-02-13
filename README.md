@@ -285,11 +285,11 @@ ollama pull mxbai-embed-large  # Ollama 임베딩 모델
 - **Phase 9**: 계산 방법 표준화 + setTimeout 제거 + 테스트 강화
 - **Phase 12**: 수산과학 도메인 전환 + Terminology System
 - **Phase 13**: LLM 분석 추천 + 결과 해석
+- **Phase 5-2**: Pyodide 리팩토링 완료 (Generated 래퍼 전환 + any 타입 제거)
 
 ### 🔜 **다음 작업**
 
 - **Phase 15-1**: Bio-Tools (12개 생물학 분석, 5페이지)
-- **Phase 5-2**: Pyodide 리팩토링 (TypeScript 래퍼 교체)
 
 **상세**: [ROADMAP.md](ROADMAP.md) | [TODO.md](TODO.md)
 

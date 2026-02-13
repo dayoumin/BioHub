@@ -15,12 +15,12 @@ export function StatisticalToolsSection() {
     <section className="space-y-12 border-t pt-16">
       {/* 섹션 헤더 */}
       <div className="text-center space-y-4">
-        <Badge variant="outline" className="mb-2">전문가용 도구</Badge>
+        <Badge variant="outline" className="mb-2">전문가 직접 접근</Badge>
         <h2 className="text-3xl font-bold">
-          특정 통계 분석이 필요하신가요?
+          개별 분석 도구에 직접 접근하기
         </h2>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          29개의 전문 통계 도구를 카테고리별로 선택할 수 있습니다.
+          위 스마트 분석 플로우를 권장하지만, 특정 분석 도구에 직접 접근할 수도 있습니다.
           각 도구는 Python의 SciPy와 NumPy를 기반으로 정확한 결과를 보장합니다.
         </p>
       </div>
@@ -84,9 +84,9 @@ export function StatisticalToolsSection() {
 
       {/* 전체 도구 보기 버튼 */}
       <div className="text-center">
-        <Button size="lg" variant="default" asChild>
+        <Button size="lg" variant="outline" asChild>
           <Link href="/statistics">
-            29개 전체 통계 도구 보기
+            전체 통계 도구 보기
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
