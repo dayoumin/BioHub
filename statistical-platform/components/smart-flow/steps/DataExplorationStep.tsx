@@ -865,21 +865,27 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         />
 
         {/* 지원 기능 안내 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 bg-muted/30 rounded-lg">
-            <ListOrdered className="h-5 w-5 text-primary mb-2" />
-            <h4 className="font-medium text-sm">{t.dataExploration.features.descriptiveTitle}</h4>
-            <p className="text-xs text-muted-foreground mt-1">{t.dataExploration.features.descriptiveDesc}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="p-4 bg-muted/20 border border-border/20 rounded-xl hover:bg-muted/30 transition-colors duration-200">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
+              <ListOrdered className="h-4 w-4 text-primary" />
+            </div>
+            <h4 className="font-semibold text-sm tracking-tight">{t.dataExploration.features.descriptiveTitle}</h4>
+            <p className="text-xs text-muted-foreground/80 mt-1.5 leading-relaxed">{t.dataExploration.features.descriptiveDesc}</p>
           </div>
-          <div className="p-4 bg-muted/30 rounded-lg">
-            <BarChart3 className="h-5 w-5 text-primary mb-2" />
-            <h4 className="font-medium text-sm">{t.dataExploration.features.distributionTitle}</h4>
-            <p className="text-xs text-muted-foreground mt-1">{t.dataExploration.features.distributionDesc}</p>
+          <div className="p-4 bg-muted/20 border border-border/20 rounded-xl hover:bg-muted/30 transition-colors duration-200">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
+              <BarChart3 className="h-4 w-4 text-primary" />
+            </div>
+            <h4 className="font-semibold text-sm tracking-tight">{t.dataExploration.features.distributionTitle}</h4>
+            <p className="text-xs text-muted-foreground/80 mt-1.5 leading-relaxed">{t.dataExploration.features.distributionDesc}</p>
           </div>
-          <div className="p-4 bg-muted/30 rounded-lg">
-            <Flame className="h-5 w-5 text-primary mb-2" />
-            <h4 className="font-medium text-sm">{t.dataExploration.features.correlationTitle}</h4>
-            <p className="text-xs text-muted-foreground mt-1">{t.dataExploration.features.correlationDesc}</p>
+          <div className="p-4 bg-muted/20 border border-border/20 rounded-xl hover:bg-muted/30 transition-colors duration-200">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
+              <Flame className="h-4 w-4 text-primary" />
+            </div>
+            <h4 className="font-semibold text-sm tracking-tight">{t.dataExploration.features.correlationTitle}</h4>
+            <p className="text-xs text-muted-foreground/80 mt-1.5 leading-relaxed">{t.dataExploration.features.correlationDesc}</p>
           </div>
         </div>
       </div>
@@ -1019,20 +1025,22 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       )}
 
       {/* 기초 통계량 / 데이터 미리보기 탭 */}
-      <Card>
-        <CardHeader className="pb-3">
+      <Card className="border-border/40 shadow-sm overflow-hidden">
+        <CardHeader className="pb-3 bg-muted/10">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <ListOrdered className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2.5 text-base tracking-tight">
+              <div className="p-1.5 rounded-md bg-primary/10">
+                <ListOrdered className="h-4 w-4 text-primary" />
+              </div>
               {t.dataExploration.tabs.dataSummary}
             </CardTitle>
             <Button
               variant="outline"
               size="sm"
               onClick={handleOpenDataInNewWindow}
-              className="gap-2"
+              className="gap-2 shadow-sm"
             >
-              <ExternalLink className="w-4 h-4" />
+              <ExternalLink className="w-3.5 h-3.5" />
               {t.dataExploration.tabs.fullDataView(data.length)}
             </Button>
           </div>
@@ -1107,76 +1115,60 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
                 })()}
 
-                <div className="overflow-x-auto max-h-[400px] border rounded-lg">
+                <div className="overflow-x-auto max-h-[400px] border border-border/40 rounded-xl">
                   <table className="w-full text-sm border-collapse">
-                    <thead className="sticky top-0 bg-muted/80 backdrop-blur-sm">
-
-                      <tr className="border-b">
-
-                        <th className="text-left p-2 font-semibold whitespace-nowrap">{t.dataExploration.headers.variableName}</th>
-
-                        <th className="text-right p-2 font-semibold whitespace-nowrap">{t.dataExploration.headers.count}</th>
-
-                        <th className="text-right p-2 font-semibold whitespace-nowrap">{t.dataExploration.headers.mean}</th>
-
-                        <th className="text-right p-2 font-semibold whitespace-nowrap">{t.dataExploration.headers.stdDev}</th>
-
-                        <th className="text-right p-2 font-semibold whitespace-nowrap">{t.dataExploration.headers.median}</th>
-
-                        <th className="text-right p-2 font-semibold whitespace-nowrap">{t.dataExploration.headers.min}</th>
-
-                        <th className="text-right p-2 font-semibold whitespace-nowrap">{t.dataExploration.headers.max}</th>
-
-                        <th className="text-right p-2 font-semibold whitespace-nowrap">Q1</th>
-
-                        <th className="text-right p-2 font-semibold whitespace-nowrap">Q3</th>
-
-                        <th className="text-right p-2 font-semibold whitespace-nowrap">{t.dataExploration.headers.skewness}</th>
-
-                        <th className="text-right p-2 font-semibold whitespace-nowrap">{t.dataExploration.headers.kurtosis}</th>
-
-                        <th className="text-right p-2 font-semibold whitespace-nowrap">{t.dataExploration.headers.outliers}</th>
-
+                    <thead className="sticky top-0 bg-muted/60 backdrop-blur-md z-10">
+                      <tr className="border-b border-border/40">
+                        <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.variableName}</th>
+                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.count}</th>
+                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.mean}</th>
+                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.stdDev}</th>
+                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.median}</th>
+                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.min}</th>
+                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.max}</th>
+                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">Q1</th>
+                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">Q3</th>
+                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.skewness}</th>
+                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.kurtosis}</th>
+                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.outliers}</th>
                       </tr>
-
                     </thead>
 
-
-                    <tbody>
+                    <tbody className="divide-y divide-border/20">
                       {numericDistributions.map(col => {
                         const skewWarning = col.skewness !== undefined && Math.abs(col.skewness) > 2
                         const kurtWarning = col.kurtosis !== undefined && Math.abs(col.kurtosis) > 7
 
                         return (
-                          <tr key={col.name} className="border-b hover:bg-muted/50">
-                            <td className="p-2 font-medium whitespace-nowrap">{col.name}</td>
-                            <td className="p-2 text-right">{col.n}</td>
-                            <td className="p-2 text-right">{formatStat(col.mean)}</td>
-                            <td className="p-2 text-right">{formatStat(col.std)}</td>
-                            <td className="p-2 text-right">{formatStat(col.median)}</td>
-                            <td className="p-2 text-right">{formatStat(col.min)}</td>
-                            <td className="p-2 text-right">{formatStat(col.max)}</td>
-                            <td className="p-2 text-right">{formatStat(col.q1)}</td>
-                            <td className="p-2 text-right">{formatStat(col.q3)}</td>
-                            <td className={`p-2 text-right ${skewWarning ? 'text-yellow-600 dark:text-yellow-400 font-medium' : ''}`}>
+                          <tr key={col.name} className="hover:bg-muted/30 transition-colors duration-150">
+                            <td className="px-3 py-2 font-medium whitespace-nowrap tracking-tight">{col.name}</td>
+                            <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{col.n}</td>
+                            <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.mean)}</td>
+                            <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.std)}</td>
+                            <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.median)}</td>
+                            <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.min)}</td>
+                            <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.max)}</td>
+                            <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.q1)}</td>
+                            <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.q3)}</td>
+                            <td className={cn("px-3 py-2 text-right font-mono text-xs tabular-nums", skewWarning && "text-amber-600 dark:text-amber-400 font-semibold")}>
                               {formatStat(col.skewness)}
-                              {skewWarning && ' ⚠'}
+                              {skewWarning && <AlertTriangle className="h-3 w-3 inline ml-0.5" />}
                             </td>
-                            <td className={`p-2 text-right ${kurtWarning ? 'text-yellow-600 dark:text-yellow-400 font-medium' : ''}`}>
+                            <td className={cn("px-3 py-2 text-right font-mono text-xs tabular-nums", kurtWarning && "text-amber-600 dark:text-amber-400 font-semibold")}>
                               {formatStat(col.kurtosis)}
-                              {kurtWarning && ' ⚠'}
+                              {kurtWarning && <AlertTriangle className="h-3 w-3 inline ml-0.5" />}
                             </td>
-                            <td className="p-2 text-right">
+                            <td className="px-3 py-2 text-right">
                               {col.outlierCount > 0 ? (
                                 <Badge
                                   variant="secondary"
-                                  className="text-xs cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors"
+                                  className="text-[10px] cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors font-mono"
                                   onClick={() => handleOpenOutlierModal(col.name)}
                                 >
                                   {t.dataExploration.outlier.count(col.outlierCount)}
                                 </Badge>
                               ) : (
-                                <span className="text-muted-foreground">-</span>
+                                <span className="text-muted-foreground/40">-</span>
                               )}
                             </td>
                           </tr>
@@ -1309,14 +1301,19 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       )}
 
       {profile.assumptionTests !== 'hidden' && !isAssumptionLoading && assumptionResults && (
-        <Card className={cn("border-highlight-border bg-highlight-bg", profile.assumptionTests === 'secondary' && 'opacity-50 border-l-2 border-l-muted-foreground/30')}>
+        <Card className={cn("border-border/40 shadow-sm overflow-hidden", profile.assumptionTests === 'secondary' && 'opacity-50 border-l-2 border-l-muted-foreground/30')}>
           {profile.assumptionTests === 'secondary' && (
             <div className="px-4 pt-3">
               <Badge variant="outline" className="text-[10px] text-muted-foreground">{t.dataExploration.assumptions.badge}</Badge>
             </div>
           )}
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-1.5"><Search className="h-4 w-4" />{t.dataExploration.assumptions.title}</CardTitle>
+          <CardHeader className="bg-muted/10">
+            <CardTitle className="text-base flex items-center gap-2.5 tracking-tight">
+              <div className="p-1.5 rounded-md bg-primary/10">
+                <Search className="h-4 w-4 text-primary" />
+              </div>
+              {t.dataExploration.assumptions.title}
+            </CardTitle>
             <CardDescription>
               {t.dataExploration.assumptions.description}
             </CardDescription>
@@ -1325,24 +1322,27 @@ export const DataExplorationStep = memo(function DataExplorationStep({
             <div className="space-y-3">
               {/* 정규성 검정 결과 */}
               {assumptionResults.normality?.shapiroWilk && (
-                <div className="p-3 bg-white dark:bg-background rounded-lg border">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-sm flex items-center gap-1.5"><BarChart3 className="h-3.5 w-3.5" />{t.dataExploration.normality.title}</span>
-                    <Badge variant={assumptionResults.normality.shapiroWilk.isNormal ? "default" : "secondary"}>
+                <div className="p-4 bg-background rounded-xl border border-border/40">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="font-semibold text-sm flex items-center gap-2 tracking-tight">
+                      <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
+                      {t.dataExploration.normality.title}
+                    </span>
+                    <Badge variant={assumptionResults.normality.shapiroWilk.isNormal ? "default" : "secondary"} className="text-[10px]">
                       {assumptionResults.normality.shapiroWilk.isNormal ? t.dataExploration.normality.normal : t.dataExploration.normality.nonNormal}
                     </Badge>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">{t.dataExploration.normality.statLabel} </span>
-                      <span className="font-mono">{(assumptionResults.normality.shapiroWilk.statistic ?? 0).toFixed(4)}</span>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="bg-muted/30 rounded-lg px-3 py-2">
+                      <span className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">{t.dataExploration.normality.statLabel}</span>
+                      <div className="font-mono text-sm font-medium tabular-nums mt-0.5">{(assumptionResults.normality.shapiroWilk.statistic ?? 0).toFixed(4)}</div>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground">p-value: </span>
-                      <span className="font-mono">{(assumptionResults.normality.shapiroWilk.pValue ?? 0).toFixed(4)}</span>
+                    <div className="bg-muted/30 rounded-lg px-3 py-2">
+                      <span className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">p-value</span>
+                      <div className="font-mono text-sm font-medium tabular-nums mt-0.5">{(assumptionResults.normality.shapiroWilk.pValue ?? 0).toFixed(4)}</div>
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-2">
+                  <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
                     {assumptionResults.normality.shapiroWilk.isNormal
                       ? t.dataExploration.normality.normalInterpretation
                       : t.dataExploration.normality.nonNormalInterpretation}
@@ -1352,24 +1352,27 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
               {/* 등분산성 검정 결과 */}
               {assumptionResults.homogeneity?.levene && (
-                <div className="p-3 bg-white dark:bg-background rounded-lg border">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-sm flex items-center gap-1.5"><BarChart3 className="h-3.5 w-3.5" />{t.dataExploration.homogeneity.title}</span>
-                    <Badge variant={assumptionResults.homogeneity.levene.equalVariance ? "default" : "secondary"}>
+                <div className="p-4 bg-background rounded-xl border border-border/40">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="font-semibold text-sm flex items-center gap-2 tracking-tight">
+                      <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
+                      {t.dataExploration.homogeneity.title}
+                    </span>
+                    <Badge variant={assumptionResults.homogeneity.levene.equalVariance ? "default" : "secondary"} className="text-[10px]">
                       {assumptionResults.homogeneity.levene.equalVariance ? t.dataExploration.homogeneity.equal : t.dataExploration.homogeneity.unequal}
                     </Badge>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">{t.dataExploration.homogeneity.statLabel} </span>
-                      <span className="font-mono">{(assumptionResults.homogeneity.levene.statistic ?? 0).toFixed(4)}</span>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="bg-muted/30 rounded-lg px-3 py-2">
+                      <span className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">{t.dataExploration.homogeneity.statLabel}</span>
+                      <div className="font-mono text-sm font-medium tabular-nums mt-0.5">{(assumptionResults.homogeneity.levene.statistic ?? 0).toFixed(4)}</div>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground">p-value: </span>
-                      <span className="font-mono">{(assumptionResults.homogeneity.levene.pValue ?? 0).toFixed(4)}</span>
+                    <div className="bg-muted/30 rounded-lg px-3 py-2">
+                      <span className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">p-value</span>
+                      <div className="font-mono text-sm font-medium tabular-nums mt-0.5">{(assumptionResults.homogeneity.levene.pValue ?? 0).toFixed(4)}</div>
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-2">
+                  <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
                     {assumptionResults.homogeneity.levene.equalVariance
                       ? t.dataExploration.homogeneity.equalInterpretation
                       : t.dataExploration.homogeneity.unequalInterpretation}
@@ -1383,10 +1386,12 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
       {/* 데이터 분포 시각화 */}
       {profile.distribution !== 'hidden' && (
-      <Card className={cn(profile.distribution === 'secondary' && 'opacity-50 border-l-2 border-l-muted-foreground/30')}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
+      <Card className={cn("border-border/40 shadow-sm overflow-hidden", profile.distribution === 'secondary' && 'opacity-50 border-l-2 border-l-muted-foreground/30')}>
+        <CardHeader className="bg-muted/10">
+          <CardTitle className="flex items-center gap-2.5 text-base tracking-tight">
+            <div className="p-1.5 rounded-md bg-primary/10">
+              <BarChart3 className="h-4 w-4 text-primary" />
+            </div>
             {t.dataExploration.distribution.title}
           </CardTitle>
           <CardDescription>
@@ -1520,9 +1525,9 @@ export const DataExplorationStep = memo(function DataExplorationStep({
             const { r, r2 } = calculateCorrelation(xData, yData)
 
             return (
-              <Card key={config.id} className="overflow-hidden border-0 shadow-sm bg-card">
+              <Card key={config.id} className="overflow-hidden border border-border/40 shadow-sm bg-card rounded-xl">
                 {/* 모던 헤더 - 변수 선택 영역 */}
-                <div className="px-5 py-4 border-b bg-muted/30">
+                <div className="px-5 py-4 border-b border-border/30 bg-muted/15">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <div className="p-1.5 rounded-md bg-primary/10">
@@ -1640,9 +1645,9 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
         {/* 상관 히트맵 Tab Content */}
         <ContentTabsContent show={explorationTab === 'heatmap'}>
-          <Card>
-            <CardHeader>
-              <CardTitle>{t.dataExploration.heatmap.title}</CardTitle>
+          <Card className="border-border/40 shadow-sm overflow-hidden rounded-xl">
+            <CardHeader className="bg-muted/10">
+              <CardTitle className="text-base tracking-tight">{t.dataExploration.heatmap.title}</CardTitle>
               <CardDescription>
                 {t.dataExploration.heatmap.description}
               </CardDescription>

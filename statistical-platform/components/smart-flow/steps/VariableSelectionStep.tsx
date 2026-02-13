@@ -343,27 +343,41 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
       {/* AI Detected Variables Info */}
       {detectedVariables && (
-        <Alert className="bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
-          <Sparkles className="h-4 w-4 text-blue-500" />
-          <AlertDescription className="text-sm">
-            <span className="font-medium">AI 추천 변수: </span>
-            {detectedVariables.dependentCandidate && (
-              <Badge variant="outline" className="mr-1 text-xs bg-blue-100 dark:bg-blue-900/50">종속: {detectedVariables.dependentCandidate}</Badge>
-            )}
-            {detectedVariables.groupVariable && (
-              <Badge variant="outline" className="mr-1 text-xs bg-green-100 dark:bg-green-900/50">집단: {detectedVariables.groupVariable}</Badge>
-            )}
-            {detectedVariables.factors && detectedVariables.factors.length > 0 && (
-              <Badge variant="outline" className="mr-1 text-xs bg-green-100 dark:bg-green-900/50">요인: {detectedVariables.factors.join(', ')}</Badge>
-            )}
-            {detectedVariables.independentVars && detectedVariables.independentVars.length > 0 && (
-              <Badge variant="outline" className="mr-1 text-xs bg-purple-100 dark:bg-purple-900/50">독립: {detectedVariables.independentVars.join(', ')}</Badge>
-            )}
-            {detectedVariables.covariates && detectedVariables.covariates.length > 0 && (
-              <Badge variant="outline" className="mr-1 text-xs bg-gray-100 dark:bg-gray-800">공변량: {detectedVariables.covariates.join(', ')}</Badge>
-            )}
-          </AlertDescription>
-        </Alert>
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/20 border border-border/30">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <Sparkles className="h-4 w-4 text-primary" />
+          </div>
+          <div className="text-sm space-y-1.5">
+            <span className="font-semibold tracking-tight text-foreground/90">AI 추천 변수</span>
+            <div className="flex flex-wrap gap-1.5">
+              {detectedVariables.dependentCandidate && (
+                <Badge variant="outline" className="text-[10px] bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 font-medium">
+                  종속: {detectedVariables.dependentCandidate}
+                </Badge>
+              )}
+              {detectedVariables.groupVariable && (
+                <Badge variant="outline" className="text-[10px] bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 font-medium">
+                  집단: {detectedVariables.groupVariable}
+                </Badge>
+              )}
+              {detectedVariables.factors && detectedVariables.factors.length > 0 && (
+                <Badge variant="outline" className="text-[10px] bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 font-medium">
+                  요인: {detectedVariables.factors.join(', ')}
+                </Badge>
+              )}
+              {detectedVariables.independentVars && detectedVariables.independentVars.length > 0 && (
+                <Badge variant="outline" className="text-[10px] bg-violet-50 dark:bg-violet-900/30 border-violet-200 dark:border-violet-800 font-medium">
+                  독립: {detectedVariables.independentVars.join(', ')}
+                </Badge>
+              )}
+              {detectedVariables.covariates && detectedVariables.covariates.length > 0 && (
+                <Badge variant="outline" className="text-[10px] bg-muted border-border/50 font-medium">
+                  공변량: {detectedVariables.covariates.join(', ')}
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Dynamic Selector */}

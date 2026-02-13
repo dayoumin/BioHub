@@ -453,24 +453,30 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       <div className="space-y-6" ref={chartRef}>
         {/* ===== 메인 결과 카드 ===== */}
         <Card className={cn(
-          "overflow-hidden",
-          !assumptionsPassed ? "border-amber-300" :
-          isSignificant ? "border-green-300" : "border-gray-200"
+          "overflow-hidden shadow-sm rounded-xl",
+          !assumptionsPassed ? "border-amber-200 dark:border-amber-800" :
+          isSignificant ? "border-emerald-200 dark:border-emerald-800" : "border-border/40"
         )} data-testid="results-main-card">
           {/* 헤더: 분석명 + 시간 */}
-          <CardHeader className="pb-3 bg-muted/30">
+          <CardHeader className="pb-3 bg-muted/15 border-b border-border/20">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                {!assumptionsPassed ? (
-                  <AlertCircle className="w-5 h-5 text-amber-500" />
-                ) : isSignificant ? (
-                  <CheckCircle2 className="w-5 h-5 text-green-500" />
-                ) : (
-                  <XCircle className="w-5 h-5 text-gray-400" />
-                )}
+              <CardTitle className="text-base tracking-tight flex items-center gap-2.5">
+                <div className={cn(
+                  "w-7 h-7 rounded-lg flex items-center justify-center",
+                  !assumptionsPassed ? "bg-amber-100 dark:bg-amber-900/30" :
+                  isSignificant ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-muted"
+                )}>
+                  {!assumptionsPassed ? (
+                    <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  ) : isSignificant ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  ) : (
+                    <XCircle className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </div>
                 {statisticalResult.testName}
               </CardTitle>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-[11px] text-muted-foreground/60 font-mono tabular-nums">
                 {new Date().toLocaleString('ko-KR', {
                   month: 'short',
                   day: 'numeric',
@@ -484,10 +490,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           <CardContent className="pt-4 space-y-4">
             {/* ===== 핵심 결론 (1줄) ===== */}
             <div className={cn(
-              "p-3 rounded-lg text-center font-medium",
-              !assumptionsPassed ? "bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200" :
-              isSignificant ? "bg-green-50 text-green-800 dark:bg-green-950/30 dark:text-green-200" :
-              "bg-gray-50 text-gray-600 dark:bg-gray-900/30 dark:text-gray-300"
+              "p-3.5 rounded-xl text-center text-sm font-semibold tracking-tight",
+              !assumptionsPassed ? "bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200 border border-amber-200/50 dark:border-amber-800/50" :
+              isSignificant ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200 border border-emerald-200/50 dark:border-emerald-800/50" :
+              "bg-muted/50 text-muted-foreground border border-border/30"
             )}>
               {!assumptionsPassed ? (
                 t.results.conclusion.assumptionWarning
@@ -545,8 +551,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             {/* ===== 해석 ===== */}
             {statisticalResult.interpretation && (
               <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-100 dark:border-blue-900">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  💡 {statisticalResult.interpretation}
+                <p className="text-sm text-blue-800 dark:text-blue-200 flex items-start gap-2">
+                  <Lightbulb className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <span>{statisticalResult.interpretation}</span>
                 </p>
               </div>
             )}
@@ -555,9 +562,11 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             <div className="space-y-2" data-testid="ai-interpretation-section">
               {/* 로딩 중 */}
               {isInterpreting && !interpretation && (
-                <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-100 dark:border-purple-900 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-purple-500 animate-pulse" />
-                  <span className="text-sm text-purple-700 dark:text-purple-300">{t.results.ai.loading}</span>
+                <div className="p-3.5 bg-violet-50 dark:bg-violet-950/20 rounded-xl border border-violet-100 dark:border-violet-900/50 flex items-center gap-2.5">
+                  <div className="w-6 h-6 rounded-md bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center">
+                    <Sparkles className="w-3.5 h-3.5 text-violet-500 animate-pulse" />
+                  </div>
+                  <span className="text-sm text-violet-700 dark:text-violet-300 font-medium">{t.results.ai.loading}</span>
                 </div>
               )}
 
@@ -566,9 +575,11 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 const { summary, detail } = splitInterpretation(interpretation)
                 return (
                   <>
-                    <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-100 dark:border-purple-900">
-                      <div className="flex items-start gap-2">
-                        <Sparkles className="w-4 h-4 text-purple-500 mt-0.5 shrink-0" />
+                    <div className="p-3.5 bg-violet-50 dark:bg-violet-950/20 rounded-xl border border-violet-100 dark:border-violet-900/50">
+                      <div className="flex items-start gap-2.5">
+                        <div className="w-6 h-6 rounded-md bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Sparkles className="w-3.5 h-3.5 text-violet-500" />
+                        </div>
                         <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed flex-1">
                           <ReactMarkdown>{summary}</ReactMarkdown>
                           {isInterpreting && (
@@ -810,15 +821,15 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         </Card>
 
         {/* ===== 액션 버튼 (1줄) ===== */}
-        <div className="flex items-center gap-2 flex-wrap" data-testid="action-buttons">
+        <div className="flex items-center gap-2 flex-wrap p-3 bg-muted/20 border border-border/20 rounded-xl" data-testid="action-buttons">
           {/* Primary Actions */}
           <Button
             variant={isSaved ? "default" : "outline"}
             size="sm"
             onClick={handleSaveToHistory}
-            className="flex-1"
+            className="flex-1 shadow-sm"
           >
-            <Save className="w-4 h-4 mr-1.5" />
+            <Save className="w-3.5 h-3.5 mr-1.5" />
             {isSaved ? t.results.buttons.saved : t.results.buttons.save}
           </Button>
 
@@ -835,16 +846,16 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             variant="outline"
             size="sm"
             onClick={handleCopyResults}
-            className="flex-1"
+            className="flex-1 shadow-sm"
           >
-            <Copy className="w-4 h-4 mr-1.5" />
+            <Copy className="w-3.5 h-3.5 mr-1.5" />
             {isCopied ? t.results.buttons.copied : t.results.buttons.copy}
           </Button>
 
           {/* More Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="shadow-sm">
                 <MoreHorizontal className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>

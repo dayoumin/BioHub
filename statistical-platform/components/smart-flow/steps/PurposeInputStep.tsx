@@ -812,35 +812,36 @@ export function PurposeInputStep({
         {flowState.step === 'browse' && (
           <div key="browse">
             {/* Header with back button */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleGuidedBack}
-                  className="gap-1"
+                  className="gap-1.5 text-muted-foreground hover:text-foreground"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   {t.purposeInput.buttons.back}
                 </Button>
-                <h3 className="text-lg font-semibold">
+                <div className="h-4 w-px bg-border/60" />
+                <h3 className="text-base font-semibold tracking-tight">
                   {t.purposeInput.buttons.allMethods}
                 </h3>
               </div>
               {/* Action Button - browse 모드에서는 수동 선택만으로 진행 가능 */}
               {finalSelectedMethod && (selectedPurpose || manualSelectedMethod) && !isAnalyzing && (
-                <div data-testid="selected-method-bar" className="flex items-center gap-3">
+                <div data-testid="selected-method-bar" className="flex items-center gap-3 pl-4 py-2 pr-2 rounded-xl bg-primary/5 border border-primary/20">
                   <div className="text-sm">
                     <span className="text-muted-foreground">{t.purposeInput.labels.selectionPrefix}</span>
-                    <span data-testid="final-selected-method-name" className="ml-1 font-semibold">{finalSelectedMethod.name}</span>
+                    <span data-testid="final-selected-method-name" className="ml-1 font-semibold tracking-tight">{finalSelectedMethod.name}</span>
                     {manualSelectedMethod && (
-                      <Badge variant="outline" className="ml-2 text-xs">{t.purposeInput.labels.directBadge}</Badge>
+                      <Badge variant="outline" className="ml-2 text-[10px]">{t.purposeInput.labels.directBadge}</Badge>
                     )}
                   </div>
                   <Button
                     onClick={handleConfirmMethod}
                     disabled={isNavigating}
-                    className="gap-2"
+                    className="gap-2 shadow-sm"
                     data-testid="confirm-method-btn"
                   >
                     {t.purposeInput.buttons.useThisMethod}
@@ -867,23 +868,23 @@ export function PurposeInputStep({
       <>
       {/* Header with Action Button (상단 배치) */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold" id="purpose-selection-label">
+        <h3 className="text-base font-semibold tracking-tight" id="purpose-selection-label">
           {t.purposeInput.labels.purposeHeading}
         </h3>
         {/* Action Button - browse step에서 상단에 표시 */}
         {finalSelectedMethod && selectedPurpose && !isAnalyzing && (
-          <div data-testid="selected-method-bar" className="flex items-center gap-3">
+          <div data-testid="selected-method-bar" className="flex items-center gap-3 pl-4 py-2 pr-2 rounded-xl bg-primary/5 border border-primary/20">
             <div className="text-sm">
               <span className="text-muted-foreground">{t.purposeInput.labels.selectionPrefix}</span>
-              <span data-testid="final-selected-method-name" className="ml-1 font-semibold">{finalSelectedMethod.name}</span>
+              <span data-testid="final-selected-method-name" className="ml-1 font-semibold tracking-tight">{finalSelectedMethod.name}</span>
               {manualSelectedMethod && (
-                <Badge variant="outline" className="ml-2 text-xs">{t.purposeInput.labels.directBadge}</Badge>
+                <Badge variant="outline" className="ml-2 text-[10px]">{t.purposeInput.labels.directBadge}</Badge>
               )}
             </div>
             <Button
               onClick={handleConfirmMethod}
               disabled={isNavigating}
-              className="gap-2"
+              className="gap-2 shadow-sm"
             >
               {t.purposeInput.buttons.useThisMethod}
               <ArrowRight className="w-4 h-4" />
@@ -898,7 +899,7 @@ export function PurposeInputStep({
           role="radiogroup"
           aria-labelledby="purpose-selection-label"
           aria-describedby="purpose-selection-help"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"
         >
           {analysisPurposes.map((purpose, index) => (
             <div

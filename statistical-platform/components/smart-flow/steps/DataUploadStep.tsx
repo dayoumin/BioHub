@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { Upload, AlertCircle, Loader2, Clock, FileSpreadsheet, X } from 'lucide-react'
+import { Upload, AlertCircle, Loader2, Clock, FileSpreadsheet, X, Lightbulb } from 'lucide-react'
 import { toast } from 'sonner'
 import { getUserFriendlyErrorMessage } from '@/lib/constants/error-messages'
 import { useTerminology } from '@/hooks/use-terminology'
@@ -391,35 +391,41 @@ export function DataUploadStep({
 
   return (
     <div className="space-y-4">
-      {/* 업로드 영역 (컴팩트) */}
+      {/* 업로드 영역 */}
       {!uploadedFileName ? (
         <div
           {...getRootProps()}
           className={cn(
-            "border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer",
-            isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50",
+            "relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 cursor-pointer group",
+            isDragActive
+              ? "border-primary bg-primary/5 shadow-[0_0_0_4px_rgba(var(--primary-rgb,0,0,0),0.05)]"
+              : "border-border/60 hover:border-primary/40 hover:bg-muted/20",
             isUploading && "pointer-events-none opacity-50"
           )}
         >
           <input {...getInputProps()} />
-          <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-          <h3 className="text-sm font-medium mb-1">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-muted/50 border border-border/40 flex items-center justify-center group-hover:bg-primary/5 group-hover:border-primary/20 transition-colors duration-300">
+            <Upload className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
+          </div>
+          <h3 className="text-sm font-semibold tracking-tight mb-1">
             {isDragActive ? t.dataUpload.labels.dropHere : t.dataUpload.labels.dragOrClick}
           </h3>
-          <p className="text-xs text-muted-foreground mb-2">{t.dataUpload.labels.fileSpecifications}</p>
-          <Button variant="outline" size="sm" disabled={isUploading}>
+          <p className="text-xs text-muted-foreground/80 mb-3">{t.dataUpload.labels.fileSpecifications}</p>
+          <Button variant="outline" size="sm" disabled={isUploading} className="shadow-sm">
             {isUploading ? t.dataUpload.buttons.uploading : t.dataUpload.buttons.selectFile}
           </Button>
         </div>
       ) : (
-        <div className="border rounded-lg p-3 flex items-center justify-between bg-muted/30">
-          <div className="flex items-center gap-2">
-            <FileSpreadsheet className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">{uploadedFileName}</span>
+        <div className="border border-border/40 rounded-xl p-3.5 flex items-center justify-between bg-muted/20 backdrop-blur-sm">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <FileSpreadsheet className="h-4 w-4 text-primary" />
+            </div>
+            <span className="text-sm font-medium tracking-tight">{uploadedFileName}</span>
           </div>
           <div {...getRootProps()}>
             <input {...getInputProps()} />
-            <Button variant="outline" size="sm" disabled={isUploading}>
+            <Button variant="outline" size="sm" disabled={isUploading} className="shadow-sm">
               {t.dataUpload.buttons.changeFile}
             </Button>
           </div>
@@ -428,22 +434,24 @@ export function DataUploadStep({
 
       {/* 최근 업로드 파일 (업로드 전에만 표시) */}
       {!uploadedFileName && recentFiles.length > 0 && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Clock className="h-3.5 w-3.5" />
+        <div className="space-y-2.5">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground/70 uppercase tracking-wider">
+            <Clock className="h-3 w-3" />
             <span>{t.dataUpload.labels.recentFiles}</span>
           </div>
-          <div className="grid gap-1.5">
+          <div className="grid gap-1">
             {recentFiles.map((file) => (
               <div
                 key={file.name}
-                className="group flex items-center justify-between p-2 rounded-md border bg-background hover:bg-muted/50 transition-colors"
+                className="group flex items-center justify-between p-2.5 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 hover:border-border/30 transition-all duration-200"
               >
-                <div className="flex items-center gap-2 min-w-0">
-                  <FileSpreadsheet className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-7 h-7 rounded-md bg-muted/50 flex items-center justify-center flex-shrink-0">
+                    <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{file.name}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm font-medium truncate tracking-tight">{file.name}</p>
+                    <p className="text-[11px] text-muted-foreground/70">
                       {t.dataUpload.labels.fileMetadata(file.rows.toLocaleString(), formatFileSize(file.size), formatRelativeTime(file.uploadedAt))}
                     </p>
                   </div>
@@ -463,7 +471,7 @@ export function DataUploadStep({
               </div>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[11px] text-muted-foreground/60">
             {t.dataUpload.labels.recentFilesNote}
           </p>
         </div>
@@ -565,11 +573,11 @@ export function DataUploadStep({
         </div>
       )}
 
-      {/* 도움말 (업로드 전에만 표시, 컴팩트) */}
+      {/* 도움말 (업로드 전에만 표시) */}
       {!uploadedFileName && (
-        <div className="bg-muted/50 rounded-lg p-3">
-          <p className="text-xs text-muted-foreground flex items-start gap-1.5">
-            <span>💡</span>
+        <div className="bg-muted/30 border border-border/20 rounded-xl p-3.5">
+          <p className="text-xs text-muted-foreground/80 flex items-start gap-2 leading-relaxed">
+            <Lightbulb className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-muted-foreground/50" />
             <span>{t.dataUpload.labels.helpText}</span>
           </p>
         </div>
