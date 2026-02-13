@@ -1031,6 +1031,67 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
     })
   })
 
+  describe('AI 해석 렌더링 (detail 분기)', () => {
+    beforeEach(() => {
+      mockConvert.mockReturnValue({
+        testName: 't-검정',
+        statistic: 2.456,
+        statisticName: 't',
+        pValue: 0.018,
+        df: 28,
+        alpha: 0.05,
+      } as StatisticalResult)
+    })
+
+    it('detail이 있으면 상세 해석 CollapsibleSection이 렌더링된다', async () => {
+      const { splitInterpretation } = await import('@/lib/services/export/export-data-builder')
+      const { requestInterpretation } = await import('@/lib/services/result-interpreter')
+
+      // requestInterpretation → callback 호출로 interpretation 상태 설정
+      vi.mocked(requestInterpretation).mockImplementation(async (_ctx, onChunk) => {
+        onChunk('요약문입니다.\n\n상세 해석 내용입니다.')
+        return { model: 'test-model' }
+      })
+
+      // splitInterpretation → detail 포함 반환
+      vi.mocked(splitInterpretation).mockReturnValue({
+        summary: '요약문입니다.',
+        detail: '상세 해석 내용입니다.',
+      })
+
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      // useEffect → handleInterpretation → onChunk → setInterpretation → parsedInterpretation
+      await waitFor(() => {
+        expect(screen.getByText('상세 해석')).toBeInTheDocument()
+      })
+    })
+
+    it('detail이 없으면 상세 해석 섹션이 렌더링되지 않는다', async () => {
+      const { splitInterpretation } = await import('@/lib/services/export/export-data-builder')
+      const { requestInterpretation } = await import('@/lib/services/result-interpreter')
+
+      vi.mocked(requestInterpretation).mockImplementation(async (_ctx, onChunk) => {
+        onChunk('단순 요약만 있는 텍스트')
+        return { model: 'test-model' }
+      })
+
+      vi.mocked(splitInterpretation).mockReturnValue({
+        summary: '단순 요약만 있는 텍스트',
+        detail: '',
+      })
+
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('ai-interpretation-section')).toBeInTheDocument()
+      })
+
+      // "상세 해석" CollapsibleSection label은 없어야 함
+      expect(screen.queryByText('상세 해석')).not.toBeInTheDocument()
+    })
+  })
+
   describe('파일 저장 시뮬레이션 (handleSaveAsFile)', () => {
     const fullStatResult = {
       testName: '독립표본 t-검정',

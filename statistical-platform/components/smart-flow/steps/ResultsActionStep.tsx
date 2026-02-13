@@ -53,7 +53,7 @@ interface ResultsActionStepProps {
   results: AnalysisResult | null
 }
 
-// 효과크기 해석
+// 효과크기 해석 (export-data-builder의 interpretEffectSize와 동일 기준)
 function getEffectSizeInterpretation(value: number, type: string | undefined, labels: ResultsText['effectSizeLabels']): string {
   const absValue = Math.abs(value)
   switch (type) {
@@ -70,7 +70,8 @@ function getEffectSizeInterpretation(value: number, type: string | undefined, la
     default:
       if (absValue < 0.2) return labels.small
       if (absValue < 0.5) return labels.medium
-      return labels.large
+      if (absValue < 0.8) return labels.large
+      return labels.veryLarge
   }
 }
 
@@ -95,6 +96,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const [detailedResultsOpen, setDetailedResultsOpen] = useState(true)
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false)
   const chartRef = useRef<HTMLDivElement>(null)
+  const [resultTimestamp] = useState(() => new Date())
 
   // AI 해석 상태
   const [interpretation, setInterpretation] = useState<string | null>(null)
@@ -131,36 +133,31 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }
   }, [])
 
+  // variableMapping → 변수 이름 배열 (statisticalResult, handleInterpretation 공유)
+  const mappedVariables = useMemo(() => {
+    const vars: string[] = []
+    if (variableMapping?.dependentVar) {
+      if (Array.isArray(variableMapping.dependentVar)) vars.push(...variableMapping.dependentVar)
+      else vars.push(variableMapping.dependentVar)
+    }
+    if (variableMapping?.independentVar) {
+      if (Array.isArray(variableMapping.independentVar)) vars.push(...variableMapping.independentVar)
+      else vars.push(variableMapping.independentVar)
+    }
+    if (variableMapping?.groupVar) vars.push(variableMapping.groupVar)
+    return vars
+  }, [variableMapping])
+
   // AnalysisResult -> StatisticalResult 변환
   const statisticalResult = useMemo(() => {
     if (!results) return null
-
-    const variables: string[] = []
-    if (variableMapping?.dependentVar) {
-      if (Array.isArray(variableMapping.dependentVar)) {
-        variables.push(...variableMapping.dependentVar)
-      } else {
-        variables.push(variableMapping.dependentVar)
-      }
-    }
-    if (variableMapping?.independentVar) {
-      if (Array.isArray(variableMapping.independentVar)) {
-        variables.push(...variableMapping.independentVar)
-      } else {
-        variables.push(variableMapping.independentVar)
-      }
-    }
-    if (variableMapping?.groupVar) {
-      variables.push(variableMapping.groupVar)
-    }
-
     return convertToStatisticalResult(results, {
       sampleSize: uploadedData?.length,
       groups: results.groupStats?.length,
-      variables: variables.length > 0 ? variables : undefined,
-      timestamp: new Date()
+      variables: mappedVariables.length > 0 ? mappedVariables : undefined,
+      timestamp: resultTimestamp
     })
-  }, [results, uploadedData, variableMapping])
+  }, [results, uploadedData, mappedVariables, resultTimestamp])
 
   // 유의성 판단
   const isSignificant = useMemo(() => {
@@ -241,6 +238,12 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       variables: Object.keys(uploadedData[0] || {}),
     }
   }, [uploadedData, uploadedFileName])
+
+  // AI 해석 파싱 (summary/detail 분리) — 렌더마다 재파싱 방지
+  const parsedInterpretation = useMemo(() => {
+    if (!interpretation) return null
+    return splitInterpretation(interpretation)
+  }, [interpretation])
 
   // Handlers
   // 파일 저장 (DOCX/Excel 다운로드)
@@ -335,21 +338,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     interpretAbortRef.current = controller
 
     try {
-      const variables: string[] = []
-      if (variableMapping?.dependentVar) {
-        if (Array.isArray(variableMapping.dependentVar)) variables.push(...variableMapping.dependentVar)
-        else variables.push(variableMapping.dependentVar)
-      }
-      if (variableMapping?.independentVar) {
-        if (Array.isArray(variableMapping.independentVar)) variables.push(...variableMapping.independentVar)
-        else variables.push(variableMapping.independentVar)
-      }
-      if (variableMapping?.groupVar) variables.push(variableMapping.groupVar)
-
       const ctx: InterpretationContext = {
         results,
         sampleSize: uploadedData?.length,
-        variables: variables.length > 0 ? variables : undefined,
+        variables: mappedVariables.length > 0 ? mappedVariables : undefined,
         uploadedFileName: uploadedFileName ?? undefined
       }
 
@@ -372,7 +364,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       setIsInterpreting(false)
       interpretAbortRef.current = null
     }
-  }, [results, uploadedData, variableMapping, uploadedFileName])
+  }, [results, uploadedData, mappedVariables, uploadedFileName])
 
   // 결과 로드 시 자동 AI 해석 요청
   useEffect(() => {
@@ -501,7 +493,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 {statisticalResult.testName}
               </CardTitle>
               <span className="text-[11px] text-muted-foreground/60 font-mono tabular-nums">
-                {new Date().toLocaleString('ko-KR', {
+                {resultTimestamp.toLocaleString('ko-KR', {
                   month: 'short',
                   day: 'numeric',
                   hour: '2-digit',
@@ -595,53 +587,50 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               )}
 
               {/* 한줄 요약 (항상 표시) */}
-              {interpretation && (() => {
-                const { summary, detail } = splitInterpretation(interpretation)
-                return (
-                  <>
-                    <div className="p-3.5 bg-violet-50 dark:bg-violet-950/20 rounded-xl border border-violet-100 dark:border-violet-900/50">
-                      <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
-                        <ReactMarkdown>{summary}</ReactMarkdown>
-                        {isInterpreting && (
-                          <span className="inline-block w-1.5 h-4 bg-purple-500 animate-pulse ml-0.5 align-text-bottom" />
-                        )}
-                      </div>
+              {parsedInterpretation && (
+                <>
+                  <div className="p-3.5 bg-violet-50 dark:bg-violet-950/20 rounded-xl border border-violet-100 dark:border-violet-900/50">
+                    <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
+                      <ReactMarkdown>{parsedInterpretation.summary}</ReactMarkdown>
+                      {isInterpreting && (
+                        <span className="inline-block w-1.5 h-4 bg-purple-500 animate-pulse ml-0.5 align-text-bottom" />
+                      )}
                     </div>
+                  </div>
 
-                    {/* 상세 해석 (펼침) */}
-                    {detail && (
-                      <CollapsibleSection
-                        label={t.results.ai.detailedLabel}
-                        open={detailedInterpretOpen}
-                        onOpenChange={setDetailedInterpretOpen}
-                        contentClassName="pt-2"
-                        icon={<Sparkles className="h-3.5 w-3.5 text-purple-500" />}
-                      >
-                        <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
-                          <ReactMarkdown>{detail}</ReactMarkdown>
-                        </div>
-                      </CollapsibleSection>
-                    )}
+                  {/* 상세 해석 (펼침) */}
+                  {parsedInterpretation.detail && (
+                    <CollapsibleSection
+                      label={t.results.ai.detailedLabel}
+                      open={detailedInterpretOpen}
+                      onOpenChange={setDetailedInterpretOpen}
+                      contentClassName="pt-2"
+                      icon={<Sparkles className="h-3.5 w-3.5 text-purple-500" />}
+                    >
+                      <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
+                        <ReactMarkdown>{parsedInterpretation.detail}</ReactMarkdown>
+                      </div>
+                    </CollapsibleSection>
+                  )}
 
-                    {/* 다시 해석 */}
-                    {!isInterpreting && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          interpretedResultRef.current = null
-                          setInterpretation(null)
-                          handleInterpretation()
-                        }}
-                        className="text-xs text-muted-foreground h-6 px-2"
-                      >
-                        <RefreshCw className="w-3 h-3 mr-1" />
-                        {t.results.ai.reinterpret}
-                      </Button>
-                    )}
-                  </>
-                )
-              })()}
+                  {/* 다시 해석 */}
+                  {!isInterpreting && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        interpretedResultRef.current = null
+                        setInterpretation(null)
+                        handleInterpretation()
+                      }}
+                      className="text-xs text-muted-foreground h-6 px-2"
+                    >
+                      <RefreshCw className="w-3 h-3 mr-1" />
+                      {t.results.ai.reinterpret}
+                    </Button>
+                  )}
+                </>
+              )}
 
               {/* 에러 표시 */}
               {interpretError && (
