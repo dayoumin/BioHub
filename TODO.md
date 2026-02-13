@@ -1,6 +1,6 @@
 # 프로젝트 현황 + 할일
 
-**최종 업데이트**: 2026-02-10
+**최종 업데이트**: 2026-02-13
 
 ---
 
@@ -9,18 +9,23 @@
 **프로젝트**: 전문가급 통계 분석 플랫폼 (SPSS/R Studio 급)
 **기술**: Next.js 15 + TypeScript + Pyodide + Ollama (RAG)
 
+**아키텍처 결정 (2026-02-13)**:
+- **Smart Flow** = 통계 분석의 유일한 진입점 (홈 `/`)
+- **개별 `/statistics/*` 43개 페이지** = 레거시 (코드 유지, 신규 개발 안 함)
+- **Bio-Tools** = `/bio-tools/` 별도 섹션 (12개 분석, 5페이지, 예정)
+
 | 항목 | 현황 |
 |------|------|
-| **통계 페이지** | 43/43 (100%) ✅ |
+| **Smart Flow** | 43개 메서드 통합 ✅ |
 | **TypeScript 에러** | 0개 ✅ |
 | **테스트 커버리지** | 88% (38/43) |
 | **통계 신뢰성** | 98% (SciPy/statsmodels) |
 | **DecisionTree 커버리지** | 49/49 (100%) ✅ |
 | **Golden Values 테스트** | 44/44 (100%) ✅ - 5개 라이브러리 |
-| **Methods Registry** | 64개 메서드 (4 Workers) ✅ NEW |
+| **Methods Registry** | 64개 메서드 (4 Workers) ✅ |
 | **E2E 테스트** | 12개 (핵심 플로우 커버) ✅ |
-| **Analysis Guide** | 45/49 페이지 적용 ✅ |
-| **LLM 추천/해석** | Phase 1-3 완료 ✅ NEW |
+| **LLM 추천/해석** | Phase 1-3 완료 ✅ |
+| **Bio-Tools** | 계획 수립 완료, 구현 예정 🔜 |
 
 ---
 
@@ -150,18 +155,15 @@
 | **LLM 결과 해석** | 스트리밍 AI 해석 (한줄 요약 + 상세) | ✅ 구현 완료 |
 | **suggestedSettings → Step 4** | AI 추천 설정(alpha) executor 전달 + custom alpha 적용 | ✅ 완료 |
 | **Merge 준비** | data-testid 11개 + Mock 수정 + E2E 2경로 + 기술부채 3건 | ✅ 완료 |
+| **결과 클립보드 복사** | 기본 결과 + LLM 해석 → HTML 서식 복사 | ✅ 완료 |
+| **Terminology 텍스트 연결 (~150개)** | 하드코딩 텍스트 전체 연결 완료 | ✅ 완료 |
 
 ### 진행 예정
 | 작업 | 설명 |
 |------|------|
-| **결과 클립보드 복사** | 기본 결과 + LLM 해석 → HTML 서식 복사 |
-| **Terminology 텍스트 연결 (~150개)** | 인프라 완료, 하드코딩 텍스트 10%만 연결됨. 전체 연결 전까지 DomainSwitcher는 개발자 전용. 상세: `docs/TERMINOLOGY_REMAINING_TODO.md` |
-
-### LLM 독립 (언제든 가능)
-| 작업 | 설명 |
-|------|------|
-| **Phase 5-2: TS 래퍼 12개** | Worker 4 타입 안전성 완성 (78%→100%) |
-| **Phase 12-2: 도메인 UI 통일** | 43개 페이지 placeholder 수산과학화 |
+| **Phase 15-1: Bio-Tools** | 12개 생물학 분석, `/bio-tools/` 5페이지 구현 ([상세](study/PLAN-BIO-STATISTICS-AUDIT.md)) |
+| **Phase 5-2: Pyodide 리팩토링** | pyodide-statistics.ts 타입/Worker 호출 → Generated Wrapper 교체 |
+| **Phase 5-3: Design Polish** | Step Transition, Dashboard Layout, Loading UI 개선 |
 
 ---
 

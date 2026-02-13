@@ -1025,22 +1025,12 @@ STATISTICS_EXAMPLES.oneWayAnova = {
 
 ---
 
-### Phase 12-2: 통계 페이지 UI 업데이트 (예정)
+### Phase 12-2: ~~통계 페이지 UI 업데이트~~ (보류 — 레거시)
 
-**목표**: 43개 통계 페이지의 placeholder, helpText를 수산과학 예시로 통일
-
-**대상 파일**: `app/(dashboard)/statistics/**/*.tsx` (43개)
-
-**수정 내용**:
-- placeholder 텍스트 (예: "예: 남녀 간 키 차이..." → "예: 암수 간 체중 차이...")
-- helpText 설명 (변수 설명, 예시)
-- 변수 선택 화면 설명 문구
-
-**예상 시간**: 5일
-
-**예상 효과**:
-- 사용자 경험 일관성 100% 확보
-- 통계 페이지 도메인 예시 통일
+**상태**: ⏸️ 보류 (2026-02-13 아키텍처 결정)
+- 개별 `/statistics/*` 43개 페이지는 레거시로 전환됨
+- Smart Flow가 유일한 통계 진입점이므로 개별 페이지 UI 업데이트 우선순위 낮음
+- 필요 시 향후 재검토
 
 ---
 
@@ -1305,6 +1295,15 @@ Knowledge Graph가 필요한 경우는: 엔티티 5개+ 쿼리, 멀티홉 추론
 **원칙**: 단순 AI wrapper가 아닌, 실제 계산/검증/가공 엔진
 **전략**: 빌드(핵심) + 연결+가공(외부 API) + 안함(기존 도구 충분)
 **상세 계획서**: [PLAN-BIORESEARCH-PLATFORM.md](study/PLAN-BIORESEARCH-PLATFORM.md)
+**Bio-Tools 검증 보고서**: [PLAN-BIO-STATISTICS-AUDIT.md](study/PLAN-BIO-STATISTICS-AUDIT.md)
+
+### 아키텍처 결정 (2026-02-13)
+
+```
+[Smart Flow] (홈 /)     = 43개 통계 메서드의 유일한 진입점
+[Bio-Tools] (/bio-tools) = 12개 생물학 분석, 5페이지 (별도 섹션)
+[개별 통계] (/statistics) = 레거시 (코드 유지, 신규 개발 안 함)
+```
 
 ### 플랫폼 포지셔닝
 
@@ -1312,7 +1311,7 @@ Knowledge Graph가 필요한 경우는: 엔티티 5개+ 쿼리, 멀티홉 추론
 현재: "통계 분석 도구" (범용)
   ↓
 목표: "생물학 연구자 올인원 플랫폼" (도메인 특화)
-  = 통계 + 학명검증 + 생태지수 + 성장분석 + 문헌도구 + 논문도구
+  = Smart Flow(통계) + Bio-Tools(생태/수산) + 학명검증 + 문헌도구 + 논문도구
 ```
 
 ### 핵심 차별점
@@ -1373,17 +1372,11 @@ Knowledge Graph가 필요한 경우는: 엔티티 5개+ 쿼리, 멀티홉 추론
 
 ### 구현 로드맵
 
-#### Phase 15-1: 생태 분석 도구 — 2주
+#### Phase 15-1: Bio-Tools (생물학 분석 도구) — 2.5주
 
-기존 Pyodide 엔진 확장. 외부 의존 없음, 즉시 시작 가능.
+12개 생물학 분석을 `/bio-tools/` 5페이지로 구현. Pyodide 내장 패키지만 사용 (외부 의존 없음).
 
-| 기능 | 시간 | 기술 |
-|------|------|------|
-| 생물다양성 지수 (Shannon, Simpson, Margalef, Pielou) | 2일 | scipy, numpy |
-| 성장 곡선 분석 (von Bertalanffy, Gompertz) | 2일 | scipy.optimize |
-| 체장-체중 관계식 (W=aL^b) | 1일 | scipy.stats |
-| CPUE 분석 (시계열) | 2일 | statsmodels |
-| 수질 기준 판정 | 1일 | 규칙 기반 |
+**상세 계획**: [PLAN-BIO-STATISTICS-AUDIT.md](study/PLAN-BIO-STATISTICS-AUDIT.md)
 
 #### Phase 15-2: 종 정보 허브 — 2주
 
@@ -1532,16 +1525,16 @@ Cloudflare $5/월 플랜 내에서 추가 비용 없이 백엔드 기능 추가 
 
 ---
 
-**최종 업데이트**: 2026-02-06
-**현재 Phase**: 5-2 (구현 검증 및 TypeScript 래퍼 추가)
-**현재 진행률**: 43/55 (78%) → 목표 55/55 (100%)
-**다음 마일스톤**: Phase 5-3 (Worker Pool Lazy Loading)
+**최종 업데이트**: 2026-02-13
+**현재 Phase**: Bio-Tools 계획 수립 완료
+**아키텍처 결정**: Smart Flow = 통계 진입점, Bio-Tools = 별도 섹션, /statistics/* = 레거시
+**다음 마일스톤**: Phase 15-1 (Bio-Tools 구현)
 
 **최근 완료**:
+- Bio-Tools 검증 보고서 작성 (12개 확정, 6개 제외, Pyodide 호환성 검증) (2026-02-13)
+- 용어 정비 (Smart Flow / Bio-Tools / 레거시 구분 명확화) (2026-02-13)
 - Cloudflare Workers 백엔드 계획 수립 (KV/R2/D1 + 내부망 어댑터) (2026-02-06)
-- BioResearch Platform 계획 수립 + Cloudflare 배포 가이드 (2026-02-06)
-- 결과 페이지 전문가 수준 통일 + StatisticalResultCard 간소화 (2025-11-27)
-- ResultContextHeader 43개 통계 페이지 적용 (2025-11-27)
+- LLM 추천/해석 Phase 1-3 완료 (2026-02-06)
 
 ---
 
@@ -1575,45 +1568,11 @@ Cloudflare $5/월 플랜 내에서 추가 비용 없이 백엔드 기능 추가 
 
 ---
 
-## 📋 백로그: 개별 통계 페이지 UI 통일 (예정)
+## 📋 백로그: ~~개별 통계 페이지 UI 통일~~ (보류 — 레거시)
 
-**목표**: 43개 개별 통계 페이지의 결과 표시를 Smart Flow와 동일한 `StatisticalResultCard`로 통일
-
-**배경** (2025-11-27):
-- Smart Flow 결과 페이지 전문가 수준으로 간소화 완료
-- 개별 통계 페이지들 (`/statistics/anova`, `/statistics/correlation` 등)은 각자 다른 방식으로 결과 표시
-- 사용자 경험 일관성을 위해 통일 필요
-
-**현재 상태**:
-- ✅ `StatisticalResultCard` 컴포넌트 개선 완료
-  - 레벨 선택 UI 제거 (전문가 고정)
-  - EasyExplanation, NextStepsCard 제거
-  - 툴팁으로 필요 시 설명 제공
-- ✅ Smart Flow `/smart-flow` 페이지 적용 완료
-- ❌ 개별 통계 페이지 43개 미적용
-
-**작업 내용**:
-1. 각 통계 페이지의 결과 표시 로직 → `StatisticalResultCard` 사용으로 변경
-2. 결과 데이터 → `StatisticalResult` 타입으로 변환하는 converter 작성
-3. 페이지별 커스텀 결과 UI 제거
-
-**영향 받는 파일**:
-```
-app/(dashboard)/statistics/
-├── anova/page.tsx
-├── correlation/page.tsx
-├── chi-square/page.tsx
-├── regression/page.tsx
-├── ... (43개 페이지)
-```
-
-**예상 시간**: 2-3일 (페이지당 30분-1시간)
-
-**우선순위**: Medium (Smart Flow 완성 후 진행)
-
-**관련 파일**:
-- [StatisticalResultCard.tsx](statistical-platform/components/statistics/common/StatisticalResultCard.tsx)
-- [result-converter.ts](statistical-platform/lib/statistics/result-converter.ts)
+**상태**: ⏸️ 보류 (2026-02-13 아키텍처 결정)
+- 개별 `/statistics/*` 43개 페이지는 레거시로 전환됨
+- Smart Flow가 유일한 통계 진입점이므로 우선순위 없음
 
 ---
 

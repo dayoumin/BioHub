@@ -6,7 +6,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Next.js](https://img.shields.io/badge/Next.js-15.1-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue)
-![Python](https://img.shields.io/badge/Pyodide-0.26.2-green)
+![Python](https://img.shields.io/badge/Pyodide-0.29.3-green)
 
 ---
 
@@ -15,23 +15,32 @@
 SPSS/R Studio급 고급 통계 분석 플랫폼으로, **완전 오프라인 환경**에서 작동합니다.
 - **대상**: 수산과학 연구자, 통계 전문가, 데이터 분석가
 - **기술**: Next.js 15 + TypeScript + shadcn/ui + Pyodide + Tauri
-- **현재 진행도**: Phase 10 완료 (95%)
-- **지원 통계**: 45개 (통계 43개 + 데이터 도구 2개)
+- **현재 진행도**: Phase 13 완료
+- **Smart Flow**: 43개 통계 메서드 통합 (유일한 통계 진입점)
+- **Bio-Tools**: 12개 생물학 분석 (예정)
+- **데이터 도구**: 2개
 
 ---
 
 ## ✨ 주요 특징
 
 ### 🔬 **전문가급 통계 분석**
-- ✅ **43개 통계 방법**: t-검정, ANOVA, 회귀분석, 비모수 검정, 다변량 분석 등
+- ✅ **43개 통계 메서드**: t-검정, ANOVA, 회귀분석, 비모수 검정, 다변량 분석 등
+- ✅ **Smart Flow**: 데이터 업로드 → AI 분석 추천 → 변수 자동 할당 → 결과 + AI 해석
 - ✅ **검증된 라이브러리**: SciPy, statsmodels, pingouin, scikit-learn
 - ✅ **R/SPSS 호환**: 동일한 결과 보장 (소수점 10자리 일치)
 
-### 🤖 **AI 기반 스마트 분석**
+### 🧬 **Bio-Tools (예정)**
+- 🔜 **12개 생물학 분석**: 다양성 지수, PERMANOVA, NMDS, von Bertalanffy, 메타분석 등
+- 🔜 **수산과학 특화**: 성장 모델, 체장-체중 관계식
+- 🔜 **집단유전학**: Hardy-Weinberg 검정, Mantel 검정
+
+### 🤖 **AI 기반 분석**
+- ✅ **LLM 추천**: 자연어 입력 → AI 분석 방법 추천 + 변수 자동 할당
+- ✅ **LLM 해석**: 분석 결과 AI 스트리밍 해석 (한줄 요약 + 상세)
 - ✅ **RAG 챗봇**: Ollama + ChromaDB로 실시간 통계 자문
 - ✅ **자동 변수 타입 감지**: 연속형, 범주형, 이진형 자동 분류
 - ✅ **자동 가정 검정**: 정규성, 등분산성 자동 검증
-- ✅ **스마트 플로우**: 데이터 업로드 → 자동 분석 목적 추천 → 결과 해석
 
 ### 🌐 **완전 오프라인 지원**
 - ✅ **클라우드 배포**: Vercel 자동 배포 (CDN 사용)
@@ -151,11 +160,12 @@ Statics/
 │
 └── statistical-platform/     # Next.js 15 앱
     ├── app/                  # App Router
+    │   ├── page.tsx          # Smart Flow 홈 (= 통계 분석 진입점)
     │   ├── (dashboard)/      # 대시보드 레이아웃
     │   │   ├── dashboard/    # 메인 대시보드
-    │   │   ├── statistics/   # 43개 통계 페이지
-    │   │   ├── data-tools/   # 2개 데이터 도구
-    │   │   └── smart-flow/   # 스마트 분석 플로우
+    │   │   ├── statistics/   # 43개 통계 페이지 (레거시)
+    │   │   ├── bio-tools/    # Bio-Tools (예정, 5페이지)
+    │   │   └── data-tools/   # 2개 데이터 도구
     │   ├── chatbot/          # AI 챗봇 전체 화면
     │   └── design-system/    # 디자인 시스템 쇼케이스
     │
@@ -218,34 +228,33 @@ ollama pull mxbai-embed-large  # Ollama 임베딩 모델
 
 ---
 
-### 📐 **아키텍처 (Phase 6)**
+### 📐 **아키텍처**
 
 ```
-사용자 → Groups (TS) → PyodideCore → Python Workers (SciPy/statsmodels)
-         ↓              ↓
-    데이터 검증/가공   직접 호출 (callWorkerMethod<T>)
-    UI 포맷팅         타입 안전성 향상
+[Smart Flow]      → PyodideCore → Python Workers 1-4 (SciPy/statsmodels)
+[Bio-Tools (예정)] → PyodideCore → Python Workers 5-6 (scipy/numpy/sklearn)
 ```
+
+**사용자 동선**:
+- **Smart Flow** (홈 `/`): 데이터 업로드 → AI 추천 → 변수 할당 → 분석 → 결과 + AI 해석
+- **Bio-Tools** (`/bio-tools/*`): 생물학 특화 분석 (5페이지)
+- **개별 통계 페이지** (`/statistics/*`): 레거시 (직접 접근 가능하나 권장 안 함)
 
 **핵심 원칙**:
-- **Groups**: TypeScript로 데이터 검증/가공, UI 포맷팅만
-- **PyodideCore**: Python Workers 호출 관리 (421줄)
+- **Smart Flow**: 43개 통계 메서드의 유일한 진입점
+- **PyodideCore**: Python Workers 호출 관리
 - **Python Workers**: 실제 통계 계산 (SciPy/statsmodels)
-- ❌ Groups에서 통계 직접 계산 금지
+- ❌ JavaScript/Python 직접 통계 구현 금지 → 검증된 라이브러리 사용
 
 ---
 
 ### 🧪 **테스트 전략**
 
 #### **현재 테스트**:
-- Jest + React Testing Library
-- 컴포넌트 단위 테스트
-- Integration 테스트 (일부)
-
-#### **향후 계획 (Phase 11)**:
-- **Golden Snapshot 테스트**: 43개 통계 앱 자동 검증
-- **Contract 테스트**: Worker 입출력 검증 (Zod 스키마)
-- **E2E 테스트**: Playwright로 전체 플로우 검증
+- Vitest + React Testing Library (214 파일)
+- Golden Values 테스트 (44/44 통과)
+- E2E 테스트 (Playwright, 12개 핵심 플로우)
+- 3층 아키텍처: L1 Store, L2 data-testid, L3 E2E
 
 **상세**: [AUTOMATED_TESTING_ROADMAP.md](statistical-platform/docs/AUTOMATED_TESTING_ROADMAP.md)
 
@@ -254,6 +263,7 @@ ollama pull mxbai-embed-large  # Ollama 임베딩 모델
 ### 📝 **코딩 규칙**
 
 **필수 규칙**:
+- ✅ **Smart Flow = 통계 진입점** (개별 `/statistics/*` 페이지는 레거시)
 - ✅ TypeScript 엄격 모드 (`any` 금지)
 - ✅ `useStatisticsPage` hook 사용 (useState 금지)
 - ✅ `useCallback` 모든 이벤트 핸들러에 적용
@@ -270,51 +280,46 @@ ollama pull mxbai-embed-large  # Ollama 임베딩 모델
 
 ### ✅ **완료된 Phase**
 
-- **Phase 1**: setTimeout 패턴 제거 (27/27 페이지, 100%)
-- **Phase 2-2**: 코드 품질 개선 (TypeScript 에러 717 → 0)
-- **Phase 3**: StatisticsTable 확대 (8개 페이지, 19개 테이블)
-- **Phase 6**: PyodideCore 직접 연결 (10개 handler, 39개 메서드)
+- **Phase 1-6**: 기반 구축 + PyodideCore 직접 연결 (43개 통계 메서드)
 - **Phase 8**: RAG 시스템 (Ollama + ChromaDB)
-- **Phase 9**: 계산 방법 표준화 (43/43 통계 페이지, 100%)
-- **Phase 10**: 배포 준비 완료 (Web Worker + 배포 가이드)
+- **Phase 9**: 계산 방법 표준화 + setTimeout 제거 + 테스트 강화
+- **Phase 12**: 수산과학 도메인 전환 + Terminology System
+- **Phase 13**: LLM 분석 추천 + 결과 해석
 
 ### 🔜 **다음 작업**
 
-- **Phase 11**: 자동화 테스트 시스템 (68시간 예상)
-  - Golden Snapshot 테스트
-  - Contract 테스트 (Zod 스키마)
-  - E2E 테스트 (Playwright)
-- **Phase 12**: Tauri 데스크탑 앱 (향후 검토)
+- **Phase 15-1**: Bio-Tools (12개 생물학 분석, 5페이지)
+- **Phase 5-2**: Pyodide 리팩토링 (TypeScript 래퍼 교체)
 
 **상세**: [ROADMAP.md](ROADMAP.md) | [TODO.md](TODO.md)
 
 ---
 
-## 📊 지원 통계 방법 (43개)
+## 📊 지원 통계 메서드
 
-### **1. 기술통계 (5개)**
-- 기술통계량, 빈도분석, 교차표, 데이터 탐색, 신뢰도 분석
+### **Smart Flow (43개 메서드 통합)**
 
-### **2. 평균 비교 (6개)**
-- 일표본 t-검정, 독립표본 t-검정, 대응표본 t-검정, Welch t-검정, 일표본 비율, 평균 그림
+Smart Flow가 모든 통계 분석의 유일한 진입점입니다. 데이터 업로드 → AI 추천 → 분석 실행.
 
-### **3. 일반선형모델 (8개)**
-- 일원분산분석, 이원분산분석, 삼원분산분석, 공분산분석, 반복측정 ANOVA, MANOVA, 혼합모형, 반응표면분석
+| 카테고리 | 메서드 수 | 주요 분석 |
+|---------|---------|----------|
+| 기술통계 | 5 | 기술통계량, 빈도분석, 교차표, 신뢰도 분석 |
+| 평균 비교 | 6 | t-검정 (일표본/독립/대응/Welch), 비율 검정 |
+| 일반선형모델 | 8 | ANOVA (일원/이원/삼원), ANCOVA, MANOVA, 혼합모형 |
+| 상관분석 | 4 | Pearson, Spearman, Kendall, 편상관 |
+| 회귀분석 | 6 | 단순/다중/단계적/로지스틱/순서형/Poisson |
+| 비모수 검정 | 11 | Mann-Whitney, Wilcoxon, Kruskal-Wallis, Friedman 등 |
+| 카이제곱 | 3 | 독립성, 적합도, Fisher 정확검정 |
 
-### **4. 상관분석 (4개)**
-- Pearson 상관, Spearman 상관, Kendall 상관, 편상관
+### **Bio-Tools (12개 분석, 예정)**
 
-### **5. 회귀분석 (6개)**
-- 단순회귀, 다중회귀, 단계적 회귀, 로지스틱 회귀, 순서형 회귀, Poisson 회귀
+| 카테고리 | 분석 | 구현 상태 |
+|---------|------|----------|
+| 생태/다양성 | Shannon, Simpson, Rarefaction, NMDS, PERMANOVA, Mantel | 🔜 예정 |
+| 수산과학 | von Bertalanffy 성장 모델, 체장-체중 관계식 | 🔜 예정 |
+| 범용 생물학 | 메타분석, ROC/AUC, ICC, Hardy-Weinberg | 🔜 예정 |
 
-### **6. 비모수 검정 (11개)**
-- Mann-Whitney, Wilcoxon, Kruskal-Wallis, Friedman, 부호검정, 연속검정, Kolmogorov-Smirnov, McNemar, Cochran Q, Mood Median, 이항검정
-
-### **7. 카이제곱 검정 (3개)**
-- 독립성 검정, 적합도 검정, Fisher 정확검정
-
-### **8. 고급분석 (4개)**
-- 요인분석, 주성분분석, 군집분석, 판별분석
+**상세 계획**: [PLAN-BIO-STATISTICS-AUDIT.md](study/PLAN-BIO-STATISTICS-AUDIT.md)
 
 ---
 
@@ -381,6 +386,6 @@ MIT License - 국립수산과학원 (National Institute of Fisheries Science)
 
 ---
 
-**마지막 업데이트**: 2025-11-24
-**버전**: Phase 10 완료 (95%)
-**Next.js**: 15.1 | **TypeScript**: 5.7 | **Pyodide**: 0.26.2
+**마지막 업데이트**: 2026-02-13
+**버전**: Phase 13 완료
+**Next.js**: 15.1 | **TypeScript**: 5.7 | **Pyodide**: 0.29.3

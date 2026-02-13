@@ -25,7 +25,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 🚨 현재 중요 규칙
 
-**상태**: ✅ Phase 9 Complete (2025-11-24) - AI-Native Design System 추가
+**상태**: ✅ Phase 13 Complete (2026-02-06) - LLM 추천/해석 + Terminology System
+
+**⚠️ 아키텍처 결정 (2026-02-13)**:
+- **Smart Flow = 통계 분석의 유일한 진입점** (홈 `/` = ChatCentricHub)
+- **개별 `/statistics/*` 페이지 43개 = 레거시** (코드 유지, 신규 개발 안 함)
+- **Bio-Tools = `/bio-tools/` 별도 섹션** (12개 생물학 분석, 5페이지로 구성)
 
 **반드시 지킬 것** (CRITICAL):
 1. ✅ **변수 role 일치**: variable-requirements.ts의 `role`을 types/statistics.ts에 정확히 반영
@@ -105,8 +110,10 @@ pnpm dev
 - **목표**: SPSS/R Studio 급 고급 통계 소프트웨어
 - **대상**: 수산과학 연구자, 통계 전문가, 데이터 분석가
 - **기술**: Next.js 15 + TypeScript + shadcn/ui + Pyodide + Tauri
-- **현재**: Phase 9 완료 (100%) - PyodideWorker Enum 표준화 + AI-Native Design System
-- **전체 페이지**: 45개 (통계 43개 + 데이터 도구 2개)
+- **현재**: Phase 13 완료 - LLM 추천/해석 + Terminology System
+- **통계 분석**: Smart Flow (43개 메서드 통합) — 유일한 진입점
+- **Bio-Tools**: 12개 생물학 분석 (5페이지) — 별도 섹션 예정
+- **데이터 도구**: 2개
 
 ---
 
@@ -130,9 +137,12 @@ pnpm dev
 - ✅ **반드시 검증된 통계 라이브러리 사용** (SciPy, statsmodels, pingouin)
 - ✅ 직접 구현 시 사용자 사전 승인 필수
 
-### 3. 통계 페이지 코딩 표준 (CRITICAL)
+### 3. 통계 코딩 표준 (CRITICAL)
 
-**43개 통계 페이지 일관성 유지 필수!**
+**Smart Flow + 개별 통계 페이지(레거시) 일관성 유지 필수!**
+- 사용자 동선: Smart Flow (홈 `/`)가 유일한 통계 진입점
+- 개별 `/statistics/*` 43개 페이지: 레거시 (코드 유지, 신규 개발 안 함)
+- Bio-Tools `/bio-tools/*`: 별도 섹션으로 신규 구현 예정
 
 ⚠️ **상세 규칙**: [STATISTICS_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_CODING_STANDARDS.md)
 
@@ -388,9 +398,15 @@ callWorkerMethod(2, 'binomialTest', {
 ### 핵심 디렉토리
 ```
 statistical-platform/
+├── app/
+│   ├── page.tsx                      - Smart Flow 홈 (ChatCentricHub) = 통계 진입점
+│   ├── (dashboard)/statistics/       - 43개 개별 페이지 (레거시, 신규 개발 안 함)
+│   ├── (dashboard)/bio-tools/        - Bio-Tools (예정, 5페이지)
+│   └── (dashboard)/data-tools/       - 데이터 도구 2개
+├── components/smart-flow/            - Smart Flow UI 컴포넌트
 ├── lib/services/
 │   └── pyodide-core.ts              - PyodideCore (421 lines)
-└── public/workers/python/           - Python Workers (4개)
+└── public/workers/python/           - Python Workers (4개 + Bio 2개 예정)
 ```
 
 ---
@@ -449,4 +465,4 @@ pnpm setup:pyodide   # Pyodide 다운로드 (200MB)
 
 ---
 
-**Updated**: 2025-11-27 | **Version**: Phase 9 Complete + AI-Native Design System | **Next**: Phase 11 (자동화 테스트 시스템)
+**Updated**: 2026-02-13 | **Version**: Phase 13 Complete + Bio-Tools 계획 수립 | **Next**: Phase 15-1 (Bio-Tools 구현)
