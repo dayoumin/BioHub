@@ -142,6 +142,81 @@ describe('result-transformer', () => {
       expect(result.postHoc?.[1].significant).toBe(false)
     })
 
+    it('should normalize post-hoc alias fields (pValue, adjusted_p)', () => {
+      const executorResult: ExecutorResult = {
+        metadata: {
+          method: 'ANOVA',
+          timestamp: new Date().toISOString(),
+          duration: 120,
+          dataSize: 45
+        },
+        mainResults: {
+          statistic: 4.2,
+          pvalue: 0.01,
+          interpretation: '유의함'
+        },
+        additionalInfo: {
+          postHoc: [
+            {
+              group1: 'A',
+              group2: 'B',
+              meanDiff: 1.1,
+              pValue: 0.01,
+              adjusted_p: 0.03,
+              significant: true
+            }
+          ]
+        }
+      }
+
+      const result = transformExecutorResult(executorResult)
+
+      expect(result.postHoc).toBeDefined()
+      expect(result.postHoc).toHaveLength(1)
+      expect(result.postHoc?.[0].pvalue).toBe(0.01)
+      expect(result.postHoc?.[0].pvalueAdjusted).toBe(0.03)
+      expect(result.postHoc?.[0].meanDiff).toBe(1.1)
+    })
+
+    it('should transform object-style postHoc.comparisons payload', () => {
+      const executorResult: ExecutorResult = {
+        metadata: {
+          method: 'ANOVA',
+          timestamp: new Date().toISOString(),
+          duration: 140,
+          dataSize: 60
+        },
+        mainResults: {
+          statistic: 6.1,
+          pvalue: 0.004,
+          interpretation: '유의함'
+        },
+        additionalInfo: {
+          postHoc: {
+            method: 'Tukey',
+            comparisons: [
+              {
+                group1: 'A',
+                group2: 'C',
+                meanDiff: 2.2,
+                pValue: 0.02,
+                significant: true
+              }
+            ]
+          }
+        }
+      }
+
+      const result = transformExecutorResult(executorResult)
+
+      expect(result.postHoc).toBeDefined()
+      expect(result.postHoc).toHaveLength(1)
+      expect(result.postHoc?.[0].group1).toBe('A')
+      expect(result.postHoc?.[0].group2).toBe('C')
+      expect(result.postHoc?.[0].pvalue).toBe(0.02)
+      expect(result.postHoc?.[0].significant).toBe(true)
+    })
+
     it('should transform regression coefficients correctly', () => {
       const executorResult: ExecutorResult = {
         metadata: {
@@ -299,6 +374,82 @@ describe('result-transformer', () => {
       expect(result.additional?.f1Score).toBe(0.80)
       expect(result.additional?.rocAuc).toBe(0.88)
       expect(result.additional?.confusionMatrix).toEqual([[80, 10], [15, 95]])
+    })
+
+    it('should map isNormal from additionalInfo to UI additional', () => {
+      const executorResult: ExecutorResult = {
+        metadata: {
+          method: 'normality-test',
+          timestamp: new Date().toISOString(),
+          duration: 50,
+          dataSize: 30
+        },
+        mainResults: {
+          statistic: 0.98,
+          pvalue: 0.12,
+          interpretation: '정규성 가정 유지'
+        },
+        additionalInfo: {
+          isNormal: true
+        }
+      }
+
+      const result = transformExecutorResult(executorResult)
+      expect(result.additional?.isNormal).toBe(true)
+    })
+
+    it('should preserve cluster contract fields in additional', () => {
+      const executorResult: ExecutorResult = {
+        metadata: {
+          method: 'cluster-analysis',
+          timestamp: new Date().toISOString(),
+          duration: 120,
+          dataSize: 40
+        },
+        mainResults: {
+          statistic: 0.67,
+          pvalue: 1,
+          interpretation: '군집 분석 완료'
+        },
+        additionalInfo: {
+          clusters: [0, 1, 0, 1],
+          centers: [[1, 2], [3, 4]],
+          silhouetteScore: 0.67
+        }
+      }
+
+      const result = transformExecutorResult(executorResult)
+
+      expect(result.additional?.clusters).toEqual([0, 1, 0, 1])
+      expect(result.additional?.centers).toEqual([[1, 2], [3, 4]])
+      expect(result.additional?.silhouetteScore).toBe(0.67)
+    })
+
+    it('should preserve PCA contract fields in additional', () => {
+      const executorResult: ExecutorResult = {
+        metadata: {
+          method: 'pca',
+          timestamp: new Date().toISOString(),
+          duration: 140,
+          dataSize: 80
+        },
+        mainResults: {
+          statistic: 0.6,
+          pvalue: 1,
+          interpretation: 'PCA 완료'
+        },
+        additionalInfo: {
+          explainedVarianceRatio: [0.6, 0.3],
+          eigenvalues: [2.4, 1.2],
+          loadings: [[0.8, 0.2], [0.1, 0.9]]
+        }
+      }
+
+      const result = transformExecutorResult(executorResult)
+
+      expect(result.additional?.explainedVarianceRatio).toEqual([0.6, 0.3])
+      expect(result.additional?.eigenvalues).toEqual([2.4, 1.2])
+      expect(result.additional?.loadings).toEqual([[0.8, 0.2], [0.1, 0.9]])
     })
   })
 

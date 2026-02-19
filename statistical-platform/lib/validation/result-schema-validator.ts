@@ -159,7 +159,10 @@ export const METHOD_TO_CATEGORY: Record<string, StatisticsCategory> = {
   // Correlation (상관분석)
   'correlation': 'correlation',
   'pearson': 'correlation',
+  'pearson-correlation': 'correlation',
   'spearman': 'correlation',
+  'spearman-correlation': 'correlation',
+  'kendall-correlation': 'correlation',
   'partial-correlation': 'correlation',
   'mann-kendall': 'correlation',
 
@@ -167,6 +170,7 @@ export const METHOD_TO_CATEGORY: Record<string, StatisticsCategory> = {
   'pca': 'dimensionReduction',
   'factor-analysis': 'dimensionReduction',
   'cluster': 'dimensionReduction',
+  'cluster-analysis': 'dimensionReduction',
   'discriminant': 'dimensionReduction',
 
   // Goodness of Fit (적합도 검정)
@@ -174,6 +178,7 @@ export const METHOD_TO_CATEGORY: Record<string, StatisticsCategory> = {
   'chi-square-goodness': 'goodnessOfFit',
   'chi-square-independence': 'goodnessOfFit',
   'normality-test': 'goodnessOfFit',
+  'shapiro-wilk': 'goodnessOfFit',
   'ks-test': 'goodnessOfFit',
   'binomial-test': 'goodnessOfFit',
   'proportion-test': 'goodnessOfFit',
@@ -189,6 +194,47 @@ export const METHOD_TO_CATEGORY: Record<string, StatisticsCategory> = {
   'descriptive': 'descriptive',
   'explore-data': 'descriptive',
   'means-plot': 'descriptive'
+}
+
+/**
+ * 메서드별 필수 필드(카테고리 공통 규칙 외 추가)
+ */
+export const METHOD_REQUIRED_FIELDS: Record<string, string[]> = {
+  correlation: [
+    'additional.rSquared',
+    'additional.pearson',
+    'additional.spearman',
+    'additional.kendall'
+  ],
+  'pearson-correlation': [
+    'additional.rSquared',
+    'additional.pearson',
+    'additional.spearman',
+    'additional.kendall'
+  ],
+  pearson: [
+    'additional.rSquared'
+  ],
+  pca: [
+    'additional.explainedVarianceRatio',
+    'additional.eigenvalues'
+  ],
+  'factor-analysis': [
+    'additional.explainedVarianceRatio',
+    'additional.loadings',
+    'additional.communalities'
+  ],
+  'cluster-analysis': [
+    'additional.clusters',
+    'additional.centers',
+    'additional.silhouetteScore'
+  ],
+  'normality-test': [
+    'additional.isNormal'
+  ],
+  'shapiro-wilk': [
+    'additional.isNormal'
+  ]
 }
 
 /**
@@ -246,14 +292,16 @@ export function validateResultSchema(
 
   // 필수 필드 검증
   const requiredFields = REQUIRED_FIELDS[category]
-  const missing = requiredFields.filter(field => !hasField(result, field))
+  const methodRequiredFields = METHOD_REQUIRED_FIELDS[normalizedId] || []
+  const allRequiredFields = [...new Set([...requiredFields, ...methodRequiredFields])]
+  const missing = allRequiredFields.filter(field => !hasField(result, field))
 
   // 권장 필드 검증
   const recommendedFields = RECOMMENDED_FIELDS[category]
   const missingRecommended = recommendedFields.filter(field => !hasField(result, field))
 
   // 완성도 점수 계산
-  const requiredScore = ((requiredFields.length - missing.length) / requiredFields.length) * 70
+  const requiredScore = ((allRequiredFields.length - missing.length) / allRequiredFields.length) * 70
   const recommendedScore = ((recommendedFields.length - missingRecommended.length) / recommendedFields.length) * 30
   const score = Math.round(requiredScore + recommendedScore)
 

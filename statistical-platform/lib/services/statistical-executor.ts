@@ -51,6 +51,16 @@ export interface VisualizationData {
   data: any
 }
 
+interface NormalizedPostHocComparison {
+  group1: string | number
+  group2: string | number
+  meanDiff?: number
+  zStatistic?: number
+  pvalue: number
+  pvalueAdjusted?: number
+  significant: boolean
+}
+
 /**
  * StatisticalExecutor 전용 분석 결과 인터페이스
  * (레거시 - 향후 ExecutorAnalysisResult로 통합 예정)
@@ -101,7 +111,7 @@ export interface StatisticalExecutorResult {
       passed: boolean
       details: unknown[]
     }
-    postHoc?: unknown
+    postHoc?: NormalizedPostHocComparison[]
     discriminantFunctions?: {
       count: number
       totalVariance: number
@@ -488,6 +498,62 @@ export class StatisticalExecutor {
     prepared.missingRemoved = 0 // TODO: 실제 결측값 계산
 
     return prepared
+  }
+
+  private normalizePostHocComparisons(
+    comparisons: unknown
+  ): NormalizedPostHocComparison[] {
+    if (!Array.isArray(comparisons)) return []
+
+    return comparisons
+      .map((item) => {
+        if (!item || typeof item !== 'object') return null
+        const comp = item as Record<string, unknown>
+
+        const pvalue =
+          typeof comp.pvalue === 'number'
+            ? comp.pvalue
+            : typeof comp.pValue === 'number'
+              ? comp.pValue
+              : undefined
+
+        if (typeof pvalue !== 'number') return null
+
+        const group1 = comp.group1 as string | number | undefined
+        const group2 = comp.group2 as string | number | undefined
+        if (group1 === undefined || group2 === undefined) return null
+
+        return {
+          group1,
+          group2,
+          meanDiff:
+            typeof comp.meanDiff === 'number'
+              ? comp.meanDiff
+              : typeof comp.mean_diff === 'number'
+                ? comp.mean_diff
+                : undefined,
+          zStatistic:
+            typeof comp.zStatistic === 'number'
+              ? comp.zStatistic
+              : typeof comp.z_score === 'number'
+                ? comp.z_score
+                : undefined,
+          pvalue,
+          pvalueAdjusted:
+            typeof comp.pvalueAdjusted === 'number'
+              ? comp.pvalueAdjusted
+              : typeof comp.pValueAdjusted === 'number'
+                ? comp.pValueAdjusted
+                : typeof comp.adjusted_p === 'number'
+                  ? comp.adjusted_p
+                  : undefined,
+          significant:
+            typeof comp.significant === 'boolean'
+              ? comp.significant
+              : pvalue < 0.05
+        }
+      })
+      .filter((item): item is NormalizedPostHocComparison => item !== null)
   }
 
   /**
@@ -898,6 +964,7 @@ export class StatisticalExecutor {
     if (method.id === 'games-howell') {
       const ghResult = await pyodideStats.gamesHowellTest(groups, groupNames)
       const significantCount = ghResult.significant_count || 0
+      const postHoc = this.normalizePostHocComparisons(ghResult.comparisons)
 
       return {
         metadata: {
@@ -921,7 +988,7 @@ export class StatisticalExecutor {
             '유의한 차이가 없습니다'
         },
         additionalInfo: {
-          postHoc: ghResult
+          postHoc
         },
         visualizationData: {
           type: 'boxplot-multiple',
@@ -1103,31 +1170,26 @@ export class StatisticalExecutor {
     // 유의한 경우 사후검정
     // Games-Howell: 이분산 가정 (등분산 가정 불필요) - 더 robust
     // Tukey HSD: 등분산 가정 (fallback)
-    let postHoc: unknown = null
+    let postHoc: NormalizedPostHocComparison[] | undefined
     if (result.pValue < 0.05 && groups.length > 2) {
       try {
         // Games-Howell 사용 (이분산에 robust)
         const ghResult = await pyodideStats.gamesHowellTest(groups, groupNames)
-        // comparisons 배열 추출 (transformer에서 Array.isArray 기대)
-        postHoc = ghResult?.comparisons ?? ghResult
+        postHoc = this.normalizePostHocComparisons(ghResult?.comparisons)
       } catch (ghError) {
         logger.warn('Games-Howell 사후검정 실패, Tukey HSD로 시도합니다', ghError)
         try {
           const tukeyResult = await pyodideStats.tukeyHSD(groups)
-          // tukeyHSD도 { comparisons: [...] } 형태 → 배열 추출
-          const comps = tukeyResult?.comparisons
-          if (Array.isArray(comps)) {
-            postHoc = comps.map(c => ({
-              group1: c.group1,
-              group2: c.group2,
-              meanDiff: c.meanDiff ?? 0,
-              pvalue: c.pValue,
-              significant: c.significant
-            }))
-          }
+          postHoc = this.normalizePostHocComparisons(tukeyResult?.comparisons)
         } catch (tukeyError) {
-          logger.warn('Tukey HSD 사후검정도 실패, 사후검정 없이 진행합니다', tukeyError)
-          postHoc = null
+          logger.warn('Tukey HSD 사후검정 실패, Bonferroni로 시도합니다', tukeyError)
+          try {
+            const bonferroniResult = await pyodideStats.performBonferroni(groups, groupNames)
+            postHoc = this.normalizePostHocComparisons(bonferroniResult.comparisons)
+          } catch (bonferroniError) {
+            logger.warn('Bonferroni 사후검정도 실패, 사후검정 없이 진행합니다', bonferroniError)
+            postHoc = undefined
+          }
         }
       }
     }
@@ -1539,11 +1601,39 @@ export class StatisticalExecutor {
   ): Promise<AnalysisResult> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any
+    const normalizeVarianceToRatio = (value: unknown): number => {
+      if (typeof value !== 'number' || Number.isNaN(value)) return 0
+      return value > 1 ? value / 100 : value
+    }
 
     switch (method.id) {
-      case 'pca':
-        result = await pyodideStats.pca(data.arrays.independent || [])
+      case 'pca': {
+        const pcaResult = await pyodideStats.pcaAnalysis(data.arrays.independent || [])
+        const explainedVarianceRatio = (pcaResult.screeData ?? []).map((point) => {
+          if (typeof point === 'number') {
+            return normalizeVarianceToRatio(point)
+          }
+          if (point && typeof point === 'object' && 'varianceExplained' in point) {
+            return normalizeVarianceToRatio(point.varianceExplained)
+          }
+          return 0
+        })
+        const eigenvalues = (pcaResult.screeData ?? []).map((point) => {
+          if (point && typeof point === 'object' && 'eigenvalue' in point && typeof point.eigenvalue === 'number') {
+            return point.eigenvalue
+          }
+          return 0
+        })
+
+        result = {
+          ...pcaResult,
+          explainedVariance: explainedVarianceRatio,
+          explainedVarianceRatio,
+          eigenvalues,
+          totalExplainedVariance: explainedVarianceRatio.reduce((sum, value) => sum + value, 0)
+        }
         break
+      }
       case 'factor-analysis':
         result = await pyodideStats.factorAnalysis(data.arrays.independent || [])
         break
@@ -1700,6 +1790,21 @@ export class StatisticalExecutor {
     }
 
     // PCA, Factor Analysis - use explainedVariance fields
+    const explainedVarianceRatio = Array.isArray(result.explainedVarianceRatio)
+      ? result.explainedVarianceRatio.map((value: unknown) => normalizeVarianceToRatio(value))
+      : []
+    const totalExplainedVariance = typeof result.totalExplainedVariance === 'number'
+      ? normalizeVarianceToRatio(result.totalExplainedVariance)
+      : typeof result.totalVarianceExplained === 'number'
+        ? normalizeVarianceToRatio(result.totalVarianceExplained)
+        : explainedVarianceRatio.reduce((sum: number, value: number) => sum + value, 0)
+    const firstExplainedVariance = Number(explainedVarianceRatio[0] || result.explainedVariance?.[0] || 0)
+    const interpretation = method.id === 'pca'
+      ? `첫 주성분이 전체 분산의 ${(firstExplainedVariance * 100).toFixed(1)}% 설명`
+      : method.id === 'factor-analysis'
+        ? `${explainedVarianceRatio.length}개 요인이 총 ${(totalExplainedVariance * 100).toFixed(1)}% 분산 설명`
+        : '분석 완료'
+
     return {
       metadata: {
         method: method.id,
@@ -1712,19 +1817,21 @@ export class StatisticalExecutor {
         }
       },
       mainResults: {
-        statistic: result.explainedVariance?.[0] || 0,
+        statistic: firstExplainedVariance,
         pvalue: 1, // 다변량 분석은 p-value 없음
         significant: false,
-        interpretation: method.id === 'pca' ?
-          `첫 주성분이 전체 분산의 ${(result.explainedVariance[0] * 100).toFixed(1)}% 설명` :
-          '분석 완료'
+        interpretation
       },
       additionalInfo: {
         effectSize: {
           type: 'Explained Variance',
-          value: result.totalExplainedVariance || 0,
-          interpretation: `총 ${(result.totalExplainedVariance * 100).toFixed(1)}% 분산 설명`
-        }
+          value: totalExplainedVariance,
+          interpretation: `총 ${(totalExplainedVariance * 100).toFixed(1)}% 분산 설명`
+        },
+        explainedVarianceRatio,
+        eigenvalues: result.eigenvalues,
+        loadings: result.loadings ?? result.rotationMatrix,
+        communalities: result.communalities
       },
       visualizationData: {
         type: method.id === 'pca' ? 'scree-plot' : 'dendrogram',

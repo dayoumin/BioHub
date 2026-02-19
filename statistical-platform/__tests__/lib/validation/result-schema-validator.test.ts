@@ -13,6 +13,7 @@ import {
   REQUIRED_FIELDS,
   RECOMMENDED_FIELDS,
   METHOD_TO_CATEGORY,
+  METHOD_REQUIRED_FIELDS,
   type StatisticsCategory
 } from '@/lib/validation/result-schema-validator'
 import type { AnalysisResult } from '@/types/smart-flow'
@@ -22,7 +23,8 @@ describe('Result Schema Validator', () => {
     it('should have mapping for all major statistics methods', () => {
       const majorMethods = [
         't-test', 'anova', 'regression', 'correlation',
-        'chi-square', 'mann-whitney', 'pca', 'reliability'
+        'pearson-correlation', 'spearman-correlation', 'kendall-correlation',
+        'chi-square', 'mann-whitney', 'pca', 'cluster-analysis', 'shapiro-wilk', 'reliability'
       ]
 
       majorMethods.forEach(method => {
@@ -54,6 +56,18 @@ describe('Result Schema Validator', () => {
 
     it('should default to comparison for unknown methods', () => {
       expect(getCategoryForMethod('unknown-method')).toBe('comparison')
+    })
+
+    it('should map cluster-analysis and shapiro-wilk correctly', () => {
+      expect(getCategoryForMethod('cluster-analysis')).toBe('dimensionReduction')
+      expect(getCategoryForMethod('shapiro-wilk')).toBe('goodnessOfFit')
+    })
+
+    it('should map correlation aliases correctly', () => {
+      expect(getCategoryForMethod('pearson')).toBe('correlation')
+      expect(getCategoryForMethod('pearson-correlation')).toBe('correlation')
+      expect(getCategoryForMethod('spearman-correlation')).toBe('correlation')
+      expect(getCategoryForMethod('kendall-correlation')).toBe('correlation')
     })
   })
 
@@ -196,20 +210,111 @@ describe('Result Schema Validator', () => {
         expect(validation.missing).toContain('additional.explainedVarianceRatio')
       })
 
-      it('should pass with explainedVarianceRatio', () => {
+      it('should pass with PCA required fields', () => {
         const result: AnalysisResult = {
           method: 'PCA',
           statistic: 0,
           pValue: 1,
           interpretation: 'PCA completed',
           additional: {
-            explainedVarianceRatio: [0.4, 0.3, 0.2, 0.1]
+            explainedVarianceRatio: [0.4, 0.3, 0.2, 0.1],
+            eigenvalues: [2.4, 1.8, 1.2, 0.6]
           }
         }
 
         const validation = validateResultSchema(result, 'pca')
 
         expect(validation.valid).toBe(true)
+      })
+
+      it('should require cluster-analysis specific fields', () => {
+        const result: AnalysisResult = {
+          method: 'Cluster Analysis',
+          statistic: 0.52,
+          pValue: 1,
+          interpretation: '군집 분석 완료',
+          additional: {
+            explainedVarianceRatio: [0.4, 0.3] // category required field only
+          }
+        }
+
+        const validation = validateResultSchema(result, 'cluster-analysis')
+
+        expect(validation.valid).toBe(false)
+        expect(validation.missing).toContain('additional.clusters')
+        expect(validation.missing).toContain('additional.centers')
+        expect(validation.missing).toContain('additional.silhouetteScore')
+      })
+
+      it('should require factor-analysis specific fields', () => {
+        const result: AnalysisResult = {
+          method: 'Factor Analysis',
+          statistic: 0.5,
+          pValue: 1,
+          interpretation: '요인분석 완료',
+          additional: {
+            explainedVarianceRatio: [0.5, 0.3]
+            // missing loadings, communalities
+          }
+        }
+
+        const validation = validateResultSchema(result, 'factor-analysis')
+
+        expect(validation.valid).toBe(false)
+        expect(validation.missing).toContain('additional.loadings')
+        expect(validation.missing).toContain('additional.communalities')
+      })
+    })
+
+    describe('Correlation category', () => {
+      it('should require aggregate correlation additional fields for correlation method', () => {
+        const result: AnalysisResult = {
+          method: 'Correlation',
+          statistic: 0.71,
+          pValue: 0.001,
+          interpretation: '상관관계가 유의합니다'
+        }
+
+        const validation = validateResultSchema(result, 'correlation')
+
+        expect(validation.valid).toBe(false)
+        expect(validation.missing).toContain('additional.rSquared')
+        expect(validation.missing).toContain('additional.pearson')
+        expect(validation.missing).toContain('additional.spearman')
+        expect(validation.missing).toContain('additional.kendall')
+      })
+
+      it('should pass correlation method with aggregate additional fields', () => {
+        const result: AnalysisResult = {
+          method: 'Correlation',
+          statistic: 0.71,
+          pValue: 0.001,
+          interpretation: '상관관계가 유의합니다',
+          additional: {
+            rSquared: 0.5041,
+            pearson: { r: 0.71, pValue: 0.001, n: 120 },
+            spearman: { r: 0.68, pValue: 0.002, n: 120 },
+            kendall: { r: 0.52, pValue: 0.004, n: 120 }
+          }
+        }
+
+        const validation = validateResultSchema(result, 'correlation')
+
+        expect(validation.valid).toBe(true)
+      })
+
+      it('should require rSquared for pearson method', () => {
+        const result: AnalysisResult = {
+          method: 'Pearson Correlation',
+          statistic: 0.65,
+          pValue: 0.003,
+          interpretation: '양의 상관관계'
+        }
+
+        const validation = validateResultSchema(result, 'pearson')
+
+        expect(validation.valid).toBe(false)
+        expect(validation.missing).toContain('additional.rSquared')
       })
     })
 
@@ -244,6 +349,36 @@ describe('Result Schema Validator', () => {
 
         expect(validation.valid).toBe(false)
         expect(validation.missing).toContain('additional.power')
+      })
+    })
+
+    describe('Method-specific requirements', () => {
+      it('should require isNormal for shapiro-wilk', () => {
+        const result: AnalysisResult = {
+          method: 'Shapiro-Wilk',
+          statistic: 0.98,
+          pValue: 0.12,
+          interpretation: '정규성 가정 유지'
+        }
+
+        const validation = validateResultSchema(result, 'shapiro-wilk')
+        expect(validation.valid).toBe(false)
+        expect(validation.missing).toContain('additional.isNormal')
+      })
+
+      it('should pass shapiro-wilk when isNormal exists', () => {
+        const result: AnalysisResult = {
+          method: 'Shapiro-Wilk',
+          statistic: 0.98,
+          pValue: 0.12,
+          interpretation: '정규성 가정 유지',
+          additional: {
+            isNormal: true
+          }
+        }
+
+        const validation = validateResultSchema(result, 'shapiro-wilk')
+        expect(validation.valid).toBe(true)
       })
     })
   })
@@ -332,6 +467,15 @@ describe('Result Schema Validator', () => {
       categories.forEach(category => {
         expect(RECOMMENDED_FIELDS[category]).toBeDefined()
       })
+    })
+
+    it('should define method-specific required fields for key methods', () => {
+      expect(METHOD_REQUIRED_FIELDS.correlation).toContain('additional.rSquared')
+      expect(METHOD_REQUIRED_FIELDS['pearson-correlation']).toContain('additional.pearson')
+      expect(METHOD_REQUIRED_FIELDS.pca).toContain('additional.explainedVarianceRatio')
+      expect(METHOD_REQUIRED_FIELDS['factor-analysis']).toContain('additional.loadings')
+      expect(METHOD_REQUIRED_FIELDS['cluster-analysis']).toContain('additional.clusters')
+      expect(METHOD_REQUIRED_FIELDS['shapiro-wilk']).toContain('additional.isNormal')
     })
   })
 

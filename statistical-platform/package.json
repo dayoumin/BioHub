@@ -1,5 +1,5 @@
 {
-  "name": "statistical-platform",
+  "name": "statics",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -19,6 +19,8 @@
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
     "test:jest": "jest",
+    "test:lint": "node scripts/test-quality/lint-tests.mjs",
+    "test:mutate": "node scripts/test-quality/mutation-test.mjs",
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
     "e2e:ci": "playwright install --with-deps && playwright test",
@@ -36,6 +38,7 @@
     "validate:statistics": "node scripts/statistics/validate-ui.js",
     "validate:types": "node scripts/statistics/validate-types.js",
     "validate:mapping": "node scripts/statistics/validate-variable-mapping.js",
+    "validate:result-contracts": "tsx scripts/statistics/validate-result-contracts.ts",
     "analyze:metadata": "bash scripts/statistics/analyze-metadata.sh",
     "analyze:steps": "node scripts/statistics/analyze-step-patterns.js",
     "verify:rag": "node scripts/rag/verify-stores.js",

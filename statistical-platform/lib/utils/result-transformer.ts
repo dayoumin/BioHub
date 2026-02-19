@@ -59,24 +59,42 @@ export function transformExecutorResult(
 
   // 사후검정 결과 변환
   let postHoc: PostHocResult[] | undefined
-  if (additionalInfo?.postHoc && Array.isArray(additionalInfo.postHoc)) {
-    postHoc = additionalInfo.postHoc.map((item: {
-      group1: string | number
-      group2: string | number
-      meanDiff?: number
-      zStatistic?: number
-      pvalue: number
-      pvalueAdjusted?: number
-      significant: boolean
-    }) => ({
-      group1: item.group1,
-      group2: item.group2,
-      meanDiff: item.meanDiff,
-      zStatistic: item.zStatistic,
-      pvalue: item.pvalue,
-      pvalueAdjusted: item.pvalueAdjusted,
-      significant: item.significant
-    }))
+  const rawPostHoc = additionalInfo?.postHoc
+  const postHocItems = Array.isArray(rawPostHoc)
+    ? rawPostHoc
+    : rawPostHoc && typeof rawPostHoc === 'object' && Array.isArray((rawPostHoc as Record<string, unknown>).comparisons)
+      ? ((rawPostHoc as Record<string, unknown>).comparisons as unknown[])
+      : undefined
+
+  if (postHocItems) {
+    postHoc = postHocItems
+      .map((item: Record<string, unknown>) => {
+        const pvalue =
+          typeof item.pvalue === 'number'
+            ? item.pvalue
+            : typeof item.pValue === 'number'
+              ? item.pValue
+              : undefined
+
+        if (typeof pvalue !== 'number') return null
+
+        return {
+          group1: item.group1 as string | number,
+          group2: item.group2 as string | number,
+          meanDiff: item.meanDiff as number | undefined,
+          zStatistic: item.zStatistic as number | undefined,
+          pvalue,
+          pvalueAdjusted:
+            (item.pvalueAdjusted as number | undefined) ??
+            (item.pValueAdjusted as number | undefined) ??
+            (item.adjusted_p as number | undefined),
+          significant:
+            typeof item.significant === 'boolean'
+              ? item.significant
+              : pvalue < 0.05
+        }
+      })
+      .filter((item): item is PostHocResult => item !== null)
   }
 
   // 회귀계수 변환
@@ -161,6 +179,7 @@ export function transformExecutorResult(
 
   // additional 정보 구성
   const additional: SmartFlowResult['additional'] = {
+    isNormal: additionalInfo?.isNormal,
     intercept: additionalInfo?.intercept,
     rmse: additionalInfo?.rmse,
     rSquared: additionalInfo?.rSquared,

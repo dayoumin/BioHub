@@ -36,6 +36,13 @@ vi.mock('@/lib/services/pyodide-statistics', () => ({
     oneWayANOVA: vi.fn().mockResolvedValue({ fStatistic: 4.5, pValue: 0.02, df: [2, 27] }),
     gamesHowellTest: vi.fn().mockResolvedValue({ comparisons: [], significant_count: 0 }),
     tukeyHSD: vi.fn().mockResolvedValue([]),
+    performBonferroni: vi.fn().mockResolvedValue({
+      comparisons: [],
+      num_comparisons: 0,
+      original_alpha: 0.05,
+      adjusted_alpha: 0.05,
+      significant_count: 0
+    }),
     // Nonparametric methods (actual names)
     mannWhitneyU: vi.fn().mockResolvedValue({ statistic: 45.0, pvalue: 0.023 }),
     kruskalWallis: vi.fn().mockResolvedValue({ statistic: 8.5, pvalue: 0.014, df: 2 }),
@@ -62,7 +69,32 @@ vi.mock('@/lib/services/pyodide-statistics', () => ({
     calculateDescriptiveStatistics: vi.fn().mockResolvedValue({ mean: 15, std: 5, min: 5, max: 25 }),
     // Multivariate methods
     pca: vi.fn().mockResolvedValue({ explainedVariance: [0.6, 0.3], totalExplainedVariance: 0.9 }),
-    factorAnalysis: vi.fn().mockResolvedValue({ explainedVariance: [0.5, 0.3], totalExplainedVariance: 0.8 }),
+    pcaAnalysis: vi.fn().mockResolvedValue({
+      components: [],
+      totalVariance: 1,
+      selectedComponents: 2,
+      rotationMatrix: [[1, 0], [0, 1]],
+      transformedData: [],
+      variableContributions: {},
+      qualityMetrics: {
+        kmo: null,
+        bartlett: { statistic: null, pValue: null, significant: null }
+      },
+      screeData: [
+        { component: 1, eigenvalue: 1.5, varianceExplained: 60 },
+        { component: 2, eigenvalue: 1.0, varianceExplained: 30 }
+      ],
+      interpretation: 'ok'
+    }),
+    factorAnalysis: vi.fn().mockResolvedValue({
+      loadings: [[0.8, 0.2], [0.1, 0.9]],
+      communalities: [0.68, 0.82],
+      explainedVariance: [1.4, 0.9],
+      explainedVarianceRatio: [0.5, 0.3],
+      totalVarianceExplained: 0.8,
+      nFactors: 2,
+      eigenvalues: [1.4, 0.9]
+    }),
     clusterAnalysis: vi.fn().mockResolvedValue({
       nClusters: 2,
       clusterAssignments: [0, 1, 0, 1],
@@ -88,6 +120,7 @@ vi.mock('@/lib/services/pyodide-statistics', () => ({
 
 // Import after mock
 import { StatisticalExecutor } from '@/lib/services/statistical-executor'
+import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { StatisticalMethod } from '@/types/smart-flow'
 
 // Helper to create minimal StatisticalMethod for testing
@@ -117,6 +150,7 @@ describe('StatisticalExecutor Routing', () => {
   ]
 
   beforeEach(() => {
+    vi.clearAllMocks()
     executor = StatisticalExecutor.getInstance()
   })
 
@@ -214,6 +248,64 @@ describe('StatisticalExecutor Routing', () => {
       expect(result).toBeDefined()
       expect(result.metadata.method).toBeDefined()
     })
+
+    it('should normalize games-howell postHoc fields for direct games-howell method', async () => {
+      const mockedStats = vi.mocked(pyodideStats)
+      mockedStats.gamesHowellTest.mockResolvedValueOnce({
+        comparisons: [
+          { group1: 'A', group2: 'B', meanDiff: 1.2, pValue: 0.01, significant: true }
+        ],
+        significant_count: 1
+      })
+
+      const result = await executor.executeMethod(
+        createMethod('games-howell', 'Games-Howell', 'anova'),
+        mockData,
+        { groupVar: 'group', dependentVar: 'score' }
+      )
+
+      const postHoc = result.additionalInfo.postHoc as Array<Record<string, unknown>>
+      expect(Array.isArray(postHoc)).toBe(true)
+      expect(postHoc).toHaveLength(1)
+      expect(postHoc[0].pvalue).toBe(0.01)
+      expect(postHoc[0]).not.toHaveProperty('pValue')
+    })
+
+    it('should fallback to bonferroni when games-howell and tukey fail', async () => {
+      const mockedStats = vi.mocked(pyodideStats)
+      mockedStats.gamesHowellTest.mockRejectedValueOnce(new Error('gh failed'))
+      mockedStats.tukeyHSD.mockRejectedValueOnce(new Error('tukey failed'))
+      mockedStats.performBonferroni.mockResolvedValueOnce({
+        comparisons: [
+          {
+            group1: 'A',
+            group2: 'B',
+            mean_diff: 1.1,
+            tStatistic: 2.7,
+            pValue: 0.01,
+            adjusted_p: 0.03,
+            significant: true
+          }
+        ],
+        num_comparisons: 3,
+        original_alpha: 0.05,
+        adjusted_alpha: 0.0167,
+        significant_count: 1
+      })
+
+      const result = await executor.executeMethod(
+        createMethod('one-way-anova', 'One-way ANOVA', 'anova'),
+        mockData,
+        { groupVar: 'group', dependentVar: 'score' }
+      )
+
+      expect(mockedStats.performBonferroni).toHaveBeenCalled()
+      const postHoc = result.additionalInfo.postHoc as Array<Record<string, unknown>>
+      expect(postHoc).toHaveLength(1)
+      expect(postHoc[0].pvalue).toBe(0.01)
+      expect(postHoc[0].pvalueAdjusted).toBe(0.03)
+      expect(postHoc[0].meanDiff).toBe(1.1)
+    })
   })
 
   // ============================================
@@ -285,6 +377,44 @@ describe('StatisticalExecutor Routing', () => {
 
       expect(result).toBeDefined()
       expect(result.metadata.method).toBeDefined()
+    })
+  })
+
+  // ============================================
+  // Category: pca / multivariate
+  // ============================================
+  describe('Category: pca', () => {
+    it('should route "pca" through pcaAnalysis (not legacy pca)', async () => {
+      const mockedStats = vi.mocked(pyodideStats)
+
+      const result = await executor.executeMethod(
+        createMethod('pca', 'PCA', 'pca'),
+        mockData,
+        { independentVar: ['x', 'y'] }
+      )
+
+      expect(result).toBeDefined()
+      expect(mockedStats.pcaAnalysis).toHaveBeenCalled()
+      expect(mockedStats.pca).not.toHaveBeenCalled()
+      expect(result.mainResults.statistic).toBeCloseTo(0.6, 8)
+      expect(result.mainResults.interpretation).toContain('60.0%')
+      expect(result.additionalInfo.effectSize?.value).toBeCloseTo(0.9, 8)
+      expect(result.additionalInfo.explainedVarianceRatio).toEqual([0.6, 0.3])
+    })
+
+    it('should expose standardized factor-analysis additional fields', async () => {
+      const result = await executor.executeMethod(
+        createMethod('factor-analysis', 'Factor Analysis', 'advanced'),
+        mockData,
+        { independentVar: ['x', 'y'] }
+      )
+
+      expect(result).toBeDefined()
+      expect(result.mainResults.statistic).toBeCloseTo(0.5, 8)
+      expect(result.additionalInfo.explainedVarianceRatio).toEqual([0.5, 0.3])
+      expect(result.additionalInfo.eigenvalues).toEqual([1.4, 0.9])
+      expect(result.additionalInfo.loadings).toEqual([[0.8, 0.2], [0.1, 0.9]])
+      expect(result.additionalInfo.communalities).toEqual([0.68, 0.82])
     })
   })
 
