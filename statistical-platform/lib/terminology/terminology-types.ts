@@ -460,6 +460,8 @@ export interface HubText {
     startButton: string
     alternatives: (count: number) => string
     detailedLink: string
+    recommendationBadge: string
+    selectButton: string
   }
   editDialog: {
     title: string

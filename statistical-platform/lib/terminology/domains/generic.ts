@@ -421,13 +421,15 @@ export const generic: TerminologyDictionary = {
       frequentlyUsed: 'Frequently used:',
     },
     aiSearch: {
-      title: 'AI Analysis Recommend',
-      description: 'Describe your analysis goal to get method recommendations',
-      placeholder: 'e.g., "I want to compare means between two groups"',
-      sendButton: 'Send',
-      startButton: 'Start',
-      alternatives: (count: number) => `Other options (${count})`,
-      detailedLink: 'Need a more detailed analysis?',
+      title: 'AI 분석 가이드',
+      description: '연구 목적이나 가설을 입력하면 적절한 통계 방법을 추천해드립니다.',
+      placeholder: '예: "두 그룹의 평균 차이를 비교하고 싶어" 또는 "A와 B 변수의 관계를 알고 싶어"',
+      sendButton: '분석하기',
+      startButton: '시작하기',
+      alternatives: (count: number) => `외 ${count}개 대안`,
+      detailedLink: '상세 모드',
+      recommendationBadge: '추천 방법',
+      selectButton: '선택'
     },
     editDialog: {
       title: 'Edit Quick Analysis',

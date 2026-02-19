@@ -90,7 +90,7 @@ function main() {
 
   // Filter to statistical-platform files only
   const relevantFiles = stagedFiles.filter(f =>
-    f.startsWith('statistical-platform/') ||
+    f.startsWith('statics/') ||
     f.includes('workers/python/') ||
     f.includes('/statistics/')
   )

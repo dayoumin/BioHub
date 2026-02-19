@@ -397,7 +397,7 @@ export const aquaculture: TerminologyDictionary = {
       statMethods: (count: number) => `${count}개 분석 도구`,
       statCategories: (count: number) => `${count}개 카테고리`,
       statAi: 'AI 추천',
-      uploadButton: '데이터 업로드로 시작',
+      uploadButton: '데이터 업로드',
       browseButton: '분석 방법 둘러보기',
     },
     cards: {
@@ -422,13 +422,15 @@ export const aquaculture: TerminologyDictionary = {
       frequentlyUsed: '자주 사용:',
     },
     aiSearch: {
-      title: 'AI 분석 추천',
-      description: '분석 목적을 설명하면 적절한 방법을 추천합니다',
-      placeholder: '예: "두 그룹의 평균이 다른지 비교하고 싶어요"',
-      sendButton: '전송',
-      startButton: '시작',
-      alternatives: (count: number) => `다른 선택지 (${count}개)`,
-      detailedLink: '더 자세한 분석이 필요하신가요?',
+      title: 'AI 분석 가이드',
+      description: '실험 설계나 데이터를 설명해주시면 양식 연구에 맞는 통계법을 추천합니다.',
+      placeholder: '예: "사료 A, B에 따른 넙치 성장률 비교" 또는 "수온과 용존산소량의 관계"',
+      sendButton: '',
+      startButton: '가이드 시작',
+      alternatives: (count: number) => `외 ${count}개 대안`,
+      detailedLink: '상세 가이드',
+      recommendationBadge: '추천 방법',
+      selectButton: '선택하기'
     },
     editDialog: {
       title: '빠른 분석 편집',

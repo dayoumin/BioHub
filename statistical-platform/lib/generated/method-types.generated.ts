@@ -2,7 +2,7 @@
  * Auto-generated from methods-registry.json
  * DO NOT EDIT MANUALLY
  *
- * Generated: 2026-02-13T03:43:32.286Z
+ * Generated: 2026-02-19T02:54:04.514Z
  */
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -340,7 +340,7 @@ export interface TTestPairedSummaryResult {
   ciUpper: number[]
   cohensD: number
   nPairs: number
-  stdDiff: unknown
+  stdDiff: number
   reject: boolean
 }
 
@@ -377,7 +377,7 @@ export interface PartialCorrelationResult {
   pValue: number
   df: number
   nObservations: number
-  confidenceInterval: unknown
+  confidenceInterval: { lower: number; upper: number }
 }
 
 export interface LeveneTestResult {
@@ -511,7 +511,7 @@ export async function correlationTest(x: number[], y: number[], method?: string)
  * 편상관분석
  * @worker Worker 2
  */
-export async function partialCorrelation(dataMatrix: number[][], xIdx: number, yIdx: number, controlIndices: (string | number)[]): Promise<PartialCorrelationResult> {
+export async function partialCorrelation(dataMatrix: number[][], xIdx: number, yIdx: number, controlIndices: number[]): Promise<PartialCorrelationResult> {
   return callWorkerMethod<PartialCorrelationResult>(2, 'partial_correlation', { dataMatrix, xIdx, yIdx, controlIndices })
 }
 
@@ -577,7 +577,11 @@ export interface MannWhitneyTestResult {
 export interface WilcoxonTestResult {
   statistic: number
   pValue: number
+  nobs: number
+  zScore: number
+  medianDiff: number
   effectSize: number
+  descriptives: Record<string, unknown>
 }
 
 export interface KruskalWallisTestResult {
@@ -599,6 +603,9 @@ export interface OneWayAnovaResult {
   dfWithin: number
   etaSquared: number
   omegaSquared: number
+  ssBetween: number
+  ssWithin: number
+  ssTotal: number
 }
 
 export interface TwoWayAnovaResult {
@@ -893,26 +900,26 @@ export interface LogisticRegressionResult {
 }
 
 export interface PcaAnalysisResult {
-  components: number[][]
+  components: Array<{ componentNumber: number; eigenvalue: number; varianceExplained: number; cumulativeVariance: number; loadings: Record<string, number> }>
   totalVariance: number
   selectedComponents: number
-  rotationMatrix: unknown
-  transformedData: unknown
-  variableContributions: unknown
-  qualityMetrics: unknown
-  screeData: unknown
+  rotationMatrix: number[][]
+  transformedData: Array<Record<string, number>>
+  variableContributions: Record<string, number[]>
+  qualityMetrics: { kmo: number | null; bartlett: { statistic: number | null; pValue: number | null; significant: boolean | null; error?: string } }
+  screeData: Array<{ component: number; eigenvalue: number; varianceExplained: number }>
   interpretation: string
 }
 
 export interface CurveEstimationResult {
-  parameters: unknown[]
+  parameters: number[]
   rSquared: number
   equation: string
   predictions: number[]
 }
 
 export interface NonlinearRegressionResult {
-  parameters: unknown[]
+  parameters: number[]
   rSquared: number
   equation: string
   predictions: number[]
@@ -922,7 +929,7 @@ export interface StepwiseRegressionResult {
   selectedVariables: string[]
   coefficients: number[]
   rSquared: number
-  steps: unknown[]
+  steps: Array<{ step: number; variable: string; action: string; rSquared: number }> | undefined
 }
 
 export interface BinaryLogisticResult {
@@ -946,7 +953,7 @@ export interface OrdinalLogisticResult {
 export interface ProbitRegressionResult {
   coefficients: number[]
   pValues: number[]
-  marginalEffects: unknown[]
+  marginalEffects: number[] | undefined
 }
 
 export interface PoissonRegressionResult {
@@ -997,14 +1004,14 @@ export interface DurbinWatsonTestResult {
 }
 
 export interface DiscriminantAnalysisResult {
-  functions: unknown[]
+  functions: Array<{ functionNumber: number; eigenvalue: number; varianceExplained: number; cumulativeVariance: number; canonicalCorrelation: number; coefficients: Record<string, number> }>
   totalVariance: number
   selectedFunctions: number
-  groupCentroids: unknown[]
-  classificationResults: unknown[]
+  groupCentroids: Array<{ group: string; centroids: Record<string, number> }>
+  classificationResults: Array<{ originalGroup: string; predictedGroup: string; probability: number; correct: boolean }>
   accuracy: number
-  confusionMatrix: number[][]
-  equalityTests: Record<string, unknown>
+  confusionMatrix: Record<string, Record<string, number>>
+  equalityTests: { boxM: { statistic: number; pValue: number; significant: boolean }; wilksLambda: { statistic: number; pValue: number; significant: boolean } }
   interpretation: string
 }
 

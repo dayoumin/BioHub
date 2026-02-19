@@ -89,55 +89,54 @@
 
 :root {
   --radius: 0.5rem;
+  /* Base - Pure White */
   --background: oklch(1 0 0);
-  /* Pure white */
-  --foreground: oklch(0.1 0 0);
-  /* Near black */
+  --foreground: oklch(0.2 0.02 260);
+  /* Deep Navy Grey */
+
+  /* Surface */
   --card: oklch(1 0 0);
-  /* White */
-  --card-foreground: oklch(0.1 0 0);
-  /* Near black */
+  --card-foreground: oklch(0.2 0.02 260);
   --popover: oklch(1 0 0);
-  /* White */
-  --popover-foreground: oklch(0.1 0 0);
-  /* Near black */
-  --primary: oklch(0.1 0 0);
-  /* Near black */
+  --popover-foreground: oklch(0.2 0.02 260);
+
+  /* Brand - Trustworthy Science Blue */
+  --primary: oklch(0.45 0.15 260);
   --primary-foreground: oklch(1 0 0);
-  /* White */
-  --secondary: oklch(0.95 0 0);
-  /* Light gray */
-  --secondary-foreground: oklch(0.1 0 0);
-  /* Near black */
-  --muted: oklch(0.95 0 0);
-  /* Light gray */
-  --muted-foreground: oklch(0.4 0 0);
-  /* Dark gray */
-  --accent: oklch(0.9 0 0);
-  /* Light gray */
-  --accent-foreground: oklch(0.1 0 0);
-  /* Near black */
-  --destructive: oklch(0.3 0 0);
-  /* Dark gray instead of red */
-  --border: oklch(0.9 0 0);
-  /* Light gray */
-  --input: oklch(0.9 0 0);
-  /* Light gray */
-  --ring: oklch(0.6 0 0);
-  /* Medium gray */
-  --chart-1: oklch(0.2 0 0);
-  /* Dark gray */
-  --chart-2: oklch(0.4 0 0);
-  /* Medium dark gray */
-  --chart-3: oklch(0.6 0 0);
-  /* Medium gray */
-  --chart-4: oklch(0.75 0 0);
-  /* Light gray */
-  --chart-5: oklch(0.85 0 0);
-  /* Very light gray */
+
+  /* Secondary/Muted */
+  --secondary: oklch(0.96 0.01 260);
+  /* Very light blue-grey */
+  --secondary-foreground: oklch(0.3 0.05 260);
+  --muted: oklch(0.97 0 0);
+  /* Almost white */
+  --muted-foreground: oklch(0.55 0.02 260);
+
+  /* Accents */
+  --accent: oklch(0.95 0.02 260);
+  --accent-foreground: oklch(0.2 0.05 260);
+  --destructive: oklch(0.6 0.15 25);
+  /* Professional Alert Red */
+
+  /* Borders - Crisp */
+  --border: oklch(0.88 0.01 260);
+  --input: oklch(0.88 0.01 260);
+  --ring: oklch(0.7 0.1 260);
+
+  /* Charts - Adjusted for White BG */
+  --chart-1: oklch(0.45 0.15 260);
+  /* Primary Blue */
+  --chart-2: oklch(0.6 0.15 150);
+  /* Teal */
+  --chart-3: oklch(0.65 0.15 30);
+  /* Orange */
+  --chart-4: oklch(0.6 0.15 300);
+  /* Purple */
+  --chart-5: oklch(0.5 0.05 260);
+  /* Grey Blue */
+
   --sidebar: oklch(0.98 0 0);
-  /* Off white */
-  --sidebar-foreground: oklch(0.1 0 0);
+  --sidebar-foreground: oklch(0.3 0.02 260);
   /* Near black */
   --sidebar-primary: oklch(0.1 0 0);
   /* Near black */
@@ -604,18 +603,46 @@
   }
 
   /* Chart color utilities */
-  .bg-chart-1 { background-color: var(--chart-1); }
-  .bg-chart-2 { background-color: var(--chart-2); }
-  .bg-chart-3 { background-color: var(--chart-3); }
-  .bg-chart-4 { background-color: var(--chart-4); }
-  .bg-chart-5 { background-color: var(--chart-5); }
+  .bg-chart-1 {
+    background-color: var(--chart-1);
+  }
+
+  .bg-chart-2 {
+    background-color: var(--chart-2);
+  }
+
+  .bg-chart-3 {
+    background-color: var(--chart-3);
+  }
+
+  .bg-chart-4 {
+    background-color: var(--chart-4);
+  }
+
+  .bg-chart-5 {
+    background-color: var(--chart-5);
+  }
 
   /* Correlation heatmap utilities */
-  .bg-correlation-strong-pos { background-color: var(--correlation-strong-pos); }
-  .bg-correlation-medium-pos { background-color: var(--correlation-medium-pos); }
-  .bg-correlation-weak { background-color: var(--correlation-weak); }
-  .bg-correlation-medium-neg { background-color: var(--correlation-medium-neg); }
-  .bg-correlation-strong-neg { background-color: var(--correlation-strong-neg); }
+  .bg-correlation-strong-pos {
+    background-color: var(--correlation-strong-pos);
+  }
+
+  .bg-correlation-medium-pos {
+    background-color: var(--correlation-medium-pos);
+  }
+
+  .bg-correlation-weak {
+    background-color: var(--correlation-weak);
+  }
+
+  .bg-correlation-medium-neg {
+    background-color: var(--correlation-medium-neg);
+  }
+
+  .bg-correlation-strong-neg {
+    background-color: var(--correlation-strong-neg);
+  }
 
   /* Statistical significance - additional */
   .bg-stat-highly-significant {
@@ -899,6 +926,7 @@
      Accessibility: Reduced Motion Support
      ======================================== */
   @media (prefers-reduced-motion: reduce) {
+
     *,
     *::before,
     *::after {

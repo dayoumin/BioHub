@@ -2,8 +2,8 @@
   "$schema": "./methods-registry.schema.json",
   "_meta": {
     "description": "Python Worker 메서드 레지스트리 - Single Source of Truth",
-    "version": "1.0.0",
-    "updated": "2025-12-17",
+    "version": "1.1.0",
+    "updated": "2026-02-19",
     "purpose": "TypeScript-Python 간 계약(Contract) 정의"
   },
   "worker1": {
@@ -47,7 +47,10 @@
           "isNormal",
           "interpretation"
         ],
-        "description": "Shapiro-Wilk 정규성 검정"
+        "description": "Shapiro-Wilk 정규성 검정",
+        "status": "active",
+        "since": "2025-12",
+        "notes": "정규성 기본 경로. anderson/dagostino는 Worker 미구현으로 서비스 레벨에서 throw 처리."
       },
       "outlier_detection": {
         "params": [
@@ -525,7 +528,11 @@
         "returns": [
           "statistic",
           "pValue",
-          "effectSize"
+          "nobs",
+          "zScore",
+          "medianDiff",
+          "effectSize",
+          "descriptives"
         ],
         "description": "Wilcoxon 부호순위 검정"
       },
@@ -561,7 +568,10 @@
           "dfBetween",
           "dfWithin",
           "etaSquared",
-          "omegaSquared"
+          "omegaSquared",
+          "ssBetween",
+          "ssWithin",
+          "ssTotal"
         ],
         "description": "일원 분산분석"
       },
@@ -827,7 +837,10 @@
           "screeData",
           "interpretation"
         ],
-        "description": "주성분 분석"
+        "description": "주성분 분석",
+        "status": "active",
+        "since": "2025-12",
+        "notes": "screeData[].varianceExplained는 percentage(0~100) 기준. 서비스/실행기 계층에서 ratio(0~1) 정규화 후 UI 계약으로 전달."
       },
       "curve_estimation": {
         "params": [
@@ -962,7 +975,10 @@
           "nFactors",
           "eigenvalues"
         ],
-        "description": "요인분석"
+        "description": "요인분석",
+        "status": "active",
+        "since": "2025-12",
+        "notes": "explainedVarianceRatio(0~1) 기반 계약을 우선 사용."
       },
       "cluster_analysis": {
         "params": [
@@ -980,7 +996,10 @@
           "silhouetteScore",
           "clusterSizes"
         ],
-        "description": "군집분석"
+        "description": "군집분석",
+        "status": "active",
+        "since": "2025-12",
+        "notes": "원본 필드(clusterAssignments, centroids)를 canonical로 유지하고 서비스 계층에서 하위호환 alias(clusters, centers)를 제공."
       },
       "time_series_analysis": {
         "params": [

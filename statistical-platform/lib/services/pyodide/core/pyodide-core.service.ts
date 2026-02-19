@@ -289,6 +289,13 @@ export class PyodideCoreService {
     this.instance = null
   }
 
+  /**
+   * 현재 로드된 Pyodide 인스턴스 접근자 (테스트/호환용)
+   */
+  getPyodideInstance(): PyodideInterface | null {
+    return this.pyodide
+  }
+
   // ========================================
   // Public API - 초기화
   // ========================================

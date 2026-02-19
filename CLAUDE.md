@@ -158,6 +158,14 @@ pnpm dev
 **참고 문서**:
 - [TROUBLESHOOTING_ISANALYZING_BUG.md](statistical-platform/docs/TROUBLESHOOTING_ISANALYZING_BUG.md) - Critical 버그 예방
 
+### 3-1. Bio-Tools Worker 패턴 (Worker 5+6/Phase 15)
+
+**Bio-Tools는 반드시 다음 규칙을 따릅니다:**
+1. ✅ **Methods Registry 필수**: 모든 새 메서드는 `methods-registry.json`에 정의
+2. ✅ **Generated Types 필수**: `callWorkerMethod` 직접 호출 금지 → 자동 생성된 래퍼 사용
+3. ✅ **Pure Python**: 가능하면 NumPy/SciPy/Scikit-learn만 사용 (외부 라이브러리 최소화)
+4. ✅ **서비스 분리**: `BioStatisticsService` (`worker5`, `worker6` 전담)
+
 ---
 
 ### 4. AI 코딩 품질 보증 워크플로우 (CRITICAL)

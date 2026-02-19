@@ -115,6 +115,13 @@ export function TwoPanelLayout({
         {/* 분석 제목 */}
         {analysisTitle && !isSidebarCollapsed && (
           <div className="p-4 bg-primary/5">
+            <Link
+              href="/statistics"
+              className="flex items-center text-xs text-muted-foreground hover:text-primary mb-3 transition-colors"
+            >
+              <ChevronLeft className="h-3 w-3 mr-1" />
+              통계 목록으로
+            </Link>
             <div className="flex items-center gap-2 mb-1">
               {analysisIcon}
               <h2 className="text-lg font-bold text-foreground">{analysisTitle}</h2>

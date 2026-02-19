@@ -206,6 +206,52 @@ const METHOD_TYPE_OVERRIDES = {
     'confidenceInterval': '{ lower: number[]; upper: number[] }',
     'isSignificant': 'boolean',
   },
+  // ========================================
+  // Phase 5-2: unknown 타입 해소 오버라이드
+  // ========================================
+  'one_way_anova': {
+    'ssBetween': 'number',
+    'ssWithin': 'number',
+    'ssTotal': 'number',
+  },
+  'wilcoxon_test': {
+    'nobs': 'number',
+    'zScore': 'number',
+    'medianDiff': 'number',
+  },
+  't_test_paired_summary': {
+    'stdDiff': 'number',
+  },
+  'partial_correlation': {
+    'confidenceInterval': '{ lower: number; upper: number }',
+  },
+  'pca_analysis': {
+    'components': 'Array<{ componentNumber: number; eigenvalue: number; varianceExplained: number; cumulativeVariance: number; loadings: Record<string, number> }>',
+    'rotationMatrix': 'number[][]',
+    'transformedData': 'Array<Record<string, number>>',
+    'variableContributions': 'Record<string, number[]>',
+    'qualityMetrics': '{ kmo: number | null; bartlett: { statistic: number | null; pValue: number | null; significant: boolean | null; error?: string } }',
+    'screeData': 'Array<{ component: number; eigenvalue: number; varianceExplained: number }>',
+  },
+  'curve_estimation': {
+    'parameters': 'number[]',
+  },
+  'nonlinear_regression': {
+    'parameters': 'number[]',
+  },
+  'stepwise_regression': {
+    'steps': 'Array<{ step: number; variable: string; action: string; rSquared: number }> | undefined',
+  },
+  'probit_regression': {
+    'marginalEffects': 'number[] | undefined',
+  },
+  'discriminant_analysis': {
+    'functions': 'Array<{ functionNumber: number; eigenvalue: number; varianceExplained: number; cumulativeVariance: number; canonicalCorrelation: number; coefficients: Record<string, number> }>',
+    'groupCentroids': 'Array<{ group: string; centroids: Record<string, number> }>',
+    'classificationResults': 'Array<{ originalGroup: string; predictedGroup: string; probability: number; correct: boolean }>',
+    'confusionMatrix': 'Record<string, Record<string, number>>',
+    'equalityTests': '{ boxM: { statistic: number; pValue: number; significant: boolean }; wilksLambda: { statistic: number; pValue: number; significant: boolean } }',
+  },
 }
 
 /**
@@ -465,6 +511,9 @@ const METHOD_PARAM_OVERRIDES = {
   },
   'discriminant_analysis': {
     'groups': '(string | number)[]',
+  },
+  'partial_correlation': {
+    'controlIndices': 'number[]',
   },
 }
 

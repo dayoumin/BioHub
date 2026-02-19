@@ -32,6 +32,29 @@
 import type { PyodideInterface } from '@/types/pyodide'
 import { PyodideCoreService } from './pyodide/core/pyodide-core.service'
 import * as Generated from '@/lib/generated/method-types.generated'
+import {
+  clusterAnalysisAdapter,
+  type ClusterAnalysisAdapterResult,
+  type ClusterAnalysisOptions
+} from './pyodide-statistics.adapters'
+
+interface BonferroniComparison {
+  group1: string
+  group2: string
+  mean_diff: number
+  tStatistic: number
+  pValue: number
+  adjusted_p: number
+  significant: boolean
+}
+
+interface BonferroniResult {
+  comparisons: BonferroniComparison[]
+  num_comparisons: number
+  original_alpha: number
+  adjusted_alpha: number
+  significant_count: number
+}
 
 export class PyodideStatisticsService {
   private static instance: PyodideStatisticsService | null = null
@@ -53,7 +76,7 @@ export class PyodideStatisticsService {
    * @internal
    */
   get pyodide(): PyodideInterface | null {
-    return (this.core as unknown as { pyodide: PyodideInterface | null }).pyodide
+    return this.core.getPyodideInstance()
   }
 
   /**
@@ -81,38 +104,6 @@ export class PyodideStatisticsService {
 
 
   /**
-   * IQR 방법으로 이상치 탐지 - Worker 1 사용
-   */
-  async detectOutliersIQR(data: number[]): Promise<{
-    q1: number
-    q3: number
-    iqr: number
-    lowerBound: number
-    upperBound: number
-    mildOutliers: number[]
-    extremeOutliers: number[]
-  }> {
-    const stats = await this.descriptiveStats(data)
-    const outliers = await this.outlierDetection(data, 'iqr')
-
-    return {
-      q1: stats.q1,
-      q3: stats.q3,
-      iqr: stats.q3 - stats.q1,
-      lowerBound: stats.q1 - 1.5 * (stats.q3 - stats.q1),
-      upperBound: stats.q3 + 1.5 * (stats.q3 - stats.q1),
-      mildOutliers: [],  // Worker 1에서 세부 분류 미제공
-      extremeOutliers: []
-    }
-  }
-
-
-  /**
-   * Levene 등분산성 검정
-   * @param groups 그룹별 데이터 배열
-   * @returns 검정 결과
-   */
-  /**
    * Levene 등분산성 검정 - Worker 2 사용
    */
   async leveneTest(groups: number[][]): Promise<Generated.LeveneTestResult> {
@@ -120,14 +111,8 @@ export class PyodideStatisticsService {
   }
 
   /**
-   * 독립성 검정 (Durbin-Watson test) - Worker 4 사용
-   * 시계열 데이터나 회귀분석 잔차의 자기상관성 검정
-   * @param residuals 잔차 또는 시계열 데이터
-   * @returns DW 통계량 (2에 가까울수록 독립적)
-   */
-  /**
    * Durbin-Watson 검정 (레거시 API)
-   * @see durbinWatsonTest - 새 메서드 사용 권장
+   * @deprecated durbinWatsonTest 사용 권장
    */
   async testIndependence(residuals: number[]): Promise<{
     statistic: number
@@ -155,30 +140,26 @@ export class PyodideStatisticsService {
 
   /**
    * Anderson-Darling 정규성 검정
-   * @param data 검정할 데이터
+   * @throws Python Worker에 미구현 — scipy.stats.anderson은 pValue를 직접 반환하지 않아 변환 로직 필요
    */
-  async andersonDarlingTest(data: number[]): Promise<{
+  async andersonDarlingTest(_data: number[]): Promise<{
     statistic: number
     pValue: number
     isNormal: boolean
   }> {
-    // TODO: Implement Anderson-Darling test using SciPy
-    // For now, fallback to Shapiro-Wilk
-    return this.shapiroWilkTest(data)
+    throw new Error('Anderson-Darling test is not yet implemented in Python Worker. Use shapiroWilkTest() or kolmogorovSmirnovTest() instead.')
   }
 
   /**
    * D'Agostino-Pearson 정규성 검정
-   * @param data 검정할 데이터
+   * @throws Python Worker에 미구현 — scipy.stats.normaltest로 구현 예정
    */
-  async dagostinoPearsonTest(data: number[]): Promise<{
+  async dagostinoPearsonTest(_data: number[]): Promise<{
     statistic: number
     pValue: number
     isNormal: boolean
   }> {
-    // TODO: Implement D'Agostino-Pearson test using SciPy
-    // For now, fallback to Shapiro-Wilk
-    return this.shapiroWilkTest(data)
+    throw new Error('D\'Agostino-Pearson test is not yet implemented in Python Worker. Use shapiroWilkTest() or kolmogorovSmirnovTest() instead.')
   }
 
   /**
@@ -442,97 +423,8 @@ export class PyodideStatisticsService {
    * Wilcoxon 부호순위 검정 (Wilcoxon Signed-Rank Test) - Worker 3
    * 대응표본의 중위수 차이를 비모수적으로 검정
    */
-  async wilcoxonSignedRankTest(values1: number[], values2: number[]): Promise<{
-    statistic: number
-    pValue: number
-    nobs: number
-    zScore: number
-    medianDiff: number
-    effectSize: {
-      value: number
-      interpretation: string
-    }
-    descriptives: {
-      before: {
-        median: number
-        mean: number
-        iqr: number
-        min: number
-        max: number
-        q1: number
-        q3: number
-      }
-      after: {
-        median: number
-        mean: number
-        iqr: number
-        min: number
-        max: number
-        q1: number
-        q3: number
-      }
-      differences: {
-        median: number
-        mean: number
-        iqr: number
-        min: number
-        max: number
-        q1: number
-        q3: number
-        positive: number
-        negative: number
-        ties: number
-      }
-    }
-  }> {
-    return this.core.callWorkerMethod<{
-      statistic: number
-      pValue: number
-      nobs: number
-      zScore: number
-      medianDiff: number
-      effectSize: {
-        value: number
-        interpretation: string
-      }
-      descriptives: {
-        before: {
-          median: number
-          mean: number
-          iqr: number
-          min: number
-          max: number
-          q1: number
-          q3: number
-        }
-        after: {
-          median: number
-          mean: number
-          iqr: number
-          min: number
-          max: number
-          q1: number
-          q3: number
-        }
-        differences: {
-          median: number
-          mean: number
-          iqr: number
-          min: number
-          max: number
-          q1: number
-          q3: number
-          positive: number
-          negative: number
-          ties: number
-        }
-      }
-    }>(
-      3,
-      'wilcoxon_test',
-      { values1, values2 },
-      { errorMessage: 'Wilcoxon Signed-Rank Test 실행 실패' }
-    )
+  async wilcoxonSignedRankTest(values1: number[], values2: number[]): Promise<Generated.WilcoxonTestResult> {
+    return Generated.wilcoxonTest(values1, values2)
   }
 
   /**
@@ -640,7 +532,7 @@ export class PyodideStatisticsService {
    */
   async anova(
     groups: number[][],
-    options: { type?: 'one-way' | 'two-way' } = {}
+    _options: { type?: 'one-way' | 'two-way' } = {}
   ): Promise<{
     fStatistic: number
     pValue: number
@@ -665,15 +557,19 @@ export class PyodideStatisticsService {
     }
   }
 
+  async oneWayAnovaWorker(groups: number[][]): Promise<Generated.OneWayAnovaResult> {
+    return Generated.oneWayAnova(groups)
+  }
+
 
   /**
    * 단순선형회귀분석 (레거시 API)
-   * @see linearRegression - 새 메서드 사용 권장
+   * @deprecated linearRegression 사용 권장
    */
   async regression(
     x: number[],
     y: number[],
-    options: { type?: 'simple' | 'multiple' } = {}
+    _options: { type?: 'simple' | 'multiple' } = {}
   ): Promise<{
     slope?: number
     intercept?: number
@@ -699,7 +595,7 @@ export class PyodideStatisticsService {
 
   /**
    * Mann-Whitney U 검정 (레거시 API)
-   * @see mannWhitneyTestWorker - 새 메서드 사용 권장
+   * @deprecated mannWhitneyTestWorker 사용 권장
    */
   async mannWhitneyU(
     group1: number[],
@@ -718,7 +614,7 @@ export class PyodideStatisticsService {
 
   /**
    * Wilcoxon 부호순위 검정 (레거시 API)
-   * @see wilcoxonTestWorker - 새 메서드 사용 권장
+   * @deprecated wilcoxonTestWorker 사용 권장
    */
   async wilcoxon(
     group1: number[],
@@ -737,7 +633,7 @@ export class PyodideStatisticsService {
 
   /**
    * Kruskal-Wallis H 검정 (레거시 API)
-   * @see kruskalWallisTestWorker - 새 메서드 사용 권장
+   * @deprecated kruskalWallisTestWorker 사용 권장
    */
   async kruskalWallis(groups: number[][]): Promise<{
     statistic: number
@@ -755,7 +651,7 @@ export class PyodideStatisticsService {
 
   /**
    * Tukey HSD 사후검정 (레거시 API)
-   * @see tukeyHSDWorker - 새 메서드 사용 권장
+   * @deprecated tukeyHSDWorker 사용 권장
    */
   async tukeyHSD(groups: number[][]): Promise<Generated.TukeyHsdResult> {
     return this.tukeyHSDWorker(groups)
@@ -763,7 +659,8 @@ export class PyodideStatisticsService {
 
 
   /**
-   * Chi-square 검정 - Worker 2
+   * Chi-square 검정 (레거시 API)
+   * @deprecated chiSquareTestWorker 사용 권장
    */
   async chiSquare(contingencyTable: number[][]): Promise<{
     statistic: number
@@ -781,7 +678,7 @@ export class PyodideStatisticsService {
 
   /**
    * PCA (주성분분석) - 레거시 API
-   * @see pcaAnalysis - 새 메서드 사용 권장
+   * @deprecated pcaAnalysis 사용 권장
    */
   async pca(data: number[][]): Promise<{
     explainedVariance: number[]
@@ -789,15 +686,23 @@ export class PyodideStatisticsService {
     components: number[][]
   }> {
     const result = await this.pcaAnalysis(data, 2)
-    // components는 2D 배열 [[eigenvalue, variance%, cumVar%, ...], ...]
-    // explainedVariance는 각 컴포넌트의 분산비율 추출
-    const explainedVariance = Array.isArray(result.components)
-      ? result.components.map((c: number[]) => c[1] ?? 0)
-      : []
-    const totalExplainedVariance = result.totalVariance || 0
+
+    const explainedVariance = (result.screeData ?? []).map((point) => {
+      if (typeof point === 'number') {
+        return point
+      }
+
+      if (point && typeof point === 'object' && 'varianceExplained' in point) {
+        const varianceExplained = point.varianceExplained
+        return typeof varianceExplained === 'number' ? varianceExplained : 0
+      }
+
+      return 0
+    })
+    const totalExplainedVariance = explainedVariance.reduce((sum, value) => sum + value, 0)
 
     return {
-      components: result.components,
+      components: result.rotationMatrix ?? [],
       explainedVariance,
       totalExplainedVariance
     }
@@ -821,7 +726,7 @@ export class PyodideStatisticsService {
 
   /**
    * Friedman 검정 (레거시 API)
-   * @see friedmanTestWorker - 새 메서드 사용 권장
+   * @deprecated friedmanTestWorker 사용 권장
    */
   async friedman(data: number[][]): Promise<{
     statistic: number
@@ -851,23 +756,11 @@ export class PyodideStatisticsService {
   /**
    * 군집분석 (Cluster Analysis) - Worker 4 사용
    */
-  async clusterAnalysis(data: number[][], options: {
-    nClusters?: number
-    method?: 'kmeans' | 'hierarchical' | 'dbscan'
-    linkage?: 'ward' | 'complete' | 'average' | 'single'
-    distance?: 'euclidean' | 'manhattan' | 'cosine'
-  } = {}): Promise<Generated.ClusterAnalysisResult & {
-    // Backward-compatible aliases used across the app
-    clusters: number[]
-    centers: number[][]
-  }> {
-    const { nClusters = 3, method = 'kmeans', linkage = 'ward', distance = 'euclidean' } = options
-    const result = await Generated.clusterAnalysis(data, method, nClusters, linkage, distance)
-    return {
-      ...result,
-      clusters: result.clusterAssignments,
-      centers: result.centroids
-    }
+  async clusterAnalysis(
+    data: number[][],
+    options: ClusterAnalysisOptions = {}
+  ): Promise<ClusterAnalysisAdapterResult> {
+    return clusterAnalysisAdapter(data, options)
   }
 
   /**
@@ -904,16 +797,18 @@ export class PyodideStatisticsService {
 
 
   /**
-   * 등분산 검정
+   * 등분산 검정 (레거시 API)
+   * @deprecated leveneTest 사용 권장
    */
-  async testHomogeneity(groups: number[][], method: string = 'levene'): Promise<Generated.LeveneTestResult> {
+  async testHomogeneity(groups: number[][], _method: string = 'levene'): Promise<Generated.LeveneTestResult> {
     return this.leveneTest(groups)
   }
 
   /**
-   * 일표본 t-검정 - Worker 2 래퍼
+   * 일표본 t-검정 (레거시 API)
+   * @deprecated tTestOneSample 사용 권장
    */
-  async oneSampleTTest(data: number[], popmean: number, alternative: string = 'two-sided'): Promise<{ statistic: number; pValue: number; df: number }> {
+  async oneSampleTTest(data: number[], popmean: number, _alternative: string = 'two-sided'): Promise<{ statistic: number; pValue: number; df: number }> {
     const result = await this.tTestOneSample(data, popmean)
     return {
       statistic: result.statistic,
@@ -924,7 +819,8 @@ export class PyodideStatisticsService {
 
 
   /**
-   * 독립표본 t-검정 - Worker 2 래퍼
+   * 독립표본 t-검정 (레거시 API)
+   * @deprecated tTestTwoSample 사용 권장
    */
   async twoSampleTTest(group1: number[], group2: number[], equalVar: boolean = true): Promise<{ statistic: number; pValue: number; df: number; mean1: number; mean2: number; meanDiff: number }> {
     const result = await this.tTestTwoSample(group1, group2, equalVar)
@@ -940,9 +836,10 @@ export class PyodideStatisticsService {
 
 
   /**
-   * 대응표본 t-검정 - Worker 2 래퍼
+   * 대응표본 t-검정 (레거시 API)
+   * @deprecated tTestPaired 사용 권장
    */
-  async pairedTTest(values1: number[], values2: number[], alternative: string = 'two-sided'): Promise<{ statistic: number; pValue: number; df: number; meanDiff: number }> {
+  async pairedTTest(values1: number[], values2: number[], _alternative: string = 'two-sided'): Promise<{ statistic: number; pValue: number; df: number; meanDiff: number }> {
     const result = await this.tTestPaired(values1, values2)
     return {
       statistic: result.statistic,
@@ -954,7 +851,8 @@ export class PyodideStatisticsService {
 
 
   /**
-   * 일원분산분석 - Worker 3 래퍼
+   * 일원분산분석 (레거시 API)
+   * @deprecated oneWayAnovaWorker 사용 권장
    */
   async oneWayANOVA(groups: number[][]): Promise<{ fStatistic: number; pValue: number; dfBetween: number; dfWithin: number }> {
     const result = await this.oneWayAnovaWorker(groups)
@@ -968,7 +866,8 @@ export class PyodideStatisticsService {
 
 
   /**
-   * 단순선형회귀 - 기존 regression 래퍼
+   * 단순선형회귀 (레거시 API)
+   * @deprecated linearRegression 사용 권장
    */
   async simpleLinearRegression(xValues: number[], yValues: number[]): Promise<{ slope: number; intercept: number; rSquared: number; fStatistic: number; pvalue: number }> {
     const result = await this.regression(xValues, yValues)
@@ -983,7 +882,8 @@ export class PyodideStatisticsService {
 
 
   /**
-   * 카이제곱 검정 - Worker 2 래퍼
+   * 카이제곱 검정 (레거시 API)
+   * @deprecated chiSquareTestWorker 사용 권장
    */
   async chiSquareTest(observedMatrix: number[][], correction: boolean = false): Promise<{ statistic: number; pValue: number; df: number }> {
     const result = await this.chiSquareTestWorker(observedMatrix, correction)
@@ -996,30 +896,44 @@ export class PyodideStatisticsService {
 
 
   /**
-   * 주성분 분석 - 기존 pca 래퍼
+   * 주성분 분석 (레거시 API)
+   * @deprecated pcaAnalysis 사용 권장
    */
-  async performPCA(dataMatrix: number[][], columns: string[], nComponents?: number, standardize: boolean = true): Promise<{
+  async performPCA(dataMatrix: number[][], _columns: string[], nComponents?: number, _standardize: boolean = true): Promise<{
     components: number[][]
     explainedVarianceRatio: number[]
     cumulativeVariance: number[]
     totalExplainedVariance: number
   }> {
-    const result = await this.pca(dataMatrix)
+    const result = await this.pcaAnalysis(dataMatrix, nComponents ?? 2)
 
-    // 누적 분산 계산
-    const cumulativeVariance = []
+    // screeData를 분산비율로 사용, 누적 분산 계산
+    const explainedVarianceRatio: number[] = (result.screeData ?? []).map((point) => {
+      if (typeof point === 'number') {
+        return point > 1 ? point / 100 : point
+      }
+
+      if (point && typeof point === 'object' && 'varianceExplained' in point) {
+        const varianceExplained = point.varianceExplained
+        if (typeof varianceExplained === 'number') {
+          return varianceExplained > 1 ? varianceExplained / 100 : varianceExplained
+        }
+      }
+
+      return 0
+    })
+    const cumulativeVariance: number[] = []
     let cumSum = 0
-    for (const ratio of result.explainedVariance) {
+    for (const ratio of explainedVarianceRatio) {
       cumSum += ratio
       cumulativeVariance.push(cumSum)
     }
 
-
     return {
-      components: result.components,
-      explainedVarianceRatio: result.explainedVariance,
+      components: result.rotationMatrix ?? [],
+      explainedVarianceRatio,
       cumulativeVariance,
-      totalExplainedVariance: result.totalExplainedVariance
+      totalExplainedVariance: explainedVarianceRatio.reduce((sum, value) => sum + value, 0)
     }
   }
 
@@ -1064,7 +978,7 @@ export class PyodideStatisticsService {
   async multipleRegression(
     X: number[][],  // 독립변수들
     y: number[],    // 종속변수
-    variableNames: string[] = []
+    _variableNames: string[] = []
   ): Promise<Generated.MultipleRegressionResult> {
     return Generated.multipleRegression(X, y)
   }
@@ -1075,13 +989,17 @@ export class PyodideStatisticsService {
   async logisticRegression(
     X: number[][],  // 독립변수들
     y: number[],    // 종속변수 (0 또는 1)
-    variableNames: string[] = []
+    _variableNames: string[] = []
   ): Promise<Generated.LogisticRegressionResult> {
     return Generated.logisticRegression(X, y)
   }
 
   /**
    * 상관 분석
+   *
+   * @remarks
+   * 다중 컬럼 입력을 받아 N×N 상관계수 행렬을 구성하는 집계 API입니다.
+   * Worker 단일 메서드(Generated) 결과와 1:1 매핑되지 않는 의도된 커스텀 반환 타입입니다.
    */
   async calculateCorrelation(columnsData: Record<string, number[]>, method: string = 'pearson'): Promise<{ matrix: number[][] }> {
     const columns = Object.keys(columnsData)
@@ -1192,21 +1110,13 @@ export class PyodideStatisticsService {
   /**
    * Bonferroni 사후검정 - Worker 2 t-test 사용
    */
-  async performBonferroni(groups: number[][], groupNames: string[], alpha: number = 0.05): Promise<{
-    comparisons: Array<{ group1: string; group2: string; mean_diff: number; tStatistic: number; pValue: number; adjusted_p: number; significant: boolean }>
-    num_comparisons: number
-    original_alpha: number
-    adjusted_alpha: number
-    significant_count: number
-  }> {
-    await this.initialize()
-    await this.core.ensureWorker2Loaded()
+  async performBonferroni(groups: number[][], groupNames: string[], alpha: number = 0.05): Promise<BonferroniResult> {
 
     const n_groups = groups.length
     const num_comparisons = n_groups * (n_groups - 1) / 2
     const adjusted_alpha = alpha / num_comparisons
 
-    const comparisons = []
+    const comparisons: BonferroniComparison[] = []
 
     // 모든 쌍 비교
     for (let i = 0; i < n_groups; i++) {
@@ -1268,24 +1178,7 @@ export class PyodideStatisticsService {
     return Generated.friedmanTest(groups)
   }
 
-  async oneWayAnovaWorker(groups: number[][]): Promise<Generated.OneWayAnovaResult & {
-    fStatistic: number
-    dfBetween: number
-    dfWithin: number
-    etaSquared: number
-    omegaSquared: number
-    ssBetween: number
-    ssWithin: number
-    ssTotal: number
-  }> {
-    const result = await Generated.oneWayAnova(groups)
-    return {
-      ...result,
-      ssBetween: (result as unknown as Record<string, number>).ssBetween ?? 0,
-      ssWithin: (result as unknown as Record<string, number>).ssWithin ?? 0,
-      ssTotal: (result as unknown as Record<string, number>).ssTotal ?? 0
-    }
-  }
+
 
   async twoWayAnovaWorker(dataValues: number[], factor1Values: (string | number)[], factor2Values: (string | number)[]): Promise<{
     mainEffect1: { fStatistic: number; pValue: number }

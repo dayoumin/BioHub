@@ -69,6 +69,10 @@ export interface MethodDefinition {
   params: string[]
   returns: string[]
   description: string
+  status?: 'active' | 'todo' | 'experimental' | 'deprecated'
+  since?: string
+  replacement?: string
+  notes?: string
 }
 
 // ========================================

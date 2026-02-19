@@ -26,6 +26,10 @@ export class ExportService {
         const { exportExcel } = await import('./excel-export')
         return exportExcel(data)
       }
+      case 'html': {
+        const { exportHtml } = await import('./html-export')
+        return exportHtml(data)
+      }
       default: {
         return { success: false, error: `Unsupported format: ${format}` }
       }

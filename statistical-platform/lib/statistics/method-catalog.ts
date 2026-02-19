@@ -17,7 +17,7 @@ const METHODS: StatisticalMethod[] = STATISTICAL_METHODS
 export const PURPOSE_CATEGORY_MAP: Record<AnalysisPurpose, string[]> = {
   compare: ['t-test', 'anova', 'nonparametric'],
   relationship: ['correlation', 'regression', 'chi-square'],
-  distribution: ['descriptive', 'nonparametric', 'chi-square'],
+  distribution: ['nonparametric', 'chi-square'],
   prediction: ['regression', 'advanced'],
   timeseries: ['timeseries', 'regression'],
   survival: ['survival'],
@@ -123,7 +123,6 @@ export function getAllMethodsGrouped(): MethodGroup[] {
 
   // Return in logical order (survival 카테고리 포함)
   const categoryOrder = [
-    'descriptive',
     't-test',
     'anova',
     'nonparametric',

@@ -8,7 +8,7 @@ import type { AnalysisResult } from '@/types/smart-flow'
 import type { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
 
 // ─── 내보내기 포맷 ───
-export type ExportFormat = 'docx' | 'xlsx'
+export type ExportFormat = 'docx' | 'xlsx' | 'html'
 
 // ─── 내보내기 컨텍스트 (컴포넌트에서 전달) ───
 export interface ExportContext {

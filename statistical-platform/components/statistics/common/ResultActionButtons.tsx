@@ -104,7 +104,7 @@ export function ResultActionButtons({
   const [notebookDialogOpen, setNotebookDialogOpen] = React.useState(false)
 
   const [exportOptions, setExportOptions] = React.useState<ExportOptions>({
-    format: 'pdf',
+    format: 'word',
     includeRawData: false,
     includeCharts: true,
     includeInterpretation: true,
@@ -320,9 +320,9 @@ export function ResultActionButtons({
       <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
         <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>
-            <DialogTitle>보고서 내보내기</DialogTitle>
+            <DialogTitle>분석 결과 내보내기</DialogTitle>
             <DialogDescription>
-              분석 결과를 보고서로 생성합니다. 포함할 내용과 형식을 선택하세요.
+              분석 결과를 파일로 저장합니다. 형식을 선택하세요.
             </DialogDescription>
           </DialogHeader>
 
@@ -337,24 +337,12 @@ export function ResultActionButtons({
                 }
               >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="pdf" id="pdf" />
-                  <Label htmlFor="pdf">PDF (인쇄용)</Label>
-                </div>
-                <div className="flex items-center space-x-2">
                   <RadioGroupItem value="word" id="word" />
-                  <Label htmlFor="word">Word (편집 가능)</Label>
+                  <Label htmlFor="word">Word 문서 (.docx)</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="html" id="html" />
-                  <Label htmlFor="html">HTML (웹 페이지)</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="latex" id="latex" />
-                  <Label htmlFor="latex">LaTeX (학술 논문)</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="markdown" id="markdown" />
-                  <Label htmlFor="markdown">Markdown (문서)</Label>
+                  <Label htmlFor="html">HTML 웹페이지 (.html)</Label>
                 </div>
               </RadioGroup>
             </div>
@@ -415,35 +403,15 @@ export function ResultActionButtons({
                 </div>
               </div>
             </div>
-
-            {/* 언어 선택 */}
-            <div className="space-y-2">
-              <Label>언어</Label>
-              <RadioGroup
-                value={exportOptions.language}
-                onValueChange={(value) =>
-                  setExportOptions({ ...exportOptions, language: value as 'ko' | 'en' })
-                }
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="ko" id="ko" />
-                  <Label htmlFor="ko">한국어</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="en" id="en" />
-                  <Label htmlFor="en">English</Label>
-                </div>
-              </RadioGroup>
-            </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
               취소
             </Button>
-            <Button onClick={handleExportReport}>
+            <Button onClick={handleExportReport} className="bg-blue-600 hover:bg-blue-700 text-white">
               <Download className="w-4 h-4 mr-2" />
-              생성
+              내보내기
             </Button>
           </DialogFooter>
         </DialogContent>

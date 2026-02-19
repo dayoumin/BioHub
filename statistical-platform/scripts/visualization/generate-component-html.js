@@ -6,7 +6,7 @@
  * - 각 컴포넌트의 구조, props, 사용 예시를 시각적으로 확인
  *
  * 생성 파일:
- * - statistical-platform/visualization/components/
+ * - statics/visualization/components/
  *   - index.html (메인 인덱스)
  *   - step-indicator.html
  *   - progress-stepper.html
@@ -317,7 +317,7 @@ function generateIndexPage() {
       <h3>디렉토리 구조</h3>
       <div class="code-block">
 <span class="comment">// 컴포넌트 위치</span>
-statistical-platform/
+statics/
 ├── components/
 │   ├── common/
 │   │   └── StepIndicator.tsx          <span class="comment">// 통합 단계 표시</span>

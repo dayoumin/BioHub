@@ -30,7 +30,7 @@ export interface StatisticalTest {
   tooltip: string
   whenToUse: string
   example: string
-  icon: any
+  icon: any // LucideIcon
   popularity: number // 1-5 stars
   difficulty: 'beginner' | 'intermediate' | 'advanced'
   sampleSizeMin?: number
@@ -67,7 +67,7 @@ export const STATISTICAL_ANALYSIS_CONFIG: AnalysisCategory[] = [
       {
         id: "calculateDescriptiveStats",
         name: "기술통계량",
-        nameEn: "Descriptive Statistics", 
+        nameEn: "Descriptive Statistics",
         description: "평균, 중앙값, 표준편차, 왜도, 첨도 등",
         tooltip: "데이터의 중심경향과 분산을 파악",
         whenToUse: "• 데이터의 기본적인 특성 파악\n• 데이터 분포 확인\n• 이상치 발견",
@@ -870,7 +870,7 @@ export function searchTests(query: string): StatisticalTest[] {
   const lowerQuery = query.toLowerCase()
   return STATISTICAL_ANALYSIS_CONFIG
     .flatMap(category => category.tests)
-    .filter(test => 
+    .filter(test =>
       test.name.toLowerCase().includes(lowerQuery) ||
       test.nameEn.toLowerCase().includes(lowerQuery) ||
       test.description.toLowerCase().includes(lowerQuery) ||
