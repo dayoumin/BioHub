@@ -22,19 +22,20 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Upload,
   List,
-  History,
   Send,
   Sparkles,
   Loader2,
   Check,
-  ChevronDown,
   Settings2,
   ArrowRight,
   Zap,
-  Clock,
   X,
-  ArrowUpRight
+  Clock,
+  AlertCircle,
+  MoreHorizontal
 } from 'lucide-react'
+
+import { AnalysisHistoryPanel } from './AnalysisHistoryPanel'
 
 // UI Components
 import { Button } from '@/components/ui/button'
@@ -52,14 +53,13 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 
 // Services & Types
-import { ollamaRecommender } from '@/lib/services/ollama-recommender'
+import { llmRecommender } from '@/lib/services/llm-recommender'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { logger } from '@/lib/utils/logger'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
-import type { AIRecommendation, StatisticalMethod } from '@/types/smart-flow'
+import type { AIRecommendation } from '@/types/smart-flow'
 import { useTerminology } from '@/hooks/use-terminology'
-import type { HubText } from '@/lib/terminology/terminology-types'
 
 // ===== Types =====
 
@@ -109,74 +109,110 @@ const itemVariants = {
 
 // ===== SVG Decorations =====
 
-function NormalDistributionSVG({ className }: { className?: string }) {
+function StatisticalHeroVisual({ className }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 600 220"
+      viewBox="0 0 600 300"
       fill="none"
       className={className}
       aria-hidden="true"
     >
       <defs>
-        <linearGradient id="curveGrad" x1="300" y1="20" x2="300" y2="198" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="currentColor" stopOpacity="0.06" />
-          <stop offset="100%" stopColor="currentColor" stopOpacity="0.005" />
+        <linearGradient id="curveGrad" x1="300" y1="50" x2="300" y2="250" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="currentColor" stopOpacity="0.25" />
+          <stop offset="100%" stopColor="currentColor" stopOpacity="0.05" />
         </linearGradient>
-        <linearGradient id="strokeGrad" x1="0" y1="100" x2="600" y2="100" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="currentColor" stopOpacity="0.03" />
-          <stop offset="30%" stopColor="currentColor" stopOpacity="0.14" />
-          <stop offset="50%" stopColor="currentColor" stopOpacity="0.18" />
-          <stop offset="70%" stopColor="currentColor" stopOpacity="0.14" />
-          <stop offset="100%" stopColor="currentColor" stopOpacity="0.03" />
+        <linearGradient id="strokeGrad" x1="0" y1="150" x2="600" y2="150" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="currentColor" stopOpacity="0.2" />
+          <stop offset="50%" stopColor="currentColor" stopOpacity="0.7" />
+          <stop offset="100%" stopColor="currentColor" stopOpacity="0.2" />
         </linearGradient>
+        <linearGradient id="ciGrad" x1="300" y1="100" x2="300" y2="200" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="currentColor" stopOpacity="0.08" />
+          <stop offset="100%" stopColor="currentColor" stopOpacity="0.02" />
+        </linearGradient>
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
       </defs>
 
       {/* Baseline */}
-      <line x1="0" y1="198" x2="600" y2="198" stroke="currentColor" strokeOpacity="0.04" />
+      <line x1="50" y1="250" x2="550" y2="250" stroke="currentColor" strokeOpacity="0.25" strokeWidth="1" />
 
-      {/* sigma gridlines */}
-      {[100, 200, 300, 400, 500].map((x) => (
+      {/* Grid-like vertical lines */}
+      {[150, 250, 350, 450].map((x) => (
         <line
           key={x}
-          x1={x} y1="18" x2={x} y2="198"
+          x1={x} y1="80" x2={x} y2="250"
           stroke="currentColor"
-          strokeOpacity={x === 300 ? '0.05' : '0.02'}
-          strokeDasharray="2 8"
+          strokeOpacity="0.1"
+          strokeDasharray="4 4"
         />
       ))}
 
-      {/* Curve fill - gradient */}
+      {/* Confidence Interval Band (95% CI) */}
       <path
-        d="M 0,198 C 33,197 67,190 100,176 C 117,169 133,158 150,142 C 167,126 183,108 200,91 C 217,68 233,50 250,41 C 267,30 283,22 300,20 C 317,22 333,30 350,41 C 367,50 383,68 400,91 C 417,108 433,126 450,142 C 467,158 483,169 500,176 C 533,190 567,197 600,198 Z"
+        d="M 180,195 L 220,145 L 260,95 L 300,80 L 340,105 L 380,155 L 420,205 L 420,235 L 380,185 L 340,135 L 300,110 L 260,125 L 220,175 L 180,225 Z"
+        fill="url(#ciGrad)"
+        opacity="0.3"
+      />
+
+      {/* The Main Distribution Curve */}
+      <path
+        d="M 50,250 C 100,248 150,230 200,180 C 250,130 275,80 300,80 C 325,80 350,130 400,180 C 450,230 500,248 550,250"
         fill="url(#curveGrad)"
       />
 
-      {/* Curve stroke - gradient for refined fade */}
+      {/* Critical Regions (p < 0.05 tails) */}
       <path
-        d="M 0,198 C 33,197 67,190 100,176 C 117,169 133,158 150,142 C 167,126 183,108 200,91 C 217,68 233,50 250,41 C 267,30 283,22 300,20 C 317,22 333,30 350,41 C 367,50 383,68 400,91 C 417,108 433,126 450,142 C 467,158 483,169 500,176 C 533,190 567,197 600,198"
-        stroke="url(#strokeGrad)"
-        strokeWidth="1.5"
+        d="M 50,250 C 70,249 90,245 110,235 L 110,250 Z"
+        fill="currentColor"
+        opacity="0.15"
+      />
+      <path
+        d="M 550,250 C 530,249 510,245 490,235 L 490,250 Z"
+        fill="currentColor"
+        opacity="0.15"
       />
 
-      {/* Scatter points - refined sizes */}
-      {[
-        { cx: 282, cy: 50, o: 0.10 }, { cx: 312, cy: 44, o: 0.08 },
-        { cx: 296, cy: 32, o: 0.06 }, { cx: 322, cy: 55, o: 0.10 },
-        { cx: 268, cy: 58, o: 0.08 }, { cx: 306, cy: 38, o: 0.06 },
-        { cx: 218, cy: 98, o: 0.06 }, { cx: 382, cy: 92, o: 0.06 },
-        { cx: 238, cy: 80, o: 0.04 }, { cx: 362, cy: 76, o: 0.04 },
-        { cx: 152, cy: 146, o: 0.03 }, { cx: 448, cy: 148, o: 0.03 },
-        { cx: 108, cy: 170, o: 0.02 }, { cx: 492, cy: 172, o: 0.02 },
-      ].map((p, i) => (
-        <circle key={i} cx={p.cx} cy={p.cy} r="1.2" fill="currentColor" opacity={p.o} />
-      ))}
+      <path
+        d="M 50,250 C 100,248 150,230 200,180 C 250,130 275,80 300,80 C 325,80 350,130 400,180 C 450,230 500,248 550,250"
+        stroke="url(#strokeGrad)"
+        strokeWidth="2.5"
+        filter="url(#glow)"
+      />
 
-      {/* sigma labels */}
-      <text x="300" y="214" textAnchor="middle" fill="currentColor" opacity="0.10" fontSize="9" fontFamily="var(--font-mono, monospace)">&#956;</text>
-      <text x="200" y="214" textAnchor="middle" fill="currentColor" opacity="0.06" fontSize="8" fontFamily="var(--font-mono, monospace)">-1&#963;</text>
-      <text x="400" y="214" textAnchor="middle" fill="currentColor" opacity="0.06" fontSize="8" fontFamily="var(--font-mono, monospace)">+1&#963;</text>
-      <text x="100" y="214" textAnchor="middle" fill="currentColor" opacity="0.04" fontSize="8" fontFamily="var(--font-mono, monospace)">-2&#963;</text>
-      <text x="500" y="214" textAnchor="middle" fill="currentColor" opacity="0.04" fontSize="8" fontFamily="var(--font-mono, monospace)">+2&#963;</text>
+      {/* Scatter Points (Data Points) */}
+      <g fill="currentColor">
+        {[
+          { x: 180, y: 210, o: 0.6 }, { x: 220, y: 160, o: 0.7 },
+          { x: 260, y: 110, o: 0.8 }, { x: 300, y: 95, o: 1.0 },
+          { x: 340, y: 120, o: 0.8 }, { x: 380, y: 170, o: 0.7 },
+          { x: 420, y: 220, o: 0.6 },
+          { x: 280, y: 130, o: 0.5 }, { x: 320, y: 140, o: 0.5 },
+          { x: 240, y: 190, o: 0.4 }, { x: 360, y: 200, o: 0.4 }
+        ].map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r="3" opacity={p.o} />
+        ))}
+      </g>
+
+      {/* Trendline */}
+      <path
+        d="M 180,210 L 220,160 L 260,110 L 300,95 L 340,120 L 380,170 L 420,220"
+        stroke="currentColor"
+        strokeOpacity="0.4"
+        strokeWidth="1.8"
+        strokeDasharray="3 3"
+      />
+
+      {/* Statistical Formulas & Labels */}
+      <g fill="currentColor" opacity="0.7" style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '13px', fontWeight: 'bold' }}>
+        <text x="70" y="75" className="select-none">y = β₀ + β₁x + ε</text>
+        <text x="410" y="60" className="select-none">σ² = Σ(X-μ)²/N</text>
+        <text x="500" y="240" fontSize="10" opacity="0.4" className="select-none">α=0.05</text>
+        <text x="60" y="240" fontSize="10" opacity="0.4" className="select-none">p-value</text>
+      </g>
     </svg>
   )
 }
@@ -208,18 +244,22 @@ function saveQuickMethods(methods: string[]): void {
   }
 }
 
-function formatTimeAgo(date: Date, texts: HubText['timeAgo']): string {
+function formatTimeAgo(date: Date, lang: string = 'ko'): string {
   const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMin = Math.floor(diffMs / 60000)
-  const diffHour = Math.floor(diffMs / 3600000)
-  const diffDay = Math.floor(diffMs / 86400000)
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
 
-  if (diffMin < 1) return texts.justNow
-  if (diffMin < 60) return texts.minutesAgo(diffMin)
-  if (diffHour < 24) return texts.hoursAgo(diffHour)
-  if (diffDay < 7) return texts.daysAgo(diffDay)
-  return date.toLocaleDateString()
+  if (diffInSeconds < 60) return lang === 'ko' ? '방금 전' : 'Just now'
+
+  const diffInMinutes = Math.floor(diffInSeconds / 60)
+  if (diffInMinutes < 60) return lang === 'ko' ? `${diffInMinutes}분 전` : `${diffInMinutes}m ago`
+
+  const diffInHours = Math.floor(diffInMinutes / 60)
+  if (diffInHours < 24) return lang === 'ko' ? `${diffInHours}시간 전` : `${diffInHours}h ago`
+
+  const diffInDays = Math.floor(diffInHours / 24)
+  if (diffInDays < 7) return lang === 'ko' ? `${diffInDays}일 전` : `${diffInDays}d ago`
+
+  return date.toLocaleDateString(lang === 'ko' ? 'ko-KR' : 'en-US')
 }
 
 // Category count for display
@@ -239,11 +279,20 @@ export function ChatCentricHub({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Store
-  const { analysisHistory, setSelectedMethod, setQuickAnalysisMode, setShowHub, navigateToStep } = useSmartFlowStore()
+  const {
+    analysisHistory,
+    setSelectedMethod,
+    setQuickAnalysisMode,
+    setShowHub,
+    navigateToStep,
+    loadFromHistory,
+    deleteFromHistory
+  } = useSmartFlowStore()
 
   // State
   const [quickMethods, setQuickMethods] = useState<string[]>(DEFAULT_QUICK_METHODS)
   const [showEditDialog, setShowEditDialog] = useState(false)
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [editingMethods, setEditingMethods] = useState<string[]>([])
 
   // Search state
@@ -251,30 +300,7 @@ export function ChatCentricHub({
   const [isLoading, setIsLoading] = useState(false)
   const [responseText, setResponseText] = useState<string | null>(null)
   const [recommendation, setRecommendation] = useState<AIRecommendation | null>(null)
-  const [showAlternatives, setShowAlternatives] = useState(false)
-  const [ollamaAvailable, setOllamaAvailable] = useState<boolean | null>(null)
 
-  // Check Ollama availability
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (ollamaAvailable === null) {
-        setOllamaAvailable(false)
-        logger.warn('[MainHub] Ollama check timed out')
-      }
-    }, 3000)
-
-    ollamaRecommender.checkHealth().then(available => {
-      clearTimeout(timeoutId)
-      setOllamaAvailable(available)
-      logger.info('[MainHub] Ollama availability:', { available })
-    }).catch(() => {
-      clearTimeout(timeoutId)
-      setOllamaAvailable(false)
-    })
-
-    return () => clearTimeout(timeoutId)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   // Load quick methods
   useEffect(() => {
@@ -297,11 +323,11 @@ export function ChatCentricHub({
 
   // Recent history
   const recentHistory = useMemo(() => {
-    return analysisHistory.slice(0, 3).map(h => ({
+    return analysisHistory.slice(0, 6).map(h => ({
       ...h,
-      timeAgo: formatTimeAgo(new Date(h.timestamp), t.hub.timeAgo)
+      timeAgo: formatTimeAgo(new Date(h.timestamp), 'ko')
     }))
-  }, [analysisHistory, t])
+  }, [analysisHistory])
 
   // === Handlers ===
 
@@ -339,30 +365,20 @@ export function ChatCentricHub({
     }
   }, [setSelectedMethod, setQuickAnalysisMode, setShowHub, navigateToStep])
 
-  const handleHistorySelect = useCallback((historyItem: typeof analysisHistory[0]) => {
-    if (historyItem.method) {
-      setSelectedMethod({
-        id: historyItem.method.id,
-        name: historyItem.method.name,
-        description: historyItem.method.description || '',
-        category: historyItem.method.category as StatisticalMethod['category']
-      })
-      setQuickAnalysisMode(true)
-      setShowHub(false)
-      navigateToStep(1)
-    }
-  }, [setSelectedMethod, setQuickAnalysisMode, setShowHub, navigateToStep])
-
   // Search handlers
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value)
   }, [])
 
-  const applyFallback = useCallback(() => {
-    const { recommendation: fallbackRec, responseText: fallbackText } =
-      ollamaRecommender.keywordBasedRecommend(inputValue)
-    setResponseText(fallbackText)
-    setRecommendation(fallbackRec)
+  const applyFallback = useCallback(async () => {
+    try {
+      const { recommendation: rec, responseText: text } =
+        await llmRecommender.recommendFromNaturalLanguage(inputValue, null, null, null)
+      if (text) setResponseText(text)
+      if (rec) setRecommendation(rec)
+    } catch {
+      setResponseText('추천에 실패했습니다.')
+    }
   }, [inputValue])
 
   const handleSubmit = useCallback(async () => {
@@ -371,30 +387,23 @@ export function ChatCentricHub({
     setIsLoading(true)
     setResponseText(null)
     setRecommendation(null)
-    setShowAlternatives(false)
 
     try {
-      if (!ollamaAvailable) {
-        applyFallback()
-        return
-      }
-
       const { recommendation: aiRec, responseText: aiText } =
-        await ollamaRecommender.recommendFromNaturalLanguage(inputValue, null, null, null)
+        await llmRecommender.recommendFromNaturalLanguage(inputValue, null, null, null)
 
       if (aiText) setResponseText(aiText)
       if (aiRec) {
         setRecommendation(aiRec)
-      } else {
-        applyFallback()
       }
     } catch (error) {
       logger.error('[MainHub] Error', { error })
-      applyFallback()
+      await applyFallback()
     } finally {
       setIsLoading(false)
     }
-  }, [inputValue, isLoading, ollamaAvailable, applyFallback])
+  }, [inputValue, isLoading, applyFallback])
+
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -419,36 +428,31 @@ export function ChatCentricHub({
     navigateToStep(1)
   }, [recommendation, setSelectedMethod, setQuickAnalysisMode, setShowHub, navigateToStep])
 
-  const handleSelectAlternative = useCallback((alt: NonNullable<AIRecommendation['alternatives']>[number]) => {
-    setSelectedMethod({
-      id: alt.id,
-      name: alt.name,
-      description: alt.description || '',
-      category: alt.category || 'advanced'
-    })
-    setQuickAnalysisMode(true)
-    setShowHub(false)
-    navigateToStep(1)
-  }, [setSelectedMethod, setQuickAnalysisMode, setShowHub, navigateToStep])
-
   const handleClearSearch = useCallback(() => {
     setInputValue('')
     setResponseText(null)
     setRecommendation(null)
-    setShowAlternatives(false)
   }, [])
 
-  // Loading state
-  if (ollamaAvailable === null) {
-    return (
-      <div className="w-full max-w-5xl mx-auto flex items-center justify-center py-24">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/60" />
-          <span className="text-xs text-muted-foreground/40 font-mono tracking-wide">Loading</span>
-        </div>
-      </div>
-    )
-  }
+  // History handlers
+  const handleHistorySelect = useCallback(async (historyId: string) => {
+    try {
+      await loadFromHistory(historyId)
+      setShowHub(false)
+      // loadFromHistory sets currentStep to MAX_STEPS (Results)
+    } catch (err) {
+      logger.error('Failed to load history', err)
+    }
+  }, [loadFromHistory, setShowHub])
+
+  const handleHistoryDelete = useCallback(async (historyId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (confirm('이 기록을 삭제하시겠습니까?')) {
+      await deleteFromHistory(historyId)
+    }
+  }, [deleteFromHistory])
+
+
 
   return (
     <motion.div
@@ -458,31 +462,19 @@ export function ChatCentricHub({
       {/* ====== Hero Section ====== */}
       <motion.div variants={itemVariants}>
         <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-card mb-10">
-          {/* Engineering grid background */}
-          <div
-            className="absolute inset-0 pointer-events-none opacity-[0.45] dark:opacity-[0.12]"
-            style={{
-              backgroundImage: `
-                linear-gradient(to right, currentColor 1px, transparent 1px),
-                linear-gradient(to bottom, currentColor 1px, transparent 1px)
-              `,
-              backgroundSize: '36px 36px'
-            }}
-          />
-
           {/* Subtle radial glow */}
-          <div className="absolute -right-24 -top-24 w-[500px] h-[500px] rounded-full bg-primary/[0.03] dark:bg-primary/[0.06] blur-[120px] pointer-events-none" />
-          <div className="absolute -left-32 -bottom-32 w-[300px] h-[300px] rounded-full bg-muted/40 dark:bg-muted/20 blur-[100px] pointer-events-none" />
+          <div className="absolute -right-24 -top-24 w-[500px] h-[500px] rounded-full bg-primary/[0.04] dark:bg-primary/[0.08] blur-[120px] pointer-events-none" />
+          <div className="absolute -left-32 -bottom-32 w-[300px] h-[300px] rounded-full bg-muted/30 dark:bg-muted/15 blur-[100px] pointer-events-none" />
 
-          {/* SVG decoration */}
-          <NormalDistributionSVG
-            className="absolute right-0 top-1/2 -translate-y-1/2 w-[55%] h-auto text-foreground pointer-events-none select-none hidden lg:block"
+          {/* SVG decoration - Upgraded Visual (Final Adjustment: Moved 70px left) */}
+          <StatisticalHeroVisual
+            className="absolute right-[calc(70px-2%)] top-1/2 -translate-y-1/2 w-[42%] h-auto text-primary/40 pointer-events-none select-none hidden lg:block"
           />
 
-          <div className="relative z-10 px-10 lg:px-12 py-14 lg:py-20">
+          <div className="relative z-10 px-10 lg:px-12 py-10 lg:py-14">
             <div className="max-w-lg">
               {/* Eyebrow */}
-              <div className="flex items-center gap-3 mb-8">
+              <div className="flex items-center gap-3 mb-6">
                 <div className="h-px w-8 bg-foreground/15" />
                 <span className="text-[11px] font-mono tracking-[0.2em] uppercase text-muted-foreground/70">
                   Statistical Analysis Platform
@@ -490,16 +482,11 @@ export function ChatCentricHub({
               </div>
 
               {/* Heading */}
-              <h1 className="text-4xl lg:text-[2.75rem] font-bold tracking-[-0.02em] leading-[1.1] mb-5">
+              <h1 className="text-4xl lg:text-[2.75rem] font-bold tracking-[-0.02em] leading-[1.1] mb-8">
                 {t.hub.hero.heading}
                 <br />
                 <span className="text-muted-foreground/60">{t.hub.hero.subheading}</span>
               </h1>
-
-              {/* Description */}
-              <p className="text-muted-foreground/80 text-[15px] leading-relaxed mb-10 max-w-md">
-                {t.hub.hero.description}
-              </p>
 
               {/* Stats - pill badges */}
               <div className="flex items-center gap-3 mb-10">
@@ -544,148 +531,133 @@ export function ChatCentricHub({
         </div>
       </motion.div>
 
-      {/* ====== Action Cards (3-column) ====== */}
-      <motion.div variants={itemVariants}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          {/* Card 1: Method Browse */}
-          <button
-            type="button"
-            className={cn(
-              "group relative text-left rounded-xl border border-border/40",
-              "bg-card p-7",
-              "transition-all duration-300 ease-out",
-              "hover:border-border/80 hover:shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_2px_12px_-4px_rgba(0,0,0,0.3)]",
-              "hover:-translate-y-0.5",
-              "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            )}
-            onClick={onStartWithBrowse}
-          >
-            <div className="flex items-center justify-between mb-5">
-              <div className="w-10 h-10 rounded-lg border border-border/40 bg-muted/30 flex items-center justify-center">
-                <List className="w-4 h-4 text-foreground/60" />
+      {/* ====== AI Search ====== */}
+      {(
+        <motion.div variants={itemVariants}>
+          <div className="rounded-xl border border-border/40 bg-card p-6 mb-10 shadow-sm hover:shadow-md transition-all">
+            <div className="flex items-center gap-2.5 mb-5">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-primary" />
               </div>
-              <Badge variant="secondary" className="text-[10px] font-mono h-5 px-2">
-                {TOTAL_METHODS}
-              </Badge>
-            </div>
-            <h3 className="font-semibold text-sm mb-1.5">{t.hub.cards.methodsTitle}</h3>
-            <p className="text-xs text-muted-foreground/70 leading-relaxed mb-5">
-              {t.hub.cards.methodsDescription(TOTAL_CATEGORIES)}
-            </p>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground/60 group-hover:text-foreground/80 transition-colors duration-300">
-              <span>{t.hub.cards.methodsLink}</span>
-              <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
-            </div>
-          </button>
-
-          {/* Card 2: AI Recommendation */}
-          <button
-            type="button"
-            className={cn(
-              "group relative text-left rounded-xl border border-border/40",
-              "bg-card p-7",
-              "transition-all duration-300 ease-out",
-              "hover:border-border/80 hover:shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_2px_12px_-4px_rgba(0,0,0,0.3)]",
-              "hover:-translate-y-0.5",
-              "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            )}
-            onClick={onGoToDetailedAI}
-          >
-            <div className="flex items-center justify-between mb-5">
-              <div className="w-10 h-10 rounded-lg border border-border/40 bg-muted/30 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-foreground/60" />
-              </div>
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-foreground/20 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-foreground/15" />
-              </span>
-            </div>
-            <h3 className="font-semibold text-sm mb-1.5">{t.hub.cards.aiTitle}</h3>
-            <p className="text-xs text-muted-foreground/70 leading-relaxed mb-5">
-              {t.hub.cards.aiDescription}
-            </p>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground/60 group-hover:text-foreground/80 transition-colors duration-300">
-              <span>{t.hub.cards.aiLink}</span>
-              <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300" />
-            </div>
-          </button>
-
-          {/* Card 3: Recent Analysis */}
-          <div
-            className={cn(
-              "relative rounded-xl border border-border/40",
-              "bg-card p-7"
-            )}
-          >
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg border border-border/40 bg-muted/30 flex items-center justify-center">
-                  <History className="w-4 h-4 text-foreground/60" />
-                </div>
-                <h3 className="font-semibold text-sm">{t.hub.cards.recentTitle}</h3>
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-foreground">{t.hub.aiSearch.title}</span>
+                <span className="text-[11px] text-muted-foreground">
+                  {t.hub.aiSearch.description}
+                </span>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 text-xs text-muted-foreground/60 hover:text-foreground"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onShowHistory()
-                }}
+                className="ml-auto h-7 text-[11px] text-muted-foreground hover:text-foreground"
+                onClick={onGoToDetailedAI}
               >
-                {analysisHistory.length > 3 ? t.hub.cards.viewAll : t.hub.cards.historyLabel}
+                {t.hub.aiSearch.detailedLink}
               </Button>
             </div>
 
-            {recentHistory.length > 0 ? (
-              <div className="space-y-1">
-                {recentHistory.map((item, index) => (
-                  <button
-                    key={item.id || index}
-                    type="button"
-                    className={cn(
-                      "w-full text-left px-3 py-2.5 rounded-lg",
-                      "hover:bg-accent/50 transition-colors duration-200"
-                    )}
-                    onClick={() => handleHistorySelect(item)}
+            <div className="relative">
+              <Textarea
+                ref={textareaRef}
+                value={inputValue}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder={t.hub.aiSearch.placeholder}
+                className="min-h-[64px] resize-none pr-28 text-sm border-border bg-background focus:border-primary/50 focus:ring-primary/20 transition-all rounded-lg"
+                disabled={isLoading}
+              />
+              <div className="absolute right-2 bottom-2 flex gap-1">
+                {inputValue && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    onClick={handleClearSearch}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-xs truncate">
-                        {item.method?.name || t.hub.cards.unknownMethod}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground/50 shrink-0 flex items-center gap-1 font-mono">
-                        <Clock className="w-2.5 h-2.5" />
-                        {item.timeAgo}
-                      </span>
-                    </div>
-                    {item.dataFileName && (
-                      <p className="text-[10px] text-muted-foreground/40 truncate mt-0.5">
-                        {item.dataFileName}
-                      </p>
-                    )}
-                  </button>
-                ))}
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs px-3 bg-primary text-primary-foreground hover:bg-primary/90"
+                  onClick={handleSubmit}
+                  disabled={isLoading || !inputValue.trim()}
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      {t.hub.aiSearch.sendButton}
+                    </>
+                  )}
+                </Button>
               </div>
-            ) : (
-              <div className="py-6 text-center">
-                <p className="text-xs text-muted-foreground/50">
-                  {t.hub.cards.emptyTitle}
-                </p>
-                <p className="text-[10px] text-muted-foreground/30 mt-1.5">
-                  {t.hub.cards.emptyDescription}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </motion.div>
+            </div>
 
-      {/* ====== Quick Analysis Bar ====== */}
+            {/* AI Response */}
+            <AnimatePresence>
+              {recommendation && (
+                <motion.div
+                  initial={prefersReducedMotion ? {} : { opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  className="mt-5 space-y-3"
+                >
+                  {/* Response text */}
+                  {responseText && (
+                    <div className="bg-muted/50 rounded-lg px-4 py-3 border border-border/50">
+                      <div className="flex items-start gap-3">
+                        <Sparkles className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                        <p className="text-sm text-foreground/80 leading-relaxed">
+                          {responseText}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recommendation Card */}
+                  {recommendation.method && (
+                    <div className="bg-background rounded-lg border border-border p-4 shadow-sm">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-primary border-primary/20 bg-primary/5">
+                            {t.hub.aiSearch.recommendationBadge}
+                          </Badge>
+                          <span className="text-sm font-semibold">
+                            {recommendation.method.name}
+                          </span>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={handleSelectRecommended}
+                          className="h-8 text-xs gap-1.5"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          {t.hub.aiSearch.selectButton}
+                        </Button>
+                      </div>
+
+                      {recommendation.reasoning && recommendation.reasoning.length > 0 && (
+                        <p className="text-xs text-muted-foreground mb-3">
+                          {recommendation.reasoning[0]}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ====== Quick Analysis Bar (Moved under AI Search) ====== */}
       <motion.div variants={itemVariants}>
-        <div className="flex items-center gap-3 px-1 mb-8">
+        <div className="flex items-center gap-3 px-1 mb-6">
           <div className="flex items-center gap-2 shrink-0">
-            <Zap className="w-3.5 h-3.5 text-muted-foreground/50" />
-            <span className="text-[11px] font-medium text-muted-foreground/60 tracking-wide">{t.hub.quickAnalysis.title}</span>
+            <Zap className="w-3.5 h-3.5 text-primary" />
+            <span className="text-[12px] font-bold text-foreground tracking-tight">{t.hub.quickAnalysis.title}</span>
           </div>
 
           <div className="h-px flex-1 bg-border/40" />
@@ -724,161 +696,85 @@ export function ChatCentricHub({
         </div>
       </motion.div>
 
-      {/* ====== AI Search (Ollama available only) ====== */}
-      {ollamaAvailable && (
-        <motion.div variants={itemVariants}>
-          <div className="rounded-xl border border-border/40 bg-card p-6 mb-8">
-            <div className="flex items-center gap-2.5 mb-5">
-              <div className="w-6 h-6 rounded-md bg-muted/40 flex items-center justify-center">
-                <Sparkles className="w-3 h-3 text-muted-foreground/60" />
-              </div>
-              <span className="text-xs font-medium">{t.hub.aiSearch.title}</span>
-              <span className="text-[10px] text-muted-foreground/50">
-                {t.hub.aiSearch.description}
-              </span>
-            </div>
+      {/* ====== Recent Analysis (History) - New UI ====== */}
+      {/* ====== Recent Analysis (History) - New UI ====== */}
+      <motion.div variants={itemVariants}>
+        <div className="flex items-center gap-3 px-1 mb-10">
+          <div className="flex items-center gap-2 shrink-0">
+            <Clock className="w-3.5 h-3.5 text-amber-500" />
+            <span className="text-[12px] font-bold text-foreground tracking-tight">
+              {t.hub.cards.recentTitle}
+            </span>
 
-            <div className="relative">
-              <Textarea
-                ref={textareaRef}
-                value={inputValue}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                placeholder={t.hub.aiSearch.placeholder}
-                className="min-h-[56px] resize-none pr-24 text-sm border-border/40 focus:border-border/80 transition-colors"
-                disabled={isLoading}
-              />
-              <div className="absolute right-2 bottom-2 flex gap-1">
-                {inputValue && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-muted-foreground/40 hover:text-foreground"
-                    onClick={handleClearSearch}
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  className="h-7 gap-1.5 text-xs shadow-sm"
-                  onClick={handleSubmit}
-                  disabled={isLoading || !inputValue.trim()}
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <>
-                      <Send className="w-3.5 h-3.5" />
-                      {t.hub.aiSearch.sendButton}
-                    </>
-                  )}
-                </Button>
+            {/* Data Persistence Warning Tooltip */}
+            <div className="group relative ml-1">
+              <AlertCircle className="w-3 h-3 text-muted-foreground/50 cursor-help" />
+              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 text-[10px] text-background bg-foreground rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                분석 결과는 브라우저에 저장됩니다. 중요 결과는 내보내기를 이용하세요.
               </div>
             </div>
-
-            {/* AI Response */}
-            <AnimatePresence>
-              {recommendation && (
-                <motion.div
-                  initial={prefersReducedMotion ? {} : { opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                  className="mt-5 space-y-3"
-                >
-                  {/* Response text */}
-                  {responseText && (
-                    <div className="bg-muted/30 rounded-lg px-4 py-3 border border-border/30">
-                      <div className="flex items-start gap-2.5">
-                        <Sparkles className="w-3.5 h-3.5 text-muted-foreground/50 mt-0.5 shrink-0" />
-                        <p className="text-xs text-muted-foreground/70 leading-relaxed">
-                          {responseText}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Recommended method */}
-                  <div className="border border-border/50 bg-card rounded-lg p-4 shadow-sm">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg border border-border/40 bg-muted/30 flex items-center justify-center">
-                          <Check className="w-4 h-4 text-foreground/60" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm">{recommendation.method.name}</p>
-                          <p className="text-[11px] text-muted-foreground/60 line-clamp-1">
-                            {recommendation.method.description}
-                          </p>
-                        </div>
-                      </div>
-                      <Button onClick={handleSelectRecommended} size="sm" className="gap-1.5 shrink-0 h-8 text-xs shadow-sm">
-                        {t.hub.aiSearch.startButton}
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-
-                    {/* Alternatives */}
-                    {recommendation.alternatives && recommendation.alternatives.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-border/30">
-                        <button
-                          type="button"
-                          onClick={() => setShowAlternatives(!showAlternatives)}
-                          className="flex items-center gap-1.5 text-[11px] text-muted-foreground/50 hover:text-foreground/80 transition-colors duration-200"
-                        >
-                          <ChevronDown className={cn("w-3 h-3 transition-transform duration-300", showAlternatives && "rotate-180")} />
-                          {t.hub.aiSearch.alternatives(recommendation.alternatives.length)}
-                        </button>
-
-                        <AnimatePresence>
-                          {showAlternatives && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                              exit={{ opacity: 0, height: 0 }}
-                              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                              className="mt-2 space-y-0.5"
-                            >
-                              {recommendation.alternatives.map((alt, i) => (
-                                <button
-                                  key={i}
-                                  type="button"
-                                  className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-accent/40 transition-colors duration-200 text-xs"
-                                  onClick={() => handleSelectAlternative(alt)}
-                                >
-                                  <span className="font-medium">{alt.name}</span>
-                                  {alt.description && (
-                                    <span className="text-muted-foreground/50 ml-2 text-[10px]">
-                                      {alt.description}
-                                    </span>
-                                  )}
-                                </button>
-                              ))}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Detailed AI link */}
-                  <div className="text-center">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={onGoToDetailedAI}
-                      className="text-[11px] text-muted-foreground/50 h-7 hover:text-foreground/70"
-                    >
-                      {t.hub.aiSearch.detailedLink}
-                    </Button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
-        </motion.div>
-      )}
+
+          <div className="h-px flex-1 bg-border/40" />
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            {recentHistory.length > 0 ? (
+              <>
+                {recentHistory.map((history) => (
+                  <div
+                    key={history.id}
+                    className={cn(
+                      "group relative h-7 pl-3 pr-2.5 rounded-md text-[11px] font-medium flex items-center gap-2",
+                      "border border-border/50 bg-card cursor-pointer",
+                      "hover:bg-foreground hover:text-background hover:border-foreground",
+                      "transition-all duration-200"
+                    )}
+                    onClick={() => handleHistorySelect(history.id)}
+                  >
+                    <span className="truncate max-w-[120px]" title={history.name}>
+                      {history.name}
+                    </span>
+                    <span className="text-[9px] opacity-60 font-normal">
+                      {history.timeAgo}
+                    </span>
+
+                    {/* Delete Button (Hover only) */}
+                    <div
+                      className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-red-500 hover:text-white rounded-full"
+                      onClick={(e) => handleHistoryDelete(history.id, e)}
+                      title="삭제"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </div>
+                  </div>
+                ))}
+
+                {/* + More Button */}
+                <div
+                  className={cn(
+                    "h-7 px-2.5 rounded-md text-[11px] font-medium flex items-center gap-1",
+                    "border border-dashed border-border/70 bg-muted/30 cursor-pointer",
+                    "hover:bg-accent hover:text-accent-foreground hover:border-accent-foreground/30",
+                    "transition-all duration-200"
+                  )}
+                  onClick={() => setShowHistoryModal(true)}
+                  title="전체 기록 보기"
+                >
+                  <MoreHorizontal className="w-3.5 h-3.5" />
+                  <span>더 보기</span>
+                </div>
+              </>
+            ) : (
+              <span className="text-[11px] text-muted-foreground/40 font-medium px-2">
+                아직 분석 기록이 없습니다.
+              </span>
+            )}
+          </div>
+
+        </div>
+      </motion.div>
+
+
 
       {/* ====== Quick Analysis Edit Dialog ====== */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
@@ -929,6 +825,17 @@ export function ChatCentricHub({
               </div>
             </div>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ====== History Modal ====== */}
+      <Dialog open={showHistoryModal} onOpenChange={setShowHistoryModal}>
+        <DialogContent className="sm:max-w-xl max-h-[80vh] overflow-hidden flex flex-col">
+          {/* Header is handled inside AnalysisHistoryPanel or we can hide the DialogHeader to avoid double headers if AnalysisHistoryPanel has one */}
+          {/* Using a wrapper to provide padding if needed, AnalysisHistoryPanel has its own layout */}
+          <div className="flex-1 overflow-hidden p-1">
+            <AnalysisHistoryPanel onClose={() => setShowHistoryModal(false)} />
+          </div>
         </DialogContent>
       </Dialog>
     </motion.div>
