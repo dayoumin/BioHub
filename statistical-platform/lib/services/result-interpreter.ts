@@ -2,13 +2,14 @@
  * 통계 분석 결과 AI 해석 서비스
  *
  * - 분석 결과를 구조화된 프롬프트로 변환
- * - OpenRouterRecommender.streamChatCompletion() 호출 (API 로직 재사용)
+ * - LlmRecommender.stream()을 통해 통합 스트리밍 (공급자 자동 선택)
  * - 스트리밍 응답 → UI에 실시간 표시
  */
 
 import type { AnalysisResult, EffectSizeInfo } from '@/types/smart-flow'
-import { openRouterRecommender } from './openrouter-recommender'
+import { llmRecommender, type LlmStreamResult } from './llm-recommender'
 import { logger } from '@/lib/utils/logger'
+import { SYSTEM_PROMPT_INTERPRETER } from './ai/prompts'
 
 export interface InterpretationContext {
   results: AnalysisResult
@@ -16,47 +17,6 @@ export interface InterpretationContext {
   variables?: string[]
   uploadedFileName?: string
 }
-
-// ============================================
-// 시스템 프롬프트
-// ============================================
-
-const INTERPRETATION_SYSTEM_PROMPT = `당신은 옆자리 동료처럼 친근하게 통계 결과를 설명해주는 데이터 분석 도우미예요.
-통계를 잘 모르는 사람도 이해할 수 있도록 쉽게 풀어서 설명해주세요.
-
-## 톤 & 스타일
-- 친구에게 설명하듯 편안하게 ("~해요", "~네요", "~거든요")
-- 전문 용어를 쓸 때는 꼭 괄호 안에 쉬운 설명을 넣어주세요
-  예: "p-value(이 결과가 우연히 나왔을 가능성)가 0.003이에요"
-  예: "효과크기(실제로 얼마나 큰 차이인지)가 0.82로 꽤 커요"
-- 숫자를 인용할 때 원본 값을 정확히 사용
-- "즉," "쉽게 말하면," "결국" 같은 연결어로 핵심을 강조
-
-## 응답 형식 (필수)
-
-반드시 아래 두 마크다운 헤더를 사용하여 응답하세요:
-
-### 한줄 요약
-핵심 결론을 3-4문장으로 요약해요.
-- "결국 ~라는 뜻이에요", "쉽게 말하면 ~" 같은 표현으로 명확하게
-- 통계적으로 유의한지 + 실제로 어떤 의미인지 둘 다 포함
-- p-value와 효과크기 수치를 반드시 언급
-- 논문에 넣을 말이 아니라, 상사에게 보고하듯 핵심만
-
-### 상세 해석
-아래 항목을 순서대로, **볼드 소제목**으로 작성하세요:
-
-**통계량 해석**: 검정 통계량과 p-value가 뜻하는 바를 쉽게 풀어서
-**효과크기**: 실제로 얼마나 큰 차이/관계인지 — "크다/보통/작다"를 구체적으로
-**신뢰구간**: 실제 값이 어디쯤인지 범위의 의미 (있을 경우)
-**가정 충족 여부**: 분석 조건(가정)이 충족되었는지 (있을 경우)
-**그룹/변수별 패턴**: 어디서 차이가 나는지 구체적으로 (있을 경우)
-**활용 방법**: 연구나 현장에서 이 결과를 어떻게 쓸 수 있는지
-**주의할 점**: 해석할 때 조심해야 할 것들
-**추가 분석 제안**: 후속으로 해볼 만한 분석 1-2개
-
-데이터에 해당 항목이 없는 경우에만 생략하세요. 나머지는 모두 작성하세요.
-반드시 한국어로 응답하세요.`
 
 // ============================================
 // 프롬프트 빌더
@@ -200,39 +160,45 @@ function formatEffectSize(effectSize: number | EffectSizeInfo): string {
 }
 
 // ============================================
-// 해석 요청 (OpenRouterRecommender 재사용)
+// 해석 요청 (LlmRecommender 통합 스트리밍)
 // ============================================
 
 /**
  * AI 결과 해석 요청 (스트리밍)
  *
- * @param ctx - 분석 결과 컨텍스트
- * @param onChunk - 텍스트 조각 콜백
- * @param signal - AbortSignal (취소용)
+ * LlmRecommender.stream()을 통해 공급자 설정을 존중하며 스트리밍합니다.
+ * 실제 사용된 모델 정보를 반환합니다.
  */
 export async function requestInterpretation(
   ctx: InterpretationContext,
   onChunk: (text: string) => void,
   signal?: AbortSignal
 ): Promise<{ model: string }> {
-  // health check
-  const isAvailable = await openRouterRecommender.checkHealth()
-  if (!isAvailable) {
-    throw new Error('AI 해석을 사용하려면 OpenRouter API 키가 필요합니다.')
-  }
-
   const userPrompt = buildInterpretationPrompt(ctx)
 
-  logger.info('[ResultInterpreter] Requesting interpretation', {
+  logger.info('[ResultInterpreter] Requesting interpretation via unified LlmRecommender', {
     method: ctx.results.method,
     promptLength: userPrompt.length
   })
 
-  return openRouterRecommender.streamChatCompletion(
-    INTERPRETATION_SYSTEM_PROMPT,
+  // 통합 스트리밍 인터페이스 사용 — 반환값에서 모델 정보 추출
+  const generator = llmRecommender.stream(
+    SYSTEM_PROMPT_INTERPRETER,
     userPrompt,
-    onChunk,
-    signal,
-    { temperature: 0.3, maxTokens: 4000 }
+    signal
   )
+
+  let streamResult: LlmStreamResult | undefined
+  while (true) {
+    const { value, done } = await generator.next()
+    if (done) {
+      // done일 때 value는 return 타입 (LlmStreamResult)
+      streamResult = value
+      break
+    }
+    // yielded value는 string chunk
+    onChunk(value)
+  }
+
+  return { model: streamResult?.model ?? 'unknown' }
 }

@@ -26,7 +26,7 @@ export function AIRecommendationSection({
     const [isLoading, setIsLoading] = useState(false)
     const [responseText, setResponseText] = useState<string | null>(null)
     const [recommendation, setRecommendation] = useState<AIRecommendation | null>(null)
-    // AI 섹션은 항상 표시 (llmRecommender가 공급자 선택/fallback 처리)
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setInputValue(e.target.value)
@@ -36,6 +36,7 @@ export function AIRecommendationSection({
         setInputValue('')
         setResponseText(null)
         setRecommendation(null)
+        setErrorMessage(null)
     }
 
     const handleSubmit = async () => {
@@ -44,9 +45,9 @@ export function AIRecommendationSection({
         setIsLoading(true)
         setResponseText(null)
         setRecommendation(null)
+        setErrorMessage(null)
 
         try {
-            // 통합 서비스 사용 (공급자 선택 + fallback 자동 처리)
             const { recommendation: aiRec, responseText: aiText } =
                 await llmRecommender.recommendFromNaturalLanguage(inputValue, null, null, null)
 
@@ -56,6 +57,7 @@ export function AIRecommendationSection({
             }
         } catch (error) {
             logger.error('[AISection] Error', { error })
+            setErrorMessage('추천에 실패했습니다. 잠시 후 다시 시도해주세요.')
         } finally {
             setIsLoading(false)
         }
@@ -69,8 +71,6 @@ export function AIRecommendationSection({
             }
         }
     }
-
-
 
     return (
         <div className="rounded-xl border border-white/40 bg-white/60 backdrop-blur-md p-6 mb-8 shadow-sm">
@@ -124,6 +124,13 @@ export function AIRecommendationSection({
                     </Button>
                 </div>
             </div>
+
+            {/* Error feedback */}
+            {errorMessage && (
+                <p className="mt-3 text-xs text-destructive">
+                    {errorMessage}
+                </p>
+            )}
 
             <AnimatePresence>
                 {recommendation && (

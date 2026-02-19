@@ -66,7 +66,6 @@ import { useTerminology } from '@/hooks/use-terminology'
 interface ChatCentricHubProps {
   onStartWithData: () => void
   onStartWithBrowse: () => void
-  onShowHistory: () => void
   onGoToDetailedAI: () => void
 }
 
@@ -271,7 +270,6 @@ const TOTAL_CATEGORIES = Object.keys(METHODS_BY_CATEGORY).length
 export function ChatCentricHub({
   onStartWithData,
   onStartWithBrowse,
-  onShowHistory,
   onGoToDetailedAI
 }: ChatCentricHubProps) {
   const t = useTerminology()
@@ -370,17 +368,6 @@ export function ChatCentricHub({
     setInputValue(e.target.value)
   }, [])
 
-  const applyFallback = useCallback(async () => {
-    try {
-      const { recommendation: rec, responseText: text } =
-        await llmRecommender.recommendFromNaturalLanguage(inputValue, null, null, null)
-      if (text) setResponseText(text)
-      if (rec) setRecommendation(rec)
-    } catch {
-      setResponseText('추천에 실패했습니다.')
-    }
-  }, [inputValue])
-
   const handleSubmit = useCallback(async () => {
     if (!inputValue.trim() || isLoading) return
 
@@ -398,11 +385,11 @@ export function ChatCentricHub({
       }
     } catch (error) {
       logger.error('[MainHub] Error', { error })
-      await applyFallback()
+      setResponseText('추천에 실패했습니다. 잠시 후 다시 시도해주세요.')
     } finally {
       setIsLoading(false)
     }
-  }, [inputValue, isLoading, applyFallback])
+  }, [inputValue, isLoading])
 
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -696,7 +683,6 @@ export function ChatCentricHub({
         </div>
       </motion.div>
 
-      {/* ====== Recent Analysis (History) - New UI ====== */}
       {/* ====== Recent Analysis (History) - New UI ====== */}
       <motion.div variants={itemVariants}>
         <div className="flex items-center gap-3 px-1 mb-10">

@@ -159,16 +159,33 @@ export class OpenRouterRecommender {
   }
 
   /**
-   * 자연어 입력 기반 추천 (모델 fallback 체인)
-   * - 모델 순서대로 시도, 실패(429/503/모델 삭제 등) 시 다음 모델로
+   * 자연어 입력 기반 추천 (자동으로 기본 시스템 프롬프트 사용)
    */
   async recommendFromNaturalLanguage(
     userInput: string,
     validationResults: ValidationResults | null,
     assumptionResults: StatisticalAssumptions | null,
+    data: DataRow[] | null
+  ): Promise<{ recommendation: AIRecommendation | null; responseText: string }> {
+    return this.recommendWithSystemPrompt(
+      userInput,
+      this.getSystemPrompt(),
+      validationResults,
+      assumptionResults,
+      data
+    )
+  }
+
+  /**
+   * 외부에서 주입된 시스템 프롬프트를 사용하여 추천 요청 (모델 fallback 체인)
+   */
+  async recommendWithSystemPrompt(
+    userInput: string,
+    systemPrompt: string,
+    validationResults: ValidationResults | null,
+    assumptionResults: StatisticalAssumptions | null,
     _data: DataRow[] | null
   ): Promise<{ recommendation: AIRecommendation | null; responseText: string }> {
-    const systemPrompt = this.getSystemPrompt()
     const userPrompt = this.buildUserPrompt(userInput, validationResults, assumptionResults)
 
     // 실제 컬럼명 세트 (변수 검증용)
@@ -429,6 +446,7 @@ ${methodList}
     return this.cachedSystemPrompt
   }
 
+
   /**
    * 사용자 프롬프트 구성 (데이터 컨텍스트 + 질문)
    */
@@ -594,18 +612,18 @@ ${userInput}`
         reasoning: Array.isArray(parsed.reasoning) ? parsed.reasoning : [],
         assumptions: Array.isArray(parsed.assumptions)
           ? parsed.assumptions.map((a: { name: string; passed: boolean; pValue?: number }) => ({
-              name: a.name,
-              passed: a.passed,
-              pValue: a.pValue
-            }))
+            name: a.name,
+            passed: a.passed,
+            pValue: a.pValue
+          }))
           : [],
         alternatives: Array.isArray(parsed.alternatives)
           ? parsed.alternatives.map((alt: { id: string; name: string; description?: string }) => ({
-              id: alt.id,
-              name: alt.name,
-              description: alt.description || '',
-              category: getMethodByIdOrAlias(alt.id)?.category || this.inferCategory(alt.id)
-            }))
+            id: alt.id,
+            name: alt.name,
+            description: alt.description || '',
+            category: getMethodByIdOrAlias(alt.id)?.category || this.inferCategory(alt.id)
+          }))
           : [],
         // === LLM Enhanced fields ===
         variableAssignments: parsed.variableAssignments || undefined,

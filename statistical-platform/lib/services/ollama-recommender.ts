@@ -115,7 +115,7 @@ Categories:
   async checkHealth(): Promise<boolean> {
     // ✅ 1단계: 캐시 체크 (5분 TTL)
     if (this.healthCache &&
-        Date.now() - this.healthCache.timestamp < this.healthCache.ttl) {
+      Date.now() - this.healthCache.timestamp < this.healthCache.ttl) {
       logger.info('[Ollama] Using cached health status', {
         isAvailable: this.healthCache.isAvailable,
         age: Math.floor((Date.now() - this.healthCache.timestamp) / 1000) + 's'
@@ -423,7 +423,7 @@ Respond ONLY in valid JSON format (no extra text).
     if (methodId.includes('t-test')) return 't-test'
     if (methodId.includes('anova')) return 'anova'
     if (methodId.includes('mann-whitney') || methodId.includes('wilcoxon') ||
-        methodId.includes('kruskal') || methodId.includes('friedman')) return 'nonparametric'
+      methodId.includes('kruskal') || methodId.includes('friedman')) return 'nonparametric'
     if (methodId.includes('correlation')) return 'correlation'
     if (methodId.includes('regression')) return 'regression'
     if (methodId.includes('chi-square')) return 'chi-square'
@@ -605,6 +605,25 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
     assumptionResults: StatisticalAssumptions | null,
     data: DataRow[] | null
   ): Promise<{ recommendation: AIRecommendation | null; responseText: string }> {
+    return this.recommendWithSystemPrompt(
+      userInput,
+      this.naturalLanguageSystemPrompt,
+      validationResults,
+      assumptionResults,
+      data
+    )
+  }
+
+  /**
+   * 특정 시스템 프롬프트를 사용하는 추천 요청
+   */
+  async recommendWithSystemPrompt(
+    userInput: string,
+    systemPrompt: string,
+    validationResults: ValidationResults | null,
+    assumptionResults: StatisticalAssumptions | null,
+    data: DataRow[] | null
+  ): Promise<{ recommendation: AIRecommendation | null; responseText: string }> {
     try {
       const prompt = this.buildNaturalLanguagePrompt(
         userInput,
@@ -613,13 +632,12 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
         data
       )
 
-      logger.info('[Ollama] Natural language recommendation request', {
-        userInput: userInput.substring(0, 50),
-        sampleSize: data?.length || 0
+      logger.info('[Ollama] Recommendation request with custom system prompt', {
+        userInput: userInput.substring(0, 50)
       })
 
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 15000) // 15초 타임아웃
+      const timeoutId = setTimeout(() => controller.abort(), 15000)
 
       const response = await fetch(`${this.config.host}/api/generate`, {
         method: 'POST',
@@ -627,11 +645,11 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
         body: JSON.stringify({
           model: this.config.model,
           prompt,
-          system: this.naturalLanguageSystemPrompt,
+          system: systemPrompt,
           stream: false,
           options: {
             temperature: this.config.temperature,
-            num_predict: 1200 // 더 긴 응답 허용
+            num_predict: 1200
           }
         }),
         signal: controller.signal
@@ -646,7 +664,7 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
       const ollamaResponse: OllamaResponse = await response.json()
       const fullResponse = ollamaResponse.response
 
-      // JSON 추출 (코드 블록 또는 직접 JSON)
+      // JSON 추출
       let recommendation = this.parseNaturalLanguageResponse(fullResponse)
 
       // 설명 텍스트 추출 (JSON 이전 부분)
@@ -660,15 +678,10 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
         recommendation = this.addModelSizeWarning(recommendation)
       }
 
-      logger.info('[Ollama] Natural language recommendation SUCCESS', {
-        methodId: recommendation?.method.id,
-        hasResponseText: !!responseText
-      })
-
       return { recommendation, responseText }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      logger.error('[Ollama] Natural language recommendation FAILED', { error: errorMessage })
+      logger.error('[Ollama] recommendWithSystemPrompt FAILED', { error: errorMessage })
       return { recommendation: null, responseText: '' }
     }
   }
@@ -747,26 +760,48 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
       data
     )
 
+    let fullText = ''
+
+    for await (const chunk of this.streamChatCompletion(this.naturalLanguageSystemPrompt, prompt)) {
+      fullText += chunk
+      yield { type: 'text', content: chunk }
+    }
+
+    // 스트리밍 완료 후 JSON 파싱하여 추천 결과 반환
+    const recommendation = this.parseNaturalLanguageResponse(fullText)
+    if (recommendation) {
+      yield { type: 'recommendation', content: recommendation }
+    }
+  }
+
+  /**
+   * 범용 스트리밍 채팅 완성
+   */
+  async *streamChatCompletion(
+    systemPrompt: string,
+    userPrompt: string,
+    signal?: AbortSignal
+  ): AsyncGenerator<string> {
     const response = await fetch(`${this.config.host}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: this.config.model,
-        prompt,
-        system: this.naturalLanguageSystemPrompt,
+        prompt: userPrompt,
+        system: systemPrompt,
         stream: true,
         options: {
           temperature: this.config.temperature,
-          num_predict: 1200
+          num_predict: 4000
         }
-      })
+      }),
+      signal
     })
 
     const reader = response.body?.getReader()
     if (!reader) return
 
     const decoder = new TextDecoder()
-    let fullText = ''
 
     while (true) {
       const { done, value } = await reader.read()
@@ -779,19 +814,12 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
         try {
           const json = JSON.parse(line)
           if (json.response) {
-            fullText += json.response
-            yield { type: 'text', content: json.response }
+            yield json.response
           }
         } catch (e) {
           // 파싱 오류 무시
         }
       }
-    }
-
-    // 스트리밍 완료 후 JSON 파싱하여 추천 결과 반환
-    const recommendation = this.parseNaturalLanguageResponse(fullText)
-    if (recommendation) {
-      yield { type: 'recommendation', content: recommendation }
     }
   }
 
@@ -813,91 +841,91 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
       alternatives: Array<{ id: string; name: string; description: string }>
       reasoning: string[]
     }> = [
-      // 평균 비교 (2그룹)
-      {
-        keywords: ['평균', '차이', '비교', '두 그룹', '2그룹', '두 집단', 't검정', 't-test'],
-        method: { id: 't-test', name: '독립표본 t-검정', description: '두 독립적인 그룹의 평균 비교', category: 't-test' },
-        alternatives: [
-          { id: 'mann-whitney', name: 'Mann-Whitney U 검정', description: '정규성 가정 미충족 시' },
-          { id: 'welch-t', name: 'Welch t-검정', description: '등분산 가정 미충족 시' }
-        ],
-        reasoning: ['두 그룹의 평균 비교에 적합', '독립적인 표본 비교', '연속형 변수 분석']
-      },
-      // 대응표본
-      {
-        keywords: ['대응', '사전', '사후', '전후', '짝지은', 'paired', '반복측정'],
-        method: { id: 'paired-t', name: '대응표본 t-검정', description: '동일 대상의 사전-사후 비교', category: 't-test' },
-        alternatives: [
-          { id: 'wilcoxon', name: 'Wilcoxon 부호순위 검정', description: '정규성 가정 미충족 시' }
-        ],
-        reasoning: ['동일 대상의 전후 비교', '대응되는 표본 분석', '사전-사후 효과 측정']
-      },
-      // 3그룹 이상 비교
-      {
-        keywords: ['여러 그룹', '3그룹', '세 그룹', '다중 비교', 'anova', '분산분석', '세 집단', '네 그룹'],
-        method: { id: 'anova', name: '일원배치 분산분석', description: '세 개 이상 그룹의 평균 비교', category: 'anova' },
-        alternatives: [
-          { id: 'kruskal-wallis', name: 'Kruskal-Wallis 검정', description: '정규성 가정 미충족 시' },
-          { id: 'welch-anova', name: 'Welch ANOVA', description: '등분산 가정 미충족 시' }
-        ],
-        reasoning: ['세 개 이상 그룹 비교', '집단 간 차이 검정', '일원배치 설계']
-      },
-      // 상관관계
-      {
-        keywords: ['상관', '관계', '연관', '관련', 'correlation', '상관계수'],
-        method: { id: 'pearson-correlation', name: 'Pearson 상관분석', description: '두 연속형 변수 간 선형 관계', category: 'correlation' },
-        alternatives: [
-          { id: 'spearman-correlation', name: 'Spearman 상관분석', description: '비선형 관계 또는 서열 변수' },
-          { id: 'kendall-correlation', name: 'Kendall 상관분석', description: '소표본 또는 순위 데이터' }
-        ],
-        reasoning: ['두 변수 간 관계 분석', '선형 관계 측정', '연속형 변수 간 상관']
-      },
-      // 회귀분석
-      {
-        keywords: ['회귀', '예측', '영향', '효과', 'regression', '종속변수', '독립변수'],
-        method: { id: 'regression', name: '단순 선형 회귀', description: '한 변수가 다른 변수에 미치는 영향', category: 'regression' },
-        alternatives: [
-          { id: 'multiple-regression', name: '다중 회귀분석', description: '여러 독립변수 사용 시' },
-          { id: 'logistic-regression', name: '로지스틱 회귀', description: '이분형 종속변수' }
-        ],
-        reasoning: ['변수 간 영향 관계 분석', '예측 모델 구축', '인과관계 추정']
-      },
-      // 카이제곱
-      {
-        keywords: ['범주', '빈도', '교차', '독립성', '카이제곱', 'chi-square', '카이스퀘어'],
-        method: { id: 'chi-square-independence', name: '카이제곱 독립성 검정', description: '두 범주형 변수 간 독립성 검정', category: 'chi-square' },
-        alternatives: [
-          { id: 'fisher-exact', name: 'Fisher 정확 검정', description: '소표본 또는 기대빈도 낮을 때' },
-          { id: 'chi-square-gof', name: '적합도 검정', description: '관측 vs 기대 빈도 비교' }
-        ],
-        reasoning: ['범주형 변수 분석', '변수 간 독립성 검정', '빈도 데이터 분석']
-      },
-      // 시계열
-      {
-        keywords: ['시계열', '추세', '트렌드', 'time series', 'arima', '월별', '연도별', '계절'],
-        method: { id: 'arima', name: 'ARIMA 분석', description: '시계열 데이터 예측 및 분석', category: 'advanced' },
-        alternatives: [
-          { id: 'time-series-decomposition', name: '시계열 분해', description: '추세, 계절성 분리' }
-        ],
-        reasoning: ['시간에 따른 패턴 분석', '추세 및 계절성 파악', '미래 값 예측']
-      },
-      // 생존분석
-      {
-        keywords: ['생존', '사건', '생존율', 'survival', 'kaplan', 'cox', '사망', '이탈'],
-        method: { id: 'kaplan-meier', name: 'Kaplan-Meier 분석', description: '생존 곡선 추정', category: 'advanced' },
-        alternatives: [
-          { id: 'cox-regression', name: 'Cox 회귀', description: '공변량이 생존에 미치는 영향' }
-        ],
-        reasoning: ['사건 발생까지의 시간 분석', '생존 확률 추정', '중도절단 데이터 처리']
-      },
-      // 기술통계 (기본) - 가장 마지막에 배치 (다른 매칭 없을 때 기본값)
-      {
-        keywords: ['기술통계', '요약', '기초통계', 'descriptive', '통계량', '표준편차'],
-        method: { id: 'descriptive-stats', name: '기술통계', description: '데이터의 기본 특성 요약', category: 'descriptive' },
-        alternatives: [],
-        reasoning: ['데이터 기본 특성 파악', '평균, 표준편차 등 계산', '분포 확인']
-      }
-    ]
+        // 평균 비교 (2그룹)
+        {
+          keywords: ['평균', '차이', '비교', '두 그룹', '2그룹', '두 집단', 't검정', 't-test'],
+          method: { id: 't-test', name: '독립표본 t-검정', description: '두 독립적인 그룹의 평균 비교', category: 't-test' },
+          alternatives: [
+            { id: 'mann-whitney', name: 'Mann-Whitney U 검정', description: '정규성 가정 미충족 시' },
+            { id: 'welch-t', name: 'Welch t-검정', description: '등분산 가정 미충족 시' }
+          ],
+          reasoning: ['두 그룹의 평균 비교에 적합', '독립적인 표본 비교', '연속형 변수 분석']
+        },
+        // 대응표본
+        {
+          keywords: ['대응', '사전', '사후', '전후', '짝지은', 'paired', '반복측정'],
+          method: { id: 'paired-t', name: '대응표본 t-검정', description: '동일 대상의 사전-사후 비교', category: 't-test' },
+          alternatives: [
+            { id: 'wilcoxon', name: 'Wilcoxon 부호순위 검정', description: '정규성 가정 미충족 시' }
+          ],
+          reasoning: ['동일 대상의 전후 비교', '대응되는 표본 분석', '사전-사후 효과 측정']
+        },
+        // 3그룹 이상 비교
+        {
+          keywords: ['여러 그룹', '3그룹', '세 그룹', '다중 비교', 'anova', '분산분석', '세 집단', '네 그룹'],
+          method: { id: 'anova', name: '일원배치 분산분석', description: '세 개 이상 그룹의 평균 비교', category: 'anova' },
+          alternatives: [
+            { id: 'kruskal-wallis', name: 'Kruskal-Wallis 검정', description: '정규성 가정 미충족 시' },
+            { id: 'welch-anova', name: 'Welch ANOVA', description: '등분산 가정 미충족 시' }
+          ],
+          reasoning: ['세 개 이상 그룹 비교', '집단 간 차이 검정', '일원배치 설계']
+        },
+        // 상관관계
+        {
+          keywords: ['상관', '관계', '연관', '관련', 'correlation', '상관계수'],
+          method: { id: 'pearson-correlation', name: 'Pearson 상관분석', description: '두 연속형 변수 간 선형 관계', category: 'correlation' },
+          alternatives: [
+            { id: 'spearman-correlation', name: 'Spearman 상관분석', description: '비선형 관계 또는 서열 변수' },
+            { id: 'kendall-correlation', name: 'Kendall 상관분석', description: '소표본 또는 순위 데이터' }
+          ],
+          reasoning: ['두 변수 간 관계 분석', '선형 관계 측정', '연속형 변수 간 상관']
+        },
+        // 회귀분석
+        {
+          keywords: ['회귀', '예측', '영향', '효과', 'regression', '종속변수', '독립변수'],
+          method: { id: 'regression', name: '단순 선형 회귀', description: '한 변수가 다른 변수에 미치는 영향', category: 'regression' },
+          alternatives: [
+            { id: 'multiple-regression', name: '다중 회귀분석', description: '여러 독립변수 사용 시' },
+            { id: 'logistic-regression', name: '로지스틱 회귀', description: '이분형 종속변수' }
+          ],
+          reasoning: ['변수 간 영향 관계 분석', '예측 모델 구축', '인과관계 추정']
+        },
+        // 카이제곱
+        {
+          keywords: ['범주', '빈도', '교차', '독립성', '카이제곱', 'chi-square', '카이스퀘어'],
+          method: { id: 'chi-square-independence', name: '카이제곱 독립성 검정', description: '두 범주형 변수 간 독립성 검정', category: 'chi-square' },
+          alternatives: [
+            { id: 'fisher-exact', name: 'Fisher 정확 검정', description: '소표본 또는 기대빈도 낮을 때' },
+            { id: 'chi-square-gof', name: '적합도 검정', description: '관측 vs 기대 빈도 비교' }
+          ],
+          reasoning: ['범주형 변수 분석', '변수 간 독립성 검정', '빈도 데이터 분석']
+        },
+        // 시계열
+        {
+          keywords: ['시계열', '추세', '트렌드', 'time series', 'arima', '월별', '연도별', '계절'],
+          method: { id: 'arima', name: 'ARIMA 분석', description: '시계열 데이터 예측 및 분석', category: 'advanced' },
+          alternatives: [
+            { id: 'time-series-decomposition', name: '시계열 분해', description: '추세, 계절성 분리' }
+          ],
+          reasoning: ['시간에 따른 패턴 분석', '추세 및 계절성 파악', '미래 값 예측']
+        },
+        // 생존분석
+        {
+          keywords: ['생존', '사건', '생존율', 'survival', 'kaplan', 'cox', '사망', '이탈'],
+          method: { id: 'kaplan-meier', name: 'Kaplan-Meier 분석', description: '생존 곡선 추정', category: 'advanced' },
+          alternatives: [
+            { id: 'cox-regression', name: 'Cox 회귀', description: '공변량이 생존에 미치는 영향' }
+          ],
+          reasoning: ['사건 발생까지의 시간 분석', '생존 확률 추정', '중도절단 데이터 처리']
+        },
+        // 기술통계 (기본) - 가장 마지막에 배치 (다른 매칭 없을 때 기본값)
+        {
+          keywords: ['기술통계', '요약', '기초통계', 'descriptive', '통계량', '표준편차'],
+          method: { id: 'descriptive-stats', name: '기술통계', description: '데이터의 기본 특성 요약', category: 'descriptive' },
+          alternatives: [],
+          reasoning: ['데이터 기본 특성 파악', '평균, 표준편차 등 계산', '분포 확인']
+        }
+      ]
 
     // 키워드 매칭
     let bestMatch = keywordMap[keywordMap.length - 1] // 기본값: 기술통계

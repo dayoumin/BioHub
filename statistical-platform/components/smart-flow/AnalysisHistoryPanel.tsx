@@ -12,7 +12,8 @@ import {
   FileText,
   Search,
   Filter,
-  Plus
+  Plus,
+  Download
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -49,8 +50,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { cn } from '@/lib/utils'
+import { ExportService } from '@/lib/services/export/export-service'
+import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
+import type { ExportContext } from '@/lib/services/export/export-types'
+import { toast } from 'sonner'
 
-export function AnalysisHistoryPanel() {
+export interface AnalysisHistoryPanelProps {
+  onClose?: () => void
+}
+
+export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
   const t = useTerminology()
   const [searchQuery, setSearchQuery] = useState('')
   const [filterMethod, setFilterMethod] = useState<string | null>(null)
@@ -58,7 +68,7 @@ export function AnalysisHistoryPanel() {
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [saveName, setSaveName] = useState('')
-  
+
   const {
     analysisHistory,
     currentHistoryId,
@@ -98,11 +108,13 @@ export function AnalysisHistoryPanel() {
 
   const handleLoad = async (historyId: string) => {
     await loadFromHistory(historyId)
+    onClose?.()
   }
 
   // 같은 방법으로 새 데이터 분석 (재분석 모드)
   const handleReanalyze = async (historyId: string) => {
     await loadSettingsFromHistory(historyId)
+    onClose?.()
   }
 
   const handleDelete = async (historyId: string) => {
@@ -138,6 +150,55 @@ export function AnalysisHistoryPanel() {
     }
   }
 
+  const handleExport = async (item: any) => {
+    try {
+      if (!item.results) {
+        toast.error('분석 결과가 없습니다.')
+        return
+      }
+
+      // 1. StatisticalResult 변환
+      // 히스토리 아이템에는 uploadedData가 없을 수 있으므로 메타데이터에서 일부 정보 복원 시도
+      const statisticalResult = convertToStatisticalResult(item.results, {
+        sampleSize: item.dataRowCount,
+        variables: item.variables, // 필요시 매핑 로직 추가
+        timestamp: new Date(item.timestamp)
+      })
+
+      // 2. ExportContext 생성
+      const context: ExportContext = {
+        analysisResult: item.results,
+        statisticalResult,
+        aiInterpretation: null, // 히스토리에는 AI 해석 원문이 저장되지 않았을 수 있음 (확인 필요)
+        apaFormat: null, // 저장된 포맷이 있다면 사용
+        dataInfo: {
+          fileName: item.dataFileName,
+          totalRows: item.dataRowCount,
+          columnCount: 0, // 정보 없음 (선택적)
+          variables: []
+        }
+      }
+
+      toast.info('Word 보고서를 생성하고 있습니다...')
+
+      // 3. 내보내기 (Word 강제)
+      const result = await ExportService.export(context, 'docx')
+
+      if (result.success) {
+        toast.success('보고서가 다운로드되었습니다.', {
+          description: result.fileName
+        })
+      } else {
+        toast.error('보고서 생성 실패', {
+          description: result.error
+        })
+      }
+    } catch (error) {
+      console.error('Export failed:', error)
+      toast.error('내보내기 중 오류가 발생했습니다.')
+    }
+  }
+
   if (analysisHistory.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -151,54 +212,12 @@ export function AnalysisHistoryPanel() {
   return (
     <div className="space-y-4">
       {/* 액션 버튼 (헤더는 Sheet에서 표시) */}
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">{t.history.recordCount(analysisHistory.length)}</span>
-
-        <div className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSaveCurrent}
-          >
-            {t.history.buttons.saveCurrent}
-          </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className={filterMethod ? 'bg-muted' : ''}>
-                <Filter className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuLabel>{t.history.labels.filterByMethod}</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setFilterMethod(null)}>
-                {t.history.labels.showAll}
-              </DropdownMenuItem>
-              {uniqueMethods.map(method => (
-                <DropdownMenuItem
-                  key={method.id}
-                  onClick={() => setFilterMethod(method.id)}
-                >
-                  {method.name}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowClearConfirm(true)}
-            title={t.history.buttons.clearAll}
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-lg">분석 기록</h3>
       </div>
 
       {/* 검색 바 */}
-      <div className="relative">
+      <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
         <Input
           placeholder={t.history.labels.searchPlaceholder}
@@ -211,11 +230,14 @@ export function AnalysisHistoryPanel() {
       {/* 히스토리 목록 */}
       <div className="space-y-2 max-h-[500px] overflow-y-auto">
         {filteredHistory.map((item) => (
-          <Card 
+          <Card
             key={item.id}
-            className={`p-4 hover:shadow-md transition-shadow cursor-pointer ${
-              currentHistoryId === item.id ? 'ring-2 ring-primary' : ''
-            }`}
+            className={cn(
+              "p-4 hover:shadow-md transition-shadow cursor-pointer border",
+              currentHistoryId === item.id
+                ? "border-primary bg-primary/5 shadow-sm"
+                : "border-border/50 bg-card"
+            )}
           >
             <div className="flex items-start justify-between">
               <div className="flex-1" onClick={() => handleLoad(item.id)}>
@@ -227,7 +249,7 @@ export function AnalysisHistoryPanel() {
                     </span>
                   )}
                 </div>
-                
+
                 <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
                   <span className="flex items-center gap-1">
                     <Database className="w-3 h-3" />
@@ -242,11 +264,11 @@ export function AnalysisHistoryPanel() {
                     {item.dataFileName}
                   </span>
                 </div>
-                
+
                 <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
                   {item.purpose || t.history.labels.noPurpose}
                 </p>
-                
+
                 {/* 주요 결과 표시 */}
                 {item.results && typeof item.results === 'object' && 'pValue' in item.results && (
                   <div className="flex items-center gap-3 text-xs">
@@ -270,16 +292,29 @@ export function AnalysisHistoryPanel() {
                     )}
                   </div>
                 )}
-                
+
                 <div className="text-xs text-muted-foreground mt-2">
-                  {formatDistanceToNow(new Date(item.timestamp), { 
+                  {formatDistanceToNow(new Date(item.timestamp), {
                     addSuffix: true,
-                    locale: ko 
+                    locale: ko
                   })}
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-1 ml-2">
+                {/* 내보내기 */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleExport(item)
+                  }}
+                  title="Word 보고서 내보내기"
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
+
                 {/* 저장된 결과 보기 */}
                 <Button
                   variant="ghost"

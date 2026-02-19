@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState, useTransition, useMemo } from 'react'
+import { useCallback, useEffect, useState, useRef, useTransition, useMemo } from 'react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { DataValidationService } from '@/lib/services/data-validation-service'
@@ -23,6 +23,7 @@ import { checkVariableCompatibility, CompatibilityResult } from '@/lib/utils/var
 import type { ColumnInfo } from '@/lib/statistics/variable-mapping'
 
 // UI Components
+import { InlineError } from '@/components/common/InlineError'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -84,6 +85,21 @@ export default function HomePage() {
     setQuickAnalysisMode,
     setPurposeInputMode
   } = useSmartFlowStore()
+
+  // 스텝 전환 애니메이션 방향 추적
+  const prevStepRef = useRef(currentStep)
+  const [direction, setDirection] = useState<'forward' | 'backward'>('forward')
+
+  useEffect(() => {
+    if (currentStep > prevStepRef.current) setDirection('forward')
+    else if (currentStep < prevStepRef.current) setDirection('backward')
+    prevStepRef.current = currentStep
+  }, [currentStep])
+
+  const animationClass = useMemo(() => {
+    if (showHub) return 'animate-fade-in'
+    return direction === 'forward' ? 'animate-slide-left' : 'animate-slide-right'
+  }, [direction, showHub])
 
   // Load history from IndexedDB
   useEffect(() => {
@@ -264,14 +280,13 @@ export default function HomePage() {
         <ChatCentricHub
           onStartWithData={handleStartWithData}
           onStartWithBrowse={handleStartWithMethod}
-          onShowHistory={handleHistoryToggle}
           onGoToDetailedAI={handleStartWithAI}
         />
       )}
 
       {/* ===== Step 1: Data Exploration ===== */}
       {!showHub && currentStep === 1 && (
-        <div className="animate-fade-in">
+        <div className={animationClass} key="step1">
           {/* 재분석 모드 안내 (데이터 업로드 전) */}
           {isReanalysisMode && selectedMethod && !uploadedData && (
             <Card className="mb-6 border-primary/30 bg-primary/5">
@@ -364,7 +379,7 @@ export default function HomePage() {
 
       {/* ===== Step 2: Purpose Input ===== */}
       {!showHub && currentStep === 2 && (
-        <div className="animate-fade-in">
+        <div className={animationClass} key="step2">
           <PurposeInputStep
             onPurposeSubmit={handlePurposeSubmit}
             validationResults={validationResults}
@@ -375,14 +390,14 @@ export default function HomePage() {
 
       {/* ===== Step 3: Variable Selection ===== */}
       {!showHub && currentStep === 3 && (
-        <div className="animate-fade-in">
+        <div className={animationClass} key="step3">
           <VariableSelectionStep />
         </div>
       )}
 
       {/* ===== Step 4: Analysis & Results ===== */}
       {!showHub && currentStep === 4 && (
-        <div className="animate-fade-in">
+        <div className={animationClass} key="step4">
           {!results ? (
             <AnalysisExecutionStep
               selectedMethod={selectedMethod}
@@ -401,11 +416,11 @@ export default function HomePage() {
 
       {/* Error Message */}
       {error && (
-        <div className="mt-4 bg-destructive/10 border border-destructive/30 rounded-lg p-4">
-          <div className="flex items-center space-x-2">
-            <span className="text-destructive font-bold">오류:</span>
-            <span className="text-sm text-destructive/90">{error}</span>
-          </div>
+        <div className="mt-6 px-6">
+          <InlineError
+            message={error}
+            onRetry={() => setError(null)}
+          />
         </div>
       )}
     </SmartFlowLayout>
