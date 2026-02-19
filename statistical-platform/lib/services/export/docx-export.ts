@@ -215,11 +215,13 @@ export async function exportDocx(data: NormalizedExportData): Promise<ExportResu
     }
 
     // ── 해석 ──
-    children.push(spacer(docx))
-    children.push(heading('해석', docx))
-    children.push(new Paragraph({
-      children: [new TextRun({ text: data.interpretation, size: 20 })],
-    }))
+    if (data.interpretation) {
+      children.push(spacer(docx))
+      children.push(heading('해석', docx))
+      children.push(new Paragraph({
+        children: [new TextRun({ text: data.interpretation, size: 20 })],
+      }))
+    }
 
     // ── 추가 지표 ──
     if (data.additionalMetrics.length > 0) {
@@ -275,6 +277,37 @@ export async function exportDocx(data: NormalizedExportData): Promise<ExportResu
         docx,
         3,
         (val) => val === '미충족',
+      ))
+    }
+
+    // ── 방법론 ──
+    if (data.methodology) {
+      children.push(spacer(docx))
+      children.push(heading('분석 방법론', docx))
+      children.push(new Paragraph({
+        children: [new TextRun({ text: data.methodology, size: 20 })],
+      }))
+    }
+
+    // ── 참고문헌 ──
+    if (data.references && data.references.length > 0) {
+      children.push(spacer(docx))
+      children.push(heading('참고문헌', docx))
+      for (const ref of data.references) {
+        children.push(new Paragraph({
+          text: `• ${ref}`,
+        }))
+      }
+    }
+
+    // ── 원본 데이터 (선택) ──
+    if (data.rawData && data.rawData.columns.length > 0 && data.rawData.rows.length > 0) {
+      children.push(spacer(docx))
+      children.push(heading('원본 데이터 (미리보기)', docx))
+      children.push(buildMultiColTable(
+        data.rawData.columns,
+        data.rawData.rows,
+        docx,
       ))
     }
 

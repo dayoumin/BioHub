@@ -15,6 +15,13 @@
     "memory": {
       "command": "uvx",
       "args": ["@modelcontextprotocol/server-memory"]
+    },
+    "stitch": {
+      "command": "npx",
+      "args": ["@_davideast/stitch-mcp@latest", "proxy"],
+      "env": {
+        "STITCH_USE_SYSTEM_GCLOUD": "1"
+      }
     }
   }
 }

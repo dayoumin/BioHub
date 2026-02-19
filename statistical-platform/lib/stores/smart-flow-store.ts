@@ -97,6 +97,8 @@ export interface AnalysisHistory {
   dataFileName: string
   dataRowCount: number
   results: Record<string, unknown> | null
+  aiInterpretation?: string | null
+  apaFormat?: string | null
 }
 
 interface SmartFlowState {
@@ -174,7 +176,10 @@ interface SmartFlowState {
   setError: (error: string | null) => void
 
   // 히스토리 액션 (비동기)
-  saveToHistory: (name?: string) => Promise<void>
+  saveToHistory: (
+    name?: string,
+    metadata?: { aiInterpretation?: string | null; apaFormat?: string | null }
+  ) => Promise<void>
   loadFromHistory: (historyId: string) => Promise<void>
   deleteFromHistory: (historyId: string) => Promise<void>
   clearHistory: () => Promise<void>
@@ -323,7 +328,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
       setPurposeInputMode: (mode) => set({ purposeInputMode: mode }),
 
       // 히스토리 관리 (IndexedDB)
-      saveToHistory: async (name) => {
+      saveToHistory: async (name, metadata) => {
         const state = get()
         if (!state.results) return
 
@@ -346,6 +351,8 @@ export const useSmartFlowStore = create<SmartFlowState>()(
           dataFileName: state.uploadedFile?.name || 'unknown',
           dataRowCount: state.uploadedData?.length || 0,
           results: state.results as unknown as Record<string, unknown> | null,
+          aiInterpretation: metadata?.aiInterpretation ?? null,
+          apaFormat: metadata?.apaFormat ?? null,
           variableMapping: state.variableMapping,
           analysisPurpose: state.analysisPurpose
         }
@@ -530,7 +537,9 @@ export const useSmartFlowStore = create<SmartFlowState>()(
                     } : null,
                     dataFileName: item.dataFileName || 'unknown',
                     dataRowCount: item.dataRowCount || 0,
-                    results: migratedResults
+                    results: migratedResults,
+                    aiInterpretation: typeof item.aiInterpretation === 'string' ? item.aiInterpretation : null,
+                    apaFormat: typeof item.apaFormat === 'string' ? item.apaFormat : null
                   }
 
                   await saveHistory(record)

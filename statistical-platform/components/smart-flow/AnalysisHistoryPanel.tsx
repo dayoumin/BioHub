@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -35,8 +36,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import type { AnalysisHistory } from '@/lib/stores/smart-flow-store'
 import { startNewAnalysis } from '@/lib/services/data-management'
+import type { AnalysisResult } from '@/types/smart-flow'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { useTerminology } from '@/hooks/use-terminology'
@@ -53,7 +57,7 @@ import {
 import { cn } from '@/lib/utils'
 import { ExportService } from '@/lib/services/export/export-service'
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
-import type { ExportContext } from '@/lib/services/export/export-types'
+import type { ExportContentOptions, ExportContext, ExportFormat } from '@/lib/services/export/export-types'
 import { toast } from 'sonner'
 
 export interface AnalysisHistoryPanelProps {
@@ -68,6 +72,16 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [saveName, setSaveName] = useState('')
+  const [exportDialogOpen, setExportDialogOpen] = useState(false)
+  const [exportTargetItem, setExportTargetItem] = useState<AnalysisHistory | null>(null)
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('docx')
+  const [exportOptions, setExportOptions] = useState<ExportContentOptions>({
+    includeInterpretation: true,
+    includeRawData: false,
+    includeMethodology: false,
+    includeReferences: false,
+    includeCharts: false,
+  })
 
   const {
     analysisHistory,
@@ -150,12 +164,41 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
     }
   }
 
-  const handleExport = async (item: any) => {
+  const handleExport = async (
+    item: AnalysisHistory,
+    format: ExportFormat = 'docx',
+    optionsOverride?: ExportContentOptions,
+  ) => {
     try {
       if (!item.results) {
         toast.error('분석 결과가 없습니다.')
         return
       }
+
+      const effectiveOptions: ExportContentOptions = {
+        includeInterpretation: true,
+        includeRawData: false, // 히스토리에는 원본 데이터 미저장
+        includeMethodology: false,
+        includeReferences: false,
+        includeCharts: false,
+        ...(optionsOverride ?? {}),
+      }
+
+      const safeGetString = (value: unknown): string | null => {
+        if (typeof value !== 'string') return null
+        const trimmed = value.trim()
+        return trimmed.length > 0 ? trimmed : null
+      }
+
+      const resultRecord = typeof item.results === 'object' && item.results !== null
+        ? item.results as Record<string, unknown>
+        : null
+      const recoveredAiInterpretation =
+        safeGetString(item.aiInterpretation) ??
+        safeGetString(resultRecord?.aiInterpretation)
+      const recoveredApaFormat =
+        safeGetString(item.apaFormat) ??
+        safeGetString(resultRecord?.apaFormat)
 
       // 1. StatisticalResult 변환
       // 히스토리 아이템에는 uploadedData가 없을 수 있으므로 메타데이터에서 일부 정보 복원 시도
@@ -166,28 +209,34 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
       })
 
       // 2. ExportContext 생성
+      const analysisResult = item.results as unknown as AnalysisResult
       const context: ExportContext = {
-        analysisResult: item.results,
+        analysisResult,
         statisticalResult,
-        aiInterpretation: null, // 히스토리에는 AI 해석 원문이 저장되지 않았을 수 있음 (확인 필요)
-        apaFormat: null, // 저장된 포맷이 있다면 사용
+        aiInterpretation: recoveredAiInterpretation,
+        apaFormat: recoveredApaFormat,
+        exportOptions: effectiveOptions,
         dataInfo: {
           fileName: item.dataFileName,
           totalRows: item.dataRowCount,
           columnCount: 0, // 정보 없음 (선택적)
           variables: []
-        }
+        },
+        rawDataRows: null,
       }
 
-      toast.info('Word 보고서를 생성하고 있습니다...')
+      toast.info(`${format.toUpperCase()} 보고서를 생성하고 있습니다...`)
 
-      // 3. 내보내기 (Word 강제)
-      const result = await ExportService.export(context, 'docx')
+      // 3. 내보내기
+      const result = await ExportService.export(context, format)
 
       if (result.success) {
         toast.success('보고서가 다운로드되었습니다.', {
           description: result.fileName
         })
+        if (effectiveOptions.includeCharts) {
+          toast.info('차트 내보내기는 현재 준비 중입니다. 이번 파일에는 표/텍스트만 포함되었습니다.')
+        }
       } else {
         toast.error('보고서 생성 실패', {
           description: result.error
@@ -197,6 +246,18 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
       console.error('Export failed:', error)
       toast.error('내보내기 중 오류가 발생했습니다.')
     }
+  }
+
+  const openExportDialog = (item: AnalysisHistory) => {
+    setExportTargetItem(item)
+    setExportFormat('docx')
+    setExportDialogOpen(true)
+  }
+
+  const handleExportConfirm = async () => {
+    if (!exportTargetItem) return
+    setExportDialogOpen(false)
+    await handleExport(exportTargetItem, exportFormat, exportOptions)
   }
 
   if (analysisHistory.length === 0) {
@@ -308,9 +369,9 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation()
-                    handleExport(item)
+                    openExportDialog(item)
                   }}
-                  title="Word 보고서 내보내기"
+                  title="보고서 내보내기"
                 >
                   <Download className="w-4 h-4" />
                 </Button>
@@ -432,6 +493,103 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
             </Button>
             <Button onClick={handleSaveConfirm} disabled={!saveName.trim()}>
               {t.history.buttons.save}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={exportDialogOpen}
+        onOpenChange={(open) => {
+          setExportDialogOpen(open)
+          if (!open) setExportTargetItem(null)
+        }}
+      >
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>히스토리 내보내기 옵션</DialogTitle>
+            <DialogDescription>
+              저장된 분석 기록에서 보고서를 생성합니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-2">
+            <div className="space-y-2">
+              <Label>파일 형식</Label>
+              <RadioGroup
+                value={exportFormat}
+                onValueChange={(value) => setExportFormat(value as ExportFormat)}
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="docx" id="history-export-docx" />
+                  <Label htmlFor="history-export-docx">Word (.docx)</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="xlsx" id="history-export-xlsx" />
+                  <Label htmlFor="history-export-xlsx">Excel (.xlsx)</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="html" id="history-export-html" />
+                  <Label htmlFor="history-export-html">HTML (.html)</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <div className="space-y-2">
+              <Label>포함 내용</Label>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="history-opt-interpretation"
+                    checked={!!exportOptions.includeInterpretation}
+                    onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeInterpretation: !!checked }))}
+                  />
+                  <Label htmlFor="history-opt-interpretation">결과 해석</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="history-opt-methodology"
+                    checked={!!exportOptions.includeMethodology}
+                    onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeMethodology: !!checked }))}
+                  />
+                  <Label htmlFor="history-opt-methodology">분석 방법론</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="history-opt-references"
+                    checked={!!exportOptions.includeReferences}
+                    onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeReferences: !!checked }))}
+                  />
+                  <Label htmlFor="history-opt-references">참고문헌</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="history-opt-raw-data"
+                    checked={false}
+                    disabled
+                  />
+                  <Label htmlFor="history-opt-raw-data" className="text-muted-foreground">
+                    원본 데이터 (히스토리에는 저장되지 않아 미지원)
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="history-opt-charts"
+                    checked={!!exportOptions.includeCharts}
+                    onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeCharts: !!checked }))}
+                  />
+                  <Label htmlFor="history-opt-charts">차트 (준비 중, 현재는 미포함)</Label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
+              취소
+            </Button>
+            <Button onClick={handleExportConfirm}>
+              내보내기
             </Button>
           </DialogFooter>
         </DialogContent>

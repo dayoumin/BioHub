@@ -398,7 +398,7 @@ export const aquaculture: TerminologyDictionary = {
       statCategories: (count: number) => `${count}개 카테고리`,
       statAi: 'AI 추천',
       uploadButton: '데이터 업로드',
-      browseButton: '분석 방법 둘러보기',
+      browseButton: '분석 방법',
     },
     cards: {
       methodsTitle: '분석 도구',

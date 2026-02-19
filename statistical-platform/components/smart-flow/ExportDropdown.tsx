@@ -22,6 +22,7 @@ interface ExportDropdownProps {
   interpretation: string | null
   apaFormat: string | null
   dataInfo: ExportContext['dataInfo']
+  rawDataRows?: ExportContext['rawDataRows']
   t: ResultsText
 }
 
@@ -31,6 +32,7 @@ export function ExportDropdown({
   interpretation,
   apaFormat,
   dataInfo,
+  rawDataRows,
   t,
 }: ExportDropdownProps) {
   const [isExporting, setIsExporting] = useState(false)
@@ -44,7 +46,15 @@ export function ExportDropdown({
         statisticalResult,
         aiInterpretation: interpretation,
         apaFormat,
+        exportOptions: {
+          includeInterpretation: true,
+          includeRawData: false,
+          includeMethodology: false,
+          includeReferences: false,
+          includeCharts: false,
+        },
         dataInfo,
+        rawDataRows: rawDataRows ?? null,
       }
 
       const result = await ExportService.export(context, format)
@@ -60,7 +70,7 @@ export function ExportDropdown({
     } finally {
       setIsExporting(false)
     }
-  }, [results, statisticalResult, interpretation, apaFormat, dataInfo, t])
+  }, [results, statisticalResult, interpretation, apaFormat, dataInfo, rawDataRows, t])
 
   return (
     <DropdownMenu>
@@ -90,6 +100,13 @@ export function ExportDropdown({
         >
           <Table2 className="w-4 h-4 mr-2" />
           {t.buttons.exportExcel}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => handleExport('html')}
+          data-testid="export-html"
+        >
+          <FileText className="w-4 h-4 mr-2" />
+          HTML (.html)
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

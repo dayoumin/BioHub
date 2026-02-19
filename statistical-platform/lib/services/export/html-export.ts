@@ -186,12 +186,28 @@ tr:last-child td {
 }
 `
 
-function renderTable(headers: string[], rows: (string | number)[][], highlightCol?: number, highlightFn?: (val: string) => boolean) {
+function escapeHtml(input: string | number | null | undefined): string {
+  const text = String(input ?? '')
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function renderTable(
+  headers: string[],
+  rows: (string | number)[][],
+  highlightCol?: number,
+  highlightFn?: (val: string) => boolean,
+  allowHtmlCols: number[] = []
+) {
     return `
     <table>
       <thead>
         <tr>
-          ${headers.map(h => `<th>${h}</th>`).join('')}
+          ${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}
         </tr>
       </thead>
       <tbody>
@@ -201,7 +217,8 @@ function renderTable(headers: string[], rows: (string | number)[][], highlightCo
         const val = String(cell)
         const isHighlight = highlightCol === idx && highlightFn?.(val)
         const style = isHighlight ? 'font-weight:bold; color:var(--destructive);' : ''
-        return `<td style="${style}">${val}</td>`
+        const content = allowHtmlCols.includes(idx) ? val : escapeHtml(val)
+        return `<td style="${style}">${content}</td>`
     }).join('')}
           </tr>
         `).join('')}
@@ -215,8 +232,8 @@ function renderKeyValue(items: ExportRow[]) {
     <div class="key-value-grid">
       ${items.map(item => `
         <div class="stat-card">
-          <div class="stat-label">${item.label}</div>
-          <div class="stat-value">${item.value}</div>
+          <div class="stat-label">${escapeHtml(item.label)}</div>
+          <div class="stat-value">${escapeHtml(item.value)}</div>
         </div>
       `).join('')}
     </div>
@@ -241,7 +258,7 @@ export async function exportHtml(data: NormalizedExportData): Promise<ExportResu
         <section>
           <h2>APA 보고</h2>
           <div style="font-style: italic; background: var(--muted); padding: 1rem; border-radius: 0.5rem;">
-            ${data.apaString}
+            ${escapeHtml(data.apaString)}
           </div>
         </section>
       `)
@@ -253,7 +270,7 @@ export async function exportHtml(data: NormalizedExportData): Promise<ExportResu
         <section>
           <h2>해석</h2>
           <div class="interpretation">
-            ${data.interpretation}
+            ${escapeHtml(data.interpretation)}
           </div>
         </section>
       `)
@@ -316,13 +333,50 @@ export async function exportHtml(data: NormalizedExportData): Promise<ExportResu
                     `<span class="badge ${a.passed ? 'badge-success' : 'badge-danger'}">
                 ${a.passed ? '충족' : '미충족'}
                </span>`
-                ])
+                ]),
+                undefined,
+                undefined,
+                [3]
             )}
         </section>
       `)
         }
 
-        // 8. AI 해석 (중요)
+        // 8. 방법론
+        if (data.methodology) {
+            sections.push(`
+        <section>
+          <h2>분석 방법론</h2>
+          <div class="interpretation">
+            ${escapeHtml(data.methodology)}
+          </div>
+        </section>
+      `)
+        }
+
+        // 9. 참고문헌
+        if (data.references && data.references.length > 0) {
+            sections.push(`
+        <section>
+          <h2>참고문헌</h2>
+          <ul style="margin: 0; padding-left: 1.2rem;">
+            ${data.references.map(ref => `<li style="margin-bottom: 0.5rem;">${escapeHtml(ref)}</li>`).join('')}
+          </ul>
+        </section>
+      `)
+        }
+
+        // 10. 원본 데이터 (미리보기)
+        if (data.rawData && data.rawData.columns.length > 0 && data.rawData.rows.length > 0) {
+            sections.push(`
+        <section>
+          <h2>원본 데이터 (미리보기)</h2>
+          ${renderTable(data.rawData.columns, data.rawData.rows)}
+        </section>
+      `)
+        }
+
+        // 11. AI 해석 (중요)
         if (data.aiInterpretation) {
             sections.push(`
         <section>
@@ -333,10 +387,10 @@ export async function exportHtml(data: NormalizedExportData): Promise<ExportResu
               AI Insight
             </div>
             <div style="font-weight: 600; margin-bottom: 0.5rem;">요약</div>
-            <div class="ai-content" style="margin-bottom: 1rem;">${data.aiInterpretation.summary}</div>
+            <div class="ai-content" style="margin-bottom: 1rem;">${escapeHtml(data.aiInterpretation.summary)}</div>
             ${data.aiInterpretation.detail ? `
               <div style="font-weight: 600; margin-bottom: 0.5rem; border-top: 1px dashed #f5d0fe; padding-top: 1rem;">상세 분석</div>
-              <div class="ai-content">${data.aiInterpretation.detail}</div>
+              <div class="ai-content">${escapeHtml(data.aiInterpretation.detail)}</div>
             ` : ''}
           </div>
         </section>
@@ -349,15 +403,15 @@ export async function exportHtml(data: NormalizedExportData): Promise<ExportResu
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${data.title}</title>
+  <title>${escapeHtml(data.title)}</title>
   <style>${STYLE}</style>
 </head>
 <body>
   <div class="container">
     <header>
-      <h1>${data.title}</h1>
+      <h1>${escapeHtml(data.title)}</h1>
       <div class="meta">
-        ${data.date} | ${data.dataInfo?.fileName || '데이터 분석 결과'}
+        ${escapeHtml(data.date)} | ${escapeHtml(data.dataInfo?.fileName || '데이터 분석 결과')}
       </div>
     </header>
     

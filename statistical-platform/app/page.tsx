@@ -163,8 +163,16 @@ export default function HomePage() {
   const handlePurposeSubmit = useCallback((purpose: string, method: StatisticalMethod) => {
     setAnalysisPurpose(purpose)
     setSelectedMethod(method)
-    goToNextStep()
-  }, [setAnalysisPurpose, setSelectedMethod, goToNextStep])
+
+    // 데이터가 없으면 데이터 업로드 단계(Step 1)로 이동
+    // QuickAnalysisMode를 켜서 Step 1 완료 후 바로 Step 3(변수 선택)로 이동하게 함
+    if (!uploadedData || uploadedData.length === 0) {
+      setQuickAnalysisMode(true)
+      navigateToStep(1)
+    } else {
+      goToNextStep()
+    }
+  }, [setAnalysisPurpose, setSelectedMethod, goToNextStep, uploadedData, setQuickAnalysisMode, navigateToStep])
 
   const handleAnalysisComplete = useCallback((results: AnalysisResult) => {
     setResults(results)

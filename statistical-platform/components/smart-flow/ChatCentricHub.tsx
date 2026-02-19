@@ -443,7 +443,7 @@ export function ChatCentricHub({
 
   return (
     <motion.div
-      className="w-full max-w-5xl mx-auto"
+      className="w-full max-w-6xl mx-auto"
       {...(prefersReducedMotion ? {} : { variants: containerVariants, initial: 'hidden' as const, animate: 'visible' as const })}
     >
       {/* ====== Hero Section ====== */}
@@ -501,7 +501,6 @@ export function ChatCentricHub({
                 >
                   <Upload className="w-4 h-4" />
                   {t.hub.hero.uploadButton}
-                  <ArrowRight className="w-4 h-4 ml-0.5" />
                 </Button>
                 <Button
                   variant="outline"

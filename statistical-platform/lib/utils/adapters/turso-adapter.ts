@@ -94,6 +94,8 @@ export class TursoAdapter implements StorageAdapter {
           dataRowCount INTEGER,
           columnInfo TEXT,
           results TEXT,
+          aiInterpretation TEXT,
+          apaFormat TEXT,
           deviceId TEXT,
           syncedAt INTEGER,
           updatedAt INTEGER
@@ -112,6 +114,25 @@ export class TursoAdapter implements StorageAdapter {
         )`
       }
     ])
+
+    // Existing DB migration safety: add columns if legacy schema is already present.
+    await this.ensureColumn('history', 'aiInterpretation', 'TEXT')
+    await this.ensureColumn('history', 'apaFormat', 'TEXT')
+  }
+
+  private async ensureColumn(table: string, column: string, type: string): Promise<void> {
+    if (!this.client) return
+    try {
+      await this.client.execute({
+        sql: `ALTER TABLE ${table} ADD COLUMN ${column} ${type}`
+      })
+    } catch (error) {
+      const msg = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase()
+      if (msg.includes('duplicate column') || msg.includes('already exists')) {
+        return
+      }
+      throw error
+    }
   }
 
   // === History CRUD ===
@@ -139,8 +160,8 @@ export class TursoAdapter implements StorageAdapter {
       sql: `INSERT OR REPLACE INTO history
             (id, timestamp, name, purpose, analysisPurpose, method,
              variableMapping, analysisOptions, dataFileName, dataRowCount,
-             columnInfo, results, deviceId, syncedAt, updatedAt)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             columnInfo, results, aiInterpretation, apaFormat, deviceId, syncedAt, updatedAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args: [
         record.id,
         record.timestamp,
@@ -154,6 +175,8 @@ export class TursoAdapter implements StorageAdapter {
         record.dataRowCount || 0,
         record.columnInfo ? JSON.stringify(record.columnInfo) : null,
         record.results ? JSON.stringify(record.results) : null,
+        record.aiInterpretation ?? null,
+        record.apaFormat ?? null,
         record.deviceId || this.getDeviceId(),
         now,
         record.updatedAt || now
@@ -261,6 +284,8 @@ export class TursoAdapter implements StorageAdapter {
       dataRowCount: row.dataRowCount as number || 0,
       columnInfo: row.columnInfo ? JSON.parse(row.columnInfo as string) : undefined,
       results: row.results ? JSON.parse(row.results as string) : null,
+      aiInterpretation: (row.aiInterpretation as string | null) ?? null,
+      apaFormat: (row.apaFormat as string | null) ?? null,
       deviceId: row.deviceId as string | undefined,
       syncedAt: row.syncedAt as number | undefined,
       updatedAt: row.updatedAt as number | undefined

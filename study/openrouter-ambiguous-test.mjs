@@ -4,7 +4,14 @@
  * 2. 개선 프롬프트 → 다관점 추천 + 보강된 데이터 컨텍스트
  */
 
-const API_KEY = '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'
+const API_KEY = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY
+
+if (!API_KEY) {
+  console.error('❌ API Key가 없습니다.')
+  console.error('다음 명령어로 실행하세요:')
+  console.error('node --env-file=../statistical-platform/.env.local study/openrouter-ambiguous-test.mjs')
+  process.exit(1)
+}
 const MODEL = 'z-ai/glm-4.5-air:free'
 
 // 현재 시스템 프롬프트 (간략화)
@@ -186,7 +193,7 @@ async function callApi(systemPrompt, userPrompt, label) {
     console.log(`\n  📋 추천: ${parsed.methodId} (${parsed.methodName})`)
     console.log(`  🎯 확신도: ${parsed.confidence}`)
     console.log(`  📝 이유:`)
-    parsed.reasoning?.forEach((r, i) => console.log(`     ${i+1}. ${r}`))
+    parsed.reasoning?.forEach((r, i) => console.log(`     ${i + 1}. ${r}`))
 
     if (parsed.ambiguityNote) {
       console.log(`  ❓ 모호성 노트: ${parsed.ambiguityNote}`)

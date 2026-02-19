@@ -93,7 +93,10 @@
       "Bash(powershell:*)",
       "Bash(pnpm next build:*)",
       "WebFetch(domain:www.buildwithclaude.com)",
-      "Bash(claude plugin install:*)"
+      "Bash(claude plugin install:*)",
+      "Bash(git status:*)",
+      "Bash(claude mcp list:*)",
+      "Bash(pnpm remove:*)"
     ],
     "deny": [],
     "ask": []
@@ -103,7 +106,8 @@
     "playwright",
     "filesystem",
     "git",
-    "memory"
+    "memory",
+    "stitch"
   ],
   "outputStyle": "default"
 }

@@ -115,12 +115,113 @@ function buildAdditionalMetrics(result: AnalysisResult): ExportRow[] {
   return rows
 }
 
+function buildMethodologyText(method: string): string {
+  const m = method.toLowerCase()
+
+  if (m.includes('t-test') || m.includes('t test') || m.includes('t검정')) {
+    return '독립/대응 표본의 평균 차이를 t-검정을 통해 검정했습니다. 유의수준(alpha)은 기본적으로 0.05를 사용합니다.'
+  }
+  if (m.includes('anova') || m.includes('분산분석')) {
+    return '집단 간 평균 차이를 분산분석(ANOVA)으로 검정했습니다. 필요 시 사후검정 결과를 함께 해석합니다.'
+  }
+  if (m.includes('chi') || m.includes('카이')) {
+    return '범주형 변수 간 독립성을 카이제곱 검정으로 평가했습니다. 기대빈도 조건을 확인해 해석했습니다.'
+  }
+  if (m.includes('regression') || m.includes('회귀')) {
+    return '종속변수와 독립변수 간 관계를 회귀분석으로 추정했습니다. 계수, 유의성, 설명력을 함께 검토했습니다.'
+  }
+  if (m.includes('correlation') || m.includes('상관')) {
+    return '변수 간 선형/순위 상관을 상관분석으로 평가했습니다. 상관계수와 p-value를 함께 보고했습니다.'
+  }
+
+  return '선택한 통계 방법의 가정과 검정 절차를 기준으로 결과를 산출했습니다.'
+}
+
+function buildReferences(method: string): string[] {
+  const common = [
+    'Field, A. (2013). Discovering Statistics Using IBM SPSS Statistics (4th ed.). Sage.',
+    'Cohen, J. (1988). Statistical Power Analysis for the Behavioral Sciences (2nd ed.). Routledge.',
+  ]
+
+  const m = method.toLowerCase()
+  if (m.includes('anova') || m.includes('t-test') || m.includes('t test') || m.includes('regression')) {
+    return [
+      ...common,
+      'Tabachnick, B. G., & Fidell, L. S. (2019). Using Multivariate Statistics (7th ed.). Pearson.',
+    ]
+  }
+  if (m.includes('chi') || m.includes('카이')) {
+    return [
+      ...common,
+      'Agresti, A. (2018). An Introduction to Categorical Data Analysis (3rd ed.). Wiley.',
+    ]
+  }
+  if (m.includes('correlation') || m.includes('상관')) {
+    return [
+      ...common,
+      'Schober, P., Boer, C., & Schwarte, L. A. (2018). Correlation coefficients: appropriate use and interpretation.',
+    ]
+  }
+
+  return common
+}
+
+function stringifyRawValue(value: unknown): string {
+  if (value == null) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+    return String(value)
+  }
+  if (value instanceof Date) return value.toISOString()
+  if (Array.isArray(value)) return value.map(v => stringifyRawValue(v)).join(', ')
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value)
+    } catch {
+      return '[object]'
+    }
+  }
+  return String(value)
+}
+
+function buildRawDataPreview(
+  rawDataRows: ExportContext['rawDataRows'],
+  maxRows = 200,
+): NormalizedExportData['rawData'] {
+  if (!rawDataRows || rawDataRows.length === 0) return null
+
+  const previewRows = rawDataRows.slice(0, maxRows)
+  const columnSet = new Set<string>()
+  for (const row of previewRows) {
+    for (const key of Object.keys(row)) {
+      columnSet.add(key)
+    }
+  }
+  const columns = Array.from(columnSet)
+  if (columns.length === 0) return null
+
+  const rows = previewRows.map(row => columns.map(col => stringifyRawValue(row[col])))
+  return { columns, rows }
+}
+
 /**
  * ExportContext → NormalizedExportData 변환
  */
 export function buildExportData(ctx: ExportContext): NormalizedExportData {
-  const { analysisResult: r, statisticalResult: sr, aiInterpretation, apaFormat, dataInfo } = ctx
+  const {
+    analysisResult: r,
+    statisticalResult: sr,
+    aiInterpretation,
+    apaFormat,
+    dataInfo,
+    exportOptions,
+    rawDataRows,
+  } = ctx
   const now = new Date()
+  const includeInterpretation = exportOptions?.includeInterpretation ?? true
+  const includeRawData = exportOptions?.includeRawData ?? false
+  const includeMethodology = exportOptions?.includeMethodology ?? false
+  const includeReferences = exportOptions?.includeReferences ?? false
 
   // ── 기본 결과 행 ──
   const mainResults: ExportRow[] = []
@@ -218,7 +319,7 @@ export function buildExportData(ctx: ExportContext): NormalizedExportData {
 
   // ── AI 해석 ──
   let aiInterp: NormalizedExportData['aiInterpretation'] = null
-  if (aiInterpretation) {
+  if (includeInterpretation && aiInterpretation) {
     aiInterp = splitInterpretation(aiInterpretation)
   }
 
@@ -231,6 +332,9 @@ export function buildExportData(ctx: ExportContext): NormalizedExportData {
       columns: dataInfo.columnCount,
     }
   }
+  const rawDataPreview = includeRawData ? buildRawDataPreview(rawDataRows) : null
+  const methodology = includeMethodology ? buildMethodologyText(r.method) : null
+  const references = includeReferences ? buildReferences(r.method) : null
 
   return {
     title: `${r.method} Analysis Report`,
@@ -240,13 +344,16 @@ export function buildExportData(ctx: ExportContext): NormalizedExportData {
     effectSize,
     confidenceInterval,
     apaString: apaFormat,
-    interpretation: r.interpretation ?? '',
+    interpretation: includeInterpretation ? (r.interpretation ?? '') : '',
     assumptions,
     postHocResults,
     groupStats,
     coefficients,
     additionalMetrics: buildAdditionalMetrics(r),
     aiInterpretation: aiInterp,
+    methodology,
+    references,
+    rawData: rawDataPreview,
     dataInfo: dataInfoNorm,
   }
 }

@@ -40,36 +40,36 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko" suppressHydrationWarning>
-      <body className={systemFontClass}>
+      <body className={`${systemFontClass} min-w-[375px]`}>
         <ClientProviders>
           <TerminologyProvider initialDomain="aquaculture">
             <UIProvider>
               <div className="flex h-screen overflow-hidden">
-              {/* 메인 영역 */}
-              <div className="flex-1 flex flex-col overflow-hidden">
-                <ConditionalHeader />
-                <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
-                  {children}
-                </main>
+                {/* 메인 영역 */}
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  <ConditionalHeader />
+                  <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
+                    {children}
+                  </main>
+                </div>
+
+                {/* 우측 챗봇 패널 (조건부 렌더링) */}
+                <LayoutContent />
               </div>
 
-              {/* 우측 챗봇 패널 (조건부 렌더링) */}
-              <LayoutContent />
-            </div>
 
+              {/* 전역 피드백 패널 */}
+              <GlobalFeedbackPanel />
 
-            {/* 전역 피드백 패널 */}
-            <GlobalFeedbackPanel />
-
-            <Toaster
-              position="top-center"
-              richColors
-              closeButton
-              duration={4000}
-              toastOptions={{
-                className: 'font-medium',
-              }}
-            />
+              <Toaster
+                position="top-center"
+                richColors
+                closeButton
+                duration={4000}
+                toastOptions={{
+                  className: 'font-medium',
+                }}
+              />
             </UIProvider>
           </TerminologyProvider>
         </ClientProviders>

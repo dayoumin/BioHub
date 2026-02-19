@@ -10,18 +10,29 @@ import type { StatisticalResult } from '@/components/statistics/common/Statistic
 // ─── 내보내기 포맷 ───
 export type ExportFormat = 'docx' | 'xlsx' | 'html'
 
+export interface ExportContentOptions {
+  includeRawData?: boolean
+  includeCharts?: boolean
+  includeInterpretation?: boolean
+  includeMethodology?: boolean
+  includeReferences?: boolean
+  language?: 'ko' | 'en'
+}
+
 // ─── 내보내기 컨텍스트 (컴포넌트에서 전달) ───
 export interface ExportContext {
   analysisResult: AnalysisResult
   statisticalResult: StatisticalResult
   aiInterpretation: string | null
   apaFormat: string | null
+  exportOptions?: ExportContentOptions
   dataInfo: {
     fileName: string | null
     totalRows: number
     columnCount: number
     variables: string[]
   } | null
+  rawDataRows?: Array<Record<string, unknown>> | null
 }
 
 // ─── 정규화된 내보내기 데이터 ───
@@ -56,6 +67,14 @@ export interface NormalizedExportData {
   aiInterpretation: {
     summary: string
     detail: string
+  } | null
+
+  // 선택 섹션
+  methodology?: string | null
+  references?: string[] | null
+  rawData?: {
+    columns: string[]
+    rows: string[][]
   } | null
 
   // 메타

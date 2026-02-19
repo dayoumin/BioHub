@@ -72,6 +72,14 @@ describe('ExportService', () => {
     expect(downloadBlob).toHaveBeenCalledTimes(1)
   })
 
+  it('HTML 내보내기 파이프라인', async () => {
+    const result = await ExportService.export(makeContext(), 'html')
+
+    expect(result.success).toBe(true)
+    expect(result.fileName).toMatch(/chi-square.*\.html$/)
+    expect(downloadBlob).toHaveBeenCalledTimes(1)
+  })
+
   it('지원하지 않는 포맷은 에러 반환', async () => {
     const result = await ExportService.export(
       makeContext(),

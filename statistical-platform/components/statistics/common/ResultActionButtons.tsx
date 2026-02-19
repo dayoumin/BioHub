@@ -48,7 +48,7 @@ import {
 import { cn } from '@/lib/utils'
 
 export interface ExportOptions {
-  format: 'pdf' | 'word' | 'html' | 'latex' | 'markdown'
+  format: 'word' | 'html'
   includeRawData?: boolean
   includeCharts?: boolean
   includeInterpretation?: boolean

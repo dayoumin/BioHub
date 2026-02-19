@@ -190,8 +190,7 @@ export function SmartFlowLayout({
                 <HelpCircle className="h-5 w-5" />
               </Button>
 
-              {/* Domain Switcher */}
-              <DomainSwitcher compact />
+              {/* Domain Switcher Removed as per user request */}
 
               <Button
                 variant="ghost"

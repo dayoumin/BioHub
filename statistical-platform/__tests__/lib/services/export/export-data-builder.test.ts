@@ -310,6 +310,48 @@ describe('buildExportData - dataInfo', () => {
   })
 })
 
+describe('buildExportData - exportOptions', () => {
+  it('includeInterpretation=false 이면 해석/AI 해석을 제외한다', () => {
+    const ctx = makeContext({
+      aiInterpretation: '### 한줄 요약\n요약 텍스트',
+      exportOptions: {
+        includeInterpretation: false,
+      },
+    })
+    const data = buildExportData(ctx)
+    expect(data.interpretation).toBe('')
+    expect(data.aiInterpretation).toBeNull()
+  })
+
+  it('includeMethodology/includeReferences=true 이면 섹션을 생성한다', () => {
+    const ctx = makeContext({
+      exportOptions: {
+        includeMethodology: true,
+        includeReferences: true,
+      },
+    })
+    const data = buildExportData(ctx)
+    expect(data.methodology).toBeTruthy()
+    expect(data.references && data.references.length > 0).toBe(true)
+  })
+
+  it('includeRawData=true 이고 rawDataRows가 있으면 미리보기를 생성한다', () => {
+    const ctx = makeContext({
+      exportOptions: {
+        includeRawData: true,
+      },
+      rawDataRows: [
+        { group: 'A', score: 10 },
+        { group: 'B', score: 15 },
+      ],
+    })
+    const data = buildExportData(ctx)
+    expect(data.rawData).not.toBeNull()
+    expect(data.rawData!.columns).toEqual(['group', 'score'])
+    expect(data.rawData!.rows).toHaveLength(2)
+  })
+})
+
 // ─── omega squared (ANOVA) ───
 
 describe('buildExportData - ANOVA 특수 필드', () => {

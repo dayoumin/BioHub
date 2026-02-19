@@ -25,18 +25,29 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AnalysisResult } from '@/types/smart-flow'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { startNewAnalysis } from '@/lib/services/data-management'
 import { ExportService } from '@/lib/services/export/export-service'
-import type { ExportFormat, ExportContext } from '@/lib/services/export/export-types'
+import type { ExportFormat, ExportContext, ExportContentOptions } from '@/lib/services/export/export-types'
 import { splitInterpretation, generateSummaryText } from '@/lib/services/export/export-data-builder'
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
 import { TemplateSaveModal } from '@/components/smart-flow/TemplateSaveModal'
@@ -100,6 +111,15 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
   const [detailedResultsOpen, setDetailedResultsOpen] = useState(true)
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false)
+  const [exportDialogOpen, setExportDialogOpen] = useState(false)
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('docx')
+  const [exportOptions, setExportOptions] = useState<ExportContentOptions>({
+    includeInterpretation: true,
+    includeRawData: false,
+    includeMethodology: false,
+    includeReferences: false,
+    includeCharts: false,
+  })
   const chartRef = useRef<HTMLDivElement>(null)
   const [resultTimestamp] = useState(() => new Date())
 
@@ -252,7 +272,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
   // Handlers
   // 파일 저장 (DOCX/Excel 다운로드)
-  const handleSaveAsFile = useCallback(async (format: ExportFormat = 'docx') => {
+  const handleSaveAsFile = useCallback(async (
+    format: ExportFormat = 'docx',
+    optionsOverride?: ExportContentOptions,
+  ) => {
     if (!results || !statisticalResult) return
     setIsExporting(true)
 
@@ -262,12 +285,22 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     setSavedName(null)
 
     try {
+      const effectiveExportOptions: ExportContentOptions = {
+        includeInterpretation: true,
+        includeRawData: false,
+        includeMethodology: false,
+        includeReferences: false,
+        includeCharts: false,
+        ...(optionsOverride ?? {}),
+      }
       const context: ExportContext = {
         analysisResult: results,
         statisticalResult,
         aiInterpretation: interpretation,
         apaFormat,
+        exportOptions: effectiveExportOptions,
         dataInfo: exportDataInfo,
+        rawDataRows: uploadedData as Array<Record<string, unknown>> | null,
       }
 
       const result = await ExportService.export(context, format)
@@ -284,7 +317,14 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         const historyName = `${historyLabel} — ${new Date().toLocaleString('ko-KR', {
           month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
         })}`
-        await saveToHistory(historyName).catch(() => { /* 히스토리 저장 실패 무시 */ })
+        await saveToHistory(historyName, {
+          aiInterpretation: interpretation,
+          apaFormat,
+        }).catch(() => { /* 히스토리 저장 실패 무시 */ })
+
+        if (effectiveExportOptions.includeCharts) {
+          toast.info('차트 내보내기는 현재 준비 중입니다. 이번 파일에는 표/텍스트만 포함되었습니다.')
+        }
 
         savedTimeoutRef.current = setTimeout(() => {
           setIsSaved(false)
@@ -301,7 +341,17 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     } finally {
       setIsExporting(false)
     }
-  }, [results, statisticalResult, interpretation, apaFormat, exportDataInfo, selectedMethod, saveToHistory])
+  }, [results, statisticalResult, interpretation, apaFormat, exportDataInfo, selectedMethod, saveToHistory, uploadedData])
+
+  const openExportDialog = useCallback((format: ExportFormat) => {
+    setExportFormat(format)
+    setExportDialogOpen(true)
+  }, [])
+
+  const handleExportWithOptions = useCallback(async () => {
+    setExportDialogOpen(false)
+    await handleSaveAsFile(exportFormat, exportOptions)
+  }, [handleSaveAsFile, exportFormat, exportOptions])
 
   const handleReanalyze = useCallback(() => {
     setUploadedData(null)
@@ -895,6 +945,14 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                     <BarChart3 className="w-4 h-4 mr-2" />
                     {t.results.buttons.exportExcel}
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleSaveAsFile('html')}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    HTML (.html)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openExportDialog('docx')}>
+                    <FileSearch className="w-4 h-4 mr-2" />
+                    세부 옵션으로 내보내기
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -955,6 +1013,96 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             toast.success(t.results.toast.templateSaved)
           }}
         />
+
+        <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+          <DialogContent className="sm:max-w-[560px]">
+            <DialogHeader>
+              <DialogTitle>내보내기 옵션</DialogTitle>
+              <DialogDescription>
+                포함할 내용을 선택해 파일을 생성합니다.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-5 py-2">
+              <div className="space-y-2">
+                <Label>파일 형식</Label>
+                <RadioGroup
+                  value={exportFormat}
+                  onValueChange={(value) => setExportFormat(value as ExportFormat)}
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="docx" id="export-docx" />
+                    <Label htmlFor="export-docx">Word (.docx)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="xlsx" id="export-xlsx" />
+                    <Label htmlFor="export-xlsx">Excel (.xlsx)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="html" id="export-html" />
+                    <Label htmlFor="export-html">HTML (.html)</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div className="space-y-2">
+                <Label>포함 내용</Label>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="opt-interpretation"
+                      checked={!!exportOptions.includeInterpretation}
+                      onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeInterpretation: !!checked }))}
+                    />
+                    <Label htmlFor="opt-interpretation">결과 해석</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="opt-raw-data"
+                      checked={!!exportOptions.includeRawData}
+                      disabled={!uploadedData || uploadedData.length === 0}
+                      onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeRawData: !!checked }))}
+                    />
+                    <Label htmlFor="opt-raw-data">원본 데이터 미리보기 (최대 200행)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="opt-methodology"
+                      checked={!!exportOptions.includeMethodology}
+                      onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeMethodology: !!checked }))}
+                    />
+                    <Label htmlFor="opt-methodology">분석 방법론</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="opt-references"
+                      checked={!!exportOptions.includeReferences}
+                      onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeReferences: !!checked }))}
+                    />
+                    <Label htmlFor="opt-references">참고문헌</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="opt-charts"
+                      checked={!!exportOptions.includeCharts}
+                      onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeCharts: !!checked }))}
+                    />
+                    <Label htmlFor="opt-charts">차트 (준비 중, 현재는 미포함)</Label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
+                취소
+              </Button>
+              <Button onClick={handleExportWithOptions} disabled={isExporting}>
+                내보내기
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
   )

@@ -48,6 +48,8 @@ export interface HistoryRecord {
 
   // === 결과 ===
   results: Record<string, unknown> | null
+  aiInterpretation?: string | null
+  apaFormat?: string | null
 
   // === 동기화 ===
   deviceId?: string

@@ -140,8 +140,25 @@ export async function exportExcel(data: NormalizedExportData): Promise<ExportRes
     }
 
     // 해석
-    summaryData.push([])
-    summaryData.push(['Interpretation', data.interpretation])
+    if (data.interpretation) {
+      summaryData.push([])
+      summaryData.push(['Interpretation', data.interpretation])
+    }
+
+    // 방법론
+    if (data.methodology) {
+      summaryData.push([])
+      summaryData.push(['Methodology', data.methodology])
+    }
+
+    // 참고문헌
+    if (data.references && data.references.length > 0) {
+      summaryData.push([])
+      summaryData.push(['References', ''])
+      for (const ref of data.references) {
+        summaryData.push(['', ref])
+      }
+    }
 
     // 추가 지표
     if (data.additionalMetrics.length > 0) {
@@ -246,6 +263,17 @@ export async function exportExcel(data: NormalizedExportData): Promise<ExportRes
         }
       }
       XLSX.utils.book_append_sheet(wb, aiWs, 'AI 해석')
+    }
+
+    // ── Sheet 7: 원본 데이터 미리보기 ──
+    if (data.rawData && data.rawData.columns.length > 0 && data.rawData.rows.length > 0) {
+      addStyledTable(
+        XLSX,
+        wb,
+        '원본데이터',
+        data.rawData.columns,
+        data.rawData.rows,
+      )
     }
 
     // ── 파일 생성 ──

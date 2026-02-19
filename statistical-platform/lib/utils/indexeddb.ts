@@ -29,6 +29,8 @@ export interface HistoryRecord {
   dataFileName: string
   dataRowCount: number
   results: Record<string, unknown> | null
+  aiInterpretation?: string | null
+  apaFormat?: string | null
 
   // 재분석용 설정 저장
   variableMapping?: VariableMapping | null
