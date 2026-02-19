@@ -13,8 +13,13 @@ import {
   Sparkles,
   BarChart3,
   Lightbulb,
-  ChevronRight
+  ChevronRight,
+  FileSearch,
+  LayoutGrid,
+  RotateCw,
+  X
 } from 'lucide-react'
+import { EmptyState } from '@/components/common/EmptyState'
 import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -458,9 +463,11 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
   if (!results || !statisticalResult) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">{t.results.noResults}</p>
-      </div>
+      <EmptyState
+        icon={FileSearch}
+        title={t.results.noResults}
+        description="통계 분석을 먼저 실행해 주세요."
+      />
     )
   }
 
@@ -470,8 +477,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         {/* ===== 메인 결과 카드 ===== */}
         <Card className={cn(
           "overflow-hidden shadow-sm rounded-xl",
-          !assumptionsPassed ? "border-amber-200 dark:border-amber-800" :
-          isSignificant ? "border-emerald-200 dark:border-emerald-800" : "border-border/40"
+          !assumptionsPassed ? "border-warning-border bg-warning-bg" :
+            isSignificant ? "border-success-border bg-success-bg" : "border-border/40"
         )} data-testid="results-main-card">
           {/* 헤더: 분석명 + 시간 */}
           <CardHeader className="pb-3 bg-muted/15 border-b border-border/20">
@@ -479,13 +486,13 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               <CardTitle className="text-base tracking-tight flex items-center gap-2.5">
                 <div className={cn(
                   "w-7 h-7 rounded-lg flex items-center justify-center",
-                  !assumptionsPassed ? "bg-amber-100 dark:bg-amber-900/30" :
-                  isSignificant ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-muted"
+                  !assumptionsPassed ? "bg-warning-bg" :
+                    isSignificant ? "bg-success-bg" : "bg-muted"
                 )}>
                   {!assumptionsPassed ? (
-                    <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    <AlertCircle className="w-4 h-4 text-warning" />
                   ) : isSignificant ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <CheckCircle2 className="w-4 h-4 text-success" />
                   ) : (
                     <XCircle className="w-4 h-4 text-muted-foreground" />
                   )}
@@ -507,9 +514,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             {/* ===== 핵심 결론 (1줄) ===== */}
             <div className={cn(
               "p-3.5 rounded-xl text-center text-sm font-semibold tracking-tight",
-              !assumptionsPassed ? "bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200 border border-amber-200/50 dark:border-amber-800/50" :
-              isSignificant ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200 border border-emerald-200/50 dark:border-emerald-800/50" :
-              "bg-muted/50 text-muted-foreground border border-border/30"
+              !assumptionsPassed ? "bg-warning-bg text-warning border border-warning-border" :
+                isSignificant ? "bg-success-bg text-success border border-success-border" :
+                  "bg-muted/50 text-muted-foreground border border-border/30"
             )}>
               {!assumptionsPassed ? (
                 t.results.conclusion.assumptionWarning
@@ -538,7 +545,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               <StatisticCard label={t.results.statistics.pValue} tooltip={t.results.statistics.pValueTooltip}>
                 <p className={cn(
                   "text-xl font-bold font-mono",
-                  isSignificant ? "text-green-600 dark:text-green-400" : "text-gray-500"
+                  isSignificant ? "text-success" : "text-muted-foreground"
                 )}>
                   p {formatPValue(statisticalResult.pValue)}
                 </p>
@@ -566,8 +573,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
             {/* ===== 해석 ===== */}
             {statisticalResult.interpretation && (
-              <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-100 dark:border-blue-900">
-                <p className="text-sm text-blue-800 dark:text-blue-200 flex items-start gap-2">
+              <div className="p-3 bg-info-bg rounded-lg border border-info-border">
+                <p className="text-sm text-info flex items-start gap-2">
                   <Lightbulb className="h-4 w-4 flex-shrink-0 mt-0.5" />
                   <span>{statisticalResult.interpretation}</span>
                 </p>
@@ -792,36 +799,36 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 {/* 경고 (generateWarnings()는 가정 관련 경고만 생성 → AssumptionTestCard와 중복 제거) */}
                 {statisticalResult.warnings && statisticalResult.warnings.length > 0 &&
                   assumptionTests.length === 0 && (
-                  <Alert variant="destructive" data-testid="warnings-section">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>{t.results.sections.warnings}</AlertTitle>
-                    <AlertDescription>
-                      <ul className="mt-1 space-y-1">
-                        {statisticalResult.warnings.map((warning, idx) => (
-                          <li key={idx} className="text-sm">{warning}</li>
-                        ))}
-                      </ul>
-                    </AlertDescription>
-                  </Alert>
-                )}
+                    <Alert variant="destructive" data-testid="warnings-section">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>{t.results.sections.warnings}</AlertTitle>
+                      <AlertDescription>
+                        <ul className="mt-1 space-y-1">
+                          {statisticalResult.warnings.map((warning, idx) => (
+                            <li key={idx} className="text-sm">{warning}</li>
+                          ))}
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+                  )}
 
                 {/* 대안 분석 방법 (AssumptionTestCard가 testType으로 이미 표시하는 경우 중복 제거) */}
                 {statisticalResult.alternatives && statisticalResult.alternatives.length > 0 &&
                   !statisticalResult.testType && (
-                  <div className="space-y-2" data-testid="alternatives-section">
-                    <p className="text-sm font-medium">{t.results.sections.alternatives}</p>
-                    <div className="space-y-1.5">
-                      {statisticalResult.alternatives.map((alt, idx) => (
-                        <div key={idx} className={cn("p-2.5 rounded-lg border text-sm",
-                          alt.action ? "hover:bg-muted/50 cursor-pointer transition-colors" : ""
-                        )} onClick={alt.action}>
-                          <span className="font-medium">{alt.name}</span>
-                          <span className="text-muted-foreground ml-1.5">{alt.reason}</span>
-                        </div>
-                      ))}
+                    <div className="space-y-2" data-testid="alternatives-section">
+                      <p className="text-sm font-medium">{t.results.sections.alternatives}</p>
+                      <div className="space-y-1.5">
+                        {statisticalResult.alternatives.map((alt, idx) => (
+                          <div key={idx} className={cn("p-2.5 rounded-lg border text-sm",
+                            alt.action ? "hover:bg-muted/50 cursor-pointer transition-colors" : ""
+                          )} onClick={alt.action}>
+                            <span className="font-medium">{alt.name}</span>
+                            <span className="text-muted-foreground ml-1.5">{alt.reason}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
               </CollapsibleSection>
             )}

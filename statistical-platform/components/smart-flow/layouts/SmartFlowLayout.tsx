@@ -117,7 +117,7 @@ export function SmartFlowLayout({
       ...step,
       completed: steps.find(s => s.id === step.id)?.completed ?? false
     }))
-  , [steps, STEPS])
+    , [steps, STEPS])
 
   // 전역 UI 컨텍스트 (채팅, 설정, 도움말 모달)
   const {
@@ -143,7 +143,7 @@ export function SmartFlowLayout({
   return (
     <div className={cn("min-h-full bg-background", className)}>
       {/* ===== 헤더 (Sticky) ===== */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b shadow-sm">
+      <header className="sticky top-0 z-50 w-full border-b border-border bg-background">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex items-center justify-between h-14">
             {/* 좌측: 로고 */}

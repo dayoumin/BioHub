@@ -10,7 +10,7 @@ export interface StatisticalResult {
   effectSize?: number
   confidenceInterval?: [number, number]
   interpretation: string
-  details?: any
+  details?: Record<string, unknown>
 }
 
 export interface DescriptiveStats {
@@ -120,7 +120,7 @@ export interface SurvivalResult {
   censored: number
 }
 
-export type TestType = 
+export type TestType =
   | 'descriptive'
   | 't-test'
   | 'anova'

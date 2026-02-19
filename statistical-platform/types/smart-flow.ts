@@ -441,6 +441,7 @@ export interface AnalysisResult {
     eigenvalues?: number[]
     rankings?: number[]
     // Phase 5: Basic Statistics
+    isNormal?: boolean
     mean?: number
     median?: number
     std?: number

@@ -98,16 +98,20 @@ export const FloatingStepIndicator = memo(function FloatingStepIndicator({
                     aria-label={`${step.label} (Step ${step.id}${isCompleted ? ', completed' : ''})`}
                     data-testid={`stepper-step-${step.id}`}
                     className={cn(
-                      "flex items-center gap-2 px-3 py-1.5 rounded-full transition-all text-sm",
-                      canClick && "hover:bg-muted cursor-pointer",
+                      "flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 text-sm relative group",
+                      canClick && "hover:bg-muted/80 cursor-pointer active:scale-95",
                       !canClick && "cursor-default opacity-50",
-                      isActive && "bg-primary text-primary-foreground hover:bg-primary shadow-sm",
+                      isActive && "bg-primary text-primary-foreground hover:bg-primary shadow-md",
                       isCompleted && !isActive && "text-muted-foreground hover:text-foreground"
                     )}
                   >
+                    {/* Active Pip Animation */}
+                    {isActive && (
+                      <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping -z-10" />
+                    )}
                     {/* Step Number/Icon Circle */}
                     <div className={cn(
-                      "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold",
+                      "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-transform group-hover:scale-110",
                       isCompleted && !isActive && "bg-primary/10 text-primary",
                       isActive && "bg-background text-primary",
                       !isActive && !isCompleted && "bg-muted text-muted-foreground"

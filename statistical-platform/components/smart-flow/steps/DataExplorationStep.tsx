@@ -8,6 +8,7 @@ import { ChartScatter, ListOrdered, ExternalLink, BarChart3, Flame, AlertTriangl
 import { cn } from '@/lib/utils'
 import { ValidationResults, DataRow, StatisticalAssumptions } from '@/types/smart-flow'
 import { DataProfileSummary } from '@/components/common/analysis/DataProfileSummary'
+import { EmptyState } from '@/components/common/EmptyState'
 import { usePyodide } from '@/components/providers/PyodideProvider'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { StepHeader } from '@/components/smart-flow/common'
@@ -552,12 +553,12 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
         {/* 데이터 교체 모드 배너 */}
         {isReplaceMode && (
-          <Card className="border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-950/20">
+          <Card className="border-info-border bg-info-bg">
             <CardContent className="py-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Upload className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                  <Upload className="h-4 w-4 text-info" />
+                  <span className="text-sm font-medium text-info">
                     {t.dataExploration.replaceMode?.title ?? '다른 데이터 파일을 업로드하세요'}
                   </span>
                 </div>
@@ -574,34 +575,20 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           </Card>
         )}
 
-        {/* 안내 카드 + 업로드 영역 (컴팩트 레이아웃) */}
-        <Card className="border-dashed border-2 border-muted-foreground/25">
-          <CardContent className="py-8">
-            <div className="text-center space-y-4">
-              {!isReplaceMode && (
-                <>
-                  <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <ChartScatter className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold mb-1">{t.dataExploration.empty.title}</h3>
-                    <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                      {t.dataExploration.empty.description}
-                    </p>
-                  </div>
-                </>
-              )}
-              {onUploadComplete && (
-                <div className="pt-2">
-                  <DataUploadStep
-                    onUploadComplete={isReplaceMode ? handleReplaceUploadComplete : onUploadComplete}
-                    existingFileName={existingFileName}
-                  />
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={ChartScatter}
+          title={isReplaceMode ? (t.dataExploration.replaceMode?.title ?? '다른 데이터 파일을 업로드하세요') : t.dataExploration.empty.title}
+          description={isReplaceMode ? undefined : t.dataExploration.empty.description}
+          action={
+            onUploadComplete && (
+              <DataUploadStep
+                onUploadComplete={isReplaceMode ? handleReplaceUploadComplete : onUploadComplete}
+                existingFileName={existingFileName}
+              />
+            )
+          }
+          className="border-dashed border-2 border-muted-foreground/25"
+        />
 
         {/* 데이터 준비 안내: 빠른 분석이면 방법별, 아니면 범용 */}
         <DataPrepGuide
@@ -666,9 +653,9 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         <StepHeader icon={ChartScatter} title={t.smartFlow.stepTitles.dataExploration} />
 
         {quickAnalysisMode && profile.focusHint && data.length > 0 && (
-          <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 text-sm">
-            <Lightbulb className="h-4 w-4 text-blue-500 flex-shrink-0" />
-            <span className="text-blue-700 dark:text-blue-300">{profile.focusHint}</span>
+          <div className="flex items-center gap-2 p-3 bg-info-bg rounded-lg border border-info-border text-sm">
+            <Lightbulb className="h-4 w-4 text-info flex-shrink-0" />
+            <span className="text-info">{profile.focusHint}</span>
           </div>
         )}
 
@@ -722,15 +709,15 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         )}
 
         {!quickAnalysisMode && (
-        <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
-          <CardContent className="py-6">
-            <div className="text-center text-muted-foreground">
-              <p>{t.dataExploration.warnings.correlationRequires}</p>
-              <p className="text-sm mt-2">{t.dataExploration.warnings.currentStatus(numericVariables.length, categoricalVariables.length)}</p>
-              <p className="text-sm mt-1">{t.dataExploration.warnings.nextStepHint}</p>
-            </div>
-          </CardContent>
-        </Card>
+          <Card className="border-warning-border bg-warning-bg">
+            <CardContent className="py-6">
+              <div className="text-center text-muted-foreground">
+                <p>{t.dataExploration.warnings.correlationRequires}</p>
+                <p className="text-sm mt-2">{t.dataExploration.warnings.currentStatus(numericVariables.length, categoricalVariables.length)}</p>
+                <p className="text-sm mt-1">{t.dataExploration.warnings.nextStepHint}</p>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
       </div>
@@ -743,9 +730,9 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       <StepHeader icon={ChartScatter} title={t.smartFlow.stepTitles.dataExploration} />
 
       {quickAnalysisMode && profile.focusHint && data.length > 0 && (
-        <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 text-sm">
-          <Lightbulb className="h-4 w-4 text-blue-500 flex-shrink-0" />
-          <span className="text-blue-700 dark:text-blue-300">{profile.focusHint}</span>
+        <div className="flex items-center gap-2 p-3 bg-info-bg rounded-lg border border-info-border text-sm">
+          <Lightbulb className="h-4 w-4 text-info flex-shrink-0" />
+          <span className="text-info">{profile.focusHint}</span>
         </div>
       )}
 
@@ -838,224 +825,224 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
           {/* 기초 통계량 탭 */}
           <ContentTabsContent tabId="statistics" show={activeDataTab === 'statistics'}>
-              <div className="space-y-4">
-                {/* 이상치 요약 배너 */}
+            <div className="space-y-4">
+              {/* 이상치 요약 배너 */}
 
-                {(() => {
+              {(() => {
 
-                  const varsWithOutliers = numericDistributions
+                const varsWithOutliers = numericDistributions
 
-                    .filter(v => v.outlierCount > 0)
+                  .filter(v => v.outlierCount > 0)
 
-                    .sort((a, b) => b.outlierCount - a.outlierCount)
+                  .sort((a, b) => b.outlierCount - a.outlierCount)
 
-                  const totalOutliers = numericDistributions.reduce((sum, v) => sum + v.outlierCount, 0)
-
-
-
-                  if (totalOutliers === 0) return null
+                const totalOutliers = numericDistributions.reduce((sum, v) => sum + v.outlierCount, 0)
 
 
 
-                  return (
+                if (totalOutliers === 0) return null
 
-                    <div className="p-3 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
 
-                      <div className="flex items-start gap-2">
 
-                        <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                return (
 
-                        <div className="text-sm leading-5">
+                  <div className="p-3 bg-warning-bg border border-warning-border rounded-lg">
 
-                          <div className="font-medium text-yellow-800 dark:text-yellow-200">
+                    <div className="flex items-start gap-2">
 
-                            {t.dataExploration.outlier.detected(varsWithOutliers.length, totalOutliers)}
+                      <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
+
+                      <div className="text-sm leading-5">
+
+                        <div className="font-medium text-warning">
+
+                          {t.dataExploration.outlier.detected(varsWithOutliers.length, totalOutliers)}
+
+                        </div>
+
+                        {varsWithOutliers.length > 0 && (
+
+                          <div className="mt-1 text-warning/80 text-xs">
+
+                            {varsWithOutliers.slice(0, 5).map(v => t.dataExploration.outlier.variableDetail(v.name, v.outlierCount)).join(', ')}
+
+                            {varsWithOutliers.length > 5 && ` ${t.dataExploration.outlier.moreVars(varsWithOutliers.length - 5)}`}
 
                           </div>
 
-                          {varsWithOutliers.length > 0 && (
-
-                            <div className="mt-1 text-yellow-700 dark:text-yellow-300 text-xs">
-
-                              {varsWithOutliers.slice(0, 5).map(v => t.dataExploration.outlier.variableDetail(v.name, v.outlierCount)).join(', ')}
-
-                              {varsWithOutliers.length > 5 && ` ${t.dataExploration.outlier.moreVars(varsWithOutliers.length - 5)}`}
-
-                            </div>
-
-                          )}
-
-                        </div>
+                        )}
 
                       </div>
 
                     </div>
 
-                  )
-
-                })()}
-
-                <div className="overflow-x-auto max-h-[400px] border border-border/40 rounded-xl">
-                  <table className="w-full text-sm border-collapse">
-                    <thead className="sticky top-0 bg-muted/60 backdrop-blur-md z-10">
-                      <tr className="border-b border-border/40">
-                        <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.variableName}</th>
-                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.count}</th>
-                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.mean}</th>
-                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.stdDev}</th>
-                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.median}</th>
-                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.min}</th>
-                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.max}</th>
-                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">Q1</th>
-                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">Q3</th>
-                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.skewness}</th>
-                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.kurtosis}</th>
-                        <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.outliers}</th>
-                      </tr>
-                    </thead>
-
-                    <tbody className="divide-y divide-border/20">
-                      {numericDistributions.map(col => {
-                        const skewWarning = col.skewness !== undefined && Math.abs(col.skewness) > 2
-                        const kurtWarning = col.kurtosis !== undefined && Math.abs(col.kurtosis) > 7
-
-                        return (
-                          <tr key={col.name} className="hover:bg-muted/30 transition-colors duration-150">
-                            <td className="px-3 py-2 font-medium whitespace-nowrap tracking-tight">{col.name}</td>
-                            <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{col.n}</td>
-                            <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.mean)}</td>
-                            <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.std)}</td>
-                            <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.median)}</td>
-                            <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.min)}</td>
-                            <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.max)}</td>
-                            <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.q1)}</td>
-                            <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.q3)}</td>
-                            <td className={cn("px-3 py-2 text-right font-mono text-xs tabular-nums", skewWarning && "text-amber-600 dark:text-amber-400 font-semibold")}>
-                              {formatStat(col.skewness)}
-                              {skewWarning && <AlertTriangle className="h-3 w-3 inline ml-0.5" />}
-                            </td>
-                            <td className={cn("px-3 py-2 text-right font-mono text-xs tabular-nums", kurtWarning && "text-amber-600 dark:text-amber-400 font-semibold")}>
-                              {formatStat(col.kurtosis)}
-                              {kurtWarning && <AlertTriangle className="h-3 w-3 inline ml-0.5" />}
-                            </td>
-                            <td className="px-3 py-2 text-right">
-                              {col.outlierCount > 0 ? (
-                                <Badge
-                                  variant="secondary"
-                                  className="text-[10px] cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors font-mono"
-                                  onClick={() => handleOpenOutlierModal(col.name)}
-                                >
-                                  {t.dataExploration.outlier.count(col.outlierCount)}
-                                </Badge>
-                              ) : (
-                                <span className="text-muted-foreground/40">-</span>
-                              )}
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* 해석 가이드 */}
-                <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p className="font-medium mb-1 flex items-center gap-1"><Lightbulb className="h-3.5 w-3.5" />{t.dataExploration.interpretGuide.title}</p>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                    <div>{t.dataExploration.interpretGuide.skewness}</div>
-                    <div>{t.dataExploration.interpretGuide.kurtosis}</div>
-                    <div>{t.dataExploration.interpretGuide.outlierDef}</div>
-                    <div>{t.dataExploration.interpretGuide.nDef}</div>
                   </div>
+
+                )
+
+              })()}
+
+              <div className="overflow-x-auto max-h-[400px] border border-border/40 rounded-xl">
+                <table className="w-full text-sm border-collapse">
+                  <thead className="sticky top-0 bg-muted/60 backdrop-blur-md z-10">
+                    <tr className="border-b border-border/40">
+                      <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.variableName}</th>
+                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.count}</th>
+                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.mean}</th>
+                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.stdDev}</th>
+                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.median}</th>
+                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.min}</th>
+                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.max}</th>
+                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">Q1</th>
+                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">Q3</th>
+                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.skewness}</th>
+                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.kurtosis}</th>
+                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.outliers}</th>
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y divide-border/20">
+                    {numericDistributions.map(col => {
+                      const skewWarning = col.skewness !== undefined && Math.abs(col.skewness) > 2
+                      const kurtWarning = col.kurtosis !== undefined && Math.abs(col.kurtosis) > 7
+
+                      return (
+                        <tr key={col.name} className="hover:bg-muted/30 transition-colors duration-150">
+                          <td className="px-3 py-2 font-medium whitespace-nowrap tracking-tight">{col.name}</td>
+                          <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{col.n}</td>
+                          <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.mean)}</td>
+                          <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.std)}</td>
+                          <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.median)}</td>
+                          <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.min)}</td>
+                          <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.max)}</td>
+                          <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.q1)}</td>
+                          <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.q3)}</td>
+                          <td className={cn("px-3 py-2 text-right font-mono text-xs tabular-nums", skewWarning && "text-amber-600 dark:text-amber-400 font-semibold")}>
+                            {formatStat(col.skewness)}
+                            {skewWarning && <AlertTriangle className="h-3 w-3 inline ml-0.5" />}
+                          </td>
+                          <td className={cn("px-3 py-2 text-right font-mono text-xs tabular-nums", kurtWarning && "text-amber-600 dark:text-amber-400 font-semibold")}>
+                            {formatStat(col.kurtosis)}
+                            {kurtWarning && <AlertTriangle className="h-3 w-3 inline ml-0.5" />}
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            {col.outlierCount > 0 ? (
+                              <Badge
+                                variant="secondary"
+                                className="text-[10px] cursor-pointer hover:bg-warning-bg transition-colors font-mono"
+                                onClick={() => handleOpenOutlierModal(col.name)}
+                              >
+                                {t.dataExploration.outlier.count(col.outlierCount)}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground/40">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* 해석 가이드 */}
+              <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="font-medium mb-1 flex items-center gap-1"><Lightbulb className="h-3.5 w-3.5" />{t.dataExploration.interpretGuide.title}</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                  <div>{t.dataExploration.interpretGuide.skewness}</div>
+                  <div>{t.dataExploration.interpretGuide.kurtosis}</div>
+                  <div>{t.dataExploration.interpretGuide.outlierDef}</div>
+                  <div>{t.dataExploration.interpretGuide.nDef}</div>
                 </div>
               </div>
+            </div>
           </ContentTabsContent>
 
           {/* 데이터 미리보기 탭 */}
           <ContentTabsContent tabId="preview" show={activeDataTab === 'preview'}>
-              <div className="space-y-4">
-                {/* 하이라이트된 행이 있으면 해당 행들만 표시 */}
-                {highlightedRows.length > 0 ? (
-                  <>
-                    <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="text-yellow-600 dark:text-yellow-400">●</span>
-                        <span className="font-medium text-yellow-800 dark:text-yellow-200">
-                          {t.dataExploration.highlight.description(highlightedColumn ?? '', highlightedRows.length)}
-                        </span>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setHighlightedRows([])
-                          setHighlightedColumn(undefined)
-                        }}
-                      >
-                        {t.dataExploration.highlight.clearButton}
-                      </Button>
+            <div className="space-y-4">
+              {/* 하이라이트된 행이 있으면 해당 행들만 표시 */}
+              {highlightedRows.length > 0 ? (
+                <>
+                  <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-yellow-600 dark:text-yellow-400">●</span>
+                      <span className="font-medium text-yellow-800 dark:text-yellow-200">
+                        {t.dataExploration.highlight.description(highlightedColumn ?? '', highlightedRows.length)}
+                      </span>
                     </div>
-                    {highlightedPreview.rowIndices.length > 0 ? (
-                      <DataPreviewTable
-                        data={highlightedPreview.rows}
-                        maxRows={highlightedPreview.rows.length || 1}
-                        defaultOpen={true}
-                        title=""
-                        height="400px"
-                        rowIndices={highlightedPreview.rowIndices}
-                        highlightRows={highlightedPreview.rowIndices}
-                        highlightColumn={highlightedColumn}
-                      />
-                    ) : (
-                      <div className="p-3 text-sm text-muted-foreground border rounded-md bg-muted/30">
-                        {t.dataExploration.highlight.notFound}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {/* 10행 이하: 전체 표시 / 10행 초과: 상위 5 + 생략 + 하위 5 */}
-                    {data.length <= 10 ? (
-                      <DataPreviewTable
-                        data={data}
-                        maxRows={10}
-                        defaultOpen={true}
-                        title=""
-                        height="auto"
-                      />
-                    ) : (
-                      (() => {
-                        const topRows = data.slice(0, 5)
-                        const bottomRows = data.slice(-5)
-                        const omittedCount = data.length - 10
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setHighlightedRows([])
+                        setHighlightedColumn(undefined)
+                      }}
+                    >
+                      {t.dataExploration.highlight.clearButton}
+                    </Button>
+                  </div>
+                  {highlightedPreview.rowIndices.length > 0 ? (
+                    <DataPreviewTable
+                      data={highlightedPreview.rows}
+                      maxRows={highlightedPreview.rows.length || 1}
+                      defaultOpen={true}
+                      title=""
+                      height="400px"
+                      rowIndices={highlightedPreview.rowIndices}
+                      highlightRows={highlightedPreview.rowIndices}
+                      highlightColumn={highlightedColumn}
+                    />
+                  ) : (
+                    <div className="p-3 text-sm text-muted-foreground border rounded-md bg-muted/30">
+                      {t.dataExploration.highlight.notFound}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* 10행 이하: 전체 표시 / 10행 초과: 상위 5 + 생략 + 하위 5 */}
+                  {data.length <= 10 ? (
+                    <DataPreviewTable
+                      data={data}
+                      maxRows={10}
+                      defaultOpen={true}
+                      title=""
+                      height="auto"
+                    />
+                  ) : (
+                    (() => {
+                      const topRows = data.slice(0, 5)
+                      const bottomRows = data.slice(-5)
+                      const omittedCount = data.length - 10
 
-                        // 행 번호 배열: 상위 1-5, 하위 (n-4)~n
-                        const indices = [1, 2, 3, 4, 5].concat(
-                          [...Array(5).keys()].map(i => data.length - 4 + i)
-                        )
+                      // 행 번호 배열: 상위 1-5, 하위 (n-4)~n
+                      const indices = [1, 2, 3, 4, 5].concat(
+                        [...Array(5).keys()].map(i => data.length - 4 + i)
+                      )
 
-                        return (
-                          <DataPreviewTable
-                            data={[...topRows, ...bottomRows]}
-                            maxRows={10}
-                            defaultOpen={true}
-                            title=""
-                            height="auto"
-                            omittedRows={omittedCount}
-                            omitAfterIndex={4}
-                            rowIndices={indices}
-                          />
-                        )
-                      })()
-                    )}
-                  </>
-                )}
+                      return (
+                        <DataPreviewTable
+                          data={[...topRows, ...bottomRows]}
+                          maxRows={10}
+                          defaultOpen={true}
+                          title=""
+                          height="auto"
+                          omittedRows={omittedCount}
+                          omitAfterIndex={4}
+                          rowIndices={indices}
+                        />
+                      )
+                    })()
+                  )}
+                </>
+              )}
 
-                {/* 전체 보기 안내 */}
-                <div className="text-center text-sm text-muted-foreground py-2">
-                  {t.dataExploration.preview.fullDataInstruction(data.length)}
-                </div>
+              {/* 전체 보기 안내 */}
+              <div className="text-center text-sm text-muted-foreground py-2">
+                {t.dataExploration.preview.fullDataInstruction(data.length)}
               </div>
+            </div>
           </ContentTabsContent>
         </CardContent>
       </Card>

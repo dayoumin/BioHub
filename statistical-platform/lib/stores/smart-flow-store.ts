@@ -151,7 +151,7 @@ interface SmartFlowState {
   // 상태
   isLoading: boolean
   error: string | null
-  
+
   // 액션
   setCurrentStep: (step: number) => void
   addCompletedStep: (step: number) => void
@@ -172,7 +172,7 @@ interface SmartFlowState {
   setResults: (results: AnalysisResult | null) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
-  
+
   // 히스토리 액션 (비동기)
   saveToHistory: (name?: string) => Promise<void>
   loadFromHistory: (historyId: string) => Promise<void>
@@ -189,7 +189,7 @@ interface SmartFlowState {
   canNavigateToStep: (step: number) => boolean
   navigateToStep: (step: number) => void
   saveCurrentStepData: () => void
-  
+
   // 유틸리티
   canProceedToNext: () => boolean
   goToNextStep: () => void
@@ -230,14 +230,14 @@ export const useSmartFlowStore = create<SmartFlowState>()(
   persist(
     (set, get) => ({
       ...initialState,
-      
+
       // 기본 setter들
       setCurrentStep: (step) => set({ currentStep: step }),
-      
+
       addCompletedStep: (step) => set((state) => ({
         completedSteps: [...new Set([...state.completedSteps, step])]
       })),
-      
+
       setUploadedFile: (file) => set({ uploadedFile: file, uploadedFileName: file?.name || null }),
       setUploadedData: (data) => set({ uploadedData: data }),
       setUploadedFileName: (name) => set({ uploadedFileName: name }),
@@ -598,7 +598,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         // 완료된 단계나 현재 단계로만 이동 가능
         return step === state.currentStep || state.completedSteps.includes(step)
       },
-      
+
       navigateToStep: (step) => {
         const state = get()
         if (state.canNavigateToStep(step)) {
@@ -607,7 +607,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
           set({ currentStep: step })
         }
       },
-      
+
       saveCurrentStepData: () => {
         const state = get()
         // 각 단계별 데이터는 이미 개별 setter로 저장되므로
@@ -618,7 +618,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
           }))
         }
       },
-      
+
       // 유틸리티 함수들
       // 4단계 플로우: 탐색(1) → 방법(2) → 변수(3) → 분석(4)
       canProceedToNext: () => {
@@ -641,14 +641,14 @@ export const useSmartFlowStore = create<SmartFlowState>()(
           })
         }
       },
-      
+
       goToPreviousStep: () => {
         const state = get()
         if (state.currentStep > 1) {
           set({ currentStep: state.currentStep - 1 })
         }
       },
-      
+
       reset: () => set(initialState),
 
       // Reset session data only - preserves analysisHistory for "새 분석 시작"
@@ -694,7 +694,13 @@ export const useSmartFlowStore = create<SmartFlowState>()(
             (state as Record<string, unknown>).suggestedSettings = null
           }
         }
-        return state as SmartFlowState
+
+        // 항상 로딩 상태와 에러는 초기화 (새로고침 시 stuck 방지)
+        return {
+          ...state,
+          isLoading: false,
+          error: null
+        } as SmartFlowState
       },
       storage: createJSONStorage(() => sessionStorage),
       onRehydrateStorage: () => (state) => {

@@ -126,49 +126,64 @@ export function useNormalityTest({
         console.log(`Testing column ${col.name} with ${columnData.length} values`)
 
         // 다중 정규성 검정
-        try {
-          const results: NormalityTestResult = {}
+        const results: NormalityTestResult = {}
 
-          // Shapiro-Wilk Test (3 <= n <= 5000)
-          if (columnData.length <= 5000) {
+        // Shapiro-Wilk Test (3 <= n <= 5000)
+        if (columnData.length <= 5000) {
+          try {
             results.shapiroWilk = await pyodideService.shapiroWilkTest(columnData)
+          } catch (err) {
+            console.error(`Shapiro-Wilk test failed for ${col.name}:`, err)
+            logger.error(`Shapiro-Wilk test failed for ${col.name}`, err)
           }
+        }
 
-          // Anderson-Darling Test (n >= 8)
-          if (columnData.length >= 8) {
+        // Anderson-Darling Test (n >= 8)
+        if (columnData.length >= 8) {
+          try {
             results.andersonDarling = await pyodideService.andersonDarlingTest(columnData)
+          } catch (err) {
+            console.warn(`Anderson-Darling test unavailable for ${col.name}:`, err)
+            logger.warn(`Anderson-Darling test unavailable for ${col.name}`)
           }
+        }
 
-          // D'Agostino-Pearson Test (n >= 20)
-          if (columnData.length >= 20) {
+        // D'Agostino-Pearson Test (n >= 20)
+        if (columnData.length >= 20) {
+          try {
             results.dagostinoPearson = await pyodideService.dagostinoPearsonTest(columnData)
+          } catch (err) {
+            console.warn(`D'Agostino-Pearson test unavailable for ${col.name}:`, err)
+            logger.warn(`D'Agostino-Pearson test unavailable for ${col.name}`)
           }
+        }
 
-          // 종합 판정 (설정된 규칙에 따라)
-          const testResults = [
-            results.shapiroWilk,
-            results.andersonDarling,
-            results.dagostinoPearson
-          ].filter((r): r is NonNullable<typeof r> => r !== undefined)
+        // 종합 판정 (설정된 규칙에 따라)
+        const testResults = [
+          results.shapiroWilk,
+          results.andersonDarling,
+          results.dagostinoPearson
+        ].filter((r): r is NonNullable<typeof r> => r !== undefined)
 
-          const passedTests = testResults.filter(r => r.isNormal).length
-          const totalTests = testResults.length
+        const passedTests = testResults.filter(r => r.pValue > alpha).length
+        const totalTests = testResults.length
 
-          results.summary = {
-            totalTests,
-            passedTests,
-            isNormal:
+        const isNormal = totalTests > 0
+          ? (
               normalityRule === 'any' ? passedTests > 0 :
               normalityRule === 'majority' ? passedTests > totalTests / 2 :
               passedTests === totalTests
-          }
+            )
+          : false
 
-          console.log(`Normality tests for ${col.name}:`, results)
-          normalityResults[col.name] = results
-        } catch (err) {
-          console.error(`Normality test failed for ${col.name}:`, err)
-          logger.error(`Normality test failed for ${col.name}`, err)
+        results.summary = {
+          totalTests,
+          passedTests,
+          isNormal
         }
+
+        console.log(`Normality tests for ${col.name}:`, results)
+        normalityResults[col.name] = results
       }
 
       console.log('Final normality results:', normalityResults)
