@@ -33,8 +33,8 @@ import { calculateCorrelation } from './exploration/correlation-utils'
 interface DataExplorationStepProps {
   validationResults: ValidationResults | null
   data: DataRow[]
-  onNext: () => void
-  onPrevious: () => void
+  onNext?: () => void
+  onPrevious?: () => void
   onUploadComplete?: (file: File, data: DataRow[]) => void
   existingFileName?: string
   /** 템플릿 선택 시 콜백 */
@@ -56,13 +56,10 @@ interface AssumptionPayload {
 export const DataExplorationStep = memo(function DataExplorationStep({
   validationResults,
   data,
-  onNext: _onNext, // Reserved for future use (step navigation handled by store)
-  onPrevious: _onPrevious, // Reserved for future use
   onUploadComplete,
   existingFileName,
   onTemplateSelect
 }: DataExplorationStepProps) {
-  void _onNext; void _onPrevious // Suppress unused warnings
   // Terminology System
   const t = useTerminology()
 
@@ -908,24 +905,24 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
                       return (
                         <tr key={col.name} className="hover:bg-muted/30 transition-colors duration-150">
-                          <td className="px-3 py-2 font-medium whitespace-nowrap tracking-tight">{col.name}</td>
-                          <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{col.n}</td>
-                          <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.mean)}</td>
-                          <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.std)}</td>
-                          <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.median)}</td>
-                          <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.min)}</td>
-                          <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.max)}</td>
-                          <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.q1)}</td>
-                          <td className="px-3 py-2 text-right font-mono text-xs tabular-nums">{formatStat(col.q3)}</td>
-                          <td className={cn("px-3 py-2 text-right font-mono text-xs tabular-nums", skewWarning && "text-amber-600 dark:text-amber-400 font-semibold")}>
+                          <td className="px-3 py-2.5 font-medium whitespace-nowrap tracking-tight">{col.name}</td>
+                          <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{col.n}</td>
+                          <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{formatStat(col.mean)}</td>
+                          <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{formatStat(col.std)}</td>
+                          <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{formatStat(col.median)}</td>
+                          <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{formatStat(col.min)}</td>
+                          <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{formatStat(col.max)}</td>
+                          <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{formatStat(col.q1)}</td>
+                          <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{formatStat(col.q3)}</td>
+                          <td className={cn("px-3 py-2.5 text-right font-mono text-xs tabular-nums", skewWarning && "text-amber-600 dark:text-amber-400 font-semibold")}>
                             {formatStat(col.skewness)}
                             {skewWarning && <AlertTriangle className="h-3 w-3 inline ml-0.5" />}
                           </td>
-                          <td className={cn("px-3 py-2 text-right font-mono text-xs tabular-nums", kurtWarning && "text-amber-600 dark:text-amber-400 font-semibold")}>
+                          <td className={cn("px-3 py-2.5 text-right font-mono text-xs tabular-nums", kurtWarning && "text-amber-600 dark:text-amber-400 font-semibold")}>
                             {formatStat(col.kurtosis)}
                             {kurtWarning && <AlertTriangle className="h-3 w-3 inline ml-0.5" />}
                           </td>
-                          <td className="px-3 py-2 text-right">
+                          <td className="px-3 py-2.5 text-right">
                             {col.outlierCount > 0 ? (
                               <Badge
                                 variant="secondary"

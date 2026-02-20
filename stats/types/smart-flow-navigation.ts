@@ -2,7 +2,12 @@
  * 스마트 플로우 네비게이션을 위한 공통 인터페이스
  */
 
-import { StatisticalMethod } from './smart-flow'
+import {
+  StatisticalMethod,
+  ValidationResults,
+  AnalysisResult,
+  DataRow
+} from './smart-flow'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 
 // VariableMapping은 @/lib/statistics/variable-mapping에서 re-export
@@ -24,29 +29,29 @@ export interface StepNavigationProps {
 }
 
 export interface DataUploadStepProps extends StepNavigationProps {
-  onUploadComplete: (file: File, data: any[]) => void
+  onUploadComplete: (file: File, data: DataRow[]) => void
 }
 
 export interface DataValidationStepProps extends StepNavigationProps {
-  validationResults: any
-  data: any[] | null
+  validationResults: ValidationResults | null
+  data: DataRow[] | null
 }
 
 export interface PurposeInputStepProps extends StepNavigationProps {
-  onPurposeSubmit: (purpose: string, method: any) => void
-  validationResults?: any
-  data?: any[] | null
+  onPurposeSubmit: (purpose: string, method: StatisticalMethod) => void
+  validationResults?: ValidationResults | null
+  data?: DataRow[] | null
 }
 
 export interface AnalysisExecutionStepProps extends StepNavigationProps {
   selectedMethod: StatisticalMethod | null
   variableMapping: VariableMapping | null
-  data?: any[] | null
-  onAnalysisComplete?: (results: any) => void
+  data?: DataRow[] | null
+  onAnalysisComplete?: (results: AnalysisResult) => void
 }
 
 export interface ResultsActionStepProps extends StepNavigationProps {
-  results: any
+  results: AnalysisResult | null
   onNewAnalysis: () => void
   onExport: () => void
 }

@@ -1,5 +1,11 @@
 'use client'
 
+/**
+ * @deprecated This component is no longer used in the Smart Flow.
+ * Validation is now integrated into DataExplorationStep.
+ * Retained for backward compatibility with existing tests.
+ */
+
 import { memo, useMemo, useEffect, useState, useCallback } from 'react'
 import { CheckCircle2, AlertTriangle, XCircle, Sparkles } from 'lucide-react'
 import { ValidationResults, ColumnStatistics } from '@/types/smart-flow'

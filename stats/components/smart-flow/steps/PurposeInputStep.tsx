@@ -397,6 +397,11 @@ export function PurposeInputStep({
         return null
       }
 
+      if (!validationResults) {
+        logger.error('validationResults is null')
+        return null
+      }
+
       const hasAssumptions = !!assumptionResults && Object.keys(assumptionResults).length > 0
       if (!hasAssumptions) {
         logger.warn('assumptionResults is null or empty, using basic recommendation')
@@ -719,6 +724,38 @@ export function PurposeInputStep({
     }
   }, [])
 
+  // 선택된 방법 확인 바 (browse / purpose 모드 공용)
+  const renderSelectedMethodBar = useCallback((options?: {
+    showOnManual?: boolean
+    confirmTestId?: string
+  }) => {
+    const { showOnManual = false, confirmTestId } = options ?? {}
+    const condition = showOnManual
+      ? (selectedPurpose || manualSelectedMethod)
+      : selectedPurpose
+    if (!finalSelectedMethod || !condition || isAnalyzing) return null
+    return (
+      <div data-testid="selected-method-bar" className="flex items-center gap-3 px-4 py-2 rounded-xl bg-primary/5 border border-primary/20">
+        <div className="text-sm">
+          <span className="text-muted-foreground">{t.purposeInput.labels.selectionPrefix}</span>
+          <span data-testid="final-selected-method-name" className="ml-1 font-semibold tracking-tight">{finalSelectedMethod.name}</span>
+          {manualSelectedMethod && (
+            <Badge variant="outline" className="ml-2 text-[10px]">{t.purposeInput.labels.directBadge}</Badge>
+          )}
+        </div>
+        <Button
+          onClick={handleConfirmMethod}
+          disabled={isNavigating}
+          className="gap-2 shadow-sm"
+          data-testid={confirmTestId}
+        >
+          {t.purposeInput.buttons.useThisMethod}
+          <ArrowRight className="w-4 h-4" />
+        </Button>
+      </div>
+    )
+  }, [finalSelectedMethod, selectedPurpose, manualSelectedMethod, isAnalyzing, isNavigating, handleConfirmMethod, t])
+
   return (
     <div className="space-y-6">
       {/* 헤더 */}
@@ -829,26 +866,7 @@ export function PurposeInputStep({
                 </h3>
               </div>
               {/* Action Button - browse 모드에서는 수동 선택만으로 진행 가능 */}
-              {finalSelectedMethod && (selectedPurpose || manualSelectedMethod) && !isAnalyzing && (
-                <div data-testid="selected-method-bar" className="flex items-center gap-3 pl-4 py-2 pr-2 rounded-xl bg-primary/5 border border-primary/20">
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">{t.purposeInput.labels.selectionPrefix}</span>
-                    <span data-testid="final-selected-method-name" className="ml-1 font-semibold tracking-tight">{finalSelectedMethod.name}</span>
-                    {manualSelectedMethod && (
-                      <Badge variant="outline" className="ml-2 text-[10px]">{t.purposeInput.labels.directBadge}</Badge>
-                    )}
-                  </div>
-                  <Button
-                    onClick={handleConfirmMethod}
-                    disabled={isNavigating}
-                    className="gap-2 shadow-sm"
-                    data-testid="confirm-method-btn"
-                  >
-                    {t.purposeInput.buttons.useThisMethod}
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </div>
-              )}
+              {renderSelectedMethodBar({ showOnManual: true, confirmTestId: 'confirm-method-btn' })}
             </div>
 
             {/* Method Browser */}
@@ -871,26 +889,8 @@ export function PurposeInputStep({
         <h3 className="text-base font-semibold tracking-tight" id="purpose-selection-label">
           {t.purposeInput.labels.purposeHeading}
         </h3>
-        {/* Action Button - browse step에서 상단에 표시 */}
-        {finalSelectedMethod && selectedPurpose && !isAnalyzing && (
-          <div data-testid="selected-method-bar" className="flex items-center gap-3 pl-4 py-2 pr-2 rounded-xl bg-primary/5 border border-primary/20">
-            <div className="text-sm">
-              <span className="text-muted-foreground">{t.purposeInput.labels.selectionPrefix}</span>
-              <span data-testid="final-selected-method-name" className="ml-1 font-semibold tracking-tight">{finalSelectedMethod.name}</span>
-              {manualSelectedMethod && (
-                <Badge variant="outline" className="ml-2 text-[10px]">{t.purposeInput.labels.directBadge}</Badge>
-              )}
-            </div>
-            <Button
-              onClick={handleConfirmMethod}
-              disabled={isNavigating}
-              className="gap-2 shadow-sm"
-            >
-              {t.purposeInput.buttons.useThisMethod}
-              <ArrowRight className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
+        {/* Action Button - purpose step에서 상단에 표시 */}
+        {renderSelectedMethodBar()}
       </div>
 
       {/* Purpose Selection */}
