@@ -1036,7 +1036,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               )}
 
               {/* 전체 보기 안내 */}
-              <div className="text-center text-sm text-muted-foreground py-2">
+              <div className="text-center text-sm text-muted-foreground py-2.5">
                 {t.dataExploration.preview.fullDataInstruction(data.length)}
               </div>
             </div>

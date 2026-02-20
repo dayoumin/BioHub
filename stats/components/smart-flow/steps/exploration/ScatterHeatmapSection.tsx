@@ -129,7 +129,7 @@ export const ScatterHeatmapSection = memo(function ScatterHeatmapSection({
             return (
               <Card key={config.id} className="overflow-hidden border border-border/40 shadow-sm bg-card rounded-xl">
                 {/* 헤더 - 변수 선택 */}
-                <div className="px-5 py-4 border-b border-border/30 bg-muted/15">
+                <div className="px-4 py-4 border-b border-border/30 bg-muted/10">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <div className="p-1.5 rounded-md bg-primary/10">
@@ -198,7 +198,7 @@ export const ScatterHeatmapSection = memo(function ScatterHeatmapSection({
                 </div>
 
                 {/* 상관계수 뱃지 바 */}
-                <div className="px-5 py-2.5 border-b bg-gradient-to-r from-primary/5 to-transparent flex items-center justify-between">
+                <div className="px-4 py-2.5 border-b bg-gradient-to-r from-primary/5 to-transparent flex items-center justify-between">
                   <div className="flex items-center gap-4 text-sm">
                     <div className="flex items-center gap-1.5">
                       <span className="text-muted-foreground">{t.dataExploration.correlation.coefficient}</span>
@@ -226,7 +226,7 @@ export const ScatterHeatmapSection = memo(function ScatterHeatmapSection({
                 </div>
 
                 {/* 그래프 */}
-                <CardContent className="p-5">
+                <CardContent className="p-4">
                   <Scatterplot
                     data={scatterData}
                     title={`${config.xVariable} vs ${config.yVariable}`}
