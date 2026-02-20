@@ -434,7 +434,7 @@ export default function AboutPage() {
                     className="text-lg px-8 py-6"
                     asChild
                   >
-                    <a href="https://github.com/yourusername/stats" target="_blank">
+                    <a href="https://github.com/dayoumin/Statistics" target="_blank" rel="noopener noreferrer">
                       <Code2 className="mr-2 h-5 w-5" />
                       GitHub 소스코드
                     </a>
