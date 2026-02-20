@@ -15,9 +15,7 @@ import {
   Lightbulb,
   ChevronRight,
   FileSearch,
-  LayoutGrid,
-  RotateCw,
-  X
+  ArrowLeft
 } from 'lucide-react'
 import { EmptyState } from '@/components/common/EmptyState'
 import { toast } from 'sonner'
@@ -53,7 +51,7 @@ import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
 import { TemplateSaveModal } from '@/components/smart-flow/TemplateSaveModal'
 import ReactMarkdown from 'react-markdown'
 import { cn } from '@/lib/utils'
-import { CollapsibleSection, StatisticCard } from '@/components/smart-flow/common'
+import { StepHeader, CollapsibleSection, StatisticCard } from '@/components/smart-flow/common'
 import { ConfidenceIntervalDisplay } from '@/components/statistics/common/ConfidenceIntervalDisplay'
 import { MethodSpecificResults } from '@/components/smart-flow/steps/results/MethodSpecificResults'
 import { ResultsVisualization } from '@/components/smart-flow/ResultsVisualization'
@@ -135,12 +133,12 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const {
     saveToHistory,
     reset,
-    setCurrentStep,
     setUploadedData,
     setUploadedFile,
     setValidationResults,
     setResults,
     setIsReanalysisMode,
+    navigateToStep,
     uploadedData,
     variableMapping,
     uploadedFileName,
@@ -323,7 +321,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         }).catch(() => { /* 히스토리 저장 실패 무시 */ })
 
         if (effectiveExportOptions.includeCharts) {
-          toast.info('차트 내보내기는 현재 준비 중입니다. 이번 파일에는 표/텍스트만 포함되었습니다.')
+          toast.info(t.results.toast.chartsNotReady)
         }
 
         savedTimeoutRef.current = setTimeout(() => {
@@ -359,12 +357,12 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     setValidationResults(null)
     setResults(null)
     setIsReanalysisMode(true)
-    setCurrentStep(1)
+    navigateToStep(1)
 
     toast.info(t.results.toast.reanalyzeReady, {
       description: selectedMethod ? t.results.toast.reanalyzeMethod(selectedMethod.name) : ''
     })
-  }, [setUploadedData, setUploadedFile, setValidationResults, setResults, setIsReanalysisMode, setCurrentStep, selectedMethod])
+  }, [setUploadedData, setUploadedFile, setValidationResults, setResults, setIsReanalysisMode, navigateToStep, selectedMethod])
 
   const handleNewAnalysis = useCallback(async () => {
     try {
@@ -516,7 +514,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       <EmptyState
         icon={FileSearch}
         title={t.results.noResults}
-        description="통계 분석을 먼저 실행해 주세요."
+        description={t.results.noResultsDescription}
       />
     )
   }
@@ -524,6 +522,24 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   return (
     <TooltipProvider>
       <div className="space-y-6" ref={chartRef}>
+        {/* ===== 스텝 헤더 (다른 스텝과 동일 패턴) ===== */}
+        <StepHeader
+          icon={BarChart3}
+          title={t.smartFlow.stepTitles.results}
+          badge={selectedMethod ? { label: selectedMethod.name } : undefined}
+          action={
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigateToStep(3)}
+              className="gap-1.5 text-muted-foreground"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              {t.results.buttons.backToVariables}
+            </Button>
+          }
+        />
+
         {/* ===== 메인 결과 카드 ===== */}
         <Card className={cn(
           "overflow-hidden shadow-sm rounded-xl",
@@ -531,7 +547,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             isSignificant ? "border-success-border bg-success-bg" : "border-border/40"
         )} data-testid="results-main-card">
           {/* 헤더: 분석명 + 시간 */}
-          <CardHeader className="pb-3 bg-muted/15 border-b border-border/20">
+          <CardHeader className="pb-3 bg-muted/10 border-b border-border/20">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base tracking-tight flex items-center gap-2.5">
                 <div className={cn(
@@ -563,7 +579,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           <CardContent className="pt-4 space-y-4">
             {/* ===== 핵심 결론 (1줄) ===== */}
             <div className={cn(
-              "p-3.5 rounded-xl text-center text-sm font-semibold tracking-tight",
+              "p-4 rounded-xl text-center text-sm font-semibold tracking-tight",
               !assumptionsPassed ? "bg-warning-bg text-warning border border-warning-border" :
                 isSignificant ? "bg-success-bg text-success border border-success-border" :
                   "bg-muted/50 text-muted-foreground border border-border/30"
@@ -635,7 +651,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             <div className="space-y-2" data-testid="ai-interpretation-section">
               {/* 로딩 중 */}
               {isInterpreting && !interpretation && (
-                <div className="p-3.5 bg-violet-50 dark:bg-violet-950/20 rounded-xl border border-violet-100 dark:border-violet-900/50 flex items-center gap-2.5">
+                <div className="p-4 bg-violet-50 dark:bg-violet-950/20 rounded-xl border border-violet-100 dark:border-violet-900/50 flex items-center gap-2.5">
                   <div className="w-6 h-6 rounded-md bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center">
                     <Sparkles className="w-3.5 h-3.5 text-violet-500 animate-pulse" />
                   </div>
@@ -646,7 +662,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               {/* 한줄 요약 (항상 표시) */}
               {parsedInterpretation && (
                 <>
-                  <div className="p-3.5 bg-violet-50 dark:bg-violet-950/20 rounded-xl border border-violet-100 dark:border-violet-900/50">
+                  <div className="p-4 bg-violet-50 dark:bg-violet-950/20 rounded-xl border border-violet-100 dark:border-violet-900/50">
                     <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
                       <ReactMarkdown>{parsedInterpretation.summary}</ReactMarkdown>
                       {isInterpreting && (
@@ -887,7 +903,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
         {/* ===== 저장 확인 배너 (인라인, 중앙) ===== */}
         {savedName && (
-          <div className="flex items-center justify-center gap-2.5 p-3.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="flex items-center justify-center gap-2.5 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center flex-shrink-0">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             </div>
@@ -947,11 +963,11 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleSaveAsFile('html')}>
                     <FileText className="w-4 h-4 mr-2" />
-                    HTML (.html)
+                    {t.results.buttons.exportHtml}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => openExportDialog('docx')}>
                     <FileSearch className="w-4 h-4 mr-2" />
-                    세부 옵션으로 내보내기
+                    {t.results.buttons.exportWithOptions}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -974,7 +990,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           </div>
 
           {/* Row 2: 워크플로우 액션 */}
-          <div className="flex items-center gap-2 p-2">
+          <div className="flex items-center gap-2 p-3">
             <Button
               variant="ghost"
               size="sm"
@@ -1017,15 +1033,15 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
           <DialogContent className="sm:max-w-[560px]">
             <DialogHeader>
-              <DialogTitle>내보내기 옵션</DialogTitle>
+              <DialogTitle>{t.results.exportDialog.title}</DialogTitle>
               <DialogDescription>
-                포함할 내용을 선택해 파일을 생성합니다.
+                {t.results.exportDialog.description}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-5 py-2">
               <div className="space-y-2">
-                <Label>파일 형식</Label>
+                <Label>{t.results.exportDialog.formatLabel}</Label>
                 <RadioGroup
                   value={exportFormat}
                   onValueChange={(value) => setExportFormat(value as ExportFormat)}
@@ -1046,7 +1062,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               </div>
 
               <div className="space-y-2">
-                <Label>포함 내용</Label>
+                <Label>{t.results.exportDialog.contentLabel}</Label>
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <Checkbox
@@ -1054,7 +1070,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                       checked={!!exportOptions.includeInterpretation}
                       onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeInterpretation: !!checked }))}
                     />
-                    <Label htmlFor="opt-interpretation">결과 해석</Label>
+                    <Label htmlFor="opt-interpretation">{t.results.exportDialog.includeInterpretation}</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
@@ -1063,7 +1079,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                       disabled={!uploadedData || uploadedData.length === 0}
                       onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeRawData: !!checked }))}
                     />
-                    <Label htmlFor="opt-raw-data">원본 데이터 미리보기 (최대 200행)</Label>
+                    <Label htmlFor="opt-raw-data">{t.results.exportDialog.includeRawData}</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
@@ -1071,7 +1087,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                       checked={!!exportOptions.includeMethodology}
                       onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeMethodology: !!checked }))}
                     />
-                    <Label htmlFor="opt-methodology">분석 방법론</Label>
+                    <Label htmlFor="opt-methodology">{t.results.exportDialog.includeMethodology}</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
@@ -1079,7 +1095,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                       checked={!!exportOptions.includeReferences}
                       onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeReferences: !!checked }))}
                     />
-                    <Label htmlFor="opt-references">참고문헌</Label>
+                    <Label htmlFor="opt-references">{t.results.exportDialog.includeReferences}</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox
@@ -1087,7 +1103,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                       checked={!!exportOptions.includeCharts}
                       onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeCharts: !!checked }))}
                     />
-                    <Label htmlFor="opt-charts">차트 (준비 중, 현재는 미포함)</Label>
+                    <Label htmlFor="opt-charts">{t.results.exportDialog.includeCharts}</Label>
                   </div>
                 </div>
               </div>
@@ -1095,10 +1111,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
-                취소
+                {t.results.exportDialog.cancel}
               </Button>
               <Button onClick={handleExportWithOptions} disabled={isExporting}>
-                내보내기
+                {t.results.exportDialog.confirm}
               </Button>
             </DialogFooter>
           </DialogContent>

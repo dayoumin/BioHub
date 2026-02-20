@@ -21,6 +21,7 @@ import { ChatCentricHub } from '@/components/smart-flow/ChatCentricHub'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import { checkVariableCompatibility, CompatibilityResult } from '@/lib/utils/variable-compatibility'
 import type { ColumnInfo } from '@/lib/statistics/variable-mapping'
+import { useTerminology } from '@/hooks/use-terminology'
 
 // UI Components
 import { InlineError } from '@/components/common/InlineError'
@@ -33,6 +34,7 @@ import { Settings2, Zap } from 'lucide-react'
 // ===== Main Page Component =====
 
 export default function HomePage() {
+  const t = useTerminology()
   const [showHelp, setShowHelp] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [reanalysisCompatibility, setReanalysisCompatibility] = useState<CompatibilityResult | null>(null)
@@ -115,18 +117,19 @@ export default function HomePage() {
 
   // Steps configuration
   const steps = useMemo(() => {
+    const sl = t.smartFlow.stepShortLabels
     return [
-      { id: 1, label: '탐색' },
-      { id: 2, label: '방법' },
-      { id: 3, label: '변수' },
-      { id: 4, label: '분석' }
+      { id: 1, label: sl.exploration },
+      { id: 2, label: sl.method },
+      { id: 3, label: sl.variable },
+      { id: 4, label: sl.analysis }
     ].map((step) => ({
       ...step,
       completed: (quickAnalysisMode && step.id === 2)
         ? true
         : completedSteps.includes(step.id)
     }))
-  }, [completedSteps, quickAnalysisMode])
+  }, [completedSteps, quickAnalysisMode, t])
 
   // Handlers
   const handleStepClick = useCallback((stepId: number) => {
@@ -156,7 +159,7 @@ export default function HomePage() {
         setReanalysisCompatibility(compatibility)
       }
     } catch (err) {
-      setError('데이터 업로드 중 오류가 발생했습니다: ' + (err as Error).message)
+      setError(t.smartFlow.errors.uploadFailed((err as Error).message))
     }
   }, [setUploadedFile, setUploadedData, setValidationResults, setError])
 
@@ -247,14 +250,15 @@ export default function HomePage() {
   }, [showHub, currentStep, results, canProceedToNext, uploadedData, uploadedFileName, validationResults, selectedMethod, variableMapping])
 
   const getNextStepLabel = useMemo(() => {
+    const nav = t.smartFlow.floatingNav
     switch (currentStep) {
-      case 1: return quickAnalysisMode ? '변수 선택으로' : '분석 방법 선택으로'
-      case 2: return '변수 선택으로'
-      case 3: return '분석 실행으로'
-      case 4: return '분석 실행'
-      default: return '다음 단계로'
+      case 1: return quickAnalysisMode ? nav.toVariables : nav.toMethod
+      case 2: return nav.toVariables
+      case 3: return nav.toExecution
+      case 4: return nav.runAnalysis
+      default: return nav.defaultNext
     }
-  }, [currentStep, quickAnalysisMode])
+  }, [currentStep, quickAnalysisMode, t])
 
   const handleFloatingNext = useCallback(() => {
     // Step 1에서만 사용 (Step 2, 3은 각 스텝 내부에서 처리)
@@ -268,7 +272,6 @@ export default function HomePage() {
       steps={steps}
       onStepChange={handleStepClick}
       isAnalyzing={isLoading}
-      analyzingMessage="분석 중입니다..."
       showHistory={showHistory}
       showHelp={showHelp}
       onHistoryToggle={handleHistoryToggle}
@@ -403,7 +406,11 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ===== Step 4: Analysis & Results ===== */}
+      {/* ===== Step 4: Analysis & Results =====
+       * 이중 구조: !results → AnalysisExecutionStep (실행), results → ResultsActionStep (결과)
+       * 분석 완료 시 results가 설정되면 자동 전환.
+       * ResultsActionStep에서 navigateToStep(3) 호출 시 results는 유지됨.
+       */}
       {!showHub && currentStep === 4 && (
         <div className={animationClass} key="step4">
           {!results ? (
@@ -428,6 +435,7 @@ export default function HomePage() {
           <InlineError
             message={error}
             onRetry={() => setError(null)}
+            retryLabel={t.smartFlow.errors.retryLabel}
           />
         </div>
       )}

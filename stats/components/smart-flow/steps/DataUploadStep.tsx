@@ -416,7 +416,7 @@ export function DataUploadStep({
           </Button>
         </div>
       ) : (
-        <div className="border border-border/40 rounded-xl p-3.5 flex items-center justify-between bg-muted/20 backdrop-blur-sm">
+        <div className="border border-border/40 rounded-xl p-4 flex items-center justify-between bg-muted/20 backdrop-blur-sm">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
               <FileSpreadsheet className="h-4 w-4 text-primary" />
@@ -575,7 +575,7 @@ export function DataUploadStep({
 
       {/* 도움말 (업로드 전에만 표시) */}
       {!uploadedFileName && (
-        <div className="bg-muted/30 border border-border/20 rounded-xl p-3.5">
+        <div className="bg-muted/30 border border-border/20 rounded-xl p-4">
           <p className="text-xs text-muted-foreground/80 flex items-start gap-2 leading-relaxed">
             <Lightbulb className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-muted-foreground/50" />
             <span>{t.dataUpload.labels.helpText}</span>

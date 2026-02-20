@@ -203,6 +203,24 @@ export interface SmartFlowText {
     uploadingData: string
     validatingData: string
   }
+  /** 빈 상태 메시지 */
+  emptyStates: {
+    dataRequired: string
+    dataRequiredDescription: string
+  }
+  /** 플로팅 네비게이션 라벨 */
+  floatingNav: {
+    toMethod: string
+    toVariables: string
+    toExecution: string
+    runAnalysis: string
+    defaultNext: string
+  }
+  /** 에러 메시지 */
+  errors: {
+    uploadFailed: (message: string) => string
+    retryLabel: string
+  }
   /** 버튼 텍스트 */
   buttons: {
     runAnalysis: string
@@ -718,6 +736,7 @@ export interface ResultsText {
   }
   /** 결과 없을 때 */
   noResults: string
+  noResultsDescription: string
   /** 핵심 결론 */
   conclusion: {
     assumptionWarning: string
@@ -776,6 +795,9 @@ export interface ResultsText {
     exporting: string
     exportDocx: string
     exportExcel: string
+    exportHtml: string
+    exportWithOptions: string
+    backToVariables: string
   }
   /** 저장 관련 */
   save: {
@@ -798,6 +820,21 @@ export interface ResultsText {
     copySuccess: string
     copyError: string
     templateSaved: string
+    chartsNotReady: string
+  }
+  /** 내보내기 다이얼로그 */
+  exportDialog: {
+    title: string
+    description: string
+    formatLabel: string
+    contentLabel: string
+    includeInterpretation: string
+    includeRawData: string
+    includeMethodology: string
+    includeReferences: string
+    includeCharts: string
+    cancel: string
+    confirm: string
   }
   /** 클립보드 내보내기 */
   clipboard: {

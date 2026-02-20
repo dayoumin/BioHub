@@ -451,7 +451,7 @@ export function ChatCentricHub({
         <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-card mb-10">
           {/* Subtle radial glow */}
           <div className="absolute -right-24 -top-24 w-[500px] h-[500px] rounded-full bg-primary/[0.04] dark:bg-primary/[0.08] blur-[120px] pointer-events-none" />
-          <div className="absolute -left-32 -bottom-32 w-[300px] h-[300px] rounded-full bg-muted/30 dark:bg-muted/15 blur-[100px] pointer-events-none" />
+          <div className="absolute -left-32 -bottom-32 w-[300px] h-[300px] rounded-full bg-muted/30 dark:bg-muted/10 blur-[100px] pointer-events-none" />
 
           {/* SVG decoration - Upgraded Visual (Final Adjustment: Moved 70px left) */}
           <StatisticalHeroVisual

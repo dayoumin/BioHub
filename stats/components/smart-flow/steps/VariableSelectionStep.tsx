@@ -8,9 +8,9 @@
  */
 
 import React, { useMemo, useCallback } from 'react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { AlertCircle, Settings2, Sparkles } from 'lucide-react'
+import { Settings2, Sparkles, Upload } from 'lucide-react'
+import { EmptyState } from '@/components/common/EmptyState'
 import { VariableSelectorToggle } from '@/components/common/VariableSelectorToggle'
 import {
   TwoWayAnovaSelector,
@@ -241,12 +241,11 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   // No data check
   if (!uploadedData || uploadedData.length === 0) {
     return (
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          먼저 데이터를 업로드해주세요.
-        </AlertDescription>
-      </Alert>
+      <EmptyState
+        icon={Upload}
+        title={t.smartFlow.emptyStates.dataRequired}
+        description={t.smartFlow.emptyStates.dataRequiredDescription}
+      />
     )
   }
 

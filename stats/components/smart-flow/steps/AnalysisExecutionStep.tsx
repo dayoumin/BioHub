@@ -210,7 +210,8 @@ export function AnalysisExecutionStep({
                   if (!groupMap.has(groupValue)) {
                     groupMap.set(groupValue, [])
                   }
-                  groupMap.get(groupValue)!.push(numericValue)
+                  const group = groupMap.get(groupValue)
+                  if (group) group.push(numericValue)
                 }
               }
 
@@ -326,14 +327,14 @@ export function AnalysisExecutionStep({
   /**
    * 취소 처리 (Fix 4-B: ref로 즉시 반영)
    */
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     if (window.confirm(t.smartFlow.execution.cancelConfirm)) {
       cancelledRef.current = true
       setIsCancelled(true)
       addLog(logs.userCancelled)
       if (onPrevious) onPrevious()
     }
-  }
+  }, [addLog, logs, onPrevious, t])
 
   // 컴포넌트 마운트 시 분석 실행 (variableMapping이 유효할 때만)
   useEffect(() => {

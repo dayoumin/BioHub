@@ -149,6 +149,21 @@ export const generic: TerminologyDictionary = {
       uploadingData: 'Uploading data...',
       validatingData: 'Validating data...'
     },
+    emptyStates: {
+      dataRequired: 'Data Required',
+      dataRequiredDescription: 'Please upload your data first.',
+    },
+    floatingNav: {
+      toMethod: 'Select Method',
+      toVariables: 'Select Variables',
+      toExecution: 'Run Analysis',
+      runAnalysis: 'Run Analysis',
+      defaultNext: 'Next Step',
+    },
+    errors: {
+      uploadFailed: (message: string) => `Error uploading data: ${message}`,
+      retryLabel: 'Retry',
+    },
     buttons: {
       runAnalysis: 'Run Analysis',
       reanalyze: 'Reanalyze with Different Data',
@@ -671,6 +686,7 @@ export const generic: TerminologyDictionary = {
       veryLarge: 'Very Large',
     },
     noResults: 'Please run an analysis first.',
+    noResultsDescription: 'Please run a statistical analysis first.',
     conclusion: {
       assumptionWarning: '⚠️ Some assumptions not met — interpret with caution',
       significant: '✓ Statistically significant difference found',
@@ -723,6 +739,9 @@ export const generic: TerminologyDictionary = {
       exporting: 'Exporting...',
       exportDocx: 'Word Document (DOCX)',
       exportExcel: 'Excel Spreadsheet',
+      exportHtml: 'HTML (.html)',
+      exportWithOptions: 'Export with options',
+      backToVariables: 'Back to Variables',
     },
     save: {
       defaultName: (date: string) => `Analysis ${date}`,
@@ -743,6 +762,20 @@ export const generic: TerminologyDictionary = {
       copySuccess: 'Results copied',
       copyError: 'Copy failed',
       templateSaved: 'Template saved',
+      chartsNotReady: 'Chart export is currently in preparation. Only tables/text are included in this file.',
+    },
+    exportDialog: {
+      title: 'Export Options',
+      description: 'Choose content to include in the export file.',
+      formatLabel: 'File Format',
+      contentLabel: 'Include Content',
+      includeInterpretation: 'Result Interpretation',
+      includeRawData: 'Raw Data Preview (max 200 rows)',
+      includeMethodology: 'Analysis Methodology',
+      includeReferences: 'References',
+      includeCharts: 'Charts (coming soon, currently excluded)',
+      cancel: 'Cancel',
+      confirm: 'Export',
     },
     clipboard: {
       itemHeader: 'Item',

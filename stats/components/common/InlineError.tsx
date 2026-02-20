@@ -1,14 +1,15 @@
 import React from 'react';
-import { AlertCircle, XCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface InlineErrorProps {
     message: string;
     onRetry?: () => void;
+    retryLabel?: string;
     className?: string;
 }
 
-export function InlineError({ message, onRetry, className }: InlineErrorProps) {
+export function InlineError({ message, onRetry, retryLabel = 'Retry', className }: InlineErrorProps) {
     return (
         <div className={cn(
             "flex items-start gap-3 p-4 rounded-xl border border-error-border bg-error-bg animate-in fade-in slide-in-from-top-2 duration-300",
@@ -24,7 +25,7 @@ export function InlineError({ message, onRetry, className }: InlineErrorProps) {
                         onClick={onRetry}
                         className="mt-2 text-xs font-semibold text-error/80 hover:text-error underline underline-offset-2 transition-colors"
                     >
-                        다시 시도하기
+                        {retryLabel}
                     </button>
                 )}
             </div>

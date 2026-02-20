@@ -150,6 +150,21 @@ export const aquaculture: TerminologyDictionary = {
       uploadingData: '데이터 업로드 중...',
       validatingData: '데이터 검증 중...'
     },
+    emptyStates: {
+      dataRequired: '데이터가 필요합니다',
+      dataRequiredDescription: '먼저 데이터를 업로드해주세요.',
+    },
+    floatingNav: {
+      toMethod: '분석 방법 선택으로',
+      toVariables: '변수 선택으로',
+      toExecution: '분석 실행으로',
+      runAnalysis: '분석 실행',
+      defaultNext: '다음 단계로',
+    },
+    errors: {
+      uploadFailed: (message: string) => `데이터 업로드 중 오류가 발생했습니다: ${message}`,
+      retryLabel: '다시 시도하기',
+    },
     buttons: {
       runAnalysis: '분석 시작',
       reanalyze: '다른 데이터로 재분석',
@@ -677,6 +692,7 @@ export const aquaculture: TerminologyDictionary = {
       veryLarge: '매우 큼',
     },
     noResults: '분석을 먼저 실행해주세요.',
+    noResultsDescription: '통계 분석을 먼저 실행해 주세요.',
     conclusion: {
       assumptionWarning: '⚠️ 일부 가정 미충족 - 결과 해석에 주의 필요',
       significant: '✓ 통계적으로 유의한 차이가 있습니다',
@@ -729,6 +745,9 @@ export const aquaculture: TerminologyDictionary = {
       exporting: '내보내는 중...',
       exportDocx: 'Word 문서 (DOCX)',
       exportExcel: 'Excel 스프레드시트',
+      exportHtml: 'HTML (.html)',
+      exportWithOptions: '세부 옵션으로 내보내기',
+      backToVariables: '변수 선택으로',
     },
     save: {
       defaultName: (date: string) => `분석 ${date}`,
@@ -749,6 +768,20 @@ export const aquaculture: TerminologyDictionary = {
       copySuccess: '결과가 복사되었습니다',
       copyError: '복사 실패',
       templateSaved: '템플릿이 저장되었습니다',
+      chartsNotReady: '차트 내보내기는 현재 준비 중입니다. 이번 파일에는 표/텍스트만 포함되었습니다.',
+    },
+    exportDialog: {
+      title: '내보내기 옵션',
+      description: '포함할 내용을 선택해 파일을 생성합니다.',
+      formatLabel: '파일 형식',
+      contentLabel: '포함 내용',
+      includeInterpretation: '결과 해석',
+      includeRawData: '원본 데이터 미리보기 (최대 200행)',
+      includeMethodology: '분석 방법론',
+      includeReferences: '참고문헌',
+      includeCharts: '차트 (준비 중, 현재는 미포함)',
+      cancel: '취소',
+      confirm: '내보내기',
     },
     clipboard: {
       itemHeader: '항목',
