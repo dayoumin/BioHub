@@ -44,29 +44,34 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: 'stats/package-lock.json'
+          cache: 'pnpm'
+          cache-dependency-path: 'stats/pnpm-lock.yaml'
 
       - name: Install dependencies
         working-directory: ./stats
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Validate result contracts
         working-directory: ./stats
-        run: npm run validate:result-contracts
+        run: pnpm run validate:result-contracts
 
       - name: Run validator tests
         working-directory: ./stats
-        run: npm run test -- --run __tests__/lib/validation/result-schema-validator.test.ts
+        run: pnpm test --run __tests__/lib/validation/result-schema-validator.test.ts
 
       - name: Run executor routing tests
         working-directory: ./stats
-        run: npm run test -- --run __tests__/services/executors/statistical-executor-routing.test.ts
+        run: pnpm test --run __tests__/services/executors/statistical-executor-routing.test.ts
 
       - name: Run transformer tests
         working-directory: ./stats
-        run: npm run test -- --run __tests__/unit/result-transformer.test.ts
+        run: pnpm test --run __tests__/unit/result-transformer.test.ts

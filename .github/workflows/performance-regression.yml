@@ -23,30 +23,35 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: 'stats/package-lock.json'
+          cache: 'pnpm'
+          cache-dependency-path: 'stats/pnpm-lock.yaml'
 
       - name: Install dependencies
         working-directory: ./stats
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Run performance regression tests
         working-directory: ./stats
-        run: npm test -- __tests__/performance/pyodide-regression.test.ts --verbose
+        run: pnpm test -- __tests__/performance/pyodide-regression.test.ts --verbose
         env:
           NODE_ENV: test
 
       - name: Check performance thresholds
         if: success()
-        run: echo "✅ Performance regression tests passed!"
+        run: echo "Performance regression tests passed"
 
       - name: Performance degradation detected
         if: failure()
         run: |
-          echo "❌ Performance regression detected!"
+          echo "Performance regression detected!"
           echo "Please review the test output above."
           exit 1
