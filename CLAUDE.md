@@ -25,7 +25,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 🚨 현재 중요 규칙
 
-**상태**: ✅ Phase 13 Complete (2026-02-06) - LLM 추천/해석 + Terminology System
+**상태**: ✅ Phase 13 + Export + Phase 5-2 Complete (2026-02-20)
+- Phase 13: LLM 추천/해석 + Terminology System
+- Export: DOCX/Excel/HTML 내보내기 + 히스토리 AI 해석 저장
+- Phase 5-2: pyodide-statistics 리팩터 (Generated 래퍼 전환 + any 제거)
+- **진행 중**: Phase 5-3 (pyodide-statistics 안정화)
 
 **⚠️ 아키텍처 결정 (2026-02-13)**:
 - **Smart Flow = 통계 분석의 유일한 진입점** (홈 `/` = ChatCentricHub)
@@ -110,7 +114,7 @@ pnpm dev
 - **목표**: SPSS/R Studio 급 고급 통계 소프트웨어
 - **대상**: 수산과학 연구자, 통계 전문가, 데이터 분석가
 - **기술**: Next.js 15 + TypeScript + shadcn/ui + Pyodide + Tauri
-- **현재**: Phase 13 완료 - LLM 추천/해석 + Terminology System
+- **현재**: Phase 13 + Export + Phase 5-2 완료 → Phase 5-3 진행 중
 - **통계 분석**: Smart Flow (43개 메서드 통합) — 유일한 진입점
 - **Bio-Tools**: 12개 생물학 분석 (5페이지) — 별도 섹션 예정
 - **데이터 도구**: 2개
@@ -465,6 +469,8 @@ pnpm setup:pyodide   # Pyodide 다운로드 (200MB)
 - [TROUBLESHOOTING_ISANALYZING_BUG.md](statistical-platform/docs/TROUBLESHOOTING_ISANALYZING_BUG.md) - Critical 버그 예방 🚨
 - [DESIGN_SYSTEM_SYNC_RULES.md](statistical-platform/docs/DESIGN_SYSTEM_SYNC_RULES.md) - Design System 메타데이터 동기화 ⭐
 - [SMART_FLOW_UX_IMPROVEMENTS.md](statistical-platform/docs/SMART_FLOW_UX_IMPROVEMENTS.md) - Smart Flow UX 개선 계획
+- [PHASE5-3-PLAN.md](statistical-platform/docs/PHASE5-3-PLAN.md) - pyodide-statistics 안정화 계획
+- [EXPORT_IMPLEMENTATION_SUMMARY.md](statistical-platform/docs/EXPORT_IMPLEMENTATION_SUMMARY.md) - Export 구현 요약
 
 ### 문서 관리 규칙
 - **TODO.md**: 현황 + 할일 + 최근 7일 작업 기록 (통합 관리)
@@ -473,4 +479,4 @@ pnpm setup:pyodide   # Pyodide 다운로드 (200MB)
 
 ---
 
-**Updated**: 2026-02-13 | **Version**: Phase 13 Complete + Bio-Tools 계획 수립 | **Next**: Phase 15-1 (Bio-Tools 구현)
+**Updated**: 2026-02-20 | **Version**: Phase 13 + Export + Phase 5-2 Complete | **Next**: Phase 5-3 (pyodide-statistics 안정화)
