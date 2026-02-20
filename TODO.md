@@ -122,6 +122,14 @@
 | **결과 클립보드 복사** | 기본 결과 + LLM 해석 → HTML 서식 복사 | ✅ 완료 |
 | **Terminology 텍스트 연결 (~150개)** | 하드코딩 텍스트 전체 연결 완료 | ✅ 완료 |
 
+### 진행 중: Smart Flow 일관성 개선
+| 작업 | 설명 | 상태 |
+|------|------|------|
+| **Phase 1: 타입 안전성** | any 7곳 제거 + @deprecated + 미사용 props + 중복 추출 | ✅ `d840d827` |
+| **Phase 2: 스페이싱 표준화** | px-5→px-4, p-5→p-4, py-2→py-2.5 | ✅ `226aef65` |
+| **Phase 3: 빈 상태 + 뒤로가기** | VariableSelectionStep Alert→EmptyState, ResultsActionStep 뒤로가기 버튼 | 🔜 |
+| **Phase 4: 애니메이션 + 문서화** | slide-left/right keyframes 추가 (tailwind.config.mjs) | 🔜 |
+
 ### 진행 예정
 | 작업 | 설명 |
 |------|------|
