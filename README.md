@@ -64,7 +64,7 @@ SPSS/R Studio급 고급 통계 분석 플랫폼으로, **완전 오프라인 환
 https://your-vercel-app.vercel.app
 
 # 또는 로컬 실행
-cd statistical-platform
+cd stats
 npm install
 npm run dev
 # → http://localhost:3000
@@ -84,7 +84,7 @@ npm run build:offline
 # 빌드 폴더 (.next/) 전체를 폐쇄망 서버로 복사
 ```
 
-**상세**: [DEPLOYMENT_SCENARIOS.md](statistical-platform/docs/DEPLOYMENT_SCENARIOS.md)
+**상세**: [DEPLOYMENT_SCENARIOS.md](stats/docs/DEPLOYMENT_SCENARIOS.md)
 
 ---
 
@@ -96,7 +96,7 @@ npm run build:offline
 - **첫 번째 행은 변수명** (필수)
 - **인코딩**: UTF-8 권장 (한글 사용 시)
 
-**데이터 형식 가이드**: [DATA_FORMAT_GUIDE.md](statistical-platform/docs/guides/DATA_FORMAT_GUIDE.md)
+**데이터 형식 가이드**: [DATA_FORMAT_GUIDE.md](stats/docs/guides/DATA_FORMAT_GUIDE.md)
 
 ---
 
@@ -105,7 +105,7 @@ npm run build:offline
 - **드래그 앤 드롭**: 변수를 역할별 영역에 할당
 - **모달 선택**: 클릭하여 변수 선택 (드래그 대체)
 
-**변수 선택 가이드**: [VARIABLE_SELECTION_GUIDE.md](statistical-platform/docs/guides/VARIABLE_SELECTION_GUIDE.md)
+**변수 선택 가이드**: [VARIABLE_SELECTION_GUIDE.md](stats/docs/guides/VARIABLE_SELECTION_GUIDE.md)
 
 ---
 
@@ -158,7 +158,7 @@ Statics/
 ├── ROADMAP.md                # 개발 로드맵
 ├── TODO.md                   # 현황 + 할일 + 최근 작업 (7일)
 │
-└── statistical-platform/     # Next.js 15 앱
+└── stats/     # Next.js 15 앱
     ├── app/                  # App Router
     │   ├── page.tsx          # Smart Flow 홈 (= 통계 분석 진입점)
     │   ├── (dashboard)/      # 대시보드 레이아웃
@@ -256,7 +256,7 @@ ollama pull mxbai-embed-large  # Ollama 임베딩 모델
 - E2E 테스트 (Playwright, 12개 핵심 플로우)
 - 3층 아키텍처: L1 Store, L2 data-testid, L3 E2E
 
-**상세**: [AUTOMATED_TESTING_ROADMAP.md](statistical-platform/docs/AUTOMATED_TESTING_ROADMAP.md)
+**상세**: [AUTOMATED_TESTING_ROADMAP.md](stats/docs/AUTOMATED_TESTING_ROADMAP.md)
 
 ---
 
@@ -272,7 +272,7 @@ ollama pull mxbai-embed-large  # Ollama 임베딩 모델
 - ✅ 타입 중앙 정의: types/statistics.ts 단일 정의
 - ✅ 공통 컴포넌트 사용: StatisticsTable, EffectSizeCard 등
 
-**상세**: [CLAUDE.md](CLAUDE.md) | [STATISTICS_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_CODING_STANDARDS.md)
+**상세**: [CLAUDE.md](CLAUDE.md) | [STATISTICS_CODING_STANDARDS.md](stats/docs/STATISTICS_CODING_STANDARDS.md)
 
 ---
 
@@ -344,7 +344,7 @@ Smart Flow가 모든 통계 분석의 유일한 진입점입니다. 데이터 �
 ```bash
 # 저장소 클론
 git clone https://github.com/your-org/nifs-statistics-platform.git
-cd Statics/statistical-platform
+cd Statics/stats
 
 # 의존성 설치
 npm install
@@ -364,7 +364,7 @@ npm run dev
 
 ## 📞 문의 및 지원
 
-- **사용자 가이드**: [docs/guides/](statistical-platform/docs/guides/)
+- **사용자 가이드**: [docs/guides/](stats/docs/guides/)
 - **AI 챗봇**: 플랫폼 내 💬 아이콘 클릭
 - **버그 신고**: GitHub Issues
 - **이메일**: nifs-support@example.com

@@ -7,24 +7,24 @@ const path = require('path');
 // 트리거 매핑 (6개 전체)
 const TRIGGERS = {
   // 1. Type Guards
-  'statistical-platform/lib/utils/type-guards.ts':
-    'statistical-platform/app/(dashboard)/design-system/coding-patterns/type-guards.json',
+  'stats/lib/utils/type-guards.ts':
+    'stats/app/(dashboard)/design-system/coding-patterns/type-guards.json',
 
   // 2. RAG Components
-  'statistical-platform/components/rag/':
-    'statistical-platform/app/(dashboard)/design-system/coding-patterns/rag-components.json',
-  'statistical-platform/lib/rag/':
-    'statistical-platform/app/(dashboard)/design-system/coding-patterns/rag-components.json',
+  'stats/components/rag/':
+    'stats/app/(dashboard)/design-system/coding-patterns/rag-components.json',
+  'stats/lib/rag/':
+    'stats/app/(dashboard)/design-system/coding-patterns/rag-components.json',
 
   // 3. Statistics Page Pattern
-  'statistical-platform/docs/STATISTICS_CODING_STANDARDS.md':
-    'statistical-platform/app/(dashboard)/design-system/coding-patterns/statistics-page-pattern.json',
-  'statistical-platform/hooks/use-statistics-page.ts':
-    'statistical-platform/app/(dashboard)/design-system/coding-patterns/statistics-page-pattern.json',
+  'stats/docs/STATISTICS_CODING_STANDARDS.md':
+    'stats/app/(dashboard)/design-system/coding-patterns/statistics-page-pattern.json',
+  'stats/hooks/use-statistics-page.ts':
+    'stats/app/(dashboard)/design-system/coding-patterns/statistics-page-pattern.json',
 
   // 4. Test Snippets (새 패턴 발견 시만 - 자주 체크 안 됨)
-  'statistical-platform/__tests__/':
-    'statistical-platform/app/(dashboard)/design-system/coding-patterns/test-snippets.json',
+  'stats/__tests__/':
+    'stats/app/(dashboard)/design-system/coding-patterns/test-snippets.json',
 };
 
 // 스테이징된 파일 확인
@@ -78,7 +78,7 @@ for (const [trigger, metadataPath] of Object.entries(TRIGGERS)) {
 }
 
 if (hasError) {
-  console.error('\n💡 Tip: statistical-platform/docs/DESIGN_SYSTEM_SYNC_RULES.md 참조');
+  console.error('\n💡 Tip: stats/docs/DESIGN_SYSTEM_SYNC_RULES.md 참조');
   process.exit(1);
 }
 

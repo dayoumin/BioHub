@@ -1,0 +1,249 @@
+{
+  "id": "rag-components",
+  "version": "1.0.0",
+  "lastUpdated": "2025-11-24",
+  "sources": [
+    "stats/components/rag/",
+    "stats/lib/rag/",
+    "stats/docs/RAG_ARCHITECTURE.md"
+  ],
+  "categories": [
+    {
+      "name": "Core RAG Components",
+      "description": "RAG 시스템 핵심 컴포넌트",
+      "components": [
+        {
+          "name": "RAGAssistantCompact",
+          "path": "components/rag/rag-assistant-compact.tsx",
+          "purpose": "우측 패널 최적화 RAG 어시스턴트",
+          "props": {
+            "method": "string (선택) - 현재 통계 메서드",
+            "className": "string (선택) - 스타일 클래스"
+          },
+          "features": [
+            "Perplexity 스타일 인라인 인용 [1], [2]",
+            "스트리밍 응답 (타이핑 커서 효과)",
+            "세션 기록 관리 (IndexedDB)",
+            "즐겨찾기 기능",
+            "소스 표시 (접기/펼치기)"
+          ],
+          "usage": "import { RAGAssistantCompact } from '@/components/rag/rag-assistant-compact';\n\n<RAGAssistantCompact method=\"tTest\" />"
+        },
+        {
+          "name": "ChatSourcesDisplay",
+          "path": "components/rag/chat-sources-display.tsx",
+          "purpose": "RAG 응답 소스 표시",
+          "props": {
+            "sources": "Source[] - 출처 목록",
+            "isOpen": "boolean - 펼침/접힘 상태",
+            "onToggle": "() => void - 토글 핸들러"
+          },
+          "features": [
+            "페이지 번호 표시",
+            "스코어 표시 (관련도)",
+            "접기/펼치기 애니메이션"
+          ],
+          "usage": "<ChatSourcesDisplay\n  sources={response.sources}\n  isOpen={showSources}\n  onToggle={() => setShowSources(!showSources)}\n/>"
+        },
+        {
+          "name": "SessionHistoryDropdown",
+          "path": "components/rag/session-history-dropdown.tsx",
+          "purpose": "세션 기록 드롭다운",
+          "props": {
+            "sessions": "ChatSession[] - 세션 목록",
+            "currentSessionId": "string | null - 현재 세션 ID",
+            "onSelectSession": "(id: string) => void - 세션 선택 핸들러",
+            "onDeleteSession": "(id: string) => void - 세션 삭제 핸들러"
+          },
+          "features": [
+            "최근 10개 세션 표시",
+            "세션 이름 표시",
+            "삭제 확인 다이얼로그"
+          ],
+          "usage": "<SessionHistoryDropdown\n  sessions={sessions}\n  currentSessionId={currentSessionId}\n  onSelectSession={handleSelect}\n  onDeleteSession={handleDelete}\n/>"
+        }
+      ]
+    },
+    {
+      "name": "Setup & Configuration",
+      "description": "RAG 시스템 설정 컴포넌트",
+      "components": [
+        {
+          "name": "OllamaSetupDialog",
+          "path": "components/chatbot/ollama-setup-dialog.tsx",
+          "purpose": "Ollama 서버 설정 다이얼로그",
+          "props": {
+            "open": "boolean - 다이얼로그 열림 상태",
+            "onOpenChange": "(open: boolean) => void - 상태 변경 핸들러",
+            "onSuccess": "() => void - 설정 완료 콜백"
+          },
+          "features": [
+            "Ollama 서버 상태 체크",
+            "엔드포인트 설정",
+            "모델 다운로드 가이드",
+            "연결 테스트"
+          ],
+          "usage": "<OllamaSetupDialog\n  open={showSetup}\n  onOpenChange={setShowSetup}\n  onSuccess={handleSuccess}\n/>"
+        },
+        {
+          "name": "ModelSettings",
+          "path": "components/rag/model-settings.tsx",
+          "purpose": "RAG 모델 설정 (온도, 토큰 등)",
+          "props": {
+            "temperature": "number - 온도 (0.0-1.0)",
+            "maxTokens": "number - 최대 토큰",
+            "onChange": "(settings) => void - 설정 변경 핸들러"
+          },
+          "features": [
+            "온도 조절 (창의성)",
+            "최대 토큰 설정",
+            "실시간 미리보기"
+          ],
+          "usage": "<ModelSettings\n  temperature={0.7}\n  maxTokens={2000}\n  onChange={handleChange}\n/>"
+        },
+        {
+          "name": "VectorStoreSelector",
+          "path": "components/rag/vector-store-selector.tsx",
+          "purpose": "Vector Store 선택기",
+          "props": {
+            "selectedStore": "string - 선택된 스토어 ID",
+            "onSelect": "(id: string) => void - 선택 핸들러"
+          },
+          "features": [
+            "사용 가능한 Vector Store 목록",
+            "문서 개수 표시",
+            "검색 범위 설정"
+          ],
+          "usage": "<VectorStoreSelector\n  selectedStore={currentStore}\n  onSelect={setCurrentStore}\n/>"
+        }
+      ]
+    },
+    {
+      "name": "RAG Services",
+      "description": "RAG 시스템 서비스 레이어",
+      "services": [
+        {
+          "name": "queryRAGStream",
+          "path": "lib/rag/rag-service.ts",
+          "signature": "async function queryRAGStream(query: string, onChunk: (chunk: string) => void): Promise<RAGResponse>",
+          "purpose": "스트리밍 RAG 쿼리",
+          "parameters": {
+            "query": "사용자 질문",
+            "onChunk": "스트리밍 청크 콜백"
+          },
+          "returns": "RAGResponse (answer, sources, metadata)",
+          "example": "const response = await queryRAGStream(\n  '판별분석이란?',\n  (chunk) => setStreamingText(prev => prev + chunk)\n);"
+        },
+        {
+          "name": "checkOllamaStatus",
+          "path": "lib/rag/utils/ollama-check.ts",
+          "signature": "async function checkOllamaStatus(endpoint: string): Promise<OllamaStatus>",
+          "purpose": "Ollama 서버 상태 체크",
+          "parameters": {
+            "endpoint": "Ollama 서버 URL"
+          },
+          "returns": "OllamaStatus (isAvailable, models, version)",
+          "example": "const status = await checkOllamaStatus(\n  process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT || 'http://localhost:11434'\n);"
+        },
+        {
+          "name": "ChatStorageIndexedDB",
+          "path": "lib/services/storage/chat-storage-indexed-db.ts",
+          "signature": "class ChatStorageIndexedDB",
+          "purpose": "IndexedDB 기반 채팅 세션 저장소",
+          "methods": [
+            "getSessions(): Promise<ChatSession[]>",
+            "getSession(id: string): Promise<ChatSession | null>",
+            "saveSession(session: ChatSession): Promise<void>",
+            "deleteSession(id: string): Promise<void>"
+          ],
+          "example": "const storage = new ChatStorageIndexedDB();\nawait storage.initialize();\nconst sessions = await storage.getSessions();"
+        }
+      ]
+    }
+  ],
+  "architecture": {
+    "diagram": "사용자 → RAGAssistantCompact → queryRAGStream → Ollama (임베딩) → SQLite (벡터 검색) → Ollama (답변 생성)",
+    "layers": [
+      {
+        "name": "UI Layer",
+        "components": ["RAGAssistantCompact", "ChatSourcesDisplay", "SessionHistoryDropdown"],
+        "responsibility": "사용자 인터페이스, 이벤트 처리"
+      },
+      {
+        "name": "Service Layer",
+        "components": ["queryRAGStream", "checkOllamaStatus", "ChatStorageIndexedDB"],
+        "responsibility": "비즈니스 로직, 데이터 처리"
+      },
+      {
+        "name": "Infrastructure Layer",
+        "components": ["sql.js", "absurd-sql", "Ollama"],
+        "responsibility": "벡터 검색, 임베딩, LLM"
+      }
+    ]
+  },
+  "integrationPattern": {
+    "name": "Chat Panel Integration (전역 사용)",
+    "location": "app/(dashboard)/layout.tsx",
+    "code": "// Layout 레벨에서 전역 통합\nimport { ChatPanel } from '@/components/chatbot/chat-panel';\n\nexport default function DashboardLayout({ children }) {\n  return (\n    <div className=\"flex\">\n      <Sidebar />\n      <main className=\"flex-1\">\n        <Header /> {/* MessageCircle 버튼으로 ChatPanel 열기 */}\n        {children}\n      </main>\n      <ChatPanel /> {/* 우측 패널, 리사이징 가능 */}\n    </div>\n  );\n}",
+    "features": [
+      "Header MessageCircle (💬) 버튼으로 열기",
+      "320px~800px 리사이징",
+      "접기/펼치기 애니메이션",
+      "모든 통계 페이지에서 접근 가능"
+    ]
+  },
+  "bestPractices": [
+    {
+      "title": "스트리밍 응답 처리",
+      "description": "타이핑 효과를 위한 청크 단위 처리",
+      "example": "const [streamingText, setStreamingText] = useState('');\n\nconst response = await queryRAGStream(\n  query,\n  (chunk) => {\n    setStreamingText(prev => prev + chunk);\n  }\n);\n\n// 완료 후\nsetMessages([...messages, { query, response, timestamp: Date.now() }]);\nsetStreamingText('');  // 초기화"
+    },
+    {
+      "title": "에러 처리 패턴",
+      "description": "Ollama 서버 연결 실패 시 사용자 친화적 메시지",
+      "example": "try {\n  const response = await queryRAGStream(query, onChunk);\n} catch (err) {\n  const friendlyError = handleRAGError(err);\n  setError(friendlyError);\n  \n  // Ollama 서버 문제인 경우\n  if (friendlyError.includes('Ollama')) {\n    setShowOllamaSetup(true);  // 설정 다이얼로그 표시\n  }\n}"
+    },
+    {
+      "title": "세션 관리",
+      "description": "IndexedDB를 사용한 로컬 세션 저장",
+      "example": "// 세션 초기화\nconst storage = new ChatStorageIndexedDB();\nawait storage.initialize();\n\n// 새 세션 생성\nconst newSession = {\n  id: crypto.randomUUID(),\n  name: `통계 질문 ${new Date().toLocaleDateString()}`,\n  messages: [],\n  createdAt: Date.now(),\n  updatedAt: Date.now()\n};\n\nawait storage.saveSession(newSession);\nsetCurrentSessionId(newSession.id);"
+    },
+    {
+      "title": "인라인 인용 렌더링",
+      "description": "Perplexity 스타일 [1], [2] 인용",
+      "example": "// ReactMarkdown custom components\nconst components = {\n  p: ({ children }) => {\n    // [1], [2] 패턴 감지 및 스타일링\n    const text = String(children);\n    const citationRegex = /\\[(\\d+)\\]/g;\n    \n    return (\n      <p className=\"mb-3\">\n        {text.split(citationRegex).map((part, i) => {\n          if (i % 2 === 1) {\n            // 인용 번호\n            return (\n              <sup\n                key={i}\n                className=\"text-blue-600 cursor-pointer hover:underline\"\n                onClick={() => scrollToSource(Number(part))}\n              >\n                [{part}]\n              </sup>\n            );\n          }\n          return part;\n        })}\n      </p>\n    );\n  }\n};\n\n<ReactMarkdown components={components}>\n  {response.answer}\n</ReactMarkdown>"
+    }
+  ],
+  "troubleshooting": [
+    {
+      "issue": "Ollama 서버 연결 실패",
+      "symptoms": "\"Ollama 서버에 연결할 수 없습니다\" 에러",
+      "solutions": [
+        "1. Ollama 서버 실행 확인: `ollama serve`",
+        "2. 환경변수 확인: NEXT_PUBLIC_OLLAMA_ENDPOINT",
+        "3. 방화벽 설정 확인 (포트 11434)",
+        "4. 모델 다운로드: `ollama pull llama3.2:3b`"
+      ]
+    },
+    {
+      "issue": "Vector Store 로딩 실패",
+      "symptoms": "\"Vector store를 찾을 수 없습니다\" 에러",
+      "solutions": [
+        "1. public/rag-data/ 폴더 확인",
+        "2. vector-stores.json 메타데이터 확인",
+        "3. IndexedDB 캐시 클리어 (개발자 도구)",
+        "4. 재빌드: `npm run build`"
+      ]
+    },
+    {
+      "issue": "스트리밍 응답 끊김",
+      "symptoms": "응답이 중간에 멈춤",
+      "solutions": [
+        "1. 네트워크 연결 확인",
+        "2. Ollama 서버 로그 확인",
+        "3. maxTokens 설정 확인 (너무 작으면 조기 종료)",
+        "4. 타임아웃 설정 확인"
+      ]
+    }
+  ]
+}

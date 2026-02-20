@@ -227,7 +227,7 @@ R2 Bucket: stat-datasets
 
 ```
 Statics/
-├── statistical-platform/     ← 기존 프론트엔드
+├── stats/     ← 기존 프론트엔드
 └── workers/                  ← 신규 Workers 프로젝트
     ├── wrangler.toml         ← D1, R2, KV 바인딩
     ├── src/

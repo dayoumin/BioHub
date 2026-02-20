@@ -1,0 +1,111 @@
+/* Analysis Category Colors */
+:root {
+  --analysis-compare: #3b82f6; /* blue-500 */
+  --analysis-compare-rgb: 59, 130, 246;
+  --analysis-relationship: #8b5cf6; /* purple-500 */
+  --analysis-relationship-rgb: 139, 92, 246;
+  --analysis-distribution: #ec4899; /* pink-500 */
+  --analysis-distribution-rgb: 236, 72, 153;
+  --analysis-prediction: #10b981; /* emerald-500 */
+  --analysis-prediction-rgb: 16, 185, 129;
+  --analysis-timeseries: #f59e0b; /* amber-500 */
+  --analysis-timeseries-rgb: 245, 158, 11;
+}
+
+.dark {
+  --analysis-compare: #60a5fa; /* blue-400 */
+  --analysis-compare-rgb: 96, 165, 250;
+  --analysis-relationship: #a78bfa; /* purple-400 */
+  --analysis-relationship-rgb: 167, 139, 250;
+  --analysis-distribution: #f472b6; /* pink-400 */
+  --analysis-distribution-rgb: 244, 114, 182;
+  --analysis-prediction: #34d399; /* emerald-400 */
+  --analysis-prediction-rgb: 52, 211, 153;
+  --analysis-timeseries: #fbbf24; /* amber-400 */
+  --analysis-timeseries-rgb: 251, 191, 36;
+}
+
+/* Glassmorphism Card */
+.glass-card {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 
+    0 8px 32px 0 rgba(31, 38, 135, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.dark .glass-card {
+  background: linear-gradient(
+    135deg,
+    rgba(30, 30, 46, 0.4) 0%,
+    rgba(30, 30, 46, 0.2) 100%
+  );
+}
+
+/* Recommendation Card with Glow */
+.recommendation-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.recommendation-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.recommendation-card:hover::before {
+  left: 100%;
+}
+
+/* Category-specific styles */
+.category-compare { 
+  --category-color: var(--analysis-compare);
+  --category-color-rgb: var(--analysis-compare-rgb);
+}
+.category-relationship { 
+  --category-color: var(--analysis-relationship);
+  --category-color-rgb: var(--analysis-relationship-rgb);
+}
+.category-distribution { 
+  --category-color: var(--analysis-distribution);
+  --category-color-rgb: var(--analysis-distribution-rgb);
+}
+.category-prediction { 
+  --category-color: var(--analysis-prediction);
+  --category-color-rgb: var(--analysis-prediction-rgb);
+}
+.category-timeseries { 
+  --category-color: var(--analysis-timeseries);
+  --category-color-rgb: var(--analysis-timeseries-rgb);
+}
+
+/* Micro-interaction: Scale on active */
+.interactive-card {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.interactive-card:active {
+  transform: scale(0.98);
+}
+
+.interactive-card:hover {
+  box-shadow: 0 0 20px rgba(var(--category-color-rgb, 99, 102, 241), 0.3);
+}

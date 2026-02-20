@@ -144,7 +144,7 @@
 | **[TODO.md](TODO.md)** | 현황 + 할일 + 최근 작업 (이 파일) |
 | **[CLAUDE.md](CLAUDE.md)** | AI 코딩 규칙 |
 
-**상세 문서**: `statistical-platform/docs/`
+**상세 문서**: `stats/docs/`
 **작업 아카이브**: `archive/dailywork/`
 
 ---

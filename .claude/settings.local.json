@@ -96,7 +96,9 @@
       "Bash(claude plugin install:*)",
       "Bash(git status:*)",
       "Bash(claude mcp list:*)",
-      "Bash(pnpm remove:*)"
+      "Bash(pnpm remove:*)",
+      "Bash(cmd /c:*)",
+      "Bash(pnpm build:*)"
     ],
     "deny": [],
     "ask": []

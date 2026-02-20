@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**현황/로드맵**: [TODO.md](stats/todo.md) · [ROADMAP.md](stats/ROADMAP.md)
+**현황/로드맵**: [TODO.md](TODO.md) · [ROADMAP.md](ROADMAP.md)
 
 ## 프로젝트 개요
 
@@ -111,8 +111,7 @@ pnpm test:coverage    # 커버리지
 
 ```bash
 pnpm dev             # 개발 서버
-pnpm build           # 빌드 (Vercel)
-pnpm build:offline   # 빌드 (오프라인)
+pnpm build           # 빌드 (Cloudflare Pages)
 pnpm test            # 테스트
 pnpm tsc --noEmit    # 타입 체크
 pnpm setup:pyodide   # Pyodide 다운로드 (200MB, 오프라인용)
@@ -120,8 +119,7 @@ pnpm setup:pyodide   # Pyodide 다운로드 (200MB, 오프라인용)
 
 ## 문서 관리
 
-- **TODO.md**: 현황 + 할일 + 최근 7일 작업
+- **TODO.md**: 현황 + 할일
 - **ROADMAP.md**: 개발 로드맵
-- **archive/dailywork/**: 7일 이상 된 기록
 - 분석/검토 문서 새 파일 생성 금지 → TODO.md에 요약
-- 배포 상세: [DEPLOYMENT_SCENARIOS.md](stats/docs/DEPLOYMENT_SCENARIOS.md)
+- 배포: Cloudflare Pages (`wrangler.toml` 참조)

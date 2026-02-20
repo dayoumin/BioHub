@@ -621,9 +621,9 @@ Pattern 4: 외부 데이터 → 비교 분석
 
 **배포 명령**:
 ```bash
-cd statistical-platform
+cd stats
 pnpm build
-npx wrangler pages deploy out --project-name=statistical-platform
+npx wrangler pages deploy out --project-name=stats
 ```
 
 ### 배포 시 필수 설정

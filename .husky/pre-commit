@@ -4,4 +4,4 @@
 node .husky/check-design-system-sync.js
 
 # Test Impact Analysis (informational only)
-node statistical-platform/scripts/check-test-impact.js
+node stats/scripts/check-test-impact.js

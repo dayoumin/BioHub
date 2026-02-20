@@ -8,7 +8,7 @@ const API_KEY = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY
 if (!API_KEY) {
   console.error('❌ API Key가 없습니다.')
   console.error('다음 명령어로 실행하세요:')
-  console.error('node --env-file=../statistical-platform/.env.local study/openrouter-complex-test.mjs')
+  console.error('node --env-file=../stats/.env.local study/openrouter-complex-test.mjs')
   process.exit(1)
 }
 const MODEL = 'z-ai/glm-4.5-air:free'

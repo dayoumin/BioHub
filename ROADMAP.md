@@ -52,7 +52,7 @@ Phase 6+: 고도화 (예정)
 - `lib/statistics/calculator-types.ts` - 타입 정의
 
 **문서**:
-- [phase2-complete.md](statistical-platform/docs/phase2-complete.md)
+- [phase2-complete.md](stats/docs/phase2-complete.md)
 
 ---
 
@@ -70,7 +70,7 @@ Phase 6+: 고도화 (예정)
 - `lib/services/pyodide-statistics.ts` (3,434줄) - 50개 Python 메서드
 
 **문서**:
-- [phase3-complete.md](statistical-platform/docs/phase3-complete.md)
+- [phase3-complete.md](stats/docs/phase3-complete.md)
 
 ---
 
@@ -90,7 +90,7 @@ Phase 6+: 고도화 (예정)
 - 성능 개선: 97.7% (44배)
 
 **문서**:
-- [phase4-runtime-test-complete.md](statistical-platform/docs/phase4-runtime-test-complete.md)
+- [phase4-runtime-test-complete.md](stats/docs/phase4-runtime-test-complete.md)
 
 ---
 
@@ -118,9 +118,9 @@ Phase 6+: 고도화 (예정)
 - `lib/statistics/groups/` (6개 그룹 파일)
 
 **문서**:
-- [phase5-architecture.md](statistical-platform/docs/phase5-architecture.md)
-- [phase5-implementation-plan.md](statistical-platform/docs/phase5-implementation-plan.md)
-- [phase5-migration-guide.md](statistical-platform/docs/phase5-migration-guide.md)
+- [phase5-architecture.md](stats/docs/phase5-architecture.md)
+- [phase5-implementation-plan.md](stats/docs/phase5-implementation-plan.md)
+- [phase5-migration-guide.md](stats/docs/phase5-migration-guide.md)
 
 ---
 
@@ -192,8 +192,8 @@ After:  Groups → PyodideCore → Python Workers (10-15% 성능 향상)
 
 **문서** (✅ 최신):
 - **[implementation-status.md](docs/implementation-status.md)** ⭐ 정확한 매핑 테이블
-- [complete-mapping.json](statistical-platform/complete-mapping.json) - 기계 판독용
-- [generate-complete-mapping.js](statistical-platform/generate-complete-mapping.js) - 검증 스크립트
+- [complete-mapping.json](stats/complete-mapping.json) - 기계 판독용
+- [generate-complete-mapping.js](stats/generate-complete-mapping.js) - 검증 스크립트
 
 ---
 
@@ -300,8 +300,8 @@ USB/
 ```
 
 **참고 문서**:
-- [OFFLINE_DEPLOYMENT_GUIDE.md](statistical-platform/docs/OFFLINE_DEPLOYMENT_GUIDE.md)
-- [OFFLINE_DEPLOYMENT_CHECKLIST.md](statistical-platform/docs/OFFLINE_DEPLOYMENT_CHECKLIST.md)
+- [OFFLINE_DEPLOYMENT_GUIDE.md](stats/docs/OFFLINE_DEPLOYMENT_GUIDE.md)
+- [OFFLINE_DEPLOYMENT_CHECKLIST.md](stats/docs/OFFLINE_DEPLOYMENT_CHECKLIST.md)
 
 **TODO (추후 작업)**:
 - Pyodide packages 다운로드 (필수 패키지만: numpy, scipy, pandas ~170MB)
@@ -535,9 +535,9 @@ app/layout.tsx (Root Layout)
     - ✅ 코드 일관성 100% (모든 페이지 표준 패턴 사용)
     - ✅ React 18 automatic batching 활용 (setTimeout 불필요)
   - **문서화**:
-    - [phase1-settimeout-removal-complete.md](statistical-platform/docs/phase1-settimeout-removal-complete.md)
-    - [TROUBLESHOOTING_ISANALYZING_BUG.md](statistical-platform/docs/TROUBLESHOOTING_ISANALYZING_BUG.md)
-    - [STATISTICS_PAGE_CODING_STANDARDS.md Section 8](statistical-platform/docs/STATISTICS_PAGE_CODING_STANDARDS.md)
+    - [phase1-settimeout-removal-complete.md](stats/docs/phase1-settimeout-removal-complete.md)
+    - [TROUBLESHOOTING_ISANALYZING_BUG.md](stats/docs/TROUBLESHOOTING_ISANALYZING_BUG.md)
+    - [STATISTICS_PAGE_CODING_STANDARDS.md Section 8](stats/docs/STATISTICS_PAGE_CODING_STANDARDS.md)
   - **Git Commits**:
     - `527638f` - feat(medium): Medium Priority 5개 setTimeout 제거
     - `869aba9` - feat(low): Low Priority 일부 setTimeout 제거
@@ -552,8 +552,8 @@ app/layout.tsx (Root Layout)
     - 테스트 수정: 4-6시간 → 템플릿 재생성: 30분 (90% 단축)
     - AI 컨텍스트: 10,000 → 2,500 tokens (75% 감소)
   - **문서화**:
-    - [__tests__/_templates/README.md](statistical-platform/__tests__/_templates/README.md)
-    - [__tests__/_templates/statistics-page-test.md](statistical-platform/__tests__/_templates/statistics-page-test.md)
+    - [__tests__/_templates/README.md](stats/__tests__/_templates/README.md)
+    - [__tests__/_templates/statistics-page-test.md](stats/__tests__/_templates/statistics-page-test.md)
   - **Git Commit**: `8be447b` - refactor(tests): Implement AI-first test strategy (Option C)
 - ✅ 코드 정리
   - 사용하지 않는 import 제거
@@ -631,7 +631,7 @@ app/layout.tsx (Root Layout)
 #### 9.5-1. 현재 구현 상태 (2025-11-10 확인)
 
 **✅ Python 기반 시각화 (Pyodide + matplotlib)**
-- **파일**: [lib/pyodide-visualizations.ts](statistical-platform/lib/pyodide-visualizations.ts) (418 lines)
+- **파일**: [lib/pyodide-visualizations.ts](stats/lib/pyodide-visualizations.ts) (418 lines)
 - **지원 차트 (7종)**:
   1. `createHistogram()` - 히스토그램 + 정규분포 피팅
   2. `createBoxplot()` - 박스플롯 (그룹 비교)
@@ -646,7 +646,7 @@ app/layout.tsx (Root Layout)
   - SPSS/R 수준의 고품질 차트
 
 **✅ Plotly 기반 시각화 (부분 구현)**
-- **파일**: [lib/pyodide-plotly-visualizations.ts](statistical-platform/lib/pyodide-plotly-visualizations.ts)
+- **파일**: [lib/pyodide-plotly-visualizations.ts](stats/lib/pyodide-plotly-visualizations.ts)
 - **장점**: 인터랙티브 (줌, 팬, 호버)
 
 #### 9.5-2. 추가 개선 사항
@@ -699,9 +699,9 @@ app/layout.tsx (Root Layout)
 
 **배포 명령**:
 ```bash
-cd statistical-platform
+cd stats
 pnpm build
-npx wrangler pages deploy out --project-name=statistical-platform
+npx wrangler pages deploy out --project-name=stats
 ```
 
 **필수 설정**:
@@ -906,21 +906,21 @@ npx wrangler pages deploy out --project-name=statistical-platform
 
 ### 개발 가이드
 - [CLAUDE.md](CLAUDE.md) - AI 코딩 규칙 (최신)
-- [AI-CODING-RULES.md](statistical-platform/docs/AI-CODING-RULES.md) - any → unknown 예제
+- [AI-CODING-RULES.md](stats/docs/AI-CODING-RULES.md) - any → unknown 예제
 
 ### 아키텍처
-- [phase5-architecture.md](statistical-platform/docs/phase5-architecture.md) - Phase 5 아키텍처
-- [phase5-implementation-plan.md](statistical-platform/docs/phase5-implementation-plan.md) - Day 1-10 계획
+- [phase5-architecture.md](stats/docs/phase5-architecture.md) - Phase 5 아키텍처
+- [phase5-implementation-plan.md](stats/docs/phase5-implementation-plan.md) - Day 1-10 계획
 
 ### 구현 현황
-- [implementation-summary.md](statistical-platform/docs/implementation-summary.md) - 최신 구현 현황
-- [priority1-implementation.md](statistical-platform/docs/priority1-implementation.md) - 우선순위 1 (11개)
-- [priority2-implementation.md](statistical-platform/docs/priority2-implementation.md) - 우선순위 2 (13개)
+- [implementation-summary.md](stats/docs/implementation-summary.md) - 최신 구현 현황
+- [priority1-implementation.md](stats/docs/priority1-implementation.md) - 우선순위 1 (11개)
+- [priority2-implementation.md](stats/docs/priority2-implementation.md) - 우선순위 2 (13개)
 
 ### 완료 보고서
-- [phase2-complete.md](statistical-platform/docs/phase2-complete.md) - 리팩토링 상세
-- [phase3-complete.md](statistical-platform/docs/phase3-complete.md) - Pyodide 통합
-- [phase4-runtime-test-complete.md](statistical-platform/docs/phase4-runtime-test-complete.md) - E2E 테스트
+- [phase2-complete.md](stats/docs/phase2-complete.md) - 리팩토링 상세
+- [phase3-complete.md](stats/docs/phase3-complete.md) - Pyodide 통합
+- [phase4-runtime-test-complete.md](stats/docs/phase4-runtime-test-complete.md) - E2E 테스트
 
 ### 초기 계획 (참고)
 - [PROJECT_INITIAL_VISION.md](PROJECT_INITIAL_VISION.md) - 초기 비전 문서
@@ -1077,8 +1077,8 @@ STATISTICS_EXAMPLES.oneWayAnova = {
 ---
 
 **참고 문서**:
-- [lib/constants/domain-examples.ts](statistical-platform/lib/constants/domain-examples.ts) - 도메인 예시 중앙 관리
-- [docs/guides/VARIABLE_SELECTION_GUIDE.md](statistical-platform/docs/guides/VARIABLE_SELECTION_GUIDE.md) - 변수 선택 가이드
+- [lib/constants/domain-examples.ts](stats/lib/constants/domain-examples.ts) - 도메인 예시 중앙 관리
+- [docs/guides/VARIABLE_SELECTION_GUIDE.md](stats/docs/guides/VARIABLE_SELECTION_GUIDE.md) - 변수 선택 가이드
 
 **Git Commits**:
 - `[commit-hash]` - feat(domain): 수산과학 도메인 전환 (Phase 12-1 완료)
@@ -1563,8 +1563,8 @@ Cloudflare $5/월 플랜 내에서 추가 비용 없이 백엔드 기능 추가 
 **우선순위**: Low (현재 구현으로 충분히 사용 가능)
 
 **관련 파일**:
-- [anova/page.tsx](statistical-platform/app/(dashboard)/statistics/anova/page.tsx) - Lines 599-662 (이원), 833-899 (삼원)
-- [worker3-nonparametric-anova.py](statistical-platform/public/workers/python/worker3-nonparametric-anova.py) - games_howell_test()
+- [anova/page.tsx](stats/app/(dashboard)/statistics/anova/page.tsx) - Lines 599-662 (이원), 833-899 (삼원)
+- [worker3-nonparametric-anova.py](stats/public/workers/python/worker3-nonparametric-anova.py) - games_howell_test()
 
 ---
 
@@ -1581,8 +1581,8 @@ Cloudflare $5/월 플랜 내에서 추가 비용 없이 백엔드 기능 추가 
 **목표**: 모노레포 구조 → 플랫 구조로 변경하여 개발 편의성 향상
 
 **배경** (2025-11-28):
-- 현재 `statistical-platform/` 하위 폴더에 Next.js 앱 위치
-- 매번 `cd statistical-platform` 필요
+- 현재 `stats/` 하위 폴더에 Next.js 앱 위치
+- 매번 `cd stats` 필요
 - `vercel.json`에서 경로 지정 필요
 - IDE에서 루트 열면 Next.js 자동 인식 안 됨
 
@@ -1592,7 +1592,7 @@ Statics/                        ← Git 루트
 ├── CLAUDE.md, README.md, ...   ← 문서
 ├── vercel.json                 ← 경로 지정 필요
 ├── archive/, docs/ (루트)      ← 임시 파일들
-└── statistical-platform/       ← Next.js 앱
+└── stats/       ← Next.js 앱
     ├── app/, components/, ...
     └── package.json
 ```
@@ -1609,7 +1609,7 @@ Statics/                        ← Git 루트 + Next.js 루트
 
 **작업 내용**:
 1. 루트의 임시 파일들 정리 (archive로 이동 또는 삭제)
-2. `statistical-platform/*` 내용을 루트로 이동
+2. `stats/*` 내용을 루트로 이동
 3. `vercel.json` 단순화
 4. `CLAUDE.md` 내 경로 참조 수정
 5. `.gitignore` 병합

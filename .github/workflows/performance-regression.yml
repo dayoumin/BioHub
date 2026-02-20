@@ -4,14 +4,14 @@ on:
   pull_request:
     branches: [ master, main ]
     paths:
-      - 'statistical-platform/lib/services/pyodide/**'
-      - 'statistical-platform/public/workers/**'
-      - 'statistical-platform/__tests__/performance/**'
+      - 'stats/lib/services/pyodide/**'
+      - 'stats/public/workers/**'
+      - 'stats/__tests__/performance/**'
   push:
     branches: [ master, main ]
     paths:
-      - 'statistical-platform/lib/services/pyodide/**'
-      - 'statistical-platform/public/workers/**'
+      - 'stats/lib/services/pyodide/**'
+      - 'stats/public/workers/**'
   workflow_dispatch: # Manual trigger
 
 jobs:
@@ -28,14 +28,14 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: 'statistical-platform/package-lock.json'
+          cache-dependency-path: 'stats/package-lock.json'
 
       - name: Install dependencies
-        working-directory: ./statistical-platform
+        working-directory: ./stats
         run: npm ci
 
       - name: Run performance regression tests
-        working-directory: ./statistical-platform
+        working-directory: ./stats
         run: npm test -- __tests__/performance/pyodide-regression.test.ts --verbose
         env:
           NODE_ENV: test

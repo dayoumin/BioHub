@@ -4,35 +4,35 @@ on:
   pull_request:
     branches: [ master, main ]
     paths:
-      - 'statistical-platform/lib/validation/**'
-      - 'statistical-platform/lib/services/statistical-executor.ts'
-      - 'statistical-platform/lib/services/pyodide-statistics.ts'
-      - 'statistical-platform/lib/services/pyodide-statistics.adapters.ts'
-      - 'statistical-platform/lib/utils/result-transformer.ts'
-      - 'statistical-platform/lib/constants/methods-registry.json'
-      - 'statistical-platform/lib/constants/methods-registry.schema.json'
-      - 'statistical-platform/lib/constants/methods-registry.types.ts'
-      - 'statistical-platform/types/smart-flow.ts'
-      - 'statistical-platform/scripts/statistics/validate-result-contracts.ts'
-      - 'statistical-platform/__tests__/lib/validation/result-schema-validator.test.ts'
-      - 'statistical-platform/__tests__/services/executors/statistical-executor-routing.test.ts'
-      - 'statistical-platform/__tests__/unit/result-transformer.test.ts'
+      - 'stats/lib/validation/**'
+      - 'stats/lib/services/statistical-executor.ts'
+      - 'stats/lib/services/pyodide-statistics.ts'
+      - 'stats/lib/services/pyodide-statistics.adapters.ts'
+      - 'stats/lib/utils/result-transformer.ts'
+      - 'stats/lib/constants/methods-registry.json'
+      - 'stats/lib/constants/methods-registry.schema.json'
+      - 'stats/lib/constants/methods-registry.types.ts'
+      - 'stats/types/smart-flow.ts'
+      - 'stats/scripts/statistics/validate-result-contracts.ts'
+      - 'stats/__tests__/lib/validation/result-schema-validator.test.ts'
+      - 'stats/__tests__/services/executors/statistical-executor-routing.test.ts'
+      - 'stats/__tests__/unit/result-transformer.test.ts'
   push:
     branches: [ master, main ]
     paths:
-      - 'statistical-platform/lib/validation/**'
-      - 'statistical-platform/lib/services/statistical-executor.ts'
-      - 'statistical-platform/lib/services/pyodide-statistics.ts'
-      - 'statistical-platform/lib/services/pyodide-statistics.adapters.ts'
-      - 'statistical-platform/lib/utils/result-transformer.ts'
-      - 'statistical-platform/lib/constants/methods-registry.json'
-      - 'statistical-platform/lib/constants/methods-registry.schema.json'
-      - 'statistical-platform/lib/constants/methods-registry.types.ts'
-      - 'statistical-platform/types/smart-flow.ts'
-      - 'statistical-platform/scripts/statistics/validate-result-contracts.ts'
-      - 'statistical-platform/__tests__/lib/validation/result-schema-validator.test.ts'
-      - 'statistical-platform/__tests__/services/executors/statistical-executor-routing.test.ts'
-      - 'statistical-platform/__tests__/unit/result-transformer.test.ts'
+      - 'stats/lib/validation/**'
+      - 'stats/lib/services/statistical-executor.ts'
+      - 'stats/lib/services/pyodide-statistics.ts'
+      - 'stats/lib/services/pyodide-statistics.adapters.ts'
+      - 'stats/lib/utils/result-transformer.ts'
+      - 'stats/lib/constants/methods-registry.json'
+      - 'stats/lib/constants/methods-registry.schema.json'
+      - 'stats/lib/constants/methods-registry.types.ts'
+      - 'stats/types/smart-flow.ts'
+      - 'stats/scripts/statistics/validate-result-contracts.ts'
+      - 'stats/__tests__/lib/validation/result-schema-validator.test.ts'
+      - 'stats/__tests__/services/executors/statistical-executor-routing.test.ts'
+      - 'stats/__tests__/unit/result-transformer.test.ts'
   workflow_dispatch:
 
 jobs:
@@ -49,24 +49,24 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: 'statistical-platform/package-lock.json'
+          cache-dependency-path: 'stats/package-lock.json'
 
       - name: Install dependencies
-        working-directory: ./statistical-platform
+        working-directory: ./stats
         run: npm ci
 
       - name: Validate result contracts
-        working-directory: ./statistical-platform
+        working-directory: ./stats
         run: npm run validate:result-contracts
 
       - name: Run validator tests
-        working-directory: ./statistical-platform
+        working-directory: ./stats
         run: npm run test -- --run __tests__/lib/validation/result-schema-validator.test.ts
 
       - name: Run executor routing tests
-        working-directory: ./statistical-platform
+        working-directory: ./stats
         run: npm run test -- --run __tests__/services/executors/statistical-executor-routing.test.ts
 
       - name: Run transformer tests
-        working-directory: ./statistical-platform
+        working-directory: ./stats
         run: npm run test -- --run __tests__/unit/result-transformer.test.ts
