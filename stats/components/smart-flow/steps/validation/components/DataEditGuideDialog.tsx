@@ -29,7 +29,7 @@ export const DataEditGuideDialog = memo(function DataEditGuideDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+          <Alert className="border-info-border bg-info-bg">
             <Info className="h-4 w-4" />
             <AlertDescription>
               {vd.introMessage}
@@ -114,7 +114,7 @@ export const DataEditGuideDialog = memo(function DataEditGuideDialog({
             </CardContent>
           </Card>
 
-          <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
+          <Alert className="border-warning-border bg-warning-bg">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
               {vd.warningMessage}

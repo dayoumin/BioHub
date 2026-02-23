@@ -23,7 +23,7 @@ export function VariableMappingDisplay({ mapping, onClose }: VariableMappingDisp
   }
 
   return (
-    <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 space-y-3">
+    <div className="bg-info-bg rounded-lg p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h4 className="font-medium text-sm">{text.title}</h4>
         <div className="flex gap-2">

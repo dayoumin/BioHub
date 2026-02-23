@@ -73,7 +73,7 @@ export function AIRecommendationSection({
     }
 
     return (
-        <div className="rounded-xl border border-white/40 bg-white/60 backdrop-blur-md p-6 mb-8 shadow-sm">
+        <div className="rounded-xl border border-border/40 bg-card/60 dark:bg-card/40 backdrop-blur-md p-6 mb-8 shadow-sm">
             <div className="flex items-center gap-2.5 mb-5">
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                     <Sparkles className="w-4 h-4 text-primary" />
@@ -93,7 +93,7 @@ export function AIRecommendationSection({
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
                     placeholder={t.hub.aiSearch.placeholder}
-                    className="min-h-[60px] resize-none pr-24 text-sm border-white/50 bg-white/50 focus:bg-white focus:border-primary/30 transition-all rounded-lg shadow-inner"
+                    className="min-h-[60px] resize-none pr-24 text-sm border-border/50 bg-card/50 focus:bg-card focus:border-primary/30 transition-all rounded-lg shadow-inner"
                     disabled={isLoading || disabled}
                 />
                 <div className="absolute right-2 bottom-2 flex gap-1">

@@ -541,13 +541,13 @@ export function DataUploadStep({
 
       {/* 메모리 경고 */}
       {memoryWarning && (
-        <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 flex items-start space-x-2">
-          <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+        <div className="bg-warning-bg border border-warning-border rounded-lg p-4 flex items-start space-x-2">
+          <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <p className="text-sm font-medium text-yellow-900 dark:text-yellow-100">
+            <p className="text-sm font-medium text-warning-muted">
               {t.dataUpload.warnings.highMemoryTitle}
             </p>
-            <p className="text-xs text-yellow-700 dark:text-yellow-300">
+            <p className="text-xs text-warning-muted">
               {t.dataUpload.warnings.highMemoryDescription}
             </p>
           </div>
@@ -563,10 +563,10 @@ export function DataUploadStep({
 
       {/* 대용량 파일 처리 중 메시지 */}
       {isUploading && !progress && (
-        <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="bg-info-bg border border-info-border rounded-lg p-4">
           <div className="flex items-center space-x-2">
-            <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-            <p className="text-sm text-blue-900 dark:text-blue-100">
+            <Loader2 className="w-4 h-4 animate-spin text-info" />
+            <p className="text-sm text-info-muted">
               {t.dataUpload.labels.analyzing}
             </p>
           </div>

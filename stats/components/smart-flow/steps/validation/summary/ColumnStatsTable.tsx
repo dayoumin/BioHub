@@ -7,6 +7,7 @@ import { BarChart, LineChart } from 'lucide-react'
 import { ColumnStatistics } from '@/types/smart-flow'
 import { TableSkeleton } from './TableSkeleton'
 import { useTerminology } from '@/hooks/use-terminology'
+import { STEP_STYLES } from '@/components/smart-flow/common/style-constants'
 
 interface ColumnStatsTableProps {
   columnStats: ColumnStatistics[]
@@ -30,30 +31,30 @@ export const ColumnStatsTable = memo(function ColumnStatsTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b">
-            <th className="text-left p-2">{vs.tableHeaders.variableName}</th>
-            <th className="text-left p-2">{vs.tableHeaders.type}</th>
-            <th className="text-left p-2">{vs.tableHeaders.missingValues}</th>
-            <th className="text-left p-2">{vs.tableHeaders.uniqueValues}</th>
-            <th className="text-left p-2">{vs.tableHeaders.statistics}</th>
-            <th className="text-left p-2">{vs.tableHeaders.actions}</th>
+            <th className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vs.tableHeaders.variableName}</th>
+            <th className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vs.tableHeaders.type}</th>
+            <th className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vs.tableHeaders.missingValues}</th>
+            <th className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vs.tableHeaders.uniqueValues}</th>
+            <th className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vs.tableHeaders.statistics}</th>
+            <th className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vs.tableHeaders.actions}</th>
           </tr>
         </thead>
         <tbody>
           {columnStats.map((stat, idx) => (
             <tr key={idx} className="border-b hover:bg-muted/50">
-              <td className="p-2 font-medium">{stat.name}</td>
-              <td className="p-2">
+              <td className={`${STEP_STYLES.tableBodyCell} font-medium`}>{stat.name}</td>
+              <td className={STEP_STYLES.tableBodyCell}>
                 <Badge variant={stat.type === 'numeric' ? 'default' : stat.type === 'categorical' ? 'secondary' : 'outline'}>
                   {stat.type === 'numeric' ? vs.typeLabels.numeric : stat.type === 'categorical' ? vs.typeLabels.categorical : vs.typeLabels.mixed}
                 </Badge>
               </td>
-              <td className="p-2">
-                <span className={stat.missingCount > 0 ? 'text-yellow-600' : ''}>
+              <td className={STEP_STYLES.tableBodyCell}>
+                <span className={stat.missingCount > 0 ? 'text-warning' : ''}>
                   {stat.missingCount} ({stat.count ? ((stat.missingCount / (stat.count + stat.missingCount)) * 100).toFixed(1) : 'N/A'}%)
                 </span>
               </td>
-              <td className="p-2">{stat.uniqueValues}</td>
-              <td className="p-2">
+              <td className={STEP_STYLES.tableBodyCell}>{stat.uniqueValues}</td>
+              <td className={STEP_STYLES.tableBodyCell}>
                 {stat.type === 'numeric' ? (
                   <div className="text-xs">
                     <div>{vs.statistics.meanLabel}: {stat.mean?.toFixed(2)}</div>
@@ -68,7 +69,7 @@ export const ColumnStatsTable = memo(function ColumnStatsTable({
                   <span className="text-muted-foreground">-</span>
                 )}
               </td>
-              <td className="p-2">
+              <td className={STEP_STYLES.tableBodyCell}>
                 <Button
                   size="sm"
                   variant="ghost"

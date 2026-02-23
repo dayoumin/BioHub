@@ -70,9 +70,9 @@ function CompatibilityIssueList({ issues }: { issues: CompatibilityIssue[] }) {
           {issue.severity === 'error' ? (
             <XCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
           ) : (
-            <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
+            <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
           )}
-          <span className={issue.severity === 'error' ? 'text-destructive' : 'text-yellow-700'}>
+          <span className={issue.severity === 'error' ? 'text-destructive' : 'text-warning-muted'}>
             {formatCompatibilityIssue(issue)}
           </span>
         </li>
@@ -150,17 +150,17 @@ export function ReanalysisPanel({
         {isCompatible ? (
           // 호환됨 - 바로 분석 가능
           <div className="space-y-4">
-            <Alert className="bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800">
-              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <AlertTitle className="text-green-800 dark:text-green-200">
+            <Alert className="bg-success-bg border-success-border">
+              <CheckCircle className="h-4 w-4 text-success" />
+              <AlertTitle className="text-success-muted">
                 {reanalysis.allVariablesMatch}
               </AlertTitle>
-              <AlertDescription className="text-green-700 dark:text-green-300">
+              <AlertDescription className="text-success-muted">
                 {summary && (
                   <span>
                     {reanalysis.matchedCount(summary.matched)}{' '}
                     {summary.typeMismatch > 0 && (
-                      <span className="text-yellow-600">
+                      <span className="text-warning">
                         ({reanalysis.typeMismatchWarning(summary.typeMismatch)})
                       </span>
                     )}

@@ -281,7 +281,7 @@ export const DataValidationStep = memo(function DataValidationStep({
 
           {/* 에러/경고 메시지 */}
           {(hasErrors || hasWarnings) && (
-            <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+            <div className="mt-4 p-3 bg-warning-bg rounded-lg border border-warning-border">
               <p className="text-sm font-medium mb-2">{t.dataValidation.sections.needsAttention}</p>
               <ul className="text-sm space-y-1">
                 {validationResults.errors?.map((error: string, idx: number) => (
@@ -305,7 +305,7 @@ export const DataValidationStep = memo(function DataValidationStep({
 
       {/* 분석 추천 카드 */}
       {!hasErrors && recommendedAnalyses.length > 0 && (
-        <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
+        <Card className="border-info-border bg-info-bg">
           <CardHeader>
             <CardTitle className="text-base">{t.dataValidation.recommendations.title}</CardTitle>
           </CardHeader>

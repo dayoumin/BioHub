@@ -1,11 +1,3 @@
-export const VALIDATION_CHART_COLORS = {
-  primary: '#3B82F6',
-  secondary: '#10B981',
-  warning: '#F59E0B',
-  danger: '#EF4444',
-  muted: '#6B7280'
-} as const
-
 export const CORRELATION_HEATMAP_COLORS = [
   [0, '#2563EB'],    // Strong negative (blue)
   [0.5, '#FFFFFF'],  // Neutral (white)

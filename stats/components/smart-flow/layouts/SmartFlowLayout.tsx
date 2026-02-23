@@ -28,6 +28,7 @@ import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { useUI } from '@/contexts/ui-context'
 import { SettingsModal } from '@/components/layout/settings-modal'
 import { HelpModal } from '@/components/layout/help-modal'
+import { STEP_STYLES } from '@/components/smart-flow/common/style-constants'
 import { DomainSwitcher } from '@/components/terminology/DomainSwitcher'
 import { useTerminology } from '@/hooks/use-terminology'
 
@@ -218,10 +219,10 @@ export function SmartFlowLayout({
 
       {/* ===== 메인 콘텐츠 영역 ===== */}
       <main className="max-w-6xl mx-auto">
-        <div className="px-6 py-8 space-y-6">
+        <div className={`${STEP_STYLES.mainContentPaddingX} ${STEP_STYLES.mainContentPaddingY} ${STEP_STYLES.sectionGap}`}>
           {/* SmartFlow 전용 도움말 패널 */}
           {showHelp && onHelpToggle && (
-            <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/30">
+            <Card className="border-info-border bg-info-bg">
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-center">
                   <CardTitle className="text-lg">{t.smartFlow.layout.dataSizeGuide}</CardTitle>
@@ -247,7 +248,7 @@ export function SmartFlowLayout({
                       <li>• {t.smartFlow.layout.memoryTier8GB}</li>
                       <li>• {t.smartFlow.layout.memoryTier16GB}</li>
                       {systemMemory && (
-                        <li className="font-medium text-blue-700 dark:text-blue-300">
+                        <li className="font-medium text-info-muted">
                           {t.smartFlow.layout.detectedMemory(systemMemory)}
                         </li>
                       )}

@@ -74,12 +74,12 @@ export const DataSummaryCard = memo(function DataSummaryCard({
         {hasWarnings && (
           <div className="space-y-2">
             <h4 className="text-sm font-semibold flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              <AlertTriangle className="h-4 w-4 text-warning" />
               {vs.sectionLabels.warnings}
             </h4>
             <ul className="space-y-1">
               {validationResults.warnings.map((warning, idx) => (
-                <li key={idx} className="text-sm text-yellow-600">{warning}</li>
+                <li key={idx} className="text-sm text-warning">{warning}</li>
               ))}
             </ul>
           </div>

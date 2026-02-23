@@ -57,4 +57,7 @@ export const STEP_STYLES = {
   actionRowPadding: 'p-3',
   tableHeaderCell: 'px-3 py-2.5',
   tableBodyCell: 'px-3 py-2.5',
+  mainContentPaddingX: 'px-6',
+  mainContentPaddingY: 'py-8',
+  sectionGap: 'space-y-6',
 } as const

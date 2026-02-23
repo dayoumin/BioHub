@@ -30,36 +30,36 @@ function getFitStyle(score: number): FitStyle {
   if (score >= 85) {
     return {
       level: 'excellent',
-      colorClass: 'text-green-600 dark:text-green-400',
-      bgClass: 'bg-green-100 dark:bg-green-900/30',
-      barClass: 'bg-green-500',
+      colorClass: 'text-success',
+      bgClass: 'bg-success-bg',
+      barClass: 'bg-success',
       icon: <CheckCircle2 className="w-4 h-4" />
     }
   }
   if (score >= 70) {
     return {
       level: 'good',
-      colorClass: 'text-blue-600 dark:text-blue-400',
-      bgClass: 'bg-blue-100 dark:bg-blue-900/30',
-      barClass: 'bg-blue-500',
+      colorClass: 'text-info',
+      bgClass: 'bg-info-bg',
+      barClass: 'bg-info',
       icon: <CheckCircle2 className="w-4 h-4" />
     }
   }
   if (score >= 50) {
     return {
       level: 'caution',
-      colorClass: 'text-amber-600 dark:text-amber-400',
-      bgClass: 'bg-amber-100 dark:bg-amber-900/30',
-      barClass: 'bg-amber-500',
+      colorClass: 'text-warning',
+      bgClass: 'bg-warning-bg',
+      barClass: 'bg-warning',
       icon: <AlertCircle className="w-4 h-4" />
     }
   }
   if (score > 0) {
     return {
       level: 'poor',
-      colorClass: 'text-red-600 dark:text-red-400',
-      bgClass: 'bg-red-100 dark:bg-red-900/30',
-      barClass: 'bg-red-500',
+      colorClass: 'text-error',
+      bgClass: 'bg-error-bg',
+      barClass: 'bg-error',
       icon: <XCircle className="w-4 h-4" />
     }
   }

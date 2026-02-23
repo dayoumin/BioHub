@@ -49,7 +49,7 @@ export const AssumptionResultsPanel = memo(function AssumptionResultsPanel({
   const violations = summary.violations ?? []
 
   return (
-    <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+    <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-info-border">
       <div className="flex items-start gap-3">
         {/* Icon */}
         <div className={`mt-1 p-2 rounded-full ${
@@ -75,8 +75,8 @@ export const AssumptionResultsPanel = memo(function AssumptionResultsPanel({
 
           {/* Violations */}
           {violations.length > 0 && (
-            <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg">
-              <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-2">
+            <div className="mb-3 p-3 bg-warning-bg rounded-lg">
+              <p className="text-sm font-medium text-warning-muted mb-2">
                 {vd.violationsFound}
               </p>
               <ul className="text-sm space-y-1.5">
@@ -90,7 +90,7 @@ export const AssumptionResultsPanel = memo(function AssumptionResultsPanel({
                   )
 
                   return (
-                    <li key={idx} className="text-amber-800 dark:text-amber-200">
+                    <li key={idx} className="text-warning-muted">
                       {icon} {violation}{detail}
                     </li>
                   )
@@ -209,19 +209,19 @@ function NonParametricMethods({ t }: { t: TerminologyDictionary }) {
   return (
     <>
       <div className="flex items-start gap-2">
-        <span className="text-amber-600">✓</span>
+        <span className="text-warning">✓</span>
         <span><strong>{vd.mannWhitney.name}</strong>: {vd.mannWhitney.description}</span>
       </div>
       <div className="flex items-start gap-2">
-        <span className="text-amber-600">✓</span>
+        <span className="text-warning">✓</span>
         <span><strong>{vd.kruskalWallis.name}</strong>: {vd.kruskalWallis.description}</span>
       </div>
       <div className="flex items-start gap-2">
-        <span className="text-amber-600">✓</span>
+        <span className="text-warning">✓</span>
         <span><strong>{vd.spearman.name}</strong>: {vd.spearman.description}</span>
       </div>
       <div className="flex items-start gap-2">
-        <span className="text-amber-600">✓</span>
+        <span className="text-warning">✓</span>
         <span><strong>{vd.robustRegression.name}</strong>: {vd.robustRegression.description}</span>
       </div>
     </>

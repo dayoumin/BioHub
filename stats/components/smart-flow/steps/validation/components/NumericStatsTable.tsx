@@ -16,6 +16,7 @@ import { AlertTriangle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useTerminology } from '@/hooks/use-terminology'
 import type { ColumnStatistics } from '@/types/smart-flow'
+import { STEP_STYLES } from '@/components/smart-flow/common/style-constants'
 
 export interface NumericStatsTableProps {
   /** 컬럼 통계 (수치형만 필터링됨) */
@@ -50,45 +51,45 @@ export const NumericStatsTable = memo(function NumericStatsTable({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b">
-                <th className="text-left p-2">{vd.headers.variableName}</th>
-                <th className="text-right p-2">{vd.headers.mean}</th>
-                <th className="text-right p-2">{vd.headers.median}</th>
-                <th className="text-right p-2">{vd.headers.stdDev}</th>
-                <th className="text-right p-2">{vd.headers.cv}</th>
-                <th className="text-right p-2">{vd.headers.skewness}</th>
-                <th className="text-right p-2">{vd.headers.kurtosis}</th>
-                <th className="text-right p-2">{vd.headers.min}</th>
-                <th className="text-right p-2">{vd.headers.max}</th>
-                <th className="text-right p-2">{vd.headers.outliers}</th>
+                <th className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.variableName}</th>
+                <th className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.mean}</th>
+                <th className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.median}</th>
+                <th className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.stdDev}</th>
+                <th className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.cv}</th>
+                <th className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.skewness}</th>
+                <th className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.kurtosis}</th>
+                <th className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.min}</th>
+                <th className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.max}</th>
+                <th className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.outliers}</th>
               </tr>
             </thead>
             <tbody>
               {numericStats.map((stat, idx) => (
                 <tr key={idx} className="border-b hover:bg-muted/50">
-                  <td className="p-2 font-medium">{stat.name}</td>
-                  <td className="text-right p-2">{stat.mean?.toFixed(2)}</td>
-                  <td className="text-right p-2">{stat.median?.toFixed(2)}</td>
-                  <td className="text-right p-2">{stat.std?.toFixed(2)}</td>
-                  <td className="text-right p-2">
+                  <td className={`${STEP_STYLES.tableBodyCell} font-medium`}>{stat.name}</td>
+                  <td className={`text-right ${STEP_STYLES.tableBodyCell}`}>{stat.mean?.toFixed(2)}</td>
+                  <td className={`text-right ${STEP_STYLES.tableBodyCell}`}>{stat.median?.toFixed(2)}</td>
+                  <td className={`text-right ${STEP_STYLES.tableBodyCell}`}>{stat.std?.toFixed(2)}</td>
+                  <td className={`text-right ${STEP_STYLES.tableBodyCell}`}>
                     {stat.cv !== undefined ? stat.cv.toFixed(1) : '-'}
                   </td>
-                  <td className="text-right p-2">
+                  <td className={`text-right ${STEP_STYLES.tableBodyCell}`}>
                     {stat.skewness !== undefined ? (
                       <span className={getSkewnessColor(stat.skewness)}>
                         {stat.skewness.toFixed(2)}
                       </span>
                     ) : '-'}
                   </td>
-                  <td className="text-right p-2">
+                  <td className={`text-right ${STEP_STYLES.tableBodyCell}`}>
                     {stat.kurtosis !== undefined ? (
                       <span className={getKurtosisColor(stat.kurtosis)}>
                         {stat.kurtosis.toFixed(2)}
                       </span>
                     ) : '-'}
                   </td>
-                  <td className="text-right p-2">{stat.min?.toFixed(2)}</td>
-                  <td className="text-right p-2">{stat.max?.toFixed(2)}</td>
-                  <td className="text-right p-2">
+                  <td className={`text-right ${STEP_STYLES.tableBodyCell}`}>{stat.min?.toFixed(2)}</td>
+                  <td className={`text-right ${STEP_STYLES.tableBodyCell}`}>{stat.max?.toFixed(2)}</td>
+                  <td className={`text-right ${STEP_STYLES.tableBodyCell}`}>
                     {stat.outliers?.length || 0}
                     {stat.outliers && stat.outliers.length > 0 && (
                       <span className="text-xs text-orange-600 ml-1">
@@ -121,10 +122,10 @@ export const NumericStatsTable = memo(function NumericStatsTable({
 
         {/* Problem Solving Guide */}
         {hasProblems && (
-          <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+          <div className="mt-4 p-4 bg-warning-bg rounded-lg border border-warning-border">
             <div className="flex items-start gap-2 mb-3">
-              <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5" />
-              <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+              <AlertTriangle className="w-4 h-4 text-warning mt-0.5" />
+              <h4 className="text-sm font-semibold text-warning-muted">
                 {vd.problemGuide.title}
               </h4>
             </div>
@@ -132,11 +133,11 @@ export const NumericStatsTable = memo(function NumericStatsTable({
             <div className="space-y-3 text-xs">
               {/* Skewness Problems */}
               {numericStats.some(s => Math.abs(s.skewness || 0) >= 1) && (
-                <div className="border-l-2 border-amber-400 pl-3">
-                  <p className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                <div className="border-l-2 border-warning-border pl-3">
+                  <p className="font-semibold text-warning-muted mb-1">
                     {vd.problemGuide.skewnessTitle}
                   </p>
-                  <ul className="space-y-1 text-amber-800 dark:text-amber-200">
+                  <ul className="space-y-1 text-warning-muted">
                     <li>{vd.problemGuide.skewnessPositive}</li>
                     <li>{vd.problemGuide.skewnessNegative}</li>
                     <li>{vd.problemGuide.skewnessAlternative}</li>
@@ -146,11 +147,11 @@ export const NumericStatsTable = memo(function NumericStatsTable({
 
               {/* Kurtosis Problems */}
               {numericStats.some(s => Math.abs(s.kurtosis || 0) >= 3) && (
-                <div className="border-l-2 border-amber-400 pl-3">
-                  <p className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                <div className="border-l-2 border-warning-border pl-3">
+                  <p className="font-semibold text-warning-muted mb-1">
                     {vd.problemGuide.kurtosisTitle}
                   </p>
-                  <ul className="space-y-1 text-amber-800 dark:text-amber-200">
+                  <ul className="space-y-1 text-warning-muted">
                     <li>{vd.problemGuide.kurtosisHigh}</li>
                     <li>{vd.problemGuide.kurtosisLow}</li>
                     <li>{vd.problemGuide.kurtosisAlternative}</li>
@@ -160,11 +161,11 @@ export const NumericStatsTable = memo(function NumericStatsTable({
 
               {/* Outlier Problems */}
               {numericStats.some(s => s.outliers && s.outliers.length > s.numericCount * 0.1) && (
-                <div className="border-l-2 border-amber-400 pl-3">
-                  <p className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                <div className="border-l-2 border-warning-border pl-3">
+                  <p className="font-semibold text-warning-muted mb-1">
                     {vd.problemGuide.outlierTitle}
                   </p>
-                  <ul className="space-y-1 text-amber-800 dark:text-amber-200">
+                  <ul className="space-y-1 text-warning-muted">
                     <li>{vd.problemGuide.outlierIdentify}</li>
                     <li>{vd.problemGuide.outlierTreatment}</li>
                     <li>{vd.problemGuide.outlierAlternative}</li>
@@ -173,9 +174,9 @@ export const NumericStatsTable = memo(function NumericStatsTable({
               )}
 
               {/* General Recommendations */}
-              <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-950/20 rounded">
-                <p className="text-blue-900 dark:text-blue-100 font-medium mb-1">{vd.problemGuide.generalTitle}</p>
-                <ul className="space-y-1 text-blue-800 dark:text-blue-200">
+              <div className="mt-3 p-2 bg-info-bg rounded">
+                <p className="text-info-muted font-medium mb-1">{vd.problemGuide.generalTitle}</p>
+                <ul className="space-y-1 text-info-muted">
                   <li>{vd.problemGuide.generalCompare}</li>
                   <li>{vd.problemGuide.generalNonParametric}</li>
                   <li>{vd.problemGuide.generalPreserveOriginal}</li>

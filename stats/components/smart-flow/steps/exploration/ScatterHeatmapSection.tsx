@@ -262,7 +262,7 @@ export const ScatterHeatmapSection = memo(function ScatterHeatmapSection({
             )}
 
             {/* 해석 가이드 */}
-            <div className="mt-4 text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="mt-4 text-sm text-muted-foreground bg-info-bg p-3 rounded-lg border border-info-border">
               <p className="font-medium mb-1">{t.dataExploration.heatmapGuide.title}</p>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                 <div><span className="inline-block w-3 h-3 rounded bg-red-500 mr-1"></span> <strong>r = +1</strong>: {t.dataExploration.heatmapGuide.strongPositive}</div>

@@ -35,9 +35,9 @@ export function ConfidenceGauge({
     const offset = circumference - (animatedValue / 100) * circumference
 
     // Color based on confidence level
-    const colorClass = value >= 85 ? 'text-green-500' :
-        value >= 70 ? 'text-blue-500' :
-            'text-yellow-500'
+    const colorClass = value >= 85 ? 'text-success' :
+        value >= 70 ? 'text-info' :
+            'text-warning'
 
     return (
         <div className={cn("relative inline-flex", className)} style={{ width: config.width, height: config.width }}>

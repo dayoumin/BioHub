@@ -943,7 +943,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               </div>
 
               {/* 해석 가이드 */}
-              <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="text-xs text-muted-foreground bg-info-bg p-3 rounded-lg border border-info-border">
                 <p className="font-medium mb-1 flex items-center gap-1"><Lightbulb className="h-3.5 w-3.5" />{t.dataExploration.interpretGuide.title}</p>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                   <div>{t.dataExploration.interpretGuide.skewness}</div>
@@ -961,10 +961,10 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               {/* 하이라이트된 행이 있으면 해당 행들만 표시 */}
               {highlightedRows.length > 0 ? (
                 <>
-                  <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                  <div className="flex items-center justify-between p-3 bg-warning-bg rounded-lg border border-warning-border">
                     <div className="flex items-center gap-2 text-sm">
-                      <span className="text-yellow-600 dark:text-yellow-400">●</span>
-                      <span className="font-medium text-yellow-800 dark:text-yellow-200">
+                      <span className="text-warning">●</span>
+                      <span className="font-medium text-warning-muted">
                         {t.dataExploration.highlight.description(highlightedColumn ?? '', highlightedRows.length)}
                       </span>
                     </div>
