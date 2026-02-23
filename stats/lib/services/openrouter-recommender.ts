@@ -186,7 +186,8 @@ export class OpenRouterRecommender {
     systemPrompt: string,
     validationResults: ValidationResults | null,
     assumptionResults: StatisticalAssumptions | null,
-    _data: DataRow[] | null
+    _data: DataRow[] | null,
+    options?: { temperature?: number; maxTokens?: number }
   ): Promise<{ recommendation: AIRecommendation | null; responseText: string }> {
     const userPrompt = this.buildUserPrompt(userInput, validationResults, assumptionResults)
 
@@ -199,7 +200,7 @@ export class OpenRouterRecommender {
     for (let i = 0; i < this.config.models.length; i++) {
       const model = this.config.models[i]
       try {
-        const result = await this.callModel(model, systemPrompt, userPrompt)
+        const result = await this.callModel(model, systemPrompt, userPrompt, options)
         if (result) {
           // 변수 할당 검증: 실제 데이터에 존재하지 않는 변수명 필터링
           if (result.recommendation?.variableAssignments && validColumnNames.size > 0) {
@@ -241,7 +242,8 @@ export class OpenRouterRecommender {
   private async callModel(
     model: string,
     systemPrompt: string,
-    userPrompt: string
+    userPrompt: string,
+    options?: { temperature?: number; maxTokens?: number }
   ): Promise<{ recommendation: AIRecommendation | null; responseText: string } | null> {
     logger.info('[OpenRouter] Trying model', { model })
 
@@ -265,8 +267,8 @@ export class OpenRouterRecommender {
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }
           ] satisfies OpenRouterMessage[],
-          temperature: this.config.temperature,
-          max_tokens: this.config.maxTokens
+          temperature: options?.temperature ?? this.config.temperature,
+          max_tokens: options?.maxTokens ?? this.config.maxTokens
         }),
         signal: controller.signal
       })
@@ -316,7 +318,8 @@ export class OpenRouterRecommender {
    */
   async generateRawText(
     systemPrompt: string,
-    userPrompt: string
+    userPrompt: string,
+    options?: { temperature?: number; maxTokens?: number }
   ): Promise<string | null> {
     for (let i = 0; i < this.config.models.length; i++) {
       const model = this.config.models[i]
@@ -340,8 +343,8 @@ export class OpenRouterRecommender {
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt }
               ] satisfies OpenRouterMessage[],
-              temperature: this.config.temperature,
-              max_tokens: this.config.maxTokens
+              temperature: options?.temperature ?? this.config.temperature,
+              max_tokens: options?.maxTokens ?? this.config.maxTokens
             }),
             signal: controller.signal
           })

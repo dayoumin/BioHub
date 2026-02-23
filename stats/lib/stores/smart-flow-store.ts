@@ -30,7 +30,7 @@ import {
   clearAllHistory,
   initStorage
 } from '@/lib/utils/storage'
-import type { HistoryRecord } from '@/lib/utils/storage-types'
+import type { HistoryRecord, AiRecommendationContext } from '@/lib/utils/storage-types'
 import { isIndexedDBAvailable } from '@/lib/utils/adapters/indexeddb-adapter'
 import { transformExecutorResult } from '@/lib/utils/result-transformer'
 import type { AnalysisResult as ExecutorResult } from '@/lib/services/executors/types'
@@ -84,6 +84,8 @@ export interface DetectedVariables {
 const MAX_STEPS = 4
 
 // 분석 히스토리 타입 (UI용 - IndexedDB와 호환)
+export type { AiRecommendationContext } from '@/lib/utils/storage-types'
+
 export interface AnalysisHistory {
   id: string
   timestamp: Date
@@ -100,6 +102,7 @@ export interface AnalysisHistory {
   results: Record<string, unknown> | null
   aiInterpretation?: string | null
   apaFormat?: string | null
+  aiRecommendation?: AiRecommendationContext | null
 }
 
 interface SmartFlowState {
@@ -154,6 +157,8 @@ interface SmartFlowState {
   activeTrack: AnalysisTrack | null
   // Hub에서 입력한 사용자 질문 (Step 2 aiChatInput으로 전달용)
   userQuery: string | null
+  // AI 추천 맥락 (Step 2에서 AI 추천 받으면 저장, saveToHistory에서 사용)
+  lastAiRecommendation: AiRecommendationContext | null
 
   // 상태
   isLoading: boolean
@@ -196,6 +201,7 @@ interface SmartFlowState {
   setPurposeInputMode: (mode: 'ai' | 'browse') => void
   setActiveTrack: (track: AnalysisTrack | null) => void
   setUserQuery: (query: string | null) => void
+  setLastAiRecommendation: (rec: AiRecommendationContext | null) => void
 
   // 네비게이션
   canNavigateToStep: (step: number) => boolean
@@ -238,6 +244,7 @@ const initialState = {
   purposeInputMode: 'ai' as const,
   activeTrack: null,
   userQuery: null,
+  lastAiRecommendation: null,
 }
 
 export const useSmartFlowStore = create<SmartFlowState>()(
@@ -337,6 +344,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
       setPurposeInputMode: (mode) => set({ purposeInputMode: mode }),
       setActiveTrack: (track) => set({ activeTrack: track }),
       setUserQuery: (query) => set({ userQuery: query }),
+      setLastAiRecommendation: (rec) => set({ lastAiRecommendation: rec }),
 
       // 히스토리 관리 (IndexedDB)
       saveToHistory: async (name, metadata) => {
@@ -365,7 +373,8 @@ export const useSmartFlowStore = create<SmartFlowState>()(
           aiInterpretation: metadata?.aiInterpretation ?? null,
           apaFormat: metadata?.apaFormat ?? null,
           variableMapping: state.variableMapping,
-          analysisPurpose: state.analysisPurpose
+          analysisPurpose: state.analysisPurpose,
+          aiRecommendation: state.lastAiRecommendation ?? null
         }
 
         try {
@@ -423,7 +432,9 @@ export const useSmartFlowStore = create<SmartFlowState>()(
             // ⚠️ 원본 데이터는 복원 안 됨 (재분석 불가)
             uploadedData: null,
             validationResults: null,
-            uploadedFile: null
+            uploadedFile: null,
+            // 이전 세션의 AI 추천 맥락이 새 분석에 섞이지 않도록 초기화
+            lastAiRecommendation: null
           })
         }
       },
@@ -457,6 +468,8 @@ export const useSmartFlowStore = create<SmartFlowState>()(
           dataCharacteristics: null,
           dataSummary: null,
           assumptionResults: null,
+          // 이전 세션의 AI 추천 맥락이 재분석에 섞이지 않도록 초기화
+          lastAiRecommendation: null,
 
           // 설정 복원
           selectedMethod: record.method ? {
@@ -698,6 +711,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         purposeInputMode: 'ai',
         activeTrack: null,
         userQuery: null,
+        lastAiRecommendation: null,
         // Preserve history
         analysisHistory: state.analysisHistory
       })),

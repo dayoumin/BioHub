@@ -622,7 +622,8 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
     systemPrompt: string,
     validationResults: ValidationResults | null,
     assumptionResults: StatisticalAssumptions | null,
-    data: DataRow[] | null
+    data: DataRow[] | null,
+    options?: { temperature?: number; maxTokens?: number }
   ): Promise<{ recommendation: AIRecommendation | null; responseText: string }> {
     try {
       const prompt = this.buildNaturalLanguagePrompt(
@@ -637,7 +638,10 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
       })
 
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 15000)
+      // 타임아웃을 maxTokens에 비례 (로컬 모델 속도 고려: ~80 tok/s → 1200=15s, 3500=44s)
+      const numPredict = options?.maxTokens ?? 1200
+      const timeout = Math.max(15000, Math.ceil(numPredict / 80) * 1000)
+      const timeoutId = setTimeout(() => controller.abort(), timeout)
 
       const response = await fetch(`${this.config.host}/api/generate`, {
         method: 'POST',
@@ -648,8 +652,8 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
           system: systemPrompt,
           stream: false,
           options: {
-            temperature: this.config.temperature,
-            num_predict: 1200
+            temperature: options?.temperature ?? this.config.temperature,
+            num_predict: numPredict
           }
         }),
         signal: controller.signal
@@ -691,11 +695,14 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
    */
   async generateRawText(
     systemPrompt: string,
-    userPrompt: string
+    userPrompt: string,
+    options?: { temperature?: number; maxTokens?: number }
   ): Promise<string | null> {
     try {
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 15000)
+      const numPredict = options?.maxTokens ?? this.config.maxTokens
+      const timeout = Math.max(15000, Math.ceil(numPredict / 80) * 1000)
+      const timeoutId = setTimeout(() => controller.abort(), timeout)
 
       const response = await fetch(`${this.config.host}/api/generate`, {
         method: 'POST',
@@ -706,8 +713,8 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
           system: systemPrompt,
           stream: false,
           options: {
-            temperature: this.config.temperature,
-            num_predict: this.config.maxTokens
+            temperature: options?.temperature ?? this.config.temperature,
+            num_predict: numPredict
           }
         }),
         signal: controller.signal

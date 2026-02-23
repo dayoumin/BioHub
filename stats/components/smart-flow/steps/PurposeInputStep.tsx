@@ -330,6 +330,7 @@ export function PurposeInputStep({
   const methodCompatibility = useSmartFlowStore(state => state.methodCompatibility)
   const userQuery = useSmartFlowStore(state => state.userQuery)
   const setUserQuery = useSmartFlowStore(state => state.setUserQuery)
+  const setLastAiRecommendation = useSmartFlowStore(state => state.setLastAiRecommendation)
 
   // Data profile for MethodBrowser
   const dataProfile = useMemo(() => {
@@ -666,6 +667,20 @@ export function PurposeInputStep({
 
       if (recommendation) {
         flowDispatch(flowActions.setAiRecommendation(recommendation))
+        // AI 추천 맥락을 store에 저장 (saveToHistory에서 HistoryRecord에 포함)
+        setLastAiRecommendation({
+          userQuery: flowState.aiChatInput || '',
+          confidence: recommendation.confidence,
+          reasoning: recommendation.reasoning,
+          warnings: recommendation.warnings,
+          alternatives: recommendation.alternatives?.map(a => ({
+            id: a.id,
+            name: a.name,
+            description: a.description || ''
+          })),
+          provider,
+          ambiguityNote: recommendation.ambiguityNote,
+        })
       } else {
         flowDispatch(flowActions.aiChatError(t.purposeInput.messages.aiRecommendError))
       }
@@ -673,7 +688,7 @@ export function PurposeInputStep({
       logger.error('AI Chat error', { error })
       flowDispatch(flowActions.aiChatError(t.purposeInput.messages.genericError))
     }
-  }, [flowState.aiChatInput, flowState.isAiLoading, validationResults, assumptionResults, data, t])
+  }, [flowState.aiChatInput, flowState.isAiLoading, validationResults, assumptionResults, data, t, setLastAiRecommendation])
 
   const handleAiSelectMethod = useCallback(async (method: StatisticalMethod) => {
     if (isNavigating) return

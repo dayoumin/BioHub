@@ -96,6 +96,7 @@ export class TursoAdapter implements StorageAdapter {
           results TEXT,
           aiInterpretation TEXT,
           apaFormat TEXT,
+          aiRecommendation TEXT,
           deviceId TEXT,
           syncedAt INTEGER,
           updatedAt INTEGER
@@ -118,6 +119,7 @@ export class TursoAdapter implements StorageAdapter {
     // Existing DB migration safety: add columns if legacy schema is already present.
     await this.ensureColumn('history', 'aiInterpretation', 'TEXT')
     await this.ensureColumn('history', 'apaFormat', 'TEXT')
+    await this.ensureColumn('history', 'aiRecommendation', 'TEXT')
   }
 
   private async ensureColumn(table: string, column: string, type: string): Promise<void> {
@@ -160,8 +162,9 @@ export class TursoAdapter implements StorageAdapter {
       sql: `INSERT OR REPLACE INTO history
             (id, timestamp, name, purpose, analysisPurpose, method,
              variableMapping, analysisOptions, dataFileName, dataRowCount,
-             columnInfo, results, aiInterpretation, apaFormat, deviceId, syncedAt, updatedAt)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             columnInfo, results, aiInterpretation, apaFormat, aiRecommendation,
+             deviceId, syncedAt, updatedAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args: [
         record.id,
         record.timestamp,
@@ -177,6 +180,7 @@ export class TursoAdapter implements StorageAdapter {
         record.results ? JSON.stringify(record.results) : null,
         record.aiInterpretation ?? null,
         record.apaFormat ?? null,
+        record.aiRecommendation ? JSON.stringify(record.aiRecommendation) : null,
         record.deviceId || this.getDeviceId(),
         now,
         record.updatedAt || now
@@ -286,6 +290,7 @@ export class TursoAdapter implements StorageAdapter {
       results: row.results ? JSON.parse(row.results as string) : null,
       aiInterpretation: (row.aiInterpretation as string | null) ?? null,
       apaFormat: (row.apaFormat as string | null) ?? null,
+      aiRecommendation: row.aiRecommendation ? JSON.parse(row.aiRecommendation as string) : null,
       deviceId: row.deviceId as string | undefined,
       syncedAt: row.syncedAt as number | undefined,
       updatedAt: row.updatedAt as number | undefined

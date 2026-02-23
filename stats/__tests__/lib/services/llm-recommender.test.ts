@@ -4,11 +4,13 @@ const { openRouterRecommenderMock, ollamaRecommenderMock, getSettingsStateMock }
   openRouterRecommenderMock: {
     checkHealth: vi.fn(),
     recommendWithSystemPrompt: vi.fn(),
+    generateRawText: vi.fn(),
     streamChatCompletion: vi.fn(),
   },
   ollamaRecommenderMock: {
     checkHealth: vi.fn(),
     recommendWithSystemPrompt: vi.fn(),
+    generateRawText: vi.fn(),
     streamChatCompletion: vi.fn(),
     keywordBasedRecommend: vi.fn(),
   },
@@ -32,6 +34,7 @@ vi.mock('@/lib/stores/settings-store', () => ({
 vi.mock('@/lib/services/ai/prompts', () => ({
   getSystemPromptConsultant: () => 'consultant prompt',
   getSystemPromptDiagnostic: () => 'diagnostic prompt',
+  getSystemPromptIntentRouter: () => 'intent router prompt',
 }))
 
 import { llmRecommender } from '@/lib/services/llm-recommender'
@@ -83,6 +86,10 @@ describe('llmRecommender', () => {
       recommendation: makeRecommendation('keyword-method'),
       responseText: 'keyword fallback',
     })
+
+    // generateRawText: classifyIntent에서 사용, 기본값은 null (응답 없음)
+    openRouterRecommenderMock.generateRawText.mockResolvedValue(null)
+    ollamaRecommenderMock.generateRawText.mockResolvedValue(null)
   })
 
   it('falls back when provider returns text without recommendation', async () => {
@@ -160,6 +167,42 @@ describe('llmRecommender', () => {
     const generator = llmRecommender.stream('system', 'user')
 
     await expect(generator.next()).rejects.toThrow('ollama stream failed')
+  })
+
+  // ===== per-call options 실제 전달 검증 =====
+
+  it('recommendFromNaturalLanguage passes { maxTokens: 3500 } to recommendWithSystemPrompt', async () => {
+    await llmRecommender.recommendFromNaturalLanguage('두 그룹 비교', null, null, null)
+
+    // tryOpenRouter가 recommendWithSystemPrompt를 호출할 때 6번째 인자가 { maxTokens: 3500 }이어야 함
+    expect(openRouterRecommenderMock.recommendWithSystemPrompt).toHaveBeenCalledWith(
+      '두 그룹 비교',       // userInput
+      'consultant prompt', // systemPrompt (validationResults=null이므로 CONSULTANT 모드)
+      null,                // validationResults
+      null,                // assumptionResults
+      null,                // data
+      { maxTokens: 3500 }  // options ← 검증 대상
+    )
+  })
+
+  it('classifyIntent passes { temperature: 0.1, maxTokens: 1000 } to generateRawText', async () => {
+    // 유효한 JSON 응답 반환 → parseIntentResponse가 파싱할 수 있어야 함
+    const validResponse = JSON.stringify({
+      track: 'direct-analysis',
+      confidence: 0.85,
+      methodId: null,
+      reasoning: '명시적 분석 요청',
+    })
+    openRouterRecommenderMock.generateRawText.mockResolvedValueOnce(validResponse)
+
+    await llmRecommender.classifyIntent('t-test 해줘')
+
+    // generateRawText 3번째 인자가 { temperature: 0.1, maxTokens: 1000 }이어야 함
+    expect(openRouterRecommenderMock.generateRawText).toHaveBeenCalledWith(
+      'intent router prompt',              // systemPrompt
+      't-test 해줘',                        // userInput
+      { temperature: 0.1, maxTokens: 1000 } // options ← 검증 대상
+    )
   })
 })
 

@@ -7,6 +7,23 @@
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 
 /**
+ * AI 추천 맥락 (히스토리 저장용)
+ */
+export interface AiRecommendationContext {
+  userQuery: string
+  confidence: number
+  reasoning: string[]
+  warnings?: string[]
+  alternatives?: Array<{
+    id: string
+    name: string
+    description: string
+  }>
+  provider: 'openrouter' | 'ollama' | 'keyword'
+  ambiguityNote?: string
+}
+
+/**
  * 분석 히스토리 레코드
  * IndexedDB와 Turso 모두에서 동일한 구조 사용
  */
@@ -50,6 +67,9 @@ export interface HistoryRecord {
   results: Record<string, unknown> | null
   aiInterpretation?: string | null
   apaFormat?: string | null
+
+  // === AI 추천 맥락 ===
+  aiRecommendation?: AiRecommendationContext | null
 
   // === 동기화 ===
   deviceId?: string

@@ -117,8 +117,10 @@ export class LlmRecommender {
 
       logger.info('[LlmRecommender] Trying OpenRouter...')
 
+      // 추천: 한국어 reasoning + alternatives 포함하므로 토큰 여유 확보
       const { recommendation, responseText } = await openRouterRecommender.recommendWithSystemPrompt(
-        userInput, systemPrompt, validationResults, assumptionResults, data
+        userInput, systemPrompt, validationResults, assumptionResults, data,
+        { maxTokens: 3500 }
       )
 
       if (recommendation) {
@@ -149,7 +151,8 @@ export class LlmRecommender {
       logger.info('[LlmRecommender] Trying Ollama...')
 
       const { recommendation, responseText } = await ollamaRecommender.recommendWithSystemPrompt(
-        userInput, systemPrompt, validationResults, assumptionResults, data
+        userInput, systemPrompt, validationResults, assumptionResults, data,
+        { maxTokens: 3500 }
       )
 
       if (recommendation) {
@@ -265,7 +268,7 @@ export class LlmRecommender {
       userPrompt,
       onChunk,
       signal,
-      { temperature: 0.3, maxTokens: 4000 }
+      { temperature: 0.5, maxTokens: 4000 }
     ).then((result) => {
       enqueue({ type: 'done', model: result?.model ?? 'unknown' })
     }).catch((err) => {
@@ -295,14 +298,17 @@ export class LlmRecommender {
     const systemPrompt = getSystemPromptIntentRouter()
     const { useOllamaForRecommendation } = useSettingsStore.getState()
 
+    // Intent 분류: 단순 JSON 응답이므로 낮은 temperature + 적은 토큰
+    const intentOptions = { temperature: 0.1, maxTokens: 1000 }
+
     const providers = useOllamaForRecommendation
       ? [
-          { name: 'ollama', fn: () => ollamaRecommender.generateRawText(systemPrompt, userInput) },
-          { name: 'openrouter', fn: () => openRouterRecommender.generateRawText(systemPrompt, userInput) },
+          { name: 'ollama', fn: () => ollamaRecommender.generateRawText(systemPrompt, userInput, intentOptions) },
+          { name: 'openrouter', fn: () => openRouterRecommender.generateRawText(systemPrompt, userInput, intentOptions) },
         ]
       : [
-          { name: 'openrouter', fn: () => openRouterRecommender.generateRawText(systemPrompt, userInput) },
-          { name: 'ollama', fn: () => ollamaRecommender.generateRawText(systemPrompt, userInput) },
+          { name: 'openrouter', fn: () => openRouterRecommender.generateRawText(systemPrompt, userInput, intentOptions) },
+          { name: 'ollama', fn: () => ollamaRecommender.generateRawText(systemPrompt, userInput, intentOptions) },
         ]
 
     for (const provider of providers) {

@@ -151,6 +151,24 @@
 |------|------|------|
 | `ignoreDuringBuilds: true` | `next.config.ts:44` | 빌드 시 TS 에러 무시 → `false`로 변경 + 에러 수정 필요 |
 | 결측값 하드코딩 0 | `statistical-executor.ts:498` | `missingRemoved = 0` → 실제 결측값 계산 구현 필요 |
+| `!` non-null assertion | `prompts.ts:40`, `openrouter-recommender.ts:445` | `byCategory.get(cat)!.push()` → optional chaining으로 교체 |
+
+**🟠 High — AI 서비스**
+| 항목 | 파일 | 설명 |
+|------|------|------|
+| 레거시 프롬프트 중복 | `openrouter-recommender.ts:452-511` | `getSystemPrompt()` private 메서드 — `prompts.ts` SSOT와 중복, 직접 호출 경로만 사용 |
+| `LlmProvider` 타입 이중 정의 | `llm-recommender.ts:29` / `storage-types.ts:22` | 동일 유니온 타입 독립 정의 → `storage-types.ts`로 단일화 필요 |
+
+### 운영 후 결정 (Post-Launch)
+
+**Ollama (로컬 LLM) 처리 방향**
+- 현재: `useOllamaForRecommendation` 기본값 `false` + 원격 환경 자동 skip → 실질적으로 비활성화 상태
+- 현재 전략: **현상 유지** (OpenRouter API 키 전용 운영, 로컬 옵션 보존)
+- 향후 선택지:
+  - A. 현상 유지 — 설정에서 켜면 로컬 사용 가능
+  - B. Fallback 체인에서 Ollama 제거 → keyword fallback으로 바로 이동
+  - C. `ollama-recommender.ts` 완전 삭제
+- 참고: Ollama `any` 타입 3곳, greedy regex JSON 파싱 버그 존재 (삭제 시 같이 해결됨)
 
 **🟠 High — 타입 안전성**
 | 항목 | 범위 | 설명 |
