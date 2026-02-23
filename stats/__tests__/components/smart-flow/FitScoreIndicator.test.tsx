@@ -198,10 +198,31 @@ describe('getFitLevel 유틸리티 함수', () => {
   })
 })
 
-describe('다크 모드 지원', () => {
-  it('다크 모드 클래스가 포함됨', () => {
-    const config = getFitLevel(90)
-    expect(config.colorClass).toContain('dark:')
-    expect(config.bgClass).toContain('dark:')
+describe('시맨틱 토큰 사용', () => {
+  it('시맨틱 색상 토큰을 사용하여 다크 모드 자동 지원', () => {
+    // 시맨틱 토큰(text-success, bg-success-bg 등)은 CSS 변수를 통해
+    // 다크 모드를 자동 처리하므로 dark: prefix가 불필요
+    const excellent = getFitLevel(90)
+    expect(excellent.colorClass).toBe('text-success')
+    expect(excellent.bgClass).toBe('bg-success-bg')
+    expect(excellent.barClass).toBe('bg-success')
+
+    const good = getFitLevel(75)
+    expect(good.colorClass).toBe('text-info')
+    expect(good.bgClass).toBe('bg-info-bg')
+
+    const caution = getFitLevel(55)
+    expect(caution.colorClass).toBe('text-warning')
+    expect(caution.bgClass).toBe('bg-warning-bg')
+
+    const poor = getFitLevel(30)
+    expect(poor.colorClass).toBe('text-error')
+    expect(poor.bgClass).toBe('bg-error-bg')
+  })
+
+  it('unknown 등급은 neutral 토큰 유지', () => {
+    const unknown = getFitLevel(0)
+    expect(unknown.colorClass).toBe('text-muted-foreground')
+    expect(unknown.bgClass).toBe('bg-muted')
   })
 })
