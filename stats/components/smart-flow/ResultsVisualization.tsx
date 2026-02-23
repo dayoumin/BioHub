@@ -24,35 +24,36 @@ import { AnalysisResult } from '@/types/smart-flow'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 
 // CSS 변수를 Recharts용 HEX 색상으로 변환 (Design System 통일)
+// Canvas 2D를 사용하여 oklch/hsl/rgb 등 모든 CSS 색상 형식을 HEX로 변환
+let _colorCtx: CanvasRenderingContext2D | null = null
+
 const getCSSColor = (variable: string): string => {
   if (typeof window === 'undefined') return '#000000' // SSR 안전성
 
-  const hslValue = getComputedStyle(document.documentElement).getPropertyValue(variable).trim()
+  const value = getComputedStyle(document.documentElement).getPropertyValue(variable).trim()
+  if (!value) return '#000000'
 
-  // HSL → RGB → HEX 변환
-  if (hslValue.startsWith('hsl(') || hslValue.includes(' ')) {
-    const [h, s, l] = hslValue.replace(/hsl\(|\)|%/g, '').split(/[,\s]+/).map(Number)
-
-    const a = s * Math.min(l, 100 - l) / 100
-    const f = (n: number) => {
-      const k = (n + h / 30) % 12
-      const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)
-      return Math.round(255 * color / 100).toString(16).padStart(2, '0')
-    }
-    return `#${f(0)}${f(8)}${f(4)}`
+  if (!_colorCtx) {
+    _colorCtx = document.createElement('canvas').getContext('2d')
   }
+  if (!_colorCtx) return '#000000'
 
-  return '#000000' // Fallback
+  _colorCtx.fillStyle = '#000000' // Reset to detect unsupported values
+  _colorCtx.fillStyle = value
+  return _colorCtx.fillStyle
 }
 
 // Design System 색상 (shadcn/ui)
 const CHART_COLORS = {
-  primary: () => getCSSColor('--primary'),      // 메인 색상 (파란색)
-  success: () => getCSSColor('--success'),      // 성공 색상 (초록색)
-  accent: () => getCSSColor('--accent'),        // 강조 색상 (보라색)
-  muted: () => getCSSColor('--muted'),          // 배경/비활성 색상
+  primary: () => getCSSColor('--primary'),        // 메인 색상 (파란색)
+  success: () => getCSSColor('--success'),        // 성공 색상 (초록색)
+  accent: () => getCSSColor('--accent'),          // 강조 색상 (보라색)
+  muted: () => getCSSColor('--muted'),            // 배경/비활성 색상
   destructive: () => getCSSColor('--destructive'), // 삭제/에러 색상
-  foreground: () => getCSSColor('--foreground') // 기본 텍스트 색상
+  foreground: () => getCSSColor('--foreground'),  // 기본 텍스트 색상
+  warning: () => getCSSColor('--warning'),        // 경고 색상 (노란색)
+  info: () => getCSSColor('--info'),              // 정보 색상 (파란색)
+  error: () => getCSSColor('--error'),            // 에러 색상 (빨간색)
 }
 
 // Custom Tooltip 컴포넌트 (Recharts 최신 UX - 깔끔한 hover 정보)
@@ -270,7 +271,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
             <Scatter
               name={rv.labels.data}
               data={chartData.scatterData}
-              fill="#3b82f6"
+              fill={CHART_COLORS.primary()}
             />
             {/* 추세선 추가 가능 */}
           </ScatterChart>
@@ -334,7 +335,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
             <Scatter
               name={rv.labels.data}
               data={chartData.scatterData}
-              fill="#3b82f6"
+              fill={CHART_COLORS.primary()}
             />
             {lineData.length > 0 && (
               <Line
@@ -460,7 +461,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
               <YAxis unit="%" />
               <Tooltip content={<CustomTooltip />} />
               <Legend />
-              <Bar dataKey="variance" fill="#6366f1" name={rv.pca.individualVariance} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="variance" fill={CHART_COLORS.accent()} name={rv.pca.individualVariance} radius={[4, 4, 0, 0]} />
               <Line type="monotone" dataKey="cumulative" stroke={CHART_COLORS.accent()} name={rv.pca.cumulativeVariance} />
             </BarChart>
           </ResponsiveContainer>
@@ -498,7 +499,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
             <Scatter
               name={rv.labels.data}
               data={chartData.scatterData}
-              fill="#10b981"
+              fill={CHART_COLORS.success()}
             />
           </ScatterChart>
         </ResponsiveContainer>
@@ -539,11 +540,11 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
               <XAxis type="number" domain={[0, 1]} />
               <YAxis dataKey="name" type="category" width={60} />
               <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="correlation" fill="#f59e0b" radius={[0, 4, 4, 0]}>
+              <Bar dataKey="correlation" fill={CHART_COLORS.warning()} radius={[0, 4, 4, 0]}>
                 {itemData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
-                    fill={entry.correlation < 0.3 ? '#ef4444' : '#f59e0b'}
+                    fill={entry.correlation < 0.3 ? CHART_COLORS.error() : CHART_COLORS.warning()}
                   />
                 ))}
               </Bar>
@@ -599,7 +600,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
             return (
               <div className="bg-muted/50 rounded p-3">
                 <p className="text-muted-foreground">{rv.power.currentPower}</p>
-                <p className={`text-lg font-bold ${power >= 0.8 ? 'text-green-600' : 'text-yellow-600'}`}>
+                <p className={`text-lg font-bold ${power >= 0.8 ? 'text-success' : 'text-warning'}`}>
                   {(power * 100).toFixed(1)}%
                 </p>
               </div>

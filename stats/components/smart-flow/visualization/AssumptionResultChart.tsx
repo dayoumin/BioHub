@@ -30,7 +30,7 @@ export function AssumptionResultChart({
             <div className="flex items-center gap-3">
                 <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                     <div
-                        className="h-full bg-green-500 transition-all duration-1000"
+                        className="h-full bg-success transition-all duration-1000"
                         style={{ width: `${passRate}%` }}
                     />
                 </div>
@@ -47,7 +47,7 @@ export function AssumptionResultChart({
                         className={cn(
                             "flex items-center justify-between p-2.5 rounded-lg",
                             "transition-colors",
-                            assumption.passed ? "bg-green-50 dark:bg-green-950/20" : "bg-red-50 dark:bg-red-950/20"
+                            assumption.passed ? "bg-success-bg" : "bg-error-bg"
                         )}
                     >
                         <span className="text-sm font-medium">{assumption.name}</span>
@@ -58,12 +58,12 @@ export function AssumptionResultChart({
                                 </span>
                             )}
                             {assumption.passed ? (
-                                <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                                <div className="flex items-center gap-1 text-success">
                                     <Check className="w-4 h-4" />
                                     <span className="text-xs font-medium">{t.dataExploration.assumptions.passed}</span>
                                 </div>
                             ) : (
-                                <div className="flex items-center gap-1 text-red-600 dark:text-red-400">
+                                <div className="flex items-center gap-1 text-error">
                                     <X className="w-4 h-4" />
                                     <span className="text-xs font-medium">{t.dataExploration.assumptions.failed}</span>
                                 </div>

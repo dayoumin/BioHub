@@ -175,7 +175,7 @@ export const DistributionChartSection = memo(function DistributionChartSection({
                     showCard={false}
                   />
                   {outliers.length > 0 && (
-                    <div className="text-xs bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 p-3 rounded-lg">
+                    <div className="text-xs bg-warning-bg border border-warning-border p-3 rounded-lg">
                       {t.dataExploration.outlier.info(outliers.length, lowerBound.toFixed(2), upperBound.toFixed(2))}
                     </div>
                   )}

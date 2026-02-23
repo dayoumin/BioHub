@@ -28,7 +28,7 @@ export const AssumptionTestsSection = memo(function AssumptionTestsSection({
   // 로딩 중
   if (isLoading) {
     return (
-      <Card className={cn("border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20", secondaryClass)}>
+      <Card className={cn("border-info-border bg-info-bg", secondaryClass)}>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />

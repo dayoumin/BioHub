@@ -252,7 +252,7 @@ export function AnalysisInfoCard({
                                     variant={item.type === 'warning' ? 'secondary' : 'outline'}
                                     className={cn(
                                         "text-xs",
-                                        item.type === 'warning' && "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+                                        item.type === 'warning' && "bg-warning-bg text-warning-muted"
                                     )}
                                 >
                                     {item.text}
@@ -268,9 +268,9 @@ export function AnalysisInfoCard({
                         <div className="flex items-center justify-between mb-2">
                             <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
                                 {assumptionSummary.meetsAssumptions ? (
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-success" />
                                 ) : (
-                                    <XCircle className="w-3.5 h-3.5 text-amber-600" />
+                                    <XCircle className="w-3.5 h-3.5 text-warning" />
                                 )}
                                 {t.analysisInfo.labels.assumptions}
                             </p>
@@ -279,8 +279,8 @@ export function AnalysisInfoCard({
                                 className={cn(
                                     "text-xs",
                                     assumptionSummary.meetsAssumptions
-                                        ? "border-green-500 text-green-700 dark:text-green-400"
-                                        : "border-amber-500 text-amber-700 dark:text-amber-400"
+                                        ? "border-success-border text-success"
+                                        : "border-warning-border text-warning"
                                 )}
                             >
                                 {assumptionSummary.meetsAssumptions ? t.analysisInfo.assumptions.met : t.analysisInfo.assumptions.partialViolation}
@@ -294,8 +294,8 @@ export function AnalysisInfoCard({
                                     className={cn(
                                         "text-xs gap-1",
                                         check.passed
-                                            ? "border-green-300 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
-                                            : "border-red-300 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400"
+                                            ? "border-success-border bg-success-bg text-success"
+                                            : "border-error-border bg-error-bg text-error"
                                     )}
                                 >
                                     {check.passed ? (
