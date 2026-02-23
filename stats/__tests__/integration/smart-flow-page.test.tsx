@@ -12,6 +12,98 @@ import { render, screen, act } from '@testing-library/react'
 import HomePage from '@/app/page'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 
+// ===== Mock: useTerminology (TerminologyProvider 없이 테스트) =====
+
+vi.mock('@/hooks/use-terminology', () => ({
+  useTerminology: () => ({
+    domain: 'generic',
+    displayName: '범용 통계',
+    variables: {},
+    validation: {},
+    success: {},
+    selectorUI: {},
+    hub: {
+      experimentNotReady: '실험 설계 기능은 준비 중입니다.',
+      chatInput: {
+        heading: '무엇을 분석하고 싶으신가요?',
+        placeholder: '메시지를 입력하세요...',
+        sendAriaLabel: '전송',
+      },
+    },
+    reanalysis: { title: '재분석' },
+    smartFlow: {
+      stepTitles: {},
+      statusMessages: {},
+      buttons: {},
+      resultSections: {},
+      stepShortLabels: { exploration: '탐색', method: '방법', variable: '변수', analysis: '분석' },
+      executionStages: {
+        prepare: { label: '', message: '' }, preprocess: { label: '', message: '' },
+        assumptions: { label: '', message: '' }, analysis: { label: '', message: '' },
+        additional: { label: '', message: '' }, finalize: { label: '', message: '' },
+      },
+      layout: {
+        appTitle: 'NIFS 통계 분석',
+        historyTitle: '분석 히스토리',
+        historyClose: '히스토리 닫기',
+        historyCount: (n: number) => `히스토리 (${n}개)`,
+        aiChatbot: 'AI 챗봇',
+        helpLabel: '도움말',
+        settingsLabel: '설정',
+        nextStep: '다음 단계',
+        analyzingDefault: '분석 중...',
+        dataSizeGuide: '데이터 크기 가이드',
+        currentLimits: '현재 제한사항',
+        memoryRecommendation: '메모리별 권장 크기',
+        detectedMemory: (gb: number) => `→ 감지된 메모리: ${gb}GB`,
+        limitFileSize: '최대 파일: 50MB',
+        limitDataSize: '최대 데이터: 100,000행 × 1,000열',
+        limitRecommended: '권장: 10,000행 이하',
+        memoryTier4GB: '4GB RAM: ~10,000행',
+        memoryTier8GB: '8GB RAM: ~30,000행',
+        memoryTier16GB: '16GB RAM: ~60,000행',
+      },
+      execution: {
+        runningTitle: '', resumeButton: '', pauseButton: '', cancelButton: '',
+        pauseDisabledTooltip: '', cancelConfirm: '',
+        logSectionLabel: () => '', noLogs: '', dataRequired: '',
+        unknownError: '', estimatedTimeRemaining: () => '',
+      },
+      errors: {
+        uploadFailed: (msg: string) => `업로드 실패: ${msg}`,
+        retryLabel: '다시 시도',
+      },
+      floatingNav: {
+        exploration: '탐색',
+        method: '방법',
+        variable: '변수',
+        analysis: '분석',
+      },
+      modeBanners: {
+        reanalysis: { description: '이전 분석 결과를 기반으로 재분석합니다.' },
+        quickAnalysis: {
+          badge: '빠른 분석',
+          description: '빠른 분석 모드',
+          normalMode: '일반 모드로 전환',
+          changeMethod: '분석 방법 변경',
+        },
+      },
+    },
+    purposeInput: {
+      purposes: {}, inputModes: { aiRecommend: '', directSelect: '', modeAriaLabel: '' },
+      buttons: { back: '', allMethods: '', useThisMethod: '' },
+      labels: { selectionPrefix: '', directBadge: '', purposeHeading: '' },
+      messages: { purposeHelp: '', guidanceAlert: '', aiRecommendError: '', genericError: '' },
+      aiLabels: { recommendTitle: '' },
+    },
+  }),
+  useTerminologyContext: () => ({
+    dictionary: { domain: 'generic', displayName: '범용 통계' },
+    setDomain: vi.fn(),
+    currentDomain: 'generic',
+  }),
+}))
+
 // ===== Mock: 자식 컴포넌트 (data-testid stub) =====
 
 vi.mock('@/components/smart-flow/layouts/SmartFlowLayout', () => ({
@@ -196,8 +288,8 @@ describe('SmartFlowPage Integration Tests', () => {
 
       render(<HomePage />)
 
-      expect(screen.getByText('오류:')).toBeInTheDocument()
       expect(screen.getByText('테스트 에러 메시지')).toBeInTheDocument()
+      expect(screen.getByText('다시 시도')).toBeInTheDocument()
     })
 
     it('에러가 없을 때 에러 메시지가 표시되지 않아야 함', () => {
@@ -207,7 +299,7 @@ describe('SmartFlowPage Integration Tests', () => {
 
       render(<HomePage />)
 
-      expect(screen.queryByText('오류:')).not.toBeInTheDocument()
+      expect(screen.queryByText('테스트 에러 메시지')).not.toBeInTheDocument()
     })
   })
 
