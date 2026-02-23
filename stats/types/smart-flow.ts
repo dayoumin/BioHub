@@ -211,6 +211,31 @@ export interface SuggestedSettings {
   [key: string]: unknown
 }
 
+// ===== Chat-First Hub Types =====
+
+/**
+ * 사용자 의도 기반 3가지 분석 트랙
+ */
+export type AnalysisTrack = 'direct-analysis' | 'data-consultation' | 'experiment-design'
+
+/**
+ * Intent Router가 반환하는 의도 분류 결과
+ */
+export interface ResolvedIntent {
+  /** 분류된 트랙 */
+  track: AnalysisTrack
+  /** 분류 신뢰도 (0-1) */
+  confidence: number
+  /** 특정 메서드가 식별된 경우 */
+  method: StatisticalMethod | null
+  /** 분류 근거 (한국어) */
+  reasoning: string
+  /** 데이터 업로드가 다음 단계인지 */
+  needsData: boolean
+  /** 분류 방식 */
+  provider: 'keyword' | 'llm'
+}
+
 /**
  * 통계적 가정 검정 요약
  */

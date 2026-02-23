@@ -424,6 +424,29 @@ export const generic: TerminologyDictionary = {
       uploadButton: 'Start with Data Upload',
       browseButton: 'Browse Methods',
     },
+    chatInput: {
+      heading: 'What would you like to analyze?',
+      placeholder: 'Describe what you want to analyze...',
+      sendAriaLabel: 'Send',
+    },
+    tracks: {
+      directAnalysis: {
+        title: 'Direct Analysis',
+        description: 'Start right away if you know the method',
+        example: 'I want to run a t-test',
+      },
+      dataConsultation: {
+        title: 'Data Consultation',
+        description: 'Upload data and consult with AI for analysis',
+        example: 'Help me figure out which analysis to use',
+      },
+      experimentDesign: {
+        title: 'Experiment Design',
+        description: 'Plan experiments, sample size, and power analysis',
+        example: 'What sample size do I need?',
+      },
+    },
+    experimentNotReady: 'Experiment design is coming soon. Redirecting to data consultation.',
     cards: {
       methodsTitle: 'Analysis Tools',
       methodsDescription: (categories: number) => `Browse T-test, ANOVA, Regression and more across ${categories} categories`,
@@ -446,15 +469,15 @@ export const generic: TerminologyDictionary = {
       frequentlyUsed: 'Frequently used:',
     },
     aiSearch: {
-      title: 'AI 분석 가이드',
-      description: '연구 목적이나 가설을 입력하면 적절한 통계 방법을 추천해드립니다.',
-      placeholder: '예: "두 그룹의 평균 차이를 비교하고 싶어" 또는 "A와 B 변수의 관계를 알고 싶어"',
-      sendButton: '분석하기',
-      startButton: '시작하기',
-      alternatives: (count: number) => `외 ${count}개 대안`,
-      detailedLink: '상세 모드',
-      recommendationBadge: '추천 방법',
-      selectButton: '선택'
+      title: 'AI Analysis Guide',
+      description: 'Describe your research goal or hypothesis and get statistical method recommendations.',
+      placeholder: 'e.g., "Compare means between two groups" or "Find the relationship between A and B"',
+      sendButton: 'Analyze',
+      startButton: 'Get Started',
+      alternatives: (count: number) => `${count} more alternatives`,
+      detailedLink: 'Detailed Mode',
+      recommendationBadge: 'Recommended',
+      selectButton: 'Select'
     },
     editDialog: {
       title: 'Edit Quick Analysis',

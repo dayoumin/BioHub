@@ -460,6 +460,20 @@ export interface HubText {
     uploadButton: string
     browseButton: string
   }
+  /** Chat-First 허브: 채팅 입력 영역 */
+  chatInput: {
+    heading: string
+    placeholder: string
+    sendAriaLabel: string
+  }
+  /** Chat-First 허브: 3트랙 제안 카드 */
+  tracks: {
+    directAnalysis: { title: string; description: string; example: string }
+    dataConsultation: { title: string; description: string; example: string }
+    experimentDesign: { title: string; description: string; example: string }
+  }
+  /** 실험 설계 미구현 안내 메시지 */
+  experimentNotReady: string
   cards: {
     methodsTitle: string
     methodsDescription: (categories: number) => string

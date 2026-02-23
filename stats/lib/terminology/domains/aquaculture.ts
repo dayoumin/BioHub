@@ -425,6 +425,29 @@ export const aquaculture: TerminologyDictionary = {
       uploadButton: '데이터 업로드',
       browseButton: '분석 방법',
     },
+    chatInput: {
+      heading: '무엇을 분석하고 싶으신가요?',
+      placeholder: '분석하고 싶은 내용을 입력하세요...',
+      sendAriaLabel: '보내기',
+    },
+    tracks: {
+      directAnalysis: {
+        title: '직접 분석',
+        description: '분석 방법을 알고 있다면 바로 시작하세요',
+        example: 't-test 하고 싶어',
+      },
+      dataConsultation: {
+        title: '데이터 상담',
+        description: '데이터를 넣고 AI와 상담하며 분석하세요',
+        example: '데이터를 넣고 어떤 분석이 좋을지 알려줘',
+      },
+      experimentDesign: {
+        title: '실험 설계',
+        description: '실험 계획, 표본 크기, 검정력을 분석하세요',
+        example: '적절한 표본 크기는?',
+      },
+    },
+    experimentNotReady: '실험 설계 기능은 준비 중입니다. 데이터 상담으로 안내해 드릴게요.',
     cards: {
       methodsTitle: '분석 도구',
       methodsDescription: (categories: number) => `T-검정, ANOVA, 회귀분석 등 ${categories}개 카테고리의 전체 목록을 탐색합니다`,

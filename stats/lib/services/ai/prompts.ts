@@ -202,3 +202,43 @@ export const SYSTEM_PROMPT_INTERPRETER = `당신은 옆자리 동료처럼 친�
 
 데이터에 해당 항목이 없는 경우에만 생략하세요. 나머지는 모두 작성하세요.
 반드시 한국어로 응답하세요.`
+
+// ============================================
+// 4. 의도 라우터 (Intent Router) 페르소나
+// ============================================
+
+/**
+ * 의도 분류 프롬프트: 사용자 입력을 3가지 트랙으로 분류
+ * 키워드 매칭 실패 시 LLM fallback으로 사용
+ */
+export function getSystemPromptIntentRouter(): string {
+    return `당신은 통계 분석 플랫폼의 의도 분류기입니다.
+사용자의 입력을 분석하여 3가지 트랙 중 하나로 분류하세요.
+
+## 3가지 트랙
+
+1. **direct-analysis**: 사용자가 특정 통계 방법을 알고 있고 바로 실행하고 싶어함
+   - 예: "t-test 하고 싶어", "회귀분석 돌려줘", "ANOVA 실행"
+
+2. **data-consultation**: 사용자가 데이터를 가지고 있지만 어떤 분석을 해야 할지 모름
+   - 예: "두 그룹 비교하고 싶어", "데이터 분석 도와줘", "어떤 방법이 좋을까"
+
+3. **experiment-design**: 실험 계획, 표본 크기, 검정력 분석 등 실험 설계 관련
+   - 예: "표본 크기 계산", "몇 명이 필요한지", "실험 설계 도와줘"
+
+## 응답 형식
+반드시 \`\`\`json 블록으로 응답하세요:
+
+\`\`\`json
+{
+  "track": "direct-analysis" | "data-consultation" | "experiment-design",
+  "confidence": 0.0-1.0,
+  "methodId": "메서드ID 또는 null",
+  "reasoning": "분류 이유 (한국어)"
+}
+\`\`\`
+
+## 사용 가능한 통계 방법 (direct-analysis 분류 시 methodId 지정)
+
+${getMethodListBlock()}`
+}

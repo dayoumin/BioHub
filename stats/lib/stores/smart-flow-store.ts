@@ -6,7 +6,8 @@ import {
   AnalysisResult,
   DataRow,
   StatisticalAssumptions,
-  SuggestedSettings
+  SuggestedSettings,
+  AnalysisTrack
 } from '@/types/smart-flow'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import { DataCharacteristics } from '@/lib/statistics/data-type-detector'
@@ -149,6 +150,8 @@ interface SmartFlowState {
   quickAnalysisMode: boolean
   // Step 2 입력 모드 (AI 추천 vs 직접 선택)
   purposeInputMode: 'ai' | 'browse'
+  // Chat-First Hub: 현재 활성 트랙
+  activeTrack: AnalysisTrack | null
 
   // 상태
   isLoading: boolean
@@ -189,6 +192,7 @@ interface SmartFlowState {
   setShowHub: (show: boolean) => void
   setQuickAnalysisMode: (mode: boolean) => void
   setPurposeInputMode: (mode: 'ai' | 'browse') => void
+  setActiveTrack: (track: AnalysisTrack | null) => void
 
   // 네비게이션
   canNavigateToStep: (step: number) => boolean
@@ -229,6 +233,7 @@ const initialState = {
   showHub: true,
   quickAnalysisMode: false,
   purposeInputMode: 'ai' as const,
+  activeTrack: null,
 }
 
 export const useSmartFlowStore = create<SmartFlowState>()(
@@ -326,6 +331,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
       setShowHub: (show) => set({ showHub: show }),
       setQuickAnalysisMode: (mode) => set({ quickAnalysisMode: mode }),
       setPurposeInputMode: (mode) => set({ purposeInputMode: mode }),
+      setActiveTrack: (track) => set({ activeTrack: track }),
 
       // 히스토리 관리 (IndexedDB)
       saveToHistory: async (name, metadata) => {
@@ -685,6 +691,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         showHub: true,
         quickAnalysisMode: false,
         purposeInputMode: 'ai',
+        activeTrack: null,
         // Preserve history
         analysisHistory: state.analysisHistory
       })),
