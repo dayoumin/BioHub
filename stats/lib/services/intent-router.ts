@@ -10,7 +10,6 @@
 
 import { STATISTICAL_METHODS, getKoreanName } from '@/lib/constants/statistical-methods'
 import { llmRecommender } from '@/lib/services/llm-recommender'
-import { getSystemPromptIntentRouter } from '@/lib/services/ai/prompts'
 import { logger } from '@/lib/utils/logger'
 import type { AnalysisTrack, ResolvedIntent, StatisticalMethod } from '@/types/smart-flow'
 
@@ -223,19 +222,21 @@ class IntentRouterService {
   ): Promise<ResolvedIntent | null> {
     const result = await llmRecommender.recommend(input, null, null, null)
 
-    if (result.recommendation?.method) {
-      // LLM이 구체적 메서드를 추천함 → 직접 분석
+    const rec = result.recommendation
+    if (rec?.method && rec.confidence > 0.5) {
+      // LLM이 충분한 확신으로 메서드를 추천함 → 직접 분석
+      // (confidence <= 0.5 = keyword fallback 기본값 → 실제 매칭 아님)
       return {
         track: 'direct-analysis',
-        confidence: result.recommendation.confidence,
-        method: result.recommendation.method,
+        confidence: rec.confidence,
+        method: rec.method,
         reasoning: result.responseText || 'AI 분석 방법 추천',
         needsData: true,
         provider: 'llm'
       }
     }
 
-    // LLM이 메서드를 특정하지 못함 → 데이터 상담
+    // LLM이 메서드를 특정하지 못하거나 확신이 낮음 → 데이터 상담
     return {
       track: 'data-consultation',
       confidence: 0.6,

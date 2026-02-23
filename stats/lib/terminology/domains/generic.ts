@@ -174,6 +174,17 @@ export const generic: TerminologyDictionary = {
       uploadFailed: (message: string) => `Error uploading data: ${message}`,
       retryLabel: 'Retry',
     },
+    modeBanners: {
+      reanalysis: {
+        description: 'Analyze new data with previous settings. Upload data below.',
+      },
+      quickAnalysis: {
+        badge: 'Quick Analysis',
+        description: 'Upload data to go directly to variable selection.',
+        normalMode: 'Normal Mode',
+        changeMethod: 'Change Method',
+      },
+    },
     buttons: {
       runAnalysis: 'Run Analysis',
       reanalyze: 'Reanalyze with Different Data',

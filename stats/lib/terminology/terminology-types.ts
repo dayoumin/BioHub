@@ -232,6 +232,19 @@ export interface SmartFlowText {
     uploadFailed: (message: string) => string
     retryLabel: string
   }
+  /** Step 1 상단 모드 안내 배너 */
+  modeBanners: {
+    reanalysis: {
+      /** 배지 텍스트는 t.reanalysis.title 재사용 (SSOT) */
+      description: string
+    }
+    quickAnalysis: {
+      badge: string
+      description: string
+      normalMode: string
+      changeMethod: string
+    }
+  }
   /** 버튼 텍스트 */
   buttons: {
     runAnalysis: string

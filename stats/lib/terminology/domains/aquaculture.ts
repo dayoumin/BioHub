@@ -175,6 +175,17 @@ export const aquaculture: TerminologyDictionary = {
       uploadFailed: (message: string) => `데이터 업로드 중 오류가 발생했습니다: ${message}`,
       retryLabel: '다시 시도하기',
     },
+    modeBanners: {
+      reanalysis: {
+        description: '이전 설정으로 새 데이터를 분석합니다. 아래에서 데이터를 업로드하세요.',
+      },
+      quickAnalysis: {
+        badge: '빠른 분석',
+        description: '데이터를 업로드하면 바로 변수 선택으로 이동합니다.',
+        normalMode: '일반 분석',
+        changeMethod: '방법 변경',
+      },
+    },
     buttons: {
       runAnalysis: '분석 시작',
       reanalyze: '다른 데이터로 재분석',

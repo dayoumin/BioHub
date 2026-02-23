@@ -144,6 +144,35 @@
 |------|------|
 | **Phase 15-1: Bio-Tools** | 12개 생물학 분석, `/bio-tools/` 5페이지 구현 ([상세](study/PLAN-BIO-STATISTICS-AUDIT.md)) |
 
+### 기술 부채 (Tech Debt)
+
+**🔴 Critical**
+| 항목 | 파일 | 설명 |
+|------|------|------|
+| `ignoreDuringBuilds: true` | `next.config.ts:44` | 빌드 시 TS 에러 무시 → `false`로 변경 + 에러 수정 필요 |
+| 결측값 하드코딩 0 | `statistical-executor.ts:498` | `missingRemoved = 0` → 실제 결측값 계산 구현 필요 |
+
+**🟠 High — 타입 안전성**
+| 항목 | 범위 | 설명 |
+|------|------|------|
+| Pyodide `as any` | 레거시 `lib/statistics/*.ts` ~30곳 | `(pyodide as any).runPythonAsync()` — Worker 전환 완료된 파일은 삭제 가능 |
+| Plotly 타입 누락 | `plotly-chart-renderer.tsx` | `@ts-expect-error` + `as any` — plotly.js-basic-dist 타입 정의 필요 |
+| StatisticalAnalysisService | `statistical-analysis-service.ts` 7곳 | `getPyodideInstance() as any` |
+
+**🟡 Medium — 테스트 커버리지**
+| 항목 | 설명 |
+|------|------|
+| Smart Flow 미테스트 컴포넌트 | AnalysisExecutionStep, ChatCentricHub, ExportDropdown, MethodManagerSheet, ReanalysisPanel, ResultsVisualization, VariableSelectionStep |
+| 실패 테스트 | `statistical-executor-coverage.test.ts` (카테고리 불일치), `smart-flow-page.test.tsx` (16개 실패) |
+| 하드코딩 한글 | 11개 컴포넌트에 terminology 미적용 문자열 잔존 |
+
+**🟢 Low**
+| 항목 | 설명 |
+|------|------|
+| Deprecated 함수 | `pyodide-statistics.ts` 10+ 함수 — Worker 전환 완료 후 삭제 가능 |
+| SW 업데이트 알림 | `register-sw.ts:76` — 새로고침 권장 UI 미구현 |
+| console.log 잔존 | `use-pyodide-service.ts`, `plotly-chart-renderer.tsx` |
+
 ### 완료 (Phase 5-2)
 | 작업 | 설명 | 상태 |
 |------|------|------|

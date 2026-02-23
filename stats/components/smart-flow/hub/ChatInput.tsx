@@ -8,8 +8,8 @@
  * - onSubmit 시 Intent Router를 통해 트랙 분류
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react'
-import { Send, Loader2, Paperclip } from 'lucide-react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { Send, Loader2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -96,21 +96,26 @@ export function ChatInput({
 }: ChatInputProps) {
   const t = useTerminology()
   const prefersReducedMotion = useReducedMotion()
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [value, setValue] = useState('')
 
-  // 외부 값 주입 처리
+  // 최신 콜백을 ref로 캡처 (deps 안정화)
+  const onSubmitRef = useRef(onSubmit)
+  onSubmitRef.current = onSubmit
+  const onConsumedRef = useRef(onExternalValueConsumed)
+  onConsumedRef.current = onExternalValueConsumed
+
+  // 외부 값 주입 처리 — externalValue만 deps로 사용
+  // consumed 콜백은 submit 후에 호출 (동기 호출 시 state 변경 → cleanup → timer 취소됨)
   useEffect(() => {
     if (externalValue) {
       setValue(externalValue)
-      onExternalValueConsumed?.()
-      // 약간의 딜레이 후 자동 제출
       const timer = setTimeout(() => {
-        onSubmit(externalValue)
+        onSubmitRef.current(externalValue)
+        onConsumedRef.current?.()
       }, 150)
       return () => clearTimeout(timer)
     }
-  }, [externalValue, onExternalValueConsumed, onSubmit])
+  }, [externalValue])
 
   const handleSubmit = useCallback(() => {
     const trimmed = value.trim()
@@ -153,7 +158,6 @@ export function ChatInput({
         <div className="flex items-end gap-2">
           <div className="relative flex-1">
             <Textarea
-              ref={textareaRef}
               data-testid="ai-chat-input"
               value={value}
               onChange={handleChange}

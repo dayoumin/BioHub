@@ -9,6 +9,8 @@ import {
   AnalysisResult,
   DataRow
 } from '@/types/smart-flow'
+import type { ResolvedIntent } from '@/types/smart-flow'
+import { toast } from 'sonner'
 import { SmartFlowLayout } from '@/components/smart-flow/layouts/SmartFlowLayout'
 import { DataExplorationStep } from '@/components/smart-flow/steps/DataExplorationStep'
 import { PurposeInputStep } from '@/components/smart-flow/steps/PurposeInputStep'
@@ -199,27 +201,43 @@ export default function HomePage() {
   }, [])
 
   // Hub handlers
-  const handleStartWithData = useCallback(() => {
-    setShowHub(false)
-    setQuickAnalysisMode(false)
-    navigateToStep(1)
-  }, [setShowHub, setQuickAnalysisMode, navigateToStep])
 
-  const handleStartWithAI = useCallback(() => {
-    setShowHub(false)
-    setQuickAnalysisMode(false)
-    setPurposeInputMode('ai')
-    navigateToStep(2)
-  }, [setShowHub, setQuickAnalysisMode, setPurposeInputMode, navigateToStep])
+  // Intent Router 결과 처리 (Chat-First Hub)
+  const handleIntentResolved = useCallback((intent: ResolvedIntent) => {
+    switch (intent.track) {
+      case 'direct-analysis':
+        if (intent.method) {
+          // 메서드 확정 → quickAnalysis 경로
+          setSelectedMethod(intent.method)
+          setQuickAnalysisMode(true)
+          setShowHub(false)
+          navigateToStep(1)
+        } else {
+          // 방어적 분기: 현재 라우터는 direct-analysis 시 항상 method를 포함하나,
+          // 향후 확장 시 method 없이 올 수 있음 → AI 추천 경로
+          setQuickAnalysisMode(false)
+          setPurposeInputMode('ai')
+          setShowHub(false)
+          navigateToStep(2)
+        }
+        break
 
-  const handleStartWithMethod = useCallback(() => {
-    setShowHub(false)
-    setQuickAnalysisMode(false)
-    setPurposeInputMode('browse')
-    navigateToStep(2)
-  }, [setShowHub, setQuickAnalysisMode, setPurposeInputMode, navigateToStep])
+      case 'data-consultation':
+        // 데이터 업로드 → AI 상담 경로
+        setQuickAnalysisMode(false)
+        setShowHub(false)
+        navigateToStep(1)
+        break
 
-  // 히스토리는 이제 우측 사이드바에 항상 표시됨
+      case 'experiment-design':
+        // Phase 2 미구현 → 토스트 + data-consultation fallback
+        toast.info(t.hub.experimentNotReady)
+        setQuickAnalysisMode(false)
+        setShowHub(false)
+        navigateToStep(1)
+        break
+    }
+  }, [setSelectedMethod, setQuickAnalysisMode, setShowHub, setPurposeInputMode, navigateToStep, t])
 
   // Quick analysis from category or favorites
   const handleQuickAnalysis = useCallback((methodId: string) => {
@@ -231,6 +249,16 @@ export default function HomePage() {
       navigateToStep(1)
     }
   }, [setSelectedMethod, setQuickAnalysisMode, setShowHub, navigateToStep])
+
+  // History select from hub
+  const handleHistorySelect = useCallback(async (historyId: string) => {
+    try {
+      await useSmartFlowStore.getState().loadFromHistory(historyId)
+      setShowHub(false)
+    } catch (err) {
+      console.error('Failed to load history', err)
+    }
+  }, [setShowHub])
 
   const handleStep1Next = useCallback(() => {
     if (quickAnalysisMode && selectedMethod) {
@@ -289,9 +317,9 @@ export default function HomePage() {
       {/* ===== Hub Page (Chat-Centric Style) ===== */}
       {showHub && (
         <ChatCentricHub
-          onStartWithData={handleStartWithData}
-          onStartWithBrowse={handleStartWithMethod}
-          onGoToDetailedAI={handleStartWithAI}
+          onIntentResolved={handleIntentResolved}
+          onQuickAnalysis={handleQuickAnalysis}
+          onHistorySelect={handleHistorySelect}
         />
       )}
 
@@ -308,11 +336,11 @@ export default function HomePage() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-xs">재분석 모드</Badge>
+                      <Badge variant="secondary" className="text-xs">{t.reanalysis.title}</Badge>
                       <span className="font-medium">{selectedMethod.name}</span>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                      이전 설정으로 새 데이터를 분석합니다. 아래에서 데이터를 업로드하세요.
+                      {t.smartFlow.modeBanners.reanalysis.description}
                     </p>
                   </div>
                 </div>
@@ -331,11 +359,11 @@ export default function HomePage() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">빠른 분석</Badge>
+                      <Badge variant="secondary" className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">{t.smartFlow.modeBanners.quickAnalysis.badge}</Badge>
                       <span className="font-medium">{selectedMethod.name}</span>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                      데이터를 업로드하면 바로 변수 선택으로 이동합니다.
+                      {t.smartFlow.modeBanners.quickAnalysis.description}
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -345,7 +373,7 @@ export default function HomePage() {
                       className="text-xs"
                       onClick={() => { setQuickAnalysisMode(false) }}
                     >
-                      일반 분석
+                      {t.smartFlow.modeBanners.quickAnalysis.normalMode}
                     </Button>
                     <Button
                       variant="outline"
@@ -353,7 +381,7 @@ export default function HomePage() {
                       className="text-xs"
                       onClick={() => { setQuickAnalysisMode(false); navigateToStep(2) }}
                     >
-                      방법 변경
+                      {t.smartFlow.modeBanners.quickAnalysis.changeMethod}
                     </Button>
                   </div>
                 </div>
