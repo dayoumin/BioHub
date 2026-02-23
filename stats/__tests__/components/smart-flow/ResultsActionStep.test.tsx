@@ -543,6 +543,7 @@ vi.mock('@/hooks/use-terminology', () => ({
     results: {
       effectSizeLabels: { small: '작음', medium: '중간', large: '큼', veryLarge: '매우 큼' },
       noResults: '분석을 먼저 실행해주세요.',
+      noResultsDescription: '분석 실행 탭에서 분석을 진행해주세요.',
       conclusion: {
         assumptionWarning: '⚠️ 일부 가정 미충족 - 결과 해석에 주의 필요',
         significant: '✓ 통계적으로 유의한 차이가 있습니다',
@@ -569,6 +570,7 @@ vi.mock('@/hooks/use-terminology', () => ({
         copied: '복사됨', copy: '복사', saveTemplate: '템플릿으로 저장',
         reanalyze: '다른 데이터로 재분석', newAnalysis: '새 분석 시작',
         export: '내보내기', exporting: '내보내는 중...', exportDocx: 'Word (.docx)', exportExcel: 'Excel (.xlsx)',
+        exportHtml: 'HTML', exportWithOptions: '옵션으로 내보내기', backToVariables: '변수 선택으로',
       },
       save: {
         defaultName: (d: string) => `분석 ${d}`, promptMessage: '분석 이름을 입력하세요:',
@@ -579,6 +581,15 @@ vi.mock('@/hooks/use-terminology', () => ({
         newAnalysis: '새 분석을 시작합니다', pdfSuccess: 'PDF 보고서가 생성되었습니다', pdfError: 'PDF 생성에 실패했습니다',
         copyWithAi: '결과 + AI 해석이 복사되었습니다', copySuccess: '결과가 복사되었습니다', copyError: '복사 실패',
         templateSaved: '템플릿이 저장되었습니다',
+        exportSuccess: '내보내기가 완료되었습니다', exportError: '내보내기에 실패했습니다',
+        chartsNotReady: '차트가 아직 준비되지 않았습니다',
+      },
+      exportDialog: {
+        title: '결과 내보내기', description: '내보내기 형식과 포함할 내용을 선택하세요.',
+        formatLabel: '파일 형식', contentLabel: '포함 내용',
+        includeInterpretation: 'AI 해석 포함', includeRawData: '원본 데이터 포함',
+        includeMethodology: '분석 방법론 포함', includeReferences: '참고문헌 포함',
+        includeCharts: '차트 포함', cancel: '취소', confirm: '내보내기',
       },
       clipboard: {
         itemHeader: '항목', valueHeader: '값',
@@ -681,6 +692,7 @@ const defaultStoreState = {
   saveToHistory: vi.fn(),
   reset: vi.fn(),
   setCurrentStep: vi.fn(),
+  navigateToStep: vi.fn(),
   setUploadedData: vi.fn(),
   setUploadedFile: vi.fn(),
   setValidationResults: vi.fn(),
@@ -1345,7 +1357,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       expect(mockStoreState.setUploadedFile).toHaveBeenCalledWith(null)
       expect(mockStoreState.setResults).toHaveBeenCalledWith(null)
       expect(mockStoreState.setIsReanalysisMode).toHaveBeenCalledWith(true)
-      expect(mockStoreState.setCurrentStep).toHaveBeenCalledWith(1)
+      expect(mockStoreState.navigateToStep).toHaveBeenCalledWith(1)
     })
 
     it('새 분석 클릭 → startNewAnalysis 호출', async () => {
