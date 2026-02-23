@@ -152,6 +152,8 @@ interface SmartFlowState {
   purposeInputMode: 'ai' | 'browse'
   // Chat-First Hub: 현재 활성 트랙
   activeTrack: AnalysisTrack | null
+  // Hub에서 입력한 사용자 질문 (Step 2 aiChatInput으로 전달용)
+  userQuery: string | null
 
   // 상태
   isLoading: boolean
@@ -193,6 +195,7 @@ interface SmartFlowState {
   setQuickAnalysisMode: (mode: boolean) => void
   setPurposeInputMode: (mode: 'ai' | 'browse') => void
   setActiveTrack: (track: AnalysisTrack | null) => void
+  setUserQuery: (query: string | null) => void
 
   // 네비게이션
   canNavigateToStep: (step: number) => boolean
@@ -234,6 +237,7 @@ const initialState = {
   quickAnalysisMode: false,
   purposeInputMode: 'ai' as const,
   activeTrack: null,
+  userQuery: null,
 }
 
 export const useSmartFlowStore = create<SmartFlowState>()(
@@ -332,6 +336,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
       setQuickAnalysisMode: (mode) => set({ quickAnalysisMode: mode }),
       setPurposeInputMode: (mode) => set({ purposeInputMode: mode }),
       setActiveTrack: (track) => set({ activeTrack: track }),
+      setUserQuery: (query) => set({ userQuery: query }),
 
       // 히스토리 관리 (IndexedDB)
       saveToHistory: async (name, metadata) => {
@@ -692,6 +697,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         quickAnalysisMode: false,
         purposeInputMode: 'ai',
         activeTrack: null,
+        userQuery: null,
         // Preserve history
         analysisHistory: state.analysisHistory
       })),
@@ -766,6 +772,8 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         suggestedSettings: state.suggestedSettings,
         results: state.results,
         uploadedFileName: state.uploadedFileName,
+        // Hub 질문 보존 (Step 1 → Step 2 전환 사이 새로고침 시 복원)
+        userQuery: state.userQuery,
         /**
          * ❌ analysisHistory 제외
          * 이유: IndexedDB에서 영구 관리 (sessionStorage는 세션 종료 시 삭제됨)

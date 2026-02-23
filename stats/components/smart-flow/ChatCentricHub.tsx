@@ -28,7 +28,7 @@ import { QuickAccessBar } from './hub/QuickAccessBar'
 // ===== Types =====
 
 interface ChatCentricHubProps {
-  onIntentResolved: (intent: ResolvedIntent) => void
+  onIntentResolved: (intent: ResolvedIntent, message: string) => void
   onQuickAnalysis: (methodId: string) => void
   onHistorySelect: (historyId: string) => void
 }
@@ -70,7 +70,7 @@ export function ChatCentricHub({
       })
 
       setActiveTrack(intent.track)
-      onIntentResolved(intent)
+      onIntentResolved(intent, message)
     } catch (error) {
       logger.error('[ChatCentricHub] Intent classification failed', { error })
       // fallback: 데이터 상담으로 이동
@@ -83,7 +83,7 @@ export function ChatCentricHub({
         provider: 'keyword'
       }
       setActiveTrack(fallback.track)
-      onIntentResolved(fallback)
+      onIntentResolved(fallback, message)
     } finally {
       setIsProcessing(false)
     }

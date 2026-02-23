@@ -328,6 +328,8 @@ export function PurposeInputStep({
   const setDetectedVariables = useSmartFlowStore(state => state.setDetectedVariables)
   const setSuggestedSettings = useSmartFlowStore(state => state.setSuggestedSettings)
   const methodCompatibility = useSmartFlowStore(state => state.methodCompatibility)
+  const userQuery = useSmartFlowStore(state => state.userQuery)
+  const setUserQuery = useSmartFlowStore(state => state.setUserQuery)
 
   // Data profile for MethodBrowser
   const dataProfile = useMemo(() => {
@@ -716,6 +718,15 @@ export function PurposeInputStep({
       flowDispatch(flowActions.goBack())
     }
   }, [storePurposeInputMode, flowDispatch])
+
+  // Hub에서 전달된 userQuery → aiChatInput 자동 주입
+  useEffect(() => {
+    if (userQuery && !flowState.aiChatInput) {
+      flowDispatch(flowActions.setAiInput(userQuery))
+      // 한번 사용 후 소비 (다음 진입 시 중복 주입 방지)
+      setUserQuery(null)
+    }
+  }, [userQuery, flowState.aiChatInput, flowDispatch, setUserQuery])
 
   // Cleanup
   useEffect(() => {

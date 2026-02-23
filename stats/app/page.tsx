@@ -87,7 +87,8 @@ export default function HomePage() {
     setShowHub,
     quickAnalysisMode,
     setQuickAnalysisMode,
-    setPurposeInputMode
+    setPurposeInputMode,
+    setUserQuery
   } = useSmartFlowStore()
 
   // 스텝 전환 애니메이션 방향 추적
@@ -203,18 +204,18 @@ export default function HomePage() {
   // Hub handlers
 
   // Intent Router 결과 처리 (Chat-First Hub)
-  const handleIntentResolved = useCallback((intent: ResolvedIntent) => {
+  const handleIntentResolved = useCallback((intent: ResolvedIntent, message: string) => {
     switch (intent.track) {
       case 'direct-analysis':
         if (intent.method) {
-          // 메서드 확정 → quickAnalysis 경로
+          // 메서드 확정 → quickAnalysis 경로 (Step 2 건너뜀 → userQuery 불필요)
           setSelectedMethod(intent.method)
           setQuickAnalysisMode(true)
           setShowHub(false)
           navigateToStep(1)
         } else {
-          // 방어적 분기: 현재 라우터는 direct-analysis 시 항상 method를 포함하나,
-          // 향후 확장 시 method 없이 올 수 있음 → AI 추천 경로
+          // 방어적 분기: method 없이 → Step 2 AI 추천 경로
+          setUserQuery(message)
           setQuickAnalysisMode(false)
           setPurposeInputMode('ai')
           setShowHub(false)
@@ -223,7 +224,8 @@ export default function HomePage() {
         break
 
       case 'data-consultation':
-        // 데이터 업로드 → AI 상담 경로
+        // Hub 질문 저장 → Step 2 aiChatInput으로 전달
+        setUserQuery(message)
         setQuickAnalysisMode(false)
         setShowHub(false)
         navigateToStep(1)
@@ -231,13 +233,14 @@ export default function HomePage() {
 
       case 'experiment-design':
         // Phase 2 미구현 → 토스트 + data-consultation fallback
+        setUserQuery(message)
         toast.info(t.hub.experimentNotReady)
         setQuickAnalysisMode(false)
         setShowHub(false)
         navigateToStep(1)
         break
     }
-  }, [setSelectedMethod, setQuickAnalysisMode, setShowHub, setPurposeInputMode, navigateToStep, t])
+  }, [setSelectedMethod, setQuickAnalysisMode, setShowHub, setPurposeInputMode, setUserQuery, navigateToStep, t])
 
   // Quick analysis from category or favorites
   const handleQuickAnalysis = useCallback((methodId: string) => {
