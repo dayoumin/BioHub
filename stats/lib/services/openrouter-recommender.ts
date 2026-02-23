@@ -24,20 +24,16 @@ import {
 import { logger } from '@/lib/utils/logger'
 
 /**
- * 기본 모델 Fallback 체인 (무료 모델 우선)
- * - 무료 모델은 언제든 중단될 수 있으므로 여러 개 지정
- * - env에서 쉼표 구분으로 오버라이드 가능
+ * 모델 설정:
+ * - .env.local의 NEXT_PUBLIC_OPENROUTER_MODEL 환경변수에서 쉼표 구분으로 지정
+ * - 예: NEXT_PUBLIC_OPENROUTER_MODEL=openai/gpt-oss-120b:free,x-ai/grok-4.1-fast
+ * - 미지정 시 OpenRouter 서비스 비활성화 (health check에서 false 반환)
  *
- * ⚠️ API 키 노출 주의 (Fix 2-F):
+ * ⚠️ API 키 노출 주의:
  * NEXT_PUBLIC_ 접두사로 클라이언트 번들에 포함됨.
- * 현재 무료 모델만 사용하므로 과금 위험 없음.
+ * 무료 모델만 사용하면 과금 위험 없음.
  * 유료 모델 전환 시 반드시 서버 사이드 API Route로 이동 필요.
  */
-const DEFAULT_MODELS = [
-  'z-ai/glm-4.5-air:free',               // 131K context, CJK 언어 우수, JSON 출력 정확
-  'tngtech/deepseek-r1t-chimera:free',    // 164K context, 한국어+JSON 정확
-  'tngtech/deepseek-r1t2-chimera:free',   // 164K context, thinking 모델 (content 비어있을 수 있음)
-]
 
 interface OpenRouterConfig {
   apiKey: string
@@ -89,7 +85,11 @@ export class OpenRouterRecommender {
     const envModels = process.env.NEXT_PUBLIC_OPENROUTER_MODEL
     const models = envModels
       ? envModels.split(',').map(m => m.trim()).filter(Boolean)
-      : DEFAULT_MODELS
+      : []
+
+    if (models.length === 0) {
+      logger.info('[OpenRouter] NEXT_PUBLIC_OPENROUTER_MODEL 미설정 — OpenRouter 비활성화')
+    }
 
     this.config = {
       apiKey: process.env.NEXT_PUBLIC_OPENROUTER_API_KEY || '',
@@ -114,10 +114,12 @@ export class OpenRouterRecommender {
     }
 
     const hasApiKey = !!this.config.apiKey && this.config.apiKey !== 'your_openrouter_api_key_here'
+    const hasModels = this.config.models.length > 0
 
-    if (!hasApiKey) {
+    if (!hasApiKey || !hasModels) {
       this.healthCache = { isAvailable: false, timestamp: Date.now(), ttl: 5 * 60 * 1000 }
-      logger.info('[OpenRouter] No API key configured')
+      if (!hasApiKey) logger.info('[OpenRouter] No API key configured')
+      if (!hasModels) logger.info('[OpenRouter] No models configured (set NEXT_PUBLIC_OPENROUTER_MODEL)')
       return false
     }
 
@@ -306,6 +308,68 @@ export class OpenRouterRecommender {
     }
 
     return { recommendation, responseText }
+  }
+
+  /**
+   * 파싱 없이 LLM 원문 텍스트만 반환 (Intent Router 등 자체 파서가 있는 호출자용)
+   * 모델 fallback 체인 적용 — 첫 번째 성공 모델의 응답을 반환
+   */
+  async generateRawText(
+    systemPrompt: string,
+    userPrompt: string
+  ): Promise<string | null> {
+    for (let i = 0; i < this.config.models.length; i++) {
+      const model = this.config.models[i]
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), this.config.timeout)
+
+        let response: Response
+        try {
+          response = await fetch(`${this.config.baseUrl}/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${this.config.apiKey}`,
+              'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
+              'X-Title': 'Statistical Analysis Platform'
+            },
+            body: JSON.stringify({
+              model,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+              ] satisfies OpenRouterMessage[],
+              temperature: this.config.temperature,
+              max_tokens: this.config.maxTokens
+            }),
+            signal: controller.signal
+          })
+        } finally {
+          clearTimeout(timeoutId)
+        }
+
+        if (!response.ok) {
+          throw new Error(`API ${response.status}`)
+        }
+
+        const data: OpenRouterResponse = await response.json()
+        const msg = data.choices?.[0]?.message
+        const rawContent = msg?.content?.trim() || msg?.reasoning_content || ''
+        const content = this.stripThinkingTags(rawContent)
+
+        if (content) return content
+        logger.warn(`[OpenRouter] generateRawText: model ${model} returned empty content`)
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : 'Unknown'
+        if (i === this.config.models.length - 1) {
+          logger.error('[OpenRouter] generateRawText: all models failed', { lastError: msg })
+          return null
+        }
+        logger.warn(`[OpenRouter] generateRawText: model ${model} failed (${msg}), trying next`)
+      }
+    }
+    return null
   }
 
   /**

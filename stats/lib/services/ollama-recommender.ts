@@ -687,6 +687,49 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
   }
 
   /**
+   * 파싱 없이 LLM 원문 텍스트만 반환 (Intent Router 등 자체 파서가 있는 호출자용)
+   */
+  async generateRawText(
+    systemPrompt: string,
+    userPrompt: string
+  ): Promise<string | null> {
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 15000)
+
+      const response = await fetch(`${this.config.host}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: this.config.model,
+          prompt: userPrompt,
+          system: systemPrompt,
+          stream: false,
+          options: {
+            temperature: this.config.temperature,
+            num_predict: this.config.maxTokens
+          }
+        }),
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        throw new Error(`Ollama request failed: ${response.status}`)
+      }
+
+      const ollamaResponse: OllamaResponse = await response.json()
+      const text = ollamaResponse.response?.trim()
+      return text || null
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error'
+      logger.error('[Ollama] generateRawText failed', { error: msg })
+      return null
+    }
+  }
+
+  /**
    * 자연어 응답 파싱
    */
   private parseNaturalLanguageResponse(response: string): AIRecommendation | null {

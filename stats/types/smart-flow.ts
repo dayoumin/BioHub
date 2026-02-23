@@ -237,6 +237,20 @@ export interface ResolvedIntent {
 }
 
 /**
+ * LLM 의도 분류 결과 (IntentRouter ↔ LlmRecommender 통신용)
+ */
+export interface IntentClassification {
+  /** 분류된 트랙 */
+  track: AnalysisTrack
+  /** 분류 신뢰도 (0-1) */
+  confidence: number
+  /** 특정 메서드가 식별된 경우 (direct-analysis만) */
+  methodId: string | null
+  /** 분류 근거 (한국어) */
+  reasoning: string
+}
+
+/**
  * 통계적 가정 검정 요약
  */
 export interface StatisticalAssumptionsSummary {

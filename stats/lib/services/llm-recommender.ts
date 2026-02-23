@@ -9,17 +9,21 @@
 
 import type {
   AIRecommendation,
+  AnalysisTrack,
+  IntentClassification,
   StatisticalAssumptions,
   ValidationResults,
   DataRow
 } from '@/types/smart-flow'
+import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import { openRouterRecommender } from './openrouter-recommender'
 import { ollamaRecommender } from './ollama-recommender'
 import { logger } from '@/lib/utils/logger'
 import { useSettingsStore } from '@/lib/stores/settings-store'
 import {
   getSystemPromptConsultant,
-  getSystemPromptDiagnostic
+  getSystemPromptDiagnostic,
+  getSystemPromptIntentRouter
 } from './ai/prompts'
 
 export type LlmProvider = 'openrouter' | 'ollama' | 'keyword'
@@ -282,12 +286,124 @@ export class LlmRecommender {
   }
 
   /**
+   * 의도 분류 요청 (Intent Router 전용)
+   * - recommend()와 동일한 공급자 우선순위 사용
+   * - generateRawText()로 raw 응답 → parseIntentResponse()로 파싱
+   * - 실패 시 null 반환 (caller가 자체 fallback 처리)
+   */
+  async classifyIntent(userInput: string): Promise<IntentClassification | null> {
+    const systemPrompt = getSystemPromptIntentRouter()
+    const { useOllamaForRecommendation } = useSettingsStore.getState()
+
+    const providers = useOllamaForRecommendation
+      ? [
+          { name: 'ollama', fn: () => ollamaRecommender.generateRawText(systemPrompt, userInput) },
+          { name: 'openrouter', fn: () => openRouterRecommender.generateRawText(systemPrompt, userInput) },
+        ]
+      : [
+          { name: 'openrouter', fn: () => openRouterRecommender.generateRawText(systemPrompt, userInput) },
+          { name: 'ollama', fn: () => ollamaRecommender.generateRawText(systemPrompt, userInput) },
+        ]
+
+    for (const provider of providers) {
+      try {
+        const rawText = await provider.fn()
+        if (!rawText) {
+          logger.warn(`[LlmRecommender] classifyIntent: ${provider.name} returned empty`)
+          continue
+        }
+
+        const classification = parseIntentResponse(rawText)
+        if (classification) {
+          logger.info('[LlmRecommender] classifyIntent success', {
+            provider: provider.name,
+            track: classification.track,
+            confidence: classification.confidence
+          })
+          return classification
+        }
+
+        logger.warn(`[LlmRecommender] classifyIntent: ${provider.name} response parsing failed`)
+      } catch (error) {
+        logger.warn(`[LlmRecommender] classifyIntent: ${provider.name} failed`, {
+          error: error instanceof Error ? error.message : 'Unknown'
+        })
+      }
+    }
+
+    logger.warn('[LlmRecommender] classifyIntent: all providers failed')
+    return null
+  }
+
+  /**
    * Keyword 기반 fallback
    */
   private useKeywordFallback(userInput: string): LlmRecommendationResult {
     logger.info('[LlmRecommender] AI failed or unavailable, using keyword-based fallback')
     const { recommendation, responseText } = ollamaRecommender.keywordBasedRecommend(userInput)
     return { recommendation, responseText, provider: 'keyword' }
+  }
+}
+
+// ===== Intent 응답 파서 =====
+
+const VALID_TRACKS: ReadonlySet<AnalysisTrack> = new Set([
+  'direct-analysis',
+  'data-consultation',
+  'experiment-design'
+])
+
+/**
+ * LLM의 의도 분류 응답을 IntentClassification으로 파싱
+ * - ```json 블록 또는 직접 JSON 추출
+ * - track, confidence 검증
+ * - methodId가 STATISTICAL_METHODS에 없으면 null로 교정
+ */
+export function parseIntentResponse(response: string): IntentClassification | null {
+  try {
+    // 1. JSON 추출: ```json 블록 우선, 없으면 직접 JSON
+    const codeBlockMatch = response.match(/```json\s*([\s\S]*?)\s*```/)
+    let jsonStr = codeBlockMatch ? codeBlockMatch[1] : null
+
+    if (!jsonStr) {
+      const jsonMatch = response.match(/\{[\s\S]*\}/)
+      jsonStr = jsonMatch ? jsonMatch[0] : null
+    }
+
+    if (!jsonStr) {
+      logger.warn('[parseIntentResponse] No JSON found in response')
+      return null
+    }
+
+    const parsed: unknown = JSON.parse(jsonStr)
+    if (typeof parsed !== 'object' || parsed === null) return null
+
+    const obj = parsed as Record<string, unknown>
+
+    // 2. track 검증
+    if (typeof obj.track !== 'string' || !VALID_TRACKS.has(obj.track as AnalysisTrack)) {
+      logger.warn('[parseIntentResponse] Invalid track value', { track: obj.track })
+      return null
+    }
+    const track = obj.track as AnalysisTrack
+
+    // 3. confidence 검증 (기본값 0.7)
+    let confidence = typeof obj.confidence === 'number' ? obj.confidence : 0.7
+    confidence = Math.max(0, Math.min(1, confidence))
+
+    // 4. methodId 검증 — STATISTICAL_METHODS에 없으면 null로 교정
+    let methodId: string | null = null
+    if (typeof obj.methodId === 'string' && obj.methodId) {
+      methodId = STATISTICAL_METHODS[obj.methodId] ? obj.methodId : null
+    }
+
+    // 5. reasoning
+    const reasoning = typeof obj.reasoning === 'string' ? obj.reasoning : '분류됨'
+
+    return { track, confidence, methodId, reasoning }
+  } catch {
+    logger.warn('[parseIntentResponse] JSON parsing failed')
+    return null
   }
 }
 

@@ -13,6 +13,8 @@ import { llmRecommender } from '@/lib/services/llm-recommender'
 import { logger } from '@/lib/utils/logger'
 import type { AnalysisTrack, ResolvedIntent, StatisticalMethod } from '@/types/smart-flow'
 
+type StatMethodCategory = StatisticalMethod['category']
+
 // ===== 키워드 패턴 =====
 
 /** 메서드 ID → 매칭 패턴 자동 생성 */
@@ -26,9 +28,16 @@ function buildMethodPatterns(): Map<string, RegExp> {
 
     // 영어 이름
     terms.push(escapeRegex(method.name))
-    // 한글 이름
+    // 한글 이름 (괄호 포함 전체 + 괄호 제거 축약 버전)
     const korName = method.koreanName || getKoreanName(id)
-    if (korName) terms.push(escapeRegex(korName))
+    if (korName) {
+      terms.push(escapeRegex(korName))
+      // 괄호 부분 제거 축약: "일원분산분석 (ANOVA)" → "일원분산분석"
+      const withoutParens = korName.replace(/\s*\(.*?\)\s*/g, '').trim()
+      if (withoutParens && withoutParens !== korName) {
+        terms.push(escapeRegex(withoutParens))
+      }
+    }
     // ID 자체 (e.g., "t-test")
     terms.push(escapeRegex(id))
     // aliases
@@ -97,10 +106,7 @@ class IntentRouterService {
   /**
    * 사용자 입력을 3가지 트랙으로 분류
    */
-  async classify(
-    userInput: string,
-    context?: { hasData: boolean }
-  ): Promise<ResolvedIntent> {
+  async classify(userInput: string): Promise<ResolvedIntent> {
     const input = userInput.trim()
     if (!input) {
       return this.createFallback('data-consultation')
@@ -118,7 +124,7 @@ class IntentRouterService {
 
     // 2차: LLM 분류 (네트워크 호출)
     try {
-      const llmResult = await this.classifyByLLM(input, context)
+      const llmResult = await this.classifyByLLM(input)
       if (llmResult) {
         logger.debug('[IntentRouter] LLM classification', {
           track: llmResult.track,
@@ -214,35 +220,36 @@ class IntentRouterService {
   }
 
   /**
-   * LLM 기반 분류 (기존 llmRecommender 인프라 재사용)
+   * LLM 기반 분류 (전용 IntentRouter 프롬프트 사용)
    */
-  private async classifyByLLM(
-    input: string,
-    context?: { hasData: boolean }
-  ): Promise<ResolvedIntent | null> {
-    const result = await llmRecommender.recommend(input, null, null, null)
+  private async classifyByLLM(input: string): Promise<ResolvedIntent | null> {
+    const classification = await llmRecommender.classifyIntent(input)
+    if (!classification) return null // LLM 실패 → caller가 keyword fallback 처리
 
-    const rec = result.recommendation
-    if (rec?.method && rec.confidence > 0.5) {
-      // LLM이 충분한 확신으로 메서드를 추천함 → 직접 분석
-      // (confidence <= 0.5 = keyword fallback 기본값 → 실제 매칭 아님)
-      return {
-        track: 'direct-analysis',
-        confidence: rec.confidence,
-        method: rec.method,
-        reasoning: result.responseText || 'AI 분석 방법 추천',
-        needsData: true,
-        provider: 'llm'
-      }
-    }
+    // methodId → StatisticalMethod 변환 (STATISTICAL_METHODS 직접 조회)
+    const methodDef = classification.methodId
+      ? STATISTICAL_METHODS[classification.methodId]
+      : null
+    const method: StatisticalMethod | null = methodDef
+      ? {
+          id: methodDef.id,
+          name: methodDef.name,
+          description: methodDef.description,
+          category: methodDef.category as StatMethodCategory
+        }
+      : null
 
-    // LLM이 메서드를 특정하지 못하거나 확신이 낮음 → 데이터 상담
+    // 방어: direct-analysis인데 method가 null이면 data-consultation으로 교정
+    const track = (classification.track === 'direct-analysis' && !method)
+      ? 'data-consultation' as AnalysisTrack
+      : classification.track
+
     return {
-      track: 'data-consultation',
-      confidence: 0.6,
-      method: null,
-      reasoning: result.responseText || '추가 정보가 필요합니다',
-      needsData: true,
+      track,
+      confidence: classification.confidence,
+      method,
+      reasoning: classification.reasoning,
+      needsData: track !== 'experiment-design',
       provider: 'llm'
     }
   }
