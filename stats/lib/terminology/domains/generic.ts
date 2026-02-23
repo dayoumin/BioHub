@@ -153,6 +153,16 @@ export const generic: TerminologyDictionary = {
       dataRequired: 'Data Required',
       dataRequiredDescription: 'Please upload your data first.',
     },
+    aiVariables: {
+      title: 'AI Recommended Variables',
+      roles: {
+        dependent: 'Dependent:',
+        group: 'Group:',
+        factors: 'Factors:',
+        independent: 'Independent:',
+        covariate: 'Covariate:',
+      },
+    },
     floatingNav: {
       toMethod: 'Select Method',
       toVariables: 'Select Variables',

@@ -154,6 +154,16 @@ export const aquaculture: TerminologyDictionary = {
       dataRequired: '데이터가 필요합니다',
       dataRequiredDescription: '먼저 데이터를 업로드해주세요.',
     },
+    aiVariables: {
+      title: 'AI 추천 변수',
+      roles: {
+        dependent: '종속:',
+        group: '집단:',
+        factors: '요인:',
+        independent: '독립:',
+        covariate: '공변량:',
+      },
+    },
     floatingNav: {
       toMethod: '분석 방법 선택으로',
       toVariables: '변수 선택으로',

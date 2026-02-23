@@ -347,31 +347,31 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
             <Sparkles className="h-4 w-4 text-primary" />
           </div>
           <div className="text-sm space-y-1.5">
-            <span className="font-semibold tracking-tight text-foreground/90">AI 추천 변수</span>
+            <span className="font-semibold tracking-tight text-foreground/90">{t.smartFlow.aiVariables.title}</span>
             <div className="flex flex-wrap gap-1.5">
               {detectedVariables.dependentCandidate && (
                 <Badge variant="outline" className="text-[10px] bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 font-medium">
-                  종속: {detectedVariables.dependentCandidate}
+                  {t.smartFlow.aiVariables.roles.dependent} {detectedVariables.dependentCandidate}
                 </Badge>
               )}
               {detectedVariables.groupVariable && (
                 <Badge variant="outline" className="text-[10px] bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 font-medium">
-                  집단: {detectedVariables.groupVariable}
+                  {t.smartFlow.aiVariables.roles.group} {detectedVariables.groupVariable}
                 </Badge>
               )}
               {detectedVariables.factors && detectedVariables.factors.length > 0 && (
                 <Badge variant="outline" className="text-[10px] bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 font-medium">
-                  요인: {detectedVariables.factors.join(', ')}
+                  {t.smartFlow.aiVariables.roles.factors} {detectedVariables.factors.join(', ')}
                 </Badge>
               )}
               {detectedVariables.independentVars && detectedVariables.independentVars.length > 0 && (
                 <Badge variant="outline" className="text-[10px] bg-violet-50 dark:bg-violet-900/30 border-violet-200 dark:border-violet-800 font-medium">
-                  독립: {detectedVariables.independentVars.join(', ')}
+                  {t.smartFlow.aiVariables.roles.independent} {detectedVariables.independentVars.join(', ')}
                 </Badge>
               )}
               {detectedVariables.covariates && detectedVariables.covariates.length > 0 && (
                 <Badge variant="outline" className="text-[10px] bg-muted border-border/50 font-medium">
-                  공변량: {detectedVariables.covariates.join(', ')}
+                  {t.smartFlow.aiVariables.roles.covariate} {detectedVariables.covariates.join(', ')}
                 </Badge>
               )}
             </div>

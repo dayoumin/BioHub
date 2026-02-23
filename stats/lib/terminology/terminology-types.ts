@@ -208,6 +208,17 @@ export interface SmartFlowText {
     dataRequired: string
     dataRequiredDescription: string
   }
+  /** AI 추천 변수 표시 */
+  aiVariables: {
+    title: string
+    roles: {
+      dependent: string
+      group: string
+      factors: string
+      independent: string
+      covariate: string
+    }
+  }
   /** 플로팅 네비게이션 라벨 */
   floatingNav: {
     toMethod: string
