@@ -94,32 +94,7 @@ export const BarChartWithCI = memo(function BarChartWithCI({
   const [hoveredBar, setHoveredBar] = useState<number | null>(null)
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart')
 
-  // 로딩 상태 처리
-  if (isLoading) {
-    return <ChartSkeleton height={height} title={!!title} description={!!description} />
-  }
-
-  // 에러 상태 처리
-  if (error) {
-    return (
-      <Card className={cn('w-full', className)}>
-        <CardHeader>
-          {title && <CardTitle>{title}</CardTitle>}
-          {description && <CardDescription>{description}</CardDescription>}
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              차트를 불러오는 중 오류가 발생했습니다: {error.message}
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  // 데이터 범위 계산
+  // 데이터 범위 계산 (early return 전에 훅 호출)
   const { minValue, maxValue, range } = useMemo(() => {
     // 빈 데이터 처리
     if (data.length === 0) {
@@ -226,6 +201,31 @@ export const BarChartWithCI = memo(function BarChartWithCI({
       // 사용자에게 오류 알림
     }
   }, [data])
+
+  // 로딩 상태 처리 (훅 이후)
+  if (isLoading) {
+    return <ChartSkeleton height={height} title={!!title} description={!!description} />
+  }
+
+  // 에러 상태 처리
+  if (error) {
+    return (
+      <Card className={cn('w-full', className)}>
+        <CardHeader>
+          {title && <CardTitle>{title}</CardTitle>}
+          {description && <CardDescription>{description}</CardDescription>}
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              차트를 불러오는 중 오류가 발생했습니다: {error.message}
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    )
+  }
 
   const renderBar = (d: BarChartData, index: number) => {
     const color = getBarColor(index, d.value, d.color)

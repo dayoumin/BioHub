@@ -513,9 +513,7 @@ export interface ANOVAOptions extends CommonStatisticsOptions {
 /**
  * 카이제곱 검정 옵션
  */
-export interface ChiSquareOptions extends CommonStatisticsOptions {
-  // alternative만 사용
-}
+export type ChiSquareOptions = CommonStatisticsOptions
 
 /**
  * 상관분석 옵션

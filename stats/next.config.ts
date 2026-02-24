@@ -41,7 +41,7 @@ const nextConfig: NextConfig = {
     ]
   },
   eslint: {
-    ignoreDuringBuilds: true, // TODO: 배포 전 false로 복구 후 any 타입 수정 필요
+    ignoreDuringBuilds: false,
   },
   typescript: {
     ignoreBuildErrors: false,

@@ -496,7 +496,11 @@ export class StatisticalExecutor {
     }
 
     prepared.totalN = data.length
-    prepared.missingRemoved = 0 // TODO: 실제 결측값 계산
+    // 주요 변수(dependent → variables[0] 순)에서 NaN인 행 수 계산
+    const primaryCol = dependent.length > 0 ? dependent[0] : variablesArray[0]
+    prepared.missingRemoved = primaryCol
+      ? data.filter(row => isNaN(Number(row[primaryCol]))).length
+      : 0
 
     return prepared
   }

@@ -48,18 +48,18 @@ export function useReducedMotion(): boolean {
     if (mediaQuery.addEventListener) {
       mediaQuery.addEventListener('change', handleChange)
     } else {
-      // Legacy API (Safari ≤13, Android WebView 구형)
-      // @ts-ignore - addListener는 deprecated이지만 구형 브라우저에서 필요
-      mediaQuery.addListener(handleChange)
+      // Legacy API (Safari ≤13, Android WebView 구형) — deprecated but needed
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(mediaQuery as any).addListener(handleChange)
     }
 
     return () => {
       if (mediaQuery.removeEventListener) {
         mediaQuery.removeEventListener('change', handleChange)
       } else {
-        // Legacy API cleanup
-        // @ts-ignore
-        mediaQuery.removeListener(handleChange)
+        // Legacy API cleanup — deprecated but needed
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(mediaQuery as any).removeListener(handleChange)
       }
     }
   }, [])
