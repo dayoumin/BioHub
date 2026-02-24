@@ -255,12 +255,13 @@ export interface IntentClassification {
  * 통계적 가정 검정 요약
  */
 export interface StatisticalAssumptionsSummary {
-  meetsAssumptions: boolean
-  recommendation: string
+  meetsAssumptions?: boolean
+  recommendation?: string
   canUseParametric: boolean
   reasons: string[]
   recommendations: string[]
   violations?: string[]
+  testError?: boolean
 }
 
 /**
@@ -377,6 +378,7 @@ export interface StatisticalAssumptions {
     period?: number
   }
   summary?: StatisticalAssumptionsSummary
+  testedVariable?: string
 }
 
 /**

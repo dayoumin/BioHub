@@ -173,34 +173,33 @@ export class PyodideStatisticsService {
   }): Promise<{
     normality?: {
       shapiroWilk?: Generated.NormalityTestResult
-      kolmogorovSmirnov?: { statistic: number; pValue: number; isNormal: boolean }
     }
     homogeneity?: {
       levene?: Generated.LeveneTestResult
       bartlett?: { statistic: number; pValue: number; equalVariance: boolean }
     }
     independence?: {
-      durbinWatson?: { statistic: number; interpretation: string; isIndependent: boolean }
+      durbin?: { statistic: number; interpretation: string; isIndependent: boolean }
     }
     summary: {
       canUseParametric: boolean
       reasons: string[]
       recommendations: string[]
+      testError?: boolean
     }
   }> {
     const results: {
       normality: {
         shapiroWilk?: Generated.NormalityTestResult & { isNormal: boolean }
-        kolmogorovSmirnov?: { statistic: number; pValue: number; isNormal: boolean }
       }
       homogeneity: {
         levene?: Generated.LeveneTestResult
         bartlett?: { statistic: number; pValue: number; equalVariance: boolean }
       }
       independence: {
-        durbinWatson?: { statistic: number; interpretation: string; isIndependent: boolean }
+        durbin?: { statistic: number; interpretation: string; isIndependent: boolean }
       }
-      summary: { canUseParametric: boolean; reasons: string[]; recommendations: string[] }
+      summary: { canUseParametric: boolean; reasons: string[]; recommendations: string[]; testError?: boolean }
     } = {
       normality: {},
       homogeneity: {},
@@ -212,11 +211,10 @@ export class PyodideStatisticsService {
       }
     }
 
-
     // 정규성 검정
     if (data.values && data.values.length >= 3) {
       try {
-        // Shapiro-Wilk (작은 표본에 적합)
+        // Shapiro-Wilk (n ≤ 5000). n > 5000은 CLT 적용 — 검정 생략
         if (data.values.length <= 5000) {
           results.normality.shapiroWilk = await this.testNormality(data.values)
           if (!results.normality.shapiroWilk.isNormal) {
@@ -225,17 +223,12 @@ export class PyodideStatisticsService {
             results.summary.recommendations.push('비모수 검정 사용 권장')
           }
         }
-
-
-        // K-S test (큰 표본에 적합)
-        if (data.values.length > 30) {
-          results.normality.kolmogorovSmirnov = await this.kolmogorovSmirnovTest(data.values)
-        }
       } catch (error) {
         console.error('정규성 검정 실패:', error)
+        results.summary.testError = true
+        results.summary.reasons.push('정규성 검정 실패 — 결과 신뢰 불가')
       }
     }
-
 
     // 등분산성 검정
     if (data.groups && data.groups.length >= 2) {
@@ -243,11 +236,10 @@ export class PyodideStatisticsService {
         // Levene's test (정규성 가정에 강건)
         results.homogeneity.levene = await this.testHomogeneity(data.groups)
         if (!results.homogeneity.levene.equalVariance) {
-          results.summary.canUseParametric = false
-          results.summary.reasons.push('등분산성 가정 위반 (Levene)')
+          // canUseParametric 변경 없음 — Welch's t-test는 모수 검정
+          results.summary.reasons.push('등분산성 가정 위반 (Levene) — Welch 권장')
           results.summary.recommendations.push("Welch's t-test 또는 Games-Howell 사용")
         }
-
 
         // Bartlett's test (정규분포일 때 더 강력)
         if (results.normality.shapiroWilk?.isNormal) {
@@ -255,32 +247,35 @@ export class PyodideStatisticsService {
         }
       } catch (error) {
         console.error('등분산성 검정 실패:', error)
+        results.summary.testError = true
+        results.summary.reasons.push('등분산성 검정 실패 — 결과 신뢰 불가')
       }
     }
-
 
     // 독립성 검정
     if (data.residuals && data.residuals.length >= 2) {
       try {
-        results.independence.durbinWatson = await this.testIndependence(data.residuals)
-        if (!results.independence.durbinWatson.isIndependent) {
+        results.independence.durbin = await this.testIndependence(data.residuals)
+        if (!results.independence.durbin.isIndependent) {
           results.summary.canUseParametric = false
           results.summary.reasons.push('독립성 가정 위반')
           results.summary.recommendations.push('시계열 분석 방법 사용')
         }
       } catch (error) {
         console.error('독립성 검정 실패:', error)
+        results.summary.testError = true
+        results.summary.reasons.push('독립성 검정 실패 — 결과 신뢰 불가')
       }
     }
 
-
-    // 종합 권장사항
-    if (results.summary.canUseParametric) {
+    // 종합 권장사항 (testError 우선)
+    if (results.summary.testError) {
+      results.summary.recommendations.push('검정 실패 — 가정 판정 불가, 전문가 확인 권장')
+    } else if (results.summary.canUseParametric) {
       results.summary.recommendations.push('모수 검정 사용 가능')
     } else {
       results.summary.recommendations.push('비모수 검정 우선 권장')
     }
-
 
     return results
   }

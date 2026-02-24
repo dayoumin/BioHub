@@ -71,6 +71,7 @@ import { requestInterpretation, streamFollowUp, type InterpretationContext } fro
 import type { ChatMessage } from '@/lib/types/chat'
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import { AssumptionTestCard, type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
+import { AssumptionTestsSection } from '@/components/smart-flow/steps/exploration/AssumptionTestsSection'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { formatStatisticalResult } from '@/lib/statistics/formatters'
 import { useTerminology } from '@/hooks/use-terminology'
@@ -176,6 +177,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     variableMapping,
     uploadedFileName,
     selectedMethod,
+    assumptionResults,
   } = useSmartFlowStore()
 
   const savedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -664,6 +666,16 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             </div>
           }
         />
+
+        {/* ===== 가정 검정 결과 (Step 4 store 기반) — executor result에 assumptions가 없을 때만 표시 */}
+        {assumptionResults && !statisticalResult?.assumptions?.length && (
+          <AssumptionTestsSection
+            assumptionResults={assumptionResults}
+            isLoading={false}
+            visibility="secondary"
+            testedVariable={assumptionResults.testedVariable}
+          />
+        )}
 
         {/* ===== L1 핵심 결과 카드 ===== */}
         <Card className={cn(

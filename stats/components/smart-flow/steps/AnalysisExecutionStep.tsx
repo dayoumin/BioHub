@@ -14,9 +14,8 @@ import { transformExecutorResult } from '@/lib/utils/result-transformer'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { StepHeader, StatusIndicator, CollapsibleSection } from '@/components/smart-flow/common'
 import { logger } from '@/lib/utils/logger'
-import type { AnalysisExecutionStepProps } from '@/types/smart-flow-navigation'
-import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
-import type { StatisticalAssumptions } from '@/types/smart-flow'
+import type { AnalysisExecutionStepProps, VariableMapping } from '@/types/smart-flow-navigation'
+import type { StatisticalAssumptions, DataRow } from '@/types/smart-flow'
 import { useTerminology } from '@/hooks/use-terminology'
 
 // Stage IDs (순서 고정)
@@ -31,6 +30,48 @@ const STAGE_RANGES: Record<StageId, [number, number]> = {
   analysis: [50, 75],
   additional: [75, 90],
   finalize: [90, 100]
+}
+
+function buildAssumptionPayload(
+  mapping: VariableMapping | null,
+  data: DataRow[]
+): { values?: number[]; groups?: number[][]; testedVariable?: string } {
+  if (!mapping) return {}
+
+  const depVar =
+    (Array.isArray(mapping.dependentVar) ? mapping.dependentVar[0] : mapping.dependentVar) ??
+    (Array.isArray(mapping.variables) ? mapping.variables[0] : mapping.variables?.[0])
+
+  if (!depVar) return {}
+
+  const values = data
+    .map(r => parseFloat(String(r[depVar])))
+    .filter(v => !isNaN(v))
+
+  if (values.length < 3) return {}
+
+  const result: { values: number[]; groups?: number[][]; testedVariable: string } = {
+    values,
+    testedVariable: depVar
+  }
+
+  // groupVar가 "A,B" 같은 복합 요인(2-way/3-way ANOVA)이면 등분산성 검정 스킵
+  // r["A,B"]는 항상 undefined → 그룹 분리 불가
+  if (mapping.groupVar && !mapping.groupVar.includes(',')) {
+    const groupVar = mapping.groupVar
+    const uniqueGroups = [...new Set(data.map(r => r[groupVar]))]
+    const groups = uniqueGroups
+      .map(g => data
+        .filter(r => r[groupVar] === g)
+        .map(r => parseFloat(String(r[depVar])))
+        .filter(v => !isNaN(v))
+      )
+      .filter(g => g.length >= 3)
+
+    if (groups.length >= 2) result.groups = groups
+  }
+
+  return result
 }
 
 export function AnalysisExecutionStep({
@@ -70,7 +111,6 @@ export function AnalysisExecutionStep({
 
   // Store에서 필요한 데이터만 개별 selector로 구독 (불필요한 리렌더링 방지)
   const uploadedData = useSmartFlowStore(state => state.uploadedData)
-  const validationResults = useSmartFlowStore(state => state.validationResults)
   const setAssumptionResults = useSmartFlowStore(state => state.setAssumptionResults)
   const suggestedSettings = useSmartFlowStore(state => state.suggestedSettings)
 
@@ -152,101 +192,29 @@ export function AnalysisExecutionStep({
       setCompletedStages(prev => [...prev, 'preprocess'])
       updateStage('assumptions', 35)
 
-      // Stage 3: 가정 검정 (실제 PyodideCore 호출)
-      const assumptions: StatisticalAssumptions = {}
+      // Stage 3: 가정 검정 — variableMapping 기반 (이전 결과 먼저 초기화)
+      setAssumptionResults(null)
+      const { values, groups, testedVariable } = buildAssumptionPayload(variableMapping, uploadedData)
 
-      if (validationResults?.columnStats) {
-        const numericColumns = validationResults.columnStats.filter(s => s.type === 'numeric')
-        const categoricalColumns = validationResults.columnStats.filter(s =>
-          s.type === 'categorical' || (s.type === 'numeric' && s.uniqueValues <= 20)
-        )
-
-        // Shapiro-Wilk 정규성 검정 (첫 번째 수치형 변수)
-        if (numericColumns.length > 0 && uploadedData.length >= 3) {
-          try {
-            const firstNumericCol = numericColumns[0].name
-            const numericData = uploadedData
-              .map(row => row[firstNumericCol])
-              .filter((val): val is number => typeof val === 'number' && !isNaN(val))
-
-            if (numericData.length >= 3) {
-              addLog(logs.normalityTestStart)
-              const pyodideCore = PyodideCoreService.getInstance()
-              const shapiroResult = await pyodideCore.shapiroWilkTest(numericData)
-
-              if (shapiroResult.statistic !== undefined && shapiroResult.pValue !== undefined) {
-                assumptions.normality = {
-                  shapiroWilk: {
-                    statistic: shapiroResult.statistic,
-                    pValue: shapiroResult.pValue,
-                    isNormal: shapiroResult.pValue > 0.05
-                  }
-                }
-                addLog(logs.normalityTestDone(shapiroResult.pValue.toFixed(4)))
-              }
-            }
-          } catch (error) {
-            logger.warn('Shapiro-Wilk 검정 실패', { error })
-            addLog(logs.normalityTestFailed)
-          }
+      if (values) {
+        addLog(logs.normalityTestStart)
+        const rawResult = await pyodideStats.checkAllAssumptions({ values, groups })
+        const assumptionsResult: StatisticalAssumptions = {
+          ...rawResult,
+          testedVariable,
+          summary: rawResult.summary ? {
+            ...rawResult.summary,
+            // testError 시 판정 불가 → meetsAssumptions를 undefined로 두어 UI에서 "판정 불가" 처리
+            meetsAssumptions: rawResult.summary.testError
+              ? undefined
+              : rawResult.summary.canUseParametric,
+            recommendation: rawResult.summary.recommendations.at(-1) ?? ''
+          } : undefined
         }
-
-        // Levene 등분산성 검정 (그룹 변수가 있을 때)
-        if (categoricalColumns.length > 0 && numericColumns.length > 0 && uploadedData.length >= 6) {
-          try {
-            const numericCol = numericColumns[0].name
-            const groupColumn = categoricalColumns.find(col => col.name !== numericCol)
-
-            if (groupColumn) {
-              const groupCol = groupColumn.name
-
-              // 그룹별 데이터 분리
-              const groupMap = new Map<string, number[]>()
-              for (const row of uploadedData) {
-                const groupValue = String(row[groupCol])
-                const numericValue = row[numericCol]
-
-                if (typeof numericValue === 'number' && !isNaN(numericValue)) {
-                  if (!groupMap.has(groupValue)) {
-                    groupMap.set(groupValue, [])
-                  }
-                  const group = groupMap.get(groupValue)
-                  if (group) group.push(numericValue)
-                }
-              }
-
-              // 2개 이상의 그룹이 있고, 각 그룹에 3개 이상의 데이터가 있을 때
-              const groups = Array.from(groupMap.values())
-              if (groups.length >= 2 && groups.every(g => g.length >= 3)) {
-                addLog(logs.homogeneityTestStart)
-                const pyodideCore = PyodideCoreService.getInstance()
-                const leveneResult = await pyodideCore.leveneTest(groups)
-
-                if (leveneResult.statistic !== undefined && leveneResult.pValue !== undefined) {
-                  assumptions.homogeneity = {
-                    levene: {
-                      statistic: leveneResult.statistic,
-                      pValue: leveneResult.pValue,
-                      equalVariance: leveneResult.pValue > 0.05
-                    }
-                  }
-                  addLog(logs.homogeneityTestDone(leveneResult.pValue.toFixed(4)))
-                }
-              }
-            }
-          } catch (error) {
-            logger.warn('Levene 검정 실패', { error })
-            addLog(logs.homogeneityTestFailed)
-          }
-        }
-
-        // 가정 검정 결과 저장
-        if (Object.keys(assumptions).length > 0) {
-          setAssumptionResults(assumptions)
-          logger.info('가정 검정 결과 저장 완료', { assumptions })
-        } else {
-          addLog(logs.assumptionSkipped)
-        }
+        setAssumptionResults(assumptionsResult)
+        logger.info('가정 검정 결과 저장 완료', { testedVariable })
+      } else {
+        addLog(logs.assumptionSkipped)
       }
 
       if (cancelledRef.current) return

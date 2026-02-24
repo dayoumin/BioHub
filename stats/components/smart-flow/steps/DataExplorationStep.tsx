@@ -6,14 +6,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ChartScatter, ListOrdered, ExternalLink, BarChart3, Flame, AlertTriangle, Lightbulb, Upload } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { ValidationResults, DataRow, StatisticalAssumptions } from '@/types/smart-flow'
+import { ValidationResults, DataRow } from '@/types/smart-flow'
 import { DataProfileSummary } from '@/components/common/analysis/DataProfileSummary'
 import { EmptyState } from '@/components/common/EmptyState'
-import { usePyodide } from '@/components/providers/PyodideProvider'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { StepHeader } from '@/components/smart-flow/common'
 import { logger } from '@/lib/utils/logger'
-import { AssumptionTestsSection } from './exploration/AssumptionTestsSection'
 import { DistributionChartSection } from './exploration/DistributionChartSection'
 import { ScatterHeatmapSection } from './exploration/ScatterHeatmapSection'
 import { openDataWindow } from '@/lib/utils/open-data-window'
@@ -41,17 +39,6 @@ interface DataExplorationStepProps {
   onTemplateSelect?: (template: AnalysisTemplate) => void
 }
 
-/**
- * 통계 가정 검정 페이로드 타입
- * - values: 정규성 검정용 단일 수치형 배열
- * - groups: 등분산성 검정용 그룹별 수치형 배열
- */
-interface AssumptionPayload {
-  values?: number[]
-  groups?: number[][]
-  alpha: number
-  normalityRule: 'any' | 'all' | 'majority'
-}
 
 export const DataExplorationStep = memo(function DataExplorationStep({
   validationResults,
@@ -63,10 +50,8 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   // Terminology System
   const t = useTerminology()
 
-  // Pyodide 및 Store
-  const { isLoaded: pyodideLoaded, service: pyodideService } = usePyodide()
+  // Store
   const { uploadedFile, uploadedFileName, selectedMethod, quickAnalysisMode } = useSmartFlowStore()
-  // Note: setAssumptionResults는 useEffect에서 getState()로 직접 접근 (의존성 루프 방지)
 
   // 빠른 분석 모드: 방법에 맞는 탐색 프로필
   const profile = useMemo(
@@ -101,11 +86,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       data
     })
   }, [data, uploadedFile, uploadedFileName, t])
-
-  // 가정 검정 상태
-  const [isAssumptionLoading, setIsAssumptionLoading] = useState(false)
-  const [assumptionResults, setLocalAssumptionResults] = useState<StatisticalAssumptions | null>(null)
-  const assumptionRunId = useRef(0)
 
   // 이상치 상세 모달 상태
   const [outlierModalOpen, setOutlierModalOpen] = useState(false)
@@ -322,122 +302,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
   // 히트맵 데이터 준비 여부 (useMemo 기반 동기 계산)
   // Note: isCalculating 제거됨 — correlationMatrix/heatmapMatrix는 useMemo로 동기 계산되므로 로딩 상태 불필요
-
-  // 가정 검정 자동 실행 (Step 2: 데이터 탐색)
-  useEffect(() => {
-    // 데이터가 없거나 수치형 변수가 없으면 결과 초기화
-    if (!data || !validationResults || numericVariables.length === 0) {
-      // 이미 null이면 setState 호출 스킵 (무한 루프 방지)
-      if (assumptionResults !== null) {
-        setLocalAssumptionResults(null)
-      }
-      if (useSmartFlowStore.getState().assumptionResults !== null) {
-        useSmartFlowStore.getState().setAssumptionResults(null)
-      }
-      return
-    }
-
-    // Pyodide 미로드 시: 결과 초기화하고 대기 (로딩 완료 시 재실행됨)
-    if (!pyodideLoaded || !pyodideService) {
-      // 이미 null이면 setState 호출 스킵 (무한 루프 방지)
-      if (assumptionResults !== null) {
-        setLocalAssumptionResults(null)
-      }
-      if (useSmartFlowStore.getState().assumptionResults !== null) {
-        useSmartFlowStore.getState().setAssumptionResults(null)
-      }
-      return
-    }
-
-    // 중복 실행 방지
-    assumptionRunId.current++
-    const currentRunId = assumptionRunId.current
-
-    // isActive 플래그를 effect 스코프에 선언 (cleanup에서 접근 가능)
-    let isActive = true
-
-    const timer = setTimeout(async () => {
-      try {
-        setIsAssumptionLoading(true)
-
-        // 타입 안전한 페이로드 구성
-        const payload: AssumptionPayload = {
-          alpha: 0.05,
-          normalityRule: 'any'
-        }
-
-        // 첫 번째 수치형 컬럼으로 정규성 검정
-        const firstNumericCol = numericVariables[0]
-        const values = data.map(row => parseFloat(String(row[firstNumericCol])))
-          .filter(v => !isNaN(v))
-
-        if (values.length >= 3) {
-          payload.values = values
-        }
-
-        // 그룹이 여러 개 있으면 등분산성 검정
-        if (categoricalVariables.length > 0) {
-          const groupCol = categoricalVariables[0]
-          const groups: number[][] = []
-
-          const uniqueGroups = [...new Set(data.map(row => row[groupCol]))]
-          for (const group of uniqueGroups) {
-            const groupData = data
-              .filter(row => row[groupCol] === group)
-              .map(row => parseFloat(String(row[firstNumericCol])))
-              .filter(v => !isNaN(v))
-
-            if (groupData.length > 0) groups.push(groupData)
-          }
-
-          if (groups.length >= 2) {
-            payload.groups = groups
-          }
-        }
-
-        // 데이터가 없으면 호출 스킵 + 결과 초기화
-        if (!payload.values && !payload.groups) {
-          logger.info('[DataExploration] 가정 검정 스킵: 유효한 데이터 없음')
-          if (isActive && currentRunId === assumptionRunId.current) {
-            setLocalAssumptionResults(null)
-            useSmartFlowStore.getState().setAssumptionResults(null)
-            setIsAssumptionLoading(false)
-          }
-          return
-        }
-
-        // 통계 가정 검정 실행
-        const assumptions = await pyodideService.checkAllAssumptions(payload) as StatisticalAssumptions
-
-        // 언마운트 체크: isActive가 false면 상태 업데이트 스킵
-        if (isActive && currentRunId === assumptionRunId.current) {
-          setLocalAssumptionResults(assumptions)
-          // setAssumptionResults now automatically merges assumption results
-          // with structural compatibility (no need to call updateCompatibility separately)
-          useSmartFlowStore.getState().setAssumptionResults(assumptions)
-          logger.info('[DataExploration] 통계 가정 검정 완료', { summary: assumptions.summary })
-        }
-      } catch (error) {
-        if (isActive) {
-          logger.error('[DataExploration] 가정 검정 실패', { error })
-          // 에러 시에도 결과 초기화
-          setLocalAssumptionResults(null)
-          useSmartFlowStore.getState().setAssumptionResults(null)
-        }
-      } finally {
-        // 언마운트 체크 후 로딩 상태 해제
-        if (isActive && currentRunId === assumptionRunId.current) {
-          setIsAssumptionLoading(false)
-        }
-      }
-    }, 200)
-
-    // Cleanup: 타이머 취소 + isActive 플래그 해제
-    return () => {
-      isActive = false
-      clearTimeout(timer)
-    }
-  }, [data, validationResults, pyodideLoaded, pyodideService, numericVariables, categoricalVariables]) // assumptionResults 제거 (무한 루프 원인)
 
   // 변수 데이터 추출 (Raw - 필터링 없음, row index 유지)
   const getVariableDataRaw = useCallback((variableName: string): Array<number | null> => {
@@ -662,20 +526,9 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           categoricalVars={categoricalVariables.length}
           missingValues={validationResults.missingValues}
           totalCells={data.length * validationResults.columnCount}
-          recommendedType={
-            assumptionResults?.normality?.shapiroWilk?.isNormal === false
-              ? 'nonparametric'
-              : data.length >= 30
-                ? 'parametric'
-                : 'nonparametric'
-          }
+          recommendedType={data.length >= 30 ? 'parametric' : 'nonparametric'}
           status="warning"
           warnings={[t.dataExploration.warnings.fewNumericVars]}
-          assumptionSummary={{
-            normality: assumptionResults?.normality?.shapiroWilk?.isNormal ?? null,
-            homogeneity: assumptionResults?.homogeneity?.levene?.equalVariance ?? null,
-            isLoading: isAssumptionLoading
-          }}
         />
 
         <Card>
@@ -741,13 +594,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           categoricalVars={categoricalVariables.length}
           missingValues={validationResults.missingValues}
           totalCells={data.length * validationResults.columnCount}
-          recommendedType={
-            assumptionResults?.normality?.shapiroWilk?.isNormal === false
-              ? 'nonparametric'
-              : data.length >= 30
-                ? 'parametric'
-                : 'nonparametric'
-          }
+          recommendedType={data.length >= 30 ? 'parametric' : 'nonparametric'}
           status={
             !validationResults.isValid
               ? 'error'
@@ -757,11 +604,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           }
           errors={validationResults.errors}
           warnings={validationResults.warnings}
-          assumptionSummary={{
-            normality: assumptionResults?.normality?.shapiroWilk?.isNormal ?? null,
-            homogeneity: assumptionResults?.homogeneity?.levene?.equalVariance ?? null,
-            isLoading: isAssumptionLoading
-          }}
         />
       )}
 
@@ -1043,13 +885,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           </ContentTabsContent>
         </CardContent>
       </Card>
-
-      {/* 가정 검정 결과 */}
-      <AssumptionTestsSection
-        assumptionResults={assumptionResults}
-        isLoading={isAssumptionLoading}
-        visibility={profile.assumptionTests}
-      />
 
       {/* 데이터 분포 시각화 */}
       <DistributionChartSection

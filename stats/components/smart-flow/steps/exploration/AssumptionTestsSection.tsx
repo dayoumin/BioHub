@@ -12,12 +12,14 @@ interface AssumptionTestsSectionProps {
   assumptionResults: StatisticalAssumptions | null
   isLoading: boolean
   visibility: 'primary' | 'secondary' | 'hidden'
+  testedVariable?: string
 }
 
 export const AssumptionTestsSection = memo(function AssumptionTestsSection({
   assumptionResults,
   isLoading,
-  visibility
+  visibility,
+  testedVariable
 }: AssumptionTestsSectionProps) {
   const t = useTerminology()
 
@@ -47,6 +49,14 @@ export const AssumptionTestsSection = memo(function AssumptionTestsSection({
   // 결과 없음
   if (!assumptionResults) return null
 
+  // testError 실패 메시지 — 복수 이유 포함
+  const failReasons = assumptionResults.summary?.testError
+    ? assumptionResults.summary.reasons.filter(r => r.includes('실패'))
+    : []
+  const testErrorMessage = assumptionResults.summary?.testError
+    ? (failReasons.length > 0 ? failReasons.join(' / ') : '일부 가정 검정 실패 — 전문가 확인 권장')
+    : null
+
   return (
     <Card className={cn("border-border/40 shadow-sm overflow-hidden", secondaryClass)}>
       {visibility === 'secondary' && (
@@ -62,11 +72,19 @@ export const AssumptionTestsSection = memo(function AssumptionTestsSection({
           {t.dataExploration.assumptions.title}
         </CardTitle>
         <CardDescription>
-          {t.dataExploration.assumptions.description}
+          {testedVariable
+            ? `${t.dataExploration.assumptions.description} (변수: ${testedVariable})`
+            : t.dataExploration.assumptions.description}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
+          {/* testError: 검정 실패 메시지 */}
+          {testErrorMessage && (
+            <div className="p-3 bg-warning-bg/50 rounded-lg border border-warning-border/30">
+              <p className="text-sm text-muted-foreground">{testErrorMessage}</p>
+            </div>
+          )}
           {/* 정규성 검정 결과 */}
           {assumptionResults.normality?.shapiroWilk && (
             <div className="p-4 bg-background rounded-xl border border-border/40">
