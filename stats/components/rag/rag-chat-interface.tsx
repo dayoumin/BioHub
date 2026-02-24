@@ -11,7 +11,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 type PluggableList = Array<[unknown, ...unknown[]] | unknown>
 import 'katex/dist/katex.min.css'
 import { Button } from '@/components/ui/button'

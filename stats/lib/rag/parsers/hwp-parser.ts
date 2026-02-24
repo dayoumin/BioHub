@@ -16,7 +16,7 @@ export class HWPParser implements DocumentParser {
    */
   async parse(filePath: string): Promise<string> {
     return new Promise((resolve, reject) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       import('node-hwp')
         .then((hwpModule) => {
           const hwp = hwpModule.default || hwpModule
@@ -70,7 +70,7 @@ export class HWPParser implements DocumentParser {
       const hwpml = doc.toHML()
 
       // XML to text conversion with structure preservation
-      let text = hwpml
+      const text = hwpml
         // 1. 블록 레벨 태그 → \n\n (문단 구분)
         .replace(/<\/(P|SECTION|TABLE|LIST)>/gi, '\n\n')
         // 2. 줄바꿈 태그 → \n

@@ -174,7 +174,7 @@ export function SmartFlowHub({
       name: quickMethodNames[id] ?? QUICK_METHOD_DEFAULTS[id] ?? id,
       icon: QUICK_METHOD_ICONS[id] ?? BarChart3,
     }))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [quickMethodNames])
 
   // 선택된 빠른 분석 방법들

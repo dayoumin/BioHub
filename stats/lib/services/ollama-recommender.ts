@@ -673,7 +673,7 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
 
       // 설명 텍스트 추출 (JSON 이전 부분)
       const jsonMatch = fullResponse.match(/```json[\s\S]*?```|\{[\s\S]*\}/)
-      let responseText = jsonMatch
+      const responseText = jsonMatch
         ? fullResponse.substring(0, fullResponse.indexOf(jsonMatch[0])).trim()
         : fullResponse
 

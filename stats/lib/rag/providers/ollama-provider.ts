@@ -885,7 +885,7 @@ export class OllamaRAGProvider extends BaseRAGProvider {
     this.ensureInitialized()
 
     const startTime = Date.now()
-    let searchMode = context.searchMode || 'vector' // 기본값: vector (FAISS 방식)
+    const searchMode = context.searchMode || 'vector' // 기본값: vector (FAISS 방식)
     let usedFallback = false
 
     try {
@@ -1018,7 +1018,7 @@ export class OllamaRAGProvider extends BaseRAGProvider {
     this.ensureInitialized()
 
     const startTime = Date.now()
-    let searchMode = context.searchMode || 'vector' // 기본값: vector (FAISS 방식)
+    const searchMode = context.searchMode || 'vector' // 기본값: vector (FAISS 방식)
     let usedFallback = false
 
     try {
