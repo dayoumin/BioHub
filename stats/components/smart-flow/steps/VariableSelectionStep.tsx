@@ -365,7 +365,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
                 </Badge>
               )}
               {detectedVariables.independentVars && detectedVariables.independentVars.length > 0 && (
-                <Badge variant="outline" className="text-[10px] bg-success-bg border-success-border text-success font-medium">
+                <Badge variant="outline" className="text-[10px] bg-highlight-bg border-highlight-border text-highlight font-medium">
                   {t.smartFlow.aiVariables.roles.independent} {detectedVariables.independentVars.join(', ')}
                 </Badge>
               )}
