@@ -218,7 +218,7 @@ export function ChatCentricHub({
   // data-testid="hub-upload-card": E2E 호환용 마커 (컨테이너 가시성 감지).
   return (
     <motion.div
-      className="w-full max-w-3xl mx-auto space-y-6 py-8"
+      className="w-full space-y-6 py-8"
       data-testid="hub-upload-card"
       {...(prefersReducedMotion ? {} : { variants: containerVariants, initial: 'hidden' as const, animate: 'visible' as const })}
     >

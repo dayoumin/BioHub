@@ -12,7 +12,8 @@ import {
   Play,
   MessageCircle,
   ChevronRight,
-  Loader2
+  Loader2,
+  Home
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -147,7 +148,7 @@ export function SmartFlowLayout({
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex items-center justify-between h-14">
-            {/* 좌측: 로고 */}
+            {/* 좌측: 로고 + 스텝 진행 중 홈 버튼 */}
             <div className="flex items-center gap-3">
               <Link
                 href="/"
@@ -156,6 +157,21 @@ export function SmartFlowLayout({
               >
                 {t.smartFlow.layout.appTitle}
               </Link>
+              {!showHub && (
+                <>
+                  <span className="text-border">|</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogoClick}
+                    className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2"
+                    title="허브로 돌아가기"
+                  >
+                    <Home className="h-3.5 w-3.5" />
+                    허브
+                  </Button>
+                </>
+              )}
             </div>
 
             {/* 우측: 앱 아이콘 (히스토리, 채팅, 도움말, 설정) */}

@@ -151,10 +151,10 @@ export function ChatInput({
       </div>
 
       {/* 콘텐츠 */}
-      <div className="relative rounded-2xl border bg-background/80 backdrop-blur-sm p-8 space-y-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-center">
+      <div className="relative rounded-2xl border bg-background/80 backdrop-blur-sm p-6 space-y-4">
+        <p className="text-sm font-medium text-muted-foreground">
           {t.hub.chatInput.heading}
-        </h1>
+        </p>
 
         <div className="flex items-end gap-2">
           <div className="relative flex-1">
@@ -165,10 +165,10 @@ export function ChatInput({
               onKeyDown={handleKeyDown}
               placeholder={t.hub.chatInput.placeholder}
               disabled={isProcessing}
-              rows={1}
+              rows={3}
               className={cn(
-                'min-h-[48px] max-h-[120px] resize-none pr-12',
-                'rounded-xl border-muted-foreground/20',
+                'min-h-[80px] max-h-[200px] resize-none pr-4',
+                'rounded-xl border-muted-foreground/20 text-base',
                 'focus:ring-2 focus:ring-primary/30',
                 'transition-all duration-200'
               )}
@@ -180,7 +180,7 @@ export function ChatInput({
             size="icon"
             onClick={handleSubmit}
             disabled={!value.trim() || isProcessing}
-            className="h-12 w-12 rounded-xl shrink-0"
+            className="h-12 w-12 rounded-xl shrink-0 self-end"
             aria-label={t.hub.chatInput.sendAriaLabel}
           >
             {isProcessing ? (
