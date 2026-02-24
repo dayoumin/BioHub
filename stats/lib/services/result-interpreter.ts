@@ -11,6 +11,11 @@ import { llmRecommender, type LlmStreamResult } from './llm-recommender'
 import { logger } from '@/lib/utils/logger'
 import { SYSTEM_PROMPT_INTERPRETER } from './ai/prompts'
 
+export interface FollowUpMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 export interface InterpretationContext {
   results: AnalysisResult
   sampleSize?: number
@@ -197,6 +202,52 @@ export async function requestInterpretation(
       break
     }
     // yielded value는 string chunk
+    onChunk(value)
+  }
+
+  return { model: streamResult?.model ?? 'unknown' }
+}
+
+/**
+ * 후속 질문 스트리밍 (멀티턴)
+ *
+ * 분석 컨텍스트 + 첫 해석 + 최근 대화 히스토리를 messages 배열로 구성하여
+ * LLM에 전달합니다. 히스토리는 최근 4개 메시지(2턴)만 포함합니다.
+ */
+export async function streamFollowUp(
+  question: string,
+  chatHistory: FollowUpMessage[],
+  ctx: InterpretationContext,
+  initialInterpretation: string,
+  onChunk: (text: string) => void,
+  signal?: AbortSignal
+): Promise<{ model: string }> {
+  const analysisPrompt = buildInterpretationPrompt(ctx)
+
+  const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+    { role: 'system', content: SYSTEM_PROMPT_INTERPRETER },
+    { role: 'user', content: analysisPrompt },
+    { role: 'assistant', content: initialInterpretation },
+    // 최근 2턴(4메시지)만 컨텍스트 포함
+    ...chatHistory.slice(-4).map(m => ({ role: m.role, content: m.content })),
+    { role: 'user', content: question },
+  ]
+
+  logger.info('[ResultInterpreter] Requesting follow-up via streamMessages', {
+    method: ctx.results.method,
+    historyCount: chatHistory.length,
+    messageCount: messages.length,
+  })
+
+  const generator = llmRecommender.streamMessages(messages, signal)
+
+  let streamResult: LlmStreamResult | undefined
+  while (true) {
+    const { value, done } = await generator.next()
+    if (done) {
+      streamResult = value
+      break
+    }
     onChunk(value)
   }
 

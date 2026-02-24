@@ -6,7 +6,7 @@
  *
  * 환경변수:
  * - NEXT_PUBLIC_TURSO_URL: Turso 데이터베이스 URL
- * - TURSO_AUTH_TOKEN: 인증 토큰
+ * - NEXT_PUBLIC_TURSO_AUTH_TOKEN: 인증 토큰 (NEXT_PUBLIC_ 필수 — static export에서 브라우저 접근)
  */
 
 import type { StorageAdapter } from './storage-adapter'
@@ -17,7 +17,7 @@ import type {
 } from '../storage-types'
 
 // Turso 클라이언트 타입 (동적 import용)
-import type { Client as LibSQLClient, InValue } from '@libsql/client'
+import type { Client as LibSQLClient, InValue } from '@libsql/client/web'
 type TursoClient = LibSQLClient
 
 const MAX_HISTORY = 100
@@ -47,17 +47,18 @@ export class TursoAdapter implements StorageAdapter {
 
     this.initPromise = (async () => {
       const url = process.env.NEXT_PUBLIC_TURSO_URL
-      const authToken = process.env.TURSO_AUTH_TOKEN
+      const authToken = process.env.NEXT_PUBLIC_TURSO_AUTH_TOKEN
 
       if (!url) {
         throw new Error('[Turso] NEXT_PUBLIC_TURSO_URL is not configured')
       }
 
       try {
-        // 동적 import (번들 크기 최적화)
-        const { createClient } = await import('@libsql/client')
+        // 브라우저용 web 클라이언트 사용 (libsql:// → https:// 변환)
+        const webUrl = url.replace(/^libsql:\/\//, 'https://')
+        const { createClient } = await import('@libsql/client/web')
         this.client = createClient({
-          url,
+          url: webUrl,
           authToken
         })
 
@@ -97,6 +98,7 @@ export class TursoAdapter implements StorageAdapter {
           aiInterpretation TEXT,
           apaFormat TEXT,
           aiRecommendation TEXT,
+          interpretationChat TEXT,
           deviceId TEXT,
           syncedAt INTEGER,
           updatedAt INTEGER
@@ -120,6 +122,7 @@ export class TursoAdapter implements StorageAdapter {
     await this.ensureColumn('history', 'aiInterpretation', 'TEXT')
     await this.ensureColumn('history', 'apaFormat', 'TEXT')
     await this.ensureColumn('history', 'aiRecommendation', 'TEXT')
+    await this.ensureColumn('history', 'interpretationChat', 'TEXT')
   }
 
   private async ensureColumn(table: string, column: string, type: string): Promise<void> {
@@ -163,8 +166,8 @@ export class TursoAdapter implements StorageAdapter {
             (id, timestamp, name, purpose, analysisPurpose, method,
              variableMapping, analysisOptions, dataFileName, dataRowCount,
              columnInfo, results, aiInterpretation, apaFormat, aiRecommendation,
-             deviceId, syncedAt, updatedAt)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             interpretationChat, deviceId, syncedAt, updatedAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args: [
         record.id,
         record.timestamp,
@@ -181,6 +184,7 @@ export class TursoAdapter implements StorageAdapter {
         record.aiInterpretation ?? null,
         record.apaFormat ?? null,
         record.aiRecommendation ? JSON.stringify(record.aiRecommendation) : null,
+        record.interpretationChat ? JSON.stringify(record.interpretationChat) : null,
         record.deviceId || this.getDeviceId(),
         now,
         record.updatedAt || now
@@ -291,6 +295,7 @@ export class TursoAdapter implements StorageAdapter {
       aiInterpretation: (row.aiInterpretation as string | null) ?? null,
       apaFormat: (row.apaFormat as string | null) ?? null,
       aiRecommendation: row.aiRecommendation ? JSON.parse(row.aiRecommendation as string) : null,
+      interpretationChat: row.interpretationChat ? JSON.parse(row.interpretationChat as string) : undefined,
       deviceId: row.deviceId as string | undefined,
       syncedAt: row.syncedAt as number | undefined,
       updatedAt: row.updatedAt as number | undefined

@@ -31,6 +31,7 @@ import {
   initStorage
 } from '@/lib/utils/storage'
 import type { HistoryRecord, AiRecommendationContext } from '@/lib/utils/storage-types'
+import type { ChatMessage } from '@/lib/types/chat'
 import { isIndexedDBAvailable } from '@/lib/utils/adapters/indexeddb-adapter'
 import { transformExecutorResult } from '@/lib/utils/result-transformer'
 import type { AnalysisResult as ExecutorResult } from '@/lib/services/executors/types'
@@ -188,7 +189,7 @@ interface SmartFlowState {
   // 히스토리 액션 (비동기)
   saveToHistory: (
     name?: string,
-    metadata?: { aiInterpretation?: string | null; apaFormat?: string | null }
+    metadata?: { aiInterpretation?: string | null; apaFormat?: string | null; interpretationChat?: ChatMessage[] }
   ) => Promise<void>
   loadFromHistory: (historyId: string) => Promise<void>
   deleteFromHistory: (historyId: string) => Promise<void>
@@ -374,7 +375,8 @@ export const useSmartFlowStore = create<SmartFlowState>()(
           apaFormat: metadata?.apaFormat ?? null,
           variableMapping: state.variableMapping,
           analysisPurpose: state.analysisPurpose,
-          aiRecommendation: state.lastAiRecommendation ?? null
+          aiRecommendation: state.lastAiRecommendation ?? null,
+          interpretationChat: metadata?.interpretationChat?.length ? metadata.interpretationChat : undefined
         }
 
         try {

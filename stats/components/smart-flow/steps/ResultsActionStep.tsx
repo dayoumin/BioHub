@@ -15,7 +15,9 @@ import {
   Lightbulb,
   ChevronRight,
   FileSearch,
-  ArrowLeft
+  ArrowLeft,
+  Send,
+  MessageCircle,
 } from 'lucide-react'
 import { EmptyState } from '@/components/common/EmptyState'
 import { toast } from 'sonner'
@@ -55,7 +57,8 @@ import { StepHeader, CollapsibleSection, StatisticCard } from '@/components/smar
 import { ConfidenceIntervalDisplay } from '@/components/statistics/common/ConfidenceIntervalDisplay'
 import { MethodSpecificResults } from '@/components/smart-flow/steps/results/MethodSpecificResults'
 import { ResultsVisualization } from '@/components/smart-flow/ResultsVisualization'
-import { requestInterpretation, type InterpretationContext } from '@/lib/services/result-interpreter'
+import { requestInterpretation, streamFollowUp, type InterpretationContext } from '@/lib/services/result-interpreter'
+import type { ChatMessage } from '@/lib/types/chat'
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import { AssumptionTestCard, type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
@@ -98,6 +101,14 @@ function formatPValue(p: number): string {
   return p.toFixed(3)
 }
 
+const FOLLOW_UP_CHIPS: Array<{ label: string; prompt: string }> = [
+  { label: '논문에 어떻게 쓰나요?', prompt: '이 결과를 APA 형식으로 논문에 어떻게 작성하면 되나요?' },
+  { label: '효과크기 해석', prompt: '효과크기를 비전문가도 이해할 수 있게 쉽게 설명해주세요.' },
+  { label: '가정 위반 대안', prompt: '가정 검정이 충족되지 않았을 때 어떤 대안적 분석 방법이 있나요?' },
+  { label: '연구 한계점', prompt: '이 분석 결과의 한계점과 주의사항은 무엇인가요?' },
+  { label: '다음 분석은?', prompt: '이 결과를 바탕으로 다음에 어떤 분석이나 조치를 하면 좋을까요?' },
+]
+
 export function ResultsActionStep({ results }: ResultsActionStepProps) {
   // Terminology System
   const t = useTerminology()
@@ -129,6 +140,17 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const interpretAbortRef = useRef<AbortController | null>(null)
   const interpretedResultRef = useRef<string | null>(null) // 캐시 key (results.method + pValue)
 
+  // 후속 Q&A 상태
+  const [followUpMessages, setFollowUpMessages] = useState<ChatMessage[]>([])
+  const [followUpInput, setFollowUpInput] = useState('')
+  const [isFollowUpStreaming, setIsFollowUpStreaming] = useState(false)
+  const followUpAbortRef = useRef<AbortController | null>(null)
+  const chatBottomRef = useRef<HTMLDivElement | null>(null)
+
+  // 언마운트 시 후속 Q&A 스트림 취소
+  useEffect(() => {
+    return () => { followUpAbortRef.current?.abort() }
+  }, [])
 
   const {
     saveToHistory,
@@ -318,6 +340,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         await saveToHistory(historyName, {
           aiInterpretation: interpretation,
           apaFormat,
+          // 스트리밍 중이면 미완성 메시지 제외, 완료된 교환만 저장
+          interpretationChat: !isFollowUpStreaming && followUpMessages.length > 0 ? followUpMessages : undefined,
         }).catch(() => { /* 히스토리 저장 실패 무시 */ })
 
         if (effectiveExportOptions.includeCharts) {
@@ -339,7 +363,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     } finally {
       setIsExporting(false)
     }
-  }, [results, statisticalResult, interpretation, apaFormat, exportDataInfo, selectedMethod, saveToHistory, uploadedData])
+  }, [results, statisticalResult, interpretation, apaFormat, exportDataInfo, selectedMethod, saveToHistory, uploadedData, followUpMessages, isFollowUpStreaming])
 
   const openExportDialog = useCallback((format: ExportFormat) => {
     setExportFormat(format)
@@ -418,6 +442,58 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       interpretAbortRef.current = null
     }
   }, [results, uploadedData, mappedVariables, uploadedFileName])
+
+  // 후속 질문 전송
+  const handleFollowUp = useCallback(async (question: string) => {
+    if (!results || !interpretation || isFollowUpStreaming || !question.trim()) return
+
+    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: question.trim(), timestamp: Date.now() }
+    setFollowUpMessages(prev => [...prev, userMsg])
+    setFollowUpInput('')
+
+    const assistantPlaceholder: ChatMessage = { id: crypto.randomUUID(), role: 'assistant', content: '', timestamp: Date.now() }
+    setFollowUpMessages(prev => [...prev, assistantPlaceholder])
+    setIsFollowUpStreaming(true)
+
+    const controller = new AbortController()
+    followUpAbortRef.current = controller
+
+    const ctx: InterpretationContext = {
+      results,
+      sampleSize: uploadedData?.length,
+      variables: mappedVariables.length > 0 ? mappedVariables : undefined,
+      uploadedFileName: uploadedFileName ?? undefined,
+    }
+
+    try {
+      let accumulated = ''
+      await streamFollowUp(
+        question.trim(),
+        followUpMessages,
+        ctx,
+        interpretation,
+        (chunk) => {
+          accumulated += chunk
+          setFollowUpMessages(prev => {
+            const last = prev[prev.length - 1]
+            return [...prev.slice(0, -1), { ...last, content: accumulated }]
+          })
+        },
+        controller.signal
+      )
+    } catch (error) {
+      if (controller.signal.aborted) return
+      const msg = error instanceof Error ? error.message : '후속 질문 처리 중 오류가 발생했습니다.'
+      setFollowUpMessages(prev => {
+        const last = prev[prev.length - 1]
+        return [...prev.slice(0, -1), { ...last, content: `오류: ${msg}` }]
+      })
+    } finally {
+      setIsFollowUpStreaming(false)
+      followUpAbortRef.current = null
+      setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
+    }
+  }, [results, interpretation, isFollowUpStreaming, followUpMessages, uploadedData, mappedVariables, uploadedFileName])
 
   // 결과 로드 시 자동 AI 해석 요청
   useEffect(() => {
@@ -692,8 +768,11 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
+                        followUpAbortRef.current?.abort()
+                        setIsFollowUpStreaming(false)
                         interpretedResultRef.current = null
                         setInterpretation(null)
+                        setFollowUpMessages([])
                         handleInterpretation()
                       }}
                       className="text-xs text-muted-foreground h-6 px-2"
@@ -715,7 +794,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                       variant="ghost"
                       size="sm"
                       onClick={() => {
+                        followUpAbortRef.current?.abort()
+                        setIsFollowUpStreaming(false)
                         interpretedResultRef.current = null
+                        setFollowUpMessages([])
                         handleInterpretation()
                       }}
                       className="ml-2 text-xs h-6 px-2"
@@ -726,6 +808,85 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 </Alert>
               )}
             </div>
+
+            {/* ===== 후속 Q&A ===== */}
+            {interpretation && !isInterpreting && (
+              <div className="space-y-3" data-testid="follow-up-section">
+                {/* 이전 Q&A 스레드 */}
+                {followUpMessages.length > 0 && (
+                  <div className="space-y-2">
+                    {followUpMessages.map((msg, idx) => (
+                      <div
+                        key={idx}
+                        className={cn(
+                          'px-3 py-2 rounded-lg text-sm',
+                          msg.role === 'user'
+                            ? 'bg-muted ml-6 text-foreground'
+                            : 'bg-violet-50 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/50 text-foreground'
+                        )}
+                      >
+                        {msg.role === 'user' ? (
+                          <p className="font-medium text-xs text-muted-foreground mb-0.5">질문</p>
+                        ) : (
+                          <p className="font-medium text-xs text-violet-600 dark:text-violet-400 mb-0.5 flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" /> AI 답변
+                          </p>
+                        )}
+                        <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed">
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        </div>
+                        {msg.role === 'assistant' && isFollowUpStreaming && idx === followUpMessages.length - 1 && (
+                          <span className="inline-block w-1.5 h-3.5 bg-purple-500 animate-pulse ml-0.5 align-text-bottom" />
+                        )}
+                      </div>
+                    ))}
+                    <div ref={chatBottomRef} />
+                  </div>
+                )}
+
+                {/* Chips */}
+                <div className="flex flex-wrap gap-1.5">
+                  {FOLLOW_UP_CHIPS.map((chip) => (
+                    <button
+                      key={chip.label}
+                      onClick={() => handleFollowUp(chip.prompt)}
+                      disabled={isFollowUpStreaming}
+                      className="text-xs px-2.5 py-1 rounded-full border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950/30 disabled:opacity-40 transition-colors flex items-center gap-1"
+                    >
+                      <MessageCircle className="w-3 h-3" />
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 직접 입력 */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={followUpInput}
+                    onChange={(e) => setFollowUpInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        handleFollowUp(followUpInput)
+                      }
+                    }}
+                    placeholder="추가로 궁금한 점을 질문하세요..."
+                    disabled={isFollowUpStreaming}
+                    className="flex-1 text-sm px-3 py-1.5 rounded-lg border border-input bg-background focus:outline-none focus:ring-1 focus:ring-violet-400 disabled:opacity-50"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleFollowUp(followUpInput)}
+                    disabled={isFollowUpStreaming || !followUpInput.trim()}
+                    className="px-2.5 border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950/30"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* ===== 시각화 ===== */}
             <ResultsVisualization results={results} />
