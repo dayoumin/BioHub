@@ -166,7 +166,7 @@ export function TwoWayAnovaSelector({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Factor 1 */}
         <Card>
-          <CardHeader className="pb-3 bg-blue-50 dark:bg-blue-950/30">
+          <CardHeader className="pb-3 bg-info-bg">
             <div className="flex items-center gap-2">
               <CardTitle className="text-base">Factor 1</CardTitle>
               <span className="text-destructive">*</span>
@@ -187,8 +187,8 @@ export function TwoWayAnovaSelector({
                     'w-full p-2 rounded-lg border-2 transition-all text-left text-sm',
                     'flex items-center justify-between',
                     factor1 === col.name
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50'
-                      : 'border-border hover:border-blue-300',
+                      ? 'border-info-border bg-info-bg'
+                      : 'border-border hover:border-info-border/50',
                     (col.name === factor2 || col.name === dependentVar) && 'opacity-40 cursor-not-allowed'
                   )}
                 >
@@ -207,7 +207,7 @@ export function TwoWayAnovaSelector({
 
         {/* Factor 2 */}
         <Card>
-          <CardHeader className="pb-3 bg-purple-50 dark:bg-purple-950/30">
+          <CardHeader className="pb-3 bg-highlight-bg">
             <div className="flex items-center gap-2">
               <CardTitle className="text-base">Factor 2</CardTitle>
               <span className="text-destructive">*</span>
@@ -228,8 +228,8 @@ export function TwoWayAnovaSelector({
                     'w-full p-2 rounded-lg border-2 transition-all text-left text-sm',
                     'flex items-center justify-between',
                     factor2 === col.name
-                      ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/50'
-                      : 'border-border hover:border-purple-300',
+                      ? 'border-highlight-border bg-highlight-bg'
+                      : 'border-border hover:border-highlight-border/50',
                     (col.name === factor1 || col.name === dependentVar) && 'opacity-40 cursor-not-allowed'
                   )}
                 >
@@ -244,7 +244,7 @@ export function TwoWayAnovaSelector({
 
       {/* Dependent Variable */}
       <Card>
-        <CardHeader className="pb-3 bg-green-50 dark:bg-green-950/30">
+        <CardHeader className="pb-3 bg-info-bg">
           <div className="flex items-center gap-2">
             <CardTitle className="text-base">{t.variables.dependent.title}</CardTitle>
             <span className="text-destructive">*</span>
@@ -264,8 +264,8 @@ export function TwoWayAnovaSelector({
                 className={cn(
                   'p-2 rounded-lg border-2 transition-all text-left text-sm',
                   dependentVar === col.name
-                    ? 'border-green-500 bg-green-50 dark:bg-green-950/50'
-                    : 'border-border hover:border-green-300',
+                    ? 'border-info-border bg-info-bg'
+                    : 'border-border hover:border-info-border/50',
                   (col.name === factor1 || col.name === factor2) && 'opacity-40 cursor-not-allowed'
                 )}
               >
@@ -297,9 +297,9 @@ export function TwoWayAnovaSelector({
 
       {/* Validation Feedback */}
       {validation.isValid ? (
-        <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-700 dark:text-green-300">
+        <Alert className="bg-success-bg border-success-border">
+          <CheckCircle2 className="h-4 w-4 text-success" />
+          <AlertDescription className="text-success">
             {t.success.allVariablesSelected}
           </AlertDescription>
         </Alert>

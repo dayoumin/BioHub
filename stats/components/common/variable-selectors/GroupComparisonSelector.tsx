@@ -179,7 +179,7 @@ export function GroupComparisonSelector({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Group Variable */}
         <Card>
-          <CardHeader className="pb-3 bg-orange-50 dark:bg-orange-950/30">
+          <CardHeader className="pb-3 bg-success-bg">
             <div className="flex items-center gap-2">
               <CardTitle className="text-base">{t.variables.group.title}</CardTitle>
               <span className="text-destructive">*</span>
@@ -209,8 +209,8 @@ export function GroupComparisonSelector({
                       'w-full p-3 rounded-lg border-2 transition-all text-left',
                       'flex items-center justify-between',
                       groupVar === col.name
-                        ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/50'
-                        : 'border-border hover:border-orange-300',
+                        ? 'border-success-border bg-success-bg'
+                        : 'border-border hover:border-success-border/50',
                       col.name === dependentVar && 'opacity-40 cursor-not-allowed'
                     )}
                   >
@@ -222,7 +222,7 @@ export function GroupComparisonSelector({
                     </div>
                     <div className="flex items-center gap-2">
                       {isTwoGroups && (
-                        <Badge variant="default" className="text-xs bg-green-600">
+                        <Badge variant="default" className="text-xs bg-success">
                           2 groups
                         </Badge>
                       )}
@@ -246,7 +246,7 @@ export function GroupComparisonSelector({
 
         {/* Dependent Variable */}
         <Card>
-          <CardHeader className="pb-3 bg-green-50 dark:bg-green-950/30">
+          <CardHeader className="pb-3 bg-info-bg">
             <div className="flex items-center gap-2">
               <CardTitle className="text-base">{t.variables.dependent.title}</CardTitle>
               <span className="text-destructive">*</span>
@@ -267,8 +267,8 @@ export function GroupComparisonSelector({
                     'w-full p-3 rounded-lg border-2 transition-all text-left',
                     'flex items-center justify-between',
                     dependentVar === col.name
-                      ? 'border-green-500 bg-green-50 dark:bg-green-950/50'
-                      : 'border-border hover:border-green-300',
+                      ? 'border-info-border bg-info-bg'
+                      : 'border-border hover:border-info-border/50',
                     col.name === groupVar && 'opacity-40 cursor-not-allowed'
                   )}
                 >
@@ -308,9 +308,9 @@ export function GroupComparisonSelector({
 
       {/* Validation Feedback */}
       {validation.isValid ? (
-        <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-700 dark:text-green-300">
+        <Alert className="bg-success-bg border-success-border">
+          <CheckCircle2 className="h-4 w-4 text-success" />
+          <AlertDescription className="text-success">
             {t.success.allVariablesSelected}
           </AlertDescription>
         </Alert>

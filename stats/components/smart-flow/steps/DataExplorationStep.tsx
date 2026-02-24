@@ -914,11 +914,11 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                           <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{formatStat(col.max)}</td>
                           <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{formatStat(col.q1)}</td>
                           <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{formatStat(col.q3)}</td>
-                          <td className={cn("px-3 py-2.5 text-right font-mono text-xs tabular-nums", skewWarning && "text-amber-600 dark:text-amber-400 font-semibold")}>
+                          <td className={cn("px-3 py-2.5 text-right font-mono text-xs tabular-nums", skewWarning && "text-warning font-semibold")}>
                             {formatStat(col.skewness)}
                             {skewWarning && <AlertTriangle className="h-3 w-3 inline ml-0.5" />}
                           </td>
-                          <td className={cn("px-3 py-2.5 text-right font-mono text-xs tabular-nums", kurtWarning && "text-amber-600 dark:text-amber-400 font-semibold")}>
+                          <td className={cn("px-3 py-2.5 text-right font-mono text-xs tabular-nums", kurtWarning && "text-warning font-semibold")}>
                             {formatStat(col.kurtosis)}
                             {kurtWarning && <AlertTriangle className="h-3 w-3 inline ml-0.5" />}
                           </td>

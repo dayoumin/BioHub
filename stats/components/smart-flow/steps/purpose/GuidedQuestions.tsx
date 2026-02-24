@@ -210,9 +210,9 @@ export function GuidedQuestions({
                   variant="outline"
                   className={cn(
                     'shrink-0',
-                    auto.value === 'yes' && 'border-emerald-500/30 text-emerald-700 bg-emerald-500/10',
-                    auto.value === 'no' && 'border-rose-500/30 text-rose-700 bg-rose-500/10',
-                    auto.value !== 'yes' && auto.value !== 'no' && 'border-amber-500/30 text-amber-700 bg-amber-500/10'
+                    auto.value === 'yes' && 'border-success-border text-success bg-success-bg',
+                    auto.value === 'no' && 'border-error-border text-error bg-error-bg',
+                    auto.value !== 'yes' && auto.value !== 'no' && 'border-warning-border text-warning bg-warning-bg'
                   )}
                 >
                   {title}: {statusText}

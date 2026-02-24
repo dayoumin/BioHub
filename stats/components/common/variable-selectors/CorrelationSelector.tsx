@@ -275,9 +275,9 @@ export function CorrelationSelector({
 
       {/* Validation Feedback */}
       {validation.isValid ? (
-        <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-700 dark:text-green-300">
+        <Alert className="bg-success-bg border-success-border">
+          <CheckCircle2 className="h-4 w-4 text-success" />
+          <AlertDescription className="text-success">
             {t.success.allVariablesSelected}
           </AlertDescription>
         </Alert>

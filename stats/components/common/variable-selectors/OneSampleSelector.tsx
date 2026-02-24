@@ -116,7 +116,7 @@ export function OneSampleSelector({
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-blue-500" />
+            <BarChart3 className="h-5 w-5 text-info" />
             {displayTitle}
           </CardTitle>
           <CardDescription>{displayDescription}</CardDescription>
@@ -133,7 +133,7 @@ export function OneSampleSelector({
                   className={cn(
                     'cursor-pointer transition-all px-3 py-1.5',
                     selectedVar === col.name
-                      ? 'bg-blue-600 hover:bg-blue-700'
+                      ? 'bg-info hover:opacity-90'
                       : 'hover:bg-muted'
                   )}
                   onClick={() => setSelectedVar(prev => prev === col.name ? null : col.name)}

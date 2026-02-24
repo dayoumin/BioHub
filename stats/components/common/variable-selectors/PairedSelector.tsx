@@ -158,7 +158,7 @@ export function PairedSelector({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Variable 1 (Before/Time 1) */}
         <Card>
-          <CardHeader className="pb-3 bg-blue-50 dark:bg-blue-950/30">
+          <CardHeader className="pb-3 bg-info-bg">
             <div className="flex items-center gap-2">
               <CardTitle className="text-base">{displayLabels.first}</CardTitle>
               <span className="text-destructive">*</span>
@@ -179,8 +179,8 @@ export function PairedSelector({
                     'w-full p-3 rounded-lg border-2 transition-all text-left',
                     'flex items-center justify-between',
                     var1 === col.name
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50'
-                      : 'border-border hover:border-blue-300',
+                      ? 'border-info-border bg-info-bg'
+                      : 'border-border hover:border-info-border/50',
                     col.name === var2 && 'opacity-40 cursor-not-allowed'
                   )}
                 >
@@ -193,7 +193,7 @@ export function PairedSelector({
                     )}
                   </div>
                   {var1 === col.name && (
-                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                    <CheckCircle2 className="h-4 w-4 text-info" />
                   )}
                 </button>
               ))}
@@ -203,7 +203,7 @@ export function PairedSelector({
 
         {/* Variable 2 (After/Time 2) */}
         <Card>
-          <CardHeader className="pb-3 bg-orange-50 dark:bg-orange-950/30">
+          <CardHeader className="pb-3 bg-highlight-bg">
             <div className="flex items-center gap-2">
               <CardTitle className="text-base">{displayLabels.second}</CardTitle>
               <span className="text-destructive">*</span>
@@ -224,8 +224,8 @@ export function PairedSelector({
                     'w-full p-3 rounded-lg border-2 transition-all text-left',
                     'flex items-center justify-between',
                     var2 === col.name
-                      ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/50'
-                      : 'border-border hover:border-orange-300',
+                      ? 'border-highlight-border bg-highlight-bg'
+                      : 'border-border hover:border-highlight-border/50',
                     col.name === var1 && 'opacity-40 cursor-not-allowed'
                   )}
                 >
@@ -238,7 +238,7 @@ export function PairedSelector({
                     )}
                   </div>
                   {var2 === col.name && (
-                    <CheckCircle2 className="h-4 w-4 text-orange-600" />
+                    <CheckCircle2 className="h-4 w-4 text-highlight" />
                   )}
                 </button>
               ))}
@@ -276,9 +276,9 @@ export function PairedSelector({
 
       {/* Validation Feedback */}
       {validation.isValid ? (
-        <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-700 dark:text-green-300">
+        <Alert className="bg-success-bg border-success-border">
+          <CheckCircle2 className="h-4 w-4 text-success" />
+          <AlertDescription className="text-success">
             {t.success.allVariablesSelected}
           </AlertDescription>
         </Alert>

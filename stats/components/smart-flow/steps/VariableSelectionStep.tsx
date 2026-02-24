@@ -350,22 +350,22 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
             <span className="font-semibold tracking-tight text-foreground/90">{t.smartFlow.aiVariables.title}</span>
             <div className="flex flex-wrap gap-1.5">
               {detectedVariables.dependentCandidate && (
-                <Badge variant="outline" className="text-[10px] bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 font-medium">
+                <Badge variant="outline" className="text-[10px] bg-info-bg border-info-border text-info font-medium">
                   {t.smartFlow.aiVariables.roles.dependent} {detectedVariables.dependentCandidate}
                 </Badge>
               )}
               {detectedVariables.groupVariable && (
-                <Badge variant="outline" className="text-[10px] bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 font-medium">
+                <Badge variant="outline" className="text-[10px] bg-success-bg border-success-border text-success font-medium">
                   {t.smartFlow.aiVariables.roles.group} {detectedVariables.groupVariable}
                 </Badge>
               )}
               {detectedVariables.factors && detectedVariables.factors.length > 0 && (
-                <Badge variant="outline" className="text-[10px] bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 font-medium">
+                <Badge variant="outline" className="text-[10px] bg-success-bg border-success-border text-success font-medium">
                   {t.smartFlow.aiVariables.roles.factors} {detectedVariables.factors.join(', ')}
                 </Badge>
               )}
               {detectedVariables.independentVars && detectedVariables.independentVars.length > 0 && (
-                <Badge variant="outline" className="text-[10px] bg-violet-50 dark:bg-violet-900/30 border-violet-200 dark:border-violet-800 font-medium">
+                <Badge variant="outline" className="text-[10px] bg-success-bg border-success-border text-success font-medium">
                   {t.smartFlow.aiVariables.roles.independent} {detectedVariables.independentVars.join(', ')}
                 </Badge>
               )}

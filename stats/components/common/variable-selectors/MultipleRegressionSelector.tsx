@@ -180,7 +180,7 @@ export function MultipleRegressionSelector({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Dependent Variable (Y) */}
         <Card>
-          <CardHeader className="pb-3 bg-green-50 dark:bg-green-950/30">
+          <CardHeader className="pb-3 bg-info-bg">
             <div className="flex items-center gap-2">
               <CardTitle className="text-base">{t.variables.dependent.title}</CardTitle>
               <span className="text-destructive">*</span>
@@ -200,8 +200,8 @@ export function MultipleRegressionSelector({
                     'w-full p-3 rounded-lg border-2 transition-all text-left',
                     'flex items-center justify-between',
                     dependentVar === col.name
-                      ? 'border-green-500 bg-green-50 dark:bg-green-950/50'
-                      : 'border-border hover:border-green-300'
+                      ? 'border-info-border bg-info-bg'
+                      : 'border-border hover:border-info-border/50'
                   )}
                 >
                   <div>
@@ -215,7 +215,7 @@ export function MultipleRegressionSelector({
                     )}
                   </div>
                   {dependentVar === col.name && (
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <CheckCircle2 className="h-4 w-4 text-info" />
                   )}
                 </button>
               ))}
@@ -225,7 +225,7 @@ export function MultipleRegressionSelector({
 
         {/* Independent Variables (X) */}
         <Card>
-          <CardHeader className="pb-3 bg-blue-50 dark:bg-blue-950/30">
+          <CardHeader className="pb-3 bg-success-bg">
             <div className="flex items-center gap-2">
               <CardTitle className="text-base">{t.variables.independent.title}</CardTitle>
               <span className="text-destructive">*</span>
@@ -253,8 +253,8 @@ export function MultipleRegressionSelector({
                       'w-full p-3 rounded-lg border-2 transition-all text-left',
                       'flex items-center justify-between',
                       isSelected
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/50'
-                        : 'border-border hover:border-blue-300',
+                        ? 'border-success-border bg-success-bg'
+                        : 'border-border hover:border-success-border/50',
                       isDisabled && 'opacity-40 cursor-not-allowed'
                     )}
                   >
@@ -269,7 +269,7 @@ export function MultipleRegressionSelector({
                       )}
                     </div>
                     {isSelected && (
-                      <span className="w-5 h-5 rounded-full bg-blue-500 text-white text-xs flex items-center justify-center">
+                      <span className="w-5 h-5 rounded-full bg-success text-success-foreground text-xs flex items-center justify-center">
                         {index + 1}
                       </span>
                     )}
@@ -313,9 +313,9 @@ export function MultipleRegressionSelector({
 
       {/* Validation Feedback */}
       {validation.isValid ? (
-        <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-700 dark:text-green-300">
+        <Alert className="bg-success-bg border-success-border">
+          <CheckCircle2 className="h-4 w-4 text-success" />
+          <AlertDescription className="text-success">
             {t.success.allVariablesSelected}
           </AlertDescription>
         </Alert>

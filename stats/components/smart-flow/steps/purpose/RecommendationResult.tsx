@@ -198,7 +198,7 @@ export const RecommendationResult = memo(function RecommendationResult({
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.1 }}
-                      className="flex items-start gap-2 p-2.5 rounded-md bg-amber-500/10 text-amber-700 text-sm"
+                      className="flex items-start gap-2 p-2.5 rounded-md bg-warning-bg border border-warning-border text-warning text-sm"
                     >
                       <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
                       <span>{warning}</span>
