@@ -33,6 +33,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -42,7 +52,7 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { TooltipProvider } from '@/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { AnalysisResult } from '@/types/smart-flow'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { startNewAnalysis } from '@/lib/services/data-management'
@@ -101,13 +111,6 @@ function formatPValue(p: number): string {
   return p.toFixed(3)
 }
 
-const FOLLOW_UP_CHIPS: Array<{ label: string; prompt: string }> = [
-  { label: '논문에 어떻게 쓰나요?', prompt: '이 결과를 APA 형식으로 논문에 어떻게 작성하면 되나요?' },
-  { label: '효과크기 해석', prompt: '효과크기를 비전문가도 이해할 수 있게 쉽게 설명해주세요.' },
-  { label: '가정 위반 대안', prompt: '가정 검정이 충족되지 않았을 때 어떤 대안적 분석 방법이 있나요?' },
-  { label: '연구 한계점', prompt: '이 분석 결과의 한계점과 주의사항은 무엇인가요?' },
-  { label: '다음 분석은?', prompt: '이 결과를 바탕으로 다음에 어떤 분석이나 조치를 하면 좋을까요?' },
-]
 
 export function ResultsActionStep({ results }: ResultsActionStepProps) {
   // Terminology System
@@ -127,18 +130,25 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     includeRawData: false,
     includeMethodology: false,
     includeReferences: false,
-    includeCharts: false,
   })
   const chartRef = useRef<HTMLDivElement>(null)
   const [resultTimestamp] = useState(() => new Date())
 
   // AI 해석 상태
   const [interpretation, setInterpretation] = useState<string | null>(null)
+  const [interpretationModel, setInterpretationModel] = useState<string | null>(null)
   const [isInterpreting, setIsInterpreting] = useState(false)
   const [interpretError, setInterpretError] = useState<string | null>(null)
   const [detailedInterpretOpen, setDetailedInterpretOpen] = useState(true)
   const interpretAbortRef = useRef<AbortController | null>(null)
-  const interpretedResultRef = useRef<string | null>(null) // 캐시 key (results.method + pValue)
+  const interpretedResultRef = useRef<string | null>(null) // 캐시 key
+  const aiInterpretationRef = useRef<HTMLDivElement | null>(null)
+
+  // 새 분析 시작 확인
+  const [showNewAnalysisConfirm, setShowNewAnalysisConfirm] = useState(false)
+
+  // 후속 칩 사용 추적
+  const [usedChips, setUsedChips] = useState<Set<string>>(new Set())
 
   // 후속 Q&A 상태
   const [followUpMessages, setFollowUpMessages] = useState<ChatMessage[]>([])
@@ -311,7 +321,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         includeRawData: false,
         includeMethodology: false,
         includeReferences: false,
-        includeCharts: false,
         ...(optionsOverride ?? {}),
       }
       const context: ExportContext = {
@@ -344,10 +353,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           // 스트리밍 중이면 미완성 메시지 제외, 완료된 교환만 저장
           interpretationChat: !isFollowUpStreaming && followUpMessages.length > 0 ? followUpMessages : undefined,
         }).catch(() => { /* 히스토리 저장 실패 무시 */ })
-
-        if (effectiveExportOptions.includeCharts) {
-          toast.info(t.results.toast.chartsNotReady)
-        }
 
         savedTimeoutRef.current = setTimeout(() => {
           setIsSaved(false)
@@ -389,7 +394,11 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     })
   }, [setUploadedData, setUploadedFile, setValidationResults, setResults, setIsReanalysisMode, navigateToStep, selectedMethod])
 
-  const handleNewAnalysis = useCallback(async () => {
+  const handleNewAnalysis = useCallback(() => {
+    setShowNewAnalysisConfirm(true)
+  }, [])
+
+  const handleNewAnalysisConfirm = useCallback(async () => {
     try {
       await startNewAnalysis()
       toast.info(t.results.toast.newAnalysis)
@@ -404,8 +413,11 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const handleInterpretation = useCallback(async () => {
     if (!results) return
 
-    // 캐시: 같은 결과면 재호출 안 함
-    const cacheKey = `${results.method}:${results.pValue}:${results.statistic}`
+    // 캐시: 같은 결과 + 동일 변수 매핑이면 재호출 안 함
+    const variableKey = variableMapping
+      ? Object.entries(variableMapping).map(([k, v]) => `${k}:${Array.isArray(v) ? v.join(',') : String(v)}`).sort().join('|')
+      : ''
+    const cacheKey = `${results.method}:${results.pValue}:${results.statistic}:${variableKey}`
     if (interpretedResultRef.current === cacheKey) return
 
     setIsInterpreting(true)
@@ -424,7 +436,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       }
 
       let accumulated = ''
-      await requestInterpretation(
+      const { model } = await requestInterpretation(
         ctx,
         (chunk) => {
           accumulated += chunk
@@ -434,6 +446,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       )
 
       interpretedResultRef.current = cacheKey
+      setInterpretationModel(model)
     } catch (error) {
       if (controller.signal.aborted) return
       const msg = error instanceof Error ? error.message : t.results.ai.defaultError
@@ -441,8 +454,23 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     } finally {
       setIsInterpreting(false)
       interpretAbortRef.current = null
+      setTimeout(() => {
+        aiInterpretationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }, 100)
     }
   }, [results, uploadedData, mappedVariables, uploadedFileName])
+
+  // 재해석 초기화 + 재요청 (중복 로직 추출)
+  const resetAndReinterpret = useCallback(() => {
+    followUpAbortRef.current?.abort()
+    isFollowUpStreamingRef.current = false
+    setIsFollowUpStreaming(false)
+    interpretedResultRef.current = null
+    setInterpretation(null)
+    setFollowUpMessages([])
+    setUsedChips(new Set())
+    handleInterpretation()
+  }, [handleInterpretation])
 
   // 후속 질문 전송
   const handleFollowUp = useCallback(async (question: string) => {
@@ -488,7 +516,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       )
     } catch (error) {
       if (controller.signal.aborted) return
-      const msg = error instanceof Error ? error.message : '후속 질문 처리 중 오류가 발생했습니다.'
+      const msg = error instanceof Error ? error.message : t.results.followUp.errorMessage
       setFollowUpMessages(prev => {
         if (prev.length === 0) return prev
         const last = prev[prev.length - 1]
@@ -612,15 +640,27 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           title={t.smartFlow.stepTitles.results}
           badge={selectedMethod ? { label: selectedMethod.name } : undefined}
           action={
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigateToStep(3)}
-              className="gap-1.5 text-muted-foreground"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              {t.results.buttons.backToVariables}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSaveAsFile('docx')}
+                disabled={isExporting}
+                className={cn("shadow-sm", isSaved && "bg-emerald-600 hover:bg-emerald-600 text-white border-emerald-600")}
+              >
+                {isSaved ? <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
+                {isSaved ? t.results.buttons.saved : t.results.buttons.save}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigateToStep(3)}
+                className="gap-1.5 text-muted-foreground"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                {t.results.buttons.backToVariables}
+              </Button>
+            </div>
           }
         />
 
@@ -648,14 +688,19 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 </div>
                 {statisticalResult.testName}
               </CardTitle>
-              <span className="text-[11px] text-muted-foreground/50 font-mono tabular-nums">
-                {resultTimestamp.toLocaleString('ko-KR', {
-                  month: 'short',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-[11px] text-muted-foreground/50 font-mono tabular-nums cursor-help">
+                    {resultTimestamp.toLocaleString('ko-KR', {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="left">{t.results.metadata.analysisTime}</TooltipContent>
+              </Tooltip>
             </div>
           </CardHeader>
 
@@ -755,7 +800,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         <ResultsVisualization results={results} />
 
         {/* ===== AI 해석 카드 ===== */}
-        <div className="space-y-2" data-testid="ai-interpretation-section">
+        <div className="space-y-2" data-testid="ai-interpretation-section" ref={aiInterpretationRef}>
           {/* 로딩 */}
           {isInterpreting && !interpretation && (
             <Card className="border-violet-200 dark:border-violet-800/50">
@@ -777,22 +822,17 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                     <div className="w-6 h-6 rounded-md bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center">
                       <Sparkles className="w-3.5 h-3.5 text-violet-500" />
                     </div>
-                    <span className="text-sm font-semibold text-violet-700 dark:text-violet-300">AI 해석</span>
+                    <span className="text-sm font-semibold text-violet-700 dark:text-violet-300">{t.results.ai.label}</span>
+                    {interpretationModel && interpretationModel !== 'unknown' && (
+                      <span className="text-[10px] text-muted-foreground/40 font-mono hidden sm:inline">{interpretationModel}</span>
+                    )}
                   </div>
                   {!isInterpreting && (
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      onClick={() => {
-                        followUpAbortRef.current?.abort()
-                        isFollowUpStreamingRef.current = false
-                        setIsFollowUpStreaming(false)
-                        interpretedResultRef.current = null
-                        setInterpretation(null)
-                        setFollowUpMessages([])
-                        handleInterpretation()
-                      }}
-                      className="text-xs text-muted-foreground h-7 px-2 gap-1"
+                      onClick={resetAndReinterpret}
+                      className="text-xs h-7 px-2 gap-1"
                     >
                       <RefreshCw className="w-3 h-3" />
                       {t.results.ai.reinterpret}
@@ -833,14 +873,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    followUpAbortRef.current?.abort()
-                    isFollowUpStreamingRef.current = false
-                    setIsFollowUpStreaming(false)
-                    interpretedResultRef.current = null
-                    setFollowUpMessages([])
-                    handleInterpretation()
-                  }}
+                  onClick={resetAndReinterpret}
                   className="ml-2 text-xs h-6 px-2"
                 >
                   {t.results.ai.retry}
@@ -856,7 +889,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             <CardHeader className="pb-3 pt-4 px-4">
               <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                 <MessageCircle className="w-4 h-4" />
-                추가 질문
+                {t.results.followUp.title}
               </div>
             </CardHeader>
             <CardContent className="pt-0 pb-4 px-4 space-y-3">
@@ -874,10 +907,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                       )}
                     >
                       {msg.role === 'user' ? (
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">질문</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{t.results.followUp.userLabel}</p>
                       ) : (
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-500 dark:text-violet-400 mb-1 flex items-center gap-1">
-                          <Sparkles className="w-2.5 h-2.5" /> AI
+                          <Sparkles className="w-2.5 h-2.5" /> {t.results.followUp.aiLabel}
                         </p>
                       )}
                       <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed">
@@ -894,12 +927,18 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
               {/* 빠른 질문 칩 */}
               <div className="flex flex-wrap gap-1.5">
-                {FOLLOW_UP_CHIPS.map((chip) => (
+                {t.results.followUp.chips.map((chip) => (
                   <button
                     key={chip.label}
-                    onClick={() => handleFollowUp(chip.prompt)}
+                    onClick={() => {
+                      setUsedChips(prev => new Set(prev).add(chip.label))
+                      handleFollowUp(chip.prompt)
+                    }}
                     disabled={isFollowUpStreaming}
-                    className="text-xs px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:bg-muted/50 hover:border-border disabled:opacity-40 transition-colors"
+                    className={cn(
+                      "text-xs px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:bg-muted/50 hover:border-border disabled:opacity-40 transition-colors",
+                      usedChips.has(chip.label) && "opacity-50 line-through"
+                    )}
                   >
                     {chip.label}
                   </button>
@@ -918,7 +957,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                       handleFollowUp(followUpInput)
                     }
                   }}
-                  placeholder="궁금한 점을 질문하세요..."
+                  placeholder={t.results.followUp.placeholder}
                   disabled={isFollowUpStreaming}
                   className="flex-1 text-sm px-3 py-1.5 rounded-lg border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
                 />
@@ -943,7 +982,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                     className="text-xs text-muted-foreground gap-1.5 h-7"
                   >
                     <RefreshCw className="w-3 h-3" />
-                    다른 방법으로 분석하기
+                    {t.results.followUp.changeMethod}
                   </Button>
                 </div>
               )}
@@ -1206,6 +1245,25 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           </Button>
         </div>
 
+        {/* 새 분析 시작 확인 다이얼로그 */}
+        <AlertDialog open={showNewAnalysisConfirm} onOpenChange={setShowNewAnalysisConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t.results.confirm.newAnalysis.title}</AlertDialogTitle>
+              <AlertDialogDescription>{t.results.confirm.newAnalysis.description}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t.results.confirm.newAnalysis.cancel}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleNewAnalysisConfirm}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {t.results.confirm.newAnalysis.confirm}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         {/* 템플릿 저장 모달 */}
         <TemplateSaveModal
           open={templateModalOpen}
@@ -1281,14 +1339,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                       onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeReferences: !!checked }))}
                     />
                     <Label htmlFor="opt-references">{t.results.exportDialog.includeReferences}</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="opt-charts"
-                      checked={!!exportOptions.includeCharts}
-                      onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeCharts: !!checked }))}
-                    />
-                    <Label htmlFor="opt-charts">{t.results.exportDialog.includeCharts}</Label>
                   </div>
                 </div>
               </div>

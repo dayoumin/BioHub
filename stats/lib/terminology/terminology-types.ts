@@ -796,6 +796,7 @@ export interface ResultsText {
   }
   /** AI 해석 */
   ai: {
+    label: string
     loading: string
     detailedLabel: string
     reinterpret: string
@@ -819,6 +820,7 @@ export interface ResultsText {
     data: string
     variables: string
     rowsCols: (rows: number, cols: number) => string
+    analysisTime: string
   }
   /** 액션 버튼 */
   buttons: {
@@ -860,7 +862,6 @@ export interface ResultsText {
     copySuccess: string
     copyError: string
     templateSaved: string
-    chartsNotReady: string
   }
   /** 내보내기 다이얼로그 */
   exportDialog: {
@@ -872,7 +873,6 @@ export interface ResultsText {
     includeRawData: string
     includeMethodology: string
     includeReferences: string
-    includeCharts: string
     cancel: string
     confirm: string
   }
@@ -887,6 +887,25 @@ export interface ResultsText {
     interpretation: string
     aiInterpretation: string
     aiSeparator: string
+  }
+  /** 후속 Q&A */
+  followUp: {
+    title: string
+    userLabel: string
+    aiLabel: string
+    placeholder: string
+    errorMessage: string
+    changeMethod: string
+    chips: Array<{ label: string; prompt: string }>
+  }
+  /** 확인 다이얼로그 */
+  confirm: {
+    newAnalysis: {
+      title: string
+      description: string
+      confirm: string
+      cancel: string
+    }
   }
 }
 

@@ -754,6 +754,7 @@ export const aquaculture: TerminologyDictionary = {
       notSignificant: '유의하지 않음',
     },
     ai: {
+      label: 'AI 해석',
       loading: 'AI가 결과를 해석하고 있어요...',
       detailedLabel: '상세 해석',
       reinterpret: '다시 해석',
@@ -775,6 +776,7 @@ export const aquaculture: TerminologyDictionary = {
       data: '데이터: ',
       variables: '변수: ',
       rowsCols: (rows: number, cols: number) => `${rows}행 × ${cols}열`,
+      analysisTime: '분석 실행 시각',
     },
     buttons: {
       saved: '저장됨',
@@ -813,7 +815,6 @@ export const aquaculture: TerminologyDictionary = {
       copySuccess: '결과가 복사되었습니다',
       copyError: '복사 실패',
       templateSaved: '템플릿이 저장되었습니다',
-      chartsNotReady: '차트 내보내기는 현재 준비 중입니다. 이번 파일에는 표/텍스트만 포함되었습니다.',
     },
     exportDialog: {
       title: '내보내기 옵션',
@@ -824,7 +825,6 @@ export const aquaculture: TerminologyDictionary = {
       includeRawData: '원본 데이터 미리보기 (최대 200행)',
       includeMethodology: '분석 방법론',
       includeReferences: '참고문헌',
-      includeCharts: '차트 (준비 중, 현재는 미포함)',
       cancel: '취소',
       confirm: '내보내기',
     },
@@ -838,6 +838,29 @@ export const aquaculture: TerminologyDictionary = {
       interpretation: '해석:',
       aiInterpretation: 'AI 해석',
       aiSeparator: '--- AI 해석 ---',
+    },
+    followUp: {
+      title: '추가 질문',
+      userLabel: '질문',
+      aiLabel: 'AI',
+      placeholder: '궁금한 점을 질문하세요...',
+      errorMessage: '후속 질문 처리 중 오류가 발생했습니다.',
+      changeMethod: '다른 방법으로 분석하기',
+      chips: [
+        { label: '논문에 어떻게 쓰나요?', prompt: '이 결과를 APA 형식으로 논문에 어떻게 작성하면 되나요?' },
+        { label: '효과크기 해석', prompt: '효과크기를 비전문가도 이해할 수 있게 쉽게 설명해주세요.' },
+        { label: '가정 위반 대안', prompt: '가정 검정이 충족되지 않았을 때 어떤 대안적 분석 방법이 있나요?' },
+        { label: '연구 한계점', prompt: '이 분석 결과의 한계점과 주의사항은 무엇인가요?' },
+        { label: '다음 분석은?', prompt: '이 결과를 바탕으로 다음에 어떤 분석이나 조치를 하면 좋을까요?' },
+      ],
+    },
+    confirm: {
+      newAnalysis: {
+        title: '새 분석을 시작할까요?',
+        description: '현재 데이터와 결과가 모두 초기화됩니다. 이 작업은 되돌릴 수 없습니다.',
+        confirm: '새 분석 시작',
+        cancel: '취소',
+      },
     },
   },
 

@@ -12,7 +12,6 @@ export type ExportFormat = 'docx' | 'xlsx' | 'html'
 
 export interface ExportContentOptions {
   includeRawData?: boolean
-  includeCharts?: boolean
   includeInterpretation?: boolean
   includeMethodology?: boolean
   includeReferences?: boolean

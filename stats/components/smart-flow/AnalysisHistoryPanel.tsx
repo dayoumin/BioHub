@@ -82,7 +82,6 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
     includeRawData: false,
     includeMethodology: false,
     includeReferences: false,
-    includeCharts: false,
   })
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
 
@@ -197,7 +196,6 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
         includeRawData: false, // 히스토리에는 원본 데이터 미저장
         includeMethodology: false,
         includeReferences: false,
-        includeCharts: false,
         ...(optionsOverride ?? {}),
       }
 
@@ -250,9 +248,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
         toast.success('보고서가 다운로드되었습니다.', {
           description: result.fileName
         })
-        if (effectiveOptions.includeCharts) {
-          toast.info('차트 내보내기는 현재 준비 중입니다. 이번 파일에는 표/텍스트만 포함되었습니다.')
-        }
+
       } else {
         toast.error('보고서 생성 실패', {
           description: result.error
@@ -621,14 +617,6 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
                   <Label htmlFor="history-opt-raw-data" className="text-muted-foreground">
                     원본 데이터 (히스토리에는 저장되지 않아 미지원)
                   </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="history-opt-charts"
-                    checked={!!exportOptions.includeCharts}
-                    onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeCharts: !!checked }))}
-                  />
-                  <Label htmlFor="history-opt-charts">차트 (준비 중, 현재는 미포함)</Label>
                 </div>
               </div>
             </div>

@@ -748,6 +748,7 @@ export const generic: TerminologyDictionary = {
       notSignificant: 'Not significant',
     },
     ai: {
+      label: 'AI Interpretation',
       loading: 'AI is interpreting the results...',
       detailedLabel: 'Detailed Interpretation',
       reinterpret: 'Re-interpret',
@@ -769,6 +770,7 @@ export const generic: TerminologyDictionary = {
       data: 'Data: ',
       variables: 'Variables: ',
       rowsCols: (rows: number, cols: number) => `${rows} rows × ${cols} columns`,
+      analysisTime: 'Analysis run time',
     },
     buttons: {
       saved: 'Saved',
@@ -807,7 +809,6 @@ export const generic: TerminologyDictionary = {
       copySuccess: 'Results copied',
       copyError: 'Copy failed',
       templateSaved: 'Template saved',
-      chartsNotReady: 'Chart export is currently in preparation. Only tables/text are included in this file.',
     },
     exportDialog: {
       title: 'Export Options',
@@ -818,7 +819,6 @@ export const generic: TerminologyDictionary = {
       includeRawData: 'Raw Data Preview (max 200 rows)',
       includeMethodology: 'Analysis Methodology',
       includeReferences: 'References',
-      includeCharts: 'Charts (coming soon, currently excluded)',
       cancel: 'Cancel',
       confirm: 'Export',
     },
@@ -832,6 +832,29 @@ export const generic: TerminologyDictionary = {
       interpretation: 'Interpretation:',
       aiInterpretation: 'AI Interpretation',
       aiSeparator: '--- AI Interpretation ---',
+    },
+    followUp: {
+      title: 'Follow-up Questions',
+      userLabel: 'Question',
+      aiLabel: 'AI',
+      placeholder: 'Ask a follow-up question...',
+      errorMessage: 'An error occurred while processing your follow-up question.',
+      changeMethod: 'Try a different method',
+      chips: [
+        { label: 'Write for paper', prompt: 'How do I write this result in APA format for a paper?' },
+        { label: 'Effect size', prompt: 'Please explain the effect size in simple terms for a non-expert.' },
+        { label: 'Assumption alternatives', prompt: 'What alternative methods exist when assumptions are violated?' },
+        { label: 'Limitations', prompt: 'What are the limitations and caveats of this analysis?' },
+        { label: 'Next steps', prompt: 'What analysis or actions should I take next based on these results?' },
+      ],
+    },
+    confirm: {
+      newAnalysis: {
+        title: 'Start a new analysis?',
+        description: 'All current data and results will be cleared. This cannot be undone.',
+        confirm: 'Start new',
+        cancel: 'Cancel',
+      },
     },
   },
 

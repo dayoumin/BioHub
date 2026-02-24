@@ -51,7 +51,6 @@ export function ExportDropdown({
           includeRawData: false,
           includeMethodology: false,
           includeReferences: false,
-          includeCharts: false,
         },
         dataInfo,
         rawDataRows: rawDataRows ?? null,
