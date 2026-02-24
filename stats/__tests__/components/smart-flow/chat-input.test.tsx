@@ -20,6 +20,9 @@ vi.mock('@/hooks/use-terminology', () => ({
         heading: '무엇을 분석하고 싶으신가요?',
         placeholder: '메시지를 입력하세요...',
         sendAriaLabel: '전송',
+        processingMessage: '처리 중...',
+        uploadAriaLabel: '데이터 파일 업로드',
+        uploadTitle: 'CSV / Excel 파일 업로드',
       },
     },
   }),
@@ -160,7 +163,58 @@ describe('ChatInput', () => {
     })
   })
 
-  // ===== 시나리오 2: externalValue 주입 → auto-submit =====
+  // ===== 시나리오 2: onUploadClick — 파일 업로드 버튼 =====
+  describe('파일 업로드 버튼 (onUploadClick)', () => {
+    it('onUploadClick 없으면 업로드 버튼 렌더링 안 됨', () => {
+      render(<ChatInput onSubmit={vi.fn()} isProcessing={false} />)
+
+      expect(screen.queryByRole('button', { name: '데이터 파일 업로드' })).toBeNull()
+    })
+
+    it('onUploadClick 있으면 업로드 버튼 렌더링됨', () => {
+      render(
+        <ChatInput onSubmit={vi.fn()} isProcessing={false} onUploadClick={vi.fn()} />
+      )
+
+      expect(screen.getByRole('button', { name: '데이터 파일 업로드' })).toBeTruthy()
+    })
+
+    it('업로드 버튼 클릭 → onUploadClick 호출', () => {
+      const onUploadClick = vi.fn()
+
+      render(
+        <ChatInput onSubmit={vi.fn()} isProcessing={false} onUploadClick={onUploadClick} />
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: '데이터 파일 업로드' }))
+
+      expect(onUploadClick).toHaveBeenCalledTimes(1)
+    })
+
+    it('isProcessing=true → 업로드 버튼 비활성화', () => {
+      render(
+        <ChatInput onSubmit={vi.fn()} isProcessing={true} onUploadClick={vi.fn()} />
+      )
+
+      expect(screen.getByRole('button', { name: '데이터 파일 업로드' })).toBeDisabled()
+    })
+
+    it('업로드 버튼 클릭해도 onSubmit은 호출 안 됨', () => {
+      const onSubmit = vi.fn()
+      const onUploadClick = vi.fn()
+
+      render(
+        <ChatInput onSubmit={onSubmit} isProcessing={false} onUploadClick={onUploadClick} />
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: '데이터 파일 업로드' }))
+
+      expect(onSubmit).not.toHaveBeenCalled()
+      expect(onUploadClick).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  // ===== 시나리오 3: externalValue 주입 → auto-submit =====
   describe('externalValue 주입 (트랙 카드 클릭)', () => {
     it('[버그 수정 검증] externalValue 주입 → 150ms 후 onSubmit 호출됨', () => {
       const onSubmit = vi.fn()
