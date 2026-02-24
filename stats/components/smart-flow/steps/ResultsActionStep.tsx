@@ -455,7 +455,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       setIsInterpreting(false)
       interpretAbortRef.current = null
       setTimeout(() => {
-        aiInterpretationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        aiInterpretationRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
       }, 100)
     }
   }, [results, uploadedData, mappedVariables, uploadedFileName, variableMapping])
