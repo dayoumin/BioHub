@@ -14,7 +14,8 @@ import type {
   StatisticalMethod,
   ValidationResults,
   DataRow,
-  ColumnStatistics
+  ColumnStatistics,
+  FlowChatMessage
 } from '@/types/smart-flow'
 import {
   STATISTICAL_METHODS,
@@ -186,7 +187,7 @@ export class OpenRouterRecommender {
     validationResults: ValidationResults | null,
     assumptionResults: StatisticalAssumptions | null,
     _data: DataRow[] | null,
-    options?: { temperature?: number; maxTokens?: number }
+    options?: { temperature?: number; maxTokens?: number; chatHistory?: FlowChatMessage[] }
   ): Promise<{ recommendation: AIRecommendation | null; responseText: string }> {
     const userPrompt = this.buildUserPrompt(userInput, validationResults, assumptionResults)
 
@@ -242,12 +243,18 @@ export class OpenRouterRecommender {
     model: string,
     systemPrompt: string,
     userPrompt: string,
-    options?: { temperature?: number; maxTokens?: number }
+    options?: { temperature?: number; maxTokens?: number; chatHistory?: FlowChatMessage[] }
   ): Promise<{ recommendation: AIRecommendation | null; responseText: string } | null> {
     logger.info('[OpenRouter] Trying model', { model })
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeout)
+
+    // 최근 2턴(4메시지)만 컨텍스트로 사용 (에러 버블 제외)
+    const historyMessages: OpenRouterMessage[] = (options?.chatHistory ?? [])
+      .filter(m => !m.isError)
+      .slice(-4)
+      .map(m => ({ role: m.role, content: m.content }))
 
     // Fix 2-C: try/finally로 clearTimeout 보장 (fetch throw 시에도 정리)
     let response: Response
@@ -264,6 +271,7 @@ export class OpenRouterRecommender {
           model,
           messages: [
             { role: 'system', content: systemPrompt },
+            ...historyMessages,
             { role: 'user', content: userPrompt }
           ] satisfies OpenRouterMessage[],
           temperature: options?.temperature ?? this.config.temperature,
@@ -675,25 +683,53 @@ ${userInput}`
   }
 
   /**
-   * 단일 모델 스트리밍 호출
+   * 멀티턴 스트리밍 Chat Completion (messages 배열 직접 전달)
+   * 결과 해설 후속 Q&A에서 사용 — 대화 히스토리를 그대로 전달
    */
-  private async streamWithModel(
+  async streamChatWithMessages(
+    messages: OpenRouterMessage[],
+    onChunk: (text: string) => void,
+    signal?: AbortSignal,
+    options?: { temperature?: number; maxTokens?: number }
+  ): Promise<{ model: string }> {
+    const temperature = options?.temperature ?? 0.5
+    const maxTokens = options?.maxTokens ?? 4000
+
+    for (let i = 0; i < this.config.models.length; i++) {
+      const model = this.config.models[i]
+      try {
+        const result = await this.streamWithModelMessages(model, messages, onChunk, signal, temperature, maxTokens)
+        if (result) return result
+        logger.warn(`[OpenRouter Stream] Model ${model} failed to stream messages, trying next`)
+      } catch (error) {
+        if (signal?.aborted) throw error
+        const msg = error instanceof Error ? error.message : 'Unknown'
+        const isLastModel = i === this.config.models.length - 1
+        if (isLastModel) throw new Error(`AI 해설 실패: 모든 모델이 응답하지 않았습니다.`)
+        logger.warn(`[OpenRouter Stream] Model ${model} failed (${msg}), trying next`)
+      }
+    }
+
+    throw new Error('AI 해설 실패: 사용 가능한 모델이 없습니다.')
+  }
+
+  /**
+   * messages 배열 기반 단일 모델 스트리밍
+   */
+  private async streamWithModelMessages(
     model: string,
-    systemPrompt: string,
-    userPrompt: string,
+    messages: OpenRouterMessage[],
     onChunk: (text: string) => void,
     signal: AbortSignal | undefined,
     temperature: number,
     maxTokens: number
   ): Promise<{ model: string } | null> {
-    logger.info('[OpenRouter Stream] Trying model', { model })
+    logger.info('[OpenRouter Stream] Trying model with messages', { model, messageCount: messages.length })
 
     const controller = new AbortController()
-    // R2-B: 타임아웃을 fetch + 스트림 읽기 전체에 적용 (영구 대기 방지)
-    const streamTimeout = this.config.timeout * 3 // 스트리밍은 fetch 대비 3배 여유
+    const streamTimeout = this.config.timeout * 3
     const timeoutId = setTimeout(() => controller.abort(), streamTimeout)
 
-    // 외부 signal과 내부 timeout 병합
     if (signal) {
       signal.addEventListener('abort', () => controller.abort(), { once: true })
     }
@@ -709,10 +745,7 @@ ${userInput}`
         },
         body: JSON.stringify({
           model,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ] satisfies OpenRouterMessage[],
+          messages,
           temperature,
           max_tokens: maxTokens,
           stream: true
@@ -733,7 +766,7 @@ ${userInput}`
 
       const decoder = new TextDecoder()
       let hasContent = false
-      let buffer = '' // SSE 불완전 라인 버퍼링 (TCP 패킷 경계 대응)
+      let buffer = ''
 
       try {
         while (true) {
@@ -742,7 +775,7 @@ ${userInput}`
 
           buffer += decoder.decode(value, { stream: true })
           const lines = buffer.split('\n')
-          buffer = lines.pop() || '' // 마지막 불완전 라인 보관
+          buffer = lines.pop() || ''
 
           for (const line of lines) {
             if (!line.startsWith('data: ')) continue
@@ -767,11 +800,36 @@ ${userInput}`
 
       if (!hasContent) return null
 
-      logger.info('[OpenRouter Stream] Completed', { model })
+      logger.info('[OpenRouter Stream] Completed with messages', { model })
       return { model }
     } finally {
       clearTimeout(timeoutId)
     }
+  }
+
+  /**
+   * 단일 모델 스트리밍 호출
+   */
+  private async streamWithModel(
+    model: string,
+    systemPrompt: string,
+    userPrompt: string,
+    onChunk: (text: string) => void,
+    signal: AbortSignal | undefined,
+    temperature: number,
+    maxTokens: number
+  ): Promise<{ model: string } | null> {
+    return this.streamWithModelMessages(
+      model,
+      [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ] satisfies OpenRouterMessage[],
+      onChunk,
+      signal,
+      temperature,
+      maxTokens
+    )
   }
 
   /**

@@ -18,7 +18,8 @@ import type {
   GuidedFlowStep,
   StatisticalMethod,
   AnalysisCategory,
-  AIRecommendation
+  AIRecommendation,
+  FlowChatMessage
 } from '@/types/smart-flow'
 import type { DecisionTreeText, FlowStateMachineText } from '@/lib/terminology/terminology-types'
 import { decide } from './DecisionTree'
@@ -32,6 +33,7 @@ interface AiState {
   aiError: string | null
   isAiLoading: boolean
   aiProvider: 'openrouter' | 'ollama' | 'keyword' | null
+  chatMessages: FlowChatMessage[]
 }
 
 /** 현재 상태에서 AI 관련 필드만 추출 */
@@ -43,6 +45,7 @@ function preserveAiState(state: GuidedFlowState): AiState {
     aiError: state.aiError,
     isAiLoading: state.isAiLoading,
     aiProvider: state.aiProvider,
+    chatMessages: state.chatMessages,
   }
 }
 
@@ -53,6 +56,7 @@ const INITIAL_AI_STATE: AiState = {
   aiError: null,
   isAiLoading: false,
   aiProvider: null,
+  chatMessages: [],
 }
 
 /** Fix 3-A: 히스토리 스택에 현재 step을 push */
@@ -168,6 +172,25 @@ function flowReducerWithText(
       return {
         ...state,
         aiProvider: action.provider
+      }
+
+    case 'ADD_CHAT_MESSAGE':
+      return {
+        ...state,
+        chatMessages: [...state.chatMessages, action.message]
+      }
+
+    case 'CLEAR_CHAT_HISTORY':
+      return {
+        ...state,
+        chatMessages: []
+      }
+
+    case 'RESET_NAVIGATION':
+      // 네비게이션 상태만 초기화 — chatMessages 보존 (L1 로그 유지)
+      return {
+        ...initialFlowState,
+        chatMessages: state.chatMessages,
       }
 
     case 'GO_TO_GUIDED':
@@ -439,6 +462,19 @@ export const flowActions = {
   setAiProvider: (provider: 'openrouter' | 'ollama' | 'keyword'): GuidedFlowAction => ({
     type: 'SET_AI_PROVIDER',
     provider
+  }),
+
+  addChatMessage: (message: FlowChatMessage): GuidedFlowAction => ({
+    type: 'ADD_CHAT_MESSAGE',
+    message
+  }),
+
+  clearChatHistory: (): GuidedFlowAction => ({
+    type: 'CLEAR_CHAT_HISTORY'
+  }),
+
+  resetNavigation: (): GuidedFlowAction => ({
+    type: 'RESET_NAVIGATION'
   }),
 
   // ============================================

@@ -11,7 +11,7 @@ import { FilterToggle } from '@/components/ui/filter-toggle'
 import { PurposeCard } from '@/components/common/analysis/PurposeCard'
 import { AIAnalysisProgress } from '@/components/common/analysis/AIAnalysisProgress'
 import type { PurposeInputStepProps } from '@/types/smart-flow-navigation'
-import type { AnalysisPurpose, AIRecommendation, ColumnStatistics, StatisticalMethod, AutoAnswerResult, AnalysisCategory, SubcategoryDefinition } from '@/types/smart-flow'
+import type { AnalysisPurpose, AIRecommendation, ColumnStatistics, StatisticalMethod, AutoAnswerResult, AnalysisCategory, SubcategoryDefinition, FlowChatMessage } from '@/types/smart-flow'
 import { logger } from '@/lib/utils/logger'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { StepHeader } from '@/components/smart-flow/common'
@@ -308,8 +308,8 @@ export function PurposeInputStep({
   const handleInputModeChange = useCallback((mode: 'ai' | 'browse') => {
     setInputMode(mode)
     if (mode === 'ai') {
-      // AI 추천 모드로 전환 - reset()이 ai-chat 초기 상태로 설정
-      flowDispatch(flowActions.reset())
+      // AI 추천 모드로 전환 — chatMessages는 보존하여 L1 로그 유지
+      flowDispatch(flowActions.resetNavigation())
     } else {
       // 직접 선택 모드로 전환 - browseAll()이 browse 단계로 설정
       flowDispatch(flowActions.browseAll())
@@ -644,21 +644,43 @@ export function PurposeInputStep({
   }, [])
 
   const handleAiSubmit = useCallback(async () => {
-    if (!flowState.aiChatInput?.trim()) return
+    const userInput = flowState.aiChatInput?.trim()
+    if (!userInput) return
     // 중복 제출 방지
     if (flowState.isAiLoading) return
 
+    // dispatch 전 이전 대화 캡처 (클로저 기준)
+    const prevChatMessages = flowState.chatMessages
+
+    // 1) 사용자 메시지 즉시 추가
+    const userMessage: FlowChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: userInput,
+    }
+    flowDispatch(flowActions.addChatMessage(userMessage))
     flowDispatch(flowActions.startAiChat())
+    flowDispatch(flowActions.setAiInput(''))
 
     try {
       const { recommendation, responseText, provider } =
         await llmRecommender.recommendFromNaturalLanguage(
-          flowState.aiChatInput,
+          userInput,
           validationResults ?? null,
           assumptionResults ?? null,
-          data ?? null
+          data ?? null,
+          prevChatMessages
         )
 
+      // 2) 어시스턴트 응답 추가
+      const assistantMessage: FlowChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: responseText || '',
+        provider,
+        recommendation: recommendation ?? undefined,
+      }
+      flowDispatch(flowActions.addChatMessage(assistantMessage))
       flowDispatch(flowActions.setAiProvider(provider))
 
       if (responseText) {
@@ -669,7 +691,7 @@ export function PurposeInputStep({
         flowDispatch(flowActions.setAiRecommendation(recommendation))
         // AI 추천 맥락을 store에 저장 (saveToHistory에서 HistoryRecord에 포함)
         setLastAiRecommendation({
-          userQuery: flowState.aiChatInput || '',
+          userQuery: userInput,
           confidence: recommendation.confidence,
           reasoning: recommendation.reasoning,
           warnings: recommendation.warnings,
@@ -681,14 +703,22 @@ export function PurposeInputStep({
           provider,
           ambiguityNote: recommendation.ambiguityNote,
         })
-      } else {
+      } else if (!responseText?.trim()) {
+        // responseText가 있으면 스레드에 이미 표시됨 — 에러 카드 억제
         flowDispatch(flowActions.aiChatError(t.purposeInput.messages.aiRecommendError))
       }
     } catch (error) {
       logger.error('AI Chat error', { error })
+      // 에러도 assistant 버블로 표시 (사용자 메시지만 남는 어색한 스레드 방지)
+      flowDispatch(flowActions.addChatMessage({
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: t.purposeInput.messages.genericError,
+        isError: true,
+      }))
       flowDispatch(flowActions.aiChatError(t.purposeInput.messages.genericError))
     }
-  }, [flowState.aiChatInput, flowState.isAiLoading, validationResults, assumptionResults, data, t, setLastAiRecommendation])
+  }, [flowState.aiChatInput, flowState.chatMessages, flowState.isAiLoading, validationResults, assumptionResults, data, t, setLastAiRecommendation])
 
   const handleAiSelectMethod = useCallback(async (method: StatisticalMethod) => {
     if (isNavigating) return
@@ -818,6 +848,7 @@ export function PurposeInputStep({
             disabled={isNavigating}
             validationResults={validationResults}
             provider={flowState.aiProvider}
+            chatMessages={flowState.chatMessages}
           />
         )}
 

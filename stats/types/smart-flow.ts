@@ -1,4 +1,5 @@
 import { LucideIcon } from 'lucide-react'
+import type { LlmProvider } from '@/lib/utils/storage-types'
 
 export interface StepConfig {
   id: number
@@ -700,6 +701,18 @@ export interface DecisionResult {
 }
 
 /**
+ * Multi-turn 채팅용 단순 메시지 타입
+ */
+export interface FlowChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  provider?: LlmProvider          // assistant 메시지에만 (provider 뱃지용)
+  recommendation?: AIRecommendation  // assistant 메시지에만
+  isError?: boolean               // true면 LLM 컨텍스트 히스토리에서 제외
+}
+
+/**
  * Guided Flow 상태
  */
 export interface GuidedFlowState {
@@ -727,6 +740,8 @@ export interface GuidedFlowState {
   isAiLoading: boolean
   /** AI provider 정보 (NEW) */
   aiProvider: 'openrouter' | 'ollama' | 'keyword' | null
+  /** Multi-turn 채팅 메시지 배열 */
+  chatMessages: FlowChatMessage[]
 }
 
 /**
@@ -752,6 +767,11 @@ export type GuidedFlowAction =
   | { type: 'AI_CHAT_ERROR'; error: string }
   | { type: 'GO_TO_GUIDED' }  // AI에서 단계별 가이드로 이동
   | { type: 'SET_AI_PROVIDER'; provider: 'openrouter' | 'ollama' | 'keyword' }
+  // Multi-turn 채팅 액션
+  | { type: 'ADD_CHAT_MESSAGE'; message: FlowChatMessage }
+  | { type: 'CLEAR_CHAT_HISTORY' }
+  // 네비게이션만 초기화 (chatMessages 보존)
+  | { type: 'RESET_NAVIGATION' }
 
 
 // ============================================

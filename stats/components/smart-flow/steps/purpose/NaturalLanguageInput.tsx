@@ -35,7 +35,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { useTerminology } from '@/hooks/use-terminology'
-import type { AIRecommendation, StatisticalMethod, ValidationResults, ColumnStatistics } from '@/types/smart-flow'
+import type { AIRecommendation, StatisticalMethod, ValidationResults, ColumnStatistics, FlowChatMessage } from '@/types/smart-flow'
 import type { LlmProvider } from '@/lib/services/llm-recommender'
 
 interface NaturalLanguageInputProps {
@@ -65,6 +65,8 @@ interface NaturalLanguageInputProps {
   validationResults?: ValidationResults | null
   /** AI provider 정보 */
   provider?: LlmProvider | null
+  /** 멀티턴 채팅 메시지 목록 */
+  chatMessages?: FlowChatMessage[]
 }
 
 export const NaturalLanguageInput = memo(function NaturalLanguageInput({
@@ -80,21 +82,16 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
   onBrowseAll,
   disabled = false,
   validationResults,
-  provider
+  provider,
+  chatMessages
 }: NaturalLanguageInputProps) {
   const t = useTerminology()
   const prefersReducedMotion = useReducedMotion()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const threadRef = useRef<HTMLDivElement>(null)
   const [showAlternatives, setShowAlternatives] = useState(false)
   const [showPreprocessing, setShowPreprocessing] = useState(false)
   const [loadingStage, setLoadingStage] = useState(0)
-
-  // Provider labels (Cloud AI / Local AI are not Korean, keyword comes from terminology)
-  const providerLabels: Record<LlmProvider, string> = useMemo(() => ({
-    openrouter: 'Cloud AI',
-    ollama: 'Local AI',
-    keyword: t.naturalLanguageInput.providers.keyword
-  }), [t])
 
   // Example prompts from terminology
   const examplePrompts = useMemo(() => t.naturalLanguageInput.examples, [t])
@@ -120,6 +117,13 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
     const t2 = setTimeout(() => setLoadingStage(2), 5000)
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [isLoading])
+
+  // 채팅 스레드 자동 스크롤
+  useEffect(() => {
+    if (threadRef.current) {
+      threadRef.current.scrollTop = threadRef.current.scrollHeight
+    }
+  }, [chatMessages?.length, isLoading])
 
   // 데이터 요약 계산
   const dataSummary = useMemo(() => {
@@ -258,8 +262,8 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
         </CardContent>
       </Card>
 
-      {/* 예시 프롬프트 */}
-      {!recommendation && !isLoading && (
+      {/* 예시 프롬프트 — 첫 대화 전에만 표시 */}
+      {(chatMessages ?? []).length === 0 && !isLoading && (
         <motion.div
           initial={prefersReducedMotion ? {} : { opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -316,46 +320,46 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
         )}
       </AnimatePresence>
 
-      {/* AI 응답 */}
-      <AnimatePresence mode="wait">
-        {(isLoading || responseText) && !error && (
-          <motion.div
-            initial={prefersReducedMotion ? {} : { opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-          >
-            <Card className="bg-muted/30">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium">{t.naturalLanguageInput.aiAnalysis.label}</p>
-                      {provider && (
-                        <Badge variant="outline" className="text-xs">
-                          {providerLabels[provider]}
-                        </Badge>
-                      )}
-                    </div>
-                    {isLoading && !responseText ? (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        {loadingMessages[loadingStage]}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                        {responseText}
-                      </p>
-                    )}
-                  </div>
+      {/* 채팅 스레드 */}
+      {(chatMessages ?? []).length > 0 && (
+        <div
+          ref={threadRef}
+          className="space-y-2 max-h-[280px] overflow-y-auto"
+          data-testid="chat-thread"
+        >
+          {(chatMessages ?? []).map(msg => (
+            <div
+              key={msg.id}
+              className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}
+            >
+              <div className={cn(
+                'max-w-[85%] rounded-xl px-3 py-2 text-sm',
+                msg.role === 'user'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-foreground'
+              )}>
+                {msg.role === 'assistant' && (
+                  <span className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1">
+                    <Sparkles className="w-3 h-3" />
+                    {msg.provider === 'keyword' ? '키워드 매칭' : 'AI 추천'}
+                  </span>
+                )}
+                <p className="whitespace-pre-wrap">{msg.content}</p>
+              </div>
+            </div>
+          ))}
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-muted rounded-xl px-3 py-2">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  {loadingMessages[loadingStage]}
                 </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 추천 결과 카드 */}
       <AnimatePresence>

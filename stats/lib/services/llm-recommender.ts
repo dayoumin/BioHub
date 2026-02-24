@@ -13,7 +13,8 @@ import type {
   IntentClassification,
   StatisticalAssumptions,
   ValidationResults,
-  DataRow
+  DataRow,
+  FlowChatMessage
 } from '@/types/smart-flow'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import { openRouterRecommender } from './openrouter-recommender'
@@ -51,7 +52,8 @@ export class LlmRecommender {
     userInput: string,
     validationResults: ValidationResults | null = null,
     assumptionResults: StatisticalAssumptions | null = null,
-    data: DataRow[] | null = null
+    data: DataRow[] | null = null,
+    chatHistory?: FlowChatMessage[]
   ): Promise<LlmRecommendationResult> {
     // 1. 페르소나 결정
     const isDiagnostic = !!(validationResults && data && data.length > 0)
@@ -71,12 +73,12 @@ export class LlmRecommender {
       if (ollamaResult) return ollamaResult
 
       const openRouterResult = await this.tryOpenRouter(
-        userInput, systemPrompt, validationResults, assumptionResults, data
+        userInput, systemPrompt, validationResults, assumptionResults, data, chatHistory
       )
       if (openRouterResult) return openRouterResult
     } else {
       const openRouterResult = await this.tryOpenRouter(
-        userInput, systemPrompt, validationResults, assumptionResults, data
+        userInput, systemPrompt, validationResults, assumptionResults, data, chatHistory
       )
       if (openRouterResult) return openRouterResult
 
@@ -91,15 +93,16 @@ export class LlmRecommender {
   }
 
   /**
-   * 자연어 입력 기반 추천 (하위 호환성)
+   * 자연어 입력 기반 추천 (chatHistory 지원)
    */
   async recommendFromNaturalLanguage(
     userInput: string,
     validationResults: ValidationResults | null,
     assumptionResults: StatisticalAssumptions | null,
-    data: DataRow[] | null
+    data: DataRow[] | null,
+    chatHistory?: FlowChatMessage[]
   ): Promise<LlmRecommendationResult> {
-    return this.recommend(userInput, validationResults, assumptionResults, data)
+    return this.recommend(userInput, validationResults, assumptionResults, data, chatHistory)
   }
 
   /**
@@ -110,7 +113,8 @@ export class LlmRecommender {
     systemPrompt: string,
     validationResults: ValidationResults | null,
     assumptionResults: StatisticalAssumptions | null,
-    data: DataRow[] | null
+    data: DataRow[] | null,
+    chatHistory?: FlowChatMessage[]
   ): Promise<LlmRecommendationResult | null> {
     try {
       const isAvailable = await openRouterRecommender.checkHealth()
@@ -121,7 +125,7 @@ export class LlmRecommender {
       // 추천: 한국어 reasoning + alternatives 포함하므로 토큰 여유 확보
       const { recommendation, responseText } = await openRouterRecommender.recommendWithSystemPrompt(
         userInput, systemPrompt, validationResults, assumptionResults, data,
-        { maxTokens: 3500 }
+        { maxTokens: 3500, chatHistory }
       )
 
       if (recommendation) {
@@ -286,6 +290,60 @@ export class LlmRecommender {
         return { model: item.model, provider: 'openrouter' }
       }
       throw item.error instanceof Error ? item.error : new Error('OpenRouter stream failed')
+    }
+  }
+
+  /**
+   * 멀티턴 스트리밍 (messages 배열 직접 전달)
+   * 결과 해설 후속 Q&A 전용 — OpenRouter만 지원 (Ollama는 단순 프롬프트 전용)
+   */
+  async *streamMessages(
+    messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+    signal?: AbortSignal
+  ): AsyncGenerator<string, LlmStreamResult> {
+    const isAvailable = await openRouterRecommender.checkHealth()
+    if (!isAvailable) {
+      throw new Error('OpenRouter를 사용할 수 없습니다. API 키를 확인해주세요.')
+    }
+
+    type QueueItem =
+      | { type: 'chunk'; data: string }
+      | { type: 'done'; model: string }
+      | { type: 'error'; error: unknown }
+    const queue: QueueItem[] = []
+    let waiting: ((item: QueueItem) => void) | null = null
+
+    const enqueue = (item: QueueItem) => {
+      if (waiting) {
+        const resolve = waiting
+        waiting = null
+        resolve(item)
+      } else {
+        queue.push(item)
+      }
+    }
+
+    const dequeue = (): Promise<QueueItem> => {
+      if (queue.length > 0) return Promise.resolve(queue.shift()!)
+      return new Promise<QueueItem>((resolve) => { waiting = resolve })
+    }
+
+    openRouterRecommender.streamChatWithMessages(
+      messages,
+      (text) => enqueue({ type: 'chunk', data: text }),
+      signal,
+      { temperature: 0.5, maxTokens: 4000 }
+    ).then((result) => {
+      enqueue({ type: 'done', model: result?.model ?? 'unknown' })
+    }).catch((err) => {
+      enqueue({ type: 'error', error: err })
+    })
+
+    while (true) {
+      const item = await dequeue()
+      if (item.type === 'chunk') { yield item.data; continue }
+      if (item.type === 'done') return { model: item.model, provider: 'openrouter' }
+      throw item.error instanceof Error ? item.error : new Error('스트리밍 실패')
     }
   }
 
