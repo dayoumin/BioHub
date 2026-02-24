@@ -1,6 +1,6 @@
 # 프로젝트 현황 + 할일
 
-**최종 업데이트**: 2026-02-24 (tech-debt + UI 색상 토큰 완료)
+**최종 업데이트**: 2026-02-25 (Step 2 비판적 검토 + 버그 수정)
 
 ---
 
@@ -39,6 +39,14 @@
 - ✅ **Step 4 ResultsActionStep 구조 개선**: 카드 6개 분리, 액션 바 1행, L2/L3 기본 닫힘
 - ✅ **색상 토큰 회귀 테스트**: 6개 셀렉터 × 15 테스트 (color-tokens.test.tsx)
 - ✅ **AI 채팅 히스토리 (multi-turn Q&A)**: stream-follow-up.test.ts 27개 테스트 통과
+
+### 2026-02-25 (수) Step 2 PurposeInputStep 비판적 검토
+
+- ✅ **Critical Bug 수정**: 자동 AI 추천 트리거 조건 — `assumptionResults !== null` → `data && validationResults !== null` (가정 검정 Step 4 이전 후 조건이 항상 false가 되던 문제)
+- ✅ **데드코드 제거**: `analysisError`, `activeTab` state + `handleUseRecommendation` + `cn` import
+- ✅ **await 불필요 제거**: `onPurposeSubmit`은 void 반환 — 3개 handler에서 `async/await` 제거
+- ✅ **getSelectorType 타입 안전화**: if/else 체인 → `ReadonlyMap<string, SelectorType>` 기반 룩업
+- ✅ **console.warn → logger.warn**: VariableSelectionStep 로거 정책 준수
 
 ### 2026-02-24 (월) 데이터 업로드 UI 비판적 검토 → 3항목 개선
 
@@ -198,7 +206,7 @@
 | ~~`ignoreDuringBuilds: true`~~ | `next.config.ts` | ✅ `false`로 변경 + eslint 정비 완료 |
 | ~~결측값 하드코딩 0~~ | `statistical-executor.ts` | ✅ primaryCol NaN 행 카운트로 실제 계산 |
 | ~~레거시 43개 statistics 페이지~~ | `app/(dashboard)/statistics/` | ✅ 삭제 완료 |
-| `!` non-null assertion | `prompts.ts:40`, `openrouter-recommender.ts:445` | 🔴 미해결 |
+| ~~`!` non-null assertion~~ | ~~`prompts.ts:40`, `openrouter-recommender.ts:445`~~ | ✅ 완료 |
 
 **🟠 High — AI 서비스**
 | 항목 | 파일 | 설명 |
@@ -228,7 +236,7 @@
 | 항목 | 설명 |
 |------|------|
 | Smart Flow 미테스트 컴포넌트 | AnalysisExecutionStep, ChatCentricHub, ExportDropdown, MethodManagerSheet, ReanalysisPanel, ResultsVisualization, VariableSelectionStep |
-| 실패 테스트 | `statistical-executor-coverage.test.ts` (2개 카테고리 불일치), `llm-recommender-simulation.test.ts` (4개) — chat-input 11개는 수정 완료 |
+| ~~실패 테스트~~ | ~~`statistical-executor-coverage.test.ts`, `llm-recommender-simulation.test.ts`~~ — ✅ 전부 통과 |
 | 하드코딩 한글 | 11개 컴포넌트에 terminology 미적용 문자열 잔존 |
 
 **🟢 Low**

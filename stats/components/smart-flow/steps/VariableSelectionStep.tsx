@@ -8,6 +8,7 @@
  */
 
 import React, { useMemo, useCallback } from 'react'
+import { logger } from '@/lib/utils/logger'
 import { Badge } from '@/components/ui/badge'
 import { Settings2, Sparkles, Upload } from 'lucide-react'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -31,70 +32,46 @@ interface VariableSelectionStepProps {
   onBack?: () => void
 }
 
-/**
- * Get selector type based on method ID
- */
-function getSelectorType(methodId: string | undefined): string {
-  if (!methodId) return 'default'
+type SelectorType = 'one-sample' | 'two-way-anova' | 'correlation' | 'paired' | 'multiple-regression' | 'group-comparison' | 'default'
 
-  // One-sample t-test
-  if (methodId === 'one-sample-t' || methodId === 'one-sample-t-test') {
-    return 'one-sample'
-  }
-
+const SELECTOR_MAP: ReadonlyMap<string, SelectorType> = new Map([
+  // One-sample
+  ['one-sample-t',              'one-sample'],
+  ['one-sample-t-test',         'one-sample'],
   // Two-way ANOVA
-  if (methodId === 'two-way-anova' || methodId === 'three-way-anova') {
-    return 'two-way-anova'
-  }
-
-  // Correlation analysis
-  if (
-    methodId === 'pearson-correlation' ||
-    methodId === 'spearman-correlation' ||
-    methodId === 'kendall-correlation' ||
-    methodId === 'correlation'
-  ) {
-    return 'correlation'
-  }
-
-  // Paired tests (includes 'paired-t-test' from recommender)
-  if (
-    methodId === 'paired-t' ||
-    methodId === 'paired-t-test' ||
-    methodId === 'wilcoxon' ||
-    methodId === 'wilcoxon-signed-rank' ||
-    methodId === 'sign-test' ||
-    methodId === 'mcnemar'
-  ) {
-    return 'paired'
-  }
-
+  ['two-way-anova',             'two-way-anova'],
+  ['three-way-anova',           'two-way-anova'],
+  // Correlation
+  ['pearson-correlation',       'correlation'],
+  ['spearman-correlation',      'correlation'],
+  ['kendall-correlation',       'correlation'],
+  ['correlation',               'correlation'],
+  // Paired
+  ['paired-t',                  'paired'],
+  ['paired-t-test',             'paired'],
+  ['wilcoxon',                  'paired'],
+  ['wilcoxon-signed-rank',      'paired'],
+  ['sign-test',                 'paired'],
+  ['mcnemar',                   'paired'],
   // Multiple regression
-  if (
-    methodId === 'multiple-regression' ||
-    methodId === 'stepwise' ||
-    methodId === 'stepwise-regression'
-  ) {
-    return 'multiple-regression'
-  }
+  ['multiple-regression',       'multiple-regression'],
+  ['stepwise',                  'multiple-regression'],
+  ['stepwise-regression',       'multiple-regression'],
+  // Group comparison
+  ['t-test',                    'group-comparison'],
+  ['two-sample-t',              'group-comparison'],
+  ['independent-t-test',        'group-comparison'],
+  ['welch-t',                   'group-comparison'],
+  ['one-way-anova',             'group-comparison'],
+  ['anova',                     'group-comparison'],
+  ['ancova',                    'group-comparison'],
+  ['mann-whitney',              'group-comparison'],
+  ['kruskal-wallis',            'group-comparison'],
+])
 
-  // Group comparison (t-test, one-way ANOVA, ANCOVA, nonparametric)
-  if (
-    methodId === 't-test' ||
-    methodId === 'two-sample-t' ||
-    methodId === 'independent-t-test' ||
-    methodId === 'welch-t' ||
-    methodId === 'one-way-anova' ||
-    methodId === 'anova' ||
-    methodId === 'ancova' ||
-    methodId === 'mann-whitney' ||
-    methodId === 'kruskal-wallis'
-  ) {
-    return 'group-comparison'
-  }
-
-  // Default: simple regression / basic selector
-  return 'default'
+function getSelectorType(methodId: string | undefined): SelectorType {
+  if (!methodId) return 'default'
+  return SELECTOR_MAP.get(methodId) ?? 'default'
 }
 
 export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionStepProps) {
@@ -132,7 +109,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     if (selectedMethod && columnInfo.length > 0) {
       const validation = validateVariableMapping(selectedMethod, mapping, columnInfo)
       if (!validation.isValid) {
-        console.warn('[VariableSelection] Validation errors:', validation.errors)
+        logger.warn('[VariableSelection] Validation errors', { errors: validation.errors })
         // Still proceed but log warnings
       }
     }

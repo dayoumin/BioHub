@@ -6,7 +6,7 @@ import { TrendingUp, GitCompare, PieChart, LineChart, Clock, Heart, ArrowRight, 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+
 import { FilterToggle } from '@/components/ui/filter-toggle'
 import { PurposeCard } from '@/components/common/analysis/PurposeCard'
 import { AIAnalysisProgress } from '@/components/common/analysis/AIAnalysisProgress'
@@ -297,12 +297,10 @@ export function PurposeInputStep({
   const [inputMode, setInputMode] = useState<'ai' | 'browse'>(storePurposeInputMode)
   const [aiProgress, setAiProgress] = useState(0)
   const [recommendation, setRecommendation] = useState<AIRecommendation | null>(null)
-  const [analysisError, setAnalysisError] = useState(false)
   const [isNavigating, setIsNavigating] = useState(false)
 
   // NEW: Manual method selection (user override)
   const [manualSelectedMethod, setManualSelectedMethod] = useState<StatisticalMethod | null>(null)
-  const [activeTab, setActiveTab] = useState<'recommended' | 'browse'>('recommended')
 
   // NEW: 입력 모드 변경 핸들러
   const handleInputModeChange = useCallback((mode: 'ai' | 'browse') => {
@@ -484,8 +482,6 @@ export function PurposeInputStep({
     setSelectedPurpose(purpose)
     setRecommendation(null)
     setManualSelectedMethod(null) // Reset manual selection
-    setAnalysisError(false)
-    setActiveTab('recommended')
 
     logger.info('Analysis purpose selected', { purpose })
 
@@ -494,10 +490,8 @@ export function PurposeInputStep({
 
     if (result === null) {
       logger.error('AI recommendation failed', { purpose })
-      setAnalysisError(true)
     } else {
       setRecommendation(result)
-      setAnalysisError(false)
     }
   }, [analyzeAndRecommend])
 
@@ -507,14 +501,8 @@ export function PurposeInputStep({
     setManualSelectedMethod(method)
   }, [])
 
-  // Use AI recommendation (reset manual selection)
-  const handleUseRecommendation = useCallback(() => {
-    setManualSelectedMethod(null)
-    setActiveTab('recommended')
-  }, [])
-
   // Confirm and proceed
-  const handleConfirmMethod = useCallback(async () => {
+  const handleConfirmMethod = useCallback(() => {
     if (!finalSelectedMethod || (!selectedPurpose && !manualSelectedMethod) || isNavigating || isAnalyzing) return
 
     setIsNavigating(true)
@@ -535,7 +523,7 @@ export function PurposeInputStep({
 
       // Call parent callback
       if (onPurposeSubmit) {
-        await onPurposeSubmit(
+        onPurposeSubmit(
           analysisPurposes.find(p => p.id === selectedPurpose)?.title || '',
           finalSelectedMethod
         )
@@ -580,8 +568,6 @@ export function PurposeInputStep({
 
   const handleBrowseAll = useCallback(() => {
     flowDispatch(flowActions.browseAll())
-    // Also set the tab to browse for the existing UI
-    setActiveTab('browse')
 
     // Entering browse from guided flow should still show an AI recommendation.
     const purpose = flowState.selectedPurpose
@@ -592,9 +578,8 @@ export function PurposeInputStep({
         analyzeAndRecommend(purpose).then((result) => {
           if (result) {
             setRecommendation(result)
-            setAnalysisError(false)
           } else {
-            setAnalysisError(true)
+            logger.error('AI recommendation failed in browse mode', { purpose })
           }
         })
       }
@@ -609,7 +594,7 @@ export function PurposeInputStep({
     flowDispatch(flowActions.selectMethod(method))
   }, [])
 
-  const handleGuidedConfirm = useCallback(async () => {
+  const handleGuidedConfirm = useCallback(() => {
     if (!flowState.result?.method || !flowState.selectedPurpose || isNavigating) return
 
     setIsNavigating(true)
@@ -624,7 +609,7 @@ export function PurposeInputStep({
       setSuggestedSettings(null)
 
       if (onPurposeSubmit) {
-        await onPurposeSubmit(
+        onPurposeSubmit(
           analysisPurposes.find(p => p.id === flowState.selectedPurpose)?.title || '',
           method
         )
@@ -720,7 +705,7 @@ export function PurposeInputStep({
     }
   }, [flowState.aiChatInput, flowState.chatMessages, flowState.isAiLoading, validationResults, assumptionResults, data, t, setLastAiRecommendation])
 
-  const handleAiSelectMethod = useCallback(async (method: StatisticalMethod) => {
+  const handleAiSelectMethod = useCallback((method: StatisticalMethod) => {
     if (isNavigating) return
 
     setIsNavigating(true)
@@ -732,7 +717,7 @@ export function PurposeInputStep({
       setSuggestedSettings(flowState.aiRecommendation?.suggestedSettings ?? null)
 
       if (onPurposeSubmit) {
-        await onPurposeSubmit(t.purposeInput.aiLabels.recommendTitle, method)
+        onPurposeSubmit(t.purposeInput.aiLabels.recommendTitle, method)
       }
     } catch (error) {
       logger.error('Navigation failed', { error })
@@ -765,11 +750,13 @@ export function PurposeInputStep({
   }, [storePurposeInputMode, flowDispatch])
 
   // 탐색 완료 → AI 추천 자동 트리거 + Hub userQuery pre-fill
+  // Note: 가정 검정이 Step 4로 이전(c3c4cb9b)되어 Step 2 진입 시 assumptionResults는 항상 null.
+  //       데이터 존재 여부(data + validationResults)로 대체.
   const hasAutoTriggered = useRef(false)
   useEffect(() => {
     if (hasAutoTriggered.current) return
 
-    if (assumptionResults !== null && !flowState.aiRecommendation && !flowState.isAiLoading) {
+    if (data && data.length > 0 && validationResults !== null && !flowState.aiRecommendation && !flowState.isAiLoading) {
       // Case A/B: 탐색 완료 → 완전 자동 LLM 호출 (사용자 입력 불필요)
       hasAutoTriggered.current = true
       const query = userQuery ?? '이 데이터에 적합한 통계 분석 방법을 추천해주세요.'
@@ -780,7 +767,7 @@ export function PurposeInputStep({
       flowDispatch(flowActions.setAiInput(userQuery))
       setUserQuery(null)
     }
-  }, [assumptionResults, userQuery, flowState.aiRecommendation, flowState.isAiLoading, flowState.aiChatInput, flowDispatch, setUserQuery, handleAiSubmit])
+  }, [data, validationResults, userQuery, flowState.aiRecommendation, flowState.isAiLoading, flowState.aiChatInput, flowDispatch, setUserQuery, handleAiSubmit])
 
   // Cleanup
   useEffect(() => {
