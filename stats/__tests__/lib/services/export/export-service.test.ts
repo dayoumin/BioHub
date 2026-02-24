@@ -28,7 +28,7 @@ function makeContext(overrides: Partial<ExportContext> = {}): ExportContext {
     statistic: 15.32,
     pValue: 0.0004,
     df: 4,
-    effectSize: { value: 0.28, type: 'cramersV' },
+    effectSize: { value: 0.28, type: 'cramersV', interpretation: 'small' },
     interpretation: '변수 간 유의한 연관성이 있습니다.',
   }
 
@@ -160,7 +160,7 @@ describe('ExportService', () => {
         pValue: 0.0006,
         df: 2,
         interpretation: '집단 간 차이가 있습니다.',
-        effectSize: { value: 0.12, type: 'etaSquared' },
+        effectSize: { value: 0.12, type: 'etaSquared', interpretation: 'small' },
         groupStats: [
           { name: 'A', n: 20, mean: 70.5, std: 10.2 },
           { name: 'B', n: 20, mean: 78.3, std: 9.8 },

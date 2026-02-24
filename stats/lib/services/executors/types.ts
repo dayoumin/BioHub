@@ -63,9 +63,21 @@ export interface ExecutorAnalysisResult {
       group1: string
       group2: string
       meanDiff?: number
-      pvalue: number
+      pvalue?: number        // snake_case form
+      pValue?: number        // camelCase alias — normalized by transformer
+      adjusted_p?: number   // adjusted p alias — normalized by transformer
       significant: boolean
-    }>
+    }> | {
+      method?: string
+      comparisons: Array<{
+        group1: string
+        group2: string
+        meanDiff?: number
+        pValue?: number
+        pvalue?: number
+        significant: boolean
+      }>
+    }
     residuals?: number[]
     coefficients?: Array<{
       name: string

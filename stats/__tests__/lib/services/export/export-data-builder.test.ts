@@ -19,7 +19,7 @@ function makeAnalysisResult(overrides: Partial<AnalysisResult> = {}): AnalysisRe
     pValue: 0.018,
     df: 58,
     interpretation: '두 집단 간 유의한 차이가 있습니다.',
-    effectSize: { value: 0.65, type: 'cohensD' },
+    effectSize: { value: 0.65, type: 'cohensD', interpretation: 'large' },
     confidence: { lower: 0.12, upper: 1.88, level: 0.95 },
     ...overrides,
   }
@@ -358,7 +358,7 @@ describe('buildExportData - ANOVA 특수 필드', () => {
   it('omegaSquared mainResults에 포함', () => {
     const ctx = makeContext({
       analysisResult: makeAnalysisResult({
-        omegaSquared: { value: 0.15, type: 'omegaSquared' },
+        omegaSquared: { value: 0.15, type: 'omegaSquared', interpretation: 'small' },
       }),
     })
     const data = buildExportData(ctx)
@@ -395,7 +395,7 @@ describe('buildExportData - 효과크기 해석 경계값', () => {
   const testEffectSize = (value: number, type: string, expected: string) => {
     const ctx = makeContext({
       analysisResult: makeAnalysisResult({
-        effectSize: { value, type },
+        effectSize: { value, type, interpretation: 'small' },
       }),
     })
     return buildExportData(ctx).effectSize!.interpretation

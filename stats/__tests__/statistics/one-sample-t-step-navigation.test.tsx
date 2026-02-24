@@ -8,6 +8,8 @@
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { vi } from 'vitest'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore — legacy page; skip type-check only
 import OneSampleTPage from '@/app/(dashboard)/statistics/one-sample-t/page'
 
 // Mock dependencies

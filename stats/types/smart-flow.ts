@@ -559,6 +559,10 @@ export interface AnalysisResult {
       pValue?: number
       significant?: boolean
     }
+    // Correlation sub-results (per-method aggregate)
+    pearson?: { r?: number; pValue?: number; n?: number }
+    spearman?: { r?: number; pValue?: number; n?: number }
+    kendall?: { tau?: number; r?: number; pValue?: number; n?: number }
     // Dose-Response Analysis
     hill_slope?: number
     // Response Surface Methodology

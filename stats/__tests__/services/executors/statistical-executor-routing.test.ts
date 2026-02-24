@@ -255,6 +255,7 @@ describe('StatisticalExecutor Routing', () => {
         comparisons: [
           { group1: 'A', group2: 'B', meanDiff: 1.2, pValue: 0.01, significant: true }
         ],
+        alpha: 0.05,
         significant_count: 1
       })
 
@@ -264,7 +265,7 @@ describe('StatisticalExecutor Routing', () => {
         { groupVar: 'group', dependentVar: 'score' }
       )
 
-      const postHoc = result.additionalInfo.postHoc as Array<Record<string, unknown>>
+      const postHoc = result.additionalInfo.postHoc as unknown as Array<Record<string, unknown>>
       expect(Array.isArray(postHoc)).toBe(true)
       expect(postHoc).toHaveLength(1)
       expect(postHoc[0].pvalue).toBe(0.01)
@@ -300,7 +301,7 @@ describe('StatisticalExecutor Routing', () => {
       )
 
       expect(mockedStats.performBonferroni).toHaveBeenCalled()
-      const postHoc = result.additionalInfo.postHoc as Array<Record<string, unknown>>
+      const postHoc = result.additionalInfo.postHoc as unknown as Array<Record<string, unknown>>
       expect(postHoc).toHaveLength(1)
       expect(postHoc[0].pvalue).toBe(0.01)
       expect(postHoc[0].pvalueAdjusted).toBe(0.03)
