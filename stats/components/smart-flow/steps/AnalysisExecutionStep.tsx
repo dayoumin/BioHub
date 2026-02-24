@@ -422,9 +422,9 @@ export function AnalysisExecutionStep({
                         <div className="w-5 h-5 rounded-full border-2 border-muted flex-shrink-0" />
                       )}
                       <span className={`text-sm ${
-                        isCompleted ? 'text-muted-foreground line-through' :
+                        isCompleted ? 'text-muted-foreground/60' :
                         isCurrent ? 'font-medium text-foreground' :
-                        'text-muted-foreground/50'
+                        'text-muted-foreground/40'
                       }`}>
                         {stage.label}
                       </span>

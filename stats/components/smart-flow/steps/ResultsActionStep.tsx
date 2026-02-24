@@ -118,7 +118,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const [isExporting, setIsExporting] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
-  const [detailedResultsOpen, setDetailedResultsOpen] = useState(true)
+  const [detailedResultsOpen, setDetailedResultsOpen] = useState(false)
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [exportFormat, setExportFormat] = useState<ExportFormat>('docx')
@@ -605,8 +605,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
   return (
     <TooltipProvider>
-      <div className="space-y-6" ref={chartRef}>
-        {/* ===== 스텝 헤더 (다른 스텝과 동일 패턴) ===== */}
+      <div className="space-y-4" ref={chartRef}>
+        {/* ===== 스텝 헤더 ===== */}
         <StepHeader
           icon={BarChart3}
           title={t.smartFlow.stepTitles.results}
@@ -624,18 +624,17 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           }
         />
 
-        {/* ===== 메인 결과 카드 ===== */}
+        {/* ===== L1 핵심 결과 카드 ===== */}
         <Card className={cn(
-          "overflow-hidden shadow-sm rounded-xl",
-          !assumptionsPassed ? "border-warning-border bg-warning-bg" :
-            isSignificant ? "border-success-border bg-success-bg" : "border-border/40"
+          "overflow-hidden rounded-xl border-2 shadow-sm",
+          !assumptionsPassed ? "border-warning-border" :
+            isSignificant ? "border-success-border" : "border-border/50"
         )} data-testid="results-main-card">
-          {/* 헤더: 분석명 + 시간 */}
-          <CardHeader className="pb-3 bg-muted/10 border-b border-border/20">
+          <CardHeader className="pb-3 bg-muted/5 border-b border-border/20">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base tracking-tight flex items-center gap-2.5">
                 <div className={cn(
-                  "w-7 h-7 rounded-lg flex items-center justify-center",
+                  "w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0",
                   !assumptionsPassed ? "bg-warning-bg" :
                     isSignificant ? "bg-success-bg" : "bg-muted"
                 )}>
@@ -649,7 +648,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 </div>
                 {statisticalResult.testName}
               </CardTitle>
-              <span className="text-[11px] text-muted-foreground/60 font-mono tabular-nums">
+              <span className="text-[11px] text-muted-foreground/50 font-mono tabular-nums">
                 {resultTimestamp.toLocaleString('ko-KR', {
                   month: 'short',
                   day: 'numeric',
@@ -661,9 +660,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           </CardHeader>
 
           <CardContent className="pt-4 space-y-4">
-            {/* ===== 핵심 결론 (1줄) ===== */}
+            {/* 핵심 결론 배너 */}
             <div className={cn(
-              "p-4 rounded-xl text-center text-sm font-semibold tracking-tight",
+              "px-4 py-3 rounded-lg text-center text-sm font-semibold",
               !assumptionsPassed ? "bg-warning-bg text-warning border border-warning-border" :
                 isSignificant ? "bg-success-bg text-success border border-success-border" :
                   "bg-muted/50 text-muted-foreground border border-border/30"
@@ -677,21 +676,19 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               )}
             </div>
 
-            {/* ===== 핵심 숫자 3개 ===== */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {/* 통계량 */}
+            {/* 핵심 숫자 3개 */}
+            <div className="grid grid-cols-3 gap-3">
               <StatisticCard label={t.results.statistics.statistic} tooltip={t.results.statistics.statisticTooltip}>
                 <p className="text-xl font-bold font-mono">
                   {statisticalResult.statisticName || 't'} = {(statisticalResult.statistic ?? 0).toFixed(2)}
                 </p>
                 {statisticalResult.df && (
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     df = {Array.isArray(statisticalResult.df) ? statisticalResult.df.join(', ') : statisticalResult.df}
                   </p>
                 )}
               </StatisticCard>
 
-              {/* p-value */}
               <StatisticCard label={t.results.statistics.pValue} tooltip={t.results.statistics.pValueTooltip}>
                 <p className={cn(
                   "text-xl font-bold font-mono",
@@ -699,19 +696,18 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 )}>
                   p {formatPValue(statisticalResult.pValue)}
                 </p>
-                <Badge variant={isSignificant ? "default" : "secondary"} className="mt-1 text-xs">
+                <Badge variant={isSignificant ? "default" : "secondary"} className="mt-0.5 text-xs">
                   {isSignificant ? t.results.statistics.significant : t.results.statistics.notSignificant}
                 </Badge>
               </StatisticCard>
 
-              {/* 효과크기 */}
               <StatisticCard label={t.results.statistics.effectSize} tooltip={t.results.statistics.effectSizeTooltip}>
                 {statisticalResult.effectSize ? (
                   <>
                     <p className="text-xl font-bold font-mono">
                       {(statisticalResult.effectSize.value ?? 0).toFixed(2)}
                     </p>
-                    <Badge variant="outline" className="mt-1 text-xs">
+                    <Badge variant="outline" className="mt-0.5 text-xs">
                       {getEffectSizeInterpretation(statisticalResult.effectSize.value, statisticalResult.effectSize.type, t.results.effectSizeLabels)}
                     </Badge>
                   </>
@@ -721,56 +717,68 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               </StatisticCard>
             </div>
 
-            {/* ===== 해석 ===== */}
-            {statisticalResult.interpretation && (
-              <div className="p-3 bg-info-bg rounded-lg border border-info-border">
-                <p className="text-sm text-info flex items-start gap-2">
-                  <Lightbulb className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                  <span>{statisticalResult.interpretation}</span>
-                </p>
+            {/* APA 형식 */}
+            {apaFormat && (
+              <div className="px-3 py-2.5 bg-muted/30 rounded-lg border border-border/20">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 mb-1">APA</p>
+                <code className="text-xs font-mono text-foreground/80">{apaFormat}</code>
               </div>
             )}
 
-            {/* ===== AI 해석 (인라인 2단 구조) ===== */}
-            <div className="space-y-2" data-testid="ai-interpretation-section">
-              {/* 로딩 중 */}
-              {isInterpreting && !interpretation && (
-                <div className="p-4 bg-violet-50 dark:bg-violet-950/20 rounded-xl border border-violet-100 dark:border-violet-900/50 flex items-center gap-2.5">
-                  <div className="w-6 h-6 rounded-md bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center">
-                    <Sparkles className="w-3.5 h-3.5 text-violet-500 animate-pulse" />
-                  </div>
-                  <span className="text-sm text-violet-700 dark:text-violet-300 font-medium">{t.results.ai.loading}</span>
+            {/* 메타데이터 (파일, 데이터 크기, 변수) */}
+            {(uploadedFileName || uploadedData || statisticalResult.variables) && (
+              <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2 border-t border-border/10">
+                {uploadedFileName && (
+                  <span className="text-xs text-muted-foreground">
+                    <span className="text-muted-foreground/50">{t.results.metadata.file} </span>
+                    {uploadedFileName}
+                  </span>
+                )}
+                {uploadedData && (
+                  <span className="text-xs text-muted-foreground">
+                    <span className="text-muted-foreground/50">{t.results.metadata.data} </span>
+                    {t.results.metadata.rowsCols(uploadedData.length, Object.keys(uploadedData[0] || {}).length)}
+                  </span>
+                )}
+                {statisticalResult.variables && (
+                  <span className="text-xs text-muted-foreground">
+                    <span className="text-muted-foreground/50">{t.results.metadata.variables} </span>
+                    {statisticalResult.variables.join(', ')}
+                  </span>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ===== 시각화 ===== */}
+        <ResultsVisualization results={results} />
+
+        {/* ===== AI 해석 카드 ===== */}
+        <div className="space-y-2" data-testid="ai-interpretation-section">
+          {/* 로딩 */}
+          {isInterpreting && !interpretation && (
+            <Card className="border-violet-200 dark:border-violet-800/50">
+              <CardContent className="py-4 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="w-4 h-4 text-violet-500 animate-pulse" />
                 </div>
-              )}
+                <span className="text-sm text-violet-700 dark:text-violet-300 font-medium">{t.results.ai.loading}</span>
+              </CardContent>
+            </Card>
+          )}
 
-              {/* 한줄 요약 (항상 표시) */}
-              {parsedInterpretation && (
-                <>
-                  <div className="p-4 bg-violet-50 dark:bg-violet-950/20 rounded-xl border border-violet-100 dark:border-violet-900/50">
-                    <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
-                      <ReactMarkdown>{parsedInterpretation.summary}</ReactMarkdown>
-                      {isInterpreting && (
-                        <span className="inline-block w-1.5 h-4 bg-purple-500 animate-pulse ml-0.5 align-text-bottom" />
-                      )}
+          {/* AI 해석 콘텐츠 */}
+          {parsedInterpretation && (
+            <Card className="border-violet-200 dark:border-violet-800/50">
+              <CardHeader className="pb-2 pt-4 px-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center">
+                      <Sparkles className="w-3.5 h-3.5 text-violet-500" />
                     </div>
+                    <span className="text-sm font-semibold text-violet-700 dark:text-violet-300">AI 해석</span>
                   </div>
-
-                  {/* 상세 해석 (펼침) */}
-                  {parsedInterpretation.detail && (
-                    <CollapsibleSection
-                      label={t.results.ai.detailedLabel}
-                      open={detailedInterpretOpen}
-                      onOpenChange={setDetailedInterpretOpen}
-                      contentClassName="pt-2"
-                      icon={<Sparkles className="h-3.5 w-3.5 text-purple-500" />}
-                    >
-                      <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
-                        <ReactMarkdown>{parsedInterpretation.detail}</ReactMarkdown>
-                      </div>
-                    </CollapsibleSection>
-                  )}
-
-                  {/* 다시 해석 */}
                   {!isInterpreting && (
                     <Button
                       variant="ghost"
@@ -784,149 +792,176 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                         setFollowUpMessages([])
                         handleInterpretation()
                       }}
-                      className="text-xs text-muted-foreground h-6 px-2"
+                      className="text-xs text-muted-foreground h-7 px-2 gap-1"
                     >
-                      <RefreshCw className="w-3 h-3 mr-1" />
+                      <RefreshCw className="w-3 h-3" />
                       {t.results.ai.reinterpret}
                     </Button>
                   )}
-                </>
-              )}
-
-              {/* 에러 표시 */}
-              {interpretError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-sm">
-                    {interpretError}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        followUpAbortRef.current?.abort()
-                        isFollowUpStreamingRef.current = false
-                        setIsFollowUpStreaming(false)
-                        interpretedResultRef.current = null
-                        setFollowUpMessages([])
-                        handleInterpretation()
-                      }}
-                      className="ml-2 text-xs h-6 px-2"
-                    >
-                      {t.results.ai.retry}
-                    </Button>
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
-
-            {/* ===== 후속 Q&A ===== */}
-            {interpretation && !isInterpreting && (
-              <div className="space-y-3" data-testid="follow-up-section">
-                {/* 이전 Q&A 스레드 */}
-                {followUpMessages.length > 0 && (
-                  <div className="space-y-2">
-                    {followUpMessages.map((msg, idx) => (
-                      <div
-                        key={msg.id}
-                        className={cn(
-                          'px-3 py-2 rounded-lg text-sm',
-                          msg.role === 'user'
-                            ? 'bg-muted ml-6 text-foreground'
-                            : 'bg-violet-50 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/50 text-foreground'
-                        )}
-                      >
-                        {msg.role === 'user' ? (
-                          <p className="font-medium text-xs text-muted-foreground mb-0.5">질문</p>
-                        ) : (
-                          <p className="font-medium text-xs text-violet-600 dark:text-violet-400 mb-0.5 flex items-center gap-1">
-                            <Sparkles className="w-3 h-3" /> AI 답변
-                          </p>
-                        )}
-                        <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed">
-                          <ReactMarkdown>{msg.content}</ReactMarkdown>
-                        </div>
-                        {msg.role === 'assistant' && isFollowUpStreaming && idx === followUpMessages.length - 1 && (
-                          <span className="inline-block w-1.5 h-3.5 bg-purple-500 animate-pulse ml-0.5 align-text-bottom" />
-                        )}
-                      </div>
-                    ))}
-                    <div ref={chatBottomRef} />
-                  </div>
-                )}
-
-                {/* Chips */}
-                <div className="flex flex-wrap gap-1.5">
-                  {FOLLOW_UP_CHIPS.map((chip) => (
-                    <button
-                      key={chip.label}
-                      onClick={() => handleFollowUp(chip.prompt)}
-                      disabled={isFollowUpStreaming}
-                      className="text-xs px-2.5 py-1 rounded-full border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950/30 disabled:opacity-40 transition-colors flex items-center gap-1"
-                    >
-                      <MessageCircle className="w-3 h-3" />
-                      {chip.label}
-                    </button>
-                  ))}
                 </div>
-
-                {/* 직접 입력 */}
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={followUpInput}
-                    onChange={(e) => setFollowUpInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault()
-                        handleFollowUp(followUpInput)
-                      }
-                    }}
-                    placeholder="추가로 궁금한 점을 질문하세요..."
-                    disabled={isFollowUpStreaming}
-                    className="flex-1 text-sm px-3 py-1.5 rounded-lg border border-input bg-background focus:outline-none focus:ring-1 focus:ring-violet-400 disabled:opacity-50"
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleFollowUp(followUpInput)}
-                    disabled={isFollowUpStreaming || !followUpInput.trim()}
-                    className="px-2.5 border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950/30"
+              </CardHeader>
+              <CardContent className="pt-2 pb-4 px-4 space-y-2">
+                <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
+                  <ReactMarkdown>{parsedInterpretation.summary}</ReactMarkdown>
+                  {isInterpreting && (
+                    <span className="inline-block w-1.5 h-4 bg-violet-500 animate-pulse ml-0.5 align-text-bottom" />
+                  )}
+                </div>
+                {parsedInterpretation.detail && (
+                  <CollapsibleSection
+                    label={t.results.ai.detailedLabel}
+                    open={detailedInterpretOpen}
+                    onOpenChange={setDetailedInterpretOpen}
+                    contentClassName="pt-2"
+                    icon={<Sparkles className="h-3.5 w-3.5 text-violet-400" />}
                   >
-                    <Send className="w-3.5 h-3.5" />
+                    <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed border-t border-border/10 pt-3">
+                      <ReactMarkdown>{parsedInterpretation.detail}</ReactMarkdown>
+                    </div>
+                  </CollapsibleSection>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 에러 */}
+          {interpretError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                {interpretError}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    followUpAbortRef.current?.abort()
+                    isFollowUpStreamingRef.current = false
+                    setIsFollowUpStreaming(false)
+                    interpretedResultRef.current = null
+                    setFollowUpMessages([])
+                    handleInterpretation()
+                  }}
+                  className="ml-2 text-xs h-6 px-2"
+                >
+                  {t.results.ai.retry}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+
+        {/* ===== 후속 Q&A 카드 ===== */}
+        {interpretation && !isInterpreting && (
+          <Card data-testid="follow-up-section">
+            <CardHeader className="pb-3 pt-4 px-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                <MessageCircle className="w-4 h-4" />
+                추가 질문
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0 pb-4 px-4 space-y-3">
+              {/* 이전 Q&A 스레드 */}
+              {followUpMessages.length > 0 && (
+                <div className="space-y-2">
+                  {followUpMessages.map((msg, idx) => (
+                    <div
+                      key={msg.id}
+                      className={cn(
+                        'px-3 py-2.5 rounded-lg text-sm',
+                        msg.role === 'user'
+                          ? 'bg-muted/60 ml-6'
+                          : 'bg-violet-50 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/30'
+                      )}
+                    >
+                      {msg.role === 'user' ? (
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">질문</p>
+                      ) : (
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-500 dark:text-violet-400 mb-1 flex items-center gap-1">
+                          <Sparkles className="w-2.5 h-2.5" /> AI
+                        </p>
+                      )}
+                      <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed">
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
+                      {msg.role === 'assistant' && isFollowUpStreaming && idx === followUpMessages.length - 1 && (
+                        <span className="inline-block w-1.5 h-3.5 bg-violet-500 animate-pulse ml-0.5 align-text-bottom" />
+                      )}
+                    </div>
+                  ))}
+                  <div ref={chatBottomRef} />
+                </div>
+              )}
+
+              {/* 빠른 질문 칩 */}
+              <div className="flex flex-wrap gap-1.5">
+                {FOLLOW_UP_CHIPS.map((chip) => (
+                  <button
+                    key={chip.label}
+                    onClick={() => handleFollowUp(chip.prompt)}
+                    disabled={isFollowUpStreaming}
+                    className="text-xs px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:bg-muted/50 hover:border-border disabled:opacity-40 transition-colors"
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* 직접 입력 */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={followUpInput}
+                  onChange={(e) => setFollowUpInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      handleFollowUp(followUpInput)
+                    }
+                  }}
+                  placeholder="궁금한 점을 질문하세요..."
+                  disabled={isFollowUpStreaming}
+                  className="flex-1 text-sm px-3 py-1.5 rounded-lg border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+                />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleFollowUp(followUpInput)}
+                  disabled={isFollowUpStreaming || !followUpInput.trim()}
+                  className="px-2.5"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+
+              {/* 방법 변경 링크 */}
+              {followUpMessages.length > 0 && !isFollowUpStreaming && (
+                <div className="flex justify-end pt-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigateToStep(2)}
+                    className="text-xs text-muted-foreground gap-1.5 h-7"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    다른 방법으로 분석하기
                   </Button>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-                {/* 후속 Q&A 완료 후 방법 변경 버튼 */}
-                {followUpMessages.length > 0 && !isFollowUpStreaming && (
-                  <div className="pt-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigateToStep(2)}
-                      className="gap-2 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-950/30"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      다른 방법으로 분석하기
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ===== 시각화 ===== */}
-            <ResultsVisualization results={results} />
-
-            {/* ===== Layer 2: 상세 결과 (접기/펼치기) ===== */}
-            {hasDetailedResults && (
-              <CollapsibleSection
-                label={t.results.sections.detailedResults}
-                data-testid="detailed-results-section"
-                open={detailedResultsOpen}
-                onOpenChange={setDetailedResultsOpen}
-                contentClassName="pt-3 space-y-4"
-                icon={<BarChart3 className="h-3.5 w-3.5" />}
-              >
-                {/* 신뢰구간 */}
+        {/* ===== L2 상세 결과 카드 ===== */}
+        {hasDetailedResults && (
+          <Card className="overflow-hidden" data-testid="detailed-results-section">
+            <CollapsibleSection
+              label={t.results.sections.detailedResults}
+              open={detailedResultsOpen}
+              onOpenChange={setDetailedResultsOpen}
+              contentClassName="pt-0 border-t border-border/10"
+              icon={<BarChart3 className="h-3.5 w-3.5" />}
+            >
+              <div className="px-4 py-4 space-y-4">
                 {statisticalResult.confidenceInterval && (
                   <ConfidenceIntervalDisplay
                     label={t.results.sections.confidenceInterval}
@@ -940,7 +975,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                   />
                 )}
 
-                {/* 효과크기 상세 스케일 */}
                 {statisticalResult.effectSize && (
                   <EffectSizeCard
                     title={t.smartFlow.resultSections.effectSizeDetail}
@@ -952,7 +986,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                   />
                 )}
 
-                {/* 추가 결과 테이블 (그룹통계, 사후검정, 회귀계수) */}
                 {statisticalResult.additionalResults?.map((table, idx) => (
                   <StatisticsTable
                     key={idx}
@@ -967,59 +1000,33 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                   />
                 ))}
 
-                {/* 방법별 추가 메트릭 */}
                 <MethodSpecificResults results={results} />
+              </div>
+            </CollapsibleSection>
+          </Card>
+        )}
 
-                {/* APA 형식 요약 */}
-                {apaFormat && (
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xs text-muted-foreground mb-1">{t.results.sections.apaFormat}</p>
-                    <code className="text-sm font-mono">{apaFormat}</code>
-                  </div>
-                )}
-
-                {/* 메타데이터 */}
-                <div className="grid grid-cols-2 gap-2 text-sm pt-2 border-t">
-                  {uploadedFileName && (
-                    <div>
-                      <span className="text-muted-foreground">{t.results.metadata.file} </span>
-                      <span className="font-medium">{uploadedFileName}</span>
-                    </div>
-                  )}
-                  {uploadedData && (
-                    <div>
-                      <span className="text-muted-foreground">{t.results.metadata.data} </span>
-                      <span className="font-medium">{t.results.metadata.rowsCols(uploadedData.length, Object.keys(uploadedData[0] || {}).length)}</span>
-                    </div>
-                  )}
-                  {statisticalResult.variables && (
-                    <div className="col-span-2">
-                      <span className="text-muted-foreground">{t.results.metadata.variables} </span>
-                      <span className="font-medium">{statisticalResult.variables.join(', ')}</span>
-                    </div>
-                  )}
-                </div>
-              </CollapsibleSection>
-            )}
-
-            {/* ===== Layer 3: 진단 & 권장 (접기/펼치기) ===== */}
-            {hasDiagnostics && (
-              <CollapsibleSection
-                label={t.results.sections.diagnostics}
-                data-testid="diagnostics-section"
-                open={diagnosticsOpen}
-                onOpenChange={setDiagnosticsOpen}
-                contentClassName="pt-3 space-y-4"
-                icon={<Lightbulb className="h-3.5 w-3.5" />}
-                badge={
-                  !assumptionsPassed ? (
-                    <Badge variant="outline" className="text-xs border-amber-300 text-amber-700">
-                      {t.results.sections.caution}
-                    </Badge>
-                  ) : undefined
-                }
-              >
-                {/* 가정 검정 상세 */}
+        {/* ===== L3 진단 & 권장 카드 ===== */}
+        {hasDiagnostics && (
+          <Card className={cn(
+            "overflow-hidden",
+            !assumptionsPassed && "border-warning-border"
+          )} data-testid="diagnostics-section">
+            <CollapsibleSection
+              label={t.results.sections.diagnostics}
+              open={diagnosticsOpen}
+              onOpenChange={setDiagnosticsOpen}
+              contentClassName="pt-0 border-t border-border/10"
+              icon={<Lightbulb className="h-3.5 w-3.5" />}
+              badge={
+                !assumptionsPassed ? (
+                  <Badge variant="outline" className="text-xs border-amber-300 text-amber-700 ml-1">
+                    {t.results.sections.caution}
+                  </Badge>
+                ) : undefined
+              }
+            >
+              <div className="px-4 py-4 space-y-4">
                 {assumptionTests.length > 0 && (
                   <AssumptionTestCard
                     tests={assumptionTests}
@@ -1030,7 +1037,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                   />
                 )}
 
-                {/* 권장사항 */}
                 {statisticalResult.recommendations && statisticalResult.recommendations.length > 0 && (
                   <div className="space-y-2" data-testid="recommendations-section">
                     <p className="text-sm font-medium flex items-center gap-1.5">
@@ -1048,7 +1054,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                   </div>
                 )}
 
-                {/* 경고 (generateWarnings()는 가정 관련 경고만 생성 → AssumptionTestCard와 중복 제거) */}
                 {statisticalResult.warnings && statisticalResult.warnings.length > 0 &&
                   assumptionTests.length === 0 && (
                     <Alert variant="destructive" data-testid="warnings-section">
@@ -1064,7 +1069,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                     </Alert>
                   )}
 
-                {/* 대안 분석 방법 (AssumptionTestCard가 testType으로 이미 표시하는 경우 중복 제거) */}
                 {statisticalResult.alternatives && statisticalResult.alternatives.length > 0 &&
                   !statisticalResult.testType && (
                     <div className="space-y-2" data-testid="alternatives-section">
@@ -1081,13 +1085,12 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                       </div>
                     </div>
                   )}
+              </div>
+            </CollapsibleSection>
+          </Card>
+        )}
 
-              </CollapsibleSection>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* ===== 저장 확인 배너 (인라인, 중앙) ===== */}
+        {/* ===== 저장 확인 배너 ===== */}
         {savedName && (
           <div className="flex items-center justify-center gap-2.5 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center flex-shrink-0">
@@ -1104,107 +1107,103 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           </div>
         )}
 
-        {/* ===== 액션 버튼 (모든 버튼 직접 노출) ===== */}
-        <div className="space-y-2" data-testid="action-buttons">
-          {/* Row 1: 출력 액션 */}
-          <div className="flex items-center gap-2 p-3 bg-muted/20 border border-border/20 rounded-xl">
-            {/* 저장 (DOCX 기본 + Excel 드롭다운) */}
-            <div className="flex flex-1">
-              <Button
-                variant={isSaved ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleSaveAsFile('docx')}
-                disabled={isExporting}
-                className={cn(
-                  "flex-1 rounded-r-none border-r-0 shadow-sm",
-                  isSaved && "bg-emerald-600 hover:bg-emerald-600 text-white"
-                )}
-              >
-                {isSaved ? (
-                  <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                ) : (
-                  <Save className="w-3.5 h-3.5 mr-1.5" />
-                )}
-                {isExporting ? t.results.buttons.exporting : isSaved ? t.results.buttons.saved : t.results.buttons.save}
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={isExporting}
-                    className="px-1.5 rounded-l-none shadow-sm"
-                  >
-                    <ChevronRight className="w-3.5 h-3.5 rotate-90" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleSaveAsFile('docx')}>
-                    <FileText className="w-4 h-4 mr-2" />
-                    {t.results.buttons.exportDocx}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSaveAsFile('xlsx')}>
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    {t.results.buttons.exportExcel}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSaveAsFile('html')}>
-                    <FileText className="w-4 h-4 mr-2" />
-                    {t.results.buttons.exportHtml}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => openExportDialog('docx')}>
-                    <FileSearch className="w-4 h-4 mr-2" />
-                    {t.results.buttons.exportWithOptions}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            {/* 복사 */}
+        {/* ===== 액션 버튼 ===== */}
+        <div className="flex items-center gap-2 flex-wrap" data-testid="action-buttons">
+          {/* 저장 + 드롭다운 */}
+          <div className="flex flex-1 min-w-[160px]">
             <Button
-              variant="outline"
+              variant={isSaved ? "default" : "outline"}
               size="sm"
-              onClick={handleCopyResults}
-              className={cn("flex-1 shadow-sm", isCopied && "bg-blue-600 hover:bg-blue-600 text-white border-blue-600")}
+              onClick={() => handleSaveAsFile('docx')}
+              disabled={isExporting}
+              className={cn(
+                "flex-1 rounded-r-none border-r-0 shadow-sm",
+                isSaved && "bg-emerald-600 hover:bg-emerald-600 text-white"
+              )}
             >
-              {isCopied ? (
+              {isSaved ? (
                 <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
               ) : (
-                <Copy className="w-3.5 h-3.5 mr-1.5" />
+                <Save className="w-3.5 h-3.5 mr-1.5" />
               )}
-              {isCopied ? t.results.buttons.copied : t.results.buttons.copy}
+              {isExporting ? t.results.buttons.exporting : isSaved ? t.results.buttons.saved : t.results.buttons.save}
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isExporting}
+                  className="px-1.5 rounded-l-none shadow-sm"
+                >
+                  <ChevronRight className="w-3.5 h-3.5 rotate-90" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleSaveAsFile('docx')}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  {t.results.buttons.exportDocx}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleSaveAsFile('xlsx')}>
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  {t.results.buttons.exportExcel}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleSaveAsFile('html')}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  {t.results.buttons.exportHtml}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openExportDialog('docx')}>
+                  <FileSearch className="w-4 h-4 mr-2" />
+                  {t.results.buttons.exportWithOptions}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
-          {/* Row 2: 워크플로우 액션 */}
-          <div className="flex items-center gap-2 p-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleReanalyze}
-              className="flex-1 text-muted-foreground hover:text-foreground"
-            >
-              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-              {t.results.buttons.reanalyze}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleNewAnalysis}
-              className="flex-1 text-muted-foreground hover:text-foreground"
-            >
-              <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
-              {t.results.buttons.newAnalysis}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setTemplateModalOpen(true)}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <FileText className="w-3.5 h-3.5 mr-1.5" />
-              {t.results.buttons.saveTemplate}
-            </Button>
-          </div>
+          {/* 복사 */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCopyResults}
+            className={cn("shadow-sm", isCopied && "bg-blue-600 hover:bg-blue-600 text-white border-blue-600")}
+          >
+            {isCopied ? (
+              <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+            ) : (
+              <Copy className="w-3.5 h-3.5 mr-1.5" />
+            )}
+            {isCopied ? t.results.buttons.copied : t.results.buttons.copy}
+          </Button>
+
+          <div className="w-px h-5 bg-border/50 hidden sm:block" />
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleReanalyze}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+            {t.results.buttons.reanalyze}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleNewAnalysis}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+            {t.results.buttons.newAnalysis}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setTemplateModalOpen(true)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <FileText className="w-3.5 h-3.5 mr-1.5" />
+            {t.results.buttons.saveTemplate}
+          </Button>
         </div>
 
         {/* 템플릿 저장 모달 */}
