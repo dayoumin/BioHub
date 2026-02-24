@@ -1376,11 +1376,11 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       expect(mockStoreState.navigateToStep).toHaveBeenCalledWith(1)
     })
 
-    it('새 분析 클릭 → 확인 다이얼로그 표시 후 confirm 클릭 시 startNewAnalysis 호출', async () => {
+    it('새 분석 클릭 → 확인 다이얼로그 표시 후 confirm 클릭 시 startNewAnalysis 호출', async () => {
       const { startNewAnalysis } = await import('@/lib/services/data-management')
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      // 새 분析 시작 버튼 클릭 → 다이얼로그 열림 (startNewAnalysis 즉시 호출 안 됨)
+      // 새 분석 시작 버튼 클릭 → 다이얼로그 열림 (startNewAnalysis 즉시 호출 안 됨)
       const newAnalysisBtn = screen.getByTestId('new-analysis-btn')
       await act(async () => {
         fireEvent.click(newAnalysisBtn)
@@ -1394,7 +1394,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
 
       // 다이얼로그의 확인 버튼 클릭 → startNewAnalysis 호출
       const dialog = screen.getByRole('alertdialog')
-      const confirmBtn = within(dialog).getByRole('button', { name: /분析 시작|시작/ })
+      const confirmBtn = within(dialog).getByRole('button', { name: /분석 시작|시작/ })
       await act(async () => {
         fireEvent.click(confirmBtn)
       })

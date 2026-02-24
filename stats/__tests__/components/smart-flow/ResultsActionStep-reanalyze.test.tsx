@@ -83,7 +83,7 @@ vi.mock('@/hooks/use-terminology', () => ({
       metadata: {
         file: '파일: ', data: '데이터: ', variables: '변수: ',
         rowsCols: (r: number, c: number) => `${r}행 × ${c}열`,
-        analysisTime: '분析 실행 시각',
+        analysisTime: '분석 실행 시각',
       },
       buttons: {
         saved: '저장됨', save: '저장', generating: '생성중...', pdf: 'PDF',
@@ -98,7 +98,7 @@ vi.mock('@/hooks/use-terminology', () => ({
       },
       toast: {
         reanalyzeReady: '새 데이터를 업로드하세요', reanalyzeMethod: (n: string) => `${n} 분석이 준비되어 있습니다`,
-        newAnalysis: '새 분析을 시작합니다', pdfSuccess: 'PDF 보고서가 생성되었습니다', pdfError: 'PDF 생성에 실패했습니다',
+        newAnalysis: '새 분석을 시작합니다', pdfSuccess: 'PDF 보고서가 생성되었습니다', pdfError: 'PDF 생성에 실패했습니다',
         copyWithAi: '결과 + AI 해석이 복사되었습니다', copySuccess: '결과가 복사되었습니다', copyError: '복사 실패',
         templateSaved: '템플릿이 저장되었습니다',
         exportSuccess: '내보내기가 완료되었습니다', exportError: '내보내기에 실패했습니다',
@@ -107,7 +107,7 @@ vi.mock('@/hooks/use-terminology', () => ({
         title: '결과 내보내기', description: '내보내기 형식과 포함할 내용을 선택하세요.',
         formatLabel: '파일 형식', contentLabel: '포함 내용',
         includeInterpretation: 'AI 해석 포함', includeRawData: '원본 데이터 포함',
-        includeMethodology: '분析 방법론 포함', includeReferences: '참고문헌 포함',
+        includeMethodology: '분석 방법론 포함', includeReferences: '참고문헌 포함',
         cancel: '취소', confirm: '내보내기',
       },
       clipboard: {
@@ -120,16 +120,16 @@ vi.mock('@/hooks/use-terminology', () => ({
         title: '추가 질문', userLabel: '질문', aiLabel: 'AI',
         placeholder: '궁금한 점을 질문하세요...',
         errorMessage: '후속 질문 처리 중 오류가 발생했습니다.',
-        changeMethod: '다른 방법으로 분析하기',
+        changeMethod: '다른 방법으로 분석하기',
         chips: [
           { label: '논문에 어떻게 쓰나요?', prompt: '이 결과를 APA 형식으로 논문에 어떻게 작성하면 되나요?' },
         ],
       },
       confirm: {
         newAnalysis: {
-          title: '새 분析을 시작할까요?',
+          title: '새 분석을 시작할까요?',
           description: '현재 데이터와 결과가 모두 초기화됩니다. 이 작업은 되돌릴 수 없습니다.',
-          confirm: '새 분析 시작', cancel: '취소',
+          confirm: '새 분석 시작', cancel: '취소',
         },
       },
     },
