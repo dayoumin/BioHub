@@ -40,6 +40,12 @@
 - ✅ **색상 토큰 회귀 테스트**: 6개 셀렉터 × 15 테스트 (color-tokens.test.tsx)
 - ✅ **AI 채팅 히스토리 (multi-turn Q&A)**: stream-follow-up.test.ts 27개 테스트 통과
 
+### 2026-02-24 (월) 데이터 업로드 UI 비판적 검토 → 3항목 개선
+
+- ✅ **최근 파일 false affordance 수정** — 행 클릭 시 파일 선택기 열기 + recentFilesNote 문구 수정
+- ✅ **quickAnalysisMode 자동 진행** — 업로드 성공 직후 Step 3으로 자동 이동 (재분석 모드 제외)
+- ✅ **ChatInput 파일 업로드 버튼** — ArrowUpFromLine 아이콘 + Step 1 직접 이동 (onUploadClick prop 체인)
+
 ### 2026-02-24 (월) ResultsActionStep UX/코드 품질 개선
 
 - ✅ **결과 해석 페이지 비판적 검토 → 전면 개선** (f03ab4e5, 25913ad5)

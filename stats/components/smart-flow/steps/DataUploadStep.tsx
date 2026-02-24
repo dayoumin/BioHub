@@ -443,7 +443,9 @@ export function DataUploadStep({
             {recentFiles.map((file) => (
               <div
                 key={file.name}
-                className="group flex items-center justify-between p-2.5 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 hover:border-border/30 transition-all duration-200"
+                className="group flex items-center justify-between p-2.5 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 hover:border-border/30 transition-all duration-200 cursor-pointer"
+                onClick={() => open()}
+                title="클릭하여 파일 다시 선택"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-7 h-7 rounded-md bg-muted/50 flex items-center justify-center flex-shrink-0">

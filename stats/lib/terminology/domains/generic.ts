@@ -899,7 +899,7 @@ export const generic: TerminologyDictionary = {
       dropHere: 'Drop file here',
       fileSpecifications: 'Max 100,000 rows | Supported: CSV, Excel',
       recentFiles: 'Recently uploaded files',
-      recentFilesNote: '* Recent file list is for reference only. Please re-upload the file.',
+      recentFilesNote: '* Click a recent file to open the file picker.',
       selectSheet: 'Select Excel Sheet',
       sheetsFound: (count: number) => `${count} sheets found. Select a sheet to analyze.`,
       selectSheetPlaceholder: 'Select a sheet',

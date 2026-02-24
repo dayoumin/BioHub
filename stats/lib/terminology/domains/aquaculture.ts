@@ -905,7 +905,7 @@ export const aquaculture: TerminologyDictionary = {
       dropHere: '파일을 놓으세요',
       fileSpecifications: '최대 100,000행 | 지원 형식: CSV, Excel',
       recentFiles: '최근 업로드한 파일',
-      recentFilesNote: '* 최근 파일 목록은 참고용입니다. 파일을 다시 업로드해주세요.',
+      recentFilesNote: '* 최근 파일을 클릭하면 파일 선택기가 열립니다.',
       selectSheet: 'Excel 시트 선택',
       sheetsFound: (count: number) => `${count}개의 시트가 발견되었습니다. 분석할 시트를 선택하세요.`,
       selectSheetPlaceholder: '시트를 선택하세요',

@@ -161,10 +161,16 @@ export default function HomePage() {
         const compatibility = checkVariableCompatibility(currentState.variableMapping, columns)
         setReanalysisCompatibility(compatibility)
       }
+
+      // 빠른 분석 모드: 메서드 선택 완료 → 업로드 직후 변수 선택(Step 3)으로 자동 이동
+      // 재분석 모드는 Step 1에서 호환성 결과를 보여야 하므로 제외
+      if (currentState.quickAnalysisMode && currentState.selectedMethod && !currentState.isReanalysisMode) {
+        navigateToStep(3)
+      }
     } catch (err) {
       setError(t.smartFlow.errors.uploadFailed((err as Error).message))
     }
-  }, [setUploadedFile, setUploadedData, setValidationResults, setError])
+  }, [setUploadedFile, setUploadedData, setValidationResults, setError, navigateToStep])
 
   const handlePurposeSubmit = useCallback((purpose: string, method: StatisticalMethod) => {
     setAnalysisPurpose(purpose)
@@ -263,6 +269,12 @@ export default function HomePage() {
     }
   }, [setShowHub])
 
+  // Hub 채팅창의 파일 버튼 클릭 → Step 1(데이터 업로드)으로 바로 이동
+  const handleHubUploadClick = useCallback(() => {
+    setShowHub(false)
+    navigateToStep(1)
+  }, [setShowHub, navigateToStep])
+
   const handleStep1Next = useCallback(() => {
     if (quickAnalysisMode && selectedMethod) {
       navigateToStep(3)
@@ -323,6 +335,7 @@ export default function HomePage() {
           onIntentResolved={handleIntentResolved}
           onQuickAnalysis={handleQuickAnalysis}
           onHistorySelect={handleHistorySelect}
+          onUploadClick={handleHubUploadClick}
         />
       )}
 

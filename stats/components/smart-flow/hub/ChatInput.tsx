@@ -8,7 +8,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Send, Loader2 } from 'lucide-react'
+import { Send, Loader2, ArrowUpFromLine } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -25,6 +25,8 @@ interface ChatInputProps {
   /** 외부에서 값을 주입 (트랙 카드 클릭 시) */
   externalValue?: string
   onExternalValueConsumed?: () => void
+  /** 파일 업로드 버튼 클릭 시 (Step 1으로 이동) */
+  onUploadClick?: () => void
 }
 
 // ===== Component =====
@@ -34,6 +36,7 @@ export function ChatInput({
   isProcessing,
   externalValue,
   onExternalValueConsumed,
+  onUploadClick,
 }: ChatInputProps) {
   const t = useTerminology()
   const prefersReducedMotion = useReducedMotion()
@@ -105,6 +108,20 @@ export function ChatInput({
               )}
             />
           </div>
+
+          {onUploadClick && (
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={onUploadClick}
+              disabled={isProcessing}
+              className="h-12 w-12 rounded-xl shrink-0 self-end text-muted-foreground hover:text-foreground"
+              aria-label="데이터 파일 업로드"
+              title="CSV / Excel 파일 업로드"
+            >
+              <ArrowUpFromLine className="h-5 w-5" />
+            </Button>
+          )}
 
           <Button
             data-testid="ai-chat-submit"

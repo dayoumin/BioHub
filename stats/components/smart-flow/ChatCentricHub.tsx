@@ -33,6 +33,7 @@ interface ChatCentricHubProps {
   onIntentResolved: (intent: ResolvedIntent, message: string) => void
   onQuickAnalysis: (methodId: string) => void
   onHistorySelect: (historyId: string) => void
+  onUploadClick?: () => void
 }
 
 // ===== Constants =====
@@ -144,6 +145,7 @@ export function ChatCentricHub({
   onIntentResolved,
   onQuickAnalysis,
   onHistorySelect,
+  onUploadClick,
 }: ChatCentricHubProps) {
   const prefersReducedMotion = useReducedMotion()
   const t = useTerminology()
@@ -257,6 +259,7 @@ export function ChatCentricHub({
           isProcessing={isProcessing}
           externalValue={externalValue}
           onExternalValueConsumed={handleExternalValueConsumed}
+          onUploadClick={onUploadClick}
         />
       </div>
 
