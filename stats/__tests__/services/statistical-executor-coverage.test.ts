@@ -94,6 +94,7 @@ describe('StatisticalExecutor Method Coverage', () => {
         'pca': 'executeMultivariate',
         'clustering': 'executeMultivariate',
         'advanced': 'executeMultivariate',
+        'multivariate': 'executeMultivariate',
         'design': 'executeDesign',
         'psychometrics': 'executeReliability'
       }

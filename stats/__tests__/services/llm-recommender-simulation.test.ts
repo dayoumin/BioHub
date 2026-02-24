@@ -16,6 +16,7 @@ describe('OpenRouter LLM 추천 시뮬레이션', () => {
 
   beforeEach(async () => {
     vi.stubEnv('NEXT_PUBLIC_OPENROUTER_API_KEY', 'test-key-123')
+    vi.stubEnv('NEXT_PUBLIC_OPENROUTER_MODEL', 'openai/gpt-4o:free')
     // 매번 fresh import (env 반영)
     vi.resetModules()
     const mod = await import('@/lib/services/openrouter-recommender')
@@ -325,6 +326,7 @@ describe('Markdown-KV 프롬프트 형식 검증', () => {
 
   beforeEach(async () => {
     vi.stubEnv('NEXT_PUBLIC_OPENROUTER_API_KEY', 'test-key-123')
+    vi.stubEnv('NEXT_PUBLIC_OPENROUTER_MODEL', 'openai/gpt-4o:free')
     vi.resetModules()
     const mod = await import('@/lib/services/openrouter-recommender')
     openRouterRecommender = mod.openRouterRecommender

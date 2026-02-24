@@ -219,6 +219,7 @@ export class StatisticalExecutor {
         case 'pca':
         case 'clustering':
         case 'advanced':
+        case 'multivariate':
           result = await this.executeMultivariate(method, preparedData)
           break
         case 'timeseries':
