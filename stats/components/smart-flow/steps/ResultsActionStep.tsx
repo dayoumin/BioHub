@@ -817,7 +817,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                   <div className="space-y-2">
                     {followUpMessages.map((msg, idx) => (
                       <div
-                        key={idx}
+                        key={msg.id}
                         className={cn(
                           'px-3 py-2 rounded-lg text-sm',
                           msg.role === 'user'
