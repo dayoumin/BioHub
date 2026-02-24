@@ -440,6 +440,7 @@ export const aquaculture: TerminologyDictionary = {
       heading: '무엇을 분석하고 싶으신가요?',
       placeholder: '분석하고 싶은 내용을 입력하세요...',
       sendAriaLabel: '보내기',
+      processingMessage: '최적 분석 방향을 파악하고 있습니다...',
     },
     tracks: {
       directAnalysis: {

@@ -439,6 +439,7 @@ export const generic: TerminologyDictionary = {
       heading: 'What would you like to analyze?',
       placeholder: 'Describe what you want to analyze...',
       sendAriaLabel: 'Send',
+      processingMessage: 'Figuring out the best approach...',
     },
     tracks: {
       directAnalysis: {

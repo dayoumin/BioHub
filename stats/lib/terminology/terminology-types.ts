@@ -478,6 +478,8 @@ export interface HubText {
     heading: string
     placeholder: string
     sendAriaLabel: string
+    /** isProcessing 중 표시할 상태 메시지 */
+    processingMessage: string
   }
   /** Chat-First 허브: 3트랙 제안 카드 */
   tracks: {

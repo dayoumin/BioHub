@@ -32,10 +32,11 @@ import {
   Info,
   Shield
 } from 'lucide-react'
+import { TypingIndicator } from '@/components/common/TypingIndicator'
 import { cn } from '@/lib/utils'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { useTerminology } from '@/hooks/use-terminology'
-import type { AIRecommendation, StatisticalMethod, ValidationResults, ColumnStatistics, FlowChatMessage } from '@/types/smart-flow'
+import type { AIRecommendation, StatisticalMethod, ValidationResults, ColumnStatistics, FlowChatMessage, StatisticalAssumptions } from '@/types/smart-flow'
 import type { LlmProvider } from '@/lib/services/llm-recommender'
 
 interface NaturalLanguageInputProps {
@@ -67,6 +68,8 @@ interface NaturalLanguageInputProps {
   provider?: LlmProvider | null
   /** 멀티턴 채팅 메시지 목록 */
   chatMessages?: FlowChatMessage[]
+  /** Pyodide 가정 검정 결과 (탐색 단계에서 계산된 신뢰할 수 있는 값) */
+  assumptionResults?: StatisticalAssumptions | null
 }
 
 export const NaturalLanguageInput = memo(function NaturalLanguageInput({
@@ -83,7 +86,8 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
   disabled = false,
   validationResults,
   provider,
-  chatMessages
+  chatMessages,
+  assumptionResults
 }: NaturalLanguageInputProps) {
   const t = useTerminology()
   const prefersReducedMotion = useReducedMotion()
@@ -320,8 +324,8 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
         )}
       </AnimatePresence>
 
-      {/* 채팅 스레드 */}
-      {(chatMessages ?? []).length > 0 && (
+      {/* 채팅 스레드 — 메시지가 있거나 로딩 중일 때 표시 */}
+      {((chatMessages ?? []).length > 0 || isLoading) && (
         <div
           ref={threadRef}
           className="space-y-2 max-h-[280px] overflow-y-auto"
@@ -348,16 +352,22 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
               </div>
             </div>
           ))}
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-muted rounded-xl px-3 py-2">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  {loadingMessages[loadingStage]}
+          <AnimatePresence>
+            {isLoading && (
+              <motion.div
+                key="typing"
+                className="flex justify-start"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 6 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="bg-muted rounded-xl px-3 py-2.5">
+                  <TypingIndicator label={loadingMessages[loadingStage]} />
                 </div>
-              </div>
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
@@ -473,8 +483,37 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                   </div>
                 )}
 
-                {/* 가정 검정 결과 */}
-                {recommendation.assumptions && recommendation.assumptions.length > 0 && (
+                {/* 가정 검정 결과: Pyodide 직접 계산값 우선, 없으면 LLM 반환값 */}
+                {assumptionResults ? (
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    {assumptionResults.normality?.shapiroWilk && (
+                      <Badge
+                        variant={assumptionResults.normality.shapiroWilk.isNormal ? "default" : "destructive"}
+                        className="text-xs"
+                      >
+                        {assumptionResults.normality.shapiroWilk.isNormal
+                          ? <Check className="w-3 h-3 mr-1" />
+                          : <AlertTriangle className="w-3 h-3 mr-1" />}
+                        {assumptionResults.normality.shapiroWilk.isNormal ? '정규성 충족' : '정규성 미충족'}
+                        {assumptionResults.normality.shapiroWilk.pValue !== undefined &&
+                          ` (p=${assumptionResults.normality.shapiroWilk.pValue.toFixed(3)})`}
+                      </Badge>
+                    )}
+                    {assumptionResults.homogeneity?.levene && (
+                      <Badge
+                        variant={assumptionResults.homogeneity.levene.equalVariance ? "default" : "destructive"}
+                        className="text-xs"
+                      >
+                        {assumptionResults.homogeneity.levene.equalVariance
+                          ? <Check className="w-3 h-3 mr-1" />
+                          : <AlertTriangle className="w-3 h-3 mr-1" />}
+                        {assumptionResults.homogeneity.levene.equalVariance ? '등분산 충족' : '등분산 미충족'}
+                        {assumptionResults.homogeneity.levene.pValue !== undefined &&
+                          ` (p=${assumptionResults.homogeneity.levene.pValue.toFixed(3)})`}
+                      </Badge>
+                    )}
+                  </div>
+                ) : recommendation.assumptions && recommendation.assumptions.length > 0 ? (
                   <div className="flex flex-wrap gap-2 pt-2">
                     {recommendation.assumptions.map((assumption, index) => (
                       <Badge
@@ -488,7 +527,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                       </Badge>
                     ))}
                   </div>
-                )}
+                ) : null}
 
                 {/* 경고 */}
                 {recommendation.warnings && recommendation.warnings.length > 0 && (

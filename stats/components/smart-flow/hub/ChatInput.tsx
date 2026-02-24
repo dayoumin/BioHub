@@ -10,12 +10,13 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Send, Loader2 } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { useTerminology } from '@/hooks/use-terminology'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
+import { TypingIndicator } from '@/components/common/TypingIndicator'
 
 // ===== SVG Background =====
 
@@ -189,6 +190,25 @@ export function ChatInput({
             )}
           </Button>
         </div>
+
+        {/* 처리 중 상태 인디케이터 */}
+        <AnimatePresence>
+          {isProcessing && (
+            <motion.div
+              key="processing"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <TypingIndicator
+                label={t.hub.chatInput.processingMessage}
+                className="pt-1"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   )
