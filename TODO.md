@@ -1,6 +1,6 @@
 # 프로젝트 현황 + 할일
 
-**최종 업데이트**: 2026-02-23
+**최종 업데이트**: 2026-02-24
 
 ---
 
@@ -30,6 +30,13 @@
 ---
 
 ## 📅 최근 작업 (7일)
+
+### 2026-02-24 (월) AI UX 자동 트리거 + 방법 재선택
+- ✅ **P1: Smart Flow 탐색→추천 자동 연결** — 탐색 완료 후 Step 2 진입 시 LLM 자동 호출 (사용자 입력 불필요)
+- ✅ **P2: 후속 Q&A 후 '다른 방법으로 분석하기' 버튼** — ResultsActionStep에 방법 재선택 진입점 추가
+- ✅ **P3: 가정 배지 Pyodide 직접값 표시** — NaturalLanguageInput에 assumptionResults prop 연결
+- ✅ **테스트 수정** — chat-input.test.tsx framer-motion mock 완성 (11개 복구)
+- ✅ **Cloudflare 배포** — `https://biohub.ecomarin.workers.dev/`
 
 ### 2026-02-13 (목) Phase 5-2 완료
 - ✅ **Phase 5-2: Pyodide 리팩토링 완료** (세부내역: [archive/dailywork/2026-02-13_phase5-2_complete.md](archive/dailywork/2026-02-13_phase5-2_complete.md))
@@ -115,6 +122,7 @@
 ### 완료
 | 작업 | 설명 | 상태 |
 |------|------|------|
+| **AI UX 자동 트리거** | 탐색→추천 자동 연결 + 방법 재선택 버튼 + Pyodide 배지 | ✅ P1/P2/P3 완료 |
 | **LLM 분석 추천** | OpenRouter 3단 폴백 + 자연어 입력 + 변수 자동 할당 | ✅ Phase 1-3 완료 |
 | **LLM 결과 해석** | 스트리밍 AI 해석 (한줄 요약 + 상세) | ✅ 구현 완료 |
 | **suggestedSettings → Step 4** | AI 추천 설정(alpha) executor 전달 + custom alpha 적용 | ✅ 완료 |
@@ -181,7 +189,7 @@
 | 항목 | 설명 |
 |------|------|
 | Smart Flow 미테스트 컴포넌트 | AnalysisExecutionStep, ChatCentricHub, ExportDropdown, MethodManagerSheet, ReanalysisPanel, ResultsVisualization, VariableSelectionStep |
-| 실패 테스트 | `statistical-executor-coverage.test.ts` (카테고리 불일치), `smart-flow-page.test.tsx` (16개 실패) |
+| 실패 테스트 | `statistical-executor-coverage.test.ts` (2개 카테고리 불일치), `llm-recommender-simulation.test.ts` (4개) — chat-input 11개는 수정 완료 |
 | 하드코딩 한글 | 11개 컴포넌트에 terminology 미적용 문자열 잔존 |
 
 **🟢 Low**
@@ -190,6 +198,7 @@
 | Deprecated 함수 | `pyodide-statistics.ts` 10+ 함수 — Worker 전환 완료 후 삭제 가능 |
 | SW 업데이트 알림 | `register-sw.ts:76` — 새로고침 권장 UI 미구현 |
 | console.log 잔존 | `use-pyodide-service.ts`, `plotly-chart-renderer.tsx` |
+| ResultsActionStep 스트리밍 테스트 | `handleInterpretation` 재해석 + `handleFollowUp` 저장 동기화 경계 커버 미흡 — 로직 수정 시 추가 |
 
 ### 완료 (Phase 5-2)
 | 작업 | 설명 | 상태 |
