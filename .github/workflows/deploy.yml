@@ -1,0 +1,49 @@
+name: Deploy to Cloudflare Workers
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: 'stats/pnpm-lock.yaml'
+
+      - name: Install dependencies
+        working-directory: ./stats
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        working-directory: ./stats
+        env:
+          NEXT_PUBLIC_TURSO_URL: ${{ secrets.NEXT_PUBLIC_TURSO_URL }}
+          NEXT_PUBLIC_TURSO_AUTH_TOKEN: ${{ secrets.NEXT_PUBLIC_TURSO_AUTH_TOKEN }}
+          NEXT_PUBLIC_OPENROUTER_API_KEY: ${{ secrets.NEXT_PUBLIC_OPENROUTER_API_KEY }}
+          NEXT_PUBLIC_OPENROUTER_MODEL: ${{ secrets.NEXT_PUBLIC_OPENROUTER_MODEL }}
+        run: pnpm run build
+
+      - name: Deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx wrangler deploy

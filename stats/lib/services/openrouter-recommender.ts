@@ -731,6 +731,10 @@ ${userInput}`
     const timeoutId = setTimeout(() => controller.abort(), streamTimeout)
 
     if (signal) {
+      if (signal.aborted) {
+        controller.abort()
+        return null
+      }
       signal.addEventListener('abort', () => controller.abort(), { once: true })
     }
 
