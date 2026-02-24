@@ -22,6 +22,7 @@ import {
   getKoreanName
 } from '@/lib/constants/statistical-methods'
 import { logger } from '@/lib/utils/logger'
+import { getSystemPromptConsultant } from './ai/prompts'
 
 /**
  * 모델 설정:
@@ -78,8 +79,6 @@ export class OpenRouterRecommender {
   private config: OpenRouterConfig
 
   private healthCache: HealthCache | null = null
-
-  private cachedSystemPrompt: string | null = null
 
   constructor() {
     const envModels = process.env.NEXT_PUBLIC_OPENROUTER_MODEL
@@ -171,7 +170,7 @@ export class OpenRouterRecommender {
   ): Promise<{ recommendation: AIRecommendation | null; responseText: string }> {
     return this.recommendWithSystemPrompt(
       userInput,
-      this.getSystemPrompt(),
+      getSystemPromptConsultant(),
       validationResults,
       assumptionResults,
       data
@@ -420,99 +419,6 @@ export class OpenRouterRecommender {
     // greedy 매칭은 garbage 포함 가능하므로 사용하지 않음
     return null
   }
-
-  /**
-   * 시스템 프롬프트 (STATISTICAL_METHODS에서 동적 생성, 캐싱)
-   */
-  private getSystemPrompt(): string {
-    if (this.cachedSystemPrompt) return this.cachedSystemPrompt
-
-    // 카테고리 오버뷰 제외, 실제 분석 가능한 메서드만 포함
-    const methods = Object.entries(STATISTICAL_METHODS)
-      .filter(([id, m]) => {
-        // 카테고리 오버뷰 제외 (hasOwnPage=false이면서 parentPageId 없음)
-        if (m.hasOwnPage === false && !m.parentPageId) return false
-        // non-parametric, chi-square 카테고리 오버뷰 명시적 제외
-        if (id === 'non-parametric' || id === 'chi-square') return false
-        return true
-      })
-
-    // 카테고리별 그룹핑
-    const byCategory = new Map<string, string[]>()
-    for (const [id, m] of methods) {
-      const cat = m.category
-      if (!byCategory.has(cat)) byCategory.set(cat, [])
-      byCategory.get(cat)!.push(`- ${id}: ${getKoreanName(id)}`)
-    }
-
-    const methodList = Array.from(byCategory.entries())
-      .map(([cat, items]) => `### ${cat}\n${items.join('\n')}`)
-      .join('\n\n')
-
-    this.cachedSystemPrompt = `당신은 통계 분석 전문가입니다.
-사용자의 분석 요구와 데이터 특성을 고려하여 가장 적합한 통계 방법을 추천하세요.
-
-## 응답 규칙
-1. 먼저 왜 이 방법이 좋은지 한국어로 쉽게 2-3문장 설명해주세요.
-2. 그 다음 반드시 \`\`\`json 블록으로 추천 결과를 정확한 JSON 형식으로 제공하세요.
-3. 데이터의 변수 타입, 표본 크기, 가정 검정 결과를 반드시 고려하세요.
-4. 질문이 모호하면 confidence를 0.6-0.7로 낮추고 ambiguityNote에 이유를 적어주세요.
-
-## 사용자 친화적 설명 원칙
-- reasoning 배열의 각 항목은 비전문가도 이해할 수 있는 자연스러운 한국어로 작성하세요.
-  예: "두 그룹의 평균을 비교하는 데 적합해요", "데이터가 정규분포를 따르기 때문에 사용할 수 있어요"
-- 전문 용어를 쓸 때는 괄호 안에 쉬운 설명을 추가하세요. 예: "등분산성(두 그룹의 퍼짐 정도가 비슷한지)"
-- warnings도 구체적으로 적어주세요. 예: "표본이 30개 미만이라 결과가 불안정할 수 있어요"
-
-## JSON 응답 형식
-\`\`\`json
-{
-  "methodId": "정확한-메서드-ID",
-  "methodName": "한글 메서드명",
-  "confidence": 0.85,
-  "reasoning": ["이 방법을 추천하는 쉬운 이유 1", "이유 2", "이유 3"],
-  "variableAssignments": {
-    "dependent": ["실제 컬럼명"],
-    "independent": ["실제 컬럼명"],
-    "factor": ["실제 컬럼명"],
-    "covariate": ["실제 컬럼명"]
-  },
-  "suggestedSettings": {
-    "alpha": 0.05,
-    "postHoc": "tukey",
-    "alternative": "two-sided"
-  },
-  "warnings": ["쉬운 말로 된 주의사항"],
-  "dataPreprocessing": ["쉬운 말로 된 전처리 제안"],
-  "ambiguityNote": "질문이 모호할 때만 포함",
-  "alternatives": [
-    { "id": "대안-ID", "name": "대안명", "description": "이런 관점에서 보면: 대안 설명" }
-  ]
-}
-\`\`\`
-
-## 필드 설명
-- variableAssignments: 데이터 컬럼명을 분석 역할에 매핑. 실제 존재하는 컬럼명만 사용.
-- suggestedSettings: 분석 설정 제안. alpha, postHoc(tukey/bonferroni/scheffe), alternative(two-sided/less/greater).
-- warnings: 주의사항. 비전문가도 이해할 수 있게 작성. 없으면 빈 배열.
-- dataPreprocessing: 데이터 정리 제안. 없으면 빈 배열.
-- ambiguityNote: 질문이 여러 해석 가능할 때만 포함. 명확하면 생략.
-- alternatives: 다른 관점의 분석 방법 2-3개.
-
-## 사용 가능한 통계 방법 (반드시 아래 ID 중 하나를 사용)
-
-${methodList}
-
-## 주의사항
-- methodId는 위 목록에서 정확히 일치하는 ID만 사용하세요.
-- confidence: 데이터 적합도 반영 (0.9+ 매우 확신, 0.7-0.9 확신, 0.5-0.7 보통)
-- alternatives: 2-3개 제시. 각 대안이 어떤 관점인지 쉽게 설명.
-- variableAssignments에는 데이터 요약에 나온 실제 컬럼명만 사용하세요.
-- 반드시 한국어로 응답하세요. reasoning, warnings, ambiguityNote는 비전문가도 이해할 수 있게 작성하세요.`
-
-    return this.cachedSystemPrompt
-  }
-
 
   /**
    * 사용자 프롬프트 구성 (데이터 컨텍스트 + 질문)

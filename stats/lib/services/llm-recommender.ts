@@ -25,8 +25,9 @@ import {
   getSystemPromptDiagnostic,
   getSystemPromptIntentRouter
 } from './ai/prompts'
+import type { LlmProvider } from '@/lib/utils/storage-types'
 
-export type LlmProvider = 'openrouter' | 'ollama' | 'keyword'
+export type { LlmProvider }
 
 export interface LlmRecommendationResult {
   recommendation: AIRecommendation | null

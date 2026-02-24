@@ -37,7 +37,7 @@ function getMethodListBlock(): string {
     for (const [id, m] of methods) {
         const cat = m.category
         if (!byCategory.has(cat)) byCategory.set(cat, [])
-        byCategory.get(cat)!.push(`- ${id}: ${getKoreanName(id)}`)
+        byCategory.get(cat)?.push(`- ${id}: ${getKoreanName(id)}`)
     }
 
     _cachedMethodList = Array.from(byCategory.entries())

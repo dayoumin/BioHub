@@ -6,6 +6,9 @@
 
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 
+/** LLM 추천 제공자 */
+export type LlmProvider = 'openrouter' | 'ollama' | 'keyword'
+
 /**
  * AI 추천 맥락 (히스토리 저장용)
  */
@@ -19,7 +22,7 @@ export interface AiRecommendationContext {
     name: string
     description: string
   }>
-  provider: 'openrouter' | 'ollama' | 'keyword'
+  provider: LlmProvider
   ambiguityNote?: string
 }
 
