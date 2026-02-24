@@ -1,18 +1,17 @@
 {
-  "timestamp": "2025-12-18T01:02:33.618Z",
+  "timestamp": "2026-02-24T01:37:55.508Z",
   "summary": {
     "total": 40,
     "passed": 0,
     "warnings": 2,
     "failed": 38,
-    "avgScore": "3.90"
+    "avgScore": "3.94"
   },
   "reports": [
     {
       "name": "anova",
       "exists": true,
       "bugs": [
-        "❌ 직접 통계 계산 (금지됨 - Python workers 사용)",
         "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
       ],
       "typeErrors": [],
@@ -24,20 +23,18 @@
       "warnings": [
         "✅ useStatisticsPage hook 사용",
         "✅ useCallback 5개 사용",
-        "✅ 옵셔널 체이닝 34개 사용",
+        "✅ 옵셔널 체이닝 29개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "⚠️ StatisticsPageLayout 컴포넌트 미사용",
         "⚠️ StepCard 컴포넌트 미사용",
         "⚠️ steps 배열 미정의"
       ],
-      "score": 3.7
+      "score": 4.2
     },
     {
       "name": "t-test",
       "exists": true,
       "bugs": [
-        "❌ Non-null assertion (!) 5개 (금지됨)",
-        "❌ 직접 통계 계산 (금지됨 - Python workers 사용)",
         "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
       ],
       "typeErrors": [],
@@ -49,13 +46,14 @@
       "warnings": [
         "✅ useStatisticsPage hook 사용",
         "✅ useCallback 7개 사용",
-        "✅ 옵셔널 체이닝 24개 사용",
+        "✅ 옵셔널 체이닝 30개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
         "⚠️ StatisticsPageLayout 컴포넌트 미사용",
         "⚠️ StepCard 컴포넌트 미사용",
         "⚠️ steps 배열 미정의"
       ],
-      "score": 3.2
+      "score": 4.2
     },
     {
       "name": "one-sample-t",
@@ -97,7 +95,7 @@
       "warnings": [
         "✅ useStatisticsPage hook 사용",
         "✅ useCallback 13개 사용",
-        "✅ 옵셔널 체이닝 16개 사용",
+        "✅ 옵셔널 체이닝 17개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "⚠️ StatisticsPageLayout 컴포넌트 미사용",
         "⚠️ StepCard 컴포넌트 미사용",
@@ -258,7 +256,7 @@
       "warnings": [
         "✅ useStatisticsPage hook 사용",
         "✅ useCallback 15개 사용",
-        "✅ 옵셔널 체이닝 17개 사용",
+        "✅ 옵셔널 체이닝 18개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "✅ VariableSelector 사용 (최신 표준)",
         "⚠️ StatisticsPageLayout 컴포넌트 미사용",
@@ -376,7 +374,7 @@
       "warnings": [
         "✅ useStatisticsPage hook 사용",
         "✅ useCallback 8개 사용",
-        "✅ 옵셔널 체이닝 30개 사용",
+        "✅ 옵셔널 체이닝 27개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "⚠️ StatisticsPageLayout 컴포넌트 미사용",
         "⚠️ StepCard 컴포넌트 미사용",
@@ -399,7 +397,7 @@
       "warnings": [
         "✅ useStatisticsPage hook 사용",
         "✅ useCallback 10개 사용",
-        "✅ 옵셔널 체이닝 23개 사용",
+        "✅ 옵셔널 체이닝 24개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "⚠️ StatisticsPageLayout 컴포넌트 미사용",
         "⚠️ StepCard 컴포넌트 미사용",
@@ -657,7 +655,7 @@
       "warnings": [
         "✅ useStatisticsPage hook 사용",
         "✅ useCallback 8개 사용",
-        "✅ 옵셔널 체이닝 17개 사용",
+        "✅ 옵셔널 체이닝 14개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "✅ VariableSelector 사용 (최신 표준)",
         "⚠️ StatisticsPageLayout 컴포넌트 미사용",
@@ -681,7 +679,7 @@
       "warnings": [
         "✅ useStatisticsPage hook 사용",
         "✅ useCallback 12개 사용",
-        "✅ 옵셔널 체이닝 14개 사용",
+        "✅ 옵셔널 체이닝 16개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "⚠️ StatisticsPageLayout 컴포넌트 미사용",
         "⚠️ StepCard 컴포넌트 미사용",
@@ -705,7 +703,7 @@
       "warnings": [
         "✅ useStatisticsPage hook 사용",
         "✅ useCallback 11개 사용",
-        "✅ 옵셔널 체이닝 9개 사용",
+        "✅ 옵셔널 체이닝 11개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "✅ VariableSelector 사용 (최신 표준)",
         "⚠️ StatisticsPageLayout 컴포넌트 미사용",
@@ -729,7 +727,7 @@
       "warnings": [
         "✅ useStatisticsPage hook 사용",
         "✅ useCallback 9개 사용",
-        "✅ 옵셔널 체이닝 26개 사용",
+        "✅ 옵셔널 체이닝 24개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "⚠️ StatisticsPageLayout 컴포넌트 미사용",
         "⚠️ StepCard 컴포넌트 미사용",
@@ -910,7 +908,7 @@
       "warnings": [
         "✅ useStatisticsPage hook 사용",
         "✅ useCallback 10개 사용",
-        "✅ 옵셔널 체이닝 9개 사용",
+        "✅ 옵셔널 체이닝 11개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "⚠️ StatisticsPageLayout 컴포넌트 미사용",
         "⚠️ StepCard 컴포넌트 미사용",

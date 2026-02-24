@@ -147,6 +147,49 @@
 | **P2: UI 일관성** | 다크모드 수정, 테이블 패딩 STEP_STYLES 통일, FitScore/ConfidenceGauge 토큰화 | ✅ `4d4c5606` |
 | **테스트** | 시맨틱 토큰 검증 18개 + ResultsActionStep mock 보완 32건 해결 | ✅ `eeec768c` `3498146c` |
 
+### 🎨 진행 중: Smart Flow 4단계 UI/UX 일관성 개선
+
+**목표**: 처음부터 끝까지 이어지는 단일 디자인 언어, 결과 화면 세련화
+
+#### 설계 원칙
+- 각 단계는 하나의 **주요 Card** (결정/입력) + **보조 섹션** 구조
+- 색상: semantic token만 사용 (success/warning/info/violet-for-AI)
+- 타이포그래피: h2(20px) → 섹션(14px bold) → 라벨(12px) → 메타(10px uppercase)
+- 상태 피드백: `border-2` + 배경색으로 유의성 시각화
+
+#### Step 4 결과 화면 — ✅ 완료 (`2026-02-24`)
+**변경 내용:**
+- 단일 거대 카드 → **6개 독립 카드**로 분리 (각 섹션이 명확히 구분)
+- `statisticalResult.interpretation` 파란 박스 제거 (AI 해석과 중복)
+- APA 형식 + 메타데이터 → L1 핵심 카드로 이동 (항상 노출)
+- 시각화 → AI 해석 앞으로 이동 (차트 먼저 → AI 설명 순서)
+- AI 해석 카드: violet 테마 독립 카드, `재해석` 버튼 우측 정렬
+- Q&A 카드: 독립 카드, 심플 chip (violet 과잉 제거, `MessageCircle` 아이콘 제거)
+- L2/L3 콜랩서블: 각각 독립 카드 래핑, 기본값 닫힘
+- 액션 바: 2행 → 1행 (저장▾ | 복사 | 구분선 | 재분석 | 새분석 | 템플릿)
+- AnalysisExecutionStep: 완료 단계 `line-through` → 흐린 회색 (더 자연스럽게)
+
+#### Step 3 변수 선택 — ⬜ 미검토
+검토 예정 항목:
+- 각 Selector 컴포넌트(GroupComparison, Correlation 등)의 카드 구조 일관성
+- 선택된 변수 표시 방식 (배지 vs 리스트)
+- "AI 감지 변수" 제안 배너 디자인
+
+#### Step 2 방법 선택 — ⬜ 미검토
+검토 예정 항목:
+- GuidedQuestions 진행 단계 시각화 (현재 상태 표시 방식)
+- RecommendationResult 카드 레이아웃 (방법명, 설명, 신뢰도)
+- MethodBrowser 탭 스타일 일관성 (Recommended ↔ Browse All)
+
+#### Step 1 데이터 탐색 — ⬜ 미검토
+검토 예정 항목:
+- DataUploadStep 드래그앤드롭 영역 크기/스타일
+- DataProfileSummary 카드 레이아웃
+- 탭(Overview/DataPrep/Template/Distribution) 스타일
+- AssumptionTestsSection이 Step 1에서도 보이는 이유 재검토
+
+---
+
 ### 진행 예정
 | 작업 | 설명 |
 |------|------|
