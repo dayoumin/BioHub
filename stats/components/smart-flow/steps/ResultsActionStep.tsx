@@ -144,7 +144,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const interpretedResultRef = useRef<string | null>(null) // 캐시 key
   const aiInterpretationRef = useRef<HTMLDivElement | null>(null)
 
-  // 새 분析 시작 확인
+  // 새 분석 시작 확인
   const [showNewAnalysisConfirm, setShowNewAnalysisConfirm] = useState(false)
 
   // 후속 칩 사용 추적
@@ -458,7 +458,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         aiInterpretationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
       }, 100)
     }
-  }, [results, uploadedData, mappedVariables, uploadedFileName])
+  }, [results, uploadedData, mappedVariables, uploadedFileName, variableMapping])
 
   // 재해석 초기화 + 재요청 (중복 로직 추출)
   const resetAndReinterpret = useCallback(() => {
@@ -467,6 +467,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     setIsFollowUpStreaming(false)
     interpretedResultRef.current = null
     setInterpretation(null)
+    setInterpretationModel(null)
     setFollowUpMessages([])
     setUsedChips(new Set())
     handleInterpretation()
@@ -1246,7 +1247,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           </Button>
         </div>
 
-        {/* 새 분析 시작 확인 다이얼로그 */}
+        {/* 새 분석 시작 확인 다이얼로그 */}
         <AlertDialog open={showNewAnalysisConfirm} onOpenChange={setShowNewAnalysisConfirm}>
           <AlertDialogContent>
             <AlertDialogHeader>
