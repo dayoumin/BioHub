@@ -1090,6 +1090,13 @@ export interface NaturalLanguageInputText {
       within: string
       between: string
     }
+    /** 가정 검정 배지 레이블 */
+    assumptions: {
+      normalityMet: string
+      normalityNotMet: string
+      homogeneityMet: string
+      homogeneityNotMet: string
+    }
   }
   /** 버튼 */
   buttons: {

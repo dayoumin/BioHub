@@ -1009,6 +1009,12 @@ export const generic: TerminologyDictionary = {
         within: 'Within-subject',
         between: 'Between-subject',
       },
+      assumptions: {
+        normalityMet: 'Normality met',
+        normalityNotMet: 'Normality not met',
+        homogeneityMet: 'Equal variance',
+        homogeneityNotMet: 'Unequal variance',
+      },
     },
     buttons: {
       getRecommendation: 'Get recommendation',

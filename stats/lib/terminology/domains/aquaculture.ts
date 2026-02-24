@@ -1015,6 +1015,12 @@ export const aquaculture: TerminologyDictionary = {
         within: '피험자내',
         between: '피험자간',
       },
+      assumptions: {
+        normalityMet: '정규성 충족',
+        normalityNotMet: '정규성 미충족',
+        homogeneityMet: '등분산 충족',
+        homogeneityNotMet: '등분산 미충족',
+      },
     },
     buttons: {
       getRecommendation: '추천받기',

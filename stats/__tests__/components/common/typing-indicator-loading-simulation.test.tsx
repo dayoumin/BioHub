@@ -127,11 +127,11 @@ describe('NaturalLanguageInput — 로딩 단계 메시지 사이클', () => {
     withTerminology(
       <NaturalLanguageInput {...makeNLIProps()} isLoading={true} chatMessages={[]} />
     )
-    // 아쿠아컬처 도메인의 첫 번째 로딩 메시지가 role="status" aria-label에 있어야 함
+    // 아쿠아컬처 도메인의 첫 번째 로딩 메시지가 sr-only span에 있어야 함
     const status = screen.getByRole('status')
-    // aria-label이 설정되어 있으면 첫 메시지임
-    expect(status).toHaveAttribute('aria-label')
-    const firstLabel = status.getAttribute('aria-label')
+    const srSpan = status.querySelector('.sr-only')
+    expect(srSpan).toBeInTheDocument()
+    const firstLabel = srSpan?.textContent
     expect(firstLabel).toBeTruthy()
   })
 
@@ -140,13 +140,13 @@ describe('NaturalLanguageInput — 로딩 단계 메시지 사이클', () => {
       <NaturalLanguageInput {...makeNLIProps()} isLoading={true} chatMessages={[]} />
     )
     // before: 첫 번째 메시지 (stage 0)
-    const firstLabel = screen.getByRole('status').getAttribute('aria-label')
+    const firstLabel = screen.getByRole('status').querySelector('.sr-only')?.textContent
     expect(firstLabel).toBeTruthy()
 
     act(() => { vi.advanceTimersByTime(2000) })
 
     // after: 두 번째 메시지 (stage 1) — 반드시 다른 문자열이어야 함
-    const secondLabel = screen.getByRole('status').getAttribute('aria-label')
+    const secondLabel = screen.getByRole('status').querySelector('.sr-only')?.textContent
     expect(secondLabel).toBeTruthy()
     expect(secondLabel).not.toBe(firstLabel)
   })
@@ -156,11 +156,11 @@ describe('NaturalLanguageInput — 로딩 단계 메시지 사이클', () => {
       <NaturalLanguageInput {...makeNLIProps()} isLoading={true} chatMessages={[]} />
     )
     act(() => { vi.advanceTimersByTime(2000) })
-    const secondLabel = screen.getByRole('status').getAttribute('aria-label')
+    const secondLabel = screen.getByRole('status').querySelector('.sr-only')?.textContent
 
     act(() => { vi.advanceTimersByTime(3000) }) // 누적 5000ms
 
-    const thirdLabel = screen.getByRole('status').getAttribute('aria-label')
+    const thirdLabel = screen.getByRole('status').querySelector('.sr-only')?.textContent
     expect(thirdLabel).toBeTruthy()
     expect(thirdLabel).not.toBe(secondLabel)
   })
@@ -203,9 +203,9 @@ describe('ChatInput — isProcessing 상태 인디케이터', () => {
     withTerminology(
       <ChatInput onSubmit={vi.fn()} isProcessing={true} />
     )
-    // processingMessage 텍스트가 화면에 표시됨
+    // processingMessage 텍스트가 sr-only span에 표시됨
     const status = screen.getByRole('status')
-    expect(status.getAttribute('aria-label')).toBeTruthy()
+    expect(status.querySelector('.sr-only')?.textContent).toBeTruthy()
   })
 
   it('isProcessing=true → false: 상태 인디케이터가 사라진다', () => {

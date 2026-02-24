@@ -494,7 +494,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                         {assumptionResults.normality.shapiroWilk.isNormal
                           ? <Check className="w-3 h-3 mr-1" />
                           : <AlertTriangle className="w-3 h-3 mr-1" />}
-                        {assumptionResults.normality.shapiroWilk.isNormal ? '정규성 충족' : '정규성 미충족'}
+                        {assumptionResults.normality.shapiroWilk.isNormal ? t.naturalLanguageInput.recommendation.assumptions.normalityMet : t.naturalLanguageInput.recommendation.assumptions.normalityNotMet}
                         {assumptionResults.normality.shapiroWilk.pValue !== undefined &&
                           ` (p=${assumptionResults.normality.shapiroWilk.pValue.toFixed(3)})`}
                       </Badge>
@@ -507,7 +507,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                         {assumptionResults.homogeneity.levene.equalVariance
                           ? <Check className="w-3 h-3 mr-1" />
                           : <AlertTriangle className="w-3 h-3 mr-1" />}
-                        {assumptionResults.homogeneity.levene.equalVariance ? '등분산 충족' : '등분산 미충족'}
+                        {assumptionResults.homogeneity.levene.equalVariance ? t.naturalLanguageInput.recommendation.assumptions.homogeneityMet : t.naturalLanguageInput.recommendation.assumptions.homogeneityNotMet}
                         {assumptionResults.homogeneity.levene.pValue !== undefined &&
                           ` (p=${assumptionResults.homogeneity.levene.pValue.toFixed(3)})`}
                       </Badge>

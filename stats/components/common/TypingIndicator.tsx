@@ -30,8 +30,10 @@ export function TypingIndicator({ label, className, size = 'md' }: TypingIndicat
       className={cn('flex items-center gap-2', className)}
       role="status"
       aria-live="polite"
-      aria-label={label}
+      aria-atomic="true"
     >
+      {/* sr-only: 스크린 리더에 라이브 리전 내용 직접 전달 — aria-label 갱신보다 안정적 */}
+      {label && <span className="sr-only">{label}</span>}
       <div className="flex items-center gap-[3px]" aria-hidden="true">
         {[0, 1, 2].map((i) => (
           <motion.span
