@@ -281,10 +281,13 @@ export class DecisionTreeRecommender {
   ): AIRecommendation {
     const { normality, homogeneity } = assumptionResults
 
+    const n = data.length
+
     // ✅ Null 가드: shapiroWilk/levene 구조 확인 (Issue #3 Fix)
     const hasShapiroWilk = normality?.shapiroWilk !== undefined
     const hasLevene = homogeneity?.levene !== undefined
-    const isNormal = hasShapiroWilk ? normality?.shapiroWilk?.isNormal ?? false : false
+    // shapiroWilk 없음 = n>5000 CLT 적용(검정 생략) 또는 검정 미실행 → 정규성 가정
+    const isNormal = hasShapiroWilk ? normality?.shapiroWilk?.isNormal ?? false : n > 5000
     const equalVariance = hasLevene ? homogeneity?.levene?.equalVariance ?? false : false
 
     // ✅ Paired Design 감지 (AI 리뷰 반영)
@@ -304,8 +307,6 @@ export class DecisionTreeRecommender {
       finalGroupVariable: groupVariable,
       groups
     })
-
-    const n = data.length
 
     // === Paired Design 처리 ===
     if (isPaired) {
@@ -562,7 +563,8 @@ export class DecisionTreeRecommender {
 
     // ✅ Null 가드: shapiroWilk 구조 확인 (Issue #3 Fix)
     const hasShapiroWilk = normality?.shapiroWilk !== undefined
-    const isNormal = hasShapiroWilk ? normality?.shapiroWilk?.isNormal ?? false : false
+    // shapiroWilk 없음 = n>5000 CLT 적용(검정 생략) → 정규성 가정
+    const isNormal = hasShapiroWilk ? normality?.shapiroWilk?.isNormal ?? false : n > 5000
 
     const numericVars = validationResults.columns?.filter(
       col => col.type === 'numeric'

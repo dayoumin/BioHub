@@ -279,6 +279,77 @@ describe('AnalysisInfoCard', () => {
       render(<AnalysisInfoCard assumptionResults={independenceResults} />)
       expect(screen.getByText('독립성')).toBeInTheDocument()
     })
+
+    // --- testError 시나리오 시뮬레이션 ---
+
+    it('[시뮬레이션] testError + normality 성공: "판정 불가" 표시, "일부 위반" 미표시', () => {
+      // 정규성 성공, 등분산성 catch 후 testError=true
+      const partialError: StatisticalAssumptions = {
+        normality: {
+          shapiroWilk: { statistic: 0.97, pValue: 0.12, isNormal: true }
+        },
+        homogeneity: {},          // levene 없음 (catch 후 빈 객체)
+        summary: {
+          canUseParametric: true, // catch 전 초기값 유지 (버그: 이전엔 이것이 meetsAssumptions=true로 표시됨)
+          reasons: ['등분산성 검정 실패 — 결과 신뢰 불가'],
+          recommendations: ['검정 실패 — 가정 판정 불가, 전문가 확인 권장'],
+          testError: true,
+          meetsAssumptions: undefined // AnalysisExecutionStep에서 testError → undefined 처리
+        }
+      }
+      render(<AnalysisInfoCard assumptionResults={partialError} />)
+
+      // 전체 판정: "판정 불가"여야 함 (이전 버그: "일부 위반"으로 표시됨)
+      expect(screen.getByText('판정 불가')).toBeInTheDocument()
+      expect(screen.queryByText('일부 위반')).not.toBeInTheDocument()
+      expect(screen.queryByText('충족')).not.toBeInTheDocument()
+
+      // 개별 체크: 정규성만 표시 (등분산성은 levene 없음 → 체크 없음)
+      expect(screen.getByText('정규성')).toBeInTheDocument()
+      expect(screen.queryByText('등분산성')).not.toBeInTheDocument() // false positive 방지
+    })
+
+    it('[시뮬레이션] testError + 두 검정 모두 실패: false positive 체크 없음', () => {
+      // 정규성/등분산성 모두 catch 후 testError=true
+      const bothError: StatisticalAssumptions = {
+        normality: {},            // shapiroWilk 없음
+        homogeneity: {},          // levene 없음
+        summary: {
+          canUseParametric: true, // 초기값 유지
+          reasons: ['정규성 검정 실패 — 결과 신뢰 불가', '등분산성 검정 실패 — 결과 신뢰 불가'],
+          recommendations: ['검정 실패 — 가정 판정 불가, 전문가 확인 권장'],
+          testError: true,
+          meetsAssumptions: undefined
+        }
+      }
+      render(<AnalysisInfoCard assumptionResults={bothError} />)
+
+      // 개별 체크 배지가 전혀 없어야 함 (이전 버그: 정규성 ✓, 등분산성 ✓ false positive)
+      expect(screen.queryByText('정규성')).not.toBeInTheDocument()
+      expect(screen.queryByText('등분산성')).not.toBeInTheDocument()
+
+      // 가정 검정 섹션 자체가 checks.length === 0이므로 렌더링 안 됨
+      expect(screen.queryByText('가정 검정')).not.toBeInTheDocument()
+    })
+
+    it('[시뮬레이션] 빈 객체 homogeneity: 등분산성 체크 미표시 (false positive 방지)', () => {
+      // groupVar 없는 분석 (상관분석 등) — homogeneity가 빈 객체로 저장됨
+      const noGroupAnalysis: StatisticalAssumptions = {
+        normality: { shapiroWilk: { statistic: 0.96, pValue: 0.08, isNormal: true } },
+        homogeneity: {},  // levene 없음
+        summary: {
+          canUseParametric: true,
+          reasons: [],
+          recommendations: ['모수 검정 사용 가능'],
+          meetsAssumptions: true
+        }
+      }
+      render(<AnalysisInfoCard assumptionResults={noGroupAnalysis} />)
+
+      expect(screen.getByText('정규성')).toBeInTheDocument()
+      expect(screen.queryByText('등분산성')).not.toBeInTheDocument() // false positive 없어야 함
+      expect(screen.getByText('충족')).toBeInTheDocument()
+    })
   })
 
   describe('4. Variable Mapping Display', () => {

@@ -112,19 +112,20 @@ export function AnalysisInfoCard({
 
         const checks: { name: string; passed: boolean; detail?: string }[] = []
 
-        if (assumptionResults.normality) {
+        // 실제 검정 결과가 있을 때만 체크 추가 — 빈 객체({})는 truthy이므로 내부 필드로 판별
+        if (assumptionResults.normality?.shapiroWilk || assumptionResults.normality?.group1 || assumptionResults.normality?.group2) {
             const normalityResult = assumptionResults.normality
             let isNormal = true
             let detail = ''
 
-            if (normalityResult.shapiroWilk) {
+            if (normalityResult?.shapiroWilk) {
                 isNormal = normalityResult.shapiroWilk.isNormal
                 if (normalityResult.shapiroWilk.pValue !== undefined) {
                     detail = formatPValue(normalityResult.shapiroWilk.pValue)
                 }
-            } else if (normalityResult.group1 || normalityResult.group2) {
-                const g1Normal = normalityResult.group1?.isNormal ?? true
-                const g2Normal = normalityResult.group2?.isNormal ?? true
+            } else if (normalityResult?.group1 || normalityResult?.group2) {
+                const g1Normal = normalityResult?.group1?.isNormal ?? true
+                const g2Normal = normalityResult?.group2?.isNormal ?? true
                 isNormal = g1Normal && g2Normal
                 detail = isNormal ? t.analysisInfo.assumptions.allGroupsNormal : t.analysisInfo.assumptions.someGroupsNonNormal
             }
@@ -132,19 +133,13 @@ export function AnalysisInfoCard({
             checks.push({ name: t.analysisInfo.assumptions.normality, passed: isNormal, detail })
         }
 
-        if (assumptionResults.homogeneity) {
-            const homogeneityResult = assumptionResults.homogeneity
-            let isEqual = true
+        if (assumptionResults.homogeneity?.levene) {
+            const levene = assumptionResults.homogeneity.levene
             let detail = ''
-
-            if (homogeneityResult.levene) {
-                isEqual = homogeneityResult.levene.equalVariance
-                if (homogeneityResult.levene.pValue !== undefined) {
-                    detail = formatPValue(homogeneityResult.levene.pValue)
-                }
+            if (levene.pValue !== undefined) {
+                detail = formatPValue(levene.pValue)
             }
-
-            checks.push({ name: t.analysisInfo.assumptions.homogeneity, passed: isEqual, detail })
+            checks.push({ name: t.analysisInfo.assumptions.homogeneity, passed: levene.equalVariance, detail })
         }
 
         if (assumptionResults.independence?.durbin) {
@@ -160,7 +155,8 @@ export function AnalysisInfoCard({
             return {
                 checks,
                 meetsAssumptions: assumptionResults.summary.meetsAssumptions,
-                recommendation: assumptionResults.summary.recommendation
+                recommendation: assumptionResults.summary.recommendation,
+                testError: assumptionResults.summary.testError
             }
         }
 
@@ -267,7 +263,9 @@ export function AnalysisInfoCard({
                     <div className="pt-3 border-t">
                         <div className="flex items-center justify-between mb-2">
                             <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                                {assumptionSummary.meetsAssumptions ? (
+                                {assumptionSummary.testError ? (
+                                    <AlertTriangle className="w-3.5 h-3.5 text-muted-foreground" />
+                                ) : assumptionSummary.meetsAssumptions ? (
                                     <CheckCircle2 className="w-3.5 h-3.5 text-success" />
                                 ) : (
                                     <XCircle className="w-3.5 h-3.5 text-warning" />
@@ -278,12 +276,18 @@ export function AnalysisInfoCard({
                                 variant="outline"
                                 className={cn(
                                     "text-xs",
-                                    assumptionSummary.meetsAssumptions
-                                        ? "border-success-border text-success"
-                                        : "border-warning-border text-warning"
+                                    assumptionSummary.testError
+                                        ? "border-muted-foreground/30 text-muted-foreground"
+                                        : assumptionSummary.meetsAssumptions
+                                            ? "border-success-border text-success"
+                                            : "border-warning-border text-warning"
                                 )}
                             >
-                                {assumptionSummary.meetsAssumptions ? t.analysisInfo.assumptions.met : t.analysisInfo.assumptions.partialViolation}
+                                {assumptionSummary.testError
+                                    ? '판정 불가'
+                                    : assumptionSummary.meetsAssumptions
+                                        ? t.analysisInfo.assumptions.met
+                                        : t.analysisInfo.assumptions.partialViolation}
                             </Badge>
                         </div>
                         <div className="flex flex-wrap gap-2">
