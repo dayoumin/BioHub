@@ -484,7 +484,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                 )}
 
                 {/* 가정 검정 결과: Pyodide 직접 계산값 우선, 없으면 LLM 반환값 */}
-                {assumptionResults ? (
+                {(assumptionResults?.normality?.shapiroWilk || assumptionResults?.homogeneity?.levene) ? (
                   <div className="flex flex-wrap gap-2 pt-2">
                     {assumptionResults.normality?.shapiroWilk && (
                       <Badge
