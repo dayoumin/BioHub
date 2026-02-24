@@ -13,7 +13,9 @@ import {
   Search,
   Filter,
   Plus,
-  Download
+  Download,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -82,6 +84,21 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
     includeReferences: false,
     includeCharts: false,
   })
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
+
+  const toggleExpand = (id: string) => {
+    setExpandedItems(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const providerLabel: Record<string, string> = {
+    openrouter: 'AI 추천',
+    ollama: 'AI 추천',
+    keyword: '키워드 매칭',
+  }
 
   const {
     analysisHistory,
@@ -328,6 +345,40 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
                 <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
                   {item.purpose || t.history.labels.noPurpose}
                 </p>
+
+                {/* AI 추천 맥락 */}
+                {item.aiRecommendation && item.aiRecommendation.userQuery && (
+                  <div className="mt-2 pt-2 border-t text-xs">
+                    <p className="italic text-muted-foreground line-clamp-1 mb-1">
+                      "{item.aiRecommendation.userQuery}"
+                    </p>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px]">
+                        {providerLabel[item.aiRecommendation.provider] ?? item.aiRecommendation.provider}
+                      </span>
+                      {item.aiRecommendation.provider !== 'keyword' && (
+                        <span>{Math.round(item.aiRecommendation.confidence * 100)}% 확신</span>
+                      )}
+                      {item.aiRecommendation.reasoning.length > 0 && (
+                        <button
+                          className="ml-auto hover:text-foreground transition-colors"
+                          onClick={(e) => { e.stopPropagation(); toggleExpand(item.id) }}
+                        >
+                          {expandedItems.has(item.id)
+                            ? <ChevronUp className="w-3 h-3" />
+                            : <ChevronDown className="w-3 h-3" />}
+                        </button>
+                      )}
+                    </div>
+                    {expandedItems.has(item.id) && (
+                      <ul className="mt-1.5 space-y-0.5 text-muted-foreground pl-1">
+                        {item.aiRecommendation.reasoning.map((r, i) => (
+                          <li key={i}>• {r}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
 
                 {/* 주요 결과 표시 */}
                 {item.results && typeof item.results === 'object' && 'pValue' in item.results && (
