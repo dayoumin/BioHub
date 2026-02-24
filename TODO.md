@@ -1,6 +1,6 @@
 # 프로젝트 현황 + 할일
 
-**최종 업데이트**: 2026-02-24
+**최종 업데이트**: 2026-02-24 (tech-debt + UI 색상 토큰 완료)
 
 ---
 
@@ -30,6 +30,15 @@
 ---
 
 ## 📅 최근 작업 (7일)
+
+### 2026-02-24 (월) 기술부채 정리 + Smart Flow UI 색상 토큰 완료
+
+- ✅ **기술부채**: 레거시 43개 statistics 페이지 삭제, `ignoreDuringBuilds: false`, `missingRemoved` 실제 계산, eslint flat config 정비
+- ✅ **Smart Flow UI 색상 토큰 일관성** (Phase 1–4): 가정 배지/AI 감지 배지/셀렉터 6개/경고 색상 → semantic token 전환
+- ✅ **TwoWayANOVA Factor1 스키마 수정**: info(파랑) → success(초록) (집단 역할 일관성)
+- ✅ **Step 4 ResultsActionStep 구조 개선**: 카드 6개 분리, 액션 바 1행, L2/L3 기본 닫힘
+- ✅ **색상 토큰 회귀 테스트**: 6개 셀렉터 × 15 테스트 (color-tokens.test.tsx)
+- ✅ **AI 채팅 히스토리 (multi-turn Q&A)**: stream-follow-up.test.ts 27개 테스트 통과
 
 ### 2026-02-24 (월) AI UX 자동 트리거 + 방법 재선택
 - ✅ **P1: Smart Flow 탐색→추천 자동 연결** — 탐색 완료 후 Step 2 진입 시 LLM 자동 호출 (사용자 입력 불필요)
@@ -147,46 +156,17 @@
 | **P2: UI 일관성** | 다크모드 수정, 테이블 패딩 STEP_STYLES 통일, FitScore/ConfidenceGauge 토큰화 | ✅ `4d4c5606` |
 | **테스트** | 시맨틱 토큰 검증 18개 + ResultsActionStep mock 보완 32건 해결 | ✅ `eeec768c` `3498146c` |
 
-### 🎨 진행 중: Smart Flow 4단계 UI/UX 일관성 개선
+### 🎨 완료: Smart Flow 4단계 UI/UX 일관성 개선 (`2026-02-24`)
 
-**목표**: 처음부터 끝까지 이어지는 단일 디자인 언어, 결과 화면 세련화
+**색상 스키마**: 종속=info(파랑) / 집단·Factor1=success(초록) / 독립·Factor2·대응쌍2nd=highlight(보라) / 공변량=muted
 
-#### 설계 원칙
-- 각 단계는 하나의 **주요 Card** (결정/입력) + **보조 섹션** 구조
-- 색상: semantic token만 사용 (success/warning/info/violet-for-AI)
-- 타이포그래피: h2(20px) → 섹션(14px bold) → 라벨(12px) → 메타(10px uppercase)
-- 상태 피드백: `border-2` + 배경색으로 유의성 시각화
-
-#### Step 4 결과 화면 — ✅ 완료 (`2026-02-24`)
-**변경 내용:**
-- 단일 거대 카드 → **6개 독립 카드**로 분리 (각 섹션이 명확히 구분)
-- `statisticalResult.interpretation` 파란 박스 제거 (AI 해석과 중복)
-- APA 형식 + 메타데이터 → L1 핵심 카드로 이동 (항상 노출)
-- 시각화 → AI 해석 앞으로 이동 (차트 먼저 → AI 설명 순서)
-- AI 해석 카드: violet 테마 독립 카드, `재해석` 버튼 우측 정렬
-- Q&A 카드: 독립 카드, 심플 chip (violet 과잉 제거, `MessageCircle` 아이콘 제거)
-- L2/L3 콜랩서블: 각각 독립 카드 래핑, 기본값 닫힘
-- 액션 바: 2행 → 1행 (저장▾ | 복사 | 구분선 | 재분석 | 새분석 | 템플릿)
-- AnalysisExecutionStep: 완료 단계 `line-through` → 흐린 회색 (더 자연스럽게)
-
-#### Step 3 변수 선택 — ⬜ 미검토
-검토 예정 항목:
-- 각 Selector 컴포넌트(GroupComparison, Correlation 등)의 카드 구조 일관성
-- 선택된 변수 표시 방식 (배지 vs 리스트)
-- "AI 감지 변수" 제안 배너 디자인
-
-#### Step 2 방법 선택 — ⬜ 미검토
-검토 예정 항목:
-- GuidedQuestions 진행 단계 시각화 (현재 상태 표시 방식)
-- RecommendationResult 카드 레이아웃 (방법명, 설명, 신뢰도)
-- MethodBrowser 탭 스타일 일관성 (Recommended ↔ Browse All)
-
-#### Step 1 데이터 탐색 — ⬜ 미검토
-검토 예정 항목:
-- DataUploadStep 드래그앤드롭 영역 크기/스타일
-- DataProfileSummary 카드 레이아웃
-- 탭(Overview/DataPrep/Template/Distribution) 스타일
-- AssumptionTestsSection이 Step 1에서도 보이는 이유 재검토
+| Phase | 항목 | 커밋 |
+|-------|------|------|
+| 1 | 가정 배지 dark 모드 (GuidedQuestions) | `602a77ec` |
+| 2 | AI 감지 변수 역할 배지 (VariableSelectionStep) | `602a77ec` |
+| 3 | 셀렉터 6개 색상 통일 (GroupComparison/TwoWayANOVA/MultipleRegression/Paired/OneSample/Correlation) | `602a77ec` + `8281757d` |
+| 4 | 경고/첨도 색상 + Step 4 카드 구조 6개 분리 + 액션 바 1행 + AnalysisExecutionStep | `b637e4f0` |
+| 테스트 | color-tokens.test.tsx — 6 셀렉터 × 15 케이스 | `7de3b01e` |
 
 ---
 
@@ -197,12 +177,13 @@
 
 ### 기술 부채 (Tech Debt)
 
-**🔴 Critical**
-| 항목 | 파일 | 설명 |
+**🔴 Critical** — ✅ 모두 해결 (`2026-02-24`)
+| 항목 | 파일 | 상태 |
 |------|------|------|
-| `ignoreDuringBuilds: true` | `next.config.ts:44` | 빌드 시 TS 에러 무시 → `false`로 변경 + 에러 수정 필요 |
-| 결측값 하드코딩 0 | `statistical-executor.ts:498` | `missingRemoved = 0` → 실제 결측값 계산 구현 필요 |
-| `!` non-null assertion | `prompts.ts:40`, `openrouter-recommender.ts:445` | `byCategory.get(cat)!.push()` → optional chaining으로 교체 |
+| ~~`ignoreDuringBuilds: true`~~ | `next.config.ts` | ✅ `false`로 변경 + eslint 정비 완료 |
+| ~~결측값 하드코딩 0~~ | `statistical-executor.ts` | ✅ primaryCol NaN 행 카운트로 실제 계산 |
+| ~~레거시 43개 statistics 페이지~~ | `app/(dashboard)/statistics/` | ✅ 삭제 완료 |
+| `!` non-null assertion | `prompts.ts:40`, `openrouter-recommender.ts:445` | 🔴 미해결 |
 
 **🟠 High — AI 서비스**
 | 항목 | 파일 | 설명 |
