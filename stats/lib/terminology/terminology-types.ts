@@ -480,6 +480,8 @@ export interface HubText {
     sendAriaLabel: string
     /** isProcessing 중 표시할 상태 메시지 */
     processingMessage: string
+    uploadAriaLabel: string
+    uploadTitle: string
   }
   /** Chat-First 허브: 3트랙 제안 카드 */
   tracks: {

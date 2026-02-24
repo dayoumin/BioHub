@@ -440,6 +440,8 @@ export const generic: TerminologyDictionary = {
       placeholder: 'Describe what you want to analyze...',
       sendAriaLabel: 'Send',
       processingMessage: 'Figuring out the best approach...',
+      uploadAriaLabel: 'Upload data file',
+      uploadTitle: 'Upload CSV / Excel file',
     },
     tracks: {
       directAnalysis: {

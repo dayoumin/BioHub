@@ -443,8 +443,11 @@ export function DataUploadStep({
             {recentFiles.map((file) => (
               <div
                 key={file.name}
-                className="group flex items-center justify-between p-2.5 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 hover:border-border/30 transition-all duration-200 cursor-pointer"
+                role="button"
+                tabIndex={0}
+                className="group flex items-center justify-between p-2.5 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 hover:border-border/30 transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 onClick={() => open()}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open() } }}
                 title="클릭하여 파일 다시 선택"
               >
                 <div className="flex items-center gap-2.5 min-w-0">

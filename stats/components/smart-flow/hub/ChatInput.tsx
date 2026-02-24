@@ -116,8 +116,8 @@ export function ChatInput({
               onClick={onUploadClick}
               disabled={isProcessing}
               className="h-12 w-12 rounded-xl shrink-0 self-end text-muted-foreground hover:text-foreground"
-              aria-label="데이터 파일 업로드"
-              title="CSV / Excel 파일 업로드"
+              aria-label={t.hub.chatInput.uploadAriaLabel}
+              title={t.hub.chatInput.uploadTitle}
             >
               <ArrowUpFromLine className="h-5 w-5" />
             </Button>
