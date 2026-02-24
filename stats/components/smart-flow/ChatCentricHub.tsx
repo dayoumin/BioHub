@@ -15,7 +15,6 @@
 
 import { useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { Upload, List } from 'lucide-react'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { intentRouter } from '@/lib/services/intent-router'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
@@ -23,7 +22,6 @@ import { logger } from '@/lib/utils/logger'
 import type { ResolvedIntent, AnalysisTrack } from '@/types/smart-flow'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import { useTerminology } from '@/hooks/use-terminology'
-import { Button } from '@/components/ui/button'
 
 import { ChatInput } from './hub/ChatInput'
 import { TrackSuggestions } from './hub/TrackSuggestions'
@@ -149,13 +147,7 @@ export function ChatCentricHub({
 }: ChatCentricHubProps) {
   const prefersReducedMotion = useReducedMotion()
   const t = useTerminology()
-  const {
-    setActiveTrack,
-    setShowHub,
-    setQuickAnalysisMode,
-    setPurposeInputMode,
-    navigateToStep,
-  } = useSmartFlowStore()
+  const { setActiveTrack } = useSmartFlowStore()
 
   const [isProcessing, setIsProcessing] = useState(false)
   const [externalValue, setExternalValue] = useState<string | undefined>(undefined)
@@ -194,26 +186,13 @@ export function ChatCentricHub({
   }, [isProcessing, setActiveTrack, onIntentResolved])
 
   // 트랙 카드 클릭 → example 텍스트 주입 → ChatInput에서 자동 제출
-  const handleTrackSelect = useCallback((track: AnalysisTrack, example: string) => {
+  const handleTrackSelect = useCallback((_track: AnalysisTrack, example: string) => {
     setExternalValue(example)
   }, [])
 
   const handleExternalValueConsumed = useCallback(() => {
     setExternalValue(undefined)
   }, [])
-
-  const handleStartWithData = useCallback(() => {
-    setShowHub(false)
-    setQuickAnalysisMode(false)
-    navigateToStep(1)
-  }, [setShowHub, setQuickAnalysisMode, navigateToStep])
-
-  const handleBrowseMethods = useCallback(() => {
-    setShowHub(false)
-    setQuickAnalysisMode(false)
-    setPurposeInputMode('browse')
-    navigateToStep(2)
-  }, [setShowHub, setQuickAnalysisMode, setPurposeInputMode, navigateToStep])
 
   // data-testid="hub-upload-card": E2E 호환용 마커 (컨테이너 가시성 감지).
   return (
@@ -234,7 +213,7 @@ export function ChatCentricHub({
             className="absolute right-[calc(70px-2%)] top-1/2 -translate-y-1/2 w-[42%] h-auto text-primary/40 pointer-events-none select-none hidden lg:block"
           />
 
-          <div className="relative z-10 px-10 lg:px-12 py-10 lg:py-14">
+          <div className="relative z-10 px-10 lg:px-12 py-8 lg:py-10">
             <div className="max-w-lg">
               {/* Eyebrow */}
               <div className="flex items-center gap-3 mb-6">
@@ -245,14 +224,14 @@ export function ChatCentricHub({
               </div>
 
               {/* Heading */}
-              <h1 className="text-4xl lg:text-[2.75rem] font-bold tracking-[-0.02em] leading-[1.1] mb-8">
+              <h1 className="text-4xl lg:text-[2.75rem] font-bold tracking-[-0.02em] leading-[1.1] mb-6">
                 {t.hub.hero.heading}
                 <br />
                 <span className="text-muted-foreground/60">{t.hub.hero.subheading}</span>
               </h1>
 
               {/* Stats badges */}
-              <div className="flex items-center gap-3 mb-10">
+              <div className="flex items-center gap-3">
                 {[
                   t.hub.hero.statMethods(TOTAL_METHODS),
                   t.hub.hero.statCategories(TOTAL_CATEGORIES),
@@ -265,27 +244,6 @@ export function ChatCentricHub({
                     <span className="text-[11px] font-mono text-muted-foreground/70 whitespace-nowrap">{stat}</span>
                   </div>
                 ))}
-              </div>
-
-              {/* CTAs */}
-              <div className="flex items-center gap-3">
-                <Button
-                  size="lg"
-                  className="gap-2.5 px-7 h-12 text-sm font-medium shadow-sm hover:shadow-md transition-shadow"
-                  onClick={handleStartWithData}
-                >
-                  <Upload className="w-4 h-4" />
-                  {t.hub.hero.uploadButton}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="gap-2 px-6 h-12 text-sm border-border/50 hover:bg-accent/40 hover:border-border transition-all"
-                  onClick={handleBrowseMethods}
-                >
-                  <List className="w-4 h-4" />
-                  {t.hub.hero.browseButton}
-                </Button>
               </div>
             </div>
           </div>
