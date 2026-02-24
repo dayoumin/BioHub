@@ -29,11 +29,10 @@ vi.mock('@/lib/hooks/useReducedMotion', () => ({
   useReducedMotion: () => true, // 애니메이션 비활성화
 }))
 
-// framer-motion mock — motion.div를 일반 div로
+// framer-motion mock — motion.div를 일반 div로, AnimatePresence를 Fragment로
 vi.mock('framer-motion', () => ({
   motion: {
     div: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => {
-      // data-testid, className 등 HTML 속성만 전달
       const htmlProps: Record<string, unknown> = {}
       for (const [key, value] of Object.entries(props)) {
         if (key.startsWith('data-') || key === 'className' || key === 'style') {
@@ -42,7 +41,17 @@ vi.mock('framer-motion', () => ({
       }
       return <div {...htmlProps}>{children}</div>
     },
+    span: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => {
+      const htmlProps: Record<string, unknown> = {}
+      for (const [key, value] of Object.entries(props)) {
+        if (key.startsWith('data-') || key === 'className' || key === 'style') {
+          htmlProps[key] = value
+        }
+      }
+      return <span {...htmlProps}>{children}</span>
+    },
   },
+  AnimatePresence: ({ children }: React.PropsWithChildren) => <>{children}</>,
 }))
 
 import { ChatInput } from '@/components/smart-flow/hub/ChatInput'
