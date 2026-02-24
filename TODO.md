@@ -40,6 +40,15 @@
 - ✅ **색상 토큰 회귀 테스트**: 6개 셀렉터 × 15 테스트 (color-tokens.test.tsx)
 - ✅ **AI 채팅 히스토리 (multi-turn Q&A)**: stream-follow-up.test.ts 27개 테스트 통과
 
+### 2026-02-24 (월) ResultsActionStep UX/코드 품질 개선
+
+- ✅ **결과 해석 페이지 비판적 검토 → 전면 개선** (f03ab4e5, 25913ad5)
+  - Phase 1: 용어 시스템 확장 (followUp, confirm, ai.label, metadata.analysisTime)
+  - Phase 2: 미구현 차트 export 옵션 완전 제거 (includeCharts, chartsNotReady)
+  - Phase 3-11: resetAndReinterpret 추출, 새 분析 확인 다이얼로그, AI 스크롤,
+    AI 모델 표시, 재해석 버튼 outline, 칩 사용 추적, StepHeader 저장 버튼,
+    캐시 키 개선(variableMapping 포함), 타임스탬프 툴팁, 하드코딩 한국어 → t.*
+
 ### 2026-02-24 (월) AI UX 자동 트리거 + 방법 재선택
 - ✅ **P1: Smart Flow 탐색→추천 자동 연결** — 탐색 완료 후 Step 2 진입 시 LLM 자동 호출 (사용자 입력 불필요)
 - ✅ **P2: 후속 Q&A 후 '다른 방법으로 분석하기' 버튼** — ResultsActionStep에 방법 재선택 진입점 추가
