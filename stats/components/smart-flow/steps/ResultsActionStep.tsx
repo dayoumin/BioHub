@@ -1230,6 +1230,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             size="sm"
             onClick={handleNewAnalysis}
             className="text-muted-foreground hover:text-foreground"
+            data-testid="new-analysis-btn"
           >
             <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
             {t.results.buttons.newAnalysis}

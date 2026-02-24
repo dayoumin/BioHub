@@ -1381,18 +1381,20 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
       // 새 분析 시작 버튼 클릭 → 다이얼로그 열림 (startNewAnalysis 즉시 호출 안 됨)
-      const newAnalysisBtn = screen.getByText('새 분析 시작')
+      const newAnalysisBtn = screen.getByTestId('new-analysis-btn')
       await act(async () => {
         fireEvent.click(newAnalysisBtn)
       })
 
-      // 다이얼로그가 열렸는지 확인
-      expect(screen.getByText('새 분析을 시작할까요?')).toBeInTheDocument()
+      // 다이얼로그가 열렸는지 확인 (AlertDialog title이 DOM에 나타나야 함)
+      await waitFor(() => {
+        expect(screen.getByRole('alertdialog')).toBeInTheDocument()
+      })
       expect(startNewAnalysis).not.toHaveBeenCalled()
 
       // 다이얼로그의 확인 버튼 클릭 → startNewAnalysis 호출
-      const allNewAnalysisBtns = screen.getAllByText('새 분析 시작')
-      const confirmBtn = allNewAnalysisBtns[allNewAnalysisBtns.length - 1]
+      const dialog = screen.getByRole('alertdialog')
+      const confirmBtn = within(dialog).getByRole('button', { name: /분析 시작|시작/ })
       await act(async () => {
         fireEvent.click(confirmBtn)
       })

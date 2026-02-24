@@ -74,7 +74,7 @@ vi.mock('@/hooks/use-terminology', () => ({
         effectSize: '효과크기', effectSizeTooltip: '',
         significant: '유의함', notSignificant: '유의하지 않음',
       },
-      ai: { loading: 'AI가 결과를 해석하고 있어요...', detailedLabel: '상세 해석', reinterpret: '다시 해석', retry: '다시 시도', defaultError: 'AI 해석 중 오류가 발생했습니다.' },
+      ai: { label: 'AI 해석', loading: 'AI가 결과를 해석하고 있어요...', detailedLabel: '상세 해석', reinterpret: '다시 해석', retry: '다시 시도', defaultError: 'AI 해석 중 오류가 발생했습니다.' },
       sections: {
         detailedResults: '상세 결과', confidenceInterval: '신뢰구간',
         apaFormat: 'APA 형식', diagnostics: '진단 & 권장', caution: '주의',
@@ -83,6 +83,7 @@ vi.mock('@/hooks/use-terminology', () => ({
       metadata: {
         file: '파일: ', data: '데이터: ', variables: '변수: ',
         rowsCols: (r: number, c: number) => `${r}행 × ${c}열`,
+        analysisTime: '분析 실행 시각',
       },
       buttons: {
         saved: '저장됨', save: '저장', generating: '생성중...', pdf: 'PDF',
@@ -97,24 +98,39 @@ vi.mock('@/hooks/use-terminology', () => ({
       },
       toast: {
         reanalyzeReady: '새 데이터를 업로드하세요', reanalyzeMethod: (n: string) => `${n} 분석이 준비되어 있습니다`,
-        newAnalysis: '새 분석을 시작합니다', pdfSuccess: 'PDF 보고서가 생성되었습니다', pdfError: 'PDF 생성에 실패했습니다',
+        newAnalysis: '새 분析을 시작합니다', pdfSuccess: 'PDF 보고서가 생성되었습니다', pdfError: 'PDF 생성에 실패했습니다',
         copyWithAi: '결과 + AI 해석이 복사되었습니다', copySuccess: '결과가 복사되었습니다', copyError: '복사 실패',
         templateSaved: '템플릿이 저장되었습니다',
         exportSuccess: '내보내기가 완료되었습니다', exportError: '내보내기에 실패했습니다',
-        chartsNotReady: '차트가 아직 준비되지 않았습니다',
       },
       exportDialog: {
         title: '결과 내보내기', description: '내보내기 형식과 포함할 내용을 선택하세요.',
         formatLabel: '파일 형식', contentLabel: '포함 내용',
         includeInterpretation: 'AI 해석 포함', includeRawData: '원본 데이터 포함',
-        includeMethodology: '분석 방법론 포함', includeReferences: '참고문헌 포함',
-        includeCharts: '차트 포함', cancel: '취소', confirm: '내보내기',
+        includeMethodology: '분析 방법론 포함', includeReferences: '참고문헌 포함',
+        cancel: '취소', confirm: '내보내기',
       },
       clipboard: {
         itemHeader: '항목', valueHeader: '값',
         statistic: (n: string) => `통계량 (${n})`, df: '자유도 (df)', effectSize: '효과크기',
         confidenceInterval: '95% 신뢰구간', interpretation: '해석:',
         aiInterpretation: 'AI 해석', aiSeparator: '--- AI 해석 ---',
+      },
+      followUp: {
+        title: '추가 질문', userLabel: '질문', aiLabel: 'AI',
+        placeholder: '궁금한 점을 질문하세요...',
+        errorMessage: '후속 질문 처리 중 오류가 발생했습니다.',
+        changeMethod: '다른 방법으로 분析하기',
+        chips: [
+          { label: '논문에 어떻게 쓰나요?', prompt: '이 결과를 APA 형식으로 논문에 어떻게 작성하면 되나요?' },
+        ],
+      },
+      confirm: {
+        newAnalysis: {
+          title: '새 분析을 시작할까요?',
+          description: '현재 데이터와 결과가 모두 초기화됩니다. 이 작업은 되돌릴 수 없습니다.',
+          confirm: '새 분析 시작', cancel: '취소',
+        },
       },
     },
   }),
@@ -255,7 +271,7 @@ describe('ResultsActionStep - 렌더링 테스트', () => {
       render(<ResultsActionStep results={mockResults} />)
     })
 
-    expect(screen.getByText('저장')).toBeInTheDocument()
+    expect(screen.getAllByText('저장').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('복사')).toBeInTheDocument()
   })
 
