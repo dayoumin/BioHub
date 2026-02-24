@@ -166,7 +166,7 @@ export function TwoWayAnovaSelector({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Factor 1 */}
         <Card>
-          <CardHeader className="pb-3 bg-info-bg">
+          <CardHeader className="pb-3 bg-success-bg">
             <div className="flex items-center gap-2">
               <CardTitle className="text-base">Factor 1</CardTitle>
               <span className="text-destructive">*</span>
@@ -187,8 +187,8 @@ export function TwoWayAnovaSelector({
                     'w-full p-2 rounded-lg border-2 transition-all text-left text-sm',
                     'flex items-center justify-between',
                     factor1 === col.name
-                      ? 'border-info-border bg-info-bg'
-                      : 'border-border hover:border-info-border/50',
+                      ? 'border-success-border bg-success-bg'
+                      : 'border-border hover:border-success-border/50',
                     (col.name === factor2 || col.name === dependentVar) && 'opacity-40 cursor-not-allowed'
                   )}
                 >
