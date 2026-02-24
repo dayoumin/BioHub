@@ -303,7 +303,7 @@ export class LlmRecommender {
   ): AsyncGenerator<string, LlmStreamResult> {
     const isAvailable = await openRouterRecommender.checkHealth()
     if (!isAvailable) {
-      throw new Error('OpenRouter를 사용할 수 없습니다. API 키를 확인해주세요.')
+      throw new Error('OpenRouter를 사용할 수 없습니다. API 키, 모델 설정(NEXT_PUBLIC_OPENROUTER_MODEL), 네트워크 상태를 확인해주세요.')
     }
 
     type QueueItem =

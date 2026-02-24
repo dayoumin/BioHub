@@ -732,8 +732,9 @@ ${userInput}`
 
     if (signal) {
       if (signal.aborted) {
+        clearTimeout(timeoutId)
         controller.abort()
-        return null
+        throw new DOMException('The operation was aborted.', 'AbortError')
       }
       signal.addEventListener('abort', () => controller.abort(), { once: true })
     }

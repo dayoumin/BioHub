@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useCallback, useEffect, useReducer } from 'react'
+import React, { useState, useMemo, useCallback, useEffect, useReducer, useRef } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { TrendingUp, GitCompare, PieChart, LineChart, Clock, Heart, ArrowRight, ArrowLeft, List, Layers, Calculator, Sparkles, Info, Target } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -643,8 +643,8 @@ export function PurposeInputStep({
     flowDispatch(flowActions.setAiInput(value))
   }, [])
 
-  const handleAiSubmit = useCallback(async () => {
-    const userInput = flowState.aiChatInput?.trim()
+  const handleAiSubmit = useCallback(async (inputOverride?: string) => {
+    const userInput = (inputOverride ?? flowState.aiChatInput)?.trim()
     if (!userInput) return
     // 중복 제출 방지
     if (flowState.isAiLoading) return
@@ -764,14 +764,23 @@ export function PurposeInputStep({
     }
   }, [storePurposeInputMode, flowDispatch])
 
-  // Hub에서 전달된 userQuery → aiChatInput 자동 주입
+  // 탐색 완료 → AI 추천 자동 트리거 + Hub userQuery pre-fill
+  const hasAutoTriggered = useRef(false)
   useEffect(() => {
-    if (userQuery && !flowState.aiChatInput) {
+    if (hasAutoTriggered.current) return
+
+    if (assumptionResults !== null && !flowState.aiRecommendation && !flowState.isAiLoading) {
+      // Case A/B: 탐색 완료 → 완전 자동 LLM 호출 (사용자 입력 불필요)
+      hasAutoTriggered.current = true
+      const query = userQuery ?? '이 데이터에 적합한 통계 분석 방법을 추천해주세요.'
+      if (userQuery) setUserQuery(null)
+      handleAiSubmit(query)
+    } else if (userQuery && !flowState.aiChatInput && !flowState.aiRecommendation) {
+      // Case C: 탐색 없이 userQuery만 있음 → 입력창 pre-fill만
       flowDispatch(flowActions.setAiInput(userQuery))
-      // 한번 사용 후 소비 (다음 진입 시 중복 주입 방지)
       setUserQuery(null)
     }
-  }, [userQuery, flowState.aiChatInput, flowDispatch, setUserQuery])
+  }, [assumptionResults, userQuery, flowState.aiRecommendation, flowState.isAiLoading, flowState.aiChatInput, flowDispatch, setUserQuery, handleAiSubmit])
 
   // Cleanup
   useEffect(() => {
@@ -849,6 +858,7 @@ export function PurposeInputStep({
             validationResults={validationResults}
             provider={flowState.aiProvider}
             chatMessages={flowState.chatMessages}
+            assumptionResults={assumptionResults}
           />
         )}
 

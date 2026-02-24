@@ -144,6 +144,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const [followUpMessages, setFollowUpMessages] = useState<ChatMessage[]>([])
   const [followUpInput, setFollowUpInput] = useState('')
   const [isFollowUpStreaming, setIsFollowUpStreaming] = useState(false)
+  const isFollowUpStreamingRef = useRef(false)  // 동기 가드 (더블클릭 방지)
   const followUpAbortRef = useRef<AbortController | null>(null)
   const chatBottomRef = useRef<HTMLDivElement | null>(null)
 
@@ -445,7 +446,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
   // 후속 질문 전송
   const handleFollowUp = useCallback(async (question: string) => {
-    if (!results || !interpretation || isFollowUpStreaming || !question.trim()) return
+    // ref 기반 동기 가드 — state 업데이트 지연으로 인한 더블클릭 race 방지
+    if (!results || !interpretation || isFollowUpStreamingRef.current || !question.trim()) return
+    isFollowUpStreamingRef.current = true
 
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: question.trim(), timestamp: Date.now() }
     setFollowUpMessages(prev => [...prev, userMsg])
@@ -475,7 +478,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         (chunk) => {
           accumulated += chunk
           setFollowUpMessages(prev => {
+            if (prev.length === 0) return prev  // 재해석으로 배열이 초기화된 경우 무시
             const last = prev[prev.length - 1]
+            if (last.role !== 'assistant') return prev  // 마지막이 assistant가 아니면 무시
             return [...prev.slice(0, -1), { ...last, content: accumulated }]
           })
         },
@@ -485,15 +490,18 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       if (controller.signal.aborted) return
       const msg = error instanceof Error ? error.message : '후속 질문 처리 중 오류가 발생했습니다.'
       setFollowUpMessages(prev => {
+        if (prev.length === 0) return prev
         const last = prev[prev.length - 1]
+        if (last.role !== 'assistant') return prev
         return [...prev.slice(0, -1), { ...last, content: `오류: ${msg}` }]
       })
     } finally {
+      isFollowUpStreamingRef.current = false
       setIsFollowUpStreaming(false)
       followUpAbortRef.current = null
       setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
     }
-  }, [results, interpretation, isFollowUpStreaming, followUpMessages, uploadedData, mappedVariables, uploadedFileName])
+  }, [results, interpretation, followUpMessages, uploadedData, mappedVariables, uploadedFileName])
 
   // 결과 로드 시 자동 AI 해석 요청
   useEffect(() => {
@@ -769,6 +777,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                       size="sm"
                       onClick={() => {
                         followUpAbortRef.current?.abort()
+                        isFollowUpStreamingRef.current = false
                         setIsFollowUpStreaming(false)
                         interpretedResultRef.current = null
                         setInterpretation(null)
@@ -795,6 +804,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                       size="sm"
                       onClick={() => {
                         followUpAbortRef.current?.abort()
+                        isFollowUpStreamingRef.current = false
                         setIsFollowUpStreaming(false)
                         interpretedResultRef.current = null
                         setFollowUpMessages([])
@@ -885,6 +895,21 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                     <Send className="w-3.5 h-3.5" />
                   </Button>
                 </div>
+
+                {/* 후속 Q&A 완료 후 방법 변경 버튼 */}
+                {followUpMessages.length > 0 && !isFollowUpStreaming && (
+                  <div className="pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigateToStep(2)}
+                      className="gap-2 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-950/30"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      다른 방법으로 분석하기
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 
