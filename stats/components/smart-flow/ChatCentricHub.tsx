@@ -224,7 +224,7 @@ export function ChatCentricHub({
     >
       {/* ====== Hero Section ====== */}
       <motion.div {...(prefersReducedMotion ? {} : { variants: itemVariants })}>
-        <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-card mb-4">
+        <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-card">
           {/* Radial glow effects */}
           <div className="absolute -right-24 -top-24 w-[500px] h-[500px] rounded-full bg-primary/[0.04] dark:bg-primary/[0.08] blur-[120px] pointer-events-none" />
           <div className="absolute -left-32 -bottom-32 w-[300px] h-[300px] rounded-full bg-muted/30 dark:bg-muted/10 blur-[100px] pointer-events-none" />
@@ -292,13 +292,15 @@ export function ChatCentricHub({
         </div>
       </motion.div>
 
-      {/* 채팅 입력 (SVG 배경 포함) */}
-      <ChatInput
-        onSubmit={handleChatSubmit}
-        isProcessing={isProcessing}
-        externalValue={externalValue}
-        onExternalValueConsumed={handleExternalValueConsumed}
-      />
+      {/* 채팅 입력 — ChatGPT/Claude 관행: 입력창은 ~3xl(768px) 제한 */}
+      <div className="max-w-3xl mx-auto w-full">
+        <ChatInput
+          onSubmit={handleChatSubmit}
+          isProcessing={isProcessing}
+          externalValue={externalValue}
+          onExternalValueConsumed={handleExternalValueConsumed}
+        />
+      </div>
 
       {/* 3트랙 제안 카드 */}
       <TrackSuggestions onTrackSelect={handleTrackSelect} />

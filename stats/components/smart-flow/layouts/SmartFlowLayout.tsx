@@ -159,11 +159,11 @@ export function SmartFlowLayout({
               </Link>
               {!showHub && (
                 <>
-                  <span className="text-border">|</span>
+                  <span className="text-muted-foreground/30 select-none">|</span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={handleLogoClick}
+                    onClick={resetSession}
                     className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2"
                     title="허브로 돌아가기"
                   >
