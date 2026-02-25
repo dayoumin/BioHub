@@ -42,11 +42,13 @@
 
 ### 2026-02-25 (수) Step 2 PurposeInputStep 비판적 검토
 
-- ✅ **Critical Bug 수정**: 자동 AI 추천 트리거 조건 — `assumptionResults !== null` → `data && validationResults !== null` (가정 검정 Step 4 이전 후 조건이 항상 false가 되던 문제)
-- ✅ **데드코드 제거**: `analysisError`, `activeTab` state + `handleUseRecommendation` + `cn` import
-- ✅ **await 불필요 제거**: `onPurposeSubmit`은 void 반환 — 3개 handler에서 `async/await` 제거
-- ✅ **getSelectorType 타입 안전화**: if/else 체인 → `ReadonlyMap<string, SelectorType>` 기반 룩업
-- ✅ **console.warn → logger.warn**: VariableSelectionStep 로거 정책 준수
+- ✅ **Critical Bug 수정**: 자동 AI 추천 트리거 조건 — `assumptionResults !== null` → `data && validationResults !== null` (가정 검정 Step 4 이전 후 조건이 항상 false가 되던 문제) — `f9b85fd7`
+- ✅ **데드코드 제거**: `analysisError`, `activeTab` state + `handleUseRecommendation` + `cn` import — `f9b85fd7`
+- ✅ **await 불필요 제거**: `onPurposeSubmit`은 void 반환 — 3개 handler에서 `async/await` 제거 — `f9b85fd7`
+- ✅ **getSelectorType 타입 안전화**: if/else 체인 → `ReadonlyMap<string, SelectorType>` 기반 룩업 (VariableSelectionStep) — `f9b85fd7`
+- ✅ **console.warn → logger.warn**: VariableSelectionStep 로거 정책 준수 — `f9b85fd7`
+- ✅ **analyzeAndRecommend dead code 제거**: Ollama/methodCompatibility 경로 삭제 (Step 4 이전 후 영구 도달 불가), 동기함수로 단순화 — `f09831d2`
+- ✅ **테스트 보강**: llmRecommender mock 추가 + 자동 트리거 동작 4개 테스트 (4683/4683 통과) — `f09831d2`
 
 ### 2026-02-24 (월) 데이터 업로드 UI 비판적 검토 → 3항목 개선
 
