@@ -42,15 +42,15 @@
 
 ### 2026-02-25 (수) Step 3 VariableSelectionStep 전면 개선
 
-- ✅ **SELECTOR_MAP 전면 정비**: dead alias 전부 제거, 실제 51개 method ID 100% 매핑 (기존 71%가 legacy VariableSelectorToggle fallback) — `(TBD)`
-- ✅ **ChiSquareSelector 신규**: independence(chi-square/mcnemar) + goodness(chi-square-goodness/proportion-test) 모드 분기 — `(TBD)`
-- ✅ **AutoConfirmSelector 신규**: 복잡한 메서드(arima, kaplan-meier, power-analysis 등 10개) AI 감지 변수 요약 후 자동 진행 — `(TBD)`
-- ✅ **GroupComparisonSelector covariate 패널**: ANCOVA용 공변량 다중선택 UI (showCovariate prop) — `(TBD)`
-- ✅ **OneSampleSelector 버튼 위치 통일**: 하단 → 상단 헤더 (다른 셀렉터와 일치) — `(TBD)`
-- ✅ **validation 에러 Alert 표시**: 기존 logger.warn만 → UI Alert 표시 후 진행 허용 — `(TBD)`
-- ✅ **TwoWayAnovaSelector 재활성화**: anova + AI factors 2개 이상 감지 시 자동 업그레이드 — `(TBD)`
-- ✅ **pyodide-statistics 버그 수정**: simpleLinearRegression fStatistic=t², performTukeyHSD groupNames 매핑, testNormality alpha 전달 — `(TBD)`
-- ✅ **테스트**: ChiSquareSelector 8개 + VariableSelectionStep 17개 신규 (4708/4708 통과) — `(TBD)`
+- ✅ **SELECTOR_MAP 전면 정비**: dead alias 전부 제거, 실제 51개 method ID 100% 매핑 (기존 71%가 legacy VariableSelectorToggle fallback) — `82ff278e`
+- ✅ **ChiSquareSelector 신규**: independence(chi-square/mcnemar) + goodness(chi-square-goodness/proportion-test) 모드 분기 — `82ff278e`
+- ✅ **AutoConfirmSelector 신규**: 복잡한 메서드(arima, kaplan-meier, power-analysis 등 10개) AI 감지 변수 요약 후 자동 진행 — `82ff278e`
+- ✅ **GroupComparisonSelector covariate 패널**: ANCOVA용 공변량 다중선택 UI (showCovariate prop) — `82ff278e`
+- ✅ **OneSampleSelector 버튼 위치 통일**: 하단 → 상단 헤더 (다른 셀렉터와 일치) — `82ff278e`
+- ✅ **validation 에러 Alert 표시**: 기존 logger.warn만 → UI Alert 표시 후 진행 허용 — `82ff278e`
+- ✅ **TwoWayAnovaSelector 재활성화**: anova + AI factors 2개 이상 감지 시 자동 업그레이드 — `82ff278e`
+- ✅ **pyodide-statistics 버그 수정**: simpleLinearRegression fStatistic=t², performTukeyHSD groupNames 매핑, testNormality alpha 전달 — `82ff278e`
+- ✅ **테스트**: ChiSquareSelector 8개 + VariableSelectionStep 17개 신규 (4708/4708 통과) — `82ff278e`
 
 ### 2026-02-25 (수) Step 2 PurposeInputStep 비판적 검토
 
