@@ -235,7 +235,7 @@ describe('PurposeInputStep', () => {
             )
 
             await waitFor(() => {
-                expect(vi.mocked(llmRecommender.recommendFromNaturalLanguage)).toHaveBeenCalledOnce()
+                expect(vi.mocked(llmRecommender.recommendFromNaturalLanguage)).toHaveBeenCalledTimes(1)
             })
 
             // 기본 쿼리로 호출되어야 함
@@ -267,7 +267,7 @@ describe('PurposeInputStep', () => {
             )
 
             await waitFor(() => {
-                expect(vi.mocked(llmRecommender.recommendFromNaturalLanguage)).toHaveBeenCalledOnce()
+                expect(vi.mocked(llmRecommender.recommendFromNaturalLanguage)).toHaveBeenCalledTimes(1)
             })
 
             const [query] = vi.mocked(llmRecommender.recommendFromNaturalLanguage).mock.calls[0]
