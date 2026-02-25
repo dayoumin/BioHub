@@ -10,25 +10,6 @@
 - **Bio-Tools**: 12개 생물학 분석 (5페이지) — 별도 섹션 예정
 - **데이터 도구**: 2개
 
-## 아키텍처
-
-```
-stats/
-├── app/
-│   ├── page.tsx                      # Smart Flow 홈 (ChatCentricHub)
-│   ├── (dashboard)/statistics/       # 43개 개별 페이지 (레거시)
-│   ├── (dashboard)/bio-tools/        # Bio-Tools (예정)
-│   └── (dashboard)/data-tools/       # 데이터 도구 2개
-├── components/smart-flow/            # Smart Flow UI
-├── lib/services/pyodide-core.ts      # PyodideCore
-└── public/workers/python/            # Python Workers (4개 + Bio 2개 예정)
-```
-
-```
-사용자 → PyodideCore → Python Workers (SciPy/statsmodels)
-                        callWorkerMethod<T> 직접 호출
-```
-
 ## 아키텍처 결정 (CRITICAL)
 
 - **Smart Flow = 통계 분석의 유일한 진입점** (홈 `/` = ChatCentricHub)
@@ -68,13 +49,6 @@ stats/
 - `any` 금지 (unknown + 타입 가드)
 - **PyodideCore** 사용: 모든 통계 계산은 검증된 라이브러리
 - [TROUBLESHOOTING_ISANALYZING_BUG.md](stats/docs/TROUBLESHOOTING_ISANALYZING_BUG.md) 참조
-
-## Bio-Tools Worker (Worker 5+6)
-
-1. Methods Registry 필수 (`methods-registry.json`에 정의)
-2. Generated Types 필수 (`callWorkerMethod` 직접 호출 금지)
-3. Pure Python (NumPy/SciPy/Scikit-learn만)
-4. 서비스 분리: `BioStatisticsService` (worker5, worker6 전담)
 
 ## 테스트
 

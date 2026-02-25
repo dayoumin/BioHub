@@ -10,11 +10,11 @@
  * 전체 플로우 통합 테스트는 Playwright E2E에서 수행.
  */
 
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { vi, Mock } from 'vitest'
 import { PurposeInputStep } from '@/components/smart-flow/steps/PurposeInputStep'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
-import { useSettingsStore } from '@/lib/stores/settings-store'
+import { llmRecommender } from '@/lib/services/llm-recommender'
 
 // Mock Terminology hooks (TerminologyProvider 없이 테스트)
 const mockPurpose = { title: 'Mock', description: 'Mock desc', examples: 'Mock ex' }
@@ -76,22 +76,25 @@ vi.mock('@/lib/stores/smart-flow-store', () => ({
     useSmartFlowStore: vi.fn()
 }))
 
-vi.mock('@/lib/stores/settings-store', () => ({
-    useSettingsStore: vi.fn()
-}))
-
 vi.mock('@/lib/services/decision-tree-recommender', () => ({
     DecisionTreeRecommender: {
         recommend: vi.fn(),
-        recommendWithoutAssumptions: vi.fn(),
+        recommendWithoutAssumptions: vi.fn().mockReturnValue({
+            method: { id: 't-test', name: 'T-검정', category: 't-test' },
+            confidence: 0.8,
+            reasoning: 'Mock reasoning',
+        }),
         recommendWithCompatibility: vi.fn(),
     }
 }))
 
-vi.mock('@/lib/services/ollama-recommender', () => ({
-    ollamaRecommender: {
-        checkHealth: vi.fn().mockResolvedValue(false),
-        recommend: vi.fn()
+vi.mock('@/lib/services/llm-recommender', () => ({
+    llmRecommender: {
+        recommendFromNaturalLanguage: vi.fn().mockResolvedValue({
+            recommendation: null,
+            responseText: 'AI 추천 결과입니다.',
+            provider: 'mock'
+        })
     }
 }))
 
@@ -158,21 +161,17 @@ describe('PurposeInputStep', () => {
         vi.clearAllMocks()
 
         const defaultStoreState = {
-            assumptionResults: {},
+            assumptionResults: null,
             setSelectedMethod: vi.fn(),
             setDetectedVariables: vi.fn(),
+            setSuggestedSettings: vi.fn(),
             purposeInputMode: 'ai' as const,
-            methodCompatibility: null,
+            userQuery: null,
+            setUserQuery: vi.fn(),
+            setLastAiRecommendation: vi.fn(),
         }
         ;(useSmartFlowStore as unknown as Mock).mockImplementation(
             (selector: (state: typeof defaultStoreState) => unknown) => selector(defaultStoreState)
-        )
-
-        const defaultSettingsState = {
-            useOllamaForRecommendation: false
-        }
-        ;(useSettingsStore as unknown as Mock).mockImplementation(
-            (selector: (state: typeof defaultSettingsState) => unknown) => selector(defaultSettingsState)
         )
     })
 
@@ -185,7 +184,6 @@ describe('PurposeInputStep', () => {
             />
         )
 
-        // StepHeader always renders
         expect(screen.getByText('분석 방법 선택')).toBeInTheDocument()
     })
 
@@ -210,7 +208,6 @@ describe('PurposeInputStep', () => {
             />
         )
 
-        // FilterToggle area exists (aria-label로 확인)
         const toggleArea = container.querySelector('[aria-label="분석 방법 선택 모드"]')
         expect(toggleArea).toBeInTheDocument()
     })
@@ -225,5 +222,80 @@ describe('PurposeInputStep', () => {
         )
 
         expect(screen.getByText('분석 방법 선택')).toBeInTheDocument()
+    })
+
+    describe('자동 AI 추천 트리거 (auto-trigger)', () => {
+        it('data + validationResults 있을 때 LLM 추천을 자동 호출한다', async () => {
+            render(
+                <PurposeInputStep
+                    onPurposeSubmit={vi.fn()}
+                    validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
+                    data={mockData}
+                />
+            )
+
+            await waitFor(() => {
+                expect(vi.mocked(llmRecommender.recommendFromNaturalLanguage)).toHaveBeenCalledOnce()
+            })
+
+            // 기본 쿼리로 호출되어야 함
+            const [query] = vi.mocked(llmRecommender.recommendFromNaturalLanguage).mock.calls[0]
+            expect(query).toBe('이 데이터에 적합한 통계 분석 방법을 추천해주세요.')
+        })
+
+        it('userQuery 있을 때 해당 쿼리로 LLM을 호출한다', async () => {
+            const defaultStoreState = {
+                assumptionResults: null,
+                setSelectedMethod: vi.fn(),
+                setDetectedVariables: vi.fn(),
+                setSuggestedSettings: vi.fn(),
+                purposeInputMode: 'ai' as const,
+                userQuery: '두 집단 평균을 비교하고 싶습니다',
+                setUserQuery: vi.fn(),
+                setLastAiRecommendation: vi.fn(),
+            }
+            ;(useSmartFlowStore as unknown as Mock).mockImplementation(
+                (selector: (state: typeof defaultStoreState) => unknown) => selector(defaultStoreState)
+            )
+
+            render(
+                <PurposeInputStep
+                    onPurposeSubmit={vi.fn()}
+                    validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
+                    data={mockData}
+                />
+            )
+
+            await waitFor(() => {
+                expect(vi.mocked(llmRecommender.recommendFromNaturalLanguage)).toHaveBeenCalledOnce()
+            })
+
+            const [query] = vi.mocked(llmRecommender.recommendFromNaturalLanguage).mock.calls[0]
+            expect(query).toBe('두 집단 평균을 비교하고 싶습니다')
+        })
+
+        it('data가 null이면 자동 트리거가 실행되지 않는다', () => {
+            render(
+                <PurposeInputStep
+                    onPurposeSubmit={vi.fn()}
+                    validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
+                    data={null}
+                />
+            )
+
+            expect(vi.mocked(llmRecommender.recommendFromNaturalLanguage)).not.toHaveBeenCalled()
+        })
+
+        it('validationResults가 null이면 자동 트리거가 실행되지 않는다', () => {
+            render(
+                <PurposeInputStep
+                    onPurposeSubmit={vi.fn()}
+                    validationResults={null}
+                    data={mockData}
+                />
+            )
+
+            expect(vi.mocked(llmRecommender.recommendFromNaturalLanguage)).not.toHaveBeenCalled()
+        })
     })
 })

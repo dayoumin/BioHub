@@ -208,11 +208,11 @@
 | ~~레거시 43개 statistics 페이지~~ | `app/(dashboard)/statistics/` | ✅ 삭제 완료 |
 | ~~`!` non-null assertion~~ | ~~`prompts.ts:40`, `openrouter-recommender.ts:445`~~ | ✅ 완료 |
 
-**🟠 High — AI 서비스**
-| 항목 | 파일 | 설명 |
+**🟠 High — AI 서비스** ✅ 모두 해결 (`2026-02-25`)
+| 항목 | 파일 | 상태 |
 |------|------|------|
-| 레거시 프롬프트 중복 | `openrouter-recommender.ts:452-511` | `getSystemPrompt()` private 메서드 — `prompts.ts` SSOT와 중복, 직접 호출 경로만 사용 |
-| `LlmProvider` 타입 이중 정의 | `llm-recommender.ts:29` / `storage-types.ts:22` | 동일 유니온 타입 독립 정의 → `storage-types.ts`로 단일화 필요 |
+| ~~레거시 프롬프트 중복~~ | ~~`openrouter-recommender.ts`~~ | ✅ `getSystemPrompt()` 제거됨, `prompts.ts` SSOT로 단일화 완료 |
+| ~~`LlmProvider` 타입 이중 정의~~ | ~~`llm-recommender.ts` / `storage-types.ts`~~ | ✅ `storage-types.ts`에서 re-export 패턴으로 단일화 완료 |
 
 ### 운영 후 결정 (Post-Launch)
 
@@ -242,7 +242,7 @@
 **🟢 Low**
 | 항목 | 설명 |
 |------|------|
-| Deprecated 함수 | `pyodide-statistics.ts` 10+ 함수 — Worker 전환 완료 후 삭제 가능 |
+| ~~Deprecated 함수~~ | ~~`pyodide-statistics.ts`~~ — ✅ `testHomogeneity` / `testIndependence` 삭제 완료 (`2026-02-25`). 나머지 6개(`mannWhitneyU` 등)는 executor에서 활발 사용 중 → 삭제 불가 |
 | SW 업데이트 알림 | `register-sw.ts:76` — 새로고침 권장 UI 미구현 |
 | console.log 잔존 | `use-pyodide-service.ts`, `plotly-chart-renderer.tsx` |
 | ResultsActionStep 스트리밍 테스트 | `handleInterpretation` 재해석 + `handleFollowUp` 저장 동기화 경계 커버 미흡 — 로직 수정 시 추가 |

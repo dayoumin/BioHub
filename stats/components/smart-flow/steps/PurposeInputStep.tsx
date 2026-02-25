@@ -15,10 +15,8 @@ import type { AnalysisPurpose, AIRecommendation, ColumnStatistics, StatisticalMe
 import { logger } from '@/lib/utils/logger'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { StepHeader } from '@/components/smart-flow/common'
-import { useSettingsStore } from '@/lib/stores/settings-store'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { DecisionTreeRecommender } from '@/lib/services/decision-tree-recommender'
-import { ollamaRecommender } from '@/lib/services/ollama-recommender'
 import { llmRecommender } from '@/lib/services/llm-recommender'
 import { MethodBrowser } from './purpose/MethodBrowser'
 import { getMethodsGroupedByCategory, getAllMethodsGrouped } from '@/lib/statistics/method-catalog'
@@ -317,15 +315,11 @@ export function PurposeInputStep({
   // WCAG 2.3.3: prefers-reduced-motion
   const prefersReducedMotion = useReducedMotion()
 
-  // Settings store - Ollama
-  const useOllamaForRecommendation = useSettingsStore(state => state.useOllamaForRecommendation)
-
   // Zustand store
   const assumptionResults = useSmartFlowStore(state => state.assumptionResults)
   const setSelectedMethod = useSmartFlowStore(state => state.setSelectedMethod)
   const setDetectedVariables = useSmartFlowStore(state => state.setDetectedVariables)
   const setSuggestedSettings = useSmartFlowStore(state => state.setSuggestedSettings)
-  const methodCompatibility = useSmartFlowStore(state => state.methodCompatibility)
   const userQuery = useSmartFlowStore(state => state.userQuery)
   const setUserQuery = useSmartFlowStore(state => state.setUserQuery)
   const setLastAiRecommendation = useSmartFlowStore(state => state.setLastAiRecommendation)
@@ -387,106 +381,41 @@ export function PurposeInputStep({
     return manualSelectedMethod || recommendation?.method || null
   }, [manualSelectedMethod, recommendation])
 
-  // Phase 4-B: Hybrid AI recommendation
-  const analyzeAndRecommend = useCallback(async (purpose: AnalysisPurpose): Promise<AIRecommendation | null> => {
+  // Purpose 카드 선택 시 DecisionTree 추천 (가정 검정 Step 4 이전 후 항상 assumptions 없이 실행)
+  // AI Chat 경로(handleAiSubmit)는 llmRecommender를 직접 사용하며 이 함수를 거치지 않음
+  const analyzeAndRecommend = useCallback((purpose: AnalysisPurpose): AIRecommendation | null => {
+    if (!data || data.length === 0) {
+      logger.error('[Recommendation] Data is empty or null')
+      return null
+    }
+
+    if (!validationResults) {
+      logger.error('[Recommendation] validationResults is null')
+      return null
+    }
+
     try {
       setIsAnalyzing(true)
-      setAiProgress(0)
-
-      if (!data || data.length === 0) {
-        logger.error('Data is empty or null')
-        return null
-      }
-
-      if (!validationResults) {
-        logger.error('validationResults is null')
-        return null
-      }
-
-      const hasAssumptions = !!assumptionResults && Object.keys(assumptionResults).length > 0
-      if (!hasAssumptions) {
-        logger.warn('assumptionResults is null or empty, using basic recommendation')
-        setAiProgress(100)
-        return DecisionTreeRecommender.recommendWithoutAssumptions(
-          purpose,
-          validationResults,
-          data
-        )
-      }
-
-      // Step 1: Check Ollama setting
-      if (useOllamaForRecommendation) {
-        setAiProgress(20)
-        const ollamaAvailable = await ollamaRecommender.checkHealth()
-
-        if (ollamaAvailable) {
-          logger.info('[Hybrid] Using Ollama LLM for recommendation')
-          setAiProgress(40)
-          const ollamaResult = await ollamaRecommender.recommend(
-            purpose,
-            assumptionResults,
-            validationResults,
-            data
-          )
-
-          setAiProgress(100)
-
-          if (ollamaResult) {
-            logger.info('[Hybrid] Ollama recommendation SUCCESS', {
-              method: ollamaResult.method.id,
-              confidence: ollamaResult.confidence
-            })
-            return ollamaResult
-          } else {
-            logger.warn('[Hybrid] Ollama parsing failed, falling back to DecisionTree')
-            setAiProgress(60)
-          }
-        } else {
-          logger.info('[Hybrid] Ollama unavailable, using DecisionTree')
-          setAiProgress(60)
-        }
-      } else {
-        logger.info('[Hybrid] Ollama disabled in settings, using DecisionTree')
-        setAiProgress(50)
-      }
-
-      // Step 2: DecisionTree with compatibility filtering
-      setAiProgress(80)
-      const decisionTreeResult = DecisionTreeRecommender.recommendWithCompatibility(
-        purpose,
-        assumptionResults,
-        validationResults,
-        data,
-        methodCompatibility
-      )
-
       setAiProgress(100)
-
-      logger.info('[Hybrid] DecisionTree recommendation SUCCESS', {
-        method: decisionTreeResult.method.id,
-        confidence: decisionTreeResult.confidence
-      })
-
-      return decisionTreeResult
+      return DecisionTreeRecommender.recommendWithoutAssumptions(purpose, validationResults, data)
     } catch (error) {
-      logger.error('[Hybrid] AI analysis error', { error })
+      logger.error('[Recommendation] DecisionTree error', { error })
       return null
     } finally {
       setIsAnalyzing(false)
       setAiProgress(0)
     }
-  }, [assumptionResults, validationResults, data, useOllamaForRecommendation, methodCompatibility])
+  }, [data, validationResults])
 
   // Purpose selection handler
-  const handlePurposeSelect = useCallback(async (purpose: AnalysisPurpose) => {
+  const handlePurposeSelect = useCallback((purpose: AnalysisPurpose) => {
     setSelectedPurpose(purpose)
     setRecommendation(null)
-    setManualSelectedMethod(null) // Reset manual selection
+    setManualSelectedMethod(null)
 
     logger.info('Analysis purpose selected', { purpose })
 
-    // Run AI recommendation
-    const result = await analyzeAndRecommend(purpose)
+    const result = analyzeAndRecommend(purpose)
 
     if (result === null) {
       logger.error('AI recommendation failed', { purpose })
@@ -575,13 +504,12 @@ export function PurposeInputStep({
       setSelectedPurpose(purpose)
 
       if (!recommendation && !isAnalyzing) {
-        analyzeAndRecommend(purpose).then((result) => {
-          if (result) {
-            setRecommendation(result)
-          } else {
-            logger.error('AI recommendation failed in browse mode', { purpose })
-          }
-        })
+        const result = analyzeAndRecommend(purpose)
+        if (result) {
+          setRecommendation(result)
+        } else {
+          logger.error('AI recommendation failed in browse mode', { purpose })
+        }
       }
     }
   }, [flowState.selectedPurpose, analyzeAndRecommend, isAnalyzing, recommendation])

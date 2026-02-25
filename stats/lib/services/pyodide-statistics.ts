@@ -111,18 +111,6 @@ export class PyodideStatisticsService {
   }
 
   /**
-   * Durbin-Watson 검정 (레거시 API)
-   * @deprecated durbinWatsonTest 사용 권장
-   */
-  async testIndependence(residuals: number[]): Promise<{
-    statistic: number
-    interpretation: string
-    isIndependent: boolean
-  }> {
-    return this.durbinWatsonTest(residuals)
-  }
-
-  /**
    * Bartlett's test for homogeneity of variances - Worker 2 사용
    * Levene's test보다 정규성에 민감하지만 더 강력한 검정
    */
@@ -234,7 +222,7 @@ export class PyodideStatisticsService {
     if (data.groups && data.groups.length >= 2) {
       try {
         // Levene's test (정규성 가정에 강건)
-        results.homogeneity.levene = await this.testHomogeneity(data.groups)
+        results.homogeneity.levene = await this.leveneTest(data.groups)
         if (!results.homogeneity.levene.equalVariance) {
           // canUseParametric 변경 없음 — Welch's t-test는 모수 검정
           results.summary.reasons.push('등분산성 가정 위반 (Levene) — Welch 권장')
@@ -255,7 +243,7 @@ export class PyodideStatisticsService {
     // 독립성 검정
     if (data.residuals && data.residuals.length >= 2) {
       try {
-        results.independence.durbin = await this.testIndependence(data.residuals)
+        results.independence.durbin = await this.durbinWatsonTest(data.residuals)
         if (!results.independence.durbin.isIndependent) {
           results.summary.canUseParametric = false
           results.summary.reasons.push('독립성 가정 위반')
@@ -790,14 +778,6 @@ export class PyodideStatisticsService {
     }
   }
 
-
-  /**
-   * 등분산 검정 (레거시 API)
-   * @deprecated leveneTest 사용 권장
-   */
-  async testHomogeneity(groups: number[][], _method: string = 'levene'): Promise<Generated.LeveneTestResult> {
-    return this.leveneTest(groups)
-  }
 
   /**
    * 일표본 t-검정 (레거시 API)
