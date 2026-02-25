@@ -261,14 +261,14 @@ describe('Variable Selector 색상 토큰 일관성', () => {
   })
 
   // =========================================================================
-  describe('OneSampleSelector — 아이콘=text-info, 선택 배지=bg-info', () => {
+  describe('OneSampleSelector — 아이콘=text-primary, 선택 배지=bg-info', () => {
 
-    it('BarChart3 아이콘에 text-info 클래스가 적용된다', () => {
+    it('BarChart3 아이콘에 text-primary 클래스가 적용된다', () => {
       const { container } = render(
         <OneSampleSelector data={mockData} onComplete={vi.fn()} />
       )
-      // lucide 아이콘은 svg 또는 부모 span에 text-info가 전달됨
-      const icon = container.querySelector('.text-info')
+      // 헤더 레이아웃 리팩토링 후 다른 셀렉터와 동일하게 text-primary 사용
+      const icon = container.querySelector('.text-primary')
       expect(icon).not.toBeNull()
     })
 

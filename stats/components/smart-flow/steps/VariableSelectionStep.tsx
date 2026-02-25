@@ -7,10 +7,11 @@
  * Uses detectedVariables from Step 2 as initial selection.
  */
 
-import React, { useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { logger } from '@/lib/utils/logger'
 import { Badge } from '@/components/ui/badge'
-import { Settings2, Sparkles, Upload } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { AlertCircle, Settings2, Sparkles, Upload } from 'lucide-react'
 import { EmptyState } from '@/components/common/EmptyState'
 import { VariableSelectorToggle } from '@/components/common/VariableSelectorToggle'
 import {
@@ -19,7 +20,9 @@ import {
   GroupComparisonSelector,
   MultipleRegressionSelector,
   PairedSelector,
-  OneSampleSelector
+  OneSampleSelector,
+  ChiSquareSelector,
+  AutoConfirmSelector
 } from '@/components/common/variable-selectors'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { StepHeader } from '@/components/smart-flow/common'
@@ -32,50 +35,83 @@ interface VariableSelectionStepProps {
   onBack?: () => void
 }
 
-type SelectorType = 'one-sample' | 'two-way-anova' | 'correlation' | 'paired' | 'multiple-regression' | 'group-comparison' | 'default'
+type SelectorType =
+  | 'one-sample'
+  | 'two-way-anova'
+  | 'correlation'
+  | 'paired'
+  | 'multiple-regression'
+  | 'group-comparison'
+  | 'chi-square'
+  | 'auto'
+  | 'default'
 
+/**
+ * Maps real statistical method IDs (from statistical-methods.ts) to selector types.
+ * Only real IDs are listed — dead aliases are intentionally excluded.
+ */
 const SELECTOR_MAP: ReadonlyMap<string, SelectorType> = new Map([
-  // One-sample
-  ['one-sample-t',              'one-sample'],
-  ['one-sample-t-test',         'one-sample'],
-  // Two-way ANOVA
-  ['two-way-anova',             'two-way-anova'],
-  ['three-way-anova',           'two-way-anova'],
-  // Correlation
-  ['pearson-correlation',       'correlation'],
-  ['spearman-correlation',      'correlation'],
-  ['kendall-correlation',       'correlation'],
-  ['correlation',               'correlation'],
-  // Paired
-  ['paired-t',                  'paired'],
-  ['paired-t-test',             'paired'],
-  ['wilcoxon',                  'paired'],
-  ['wilcoxon-signed-rank',      'paired'],
-  ['sign-test',                 'paired'],
-  ['mcnemar',                   'paired'],
-  // Multiple regression
-  ['multiple-regression',       'multiple-regression'],
-  ['stepwise',                  'multiple-regression'],
-  ['stepwise-regression',       'multiple-regression'],
+  // One-sample tests
+  ['one-sample-t',            'one-sample'],
+  ['binomial-test',           'one-sample'],
+  ['runs-test',               'one-sample'],
+  ['mann-kendall',            'one-sample'],
+  // Paired / within-subjects
+  ['paired-t',                'paired'],
+  ['wilcoxon',                'paired'],
+  ['sign-test',               'paired'],
+  ['cochran-q',               'paired'],
   // Group comparison
-  ['t-test',                    'group-comparison'],
-  ['two-sample-t',              'group-comparison'],
-  ['independent-t-test',        'group-comparison'],
-  ['welch-t',                   'group-comparison'],
-  ['one-way-anova',             'group-comparison'],
-  ['anova',                     'group-comparison'],
-  ['ancova',                    'group-comparison'],
-  ['mann-whitney',              'group-comparison'],
-  ['kruskal-wallis',            'group-comparison'],
+  ['t-test',                  'group-comparison'],
+  ['welch-t',                 'group-comparison'],
+  ['welch-anova',             'group-comparison'],
+  ['anova',                   'group-comparison'],   // may upgrade to 'two-way-anova' below
+  ['ancova',                  'group-comparison'],
+  ['mann-whitney',            'group-comparison'],
+  ['kruskal-wallis',          'group-comparison'],
+  ['ks-test',                 'group-comparison'],
+  ['mood-median',             'group-comparison'],
+  ['non-parametric',          'group-comparison'],
+  ['means-plot',              'group-comparison'],
+  // Correlation / multivariate numeric
+  ['correlation',             'correlation'],
+  ['partial-correlation',     'correlation'],
+  ['normality-test',          'correlation'],
+  ['friedman',                'correlation'],
+  ['descriptive',             'correlation'],
+  ['explore-data',            'correlation'],
+  ['pca',                     'correlation'],
+  ['factor-analysis',         'correlation'],
+  ['cluster',                 'correlation'],
+  ['reliability',             'correlation'],
+  // Multiple regression
+  ['regression',              'multiple-regression'],
+  ['logistic-regression',     'multiple-regression'],
+  ['poisson',                 'multiple-regression'],
+  ['ordinal-regression',      'multiple-regression'],
+  ['dose-response',           'multiple-regression'],
+  ['response-surface',        'multiple-regression'],
+  ['stepwise',                'multiple-regression'],
+  // Chi-square / categorical
+  ['chi-square',              'chi-square'],
+  ['chi-square-goodness',     'chi-square'],
+  ['chi-square-independence', 'chi-square'],
+  ['mcnemar',                 'chi-square'],
+  ['proportion-test',         'chi-square'],
+  // Auto-confirm (complex methods without custom variable UI)
+  ['repeated-measures-anova', 'auto'],
+  ['manova',                  'auto'],
+  ['mixed-model',             'auto'],
+  ['arima',                   'auto'],
+  ['seasonal-decompose',      'auto'],
+  ['stationarity-test',       'auto'],
+  ['kaplan-meier',            'auto'],
+  ['cox-regression',          'auto'],
+  ['discriminant',            'auto'],
+  ['power-analysis',          'auto'],
 ])
 
-function getSelectorType(methodId: string | undefined): SelectorType {
-  if (!methodId) return 'default'
-  return SELECTOR_MAP.get(methodId) ?? 'default'
-}
-
 export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionStepProps) {
-  // Terminology System
   const t = useTerminology()
 
   const {
@@ -88,10 +124,22 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     goToPreviousStep
   } = useSmartFlowStore()
 
+  const [validationAlert, setValidationAlert] = useState<string | null>(null)
+
   // Determine selector type
-  const selectorType = useMemo(() => {
-    return getSelectorType(selectedMethod?.id)
-  }, [selectedMethod?.id])
+  // Special case: anova + AI detected 2+ factors → two-way-anova
+  const selectorType = useMemo((): SelectorType => {
+    const id = selectedMethod?.id ?? ''
+    const base = SELECTOR_MAP.get(id) ?? 'default'
+    if (
+      id === 'anova' &&
+      detectedVariables?.factors &&
+      detectedVariables.factors.length >= 2
+    ) {
+      return 'two-way-anova'
+    }
+    return base
+  }, [selectedMethod?.id, detectedVariables?.factors])
 
   // Get column info for validation
   const columnInfo = useMemo(() => {
@@ -105,12 +153,14 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
   // Handle variable selection complete with validation
   const handleComplete = useCallback((mapping: VariableMapping) => {
-    // Validate mapping
+    setValidationAlert(null)
+
     if (selectedMethod && columnInfo.length > 0) {
       const validation = validateVariableMapping(selectedMethod, mapping, columnInfo)
       if (!validation.isValid) {
         logger.warn('[VariableSelection] Validation errors', { errors: validation.errors })
-        // Still proceed but log warnings
+        setValidationAlert(validation.errors.join(' / '))
+        // Show alert but still allow progression
       }
     }
 
@@ -131,6 +181,14 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     })
   }, [handleComplete])
 
+  const handleBack = useCallback(() => {
+    if (onBack) {
+      onBack()
+    } else {
+      goToPreviousStep()
+    }
+  }, [onBack, goToPreviousStep])
+
   // Build initial selection from detectedVariables based on selector type
   const initialSelection = useMemo((): Partial<VariableMapping> => {
     if (!detectedVariables) return {}
@@ -147,10 +205,6 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           result.groupVar = detectedVariables.factors.slice(0, 2).join(',')
         }
         result.dependentVar = detectedVariables.dependentCandidate
-        // Covariate for ANCOVA
-        if (detectedVariables.covariates?.length) {
-          result.covariate = detectedVariables.covariates
-        }
         break
 
       case 'correlation':
@@ -167,7 +221,6 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
       case 'multiple-regression':
         result.dependentVar = detectedVariables.dependentCandidate
-        // LLM enhanced: use independentVars directly
         if (detectedVariables.independentVars?.length) {
           result.independentVar = detectedVariables.independentVars.join(',')
         } else if (detectedVariables.numericVars && detectedVariables.numericVars.length > 1) {
@@ -181,15 +234,31 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
       case 'group-comparison':
         result.groupVar = detectedVariables.groupVariable
         result.dependentVar = detectedVariables.dependentCandidate
-        // Covariate for ANCOVA-style group comparison
         if (detectedVariables.covariates?.length) {
           result.covariate = detectedVariables.covariates
         }
         break
 
+      case 'chi-square':
+        result.independentVar = detectedVariables.groupVariable || detectedVariables.independentVars?.[0]
+        result.dependentVar = detectedVariables.dependentCandidate
+        break
+
+      case 'auto':
+        result.dependentVar = detectedVariables.dependentCandidate
+        if (detectedVariables.independentVars?.length) {
+          result.independentVar = detectedVariables.independentVars.join(',')
+        }
+        if (detectedVariables.groupVariable) {
+          result.groupVar = detectedVariables.groupVariable
+        }
+        if (detectedVariables.numericVars?.length) {
+          result.variables = detectedVariables.numericVars
+        }
+        break
+
       default:
         result.dependentVar = detectedVariables.dependentCandidate
-        // LLM enhanced: use independentVars if available
         if (detectedVariables.independentVars?.length) {
           result.independentVar = detectedVariables.independentVars[0]
         } else if (detectedVariables.numericVars && detectedVariables.numericVars.length > 1) {
@@ -197,7 +266,6 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
             v => v !== detectedVariables.dependentCandidate
           )
         }
-        // Covariate
         if (detectedVariables.covariates?.length) {
           result.covariate = detectedVariables.covariates
         }
@@ -206,14 +274,6 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
     return result
   }, [detectedVariables, selectorType])
-
-  const handleBack = useCallback(() => {
-    if (onBack) {
-      onBack()
-    } else {
-      goToPreviousStep()
-    }
-  }, [onBack, goToPreviousStep])
 
   // No data check
   if (!uploadedData || uploadedData.length === 0) {
@@ -275,7 +335,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           <MultipleRegressionSelector
             {...commonProps}
             onComplete={handleComplete}
-            minIndependent={2}
+            minIndependent={1}
             maxIndependent={10}
           />
         )
@@ -287,16 +347,32 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
             onComplete={handleComplete}
             requireTwoGroups={
               selectedMethod?.id === 't-test' ||
-              selectedMethod?.id === 'two-sample-t' ||
-              selectedMethod?.id === 'independent-t-test' ||
+              selectedMethod?.id === 'welch-t' ||
               selectedMethod?.id === 'mann-whitney'
             }
             methodName={selectedMethod?.name}
+            showCovariate={selectedMethod?.id === 'ancova'}
+          />
+        )
+
+      case 'chi-square':
+        return (
+          <ChiSquareSelector
+            {...commonProps}
+            onComplete={handleComplete}
+            methodId={selectedMethod?.id}
+          />
+        )
+
+      case 'auto':
+        return (
+          <AutoConfirmSelector
+            {...commonProps}
+            onComplete={handleComplete}
           />
         )
 
       default:
-        // Default: simple dependent/independent selector
         return (
           <VariableSelectorToggle
             data={uploadedData}
@@ -312,10 +388,18 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     <div className="space-y-6">
       {/* Header */}
       <StepHeader
-          icon={Settings2}
-          title={t.smartFlow.stepTitles.variableSelection}
-          badge={selectedMethod ? { label: selectedMethod.name } : undefined}
-        />
+        icon={Settings2}
+        title={t.smartFlow.stepTitles.variableSelection}
+        badge={selectedMethod ? { label: selectedMethod.name } : undefined}
+      />
+
+      {/* Validation Alert (from variable mapping validation) */}
+      {validationAlert && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{validationAlert}</AlertDescription>
+        </Alert>
+      )}
 
       {/* AI Detected Variables Info */}
       {detectedVariables && (

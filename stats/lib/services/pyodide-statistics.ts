@@ -770,7 +770,7 @@ export class PyodideStatisticsService {
    * 정규성 검정
    */
   async testNormality(data: number[], alpha: number = 0.05): Promise<Generated.NormalityTestResult & { isNormal: boolean }> {
-    const result = await this.shapiroWilkTest(data)
+    const result = await this.normalityTest(data, alpha)
     return {
       ...result,
       isNormal: result.pValue > alpha,
@@ -845,13 +845,13 @@ export class PyodideStatisticsService {
    * @deprecated linearRegression 사용 권장
    */
   async simpleLinearRegression(xValues: number[], yValues: number[]): Promise<{ slope: number; intercept: number; rSquared: number; fStatistic: number; pvalue: number }> {
-    const result = await this.regression(xValues, yValues)
+    const result = await this.linearRegression(xValues, yValues)
     return {
       slope: result.slope ?? 0,
       intercept: result.intercept ?? 0,
       rSquared: result.rSquared,
-      fStatistic: result.fStatistic ?? 0,
-      pvalue: result.pvalue
+      fStatistic: result.slopeTValue ** 2,  // 단순회귀: F = t²(기울기)
+      pvalue: result.pValue
     }
   }
 
@@ -938,11 +938,19 @@ export class PyodideStatisticsService {
     alpha: number
     reject_count: number
   }> {
-    const result = await this.tukeyHSD(groups)
+    const result = await this.tukeyHSDWorker(groups)
+
+    // groupNames 맵핑 추가 (Python Worker는 int 인덱스 반환)
+    const comparisons = result.comparisons.map((comp) => ({
+      ...comp,
+      group1: groupNames[Number(comp.group1)] ?? String(comp.group1),
+      group2: groupNames[Number(comp.group2)] ?? String(comp.group2)
+    }))
+
     return {
-      comparisons: result.comparisons,
+      comparisons,
       alpha,
-      reject_count: result.comparisons.filter(c => c.significant || c.pValue < alpha).length
+      reject_count: comparisons.filter(c => c.significant || c.pValue < alpha).length
     }
   }
 
@@ -1468,10 +1476,6 @@ export class PyodideStatisticsService {
   }
 
   /**
-   * Pyodide 초기화 여부 확인
-   */
-
-  /**
    * 카이제곱 적합도 검정 (Chi-Square Goodness of Fit Test)
    */
   async chiSquareGoodnessTest(
@@ -1617,7 +1621,7 @@ export class PyodideStatisticsService {
   }
 
   /**
-   * Pyodide 인스턴스 정리
+   * Pyodide 인스턴스 정리 (싱글톤 초기화)
    */
   dispose(): void {
     this.core.dispose()

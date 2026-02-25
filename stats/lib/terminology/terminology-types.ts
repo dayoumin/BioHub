@@ -276,6 +276,7 @@ export interface SmartFlowText {
     settingsLabel: string
     nextStep: string
     analyzingDefault: string
+    floatingNavDisabledHint: string
     dataSizeGuide: string
     currentLimits: string
     memoryRecommendation: string
@@ -960,6 +961,8 @@ export interface DataUploadText {
     fileSpecifications: string
     recentFiles: string
     recentFilesNote: string
+    recentFilesClickHint: string
+    recentFileClickTitle: string
     selectSheet: string
     sheetsFound: (count: number) => string
     selectSheetPlaceholder: string

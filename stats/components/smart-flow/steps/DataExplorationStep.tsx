@@ -118,7 +118,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   }, [data, highlightedRows])
 
   // 현재 활성 탭 (기초 통계량 / 데이터 미리보기)
-  const [activeDataTab, setActiveDataTab] = useState<string>('statistics')
+  const [activeDataTab, setActiveDataTab] = useState<string>('preview')
 
   // 수치형/범주형 변수 목록
   // ID로 감지된 컬럼은 시각화/분석에서 제외
@@ -629,10 +629,10 @@ export const DataExplorationStep = memo(function DataExplorationStep({
             <div className="flex items-center gap-2">
               {onUploadComplete && (
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={() => setIsReplaceMode(true)}
-                  className="gap-1.5 text-muted-foreground hover:text-foreground"
+                  className="gap-1.5"
                   data-testid="replace-data-button"
                 >
                   <Upload className="w-3.5 h-3.5" />

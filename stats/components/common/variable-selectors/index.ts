@@ -20,6 +20,8 @@ export { GroupComparisonSelector } from './GroupComparisonSelector'
 export { MultipleRegressionSelector } from './MultipleRegressionSelector'
 export { PairedSelector } from './PairedSelector'
 export { OneSampleSelector } from './OneSampleSelector'
+export { ChiSquareSelector } from './ChiSquareSelector'
+export { AutoConfirmSelector } from './AutoConfirmSelector'
 
 // Re-export types
 export type { VariableSelectorProps, VariableSelectorResult } from './types'

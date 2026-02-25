@@ -435,9 +435,12 @@ export function DataUploadStep({
       {/* 최근 업로드 파일 (업로드 전에만 표시) */}
       {!uploadedFileName && recentFiles.length > 0 && (
         <div className="space-y-2.5">
-          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground/70 uppercase tracking-wider">
-            <Clock className="h-3 w-3" />
-            <span>{t.dataUpload.labels.recentFiles}</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground/70 uppercase tracking-wider">
+              <Clock className="h-3 w-3" />
+              <span>{t.dataUpload.labels.recentFiles}</span>
+            </div>
+            <span className="text-[10px] text-muted-foreground/50">{t.dataUpload.labels.recentFilesClickHint}</span>
           </div>
           <div className="grid gap-1">
             {recentFiles.map((file) => (
@@ -448,7 +451,7 @@ export function DataUploadStep({
                 className="group flex items-center justify-between p-2.5 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 hover:border-border/30 transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 onClick={() => open()}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open() } }}
-                title="클릭하여 파일 다시 선택"
+                title={t.dataUpload.labels.recentFileClickTitle}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-7 h-7 rounded-md bg-muted/50 flex items-center justify-center flex-shrink-0">
@@ -476,9 +479,6 @@ export function DataUploadStep({
               </div>
             ))}
           </div>
-          <p className="text-[11px] text-muted-foreground/60">
-            {t.dataUpload.labels.recentFilesNote}
-          </p>
         </div>
       )}
 

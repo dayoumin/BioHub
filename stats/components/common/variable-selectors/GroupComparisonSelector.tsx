@@ -27,6 +27,8 @@ interface GroupComparisonSelectorProps extends VariableSelectorProps {
   requireTwoGroups?: boolean
   /** Method name for display */
   methodName?: string
+  /** Show covariate selector (ANCOVA) */
+  showCovariate?: boolean
 }
 
 export function GroupComparisonSelector({
@@ -38,7 +40,8 @@ export function GroupComparisonSelector({
   description,
   className,
   requireTwoGroups = false,
-  methodName
+  methodName,
+  showCovariate = false
 }: GroupComparisonSelectorProps) {
   // Terminology
   const t = useTerminology()
@@ -54,6 +57,11 @@ export function GroupComparisonSelector({
   const [dependentVar, setDependentVar] = useState<string | null>(
     typeof initialSelection?.dependentVar === 'string' ? initialSelection.dependentVar : null
   )
+  const [covariates, setCovariates] = useState<string[]>(() => {
+    const c = initialSelection?.covariate
+    if (!c) return []
+    return Array.isArray(c) ? c : [c]
+  })
 
   // Sync state when initialSelection changes (e.g., from detectedVariables)
   useEffect(() => {
@@ -63,7 +71,11 @@ export function GroupComparisonSelector({
     if (typeof initialSelection?.dependentVar === 'string') {
       setDependentVar(initialSelection.dependentVar)
     }
-  }, [initialSelection?.groupVar, initialSelection?.dependentVar])
+    if (initialSelection?.covariate) {
+      const c = initialSelection.covariate
+      setCovariates(Array.isArray(c) ? c : [c])
+    }
+  }, [initialSelection?.groupVar, initialSelection?.dependentVar, initialSelection?.covariate])
 
   // Data analysis
   const analysis = useMemo(() => {
@@ -124,15 +136,22 @@ export function GroupComparisonSelector({
     setDependentVar(prev => prev === name ? null : name)
   }, [])
 
+  const toggleCovariate = useCallback((name: string) => {
+    setCovariates(prev =>
+      prev.includes(name) ? prev.filter(v => v !== name) : [...prev, name]
+    )
+  }, [])
+
   // Submit
   const handleSubmit = useCallback(() => {
     if (!validation.isValid || !groupVar || !dependentVar) return
 
     onComplete({
       groupVar,
-      dependentVar
+      dependentVar,
+      ...(covariates.length > 0 && { covariate: covariates })
     })
-  }, [validation.isValid, groupVar, dependentVar, onComplete])
+  }, [validation.isValid, groupVar, dependentVar, covariates, onComplete])
 
   if (!analysis) {
     return (
@@ -289,6 +308,50 @@ export function GroupComparisonSelector({
           </CardContent>
         </Card>
       </div>
+
+      {/* Covariate Selection (ANCOVA only) */}
+      {showCovariate && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base">공변량 (Covariate)</CardTitle>
+              <span className="text-muted-foreground text-xs">(선택사항)</span>
+              {covariates.length > 0 && (
+                <Badge variant="outline" className="ml-auto">{covariates.length}개 선택</Badge>
+              )}
+            </div>
+            <CardDescription className="text-xs">
+              ANCOVA에서 통제할 연속형 공변량을 선택하세요 (복수 선택 가능)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+              {numericColumns
+                .filter(col => col.name !== groupVar && col.name !== dependentVar)
+                .map(col => (
+                  <button
+                    key={col.name}
+                    onClick={() => toggleCovariate(col.name)}
+                    className={cn(
+                      'p-2 rounded-lg border-2 transition-all text-left text-sm',
+                      covariates.includes(col.name)
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:border-primary/50'
+                    )}
+                  >
+                    <span className="font-medium block truncate">{col.name}</span>
+                    <span className="text-xs text-muted-foreground">numeric</span>
+                  </button>
+                ))}
+              {numericColumns.filter(col => col.name !== groupVar && col.name !== dependentVar).length === 0 && (
+                <p className="text-sm text-muted-foreground col-span-full py-2">
+                  사용 가능한 공변량이 없습니다
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Selection Summary */}
       {(groupVar || dependentVar) && (

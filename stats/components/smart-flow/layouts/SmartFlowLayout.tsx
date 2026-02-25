@@ -32,6 +32,7 @@ import { HelpModal } from '@/components/layout/help-modal'
 import { STEP_STYLES } from '@/components/smart-flow/common/style-constants'
 import { DomainSwitcher } from '@/components/terminology/DomainSwitcher'
 import { useTerminology } from '@/hooks/use-terminology'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 // Step icons (라벨은 terminology에서 동적으로 가져옴)
 const STEP_ICONS = [BarChart3, Target, Settings, Play] as const
@@ -315,30 +316,41 @@ export function SmartFlowLayout({
       {/* ===== 플로팅 네비게이션 버튼 ===== */}
       {showFloatingNav && !showHub && onNext && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
-          <Button
-            onClick={onNext}
-            disabled={!canGoNext || isAnalyzing}
-            size="lg"
-            data-testid="floating-next-btn"
-            className={cn(
-              "shadow-lg px-6 gap-2 transition-all",
-              canGoNext && !isAnalyzing
-                ? "bg-primary hover:bg-primary/90"
-                : "bg-muted text-muted-foreground"
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <Button
+                  onClick={onNext}
+                  disabled={!canGoNext || isAnalyzing}
+                  size="lg"
+                  data-testid="floating-next-btn"
+                  className={cn(
+                    "shadow-lg px-6 gap-2 transition-all",
+                    canGoNext && !isAnalyzing
+                      ? "bg-primary hover:bg-primary/90"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {t.smartFlow.layout.analyzingDefault}
+                    </>
+                  ) : (
+                    <>
+                      {resolvedNextLabel}
+                      <ChevronRight className="w-4 h-4" />
+                    </>
+                  )}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {!canGoNext && !isAnalyzing && (
+              <TooltipContent side="top">
+                {t.smartFlow.layout.floatingNavDisabledHint}
+              </TooltipContent>
             )}
-          >
-            {isAnalyzing ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                {t.smartFlow.layout.analyzingDefault}
-              </>
-            ) : (
-              <>
-                {resolvedNextLabel}
-                <ChevronRight className="w-4 h-4" />
-              </>
-            )}
-          </Button>
+          </Tooltip>
         </div>
       )}
 

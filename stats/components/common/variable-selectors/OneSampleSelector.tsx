@@ -112,16 +112,37 @@ export function OneSampleSelector({
 
   return (
     <div className={cn('space-y-6', className)}>
+      {/* Header with Action Buttons */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <BarChart3 className="h-5 w-5 text-primary" />
+          <div>
+            <h2 className="text-xl font-semibold">{displayTitle}</h2>
+            <p className="text-sm text-muted-foreground">{displayDescription}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {onBack && (
+            <Button variant="outline" onClick={onBack} className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          )}
+          <Button
+            onClick={handleSubmit}
+            disabled={!validation.isValid}
+            className="gap-2"
+            data-testid="run-analysis-btn"
+          >
+            분석 시작
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
       {/* Test Variable Selection */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-info" />
-            {displayTitle}
-          </CardTitle>
-          <CardDescription>{displayDescription}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="pt-4 space-y-4">
           {/* Variable Selection */}
           <div>
             <Label className="text-sm font-medium mb-2 block">검정 변수 (수치형)</Label>
@@ -187,25 +208,6 @@ export function OneSampleSelector({
           )}
         </CardContent>
       </Card>
-
-      {/* Action Buttons */}
-      <div className="flex justify-between">
-        {onBack && (
-          <Button variant="outline" onClick={onBack}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            이전
-          </Button>
-        )}
-        <Button
-          onClick={handleSubmit}
-          disabled={!validation.isValid}
-          className="ml-auto"
-          data-testid="run-analysis-btn"
-        >
-          분석 시작
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
     </div>
   )
 }
