@@ -1,16 +1,33 @@
 'use client'
 
 import React, { useEffect, useRef } from 'react'
+import type { Data, Layout, Config, ModeBarDefaultButtons } from 'plotly.js'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Download, Maximize2, Camera } from 'lucide-react'
 import { logger } from '@/lib/utils/logger'
 
+// 벤더 접두사 fullscreen API (표준 HTMLElement 타입에 미포함)
+interface FullscreenElement extends HTMLElement {
+  webkitRequestFullscreen?: () => Promise<void>
+  msRequestFullscreen?: () => Promise<void>
+}
+
+// 이 컴포넌트에서 사용하는 Plotly API만 정의 (plotly.js-basic-dist 타입 부재 대응)
+interface PlotlyStatic {
+  newPlot(element: HTMLElement, data: Data[], layout: Partial<Layout>, config?: Partial<Config>): Promise<unknown>
+  Plots: { resize(element: HTMLElement): void }
+  purge(element: HTMLElement): void
+  downloadImage(element: HTMLElement, opts: { format: string; width: number; height: number; filename: string }): Promise<unknown>
+}
+
 interface PlotlyChartRendererProps {
   chartData: {
-    data: any[]
-    layout: any
-    config?: any
+    data: Data[]
+    // Plotly layout — Record<string, unknown>으로 선언해 v2/v3 title 호환성 유지
+    // (Plotly v3: title: Title 객체, v2: title: string)
+    layout: Record<string, unknown>
+    config?: Record<string, unknown>
   }
   title?: string
   onDownload?: () => void
@@ -24,8 +41,7 @@ export function PlotlyChartRenderer({
   const chartRef = useRef<HTMLDivElement>(null)
 
   // Plotly 인스턴스를 ref로 관리 (dynamic import)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const plotlyRef = useRef<any>(null)
+  const plotlyRef = useRef<PlotlyStatic | null>(null)
   const cleanupRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
@@ -37,18 +53,17 @@ export function PlotlyChartRenderer({
     async function renderChart() {
       // Dynamic import: plotly.js-basic-dist (~2MB)
       if (!plotlyRef.current) {
-        // @ts-expect-error - plotly.js-basic-dist types not available
-        const mod = await import('plotly.js-basic-dist')
-        plotlyRef.current = mod.default || mod
+        const mod = await import('plotly.js-basic-dist') as unknown as { default?: PlotlyStatic } & PlotlyStatic
+        plotlyRef.current = mod.default ?? mod
       }
       const Plotly = plotlyRef.current
       if (cancelled || !currentElement) return
 
-      const config = {
+      const config: Partial<Config> = {
         responsive: true,
         displayModeBar: true,
         displaylogo: false,
-        modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+        modeBarButtonsToRemove: ['lasso2d', 'select2d'] as ModeBarDefaultButtons[],
         modeBarButtonsToAdd: [],
         toImageButtonOptions: {
           format: 'png',
@@ -57,10 +72,10 @@ export function PlotlyChartRenderer({
           width: 1200,
           scale: 2
         },
-        ...chartData.config
+        ...(chartData.config as Partial<Config>)
       }
 
-      Plotly.newPlot(currentElement, chartData.data, chartData.layout, config)
+      Plotly.newPlot(currentElement, chartData.data, chartData.layout as Partial<Layout>, config)
 
       const handleResize = () => {
         Plotly.Plots.resize(currentElement)
@@ -151,7 +166,7 @@ export function PlotlyChartRenderer({
   const openFullscreen = () => {
     if (!chartRef.current) return
     
-    const elem = chartRef.current as any
+    const elem = chartRef.current as FullscreenElement
     if (elem.requestFullscreen) {
       elem.requestFullscreen()
     } else if (elem.webkitRequestFullscreen) {
