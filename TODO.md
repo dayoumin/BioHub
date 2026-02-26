@@ -60,6 +60,15 @@
 - ✅ **[B] proportion-test nullProportion UI**: ChiSquareSelector goodness 모드에 귀무가설 비율(p₀) 입력 카드 추가 (0.01~0.99, 기본 0.5, 유효성 검증 포함). executor string→float 파싱으로 수정
 - 📌 커밋: `cac75bfc`
 
+### 2026-02-26 (목) ResultsActionStep 비판적 검토 후속 — L2 게이트 버그 + 테스트 불일치 수정
+
+- ✅ **🔴 Bug: L2 게이트 too narrow** — `hasDetailedResults`가 `statisticalResult`만 검사 → `results.additional`(rSquared/accuracy/power 등) 단독 케이스에서 `MethodSpecificResults` 숨겨짐. `results?.additional` 조건 추가로 수정
+- ✅ **🟠 테스트 불일치 해소** — `computeLayerVisibility` helper가 제거된 `uploadedFileName/uploadedData` 조건을 여전히 포함. 시그니처를 `(sr, additional?)` 로 변경, Scenario 4 케이스 2개 교체 (rSquared·power 단독 케이스로)
+- ✅ **🟠 export `interpretEffectSize` 정규화** — `normalized = type.toLowerCase().replace(/\s+/g,'')` 도입. `pearson r`, `cramer's v`, `η²` 등 AI 변형 입력 시 오분류 방지
+- ✅ **🟡 useCallback deps `t` 6개 추가** — `handleSaveAsFile`, `handleReanalyze`, `handleNewAnalysisConfirm`, `handleInterpretation`, `handleFollowUp`, `handleCopyResults` — 언어 전환 stale text 방지
+- ✅ **검증**: tsc 0 errors, tests 107 passed (69 + 38)
+- 📌 커밋: (이번 커밋)
+
 ### 2026-02-26 (목) Step 4 AnalysisExecutionStep + ResultsActionStep 비판적 검토
 
 - ✅ **Bug: `setTimeout(onNext)` cleanup 누락** — `autoNextTimerRef`로 관리 + 언마운트 시 정리 (언마운트 후 콜백 방지)

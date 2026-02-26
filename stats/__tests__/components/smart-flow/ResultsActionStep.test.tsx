@@ -16,15 +16,13 @@ import type { AnalysisResult } from '@/types/smart-flow'
 // =====================================================
 function computeLayerVisibility(
   sr: StatisticalResult,
-  uploadedFileName?: string,
-  uploadedData?: unknown[]
+  additional?: AnalysisResult['additional']
 ) {
   const hasDetailedResults = !!(
     sr.confidenceInterval ||
     sr.effectSize ||
     (sr.additionalResults && sr.additionalResults.length > 0) ||
-    uploadedFileName ||
-    uploadedData
+    additional
   )
 
   const hasDiagnostics = !!(
@@ -96,7 +94,7 @@ describe('Part 1: Layer 조건 시뮬레이션 (순수 로직)', () => {
     }
 
     it('Layer 1/2/3 모두 표시, 가정 충족, 유의함', () => {
-      const vis = computeLayerVisibility(sr, 'data.csv', [{ id: 1 }])
+      const vis = computeLayerVisibility(sr)
 
       expect(vis.hasDetailedResults).toBe(true)
       expect(vis.hasDiagnostics).toBe(true)
@@ -133,7 +131,7 @@ describe('Part 1: Layer 조건 시뮬레이션 (순수 로직)', () => {
     }
 
     it('Layer 2 표시 (effectSize 있음), Layer 3 숨김 (assumptions 없음)', () => {
-      const vis = computeLayerVisibility(sr, 'chi_data.csv', [{ id: 1 }])
+      const vis = computeLayerVisibility(sr)
 
       expect(vis.hasDetailedResults).toBe(true)
       expect(vis.hasDiagnostics).toBe(false)
@@ -206,7 +204,7 @@ describe('Part 1: Layer 조건 시뮬레이션 (순수 로직)', () => {
     })
   })
 
-  describe('Scenario 4: 최소 결과 (메타데이터 영향 검증)', () => {
+  describe('Scenario 4: 최소 결과 (additional 메트릭 영향 검증)', () => {
     const sr: StatisticalResult = {
       testName: 'Test',
       statistic: 1.0,
@@ -216,7 +214,7 @@ describe('Part 1: Layer 조건 시뮬레이션 (순수 로직)', () => {
       timestamp: new Date()
     }
 
-    it('메타데이터 없으면 Layer 2/3 모두 숨김', () => {
+    it('CI/effectSize/additionalResults/additional 모두 없으면 Layer 2/3 숨김', () => {
       const vis = computeLayerVisibility(sr)
 
       expect(vis.hasDetailedResults).toBe(false)
@@ -224,14 +222,14 @@ describe('Part 1: Layer 조건 시뮬레이션 (순수 로직)', () => {
       expect(vis.hasApaFormat).toBe(false) // df 없음
     })
 
-    it('uploadedFileName만 있어도 Layer 2 표시', () => {
-      const vis = computeLayerVisibility(sr, 'data.csv')
+    it('results.additional만 있어도 Layer 2 표시 (MethodSpecificResults 게이트)', () => {
+      const vis = computeLayerVisibility(sr, { rSquared: 0.85 })
 
       expect(vis.hasDetailedResults).toBe(true)
     })
 
-    it('uploadedData만 있어도 Layer 2 표시', () => {
-      const vis = computeLayerVisibility(sr, undefined, [{ id: 1 }])
+    it('results.additional.power만 있어도 Layer 2 표시', () => {
+      const vis = computeLayerVisibility(sr, { power: 0.92 })
 
       expect(vis.hasDetailedResults).toBe(true)
     })
@@ -256,7 +254,7 @@ describe('Part 1: Layer 조건 시뮬레이션 (순수 로직)', () => {
     }
 
     it('비유의 + 가정 충족 + Layer 3 표시', () => {
-      const vis = computeLayerVisibility(sr, 'data.csv', [{ id: 1 }])
+      const vis = computeLayerVisibility(sr)
 
       expect(vis.isSignificant).toBe(false)
       expect(vis.assumptionsPassed).toBe(true)
@@ -532,6 +530,9 @@ vi.mock('@/hooks/use-terminology', () => ({
         logSectionLabel: () => '', noLogs: '', dataRequired: '',
         unknownError: '', estimatedTimeRemaining: () => '',
       },
+      executionLogs: {
+        errorPrefix: (message: string) => `❌ Error: ${message}`,
+      },
     },
     purposeInput: {
       purposes: {}, inputModes: { aiRecommend: '', directSelect: '', modeAriaLabel: '' },
@@ -701,6 +702,7 @@ vi.mock('@/lib/services/result-interpreter', () => ({
   requestInterpretation: vi.fn().mockResolvedValue(
     '## 한줄 요약\n테스트 해석입니다.\n\n## 상세 해석\n상세 내용입니다.'
   ),
+  streamFollowUp: mockStreamFollowUp,
 }))
 
 // Store mock
@@ -730,6 +732,7 @@ vi.mock('@/lib/stores/smart-flow-store', () => ({
 
 // Converter mock (vi.hoisted: vi.mock보다 먼저 초기화)
 const mockConvert = vi.hoisted(() => vi.fn())
+const mockStreamFollowUp = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/statistics/result-converter', () => ({
   convertToStatisticalResult: mockConvert
@@ -1380,6 +1383,66 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       })
 
       expect(startNewAnalysis).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('handleFollowUp 에러 처리', () => {
+    beforeEach(async () => {
+      vi.clearAllMocks()
+      mockStoreState = { ...defaultStoreState }
+      mockConvert.mockReturnValue({
+        testName: 't-검정',
+        statistic: 2.456,
+        statisticName: 't',
+        pValue: 0.018,
+        df: 28,
+        alpha: 0.05,
+      } as StatisticalResult)
+      mockStreamFollowUp.mockResolvedValue(undefined)
+      // follow-up 섹션은 interpretation이 비어 있지 않아야 표시됨
+      const { requestInterpretation } = await import('@/lib/services/result-interpreter')
+      vi.mocked(requestInterpretation).mockImplementation(async (_ctx, onChunk) => {
+        onChunk('테스트 AI 해석입니다.')
+        return { model: 'test-model' }
+      })
+    })
+
+    async function sendQuestion(question: string) {
+      // interpretation 설정 후 follow-up 섹션이 나타날 때까지 대기
+      await waitFor(() => screen.getByTestId('follow-up-section'))
+      const input = screen.getByPlaceholderText('궁금한 점을 질문하세요...')
+      await act(async () => {
+        fireEvent.change(input, { target: { value: question } })
+      })
+      await act(async () => {
+        fireEvent.keyDown(input, { key: 'Enter', shiftKey: false })
+      })
+    }
+
+    it('Error 인스턴스 → t.smartFlow.executionLogs.errorPrefix(message) 적용', async () => {
+      mockStreamFollowUp.mockRejectedValue(new Error('Network timeout'))
+
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+      await sendQuestion('테스트 질문입니다')
+
+      await waitFor(() => {
+        expect(screen.getByText('❌ Error: Network timeout')).toBeInTheDocument()
+      })
+      // 하드코딩된 '오류:' 형태가 아님을 확인
+      expect(screen.queryByText(/^오류: /)).not.toBeInTheDocument()
+    })
+
+    it('비-Error 예외 → followUp.errorMessage 직접 사용 (이중 감쌈 없음)', async () => {
+      mockStreamFollowUp.mockRejectedValue('unexpected string error')
+
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+      await sendQuestion('테스트 질문입니다')
+
+      await waitFor(() => {
+        expect(screen.getByText('후속 질문 처리 중 오류가 발생했습니다.')).toBeInTheDocument()
+      })
+      // '오류: 후속 질문...' 형태가 아님을 확인 (이중 감쌈 방지)
+      expect(screen.queryByText('오류: 후속 질문 처리 중 오류가 발생했습니다.')).not.toBeInTheDocument()
     })
   })
 })

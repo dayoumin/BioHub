@@ -259,16 +259,18 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }))
   }, [statisticalResult])
 
-  // Layer 2 표시 여부 (CI/effectSize/additionalResults 중 하나라도 있을 때)
+  // Layer 2 표시 여부 (CI/effectSize/additionalResults/MethodSpecificResults 중 하나라도 있을 때)
   // 메타데이터(파일명·데이터 크기)는 L1 카드에 표시되므로 이 조건에서 제외
+  // results.additional은 MethodSpecificResults가 직접 읽으므로 변환 경로(statisticalResult)와 별개로 체크
   const hasDetailedResults = useMemo(() => {
     if (!statisticalResult) return false
     return !!(
       statisticalResult.confidenceInterval ||
       statisticalResult.effectSize ||
-      (statisticalResult.additionalResults && statisticalResult.additionalResults.length > 0)
+      (statisticalResult.additionalResults && statisticalResult.additionalResults.length > 0) ||
+      results?.additional
     )
-  }, [statisticalResult])
+  }, [statisticalResult, results])
 
   // Layer 3 표시 여부 (가정검정, 권장사항, 경고, 대안 중 하나라도 있을 때)
   const hasDiagnostics = useMemo(() => {
@@ -377,7 +379,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     } finally {
       setIsExporting(false)
     }
-  }, [results, statisticalResult, interpretation, apaFormat, exportDataInfo, selectedMethod, saveToHistory, uploadedData, followUpMessages, isFollowUpStreaming])
+  }, [results, statisticalResult, interpretation, apaFormat, exportDataInfo, selectedMethod, saveToHistory, uploadedData, followUpMessages, isFollowUpStreaming, t])
 
   const openExportDialog = useCallback((format: ExportFormat) => {
     setExportFormat(format)
@@ -400,7 +402,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     toast.info(t.results.toast.reanalyzeReady, {
       description: selectedMethod ? t.results.toast.reanalyzeMethod(selectedMethod.name) : ''
     })
-  }, [setUploadedData, setUploadedFile, setValidationResults, setResults, setIsReanalysisMode, navigateToStep, selectedMethod])
+  }, [setUploadedData, setUploadedFile, setValidationResults, setResults, setIsReanalysisMode, navigateToStep, selectedMethod, t])
 
   const handleNewAnalysis = useCallback(() => {
     setShowNewAnalysisConfirm(true)
@@ -415,7 +417,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       reset()
       toast.info(t.results.toast.newAnalysis)
     }
-  }, [reset])
+  }, [reset, t])
 
   // AI 해석 요청 (스트리밍)
   const handleInterpretation = useCallback(async () => {
@@ -466,7 +468,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         aiInterpretationRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
       })
     }
-  }, [results, uploadedData, mappedVariables, uploadedFileName, variableMapping])
+  }, [results, uploadedData, mappedVariables, uploadedFileName, variableMapping, t])
 
   // 재해석 초기화 + 재요청 (중복 로직 추출)
   const resetAndReinterpret = useCallback(() => {
@@ -525,20 +527,22 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       )
     } catch (error) {
       if (controller.signal.aborted) return
-      const msg = error instanceof Error ? error.message : t.results.followUp.errorMessage
+      const errorContent = error instanceof Error
+        ? t.smartFlow.executionLogs.errorPrefix(error.message)
+        : t.results.followUp.errorMessage
       setFollowUpMessages(prev => {
         if (prev.length === 0) return prev
         const last = prev[prev.length - 1]
         if (last.role !== 'assistant') return prev
-        return [...prev.slice(0, -1), { ...last, content: `오류: ${msg}` }]
+        return [...prev.slice(0, -1), { ...last, content: errorContent }]
       })
     } finally {
       isFollowUpStreamingRef.current = false
       setIsFollowUpStreaming(false)
       followUpAbortRef.current = null
-      requestAnimationFrame(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }))
+      requestAnimationFrame(() => chatBottomRef.current?.scrollIntoView?.({ behavior: 'smooth' }))
     }
-  }, [results, interpretation, followUpMessages, uploadedData, mappedVariables, uploadedFileName])
+  }, [results, interpretation, followUpMessages, uploadedData, mappedVariables, uploadedFileName, t])
 
   // 결과 로드 시 자동 AI 해석 요청
   useEffect(() => {
@@ -628,7 +632,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       logger.error('Copy failed', { error: err })
       toast.error(t.results.toast.copyError)
     }
-  }, [results, statisticalResult, interpretation, apaFormat])
+  }, [results, statisticalResult, interpretation, apaFormat, t])
 
   if (!results || !statisticalResult) {
     return (
