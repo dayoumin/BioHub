@@ -196,6 +196,9 @@ export class OpenRouterRecommender {
       (validationResults?.columns || []).map((c: ColumnStatistics) => c.name)
     )
 
+    // 모델별 에러 누적 (모든 모델 실패 시 AggregateError로 전파)
+    const errors: Error[] = []
+
     // 모델 fallback 체인: 순서대로 시도
     for (let i = 0; i < this.config.models.length; i++) {
       const model = this.config.models[i]
@@ -215,23 +218,32 @@ export class OpenRouterRecommender {
         // 응답은 받았지만 파싱 실패 → 다음 모델 시도
         logger.warn(`[OpenRouter] Model ${model} response parsing failed, trying next`)
       } catch (error) {
-        const msg = error instanceof Error ? error.message : 'Unknown'
-        const isLastModel = i === this.config.models.length - 1
+        const err = error instanceof Error ? error : new Error(String(error))
+        errors.push(new Error(`${model}: ${err.message}`))
 
         // 429 Rate Limit: 로그에 명확한 메시지
-        if (msg.includes('429')) {
+        if (err.message.includes('429')) {
           logger.warn(`[OpenRouter] Model ${model} rate limited (429)`)
         }
 
-        if (isLastModel) {
-          logger.error(`[OpenRouter] All ${this.config.models.length} models failed`, { lastError: msg })
-          return { recommendation: null, responseText: '' }
-        }
-
-        logger.warn(`[OpenRouter] Model ${model} failed (${msg}), trying next model`)
+        logger.warn(`[OpenRouter] Model ${model} failed (${err.message}), trying next model`)
       }
     }
 
+    // 에러가 하나라도 있으면 — 파싱 실패와 혼합된 경우도 포함해 AggregateError로 전파
+    // (파싱 실패만 있는 soft failure는 errors.length === 0 이므로 여기 도달 안 함)
+    if (errors.length > 0) {
+      const softFailures = this.config.models.length - errors.length
+      logger.error(`[OpenRouter] Models failed (${errors.length} errors, ${softFailures} parse failures)`, {
+        errors: errors.map(e => e.message)
+      })
+      throw new AggregateError(
+        errors,
+        `OpenRouter failed: ${errors.length} error(s), ${softFailures} parse failure(s)`
+      )
+    }
+
+    // 모든 모델이 파싱 실패(soft failure)인 경우 — 에러 없음
     return { recommendation: null, responseText: '' }
   }
 
@@ -656,6 +668,7 @@ ${userInput}`
     const maxTokens = options?.maxTokens ?? 2000
 
     // 모델 fallback 체인
+    const streamErrors: Error[] = []
     for (let i = 0; i < this.config.models.length; i++) {
       const model = this.config.models[i]
       try {
@@ -667,19 +680,13 @@ ${userInput}`
       } catch (error) {
         if (signal?.aborted) throw error // 사용자 취소는 즉시 전파
 
-        const msg = error instanceof Error ? error.message : 'Unknown'
-        const isLastModel = i === this.config.models.length - 1
-
-        if (isLastModel) {
-          logger.error(`[OpenRouter Stream] All models failed`, { lastError: msg })
-          throw new Error(`AI 해석 실패: 모든 모델이 응답하지 않았습니다.`)
-        }
-
-        logger.warn(`[OpenRouter Stream] Model ${model} failed (${msg}), trying next`)
+        const err = error instanceof Error ? error : new Error(String(error))
+        streamErrors.push(new Error(`${model}: ${err.message}`))
+        logger.warn(`[OpenRouter Stream] Model ${model} failed (${err.message}), trying next`)
       }
     }
 
-    throw new Error('AI 해석 실패: 사용 가능한 모델이 없습니다.')
+    throw new AggregateError(streamErrors, 'AI 해석 실패: 모든 모델이 응답하지 않았습니다.')
   }
 
   /**
@@ -695,6 +702,7 @@ ${userInput}`
     const temperature = options?.temperature ?? 0.5
     const maxTokens = options?.maxTokens ?? 4000
 
+    const chatErrors: Error[] = []
     for (let i = 0; i < this.config.models.length; i++) {
       const model = this.config.models[i]
       try {
@@ -703,14 +711,13 @@ ${userInput}`
         logger.warn(`[OpenRouter Stream] Model ${model} failed to stream messages, trying next`)
       } catch (error) {
         if (signal?.aborted) throw error
-        const msg = error instanceof Error ? error.message : 'Unknown'
-        const isLastModel = i === this.config.models.length - 1
-        if (isLastModel) throw new Error(`AI 해설 실패: 모든 모델이 응답하지 않았습니다.`)
-        logger.warn(`[OpenRouter Stream] Model ${model} failed (${msg}), trying next`)
+        const err = error instanceof Error ? error : new Error(String(error))
+        chatErrors.push(new Error(`${model}: ${err.message}`))
+        logger.warn(`[OpenRouter Stream] Model ${model} failed (${err.message}), trying next`)
       }
     }
 
-    throw new Error('AI 해설 실패: 사용 가능한 모델이 없습니다.')
+    throw new AggregateError(chatErrors, 'AI 해설 실패: 모든 모델이 응답하지 않았습니다.')
   }
 
   /**

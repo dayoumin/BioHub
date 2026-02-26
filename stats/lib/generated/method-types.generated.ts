@@ -2,10 +2,10 @@
  * Auto-generated from methods-registry.json
  * DO NOT EDIT MANUALLY
  *
- * Generated: 2026-02-19T02:54:04.514Z
+ * Generated: 2026-02-26T02:17:51.757Z
  */
 
- 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { PyodideCoreService, type WorkerMethodParam } from '@/lib/services/pyodide/core/pyodide-core.service'
 
@@ -659,13 +659,19 @@ export interface MoodMedianTestResult {
 export interface RepeatedMeasuresAnovaResult {
   fStatistic: number
   pValue: number
-  df: number
+  df: { numerator: number; denominator: number }
+  sphericityEpsilon: number
+  sphericity: Record<string, unknown>
+  anovaTable: Record<string, unknown>
 }
 
 export interface AncovaResult {
-  fStatistic: number
-  pValue: number
-  adjustedMeans: number[]
+  fStatisticGroup: number
+  pValueGroup: number
+  fStatisticCovariate: number[]
+  pValueCovariate: number[]
+  adjustedMeans: Array<{ group: string | number; mean: number }>
+  anovaTable: Record<string, unknown>
 }
 
 export interface ManovaResult {

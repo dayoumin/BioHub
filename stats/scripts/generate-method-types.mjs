@@ -252,6 +252,10 @@ const METHOD_TYPE_OVERRIDES = {
     'confusionMatrix': 'Record<string, Record<string, number>>',
     'equalityTests': '{ boxM: { statistic: number; pValue: number; significant: boolean }; wilksLambda: { statistic: number; pValue: number; significant: boolean } }',
   },
+  'repeated_measures_anova': {
+    'df': '{ numerator: number; denominator: number }',
+    'sphericity': 'Record<string, unknown>',
+  },
 }
 
 /**
@@ -291,6 +295,10 @@ function returnsToInterface(methodName, returns) {
     }
     // F/Chi/Z 통계량
     else if (key === 'fStatistic' || key === 'chiSquare' || key === 'zStatistic') {
+      type = 'number'
+    }
+    // ANCOVA 그룹별 F/p 통계량, 반복측정 구형성 epsilon
+    else if (key === 'fStatisticGroup' || key === 'pValueGroup' || key === 'sphericityEpsilon') {
       type = 'number'
     }
     // 자유도
@@ -430,6 +438,8 @@ function returnsToInterface(methodName, returns) {
     } else if (key === 'nRisk' || key === 'events' || key === 'times') {
       type = 'number[]'
     } else if (key === 'adjustedMeans') {
+      type = 'Array<{ group: string | number; mean: number }>'
+    } else if (key === 'fStatisticCovariate' || key === 'pValueCovariate') {
       type = 'number[]'
     }
 

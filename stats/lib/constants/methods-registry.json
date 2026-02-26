@@ -670,7 +670,10 @@
         "returns": [
           "fStatistic",
           "pValue",
-          "df"
+          "df",
+          "sphericityEpsilon",
+          "sphericity",
+          "anovaTable"
         ],
         "description": "반복측정 분산분석"
       },
@@ -681,9 +684,12 @@
           "covariates"
         ],
         "returns": [
-          "fStatistic",
-          "pValue",
-          "adjustedMeans"
+          "fStatisticGroup",
+          "pValueGroup",
+          "fStatisticCovariate",
+          "pValueCovariate",
+          "adjustedMeans",
+          "anovaTable"
         ],
         "description": "공분산분석"
       },

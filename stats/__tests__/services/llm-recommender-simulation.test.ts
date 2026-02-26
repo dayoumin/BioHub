@@ -320,6 +320,193 @@ describe('Ollama 로컬 모델 경고', () => {
   })
 })
 
+// ============================================================
+// 패치 검증: AggregateError + createAsyncQueue 시뮬레이션
+// ============================================================
+
+describe('[패치 검증] AggregateError 에러 전파', () => {
+  let openRouterRecommender: typeof import('@/lib/services/openrouter-recommender').openRouterRecommender
+
+  beforeEach(async () => {
+    vi.stubEnv('NEXT_PUBLIC_OPENROUTER_API_KEY', 'test-key-123')
+    vi.stubEnv('NEXT_PUBLIC_OPENROUTER_MODEL', 'openai/gpt-4o:free,anthropic/claude-3-haiku')
+    vi.resetModules()
+    const mod = await import('@/lib/services/openrouter-recommender')
+    openRouterRecommender = mod.openRouterRecommender
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.restoreAllMocks()
+  })
+
+  it('모든 모델이 네트워크 에러 → AggregateError throw', async () => {
+    // 모든 fetch 호출을 실패시킴
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network error'))
+
+    let thrown: unknown = null
+    try {
+      await openRouterRecommender.recommendWithSystemPrompt(
+        '분석해줘', 'system', null, null, null
+      )
+    } catch (e) {
+      thrown = e
+    }
+
+    // AggregateError 여야 함
+    expect(thrown).toBeInstanceOf(AggregateError)
+    const agg = thrown as AggregateError
+    expect(agg.message).toContain('error(s)')
+    // 모델별 에러가 errors 배열에 있어야 함
+    expect(agg.errors.length).toBeGreaterThan(0)
+    expect((agg.errors[0] as Error).message).toContain('Network error')
+  })
+
+  it('모든 모델이 파싱 실패(null return) → null 반환 (throw 안 함)', async () => {
+    // mockImplementation으로 매 호출마다 새 Response 생성 (body 재사용 방지)
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () =>
+      new Response(JSON.stringify({
+        choices: [{ message: { role: 'assistant', content: '파싱 불가 텍스트만 있음' }, finish_reason: 'stop' }]
+      }), { status: 200 })
+    )
+
+    const result = await openRouterRecommender.recommendWithSystemPrompt(
+      '분석해줘', 'system', null, null, null
+    )
+
+    // throw 없이 null 반환
+    expect(result.recommendation).toBeNull()
+    expect(result.responseText).toBe('')
+  })
+
+  it('[혼합 케이스] 1개 throw + 1개 null → AggregateError throw (에러 맥락 보존)', async () => {
+    // 첫 번째 모델: 에러, 두 번째 모델: 파싱 실패
+    let callCount = 0
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+      callCount++
+      if (callCount === 1) throw new Error('Model1 API error')
+      return new Response(JSON.stringify({
+        choices: [{ message: { role: 'assistant', content: '파싱 불가 텍스트' }, finish_reason: 'stop' }]
+      }), { status: 200 })
+    })
+
+    let thrown: unknown = null
+    try {
+      await openRouterRecommender.recommendWithSystemPrompt(
+        '분석해줘', 'system', null, null, null
+      )
+    } catch (e) {
+      thrown = e
+    }
+
+    // 에러가 1개라도 있으면 AggregateError로 전파 (에러 맥락 보존)
+    expect(thrown).toBeInstanceOf(AggregateError)
+    const agg = thrown as AggregateError
+    expect(agg.message).toContain('1 error(s)')
+    expect(agg.message).toContain('1 parse failure(s)')
+    // 에러 배열에는 throw된 모델 에러만 포함
+    expect(agg.errors.length).toBe(1)
+    expect((agg.errors[0] as Error).message).toContain('Model1 API error')
+  })
+})
+
+describe('[패치 검증] createAsyncQueue 동작', () => {
+  // createAsyncQueue는 llm-recommender.ts 내부 함수이므로
+  // 동일 로직을 인라인으로 구현해 단위 테스트
+
+  function createAsyncQueue<T>() {
+    const queue: T[] = []
+    let waiting: ((item: T) => void) | null = null
+    const enqueue = (item: T): void => {
+      if (waiting) {
+        const resolve = waiting
+        waiting = null
+        resolve(item)
+      } else {
+        queue.push(item)
+      }
+    }
+    const dequeue = (): Promise<T> => {
+      if (queue.length > 0) return Promise.resolve(queue.shift()!)
+      return new Promise<T>((resolve) => { waiting = resolve })
+    }
+    return { enqueue, dequeue }
+  }
+
+  it('producer가 consumer보다 빠를 때 — 큐에 쌓인 아이템 순서 보존', async () => {
+    const { enqueue, dequeue } = createAsyncQueue<number>()
+
+    // 3개를 먼저 enqueue
+    enqueue(1)
+    enqueue(2)
+    enqueue(3)
+
+    // 순서대로 dequeue
+    expect(await dequeue()).toBe(1)
+    expect(await dequeue()).toBe(2)
+    expect(await dequeue()).toBe(3)
+  })
+
+  it('consumer가 producer보다 빠를 때 — 비동기 대기 후 수신', async () => {
+    const { enqueue, dequeue } = createAsyncQueue<string>()
+
+    // consumer가 먼저 대기
+    const p = dequeue()
+    // 이후 producer가 enqueue
+    enqueue('hello')
+
+    expect(await p).toBe('hello')
+  })
+
+  it('chunk → done 정상 흐름 시뮬레이션', async () => {
+    type Item = { type: 'chunk'; data: string } | { type: 'done'; model: string }
+    const { enqueue, dequeue } = createAsyncQueue<Item>()
+
+    // producer: 비동기로 3 chunk + done
+    setTimeout(() => {
+      enqueue({ type: 'chunk', data: 'A' })
+      enqueue({ type: 'chunk', data: 'B' })
+      enqueue({ type: 'chunk', data: 'C' })
+      enqueue({ type: 'done', model: 'test-model' })
+    }, 0)
+
+    // consumer: while loop 시뮬레이션
+    const chunks: string[] = []
+    let finalModel = ''
+    while (true) {
+      const item = await dequeue()
+      if (item.type === 'chunk') { chunks.push(item.data); continue }
+      finalModel = item.model
+      break
+    }
+
+    expect(chunks).toEqual(['A', 'B', 'C'])
+    expect(finalModel).toBe('test-model')
+  })
+
+  it('에러 아이템이 enqueue되면 throw로 변환', async () => {
+    type Item = { type: 'chunk'; data: string } | { type: 'error'; error: unknown }
+    const { enqueue, dequeue } = createAsyncQueue<Item>()
+
+    setTimeout(() => {
+      enqueue({ type: 'chunk', data: 'X' })
+      enqueue({ type: 'error', error: new Error('stream failed') })
+    }, 0)
+
+    const items: Item[] = []
+    items.push(await dequeue()) // chunk
+    items.push(await dequeue()) // error
+
+    expect(items[0].type).toBe('chunk')
+    expect(items[1].type).toBe('error')
+    // throw 로직은 caller(while loop)에서 처리함
+    const errItem = items[1]
+    if (errItem.type === 'error') {
+      expect(errItem.error).toBeInstanceOf(Error)
+    }
+  })
+})
+
 // 프롬프트 형식 시뮬레이션
 describe('Markdown-KV 프롬프트 형식 검증', () => {
   let openRouterRecommender: typeof import('@/lib/services/openrouter-recommender').openRouterRecommender

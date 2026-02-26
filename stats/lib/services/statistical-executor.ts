@@ -1038,15 +1038,7 @@ export class StatisticalExecutor {
 
       const covariates = covariateArrays
 
-      // Worker 실제 반환 타입으로 캐스팅 (pyodide-statistics.ts 선언과 다름)
-      const ancovaResult = await pyodideStats.ancovaWorker(yValues, groupValues, covariates) as unknown as {
-        fStatisticGroup: number
-        pValueGroup: number
-        fStatisticCovariate: number[]
-        pValueCovariate: number[]
-        adjustedMeans: Array<{ group: string | number; mean: number }>
-        anovaTable: Record<string, unknown>
-      }
+      const ancovaResult = await pyodideStats.ancovaWorker(yValues, groupValues, covariates)
 
       return {
         metadata: {
@@ -1116,18 +1108,9 @@ export class StatisticalExecutor {
         dataMatrix,
         subjectIds,
         timeLabels
-      ) as unknown as {
-        fStatistic: number
-        pValue: number
-        df: { numerator: number; denominator: number }
-        sphericityEpsilon: number
-        anovaTable: Record<string, unknown>
-      }
+      )
 
-      // df 처리: 숫자 또는 { numerator, denominator } 객체 모두 대응
-      const dfValue = typeof rmResult.df === 'number'
-        ? rmResult.df
-        : (rmResult.df as { numerator?: number })?.numerator ?? 0
+      const dfValue = rmResult.df.numerator
 
       return {
         metadata: {

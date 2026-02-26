@@ -7,6 +7,32 @@
  * - 통합 스트리밍 인터페이스 (AsyncGenerator)
  */
 
+/**
+ * 단일 소비자(single-consumer) 비동기 큐.
+ * 다중 소비자 사용 시 wakeup이 누락될 수 있으므로 주의.
+ */
+function createAsyncQueue<T>() {
+  const queue: T[] = []
+  let waiting: ((item: T) => void) | null = null
+
+  const enqueue = (item: T): void => {
+    if (waiting) {
+      const resolve = waiting
+      waiting = null
+      resolve(item)
+    } else {
+      queue.push(item)
+    }
+  }
+
+  const dequeue = (): Promise<T> => {
+    if (queue.length > 0) return Promise.resolve(queue.shift()!)
+    return new Promise<T>((resolve) => { waiting = resolve })
+  }
+
+  return { enqueue, dequeue }
+}
+
 import type {
   AIRecommendation,
   AnalysisTrack,
@@ -242,36 +268,12 @@ export class LlmRecommender {
       | { type: 'chunk'; data: string }
       | { type: 'done'; model: string }
       | { type: 'error'; error: unknown }
-    const queue: QueueItem[] = []
-    let waiting: ((item: QueueItem) => void) | null = null
-
-    const enqueue = (item: QueueItem) => {
-      if (waiting) {
-        const resolve = waiting
-        waiting = null
-        resolve(item)
-      } else {
-        queue.push(item)
-      }
-    }
-
-    const dequeue = (): Promise<QueueItem> => {
-      if (queue.length > 0) {
-        return Promise.resolve(queue.shift()!)
-      }
-      return new Promise<QueueItem>((resolve) => {
-        waiting = resolve
-      })
-    }
-
-    const onChunk = (text: string) => {
-      enqueue({ type: 'chunk', data: text })
-    }
+    const { enqueue, dequeue } = createAsyncQueue<QueueItem>()
 
     openRouterRecommender.streamChatCompletion(
       systemPrompt,
       userPrompt,
-      onChunk,
+      (text) => enqueue({ type: 'chunk', data: text }),
       signal,
       { temperature: 0.5, maxTokens: 4000 }
     ).then((result) => {
@@ -310,23 +312,7 @@ export class LlmRecommender {
       | { type: 'chunk'; data: string }
       | { type: 'done'; model: string }
       | { type: 'error'; error: unknown }
-    const queue: QueueItem[] = []
-    let waiting: ((item: QueueItem) => void) | null = null
-
-    const enqueue = (item: QueueItem) => {
-      if (waiting) {
-        const resolve = waiting
-        waiting = null
-        resolve(item)
-      } else {
-        queue.push(item)
-      }
-    }
-
-    const dequeue = (): Promise<QueueItem> => {
-      if (queue.length > 0) return Promise.resolve(queue.shift()!)
-      return new Promise<QueueItem>((resolve) => { waiting = resolve })
-    }
+    const { enqueue, dequeue } = createAsyncQueue<QueueItem>()
 
     openRouterRecommender.streamChatWithMessages(
       messages,
