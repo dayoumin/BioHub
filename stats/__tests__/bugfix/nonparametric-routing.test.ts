@@ -66,7 +66,7 @@ describe('method-mapping.ts: category 정의 검증', () => {
 
 describe('StatisticalExecutor: 비모수 라우팅 시뮬레이션', () => {
   let executor: StatisticalExecutor
-  const mock = pyodideStats as Record<string, ReturnType<typeof vi.fn>>
+  const mock = pyodideStats as unknown as Record<string, ReturnType<typeof vi.fn>>
 
   beforeEach(() => {
     executor = new StatisticalExecutor()
