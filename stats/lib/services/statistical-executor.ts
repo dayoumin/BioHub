@@ -1385,6 +1385,13 @@ export class StatisticalExecutor {
   ): Promise<AnalysisResult> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any
+    // proportion-test 전용 메타 (additionalInfo + visualizationData 빌드에 사용)
+    let proportionTestMeta: {
+      nullProportion: number
+      successCount: number
+      totalCount: number
+      freqCounts: Record<string, number>
+    } | undefined
 
     switch (method.id) {
       case 'mann-whitney': {
@@ -1585,6 +1592,8 @@ export class StatisticalExecutor {
         const totalCount = data.totalN || 1
         // nullProportion: variableMapping에 string으로 저장 → float 파싱 (기본 0.5)
         const nullProportion = parseFloat(String(data.variables?.nullProportion ?? '')) || 0.5
+        let freqCounts: Record<string, number> = {}
+
         if (successCount === undefined) {
           // dependentVar에서 success 기준값 자동 결정: positive 키워드 우선, 없으면 사전순 후순위 (1/yes/true 계열)
           const POSITIVE_KEYWORDS = new Set(['1', 'yes', 'y', 'true', 't', 'success', 'positive', '성공', '예', '참', '양성'])
@@ -1592,6 +1601,10 @@ export class StatisticalExecutor {
           if (depCol && data.data.length > 0) {
             const colName = Array.isArray(depCol) ? String(depCol[0]) : String(depCol)
             const values = data.data.map(r => String(r[colName]))
+            // 시각화용 빈도 테이블
+            for (const v of values) {
+              freqCounts[v] = (freqCounts[v] ?? 0) + 1
+            }
             const uniqueVals = [...new Set(values)].sort()
             if (uniqueVals.length >= 1) {
               // positive 키워드 먼저, 없으면 사전순 마지막 값 ("yes" > "no", "1" > "0" 등)
@@ -1602,7 +1615,15 @@ export class StatisticalExecutor {
               successLabel = successVal
             }
           }
+        } else {
+          // 명시적 successCount 제공 시: 이진 빈도 테이블 (success / 기타)
+          const label = successLabel ?? '성공'
+          freqCounts = {
+            [label]: successCount,
+            '기타': totalCount - successCount
+          }
         }
+
         const propResult = await pyodideStats.oneSampleProportionTest(
           successCount ?? 0,
           totalCount,
@@ -1614,6 +1635,7 @@ export class StatisticalExecutor {
           proportion: propResult.sampleProportion,
           ...(successLabel !== undefined && { successLabel })
         }
+        proportionTestMeta = { nullProportion, successCount: successCount ?? 0, totalCount, freqCounts }
         break
       }
       default:
@@ -1648,10 +1670,17 @@ export class StatisticalExecutor {
             : '그룹 간 유의한 차이가 없습니다'
         })()
       },
-      additionalInfo: {},
+      additionalInfo: proportionTestMeta
+        ? {
+            sampleProportion: result.proportion,
+            nullProportion: proportionTestMeta.nullProportion,
+            successCount: proportionTestMeta.successCount,
+            totalN: proportionTestMeta.totalCount
+          }
+        : {},
       visualizationData: {
-        type: 'boxplot',
-        data: data.arrays.byGroup
+        type: proportionTestMeta ? 'bar' : 'boxplot',
+        data: proportionTestMeta ? proportionTestMeta.freqCounts : data.arrays.byGroup
       },
       rawResults: result
     }

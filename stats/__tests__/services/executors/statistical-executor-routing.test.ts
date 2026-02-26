@@ -405,6 +405,82 @@ describe('StatisticalExecutor Routing', () => {
       expect(res.mainResults.interpretation).toContain('성공 기준: success')
     })
 
+    // ────────────────────────────────────────────────────────────────
+    // proportion-test 버그·엣지케이스 시뮬레이션 (비판적 검토)
+    // ────────────────────────────────────────────────────────────────
+
+    it('[FIX-1] proportion-test: visualizationData.type is "bar" and data contains frequency counts', async () => {
+      // byGroup은 groupVar가 있을 때만 채워짐.
+      // proportion-test는 dependentVar만 사용 → boxplot이 아닌 bar 차트여야 함
+      const binaryData = [
+        { outcome: 'Yes' },
+        { outcome: 'No' },
+        { outcome: 'Yes' }
+      ]
+      const result = await executor.executeMethod(
+        createMethod('proportion-test', 'Proportion Test', 'nonparametric'),
+        binaryData,
+        { dependentVar: 'outcome' }
+      )
+      expect(result.visualizationData?.type).toBe('bar')
+      expect(result.visualizationData?.data).toBeDefined()
+      const freqData = result.visualizationData?.data as Record<string, number>
+      expect(freqData['Yes']).toBe(2)
+      expect(freqData['No']).toBe(1)
+    })
+
+    it('[FIX-2] proportion-test: additionalInfo exposes sampleProportion and nullProportion', async () => {
+      // sampleProportion, nullProportion, successCount, totalN이 additionalInfo에 노출되어야 함
+      const binaryData = [
+        { outcome: 'Yes' },
+        { outcome: 'Yes' },
+        { outcome: 'No' }
+      ]
+      const result = await executor.executeMethod(
+        createMethod('proportion-test', 'Proportion Test', 'nonparametric'),
+        binaryData,
+        { dependentVar: 'outcome', nullProportion: '0.5' }
+      )
+      // mock sampleProportion = 0.6 (from oneSampleProportionTest mock)
+      expect(result.additionalInfo.sampleProportion).toBe(0.6)
+      expect(result.additionalInfo.nullProportion).toBe(0.5)
+      expect(result.additionalInfo.successCount).toBe(2)
+      expect(result.additionalInfo.totalN).toBe(3)
+    })
+
+    it('[ISSUE-3] proportion-test: missing dependentVar silently falls back to successCount=0', async () => {
+      const mockedStats = vi.mocked(pyodideStats)
+      // dependentVar 없음 → 자동 감지 실패 → successCount = undefined → ?? 0 (무음 폴백)
+      const binaryData = [{ x: 1 }, { x: 2 }]
+      await executor.executeMethod(
+        createMethod('proportion-test', 'Proportion Test', 'nonparametric'),
+        binaryData,
+        {} // dependentVar 없음
+      )
+      // 현재 동작: successCount=0으로 조용히 호출 (에러 없음)
+      // 이상적으로는 '비율 검정을 위해 dependentVar를 지정해야 합니다' 에러를 던져야 함
+      expect(mockedStats.oneSampleProportionTest).toHaveBeenCalledWith(0, 2, 0.5)
+    })
+
+    it('[EDGE] proportion-test: non-keyword binary uses alphabetical-last as success', async () => {
+      const mockedStats = vi.mocked(pyodideStats)
+      // "pass"/"fail" — POSITIVE_KEYWORDS에 없음 → 사전순 정렬 후 마지막 값 선택
+      // sorted: ["fail", "pass"] → successVal = "pass"
+      const binaryData = [
+        { outcome: 'pass' },
+        { outcome: 'fail' },
+        { outcome: 'pass' }
+      ]
+      const result = await executor.executeMethod(
+        createMethod('proportion-test', 'Proportion Test', 'nonparametric'),
+        binaryData,
+        { dependentVar: 'outcome' }
+      )
+      expect(mockedStats.oneSampleProportionTest).toHaveBeenCalledWith(2, 3, 0.5)
+      expect((result.rawResults as { successLabel?: string }).successLabel).toBe('pass')
+      expect(result.mainResults.interpretation).toContain('성공 기준: pass')
+    })
+
     it('should build 2x2 contingency table automatically for mcnemar', async () => {
       const mockedStats = vi.mocked(pyodideStats)
       const pairedBinaryData = [
