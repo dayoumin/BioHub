@@ -82,7 +82,7 @@ interface ResultsActionStepProps {
   results: AnalysisResult | null
 }
 
-// 효과크기 해석 (export-data-builder의 interpretEffectSize와 동일 기준)
+// 효과크기 해석 (L1 배지용 — 지역화 레이블 사용)
 function getEffectSizeInterpretation(value: number, type: string | undefined, labels: ResultsText['effectSizeLabels']): string {
   const absValue = Math.abs(value)
   switch (type) {
@@ -95,6 +95,13 @@ function getEffectSizeInterpretation(value: number, type: string | undefined, la
       if (absValue < 0.01) return labels.small
       if (absValue < 0.06) return labels.medium
       if (absValue < 0.14) return labels.large
+      return labels.veryLarge
+    case 'r':
+    case 'phi':
+    case 'cramersV':
+      if (absValue < 0.1) return labels.small
+      if (absValue < 0.3) return labels.medium
+      if (absValue < 0.5) return labels.large
       return labels.veryLarge
     default:
       if (absValue < 0.2) return labels.small
@@ -133,7 +140,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     includeMethodology: false,
     includeReferences: false,
   })
-  const chartRef = useRef<HTMLDivElement>(null)
   const [resultTimestamp] = useState(() => new Date())
 
   // AI 해석 상태
@@ -253,17 +259,16 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }))
   }, [statisticalResult])
 
-  // Layer 2 표시 여부 (상세 결과 + 메타데이터)
+  // Layer 2 표시 여부 (CI/effectSize/additionalResults 중 하나라도 있을 때)
+  // 메타데이터(파일명·데이터 크기)는 L1 카드에 표시되므로 이 조건에서 제외
   const hasDetailedResults = useMemo(() => {
     if (!statisticalResult) return false
     return !!(
       statisticalResult.confidenceInterval ||
       statisticalResult.effectSize ||
-      (statisticalResult.additionalResults && statisticalResult.additionalResults.length > 0) ||
-      uploadedFileName ||
-      uploadedData
+      (statisticalResult.additionalResults && statisticalResult.additionalResults.length > 0)
     )
-  }, [statisticalResult, uploadedFileName, uploadedData])
+  }, [statisticalResult])
 
   // Layer 3 표시 여부 (가정검정, 권장사항, 경고, 대안 중 하나라도 있을 때)
   const hasDiagnostics = useMemo(() => {
@@ -457,9 +462,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     } finally {
       setIsInterpreting(false)
       interpretAbortRef.current = null
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         aiInterpretationRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
-      }, 100)
+      })
     }
   }, [results, uploadedData, mappedVariables, uploadedFileName, variableMapping])
 
@@ -531,7 +536,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       isFollowUpStreamingRef.current = false
       setIsFollowUpStreaming(false)
       followUpAbortRef.current = null
-      setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
+      requestAnimationFrame(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }))
     }
   }, [results, interpretation, followUpMessages, uploadedData, mappedVariables, uploadedFileName])
 
@@ -637,7 +642,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
   return (
     <TooltipProvider>
-      <div className="space-y-4" ref={chartRef}>
+      <div className="space-y-4">
         {/* ===== 스텝 헤더 ===== */}
         <StepHeader
           icon={BarChart3}

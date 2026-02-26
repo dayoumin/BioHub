@@ -289,23 +289,31 @@ export function ChiSquareSelector({
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {categoricalColumns.map(col => (
-                  <button
-                    key={col.name}
-                    onClick={() => toggleCol(col.name)}
-                    className={cn(
-                      'p-2 rounded-lg border-2 transition-all text-left text-sm',
-                      colVar === col.name
-                        ? 'border-info-border bg-info-bg'
-                        : 'border-border hover:border-info-border/50'
-                    )}
-                  >
-                    <span className="font-medium block truncate">{col.name}</span>
-                    <Badge variant="outline" className="text-xs mt-1">{col.uniqueCount} levels</Badge>
-                  </button>
-                ))}
-              </div>
+              {categoricalColumns.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  {requireBinary
+                    ? '이진(2-레벨) 범주형 변수가 없습니다'
+                    : '범주형 변수가 없습니다'}
+                </p>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {categoricalColumns.map(col => (
+                    <button
+                      key={col.name}
+                      onClick={() => toggleCol(col.name)}
+                      className={cn(
+                        'p-2 rounded-lg border-2 transition-all text-left text-sm',
+                        colVar === col.name
+                          ? 'border-info-border bg-info-bg'
+                          : 'border-border hover:border-info-border/50'
+                      )}
+                    >
+                      <span className="font-medium block truncate">{col.name}</span>
+                      <Badge variant="outline" className="text-xs mt-1">{col.uniqueCount} levels</Badge>
+                    </button>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 

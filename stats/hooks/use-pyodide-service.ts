@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { logger } from '@/lib/utils/logger'
 
 export interface PyodideService {
   runPython: (code: string) => Promise<any>
@@ -17,11 +18,11 @@ export function usePyodideService() {
     const mockService: PyodideService = {
       runPython: async (code: string) => {
         // Mock Python execution
-        console.log('Running Python code:', code)
+        logger.debug('Running Python code:', code)
         return {}
       },
       loadPackages: async (packages: string[]) => {
-        console.log('Loading packages:', packages)
+        logger.debug('Loading packages:', packages)
       },
       isReady: true
     }

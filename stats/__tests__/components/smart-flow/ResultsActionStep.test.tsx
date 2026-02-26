@@ -852,34 +852,14 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       expect(screen.getByText('상세 결과')).toBeInTheDocument()
     })
 
-    it('아무것도 없고 메타데이터만 있으면 Layer 2 표시', () => {
+    it('CI/effectSize/additionalResults 모두 없으면 Layer 2 숨김', () => {
       mockConvert.mockReturnValue({
         testName: 't-검정',
         statistic: 1.0,
         statisticName: 't',
         pValue: 0.5,
         alpha: 0.05,
-      } as StatisticalResult)
-
-      // uploadedFileName이 store에 있으므로 hasDetailedResults=true
-      renderWithAct(<ResultsActionStep results={baseResults} />)
-
-      expect(screen.getByText('상세 결과')).toBeInTheDocument()
-    })
-
-    it('메타데이터도 없으면 Layer 2 숨김', () => {
-      mockStoreState = {
-        ...defaultStoreState,
-        uploadedFileName: '',
-        uploadedData: null as never,
-      }
-
-      mockConvert.mockReturnValue({
-        testName: 't-검정',
-        statistic: 1.0,
-        statisticName: 't',
-        pValue: 0.5,
-        alpha: 0.05,
+        // 메타데이터만 있고 통계 세부 결과 없음 — L2 숨겨야 함
       } as StatisticalResult)
 
       renderWithAct(<ResultsActionStep results={baseResults} />)

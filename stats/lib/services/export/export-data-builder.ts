@@ -76,13 +76,19 @@ function extractEffectSize(es: number | EffectSizeInfo | undefined): {
   return { value: es.value, type: es.type ?? '' }
 }
 
-/** 효과크기 해석 */
+/** 효과크기 해석 (export용 — 영문 고정값) */
 function interpretEffectSize(value: number, type: string): string {
   const abs = Math.abs(value)
   if (type === 'etaSquared' || type === 'eta_squared') {
     if (abs < 0.01) return 'Small'
     if (abs < 0.06) return 'Medium'
     if (abs < 0.14) return 'Large'
+    return 'Very Large'
+  }
+  if (type === 'r' || type === 'phi' || type === 'cramersV') {
+    if (abs < 0.1) return 'Small'
+    if (abs < 0.3) return 'Medium'
+    if (abs < 0.5) return 'Large'
     return 'Very Large'
   }
   // Cohen's d default

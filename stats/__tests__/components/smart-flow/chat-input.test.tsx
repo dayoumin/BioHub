@@ -2,7 +2,7 @@
  * ChatInput — externalValue 주입 + auto-submit 테스트
  *
  * 시나리오:
- * 1. externalValue 주입 → 150ms 후 onSubmit 호출
+ * 1. externalValue 주입 → 즉시 onSubmit 호출 (setTimeout 없음)
  * 2. onSubmit 호출 후 onExternalValueConsumed 호출 (이전 순서가 아닌)
  * 3. 수동 입력 + Enter → onSubmit 호출
  * 4. isProcessing=true → 제출 불가
@@ -216,7 +216,7 @@ describe('ChatInput', () => {
 
   // ===== 시나리오 3: externalValue 주입 → auto-submit =====
   describe('externalValue 주입 (트랙 카드 클릭)', () => {
-    it('[버그 수정 검증] externalValue 주입 → 150ms 후 onSubmit 호출됨', () => {
+    it('externalValue 주입 → 즉시 onSubmit 호출됨', () => {
       const onSubmit = vi.fn()
       const onConsumed = vi.fn()
 
@@ -229,14 +229,7 @@ describe('ChatInput', () => {
         />
       )
 
-      // 즉시: onSubmit 아직 호출 안 됨
-      expect(onSubmit).not.toHaveBeenCalled()
-
-      // 150ms 후: onSubmit 호출됨
-      act(() => {
-        vi.advanceTimersByTime(150)
-      })
-
+      // 즉시: onSubmit 호출됨 (setTimeout 없음)
       expect(onSubmit).toHaveBeenCalledWith('t-test 하고 싶어')
       expect(onSubmit).toHaveBeenCalledTimes(1)
     })
@@ -267,44 +260,17 @@ describe('ChatInput', () => {
       expect(onConsumed).toHaveBeenCalledTimes(1)
     })
 
-    it('externalValue가 textarea에 표시됨', () => {
+    it('externalValue 없이 렌더 시 textarea는 빈 값', () => {
       render(
         <ChatInput
           onSubmit={vi.fn()}
           isProcessing={false}
-          externalValue="데이터 분석 도와줘"
           onExternalValueConsumed={vi.fn()}
         />
       )
 
       const textarea = screen.getByTestId('ai-chat-input') as HTMLTextAreaElement
-      expect(textarea.value).toBe('데이터 분석 도와줘')
-    })
-
-    it('150ms 이전에 언마운트 → timer 정리 (onSubmit 호출 안 됨)', () => {
-      const onSubmit = vi.fn()
-
-      const { unmount } = render(
-        <ChatInput
-          onSubmit={onSubmit}
-          isProcessing={false}
-          externalValue="test"
-          onExternalValueConsumed={vi.fn()}
-        />
-      )
-
-      // 100ms만 경과 후 언마운트
-      act(() => {
-        vi.advanceTimersByTime(100)
-      })
-      unmount()
-
-      // 나머지 시간 경과
-      act(() => {
-        vi.advanceTimersByTime(100)
-      })
-
-      expect(onSubmit).not.toHaveBeenCalled()
+      expect(textarea.value).toBe('')
     })
 
     it('externalValue 없이 렌더 → auto-submit 안 됨', () => {
