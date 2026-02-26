@@ -1636,9 +1636,17 @@ export class StatisticalExecutor {
         pvalue: result.pvalue,
         df: result.df,
         significant: result.pvalue < 0.05,
-        interpretation: result.pvalue < 0.05 ?
-          '그룹 간 유의한 차이가 있습니다 (비모수)' :
-          '그룹 간 유의한 차이가 없습니다'
+        interpretation: (() => {
+          if (method.id === 'proportion-test') {
+            const suffix = result.successLabel ? ` (성공 기준: ${result.successLabel})` : ''
+            return result.pvalue < 0.05
+              ? `표본 비율이 귀무가설 비율과 유의하게 다릅니다${suffix}`
+              : `표본 비율이 귀무가설 비율과 유의하게 다르지 않습니다${suffix}`
+          }
+          return result.pvalue < 0.05
+            ? '그룹 간 유의한 차이가 있습니다 (비모수)'
+            : '그룹 간 유의한 차이가 없습니다'
+        })()
       },
       additionalInfo: {},
       visualizationData: {

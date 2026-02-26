@@ -372,6 +372,37 @@ describe('StatisticalExecutor Routing', () => {
 
       expect(mockedStats.oneSampleProportionTest).toHaveBeenCalledWith(3, 4, 0.5)
       expect((result.rawResults as { successLabel?: string }).successLabel).toBe('Yes')
+      // interpretation에 successLabel 포함 여부 검증 (mock pValueExact=0.07 → not significant)
+      expect(result.mainResults.interpretation).toContain('성공 기준: Yes')
+      expect(result.mainResults.interpretation).toContain('귀무가설 비율과 유의하게 다르지 않습니다')
+    })
+
+    it('proportion-test: significant result interpretation contains successLabel', async () => {
+      const mockedStats = vi.mocked(pyodideStats)
+      mockedStats.oneSampleProportionTest.mockResolvedValueOnce({
+        zStatistic: 3.2,
+        pValueExact: 0.001,
+        pValueApprox: 0.001,
+        pValue: 0.001,
+        sampleProportion: 0.8,
+        nullProportion: 0.5,
+        significant: true,
+        alpha: 0.05
+      })
+      const binaryData = [
+        { result: 'success' },
+        { result: 'success' },
+        { result: 'fail' }
+      ]
+
+      const res = await executor.executeMethod(
+        createMethod('proportion-test', 'Proportion Test', 'nonparametric'),
+        binaryData,
+        { dependentVar: 'result' }
+      )
+
+      expect(res.mainResults.interpretation).toContain('표본 비율이 귀무가설 비율과 유의하게 다릅니다')
+      expect(res.mainResults.interpretation).toContain('성공 기준: success')
     })
 
     it('should build 2x2 contingency table automatically for mcnemar', async () => {

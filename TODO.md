@@ -81,6 +81,12 @@
 - ✅ **검증**: tsc 0 errors, tests 128 passed (118 + 10)
 - 📌 커밋: `ff48a374`
 
+### 2026-02-26 (목) proportion-test interpretation 개선
+
+- ✅ **proportion-test 전용 해석 문구**: `successLabel` 포함 — "표본 비율이 귀무가설 비율과 유의하게 다릅니다 (성공 기준: Yes)" 형식
+- ✅ **테스트 보강**: interpretation에 successLabel 포함 검증 + significant 케이스 추가 (25 tests)
+- 📌 커밋: (이번 커밋)
+
 ### 2026-02-26 (목) Step 4 AnalysisExecutionStep + ResultsActionStep 비판적 검토
 
 - ✅ **Bug: `setTimeout(onNext)` cleanup 누락** — `autoNextTimerRef`로 관리 + 언마운트 시 정리 (언마운트 후 콜백 방지)
