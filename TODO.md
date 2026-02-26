@@ -66,6 +66,9 @@
 - ✅ **🟠 테스트 불일치 해소** — `computeLayerVisibility` helper가 제거된 `uploadedFileName/uploadedData` 조건을 여전히 포함. 시그니처를 `(sr, additional?)` 로 변경, Scenario 4 케이스 2개 교체 (rSquared·power 단독 케이스로)
 - ✅ **🟠 export `interpretEffectSize` 정규화** — `normalized = type.toLowerCase().replace(/\s+/g,'')` 도입. `pearson r`, `cramer's v`, `η²` 등 AI 변형 입력 시 오분류 방지
 - ✅ **🟡 useCallback deps `t` 6개 추가** — `handleSaveAsFile`, `handleReanalyze`, `handleNewAnalysisConfirm`, `handleInterpretation`, `handleFollowUp`, `handleCopyResults` — 언어 전환 stale text 방지
+- ✅ **🟡 `handleFollowUp` 오류 처리 개선** — `\`오류: ${msg}\`` 하드코딩 제거: `instanceof Error` → `t.smartFlow.executionLogs.errorPrefix()`, 그 외 → `t.results.followUp.errorMessage` 직접 사용 (이중 감쌈 방지)
+- ✅ **🟢 `scrollIntoView?.` optional chaining** — JSDOM 호환 (테스트 환경에서 scrollIntoView 미구현 시 예외 방지)
+- ✅ **🟢 테스트 2개 추가** — `handleFollowUp 에러 처리`: Error 인스턴스/비-Error 예외 분기, 이중 감쌈 방지 검증
 - ✅ **검증**: tsc 0 errors, tests 107 passed (69 + 38)
 - 📌 커밋: `3544e447`
 
@@ -76,7 +79,7 @@
 - ✅ **테스트 추가 (executor-routing)**: successCount=0 보존, Yes/No auto-detect + successLabel 반환, McNemar 2×2 자동 빌드 — 3개
 - ✅ **테스트 추가 (ChiSquareSelector)**: proportion-test 이진 변수 필터 + nullProportion UI, 제출 페이로드 검증 — 2개
 - ✅ **검증**: tsc 0 errors, tests 128 passed (118 + 10)
-- 📌 커밋: (이번 커밋)
+- 📌 커밋: `ff48a374`
 
 ### 2026-02-26 (목) Step 4 AnalysisExecutionStep + ResultsActionStep 비판적 검토
 
