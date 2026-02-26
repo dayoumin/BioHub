@@ -67,6 +67,15 @@
 - ✅ **🟠 export `interpretEffectSize` 정규화** — `normalized = type.toLowerCase().replace(/\s+/g,'')` 도입. `pearson r`, `cramer's v`, `η²` 등 AI 변형 입력 시 오분류 방지
 - ✅ **🟡 useCallback deps `t` 6개 추가** — `handleSaveAsFile`, `handleReanalyze`, `handleNewAnalysisConfirm`, `handleInterpretation`, `handleFollowUp`, `handleCopyResults` — 언어 전환 stale text 방지
 - ✅ **검증**: tsc 0 errors, tests 107 passed (69 + 38)
+- 📌 커밋: `3544e447`
+
+### 2026-02-26 (목) proportion-test successCount=0 버그 + 테스트 보강
+
+- ✅ **🔴 successCount=0 edge case 버그 수정**: `successCount === 0` → `Number.isFinite(Number(value))` 파싱으로 변경. 명시적 0이 undefined처럼 처리되어 auto-detect로 폴백되던 문제 수정 (`Number("5")` → 5 변환 동작 검증)
+- ✅ **successLabel 타입 가드**: `unknown` → `typeof === 'string'` 체크 추가
+- ✅ **테스트 추가 (executor-routing)**: successCount=0 보존, Yes/No auto-detect + successLabel 반환, McNemar 2×2 자동 빌드 — 3개
+- ✅ **테스트 추가 (ChiSquareSelector)**: proportion-test 이진 변수 필터 + nullProportion UI, 제출 페이로드 검증 — 2개
+- ✅ **검증**: tsc 0 errors, tests 128 passed (118 + 10)
 - 📌 커밋: (이번 커밋)
 
 ### 2026-02-26 (목) Step 4 AnalysisExecutionStep + ResultsActionStep 비판적 검토

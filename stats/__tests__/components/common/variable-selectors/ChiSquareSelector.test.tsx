@@ -172,5 +172,46 @@ describe('ChiSquareSelector', () => {
       // independentVar 없어야 함
       expect(onComplete.mock.calls[0][0]).not.toHaveProperty('independentVar')
     })
+
+    it('proportion-test는 이진 변수만 표시하고 nullProportion 입력을 노출한다', () => {
+      const { container } = render(
+        <ChiSquareSelector
+          data={mockData}
+          onComplete={vi.fn()}
+          methodId="proportion-test"
+        />
+      )
+
+      // mockData에서 binary는 gender만 해당
+      expect(findVarButton(container, 'gender')).not.toBeNull()
+      expect(findVarButton(container, 'treatment')).toBeNull()
+      expect(screen.getByLabelText('p₀ =')).toBeDefined()
+    })
+
+    it('proportion-test 제출 시 nullProportion이 함께 전달된다', () => {
+      const onComplete = vi.fn()
+      const { container } = render(
+        <ChiSquareSelector
+          data={mockData}
+          onComplete={onComplete}
+          methodId="proportion-test"
+        />
+      )
+
+      const genderBtn = findVarButton(container, 'gender')
+      fireEvent.click(genderBtn!)
+      fireEvent.change(screen.getByLabelText('p₀ ='), { target: { value: '0.3' } })
+
+      const runBtn = screen.getByTestId('run-analysis-btn')
+      expect(runBtn).not.toBeDisabled()
+      fireEvent.click(runBtn)
+
+      expect(onComplete).toHaveBeenCalledWith(
+        expect.objectContaining({
+          dependentVar: 'gender',
+          nullProportion: '0.3'
+        })
+      )
+    })
   })
 })

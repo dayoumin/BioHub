@@ -336,6 +336,61 @@ describe('StatisticalExecutor Routing', () => {
       expect(result).toBeDefined()
       expect(result.metadata.method).toBeDefined()
     })
+
+    it('should preserve explicit successCount=0 for proportion-test', async () => {
+      const mockedStats = vi.mocked(pyodideStats)
+      const binaryData = [
+        { outcome: 'No' },
+        { outcome: 'No' },
+        { outcome: 'No' },
+        { outcome: 'No' }
+      ]
+
+      await executor.executeMethod(
+        createMethod('proportion-test', 'Proportion Test', 'nonparametric'),
+        binaryData,
+        { dependentVar: 'outcome', successCount: 0, nullProportion: '0.3' }
+      )
+
+      expect(mockedStats.oneSampleProportionTest).toHaveBeenCalledWith(0, 4, 0.3)
+    })
+
+    it('should auto-detect positive label for proportion-test and expose successLabel', async () => {
+      const mockedStats = vi.mocked(pyodideStats)
+      const binaryData = [
+        { outcome: 'Yes' },
+        { outcome: 'No' },
+        { outcome: 'Yes' },
+        { outcome: 'Yes' }
+      ]
+
+      const result = await executor.executeMethod(
+        createMethod('proportion-test', 'Proportion Test', 'nonparametric'),
+        binaryData,
+        { dependentVar: 'outcome' }
+      )
+
+      expect(mockedStats.oneSampleProportionTest).toHaveBeenCalledWith(3, 4, 0.5)
+      expect((result.rawResults as { successLabel?: string }).successLabel).toBe('Yes')
+    })
+
+    it('should build 2x2 contingency table automatically for mcnemar', async () => {
+      const mockedStats = vi.mocked(pyodideStats)
+      const pairedBinaryData = [
+        { before: 0, after: 0 },
+        { before: 0, after: 1 },
+        { before: 1, after: 0 },
+        { before: 1, after: 1 }
+      ]
+
+      await executor.executeMethod(
+        createMethod('mcnemar', 'McNemar', 'nonparametric'),
+        pairedBinaryData,
+        { independentVar: 'before', dependentVar: 'after' }
+      )
+
+      expect(mockedStats.mcnemarTestWorker).toHaveBeenCalledWith([[1, 1], [1, 1]])
+    })
   })
 
   // ============================================

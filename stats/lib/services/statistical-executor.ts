@@ -1577,13 +1577,15 @@ export class StatisticalExecutor {
         break
       }
       case 'proportion-test': {
-        // successCount: 명시적 값 → dependentVar에서 자동 계산 → 0
-        let successCount = data.variables?.successCount as number | undefined
-        let successLabel: string | undefined
+        // successCount: 명시적 숫자 값 우선, 없으면 dependentVar에서 자동 계산
+        const parsedSuccessCount = Number(data.variables?.successCount)
+        let successCount = Number.isFinite(parsedSuccessCount) ? parsedSuccessCount : undefined
+        const rawSuccessLabel = data.variables?.successLabel
+        let successLabel = typeof rawSuccessLabel === 'string' ? rawSuccessLabel : undefined
         const totalCount = data.totalN || 1
         // nullProportion: variableMapping에 string으로 저장 → float 파싱 (기본 0.5)
         const nullProportion = parseFloat(String(data.variables?.nullProportion ?? '')) || 0.5
-        if (successCount === undefined || successCount === 0) {
+        if (successCount === undefined) {
           // dependentVar에서 success 기준값 자동 결정: positive 키워드 우선, 없으면 사전순 후순위 (1/yes/true 계열)
           const POSITIVE_KEYWORDS = new Set(['1', 'yes', 'y', 'true', 't', 'success', 'positive', '성공', '예', '참', '양성'])
           const depCol = data.variables.dependentVar ?? data.variables.dependent
