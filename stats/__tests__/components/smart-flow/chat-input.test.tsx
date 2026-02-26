@@ -260,6 +260,29 @@ describe('ChatInput', () => {
       expect(onConsumed).toHaveBeenCalledTimes(1)
     })
 
+    it('externalValue 제출 후 입력창은 비어 있어야 함', () => {
+      const { rerender } = render(
+        <ChatInput
+          onSubmit={vi.fn()}
+          isProcessing={false}
+          externalValue="t-test"
+          onExternalValueConsumed={vi.fn()}
+        />
+      )
+
+      // consumed 처리 후 externalValue 제거 시뮬레이션
+      rerender(
+        <ChatInput
+          onSubmit={vi.fn()}
+          isProcessing={false}
+          onExternalValueConsumed={vi.fn()}
+        />
+      )
+
+      const textarea = screen.getByTestId('ai-chat-input') as HTMLTextAreaElement
+      expect(textarea.value).toBe('')
+    })
+
     it('externalValue 없이 렌더 시 textarea는 빈 값', () => {
       render(
         <ChatInput
