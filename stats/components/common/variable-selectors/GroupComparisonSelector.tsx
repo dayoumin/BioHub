@@ -149,9 +149,9 @@ export function GroupComparisonSelector({
     onComplete({
       groupVar,
       dependentVar,
-      ...(covariates.length > 0 && { covariate: covariates })
+      ...(showCovariate && covariates.length > 0 && { covariate: covariates })
     })
-  }, [validation.isValid, groupVar, dependentVar, covariates, onComplete])
+  }, [validation.isValid, groupVar, dependentVar, covariates, showCovariate, onComplete])
 
   if (!analysis) {
     return (

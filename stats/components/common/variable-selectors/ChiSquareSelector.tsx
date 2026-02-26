@@ -13,6 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { AlertCircle, CheckCircle2, ArrowRight, ArrowLeft, Grid3X3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { analyzeDataset } from '@/lib/services/variable-type-detector'
@@ -25,6 +27,7 @@ interface ChiSquareSelectorProps extends VariableSelectorProps {
 }
 
 const GOODNESS_IDS = new Set(['chi-square-goodness', 'proportion-test'])
+const BINARY_ONLY_IDS = new Set(['mcnemar', 'proportion-test'])
 
 export function ChiSquareSelector({
   data,
@@ -60,6 +63,8 @@ export function ChiSquareSelector({
   const [colVar, setColVar] = useState<string | null>(
     toSingleVar(initialSelection?.dependentVar)
   )
+  // proportion-test 전용: 귀무가설 비율 p₀ (0.01 ~ 0.99)
+  const [nullProportion, setNullProportion] = useState<string>('0.5')
 
   useEffect(() => {
     const iv = toSingleVar(initialSelection?.independentVar)
@@ -76,15 +81,28 @@ export function ChiSquareSelector({
     return analyzeDataset(data, { detectIdColumns: true })
   }, [data])
 
-  // Categorical columns only
+  // Categorical columns — binary-only filter for mcnemar/proportion-test
+  const requireBinary = BINARY_ONLY_IDS.has(methodId ?? '')
   const categoricalColumns = useMemo(() => {
     if (!analysis) return []
     return analysis.columns.filter(
       col =>
         ['categorical', 'binary', 'ordinal'].includes(col.type) &&
-        !col.idDetection?.isId
+        !col.idDetection?.isId &&
+        (!requireBinary || col.uniqueCount === 2)
     )
-  }, [analysis])
+  }, [analysis, requireBinary])
+
+  // proportion-test nullProportion 입력 핸들러
+  const handleNullProportionChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setNullProportion(e.target.value)
+  }, [])
+
+  // nullProportion 파싱 결과
+  const nullProportionNum = useMemo(() => {
+    const v = parseFloat(nullProportion)
+    return isNaN(v) ? null : v
+  }, [nullProportion])
 
   // Validation
   const validation = useMemo(() => {
@@ -95,9 +113,14 @@ export function ChiSquareSelector({
       if (rowVar && colVar && rowVar === colVar) errors.push('서로 다른 변수를 선택하세요')
     } else {
       if (!colVar) errors.push('검정 변수를 선택하세요')
+      if (methodId === 'proportion-test') {
+        if (nullProportionNum === null || nullProportionNum <= 0 || nullProportionNum >= 1) {
+          errors.push('귀무가설 비율은 0 초과 1 미만이어야 합니다')
+        }
+      }
     }
     return { isValid: errors.length === 0, errors }
-  }, [mode, rowVar, colVar])
+  }, [mode, rowVar, colVar, methodId, nullProportionNum])
 
   const toggleRow = useCallback((name: string) => {
     setRowVar(prev => (prev === name ? null : name))
@@ -112,9 +135,15 @@ export function ChiSquareSelector({
     if (mode === 'independence') {
       onComplete({ independentVar: rowVar ?? undefined, dependentVar: colVar ?? undefined })
     } else {
-      onComplete({ dependentVar: colVar ?? undefined })
+      onComplete({
+        dependentVar: colVar ?? undefined,
+        // proportion-test: nullProportion을 string으로 전달 (VariableMapping index signature 준수)
+        ...(methodId === 'proportion-test' && nullProportionNum !== null && {
+          nullProportion: String(nullProportionNum)
+        })
+      })
     }
-  }, [validation.isValid, mode, rowVar, colVar, onComplete])
+  }, [validation.isValid, mode, rowVar, colVar, methodId, nullProportionNum, onComplete])
 
   if (!analysis) {
     return (
@@ -245,39 +274,73 @@ export function ChiSquareSelector({
         </div>
       ) : (
         /* Goodness / Proportion: single variable */
-        <Card>
-          <CardHeader className="pb-3 bg-info-bg">
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-base">검정 변수</CardTitle>
-              <span className="text-destructive">*</span>
-              {colVar && <Badge variant="default" className="ml-auto">{colVar}</Badge>}
-            </div>
-            <CardDescription className="text-xs">
-              {methodId === 'proportion-test'
-                ? '이진(Binary) 범주형 변수를 선택하세요'
-                : '관측 빈도를 검정할 범주형 변수를 선택하세요'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {categoricalColumns.map(col => (
-                <button
-                  key={col.name}
-                  onClick={() => toggleCol(col.name)}
-                  className={cn(
-                    'p-2 rounded-lg border-2 transition-all text-left text-sm',
-                    colVar === col.name
-                      ? 'border-info-border bg-info-bg'
-                      : 'border-border hover:border-info-border/50'
-                  )}
-                >
-                  <span className="font-medium block truncate">{col.name}</span>
-                  <Badge variant="outline" className="text-xs mt-1">{col.uniqueCount} levels</Badge>
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="pb-3 bg-info-bg">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base">검정 변수</CardTitle>
+                <span className="text-destructive">*</span>
+                {colVar && <Badge variant="default" className="ml-auto">{colVar}</Badge>}
+              </div>
+              <CardDescription className="text-xs">
+                {methodId === 'proportion-test'
+                  ? '이진(Binary) 범주형 변수를 선택하세요'
+                  : '관측 빈도를 검정할 범주형 변수를 선택하세요'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {categoricalColumns.map(col => (
+                  <button
+                    key={col.name}
+                    onClick={() => toggleCol(col.name)}
+                    className={cn(
+                      'p-2 rounded-lg border-2 transition-all text-left text-sm',
+                      colVar === col.name
+                        ? 'border-info-border bg-info-bg'
+                        : 'border-border hover:border-info-border/50'
+                    )}
+                  >
+                    <span className="font-medium block truncate">{col.name}</span>
+                    <Badge variant="outline" className="text-xs mt-1">{col.uniqueCount} levels</Badge>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* proportion-test 전용: 귀무가설 비율 입력 */}
+          {methodId === 'proportion-test' && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">귀무가설 비율 (p₀)</CardTitle>
+                <CardDescription className="text-xs">
+                  검정할 기준 비율을 입력하세요 (0 초과 ~ 1 미만, 기본값: 0.5)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="flex items-center gap-3">
+                  <Label htmlFor="null-proportion" className="text-sm text-muted-foreground whitespace-nowrap">
+                    p₀ =
+                  </Label>
+                  <Input
+                    id="null-proportion"
+                    type="number"
+                    min="0.01"
+                    max="0.99"
+                    step="0.01"
+                    value={nullProportion}
+                    onChange={handleNullProportionChange}
+                    className="w-28 text-sm"
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    예: 0.5 (50/50), 0.3 (30%)
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Validation Feedback */}

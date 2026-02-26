@@ -1459,8 +1459,32 @@ export class StatisticalExecutor {
         break
       }
       case 'mcnemar': {
-        // 2x2 분할표 필요
-        const contingencyTable = data.arrays.contingencyTable || [[0, 0], [0, 0]]
+        // 2x2 분할표: 미리 구성된 값 또는 independentVar/dependentVar에서 자동 구성
+        let contingencyTable = data.arrays.contingencyTable
+        if (!contingencyTable) {
+          // ChiSquareSelector가 보내는 independentVar/dependentVar로 교차표 구성
+          const rowCol = data.variables.independentVar ?? data.variables.independent
+          const colCol = data.variables.dependentVar ?? data.variables.dependent
+          if (rowCol && colCol && data.data.length > 0) {
+            const rowName = Array.isArray(rowCol) ? String(rowCol[0]) : String(rowCol)
+            const colName = Array.isArray(colCol) ? String(colCol[0]) : String(colCol)
+            // 고유값 추출 (이진이어야 하므로 최대 2개)
+            const rowVals = [...new Set(data.data.map(r => String(r[rowName])))]
+            const colVals = [...new Set(data.data.map(r => String(r[colName])))]
+            if (rowVals.length === 2 && colVals.length === 2) {
+              const ct = [[0, 0], [0, 0]]
+              for (const row of data.data) {
+                const ri = rowVals.indexOf(String(row[rowName]))
+                const ci = colVals.indexOf(String(row[colName]))
+                if (ri >= 0 && ci >= 0) ct[ri][ci]++
+              }
+              contingencyTable = ct
+            }
+          }
+        }
+        if (!contingencyTable || contingencyTable.length !== 2 || contingencyTable[0]?.length !== 2) {
+          throw new Error('McNemar 검정에는 2×2 교차표가 필요합니다. 두 개의 이진 변수를 선택하세요.')
+        }
         const mcnemarResult = await pyodideStats.mcnemarTestWorker(contingencyTable)
         result = {
           statistic: mcnemarResult.statistic,
@@ -1549,18 +1573,40 @@ export class StatisticalExecutor {
         break
       }
       case 'proportion-test': {
-        const successCount = data.variables?.successCount as number || 0
+        // successCount: 명시적 값 → dependentVar에서 자동 계산 → 0
+        let successCount = data.variables?.successCount as number | undefined
+        let successLabel: string | undefined
         const totalCount = data.totalN || 1
-        const nullProportion = data.variables?.nullProportion as number || 0.5
+        // nullProportion: variableMapping에 string으로 저장 → float 파싱 (기본 0.5)
+        const nullProportion = parseFloat(String(data.variables?.nullProportion ?? '')) || 0.5
+        if (successCount === undefined || successCount === 0) {
+          // dependentVar에서 success 기준값 자동 결정: positive 키워드 우선, 없으면 사전순 후순위 (1/yes/true 계열)
+          const POSITIVE_KEYWORDS = new Set(['1', 'yes', 'y', 'true', 't', 'success', 'positive', '성공', '예', '참', '양성'])
+          const depCol = data.variables.dependentVar ?? data.variables.dependent
+          if (depCol && data.data.length > 0) {
+            const colName = Array.isArray(depCol) ? String(depCol[0]) : String(depCol)
+            const values = data.data.map(r => String(r[colName]))
+            const uniqueVals = [...new Set(values)].sort()
+            if (uniqueVals.length >= 1) {
+              // positive 키워드 먼저, 없으면 사전순 마지막 값 ("yes" > "no", "1" > "0" 등)
+              const successVal =
+                uniqueVals.find(v => POSITIVE_KEYWORDS.has(v.toLowerCase())) ??
+                uniqueVals[uniqueVals.length - 1]
+              successCount = values.filter(v => v === successVal).length
+              successLabel = successVal
+            }
+          }
+        }
         const propResult = await pyodideStats.oneSampleProportionTest(
-          successCount,
+          successCount ?? 0,
           totalCount,
           nullProportion
         )
         result = {
           statistic: propResult.zStatistic,
           pvalue: propResult.pValueExact,
-          proportion: propResult.sampleProportion
+          proportion: propResult.sampleProportion,
+          ...(successLabel !== undefined && { successLabel })
         }
         break
       }
