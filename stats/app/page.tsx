@@ -165,8 +165,7 @@ export default function HomePage() {
       // 빠른 분석 모드: 메서드 선택 완료 → 업로드 직후 변수 선택(Step 3)으로 자동 이동
       // 재분석 모드는 Step 1에서 호환성 결과를 보여야 하므로 제외
       if (currentState.quickAnalysisMode && currentState.selectedMethod && !currentState.isReanalysisMode) {
-        // 사용자가 데이터 로드를 확인할 시간을 주고 이동
-        await new Promise<void>(resolve => setTimeout(resolve, 1200))
+        toast.success(`${file.name} 업로드 완료 — 변수 선택으로 이동합니다`)
         navigateToStep(3)
       }
     } catch (err) {

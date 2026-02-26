@@ -216,7 +216,7 @@ describe('SmartFlowLayout', () => {
       expect(onHistoryToggle).toHaveBeenCalledTimes(1)
     })
 
-    it('historyCount=0이면 히스토리 버튼이 숨겨져야 함', () => {
+    it('historyCount=0이어도 히스토리 버튼이 표시된다 (항상 접근 가능)', () => {
       render(
         <SmartFlowLayout
           {...defaultProps}
@@ -225,7 +225,7 @@ describe('SmartFlowLayout', () => {
         />
       )
 
-      expect(screen.queryByTitle(/히스토리/)).not.toBeInTheDocument()
+      expect(screen.getByTitle(/히스토리/)).toBeInTheDocument()
     })
   })
 

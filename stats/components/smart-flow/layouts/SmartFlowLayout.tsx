@@ -13,7 +13,6 @@ import {
   MessageCircle,
   ChevronRight,
   Loader2,
-  Home
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -149,7 +148,7 @@ export function SmartFlowLayout({
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex items-center justify-between h-14">
-            {/* 좌측: 로고 + 스텝 진행 중 홈 버튼 */}
+            {/* 좌측: 로고 */}
             <div className="flex items-center gap-3">
               <Link
                 href="/"
@@ -158,33 +157,18 @@ export function SmartFlowLayout({
               >
                 {t.smartFlow.layout.appTitle}
               </Link>
-              {!showHub && (
-                <>
-                  <span className="text-muted-foreground/30 select-none">|</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={resetSession}
-                    className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2"
-                    title="허브로 돌아가기"
-                  >
-                    <Home className="h-3.5 w-3.5" />
-                    허브
-                  </Button>
-                </>
-              )}
             </div>
 
             {/* 우측: 앱 아이콘 (히스토리, 채팅, 도움말, 설정) */}
             <div className="flex items-center gap-1">
-              {/* 히스토리 토글 버튼 (기록 있을 때만 표시) */}
-              {onHistoryToggle && (historyCount > 0 || showHistory) && (
+              {/* 히스토리 토글 버튼 */}
+              {onHistoryToggle && (
                 <Button
                   variant="ghost"
                   size="icon"
                   className={cn("h-10 w-10", showHistory && "bg-muted")}
                   onClick={onHistoryToggle}
-                  title={showHistory ? t.smartFlow.layout.historyClose : t.smartFlow.layout.historyCount(historyCount)}
+                  title={showHistory ? t.smartFlow.layout.historyClose : historyCount > 0 ? t.smartFlow.layout.historyCount(historyCount) : t.smartFlow.layout.historyTitle}
                 >
                   <Clock className="h-5 w-5" />
                 </Button>

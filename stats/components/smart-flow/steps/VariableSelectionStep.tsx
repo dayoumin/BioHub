@@ -25,7 +25,6 @@ import {
   AutoConfirmSelector
 } from '@/components/common/variable-selectors'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
-import { StepHeader } from '@/components/smart-flow/common'
 import { validateVariableMapping } from '@/lib/statistics/variable-mapping'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import { useTerminology } from '@/hooks/use-terminology'
@@ -76,7 +75,7 @@ const SELECTOR_MAP: ReadonlyMap<string, SelectorType> = new Map([
   // Correlation / multivariate numeric
   ['correlation',             'correlation'],
   ['partial-correlation',     'correlation'],
-  ['normality-test',          'correlation'],
+  ['normality-test',          'one-sample'],
   ['friedman',                'correlation'],
   ['descriptive',             'correlation'],
   ['explore-data',            'correlation'],
@@ -386,12 +385,15 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <StepHeader
-        icon={Settings2}
-        title={t.smartFlow.stepTitles.variableSelection}
-        badge={selectedMethod ? { label: selectedMethod.name } : undefined}
-      />
+      {/* Method indicator — compact, no double header */}
+      {selectedMethod && (
+        <div className="flex items-center gap-1.5">
+          <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
+          <Badge variant="outline" className="text-xs font-medium">
+            {selectedMethod.name}
+          </Badge>
+        </div>
+      )}
 
       {/* Validation Alert (from variable mapping validation) */}
       {validationAlert && (

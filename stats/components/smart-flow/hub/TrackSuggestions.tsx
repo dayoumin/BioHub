@@ -22,6 +22,7 @@ interface TrackConfig {
   icon: React.ComponentType<{ className?: string }>
   colorClass: string
   iconBgClass: string
+  disabled?: boolean
 }
 
 const TRACK_CONFIGS: TrackConfig[] = [
@@ -40,8 +41,9 @@ const TRACK_CONFIGS: TrackConfig[] = [
   {
     track: 'experiment-design',
     icon: FlaskConical,
-    colorClass: 'border-emerald-200/60 hover:border-emerald-300 dark:border-emerald-800/40 dark:hover:border-emerald-700',
-    iconBgClass: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400',
+    colorClass: 'border-emerald-200/60 dark:border-emerald-800/40',
+    iconBgClass: 'bg-emerald-100/50 dark:bg-emerald-900/20 text-emerald-400 dark:text-emerald-600',
+    disabled: true,
   },
 ]
 
@@ -87,6 +89,7 @@ export function TrackSuggestions({ onTrackSelect }: TrackSuggestionsProps) {
             index={index}
             prefersReducedMotion={prefersReducedMotion}
             onSelect={onTrackSelect}
+            disabled={config.disabled}
           />
         )
       })}
@@ -107,6 +110,7 @@ interface TrackCardProps {
   index: number
   prefersReducedMotion: boolean
   onSelect: (track: AnalysisTrack, example: string) => void
+  disabled?: boolean
 }
 
 function TrackCard({
@@ -120,28 +124,39 @@ function TrackCard({
   index,
   prefersReducedMotion,
   onSelect,
+  disabled = false,
 }: TrackCardProps) {
   const handleClick = useCallback(() => {
-    onSelect(track, example)
-  }, [track, example, onSelect])
+    if (!disabled) onSelect(track, example)
+  }, [track, example, onSelect, disabled])
 
   return (
     <motion.button
       type="button"
       onClick={handleClick}
+      disabled={disabled}
       className={cn(
         'flex flex-col items-start gap-3 p-4 rounded-xl border bg-background/60',
         'text-left transition-all duration-200',
-        'hover:shadow-sm hover:bg-background/80',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+        disabled
+          ? 'opacity-50 cursor-not-allowed'
+          : 'hover:shadow-sm hover:bg-background/80',
         colorClass
       )}
       initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.3 + index * 0.08 }}
     >
-      <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', iconBgClass)}>
-        <Icon className="w-4.5 h-4.5" />
+      <div className="flex items-center justify-between w-full">
+        <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', iconBgClass)}>
+          <Icon className="w-4.5 h-4.5" />
+        </div>
+        {disabled && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
+            준비 중
+          </span>
+        )}
       </div>
       <div className="space-y-1">
         <div className="font-medium text-sm">{title}</div>

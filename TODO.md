@@ -1,6 +1,6 @@
 # 프로젝트 현황 + 할일
 
-**최종 업데이트**: 2026-02-26 (Step 4 AnalysisExecutionStep + ResultsActionStep 비판적 검토)
+**최종 업데이트**: 2026-02-26 (UX 개선 4종 + Step 3/4 비판적 검토)
 
 ---
 
@@ -39,6 +39,24 @@
 - ✅ **Step 4 ResultsActionStep 구조 개선**: 카드 6개 분리, 액션 바 1행, L2/L3 기본 닫힘
 - ✅ **색상 토큰 회귀 테스트**: 6개 셀렉터 × 15 테스트 (color-tokens.test.tsx)
 - ✅ **AI 채팅 히스토리 (multi-turn Q&A)**: stream-follow-up.test.ts 27개 테스트 통과
+
+### 2026-02-26 (목) UX 개선 4종
+
+- ✅ **setTimeout(1200ms) 제거**: `page.tsx` 업로드 완료 후 인위적 딜레이 → `toast.success` + 즉시 `navigateToStep(3)` (CLAUDE.md setTimeout 금지 규칙 적용)
+- ✅ **experiment-design disabled**: `TrackSuggestions` — `disabled` prop + HTML `disabled` + "준비 중" badge + `cursor-not-allowed` (이전 항상-toast fallback 대체)
+- ✅ **히스토리 항상 표시**: `SmartFlowLayout` — `historyCount > 0 || showHistory` 조건 제거 → 초기부터 발견 가능. 0개일 때 "히스토리 (0개)" → `historyTitle`로 수정
+- ✅ **이중 헤더 해소**: `VariableSelectionStep` — 외부 `<StepHeader>` 제거 → method name compact `<Badge>` + `Settings2` 아이콘으로 대체 (정보 손실 없음)
+- ✅ **허브 버튼 제거**: `SmartFlowLayout` — 로고와 동일한 `resetSession()` 중복 버튼 삭제
+- ✅ **테스트 업데이트**: `smart-flow-layout.test.tsx` — "히스토리 버튼 숨김" → "항상 표시" 반영
+
+### 2026-02-26 (목) Step 3 VariableSelectionStep AI 리뷰 버그 수정 (High×2 + Medium×2 + A)
+
+- ✅ **[HIGH] normality-test → one-sample 매핑 수정**: SELECTOR_MAP `'correlation'` → `'one-sample'` (단일 변수 요구사항 충족, min 2 강제 차단 해소)
+- ✅ **[HIGH] mcnemar 교차표 자동 구성**: `executeNonparametric` case에서 `independentVar/dependentVar` → 2×2 교차표 자동 구성 (기존 `[[0,0],[0,0]]` 폴백 방지). 변수가 이진이 아니면 명확한 에러 throw
+- ✅ **[HIGH] proportion-test successCount 자동 계산**: `dependentVar`에서 positive-keyword 우선 (`yes/1/true/성공/...`) + 사전순 후순위로 success 기준값 결정 → successCount/successLabel 자동 산출 (기존 `successCount=0` 폴백 방지)
+- ✅ **[MEDIUM] 숨겨진 covariate 제출 차단**: `GroupComparisonSelector.handleSubmit`에서 `showCovariate && covariates.length > 0` 가드 추가 (t-test/mann-whitney 등에서 AI 감지 covariate가 몰래 제출되던 문제)
+- ✅ **[MEDIUM] mcnemar/proportion-test 이진 변수 필터**: `BINARY_ONLY_IDS` 집합 + `requireBinary` 플래그로 `uniqueCount === 2` 변수만 표시 (3-레벨 이상 선택 시 워커 예외 선제 차단)
+- ✅ **[B] proportion-test nullProportion UI**: ChiSquareSelector goodness 모드에 귀무가설 비율(p₀) 입력 카드 추가 (0.01~0.99, 기본 0.5, 유효성 검증 포함). executor string→float 파싱으로 수정
 
 ### 2026-02-26 (목) Step 4 AnalysisExecutionStep + ResultsActionStep 비판적 검토
 
@@ -260,6 +278,11 @@
 | Smart Flow 미테스트 컴포넌트 | AnalysisExecutionStep, ChatCentricHub, ExportDropdown, MethodManagerSheet, ReanalysisPanel, ResultsVisualization, VariableSelectionStep |
 | ~~실패 테스트~~ | ~~`statistical-executor-coverage.test.ts`, `llm-recommender-simulation.test.ts`~~ — ✅ 전부 통과 |
 | 하드코딩 한글 | 11개 컴포넌트에 terminology 미적용 문자열 잔존 |
+
+**🟡 Medium — 분석 고급 설정**
+| 항목 | 파일 | 설명 |
+|------|------|------|
+| ~~proportion-test `nullProportion` UI~~ | ~~`ChiSquareSelector`~~ | ✅ 귀무가설 비율(p₀) 입력 카드 추가 완료 |
 
 **🟢 Low**
 | 항목 | 설명 |
