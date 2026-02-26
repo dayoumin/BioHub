@@ -98,7 +98,8 @@
       "Bash(claude mcp list:*)",
       "Bash(pnpm remove:*)",
       "Bash(cmd /c:*)",
-      "Bash(pnpm build:*)"
+      "Bash(pnpm build:*)",
+      "Bash(CI=true pnpm install:*)"
     ],
     "deny": [],
     "ask": []

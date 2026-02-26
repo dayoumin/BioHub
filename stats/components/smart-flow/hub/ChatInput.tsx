@@ -8,6 +8,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { flushSync } from 'react-dom'
 import { Send, Loader2, ArrowUpFromLine } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
@@ -48,11 +49,12 @@ export function ChatInput({
   const onConsumedRef = useRef(onExternalValueConsumed)
   onConsumedRef.current = onExternalValueConsumed
 
-  // 외부 값 주입 처리 — 입력창에 표시 후 즉시 submit (setTimeout 없이)
+  // 외부 값 주입 처리 — 입력창에 표시 후 즉시 submit
+  // flushSync로 setValue를 동기 렌더링 → 사용자가 텍스트를 본 뒤 제출
   useEffect(() => {
     if (externalValue) {
-      setValue(externalValue)            // UX 피드백: 입력창에 텍스트 표시
-      onSubmitRef.current(externalValue) // 즉시 제출 (state 렌더 대기 불필요)
+      flushSync(() => setValue(externalValue))
+      onSubmitRef.current(externalValue)
       onConsumedRef.current?.()
     }
   }, [externalValue])

@@ -85,7 +85,7 @@
 
 - ✅ **proportion-test 전용 해석 문구**: `successLabel` 포함 — "표본 비율이 귀무가설 비율과 유의하게 다릅니다 (성공 기준: Yes)" 형식
 - ✅ **테스트 보강**: interpretation에 successLabel 포함 검증 + significant 케이스 추가 (25 tests)
-- 📌 커밋: (이번 커밋)
+- 📌 커밋: `6be13272`
 
 ### 2026-02-26 (목) Step 4 AnalysisExecutionStep + ResultsActionStep 비판적 검토
 
