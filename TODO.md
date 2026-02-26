@@ -1,6 +1,6 @@
 # 프로젝트 현황 + 할일
 
-**최종 업데이트**: 2026-02-26 (기술 부채 정리 + executor 리팩토링 + 회귀 테스트)
+**최종 업데이트**: 2026-02-26 (기술 부채 추가 정리 + ResultsActionStep UX 전면 개선)
 
 ---
 
@@ -30,6 +30,25 @@
 ---
 
 ## 📅 최근 작업 (7일)
+
+### 2026-02-26 (목) 기술 부채 2차 정리 + ResultsActionStep UX 전면 개선
+
+- ✅ **레거시 Pyodide 직접 계산 파일 삭제**: `lib/statistics/` — `advanced.ts`, `anova.ts`, `descriptive.ts`, `nonparametric.ts`, `regression.ts`, `t-tests.ts`, `types.ts`, `utils.ts`, `index.ts` (9개). `as any` 패턴 28곳 + barrel import 전부 제거
+- ✅ **`statistical-analysis-service.ts` 삭제**: `getPyodideInstance() as any` 7곳 + 미사용 서비스 완전 삭제
+- ✅ **`rehypePlugins as any` 제거**: `markdown-config.ts`에 `MarkdownPluginConfig` 타입 도입 (`NonNullable<Options['rehypePlugins']>`). 5개 컴포넌트 `as any/never` 전부 제거
+- ✅ **`plotly-chart-renderer.tsx` `console.error` → `logger.error`**: 로거 정책 준수
+- ✅ **ResultsActionStep UX 전면 개선** (phase-based reveal):
+  - framer-motion 단계적 등장: Phase 0(Hero)→1(150ms 수치카드)→2(400ms L2)→3(AI 완료 후 시각화)→4(+300ms Q&A)
+  - `use-count-up` 훅: requestAnimationFrame + easeOut cubic 카운트업 애니메이션
+  - 저장/복사 버튼 `StepHeader` 헤더 배치 (중복 제거)
+  - 히스토리 뱃지 카운터 (`SmartFlowLayout` Clock 아이콘)
+  - 아웃라이어 감지 시 '통계' 탭 자동 전환 (`DataExplorationStep`)
+  - `additionalResults` 있으면 L2 자동 열기
+  - 복사 버튼 `bg-blue-600` → `bg-primary` 시맨틱 토큰
+  - esbuild JSX ternary spread 에러 수정 (`{...(condition ? {} : {...})}` → 개별 조건 props)
+  - `StatisticCard` `className` prop 추가
+- ✅ **테스트**: ux-improvements-phase1-2.test.tsx 신규 + ResultsActionStep.test.tsx 업데이트 (4808개 통과)
+- 📌 커밋: `1d90b819` `15c2a100` `5e2a60bc`
 
 ### 2026-02-26 (목) 기술 부채 정리 + executor 리팩토링
 
@@ -331,9 +350,9 @@
 **🟠 High — 타입 안전성**
 | 항목 | 범위 | 설명 |
 |------|------|------|
-| Pyodide `as any` | 레거시 `lib/statistics/*.ts` ~30곳 | `(pyodide as any).runPythonAsync()` — Worker 전환 완료된 파일은 삭제 가능 |
-| Plotly 타입 누락 | `plotly-chart-renderer.tsx` | `@ts-expect-error` + `as any` — plotly.js-basic-dist 타입 정의 필요 |
-| StatisticalAnalysisService | `statistical-analysis-service.ts` 7곳 | `getPyodideInstance() as any` |
+| ~~Pyodide `as any`~~ | ~~`lib/statistics/*.ts` ~30곳~~ | ✅ 파일 전체 삭제 완료 (`2026-02-26`) |
+| ~~StatisticalAnalysisService~~ | ~~`statistical-analysis-service.ts` 7곳~~ | ✅ 파일 삭제 완료 (`2026-02-26`) |
+| Plotly 타입 누락 | `plotly-chart-renderer.tsx` | `@ts-expect-error` + `as any` 2곳 잔존 — plotly.js-basic-dist 타입 정의 필요 |
 
 **🟡 Medium — 테스트 커버리지**
 | 항목 | 설명 |
