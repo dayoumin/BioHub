@@ -426,7 +426,7 @@ export function RAGAssistantCompact({ method, className = '' }: RAGAssistantComp
                     <div className="prose prose-sm max-w-none dark:prose-invert">
                       <ReactMarkdown
                         remarkPlugins={[...MARKDOWN_CONFIG.remarkPlugins]}
-                        rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins] as any}
+                        rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins]}
                       >
                         {streamingMessage.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<cited_docs>[\s\S]*?<\/cited_docs>/gi, '')}
                       </ReactMarkdown>
@@ -529,7 +529,7 @@ export function RAGAssistantCompact({ method, className = '' }: RAGAssistantComp
                     <div className="prose prose-sm max-w-none dark:prose-invert">
                       <ReactMarkdown
                         remarkPlugins={[...MARKDOWN_CONFIG.remarkPlugins]}
-                        rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins] as any}
+                        rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins]}
                       >
                         {msg.response.answer.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<cited_docs>[\s\S]*?<\/cited_docs>/gi, '')}
                       </ReactMarkdown>
@@ -573,7 +573,7 @@ export function RAGAssistantCompact({ method, className = '' }: RAGAssistantComp
                     <div className="prose prose-sm max-w-none dark:prose-invert">
                       <ReactMarkdown
                         remarkPlugins={[...MARKDOWN_CONFIG.remarkPlugins]}
-                        rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins] as any}
+                        rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins]}
                       >
                         {streamingMessage.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<cited_docs>[\s\S]*?<\/cited_docs>/gi, '')}
                       </ReactMarkdown>

@@ -9,9 +9,15 @@ import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
+import type { Options } from 'react-markdown'
 import { remarkCitations } from '../utils/remark-citations'
 
-export const MARKDOWN_CONFIG = {
-  remarkPlugins: [remarkGfm, remarkBreaks, remarkMath, remarkCitations], // ← Perplexity 스타일 인라인 인용
+type MarkdownPluginConfig = {
+  remarkPlugins: NonNullable<Options['remarkPlugins']>
+  rehypePlugins: NonNullable<Options['rehypePlugins']>
+}
+
+export const MARKDOWN_CONFIG: MarkdownPluginConfig = {
+  remarkPlugins: [remarkGfm, remarkBreaks, remarkMath, remarkCitations],
   rehypePlugins: [rehypeKatex],
-} as const
+}

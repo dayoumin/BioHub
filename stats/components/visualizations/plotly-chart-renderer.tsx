@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Download, Maximize2, Camera } from 'lucide-react'
+import { logger } from '@/lib/utils/logger'
 
 interface PlotlyChartRendererProps {
   chartData: {
@@ -76,7 +77,7 @@ export function PlotlyChartRenderer({
 
     renderChart().catch((error) => {
       if (!cancelled) {
-        console.error('Failed to render Plotly chart:', error)
+        logger.error('Failed to render Plotly chart:', error)
       }
     })
 

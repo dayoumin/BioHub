@@ -359,7 +359,7 @@ export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssist
                       <div className="prose prose-sm max-w-none dark:prose-invert">
                         <ReactMarkdown
                           remarkPlugins={[...MARKDOWN_CONFIG.remarkPlugins]}
-                          rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins] as any}
+                          rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins]}
                         >
                           {msg.response.answer}
                         </ReactMarkdown>

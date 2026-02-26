@@ -1,6 +1,6 @@
 # 프로젝트 현황 + 할일
 
-**최종 업데이트**: 2026-02-26 (UX 개선 4종 + Step 3/4 비판적 검토)
+**최종 업데이트**: 2026-02-26 (기술 부채 정리 + executor 리팩토링 + 회귀 테스트)
 
 ---
 
@@ -30,6 +30,40 @@
 ---
 
 ## 📅 최근 작업 (7일)
+
+### 2026-02-26 (목) 기술 부채 정리 + executor 리팩토링
+
+- ✅ **`as unknown as` 캐스팅 제거**: `statistical-executor.ts` — ancovaWorker/rmAnovaWorker 캐스팅 → 직접 접근 (`rmResult.df.numerator`)
+- ✅ **openrouter AggregateError 처리 개선**: 모든 모델 실패 시 errors[] 누적 후 `AggregateError` throw. 파싱 실패 soft failure는 null 반환 유지
+- ✅ **createAsyncQueue 모듈화**: `llm-recommender.ts` — 인라인 함수 → 모듈 레벨 분리 (재사용 가능)
+- ✅ **methods-registry.json + 타입 생성 스크립트 개선**: `generate-method-types.mjs` + `method-types.generated.ts` 업데이트
+- ✅ **테스트 추가**: AggregateError + createAsyncQueue 시뮬레이션 12개 (llm-recommender-simulation.test.ts)
+- 📌 커밋: `a1aa94d7`
+
+### 2026-02-26 (목) method-mapping 버그 수정 + 회귀 테스트
+
+- ✅ **[BUG] binomial-test/cochran-q/mcnemar/proportion-test `chi-square` 오분류 수정**: `method-mapping.ts` 카테고리 오류 → `nonparametric` 정정. 기존에 binomial-test/cochran-q는 executor throw, mcnemar/proportion-test는 잘못된 알고리즘 실행
+- ✅ **proportion-test 설명 + minSampleSize 수정**: "두 비율 간 차이 검정" → "표본 비율이 귀무가설 비율(p₀)과 다른지 검정", minSampleSize 20 → 10 (np≥5 기준)
+- ✅ **`!` non-null assertion 제거**: `recommendMethods`의 `.find()!` → `pushById()` 헬퍼 (id 오타 시 조용히 무시), `groupLevels || 0` → `?? 0`
+- ✅ **`checkMethodRequirements` 타입 안전화**: `any` → `DataProfile` 인터페이스, date 타입 검증 추가
+- ✅ **회귀 방지 테스트**: 4개 메서드 라우팅 검증 — `method-mapping-coverage.test.ts` + `statistical-executor-routing.test.ts` (총 55개 통과)
+- 📌 커밋: `dd1493bb` `60fc1cae` `55e25a4a` `9fe9dae4`
+
+### 2026-02-26 (목) chi-square-goodness executor 분리 + proportion-test 시각화 수정
+
+- ✅ **executeChiSquare 분리**: `executeChiSquareGoodness` + `executeChiSquareIndependence` 별도 함수. goodness: 범주 빈도 집계 + `expectedProportions` 옵션 + frequency-bar 시각화
+- ✅ **executeChiSquareIndependence 정리**: `!` non-null assertion 제거, `|| 0` → `?? 0`, colLabels 단순화
+- ✅ **proportion-test visualizationData 수정**: boxplot → bar, `freqCounts` 빈도 테이블 반환 (자동감지 시 실제 값별 빈도, 명시적 successCount 시 이진 테이블)
+- ✅ **proportion-test additionalInfo 보완**: `sampleProportion`, `nullProportion`, `successCount`, `totalN` 노출
+- ✅ **테스트 추가**: FIX-1/FIX-2/ISSUE-3/EDGE 시뮬레이션 4개 (statistical-executor-routing, 29개 통과)
+- 📌 커밋: `e48e761b` `94ddd714`
+
+### 2026-02-26 (목) ChatInput externalValue 버그 수정
+
+- ✅ **externalValue 제출 후 입력창 미초기화 버그 수정**: 외부 주입 경로에 `setValue('')` 누락 → 처리 완료 후 텍스트 잔류 문제 수정
+- ✅ **flushSync 정리**: useEffect 내 flushSync 제거 (React 경고 유발, 실질 UX 가치 없음)
+- ✅ **테스트 추가**: externalValue 제출 후 입력창 초기화 검증 16개 (chat-input.test.tsx)
+- 📌 커밋: `397cd30a` `7945fc39`
 
 ### 2026-02-24 (월) 기술부채 정리 + Smart Flow UI 색상 토큰 완료
 

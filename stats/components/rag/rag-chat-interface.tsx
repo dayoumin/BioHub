@@ -469,8 +469,8 @@ export function RAGChatInterface({
                 ) : (
                   <div className="prose prose-sm max-w-none dark:prose-invert">
                     <ReactMarkdown
-                      remarkPlugins={[...MARKDOWN_CONFIG.remarkPlugins] as never}
-                      rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins] as never}
+                      remarkPlugins={[...MARKDOWN_CONFIG.remarkPlugins]}
+                      rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins]}
                     >
                       {msg.content}
                     </ReactMarkdown>
