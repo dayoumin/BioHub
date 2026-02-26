@@ -48,16 +48,12 @@ export function ChatInput({
   const onConsumedRef = useRef(onExternalValueConsumed)
   onConsumedRef.current = onExternalValueConsumed
 
-  // 외부 값 주입 처리 — externalValue만 deps로 사용
-  // consumed 콜백은 submit 후에 호출 (동기 호출 시 state 변경 → cleanup → timer 취소됨)
+  // 외부 값 주입 처리 — 입력창에 표시 후 즉시 submit (setTimeout 없이)
   useEffect(() => {
     if (externalValue) {
-      setValue(externalValue)
-      const timer = setTimeout(() => {
-        onSubmitRef.current(externalValue)
-        onConsumedRef.current?.()
-      }, 150)
-      return () => clearTimeout(timer)
+      setValue(externalValue)            // UX 피드백: 입력창에 텍스트 표시
+      onSubmitRef.current(externalValue) // 즉시 제출 (state 렌더 대기 불필요)
+      onConsumedRef.current?.()
     }
   }, [externalValue])
 

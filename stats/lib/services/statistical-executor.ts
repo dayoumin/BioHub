@@ -1124,8 +1124,10 @@ export class StatisticalExecutor {
         anovaTable: Record<string, unknown>
       }
 
-      // df 처리: { numerator, denominator } 객체에서 값 추출
-      const dfValue = rmResult.df.numerator || 0
+      // df 처리: 숫자 또는 { numerator, denominator } 객체 모두 대응
+      const dfValue = typeof rmResult.df === 'number'
+        ? rmResult.df
+        : (rmResult.df as { numerator?: number })?.numerator ?? 0
 
       return {
         metadata: {
@@ -1332,15 +1334,15 @@ export class StatisticalExecutor {
         ? Array.from({ length: covariates.length }, (_, i) => i + 2)
         : []
       executorResult = await executor.executePartialCorrelation(dataMatrix, 0, 1, controlIndices)
-    } else if (methodId.includes('spearman')) {
+    } else if (methodId === 'spearman-correlation' || methodId.includes('spearman')) {
       executorResult = await executor.executeSpearman(var1, var2)
-    } else if (methodId.includes('kendall')) {
+    } else if (methodId === 'kendall-correlation' || methodId.includes('kendall')) {
       executorResult = await executor.executeKendall(var1, var2)
-    } else if (methodId.includes('pearson') && !methodId.includes('correlation')) {
-      // 명시적으로 pearson만 지정된 경우
+    } else if (methodId === 'pearson-correlation' || methodId === 'pearson') {
+      // 피어슨 단독 실행
       executorResult = await executor.executePearson(var1, var2)
     } else {
-      // 기본: 종합 상관분석 (correlation 또는 pearson-correlation)
+      // 기본: 종합 상관분석 (pearson + spearman + kendall 모두 포함)
       executorResult = await executor.executeCorrelation(var1, var2)
     }
 
@@ -1411,12 +1413,18 @@ export class StatisticalExecutor {
         result = await pyodideStats.mannWhitneyU(mwGroups[0], mwGroups[1])
         break
       }
-      case 'wilcoxon':
-        result = await pyodideStats.wilcoxon(
-          data.arrays.dependent || [],
-          data.arrays.independent?.[0] || []
-        )
+      case 'wilcoxon': {
+        const wilcoxonGroup1 = data.arrays.dependent || []
+        const wilcoxonGroup2 = data.arrays.independent?.[0]
+        if (!wilcoxonGroup2 || wilcoxonGroup2.length === 0) {
+          throw new Error('Wilcoxon 부호순위 검정에는 대응된 두 그룹이 필요합니다. 종속변수와 독립변수를 모두 선택하세요.')
+        }
+        if (wilcoxonGroup1.length !== wilcoxonGroup2.length) {
+          throw new Error(`Wilcoxon 검정: 두 그룹의 크기가 같아야 합니다 (${wilcoxonGroup1.length} vs ${wilcoxonGroup2.length})`)
+        }
+        result = await pyodideStats.wilcoxonTestWorker(wilcoxonGroup1, wilcoxonGroup2)
         break
+      }
       case 'kruskal-wallis': {
         const kwByGroup = data.arrays.byGroup || {}
         const kwGroupNames = Object.keys(kwByGroup)
@@ -1440,10 +1448,6 @@ export class StatisticalExecutor {
       }
       case 'friedman':
         result = await pyodideStats.friedman(data.arrays.independent || [])
-        break
-      case 'chi-square':
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        result = await pyodideStats.chiSquare(data.data as any)
         break
       case 'sign-test': {
         const signResult = await pyodideStats.signTestWorker(
@@ -1504,9 +1508,9 @@ export class StatisticalExecutor {
         break
       }
       case 'binomial-test': {
-        const successCount = data.variables?.successCount as number || 0
+        const successCount = Number(data.variables?.successCount) || 0
         const totalCount = data.totalN || 1
-        const probability = data.variables?.probability as number || 0.5
+        const probability = Number(data.variables?.probability) || 0.5
         const binomialResult = await pyodideStats.binomialTestWorker(
           successCount,
           totalCount,

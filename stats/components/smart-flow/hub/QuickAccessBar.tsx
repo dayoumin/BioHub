@@ -105,14 +105,10 @@ export function QuickAccessBar({ onQuickAnalysis, onHistoryClick }: QuickAccessB
   const prefersReducedMotion = useReducedMotion()
   const { analysisHistory } = useSmartFlowStore()
 
-  // Quick methods state
-  const [quickMethods, setQuickMethods] = useState<string[]>(DEFAULT_QUICK_METHODS)
+  // Quick methods state — lazy initializer로 초기 flash 방지
+  const [quickMethods, setQuickMethods] = useState<string[]>(() => loadQuickMethods())
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [editingMethods, setEditingMethods] = useState<string[]>([])
-
-  useEffect(() => {
-    setQuickMethods(loadQuickMethods())
-  }, [])
 
   const quickMethodsInfo = useMemo(() => {
     return quickMethods

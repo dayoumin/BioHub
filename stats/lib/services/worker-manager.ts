@@ -52,18 +52,18 @@ class WorkerManager {
    * Worker 생성 또는 재사용
    */
   private getOrCreateWorker(id: string): Worker {
+    let worker: Worker
+
     // Worker Pool에서 재사용 가능한 Worker 찾기
     if (this.workerPool.length > 0) {
-      const worker = this.workerPool.pop()!
-      this.workers.set(id, worker)
-      return worker
+      worker = this.workerPool.pop()!
+    } else {
+      worker = new Worker('/workers/statistics-worker.js')
     }
 
-    // 새 Worker 생성
-    const worker = new Worker('/workers/statistics-worker.js')
     this.workers.set(id, worker)
 
-    // Worker 초기화 후 자동 정리 (5분 후)
+    // 풀 재사용 Worker 포함 — 모든 Worker에 5분 자동 정리 타이머 설정
     setTimeout(() => {
       if (this.workers.has(id)) {
         this.terminateWorker(id)

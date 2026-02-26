@@ -296,7 +296,7 @@ export class PyodideStatisticsService {
     const result = await Generated.outlierDetection(data, method)
     return {
       outlierIndices: result.outlierIndices,
-      outlierCount: result.outlierValues.length,
+      outlierCount: result.outlierValues?.length ?? 0,
       method: result.method
     }
   }
@@ -771,11 +771,9 @@ export class PyodideStatisticsService {
    */
   async testNormality(data: number[], alpha: number = 0.05): Promise<Generated.NormalityTestResult & { isNormal: boolean }> {
     const result = await this.normalityTest(data, alpha)
-    return {
-      ...result,
-      isNormal: result.pValue > alpha,
-      interpretation: result.pValue > alpha ? 'Normal distribution' : 'Non-normal distribution'
-    }
+    // Worker가 isNormal과 interpretation을 모두 계산해서 반환
+    // — TS 측 재계산/덮어쓰기 없이 그대로 사용
+    return { ...result }
   }
 
 
@@ -938,6 +936,9 @@ export class PyodideStatisticsService {
     alpha: number
     reject_count: number
   }> {
+    // Note: tukeyHSDWorker는 alpha를 받지 않음 (Python Worker 제약).
+    // Worker 내부에서 p-value 기반 significant 필드를 계산하며,
+    // 여기서는 사용자 alpha로 reject_count를 추가 계산함.
     const result = await this.tukeyHSDWorker(groups)
 
     // groupNames 맵핑 추가 (Python Worker는 int 인덱스 반환)
@@ -998,9 +999,9 @@ export class PyodideStatisticsService {
             columnsData[columns[i]],
             columnsData[columns[j]]
           )
-          if (method == 'spearman') {
+          if (method === 'spearman') {
             row.push(result.spearman.r)
-          } else if (method == 'kendall') {
+          } else if (method === 'kendall') {
             row.push(result.kendall.r)
           } else {
             row.push(result.pearson.r)
