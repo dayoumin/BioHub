@@ -735,10 +735,16 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 size="sm"
                 onClick={() => handleSaveAsFile('docx')}
                 disabled={isExporting}
-                className={cn("shadow-sm", isSaved && "bg-emerald-600 hover:bg-emerald-600 text-white border-emerald-600")}
+                className={cn("shadow-sm", isSaved && !isExporting && "bg-emerald-600 hover:bg-emerald-600 text-white border-emerald-600")}
               >
-                {isSaved ? <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
-                {isSaved ? t.results.buttons.saved : t.results.buttons.save}
+                {isSaved && !isExporting
+                  ? <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                  : <Save className="w-3.5 h-3.5 mr-1.5" />}
+                {isExporting
+                  ? t.results.buttons.exporting
+                  : isSaved
+                  ? t.results.buttons.saved
+                  : t.results.buttons.save}
               </Button>
             </div>
           }
