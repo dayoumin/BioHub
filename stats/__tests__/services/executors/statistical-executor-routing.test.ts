@@ -498,6 +498,84 @@ describe('StatisticalExecutor Routing', () => {
 
       expect(mockedStats.mcnemarTestWorker).toHaveBeenCalledWith([[1, 1], [1, 1]])
     })
+
+    // ────────────────────────────────────────────────────────────────
+    // method-mapping.ts category 오류 수정 회귀 방지
+    // 버그: binomial-test/proportion-test/mcnemar/cochran-q가 'chi-square'로
+    //       잘못 분류되어 executeChiSquareIndependence로 라우팅됨
+    // 수정: 4개 모두 'nonparametric'으로 변경 → executeNonparametric으로 라우팅
+    // ────────────────────────────────────────────────────────────────
+    describe('category 수정 회귀 방지: nonparametric 라우팅', () => {
+      it('binomial-test: binomialTestWorker 호출, chiSquareIndependenceTest 미호출', async () => {
+        const mockedStats = vi.mocked(pyodideStats)
+        const binaryData = Array.from({ length: 10 }, (_, i) => ({ result: i < 7 ? 'success' : 'failure' }))
+
+        await executor.executeMethod(
+          createMethod('binomial-test', 'Binomial Test', 'nonparametric'),
+          binaryData,
+          { successCount: 7, probability: '0.5' }
+        )
+
+        expect(mockedStats.binomialTestWorker).toHaveBeenCalledWith(7, 10, 0.5)
+        expect(mockedStats.chiSquareIndependenceTest).not.toHaveBeenCalled()
+      })
+
+      it('cochran-q: cochranQTestWorker 호출, chiSquareIndependenceTest 미호출', async () => {
+        const mockedStats = vi.mocked(pyodideStats)
+        const repeatedData = [
+          { t1: 1, t2: 0, t3: 1 },
+          { t1: 0, t2: 1, t3: 0 },
+          { t1: 1, t2: 1, t3: 0 },
+          { t1: 0, t2: 0, t3: 1 },
+        ]
+
+        await executor.executeMethod(
+          createMethod('cochran-q', 'Cochran Q', 'nonparametric'),
+          repeatedData,
+          { independentVar: ['t1', 't2', 't3'] }
+        )
+
+        expect(mockedStats.cochranQTestWorker).toHaveBeenCalled()
+        expect(mockedStats.chiSquareIndependenceTest).not.toHaveBeenCalled()
+      })
+
+      it('mcnemar: mcnemarTestWorker 호출, chiSquareIndependenceTest 미호출', async () => {
+        const mockedStats = vi.mocked(pyodideStats)
+        const pairedData = [
+          { before: 0, after: 1 },
+          { before: 1, after: 1 },
+          { before: 0, after: 0 },
+          { before: 1, after: 0 },
+        ]
+
+        await executor.executeMethod(
+          createMethod('mcnemar', 'McNemar', 'nonparametric'),
+          pairedData,
+          { independentVar: 'before', dependentVar: 'after' }
+        )
+
+        expect(mockedStats.mcnemarTestWorker).toHaveBeenCalled()
+        expect(mockedStats.chiSquareIndependenceTest).not.toHaveBeenCalled()
+      })
+
+      it('proportion-test: oneSampleProportionTest 호출, chiSquareIndependenceTest 미호출', async () => {
+        const mockedStats = vi.mocked(pyodideStats)
+        const binaryData = [
+          { outcome: 'Yes' },
+          { outcome: 'No' },
+          { outcome: 'Yes' },
+        ]
+
+        await executor.executeMethod(
+          createMethod('proportion-test', 'Proportion Test', 'nonparametric'),
+          binaryData,
+          { dependentVar: 'outcome' }
+        )
+
+        expect(mockedStats.oneSampleProportionTest).toHaveBeenCalled()
+        expect(mockedStats.chiSquareIndependenceTest).not.toHaveBeenCalled()
+      })
+    })
   })
 
   // ============================================

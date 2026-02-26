@@ -228,6 +228,22 @@ describe('스마트 분석 커버리지', () => {
     })
   })
 
+  describe('category 오류 회귀 방지', () => {
+    // binomial-test/proportion-test/mcnemar/cochran-q가 'chi-square'로 잘못 분류되었던 버그 수정
+    // executor는 method.category로 라우팅하므로 'chi-square' → executeChiSquareIndependence(오류)
+    // 정상: 'nonparametric' → executeNonparametric의 각 case로 처리
+    const shouldBeNonparametric = ['binomial-test', 'proportion-test', 'mcnemar', 'cochran-q']
+
+    shouldBeNonparametric.forEach(methodId => {
+      it(`${methodId}는 nonparametric 카테고리여야 한다 (chi-square 아님)`, () => {
+        const method = STATISTICAL_METHODS.find(m => m.id === methodId)
+        expect(method).toBeDefined()
+        expect(method?.category).toBe('nonparametric')
+        expect(method?.category).not.toBe('chi-square')
+      })
+    })
+  })
+
   describe('requirements 구조 검증', () => {
     it('모든 메서드의 requirements가 올바른 구조를 가져야 한다', () => {
       STATISTICAL_METHODS.forEach(method => {
