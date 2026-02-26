@@ -352,7 +352,7 @@
 |------|------|------|
 | ~~Pyodide `as any`~~ | ~~`lib/statistics/*.ts` ~30곳~~ | ✅ 파일 전체 삭제 완료 (`2026-02-26`) |
 | ~~StatisticalAnalysisService~~ | ~~`statistical-analysis-service.ts` 7곳~~ | ✅ 파일 삭제 완료 (`2026-02-26`) |
-| Plotly 타입 누락 | `plotly-chart-renderer.tsx` | `@ts-expect-error` + `as any` 2곳 잔존 — plotly.js-basic-dist 타입 정의 필요 |
+| ~~Plotly 타입 누락~~ | ~~`plotly-chart-renderer.tsx`~~ | ✅ PlotlyStatic 인터페이스 + global.d.ts 모듈 선언 완료 (`2026-02-26`) |
 
 **🟡 Medium — 테스트 커버리지**
 | 항목 | 설명 |
