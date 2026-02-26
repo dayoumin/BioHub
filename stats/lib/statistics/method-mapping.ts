@@ -304,11 +304,11 @@ export const STATISTICAL_METHODS: StatisticalMethod[] = [
   // 기타 검정 (5개)
   {
     id: 'proportion-test',
-    name: '비율 검정',
-    description: '두 비율 간 차이 검정',
-    category: 'chi-square',
+    name: '일표본 비율 검정',
+    description: '표본 비율이 귀무가설 비율(p₀)과 다른지 검정',
+    category: 'nonparametric',
     requirements: {
-      minSampleSize: 20,
+      minSampleSize: 10,
       variableTypes: ['categorical']
     }
   },
@@ -316,7 +316,7 @@ export const STATISTICAL_METHODS: StatisticalMethod[] = [
     id: 'binomial-test',
     name: '이항 검정',
     description: '관찰된 비율이 기댓값과 일치하는지 검정',
-    category: 'chi-square',
+    category: 'nonparametric',
     requirements: {
       minSampleSize: 5,
       variableTypes: ['categorical']
@@ -390,7 +390,7 @@ export const STATISTICAL_METHODS: StatisticalMethod[] = [
     id: 'mcnemar',
     name: 'McNemar 검정',
     description: '대응표본 범주형 자료 검정',
-    category: 'chi-square',
+    category: 'nonparametric',
     requirements: {
       minSampleSize: 10,
       variableTypes: ['categorical']
@@ -400,7 +400,7 @@ export const STATISTICAL_METHODS: StatisticalMethod[] = [
     id: 'cochran-q',
     name: 'Cochran Q 검정',
     description: '3개 이상 반복측정 이분형 자료',
-    category: 'chi-square',
+    category: 'nonparametric',
     requirements: {
       minSampleSize: 10,
       variableTypes: ['categorical']
@@ -678,6 +678,18 @@ export function getMethodsByQuestionType(questionType: string): StatisticalMetho
 }
 
 /**
+ * checkMethodRequirements에 전달되는 데이터 프로파일 타입
+ */
+export interface DataProfile {
+  totalRows: number
+  numericVars: number
+  categoricalVars: number
+  hasTimeVar?: boolean
+  normalityPassed?: boolean
+  homogeneityPassed?: boolean
+}
+
+/**
  * 데이터 특성에 따른 통계 방법 추천
  */
 export function recommendMethods(dataProfile: {
@@ -690,42 +702,47 @@ export function recommendMethods(dataProfile: {
 }): StatisticalMethod[] {
   const recommendations: StatisticalMethod[] = []
 
+  // 안전한 push 헬퍼: id 오타 시 undefined가 아닌 무시
+  const pushById = (id: string): void => {
+    const method = STATISTICAL_METHODS.find(m => m.id === id)
+    if (method) recommendations.push(method)
+  }
+
   // 기본 기술통계는 항상 추천
-  recommendations.push(STATISTICAL_METHODS.find(m => m.id === 'descriptive-stats')!)
+  pushById('descriptive-stats')
 
   // 수치형 변수가 2개 이상이면 상관분석
   if (dataProfile.numericVars >= 2) {
-    recommendations.push(STATISTICAL_METHODS.find(m => m.id === 'correlation')!)
+    pushById('correlation')
   }
 
   // 그룹 변수가 있고 수치형 변수가 있으면
   if (dataProfile.hasGroupVar && dataProfile.numericVars >= 1) {
     if (dataProfile.groupLevels === 2) {
-      recommendations.push(STATISTICAL_METHODS.find(m => m.id === 'two-sample-t')!)
-      recommendations.push(STATISTICAL_METHODS.find(m => m.id === 'mann-whitney')!)
-    } else if ((dataProfile.groupLevels || 0) >= 3) {
-      recommendations.push(STATISTICAL_METHODS.find(m => m.id === 'one-way-anova')!)
-      recommendations.push(STATISTICAL_METHODS.find(m => m.id === 'kruskal-wallis')!)
+      pushById('two-sample-t')
+      pushById('mann-whitney')
+    } else if ((dataProfile.groupLevels ?? 0) >= 3) {
+      pushById('one-way-anova')
+      pushById('kruskal-wallis')
     }
   }
 
   // 두 요인(범주형 2개 이상) + 수치형 1개 이상이면 이원분산분석 추천
   if (dataProfile.categoricalVars >= 2 && dataProfile.numericVars >= 1) {
-    const twoWay = STATISTICAL_METHODS.find(m => m.id === 'two-way-anova')
-    if (twoWay) recommendations.push(twoWay)
+    pushById('two-way-anova')
   }
 
   // 시간 변수가 있으면 시계열 추세 분석
   if (dataProfile.hasTimeVar && dataProfile.totalRows >= 50) {
-    recommendations.push(STATISTICAL_METHODS.find(m => m.id === 'mann-kendall')!)
+    pushById('mann-kendall')
   }
 
   // 충분한 데이터가 있으면 고급 분석
   if (dataProfile.totalRows >= 30 && dataProfile.numericVars >= 3) {
-    recommendations.push(STATISTICAL_METHODS.find(m => m.id === 'pca')!)
+    pushById('pca')
   }
 
-  return recommendations.filter(Boolean)
+  return recommendations
 }
 
 /**
@@ -733,7 +750,7 @@ export function recommendMethods(dataProfile: {
  */
 export function checkMethodRequirements(
   method: StatisticalMethod,
-  dataProfile: any
+  dataProfile: DataProfile
 ): { canUse: boolean; warnings: string[] } {
   const warnings: string[] = []
   let canUse = true
@@ -743,22 +760,31 @@ export function checkMethodRequirements(
   }
 
   // 최소 샘플 크기 확인
-  if (method.requirements.minSampleSize &&
-      dataProfile.totalRows < method.requirements.minSampleSize) {
-    warnings.push(`최소 ${method.requirements.minSampleSize}개 데이터 필요 (현재: ${dataProfile.totalRows}개)`)
+  if (
+    method.requirements.minSampleSize &&
+    dataProfile.totalRows < method.requirements.minSampleSize
+  ) {
+    warnings.push(
+      `최소 ${method.requirements.minSampleSize}개 데이터 필요 (현재: ${dataProfile.totalRows}개)`
+    )
     canUse = false
   }
 
   // 변수 타입 확인
   if (method.requirements.variableTypes) {
-    if (method.requirements.variableTypes.includes('numeric') &&
-        dataProfile.numericVars === 0) {
+    if (method.requirements.variableTypes.includes('numeric') && dataProfile.numericVars === 0) {
       warnings.push('수치형 변수 필요')
       canUse = false
     }
-    if (method.requirements.variableTypes.includes('categorical') &&
-        dataProfile.categoricalVars === 0) {
+    if (
+      method.requirements.variableTypes.includes('categorical') &&
+      dataProfile.categoricalVars === 0
+    ) {
       warnings.push('범주형 변수 필요')
+      canUse = false
+    }
+    if (method.requirements.variableTypes.includes('date') && !dataProfile.hasTimeVar) {
+      warnings.push('날짜/시간 변수 필요')
       canUse = false
     }
   }
