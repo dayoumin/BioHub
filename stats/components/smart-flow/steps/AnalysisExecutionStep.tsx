@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { BarChart3, CheckCircle2, Loader2, AlertCircle, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-// Fix 4-C: Tooltip imports 제거 (일시정지 버튼 제거로 불필요)
 import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -101,8 +100,8 @@ export function AnalysisExecutionStep({
   const [currentStage, setCurrentStage] = useState(executionStages[0])
   const [completedStages, setCompletedStages] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
-  // Fix 4-B: useRef로 취소 플래그 관리 (stale closure 방지)
   const cancelledRef = useRef(false)
+  const autoNextTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [isCancelled, setIsCancelled] = useState(false)
   const [executionLog, setExecutionLog] = useState<string[]>([])
   const [showDetailedLog, setShowDetailedLog] = useState(false)
@@ -225,7 +224,7 @@ export function AnalysisExecutionStep({
       // Stage 4: 주 분석 실행
       addLog(logs.methodExecuting(selectedMethod.name))
 
-      // Fix 4-A: 실제 적용되는 설정만 로그에 표시 (현재 alpha만 지원)
+      // 실제 적용되는 설정만 로그에 표시 (현재 alpha만 지원)
       if (suggestedSettings) {
         const appliedAlpha = suggestedSettings.alpha ?? 0.05
         addLog(logs.aiSettingsApplied(appliedAlpha))
@@ -241,7 +240,7 @@ export function AnalysisExecutionStep({
       const result = await executor.executeMethod(
         selectedMethod,
         uploadedData,
-        (variableMapping as Record<string, unknown>) || {},
+        variableMapping ?? {},
         suggestedSettings
       )
 
@@ -280,8 +279,8 @@ export function AnalysisExecutionStep({
         onAnalysisComplete(transformedResult)
       }
 
-      // 다음 단계로 자동 이동 (2초 후)
-      setTimeout(() => {
+      // 다음 단계로 자동 이동 (2초 후) — cleanup은 useEffect에서 처리
+      autoNextTimerRef.current = setTimeout(() => {
         if (onNext) onNext()
       }, 2000)
 
@@ -293,7 +292,7 @@ export function AnalysisExecutionStep({
   }, [uploadedData, selectedMethod, variableMapping, suggestedSettings, updateStage, addLog, onAnalysisComplete, onNext, t, executionStages, logs])
 
   /**
-   * 취소 처리 (Fix 4-B: ref로 즉시 반영)
+   * 취소 처리
    */
   const handleCancel = useCallback(() => {
     if (window.confirm(t.smartFlow.execution.cancelConfirm)) {
@@ -306,12 +305,12 @@ export function AnalysisExecutionStep({
 
   // 컴포넌트 마운트 시 분석 실행 (variableMapping이 유효할 때만)
   useEffect(() => {
-    // variableMapping 유효성 검사: groupVar 또는 dependentVar가 있어야 함
-    const hasValidMapping = variableMapping && (
-      (variableMapping as Record<string, unknown>).groupVar ||
-      (variableMapping as Record<string, unknown>).dependentVar ||
-      (variableMapping as Record<string, unknown>).variables
-    )
+    // variableMapping 유효성: VariableMapping의 어떤 키든 값이 있으면 유효
+    // (AutoConfirmSelector: event/timeVar 등, GroupComparison: groupVar/dependentVar 등)
+    const hasValidMapping = variableMapping &&
+      Object.values(variableMapping).some(v =>
+        v !== undefined && v !== null && (Array.isArray(v) ? v.length > 0 : v !== '')
+      )
 
     if (!isCancelled && !analysisResult && hasValidMapping) {
       logger.info('Starting analysis with variableMapping', { variableMapping })
@@ -329,6 +328,13 @@ export function AnalysisExecutionStep({
     else if (dataSize < 100000) setEstimatedTime(60)
     else setEstimatedTime(120)
   }, [uploadedData])
+
+  // 언마운트 시 자동 이동 타이머 정리
+  useEffect(() => {
+    return () => {
+      if (autoNextTimerRef.current) clearTimeout(autoNextTimerRef.current)
+    }
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -401,7 +407,7 @@ export function AnalysisExecutionStep({
                 })}
               </div>
 
-              {/* 취소 버튼 (Fix 4-C: 동작하지 않는 일시정지 버튼 제거) */}
+              {/* 취소 버튼 */}
               {!error && (
                 <div className="flex justify-center gap-3 mt-6">
                   <Button

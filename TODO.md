@@ -1,6 +1,6 @@
 # 프로젝트 현황 + 할일
 
-**최종 업데이트**: 2026-02-25 (Step 3 VariableSelectionStep 전면 개선)
+**최종 업데이트**: 2026-02-26 (Step 4 AnalysisExecutionStep + ResultsActionStep 비판적 검토)
 
 ---
 
@@ -39,6 +39,14 @@
 - ✅ **Step 4 ResultsActionStep 구조 개선**: 카드 6개 분리, 액션 바 1행, L2/L3 기본 닫힘
 - ✅ **색상 토큰 회귀 테스트**: 6개 셀렉터 × 15 테스트 (color-tokens.test.tsx)
 - ✅ **AI 채팅 히스토리 (multi-turn Q&A)**: stream-follow-up.test.ts 27개 테스트 통과
+
+### 2026-02-26 (목) Step 4 AnalysisExecutionStep + ResultsActionStep 비판적 검토
+
+- ✅ **Bug: `setTimeout(onNext)` cleanup 누락** — `autoNextTimerRef`로 관리 + 언마운트 시 정리 (언마운트 후 콜백 방지)
+- ✅ **Bug: `hasValidMapping` 불완전** — 3개 필드 하드코딩 → `Object.values().some()` 로 전체 VariableMapping 키 대응 (AutoConfirmSelector 10개 메서드 호환)
+- ✅ **타입 캐스팅 제거**: `variableMapping as Record<string, unknown>` → `variableMapping ?? {}` (VariableMapping 타입 직접 사용)
+- ✅ **Fix 주석 정리**: `// Fix 4-A/B/C` 내부 수정 마커 제거
+- ✅ **`console.error` × 2 → `logger.error`**: ResultsActionStep 로거 정책 준수
 
 ### 2026-02-25 (수) Step 3 VariableSelectionStep 전면 개선
 

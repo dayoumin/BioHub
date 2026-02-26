@@ -75,6 +75,7 @@ import { AssumptionTestsSection } from '@/components/smart-flow/steps/exploratio
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { formatStatisticalResult } from '@/lib/statistics/formatters'
 import { useTerminology } from '@/hooks/use-terminology'
+import { logger } from '@/lib/utils/logger'
 import type { ResultsText } from '@/lib/terminology/terminology-types'
 
 interface ResultsActionStepProps {
@@ -405,7 +406,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       await startNewAnalysis()
       toast.info(t.results.toast.newAnalysis)
     } catch (error) {
-      console.error('Failed to start new analysis:', error)
+      logger.error('Failed to start new analysis', { error })
       reset()
       toast.info(t.results.toast.newAnalysis)
     }
@@ -619,7 +620,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         copiedTimeoutRef.current = null
       }, 2000)
     } catch (err) {
-      console.error('Copy failed:', err)
+      logger.error('Copy failed', { error: err })
       toast.error(t.results.toast.copyError)
     }
   }, [results, statisticalResult, interpretation, apaFormat])
