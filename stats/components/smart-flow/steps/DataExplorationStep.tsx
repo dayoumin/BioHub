@@ -212,6 +212,13 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     })
   }, [getNumericValues, getPercentile, numericColumnStats])
 
+  // 데이터 변경 시 탭 자동 전환 (P1-4): 이상치 있으면 statistics, 없으면 preview로 리셋
+  useEffect(() => {
+    if (numericDistributions.length === 0) return
+    const totalOutliers = numericDistributions.reduce((sum, v) => sum + v.outlierCount, 0)
+    setActiveDataTab(totalOutliers > 0 ? 'statistics' : 'preview')
+  }, [numericDistributions])
+
   const formatStat = useCallback((value?: number, digits = 2) => {
     return value !== undefined && !Number.isNaN(value) ? value.toFixed(digits) : 'N/A'
   }, [])

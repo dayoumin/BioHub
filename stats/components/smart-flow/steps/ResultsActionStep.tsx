@@ -1,9 +1,13 @@
 'use client'
 
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
+import { useCountUp } from '@/hooks/use-count-up'
 import {
   Save,
   Copy,
+  Download,
   RotateCcw,
   CheckCircle2,
   XCircle,
@@ -82,6 +86,30 @@ interface ResultsActionStepProps {
   results: AnalysisResult | null
 }
 
+// ===== Animation Variants =====
+const heroRevealVariants = {
+  hidden: { opacity: 0, scale: 0.96, y: -8 },
+  visible: {
+    opacity: 1, scale: 1, y: 0,
+    transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as const }
+  }
+}
+
+const statsContainerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.1 } }
+}
+
+const statsItemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' as const } }
+}
+
+const sectionRevealVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' as const } }
+}
+
 // 효과크기 해석 (L1 배지용 — 지역화 레이블 사용)
 function getEffectSizeInterpretation(value: number, type: string | undefined, labels: ResultsText['effectSizeLabels']): string {
   const absValue = Math.abs(value)
@@ -125,6 +153,13 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   // Terminology System
   const t = useTerminology()
 
+  // Reduced motion
+  const prefersReducedMotion = useReducedMotion()
+
+  // Phase: 0=Hero만, 1=수치카드(150ms), 2=AI섹션(400ms), 3=차트+L2(AI완료), 4=Q&A(phase3+300ms)
+  const [phase, setPhase] = useState(0)
+  const phaseTimerRef = useRef<NodeJS.Timeout | null>(null)
+
   const [isSaved, setIsSaved] = useState(false)
   const [savedName, setSavedName] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState(false)
@@ -166,10 +201,25 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const followUpAbortRef = useRef<AbortController | null>(null)
   const chatBottomRef = useRef<HTMLDivElement | null>(null)
 
-  // 언마운트 시 후속 Q&A 스트림 취소
+  // 언마운트 시 후속 Q&A 스트림 취소 + phaseTimer 정리
   useEffect(() => {
-    return () => { followUpAbortRef.current?.abort() }
+    return () => {
+      followUpAbortRef.current?.abort()
+      if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current)
+    }
   }, [])
+
+  // Phase 0→1(150ms)→2(400ms) 자동 진행
+  useEffect(() => {
+    const t1 = setTimeout(() => setPhase(prev => Math.max(prev, 1)), 150)
+    const t2 = setTimeout(() => setPhase(prev => Math.max(prev, 2)), 400)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [results?.method, results?.pValue])
+
+  // reduced-motion: 모든 섹션 즉시 표시
+  useEffect(() => {
+    if (prefersReducedMotion) setPhase(4)
+  }, [prefersReducedMotion])
 
   const {
     saveToHistory,
@@ -242,6 +292,13 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       setDiagnosticsOpen(true)
     }
   }, [assumptionsPassed])
+
+  // L2 상세 결과: post-hoc/계수 테이블(additionalResults) 있을 때만 자동 열기 (P2-3)
+  useEffect(() => {
+    if (statisticalResult?.additionalResults && statisticalResult.additionalResults.length > 0) {
+      setDetailedResultsOpen(true)
+    }
+  }, [statisticalResult?.additionalResults])
 
   // AssumptionTest[] 매핑 (AssumptionTestCard용)
   const assumptionTests = useMemo((): AssumptionTest[] => {
@@ -464,6 +521,13 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     } finally {
       setIsInterpreting(false)
       interpretAbortRef.current = null
+      // Phase 3 (차트+L2 등장) → 300ms 후 Phase 4 (Q&A 등장)
+      if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current)
+      setPhase(prev => Math.max(prev, 3))
+      phaseTimerRef.current = setTimeout(() => {
+        setPhase(prev => Math.max(prev, 4))
+        phaseTimerRef.current = null
+      }, 300)
       requestAnimationFrame(() => {
         aiInterpretationRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
       })
@@ -634,6 +698,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }
   }, [results, statisticalResult, interpretation, apaFormat, t])
 
+  // count-up: 컴포넌트 레벨 호출 (Rules of Hooks — early return 전)
+  const statisticDisplay = useCountUp(statisticalResult?.statistic, { started: phase >= 1 })
+  const effectSizeDisplay = useCountUp(statisticalResult?.effectSize?.value, { started: phase >= 1 })
+
   if (!results || !statisticalResult) {
     return (
       <EmptyState
@@ -647,7 +715,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   return (
     <TooltipProvider>
       <div className="space-y-4">
-        {/* ===== 스텝 헤더 ===== */}
+        {/* ===== 스텝 헤더 (P0-1: Copy + Save 상단 배치) ===== */}
         <StepHeader
           icon={BarChart3}
           title={t.smartFlow.stepTitles.results}
@@ -657,21 +725,20 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={handleCopyResults}
+                className={cn("shadow-sm", isCopied && "bg-primary hover:bg-primary/90 text-primary-foreground border-primary")}
+              >
+                {isCopied ? <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> : <Copy className="w-3.5 h-3.5 mr-1.5" />}
+                {isCopied ? t.results.buttons.copied : t.results.buttons.copy}
+              </Button>
+              <Button
+                size="sm"
                 onClick={() => handleSaveAsFile('docx')}
                 disabled={isExporting}
                 className={cn("shadow-sm", isSaved && "bg-emerald-600 hover:bg-emerald-600 text-white border-emerald-600")}
               >
                 {isSaved ? <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
                 {isSaved ? t.results.buttons.saved : t.results.buttons.save}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigateToStep(3)}
-                className="gap-1.5 text-muted-foreground"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                {t.results.buttons.backToVariables}
               </Button>
             </div>
           }
@@ -687,227 +754,243 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           />
         )}
 
-        {/* ===== L1 핵심 결과 카드 ===== */}
-        <Card className={cn(
-          "overflow-hidden rounded-xl border-2 shadow-sm",
-          !assumptionsPassed ? "border-warning-border" :
-            isSignificant ? "border-success-border" : "border-border/50"
-        )} data-testid="results-main-card">
-          <CardHeader className="pb-3 bg-muted/5 border-b border-border/20">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base tracking-tight flex items-center gap-2.5">
+        {/* ===== [Phase 0] Hero 결론 카드 ===== */}
+        <motion.div
+          data-testid="results-main-card"
+          variants={prefersReducedMotion ? undefined : heroRevealVariants}
+          initial={prefersReducedMotion ? undefined : 'hidden'}
+          animate={prefersReducedMotion ? undefined : 'visible'}
+        >
+          <Card className={cn(
+            "overflow-hidden rounded-xl border-2 shadow-sm",
+            !assumptionsPassed ? "border-warning-border" :
+              isSignificant ? "border-success-border" : "border-border/50"
+          )}>
+            <CardContent className="pt-5 pb-4 px-5">
+              <div className="flex items-start gap-4">
                 <div className={cn(
-                  "w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0",
+                  "w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5",
                   !assumptionsPassed ? "bg-warning-bg" :
                     isSignificant ? "bg-success-bg" : "bg-muted"
                 )}>
                   {!assumptionsPassed ? (
-                    <AlertCircle className="w-4 h-4 text-warning" />
+                    <AlertCircle className="w-5 h-5 text-warning" />
                   ) : isSignificant ? (
-                    <CheckCircle2 className="w-4 h-4 text-success" />
+                    <CheckCircle2 className="w-5 h-5 text-success" />
                   ) : (
-                    <XCircle className="w-4 h-4 text-muted-foreground" />
+                    <XCircle className="w-5 h-5 text-muted-foreground" />
                   )}
                 </div>
-                {statisticalResult.testName}
-              </CardTitle>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="text-[11px] text-muted-foreground/50 font-mono tabular-nums cursor-help">
-                    {resultTimestamp.toLocaleString('ko-KR', {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="left">{t.results.metadata.analysisTime}</TooltipContent>
-              </Tooltip>
-            </div>
-          </CardHeader>
-
-          <CardContent className="pt-4 space-y-4">
-            {/* 핵심 결론 배너 */}
-            <div className={cn(
-              "px-4 py-3 rounded-lg text-center text-sm font-semibold",
-              !assumptionsPassed ? "bg-warning-bg text-warning border border-warning-border" :
-                isSignificant ? "bg-success-bg text-success border border-success-border" :
-                  "bg-muted/50 text-muted-foreground border border-border/30"
-            )}>
-              {!assumptionsPassed ? (
-                t.results.conclusion.assumptionWarning
-              ) : isSignificant ? (
-                t.results.conclusion.significant
-              ) : (
-                t.results.conclusion.notSignificant
-              )}
-            </div>
-
-            {/* 핵심 숫자 3개 */}
-            <div className="grid grid-cols-3 gap-3">
-              <StatisticCard label={t.results.statistics.statistic} tooltip={t.results.statistics.statisticTooltip}>
-                <p className="text-xl font-bold font-mono">
-                  {statisticalResult.statisticName || 't'} = {(statisticalResult.statistic ?? 0).toFixed(2)}
-                </p>
-                {statisticalResult.df && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    df = {Array.isArray(statisticalResult.df) ? statisticalResult.df.join(', ') : statisticalResult.df}
+                <div className="flex-1 min-w-0">
+                  <p className={cn(
+                    "text-xl font-bold leading-tight",
+                    !assumptionsPassed ? "text-warning" :
+                      isSignificant ? "text-success" : "text-foreground"
+                  )}>
+                    {!assumptionsPassed
+                      ? t.results.conclusion.assumptionWarning
+                      : isSignificant
+                        ? t.results.conclusion.significant
+                        : t.results.conclusion.notSignificant}
                   </p>
-                )}
-              </StatisticCard>
+                  <p className="text-sm text-muted-foreground mt-0.5">{statisticalResult.testName}</p>
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-[11px] text-muted-foreground/50 font-mono tabular-nums cursor-help flex-shrink-0 mt-1">
+                      {resultTimestamp.toLocaleString('ko-KR', {
+                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                      })}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">{t.results.metadata.analysisTime}</TooltipContent>
+                </Tooltip>
+              </div>
+              {(apaFormat || uploadedFileName || uploadedData || statisticalResult.variables) && (
+                <div className="mt-3 pt-3 border-t border-border/10 space-y-1.5">
+                  {apaFormat && (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 flex-shrink-0">APA</span>
+                      <code className="text-xs font-mono text-foreground/70">{apaFormat}</code>
+                    </div>
+                  )}
+                  {(uploadedFileName || uploadedData || statisticalResult.variables) && (
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+                      {uploadedFileName && (
+                        <span className="text-xs text-muted-foreground/60">{t.results.metadata.file} {uploadedFileName}</span>
+                      )}
+                      {uploadedData && (
+                        <span className="text-xs text-muted-foreground/60">
+                          {t.results.metadata.rowsCols(uploadedData.length, Object.keys(uploadedData[0] || {}).length)}
+                        </span>
+                      )}
+                      {statisticalResult.variables && (
+                        <span className="text-xs text-muted-foreground/60">{statisticalResult.variables.join(', ')}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
 
-              <StatisticCard label={t.results.statistics.pValue} tooltip={t.results.statistics.pValueTooltip}>
-                <p className={cn(
-                  "text-xl font-bold font-mono",
-                  isSignificant ? "text-success" : "text-muted-foreground"
-                )}>
-                  p {formatPValue(statisticalResult.pValue)}
+        {/* ===== [Phase 1] 수치 카드 3개 (stagger + count-up) ===== */}
+        <motion.div
+          className="grid grid-cols-3 gap-3"
+          variants={prefersReducedMotion ? undefined : statsContainerVariants}
+          initial="hidden"
+          animate={phase >= 1 || prefersReducedMotion ? 'visible' : 'hidden'}
+        >
+          <motion.div variants={prefersReducedMotion ? undefined : statsItemVariants}>
+            <StatisticCard label={t.results.statistics.statistic} tooltip={t.results.statistics.statisticTooltip}>
+              <p className="text-xl font-bold font-mono">
+                {statisticalResult.statisticName || 't'} = {statisticDisplay}
+              </p>
+              {statisticalResult.df && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  df = {Array.isArray(statisticalResult.df) ? statisticalResult.df.join(', ') : statisticalResult.df}
                 </p>
-                <Badge variant={isSignificant ? "default" : "secondary"} className="mt-0.5 text-xs">
-                  {isSignificant ? t.results.statistics.significant : t.results.statistics.notSignificant}
-                </Badge>
-              </StatisticCard>
+              )}
+            </StatisticCard>
+          </motion.div>
 
-              <StatisticCard label={t.results.statistics.effectSize} tooltip={t.results.statistics.effectSizeTooltip}>
-                {statisticalResult.effectSize ? (
-                  <>
-                    <p className="text-xl font-bold font-mono">
-                      {(statisticalResult.effectSize.value ?? 0).toFixed(2)}
-                    </p>
-                    <Badge variant="outline" className="mt-0.5 text-xs">
-                      {getEffectSizeInterpretation(statisticalResult.effectSize.value, statisticalResult.effectSize.type, t.results.effectSizeLabels)}
-                    </Badge>
-                  </>
-                ) : (
-                  <p className="text-xl font-bold text-muted-foreground">-</p>
-                )}
-              </StatisticCard>
-            </div>
+          <motion.div variants={prefersReducedMotion ? undefined : statsItemVariants}>
+            <StatisticCard label={t.results.statistics.pValue} tooltip={t.results.statistics.pValueTooltip}>
+              <p className={cn(
+                "text-xl font-bold font-mono",
+                isSignificant ? "text-success" : "text-muted-foreground"
+              )}>
+                p {formatPValue(statisticalResult.pValue)}
+              </p>
+              <Badge variant={isSignificant ? "default" : "secondary"} className="mt-0.5 text-xs">
+                {isSignificant ? t.results.statistics.significant : t.results.statistics.notSignificant}
+              </Badge>
+            </StatisticCard>
+          </motion.div>
 
-            {/* APA 형식 */}
-            {apaFormat && (
-              <div className="px-3 py-2.5 bg-muted/30 rounded-lg border border-border/20">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 mb-1">APA</p>
-                <code className="text-xs font-mono text-foreground/80">{apaFormat}</code>
-              </div>
-            )}
+          <motion.div variants={prefersReducedMotion ? undefined : statsItemVariants}>
+            <StatisticCard label={t.results.statistics.effectSize} tooltip={t.results.statistics.effectSizeTooltip}>
+              {statisticalResult.effectSize ? (
+                <>
+                  <p className="text-xl font-bold font-mono">{effectSizeDisplay}</p>
+                  <Badge variant="outline" className="mt-0.5 text-xs">
+                    {getEffectSizeInterpretation(statisticalResult.effectSize.value, statisticalResult.effectSize.type, t.results.effectSizeLabels)}
+                  </Badge>
+                </>
+              ) : (
+                <p className="text-xl font-bold text-muted-foreground">-</p>
+              )}
+            </StatisticCard>
+          </motion.div>
+        </motion.div>
 
-            {/* 메타데이터 (파일, 데이터 크기, 변수) */}
-            {(uploadedFileName || uploadedData || statisticalResult.variables) && (
-              <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2 border-t border-border/10">
-                {uploadedFileName && (
-                  <span className="text-xs text-muted-foreground">
-                    <span className="text-muted-foreground/50">{t.results.metadata.file} </span>
-                    {uploadedFileName}
-                  </span>
-                )}
-                {uploadedData && (
-                  <span className="text-xs text-muted-foreground">
-                    <span className="text-muted-foreground/50">{t.results.metadata.data} </span>
-                    {t.results.metadata.rowsCols(uploadedData.length, Object.keys(uploadedData[0] || {}).length)}
-                  </span>
-                )}
-                {statisticalResult.variables && (
-                  <span className="text-xs text-muted-foreground">
-                    <span className="text-muted-foreground/50">{t.results.metadata.variables} </span>
-                    {statisticalResult.variables.join(', ')}
-                  </span>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* ===== 시각화 ===== */}
-        <ResultsVisualization results={results} />
-
-        {/* ===== AI 해석 카드 ===== */}
+        {/* ===== [Phase 2] AI 해석 카드 — 래퍼는 항상 렌더링, 내부 콘텐츠만 phase 기반 ===== */}
         <div className="space-y-2" data-testid="ai-interpretation-section" ref={aiInterpretationRef}>
-          {/* 로딩 */}
-          {isInterpreting && !interpretation && (
-            <Card className="border-violet-200 dark:border-violet-800/50">
-              <CardContent className="py-4 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="w-4 h-4 text-violet-500 animate-pulse" />
-                </div>
-                <span className="text-sm text-violet-700 dark:text-violet-300 font-medium">{t.results.ai.loading}</span>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* AI 해석 콘텐츠 */}
-          {parsedInterpretation && (
-            <Card className="border-violet-200 dark:border-violet-800/50">
-              <CardHeader className="pb-2 pt-4 px-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-md bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center">
-                      <Sparkles className="w-3.5 h-3.5 text-violet-500" />
-                    </div>
-                    <span className="text-sm font-semibold text-violet-700 dark:text-violet-300">{t.results.ai.label}</span>
-                    {interpretationModel && interpretationModel !== 'unknown' && (
-                      <span className="text-[10px] text-muted-foreground/40 font-mono hidden sm:inline">{interpretationModel}</span>
-                    )}
-                  </div>
-                  {!isInterpreting && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={resetAndReinterpret}
-                      className="text-xs h-7 px-2 gap-1"
-                    >
-                      <RefreshCw className="w-3 h-3" />
-                      {t.results.ai.reinterpret}
-                    </Button>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="pt-2 pb-4 px-4 space-y-2">
-                <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
-                  <ReactMarkdown>{parsedInterpretation.summary}</ReactMarkdown>
-                  {isInterpreting && (
-                    <span className="inline-block w-1.5 h-4 bg-violet-500 animate-pulse ml-0.5 align-text-bottom" />
-                  )}
-                </div>
-                {parsedInterpretation.detail && (
-                  <CollapsibleSection
-                    label={t.results.ai.detailedLabel}
-                    open={detailedInterpretOpen}
-                    onOpenChange={setDetailedInterpretOpen}
-                    contentClassName="pt-2"
-                    icon={<Sparkles className="h-3.5 w-3.5 text-violet-400" />}
-                  >
-                    <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed border-t border-border/10 pt-3">
-                      <ReactMarkdown>{parsedInterpretation.detail}</ReactMarkdown>
-                    </div>
-                  </CollapsibleSection>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* 에러 */}
-          {interpretError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-sm">
-                {interpretError}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={resetAndReinterpret}
-                  className="ml-2 text-xs h-6 px-2"
+            <AnimatePresence mode="wait">
+              {isInterpreting && !interpretation && (
+                <motion.div
+                  key="ai-loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.2 }}
                 >
-                  {t.results.ai.retry}
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
-        </div>
+                  <Card className="border-violet-200 dark:border-violet-800/50">
+                    <CardContent className="py-4 flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
+                        <Sparkles className="w-4 h-4 text-violet-500 animate-pulse" />
+                      </div>
+                      <span className="text-sm text-violet-700 dark:text-violet-300 font-medium">{t.results.ai.loading}</span>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
 
-        {/* ===== 후속 Q&A 카드 ===== */}
-        {interpretation && !isInterpreting && (
+              {parsedInterpretation && (
+                <motion.div
+                  key="ai-content"
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
+                >
+                  <Card className="border-violet-200 dark:border-violet-800/50">
+                    <CardHeader className="pb-2 pt-4 px-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-md bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center">
+                            <Sparkles className="w-3.5 h-3.5 text-violet-500" />
+                          </div>
+                          <span className="text-sm font-semibold text-violet-700 dark:text-violet-300">{t.results.ai.label}</span>
+                          {interpretationModel && interpretationModel !== 'unknown' && (
+                            <span className="text-[10px] text-muted-foreground/40 font-mono hidden sm:inline">{interpretationModel}</span>
+                          )}
+                        </div>
+                        {!isInterpreting && (
+                          <Button variant="outline" size="sm" onClick={resetAndReinterpret} className="text-xs h-7 px-2 gap-1">
+                            <RefreshCw className="w-3 h-3" />
+                            {t.results.ai.reinterpret}
+                          </Button>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-2 pb-4 px-4 space-y-2">
+                      <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
+                        <ReactMarkdown>{parsedInterpretation.summary}</ReactMarkdown>
+                        {isInterpreting && (
+                          <span className="inline-block w-1.5 h-4 bg-violet-500 animate-pulse ml-0.5 align-text-bottom" />
+                        )}
+                      </div>
+                      {parsedInterpretation.detail && (
+                        <CollapsibleSection
+                          label={t.results.ai.detailedLabel}
+                          open={detailedInterpretOpen}
+                          onOpenChange={setDetailedInterpretOpen}
+                          contentClassName="pt-2"
+                          icon={<Sparkles className="h-3.5 w-3.5 text-violet-400" />}
+                        >
+                          <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed border-t border-border/10 pt-3">
+                            <ReactMarkdown>{parsedInterpretation.detail}</ReactMarkdown>
+                          </div>
+                        </CollapsibleSection>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {interpretError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  {interpretError}
+                  <Button variant="ghost" size="sm" onClick={resetAndReinterpret} className="ml-2 text-xs h-6 px-2">
+                    {t.results.ai.retry}
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+
+        {/* ===== [Phase 3] 시각화 ===== */}
+        {(phase >= 3 || prefersReducedMotion) && (
+          <motion.div
+            variants={prefersReducedMotion ? undefined : sectionRevealVariants}
+            initial={prefersReducedMotion ? undefined : 'hidden'}
+            animate={prefersReducedMotion ? undefined : 'visible'}
+          >
+            <ResultsVisualization results={results} />
+          </motion.div>
+        )}
+
+        {/* ===== [Phase 4] 후속 Q&A 카드 ===== */}
+        {(phase >= 4 || prefersReducedMotion) && interpretation && !isInterpreting && (
+          <motion.div
+            variants={prefersReducedMotion ? undefined : sectionRevealVariants}
+            initial={prefersReducedMotion ? undefined : 'hidden'}
+            animate={prefersReducedMotion ? undefined : 'visible'}
+          >
           <Card data-testid="follow-up-section">
             <CardHeader className="pb-3 pt-4 px-4">
               <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
@@ -1011,10 +1094,16 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               )}
             </CardContent>
           </Card>
+          </motion.div>
         )}
 
-        {/* ===== L2 상세 결과 카드 ===== */}
-        {hasDetailedResults && (
+        {/* ===== [Phase 2] L2 상세 결과 카드 ===== */}
+        {hasDetailedResults && (phase >= 2 || prefersReducedMotion) && (
+          <motion.div
+            variants={prefersReducedMotion ? undefined : sectionRevealVariants}
+            initial={prefersReducedMotion ? undefined : 'hidden'}
+            animate={prefersReducedMotion ? undefined : 'visible'}
+          >
           <Card className="overflow-hidden" data-testid="detailed-results-section">
             <CollapsibleSection
               label={t.results.sections.detailedResults}
@@ -1066,6 +1155,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               </div>
             </CollapsibleSection>
           </Card>
+          </motion.div>
         )}
 
         {/* ===== L3 진단 & 권장 카드 ===== */}
@@ -1171,73 +1261,52 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
         {/* ===== 액션 버튼 ===== */}
         <div className="flex items-center gap-2 flex-wrap" data-testid="action-buttons">
-          {/* 저장 + 드롭다운 */}
-          <div className="flex flex-1 min-w-[160px]">
-            <Button
-              variant={isSaved ? "default" : "outline"}
-              size="sm"
-              onClick={() => handleSaveAsFile('docx')}
-              disabled={isExporting}
-              className={cn(
-                "flex-1 rounded-r-none border-r-0 shadow-sm",
-                isSaved && "bg-emerald-600 hover:bg-emerald-600 text-white"
-              )}
-            >
-              {isSaved ? (
-                <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-              ) : (
-                <Save className="w-3.5 h-3.5 mr-1.5" />
-              )}
-              {isExporting ? t.results.buttons.exporting : isSaved ? t.results.buttons.saved : t.results.buttons.save}
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={isExporting}
-                  className="px-1.5 rounded-l-none shadow-sm"
-                >
-                  <ChevronRight className="w-3.5 h-3.5 rotate-90" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleSaveAsFile('docx')}>
-                  <FileText className="w-4 h-4 mr-2" />
-                  {t.results.buttons.exportDocx}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleSaveAsFile('xlsx')}>
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  {t.results.buttons.exportExcel}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleSaveAsFile('html')}>
-                  <FileText className="w-4 h-4 mr-2" />
-                  {t.results.buttons.exportHtml}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => openExportDialog('docx')}>
-                  <FileSearch className="w-4 h-4 mr-2" />
-                  {t.results.buttons.exportWithOptions}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          {/* 복사 */}
+          {/* 뒤로가기 (변수 선택) */}
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            onClick={handleCopyResults}
-            className={cn("shadow-sm", isCopied && "bg-blue-600 hover:bg-blue-600 text-white border-blue-600")}
+            onClick={() => navigateToStep(3)}
+            className="text-muted-foreground hover:text-foreground"
           >
-            {isCopied ? (
-              <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-            ) : (
-              <Copy className="w-3.5 h-3.5 mr-1.5" />
-            )}
-            {isCopied ? t.results.buttons.copied : t.results.buttons.copy}
+            <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
+            {t.results.buttons.backToVariables}
           </Button>
 
           <div className="w-px h-5 bg-border/50 hidden sm:block" />
+
+          {/* Export 드롭다운 */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isExporting}
+                className="shadow-sm"
+              >
+                <Download className="w-3.5 h-3.5 mr-1.5" />
+                {isExporting ? t.results.buttons.exporting : t.results.buttons.export}
+                <ChevronRight className="w-3 h-3 ml-1 rotate-90" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => handleSaveAsFile('docx')}>
+                <FileText className="w-4 h-4 mr-2" />
+                {t.results.buttons.exportDocx}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleSaveAsFile('xlsx')}>
+                <BarChart3 className="w-4 h-4 mr-2" />
+                {t.results.buttons.exportExcel}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleSaveAsFile('html')}>
+                <FileText className="w-4 h-4 mr-2" />
+                {t.results.buttons.exportHtml}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openExportDialog('docx')}>
+                <FileSearch className="w-4 h-4 mr-2" />
+                {t.results.buttons.exportWithOptions}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Button
             variant="ghost"
@@ -1280,7 +1349,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               <AlertDialogCancel>{t.results.confirm.newAnalysis.cancel}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleNewAnalysisConfirm}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                className=""
               >
                 {t.results.confirm.newAnalysis.confirm}
               </AlertDialogAction>

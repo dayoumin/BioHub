@@ -166,11 +166,16 @@ export function SmartFlowLayout({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={cn("h-10 w-10", showHistory && "bg-muted")}
+                  className={cn("relative h-10 w-10", showHistory && "bg-muted")}
                   onClick={onHistoryToggle}
                   title={showHistory ? t.smartFlow.layout.historyClose : historyCount > 0 ? t.smartFlow.layout.historyCount(historyCount) : t.smartFlow.layout.historyTitle}
                 >
                   <Clock className="h-5 w-5" />
+                  {historyCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-0.5 text-[10px] font-medium leading-none text-primary-foreground">
+                      {historyCount > 99 ? '99+' : historyCount}
+                    </span>
+                  )}
                 </Button>
               )}
               <Button

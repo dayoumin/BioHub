@@ -7,19 +7,21 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 
 export interface StatisticCardProps {
   label: string
   tooltip: string
   children: ReactNode
+  className?: string
 }
 
 /**
  * Requires a parent <TooltipProvider> wrapper.
  */
-export function StatisticCard({ label, tooltip, children }: StatisticCardProps) {
+export function StatisticCard({ label, tooltip, children, className }: StatisticCardProps) {
   return (
-    <div className="text-center p-3 bg-muted/50 rounded-lg">
+    <div className={cn("text-center p-3 bg-muted/50 rounded-lg", className)}>
       <Tooltip>
         <TooltipTrigger asChild>
           <div className="cursor-help">

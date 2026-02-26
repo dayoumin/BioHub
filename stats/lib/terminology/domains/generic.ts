@@ -180,7 +180,7 @@ export const generic: TerminologyDictionary = {
       },
       quickAnalysis: {
         badge: 'Quick Analysis',
-        description: 'Upload data to go directly to variable selection.',
+        description: 'Method auto-selected (Step 2 skipped). Upload data to proceed directly to variable selection.',
         normalMode: 'Normal Mode',
         changeMethod: 'Change Method',
       },
@@ -902,9 +902,9 @@ export const generic: TerminologyDictionary = {
       dropHere: 'Drop file here',
       fileSpecifications: 'Max 100,000 rows | Supported: CSV, Excel',
       recentFiles: 'Recently uploaded files',
-      recentFilesNote: '* Click a recent file to open the file picker.',
-      recentFilesClickHint: 'Click to open file picker',
-      recentFileClickTitle: 'Browser security prevents auto-load — click to open the file picker',
+      recentFilesNote: '* These are shown as reference only. Click to open the file picker and re-select the file (browser security prevents auto-loading).',
+      recentFilesClickHint: 'Click to re-select from file picker',
+      recentFileClickTitle: 'Browser security prevents auto-load — click to open the file picker and re-select',
       selectSheet: 'Select Excel Sheet',
       sheetsFound: (count: number) => `${count} sheets found. Select a sheet to analyze.`,
       selectSheetPlaceholder: 'Select a sheet',
@@ -992,7 +992,7 @@ export const generic: TerminologyDictionary = {
   },
 
   naturalLanguageInput: {
-    description: 'Describe what you want to analyze. AI will recommend suitable statistical methods.',
+    description: 'Describe your research goal and get an AI recommendation — or switch to "Browse All" to pick a method manually.',
     dataSummary: {
       dimension: (rows: number, cols: number) => `${rows} rows x ${cols} cols`,
       numeric: (count: number) => `${count} numeric`,

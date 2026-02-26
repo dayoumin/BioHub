@@ -181,7 +181,7 @@ export const aquaculture: TerminologyDictionary = {
       },
       quickAnalysis: {
         badge: '빠른 분석',
-        description: '데이터를 업로드하면 바로 변수 선택으로 이동합니다.',
+        description: '방법이 자동 선택되었습니다 (Step 2 건너뜀). 데이터를 업로드하면 바로 변수 선택으로 이동합니다.',
         normalMode: '일반 분석',
         changeMethod: '방법 변경',
       },
@@ -908,9 +908,9 @@ export const aquaculture: TerminologyDictionary = {
       dropHere: '파일을 놓으세요',
       fileSpecifications: '최대 100,000행 | 지원 형식: CSV, Excel',
       recentFiles: '최근 업로드한 파일',
-      recentFilesNote: '* 최근 파일을 클릭하면 파일 선택기가 열립니다.',
-      recentFilesClickHint: '클릭 시 파일 선택창 열림',
-      recentFileClickTitle: '브라우저 보안상 자동 로드 불가 — 클릭하면 파일 선택창이 열립니다',
+      recentFilesNote: '* 파일명은 참고용입니다. 클릭하면 파일 선택창이 열리며, 파일을 다시 선택해야 합니다 (브라우저 보안상 자동 로드 불가).',
+      recentFilesClickHint: '클릭 시 파일 선택창 열림 (재선택 필요)',
+      recentFileClickTitle: '브라우저 보안상 자동 로드 불가 — 클릭하면 파일 선택창이 열리며, 파일을 다시 선택해야 합니다',
       selectSheet: 'Excel 시트 선택',
       sheetsFound: (count: number) => `${count}개의 시트가 발견되었습니다. 분석할 시트를 선택하세요.`,
       selectSheetPlaceholder: '시트를 선택하세요',
@@ -998,7 +998,7 @@ export const aquaculture: TerminologyDictionary = {
   },
 
   naturalLanguageInput: {
-    description: '분석하고 싶은 내용을 자연스럽게 입력하세요. AI가 적합한 통계 방법을 추천해드립니다.',
+    description: '연구 목표를 자유롭게 설명하세요. AI가 적합한 통계 방법을 추천합니다 — 직접 선택하려면 "직접 선택" 탭으로 전환하세요.',
     dataSummary: {
       dimension: (rows: number, cols: number) => `${rows}행 x ${cols}열`,
       numeric: (count: number) => `수치형 ${count}개`,

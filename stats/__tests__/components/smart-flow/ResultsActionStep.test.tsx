@@ -819,7 +819,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
   })
 
   describe('Layer 2: 상세 결과', () => {
-    it('CI + effectSize 있으면 Layer 2 표시', () => {
+    it('CI + effectSize 있으면 Layer 2 표시', async () => {
       mockConvert.mockReturnValue({
         testName: 't-검정',
         statistic: 2.456,
@@ -833,11 +833,13 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
 
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      // Layer 2 토글 버튼 존재
-      expect(screen.getByText('상세 결과')).toBeInTheDocument()
+      // Phase 2 (400ms)까지 기다려 Layer 2 표시 확인
+      await waitFor(() => {
+        expect(screen.getByText('상세 결과')).toBeInTheDocument()
+      }, { timeout: 1000 })
     })
 
-    it('additionalResults 있으면 Layer 2 표시', () => {
+    it('additionalResults 있으면 Layer 2 표시', async () => {
       mockConvert.mockReturnValue({
         testName: 't-검정',
         statistic: 2.456,
@@ -852,7 +854,9 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
 
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      expect(screen.getByText('상세 결과')).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByText('상세 결과')).toBeInTheDocument()
+      }, { timeout: 1000 })
     })
 
     it('CI/effectSize/additionalResults 모두 없으면 Layer 2 숨김', () => {
@@ -1022,7 +1026,8 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
     it('저장, 복사 버튼 + AI 해석 섹션이 표시된다', () => {
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      expect(within(screen.getByTestId('action-buttons')).getByText('저장')).toBeInTheDocument()
+      // 저장 버튼은 StepHeader로 이동
+      expect(screen.getByText('저장')).toBeInTheDocument()
       expect(screen.getByText('복사')).toBeInTheDocument()
       expect(screen.getByTestId('ai-interpretation-section')).toBeInTheDocument()
     })
@@ -1127,7 +1132,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
     it('저장 버튼 클릭 → ExportService.export("docx") 호출', async () => {
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      const saveBtn = within(screen.getByTestId('action-buttons')).getByText('저장')
+      const saveBtn = screen.getByText('저장')
       await act(async () => {
         fireEvent.click(saveBtn)
       })
@@ -1140,7 +1145,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
     it('저장 성공 → 배너에 fileName 표시', async () => {
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      const saveBtn = within(screen.getByTestId('action-buttons')).getByText('저장')
+      const saveBtn = screen.getByText('저장')
       await act(async () => {
         fireEvent.click(saveBtn)
       })
@@ -1154,20 +1159,20 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
     it('저장 성공 → 버튼 텍스트 "저장됨"으로 변경', async () => {
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      const saveBtn = within(screen.getByTestId('action-buttons')).getByText('저장')
+      const saveBtn = screen.getByText('저장')
       await act(async () => {
         fireEvent.click(saveBtn)
       })
 
       await waitFor(() => {
-        expect(within(screen.getByTestId('action-buttons')).getByText('저장됨')).toBeInTheDocument()
+        expect(screen.getByText('저장됨')).toBeInTheDocument()
       })
     })
 
     it('저장 성공 → IndexedDB 히스토리에도 자동 저장', async () => {
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      const saveBtn = within(screen.getByTestId('action-buttons')).getByText('저장')
+      const saveBtn = screen.getByText('저장')
       await act(async () => {
         fireEvent.click(saveBtn)
       })
@@ -1186,7 +1191,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
 
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      const saveBtn = within(screen.getByTestId('action-buttons')).getByText('저장')
+      const saveBtn = screen.getByText('저장')
       await act(async () => {
         fireEvent.click(saveBtn)
       })
@@ -1202,7 +1207,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
 
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      const saveBtn = within(screen.getByTestId('action-buttons')).getByText('저장')
+      const saveBtn = screen.getByText('저장')
       await act(async () => {
         fireEvent.click(saveBtn)
       })
@@ -1220,7 +1225,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
 
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      const saveBtn = within(screen.getByTestId('action-buttons')).getByText('저장')
+      const saveBtn = screen.getByText('저장')
       await act(async () => {
         fireEvent.click(saveBtn)
       })
@@ -1242,7 +1247,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
 
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      const saveBtn = within(screen.getByTestId('action-buttons')).getByText('저장')
+      const saveBtn = screen.getByText('저장')
       await act(async () => {
         fireEvent.click(saveBtn)
       })
@@ -1257,7 +1262,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
         error: '디스크 공간 부족',
       })
 
-      const savedBtn = within(screen.getByTestId('action-buttons')).getByText('저장됨')
+      const savedBtn = screen.getByText('저장됨')
       await act(async () => {
         fireEvent.click(savedBtn)
       })
@@ -1282,7 +1287,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
     it('ExportContext 구조가 올바르게 전달된다', async () => {
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      const saveBtn = within(screen.getByTestId('action-buttons')).getByText('저장')
+      const saveBtn = screen.getByText('저장')
       await act(async () => {
         fireEvent.click(saveBtn)
       })
@@ -1313,7 +1318,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
 
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      const saveBtn = within(screen.getByTestId('action-buttons')).getByText('저장')
+      const saveBtn = screen.getByText('저장')
       await act(async () => {
         fireEvent.click(saveBtn)
       })
@@ -1327,7 +1332,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       })
 
       await waitFor(() => {
-        expect(within(screen.getByTestId('action-buttons')).getByText('저장됨')).toBeInTheDocument()
+        expect(screen.getByText('저장됨')).toBeInTheDocument()
       })
     })
   })
@@ -1443,6 +1448,207 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       })
       // '오류: 후속 질문...' 형태가 아님을 확인 (이중 감쌈 방지)
       expect(screen.queryByText('오류: 후속 질문 처리 중 오류가 발생했습니다.')).not.toBeInTheDocument()
+    })
+  })
+})
+
+// =====================================================
+// Part 3: Phase 상태 머신 시뮬레이션
+// =====================================================
+describe('Part 3: Phase 상태 머신 시뮬레이션', () => {
+  const baseResults: AnalysisResult = {
+    method: '독립표본 t-검정',
+    statistic: 2.456,
+    pValue: 0.018,
+    df: 28,
+    interpretation: '두 그룹 간 유의한 차이가 있습니다.'
+  }
+
+  const statBase = {
+    testName: '독립표본 t-검정',
+    statistic: 2.456,
+    statisticName: 't',
+    pValue: 0.018,
+    df: 28,
+    alpha: 0.05,
+  } satisfies StatisticalResult
+
+  function renderPhase(ui: React.ReactElement) {
+    let result: ReturnType<typeof render>
+    act(() => { result = render(ui) })
+    return result!
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  // --------------------------------------------------
+  describe('정보 순서 및 단계적 등장', () => {
+    it('Phase 0: Hero 결론 카드는 즉시 렌더링된다', () => {
+      mockConvert.mockReturnValue(statBase)
+      renderPhase(<ResultsActionStep results={baseResults} />)
+
+      expect(screen.getByTestId('results-main-card')).toBeInTheDocument()
+    })
+
+    it('Phase 0: L2 상세 결과는 아직 미표시 (phase 2 대기)', () => {
+      mockConvert.mockReturnValue({
+        ...statBase,
+        effectSize: { value: 0.72, type: 'cohensD' },
+      } as StatisticalResult)
+      renderPhase(<ResultsActionStep results={baseResults} />)
+
+      // effectSize 있어도 phase 2(400ms) 전에는 미표시
+      expect(screen.queryByTestId('detailed-results-section')).not.toBeInTheDocument()
+    })
+
+    it('Phase 0: AI 해석 섹션 래퍼는 즉시 DOM에 존재한다', () => {
+      mockConvert.mockReturnValue(statBase)
+      renderPhase(<ResultsActionStep results={baseResults} />)
+
+      // 래퍼는 항상 존재 (내부 콘텐츠만 조건부) — data-testid 안정성 보장
+      expect(screen.getByTestId('ai-interpretation-section')).toBeInTheDocument()
+    })
+
+    it('Phase 2 (≈400ms): effectSize 있으면 L2 상세 결과 등장', async () => {
+      mockConvert.mockReturnValue({
+        ...statBase,
+        effectSize: { value: 0.72, type: 'cohensD' },
+      } as StatisticalResult)
+      renderPhase(<ResultsActionStep results={baseResults} />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('detailed-results-section')).toBeInTheDocument()
+      }, { timeout: 1000 })
+    })
+
+    it('Phase 2 (≈400ms): effectSize 없으면 L2 미표시 유지', async () => {
+      mockConvert.mockReturnValue(statBase)  // effectSize 없음
+      renderPhase(<ResultsActionStep results={baseResults} />)
+
+      // 400ms 이상 기다려도 미표시 (hasDetailedResults=false)
+      await new Promise(r => setTimeout(r, 500))
+      expect(screen.queryByTestId('detailed-results-section')).not.toBeInTheDocument()
+    })
+
+    it('AI 완료 후 300ms: Q&A 카드 등장 (Phase 4)', async () => {
+      const { requestInterpretation } = await import('@/lib/services/result-interpreter')
+      vi.mocked(requestInterpretation).mockImplementation(async (_ctx, onChunk) => {
+        onChunk('AI 해석이 완료되었습니다.')
+        return { model: 'test-model' }
+      })
+
+      mockConvert.mockReturnValue(statBase)
+      renderPhase(<ResultsActionStep results={baseResults} />)
+
+      // AI 완료 → phase 3 → 300ms 후 phase 4 → Q&A 표시
+      await waitFor(() => {
+        expect(screen.getByTestId('follow-up-section')).toBeInTheDocument()
+      }, { timeout: 2000 })
+    })
+
+    it('AI 미완료 시 Q&A 미표시 (phase 4 미진입)', async () => {
+      // 기본 mock은 onChunk 미호출 → interpretation=null → Q&A 미표시
+      const { requestInterpretation } = await import('@/lib/services/result-interpreter')
+      vi.mocked(requestInterpretation).mockReturnValue(new Promise(() => {})) // never resolves
+
+      mockConvert.mockReturnValue(statBase)
+      renderPhase(<ResultsActionStep results={baseResults} />)
+
+      // Q&A는 phase 4 + interpretation 필요 — 둘 다 미충족
+      expect(screen.queryByTestId('follow-up-section')).not.toBeInTheDocument()
+    })
+  })
+
+  // --------------------------------------------------
+  describe('P0-1: StepHeader & 하단 액션 바 레이아웃', () => {
+    beforeEach(() => {
+      mockConvert.mockReturnValue(statBase)
+    })
+
+    it('저장 버튼이 화면에 존재한다 (StepHeader로 이동)', () => {
+      renderPhase(<ResultsActionStep results={baseResults} />)
+      expect(screen.getByText('저장')).toBeInTheDocument()
+    })
+
+    it('복사 버튼이 화면에 존재한다 (StepHeader)', () => {
+      renderPhase(<ResultsActionStep results={baseResults} />)
+      expect(screen.getByText('복사')).toBeInTheDocument()
+    })
+
+    it('action-buttons에는 저장 버튼이 없다 (중복 제거)', () => {
+      renderPhase(<ResultsActionStep results={baseResults} />)
+      const actionButtons = screen.getByTestId('action-buttons')
+      // Save가 action-buttons에서 제거됨
+      expect(within(actionButtons).queryByText('저장')).not.toBeInTheDocument()
+    })
+
+    it('action-buttons에 뒤로가기(변수 선택) 버튼이 존재한다', () => {
+      renderPhase(<ResultsActionStep results={baseResults} />)
+      const actionButtons = screen.getByTestId('action-buttons')
+      expect(within(actionButtons).getByText('변수 선택으로')).toBeInTheDocument()
+    })
+
+    it('뒤로가기 클릭 → navigateToStep(3) 호출', async () => {
+      renderPhase(<ResultsActionStep results={baseResults} />)
+      const backBtn = within(screen.getByTestId('action-buttons')).getByText('변수 선택으로')
+
+      await act(async () => { fireEvent.click(backBtn) })
+
+      expect(mockStoreState.navigateToStep).toHaveBeenCalledWith(3)
+    })
+
+    it('action-buttons에 내보내기 드롭다운이 존재한다', () => {
+      renderPhase(<ResultsActionStep results={baseResults} />)
+      const actionButtons = screen.getByTestId('action-buttons')
+      expect(within(actionButtons).getByText('내보내기')).toBeInTheDocument()
+    })
+
+    it('action-buttons에 재분석 / 새 분석 / 템플릿 버튼이 존재한다', () => {
+      renderPhase(<ResultsActionStep results={baseResults} />)
+      const actionButtons = screen.getByTestId('action-buttons')
+      expect(within(actionButtons).getByText('다른 데이터로 재분석')).toBeInTheDocument()
+      expect(within(actionButtons).getByText('새 분석 시작')).toBeInTheDocument()
+      expect(within(actionButtons).getByText('템플릿으로 저장')).toBeInTheDocument()
+    })
+  })
+
+  // --------------------------------------------------
+  describe('P2-3: L2 데이터 기반 표시 조건', () => {
+    it('effectSize 있으면 Phase 2 후 L2 자동 표시', async () => {
+      mockConvert.mockReturnValue({
+        ...statBase,
+        effectSize: { value: 0.72, type: 'cohensD' },
+      } as StatisticalResult)
+      renderPhase(<ResultsActionStep results={baseResults} />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('detailed-results-section')).toBeInTheDocument()
+      }, { timeout: 1000 })
+    })
+
+    it('additionalResults 있으면 Phase 2 후 L2 자동 표시', async () => {
+      mockConvert.mockReturnValue({
+        ...statBase,
+        additionalResults: [
+          { title: '그룹별 통계', columns: [{ key: 'g', label: '그룹' }], data: [{ g: 'A' }] }
+        ],
+      } as StatisticalResult)
+      renderPhase(<ResultsActionStep results={baseResults} />)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('detailed-results-section')).toBeInTheDocument()
+      }, { timeout: 1000 })
+    })
+
+    it('effectSize/additionalResults 없으면 L2 미표시 (항상)', async () => {
+      mockConvert.mockReturnValue(statBase)
+      renderPhase(<ResultsActionStep results={baseResults} />)
+
+      // 충분히 기다려도 L2 없음
+      await new Promise(r => setTimeout(r, 500))
+      expect(screen.queryByTestId('detailed-results-section')).not.toBeInTheDocument()
     })
   })
 })
