@@ -246,7 +246,7 @@ export function AiPanel(): React.ReactElement {
         {/* L1/L2 카드 영역 */}
         <div className={isBottom ? 'flex flex-col gap-1 shrink-0 w-[260px]' : 'shrink-0'}>
           {/* L1 카드 */}
-          <div className={`flex gap-1 ${isBottom ? 'flex-wrap' : 'flex-wrap'}`}>
+          <div className="flex gap-1 flex-wrap">
             {AI_CARD_TREE.map(card => {
               const Icon = card.icon;
               const isActive = selectedL1 === card.id;

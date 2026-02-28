@@ -64,7 +64,10 @@ export function useAiChat(): AiChatHook {
         const parsed = JSON.parse(saved) as ChatMessage[];
         if (Array.isArray(parsed)) setMessages(parsed);
       }
-    } catch { /* 파싱 실패 시 무시 */ }
+    } catch (err) {
+      console.warn('[use-ai-chat] 채팅 히스토리 로드 실패, 초기화합니다.', err);
+      localStorage.removeItem(CHAT_STORAGE_KEY);
+    }
   }, []);
 
   // 메시지 변경 시 localStorage 저장

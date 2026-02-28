@@ -535,7 +535,12 @@ export function chartSpecToECharts(
   // - heatmap: buildHeatmapData aggregates per cell
   // - error-bar: buildErrorBarData computes mean ± error from raw samples;
   //              pre-aggregating would destroy the variance information needed
-  const requiresNoAgg = new Set(['histogram', 'boxplot', 'violin', 'scatter', 'heatmap', 'error-bar']);
+  // - grouped-bar/stacked-bar: buildGroupedData pivots by colorField internally;
+  //              pre-aggregating with only xField in groupBy would collapse color groups
+  const requiresNoAgg = new Set([
+    'histogram', 'boxplot', 'violin', 'scatter', 'heatmap', 'error-bar',
+    'grouped-bar', 'stacked-bar',
+  ]);
   const workRows = (spec.aggregate && !requiresNoAgg.has(spec.chartType))
     ? aggregateRows(rows, spec.aggregate.groupBy, yField, spec.aggregate.y)
     : rows;

@@ -68,7 +68,7 @@ export function ChartPreview({ echartsRef }: ChartPreviewProps): React.ReactElem
       {/* Bottom status bar */}
       <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground border-t pt-2">
         <span>
-          {chartSpec.encoding.x.field} × {chartSpec.encoding.y.field}
+          {chartSpec.encoding.x.field ?? '?'} × {chartSpec.encoding.y.field ?? '?'}
         </span>
         <span>
           {chartSpec.chartType}{chartSpec.chartType === 'violin' ? ' (박스 플롯)' : ''} | {chartSpec.style.preset} | n={rows.length}

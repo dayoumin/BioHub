@@ -12,19 +12,12 @@ import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DataTab } from './panels/DataTab';
 import { StyleTab } from './panels/StyleTab';
-import type { GraphStudioState } from '@/types/graph-studio';
-
-const TAB_MAP: Record<string, GraphStudioState['sidePanel']> = {
-  data: 'data',
-  style: 'style',
-};
 
 export function SidePanel(): React.ReactElement {
   const { sidePanel, setSidePanel } = useGraphStudioStore();
 
   const handleTabChange = useCallback((value: string) => {
-    const panel = TAB_MAP[value];
-    if (panel) setSidePanel(panel);
+    if (value === 'data' || value === 'style') setSidePanel(value);
   }, [setSidePanel]);
 
   return (

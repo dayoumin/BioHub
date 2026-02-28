@@ -32,9 +32,11 @@ export function DataTab(): React.ReactElement {
   const [xTitleInput, setXTitleInput] = useState(chartSpec?.encoding.x.title ?? '');
   const [yTitleInput, setYTitleInput] = useState(chartSpec?.encoding.y.title ?? '');
 
-  useEffect(() => { setTitleInput(chartSpec?.title ?? ''); }, [chartSpec?.title]);
-  useEffect(() => { setXTitleInput(chartSpec?.encoding.x.title ?? ''); }, [chartSpec?.encoding.x.title]);
-  useEffect(() => { setYTitleInput(chartSpec?.encoding.y.title ?? ''); }, [chartSpec?.encoding.y.title]);
+  useEffect(() => {
+    setTitleInput(chartSpec?.title ?? '');
+    setXTitleInput(chartSpec?.encoding.x.title ?? '');
+    setYTitleInput(chartSpec?.encoding.y.title ?? '');
+  }, [chartSpec?.title, chartSpec?.encoding.x.title, chartSpec?.encoding.y.title]);
 
   // ─── 차트 제목 ────────────────────────────────────────────
 
