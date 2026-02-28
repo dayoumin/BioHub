@@ -17,7 +17,7 @@ import {
   BarChart2,
   ScatterChart,
   LineChart,
-  BoxSelect,
+  SlidersHorizontal,
   BarChart,
   Grid2x2,
   Upload,
@@ -131,7 +131,7 @@ const CHART_THUMBNAILS: ChartThumbnail[] = [
     type: 'boxplot',
     label: '박스 플롯',
     desc: '분포 비교',
-    Icon: BoxSelect,
+    Icon: SlidersHorizontal,
     color: 'text-orange-500',
     bg: 'bg-orange-50 hover:bg-orange-100 border-orange-100 hover:border-orange-300',
   },
@@ -191,6 +191,18 @@ export function DataUploadPanel(): React.ReactElement {
       const pkg = buildSamplePackage(sourceId);
       const { xField, yField } = selectXYFields(pkg.columns, CHART_TYPE_HINTS[chartType]);
       const spec = createDefaultChartSpec(sourceId, chartType, xField, yField, pkg.columns);
+
+      // line/scatter 차트: 샘플 데이터의 nominal 컬럼(species)을 color encoding으로 자동 설정
+      // → 3종이 별도 시리즈로 구분되어 렌더링됨 (미설정 시 30점이 단일 선으로 연결되는 zigzag 발생)
+      if (chartType === 'line' || chartType === 'scatter') {
+        const nominalCol = pkg.columns.find(
+          c => c.type === 'nominal' && c.name !== xField && c.name !== yField,
+        );
+        if (nominalCol) {
+          spec.encoding.color = { field: nominalCol.name, type: 'nominal' };
+        }
+      }
+
       // DataPackage + ChartSpec을 단일 set()으로 원자적 등록 (중간 렌더 없음)
       loadDataPackageWithSpec(pkg, spec);
     },

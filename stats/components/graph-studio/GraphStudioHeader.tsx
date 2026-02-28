@@ -8,6 +8,7 @@
 
 import { useCallback } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
+import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
 import { Button } from '@/components/ui/button';
 import {
   Undo2,
@@ -46,7 +47,7 @@ export function GraphStudioHeader({
         <h1 className="text-lg font-semibold">Graph Studio</h1>
         {chartSpec && (
           <span className="text-sm text-muted-foreground">
-            {chartSpec.chartType}
+            {CHART_TYPE_HINTS[chartSpec.chartType]?.label ?? chartSpec.chartType}
           </span>
         )}
       </div>
