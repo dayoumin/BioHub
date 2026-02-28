@@ -192,6 +192,11 @@ export function ChatCentricHub({
     setExternalValue(example)
   }, [])
 
+  // 표본 크기 계산기 "분석 시작" CTA → ChatInput 주입
+  const handleStartAnalysis = useCallback((example: string) => {
+    setExternalValue(example)
+  }, [])
+
   const handleExternalValueConsumed = useCallback(() => {
     setExternalValue(undefined)
   }, [])
@@ -264,7 +269,7 @@ export function ChatCentricHub({
       </div>
 
       {/* 3트랙 제안 카드 */}
-      <TrackSuggestions onTrackSelect={handleTrackSelect} />
+      <TrackSuggestions onTrackSelect={handleTrackSelect} onStartAnalysis={handleStartAnalysis} />
 
       {/* 빠른 분석 + 최근 히스토리 */}
       <QuickAccessBar

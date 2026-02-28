@@ -9,7 +9,7 @@
  */
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { Info } from 'lucide-react'
+import { Info, ArrowRight } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -49,6 +50,19 @@ type TestType =
 export interface SampleSizeModalProps {
   open: boolean
   onClose: () => void
+  /** 계산 완료 후 "이 검정으로 분석 시작" 클릭 시 호출 — ChatInput에 예시 텍스트 주입 */
+  onStartAnalysis?: (example: string) => void
+}
+
+// ─── TestType → 분석 시작 예시 텍스트 ─────────────────────────────────────
+
+const TEST_TO_EXAMPLE: Record<TestType, string> = {
+  'two-sample':  '독립 표본 t-검정으로 두 그룹의 평균 차이를 분석해줘',
+  'paired':      '대응 표본 t-검정으로 처리 전후 차이를 분석해줘',
+  'one-sample':  '단일 표본 t-검정으로 모집단 평균과 차이를 분석해줘',
+  'anova':       '일원 ANOVA로 세 그룹 이상의 평균 차이를 분석해줘',
+  'proportions': '두 비율 차이가 유의한지 비율 검정으로 분석해줘',
+  'correlation': '피어슨 상관 분석으로 두 변수 간 관계를 분석해줘',
 }
 
 // ─── Preset constants ──────────────────────────────────────────────────────
@@ -326,7 +340,7 @@ function CohenDInput({
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export function SampleSizeModal({ open, onClose }: SampleSizeModalProps) {
+export function SampleSizeModal({ open, onClose, onStartAnalysis }: SampleSizeModalProps) {
   const [testType, setTestType] = useState<TestType>('two-sample')
 
   // 공통 파라미터
@@ -616,11 +630,25 @@ export function SampleSizeModal({ open, onClose }: SampleSizeModalProps) {
           </div>
 
           {/* 항상 보이는 결과 영역 — 스크롤과 무관하게 고정 */}
-          <div className="shrink-0 border-t border-border/40 pt-3">
+          <div className="shrink-0 border-t border-border/40 pt-3 space-y-2">
             {result
               ? <>
                   <ResultBadge result={result} subLabel={subLabel} />
-                  <p className="text-[11px] text-muted-foreground/50 mt-2">
+                  {/* 분석 시작 CTA — 결과 있고 onStartAnalysis 연결된 경우만 표시 */}
+                  {!result.error && onStartAnalysis && (
+                    <Button
+                      size="sm"
+                      className="w-full"
+                      onClick={() => {
+                        onClose()
+                        onStartAnalysis(TEST_TO_EXAMPLE[testType])
+                      }}
+                    >
+                      <ArrowRight className="w-3.5 h-3.5 mr-1.5" />
+                      이 검정으로 분석 시작하기
+                    </Button>
+                  )}
+                  <p className="text-[11px] text-muted-foreground/50">
                     정규 근사 기반 계산 (G*Power 대비 ±5%). 중요한 연구는 G*Power로 재확인 권장.
                   </p>
                 </>

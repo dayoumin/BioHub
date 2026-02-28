@@ -40,11 +40,12 @@ const TRACK_CONFIGS: TrackConfig[] = [
 
 interface TrackSuggestionsProps {
   onTrackSelect: (track: AnalysisTrack, example: string) => void
+  onStartAnalysis?: (example: string) => void
 }
 
 // ===== Component =====
 
-export function TrackSuggestions({ onTrackSelect }: TrackSuggestionsProps) {
+export function TrackSuggestions({ onTrackSelect, onStartAnalysis }: TrackSuggestionsProps) {
   const t = useTerminology()
   const prefersReducedMotion = useReducedMotion()
   const [sampleSizeOpen, setSampleSizeOpen] = useState(false)
@@ -102,7 +103,7 @@ export function TrackSuggestions({ onTrackSelect }: TrackSuggestionsProps) {
         <VisualizationCard index={2} prefersReducedMotion={prefersReducedMotion} />
       </motion.div>
 
-      <SampleSizeModal open={sampleSizeOpen} onClose={handleCloseSampleSize} />
+      <SampleSizeModal open={sampleSizeOpen} onClose={handleCloseSampleSize} onStartAnalysis={onStartAnalysis} />
     </>
   )
 }
