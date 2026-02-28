@@ -253,15 +253,8 @@ function CohenDInput({
   mean2, onMean2,
   pooledSd, onPooledSd,
 }: CohenDInputProps) {
-  // 세 값이 모두 유효하면 d 자동 계산
-  useEffect(() => {
-    const m1 = parseFloat(mean1)
-    const m2 = parseFloat(mean2)
-    const s = parseFloat(pooledSd)
-    if (isFinite(m1) && isFinite(m2) && isFinite(s) && s > 0) {
-      onChange(Math.abs((m1 - m2) / s).toFixed(3))
-    }
-  }, [mean1, mean2, pooledSd, onChange])
+  // 자동 계산 로직은 부모(SampleSizeModal)의 useEffect로 이동
+  // — dSource 추적으로 수동 입력 overwrite 방지
 
   return (
     <div>
@@ -360,6 +353,33 @@ export function SampleSizeModal({ open, onClose, onStartAnalysis }: SampleSizeMo
   const [helperMean1, setHelperMean1] = useState('')
   const [helperMean2, setHelperMean2] = useState('')
   const [helperSd, setHelperSd] = useState('')
+
+  // d 소스 추적 — 'manual': 직접 입력, 'helper': 평균/SD 자동 계산
+  // helper 필드 변경 후 d를 수동으로 바꾸면 'manual'로 전환 → 자동 계산 중단
+  const [dSource, setDSource] = useState<'manual' | 'helper'>('manual')
+
+  // d 직접 입력 — dSource를 'manual'로 전환해 helper auto-calc 중단
+  const handleCohenDChange = useCallback((v: string) => {
+    setCohenD(v)
+    setDSource('manual')
+  }, [])
+
+  // helper 필드 변경 — dSource를 'helper'로 전환해 자동 계산 재개
+  const handleHelperMean1 = useCallback((v: string) => { setHelperMean1(v); setDSource('helper') }, [])
+  const handleHelperMean2 = useCallback((v: string) => { setHelperMean2(v); setDSource('helper') }, [])
+  const handleHelperSd    = useCallback((v: string) => { setHelperSd(v);    setDSource('helper') }, [])
+
+  // helper → d 자동 계산 (dSource === 'helper'일 때만 덮어씀)
+  useEffect(() => {
+    if (dSource !== 'helper') return
+    const m1 = parseFloat(helperMean1)
+    const m2 = parseFloat(helperMean2)
+    const s  = parseFloat(helperSd)
+    if (isFinite(m1) && isFinite(m2) && isFinite(s) && s > 0) {
+      setCohenD(Math.abs((m1 - m2) / s).toFixed(3))
+    }
+  }, [helperMean1, helperMean2, helperSd, dSource])
+
   const handleToggleHelper = useCallback(() => setShowHelper(v => !v), [])
 
   const handleOpenChange = useCallback((v: boolean) => {
@@ -419,13 +439,15 @@ export function SampleSizeModal({ open, onClose, onStartAnalysis }: SampleSizeMo
 
   // 공통 Cohen's d 입력 블록 (독립/대응/단일 t-검정 공용)
   // helper 상태가 부모에 있으므로 탭 unmount/remount에도 mean1/mean2/SD 유지
+  // ⚠ 동일 element를 여러 TabsContent에 공유 — TabsContent forceMount 사용 금지
+  //   (forceMount 필요 시 cohendBlock을 공유하지 않고 탭별로 분리할 것)
   const cohendBlock = (
     <CohenDInput
-      value={cohenD} onChange={setCohenD}
+      value={cohenD} onChange={handleCohenDChange}
       showHelper={showHelper} onToggleHelper={handleToggleHelper}
-      mean1={helperMean1} onMean1={setHelperMean1}
-      mean2={helperMean2} onMean2={setHelperMean2}
-      pooledSd={helperSd} onPooledSd={setHelperSd}
+      mean1={helperMean1} onMean1={handleHelperMean1}
+      mean2={helperMean2} onMean2={handleHelperMean2}
+      pooledSd={helperSd} onPooledSd={handleHelperSd}
     />
   )
 
