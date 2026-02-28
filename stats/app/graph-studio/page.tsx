@@ -54,13 +54,8 @@ export default function GraphStudioPage(): React.ReactElement {
     );
   }
 
-  // SidePanel 너비: right 도킹 시 compact (w-60)
-  const sidePanelWidth =
-    isSidePanelOpen
-      ? aiPanelOpen && aiPanelDock === 'right'
-        ? 'w-60'
-        : 'w-80'
-      : '';
+  // SidePanel 너비: right 도킹 시 compact (w-60) — isSidePanelOpen=false면 렌더 안 됨
+  const sidePanelWidth = aiPanelOpen && aiPanelDock === 'right' ? 'w-60' : 'w-80';
 
   return (
     <div className="flex flex-col h-full">

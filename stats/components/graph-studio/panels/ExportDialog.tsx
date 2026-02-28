@@ -45,33 +45,27 @@ interface ExportDialogProps {
   onExport?: () => void;
 }
 
+/** mm 값을 문자열 input 값으로 변환 */
+const toInput = (mm: number | undefined): string => (mm !== undefined ? String(mm) : '');
+
 export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElement {
   const { chartSpec, setExportConfig } = useGraphStudioStore();
 
+  // shadcn Dialog: disabled trigger가 열릴 수 있는 엣지 케이스 방지
+  const [dialogOpen, setDialogOpen] = useState(false);
+
   // 물리적 크기 로컬 state — onBlur 시 setExportConfig (undo 히스토리 제외 의도)
-  const [widthInput, setWidthInput] = useState(
-    chartSpec?.exportConfig.physicalWidth !== undefined
-      ? String(chartSpec.exportConfig.physicalWidth)
-      : '',
+  const [widthInput, setWidthInput] = useState(() =>
+    toInput(chartSpec?.exportConfig.physicalWidth),
   );
-  const [heightInput, setHeightInput] = useState(
-    chartSpec?.exportConfig.physicalHeight !== undefined
-      ? String(chartSpec.exportConfig.physicalHeight)
-      : '',
+  const [heightInput, setHeightInput] = useState(() =>
+    toInput(chartSpec?.exportConfig.physicalHeight),
   );
 
   // AI 편집 등 외부 변경 동기화
   useEffect(() => {
-    setWidthInput(
-      chartSpec?.exportConfig.physicalWidth !== undefined
-        ? String(chartSpec.exportConfig.physicalWidth)
-        : '',
-    );
-    setHeightInput(
-      chartSpec?.exportConfig.physicalHeight !== undefined
-        ? String(chartSpec.exportConfig.physicalHeight)
-        : '',
-    );
+    setWidthInput(toInput(chartSpec?.exportConfig.physicalWidth));
+    setHeightInput(toInput(chartSpec?.exportConfig.physicalHeight));
   }, [chartSpec?.exportConfig.physicalWidth, chartSpec?.exportConfig.physicalHeight]);
 
   const handleFormatChange = useCallback((value: string) => {
@@ -107,7 +101,10 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
   }, [chartSpec, heightInput, setExportConfig]);
 
   return (
-    <Dialog>
+    <Dialog
+      open={dialogOpen}
+      onOpenChange={(next) => { if (!next || chartSpec) setDialogOpen(next); }}
+    >
       <DialogTrigger asChild>
         <Button
           variant="outline"

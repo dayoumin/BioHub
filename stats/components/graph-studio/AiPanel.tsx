@@ -175,15 +175,19 @@ export function AiPanel(): React.ReactElement {
   const isSide = aiPanelDock === 'left' || aiPanelDock === 'right';
 
   // L2 카드 클릭: prompt → 입력창 자동완성 / directApply → 즉시 적용
+  // directApply는 getState()로 최신 spec 참조 (useCallback 재생성 최소화)
   const handleL2Click = useCallback((card: L2Card) => {
     if (card.prompt) {
       setInputValue(card.prompt);
       textareaRef.current?.focus();
-    } else if (card.directApply && chartSpec) {
-      setExportConfig({ ...chartSpec.exportConfig, ...card.directApply });
+    } else if (card.directApply) {
+      const spec = useGraphStudioStore.getState().chartSpec;
+      if (spec) {
+        setExportConfig({ ...spec.exportConfig, ...card.directApply });
+      }
     }
     setSelectedL1(null);
-  }, [chartSpec, setExportConfig, setInputValue, textareaRef]);
+  }, [setExportConfig, setInputValue, textareaRef]);
 
   const selectedL1Data = AI_CARD_TREE.find(c => c.id === selectedL1);
 

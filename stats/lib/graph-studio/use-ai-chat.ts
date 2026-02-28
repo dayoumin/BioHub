@@ -9,7 +9,7 @@
  */
 
 import { useCallback, useRef, useState, useEffect } from 'react';
-import React from 'react';
+import type { KeyboardEvent, RefObject } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { applyAndValidatePatches } from '@/lib/graph-studio/chart-spec-utils';
 import { editChart, buildAiEditRequest, AiServiceError } from '@/lib/graph-studio/ai-service';
@@ -35,9 +35,9 @@ export interface AiChatHook {
   setInputValue: (value: string) => void;
   isLoading: boolean;
   handleSend: () => Promise<void>;
-  handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
-  messagesEndRef: React.RefObject<HTMLDivElement | null>;
+  handleKeyDown: (e: KeyboardEvent<HTMLTextAreaElement>) => void;
+  textareaRef: RefObject<HTMLTextAreaElement | null>;
+  messagesEndRef: RefObject<HTMLDivElement | null>;
 }
 
 // ─── 훅 ────────────────────────────────────────────────────
@@ -154,7 +154,7 @@ export function useAiChat(): AiChatHook {
   }, [inputValue, isLoading, appendMessage, updateChartSpec]);
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         void handleSend();

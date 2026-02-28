@@ -166,6 +166,10 @@ export function DataTab(): React.ReactElement {
   }
 
   const columns = chartSpec.data.columns;
+  // 에러바 표시 조건:
+  // - bar / error-bar: 항상 표시
+  // - line: 단일 선(color 그룹 없음) + 비-시계열(temporal 아님)일 때만
+  //   (다중선·시계열에서는 에러바 의미가 불명확하므로 숨김)
   const showErrorBar = ERROR_BAR_CHART_TYPES.has(chartSpec.chartType) && (
     chartSpec.chartType !== 'line' ||
     (!chartSpec.encoding.color?.field && chartSpec.encoding.x.type !== 'temporal')

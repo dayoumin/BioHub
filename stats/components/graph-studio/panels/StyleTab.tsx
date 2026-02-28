@@ -55,13 +55,24 @@ export function StyleTab(): React.ReactElement {
 
   const handleLogScaleToggle = useCallback((checked: boolean) => {
     if (!chartSpec) return;
+    const currentDomain = chartSpec.encoding.y.scale?.domain;
+    // 로그 스케일 활성화 시 min ≤ 0인 numeric domain은 무효 → 자동 제거 (로그(0) = -∞)
+    const invalidMinForLog =
+      checked &&
+      typeof currentDomain?.[0] === 'number' &&
+      currentDomain[0] <= 0;
+    const domain = invalidMinForLog ? undefined : currentDomain;
+    if (invalidMinForLog) {
+      setYMinInput('');
+      setYMaxInput('');
+    }
     updateChartSpec({
       ...chartSpec,
       encoding: {
         ...chartSpec.encoding,
         y: {
           ...chartSpec.encoding.y,
-          scale: { ...chartSpec.encoding.y.scale, type: checked ? 'log' : 'linear' },
+          scale: { ...chartSpec.encoding.y.scale, type: checked ? 'log' : 'linear', domain },
         },
       },
     });
