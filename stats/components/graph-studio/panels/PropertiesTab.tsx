@@ -9,6 +9,7 @@ import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -16,12 +17,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
+import { Check } from 'lucide-react';
+import { CHART_TYPE_HINTS, STYLE_PRESETS } from '@/lib/graph-studio/chart-spec-defaults';
 import { selectXYFields } from '@/lib/graph-studio/chart-spec-utils';
-import type { ChartType, ErrorBarSpec, LegendSpec } from '@/types/graph-studio';
+import type { ChartType, ErrorBarSpec, LegendSpec, StylePreset } from '@/types/graph-studio';
 
 /** 에러바를 지원하는 차트 유형 */
 const ERROR_BAR_CHART_TYPES = new Set<ChartType>(['bar', 'line', 'error-bar']);
+
+/** 학술 스타일 프리셋 목록 — Phase 3에서 StyleTab으로 이동 예정 */
+const PRESET_LIST: { key: StylePreset; label: string; description: string }[] = [
+  { key: 'default',   label: 'Default',   description: '깔끔한 기본 스타일 (Arial, 컬러)' },
+  { key: 'science',   label: 'Science',   description: 'Nature/Science 유사 (Times New Roman)' },
+  { key: 'ieee',      label: 'IEEE',      description: 'IEEE 학회 스타일 (흑백, 작은 폰트)' },
+  { key: 'grayscale', label: 'Grayscale', description: '흑백 전용 (인쇄 친화)' },
+];
 
 export function PropertiesTab(): React.ReactElement {
   const { chartSpec, updateChartSpec } = useGraphStudioStore();
@@ -215,6 +225,14 @@ export function PropertiesTab(): React.ReactElement {
       ...chartSpec,
       errorBar: { ...chartSpec.errorBar, value: Number(value) },
     });
+  }, [chartSpec, updateChartSpec]);
+
+  // ─── 스타일 프리셋 ────────────────────────────────────────
+
+  const handleApplyPreset = useCallback((presetKey: StylePreset) => {
+    if (!chartSpec) return;
+    const preset = STYLE_PRESETS[presetKey];
+    updateChartSpec({ ...chartSpec, style: { ...preset } });
   }, [chartSpec, updateChartSpec]);
 
   // ─── 범례 위치 ────────────────────────────────────────────
@@ -468,6 +486,32 @@ export function PropertiesTab(): React.ReactElement {
           </Select>
         </div>
       )}
+
+      {/* 학술 스타일 프리셋 — Phase 3에서 StyleTab으로 이동 예정 */}
+      <div className="space-y-1.5">
+        <Label className="text-xs">학술 스타일</Label>
+        <div className="grid grid-cols-2 gap-1.5">
+          {PRESET_LIST.map(preset => {
+            const isActive = chartSpec.style.preset === preset.key;
+            return (
+              <Button
+                key={preset.key}
+                variant={isActive ? 'default' : 'outline'}
+                className="h-auto py-2 px-3 justify-between"
+                onClick={() => handleApplyPreset(preset.key)}
+              >
+                <div className="text-left">
+                  <div className="text-xs font-medium">{preset.label}</div>
+                  <div className={`text-xs mt-0.5 ${isActive ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}>
+                    {preset.description}
+                  </div>
+                </div>
+                {isActive && <Check className="h-3 w-3 shrink-0 ml-1" />}
+              </Button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
