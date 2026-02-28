@@ -39,6 +39,7 @@
 - JS/Python으로 통계 알고리즘 **직접 구현 절대 금지**
 - 반드시 검증된 라이브러리 사용 (SciPy, statsmodels, pingouin)
 - 직접 구현 시 사용자 사전 승인 필수
+- **예외**: 표본 수 계산(power analysis) — 사전분석 도구로 순수 TS 허용. JS 표준 라이브러리 없음, Pyodide 로드 과잉.
 
 ## 통계 코딩 표준
 

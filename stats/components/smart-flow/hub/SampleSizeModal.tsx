@@ -307,7 +307,7 @@ function CohenDInput({
               />
             </div>
             <div>
-              <Label className="text-xs mb-1 block">공통 SD (σ)</Label>
+              <Label className="text-xs mb-1 block">공통 SD (σ) — 등분산 가정</Label>
               <Input
                 type="number"
                 value={pooledSd}

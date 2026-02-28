@@ -26,6 +26,9 @@ pids
 coverage/
 *.lcov
 
+# Test reports (auto-generated)
+stats/__tests__/reports/
+
 # Package managers
 .pnp
 .pnp.js
