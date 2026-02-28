@@ -414,6 +414,15 @@ function buildBaseOption(spec: ChartSpec, style: StyleConfig): EChartsOption {
 }
 
 function xAxisBase(spec: ChartSpec, style: StyleConfig, type: 'category' | 'value' | 'time') {
+  const scale = spec.encoding.x.scale;
+  // numeric domain은 'value' 타입일 때만 적용 (category/time은 무시)
+  const domain = (
+    type === 'value' &&
+    scale?.domain &&
+    scale.domain.length === 2 &&
+    typeof scale.domain[0] === 'number'
+  ) ? (scale.domain as [number, number]) : undefined;
+
   return {
     type,
     name: spec.encoding.x.title ?? spec.encoding.x.field,
@@ -426,6 +435,7 @@ function xAxisBase(spec: ChartSpec, style: StyleConfig, type: 'category' | 'valu
       rotate: spec.encoding.x.labelAngle ?? 0,
     },
     splitLine: { show: spec.encoding.x.grid ?? false },
+    ...(domain ? { min: domain[0], max: domain[1] } : {}),
   };
 }
 
