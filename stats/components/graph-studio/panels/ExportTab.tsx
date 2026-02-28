@@ -7,14 +7,13 @@
  * onExport: GraphStudioPage → SidePanel → ExportTab으로 주입
  *
  * 주의: ECharts getDataURL은 현재 DOM 크기 기준으로 출력됨.
- *       width/height 설정은 ChartSpec에 저장되나 실제 export 크기에는 미반영.
+ *       출력 크기는 DPI(pixelRatio)로만 조정 가능.
  */
 
 import { useCallback } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,

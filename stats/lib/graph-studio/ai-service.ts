@@ -31,7 +31,7 @@ Generate a minimal RFC 6902 JSON Patch that transforms the ChartSpec to fulfill 
 - aggregate: {y: mean|median|sum|count|min|max, groupBy: string[]} (optional)
 - style: {preset: default|science|ieee|grayscale, font, colors, background, padding, overrides}
 - annotations: array of {type: text|line|rect, ...}
-- exportConfig: {format: svg|png, dpi, width, height, transparent}
+- exportConfig: {format: svg|png, dpi}
 
 ## Response Format (STRICT JSON ONLY)
 Return ONLY this JSON object — no markdown, no prose outside the object:

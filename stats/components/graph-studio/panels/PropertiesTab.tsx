@@ -4,7 +4,7 @@
  * 속성 탭 — 차트 유형, 축, 색상 등 직접 편집
  */
 
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,23 @@ import type { ChartType } from '@/types/graph-studio';
 
 export function PropertiesTab(): React.ReactElement {
   const { chartSpec, updateChartSpec } = useGraphStudioStore();
+
+  // 제목 입력: 로컬 state → onBlur 시에만 updateChartSpec
+  // onChange마다 updateChartSpec하면 키입력 하나당 undo history 항목 생성
+  const [titleInput, setTitleInput] = useState(chartSpec?.title ?? '');
+
+  // chartSpec.title 외부 변경(AI 편집 등) 시 로컬 입력 동기화
+  useEffect(() => {
+    setTitleInput(chartSpec?.title ?? '');
+  }, [chartSpec?.title]);
+
+  const handleTitleBlur = useCallback(() => {
+    if (!chartSpec) return;
+    const newTitle = titleInput.trim() || undefined;
+    if (newTitle !== chartSpec.title) {
+      updateChartSpec({ ...chartSpec, title: newTitle });
+    }
+  }, [chartSpec, titleInput, updateChartSpec]);
 
   const handleChartTypeChange = useCallback((value: string) => {
     if (!chartSpec) return;
@@ -41,14 +58,6 @@ export function PropertiesTab(): React.ReactElement {
         x: { ...chartSpec.encoding.x, field: xField, type: xCol?.type ?? hint.suggestedXType },
         y: { ...chartSpec.encoding.y, field: yField, type: yCol?.type ?? 'quantitative' },
       },
-    });
-  }, [chartSpec, updateChartSpec]);
-
-  const handleTitleChange = useCallback((value: string) => {
-    if (!chartSpec) return;
-    updateChartSpec({
-      ...chartSpec,
-      title: value || undefined,
     });
   }, [chartSpec, updateChartSpec]);
 
@@ -101,8 +110,9 @@ export function PropertiesTab(): React.ReactElement {
         <Label htmlFor="chart-title" className="text-xs">제목</Label>
         <Input
           id="chart-title"
-          value={chartSpec.title ?? ''}
-          onChange={(e) => handleTitleChange(e.target.value)}
+          value={titleInput}
+          onChange={(e) => setTitleInput(e.target.value)}
+          onBlur={handleTitleBlur}
           placeholder="차트 제목"
           className="h-8 text-sm"
         />

@@ -69,9 +69,6 @@ export const STYLE_PRESETS: Record<StylePreset, StyleSpec> = {
 export const DEFAULT_EXPORT_CONFIG: ExportConfig = {
   format: 'png',
   dpi: 300,
-  width: 800,
-  height: 600,
-  transparent: false,
 };
 
 // ─── 차트 유형별 권장 설정 ──────────────────────────────────

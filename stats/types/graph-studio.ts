@@ -126,9 +126,6 @@ export type ExportFormat = 'svg' | 'png';
 export interface ExportConfig {
   format: ExportFormat;
   dpi: number;
-  width: number;
-  height: number;
-  transparent?: boolean;
 }
 
 // ─── ChartSpec (핵심) ──────────────────────────────────────
