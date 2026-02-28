@@ -8,7 +8,7 @@
  * G*Power 대비 정확도 ±5% 이내.
  */
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Info } from 'lucide-react'
 import {
   Dialog,
@@ -215,6 +215,99 @@ function CommonInputs({ alpha, power, onAlpha, onPower }: CommonInputsProps) {
   )
 }
 
+// ─── CohenDInput — 직접 입력 + 평균/SD 보조 계산 ──────────────────────────────
+
+interface CohenDInputProps {
+  value: string
+  onChange: (v: string) => void
+}
+
+function CohenDInput({ value, onChange }: CohenDInputProps) {
+  const [showHelper, setShowHelper] = useState(false)
+  const [mean1, setMean1] = useState('')
+  const [mean2, setMean2] = useState('')
+  const [pooledSd, setPooledSd] = useState('')
+
+  // 세 값이 모두 유효하면 d 자동 계산
+  useEffect(() => {
+    const m1 = parseFloat(mean1)
+    const m2 = parseFloat(mean2)
+    const s = parseFloat(pooledSd)
+    if (isFinite(m1) && isFinite(m2) && isFinite(s) && s > 0) {
+      onChange(Math.abs((m1 - m2) / s).toFixed(3))
+    }
+  }, [mean1, mean2, pooledSd, onChange])
+
+  return (
+    <div>
+      <FieldLabel
+        label="효과 크기 (Cohen's d)"
+        tooltip="두 조건의 평균 차이 ÷ 표준편차. 선행 연구의 평균과 SD로 직접 계산하거나 예상값 없으면 중간 효과(0.5) 권장."
+      />
+      <Input
+        type="number"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        min={0.01}
+        step={0.1}
+        className="h-9"
+      />
+      <PresetRow presets={COHEN_D_PRESETS} current={value} onSelect={v => onChange(String(v))} />
+
+      {/* 평균/SD 보조 계산 토글 */}
+      <button
+        type="button"
+        onClick={() => setShowHelper(v => !v)}
+        className="mt-2 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+      >
+        <span>{showHelper ? '▲' : '▼'}</span>
+        평균/SD로 계산
+      </button>
+
+      {showHelper && (
+        <div className="mt-2 p-3 rounded-lg bg-muted/50 border border-border/50 space-y-2">
+          <p className="text-xs text-muted-foreground">
+            평균 1, 평균 2, 공통 SD 입력 시 Cohen's d = |μ₁−μ₂|/σ 자동 계산
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <Label className="text-xs mb-1 block">평균 1 (μ₁)</Label>
+              <Input
+                type="number"
+                value={mean1}
+                onChange={e => setMean1(e.target.value)}
+                placeholder="예: 10.5"
+                className="h-8 text-xs"
+              />
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">평균 2 (μ₂)</Label>
+              <Input
+                type="number"
+                value={mean2}
+                onChange={e => setMean2(e.target.value)}
+                placeholder="예: 12.0"
+                className="h-8 text-xs"
+              />
+            </div>
+            <div>
+              <Label className="text-xs mb-1 block">공통 SD (σ)</Label>
+              <Input
+                type="number"
+                value={pooledSd}
+                onChange={e => setPooledSd(e.target.value)}
+                placeholder="예: 3.0"
+                min={0.001}
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export function SampleSizeModal({ open, onClose }: SampleSizeModalProps) {
@@ -287,33 +380,20 @@ export function SampleSizeModal({ open, onClose }: SampleSizeModalProps) {
     }
   }, [result, testType, groups])
 
-  // 공통 Cohen's d 입력 블록 (독립/대응/단일 t-검정 공용)
+  // 공통 Cohen's d 입력 블록 (독립/대응/단일 t-검정 공용) — CohenDInput 컴포넌트로 위임
   const cohendBlock = (
-    <div>
-      <FieldLabel
-        label="효과 크기 (Cohen's d)"
-        tooltip="두 조건의 평균 차이 ÷ 표준편차. 선행 연구의 평균과 SD로 직접 계산하거나 예상값 없으면 중간 효과(0.5) 권장."
-      />
-      <Input
-        type="number"
-        value={cohenD}
-        onChange={e => setCohenD(e.target.value)}
-        min={0.01}
-        step={0.1}
-        className="h-9"
-      />
-      <PresetRow presets={COHEN_D_PRESETS} current={cohenD} onSelect={v => setCohenD(String(v))} />
-    </div>
+    <CohenDInput value={cohenD} onChange={setCohenD} />
   )
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg h-[90vh] max-h-[640px] flex flex-col overflow-hidden">
         <TooltipProvider delayDuration={200}>
-          <DialogHeader>
+          <DialogHeader className="shrink-0">
             <DialogTitle>표본 크기 계산기</DialogTitle>
           </DialogHeader>
 
+          <div className="flex-1 overflow-y-auto pr-1">
           <Tabs
             value={testType}
             onValueChange={v => setTestType(v as TestType)}
@@ -508,6 +588,7 @@ export function SampleSizeModal({ open, onClose }: SampleSizeModalProps) {
           <p className="text-[11px] text-muted-foreground/50 mt-2">
             정규 근사 기반 계산 (G*Power 대비 ±5%). 중요한 연구는 G*Power로 재확인 권장.
           </p>
+          </div>
         </TooltipProvider>
       </DialogContent>
     </Dialog>
