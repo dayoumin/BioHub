@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.20.0",
+  "version": "1.21.0",
   "lastUpdated": "2026-02-28",
   "sources": [
     "stats/__tests__/",
@@ -657,6 +657,30 @@
             "IndexedDB",
             "template-store"
           ]
+        }
+      ]
+    },
+    {
+      "name": "Graph Studio / JSON Patch Tests",
+      "description": "RFC 6901/6902 JSON Patch, Zod 스키마 검증, 유틸리티 함수 테스트 패턴",
+      "patterns": [
+        {
+          "name": "RFC 6902 JSON Patch 연산 테스트",
+          "purpose": "applyPatches의 add/replace/remove 연산이 RFC 6902 규격을 준수하는지 검증. 배열 인덱스 경계, ~0/~1 이스케이프, -로 append 등 edge case 포함",
+          "code": "import { describe, it, expect } from 'vitest';\nimport { applyPatches } from '@/lib/graph-studio/chart-spec-utils';\nimport type { ChartSpec } from '@/types/graph-studio';\n\n// 최소 spec 픽스처\nconst baseSpec: ChartSpec = { /* ... */ };\n\ndescribe('applyPatches — RFC 6901/6902 준수', () => {\n  it('~1 → /, ~0 → ~ 순서대로 언이스케이프', () => {\n    const spec = { ...baseSpec, annotations: [{ id: 'a/b~c', text: 'old' }] };\n    const result = applyPatches(spec, [{\n      op: 'replace',\n      path: '/annotations/0/text',\n      value: 'new',\n    }]);\n    expect(result.annotations?.[0].text).toBe('new');\n  });\n\n  it('add — 배열 인덱스 0에 삽입 (splice)', () => {\n    const spec = { ...baseSpec, annotations: [{ id: 'b', text: 'second' }] };\n    const result = applyPatches(spec, [{\n      op: 'add',\n      path: '/annotations/0',\n      value: { id: 'a', text: 'first' },\n    }]);\n    expect(result.annotations?.[0].id).toBe('a');\n    expect(result.annotations?.[1].id).toBe('b');\n  });\n\n  it('add — \"-\" 인덱스로 append', () => {\n    const spec = { ...baseSpec, annotations: [{ id: 'a', text: 'first' }] };\n    const result = applyPatches(spec, [{\n      op: 'add',\n      path: '/annotations/-',\n      value: { id: 'b', text: 'second' },\n    }]);\n    expect(result.annotations).toHaveLength(2);\n    expect(result.annotations?.[1].id).toBe('b');\n  });\n\n  it('replace — 범위 초과 인덱스는 no-op (sparse array 방지)', () => {\n    // JavaScript arr[999] = value → sparse array(length=1000) 버그 방지\n    const spec = { ...baseSpec, annotations: [] };\n    const result = applyPatches(spec, [{\n      op: 'replace',\n      path: '/annotations/999',\n      value: { id: 'x', text: 'ghost' },\n    }]);\n    expect(result.annotations).toHaveLength(0);\n  });\n\n  it('remove — splice로 제거', () => {\n    const spec = { ...baseSpec, annotations: [\n      { id: 'a', text: 'first' },\n      { id: 'b', text: 'second' },\n    ]};\n    const result = applyPatches(spec, [{\n      op: 'remove',\n      path: '/annotations/0',\n    }]);\n    expect(result.annotations).toHaveLength(1);\n    expect(result.annotations?.[0].id).toBe('b');\n  });\n});",
+          "keywords": ["applyPatches", "RFC6901", "RFC6902", "JSON Patch", "add", "replace", "remove", "sparse array", "~0", "~1"]
+        },
+        {
+          "name": "Zod enum 스키마 검증 테스트",
+          "purpose": "TypeScript 타입과 Zod enum이 동기화되어 있는지 검증. 유효/무효 값을 모두 테스트",
+          "code": "import { describe, it, expect } from 'vitest';\nimport { chartSpecSchema } from '@/lib/graph-studio/chart-spec-schema';\n\ndescribe('chartSpecSchema — ExportFormat', () => {\n  const validFormats = ['svg', 'png'];\n  const invalidFormats = ['pdf', 'tiff', 'jpg', ''];\n\n  it.each(validFormats)('%s → 유효', (format) => {\n    const spec = buildMinimalSpec({ exportFormat: format });\n    expect(chartSpecSchema.safeParse(spec).success).toBe(true);\n  });\n\n  it.each(invalidFormats)('%s → 무효', (format) => {\n    const spec = buildMinimalSpec({ exportFormat: format });\n    expect(chartSpecSchema.safeParse(spec).success).toBe(false);\n  });\n});\n\n// 팁: TypeScript 타입과 Zod enum은 항상 쌍으로 수정\n// types/graph-studio.ts: ExportFormat = 'svg' | 'png'\n// chart-spec-schema.ts: exportFormatSchema = z.enum(['svg', 'png'])",
+          "keywords": ["Zod", "safeParse", "enum", "ExportFormat", "chartSpecSchema", "it.each"]
+        },
+        {
+          "name": "순수 유틸리티 함수 테스트 (selectXYFields)",
+          "purpose": "컬럼 메타데이터 기반 x/y 필드 선택 로직 검증. 단일 컬럼 fallback, 타입별 우선순위 edge case",
+          "code": "import { describe, it, expect } from 'vitest';\nimport { selectXYFields } from '@/lib/graph-studio/chart-spec-utils';\nimport { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';\nimport type { ColumnMeta } from '@/types/graph-studio';\n\nconst col = (name: string, type: ColumnMeta['type']): ColumnMeta => ({\n  name,\n  type,\n  uniqueCount: 5,\n  sampleValues: [],\n  hasNull: false,\n});\n\ndescribe('selectXYFields', () => {\n  it('x !== y (2개 quantitative)', () => {\n    const cols = [col('price', 'quantitative'), col('qty', 'quantitative')];\n    const { xField, yField } = selectXYFields(cols, CHART_TYPE_HINTS.scatter);\n    expect(xField).not.toBe(yField);\n  });\n\n  it('단일 컬럼 histogram: yField는 \"y\" 문자열이 아님 (실존 필드로 fallback)', () => {\n    // 버그: columns[1]?.name ?? 'y' → 존재하지 않는 'y' 반환\n    // 수정: columns.find(c => c.name !== xField)?.name ?? xField\n    const cols = [col('value', 'quantitative')];\n    const { xField, yField } = selectXYFields(cols, CHART_TYPE_HINTS.histogram);\n    expect(yField).not.toBe('y');  // 'y' 문자열이면 버그\n    expect([xField, ...cols.map(c => c.name)]).toContain(yField);\n  });\n\n  it('빈 컬럼 배열: graceful fallback', () => {\n    const { xField, yField } = selectXYFields([], CHART_TYPE_HINTS.bar);\n    expect(xField).toBe('x');\n  });\n});",
+          "keywords": ["selectXYFields", "ColumnMeta", "CHART_TYPE_HINTS", "histogram", "fallback", "edge case"]
         }
       ]
     }
