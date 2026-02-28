@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.24.0",
+  "version": "1.25.0",
   "lastUpdated": "2026-02-28",
   "sources": [
     "stats/__tests__/",
@@ -738,6 +738,16 @@
           "purpose": "커스텀 Error 클래스(AiServiceError)의 instanceof + code 속성 검증 패턴. 에러 종류별 분기가 필요한 서비스 레이어에 적용.",
           "code": "import { AiServiceError, editChart, buildAiEditRequest } from '@/lib/graph-studio/ai-service';\n\nit('AiServiceError code: NO_RESPONSE', async () => {\n  mockFn.mockResolvedValue(null);\n  const req = buildAiEditRequest(makeChartSpec(), 'msg');\n\n  await expect(editChart(req)).rejects.toBeInstanceOf(AiServiceError);\n  await expect(editChart(req)).rejects.toMatchObject({ code: 'NO_RESPONSE' });\n});\n\nit('AiServiceError code: READONLY_PATH', async () => {\n  mockFn.mockResolvedValue(JSON.stringify({\n    patches: [{ op: 'replace', path: '/data/sourceId', value: 'hacked' }],\n    explanation: 'readonly edit', confidence: 0.9,\n  }));\n\n  await expect(editChart(req)).rejects.toBeInstanceOf(AiServiceError);\n  await expect(editChart(req)).rejects.toMatchObject({ code: 'READONLY_PATH' });\n});",
           "notes": "AiServiceErrorCode: NO_RESPONSE | PARSE_FAILED | VALIDATION_FAILED | READONLY_PATH. rejects.toMatchObject로 code 속성 한 번에 검증."
+        },
+        {
+          "name": "aggregate 메서드 검증",
+          "purpose": "chartSpecToECharts aggregate 집계 결과 검증 (min/max/count/sum/median/mean)",
+          "code": "function getAggregated(method: 'min' | 'max' | ...) {\n  const spec = { ...baseSpec, aggregate: { y: method, groupBy: ['group'] } }\n  const opt = toAny(chartSpecToECharts(spec, rows))\n  return (opt.dataset as AnyOption).source\n}"
+        },
+        {
+          "name": "buildUserPrompt 프롬프트 내용 검증",
+          "purpose": "editChart 호출 후 generateRawText mock 인수를 캡처해 프롬프트 내용 검증",
+          "code": "const [, userPrompt] = mockGenerateRawText.mock.calls[0] as [string, string, unknown];\nexpect(userPrompt).not.toContain('\"sampleValues\"');\nexpect(userPrompt).toContain('e.g., A'); // nominal 컬럼 예시"
         }
       ]
     }
