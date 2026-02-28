@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.23.0",
+  "version": "1.24.0",
   "lastUpdated": "2026-02-28",
   "sources": [
     "stats/__tests__/",
@@ -15,13 +15,25 @@
           "name": "Zustand 스토어 액션 테스트",
           "purpose": "Zustand store의 액션이 상태를 올바르게 변경하는지 검증",
           "code": "import { describe, it, expect, beforeEach } from 'vitest';\nimport { act } from '@testing-library/react';\nimport { useMyStore } from '@/lib/stores/my-store';\n\n// 공통 리셋: 각 테스트 독립성 보장\nbeforeEach(() => {\n  act(() => {\n    useMyStore.getState().resetAll();\n  });\n});\n\ndescribe('MyStore 계약', () => {\n  it('초기 상태가 올바르다', () => {\n    const state = useMyStore.getState();\n    expect(state.value).toBeNull();\n  });\n\n  it('setValue 액션이 상태를 변경한다', () => {\n    act(() => {\n      useMyStore.getState().setValue('hello');\n    });\n    expect(useMyStore.getState().value).toBe('hello');\n  });\n\n  it('제거된 필드가 state에 없다 (dead state 검증)', () => {\n    const state = useMyStore.getState();\n    expect('removedField' in state).toBe(false);\n  });\n});",
-          "keywords": ["zustand", "act", "getState", "beforeEach", "resetAll"]
+          "keywords": [
+            "zustand",
+            "act",
+            "getState",
+            "beforeEach",
+            "resetAll"
+          ]
         },
         {
           "name": "localStorage 모킹 (project-storage 등)",
           "purpose": "localStorage를 사용하는 유틸 함수 테스트",
           "code": "import { describe, it, expect, beforeEach, vi } from 'vitest';\nimport { saveItem, loadItem } from '@/lib/storage';\n\n// localStorage 모킹\nconst mockStorage: Record<string, string> = {};\nObject.defineProperty(globalThis, 'localStorage', {\n  value: {\n    getItem: (k: string) => mockStorage[k] ?? null,\n    setItem: (k: string, v: string) => { mockStorage[k] = v; },\n    removeItem: (k: string) => { delete mockStorage[k]; },\n  },\n  writable: true,\n});\n\nbeforeEach(() => {\n  Object.keys(mockStorage).forEach(k => delete mockStorage[k]);\n});\n\ndescribe('storage utils', () => {\n  it('저장 후 불러오기', () => {\n    saveItem('key', { a: 1 });\n    expect(loadItem('key')).toEqual({ a: 1 });\n  });\n\n  it('없는 키는 null 반환', () => {\n    expect(loadItem('missing')).toBeNull();\n  });\n});",
-          "keywords": ["localStorage", "vi", "mock", "defineProperty", "storage"]
+          "keywords": [
+            "localStorage",
+            "vi",
+            "mock",
+            "defineProperty",
+            "storage"
+          ]
         }
       ]
     },
@@ -668,25 +680,64 @@
           "name": "RFC 6902 JSON Patch 연산 테스트",
           "purpose": "applyPatches의 add/replace/remove 연산이 RFC 6902 규격을 준수하는지 검증. 배열 인덱스 경계, ~0/~1 이스케이프, -로 append 등 edge case 포함",
           "code": "import { describe, it, expect } from 'vitest';\nimport { applyPatches } from '@/lib/graph-studio/chart-spec-utils';\nimport type { ChartSpec } from '@/types/graph-studio';\n\n// 최소 spec 픽스처\nconst baseSpec: ChartSpec = { /* ... */ };\n\ndescribe('applyPatches — RFC 6901/6902 준수', () => {\n  it('~1 → /, ~0 → ~ 순서대로 언이스케이프', () => {\n    const spec = { ...baseSpec, annotations: [{ id: 'a/b~c', text: 'old' }] };\n    const result = applyPatches(spec, [{\n      op: 'replace',\n      path: '/annotations/0/text',\n      value: 'new',\n    }]);\n    expect(result.annotations?.[0].text).toBe('new');\n  });\n\n  it('add — 배열 인덱스 0에 삽입 (splice)', () => {\n    const spec = { ...baseSpec, annotations: [{ id: 'b', text: 'second' }] };\n    const result = applyPatches(spec, [{\n      op: 'add',\n      path: '/annotations/0',\n      value: { id: 'a', text: 'first' },\n    }]);\n    expect(result.annotations?.[0].id).toBe('a');\n    expect(result.annotations?.[1].id).toBe('b');\n  });\n\n  it('add — \"-\" 인덱스로 append', () => {\n    const spec = { ...baseSpec, annotations: [{ id: 'a', text: 'first' }] };\n    const result = applyPatches(spec, [{\n      op: 'add',\n      path: '/annotations/-',\n      value: { id: 'b', text: 'second' },\n    }]);\n    expect(result.annotations).toHaveLength(2);\n    expect(result.annotations?.[1].id).toBe('b');\n  });\n\n  it('replace — 범위 초과 인덱스는 no-op (sparse array 방지)', () => {\n    // JavaScript arr[999] = value → sparse array(length=1000) 버그 방지\n    const spec = { ...baseSpec, annotations: [] };\n    const result = applyPatches(spec, [{\n      op: 'replace',\n      path: '/annotations/999',\n      value: { id: 'x', text: 'ghost' },\n    }]);\n    expect(result.annotations).toHaveLength(0);\n  });\n\n  it('remove — splice로 제거', () => {\n    const spec = { ...baseSpec, annotations: [\n      { id: 'a', text: 'first' },\n      { id: 'b', text: 'second' },\n    ]};\n    const result = applyPatches(spec, [{\n      op: 'remove',\n      path: '/annotations/0',\n    }]);\n    expect(result.annotations).toHaveLength(1);\n    expect(result.annotations?.[0].id).toBe('b');\n  });\n});",
-          "keywords": ["applyPatches", "RFC6901", "RFC6902", "JSON Patch", "add", "replace", "remove", "sparse array", "~0", "~1"]
+          "keywords": [
+            "applyPatches",
+            "RFC6901",
+            "RFC6902",
+            "JSON Patch",
+            "add",
+            "replace",
+            "remove",
+            "sparse array",
+            "~0",
+            "~1"
+          ]
         },
         {
           "name": "Zod enum 스키마 검증 테스트",
           "purpose": "TypeScript 타입과 Zod enum이 동기화되어 있는지 검증. 유효/무효 값을 모두 테스트",
           "code": "import { describe, it, expect } from 'vitest';\nimport { chartSpecSchema } from '@/lib/graph-studio/chart-spec-schema';\n\ndescribe('chartSpecSchema — ExportFormat', () => {\n  const validFormats = ['svg', 'png'];\n  const invalidFormats = ['pdf', 'tiff', 'jpg', ''];\n\n  it.each(validFormats)('%s → 유효', (format) => {\n    const spec = buildMinimalSpec({ exportFormat: format });\n    expect(chartSpecSchema.safeParse(spec).success).toBe(true);\n  });\n\n  it.each(invalidFormats)('%s → 무효', (format) => {\n    const spec = buildMinimalSpec({ exportFormat: format });\n    expect(chartSpecSchema.safeParse(spec).success).toBe(false);\n  });\n});\n\n// 팁: TypeScript 타입과 Zod enum은 항상 쌍으로 수정\n// types/graph-studio.ts: ExportFormat = 'svg' | 'png'\n// chart-spec-schema.ts: exportFormatSchema = z.enum(['svg', 'png'])",
-          "keywords": ["Zod", "safeParse", "enum", "ExportFormat", "chartSpecSchema", "it.each"]
+          "keywords": [
+            "Zod",
+            "safeParse",
+            "enum",
+            "ExportFormat",
+            "chartSpecSchema",
+            "it.each"
+          ]
         },
         {
           "name": "순수 유틸리티 함수 테스트 (selectXYFields)",
           "purpose": "컬럼 메타데이터 기반 x/y 필드 선택 로직 검증. 단일 컬럼 fallback, 타입별 우선순위 edge case",
           "code": "import { describe, it, expect } from 'vitest';\nimport { selectXYFields } from '@/lib/graph-studio/chart-spec-utils';\nimport { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';\nimport type { ColumnMeta } from '@/types/graph-studio';\n\nconst col = (name: string, type: ColumnMeta['type']): ColumnMeta => ({\n  name,\n  type,\n  uniqueCount: 5,\n  sampleValues: [],\n  hasNull: false,\n});\n\ndescribe('selectXYFields', () => {\n  it('x !== y (2개 quantitative)', () => {\n    const cols = [col('price', 'quantitative'), col('qty', 'quantitative')];\n    const { xField, yField } = selectXYFields(cols, CHART_TYPE_HINTS.scatter);\n    expect(xField).not.toBe(yField);\n  });\n\n  it('단일 컬럼 histogram: yField는 \"y\" 문자열이 아님 (실존 필드로 fallback)', () => {\n    // 버그: columns[1]?.name ?? 'y' → 존재하지 않는 'y' 반환\n    // 수정: columns.find(c => c.name !== xField)?.name ?? xField\n    const cols = [col('value', 'quantitative')];\n    const { xField, yField } = selectXYFields(cols, CHART_TYPE_HINTS.histogram);\n    expect(yField).not.toBe('y');  // 'y' 문자열이면 버그\n    expect([xField, ...cols.map(c => c.name)]).toContain(yField);\n  });\n\n  it('빈 컬럼 배열: graceful fallback', () => {\n    const { xField, yField } = selectXYFields([], CHART_TYPE_HINTS.bar);\n    expect(xField).toBe('x');\n  });\n});",
-          "keywords": ["selectXYFields", "ColumnMeta", "CHART_TYPE_HINTS", "histogram", "fallback", "edge case"]
+          "keywords": [
+            "selectXYFields",
+            "ColumnMeta",
+            "CHART_TYPE_HINTS",
+            "histogram",
+            "fallback",
+            "edge case"
+          ]
         },
         {
           "name": "DOM API 모킹 테스트 (ECharts export-utils)",
           "purpose": "document.createElement/body.appendChild 등 DOM API를 vi.spyOn으로 모킹하여 브라우저 다운로드 로직 테스트. 실행 순서(append→click→remove) 검증 포함",
           "code": "import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';\nimport { downloadChart } from '@/lib/graph-studio/export-utils';\nimport type { EChartsType } from 'echarts';\n\nfunction makeMockECharts(): EChartsType {\n  return {\n    getDataURL: vi.fn().mockReturnValue('data:image/png;base64,abc'),\n    getSvgDataURL: vi.fn().mockReturnValue('data:image/svg+xml;base64,xyz'),\n  } as unknown as EChartsType;\n}\n\ndescribe('downloadChart', () => {\n  let mockLink: { href: string; download: string; click: ReturnType<typeof vi.fn> };\n\n  beforeEach(() => {\n    mockLink = { href: '', download: '', click: vi.fn() };\n    vi.spyOn(document, 'createElement').mockReturnValue(mockLink as unknown as HTMLAnchorElement);\n    vi.spyOn(document.body, 'appendChild').mockReturnValue(mockLink as unknown as Node);\n    vi.spyOn(document.body, 'removeChild').mockReturnValue(mockLink as unknown as Node);\n  });\n\n  afterEach(() => { vi.restoreAllMocks(); });\n\n  it('null 인스턴스 → 조기 반환 (DOM 접근 없음)', () => {\n    downloadChart(null, { format: 'png', dpi: 96 }, 'chart');\n    expect(document.createElement).not.toHaveBeenCalled();\n  });\n\n  it('PNG: getDataURL 호출 + 96dpi → pixelRatio=1', () => {\n    const ec = makeMockECharts();\n    downloadChart(ec, { format: 'png', dpi: 96 }, 'result');\n    expect(ec.getDataURL).toHaveBeenCalledWith({ type: 'png', pixelRatio: 1, backgroundColor: '#ffffff' });\n    expect(mockLink.download).toBe('result.png');\n  });\n\n  it('SVG: getSvgDataURL 호출 + getDataURL 미호출', () => {\n    const ec = makeMockECharts();\n    downloadChart(ec, { format: 'svg', dpi: 96 }, 'fig');\n    expect(ec.getSvgDataURL).toHaveBeenCalled();\n    expect(ec.getDataURL).not.toHaveBeenCalled();\n    expect(mockLink.download).toBe('fig.svg');\n  });\n\n  it('Firefox 호환: body.appendChild → click → body.removeChild 순서', () => {\n    const order: string[] = [];\n    vi.spyOn(document.body, 'appendChild').mockImplementation(() => { order.push('append'); return mockLink as unknown as Node; });\n    vi.spyOn(document.body, 'removeChild').mockImplementation(() => { order.push('remove'); return mockLink as unknown as Node; });\n    mockLink.click = vi.fn().mockImplementation(() => { order.push('click'); });\n    downloadChart(makeMockECharts(), { format: 'png', dpi: 96 }, 'chart');\n    expect(order).toEqual(['append', 'click', 'remove']);\n  });\n\n  it('파일명 undefined → \"chart\" 폴백', () => {\n    downloadChart(makeMockECharts(), { format: 'png', dpi: 96 }, undefined);\n    expect(mockLink.download).toBe('chart.png');\n  });\n});",
-          "keywords": ["vi.spyOn", "document.createElement", "body.appendChild", "DOM mock", "ECharts", "downloadChart", "Firefox"]
+          "keywords": [
+            "vi.spyOn",
+            "document.createElement",
+            "body.appendChild",
+            "DOM mock",
+            "ECharts",
+            "downloadChart",
+            "Firefox"
+          ]
+        },
+        {
+          "name": "AiServiceError 타입 코드 검증 테스트",
+          "purpose": "커스텀 Error 클래스(AiServiceError)의 instanceof + code 속성 검증 패턴. 에러 종류별 분기가 필요한 서비스 레이어에 적용.",
+          "code": "import { AiServiceError, editChart, buildAiEditRequest } from '@/lib/graph-studio/ai-service';\n\nit('AiServiceError code: NO_RESPONSE', async () => {\n  mockFn.mockResolvedValue(null);\n  const req = buildAiEditRequest(makeChartSpec(), 'msg');\n\n  await expect(editChart(req)).rejects.toBeInstanceOf(AiServiceError);\n  await expect(editChart(req)).rejects.toMatchObject({ code: 'NO_RESPONSE' });\n});\n\nit('AiServiceError code: READONLY_PATH', async () => {\n  mockFn.mockResolvedValue(JSON.stringify({\n    patches: [{ op: 'replace', path: '/data/sourceId', value: 'hacked' }],\n    explanation: 'readonly edit', confidence: 0.9,\n  }));\n\n  await expect(editChart(req)).rejects.toBeInstanceOf(AiServiceError);\n  await expect(editChart(req)).rejects.toMatchObject({ code: 'READONLY_PATH' });\n});",
+          "notes": "AiServiceErrorCode: NO_RESPONSE | PARSE_FAILED | VALIDATION_FAILED | READONLY_PATH. rejects.toMatchObject로 code 속성 한 번에 검증."
         }
       ]
     }
