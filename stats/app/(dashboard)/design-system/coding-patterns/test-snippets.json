@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.25.0",
+  "version": "1.26.0",
   "lastUpdated": "2026-02-28",
   "sources": [
     "stats/__tests__/",
@@ -748,6 +748,22 @@
           "name": "buildUserPrompt 프롬프트 내용 검증",
           "purpose": "editChart 호출 후 generateRawText mock 인수를 캡처해 프롬프트 내용 검증",
           "code": "const [, userPrompt] = mockGenerateRawText.mock.calls[0] as [string, string, unknown];\nexpect(userPrompt).not.toContain('\"sampleValues\"');\nexpect(userPrompt).toContain('e.g., A'); // nominal 컬럼 예시"
+        },
+        {
+          "name": "샘플 데이터 시뮬레이션 테스트 (it.each + store 검증)",
+          "purpose": "차트 유형별 X/Y 필드 매핑과 스토어 단일 액션을 함수 레벨에서 시뮬레이션. 컴포넌트 마운트 없이 핵심 로직만 추출해 검증하는 L1 테스트 패턴.",
+          "code": "import { describe, it, expect, beforeEach } from 'vitest';\nimport { act } from '@testing-library/react';\nimport { inferColumnMeta, selectXYFields } from '@/lib/graph-studio/chart-spec-utils';\nimport { createDefaultChartSpec, CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';\nimport { useGraphStudioStore } from '@/lib/stores/graph-studio-store';\nimport type { ChartType, DataPackage } from '@/types/graph-studio';\n\n// 모듈 레벨: 상수 데이터 1회 계산 (useCallback eslint-disable 필요 없음)\nconst SAMPLE_ROWS = [\n  { species: 'Bass', length_cm: 12.3, weight_g: 28.5, year: '2015-01-01' },\n  // ...\n];\nconst SAMPLE_COLUMNS = inferColumnMeta(SAMPLE_ROWS);\n\nbeforeEach(() => { act(() => { useGraphStudioStore.getState().resetAll(); }); });\n\n// it.each: 6개 차트 유형 한꺼번에 검증\ndescribe('차트 유형별 매핑', () => {\n  const cases: Array<[ChartType, string, string]> = [\n    ['bar',       'species',   'length_cm'],\n    ['scatter',   'length_cm', 'weight_g'],\n    ['line',      'year',      'length_cm'], // temporal 컬럼 필요!\n    ['boxplot',   'species',   'length_cm'],\n    ['histogram', 'length_cm', 'weight_g'],\n    ['heatmap',   'species',   'length_cm'],\n  ];\n\n  it.each(cases)('%s → X=%s, Y=%s', (chartType, expectedX, expectedY) => {\n    const { xField, yField } = selectXYFields(SAMPLE_COLUMNS, CHART_TYPE_HINTS[chartType]);\n    expect(xField).toBe(expectedX);\n    expect(yField).toBe(expectedY);\n  });\n});\n\n// 단일 store 액션 (중간 렌더 방지)\ndescribe('loadDataPackageWithSpec 원자 액션', () => {\n  it('단일 set()으로 dataPackage + chartSpec 동시 등록', () => {\n    const pkg: DataPackage = { id: 'test', source: 'upload', label: 'test',\n      columns: SAMPLE_COLUMNS, data: {}, createdAt: '' };\n    const { xField, yField } = selectXYFields(SAMPLE_COLUMNS, CHART_TYPE_HINTS['scatter']);\n    const spec = createDefaultChartSpec('test', 'scatter', xField, yField, SAMPLE_COLUMNS);\n\n    act(() => { useGraphStudioStore.getState().loadDataPackageWithSpec(pkg, spec); });\n\n    const state = useGraphStudioStore.getState();\n    expect(state.isDataLoaded).toBe(true);\n    expect(state.chartSpec?.chartType).toBe('scatter');\n  });\n});",
+          "keywords": [
+            "it.each",
+            "inferColumnMeta",
+            "selectXYFields",
+            "loadDataPackageWithSpec",
+            "temporal",
+            "CHART_TYPE_HINTS",
+            "createDefaultChartSpec",
+            "샘플 데이터",
+            "simulate"
+          ]
         }
       ]
     }
