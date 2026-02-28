@@ -7,7 +7,7 @@
  * AI generation path: LLM -> ChartSpec JSON (directly, no intermediate format)
  */
 
-import type { ChartSpec, StylePreset, DataType } from '@/types/graph-studio';
+import type { ChartSpec, AnnotationSpec, StylePreset, DataType } from '@/types/graph-studio';
 import type { EChartsOption } from 'echarts';
 import { STYLE_PRESETS, COLORBREWER_PALETTES } from './chart-spec-defaults';
 
@@ -388,6 +388,78 @@ function buildHeatmapData(
   return { xCats: xOrder, yCats: yOrder, data, min, max };
 }
 
+// ─── Graphic overlay builder ───────────────────────────────
+
+/**
+ * AnnotationSpec[] → ECharts graphic[] 오버레이 변환.
+ *
+ * 좌표 규칙:
+ *   - number 값: 절댓값 픽셀 (컨테이너 왼쪽·위 기준)
+ *   - string 값: ECharts 그대로 전달 ('50%', '100px' 등)
+ *     단, line/rect의 shape 속성은 % 미지원 → number 좌표 전용
+ *
+ * text  → { type: 'text', left, top, style: { text, fill, fontSize, fontFamily } }
+ * line  → { type: 'line', shape: { x1, y1, x2, y2 }, style: { stroke, lineDash } }
+ * rect  → { type: 'rect', shape: { x, y, width, height }, style: { stroke, fill } }
+ */
+function buildGraphicAnnotations(
+  annotations: AnnotationSpec[],
+  style: StyleConfig,
+): Record<string, unknown>[] {
+  if (!annotations.length) return [];
+
+  return annotations.map((ann): Record<string, unknown> => {
+    const color = ann.color ?? '#333333';
+
+    if (ann.type === 'text') {
+      return {
+        type: 'text',
+        left: ann.x ?? 'center',
+        top: ann.y ?? 'middle',
+        style: {
+          text: ann.text ?? '',
+          fill: color,
+          fontSize: ann.fontSize ?? style.fontSize,
+          fontFamily: style.fontFamily,
+        },
+      };
+    }
+
+    if (ann.type === 'line') {
+      return {
+        type: 'line',
+        shape: {
+          x1: typeof ann.x === 'number' ? ann.x : 0,
+          y1: typeof ann.y === 'number' ? ann.y : 0,
+          x2: typeof ann.x2 === 'number' ? ann.x2 : 0,
+          y2: typeof ann.y2 === 'number' ? ann.y2 : 0,
+        },
+        style: {
+          stroke: color,
+          lineWidth: 1.5,
+          ...(ann.strokeDash ? { lineDash: ann.strokeDash } : {}),
+        },
+      };
+    }
+
+    // rect
+    const rx = typeof ann.x === 'number' ? ann.x : 0;
+    const ry = typeof ann.y === 'number' ? ann.y : 0;
+    const rx2 = typeof ann.x2 === 'number' ? ann.x2 : rx + 60;
+    const ry2 = typeof ann.y2 === 'number' ? ann.y2 : ry + 30;
+    return {
+      type: 'rect',
+      shape: { x: rx, y: ry, width: rx2 - rx, height: ry2 - ry },
+      style: {
+        fill: 'rgba(0,0,0,0)',
+        stroke: color,
+        lineWidth: 1.5,
+        ...(ann.strokeDash ? { lineDash: ann.strokeDash } : {}),
+      },
+    };
+  });
+}
+
 // ─── Base option builder ───────────────────────────────────
 
 function buildBaseOption(spec: ChartSpec, style: StyleConfig): EChartsOption {
@@ -412,6 +484,11 @@ function buildBaseOption(spec: ChartSpec, style: StyleConfig): EChartsOption {
       left: 'center',
       top: 8,
     };
+  }
+
+  const graphic = buildGraphicAnnotations(spec.annotations, style);
+  if (graphic.length > 0) {
+    base.graphic = graphic;
   }
 
   return base;

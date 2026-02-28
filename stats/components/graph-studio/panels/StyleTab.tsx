@@ -24,6 +24,15 @@ import { Check } from 'lucide-react';
 import { STYLE_PRESETS } from '@/lib/graph-studio/chart-spec-defaults';
 import type { ChartType, LegendSpec, StylePreset } from '@/types/graph-studio';
 
+/** 폰트 옵션 목록 */
+const FONT_OPTIONS: { value: string; label: string }[] = [
+  { value: 'Arial, Helvetica, sans-serif',  label: 'Arial (sans-serif)' },
+  { value: 'Times New Roman, serif',         label: 'Times New Roman (serif)' },
+  { value: 'Noto Sans KR, sans-serif',       label: 'Noto Sans KR (한국어)' },
+  { value: 'Courier New, monospace',         label: 'Courier New (monospace)' },
+  { value: 'Georgia, serif',                 label: 'Georgia (serif)' },
+];
+
 /** 데이터 레이블을 지원하는 차트 유형 */
 const DATA_LABEL_CHART_TYPES = new Set<ChartType>(['bar', 'grouped-bar', 'stacked-bar']);
 
@@ -172,6 +181,19 @@ export function StyleTab(): React.ReactElement {
     });
   }, [chartSpec, updateChartSpec]);
 
+  // ─── 폰트 선택 ───────────────────────────────────────────
+
+  const handleFontChange = useCallback((fontFamily: string) => {
+    if (!chartSpec) return;
+    updateChartSpec({
+      ...chartSpec,
+      style: {
+        ...chartSpec.style,
+        font: { ...chartSpec.style.font, family: fontFamily },
+      },
+    });
+  }, [chartSpec, updateChartSpec]);
+
   // ─── 스타일 프리셋 ────────────────────────────────────────
 
   const handleApplyPreset = useCallback((presetKey: StylePreset) => {
@@ -187,6 +209,10 @@ export function StyleTab(): React.ReactElement {
   }
 
   const isQuantitativeY = chartSpec.encoding.y.type === 'quantitative';
+  const currentFont =
+    chartSpec.style.font?.family
+    ?? STYLE_PRESETS[chartSpec.style.preset]?.font?.family
+    ?? 'Arial, Helvetica, sans-serif';
   const isQuantitativeX = chartSpec.encoding.x.type === 'quantitative';
   const isLogScale = chartSpec.encoding.y.scale?.type === 'log';
   const showLegend = chartSpec.encoding.color !== undefined;
@@ -307,6 +333,23 @@ export function StyleTab(): React.ReactElement {
           </div>
         </div>
       )}
+
+      {/* 폰트 선택 */}
+      <div className="space-y-1.5">
+        <Label className="text-xs">폰트</Label>
+        <Select value={currentFont} onValueChange={handleFontChange}>
+          <SelectTrigger className="h-8 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {FONT_OPTIONS.map(opt => (
+              <SelectItem key={opt.value} value={opt.value} className="text-sm">
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* 학술 스타일 프리셋 */}
       <div className="space-y-1.5">
