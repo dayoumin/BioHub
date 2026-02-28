@@ -106,6 +106,10 @@ export type StylePreset = 'default' | 'science' | 'ieee' | 'grayscale';
 
 export interface StyleSpec {
   preset: StylePreset;
+  /** Named color palette (e.g., 'viridis', 'Set2'). Overrides preset colors. */
+  scheme?: string;
+  /** Show value labels on bars. */
+  showDataLabels?: boolean;
   font?: {
     family?: string;
     size?: number;
@@ -167,6 +171,9 @@ export interface ChartSpec {
     y: 'mean' | 'median' | 'sum' | 'count' | 'min' | 'max';
     groupBy: string[];
   };
+
+  /** 막대 방향 (bar/grouped-bar/stacked-bar 전용) */
+  orientation?: 'horizontal';
 
   /** 스타일 */
   style: StyleSpec;

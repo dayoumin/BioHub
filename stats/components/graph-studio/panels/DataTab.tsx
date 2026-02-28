@@ -10,6 +10,7 @@ import { useCallback, useState, useEffect } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -18,11 +19,29 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
+import { COLORBREWER_PALETTES } from '@/lib/graph-studio/echarts-converter';
 import { selectXYFields } from '@/lib/graph-studio/chart-spec-utils';
 import type { ChartType, ErrorBarSpec } from '@/types/graph-studio';
 
 /** 에러바를 지원하는 차트 유형 */
 const ERROR_BAR_CHART_TYPES = new Set<ChartType>(['bar', 'line', 'error-bar']);
+
+/** orientation(수평 막대)을 지원하는 차트 유형 */
+const ORIENTATION_CHART_TYPES = new Set<ChartType>(['bar', 'grouped-bar', 'stacked-bar']);
+
+/** 팔레트 선택 목록 */
+const PALETTE_OPTIONS: { value: string; label: string }[] = [
+  { value: 'none',    label: '기본 (프리셋)' },
+  { value: 'Set2',    label: 'Set2 — colorblind-safe' },
+  { value: 'Set1',    label: 'Set1 — 선명' },
+  { value: 'Paired',  label: 'Paired — 쌍 구분' },
+  { value: 'Dark2',   label: 'Dark2 — 진한 정성형' },
+  { value: 'viridis', label: 'viridis — 순차형' },
+  { value: 'Blues',   label: 'Blues — 파란 순차형' },
+  { value: 'Oranges', label: 'Oranges — 주황 순차형' },
+  { value: 'RdBu',    label: 'RdBu — 발산형 (빨↔파)' },
+  { value: 'RdYlGn',  label: 'RdYlGn — 발산형 (빨↔녹)' },
+];
 
 export function DataTab(): React.ReactElement {
   const { chartSpec, updateChartSpec } = useGraphStudioStore();
@@ -157,6 +176,29 @@ export function DataTab(): React.ReactElement {
         },
       });
     }
+  }, [chartSpec, updateChartSpec]);
+
+  // ─── 팔레트 (scheme) ─────────────────────────────────────
+
+  const handleSchemeChange = useCallback((value: string) => {
+    if (!chartSpec) return;
+    updateChartSpec({
+      ...chartSpec,
+      style: {
+        ...chartSpec.style,
+        scheme: value === 'none' ? undefined : value,
+      },
+    });
+  }, [chartSpec, updateChartSpec]);
+
+  // ─── 수평 막대 (orientation) ─────────────────────────────
+
+  const handleOrientationToggle = useCallback((checked: boolean) => {
+    if (!chartSpec) return;
+    updateChartSpec({
+      ...chartSpec,
+      orientation: checked ? 'horizontal' : undefined,
+    });
   }, [chartSpec, updateChartSpec]);
 
   // ─── 에러바 ───────────────────────────────────────────────
@@ -333,6 +375,51 @@ export function DataTab(): React.ReactElement {
           </Select>
         </div>
       )}
+
+      {/* 수평 막대 (bar / grouped-bar / stacked-bar만) */}
+      {ORIENTATION_CHART_TYPES.has(chartSpec.chartType) && (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="orientation-toggle" className="text-xs cursor-pointer">수평 막대</Label>
+            <Switch
+              id="orientation-toggle"
+              checked={chartSpec.orientation === 'horizontal'}
+              onCheckedChange={handleOrientationToggle}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 색상 팔레트 */}
+      <div className="space-y-1.5">
+        <Label className="text-xs">색상 팔레트</Label>
+        <Select
+          value={chartSpec.style.scheme ?? 'none'}
+          onValueChange={handleSchemeChange}
+        >
+          <SelectTrigger className="h-8 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PALETTE_OPTIONS.map(opt => (
+              <SelectItem key={opt.value} value={opt.value} className="text-sm">
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {chartSpec.style.scheme && (
+          <div className="flex gap-1 mt-1">
+            {(COLORBREWER_PALETTES[chartSpec.style.scheme] ?? []).slice(0, 6).map((c, i) => (
+              <span
+                key={i}
+                className="inline-block h-3 w-3 rounded-sm border border-border"
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* 에러바 (bar / line / error-bar 차트만) */}
       {showErrorBar && (

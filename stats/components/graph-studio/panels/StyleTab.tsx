@@ -22,7 +22,10 @@ import {
 } from '@/components/ui/select';
 import { Check } from 'lucide-react';
 import { STYLE_PRESETS } from '@/lib/graph-studio/chart-spec-defaults';
-import type { LegendSpec, StylePreset } from '@/types/graph-studio';
+import type { ChartType, LegendSpec, StylePreset } from '@/types/graph-studio';
+
+/** 데이터 레이블을 지원하는 차트 유형 */
+const DATA_LABEL_CHART_TYPES = new Set<ChartType>(['bar', 'grouped-bar', 'stacked-bar']);
 
 const PRESET_LIST: { key: StylePreset; label: string; description: string }[] = [
   { key: 'default',   label: 'Default',   description: '깔끔한 기본 스타일 (Arial, 컬러)' },
@@ -159,6 +162,16 @@ export function StyleTab(): React.ReactElement {
     });
   }, [chartSpec, updateChartSpec]);
 
+  // ─── 데이터 레이블 ────────────────────────────────────────
+
+  const handleDataLabelsToggle = useCallback((checked: boolean) => {
+    if (!chartSpec) return;
+    updateChartSpec({
+      ...chartSpec,
+      style: { ...chartSpec.style, showDataLabels: checked || undefined },
+    });
+  }, [chartSpec, updateChartSpec]);
+
   // ─── 스타일 프리셋 ────────────────────────────────────────
 
   const handleApplyPreset = useCallback((presetKey: StylePreset) => {
@@ -177,6 +190,7 @@ export function StyleTab(): React.ReactElement {
   const isQuantitativeX = chartSpec.encoding.x.type === 'quantitative';
   const isLogScale = chartSpec.encoding.y.scale?.type === 'log';
   const showLegend = chartSpec.encoding.color !== undefined;
+  const showDataLabelOption = DATA_LABEL_CHART_TYPES.has(chartSpec.chartType);
 
   return (
     <div className="space-y-4">
@@ -277,6 +291,20 @@ export function StyleTab(): React.ReactElement {
               <SelectItem value="none" className="text-sm">숨김</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+      )}
+
+      {/* 데이터 레이블 (bar 계열만) */}
+      {showDataLabelOption && (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="data-labels" className="text-xs cursor-pointer">막대 값 표시</Label>
+            <Switch
+              id="data-labels"
+              checked={chartSpec.style.showDataLabels ?? false}
+              onCheckedChange={handleDataLabelsToggle}
+            />
+          </div>
         </div>
       )}
 

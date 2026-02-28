@@ -111,6 +111,8 @@ const annotationSchema = z.object({
 
 const styleSchema = z.object({
   preset: stylePresetSchema,
+  scheme: z.string().optional(),
+  showDataLabels: z.boolean().optional(),
   font: z.object({
     family: z.string().optional(),
     size: z.number().positive().optional(),
@@ -136,6 +138,7 @@ export const chartSpecSchema = z.object({
   version: z.literal('1.0'),
   chartType: chartTypeSchema,
   title: z.string().optional(),
+  orientation: z.enum(['horizontal']).optional(),
   data: z.object({
     sourceId: z.string().min(1),
     columns: z.array(columnMetaSchema).min(1),

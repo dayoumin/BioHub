@@ -36,6 +36,23 @@ const PRESET_COLORS: Record<StylePreset, string[]> = {
   grayscale: ['#000000', '#404040', '#808080', '#b0b0b0', '#d0d0d0'],
 };
 
+/** ColorBrewer + viridis 팔레트 맵. colorblind-safe 팔레트 우선. */
+export const COLORBREWER_PALETTES: Record<string, string[]> = {
+  // 정성적(Qualitative) — 그룹 구분
+  Set2:    ['#66c2a5', '#fc8d62', '#8da0cb', '#e78ac3', '#a6d854', '#ffd92f', '#e5c494', '#b3b3b3'],
+  Set1:    ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00', '#a65628', '#f781bf', '#999999'],
+  Paired:  ['#a6cee3', '#1f78b4', '#b2df8a', '#33a02c', '#fb9a99', '#e31a1c', '#fdbf6f', '#ff7f00'],
+  Dark2:   ['#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#e6ab02', '#a6761d', '#666666'],
+  // 순차적(Sequential) — 연속값/강도
+  viridis: ['#440154', '#3b528b', '#21908c', '#5dc963', '#fde725'],
+  Blues:   ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c'],
+  Greens:  ['#edf8e9', '#bae4b3', '#74c476', '#31a354', '#006d2c'],
+  Oranges: ['#feedde', '#fdbe85', '#fd8d3c', '#e6550d', '#a63603'],
+  // 발산형(Diverging) — 양극 비교
+  RdBu:    ['#d73027', '#f46d43', '#fdae61', '#fee090', '#abd9e9', '#74add1', '#4575b4'],
+  RdYlGn:  ['#d73027', '#f46d43', '#fdae61', '#ffffbf', '#a6d96a', '#66bd63', '#1a9850'],
+};
+
 interface StyleConfig {
   fontFamily: string;
   fontSize: number;
@@ -53,7 +70,10 @@ function getStyleConfig(spec: ChartSpec): StyleConfig {
     fontSize: font?.size ?? 12,
     titleSize: font?.titleSize ?? 14,
     labelSize: font?.labelSize ?? 11,
-    colors: spec.style.colors ?? PRESET_COLORS[spec.style.preset] ?? PRESET_COLORS.default,
+    colors: spec.style.colors
+      ?? (spec.style.scheme ? COLORBREWER_PALETTES[spec.style.scheme] : undefined)
+      ?? PRESET_COLORS[spec.style.preset]
+      ?? PRESET_COLORS.default,
     background: spec.style.background ?? preset.background ?? '#ffffff',
   };
 }
@@ -462,6 +482,39 @@ function yAxisBase(spec: ChartSpec, style: StyleConfig) {
   };
 }
 
+/** 막대 데이터 레이블 설정. showDataLabels가 false/undefined이면 undefined 반환. */
+function buildBarLabel(
+  spec: ChartSpec,
+  style: StyleConfig,
+): Record<string, unknown> | undefined {
+  if (!spec.style.showDataLabels) return undefined;
+  return {
+    show: true,
+    position: spec.orientation === 'horizontal' ? 'right' : 'top',
+    fontFamily: style.fontFamily,
+    fontSize: style.labelSize,
+  };
+}
+
+/**
+ * 막대 orientation에 따라 xAxis/yAxis를 결정한다.
+ * horizontal: value(Y)가 xAxis, category(X)가 yAxis.
+ */
+function buildBarAxes(
+  spec: ChartSpec,
+  style: StyleConfig,
+  categories?: string[],
+): { xAxis: Record<string, unknown>; yAxis: Record<string, unknown> } {
+  const catAxis = {
+    ...xAxisBase(spec, style, 'category'),
+    ...(categories ? { data: categories } : {}),
+  };
+  const valAxis = yAxisBase(spec, style);
+  return spec.orientation === 'horizontal'
+    ? { xAxis: valAxis, yAxis: catAxis }
+    : { xAxis: catAxis, yAxis: valAxis };
+}
+
 /** encoding.color.legend.orient → ECharts legend 포지셔닝 */
 function buildLegend(spec: ChartSpec, style: StyleConfig): Record<string, unknown> {
   const orient = spec.encoding.color?.legend?.orient;
@@ -559,7 +612,9 @@ export function chartSpecToECharts(
 
   // ── bar ────────────────────────────────────────────────────
   if (spec.chartType === 'bar') {
+    const barLabel = buildBarLabel(spec, style);
     // 에러바 있으면 explicit data 모드 (custom renderItem이 x-index 필요)
+    // orientation은 에러바와 함께 사용하지 않음 (renderItem 좌표계 복잡)
     if (spec.errorBar) {
       const { categories, means, lowers, uppers } = buildErrorBarData(
         rows, xField, yField, spec.errorBar.type, spec.errorBar.value ?? 95,
@@ -570,74 +625,101 @@ export function chartSpecToECharts(
         xAxis: { ...xAxisBase(spec, style, 'category'), data: categories },
         yAxis: yAxisBase(spec, style),
         series: [
-          { type: 'bar', data: means, name: yField, z: 2 },
+          { type: 'bar', data: means, name: yField, z: 2, ...(barLabel ? { label: barLabel } : {}) },
           buildErrorBarOverlay(categories, means, lowers, uppers),
         ],
       };
     }
+    const { xAxis: barXAxis, yAxis: barYAxis } = buildBarAxes(spec, style);
+    const isH = spec.orientation === 'horizontal';
     return {
       ...base,
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      xAxis: { ...xAxisBase(spec, style, 'category') },
-      yAxis: yAxisBase(spec, style),
+      xAxis: barXAxis,
+      yAxis: barYAxis,
       dataset: { source: workRows },
-      series: [{ type: 'bar', encode: { x: xField, y: yField }, name: yField }],
+      series: [{
+        type: 'bar',
+        encode: { x: isH ? yField : xField, y: isH ? xField : yField },
+        name: yField,
+        ...(barLabel ? { label: barLabel } : {}),
+      }],
     };
   }
 
   // ── grouped-bar ────────────────────────────────────────────
   if (spec.chartType === 'grouped-bar') {
+    const barLabel = buildBarLabel(spec, style);
+    const isH = spec.orientation === 'horizontal';
     if (colorField) {
       const { categories, groups, seriesData } = buildGroupedData(workRows, xField, colorField, yField);
+      const { xAxis: gbXAxis, yAxis: gbYAxis } = buildBarAxes(spec, style, categories);
       return {
         ...base,
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
         legend: buildLegend(spec, style),
-        xAxis: { ...xAxisBase(spec, style, 'category'), data: categories },
-        yAxis: yAxisBase(spec, style),
+        xAxis: gbXAxis,
+        yAxis: gbYAxis,
         series: groups.map(g => ({
           type: 'bar' as const,
           name: g,
           data: seriesData.get(g) ?? [],
+          ...(barLabel ? { label: barLabel } : {}),
         })),
       };
     }
     // no color field → fall through to plain bar
+    const { xAxis: gbXAxis2, yAxis: gbYAxis2 } = buildBarAxes(spec, style);
     return {
       ...base,
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      xAxis: { ...xAxisBase(spec, style, 'category') },
-      yAxis: yAxisBase(spec, style),
+      xAxis: gbXAxis2,
+      yAxis: gbYAxis2,
       dataset: { source: workRows },
-      series: [{ type: 'bar', encode: { x: xField, y: yField }, name: yField }],
+      series: [{
+        type: 'bar',
+        encode: { x: isH ? yField : xField, y: isH ? xField : yField },
+        name: yField,
+        ...(barLabel ? { label: barLabel } : {}),
+      }],
     };
   }
 
   // ── stacked-bar ────────────────────────────────────────────
   if (spec.chartType === 'stacked-bar') {
+    const barLabel = buildBarLabel(spec, style);
+    const isH = spec.orientation === 'horizontal';
     if (colorField) {
       const { categories, groups, seriesData } = buildGroupedData(workRows, xField, colorField, yField);
+      const { xAxis: sbXAxis, yAxis: sbYAxis } = buildBarAxes(spec, style, categories);
       return {
         ...base,
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
         legend: buildLegend(spec, style),
-        xAxis: { ...xAxisBase(spec, style, 'category'), data: categories },
-        yAxis: yAxisBase(spec, style),
+        xAxis: sbXAxis,
+        yAxis: sbYAxis,
         series: groups.map(g => ({
           type: 'bar' as const,
           name: g,
           stack: 'total',
           data: seriesData.get(g) ?? [],
+          ...(barLabel ? { label: barLabel } : {}),
         })),
       };
     }
+    const { xAxis: sbXAxis2, yAxis: sbYAxis2 } = buildBarAxes(spec, style);
     return {
       ...base,
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      xAxis: { ...xAxisBase(spec, style, 'category') },
-      yAxis: yAxisBase(spec, style),
+      xAxis: sbXAxis2,
+      yAxis: sbYAxis2,
       dataset: { source: workRows },
-      series: [{ type: 'bar', encode: { x: xField, y: yField }, name: yField }],
+      series: [{
+        type: 'bar',
+        encode: { x: isH ? yField : xField, y: isH ? xField : yField },
+        name: yField,
+        ...(barLabel ? { label: barLabel } : {}),
+      }],
     };
   }
 
