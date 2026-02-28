@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.27.0",
+  "version": "1.28.0",
   "lastUpdated": "2026-02-28",
   "sources": [
     "stats/__tests__/",
@@ -774,6 +774,48 @@
             "improvement-plan",
             "before-after",
             "algorithm"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Pure Math / Utility Function Tests",
+      "description": "순수 수치 함수 검증 패턴 — 부동소수점 근사 허용 오차, 단조성, 도메인 에러",
+      "patterns": [
+        {
+          "name": "수치 근사 검증 (toBeCloseTo + 범위 허용)",
+          "purpose": "통계 공식·수치 근사의 정확도 검증. G*Power 등 참조값과 ±N% 이내 일치 확인",
+          "code": "import { describe, test, expect } from 'vitest'\nimport { calcTwoSample } from '@/lib/sample-size/calculator'\n\ndescribe('calcTwoSample', () => {\n  // G*Power 참조값 기준 ±5% 허용 범위로 검증\n  test('d=0.5, α=0.05, power=0.80 → G*Power: 64', () => {\n    const { n } = calcTwoSample(0.5, 0.05, 0.80)\n    expect(n).toBeGreaterThanOrEqual(62)  // 64 * 0.97\n    expect(n).toBeLessThanOrEqual(66)      // 64 * 1.03\n  })\n\n  // 정확한 수치 근사는 toBeCloseTo(expected, precision) 사용\n  // precision: 소수점 자릿수 (기본 2)\n  test('invNorm(0.975) ≈ 1.96', () => {\n    expect(invNorm(0.975)).toBeCloseTo(1.96, 1)  // 소수 1자리까지\n  })\n})",
+          "keywords": [
+            "toBeCloseTo",
+            "toBeGreaterThanOrEqual",
+            "toBeLessThanOrEqual",
+            "precision",
+            "G*Power"
+          ]
+        },
+        {
+          "name": "단조성 테스트 (monotonicity)",
+          "purpose": "입력 증가 시 출력이 단조 증가/감소하는지 검증. 통계 공식의 정성적 올바름 확인",
+          "code": "import { describe, test, expect } from 'vitest'\nimport { calcTwoSample, calcCorrelation } from '@/lib/sample-size/calculator'\n\ndescribe('단조성 검증', () => {\n  test('power 높을수록 n 증가', () => {\n    const n80 = calcTwoSample(0.5, 0.05, 0.80).n\n    const n90 = calcTwoSample(0.5, 0.05, 0.90).n\n    const n95 = calcTwoSample(0.5, 0.05, 0.95).n\n    expect(n90).toBeGreaterThan(n80)\n    expect(n95).toBeGreaterThan(n90)\n  })\n\n  test('|r| 클수록 n 감소', () => {\n    const n01 = calcCorrelation(0.1, 0.05, 0.80).n\n    const n03 = calcCorrelation(0.3, 0.05, 0.80).n\n    const n05 = calcCorrelation(0.5, 0.05, 0.80).n\n    expect(n01).toBeGreaterThan(n03)\n    expect(n03).toBeGreaterThan(n05)\n  })\n})",
+          "keywords": [
+            "monotonicity",
+            "toBeGreaterThan",
+            "toBeLessThan",
+            "single-variable",
+            "chain"
+          ]
+        },
+        {
+          "name": "도메인 경계 및 에러 케이스",
+          "purpose": "수치 함수의 입력 도메인 위반 시 RangeError throw 또는 error 프로퍼티 반환 검증",
+          "code": "import { describe, test, expect } from 'vitest'\nimport { invNorm, calcTwoSample } from '@/lib/sample-size/calculator'\n\ndescribe('도메인 경계', () => {\n  // throw 방식: 수학 함수 직접 호출 시\n  test('invNorm — 범위 밖은 RangeError', () => {\n    expect(() => invNorm(0)).toThrow(RangeError)\n    expect(() => invNorm(1)).toThrow(RangeError)\n  })\n\n  // error 프로퍼티 방식: 사용자 입력 → 절대 throw 금지\n  test('d=0은 에러', () => {\n    const result = calcTwoSample(0, 0.05, 0.80)\n    expect(result.error).toBeDefined()\n    expect(result.n).toBe(0)  // n=0으로 안전 기본값 반환\n  })\n\n  // power ≤ alpha 의미 없는 설정 검증\n  test('power ≤ alpha는 에러', () => {\n    expect(calcTwoSample(0.5, 0.05, 0.05).error).toBeDefined()\n  })\n})",
+          "keywords": [
+            "RangeError",
+            "toThrow",
+            "error property",
+            "domain",
+            "boundary"
           ]
         }
       ]
