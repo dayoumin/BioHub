@@ -19,7 +19,7 @@ import {
   LineChart,
   SlidersHorizontal,
   BarChart,
-  Grid2x2,
+  Grid3X3,
   Upload,
   Sparkles,
   BookOpen,
@@ -146,7 +146,7 @@ const CHART_THUMBNAILS: ChartThumbnail[] = [
     type: 'heatmap',
     label: '히트맵',
     desc: '교차 분석',
-    Icon: Grid2x2,
+    Icon: Grid3X3,
     color: 'text-cyan-500',
     bg: 'bg-cyan-50 hover:bg-cyan-100 border-cyan-100 hover:border-cyan-300',
   },
@@ -310,7 +310,7 @@ export function DataUploadPanel(): React.ReactElement {
     <div
       {...getRootProps()}
       className={`
-        w-full max-w-2xl transition-all duration-200
+        w-full max-w-3xl transition-all duration-200
         ${isDragActive ? 'ring-2 ring-primary ring-offset-4 rounded-2xl' : ''}
       `}
     >
@@ -318,16 +318,22 @@ export function DataUploadPanel(): React.ReactElement {
 
       {/* ── 헤더 ──────────────────────────────────────── */}
       <div className="text-center mb-8">
-        <p className="text-muted-foreground">
+        <p className="text-base font-semibold text-foreground">
           분포·상관·추세를 논문 수준으로
         </p>
 
-        {/* 단계 표시 — 클릭 불가, 현재 단계를 볼드로만 강조 */}
+        {/* 단계 표시 — 클릭 불가, 현재 단계를 pill로 강조 */}
         <div className="flex items-center justify-center gap-1 mt-3 text-xs text-muted-foreground">
           {['① 데이터 선택', '② 편집', '③ 내보내기'].map((step, i) => (
             <span key={step} className="flex items-center gap-1">
               {i > 0 && <ChevronRight className="h-3 w-3" />}
-              <span className={i === 0 ? 'font-semibold text-foreground' : ''}>{step}</span>
+              {i === 0 ? (
+                <span className="font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                  {step}
+                </span>
+              ) : (
+                <span>{step}</span>
+              )}
             </span>
           ))}
         </div>
@@ -354,7 +360,7 @@ export function DataUploadPanel(): React.ReactElement {
               <Icon className={`h-7 w-7 ${color} transition-transform group-hover:scale-110`} />
               <div className="text-center">
                 <p className="text-xs font-semibold text-foreground leading-tight">{label}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{desc}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
               </div>
             </button>
           ))}
