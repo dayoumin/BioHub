@@ -529,7 +529,7 @@ export function SampleSizeModal({ open, onClose, onStartAnalysis }: SampleSizeMo
                     onChange={e => setGroups(e.target.value)}
                     onBlur={e => {
                       const v = Math.round(parseFloat(e.target.value))
-                      if (isFinite(v)) setGroups(String(Math.max(3, v)))
+                      if (isFinite(v)) setGroups(String(Math.min(20, Math.max(3, v))))
                     }}
                     min={3}
                     max={20}
