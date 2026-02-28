@@ -1,12 +1,30 @@
 {
   "id": "test-snippets",
-  "version": "1.19.0",
-  "lastUpdated": "2025-12-18",
+  "version": "1.20.0",
+  "lastUpdated": "2026-02-28",
   "sources": [
     "stats/__tests__/",
     "stats/jest.config.js"
   ],
   "categories": [
+    {
+      "name": "Zustand Store Tests",
+      "description": "Zustand 스토어 계약 테스트 패턴 (act 래핑, beforeEach 리셋)",
+      "patterns": [
+        {
+          "name": "Zustand 스토어 액션 테스트",
+          "purpose": "Zustand store의 액션이 상태를 올바르게 변경하는지 검증",
+          "code": "import { describe, it, expect, beforeEach } from 'vitest';\nimport { act } from '@testing-library/react';\nimport { useMyStore } from '@/lib/stores/my-store';\n\n// 공통 리셋: 각 테스트 독립성 보장\nbeforeEach(() => {\n  act(() => {\n    useMyStore.getState().resetAll();\n  });\n});\n\ndescribe('MyStore 계약', () => {\n  it('초기 상태가 올바르다', () => {\n    const state = useMyStore.getState();\n    expect(state.value).toBeNull();\n  });\n\n  it('setValue 액션이 상태를 변경한다', () => {\n    act(() => {\n      useMyStore.getState().setValue('hello');\n    });\n    expect(useMyStore.getState().value).toBe('hello');\n  });\n\n  it('제거된 필드가 state에 없다 (dead state 검증)', () => {\n    const state = useMyStore.getState();\n    expect('removedField' in state).toBe(false);\n  });\n});",
+          "keywords": ["zustand", "act", "getState", "beforeEach", "resetAll"]
+        },
+        {
+          "name": "localStorage 모킹 (project-storage 등)",
+          "purpose": "localStorage를 사용하는 유틸 함수 테스트",
+          "code": "import { describe, it, expect, beforeEach, vi } from 'vitest';\nimport { saveItem, loadItem } from '@/lib/storage';\n\n// localStorage 모킹\nconst mockStorage: Record<string, string> = {};\nObject.defineProperty(globalThis, 'localStorage', {\n  value: {\n    getItem: (k: string) => mockStorage[k] ?? null,\n    setItem: (k: string, v: string) => { mockStorage[k] = v; },\n    removeItem: (k: string) => { delete mockStorage[k]; },\n  },\n  writable: true,\n});\n\nbeforeEach(() => {\n  Object.keys(mockStorage).forEach(k => delete mockStorage[k]);\n});\n\ndescribe('storage utils', () => {\n  it('저장 후 불러오기', () => {\n    saveItem('key', { a: 1 });\n    expect(loadItem('key')).toEqual({ a: 1 });\n  });\n\n  it('없는 키는 null 반환', () => {\n    expect(loadItem('missing')).toBeNull();\n  });\n});",
+          "keywords": ["localStorage", "vi", "mock", "defineProperty", "storage"]
+        }
+      ]
+    },
     {
       "name": "React Component Tests",
       "description": "React 컴포넌트 테스트 패턴",
