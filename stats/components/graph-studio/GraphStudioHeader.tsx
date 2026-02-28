@@ -26,7 +26,7 @@ export function GraphStudioHeader({
   onToggleSidePanel,
   onExport,
 }: GraphStudioHeaderProps): React.ReactElement {
-  const { chartSpec, historyIndex, specHistory, undo, redo, isExporting } = useGraphStudioStore();
+  const { chartSpec, historyIndex, specHistory, undo, redo } = useGraphStudioStore();
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < specHistory.length - 1;
@@ -82,11 +82,10 @@ export function GraphStudioHeader({
             variant="outline"
             size="sm"
             onClick={onExport}
-            disabled={isExporting}
             aria-label="Export chart"
           >
             <Download className="h-4 w-4 mr-1" />
-            {isExporting ? '내보내는 중...' : 'Export'}
+            Export
           </Button>
         )}
         {onToggleSidePanel && (

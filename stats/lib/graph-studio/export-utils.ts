@@ -47,5 +47,8 @@ export function downloadChart(
   const link = document.createElement('a');
   link.href = dataUrl;
   link.download = `${safeFilename}.${ext}`;
+  // Firefox 호환: body append 없이 click()이 무시될 수 있음
+  document.body.appendChild(link);
   link.click();
+  document.body.removeChild(link);
 }

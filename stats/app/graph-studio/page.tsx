@@ -22,7 +22,7 @@ import { downloadChart } from '@/lib/graph-studio/export-utils';
 type LayoutMode = 'upload' | 'editor';
 
 export default function GraphStudioPage(): React.ReactElement {
-  const { isDataLoaded, chartSpec, setExporting } = useGraphStudioStore();
+  const { isDataLoaded, chartSpec } = useGraphStudioStore();
 
   const layoutMode: LayoutMode = isDataLoaded && chartSpec ? 'editor' : 'upload';
 
@@ -37,17 +37,11 @@ export default function GraphStudioPage(): React.ReactElement {
 
   const handleExport = useCallback(() => {
     if (!chartSpec) return;
-
     const instance = echartsRef.current?.getEchartsInstance();
     if (!instance) return;
-
-    setExporting(true);
-    try {
-      downloadChart(instance, chartSpec.exportConfig, chartSpec.title);
-    } finally {
-      setExporting(false);
-    }
-  }, [chartSpec, setExporting]);
+    // downloadChart는 동기 함수 — setExporting 불필요
+    downloadChart(instance, chartSpec.exportConfig, chartSpec.title);
+  }, [chartSpec]);
 
   if (layoutMode === 'upload') {
     return (

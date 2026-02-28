@@ -10,8 +10,7 @@
  * opts.renderer: exportConfig.format === 'svg' 시 'svg' 렌더러로 자동 전환
  */
 
-import { useMemo } from 'react';
-import type { RefObject } from 'react';
+import { useMemo, type RefObject } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type EChartsReactCore from 'echarts-for-react/lib/core';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
@@ -36,7 +35,13 @@ export function ChartPreview({ echartsRef }: ChartPreviewProps): React.ReactElem
   );
 
   // SVG export 선택 시 SVG 렌더러 사용 (getDataURL 정확도 보장)
-  const renderer = chartSpec?.exportConfig.format === 'svg' ? 'svg' : 'canvas';
+  // useMemo로 안정화: opts 매 렌더 새 객체 생성 시 ECharts 불필요한 재초기화 방지
+  const opts = useMemo(
+    (): { renderer: 'svg' | 'canvas' } => ({
+      renderer: chartSpec?.exportConfig.format === 'svg' ? 'svg' : 'canvas',
+    }),
+    [chartSpec?.exportConfig.format],
+  );
 
   if (!chartSpec) {
     return (
@@ -53,7 +58,7 @@ export function ChartPreview({ echartsRef }: ChartPreviewProps): React.ReactElem
         <ReactECharts
           ref={echartsRef}
           option={option}
-          opts={{ renderer }}
+          opts={opts}
           style={{ width: '100%', height: '100%' }}
           notMerge
           lazyUpdate={false}

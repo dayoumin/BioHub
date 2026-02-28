@@ -5,6 +5,9 @@
  *
  * Stage 3: ECharts getDataURL(format, pixelRatio) 연결 완료
  * onExport: GraphStudioPage → SidePanel → ExportTab으로 주입
+ *
+ * 주의: ECharts getDataURL은 현재 DOM 크기 기준으로 출력됨.
+ *       width/height 설정은 ChartSpec에 저장되나 실제 export 크기에는 미반영.
  */
 
 import { useCallback } from 'react';
@@ -19,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Download, Loader2 } from 'lucide-react';
+import { Download } from 'lucide-react';
 import type { ExportFormat } from '@/types/graph-studio';
 
 const DPI_OPTIONS = [72, 150, 300, 600] as const;
@@ -36,7 +39,7 @@ interface ExportTabProps {
 }
 
 export function ExportTab({ onExport }: ExportTabProps): React.ReactElement {
-  const { chartSpec, updateChartSpec, isExporting } = useGraphStudioStore();
+  const { chartSpec, updateChartSpec } = useGraphStudioStore();
 
   const handleFormatChange = useCallback((value: string) => {
     if (!chartSpec) return;
@@ -58,34 +61,6 @@ export function ExportTab({ onExport }: ExportTabProps): React.ReactElement {
         dpi: Number(value),
       },
     });
-  }, [chartSpec, updateChartSpec]);
-
-  const handleWidthChange = useCallback((value: string) => {
-    if (!chartSpec) return;
-    const width = Number(value);
-    if (width > 0) {
-      updateChartSpec({
-        ...chartSpec,
-        exportConfig: {
-          ...chartSpec.exportConfig,
-          width,
-        },
-      });
-    }
-  }, [chartSpec, updateChartSpec]);
-
-  const handleHeightChange = useCallback((value: string) => {
-    if (!chartSpec) return;
-    const height = Number(value);
-    if (height > 0) {
-      updateChartSpec({
-        ...chartSpec,
-        exportConfig: {
-          ...chartSpec.exportConfig,
-          height,
-        },
-      });
-    }
   }, [chartSpec, updateChartSpec]);
 
   if (!chartSpec) {
@@ -132,45 +107,21 @@ export function ExportTab({ onExport }: ExportTabProps): React.ReactElement {
         </div>
       )}
 
-      {/* 크기 */}
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-1.5">
-          <Label className="text-xs">너비 (px)</Label>
-          <Input
-            type="number"
-            value={exportConfig.width}
-            onChange={(e) => handleWidthChange(e.target.value)}
-            className="h-8 text-sm"
-            min={100}
-            max={4000}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs">높이 (px)</Label>
-          <Input
-            type="number"
-            value={exportConfig.height}
-            onChange={(e) => handleHeightChange(e.target.value)}
-            className="h-8 text-sm"
-            min={100}
-            max={4000}
-          />
-        </div>
+      {/* 크기 안내 — ECharts getDataURL은 width/height 파라미터 미지원 */}
+      <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+        출력 크기는 현재 차트 패널 크기를 따릅니다.<br />
+        고해상도 PNG는 DPI를 높여 픽셀 비율을 조정하세요.
       </div>
 
       {/* Export 버튼 */}
       <Button
         className="w-full"
         onClick={onExport}
-        disabled={!onExport || isExporting}
+        disabled={!onExport}
         aria-label={`Export chart as ${exportConfig.format.toUpperCase()}`}
       >
-        {isExporting ? (
-          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-        ) : (
-          <Download className="h-4 w-4 mr-2" />
-        )}
-        {isExporting ? '내보내는 중...' : `${exportConfig.format.toUpperCase()} 내보내기`}
+        <Download className="h-4 w-4 mr-2" />
+        {exportConfig.format.toUpperCase()} 내보내기
       </Button>
     </div>
   );
