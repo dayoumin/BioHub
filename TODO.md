@@ -293,7 +293,7 @@
 | 작업 | 설명 |
 |------|------|
 | **~~Graph Studio Stage 2~~** | ✅ 완료 (2026-02-28) — AI 편집 서비스, AiEditTab 활성화, 29개 테스트 |
-| **Graph Studio G1: 핵심 UI** | 출력 크기(mm) + 에러바 UI + 축 범위/로그 + 색상 인코딩 UI (상세: 아래) |
+| **~~Graph Studio G1: 핵심 UI~~** | ✅ 완료 (2026-02-28) — 상세: 아래 |
 | **Phase 15-1: Bio-Tools** | 12개 생물학 분석, `/bio-tools/` 5페이지 구현 ([상세](study/PLAN-BIO-STATISTICS-AUDIT.md)) |
 
 ---
@@ -309,17 +309,16 @@
 - AI 없음 → 자연어 편집 + 저널 자동 포맷
 - 타겟: 국내 바이오/의학 대학원생
 
-### Phase G1: 핵심 부재 UI (즉시)
+### Phase G1: 핵심 UI ✅ 완료 (2026-02-28)
 
-스키마는 이미 지원 — UI만 없음:
-
-| 기능 | 구현 포인트 | 우선순위 |
-|------|------------|---------|
-| **출력 크기 (mm/cm)** + 저널 프리셋 | `ExportTab` + `exportConfig` 스키마 확장 | 🔴 Critical |
-| **에러바 UI** — 컬럼 선택 + 배율 | `PropertiesPanel` → `SidePanel` | 🔴 Critical |
-| **축 범위 + 로그 스케일 UI** | `PropertiesPanel` 축 설정 섹션 | 🟠 High |
-| **색상 인코딩 UI** — 그룹 컬럼 선택 | `PropertiesPanel` | 🟠 High |
-| **스타일 프리셋 버튼** (Science/IEEE) | `StyleTab` 또는 `PropertiesPanel` | 🟡 Medium |
+| 기능 | 파일 | 상태 |
+|------|------|------|
+| **출력 크기 (mm/cm)** + 저널 프리셋 + DPI | `ExportDialog.tsx` | ✅ Nature/Cell/PNAS/ACS + 72/150/300/600 DPI |
+| **에러바 UI** — SEM/SD/CI/IQR | `DataTab.tsx` | ✅ bar/line/error-bar 차트 조건부 표시 |
+| **Y축 범위 + 로그 스케일** | `StyleTab.tsx` | ✅ domain 입력 + log/linear 토글 |
+| **X축 범위** | `StyleTab.tsx` | ✅ quantitative X (scatter 등) 조건부 표시 |
+| **색상 그룹 인코딩 UI** | `DataTab.tsx` | ✅ supportsColor 차트 조건부 표시 |
+| **스타일 프리셋** (Default/Science/IEEE/Grayscale) | `StyleTab.tsx` | ✅ 4종 + 범례 위치 |
 
 ### Phase G2: 논문 품질 향상 (1-2개월)
 

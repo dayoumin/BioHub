@@ -3,7 +3,7 @@
 /**
  * 스타일 탭 — 시각적 표현 (어떻게 보일?)
  *
- * Y축 범위·로그 스케일·범례 위치·학술 스타일 프리셋.
+ * Y축 범위·로그 스케일·X축 범위·범례 위치·학술 스타일 프리셋.
  * PropertiesTab에서 분리. 데이터 매핑은 DataTab 참조.
  */
 
@@ -44,12 +44,28 @@ export function StyleTab(): React.ReactElement {
       ? String(chartSpec.encoding.y.scale.domain[1])
       : '',
   );
+  const [xMinInput, setXMinInput] = useState(
+    chartSpec?.encoding.x.scale?.domain?.[0] !== undefined
+      ? String(chartSpec.encoding.x.scale.domain[0])
+      : '',
+  );
+  const [xMaxInput, setXMaxInput] = useState(
+    chartSpec?.encoding.x.scale?.domain?.[1] !== undefined
+      ? String(chartSpec.encoding.x.scale.domain[1])
+      : '',
+  );
 
   useEffect(() => {
     const domain = chartSpec?.encoding.y.scale?.domain;
     setYMinInput(domain?.[0] !== undefined ? String(domain[0]) : '');
     setYMaxInput(domain?.[1] !== undefined ? String(domain[1]) : '');
   }, [chartSpec?.encoding.y.scale?.domain]);
+
+  useEffect(() => {
+    const domain = chartSpec?.encoding.x.scale?.domain;
+    setXMinInput(domain?.[0] !== undefined ? String(domain[0]) : '');
+    setXMaxInput(domain?.[1] !== undefined ? String(domain[1]) : '');
+  }, [chartSpec?.encoding.x.scale?.domain]);
 
   // ─── 로그 스케일 ──────────────────────────────────────────
 
@@ -101,6 +117,29 @@ export function StyleTab(): React.ReactElement {
     }
   }, [chartSpec, yMinInput, yMaxInput, updateChartSpec]);
 
+  // ─── X축 범위 ─────────────────────────────────────────────
+
+  const handleXRangeBlur = useCallback(() => {
+    if (!chartSpec) return;
+    const min = parseFloat(xMinInput);
+    const max = parseFloat(xMaxInput);
+    const domain: [number, number] | undefined =
+      (!isNaN(min) && !isNaN(max)) ? [min, max] : undefined;
+    const currentDomain = chartSpec.encoding.x.scale?.domain;
+    if (JSON.stringify(domain) !== JSON.stringify(currentDomain)) {
+      updateChartSpec({
+        ...chartSpec,
+        encoding: {
+          ...chartSpec.encoding,
+          x: {
+            ...chartSpec.encoding.x,
+            scale: { ...chartSpec.encoding.x.scale, domain },
+          },
+        },
+      });
+    }
+  }, [chartSpec, xMinInput, xMaxInput, updateChartSpec]);
+
   // ─── 범례 위치 ────────────────────────────────────────────
 
   const handleLegendOrientChange = useCallback((value: string) => {
@@ -135,6 +174,7 @@ export function StyleTab(): React.ReactElement {
   }
 
   const isQuantitativeY = chartSpec.encoding.y.type === 'quantitative';
+  const isQuantitativeX = chartSpec.encoding.x.type === 'quantitative';
   const isLogScale = chartSpec.encoding.y.scale?.type === 'log';
   const showLegend = chartSpec.encoding.color !== undefined;
 
@@ -185,6 +225,36 @@ export function StyleTab(): React.ReactElement {
               </p>
             )}
           </div>
+        </div>
+      )}
+
+      {/* X축 범위 (quantitative X only — scatter 등) */}
+      {isQuantitativeX && (
+        <div className="space-y-2">
+          <Label className="text-xs">X축 범위</Label>
+          <div className="flex gap-1.5">
+            <Input
+              value={xMinInput}
+              onChange={(e) => setXMinInput(e.target.value)}
+              onBlur={handleXRangeBlur}
+              placeholder="최솟값"
+              className="h-7 text-xs"
+              type="number"
+            />
+            <Input
+              value={xMaxInput}
+              onChange={(e) => setXMaxInput(e.target.value)}
+              onBlur={handleXRangeBlur}
+              placeholder="최댓값"
+              className="h-7 text-xs"
+              type="number"
+            />
+          </div>
+          {(xMinInput !== '') !== (xMaxInput !== '') && (
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              최솟값·최댓값을 모두 입력해야 적용됩니다.
+            </p>
+          )}
         </div>
       )}
 
