@@ -69,7 +69,7 @@ export default function GraphStudioPage(): React.ReactElement {
         {/* 우측: 사이드 패널 (속성/AI/프리셋/export) */}
         {isSidePanelOpen && (
           <div className="w-80 border-l border-border flex-shrink-0">
-            <SidePanel onExport={handleExport} />
+            <SidePanel />
           </div>
         )}
       </div>

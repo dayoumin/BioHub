@@ -67,9 +67,9 @@ describe('sidePanel', () => {
     expect(useGraphStudioStore.getState().sidePanel).toBe('ai-chat')
   })
 
-  it("setSidePanel('export') → setSidePanel('presets') 순서 변경이 반영된다", () => {
-    act(() => { useGraphStudioStore.getState().setSidePanel('export') })
-    expect(useGraphStudioStore.getState().sidePanel).toBe('export')
+  it("setSidePanel('properties') → setSidePanel('presets') 순서 변경이 반영된다", () => {
+    act(() => { useGraphStudioStore.getState().setSidePanel('properties') })
+    expect(useGraphStudioStore.getState().sidePanel).toBe('properties')
     act(() => { useGraphStudioStore.getState().setSidePanel('presets') })
     expect(useGraphStudioStore.getState().sidePanel).toBe('presets')
   })

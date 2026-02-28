@@ -242,5 +242,5 @@ export interface GraphStudioState {
   historyIndex: number;
 
   // UI
-  sidePanel: 'properties' | 'ai-chat' | 'presets' | 'export';
+  sidePanel: 'properties' | 'ai-chat' | 'presets';
 }

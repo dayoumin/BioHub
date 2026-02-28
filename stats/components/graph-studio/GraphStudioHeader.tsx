@@ -10,12 +10,8 @@ import { useCallback } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
 import { Button } from '@/components/ui/button';
-import {
-  Undo2,
-  Redo2,
-  Download,
-  PanelRightOpen,
-} from 'lucide-react';
+import { Undo2, Redo2, PanelRightOpen } from 'lucide-react';
+import { ExportDialog } from './panels/ExportDialog';
 
 interface GraphStudioHeaderProps {
   onToggleSidePanel?: () => void;
@@ -78,18 +74,7 @@ export function GraphStudioHeader({
 
       {/* 우: 액션 */}
       <div className="flex items-center gap-2">
-        {chartSpec && onExport && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onExport}
-            aria-label="현재 설정으로 바로 내보내기"
-            title="현재 설정으로 바로 내보내기 (Export 탭에서 포맷/DPI 변경 가능)"
-          >
-            <Download className="h-4 w-4 mr-1" />
-            Export
-          </Button>
-        )}
+        <ExportDialog onExport={onExport} />
         {onToggleSidePanel && (
           <Button
             variant="ghost"
