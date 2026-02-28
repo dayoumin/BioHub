@@ -76,7 +76,7 @@ export function GraphStudioHeader({
       {/* 우: 액션 */}
       <div className="flex items-center gap-2">
         {chartSpec && (
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" disabled title="내보내기는 Stage 3에서 구현 예정입니다">
             <Download className="h-4 w-4 mr-1" />
             Export
           </Button>

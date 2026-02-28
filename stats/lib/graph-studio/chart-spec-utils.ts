@@ -18,63 +18,85 @@ import type {
 import { chartSpecSchema } from './chart-spec-schema';
 import { createDefaultChartSpec, CHART_TYPE_HINTS } from './chart-spec-defaults';
 
-// ─── JSON Patch 적용 (RFC 6902 간이 구현) ──────────────────
+// ─── JSON Patch 적용 (RFC 6902, JSON Pointer RFC 6901 준수) ─
+
+/**
+ * RFC 6901 토큰 언이스케이프: ~1 → '/', ~0 → '~' (이 순서 필수)
+ */
+function unescapeToken(token: string): string {
+  return token.replace(/~1/g, '/').replace(/~0/g, '~');
+}
+
+/**
+ * 경로 세그먼트로 중간 노드를 traverse.
+ * 배열이면 숫자 인덱스로 접근, 객체면 key로 접근.
+ */
+function getNode(
+  root: unknown,
+  segments: string[],
+): { parent: unknown; key: string | number } | null {
+  let current: unknown = root;
+
+  for (let i = 0; i < segments.length - 1; i++) {
+    const token = unescapeToken(segments[i]);
+    if (Array.isArray(current)) {
+      const idx = Number(token);
+      if (!isFinite(idx) || idx < 0 || idx >= current.length) return null;
+      current = current[idx];
+    } else if (current !== null && typeof current === 'object') {
+      current = (current as Record<string, unknown>)[token];
+    } else {
+      return null;
+    }
+  }
+
+  const lastToken = unescapeToken(segments[segments.length - 1]);
+  const key: string | number = Array.isArray(current)
+    ? (lastToken === '-' ? current.length : Number(lastToken))
+    : lastToken;
+
+  return { parent: current, key };
+}
 
 export function applyPatches(
   spec: ChartSpec,
   patches: ChartSpecPatch[],
 ): ChartSpec {
-  // deep clone
-  const result = JSON.parse(JSON.stringify(spec)) as Record<string, unknown>;
+  const result: unknown = JSON.parse(JSON.stringify(spec));
 
   for (const patch of patches) {
     const segments = patch.path.split('/').filter(Boolean);
     if (segments.length === 0) continue;
 
+    const node = getNode(result, segments);
+    if (!node) continue;
+    const { parent, key } = node;
+
     if (patch.op === 'remove') {
-      removeAtPath(result, segments);
+      if (Array.isArray(parent) && typeof key === 'number') {
+        parent.splice(key, 1);
+      } else if (parent !== null && typeof parent === 'object') {
+        delete (parent as Record<string, unknown>)[key as string];
+      }
+    } else if (patch.op === 'add') {
+      if (Array.isArray(parent) && typeof key === 'number') {
+        parent.splice(key, 0, patch.value);
+      } else if (parent !== null && typeof parent === 'object') {
+        (parent as Record<string, unknown>)[key as string] = patch.value;
+      }
     } else {
-      // 'add' | 'replace'
-      setAtPath(result, segments, patch.value);
+      // 'replace' — RFC 6902: 대상이 존재해야 함. 배열에서 범위 초과 인덱스는 무시.
+      if (Array.isArray(parent) && typeof key === 'number') {
+        if (key >= 0 && key < parent.length) {
+          parent[key] = patch.value;
+        }
+      } else if (parent !== null && typeof parent === 'object') {
+        (parent as Record<string, unknown>)[key as string] = patch.value;
+      }
     }
   }
 
-  return result as unknown as ChartSpec;
-}
-
-function setAtPath(
-  obj: Record<string, unknown>,
-  segments: string[],
-  value: unknown,
-): void {
-  let current: Record<string, unknown> = obj;
-
-  for (let i = 0; i < segments.length - 1; i++) {
-    const key = segments[i];
-    if (current[key] === undefined || current[key] === null) {
-      current[key] = {};
-    }
-    current = current[key] as Record<string, unknown>;
-  }
-
-  const lastKey = segments[segments.length - 1];
-  current[lastKey] = value;
-}
-
-function removeAtPath(
-  obj: Record<string, unknown>,
-  segments: string[],
-): void {
-  let current: Record<string, unknown> = obj;
-
-  for (let i = 0; i < segments.length - 1; i++) {
-    const key = segments[i];
-    if (current[key] === undefined) return;
-    current = current[key] as Record<string, unknown>;
-  }
-
-  const lastKey = segments[segments.length - 1];
-  delete current[lastKey];
+  return result as ChartSpec;
 }
 
 // ─── Patch 적용 + 검증 ─────────────────────────────────────
@@ -199,7 +221,14 @@ export function selectXYFields(
   const xCandidates = columns.filter(c => c.type === hints.suggestedXType);
   const yCandidates = columns.filter(c => c.type === 'quantitative');
   const xField = xCandidates[0]?.name ?? columns[0]?.name ?? 'x';
-  const yField = yCandidates.find(c => c.name !== xField)?.name ?? columns[1]?.name ?? 'y';
+
+  // y 후보 우선순위: xField를 제외한 quantitative → xField를 제외한 임의 컬럼 → xField 자체
+  // (histogram 등 y를 실제로 사용하지 않는 차트는 어떤 값이든 무방)
+  const yField =
+    yCandidates.find(c => c.name !== xField)?.name ??
+    columns.find(c => c.name !== xField)?.name ??
+    xField;
+
   return { xField, yField };
 }
 

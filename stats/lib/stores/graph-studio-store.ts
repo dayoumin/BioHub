@@ -22,7 +22,6 @@ interface GraphStudioActions {
   // 데이터
   /** DataPackage 로드 + 초기 ChartSpec 자동 생성 (원자적 단일 액션) */
   loadDataPackage: (pkg: DataPackage) => void;
-  setDataPackage: (pkg: DataPackage) => void;
   clearData: () => void;
 
   // chartSpec
@@ -81,15 +80,6 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         historyIndex: 0,
       });
     },
-
-    /**
-     * @deprecated loadDataPackage 사용 권장.
-     * chartSpec을 자동 생성하지 않아 데이터와 스펙이 불일치 상태가 됨.
-     */
-    setDataPackage: (pkg) => set({
-      dataPackage: pkg,
-      isDataLoaded: true,
-    }),
 
     clearData: () => set({
       dataPackage: null,

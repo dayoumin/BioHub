@@ -44,11 +44,13 @@ export function DataUploadPanel(): React.ReactElement {
   }, [loadDataPackage]);
 
   const parseCsv = useCallback(async (file: File) => {
+    const isTsv = file.name.toLowerCase().endsWith('.tsv');
     return new Promise<void>((resolve, reject) => {
       Papa.parse<Record<string, unknown>>(file, {
         header: true,
         dynamicTyping: true,
         skipEmptyLines: true,
+        delimiter: isTsv ? '\t' : ',',
         complete: (results) => {
           if (results.errors.length > 0) {
             reject(new Error(`CSV 파싱 오류: ${results.errors[0].message}`));

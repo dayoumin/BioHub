@@ -638,7 +638,9 @@ export function chartSpecToECharts(
     };
   }
 
-  // ── boxplot / violin (violin falls back to boxplot) ────────
+  // ── boxplot / violin ────────────────────────────────────────
+  // violin: ECharts는 네이티브 violin을 미지원. Stage 3에서 custom renderItem으로 구현 예정.
+  // 현재는 동일 데이터를 boxplot으로 렌더링(5-number summary 동일).
   if (spec.chartType === 'boxplot' || spec.chartType === 'violin') {
     const { categories, data } = buildBoxplotData(rows, xField, yField);
     return {

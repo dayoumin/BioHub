@@ -25,9 +25,8 @@ const stylePresetSchema = z.enum([
   'default', 'science', 'ieee', 'grayscale',
 ]);
 
-const exportFormatSchema = z.enum([
-  'svg', 'png', 'pdf', 'tiff',
-]);
+// ECharts getDataURL가 지원하는 포맷만 허용 (pdf/tiff 제외)
+const exportFormatSchema = z.enum(['svg', 'png']);
 
 // ─── 하위 스키마 ───────────────────────────────────────────
 

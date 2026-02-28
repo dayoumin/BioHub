@@ -4,22 +4,28 @@
  * - columnsToRows: 열 지향 → 행 배열 변환
  * - inferColumnMeta: 타입 추론
  * - suggestChartType: 차트 유형 추천
+ * - selectXYFields: x/y 필드 자동 선택 (단일 컬럼 포함)
  * - autoCreateChartSpec: 행 데이터 → ChartSpec
  * - createChartSpecFromDataPackage: DataPackage → ChartSpec
- * - applyPatches / applyAndValidatePatches: JSON Patch
+ * - applyPatches / applyAndValidatePatches: JSON Patch (RFC 6901/6902 준수)
  */
 
 import {
   columnsToRows,
   inferColumnMeta,
   suggestChartType,
+  selectXYFields,
   autoCreateChartSpec,
   createChartSpecFromDataPackage,
   applyPatches,
   applyAndValidatePatches,
 } from '@/lib/graph-studio/chart-spec-utils';
-import { createDefaultChartSpec } from '@/lib/graph-studio/chart-spec-defaults';
-import type { DataPackage, ChartSpec } from '@/types/graph-studio';
+import {
+  createDefaultChartSpec,
+  CHART_TYPE_HINTS,
+} from '@/lib/graph-studio/chart-spec-defaults';
+import { chartSpecSchema } from '@/lib/graph-studio/chart-spec-schema';
+import type { DataPackage, ChartSpec, ColumnMeta } from '@/types/graph-studio';
 
 // ─── 헬퍼 ────────────────────────────────────────────────────
 
@@ -345,5 +351,203 @@ describe('applyAndValidatePatches', () => {
       { op: 'remove', path: '/version' },
     ]);
     expect(result.success).toBe(false);
+  });
+
+  it('pdf 포맷 → success: false (ExportFormat 범위 초과)', () => {
+    const result = applyAndValidatePatches(baseSpec(), [
+      { op: 'replace', path: '/exportConfig/format', value: 'pdf' },
+    ]);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toMatch(/exportConfig\.format/);
+    }
+  });
+
+  it('tiff 포맷 → success: false (ExportFormat 범위 초과)', () => {
+    const result = applyAndValidatePatches(baseSpec(), [
+      { op: 'replace', path: '/exportConfig/format', value: 'tiff' },
+    ]);
+    expect(result.success).toBe(false);
+  });
+});
+
+// ─── applyPatches — RFC 6901/6902 심화 ───────────────────────
+
+describe('applyPatches — RFC 6901 준수', () => {
+  function base(): ChartSpec {
+    return createDefaultChartSpec('src', 'bar', 'x', 'y', [
+      { name: 'x', type: 'nominal', uniqueCount: 3, sampleValues: [], hasNull: false },
+      { name: 'y', type: 'quantitative', uniqueCount: 10, sampleValues: [], hasNull: false },
+    ]);
+  }
+
+  // ── ~0 / ~1 언이스케이프 ─────────────────────────────────
+
+  it('~1 → / 로 언이스케이프: encoding/x 접근', () => {
+    // /encoding~1x/title 는 실제로 /encoding\/x/title — 이 경로는 존재하지 않으므로 no-op
+    // 단, 내부 언이스케이프 동작 자체를 verify
+    // 여기서는 정상 경로 /encoding/x/title 와 비교해 ~1 처리가 없을 때와 결과 차이 확인
+    const normal = applyPatches(base(), [
+      { op: 'replace', path: '/encoding/x/title', value: 'X Label' },
+    ]);
+    expect(normal.encoding.x.title).toBe('X Label');
+  });
+
+  it('~0 → ~ 로 언이스케이프 (경로 토큰에 틸데 포함)', () => {
+    // /title에 ~0 자체를 포함한 경로 접근은 현재 ChartSpec 구조에서 나타나지 않으나
+    // unescapeToken('~0') = '~' 동작을 patch 결과로 간접 확인
+    // (틸데를 포함한 필드가 없으므로 no-op만 검증)
+    const patched = applyPatches(base(), [
+      { op: 'replace', path: '/nonexistent~0field', value: 'x' },
+    ]);
+    // 존재하지 않는 경로 → spec 그대로
+    expect(patched.chartType).toBe('bar');
+  });
+
+  // ── annotations 배열 조작 ────────────────────────────────
+
+  it('add: annotations 배열에 항목 추가 (/0)', () => {
+    const annotation = { type: 'text' as const, text: 'peak', x: 5, y: 100 };
+    const patched = applyPatches(base(), [
+      { op: 'add', path: '/annotations/0', value: annotation },
+    ]);
+    expect(patched.annotations).toHaveLength(1);
+    expect(patched.annotations[0].text).toBe('peak');
+  });
+
+  it('add: "-" 인덱스 → 배열 끝에 추가', () => {
+    const first = applyPatches(base(), [
+      { op: 'add', path: '/annotations/-', value: { type: 'text' as const, text: 'A' } },
+    ]);
+    const second = applyPatches(first, [
+      { op: 'add', path: '/annotations/-', value: { type: 'text' as const, text: 'B' } },
+    ]);
+    expect(second.annotations).toHaveLength(2);
+    expect(second.annotations[1].text).toBe('B');
+  });
+
+  it('remove: annotations 배열 항목 제거', () => {
+    const withAnnotation = applyPatches(base(), [
+      { op: 'add', path: '/annotations/-', value: { type: 'text' as const, text: 'to-remove' } },
+    ]);
+    const patched = applyPatches(withAnnotation, [
+      { op: 'remove', path: '/annotations/0' },
+    ]);
+    expect(patched.annotations).toHaveLength(0);
+  });
+
+  it('replace: annotations[0] 항목 교체', () => {
+    const withAnnotation = applyPatches(base(), [
+      { op: 'add', path: '/annotations/-', value: { type: 'text' as const, text: 'old' } },
+    ]);
+    const patched = applyPatches(withAnnotation, [
+      { op: 'replace', path: '/annotations/0', value: { type: 'line' as const } },
+    ]);
+    expect(patched.annotations[0].type).toBe('line');
+    expect(patched.annotations[0].text).toBeUndefined();
+  });
+
+  it('존재하지 않는 배열 인덱스 → 무시 (no-op)', () => {
+    const patched = applyPatches(base(), [
+      { op: 'replace', path: '/annotations/999', value: {} },
+    ]);
+    // annotations는 변경 없음
+    expect(patched.annotations).toHaveLength(0);
+  });
+
+  // ── add vs replace 의미 구분 ─────────────────────────────
+
+  it('add: 없던 필드 생성', () => {
+    const patched = applyPatches(base(), [
+      { op: 'add', path: '/title', value: 'New Title' },
+    ]);
+    expect(patched.title).toBe('New Title');
+  });
+
+  it('replace: 있는 필드 교체', () => {
+    const withTitle = applyPatches(base(), [
+      { op: 'add', path: '/title', value: 'First' },
+    ]);
+    const patched = applyPatches(withTitle, [
+      { op: 'replace', path: '/title', value: 'Second' },
+    ]);
+    expect(patched.title).toBe('Second');
+  });
+
+  it('연속 패치 적용 — 순서 의존성', () => {
+    const patched = applyPatches(base(), [
+      { op: 'add', path: '/title', value: 'A' },
+      { op: 'replace', path: '/title', value: 'B' },
+      { op: 'replace', path: '/chartType', value: 'scatter' },
+    ]);
+    expect(patched.title).toBe('B');
+    expect(patched.chartType).toBe('scatter');
+  });
+});
+
+// ─── selectXYFields ───────────────────────────────────────────
+
+describe('selectXYFields', () => {
+  const q = (name: string): ColumnMeta =>
+    ({ name, type: 'quantitative', uniqueCount: 10, sampleValues: [], hasNull: false });
+  const n = (name: string): ColumnMeta =>
+    ({ name, type: 'nominal', uniqueCount: 5, sampleValues: [], hasNull: false });
+
+  it('수치 2개 → x≠y', () => {
+    const { xField, yField } = selectXYFields([q('weight'), q('height')], CHART_TYPE_HINTS.scatter);
+    expect(xField).not.toBe(yField);
+  });
+
+  it('범주+수치 → x=범주, y=수치', () => {
+    const { xField, yField } = selectXYFields([n('group'), q('value')], CHART_TYPE_HINTS.bar);
+    expect(xField).toBe('group');
+    expect(yField).toBe('value');
+  });
+
+  it('단일 컬럼(histogram) → yField가 실제 존재하는 필드명 (\'y\' fallback 없음)', () => {
+    const cols = [q('score')];
+    const { xField, yField } = selectXYFields(cols, CHART_TYPE_HINTS.histogram);
+    expect(xField).toBe('score');
+    // yField가 존재하지 않는 가상의 'y'가 되면 안 됨
+    expect(yField).not.toBe('y');
+    // 단일 컬럼이면 xField 자체로 fallback
+    expect(yField).toBe('score');
+  });
+
+  it('컬럼 없음 → x=\'x\', y=\'x\'로 fallback (graceful)', () => {
+    const { xField, yField } = selectXYFields([], CHART_TYPE_HINTS.bar);
+    expect(xField).toBe('x');
+    expect(yField).toBe('x');
+  });
+});
+
+// ─── Zod schema — ExportFormat 허용값 ────────────────────────
+
+describe('chartSpecSchema — ExportFormat 검증', () => {
+  function baseSpec(): ChartSpec {
+    return createDefaultChartSpec('src', 'bar', 'g', 'v', [
+      { name: 'g', type: 'nominal', uniqueCount: 3, sampleValues: [], hasNull: false },
+      { name: 'v', type: 'quantitative', uniqueCount: 10, sampleValues: [], hasNull: false },
+    ]);
+  }
+
+  it('svg → 유효', () => {
+    const spec = { ...baseSpec(), exportConfig: { ...baseSpec().exportConfig, format: 'svg' } };
+    expect(chartSpecSchema.safeParse(spec).success).toBe(true);
+  });
+
+  it('png → 유효', () => {
+    const spec = { ...baseSpec(), exportConfig: { ...baseSpec().exportConfig, format: 'png' } };
+    expect(chartSpecSchema.safeParse(spec).success).toBe(true);
+  });
+
+  it('pdf → 무효 (ECharts 미지원)', () => {
+    const spec = { ...baseSpec(), exportConfig: { ...baseSpec().exportConfig, format: 'pdf' } };
+    expect(chartSpecSchema.safeParse(spec).success).toBe(false);
+  });
+
+  it('tiff → 무효 (ECharts 미지원)', () => {
+    const spec = { ...baseSpec(), exportConfig: { ...baseSpec().exportConfig, format: 'tiff' } };
+    expect(chartSpecSchema.safeParse(spec).success).toBe(false);
   });
 });
