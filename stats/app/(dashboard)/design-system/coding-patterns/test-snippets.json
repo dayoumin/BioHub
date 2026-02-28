@@ -1,7 +1,7 @@
 {
   "id": "test-snippets",
-  "version": "1.30.0",
-  "lastUpdated": "2026-02-28",
+  "version": "1.31.0",
+  "lastUpdated": "2026-03-01",
   "sources": [
     "stats/__tests__/",
     "stats/jest.config.js"
@@ -857,6 +857,14 @@
       "title": "비동기 테스트 처리",
       "description": "waitFor, findBy를 사용하여 비동기 동작 대기",
       "example": "// ❌ Bad: 비동기 대기 없이 즉시 검증\nit('데이터 로딩 후 표시', () => {\n  render(<MyComponent />);\n  expect(screen.getByText('Data')).toBeInTheDocument();  // 실패!\n});\n\n// ✅ Good: waitFor로 비동기 대기\nit('데이터 로딩 후 표시', async () => {\n  render(<MyComponent />);\n  \n  await waitFor(() => {\n    expect(screen.getByText('Data')).toBeInTheDocument();\n  });\n});\n\n// ✅ Better: findBy 사용 (자동 대기)\nit('데이터 로딩 후 표시', async () => {\n  render(<MyComponent />);\n  \n  const data = await screen.findByText('Data');\n  expect(data).toBeInTheDocument();\n});"
+    }
+  ],
+  "graphStudioPatterns": [
+    {
+      "name": "chartSpecToECharts 시뮬레이션",
+      "purpose": "ECharts 컨버터 순수 함수 출력을 단언하여 G2-x 기능 회귀 방지",
+      "code": "import { chartSpecToECharts } from '@/lib/graph-studio/echarts-converter';\nimport { getPValueLabel } from '@/lib/graph-studio/chart-spec-utils';\nimport type { ChartSpec } from '@/types/graph-studio';\n\n// 기본 fixture: makeBarSpec / makeScatterSpec\nfunction makeScatterSpec(overrides: Partial<ChartSpec> = {}): ChartSpec { ... }\n\ntest('trendline → scatter series에 line 추가', () => {\n  const spec = makeScatterSpec({ trendline: { type: 'linear' } });\n  const option = chartSpecToECharts(spec, rows) as Record<string, unknown>;\n  const series = option.series as Record<string, unknown>[];\n  expect(series.some(s => s.type === 'line')).toBe(true);\n});\n\ntest('getPValueLabel — p ≤ 0.05 → \"*\"', () => {\n  expect(getPValueLabel({ groupA: 'A', groupB: 'B', pValue: 0.03 })).toBe('*');\n});",
+      "keywords": ["chartSpecToECharts", "trendline", "significance", "getPValueLabel", "graph-studio", "G2-2"]
     }
   ],
   "commonErrors": [
