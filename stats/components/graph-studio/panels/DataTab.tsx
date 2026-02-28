@@ -18,8 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
-import { COLORBREWER_PALETTES } from '@/lib/graph-studio/echarts-converter';
+import { CHART_TYPE_HINTS, COLORBREWER_PALETTES } from '@/lib/graph-studio/chart-spec-defaults';
 import { selectXYFields } from '@/lib/graph-studio/chart-spec-utils';
 import type { ChartType, ErrorBarSpec } from '@/types/graph-studio';
 
@@ -380,11 +379,18 @@ export function DataTab(): React.ReactElement {
       {ORIENTATION_CHART_TYPES.has(chartSpec.chartType) && (
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <Label htmlFor="orientation-toggle" className="text-xs cursor-pointer">수평 막대</Label>
+            <Label
+              htmlFor="orientation-toggle"
+              className={`text-xs ${chartSpec.errorBar ? 'text-muted-foreground cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              수평 막대
+              {chartSpec.errorBar && <span className="ml-1 text-xs">(에러바와 함께 사용 불가)</span>}
+            </Label>
             <Switch
               id="orientation-toggle"
               checked={chartSpec.orientation === 'horizontal'}
               onCheckedChange={handleOrientationToggle}
+              disabled={!!chartSpec.errorBar}
             />
           </div>
         </div>

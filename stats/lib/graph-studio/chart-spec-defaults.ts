@@ -6,6 +6,25 @@
 
 import type { ChartSpec, ChartType, StyleSpec, ExportConfig, StylePreset } from '@/types/graph-studio';
 
+// ─── ColorBrewer + viridis 팔레트 ──────────────────────────
+
+/** 정성형/순차형/발산형 팔레트 맵. colorblind-safe 팔레트 포함. */
+export const COLORBREWER_PALETTES: Record<string, string[]> = {
+  // 정성적(Qualitative) — 그룹 구분
+  Set2:    ['#66c2a5', '#fc8d62', '#8da0cb', '#e78ac3', '#a6d854', '#ffd92f', '#e5c494', '#b3b3b3'],
+  Set1:    ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00', '#a65628', '#f781bf', '#999999'],
+  Paired:  ['#a6cee3', '#1f78b4', '#b2df8a', '#33a02c', '#fb9a99', '#e31a1c', '#fdbf6f', '#ff7f00'],
+  Dark2:   ['#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#e6ab02', '#a6761d', '#666666'],
+  // 순차적(Sequential) — 연속값/강도
+  viridis: ['#440154', '#3b528b', '#21908c', '#5dc963', '#fde725'],
+  Blues:   ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c'],
+  Greens:  ['#edf8e9', '#bae4b3', '#74c476', '#31a354', '#006d2c'],
+  Oranges: ['#feedde', '#fdbe85', '#fd8d3c', '#e6550d', '#a63603'],
+  // 발산형(Diverging) — 양극 비교
+  RdBu:    ['#d73027', '#f46d43', '#fdae61', '#fee090', '#abd9e9', '#74add1', '#4575b4'],
+  RdYlGn:  ['#d73027', '#f46d43', '#fdae61', '#ffffbf', '#a6d96a', '#66bd63', '#1a9850'],
+};
+
 // ─── 스타일 프리셋 ─────────────────────────────────────────
 
 export const STYLE_PRESETS: Record<StylePreset, StyleSpec> = {

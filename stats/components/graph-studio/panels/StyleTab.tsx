@@ -168,7 +168,7 @@ export function StyleTab(): React.ReactElement {
     if (!chartSpec) return;
     updateChartSpec({
       ...chartSpec,
-      style: { ...chartSpec.style, showDataLabels: checked || undefined },
+      style: { ...chartSpec.style, showDataLabels: checked ? true : undefined },
     });
   }, [chartSpec, updateChartSpec]);
 
