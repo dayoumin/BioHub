@@ -99,7 +99,8 @@
       "Bash(pnpm remove:*)",
       "Bash(cmd /c:*)",
       "Bash(pnpm build:*)",
-      "Bash(CI=true pnpm install:*)"
+      "Bash(CI=true pnpm install:*)",
+      "Bash(pnpm exec tsc --noEmit)"
     ],
     "deny": [],
     "ask": []
