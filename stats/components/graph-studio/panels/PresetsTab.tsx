@@ -8,6 +8,7 @@ import { useCallback } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { STYLE_PRESETS } from '@/lib/graph-studio/chart-spec-defaults';
 import { Button } from '@/components/ui/button';
+import { Check } from 'lucide-react';
 import type { StylePreset } from '@/types/graph-studio';
 
 interface PresetInfo {
@@ -59,21 +60,25 @@ export function PresetsTab(): React.ReactElement {
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">학술 스타일 프리셋을 선택하세요</p>
 
-      {PRESET_LIST.map(preset => (
-        <Button
-          key={preset.key}
-          variant={chartSpec.style.preset === preset.key ? 'default' : 'outline'}
-          className="w-full justify-start h-auto py-3 px-4"
-          onClick={() => handleApplyPreset(preset.key)}
-        >
-          <div className="text-left">
-            <div className="font-medium text-sm">{preset.label}</div>
-            <div className="text-xs text-muted-foreground mt-0.5">
-              {preset.description}
+      {PRESET_LIST.map(preset => {
+        const isActive = chartSpec.style.preset === preset.key;
+        return (
+          <Button
+            key={preset.key}
+            variant={isActive ? 'default' : 'outline'}
+            className="w-full justify-between h-auto py-3 px-4"
+            onClick={() => handleApplyPreset(preset.key)}
+          >
+            <div className="text-left">
+              <div className="font-medium text-sm">{preset.label}</div>
+              <div className={`text-xs mt-0.5 ${isActive ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                {preset.description}
+              </div>
             </div>
-          </div>
-        </Button>
-      ))}
+            {isActive && <Check className="h-4 w-4 shrink-0 ml-2" />}
+          </Button>
+        );
+      })}
     </div>
   );
 }

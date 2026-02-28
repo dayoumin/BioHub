@@ -11,6 +11,8 @@
  * - zero-patch 경고: AI 응답이 실제 변경 없이 통과될 때 사용자에게 알림
  * - MAX_MESSAGES=30: 오래된 메시지 자동 정리
  * - localStorage: 브라우저 재시작 후에도 대화 기록 유지
+ * - 탭 진입 시 textarea autofocus
+ * - 예시 명령어 힌트 문구 추가
  */
 
 import { useCallback, useRef, useState, useEffect } from 'react';
@@ -149,6 +151,16 @@ export function AiEditTab(): React.ReactElement {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // 탭 마운트 시 textarea autofocus (데이터 로드 상태일 때만)
+  // deps=[] 의도: 탭 전환 시 리마운트되므로 마운트 1회 실행이 곧 "탭 진입 시"
+  // chartSpec을 deps에 포함하면 AI 편집 완료 후 다른 탭의 포커스를 빼앗음
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (chartSpecRef.current) {
+      textareaRef.current?.focus();
+    }
+  }, []);
+
   /**
    * MAX_MESSAGES 초과 시 오래된 메시지부터 제거.
    * id는 Date.now() + 랜덤으로 고유성 보장.
@@ -256,7 +268,10 @@ export function AiEditTab(): React.ReactElement {
       <div className="flex-1 overflow-y-auto space-y-3 mb-3 pr-1">
         {messages.length === 0 ? (
           <div className="space-y-2">
-            <p className="text-xs text-muted-foreground font-medium">예시 명령어</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground font-medium">예시 명령어</p>
+              <p className="text-xs text-muted-foreground/60">클릭하면 입력됩니다</p>
+            </div>
             {[
               'X축 라벨 45도 회전해줘',
               '에러바 추가해줘 (표준오차)',

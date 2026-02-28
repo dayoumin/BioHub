@@ -85,7 +85,7 @@ interface ChartTypeHint {
 
 export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
   bar: {
-    label: 'Bar Chart',
+    label: '막대 차트',
     description: '범주별 값 비교',
     suggestedXType: 'nominal',
     suggestedYType: 'quantitative',
@@ -94,7 +94,7 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsAggregate: true,
   },
   'grouped-bar': {
-    label: 'Grouped Bar',
+    label: '그룹 막대 차트',
     description: '그룹별 범주 비교',
     suggestedXType: 'nominal',
     suggestedYType: 'quantitative',
@@ -103,7 +103,7 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsAggregate: true,
   },
   'stacked-bar': {
-    label: 'Stacked Bar',
+    label: '누적 막대 차트',
     description: '구성 비율 비교',
     suggestedXType: 'nominal',
     suggestedYType: 'quantitative',
@@ -112,7 +112,7 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsAggregate: true,
   },
   line: {
-    label: 'Line Chart',
+    label: '꺾은선 그래프',
     description: '시간/순서에 따른 추세',
     suggestedXType: 'temporal',
     suggestedYType: 'quantitative',
@@ -121,7 +121,7 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsAggregate: true,
   },
   scatter: {
-    label: 'Scatter Plot',
+    label: '산점도',
     description: '두 변수의 관계',
     suggestedXType: 'quantitative',
     suggestedYType: 'quantitative',
@@ -130,7 +130,7 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsAggregate: false,
   },
   boxplot: {
-    label: 'Box Plot',
+    label: '박스 플롯',
     description: '분포 비교 (중앙값, 사분위수)',
     suggestedXType: 'nominal',
     suggestedYType: 'quantitative',
@@ -139,7 +139,7 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsAggregate: false,
   },
   histogram: {
-    label: 'Histogram',
+    label: '히스토그램',
     description: '빈도 분포',
     suggestedXType: 'quantitative',
     suggestedYType: 'quantitative',
@@ -148,7 +148,7 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsAggregate: false,
   },
   'error-bar': {
-    label: 'Error Bar Chart',
+    label: '에러 바 차트',
     description: '평균 ± 오차 표시',
     suggestedXType: 'nominal',
     suggestedYType: 'quantitative',
@@ -157,7 +157,7 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsAggregate: true,
   },
   heatmap: {
-    label: 'Heatmap',
+    label: '히트맵',
     description: '행렬형 값 비교',
     suggestedXType: 'nominal',
     suggestedYType: 'quantitative',
@@ -166,7 +166,9 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsAggregate: true,
   },
   violin: {
-    label: 'Violin Plot',
+    // ECharts 네이티브 violin 미지원 → box plot으로 렌더링됨
+    // PropertiesTab에서 선택 시 인라인 안내 표시 (chartType === 'violin' 조건)
+    label: '바이올린 플롯',
     description: '분포 형태 비교',
     suggestedXType: 'nominal',
     suggestedYType: 'quantitative',

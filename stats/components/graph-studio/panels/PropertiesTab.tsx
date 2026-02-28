@@ -39,6 +39,16 @@ export function PropertiesTab(): React.ReactElement {
     }
   }, [chartSpec, titleInput, updateChartSpec]);
 
+  const handleTitleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      // isComposing: 한국어 IME 확정 Enter와 저장 Enter 구분
+      if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+        e.currentTarget.blur();
+      }
+    },
+    [],
+  );
+
   const handleChartTypeChange = useCallback((value: string) => {
     if (!chartSpec) return;
     const newType = value as ChartType;
@@ -113,6 +123,7 @@ export function PropertiesTab(): React.ReactElement {
           value={titleInput}
           onChange={(e) => setTitleInput(e.target.value)}
           onBlur={handleTitleBlur}
+          onKeyDown={handleTitleKeyDown}
           placeholder="차트 제목"
           className="h-8 text-sm"
         />
@@ -133,6 +144,12 @@ export function PropertiesTab(): React.ReactElement {
             ))}
           </SelectContent>
         </Select>
+        {/* violin은 ECharts 미지원 → box plot으로 렌더링됨 */}
+        {chartSpec.chartType === 'violin' && (
+          <p className="text-xs text-amber-600 dark:text-amber-400">
+            현재 박스 플롯으로 표시됩니다 (ECharts 제한)
+          </p>
+        )}
       </div>
 
       {/* X축 */}
@@ -143,16 +160,19 @@ export function PropertiesTab(): React.ReactElement {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {columns.map(col => (
-              <SelectItem
-                key={col.name}
-                value={col.name}
-                className="text-sm"
-                disabled={col.name === chartSpec.encoding.y.field}
-              >
-                {col.name} ({col.type})
-              </SelectItem>
-            ))}
+            {columns.map(col => {
+              const isUsedByY = col.name === chartSpec.encoding.y.field;
+              return (
+                <SelectItem
+                  key={col.name}
+                  value={col.name}
+                  className="text-sm"
+                  disabled={isUsedByY}
+                >
+                  {col.name} ({col.type}){isUsedByY ? ' — Y축 사용 중' : ''}
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
       </div>
@@ -165,16 +185,19 @@ export function PropertiesTab(): React.ReactElement {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {columns.map(col => (
-              <SelectItem
-                key={col.name}
-                value={col.name}
-                className="text-sm"
-                disabled={col.name === chartSpec.encoding.x.field}
-              >
-                {col.name} ({col.type})
-              </SelectItem>
-            ))}
+            {columns.map(col => {
+              const isUsedByX = col.name === chartSpec.encoding.x.field;
+              return (
+                <SelectItem
+                  key={col.name}
+                  value={col.name}
+                  className="text-sm"
+                  disabled={isUsedByX}
+                >
+                  {col.name} ({col.type}){isUsedByX ? ' — X축 사용 중' : ''}
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
       </div>

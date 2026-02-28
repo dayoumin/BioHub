@@ -82,7 +82,8 @@ export function GraphStudioHeader({
             variant="outline"
             size="sm"
             onClick={onExport}
-            aria-label="Export chart"
+            aria-label="현재 설정으로 바로 내보내기"
+            title="현재 설정으로 바로 내보내기 (Export 탭에서 포맷/DPI 변경 가능)"
           >
             <Download className="h-4 w-4 mr-1" />
             Export

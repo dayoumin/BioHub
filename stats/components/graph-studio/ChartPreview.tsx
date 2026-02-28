@@ -46,20 +46,13 @@ export function ChartPreview({ echartsRef }: ChartPreviewProps): React.ReactElem
   if (!chartSpec) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-        Upload data to start
+        데이터를 업로드하면 차트가 표시됩니다
       </div>
     );
   }
 
   return (
     <div className="flex flex-col h-full p-4">
-      {/* violin은 현재 box plot으로 표시 (ECharts 네이티브 violin 미지원) */}
-      {chartSpec.chartType === 'violin' && (
-        <div className="mb-2 rounded-md bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs text-amber-700">
-          Violin Plot은 현재 Box Plot으로 표시됩니다.
-        </div>
-      )}
-
       {/* ECharts canvas */}
       <div className="flex-1 min-h-0">
         <ReactECharts
@@ -78,7 +71,7 @@ export function ChartPreview({ echartsRef }: ChartPreviewProps): React.ReactElem
           {chartSpec.encoding.x.field} × {chartSpec.encoding.y.field}
         </span>
         <span>
-          {chartSpec.chartType} | {chartSpec.style.preset} | {rows.length} rows
+          {chartSpec.chartType} | {chartSpec.style.preset} | n={rows.length}
         </span>
       </div>
     </div>
