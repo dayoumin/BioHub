@@ -825,42 +825,8 @@ export function chartSpecToECharts(
       xAxis: { ...xAxisBase(spec, style, 'category'), data: categories },
       yAxis: yAxisBase(spec, style),
       series: [
-        {
-          type: 'bar',
-          name: yField,
-          data: means,
-          z: 2,
-        },
-        {
-          type: 'custom',
-          name: 'Error',
-          z: 3,
-          renderItem: (_params: unknown, api: unknown) => {
-            const a = api as {
-              value: (idx: number) => number | string;
-              coord: (point: [number, number]) => [number, number];
-              size: (dataSize: [number, number]) => [number, number];
-            };
-            const xIdx = Number(a.value(0));
-            const mean = Number(a.value(1));
-            const lower = Number(a.value(2));
-            const upper = Number(a.value(3));
-            const [cx] = a.coord([xIdx, mean]);
-            const [, yTop] = a.coord([xIdx, mean + upper]);
-            const [, yBot] = a.coord([xIdx, mean - lower]);
-            const capHalf = a.size([1, 0])[0] * 0.12;
-            const lineStyle = { stroke: '#333', lineWidth: 1.5 };
-            return {
-              type: 'group',
-              children: [
-                { type: 'line', shape: { x1: cx, y1: yTop, x2: cx, y2: yBot }, style: lineStyle },
-                { type: 'line', shape: { x1: cx - capHalf, y1: yTop, x2: cx + capHalf, y2: yTop }, style: lineStyle },
-                { type: 'line', shape: { x1: cx - capHalf, y1: yBot, x2: cx + capHalf, y2: yBot }, style: lineStyle },
-              ],
-            };
-          },
-          data: categories.map((_, i) => [i, means[i], lowers[i], uppers[i]]),
-        },
+        { type: 'bar', name: yField, data: means, z: 2 },
+        buildErrorBarOverlay(categories, means, lowers, uppers),
       ],
     };
   }
