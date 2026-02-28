@@ -24,8 +24,20 @@ export {
   applyAndValidatePatches,
   inferColumnMeta,
   suggestChartType,
+  selectXYFields,
   autoCreateChartSpec,
+  columnsToRows,
+  createChartSpecFromDataPackage,
 } from './chart-spec-utils';
 
-// Vega-Lite 변환
-export { chartSpecToVegaLite } from './vega-lite-converter';
+// ECharts 변환
+export { chartSpecToECharts } from './echarts-converter';
+
+// 프로젝트 저장소
+export {
+  listProjects,
+  loadProject,
+  saveProject,
+  deleteProject,
+  generateProjectId,
+} from './project-storage';

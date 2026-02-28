@@ -2,10 +2,9 @@
  * Graph Studio 타입 정의
  *
  * chartSpec = 모든 것의 기초
- * - Vega-Lite preview 렌더링
- * - AI spec patch
- * - Matplotlib export 변환
- * - 프로젝트 저장/복원
+ * - ECharts 렌더링 (chartSpecToECharts)
+ * - AI spec patch (ChartSpecPatch)
+ * - 프로젝트 저장/복원 (GraphProject)
  */
 
 // ─── Chart Types ───────────────────────────────────────────
@@ -121,7 +120,8 @@ export interface StyleSpec {
 
 // ─── Export Config ──────────────────────────────────────────
 
-export type ExportFormat = 'svg' | 'png' | 'pdf' | 'tiff';
+// ECharts getDataURL가 지원하는 포맷만 정의 (pdf/tiff 제외)
+export type ExportFormat = 'svg' | 'png';
 
 export interface ExportConfig {
   format: ExportFormat;
@@ -249,6 +249,5 @@ export interface GraphStudioState {
   exportProgress: number;
 
   // UI
-  previewMode: 'vega' | 'matplotlib';
   sidePanel: 'properties' | 'ai-chat' | 'presets' | 'export';
 }
