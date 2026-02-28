@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.26.0",
+  "version": "1.27.0",
   "lastUpdated": "2026-02-28",
   "sources": [
     "stats/__tests__/",
@@ -763,6 +763,17 @@
             "createDefaultChartSpec",
             "샘플 데이터",
             "simulate"
+          ]
+        },
+        {
+          "name": "개선 계획 시뮬레이션 테스트 (SIM)",
+          "purpose": "코드 변경 전에 개선 계획의 핵심 전제를 순수 로직 테스트로 검증. 실제 모듈 의존성 없이 알고리즘 비교 가능.",
+          "code": "describe('SIM-1: DPI 계산 수정', () => {\n  function dpiToPixelRatioOld(dpi: number) { return Math.max(1, Math.round(dpi / 96)); }\n  function dpiToPixelRatioNew(dpi: number) { return Math.max(1, dpi / 96); }\n\n  test('300 DPI: old 방식은 288 DPI 실효값 (버그)', () => {\n    expect(dpiToPixelRatioOld(300) * 96).toBe(288);\n  });\n  test('300 DPI: new 방식은 300 DPI 정확', () => {\n    expect(dpiToPixelRatioNew(300) * 96).toBeCloseTo(300, 1);\n  });\n});",
+          "keywords": [
+            "simulation",
+            "improvement-plan",
+            "before-after",
+            "algorithm"
           ]
         }
       ]
