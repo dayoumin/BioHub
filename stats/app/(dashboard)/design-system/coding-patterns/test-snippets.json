@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.28.0",
+  "version": "1.30.0",
   "lastUpdated": "2026-02-28",
   "sources": [
     "stats/__tests__/",
@@ -817,6 +817,22 @@
             "domain",
             "boundary"
           ]
+        }
+      ]
+    },
+    {
+      "name": "State Machine Simulation Tests",
+      "description": "React 상태 전이 로직을 React 없이 순수 TS로 시뮬레이션. 핸들러·effect를 동기 함수로 재현해 상태 흐름 검증.",
+      "patterns": [
+        {
+          "name": "상태 시뮬레이터 팩토리",
+          "description": "상태 + 핸들러를 클로저로 캡슐화. applyEffect()로 useEffect 로직 동기 실행.",
+          "code": "function createSim(initial = '0.5') {\n  let value = initial\n  let source: 'manual' | 'auto' = 'manual'\n  let field1 = '', field2 = ''\n  function applyEffect() {\n    if (source !== 'auto') return\n    const v1 = parseFloat(field1), v2 = parseFloat(field2)\n    if (isFinite(v1) && isFinite(v2)) value = (v1 + v2).toFixed(3)\n  }\n  return {\n    handleManual: (v: string) => { value = v; source = 'manual' },\n    handleField1: (v: string) => { field1 = v; source = 'auto'; applyEffect() },\n    handleField2: (v: string) => { field2 = v; source = 'auto'; applyEffect() },\n    get value() { return value },\n    get source() { return source },\n  }\n}"
+        },
+        {
+          "name": "overwrite 방지 시나리오",
+          "description": "auto 계산 후 수동 입력 → auto 필드 변경 없으면 값 유지 확인.",
+          "code": "test('자동 계산 후 수동 입력 유지', () => {\n  const sim = createSim()\n  sim.handleField1('10'); sim.handleField2('20')\n  expect(sim.source).toBe('auto')\n  sim.handleManual('0.5')    // manual override\n  expect(sim.value).toBe('0.5')\n  expect(sim.source).toBe('manual')\n  // no field change → value stays\n  expect(sim.value).toBe('0.5')\n})"
         }
       ]
     }
