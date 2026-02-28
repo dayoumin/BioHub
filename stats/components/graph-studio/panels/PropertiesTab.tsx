@@ -16,16 +16,31 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
+import { selectXYFields } from '@/lib/graph-studio/chart-spec-utils';
 import type { ChartType } from '@/types/graph-studio';
 
 export function PropertiesTab(): React.ReactElement {
-  const { chartSpec, dataPackage, updateChartSpec } = useGraphStudioStore();
+  const { chartSpec, updateChartSpec } = useGraphStudioStore();
 
   const handleChartTypeChange = useCallback((value: string) => {
     if (!chartSpec) return;
+    const newType = value as ChartType;
+    const hint = CHART_TYPE_HINTS[newType];
+    const columns = chartSpec.data.columns;
+
+    // 차트 유형에 맞는 x/y 필드 재선택 (encoding 동기화)
+    const { xField, yField } = selectXYFields(columns, hint);
+    const xCol = columns.find(c => c.name === xField);
+    const yCol = columns.find(c => c.name === yField);
+
     updateChartSpec({
       ...chartSpec,
-      chartType: value as ChartType,
+      chartType: newType,
+      encoding: {
+        ...chartSpec.encoding,
+        x: { ...chartSpec.encoding.x, field: xField, type: xCol?.type ?? hint.suggestedXType },
+        y: { ...chartSpec.encoding.y, field: yField, type: yCol?.type ?? 'quantitative' },
+      },
     });
   }, [chartSpec, updateChartSpec]);
 
@@ -39,6 +54,8 @@ export function PropertiesTab(): React.ReactElement {
 
   const handleXFieldChange = useCallback((value: string) => {
     if (!chartSpec) return;
+    // y와 동일 필드 선택 방지 (scatter 등 중복 버그)
+    if (value === chartSpec.encoding.y.field) return;
     const column = chartSpec.data.columns.find(c => c.name === value);
     updateChartSpec({
       ...chartSpec,
@@ -55,6 +72,8 @@ export function PropertiesTab(): React.ReactElement {
 
   const handleYFieldChange = useCallback((value: string) => {
     if (!chartSpec) return;
+    // x와 동일 필드 선택 방지 (scatter 등 중복 버그)
+    if (value === chartSpec.encoding.x.field) return;
     const column = chartSpec.data.columns.find(c => c.name === value);
     updateChartSpec({
       ...chartSpec,
@@ -115,7 +134,12 @@ export function PropertiesTab(): React.ReactElement {
           </SelectTrigger>
           <SelectContent>
             {columns.map(col => (
-              <SelectItem key={col.name} value={col.name} className="text-sm">
+              <SelectItem
+                key={col.name}
+                value={col.name}
+                className="text-sm"
+                disabled={col.name === chartSpec.encoding.y.field}
+              >
                 {col.name} ({col.type})
               </SelectItem>
             ))}
@@ -132,7 +156,12 @@ export function PropertiesTab(): React.ReactElement {
           </SelectTrigger>
           <SelectContent>
             {columns.map(col => (
-              <SelectItem key={col.name} value={col.name} className="text-sm">
+              <SelectItem
+                key={col.name}
+                value={col.name}
+                className="text-sm"
+                disabled={col.name === chartSpec.encoding.x.field}
+              >
                 {col.name} ({col.type})
               </SelectItem>
             ))}

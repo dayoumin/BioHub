@@ -4,11 +4,15 @@
  * AI 편집 탭 — 자연어로 차트 수정
  *
  * AI는 chartSpec patch만 생성. 데이터 값은 전송하지 않음 (Zero-Data Retention).
+ *
+ * Stage 2 구현 예정:
+ *   1. graphStudioAiService.editChart({ chartSpec, userMessage, columnNames, dataTypes })
+ *   2. applyAndValidatePatches(chartSpec, response.patches)
+ *   3. 성공 시 updateChartSpec(result.spec) + setLastAiResponse(response)
  */
 
-import { useCallback, useState, useRef } from 'react';
+import { useCallback, useState } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
-import { applyAndValidatePatches } from '@/lib/graph-studio/chart-spec-utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Send, Loader2 } from 'lucide-react';
@@ -24,50 +28,27 @@ export function AiEditTab(): React.ReactElement {
     chartSpec,
     isAiEditing,
     setAiEditing,
-    updateChartSpec,
-    setLastAiResponse,
   } = useGraphStudioStore();
 
   const [message, setMessage] = useState('');
   const [history, setHistory] = useState<EditHistoryItem[]>([]);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSend = useCallback(async () => {
     if (!message.trim() || !chartSpec || isAiEditing) return;
 
+    const userMessage = message;
+    setMessage('');
     setAiEditing(true);
 
     try {
-      // TODO: 실제 AI 호출 구현 (기존 llm-recommender 확장)
-      // 현재는 placeholder
-      // const response = await graphStudioAiService.editChart({
-      //   chartSpec,
-      //   userMessage: message,
-      //   columnNames: chartSpec.data.columns.map(c => c.name),
-      //   dataTypes: Object.fromEntries(
-      //     chartSpec.data.columns.map(c => [c.name, c.type])
-      //   ),
-      // });
-      //
-      // const result = applyAndValidatePatches(chartSpec, response.patches);
-      // if (result.success) {
-      //   updateChartSpec(result.spec);
-      //   setLastAiResponse(response);
-      //   setHistory(prev => [...prev, {
-      //     userMessage: message,
-      //     aiExplanation: response.explanation,
-      //     success: true,
-      //   }]);
-      // }
-
+      // TODO: Stage 2 — AI 서비스 연결
       setHistory(prev => [...prev, {
-        userMessage: message,
+        userMessage,
         aiExplanation: 'AI 편집 기능은 Stage 2에서 구현 예정입니다.',
         success: false,
       }]);
     } finally {
       setAiEditing(false);
-      setMessage('');
     }
   }, [message, chartSpec, isAiEditing, setAiEditing]);
 
@@ -119,7 +100,6 @@ export function AiEditTab(): React.ReactElement {
       {/* 입력 */}
       <div className="flex gap-2">
         <Textarea
-          ref={textareaRef}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}

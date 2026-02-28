@@ -1,7 +1,9 @@
 'use client';
 
 /**
- * Export 탭 — SVG/PNG/PDF 내보내기 설정
+ * Export 탭 — SVG/PNG 내보내기 설정
+ *
+ * Stage 3 구현 예정: ECharts getDataURL(format, pixelRatio) 연결
  */
 
 import { useCallback } from 'react';
@@ -16,18 +18,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Download, Loader2 } from 'lucide-react';
+import { Download } from 'lucide-react';
 import type { ExportFormat } from '@/types/graph-studio';
 
 const DPI_OPTIONS = [72, 150, 300, 600] as const;
 
+// ECharts getDataURL가 지원하는 포맷만 노출 (TIFF/PDF 제외)
+const SUPPORTED_FORMATS: { value: ExportFormat; label: string }[] = [
+  { value: 'svg', label: 'SVG (벡터)' },
+  { value: 'png', label: 'PNG (래스터)' },
+];
+
 export function ExportTab(): React.ReactElement {
-  const {
-    chartSpec,
-    isExporting,
-    updateChartSpec,
-    setExporting,
-  } = useGraphStudioStore();
+  const { chartSpec, updateChartSpec } = useGraphStudioStore();
 
   const handleFormatChange = useCallback((value: string) => {
     if (!chartSpec) return;
@@ -79,23 +82,6 @@ export function ExportTab(): React.ReactElement {
     }
   }, [chartSpec, updateChartSpec]);
 
-  const handleExport = useCallback(async () => {
-    if (!chartSpec) return;
-
-    setExporting(true);
-    try {
-      // TODO: Stage 3에서 구현
-      // SVG → Vega-Lite 직접 export
-      // PNG → Vega-Lite canvas export
-      // PDF → Matplotlib Worker 5 사용
-      await new Promise(resolve => setTimeout(resolve, 500));
-      // eslint-disable-next-line no-console
-      console.log('Export 기능은 Stage 3에서 구현 예정입니다.');
-    } finally {
-      setExporting(false);
-    }
-  }, [chartSpec, setExporting]);
-
   if (!chartSpec) {
     return <p className="text-sm text-muted-foreground">데이터를 먼저 업로드하세요</p>;
   }
@@ -112,16 +98,17 @@ export function ExportTab(): React.ReactElement {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="svg" className="text-sm">SVG (벡터)</SelectItem>
-            <SelectItem value="png" className="text-sm">PNG (래스터)</SelectItem>
-            <SelectItem value="pdf" className="text-sm">PDF (학술용)</SelectItem>
-            <SelectItem value="tiff" className="text-sm">TIFF (고해상도)</SelectItem>
+            {SUPPORTED_FORMATS.map(({ value, label }) => (
+              <SelectItem key={value} value={value} className="text-sm">
+                {label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* DPI (PNG/TIFF만) */}
-      {(exportConfig.format === 'png' || exportConfig.format === 'tiff') && (
+      {/* DPI (PNG만) */}
+      {exportConfig.format === 'png' && (
         <div className="space-y-1.5">
           <Label className="text-xs">DPI</Label>
           <Select value={String(exportConfig.dpi)} onValueChange={handleDpiChange}>
@@ -165,23 +152,15 @@ export function ExportTab(): React.ReactElement {
         </div>
       </div>
 
-      {/* Export 버튼 */}
-      <Button
-        className="w-full"
-        onClick={handleExport}
-        disabled={isExporting}
-      >
-        {isExporting ? (
-          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-        ) : (
-          <Download className="h-4 w-4 mr-2" />
-        )}
+      {/* Export 버튼 — Stage 3에서 활성화 */}
+      <Button className="w-full" disabled>
+        <Download className="h-4 w-4 mr-2" />
         {exportConfig.format.toUpperCase()} 내보내기
       </Button>
 
-      {/* 안내 */}
       <p className="text-xs text-muted-foreground">
-        SVG/PNG: Vega-Lite 직접 export | PDF/TIFF: Matplotlib (Stage 3)
+        내보내기는 Stage 3에서 구현 예정입니다
+        (ECharts getDataURL 연결 필요)
       </p>
     </div>
   );

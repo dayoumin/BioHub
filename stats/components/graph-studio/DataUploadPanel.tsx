@@ -10,35 +10,38 @@ import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import Papa from 'papaparse';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
-import { autoCreateChartSpec, inferColumnMeta } from '@/lib/graph-studio';
+import { inferColumnMeta } from '@/lib/graph-studio';
 import type { DataPackage } from '@/types/graph-studio';
 import { Upload, FileSpreadsheet } from 'lucide-react';
 
 export function DataUploadPanel(): React.ReactElement {
-  const { setDataPackage, setChartSpec } = useGraphStudioStore();
+  const { loadDataPackage } = useGraphStudioStore();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleFile = useCallback(async (file: File) => {
-    setError(null);
-    setIsLoading(true);
+  // processData를 먼저 선언해야 parseCsv/parseExcel deps에 포함 가능
+  const processData = useCallback((fileName: string, data: Record<string, unknown>[]) => {
+    const sourceId = `${fileName}-${Date.now()}`;
+    const columns = inferColumnMeta(data);
 
-    try {
-      const ext = file.name.split('.').pop()?.toLowerCase();
-
-      if (ext === 'csv' || ext === 'tsv') {
-        await parseCsv(file);
-      } else if (ext === 'xlsx' || ext === 'xls') {
-        await parseExcel(file);
-      } else {
-        setError('지원하는 형식: CSV, TSV, XLSX, XLS');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '파일 파싱 실패');
-    } finally {
-      setIsLoading(false);
+    // 열 지향 DataPackage 구성
+    const dataRecord: Record<string, unknown[]> = {};
+    for (const col of columns) {
+      dataRecord[col.name] = data.map(row => row[col.name]);
     }
-  }, []);
+
+    const pkg: DataPackage = {
+      id: sourceId,
+      source: 'upload',
+      label: fileName,
+      columns,
+      data: dataRecord,
+      createdAt: new Date().toISOString(),
+    };
+
+    // 원자적: DataPackage 설정 + ChartSpec 자동 생성 (createChartSpecFromDataPackage 내부 호출)
+    loadDataPackage(pkg);
+  }, [loadDataPackage]);
 
   const parseCsv = useCallback(async (file: File) => {
     return new Promise<void>((resolve, reject) => {
@@ -64,7 +67,7 @@ export function DataUploadPanel(): React.ReactElement {
         error: (err) => reject(new Error(err.message)),
       });
     });
-  }, []);
+  }, [processData]);
 
   const parseExcel = useCallback(async (file: File) => {
     // xlsx 라이브러리는 동적 import (번들 크기 절약)
@@ -81,33 +84,28 @@ export function DataUploadPanel(): React.ReactElement {
     }
 
     processData(file.name, data);
-  }, []);
+  }, [processData]);
 
-  const processData = useCallback((fileName: string, data: Record<string, unknown>[]) => {
-    const sourceId = `${fileName}-${Date.now()}`;
-    const columns = inferColumnMeta(data);
+  const handleFile = useCallback(async (file: File) => {
+    setError(null);
+    setIsLoading(true);
 
-    // DataPackage 생성
-    const dataRecord: Record<string, unknown[]> = {};
-    for (const col of columns) {
-      dataRecord[col.name] = data.map(row => row[col.name]);
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase();
+
+      if (ext === 'csv' || ext === 'tsv') {
+        await parseCsv(file);
+      } else if (ext === 'xlsx' || ext === 'xls') {
+        await parseExcel(file);
+      } else {
+        setError('지원하는 형식: CSV, TSV, XLSX, XLS');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '파일 파싱 실패');
+    } finally {
+      setIsLoading(false);
     }
-
-    const pkg: DataPackage = {
-      id: sourceId,
-      source: 'upload',
-      label: fileName,
-      columns,
-      data: dataRecord,
-      createdAt: new Date().toISOString(),
-    };
-
-    setDataPackage(pkg);
-
-    // chartSpec 자동 생성
-    const spec = autoCreateChartSpec(sourceId, data);
-    setChartSpec(spec);
-  }, [setDataPackage, setChartSpec]);
+  }, [parseCsv, parseExcel]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (files) => {
