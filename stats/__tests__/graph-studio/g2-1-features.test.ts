@@ -8,10 +8,14 @@
  *   G2-1-D: 에러바 + orientation — errorBar 경로는 orientation 무시
  *   G2-2-A: Annotations 렌더링 — AnnotationSpec → ECharts graphic[] 변환
  *   G2-2-B: 폰트 선택 — style.font.family → getStyleConfig fontFamily 전파
+ *   G2-2-C: 회귀선 — TrendlineSpec → scatter series에 line series 추가
+ *   G2-2-D: 유의성 마커 — getPValueLabel + schema 검증
  */
 
 import { chartSpecToECharts } from '@/lib/graph-studio/echarts-converter';
 import { COLORBREWER_PALETTES } from '@/lib/graph-studio/chart-spec-defaults';
+import { getPValueLabel } from '@/lib/graph-studio/chart-spec-utils';
+import { chartSpecSchema } from '@/lib/graph-studio/chart-spec-schema';
 import type { ChartSpec } from '@/types/graph-studio';
 
 // ─── 테스트 픽스처 ─────────────────────────────────────────
@@ -555,5 +559,200 @@ describe('G2-2-B: 폰트 선택 → getStyleConfig 전파', () => {
     const graphic = option.graphic as Record<string, unknown>[];
     const annStyle = graphic[0].style as Record<string, unknown>;
     expect(annStyle.fontFamily).toBe('Georgia, serif');
+  });
+});
+
+// ─── G2-2-C: 회귀선 (선형 OLS) ─────────────────────────────
+
+const SCATTER_ROWS = [
+  { x: 1, y: 2 },
+  { x: 2, y: 4 },
+  { x: 3, y: 5 },
+  { x: 4, y: 7 },
+  { x: 5, y: 9 },
+];
+
+function makeScatterSpec(overrides: Partial<ChartSpec> = {}): ChartSpec {
+  return {
+    version: '1.0',
+    chartType: 'scatter',
+    data: {
+      sourceId: 'test',
+      columns: [
+        { name: 'x', type: 'quantitative', uniqueCount: 5, sampleValues: ['1','2','3','4','5'], hasNull: false },
+        { name: 'y', type: 'quantitative', uniqueCount: 5, sampleValues: ['2','4','5','7','9'], hasNull: false },
+      ],
+    },
+    encoding: {
+      x: { field: 'x', type: 'quantitative' },
+      y: { field: 'y', type: 'quantitative' },
+    },
+    style: { preset: 'default' },
+    annotations: [],
+    exportConfig: { format: 'png', dpi: 300 },
+    ...overrides,
+  };
+}
+
+describe('G2-2-C: 산점도 회귀선 (trendline)', () => {
+  test('trendline 없으면 series 1개 (scatter만)', () => {
+    const spec = makeScatterSpec();
+    const option = chartSpecToECharts(spec, SCATTER_ROWS) as Record<string, unknown>;
+    const series = option.series as Record<string, unknown>[];
+    // dataset 경로: series에 type:'scatter' 1개
+    const scatterCount = series.filter(s => s.type === 'scatter').length;
+    expect(scatterCount).toBe(1);
+    const lineCount = series.filter(s => s.type === 'line').length;
+    expect(lineCount).toBe(0);
+  });
+
+  test('trendline: { type: "linear" } → line series 추가', () => {
+    const spec = makeScatterSpec({ trendline: { type: 'linear' } });
+    const option = chartSpecToECharts(spec, SCATTER_ROWS) as Record<string, unknown>;
+    const series = option.series as Record<string, unknown>[];
+    const lineSeries = series.filter(s => s.type === 'line');
+    expect(lineSeries.length).toBe(1);
+  });
+
+  test('trendline line series → showSymbol: false', () => {
+    const spec = makeScatterSpec({ trendline: { type: 'linear' } });
+    const option = chartSpecToECharts(spec, SCATTER_ROWS) as Record<string, unknown>;
+    const series = option.series as Record<string, unknown>[];
+    const line = series.find(s => s.type === 'line');
+    expect(line?.showSymbol).toBe(false);
+  });
+
+  test('trendline line series → data 배열에 50개 포인트', () => {
+    const spec = makeScatterSpec({ trendline: { type: 'linear' } });
+    const option = chartSpecToECharts(spec, SCATTER_ROWS) as Record<string, unknown>;
+    const series = option.series as Record<string, unknown>[];
+    const line = series.find(s => s.type === 'line');
+    const data = line?.data as unknown[];
+    expect(data.length).toBe(50);
+  });
+
+  test('trendline 포인트 — x 범위가 데이터 x 범위와 일치', () => {
+    const spec = makeScatterSpec({ trendline: { type: 'linear' } });
+    const option = chartSpecToECharts(spec, SCATTER_ROWS) as Record<string, unknown>;
+    const series = option.series as Record<string, unknown>[];
+    const line = series.find(s => s.type === 'line');
+    const data = line?.data as [number, number][];
+    const xMin = Math.min(...data.map(p => p[0]));
+    const xMax = Math.max(...data.map(p => p[0]));
+    expect(xMin).toBeCloseTo(1, 5); // SCATTER_ROWS x min
+    expect(xMax).toBeCloseTo(5, 5); // SCATTER_ROWS x max
+  });
+
+  test('trendline 커스텀 색상 → lineStyle.color 반영', () => {
+    const spec = makeScatterSpec({ trendline: { type: 'linear', color: '#ff0000' } });
+    const option = chartSpecToECharts(spec, SCATTER_ROWS) as Record<string, unknown>;
+    const series = option.series as Record<string, unknown>[];
+    const line = series.find(s => s.type === 'line');
+    const lineStyle = line?.lineStyle as Record<string, unknown>;
+    expect(lineStyle.color).toBe('#ff0000');
+  });
+
+  test('trendline strokeDash → lineStyle.type 반영', () => {
+    const spec = makeScatterSpec({ trendline: { type: 'linear', strokeDash: [4, 4] } });
+    const option = chartSpecToECharts(spec, SCATTER_ROWS) as Record<string, unknown>;
+    const series = option.series as Record<string, unknown>[];
+    const line = series.find(s => s.type === 'line');
+    const lineStyle = line?.lineStyle as Record<string, unknown>;
+    expect(lineStyle.type).toEqual([4, 4]);
+  });
+
+  test('데이터 2개 미만 → 회귀 불가, trendline series 없음', () => {
+    const spec = makeScatterSpec({ trendline: { type: 'linear' } });
+    const option = chartSpecToECharts(spec, [{ x: 1, y: 2 }]) as Record<string, unknown>;
+    const series = option.series as Record<string, unknown>[];
+    const lineCount = series.filter(s => s.type === 'line').length;
+    expect(lineCount).toBe(0);
+  });
+
+  test('bar 차트에 trendline 지정해도 line series 없음', () => {
+    const spec = makeBarSpec({ trendline: { type: 'linear' } });
+    const option = chartSpecToECharts(spec, SAMPLE_ROWS) as Record<string, unknown>;
+    const series = option.series as Record<string, unknown>[];
+    const lineCount = series.filter(s => s.type === 'line').length;
+    expect(lineCount).toBe(0);
+  });
+});
+
+// ─── G2-2-D: 유의성 마커 ───────────────────────────────────
+
+describe('G2-2-D: getPValueLabel (유의성 라벨 변환)', () => {
+  test('pValue ≤ 0.001 → "***"', () => {
+    expect(getPValueLabel({ groupA: 'A', groupB: 'B', pValue: 0.001 })).toBe('***');
+    expect(getPValueLabel({ groupA: 'A', groupB: 'B', pValue: 0.0001 })).toBe('***');
+  });
+
+  test('0.001 < pValue ≤ 0.01 → "**"', () => {
+    expect(getPValueLabel({ groupA: 'A', groupB: 'B', pValue: 0.01 })).toBe('**');
+    expect(getPValueLabel({ groupA: 'A', groupB: 'B', pValue: 0.005 })).toBe('**');
+  });
+
+  test('0.01 < pValue ≤ 0.05 → "*"', () => {
+    expect(getPValueLabel({ groupA: 'A', groupB: 'B', pValue: 0.05 })).toBe('*');
+    expect(getPValueLabel({ groupA: 'A', groupB: 'B', pValue: 0.03 })).toBe('*');
+  });
+
+  test('pValue > 0.05 → "ns"', () => {
+    expect(getPValueLabel({ groupA: 'A', groupB: 'B', pValue: 0.06 })).toBe('ns');
+    expect(getPValueLabel({ groupA: 'A', groupB: 'B', pValue: 1 })).toBe('ns');
+  });
+
+  test('pValue undefined → ""', () => {
+    expect(getPValueLabel({ groupA: 'A', groupB: 'B' })).toBe('');
+  });
+
+  test('커스텀 label → pValue 무시하고 label 반환', () => {
+    expect(getPValueLabel({ groupA: 'A', groupB: 'B', pValue: 0.001, label: 'p<0.001' })).toBe('p<0.001');
+    expect(getPValueLabel({ groupA: 'A', groupB: 'B', label: 'n.s.' })).toBe('n.s.');
+  });
+});
+
+describe('G2-2-D: significance Zod 스키마 검증', () => {
+  const BASE_SPEC = makeBarSpec();
+
+  test('significance 배열 없음 → 기본값 undefined, 스키마 통과', () => {
+    const result = chartSpecSchema.safeParse(BASE_SPEC);
+    expect(result.success).toBe(true);
+  });
+
+  test('유효한 significance 배열 → 스키마 통과', () => {
+    const spec = { ...BASE_SPEC, significance: [{ groupA: 'A', groupB: 'B', pValue: 0.03 }] };
+    const result = chartSpecSchema.safeParse(spec);
+    expect(result.success).toBe(true);
+  });
+
+  test('커스텀 label만 있는 significance → 스키마 통과', () => {
+    const spec = { ...BASE_SPEC, significance: [{ groupA: 'A', groupB: 'B', label: '***' }] };
+    const result = chartSpecSchema.safeParse(spec);
+    expect(result.success).toBe(true);
+  });
+
+  test('pValue 범위 초과 (> 1) → 스키마 실패', () => {
+    const spec = { ...BASE_SPEC, significance: [{ groupA: 'A', groupB: 'B', pValue: 1.5 }] };
+    const result = chartSpecSchema.safeParse(spec);
+    expect(result.success).toBe(false);
+  });
+
+  test('pValue 음수 → 스키마 실패', () => {
+    const spec = { ...BASE_SPEC, significance: [{ groupA: 'A', groupB: 'B', pValue: -0.1 }] };
+    const result = chartSpecSchema.safeParse(spec);
+    expect(result.success).toBe(false);
+  });
+
+  test('groupA 빈 문자열 → 스키마 실패', () => {
+    const spec = { ...BASE_SPEC, significance: [{ groupA: '', groupB: 'B' }] };
+    const result = chartSpecSchema.safeParse(spec);
+    expect(result.success).toBe(false);
+  });
+
+  test('significance 있어도 converter 정상 동작 (crash 없음)', () => {
+    const spec = makeBarSpec({
+      significance: [{ groupA: 'A', groupB: 'B', pValue: 0.05 }],
+    });
+    expect(() => chartSpecToECharts(spec, SAMPLE_ROWS)).not.toThrow();
   });
 });

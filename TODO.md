@@ -339,7 +339,7 @@
 | 기능 | 설명 | 구현 |
 |------|------|------|
 | **annotations 렌더링** (선결) ✅ | 타입/스키마에만 있고 실제 렌더링 없음 | echarts-converter에 text/line/rect AnnotationSpec → ECharts `graphic` 변환 추가 | b56eb13d |
-| **통계 유의성 마커** ★ | `*`/`**`/`***`/`ns` 브래킷 — Prism 핵심 | types/schema 완료; ChartPreview post-render 레이어 미구현 (다음 세션) |
+| **통계 유의성 마커** ★ ✅ | `*`/`**`/`***`/`ns` 브래킷 — Prism 핵심 | `getPValueLabel()` + ChartPreview `finished` 이벤트 post-render (convertToPixel 브래킷) | (이번 세션) |
 | 산점도 회귀선 ✅ | linear OLS + R² 툴팁 | `TrendlineSpec` + `computeLinearRegression()` + `buildLinearTrendlineSeries()` + DataTab 토글 | (이번 세션) |
 | TIFF 출력 | 300/600 DPI, html2canvas | ExportDialog + export-utils |
 | 폰트 선택 ✅ | Arial/Helvetica/Times/Noto Sans KR | StyleTab 드롭다운 + converter 전파 | b56eb13d |

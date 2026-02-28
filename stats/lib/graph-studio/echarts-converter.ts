@@ -461,7 +461,7 @@ function buildLinearTrendlineSeries(
       color: trendline.color ?? style.colors[0] ?? '#666666',
       width: 1.5,
       opacity: 0.7,
-      ...(trendline.strokeDash ? { type: 'dashed' } : {}),
+      ...(trendline.strokeDash ? { type: trendline.strokeDash } : {}),
     },
     tooltip: trendline.showEquation !== false
       ? { formatter: () => `${equationStr}<br/>${r2Str}` }

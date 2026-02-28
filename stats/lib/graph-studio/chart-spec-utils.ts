@@ -14,6 +14,7 @@ import type {
   DataType,
   ChartType,
   DataPackage,
+  SignificanceMark,
 } from '@/types/graph-studio';
 import { chartSpecSchema } from './chart-spec-schema';
 import { createDefaultChartSpec, CHART_TYPE_HINTS } from './chart-spec-defaults';
@@ -261,6 +262,25 @@ export function autoCreateChartSpec(
   const chartType = suggestChartType(columns);
   const { xField, yField } = selectXYFields(columns, CHART_TYPE_HINTS[chartType]);
   return createDefaultChartSpec(sourceId, chartType, xField, yField, columns);
+}
+
+// ─── 유의성 마커 유틸 ──────────────────────────────────────
+
+/**
+ * p-value 또는 커스텀 label → `*` / `**` / `***` / `ns` 변환.
+ * mark.label이 있으면 우선 반환 (커스텀 텍스트 허용).
+ *
+ * @example
+ *   getPValueLabel({ groupA: 'A', groupB: 'B', pValue: 0.03 }) // '*'
+ *   getPValueLabel({ groupA: 'A', groupB: 'B', label: 'p=0.03' }) // 'p=0.03'
+ */
+export function getPValueLabel(mark: SignificanceMark): string {
+  if (mark.label) return mark.label;
+  if (mark.pValue === undefined) return '';
+  if (mark.pValue <= 0.001) return '***';
+  if (mark.pValue <= 0.01) return '**';
+  if (mark.pValue <= 0.05) return '*';
+  return 'ns';
 }
 
 // ─── DataPackage ↔ 행 배열 변환 ────────────────────────────
