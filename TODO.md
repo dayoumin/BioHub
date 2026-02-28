@@ -277,19 +277,21 @@
 
 ---
 
-## Graph Studio Stage 2 — 리뷰 패키지 (2026-02-28)
+## Graph Studio Stage 2 + UX 개선 — 리뷰 패키지 (2026-02-28)
 
-> 외부 AI 리뷰를 위한 요약. 구현 완료 상태.
+> 외부 AI 리뷰를 위한 요약. Stage 2 구현 + Option C UX 개선 완료 상태.
 
 ### 구현 범위
 
 | 파일 | 역할 |
 |------|------|
-| `stats/lib/graph-studio/ai-service.ts` (신규) | `editChart()` — OpenRouter → JSON Patch 생성 + 검증 |
-| `stats/components/graph-studio/panels/AiEditTab.tsx` (수정) | 채팅 UI 활성화, 사용자 친화적 에러 처리 |
-| `stats/lib/graph-studio/index.ts` (수정) | `editChart`, `buildAiEditRequest` export 추가 |
+| `stats/lib/graph-studio/ai-service.ts` (신규) | `editChart()` — OpenRouter → JSON Patch 생성 + 검증. `AiServiceError` 타입 분류. |
+| `stats/components/graph-studio/panels/AiEditTab.tsx` (수정) | 채팅 UI 활성화. stale spec 방어, zero-patch 감지, MAX_MESSAGES=30, localStorage 지속. |
+| `stats/components/graph-studio/panels/ExportTab.tsx` (수정) | `setExportConfig` 전용 액션 사용, 미사용 import 제거. |
+| `stats/lib/stores/graph-studio-store.ts` (수정) | `setExportConfig` 전용 액션 추가. |
+| `stats/lib/graph-studio/index.ts` (수정) | `editChart`, `buildAiEditRequest` export 추가. |
 | `stats/__tests__/lib/graph-studio/ai-service.test.ts` (신규) | 단위 테스트 17개 |
-| `stats/__tests__/lib/graph-studio/ai-edit-simulation.test.ts` (신규) | 시뮬레이션 12개 (S1–S10) |
+| `stats/__tests__/lib/graph-studio/ai-edit-simulation.test.ts` (신규) | 시뮬레이션 13개 (S1–S11) |
 
 ### 핵심 설계 결정
 
@@ -299,6 +301,10 @@
 4. **이중 JSON 추출**: 코드 블록 우선 → 중괄호 밸런싱 fallback. AI 규칙 위반에도 복원.
 5. **Readonly 경로 강제**: `/data`, `/version` 프롬프트 명시 + 코드 레벨 whitelist 검사.
 6. **Zod 검증**: `aiEditResponseSchema` — patches(min 1) + explanation + confidence(0–1).
+7. **`AiServiceError` 타입 분류**: `NO_RESPONSE | PARSE_FAILED | VALIDATION_FAILED | READONLY_PATH` — catch 블록에서 코드로 분기.
+8. **stale chartSpec 방어**: `chartSpecRef = useRef(chartSpec)` — `await` 후 최신 spec 참조. PropertiesTab 동시 편집 경쟁 조건 방어.
+9. **zero-patch 감지**: 패치 적용 후 `JSON.stringify` 비교 — 경로 미발견으로 실제 변경 없으면 에러 메시지 표시.
+10. **대화 지속성**: MAX_MESSAGES=30 자동 정리 + `localStorage('graph_studio_ai_chat')` — 브라우저 재시작 후도 기록 유지.
 
 ### 알려진 제한사항 (향후 개선)
 
@@ -308,10 +314,11 @@
 | 컨텍스트 무관 | 매 요청 독립 (이전 편집 히스토리 미전송) | 마지막 2턴 explanation을 user prompt에 포함 |
 | AiEditTab 컴포넌트 테스트 없음 | UI 로직 비커버 | Playwright E2E로 보완 예정 |
 | ChartSpec 크기 제한 | `MAX_SPEC_JSON_LENGTH = 3000` 하드코딩 | 컬럼 수 기반 동적 계산 고려 |
+| zero-patch 에러 메시지 | AI explanation 그대로 노출 (혼란 가능) | "경로를 찾지 못해 수정이 적용되지 않았습니다" 고정 문구로 개선 가능 |
 
 ### 테스트 시나리오 (시뮬레이션)
 
-S1 X축 라벨 45도 회전 | S2 IEEE 스타일 전환 | S3 에러바 추가 | S4 Y축 제목 변경 | S5 차트 유형 bar→line | S6 색상 인코딩 추가 | S7 연속 2회 편집 누적 | S8 readonly 침범 → spec 불변 | S9 낮은 신뢰도(0.2) | S10 무효 enum("pie") → Zod 실패
+S1 X축 라벨 45도 회전 | S2 IEEE 스타일 전환 | S3 에러바 추가 | S4 Y축 제목 변경 | S5 차트 유형 bar→line | S6 색상 인코딩 추가 | S7 연속 2회 편집 누적 | S8 readonly 침범 → spec 불변 | S9 낮은 신뢰도(0.2) | S10 무효 enum("pie") → Zod 실패 | S11 부모 경로 없는 patch → zero-patch 감지
 
 ### 기술 부채 (Tech Debt)
 

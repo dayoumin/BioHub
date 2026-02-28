@@ -27,7 +27,7 @@ function makeSpec(overrides: Partial<ChartSpec> = {}): ChartSpec {
     },
     style: { preset: 'default' },
     annotations: [],
-    exportConfig: { format: 'png', dpi: 96, width: 800, height: 600 },
+    exportConfig: { format: 'png', dpi: 96 },
     ...overrides,
   }
 }

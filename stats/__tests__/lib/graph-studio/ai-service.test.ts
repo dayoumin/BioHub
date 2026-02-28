@@ -45,7 +45,7 @@ function makeChartSpec(overrides: Partial<ChartSpec> = {}): ChartSpec {
     },
     style: { preset: 'default' },
     annotations: [],
-    exportConfig: { format: 'svg', dpi: 300, width: 800, height: 600 },
+    exportConfig: { format: 'svg', dpi: 300 },
     ...overrides,
   };
 }

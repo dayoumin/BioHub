@@ -55,7 +55,7 @@ function baseSpec(): ChartSpec {
     },
     style: { preset: 'default' },
     annotations: [],
-    exportConfig: { format: 'svg', dpi: 300, width: 800, height: 600 },
+    exportConfig: { format: 'svg', dpi: 300 },
   };
 }
 
@@ -276,6 +276,27 @@ describe('AI 편집 시뮬레이션', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error).toContain('chartType');
+    }
+  });
+
+  // ── S11: 존재하지 않는 부모 경로 → zero-patch 감지 ──
+
+  it('S11. 부모 경로 없는 patch → applyAndValidatePatches 성공하지만 spec 불변 (zero-patch)', async () => {
+    // /encoding/z 는 ChartSpec에 없음 → getNode 실패 → patch 무시 → Zod는 통과
+    // AiEditTab에서 JSON.stringify 비교로 zero-patch 감지 후 경고 메시지를 표시해야 함
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'add', path: '/encoding/z/field', value: 'nonExistent' },
+    ]));
+
+    const spec = baseSpec();
+    const response = await editChart(buildAiEditRequest(spec, '없는 필드 추가'));
+    const result = applyAndValidatePatches(spec, response.patches);
+
+    // applyAndValidatePatches 자체는 성공 (Zod 통과)
+    expect(result.success).toBe(true);
+    if (result.success) {
+      // spec이 원본과 동일 → zero-patch 트리거 조건
+      expect(JSON.stringify(result.spec)).toBe(JSON.stringify(spec));
     }
   });
 });

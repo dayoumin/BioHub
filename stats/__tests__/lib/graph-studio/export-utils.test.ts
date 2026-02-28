@@ -37,8 +37,6 @@ function makeConfig(overrides: Partial<ExportConfig> = {}): ExportConfig {
   return {
     format: 'png',
     dpi: 96,
-    width: 800,
-    height: 600,
     ...overrides,
   };
 }
