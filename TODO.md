@@ -320,14 +320,42 @@
 | **색상 그룹 인코딩 UI** | `DataTab.tsx` | ✅ supportsColor 차트 조건부 표시 |
 | **스타일 프리셋** (Default/Science/IEEE/Grayscale) | `StyleTab.tsx` | ✅ 4종 + 범례 위치 |
 
-### Phase G2: 논문 품질 향상 (1-2개월)
+### Phase G2: 논문 품질 + 고급 구성 (개선 계획, 2026-02-28)
 
-| 기능 | 설명 |
-|------|------|
-| 유의성 마커 (* ** ***) | ECharts markArea + markLine |
-| 저널 사이즈 프리셋 | Nature 89mm, Cell 85mm, PNAS 85mm, KCI 80mm |
-| TIFF 출력 300/600 DPI | html2canvas → Blob 변환 |
-| 폰트 선택 | Arial/Helvetica/Times |
+> 경쟁 앱 분석(Prism/Origin/ggplot2) 기반 재구성. 저널 사이즈 프리셋은 G1에서 완료.
+
+**G2-1: Quick Wins** (3-5일, 독립적 — 먼저 진행 가능)
+
+| 기능 | 설명 | 구현 |
+|------|------|------|
+| ColorBrewer 팔레트 | viridis/Set2/RdBu — colorblind-safe | DataTab `scheme` 드롭다운 + converter 팔레트 맵 |
+| 막대 데이터 레이블 | 각 막대 위 값 표시 toggle | StyleTab 토글 + `series.label.show` |
+| 수평 막대 | `bar + orientation?: 'horizontal'` 옵션 | ~~chartType 추가~~(타입 폭발 방지) → ChartSpec + Zod + converter xAxis/yAxis swap |
+
+> 수평 막대를 `horizontal-bar` 신규 타입으로 추가하면 5개 파일(types/schema/defaults/ai-service/DataTab) 동기화 비용 발생 + 향후 grouped-bar-horizontal 등 조합 폭발 위험. `orientation` 옵션으로 대신.
+
+**G2-2: 논문 필수 기능** (1-2주, 중간 난이도)
+
+| 기능 | 설명 | 구현 |
+|------|------|------|
+| **annotations 렌더링** (선결) | 타입/스키마에만 있고 실제 렌더링 없음 | echarts-converter에 text/line/rect AnnotationSpec → ECharts `graphic` 변환 추가 |
+| **통계 유의성 마커** ★ | `*`/`**`/`***`/`ns` 브래킷 — Prism 핵심 | `ChartSpec.significance[]` + ChartPreview post-render 레이어 (ECharts `graphic` 주입) |
+| 산점도 회귀선 | linear/polynomial, CI band 옵션 | `ChartSpec.trendline?` + TS 선형회귀 + converter |
+| TIFF 출력 | 300/600 DPI, html2canvas | ExportDialog + export-utils |
+| 폰트 선택 | Arial/Helvetica/Times/Noto Sans KR | StyleTab 드롭다운 + converter 전파 |
+
+> 유의성 마커는 컨버터 내부에서 처리 불가 — 순수 함수라 ECharts 인스턴스(convertToPixel, 실제 bar 좌표)에 접근 불가.
+> ChartPreview에서 `chart.on('finished')` → `convertToPixel()` → `chart.setOption({ graphic })` 패턴 사용. 리사이즈/legend 토글마다 재계산.
+
+**G2-3: 고급 차트 구성** (2-4주, 높은 난이도 — 아키텍처 설계 필요)
+
+| 기능 | 설명 | 구현 전략 |
+|------|------|------|
+| **이중 Y축** | `encoding.y2?: Y2AxisSpec` — Origin/MATLAB 핵심 | types + Zod 스키마 + `yAxis: [left, right]` + DataTab/StyleTab UI |
+| **패싯/소규모** | `facet?: FacetSpec` — ggplot2 `facet_wrap` 동가 | types + Zod 스키마 + `facet-layout.ts` 유틸(rows 분할/grid 계산) + converter 위임 |
+
+> 이중 Y축/패싯은 `ChartSpec`, Zod 스키마, echarts-converter 동시 수정 필요. G2-3 착수 전 별도 아키텍처 설계 단계 수행.
+> 패싯 분할 로직은 converter 내부 직접 처리 금지 — `facet-layout.ts` 유틸로 분리 (converter가 이미 903줄).
 
 ### Phase G3: AI-Forward 차별화 (3-6개월)
 
@@ -335,7 +363,7 @@
 |------|------|
 | **저널 자동 포맷** | "Nature format으로" → AI가 규격 자동 적용 |
 | **Smart Flow → Graph 자동 연결** | 통계 결과 → 그래프 + 에러바 자동 생성 |
-| **유의성 마커 자동 배치** | p-value → *, **, *** 자동 추가 |
+| **유의성 마커 자동 배치** | p-value → *, **, *** 자동 추가 (G2-2 유의성 마커 기반) |
 
 ---
 
