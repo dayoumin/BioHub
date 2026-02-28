@@ -289,7 +289,8 @@ describe('setProject', () => {
 
     const state = useGraphStudioStore.getState()
     expect(state.currentProject).toBe(project)
-    expect(state.chartSpec).toBe(spec)
+    // setProject가 exportConfig를 정규화하며 새 객체를 생성하므로 toStrictEqual 사용
+    expect(state.chartSpec).toStrictEqual(spec)
     expect(state.dataPackage).toBe(pkg)
     expect(state.isDataLoaded).toBe(true)
     expect(state.specHistory).toHaveLength(1)
@@ -395,6 +396,96 @@ describe('setExportConfig', () => {
     })
 
     expect(useGraphStudioStore.getState().chartSpec).toBeNull()
+  })
+})
+
+// ─── undo/redo — exportConfig 보존 ────────────────────────
+
+describe('undo/redo — exportConfig 보존', () => {
+  it('undo 시 setExportConfig로 변경된 exportConfig가 유지된다', () => {
+    act(() => { useGraphStudioStore.getState().setChartSpec(makeSpec('v1')) })
+    act(() => { useGraphStudioStore.getState().updateChartSpec(makeSpec('v2')) })
+    act(() => { useGraphStudioStore.getState().setExportConfig({ format: 'svg', dpi: 150 }) })
+
+    act(() => { useGraphStudioStore.getState().undo() }) // v2 → v1
+
+    const state = useGraphStudioStore.getState()
+    expect(state.chartSpec?.title).toBe('v1')                           // 내용 복원
+    expect(state.chartSpec?.exportConfig).toEqual({ format: 'svg', dpi: 150 }) // exportConfig 유지
+  })
+
+  it('redo 시 setExportConfig로 변경된 exportConfig가 유지된다', () => {
+    act(() => { useGraphStudioStore.getState().setChartSpec(makeSpec('v1')) })
+    act(() => { useGraphStudioStore.getState().updateChartSpec(makeSpec('v2')) })
+    act(() => { useGraphStudioStore.getState().undo() })
+    act(() => { useGraphStudioStore.getState().setExportConfig({ format: 'svg', dpi: 600 }) })
+
+    act(() => { useGraphStudioStore.getState().redo() }) // v1 → v2
+
+    const state = useGraphStudioStore.getState()
+    expect(state.chartSpec?.title).toBe('v2')                            // 내용 복원
+    expect(state.chartSpec?.exportConfig).toEqual({ format: 'svg', dpi: 600 }) // exportConfig 유지
+  })
+})
+
+// ─── setProject — 구버전 마이그레이션 ─────────────────────
+
+describe('setProject — 구버전 exportConfig 마이그레이션', () => {
+  it('width/height/transparent가 포함된 구버전 exportConfig를 정규화한다', () => {
+    // 구버전 localStorage 데이터를 시뮬레이션 (타입 캐스팅으로 런타임 객체 생성)
+    const legacySpec = {
+      ...makeSpec(),
+      exportConfig: { format: 'png', dpi: 300, width: 800, height: 600, transparent: false },
+    } as unknown as ChartSpec
+
+    const project = makeProject({ chartSpec: legacySpec })
+
+    act(() => { useGraphStudioStore.getState().setProject(project) })
+
+    const { chartSpec } = useGraphStudioStore.getState()
+    expect(chartSpec?.exportConfig).toEqual({ format: 'png', dpi: 300 })
+    expect('width' in (chartSpec?.exportConfig ?? {})).toBe(false)
+    expect('height' in (chartSpec?.exportConfig ?? {})).toBe(false)
+    expect('transparent' in (chartSpec?.exportConfig ?? {})).toBe(false)
+  })
+
+  it('정규화된 spec으로 AI 패치 검증이 통과된다', async () => {
+    // 재현 케이스: 구버전 spec에 /title 패치 → applyAndValidatePatches success: true여야 함
+    const { applyAndValidatePatches } = await import('@/lib/graph-studio/chart-spec-utils')
+
+    // columns: [] 이면 chartSpecSchema.min(1) 실패 → columns 1개 이상 포함
+    const legacySpec = {
+      version: '1.0',
+      chartType: 'bar',
+      title: 'Old Title',
+      data: {
+        sourceId: 'test',
+        columns: [
+          { name: 'group', type: 'nominal', uniqueCount: 3, sampleValues: ['A'], hasNull: false },
+          { name: 'value', type: 'quantitative', uniqueCount: 10, sampleValues: ['1'], hasNull: false },
+        ],
+      },
+      encoding: {
+        x: { field: 'group', type: 'nominal' },
+        y: { field: 'value', type: 'quantitative' },
+      },
+      style: { preset: 'default' },
+      annotations: [],
+      exportConfig: { format: 'png', dpi: 300, width: 800, height: 600, transparent: false },
+    } as unknown as ChartSpec
+
+    const project = makeProject({ chartSpec: legacySpec })
+    act(() => { useGraphStudioStore.getState().setProject(project) })
+
+    const { chartSpec } = useGraphStudioStore.getState()
+    const result = applyAndValidatePatches(chartSpec!, [
+      { op: 'replace', path: '/title', value: 'New Title' },
+    ])
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.spec.title).toBe('New Title')
+    }
   })
 })
 

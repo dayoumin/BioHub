@@ -314,7 +314,7 @@
 | 컨텍스트 무관 | 매 요청 독립 (이전 편집 히스토리 미전송) | 마지막 2턴 explanation을 user prompt에 포함 |
 | AiEditTab 컴포넌트 테스트 없음 | UI 로직 비커버 | Playwright E2E로 보완 예정 |
 | ChartSpec 크기 제한 | `MAX_SPEC_JSON_LENGTH = 3000` 하드코딩 | 컬럼 수 기반 동적 계산 고려 |
-| zero-patch 에러 메시지 | AI explanation 그대로 노출 (혼란 가능) | "경로를 찾지 못해 수정이 적용되지 않았습니다" 고정 문구로 개선 가능 |
+| zero-patch 에러 메시지 | 고정 문구로 정리 완료 | `AiEditTab`에서 "경로를 찾지 못해 수정이 적용되지 않았습니다..." 메시지 적용 |
 
 ### 테스트 시나리오 (시뮬레이션)
 

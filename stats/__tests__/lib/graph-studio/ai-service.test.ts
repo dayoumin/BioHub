@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { buildAiEditRequest, editChart } from '@/lib/graph-studio/ai-service';
+import { AiServiceError, buildAiEditRequest, editChart } from '@/lib/graph-studio/ai-service';
 import type { ChartSpec } from '@/types/graph-studio';
 
 // ─── openRouterRecommender 모킹 ───────────────────────────────
@@ -257,5 +257,45 @@ describe('editChart', () => {
 
     expect(result.patches).toHaveLength(3);
     expect(result.confidence).toBeCloseTo(0.88);
+  });
+
+  it('AiServiceError code: NO_RESPONSE', async () => {
+    mockGenerateRawText.mockResolvedValue(null);
+    const req = buildAiEditRequest(makeChartSpec(), 'msg');
+
+    await expect(editChart(req)).rejects.toBeInstanceOf(AiServiceError);
+    await expect(editChart(req)).rejects.toMatchObject({ code: 'NO_RESPONSE' });
+  });
+
+  it('AiServiceError code: PARSE_FAILED', async () => {
+    mockGenerateRawText.mockResolvedValue('not-a-json-response');
+    const req = buildAiEditRequest(makeChartSpec(), 'msg');
+
+    await expect(editChart(req)).rejects.toBeInstanceOf(AiServiceError);
+    await expect(editChart(req)).rejects.toMatchObject({ code: 'PARSE_FAILED' });
+  });
+
+  it('AiServiceError code: VALIDATION_FAILED', async () => {
+    mockGenerateRawText.mockResolvedValue(JSON.stringify({
+      patches: [],
+      explanation: 'invalid',
+      confidence: 0.5,
+    }));
+    const req = buildAiEditRequest(makeChartSpec(), 'msg');
+
+    await expect(editChart(req)).rejects.toBeInstanceOf(AiServiceError);
+    await expect(editChart(req)).rejects.toMatchObject({ code: 'VALIDATION_FAILED' });
+  });
+
+  it('AiServiceError code: READONLY_PATH', async () => {
+    mockGenerateRawText.mockResolvedValue(JSON.stringify({
+      patches: [{ op: 'replace', path: '/data/sourceId', value: 'hacked' }],
+      explanation: 'readonly edit',
+      confidence: 0.9,
+    }));
+    const req = buildAiEditRequest(makeChartSpec(), 'msg');
+
+    await expect(editChart(req)).rejects.toBeInstanceOf(AiServiceError);
+    await expect(editChart(req)).rejects.toMatchObject({ code: 'READONLY_PATH' });
   });
 });

@@ -113,21 +113,29 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
     },
 
     undo: () => {
-      const { specHistory, historyIndex } = get();
+      const { specHistory, historyIndex, chartSpec } = get();
       if (historyIndex <= 0) return;
       const newIndex = historyIndex - 1;
+      const snapshot = specHistory[newIndex];
       set({
-        chartSpec: specHistory[newIndex],
+        // exportConfig는 undo 대상이 아님 — 현재 출력 설정을 스냅샷에 씌움
+        chartSpec: chartSpec
+          ? { ...snapshot, exportConfig: chartSpec.exportConfig }
+          : snapshot,
         historyIndex: newIndex,
       });
     },
 
     redo: () => {
-      const { specHistory, historyIndex } = get();
+      const { specHistory, historyIndex, chartSpec } = get();
       if (historyIndex >= specHistory.length - 1) return;
       const newIndex = historyIndex + 1;
+      const snapshot = specHistory[newIndex];
       set({
-        chartSpec: specHistory[newIndex],
+        // exportConfig는 redo 대상이 아님 — 현재 출력 설정을 스냅샷에 씌움
+        chartSpec: chartSpec
+          ? { ...snapshot, exportConfig: chartSpec.exportConfig }
+          : snapshot,
         historyIndex: newIndex,
       });
     },
@@ -138,14 +146,27 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
 
     // ── 프로젝트 ──
 
-    setProject: (project, dataPackage) => set({
-      currentProject: project,
-      dataPackage: dataPackage ?? null,
-      isDataLoaded: dataPackage != null,
-      chartSpec: project.chartSpec,
-      specHistory: [project.chartSpec],
-      historyIndex: 0,
-    }),
+    setProject: (project, dataPackage) => {
+      // 구버전 exportConfig 마이그레이션: width/height/transparent는 삭제됨.
+      // localStorage 직렬화 객체에는 런타임에 알 수 없는 키가 있을 수 있으므로
+      // format/dpi만 명시적으로 추출해 정규화한다.
+      const raw = project.chartSpec;
+      const spec: ChartSpec = {
+        ...raw,
+        exportConfig: {
+          format: raw.exportConfig.format,
+          dpi: raw.exportConfig.dpi,
+        },
+      };
+      set({
+        currentProject: project,
+        dataPackage: dataPackage ?? null,
+        isDataLoaded: dataPackage != null,
+        chartSpec: spec,
+        specHistory: [spec],
+        historyIndex: 0,
+      });
+    },
 
     saveCurrentProject: (name) => {
       const { chartSpec, dataPackage, currentProject } = get();

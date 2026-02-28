@@ -196,7 +196,7 @@ export function AiEditTab(): React.ReactElement {
       if (!hasChanges) {
         appendMessage({
           role: 'error',
-          content: `요청을 이해했지만 적용할 수 없었습니다. ${response.explanation}`,
+          content: '경로를 찾지 못해 수정이 적용되지 않았습니다. 요청을 더 구체적으로 다시 입력해 주세요.',
         });
         return;
       }
@@ -210,12 +210,23 @@ export function AiEditTab(): React.ReactElement {
         patchCount: response.patches.length,
       });
     } catch (err) {
-      const userMessage =
-        err instanceof AiServiceError && (err.code === 'PARSE_FAILED' || err.code === 'VALIDATION_FAILED')
-          ? 'AI가 올바른 형식으로 응답하지 못했습니다. 잠시 후 다시 시도해주세요.'
-          : err instanceof Error
-            ? err.message
-            : '알 수 없는 오류가 발생했습니다.';
+      let userMessage = '알 수 없는 오류가 발생했습니다.';
+      if (err instanceof AiServiceError) {
+        switch (err.code) {
+          case 'NO_RESPONSE':
+            userMessage = 'AI 응답이 없습니다. 잠시 후 다시 시도해 주세요.';
+            break;
+          case 'PARSE_FAILED':
+          case 'VALIDATION_FAILED':
+            userMessage = 'AI가 올바른 형식으로 응답하지 못했습니다. 잠시 후 다시 시도해 주세요.';
+            break;
+          case 'READONLY_PATH':
+            userMessage = '읽기 전용 경로는 수정할 수 없습니다. 데이터/버전 외 필드를 요청해 주세요.';
+            break;
+        }
+      } else if (err instanceof Error) {
+        userMessage = err.message;
+      }
       appendMessage({ role: 'error', content: userMessage });
     } finally {
       setIsLoading(false);
