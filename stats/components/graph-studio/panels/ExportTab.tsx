@@ -38,29 +38,17 @@ interface ExportTabProps {
 }
 
 export function ExportTab({ onExport }: ExportTabProps): React.ReactElement {
-  const { chartSpec, updateChartSpec } = useGraphStudioStore();
+  const { chartSpec, setExportConfig } = useGraphStudioStore();
 
   const handleFormatChange = useCallback((value: string) => {
     if (!chartSpec) return;
-    updateChartSpec({
-      ...chartSpec,
-      exportConfig: {
-        ...chartSpec.exportConfig,
-        format: value as ExportFormat,
-      },
-    });
-  }, [chartSpec, updateChartSpec]);
+    setExportConfig({ ...chartSpec.exportConfig, format: value as ExportFormat });
+  }, [chartSpec, setExportConfig]);
 
   const handleDpiChange = useCallback((value: string) => {
     if (!chartSpec) return;
-    updateChartSpec({
-      ...chartSpec,
-      exportConfig: {
-        ...chartSpec.exportConfig,
-        dpi: Number(value),
-      },
-    });
-  }, [chartSpec, updateChartSpec]);
+    setExportConfig({ ...chartSpec.exportConfig, dpi: Number(value) });
+  }, [chartSpec, setExportConfig]);
 
   if (!chartSpec) {
     return <p className="text-sm text-muted-foreground">데이터를 먼저 업로드하세요</p>;

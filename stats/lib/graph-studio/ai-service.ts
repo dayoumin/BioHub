@@ -11,6 +11,24 @@ import { openRouterRecommender } from '@/lib/services/openrouter-recommender';
 import { aiEditResponseSchema } from './chart-spec-schema';
 import type { AiEditRequest, AiEditResponse } from '@/types/graph-studio';
 
+// ─── 에러 타입 ─────────────────────────────────────────────
+
+export type AiServiceErrorCode =
+  | 'NO_RESPONSE'
+  | 'PARSE_FAILED'
+  | 'VALIDATION_FAILED'
+  | 'READONLY_PATH';
+
+export class AiServiceError extends Error {
+  constructor(
+    message: string,
+    public readonly code: AiServiceErrorCode,
+  ) {
+    super(message);
+    this.name = 'AiServiceError';
+  }
+}
+
 // ─── 시스템 프롬프트 ───────────────────────────────────────
 
 const CHART_EDIT_SYSTEM_PROMPT = `You are a chart specification editor for a scientific data visualization platform.
@@ -129,8 +147,9 @@ function assertNonReadonlyPaths(patches: AiEditResponse['patches']): void {
       prefix => patch.path === prefix || patch.path.startsWith(`${prefix}/`),
     );
     if (isReadonly) {
-      throw new Error(
+      throw new AiServiceError(
         `읽기 전용 경로 수정이 감지되었습니다: ${patch.path}. 데이터 소스와 버전은 AI가 변경할 수 없습니다.`,
+        'READONLY_PATH',
       );
     }
   }
@@ -155,8 +174,9 @@ export async function editChart(request: AiEditRequest): Promise<AiEditResponse>
   );
 
   if (!rawText) {
-    throw new Error(
+    throw new AiServiceError(
       'AI 응답이 없습니다. OpenRouter API 키 및 모델 설정을 확인하세요.',
+      'NO_RESPONSE',
     );
   }
 
@@ -166,16 +186,16 @@ export async function editChart(request: AiEditRequest): Promise<AiEditResponse>
   try {
     parsed = JSON.parse(jsonStr);
   } catch {
-    throw new Error(
+    throw new AiServiceError(
       `AI 응답 JSON 파싱 실패.\n응답 미리보기: ${rawText.slice(0, 200)}`,
+      'PARSE_FAILED',
     );
   }
 
   const result = aiEditResponseSchema.safeParse(parsed);
   if (!result.success) {
-    // 기술적 Zod 메시지는 내부 throw — AiEditTab에서 사용자 친화적 메시지로 변환
     const issues = result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ');
-    throw new Error(`AI 응답 검증 실패: ${issues}`);
+    throw new AiServiceError(`AI 응답 검증 실패: ${issues}`, 'VALIDATION_FAILED');
   }
 
   // Readonly 경로 방어 (프롬프트 준수 여부와 무관하게 코드 레벨 강제)

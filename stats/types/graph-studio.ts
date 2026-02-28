@@ -237,9 +237,6 @@ export interface GraphStudioState {
   specHistory: ChartSpec[];
   historyIndex: number;
 
-  // AI 편집
-  lastAiResponse: AiEditResponse | null;
-
   // UI
   sidePanel: 'properties' | 'ai-chat' | 'presets' | 'export';
 }

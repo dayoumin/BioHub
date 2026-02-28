@@ -27,7 +27,7 @@ function makeSpec(title = 'Test Chart'): ChartSpec {
     },
     style: { preset: 'default' },
     annotations: [],
-    exportConfig: { format: 'png', dpi: 96, width: 800, height: 600 },
+    exportConfig: { format: 'png', dpi: 96 },
   }
 }
 
@@ -362,5 +362,50 @@ describe('saveCurrentProject', () => {
     act(() => { useGraphStudioStore.getState().saveCurrentProject('Second') })
 
     expect(useGraphStudioStore.getState().currentProject?.createdAt).toBe(createdAt)
+  })
+})
+
+// ─── setExportConfig ──────────────────────────────────────
+
+describe('setExportConfig', () => {
+  it('exportConfig만 변경하고 specHistory는 유지된다', () => {
+    act(() => { useGraphStudioStore.getState().setChartSpec(makeSpec('v1')) })
+    act(() => { useGraphStudioStore.getState().updateChartSpec(makeSpec('v2')) })
+
+    const historyBefore = useGraphStudioStore.getState().specHistory.length
+    const indexBefore = useGraphStudioStore.getState().historyIndex
+
+    act(() => {
+      useGraphStudioStore.getState().setExportConfig({ format: 'svg', dpi: 150 })
+    })
+
+    const state = useGraphStudioStore.getState()
+    expect(state.chartSpec?.exportConfig).toEqual({ format: 'svg', dpi: 150 })
+    expect(state.specHistory).toHaveLength(historyBefore) // 히스토리 불변
+    expect(state.historyIndex).toBe(indexBefore)         // 인덱스 불변
+  })
+
+  it('chartSpec이 null이면 아무것도 하지 않는다', () => {
+    // resetAll 후 chartSpec = null
+    const stateBefore = useGraphStudioStore.getState().chartSpec
+    expect(stateBefore).toBeNull()
+
+    act(() => {
+      useGraphStudioStore.getState().setExportConfig({ format: 'png', dpi: 300 })
+    })
+
+    expect(useGraphStudioStore.getState().chartSpec).toBeNull()
+  })
+})
+
+// ─── dead state 제거 확인 ────────────────────────────────
+
+describe('Dead state 제거 — lastAiResponse / setLastAiResponse', () => {
+  it('lastAiResponse 필드가 state에 없다', () => {
+    expect('lastAiResponse' in useGraphStudioStore.getState()).toBe(false)
+  })
+
+  it('setLastAiResponse 액션이 state에 없다', () => {
+    expect('setLastAiResponse' in useGraphStudioStore.getState()).toBe(false)
   })
 })

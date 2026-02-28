@@ -330,6 +330,10 @@ function buildHeatmapData(
     if (!ySet.has(y)) { ySet.add(y); yOrder.push(y); }
   }
 
+  // O(1) 인덱스 조회용 Map (xOrder.indexOf → O(n²) 방지)
+  const xIndex = new Map<string, number>(xOrder.map((x, i) => [x, i]));
+  const yIndex = new Map<string, number>(yOrder.map((y, i) => [y, i]));
+
   // Map key → { count, sum, vals[] }
   const cells = new Map<string, { count: number; vals: number[] }>();
   for (const row of rows) {
@@ -346,8 +350,8 @@ function buildHeatmapData(
   const data: [number, number, number][] = [];
   for (const [key, cell] of cells) {
     const [xc, yc] = key.split('\u0000');
-    const xi = xOrder.indexOf(xc);
-    const yi = yOrder.indexOf(yc);
+    const xi = xIndex.get(xc) ?? -1;
+    const yi = yIndex.get(yc) ?? -1;
     if (xi < 0 || yi < 0) continue;
     let agg: number;
     if (method === 'count') {

@@ -5,15 +5,26 @@
  *
  * Zero-Data Retention: 실제 데이터 행은 AI에 전송하지 않음.
  * ChartSpec(열 메타데이터) + 사용자 명령 → JSON Patch → applyAndValidatePatches
+ *
+ * 개선 사항:
+ * - chartSpecRef: handleSend 클로저에서 항상 최신 spec 참조 (stale 방어)
+ * - zero-patch 경고: AI 응답이 실제 변경 없이 통과될 때 사용자에게 알림
+ * - MAX_MESSAGES=30: 오래된 메시지 자동 정리
+ * - localStorage: 브라우저 재시작 후에도 대화 기록 유지
  */
 
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { applyAndValidatePatches } from '@/lib/graph-studio/chart-spec-utils';
-import { editChart, buildAiEditRequest } from '@/lib/graph-studio/ai-service';
+import { editChart, buildAiEditRequest, AiServiceError } from '@/lib/graph-studio/ai-service';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Send, Loader2, AlertCircle, CheckCircle2, Bot, User } from 'lucide-react';
+
+// ─── 상수 ──────────────────────────────────────────────────
+
+const MAX_MESSAGES = 30;
+const CHAT_STORAGE_KEY = 'graph_studio_ai_chat';
 
 // ─── 로컬 채팅 메시지 타입 ────────────────────────────────
 
@@ -91,7 +102,7 @@ function MessageBubble({ message }: MessageBubbleProps): React.ReactElement {
 // ─── 메인 컴포넌트 ─────────────────────────────────────────
 
 export function AiEditTab(): React.ReactElement {
-  const { chartSpec, updateChartSpec, setLastAiResponse } = useGraphStudioStore();
+  const { chartSpec, updateChartSpec } = useGraphStudioStore();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -100,29 +111,77 @@ export function AiEditTab(): React.ReactElement {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  /**
+   * chartSpecRef: handleSend 비동기 실행 중 chartSpec이 변경돼도 항상 최신 값 참조.
+   * await 완료 후 패치 적용 시점에 stale closure를 방지.
+   */
+  const chartSpecRef = useRef(chartSpec);
+  useEffect(() => {
+    chartSpecRef.current = chartSpec;
+  }, [chartSpec]);
+
+  // localStorage에서 대화 기록 로드 (마운트 시 1회)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const saved = localStorage.getItem(CHAT_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as ChatMessage[];
+        if (Array.isArray(parsed)) setMessages(parsed);
+      }
+    } catch {
+      // 파싱 실패 시 무시 (빈 상태로 시작)
+    }
+  }, []);
+
+  // 메시지 변경 시 localStorage 저장
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+    } catch {
+      // 용량 초과 등 무시
+    }
+  }, [messages]);
+
   // 새 메시지 추가 시 자동 스크롤
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  /**
+   * MAX_MESSAGES 초과 시 오래된 메시지부터 제거.
+   * id는 Date.now() + 랜덤으로 고유성 보장.
+   */
   const appendMessage = useCallback((msg: Omit<ChatMessage, 'id'>) => {
-    setMessages(prev => [...prev, { ...msg, id: `${Date.now()}-${Math.random()}` }]);
+    setMessages(prev => {
+      const next = [...prev, { ...msg, id: `${Date.now()}-${Math.random()}` }];
+      return next.length > MAX_MESSAGES ? next.slice(next.length - MAX_MESSAGES) : next;
+    });
   }, []);
 
   const handleSend = useCallback(async () => {
     const text = inputValue.trim();
-    if (!text || !chartSpec || isLoading) return;
+    const spec = chartSpecRef.current; // 최신 spec (closure 아님)
+    if (!text || !spec || isLoading) return;
 
     setInputValue('');
     appendMessage({ role: 'user', content: text });
     setIsLoading(true);
 
     try {
-      const request = buildAiEditRequest(chartSpec, text);
+      const request = buildAiEditRequest(spec, text);
       const response = await editChart(request);
 
-      // patch 적용 + 검증
-      const patchResult = applyAndValidatePatches(chartSpec, response.patches);
+      // await 완료 후 최신 spec 재획득 (PropertiesTab 동시 편집 방어)
+      const freshSpec = chartSpecRef.current;
+      if (!freshSpec) {
+        appendMessage({ role: 'error', content: '차트가 초기화되었습니다. 다시 시도해주세요.' });
+        return;
+      }
+
+      // patch 적용 + Zod 검증
+      const patchResult = applyAndValidatePatches(freshSpec, response.patches);
 
       if (!patchResult.success) {
         appendMessage({
@@ -132,8 +191,17 @@ export function AiEditTab(): React.ReactElement {
         return;
       }
 
+      // zero-patch 감지: 경로를 찾지 못해 실제 변경 없이 통과된 경우
+      const hasChanges = JSON.stringify(patchResult.spec) !== JSON.stringify(freshSpec);
+      if (!hasChanges) {
+        appendMessage({
+          role: 'error',
+          content: `요청을 이해했지만 적용할 수 없었습니다. ${response.explanation}`,
+        });
+        return;
+      }
+
       updateChartSpec(patchResult.spec);
-      setLastAiResponse(response);
 
       appendMessage({
         role: 'assistant',
@@ -142,18 +210,18 @@ export function AiEditTab(): React.ReactElement {
         patchCount: response.patches.length,
       });
     } catch (err) {
-      const raw = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
-      // Zod 검증 오류 등 기술적 메시지는 사용자 친화적으로 변환
       const userMessage =
-        raw.startsWith('AI 응답 검증 실패') || raw.startsWith('AI 응답 JSON 파싱 실패')
+        err instanceof AiServiceError && (err.code === 'PARSE_FAILED' || err.code === 'VALIDATION_FAILED')
           ? 'AI가 올바른 형식으로 응답하지 못했습니다. 잠시 후 다시 시도해주세요.'
-          : raw;
+          : err instanceof Error
+            ? err.message
+            : '알 수 없는 오류가 발생했습니다.';
       appendMessage({ role: 'error', content: userMessage });
     } finally {
       setIsLoading(false);
       textareaRef.current?.focus();
     }
-  }, [inputValue, chartSpec, isLoading, appendMessage, updateChartSpec, setLastAiResponse]);
+  }, [inputValue, isLoading, appendMessage, updateChartSpec]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

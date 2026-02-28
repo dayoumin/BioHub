@@ -8,8 +8,8 @@ import { create } from 'zustand';
 import type {
   ChartSpec,
   DataPackage,
+  ExportConfig,
   GraphProject,
-  AiEditResponse,
   GraphStudioState,
 } from '@/types/graph-studio';
 import { createChartSpecFromDataPackage } from '@/lib/graph-studio/chart-spec-utils';
@@ -27,11 +27,10 @@ interface GraphStudioActions {
   // chartSpec
   setChartSpec: (spec: ChartSpec) => void;
   updateChartSpec: (spec: ChartSpec) => void;
+  /** exportConfig 변경 — undo history에 추가하지 않음 (출력 설정이므로) */
+  setExportConfig: (config: ExportConfig) => void;
   undo: () => void;
   redo: () => void;
-
-  // AI
-  setLastAiResponse: (response: AiEditResponse) => void;
 
   // UI
   setSidePanel: (panel: GraphStudioState['sidePanel']) => void;
@@ -50,7 +49,6 @@ const initialState: GraphStudioState = {
   chartSpec: null,
   specHistory: [],
   historyIndex: -1,
-  lastAiResponse: null,
   sidePanel: 'properties',
 };
 
@@ -107,6 +105,13 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       });
     },
 
+    setExportConfig: (config) => {
+      const { chartSpec } = get();
+      if (!chartSpec) return;
+      // specHistory를 건드리지 않음 — export 설정은 undo 대상이 아님
+      set({ chartSpec: { ...chartSpec, exportConfig: config } });
+    },
+
     undo: () => {
       const { specHistory, historyIndex } = get();
       if (historyIndex <= 0) return;
@@ -126,10 +131,6 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         historyIndex: newIndex,
       });
     },
-
-    // ── AI ──
-
-    setLastAiResponse: (response) => set({ lastAiResponse: response }),
 
     // ── UI ──
 

@@ -53,6 +53,13 @@ export function ChartPreview({ echartsRef }: ChartPreviewProps): React.ReactElem
 
   return (
     <div className="flex flex-col h-full p-4">
+      {/* violin은 현재 box plot으로 표시 (ECharts 네이티브 violin 미지원) */}
+      {chartSpec.chartType === 'violin' && (
+        <div className="mb-2 rounded-md bg-amber-50 border border-amber-200 px-3 py-1.5 text-xs text-amber-700">
+          Violin Plot은 현재 Box Plot으로 표시됩니다.
+        </div>
+      )}
+
       {/* ECharts canvas */}
       <div className="flex-1 min-h-0">
         <ReactECharts
