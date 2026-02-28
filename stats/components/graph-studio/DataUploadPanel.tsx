@@ -25,7 +25,7 @@ import {
   BookOpen,
   Download,
   ChevronRight,
-  CheckCircle2,
+  PlayCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
@@ -34,39 +34,62 @@ import { createDefaultChartSpec, CHART_TYPE_HINTS } from '@/lib/graph-studio/cha
 import type { ChartType, DataPackage } from '@/types/graph-studio';
 
 // ─── 샘플 데이터 (어류 성장, 3종 × 10행) ──────────────────
+//
+// year: 날짜 문자열 (YYYY-MM-DD) → inferDataType이 'temporal'로 추론
+//   → line 차트 선택 시 X=year(temporal), Y=length_cm 으로 올바르게 매핑됨
+// species: nominal  → bar/boxplot/heatmap X축
+// length_cm, weight_g: quantitative → scatter X/Y, line Y
 
 const SAMPLE_ROWS: Record<string, unknown>[] = [
-  { species: 'Bass',    length_cm: 12.3, weight_g:  28.5, age: 1 },
-  { species: 'Bass',    length_cm: 18.7, weight_g:  82.1, age: 2 },
-  { species: 'Bass',    length_cm: 24.1, weight_g: 178.4, age: 3 },
-  { species: 'Bass',    length_cm: 29.5, weight_g: 321.7, age: 4 },
-  { species: 'Bass',    length_cm: 33.8, weight_g: 487.2, age: 5 },
-  { species: 'Bass',    length_cm: 37.2, weight_g: 641.0, age: 6 },
-  { species: 'Bass',    length_cm: 40.1, weight_g: 782.3, age: 7 },
-  { species: 'Bass',    length_cm: 42.6, weight_g: 901.5, age: 8 },
-  { species: 'Bass',    length_cm: 44.3, weight_g: 987.4, age: 9 },
-  { species: 'Bass',    length_cm: 45.7, weight_g: 1052.8, age: 10 },
-  { species: 'Bream',   length_cm: 10.1, weight_g:  18.2, age: 1 },
-  { species: 'Bream',   length_cm: 15.4, weight_g:  55.3, age: 2 },
-  { species: 'Bream',   length_cm: 20.2, weight_g: 124.6, age: 3 },
-  { species: 'Bream',   length_cm: 24.9, weight_g: 232.1, age: 4 },
-  { species: 'Bream',   length_cm: 28.7, weight_g: 358.4, age: 5 },
-  { species: 'Bream',   length_cm: 31.8, weight_g: 487.9, age: 6 },
-  { species: 'Bream',   length_cm: 34.2, weight_g: 601.3, age: 7 },
-  { species: 'Bream',   length_cm: 36.1, weight_g: 698.7, age: 8 },
-  { species: 'Bream',   length_cm: 37.5, weight_g: 774.2, age: 9 },
-  { species: 'Bream',   length_cm: 38.6, weight_g: 831.5, age: 10 },
-  { species: 'Carp',    length_cm: 14.8, weight_g:  42.1, age: 1 },
-  { species: 'Carp',    length_cm: 22.3, weight_g: 142.8, age: 2 },
-  { species: 'Carp',    length_cm: 29.7, weight_g: 338.5, age: 3 },
-  { species: 'Carp',    length_cm: 36.2, weight_g: 612.4, age: 4 },
-  { species: 'Carp',    length_cm: 41.8, weight_g: 924.7, age: 5 },
-  { species: 'Carp',    length_cm: 46.5, weight_g: 1287.3, age: 6 },
-  { species: 'Carp',    length_cm: 50.3, weight_g: 1624.8, age: 7 },
-  { species: 'Carp',    length_cm: 53.4, weight_g: 1934.2, age: 8 },
-  { species: 'Carp',    length_cm: 55.9, weight_g: 2198.6, age: 9 },
-  { species: 'Carp',    length_cm: 57.8, weight_g: 2421.3, age: 10 },
+  { species: 'Bass',    length_cm: 12.3, weight_g:  28.5, year: '2015-01-01' },
+  { species: 'Bass',    length_cm: 18.7, weight_g:  82.1, year: '2016-01-01' },
+  { species: 'Bass',    length_cm: 24.1, weight_g: 178.4, year: '2017-01-01' },
+  { species: 'Bass',    length_cm: 29.5, weight_g: 321.7, year: '2018-01-01' },
+  { species: 'Bass',    length_cm: 33.8, weight_g: 487.2, year: '2019-01-01' },
+  { species: 'Bass',    length_cm: 37.2, weight_g: 641.0, year: '2020-01-01' },
+  { species: 'Bass',    length_cm: 40.1, weight_g: 782.3, year: '2021-01-01' },
+  { species: 'Bass',    length_cm: 42.6, weight_g: 901.5, year: '2022-01-01' },
+  { species: 'Bass',    length_cm: 44.3, weight_g: 987.4, year: '2023-01-01' },
+  { species: 'Bass',    length_cm: 45.7, weight_g: 1052.8, year: '2024-01-01' },
+  { species: 'Bream',   length_cm: 10.1, weight_g:  18.2, year: '2015-01-01' },
+  { species: 'Bream',   length_cm: 15.4, weight_g:  55.3, year: '2016-01-01' },
+  { species: 'Bream',   length_cm: 20.2, weight_g: 124.6, year: '2017-01-01' },
+  { species: 'Bream',   length_cm: 24.9, weight_g: 232.1, year: '2018-01-01' },
+  { species: 'Bream',   length_cm: 28.7, weight_g: 358.4, year: '2019-01-01' },
+  { species: 'Bream',   length_cm: 31.8, weight_g: 487.9, year: '2020-01-01' },
+  { species: 'Bream',   length_cm: 34.2, weight_g: 601.3, year: '2021-01-01' },
+  { species: 'Bream',   length_cm: 36.1, weight_g: 698.7, year: '2022-01-01' },
+  { species: 'Bream',   length_cm: 37.5, weight_g: 774.2, year: '2023-01-01' },
+  { species: 'Bream',   length_cm: 38.6, weight_g: 831.5, year: '2024-01-01' },
+  { species: 'Carp',    length_cm: 14.8, weight_g:   42.1, year: '2015-01-01' },
+  { species: 'Carp',    length_cm: 22.3, weight_g:  142.8, year: '2016-01-01' },
+  { species: 'Carp',    length_cm: 29.7, weight_g:  338.5, year: '2017-01-01' },
+  { species: 'Carp',    length_cm: 36.2, weight_g:  612.4, year: '2018-01-01' },
+  { species: 'Carp',    length_cm: 41.8, weight_g:  924.7, year: '2019-01-01' },
+  { species: 'Carp',    length_cm: 46.5, weight_g: 1287.3, year: '2020-01-01' },
+  { species: 'Carp',    length_cm: 50.3, weight_g: 1624.8, year: '2021-01-01' },
+  { species: 'Carp',    length_cm: 53.4, weight_g: 1934.2, year: '2022-01-01' },
+  { species: 'Carp',    length_cm: 55.9, weight_g: 2198.6, year: '2023-01-01' },
+  { species: 'Carp',    length_cm: 57.8, weight_g: 2421.3, year: '2024-01-01' },
 ];
+
+// ─── 샘플 컬럼 메타 (모듈 레벨 1회 계산) ──────────────────
+// SAMPLE_ROWS가 상수이므로 inferColumnMeta 결과도 항상 동일 → 재계산 불필요
+const _SAMPLE_COLUMNS = inferColumnMeta(SAMPLE_ROWS);
+const _SAMPLE_DATA: Record<string, unknown[]> = Object.fromEntries(
+  _SAMPLE_COLUMNS.map(col => [col.name, SAMPLE_ROWS.map(row => row[col.name])]),
+);
+
+function buildSamplePackage(sourceId: string): DataPackage {
+  return {
+    id: sourceId,
+    source: 'upload',
+    label: '어류 성장 샘플 (Bass · Bream · Carp)',
+    columns: _SAMPLE_COLUMNS,
+    data: _SAMPLE_DATA,
+    createdAt: new Date().toISOString(),
+  };
+}
 
 // ─── 차트 썸네일 정의 ──────────────────────────────────────
 
@@ -156,46 +179,22 @@ const FEATURES = [
 // ─── 메인 컴포넌트 ─────────────────────────────────────────
 
 export function DataUploadPanel(): React.ReactElement {
-  const { loadDataPackage, setChartSpec } = useGraphStudioStore();
+  const { loadDataPackage, loadDataPackageWithSpec } = useGraphStudioStore();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // ── 샘플 DataPackage 빌더 (deps 없음 → 안정 참조) ───────
-  const buildSamplePackage = useCallback((sourceId: string): DataPackage => {
-    const columns = inferColumnMeta(SAMPLE_ROWS);
-    const dataRecord: Record<string, unknown[]> = {};
-    for (const col of columns) {
-      dataRecord[col.name] = SAMPLE_ROWS.map(row => row[col.name]);
-    }
-    return {
-      id: sourceId,
-      source: 'upload',
-      label: '어류 성장 샘플 (Bass · Bream · Carp)',
-      columns,
-      data: dataRecord,
-      createdAt: new Date().toISOString(),
-    };
-  // SAMPLE_ROWS는 모듈 상수 → 의존성 불필요
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // ── 차트 유형 선택 → 샘플 로드 ──────────────────────────
   const handleChartTypeSelect = useCallback(
     (chartType: ChartType) => {
       const sourceId = `sample-${Date.now()}`;
       const pkg = buildSamplePackage(sourceId);
-
-      // 1) DataPackage 등록 → isDataLoaded=true → 에디터 모드 전환
-      loadDataPackage(pkg);
-
-      // 2) 선택한 차트 타입에 맞는 X/Y 필드 매핑으로 ChartSpec 교체
-      //    (Zustand 동기 업데이트 → loadDataPackage 직후 바로 유효)
       const { xField, yField } = selectXYFields(pkg.columns, CHART_TYPE_HINTS[chartType]);
       const spec = createDefaultChartSpec(sourceId, chartType, xField, yField, pkg.columns);
-      setChartSpec(spec);
+      // DataPackage + ChartSpec을 단일 set()으로 원자적 등록 (중간 렌더 없음)
+      loadDataPackageWithSpec(pkg, spec);
     },
-    [buildSamplePackage, loadDataPackage, setChartSpec],
+    [loadDataPackageWithSpec],
   );
 
   // ── 파일 처리 (기존 로직 유지) ───────────────────────────
@@ -363,7 +362,7 @@ export function DataUploadPanel(): React.ReactElement {
           onClick={() => handleChartTypeSelect('bar')}
           data-testid="sample-start-btn"
         >
-          <CheckCircle2 className="h-4 w-4" />
+          <PlayCircle className="h-4 w-4" />
           샘플로 시작하기
         </Button>
 
@@ -374,7 +373,13 @@ export function DataUploadPanel(): React.ReactElement {
             type="file"
             accept=".csv,.tsv,.xlsx,.xls"
             className="sr-only"
-            onChange={(e) => { if (e.target.files?.[0]) void handleFile(e.target.files[0]); }}
+            onChange={(e) => {
+              if (e.target.files?.[0]) {
+                void handleFile(e.target.files[0]);
+                // 동일 파일 재선택 시 onChange 재발화를 위해 value 리셋
+                e.target.value = '';
+              }
+            }}
             disabled={isLoading}
           />
           <Button
@@ -395,7 +400,7 @@ export function DataUploadPanel(): React.ReactElement {
       </div>
 
       {/* 드래그 힌트 */}
-      <p className="text-[11px] text-muted-foreground text-center mb-6">
+      <p aria-live="polite" className="text-[11px] text-muted-foreground text-center mb-6">
         {isDragActive
           ? '파일을 놓으세요'
           : 'CSV, TSV, Excel 파일을 이 영역에 드래그해도 됩니다'}

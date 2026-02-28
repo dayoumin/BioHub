@@ -1,6 +1,6 @@
 # 프로젝트 현황 + 할일
 
-**최종 업데이트**: 2026-02-28 (Graph Studio Stage 1+2+3 완료 — 테스트 16개 + 스토어 dead 필드 정리)
+**최종 업데이트**: 2026-02-28 (Graph Studio 첫 화면 리디자인 — Template-first + Dual CTA + 어류 샘플)
 
 ---
 
@@ -80,6 +80,17 @@
 - ✅ **테스트 추가 (ChiSquareSelector)**: proportion-test 이진 변수 필터 + nullProportion UI, 제출 페이로드 검증 — 2개
 - ✅ **검증**: tsc 0 errors, tests 128 passed (118 + 10)
 - 📌 커밋: `ff48a374`
+
+### 2026-02-28 (금) Graph Studio 첫 화면 리디자인 (DataUploadPanel)
+
+- ✅ **UX 전면 재설계**: 빈 업로드 박스 → Template-first 온보딩 랜딩 페이지 — `1d7cf054`
+- ✅ **차트 썸네일 6개 (Bento)**: bar / scatter / line / boxplot / histogram / heatmap — 클릭 시 샘플 데이터로 즉시 에디터 진입
+- ✅ **Dual CTA**: "샘플로 시작하기" (Primary) + "파일 업로드" (Secondary)
+- ✅ **어류 성장 샘플 데이터**: Bass · Bream · Carp × 10행 (species, length_cm, weight_g, age)
+- ✅ **Bug fix**: 파일 업로드 버튼 DOM 탐색 → `useRef` 교체; `as const` + ChartType 충돌 → 명시적 인터페이스
+- ✅ **차트 유형별 올바른 필드 매핑**: `selectXYFields(CHART_TYPE_HINTS[chartType])` 사용 (단순 chartType 덮어쓰기 금지)
+- ✅ **AI 리뷰 문서**: `stats/docs/REVIEW-GRAPH-STUDIO-ONBOARDING.md`
+- ✅ **검증**: tsc 0 errors, TypeScript types clean
 
 ### 2026-02-28 (금) Graph Studio 테스트 시뮬레이션 + Stage 1/2/3 일관성 정리
 
@@ -273,7 +284,50 @@
 | 작업 | 설명 |
 |------|------|
 | **~~Graph Studio Stage 2~~** | ✅ 완료 (2026-02-28) — AI 편집 서비스, AiEditTab 활성화, 29개 테스트 |
+| **Graph Studio G1: 핵심 UI** | 출력 크기(mm) + 에러바 UI + 축 범위/로그 + 색상 인코딩 UI (상세: 아래) |
 | **Phase 15-1: Bio-Tools** | 12개 생물학 분석, `/bio-tools/` 5페이지 구현 ([상세](study/PLAN-BIO-STATISTICS-AUDIT.md)) |
+
+---
+
+## Graph Studio 발전 전략 (2026-02-28 수립)
+
+> 분석 전문: [GRAPH_STUDIO_COMPETITIVE_ANALYSIS.md](docs/GRAPH_STUDIO_COMPETITIVE_ANALYSIS.md)
+
+**포지셔닝**: GraphPad Prism 대안 — "무료 + 한국어 + AI"
+
+- Prism $142+/년 → 무료
+- 영어 전용 → 한국어 UI + 한국 저널 프리셋
+- AI 없음 → 자연어 편집 + 저널 자동 포맷
+- 타겟: 국내 바이오/의학 대학원생
+
+### Phase G1: 핵심 부재 UI (즉시)
+
+스키마는 이미 지원 — UI만 없음:
+
+| 기능 | 구현 포인트 | 우선순위 |
+|------|------------|---------|
+| **출력 크기 (mm/cm)** + 저널 프리셋 | `ExportTab` + `exportConfig` 스키마 확장 | 🔴 Critical |
+| **에러바 UI** — 컬럼 선택 + 배율 | `PropertiesPanel` → `SidePanel` | 🔴 Critical |
+| **축 범위 + 로그 스케일 UI** | `PropertiesPanel` 축 설정 섹션 | 🟠 High |
+| **색상 인코딩 UI** — 그룹 컬럼 선택 | `PropertiesPanel` | 🟠 High |
+| **스타일 프리셋 버튼** (Science/IEEE) | `StyleTab` 또는 `PropertiesPanel` | 🟡 Medium |
+
+### Phase G2: 논문 품질 향상 (1-2개월)
+
+| 기능 | 설명 |
+|------|------|
+| 유의성 마커 (* ** ***) | ECharts markArea + markLine |
+| 저널 사이즈 프리셋 | Nature 89mm, Cell 85mm, PNAS 85mm, KCI 80mm |
+| TIFF 출력 300/600 DPI | html2canvas → Blob 변환 |
+| 폰트 선택 | Arial/Helvetica/Times |
+
+### Phase G3: AI-Forward 차별화 (3-6개월)
+
+| 기능 | 설명 |
+|------|------|
+| **저널 자동 포맷** | "Nature format으로" → AI가 규격 자동 적용 |
+| **Smart Flow → Graph 자동 연결** | 통계 결과 → 그래프 + 에러바 자동 생성 |
+| **유의성 마커 자동 배치** | p-value → *, **, *** 자동 추가 |
 
 ---
 

@@ -22,6 +22,8 @@ interface GraphStudioActions {
   // 데이터
   /** DataPackage 로드 + 초기 ChartSpec 자동 생성 (원자적 단일 액션) */
   loadDataPackage: (pkg: DataPackage) => void;
+  /** DataPackage + 사전에 계산된 ChartSpec을 단일 set()으로 원자적 등록 (중간 렌더 방지) */
+  loadDataPackageWithSpec: (pkg: DataPackage, spec: ChartSpec) => void;
   clearData: () => void;
 
   // chartSpec
@@ -70,6 +72,14 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         historyIndex: 0,
       });
     },
+
+    loadDataPackageWithSpec: (pkg, spec) => set({
+      dataPackage: pkg,
+      isDataLoaded: true,
+      chartSpec: spec,
+      specHistory: [spec],
+      historyIndex: 0,
+    }),
 
     clearData: () => set({
       dataPackage: null,
