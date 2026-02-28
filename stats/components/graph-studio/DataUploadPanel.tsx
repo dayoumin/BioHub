@@ -25,7 +25,6 @@ import {
   BookOpen,
   Download,
   ChevronRight,
-  PlayCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
@@ -121,7 +120,7 @@ const CHART_THUMBNAILS: ChartThumbnail[] = [
   },
   {
     type: 'line',
-    label: '꺾은선',
+    label: '꺾은선 그래프',
     desc: '시계열/추세',
     Icon: LineChart,
     color: 'text-emerald-500',
@@ -319,17 +318,16 @@ export function DataUploadPanel(): React.ReactElement {
 
       {/* ── 헤더 ──────────────────────────────────────── */}
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold tracking-tight mb-2">Graph Studio</h2>
         <p className="text-muted-foreground">
-          학술 논문용 고품질 차트 생성 · ECharts 기반
+          분포·상관·추세를 논문 수준으로
         </p>
 
-        {/* 단계 표시 */}
-        <div className="flex items-center justify-center gap-1 mt-4 text-xs text-muted-foreground">
+        {/* 단계 표시 — 클릭 불가, 현재 단계를 볼드로만 강조 */}
+        <div className="flex items-center justify-center gap-1 mt-3 text-xs text-muted-foreground">
           {['① 데이터 선택', '② 편집', '③ 내보내기'].map((step, i) => (
             <span key={step} className="flex items-center gap-1">
               {i > 0 && <ChevronRight className="h-3 w-3" />}
-              <span className={i === 0 ? 'text-primary font-medium' : ''}>{step}</span>
+              <span className={i === 0 ? 'font-semibold text-foreground' : ''}>{step}</span>
             </span>
           ))}
         </div>
@@ -366,57 +364,49 @@ export function DataUploadPanel(): React.ReactElement {
         </p>
       </div>
 
-      {/* ── Dual CTA ──────────────────────────────────── */}
-      <div className="flex gap-3 mb-4">
-        {/* 샘플로 시작하기 (Primary) */}
+      {/* ── 파일 업로드 + 드래그 존 ───────────────────── */}
+      {/* 점선 테두리로 드래그 가능 영역 명시 */}
+      <div className={`
+        border-2 border-dashed rounded-xl px-6 py-5 mb-4 text-center
+        transition-colors duration-200
+        ${isDragActive
+          ? 'border-primary bg-primary/5'
+          : 'border-border hover:border-muted-foreground/40'}
+      `}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,.tsv,.xlsx,.xls"
+          className="sr-only"
+          onChange={(e) => {
+            if (e.target.files?.[0]) {
+              void handleFile(e.target.files[0]);
+              // 동일 파일 재선택 시 onChange 재발화를 위해 value 리셋
+              e.target.value = '';
+            }
+          }}
+          disabled={isLoading}
+        />
         <Button
-          className="flex-1 gap-2"
-          onClick={() => handleChartTypeSelect('bar')}
-          data-testid="sample-start-btn"
+          variant="outline"
+          className="gap-2 mb-3"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isLoading}
+          data-testid="file-upload-btn"
         >
-          <PlayCircle className="h-4 w-4" />
-          샘플로 시작하기
+          {isLoading ? (
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          ) : (
+            <Upload className="h-4 w-4" />
+          )}
+          {isLoading ? '처리 중...' : '내 파일 업로드'}
         </Button>
-
-        {/* 파일 업로드 (Secondary) — useRef로 input 직접 제어 */}
-        <div className="flex-1">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv,.tsv,.xlsx,.xls"
-            className="sr-only"
-            onChange={(e) => {
-              if (e.target.files?.[0]) {
-                void handleFile(e.target.files[0]);
-                // 동일 파일 재선택 시 onChange 재발화를 위해 value 리셋
-                e.target.value = '';
-              }
-            }}
-            disabled={isLoading}
-          />
-          <Button
-            variant="outline"
-            className="w-full gap-2"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isLoading}
-            data-testid="file-upload-btn"
-          >
-            {isLoading ? (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            ) : (
-              <Upload className="h-4 w-4" />
-            )}
-            {isLoading ? '처리 중...' : '파일 업로드'}
-          </Button>
-        </div>
+        <p aria-live="polite" className="text-[11px] text-muted-foreground">
+          {isDragActive
+            ? '파일을 여기에 놓으세요'
+            : 'CSV · TSV · Excel 파일을 드래그해도 됩니다'}
+        </p>
       </div>
-
-      {/* 드래그 힌트 */}
-      <p aria-live="polite" className="text-[11px] text-muted-foreground text-center mb-6">
-        {isDragActive
-          ? '파일을 놓으세요'
-          : 'CSV, TSV, Excel 파일을 이 영역에 드래그해도 됩니다'}
-      </p>
 
       {/* 에러 */}
       {error && (
