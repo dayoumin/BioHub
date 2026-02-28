@@ -147,14 +147,14 @@ function ResultBadge({ result, subLabel }: ResultBadgeProps) {
 
   if (result.error) {
     return (
-      <div className="mt-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+      <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
         {result.error}
       </div>
     )
   }
 
   return (
-    <div className="mt-4 p-4 rounded-xl border bg-primary/5 border-primary/20">
+    <div className="p-4 rounded-xl border bg-primary/5 border-primary/20">
       <div className="text-xs text-muted-foreground mb-0.5">필요 표본 수</div>
       <div className="flex items-baseline gap-2">
         <span className="text-3xl font-bold tabular-nums text-primary">
@@ -216,18 +216,29 @@ function CommonInputs({ alpha, power, onAlpha, onPower }: CommonInputsProps) {
 }
 
 // ─── CohenDInput — 직접 입력 + 평균/SD 보조 계산 ──────────────────────────────
+// helper 상태(showHelper/mean1/mean2/pooledSd)를 부모로 끌어올려
+// 탭 전환 시 Radix Tabs의 unmount에도 값이 유지됨
 
 interface CohenDInputProps {
   value: string
   onChange: (v: string) => void
+  showHelper: boolean
+  onToggleHelper: () => void
+  mean1: string
+  onMean1: (v: string) => void
+  mean2: string
+  onMean2: (v: string) => void
+  pooledSd: string
+  onPooledSd: (v: string) => void
 }
 
-function CohenDInput({ value, onChange }: CohenDInputProps) {
-  const [showHelper, setShowHelper] = useState(false)
-  const [mean1, setMean1] = useState('')
-  const [mean2, setMean2] = useState('')
-  const [pooledSd, setPooledSd] = useState('')
-
+function CohenDInput({
+  value, onChange,
+  showHelper, onToggleHelper,
+  mean1, onMean1,
+  mean2, onMean2,
+  pooledSd, onPooledSd,
+}: CohenDInputProps) {
   // 세 값이 모두 유효하면 d 자동 계산
   useEffect(() => {
     const m1 = parseFloat(mean1)
@@ -254,20 +265,25 @@ function CohenDInput({ value, onChange }: CohenDInputProps) {
       />
       <PresetRow presets={COHEN_D_PRESETS} current={value} onSelect={v => onChange(String(v))} />
 
-      {/* 평균/SD 보조 계산 토글 */}
+      {/* 평균/SD 보조 계산 토글 — 주요 기능으로 더 눈에 띄게 표시 */}
       <button
         type="button"
-        onClick={() => setShowHelper(v => !v)}
-        className="mt-2 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+        onClick={onToggleHelper}
+        className={cn(
+          'mt-2 w-full text-xs flex items-center justify-between px-2.5 py-1.5 rounded-md border transition-colors',
+          showHelper
+            ? 'border-primary/40 bg-primary/5 text-primary'
+            : 'border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground hover:bg-muted/50',
+        )}
       >
-        <span>{showHelper ? '▲' : '▼'}</span>
-        평균/SD로 계산
+        <span>📐 평균/SD로 직접 계산</span>
+        <span className="text-xs opacity-60">{showHelper ? '▲ 닫기' : '▼ 열기'}</span>
       </button>
 
       {showHelper && (
-        <div className="mt-2 p-3 rounded-lg bg-muted/50 border border-border/50 space-y-2">
+        <div className="mt-1.5 p-3 rounded-lg bg-muted/50 border border-border/50 space-y-2">
           <p className="text-xs text-muted-foreground">
-            평균 1, 평균 2, 공통 SD 입력 시 Cohen's d = |μ₁−μ₂|/σ 자동 계산
+            선행 연구나 예비 데이터의 평균/SD 입력 → Cohen's d 자동 계산
           </p>
           <div className="grid grid-cols-3 gap-2">
             <div>
@@ -275,7 +291,7 @@ function CohenDInput({ value, onChange }: CohenDInputProps) {
               <Input
                 type="number"
                 value={mean1}
-                onChange={e => setMean1(e.target.value)}
+                onChange={e => onMean1(e.target.value)}
                 placeholder="예: 10.5"
                 className="h-8 text-xs"
               />
@@ -285,7 +301,7 @@ function CohenDInput({ value, onChange }: CohenDInputProps) {
               <Input
                 type="number"
                 value={mean2}
-                onChange={e => setMean2(e.target.value)}
+                onChange={e => onMean2(e.target.value)}
                 placeholder="예: 12.0"
                 className="h-8 text-xs"
               />
@@ -295,7 +311,7 @@ function CohenDInput({ value, onChange }: CohenDInputProps) {
               <Input
                 type="number"
                 value={pooledSd}
-                onChange={e => setPooledSd(e.target.value)}
+                onChange={e => onPooledSd(e.target.value)}
                 placeholder="예: 3.0"
                 min={0.001}
                 className="h-8 text-xs"
@@ -324,6 +340,13 @@ export function SampleSizeModal({ open, onClose }: SampleSizeModalProps) {
   const [p1, setP1] = useState('0.5')
   const [p2, setP2] = useState('0.3')
   const [pearsonR, setPearsonR] = useState('0.3')
+
+  // CohenDInput helper 상태 — 부모에서 관리해 탭 전환(unmount) 시에도 유지
+  const [showHelper, setShowHelper] = useState(false)
+  const [helperMean1, setHelperMean1] = useState('')
+  const [helperMean2, setHelperMean2] = useState('')
+  const [helperSd, setHelperSd] = useState('')
+  const handleToggleHelper = useCallback(() => setShowHelper(v => !v), [])
 
   const handleOpenChange = useCallback((v: boolean) => {
     if (!v) onClose()
@@ -380,20 +403,28 @@ export function SampleSizeModal({ open, onClose }: SampleSizeModalProps) {
     }
   }, [result, testType, groups])
 
-  // 공통 Cohen's d 입력 블록 (독립/대응/단일 t-검정 공용) — CohenDInput 컴포넌트로 위임
+  // 공통 Cohen's d 입력 블록 (독립/대응/단일 t-검정 공용)
+  // helper 상태가 부모에 있으므로 탭 unmount/remount에도 mean1/mean2/SD 유지
   const cohendBlock = (
-    <CohenDInput value={cohenD} onChange={setCohenD} />
+    <CohenDInput
+      value={cohenD} onChange={setCohenD}
+      showHelper={showHelper} onToggleHelper={handleToggleHelper}
+      mean1={helperMean1} onMean1={setHelperMean1}
+      mean2={helperMean2} onMean2={setHelperMean2}
+      pooledSd={helperSd} onPooledSd={setHelperSd}
+    />
   )
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-lg h-[90vh] max-h-[640px] flex flex-col overflow-hidden">
+      <DialogContent className="max-w-lg max-h-[640px] flex flex-col overflow-hidden">
         <TooltipProvider delayDuration={200}>
           <DialogHeader className="shrink-0">
             <DialogTitle>표본 크기 계산기</DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto pr-1">
+          {/* 스크롤 가능한 입력 영역 — min-h-0 필수 (flexbox overflow 버그 방지) */}
+          <div className="flex-1 overflow-y-auto pr-1 min-h-0">
           <Tabs
             value={testType}
             onValueChange={v => setTestType(v as TestType)}
@@ -582,12 +613,19 @@ export function SampleSizeModal({ open, onClose }: SampleSizeModalProps) {
             </TabsContent>
           </Tabs>
 
-          {/* 결과 */}
-          <ResultBadge result={result} subLabel={subLabel} />
+          </div>
 
-          <p className="text-[11px] text-muted-foreground/50 mt-2">
-            정규 근사 기반 계산 (G*Power 대비 ±5%). 중요한 연구는 G*Power로 재확인 권장.
-          </p>
+          {/* 항상 보이는 결과 영역 — 스크롤과 무관하게 고정 */}
+          <div className="shrink-0 border-t border-border/40 pt-3">
+            {result
+              ? <>
+                  <ResultBadge result={result} subLabel={subLabel} />
+                  <p className="text-[11px] text-muted-foreground/50 mt-2">
+                    정규 근사 기반 계산 (G*Power 대비 ±5%). 중요한 연구는 G*Power로 재확인 권장.
+                  </p>
+                </>
+              : <p className="text-xs text-muted-foreground/50 py-1">값을 입력하면 필요 표본 수가 표시됩니다.</p>
+            }
           </div>
         </TooltipProvider>
       </DialogContent>
