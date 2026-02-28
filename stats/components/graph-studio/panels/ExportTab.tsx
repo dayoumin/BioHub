@@ -106,7 +106,8 @@ export function ExportTab({ onExport }: ExportTabProps): React.ReactElement {
   const { exportConfig } = chartSpec;
   const parsedW = parseFloat(widthInput);
   const parsedH = parseFloat(heightInput);
-  const showPixelPreview = !isNaN(parsedW) && parsedW > 0 && !isNaN(parsedH) && parsedH > 0;
+  const hasW = !isNaN(parsedW) && parsedW > 0;
+  const hasH = !isNaN(parsedH) && parsedH > 0;
 
   return (
     <div className="space-y-4">
@@ -152,17 +153,26 @@ export function ExportTab({ onExport }: ExportTabProps): React.ReactElement {
 
         {/* 저널 프리셋 버튼 */}
         <div className="flex flex-wrap gap-1">
-          {JOURNAL_SIZE_PRESETS.map(({ key, label, width }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => handleJournalPreset(width)}
-              className="text-xs border border-border rounded px-1.5 py-0.5 hover:bg-muted transition-colors"
-              title={`너비 ${width}mm`}
-            >
-              {label}
-            </button>
-          ))}
+          {JOURNAL_SIZE_PRESETS.map(({ key, label, width }) => {
+            const isActive = exportConfig.physicalWidth === width;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => handleJournalPreset(width)}
+                className={[
+                  'text-xs border rounded px-1.5 py-0.5 transition-colors',
+                  isActive
+                    ? 'border-primary bg-primary/10 text-primary font-medium'
+                    : 'border-border hover:bg-muted',
+                ].join(' ')}
+                title={`너비 ${width}mm`}
+                aria-pressed={isActive}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
 
         {/* 너비·높이 입력 */}
@@ -193,11 +203,22 @@ export function ExportTab({ onExport }: ExportTabProps): React.ReactElement {
           </div>
         </div>
 
-        {/* 픽셀 미리보기 */}
-        {showPixelPreview ? (
+        {/* 픽셀 미리보기 / 안내 */}
+        {exportConfig.format === 'svg' && (hasW || hasH) ? (
           <p className="text-xs text-muted-foreground">
-            {mmToPx(parsedW, exportConfig.dpi)} × {mmToPx(parsedH, exportConfig.dpi)} px
-            ({exportConfig.dpi} DPI 기준)
+            SVG 벡터 뷰포트:
+            {hasW ? ` 너비 ${parsedW}mm` : ''}
+            {hasW && hasH ? ' ×' : ''}
+            {hasH ? ` 높이 ${parsedH}mm` : ''}
+          </p>
+        ) : hasW || hasH ? (
+          <p className="text-xs text-muted-foreground">
+            {hasW && hasH
+              ? `${mmToPx(parsedW, exportConfig.dpi)} × ${mmToPx(parsedH, exportConfig.dpi)} px`
+              : hasW
+                ? `너비: ${mmToPx(parsedW, exportConfig.dpi)} px`
+                : `높이: ${mmToPx(parsedH, exportConfig.dpi)} px`}
+            {' '}({exportConfig.dpi} DPI 기준)
           </p>
         ) : (
           <p className="text-xs text-muted-foreground">

@@ -314,12 +314,13 @@ export function PropertiesTab(): React.ReactElement {
             })}
           </SelectContent>
         </Select>
+        <Label className="text-xs text-muted-foreground">X축 제목</Label>
         <Input
           value={xTitleInput}
           onChange={(e) => setXTitleInput(e.target.value)}
           onBlur={makeAxisTitleHandler('x', xTitleInput)}
           onKeyDown={handleAxisTitleKeyDown}
-          placeholder="X축 제목 (빈칸=필드명)"
+          placeholder="빈칸이면 필드명 사용"
           className="h-7 text-xs"
         />
       </div>
@@ -347,12 +348,13 @@ export function PropertiesTab(): React.ReactElement {
             })}
           </SelectContent>
         </Select>
+        <Label className="text-xs text-muted-foreground">Y축 제목</Label>
         <Input
           value={yTitleInput}
           onChange={(e) => setYTitleInput(e.target.value)}
           onBlur={makeAxisTitleHandler('y', yTitleInput)}
           onKeyDown={handleAxisTitleKeyDown}
-          placeholder="Y축 제목 (빈칸=필드명)"
+          placeholder="빈칸이면 필드명 사용"
           className="h-7 text-xs"
         />
         {/* 로그 스케일 (quantitative only) */}
@@ -369,7 +371,7 @@ export function PropertiesTab(): React.ReactElement {
         {/* Y축 범위 (quantitative only) */}
         {isQuantitativeY && (
           <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Y축 범위 (빈칸=자동)</Label>
+            <Label className="text-xs text-muted-foreground">Y축 범위</Label>
             <div className="flex gap-1.5">
               <Input
                 value={yMinInput}
@@ -388,6 +390,18 @@ export function PropertiesTab(): React.ReactElement {
                 type="number"
               />
             </div>
+            {/* 한 쪽만 입력 시 안내 */}
+            {(yMinInput !== '') !== (yMaxInput !== '') && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                최솟값·최댓값을 모두 입력해야 적용됩니다.
+              </p>
+            )}
+            {/* 로그 스케일 + min=0 경고 */}
+            {isLogScale && parseFloat(yMinInput) === 0 && (
+              <p className="text-xs text-destructive">
+                로그 스케일에서 최솟값 0은 사용할 수 없습니다.
+              </p>
+            )}
           </div>
         )}
       </div>
