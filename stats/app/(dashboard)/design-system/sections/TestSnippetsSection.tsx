@@ -97,7 +97,7 @@ export function TestSnippetsSection() {
 
                       {/* 키워드 */}
                       <div className="flex flex-wrap gap-2">
-                        {pattern.keywords.map((keyword) => (
+                        {(pattern.keywords ?? []).map((keyword) => (
                           <Badge key={keyword} variant="outline" className="text-xs">
                             {keyword}
                           </Badge>
