@@ -141,6 +141,20 @@ export function inferColumnMeta(
   });
 }
 
+/**
+ * 데이터 타입 자동 추론 임계값 (경험적 기준).
+ * 여기서 조정하면 모든 inferDataType 판정에 일괄 반영됨.
+ */
+const INFER_TYPE_THRESHOLDS = {
+  /** 수치형/시간형 판정: 샘플의 이 비율 이상이 해당 타입이면 채택 */
+  NUMERIC_RATIO: 0.8,
+  TEMPORAL_RATIO: 0.8,
+  /** ordinal 판정: 유니크 비율이 이 값 미만이면 반복 범주형으로 간주 */
+  ORDINAL_UNIQUE_RATIO: 0.05,
+  /** ordinal 판정: 최소 샘플 크기 (너무 작으면 비율이 불안정) */
+  ORDINAL_MIN_SAMPLE: 20,
+} as const;
+
 function inferDataType(values: unknown[]): DataType {
   if (values.length === 0) return 'nominal';
 
@@ -152,7 +166,7 @@ function inferDataType(values: unknown[]): DataType {
     return !isNaN(num) && v !== '' && v !== null;
   }).length;
 
-  if (numericCount / sample.length > 0.8) {
+  if (numericCount / sample.length > INFER_TYPE_THRESHOLDS.NUMERIC_RATIO) {
     return 'quantitative';
   }
 
@@ -163,13 +177,16 @@ function inferDataType(values: unknown[]): DataType {
     return !isNaN(d.getTime()) && v.length >= 8;
   }).length;
 
-  if (dateCount / sample.length > 0.8) {
+  if (dateCount / sample.length > INFER_TYPE_THRESHOLDS.TEMPORAL_RATIO) {
     return 'temporal';
   }
 
   // 유니크 비율로 nominal/ordinal 판정
   const uniqueRatio = new Set(sample.map(String)).size / sample.length;
-  if (uniqueRatio < 0.05 && sample.length > 20) {
+  if (
+    uniqueRatio < INFER_TYPE_THRESHOLDS.ORDINAL_UNIQUE_RATIO &&
+    sample.length > INFER_TYPE_THRESHOLDS.ORDINAL_MIN_SAMPLE
+  ) {
     return 'ordinal';
   }
 

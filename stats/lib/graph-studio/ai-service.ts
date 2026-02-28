@@ -219,7 +219,9 @@ export async function editChart(request: AiEditRequest): Promise<AiEditResponse>
     throw new AiServiceError(`AI 응답 검증 실패: ${issues}`, 'VALIDATION_FAILED');
   }
 
-  // Readonly 경로 방어 (프롬프트 준수 여부와 무관하게 코드 레벨 강제)
+  // Readonly 경로 방어 — safeParse 이후에 실행하는 이유:
+  // ① result.data가 valid AiEditResponse임이 보장된 상태에서 patch.path 타입 안전 접근
+  // ② 프롬프트에서 이미 금지했지만 코드 레벨에서도 강제 (defense-in-depth)
   assertNonReadonlyPaths(result.data.patches);
 
   return result.data;

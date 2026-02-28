@@ -133,7 +133,10 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       const newIndex = historyIndex - 1;
       const snapshot = specHistory[newIndex];
       set({
-        // exportConfig는 undo 대상이 아님 — 현재 출력 설정을 스냅샷에 씌움
+        // exportConfig(포맷/DPI/물리 크기)는 차트 편집 히스토리와 무관한 출력 설정.
+        // undo로 차트 내용을 되돌려도 사용자의 출력 설정은 유지해야 하므로
+        // 스냅샷 복원 후 현재 exportConfig를 덮어씀.
+        // cf. setExportConfig가 specHistory를 갱신하지 않는 이유도 동일.
         chartSpec: chartSpec
           ? { ...snapshot, exportConfig: chartSpec.exportConfig }
           : snapshot,
@@ -147,7 +150,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       const newIndex = historyIndex + 1;
       const snapshot = specHistory[newIndex];
       set({
-        // exportConfig는 redo 대상이 아님 — 현재 출력 설정을 스냅샷에 씌움
+        // undo와 동일 이유: exportConfig는 redo 대상이 아님
         chartSpec: chartSpec
           ? { ...snapshot, exportConfig: chartSpec.exportConfig }
           : snapshot,
@@ -187,6 +190,9 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         historyIndex: 0,
         // 구버전 sidePanel 값('properties', 'ai-chat' 등) 마이그레이션 → 'data'
         sidePanel: 'data',
+        // aiPanel 상태는 프로젝트와 독립적 — 구버전 localStorage 값 방지를 위해 초기화
+        aiPanelOpen: false,
+        aiPanelDock: 'bottom',
       });
     },
 

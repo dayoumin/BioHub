@@ -3,8 +3,15 @@
 /**
  * useAiChat — AI 채팅 로직 커스텀 훅
  *
- * AiEditTab에서 추출. AiPanel에서 재사용.
- * - chatSpecRef: 비동기 handleSend에서 항상 최신 spec 참조 (stale closure 방지)
+ * AiPanel에서 사용. 원래 AiEditTab에서 추출.
+ *
+ * ### chartSpecRef 패턴 (stale closure 방지)
+ * handleSend는 async 함수이며 useCallback으로 메모이제이션.
+ * dependency 배열에 chartSpec을 포함하면 spec이 바뀔 때마다 콜백이 재생성되는데,
+ * 비동기 실행 중 spec이 변경되면 요청 시점(start) spec과 완료 시점(end) spec이 다를 수 있음.
+ * → useRef로 ref를 만들고 useEffect로 매 렌더마다 동기화,
+ *   비동기 핸들러 내부에서는 항상 ref.current로 최신값에 접근.
+ *
  * - zero-patch 감지, MAX_MESSAGES=30, localStorage 영속
  */
 
@@ -52,6 +59,7 @@ export function useAiChat(): AiChatHook {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // 비동기 handleSend에서 최신 spec 접근 — 상단 JSDoc의 chartSpecRef 패턴 참조
   const chartSpecRef = useRef(chartSpec);
   useEffect(() => { chartSpecRef.current = chartSpec; }, [chartSpec]);
 
