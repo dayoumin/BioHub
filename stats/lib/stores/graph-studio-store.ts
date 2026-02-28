@@ -12,9 +12,16 @@ import type {
   AiEditResponse,
   GraphStudioState,
 } from '@/types/graph-studio';
+import { createChartSpecFromDataPackage } from '@/lib/graph-studio/chart-spec-utils';
+import {
+  saveProject,
+  generateProjectId,
+} from '@/lib/graph-studio/project-storage';
 
 interface GraphStudioActions {
   // 데이터
+  /** DataPackage 로드 + 초기 ChartSpec 자동 생성 (원자적 단일 액션) */
+  loadDataPackage: (pkg: DataPackage) => void;
   setDataPackage: (pkg: DataPackage) => void;
   clearData: () => void;
 
@@ -33,11 +40,12 @@ interface GraphStudioActions {
   setExportProgress: (progress: number) => void;
 
   // UI
-  setPreviewMode: (mode: 'vega' | 'matplotlib') => void;
   setSidePanel: (panel: GraphStudioState['sidePanel']) => void;
 
   // 프로젝트
-  setProject: (project: GraphProject) => void;
+  setProject: (project: GraphProject, dataPackage?: DataPackage) => void;
+  /** 현재 chartSpec을 프로젝트로 저장 (localStorage). 생성된 projectId 반환, 실패 시 null */
+  saveCurrentProject: (name: string) => string | null;
   resetAll: () => void;
 }
 
@@ -52,7 +60,6 @@ const initialState: GraphStudioState = {
   lastAiResponse: null,
   isExporting: false,
   exportProgress: 0,
-  previewMode: 'vega',
   sidePanel: 'properties',
 };
 
@@ -64,6 +71,21 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
 
     // ── 데이터 ──
 
+    loadDataPackage: (pkg) => {
+      const spec = createChartSpecFromDataPackage(pkg);
+      set({
+        dataPackage: pkg,
+        isDataLoaded: true,
+        chartSpec: spec,
+        specHistory: [spec],
+        historyIndex: 0,
+      });
+    },
+
+    /**
+     * @deprecated loadDataPackage 사용 권장.
+     * chartSpec을 자동 생성하지 않아 데이터와 스펙이 불일치 상태가 됨.
+     */
     setDataPackage: (pkg) => set({
       dataPackage: pkg,
       isDataLoaded: true,
@@ -92,7 +114,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       newHistory.push(spec);
 
       // 히스토리 상한
-      if (newHistory.length > MAX_HISTORY) {
+      while (newHistory.length > MAX_HISTORY) {
         newHistory.shift();
       }
 
@@ -135,17 +157,40 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
 
     // ── UI ──
 
-    setPreviewMode: (mode) => set({ previewMode: mode }),
     setSidePanel: (panel) => set({ sidePanel: panel }),
 
     // ── 프로젝트 ──
 
-    setProject: (project) => set({
+    setProject: (project, dataPackage) => set({
       currentProject: project,
+      dataPackage: dataPackage ?? null,
+      isDataLoaded: dataPackage != null,
       chartSpec: project.chartSpec,
       specHistory: [project.chartSpec],
       historyIndex: 0,
     }),
+
+    saveCurrentProject: (name) => {
+      const { chartSpec, dataPackage, currentProject } = get();
+      if (!chartSpec) return null;
+
+      const now = new Date().toISOString();
+      // 기존 프로젝트가 있으면 같은 ID로 업데이트, 없으면 새로 생성
+      const projectId = currentProject?.id ?? generateProjectId();
+      const project: GraphProject = {
+        id: projectId,
+        name,
+        chartSpec,
+        dataPackageId: dataPackage?.id ?? '',
+        editHistory: currentProject?.editHistory ?? [],
+        createdAt: currentProject?.createdAt ?? now,
+        updatedAt: now,
+      };
+
+      saveProject(project);
+      set({ currentProject: project });
+      return projectId;
+    },
 
     resetAll: () => set(initialState),
   }),

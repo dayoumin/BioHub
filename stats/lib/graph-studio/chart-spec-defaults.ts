@@ -163,7 +163,7 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     label: 'Heatmap',
     description: '행렬형 값 비교',
     suggestedXType: 'nominal',
-    suggestedYType: 'nominal',
+    suggestedYType: 'quantitative',
     supportsColor: false,
     supportsErrorBar: false,
     supportsAggregate: true,
