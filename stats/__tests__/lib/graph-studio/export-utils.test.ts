@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { downloadChart } from '@/lib/graph-studio/export-utils';
+import { downloadChart, mmToPx } from '@/lib/graph-studio/export-utils';
 import type { ExportConfig } from '@/types/graph-studio';
 import type { EChartsType } from 'echarts';
 
@@ -214,5 +214,112 @@ describe('downloadChart', () => {
     expect(mockLink.href).toBe(MOCK_SVG_URL);
     expect(mockLink.download).toBe('fig-1.svg');
     expect(mockLink.click).toHaveBeenCalledOnce();
+  });
+
+  // ── physicalWidth/Height → resize-export-restore ──────
+  // 신규: mm 크기 지정 시 ECharts를 resize하고 export 후 원복
+
+  it('physicalWidth 지정 시 resize → getDataURL → resize() 호출 순서', () => {
+    const echarts = {
+      ...makeMockECharts(),
+      resize: vi.fn(),
+    } as unknown as EChartsType & { resize: ReturnType<typeof vi.fn> };
+
+    downloadChart(
+      echarts,
+      makeConfig({ format: 'png', dpi: 300, physicalWidth: 86 }),
+      'nature',
+    );
+
+    // resize 2회: 1번째=물리 크기, 2번째=원복(인수 없음)
+    expect(echarts.resize).toHaveBeenCalledTimes(2);
+    const firstCall = (echarts.resize as ReturnType<typeof vi.fn>).mock.calls[0];
+    const secondCall = (echarts.resize as ReturnType<typeof vi.fn>).mock.calls[1];
+
+    // 첫 번째 resize: width 지정 (86mm × 300DPI = 1016px)
+    expect(firstCall[0]).toMatchObject({ width: 1016 });
+    // 두 번째 resize: 인수 없음 (DOM 크기 원복)
+    expect(secondCall).toHaveLength(0);
+  });
+
+  it('physicalWidth/Height 모두 지정 시 resize에 width/height 모두 전달', () => {
+    const echarts = {
+      ...makeMockECharts(),
+      resize: vi.fn(),
+    } as unknown as EChartsType & { resize: ReturnType<typeof vi.fn> };
+
+    downloadChart(
+      echarts,
+      makeConfig({ format: 'png', dpi: 300, physicalWidth: 86, physicalHeight: 60 }),
+      'fig',
+    );
+
+    const firstCall = (echarts.resize as ReturnType<typeof vi.fn>).mock.calls[0];
+    // 86mm × 300DPI / 25.4 ≈ 1016, 60mm × 300DPI / 25.4 ≈ 709
+    expect(firstCall[0]).toMatchObject({ width: 1016, height: 709 });
+  });
+
+  it('physicalWidth/Height 미지정 시 resize 호출 없음', () => {
+    const echarts = {
+      ...makeMockECharts(),
+      resize: vi.fn(),
+    } as unknown as EChartsType & { resize: ReturnType<typeof vi.fn> };
+
+    downloadChart(echarts, makeConfig({ format: 'png', dpi: 300 }), 'fig');
+
+    expect(echarts.resize).not.toHaveBeenCalled();
+  });
+
+  it('physicalWidth 지정 시 pixelRatio=1 (DPI 이중 적용 방지)', () => {
+    // resize()로 이미 목표 px에 맞췄으므로 getDataURL의 pixelRatio는 1이어야 함
+    const echarts = {
+      ...makeMockECharts(),
+      resize: vi.fn(),
+    } as unknown as EChartsType & { resize: ReturnType<typeof vi.fn> };
+
+    downloadChart(echarts, makeConfig({ format: 'png', dpi: 300, physicalWidth: 86 }), 'fig');
+
+    expect(echarts.getDataURL).toHaveBeenCalledWith(
+      expect.objectContaining({ pixelRatio: 1 }),
+    );
+  });
+
+  it('physicalWidth 미지정 시 pixelRatio=dpi/96 (정상 HiDPI)', () => {
+    const echarts = makeMockECharts();
+    downloadChart(echarts, makeConfig({ format: 'png', dpi: 192 }), 'fig');
+
+    expect(echarts.getDataURL).toHaveBeenCalledWith(
+      expect.objectContaining({ pixelRatio: 2 }),
+    );
+  });
+});
+
+// ─── [신규] mmToPx ─────────────────────────────────────────
+// 공식: Math.round(mm * dpi / 25.4)
+// 검증: Nature 단칼(86mm), 300DPI → 1016px
+
+describe('mmToPx (신규)', () => {
+  it('86mm × 300DPI → 1016px (Nature 단일 칼럼)', () => {
+    // 86 * 300 / 25.4 = 1015.748... → round = 1016
+    expect(mmToPx(86, 300)).toBe(1016);
+  });
+
+  it('178mm × 300DPI → 2102px (Nature 전체 너비)', () => {
+    // 178 * 300 / 25.4 = 2102.36... → round = 2102
+    expect(mmToPx(178, 300)).toBe(2102);
+  });
+
+  it('25.4mm × 96DPI → 96px (1인치 = 96px)', () => {
+    // 25.4mm = 1inch → 1inch × 96DPI = 96px
+    expect(mmToPx(25.4, 96)).toBe(96);
+  });
+
+  it('결과는 Math.round 정수이다', () => {
+    const result = mmToPx(50, 150);
+    expect(Number.isInteger(result)).toBe(true);
+  });
+
+  it('0mm → 0px', () => {
+    expect(mmToPx(0, 300)).toBe(0);
   });
 });

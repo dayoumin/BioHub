@@ -166,6 +166,9 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         exportConfig: {
           format: raw.exportConfig.format,
           dpi: raw.exportConfig.dpi,
+          // physicalWidth/Height는 신규 필드이므로 보존 (undefined면 포함 안 함)
+          ...(raw.exportConfig.physicalWidth !== undefined && { physicalWidth: raw.exportConfig.physicalWidth }),
+          ...(raw.exportConfig.physicalHeight !== undefined && { physicalHeight: raw.exportConfig.physicalHeight }),
         },
       };
       set({

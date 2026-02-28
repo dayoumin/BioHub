@@ -126,6 +126,10 @@ export type ExportFormat = 'svg' | 'png';
 export interface ExportConfig {
   format: ExportFormat;
   dpi: number;
+  /** 출력 너비 (mm). undefined = 현재 DOM 크기 사용. */
+  physicalWidth?: number;
+  /** 출력 높이 (mm). undefined = 현재 DOM 크기 사용. */
+  physicalHeight?: number;
 }
 
 // ─── ChartSpec (핵심) ──────────────────────────────────────

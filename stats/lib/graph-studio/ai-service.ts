@@ -49,7 +49,7 @@ Generate a minimal RFC 6902 JSON Patch that transforms the ChartSpec to fulfill 
 - aggregate: {y: mean|median|sum|count|min|max, groupBy: string[]} (optional)
 - style: {preset: default|science|ieee|grayscale, font, colors, background, padding, overrides}
 - annotations: array of {type: text|line|rect, ...}
-- exportConfig: {format: svg|png, dpi}
+- exportConfig: {format: svg|png, dpi, physicalWidth?: mm, physicalHeight?: mm} (physicalWidth/Height=출력 물리 크기(mm), 미지정=DOM 크기)
 
 ## Response Format (STRICT JSON ONLY)
 Return ONLY this JSON object — no markdown, no prose outside the object:

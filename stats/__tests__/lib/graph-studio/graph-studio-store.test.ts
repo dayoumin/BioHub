@@ -449,6 +449,33 @@ describe('setProject — 구버전 exportConfig 마이그레이션', () => {
     expect('transparent' in (chartSpec?.exportConfig ?? {})).toBe(false)
   })
 
+  it('physicalWidth/Height가 있는 최신 exportConfig는 값이 보존된다', () => {
+    const modernSpec = {
+      ...makeSpec(),
+      exportConfig: { format: 'png', dpi: 300, physicalWidth: 86, physicalHeight: 60 },
+    } as unknown as ChartSpec
+
+    const project = makeProject({ chartSpec: modernSpec })
+    act(() => { useGraphStudioStore.getState().setProject(project) })
+
+    const { chartSpec } = useGraphStudioStore.getState()
+    expect(chartSpec?.exportConfig).toEqual({ format: 'png', dpi: 300, physicalWidth: 86, physicalHeight: 60 })
+  })
+
+  it('구버전 exportConfig에 physicalWidth/Height 없으면 마이그레이션 후 필드가 생기지 않는다', () => {
+    const legacySpec = {
+      ...makeSpec(),
+      exportConfig: { format: 'png', dpi: 300, width: 800, height: 600 },
+    } as unknown as ChartSpec
+
+    const project = makeProject({ chartSpec: legacySpec })
+    act(() => { useGraphStudioStore.getState().setProject(project) })
+
+    const { chartSpec } = useGraphStudioStore.getState()
+    expect('physicalWidth' in (chartSpec?.exportConfig ?? {})).toBe(false)
+    expect('physicalHeight' in (chartSpec?.exportConfig ?? {})).toBe(false)
+  })
+
   it('정규화된 spec으로 AI 패치 검증이 통과된다', async () => {
     // 재현 케이스: 구버전 spec에 /title 패치 → applyAndValidatePatches success: true여야 함
     const { applyAndValidatePatches } = await import('@/lib/graph-studio/chart-spec-utils')

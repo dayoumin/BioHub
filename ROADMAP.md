@@ -1551,6 +1551,11 @@ Smart Flow → ANOVA 결과 → Graph Studio → 논문용 박스플롯 PNG
 - Smart Flow 결과 데이터를 `DataPackage` 포맷으로 변환하는 어댑터 함수 구현
 - 현재 코드가 이 확장을 막는 구조는 아님 (설계상 열려 있음)
 
+### 향후 과제: 이미지 삽입 기능
+- 논문 차트 내 이미지 오버레이 (예: 조직 사진 + 그래프 결합)
+- ECharts `graphic` API 활용 또는 HTML Canvas 합성 방식 검토
+- 우선순위: Bio-Tools 완료 이후
+
 **우선순위**: Phase 15 이후 (Bio-Tools + 실사용 피드백 수집 후 결정)
 - 용어 정비 (Smart Flow / Bio-Tools / 레거시 구분 명확화) (2026-02-13)
 - Cloudflare Workers 백엔드 계획 수립 (KV/R2/D1 + 내부망 어댑터) (2026-02-06)

@@ -428,14 +428,87 @@ function xAxisBase(spec: ChartSpec, style: StyleConfig, type: 'category' | 'valu
 }
 
 function yAxisBase(spec: ChartSpec, style: StyleConfig) {
+  const scale = spec.encoding.y.scale;
+  // ECharts는 'log' 타입만 지원. sqrt/symlog → 'value' fallback.
+  const axisType = scale?.type === 'log' ? ('log' as const) : ('value' as const);
+  // numeric domain만 min/max로 매핑 (string[] 카테고리 도메인은 무시)
+  const domain = (
+    scale?.domain &&
+    scale.domain.length === 2 &&
+    typeof scale.domain[0] === 'number'
+  ) ? (scale.domain as [number, number]) : undefined;
+
   return {
-    type: 'value' as const,
+    type: axisType,
     name: spec.encoding.y.title ?? spec.encoding.y.field,
     nameLocation: 'middle' as const,
     nameGap: 48,
     nameTextStyle: { fontFamily: style.fontFamily, fontSize: style.labelSize },
     axisLabel: { fontFamily: style.fontFamily, fontSize: style.labelSize },
     splitLine: { show: spec.encoding.y.grid ?? true },
+    ...(domain ? { min: domain[0], max: domain[1] } : {}),
+  };
+}
+
+/** encoding.color.legend.orient → ECharts legend 포지셔닝 */
+function buildLegend(spec: ChartSpec, style: StyleConfig): Record<string, unknown> {
+  const orient = spec.encoding.color?.legend?.orient;
+  if (orient === 'none') return { show: false };
+  const posMap: Record<string, Record<string, unknown>> = {
+    top:           { orient: 'horizontal', top: 0,      left: 'center' },
+    bottom:        { orient: 'horizontal', bottom: 0,   left: 'center' },
+    left:          { orient: 'vertical',   left: 0,     top: 'center'  },
+    right:         { orient: 'vertical',   right: 0,    top: 'center'  },
+    'top-left':    { orient: 'horizontal', top: 0,      left: 0        },
+    'top-right':   { orient: 'horizontal', top: 0,      right: 0       },
+    'bottom-left': { orient: 'horizontal', bottom: 0,   left: 0        },
+    'bottom-right':{ orient: 'horizontal', bottom: 0,   right: 0       },
+  };
+  return {
+    ...(orient && posMap[orient] ? posMap[orient] : { orient: 'horizontal' }),
+    textStyle: { fontFamily: style.fontFamily, fontSize: style.labelSize },
+  };
+}
+
+/**
+ * bar/line 차트에 에러바 오버레이 custom series를 추가.
+ * 이미 buildErrorBarData로 계산된 결과를 받아 이중 계산 방지.
+ */
+function buildErrorBarOverlay(
+  categories: string[],
+  means: number[],
+  lowers: number[],
+  uppers: number[],
+): Record<string, unknown> {
+  return {
+    type: 'custom',
+    name: 'Error',
+    z: 3,
+    renderItem: (_params: unknown, api: unknown) => {
+      const a = api as {
+        value: (idx: number) => number | string;
+        coord: (point: [number, number]) => [number, number];
+        size: (dataSize: [number, number]) => [number, number];
+      };
+      const xIdx = Number(a.value(0));
+      const mean = Number(a.value(1));
+      const lower = Number(a.value(2));
+      const upper = Number(a.value(3));
+      const [cx] = a.coord([xIdx, mean]);
+      const [, yTop] = a.coord([xIdx, mean + upper]);
+      const [, yBot] = a.coord([xIdx, mean - lower]);
+      const capHalf = a.size([1, 0])[0] * 0.12;
+      const lineStyle = { stroke: '#333', lineWidth: 1.5 };
+      return {
+        type: 'group',
+        children: [
+          { type: 'line', shape: { x1: cx, y1: yTop, x2: cx, y2: yBot }, style: lineStyle },
+          { type: 'line', shape: { x1: cx - capHalf, y1: yTop, x2: cx + capHalf, y2: yTop }, style: lineStyle },
+          { type: 'line', shape: { x1: cx - capHalf, y1: yBot, x2: cx + capHalf, y2: yBot }, style: lineStyle },
+        ],
+      };
+    },
+    data: categories.map((_, i) => [i, means[i] ?? 0, lowers[i] ?? 0, uppers[i] ?? 0]),
   };
 }
 
@@ -469,6 +542,22 @@ export function chartSpecToECharts(
 
   // ── bar ────────────────────────────────────────────────────
   if (spec.chartType === 'bar') {
+    // 에러바 있으면 explicit data 모드 (custom renderItem이 x-index 필요)
+    if (spec.errorBar) {
+      const { categories, means, lowers, uppers } = buildErrorBarData(
+        rows, xField, yField, spec.errorBar.type, spec.errorBar.value ?? 95,
+      );
+      return {
+        ...base,
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        xAxis: { ...xAxisBase(spec, style, 'category'), data: categories },
+        yAxis: yAxisBase(spec, style),
+        series: [
+          { type: 'bar', data: means, name: yField, z: 2 },
+          buildErrorBarOverlay(categories, means, lowers, uppers),
+        ],
+      };
+    }
     return {
       ...base,
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -486,7 +575,7 @@ export function chartSpecToECharts(
       return {
         ...base,
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        legend: { textStyle: { fontFamily: style.fontFamily, fontSize: style.labelSize } },
+        legend: buildLegend(spec, style),
         xAxis: { ...xAxisBase(spec, style, 'category'), data: categories },
         yAxis: yAxisBase(spec, style),
         series: groups.map(g => ({
@@ -514,7 +603,7 @@ export function chartSpecToECharts(
       return {
         ...base,
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        legend: { textStyle: { fontFamily: style.fontFamily, fontSize: style.labelSize } },
+        legend: buildLegend(spec, style),
         xAxis: { ...xAxisBase(spec, style, 'category'), data: categories },
         yAxis: yAxisBase(spec, style),
         series: groups.map(g => ({
@@ -555,7 +644,7 @@ export function chartSpecToECharts(
         return {
           ...base,
           tooltip: { trigger: 'axis' },
-          legend: { textStyle: { fontFamily: style.fontFamily, fontSize: style.labelSize } },
+          legend: buildLegend(spec, style),
           xAxis: { ...xAxisBase(spec, style, 'time') },
           yAxis: yAxisBase(spec, style),
           series: groupOrder.map(g => ({
@@ -572,7 +661,7 @@ export function chartSpecToECharts(
       return {
         ...base,
         tooltip: { trigger: 'axis' },
-        legend: { textStyle: { fontFamily: style.fontFamily, fontSize: style.labelSize } },
+        legend: buildLegend(spec, style),
         xAxis: { ...xAxisBase(spec, style, 'category'), data: categories },
         yAxis: yAxisBase(spec, style),
         series: groups.map(g => ({
@@ -585,6 +674,7 @@ export function chartSpecToECharts(
     }
 
     // For temporal axis, convert data to [x, y] pairs to ensure proper date parsing
+    // (에러바는 temporal X에서 미지원 — 시계열은 그룹별 분산이 무의미)
     if (xType === 'time') {
       return {
         ...base,
@@ -600,6 +690,23 @@ export function chartSpecToECharts(
             .filter(([, y]) => !isNaN(y))
             .sort(sortByDate),
         }],
+      };
+    }
+
+    // 에러바 있으면 explicit data 모드로 전환 (category X만 지원)
+    if (spec.errorBar && xType === 'category') {
+      const { categories, means, lowers, uppers } = buildErrorBarData(
+        rows, xField, yField, spec.errorBar.type, spec.errorBar.value ?? 95,
+      );
+      return {
+        ...base,
+        tooltip: { trigger: 'axis' },
+        xAxis: { ...xAxisBase(spec, style, 'category'), data: categories },
+        yAxis: yAxisBase(spec, style),
+        series: [
+          { type: 'line', data: means, name: yField, smooth: false, z: 2 },
+          buildErrorBarOverlay(categories, means, lowers, uppers),
+        ],
       };
     }
 
@@ -627,7 +734,7 @@ export function chartSpecToECharts(
       return {
         ...base,
         tooltip: { trigger: 'item' },
-        legend: { textStyle: { fontFamily: style.fontFamily, fontSize: style.labelSize } },
+        legend: buildLegend(spec, style),
         xAxis: { ...xAxisBase(spec, style, 'value') },
         yAxis: yAxisBase(spec, style),
         series: groupOrder.map(g => ({

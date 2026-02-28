@@ -104,7 +104,7 @@ function MessageBubble({ message }: MessageBubbleProps): React.ReactElement {
 // ─── 메인 컴포넌트 ─────────────────────────────────────────
 
 export function AiEditTab(): React.ReactElement {
-  const { chartSpec, updateChartSpec } = useGraphStudioStore();
+  const { chartSpec, sidePanel, updateChartSpec } = useGraphStudioStore();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -121,6 +121,7 @@ export function AiEditTab(): React.ReactElement {
   useEffect(() => {
     chartSpecRef.current = chartSpec;
   }, [chartSpec]);
+  const chartSourceId = chartSpec?.data.sourceId;
 
   // localStorage에서 대화 기록 로드 (마운트 시 1회)
   useEffect(() => {
@@ -151,17 +152,14 @@ export function AiEditTab(): React.ReactElement {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // 탭 마운트 시 textarea autofocus (데이터 로드 상태일 때만)
-  // deps=[] 의도: 탭 전환 시 TabsContent가 언마운트→리마운트되므로 마운트 1회 실행이 곧 "탭 진입 시"
-  // chartSpec을 deps에 포함하면 AI 편집 완료 후 다른 탭의 포커스를 빼앗음
-  // TODO: 향후 TabsContent에 forceMount가 추가되면 이 방식이 깨짐
-  //       그때는 sidePanel store 값 기반 effect로 교체 필요
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // sidePanel 기반 autofocus:
+  // - ai-chat 탭 진입 시 1회 포커스
+  // - 데이터 소스가 새로 로드된 직후(ai-chat에 머무는 경우)에도 포커스
+  // - chartSpec 전체를 deps에 넣지 않아 AI 편집 중 불필요한 재포커스 방지
   useEffect(() => {
-    if (chartSpecRef.current) {
-      textareaRef.current?.focus();
-    }
-  }, []);
+    if (sidePanel !== 'ai-chat' || !chartSpecRef.current) return;
+    textareaRef.current?.focus();
+  }, [sidePanel, chartSourceId]);
 
   /**
    * MAX_MESSAGES 초과 시 오래된 메시지부터 제거.
@@ -280,6 +278,8 @@ export function AiEditTab(): React.ReactElement {
               'IEEE 흑백 스타일로 바꿔줘',
               '범례를 오른쪽 위로 옮겨줘',
               'Y축 제목을 "Weight (kg)"으로',
+              'Nature 제출용으로 바꿔줘',
+              'IEEE 스타일로 바꿔줘',
             ].map(example => (
               <button
                 key={example}

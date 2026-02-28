@@ -71,6 +71,20 @@ export const DEFAULT_EXPORT_CONFIG: ExportConfig = {
   dpi: 300,
 };
 
+// ─── 저널 사이즈 프리셋 ─────────────────────────────────────
+// 각 저널의 표준 칼럼 너비 (mm). height는 그래프 종류마다 가변.
+// 출처: Nature (86/178mm), Cell (88/183mm), PNAS (87/180mm), ACS (84/178mm)
+
+export const JOURNAL_SIZE_PRESETS = [
+  { key: 'nature-single', label: 'Nature 단일 칼럼', width: 86 },
+  { key: 'nature-double', label: 'Nature 전체 너비', width: 178 },
+  { key: 'cell-single',   label: 'Cell 단일 칼럼',   width: 88 },
+  { key: 'pnas-single',   label: 'PNAS 단일 칼럼',   width: 87 },
+  { key: 'acs-single',    label: 'ACS 단일 칼럼',    width: 84 },
+] as const;
+
+export type JournalPresetKey = typeof JOURNAL_SIZE_PRESETS[number]['key'];
+
 // ─── 차트 유형별 권장 설정 ──────────────────────────────────
 
 interface ChartTypeHint {

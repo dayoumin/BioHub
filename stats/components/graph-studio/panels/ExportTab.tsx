@@ -3,16 +3,15 @@
 /**
  * Export 탭 — SVG/PNG 내보내기 설정
  *
- * Stage 3: ECharts getDataURL(format, pixelRatio) 연결 완료
- * onExport: GraphStudioPage → SidePanel → ExportTab으로 주입
- *
- * 주의: ECharts getDataURL은 현재 DOM 크기 기준으로 출력됨.
- *       출력 크기는 DPI(pixelRatio)로만 조정 가능.
+ * physicalWidth/Height (mm) 지정 시:
+ *   ECharts resize({ width, height }) → getDataURL/getSvgDataURL → resize() 원복
+ * 저널 프리셋: Nature/Cell/PNAS/ACS 표준 칼럼 너비를 한 번에 입력
  */
 
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -22,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Download } from 'lucide-react';
+import { JOURNAL_SIZE_PRESETS, mmToPx } from '@/lib/graph-studio';
 import type { ExportFormat } from '@/types/graph-studio';
 
 const DPI_OPTIONS = [72, 150, 300, 600] as const;
@@ -33,12 +33,38 @@ const SUPPORTED_FORMATS: { value: ExportFormat; label: string }[] = [
 ];
 
 interface ExportTabProps {
-  /** Stage 3: Export 실행 핸들러 (GraphStudioPage에서 주입) */
+  /** Export 실행 핸들러 (GraphStudioPage에서 주입) */
   onExport?: () => void;
 }
 
 export function ExportTab({ onExport }: ExportTabProps): React.ReactElement {
   const { chartSpec, setExportConfig } = useGraphStudioStore();
+
+  // 물리적 크기 로컬 state — onBlur 시 setExportConfig (undo 히스토리 제외 의도)
+  const [widthInput, setWidthInput] = useState(
+    chartSpec?.exportConfig.physicalWidth !== undefined
+      ? String(chartSpec.exportConfig.physicalWidth)
+      : '',
+  );
+  const [heightInput, setHeightInput] = useState(
+    chartSpec?.exportConfig.physicalHeight !== undefined
+      ? String(chartSpec.exportConfig.physicalHeight)
+      : '',
+  );
+
+  // AI 편집 등 외부 변경 동기화
+  useEffect(() => {
+    setWidthInput(
+      chartSpec?.exportConfig.physicalWidth !== undefined
+        ? String(chartSpec.exportConfig.physicalWidth)
+        : '',
+    );
+    setHeightInput(
+      chartSpec?.exportConfig.physicalHeight !== undefined
+        ? String(chartSpec.exportConfig.physicalHeight)
+        : '',
+    );
+  }, [chartSpec?.exportConfig.physicalWidth, chartSpec?.exportConfig.physicalHeight]);
 
   const handleFormatChange = useCallback((value: string) => {
     if (!chartSpec) return;
@@ -50,11 +76,37 @@ export function ExportTab({ onExport }: ExportTabProps): React.ReactElement {
     setExportConfig({ ...chartSpec.exportConfig, dpi: Number(value) });
   }, [chartSpec, setExportConfig]);
 
+  const handlePhysicalSizeBlur = useCallback(() => {
+    if (!chartSpec) return;
+    const w = parseFloat(widthInput);
+    const h = parseFloat(heightInput);
+    setExportConfig({
+      ...chartSpec.exportConfig,
+      physicalWidth: !isNaN(w) && w > 0 ? w : undefined,
+      physicalHeight: !isNaN(h) && h > 0 ? h : undefined,
+    });
+  }, [chartSpec, widthInput, heightInput, setExportConfig]);
+
+  const handleJournalPreset = useCallback((width: number) => {
+    if (!chartSpec) return;
+    setWidthInput(String(width));
+    // heightInput에 이미 타이핑된 값이 있으면 함께 반영 (blur 전에도 존중)
+    const h = parseFloat(heightInput);
+    setExportConfig({
+      ...chartSpec.exportConfig,
+      physicalWidth: width,
+      physicalHeight: !isNaN(h) && h > 0 ? h : chartSpec.exportConfig.physicalHeight,
+    });
+  }, [chartSpec, heightInput, setExportConfig]);
+
   if (!chartSpec) {
     return <p className="text-sm text-muted-foreground">데이터를 먼저 업로드하세요</p>;
   }
 
   const { exportConfig } = chartSpec;
+  const parsedW = parseFloat(widthInput);
+  const parsedH = parseFloat(heightInput);
+  const showPixelPreview = !isNaN(parsedW) && parsedW > 0 && !isNaN(parsedH) && parsedH > 0;
 
   return (
     <div className="space-y-4">
@@ -94,10 +146,64 @@ export function ExportTab({ onExport }: ExportTabProps): React.ReactElement {
         </div>
       )}
 
-      {/* 크기 안내 — ECharts getDataURL은 width/height 파라미터 미지원 */}
-      <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-        출력 크기는 현재 차트 패널 크기를 따릅니다.<br />
-        고해상도 PNG는 DPI를 높여 픽셀 비율을 조정하세요.
+      {/* 출력 크기 (선택) */}
+      <div className="space-y-2">
+        <Label className="text-xs">출력 크기 (mm, 선택)</Label>
+
+        {/* 저널 프리셋 버튼 */}
+        <div className="flex flex-wrap gap-1">
+          {JOURNAL_SIZE_PRESETS.map(({ key, label, width }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => handleJournalPreset(width)}
+              className="text-xs border border-border rounded px-1.5 py-0.5 hover:bg-muted transition-colors"
+              title={`너비 ${width}mm`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* 너비·높이 입력 */}
+        <div className="flex gap-1.5 items-center">
+          <div className="flex-1 space-y-1">
+            <Label className="text-xs text-muted-foreground">너비 (mm)</Label>
+            <Input
+              value={widthInput}
+              onChange={(e) => setWidthInput(e.target.value)}
+              onBlur={handlePhysicalSizeBlur}
+              placeholder="예: 86"
+              className="h-7 text-xs"
+              type="number"
+              min="1"
+            />
+          </div>
+          <div className="flex-1 space-y-1">
+            <Label className="text-xs text-muted-foreground">높이 (mm)</Label>
+            <Input
+              value={heightInput}
+              onChange={(e) => setHeightInput(e.target.value)}
+              onBlur={handlePhysicalSizeBlur}
+              placeholder="예: 60"
+              className="h-7 text-xs"
+              type="number"
+              min="1"
+            />
+          </div>
+        </div>
+
+        {/* 픽셀 미리보기 */}
+        {showPixelPreview ? (
+          <p className="text-xs text-muted-foreground">
+            {mmToPx(parsedW, exportConfig.dpi)} × {mmToPx(parsedH, exportConfig.dpi)} px
+            ({exportConfig.dpi} DPI 기준)
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            빈칸이면 현재 차트 패널 크기로 출력됩니다.
+          </p>
+        )}
       </div>
 
       {/* Export 버튼 */}

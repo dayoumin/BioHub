@@ -15,8 +15,17 @@ function dpiToPixelRatio(dpi: number): number {
 }
 
 /**
+ * mm → px 변환 (인치 = 25.4mm 기준)
+ * 예) 86mm × 300 DPI = 1016 px
+ */
+export function mmToPx(mm: number, dpi: number): number {
+  return Math.round(mm * dpi / 25.4);
+}
+
+/**
  * ECharts 인스턴스에서 Data URL을 추출해 파일로 다운로드.
  *
+ * physicalWidth/Height 지정 시: ECharts를 해당 px 크기로 일시 resize → export → DOM 크기로 원복.
  * SVG 렌더러와 Canvas 렌더러에서 각각 올바른 메서드를 사용.
  */
 export function downloadChart(
@@ -26,6 +35,15 @@ export function downloadChart(
 ): void {
   if (!echartsInstance) return;
 
+  // 물리적 크기 지정 시 일시 resize
+  const targetW = config.physicalWidth ? mmToPx(config.physicalWidth, config.dpi) : undefined;
+  const targetH = config.physicalHeight ? mmToPx(config.physicalHeight, config.dpi) : undefined;
+  const needsResize = targetW !== undefined || targetH !== undefined;
+
+  if (needsResize) {
+    echartsInstance.resize({ width: targetW, height: targetH });
+  }
+
   let dataUrl: string;
 
   if (config.format === 'svg') {
@@ -33,12 +51,19 @@ export function downloadChart(
     dataUrl = echartsInstance.getSvgDataURL();
   } else {
     // Canvas 렌더러 (기본) — PNG export
-    const pixelRatio = dpiToPixelRatio(config.dpi);
+    // physicalSize 지정 시: resize()로 이미 목표 px에 맞췄으므로 pixelRatio=1
+    // physicalSize 미지정 시: DOM 크기 × pixelRatio = 고해상도 PNG
+    const pixelRatio = needsResize ? 1 : dpiToPixelRatio(config.dpi);
     dataUrl = echartsInstance.getDataURL({
       type: 'png',
       pixelRatio,
       backgroundColor: '#ffffff',
     });
+  }
+
+  // DOM 크기로 원복
+  if (needsResize) {
+    echartsInstance.resize();
   }
 
   const ext = config.format === 'svg' ? 'svg' : 'png';

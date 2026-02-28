@@ -126,6 +126,8 @@ const styleSchema = z.object({
 const exportConfigSchema = z.object({
   format: exportFormatSchema,
   dpi: z.number().int().min(72).max(1200),
+  physicalWidth: z.number().positive().optional(),
+  physicalHeight: z.number().positive().optional(),
 }).strict();
 
 // ─── ChartSpec 메인 스키마 ─────────────────────────────────

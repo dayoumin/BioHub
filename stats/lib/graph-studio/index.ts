@@ -16,7 +16,9 @@ export {
   DEFAULT_EXPORT_CONFIG,
   CHART_TYPE_HINTS,
   createDefaultChartSpec,
+  JOURNAL_SIZE_PRESETS,
 } from './chart-spec-defaults';
+export type { JournalPresetKey } from './chart-spec-defaults';
 
 // 유틸리티
 export {
@@ -34,7 +36,7 @@ export {
 export { chartSpecToECharts } from './echarts-converter';
 
 // Export 유틸리티
-export { downloadChart } from './export-utils';
+export { downloadChart, mmToPx } from './export-utils';
 
 // 프로젝트 저장소
 export {
