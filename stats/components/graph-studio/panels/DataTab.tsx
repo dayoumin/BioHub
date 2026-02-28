@@ -200,6 +200,16 @@ export function DataTab(): React.ReactElement {
     });
   }, [chartSpec, updateChartSpec]);
 
+  // ─── 회귀선 (scatter 전용) ────────────────────────────────
+
+  const handleTrendlineToggle = useCallback((checked: boolean) => {
+    if (!chartSpec) return;
+    updateChartSpec({
+      ...chartSpec,
+      trendline: checked ? { type: 'linear' } : undefined,
+    });
+  }, [chartSpec, updateChartSpec]);
+
   // ─── 에러바 ───────────────────────────────────────────────
 
   const handleErrorBarTypeChange = useCallback((value: string) => {
@@ -237,6 +247,7 @@ export function DataTab(): React.ReactElement {
     chartSpec.chartType !== 'line' ||
     (!chartSpec.encoding.color?.field && chartSpec.encoding.x.type !== 'temporal')
   );
+  const showTrendline = chartSpec.chartType === 'scatter';
 
   return (
     <div className="space-y-4">
@@ -463,6 +474,27 @@ export function DataTab(): React.ReactElement {
                 </SelectContent>
               </Select>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* 회귀선 (scatter 전용) */}
+      {showTrendline && (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="trendline-toggle" className="text-xs cursor-pointer">
+              회귀선 (선형)
+            </Label>
+            <Switch
+              id="trendline-toggle"
+              checked={!!chartSpec.trendline}
+              onCheckedChange={handleTrendlineToggle}
+            />
+          </div>
+          {chartSpec.trendline && (
+            <p className="text-xs text-muted-foreground">
+              R² 값은 툴팁에서 확인 가능합니다
+            </p>
           )}
         </div>
       )}

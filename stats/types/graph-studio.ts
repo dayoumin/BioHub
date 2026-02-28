@@ -86,6 +86,32 @@ export interface ErrorBarSpec {
   value?: number;  // CI의 경우 95, 99 등
 }
 
+// ─── Trendline ─────────────────────────────────────────────
+
+export interface TrendlineSpec {
+  /** 현재 linear만 지원 (polynomial은 G2-3 예정) */
+  type: 'linear';
+  color?: string;
+  /** ECharts lineDash 배열. 예: [4, 2] */
+  strokeDash?: number[];
+  /** true이면 회귀 방정식(y = ax + b)과 R² 툴팁에 표시 */
+  showEquation?: boolean;
+}
+
+// ─── Significance Marks ────────────────────────────────────
+
+/** 두 그룹 간 통계 유의성 브래킷 (Prism 스타일) */
+export interface SignificanceMark {
+  /** 비교 그룹 A (X축 카테고리 이름) */
+  groupA: string;
+  /** 비교 그룹 B (X축 카테고리 이름) */
+  groupB: string;
+  /** p-value → *, **, ***, ns 자동 결정. label 미지정 시 사용. */
+  pValue?: number;
+  /** 직접 지정 레이블 (pValue보다 우선) */
+  label?: string;
+}
+
 // ─── Annotations ───────────────────────────────────────────
 
 export interface AnnotationSpec {
@@ -174,6 +200,12 @@ export interface ChartSpec {
 
   /** 막대 방향 (bar/grouped-bar/stacked-bar 전용) */
   orientation?: 'horizontal';
+
+  /** 회귀선 (scatter 전용) */
+  trendline?: TrendlineSpec;
+
+  /** 통계 유의성 브래킷 (bar/error-bar 전용) */
+  significance?: SignificanceMark[];
 
   /** 스타일 */
   style: StyleSpec;

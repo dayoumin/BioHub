@@ -7,7 +7,7 @@
  * AI generation path: LLM -> ChartSpec JSON (directly, no intermediate format)
  */
 
-import type { ChartSpec, AnnotationSpec, StylePreset, DataType } from '@/types/graph-studio';
+import type { ChartSpec, AnnotationSpec, TrendlineSpec, StylePreset, DataType } from '@/types/graph-studio';
 import type { EChartsOption } from 'echarts';
 import { STYLE_PRESETS, COLORBREWER_PALETTES } from './chart-spec-defaults';
 
@@ -386,6 +386,87 @@ function buildHeatmapData(
   }
 
   return { xCats: xOrder, yCats: yOrder, data, min, max };
+}
+
+// ─── Linear regression ─────────────────────────────────────
+
+interface LinearRegressionResult {
+  slope: number;
+  intercept: number;
+  rSquared: number;
+}
+
+/**
+ * OLS 단순 선형 회귀: y = slope·x + intercept
+ * 통계 추정이 아닌 시각화 보조선용 — 결정론적 산술 연산.
+ */
+function computeLinearRegression(
+  points: [number, number][],
+): LinearRegressionResult | null {
+  const n = points.length;
+  if (n < 2) return null;
+  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+  for (const [x, y] of points) { sumX += x; sumY += y; sumXY += x * y; sumX2 += x * x; }
+  const denom = n * sumX2 - sumX * sumX;
+  if (denom === 0) return null;
+  const slope = (n * sumXY - sumX * sumY) / denom;
+  const intercept = (sumY - slope * sumX) / n;
+  const yMean = sumY / n;
+  let ssTot = 0, ssRes = 0;
+  for (const [x, y] of points) {
+    const pred = slope * x + intercept;
+    ssTot += (y - yMean) ** 2;
+    ssRes += (y - pred) ** 2;
+  }
+  const rSquared = ssTot === 0 ? 1 : 1 - ssRes / ssTot;
+  return { slope, intercept, rSquared };
+}
+
+/**
+ * 선형 회귀선 series 생성. 50점 line으로 x 범위 내 회귀선 표현.
+ * showEquation: true → tooltip에 방정식 + R² 표시.
+ */
+function buildLinearTrendlineSeries(
+  points: [number, number][],
+  trendline: TrendlineSpec,
+  style: StyleConfig,
+  seriesName: string,
+): Record<string, unknown> | null {
+  const valid = points.filter(([x, y]) => !isNaN(x) && !isNaN(y));
+  const reg = computeLinearRegression(valid);
+  if (!reg) return null;
+
+  let xMin = Infinity, xMax = -Infinity;
+  for (const [x] of valid) { if (x < xMin) xMin = x; if (x > xMax) xMax = x; }
+
+  const N = 50;
+  const step = (xMax - xMin) / (N - 1);
+  const lineData: [number, number][] = Array.from({ length: N }, (_, i) => {
+    const x = xMin + i * step;
+    return [x, reg.slope * x + reg.intercept];
+  });
+
+  const slopeStr = reg.slope >= 0 ? `+${reg.slope.toFixed(4)}` : reg.slope.toFixed(4);
+  const interceptStr = reg.intercept >= 0 ? `+${reg.intercept.toFixed(4)}` : reg.intercept.toFixed(4);
+  const equationStr = `y = ${slopeStr}x ${interceptStr}`;
+  const r2Str = `R² = ${reg.rSquared.toFixed(4)}`;
+
+  return {
+    type: 'line',
+    name: `${seriesName} 회귀선`,
+    data: lineData,
+    showSymbol: false,
+    smooth: false,
+    lineStyle: {
+      color: trendline.color ?? style.colors[0] ?? '#666666',
+      width: 1.5,
+      opacity: 0.7,
+      ...(trendline.strokeDash ? { type: 'dashed' } : {}),
+    },
+    tooltip: trendline.showEquation !== false
+      ? { formatter: () => `${equationStr}<br/>${r2Str}` }
+      : {},
+  };
 }
 
 // ─── Graphic overlay builder ───────────────────────────────
@@ -891,27 +972,57 @@ export function chartSpecToECharts(
         if (!groupMap.has(g)) { groupMap.set(g, []); groupOrder.push(g); }
         groupMap.get(g)!.push([toNumber(r[xField]), toNumber(r[yField])]);
       }
+      const scatterSeries: Record<string, unknown>[] = groupOrder.map(g => ({
+        type: 'scatter' as const,
+        name: g,
+        data: groupMap.get(g) ?? [],
+      }));
+      // 그룹이 없는 경우에만 trendline 추가 (다중 그룹은 개별 trendline 미지원)
+      if (spec.trendline?.type === 'linear') {
+        const allPoints: [number, number][] = [];
+        for (const pts of groupMap.values()) allPoints.push(...pts);
+        const trendSeries = buildLinearTrendlineSeries(allPoints, spec.trendline, style, yField);
+        if (trendSeries) scatterSeries.push(trendSeries);
+      }
       return {
         ...base,
         tooltip: { trigger: 'item' },
         legend: buildLegend(spec, style),
         xAxis: { ...xAxisBase(spec, style, 'value') },
         yAxis: yAxisBase(spec, style),
-        series: groupOrder.map(g => ({
-          type: 'scatter' as const,
-          name: g,
-          data: groupMap.get(g) ?? [],
-        })),
+        series: scatterSeries,
       };
     }
 
+    // 단순 scatter (colorField 없음) — trendline 지원
+    const simpleSeries: Record<string, unknown>[] = [
+      { type: 'scatter', encode: { x: xField, y: yField }, name: yField },
+    ];
+    if (spec.trendline?.type === 'linear') {
+      const pts: [number, number][] = workRows
+        .map(r => [toNumber(r[xField]), toNumber(r[yField])] as [number, number])
+        .filter(([x, y]) => !isNaN(x) && !isNaN(y));
+      const trendSeries = buildLinearTrendlineSeries(pts, spec.trendline, style, yField);
+      if (trendSeries) simpleSeries.push(trendSeries);
+    }
+    if (simpleSeries.length === 1) {
+      // trendline 없음 → dataset 경로 유지 (메모리 효율적)
+      return {
+        ...base,
+        tooltip: { trigger: 'item' },
+        xAxis: { ...xAxisBase(spec, style, 'value') },
+        yAxis: yAxisBase(spec, style),
+        dataset: { source: workRows },
+        series: [{ type: 'scatter', encode: { x: xField, y: yField }, name: yField }],
+      };
+    }
     return {
       ...base,
       tooltip: { trigger: 'item' },
       xAxis: { ...xAxisBase(spec, style, 'value') },
       yAxis: yAxisBase(spec, style),
       dataset: { source: workRows },
-      series: [{ type: 'scatter', encode: { x: xField, y: yField }, name: yField }],
+      series: simpleSeries,
     };
   }
 

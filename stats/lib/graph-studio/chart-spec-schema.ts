@@ -97,6 +97,20 @@ const errorBarSchema = z.object({
   value: z.number().positive().optional(),
 }).strict();
 
+const trendlineSchema = z.object({
+  type: z.enum(['linear']),
+  color: z.string().optional(),
+  strokeDash: z.array(z.number()).optional(),
+  showEquation: z.boolean().optional(),
+}).strict();
+
+const significanceMarkSchema = z.object({
+  groupA: z.string().min(1),
+  groupB: z.string().min(1),
+  pValue: z.number().min(0).max(1).optional(),
+  label: z.string().optional(),
+}).strict();
+
 const annotationSchema = z.object({
   type: z.enum(['text', 'line', 'rect']),
   text: z.string().optional(),
@@ -158,6 +172,8 @@ export const chartSpecSchema = z.object({
     y: z.enum(['mean', 'median', 'sum', 'count', 'min', 'max']),
     groupBy: z.array(z.string()),
   }).strict().optional(),
+  trendline: trendlineSchema.optional(),
+  significance: z.array(significanceMarkSchema).optional(),
   style: styleSchema,
   annotations: z.array(annotationSchema),
   exportConfig: exportConfigSchema,

@@ -338,11 +338,11 @@
 
 | 기능 | 설명 | 구현 |
 |------|------|------|
-| **annotations 렌더링** (선결) | 타입/스키마에만 있고 실제 렌더링 없음 | echarts-converter에 text/line/rect AnnotationSpec → ECharts `graphic` 변환 추가 |
-| **통계 유의성 마커** ★ | `*`/`**`/`***`/`ns` 브래킷 — Prism 핵심 | `ChartSpec.significance[]` + ChartPreview post-render 레이어 (ECharts `graphic` 주입) |
-| 산점도 회귀선 | linear/polynomial, CI band 옵션 | `ChartSpec.trendline?` + TS 선형회귀 + converter |
+| **annotations 렌더링** (선결) ✅ | 타입/스키마에만 있고 실제 렌더링 없음 | echarts-converter에 text/line/rect AnnotationSpec → ECharts `graphic` 변환 추가 | b56eb13d |
+| **통계 유의성 마커** ★ | `*`/`**`/`***`/`ns` 브래킷 — Prism 핵심 | types/schema 완료; ChartPreview post-render 레이어 미구현 (다음 세션) |
+| 산점도 회귀선 ✅ | linear OLS + R² 툴팁 | `TrendlineSpec` + `computeLinearRegression()` + `buildLinearTrendlineSeries()` + DataTab 토글 | (이번 세션) |
 | TIFF 출력 | 300/600 DPI, html2canvas | ExportDialog + export-utils |
-| 폰트 선택 | Arial/Helvetica/Times/Noto Sans KR | StyleTab 드롭다운 + converter 전파 |
+| 폰트 선택 ✅ | Arial/Helvetica/Times/Noto Sans KR | StyleTab 드롭다운 + converter 전파 | b56eb13d |
 
 > 유의성 마커는 컨버터 내부에서 처리 불가 — 순수 함수라 ECharts 인스턴스(convertToPixel, 실제 bar 좌표)에 접근 불가.
 > ChartPreview에서 `chart.on('finished')` → `convertToPixel()` → `chart.setOption({ graphic })` 패턴 사용. 리사이즈/legend 토글마다 재계산.
