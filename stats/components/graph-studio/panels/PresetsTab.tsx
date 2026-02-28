@@ -71,7 +71,8 @@ export function PresetsTab(): React.ReactElement {
           >
             <div className="text-left">
               <div className="font-medium text-sm">{preset.label}</div>
-              <div className={`text-xs mt-0.5 ${isActive ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+              {/* /70 → /90: 다크모드에서 text-xs WCAG AA(4.5:1) 미달 방지 */}
+              <div className={`text-xs mt-0.5 ${isActive ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}>
                 {preset.description}
               </div>
             </div>

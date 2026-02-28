@@ -152,8 +152,10 @@ export function AiEditTab(): React.ReactElement {
   }, [messages]);
 
   // 탭 마운트 시 textarea autofocus (데이터 로드 상태일 때만)
-  // deps=[] 의도: 탭 전환 시 리마운트되므로 마운트 1회 실행이 곧 "탭 진입 시"
+  // deps=[] 의도: 탭 전환 시 TabsContent가 언마운트→리마운트되므로 마운트 1회 실행이 곧 "탭 진입 시"
   // chartSpec을 deps에 포함하면 AI 편집 완료 후 다른 탭의 포커스를 빼앗음
+  // TODO: 향후 TabsContent에 forceMount가 추가되면 이 방식이 깨짐
+  //       그때는 sidePanel store 값 기반 effect로 교체 필요
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (chartSpecRef.current) {
