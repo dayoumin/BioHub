@@ -299,3 +299,65 @@ describe('editChart', () => {
     await expect(editChart(req)).rejects.toMatchObject({ code: 'READONLY_PATH' });
   });
 });
+
+// ─── buildUserPrompt 프롬프트 내용 검증 ──────────────────────
+
+describe('buildUserPrompt 프롬프트 내용', () => {
+  beforeEach(() => {
+    mockGenerateRawText.mockReset();
+    mockGenerateRawText.mockResolvedValue(VALID_AI_RESPONSE);
+  });
+
+  it('spec JSON에 sampleValues가 포함되지 않는다', async () => {
+    const req = buildAiEditRequest(makeChartSpec(), 'test');
+    await editChart(req);
+
+    const [, userPrompt] = mockGenerateRawText.mock.calls[0] as [string, string, unknown];
+    // sampleValues 키 자체가 프롬프트에 없어야 함
+    expect(userPrompt).not.toContain('"sampleValues"');
+  });
+
+  it('컬럼 목록에 nominal 컬럼의 e.g. 예시가 포함된다', async () => {
+    const req = buildAiEditRequest(makeChartSpec(), 'test');
+    await editChart(req);
+
+    const [, userPrompt] = mockGenerateRawText.mock.calls[0] as [string, string, unknown];
+    // makeChartSpec: species: nominal, sampleValues: ['A', 'B', 'C']
+    expect(userPrompt).toContain('e.g., A');
+  });
+
+  it('컬럼 목록에 모든 컬럼명이 포함된다', async () => {
+    const req = buildAiEditRequest(makeChartSpec(), 'test');
+    await editChart(req);
+
+    const [, userPrompt] = mockGenerateRawText.mock.calls[0] as [string, string, unknown];
+    expect(userPrompt).toContain('species');
+    expect(userPrompt).toContain('weight');
+  });
+
+  it('sampleValues를 제거해도 대형 spec이 3000자 이내에 들어온다', async () => {
+    // 20개 컬럼 × sampleValues 5개 → strip 전 3000+ 예상
+    const manyColumns = Array.from({ length: 20 }, (_, i) => ({
+      name: `col${i}`,
+      type: 'nominal' as const,
+      uniqueCount: 5,
+      sampleValues: ['value1', 'value2', 'value3', 'value4', 'value5'],
+      hasNull: false,
+    }));
+    const spec = makeChartSpec({
+      data: {
+        sourceId: 'large',
+        columns: manyColumns,
+      },
+    });
+    const req = buildAiEditRequest(spec, 'test');
+    await editChart(req);
+
+    const [, userPrompt] = mockGenerateRawText.mock.calls[0] as [string, string, unknown];
+    // spec JSON 섹션 추출: "## 현재 ChartSpec" ~ "## 컬럼 목록" 사이
+    const specSection = userPrompt.split('## 컬럼 목록')[0] ?? '';
+    // sampleValues 제거 후 JSON이 3000자를 넘지 않아야 함
+    expect(specSection.length).toBeLessThanOrEqual(3200) // 헤더 포함 여유
+    expect(specSection).not.toContain('... (truncated)')
+  });
+});

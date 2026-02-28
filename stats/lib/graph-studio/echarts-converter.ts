@@ -104,9 +104,15 @@ function aggregateRows(
     } else if (method === 'sum') {
       base[yField] = vals.reduce((a, b) => a + b, 0);
     } else if (method === 'min') {
-      base[yField] = vals.length ? Math.min(...vals) : 0;
+      // Use loop instead of Math.min(...vals) spread to avoid call stack overflow on large groups
+      let minVal = Infinity;
+      for (const v of vals) if (v < minVal) minVal = v;
+      base[yField] = vals.length ? minVal : 0;
     } else if (method === 'max') {
-      base[yField] = vals.length ? Math.max(...vals) : 0;
+      // Use loop instead of Math.max(...vals) spread to avoid call stack overflow on large groups
+      let maxVal = -Infinity;
+      for (const v of vals) if (v > maxVal) maxVal = v;
+      base[yField] = vals.length ? maxVal : 0;
     } else if (method === 'median') {
       if (!vals.length) { base[yField] = 0; }
       else {

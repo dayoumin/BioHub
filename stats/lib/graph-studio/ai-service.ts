@@ -41,7 +41,7 @@ Generate a minimal RFC 6902 JSON Patch that transforms the ChartSpec to fulfill 
 - chartType: bar|grouped-bar|stacked-bar|line|scatter|boxplot|histogram|error-bar|heatmap|violin
 - title: string (optional)
 - data.sourceId: string
-- data.columns: array of {name, type, uniqueCount, sampleValues, hasNull}
+- data.columns: array of {name, type, uniqueCount, hasNull}  (sample values shown in 컬럼 목록)
 - encoding.x / encoding.y: {field, type, title, labelAngle, labelFontSize, titleFontSize, format, grid, scale, sort}
 - encoding.color: {field, type, scale, legend} (optional)
 - encoding.shape: {field, type} (optional)
@@ -76,14 +76,35 @@ Return ONLY this JSON object — no markdown, no prose outside the object:
 const MAX_SPEC_JSON_LENGTH = 3000;
 
 function buildUserPrompt(request: AiEditRequest): string {
-  const specJson = JSON.stringify(request.chartSpec, null, 2);
+  // Strip sampleValues from columns in the spec JSON to reduce token count.
+  // sampleValues can be large for many-column datasets and trigger truncation.
+  // Category examples are communicated separately in the column list below.
+  const specForPrompt = {
+    ...request.chartSpec,
+    data: {
+      ...request.chartSpec.data,
+      columns: request.chartSpec.data.columns.map(c => ({
+        name: c.name,
+        type: c.type,
+        uniqueCount: c.uniqueCount,
+        hasNull: c.hasNull,
+      })),
+    },
+  };
+  const specJson = JSON.stringify(specForPrompt, null, 2);
   const specStr =
     specJson.length > MAX_SPEC_JSON_LENGTH
       ? specJson.slice(0, MAX_SPEC_JSON_LENGTH) + '\n  ... (truncated)'
       : specJson;
 
-  const colLines = request.columnNames
-    .map(name => `  ${name}: ${request.dataTypes[name] ?? 'unknown'}`)
+  // Include sampleValues in column list so AI knows category labels
+  const colLines = request.chartSpec.data.columns
+    .map(col => {
+      const samples = col.sampleValues.length
+        ? ` (e.g., ${col.sampleValues.slice(0, 3).join(', ')})`
+        : '';
+      return `  ${col.name}: ${col.type}${samples}`;
+    })
     .join('\n');
 
   return `## 현재 ChartSpec

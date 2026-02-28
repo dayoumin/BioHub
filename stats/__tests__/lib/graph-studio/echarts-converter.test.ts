@@ -8,6 +8,8 @@
  * 4. histogram Sturges 빈 계산
  * 5. column→row 변환 로직 (ChartPreview useMemo 시뮬레이션)
  * 6. toStr null/undefined phantom category 확인
+ * 7. error-bar / stacked-bar / violin 출력 구조
+ * 8. aggregate min/max/count/sum/median — loop 방어 포함
  */
 
 import { describe, it, expect } from 'vitest'
@@ -486,5 +488,172 @@ describe('toStr null/undefined → phantom category', () => {
     const dataset = opt.dataset as AnyOption
     const source = dataset.source as typeof rows
     expect(source).toHaveLength(3) // null row가 필터링되지 않음 (현재 동작)
+  })
+})
+
+// ─── error-bar ────────────────────────────────────────────
+
+describe('error-bar — stderr', () => {
+  // A: [10, 20, 30] → mean=20 / B: [40, 50] → mean=45
+  const rows = [
+    { group: 'A', value: 10 },
+    { group: 'A', value: 20 },
+    { group: 'A', value: 30 },
+    { group: 'B', value: 40 },
+    { group: 'B', value: 50 },
+  ]
+  const spec = makeSpec({
+    chartType: 'error-bar',
+    errorBar: { type: 'stderr' },
+    encoding: {
+      x: { field: 'group', type: 'nominal' },
+      y: { field: 'value', type: 'quantitative' },
+    },
+  })
+
+  it('series에 bar + custom 두 시리즈가 있다', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const series = opt.series as AnyOption[]
+    expect(series).toHaveLength(2)
+    expect(series[0].type).toBe('bar')
+    expect(series[1].type).toBe('custom')
+  })
+
+  it('bar series data[0] = mean(A) = 20, data[1] = mean(B) = 45', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const means = (opt.series as AnyOption[])[0].data as number[]
+    expect(means[0]).toBeCloseTo(20, 5)
+    expect(means[1]).toBeCloseTo(45, 5)
+  })
+
+  it('custom series data에 [xIdx, mean, lower, upper] 형태가 있다', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const customData = (opt.series as AnyOption[])[1].data as [number, number, number, number][]
+    expect(customData).toHaveLength(2)
+    expect(customData[0][0]).toBe(0)          // xIdx A
+    expect(customData[0][1]).toBeCloseTo(20, 5) // mean A
+  })
+})
+
+// ─── stacked-bar with colorField ─────────────────────────
+
+describe('stacked-bar — colorField 있음', () => {
+  const rows = [
+    { cat: 'A', group: 'X', value: 10 },
+    { cat: 'A', group: 'Y', value: 20 },
+    { cat: 'B', group: 'X', value: 30 },
+    { cat: 'B', group: 'Y', value: 40 },
+  ]
+  const spec = makeSpec({
+    chartType: 'stacked-bar',
+    encoding: {
+      x: { field: 'cat', type: 'nominal' },
+      y: { field: 'value', type: 'quantitative' },
+      color: { field: 'group', type: 'nominal' },
+    },
+  })
+
+  it('모든 series에 stack: "total"이 있다', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const series = opt.series as AnyOption[]
+    expect(series.length).toBeGreaterThan(0)
+    for (const s of series) {
+      expect(s.stack).toBe('total')
+    }
+  })
+
+  it('series 수 = color 그룹 수 (X, Y → 2)', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    expect((opt.series as AnyOption[]).length).toBe(2)
+  })
+})
+
+// ─── violin → boxplot 폴백 ────────────────────────────────
+
+describe('violin → boxplot 렌더링 폴백 (ECharts 네이티브 미지원)', () => {
+  const rows = [
+    { cat: 'A', val: 1 }, { cat: 'A', val: 2 }, { cat: 'A', val: 3 },
+    { cat: 'B', val: 4 }, { cat: 'B', val: 5 }, { cat: 'B', val: 6 },
+  ]
+  const spec = makeSpec({
+    chartType: 'violin',
+    encoding: {
+      x: { field: 'cat', type: 'nominal' },
+      y: { field: 'val', type: 'quantitative' },
+    },
+  })
+
+  it('violin → series[0].type === "boxplot"', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const series = opt.series as AnyOption[]
+    expect(series[0].type).toBe('boxplot')
+  })
+
+  it('카테고리별 5-number summary가 정확하다 (A: min=1, median=2, max=3)', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const series = opt.series as AnyOption[]
+    const data = series[0].data as [number, number, number, number, number][]
+    const catA = data[0]
+    expect(catA[0]).toBe(1)             // min
+    expect(catA[2]).toBeCloseTo(2, 5)   // median
+    expect(catA[4]).toBe(3)             // max
+  })
+})
+
+// ─── aggregate all methods (loop 방어 포함) ───────────────
+
+describe('aggregate — 전체 집계 메서드 (min/max loop 방어 포함)', () => {
+  // A: [3, 5, 10] / B: [8, 20]
+  const rows = [
+    { group: 'A', value: 5 },
+    { group: 'A', value: 10 },
+    { group: 'A', value: 3 },
+    { group: 'B', value: 20 },
+    { group: 'B', value: 8 },
+  ]
+  const baseSpec = makeSpec({ chartType: 'bar' })
+
+  function getAggregated(
+    method: 'min' | 'max' | 'count' | 'sum' | 'median' | 'mean',
+  ): { group: string; value: number }[] {
+    const spec = { ...baseSpec, aggregate: { y: method, groupBy: ['group'] } }
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    return (opt.dataset as AnyOption).source as { group: string; value: number }[]
+  }
+
+  it('min: A=3, B=8', () => {
+    const src = getAggregated('min')
+    expect(src.find(r => r.group === 'A')?.value).toBe(3)
+    expect(src.find(r => r.group === 'B')?.value).toBe(8)
+  })
+
+  it('max: A=10, B=20', () => {
+    const src = getAggregated('max')
+    expect(src.find(r => r.group === 'A')?.value).toBe(10)
+    expect(src.find(r => r.group === 'B')?.value).toBe(20)
+  })
+
+  it('count: A=3, B=2', () => {
+    const src = getAggregated('count')
+    expect(src.find(r => r.group === 'A')?.value).toBe(3)
+    expect(src.find(r => r.group === 'B')?.value).toBe(2)
+  })
+
+  it('sum: A=18, B=28', () => {
+    const src = getAggregated('sum')
+    expect(src.find(r => r.group === 'A')?.value).toBeCloseTo(18, 5)
+    expect(src.find(r => r.group === 'B')?.value).toBeCloseTo(28, 5)
+  })
+
+  it('mean: A≈6, B=14', () => {
+    const src = getAggregated('mean')
+    expect(src.find(r => r.group === 'A')?.value).toBeCloseTo(6, 5)
+    expect(src.find(r => r.group === 'B')?.value).toBeCloseTo(14, 5)
+  })
+
+  it('median: A=5 (sorted [3,5,10]), B=14 (sorted [8,20] → linear interp)', () => {
+    const src = getAggregated('median')
+    expect(src.find(r => r.group === 'A')?.value).toBeCloseTo(5, 5)
+    expect(src.find(r => r.group === 'B')?.value).toBeCloseTo(14, 5)
   })
 })
