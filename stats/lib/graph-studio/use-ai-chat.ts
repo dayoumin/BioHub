@@ -20,6 +20,7 @@ import type { KeyboardEvent, RefObject } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { applyAndValidatePatches } from '@/lib/graph-studio/chart-spec-utils';
 import { editChart, buildAiEditRequest, AiServiceError } from '@/lib/graph-studio/ai-service';
+import { logger } from '@/lib/utils/logger';
 
 // ─── 타입 ──────────────────────────────────────────────────
 
@@ -73,7 +74,7 @@ export function useAiChat(): AiChatHook {
         if (Array.isArray(parsed)) setMessages(parsed);
       }
     } catch (err) {
-      console.warn('[use-ai-chat] 채팅 히스토리 파싱 실패, 저장된 히스토리를 삭제합니다.', err);
+      logger.warn('[use-ai-chat] 채팅 히스토리 파싱 실패, 저장된 히스토리를 삭제합니다.', err);
       localStorage.removeItem(CHAT_STORAGE_KEY);
       setMessages([]);
     }

@@ -98,11 +98,12 @@ export function DataTab(): React.ReactElement {
     const xCol = columns.find(c => c.name === xField);
     const yCol = columns.find(c => c.name === yField);
 
+    const { color: _c, ...baseEncoding } = chartSpec.encoding;
     updateChartSpec({
       ...chartSpec,
       chartType: newType,
       encoding: {
-        ...chartSpec.encoding,
+        ...(hint.supportsColor ? chartSpec.encoding : baseEncoding),
         x: { ...chartSpec.encoding.x, field: xField, type: xCol?.type ?? hint.suggestedXType },
         y: { ...chartSpec.encoding.y, field: yField, type: yCol?.type ?? 'quantitative' },
       },
@@ -137,6 +138,25 @@ export function DataTab(): React.ReactElement {
         y: { ...chartSpec.encoding.y, field: value, type: column?.type ?? 'quantitative' },
       },
     });
+  }, [chartSpec, updateChartSpec]);
+
+  // ─── 색상 그룹 필드 ──────────────────────────────────────
+
+  const handleColorFieldChange = useCallback((value: string) => {
+    if (!chartSpec) return;
+    if (value === 'none') {
+      const { color: _c, ...restEncoding } = chartSpec.encoding;
+      updateChartSpec({ ...chartSpec, encoding: restEncoding });
+    } else {
+      const column = chartSpec.data.columns.find(c => c.name === value);
+      updateChartSpec({
+        ...chartSpec,
+        encoding: {
+          ...chartSpec.encoding,
+          color: { field: value, type: column?.type ?? 'nominal' },
+        },
+      });
+    }
   }, [chartSpec, updateChartSpec]);
 
   // ─── 에러바 ───────────────────────────────────────────────
@@ -282,6 +302,37 @@ export function DataTab(): React.ReactElement {
           className="h-7 text-xs"
         />
       </div>
+
+      {/* 색상 그룹 필드 (supportsColor 차트만) */}
+      {CHART_TYPE_HINTS[chartSpec.chartType].supportsColor && (
+        <div className="space-y-1.5">
+          <Label className="text-xs">색상 그룹</Label>
+          <Select
+            value={chartSpec.encoding.color?.field ?? 'none'}
+            onValueChange={handleColorFieldChange}
+          >
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue placeholder="없음 (단일 색상)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none" className="text-sm">없음 (단일 색상)</SelectItem>
+              {columns.map(col => {
+                const isUsed = col.name === chartSpec.encoding.x.field || col.name === chartSpec.encoding.y.field;
+                return (
+                  <SelectItem
+                    key={col.name}
+                    value={col.name}
+                    className="text-sm"
+                    disabled={isUsed}
+                  >
+                    {col.name} ({col.type}){isUsed ? ' — 축 사용 중' : ''}
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* 에러바 (bar / line / error-bar 차트만) */}
       {showErrorBar && (
