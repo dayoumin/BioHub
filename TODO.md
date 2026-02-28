@@ -1,6 +1,6 @@
 # 프로젝트 현황 + 할일
 
-**최종 업데이트**: 2026-02-28 (Graph Studio 첫 화면 리디자인 — Template-first + Dual CTA + 어류 샘플)
+**최종 업데이트**: 2026-02-28 (표본 크기 계산기 팝업 모달 — 6종 검정, 순수 TS 구현)
 
 ---
 
@@ -91,6 +91,15 @@
 - ✅ **차트 유형별 올바른 필드 매핑**: `selectXYFields(CHART_TYPE_HINTS[chartType])` 사용 (단순 chartType 덮어쓰기 금지)
 - ✅ **AI 리뷰 문서**: `stats/docs/REVIEW-GRAPH-STUDIO-ONBOARDING.md`
 - ✅ **검증**: tsc 0 errors, TypeScript types clean
+
+### 2026-02-28 (금) 표본 크기 계산기 팝업 모달
+
+- ✅ **순수 TS 구현** (`stats/lib/sample-size/calculator.ts`): invNorm·normCdf·chiSqQuantile + 6개 calc 함수 — G*Power 대비 ±5% 이내
+- ✅ **검정 6종**: 독립 t / 대응 t / 단일 t / 일원 ANOVA (Liu-Tang-Zhang 근사) / 두 비율 비교 (Fleiss) / 피어슨 상관 (Fisher's z)
+- ✅ **SampleSizeModal** (`stats/components/smart-flow/hub/SampleSizeModal.tsx`): 프리셋 버튼·툴팁·실시간 계산·결과 배지
+- ✅ **TrackSuggestions 카드 3종 재편**: 직접 분석 / 표본 크기 계산기 (팝업) / 데이터 시각화 (링크)
+- ✅ **버그 수정**: power ≤ alpha 검증 추가, groups 소수 입력 정규화(Math.round + onBlur), 버튼 하이라이트 일관성
+- ✅ **단위 테스트 32개**: G*Power 참조값 ±5% 이내 + 경계값 + 단조성 검증
 
 ### 2026-02-28 (금) Graph Studio 테스트 시뮬레이션 + Stage 1/2/3 일관성 정리
 
