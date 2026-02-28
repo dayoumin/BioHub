@@ -241,12 +241,7 @@ export interface GraphStudioState {
   historyIndex: number;
 
   // AI 편집
-  isAiEditing: boolean;
   lastAiResponse: AiEditResponse | null;
-
-  // Export
-  isExporting: boolean;
-  exportProgress: number;
 
   // UI
   sidePanel: 'properties' | 'ai-chat' | 'presets' | 'export';

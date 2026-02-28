@@ -31,12 +31,7 @@ interface GraphStudioActions {
   redo: () => void;
 
   // AI
-  setAiEditing: (editing: boolean) => void;
   setLastAiResponse: (response: AiEditResponse) => void;
-
-  // Export
-  setExporting: (exporting: boolean) => void;
-  setExportProgress: (progress: number) => void;
 
   // UI
   setSidePanel: (panel: GraphStudioState['sidePanel']) => void;
@@ -55,10 +50,7 @@ const initialState: GraphStudioState = {
   chartSpec: null,
   specHistory: [],
   historyIndex: -1,
-  isAiEditing: false,
   lastAiResponse: null,
-  isExporting: false,
-  exportProgress: 0,
   sidePanel: 'properties',
 };
 
@@ -137,13 +129,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
 
     // ── AI ──
 
-    setAiEditing: (editing) => set({ isAiEditing: editing }),
     setLastAiResponse: (response) => set({ lastAiResponse: response }),
-
-    // ── Export ──
-
-    setExporting: (exporting) => set({ isExporting: exporting }),
-    setExportProgress: (progress) => set({ exportProgress: progress }),
 
     // ── UI ──
 

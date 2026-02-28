@@ -174,7 +174,6 @@ describe('resetAll', () => {
     expect(state.specHistory).toHaveLength(0)
     expect(state.historyIndex).toBe(-1)
     expect(state.sidePanel).toBe('properties')
-    expect(state.isAiEditing).toBe(false)
     expect(state.isDataLoaded).toBe(false)
   })
 })

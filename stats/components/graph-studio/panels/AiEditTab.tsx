@@ -3,54 +3,241 @@
 /**
  * AI 편집 탭 — 자연어로 차트 수정
  *
- * AI는 chartSpec patch만 생성. 데이터 값은 전송하지 않음 (Zero-Data Retention).
- *
- * Stage 2 구현 예정:
- *   1. graphStudioAiService.editChart({ chartSpec, userMessage, columnNames, dataTypes })
- *   2. applyAndValidatePatches(chartSpec, response.patches)
- *   3. 성공 시 updateChartSpec(result.spec) + setLastAiResponse(response)
+ * Zero-Data Retention: 실제 데이터 행은 AI에 전송하지 않음.
+ * ChartSpec(열 메타데이터) + 사용자 명령 → JSON Patch → applyAndValidatePatches
  */
 
+import { useCallback, useRef, useState, useEffect } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
+import { applyAndValidatePatches } from '@/lib/graph-studio/chart-spec-utils';
+import { editChart, buildAiEditRequest } from '@/lib/graph-studio/ai-service';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send } from 'lucide-react';
+import { Send, Loader2, AlertCircle, CheckCircle2, Bot, User } from 'lucide-react';
+
+// ─── 로컬 채팅 메시지 타입 ────────────────────────────────
+
+type ChatRole = 'user' | 'assistant' | 'error';
+
+interface ChatMessage {
+  id: string;
+  role: ChatRole;
+  content: string;
+  confidence?: number;
+  patchCount?: number;
+}
+
+// ─── 서브 컴포넌트 ─────────────────────────────────────────
+
+interface MessageBubbleProps {
+  message: ChatMessage;
+}
+
+function MessageBubble({ message }: MessageBubbleProps): React.ReactElement {
+  if (message.role === 'user') {
+    return (
+      <div className="flex gap-2 justify-end">
+        <div className="bg-primary text-primary-foreground rounded-lg rounded-tr-sm px-3 py-2 text-sm max-w-[85%]">
+          {message.content}
+        </div>
+        <div className="shrink-0 h-6 w-6 rounded-full bg-muted flex items-center justify-center mt-0.5">
+          <User className="h-3 w-3" />
+        </div>
+      </div>
+    );
+  }
+
+  if (message.role === 'error') {
+    return (
+      <div className="flex gap-2">
+        <div className="shrink-0 h-6 w-6 rounded-full bg-destructive/10 flex items-center justify-center mt-0.5">
+          <AlertCircle className="h-3 w-3 text-destructive" />
+        </div>
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg rounded-tl-sm px-3 py-2 text-sm text-destructive max-w-[85%]">
+          {message.content}
+        </div>
+      </div>
+    );
+  }
+
+  // assistant
+  return (
+    <div className="flex gap-2">
+      <div className="shrink-0 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
+        <Bot className="h-3 w-3 text-primary" />
+      </div>
+      <div className="bg-muted rounded-lg rounded-tl-sm px-3 py-2 text-sm max-w-[85%] space-y-1.5">
+        <p>{message.content}</p>
+        {(message.confidence !== undefined || message.patchCount !== undefined) && (
+          <div className="flex items-center gap-2 pt-1 border-t border-border/50">
+            {message.patchCount !== undefined && (
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                {message.patchCount}개 수정 적용됨
+              </span>
+            )}
+            {message.confidence !== undefined && (
+              <span className="text-xs text-muted-foreground ml-auto">
+                신뢰도 {Math.round(message.confidence * 100)}%
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── 메인 컴포넌트 ─────────────────────────────────────────
 
 export function AiEditTab(): React.ReactElement {
-  const { chartSpec } = useGraphStudioStore();
+  const { chartSpec, updateChartSpec, setLastAiResponse } = useGraphStudioStore();
+
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // 새 메시지 추가 시 자동 스크롤
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const appendMessage = useCallback((msg: Omit<ChatMessage, 'id'>) => {
+    setMessages(prev => [...prev, { ...msg, id: `${Date.now()}-${Math.random()}` }]);
+  }, []);
+
+  const handleSend = useCallback(async () => {
+    const text = inputValue.trim();
+    if (!text || !chartSpec || isLoading) return;
+
+    setInputValue('');
+    appendMessage({ role: 'user', content: text });
+    setIsLoading(true);
+
+    try {
+      const request = buildAiEditRequest(chartSpec, text);
+      const response = await editChart(request);
+
+      // patch 적용 + 검증
+      const patchResult = applyAndValidatePatches(chartSpec, response.patches);
+
+      if (!patchResult.success) {
+        appendMessage({
+          role: 'error',
+          content: `패치 검증 실패: ${patchResult.error}`,
+        });
+        return;
+      }
+
+      updateChartSpec(patchResult.spec);
+      setLastAiResponse(response);
+
+      appendMessage({
+        role: 'assistant',
+        content: response.explanation,
+        confidence: response.confidence,
+        patchCount: response.patches.length,
+      });
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
+      // Zod 검증 오류 등 기술적 메시지는 사용자 친화적으로 변환
+      const userMessage =
+        raw.startsWith('AI 응답 검증 실패') || raw.startsWith('AI 응답 JSON 파싱 실패')
+          ? 'AI가 올바른 형식으로 응답하지 못했습니다. 잠시 후 다시 시도해주세요.'
+          : raw;
+      appendMessage({ role: 'error', content: userMessage });
+    } finally {
+      setIsLoading(false);
+      textareaRef.current?.focus();
+    }
+  }, [inputValue, chartSpec, isLoading, appendMessage, updateChartSpec, setLastAiResponse]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        void handleSend();
+      }
+    },
+    [handleSend],
+  );
 
   if (!chartSpec) {
-    return <p className="text-sm text-muted-foreground">데이터를 먼저 업로드하세요</p>;
+    return (
+      <p className="text-sm text-muted-foreground">데이터를 먼저 업로드하세요</p>
+    );
   }
 
   return (
     <div className="flex flex-col h-full">
-      {/* Stage 2 안내 */}
-      <div className="flex-1 overflow-y-auto space-y-3 mb-3">
-        <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground space-y-2">
-          <p className="font-medium text-foreground">AI 편집 — Stage 2 준비 중</p>
-          <p className="text-xs">
-            구현 후 아래와 같은 자연어 명령을 사용할 수 있습니다:
-          </p>
-          <ul className="text-xs space-y-0.5 list-disc list-inside">
-            <li>X축 라벨 45도 회전해줘</li>
-            <li>에러바 추가해줘</li>
-            <li>IEEE 흑백 스타일로 바꿔줘</li>
-            <li>범례를 오른쪽 위로 옮겨줘</li>
-            <li>Y축 제목을 &quot;Weight (kg)&quot;으로</li>
-          </ul>
-        </div>
+      {/* 채팅 메시지 영역 */}
+      <div className="flex-1 overflow-y-auto space-y-3 mb-3 pr-1">
+        {messages.length === 0 ? (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground font-medium">예시 명령어</p>
+            {[
+              'X축 라벨 45도 회전해줘',
+              '에러바 추가해줘 (표준오차)',
+              'IEEE 흑백 스타일로 바꿔줘',
+              '범례를 오른쪽 위로 옮겨줘',
+              'Y축 제목을 "Weight (kg)"으로',
+            ].map(example => (
+              <button
+                key={example}
+                type="button"
+                className="w-full text-left text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded px-2 py-1 transition-colors"
+                onClick={() => setInputValue(example)}
+              >
+                {example}
+              </button>
+            ))}
+          </div>
+        ) : (
+          messages.map(msg => <MessageBubble key={msg.id} message={msg} />)
+        )}
+
+        {isLoading && (
+          <div className="flex gap-2">
+            <div className="shrink-0 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+              <Loader2 className="h-3 w-3 text-primary animate-spin" />
+            </div>
+            <div className="bg-muted rounded-lg rounded-tl-sm px-3 py-2 text-sm text-muted-foreground">
+              차트 수정 중…
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
       </div>
 
-      {/* 입력 — Stage 2 전까지 비활성화 */}
+      {/* 입력 영역 */}
       <div className="flex gap-2">
         <Textarea
-          placeholder="차트를 어떻게 수정할까요?"
+          ref={textareaRef}
+          value={inputValue}
+          onChange={e => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="차트를 어떻게 수정할까요? (Enter 전송, Shift+Enter 줄바꿈)"
           className="min-h-[60px] max-h-[120px] text-sm resize-none"
-          disabled
+          disabled={isLoading}
+          data-testid="ai-edit-input"
         />
-        <Button size="icon" className="self-end" disabled>
-          <Send className="h-4 w-4" />
+        <Button
+          size="icon"
+          className="self-end shrink-0"
+          onClick={() => void handleSend()}
+          disabled={isLoading || !inputValue.trim()}
+          aria-label="전송"
+          data-testid="ai-edit-send"
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
         </Button>
       </div>
     </div>

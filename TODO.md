@@ -1,6 +1,6 @@
 # 프로젝트 현황 + 할일
 
-**최종 업데이트**: 2026-02-26 (UX 개선 4종 + Step 3/4 비판적 검토)
+**최종 업데이트**: 2026-02-28 (Graph Studio Stage 1+2+3 완료 — 테스트 16개 + 스토어 dead 필드 정리)
 
 ---
 
@@ -80,6 +80,13 @@
 - ✅ **테스트 추가 (ChiSquareSelector)**: proportion-test 이진 변수 필터 + nullProportion UI, 제출 페이로드 검증 — 2개
 - ✅ **검증**: tsc 0 errors, tests 128 passed (118 + 10)
 - 📌 커밋: `ff48a374`
+
+### 2026-02-28 (금) Graph Studio 테스트 시뮬레이션 + Stage 1/2/3 일관성 정리
+
+- ✅ **export-utils.ts 테스트 16개**: DOM API + ECharts 인스턴스 모킹 — PNG/SVG 흐름, DPI→pixelRatio, 파일명 정규화, Firefox body.append 순서, null/undefined 가드
+- ✅ **스토어 dead 필드 제거**: `isExporting`, `exportProgress`, `isAiEditing` — Stage 3가 동기식으로 확정되어 완전히 불필요한 상태 (GraphStudioState + initialState + 3개 actions)
+- ✅ **AiEditTab 정리**: `setAiEditing` 2회 호출 제거 (로컬 `isLoading`과 중복), `as ChartSpecPatch[]` 불필요 캐스트 제거 (Zod 검증 후 타입 이미 보장)
+- ✅ **검증**: tsc 0 errors, 167/167 테스트 통과 (Graph Studio 7개 파일)
 
 ### 2026-02-26 (목) proportion-test interpretation 개선
 
@@ -265,7 +272,46 @@
 ### 진행 예정
 | 작업 | 설명 |
 |------|------|
+| **~~Graph Studio Stage 2~~** | ✅ 완료 (2026-02-28) — AI 편집 서비스, AiEditTab 활성화, 29개 테스트 |
 | **Phase 15-1: Bio-Tools** | 12개 생물학 분석, `/bio-tools/` 5페이지 구현 ([상세](study/PLAN-BIO-STATISTICS-AUDIT.md)) |
+
+---
+
+## Graph Studio Stage 2 — 리뷰 패키지 (2026-02-28)
+
+> 외부 AI 리뷰를 위한 요약. 구현 완료 상태.
+
+### 구현 범위
+
+| 파일 | 역할 |
+|------|------|
+| `stats/lib/graph-studio/ai-service.ts` (신규) | `editChart()` — OpenRouter → JSON Patch 생성 + 검증 |
+| `stats/components/graph-studio/panels/AiEditTab.tsx` (수정) | 채팅 UI 활성화, 사용자 친화적 에러 처리 |
+| `stats/lib/graph-studio/index.ts` (수정) | `editChart`, `buildAiEditRequest` export 추가 |
+| `stats/__tests__/lib/graph-studio/ai-service.test.ts` (신규) | 단위 테스트 17개 |
+| `stats/__tests__/lib/graph-studio/ai-edit-simulation.test.ts` (신규) | 시뮬레이션 12개 (S1–S10) |
+
+### 핵심 설계 결정
+
+1. **Zero-Data Retention**: 실제 데이터 행 미전송. ChartSpec(열 메타데이터)만 AI에 전달.
+2. **OpenRouter 재사용**: `openRouterRecommender.generateRawText()` — fallback 체인·타임아웃·인증캐시 공짜 상속.
+3. **Non-streaming**: JSON Patch는 완전한 응답 후 파싱. 스트리밍 불필요.
+4. **이중 JSON 추출**: 코드 블록 우선 → 중괄호 밸런싱 fallback. AI 규칙 위반에도 복원.
+5. **Readonly 경로 강제**: `/data`, `/version` 프롬프트 명시 + 코드 레벨 whitelist 검사.
+6. **Zod 검증**: `aiEditResponseSchema` — patches(min 1) + explanation + confidence(0–1).
+
+### 알려진 제한사항 (향후 개선)
+
+| 항목 | 현황 | 개선 방향 |
+|------|------|------|
+| Non-streaming | AI 응답까지 "수정 중…" 대기 | Stage 4에서 `streamChatCompletion` 전환 |
+| 컨텍스트 무관 | 매 요청 독립 (이전 편집 히스토리 미전송) | 마지막 2턴 explanation을 user prompt에 포함 |
+| AiEditTab 컴포넌트 테스트 없음 | UI 로직 비커버 | Playwright E2E로 보완 예정 |
+| ChartSpec 크기 제한 | `MAX_SPEC_JSON_LENGTH = 3000` 하드코딩 | 컬럼 수 기반 동적 계산 고려 |
+
+### 테스트 시나리오 (시뮬레이션)
+
+S1 X축 라벨 45도 회전 | S2 IEEE 스타일 전환 | S3 에러바 추가 | S4 Y축 제목 변경 | S5 차트 유형 bar→line | S6 색상 인코딩 추가 | S7 연속 2회 편집 누적 | S8 readonly 침범 → spec 불변 | S9 낮은 신뢰도(0.2) | S10 무효 enum("pie") → Zod 실패
 
 ### 기술 부채 (Tech Debt)
 
