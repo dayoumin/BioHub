@@ -47,9 +47,8 @@ export function saveProject(project: GraphProject): void {
   }
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  } catch {
-    // localStorage 용량 초과 시 조용히 무시
-    // (ChartSpec은 작으므로 정상 상황에서 발생하지 않음)
+  } catch (err) {
+    console.warn('[project-storage] 프로젝트 저장 실패 (localStorage 용량 초과?):', err);
   }
 }
 
@@ -57,8 +56,8 @@ export function deleteProject(projectId: string): void {
   const list = listProjects().filter(p => p.id !== projectId);
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  } catch {
-    /* no-op */
+  } catch (err) {
+    console.warn('[project-storage] 프로젝트 삭제 실패 (localStorage 오류):', err);
   }
 }
 

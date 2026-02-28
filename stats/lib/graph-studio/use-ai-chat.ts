@@ -73,8 +73,9 @@ export function useAiChat(): AiChatHook {
         if (Array.isArray(parsed)) setMessages(parsed);
       }
     } catch (err) {
-      console.warn('[use-ai-chat] 채팅 히스토리 로드 실패, 초기화합니다.', err);
+      console.warn('[use-ai-chat] 채팅 히스토리 파싱 실패, 저장된 히스토리를 삭제합니다.', err);
       localStorage.removeItem(CHAT_STORAGE_KEY);
+      setMessages([]);
     }
   }, []);
 

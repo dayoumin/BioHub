@@ -355,7 +355,9 @@ function buildHeatmapData(
 
   const data: [number, number, number][] = [];
   for (const [key, cell] of cells) {
-    const [xc, yc] = key.split('\u0000');
+    const parts = key.split('\u0000');
+    if (parts.length !== 2) continue;
+    const [xc, yc] = parts;
     const xi = xIndex.get(xc) ?? -1;
     const yi = yIndex.get(yc) ?? -1;
     if (xi < 0 || yi < 0) continue;

@@ -153,12 +153,14 @@ const INFER_TYPE_THRESHOLDS = {
   ORDINAL_UNIQUE_RATIO: 0.05,
   /** ordinal 판정: 최소 샘플 크기 (너무 작으면 비율이 불안정) */
   ORDINAL_MIN_SAMPLE: 20,
+  /** 타입 추론 샘플 크기: 전체 데이터 중 앞에서 이 개수만 검사 */
+  SAMPLE_SIZE: 100,
 } as const;
 
 function inferDataType(values: unknown[]): DataType {
   if (values.length === 0) return 'nominal';
 
-  const sample = values.slice(0, 100);
+  const sample = values.slice(0, INFER_TYPE_THRESHOLDS.SAMPLE_SIZE);
 
   // 숫자 판정
   const numericCount = sample.filter(v => {
