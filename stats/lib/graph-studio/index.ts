@@ -33,6 +33,9 @@ export {
 // ECharts 변환
 export { chartSpecToECharts } from './echarts-converter';
 
+// Export 유틸리티
+export { downloadChart } from './export-utils';
+
 // 프로젝트 저장소
 export {
   listProjects,
@@ -41,3 +44,6 @@ export {
   deleteProject,
   generateProjectId,
 } from './project-storage';
+
+// AI 서비스
+export { editChart, buildAiEditRequest } from './ai-service';

@@ -22,7 +22,12 @@ const TAB_MAP: Record<string, GraphStudioState['sidePanel']> = {
   export: 'export',
 };
 
-export function SidePanel(): React.ReactElement {
+interface SidePanelProps {
+  /** Stage 3: Export 실행 핸들러 (GraphStudioPage에서 주입) */
+  onExport?: () => void;
+}
+
+export function SidePanel({ onExport }: SidePanelProps): React.ReactElement {
   const { sidePanel, setSidePanel } = useGraphStudioStore();
 
   const handleTabChange = useCallback((value: string) => {
@@ -55,7 +60,7 @@ export function SidePanel(): React.ReactElement {
             <PresetsTab />
           </TabsContent>
           <TabsContent value="export" className="mt-0">
-            <ExportTab />
+            <ExportTab onExport={onExport} />
           </TabsContent>
         </div>
       </Tabs>

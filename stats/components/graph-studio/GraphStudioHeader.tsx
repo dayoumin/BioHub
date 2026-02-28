@@ -14,17 +14,19 @@ import {
   Redo2,
   Download,
   PanelRightOpen,
-  PanelRightClose,
 } from 'lucide-react';
 
 interface GraphStudioHeaderProps {
   onToggleSidePanel?: () => void;
+  /** Stage 3: Export 버튼 클릭 핸들러 (GraphStudioPage에서 주입) */
+  onExport?: () => void;
 }
 
 export function GraphStudioHeader({
   onToggleSidePanel,
+  onExport,
 }: GraphStudioHeaderProps): React.ReactElement {
-  const { chartSpec, historyIndex, specHistory, undo, redo } = useGraphStudioStore();
+  const { chartSpec, historyIndex, specHistory, undo, redo, isExporting } = useGraphStudioStore();
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < specHistory.length - 1;
@@ -75,10 +77,16 @@ export function GraphStudioHeader({
 
       {/* 우: 액션 */}
       <div className="flex items-center gap-2">
-        {chartSpec && (
-          <Button variant="outline" size="sm" disabled title="내보내기는 Stage 3에서 구현 예정입니다">
+        {chartSpec && onExport && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onExport}
+            disabled={isExporting}
+            aria-label="Export chart"
+          >
             <Download className="h-4 w-4 mr-1" />
-            Export
+            {isExporting ? '내보내는 중...' : 'Export'}
           </Button>
         )}
         {onToggleSidePanel && (

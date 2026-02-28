@@ -3,7 +3,8 @@
 /**
  * Export 탭 — SVG/PNG 내보내기 설정
  *
- * Stage 3 구현 예정: ECharts getDataURL(format, pixelRatio) 연결
+ * Stage 3: ECharts getDataURL(format, pixelRatio) 연결 완료
+ * onExport: GraphStudioPage → SidePanel → ExportTab으로 주입
  */
 
 import { useCallback } from 'react';
@@ -18,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Download } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 import type { ExportFormat } from '@/types/graph-studio';
 
 const DPI_OPTIONS = [72, 150, 300, 600] as const;
@@ -29,8 +30,13 @@ const SUPPORTED_FORMATS: { value: ExportFormat; label: string }[] = [
   { value: 'png', label: 'PNG (래스터)' },
 ];
 
-export function ExportTab(): React.ReactElement {
-  const { chartSpec, updateChartSpec } = useGraphStudioStore();
+interface ExportTabProps {
+  /** Stage 3: Export 실행 핸들러 (GraphStudioPage에서 주입) */
+  onExport?: () => void;
+}
+
+export function ExportTab({ onExport }: ExportTabProps): React.ReactElement {
+  const { chartSpec, updateChartSpec, isExporting } = useGraphStudioStore();
 
   const handleFormatChange = useCallback((value: string) => {
     if (!chartSpec) return;
@@ -152,16 +158,20 @@ export function ExportTab(): React.ReactElement {
         </div>
       </div>
 
-      {/* Export 버튼 — Stage 3에서 활성화 */}
-      <Button className="w-full" disabled>
-        <Download className="h-4 w-4 mr-2" />
-        {exportConfig.format.toUpperCase()} 내보내기
+      {/* Export 버튼 */}
+      <Button
+        className="w-full"
+        onClick={onExport}
+        disabled={!onExport || isExporting}
+        aria-label={`Export chart as ${exportConfig.format.toUpperCase()}`}
+      >
+        {isExporting ? (
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        ) : (
+          <Download className="h-4 w-4 mr-2" />
+        )}
+        {isExporting ? '내보내는 중...' : `${exportConfig.format.toUpperCase()} 내보내기`}
       </Button>
-
-      <p className="text-xs text-muted-foreground">
-        내보내기는 Stage 3에서 구현 예정입니다
-        (ECharts getDataURL 연결 필요)
-      </p>
     </div>
   );
 }
