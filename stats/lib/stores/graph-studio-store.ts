@@ -51,7 +51,7 @@ const initialState: GraphStudioState = {
   chartSpec: null,
   specHistory: [],
   historyIndex: -1,
-  sidePanel: 'properties',
+  sidePanel: 'data',
 };
 
 const MAX_HISTORY = 50;
@@ -178,6 +178,8 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         chartSpec: spec,
         specHistory: [spec],
         historyIndex: 0,
+        // 구버전 sidePanel 값('properties', 'ai-chat' 등) 마이그레이션 → 'data'
+        sidePanel: 'data',
       });
     },
 

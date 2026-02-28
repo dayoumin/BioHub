@@ -56,22 +56,22 @@ describe('Store 계약 — previewMode 제거', () => {
 // ─── sidePanel ────────────────────────────────────────────
 
 describe('sidePanel', () => {
-  it("초기값은 'properties'이다", () => {
-    expect(useGraphStudioStore.getState().sidePanel).toBe('properties')
+  it("초기값은 'data'이다", () => {
+    expect(useGraphStudioStore.getState().sidePanel).toBe('data')
   })
 
-  it("setSidePanel('ai-chat')으로 변경된다", () => {
+  it("setSidePanel('style')으로 변경된다", () => {
     act(() => {
-      useGraphStudioStore.getState().setSidePanel('ai-chat')
+      useGraphStudioStore.getState().setSidePanel('style')
     })
-    expect(useGraphStudioStore.getState().sidePanel).toBe('ai-chat')
+    expect(useGraphStudioStore.getState().sidePanel).toBe('style')
   })
 
-  it("setSidePanel('properties') → setSidePanel('ai-chat') 순서 변경이 반영된다", () => {
-    act(() => { useGraphStudioStore.getState().setSidePanel('properties') })
-    expect(useGraphStudioStore.getState().sidePanel).toBe('properties')
-    act(() => { useGraphStudioStore.getState().setSidePanel('ai-chat') })
-    expect(useGraphStudioStore.getState().sidePanel).toBe('ai-chat')
+  it("setSidePanel('data') → setSidePanel('style') 순서 변경이 반영된다", () => {
+    act(() => { useGraphStudioStore.getState().setSidePanel('data') })
+    expect(useGraphStudioStore.getState().sidePanel).toBe('data')
+    act(() => { useGraphStudioStore.getState().setSidePanel('style') })
+    expect(useGraphStudioStore.getState().sidePanel).toBe('style')
   })
 })
 
@@ -165,7 +165,7 @@ describe('resetAll', () => {
   it('모든 상태를 초기값으로 되돌린다', () => {
     act(() => {
       useGraphStudioStore.getState().setChartSpec(makeSpec())
-      useGraphStudioStore.getState().setSidePanel('ai-chat')
+      useGraphStudioStore.getState().setSidePanel('style')
       useGraphStudioStore.getState().resetAll()
     })
 
@@ -173,7 +173,7 @@ describe('resetAll', () => {
     expect(state.chartSpec).toBeNull()
     expect(state.specHistory).toHaveLength(0)
     expect(state.historyIndex).toBe(-1)
-    expect(state.sidePanel).toBe('properties')
+    expect(state.sidePanel).toBe('data')
     expect(state.isDataLoaded).toBe(false)
   })
 })

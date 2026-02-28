@@ -104,7 +104,7 @@ function MessageBubble({ message }: MessageBubbleProps): React.ReactElement {
 // ─── 메인 컴포넌트 ─────────────────────────────────────────
 
 export function AiEditTab(): React.ReactElement {
-  const { chartSpec, sidePanel, updateChartSpec } = useGraphStudioStore();
+  const { chartSpec, updateChartSpec } = useGraphStudioStore();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -152,14 +152,12 @@ export function AiEditTab(): React.ReactElement {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // sidePanel 기반 autofocus:
-  // - ai-chat 탭 진입 시 1회 포커스
-  // - 데이터 소스가 새로 로드된 직후(ai-chat에 머무는 경우)에도 포커스
-  // - chartSpec 전체를 deps에 넣지 않아 AI 편집 중 불필요한 재포커스 방지
+  // autofocus: AI 패널 진입 시 + 데이터 소스 변경 시 포커스
+  // Phase 4에서 AiPanel로 이전 예정. sidePanel 의존성은 제거함.
   useEffect(() => {
-    if (sidePanel !== 'ai-chat' || !chartSpecRef.current) return;
+    if (!chartSpecRef.current) return;
     textareaRef.current?.focus();
-  }, [sidePanel, chartSourceId]);
+  }, [chartSourceId]);
 
   /**
    * MAX_MESSAGES 초과 시 오래된 메시지부터 제거.

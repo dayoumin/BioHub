@@ -3,19 +3,20 @@
 /**
  * 사이드 패널
  *
- * 탭 구조: 속성 | AI 편집
+ * 탭 구조: 데이터 | 스타일
+ * (AI 편집은 Phase 4에서 도킹 패널로 분리)
  */
 
 import { useCallback } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PropertiesTab } from './panels/PropertiesTab';
-import { AiEditTab } from './panels/AiEditTab';
+import { DataTab } from './panels/DataTab';
+import { StyleTab } from './panels/StyleTab';
 import type { GraphStudioState } from '@/types/graph-studio';
 
 const TAB_MAP: Record<string, GraphStudioState['sidePanel']> = {
-  properties: 'properties',
-  'ai-chat': 'ai-chat',
+  data: 'data',
+  style: 'style',
 };
 
 export function SidePanel(): React.ReactElement {
@@ -34,16 +35,16 @@ export function SidePanel(): React.ReactElement {
         className="flex flex-col h-full"
       >
         <TabsList className="w-full grid grid-cols-2 rounded-none border-b">
-          <TabsTrigger value="properties" className="text-xs">속성</TabsTrigger>
-          <TabsTrigger value="ai-chat" className="text-xs">AI 편집</TabsTrigger>
+          <TabsTrigger value="data" className="text-xs">데이터</TabsTrigger>
+          <TabsTrigger value="style" className="text-xs">스타일</TabsTrigger>
         </TabsList>
 
         <div className="flex-1 overflow-y-auto p-3">
-          <TabsContent value="properties" className="mt-0">
-            <PropertiesTab />
+          <TabsContent value="data" className="mt-0">
+            <DataTab />
           </TabsContent>
-          <TabsContent value="ai-chat" className="mt-0">
-            <AiEditTab />
+          <TabsContent value="style" className="mt-0">
+            <StyleTab />
           </TabsContent>
         </div>
       </Tabs>

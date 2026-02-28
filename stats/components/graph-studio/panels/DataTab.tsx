@@ -1,15 +1,15 @@
 'use client';
 
 /**
- * 속성 탭 — 차트 유형, 축, 에러바, 범례 등 직접 편집
+ * 데이터 탭 — 차트 유형, 데이터 매핑 (어떤 데이터를?)
+ *
+ * PropertiesTab에서 분리. 스타일·출력 관련은 StyleTab 참조.
  */
 
 import { useCallback, useState, useEffect } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -17,51 +17,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Check } from 'lucide-react';
-import { CHART_TYPE_HINTS, STYLE_PRESETS } from '@/lib/graph-studio/chart-spec-defaults';
+import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
 import { selectXYFields } from '@/lib/graph-studio/chart-spec-utils';
-import type { ChartType, ErrorBarSpec, LegendSpec, StylePreset } from '@/types/graph-studio';
+import type { ChartType, ErrorBarSpec } from '@/types/graph-studio';
 
 /** 에러바를 지원하는 차트 유형 */
 const ERROR_BAR_CHART_TYPES = new Set<ChartType>(['bar', 'line', 'error-bar']);
 
-/** 학술 스타일 프리셋 목록 — Phase 3에서 StyleTab으로 이동 예정 */
-const PRESET_LIST: { key: StylePreset; label: string; description: string }[] = [
-  { key: 'default',   label: 'Default',   description: '깔끔한 기본 스타일 (Arial, 컬러)' },
-  { key: 'science',   label: 'Science',   description: 'Nature/Science 유사 (Times New Roman)' },
-  { key: 'ieee',      label: 'IEEE',      description: 'IEEE 학회 스타일 (흑백, 작은 폰트)' },
-  { key: 'grayscale', label: 'Grayscale', description: '흑백 전용 (인쇄 친화)' },
-];
-
-export function PropertiesTab(): React.ReactElement {
+export function DataTab(): React.ReactElement {
   const { chartSpec, updateChartSpec } = useGraphStudioStore();
 
   // ─── 로컬 입력 state (onBlur 시에만 updateChartSpec) ─────────────────────
-  // onChange마다 updateChartSpec하면 키입력 하나당 undo history 항목 생성
-
   const [titleInput, setTitleInput] = useState(chartSpec?.title ?? '');
   const [xTitleInput, setXTitleInput] = useState(chartSpec?.encoding.x.title ?? '');
   const [yTitleInput, setYTitleInput] = useState(chartSpec?.encoding.y.title ?? '');
-  const [yMinInput, setYMinInput] = useState(
-    chartSpec?.encoding.y.scale?.domain?.[0] !== undefined
-      ? String(chartSpec.encoding.y.scale.domain[0])
-      : '',
-  );
-  const [yMaxInput, setYMaxInput] = useState(
-    chartSpec?.encoding.y.scale?.domain?.[1] !== undefined
-      ? String(chartSpec.encoding.y.scale.domain[1])
-      : '',
-  );
 
-  // 외부 변경(AI 편집 등) 시 로컬 입력 동기화
   useEffect(() => { setTitleInput(chartSpec?.title ?? ''); }, [chartSpec?.title]);
   useEffect(() => { setXTitleInput(chartSpec?.encoding.x.title ?? ''); }, [chartSpec?.encoding.x.title]);
   useEffect(() => { setYTitleInput(chartSpec?.encoding.y.title ?? ''); }, [chartSpec?.encoding.y.title]);
-  useEffect(() => {
-    const domain = chartSpec?.encoding.y.scale?.domain;
-    setYMinInput(domain?.[0] !== undefined ? String(domain[0]) : '');
-    setYMaxInput(domain?.[1] !== undefined ? String(domain[1]) : '');
-  }, [chartSpec?.encoding.y.scale?.domain]);
 
   // ─── 차트 제목 ────────────────────────────────────────────
 
@@ -75,7 +48,6 @@ export function PropertiesTab(): React.ReactElement {
 
   const handleTitleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
-      // isComposing: 한국어 IME 확정 Enter와 저장 Enter 구분
       if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
         e.currentTarget.blur();
       }
@@ -165,46 +137,6 @@ export function PropertiesTab(): React.ReactElement {
     });
   }, [chartSpec, updateChartSpec]);
 
-  // ─── 로그 스케일 ──────────────────────────────────────────
-
-  const handleLogScaleToggle = useCallback((checked: boolean) => {
-    if (!chartSpec) return;
-    updateChartSpec({
-      ...chartSpec,
-      encoding: {
-        ...chartSpec.encoding,
-        y: {
-          ...chartSpec.encoding.y,
-          scale: { ...chartSpec.encoding.y.scale, type: checked ? 'log' : 'linear' },
-        },
-      },
-    });
-  }, [chartSpec, updateChartSpec]);
-
-  // ─── Y축 범위 ─────────────────────────────────────────────
-
-  const handleYRangeBlur = useCallback(() => {
-    if (!chartSpec) return;
-    const min = parseFloat(yMinInput);
-    const max = parseFloat(yMaxInput);
-    // 둘 다 유효한 숫자일 때만 domain 설정, 아니면 undefined (auto)
-    const domain: [number, number] | undefined =
-      (!isNaN(min) && !isNaN(max)) ? [min, max] : undefined;
-    const currentDomain = chartSpec.encoding.y.scale?.domain;
-    if (JSON.stringify(domain) !== JSON.stringify(currentDomain)) {
-      updateChartSpec({
-        ...chartSpec,
-        encoding: {
-          ...chartSpec.encoding,
-          y: {
-            ...chartSpec.encoding.y,
-            scale: { ...chartSpec.encoding.y.scale, domain },
-          },
-        },
-      });
-    }
-  }, [chartSpec, yMinInput, yMaxInput, updateChartSpec]);
-
   // ─── 에러바 ───────────────────────────────────────────────
 
   const handleErrorBarTypeChange = useCallback((value: string) => {
@@ -227,33 +159,6 @@ export function PropertiesTab(): React.ReactElement {
     });
   }, [chartSpec, updateChartSpec]);
 
-  // ─── 스타일 프리셋 ────────────────────────────────────────
-
-  const handleApplyPreset = useCallback((presetKey: StylePreset) => {
-    if (!chartSpec) return;
-    const preset = STYLE_PRESETS[presetKey];
-    updateChartSpec({ ...chartSpec, style: { ...preset } });
-  }, [chartSpec, updateChartSpec]);
-
-  // ─── 범례 위치 ────────────────────────────────────────────
-
-  const handleLegendOrientChange = useCallback((value: string) => {
-    if (!chartSpec?.encoding.color) return;
-    updateChartSpec({
-      ...chartSpec,
-      encoding: {
-        ...chartSpec.encoding,
-        color: {
-          ...chartSpec.encoding.color,
-          legend: {
-            ...chartSpec.encoding.color.legend,
-            orient: value as LegendSpec['orient'],
-          },
-        },
-      },
-    });
-  }, [chartSpec, updateChartSpec]);
-
   // ─── 렌더 ─────────────────────────────────────────────────
 
   if (!chartSpec) {
@@ -261,14 +166,10 @@ export function PropertiesTab(): React.ReactElement {
   }
 
   const columns = chartSpec.data.columns;
-  const isQuantitativeY = chartSpec.encoding.y.type === 'quantitative';
-  const isLogScale = chartSpec.encoding.y.scale?.type === 'log';
-  // line 차트는 colorField 없고 category X일 때만 에러바 컨버터가 지원
   const showErrorBar = ERROR_BAR_CHART_TYPES.has(chartSpec.chartType) && (
     chartSpec.chartType !== 'line' ||
     (!chartSpec.encoding.color?.field && chartSpec.encoding.x.type !== 'temporal')
   );
-  const showLegend = chartSpec.encoding.color !== undefined;
 
   return (
     <div className="space-y-4">
@@ -301,7 +202,6 @@ export function PropertiesTab(): React.ReactElement {
             ))}
           </SelectContent>
         </Select>
-        {/* violin은 ECharts 미지원 → box plot으로 렌더링됨 */}
         {chartSpec.chartType === 'violin' && (
           <p className="text-xs text-amber-600 dark:text-amber-400">
             현재 박스 플롯으로 표시됩니다 (ECharts 제한)
@@ -375,53 +275,6 @@ export function PropertiesTab(): React.ReactElement {
           placeholder="빈칸이면 필드명 사용"
           className="h-7 text-xs"
         />
-        {/* 로그 스케일 (quantitative only) */}
-        {isQuantitativeY && (
-          <div className="flex items-center justify-between pt-0.5">
-            <Label htmlFor="log-scale" className="text-xs cursor-pointer">로그 스케일</Label>
-            <Switch
-              id="log-scale"
-              checked={isLogScale}
-              onCheckedChange={handleLogScaleToggle}
-            />
-          </div>
-        )}
-        {/* Y축 범위 (quantitative only) */}
-        {isQuantitativeY && (
-          <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Y축 범위</Label>
-            <div className="flex gap-1.5">
-              <Input
-                value={yMinInput}
-                onChange={(e) => setYMinInput(e.target.value)}
-                onBlur={handleYRangeBlur}
-                placeholder="최솟값"
-                className="h-7 text-xs"
-                type="number"
-              />
-              <Input
-                value={yMaxInput}
-                onChange={(e) => setYMaxInput(e.target.value)}
-                onBlur={handleYRangeBlur}
-                placeholder="최댓값"
-                className="h-7 text-xs"
-                type="number"
-              />
-            </div>
-            {/* 한 쪽만 입력 시 안내 */}
-            {(yMinInput !== '') !== (yMaxInput !== '') && (
-              <p className="text-xs text-amber-600 dark:text-amber-400">
-                최솟값·최댓값을 모두 입력해야 적용됩니다.
-              </p>
-            )}
-            {/* 로그 스케일 + min=0 경고 */}
-            {isLogScale && parseFloat(yMinInput) === 0 && (
-              <p className="text-xs text-destructive">
-                로그 스케일에서 최솟값 0은 사용할 수 없습니다.
-              </p>
-            )}
-          </div>
-        )}
       </div>
 
       {/* 에러바 (bar / line / error-bar 차트만) */}
@@ -443,7 +296,6 @@ export function PropertiesTab(): React.ReactElement {
               <SelectItem value="iqr" className="text-sm">IQR (사분위 범위)</SelectItem>
             </SelectContent>
           </Select>
-          {/* CI 수준 — ci 유형 선택 시만 표시 */}
           {chartSpec.errorBar?.type === 'ci' && (
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">신뢰 수준</Label>
@@ -464,54 +316,6 @@ export function PropertiesTab(): React.ReactElement {
           )}
         </div>
       )}
-
-      {/* 범례 위치 (color encoding 있을 때만) */}
-      {showLegend && (
-        <div className="space-y-1.5">
-          <Label className="text-xs">범례 위치</Label>
-          <Select
-            value={chartSpec.encoding.color?.legend?.orient ?? 'top'}
-            onValueChange={handleLegendOrientChange}
-          >
-            <SelectTrigger className="h-8 text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="top" className="text-sm">위</SelectItem>
-              <SelectItem value="right" className="text-sm">오른쪽</SelectItem>
-              <SelectItem value="bottom" className="text-sm">아래</SelectItem>
-              <SelectItem value="left" className="text-sm">왼쪽</SelectItem>
-              <SelectItem value="none" className="text-sm">숨김</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* 학술 스타일 프리셋 — Phase 3에서 StyleTab으로 이동 예정 */}
-      <div className="space-y-1.5">
-        <Label className="text-xs">학술 스타일</Label>
-        <div className="grid grid-cols-2 gap-1.5">
-          {PRESET_LIST.map(preset => {
-            const isActive = chartSpec.style.preset === preset.key;
-            return (
-              <Button
-                key={preset.key}
-                variant={isActive ? 'default' : 'outline'}
-                className="h-auto py-2 px-3 justify-between"
-                onClick={() => handleApplyPreset(preset.key)}
-              >
-                <div className="text-left">
-                  <div className="text-xs font-medium">{preset.label}</div>
-                  <div className={`text-xs mt-0.5 ${isActive ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}>
-                    {preset.description}
-                  </div>
-                </div>
-                {isActive && <Check className="h-3 w-3 shrink-0 ml-1" />}
-              </Button>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 }
