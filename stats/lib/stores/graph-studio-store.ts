@@ -6,6 +6,7 @@
 
 import { create } from 'zustand';
 import type {
+  AiPanelDock,
   ChartSpec,
   DataPackage,
   ExportConfig,
@@ -36,6 +37,8 @@ interface GraphStudioActions {
 
   // UI
   setSidePanel: (panel: GraphStudioState['sidePanel']) => void;
+  toggleAiPanel: () => void;
+  setAiPanelDock: (dock: AiPanelDock) => void;
 
   // 프로젝트
   setProject: (project: GraphProject, dataPackage?: DataPackage) => void;
@@ -52,6 +55,8 @@ const initialState: GraphStudioState = {
   specHistory: [],
   historyIndex: -1,
   sidePanel: 'data',
+  aiPanelOpen: false,
+  aiPanelDock: 'bottom',
 };
 
 const MAX_HISTORY = 50;
@@ -153,6 +158,8 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
     // ── UI ──
 
     setSidePanel: (panel) => set({ sidePanel: panel }),
+    toggleAiPanel: () => set(state => ({ aiPanelOpen: !state.aiPanelOpen })),
+    setAiPanelDock: (dock) => set({ aiPanelDock: dock }),
 
     // ── 프로젝트 ──
 

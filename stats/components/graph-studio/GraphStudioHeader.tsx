@@ -10,7 +10,7 @@ import { useCallback } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
 import { Button } from '@/components/ui/button';
-import { Undo2, Redo2, PanelRightOpen } from 'lucide-react';
+import { Undo2, Redo2, PanelRightOpen, Sparkles } from 'lucide-react';
 import { ExportDialog } from './panels/ExportDialog';
 
 interface GraphStudioHeaderProps {
@@ -23,7 +23,7 @@ export function GraphStudioHeader({
   onToggleSidePanel,
   onExport,
 }: GraphStudioHeaderProps): React.ReactElement {
-  const { chartSpec, historyIndex, specHistory, undo, redo } = useGraphStudioStore();
+  const { chartSpec, historyIndex, specHistory, undo, redo, aiPanelOpen, toggleAiPanel } = useGraphStudioStore();
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < specHistory.length - 1;
@@ -74,6 +74,18 @@ export function GraphStudioHeader({
 
       {/* 우: 액션 */}
       <div className="flex items-center gap-2">
+        {chartSpec && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleAiPanel}
+            aria-label={aiPanelOpen ? 'AI 패널 닫기' : 'AI 패널 열기'}
+            className={aiPanelOpen ? 'text-primary bg-primary/10' : ''}
+          >
+            <Sparkles className="h-4 w-4 mr-1" />
+            AI
+          </Button>
+        )}
         <ExportDialog onExport={onExport} />
         {onToggleSidePanel && (
           <Button

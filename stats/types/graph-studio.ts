@@ -226,6 +226,10 @@ export interface GraphProject {
   updatedAt: string;
 }
 
+// ─── AI Panel Dock ─────────────────────────────────────────
+
+export type AiPanelDock = 'bottom' | 'right' | 'left';
+
 // ─── Graph Studio Store State ──────────────────────────────
 
 export interface GraphStudioState {
@@ -243,4 +247,6 @@ export interface GraphStudioState {
 
   // UI
   sidePanel: 'data' | 'style';
+  aiPanelOpen: boolean;
+  aiPanelDock: AiPanelDock;
 }
