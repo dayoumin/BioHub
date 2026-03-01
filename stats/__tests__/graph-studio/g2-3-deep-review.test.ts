@@ -85,7 +85,7 @@ function makeScatterFacetSpec(overrides: Partial<ChartSpec> = {}): ChartSpec {
   };
 }
 
-// ─── DR-1: scatter facet x축 공유 미구현 (H-NEW-1) ──────────
+// ─── DR-1: scatter facet x/y축 공유 범위 (H-NEW-1 수정 완료) ──
 
 describe('DR-1: scatter facet x축 범위 동작', () => {
   it('shareAxis=true일 때 y축은 전체 공유됨', () => {
@@ -100,25 +100,31 @@ describe('DR-1: scatter facet x축 범위 동작', () => {
     expect(new Set(maxes).size).toBe(1); // 모든 패싯 y max 동일
   });
 
-  it('shareAxis=true일 때 scatter x축은 공유되지 않음 (현재 동작 문서화)', () => {
-    // 현재 구현: scatter facet x축은 패싯별 auto-scale (공유 미구현)
-    // ggplot2 facet_wrap(scales="fixed")과 다름 — 향후 개선 대상
+  it('shareAxis=true일 때 scatter x축도 전체 공유됨 (H-NEW-1 수정)', () => {
+    // SCATTER_FACET_ROWS length: Bass[10,50], Bream[30,35] → 전체 범위 [10, 50]
     const spec = makeScatterFacetSpec({ facet: { field: 'species', shareAxis: true } });
     const option = chartSpecToECharts(spec, SCATTER_FACET_ROWS);
     const xAxes = option.xAxis as Record<string, unknown>[];
 
-    // x축에 min/max 강제 설정이 없음 (auto-scale)
+    // 모든 패싯 x축에 동일한 globalXMin/Max 적용
+    const mins = xAxes.map(a => a.min);
+    const maxes = xAxes.map(a => a.max);
+    expect(new Set(mins).size).toBe(1);   // 모든 패싯 x min 동일
+    expect(new Set(maxes).size).toBe(1);  // 모든 패싯 x max 동일
+    expect(mins[0]).toBe(10);  // 전체 데이터 x 최솟값
+    expect(maxes[0]).toBe(50); // 전체 데이터 x 최댓값
+  });
+
+  it('shareAxis=false일 때 x/y축 독립 (min/max 미설정)', () => {
+    const spec = makeScatterFacetSpec({ facet: { field: 'species', shareAxis: false } });
+    const option = chartSpecToECharts(spec, SCATTER_FACET_ROWS);
+    const xAxes = option.xAxis as Record<string, unknown>[];
+    const yAxes = option.yAxis as Record<string, unknown>[];
+
     for (const axis of xAxes) {
       expect(axis.min).toBeUndefined();
       expect(axis.max).toBeUndefined();
     }
-  });
-
-  it('shareAxis=false일 때 y축도 독립 (min/max 미설정)', () => {
-    const spec = makeScatterFacetSpec({ facet: { field: 'species', shareAxis: false } });
-    const option = chartSpecToECharts(spec, SCATTER_FACET_ROWS);
-    const yAxes = option.yAxis as Record<string, unknown>[];
-
     for (const axis of yAxes) {
       expect(axis.min).toBeUndefined();
       expect(axis.max).toBeUndefined();

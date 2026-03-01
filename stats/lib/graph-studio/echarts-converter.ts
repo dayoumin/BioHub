@@ -839,14 +839,25 @@ function buildFacetOption(
   // 공통 y 범위 계산 (shareAxis 기본 true)
   // bar 차트는 기본적으로 0에서 시작해야 하므로 min을 0으로 강제
   const isBarFacet = spec.chartType === 'bar';
+  const isScatterFacet = spec.chartType === 'scatter';
   let globalYMin: number | undefined;
   let globalYMax: number | undefined;
+  let globalXMin: number | undefined;
+  let globalXMax: number | undefined;
   if (facet.shareAxis !== false) {
     for (const row of rows) {
       const v = toNumber(row[yField]);
       if (!isNaN(v)) {
         globalYMin = globalYMin === undefined ? v : Math.min(globalYMin, v);
         globalYMax = globalYMax === undefined ? v : Math.max(globalYMax, v);
+      }
+      // scatter: x축도 공유 범위 계산
+      if (isScatterFacet) {
+        const vx = toNumber(row[xField]);
+        if (!isNaN(vx)) {
+          globalXMin = globalXMin === undefined ? vx : Math.min(globalXMin, vx);
+          globalXMax = globalXMax === undefined ? vx : Math.max(globalXMax, vx);
+        }
       }
     }
     // bar 차트: 0 기준선 보장 (막대가 떠오르거나 잘리는 현상 방지)
@@ -871,7 +882,7 @@ function buildFacetOption(
     // x축/y축: 차트 유형 + orientation에 따라 결정
     const isHFacet = isBarFacet && spec.orientation === 'horizontal';
     if (spec.chartType === 'scatter') {
-      // scatter: value 축
+      // scatter: value 축 + shareAxis 시 x 범위 공유
       xAxes.push({
         gridIndex: i,
         type: 'value',
@@ -883,6 +894,8 @@ function buildFacetOption(
           fontSize: style.labelSize,
           show: i >= groups.size - layout.cols,
         },
+        ...(globalXMin !== undefined ? { min: globalXMin } : {}),
+        ...(globalXMax !== undefined ? { max: globalXMax } : {}),
       });
       yAxes.push({
         gridIndex: i,
