@@ -597,6 +597,7 @@ describe('StatisticalExecutor Runtime Tests', () => {
       const result = await executor.executeMethod(method, data, { dependent: ['outcome'], independent: ['score'] })
       const info = result.additionalInfo as Record<string, unknown>
       expect(info.auc).toBeCloseTo(0.82)
+      expect(info.aucCI).toEqual({ lower: 0.74, upper: 0.90 })
       expect(info.sensitivity).toBeCloseTo(0.78)
       expect(info.specificity).toBeCloseTo(0.80)
     })
