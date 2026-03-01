@@ -341,7 +341,7 @@ export function DataTab(): React.ReactElement {
     chartSpec.chartType !== 'line' ||
     (!chartSpec.encoding.color?.field && chartSpec.encoding.x.type !== 'temporal')
   );
-  const showTrendline = chartSpec.chartType === 'scatter';
+  const showTrendline = chartSpec.chartType === 'scatter' && !hasFacet;
 
   return (
     <div className="space-y-4">
