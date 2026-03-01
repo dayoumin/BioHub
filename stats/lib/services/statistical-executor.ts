@@ -405,7 +405,10 @@ export class StatisticalExecutor {
 
     // 그룹변수로 데이터 분할
     if (group) {
-      const groups = [...new Set(data.map(row => row[group]))]
+      // null/undefined 그룹 제외 — String(null)="null" 문자열 그룹 생성 방지
+      const groups = [...new Set(data.map(row => row[group]))].filter(
+        grp => grp != null && grp !== ''
+      )
       prepared.groups = groups
       arrays.byGroup = {} as Record<string, number[]>
 
@@ -1054,6 +1057,28 @@ export class StatisticalExecutor {
         throw new Error('ANCOVA: 모든 변수에 유효한 값이 있는 행이 없습니다')
       }
 
+      // validRows 기준 그룹 재검증 (공변량 필터링으로 그룹이 사라질 수 있음)
+      const validByGroup: Record<string, number> = {}
+      for (const row of validRows) {
+        const g = String(row[groupVar])
+        validByGroup[g] = (validByGroup[g] || 0) + 1
+      }
+      const validGroupNames = Object.keys(validByGroup)
+      if (validGroupNames.length < 2) {
+        throw new Error(
+          `ANCOVA: 유효한 데이터 기준 그룹이 ${validGroupNames.length}개뿐입니다 (최소 2개 필요). ` +
+          `공변량에 결측값이 많은 그룹이 있는지 확인하세요.`
+        )
+      }
+      const tooSmallGroups = validGroupNames.filter(g => validByGroup[g] < 2)
+      if (tooSmallGroups.length > 0) {
+        const details = validGroupNames.map(g => `"${g}": ${validByGroup[g]}개`).join(', ')
+        throw new Error(
+          `ANCOVA: 유효한 데이터 기준 일부 그룹의 관측치가 2개 미만입니다. 현재: ${details}. ` +
+          `공변량에 결측값이 많은 그룹이 있는지 확인하세요.`
+        )
+      }
+
       const ancovaResult = await pyodideStats.ancovaAnalysisWorker(
         dependentVar, [groupVar], covariateVars, validRows
       )
@@ -1069,8 +1094,8 @@ export class StatisticalExecutor {
           duration: 0,
           dataInfo: {
             totalN: validRows.length,
-            missingRemoved: 0,
-            groups: groups.length
+            missingRemoved: (data.data as unknown[]).length - validRows.length,
+            groups: validGroupNames.length
           }
         },
         mainResults: {
@@ -1099,9 +1124,12 @@ export class StatisticalExecutor {
         },
         visualizationData: {
           type: 'boxplot-multiple',
-          data: groups.map((g, i) => ({
-            values: g,
-            label: groupNames[i] || `Group ${i + 1}`
+          // validRows 기준으로 시각화 데이터 생성 (분석 대상과 일치)
+          data: validGroupNames.map(gName => ({
+            values: validRows
+              .filter(r => String(r[groupVar]) === gName)
+              .map(r => Number(r[dependentVar])),
+            label: gName
           }))
         },
         rawResults: {

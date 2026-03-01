@@ -558,4 +558,70 @@ describe('ANCOVA Worker2 시뮬레이션', () => {
       expect(postHoc[0].group2).toBe('GroupY')
     })
   })
+
+  // ─── 9. 10차 리뷰: 그룹 재검증 + null 그룹 + visualizationData ────
+
+  describe('9. validRows 후 그룹 재검증 (10H-1)', () => {
+    it('공변량 필터링으로 그룹이 1개만 남으면 에러', async () => {
+      // A 그룹: 유효 covariate, B 그룹: 모두 NaN covariate
+      const data: Array<Record<string, unknown>> = [
+        { score: 10, group: 'A', baseline: 50 },
+        { score: 20, group: 'A', baseline: 55 },
+        { score: 30, group: 'A', baseline: 60 },
+        { score: 40, group: 'B', baseline: NaN },
+        { score: 50, group: 'B', baseline: NaN },
+        { score: 60, group: 'B', baseline: NaN },
+      ]
+      const variables = { dependent: ['score'], group: 'group', covariate: 'baseline' }
+
+      await expect(
+        executor.executeMethod(ANCOVA_METHOD, data, variables)
+      ).rejects.toThrow('그룹이 1개뿐입니다')
+
+      expect(mockAncovaAnalysisWorker).not.toHaveBeenCalled()
+    })
+
+    it('공변량 필터링으로 그룹 관측치가 1개만 남으면 에러', async () => {
+      const data: Array<Record<string, unknown>> = [
+        { score: 10, group: 'A', baseline: 50 },
+        { score: 20, group: 'A', baseline: 55 },
+        { score: 30, group: 'B', baseline: 60 },   // B에서 유일한 유효행
+        { score: 40, group: 'B', baseline: NaN },
+        { score: 50, group: 'B', baseline: NaN },
+      ]
+      const variables = { dependent: ['score'], group: 'group', covariate: 'baseline' }
+
+      await expect(
+        executor.executeMethod(ANCOVA_METHOD, data, variables)
+      ).rejects.toThrow('2개 미만')
+
+      expect(mockAncovaAnalysisWorker).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('10. missingRemoved 반영 (10M-2)', () => {
+    it('validRows 필터링으로 제거된 행 수가 missingRemoved에 반영됨', async () => {
+      mockAncovaAnalysisWorker.mockResolvedValue(makeAncovaResult())
+
+      const data = makeAncovaData({ includeInvalidRows: true })
+      const result = await executor.executeMethod(ANCOVA_METHOD, data.data, data.variables)
+
+      // 34행 중 4개 무효 → missingRemoved = 4
+      expect(result.metadata.dataInfo.missingRemoved).toBe(4)
+      expect(result.metadata.dataInfo.totalN).toBe(30)
+    })
+
+    it('visualizationData가 validRows 기준으로 생성됨', async () => {
+      mockAncovaAnalysisWorker.mockResolvedValue(makeAncovaResult())
+
+      const data = makeAncovaData({ includeInvalidRows: true })
+      const result = await executor.executeMethod(ANCOVA_METHOD, data.data, data.variables)
+
+      const vizData = result.visualizationData?.data as Array<{ values: number[]; label: string }>
+      expect(vizData).toBeDefined()
+      // 각 그룹의 values 합계 = validRows 30행
+      const totalVizRows = vizData.reduce((sum, g) => sum + g.values.length, 0)
+      expect(totalVizRows).toBe(30)
+    })
+  })
 })
