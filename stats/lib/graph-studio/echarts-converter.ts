@@ -7,9 +7,10 @@
  * AI generation path: LLM -> ChartSpec JSON (directly, no intermediate format)
  */
 
-import type { ChartSpec, AnnotationSpec, TrendlineSpec, StylePreset, DataType } from '@/types/graph-studio';
+import type { ChartSpec, AxisSpec, AnnotationSpec, TrendlineSpec, StylePreset, DataType } from '@/types/graph-studio';
 import type { EChartsOption } from 'echarts';
-import { STYLE_PRESETS, COLORBREWER_PALETTES } from './chart-spec-defaults';
+import { STYLE_PRESETS, COLORBREWER_PALETTES, CHART_TYPE_HINTS } from './chart-spec-defaults';
+import { partitionRowsByFacet, computeFacetLayout } from './facet-layout';
 
 // ─── Axis type mapping ─────────────────────────────────────
 
@@ -26,6 +27,14 @@ function sortByDate([a]: [string, number], [b]: [string, number]): number {
   if (!isNaN(da) && !isNaN(db)) return da - db;
   return a.localeCompare(b);
 }
+
+// ─── Facet constants ──────────────────────────────────────
+
+/** 패싯을 렌더링할 차트 유형 */
+const FACET_CHART_TYPES = new Set<string>(['bar', 'scatter']);
+
+/** 패싯 최대 개수 — 초과 시 첫 N개만 렌더 (성능 보호) */
+const MAX_FACETS = 12;
 
 // ─── Style/theme helpers ───────────────────────────────────
 
@@ -48,7 +57,10 @@ interface StyleConfig {
 
 function getStyleConfig(spec: ChartSpec): StyleConfig {
   const preset = STYLE_PRESETS[spec.style.preset] ?? STYLE_PRESETS.default;
-  const font = spec.style.font ?? preset.font;
+  // preset font를 base로 깔고 spec.style.font로 오버라이드 (family만 바꿔도 preset 크기 유지)
+  const font = spec.style.font
+    ? { ...preset.font, ...spec.style.font }
+    : preset.font;
   return {
     fontFamily: font?.family ?? 'Arial, Helvetica, sans-serif',
     fontSize: font?.size ?? 12,
@@ -624,6 +636,58 @@ function yAxisBase(spec: ChartSpec, style: StyleConfig) {
   };
 }
 
+/**
+ * Y2 (이중 Y축) 오른쪽 축 설정을 빌드.
+ * yAxisBase를 기반으로 position/nameGap을 오른쪽에 맞게 조정.
+ */
+function buildY2Axis(axis: AxisSpec, style: StyleConfig): Record<string, unknown> {
+  const scale = axis.scale;
+  const axisType = scale?.type === 'log' ? ('log' as const) : ('value' as const);
+  const domain = (
+    scale?.domain &&
+    scale.domain.length === 2 &&
+    typeof scale.domain[0] === 'number'
+  ) ? (scale.domain as [number, number]) : undefined;
+
+  return {
+    type: axisType,
+    name: axis.title ?? axis.field,
+    nameLocation: 'middle' as const,
+    nameGap: 48,
+    position: 'right',
+    nameTextStyle: { fontFamily: style.fontFamily, fontSize: style.labelSize },
+    axisLabel: { fontFamily: style.fontFamily, fontSize: style.labelSize },
+    splitLine: { show: false },  // 오른쪽 축은 그리드 라인 비표시 (좌측과 중복 방지)
+    ...(domain ? { min: domain[0], max: domain[1] } : {}),
+  };
+}
+
+/**
+ * Y2 series를 빌드. bar 차트에서는 line으로, line 차트에서도 line으로 렌더.
+ * isHorizontal: 수평 막대에서는 x/y 매핑이 반전됨 (xAxis=value, yAxis=category).
+ *   Y2도 동일하게 반전해야 ECharts가 올바르게 배치.
+ */
+function buildY2Series(
+  workRows: Record<string, unknown>[],
+  xField: string,
+  y2Field: string,
+  style: StyleConfig,
+  isHorizontal: boolean,
+): Record<string, unknown> {
+  return {
+    type: 'line' as const,
+    name: y2Field,
+    yAxisIndex: 1,
+    showSymbol: false,
+    // 수평 막대: xAxis=value, yAxis=category → Y2 line도 동일하게 [y2Value, category]
+    data: isHorizontal
+      ? workRows.map(r => [toNumber(r[y2Field]), toStr(r[xField])])
+      : workRows.map(r => [toStr(r[xField]), toNumber(r[y2Field])]),
+    lineStyle: { color: style.colors[1] ?? '#dc3545' },
+    itemStyle: { color: style.colors[1] ?? '#dc3545' },
+  };
+}
+
 /** 막대 데이터 레이블 설정. showDataLabels가 false/undefined이면 undefined 반환. */
 function buildBarLabel(
   spec: ChartSpec,
@@ -719,6 +783,165 @@ function buildErrorBarOverlay(
   };
 }
 
+// ─── Facet builder ─────────────────────────────────────────
+
+/**
+ * 패싯(소규모 배치) 옵션을 빌드.
+ * 단일 ECharts 인스턴스에 멀티 grid/xAxis/yAxis를 배치.
+ */
+function buildFacetOption(
+  spec: ChartSpec,
+  rows: Record<string, unknown>[],
+  style: StyleConfig,
+  base: EChartsOption,
+): EChartsOption {
+  const facet = spec.facet;
+  if (!facet) return base;  // 타입 가드 (호출부에서 이미 검증하지만 non-null assertion 방지)
+  const xField = spec.encoding.x.field;
+  const yField = spec.encoding.y.field;
+
+  const allGroups = partitionRowsByFacet(rows, facet.field);
+
+  // 패싯 수 제한 (quantitative 필드 선택 시 폭발 방지)
+  const groups = allGroups.size > MAX_FACETS
+    ? new Map([...allGroups].slice(0, MAX_FACETS))
+    : allGroups;
+
+  const layout = computeFacetLayout(groups.size, facet.ncol);
+
+  const grids: Record<string, unknown>[] = [];
+  const xAxes: Record<string, unknown>[] = [];
+  const yAxes: Record<string, unknown>[] = [];
+  const allSeries: Record<string, unknown>[] = [];
+  const titleGraphics: Record<string, unknown>[] = [];
+
+  // 공통 y 범위 계산 (shareAxis 기본 true)
+  let globalYMin: number | undefined;
+  let globalYMax: number | undefined;
+  if (facet.shareAxis !== false) {
+    for (const row of rows) {
+      const v = toNumber(row[yField]);
+      if (!isNaN(v)) {
+        globalYMin = globalYMin === undefined ? v : Math.min(globalYMin, v);
+        globalYMax = globalYMax === undefined ? v : Math.max(globalYMax, v);
+      }
+    }
+  }
+
+  let i = 0;
+  for (const [groupValue, groupRows] of groups) {
+    const item = layout.items[i];
+
+    grids.push({
+      left: item.left,
+      top: item.top,
+      width: item.width,
+      height: item.height,
+      containLabel: true,
+    });
+
+    // x축: 차트 유형에 따라 category 또는 value
+    const xAxisType = spec.chartType === 'scatter' ? 'value' : 'category';
+    if (xAxisType === 'category') {
+      // 카테고리 추출 (순서 보존, 중복 제거)
+      const seen = new Set<string>();
+      const cats: string[] = [];
+      for (const r of groupRows) {
+        const v = toStr(r[xField]);
+        if (!seen.has(v)) { seen.add(v); cats.push(v); }
+      }
+      xAxes.push({
+        gridIndex: i,
+        type: 'category',
+        data: cats,
+        axisLabel: {
+          fontFamily: style.fontFamily,
+          fontSize: style.labelSize,
+          show: i >= groups.size - layout.cols, // 하단 행만 라벨 표시
+        },
+        axisLine: { show: true },
+      });
+    } else {
+      xAxes.push({
+        gridIndex: i,
+        type: 'value',
+        name: i >= groups.size - layout.cols ? xField : undefined,
+        nameLocation: 'middle' as const,
+        nameGap: 24,
+        axisLabel: {
+          fontFamily: style.fontFamily,
+          fontSize: style.labelSize,
+          show: i >= groups.size - layout.cols,
+        },
+      });
+    }
+
+    yAxes.push({
+      gridIndex: i,
+      type: 'value' as const,
+      axisLabel: {
+        fontFamily: style.fontFamily,
+        fontSize: style.labelSize,
+        show: i % layout.cols === 0, // 좌측 열만 라벨 표시
+      },
+      splitLine: { show: true },
+      ...(globalYMin !== undefined ? { min: globalYMin } : {}),
+      ...(globalYMax !== undefined ? { max: globalYMax } : {}),
+    });
+
+    // chartType별 series 빌드
+    if (spec.chartType === 'bar') {
+      allSeries.push({
+        type: 'bar',
+        xAxisIndex: i,
+        yAxisIndex: i,
+        data: groupRows.map(r => [toStr(r[xField]), toNumber(r[yField])]),
+        name: groupValue,
+      });
+    } else if (spec.chartType === 'scatter') {
+      allSeries.push({
+        type: 'scatter',
+        xAxisIndex: i,
+        yAxisIndex: i,
+        data: groupRows.map(r => [toNumber(r[xField]), toNumber(r[yField])]),
+        name: groupValue,
+      });
+    }
+
+    // 패싯 제목
+    if (facet.showTitle !== false) {
+      titleGraphics.push({
+        type: 'text',
+        left: item.titleLeft,
+        top: item.titleTop,
+        style: {
+          text: `${facet.field}: ${groupValue}`,
+          textAlign: 'center',
+          fontSize: 11,
+          fontFamily: style.fontFamily,
+          fill: '#555',
+        },
+        silent: true,
+      });
+    }
+    i++;
+  }
+
+  return {
+    ...base,
+    grid: grids,
+    xAxis: xAxes,
+    yAxis: yAxes,
+    series: allSeries,
+    graphic: [
+      ...((base as Record<string, unknown>).graphic as Record<string, unknown>[] ?? []),
+      ...titleGraphics,
+    ],
+    legend: { show: false },
+    tooltip: { trigger: 'item' },
+  };
+}
+
 // ─── Main converter ────────────────────────────────────────
 
 export function chartSpecToECharts(
@@ -752,6 +975,11 @@ export function chartSpecToECharts(
     ? aggregateRows(rows, spec.aggregate.groupBy, yField, spec.aggregate.y)
     : rows;
 
+  // ── facet (최우선 분기) ──────────────────────────────────
+  if (spec.facet && FACET_CHART_TYPES.has(spec.chartType)) {
+    return buildFacetOption(spec, workRows, style, base);
+  }
+
   // ── bar ────────────────────────────────────────────────────
   if (spec.chartType === 'bar') {
     const barLabel = buildBarLabel(spec, style);
@@ -774,18 +1002,28 @@ export function chartSpecToECharts(
     }
     const { xAxis: barXAxis, yAxis: barYAxis } = buildBarAxes(spec, style);
     const isH = spec.orientation === 'horizontal';
+    const y2Axis = spec.encoding.y2;
+    const hasY2 = !!y2Axis && CHART_TYPE_HINTS[spec.chartType].supportsY2;
+    const barSeries: Record<string, unknown>[] = [{
+      type: 'bar',
+      encode: { x: isH ? yField : xField, y: isH ? xField : yField },
+      name: yField,
+      ...(barLabel ? { label: barLabel } : {}),
+    }];
+    if (hasY2 && y2Axis) {
+      barSeries.push(buildY2Series(workRows, xField, y2Axis.field, style, isH));
+    }
     return {
       ...base,
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      tooltip: hasY2
+        ? { trigger: 'axis', axisPointer: { type: 'cross' } }
+        : { trigger: 'axis', axisPointer: { type: 'shadow' } },
       xAxis: barXAxis,
-      yAxis: barYAxis,
+      yAxis: hasY2 && y2Axis
+        ? [barYAxis, buildY2Axis(y2Axis, style)]
+        : barYAxis,
       dataset: { source: workRows },
-      series: [{
-        type: 'bar',
-        encode: { x: isH ? yField : xField, y: isH ? xField : yField },
-        name: yField,
-        ...(barLabel ? { label: barLabel } : {}),
-      }],
+      series: barSeries,
     };
   }
 
@@ -951,13 +1189,25 @@ export function chartSpecToECharts(
       };
     }
 
+    const y2AxisLine = spec.encoding.y2;
+    const hasY2Line = !!y2AxisLine && CHART_TYPE_HINTS[spec.chartType].supportsY2;
+    const lineSeries: Record<string, unknown>[] = [
+      { type: 'line', encode: { x: xField, y: yField }, name: yField, smooth: false },
+    ];
+    if (hasY2Line && y2AxisLine) {
+      lineSeries.push(buildY2Series(workRows, xField, y2AxisLine.field, style, false));
+    }
     return {
       ...base,
-      tooltip: { trigger: 'axis' },
+      tooltip: hasY2Line
+        ? { trigger: 'axis', axisPointer: { type: 'cross' } }
+        : { trigger: 'axis' },
       xAxis: { ...xAxisBase(spec, style, xType) },
-      yAxis: yAxisBase(spec, style),
+      yAxis: hasY2Line && y2AxisLine
+        ? [yAxisBase(spec, style), buildY2Axis(y2AxisLine, style)]
+        : yAxisBase(spec, style),
       dataset: { source: workRows },
-      series: [{ type: 'line', encode: { x: xField, y: yField }, name: yField, smooth: false }],
+      series: lineSeries,
     };
   }
 

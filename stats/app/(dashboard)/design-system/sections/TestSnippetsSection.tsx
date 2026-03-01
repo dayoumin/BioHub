@@ -93,11 +93,13 @@ export function TestSnippetsSection() {
                       </div>
 
                       {/* 목적 */}
-                      <p className="text-sm text-muted-foreground">{pattern.purpose}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {'purpose' in pattern ? pattern.purpose : (pattern as { description?: string }).description}
+                      </p>
 
                       {/* 키워드 */}
                       <div className="flex flex-wrap gap-2">
-                        {(pattern.keywords ?? []).map((keyword) => (
+                        {((pattern as { keywords?: string[] }).keywords ?? []).map((keyword: string) => (
                           <Badge key={keyword} variant="outline" className="text-xs">
                             {keyword}
                           </Badge>

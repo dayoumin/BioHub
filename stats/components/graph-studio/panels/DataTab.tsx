@@ -49,12 +49,14 @@ export function DataTab(): React.ReactElement {
   const [titleInput, setTitleInput] = useState(chartSpec?.title ?? '');
   const [xTitleInput, setXTitleInput] = useState(chartSpec?.encoding.x.title ?? '');
   const [yTitleInput, setYTitleInput] = useState(chartSpec?.encoding.y.title ?? '');
+  const [y2TitleInput, setY2TitleInput] = useState(chartSpec?.encoding.y2?.title ?? '');
 
   useEffect(() => {
     setTitleInput(chartSpec?.title ?? '');
     setXTitleInput(chartSpec?.encoding.x.title ?? '');
     setYTitleInput(chartSpec?.encoding.y.title ?? '');
-  }, [chartSpec?.title, chartSpec?.encoding.x.title, chartSpec?.encoding.y.title]);
+    setY2TitleInput(chartSpec?.encoding.y2?.title ?? '');
+  }, [chartSpec?.title, chartSpec?.encoding.x.title, chartSpec?.encoding.y.title, chartSpec?.encoding.y2?.title]);
 
   // ─── 차트 제목 ────────────────────────────────────────────
 
@@ -232,6 +234,54 @@ export function DataTab(): React.ReactElement {
     });
   }, [chartSpec, updateChartSpec]);
 
+  // ─── 보조 Y축 (Y2) ─────────────────────────────────────────
+
+  const handleY2FieldChange = useCallback((value: string) => {
+    if (!chartSpec) return;
+    if (value === 'none') {
+      const { y2: _y2, ...restEncoding } = chartSpec.encoding;
+      updateChartSpec({ ...chartSpec, encoding: restEncoding });
+    } else {
+      const col = chartSpec.data.columns.find(c => c.name === value);
+      updateChartSpec({
+        ...chartSpec,
+        encoding: {
+          ...chartSpec.encoding,
+          y2: { field: value, type: col?.type ?? 'quantitative' },
+        },
+      });
+    }
+  }, [chartSpec, updateChartSpec]);
+
+  const handleY2TitleBlur = useCallback(() => {
+    if (!chartSpec?.encoding.y2) return;
+    const newTitle = y2TitleInput.trim() || undefined;
+    if (newTitle !== chartSpec.encoding.y2.title) {
+      updateChartSpec({
+        ...chartSpec,
+        encoding: {
+          ...chartSpec.encoding,
+          y2: { ...chartSpec.encoding.y2, title: newTitle },
+        },
+      });
+    }
+  }, [chartSpec, y2TitleInput, updateChartSpec]);
+
+  // ─── 패싯 (소규모 배치) ────────────────────────────────────
+
+  const handleFacetFieldChange = useCallback((value: string) => {
+    if (!chartSpec) return;
+    if (value === 'none') {
+      const { facet: _f, ...restSpec } = chartSpec;
+      updateChartSpec(restSpec);
+    } else {
+      updateChartSpec({
+        ...chartSpec,
+        facet: { field: value },
+      });
+    }
+  }, [chartSpec, updateChartSpec]);
+
   // ─── 렌더 ─────────────────────────────────────────────────
 
   if (!chartSpec) {
@@ -239,11 +289,23 @@ export function DataTab(): React.ReactElement {
   }
 
   const columns = chartSpec.data.columns;
+  const hints = CHART_TYPE_HINTS[chartSpec.chartType];
+  const hasY2 = !!chartSpec.encoding.y2;
+  const hasFacet = !!chartSpec.facet;
+
+  // Y2 ↔ facet 상호 배타: 하나만 노출
+  const showY2 = hints.supportsY2 && !hasFacet;
+  const showFacet = hints.supportsFacet && !hasY2;
+
+  // Y2 있으면 color 그룹 비활성 (colors[1] 충돌)
+  const showColorField = hints.supportsColor && !hasY2;
+
   // 에러바 표시 조건:
   // - bar / error-bar: 항상 표시
   // - line: 단일 선(color 그룹 없음) + 비-시계열(temporal 아님)일 때만
   //   (다중선·시계열에서는 에러바 의미가 불명확하므로 숨김)
-  const showErrorBar = ERROR_BAR_CHART_TYPES.has(chartSpec.chartType) && (
+  // - Y2 있으면 에러바 비활성
+  const showErrorBar = ERROR_BAR_CHART_TYPES.has(chartSpec.chartType) && !hasY2 && (
     chartSpec.chartType !== 'line' ||
     (!chartSpec.encoding.color?.field && chartSpec.encoding.x.type !== 'temporal')
   );
@@ -355,8 +417,50 @@ export function DataTab(): React.ReactElement {
         />
       </div>
 
-      {/* 색상 그룹 필드 (supportsColor 차트만) */}
-      {CHART_TYPE_HINTS[chartSpec.chartType].supportsColor && (
+      {/* 보조 Y축 (이중 Y축, bar/line만) */}
+      {showY2 && (
+        <div className="space-y-1.5">
+          <Label className="text-xs">보조 Y축 (오른쪽)</Label>
+          <Select
+            value={chartSpec.encoding.y2?.field ?? 'none'}
+            onValueChange={handleY2FieldChange}
+          >
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue placeholder="없음 (단일 Y축)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none" className="text-sm">없음 (단일 Y축)</SelectItem>
+              {columns
+                .filter(c =>
+                  c.type === 'quantitative' &&
+                  c.name !== chartSpec.encoding.x.field &&
+                  c.name !== chartSpec.encoding.y.field
+                )
+                .map(col => (
+                  <SelectItem key={col.name} value={col.name} className="text-sm">
+                    {col.name}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+          {chartSpec.encoding.y2 && (
+            <>
+              <Label className="text-xs text-muted-foreground">보조 Y축 제목</Label>
+              <Input
+                value={y2TitleInput}
+                onChange={(e) => setY2TitleInput(e.target.value)}
+                onBlur={handleY2TitleBlur}
+                onKeyDown={handleAxisTitleKeyDown}
+                placeholder="빈칸이면 필드명 사용"
+                className="h-7 text-xs"
+              />
+            </>
+          )}
+        </div>
+      )}
+
+      {/* 색상 그룹 필드 (supportsColor + Y2 미사용) */}
+      {showColorField && (
         <div className="space-y-1.5">
           <Label className="text-xs">색상 그룹</Label>
           <Select
@@ -437,6 +541,36 @@ export function DataTab(): React.ReactElement {
           </div>
         )}
       </div>
+
+      {/* 패싯 (소규모 배치, bar/scatter만) */}
+      {showFacet && (
+        <div className="space-y-1.5">
+          <Label className="text-xs">패싯 (소규모 배치)</Label>
+          <Select
+            value={chartSpec.facet?.field ?? 'none'}
+            onValueChange={handleFacetFieldChange}
+          >
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue placeholder="없음" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none" className="text-sm">없음</SelectItem>
+              {columns
+                .filter(c => c.type === 'nominal' || c.type === 'ordinal')
+                .map(col => (
+                  <SelectItem key={col.name} value={col.name} className="text-sm">
+                    {col.name} ({col.uniqueCount}개 그룹)
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+          {chartSpec.facet && (
+            <p className="text-xs text-muted-foreground">
+              최대 12개 그룹까지 표시됩니다
+            </p>
+          )}
+        </div>
+      )}
 
       {/* 에러바 (bar / line / error-bar 차트만) */}
       {showErrorBar && (

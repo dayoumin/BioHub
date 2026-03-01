@@ -112,6 +112,20 @@ export interface SignificanceMark {
   label?: string;
 }
 
+// ─── Facet ────────────────────────────────────────────
+
+/** ggplot2 facet_wrap 동가. 단일 ECharts 인스턴스 + 멀티 grid. */
+export interface FacetSpec {
+  /** 패싯 구분 필드 (nominal/ordinal 권장) */
+  field: string;
+  /** 열 수. 미지정 시 ceil(sqrt(n)) 자동 계산 */
+  ncol?: number;
+  /** 패싯 제목 표시 (기본: true) */
+  showTitle?: boolean;
+  /** 공통 y 범위 (기본: true) — 비교 용이성 */
+  shareAxis?: boolean;
+}
+
 // ─── Annotations ───────────────────────────────────────────
 
 export interface AnnotationSpec {
@@ -184,6 +198,8 @@ export interface ChartSpec {
   encoding: {
     x: AxisSpec;
     y: AxisSpec;
+    /** 보조 Y축 (오른쪽). bar→line, line→line 렌더. colors[1] 사용. */
+    y2?: AxisSpec;
     color?: ColorSpec;
     shape?: ShapeSpec;
     size?: { field: string; type: DataType };
@@ -206,6 +222,9 @@ export interface ChartSpec {
 
   /** 통계 유의성 브래킷 (bar/error-bar 전용) */
   significance?: SignificanceMark[];
+
+  /** 패싯 (소규모 배치) — bar, scatter에서 지원 */
+  facet?: FacetSpec;
 
   /** 스타일 */
   style: StyleSpec;

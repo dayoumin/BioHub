@@ -115,6 +115,10 @@ interface ChartTypeHint {
   supportsColor: boolean;
   supportsErrorBar: boolean;
   supportsAggregate: boolean;
+  /** 이중 Y축 지원 (bar, line만 true) */
+  supportsY2: boolean;
+  /** 패싯 지원 (bar, scatter만 true) */
+  supportsFacet: boolean;
 }
 
 export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
@@ -126,6 +130,8 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsColor: true,
     supportsErrorBar: true,
     supportsAggregate: true,
+    supportsY2: true,
+    supportsFacet: true,
   },
   'grouped-bar': {
     label: '그룹 막대 차트',
@@ -135,6 +141,8 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsColor: true,
     supportsErrorBar: true,
     supportsAggregate: true,
+    supportsY2: false,
+    supportsFacet: false,
   },
   'stacked-bar': {
     label: '누적 막대 차트',
@@ -144,6 +152,8 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsColor: true,
     supportsErrorBar: false,
     supportsAggregate: true,
+    supportsY2: false,
+    supportsFacet: false,
   },
   line: {
     label: '꺾은선 그래프',
@@ -153,6 +163,8 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsColor: true,
     supportsErrorBar: true,
     supportsAggregate: true,
+    supportsY2: true,
+    supportsFacet: false,
   },
   scatter: {
     label: '산점도',
@@ -162,6 +174,8 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsColor: true,
     supportsErrorBar: false,
     supportsAggregate: false,
+    supportsY2: false,
+    supportsFacet: true,
   },
   boxplot: {
     label: '박스 플롯',
@@ -171,6 +185,8 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsColor: true,
     supportsErrorBar: false,
     supportsAggregate: false,
+    supportsY2: false,
+    supportsFacet: false,
   },
   histogram: {
     label: '히스토그램',
@@ -180,6 +196,8 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsColor: true,
     supportsErrorBar: false,
     supportsAggregate: false,
+    supportsY2: false,
+    supportsFacet: false,
   },
   'error-bar': {
     label: '에러 바 차트',
@@ -189,6 +207,8 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsColor: true,
     supportsErrorBar: true,
     supportsAggregate: true,
+    supportsY2: false,
+    supportsFacet: false,
   },
   heatmap: {
     label: '히트맵',
@@ -198,6 +218,8 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsColor: false,
     supportsErrorBar: false,
     supportsAggregate: true,
+    supportsY2: false,
+    supportsFacet: false,
   },
   violin: {
     // ECharts 네이티브 violin 미지원 → box plot으로 렌더링됨
@@ -209,6 +231,8 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsColor: true,
     supportsErrorBar: false,
     supportsAggregate: false,
+    supportsY2: false,
+    supportsFacet: false,
   },
 };
 

@@ -111,6 +111,13 @@ const significanceMarkSchema = z.object({
   label: z.string().optional(),
 }).strict();
 
+const facetSchema = z.object({
+  field: z.string().min(1),
+  ncol: z.number().int().min(1).max(6).optional(),
+  showTitle: z.boolean().optional(),
+  shareAxis: z.boolean().optional(),
+}).strict();
+
 const annotationSchema = z.object({
   type: z.enum(['text', 'line', 'rect']),
   text: z.string().optional(),
@@ -160,6 +167,7 @@ export const chartSpecSchema = z.object({
   encoding: z.object({
     x: axisSchema,
     y: axisSchema,
+    y2: axisSchema.optional(),
     color: colorSchema.optional(),
     shape: shapeSchema.optional(),
     size: z.object({
@@ -174,6 +182,7 @@ export const chartSpecSchema = z.object({
   }).strict().optional(),
   trendline: trendlineSchema.optional(),
   significance: z.array(significanceMarkSchema).optional(),
+  facet: facetSchema.optional(),
   style: styleSchema,
   annotations: z.array(annotationSchema),
   exportConfig: exportConfigSchema,

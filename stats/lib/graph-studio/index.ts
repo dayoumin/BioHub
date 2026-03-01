@@ -32,6 +32,10 @@ export {
   createChartSpecFromDataPackage,
 } from './chart-spec-utils';
 
+// 패싯 레이아웃
+export { partitionRowsByFacet, computeFacetLayout } from './facet-layout';
+export type { FacetGridItem, FacetLayout } from './facet-layout';
+
 // ECharts 변환
 export { chartSpecToECharts } from './echarts-converter';
 
