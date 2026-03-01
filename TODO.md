@@ -89,7 +89,7 @@
 - ✅ **어류 성장 샘플 데이터**: Bass · Bream · Carp × 10행 (species, length_cm, weight_g, age)
 - ✅ **Bug fix**: 파일 업로드 버튼 DOM 탐색 → `useRef` 교체; `as const` + ChartType 충돌 → 명시적 인터페이스
 - ✅ **차트 유형별 올바른 필드 매핑**: `selectXYFields(CHART_TYPE_HINTS[chartType])` 사용 (단순 chartType 덮어쓰기 금지)
-- ✅ **AI 리뷰 문서**: `stats/docs/REVIEW-GRAPH-STUDIO-ONBOARDING.md`
+- ✅ **AI 리뷰 문서**: `stats/docs/graph-studio/REVIEW-GRAPH-STUDIO-ONBOARDING.md`
 - ✅ **검증**: tsc 0 errors, TypeScript types clean
 
 ### 2026-02-28 (금) 표본 크기 계산기 팝업 모달
@@ -300,7 +300,7 @@
 
 ## Graph Studio 발전 전략 (2026-02-28 수립)
 
-> 분석 전문: [GRAPH_STUDIO_COMPETITIVE_ANALYSIS.md](docs/GRAPH_STUDIO_COMPETITIVE_ANALYSIS.md)
+> 분석 전문: [GRAPH_STUDIO_COMPETITIVE_ANALYSIS.md](stats/docs/graph-studio/GRAPH_STUDIO_COMPETITIVE_ANALYSIS.md)
 
 **포지셔닝**: GraphPad Prism 대안 — "무료 + 한국어 + AI"
 
