@@ -262,6 +262,28 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsY2: false,
     supportsFacet: false,
   },
+  'km-curve': {
+    label: 'Kaplan-Meier 생존 곡선',
+    description: '생존율 시간 경과 시각화 (그룹 비교 포함)',
+    suggestedXType: 'quantitative',
+    suggestedYType: 'quantitative',
+    supportsColor: true,
+    supportsErrorBar: false,
+    supportsAggregate: false,
+    supportsY2: false,
+    supportsFacet: false,
+  },
+  'roc-curve': {
+    label: 'ROC 곡선',
+    description: '진단 정확도 평가 (AUC, 민감도/특이도)',
+    suggestedXType: 'quantitative',
+    suggestedYType: 'quantitative',
+    supportsColor: true,
+    supportsErrorBar: false,
+    supportsAggregate: false,
+    supportsY2: false,
+    supportsFacet: false,
+  },
 };
 
 // ─── Figure 빠른 시작 프리셋 ───────────────────────────────

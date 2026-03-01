@@ -141,6 +141,34 @@ vi.mock('@/hooks/use-terminology', () => ({
   }),
 }))
 
+// Mock Next.js router (useRouter requires App Router context)
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}))
+
+// Mock Graph Studio store (prevents cross-store dependency)
+vi.mock('@/lib/stores/graph-studio-store', () => ({
+  useGraphStudioStore: (selector: (s: { loadDataPackageWithSpec: ReturnType<typeof vi.fn> }) => unknown) =>
+    selector({ loadDataPackageWithSpec: vi.fn() }),
+}))
+
+// Mock Graph Studio adapter/utils used by ResultsActionStep
+vi.mock('@/lib/graph-studio/analysis-adapter', () => ({
+  toAnalysisContext: vi.fn(() => ({})),
+  buildKmCurveColumns: vi.fn(),
+  buildRocCurveColumns: vi.fn(),
+}))
+vi.mock('@/lib/graph-studio/chart-spec-utils', () => ({
+  inferColumnMeta: vi.fn(() => []),
+  suggestChartType: vi.fn(() => 'bar'),
+  selectXYFields: vi.fn(() => ({ xField: 'x', yField: 'y' })),
+  applyAnalysisContext: vi.fn((spec: unknown) => spec),
+}))
+vi.mock('@/lib/graph-studio/chart-spec-defaults', () => ({
+  createDefaultChartSpec: vi.fn(() => ({ encoding: {}, style: {}, annotations: [], exportConfig: {} })),
+  CHART_TYPE_HINTS: new Proxy({}, { get: () => ({}) }),
+}))
+
 // Mock sonner toast
 vi.mock('sonner', () => ({
   toast: {

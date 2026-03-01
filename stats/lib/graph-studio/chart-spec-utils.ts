@@ -15,6 +15,7 @@ import type {
   ChartType,
   DataPackage,
   SignificanceMark,
+  AnalysisContext,
 } from '@/types/graph-studio';
 import { chartSpecSchema } from './chart-spec-schema';
 import { createDefaultChartSpec, CHART_TYPE_HINTS } from './chart-spec-defaults';
@@ -312,4 +313,25 @@ export function createChartSpecFromDataPackage(pkg: DataPackage): ChartSpec {
   const chartType = suggestChartType(pkg.columns);
   const { xField, yField } = selectXYFields(pkg.columns, CHART_TYPE_HINTS[chartType]);
   return createDefaultChartSpec(pkg.id, chartType, xField, yField, pkg.columns);
+}
+
+// ─── AnalysisContext 적용 ─────────────────────────────────────
+
+/**
+ * AnalysisContext를 ChartSpec에 적용.
+ *
+ * - ctx.comparisons → spec.significance (유의성 브래킷 마크)
+ *
+ * 반환값: 수정된 새 ChartSpec (원본 불변)
+ */
+export function applyAnalysisContext(spec: ChartSpec, ctx: AnalysisContext): ChartSpec {
+  if (!ctx.comparisons || ctx.comparisons.length === 0) return spec;
+
+  const significance: SignificanceMark[] = ctx.comparisons.map(cmp => ({
+    groupA: cmp.group1,
+    groupB: cmp.group2,
+    pValue: cmp.pValue,
+  }));
+
+  return { ...spec, significance };
 }

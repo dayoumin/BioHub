@@ -15,6 +15,7 @@ const chartTypeSchema = z.enum([
   'bar', 'grouped-bar', 'stacked-bar',
   'line', 'scatter', 'boxplot',
   'histogram', 'error-bar', 'heatmap', 'violin',
+  'km-curve', 'roc-curve',
 ]);
 
 const dataTypeSchema = z.enum([
@@ -209,16 +210,53 @@ export const aiEditResponseSchema = z.object({
 
 // ─── DataPackage 스키마 ────────────────────────────────────
 
+const comparisonSchema = z.object({
+  group1: z.string(),
+  group2: z.string(),
+  pValue: z.number(),
+  significant: z.boolean(),
+  meanDiff: z.number().optional(),
+});
+
+const groupStatSchema = z.object({
+  name: z.string(),
+  mean: z.number(),
+  std: z.number(),
+  n: z.number().int().positive(),
+  se: z.number().optional(),
+  median: z.number().optional(),
+});
+
+const testInfoSchema = z.object({
+  statistic: z.number().optional(),
+  df: z.union([z.number(), z.tuple([z.number(), z.number()])]).optional(),
+  effectSize: z.number().optional(),
+  effectSizeType: z.string().optional(),
+});
+
+const comparisonMetaSchema = z.object({
+  alpha: z.number(),
+  adjustmentMethod: z.string(),
+  allPairsIncluded: z.boolean(),
+});
+
+const analysisContextSchema = z.object({
+  method: z.string().optional(),
+  pValue: z.number().optional(),
+  comparisons: z.array(comparisonSchema).optional(),
+  groupStats: z.array(groupStatSchema).optional(),
+  testInfo: testInfoSchema.optional(),
+  comparisonMeta: comparisonMetaSchema.optional(),
+});
+
 export const dataPackageSchema = z.object({
   id: z.string().min(1),
   source: z.enum(['smart-flow', 'bio-tools', 'upload', 'species-checker']),
   label: z.string().min(1),
   columns: z.array(columnMetaSchema).min(1),
   data: z.record(z.string(), z.array(z.unknown())),
-  context: z.object({
-    method: z.string().optional(),
-    summary: z.record(z.string(), z.unknown()).optional(),
-  }).strict().optional(),
+  analysisContext: analysisContextSchema.optional(),
+  analysisResultId: z.string().optional(),
   createdAt: z.string().datetime(),
 }).strict();
 

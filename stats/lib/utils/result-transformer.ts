@@ -242,6 +242,8 @@ export function transformExecutorResult(
     interpretation: mainResults.interpretation || '',
     assumptions,
     postHoc,
+    postHocMethod: typeof additionalInfo?.postHocMethod === 'string'
+      ? additionalInfo.postHocMethod : undefined,
     coefficients,
     groupStats,
     additional,

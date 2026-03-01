@@ -3998,6 +3998,55 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
     }
   },
   {
+    id: 'roc-curve',
+    name: 'ROC 곡선 분석',
+    category: 'survival',
+    description: '진단 정확도 평가 (AUC, 민감도/특이도)',
+    minSampleSize: 20,
+    assumptions: ['이진 결과 변수 (0/1)', '연속형 예측 점수'],
+    variables: [
+      {
+        role: 'dependent',
+        label: '실제 결과 변수',
+        types: ['binary'],
+        required: true,
+        multiple: false,
+        description: '실제 이진 결과 (1=양성, 0=음성)',
+        example: '질환유무 (1=있음, 0=없음)'
+      },
+      {
+        role: 'independent',
+        label: '예측 점수 변수',
+        types: ['continuous'],
+        required: true,
+        multiple: false,
+        description: '예측 확률 또는 연속형 진단 점수 (0~1 또는 임의 범위)',
+        example: '바이오마커 수치, 예측 확률'
+      }
+    ],
+    notes: ['AUC 0.5=무작위, 1.0=완벽 분류', 'Youden\'s J 기준 최적 임계값 제시', 'Hanley-McNeil 방법으로 AUC 95% CI 계산'],
+    dataFormat: {
+      type: 'wide',
+      description: '각 행이 한 관찰 대상의 실제 결과와 예측 점수입니다.',
+      columns: [
+        { name: '결과', description: '실제 이진 결과', example: '1=양성, 0=음성', required: true },
+        { name: '점수', description: '예측 확률 또는 진단 점수', example: '0.87, 0.34, ...', required: true }
+      ]
+    },
+    settings: {
+      alpha: { label: '유의수준 (α)', description: 'AUC CI 계산 기준', default: 0.05, range: { min: 0.001, max: 0.1 } }
+    },
+    sampleData: {
+      headers: ['환자', '질환', '바이오마커'],
+      rows: [
+        ['P01', 1, 0.82], ['P02', 0, 0.21], ['P03', 1, 0.75], ['P04', 0, 0.33],
+        ['P05', 1, 0.91], ['P06', 0, 0.15], ['P07', 1, 0.68], ['P08', 0, 0.44],
+        ['P09', 1, 0.79], ['P10', 0, 0.28]
+      ],
+      description: '10명 환자의 ROC 분석 데이터 (질환 유무 + 바이오마커 수치)'
+    }
+  },
+  {
     id: 'power-analysis',
     name: '사전 검정력 분석',
     category: 'basic',

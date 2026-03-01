@@ -85,7 +85,7 @@ export interface StatisticalExecutorResult {
   mainResults: {
     statistic: number
     pvalue: number
-    df?: number
+    df?: number | [number, number]
     significant: boolean
     interpretation?: string
   }
@@ -112,6 +112,7 @@ export interface StatisticalExecutorResult {
       details: unknown[]
     }
     postHoc?: NormalizedPostHocComparison[]
+    postHocMethod?: string
     discriminantFunctions?: {
       count: number
       totalVariance: number
@@ -1199,7 +1200,7 @@ export class StatisticalExecutor {
       mainResults: {
         statistic: result.fStatistic,
         pvalue: result.pValue,
-        df: Array.isArray(result.df) ? result.df[0] : result.df,
+        df: Array.isArray(result.df) ? result.df as [number, number] : result.df,
         significant: result.pValue < 0.05,
         interpretation: result.pValue < 0.05 ?
           `그룹 간 유의한 차이가 있습니다 (F=${result.fStatistic.toFixed(2)})` :
@@ -2109,10 +2110,23 @@ export class StatisticalExecutor {
           throw new Error('Event variable must be binary (0=censored, 1=event)')
         }
 
-        // pyodideStats 래퍼 사용
-        const result = await pyodideStats.kaplanMeierSurvival(times, events)
+        // 그룹 변수 추출 (factor 역할)
+        const factorVar = data.variables?.factor as string | undefined
+        let groups: string[] | undefined
+        if (factorVar && rawData) {
+          groups = rawData.map(row => String(row[factorVar] ?? 'All'))
+        }
+
+        // Worker5 카플란-마이어 분석 (scipy 기반, lifelines 불사용)
+        const result = await pyodideStats.kaplanMeierAnalysis(times, events, groups)
 
         const totalEvents = events.filter((e: number) => e === 1).length
+        const medianTime = result.medianSurvivalTime
+        const logRankP = result.logRankP
+
+        const interpParts: string[] = []
+        if (medianTime !== null) interpParts.push(`중앙 생존 시간: ${medianTime.toFixed(2)}`)
+        if (logRankP !== null) interpParts.push(`Log-rank p=${logRankP.toFixed(4)}`)
 
         return {
           metadata: {
@@ -2126,20 +2140,17 @@ export class StatisticalExecutor {
             }
           },
           mainResults: {
-            statistic: result.medianSurvival || 0,
-            pvalue: 1, // Kaplan-Meier는 p-value 없음
-            significant: false,
-            interpretation: result.medianSurvival
-              ? `중앙 생존 시간: ${result.medianSurvival.toFixed(2)}`
+            statistic: medianTime ?? 0,
+            pvalue: logRankP ?? 1,
+            significant: logRankP !== null ? logRankP < 0.05 : false,
+            interpretation: interpParts.length > 0
+              ? interpParts.join(', ')
               : '중앙 생존 시간을 계산할 수 없습니다'
           },
           additionalInfo: {},
           visualizationData: {
-            type: 'survival-curve',
-            data: {
-              timePoints: result.times,
-              survivalProbabilities: result.survivalFunction
-            }
+            type: 'km-curve',
+            data: result
           },
           rawResults: { ...result, totalEvents, sampleSize: times.length }
         }
@@ -2230,6 +2241,66 @@ export class StatisticalExecutor {
             }
           },
           rawResults: { ...result, covariateNames, sampleSize: times.length }
+        }
+      }
+      case 'roc-curve': {
+        const rawData = data.data as Array<Record<string, unknown>>
+        const depVar = (data.variables?.dependent || data.variables?.dependentVar) as string | string[] | undefined
+        const indVar = (data.variables?.independent || data.variables?.independentVar) as string | string[] | undefined
+        const depName = Array.isArray(depVar) ? depVar[0] : depVar
+        const indName = Array.isArray(indVar) ? indVar[0] : indVar
+
+        if (!depName || !indName) {
+          throw new Error('ROC 분석에는 결과 변수(dependent)와 예측 점수 변수(independent)가 필요합니다')
+        }
+
+        const actualClass: number[] = []
+        const predictedProb: number[] = []
+
+        for (const row of rawData ?? []) {
+          const actual = Number(row[depName])
+          const pred = Number(row[indName])
+          if (!isNaN(actual) && !isNaN(pred)) {
+            actualClass.push(actual)
+            predictedProb.push(pred)
+          }
+        }
+
+        if (actualClass.length < 4) {
+          throw new Error(`ROC 분석에는 최소 4개의 유효한 관찰값이 필요합니다 (현재: ${actualClass.length})`)
+        }
+
+        const result = await pyodideStats.rocCurveAnalysis(actualClass, predictedProb)
+
+        return {
+          metadata: {
+            method: method.id,
+            methodName: method.name,
+            timestamp: '',
+            duration: 0,
+            dataInfo: {
+              totalN: actualClass.length,
+              missingRemoved: 0
+            }
+          },
+          mainResults: {
+            statistic: result.auc,
+            pvalue: 1, // ROC AUC 단독 p-value 없음
+            significant: result.auc > 0.7,
+            interpretation: `AUC: ${result.auc.toFixed(3)} (95% CI: ${result.aucCI.lower.toFixed(3)}-${result.aucCI.upper.toFixed(3)}), 최적 임계값: ${result.optimalThreshold.toFixed(3)}, 민감도: ${(result.sensitivity * 100).toFixed(1)}%, 특이도: ${(result.specificity * 100).toFixed(1)}%`
+          },
+          additionalInfo: {
+            auc: result.auc,
+            aucCI: result.aucCI,
+            optimalThreshold: result.optimalThreshold,
+            sensitivity: result.sensitivity,
+            specificity: result.specificity,
+          },
+          visualizationData: {
+            type: 'roc-curve',
+            data: result
+          },
+          rawResults: { ...result, sampleSize: actualClass.length }
         }
       }
       default:

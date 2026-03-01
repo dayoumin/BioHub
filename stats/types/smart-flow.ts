@@ -438,7 +438,7 @@ export interface AnalysisResult {
   method: string
   statistic: number
   pValue: number
-  df?: number  // 자유도
+  df?: number | [number, number]  // 자유도 ([df1, df2] for F-test)
   effectSize?: number | EffectSizeInfo  // 단순 숫자 또는 상세 정보
   omegaSquared?: EffectSizeInfo  // omega-squared 효과크기 (ANOVA용)
   confidence?: {
@@ -452,6 +452,7 @@ export interface AnalysisResult {
 
   // 추가 상세 정보
   postHoc?: PostHocResult[]  // 사후검정 결과
+  postHocMethod?: string  // 사후검정 보정 방법 (e.g., 'bonferroni', 'tukey', 'dunn')
   coefficients?: CoefficientResult[]  // 회귀계수
   groupStats?: GroupStats[]  // 그룹별 통계
 

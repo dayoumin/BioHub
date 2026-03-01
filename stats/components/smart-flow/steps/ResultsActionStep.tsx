@@ -77,6 +77,13 @@ import { formatStatisticalResult } from '@/lib/statistics/formatters'
 import { useTerminology } from '@/hooks/use-terminology'
 import { logger } from '@/lib/utils/logger'
 import type { ResultsText } from '@/lib/terminology/terminology-types'
+import { useRouter } from 'next/navigation'
+import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
+import { toAnalysisContext, buildKmCurveColumns, buildRocCurveColumns } from '@/lib/graph-studio/analysis-adapter'
+import { inferColumnMeta, suggestChartType, selectXYFields, applyAnalysisContext } from '@/lib/graph-studio/chart-spec-utils'
+import { createDefaultChartSpec, CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults'
+import type { DataPackage, ChartType } from '@/types/graph-studio'
+import type { KaplanMeierAnalysisResult, RocCurveAnalysisResult } from '@/lib/generated/method-types.generated'
 
 interface ResultsActionStepProps {
   results: AnalysisResult | null
@@ -186,6 +193,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     selectedMethod,
     assumptionResults,
   } = useSmartFlowStore()
+
+  const router = useRouter()
+  const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
 
   const savedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const copiedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -418,6 +428,81 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       toast.info(t.results.toast.newAnalysis)
     }
   }, [reset, t])
+
+  // Graph Studio 연결 — DataPackage 빌드 후 이동
+  const handleOpenInGraphStudio = useCallback(() => {
+    if (!results) return
+
+    const pkgId = crypto.randomUUID()
+    const vizType = results.visualizationData?.type
+
+    let columns: DataPackage['columns']
+    let data: DataPackage['data']
+    let chartType: ChartType
+    let xField: string
+    let yField: string
+    let colorField: string | undefined
+
+    if (vizType === 'km-curve' && results.visualizationData?.data) {
+      const kmData = results.visualizationData.data as unknown as KaplanMeierAnalysisResult
+      const built = buildKmCurveColumns(kmData)
+      columns = built.columns
+      data = built.data
+      chartType = 'km-curve'
+      xField = built.xField
+      yField = built.yField
+      colorField = built.colorField
+    } else if (vizType === 'roc-curve' && results.visualizationData?.data) {
+      const rocData = results.visualizationData.data as unknown as RocCurveAnalysisResult
+      const built = buildRocCurveColumns(rocData)
+      columns = built.columns
+      data = built.data
+      chartType = 'roc-curve'
+      xField = built.xField
+      yField = built.yField
+      colorField = undefined
+    } else {
+      // 일반 분석: 업로드 데이터 사용
+      if (!uploadedData?.length) {
+        toast.error('데이터가 없습니다.')
+        return
+      }
+      const rows = uploadedData as Record<string, unknown>[]
+      columns = inferColumnMeta(rows)
+      data = {}
+      for (const col of columns) {
+        data[col.name] = rows.map(r => r[col.name])
+      }
+      chartType = suggestChartType(columns)
+      const hint = CHART_TYPE_HINTS[chartType]
+      const fields = selectXYFields(columns, hint)
+      xField = fields.xField
+      yField = fields.yField
+    }
+
+    const spec = createDefaultChartSpec(pkgId, chartType, xField, yField, columns)
+    if (colorField) {
+      spec.encoding.color = { field: colorField, type: 'nominal' }
+    }
+
+    const pkg: DataPackage = {
+      id: pkgId,
+      source: 'smart-flow',
+      label: `${results.method} 결과`,
+      columns,
+      data,
+      analysisContext: toAnalysisContext(results),
+      createdAt: new Date().toISOString(),
+    }
+
+    // analysisContext에서 significance marks 자동 적용
+    const finalSpec = pkg.analysisContext
+      ? applyAnalysisContext(spec, pkg.analysisContext)
+      : spec
+
+    loadDataPackageWithSpec(pkg, finalSpec)
+    router.push('/graph-studio')
+  }, [results, uploadedData, loadDataPackageWithSpec, router])
 
   // AI 해석 요청 (스트리밍)
   const handleInterpretation = useCallback(async () => {
@@ -1266,6 +1351,16 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           >
             <FileText className="w-3.5 h-3.5 mr-1.5" />
             {t.results.buttons.saveTemplate}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleOpenInGraphStudio}
+            className="text-muted-foreground hover:text-foreground"
+            data-testid="open-graph-studio-btn"
+          >
+            <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
+            Graph Studio
           </Button>
         </div>
 

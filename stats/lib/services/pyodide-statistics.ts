@@ -1576,6 +1576,29 @@ export class PyodideStatisticsService {
   }
 
   /**
+   * 그룹 인식 Kaplan-Meier 생존 분석 - Worker 5
+   * Python kaplan_meier_analysis(time, event, group?) — scipy 기반 (lifelines 불사용)
+   */
+  async kaplanMeierAnalysis(
+    time: number[],
+    event: number[],
+    group?: string[]
+  ): Promise<Generated.KaplanMeierAnalysisResult> {
+    return Generated.kaplanMeierAnalysis(time, event, group)
+  }
+
+  /**
+   * ROC 곡선 분석 - Worker 5
+   * Python roc_curve_analysis(actualClass, predictedProb)
+   */
+  async rocCurveAnalysis(
+    actualClass: number[],
+    predictedProb: number[]
+  ): Promise<Generated.RocCurveAnalysisResult> {
+    return Generated.rocCurveAnalysis(actualClass, predictedProb)
+  }
+
+  /**
    * Cox 비례위험 회귀분석 - Worker 4
    * Python cox_regression(times, events, covariateData, covariateNames)
    */

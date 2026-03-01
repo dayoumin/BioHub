@@ -17,7 +17,8 @@ export const WORKER = {
   DESCRIPTIVE: 1,
   HYPOTHESIS: 2,
   NONPARAMETRIC_ANOVA: 3,
-  REGRESSION_ADVANCED: 4
+  REGRESSION_ADVANCED: 4,
+  SURVIVAL: 5
 } as const
 
 export type WorkerNumber = typeof WORKER[keyof typeof WORKER]
@@ -1199,12 +1200,69 @@ export async function coxRegression(times: number[], events: number[], covariate
 }
 
 // ========================================
+// Worker 5: 생존 분석 + ROC 곡선
+// ========================================
+
+export interface KmCurveData {
+  time: number[]
+  survival: number[]
+  ciLo: number[]
+  ciHi: number[]
+  atRisk: number[]
+  medianSurvival: number | null
+}
+
+export interface KaplanMeierAnalysisResult {
+  curves: Record<string, KmCurveData>
+  logRankP: number | null
+  medianSurvivalTime: number | null
+}
+
+export interface RocPoint {
+  fpr: number
+  tpr: number
+}
+
+export interface RocCurveAnalysisResult {
+  rocPoints: RocPoint[]
+  auc: number
+  aucCI: { lower: number; upper: number }
+  optimalThreshold: number
+  sensitivity: number
+  specificity: number
+}
+
+/**
+ * 그룹 인식 Kaplan-Meier 생존 분석 (scipy 기반)
+ * @worker Worker 5
+ */
+export async function kaplanMeierAnalysis(
+  time: number[],
+  event: number[],
+  group?: string[]
+): Promise<KaplanMeierAnalysisResult> {
+  return callWorkerMethod<KaplanMeierAnalysisResult>(5, 'kaplan_meier_analysis', { time, event, group })
+}
+
+/**
+ * ROC 곡선 분석 (AUC, 최적 임계값, CI)
+ * @worker Worker 5
+ */
+export async function rocCurveAnalysis(
+  actualClass: number[],
+  predictedProb: number[]
+): Promise<RocCurveAnalysisResult> {
+  return callWorkerMethod<RocCurveAnalysisResult>(5, 'roc_curve_analysis', { actualClass, predictedProb })
+}
+
+// ========================================
 // 메서드 이름 유니온 타입
 // ========================================
 
-export type Worker1Method = 'descriptive_stats' | 'normality_test' | 'outlier_detection' | 'frequency_analysis' | 'crosstab_analysis' | 'one_sample_proportion_test' | 'cronbach_alpha' | 'kolmogorov_smirnov_test' | 'ks_test_one_sample' | 'ks_test_two_sample' | 'mann_kendall_test' | 'bonferroni_correction' | 'means_plot_data'
+export type Worker1Method ='descriptive_stats' | 'normality_test' | 'outlier_detection' | 'frequency_analysis' | 'crosstab_analysis' | 'one_sample_proportion_test' | 'cronbach_alpha' | 'kolmogorov_smirnov_test' | 'ks_test_one_sample' | 'ks_test_two_sample' | 'mann_kendall_test' | 'bonferroni_correction' | 'means_plot_data'
 export type Worker2Method = 't_test_two_sample' | 't_test_paired' | 't_test_one_sample' | 't_test_one_sample_summary' | 't_test_two_sample_summary' | 't_test_paired_summary' | 'z_test' | 'chi_square_test' | 'binomial_test' | 'correlation_test' | 'partial_correlation' | 'levene_test' | 'bartlett_test' | 'chi_square_goodness_test' | 'chi_square_independence_test' | 'fisher_exact_test' | 'power_analysis'
 export type Worker3Method = 'mann_whitney_test' | 'wilcoxon_test' | 'kruskal_wallis_test' | 'friedman_test' | 'one_way_anova' | 'two_way_anova' | 'tukey_hsd' | 'sign_test' | 'runs_test' | 'mcnemar_test' | 'cochran_q_test' | 'mood_median_test' | 'repeated_measures_anova' | 'ancova' | 'manova' | 'scheffe_test' | 'dunn_test' | 'games_howell_test'
 export type Worker4Method = 'linear_regression' | 'multiple_regression' | 'logistic_regression' | 'pca_analysis' | 'curve_estimation' | 'nonlinear_regression' | 'stepwise_regression' | 'binary_logistic' | 'multinomial_logistic' | 'ordinal_logistic' | 'probit_regression' | 'poisson_regression' | 'negative_binomial_regression' | 'factor_analysis' | 'cluster_analysis' | 'time_series_analysis' | 'durbin_watson_test' | 'discriminant_analysis' | 'kaplan_meier_survival' | 'cox_regression'
+export type Worker5Method = 'kaplan_meier_analysis' | 'roc_curve_analysis'
 
-export type AllMethodName = Worker1Method | Worker2Method | Worker3Method | Worker4Method
+export type AllMethodName = Worker1Method | Worker2Method | Worker3Method | Worker4Method | Worker5Method

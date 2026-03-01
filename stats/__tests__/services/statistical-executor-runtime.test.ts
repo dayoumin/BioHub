@@ -12,6 +12,7 @@ import { vi, Mock } from 'vitest'
 interface MockPyodideStats {
   discriminantAnalysis: jest.Mock
   kaplanMeierSurvival: jest.Mock
+  kaplanMeierAnalysis: jest.Mock
   coxRegression: jest.Mock
   descriptiveStats: jest.Mock
 }
@@ -21,6 +22,7 @@ vi.mock('@/lib/services/pyodide-statistics', () => ({
   pyodideStats: {
     discriminantAnalysis: vi.fn(),
     kaplanMeierSurvival: vi.fn(),
+    kaplanMeierAnalysis: vi.fn(),
     coxRegression: vi.fn(),
     descriptiveStats: vi.fn(),
   }
@@ -239,10 +241,9 @@ describe('StatisticalExecutor Runtime Tests', () => {
     })
 
     it('should validate events are binary', async () => {
-      mockPyodideStats.kaplanMeierSurvival.mockResolvedValue({
-        times: [10, 20, 30],
-        survivalFunction: [1.0, 0.67, 0.33],
-        medianSurvival: 20
+      mockPyodideStats.kaplanMeierAnalysis.mockResolvedValue({
+        curves: { all: { time: [10, 20, 30], survival: [1.0, 0.67, 0.33], ciLo: [1.0, 0.4, 0.05], ciHi: [1.0, 0.93, 0.76], atRisk: [3, 2, 1], medianSurvival: 20 } },
+        logRankP: null, medianSurvivalTime: 20
       })
 
       const data = [
@@ -267,10 +268,19 @@ describe('StatisticalExecutor Runtime Tests', () => {
     })
 
     it('should align time and event arrays correctly', async () => {
-      mockPyodideStats.kaplanMeierSurvival.mockResolvedValue({
-        times: [10, 20, 30],
-        survivalFunction: [1.0, 0.67, 0.33],
-        medianSurvival: 20
+      mockPyodideStats.kaplanMeierAnalysis.mockResolvedValue({
+        curves: {
+          all: {
+            time: [10, 20, 30],
+            survival: [1.0, 0.67, 0.33],
+            ciLo: [1.0, 0.4, 0.05],
+            ciHi: [1.0, 0.93, 0.76],
+            atRisk: [3, 2, 1],
+            medianSurvival: 20
+          }
+        },
+        logRankP: null,
+        medianSurvivalTime: 20
       })
 
       const data = [
@@ -294,9 +304,11 @@ describe('StatisticalExecutor Runtime Tests', () => {
 
       await executor.executeMethod(method, data, variables)
 
-      // Verify kaplanMeierSurvival was called with aligned arrays
-      expect(mockPyodideStats.kaplanMeierSurvival).toHaveBeenCalledTimes(1)
-      const [times, events] = mockPyodideStats.kaplanMeierSurvival.mock.calls[0]
+      // Verify kaplanMeierAnalysis was called with aligned arrays
+      expect(mockPyodideStats.kaplanMeierAnalysis).toHaveBeenCalledTimes(1)
+      const callArgs = mockPyodideStats.kaplanMeierAnalysis.mock.calls[0]
+      const times = callArgs[0]
+      const events = callArgs[1]
 
       // Should filter out the NaN row
       expect(times).toHaveLength(3)

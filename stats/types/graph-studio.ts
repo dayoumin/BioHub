@@ -19,7 +19,9 @@ export type ChartType =
   | 'histogram'
   | 'error-bar'
   | 'heatmap'
-  | 'violin';
+  | 'violin'
+  | 'km-curve'
+  | 'roc-curve';
 
 export type DataType = 'quantitative' | 'nominal' | 'ordinal' | 'temporal';
 
@@ -114,7 +116,7 @@ export interface SignificanceMark {
 
 // ─── Facet ────────────────────────────────────────────
 
-/** ggplot2 facet_wrap 동가. 단일 ECharts 인스턴스 + 멀티 grid. */
+/** ggplot2 facet_wrap 등가. 단일 ECharts 인스턴스 + 멀티 grid. */
 export interface FacetSpec {
   /** 패싯 구분 필드 (nominal/ordinal 권장) */
   field: string;
@@ -257,6 +259,56 @@ export interface AiEditResponse {
   confidence: number;
 }
 
+// ─── Analysis Context (Bridge: Smart Flow → Graph Studio) ──
+
+export interface AnalysisContext {
+  /** 분석 방법 ID (statistical-methods.ts 기준) */
+  method?: string;
+  /** 전체 p-value (주 검정 결과) */
+  pValue?: number;
+  /** 그룹 간 비교 결과 목록 */
+  comparisons?: Comparison[];
+  /** 그룹별 기술통계 */
+  groupStats?: GroupStat[];
+  /** 검정 통계량 상세 */
+  testInfo?: TestInfo;
+  /** 비교 분석 메타 (CLD 생성용) */
+  comparisonMeta?: ComparisonMeta;
+}
+
+export interface Comparison {
+  group1: string;
+  group2: string;
+  pValue: number;
+  significant: boolean;
+  meanDiff?: number;
+}
+
+export interface GroupStat {
+  name: string;
+  mean: number;
+  std: number;
+  n: number;
+  se?: number;
+  median?: number;
+}
+
+export interface TestInfo {
+  statistic?: number;
+  df?: number | [number, number];
+  effectSize?: number;
+  effectSizeType?: string;
+}
+
+export interface ComparisonMeta {
+  /** 유의수준 (기본 0.05) */
+  alpha: number;
+  /** 사후검정 보정 방법 (e.g., 'tukey', 'bonferroni', 'dunn') */
+  adjustmentMethod: string;
+  /** 모든 쌍이 포함되어 있는지 (false면 CLD 생성 불가) */
+  allPairsIncluded: boolean;
+}
+
 // ─── DataPackage (모듈 간 데이터 전달) ─────────────────────
 
 export interface DataPackage {
@@ -265,10 +317,10 @@ export interface DataPackage {
   label: string;
   columns: ColumnMeta[];
   data: Record<string, unknown[]>;
-  context?: {
-    method?: string;
-    summary?: Record<string, unknown>;
-  };
+  /** 분석 맥락 — 생산자가 "무슨 분석을 했는가"를 기술 */
+  analysisContext?: AnalysisContext;
+  /** Smart Flow 히스토리 원본 참조 ID (논문 도구 역참조용) */
+  analysisResultId?: string;
   createdAt: string;
 }
 

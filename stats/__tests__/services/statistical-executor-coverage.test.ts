@@ -21,7 +21,7 @@ describe('StatisticalExecutor Method Coverage', () => {
     'chi-square': ['chi-square-goodness', 'chi-square-independence'],
     'descriptive': ['descriptive', 'normality-test', 'explore-data', 'means-plot'],
     'timeseries': ['arima', 'seasonal-decompose', 'stationarity-test', 'mann-kendall'],
-    'survival': ['kaplan-meier', 'cox-regression'],
+    'survival': ['kaplan-meier', 'cox-regression', 'roc-curve'],
     'advanced': ['pca', 'factor-analysis', 'cluster-analysis', 'discriminant', 'cluster'],
     'design': ['power-analysis'],
     'psychometrics': ['reliability']

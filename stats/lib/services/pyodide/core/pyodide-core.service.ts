@@ -498,7 +498,7 @@ export class PyodideCoreService {
    * @throws {Error} Pyodide가 초기화되지 않은 경우
    */
 
-  async ensureWorkerLoaded(workerNumber: 1 | 2 | 3 | 4): Promise<void> {
+  async ensureWorkerLoaded(workerNumber: 1 | 2 | 3 | 4 | 5): Promise<void> {
     if (this.isWebWorkerMode()) {
       if (this.loadedWorkers.has(workerNumber)) {
         return
@@ -592,7 +592,7 @@ export class PyodideCoreService {
    */
 
   async callWorkerMethod<T>(
-    workerNum: 1 | 2 | 3 | 4,
+    workerNum: 1 | 2 | 3 | 4 | 5,
     methodName: string,
     params: Record<string, WorkerMethodParam>,
     options: WorkerMethodOptions = {}
@@ -984,7 +984,7 @@ json.dumps(result)
   }
 
   private async callWorkerMethodViaWebWorker<T>(
-    workerNum: 1 | 2 | 3 | 4,
+    workerNum: 1 | 2 | 3 | 4 | 5,
     methodName: string,
     params: Record<string, WorkerMethodParam>,
     options: WorkerMethodOptions = {}
