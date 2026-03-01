@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.32.0",
+  "version": "1.33.0",
   "lastUpdated": "2026-03-01",
   "sources": [
     "stats/__tests__/",

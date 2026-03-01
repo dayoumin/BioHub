@@ -154,19 +154,19 @@
   </div>
 
   <div class="nav-section">Overview</div>
-  <div class="nav-item active" onclick="show('overview')"><span class="icon">🏠</span> 프로젝트 개요</div>
-  <div class="nav-item" onclick="show('status')"><span class="icon">📊</span> 구현 현황</div>
+  <div class="nav-item active" onclick="show('overview', event)"><span class="icon">🏠</span> 프로젝트 개요</div>
+  <div class="nav-item" onclick="show('status', event)"><span class="icon">📊</span> 구현 현황</div>
 
   <div class="nav-section">Graph Studio</div>
-  <div class="nav-item" onclick="show('graphstudio')"><span class="icon">📈</span> 기능 완성도</div>
-  <div class="nav-item" onclick="show('roadmap')"><span class="icon">🗺️</span> 로드맵</div>
+  <div class="nav-item" onclick="show('graphstudio', event)"><span class="icon">📈</span> 기능 완성도</div>
+  <div class="nav-item" onclick="show('roadmap', event)"><span class="icon">🗺️</span> 로드맵</div>
 
   <div class="nav-section">시장 분석</div>
-  <div class="nav-item" onclick="show('competition')"><span class="icon">⚔️</span> 경쟁사 비교</div>
-  <div class="nav-item" onclick="show('korea')"><span class="icon">🇰🇷</span> 한국 시장 전략</div>
+  <div class="nav-item" onclick="show('competition', event)"><span class="icon">⚔️</span> 경쟁사 비교</div>
+  <div class="nav-item" onclick="show('korea', event)"><span class="icon">🇰🇷</span> 한국 시장 전략</div>
 
   <div class="nav-section">기술</div>
-  <div class="nav-item" onclick="show('tech')"><span class="icon">⚙️</span> 기술 스택</div>
+  <div class="nav-item" onclick="show('tech', event)"><span class="icon">⚙️</span> 기술 스택</div>
 </nav>
 
 <!-- ══════════════════ MAIN ══════════════════ -->
@@ -257,7 +257,7 @@
             <div class="progress-wrap"><div class="progress-bar" style="width:88%;background:var(--green);"></div></div>
           </div>
           <div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;"><span>DecisionTree 커버리지</span><span style="color:var(--green);">100%</span></div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;"><span>추천 경로 커버리지</span><span style="color:var(--green);">100%</span></div>
             <div class="progress-wrap"><div class="progress-bar" style="width:100%;background:var(--green);"></div></div>
           </div>
           <div>
@@ -288,9 +288,9 @@
       <div class="metric-sub">5개 Python 라이브러리 검증</div>
     </div>
     <div class="metric-card" style="--accent:#10b981;">
-      <div class="metric-label">DecisionTree 노드</div>
-      <div class="metric-val">49/49</div>
-      <div class="metric-sub">100% 커버리지</div>
+      <div class="metric-label">DecisionTree 커버리지</div>
+      <div class="metric-val">100%</div>
+      <div class="metric-sub">모든 추천 경로 테스트 통과</div>
     </div>
     <div class="metric-card" style="--accent:#3b82f6;">
       <div class="metric-label">E2E 테스트</div>
@@ -329,8 +329,8 @@
     </div>
     <div class="metric-card" style="--accent:#10b981;">
       <div class="metric-label">Graph Studio 테스트</div>
-      <div class="metric-val">167</div>
-      <div class="metric-sub">7개 테스트 파일, 100% pass</div>
+      <div class="metric-val">454</div>
+      <div class="metric-sub">13개 테스트 파일, 100% pass</div>
     </div>
     <div class="metric-card" style="--accent:#8b5cf6;">
       <div class="metric-label">현재 단계</div>
@@ -863,11 +863,11 @@
 </main><!-- /main -->
 
 <script>
-function show(id) {
+function show(id, evt) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  event.currentTarget.classList.add('active');
+  evt.currentTarget.classList.add('active');
 }
 // Animate progress bars on load
 window.addEventListener('load', () => {
