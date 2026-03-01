@@ -167,7 +167,12 @@ export const chartSpecSchema = z.object({
   encoding: z.object({
     x: axisSchema,
     y: axisSchema,
-    y2: axisSchema.optional(),
+    y2: z.object({
+      field: z.string().min(1),
+      type: z.literal('quantitative'),
+      title: z.string().optional(),
+      scale: scaleSchema.optional(),
+    }).strict().optional(),
     color: colorSchema.optional(),
     shape: shapeSchema.optional(),
     size: z.object({

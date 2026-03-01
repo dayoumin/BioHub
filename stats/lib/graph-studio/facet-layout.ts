@@ -71,6 +71,7 @@ export function partitionRowsByFacet(
  * @param ncol - 열 수 (미지정 시 ceil(sqrt(n)))
  */
 export function computeFacetLayout(nFacets: number, ncol?: number): FacetLayout {
+  if (nFacets <= 0) return { cols: 0, rows: 0, items: [] };
   const cols = ncol ?? Math.ceil(Math.sqrt(nFacets));
   const rows = Math.ceil(nFacets / cols);
 

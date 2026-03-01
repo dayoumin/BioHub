@@ -389,6 +389,17 @@ describe('G2-3-D: Schema validation', () => {
     expect(chartSpecSchema.safeParse(spec).success).toBe(true);
   });
 
+  it('y2 type=nominal → 실패 (quantitative만 허용)', () => {
+    const spec = makeBarSpec({
+      encoding: {
+        x: { field: 'group', type: 'nominal' },
+        y: { field: 'value', type: 'quantitative' },
+        y2: { field: 'temp', type: 'nominal' as 'quantitative' },
+      },
+    });
+    expect(chartSpecSchema.safeParse(spec).success).toBe(false);
+  });
+
   it('facet 필드가 있는 spec 통과', () => {
     const spec = makeBarSpec({ facet: { field: 'group' } });
     expect(chartSpecSchema.safeParse(spec).success).toBe(true);
@@ -422,6 +433,133 @@ describe('G2-3-D: Schema validation', () => {
   it('facet.shareAxis boolean → 통과', () => {
     const spec = makeBarSpec({ facet: { field: 'group', shareAxis: false } });
     expect(chartSpecSchema.safeParse(spec).success).toBe(true);
+  });
+});
+
+// ─── G2-3-F: 코드 리뷰 수정 검증 ─────────────────────────
+
+describe('G2-3-F: Review fix verification', () => {
+  it('computeFacetLayout(0) → empty layout', () => {
+    const layout = computeFacetLayout(0);
+    expect(layout.cols).toBe(0);
+    expect(layout.rows).toBe(0);
+    expect(layout.items).toEqual([]);
+  });
+
+  it('facet bar shareAxis: yAxis min은 0 이하', () => {
+    // 모든 값이 양수 (200~600)여도 bar에서는 min=0 강제
+    const spec = makeFacetSpec({
+      chartType: 'bar',
+      encoding: {
+        x: { field: 'length', type: 'quantitative' },
+        y: { field: 'weight', type: 'quantitative' },
+      },
+      facet: { field: 'species', shareAxis: true },
+    });
+    const option = chartSpecToECharts(spec, FACET_ROWS);
+    const yAxes = option.yAxis as Record<string, unknown>[];
+    for (const axis of yAxes) {
+      expect(Number(axis.min)).toBeLessThanOrEqual(0);
+    }
+  });
+
+  it('facet bar 중복 카테고리 → 평균 집계', () => {
+    // 같은 species 내에서 같은 length 값이 여러 행이면 평균
+    const rows = [
+      { species: 'A', cat: 'x', val: 10 },
+      { species: 'A', cat: 'x', val: 20 },
+      { species: 'A', cat: 'y', val: 30 },
+    ];
+    const spec: ChartSpec = {
+      version: '1.0',
+      chartType: 'bar',
+      data: {
+        sourceId: 'test',
+        columns: [
+          { name: 'species', type: 'nominal', uniqueCount: 1, sampleValues: ['A'], hasNull: false },
+          { name: 'cat', type: 'nominal', uniqueCount: 2, sampleValues: ['x', 'y'], hasNull: false },
+          { name: 'val', type: 'quantitative', uniqueCount: 3, sampleValues: ['10', '20', '30'], hasNull: false },
+        ],
+      },
+      encoding: {
+        x: { field: 'cat', type: 'nominal' },
+        y: { field: 'val', type: 'quantitative' },
+      },
+      facet: { field: 'species' },
+      style: { preset: 'default' },
+      annotations: [],
+      exportConfig: { format: 'png', dpi: 300 },
+    };
+    const option = chartSpecToECharts(spec, rows);
+    const series = option.series as Record<string, unknown>[];
+    // 'x' 카테고리: (10+20)/2 = 15
+    const data = series[0].data as [string, number][];
+    const xEntry = data.find(d => d[0] === 'x');
+    expect(xEntry?.[1]).toBe(15); // 평균
+  });
+
+  it('line temporal + Y2 → yAxis 배열 + 2개 series', () => {
+    const spec = makeLineSpec({
+      encoding: {
+        x: { field: 'month', type: 'temporal' },
+        y: { field: 'sales', type: 'quantitative' },
+        y2: { field: 'profit', type: 'quantitative' },
+      },
+    });
+    const option = chartSpecToECharts(spec, LINE_ROWS);
+    expect(Array.isArray(option.yAxis)).toBe(true);
+    const series = option.series as Record<string, unknown>[];
+    expect(series.length).toBe(2);
+    expect(series[1].yAxisIndex).toBe(1);
+  });
+
+  it('bar horizontal + Y2 → Y2 무시됨 (축 구조 충돌 방지)', () => {
+    const spec = makeBarSpec({
+      orientation: 'horizontal',
+      encoding: {
+        x: { field: 'group', type: 'nominal' },
+        y: { field: 'value', type: 'quantitative' },
+        y2: { field: 'temp', type: 'quantitative' },
+      },
+    });
+    const option = chartSpecToECharts(spec, BAR_ROWS);
+    // horizontal 모드에서 Y2는 무시 → series 1개, yAxis 단일 객체
+    const series = option.series as Record<string, unknown>[];
+    expect(series.length).toBe(1);
+    expect(Array.isArray(option.yAxis)).toBe(false);
+  });
+
+  it('facet + y2 동시 입력 → facet 우선, y2 무시', () => {
+    const spec = makeFacetSpec({
+      chartType: 'bar',
+      encoding: {
+        x: { field: 'length', type: 'quantitative' },
+        y: { field: 'weight', type: 'quantitative' },
+        y2: { field: 'length', type: 'quantitative' },
+      },
+      facet: { field: 'species' },
+    });
+    const option = chartSpecToECharts(spec, FACET_ROWS);
+    // facet이 활성화되면 Y2는 무시 → yAxis에 yAxisIndex=1인 축 없음
+    expect(Array.isArray(option.grid)).toBe(true); // facet 활성 확인
+    const yAxes = option.yAxis as Record<string, unknown>[];
+    const hasRightAxis = yAxes.some(a => a.position === 'right');
+    expect(hasRightAxis).toBe(false);
+  });
+
+  it('bar + color + Y2 → Y2 무시됨 (colors[1] 충돌 방지)', () => {
+    const spec = makeBarSpec({
+      encoding: {
+        x: { field: 'group', type: 'nominal' },
+        y: { field: 'value', type: 'quantitative' },
+        y2: { field: 'temp', type: 'quantitative' },
+        color: { field: 'group', type: 'nominal' },
+      },
+    });
+    const option = chartSpecToECharts(spec, BAR_ROWS);
+    // color 그룹이 있으면 Y2 무시 → grouped-bar처럼 동작하지 않고 단순 bar
+    // colorField가 있지만 bar 차트에서 colorField 미지원이므로 단순 bar로 fallback
+    expect(Array.isArray(option.yAxis)).toBe(false);
   });
 });
 
