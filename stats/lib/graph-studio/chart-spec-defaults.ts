@@ -4,7 +4,7 @@
  * 데이터 업로드 시 자동으로 적절한 chartSpec을 생성하기 위한 기본값
  */
 
-import type { ChartSpec, ChartType, StyleSpec, ExportConfig, StylePreset } from '@/types/graph-studio';
+import type { ChartSpec, ChartType, StyleSpec, ExportConfig, StylePreset, ErrorBarSpec, TrendlineSpec } from '@/types/graph-studio';
 
 // ─── ColorBrewer + viridis 팔레트 ──────────────────────────
 
@@ -23,6 +23,28 @@ export const COLORBREWER_PALETTES: Record<string, string[]> = {
   // 발산형(Diverging) — 양극 비교
   RdBu:    ['#d73027', '#f46d43', '#fdae61', '#fee090', '#abd9e9', '#74add1', '#4575b4'],
   RdYlGn:  ['#d73027', '#f46d43', '#fdae61', '#ffffbf', '#a6d96a', '#66bd63', '#1a9850'],
+};
+
+// ─── 저널 색상 팔레트 ──────────────────────────────────────
+
+/**
+ * 저널별 공식 색상 팔레트 (ggsci 기반, hex 검증).
+ * 출처: R ggsci 패키지 소스 + 각 저널 그래픽 가이드라인.
+ * Okabe-Ito: Wong (2011) Nature Methods — APA/PLOS 권장 색맹 친화 팔레트.
+ */
+export const JOURNAL_PALETTES: Record<string, string[]> = {
+  NPG:      ['#E64B35', '#4DBBD5', '#00A087', '#3C5488', '#F39B7F', '#8491B4', '#91D1C2'],
+  AAAS:     ['#3B4992', '#EE0000', '#008B45', '#631879', '#008280', '#BB0021', '#5F559B', '#A20056'],
+  NEJM:     ['#BC3C29', '#0072B5', '#E18727', '#20854E', '#7876B1', '#6F99AD', '#FFDC91', '#EE4C97'],
+  Lancet:   ['#00468B', '#ED0000', '#42B540', '#0099B4', '#925E9F', '#FDAF91', '#AD002A'],
+  JAMA:     ['#374E55', '#DF8F44', '#00A1D5', '#B24745', '#79AF97', '#6A6599', '#80796B'],
+  OkabeIto: ['#E69F00', '#56B4E9', '#009E73', '#F0E442', '#0072B2', '#D55E00', '#CC79A7'],
+};
+
+/** ColorBrewer + 저널 팔레트 통합 맵 — scheme 조회 단일 진입점 */
+export const ALL_PALETTES: Record<string, string[]> = {
+  ...COLORBREWER_PALETTES,
+  ...JOURNAL_PALETTES,
 };
 
 // ─── 스타일 프리셋 ─────────────────────────────────────────
@@ -93,6 +115,7 @@ export const DEFAULT_EXPORT_CONFIG: ExportConfig = {
 // ─── 저널 사이즈 프리셋 ─────────────────────────────────────
 // 각 저널의 표준 칼럼 너비 (mm). height는 그래프 종류마다 가변.
 // 출처: Nature (86/178mm), Cell (88/183mm), PNAS (87/180mm), ACS (84/178mm), KCI (80mm)
+//       JKMS (85/175mm), Ann Lab Med (174mm), IEEE (89/190mm)
 
 export const JOURNAL_SIZE_PRESETS = [
   { key: 'nature-single', label: 'Nature 단일 칼럼', width: 86 },
@@ -101,6 +124,11 @@ export const JOURNAL_SIZE_PRESETS = [
   { key: 'pnas-single',   label: 'PNAS 단일 칼럼',   width: 87 },
   { key: 'acs-single',    label: 'ACS 단일 칼럼',    width: 84 },
   { key: 'kci-single',    label: 'KCI 단일 칼럼',    width: 80 },
+  { key: 'jkms-single',   label: 'JKMS 단일 칼럼',   width: 85 },
+  { key: 'jkms-double',   label: 'JKMS 전체 너비',   width: 175 },
+  { key: 'annlabmed',     label: 'Ann Lab Med 전폭',  width: 174 },
+  { key: 'ieee-single',   label: 'IEEE 단일 칼럼',    width: 89 },
+  { key: 'ieee-double',   label: 'IEEE 전체 너비',    width: 190 },
 ] as const;
 
 export type JournalPresetKey = typeof JOURNAL_SIZE_PRESETS[number]['key'];
@@ -233,6 +261,42 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsAggregate: false,
     supportsY2: false,
     supportsFacet: false,
+  },
+};
+
+// ─── Figure 빠른 시작 프리셋 ───────────────────────────────
+
+/** 분석 유형별 차트 구성 원클릭 적용용 프리셋 */
+export interface FigurePreset {
+  label: string;
+  chartType: ChartType;
+  errorBar?: ErrorBarSpec;
+  trendline?: TrendlineSpec;
+}
+
+/**
+ * 분석 목적별 빠른 시작 프리셋.
+ * 클릭 시 chartType + errorBar + trendline만 덮어씀.
+ * data/encoding/style은 현재 chartSpec에서 유지.
+ */
+export const FIGURE_PRESETS: Record<string, FigurePreset> = {
+  'two-group': {
+    label: '두 그룹 비교',
+    chartType: 'bar',
+    errorBar: { type: 'stderr' },
+  },
+  'distribution': {
+    label: '분포 비교',
+    chartType: 'violin',
+  },
+  'correlation': {
+    label: '상관 분석',
+    chartType: 'scatter',
+    trendline: { type: 'linear', showEquation: true },
+  },
+  'timeseries': {
+    label: '시계열',
+    chartType: 'line',
   },
 };
 

@@ -235,3 +235,67 @@ describe('R-3: 폰트 family 변경 시 preset font size 유지', () => {
     expect(annStyle.fontFamily).toBe('Georgia, serif');
   });
 });
+
+// ─── R-4: 저널 팔레트 scheme 적용 ────────────────────────
+
+describe('R-4: 저널 팔레트 scheme 조회', () => {
+  test('NPG scheme → ECharts color에 #E64B35 포함', () => {
+    const spec = makeBarSpec({ style: { preset: 'default', scheme: 'NPG' } });
+    const option = chartSpecToECharts(spec, SAMPLE_ROWS) as Record<string, unknown>;
+    const colors = option.color as string[];
+    expect(colors).toBeDefined();
+    expect(colors[0]).toBe('#E64B35');
+  });
+
+  test('AAAS scheme → ECharts color에 #3B4992 포함', () => {
+    const spec = makeBarSpec({ style: { preset: 'default', scheme: 'AAAS' } });
+    const option = chartSpecToECharts(spec, SAMPLE_ROWS) as Record<string, unknown>;
+    const colors = option.color as string[];
+    expect(colors[0]).toBe('#3B4992');
+  });
+
+  test('OkabeIto scheme → ECharts color에 #E69F00 포함', () => {
+    const spec = makeBarSpec({ style: { preset: 'default', scheme: 'OkabeIto' } });
+    const option = chartSpecToECharts(spec, SAMPLE_ROWS) as Record<string, unknown>;
+    const colors = option.color as string[];
+    expect(colors[0]).toBe('#E69F00');
+  });
+
+  test('존재하지 않는 scheme → preset 기본 색상 fallback', () => {
+    const spec = makeBarSpec({ style: { preset: 'default', scheme: 'UnknownJournal' } });
+    const option = chartSpecToECharts(spec, SAMPLE_ROWS) as Record<string, unknown>;
+    const colors = option.color as string[];
+    // PRESET_COLORS.default 첫 번째 색상
+    expect(colors[0]).toBe('#5470c6');
+  });
+});
+
+// ─── R-5: 브래킷 스태킹 — converter crash 없음 ────────────
+
+describe('R-5: 유의성 브래킷 다중 marks converter 안전성', () => {
+  test('significance marks 3개 → converter crash 없음', () => {
+    const spec = makeBarSpec({
+      significance: [
+        { groupA: 'A', groupB: 'B', pValue: 0.01 },
+        { groupA: 'A', groupB: 'C', pValue: 0.001 },
+        { groupA: 'B', groupB: 'C', pValue: 0.05 },
+      ],
+    });
+    expect(() => chartSpecToECharts(spec, SAMPLE_ROWS)).not.toThrow();
+  });
+
+  test('significance marks 3개 → spec.significance 원본 배열 순서 불변', () => {
+    // buildSignificanceGraphics가 [...marks].sort()로 사본 정렬해야 함
+    // converter 수준에서는 spec.significance를 직접 건드리지 않음
+    const significance = [
+      { groupA: 'A', groupB: 'C', pValue: 0.001 },  // span=2
+      { groupA: 'A', groupB: 'B', pValue: 0.01 },   // span=1
+      { groupA: 'B', groupB: 'C', pValue: 0.05 },   // span=1
+    ];
+    const spec = makeBarSpec({ significance });
+    chartSpecToECharts(spec, SAMPLE_ROWS);
+    // 원본 순서 보존 확인 (converter는 significance를 정렬하지 않음)
+    expect(spec.significance![0].groupA).toBe('A');
+    expect(spec.significance![0].groupB).toBe('C');
+  });
+});

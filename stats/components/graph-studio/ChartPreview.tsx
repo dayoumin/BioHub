@@ -35,7 +35,8 @@ const SIG_CHART_TYPES = new Set<string>(['bar', 'grouped-bar', 'error-bar']);
 const BRACKET_LINE_STYLE = { stroke: '#333', lineWidth: 1.5 };
 const BRACKET_TICK_H = 6;   // 틱 길이 (px) — 수직 막대에서 아래 방향, 수평 막대에서 왼쪽 방향
 const BRACKET_LABEL_GAP = 14; // 라벨과 브래킷 사이 거리 (px)
-const BRACKET_Y_RATIO = 1.12; // 값 축 최댓값 대비 브래킷 위치 배율
+const BRACKET_Y_RATIO = 1.12; // 값 축 최댓값 대비 첫 번째 브래킷 위치 배율
+const BRACKET_Y_STEP = 0.10;  // 브래킷 간 추가 높이 간격 (좁은→낮게, 넓은→높게)
 
 /**
  * 유의성 브래킷을 ECharts graphic[]으로 생성.
@@ -81,19 +82,31 @@ function buildSignificanceGraphics(
   const catAxisKey = isH ? 'yAxisIndex' : 'xAxisIndex';
   const valAxisKey = isH ? 'xAxisIndex' : 'yAxisIndex';
 
-  // 브래킷이 놓일 값 축 픽셀 위치
-  const rawBracketPos = instance.convertToPixel({ [valAxisKey]: 0 }, valMax * BRACKET_Y_RATIO);
-  const bracketPos = Array.isArray(rawBracketPos)
-    ? (isH ? rawBracketPos[0] : rawBracketPos[1])
-    : rawBracketPos;
-  if (bracketPos === null || bracketPos === undefined) return null;
+  // span 오름차순 정렬 (좁은 브래킷 → 낮은 위치, 넓은 브래킷 → 높은 위치)
+  // [...marks]로 원본 spec.significance 배열 변이 방지
+  const sortedMarks = [...marks].sort((a, b) => {
+    const spanA = Math.abs(categories.indexOf(a.groupA) - categories.indexOf(a.groupB));
+    const spanB = Math.abs(categories.indexOf(b.groupA) - categories.indexOf(b.groupB));
+    return spanA - spanB;
+  });
 
   const brackets: Record<string, unknown>[] = [];
+  // 유효한 브래킷만 카운트 (idxA/idxB 미발견 mark 건너뜀 → 인덱스 갭 방지)
+  let renderIdx = 0;
 
-  for (const mark of marks) {
+  for (const mark of sortedMarks) {
     const idxA = categories.indexOf(mark.groupA);
     const idxB = categories.indexOf(mark.groupB);
     if (idxA < 0 || idxB < 0) continue;
+
+    // 브래킷별 개별 높이: span이 클수록 더 높게 배치
+    const bracketVal = valMax * (BRACKET_Y_RATIO + renderIdx * BRACKET_Y_STEP);
+    renderIdx++;
+    const rawBracketPos = instance.convertToPixel({ [valAxisKey]: 0 }, bracketVal);
+    const bracketPos = Array.isArray(rawBracketPos)
+      ? (isH ? rawBracketPos[0] : rawBracketPos[1])
+      : rawBracketPos;
+    if (bracketPos == null) continue;
 
     const rawA = instance.convertToPixel({ [catAxisKey]: 0 }, idxA);
     const rawB = instance.convertToPixel({ [catAxisKey]: 0 }, idxB);

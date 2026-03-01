@@ -14,11 +14,14 @@ import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CHART_TYPE_HINTS, COLORBREWER_PALETTES } from '@/lib/graph-studio/chart-spec-defaults';
+import { Button } from '@/components/ui/button';
+import { CHART_TYPE_HINTS, ALL_PALETTES, FIGURE_PRESETS } from '@/lib/graph-studio/chart-spec-defaults';
 import { selectXYFields } from '@/lib/graph-studio/chart-spec-utils';
 import type { ChartType, ErrorBarSpec } from '@/types/graph-studio';
 
@@ -28,9 +31,8 @@ const ERROR_BAR_CHART_TYPES = new Set<ChartType>(['bar', 'line', 'error-bar']);
 /** orientation(수평 막대)을 지원하는 차트 유형 */
 const ORIENTATION_CHART_TYPES = new Set<ChartType>(['bar', 'grouped-bar', 'stacked-bar']);
 
-/** 팔레트 선택 목록 */
-const PALETTE_OPTIONS: { value: string; label: string }[] = [
-  { value: 'none',    label: '기본 (프리셋)' },
+/** ColorBrewer 팔레트 옵션 */
+const COLORBREWER_OPTIONS: { value: string; label: string }[] = [
   { value: 'Set2',    label: 'Set2 — colorblind-safe' },
   { value: 'Set1',    label: 'Set1 — 선명' },
   { value: 'Paired',  label: 'Paired — 쌍 구분' },
@@ -40,6 +42,16 @@ const PALETTE_OPTIONS: { value: string; label: string }[] = [
   { value: 'Oranges', label: 'Oranges — 주황 순차형' },
   { value: 'RdBu',    label: 'RdBu — 발산형 (빨↔파)' },
   { value: 'RdYlGn',  label: 'RdYlGn — 발산형 (빨↔녹)' },
+];
+
+/** 저널 팔레트 옵션 */
+const JOURNAL_OPTIONS: { value: string; label: string }[] = [
+  { value: 'NPG',      label: 'NPG — Nature' },
+  { value: 'AAAS',     label: 'AAAS — Science' },
+  { value: 'NEJM',     label: 'NEJM' },
+  { value: 'Lancet',   label: 'Lancet' },
+  { value: 'JAMA',     label: 'JAMA' },
+  { value: 'OkabeIto', label: 'Okabe-Ito — 색맹 친화' },
 ];
 
 export function DataTab(): React.ReactElement {
@@ -118,15 +130,26 @@ export function DataTab(): React.ReactElement {
     const xCol = columns.find(c => c.name === xField);
     const yCol = columns.find(c => c.name === yField);
 
-    const { color: _c, ...baseEncoding } = chartSpec.encoding;
+    // color/y2를 분리하고, 새 차트 유형이 지원하는 것만 개별 복원
+    const { color: prevColor, y2: prevY2, ...baseEncoding } = chartSpec.encoding;
+    const cleanEncoding = {
+      ...baseEncoding,
+      ...(hint.supportsColor && prevColor ? { color: prevColor } : {}),
+      ...(hint.supportsY2 && prevY2 ? { y2: prevY2 } : {}),
+      x: { ...chartSpec.encoding.x, field: xField, type: xCol?.type ?? hint.suggestedXType },
+      y: { ...chartSpec.encoding.y, field: yField, type: yCol?.type ?? 'quantitative' },
+    };
+    const { facet: _f, errorBar: _eb, trendline: _tl, ...cleanSpec } = chartSpec;
     updateChartSpec({
-      ...chartSpec,
+      ...cleanSpec,
       chartType: newType,
-      encoding: {
-        ...(hint.supportsColor ? chartSpec.encoding : baseEncoding),
-        x: { ...chartSpec.encoding.x, field: xField, type: xCol?.type ?? hint.suggestedXType },
-        y: { ...chartSpec.encoding.y, field: yField, type: yCol?.type ?? 'quantitative' },
-      },
+      encoding: cleanEncoding,
+      // facet: 새 유형이 supportsFacet이면 유지
+      ...(hint.supportsFacet && chartSpec.facet ? { facet: chartSpec.facet } : {}),
+      // errorBar: 새 유형이 supportsErrorBar이면 유지
+      ...(hint.supportsErrorBar && chartSpec.errorBar ? { errorBar: chartSpec.errorBar } : {}),
+      // trendline: scatter만 지원
+      ...(newType === 'scatter' && chartSpec.trendline ? { trendline: chartSpec.trendline } : {}),
     });
   }, [chartSpec, updateChartSpec]);
 
@@ -192,6 +215,16 @@ export function DataTab(): React.ReactElement {
     });
   }, [chartSpec, updateChartSpec]);
 
+  // ─── Figure 빠른 시작 프리셋 ─────────────────────────────
+
+  const handleFigurePreset = useCallback((presetKey: string) => {
+    if (!chartSpec) return;
+    const preset = FIGURE_PRESETS[presetKey];
+    if (!preset) return;
+    const { chartType, errorBar, trendline } = preset;
+    updateChartSpec({ ...chartSpec, chartType, errorBar, trendline });
+  }, [chartSpec, updateChartSpec]);
+
   // ─── 수평 막대 (orientation) ─────────────────────────────
 
   const handleOrientationToggle = useCallback((checked: boolean) => {
@@ -242,12 +275,11 @@ export function DataTab(): React.ReactElement {
       const { y2: _y2, ...restEncoding } = chartSpec.encoding;
       updateChartSpec({ ...chartSpec, encoding: restEncoding });
     } else {
-      const col = chartSpec.data.columns.find(c => c.name === value);
       updateChartSpec({
         ...chartSpec,
         encoding: {
           ...chartSpec.encoding,
-          y2: { field: value, type: col?.type ?? 'quantitative' },
+          y2: { field: value, type: 'quantitative' as const },
         },
       });
     }
@@ -293,19 +325,19 @@ export function DataTab(): React.ReactElement {
   const hasY2 = !!chartSpec.encoding.y2;
   const hasFacet = !!chartSpec.facet;
 
-  // Y2 ↔ facet 상호 배타: 하나만 노출
-  const showY2 = hints.supportsY2 && !hasFacet;
+  // Y2 ↔ facet 상호 배타, horizontal 모드에서 Y2 비활성
+  const showY2 = hints.supportsY2 && !hasFacet && chartSpec.orientation !== 'horizontal';
   const showFacet = hints.supportsFacet && !hasY2;
 
-  // Y2 있으면 color 그룹 비활성 (colors[1] 충돌)
-  const showColorField = hints.supportsColor && !hasY2;
+  // Y2 있으면 color 그룹 비활성 (colors[1] 충돌), facet 있으면 패싯별 분리로 color 무의미
+  const showColorField = hints.supportsColor && !hasY2 && !hasFacet;
 
   // 에러바 표시 조건:
   // - bar / error-bar: 항상 표시
   // - line: 단일 선(color 그룹 없음) + 비-시계열(temporal 아님)일 때만
   //   (다중선·시계열에서는 에러바 의미가 불명확하므로 숨김)
   // - Y2 있으면 에러바 비활성
-  const showErrorBar = ERROR_BAR_CHART_TYPES.has(chartSpec.chartType) && !hasY2 && (
+  const showErrorBar = ERROR_BAR_CHART_TYPES.has(chartSpec.chartType) && !hasY2 && !hasFacet && (
     chartSpec.chartType !== 'line' ||
     (!chartSpec.encoding.color?.field && chartSpec.encoding.x.type !== 'temporal')
   );
@@ -313,6 +345,23 @@ export function DataTab(): React.ReactElement {
 
   return (
     <div className="space-y-4">
+      {/* 빠른 시작 Figure 프리셋 */}
+      <div className="space-y-1.5">
+        <Label className="text-xs">빠른 시작</Label>
+        <div className="grid grid-cols-2 gap-1">
+          {Object.entries(FIGURE_PRESETS).map(([key, preset]) => (
+            <Button
+              key={key}
+              variant="outline"
+              className="h-7 text-xs px-2"
+              onClick={() => handleFigurePreset(key)}
+            >
+              {preset.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
       {/* 차트 제목 */}
       <div className="space-y-1.5">
         <Label htmlFor="chart-title" className="text-xs">제목</Label>
@@ -522,16 +571,28 @@ export function DataTab(): React.ReactElement {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {PALETTE_OPTIONS.map(opt => (
-              <SelectItem key={opt.value} value={opt.value} className="text-sm">
-                {opt.label}
-              </SelectItem>
-            ))}
+            <SelectItem value="none" className="text-sm">기본 (프리셋)</SelectItem>
+            <SelectGroup>
+              <SelectLabel className="text-xs text-muted-foreground">ColorBrewer</SelectLabel>
+              {COLORBREWER_OPTIONS.map(opt => (
+                <SelectItem key={opt.value} value={opt.value} className="text-sm">
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+            <SelectGroup>
+              <SelectLabel className="text-xs text-muted-foreground">저널 팔레트</SelectLabel>
+              {JOURNAL_OPTIONS.map(opt => (
+                <SelectItem key={opt.value} value={opt.value} className="text-sm">
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
           </SelectContent>
         </Select>
         {chartSpec.style.scheme && (
           <div className="flex gap-1 mt-1">
-            {(COLORBREWER_PALETTES[chartSpec.style.scheme] ?? []).slice(0, 6).map((c, i) => (
+            {(ALL_PALETTES[chartSpec.style.scheme] ?? []).slice(0, 6).map((c, i) => (
               <span
                 key={i}
                 className="inline-block h-3 w-3 rounded-sm border border-border"

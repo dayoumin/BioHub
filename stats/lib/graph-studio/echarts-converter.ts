@@ -9,7 +9,7 @@
 
 import type { ChartSpec, AxisSpec, AnnotationSpec, TrendlineSpec, StylePreset, DataType } from '@/types/graph-studio';
 import type { EChartsOption } from 'echarts';
-import { STYLE_PRESETS, COLORBREWER_PALETTES, CHART_TYPE_HINTS } from './chart-spec-defaults';
+import { STYLE_PRESETS, ALL_PALETTES, CHART_TYPE_HINTS } from './chart-spec-defaults';
 import { partitionRowsByFacet, computeFacetLayout } from './facet-layout';
 
 // ─── Axis type mapping ─────────────────────────────────────
@@ -67,7 +67,7 @@ function getStyleConfig(spec: ChartSpec): StyleConfig {
     titleSize: font?.titleSize ?? 14,
     labelSize: font?.labelSize ?? 11,
     colors: spec.style.colors
-      ?? (spec.style.scheme ? COLORBREWER_PALETTES[spec.style.scheme] : undefined)
+      ?? (spec.style.scheme ? ALL_PALETTES[spec.style.scheme] : undefined)
       ?? PRESET_COLORS[spec.style.preset]
       ?? PRESET_COLORS.default,
     background: spec.style.background ?? preset.background ?? '#ffffff',
@@ -109,12 +109,15 @@ function aggregateRows(
       groupKeys.set(key, keyRow);
     }
     const val = toNumber(row[yField]);
-    if (!isNaN(val)) groups.get(key)!.push(val);
+    if (!isNaN(val)) {
+      const arr = groups.get(key);
+      if (arr) arr.push(val);
+    }
   }
 
   const result: Record<string, unknown>[] = [];
   for (const [key, vals] of groups) {
-    const base = { ...groupKeys.get(key)! };
+    const base = { ...(groupKeys.get(key) ?? {}) };
     if (method === 'count') {
       base[yField] = vals.length;
     } else if (method === 'sum') {
@@ -180,15 +183,17 @@ function buildGroupedData(
     const val = toNumber(row[yField]);
     const idx = catIndex.get(cat) ?? -1;
     if (idx >= 0 && !isNaN(val)) {
-      seriesData.get(grp)![idx] += val;
-      seriesCount.get(grp)![idx]++;
+      const sd = seriesData.get(grp);
+      const sc = seriesCount.get(grp);
+      if (sd && sc) { sd[idx] += val; sc[idx]++; }
     }
   }
 
   // Duplicate (x, group) rows → take mean (spec.aggregate absent, raw data case)
   for (const grp of groupOrder) {
-    const vals = seriesData.get(grp)!;
-    const counts = seriesCount.get(grp)!;
+    const vals = seriesData.get(grp);
+    const counts = seriesCount.get(grp);
+    if (!vals || !counts) continue;
     for (let i = 0; i < vals.length; i++) {
       if (counts[i] > 1) vals[i] = vals[i] / counts[i];
     }
@@ -220,7 +225,10 @@ function buildBoxplotData(
     const cat = toStr(row[xField]);
     const val = toNumber(row[yField]);
     if (!groups.has(cat)) { groups.set(cat, []); order.push(cat); }
-    if (!isNaN(val)) groups.get(cat)!.push(val);
+    if (!isNaN(val)) {
+      const arr = groups.get(cat);
+      if (arr) arr.push(val);
+    }
   }
 
   const categories: string[] = [];
@@ -281,7 +289,10 @@ function buildErrorBarData(
     const cat = toStr(row[xField]);
     const val = toNumber(row[yField]);
     if (!groups.has(cat)) { groups.set(cat, []); order.push(cat); }
-    if (!isNaN(val)) groups.get(cat)!.push(val);
+    if (!isNaN(val)) {
+      const arr = groups.get(cat);
+      if (arr) arr.push(val);
+    }
   }
 
   const categories: string[] = [];
@@ -361,7 +372,8 @@ function buildHeatmapData(
   for (const row of rows) {
     const key = `${toStr(row[xField])}\u0000${toStr(row[yField])}`;
     if (!cells.has(key)) cells.set(key, { count: 0, vals: [] });
-    const cell = cells.get(key)!;
+    const cell = cells.get(key);
+    if (!cell) continue;
     cell.count++;
     if (valueField !== null) {
       const val = toNumber(row[valueField]);
@@ -800,6 +812,15 @@ function buildFacetOption(
   const xField = spec.encoding.x.field;
   const yField = spec.encoding.y.field;
 
+  // y축 scale 설정 반영 (log, domain 등)
+  const yScale = spec.encoding.y.scale;
+  const facetYAxisType = yScale?.type === 'log' ? ('log' as const) : ('value' as const);
+  const yDomain = (
+    yScale?.domain &&
+    yScale.domain.length === 2 &&
+    typeof yScale.domain[0] === 'number'
+  ) ? (yScale.domain as [number, number]) : undefined;
+
   const allGroups = partitionRowsByFacet(rows, facet.field);
 
   // 패싯 수 제한 (quantitative 필드 선택 시 폭발 방지)
@@ -816,6 +837,8 @@ function buildFacetOption(
   const titleGraphics: Record<string, unknown>[] = [];
 
   // 공통 y 범위 계산 (shareAxis 기본 true)
+  // bar 차트는 기본적으로 0에서 시작해야 하므로 min을 0으로 강제
+  const isBarFacet = spec.chartType === 'bar';
   let globalYMin: number | undefined;
   let globalYMax: number | undefined;
   if (facet.shareAxis !== false) {
@@ -825,6 +848,11 @@ function buildFacetOption(
         globalYMin = globalYMin === undefined ? v : Math.min(globalYMin, v);
         globalYMax = globalYMax === undefined ? v : Math.max(globalYMax, v);
       }
+    }
+    // bar 차트: 0 기준선 보장 (막대가 떠오르거나 잘리는 현상 방지)
+    if (isBarFacet) {
+      if (globalYMin === undefined || globalYMin > 0) globalYMin = 0;
+      if (globalYMax === undefined || globalYMax < 0) globalYMax = 0;
     }
   }
 
@@ -840,28 +868,10 @@ function buildFacetOption(
       containLabel: true,
     });
 
-    // x축: 차트 유형에 따라 category 또는 value
-    const xAxisType = spec.chartType === 'scatter' ? 'value' : 'category';
-    if (xAxisType === 'category') {
-      // 카테고리 추출 (순서 보존, 중복 제거)
-      const seen = new Set<string>();
-      const cats: string[] = [];
-      for (const r of groupRows) {
-        const v = toStr(r[xField]);
-        if (!seen.has(v)) { seen.add(v); cats.push(v); }
-      }
-      xAxes.push({
-        gridIndex: i,
-        type: 'category',
-        data: cats,
-        axisLabel: {
-          fontFamily: style.fontFamily,
-          fontSize: style.labelSize,
-          show: i >= groups.size - layout.cols, // 하단 행만 라벨 표시
-        },
-        axisLine: { show: true },
-      });
-    } else {
+    // x축/y축: 차트 유형 + orientation에 따라 결정
+    const isHFacet = isBarFacet && spec.orientation === 'horizontal';
+    if (spec.chartType === 'scatter') {
+      // scatter: value 축
       xAxes.push({
         gridIndex: i,
         type: 'value',
@@ -874,28 +884,85 @@ function buildFacetOption(
           show: i >= groups.size - layout.cols,
         },
       });
+      yAxes.push({
+        gridIndex: i,
+        type: facetYAxisType,
+        axisLabel: {
+          fontFamily: style.fontFamily,
+          fontSize: style.labelSize,
+          show: i % layout.cols === 0,
+        },
+        splitLine: { show: true },
+        ...(yDomain ? { min: yDomain[0], max: yDomain[1] }
+          : {
+            ...(globalYMin !== undefined ? { min: globalYMin } : {}),
+            ...(globalYMax !== undefined ? { max: globalYMax } : {}),
+          }),
+      });
+    } else {
+      // bar (vertical/horizontal): category + value 축
+      const seen = new Set<string>();
+      const cats: string[] = [];
+      for (const r of groupRows) {
+        const v = toStr(r[xField]);
+        if (!seen.has(v)) { seen.add(v); cats.push(v); }
+      }
+      const catAxisConfig = {
+        gridIndex: i,
+        type: 'category' as const,
+        data: cats,
+        axisLabel: {
+          fontFamily: style.fontFamily,
+          fontSize: style.labelSize,
+          show: isHFacet ? (i % layout.cols === 0) : (i >= groups.size - layout.cols),
+        },
+        axisLine: { show: true },
+      };
+      const valAxisConfig = {
+        gridIndex: i,
+        type: facetYAxisType,
+        axisLabel: {
+          fontFamily: style.fontFamily,
+          fontSize: style.labelSize,
+          show: isHFacet ? (i >= groups.size - layout.cols) : (i % layout.cols === 0),
+        },
+        splitLine: { show: true },
+        ...(yDomain ? { min: yDomain[0], max: yDomain[1] }
+          : {
+            ...(globalYMin !== undefined ? { min: globalYMin } : {}),
+            ...(globalYMax !== undefined ? { max: globalYMax } : {}),
+          }),
+      };
+      if (isHFacet) {
+        // 수평: xAxis=value, yAxis=category
+        xAxes.push(valAxisConfig);
+        yAxes.push(catAxisConfig);
+      } else {
+        // 수직: xAxis=category, yAxis=value
+        xAxes.push(catAxisConfig);
+        yAxes.push(valAxisConfig);
+      }
     }
-
-    yAxes.push({
-      gridIndex: i,
-      type: 'value' as const,
-      axisLabel: {
-        fontFamily: style.fontFamily,
-        fontSize: style.labelSize,
-        show: i % layout.cols === 0, // 좌측 열만 라벨 표시
-      },
-      splitLine: { show: true },
-      ...(globalYMin !== undefined ? { min: globalYMin } : {}),
-      ...(globalYMax !== undefined ? { max: globalYMax } : {}),
-    });
 
     // chartType별 series 빌드
     if (spec.chartType === 'bar') {
+      // 중복 카테고리 집계 (같은 x 값에 여러 행이 있으면 평균)
+      const catAgg = new Map<string, { sum: number; count: number }>();
+      for (const r of groupRows) {
+        const cat = toStr(r[xField]);
+        const val = toNumber(r[yField]);
+        if (isNaN(val)) continue;
+        const entry = catAgg.get(cat);
+        if (entry) { entry.sum += val; entry.count++; }
+        else catAgg.set(cat, { sum: val, count: 1 });
+      }
+      const barData = [...catAgg.entries()].map(([cat, { sum, count }]) => [cat, sum / count]);
+      const isH = spec.orientation === 'horizontal';
       allSeries.push({
         type: 'bar',
         xAxisIndex: i,
         yAxisIndex: i,
-        data: groupRows.map(r => [toStr(r[xField]), toNumber(r[yField])]),
+        data: isH ? barData.map(([cat, val]) => [val, cat]) : barData,
         name: groupValue,
       });
     } else if (spec.chartType === 'scatter') {
@@ -971,8 +1038,14 @@ export function chartSpecToECharts(
     'histogram', 'boxplot', 'violin', 'scatter', 'heatmap', 'error-bar',
     'grouped-bar', 'stacked-bar',
   ]);
+  // facet 활성 시 facet.field를 groupBy에 포함해야 패싯별 집계가 올바름
+  const aggGroupBy = spec.aggregate
+    ? (spec.facet && !spec.aggregate.groupBy.includes(spec.facet.field)
+        ? [...spec.aggregate.groupBy, spec.facet.field]
+        : spec.aggregate.groupBy)
+    : [];
   const workRows = (spec.aggregate && !requiresNoAgg.has(spec.chartType))
-    ? aggregateRows(rows, spec.aggregate.groupBy, yField, spec.aggregate.y)
+    ? aggregateRows(rows, aggGroupBy, yField, spec.aggregate.y)
     : rows;
 
   // ── facet (최우선 분기) ──────────────────────────────────
@@ -1003,7 +1076,10 @@ export function chartSpecToECharts(
     const { xAxis: barXAxis, yAxis: barYAxis } = buildBarAxes(spec, style);
     const isH = spec.orientation === 'horizontal';
     const y2Axis = spec.encoding.y2;
-    const hasY2 = !!y2Axis && CHART_TYPE_HINTS[spec.chartType].supportsY2;
+    // Y2 방어: color 그룹이 있으면 colors[1] 충돌 → Y2 무시
+    // horizontal 모드는 축 구조 복잡 → Y2 미지원
+    const hasY2 = !!y2Axis && CHART_TYPE_HINTS[spec.chartType].supportsY2
+      && !colorField && !isH;
     const barSeries: Record<string, unknown>[] = [{
       type: 'bar',
       encode: { x: isH ? yField : xField, y: isH ? xField : yField },
@@ -1116,10 +1192,16 @@ export function chartSpecToECharts(
           const g = toStr(r[colorField]);
           if (!groupMap.has(g)) { groupMap.set(g, []); groupOrder.push(g); }
           const y = toNumber(r[yField]);
-          if (!isNaN(y)) groupMap.get(g)!.push([toStr(r[xField]), y]);
+          if (!isNaN(y)) {
+            const arr = groupMap.get(g);
+            if (arr) arr.push([toStr(r[xField]), y]);
+          }
         }
         // Sort each group by date so ECharts draws lines without zigzag
-        for (const g of groupOrder) groupMap.get(g)!.sort(sortByDate);
+        for (const g of groupOrder) {
+          const arr = groupMap.get(g);
+          if (arr) arr.sort(sortByDate);
+        }
         return {
           ...base,
           tooltip: { trigger: 'axis' },
@@ -1155,20 +1237,41 @@ export function chartSpecToECharts(
     // For temporal axis, convert data to [x, y] pairs to ensure proper date parsing
     // (에러바는 temporal X에서 미지원 — 시계열은 그룹별 분산이 무의미)
     if (xType === 'time') {
-      return {
-        ...base,
-        tooltip: { trigger: 'axis' },
-        xAxis: { ...xAxisBase(spec, style, 'time') },
-        yAxis: yAxisBase(spec, style),
-        series: [{
+      const y2AxisTime = spec.encoding.y2;
+      const hasY2Time = !!y2AxisTime && CHART_TYPE_HINTS[spec.chartType].supportsY2;
+      const timeSeries: Record<string, unknown>[] = [{
+        type: 'line',
+        name: yField,
+        smooth: false,
+        data: workRows
+          .map(r => [toStr(r[xField]), toNumber(r[yField])] as [string, number])
+          .filter(([, y]) => !isNaN(y))
+          .sort(sortByDate),
+      }];
+      if (hasY2Time && y2AxisTime) {
+        timeSeries.push({
           type: 'line',
-          name: yField,
-          smooth: false,
+          name: y2AxisTime.field,
+          yAxisIndex: 1,
+          showSymbol: false,
           data: workRows
-            .map(r => [toStr(r[xField]), toNumber(r[yField])] as [string, number])
+            .map(r => [toStr(r[xField]), toNumber(r[y2AxisTime.field])] as [string, number])
             .filter(([, y]) => !isNaN(y))
             .sort(sortByDate),
-        }],
+          lineStyle: { color: style.colors[1] ?? '#dc3545' },
+          itemStyle: { color: style.colors[1] ?? '#dc3545' },
+        });
+      }
+      return {
+        ...base,
+        tooltip: hasY2Time
+          ? { trigger: 'axis', axisPointer: { type: 'cross' } }
+          : { trigger: 'axis' },
+        xAxis: { ...xAxisBase(spec, style, 'time') },
+        yAxis: hasY2Time && y2AxisTime
+          ? [yAxisBase(spec, style), buildY2Axis(y2AxisTime, style)]
+          : yAxisBase(spec, style),
+        series: timeSeries,
       };
     }
 
@@ -1220,7 +1323,8 @@ export function chartSpecToECharts(
       for (const r of workRows) {
         const g = toStr(r[colorField]);
         if (!groupMap.has(g)) { groupMap.set(g, []); groupOrder.push(g); }
-        groupMap.get(g)!.push([toNumber(r[xField]), toNumber(r[yField])]);
+        const arr = groupMap.get(g);
+        if (arr) arr.push([toNumber(r[xField]), toNumber(r[yField])]);
       }
       const scatterSeries: Record<string, unknown>[] = groupOrder.map(g => ({
         type: 'scatter' as const,
@@ -1350,10 +1454,9 @@ export function chartSpecToECharts(
     // valueField: encoding.color.field (3-variable heatmap) or null (count heatmap)
     const valueField = spec.encoding.color?.field ?? null;
     const defaultMethod = valueField ? 'mean' : 'count';
-    const aggMethod = (['mean', 'sum', 'count'] as const).includes(
-      spec.aggregate?.y as 'mean' | 'sum' | 'count',
-    )
-      ? (spec.aggregate!.y as 'mean' | 'sum' | 'count')
+    const aggY = spec.aggregate?.y;
+    const aggMethod = (aggY === 'mean' || aggY === 'sum' || aggY === 'count')
+      ? aggY
       : defaultMethod;
 
     const { xCats, yCats, data, min, max } = buildHeatmapData(
