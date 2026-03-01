@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BioHub — Project Dashboard</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --bg2: #1e293b;
+    --bg3: #334155;
+    --border: #475569;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --blue: #3b82f6;
+    --blue-dim: #1d4ed8;
+    --cyan: #06b6d4;
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --purple: #8b5cf6;
+    --pink: #ec4899;
+    --teal: #14b8a6;
+    --card-radius: 12px;
+    --gap: 20px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 14px; line-height: 1.6; }
+
+  /* ── Layout ── */
+  .sidebar { position: fixed; left: 0; top: 0; width: 220px; height: 100vh; background: var(--bg2); border-right: 1px solid var(--border); padding: 24px 0; overflow-y: auto; z-index: 100; }
+  .main { margin-left: 220px; padding: 32px; max-width: 1400px; }
+  .logo { padding: 0 20px 24px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+  .logo .name { font-size: 20px; font-weight: 700; color: var(--blue); letter-spacing: -0.5px; }
+  .logo .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; cursor: pointer; color: var(--muted); transition: all 0.15s; font-size: 13px; border-left: 3px solid transparent; }
+  .nav-item:hover, .nav-item.active { color: var(--text); background: rgba(59,130,246,0.08); border-left-color: var(--blue); }
+  .nav-item .icon { width: 18px; text-align: center; font-size: 15px; }
+  .nav-section { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); padding: 16px 20px 6px; }
+
+  /* ── Sections ── */
+  .section { display: none; }
+  .section.active { display: block; }
+  .page-title { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+  .page-sub { color: var(--muted); margin-bottom: 28px; font-size: 14px; }
+
+  /* ── Cards ── */
+  .grid { display: grid; gap: var(--gap); }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-auto { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--card-radius); padding: 20px; }
+  .card-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 10px; }
+  .card-value { font-size: 32px; font-weight: 700; color: var(--text); line-height: 1; }
+  .card-note { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  /* ── Metric cards ── */
+  .metric-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--card-radius); padding: 20px; display: flex; flex-direction: column; gap: 8px; position: relative; overflow: hidden; }
+  .metric-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--accent, var(--blue)); }
+  .metric-icon { font-size: 24px; margin-bottom: 4px; }
+  .metric-label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .metric-val { font-size: 28px; font-weight: 800; color: var(--text); }
+  .metric-sub { font-size: 12px; color: var(--muted); }
+
+  /* ── Badge ── */
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: rgba(16,185,129,0.15); color: #34d399; }
+  .badge-blue { background: rgba(59,130,246,0.15); color: #60a5fa; }
+  .badge-amber { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .badge-red { background: rgba(239,68,68,0.15); color: #f87171; }
+  .badge-purple { background: rgba(139,92,246,0.15); color: #a78bfa; }
+  .badge-gray { background: rgba(148,163,184,0.15); color: #94a3b8; }
+  .badge-cyan { background: rgba(6,182,212,0.15); color: #22d3ee; }
+
+  /* ── Progress bar ── */
+  .progress-wrap { background: var(--bg3); border-radius: 9999px; height: 8px; overflow: hidden; }
+  .progress-bar { height: 100%; border-radius: 9999px; transition: width 1s ease; }
+
+  /* ── Tables ── */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .tbl th { background: var(--bg3); padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); border-bottom: 1px solid var(--border); }
+  .tbl td { padding: 10px 14px; border-bottom: 1px solid rgba(71,85,105,0.4); vertical-align: middle; }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* ── Section header ── */
+  .sec-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; margin-top: 28px; }
+  .sec-header:first-child { margin-top: 0; }
+  .sec-line { flex: 1; height: 1px; background: var(--border); }
+  .sec-label { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+
+  /* ── Timeline ── */
+  .timeline { position: relative; padding-left: 28px; }
+  .timeline::before { content: ''; position: absolute; left: 9px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+  .timeline-item { position: relative; margin-bottom: 20px; }
+  .timeline-dot { position: absolute; left: -24px; top: 4px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid; }
+  .dot-done { border-color: var(--green); background: var(--green); }
+  .dot-now { border-color: var(--blue); background: var(--blue); box-shadow: 0 0 0 3px rgba(59,130,246,0.3); }
+  .dot-next { border-color: var(--amber); background: transparent; }
+  .dot-plan { border-color: var(--border); background: transparent; }
+  .tl-title { font-weight: 600; font-size: 14px; }
+  .tl-date { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .tl-items { font-size: 12px; color: var(--muted); }
+  .tl-items li { margin-top: 3px; }
+
+  /* ── Stars ── */
+  .stars { color: var(--amber); letter-spacing: -2px; }
+
+  /* ── Divider ── */
+  .divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+  /* ── Tag chips ── */
+  .chip { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; background: var(--bg3); color: var(--muted); margin: 2px; }
+  .chip-blue { background: rgba(59,130,246,0.15); color: #93c5fd; }
+  .chip-green { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+  .chip-purple { background: rgba(139,92,246,0.15); color: #c4b5fd; }
+  .chip-cyan { background: rgba(6,182,212,0.15); color: #67e8f9; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 3px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 1100px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 900px) { .grid-3 { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 700px) { .sidebar { display: none; } .main { margin-left: 0; } .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+
+  /* ── Highlight row ── */
+  .row-highlight td { background: rgba(59,130,246,0.07) !important; }
+  .row-warn td { background: rgba(245,158,11,0.06) !important; }
+
+  /* ── Gap helpers ── */
+  .mt16 { margin-top: 16px; }
+  .mt24 { margin-top: 24px; }
+  .gap-wrap { display: flex; flex-direction: column; gap: 12px; }
+
+  /* ── Competitive matrix cell ── */
+  .cm-yes { color: #34d399; font-weight: 700; }
+  .cm-no { color: #f87171; }
+  .cm-part { color: #fbbf24; }
+  .cm-hero { color: #60a5fa; font-weight: 800; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ SIDEBAR ══════════════════ -->
+<nav class="sidebar">
+  <div class="logo">
+    <div class="name">🧬 BioHub</div>
+    <div class="sub">Research Platform Dashboard</div>
+    <div class="sub" style="margin-top:6px;font-size:10px;color:#64748b;">Updated: 2026-03-01</div>
+  </div>
+
+  <div class="nav-section">Overview</div>
+  <div class="nav-item active" onclick="show('overview')"><span class="icon">🏠</span> 프로젝트 개요</div>
+  <div class="nav-item" onclick="show('status')"><span class="icon">📊</span> 구현 현황</div>
+
+  <div class="nav-section">Graph Studio</div>
+  <div class="nav-item" onclick="show('graphstudio')"><span class="icon">📈</span> 기능 완성도</div>
+  <div class="nav-item" onclick="show('roadmap')"><span class="icon">🗺️</span> 로드맵</div>
+
+  <div class="nav-section">시장 분석</div>
+  <div class="nav-item" onclick="show('competition')"><span class="icon">⚔️</span> 경쟁사 비교</div>
+  <div class="nav-item" onclick="show('korea')"><span class="icon">🇰🇷</span> 한국 시장 전략</div>
+
+  <div class="nav-section">기술</div>
+  <div class="nav-item" onclick="show('tech')"><span class="icon">⚙️</span> 기술 스택</div>
+</nav>
+
+<!-- ══════════════════ MAIN ══════════════════ -->
+<main class="main">
+
+<!-- ─────── OVERVIEW ─────── -->
+<div id="overview" class="section active">
+  <div class="page-title">BioHub 프로젝트 개요</div>
+  <div class="page-sub">전문가급 생물학 연구 플랫폼 — 통계 분석 + 차트 빌더 + AI 해석</div>
+
+  <!-- Key metrics -->
+  <div class="grid grid-4" style="margin-bottom:24px;">
+    <div class="metric-card" style="--accent:#3b82f6;">
+      <div class="metric-icon">⚗️</div>
+      <div class="metric-label">통계 메서드</div>
+      <div class="metric-val">43</div>
+      <div class="metric-sub">Smart Flow 통합 · SciPy/statsmodels</div>
+    </div>
+    <div class="metric-card" style="--accent:#10b981;">
+      <div class="metric-icon">✅</div>
+      <div class="metric-label">테스트 커버리지</div>
+      <div class="metric-val">88%</div>
+      <div class="metric-sub">38/43 메서드 · 4,700+ 테스트</div>
+    </div>
+    <div class="metric-card" style="--accent:#06b6d4;">
+      <div class="metric-icon">📈</div>
+      <div class="metric-label">Graph Studio</div>
+      <div class="metric-val">G2.5</div>
+      <div class="metric-sub">10개 차트 유형 · 저널 팔레트</div>
+    </div>
+    <div class="metric-card" style="--accent:#8b5cf6;">
+      <div class="metric-icon">🤖</div>
+      <div class="metric-label">AI 기능</div>
+      <div class="metric-val">Phase 3</div>
+      <div class="metric-sub">LLM 추천 · 자연어 분석 · 결과 해석</div>
+    </div>
+  </div>
+
+  <!-- Project pillars -->
+  <div class="sec-header"><span class="sec-label">3대 축</span><div class="sec-line"></div></div>
+  <div class="grid grid-3" style="margin-bottom:24px;">
+    <div class="card">
+      <div style="font-size:22px;margin-bottom:10px;">⚗️</div>
+      <div style="font-weight:700;font-size:15px;margin-bottom:6px;">Smart Flow (통계 분석)</div>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:12px;">43개 메서드 통합 · AI 추천 · 자연어 입력 · 결과 해석</div>
+      <div class="badge badge-green">✅ 완료</div>
+      <div style="margin-top:12px;font-size:12px;color:var(--muted);">Pyodide (SciPy/statsmodels) · RAG · Ollama</div>
+    </div>
+    <div class="card">
+      <div style="font-size:22px;margin-bottom:10px;">📈</div>
+      <div style="font-weight:700;font-size:15px;margin-bottom:6px;">Graph Studio (차트 빌더)</div>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:12px;">10개 차트 유형 · 논문용 출력 · 유의성 마커 · 저널 프리셋</div>
+      <div class="badge badge-blue">🔄 G2.5 완료 · G3 예정</div>
+      <div style="margin-top:12px;font-size:12px;color:var(--muted);">ECharts · ChartSpec JSON · TypeScript</div>
+    </div>
+    <div class="card">
+      <div style="font-size:22px;margin-bottom:10px;">🧬</div>
+      <div style="font-weight:700;font-size:15px;margin-bottom:6px;">Bio-Tools (생물학 도구)</div>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:12px;">12개 생물학 분석 · 5개 페이지 · 전문 도구 모음</div>
+      <div class="badge badge-gray">⏸ 계획 수립 완료 · 구현 예정</div>
+      <div style="margin-top:12px;font-size:12px;color:var(--muted);">Pyodide · Biopython · 전문 라이브러리</div>
+    </div>
+  </div>
+
+  <!-- Architecture -->
+  <div class="sec-header"><span class="sec-label">아키텍처 결정 (CRITICAL)</span><div class="sec-line"></div></div>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      <div>
+        <div style="font-weight:700;margin-bottom:10px;color:var(--blue);">✅ 확정 결정</div>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:8px;font-size:13px;">
+          <li>🎯 <strong>Smart Flow = 통계 분석의 유일한 진입점</strong> (홈 <code style="background:var(--bg3);padding:1px 5px;border-radius:4px;">/</code>)</li>
+          <li>📁 개별 <code style="background:var(--bg3);padding:1px 5px;border-radius:4px;">/statistics/*</code> 43개 = 레거시 (코드 유지, 신규 개발 없음)</li>
+          <li>🧬 Bio-Tools = <code style="background:var(--bg3);padding:1px 5px;border-radius:4px;">/bio-tools/</code> 별도 섹션</li>
+          <li>🚫 any 타입 금지 → <code style="background:var(--bg3);padding:1px 5px;border-radius:4px;">unknown</code> + 타입 가드</li>
+          <li>🚫 JS 통계 직접 구현 금지 → SciPy/statsmodels</li>
+        </ul>
+      </div>
+      <div>
+        <div style="font-weight:700;margin-bottom:10px;color:var(--green);">📊 현재 지표</div>
+        <div class="gap-wrap">
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;"><span>TypeScript 에러</span><span style="color:var(--green);">0개</span></div>
+            <div class="progress-wrap"><div class="progress-bar" style="width:100%;background:var(--green);"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;"><span>테스트 커버리지</span><span style="color:var(--green);">88%</span></div>
+            <div class="progress-wrap"><div class="progress-bar" style="width:88%;background:var(--green);"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;"><span>DecisionTree 커버리지</span><span style="color:var(--green);">100%</span></div>
+            <div class="progress-wrap"><div class="progress-bar" style="width:100%;background:var(--green);"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;"><span>통계 신뢰성</span><span style="color:var(--green);">98%</span></div>
+            <div class="progress-wrap"><div class="progress-bar" style="width:98%;background:var(--green);"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────── STATUS ─────── -->
+<div id="status" class="section">
+  <div class="page-title">구현 현황</div>
+  <div class="page-sub">Smart Flow + Graph Studio 전체 기능 완성도</div>
+
+  <div class="sec-header"><span class="sec-label">Smart Flow — 통계 분석</span><div class="sec-line"></div></div>
+  <div class="grid grid-4" style="margin-bottom:20px;">
+    <div class="metric-card" style="--accent:#10b981;">
+      <div class="metric-label">통합 메서드</div>
+      <div class="metric-val">43</div>
+      <div class="metric-sub">4개 Pyodide Workers</div>
+    </div>
+    <div class="metric-card" style="--accent:#10b981;">
+      <div class="metric-label">Golden Values 테스트</div>
+      <div class="metric-val">44/44</div>
+      <div class="metric-sub">5개 Python 라이브러리 검증</div>
+    </div>
+    <div class="metric-card" style="--accent:#10b981;">
+      <div class="metric-label">DecisionTree 노드</div>
+      <div class="metric-val">49/49</div>
+      <div class="metric-sub">100% 커버리지</div>
+    </div>
+    <div class="metric-card" style="--accent:#3b82f6;">
+      <div class="metric-label">E2E 테스트</div>
+      <div class="metric-val">12</div>
+      <div class="metric-sub">핵심 플로우 커버</div>
+    </div>
+  </div>
+
+  <table class="tbl">
+    <thead><tr><th>기능 영역</th><th>상태</th><th>버전</th><th>세부 내용</th></tr></thead>
+    <tbody>
+      <tr><td>데이터 업로드 + 검증</td><td><span class="badge badge-green">✅ 완료</span></td><td>Phase 1</td><td>CSV/Excel, 컬럼 타입 자동 감지</td></tr>
+      <tr><td>자연어 분석 목적 입력</td><td><span class="badge badge-green">✅ 완료</span></td><td>Phase 5-2</td><td>LLM 추천 + 자동 변수 할당</td></tr>
+      <tr><td>변수 선택 UI (51개 매핑)</td><td><span class="badge badge-green">✅ 완료</span></td><td>Phase 5-3</td><td>SELECTOR_MAP 100%, ChiSquareSelector 등</td></tr>
+      <tr><td>통계 분석 실행 (Pyodide)</td><td><span class="badge badge-green">✅ 완료</span></td><td>Phase 6</td><td>SciPy/statsmodels/pingouin, 44배 성능</td></tr>
+      <tr><td>결과 해석 + AI 후속 Q&A</td><td><span class="badge badge-green">✅ 완료</span></td><td>Phase 5-2</td><td>Multi-turn, 효과크기, CI 포함</td></tr>
+      <tr><td>표본 크기 계산기</td><td><span class="badge badge-green">✅ 완료</span></td><td>2026-02</td><td>6개 검정, G*Power ±5% 이내</td></tr>
+      <tr><td>결과 내보내기 (DOCX/Excel)</td><td><span class="badge badge-green">✅ 완료</span></td><td>Phase 5-2</td><td>통계 결과 + 표 내보내기</td></tr>
+      <tr><td>Terminology 한국어 표준화</td><td><span class="badge badge-green">✅ 완료</span></td><td>Phase 1-3</td><td>i18n 키 체계, 하드코딩 제거</td></tr>
+      <tr><td>Bio-Tools (12개)</td><td><span class="badge badge-gray">⏸ 예정</span></td><td>–</td><td>계획 수립 완료, 구현 예정</td></tr>
+    </tbody>
+  </table>
+
+  <div class="sec-header mt24"><span class="sec-label">Graph Studio — 차트 빌더</span><div class="sec-line"></div></div>
+
+  <div class="grid grid-4" style="margin-bottom:20px;">
+    <div class="metric-card" style="--accent:#06b6d4;">
+      <div class="metric-label">차트 유형</div>
+      <div class="metric-val">10</div>
+      <div class="metric-sub">bar/line/scatter/boxplot/violin/histogram/heatmap/error-bar/grouped/stacked</div>
+    </div>
+    <div class="metric-card" style="--accent:#06b6d4;">
+      <div class="metric-label">저널 팔레트</div>
+      <div class="metric-val">16</div>
+      <div class="metric-sub">ColorBrewer 10 + NPG/AAAS/NEJM/Lancet/JAMA/OkabeIto</div>
+    </div>
+    <div class="metric-card" style="--accent:#10b981;">
+      <div class="metric-label">Graph Studio 테스트</div>
+      <div class="metric-val">167</div>
+      <div class="metric-sub">7개 테스트 파일, 100% pass</div>
+    </div>
+    <div class="metric-card" style="--accent:#8b5cf6;">
+      <div class="metric-label">현재 단계</div>
+      <div class="metric-val">G2.5</div>
+      <div class="metric-sub">저널 팔레트 · 브래킷 스태킹 · Figure 프리셋</div>
+    </div>
+  </div>
+
+  <table class="tbl">
+    <thead><tr><th>기능</th><th>상태</th><th>단계</th><th>세부 내용</th></tr></thead>
+    <tbody>
+      <tr><td>10개 차트 유형</td><td><span class="badge badge-green">✅</span></td><td>G1</td><td>bar/scatter/line/boxplot/violin/histogram/heatmap/error-bar/grouped/stacked</td></tr>
+      <tr><td>스타일 프리셋 (default/science/ieee/grayscale)</td><td><span class="badge badge-green">✅</span></td><td>G1</td><td>저널별 폰트/크기/배경 자동 설정</td></tr>
+      <tr><td>저널 크기 프리셋 (Nature/Cell/PNAS/KCI/JKMS 등)</td><td><span class="badge badge-green">✅</span></td><td>G1+G2.5B</td><td>11개 저널 mm 단위 프리셋</td></tr>
+      <tr><td>PNG/SVG 내보내기 (DPI 지정)</td><td><span class="badge badge-green">✅</span></td><td>G1</td><td>getDataURL, SVG renderer 자동 전환</td></tr>
+      <tr><td>에러바 (SEM/SD/CI/IQR)</td><td><span class="badge badge-green">✅</span></td><td>G2-1</td><td>aggregate 연산 포함</td></tr>
+      <tr><td>데이터 레이블 (bar 계열)</td><td><span class="badge badge-green">✅</span></td><td>G2-1</td><td>값/없음 토글</td></tr>
+      <tr><td>ColorBrewer 팔레트 (10개)</td><td><span class="badge badge-green">✅</span></td><td>G2-1</td><td>viridis/Set2/RdBu 등</td></tr>
+      <tr><td>수평 막대 (orientation)</td><td><span class="badge badge-green">✅</span></td><td>G2</td><td>수직↔수평 원클릭 전환</td></tr>
+      <tr><td>유의성 마커 (브래킷 + p값)</td><td><span class="badge badge-green">✅</span></td><td>G2-2</td><td>수동 설정, convertToPixel 그래픽 오버레이</td></tr>
+      <tr><td>회귀선 (OLS) + R²/방정식</td><td><span class="badge badge-green">✅</span></td><td>G2-2</td><td>산점도 전용, 유의성 마커 포함</td></tr>
+      <tr><td>Annotations (텍스트/선/사각형)</td><td><span class="badge badge-green">✅</span></td><td>G2-2</td><td>graphic 오버레이</td></tr>
+      <tr><td>이중 Y축 (secondary axis)</td><td><span class="badge badge-green">✅</span></td><td>G2-3</td><td>bar+line 조합, 경고 표시</td></tr>
+      <tr><td>패싯 (small multiples)</td><td><span class="badge badge-green">✅</span></td><td>G2-3</td><td>bar/scatter, 최대 12 그룹</td></tr>
+      <tr><td>저널 팔레트 (NPG/AAAS/NEJM/Lancet/JAMA/OkabeIto)</td><td><span class="badge badge-green">✅</span></td><td>G2.5-A</td><td>ggsci 기반 hex 검증값</td></tr>
+      <tr><td>브래킷 자동 높이 스태킹</td><td><span class="badge badge-green">✅</span></td><td>G2.5-C</td><td>span 오름차순 정렬, renderIdx 개별 높이</td></tr>
+      <tr><td>Figure 빠른 시작 프리셋</td><td><span class="badge badge-green">✅</span></td><td>G2.5-D</td><td>두 그룹 비교/분포/상관/시계열</td></tr>
+      <tr class="row-warn"><td>ROC Curve (AUC + CI)</td><td><span class="badge badge-amber">🔜 G3</span></td><td>–</td><td>MedCalc 대체 핵심 기능</td></tr>
+      <tr class="row-warn"><td>Kaplan-Meier 생존곡선</td><td><span class="badge badge-amber">🔜 G3</span></td><td>–</td><td>log-rank p값 + HR</td></tr>
+      <tr class="row-warn"><td>Forest Plot (메타분석)</td><td><span class="badge badge-amber">🔜 G3</span></td><td>–</td><td>OR/HR + 95% CI</td></tr>
+      <tr class="row-warn"><td>Raincloud Plot</td><td><span class="badge badge-amber">🔜 G3</span></td><td>–</td><td>2023-2025 Nature/bioRxiv 급증 트렌드</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ─────── GRAPH STUDIO ─────── -->
+<div id="graphstudio" class="section">
+  <div class="page-title">Graph Studio 기능 완성도</div>
+  <div class="page-sub">G1 ~ G2.5 완료 · G3 로드맵 확정</div>
+
+  <div class="sec-header"><span class="sec-label">단계별 완성도</span><div class="sec-line"></div></div>
+  <div class="grid grid-4" style="margin-bottom:24px;">
+    <div class="card" style="border-color:var(--green);">
+      <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">G1 ✅ 완료</div>
+      <div style="font-weight:600;margin-bottom:8px;">기반 구축</div>
+      <ul style="font-size:12px;color:var(--muted);list-style:none;display:flex;flex-direction:column;gap:5px;">
+        <li>✅ 10개 차트 유형</li><li>✅ 스타일 프리셋 4종</li>
+        <li>✅ 저널 크기 프리셋</li><li>✅ PNG/SVG 내보내기</li>
+        <li>✅ 온보딩 랜딩 페이지</li>
+      </ul>
+    </div>
+    <div class="card" style="border-color:var(--green);">
+      <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">G2 ✅ 완료</div>
+      <div style="font-weight:600;margin-bottom:8px;">논문용 기능</div>
+      <ul style="font-size:12px;color:var(--muted);list-style:none;display:flex;flex-direction:column;gap:5px;">
+        <li>✅ 에러바 4종</li><li>✅ ColorBrewer 팔레트</li>
+        <li>✅ 유의성 브래킷</li><li>✅ OLS 회귀선 + R²</li>
+        <li>✅ 이중 Y축 + 패싯</li><li>✅ Annotations</li>
+      </ul>
+    </div>
+    <div class="card" style="border-color:var(--green);">
+      <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">G2.5 ✅ 완료</div>
+      <div style="font-weight:600;margin-bottom:8px;">저널 최적화</div>
+      <ul style="font-size:12px;color:var(--muted);list-style:none;display:flex;flex-direction:column;gap:5px;">
+        <li>✅ 저널 팔레트 6종 (NPG/AAAS...)</li>
+        <li>✅ 브래킷 자동 스태킹</li>
+        <li>✅ Figure 빠른 시작 프리셋</li>
+        <li>✅ JKMS/IEEE 크기 프리셋</li>
+      </ul>
+    </div>
+    <div class="card" style="border-color:var(--amber);">
+      <div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">G3 🔜 예정</div>
+      <div style="font-weight:600;margin-bottom:8px;">임상·고급 차트</div>
+      <ul style="font-size:12px;color:var(--muted);list-style:none;display:flex;flex-direction:column;gap:5px;">
+        <li>🔜 ROC Curve + AUC</li>
+        <li>🔜 Kaplan-Meier 생존곡선</li>
+        <li>🔜 Forest Plot</li>
+        <li>🔜 Raincloud Plot</li>
+        <li>🔜 인터랙티브 (줌/툴팁)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="sec-header"><span class="sec-label">경쟁사 대비 웹 네이티브 도구 Gap Analysis</span><div class="sec-line"></div></div>
+  <table class="tbl">
+    <thead><tr><th>기능</th><th>Datawrapper</th><th>Flourish</th><th>BioRender</th><th>RAWGraphs</th><th style="color:var(--blue);">Graph Studio</th></tr></thead>
+    <tbody>
+      <tr><td>NPG/AAAS/NEJM 팔레트 원클릭</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td class="cm-hero">✅ G2.5-A</td></tr>
+      <tr><td>한국 저널 크기 프리셋</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td class="cm-hero">✅ G2.5-B</td></tr>
+      <tr><td>에러바 (SEM/SD/CI/IQR)</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td class="cm-part">△ 제한적</td><td class="cm-no">❌</td><td class="cm-hero">✅ G2</td></tr>
+      <tr><td>유의성 브래킷 자동 생성</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td class="cm-yes">✅ 생물전용</td><td class="cm-no">❌</td><td class="cm-hero">✅ G2</td></tr>
+      <tr><td>브래킷 높이 자동 스태킹</td><td class="cm-no">—</td><td class="cm-no">—</td><td class="cm-yes">✅</td><td class="cm-no">—</td><td class="cm-hero">✅ G2.5-C</td></tr>
+      <tr><td>회귀선 + R²/방정식 표시</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td class="cm-hero">✅ G2</td></tr>
+      <tr><td>패싯 (small multiples)</td><td class="cm-no">❌</td><td class="cm-yes">✅</td><td class="cm-no">❌</td><td class="cm-yes">✅</td><td class="cm-hero">✅ G2</td></tr>
+      <tr><td>이중 Y축</td><td class="cm-yes">✅</td><td class="cm-yes">✅</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td class="cm-hero">✅ G2</td></tr>
+      <tr><td>학술 스타일 프리셋 (IEEE/Nature)</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td class="cm-hero">✅ G1</td></tr>
+      <tr><td>Figure 빠른 시작 템플릿</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td class="cm-yes">✅</td><td class="cm-no">❌</td><td class="cm-hero">✅ G2.5-D</td></tr>
+      <tr><td>DPI 지정 내보내기</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td class="cm-part">✅ Pro만</td><td class="cm-no">❌</td><td class="cm-hero">✅ G1</td></tr>
+    </tbody>
+  </table>
+  <div style="margin-top:10px;font-size:12px;color:var(--muted);">📌 저널 팔레트 + 브래킷 스태킹 + 한국 저널 크기 조합은 웹 기반 도구 중 Graph Studio가 유일.</div>
+</div>
+
+<!-- ─────── ROADMAP ─────── -->
+<div id="roadmap" class="section">
+  <div class="page-title">개발 로드맵</div>
+  <div class="page-sub">G1~G2.5 완료 · G3 계획 · 중장기 전략</div>
+
+  <div class="grid grid-2" style="gap:32px;">
+    <div>
+      <div class="sec-header"><span class="sec-label">Graph Studio 로드맵</span><div class="sec-line"></div></div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-dot dot-done"></div>
+          <div class="tl-date">2026-02-28</div>
+          <div class="tl-title">G1 — 기반 구축 ✅</div>
+          <ul class="tl-items" style="list-style:none;padding-left:12px;">
+            <li>✅ 10개 차트 유형, 스타일 프리셋</li>
+            <li>✅ PNG/SVG 내보내기 (DPI 지정)</li>
+            <li>✅ 온보딩 UX 리디자인</li>
+          </ul>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot dot-done"></div>
+          <div class="tl-date">2026-03-01</div>
+          <div class="tl-title">G2 — 논문용 기능 ✅</div>
+          <ul class="tl-items" style="list-style:none;padding-left:12px;">
+            <li>✅ 에러바 + 팔레트 + 수평막대</li>
+            <li>✅ 유의성 브래킷 + OLS 회귀선</li>
+            <li>✅ 이중 Y축 + 패싯</li>
+          </ul>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot dot-done"></div>
+          <div class="tl-date">2026-03-01</div>
+          <div class="tl-title">G2.5 — 저널 최적화 ✅</div>
+          <ul class="tl-items" style="list-style:none;padding-left:12px;">
+            <li>✅ 저널 팔레트 6종 (NPG/AAAS/NEJM...)</li>
+            <li>✅ 브래킷 자동 스태킹</li>
+            <li>✅ Figure 빠른 시작 프리셋</li>
+          </ul>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot dot-next"></div>
+          <div class="tl-date">2026-Q2 예정</div>
+          <div class="tl-title" style="color:var(--amber);">G3 — 임상 특화 차트 🔜</div>
+          <ul class="tl-items" style="list-style:none;padding-left:12px;">
+            <li>🔜 ROC Curve (AUC + CI + Cut-off)</li>
+            <li>🔜 Kaplan-Meier 생존곡선</li>
+            <li>🔜 Forest Plot (메타분석)</li>
+            <li>🔜 Raincloud Plot</li>
+            <li>🔜 인터랙티브 줌/툴팁</li>
+          </ul>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot dot-plan"></div>
+          <div class="tl-date">2026-Q3 예정</div>
+          <div class="tl-title" style="color:var(--muted);">G4 — AI + 협업</div>
+          <ul class="tl-items" style="list-style:none;padding-left:12px;">
+            <li>📋 한국어 결과 텍스트 자동생성</li>
+            <li>📋 유의성 마커 v2 (자동+CLD)</li>
+            <li>📋 팀 협업 (프로젝트 공유)</li>
+            <li>📋 웹 리포트 내보내기</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="sec-header"><span class="sec-label">Smart Flow + 플랫폼 로드맵</span><div class="sec-line"></div></div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-dot dot-done"></div>
+          <div class="tl-date">2025-09 ~ 2025-12</div>
+          <div class="tl-title">Phase 1-6 ✅</div>
+          <ul class="tl-items" style="list-style:none;padding-left:12px;">
+            <li>✅ Phase 1: Next.js 환경 + 38개 페이지</li>
+            <li>✅ Phase 2: 메서드 라우터 리팩토링</li>
+            <li>✅ Phase 3: Pyodide Python 구현</li>
+            <li>✅ Phase 4: 런타임 최적화 (44배)</li>
+            <li>✅ Phase 5: Registry Pattern</li>
+            <li>✅ Phase 6: PyodideCore 직결</li>
+          </ul>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot dot-done"></div>
+          <div class="tl-date">2026-01 ~ 2026-03</div>
+          <div class="tl-title">Phase 5-2/5-3 + Smart Flow UX ✅</div>
+          <ul class="tl-items" style="list-style:none;padding-left:12px;">
+            <li>✅ LLM 추천 + 자연어 입력</li>
+            <li>✅ 결과 해석 + AI 후속 Q&A</li>
+            <li>✅ 표본 크기 계산기</li>
+            <li>✅ UX 전면 개선 (온보딩, 색상 토큰)</li>
+          </ul>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot dot-next"></div>
+          <div class="tl-date">2026-Q2 예정</div>
+          <div class="tl-title" style="color:var(--amber);">Bio-Tools 구현 🔜</div>
+          <ul class="tl-items" style="list-style:none;padding-left:12px;">
+            <li>🔜 12개 생물학 분석 도구</li>
+            <li>🔜 서열 분석, PCR 계산기</li>
+            <li>🔜 수산/농업 특화 도구</li>
+          </ul>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot dot-plan"></div>
+          <div class="tl-date">2026-Q3 예정</div>
+          <div class="tl-title" style="color:var(--muted);">Reference Manager</div>
+          <ul class="tl-items" style="list-style:none;padding-left:12px;">
+            <li>📋 OpenAlex + Crossref + S2 연동</li>
+            <li>📋 자체 구축 (Phase 5-7 계획)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────── COMPETITION ─────── -->
+<div id="competition" class="section">
+  <div class="page-title">경쟁사 비교 분석</div>
+  <div class="page-sub">전체 경쟁 지형도 + BioHub 포지셔닝</div>
+
+  <div class="sec-header"><span class="sec-label">종합 경쟁 매트릭스</span><div class="sec-line"></div></div>
+  <table class="tbl">
+    <thead><tr><th>도구</th><th>가격(년)</th><th>한국어</th><th>웹 접근</th><th>논문 품질</th><th>통계 깊이</th><th>학습 곡선</th><th>포지션</th></tr></thead>
+    <tbody>
+      <tr><td><strong>GraphPad Prism</strong></td><td style="color:var(--red);">$142+</td><td class="cm-no">❌</td><td class="cm-part">부분</td><td><span class="stars">★★★★★</span></td><td><span class="stars">★★★★</span></td><td>낮음</td><td>바이오/의학 표준</td></tr>
+      <tr><td><strong>IBM SPSS</strong></td><td style="color:var(--red);">$280+</td><td class="cm-part">부분</td><td class="cm-no">❌</td><td><span class="stars">★★</span></td><td><span class="stars">★★★★★</span></td><td>중간</td><td>의학 통계 표준</td></tr>
+      <tr><td><strong>Origin</strong></td><td style="color:var(--red);">$500+</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td><span class="stars">★★★★</span></td><td><span class="stars">★★★★★</span></td><td>높음</td><td>공학/물리</td></tr>
+      <tr><td><strong>MedCalc</strong></td><td style="color:var(--amber);">€100+</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td><span class="stars">★★★</span></td><td><span class="stars">★★★ 임상</span></td><td>낮음</td><td>임상 통계</td></tr>
+      <tr><td><strong>jamovi</strong></td><td style="color:var(--green);">무료</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td><span class="stars">★★</span></td><td><span class="stars">★★★★</span></td><td>낮음</td><td>SPSS 대체 수요</td></tr>
+      <tr><td><strong>R (ggplot2)</strong></td><td style="color:var(--green);">무료</td><td class="cm-no">❌</td><td class="cm-no">❌</td><td><span class="stars">★★★★★</span></td><td><span class="stars">★★★★★</span></td><td>매우 높음</td><td>데이터과학/통계학</td></tr>
+      <tr><td><strong>Excel</strong></td><td>MS365</td><td class="cm-yes">✅</td><td class="cm-yes">✅</td><td><span class="stars">★</span></td><td><span class="stars">★★</span></td><td>없음</td><td>일반 연구자 (20-30%)</td></tr>
+      <tr class="row-highlight"><td><strong>BioHub Graph Studio</strong></td><td style="color:var(--green);font-weight:700;">무료</td><td class="cm-hero">✅</td><td class="cm-hero">✅</td><td><span class="stars" style="color:var(--blue);">★★★★</span></td><td><span class="stars" style="color:var(--blue);">★★★★</span></td><td>낮음</td><td><span class="badge badge-blue">유일한 포지션</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="sec-header mt24"><span class="sec-label">경쟁자별 약점 — BioHub 기회</span><div class="sec-line"></div></div>
+  <div class="grid grid-2">
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:14px;color:var(--blue);">Prism vs BioHub</div>
+      <table class="tbl">
+        <tbody>
+          <tr><td style="color:var(--muted);">Prism 약점</td><td>$142/년, 영어 전용, 클라우드 부분적</td></tr>
+          <tr><td style="color:var(--muted);">BioHub 우위</td><td>무료, 한국어, 완전 웹, AI 해석</td></tr>
+          <tr><td style="color:var(--muted);">BioHub 부족</td><td>ROC/KM 미구현 (G3 예정)</td></tr>
+          <tr><td style="color:var(--muted);">전환 타깃</td><td>비용 부담 학생/포스닥</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:14px;color:var(--cyan);">jamovi vs BioHub</div>
+      <table class="tbl">
+        <tbody>
+          <tr><td style="color:var(--muted);">jamovi 약점</td><td>그래프 품질 낮음, 한국어 없음, 설치형</td></tr>
+          <tr><td style="color:var(--muted);">시너지 기회</td><td>jamovi 분석 → BioHub 그림 워크플로</td></tr>
+          <tr><td style="color:var(--muted);">CSV 연결</td><td>jamovi 내보내기 → BioHub import 지원</td></tr>
+          <tr><td style="color:var(--muted);">전환 타깃</td><td>통계는 하고 싶지만 Prism 비용 부담</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:14px;color:var(--purple);">MedCalc vs BioHub</div>
+      <table class="tbl">
+        <tbody>
+          <tr><td style="color:var(--muted);">MedCalc 약점</td><td>€100/년, 한국어 없음, 설치형</td></tr>
+          <tr><td style="color:var(--muted);">G3 완료 시</td><td>ROC + KM으로 완전 대체 가능</td></tr>
+          <tr><td style="color:var(--muted);">임팩트</td><td>한국 의학 논문 60%+ 직접 가치</td></tr>
+          <tr><td style="color:var(--muted);">전환 타깃</td><td>임상 의사/의학대학원생</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:14px;color:var(--amber);">Excel vs BioHub</div>
+      <table class="tbl">
+        <tbody>
+          <tr><td style="color:var(--muted);">Excel 약점</td><td>SEM/SD 혼동, 저널 규격 불가, 저품질</td></tr>
+          <tr><td style="color:var(--muted);">전환 메시지</td><td>CSV 그대로 업로드 → 논문용 그림 즉시</td></tr>
+          <tr><td style="color:var(--muted);">한국어 친화</td><td>이미 한국어 사용자 → 언어 장벽 없음</td></tr>
+          <tr><td style="color:var(--muted);">전환 타깃</td><td>한국어 Excel 사용자 (가장 큰 시장)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ─────── KOREA ─────── -->
+<div id="korea" class="section">
+  <div class="page-title">🇰🇷 한국 시장 전략</div>
+  <div class="page-sub">한국 연구 생태계 특화 — 경쟁 우위 확보 전략</div>
+
+  <div class="sec-header"><span class="sec-label">시장 공백 — BioHub만이 점유 가능</span><div class="sec-line"></div></div>
+  <div class="card" style="background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(6,182,212,0.1));border-color:var(--blue);">
+    <div style="font-size:15px;font-weight:700;margin-bottom:16px;">현재 시장 공백</div>
+    <div class="grid grid-2" style="gap:16px;">
+      <div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">기존 도구</div>
+        <div class="gap-wrap" style="font-size:13px;">
+          <div>jamovi — 통계 ✅ / 그래프 ❌ / 한국어 ❌</div>
+          <div>Prism — 통계 ✅ / 그래프 ✅ / 한국어 ❌ / $142</div>
+          <div>SPSS — 통계 ✅ / 그래프 ❌(논문용) / $280</div>
+          <div>MedCalc — 통계 ✅(임상) / 한국어 ❌ / €100</div>
+          <div>Excel — 통계 △ / 그래프 ❌(논문용) / 한국어 ✅</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--blue);margin-bottom:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">BioHub 포지션</div>
+        <div style="font-size:22px;font-weight:700;color:var(--blue);margin-bottom:8px;">통계 ✅ + 그래프 ✅ + 한국어 ✅ + 무료</div>
+        <div style="font-size:13px;color:var(--muted);">이 조합을 제공하는 도구가 현재 존재하지 않음</div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+          <span class="badge badge-green">유일한 포지션</span>
+          <span class="badge badge-blue">무료</span>
+          <span class="badge badge-cyan">한국어</span>
+          <span class="badge badge-purple">AI 해석</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-header mt24"><span class="sec-label">한국 저널 규격 지원 현황</span><div class="sec-line"></div></div>
+  <table class="tbl">
+    <thead><tr><th>저널</th><th>발행기관</th><th>단칼럼</th><th>이중칼럼</th><th>최소 폰트</th><th>DPI</th><th>BioHub 지원</th></tr></thead>
+    <tbody>
+      <tr><td><strong>J Korean Med Sci (JKMS)</strong></td><td>KAMJE</td><td>85mm</td><td>175mm</td><td>8pt</td><td>300</td><td><span class="badge badge-green">✅ G2.5-B</span></td></tr>
+      <tr><td><strong>Annals of Lab Medicine</strong></td><td>KAMJE</td><td>—</td><td>174mm</td><td>9pt</td><td>600</td><td><span class="badge badge-green">✅ G2.5-B</span></td></tr>
+      <tr><td><strong>Korean Circ Journal</strong></td><td>대한심장학회</td><td>85mm</td><td>—</td><td>8pt</td><td>300</td><td><span class="badge badge-amber">크기 추가 예정</span></td></tr>
+      <tr><td><strong>KJIM</strong></td><td>KAIM</td><td>80mm</td><td>170mm</td><td>—</td><td>300</td><td><span class="badge badge-green">✅ (KCI 80mm)</span></td></tr>
+      <tr><td><strong>Nature</strong></td><td>Springer</td><td>89mm</td><td>183mm</td><td>5pt</td><td>300</td><td><span class="badge badge-green">✅ G1</span></td></tr>
+      <tr><td><strong>IEEE</strong></td><td>IEEE</td><td>89mm</td><td>190mm</td><td>—</td><td>300</td><td><span class="badge badge-green">✅ G2.5-B</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="sec-header mt24"><span class="sec-label">임상 연구자 필수 차트 — G3 우선순위</span><div class="sec-line"></div></div>
+  <div class="grid grid-auto">
+    <div class="card" style="border-color:var(--amber);">
+      <div style="font-size:24px;margin-bottom:8px;">📉</div>
+      <div style="font-weight:700;margin-bottom:4px;">ROC Curve</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">AUC + 95% CI + 최적 Cut-off (Youden Index)</div>
+      <span class="badge badge-amber">🔜 G3 P0</span>
+      <div style="margin-top:8px;font-size:12px;color:var(--muted);">대체: MedCalc €100/년 → BioHub 무료</div>
+    </div>
+    <div class="card" style="border-color:var(--amber);">
+      <div style="font-size:24px;margin-bottom:8px;">📈</div>
+      <div style="font-weight:700;margin-bottom:4px;">Kaplan-Meier 생존곡선</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">log-rank p값 + Hazard Ratio + 95% CI</div>
+      <span class="badge badge-amber">🔜 G3 P0</span>
+      <div style="margin-top:8px;font-size:12px;color:var(--muted);">한국 임상 논문 40%+ 포함</div>
+    </div>
+    <div class="card" style="border-color:var(--border);">
+      <div style="font-size:24px;margin-bottom:8px;">🌲</div>
+      <div style="font-weight:700;margin-bottom:4px;">Forest Plot</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">OR/HR + 95% CI, 메타분석 시각화</div>
+      <span class="badge badge-gray">G3 P1</span>
+      <div style="margin-top:8px;font-size:12px;color:var(--muted);">RevMan(설치형) 대체</div>
+    </div>
+    <div class="card" style="border-color:var(--border);">
+      <div style="font-size:24px;margin-bottom:8px;">🌧️</div>
+      <div style="font-weight:700;margin-bottom:4px;">Raincloud Plot</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">반바이올린 + 점군 + 박스 조합</div>
+      <span class="badge badge-gray">G3 P1</span>
+      <div style="margin-top:8px;font-size:12px;color:var(--muted);">Nature/bioRxiv 2023-2025 급증. Prism도 미지원.</div>
+    </div>
+  </div>
+
+  <div class="sec-header mt24"><span class="sec-label">한국 시장 단계별 타겟 전략</span><div class="sec-line"></div></div>
+  <div class="grid grid-4">
+    <div class="card">
+      <div class="badge badge-blue" style="margin-bottom:10px;">1단계</div>
+      <div style="font-weight:700;margin-bottom:6px;">대학원생</div>
+      <div style="font-size:12px;color:var(--muted);">Prism $142 부담 → 무료 대안<br>jamovi + BioHub 워크플로</div>
+    </div>
+    <div class="card">
+      <div class="badge badge-cyan" style="margin-bottom:10px;">2단계</div>
+      <div style="font-weight:700;margin-bottom:6px;">포스닥/신진연구자</div>
+      <div style="font-size:12px;color:var(--muted);">분석+그래프 원스톱<br>NRF 보고서 프리셋</div>
+    </div>
+    <div class="card">
+      <div class="badge badge-green" style="margin-bottom:10px;">3단계</div>
+      <div style="font-weight:700;margin-bottom:6px;">임상 의사/의학대학원</div>
+      <div style="font-size:12px;color:var(--muted);">ROC + KM 완료 후<br>MedCalc 완전 대체</div>
+    </div>
+    <div class="card">
+      <div class="badge badge-purple" style="margin-bottom:10px;">4단계</div>
+      <div style="font-weight:700;margin-bottom:6px;">의과대학/연구소</div>
+      <div style="font-size:12px;color:var(--muted);">Prism 라이선스 비용 절감<br>AI 기능 + 한국어 차별화</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────── TECH ─────── -->
+<div id="tech" class="section">
+  <div class="page-title">기술 스택</div>
+  <div class="page-sub">BioHub 플랫폼 전체 기술 구성</div>
+
+  <div class="grid grid-2">
+    <div>
+      <div class="sec-header"><span class="sec-label">Frontend</span><div class="sec-line"></div></div>
+      <div class="card">
+        <div class="gap-wrap">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><strong>Next.js 15</strong> <span style="font-size:11px;color:var(--muted);">App Router</span></div>
+            <span class="chip chip-blue">Core</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><strong>TypeScript</strong> <span style="font-size:11px;color:var(--muted);">strict mode, any 금지</span></div>
+            <span class="chip chip-blue">Core</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><strong>shadcn/ui + Tailwind v4</strong></div>
+            <span class="chip chip-blue">UI</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><strong>Zustand</strong> <span style="font-size:11px;color:var(--muted);">상태 관리</span></div>
+            <span class="chip chip-blue">State</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><strong>Apache ECharts</strong> <span style="font-size:11px;color:var(--muted);">Graph Studio 렌더러</span></div>
+            <span class="chip chip-cyan">Viz</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec-header mt16"><span class="sec-label">Graph Studio 핵심 구조</span><div class="sec-line"></div></div>
+      <div class="card">
+        <div style="font-family:monospace;font-size:12px;color:var(--muted);line-height:1.8;">
+          ChartSpec (JSON)<br>
+          &nbsp;&nbsp;↓ chartSpecToECharts()<br>
+          EChartsOption<br>
+          &nbsp;&nbsp;↓ ReactECharts<br>
+          Canvas/SVG 렌더링<br>
+          &nbsp;&nbsp;+ finished 이벤트 → significance graphics 오버레이
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-header"><span class="sec-label">통계 엔진 (Python)</span><div class="sec-line"></div></div>
+      <div class="card">
+        <div class="gap-wrap">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><strong>Pyodide</strong> <span style="font-size:11px;color:var(--muted);">브라우저 내 Python</span></div>
+            <span class="chip chip-green">Core</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><strong>SciPy</strong> <span style="font-size:11px;color:var(--muted);">주요 통계 검정</span></div>
+            <span class="chip chip-green">Stats</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><strong>statsmodels</strong> <span style="font-size:11px;color:var(--muted);">회귀, ANOVA</span></div>
+            <span class="chip chip-green">Stats</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><strong>pingouin</strong> <span style="font-size:11px;color:var(--muted);">효과크기, 검정력</span></div>
+            <span class="chip chip-green">Stats</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><strong>lifelines</strong> <span style="font-size:11px;color:var(--muted);">생존 분석 (G3 예정)</span></div>
+            <span class="chip chip-amber">G3</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><strong>sklearn</strong> <span style="font-size:11px;color:var(--muted);">ROC/AUC (G3 예정)</span></div>
+            <span class="chip chip-amber">G3</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec-header mt16"><span class="sec-label">인프라 + AI</span><div class="sec-line"></div></div>
+      <div class="card">
+        <div class="gap-wrap">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><strong>Cloudflare Pages</strong> <span style="font-size:11px;color:var(--muted);">배포</span></div>
+            <span class="chip chip-purple">Infra</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><strong>Ollama + RAG</strong> <span style="font-size:11px;color:var(--muted);">로컬 LLM</span></div>
+            <span class="chip chip-purple">AI</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><strong>Vitest</strong> <span style="font-size:11px;color:var(--muted);">단위/통합 테스트</span></div>
+            <span class="chip">Test</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><strong>Playwright</strong> <span style="font-size:11px;color:var(--muted);">E2E 테스트</span></div>
+            <span class="chip">Test</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><strong>Biome</strong> <span style="font-size:11px;color:var(--muted);">Linter/Formatter</span></div>
+            <span class="chip">DX</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><strong>pnpm</strong> <span style="font-size:11px;color:var(--muted);">패키지 매니저</span></div>
+            <span class="chip">DX</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec-header mt24"><span class="sec-label">배포 + 문서</span><div class="sec-line"></div></div>
+  <div class="grid grid-3">
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:8px;">🚀 배포</div>
+      <div style="font-size:13px;color:var(--muted);">
+        Cloudflare Pages<br>
+        <code style="font-size:11px;color:var(--cyan);">biohub.ecomarin.workers.dev</code>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:8px;">📁 주요 문서</div>
+      <div style="font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px;">
+        <div><code>TODO.md</code> — 현황 + 할일</div>
+        <div><code>ROADMAP.md</code> — 개발 로드맵</div>
+        <div><code>stats/docs/graph-studio/</code> — Graph Studio 문서</div>
+        <div><code>stats/docs/STATISTICS_CODING_STANDARDS.md</code></div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:8px;">🔑 핵심 규칙</div>
+      <div style="font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px;">
+        <div>🚫 <code>any</code> 타입 금지</div>
+        <div>🚫 통계 직접 구현 금지</div>
+        <div>🚫 자동 push 금지</div>
+        <div>✅ pnpm tsc → test → commit</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main><!-- /main -->
+
+<script>
+function show(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+// Animate progress bars on load
+window.addEventListener('load', () => {
+  document.querySelectorAll('.progress-bar').forEach(bar => {
+    const w = bar.style.width;
+    bar.style.width = '0';
+    setTimeout(() => { bar.style.width = w; }, 200);
+  });
+});
+</script>
+</body>
+</html>
