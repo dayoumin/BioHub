@@ -1,6 +1,6 @@
 # 프로젝트 현황 + 할일
 
-**최종 업데이트**: 2026-03-01 (Graph Studio G2 전체 완료 — G2-2 버그픽스 + G2-3 이중 Y축/패싯)
+**최종 업데이트**: 2026-03-01 (G3-A + G3-Bridge KM/ROC 완료, G2-3 보류 H-NEW-1 수정, Worker2 버그픽스)
 
 ---
 
@@ -347,15 +347,24 @@
 > 유의성 마커는 컨버터 내부에서 처리 불가 — 순수 함수라 ECharts 인스턴스(convertToPixel, 실제 bar 좌표)에 접근 불가.
 > ChartPreview에서 `chart.on('finished')` → `convertToPixel()` → `chart.setOption({ graphic })` 패턴 사용. 리사이즈/legend 토글마다 재계산.
 
-**G2-3: 고급 차트 구성** ✅ 완료
+**G2-3: 고급 차트 구성** ✅ 완료 + 딥 리뷰 완료
 
 | 기능 | 설명 | 상태 |
 |------|------|------|
 | **이중 Y축** | `encoding.y2?: AxisSpec` — bar+line 혼합 + 오른쪽 Y축 | ✅ |
-| **패싯** | `facet?: FacetSpec` — ggplot2 `facet_wrap` 동가, MAX_FACETS=12 | ✅ |
+| **패싯** | `facet?: FacetSpec` — ggplot2 `facet_wrap` 등가, MAX_FACETS=12 | ✅ |
 
-- 상호 배타: Y2↔facet, Y2↔color, Y2↔errorBar, facet↔significance 마커
-- 테스트: g2-3-features.test.ts (37개) + g2-bugfix-regression.test.ts (22개)
+- 상호 배타: Y2↔facet, Y2↔color, Y2↔errorBar, facet↔significance, facet↔trendline
+- 테스트: g2-3-features (45) + g2-3-review-sim (28) + g2-bugfix-regression (29) + g2-3-deep-review (35) = **137개**
+- 딥 리뷰: converter 1520줄 전체 읽기 + 10개 테스트 그룹 (DR-1~DR-10)
+
+**G2-3 보류 항목** — 전체 해소 완료
+
+| ID | 심각도 | 내용 | 상태 |
+|---|---|---|---|
+| H-NEW-1 | HIGH | scatter facet x축 범위 공유 누락 | ✅ `85257e2e` — `globalXMin/Max` 추가 |
+| H-NEW-2 | HIGH | Y2 Zod 스키마가 TS `AxisSpec`보다 좁음 | ✅ 의도적 제약 확정 — 변경 불필요 |
+| M-NEW-2 | MEDIUM | facet.field 없는 컬럼 시 빈 결과 | ✅ graceful degradation — 발생 경로 없음 |
 
 ### Phase G3: AI-Forward 차별화 (3-6개월)
 

@@ -1525,7 +1525,7 @@ Cloudflare $5/월 플랜 내에서 추가 비용 없이 백엔드 기능 추가 
 
 ---
 
-**최종 업데이트**: 2026-02-28
+**최종 업데이트**: 2026-03-01
 **현재 Phase**: Bio-Tools 계획 수립 완료
 **아키텍처 결정**: Smart Flow = 통계 진입점, Bio-Tools = 별도 섹션, /statistics/* = 레거시
 **다음 마일스톤**: Phase 15-1 (Bio-Tools 구현)
@@ -1560,6 +1560,47 @@ Smart Flow → ANOVA 결과 → Graph Studio → 논문용 박스플롯 PNG
 - 용어 정비 (Smart Flow / Bio-Tools / 레거시 구분 명확화) (2026-02-13)
 - Cloudflare Workers 백엔드 계획 수립 (KV/R2/D1 + 내부망 어댑터) (2026-02-06)
 - LLM 추천/해석 Phase 1-3 완료 (2026-02-06)
+
+---
+
+## 📦 시각화 라이브러리 의존성 관리
+
+> 상세 조사: [GRAPH_STUDIO_ADR.md § 6](stats/docs/graph-studio/GRAPH_STUDIO_ADR.md)
+
+### 현재 구성 (이중 구조)
+
+| 라이브러리 | 용도 | 현재 버전 | 라이선스 |
+|-----------|------|----------|---------|
+| **Apache ECharts** | Graph Studio (ChartSpec→Canvas) | `^6.0.0` | Apache 2.0 (영구 무료) |
+| **Plotly.js** | 레거시 통계 페이지 (23파일) | `3.3.0` | MIT (영구 무료) |
+
+### 업그레이드 대기
+
+| 라이브러리 | 다음 버전 | 예상 시기 | 조치 |
+|-----------|----------|----------|------|
+| ECharts | **v6.1.0** | 2026-03 중순~말 | `pnpm update echarts` → `tsc` → `test` → 육안 확인 |
+| Plotly.js | v3.5+ | 월 1~2회 릴리스 | `pnpm update plotly.js` → 레거시 페이지 확인 |
+
+### 업그레이드 절차
+
+```bash
+# 1. 업데이트
+pnpm update echarts plotly.js react-plotly.js
+
+# 2. 검증 (순서대로)
+pnpm tsc --noEmit                    # 타입 호환성
+pnpm test                            # 102개 echarts-converter + plotly 테스트
+pnpm dev                             # Graph Studio + 레거시 육안 확인
+
+# 3. 메이저 버전 (v7 등) — 마이그레이션 가이드 먼저 확인
+# ECharts: https://echarts.apache.org/handbook/en/basics/release-note/
+# Plotly: https://github.com/plotly/plotly.js/releases
+```
+
+### 자동 알림 — GitHub Dependabot
+
+`.github/dependabot.yml` 설정으로 ECharts/Plotly 업데이트 시 자동 PR 생성.
+수동 모니터링 불필요 — GitHub이 알려줌.
 
 ---
 
