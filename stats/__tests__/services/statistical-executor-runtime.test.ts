@@ -13,6 +13,7 @@ interface MockPyodideStats {
   discriminantAnalysis: jest.Mock
   kaplanMeierSurvival: jest.Mock
   kaplanMeierAnalysis: jest.Mock
+  rocCurveAnalysis: jest.Mock
   coxRegression: jest.Mock
   descriptiveStats: jest.Mock
 }
@@ -23,6 +24,7 @@ vi.mock('@/lib/services/pyodide-statistics', () => ({
     discriminantAnalysis: vi.fn(),
     kaplanMeierSurvival: vi.fn(),
     kaplanMeierAnalysis: vi.fn(),
+    rocCurveAnalysis: vi.fn(),
     coxRegression: vi.fn(),
     descriptiveStats: vi.fn(),
   }
@@ -454,6 +456,149 @@ describe('StatisticalExecutor Runtime Tests', () => {
 
       // Verify result includes custom names in visualization data
       expect(result.visualizationData?.data.covariateNames).toEqual(['Age (years)'])
+    })
+  })
+
+  // ─── KM 그룹 정렬 (결측 제거 후 인덱스 일치) ─────────────────
+
+  describe('Kaplan-Meier — 그룹 배열 결측 후 인덱스 일치', () => {
+    const kmMockResult = {
+      curves: {
+        ctrl: { time: [0, 5], survival: [1.0, 0.8], ciLo: [1.0, 0.6], ciHi: [1.0, 0.93], atRisk: [3, 2], medianSurvival: null, censored: [] },
+        trt:  { time: [0, 5], survival: [1.0, 0.6], ciLo: [1.0, 0.4], ciHi: [1.0, 0.8],  atRisk: [3, 2], medianSurvival: null, censored: [] },
+      },
+      logRankP: 0.04,
+      medianSurvivalTime: null,
+    }
+
+    it('NaN 행 제거 후 group 배열이 time/event와 인덱스 일치한다', async () => {
+      mockPyodideStats.kaplanMeierAnalysis.mockResolvedValue(kmMockResult)
+
+      const data = [
+        { time: 5,   event: 1, group: 'trt' },
+        { time: NaN, event: 1, group: 'ctrl' }, // NaN → 제거됨
+        { time: 10,  event: 0, group: 'ctrl' },
+        { time: 15,  event: 1, group: 'trt' },
+      ]
+
+      const method = { id: 'kaplan-meier', name: 'KM', description: '', category: 'survival' as const }
+      await executor.executeMethod(method, data, { dependent: ['time'], event: 'event', factor: 'group' })
+
+      const callArgs = mockPyodideStats.kaplanMeierAnalysis.mock.calls[0]
+      const times  = callArgs[0] as number[]
+      const events = callArgs[1] as number[]
+      const groups = callArgs[2] as string[]
+
+      // NaN 행(index 1) 제거 → 3개 남음
+      expect(times).toHaveLength(3)
+      expect(events).toHaveLength(3)
+      expect(groups).toHaveLength(3)
+
+      // 인덱스 일치 확인: times[1]=10 → group[1]='ctrl'
+      expect(times[0]).toBe(5);   expect(groups[0]).toBe('trt')
+      expect(times[1]).toBe(10);  expect(groups[1]).toBe('ctrl')
+      expect(times[2]).toBe(15);  expect(groups[2]).toBe('trt')
+    })
+
+    it('factor 변수 없으면 groups=undefined으로 호출된다', async () => {
+      mockPyodideStats.kaplanMeierAnalysis.mockResolvedValue({
+        curves: { all: { time: [0, 5], survival: [1.0, 0.8], ciLo: [1.0, 0.6], ciHi: [1.0, 0.93], atRisk: [2, 1], medianSurvival: null, censored: [] } },
+        logRankP: null, medianSurvivalTime: null,
+      })
+      const data = [{ time: 5, event: 1 }, { time: 10, event: 0 }]
+      const method = { id: 'kaplan-meier', name: 'KM', description: '', category: 'survival' as const }
+      await executor.executeMethod(method, data, { dependent: ['time'], event: 'event' })
+
+      const callArgs = mockPyodideStats.kaplanMeierAnalysis.mock.calls[0]
+      expect(callArgs[2]).toBeUndefined()
+    })
+  })
+
+  // ─── ROC Curve 실행 ──────────────────────────────────────────
+
+  describe('ROC Curve', () => {
+    const rocMockResult = {
+      rocPoints: [{ fpr: 0.0, tpr: 0.0 }, { fpr: 0.2, tpr: 0.7 }, { fpr: 1.0, tpr: 1.0 }],
+      auc: 0.82,
+      aucCI: { lower: 0.74, upper: 0.90 },
+      optimalThreshold: 0.45,
+      sensitivity: 0.78,
+      specificity: 0.80,
+    }
+
+    it('actualClass/predictedProb를 올바르게 추출해 rocCurveAnalysis를 호출한다', async () => {
+      mockPyodideStats.rocCurveAnalysis.mockResolvedValue(rocMockResult)
+
+      const data = [
+        { outcome: 1, score: 0.8 },
+        { outcome: 0, score: 0.3 },
+        { outcome: 1, score: 0.7 },
+        { outcome: 0, score: 0.2 },
+      ]
+
+      const method = { id: 'roc-curve', name: 'ROC', description: '', category: 'survival' as const }
+      await executor.executeMethod(method, data, { dependent: ['outcome'], independent: ['score'] })
+
+      expect(mockPyodideStats.rocCurveAnalysis).toHaveBeenCalledTimes(1)
+      const [actualClass, predictedProb] = mockPyodideStats.rocCurveAnalysis.mock.calls[0]
+      expect(actualClass).toEqual([1, 0, 1, 0])
+      expect(predictedProb).toEqual([0.8, 0.3, 0.7, 0.2])
+    })
+
+    it('NaN 행이 제거된 후 유효 행만 rocCurveAnalysis로 전달된다', async () => {
+      mockPyodideStats.rocCurveAnalysis.mockResolvedValue(rocMockResult)
+
+      const data = [
+        { outcome: 1, score: 0.8 },
+        { outcome: NaN, score: 0.3 }, // NaN → 제거
+        { outcome: 0, score: NaN },   // NaN → 제거
+        { outcome: 1, score: 0.7 },
+        { outcome: 0, score: 0.4 },
+        { outcome: 0, score: 0.2 },
+      ]
+
+      const method = { id: 'roc-curve', name: 'ROC', description: '', category: 'survival' as const }
+      await executor.executeMethod(method, data, { dependent: ['outcome'], independent: ['score'] })
+
+      const [actualClass, predictedProb] = mockPyodideStats.rocCurveAnalysis.mock.calls[0]
+      // 6개 중 NaN 2개 제거 → 4개
+      expect(actualClass).toHaveLength(4)
+      expect(predictedProb).toHaveLength(4)
+      expect(actualClass).toEqual([1, 1, 0, 0])
+      expect(predictedProb).toEqual([0.8, 0.7, 0.4, 0.2])
+    })
+
+    it('관찰값이 4개 미만이면 에러가 발생한다', async () => {
+      const data = [{ outcome: 1, score: 0.8 }, { outcome: 0, score: 0.3 }]
+      const method = { id: 'roc-curve', name: 'ROC', description: '', category: 'survival' as const }
+      await expect(
+        executor.executeMethod(method, data, { dependent: ['outcome'], independent: ['score'] })
+      ).rejects.toThrow('최소 4개')
+    })
+
+    it('결과에 visualizationData.type=roc-curve가 포함된다', async () => {
+      mockPyodideStats.rocCurveAnalysis.mockResolvedValue(rocMockResult)
+      const data = [
+        { outcome: 1, score: 0.8 }, { outcome: 0, score: 0.3 },
+        { outcome: 1, score: 0.7 }, { outcome: 0, score: 0.2 },
+      ]
+      const method = { id: 'roc-curve', name: 'ROC', description: '', category: 'survival' as const }
+      const result = await executor.executeMethod(method, data, { dependent: ['outcome'], independent: ['score'] })
+      expect(result.visualizationData?.type).toBe('roc-curve')
+    })
+
+    it('additionalInfo에 auc, aucCI, sensitivity, specificity가 포함된다', async () => {
+      mockPyodideStats.rocCurveAnalysis.mockResolvedValue(rocMockResult)
+      const data = [
+        { outcome: 1, score: 0.8 }, { outcome: 0, score: 0.3 },
+        { outcome: 1, score: 0.7 }, { outcome: 0, score: 0.2 },
+      ]
+      const method = { id: 'roc-curve', name: 'ROC', description: '', category: 'survival' as const }
+      const result = await executor.executeMethod(method, data, { dependent: ['outcome'], independent: ['score'] })
+      const info = result.additionalInfo as Record<string, unknown>
+      expect(info.auc).toBeCloseTo(0.82)
+      expect(info.sensitivity).toBeCloseTo(0.78)
+      expect(info.specificity).toBeCloseTo(0.80)
     })
   })
 })
