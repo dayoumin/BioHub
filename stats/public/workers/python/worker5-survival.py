@@ -75,6 +75,9 @@ def _km_estimate(
             median_survival = km_time[i]
             break
 
+    # 중도절단 시점 목록 (event=0인 관측치의 시간)
+    censored_times: List[float] = [float(t[i]) for i in range(len(t)) if e[i] == 0]
+
     return {
         'time': km_time,
         'survival': km_surv,
@@ -82,6 +85,7 @@ def _km_estimate(
         'ciHi': km_ci_hi,
         'atRisk': at_risk_list,
         'medianSurvival': median_survival,
+        'censored': censored_times,
     }
 
 

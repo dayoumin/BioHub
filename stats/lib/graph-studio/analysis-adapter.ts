@@ -14,6 +14,7 @@ import type {
 } from '@/types/graph-studio'
 import type {
   KaplanMeierAnalysisResult,
+  KmCurveData,
   RocCurveAnalysisResult,
 } from '@/lib/generated/method-types.generated'
 
@@ -42,20 +43,43 @@ export function buildKmCurveColumns(kmData: KaplanMeierAnalysisResult): KmColumn
   const ciLoArr: number[] = [];
   const ciHiArr: number[] = [];
   const groupArr: string[] = [];
+  const isCensoredArr: number[] = [];
+
+  // step function에서 주어진 시간의 생존율 조회 (마지막 ≤ t 스텝 값)
+  function survivalAtTime(curve: KmCurveData, t: number): { s: number; lo: number; hi: number } {
+    let idx = 0;
+    for (let i = 0; i < curve.time.length; i++) {
+      if (curve.time[i] <= t) idx = i;
+      else break;
+    }
+    return { s: curve.survival[idx], lo: curve.ciLo[idx], hi: curve.ciHi[idx] };
+  }
 
   for (const [groupName, curve] of Object.entries(kmData.curves)) {
+    // 주 KM 스텝 포인트 (event times) — isCensored=0
     for (let i = 0; i < curve.time.length; i++) {
       timeArr.push(curve.time[i]);
       survArr.push(curve.survival[i]);
       ciLoArr.push(curve.ciLo[i]);
       ciHiArr.push(curve.ciHi[i]);
       groupArr.push(groupName);
+      isCensoredArr.push(0);
+    }
+    // 중도절단 시점 — isCensored=1 (KM plot의 tick 마커)
+    for (const ct of curve.censored ?? []) {
+      const sv = survivalAtTime(curve, ct);
+      timeArr.push(ct);
+      survArr.push(sv.s);
+      ciLoArr.push(sv.lo);
+      ciHiArr.push(sv.hi);
+      groupArr.push(groupName);
+      isCensoredArr.push(1);
     }
   }
 
   const n = timeArr.length;
 
-  // __logRankP: row 0에 값, 나머지 null
+  // __logRankP: row 0에 값, 나머지 null (이벤트 시점 행이 앞쪽에 오도록 보장됨)
   const logRankPArr: (number | null)[] = new Array(n).fill(null);
   if (n > 0 && kmData.logRankP !== null) logRankPArr[0] = kmData.logRankP;
 
@@ -64,6 +88,7 @@ export function buildKmCurveColumns(kmData: KaplanMeierAnalysisResult): KmColumn
     survival: survArr,
     ciLo: ciLoArr,
     ciHi: ciHiArr,
+    isCensored: isCensoredArr,
     ...(isGrouped ? { group: groupArr } : {}),
     __logRankP: logRankPArr,
   };
@@ -75,6 +100,7 @@ export function buildKmCurveColumns(kmData: KaplanMeierAnalysisResult): KmColumn
     { name: 'survival', type: 'quantitative', uniqueCount: uniqCount(survArr), sampleValues: survArr.slice(0, 5).map(String), hasNull: false },
     { name: 'ciLo', type: 'quantitative', uniqueCount: uniqCount(ciLoArr), sampleValues: ciLoArr.slice(0, 5).map(String), hasNull: false },
     { name: 'ciHi', type: 'quantitative', uniqueCount: uniqCount(ciHiArr), sampleValues: ciHiArr.slice(0, 5).map(String), hasNull: false },
+    { name: 'isCensored', type: 'quantitative', uniqueCount: 2, sampleValues: ['0', '1'], hasNull: false },
     ...(isGrouped ? [{ name: 'group', type: 'nominal' as const, uniqueCount: groups.length, sampleValues: groups.slice(0, 5), hasNull: false }] : []),
     { name: '__logRankP', type: 'quantitative', uniqueCount: 2, sampleValues: [], hasNull: true },
   ];

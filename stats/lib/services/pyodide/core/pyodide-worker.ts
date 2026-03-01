@@ -88,7 +88,8 @@ const WORKER_FILE_NAMES: Record<number, string> = {
   1: 'worker1-descriptive',
   2: 'worker2-hypothesis',
   3: 'worker3-nonparametric-anova',
-  4: 'worker4-regression-advanced'
+  4: 'worker4-regression-advanced',
+  5: 'worker5-survival'
 }
 
 // ============================================================================
@@ -160,7 +161,8 @@ function getAdditionalPackages(workerNum: number): string[] {
     1: [], // worker1-descriptive.py (numpy, scipy만 사용)
     2: [], // worker2-hypothesis.py (numpy, scipy만 사용)
     3: ['statsmodels', 'scikit-learn'], // worker3-nonparametric-anova.py (KMeans, PCA, LDA, Factor Analysis)
-    4: ['statsmodels', 'scikit-learn'] // worker4-regression-advanced.py (stepwise + cluster/factor)
+    4: ['statsmodels', 'scikit-learn'], // worker4-regression-advanced.py (stepwise + cluster/factor)
+    5: ['scikit-learn'] // worker5-survival.py (KM scipy 직접 구현, ROC sklearn)
   }
 
   return packageMap[workerNum] || []

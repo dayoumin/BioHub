@@ -1162,24 +1162,29 @@ export class StatisticalExecutor {
     // Games-Howell: 이분산 가정 (등분산 가정 불필요) - 더 robust
     // Tukey HSD: 등분산 가정 (fallback)
     let postHoc: NormalizedPostHocComparison[] | undefined
+    let postHocMethod: string | undefined
     if (result.pValue < 0.05 && groups.length > 2) {
       try {
         // Games-Howell 사용 (이분산에 robust)
         const ghResult = await pyodideStats.gamesHowellTest(groups, groupNames)
         postHoc = this.normalizePostHocComparisons(ghResult?.comparisons)
+        postHocMethod = 'games-howell'
       } catch (ghError) {
         logger.warn('Games-Howell 사후검정 실패, Tukey HSD로 시도합니다', ghError)
         try {
           const tukeyResult = await pyodideStats.tukeyHSD(groups)
           postHoc = this.normalizePostHocComparisons(tukeyResult?.comparisons)
+          postHocMethod = 'tukey'
         } catch (tukeyError) {
           logger.warn('Tukey HSD 사후검정 실패, Bonferroni로 시도합니다', tukeyError)
           try {
             const bonferroniResult = await pyodideStats.performBonferroni(groups, groupNames)
             postHoc = this.normalizePostHocComparisons(bonferroniResult.comparisons)
+            postHocMethod = 'bonferroni'
           } catch (bonferroniError) {
             logger.warn('Bonferroni 사후검정도 실패, 사후검정 없이 진행합니다', bonferroniError)
             postHoc = undefined
+            postHocMethod = undefined
           }
         }
       }
@@ -1212,7 +1217,8 @@ export class StatisticalExecutor {
           value: result.etaSquared || 0,
           interpretation: this.interpretEtaSquared(result.etaSquared || 0)
         },
-        postHoc: postHoc
+        postHoc: postHoc,
+        postHocMethod,
       },
       visualizationData: {
         type: 'boxplot-multiple',
@@ -2069,32 +2075,34 @@ export class StatisticalExecutor {
   ): Promise<AnalysisResult> {
     switch (method.id) {
       case 'kaplan-meier': {
-        const rawTimes = data.arrays.dependent || []
-        const rawEvents = data.arrays.event || []
-
-        // Validate event variable is provided
-        if (rawEvents.length === 0) {
+        // Validate event variable is provided (early check before row-level alignment)
+        if ((data.arrays.event || []).length === 0) {
           throw new Error('Kaplan-Meier analysis requires an event variable (0=censored, 1=event)')
         }
 
         // Build aligned arrays - filter NaN values while keeping indices aligned
-        const alignedData: { time: number; event: number }[] = []
         const rawData = data.data as Array<Record<string, unknown>>
         const depVar = (data.variables?.dependent || data.variables?.dependentVar) as string | string[] | undefined
         const eventVar = data.variables?.event as string | undefined
         const depName = Array.isArray(depVar) ? depVar[0] : depVar
+        const factorVar = data.variables?.factor as string | undefined
 
-        if (depName && eventVar && rawData) {
-          for (const row of rawData) {
-            const time = Number(row[depName])
-            const event = Number(row[eventVar])
-            if (!isNaN(time) && !isNaN(event)) {
-              alignedData.push({ time, event })
-            }
-          }
-        } else {
-          // Missing variable names - cannot align properly
+        if (!depName || !eventVar || !rawData) {
           throw new Error('Kaplan-Meier requires time (dependent) and event variable names')
+        }
+
+        // group 컬럼 포함해서 동시에 필터 — 결측 제거 후에도 인덱스 일치 보장
+        const alignedData: { time: number; event: number; group?: string }[] = []
+        for (const row of rawData) {
+          const time = Number(row[depName])
+          const event = Number(row[eventVar])
+          if (!isNaN(time) && !isNaN(event)) {
+            alignedData.push({
+              time,
+              event,
+              group: factorVar ? String(row[factorVar] ?? 'All') : undefined
+            })
+          }
         }
 
         if (alignedData.length === 0) {
@@ -2110,12 +2118,10 @@ export class StatisticalExecutor {
           throw new Error('Event variable must be binary (0=censored, 1=event)')
         }
 
-        // 그룹 변수 추출 (factor 역할)
-        const factorVar = data.variables?.factor as string | undefined
-        let groups: string[] | undefined
-        if (factorVar && rawData) {
-          groups = rawData.map(row => String(row[factorVar] ?? 'All'))
-        }
+        // 그룹 배열 — alignedData에서 추출 (결측 제거 후 인덱스 일치)
+        const groups: string[] | undefined = factorVar
+          ? alignedData.map(d => d.group ?? 'All')
+          : undefined
 
         // Worker5 카플란-마이어 분석 (scipy 기반, lifelines 불사용)
         const result = await pyodideStats.kaplanMeierAnalysis(times, events, groups)

@@ -1210,6 +1210,7 @@ export interface KmCurveData {
   ciHi: number[]
   atRisk: number[]
   medianSurvival: number | null
+  censored: number[]  // 중도절단 시점 목록 (event=0)
 }
 
 export interface KaplanMeierAnalysisResult {
