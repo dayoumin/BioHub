@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.31.0",
+  "version": "1.32.0",
   "lastUpdated": "2026-03-01",
   "sources": [
     "stats/__tests__/",
@@ -801,6 +801,34 @@
             "horizontal-bar",
             "font-preset",
             "echarts-converter"
+          ]
+        },
+        {
+          "name": "G2.5 저널 팔레트 scheme → color 검증 (R-4)",
+          "purpose": "ALL_PALETTES 통합 맵이 converter까지 연결돼 option.color에 올바른 hex가 나오는지 확인",
+          "code": "describe('R-4: 저널 팔레트 scheme 조회', () => {\n  test('NPG scheme → ECharts color에 #E64B35 포함', () => {\n    const spec = makeBarSpec({ style: { preset: 'default', scheme: 'NPG' } });\n    const option = chartSpecToECharts(spec, SAMPLE_ROWS) as Record<string, unknown>;\n    const colors = option.color as string[];\n    expect(colors[0]).toBe('#E64B35');\n  });\n\n  test('존재하지 않는 scheme → preset 기본 색상 fallback', () => {\n    const spec = makeBarSpec({ style: { preset: 'default', scheme: 'UnknownJournal' } });\n    const option = chartSpecToECharts(spec, SAMPLE_ROWS) as Record<string, unknown>;\n    const colors = option.color as string[];\n    expect(colors[0]).toBe('#5470c6');  // PRESET_COLORS.default[0]\n  });\n});",
+          "keywords": [
+            "ALL_PALETTES",
+            "JOURNAL_PALETTES",
+            "scheme",
+            "color",
+            "NPG",
+            "AAAS",
+            "OkabeIto",
+            "echarts-converter"
+          ]
+        },
+        {
+          "name": "G2.5 유의성 브래킷 스태킹 — spec 배열 불변성 + crash 없음 (R-5)",
+          "purpose": "[...marks].sort() 사본 정렬로 spec.significance 원본 순서 보존, renderIdx 로직 안전성 검증",
+          "code": "describe('R-5: 유의성 브래킷 다중 marks converter 안전성', () => {\n  test('significance marks 3개 → converter crash 없음', () => {\n    const spec = makeBarSpec({\n      significance: [\n        { groupA: 'A', groupB: 'B', pValue: 0.01 },\n        { groupA: 'A', groupB: 'C', pValue: 0.001 },\n        { groupA: 'B', groupB: 'C', pValue: 0.05 },\n      ],\n    });\n    expect(() => chartSpecToECharts(spec, SAMPLE_ROWS)).not.toThrow();\n  });\n\n  test('spec.significance 원본 배열 순서 불변', () => {\n    const significance = [\n      { groupA: 'A', groupB: 'C', pValue: 0.001 },  // span=2 → 정렬 후 뒤로 가지만 원본은 유지\n      { groupA: 'A', groupB: 'B', pValue: 0.01 },\n    ];\n    const spec = makeBarSpec({ significance });\n    chartSpecToECharts(spec, SAMPLE_ROWS);\n    expect(spec.significance![0].groupB).toBe('C');  // 원본 불변\n  });\n});",
+          "keywords": [
+            "significance",
+            "bracket stacking",
+            "renderIdx",
+            "sort",
+            "immutability",
+            "buildSignificanceGraphics"
           ]
         }
       ]
