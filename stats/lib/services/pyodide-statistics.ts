@@ -30,7 +30,7 @@
  */
 
 import type { PyodideInterface } from '@/types/pyodide'
-import { PyodideCoreService } from './pyodide/core/pyodide-core.service'
+import { PyodideCoreService, type WorkerMethodParam } from './pyodide/core/pyodide-core.service'
 import * as Generated from '@/lib/generated/method-types.generated'
 import {
   clusterAnalysisAdapter,
@@ -54,6 +54,50 @@ interface BonferroniResult {
   original_alpha: number
   adjusted_alpha: number
   significant_count: number
+}
+
+// ─── Worker2 ANCOVA 결과 타입 ─────────────────────────────────
+// worker2-hypothesis.py ancova_analysis() 반환 구조
+
+interface Worker2AncovaMainEffect {
+  factor: string
+  statistic: number
+  pValue: number
+  degreesOfFreedom: [number, number]
+  partialEtaSquared: number
+  observedPower: number
+}
+
+interface Worker2AncovaCovariate {
+  covariate: string
+  statistic: number
+  pValue: number
+  degreesOfFreedom: [number, number]
+  partialEtaSquared: number
+  coefficient: number
+  standardError: number
+}
+
+interface Worker2AncovaPostHoc {
+  comparison: string  // "Group1 vs Group2"
+  meanDiff: number
+  standardError: number
+  tValue: number
+  pValue: number
+  adjustedPValue: number
+  cohensD: number
+  lowerCI: number
+  upperCI: number
+}
+
+export interface Worker2AncovaResult {
+  mainEffects: Worker2AncovaMainEffect[]
+  covariates: Worker2AncovaCovariate[]
+  adjustedMeans: Array<{ group: string; adjustedMean: number; standardError: number; ci95Lower: number; ci95Upper: number }>
+  postHoc: Worker2AncovaPostHoc[]
+  assumptions: Record<string, unknown>
+  modelFit: { rSquared: number; adjustedRSquared: number; fStatistic: number; fPValue: number; rmse: number; residualStandardError: number }
+  interpretation: Record<string, unknown>
 }
 
 export class PyodideStatisticsService {
@@ -1209,8 +1253,30 @@ export class PyodideStatisticsService {
     return Generated.repeatedMeasuresAnova(dataMatrix, subjectIds, timeLabels)
   }
 
+  /** @deprecated Worker3 ancova()는 postHoc 미지원. ancovaAnalysisWorker() 사용 권장 */
   async ancovaWorker(yValues: number[], groupValues: (string | number)[], covariates: number[][]): Promise<Generated.AncovaResult> {
     return Generated.ancova(yValues, groupValues, covariates)
+  }
+
+  /**
+   * Worker2 ANCOVA (postHoc 포함)
+   * Worker3 ancova()는 postHoc 미지원 → Worker2 ancova_analysis()로 전환
+   */
+  async ancovaAnalysisWorker(
+    dependentVar: string,
+    factorVars: string[],
+    covariateVars: string[],
+    data: Array<Record<string, unknown>>
+  ): Promise<Worker2AncovaResult> {
+    return this.core.callWorkerMethod<Worker2AncovaResult>(
+      2, 'ancova_analysis',
+      {
+        dependent_var: dependentVar,
+        factor_vars: factorVars,
+        covariate_vars: covariateVars,
+        data: data as WorkerMethodParam,
+      }
+    )
   }
 
   async manovaWorker(

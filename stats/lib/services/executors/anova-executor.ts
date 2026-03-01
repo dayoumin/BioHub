@@ -232,7 +232,8 @@ export class AnovaExecutor extends BaseExecutor {
             meanDiff: 0,
             pvalue: comp.pValue,
             significant: comp.significant
-          }))
+          })),
+          postHocMethod: 'tukey',
         },
         visualizationData: {
           type: 'comparison-matrix',
@@ -272,7 +273,8 @@ export class AnovaExecutor extends BaseExecutor {
             meanDiff: 0,
             pvalue: comp.pValue,
             significant: comp.significant
-          }))
+          })),
+          postHocMethod: 'games-howell',
         },
         visualizationData: {
           type: 'comparison-matrix',

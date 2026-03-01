@@ -212,7 +212,8 @@ export class NonparametricExecutor extends BaseExecutor {
             group2: comp.group2,
             pvalue: comp.pValue,
             significant: comp.significant
-          }))
+          })),
+          postHocMethod: 'bonferroni',
         },
         visualizationData: {
           type: 'comparison-matrix',

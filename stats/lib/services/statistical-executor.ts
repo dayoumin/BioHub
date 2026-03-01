@@ -525,8 +525,17 @@ export class StatisticalExecutor {
 
       if (typeof pvalue !== 'number') continue
 
-      const group1 = comp.group1 as string | number | undefined
-      const group2 = comp.group2 as string | number | undefined
+      // group1/group2 직접 키 또는 comparison 문자열("A vs B") 파싱
+      let group1 = comp.group1 as string | number | undefined
+      let group2 = comp.group2 as string | number | undefined
+      if (group1 === undefined || group2 === undefined) {
+        const comparison = typeof comp.comparison === 'string' ? comp.comparison : undefined
+        if (comparison && comparison.includes(' vs ')) {
+          const parts = comparison.split(' vs ', 2)
+          group1 = parts[0]?.trim() || undefined
+          group2 = parts[1]?.trim() || undefined
+        }
+      }
       if (group1 === undefined || group2 === undefined) continue
 
       results.push({
@@ -546,13 +555,15 @@ export class StatisticalExecutor {
               : undefined,
         pvalue,
         pvalueAdjusted:
-          typeof comp.pvalueAdjusted === 'number'
-            ? comp.pvalueAdjusted
-            : typeof comp.pValueAdjusted === 'number'
-              ? comp.pValueAdjusted
-              : typeof comp.adjusted_p === 'number'
-                ? comp.adjusted_p
-                : undefined,
+          typeof comp.adjustedPValue === 'number'
+            ? comp.adjustedPValue
+            : typeof comp.pvalueAdjusted === 'number'
+              ? comp.pvalueAdjusted
+              : typeof comp.pValueAdjusted === 'number'
+                ? comp.pValueAdjusted
+                : typeof comp.adjusted_p === 'number'
+                  ? comp.adjusted_p
+                  : undefined,
         significant:
           typeof comp.significant === 'boolean'
             ? comp.significant
@@ -994,7 +1005,8 @@ export class StatisticalExecutor {
             '유의한 차이가 없습니다'
         },
         additionalInfo: {
-          postHoc
+          postHoc,
+          postHocMethod: 'games-howell',
         },
         visualizationData: {
           type: 'boxplot-multiple',
@@ -1007,39 +1019,47 @@ export class StatisticalExecutor {
       }
     }
 
-    // ANCOVA: 공변량이 있는 경우
+    // ANCOVA: 공변량이 있는 경우 — Worker2 ancova_analysis() 사용 (postHoc 포함)
     if (method.id === 'ancova' && data.arrays.covariate && data.arrays.covariate.length > 0) {
-      // 행 단위로 종속변수·그룹·모든 공변량이 동시에 유효한 경우만 포함
-      const dependentVar = (data.variables.dependent as string[] | undefined)?.[0] || ''
-      const groupVar = data.variables.group as string
-      const covariateVars = Array.isArray(data.variables.covariate)
-        ? data.variables.covariate
-        : [data.variables.covariate]
+      // VariableMapping 호환: dependentVar/dependent, groupVar/group 모두 지원
+      const rawDep = data.variables.dependent || data.variables.dependentVar
+      const dependentVar = rawDep
+        ? (Array.isArray(rawDep) ? (rawDep as string[])[0] : rawDep as string)
+        : ''
+      const groupVar = (data.variables.group || data.variables.groupVar) as string
+      const rawCov = data.variables.covariate
+      const covariateVars = Array.isArray(rawCov)
+        ? (rawCov as string[])
+        : [rawCov as string]
 
-      const yValues: number[] = []
-      const groupValues: (string | number)[] = []
-      const covariateArrays: number[][] = covariateVars.map(() => [] as number[])
-
+      // Worker2는 행 단위 딕셔너리 배열을 받음 — 유효한 행만 필터 + 숫자 필드 정제
+      const numericFields = [dependentVar, ...covariateVars]
+      const validRows: Array<Record<string, unknown>> = []
       for (const row of data.data as Record<string, unknown>[]) {
         const yVal = Number(row[dependentVar])
         const gVal = row[groupVar]
         const covVals = covariateVars.map((col: string) => Number(row[col]))
 
-        // 모든 값이 유효한 경우만 포함
         if (!isNaN(yVal) && gVal != null && covVals.every((v: number) => !isNaN(v))) {
-          yValues.push(yVal)
-          groupValues.push(gVal as string | number)
-          covVals.forEach((v: number, i: number) => covariateArrays[i].push(v))
+          // 숫자형 필드를 명시적 Number로 변환 (문자열 "3" → 3, object dtype 방지)
+          const cleanRow: Record<string, unknown> = { ...row }
+          for (const field of numericFields) {
+            cleanRow[field] = Number(row[field])
+          }
+          validRows.push(cleanRow)
         }
       }
 
-      if (yValues.length === 0) {
+      if (validRows.length === 0) {
         throw new Error('ANCOVA: 모든 변수에 유효한 값이 있는 행이 없습니다')
       }
 
-      const covariates = covariateArrays
+      const ancovaResult = await pyodideStats.ancovaAnalysisWorker(
+        dependentVar, [groupVar], covariateVars, validRows
+      )
 
-      const ancovaResult = await pyodideStats.ancovaWorker(yValues, groupValues, covariates)
+      const mainEffect = ancovaResult.mainEffects?.[0]
+      const postHoc = this.normalizePostHocComparisons(ancovaResult.postHoc ?? [])
 
       return {
         metadata: {
@@ -1048,21 +1068,35 @@ export class StatisticalExecutor {
           timestamp: '',
           duration: 0,
           dataInfo: {
-            totalN: yValues.length,
+            totalN: validRows.length,
             missingRemoved: 0,
             groups: groups.length
           }
         },
         mainResults: {
-          statistic: ancovaResult.fStatisticGroup,
-          pvalue: ancovaResult.pValueGroup,
-          df: 0,
-          significant: ancovaResult.pValueGroup < 0.05,
-          interpretation: ancovaResult.pValueGroup < 0.05 ?
-            `공변량 통제 후 그룹 간 유의한 차이가 있습니다 (F=${ancovaResult.fStatisticGroup.toFixed(2)})` :
+          statistic: mainEffect?.statistic ?? 0,
+          pvalue: mainEffect?.pValue ?? 1,
+          df: mainEffect?.degreesOfFreedom as [number, number] | undefined,
+          significant: (mainEffect?.pValue ?? 1) < 0.05,
+          interpretation: (mainEffect?.pValue ?? 1) < 0.05 ?
+            `공변량 통제 후 그룹 간 유의한 차이가 있습니다 (F=${(mainEffect?.statistic ?? 0).toFixed(2)})` :
             '공변량 통제 후 그룹 간 유의한 차이가 없습니다'
         },
-        additionalInfo: {},
+        additionalInfo: {
+          postHoc,
+          postHocMethod: 'bonferroni',
+          effectSize: mainEffect ? {
+            type: 'partial-eta-squared',
+            value: mainEffect.partialEtaSquared,
+            interpretation: this.interpretEtaSquared(mainEffect.partialEtaSquared)
+          } : undefined,
+          adjustedMeans: ancovaResult.adjustedMeans,
+          modelFit: ancovaResult.modelFit,
+          // result-transformer 호환: top-level로 평탄화
+          rSquared: ancovaResult.modelFit?.rSquared,
+          adjustedRSquared: ancovaResult.modelFit?.adjustedRSquared,
+          rmse: ancovaResult.modelFit?.rmse,
+        },
         visualizationData: {
           type: 'boxplot-multiple',
           data: groups.map((g, i) => ({
@@ -1072,7 +1106,7 @@ export class StatisticalExecutor {
         },
         rawResults: {
           ...ancovaResult,
-          covariatesCount: covariates.length
+          covariatesCount: covariateVars.length
         }
       }
     }

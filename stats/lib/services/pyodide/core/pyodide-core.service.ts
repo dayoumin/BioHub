@@ -48,6 +48,7 @@ export type WorkerMethodParam =
   | (number | string)[]
   | null
   | { [key: string]: WorkerMethodParam }
+  | WorkerMethodParam[]
 
 /**
  * Worker 메서드 호출 옵션
