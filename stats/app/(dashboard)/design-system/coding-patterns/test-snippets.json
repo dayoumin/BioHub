@@ -775,6 +775,33 @@
             "before-after",
             "algorithm"
           ]
+        },
+        {
+          "name": "G2-3 이중 Y축/패싯 기능 검증 테스트",
+          "purpose": "ECharts converter의 이중 Y축(yAxis 배열)과 패싯(grid 배열) 출력 구조를 검증. makeBarSpec/makeFacetSpec 픽스처 + chartSpecToECharts 호출 패턴.",
+          "code": "// === G2-3 이중 Y축/패싯 기능 검증 테스트 ===\n// 파일: __tests__/graph-studio/g2-3-features.test.ts\n\nfunction makeBarSpec(overrides: Partial<ChartSpec> = {}): ChartSpec {\n  return {\n    version: '1.0', chartType: 'bar',\n    data: { sourceId: 'test', columns: [...] },\n    encoding: {\n      x: { field: 'group', type: 'nominal' },\n      y: { field: 'value', type: 'quantitative' },\n    },\n    style: { preset: 'default' },\n    annotations: [],\n    exportConfig: { format: 'png', dpi: 300 },\n    ...overrides,\n  };\n}\n\n// G2-3-A: 이중 Y축\ndescribe('G2-3-A: Dual Y-axis', () => {\n  it('Y2 있으면 yAxis 배열, 길이 2', () => {\n    const spec = makeBarSpec({\n      encoding: { ..., y2: { field: 'temp', type: 'quantitative' } },\n    });\n    const option = chartSpecToECharts(spec, ROWS) as Record<string, unknown>;\n    expect(Array.isArray(option.yAxis)).toBe(true);\n    expect((option.yAxis as unknown[]).length).toBe(2);\n  });\n});\n\n// G2-3-B: 패싯\ndescribe('G2-3-B: Facet', () => {\n  it('패싯 3개 → grid 3개, series 3개', () => {\n    const spec = makeFacetSpec({ facet: { field: 'species' } });\n    const option = chartSpecToECharts(spec, FACET_ROWS) as Record<string, unknown>;\n    expect(Array.isArray(option.grid)).toBe(true);\n    expect((option.grid as unknown[]).length).toBe(3);\n    expect(Array.isArray(option.series)).toBe(true);\n    expect((option.series as unknown[]).length).toBe(3);\n  });\n});",
+          "keywords": [
+            "G2-3",
+            "dual-y-axis",
+            "facet",
+            "echarts-converter",
+            "chartSpecToECharts",
+            "makeSpec"
+          ]
+        },
+        {
+          "name": "G2 버그픽스 회귀 테스트 (annotations + significance 병합)",
+          "purpose": "converter가 annotations를 graphic에 올바르게 유지하는지, 수평 막대 축 스왑이 정상인지, 폰트 변경 시 preset size가 보존되는지 회귀 검증.",
+          "code": "// === G2 버그픽스 회귀 테스트 ===\n// 파일: __tests__/graph-studio/g2-bugfix-regression.test.ts\n\n// R-1: annotations + significance 병합\ndescribe('R-1: annotations가 significance와 함께 유지됨', () => {\n  test('annotations + significance 동시 존재 → converter는 annotation을 graphic에 유지', () => {\n    const spec = makeBarSpec({\n      annotations: [{ type: 'text', text: 'Marker', x: 100, y: 30 }],\n      significance: [{ groupA: 'A', groupB: 'B', pValue: 0.03 }],\n    });\n    const option = chartSpecToECharts(spec, ROWS) as Record<string, unknown>;\n    const graphic = option.graphic as Record<string, unknown>[];\n    expect(graphic.length).toBe(1);\n    expect(graphic[0].type).toBe('text');\n    // significance 브래킷은 ChartPreview finished 이벤트에서 추가됨 (converter 아님)\n  });\n});\n\n// R-2: 수평 막대 축 스왑\ndescribe('R-2: 수평 막대 orientation 축 swap 검증', () => {\n  test('수평 막대에서 xAxis=value, yAxis=category', () => {\n    const spec = makeBarSpec({ orientation: 'horizontal' });\n    const option = chartSpecToECharts(spec, ROWS) as Record<string, unknown>;\n    expect((option.xAxis as Record<string, unknown>).type).toBe('value');\n    expect((option.yAxis as Record<string, unknown>).type).toBe('category');\n  });\n});\n\n// R-3: 폰트 변경 시 preset size 유지\ndescribe('R-3: 폰트 변경 시 preset font size 유지', () => {\n  test('science 프리셋 + family 오버라이드 → size는 preset 기준 유지', () => {\n    const preset = STYLE_PRESETS['science'];\n    const spec = makeBarSpec({\n      style: { ...preset, font: { ...preset.font, family: 'Arial, sans-serif' } },\n    });\n    const option = chartSpecToECharts(spec, ROWS) as Record<string, unknown>;\n    const textStyle = (option as Record<string, unknown>).textStyle as Record<string, unknown>;\n    expect(textStyle.fontFamily).toContain('Arial');\n    expect(textStyle.fontSize).toBe(preset.font?.size ?? 11);\n  });\n});",
+          "keywords": [
+            "G2-bugfix",
+            "regression",
+            "annotations",
+            "significance",
+            "horizontal-bar",
+            "font-preset",
+            "echarts-converter"
+          ]
         }
       ]
     },
@@ -864,7 +891,14 @@
       "name": "chartSpecToECharts 시뮬레이션",
       "purpose": "ECharts 컨버터 순수 함수 출력을 단언하여 G2-x 기능 회귀 방지",
       "code": "import { chartSpecToECharts } from '@/lib/graph-studio/echarts-converter';\nimport { getPValueLabel } from '@/lib/graph-studio/chart-spec-utils';\nimport type { ChartSpec } from '@/types/graph-studio';\n\n// 기본 fixture: makeBarSpec / makeScatterSpec\nfunction makeScatterSpec(overrides: Partial<ChartSpec> = {}): ChartSpec { ... }\n\ntest('trendline → scatter series에 line 추가', () => {\n  const spec = makeScatterSpec({ trendline: { type: 'linear' } });\n  const option = chartSpecToECharts(spec, rows) as Record<string, unknown>;\n  const series = option.series as Record<string, unknown>[];\n  expect(series.some(s => s.type === 'line')).toBe(true);\n});\n\ntest('getPValueLabel — p ≤ 0.05 → \"*\"', () => {\n  expect(getPValueLabel({ groupA: 'A', groupB: 'B', pValue: 0.03 })).toBe('*');\n});",
-      "keywords": ["chartSpecToECharts", "trendline", "significance", "getPValueLabel", "graph-studio", "G2-2"]
+      "keywords": [
+        "chartSpecToECharts",
+        "trendline",
+        "significance",
+        "getPValueLabel",
+        "graph-studio",
+        "G2-2"
+      ]
     }
   ],
   "commonErrors": [
