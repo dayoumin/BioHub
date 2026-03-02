@@ -189,7 +189,7 @@ export function toAnalysisContext(
     mean: gs.mean,
     std: gs.std,
     n: gs.n,
-    se: gs.std / Math.sqrt(gs.n),
+    se: gs.n > 0 ? gs.std / Math.sqrt(gs.n) : undefined,
     median: gs.median,
   }));
 

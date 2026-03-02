@@ -478,7 +478,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'one-sample-t',
     name: '일표본 t-검정',
-    category: 'compare',
+    category: 't-test',
     description: '한 집단의 평균과 특정값 비교',
     minSampleSize: 2,
     assumptions: ['정규성'],
@@ -558,7 +558,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'two-sample-t',
     name: '독립표본 t-검정',
-    category: 'compare',
+    category: 't-test',
     description: '두 독립 집단 간 평균 비교',
     minSampleSize: 4,
     assumptions: ['정규성', '등분산성'],
@@ -656,7 +656,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'paired-t',
     name: '대응표본 t-검정',
-    category: 'compare',
+    category: 't-test',
     description: '동일 대상의 전후 측정값 비교',
     minSampleSize: 2,
     assumptions: ['차이값의 정규성'],
@@ -736,7 +736,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'welch-t',
     name: 'Welch t-검정',
-    category: 'compare',
+    category: 't-test',
     description: '등분산 가정하지 않는 t-검정',
     minSampleSize: 4,
     assumptions: ['정규성'],
@@ -825,7 +825,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'one-sample-proportion',
     name: '일표본 비율 검정',
-    category: 'compare',
+    category: 't-test',
     description: '한 집단의 비율과 특정값 비교',
     minSampleSize: 10,
     assumptions: ['np ≥ 5, n(1-p) ≥ 5'],
@@ -889,7 +889,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'means-plot',
     name: '평균 도표',
-    category: 'compare',
+    category: 't-test',
     description: '그룹별 평균을 시각화',
     minSampleSize: 1,
     assumptions: [],
@@ -968,7 +968,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'one-way-anova',
     name: '일원분산분석',
-    category: 'glm',
+    category: 'anova',
     description: '3개 이상 집단의 평균 비교',
     minSampleSize: 6,
     assumptions: ['정규성', '등분산성', '독립성'],
@@ -1069,7 +1069,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'two-way-anova',
     name: '이원분산분석',
-    category: 'glm',
+    category: 'anova',
     description: '2개 요인의 주효과와 상호작용 분석',
     minSampleSize: 8,
     assumptions: ['정규성', '등분산성', '독립성'],
@@ -1177,7 +1177,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'three-way-anova',
     name: '삼원분산분석',
-    category: 'glm',
+    category: 'anova',
     description: '3개 요인의 효과 분석',
     minSampleSize: 16,
     assumptions: ['정규성', '등분산성', '독립성'],
@@ -1240,7 +1240,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'ancova',
     name: '공분산분석',
-    category: 'glm',
+    category: 'anova',
     description: '공변량을 통제한 집단 비교',
     minSampleSize: 20,
     assumptions: ['정규성', '등분산성', '회귀선 평행성'],
@@ -1323,7 +1323,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'repeated-measures-anova',
     name: '반복측정 분산분석',
-    category: 'glm',
+    category: 'anova',
     description: '동일 대상의 반복 측정 자료 분석',
     minSampleSize: 10,
     assumptions: ['정규성', '구형성'],
@@ -1398,7 +1398,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'manova',
     name: '다변량 분산분석',
-    category: 'glm',
+    category: 'anova',
     description: '여러 종속변수를 동시에 분석',
     minSampleSize: 20,
     assumptions: ['다변량 정규성', '공분산 행렬 동질성'],
@@ -1475,7 +1475,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'mixed-model',
     name: '선형 혼합 모형',
-    category: 'glm',
+    category: 'anova',
     description: '고정효과와 무선효과를 포함한 모형',
     minSampleSize: 30,
     assumptions: ['정규성', '독립성'],
@@ -1557,7 +1557,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'response-surface',
     name: '반응표면 분석',
-    category: 'glm',
+    category: 'anova',
     description: '2개 이상의 예측변수와 반응변수 간의 최적 조건 탐색',
     minSampleSize: 20,
     assumptions: ['정규성', '독립성'],
@@ -1636,7 +1636,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'pearson-correlation',
     name: 'Pearson 상관분석',
-    category: 'correlate',
+    category: 'correlation',
     description: '연속형 변수 간 선형 상관관계',
     minSampleSize: 4,
     assumptions: ['선형성', '정규성', '등분산성'],
@@ -1720,7 +1720,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'spearman-correlation',
     name: 'Spearman 순위상관',
-    category: 'correlate',
+    category: 'correlation',
     description: '순위 기반 비모수 상관분석',
     minSampleSize: 4,
     assumptions: ['단조성'],
@@ -1771,7 +1771,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'kendall-correlation',
     name: 'Kendall τ 상관',
-    category: 'correlate',
+    category: 'correlation',
     description: '순위 일치도 기반 상관분석',
     minSampleSize: 4,
     assumptions: [],
@@ -1821,7 +1821,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'partial-correlation',
     name: '편상관분석',
-    category: 'correlate',
+    category: 'correlation',
     description: '제3변수를 통제한 상관관계',
     minSampleSize: 10,
     assumptions: ['선형성', '정규성'],
@@ -3611,7 +3611,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'factor-analysis',
     name: '요인분석',
-    category: 'advanced',
+    category: 'multivariate',
     description: '잠재 요인 추출 및 구조 파악',
     minSampleSize: 100,
     assumptions: ['선형성', '적절한 상관', 'KMO > 0.5'],
@@ -3664,7 +3664,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'pca',
     name: '주성분분석',
-    category: 'advanced',
+    category: 'multivariate',
     description: '차원 축소 및 주성분 추출',
     minSampleSize: 30,
     assumptions: ['선형성', '적절한 상관'],
@@ -3715,7 +3715,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'cluster-analysis',
     name: '군집분석',
-    category: 'advanced',
+    category: 'multivariate',
     description: '유사한 개체들을 그룹화',
     minSampleSize: 30,
     assumptions: ['거리 측정 가능', '이상치 처리'],
@@ -3789,7 +3789,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'discriminant-analysis',
     name: '판별분석',
-    category: 'advanced',
+    category: 'multivariate',
     description: '그룹 예측 및 판별 함수 도출',
     minSampleSize: 50,
     assumptions: ['다변량 정규성', '공분산 행렬 동질성'],
@@ -3910,7 +3910,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
         example: '처치군 (실험/대조)'
       }
     ],
-    notes: ['Log-rank 검정으로 그룹 비교', '중앙 생존시간 추정', 'lifelines 라이브러리 사용'],
+    notes: ['Log-rank 검정으로 그룹 비교', '중앙 생존시간 추정', 'scipy 기반 직접 구현 (lifelines 미사용)'],
 
     dataFormat: {
       type: 'wide',
@@ -4049,7 +4049,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'power-analysis',
     name: '사전 검정력 분석',
-    category: 'basic',
+    category: 'design',
     description: '연구 설계 전 필요한 표본 크기 추정',
     minSampleSize: 2,
     assumptions: [],
@@ -4242,7 +4242,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'pca-analysis',
     name: '주성분 분석 (PCA)',
-    category: 'advanced',
+    category: 'multivariate',
     description: '차원 축소를 통한 데이터 구조 파악',
     minSampleSize: 20,
     assumptions: ['선형성', '큰 분산', '상관관계'],
@@ -4693,7 +4693,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'normality-test',
     name: '정규성 검정',
-    category: 'diagnostic',
+    category: 'descriptive',
     description: '데이터가 정규분포를 따르는지 종합 검정 (Shapiro-Wilk, Anderson-Darling 등)',
     minSampleSize: 3,
     assumptions: [],
@@ -4835,7 +4835,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   {
     id: 'power-analysis',
     name: '검정력 분석',
-    category: 'utility',
+    category: 'design',
     description: '통계 검정의 검정력 계산 및 필요 표본크기 추정',
     minSampleSize: 0,  // 데이터 없이도 가능
     assumptions: [],

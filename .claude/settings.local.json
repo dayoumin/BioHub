@@ -100,7 +100,9 @@
       "Bash(cmd /c:*)",
       "Bash(pnpm build:*)",
       "Bash(CI=true pnpm install:*)",
-      "Bash(pnpm exec tsc --noEmit)"
+      "Bash(pnpm exec tsc --noEmit)",
+      "WebFetch(domain:www.rawgraphs.io)",
+      "WebFetch(domain:rows.com)"
     ],
     "deny": [],
     "ask": []

@@ -124,25 +124,132 @@ GraphPad Prism이나 JMP 같은 전문 통계 도구와 비교해서
 통계 플랫폼에서 계산 결과가 틀리면 연구자가 잘못된 결론을 논문에 쓴다.
 코드는 에러 없이 돌아가지만 **답이 틀리는** 경우가 가장 위험하다.
 
-### 검증 방법
-
-```
-1. 테스트 데이터 준비 (n=30 정도, 정상 분포)
-2. BioHub에서 분석 실행 → 결과 기록
-3. 같은 데이터를 R/SPSS/Python에서 실행 → 결과 비교
-4. 일치하지 않는 값 조사
-```
-
 ### 검증 대상 (우선순위)
 
-| 검증 항목 | 비교 기준 | 허용 오차 |
-|-----------|-----------|-----------|
-| p-value | R `t.test()`, `wilcox.test()` 등 | < 0.001 |
-| 효과 크기 (Cohen's d, eta-squared) | R `effectsize` 패키지 | < 0.01 |
-| 신뢰구간 | R 기본 출력 | < 0.01 |
-| 사후검정 그룹 비교 | R `TukeyHSD()` | < 0.001 |
-| 생존분석 KM 추정치 | R `survival::survfit()` | < 0.001 |
-| ROC AUC | R `pROC::roc()` | < 0.01 |
+| 검증 항목 | 비교 기준 | 허용 오차 (절대) | 작은 값 기준 (상대) |
+|-----------|-----------|-------------------|---------------------|
+| p-value | R `t.test()`, `wilcox.test()` 등 | < 0.001 | 또는 < 5% |
+| 효과 크기 (Cohen's d, eta-squared) | R `effectsize` 패키지 | < 0.01 | 또는 < 2% |
+| 신뢰구간 | R 기본 출력 | < 0.01 | 또는 < 2% |
+| 사후검정 그룹 비교 | R `TukeyHSD()` | < 0.001 | 또는 < 5% |
+| 생존분석 KM 추정치 | R `survival::survfit()` | < 0.001 | 또는 < 5% |
+| ROC AUC | R `pROC::roc()` | < 0.01 | 또는 < 2% |
+
+> **주의**: p=0.0001일 때 0.001 차이는 10배 오차다. 작은 값에서는 상대 오차 기준을 적용한다.
+
+### 교차 검증 절차 (새 통계 메서드 추가/수정 시 필수)
+
+코드 리뷰만으로는 "답이 맞는가"를 확인할 수 없다.
+독립된 환경(R/SPSS/Python)에서 같은 데이터로 결과를 비교해야 한다.
+
+**Step 1: 테스트 데이터 준비**
+
+| 데이터 유형 | 크기 | 목적 |
+|-------------|------|------|
+| 정상 케이스 | n=30, 정규분포 | 기본 정확도 확인 |
+| 경계 케이스 | minSampleSize 바로 위 (KM: 10, ROC: 20) | 소표본 처리 확인 |
+| 대규모 | n=1000+ | 수치 안정성 확인 |
+| 결측값 포함 | 20~50% NaN | 필터링 후 결과 일치 확인 |
+
+**테스트 데이터 저장**: `stats/__tests__/fixtures/cross-validation/` 폴더에 CSV로 보관.
+파일명: `{메서드ID}_{데이터유형}.csv` (예: `kaplan-meier_normal.csv`)
+
+**Step 2: BioHub 결과 기록**
+
+```
+1. Smart Flow에서 테스트 데이터 업로드
+2. 해당 메서드 선택 → 분석 실행
+3. 기록할 값:
+   - p-value (소수점 6자리까지)
+   - 검정 통계량 (t, F, χ², U 등)
+   - 효과 크기 (종류 + 값)
+   - 신뢰구간 [하한, 상한]
+   - 사후검정 결과 (있을 경우)
+   - 유효 표본 수 (missingRemoved 확인)
+```
+
+**Step 3: R/Python에서 동일 분석 실행**
+
+아래 중 하나로 실행:
+- **로컬 R**: R 콘솔 또는 RStudio에서 직접 실행 (가장 신뢰)
+- **R 실행 가능 AI**: ChatGPT Code Interpreter, Google Colab 등
+- **Python**: `scipy.stats` + `scikit-learn` (R 대안)
+
+```
+이 CSV 데이터로 [메서드명] 분석을 실행해줘.
+
+데이터:
+[CSV 붙여넣기 또는 파일 첨부]
+
+R 코드로 다음 값을 출력해줘:
+- p-value
+- 검정 통계량
+- 효과 크기 (Cohen's d / eta-squared / 해당되는 것)
+- 95% 신뢰구간
+- 사후검정 (해당 시)
+
+사용할 R 함수:
+- t-test: t.test()
+- ANOVA: aov() + TukeyHSD()
+- Mann-Whitney: wilcox.test()
+- Kruskal-Wallis: kruskal.test()
+- KM: survival::survfit() + survdiff()
+- ROC: pROC::roc()
+- ANCOVA: car::Anova(lm(...), type="III")
+```
+
+**Step 4: 결과 비교**
+
+```
+| 항목 | BioHub | R | 차이 | 판정 |
+|------|--------|---|------|------|
+| p-value | 0.0234 | 0.0231 | 0.0003 | ✅ 허용범위 |
+| Cohen's d | 0.85 | 0.84 | 0.01 | ✅ 허용범위 |
+| CI lower | 1.23 | 1.24 | 0.01 | ✅ 허용범위 |
+| CI upper | 3.45 | 3.44 | 0.01 | ✅ 허용범위 |
+```
+
+**판정 기준**: 허용 오차 초과 시 → 원인 조사 필수:
+- 반올림 차이 (허용) vs 알고리즘 차이 (수정 필요) vs 라이브러리 버전 차이 (문서화)
+
+**Step 5: 결과 기록**
+
+검증 완료 후 이 파일 하단 "교차 검증 이력"에 기록:
+
+```
+| 날짜 | 메서드 | 데이터 | BioHub vs R | 판정 |
+|------|--------|--------|-------------|------|
+```
+
+### 메서드별 R 비교 함수 매핑
+
+| BioHub 메서드 ID | R 함수 | R 패키지 |
+|------------------|--------|----------|
+| `two-sample-t` | `t.test(x, y)` | base |
+| `paired-t` | `t.test(x, y, paired=TRUE)` | base |
+| `one-way-anova` | `aov(y ~ group)` | base |
+| `two-way-anova` | `aov(y ~ A*B)` | base |
+| `mann-whitney` | `wilcox.test(x, y)` | base |
+| `kruskal-wallis` | `kruskal.test(y ~ group)` | base |
+| `chi-square-independence` | `chisq.test(table)` | base |
+| `chi-square-goodness` | `chisq.test(x, p=prob)` | base |
+| `ancova` | `car::Anova(lm(y ~ group + cov), type="III")` | car |
+| `kaplan-meier` | `survival::survfit(Surv(time, event) ~ group)` | survival |
+| `roc-curve` | `pROC::roc(actual, predicted)` | pROC |
+| `pearson-correlation` | `cor.test(x, y)` | base |
+| `spearman-correlation` | `cor.test(x, y, method="spearman")` | base |
+| `linear-regression` | `lm(y ~ x)` | base |
+| `multiple-regression` | `lm(y ~ x1 + x2 + ...)` | base |
+| `logistic-regression` | `glm(y ~ x, family=binomial)` | base |
+
+**효과 크기 비교 함수**:
+
+| 효과 크기 | R 함수 | R 패키지 |
+|-----------|--------|----------|
+| Cohen's d | `effectsize::cohens_d(x, y)` | effectsize |
+| Eta-squared | `effectsize::eta_squared(aov_result)` | effectsize |
+| Cramér's V | `effectsize::cramers_v(table)` | effectsize |
+| Rank-biserial r | `effectsize::rank_biserial(x, y)` | effectsize |
 
 ### 요청 템플릿
 
@@ -151,6 +258,14 @@ GraphPad Prism이나 JMP 같은 전문 통계 도구와 비교해서
 R에서 같은 분석을 돌린 결과와 비교 검증해줘.
 p-value, 효과 크기, 신뢰구간 각각 비교.
 ```
+
+---
+
+## 교차 검증 이력
+
+| 날짜 | 메서드 | 데이터 | BioHub vs R | 판정 |
+|------|--------|--------|-------------|------|
+| (미실행) | | | | |
 
 ---
 
