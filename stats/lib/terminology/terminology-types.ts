@@ -447,6 +447,10 @@ export interface HistoryText {
     viewResults: string
     reanalyze: string
     delete: string
+    pin: string
+    unpin: string
+    maxPinned: (max: number) => string
+    exportReport: string
   }
   dialogs: {
     deleteTitle: string

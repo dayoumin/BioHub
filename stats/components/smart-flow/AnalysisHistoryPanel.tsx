@@ -1,21 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import {
   Clock,
   Trash2,
-  RotateCcw,
   RefreshCw,
   Eye,
   Database,
   BarChart3,
   FileText,
   Search,
-  Filter,
-  Plus,
   Download,
   ChevronDown,
   ChevronUp,
+  Pin,
+  PinOff,
+  MoreHorizontal,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -26,7 +26,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
@@ -61,6 +60,10 @@ import { ExportService } from '@/lib/services/export/export-service'
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
 import type { ExportContentOptions, ExportContext, ExportFormat } from '@/lib/services/export/export-types'
 import { toast } from 'sonner'
+import {
+  usePinnedHistoryIds,
+  MAX_PINNED,
+} from '@/lib/utils/pinned-history-storage'
 
 export interface AnalysisHistoryPanelProps {
   onClose?: () => void
@@ -84,6 +87,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
     includeReferences: false,
   })
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
+  const [pinnedIds, setPinnedIds] = usePinnedHistoryIds()
 
   const toggleExpand = (id: string) => {
     setExpandedItems(prev => {
@@ -110,21 +114,51 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
     reset
   } = useSmartFlowStore()
 
-  // 필터링된 히스토리
-  const filteredHistory = analysisHistory.filter(item => {
-    const methodName = item.method?.name ?? ''
-    const methodId = item.method?.id ?? ''
+  // 삭제된 히스토리 ID가 pinnedIds에 남아있으면 정리 (방어적 백업)
+  useEffect(() => {
+    const validIds = new Set(analysisHistory.map(h => h.id))
+    setPinnedIds(prev => {
+      const cleaned = prev.filter(id => validIds.has(id))
+      return cleaned.length !== prev.length ? cleaned : prev
+    })
+  }, [analysisHistory, setPinnedIds])
 
-    const matchesSearch = searchQuery === '' ||
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.purpose.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      methodName.toLowerCase().includes(searchQuery.toLowerCase())
+  const handleTogglePin = useCallback((historyId: string) => {
+    setPinnedIds(prev => {
+      if (prev.includes(historyId)) {
+        return prev.filter(id => id !== historyId)
+      }
+      if (prev.length >= MAX_PINNED) {
+        toast.info(t.history.tooltips.maxPinned(MAX_PINNED))
+        return prev
+      }
+      return [...prev, historyId]
+    })
+  }, [setPinnedIds, t])
 
-    const matchesFilter = filterMethod === null ||
-      methodId === filterMethod
+  // 필터링된 히스토리 (pinned 우선 정렬)
+  const filteredHistory = useMemo(() => {
+    const filtered = analysisHistory.filter(item => {
+      const methodName = item.method?.name ?? ''
+      const methodId = item.method?.id ?? ''
 
-    return matchesSearch && matchesFilter
-  })
+      const matchesSearch = searchQuery === '' ||
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.purpose.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        methodName.toLowerCase().includes(searchQuery.toLowerCase())
+
+      const matchesFilter = filterMethod === null ||
+        methodId === filterMethod
+
+      return matchesSearch && matchesFilter
+    })
+
+    const pinnedSet = new Set(pinnedIds)
+    return [
+      ...filtered.filter(h => pinnedSet.has(h.id)),
+      ...filtered.filter(h => !pinnedSet.has(h.id)),
+    ]
+  }, [analysisHistory, searchQuery, filterMethod, pinnedIds])
 
   // 고유한 분석 방법 추출 (필터용) - id와 name 매핑
   const uniqueMethods = analysisHistory
@@ -147,13 +181,19 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
     onClose?.()
   }
 
-  const handleDelete = async (historyId: string) => {
+  const handleDelete = useCallback(async (historyId: string) => {
     await deleteFromHistory(historyId)
+    // pinnedIds에서도 즉시 제거 (functional updater로 stale closure 방지)
+    setPinnedIds(prev => {
+      if (!prev.includes(historyId)) return prev
+      return prev.filter(id => id !== historyId)
+    })
     setDeleteConfirmId(null)
-  }
+  }, [deleteFromHistory, setPinnedIds])
 
   const handleClearAll = async () => {
     await clearHistory()
+    setPinnedIds([])
     setShowClearConfirm(false)
   }
 
@@ -315,6 +355,9 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
             <div className="flex items-start justify-between">
               <div className="flex-1" onClick={() => handleLoad(item.id)}>
                 <div className="flex items-center gap-2 mb-1">
+                  {pinnedIds.includes(item.id) && (
+                    <Pin className="w-3 h-3 text-primary shrink-0" />
+                  )}
                   <h4 className="font-medium">{item.name}</h4>
                   {currentHistoryId === item.id && (
                     <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
@@ -409,44 +452,22 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
               </div>
 
               <div className="flex items-center gap-1 ml-2">
-                {/* 내보내기 */}
+                {/* 상단 고정 토글 */}
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation()
-                    openExportDialog(item)
+                    handleTogglePin(item.id)
                   }}
-                  title="보고서 내보내기"
+                  title={pinnedIds.includes(item.id) ? t.history.tooltips.unpin : t.history.tooltips.pin}
+                  className={pinnedIds.includes(item.id) ? 'text-primary hover:text-primary' : ''}
                 >
-                  <Download className="w-4 h-4" />
-                </Button>
-
-                {/* 저장된 결과 보기 */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleLoad(item.id)
-                  }}
-                  title={t.history.tooltips.viewResults}
-                >
-                  <Eye className="w-4 h-4" />
-                </Button>
-
-                {/* 같은 방법으로 새 데이터 분석 */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleReanalyze(item.id)
-                  }}
-                  title={t.history.tooltips.reanalyze}
-                  className="text-primary hover:text-primary"
-                >
-                  <RefreshCw className="w-4 h-4" />
+                  {pinnedIds.includes(item.id) ? (
+                    <PinOff className="w-4 h-4" />
+                  ) : (
+                    <Pin className="w-4 h-4" />
+                  )}
                 </Button>
 
                 {/* 삭제 */}
@@ -461,6 +482,34 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
+
+                {/* 더보기: 보기, 내보내기, 재분석 */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleLoad(item.id)}>
+                      <Eye className="w-4 h-4 mr-2" />
+                      {t.history.tooltips.viewResults}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleReanalyze(item.id)}>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      {t.history.tooltips.reanalyze}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => openExportDialog(item)}>
+                      <Download className="w-4 h-4 mr-2" />
+                      {t.history.tooltips.exportReport}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </Card>

@@ -33,6 +33,7 @@ interface ChatCentricHubProps {
   onIntentResolved: (intent: ResolvedIntent, message: string) => void
   onQuickAnalysis: (methodId: string) => void
   onHistorySelect: (historyId: string) => void
+  onHistoryDelete: (historyId: string) => Promise<void>
   onUploadClick?: () => void
 }
 
@@ -145,6 +146,7 @@ export function ChatCentricHub({
   onIntentResolved,
   onQuickAnalysis,
   onHistorySelect,
+  onHistoryDelete,
   onUploadClick,
 }: ChatCentricHubProps) {
   const prefersReducedMotion = useReducedMotion()
@@ -275,6 +277,7 @@ export function ChatCentricHub({
       <QuickAccessBar
         onQuickAnalysis={onQuickAnalysis}
         onHistoryClick={onHistorySelect}
+        onHistoryDelete={onHistoryDelete}
       />
     </motion.div>
   )

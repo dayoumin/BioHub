@@ -270,6 +270,11 @@ export default function HomePage() {
     }
   }, [setShowHub])
 
+  // History delete from hub
+  const handleHistoryDelete = useCallback(async (historyId: string) => {
+    await useSmartFlowStore.getState().deleteFromHistory(historyId)
+  }, [])
+
   // Hub 채팅창의 파일 버튼 클릭 → Step 1(데이터 업로드)으로 바로 이동
   const handleHubUploadClick = useCallback(() => {
     setShowHub(false)
@@ -336,6 +341,7 @@ export default function HomePage() {
           onIntentResolved={handleIntentResolved}
           onQuickAnalysis={handleQuickAnalysis}
           onHistorySelect={handleHistorySelect}
+          onHistoryDelete={handleHistoryDelete}
           onUploadClick={handleHubUploadClick}
         />
       )}

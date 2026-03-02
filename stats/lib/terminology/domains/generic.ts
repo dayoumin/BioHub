@@ -412,6 +412,10 @@ export const generic: TerminologyDictionary = {
       viewResults: 'View saved results',
       reanalyze: 'Analyze new data with this method',
       delete: 'Delete',
+      pin: 'Pin to top',
+      unpin: 'Unpin',
+      maxPinned: (max: number) => `You can pin up to ${max} items.`,
+      exportReport: 'Export report',
     },
     dialogs: {
       deleteTitle: 'Delete Analysis History',

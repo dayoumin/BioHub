@@ -413,6 +413,10 @@ export const aquaculture: TerminologyDictionary = {
       viewResults: '저장된 결과 보기',
       reanalyze: '이 방법으로 새 데이터 분석',
       delete: '삭제',
+      pin: '상단에 고정',
+      unpin: '고정 해제',
+      maxPinned: (max: number) => `최대 ${max}개까지 고정할 수 있습니다.`,
+      exportReport: '보고서 내보내기',
     },
     dialogs: {
       deleteTitle: '분석 히스토리 삭제',
