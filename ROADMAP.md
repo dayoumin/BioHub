@@ -1604,6 +1604,30 @@ pnpm dev                             # Graph Studio + 레거시 육안 확인
 
 ---
 
+## 🔍 정기 코드 리뷰 (반복 작업)
+
+**가이드**: [REVIEW_CHECKLIST.md](stats/docs/REVIEW_CHECKLIST.md) (BioHub 전용)
+**범용 원칙**: [code-review-checklist.md](d:\Projects\dev-playbook\quality\code-review-checklist.md)
+
+주요 기능 완료 후 8가지 관점으로 점검한다.
+모든 관점을 매번 볼 필요는 없고, 변경 유형에 따라 선택한다.
+
+| 변경 유형 | 적용 관점 |
+|-----------|-----------|
+| Worker2 Python 수정 | 3(데이터정합성) + 7(네이밍) + 8(회귀) |
+| Smart Flow UI 변경 | 2(UX) + 7(아키텍처) + 4(엣지케이스) |
+| 새 통계 메서드 추가 | 3(데이터정합성) + 7(아키텍처) + 1(코드품질) |
+| echarts-converter 수정 | 1(코드품질) + 8(회귀) + 6(성능) |
+| executor 함수 수정 | 8(회귀) + 3(데이터정합성) + 4(엣지케이스) |
+
+**실행 기록**:
+
+| 날짜 | 대상 | 관점 | 발견 |
+|------|------|------|------|
+| (미실행) | | | |
+
+---
+
 ## 📋 백로그: ANOVA 사후검정 개선 (예정)
 
 **목표**: 이원/삼원 ANOVA 사후검정의 Games-Howell 자동 선택 로직 추가
