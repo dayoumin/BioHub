@@ -114,9 +114,6 @@ export function DataUploadStep({
     if (file.size > maxSize) {
       const errorMsg = t.dataUpload.errors.fileTooLarge(maxSize / 1024 / 1024)
       setError(errorMsg)
-      toast.error(t.dataUpload.errors.fileSizeExceeded, {
-        description: t.dataUpload.errors.currentFileSize((file.size / 1024 / 1024).toFixed(1))
-      })
       setIsUploading(false)
       return
     }
@@ -129,9 +126,6 @@ export function DataUploadStep({
         if (!securityCheck.isValid) {
           const errorMsg = getUserFriendlyErrorMessage(securityCheck.error || 'File security validation failed')
           setError(errorMsg)
-          toast.error(t.dataUpload.errors.validationFailed, {
-            description: errorMsg
-          })
           setIsUploading(false)
           return
         }
@@ -164,9 +158,6 @@ export function DataUploadStep({
 
           if (dataRows.length === 0) {
             setError(t.dataUpload.errors.noDataInFile)
-            toast.error(t.dataUpload.errors.noDataTitle, {
-              description: t.dataUpload.errors.noValidData
-            })
             setIsUploading(false)
             return
           }
@@ -196,9 +187,6 @@ export function DataUploadStep({
               if (dataRows.length > DATA_LIMITS.MAX_ROWS) {
                 const errorMsg = t.dataUpload.errors.tooManyRows(DATA_LIMITS.MAX_ROWS.toLocaleString())
                 setError(errorMsg)
-                toast.error(t.dataUpload.errors.dataSizeExceeded, {
-                  description: t.dataUpload.errors.currentRowCount(dataRows.length.toLocaleString())
-                })
                 setIsUploading(false)
                 return
               }
@@ -238,9 +226,6 @@ export function DataUploadStep({
         const validation = ExcelProcessor.validateExcelFile(file)
         if (!validation.isValid) {
           setError(validation.error || t.dataUpload.errors.excelValidationFailed)
-          toast.error(t.dataUpload.errors.excelFileError, {
-            description: validation.error
-          })
           setIsUploading(false)
           return
         }
@@ -277,9 +262,6 @@ export function DataUploadStep({
       }
     } else {
       setError(t.dataUpload.errors.unsupportedFormat)
-      toast.error(t.dataUpload.errors.unsupportedFormatTitle, {
-        description: t.dataUpload.errors.csvRequired
-      })
       setIsUploading(false)
     }
   }, [onUploadComplete, addToRecentFiles, t])

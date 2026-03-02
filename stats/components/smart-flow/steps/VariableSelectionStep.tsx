@@ -10,6 +10,7 @@
 import React, { useState, useMemo, useCallback } from 'react'
 import { logger } from '@/lib/utils/logger'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, Settings2, Sparkles, Upload } from 'lucide-react'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -281,6 +282,13 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         icon={Upload}
         title={t.smartFlow.emptyStates.dataRequired}
         description={t.smartFlow.emptyStates.dataRequiredDescription}
+        action={
+          onBack && (
+            <Button variant="outline" onClick={onBack}>
+              {t.smartFlow.layout.prevStep}
+            </Button>
+          )
+        }
       />
     )
   }

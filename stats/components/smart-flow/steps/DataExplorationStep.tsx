@@ -20,6 +20,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { OutlierDetailPanel, OutlierInfo } from '@/components/common/analysis/OutlierDetailPanel'
 import { DataPrepGuide } from '@/components/statistics/common/DataPrepGuide'
 import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import { TemplateSelector } from '@/components/smart-flow/TemplateSelector'
 import { TemplateManagePanel } from '@/components/smart-flow/TemplateManagePanel'
 import { useTemplateStore } from '@/lib/stores/template-store'
@@ -732,18 +733,36 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                 <table className="w-full text-sm border-collapse">
                   <thead className="sticky top-0 bg-muted/60 backdrop-blur-md z-10">
                     <tr className="border-b border-border/40">
-                      <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.variableName}</th>
-                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.count}</th>
-                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.mean}</th>
-                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.stdDev}</th>
-                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.median}</th>
-                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.min}</th>
-                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.max}</th>
-                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">Q1</th>
-                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">Q3</th>
-                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.skewness}</th>
-                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.kurtosis}</th>
-                      <th className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.outliers}</th>
+                      <th scope="col" className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.variableName}</th>
+                      <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.count}</th>
+                      <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.mean}</th>
+                      <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.stdDev}</th>
+                      <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.median}</th>
+                      <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.min}</th>
+                      <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.max}</th>
+                      <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="underline decoration-dotted cursor-help">Q1</span>
+                            </TooltipTrigger>
+                            <TooltipContent>{t.dataExploration.headers.q1Tooltip}</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </th>
+                      <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="underline decoration-dotted cursor-help">Q3</span>
+                            </TooltipTrigger>
+                            <TooltipContent>{t.dataExploration.headers.q3Tooltip}</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </th>
+                      <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.skewness}</th>
+                      <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.kurtosis}</th>
+                      <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.outliers}</th>
                     </tr>
                   </thead>
 

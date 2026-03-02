@@ -211,6 +211,7 @@ export const generic: TerminologyDictionary = {
       helpLabel: 'Help',
       settingsLabel: 'Settings',
       nextStep: 'Next Step',
+      prevStep: 'Previous Step',
       analyzingDefault: 'Analyzing...',
       floatingNavDisabledHint: 'Upload a data file to continue',
       dataSizeGuide: 'Data Size Guide',
@@ -462,6 +463,7 @@ export const generic: TerminologyDictionary = {
       },
     },
     experimentNotReady: 'Experiment design is coming soon. Redirecting to data consultation.',
+    intentClassificationFailed: 'Could not classify your request. Continuing with data consultation.',
     cards: {
       methodsTitle: 'Analysis Tools',
       methodsDescription: (categories: number) => `Browse T-test, ANOVA, Regression and more across ${categories} categories`,
@@ -605,6 +607,8 @@ export const generic: TerminologyDictionary = {
       skewness: 'Skewness',
       kurtosis: 'Kurtosis',
       outliers: 'Outliers',
+      q1Tooltip: '1st Quartile — 25% of values fall below this point',
+      q3Tooltip: '3rd Quartile — 75% of values fall below this point',
     },
     interpretGuide: {
       title: 'Interpretation Guide:',

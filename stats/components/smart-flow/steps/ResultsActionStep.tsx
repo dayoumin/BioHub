@@ -735,16 +735,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 size="sm"
                 onClick={() => handleSaveAsFile('docx')}
                 disabled={isExporting}
-                className={cn("shadow-sm", isSaved && !isExporting && "bg-emerald-600 hover:bg-emerald-600 text-white border-emerald-600")}
+                className={cn("shadow-sm", isSaved && "bg-emerald-600 hover:bg-emerald-600 text-white border-emerald-600")}
               >
-                {isSaved && !isExporting
-                  ? <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
-                  : <Save className="w-3.5 h-3.5 mr-1.5" />}
-                {isExporting
-                  ? t.results.buttons.exporting
-                  : isSaved
-                  ? t.results.buttons.saved
-                  : t.results.buttons.save}
+                {isSaved ? <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
+                {isSaved ? t.results.buttons.saved : t.results.buttons.save}
               </Button>
             </div>
           }
@@ -990,6 +984,67 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           </motion.div>
         )}
 
+        {/* ===== [Phase 2] L2 상세 결과 카드 ===== */}
+        {hasDetailedResults && (phase >= 2 || prefersReducedMotion) && (
+          <motion.div
+            variants={prefersReducedMotion ? undefined : sectionRevealVariants}
+            initial={prefersReducedMotion ? undefined : 'hidden'}
+            animate={prefersReducedMotion ? undefined : 'visible'}
+          >
+          <Card className="overflow-hidden" data-testid="detailed-results-section">
+            <CollapsibleSection
+              label={t.results.sections.detailedResults}
+              open={detailedResultsOpen}
+              onOpenChange={setDetailedResultsOpen}
+              contentClassName="pt-0 border-t border-border/10"
+              icon={<BarChart3 className="h-3.5 w-3.5" />}
+            >
+              <div className="px-4 py-4 space-y-4">
+                {statisticalResult.confidenceInterval && (
+                  <ConfidenceIntervalDisplay
+                    label={t.results.sections.confidenceInterval}
+                    lower={statisticalResult.confidenceInterval.lower}
+                    upper={statisticalResult.confidenceInterval.upper}
+                    estimate={statisticalResult.confidenceInterval.estimate}
+                    level={Math.round((statisticalResult.confidenceInterval.level ?? 0.95) * 100)}
+                    showVisualization
+                    showInterpretation
+                    className="border-0 shadow-none bg-transparent"
+                  />
+                )}
+
+                {statisticalResult.effectSize && (
+                  <EffectSizeCard
+                    title={t.smartFlow.resultSections.effectSizeDetail}
+                    value={statisticalResult.effectSize.value}
+                    type={statisticalResult.effectSize.type}
+                    showInterpretation
+                    showVisualScale
+                    className="border-0 shadow-none bg-transparent"
+                  />
+                )}
+
+                {statisticalResult.additionalResults?.map((table, idx) => (
+                  <StatisticsTable
+                    key={idx}
+                    title={table.title}
+                    columns={(table.columns as Array<{ key: string; label: string }>).map(col => ({
+                      key: col.key,
+                      header: col.label,
+                    }))}
+                    data={table.data}
+                    compactMode
+                    className="border-0 shadow-none"
+                  />
+                ))}
+
+                <MethodSpecificResults results={results} />
+              </div>
+            </CollapsibleSection>
+          </Card>
+          </motion.div>
+        )}
+
         {/* ===== [Phase 4] 후속 Q&A 카드 ===== */}
         {(phase >= 4 || prefersReducedMotion) && interpretation && !isInterpreting && (
           <motion.div
@@ -1099,67 +1154,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 </div>
               )}
             </CardContent>
-          </Card>
-          </motion.div>
-        )}
-
-        {/* ===== [Phase 2] L2 상세 결과 카드 ===== */}
-        {hasDetailedResults && (phase >= 2 || prefersReducedMotion) && (
-          <motion.div
-            variants={prefersReducedMotion ? undefined : sectionRevealVariants}
-            initial={prefersReducedMotion ? undefined : 'hidden'}
-            animate={prefersReducedMotion ? undefined : 'visible'}
-          >
-          <Card className="overflow-hidden" data-testid="detailed-results-section">
-            <CollapsibleSection
-              label={t.results.sections.detailedResults}
-              open={detailedResultsOpen}
-              onOpenChange={setDetailedResultsOpen}
-              contentClassName="pt-0 border-t border-border/10"
-              icon={<BarChart3 className="h-3.5 w-3.5" />}
-            >
-              <div className="px-4 py-4 space-y-4">
-                {statisticalResult.confidenceInterval && (
-                  <ConfidenceIntervalDisplay
-                    label={t.results.sections.confidenceInterval}
-                    lower={statisticalResult.confidenceInterval.lower}
-                    upper={statisticalResult.confidenceInterval.upper}
-                    estimate={statisticalResult.confidenceInterval.estimate}
-                    level={Math.round((statisticalResult.confidenceInterval.level ?? 0.95) * 100)}
-                    showVisualization
-                    showInterpretation
-                    className="border-0 shadow-none bg-transparent"
-                  />
-                )}
-
-                {statisticalResult.effectSize && (
-                  <EffectSizeCard
-                    title={t.smartFlow.resultSections.effectSizeDetail}
-                    value={statisticalResult.effectSize.value}
-                    type={statisticalResult.effectSize.type}
-                    showInterpretation
-                    showVisualScale
-                    className="border-0 shadow-none bg-transparent"
-                  />
-                )}
-
-                {statisticalResult.additionalResults?.map((table, idx) => (
-                  <StatisticsTable
-                    key={idx}
-                    title={table.title}
-                    columns={(table.columns as Array<{ key: string; label: string }>).map(col => ({
-                      key: col.key,
-                      header: col.label,
-                    }))}
-                    data={table.data}
-                    compactMode
-                    className="border-0 shadow-none"
-                  />
-                ))}
-
-                <MethodSpecificResults results={results} />
-              </div>
-            </CollapsibleSection>
           </Card>
           </motion.div>
         )}

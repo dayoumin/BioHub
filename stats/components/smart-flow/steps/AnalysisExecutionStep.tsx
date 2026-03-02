@@ -303,22 +303,23 @@ export function AnalysisExecutionStep({
     }
   }, [addLog, logs, onPrevious, t])
 
-  // 컴포넌트 마운트 시 분석 실행 (variableMapping이 유효할 때만)
-  useEffect(() => {
-    // variableMapping 유효성: VariableMapping의 어떤 키든 값이 있으면 유효
-    // (AutoConfirmSelector: event/timeVar 등, GroupComparison: groupVar/dependentVar 등)
-    const hasValidMapping = variableMapping &&
+  // variableMapping 유효성: 어떤 키든 값이 있으면 유효
+  const hasValidMapping = Boolean(
+    variableMapping &&
       Object.values(variableMapping).some(v =>
         v !== undefined && v !== null && (Array.isArray(v) ? v.length > 0 : v !== '')
       )
+  )
 
+  // 컴포넌트 마운트 시 분석 실행 (variableMapping이 유효할 때만)
+  useEffect(() => {
     if (!isCancelled && !analysisResult && hasValidMapping) {
       logger.info('Starting analysis with variableMapping', { variableMapping })
       runAnalysis()
     } else if (!hasValidMapping && !analysisResult) {
       logger.warn('Waiting for valid variableMapping', { variableMapping })
     }
-  }, [isCancelled, analysisResult, variableMapping, runAnalysis])
+  }, [isCancelled, analysisResult, hasValidMapping, runAnalysis])
 
   // 예상 시간 업데이트
   useEffect(() => {
@@ -344,6 +345,21 @@ export function AnalysisExecutionStep({
           title={t.smartFlow.stepTitles.analysisExecution}
           badge={selectedMethod ? { label: selectedMethod.name } : undefined}
         />
+
+      {/* 변수 매핑 미완료 경고 */}
+      {!hasValidMapping && !error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between gap-4">
+            <span>{t.smartFlow.execution.dataRequired}</span>
+            {onPrevious && (
+              <Button variant="outline" size="sm" onClick={onPrevious} className="shrink-0">
+                {t.smartFlow.layout.prevStep}
+              </Button>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* 오류 표시 */}
       {error && (

@@ -212,6 +212,7 @@ export const aquaculture: TerminologyDictionary = {
       helpLabel: '도움말',
       settingsLabel: '설정',
       nextStep: '다음 단계로',
+      prevStep: '이전 단계로',
       analyzingDefault: '분석 중...',
       floatingNavDisabledHint: '데이터 파일을 업로드하면 활성화됩니다',
       dataSizeGuide: '데이터 크기 가이드',
@@ -463,6 +464,7 @@ export const aquaculture: TerminologyDictionary = {
       },
     },
     experimentNotReady: '실험 설계 기능은 준비 중입니다. 데이터 상담으로 안내해 드릴게요.',
+    intentClassificationFailed: '요청을 분류하지 못했습니다. 데이터 상담으로 이어서 진행합니다.',
     cards: {
       methodsTitle: '분석 도구',
       methodsDescription: (categories: number) => `T-검정, ANOVA, 회귀분석 등 ${categories}개 카테고리의 전체 목록을 탐색합니다`,
@@ -611,6 +613,8 @@ export const aquaculture: TerminologyDictionary = {
       skewness: '왜도',
       kurtosis: '첨도',
       outliers: '이상치',
+      q1Tooltip: '제1사분위수 — 하위 25% 경계값',
+      q3Tooltip: '제3사분위수 — 하위 75% 경계값',
     },
     interpretGuide: {
       title: '해석 기준:',

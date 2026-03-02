@@ -275,6 +275,7 @@ export interface SmartFlowText {
     helpLabel: string
     settingsLabel: string
     nextStep: string
+    prevStep: string
     analyzingDefault: string
     floatingNavDisabledHint: string
     dataSizeGuide: string
@@ -492,6 +493,8 @@ export interface HubText {
   }
   /** 실험 설계 미구현 안내 메시지 */
   experimentNotReady: string
+  /** Intent Router 분류 실패 안내 메시지 */
+  intentClassificationFailed: string
   cards: {
     methodsTitle: string
     methodsDescription: (categories: number) => string
@@ -624,6 +627,8 @@ export interface DataExplorationText {
     skewness: string
     kurtosis: string
     outliers: string
+    q1Tooltip: string
+    q3Tooltip: string
   }
   /** 해석 가이드 */
   interpretGuide: {

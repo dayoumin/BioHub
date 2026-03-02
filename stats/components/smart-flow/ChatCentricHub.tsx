@@ -15,6 +15,7 @@
 
 import { useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
+import { toast } from 'sonner'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { intentRouter } from '@/lib/services/intent-router'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
@@ -171,6 +172,7 @@ export function ChatCentricHub({
       onIntentResolved(intent, message)
     } catch (error) {
       logger.error('[ChatCentricHub] Intent classification failed', { error })
+      toast.info(t.hub.intentClassificationFailed)
       // fallback: 데이터 상담으로 이동
       const fallback: ResolvedIntent = {
         track: 'data-consultation',
