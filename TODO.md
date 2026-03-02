@@ -31,6 +31,17 @@
 
 ## 📅 최근 작업 (7일)
 
+### 2026-03-02 (일) 메인 화면 히스토리 Pin 고정 + 인라인 삭제 UX 개선
+
+- ✅ **Pin 고정 기능**: 중요 분석 최대 3개 상단 고정 — localStorage + CustomEvent 크로스 컴포넌트 동기화
+- ✅ **인라인 삭제**: QuickAccessBar pill 호버 시 Pin/삭제 버튼 (group-hover 패턴)
+- ✅ **히스토리 항상 표시**: 0개여도 빈 상태 메시지 표시 (발견 가능성 개선)
+- ✅ **AnalysisHistoryPanel 액션 그룹화**: 5개 버튼 → 2개 + DropdownMenu (Pin, 삭제 직접 / 보기, 재분석, 내보내기 메뉴)
+- ✅ **다국어 terminology**: maxPinned, exportReport, pin/unpin 추가
+- ✅ **테스트 37개**: 단위 17개 (pinned-history-storage) + 통합 시뮬레이션 20개 (pinned-history-integration)
+- ✅ **비판적 코드 리뷰 3회**: duplicate ternary 버그, 미사용 import, toast 하드코딩, pin dot 가시성 수정
+- 📌 커밋: `2382c6e7`
+
 ### 2026-02-24 (월) 기술부채 정리 + Smart Flow UI 색상 토큰 완료
 
 - ✅ **기술부채**: 레거시 43개 statistics 페이지 삭제, `ignoreDuringBuilds: false`, `missingRemoved` 실제 계산, eslint flat config 정비
@@ -381,6 +392,14 @@
 | **저널 자동 포맷** | "Nature format으로" → AI가 규격 자동 적용 |
 | **Smart Flow → Graph 자동 연결** | 통계 결과 → 그래프 + 에러바 자동 생성 |
 | **유의성 마커 자동 배치** | p-value → *, **, *** 자동 추가 (G2-2 유의성 마커 기반) |
+
+**G3 잔여 작업 (코드 리뷰 발견)**
+
+| ID | 우선도 | 내용 | 비고 |
+|----|--------|------|------|
+| G3-E2E | HIGH | Smart Flow E2E에 kaplan-meier/roc-curve 시나리오 추가 | CSV 데이터 + Pyodide 런타임 필요 |
+| G3-SCREENSHOT | MEDIUM | KM/ROC 결과 화면 스크린샷 자동 캡처 + Prism 대비 시각 비교 | E2E 확장 시 자연 해결 |
+| G3-R-VERIFY | LOW | `generate-r-references.R` 실행 → KM/ROC 골든값 근사치를 R 정확값으로 교체 | 로컬 R 환경 필요 |
 
 ---
 
