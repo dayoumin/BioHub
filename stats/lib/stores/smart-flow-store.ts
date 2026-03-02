@@ -55,6 +55,8 @@ export interface DetectedVariables {
   independentVars?: string[]
   /** Covariate variables for ANCOVA (LLM enhanced) */
   covariates?: string[]
+  /** Event variable for survival analysis (1=event, 0=censored) */
+  eventVariable?: string
 }
 
 /**

@@ -397,8 +397,10 @@
 
 | ID | 우선도 | 내용 | 비고 |
 |----|--------|------|------|
-| G3-E2E | HIGH | Smart Flow E2E에 kaplan-meier/roc-curve 시나리오 추가 | CSV 데이터 + Pyodide 런타임 필요 |
+| G3-E2E | HIGH | Smart Flow E2E에 kaplan-meier/roc-curve 시나리오 추가 | ✅ 테스트 계획 + 데이터 10개 + 스펙 작성 완료 (`survival-roc-e2e.spec.ts`, 13개 시나리오) |
+| G3-E2E-RUN | HIGH | `survival-roc-e2e.spec.ts` 실행 + 실패 시나리오 디버깅 | 프로덕션 빌드 필요 (`pnpm build && npx playwright test`) |
 | G3-SCREENSHOT | MEDIUM | KM/ROC 결과 화면 스크린샷 자동 캡처 + Prism 대비 시각 비교 | E2E 확장 시 자연 해결 |
+| G3-GRAPH-VIZ-TEST | MEDIUM | Graph Studio 차트 시각화 E2E 테스트 | KM 곡선/ROC 곡선 렌더링 검증, ChartPreview 스크린샷 비교, 유의성 마커/에러바/범례 위치 시각적 회귀 테스트 (`toHaveScreenshot`) |
 | G3-R-VERIFY | LOW | `generate-r-references.R` 실행 → KM/ROC 골든값 근사치를 R 정확값으로 교체 | 로컬 R 환경 필요 |
 
 ---

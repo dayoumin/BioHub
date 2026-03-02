@@ -90,10 +90,7 @@ export interface StatisticalMethod {
     | 'correlation'
     | 'chi-square'
     | 'nonparametric'
-    | 'advanced'
     | 'timeseries'
-    | 'pca'
-    | 'clustering'
     | 'psychometrics'
     | 'design'
     | 'survival'
@@ -191,6 +188,10 @@ export interface AIRecommendation {
     covariate?: string[]
     within?: string[]
     between?: string[]
+    /** 생존분석 사건 변수 (1=사건, 0=중도절단) */
+    event?: string[]
+    /** 생존분석 시간 변수 (dependent의 alias) */
+    time?: string[]
   }
   /** 분석 설정 제안 */
   suggestedSettings?: SuggestedSettings

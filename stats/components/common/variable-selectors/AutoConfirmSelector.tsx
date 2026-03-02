@@ -108,6 +108,12 @@ export function AutoConfirmSelector({
                   </div>
                 </div>
               )}
+              {initialSelection?.event && (
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground w-24 shrink-0">사건변수:</span>
+                  <Badge variant="secondary">{initialSelection.event}</Badge>
+                </div>
+              )}
               {initialSelection?.groupVar && (
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground w-24 shrink-0">그룹변수:</span>

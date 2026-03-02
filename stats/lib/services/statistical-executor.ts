@@ -217,9 +217,6 @@ export class StatisticalExecutor {
         case 'chi-square':
           result = await this.executeChiSquare(method, preparedData)
           break
-        case 'pca':
-        case 'clustering':
-        case 'advanced':
         case 'multivariate':
           result = await this.executeMultivariate(method, preparedData)
           break
@@ -2147,7 +2144,7 @@ export class StatisticalExecutor {
         const depVar = (data.variables?.dependent || data.variables?.dependentVar) as string | string[] | undefined
         const eventVar = data.variables?.event as string | undefined
         const depName = Array.isArray(depVar) ? depVar[0] : depVar
-        const factorVar = data.variables?.factor as string | undefined
+        const factorVar = (data.variables?.factor || data.variables?.group || data.variables?.groupVar) as string | undefined
 
         if (!depName || !eventVar || !rawData) {
           throw new Error('Kaplan-Meier requires time (dependent) and event variable names')
@@ -2169,6 +2166,10 @@ export class StatisticalExecutor {
 
         if (alignedData.length === 0) {
           throw new Error('No valid time-event pairs found')
+        }
+
+        if (alignedData.length < 10) {
+          throw new Error(`Kaplan-Meier 분석에는 최소 10개의 유효한 관찰값이 필요합니다 (현재: ${alignedData.length})`)
         }
 
         const times = alignedData.map(d => d.time)
@@ -2334,8 +2335,17 @@ export class StatisticalExecutor {
           }
         }
 
-        if (actualClass.length < 4) {
-          throw new Error(`ROC 분석에는 최소 4개의 유효한 관찰값이 필요합니다 (현재: ${actualClass.length})`)
+        if (actualClass.length < 20) {
+          throw new Error(`ROC 분석에는 최소 20개의 유효한 관찰값이 필요합니다 (현재: ${actualClass.length})`)
+        }
+
+        // Validate actualClass is binary (0 or 1)
+        const uniqueClasses = [...new Set(actualClass)]
+        if (!uniqueClasses.every(c => c === 0 || c === 1)) {
+          throw new Error('결과 변수(dependent)는 이진값(0 또는 1)이어야 합니다')
+        }
+        if (uniqueClasses.length < 2) {
+          throw new Error('결과 변수에 두 클래스(0과 1)가 모두 포함되어야 합니다')
         }
 
         const result = await pyodideStats.rocCurveAnalysis(actualClass, predictedProb)

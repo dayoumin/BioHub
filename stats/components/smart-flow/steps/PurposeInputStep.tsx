@@ -122,6 +122,8 @@ function extractDetectedVariables(
   pairedVars?: [string, string]
   independentVars?: string[]
   covariates?: string[]
+  /** Event variable for survival analysis (1=event, 0=censored) */
+  eventVariable?: string
   /** LLM이 제안했으나 데이터에 없어서 필터된 변수명 목록 */
   filteredOutVars?: string[]
 } {
@@ -144,6 +146,7 @@ function extractDetectedVariables(
     pairedVars?: [string, string]
     independentVars?: string[]
     covariates?: string[]
+    eventVariable?: string
     filteredOutVars?: string[]
   } = {}
 
@@ -164,6 +167,17 @@ function extractDetectedVariables(
     trackFiltered(va.covariate)
     trackFiltered(va.within)
     trackFiltered(va.between)
+    trackFiltered(va.event)
+    trackFiltered(va.time)
+
+    // Event (survival analysis: 1=event, 0=censored)
+    if (va.event?.[0] && validCol(va.event[0])) {
+      detectedVars.eventVariable = va.event[0]
+    }
+    // Time (survival analysis: alias for dependent)
+    if (va.time?.[0] && validCol(va.time[0])) {
+      detectedVars.dependentCandidate = va.time[0]
+    }
 
     // Dependent
     if (va.dependent?.[0] && validCol(va.dependent[0])) {
@@ -221,6 +235,7 @@ function extractDetectedVariables(
     const hasAnyValid = detectedVars.dependentCandidate || detectedVars.groupVariable
       || detectedVars.factors?.length || detectedVars.independentVars?.length
       || detectedVars.covariates?.length || detectedVars.pairedVars
+      || detectedVars.eventVariable
     if (hasAnyValid) {
       detectedVars.numericVars = numericCols
       return detectedVars
@@ -244,7 +259,27 @@ function extractDetectedVariables(
   }
 
   // ─── 3순위: 메서드별 데이터 기반 추론 ───
-  if (methodId === 'two-way-anova' || methodId === 'three-way-anova') {
+  if (methodId === 'kaplan-meier' || methodId === 'cox-regression') {
+    // 생존분석: binary 컬럼(0/1) → event, 나머지 numeric → time(dependent)
+    const allColumns = validationResults?.columns || []
+    const binaryCol = allColumns.find(
+      (col: ColumnStatistics) => col.type === 'numeric' && col.uniqueValues === 2
+        && col.min === 0 && col.max === 1
+    )
+    if (binaryCol && !detectedVars.eventVariable) {
+      detectedVars.eventVariable = binaryCol.name
+    }
+    // time: 첫 번째 non-binary numeric 컬럼
+    if (!detectedVars.dependentCandidate) {
+      const timeCol = numericCols.find(n => n !== binaryCol?.name)
+      if (timeCol) detectedVars.dependentCandidate = timeCol
+    }
+    // group: 첫 번째 categorical 컬럼 (optional)
+    if (!detectedVars.groupVariable && categoricalCols.length > 0) {
+      detectedVars.groupVariable = categoricalCols[0]
+    }
+    detectedVars.numericVars = numericCols
+  } else if (methodId === 'two-way-anova' || methodId === 'three-way-anova') {
     detectedVars.factors = categoricalCols.slice(0, 2)
   } else if (methodId === 'paired-t-test' || methodId === 'paired-t' || methodId === 'wilcoxon' || methodId === 'wilcoxon-signed-rank') {
     if (numericCols.length >= 2) {

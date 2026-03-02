@@ -106,6 +106,7 @@ const SELECTOR_MAP: ReadonlyMap<string, SelectorType> = new Map([
   ['stationarity-test',       'auto'],
   ['kaplan-meier',            'auto'],
   ['cox-regression',          'auto'],
+  ['roc-curve',               'auto'],
   ['discriminant',            'auto'],
   ['power-analysis',          'auto'],
 ])
@@ -253,6 +254,9 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         }
         if (detectedVariables.numericVars?.length) {
           result.variables = detectedVariables.numericVars
+        }
+        if (detectedVariables.eventVariable) {
+          result.event = detectedVariables.eventVariable
         }
         break
 
