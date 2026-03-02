@@ -18,11 +18,11 @@ export const PURPOSE_CATEGORY_MAP: Record<AnalysisPurpose, string[]> = {
   compare: ['t-test', 'anova', 'nonparametric'],
   relationship: ['correlation', 'regression', 'chi-square'],
   distribution: ['nonparametric', 'chi-square'],
-  prediction: ['regression', 'advanced'],
+  prediction: ['regression', 'multivariate'],
   timeseries: ['timeseries', 'regression'],
   survival: ['survival'],
-  multivariate: ['pca', 'clustering', 'advanced'],
-  utility: ['design', 'advanced']
+  multivariate: ['multivariate'],
+  utility: ['design', 'multivariate']
 }
 
 const uniqueCategoriesForPurpose = (purpose: AnalysisPurpose): string[] =>
@@ -69,10 +69,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   'chi-square': '카이제곱 / 빈도분석',
   'descriptive': '기술통계',
   'regression': '회귀분석',
-  'advanced': '고급 분석',
+  'multivariate': '다변량/고급 분석',
   'timeseries': '시계열 분석',
-  'pca': '차원축소',
-  'clustering': '군집분석',
   'psychometrics': '심리측정',
   'design': '실험설계',
   'survival': '생존분석'
@@ -129,11 +127,9 @@ export function getAllMethodsGrouped(): MethodGroup[] {
     'correlation',
     'chi-square',
     'regression',
-    'pca',
-    'clustering',
+    'multivariate',
     'timeseries',
     'survival',
-    'advanced',
     'psychometrics',
     'design'
   ]

@@ -33,7 +33,7 @@ export const QUESTION_TYPES = [
     name: '고급/특수 분석',
     icon: '🔬',
     description: '차원축소, 군집, 시계열, 설계 등',
-    methods: ['pca', 'clustering', 'timeseries', 'survival', 'advanced', 'psychometrics', 'design']
+    methods: ['multivariate', 'timeseries', 'survival', 'psychometrics', 'design']
   }
 ]
 
@@ -275,7 +275,7 @@ export const STATISTICAL_METHODS: StatisticalMethod[] = [
     id: 'pca',
     name: '주성분분석',
     description: '차원 축소 및 변수 요약',
-    category: 'pca',
+    category: 'multivariate',
     requirements: {
       minSampleSize: 30,
       variableTypes: ['numeric']
@@ -285,7 +285,7 @@ export const STATISTICAL_METHODS: StatisticalMethod[] = [
     id: 'k-means',
     name: 'K-평균 군집',
     description: '데이터 그룹화',
-    category: 'clustering',
+    category: 'multivariate',
     requirements: {
       minSampleSize: 30,
       variableTypes: ['numeric']
@@ -295,7 +295,7 @@ export const STATISTICAL_METHODS: StatisticalMethod[] = [
     id: 'hierarchical',
     name: '계층적 군집',
     description: '계층구조 군집 분석',
-    category: 'clustering',
+    category: 'multivariate',
     requirements: {
       minSampleSize: 20,
       variableTypes: ['numeric']
@@ -430,7 +430,7 @@ export const STATISTICAL_METHODS: StatisticalMethod[] = [
     id: 'mixed-model',
     name: '혼합효과모형',
     description: '고정효과 + 랜덤효과 분석',
-    category: 'advanced',
+    category: 'multivariate',
     requirements: {
       minSampleSize: 30,
       variableTypes: ['numeric', 'categorical']
@@ -440,7 +440,7 @@ export const STATISTICAL_METHODS: StatisticalMethod[] = [
     id: 'discriminant',
     name: '판별분석 (LDA/QDA)',
     description: '그룹 분류 및 판별함수 도출',
-    category: 'advanced',
+    category: 'multivariate',
     requirements: {
       minSampleSize: 50,
       variableTypes: ['numeric', 'categorical']
@@ -492,7 +492,7 @@ export const STATISTICAL_METHODS: StatisticalMethod[] = [
     id: 'response-surface',
     name: '반응표면분석 (RSM)',
     description: '최적 조건 탐색',
-    category: 'advanced',
+    category: 'multivariate',
     requirements: {
       minSampleSize: 30,
       variableTypes: ['numeric']
@@ -554,7 +554,7 @@ export const STATISTICAL_METHODS: StatisticalMethod[] = [
     id: 'factor-analysis',
     name: '요인분석',
     description: '잠재요인 추출 및 변수 구조 파악',
-    category: 'pca',
+    category: 'multivariate',
     requirements: {
       minSampleSize: 50,
       variableTypes: ['numeric']

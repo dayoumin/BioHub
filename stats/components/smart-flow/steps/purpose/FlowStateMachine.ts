@@ -154,7 +154,7 @@ function flowReducerWithText(
               id: alt.id,
               name: alt.name,
               description: alt.description || '',
-              category: alt.category || 'advanced'
+              category: alt.category || 'multivariate'
             },
             reason: alt.description || ''
           })) || []

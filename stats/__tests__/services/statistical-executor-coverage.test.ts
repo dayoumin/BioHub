@@ -22,7 +22,7 @@ describe('StatisticalExecutor Method Coverage', () => {
     'descriptive': ['descriptive', 'normality-test', 'explore-data', 'means-plot'],
     'timeseries': ['arima', 'seasonal-decompose', 'stationarity-test', 'mann-kendall'],
     'survival': ['kaplan-meier', 'cox-regression', 'roc-curve'],
-    'advanced': ['pca', 'factor-analysis', 'cluster-analysis', 'discriminant', 'cluster'],
+    'multivariate': ['pca', 'factor-analysis', 'cluster-analysis', 'discriminant', 'cluster'],
     'design': ['power-analysis'],
     'psychometrics': ['reliability']
   }
@@ -73,8 +73,8 @@ describe('StatisticalExecutor Method Coverage', () => {
     })
 
     it('다변량 분석에 discriminant가 포함되어야 함', () => {
-      const advancedMethods = EXECUTOR_SUPPORTED_CATEGORIES.advanced
-      expect(advancedMethods).toContain('discriminant')
+      const multivariateMethods = EXECUTOR_SUPPORTED_CATEGORIES.multivariate
+      expect(multivariateMethods).toContain('discriminant')
     })
   })
 
@@ -91,9 +91,6 @@ describe('StatisticalExecutor Method Coverage', () => {
         'descriptive': 'executeDescriptive',
         'timeseries': 'executeTimeSeries',
         'survival': 'executeSurvival',
-        'pca': 'executeMultivariate',
-        'clustering': 'executeMultivariate',
-        'advanced': 'executeMultivariate',
         'multivariate': 'executeMultivariate',
         'design': 'executeDesign',
         'psychometrics': 'executeReliability'

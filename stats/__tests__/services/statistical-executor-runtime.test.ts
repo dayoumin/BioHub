@@ -88,7 +88,7 @@ describe('StatisticalExecutor Runtime Tests', () => {
         id: 'discriminant',
         name: 'Discriminant Analysis',
         description: 'Linear Discriminant Analysis',
-        category: 'advanced' as const
+        category: 'multivariate' as const
       }
 
       const result = await executor.executeMethod(method, data, variables)
@@ -126,7 +126,7 @@ describe('StatisticalExecutor Runtime Tests', () => {
         id: 'discriminant',
         name: 'Discriminant Analysis',
         description: 'Linear Discriminant Analysis',
-        category: 'advanced' as const
+        category: 'multivariate' as const
       }
 
       // Should throw error for empty feature data
@@ -165,7 +165,7 @@ describe('StatisticalExecutor Runtime Tests', () => {
         id: 'discriminant',
         name: 'Discriminant Analysis',
         description: 'Linear Discriminant Analysis',
-        category: 'advanced' as const
+        category: 'multivariate' as const
       }
 
       await executor.executeMethod(method, data, variables)
@@ -206,7 +206,7 @@ describe('StatisticalExecutor Runtime Tests', () => {
       ]
 
       const variables = { independent: ['feature1'], group: 'group' }
-      const method = { id: 'discriminant', name: 'Discriminant Analysis', description: 'LDA', category: 'advanced' as const }
+      const method = { id: 'discriminant', name: 'Discriminant Analysis', description: 'LDA', category: 'multivariate' as const }
 
       const result = await executor.executeMethod(method, data, variables) as StatisticalExecutorResult
 

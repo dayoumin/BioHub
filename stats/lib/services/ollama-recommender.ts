@@ -101,7 +101,7 @@ Categories:
 - regression: simple-linear-regression, multiple-linear-regression, logistic-regression
 - chi-square: chi-square-independence, chi-square-goodness-of-fit
 - descriptive: descriptive-stats
-- advanced: time-series-analysis`
+- multivariate: time-series-analysis`
 
   /**
    * Ollama 서버 Health Check (캐싱 + 재시도)
@@ -428,7 +428,7 @@ Respond ONLY in valid JSON format (no extra text).
     if (methodId.includes('regression')) return 'regression'
     if (methodId.includes('chi-square')) return 'chi-square'
     if (methodId === 'descriptive-stats') return 'descriptive'
-    return 'advanced'
+    return 'multivariate'
   }
 
   /**
@@ -953,7 +953,7 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
         // 시계열
         {
           keywords: ['시계열', '추세', '트렌드', 'time series', 'arima', '월별', '연도별', '계절'],
-          method: { id: 'arima', name: 'ARIMA 분석', description: '시계열 데이터 예측 및 분석', category: 'advanced' },
+          method: { id: 'arima', name: 'ARIMA 분석', description: '시계열 데이터 예측 및 분석', category: 'timeseries' },
           alternatives: [
             { id: 'time-series-decomposition', name: '시계열 분해', description: '추세, 계절성 분리' }
           ],
@@ -962,7 +962,7 @@ ${assumptionSummary ? `통계적 가정 검정 결과:\n${assumptionSummary}` : 
         // 생존분석
         {
           keywords: ['생존', '사건', '생존율', 'survival', 'kaplan', 'cox', '사망', '이탈'],
-          method: { id: 'kaplan-meier', name: 'Kaplan-Meier 분석', description: '생존 곡선 추정', category: 'advanced' },
+          method: { id: 'kaplan-meier', name: 'Kaplan-Meier 분석', description: '생존 곡선 추정', category: 'survival' },
           alternatives: [
             { id: 'cox-regression', name: 'Cox 회귀', description: '공변량이 생존에 미치는 영향' }
           ],

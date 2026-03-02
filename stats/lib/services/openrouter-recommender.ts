@@ -879,7 +879,7 @@ ${userInput}`
     if (methodId.includes('correlation')) return 'correlation'
     if (methodId.includes('regression')) return 'regression'
     if (methodId.includes('chi-square')) return 'chi-square'
-    return 'advanced'
+    return 'multivariate'
   }
 }
 
