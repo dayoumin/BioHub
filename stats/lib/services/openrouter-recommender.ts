@@ -874,11 +874,18 @@ ${userInput}`
    * methodId에서 카테고리 추론 (fallback)
    */
   private inferCategory(methodId: string): StatisticalMethod['category'] {
+    // 생존분석 (cox-regression보다 먼저 — regression 매칭 방지)
+    if (methodId === 'kaplan-meier' || methodId === 'cox-regression' || methodId === 'roc-curve') return 'survival'
+    // 시계열 (regression보다 먼저)
+    if (methodId === 'arima' || methodId === 'seasonal-decompose' || methodId === 'stationarity-test') return 'timeseries'
     if (methodId.includes('t-test') || methodId.includes('t-') || methodId === 'welch-t') return 't-test'
     if (methodId.includes('anova') || methodId === 'ancova' || methodId === 'manova') return 'anova'
     if (methodId.includes('correlation')) return 'correlation'
     if (methodId.includes('regression')) return 'regression'
     if (methodId.includes('chi-square')) return 'chi-square'
+    if (methodId === 'mann-kendall') return 'timeseries'
+    if (methodId === 'power-analysis') return 'design'
+    if (methodId === 'reliability') return 'psychometrics'
     return 'multivariate'
   }
 }

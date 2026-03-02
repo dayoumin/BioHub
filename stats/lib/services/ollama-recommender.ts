@@ -1,6 +1,13 @@
 /**
  * Phase 4-B: Ollama 기반 하이브리드 통계 분석 추천 시스템
  *
+ * ── 역할 ──
+ * 현재: OpenRouter (API 키) 경로가 주 사용 경로
+ * 향후: 내부망/오프라인 환경에서 로컬 LLM으로 사용 예정 → 제거 금지
+ *
+ * OpenRouter와 동일한 AIRecommendation 인터페이스를 반환하므로
+ * 추천 경로 전환 시 다른 코드 변경 없이 교체 가능.
+ *
  * 변경 사항 (v2.0):
  * 1. ✅ Health Check 캐싱 (5분 TTL)
  * 2. ✅ 재시도 로직 (2회, 2초 타임아웃)
@@ -101,7 +108,7 @@ Categories:
 - regression: simple-linear-regression, multiple-linear-regression, logistic-regression
 - chi-square: chi-square-independence, chi-square-goodness-of-fit
 - descriptive: descriptive-stats
-- multivariate: time-series-analysis`
+- timeseries: time-series-analysis`
 
   /**
    * Ollama 서버 Health Check (캐싱 + 재시도)
@@ -420,6 +427,10 @@ Respond ONLY in valid JSON format (no extra text).
    * methodId로부터 category 추론
    */
   private getCategoryFromMethodId(methodId: string): AIRecommendation['method']['category'] {
+    // 생존분석 (cox-regression보다 먼저 — regression 매칭 방지)
+    if (methodId === 'kaplan-meier' || methodId === 'cox-regression' || methodId === 'roc-curve') return 'survival'
+    // 시계열 (regression보다 먼저)
+    if (methodId === 'arima' || methodId === 'seasonal-decompose' || methodId === 'stationarity-test' || methodId === 'time-series-analysis') return 'timeseries'
     if (methodId.includes('t-test')) return 't-test'
     if (methodId.includes('anova')) return 'anova'
     if (methodId.includes('mann-whitney') || methodId.includes('wilcoxon') ||
@@ -428,6 +439,9 @@ Respond ONLY in valid JSON format (no extra text).
     if (methodId.includes('regression')) return 'regression'
     if (methodId.includes('chi-square')) return 'chi-square'
     if (methodId === 'descriptive-stats') return 'descriptive'
+    if (methodId === 'mann-kendall') return 'timeseries'
+    if (methodId === 'power-analysis') return 'design'
+    if (methodId === 'reliability') return 'psychometrics'
     return 'multivariate'
   }
 

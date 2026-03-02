@@ -274,9 +274,16 @@ function extractDetectedVariables(
       const timeCol = numericCols.find(n => n !== binaryCol?.name)
       if (timeCol) detectedVars.dependentCandidate = timeCol
     }
-    // group: 첫 번째 categorical 컬럼 (optional)
+    // group: 첫 번째 non-ID categorical 컬럼 (optional — ID성 컬럼 제외)
     if (!detectedVars.groupVariable && categoricalCols.length > 0) {
-      detectedVars.groupVariable = categoricalCols[0]
+      const allColumns = validationResults?.columns || []
+      const nonIdCategorical = categoricalCols.find(name => {
+        const col = allColumns.find((c: ColumnStatistics) => c.name === name)
+        return !col?.idDetection?.isId
+      })
+      if (nonIdCategorical) {
+        detectedVars.groupVariable = nonIdCategorical
+      }
     }
     detectedVars.numericVars = numericCols
   } else if (methodId === 'two-way-anova' || methodId === 'three-way-anova') {

@@ -195,7 +195,13 @@ export class StatisticalExecutor {
       // 메서드별 실행
       let result: AnalysisResult
 
-      switch (method.category) {
+      // 레거시 카테고리명 마이그레이션 (sessionStorage에 잔존 가능)
+      const rawCategory = method.category as string
+      const category = (
+        rawCategory === 'advanced' || rawCategory === 'pca' || rawCategory === 'clustering'
+      ) ? 'multivariate' : method.category
+
+      switch (category) {
         case 'descriptive':
           result = await this.executeDescriptive(method, preparedData)
           break
@@ -233,7 +239,7 @@ export class StatisticalExecutor {
           result = await this.executeDesign(method, preparedData)
           break
         default:
-          throw new Error(`지원되지 않는 분석 카테고리: ${method.category}`)
+          throw new Error(`지원되지 않는 분석 카테고리: ${category}`)
       }
 
       // 메타데이터 추가
