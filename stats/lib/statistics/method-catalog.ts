@@ -18,11 +18,11 @@ export const PURPOSE_CATEGORY_MAP: Record<AnalysisPurpose, string[]> = {
   compare: ['t-test', 'anova', 'nonparametric'],
   relationship: ['correlation', 'regression', 'chi-square'],
   distribution: ['nonparametric', 'chi-square'],
-  prediction: ['regression', 'multivariate'],
+  prediction: ['regression'],
   timeseries: ['timeseries', 'regression'],
   survival: ['survival'],
   multivariate: ['multivariate'],
-  utility: ['design', 'multivariate']
+  utility: ['design']
 }
 
 const uniqueCategoriesForPurpose = (purpose: AnalysisPurpose): string[] =>
