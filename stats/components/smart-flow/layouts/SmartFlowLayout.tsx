@@ -40,7 +40,7 @@ const STEP_ICONS = [BarChart3, Target, Settings, Play] as const
 
 export interface SmartFlowLayoutProps {
   currentStep: number
-  steps: Array<{ id: number; label: string; completed?: boolean }>
+  steps: Array<{ id: number; label: string; completed?: boolean; skipped?: boolean }>
   onStepChange?: (step: number) => void
   children: ReactNode
 
@@ -113,12 +113,16 @@ export function SmartFlowLayout({
     ]
   }, [t])
 
-  // STEPS에 completed 정보 병합
+  // STEPS에 completed/skipped 정보 병합
   const stepsWithCompleted: StepItem[] = useMemo(() =>
-    STEPS.map(step => ({
-      ...step,
-      completed: steps.find(s => s.id === step.id)?.completed ?? false
-    }))
+    STEPS.map(step => {
+      const src = steps.find(s => s.id === step.id)
+      return {
+        ...step,
+        completed: src?.completed ?? false,
+        skipped: src?.skipped ?? false,
+      }
+    })
     , [steps, STEPS])
 
   // 전역 UI 컨텍스트 (채팅, 설정, 도움말 모달)

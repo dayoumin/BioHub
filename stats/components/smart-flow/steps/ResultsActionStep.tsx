@@ -239,6 +239,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
   const savedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const copiedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  // UI 상태(isSaved)와 별도로 "히스토리에 저장됐는지" 여부 추적
+  // isSaved는 5초 후 리셋되지만 이 ref는 컴포넌트 생애 동안 유지 → 중복 저장 방지
+  const hasSavedToHistoryRef = useRef(false)
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -386,6 +389,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       })
 
       if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current)
+      hasSavedToHistoryRef.current = true  // UI 리셋 후에도 중복 저장 방지용 영속 플래그
       setIsSaved(true)
       setSavedName(historyName)
       savedTimeoutRef.current = setTimeout(() => {
@@ -431,7 +435,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         toast.success(t.results.toast.exportSuccess ?? t.results.save.success)
 
         // 명시적 "저장"을 아직 안 했으면 히스토리에 silent 저장 (내보내기만 하고 닫는 경우 대비)
-        if (!isSaved) {
+        // isSaved 대신 ref 사용: 클로저 staleness + 5초 리셋 문제 해결
+        if (!hasSavedToHistoryRef.current) {
           const historyLabel = statisticalResult.testName || selectedMethod?.name || 'Analysis'
           const historyName = `${historyLabel} — ${new Date().toLocaleString('ko-KR', {
             month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -452,7 +457,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     } finally {
       setIsExporting(false)
     }
-  }, [results, statisticalResult, interpretation, apaFormat, exportDataInfo, uploadedData, isSaved, selectedMethod, saveToHistory, followUpMessages, isFollowUpStreaming, t])
+  }, [results, statisticalResult, interpretation, apaFormat, exportDataInfo, uploadedData, selectedMethod, saveToHistory, followUpMessages, isFollowUpStreaming, t])
 
   const openExportDialog = useCallback((format: ExportFormat) => {
     setExportFormat(format)

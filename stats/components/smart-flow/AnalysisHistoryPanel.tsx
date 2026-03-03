@@ -164,9 +164,13 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
 
   const handleSaveConfirm = async () => {
     if (saveName.trim()) {
-      await saveToHistory(saveName.trim())
-      setShowSaveDialog(false)
-      setSaveName('')
+      try {
+        await saveToHistory(saveName.trim())
+        setShowSaveDialog(false)
+        setSaveName('')
+      } catch (err) {
+        console.error('[HistoryPanel] Failed to save analysis:', err)
+      }
     }
   }
 

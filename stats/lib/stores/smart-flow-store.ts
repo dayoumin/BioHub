@@ -354,7 +354,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
 
         if (!isIndexedDBAvailable()) {
           console.warn('[History] IndexedDB is not available')
-          return
+          throw new Error('IndexedDB not available')
         }
 
         const record: HistoryRecord = {
@@ -394,6 +394,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
           })
         } catch (error) {
           console.error('[History] Failed to save:', error)
+          throw error
         }
       },
 
