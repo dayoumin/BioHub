@@ -328,7 +328,7 @@ export default function HomePage() {
       canGoNext={canProceedWithFloatingNav}
       onNext={handleFloatingNext}
       nextLabel={getNextStepLabel}
-      showFloatingNav={currentStep === 1 && !showHub}
+      showFloatingNav={currentStep === 1 && !showHub && canProceedWithFloatingNav}
     >
       {/* ===== Hub Page (Chat-Centric Style) ===== */}
       {showHub && (
@@ -447,7 +447,7 @@ export default function HomePage() {
       {/* ===== Step 3: Variable Selection ===== */}
       {!showHub && currentStep === 3 && (
         <div className={animationClass} key="step3">
-          <VariableSelectionStep />
+          <VariableSelectionStep onBack={goToPreviousStep} />
         </div>
       )}
 

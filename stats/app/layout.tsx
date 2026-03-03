@@ -48,9 +48,13 @@ export default function RootLayout({
                 {/* 메인 영역 */}
                 <div className="flex-1 flex flex-col overflow-hidden">
                   <ConditionalHeader />
-                  <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
-                    {children}
-                  </main>
+                  <div className="relative flex-1 overflow-hidden">
+                    <main className="h-full overflow-y-auto overflow-x-hidden scrollbar-hide">
+                      {children}
+                    </main>
+                    {/* 스크롤 가능한 콘텐츠 힌트 — 스크롤바 숨김 보완 */}
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-background/50 to-transparent" />
+                  </div>
                 </div>
 
                 {/* 우측 챗봇 패널 (조건부 렌더링) */}
