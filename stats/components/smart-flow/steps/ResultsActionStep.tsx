@@ -429,6 +429,19 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
       if (result.success) {
         toast.success(t.results.toast.exportSuccess ?? t.results.save.success)
+
+        // 명시적 "저장"을 아직 안 했으면 히스토리에 silent 저장 (내보내기만 하고 닫는 경우 대비)
+        if (!isSaved) {
+          const historyLabel = statisticalResult.testName || selectedMethod?.name || 'Analysis'
+          const historyName = `${historyLabel} — ${new Date().toLocaleString('ko-KR', {
+            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+          })}`
+          saveToHistory(historyName, {
+            aiInterpretation: interpretation,
+            apaFormat,
+            interpretationChat: !isFollowUpStreaming && followUpMessages.length > 0 ? followUpMessages : undefined,
+          }).catch(() => { /* 히스토리 저장 실패 무시 */ })
+        }
       } else {
         toast.error(t.results.save.errorTitle, { description: result.error })
       }
@@ -439,7 +452,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     } finally {
       setIsExporting(false)
     }
-  }, [results, statisticalResult, interpretation, apaFormat, exportDataInfo, uploadedData, t])
+  }, [results, statisticalResult, interpretation, apaFormat, exportDataInfo, uploadedData, isSaved, selectedMethod, saveToHistory, followUpMessages, isFollowUpStreaming, t])
 
   const openExportDialog = useCallback((format: ExportFormat) => {
     setExportFormat(format)
