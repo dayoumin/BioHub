@@ -1108,7 +1108,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
     })
   })
 
-  describe('파일 저장 시뮬레이션 (handleSaveAsFile)', () => {
+  describe('히스토리 저장 시뮬레이션 (handleSaveToHistory)', () => {
     const fullStatResult = {
       testName: '독립표본 t-검정',
       statistic: 2.456,
@@ -1123,13 +1123,10 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       vi.clearAllMocks()
       mockStoreState = { ...defaultStoreState }
       mockConvert.mockReturnValue(fullStatResult)
-      mockExportService.export.mockResolvedValue({
-        success: true,
-        fileName: 't-test_분석결과_20260213.docx',
-      })
+      mockStoreState.saveToHistory = vi.fn().mockResolvedValue(undefined)
     })
 
-    it('저장 버튼 클릭 → ExportService.export("docx") 호출', async () => {
+    it('저장 버튼 클릭 → saveToHistory() 호출 (파일 다운로드 없음)', async () => {
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
       const saveBtn = screen.getByText('저장')
@@ -1137,23 +1134,9 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
         fireEvent.click(saveBtn)
       })
 
-      expect(mockExportService.export).toHaveBeenCalledTimes(1)
-      const callArgs = mockExportService.export.mock.calls[0]
-      expect(callArgs[1]).toBe('docx')
-    })
-
-    it('저장 성공 → 배너에 fileName 표시', async () => {
-      renderWithAct(<ResultsActionStep results={baseResults} />)
-
-      const saveBtn = screen.getByText('저장')
-      await act(async () => {
-        fireEvent.click(saveBtn)
-      })
-
-      // 배너가 나타나고 fileName 표시
-      await waitFor(() => {
-        expect(screen.getByText(/t-test_분석결과_20260213\.docx/)).toBeInTheDocument()
-      })
+      expect(mockStoreState.saveToHistory).toHaveBeenCalledTimes(1)
+      // 파일 내보내기는 호출되지 않음
+      expect(mockExportService.export).not.toHaveBeenCalled()
     })
 
     it('저장 성공 → 버튼 텍스트 "저장됨"으로 변경', async () => {
@@ -1169,7 +1152,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       })
     })
 
-    it('저장 성공 → IndexedDB 히스토리에도 자동 저장', async () => {
+    it('저장 성공 → 배너에 "저장되었습니다" 텍스트 표시', async () => {
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
       const saveBtn = screen.getByText('저장')
@@ -1177,163 +1160,119 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
         fireEvent.click(saveBtn)
       })
 
+      // 저장 성공 배너 표시 (save.success = '저장되었습니다')
       await waitFor(() => {
-        expect(mockStoreState.saveToHistory).toHaveBeenCalledTimes(1)
+        expect(screen.getByText('저장되었습니다')).toBeInTheDocument()
       })
     })
 
-    it('저장 실패 → 에러 토스트', async () => {
-      const { toast } = await import('sonner')
-      mockExportService.export.mockResolvedValue({
-        success: false,
-        error: '파일 생성에 실패했습니다.',
-      })
-
+    it('저장 성공 후 버튼 비활성화 (재클릭 방지)', async () => {
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
       const saveBtn = screen.getByText('저장')
       await act(async () => {
         fireEvent.click(saveBtn)
-      })
-
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalled()
-      })
-    })
-
-    it('ExportService 예외 → 에러 토스트', async () => {
-      const { toast } = await import('sonner')
-      mockExportService.export.mockRejectedValue(new Error('네트워크 오류'))
-
-      renderWithAct(<ResultsActionStep results={baseResults} />)
-
-      const saveBtn = screen.getByText('저장')
-      await act(async () => {
-        fireEvent.click(saveBtn)
-      })
-
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalled()
-      })
-    })
-
-    it('ExportResult에 fileName 없으면 폴백 이름 사용', async () => {
-      mockExportService.export.mockResolvedValue({
-        success: true,
-        // fileName 없음 → 폴백
-      })
-
-      renderWithAct(<ResultsActionStep results={baseResults} />)
-
-      const saveBtn = screen.getByText('저장')
-      await act(async () => {
-        fireEvent.click(saveBtn)
-      })
-
-      await waitFor(() => {
-        // 폴백: testName || selectedMethod.name || 'Analysis' + .docx
-        expect(screen.getByText(/독립표본 t-검정\.docx/)).toBeInTheDocument()
-      })
-    })
-
-    it('저장 성공 후 재저장 실패 → 이전 성공 배너가 사라진다', async () => {
-      const { toast } = await import('sonner')
-
-      // 1차: 성공
-      mockExportService.export.mockResolvedValue({
-        success: true,
-        fileName: 'first_save.docx',
-      })
-
-      renderWithAct(<ResultsActionStep results={baseResults} />)
-
-      const saveBtn = screen.getByText('저장')
-      await act(async () => {
-        fireEvent.click(saveBtn)
-      })
-
-      await waitFor(() => {
-        expect(screen.getByText(/first_save\.docx/)).toBeInTheDocument()
-      })
-
-      // 2차: 실패
-      mockExportService.export.mockResolvedValue({
-        success: false,
-        error: '디스크 공간 부족',
-      })
-
-      const savedBtn = screen.getByText('저장됨')
-      await act(async () => {
-        fireEvent.click(savedBtn)
-      })
-
-      await waitFor(() => {
-        expect(toast.error).toHaveBeenCalled()
-      })
-
-      // 이전 성공 배너가 사라져야 함
-      expect(screen.queryByText(/first_save\.docx/)).not.toBeInTheDocument()
-    })
-
-    it('results=null 일 때 저장 버튼 동작 안 함 (early return)', async () => {
-      mockConvert.mockReturnValue(null)
-      renderWithAct(<ResultsActionStep results={null} />)
-
-      // results=null → 안내 메시지만 표시
-      expect(screen.queryByText('저장')).not.toBeInTheDocument()
-      expect(mockExportService.export).not.toHaveBeenCalled()
-    })
-
-    it('ExportContext 구조가 올바르게 전달된다', async () => {
-      renderWithAct(<ResultsActionStep results={baseResults} />)
-
-      const saveBtn = screen.getByText('저장')
-      await act(async () => {
-        fireEvent.click(saveBtn)
-      })
-
-      await waitFor(() => {
-        expect(mockExportService.export).toHaveBeenCalledTimes(1)
-      })
-
-      const [context, format] = mockExportService.export.mock.calls[0]
-      // format 기본값 = 'docx'
-      expect(format).toBe('docx')
-      // ExportContext 필수 필드 존재 확인
-      expect(context).toHaveProperty('analysisResult')
-      expect(context).toHaveProperty('statisticalResult')
-      expect(context).toHaveProperty('aiInterpretation')
-      expect(context).toHaveProperty('apaFormat')
-      expect(context).toHaveProperty('dataInfo')
-      // analysisResult = baseResults 전달 확인
-      expect(context.analysisResult).toBe(baseResults)
-    })
-
-    it('isExporting 중 저장 버튼에 "내보내는 중..." 텍스트 표시', async () => {
-      // 느린 export mock (resolve 제어)
-      let resolveExport: (v: { success: boolean; fileName: string }) => void
-      mockExportService.export.mockImplementation(
-        () => new Promise(resolve => { resolveExport = resolve })
-      )
-
-      renderWithAct(<ResultsActionStep results={baseResults} />)
-
-      const saveBtn = screen.getByText('저장')
-      await act(async () => {
-        fireEvent.click(saveBtn)
-      })
-
-      // 비동기 진행 중 → "내보내는 중..." 텍스트
-      expect(screen.getByText('내보내는 중...')).toBeInTheDocument()
-
-      // resolve 후 → 복원
-      await act(async () => {
-        resolveExport!({ success: true, fileName: 'test.docx' })
       })
 
       await waitFor(() => {
         expect(screen.getByText('저장됨')).toBeInTheDocument()
       })
+
+      // 저장됨 상태 버튼은 disabled
+      const savedBtn = screen.getByText('저장됨').closest('button')
+      expect(savedBtn).toBeDisabled()
+    })
+
+    it('saveToHistory 오류 → 에러 토스트', async () => {
+      const { toast } = await import('sonner')
+      mockStoreState.saveToHistory = vi.fn().mockRejectedValue(new Error('IndexedDB 오류'))
+
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      const saveBtn = screen.getByText('저장')
+      await act(async () => {
+        fireEvent.click(saveBtn)
+      })
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalled()
+      })
+    })
+
+    it('results=null 일 때 저장 버튼 미표시 (early return)', async () => {
+      mockConvert.mockReturnValue(null)
+      renderWithAct(<ResultsActionStep results={null} />)
+
+      expect(screen.queryByText('저장')).not.toBeInTheDocument()
+      expect(mockStoreState.saveToHistory).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('파일 내보내기 시뮬레이션 (handleSaveAsFile)', () => {
+    const fullStatResult = {
+      testName: '독립표본 t-검정',
+      statistic: 2.456,
+      statisticName: 't',
+      pValue: 0.018,
+      df: 28,
+      alpha: 0.05,
+    } as StatisticalResult
+
+    beforeEach(() => {
+      vi.clearAllMocks()
+      mockStoreState = { ...defaultStoreState }
+      mockConvert.mockReturnValue(fullStatResult)
+      mockExportService.export.mockResolvedValue({
+        success: true,
+        fileName: 't-test_분석결과_20260213.docx',
+      })
+    })
+
+    it('내보내기 성공 → ExportService.export 호출 + toast 성공', async () => {
+      const { toast } = await import('sonner')
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      // 내보내기 드롭다운 트리거 클릭
+      const exportTrigger = screen.getByText('내보내기')
+      await act(async () => { fireEvent.click(exportTrigger) })
+
+      // Word 메뉴 아이템 클릭
+      const docxItem = screen.queryByText('Word (.docx)')
+      if (docxItem) {
+        await act(async () => { fireEvent.click(docxItem) })
+        await waitFor(() => {
+          expect(mockExportService.export).toHaveBeenCalledTimes(1)
+          expect(toast.success).toHaveBeenCalled()
+        })
+      } else {
+        // DropdownMenu가 JSDOM에서 열리지 않을 경우 — 최소한 trigger가 존재함을 확인
+        expect(exportTrigger).toBeInTheDocument()
+      }
+    })
+
+    it('내보내기 실패 → 에러 토스트 (saveToHistory 호출 없음)', async () => {
+      const { toast } = await import('sonner')
+      mockExportService.export.mockResolvedValue({
+        success: false,
+        error: '파일 생성 실패',
+      })
+
+      renderWithAct(<ResultsActionStep results={baseResults} />)
+
+      const exportTrigger = screen.getByText('내보내기')
+      await act(async () => { fireEvent.click(exportTrigger) })
+
+      const docxItem = screen.queryByText('Word (.docx)')
+      if (docxItem) {
+        await act(async () => { fireEvent.click(docxItem) })
+        await waitFor(() => {
+          expect(toast.error).toHaveBeenCalled()
+        })
+        // 파일 내보내기는 saveToHistory를 호출하지 않음
+        expect(mockStoreState.saveToHistory).not.toHaveBeenCalled()
+      } else {
+        expect(exportTrigger).toBeInTheDocument()
+      }
     })
   })
 

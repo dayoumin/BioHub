@@ -1,6 +1,6 @@
 # 프로젝트 현황 + 할일
 
-**최종 업데이트**: 2026-02-26 (기술 부채 추가 정리 + ResultsActionStep UX 전면 개선)
+**최종 업데이트**: 2026-03-03 (브라우저 UX 리뷰 + "저장" semantic 분리)
 
 ---
 
@@ -30,6 +30,19 @@
 ---
 
 ## 📅 최근 작업 (7일)
+
+### 2026-03-03 (월) 브라우저 UX 리뷰 + "저장" semantic 수정
+
+- ✅ **브라우저 UX 리뷰 (Playwright)**: Hub → Step 1~4 전 화면 직접 시각 검증
+  - `VariableSelectionStep` `onBack` prop 누락 수정 (`page.tsx`)
+  - 플로팅 네비게이션 `canProceedWithFloatingNav` 조건 추가 (데이터 없을 때 미표시)
+  - Hub 스크롤 힌트 그라디언트 추가 (`layout.tsx`)
+- ✅ **"저장" semantic 분리** (`ResultsActionStep.tsx`):
+  - 기존: "저장" 버튼 → DOCX 파일 다운로드 + IndexedDB 저장 (혼재)
+  - 변경: "저장" → IndexedDB 히스토리 저장만 (즉각 피드백, 파일 다운로드 없음)
+  - "내보내기" → 파일 다운로드만 (side effect 제거, 역할 명확화)
+  - `handleSaveToHistory` 신규 + `handleSaveAsFile` 순수 파일 내보내기로 분리
+- 📌 커밋: `07a9aa61` (브라우저 UX 3건) + 이번 커밋 예정
 
 ### 2026-02-26 (목) 기술 부채 2차 정리 + ResultsActionStep UX 전면 개선
 

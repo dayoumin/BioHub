@@ -369,18 +369,43 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   }, [interpretation])
 
   // Handlers
-  // 파일 저장 (DOCX/Excel 다운로드)
+  // 히스토리 저장 (IndexedDB — 파일 다운로드 없음)
+  const handleSaveToHistory = useCallback(async () => {
+    if (!results || !statisticalResult || isSaved) return
+
+    const historyLabel = statisticalResult.testName || selectedMethod?.name || 'Analysis'
+    const historyName = `${historyLabel} — ${new Date().toLocaleString('ko-KR', {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    })}`
+
+    try {
+      await saveToHistory(historyName, {
+        aiInterpretation: interpretation,
+        apaFormat,
+        interpretationChat: !isFollowUpStreaming && followUpMessages.length > 0 ? followUpMessages : undefined,
+      })
+
+      if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current)
+      setIsSaved(true)
+      setSavedName(historyName)
+      savedTimeoutRef.current = setTimeout(() => {
+        setIsSaved(false)
+        setSavedName(null)
+        savedTimeoutRef.current = null
+      }, 5000)
+    } catch (err) {
+      logger.error('Save to history failed', { error: err })
+      toast.error(t.results.save.errorTitle, { description: t.results.save.unknownError })
+    }
+  }, [results, statisticalResult, selectedMethod, interpretation, apaFormat, isSaved, saveToHistory, followUpMessages, isFollowUpStreaming, t])
+
+  // 파일 내보내기 (DOCX/Excel/HTML 다운로드)
   const handleSaveAsFile = useCallback(async (
     format: ExportFormat = 'docx',
     optionsOverride?: ExportContentOptions,
   ) => {
     if (!results || !statisticalResult) return
     setIsExporting(true)
-
-    // 이전 성공 상태 초기화 (실패 시 오래된 배너 잔류 방지)
-    if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current)
-    setIsSaved(false)
-    setSavedName(null)
 
     try {
       const effectiveExportOptions: ExportContentOptions = {
@@ -403,29 +428,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       const result = await ExportService.export(context, format)
 
       if (result.success) {
-        // 실제 다운로드 파일명 사용 (없으면 폴백)
-        const displayName = result.fileName
-          ?? `${statisticalResult.testName || selectedMethod?.name || 'Analysis'}.${format}`
-        setIsSaved(true)
-        setSavedName(displayName)
-
-        // IndexedDB에도 자동 저장 (히스토리용)
-        const historyLabel = statisticalResult.testName || selectedMethod?.name || 'Analysis'
-        const historyName = `${historyLabel} — ${new Date().toLocaleString('ko-KR', {
-          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-        })}`
-        await saveToHistory(historyName, {
-          aiInterpretation: interpretation,
-          apaFormat,
-          // 스트리밍 중이면 미완성 메시지 제외, 완료된 교환만 저장
-          interpretationChat: !isFollowUpStreaming && followUpMessages.length > 0 ? followUpMessages : undefined,
-        }).catch(() => { /* 히스토리 저장 실패 무시 */ })
-
-        savedTimeoutRef.current = setTimeout(() => {
-          setIsSaved(false)
-          setSavedName(null)
-          savedTimeoutRef.current = null
-        }, 5000)
+        toast.success(t.results.toast.exportSuccess ?? t.results.save.success)
       } else {
         toast.error(t.results.save.errorTitle, { description: result.error })
       }
@@ -436,7 +439,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     } finally {
       setIsExporting(false)
     }
-  }, [results, statisticalResult, interpretation, apaFormat, exportDataInfo, selectedMethod, saveToHistory, uploadedData, followUpMessages, isFollowUpStreaming, t])
+  }, [results, statisticalResult, interpretation, apaFormat, exportDataInfo, uploadedData, t])
 
   const openExportDialog = useCallback((format: ExportFormat) => {
     setExportFormat(format)
@@ -733,8 +736,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               </Button>
               <Button
                 size="sm"
-                onClick={() => handleSaveAsFile('docx')}
-                disabled={isExporting}
+                onClick={handleSaveToHistory}
+                disabled={isSaved}
                 className={cn("shadow-sm", isSaved && "bg-emerald-600 hover:bg-emerald-600 text-white border-emerald-600")}
               >
                 {isSaved ? <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
