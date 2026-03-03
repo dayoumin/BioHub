@@ -130,7 +130,8 @@ export default function HomePage() {
       ...step,
       completed: (quickAnalysisMode && step.id === 2)
         ? true
-        : completedSteps.includes(step.id)
+        : completedSteps.includes(step.id),
+      skipped: quickAnalysisMode && step.id === 2,
     }))
   }, [completedSteps, quickAnalysisMode, t])
 

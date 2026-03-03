@@ -2,13 +2,15 @@
 
 import { memo } from 'react'
 import { cn } from '@/lib/utils'
-import { Check, LucideIcon } from 'lucide-react'
+import { Check, Zap, LucideIcon } from 'lucide-react'
 
 export interface StepItem {
   id: number
   label: string
   icon?: LucideIcon
   completed?: boolean
+  /** 사용자가 직접 완료하지 않고 자동으로 건너뛴 스텝 (QuickAnalysis 등) */
+  skipped?: boolean
 }
 
 export interface FloatingStepIndicatorProps {
@@ -86,6 +88,7 @@ export const FloatingStepIndicator = memo(function FloatingStepIndicator({
             {steps.map((step, idx) => {
               const isActive = step.id === currentStep
               const isCompleted = completedSteps.includes(step.id) || step.completed
+              const isSkipped = !isActive && step.skipped
               const canClick = onStepChange && (isCompleted || step.id <= maxAccessibleStep)
               const StepIcon = step.icon
 
@@ -95,14 +98,15 @@ export const FloatingStepIndicator = memo(function FloatingStepIndicator({
                     onClick={() => canClick && onStepChange?.(step.id)}
                     disabled={!canClick}
                     aria-current={isActive ? 'step' : undefined}
-                    aria-label={`${step.label} (Step ${step.id}${isCompleted ? ', completed' : ''})`}
+                    aria-label={`${step.label} (Step ${step.id}${isSkipped ? ', auto-skipped' : isCompleted ? ', completed' : ''})`}
                     data-testid={`stepper-step-${step.id}`}
                     className={cn(
                       "flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 text-sm relative group",
                       canClick && "hover:bg-muted/80 cursor-pointer active:scale-95",
                       !canClick && "cursor-default opacity-50",
                       isActive && "bg-primary text-primary-foreground hover:bg-primary shadow-md",
-                      isCompleted && !isActive && "text-muted-foreground hover:text-foreground"
+                      isSkipped && "text-amber-600 dark:text-amber-400",
+                      isCompleted && !isActive && !isSkipped && "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     {/* Active Pip Animation */}
@@ -112,11 +116,14 @@ export const FloatingStepIndicator = memo(function FloatingStepIndicator({
                     {/* Step Number/Icon Circle */}
                     <div className={cn(
                       "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-transform group-hover:scale-110",
-                      isCompleted && !isActive && "bg-primary/10 text-primary",
+                      isSkipped && "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400",
+                      isCompleted && !isActive && !isSkipped && "bg-primary/10 text-primary",
                       isActive && "bg-background text-primary",
                       !isActive && !isCompleted && "bg-muted text-muted-foreground"
                     )}>
-                      {isCompleted && !isActive ? (
+                      {isSkipped ? (
+                        <Zap className="w-3 h-3" />
+                      ) : isCompleted && !isActive ? (
                         <Check className="w-3 h-3" />
                       ) : StepIcon ? (
                         <StepIcon className="w-3 h-3" />

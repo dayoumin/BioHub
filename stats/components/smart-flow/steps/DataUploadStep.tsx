@@ -422,7 +422,7 @@ export function DataUploadStep({
               <Clock className="h-3 w-3" />
               <span>{t.dataUpload.labels.recentFiles}</span>
             </div>
-            <span className="text-[10px] text-muted-foreground/50">{t.dataUpload.labels.recentFilesClickHint}</span>
+            <span className="text-xs text-muted-foreground/60">{t.dataUpload.labels.recentFilesClickHint}</span>
           </div>
           <div className="grid gap-1">
             {recentFiles.map((file) => (
