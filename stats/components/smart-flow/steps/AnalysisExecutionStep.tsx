@@ -338,7 +338,7 @@ export function AnalysisExecutionStep({
   }, [])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="analysis-execution-step">
       {/* 헤더 패턴: Icon + Title + Method Badge */}
       <StepHeader
           icon={BarChart3}

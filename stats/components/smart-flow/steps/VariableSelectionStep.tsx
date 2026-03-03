@@ -392,7 +392,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="variable-selection-step">
       {/* Method indicator — compact, no double header */}
       {selectedMethod && (
         <div className="flex items-center gap-1.5">

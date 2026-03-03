@@ -637,10 +637,23 @@ export const useSmartFlowStore = create<SmartFlowState>()(
 
       navigateToStep: (step) => {
         const state = get()
-        if (state.canNavigateToStep(step)) {
-          // 현재 단계 데이터 저장
+        const isForwardSkip = step > state.currentStep
+        if (state.canNavigateToStep(step) || isForwardSkip) {
+          // 현재 단계 데이터 저장 (현재 step을 completedSteps에 추가)
           state.saveCurrentStepData()
-          set({ currentStep: step })
+          // 건너뛴 중간 단계를 completedSteps에 추가 (뒤로가기 가능하도록)
+          if (step > state.currentStep + 1) {
+            const skippedSteps = Array.from(
+              { length: step - state.currentStep - 1 },
+              (_, i) => state.currentStep + 1 + i
+            )
+            set((s) => ({
+              completedSteps: [...new Set([...s.completedSteps, ...skippedSteps])],
+              currentStep: step,
+            }))
+          } else {
+            set({ currentStep: step })
+          }
         }
       },
 

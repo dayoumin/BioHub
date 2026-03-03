@@ -583,7 +583,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="data-exploration-step">
       {/* 헤더 + 다음 단계 버튼 */}
       <StepHeader icon={ChartScatter} title={t.smartFlow.stepTitles.dataExploration} />
 

@@ -428,7 +428,7 @@ export function VariableSelectorModern({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className={cn('space-y-6', className)}>
+      <div className={cn('space-y-6', className)} data-testid="variable-selector-modern">
         {/* ========================================
             헤더: 제목 + 초기화
             ======================================== */}
@@ -658,7 +658,7 @@ export function VariableSelectorModern({
         }, {} as Record<string, ColumnAnalysis[]>)
 
         return (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" data-testid={`variable-modal-${activeRole}`}>
             <Card className="w-[700px] max-h-[85vh] flex flex-col">
               {/* 헤더 */}
               <CardHeader className="pb-3">
@@ -688,6 +688,7 @@ export function VariableSelectorModern({
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-9"
+                    data-testid="modal-search"
                   />
                 </div>
               </CardHeader>
@@ -727,6 +728,7 @@ export function VariableSelectorModern({
                           return (
                             <div
                               key={col.name}
+                              data-testid={`modal-var-${col.name}`}
                               onClick={() => {
                                 if (varReq.multiple) {
                                   handleToggleVariable(col.name)
@@ -804,6 +806,7 @@ export function VariableSelectorModern({
                   onClick={handleConfirmSelection}
                   disabled={varReq.required && tempSelection.length === 0}
                   className="flex-1"
+                  data-testid="modal-confirm-btn"
                 >
                   확인 ({tempSelection.length}개 선택)
                 </Button>

@@ -79,6 +79,7 @@ export function DraggableVariable({
       style={style}
       {...listeners}
       {...attributes}
+      data-testid={`variable-item-${column.name}`}
       className={cn(
         'group relative flex items-center gap-3 p-3 border rounded-md',
         // transition 제거 - 드래그 후 원위치 애니메이션 방지

@@ -147,6 +147,7 @@ export function DroppableRoleZone({
       <div
         ref={setNodeRef}
         onClick={onClick}
+        data-testid={`role-zone-${role}`}
         className={cn(
           'min-h-[60px] p-3 border-2 rounded-md transition-all duration-200',
           onClick && 'cursor-pointer hover:border-primary/50 hover:bg-primary/5',
