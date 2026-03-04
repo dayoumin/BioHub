@@ -44,7 +44,7 @@ export function ChartPreview(): React.ReactElement {
       const vegaSpec = chartSpecToVegaLite(chartSpec, rows);
 
       // 렌더링
-      await vegaEmbed(containerRef.current, vegaSpec, {
+      await vegaEmbed(containerRef.current, vegaSpec as Parameters<typeof vegaEmbed>[1], {
         actions: false,  // Vega 기본 액션 버튼 숨김
         renderer: 'svg',
         theme: 'quartz',

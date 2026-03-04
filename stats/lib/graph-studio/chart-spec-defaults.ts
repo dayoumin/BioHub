@@ -80,7 +80,7 @@ interface ChartTypeHint {
   label: string;
   description: string;
   suggestedXType: 'nominal' | 'ordinal' | 'quantitative' | 'temporal';
-  suggestedYType: 'quantitative';
+  suggestedYType: 'nominal' | 'ordinal' | 'quantitative' | 'temporal';
   supportsColor: boolean;
   supportsErrorBar: boolean;
   supportsAggregate: boolean;
