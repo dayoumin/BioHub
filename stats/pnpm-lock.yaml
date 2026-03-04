@@ -24,7 +24,7 @@ importers:
         version: 1.6.7
       '@langchain/community':
         specifier: ^1.0.4
-        version: 1.1.13(@browserbasehq/sdk@2.6.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.21.0(ws@8.19.0)(zod@4.3.6))(zod@4.3.6))(@ibm-cloud/watsonx-ai@1.7.7)(@langchain/core@1.1.20(openai@6.21.0(ws@8.19.0)(zod@4.3.6)))(@libsql/client@0.17.0)(better-sqlite3@12.6.2)(ibm-cloud-sdk-core@5.4.6)(ignore@5.3.2)(jsdom@27.4.0)(jsonwebtoken@9.0.3)(openai@6.21.0(ws@8.19.0)(zod@4.3.6))(playwright@1.58.2)(pyodide@0.29.3)(ws@8.19.0)
+        version: 1.1.13(@browserbasehq/sdk@2.7.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.21.0(ws@8.19.0)(zod@4.3.6))(zod@4.3.6))(@ibm-cloud/watsonx-ai@1.7.7)(@langchain/core@1.1.20(openai@6.21.0(ws@8.19.0)(zod@4.3.6)))(@libsql/client@0.17.0)(better-sqlite3@12.6.2)(ibm-cloud-sdk-core@5.4.6)(ignore@5.3.2)(jsdom@27.4.0)(jsonwebtoken@9.0.3)(openai@6.21.0(ws@8.19.0)(zod@4.3.6))(playwright@1.58.2)(pyodide@0.29.3)(ws@8.19.0)
       '@langchain/core':
         specifier: ^1.0.5
         version: 1.1.20(openai@6.21.0(ws@8.19.0)(zod@4.3.6))
@@ -155,8 +155,8 @@ importers:
         specifier: ^5.5.3
         version: 5.5.3
       plotly.js:
-        specifier: ^3.3.0
-        version: 3.3.1(mapbox-gl@1.13.3)
+        specifier: ^3.4.0
+        version: 3.4.0(mapbox-gl@1.13.3)
       plotly.js-basic-dist:
         specifier: ^3.1.0
         version: 3.3.1
@@ -177,7 +177,7 @@ importers:
         version: 10.1.0(@types/react@19.2.13)(react@19.1.0)
       react-plotly.js:
         specifier: ^2.6.0
-        version: 2.6.0(plotly.js@3.3.1(mapbox-gl@1.13.3))(react@19.1.0)
+        version: 2.6.0(plotly.js@3.4.0(mapbox-gl@1.13.3))(react@19.1.0)
       recharts:
         specifier: ^3.2.0
         version: 3.7.0(@types/react@19.2.13)(react-dom@19.1.0(react@19.1.0))(react-is@19.2.4)(react@19.1.0)(redux@5.0.1)
@@ -249,8 +249,8 @@ importers:
         specifier: ^5.3.16
         version: 5.5.2
       '@types/plotly.js':
-        specifier: ^3.0.6
-        version: 3.0.9
+        specifier: ^3.0.10
+        version: 3.0.10
       '@types/react':
         specifier: ^19
         version: 19.2.13
@@ -533,8 +533,8 @@ packages:
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
     engines: {node: '>=18'}
 
-  '@browserbasehq/sdk@2.6.0':
-    resolution: {integrity: sha512-83iXP5D7xMm8Wyn66TUaUrgoByCmAJuoMoZQI3sGg3JAiMlTfnCIMqyVBoNSaItaPIkaCnrsj6LiusmXV2X9YA==}
+  '@browserbasehq/sdk@2.7.0':
+    resolution: {integrity: sha512-1iwuj3fChplMq+S66M9tGb9ZXA4e7Vi8MjqQQ6/T6rzoAWLGfDnEAPbgTOU479o+Mi3of5/6YXk1oIHKTw0NBw==}
 
   '@browserbasehq/stagehand@1.14.0':
     resolution: {integrity: sha512-Hi/EzgMFWz+FKyepxHTrqfTPjpsuBS4zRy3e9sbMpBgLPv+9c0R+YZEvS7Bw4mTS66QtvvURRT6zgDGFotthVQ==}
@@ -2710,6 +2710,9 @@ packages:
   '@types/node@20.19.33':
     resolution: {integrity: sha512-Rs1bVAIdBs5gbTIKza/tgpMuG1k3U/UMJLWecIMxNdJFDMzcM5LOiLVRYh3PilWEYDIeUDv7bpiHPLPsbydGcw==}
 
+  '@types/node@20.19.35':
+    resolution: {integrity: sha512-Uarfe6J91b9HAUXxjvSOdiO2UPOKLm07Q1oh0JHxoZ1y8HoqxDAu3gVrsrOHeiio0kSsoVBt4wFrKOm0dKxVPQ==}
+
   '@types/node@24.10.13':
     resolution: {integrity: sha512-oH72nZRfDv9lADUBSo104Aq7gPHpQZc4BTx38r9xf9pg5LfP6EzSyH2n7qFmmxRQXh7YlUXODcYsg6PuTDSxGg==}
 
@@ -2719,8 +2722,8 @@ packages:
   '@types/pbf@3.0.5':
     resolution: {integrity: sha512-j3pOPiEcWZ34R6a6mN07mUkM4o4Lwf6hPNt8eilOeZhTFbxFXmKhvXl9Y28jotFPaI1bpPDJsbCprUoNke6OrA==}
 
-  '@types/plotly.js@3.0.9':
-    resolution: {integrity: sha512-nHKn7czWIPN7rT5wWI5qhML2O1Prm/Gx0NNe1MVr5GUL1zuzxbvIDmG7hlKMMtDsEtNfNQLMlMwk0CRtd3uqhg==}
+  '@types/plotly.js@3.0.10':
+    resolution: {integrity: sha512-q+MgO4aajC2HrO7FllTYWzrpdfbTjboSMfjkz/aXKjg1v7HNo1zMEFfAW7quKfk6SL+bH74A5ThBEps/7hZxOA==}
 
   '@types/react-dom@19.2.3':
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
@@ -3142,8 +3145,8 @@ packages:
     resolution: {integrity: sha512-BASOg+YwO2C+346x3LZOeoovTIoTrRqEsqMa6fmfAV0P+U9mFr9NsyOEpiYvFjbc64NMrSswhV50WdXzdb/Z5A==}
     engines: {node: '>=4'}
 
-  axios@1.13.5:
-    resolution: {integrity: sha512-cz4ur7Vb0xS4/KUN0tPWe44eqxrIu31me+fbang3ijiNscE129POzipJJA6zniq2C/Z6sJCjMimjS8Lc/GAs8Q==}
+  axios@1.13.6:
+    resolution: {integrity: sha512-ChTCHMouEe2kn713WHbQGcuYrr6fXTBiu460OTwWrWob16g1bXn4vtz07Ope7ewMozJAnEquLk5lWQWtBig9DQ==}
 
   axobject-query@4.1.0:
     resolution: {integrity: sha512-qIj0G9wZbMGNLjLmg1PT6v2mE9AH2zlnADJD/2tC6E00hgmhUOfEB6greHPAfLRSufHqROIUTkw6E+M3lH0PTQ==}
@@ -3514,6 +3517,10 @@ packages:
   d3-dispatch@1.0.6:
     resolution: {integrity: sha512-fVjoElzjhCEy+Hbn8KygnmMS7Or0a9sI2UzGwoB7cCtvI1XpVN9GpoYlnb3xt2YV66oXYb1fLJ8GMvP4hdU1RA==}
 
+  d3-dispatch@3.0.1:
+    resolution: {integrity: sha512-rzUyPU/S7rwUflMyLc1ETDeBj0NRuHKKAcvukozwhshr6g6c5d8zh4c2gQjY2bZ0dXeGLWc1PF174P2tVvKhfg==}
+    engines: {node: '>=12'}
+
   d3-dsv@3.0.1:
     resolution: {integrity: sha512-UG6OvdI5afDIFP9w4G0mNq50dSOsXHJaRE8arAS5o9ApWnIElp8GZw1Dun8vP8OyHOZ/QJUKUJwxiiCCnUwm+Q==}
     engines: {node: '>=12'}
@@ -3573,6 +3580,10 @@ packages:
 
   d3-quadtree@1.0.7:
     resolution: {integrity: sha512-RKPAeXnkC59IDGD0Wu5mANy0Q2V28L+fNe65pOCXVdVuTJS3WPKaJlFHer32Rbh9gIo9qMuJXio8ra4+YmIymA==}
+
+  d3-quadtree@3.0.1:
+    resolution: {integrity: sha512-04xDrxQTDTCFwP5H6hRhsRcb9xxv2RzkcsygFzmkSIOJy3PeRJP7sNk3VRIbKXcog561P9oU0/rVH6vDROAgUw==}
+    engines: {node: '>=12'}
 
   d3-scale-chromatic@3.1.0:
     resolution: {integrity: sha512-A3s5PWiZ9YCXFye1o246KoscMWqf8BsD9eRiJ3He7C9OBaxKhAd5TFCdEx/7VbKtxxTsu//1mMJFrEt572cEyQ==}
@@ -5860,8 +5871,8 @@ packages:
   plotly.js-basic-dist@3.3.1:
     resolution: {integrity: sha512-49kZid9FyZiAewaxhEomIYoawpvZR+6yesp470al08qJ6AIxQwRYi7zM8KoGmCKWVoEA12nrEnb5PDPAdBrlyw==}
 
-  plotly.js@3.3.1:
-    resolution: {integrity: sha512-SrGSZ02HvCWQIYsbQX4sgjgGo7k4T+Oz8a+RQwE5Caz+yu1vputBM1UThmiOPY51B5HzO9ajym8Rl4pmLj+i9Q==}
+  plotly.js@3.4.0:
+    resolution: {integrity: sha512-jdWfHLB8AxlGUmVhqJTGEKdwjCKGn9Yi8yg16067/JyqseuSado7F6IOM1XPZspdZyO/cf8IPuy7ROlVhqZZNw==}
     engines: {node: '>=18.0.0'}
 
   point-in-polygon@1.1.0:
@@ -5891,6 +5902,7 @@ packages:
   prebuild-install@7.1.3:
     resolution: {integrity: sha512-8Mf2cbV7x1cXPUILADGI3wuhfqWvtiLA1iclTDbFRZkgRQS0NqsPZphna9V+HyTEadheuPmjaJMsbzKQFOzLug==}
     engines: {node: '>=10'}
+    deprecated: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
     hasBin: true
 
   prelude-ls@1.2.1:
@@ -6240,6 +6252,10 @@ packages:
     resolution: {integrity: sha512-1n3r/tGXO6b6VXMdFT54SHzT9ytu9yr7TaELowdYpMqY/Ao7EnlQGmAQ1+RatX7Tkkdm6hONI2owqNx2aZj5Sw==}
     engines: {node: '>=11.0.0'}
 
+  sax@1.5.0:
+    resolution: {integrity: sha512-21IYA3Q5cQf089Z6tgaUTr7lDAyzoTPx5HRtbhsME8Udispad8dC/+sziTNugOEx54ilvatQ9YCzl4KQLPcRHA==}
+    engines: {node: '>=11.0.0'}
+
   saxes@6.0.0:
     resolution: {integrity: sha512-xAg7SOnEhrm5zI3puOOKyy1OMcMlIJZYNJY7xLBwSze0UjhPLnWfj2GF2EpT0jmzaJKIWKHLsaSSajf35bcYnA==}
     engines: {node: '>=v12.22.7'}
@@ -6460,6 +6476,10 @@ packages:
 
   strip-ansi@7.1.2:
     resolution: {integrity: sha512-gmBGslpoQJtgnMAvOVqGZpEz9dyoKTCzy2nfz/n8aIFhN/jCE/rCmcxabB6jOOHV+0WNnylOxaxBQPSvcWklhA==}
+    engines: {node: '>=12'}
+
+  strip-ansi@7.2.0:
+    resolution: {integrity: sha512-yDPMNjp4WyfYBkHnjIRLfca1i6KMyGCtsVgoKe/z1+6vukgaENdgGBZt+ZmKPc4gavvEZ5OgHfHdrazhgNyG7w==}
     engines: {node: '>=12'}
 
   strip-bom@3.0.0:
@@ -7207,7 +7227,7 @@ packages:
     hasBin: true
 
   xlsx@https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz:
-    resolution: {integrity: sha512-oLDq3jw7AcLqKWH2AhCpVTZl8mf6X2YReP+Neh0SJUzV/BdZYjth94tG5toiMB1PPrYtxOCfaoUCkvtuH+3AJA==, tarball: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz}
+    resolution: {tarball: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz}
     version: 0.20.3
     engines: {node: '>=0.8'}
     hasBin: true
@@ -7542,7 +7562,7 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
-  '@browserbasehq/sdk@2.6.0':
+  '@browserbasehq/sdk@2.7.0':
     dependencies:
       '@types/node': 18.19.130
       '@types/node-fetch': 2.6.13
@@ -7557,7 +7577,7 @@ snapshots:
   '@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.21.0(ws@8.19.0)(zod@4.3.6))(zod@4.3.6)':
     dependencies:
       '@anthropic-ai/sdk': 0.27.3
-      '@browserbasehq/sdk': 2.6.0
+      '@browserbasehq/sdk': 2.7.0
       '@playwright/test': 1.58.2
       deepmerge: 4.3.1
       dotenv: 16.6.1
@@ -8132,7 +8152,7 @@ snapshots:
       - openai
       - ws
 
-  '@langchain/community@1.1.13(@browserbasehq/sdk@2.6.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.21.0(ws@8.19.0)(zod@4.3.6))(zod@4.3.6))(@ibm-cloud/watsonx-ai@1.7.7)(@langchain/core@1.1.20(openai@6.21.0(ws@8.19.0)(zod@4.3.6)))(@libsql/client@0.17.0)(better-sqlite3@12.6.2)(ibm-cloud-sdk-core@5.4.6)(ignore@5.3.2)(jsdom@27.4.0)(jsonwebtoken@9.0.3)(openai@6.21.0(ws@8.19.0)(zod@4.3.6))(playwright@1.58.2)(pyodide@0.29.3)(ws@8.19.0)':
+  '@langchain/community@1.1.13(@browserbasehq/sdk@2.7.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.21.0(ws@8.19.0)(zod@4.3.6))(zod@4.3.6))(@ibm-cloud/watsonx-ai@1.7.7)(@langchain/core@1.1.20(openai@6.21.0(ws@8.19.0)(zod@4.3.6)))(@libsql/client@0.17.0)(better-sqlite3@12.6.2)(ibm-cloud-sdk-core@5.4.6)(ignore@5.3.2)(jsdom@27.4.0)(jsonwebtoken@9.0.3)(openai@6.21.0(ws@8.19.0)(zod@4.3.6))(playwright@1.58.2)(pyodide@0.29.3)(ws@8.19.0)':
     dependencies:
       '@browserbasehq/stagehand': 1.14.0(@playwright/test@1.58.2)(deepmerge@4.3.1)(dotenv@16.6.1)(openai@6.21.0(ws@8.19.0)(zod@4.3.6))(zod@4.3.6)
       '@ibm-cloud/watsonx-ai': 1.7.7
@@ -8148,7 +8168,7 @@ snapshots:
       uuid: 10.0.0
       zod: 4.3.6
     optionalDependencies:
-      '@browserbasehq/sdk': 2.6.0
+      '@browserbasehq/sdk': 2.7.0
       '@libsql/client': 0.17.0
       better-sqlite3: 12.6.2
       ignore: 5.3.2
@@ -9398,7 +9418,7 @@ snapshots:
 
   '@types/node-fetch@2.6.13':
     dependencies:
-      '@types/node': 20.19.33
+      '@types/node': 20.19.35
       form-data: 4.0.5
 
   '@types/node@18.19.130':
@@ -9406,6 +9426,10 @@ snapshots:
       undici-types: 5.26.5
 
   '@types/node@20.19.33':
+    dependencies:
+      undici-types: 6.21.0
+
+  '@types/node@20.19.35':
     dependencies:
       undici-types: 6.21.0
 
@@ -9419,7 +9443,7 @@ snapshots:
 
   '@types/pbf@3.0.5': {}
 
-  '@types/plotly.js@3.0.9': {}
+  '@types/plotly.js@3.0.10': {}
 
   '@types/react-dom@19.2.3(@types/react@19.2.13)':
     dependencies:
@@ -9427,7 +9451,7 @@ snapshots:
 
   '@types/react-plotly.js@2.6.4':
     dependencies:
-      '@types/plotly.js': 3.0.9
+      '@types/plotly.js': 3.0.10
       '@types/react': 19.2.13
 
   '@types/react@19.2.13':
@@ -9874,7 +9898,7 @@ snapshots:
 
   axe-core@4.11.1: {}
 
-  axios@1.13.5(debug@4.4.3):
+  axios@1.13.6(debug@4.4.3):
     dependencies:
       follow-redirects: 1.15.11(debug@4.4.3)
       form-data: 4.0.5
@@ -10107,7 +10131,7 @@ snapshots:
   cliui@9.0.1:
     dependencies:
       string-width: 7.2.0
-      strip-ansi: 7.1.2
+      strip-ansi: 7.2.0
       wrap-ansi: 9.0.2
 
   clsx@2.1.1: {}
@@ -10268,6 +10292,8 @@ snapshots:
 
   d3-dispatch@1.0.6: {}
 
+  d3-dispatch@3.0.1: {}
+
   d3-dsv@3.0.1:
     dependencies:
       commander: 7.2.0
@@ -10285,8 +10311,8 @@ snapshots:
 
   d3-force@3.0.0:
     dependencies:
-      d3-dispatch: 1.0.6
-      d3-quadtree: 1.0.7
+      d3-dispatch: 3.0.1
+      d3-quadtree: 3.0.1
       d3-timer: 3.0.1
 
   d3-format@1.4.5: {}
@@ -10327,6 +10353,8 @@ snapshots:
   d3-path@3.1.0: {}
 
   d3-quadtree@1.0.7: {}
+
+  d3-quadtree@3.0.1: {}
 
   d3-scale-chromatic@3.1.0:
     dependencies:
@@ -11566,7 +11594,7 @@ snapshots:
       '@types/debug': 4.1.12
       '@types/node': 18.19.130
       '@types/tough-cookie': 4.0.5
-      axios: 1.13.5(debug@4.4.3)
+      axios: 1.13.6(debug@4.4.3)
       camelcase: 6.3.0
       debug: 4.4.3
       dotenv: 16.6.1
@@ -11576,7 +11604,7 @@ snapshots:
       isstream: 0.1.2
       jsonwebtoken: 9.0.3
       mime-types: 2.1.35
-      retry-axios: 2.6.0(axios@1.13.5)
+      retry-axios: 2.6.0(axios@1.13.6(debug@4.4.3))
       tough-cookie: 4.1.4
     transitivePeerDependencies:
       - supports-color
@@ -12988,7 +13016,7 @@ snapshots:
     dependencies:
       debug: 3.2.7
       iconv-lite: 0.4.24
-      sax: 1.4.4
+      sax: 1.5.0
     transitivePeerDependencies:
       - supports-color
 
@@ -13291,7 +13319,7 @@ snapshots:
 
   plotly.js-basic-dist@3.3.1: {}
 
-  plotly.js@3.3.1(mapbox-gl@1.13.3):
+  plotly.js@3.4.0(mapbox-gl@1.13.3):
     dependencies:
       '@plotly/d3': 3.8.2
       '@plotly/d3-sankey': 0.7.2
@@ -13504,9 +13532,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  react-plotly.js@2.6.0(plotly.js@3.3.1(mapbox-gl@1.13.3))(react@19.1.0):
+  react-plotly.js@2.6.0(plotly.js@3.4.0(mapbox-gl@1.13.3))(react@19.1.0):
     dependencies:
-      plotly.js: 3.3.1(mapbox-gl@1.13.3)
+      plotly.js: 3.4.0(mapbox-gl@1.13.3)
       prop-types: 15.8.1
       react: 19.1.0
 
@@ -13786,9 +13814,9 @@ snapshots:
       path-parse: 1.0.7
       supports-preserve-symlinks-flag: 1.0.0
 
-  retry-axios@2.6.0(axios@1.13.5):
+  retry-axios@2.6.0(axios@1.13.6(debug@4.4.3)):
     dependencies:
-      axios: 1.13.5(debug@4.4.3)
+      axios: 1.13.6(debug@4.4.3)
 
   reusify@1.1.0: {}
 
@@ -13863,6 +13891,8 @@ snapshots:
   sax@0.6.1: {}
 
   sax@1.4.4: {}
+
+  sax@1.5.0: {}
 
   saxes@6.0.0:
     dependencies:
@@ -14081,7 +14111,7 @@ snapshots:
     dependencies:
       emoji-regex: 10.6.0
       get-east-asian-width: 1.5.0
-      strip-ansi: 7.1.2
+      strip-ansi: 7.2.0
 
   string.prototype.includes@2.0.1:
     dependencies:
@@ -14153,6 +14183,10 @@ snapshots:
       ansi-regex: 5.0.1
 
   strip-ansi@7.1.2:
+    dependencies:
+      ansi-regex: 6.2.2
+
+  strip-ansi@7.2.0:
     dependencies:
       ansi-regex: 6.2.2
 
@@ -15059,7 +15093,7 @@ snapshots:
     dependencies:
       ansi-styles: 6.2.3
       string-width: 7.2.0
-      strip-ansi: 7.1.2
+      strip-ansi: 7.2.0
 
   wrappy@1.0.2: {}
 
