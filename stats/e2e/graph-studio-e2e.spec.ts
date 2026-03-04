@@ -34,11 +34,17 @@ async function navigateToGraphStudio(page: Page): Promise<void> {
   log('navigate', '/graph-studio 로드 완료')
 }
 
-/** 차트 유형 썸네일 클릭 → 샘플 데이터로 에디터 진입 */
+/** 차트 유형 썸네일 클릭 → 샘플 데이터로 에디터 진입
+ *  JS evaluate 방식 — 우하단 Feedback Mascot 버튼(fixed)이 pointer events를 가로채는 문제 우회
+ */
 async function enterEditorViaSampleChart(page: Page, chartType = 'bar'): Promise<void> {
-  const thumbnail = page.locator(S.graphStudioChartType(chartType))
-  await thumbnail.waitFor({ state: 'visible', timeout: 10_000 })
-  await thumbnail.click()
+  const selector = S.graphStudioChartType(chartType)
+  await page.waitForSelector(selector, { timeout: 10_000 })
+  // React onClick을 올바르게 트리거하기 위해 native JS click 사용
+  await page.evaluate((sel: string) => {
+    const el = document.querySelector(sel) as HTMLElement | null
+    el?.click()
+  }, selector)
   log('enterEditor', `graph-studio-chart-type-${chartType} 클릭`)
   await page.waitForSelector(S.graphStudioChart, { timeout: 15_000 })
   log('enterEditor', 'graph-studio-chart 렌더됨 — 에디터 모드 진입 완료')
@@ -87,8 +93,8 @@ test.describe('Graph Studio', () => {
     )
     log('T3', `파일 경로: ${csvPath}`)
 
-    // upload-zone 내 숨김 input에 파일 직접 주입
-    const fileInput = page.locator(`${S.graphStudioUploadZone} input[type="file"]`)
+    // react-dropzone의 hidden input에 파일 직접 주입 (첫 번째 = dropzone input)
+    const fileInput = page.locator(`${S.graphStudioDropzone} input[type="file"]`).first()
     await fileInput.setInputFiles(csvPath)
     log('T3', 'setInputFiles 완료')
 
