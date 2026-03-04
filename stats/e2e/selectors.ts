@@ -94,4 +94,48 @@ export const S = {
   exportDocx: '[data-testid="export-docx"]',
   exportXlsx: '[data-testid="export-xlsx"]',
   exportHtml: '[data-testid="export-html"]',
+
+  // ===== Graph Studio (Smart Flow → 시각화 연계) =====
+  /** Smart Flow 결과 화면의 "Graph Studio" 이동 버튼 */
+  openGraphStudioBtn: '[data-testid="open-graph-studio-btn"]',
+  /** Graph Studio 메인 차트 영역 */
+  graphStudioChart: '[data-testid="graph-studio-chart"]',
+  /** Graph Studio 사이드 패널 */
+  graphStudioSidePanel: '[data-testid="graph-studio-side-panel"]',
+  /** Graph Studio Undo 버튼 */
+  graphStudioUndo: '[data-testid="graph-studio-undo"]',
+  /** Graph Studio Redo 버튼 */
+  graphStudioRedo: '[data-testid="graph-studio-redo"]',
+  /** Graph Studio AI 패널 토글 */
+  graphStudioAiToggle: '[data-testid="graph-studio-ai-toggle"]',
+  /** Graph Studio 사이드 패널 토글 */
+  graphStudioSideToggle: '[data-testid="graph-studio-side-toggle"]',
+  /** Graph Studio 사이드 패널 — 데이터 탭 */
+  graphStudioTabData: '[data-testid="graph-studio-tab-data"]',
+  /** Graph Studio 사이드 패널 — 스타일 탭 */
+  graphStudioTabStyle: '[data-testid="graph-studio-tab-style"]',
+  /** Graph Studio 페이지 루트 (upload 모드 & editor 모드 공통) */
+  graphStudioPage: '[data-testid="graph-studio-page"]',
+  /** Graph Studio 업로드 — 실제 drag-drop 이벤트 수신 루트 (react-dropzone getRootProps) */
+  graphStudioDropzone: '[data-testid="graph-studio-dropzone"]',
+  /** Graph Studio 업로드 — 점선 박스 영역 (시각적 카드) */
+  graphStudioUploadZone: '[data-testid="graph-studio-upload-zone"]',
+  /** Graph Studio 업로드 — 파일 선택 버튼 */
+  graphStudioFileUploadBtn: '[data-testid="graph-studio-file-upload-btn"]',
+  /** Graph Studio 업로드 — 차트 유형 썸네일 */
+  graphStudioChartType: (type: string) => `[data-testid="graph-studio-chart-type-${type}"]`,
+  /** Graph Studio AI 패널 — 채팅 입력 */
+  graphStudioAiInput: '[data-testid="ai-panel-input"]',
+  /** Graph Studio AI 패널 — 전송 버튼 */
+  graphStudioAiSend: '[data-testid="ai-panel-send"]',
+
+  // ===== Hub (추가 카드) =====
+  hubVisualizationCard: '[data-testid="hub-visualization-card"]',
+  hubSampleSizeCard: '[data-testid="hub-sample-size-card"]',
+
+  // ===== Smart Flow 추가 =====
+  /** 결과 Q&A 팔로업 섹션 */
+  followUpSection: '[data-testid="follow-up-section"]',
+  /** AI 채팅 스레드 */
+  chatThread: '[data-testid="chat-thread"]',
 } as const

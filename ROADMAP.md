@@ -811,6 +811,27 @@ npx wrangler pages deploy out --project-name=stats
 
 ---
 
+### Phase 10.6: 분석 결과 URL 공유 (미검토, 장기)
+
+**배경** (2026-03-04 조사):
+- 현재 Smart Flow → Graph Studio 이동은 Zustand store 경유 (`router.push('/graph-studio')`)
+- store-first 방식은 DataPackage(대용량 분석 결과)를 URL에 넣을 수 없어 세션 내에서만 유효
+- 공유/북마크 기능 미지원
+
+**구현 방향 (결정 시):**
+- URL: `router.push('/graph-studio?from=smart-flow&sessionId={uuid}')`
+- DataPackage는 서버 또는 localStorage에 sessionId 키로 저장 후 Graph Studio에서 복원
+- 단순 method ID 등은 searchParams에 직접 (nuqs 라이브러리 활용)
+
+**트리거 조건** — 아래 중 하나 발생 시 우선순위 상향:
+- 사용자가 "결과 링크 공유" 기능 요청
+- WebMCP Chrome stable 릴리스 (현재 v146 early preview)
+- CopilotKit 도입 결정
+
+**참고**: `OPERATION.md` 2026-03-04 AI 채팅→페이지 이동 패턴 조사
+
+---
+
 ### Phase 11: Tauri 데스크탑 앱 (예정)
 
 **목표**: 크로스 플랫폼 데스크탑 앱 개발 (Windows, macOS, Linux)

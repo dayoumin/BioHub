@@ -45,7 +45,7 @@ export default function GraphStudioPage(): React.ReactElement {
 
   if (layoutMode === 'upload') {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full" data-testid="graph-studio-page">
         <GraphStudioHeader />
         <div className="flex-1 flex items-center justify-center p-8">
           <DataUploadPanel />
@@ -58,7 +58,7 @@ export default function GraphStudioPage(): React.ReactElement {
   const sidePanelWidth = aiPanelOpen && aiPanelDock === 'right' ? 'w-60' : 'w-80';
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" data-testid="graph-studio-page">
       <GraphStudioHeader
         onToggleSidePanel={handleToggleSidePanel}
         onExport={handleExport}

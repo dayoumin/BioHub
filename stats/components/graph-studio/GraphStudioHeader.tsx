@@ -57,6 +57,7 @@ export function GraphStudioHeader({
             onClick={handleUndo}
             disabled={!canUndo}
             aria-label="Undo"
+            data-testid="graph-studio-undo"
           >
             <Undo2 className="h-4 w-4" />
           </Button>
@@ -66,6 +67,7 @@ export function GraphStudioHeader({
             onClick={handleRedo}
             disabled={!canRedo}
             aria-label="Redo"
+            data-testid="graph-studio-redo"
           >
             <Redo2 className="h-4 w-4" />
           </Button>
@@ -81,6 +83,7 @@ export function GraphStudioHeader({
             onClick={toggleAiPanel}
             aria-label={aiPanelOpen ? 'AI 패널 닫기' : 'AI 패널 열기'}
             className={aiPanelOpen ? 'text-primary bg-primary/10' : ''}
+            data-testid="graph-studio-ai-toggle"
           >
             <Sparkles className="h-4 w-4 mr-1" />
             AI
@@ -93,6 +96,7 @@ export function GraphStudioHeader({
             size="icon"
             onClick={onToggleSidePanel}
             aria-label="Toggle side panel"
+            data-testid="graph-studio-side-toggle"
           >
             <PanelRightOpen className="h-4 w-4" />
           </Button>

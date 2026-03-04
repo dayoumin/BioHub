@@ -161,7 +161,7 @@ describe('E2E Selector Integrity', () => {
 
   it('selectors.ts에 등록된 testid 개수가 최소 기준을 충족한다', () => {
     const testIds = extractStaticTestIds(selectorsPath)
-    // 현재 49개 등록 — 새 기능 추가 시 자연스럽게 증가
-    expect(testIds.length).toBeGreaterThanOrEqual(40)
+    // 현재 62개 등록 — 새 기능 추가 시 자연스럽게 증가
+    expect(testIds.length).toBeGreaterThanOrEqual(55)
   })
 })

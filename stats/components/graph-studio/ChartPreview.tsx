@@ -279,7 +279,7 @@ export function ChartPreview({ echartsRef }: ChartPreviewProps): React.ReactElem
   }
 
   return (
-    <div className="flex flex-col h-full p-4">
+    <div className="flex flex-col h-full p-4" data-testid="graph-studio-chart">
       {/* ECharts canvas */}
       <div className="flex-1 min-h-0">
         <ReactECharts

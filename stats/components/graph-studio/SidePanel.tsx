@@ -21,15 +21,15 @@ export function SidePanel(): React.ReactElement {
   }, [setSidePanel]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" data-testid="graph-studio-side-panel">
       <Tabs
         value={sidePanel}
         onValueChange={handleTabChange}
         className="flex flex-col h-full"
       >
         <TabsList className="w-full grid grid-cols-2 rounded-none border-b">
-          <TabsTrigger value="data" className="text-xs">데이터</TabsTrigger>
-          <TabsTrigger value="style" className="text-xs">스타일</TabsTrigger>
+          <TabsTrigger value="data" className="text-xs" data-testid="graph-studio-tab-data">데이터</TabsTrigger>
+          <TabsTrigger value="style" className="text-xs" data-testid="graph-studio-tab-style">스타일</TabsTrigger>
         </TabsList>
 
         <div className="flex-1 overflow-y-auto p-3">

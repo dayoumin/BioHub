@@ -309,6 +309,7 @@ export function DataUploadPanel(): React.ReactElement {
   return (
     <div
       {...getRootProps()}
+      data-testid="graph-studio-dropzone"
       className={`
         w-full max-w-3xl transition-all duration-200
         ${isDragActive ? 'ring-2 ring-primary ring-offset-4 rounded-2xl' : ''}
@@ -355,7 +356,7 @@ export function DataUploadPanel(): React.ReactElement {
                 cursor-pointer transition-all duration-150
                 ${bg}
               `}
-              data-testid={`chart-type-${type}`}
+              data-testid={`graph-studio-chart-type-${type}`}
             >
               <Icon className={`h-7 w-7 ${color} transition-transform group-hover:scale-110`} />
               <div className="text-center">
@@ -372,7 +373,9 @@ export function DataUploadPanel(): React.ReactElement {
 
       {/* ── 파일 업로드 + 드래그 존 ───────────────────── */}
       {/* 점선 테두리로 드래그 가능 영역 명시 */}
-      <div className={`
+      <div
+        data-testid="graph-studio-upload-zone"
+        className={`
         border-2 border-dashed rounded-xl px-6 py-5 mb-4 text-center
         transition-colors duration-200
         ${isDragActive
@@ -398,7 +401,7 @@ export function DataUploadPanel(): React.ReactElement {
           className="gap-2 mb-3"
           onClick={() => fileInputRef.current?.click()}
           disabled={isLoading}
-          data-testid="file-upload-btn"
+          data-testid="graph-studio-file-upload-btn"
         >
           {isLoading ? (
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
