@@ -31,7 +31,7 @@ const nextConfig: NextConfig = {
   // Redirects for moved pages are handled client-side in the pages themselves
 
   experimental: {
-    reactCompiler: true,
+    reactCompiler: false, // Zustand useSyncExternalStore와 충돌 → 비활성화
     optimizePackageImports: [
       'lucide-react',
       '@/components/ui',

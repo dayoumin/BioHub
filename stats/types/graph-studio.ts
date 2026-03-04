@@ -79,6 +79,8 @@ export interface LegendSpec {
   orient?: 'top' | 'bottom' | 'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'none';
   fontSize?: number;
   titleFontSize?: number;
+  /** 범례 레이블 직접 편집 — { rawName: displayLabel } */
+  customLabels?: Record<string, string>;
 }
 
 // ─── Error Bar ─────────────────────────────────────────────
@@ -152,6 +154,8 @@ export interface StyleSpec {
   scheme?: string;
   /** Show value labels on bars. */
   showDataLabels?: boolean;
+  /** Show n= sample count below each x-axis category label. */
+  showSampleCounts?: boolean;
   font?: {
     family?: string;
     size?: number;
@@ -176,6 +180,8 @@ export interface ExportConfig {
   physicalWidth?: number;
   /** 출력 높이 (mm). undefined = 현재 DOM 크기 사용. */
   physicalHeight?: number;
+  /** PNG 투명 배경 (기본 흰색). SVG는 무시. */
+  transparentBackground?: boolean;
 }
 
 // ─── ChartSpec (핵심) ──────────────────────────────────────

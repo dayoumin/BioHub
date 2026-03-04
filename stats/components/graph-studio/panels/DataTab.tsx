@@ -6,7 +6,7 @@
  * PropertiesTab에서 분리. 스타일·출력 관련은 StyleTab 참조.
  */
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useMemo } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -21,15 +21,41 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { CHART_TYPE_HINTS, ALL_PALETTES, FIGURE_PRESETS } from '@/lib/graph-studio/chart-spec-defaults';
-import { selectXYFields } from '@/lib/graph-studio/chart-spec-utils';
-import type { ChartType, ErrorBarSpec } from '@/types/graph-studio';
+import { selectXYFields, getPValueLabel } from '@/lib/graph-studio/chart-spec-utils';
+import type { ChartType, ErrorBarSpec, SignificanceMark } from '@/types/graph-studio';
 
 /** 에러바를 지원하는 차트 유형 */
 const ERROR_BAR_CHART_TYPES = new Set<ChartType>(['bar', 'line', 'error-bar']);
 
 /** orientation(수평 막대)을 지원하는 차트 유형 */
 const ORIENTATION_CHART_TYPES = new Set<ChartType>(['bar', 'grouped-bar', 'stacked-bar']);
+
+/** 유의성 마커를 지원하는 차트 유형 (C1) */
+const SIG_CHART_TYPES = new Set<ChartType>(['bar', 'grouped-bar', 'error-bar']);
+
+/** 과학 기호 헬퍼 목록 (C2) */
+const SCIENCE_SYMBOLS: { label: string; value: string }[] = [
+  { label: 'µ',  value: 'µ' },
+  { label: '±',  value: '±' },
+  { label: '×',  value: '×' },
+  { label: '°',  value: '°' },
+  { label: 'Å',  value: 'Å' },
+  { label: '⁻¹', value: '⁻¹' },
+  { label: '²',  value: '²' },
+  { label: '³',  value: '³' },
+  { label: '₀',  value: '₀' },
+  { label: '₂',  value: '₂' },
+  { label: 'α',  value: 'α' },
+  { label: 'β',  value: 'β' },
+  { label: 'σ',  value: 'σ' },
+  { label: 'λ',  value: 'λ' },
+];
 
 /** ColorBrewer 팔레트 옵션 */
 const COLORBREWER_OPTIONS: { value: string; label: string }[] = [
@@ -55,13 +81,18 @@ const JOURNAL_OPTIONS: { value: string; label: string }[] = [
 ];
 
 export function DataTab(): React.ReactElement {
-  const { chartSpec, updateChartSpec } = useGraphStudioStore();
+  const { chartSpec, updateChartSpec, dataPackage } = useGraphStudioStore();
 
   // ─── 로컬 입력 state (onBlur 시에만 updateChartSpec) ─────────────────────
   const [titleInput, setTitleInput] = useState(chartSpec?.title ?? '');
   const [xTitleInput, setXTitleInput] = useState(chartSpec?.encoding.x.title ?? '');
   const [yTitleInput, setYTitleInput] = useState(chartSpec?.encoding.y.title ?? '');
   const [y2TitleInput, setY2TitleInput] = useState(chartSpec?.encoding.y2?.title ?? '');
+
+  // C1: 유의성 마커 추가 폼 state
+  const [newMarkA, setNewMarkA] = useState('');
+  const [newMarkB, setNewMarkB] = useState('');
+  const [newMarkPValue, setNewMarkPValue] = useState('');
 
   useEffect(() => {
     setTitleInput(chartSpec?.title ?? '');
@@ -299,6 +330,40 @@ export function DataTab(): React.ReactElement {
     }
   }, [chartSpec, y2TitleInput, updateChartSpec]);
 
+  // ─── C1: 유의성 마커 ──────────────────────────────────────
+
+  // x축 카테고리 목록 (dataPackage에서 실제 데이터 기반 추출)
+  // dataPackage.data는 열 지향(columnar) — 해당 컬럼만 직접 접근해 O(n) 처리
+  const xCategories = useMemo(() => {
+    if (!dataPackage || !chartSpec?.encoding.x.field) return [];
+    const xField = chartSpec.encoding.x.field;
+    const col = (dataPackage.data[xField] ?? []) as unknown[];
+    return [...new Set(col.map(v => String(v ?? '')).filter(Boolean))];
+  }, [dataPackage, chartSpec?.encoding.x.field]);
+
+  const addMark = useCallback(() => {
+    if (!chartSpec || !newMarkA || !newMarkB || newMarkA === newMarkB) return;
+    const pNum = parseFloat(newMarkPValue);
+    const mark: SignificanceMark = {
+      groupA: newMarkA,
+      groupB: newMarkB,
+      ...(isNaN(pNum) ? { label: newMarkPValue || '*' } : { pValue: pNum }),
+    };
+    updateChartSpec({
+      ...chartSpec,
+      significance: [...(chartSpec.significance ?? []), mark],
+    });
+    setNewMarkPValue('');
+  }, [chartSpec, newMarkA, newMarkB, newMarkPValue, updateChartSpec]);
+
+  const removeMark = useCallback((idx: number) => {
+    if (!chartSpec) return;
+    updateChartSpec({
+      ...chartSpec,
+      significance: chartSpec.significance?.filter((_, i) => i !== idx),
+    });
+  }, [chartSpec, updateChartSpec]);
+
   // ─── 패싯 (소규모 배치) ────────────────────────────────────
 
   const handleFacetFieldChange = useCallback((value: string) => {
@@ -422,14 +487,33 @@ export function DataTab(): React.ReactElement {
           </SelectContent>
         </Select>
         <Label className="text-xs text-muted-foreground">X축 제목</Label>
-        <Input
-          value={xTitleInput}
-          onChange={(e) => setXTitleInput(e.target.value)}
-          onBlur={makeAxisTitleHandler('x', xTitleInput)}
-          onKeyDown={handleAxisTitleKeyDown}
-          placeholder="빈칸이면 필드명 사용"
-          className="h-7 text-xs"
-        />
+        <div className="flex gap-1">
+          <Input
+            value={xTitleInput}
+            onChange={(e) => setXTitleInput(e.target.value)}
+            onBlur={makeAxisTitleHandler('x', xTitleInput)}
+            onKeyDown={handleAxisTitleKeyDown}
+            placeholder="빈칸이면 필드명 사용"
+            className="h-7 text-xs"
+          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="text-xs border rounded px-1 h-7 text-muted-foreground hover:bg-muted shrink-0" title="과학 기호 삽입">Ω</button>
+            </PopoverTrigger>
+            <PopoverContent className="w-44 p-2">
+              <div className="grid grid-cols-7 gap-0.5">
+                {SCIENCE_SYMBOLS.map(sym => (
+                  <button
+                    key={sym.value}
+                    className="text-xs h-6 w-6 border rounded hover:bg-muted font-mono"
+                    onMouseDown={(e) => { e.preventDefault(); setXTitleInput(prev => prev + sym.value); }}
+                    title={sym.value}
+                  >{sym.label}</button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       {/* Y축 */}
@@ -456,14 +540,33 @@ export function DataTab(): React.ReactElement {
           </SelectContent>
         </Select>
         <Label className="text-xs text-muted-foreground">Y축 제목</Label>
-        <Input
-          value={yTitleInput}
-          onChange={(e) => setYTitleInput(e.target.value)}
-          onBlur={makeAxisTitleHandler('y', yTitleInput)}
-          onKeyDown={handleAxisTitleKeyDown}
-          placeholder="빈칸이면 필드명 사용"
-          className="h-7 text-xs"
-        />
+        <div className="flex gap-1">
+          <Input
+            value={yTitleInput}
+            onChange={(e) => setYTitleInput(e.target.value)}
+            onBlur={makeAxisTitleHandler('y', yTitleInput)}
+            onKeyDown={handleAxisTitleKeyDown}
+            placeholder="빈칸이면 필드명 사용"
+            className="h-7 text-xs"
+          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="text-xs border rounded px-1 h-7 text-muted-foreground hover:bg-muted shrink-0" title="과학 기호 삽입">Ω</button>
+            </PopoverTrigger>
+            <PopoverContent className="w-44 p-2">
+              <div className="grid grid-cols-7 gap-0.5">
+                {SCIENCE_SYMBOLS.map(sym => (
+                  <button
+                    key={sym.value}
+                    className="text-xs h-6 w-6 border rounded hover:bg-muted font-mono"
+                    onMouseDown={(e) => { e.preventDefault(); setYTitleInput(prev => prev + sym.value); }}
+                    title={sym.value}
+                  >{sym.label}</button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       {/* 보조 Y축 (이중 Y축, bar/line만) */}
@@ -691,6 +794,72 @@ export function DataTab(): React.ReactElement {
               R² 값은 툴팁에서 확인 가능합니다
             </p>
           )}
+        </div>
+      )}
+
+      {/* 유의성 마커 (C1) — bar/grouped-bar/error-bar 전용 */}
+      {SIG_CHART_TYPES.has(chartSpec.chartType) && (
+        <div className="space-y-2">
+          <Label className="text-xs">유의성 마커</Label>
+
+          {/* 기존 마커 목록 */}
+          {(chartSpec.significance ?? []).map((mark, idx) => (
+            <div key={idx} className="flex items-center gap-1 text-xs">
+              <span className="flex-1 truncate">
+                {mark.groupA} — {mark.groupB}:{' '}
+                <span className="font-medium">{getPValueLabel(mark)}</span>
+              </span>
+              <button
+                onClick={() => removeMark(idx)}
+                className="text-muted-foreground hover:text-destructive shrink-0"
+                aria-label="마커 삭제"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+
+          {/* 새 마커 추가 폼 */}
+          <div className="space-y-1">
+            <div className="flex gap-1">
+              <Select value={newMarkA} onValueChange={setNewMarkA}>
+                <SelectTrigger className="h-7 text-xs flex-1">
+                  <SelectValue placeholder="그룹 A" />
+                </SelectTrigger>
+                <SelectContent>
+                  {xCategories.map(c => (
+                    <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={newMarkB} onValueChange={setNewMarkB}>
+                <SelectTrigger className="h-7 text-xs flex-1">
+                  <SelectValue placeholder="그룹 B" />
+                </SelectTrigger>
+                <SelectContent>
+                  {xCategories.map(c => (
+                    <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-1">
+              <Input
+                value={newMarkPValue}
+                onChange={(e) => setNewMarkPValue(e.target.value)}
+                placeholder="p값 (예: 0.03) 또는 레이블 (예: **)"
+                className="h-7 text-xs flex-1"
+              />
+              <Button
+                size="sm"
+                className="h-7 text-xs px-2 shrink-0"
+                onClick={addMark}
+                disabled={!newMarkA || !newMarkB || newMarkA === newMarkB}
+              >
+                추가
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

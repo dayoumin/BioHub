@@ -60,6 +60,7 @@ const legendSchema = z.object({
   ]).optional(),
   fontSize: z.number().positive().optional(),
   titleFontSize: z.number().positive().optional(),
+  customLabels: z.record(z.string(), z.string()).optional(),
 }).strict();
 
 const axisSchema = z.object({
@@ -135,6 +136,7 @@ const styleSchema = z.object({
   preset: stylePresetSchema,
   scheme: z.string().optional(),
   showDataLabels: z.boolean().optional(),
+  showSampleCounts: z.boolean().optional(),
   font: z.object({
     family: z.string().optional(),
     size: z.number().positive().optional(),
@@ -152,6 +154,7 @@ const exportConfigSchema = z.object({
   dpi: z.number().int().min(72).max(1200),
   physicalWidth: z.number().positive().optional(),
   physicalHeight: z.number().positive().optional(),
+  transparentBackground: z.boolean().optional(),
 }).strict();
 
 // ─── ChartSpec 메인 스키마 ─────────────────────────────────

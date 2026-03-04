@@ -122,6 +122,8 @@ export const S = {
   graphStudioUploadZone: '[data-testid="graph-studio-upload-zone"]',
   /** Graph Studio 업로드 — 파일 선택 버튼 */
   graphStudioFileUploadBtn: '[data-testid="graph-studio-file-upload-btn"]',
+  /** Graph Studio 업로드 — sr-only file input (E2E setInputFiles 전용 타겟) */
+  graphStudioFileInput: '[data-testid="graph-studio-file-input"]',
   /** Graph Studio 업로드 — 차트 유형 썸네일 */
   graphStudioChartType: (type: string) => `[data-testid="graph-studio-chart-type-${type}"]`,
   /** Graph Studio AI 패널 — 채팅 입력 */

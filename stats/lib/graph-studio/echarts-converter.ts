@@ -90,6 +90,19 @@ function toStr(v: unknown): string {
   return String(v);
 }
 
+/** x축 카테고리별 원시 row 수를 집계 (n= 표기용). 반드시 집계 전 rows로 호출. */
+function countSamplesPerCategory(
+  rows: Record<string, unknown>[],
+  xField: string,
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const cat = toStr(row[xField]);
+    counts.set(cat, (counts.get(cat) ?? 0) + 1);
+  }
+  return counts;
+}
+
 /** Aggregate rows by groupBy fields. */
 function aggregateRows(
   rows: Record<string, unknown>[],
@@ -722,10 +735,20 @@ function buildBarAxes(
   spec: ChartSpec,
   style: StyleConfig,
   categories?: string[],
+  sampleCounts?: Map<string, number>,
 ): { xAxis: Record<string, unknown>; yAxis: Record<string, unknown> } {
+  const base = xAxisBase(spec, style, 'category');
   const catAxis = {
-    ...xAxisBase(spec, style, 'category'),
-    ...(categories ? { data: categories } : {}),
+    ...base,
+    ...(categories ? {
+      data: categories,
+      ...(sampleCounts ? {
+        axisLabel: {
+          ...base.axisLabel,
+          formatter: (val: string) => `${val}\n(n=${sampleCounts.get(val) ?? '?'})`,
+        },
+      } : {}),
+    } : {}),
   };
   const valAxis = yAxisBase(spec, style);
   return spec.orientation === 'horizontal'
@@ -733,8 +756,12 @@ function buildBarAxes(
     : { xAxis: catAxis, yAxis: valAxis };
 }
 
-/** encoding.color.legend.orient → ECharts legend 포지셔닝 */
-function buildLegend(spec: ChartSpec, style: StyleConfig): Record<string, unknown> {
+/** encoding.color.legend.orient → ECharts legend 포지셔닝. seriesNames 제공 시 customLabels formatter 적용. */
+function buildLegend(
+  spec: ChartSpec,
+  style: StyleConfig,
+  seriesNames?: string[],
+): Record<string, unknown> {
   const orient = spec.encoding.color?.legend?.orient;
   if (orient === 'none') return { show: false };
   const posMap: Record<string, Record<string, unknown>> = {
@@ -747,9 +774,14 @@ function buildLegend(spec: ChartSpec, style: StyleConfig): Record<string, unknow
     'bottom-left': { orient: 'horizontal', bottom: 0,   left: 0        },
     'bottom-right':{ orient: 'horizontal', bottom: 0,   right: 0       },
   };
+  const customLabels = spec.encoding.color?.legend?.customLabels ?? {};
+  const hasCustom = Object.keys(customLabels).length > 0;
   return {
     ...(orient && posMap[orient] ? posMap[orient] : { orient: 'horizontal' }),
     textStyle: { fontFamily: style.fontFamily, fontSize: style.labelSize },
+    ...(hasCustom && seriesNames?.length ? {
+      formatter: (name: string) => customLabels[name] ?? name,
+    } : {}),
   };
 }
 
@@ -1079,10 +1111,20 @@ export function chartSpecToECharts(
       const { categories, means, lowers, uppers } = buildErrorBarData(
         rows, xField, yField, spec.errorBar.type, spec.errorBar.value ?? 95,
       );
+      const barEbCounts = spec.style.showSampleCounts
+        ? countSamplesPerCategory(rows, xField)
+        : undefined;
+      const barEbAxBase = xAxisBase(spec, style, 'category');
       return {
         ...base,
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        xAxis: { ...xAxisBase(spec, style, 'category'), data: categories },
+        xAxis: {
+          ...barEbAxBase,
+          data: categories,
+          axisLabel: barEbCounts
+            ? { ...barEbAxBase.axisLabel, formatter: (val: string) => `${val}\n(n=${barEbCounts.get(val) ?? '?'})` }
+            : barEbAxBase.axisLabel,
+        } as Record<string, unknown>,
         yAxis: yAxisBase(spec, style),
         series: [
           { type: 'bar', data: means, name: yField, z: 2, ...(barLabel ? { label: barLabel } : {}) },
@@ -1090,7 +1132,6 @@ export function chartSpecToECharts(
         ],
       };
     }
-    const { xAxis: barXAxis, yAxis: barYAxis } = buildBarAxes(spec, style);
     const isH = spec.orientation === 'horizontal';
     const y2Axis = spec.encoding.y2;
     // Y2 방어: color 그룹이 있으면 colors[1] 충돌 → Y2 무시
@@ -1106,6 +1147,25 @@ export function chartSpecToECharts(
     if (hasY2 && y2Axis) {
       barSeries.push(buildY2Series(workRows, xField, y2Axis.field, style, isH));
     }
+    // showSampleCounts: dataset 모드에서 categories를 rows에서 명시적으로 추출해야 함
+    if (spec.style.showSampleCounts) {
+      const catOrder = [...new Map(rows.map(r => [toStr(r[xField]), true])).keys()];
+      const counts = countSamplesPerCategory(rows, xField);
+      const { xAxis: barXAxisN, yAxis: barYAxisN } = buildBarAxes(spec, style, catOrder, counts);
+      return {
+        ...base,
+        tooltip: hasY2
+          ? { trigger: 'axis', axisPointer: { type: 'cross' } }
+          : { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        xAxis: barXAxisN,
+        yAxis: hasY2 && y2Axis
+          ? [barYAxisN, buildY2Axis(y2Axis, style)]
+          : barYAxisN,
+        dataset: { source: workRows },
+        series: barSeries,
+      };
+    }
+    const { xAxis: barXAxis, yAxis: barYAxis } = buildBarAxes(spec, style);
     return {
       ...base,
       tooltip: hasY2
@@ -1126,11 +1186,14 @@ export function chartSpecToECharts(
     const isH = spec.orientation === 'horizontal';
     if (colorField) {
       const { categories, groups, seriesData } = buildGroupedData(workRows, xField, colorField, yField);
-      const { xAxis: gbXAxis, yAxis: gbYAxis } = buildBarAxes(spec, style, categories);
+      const gbCounts = spec.style.showSampleCounts
+        ? countSamplesPerCategory(rows, xField)
+        : undefined;
+      const { xAxis: gbXAxis, yAxis: gbYAxis } = buildBarAxes(spec, style, categories, gbCounts);
       return {
         ...base,
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        legend: buildLegend(spec, style),
+        legend: buildLegend(spec, style, groups),
         xAxis: gbXAxis,
         yAxis: gbYAxis,
         series: groups.map(g => ({
@@ -1164,11 +1227,14 @@ export function chartSpecToECharts(
     const isH = spec.orientation === 'horizontal';
     if (colorField) {
       const { categories, groups, seriesData } = buildGroupedData(workRows, xField, colorField, yField);
-      const { xAxis: sbXAxis, yAxis: sbYAxis } = buildBarAxes(spec, style, categories);
+      const sbCounts = spec.style.showSampleCounts
+        ? countSamplesPerCategory(rows, xField)
+        : undefined;
+      const { xAxis: sbXAxis, yAxis: sbYAxis } = buildBarAxes(spec, style, categories, sbCounts);
       return {
         ...base,
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        legend: buildLegend(spec, style),
+        legend: buildLegend(spec, style, groups),
         xAxis: sbXAxis,
         yAxis: sbYAxis,
         series: groups.map(g => ({
@@ -1453,11 +1519,21 @@ export function chartSpecToECharts(
     const { categories, means, lowers, uppers } = buildErrorBarData(
       rows, xField, yField, errorType, ciValue,
     );
+    const ebCounts = spec.style.showSampleCounts
+      ? countSamplesPerCategory(rows, xField)
+      : undefined;
+    const ebXBase = xAxisBase(spec, style, 'category');
 
     return {
       ...base,
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      xAxis: { ...xAxisBase(spec, style, 'category'), data: categories },
+      xAxis: {
+        ...ebXBase,
+        data: categories,
+        axisLabel: ebCounts
+          ? { ...ebXBase.axisLabel, formatter: (val: string) => `${val}\n(n=${ebCounts.get(val) ?? '?'})` }
+          : ebXBase.axisLabel,
+      } as Record<string, unknown>,
       yAxis: yAxisBase(spec, style),
       series: [
         { type: 'bar', name: yField, data: means, z: 2 },

@@ -7,7 +7,7 @@
  * PropertiesTab에서 분리. 데이터 매핑은 DataTab 참조.
  */
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useMemo } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -36,6 +36,9 @@ const FONT_OPTIONS: { value: string; label: string }[] = [
 /** 데이터 레이블을 지원하는 차트 유형 */
 const DATA_LABEL_CHART_TYPES = new Set<ChartType>(['bar', 'grouped-bar', 'stacked-bar']);
 
+/** n= 표본 수 표기를 지원하는 차트 유형 */
+const SAMPLE_COUNT_CHART_TYPES = new Set<ChartType>(['bar', 'grouped-bar', 'stacked-bar', 'error-bar']);
+
 const PRESET_LIST: { key: StylePreset; label: string; description: string }[] = [
   { key: 'default',   label: 'Default',   description: '깔끔한 기본 스타일 (Arial, 컬러)' },
   { key: 'science',   label: 'Science',   description: 'Nature/Science 유사 (Times New Roman)' },
@@ -44,7 +47,7 @@ const PRESET_LIST: { key: StylePreset; label: string; description: string }[] = 
 ];
 
 export function StyleTab(): React.ReactElement {
-  const { chartSpec, updateChartSpec } = useGraphStudioStore();
+  const { chartSpec, updateChartSpec, dataPackage } = useGraphStudioStore();
 
   const [yMinInput, setYMinInput] = useState(
     chartSpec?.encoding.y.scale?.domain?.[0] !== undefined
@@ -67,6 +70,11 @@ export function StyleTab(): React.ReactElement {
       : '',
   );
 
+  // B2: 범례 레이블 편집 draft 상태 (onBlur 커밋 패턴)
+  const [customLabelDraft, setCustomLabelDraft] = useState<Record<string, string>>(
+    () => chartSpec?.encoding.color?.legend?.customLabels ?? {},
+  );
+
   useEffect(() => {
     const domain = chartSpec?.encoding.y.scale?.domain;
     setYMinInput(domain?.[0] !== undefined ? String(domain[0]) : '');
@@ -78,6 +86,11 @@ export function StyleTab(): React.ReactElement {
     setXMinInput(domain?.[0] !== undefined ? String(domain[0]) : '');
     setXMaxInput(domain?.[1] !== undefined ? String(domain[1]) : '');
   }, [chartSpec?.encoding.x.scale?.domain]);
+
+  // B2: AI 편집·undo 등 외부 변경 시 draft 동기화
+  useEffect(() => {
+    setCustomLabelDraft(chartSpec?.encoding.color?.legend?.customLabels ?? {});
+  }, [chartSpec?.encoding.color?.legend?.customLabels]);
 
   // ─── 로그 스케일 ──────────────────────────────────────────
 
@@ -181,6 +194,42 @@ export function StyleTab(): React.ReactElement {
     });
   }, [chartSpec, updateChartSpec]);
 
+  // ─── n= 표본 수 표기 (B1) ────────────────────────────────
+
+  const handleSampleCountsToggle = useCallback((checked: boolean) => {
+    if (!chartSpec) return;
+    updateChartSpec({
+      ...chartSpec,
+      style: { ...chartSpec.style, showSampleCounts: checked ? true : undefined },
+    });
+  }, [chartSpec, updateChartSpec]);
+
+  // ─── 범례 레이블 편집 (B2) ────────────────────────────────
+
+  const handleCustomLabelChange = useCallback((raw: string, value: string) => {
+    setCustomLabelDraft(prev => ({ ...prev, [raw]: value }));
+  }, []);
+
+  const commitCustomLabels = useCallback(() => {
+    if (!chartSpec?.encoding.color) return;
+    const cleaned = Object.fromEntries(
+      Object.entries(customLabelDraft).filter(([, v]) => v.trim() !== ''),
+    );
+    updateChartSpec({
+      ...chartSpec,
+      encoding: {
+        ...chartSpec.encoding,
+        color: {
+          ...chartSpec.encoding.color,
+          legend: {
+            ...chartSpec.encoding.color.legend,
+            customLabels: Object.keys(cleaned).length > 0 ? cleaned : undefined,
+          },
+        },
+      },
+    });
+  }, [chartSpec, customLabelDraft, updateChartSpec]);
+
   // ─── 폰트 선택 ───────────────────────────────────────────
 
   const handleFontChange = useCallback((fontFamily: string) => {
@@ -202,6 +251,18 @@ export function StyleTab(): React.ReactElement {
     updateChartSpec({ ...chartSpec, style: { ...preset } });
   }, [chartSpec, updateChartSpec]);
 
+  // B2: color encoding 있을 때 unique 그룹 값 계산 (dataPackage 우선, sampleValues 폴백)
+  // dataPackage.data는 열 지향(columnar) — 해당 컬럼만 직접 접근해 O(n) 처리
+  const colorGroups = useMemo((): string[] => {
+    if (!chartSpec?.encoding.color) return [];
+    const colorField = chartSpec.encoding.color.field;
+    if (dataPackage) {
+      const col = (dataPackage.data[colorField] ?? []) as unknown[];
+      return [...new Set(col.map(v => String(v ?? '')).filter(Boolean))];
+    }
+    return chartSpec?.data.columns.find(c => c.name === colorField)?.sampleValues ?? [];
+  }, [chartSpec?.encoding.color, chartSpec?.data.columns, dataPackage]);
+
   // ─── 렌더 ─────────────────────────────────────────────────
 
   if (!chartSpec) {
@@ -217,6 +278,7 @@ export function StyleTab(): React.ReactElement {
   const isLogScale = chartSpec.encoding.y.scale?.type === 'log';
   const showLegend = chartSpec.encoding.color !== undefined;
   const showDataLabelOption = DATA_LABEL_CHART_TYPES.has(chartSpec.chartType);
+  const showSampleCountOption = SAMPLE_COUNT_CHART_TYPES.has(chartSpec.chartType);
 
   return (
     <div className="space-y-4">
@@ -320,6 +382,29 @@ export function StyleTab(): React.ReactElement {
         </div>
       )}
 
+      {/* 범례 레이블 편집 (B2) — color encoding + 그룹 있을 때 */}
+      {showLegend && colorGroups.length > 0 && (
+        <div className="space-y-1.5">
+          <Label className="text-xs">범례 레이블 편집</Label>
+          <div className="space-y-1">
+            {colorGroups.map(raw => (
+              <div key={raw} className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground w-20 truncate shrink-0" title={raw}>
+                  {raw}
+                </span>
+                <Input
+                  value={customLabelDraft[raw] ?? ''}
+                  onChange={(e) => handleCustomLabelChange(raw, e.target.value)}
+                  onBlur={commitCustomLabels}
+                  placeholder={raw}
+                  className="h-6 text-xs"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* 데이터 레이블 (bar 계열만) */}
       {showDataLabelOption && (
         <div className="space-y-1.5">
@@ -331,6 +416,20 @@ export function StyleTab(): React.ReactElement {
               onCheckedChange={handleDataLabelsToggle}
             />
           </div>
+        </div>
+      )}
+
+      {/* n= 표본 수 표기 (B1) — bar/grouped-bar/stacked-bar/error-bar */}
+      {showSampleCountOption && (
+        <div className="flex items-center justify-between">
+          <Label htmlFor="sample-counts" className="text-xs cursor-pointer">
+            n= 표본 수 표기
+          </Label>
+          <Switch
+            id="sample-counts"
+            checked={chartSpec.style.showSampleCounts ?? false}
+            onCheckedChange={handleSampleCountsToggle}
+          />
         </div>
       )}
 

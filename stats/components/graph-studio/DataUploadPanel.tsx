@@ -387,6 +387,7 @@ export function DataUploadPanel(): React.ReactElement {
           type="file"
           accept=".csv,.tsv,.xlsx,.xls"
           className="sr-only"
+          data-testid="graph-studio-file-input"
           onChange={(e) => {
             if (e.target.files?.[0]) {
               void handleFile(e.target.files[0]);

@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test'
 export default defineConfig({
 	testDir: './e2e',
 	fullyParallel: false,
-	retries: 0,
+	retries: 1,
 	workers: 1,
 	timeout: 300000,
 
@@ -26,10 +26,13 @@ export default defineConfig({
 	},
 
 	webServer: {
-		command: 'npm run dev',
+		// output:'export' → out/ 폴더를 npx serve로 서빙 (next start 불가)
+		// 빌드는 E2E 실행 전 별도 수행: pnpm run build
+		// -s: SPA 라우팅 (404 → index.html 폴백)
+		command: 'npx --yes serve out -p 3000 -s',
 		url: 'http://localhost:3000',
-		reuseExistingServer: true,
-		timeout: 180000,
+		reuseExistingServer: !process.env.CI,
+		timeout: 30000,
 	},
 
 	projects: [

@@ -10,7 +10,7 @@
  * AI 패널 도킹: bottom (기본) | left | right
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type EChartsReactCore from 'echarts-for-react/lib/core';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { GraphStudioHeader } from '@/components/graph-studio/GraphStudioHeader';
@@ -26,7 +26,6 @@ export default function GraphStudioPage(): React.ReactElement {
   // React Compiler(babel-plugin-react-compiler@1.0.0)가 Zustand useSyncExternalStore
   // 구독을 잘못 메모이즈하는 문제를 방지.
   // 스토어 업데이트(loadDataPackageWithSpec 등) 시 이 컴포넌트가 반드시 리렌더됩니다.
-  'use no memo';
 
   // 개별 셀렉터로 구독 — React Compiler가 selector 출력값을 기반으로 스냅샷 비교.
   // 셀렉터 반환값이 primitive(boolean, null) 이므로 값 비교로 정확히 re-render 트리거됨.
@@ -36,6 +35,13 @@ export default function GraphStudioPage(): React.ReactElement {
   const aiPanelDock = useGraphStudioStore(state => state.aiPanelDock);
 
   const layoutMode: LayoutMode = isDataLoaded && chartSpec ? 'editor' : 'upload';
+
+  // E2E 테스트용 hydration 완료 신호.
+  // useEffect는 SSR에서 실행되지 않으며, React가 DOM에 이벤트 핸들러를 완전히
+  // 부착한 후에만 실행됨 → 이 속성이 나타나면 클릭이 안전하게 동작함.
+  useEffect(() => {
+    document.documentElement.setAttribute('data-graph-studio-ready', 'true');
+  }, []);
 
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
 

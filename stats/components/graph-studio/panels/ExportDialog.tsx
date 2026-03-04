@@ -14,6 +14,7 @@ import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -28,9 +29,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Download } from 'lucide-react';
+import { Download, AlertTriangle } from 'lucide-react';
 import { JOURNAL_SIZE_PRESETS, mmToPx } from '@/lib/graph-studio';
-import type { ExportFormat } from '@/types/graph-studio';
+import type { ExportFormat, ErrorBarSpec } from '@/types/graph-studio';
 
 const DPI_OPTIONS = [72, 150, 300, 600] as const;
 
@@ -39,6 +40,25 @@ const SUPPORTED_FORMATS: { value: ExportFormat; label: string }[] = [
   { value: 'svg', label: 'SVG (벡터)' },
   { value: 'png', label: 'PNG (래스터)' },
 ];
+
+// 다른 OS에서도 렌더링이 보장되는 웹 안전 폰트 (A4 경고 기준)
+const WEB_SAFE_FONTS = new Set([
+  'Arial, Helvetica, sans-serif',
+  'Times New Roman, serif',
+  'Georgia, serif',
+  'Courier New, monospace',
+]);
+
+/** 에러바 정의 텍스트 생성 (A3) */
+function getErrorBarCaption(errorBar: ErrorBarSpec): string {
+  const descriptions: Record<string, string> = {
+    stderr: 'Error bars represent mean ± SEM',
+    stdev:  'Error bars represent mean ± SD',
+    ci:     `Error bars represent ${errorBar.value ?? 95}% confidence intervals`,
+    iqr:    'Error bars represent IQR',
+  };
+  return descriptions[errorBar.type] ?? '';
+}
 
 interface ExportDialogProps {
   /** Export 실행 핸들러 (GraphStudioPage에서 주입) */
@@ -78,6 +98,14 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
     setExportConfig({ ...chartSpec.exportConfig, dpi: Number(value) });
   }, [chartSpec, setExportConfig]);
 
+  const handleTransparentBgChange = useCallback((checked: boolean) => {
+    if (!chartSpec) return;
+    setExportConfig({
+      ...chartSpec.exportConfig,
+      transparentBackground: checked || undefined,
+    });
+  }, [chartSpec, setExportConfig]);
+
   const handlePhysicalSizeBlur = useCallback(() => {
     if (!chartSpec) return;
     const w = parseFloat(widthInput);
@@ -99,6 +127,18 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
       physicalHeight: !isNaN(h) && h > 0 ? h : chartSpec.exportConfig.physicalHeight,
     });
   }, [chartSpec, heightInput, setExportConfig]);
+
+  // ─── 렌더 계산값 (IIFE 대신 호이스팅) ──────────────────────
+  const currentFont = chartSpec?.style.font?.family ?? '';
+  const showFontWarning =
+    chartSpec?.exportConfig.format === 'svg' &&
+    currentFont !== '' &&
+    !WEB_SAFE_FONTS.has(currentFont);
+
+  const parsedW = parseFloat(widthInput);
+  const parsedH = parseFloat(heightInput);
+  const hasW = !isNaN(parsedW) && parsedW > 0;
+  const hasH = !isNaN(parsedH) && parsedH > 0;
 
   return (
     <Dialog
@@ -162,6 +202,29 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
               </div>
             )}
 
+            {/* 투명 배경 (PNG만) — A2 */}
+            {chartSpec.exportConfig.format === 'png' && (
+              <div className="flex items-center justify-between">
+                <Label htmlFor="transparent-bg" className="text-xs cursor-pointer">
+                  투명 배경
+                </Label>
+                <Switch
+                  id="transparent-bg"
+                  checked={chartSpec.exportConfig.transparentBackground ?? false}
+                  onCheckedChange={handleTransparentBgChange}
+                />
+              </div>
+            )}
+
+            {/* SVG 비웹 안전 폰트 경고 — A4 */}
+            {showFontWarning && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 flex items-start gap-1">
+                <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+                SVG 내보내기 시 선택한 폰트가 다른 시스템에서 깨질 수 있습니다.
+                웹 안전 폰트(Arial, Times New Roman)를 권장합니다.
+              </p>
+            )}
+
             {/* 출력 크기 (선택) */}
             <div className="space-y-2">
               <Label className="text-xs">출력 크기 (mm, 선택)</Label>
@@ -219,42 +282,41 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
               </div>
 
               {/* 픽셀 미리보기 / 안내 */}
-              {(() => {
-                const parsedW = parseFloat(widthInput);
-                const parsedH = parseFloat(heightInput);
-                const hasW = !isNaN(parsedW) && parsedW > 0;
-                const hasH = !isNaN(parsedH) && parsedH > 0;
-                const { exportConfig } = chartSpec;
-
-                if (exportConfig.format === 'svg' && (hasW || hasH)) {
-                  return (
-                    <p className="text-xs text-muted-foreground">
-                      SVG 벡터 뷰포트:
-                      {hasW ? ` 너비 ${parsedW}mm` : ''}
-                      {hasW && hasH ? ' ×' : ''}
-                      {hasH ? ` 높이 ${parsedH}mm` : ''}
-                    </p>
-                  );
-                }
-                if (hasW || hasH) {
-                  return (
-                    <p className="text-xs text-muted-foreground">
-                      {hasW && hasH
-                        ? `${mmToPx(parsedW, exportConfig.dpi)} × ${mmToPx(parsedH, exportConfig.dpi)} px`
-                        : hasW
-                          ? `너비: ${mmToPx(parsedW, exportConfig.dpi)} px`
-                          : `높이: ${mmToPx(parsedH, exportConfig.dpi)} px`}
-                      {' '}({exportConfig.dpi} DPI 기준)
-                    </p>
-                  );
-                }
-                return (
-                  <p className="text-xs text-muted-foreground">
-                    빈칸이면 현재 차트 패널 크기로 출력됩니다.
-                  </p>
-                );
-              })()}
+              {chartSpec.exportConfig.format === 'svg' && (hasW || hasH) ? (
+                <p className="text-xs text-muted-foreground">
+                  SVG 벡터 뷰포트:
+                  {hasW ? ` 너비 ${parsedW}mm` : ''}
+                  {hasW && hasH ? ' ×' : ''}
+                  {hasH ? ` 높이 ${parsedH}mm` : ''}
+                </p>
+              ) : (hasW || hasH) ? (
+                <p className="text-xs text-muted-foreground">
+                  {hasW && hasH
+                    ? `${mmToPx(parsedW, chartSpec.exportConfig.dpi)} × ${mmToPx(parsedH, chartSpec.exportConfig.dpi)} px`
+                    : hasW
+                      ? `너비: ${mmToPx(parsedW, chartSpec.exportConfig.dpi)} px`
+                      : `높이: ${mmToPx(parsedH, chartSpec.exportConfig.dpi)} px`}
+                  {' '}({chartSpec.exportConfig.dpi} DPI 기준)
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  빈칸이면 현재 차트 패널 크기로 출력됩니다.
+                </p>
+              )}
             </div>
+
+            {/* 캡션 작성 참고 — A3 */}
+            {(chartSpec.errorBar || chartSpec.chartType === 'boxplot' || chartSpec.chartType === 'violin') && (
+              <div className="rounded-md bg-muted/50 p-2.5 text-xs space-y-1">
+                <p className="font-medium">캡션 작성 참고</p>
+                {chartSpec.errorBar && (
+                  <p className="text-muted-foreground">{getErrorBarCaption(chartSpec.errorBar)}</p>
+                )}
+                {(chartSpec.chartType === 'boxplot' || chartSpec.chartType === 'violin') && (
+                  <p className="text-muted-foreground">Whiskers: Tukey 1.5×IQR</p>
+                )}
+              </div>
+            )}
 
             {/* Export 버튼 */}
             <Button

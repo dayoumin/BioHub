@@ -811,6 +811,28 @@ npx wrangler pages deploy out --project-name=stats
 
 ---
 
+### Phase G4: Graph Studio 논문 수준 품질 + UX 재설계 (진행 예정)
+
+**목표**: SCI/SCIE 저널 직접 투고 가능한 차트 품질 + 사이드 패널 UX 대폭 개선
+
+**상세 계획**: [GRAPH_STUDIO_G4_PLAN.md](stats/docs/graph-studio/GRAPH_STUDIO_G4_PLAN.md)
+
+**ECharts 6.0 현황**: 이미 6.0.0 설치됨 (2025-07-30 릴리즈). Breaking change: 기본 테마 변경 → STYLE_PRESETS 보정 필요.
+
+| 단계 | 내용 | 스키마 변경 |
+|------|------|-----------|
+| **G4.1** Accordion 재구조 | DataTab/StyleTab 섹션화, 색상팔레트 이동 | 없음 |
+| **G4.2** 축 설정 확장 | 레이블 각도·그리드·폰트 크기 (스키마 이미 완성) | 없음 |
+| **G4.3** Jitter Dots | 막대 위 원시 데이터 포인트 오버레이 (ECharts 6 jitter 활용) | showRawPoints |
+| **G4.4** 에러바 상세 | 단방향·cap 너비 | direction, capWidth |
+| **G4.5** 선·마커 스타일 | 점선/마커 모양 (color-blind, 흑백 인쇄) | lineStyle, symbolStyle |
+| **G4.6** Violin 실구현 | Pyodide KDE + ECharts custom series | — |
+| **G4.7** Broken Axis | 불연속 Y축 (ECharts 6 신기능) | axisBreaks |
+
+**논문 제출 가능 기준 달성 조건**: G1-1 + G1-2 + G4.1 + G4.2 + G4.3 + G2-1 (유의성 마커)
+
+---
+
 ### Phase 10.6: 분석 결과 URL 공유 (미검토, 장기)
 
 **배경** (2026-03-04 조사):

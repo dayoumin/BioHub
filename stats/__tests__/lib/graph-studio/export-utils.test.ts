@@ -19,7 +19,9 @@ import type { EChartsType } from 'echarts';
 
 // ─── 픽스처 ────────────────────────────────────────────────
 
-const MOCK_PNG_URL = 'data:image/png;base64,iVBORabc';
+// 실제 1x1 pixel PNG — injectPngDpiMetadata가 byte 33에 pHYs chunk를 삽입하므로
+// 최소 33바이트(PNG sig 8 + IHDR chunk 25) 이상의 유효한 PNG가 필요.
+const MOCK_PNG_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 const MOCK_SVG_URL = 'data:image/svg+xml;base64,PHN2Zzx5eik=';
 
 function makeMockECharts(overrides: Partial<{
@@ -116,10 +118,10 @@ describe('downloadChart', () => {
     );
   });
 
-  it('PNG: link.href에 getDataURL 반환값 할당', () => {
+  it('PNG: link.href에 PNG data URL 할당 (pHYs 주입으로 원본과 다를 수 있음)', () => {
     const echarts = makeMockECharts();
     downloadChart(echarts, makeConfig({ format: 'png' }), 'chart');
-    expect(mockLink.href).toBe(MOCK_PNG_URL);
+    expect(mockLink.href).toMatch(/^data:image\/png;base64,/);
   });
 
   // ── SVG export ───────────────────────────────────────────
@@ -196,8 +198,8 @@ describe('downloadChart', () => {
     // ECharts
     expect(echarts.getDataURL).toHaveBeenCalledOnce();
 
-    // Link 설정
-    expect(mockLink.href).toBe(MOCK_PNG_URL);
+    // Link 설정 (pHYs 주입으로 URL 변경됨 — prefix만 검증)
+    expect(mockLink.href).toMatch(/^data:image\/png;base64,/);
     expect(mockLink.download).toBe('species-weight.png');
 
     // DOM

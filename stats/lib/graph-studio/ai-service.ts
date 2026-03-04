@@ -43,13 +43,13 @@ Generate a minimal RFC 6902 JSON Patch that transforms the ChartSpec to fulfill 
 - data.sourceId: string
 - data.columns: array of {name, type, uniqueCount, hasNull}  (sample values shown in 컬럼 목록)
 - encoding.x / encoding.y: {field, type, title, labelAngle, labelFontSize, titleFontSize, format, grid, scale, sort}
-- encoding.color: {field, type, scale, legend} (optional)
+- encoding.color: {field, type, scale, legend: {orient, customLabels?}} (optional)  — customLabels: {rawName: displayLabel} for legend label overrides
 - encoding.shape: {field, type} (optional)
 - errorBar: {type: ci|stderr|stdev|iqr, value} (optional)
 - aggregate: {y: mean|median|sum|count|min|max, groupBy: string[]} (optional)
-- style: {preset: default|science|ieee|grayscale, font, colors, background, padding, overrides}
+- style: {preset: default|science|ieee|grayscale, font, colors, background, padding, overrides, showDataLabels?, showSampleCounts?}
 - annotations: array of {type: text|line|rect, ...}
-- exportConfig: {format: svg|png, dpi, physicalWidth?: mm, physicalHeight?: mm} (physicalWidth/Height=출력 물리 크기(mm), 미지정=DOM 크기)
+- exportConfig: {format: svg|png, dpi, physicalWidth?: mm, physicalHeight?: mm, transparentBackground?} (physicalWidth/Height=출력 물리 크기(mm), 미지정=DOM 크기)
 
 ## Response Format (STRICT JSON ONLY)
 Return ONLY this JSON object — no markdown, no prose outside the object:
