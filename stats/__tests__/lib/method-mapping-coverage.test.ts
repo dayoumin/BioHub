@@ -187,9 +187,9 @@ describe('스마트 분석 커버리지', () => {
       expect(method?.category).toBe('chi-square')
     })
 
-    it('factor-analysis는 pca 카테고리여야 한다', () => {
+    it('factor-analysis는 multivariate 카테고리여야 한다', () => {
       const method = STATISTICAL_METHODS.find(m => m.id === 'factor-analysis')
-      expect(method?.category).toBe('pca')
+      expect(method?.category).toBe('multivariate')
     })
 
     it('repeated-measures-anova는 anova 카테고리여야 한다', () => {

@@ -35,7 +35,7 @@ export interface ExecutorAnalysisResult {
     statistic: number
     pvalue: number
     interpretation: string
-    df?: number
+    df?: number | [number, number]
     confidenceInterval?: {
       lower: number
       upper: number

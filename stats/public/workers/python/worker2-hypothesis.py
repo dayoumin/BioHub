@@ -1557,11 +1557,13 @@ def ancova_analysis(
     }
 
     # Model fit
+    rmse = float(np.sqrt(np.mean(residuals ** 2)))
     model_fit = {
         'rSquared': float(model.rsquared),
         'adjustedRSquared': float(model.rsquared_adj),
         'fStatistic': float(model.fvalue),
-        'modelPValue': float(model.f_pvalue),
+        'fPValue': float(model.f_pvalue),
+        'rmse': rmse,
         'residualStandardError': float(np.std(residuals))
     }
 
@@ -1570,7 +1572,7 @@ def ancova_analysis(
     cov_effect = covariates[0]
 
     sig_level = "유의한" if main_effect['pValue'] < 0.05 else "유의하지 않은"
-    effectSize = "큰" if main_effect['partialEtaSquared'] >= 0.14 else "중간" if main_effect['partialEtaSquared'] >= 0.06 else "작은"
+    effect_size = "큰" if main_effect['partialEtaSquared'] >= 0.14 else "중간" if main_effect['partialEtaSquared'] >= 0.06 else "작은"
 
     interpretation = {
         'summary': f"공변량 통제 후 집단 간 {sig_level} 차이가 있습니다 (F({main_effect['degreesOfFreedom'][0]},{main_effect['degreesOfFreedom'][1]}) = {main_effect['statistic']:.2f}, p = {main_effect['pValue']:.3f}, η²p = {main_effect['partialEtaSquared']:.3f}).",

@@ -52,7 +52,7 @@ export class AnovaExecutor extends BaseExecutor {
         mainResults: {
           statistic: anovaResult.fStatistic,
           pvalue: anovaResult.pValue,
-          df: Array.isArray(anovaResult.df) ? anovaResult.df[0] : anovaResult.df,
+          df: Array.isArray(anovaResult.df) ? anovaResult.df as [number, number] : anovaResult.df,
           interpretation: `${this.interpretPValue(anovaResult.pValue)}. ${groups.length}개 그룹 간 평균 차이 검정`
         },
         additionalInfo: {
@@ -232,7 +232,8 @@ export class AnovaExecutor extends BaseExecutor {
             meanDiff: 0,
             pvalue: comp.pValue,
             significant: comp.significant
-          }))
+          })),
+          postHocMethod: 'tukey',
         },
         visualizationData: {
           type: 'comparison-matrix',
@@ -272,7 +273,8 @@ export class AnovaExecutor extends BaseExecutor {
             meanDiff: 0,
             pvalue: comp.pValue,
             significant: comp.significant
-          }))
+          })),
+          postHocMethod: 'games-howell',
         },
         visualizationData: {
           type: 'comparison-matrix',

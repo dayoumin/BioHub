@@ -3,29 +3,45 @@
 /**
  * Graph Studio 메인 페이지
  *
- * 3-패널 레이아웃:
- * [좌: 데이터/설정] [중앙: 미리보기] [우: AI 편집/속성]
+ * 레이아웃:
+ * - upload 모드: 데이터 업로드 화면
+ * - editor 모드: [차트 미리보기] + [우측 데이터/스타일 패널] + [AI 패널 (도킹 가능)]
+ *
+ * AI 패널 도킹: bottom (기본) | left | right
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import type EChartsReactCore from 'echarts-for-react/lib/core';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { GraphStudioHeader } from '@/components/graph-studio/GraphStudioHeader';
 import { DataUploadPanel } from '@/components/graph-studio/DataUploadPanel';
 import { ChartPreview } from '@/components/graph-studio/ChartPreview';
 import { SidePanel } from '@/components/graph-studio/SidePanel';
+import { AiPanel } from '@/components/graph-studio/AiPanel';
+import { downloadChart } from '@/lib/graph-studio/export-utils';
 
 type LayoutMode = 'upload' | 'editor';
 
 export default function GraphStudioPage(): React.ReactElement {
-  const { isDataLoaded, chartSpec } = useGraphStudioStore();
+  const { isDataLoaded, chartSpec, aiPanelOpen, aiPanelDock } = useGraphStudioStore();
 
   const layoutMode: LayoutMode = isDataLoaded && chartSpec ? 'editor' : 'upload';
 
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
 
+  /** ECharts 인스턴스 접근용 ref */
+  const echartsRef = useRef<EChartsReactCore | null>(null);
+
   const handleToggleSidePanel = useCallback(() => {
     setIsSidePanelOpen(prev => !prev);
   }, []);
+
+  const handleExport = useCallback(() => {
+    if (!chartSpec) return;
+    const instance = echartsRef.current?.getEchartsInstance();
+    if (!instance) return;
+    downloadChart(instance, chartSpec.exportConfig, chartSpec.title);
+  }, [chartSpec]);
 
   if (layoutMode === 'upload') {
     return (
@@ -38,22 +54,58 @@ export default function GraphStudioPage(): React.ReactElement {
     );
   }
 
+  // SidePanel 너비: right 도킹 시 compact (w-60) — isSidePanelOpen=false면 렌더 안 됨
+  const sidePanelWidth = aiPanelOpen && aiPanelDock === 'right' ? 'w-60' : 'w-80';
+
   return (
     <div className="flex flex-col h-full">
-      <GraphStudioHeader onToggleSidePanel={handleToggleSidePanel} />
-      <div className="flex-1 flex min-h-0">
-        {/* 중앙: 차트 미리보기 */}
-        <div className="flex-1 min-w-0">
-          <ChartPreview />
-        </div>
+      <GraphStudioHeader
+        onToggleSidePanel={handleToggleSidePanel}
+        onExport={handleExport}
+      />
 
-        {/* 우측: 사이드 패널 (속성/AI/프리셋/export) */}
-        {isSidePanelOpen && (
-          <div className="w-80 border-l border-border flex-shrink-0">
-            <SidePanel />
+      {aiPanelDock === 'bottom' ? (
+        /* ── 하단 도킹 레이아웃 ──────────────────── */
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex flex-1 min-h-0">
+            <div className="flex-1 min-w-0">
+              <ChartPreview echartsRef={echartsRef} />
+            </div>
+            {isSidePanelOpen && (
+              <div className={`${sidePanelWidth} border-l border-border flex-shrink-0`}>
+                <SidePanel />
+              </div>
+            )}
           </div>
-        )}
-      </div>
+          {aiPanelOpen && <AiPanel />}
+        </div>
+      ) : aiPanelDock === 'left' ? (
+        /* ── 좌측 도킹 레이아웃 ──────────────────── */
+        <div className="flex-1 flex min-h-0">
+          {aiPanelOpen && <AiPanel />}
+          <div className="flex-1 min-w-0">
+            <ChartPreview echartsRef={echartsRef} />
+          </div>
+          {isSidePanelOpen && (
+            <div className={`${sidePanelWidth} border-l border-border flex-shrink-0`}>
+              <SidePanel />
+            </div>
+          )}
+        </div>
+      ) : (
+        /* ── 우측 도킹 레이아웃 ──────────────────── */
+        <div className="flex-1 flex min-h-0">
+          <div className="flex-1 min-w-0">
+            <ChartPreview echartsRef={echartsRef} />
+          </div>
+          {isSidePanelOpen && (
+            <div className={`${sidePanelWidth} border-l border-border flex-shrink-0`}>
+              <SidePanel />
+            </div>
+          )}
+          {aiPanelOpen && <AiPanel />}
+        </div>
+      )}
     </div>
   );
 }

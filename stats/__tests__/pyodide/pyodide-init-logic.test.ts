@@ -179,14 +179,14 @@ describe('Pyodide Init Logic - Real Function Tests', () => {
       expect(packages).toEqual([])
     })
 
-    it('should return empty array for Worker 2', () => {
+    it('should return statsmodels and pandas for Worker 2', () => {
       const packages = getAdditionalPackages(2)
-      expect(packages).toEqual([])
+      expect(packages).toEqual(['statsmodels', 'pandas'])
     })
 
-    it('should return statsmodels and scikit-learn for Worker 3', () => {
+    it('should return statsmodels, pandas and scikit-learn for Worker 3', () => {
       const packages = getAdditionalPackages(3)
-      expect(packages).toEqual(['statsmodels', 'scikit-learn'])
+      expect(packages).toEqual(['statsmodels', 'pandas', 'scikit-learn'])
     })
 
     it('should return statsmodels and scikit-learn for Worker 4', () => {
@@ -194,9 +194,22 @@ describe('Pyodide Init Logic - Real Function Tests', () => {
       expect(packages).toEqual(['statsmodels', 'scikit-learn'])
     })
 
+    it('should return scikit-learn for Worker 5', () => {
+      const packages = getAdditionalPackages(5)
+      expect(packages).toEqual(['scikit-learn'])
+    })
+
     it('should return empty array for invalid worker number', () => {
       const packages = getAdditionalPackages(99)
       expect(packages).toEqual([])
+    })
+
+    it('회귀 방지: Worker 2 패키지 변경 시 감지', () => {
+      const packages = getAdditionalPackages(2)
+
+      // Worker 2는 반드시 statsmodels + pandas를 포함해야 함 (ANCOVA, partial correlation 등)
+      expect(packages).toContain('statsmodels')
+      expect(packages).toContain('pandas')
     })
 
     it('회귀 방지: Worker 3 패키지 변경 시 감지', () => {
@@ -237,9 +250,14 @@ describe('Pyodide Init Logic - Real Function Tests', () => {
       expect(fileName).toBe('worker4-regression-advanced')
     })
 
+    it('should return correct filename for Worker 5', () => {
+      const fileName = getWorkerFileName(5)
+      expect(fileName).toBe('worker5-survival')
+    })
+
     it('should throw error for invalid worker number', () => {
       expect(() => getWorkerFileName(0)).toThrow('Invalid worker number: 0')
-      expect(() => getWorkerFileName(5)).toThrow('Invalid worker number: 5')
+      expect(() => getWorkerFileName(6)).toThrow('Invalid worker number: 6')
       expect(() => getWorkerFileName(99)).toThrow('Invalid worker number: 99')
     })
 
@@ -333,7 +351,7 @@ describe('Pyodide Init Logic - Real Function Tests', () => {
 
       // 4. Worker 3 추가 패키지 확인
       const packages = getAdditionalPackages(3)
-      expect(packages).toEqual(['statsmodels', 'scikit-learn'])
+      expect(packages).toEqual(['statsmodels', 'pandas', 'scikit-learn'])
     })
 
     it('Worker 4 초기화 플로우', async () => {

@@ -1,12 +1,42 @@
 {
   "id": "test-snippets",
-  "version": "1.19.0",
-  "lastUpdated": "2025-12-18",
+  "version": "1.34.0",
+  "lastUpdated": "2026-03-01",
   "sources": [
     "stats/__tests__/",
     "stats/jest.config.js"
   ],
   "categories": [
+    {
+      "name": "Zustand Store Tests",
+      "description": "Zustand 스토어 계약 테스트 패턴 (act 래핑, beforeEach 리셋)",
+      "patterns": [
+        {
+          "name": "Zustand 스토어 액션 테스트",
+          "purpose": "Zustand store의 액션이 상태를 올바르게 변경하는지 검증",
+          "code": "import { describe, it, expect, beforeEach } from 'vitest';\nimport { act } from '@testing-library/react';\nimport { useMyStore } from '@/lib/stores/my-store';\n\n// 공통 리셋: 각 테스트 독립성 보장\nbeforeEach(() => {\n  act(() => {\n    useMyStore.getState().resetAll();\n  });\n});\n\ndescribe('MyStore 계약', () => {\n  it('초기 상태가 올바르다', () => {\n    const state = useMyStore.getState();\n    expect(state.value).toBeNull();\n  });\n\n  it('setValue 액션이 상태를 변경한다', () => {\n    act(() => {\n      useMyStore.getState().setValue('hello');\n    });\n    expect(useMyStore.getState().value).toBe('hello');\n  });\n\n  it('제거된 필드가 state에 없다 (dead state 검증)', () => {\n    const state = useMyStore.getState();\n    expect('removedField' in state).toBe(false);\n  });\n});",
+          "keywords": [
+            "zustand",
+            "act",
+            "getState",
+            "beforeEach",
+            "resetAll"
+          ]
+        },
+        {
+          "name": "localStorage 모킹 (project-storage 등)",
+          "purpose": "localStorage를 사용하는 유틸 함수 테스트",
+          "code": "import { describe, it, expect, beforeEach, vi } from 'vitest';\nimport { saveItem, loadItem } from '@/lib/storage';\n\n// localStorage 모킹\nconst mockStorage: Record<string, string> = {};\nObject.defineProperty(globalThis, 'localStorage', {\n  value: {\n    getItem: (k: string) => mockStorage[k] ?? null,\n    setItem: (k: string, v: string) => { mockStorage[k] = v; },\n    removeItem: (k: string) => { delete mockStorage[k]; },\n  },\n  writable: true,\n});\n\nbeforeEach(() => {\n  Object.keys(mockStorage).forEach(k => delete mockStorage[k]);\n});\n\ndescribe('storage utils', () => {\n  it('저장 후 불러오기', () => {\n    saveItem('key', { a: 1 });\n    expect(loadItem('key')).toEqual({ a: 1 });\n  });\n\n  it('없는 키는 null 반환', () => {\n    expect(loadItem('missing')).toBeNull();\n  });\n});",
+          "keywords": [
+            "localStorage",
+            "vi",
+            "mock",
+            "defineProperty",
+            "storage"
+          ]
+        }
+      ]
+    },
     {
       "name": "React Component Tests",
       "description": "React 컴포넌트 테스트 패턴",
@@ -641,6 +671,225 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Graph Studio / JSON Patch Tests",
+      "description": "RFC 6901/6902 JSON Patch, Zod 스키마 검증, 유틸리티 함수 테스트 패턴",
+      "patterns": [
+        {
+          "name": "RFC 6902 JSON Patch 연산 테스트",
+          "purpose": "applyPatches의 add/replace/remove 연산이 RFC 6902 규격을 준수하는지 검증. 배열 인덱스 경계, ~0/~1 이스케이프, -로 append 등 edge case 포함",
+          "code": "import { describe, it, expect } from 'vitest';\nimport { applyPatches } from '@/lib/graph-studio/chart-spec-utils';\nimport type { ChartSpec } from '@/types/graph-studio';\n\n// 최소 spec 픽스처\nconst baseSpec: ChartSpec = { /* ... */ };\n\ndescribe('applyPatches — RFC 6901/6902 준수', () => {\n  it('~1 → /, ~0 → ~ 순서대로 언이스케이프', () => {\n    const spec = { ...baseSpec, annotations: [{ id: 'a/b~c', text: 'old' }] };\n    const result = applyPatches(spec, [{\n      op: 'replace',\n      path: '/annotations/0/text',\n      value: 'new',\n    }]);\n    expect(result.annotations?.[0].text).toBe('new');\n  });\n\n  it('add — 배열 인덱스 0에 삽입 (splice)', () => {\n    const spec = { ...baseSpec, annotations: [{ id: 'b', text: 'second' }] };\n    const result = applyPatches(spec, [{\n      op: 'add',\n      path: '/annotations/0',\n      value: { id: 'a', text: 'first' },\n    }]);\n    expect(result.annotations?.[0].id).toBe('a');\n    expect(result.annotations?.[1].id).toBe('b');\n  });\n\n  it('add — \"-\" 인덱스로 append', () => {\n    const spec = { ...baseSpec, annotations: [{ id: 'a', text: 'first' }] };\n    const result = applyPatches(spec, [{\n      op: 'add',\n      path: '/annotations/-',\n      value: { id: 'b', text: 'second' },\n    }]);\n    expect(result.annotations).toHaveLength(2);\n    expect(result.annotations?.[1].id).toBe('b');\n  });\n\n  it('replace — 범위 초과 인덱스는 no-op (sparse array 방지)', () => {\n    // JavaScript arr[999] = value → sparse array(length=1000) 버그 방지\n    const spec = { ...baseSpec, annotations: [] };\n    const result = applyPatches(spec, [{\n      op: 'replace',\n      path: '/annotations/999',\n      value: { id: 'x', text: 'ghost' },\n    }]);\n    expect(result.annotations).toHaveLength(0);\n  });\n\n  it('remove — splice로 제거', () => {\n    const spec = { ...baseSpec, annotations: [\n      { id: 'a', text: 'first' },\n      { id: 'b', text: 'second' },\n    ]};\n    const result = applyPatches(spec, [{\n      op: 'remove',\n      path: '/annotations/0',\n    }]);\n    expect(result.annotations).toHaveLength(1);\n    expect(result.annotations?.[0].id).toBe('b');\n  });\n});",
+          "keywords": [
+            "applyPatches",
+            "RFC6901",
+            "RFC6902",
+            "JSON Patch",
+            "add",
+            "replace",
+            "remove",
+            "sparse array",
+            "~0",
+            "~1"
+          ]
+        },
+        {
+          "name": "Zod enum 스키마 검증 테스트",
+          "purpose": "TypeScript 타입과 Zod enum이 동기화되어 있는지 검증. 유효/무효 값을 모두 테스트",
+          "code": "import { describe, it, expect } from 'vitest';\nimport { chartSpecSchema } from '@/lib/graph-studio/chart-spec-schema';\n\ndescribe('chartSpecSchema — ExportFormat', () => {\n  const validFormats = ['svg', 'png'];\n  const invalidFormats = ['pdf', 'tiff', 'jpg', ''];\n\n  it.each(validFormats)('%s → 유효', (format) => {\n    const spec = buildMinimalSpec({ exportFormat: format });\n    expect(chartSpecSchema.safeParse(spec).success).toBe(true);\n  });\n\n  it.each(invalidFormats)('%s → 무효', (format) => {\n    const spec = buildMinimalSpec({ exportFormat: format });\n    expect(chartSpecSchema.safeParse(spec).success).toBe(false);\n  });\n});\n\n// 팁: TypeScript 타입과 Zod enum은 항상 쌍으로 수정\n// types/graph-studio.ts: ExportFormat = 'svg' | 'png'\n// chart-spec-schema.ts: exportFormatSchema = z.enum(['svg', 'png'])",
+          "keywords": [
+            "Zod",
+            "safeParse",
+            "enum",
+            "ExportFormat",
+            "chartSpecSchema",
+            "it.each"
+          ]
+        },
+        {
+          "name": "순수 유틸리티 함수 테스트 (selectXYFields)",
+          "purpose": "컬럼 메타데이터 기반 x/y 필드 선택 로직 검증. 단일 컬럼 fallback, 타입별 우선순위 edge case",
+          "code": "import { describe, it, expect } from 'vitest';\nimport { selectXYFields } from '@/lib/graph-studio/chart-spec-utils';\nimport { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';\nimport type { ColumnMeta } from '@/types/graph-studio';\n\nconst col = (name: string, type: ColumnMeta['type']): ColumnMeta => ({\n  name,\n  type,\n  uniqueCount: 5,\n  sampleValues: [],\n  hasNull: false,\n});\n\ndescribe('selectXYFields', () => {\n  it('x !== y (2개 quantitative)', () => {\n    const cols = [col('price', 'quantitative'), col('qty', 'quantitative')];\n    const { xField, yField } = selectXYFields(cols, CHART_TYPE_HINTS.scatter);\n    expect(xField).not.toBe(yField);\n  });\n\n  it('단일 컬럼 histogram: yField는 \"y\" 문자열이 아님 (실존 필드로 fallback)', () => {\n    // 버그: columns[1]?.name ?? 'y' → 존재하지 않는 'y' 반환\n    // 수정: columns.find(c => c.name !== xField)?.name ?? xField\n    const cols = [col('value', 'quantitative')];\n    const { xField, yField } = selectXYFields(cols, CHART_TYPE_HINTS.histogram);\n    expect(yField).not.toBe('y');  // 'y' 문자열이면 버그\n    expect([xField, ...cols.map(c => c.name)]).toContain(yField);\n  });\n\n  it('빈 컬럼 배열: graceful fallback', () => {\n    const { xField, yField } = selectXYFields([], CHART_TYPE_HINTS.bar);\n    expect(xField).toBe('x');\n  });\n});",
+          "keywords": [
+            "selectXYFields",
+            "ColumnMeta",
+            "CHART_TYPE_HINTS",
+            "histogram",
+            "fallback",
+            "edge case"
+          ]
+        },
+        {
+          "name": "DOM API 모킹 테스트 (ECharts export-utils)",
+          "purpose": "document.createElement/body.appendChild 등 DOM API를 vi.spyOn으로 모킹하여 브라우저 다운로드 로직 테스트. 실행 순서(append→click→remove) 검증 포함",
+          "code": "import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';\nimport { downloadChart } from '@/lib/graph-studio/export-utils';\nimport type { EChartsType } from 'echarts';\n\nfunction makeMockECharts(): EChartsType {\n  return {\n    getDataURL: vi.fn().mockReturnValue('data:image/png;base64,abc'),\n    getSvgDataURL: vi.fn().mockReturnValue('data:image/svg+xml;base64,xyz'),\n  } as unknown as EChartsType;\n}\n\ndescribe('downloadChart', () => {\n  let mockLink: { href: string; download: string; click: ReturnType<typeof vi.fn> };\n\n  beforeEach(() => {\n    mockLink = { href: '', download: '', click: vi.fn() };\n    vi.spyOn(document, 'createElement').mockReturnValue(mockLink as unknown as HTMLAnchorElement);\n    vi.spyOn(document.body, 'appendChild').mockReturnValue(mockLink as unknown as Node);\n    vi.spyOn(document.body, 'removeChild').mockReturnValue(mockLink as unknown as Node);\n  });\n\n  afterEach(() => { vi.restoreAllMocks(); });\n\n  it('null 인스턴스 → 조기 반환 (DOM 접근 없음)', () => {\n    downloadChart(null, { format: 'png', dpi: 96 }, 'chart');\n    expect(document.createElement).not.toHaveBeenCalled();\n  });\n\n  it('PNG: getDataURL 호출 + 96dpi → pixelRatio=1', () => {\n    const ec = makeMockECharts();\n    downloadChart(ec, { format: 'png', dpi: 96 }, 'result');\n    expect(ec.getDataURL).toHaveBeenCalledWith({ type: 'png', pixelRatio: 1, backgroundColor: '#ffffff' });\n    expect(mockLink.download).toBe('result.png');\n  });\n\n  it('SVG: getSvgDataURL 호출 + getDataURL 미호출', () => {\n    const ec = makeMockECharts();\n    downloadChart(ec, { format: 'svg', dpi: 96 }, 'fig');\n    expect(ec.getSvgDataURL).toHaveBeenCalled();\n    expect(ec.getDataURL).not.toHaveBeenCalled();\n    expect(mockLink.download).toBe('fig.svg');\n  });\n\n  it('Firefox 호환: body.appendChild → click → body.removeChild 순서', () => {\n    const order: string[] = [];\n    vi.spyOn(document.body, 'appendChild').mockImplementation(() => { order.push('append'); return mockLink as unknown as Node; });\n    vi.spyOn(document.body, 'removeChild').mockImplementation(() => { order.push('remove'); return mockLink as unknown as Node; });\n    mockLink.click = vi.fn().mockImplementation(() => { order.push('click'); });\n    downloadChart(makeMockECharts(), { format: 'png', dpi: 96 }, 'chart');\n    expect(order).toEqual(['append', 'click', 'remove']);\n  });\n\n  it('파일명 undefined → \"chart\" 폴백', () => {\n    downloadChart(makeMockECharts(), { format: 'png', dpi: 96 }, undefined);\n    expect(mockLink.download).toBe('chart.png');\n  });\n});",
+          "keywords": [
+            "vi.spyOn",
+            "document.createElement",
+            "body.appendChild",
+            "DOM mock",
+            "ECharts",
+            "downloadChart",
+            "Firefox"
+          ]
+        },
+        {
+          "name": "AiServiceError 타입 코드 검증 테스트",
+          "purpose": "커스텀 Error 클래스(AiServiceError)의 instanceof + code 속성 검증 패턴. 에러 종류별 분기가 필요한 서비스 레이어에 적용.",
+          "code": "import { AiServiceError, editChart, buildAiEditRequest } from '@/lib/graph-studio/ai-service';\n\nit('AiServiceError code: NO_RESPONSE', async () => {\n  mockFn.mockResolvedValue(null);\n  const req = buildAiEditRequest(makeChartSpec(), 'msg');\n\n  await expect(editChart(req)).rejects.toBeInstanceOf(AiServiceError);\n  await expect(editChart(req)).rejects.toMatchObject({ code: 'NO_RESPONSE' });\n});\n\nit('AiServiceError code: READONLY_PATH', async () => {\n  mockFn.mockResolvedValue(JSON.stringify({\n    patches: [{ op: 'replace', path: '/data/sourceId', value: 'hacked' }],\n    explanation: 'readonly edit', confidence: 0.9,\n  }));\n\n  await expect(editChart(req)).rejects.toBeInstanceOf(AiServiceError);\n  await expect(editChart(req)).rejects.toMatchObject({ code: 'READONLY_PATH' });\n});",
+          "notes": "AiServiceErrorCode: NO_RESPONSE | PARSE_FAILED | VALIDATION_FAILED | READONLY_PATH. rejects.toMatchObject로 code 속성 한 번에 검증."
+        },
+        {
+          "name": "aggregate 메서드 검증",
+          "purpose": "chartSpecToECharts aggregate 집계 결과 검증 (min/max/count/sum/median/mean)",
+          "code": "function getAggregated(method: 'min' | 'max' | ...) {\n  const spec = { ...baseSpec, aggregate: { y: method, groupBy: ['group'] } }\n  const opt = toAny(chartSpecToECharts(spec, rows))\n  return (opt.dataset as AnyOption).source\n}"
+        },
+        {
+          "name": "buildUserPrompt 프롬프트 내용 검증",
+          "purpose": "editChart 호출 후 generateRawText mock 인수를 캡처해 프롬프트 내용 검증",
+          "code": "const [, userPrompt] = mockGenerateRawText.mock.calls[0] as [string, string, unknown];\nexpect(userPrompt).not.toContain('\"sampleValues\"');\nexpect(userPrompt).toContain('e.g., A'); // nominal 컬럼 예시"
+        },
+        {
+          "name": "샘플 데이터 시뮬레이션 테스트 (it.each + store 검증)",
+          "purpose": "차트 유형별 X/Y 필드 매핑과 스토어 단일 액션을 함수 레벨에서 시뮬레이션. 컴포넌트 마운트 없이 핵심 로직만 추출해 검증하는 L1 테스트 패턴.",
+          "code": "import { describe, it, expect, beforeEach } from 'vitest';\nimport { act } from '@testing-library/react';\nimport { inferColumnMeta, selectXYFields } from '@/lib/graph-studio/chart-spec-utils';\nimport { createDefaultChartSpec, CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';\nimport { useGraphStudioStore } from '@/lib/stores/graph-studio-store';\nimport type { ChartType, DataPackage } from '@/types/graph-studio';\n\n// 모듈 레벨: 상수 데이터 1회 계산 (useCallback eslint-disable 필요 없음)\nconst SAMPLE_ROWS = [\n  { species: 'Bass', length_cm: 12.3, weight_g: 28.5, year: '2015-01-01' },\n  // ...\n];\nconst SAMPLE_COLUMNS = inferColumnMeta(SAMPLE_ROWS);\n\nbeforeEach(() => { act(() => { useGraphStudioStore.getState().resetAll(); }); });\n\n// it.each: 6개 차트 유형 한꺼번에 검증\ndescribe('차트 유형별 매핑', () => {\n  const cases: Array<[ChartType, string, string]> = [\n    ['bar',       'species',   'length_cm'],\n    ['scatter',   'length_cm', 'weight_g'],\n    ['line',      'year',      'length_cm'], // temporal 컬럼 필요!\n    ['boxplot',   'species',   'length_cm'],\n    ['histogram', 'length_cm', 'weight_g'],\n    ['heatmap',   'species',   'length_cm'],\n  ];\n\n  it.each(cases)('%s → X=%s, Y=%s', (chartType, expectedX, expectedY) => {\n    const { xField, yField } = selectXYFields(SAMPLE_COLUMNS, CHART_TYPE_HINTS[chartType]);\n    expect(xField).toBe(expectedX);\n    expect(yField).toBe(expectedY);\n  });\n});\n\n// 단일 store 액션 (중간 렌더 방지)\ndescribe('loadDataPackageWithSpec 원자 액션', () => {\n  it('단일 set()으로 dataPackage + chartSpec 동시 등록', () => {\n    const pkg: DataPackage = { id: 'test', source: 'upload', label: 'test',\n      columns: SAMPLE_COLUMNS, data: {}, createdAt: '' };\n    const { xField, yField } = selectXYFields(SAMPLE_COLUMNS, CHART_TYPE_HINTS['scatter']);\n    const spec = createDefaultChartSpec('test', 'scatter', xField, yField, SAMPLE_COLUMNS);\n\n    act(() => { useGraphStudioStore.getState().loadDataPackageWithSpec(pkg, spec); });\n\n    const state = useGraphStudioStore.getState();\n    expect(state.isDataLoaded).toBe(true);\n    expect(state.chartSpec?.chartType).toBe('scatter');\n  });\n});",
+          "keywords": [
+            "it.each",
+            "inferColumnMeta",
+            "selectXYFields",
+            "loadDataPackageWithSpec",
+            "temporal",
+            "CHART_TYPE_HINTS",
+            "createDefaultChartSpec",
+            "샘플 데이터",
+            "simulate"
+          ]
+        },
+        {
+          "name": "개선 계획 시뮬레이션 테스트 (SIM)",
+          "purpose": "코드 변경 전에 개선 계획의 핵심 전제를 순수 로직 테스트로 검증. 실제 모듈 의존성 없이 알고리즘 비교 가능.",
+          "code": "describe('SIM-1: DPI 계산 수정', () => {\n  function dpiToPixelRatioOld(dpi: number) { return Math.max(1, Math.round(dpi / 96)); }\n  function dpiToPixelRatioNew(dpi: number) { return Math.max(1, dpi / 96); }\n\n  test('300 DPI: old 방식은 288 DPI 실효값 (버그)', () => {\n    expect(dpiToPixelRatioOld(300) * 96).toBe(288);\n  });\n  test('300 DPI: new 방식은 300 DPI 정확', () => {\n    expect(dpiToPixelRatioNew(300) * 96).toBeCloseTo(300, 1);\n  });\n});",
+          "keywords": [
+            "simulation",
+            "improvement-plan",
+            "before-after",
+            "algorithm"
+          ]
+        },
+        {
+          "name": "G2-3 이중 Y축/패싯 기능 검증 테스트",
+          "purpose": "ECharts converter의 이중 Y축(yAxis 배열)과 패싯(grid 배열) 출력 구조를 검증. makeBarSpec/makeFacetSpec 픽스처 + chartSpecToECharts 호출 패턴.",
+          "code": "// === G2-3 이중 Y축/패싯 기능 검증 테스트 ===\n// 파일: __tests__/graph-studio/g2-3-features.test.ts\n\nfunction makeBarSpec(overrides: Partial<ChartSpec> = {}): ChartSpec {\n  return {\n    version: '1.0', chartType: 'bar',\n    data: { sourceId: 'test', columns: [...] },\n    encoding: {\n      x: { field: 'group', type: 'nominal' },\n      y: { field: 'value', type: 'quantitative' },\n    },\n    style: { preset: 'default' },\n    annotations: [],\n    exportConfig: { format: 'png', dpi: 300 },\n    ...overrides,\n  };\n}\n\n// G2-3-A: 이중 Y축\ndescribe('G2-3-A: Dual Y-axis', () => {\n  it('Y2 있으면 yAxis 배열, 길이 2', () => {\n    const spec = makeBarSpec({\n      encoding: { ..., y2: { field: 'temp', type: 'quantitative' } },\n    });\n    const option = chartSpecToECharts(spec, ROWS) as Record<string, unknown>;\n    expect(Array.isArray(option.yAxis)).toBe(true);\n    expect((option.yAxis as unknown[]).length).toBe(2);\n  });\n});\n\n// G2-3-B: 패싯\ndescribe('G2-3-B: Facet', () => {\n  it('패싯 3개 → grid 3개, series 3개', () => {\n    const spec = makeFacetSpec({ facet: { field: 'species' } });\n    const option = chartSpecToECharts(spec, FACET_ROWS) as Record<string, unknown>;\n    expect(Array.isArray(option.grid)).toBe(true);\n    expect((option.grid as unknown[]).length).toBe(3);\n    expect(Array.isArray(option.series)).toBe(true);\n    expect((option.series as unknown[]).length).toBe(3);\n  });\n});",
+          "keywords": [
+            "G2-3",
+            "dual-y-axis",
+            "facet",
+            "echarts-converter",
+            "chartSpecToECharts",
+            "makeSpec"
+          ]
+        },
+        {
+          "name": "G2 버그픽스 회귀 테스트 (annotations + significance 병합)",
+          "purpose": "converter가 annotations를 graphic에 올바르게 유지하는지, 수평 막대 축 스왑이 정상인지, 폰트 변경 시 preset size가 보존되는지 회귀 검증.",
+          "code": "// === G2 버그픽스 회귀 테스트 ===\n// 파일: __tests__/graph-studio/g2-bugfix-regression.test.ts\n\n// R-1: annotations + significance 병합\ndescribe('R-1: annotations가 significance와 함께 유지됨', () => {\n  test('annotations + significance 동시 존재 → converter는 annotation을 graphic에 유지', () => {\n    const spec = makeBarSpec({\n      annotations: [{ type: 'text', text: 'Marker', x: 100, y: 30 }],\n      significance: [{ groupA: 'A', groupB: 'B', pValue: 0.03 }],\n    });\n    const option = chartSpecToECharts(spec, ROWS) as Record<string, unknown>;\n    const graphic = option.graphic as Record<string, unknown>[];\n    expect(graphic.length).toBe(1);\n    expect(graphic[0].type).toBe('text');\n    // significance 브래킷은 ChartPreview finished 이벤트에서 추가됨 (converter 아님)\n  });\n});\n\n// R-2: 수평 막대 축 스왑\ndescribe('R-2: 수평 막대 orientation 축 swap 검증', () => {\n  test('수평 막대에서 xAxis=value, yAxis=category', () => {\n    const spec = makeBarSpec({ orientation: 'horizontal' });\n    const option = chartSpecToECharts(spec, ROWS) as Record<string, unknown>;\n    expect((option.xAxis as Record<string, unknown>).type).toBe('value');\n    expect((option.yAxis as Record<string, unknown>).type).toBe('category');\n  });\n});\n\n// R-3: 폰트 변경 시 preset size 유지\ndescribe('R-3: 폰트 변경 시 preset font size 유지', () => {\n  test('science 프리셋 + family 오버라이드 → size는 preset 기준 유지', () => {\n    const preset = STYLE_PRESETS['science'];\n    const spec = makeBarSpec({\n      style: { ...preset, font: { ...preset.font, family: 'Arial, sans-serif' } },\n    });\n    const option = chartSpecToECharts(spec, ROWS) as Record<string, unknown>;\n    const textStyle = (option as Record<string, unknown>).textStyle as Record<string, unknown>;\n    expect(textStyle.fontFamily).toContain('Arial');\n    expect(textStyle.fontSize).toBe(preset.font?.size ?? 11);\n  });\n});",
+          "keywords": [
+            "G2-bugfix",
+            "regression",
+            "annotations",
+            "significance",
+            "horizontal-bar",
+            "font-preset",
+            "echarts-converter"
+          ]
+        },
+        {
+          "name": "G2.5 저널 팔레트 scheme → color 검증 (R-4)",
+          "purpose": "ALL_PALETTES 통합 맵이 converter까지 연결돼 option.color에 올바른 hex가 나오는지 확인",
+          "code": "describe('R-4: 저널 팔레트 scheme 조회', () => {\n  test('NPG scheme → ECharts color에 #E64B35 포함', () => {\n    const spec = makeBarSpec({ style: { preset: 'default', scheme: 'NPG' } });\n    const option = chartSpecToECharts(spec, SAMPLE_ROWS) as Record<string, unknown>;\n    const colors = option.color as string[];\n    expect(colors[0]).toBe('#E64B35');\n  });\n\n  test('존재하지 않는 scheme → preset 기본 색상 fallback', () => {\n    const spec = makeBarSpec({ style: { preset: 'default', scheme: 'UnknownJournal' } });\n    const option = chartSpecToECharts(spec, SAMPLE_ROWS) as Record<string, unknown>;\n    const colors = option.color as string[];\n    expect(colors[0]).toBe('#5470c6');  // PRESET_COLORS.default[0]\n  });\n});",
+          "keywords": [
+            "ALL_PALETTES",
+            "JOURNAL_PALETTES",
+            "scheme",
+            "color",
+            "NPG",
+            "AAAS",
+            "OkabeIto",
+            "echarts-converter"
+          ]
+        },
+        {
+          "name": "G2.5 유의성 브래킷 스태킹 — spec 배열 불변성 + crash 없음 (R-5)",
+          "purpose": "[...marks].sort() 사본 정렬로 spec.significance 원본 순서 보존, renderIdx 로직 안전성 검증",
+          "code": "describe('R-5: 유의성 브래킷 다중 marks converter 안전성', () => {\n  test('significance marks 3개 → converter crash 없음', () => {\n    const spec = makeBarSpec({\n      significance: [\n        { groupA: 'A', groupB: 'B', pValue: 0.01 },\n        { groupA: 'A', groupB: 'C', pValue: 0.001 },\n        { groupA: 'B', groupB: 'C', pValue: 0.05 },\n      ],\n    });\n    expect(() => chartSpecToECharts(spec, SAMPLE_ROWS)).not.toThrow();\n  });\n\n  test('spec.significance 원본 배열 순서 불변', () => {\n    const significance = [\n      { groupA: 'A', groupB: 'C', pValue: 0.001 },  // span=2 → 정렬 후 뒤로 가지만 원본은 유지\n      { groupA: 'A', groupB: 'B', pValue: 0.01 },\n    ];\n    const spec = makeBarSpec({ significance });\n    chartSpecToECharts(spec, SAMPLE_ROWS);\n    expect(spec.significance![0].groupB).toBe('C');  // 원본 불변\n  });\n});",
+          "keywords": [
+            "significance",
+            "bracket stacking",
+            "renderIdx",
+            "sort",
+            "immutability",
+            "buildSignificanceGraphics"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Pure Math / Utility Function Tests",
+      "description": "순수 수치 함수 검증 패턴 — 부동소수점 근사 허용 오차, 단조성, 도메인 에러",
+      "patterns": [
+        {
+          "name": "수치 근사 검증 (toBeCloseTo + 범위 허용)",
+          "purpose": "통계 공식·수치 근사의 정확도 검증. G*Power 등 참조값과 ±N% 이내 일치 확인",
+          "code": "import { describe, test, expect } from 'vitest'\nimport { calcTwoSample } from '@/lib/sample-size/calculator'\n\ndescribe('calcTwoSample', () => {\n  // G*Power 참조값 기준 ±5% 허용 범위로 검증\n  test('d=0.5, α=0.05, power=0.80 → G*Power: 64', () => {\n    const { n } = calcTwoSample(0.5, 0.05, 0.80)\n    expect(n).toBeGreaterThanOrEqual(62)  // 64 * 0.97\n    expect(n).toBeLessThanOrEqual(66)      // 64 * 1.03\n  })\n\n  // 정확한 수치 근사는 toBeCloseTo(expected, precision) 사용\n  // precision: 소수점 자릿수 (기본 2)\n  test('invNorm(0.975) ≈ 1.96', () => {\n    expect(invNorm(0.975)).toBeCloseTo(1.96, 1)  // 소수 1자리까지\n  })\n})",
+          "keywords": [
+            "toBeCloseTo",
+            "toBeGreaterThanOrEqual",
+            "toBeLessThanOrEqual",
+            "precision",
+            "G*Power"
+          ]
+        },
+        {
+          "name": "단조성 테스트 (monotonicity)",
+          "purpose": "입력 증가 시 출력이 단조 증가/감소하는지 검증. 통계 공식의 정성적 올바름 확인",
+          "code": "import { describe, test, expect } from 'vitest'\nimport { calcTwoSample, calcCorrelation } from '@/lib/sample-size/calculator'\n\ndescribe('단조성 검증', () => {\n  test('power 높을수록 n 증가', () => {\n    const n80 = calcTwoSample(0.5, 0.05, 0.80).n\n    const n90 = calcTwoSample(0.5, 0.05, 0.90).n\n    const n95 = calcTwoSample(0.5, 0.05, 0.95).n\n    expect(n90).toBeGreaterThan(n80)\n    expect(n95).toBeGreaterThan(n90)\n  })\n\n  test('|r| 클수록 n 감소', () => {\n    const n01 = calcCorrelation(0.1, 0.05, 0.80).n\n    const n03 = calcCorrelation(0.3, 0.05, 0.80).n\n    const n05 = calcCorrelation(0.5, 0.05, 0.80).n\n    expect(n01).toBeGreaterThan(n03)\n    expect(n03).toBeGreaterThan(n05)\n  })\n})",
+          "keywords": [
+            "monotonicity",
+            "toBeGreaterThan",
+            "toBeLessThan",
+            "single-variable",
+            "chain"
+          ]
+        },
+        {
+          "name": "도메인 경계 및 에러 케이스",
+          "purpose": "수치 함수의 입력 도메인 위반 시 RangeError throw 또는 error 프로퍼티 반환 검증",
+          "code": "import { describe, test, expect } from 'vitest'\nimport { invNorm, calcTwoSample } from '@/lib/sample-size/calculator'\n\ndescribe('도메인 경계', () => {\n  // throw 방식: 수학 함수 직접 호출 시\n  test('invNorm — 범위 밖은 RangeError', () => {\n    expect(() => invNorm(0)).toThrow(RangeError)\n    expect(() => invNorm(1)).toThrow(RangeError)\n  })\n\n  // error 프로퍼티 방식: 사용자 입력 → 절대 throw 금지\n  test('d=0은 에러', () => {\n    const result = calcTwoSample(0, 0.05, 0.80)\n    expect(result.error).toBeDefined()\n    expect(result.n).toBe(0)  // n=0으로 안전 기본값 반환\n  })\n\n  // power ≤ alpha 의미 없는 설정 검증\n  test('power ≤ alpha는 에러', () => {\n    expect(calcTwoSample(0.5, 0.05, 0.05).error).toBeDefined()\n  })\n})",
+          "keywords": [
+            "RangeError",
+            "toThrow",
+            "error property",
+            "domain",
+            "boundary"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "State Machine Simulation Tests",
+      "description": "React 상태 전이 로직을 React 없이 순수 TS로 시뮬레이션. 핸들러·effect를 동기 함수로 재현해 상태 흐름 검증.",
+      "patterns": [
+        {
+          "name": "상태 시뮬레이터 팩토리",
+          "description": "상태 + 핸들러를 클로저로 캡슐화. applyEffect()로 useEffect 로직 동기 실행.",
+          "code": "function createSim(initial = '0.5') {\n  let value = initial\n  let source: 'manual' | 'auto' = 'manual'\n  let field1 = '', field2 = ''\n  function applyEffect() {\n    if (source !== 'auto') return\n    const v1 = parseFloat(field1), v2 = parseFloat(field2)\n    if (isFinite(v1) && isFinite(v2)) value = (v1 + v2).toFixed(3)\n  }\n  return {\n    handleManual: (v: string) => { value = v; source = 'manual' },\n    handleField1: (v: string) => { field1 = v; source = 'auto'; applyEffect() },\n    handleField2: (v: string) => { field2 = v; source = 'auto'; applyEffect() },\n    get value() { return value },\n    get source() { return source },\n  }\n}"
+        },
+        {
+          "name": "overwrite 방지 시나리오",
+          "description": "auto 계산 후 수동 입력 → auto 필드 변경 없으면 값 유지 확인.",
+          "code": "test('자동 계산 후 수동 입력 유지', () => {\n  const sim = createSim()\n  sim.handleField1('10'); sim.handleField2('20')\n  expect(sim.source).toBe('auto')\n  sim.handleManual('0.5')    // manual override\n  expect(sim.value).toBe('0.5')\n  expect(sim.source).toBe('manual')\n  // no field change → value stays\n  expect(sim.value).toBe('0.5')\n})"
+        }
+      ]
     }
   ],
   "bestPractices": [
@@ -663,6 +912,33 @@
       "title": "비동기 테스트 처리",
       "description": "waitFor, findBy를 사용하여 비동기 동작 대기",
       "example": "// ❌ Bad: 비동기 대기 없이 즉시 검증\nit('데이터 로딩 후 표시', () => {\n  render(<MyComponent />);\n  expect(screen.getByText('Data')).toBeInTheDocument();  // 실패!\n});\n\n// ✅ Good: waitFor로 비동기 대기\nit('데이터 로딩 후 표시', async () => {\n  render(<MyComponent />);\n  \n  await waitFor(() => {\n    expect(screen.getByText('Data')).toBeInTheDocument();\n  });\n});\n\n// ✅ Better: findBy 사용 (자동 대기)\nit('데이터 로딩 후 표시', async () => {\n  render(<MyComponent />);\n  \n  const data = await screen.findByText('Data');\n  expect(data).toBeInTheDocument();\n});"
+    }
+  ],
+  "graphStudioPatterns": [
+    {
+      "name": "KM/ROC 생존분석 차트 렌더링 (G3-A)",
+      "purpose": "km-curve/roc-curve ECharts 옵션 구조를 단언하여 G3-A 생존분석 회귀 방지",
+      "code": "import { chartSpecToECharts } from '@/lib/graph-studio/echarts-converter';\nimport type { ChartSpec } from '@/types/graph-studio';\n\nfunction makeKmSpec(overrides: Partial<ChartSpec> = {}): ChartSpec {\n  return {\n    chartType: 'km-curve',\n    xField: 'time', yField: 'survival', colorField: 'group',\n    title: 'KM Curve', ...overrides,\n  };\n}\n\nconst kmRows = [\n  { time: 0, survival: 1.0, ciLo: 1.0, ciHi: 1.0, group: 'A' },\n  { time: 12, survival: 0.8, ciLo: 0.6, ciHi: 0.95, group: 'A' },\n];\n\ntest('km-curve: step line + CI areaStyle', () => {\n  const option = chartSpecToECharts(makeKmSpec(), kmRows) as Record<string, unknown>;\n  const series = option.series as Record<string, unknown>[];\n  const mainLine = series.find(s => s.step === 'end');\n  expect(mainLine).toBeDefined();\n  const area = series.find(s => (s.areaStyle as Record<string, unknown>)?.opacity > 0);\n  expect(area).toBeDefined();\n});\n\ntest('roc-curve: AUC graphic text 포함', () => {\n  const rocSpec: ChartSpec = { chartType: 'roc-curve', xField: 'fpr', yField: 'tpr', title: 'ROC' };\n  const rocRows = [{ fpr: 0.0, tpr: 0.0 }, { fpr: 0.3, tpr: 0.8 }, { fpr: 1.0, tpr: 1.0 }];\n  const option = chartSpecToECharts(rocSpec, rocRows) as Record<string, unknown>;\n  const graphic = option.graphic as unknown[];\n  expect(Array.isArray(graphic)).toBe(true);\n  const aucText = (graphic as Record<string, unknown>[]).find(g => String(g.type) === 'text');\n  expect(aucText).toBeDefined();\n});",
+      "keywords": ["km-curve", "roc-curve", "survival", "step", "areaStyle", "AUC", "graphic", "G3-A"]
+    },
+    {
+      "name": "Python Worker 시뮬레이션 테스트 (Worker2 ANCOVA)",
+      "purpose": "Python Worker 결과 매핑 로직을 순수 TS 객체로 시뮬레이션하여 런타임 의존성 없이 검증",
+      "code": "import { describe, it, expect } from 'vitest';\n\n// Python Worker가 반환하는 camelCase 결과 형태\ninterface Worker2AncovaResult {\n  mainEffect: { fStatistic: number; pValue: number; df1: number; df2: number };\n  postHoc?: Array<{ group1: string; group2: string; meanDiff: number; pValue: number; pAdjusted?: number; significant: boolean }>;\n  effectSize?: { etaSquared: number; label: string };\n  adjustedMeans?: Array<{ group: string; adjustedMean: number; se: number }>;\n  missingRemoved?: number;\n}\n\nfunction mapAncovaResult(raw: Worker2AncovaResult) {\n  return {\n    statistic: raw.mainEffect.fStatistic,\n    pValue: raw.mainEffect.pValue,\n    df: [raw.mainEffect.df1, raw.mainEffect.df2] as [number, number],\n    postHoc: raw.postHoc?.map(p => ({\n      group1: p.group1, group2: p.group2, meanDiff: p.meanDiff,\n      pvalue: p.pValue, pvalueAdjusted: p.pAdjusted, significant: p.significant,\n    })),\n    missingRemoved: raw.missingRemoved ?? 0,\n  };\n}\n\ndescribe('ANCOVA Worker2 결과 매핑', () => {\n  it('df가 [df1, df2] 튜플로 보존된다', () => {\n    const raw: Worker2AncovaResult = { mainEffect: { fStatistic: 5.2, pValue: 0.03, df1: 1, df2: 28 } };\n    const mapped = mapAncovaResult(raw);\n    expect(mapped.df).toEqual([1, 28]);\n  });\n\n  it('null 그룹 필터링 후 missingRemoved 계산', () => {\n    const raw: Worker2AncovaResult = { mainEffect: { fStatistic: 3.1, pValue: 0.09, df1: 1, df2: 15 }, missingRemoved: 3 };\n    const mapped = mapAncovaResult(raw);\n    expect(mapped.missingRemoved).toBe(3);\n  });\n});",
+      "keywords": ["Worker2", "ANCOVA", "simulation", "df-tuple", "missingRemoved", "camelCase", "mapping"]
+    },
+    {
+      "name": "chartSpecToECharts 시뮬레이션",
+      "purpose": "ECharts 컨버터 순수 함수 출력을 단언하여 G2-x 기능 회귀 방지",
+      "code": "import { chartSpecToECharts } from '@/lib/graph-studio/echarts-converter';\nimport { getPValueLabel } from '@/lib/graph-studio/chart-spec-utils';\nimport type { ChartSpec } from '@/types/graph-studio';\n\n// 기본 fixture: makeBarSpec / makeScatterSpec\nfunction makeScatterSpec(overrides: Partial<ChartSpec> = {}): ChartSpec { ... }\n\ntest('trendline → scatter series에 line 추가', () => {\n  const spec = makeScatterSpec({ trendline: { type: 'linear' } });\n  const option = chartSpecToECharts(spec, rows) as Record<string, unknown>;\n  const series = option.series as Record<string, unknown>[];\n  expect(series.some(s => s.type === 'line')).toBe(true);\n});\n\ntest('getPValueLabel — p ≤ 0.05 → \"*\"', () => {\n  expect(getPValueLabel({ groupA: 'A', groupB: 'B', pValue: 0.03 })).toBe('*');\n});",
+      "keywords": [
+        "chartSpecToECharts",
+        "trendline",
+        "significance",
+        "getPValueLabel",
+        "graph-studio",
+        "G2-2"
+      ]
     }
   ],
   "commonErrors": [

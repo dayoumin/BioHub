@@ -172,7 +172,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
       id: alt.id,
       name: alt.name,
       description: alt.description || '',
-      category: alt.category || 'advanced'
+      category: alt.category || 'multivariate'
     }
     onSelectMethod(method)
   }, [onSelectMethod])

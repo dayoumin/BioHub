@@ -90,10 +90,7 @@ export interface StatisticalMethod {
     | 'correlation'
     | 'chi-square'
     | 'nonparametric'
-    | 'advanced'
     | 'timeseries'
-    | 'pca'
-    | 'clustering'
     | 'psychometrics'
     | 'design'
     | 'survival'
@@ -191,6 +188,10 @@ export interface AIRecommendation {
     covariate?: string[]
     within?: string[]
     between?: string[]
+    /** 생존분석 사건 변수 (1=사건, 0=중도절단) */
+    event?: string[]
+    /** 생존분석 시간 변수 (dependent의 alias) */
+    time?: string[]
   }
   /** 분석 설정 제안 */
   suggestedSettings?: SuggestedSettings
@@ -438,7 +439,7 @@ export interface AnalysisResult {
   method: string
   statistic: number
   pValue: number
-  df?: number  // 자유도
+  df?: number | [number, number]  // 자유도 ([df1, df2] for F-test)
   effectSize?: number | EffectSizeInfo  // 단순 숫자 또는 상세 정보
   omegaSquared?: EffectSizeInfo  // omega-squared 효과크기 (ANOVA용)
   confidence?: {
@@ -452,6 +453,7 @@ export interface AnalysisResult {
 
   // 추가 상세 정보
   postHoc?: PostHocResult[]  // 사후검정 결과
+  postHocMethod?: string  // 사후검정 보정 방법 (e.g., 'bonferroni', 'tukey', 'dunn')
   coefficients?: CoefficientResult[]  // 회귀계수
   groupStats?: GroupStats[]  // 그룹별 통계
 

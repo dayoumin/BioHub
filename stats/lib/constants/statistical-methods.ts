@@ -474,6 +474,15 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     koreanName: 'Cox 비례위험 회귀',
     koreanDescription: '생존에 영향을 미치는 요인 분석',
   },
+  'roc-curve': {
+    id: 'roc-curve',
+    name: 'ROC Curve Analysis',
+    description: 'Diagnostic accuracy evaluation (AUC, sensitivity/specificity)',
+    category: 'survival',
+    aliases: ['receiver-operating-characteristic', 'auc'],
+    koreanName: 'ROC 곡선 분석',
+    koreanDescription: '진단 정확도 평가 (AUC, 민감도/특이도)',
+  },
 
   // ============================================
   // 10. Multivariate (4)
@@ -726,7 +735,7 @@ export const METHOD_CATEGORIES = {
   survival: {
     name: 'Survival',
     description: 'Survival analysis',
-    methods: ['kaplan-meier', 'cox-regression'],
+    methods: ['kaplan-meier', 'cox-regression', 'roc-curve'],
   },
   multivariate: {
     name: 'Multivariate',

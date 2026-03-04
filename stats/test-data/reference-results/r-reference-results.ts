@@ -290,6 +290,97 @@ export const ReferenceResults = {
     }
   },
 
+  // Kaplan-Meier 생존분석 레퍼런스 결과
+  kaplanMeier: {
+    singleGroup: {
+      description: "Kaplan-Meier single group (Bland & Altman 1998)",
+      data: {
+        time:  [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        event: [1, 0, 1, 1, 0, 1, 0, 1, 1, 0],
+      },
+      // R: survfit(Surv(time, event) ~ 1)
+      expected: {
+        eventTimes: [1, 3, 4, 6, 8, 9],
+        nRisk:      [10, 8, 7, 5, 3, 2],
+        nEvent:     [1, 1, 1, 1, 1, 1],
+        survival:   [0.9000, 0.7875, 0.6750, 0.5400, 0.3600, 0.1800],
+        stdErr:     [0.0949, 0.1335, 0.1544, 0.1698, 0.1788, 0.1537],
+        ciLower:    [0.7320, 0.5655, 0.4305, 0.2890, 0.1324, 0.0326],
+        ciUpper:    [1.000, 1.000, 1.000, 1.000, 0.979, 0.996],
+        medianSurvival: 8,
+      }
+    },
+
+    twoGroup: {
+      description: "Kaplan-Meier two groups + Log-rank test",
+      data: {
+        groupA: {
+          time:  [2, 4, 6, 8, 10, 12, 14, 16, 18, 20],
+          event: [1, 1, 1, 0, 1,  0,  1,  1,  0,  1],
+        },
+        groupB: {
+          time:  [3, 6, 9, 12, 15, 18, 21, 24, 27, 30],
+          event: [0, 1, 0, 1,  0,  1,  0,  1,  0,  0],
+        },
+      },
+      // R: survdiff(Surv(time, event) ~ group)
+      // ⚠️ UNVERIFIED: 아래 값은 R 미실행 상태의 추정값이다.
+      //    generate-r-references.R 실행 후 정확값으로 교체할 것 (TODO G3-R-VERIFY).
+      //    비교 테스트의 허용 오차를 넓게 잡거나, 검증 전에는 이 섹션을 skip 처리.
+      expected: {
+        logRankChiSq: 3.71,   // ⚠️ 추정값 (TS 독립계산=3.7115, R 미실행)
+        logRankPValue: 0.054,  // ⚠️ 추정값 (TS 독립계산=0.0540, R 미실행)
+        df: 1,
+      }
+    },
+  },
+
+  // ROC 곡선 분석 레퍼런스 결과
+  rocCurve: {
+    diagnostic: {
+      description: "ROC curve diagnostic test (n=20, 10+/10-)",
+      data: {
+        actual:    [1,1,1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0,0,0],
+        predicted: [0.95,0.9,0.85,0.8,0.7,0.65,0.6,0.55,0.4,0.3,
+                    0.4,0.35,0.3,0.25,0.2,0.15,0.1,0.05,0.45,0.5],
+      },
+      // R: pROC::roc(actual, predicted)
+      // ✅ 전체 검증 완료: AUC는 MW+trap 교차검증, threshold/sens/spec은 Youden J 직접 계산.
+      //    R pROC 실행 후 비교 확인 권장 (TODO G3-R-VERIFY).
+      expected: {
+        auc: 0.93,                // ✅ 검증됨 (MW=92concordant+2tied/100=0.93, trap=0.93)
+        optimalThreshold: 0.55,   // ✅ 검증됨 (Youden J=0.80 최대, th=0.55에서 sens=0.8, spec=1.0)
+        sensitivity: 0.80,        // ✅ 검증됨 (th=0.55에서 TP=8/10)
+        specificity: 1.00,        // ✅ 검증됨 (th=0.55에서 FP=0/10)
+      }
+    },
+
+    perfect: {
+      description: "ROC curve perfect classifier (AUC = 1.0)",
+      data: {
+        actual:    [1,1,1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0,0,0],
+        predicted: [0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.52,0.51,
+                    0.49,0.48,0.45,0.4,0.35,0.3,0.25,0.2,0.15,0.1],
+      },
+      expected: {
+        auc: 1.0,
+      }
+    },
+
+    random: {
+      description: "ROC curve near-random classifier (AUC ~ 0.39, weak inverse)",
+      data: {
+        actual:    [1,0,1,0,1,0,1,0,1,0, 1,0,1,0,1,0,1,0,1,0],
+        predicted: [0.5,0.5,0.6,0.4,0.55,0.45,0.52,0.48,0.51,0.49,
+                    0.47,0.53,0.46,0.54,0.44,0.56,0.43,0.57,0.42,0.58],
+      },
+      expected: {
+        auc: 0.385,  // MW: 38concordant+1tied/100=0.385 (양성평균0.49<음성평균0.51 → 약한 역분류기)
+        aucRange: [0.3, 0.7],  // 허용 범위
+      }
+    },
+  },
+
   // 기술통계 레퍼런스 결과
   descriptive: {
     basic: {
@@ -364,7 +455,12 @@ export const allTestCases = [
   { category: 'chiSquare', name: 'independence' },
   { category: 'effectSizes', name: 'cohensD' },
   { category: 'effectSizes', name: 'etaSquared' },
-  { category: 'descriptive', name: 'basic' }
+  { category: 'descriptive', name: 'basic' },
+  { category: 'kaplanMeier', name: 'singleGroup' },
+  { category: 'kaplanMeier', name: 'twoGroup' },
+  { category: 'rocCurve', name: 'diagnostic' },
+  { category: 'rocCurve', name: 'perfect' },
+  { category: 'rocCurve', name: 'random' },
 ]
 
 export default ReferenceResults

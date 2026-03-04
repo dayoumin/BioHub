@@ -34,6 +34,7 @@ interface ChatCentricHubProps {
   onIntentResolved: (intent: ResolvedIntent, message: string) => void
   onQuickAnalysis: (methodId: string) => void
   onHistorySelect: (historyId: string) => void
+  onHistoryDelete: (historyId: string) => Promise<void>
   onUploadClick?: () => void
 }
 
@@ -146,6 +147,7 @@ export function ChatCentricHub({
   onIntentResolved,
   onQuickAnalysis,
   onHistorySelect,
+  onHistoryDelete,
   onUploadClick,
 }: ChatCentricHubProps) {
   const prefersReducedMotion = useReducedMotion()
@@ -191,6 +193,11 @@ export function ChatCentricHub({
 
   // 트랙 카드 클릭 → example 텍스트 주입 → ChatInput에서 자동 제출
   const handleTrackSelect = useCallback((_track: AnalysisTrack, example: string) => {
+    setExternalValue(example)
+  }, [])
+
+  // 표본 크기 계산기 "분석 시작" CTA → ChatInput 주입
+  const handleStartAnalysis = useCallback((example: string) => {
     setExternalValue(example)
   }, [])
 
@@ -266,12 +273,13 @@ export function ChatCentricHub({
       </div>
 
       {/* 3트랙 제안 카드 */}
-      <TrackSuggestions onTrackSelect={handleTrackSelect} />
+      <TrackSuggestions onTrackSelect={handleTrackSelect} onStartAnalysis={handleStartAnalysis} />
 
       {/* 빠른 분석 + 최근 히스토리 */}
       <QuickAccessBar
         onQuickAnalysis={onQuickAnalysis}
         onHistoryClick={onHistorySelect}
+        onHistoryDelete={onHistoryDelete}
       />
     </motion.div>
   )

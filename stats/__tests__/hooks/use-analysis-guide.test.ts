@@ -96,7 +96,7 @@ describe('useAnalysisGuide', () => {
 
       expect(result.current.hasMethod).toBe(true)
       expect(result.current.methodMetadata?.name).toBe('정규성 검정')
-      expect(result.current.methodMetadata?.category).toBe('diagnostic')
+      expect(result.current.methodMetadata?.category).toBe('descriptive')
       expect(result.current.methodMetadata?.minSampleSize).toBe(3)
       expect(result.current.methodMetadata?.variables).toHaveLength(1)
       expect(result.current.methodMetadata?.notes).toContain('Shapiro-Wilk: n < 5000에서 가장 강력')
@@ -121,7 +121,7 @@ describe('useAnalysisGuide', () => {
 
       expect(result.current.hasMethod).toBe(true)
       expect(result.current.methodMetadata?.name).toBe('사전 검정력 분석')
-      expect(result.current.methodMetadata?.category).toBe('basic')
+      expect(result.current.methodMetadata?.category).toBe('design')
       expect(result.current.methodMetadata?.minSampleSize).toBe(2)
       expect(result.current.methodMetadata?.variables).toHaveLength(0)  // 파라미터 기반
     })

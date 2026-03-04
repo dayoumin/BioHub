@@ -70,7 +70,14 @@ export enum PyodideWorker {
    * - cluster_analysis
    * - etc.
    */
-  RegressionAdvanced = 4
+  RegressionAdvanced = 4,
+
+  /**
+   * Worker 5: 생존 분석 + ROC 곡선
+   * - kaplan_meier_analysis (scipy 기반, 그룹 비교 + log-rank)
+   * - roc_curve_analysis (sklearn.metrics)
+   */
+  Survival = 5
 }
 
 /**
@@ -82,7 +89,8 @@ export const WORKER_PACKAGES = Object.freeze({
   [PyodideWorker.Descriptive]: [] as const,
   [PyodideWorker.Hypothesis]: ['statsmodels', 'pandas'] as const,
   [PyodideWorker.NonparametricAnova]: ['statsmodels', 'pandas'] as const,
-  [PyodideWorker.RegressionAdvanced]: ['statsmodels', 'scikit-learn'] as const
+  [PyodideWorker.RegressionAdvanced]: ['statsmodels', 'scikit-learn'] as const,
+  [PyodideWorker.Survival]: ['scikit-learn'] as const
 } as const)
 
 /**
@@ -92,5 +100,6 @@ export const WORKER_FILE_PATHS = Object.freeze({
   [PyodideWorker.Descriptive]: '/workers/python/worker1-descriptive.py',
   [PyodideWorker.Hypothesis]: '/workers/python/worker2-hypothesis.py',
   [PyodideWorker.NonparametricAnova]: '/workers/python/worker3-nonparametric-anova.py',
-  [PyodideWorker.RegressionAdvanced]: '/workers/python/worker4-regression-advanced.py'
+  [PyodideWorker.RegressionAdvanced]: '/workers/python/worker4-regression-advanced.py',
+  [PyodideWorker.Survival]: '/workers/python/worker5-survival.py'
 } as const)

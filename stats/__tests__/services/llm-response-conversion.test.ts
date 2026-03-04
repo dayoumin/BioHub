@@ -11,7 +11,7 @@ describe('LLM 응답 → StatisticalMethod 변환', () => {
     id: string
     name: string
     description: string
-    category: 'descriptive' | 't-test' | 'anova' | 'regression' | 'nonparametric' | 'advanced'
+    category: 'descriptive' | 't-test' | 'anova' | 'regression' | 'nonparametric' | 'chi-square' | 'multivariate'
   }
 
   // 실제 HybridRecommender의 변환 로직 복사
@@ -34,7 +34,7 @@ describe('LLM 응답 → StatisticalMethod 변환', () => {
     if (id.includes('regression') || id.includes('회귀')) return 'regression'
     if (id.includes('mann-whitney') || id.includes('kruskal') || id.includes('wilcoxon') || id.includes('friedman')) return 'nonparametric'
     if (id.includes('correlation') || id.includes('상관')) return 'descriptive'
-    if (id.includes('chi-square') || id.includes('카이제곱')) return 'advanced'
+    if (id.includes('chi-square') || id.includes('카이제곱')) return 'chi-square'
 
     return 'descriptive' // 기본값
   }
@@ -90,7 +90,7 @@ describe('LLM 응답 → StatisticalMethod 변환', () => {
       ['wilcoxon', 'nonparametric'],
       ['friedman', 'nonparametric'],
       ['pearson-correlation', 'descriptive'],
-      ['chi-square', 'advanced'],
+      ['chi-square', 'chi-square'],
       ['unknown-method', 'descriptive'] // 기본값
     ]
 

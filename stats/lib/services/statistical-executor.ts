@@ -85,7 +85,7 @@ export interface StatisticalExecutorResult {
   mainResults: {
     statistic: number
     pvalue: number
-    df?: number
+    df?: number | [number, number]
     significant: boolean
     interpretation?: string
   }
@@ -112,6 +112,7 @@ export interface StatisticalExecutorResult {
       details: unknown[]
     }
     postHoc?: NormalizedPostHocComparison[]
+    postHocMethod?: string
     discriminantFunctions?: {
       count: number
       totalVariance: number
@@ -194,7 +195,13 @@ export class StatisticalExecutor {
       // 메서드별 실행
       let result: AnalysisResult
 
-      switch (method.category) {
+      // 레거시 카테고리명 마이그레이션 (sessionStorage에 잔존 가능)
+      const rawCategory = method.category as string
+      const category = (
+        rawCategory === 'advanced' || rawCategory === 'pca' || rawCategory === 'clustering'
+      ) ? 'multivariate' : method.category
+
+      switch (category) {
         case 'descriptive':
           result = await this.executeDescriptive(method, preparedData)
           break
@@ -216,9 +223,6 @@ export class StatisticalExecutor {
         case 'chi-square':
           result = await this.executeChiSquare(method, preparedData)
           break
-        case 'pca':
-        case 'clustering':
-        case 'advanced':
         case 'multivariate':
           result = await this.executeMultivariate(method, preparedData)
           break
@@ -235,7 +239,7 @@ export class StatisticalExecutor {
           result = await this.executeDesign(method, preparedData)
           break
         default:
-          throw new Error(`지원되지 않는 분석 카테고리: ${method.category}`)
+          throw new Error(`지원되지 않는 분석 카테고리: ${category}`)
       }
 
       // 메타데이터 추가
@@ -404,7 +408,10 @@ export class StatisticalExecutor {
 
     // 그룹변수로 데이터 분할
     if (group) {
-      const groups = [...new Set(data.map(row => row[group]))]
+      // null/undefined 그룹 제외 — String(null)="null" 문자열 그룹 생성 방지
+      const groups = [...new Set(data.map(row => row[group]))].filter(
+        grp => grp != null && grp !== ''
+      )
       prepared.groups = groups
       arrays.byGroup = {} as Record<string, number[]>
 
@@ -524,8 +531,17 @@ export class StatisticalExecutor {
 
       if (typeof pvalue !== 'number') continue
 
-      const group1 = comp.group1 as string | number | undefined
-      const group2 = comp.group2 as string | number | undefined
+      // group1/group2 직접 키 또는 comparison 문자열("A vs B") 파싱
+      let group1 = comp.group1 as string | number | undefined
+      let group2 = comp.group2 as string | number | undefined
+      if (group1 === undefined || group2 === undefined) {
+        const comparison = typeof comp.comparison === 'string' ? comp.comparison : undefined
+        if (comparison && comparison.includes(' vs ')) {
+          const parts = comparison.split(' vs ', 2)
+          group1 = parts[0]?.trim() || undefined
+          group2 = parts[1]?.trim() || undefined
+        }
+      }
       if (group1 === undefined || group2 === undefined) continue
 
       results.push({
@@ -545,13 +561,15 @@ export class StatisticalExecutor {
               : undefined,
         pvalue,
         pvalueAdjusted:
-          typeof comp.pvalueAdjusted === 'number'
-            ? comp.pvalueAdjusted
-            : typeof comp.pValueAdjusted === 'number'
-              ? comp.pValueAdjusted
-              : typeof comp.adjusted_p === 'number'
-                ? comp.adjusted_p
-                : undefined,
+          typeof comp.adjustedPValue === 'number'
+            ? comp.adjustedPValue
+            : typeof comp.pvalueAdjusted === 'number'
+              ? comp.pvalueAdjusted
+              : typeof comp.pValueAdjusted === 'number'
+                ? comp.pValueAdjusted
+                : typeof comp.adjusted_p === 'number'
+                  ? comp.adjusted_p
+                  : undefined,
         significant:
           typeof comp.significant === 'boolean'
             ? comp.significant
@@ -993,7 +1011,8 @@ export class StatisticalExecutor {
             '유의한 차이가 없습니다'
         },
         additionalInfo: {
-          postHoc
+          postHoc,
+          postHocMethod: 'games-howell',
         },
         visualizationData: {
           type: 'boxplot-multiple',
@@ -1006,39 +1025,69 @@ export class StatisticalExecutor {
       }
     }
 
-    // ANCOVA: 공변량이 있는 경우
+    // ANCOVA: 공변량이 있는 경우 — Worker2 ancova_analysis() 사용 (postHoc 포함)
     if (method.id === 'ancova' && data.arrays.covariate && data.arrays.covariate.length > 0) {
-      // 행 단위로 종속변수·그룹·모든 공변량이 동시에 유효한 경우만 포함
-      const dependentVar = (data.variables.dependent as string[] | undefined)?.[0] || ''
-      const groupVar = data.variables.group as string
-      const covariateVars = Array.isArray(data.variables.covariate)
-        ? data.variables.covariate
-        : [data.variables.covariate]
+      // VariableMapping 호환: dependentVar/dependent, groupVar/group 모두 지원
+      const rawDep = data.variables.dependent || data.variables.dependentVar
+      const dependentVar = rawDep
+        ? (Array.isArray(rawDep) ? (rawDep as string[])[0] : rawDep as string)
+        : ''
+      const groupVar = (data.variables.group || data.variables.groupVar) as string
+      const rawCov = data.variables.covariate
+      const covariateVars = Array.isArray(rawCov)
+        ? (rawCov as string[])
+        : [rawCov as string]
 
-      const yValues: number[] = []
-      const groupValues: (string | number)[] = []
-      const covariateArrays: number[][] = covariateVars.map(() => [] as number[])
-
+      // Worker2는 행 단위 딕셔너리 배열을 받음 — 유효한 행만 필터 + 숫자 필드 정제
+      const numericFields = [dependentVar, ...covariateVars]
+      const validRows: Array<Record<string, unknown>> = []
       for (const row of data.data as Record<string, unknown>[]) {
         const yVal = Number(row[dependentVar])
         const gVal = row[groupVar]
         const covVals = covariateVars.map((col: string) => Number(row[col]))
 
-        // 모든 값이 유효한 경우만 포함
         if (!isNaN(yVal) && gVal != null && covVals.every((v: number) => !isNaN(v))) {
-          yValues.push(yVal)
-          groupValues.push(gVal as string | number)
-          covVals.forEach((v: number, i: number) => covariateArrays[i].push(v))
+          // 숫자형 필드를 명시적 Number로 변환 (문자열 "3" → 3, object dtype 방지)
+          const cleanRow: Record<string, unknown> = { ...row }
+          for (const field of numericFields) {
+            cleanRow[field] = Number(row[field])
+          }
+          validRows.push(cleanRow)
         }
       }
 
-      if (yValues.length === 0) {
+      if (validRows.length === 0) {
         throw new Error('ANCOVA: 모든 변수에 유효한 값이 있는 행이 없습니다')
       }
 
-      const covariates = covariateArrays
+      // validRows 기준 그룹 재검증 (공변량 필터링으로 그룹이 사라질 수 있음)
+      const validByGroup: Record<string, number> = {}
+      for (const row of validRows) {
+        const g = String(row[groupVar])
+        validByGroup[g] = (validByGroup[g] || 0) + 1
+      }
+      const validGroupNames = Object.keys(validByGroup)
+      if (validGroupNames.length < 2) {
+        throw new Error(
+          `ANCOVA: 유효한 데이터 기준 그룹이 ${validGroupNames.length}개뿐입니다 (최소 2개 필요). ` +
+          `공변량에 결측값이 많은 그룹이 있는지 확인하세요.`
+        )
+      }
+      const tooSmallGroups = validGroupNames.filter(g => validByGroup[g] < 2)
+      if (tooSmallGroups.length > 0) {
+        const details = validGroupNames.map(g => `"${g}": ${validByGroup[g]}개`).join(', ')
+        throw new Error(
+          `ANCOVA: 유효한 데이터 기준 일부 그룹의 관측치가 2개 미만입니다. 현재: ${details}. ` +
+          `공변량에 결측값이 많은 그룹이 있는지 확인하세요.`
+        )
+      }
 
-      const ancovaResult = await pyodideStats.ancovaWorker(yValues, groupValues, covariates)
+      const ancovaResult = await pyodideStats.ancovaAnalysisWorker(
+        dependentVar, [groupVar], covariateVars, validRows
+      )
+
+      const mainEffect = ancovaResult.mainEffects?.[0]
+      const postHoc = this.normalizePostHocComparisons(ancovaResult.postHoc ?? [])
 
       return {
         metadata: {
@@ -1047,31 +1096,48 @@ export class StatisticalExecutor {
           timestamp: '',
           duration: 0,
           dataInfo: {
-            totalN: yValues.length,
-            missingRemoved: 0,
-            groups: groups.length
+            totalN: validRows.length,
+            missingRemoved: (data.data as unknown[]).length - validRows.length,
+            groups: validGroupNames.length
           }
         },
         mainResults: {
-          statistic: ancovaResult.fStatisticGroup,
-          pvalue: ancovaResult.pValueGroup,
-          df: 0,
-          significant: ancovaResult.pValueGroup < 0.05,
-          interpretation: ancovaResult.pValueGroup < 0.05 ?
-            `공변량 통제 후 그룹 간 유의한 차이가 있습니다 (F=${ancovaResult.fStatisticGroup.toFixed(2)})` :
+          statistic: mainEffect?.statistic ?? 0,
+          pvalue: mainEffect?.pValue ?? 1,
+          df: mainEffect?.degreesOfFreedom as [number, number] | undefined,
+          significant: (mainEffect?.pValue ?? 1) < 0.05,
+          interpretation: (mainEffect?.pValue ?? 1) < 0.05 ?
+            `공변량 통제 후 그룹 간 유의한 차이가 있습니다 (F=${(mainEffect?.statistic ?? 0).toFixed(2)})` :
             '공변량 통제 후 그룹 간 유의한 차이가 없습니다'
         },
-        additionalInfo: {},
+        additionalInfo: {
+          postHoc,
+          postHocMethod: 'bonferroni',
+          effectSize: mainEffect ? {
+            type: 'partial-eta-squared',
+            value: mainEffect.partialEtaSquared,
+            interpretation: this.interpretEtaSquared(mainEffect.partialEtaSquared)
+          } : undefined,
+          adjustedMeans: ancovaResult.adjustedMeans,
+          modelFit: ancovaResult.modelFit,
+          // result-transformer 호환: top-level로 평탄화
+          rSquared: ancovaResult.modelFit?.rSquared,
+          adjustedRSquared: ancovaResult.modelFit?.adjustedRSquared,
+          rmse: ancovaResult.modelFit?.rmse,
+        },
         visualizationData: {
           type: 'boxplot-multiple',
-          data: groups.map((g, i) => ({
-            values: g,
-            label: groupNames[i] || `Group ${i + 1}`
+          // validRows 기준으로 시각화 데이터 생성 (분석 대상과 일치)
+          data: validGroupNames.map(gName => ({
+            values: validRows
+              .filter(r => String(r[groupVar]) === gName)
+              .map(r => Number(r[dependentVar])),
+            label: gName
           }))
         },
         rawResults: {
           ...ancovaResult,
-          covariatesCount: covariates.length
+          covariatesCount: covariateVars.length
         }
       }
     }
@@ -1161,24 +1227,29 @@ export class StatisticalExecutor {
     // Games-Howell: 이분산 가정 (등분산 가정 불필요) - 더 robust
     // Tukey HSD: 등분산 가정 (fallback)
     let postHoc: NormalizedPostHocComparison[] | undefined
+    let postHocMethod: string | undefined
     if (result.pValue < 0.05 && groups.length > 2) {
       try {
         // Games-Howell 사용 (이분산에 robust)
         const ghResult = await pyodideStats.gamesHowellTest(groups, groupNames)
         postHoc = this.normalizePostHocComparisons(ghResult?.comparisons)
+        postHocMethod = 'games-howell'
       } catch (ghError) {
         logger.warn('Games-Howell 사후검정 실패, Tukey HSD로 시도합니다', ghError)
         try {
           const tukeyResult = await pyodideStats.tukeyHSD(groups)
           postHoc = this.normalizePostHocComparisons(tukeyResult?.comparisons)
+          postHocMethod = 'tukey'
         } catch (tukeyError) {
           logger.warn('Tukey HSD 사후검정 실패, Bonferroni로 시도합니다', tukeyError)
           try {
             const bonferroniResult = await pyodideStats.performBonferroni(groups, groupNames)
             postHoc = this.normalizePostHocComparisons(bonferroniResult.comparisons)
+            postHocMethod = 'bonferroni'
           } catch (bonferroniError) {
             logger.warn('Bonferroni 사후검정도 실패, 사후검정 없이 진행합니다', bonferroniError)
             postHoc = undefined
+            postHocMethod = undefined
           }
         }
       }
@@ -1199,7 +1270,7 @@ export class StatisticalExecutor {
       mainResults: {
         statistic: result.fStatistic,
         pvalue: result.pValue,
-        df: Array.isArray(result.df) ? result.df[0] : result.df,
+        df: Array.isArray(result.df) ? result.df as [number, number] : result.df,
         significant: result.pValue < 0.05,
         interpretation: result.pValue < 0.05 ?
           `그룹 간 유의한 차이가 있습니다 (F=${result.fStatistic.toFixed(2)})` :
@@ -1211,7 +1282,8 @@ export class StatisticalExecutor {
           value: result.etaSquared || 0,
           interpretation: this.interpretEtaSquared(result.etaSquared || 0)
         },
-        postHoc: postHoc
+        postHoc: postHoc,
+        postHocMethod,
       },
       visualizationData: {
         type: 'boxplot-multiple',
@@ -2068,36 +2140,42 @@ export class StatisticalExecutor {
   ): Promise<AnalysisResult> {
     switch (method.id) {
       case 'kaplan-meier': {
-        const rawTimes = data.arrays.dependent || []
-        const rawEvents = data.arrays.event || []
-
-        // Validate event variable is provided
-        if (rawEvents.length === 0) {
+        // Validate event variable is provided (early check before row-level alignment)
+        if ((data.arrays.event || []).length === 0) {
           throw new Error('Kaplan-Meier analysis requires an event variable (0=censored, 1=event)')
         }
 
         // Build aligned arrays - filter NaN values while keeping indices aligned
-        const alignedData: { time: number; event: number }[] = []
         const rawData = data.data as Array<Record<string, unknown>>
         const depVar = (data.variables?.dependent || data.variables?.dependentVar) as string | string[] | undefined
         const eventVar = data.variables?.event as string | undefined
         const depName = Array.isArray(depVar) ? depVar[0] : depVar
+        const factorVar = (data.variables?.factor || data.variables?.group || data.variables?.groupVar) as string | undefined
 
-        if (depName && eventVar && rawData) {
-          for (const row of rawData) {
-            const time = Number(row[depName])
-            const event = Number(row[eventVar])
-            if (!isNaN(time) && !isNaN(event)) {
-              alignedData.push({ time, event })
-            }
-          }
-        } else {
-          // Missing variable names - cannot align properly
+        if (!depName || !eventVar || !rawData) {
           throw new Error('Kaplan-Meier requires time (dependent) and event variable names')
+        }
+
+        // group 컬럼 포함해서 동시에 필터 — 결측 제거 후에도 인덱스 일치 보장
+        const alignedData: { time: number; event: number; group?: string }[] = []
+        for (const row of rawData) {
+          const time = Number(row[depName])
+          const event = Number(row[eventVar])
+          if (!isNaN(time) && !isNaN(event)) {
+            alignedData.push({
+              time,
+              event,
+              group: factorVar ? String(row[factorVar] ?? 'All') : undefined
+            })
+          }
         }
 
         if (alignedData.length === 0) {
           throw new Error('No valid time-event pairs found')
+        }
+
+        if (alignedData.length < 10) {
+          throw new Error(`Kaplan-Meier 분석에는 최소 10개의 유효한 관찰값이 필요합니다 (현재: ${alignedData.length})`)
         }
 
         const times = alignedData.map(d => d.time)
@@ -2109,10 +2187,21 @@ export class StatisticalExecutor {
           throw new Error('Event variable must be binary (0=censored, 1=event)')
         }
 
-        // pyodideStats 래퍼 사용
-        const result = await pyodideStats.kaplanMeierSurvival(times, events)
+        // 그룹 배열 — alignedData에서 추출 (결측 제거 후 인덱스 일치)
+        const groups: string[] | undefined = factorVar
+          ? alignedData.map(d => d.group ?? 'All')
+          : undefined
+
+        // Worker5 카플란-마이어 분석 (scipy 기반, lifelines 불사용)
+        const result = await pyodideStats.kaplanMeierAnalysis(times, events, groups)
 
         const totalEvents = events.filter((e: number) => e === 1).length
+        const medianTime = result.medianSurvivalTime
+        const logRankP = result.logRankP
+
+        const interpParts: string[] = []
+        if (medianTime !== null) interpParts.push(`중앙 생존 시간: ${medianTime.toFixed(2)}`)
+        if (logRankP !== null) interpParts.push(`Log-rank p=${logRankP.toFixed(4)}`)
 
         return {
           metadata: {
@@ -2126,20 +2215,17 @@ export class StatisticalExecutor {
             }
           },
           mainResults: {
-            statistic: result.medianSurvival || 0,
-            pvalue: 1, // Kaplan-Meier는 p-value 없음
-            significant: false,
-            interpretation: result.medianSurvival
-              ? `중앙 생존 시간: ${result.medianSurvival.toFixed(2)}`
+            statistic: medianTime ?? 0,
+            pvalue: logRankP ?? 1,
+            significant: logRankP !== null ? logRankP < 0.05 : false,
+            interpretation: interpParts.length > 0
+              ? interpParts.join(', ')
               : '중앙 생존 시간을 계산할 수 없습니다'
           },
           additionalInfo: {},
           visualizationData: {
-            type: 'survival-curve',
-            data: {
-              timePoints: result.times,
-              survivalProbabilities: result.survivalFunction
-            }
+            type: 'km-curve',
+            data: result
           },
           rawResults: { ...result, totalEvents, sampleSize: times.length }
         }
@@ -2230,6 +2316,75 @@ export class StatisticalExecutor {
             }
           },
           rawResults: { ...result, covariateNames, sampleSize: times.length }
+        }
+      }
+      case 'roc-curve': {
+        const rawData = data.data as Array<Record<string, unknown>>
+        const depVar = (data.variables?.dependent || data.variables?.dependentVar) as string | string[] | undefined
+        const indVar = (data.variables?.independent || data.variables?.independentVar) as string | string[] | undefined
+        const depName = Array.isArray(depVar) ? depVar[0] : depVar
+        const indName = Array.isArray(indVar) ? indVar[0] : indVar
+
+        if (!depName || !indName) {
+          throw new Error('ROC 분석에는 결과 변수(dependent)와 예측 점수 변수(independent)가 필요합니다')
+        }
+
+        const actualClass: number[] = []
+        const predictedProb: number[] = []
+
+        for (const row of rawData ?? []) {
+          const actual = Number(row[depName])
+          const pred = Number(row[indName])
+          if (!isNaN(actual) && !isNaN(pred)) {
+            actualClass.push(actual)
+            predictedProb.push(pred)
+          }
+        }
+
+        if (actualClass.length < 20) {
+          throw new Error(`ROC 분석에는 최소 20개의 유효한 관찰값이 필요합니다 (현재: ${actualClass.length})`)
+        }
+
+        // Validate actualClass is binary (0 or 1)
+        const uniqueClasses = [...new Set(actualClass)]
+        if (!uniqueClasses.every(c => c === 0 || c === 1)) {
+          throw new Error('결과 변수(dependent)는 이진값(0 또는 1)이어야 합니다')
+        }
+        if (uniqueClasses.length < 2) {
+          throw new Error('결과 변수에 두 클래스(0과 1)가 모두 포함되어야 합니다')
+        }
+
+        const result = await pyodideStats.rocCurveAnalysis(actualClass, predictedProb)
+
+        return {
+          metadata: {
+            method: method.id,
+            methodName: method.name,
+            timestamp: '',
+            duration: 0,
+            dataInfo: {
+              totalN: actualClass.length,
+              missingRemoved: 0
+            }
+          },
+          mainResults: {
+            statistic: result.auc,
+            pvalue: 1, // ROC AUC 단독 p-value 없음
+            significant: result.auc > 0.7,
+            interpretation: `AUC: ${result.auc.toFixed(3)} (95% CI: ${result.aucCI.lower.toFixed(3)}-${result.aucCI.upper.toFixed(3)}), 최적 임계값: ${result.optimalThreshold.toFixed(3)}, 민감도: ${(result.sensitivity * 100).toFixed(1)}%, 특이도: ${(result.specificity * 100).toFixed(1)}%`
+          },
+          additionalInfo: {
+            auc: result.auc,
+            aucCI: result.aucCI,
+            optimalThreshold: result.optimalThreshold,
+            sensitivity: result.sensitivity,
+            specificity: result.specificity,
+          },
+          visualizationData: {
+            type: 'roc-curve',
+            data: result
+          },
+          rawResults: { ...result, sampleSize: actualClass.length }
         }
       }
       default:

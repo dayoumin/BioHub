@@ -1,0 +1,912 @@
+/**
+ * echarts-converter 테스트
+ *
+ * 검증 범위:
+ * 1. 빈 rows → "No data" fallback
+ * 2. bar / scatter / boxplot / histogram / heatmap 출력 구조
+ * 3. boxplot percentile 수치 (numpy 호환 선형보간)
+ * 4. histogram Sturges 빈 계산
+ * 5. column→row 변환 로직 (ChartPreview useMemo 시뮬레이션)
+ * 6. toStr null/undefined phantom category 확인
+ * 7. error-bar / stacked-bar / violin 출력 구조
+ * 8. aggregate min/max/count/sum/median — loop 방어 포함
+ */
+
+import { describe, it, expect } from 'vitest'
+import { chartSpecToECharts } from '@/lib/graph-studio/echarts-converter'
+import type { ChartSpec } from '@/types/graph-studio'
+
+// ─── 픽스처 ───────────────────────────────────────────────
+
+function makeSpec(overrides: Partial<ChartSpec> = {}): ChartSpec {
+  return {
+    version: '1.0',
+    chartType: 'bar',
+    data: { sourceId: 'test', columns: [] },
+    encoding: {
+      x: { field: 'group', type: 'nominal' },
+      y: { field: 'value', type: 'quantitative' },
+    },
+    style: { preset: 'default' },
+    annotations: [],
+    exportConfig: { format: 'png', dpi: 96 },
+    ...overrides,
+  }
+}
+
+type AnyOption = Record<string, unknown>
+
+function toAny(opt: ReturnType<typeof chartSpecToECharts>): AnyOption {
+  return opt as AnyOption
+}
+
+// ─── 빈 rows ──────────────────────────────────────────────
+
+describe('빈 rows', () => {
+  it('rows가 비어 있으면 No data title을 반환한다', () => {
+    const opt = toAny(chartSpecToECharts(makeSpec(), []))
+    const title = opt.title as AnyOption
+    expect(String(title.text)).toContain('No data')
+  })
+})
+
+// ─── bar ──────────────────────────────────────────────────
+
+describe('bar chart', () => {
+  const rows = [
+    { group: 'A', value: 10 },
+    { group: 'B', value: 20 },
+    { group: 'C', value: 15 },
+  ]
+
+  it('series[0].type === bar', () => {
+    const opt = toAny(chartSpecToECharts(makeSpec({ chartType: 'bar' }), rows))
+    const series = opt.series as AnyOption[]
+    expect(series[0].type).toBe('bar')
+  })
+
+  it('dataset.source에 rows가 들어간다', () => {
+    const opt = toAny(chartSpecToECharts(makeSpec({ chartType: 'bar' }), rows))
+    const dataset = opt.dataset as AnyOption
+    expect(dataset.source).toEqual(rows)
+  })
+
+  it('xAxis.type === category', () => {
+    const opt = toAny(chartSpecToECharts(makeSpec({ chartType: 'bar' }), rows))
+    const xAxis = opt.xAxis as AnyOption
+    expect(xAxis.type).toBe('category')
+  })
+
+  it('title이 있으면 base.title.text에 반영된다', () => {
+    const opt = toAny(chartSpecToECharts(
+      makeSpec({ chartType: 'bar', title: 'My Bar Chart' }),
+      rows,
+    ))
+    const title = opt.title as AnyOption
+    expect(title.text).toBe('My Bar Chart')
+  })
+})
+
+// ─── scatter ──────────────────────────────────────────────
+
+describe('scatter chart', () => {
+  const rows = [
+    { x: 1, y: 2 },
+    { x: 3, y: 4 },
+    { x: 5, y: 1 },
+  ]
+  const baseSpec = makeSpec({
+    chartType: 'scatter',
+    encoding: {
+      x: { field: 'x', type: 'quantitative' },
+      y: { field: 'y', type: 'quantitative' },
+    },
+  })
+
+  it('colorField 없음 → dataset + encode 패턴', () => {
+    // colorField가 없으면 dataset.source + series[0].encode 경로
+    const opt = toAny(chartSpecToECharts(baseSpec, rows))
+    const series = opt.series as AnyOption[]
+    expect(series[0].type).toBe('scatter')
+    const dataset = opt.dataset as AnyOption
+    expect(dataset.source).toEqual(rows)
+    expect((series[0].encode as AnyOption).x).toBe('x')
+  })
+
+  it('colorField 있음 → [number, number][] per group', () => {
+    const rowsWithColor = [
+      { x: 1, y: 2, grp: 'A' },
+      { x: 3, y: 4, grp: 'A' },
+      { x: 5, y: 1, grp: 'B' },
+    ]
+    const specWithColor = makeSpec({
+      chartType: 'scatter',
+      encoding: {
+        x: { field: 'x', type: 'quantitative' },
+        y: { field: 'y', type: 'quantitative' },
+        color: { field: 'grp', type: 'nominal' },
+      },
+    })
+    const opt = toAny(chartSpecToECharts(specWithColor, rowsWithColor))
+    const series = opt.series as AnyOption[]
+    expect(series).toHaveLength(2) // A, B 두 그룹
+    const groupA = series[0].data as [number, number][]
+    expect(groupA).toHaveLength(2)
+    expect(groupA[0]).toEqual([1, 2])
+  })
+})
+
+// ─── boxplot (percentile 수치 검증) ───────────────────────
+
+describe('boxplot — percentile (numpy 호환)', () => {
+  // [1,2,3,4,5]: min=1, Q1=2, median=3, Q3=4, max=5
+  const rows = [
+    { cat: 'A', val: 1 },
+    { cat: 'A', val: 2 },
+    { cat: 'A', val: 3 },
+    { cat: 'A', val: 4 },
+    { cat: 'A', val: 5 },
+  ]
+  const spec = makeSpec({
+    chartType: 'boxplot',
+    encoding: {
+      x: { field: 'cat', type: 'nominal' },
+      y: { field: 'val', type: 'quantitative' },
+    },
+  })
+
+  it('series[0].type === boxplot', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const series = opt.series as AnyOption[]
+    expect(series[0].type).toBe('boxplot')
+  })
+
+  it('[min, Q1, median, Q3, max] = [1, 2, 3, 4, 5]', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const series = opt.series as AnyOption[]
+    const data = series[0].data as [number, number, number, number, number][]
+    expect(data[0]).toEqual([1, 2, 3, 4, 5])
+  })
+
+  it('[1,2,3,4]: Q1=1.75, median=2.5, Q3=3.25', () => {
+    const rows4 = [
+      { cat: 'B', val: 1 },
+      { cat: 'B', val: 2 },
+      { cat: 'B', val: 3 },
+      { cat: 'B', val: 4 },
+    ]
+    const opt = toAny(chartSpecToECharts(spec, rows4))
+    const series = opt.series as AnyOption[]
+    const data = series[0].data as [number, number, number, number, number][]
+    expect(data[0][1]).toBeCloseTo(1.75, 5) // Q1
+    expect(data[0][2]).toBeCloseTo(2.5, 5)  // median
+    expect(data[0][3]).toBeCloseTo(3.25, 5) // Q3
+  })
+})
+
+// ─── histogram (Sturges 빈) ────────────────────────────────
+
+describe('histogram — Sturges bins', () => {
+  // 16개 값 → ceil(log2(16) + 1) = 5bins이지만 max(5, ...)이므로 5
+  const vals = Array.from({ length: 16 }, (_, i) => ({ v: i + 1 })) // 1~16
+  const spec = makeSpec({
+    chartType: 'histogram',
+    encoding: {
+      x: { field: 'v', type: 'quantitative' },
+      y: { field: 'v', type: 'quantitative' },
+    },
+  })
+
+  it('series[0].type === bar', () => {
+    const opt = toAny(chartSpecToECharts(spec, vals))
+    const series = opt.series as AnyOption[]
+    expect(series[0].type).toBe('bar')
+  })
+
+  it('binCount >= 5 (Sturges: ceil(log2(n)+1), min=5)', () => {
+    const opt = toAny(chartSpecToECharts(spec, vals))
+    const xAxis = opt.xAxis as AnyOption
+    const labels = xAxis.data as string[]
+    expect(labels.length).toBeGreaterThanOrEqual(5)
+  })
+
+  it('모든 값이 빈에 할당된다 (counts 합 = rows 수)', () => {
+    const opt = toAny(chartSpecToECharts(spec, vals))
+    const series = opt.series as AnyOption[]
+    const counts = series[0].data as number[]
+    const total = counts.reduce((a, b) => a + b, 0)
+    expect(total).toBe(16)
+  })
+})
+
+// ─── heatmap ──────────────────────────────────────────────
+
+describe('heatmap', () => {
+  // 2×2 조합: (A,X)=3rows, (A,Y)=1row, (B,X)=2rows, (B,Y)=2rows → count 모드
+  const rows = [
+    { col: 'A', row: 'X' },
+    { col: 'A', row: 'X' },
+    { col: 'A', row: 'X' },
+    { col: 'A', row: 'Y' },
+    { col: 'B', row: 'X' },
+    { col: 'B', row: 'X' },
+    { col: 'B', row: 'Y' },
+    { col: 'B', row: 'Y' },
+  ]
+  const spec = makeSpec({
+    chartType: 'heatmap',
+    encoding: {
+      x: { field: 'col', type: 'nominal' },
+      y: { field: 'row', type: 'nominal' },
+    },
+  })
+
+  it('series[0].type === heatmap', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const series = opt.series as AnyOption[]
+    expect(series[0].type).toBe('heatmap')
+  })
+
+  it('visualMap이 존재한다', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    expect(opt.visualMap).toBeDefined()
+  })
+
+  it('(A,X) count=3 인 셀이 data에 포함된다', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const series = opt.series as AnyOption[]
+    const data = series[0].data as [number, number, number][]
+    // xCats 삽입 순서: A=0, B=1 / yCats: X=0, Y=1
+    const cell = data.find(([xi, yi]) => xi === 0 && yi === 0)
+    expect(cell?.[2]).toBe(3)
+  })
+})
+
+// ─── ChartPreview column→row 변환 시뮬레이션 ─────────────
+
+describe('ChartPreview — column→row 변환 로직', () => {
+  // DataPackage.data는 column-based: { colName: [v0, v1, ...] }
+  // ChartPreview.useMemo가 row-based로 변환 후 chartSpecToECharts에 전달
+
+  function colToRows(data: Record<string, unknown[]>): Record<string, unknown>[] {
+    const columns = Object.keys(data)
+    if (!columns.length) return []
+    const rowCount = (data[columns[0]] ?? []).length
+    return Array.from({ length: rowCount }, (_, i) => {
+      const row: Record<string, unknown> = {}
+      for (const col of columns) row[col] = data[col][i]
+      return row
+    })
+  }
+
+  it('column-based → row-based 변환이 정확하다', () => {
+    const colData = {
+      group: ['A', 'B', 'C'],
+      value: [10, 20, 30],
+    }
+    const rows = colToRows(colData)
+    expect(rows).toHaveLength(3)
+    expect(rows[0]).toEqual({ group: 'A', value: 10 })
+    expect(rows[2]).toEqual({ group: 'C', value: 30 })
+  })
+
+  it('빈 data → rows = []', () => {
+    expect(colToRows({})).toEqual([])
+  })
+
+  it('변환된 rows로 bar chart가 정상 생성된다', () => {
+    const colData = { group: ['X', 'Y'], value: [5, 8] }
+    const rows = colToRows(colData)
+    const opt = toAny(chartSpecToECharts(makeSpec({ chartType: 'bar' }), rows))
+    const series = opt.series as AnyOption[]
+    expect(series[0].type).toBe('bar')
+  })
+})
+
+// ─── line — temporal 정렬 ─────────────────────────────────
+
+describe('line — temporal x축 정렬 (colorField 없음)', () => {
+  // 날짜 순서가 뒤섞인 입력 → 출력은 시간 순으로 정렬되어야 한다
+  const rows = [
+    { date: '2024-03-01', value: 30 },
+    { date: '2024-01-01', value: 10 },
+    { date: '2024-02-01', value: 20 },
+  ]
+  const spec = makeSpec({
+    chartType: 'line',
+    encoding: {
+      x: { field: 'date', type: 'temporal' },
+      y: { field: 'value', type: 'quantitative' },
+    },
+  })
+
+  it('xAxis.type === time', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    expect((opt.xAxis as AnyOption).type).toBe('time')
+  })
+
+  it('data가 날짜 오름차순으로 정렬된다', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const data = (opt.series as AnyOption[])[0].data as [string, number][]
+    expect(data[0][0]).toBe('2024-01-01')
+    expect(data[1][0]).toBe('2024-02-01')
+    expect(data[2][0]).toBe('2024-03-01')
+  })
+
+  it('정렬 후 y값이 x와 대응된다', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const data = (opt.series as AnyOption[])[0].data as [string, number][]
+    expect(data[0]).toEqual(['2024-01-01', 10])
+    expect(data[1]).toEqual(['2024-02-01', 20])
+    expect(data[2]).toEqual(['2024-03-01', 30])
+  })
+
+  it('NaN y값은 제외된다', () => {
+    const rowsWithNaN = [
+      { date: '2024-01-01', value: 'bad' },
+      { date: '2024-02-01', value: 20 },
+    ]
+    const opt = toAny(chartSpecToECharts(spec, rowsWithNaN))
+    const data = (opt.series as AnyOption[])[0].data as [string, number][]
+    expect(data).toHaveLength(1)
+    expect(data[0][0]).toBe('2024-02-01')
+  })
+})
+
+// ─── line — temporal + colorField ─────────────────────────
+
+describe('line — temporal x축 + colorField (시간축 유지)', () => {
+  // colorField가 있어도 xType=temporal이면 type:'time' 축을 유지해야 한다
+  const rows = [
+    { date: '2024-03-01', value: 30, region: 'Seoul' },
+    { date: '2024-01-01', value: 10, region: 'Seoul' },
+    { date: '2024-02-01', value: 5,  region: 'Busan' },
+    { date: '2024-01-01', value: 3,  region: 'Busan' },
+  ]
+  const spec = makeSpec({
+    chartType: 'line',
+    encoding: {
+      x: { field: 'date', type: 'temporal' },
+      y: { field: 'value', type: 'quantitative' },
+      color: { field: 'region', type: 'nominal' },
+    },
+  })
+
+  it('xAxis.type === time (category로 강등되지 않는다)', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    expect((opt.xAxis as AnyOption).type).toBe('time')
+  })
+
+  it('그룹 수만큼 series가 생성된다', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const series = opt.series as AnyOption[]
+    expect(series).toHaveLength(2) // Seoul, Busan
+  })
+
+  it('각 그룹 data가 날짜 오름차순으로 정렬된다', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const series = opt.series as AnyOption[]
+    const seoulSeries = series.find(s => s.name === 'Seoul')
+    const data = seoulSeries!.data as [string, number][]
+    expect(data[0][0]).toBe('2024-01-01')
+    expect(data[1][0]).toBe('2024-03-01')
+  })
+
+  it('dataset이 없고 각 series가 직접 data 배열을 갖는다', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    expect(opt.dataset).toBeUndefined()
+    const series = opt.series as AnyOption[]
+    expect(Array.isArray(series[0].data)).toBe(true)
+  })
+})
+
+// ─── line — category colorField (non-temporal) ─────────────
+
+describe('line — colorField + nominal x (카테고리 피봇)', () => {
+  const rows = [
+    { cat: 'Jan', value: 10, group: 'A' },
+    { cat: 'Feb', value: 20, group: 'A' },
+    { cat: 'Jan', value: 15, group: 'B' },
+    { cat: 'Feb', value: 25, group: 'B' },
+  ]
+  const spec = makeSpec({
+    chartType: 'line',
+    encoding: {
+      x: { field: 'cat', type: 'nominal' },
+      y: { field: 'value', type: 'quantitative' },
+      color: { field: 'group', type: 'nominal' },
+    },
+  })
+
+  it('xAxis.type === category', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    expect((opt.xAxis as AnyOption).type).toBe('category')
+  })
+
+  it('series 수 = 그룹 수', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    expect((opt.series as AnyOption[]).length).toBe(2)
+  })
+})
+
+// ─── buildGroupedData — 중복 행 mean ──────────────────────
+
+describe('grouped-bar — 중복 (x, group) 행 → mean', () => {
+  // (A, X) 행이 2개: value 10, 20 → mean = 15
+  const rows = [
+    { cat: 'A', group: 'X', value: 10 },
+    { cat: 'A', group: 'X', value: 20 },
+    { cat: 'B', group: 'X', value: 30 },
+  ]
+  const spec = makeSpec({
+    chartType: 'grouped-bar',
+    encoding: {
+      x: { field: 'cat', type: 'nominal' },
+      y: { field: 'value', type: 'quantitative' },
+      color: { field: 'group', type: 'nominal' },
+    },
+  })
+
+  it('중복 (x, group) 조합이 sum이 아닌 mean으로 집계된다', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const series = opt.series as AnyOption[]
+    const groupX = series.find(s => s.name === 'X')
+    const data = groupX!.data as number[]
+    // A: mean(10, 20) = 15, B: 30
+    expect(data[0]).toBeCloseTo(15, 5) // cat A
+    expect(data[1]).toBeCloseTo(30, 5) // cat B
+  })
+
+  it('중복 없는 (x, group) 조합은 그대로 유지된다 (count=1 → 나눔 없음)', () => {
+    const singleRows = [
+      { cat: 'A', group: 'X', value: 42 },
+      { cat: 'B', group: 'X', value: 99 },
+    ]
+    const opt = toAny(chartSpecToECharts(spec, singleRows))
+    const series = opt.series as AnyOption[]
+    const groupX = series.find(s => s.name === 'X')
+    const data = groupX!.data as number[]
+    expect(data[0]).toBe(42)
+    expect(data[1]).toBe(99)
+  })
+})
+
+// ─── toStr null/undefined phantom category 확인 ──────────
+
+describe('toStr null/undefined → phantom category', () => {
+  it('null 값이 있는 row는 빈 문자열 카테고리로 처리된다 (현재 동작 확인)', () => {
+    // ECHARTS_REVIEW Review Question #4: toStr이 null/undefined를 ''로 만들어
+    // phantom 카테고리가 생길 수 있음 — 현재 동작을 문서화하는 테스트
+    const rows = [
+      { group: 'A', value: 10 },
+      { group: null, value: 5 },  // null group
+      { group: 'B', value: 20 },
+    ]
+    const opt = toAny(chartSpecToECharts(makeSpec({ chartType: 'bar' }), rows))
+    // 현재 동작: null은 '' 카테고리로 dataset에 포함됨
+    // 이 테스트는 동작 변경 시 알림 역할
+    const dataset = opt.dataset as AnyOption
+    const source = dataset.source as typeof rows
+    expect(source).toHaveLength(3) // null row가 필터링되지 않음 (현재 동작)
+  })
+})
+
+// ─── error-bar ────────────────────────────────────────────
+
+describe('error-bar — stderr', () => {
+  // A: [10, 20, 30] → mean=20 / B: [40, 50] → mean=45
+  const rows = [
+    { group: 'A', value: 10 },
+    { group: 'A', value: 20 },
+    { group: 'A', value: 30 },
+    { group: 'B', value: 40 },
+    { group: 'B', value: 50 },
+  ]
+  const spec = makeSpec({
+    chartType: 'error-bar',
+    errorBar: { type: 'stderr' },
+    encoding: {
+      x: { field: 'group', type: 'nominal' },
+      y: { field: 'value', type: 'quantitative' },
+    },
+  })
+
+  it('series에 bar + custom 두 시리즈가 있다', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const series = opt.series as AnyOption[]
+    expect(series).toHaveLength(2)
+    expect(series[0].type).toBe('bar')
+    expect(series[1].type).toBe('custom')
+  })
+
+  it('bar series data[0] = mean(A) = 20, data[1] = mean(B) = 45', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const means = (opt.series as AnyOption[])[0].data as number[]
+    expect(means[0]).toBeCloseTo(20, 5)
+    expect(means[1]).toBeCloseTo(45, 5)
+  })
+
+  it('custom series data에 [xIdx, mean, lower, upper] 형태가 있다', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const customData = (opt.series as AnyOption[])[1].data as [number, number, number, number][]
+    expect(customData).toHaveLength(2)
+    expect(customData[0][0]).toBe(0)          // xIdx A
+    expect(customData[0][1]).toBeCloseTo(20, 5) // mean A
+  })
+})
+
+// ─── stacked-bar with colorField ─────────────────────────
+
+describe('stacked-bar — colorField 있음', () => {
+  const rows = [
+    { cat: 'A', group: 'X', value: 10 },
+    { cat: 'A', group: 'Y', value: 20 },
+    { cat: 'B', group: 'X', value: 30 },
+    { cat: 'B', group: 'Y', value: 40 },
+  ]
+  const spec = makeSpec({
+    chartType: 'stacked-bar',
+    encoding: {
+      x: { field: 'cat', type: 'nominal' },
+      y: { field: 'value', type: 'quantitative' },
+      color: { field: 'group', type: 'nominal' },
+    },
+  })
+
+  it('모든 series에 stack: "total"이 있다', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const series = opt.series as AnyOption[]
+    expect(series.length).toBeGreaterThan(0)
+    for (const s of series) {
+      expect(s.stack).toBe('total')
+    }
+  })
+
+  it('series 수 = color 그룹 수 (X, Y → 2)', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    expect((opt.series as AnyOption[]).length).toBe(2)
+  })
+})
+
+// ─── violin → boxplot 폴백 ────────────────────────────────
+
+describe('violin → boxplot 렌더링 폴백 (ECharts 네이티브 미지원)', () => {
+  const rows = [
+    { cat: 'A', val: 1 }, { cat: 'A', val: 2 }, { cat: 'A', val: 3 },
+    { cat: 'B', val: 4 }, { cat: 'B', val: 5 }, { cat: 'B', val: 6 },
+  ]
+  const spec = makeSpec({
+    chartType: 'violin',
+    encoding: {
+      x: { field: 'cat', type: 'nominal' },
+      y: { field: 'val', type: 'quantitative' },
+    },
+  })
+
+  it('violin → series[0].type === "boxplot"', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const series = opt.series as AnyOption[]
+    expect(series[0].type).toBe('boxplot')
+  })
+
+  it('카테고리별 5-number summary가 정확하다 (A: min=1, median=2, max=3)', () => {
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const series = opt.series as AnyOption[]
+    const data = series[0].data as [number, number, number, number, number][]
+    const catA = data[0]
+    expect(catA[0]).toBe(1)             // min
+    expect(catA[2]).toBeCloseTo(2, 5)   // median
+    expect(catA[4]).toBe(3)             // max
+  })
+})
+
+// ─── aggregate all methods (loop 방어 포함) ───────────────
+
+describe('aggregate — 전체 집계 메서드 (min/max loop 방어 포함)', () => {
+  // A: [3, 5, 10] / B: [8, 20]
+  const rows = [
+    { group: 'A', value: 5 },
+    { group: 'A', value: 10 },
+    { group: 'A', value: 3 },
+    { group: 'B', value: 20 },
+    { group: 'B', value: 8 },
+  ]
+  const baseSpec = makeSpec({ chartType: 'bar' })
+
+  function getAggregated(
+    method: 'min' | 'max' | 'count' | 'sum' | 'median' | 'mean',
+  ): { group: string; value: number }[] {
+    const spec = { ...baseSpec, aggregate: { y: method, groupBy: ['group'] } }
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    return (opt.dataset as AnyOption).source as { group: string; value: number }[]
+  }
+
+  it('min: A=3, B=8', () => {
+    const src = getAggregated('min')
+    expect(src.find(r => r.group === 'A')?.value).toBe(3)
+    expect(src.find(r => r.group === 'B')?.value).toBe(8)
+  })
+
+  it('max: A=10, B=20', () => {
+    const src = getAggregated('max')
+    expect(src.find(r => r.group === 'A')?.value).toBe(10)
+    expect(src.find(r => r.group === 'B')?.value).toBe(20)
+  })
+
+  it('count: A=3, B=2', () => {
+    const src = getAggregated('count')
+    expect(src.find(r => r.group === 'A')?.value).toBe(3)
+    expect(src.find(r => r.group === 'B')?.value).toBe(2)
+  })
+
+  it('sum: A=18, B=28', () => {
+    const src = getAggregated('sum')
+    expect(src.find(r => r.group === 'A')?.value).toBeCloseTo(18, 5)
+    expect(src.find(r => r.group === 'B')?.value).toBeCloseTo(28, 5)
+  })
+
+  it('mean: A≈6, B=14', () => {
+    const src = getAggregated('mean')
+    expect(src.find(r => r.group === 'A')?.value).toBeCloseTo(6, 5)
+    expect(src.find(r => r.group === 'B')?.value).toBeCloseTo(14, 5)
+  })
+
+  it('median: A=5 (sorted [3,5,10]), B=14 (sorted [8,20] → linear interp)', () => {
+    const src = getAggregated('median')
+    expect(src.find(r => r.group === 'A')?.value).toBeCloseTo(5, 5)
+    expect(src.find(r => r.group === 'B')?.value).toBeCloseTo(14, 5)
+  })
+})
+
+// ─── [신규] yAxis — 로그 스케일 ──────────────────────────
+// scale.type='log' → ECharts yAxis.type='log'
+// 나머지(linear/sqrt/symlog/undefined) → 'value' fallback
+
+describe('yAxis — 로그 스케일 (신규)', () => {
+  const rows = [
+    { group: 'A', value: 1 },
+    { group: 'B', value: 10 },
+    { group: 'C', value: 100 },
+  ]
+
+  it('encoding.y.scale.type=log → yAxis.type=log', () => {
+    const spec = makeSpec({
+      encoding: {
+        x: { field: 'group', type: 'nominal' },
+        y: { field: 'value', type: 'quantitative', scale: { type: 'log' } },
+      },
+    })
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    expect((opt.yAxis as AnyOption).type).toBe('log')
+  })
+
+  it('encoding.y.scale.type=linear → yAxis.type=value (fallback)', () => {
+    const spec = makeSpec({
+      encoding: {
+        x: { field: 'group', type: 'nominal' },
+        y: { field: 'value', type: 'quantitative', scale: { type: 'linear' } },
+      },
+    })
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    expect((opt.yAxis as AnyOption).type).toBe('value')
+  })
+
+  it('scale 미지정 → yAxis.type=value (기본값)', () => {
+    const opt = toAny(chartSpecToECharts(makeSpec(), rows))
+    expect((opt.yAxis as AnyOption).type).toBe('value')
+  })
+})
+
+// ─── [신규] yAxis — domain (min/max 고정) ────────────────
+
+describe('yAxis — domain 고정 (신규)', () => {
+  const rows = [
+    { group: 'A', value: 5 },
+    { group: 'B', value: 50 },
+  ]
+
+  it('scale.domain=[0, 100] → yAxis.min=0, yAxis.max=100', () => {
+    const spec = makeSpec({
+      encoding: {
+        x: { field: 'group', type: 'nominal' },
+        y: { field: 'value', type: 'quantitative', scale: { domain: [0, 100] } },
+      },
+    })
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const yAxis = opt.yAxis as AnyOption
+    expect(yAxis.min).toBe(0)
+    expect(yAxis.max).toBe(100)
+  })
+
+  it('scale.domain 미지정 → yAxis.min/max 없음 (auto)', () => {
+    const opt = toAny(chartSpecToECharts(makeSpec(), rows))
+    const yAxis = opt.yAxis as AnyOption
+    expect(yAxis.min).toBeUndefined()
+    expect(yAxis.max).toBeUndefined()
+  })
+})
+
+// ─── [신규] yAxis — 축 제목 ──────────────────────────────
+
+describe('yAxis — 축 제목 (신규)', () => {
+  const rows = [{ group: 'A', value: 1 }]
+
+  it('encoding.y.title 있으면 yAxis.name에 반영', () => {
+    const spec = makeSpec({
+      encoding: {
+        x: { field: 'group', type: 'nominal' },
+        y: { field: 'value', type: 'quantitative', title: 'Weight (kg)' },
+      },
+    })
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    expect((opt.yAxis as AnyOption).name).toBe('Weight (kg)')
+  })
+
+  it('encoding.y.title 없으면 field명이 yAxis.name이 된다', () => {
+    const opt = toAny(chartSpecToECharts(makeSpec(), rows))
+    expect((opt.yAxis as AnyOption).name).toBe('value') // field name
+  })
+})
+
+// ─── [신규] legend — orient 매핑 ─────────────────────────
+// buildLegend: orient='none' → show:false, orient='right' → right:0
+
+describe('legend — orient 매핑 (신규)', () => {
+  const rows = [
+    { cat: 'Jan', value: 10, group: 'A' },
+    { cat: 'Jan', value: 20, group: 'B' },
+  ]
+
+  function makeLineColorSpec(orient?: string): ChartSpec {
+    return makeSpec({
+      chartType: 'line',
+      encoding: {
+        x: { field: 'cat', type: 'nominal' },
+        y: { field: 'value', type: 'quantitative' },
+        color: {
+          field: 'group', type: 'nominal',
+          legend: orient ? { orient: orient as never } : undefined,
+        },
+      },
+    })
+  }
+
+  it("orient='none' → legend.show === false", () => {
+    const opt = toAny(chartSpecToECharts(makeLineColorSpec('none'), rows))
+    const legend = opt.legend as AnyOption
+    expect(legend.show).toBe(false)
+  })
+
+  it("orient='right' → legend.right 존재", () => {
+    const opt = toAny(chartSpecToECharts(makeLineColorSpec('right'), rows))
+    const legend = opt.legend as AnyOption
+    expect(legend.right).toBeDefined()
+    expect(legend.orient).toBe('vertical')
+  })
+
+  it("orient='bottom' → legend.bottom 존재, orient=horizontal", () => {
+    const opt = toAny(chartSpecToECharts(makeLineColorSpec('bottom'), rows))
+    const legend = opt.legend as AnyOption
+    expect(legend.bottom).toBeDefined()
+    expect(legend.orient).toBe('horizontal')
+  })
+
+  it('legend 없음 (no orient) → show:false 아님', () => {
+    const opt = toAny(chartSpecToECharts(makeLineColorSpec(), rows))
+    const legend = opt.legend as AnyOption
+    expect(legend.show).not.toBe(false)
+  })
+})
+
+// ─── [신규] bar — errorBar 오버레이 ──────────────────────
+// spec.errorBar 있으면 explicit data 모드 (bar + custom 2 series)
+
+describe('bar — errorBar 오버레이 (신규)', () => {
+  // A: [10, 20, 30] mean=20 / B: [40, 50] mean=45
+  const rows = [
+    { group: 'A', value: 10 },
+    { group: 'A', value: 20 },
+    { group: 'A', value: 30 },
+    { group: 'B', value: 40 },
+    { group: 'B', value: 50 },
+  ]
+
+  it('errorBar 있으면 series 2개 (bar + custom)', () => {
+    const spec = makeSpec({
+      chartType: 'bar',
+      errorBar: { type: 'stderr' },
+    })
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const series = opt.series as AnyOption[]
+    expect(series).toHaveLength(2)
+    expect(series[0].type).toBe('bar')
+    expect(series[1].type).toBe('custom')
+  })
+
+  it('errorBar 있으면 dataset 없음 (explicit data 모드)', () => {
+    const spec = makeSpec({
+      chartType: 'bar',
+      errorBar: { type: 'stderr' },
+    })
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    // explicit 모드: dataset 대신 series[0].data를 직접 가짐
+    expect(opt.dataset).toBeUndefined()
+    const barSeries = (opt.series as AnyOption[])[0]
+    expect(Array.isArray(barSeries.data)).toBe(true)
+  })
+
+  it('bar data[0] = mean(A) ≈ 20', () => {
+    const spec = makeSpec({
+      chartType: 'bar',
+      errorBar: { type: 'stderr' },
+    })
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const means = (opt.series as AnyOption[])[0].data as number[]
+    expect(means[0]).toBeCloseTo(20, 5)
+    expect(means[1]).toBeCloseTo(45, 5)
+  })
+
+  it('errorBar 없으면 기존 dataset 모드 유지', () => {
+    const spec = makeSpec({ chartType: 'bar' })
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    expect(opt.dataset).toBeDefined()
+    const series = opt.series as AnyOption[]
+    expect(series).toHaveLength(1) // custom series 없음
+  })
+
+  it('SD 에러바: custom series data 형태 [xIdx, mean, lower, upper]', () => {
+    const spec = makeSpec({
+      chartType: 'bar',
+      errorBar: { type: 'stdev' },
+    })
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const customData = (opt.series as AnyOption[])[1].data as [number, number, number, number][]
+    expect(customData[0][0]).toBe(0)           // xIdx for A
+    expect(customData[0][1]).toBeCloseTo(20, 5) // mean A
+    expect(customData[0][2]).toBeGreaterThan(0) // lower (stdev > 0)
+    expect(customData[0][3]).toBeGreaterThan(0) // upper (stdev > 0)
+  })
+})
+
+// ─── [신규] line — errorBar 오버레이 (category X만 지원) ─
+
+describe('line — errorBar 오버레이 (신규)', () => {
+  const rows = [
+    { group: 'A', value: 10 },
+    { group: 'A', value: 20 },
+    { group: 'B', value: 30 },
+    { group: 'B', value: 40 },
+  ]
+
+  it('category X + errorBar → series 2개 (line + custom)', () => {
+    const spec = makeSpec({
+      chartType: 'line',
+      errorBar: { type: 'stderr' },
+      encoding: {
+        x: { field: 'group', type: 'nominal' },
+        y: { field: 'value', type: 'quantitative' },
+      },
+    })
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const series = opt.series as AnyOption[]
+    expect(series).toHaveLength(2)
+    expect(series[0].type).toBe('line')
+    expect(series[1].type).toBe('custom')
+  })
+
+  it('temporal X + errorBar → 에러바 무시 (1 series)', () => {
+    // 시계열은 에러바 미지원 (그룹별 분산이 무의미)
+    const spec = makeSpec({
+      chartType: 'line',
+      errorBar: { type: 'stderr' },
+      encoding: {
+        x: { field: 'group', type: 'temporal' },
+        y: { field: 'value', type: 'quantitative' },
+      },
+    })
+    const opt = toAny(chartSpecToECharts(spec, rows))
+    const series = opt.series as AnyOption[]
+    // temporal → errorBar 오버레이 없음 (1개 series)
+    expect(series.some(s => s.type === 'custom')).toBe(false)
+  })
+})

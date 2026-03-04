@@ -1,0 +1,26 @@
+# 시각화 + 핵심 의존성 자동 업데이트 알림
+# ECharts/Plotly 업데이트 시 GitHub이 자동 PR 생성
+# 문서: https://docs.github.com/en/code-security/dependabot
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/stats"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    # 핵심 라이브러리만 추적 (전체 deps PR 폭탄 방지)
+    allow:
+      - dependency-name: "echarts"
+      - dependency-name: "echarts-for-react"
+      - dependency-name: "plotly.js"
+      - dependency-name: "react-plotly.js"
+      - dependency-name: "next"
+      - dependency-name: "typescript"
+    # PR 라벨 + 리뷰어
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "deps"
+    # 동시 오픈 PR 제한
+    open-pull-requests-limit: 5

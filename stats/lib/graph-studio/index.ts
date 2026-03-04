@@ -16,7 +16,9 @@ export {
   DEFAULT_EXPORT_CONFIG,
   CHART_TYPE_HINTS,
   createDefaultChartSpec,
+  JOURNAL_SIZE_PRESETS,
 } from './chart-spec-defaults';
+export type { JournalPresetKey } from './chart-spec-defaults';
 
 // 유틸리티
 export {
@@ -24,8 +26,30 @@ export {
   applyAndValidatePatches,
   inferColumnMeta,
   suggestChartType,
+  selectXYFields,
   autoCreateChartSpec,
+  columnsToRows,
+  createChartSpecFromDataPackage,
 } from './chart-spec-utils';
 
-// Vega-Lite 변환
-export { chartSpecToVegaLite } from './vega-lite-converter';
+// 패싯 레이아웃
+export { partitionRowsByFacet, computeFacetLayout } from './facet-layout';
+export type { FacetGridItem, FacetLayout } from './facet-layout';
+
+// ECharts 변환
+export { chartSpecToECharts } from './echarts-converter';
+
+// Export 유틸리티
+export { downloadChart, mmToPx } from './export-utils';
+
+// 프로젝트 저장소
+export {
+  listProjects,
+  loadProject,
+  saveProject,
+  deleteProject,
+  generateProjectId,
+} from './project-storage';
+
+// AI 서비스
+export { editChart, buildAiEditRequest } from './ai-service';

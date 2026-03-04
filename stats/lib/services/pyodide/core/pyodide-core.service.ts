@@ -48,6 +48,7 @@ export type WorkerMethodParam =
   | (number | string)[]
   | null
   | { [key: string]: WorkerMethodParam }
+  | WorkerMethodParam[]
 
 /**
  * Worker 메서드 호출 옵션
@@ -186,11 +187,12 @@ export interface StatisticsResult {
  * - Worker 3: statsmodels + pandas + scikit-learn (ANOVA, post-hoc, clustering, PCA 등)
  * - Worker 4: statsmodels + scikit-learn (회귀, PCA 등)
  */
-export const WORKER_EXTRA_PACKAGES = Object.freeze<Record<1 | 2 | 3 | 4, readonly string[]>>({
+export const WORKER_EXTRA_PACKAGES = Object.freeze<Record<1 | 2 | 3 | 4 | 5, readonly string[]>>({
   1: [],
   2: ['statsmodels', 'pandas'],
   3: ['statsmodels', 'pandas', 'scikit-learn'],
-  4: ['statsmodels', 'scikit-learn']
+  4: ['statsmodels', 'scikit-learn'],
+  5: ['scikit-learn']
 })
 
 // ========================================
@@ -498,7 +500,7 @@ export class PyodideCoreService {
    * @throws {Error} Pyodide가 초기화되지 않은 경우
    */
 
-  async ensureWorkerLoaded(workerNumber: 1 | 2 | 3 | 4): Promise<void> {
+  async ensureWorkerLoaded(workerNumber: 1 | 2 | 3 | 4 | 5): Promise<void> {
     if (this.isWebWorkerMode()) {
       if (this.loadedWorkers.has(workerNumber)) {
         return
@@ -592,7 +594,7 @@ export class PyodideCoreService {
    */
 
   async callWorkerMethod<T>(
-    workerNum: 1 | 2 | 3 | 4,
+    workerNum: 1 | 2 | 3 | 4 | 5,
     methodName: string,
     params: Record<string, WorkerMethodParam>,
     options: WorkerMethodOptions = {}
@@ -753,7 +755,8 @@ json.dumps(result)
       1: 'worker1-descriptive',
       2: 'worker2-hypothesis',
       3: 'worker3-nonparametric-anova',
-      4: 'worker4-regression-advanced'
+      4: 'worker4-regression-advanced',
+      5: 'worker5-survival'
     }
     return fileNames[workerNumber] || 'worker1-descriptive'
   }
@@ -764,7 +767,7 @@ json.dumps(result)
    * @param workerNumber Worker 번호
    */
   private async loadAdditionalPackages(workerNumber: number): Promise<void> {
-    const packages = WORKER_EXTRA_PACKAGES[workerNumber as 1 | 2 | 3 | 4]
+    const packages = WORKER_EXTRA_PACKAGES[workerNumber as 1 | 2 | 3 | 4 | 5]
 
     if (!packages || packages.length === 0) {
       return // Worker 1은 추가 패키지 없음
@@ -984,7 +987,7 @@ json.dumps(result)
   }
 
   private async callWorkerMethodViaWebWorker<T>(
-    workerNum: 1 | 2 | 3 | 4,
+    workerNum: 1 | 2 | 3 | 4 | 5,
     methodName: string,
     params: Record<string, WorkerMethodParam>,
     options: WorkerMethodOptions = {}

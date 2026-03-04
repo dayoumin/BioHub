@@ -629,7 +629,7 @@ describe('StatisticalExecutor Routing', () => {
       const mockedStats = vi.mocked(pyodideStats)
 
       const result = await executor.executeMethod(
-        createMethod('pca', 'PCA', 'pca'),
+        createMethod('pca', 'PCA', 'multivariate'),
         mockData,
         { independentVar: ['x', 'y'] }
       )
@@ -645,7 +645,7 @@ describe('StatisticalExecutor Routing', () => {
 
     it('should expose standardized factor-analysis additional fields', async () => {
       const result = await executor.executeMethod(
-        createMethod('factor-analysis', 'Factor Analysis', 'advanced'),
+        createMethod('factor-analysis', 'Factor Analysis', 'multivariate'),
         mockData,
         { independentVar: ['x', 'y'] }
       )

@@ -1525,16 +1525,106 @@ Cloudflare $5/월 플랜 내에서 추가 비용 없이 백엔드 기능 추가 
 
 ---
 
-**최종 업데이트**: 2026-02-13
+**최종 업데이트**: 2026-03-01
 **현재 Phase**: Bio-Tools 계획 수립 완료
 **아키텍처 결정**: Smart Flow = 통계 진입점, Bio-Tools = 별도 섹션, /statistics/* = 레거시
 **다음 마일스톤**: Phase 15-1 (Bio-Tools 구현)
 
 **최근 완료**:
 - Bio-Tools 검증 보고서 작성 (12개 확정, 6개 제외, Pyodide 호환성 검증) (2026-02-13)
+- Graph Studio ECharts 전환 + 유틸/스토어 보강 + 102개 테스트 (2026-02-28)
+
+---
+
+## 🔗 Graph Studio 연동 파이프라인 (미래 과제)
+
+**현재**: Smart Flow(통계 분석)와 Graph Studio(시각화)는 완전 독립 모듈.
+**목표**: Smart Flow 분석 결과를 Graph Studio로 직접 넘겨 논문용 차트 생성.
+
+### 시나리오
+```
+Smart Flow → ANOVA 결과 → Graph Studio → 논문용 박스플롯 PNG
+```
+
+### 구현 방향 (결정 시점에 검토)
+- Smart Flow `ResultsActionStep`에 "Graph Studio에서 시각화" 버튼 추가
+- Smart Flow 결과 데이터를 `DataPackage` 포맷으로 변환하는 어댑터 함수 구현
+- 현재 코드가 이 확장을 막는 구조는 아님 (설계상 열려 있음)
+
+### 향후 과제: 이미지 삽입 기능
+- 논문 차트 내 이미지 오버레이 (예: 조직 사진 + 그래프 결합)
+- ECharts `graphic` API 활용 또는 HTML Canvas 합성 방식 검토
+- 우선순위: Bio-Tools 완료 이후
+
+**우선순위**: Phase 15 이후 (Bio-Tools + 실사용 피드백 수집 후 결정)
 - 용어 정비 (Smart Flow / Bio-Tools / 레거시 구분 명확화) (2026-02-13)
 - Cloudflare Workers 백엔드 계획 수립 (KV/R2/D1 + 내부망 어댑터) (2026-02-06)
 - LLM 추천/해석 Phase 1-3 완료 (2026-02-06)
+
+---
+
+## 📦 시각화 라이브러리 의존성 관리
+
+> 상세 조사: [GRAPH_STUDIO_ADR.md § 6](stats/docs/graph-studio/GRAPH_STUDIO_ADR.md)
+
+### 현재 구성 (이중 구조)
+
+| 라이브러리 | 용도 | 현재 버전 | 라이선스 |
+|-----------|------|----------|---------|
+| **Apache ECharts** | Graph Studio (ChartSpec→Canvas) | `^6.0.0` | Apache 2.0 (영구 무료) |
+| **Plotly.js** | 레거시 통계 페이지 (23파일) | `3.3.0` | MIT (영구 무료) |
+
+### 업그레이드 대기
+
+| 라이브러리 | 다음 버전 | 예상 시기 | 조치 |
+|-----------|----------|----------|------|
+| ECharts | **v6.1.0** | 2026-03 중순~말 | `pnpm update echarts` → `tsc` → `test` → 육안 확인 |
+| Plotly.js | v3.5+ | 월 1~2회 릴리스 | `pnpm update plotly.js` → 레거시 페이지 확인 |
+
+### 업그레이드 절차
+
+```bash
+# 1. 업데이트
+pnpm update echarts plotly.js react-plotly.js
+
+# 2. 검증 (순서대로)
+pnpm tsc --noEmit                    # 타입 호환성
+pnpm test                            # 102개 echarts-converter + plotly 테스트
+pnpm dev                             # Graph Studio + 레거시 육안 확인
+
+# 3. 메이저 버전 (v7 등) — 마이그레이션 가이드 먼저 확인
+# ECharts: https://echarts.apache.org/handbook/en/basics/release-note/
+# Plotly: https://github.com/plotly/plotly.js/releases
+```
+
+### 자동 알림 — GitHub Dependabot
+
+`.github/dependabot.yml` 설정으로 ECharts/Plotly 업데이트 시 자동 PR 생성.
+수동 모니터링 불필요 — GitHub이 알려줌.
+
+---
+
+## 🔍 정기 코드 리뷰 (반복 작업)
+
+**가이드**: [REVIEW_CHECKLIST.md](stats/docs/REVIEW_CHECKLIST.md) (BioHub 전용)
+**범용 원칙**: [code-review-checklist.md](d:\Projects\dev-playbook\quality\code-review-checklist.md)
+
+주요 기능 완료 후 8가지 관점으로 점검한다.
+모든 관점을 매번 볼 필요는 없고, 변경 유형에 따라 선택한다.
+
+| 변경 유형 | 적용 관점 |
+|-----------|-----------|
+| Worker2 Python 수정 | 3(데이터정합성) + 7(네이밍) + 8(회귀) |
+| Smart Flow UI 변경 | 2(UX) + 7(아키텍처) + 4(엣지케이스) |
+| 새 통계 메서드 추가 | 3(데이터정합성) + 7(아키텍처) + 1(코드품질) |
+| echarts-converter 수정 | 1(코드품질) + 8(회귀) + 6(성능) |
+| executor 함수 수정 | 8(회귀) + 3(데이터정합성) + 4(엣지케이스) |
+
+**실행 기록**:
+
+| 날짜 | 대상 | 관점 | 발견 |
+|------|------|------|------|
+| (미실행) | | | |
 
 ---
 

@@ -82,6 +82,7 @@ interface DataPackage {
     method?: string;
     summary?: Record<string, unknown>;
   };
+  createdAt: string;
 }
 ```
 
@@ -226,7 +227,7 @@ interface DataPackage {
 - `/bio-tools/*` 5페이지
 - 기존 Pyodide 인프라 활용
 
-### Phase 17: Graph Studio
+### Phase 16: Graph Studio
 
 ```
 Stage 1: 아키텍처 PoC
@@ -259,16 +260,16 @@ Stage 5: 모듈 연동
 └── DataPackage 표준 완성
 ```
 
-### Phase 18: Species Checker 통합
+### Phase 17: Species Checker 통합
 
-- 기존 레포: `dayoumin/verified_species` (Python 데스크탑 앱, customtkinter)
+- 기존 레포: `dayoumin/species_checker` (Python 데스크탑 앱, customtkinter)
 - 보조 레포: `dayoumin/species-GPS` (Flutter 모바일 앱, 현장 데이터 수집)
 - 핵심 기능: WoRMS(해양), LPSN(미생물), COL(일반) API 기반 학명 검증
 - `/species-checker/*` 라우트로 웹 버전 구현
 - 독립 모듈로 운영
 - 참고: 외부 API 호출 필요 → 서버 사이드(Workers) 또는 클라이언트 직접 호출 검토
 
-### Phase 19: Literature (논문 조사)
+### Phase 18: Literature (논문 조사)
 
 - 논문 검색/관리 도구
 - `/literature/*` 라우트
@@ -289,7 +290,7 @@ not_found_handling = "single-page-application"
 
 - `output: 'export'` (정적 HTML)
 - 모든 계산은 클라이언트 (Pyodide)
-- AI 호출은 클라이언트에서 직접
+- AI 호출은 클라이언트에서 직접 (⚠️ API 키 노출 주의 — 향후 Workers function으로 프록시 전환 검토)
 
 ### 향후 필요 시
 

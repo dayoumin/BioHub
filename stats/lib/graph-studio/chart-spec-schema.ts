@@ -15,6 +15,7 @@ const chartTypeSchema = z.enum([
   'bar', 'grouped-bar', 'stacked-bar',
   'line', 'scatter', 'boxplot',
   'histogram', 'error-bar', 'heatmap', 'violin',
+  'km-curve', 'roc-curve',
 ]);
 
 const dataTypeSchema = z.enum([
@@ -25,9 +26,8 @@ const stylePresetSchema = z.enum([
   'default', 'science', 'ieee', 'grayscale',
 ]);
 
-const exportFormatSchema = z.enum([
-  'svg', 'png', 'pdf', 'tiff',
-]);
+// ECharts getDataURL가 지원하는 포맷만 허용 (pdf/tiff 제외)
+const exportFormatSchema = z.enum(['svg', 'png']);
 
 // ─── 하위 스키마 ───────────────────────────────────────────
 
@@ -98,6 +98,27 @@ const errorBarSchema = z.object({
   value: z.number().positive().optional(),
 }).strict();
 
+const trendlineSchema = z.object({
+  type: z.enum(['linear']),
+  color: z.string().optional(),
+  strokeDash: z.array(z.number()).optional(),
+  showEquation: z.boolean().optional(),
+}).strict();
+
+const significanceMarkSchema = z.object({
+  groupA: z.string().min(1),
+  groupB: z.string().min(1),
+  pValue: z.number().min(0).max(1).optional(),
+  label: z.string().optional(),
+}).strict();
+
+const facetSchema = z.object({
+  field: z.string().min(1),
+  ncol: z.number().int().min(1).max(6).optional(),
+  showTitle: z.boolean().optional(),
+  shareAxis: z.boolean().optional(),
+}).strict();
+
 const annotationSchema = z.object({
   type: z.enum(['text', 'line', 'rect']),
   text: z.string().optional(),
@@ -112,6 +133,8 @@ const annotationSchema = z.object({
 
 const styleSchema = z.object({
   preset: stylePresetSchema,
+  scheme: z.string().optional(),
+  showDataLabels: z.boolean().optional(),
   font: z.object({
     family: z.string().optional(),
     size: z.number().positive().optional(),
@@ -127,9 +150,8 @@ const styleSchema = z.object({
 const exportConfigSchema = z.object({
   format: exportFormatSchema,
   dpi: z.number().int().min(72).max(1200),
-  width: z.number().positive(),
-  height: z.number().positive(),
-  transparent: z.boolean().optional(),
+  physicalWidth: z.number().positive().optional(),
+  physicalHeight: z.number().positive().optional(),
 }).strict();
 
 // ─── ChartSpec 메인 스키마 ─────────────────────────────────
@@ -138,6 +160,7 @@ export const chartSpecSchema = z.object({
   version: z.literal('1.0'),
   chartType: chartTypeSchema,
   title: z.string().optional(),
+  orientation: z.enum(['horizontal']).optional(),
   data: z.object({
     sourceId: z.string().min(1),
     columns: z.array(columnMetaSchema).min(1),
@@ -145,6 +168,12 @@ export const chartSpecSchema = z.object({
   encoding: z.object({
     x: axisSchema,
     y: axisSchema,
+    y2: z.object({
+      field: z.string().min(1),
+      type: z.literal('quantitative'),
+      title: z.string().optional(),
+      scale: scaleSchema.optional(),
+    }).strict().optional(),
     color: colorSchema.optional(),
     shape: shapeSchema.optional(),
     size: z.object({
@@ -157,6 +186,9 @@ export const chartSpecSchema = z.object({
     y: z.enum(['mean', 'median', 'sum', 'count', 'min', 'max']),
     groupBy: z.array(z.string()),
   }).strict().optional(),
+  trendline: trendlineSchema.optional(),
+  significance: z.array(significanceMarkSchema).optional(),
+  facet: facetSchema.optional(),
   style: styleSchema,
   annotations: z.array(annotationSchema),
   exportConfig: exportConfigSchema,
@@ -178,16 +210,53 @@ export const aiEditResponseSchema = z.object({
 
 // ─── DataPackage 스키마 ────────────────────────────────────
 
+const comparisonSchema = z.object({
+  group1: z.string(),
+  group2: z.string(),
+  pValue: z.number(),
+  significant: z.boolean(),
+  meanDiff: z.number().optional(),
+});
+
+const groupStatSchema = z.object({
+  name: z.string(),
+  mean: z.number(),
+  std: z.number(),
+  n: z.number().int().positive(),
+  se: z.number().optional(),
+  median: z.number().optional(),
+});
+
+const testInfoSchema = z.object({
+  statistic: z.number().optional(),
+  df: z.union([z.number(), z.tuple([z.number(), z.number()])]).optional(),
+  effectSize: z.number().optional(),
+  effectSizeType: z.string().optional(),
+});
+
+const comparisonMetaSchema = z.object({
+  alpha: z.number(),
+  adjustmentMethod: z.string(),
+  allPairsIncluded: z.boolean(),
+});
+
+const analysisContextSchema = z.object({
+  method: z.string().optional(),
+  pValue: z.number().optional(),
+  comparisons: z.array(comparisonSchema).optional(),
+  groupStats: z.array(groupStatSchema).optional(),
+  testInfo: testInfoSchema.optional(),
+  comparisonMeta: comparisonMetaSchema.optional(),
+});
+
 export const dataPackageSchema = z.object({
   id: z.string().min(1),
   source: z.enum(['smart-flow', 'bio-tools', 'upload', 'species-checker']),
   label: z.string().min(1),
   columns: z.array(columnMetaSchema).min(1),
   data: z.record(z.string(), z.array(z.unknown())),
-  context: z.object({
-    method: z.string().optional(),
-    summary: z.record(z.string(), z.unknown()).optional(),
-  }).strict().optional(),
+  analysisContext: analysisContextSchema.optional(),
+  analysisResultId: z.string().optional(),
   createdAt: z.string().datetime(),
 }).strict();
 

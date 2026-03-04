@@ -1,6 +1,6 @@
 # 프로젝트 현황 + 할일
 
-**최종 업데이트**: 2026-03-03 (브라우저 UX 리뷰 + "저장" semantic 분리)
+**최종 업데이트**: 2026-03-04 (master 통합 머지)
 
 ---
 
@@ -23,7 +23,7 @@
 | **DecisionTree 커버리지** | 49/49 (100%) ✅ |
 | **Golden Values 테스트** | 44/44 (100%) ✅ - 5개 라이브러리 |
 | **Methods Registry** | 64개 메서드 (4 Workers) ✅ |
-| **E2E 테스트** | 12개 (핵심 플로우 커버) ✅ |
+| **E2E 테스트** | 스펙 20개 작성(미실행), 8/46 메서드 커버 (17%) — 확장 계획 E1~E5 수립 |
 | **LLM 추천/해석** | Phase 1-3 완료 ✅ |
 | **Bio-Tools** | 계획 수립 완료, 구현 예정 🔜 |
 
@@ -97,6 +97,18 @@
 - ✅ **테스트 추가**: externalValue 제출 후 입력창 초기화 검증 16개 (chat-input.test.tsx)
 - 📌 커밋: `397cd30a` `7945fc39`
 
+### 2026-03-02 (일) 메인 화면 히스토리 Pin 고정 + 인라인 삭제 UX 개선
+
+- ✅ **Pin 고정 기능**: 중요 분석 최대 3개 상단 고정 — localStorage + CustomEvent 크로스 컴포넌트 동기화
+- ✅ **인라인 삭제**: QuickAccessBar pill 호버 시 Pin/삭제 버튼 (group-hover 패턴)
+- ✅ **히스토리 항상 표시**: 0개여도 빈 상태 메시지 표시 (발견 가능성 개선)
+- ✅ **AnalysisHistoryPanel 액션 그룹화**: 5개 버튼 → 2개 + DropdownMenu (Pin, 삭제 직접 / 보기, 재분석, 내보내기 메뉴)
+- ✅ **다국어 terminology**: maxPinned, exportReport, pin/unpin 추가
+- ✅ **테스트 37개**: 단위 17개 (pinned-history-storage) + 통합 시뮬레이션 20개 (pinned-history-integration)
+- ✅ **비판적 코드 리뷰 3회**: duplicate ternary 버그, 미사용 import, toast 하드코딩, pin dot 가시성 수정
+- 📌 커밋: `2382c6e7`
+
+
 ### 2026-02-24 (월) 기술부채 정리 + Smart Flow UI 색상 토큰 완료
 
 - ✅ **기술부채**: 레거시 43개 statistics 페이지 삭제, `ignoreDuringBuilds: false`, `missingRemoved` 실제 계산, eslint flat config 정비
@@ -146,6 +158,33 @@
 - ✅ **테스트 추가 (ChiSquareSelector)**: proportion-test 이진 변수 필터 + nullProportion UI, 제출 페이로드 검증 — 2개
 - ✅ **검증**: tsc 0 errors, tests 128 passed (118 + 10)
 - 📌 커밋: `ff48a374`
+
+### 2026-02-28 (금) Graph Studio 첫 화면 리디자인 (DataUploadPanel)
+
+- ✅ **UX 전면 재설계**: 빈 업로드 박스 → Template-first 온보딩 랜딩 페이지 — `1d7cf054`
+- ✅ **차트 썸네일 6개 (Bento)**: bar / scatter / line / boxplot / histogram / heatmap — 클릭 시 샘플 데이터로 즉시 에디터 진입
+- ✅ **Dual CTA**: "샘플로 시작하기" (Primary) + "파일 업로드" (Secondary)
+- ✅ **어류 성장 샘플 데이터**: Bass · Bream · Carp × 10행 (species, length_cm, weight_g, age)
+- ✅ **Bug fix**: 파일 업로드 버튼 DOM 탐색 → `useRef` 교체; `as const` + ChartType 충돌 → 명시적 인터페이스
+- ✅ **차트 유형별 올바른 필드 매핑**: `selectXYFields(CHART_TYPE_HINTS[chartType])` 사용 (단순 chartType 덮어쓰기 금지)
+- ✅ **AI 리뷰 문서**: `stats/docs/graph-studio/REVIEW-GRAPH-STUDIO-ONBOARDING.md`
+- ✅ **검증**: tsc 0 errors, TypeScript types clean
+
+### 2026-02-28 (금) 표본 크기 계산기 팝업 모달
+
+- ✅ **순수 TS 구현** (`stats/lib/sample-size/calculator.ts`): invNorm·normCdf·chiSqQuantile + 6개 calc 함수 — G*Power 대비 ±5% 이내
+- ✅ **검정 6종**: 독립 t / 대응 t / 단일 t / 일원 ANOVA (Liu-Tang-Zhang 근사) / 두 비율 비교 (Fleiss) / 피어슨 상관 (Fisher's z)
+- ✅ **SampleSizeModal** (`stats/components/smart-flow/hub/SampleSizeModal.tsx`): 프리셋 버튼·툴팁·실시간 계산·결과 배지
+- ✅ **TrackSuggestions 카드 3종 재편**: 직접 분석 / 표본 크기 계산기 (팝업) / 데이터 시각화 (링크)
+- ✅ **버그 수정**: power ≤ alpha 검증 추가, groups 소수 입력 정규화(Math.round + onBlur), 버튼 하이라이트 일관성
+- ✅ **단위 테스트 32개**: G*Power 참조값 ±5% 이내 + 경계값 + 단조성 검증
+
+### 2026-02-28 (금) Graph Studio 테스트 시뮬레이션 + Stage 1/2/3 일관성 정리
+
+- ✅ **export-utils.ts 테스트 16개**: DOM API + ECharts 인스턴스 모킹 — PNG/SVG 흐름, DPI→pixelRatio, 파일명 정규화, Firefox body.append 순서, null/undefined 가드
+- ✅ **스토어 dead 필드 제거**: `isExporting`, `exportProgress`, `isAiEditing` — Stage 3가 동기식으로 확정되어 완전히 불필요한 상태 (GraphStudioState + initialState + 3개 actions)
+- ✅ **AiEditTab 정리**: `setAiEditing` 2회 호출 제거 (로컬 `isLoading`과 중복), `as ChartSpecPatch[]` 불필요 캐스트 제거 (Zod 검증 후 타입 이미 보장)
+- ✅ **검증**: tsc 0 errors, 167/167 테스트 통과 (Graph Studio 7개 파일)
 
 ### 2026-02-26 (목) proportion-test interpretation 개선
 
@@ -328,10 +367,206 @@
 
 ---
 
+### 정기 검토
+| 작업 | 주기 | 가이드 | 최근 실행 |
+|------|------|--------|-----------|
+| **코드 리뷰 8관점 점검** | 주요 기능 완료 후 | [REVIEW_CHECKLIST.md](stats/docs/REVIEW_CHECKLIST.md) | 미실행 |
+| **데이터 정합성 검증** | 통계 메서드 추가/수정 후 | REVIEW_CHECKLIST.md #3 (R/SPSS 비교) | 미실행 |
+| **엣지 케이스 탐색** | 새 입력 경로 추가 후 | REVIEW_CHECKLIST.md #4 (경계 입력 9종) | 미실행 |
+| **회귀 영향 분석** | 공유 함수 수정 후 | REVIEW_CHECKLIST.md #8 (고위험 함수 5개) | 미실행 |
+
 ### 진행 예정
 | 작업 | 설명 |
 |------|------|
+| **~~Graph Studio Stage 2~~** | ✅ 완료 (2026-02-28) — AI 편집 서비스, AiEditTab 활성화, 29개 테스트 |
+| **~~Graph Studio G1: 핵심 UI~~** | ✅ 완료 (2026-02-28) — 상세: 아래 |
 | **Phase 15-1: Bio-Tools** | 12개 생물학 분석, `/bio-tools/` 5페이지 구현 ([상세](study/PLAN-BIO-STATISTICS-AUDIT.md)) |
+
+---
+
+## Graph Studio 발전 전략 (2026-02-28 수립)
+
+> 분석 전문: [GRAPH_STUDIO_COMPETITIVE_ANALYSIS.md](stats/docs/graph-studio/GRAPH_STUDIO_COMPETITIVE_ANALYSIS.md)
+
+**포지셔닝**: GraphPad Prism 대안 — "무료 + 한국어 + AI"
+
+- Prism $142+/년 → 무료
+- 영어 전용 → 한국어 UI + 한국 저널 프리셋
+- AI 없음 → 자연어 편집 + 저널 자동 포맷
+- 타겟: 국내 바이오/의학 대학원생
+
+### Phase G1: 핵심 UI ✅ 완료 (2026-02-28)
+
+| 기능 | 파일 | 상태 |
+|------|------|------|
+| **출력 크기 (mm/cm)** + 저널 프리셋 + DPI | `ExportDialog.tsx` | ✅ Nature/Cell/PNAS/ACS + 72/150/300/600 DPI |
+| **에러바 UI** — SEM/SD/CI/IQR | `DataTab.tsx` | ✅ bar/line/error-bar 차트 조건부 표시 |
+| **Y축 범위 + 로그 스케일** | `StyleTab.tsx` | ✅ domain 입력 + log/linear 토글 |
+| **X축 범위** | `StyleTab.tsx` | ✅ quantitative X (scatter 등) 조건부 표시 |
+| **색상 그룹 인코딩 UI** | `DataTab.tsx` | ✅ supportsColor 차트 조건부 표시 |
+| **스타일 프리셋** (Default/Science/IEEE/Grayscale) | `StyleTab.tsx` | ✅ 4종 + 범례 위치 |
+
+### Phase G2: 논문 품질 + 고급 구성 (개선 계획, 2026-02-28)
+
+> 경쟁 앱 분석(Prism/Origin/ggplot2) 기반 재구성. 저널 사이즈 프리셋은 G1에서 완료.
+
+**G2-1: Quick Wins** (3-5일, 독립적 — 먼저 진행 가능)
+
+| 기능 | 설명 | 구현 |
+|------|------|------|
+| ColorBrewer 팔레트 | viridis/Set2/RdBu — colorblind-safe | DataTab `scheme` 드롭다운 + converter 팔레트 맵 |
+| 막대 데이터 레이블 | 각 막대 위 값 표시 toggle | StyleTab 토글 + `series.label.show` |
+| 수평 막대 | `bar + orientation?: 'horizontal'` 옵션 | ~~chartType 추가~~(타입 폭발 방지) → ChartSpec + Zod + converter xAxis/yAxis swap |
+
+> 수평 막대를 `horizontal-bar` 신규 타입으로 추가하면 5개 파일(types/schema/defaults/ai-service/DataTab) 동기화 비용 발생 + 향후 grouped-bar-horizontal 등 조합 폭발 위험. `orientation` 옵션으로 대신.
+
+**G2-2: 논문 필수 기능** (1-2주, 중간 난이도)
+
+| 기능 | 설명 | 구현 |
+|------|------|------|
+| **annotations 렌더링** (선결) ✅ | 타입/스키마에만 있고 실제 렌더링 없음 | echarts-converter에 text/line/rect AnnotationSpec → ECharts `graphic` 변환 추가 | b56eb13d |
+| **통계 유의성 마커** ★ ✅ | `*`/`**`/`***`/`ns` 브래킷 — Prism 핵심 | `getPValueLabel()` + ChartPreview `finished` 이벤트 post-render (convertToPixel 브래킷) | (이번 세션) |
+| 산점도 회귀선 ✅ | linear OLS + R² 툴팁 | `TrendlineSpec` + `computeLinearRegression()` + `buildLinearTrendlineSeries()` + DataTab 토글 | (이번 세션) |
+| ~~TIFF 출력~~ | ~~300/600 DPI, html2canvas~~ | Skip — PNG 300/600 DPI로 충분 (주요 저널 모두 수용) |
+| 폰트 선택 ✅ | Arial/Helvetica/Times/Noto Sans KR | StyleTab 드롭다운 + converter 전파 | b56eb13d |
+
+> 유의성 마커는 컨버터 내부에서 처리 불가 — 순수 함수라 ECharts 인스턴스(convertToPixel, 실제 bar 좌표)에 접근 불가.
+> ChartPreview에서 `chart.on('finished')` → `convertToPixel()` → `chart.setOption({ graphic })` 패턴 사용. 리사이즈/legend 토글마다 재계산.
+
+**G2-3: 고급 차트 구성** ✅ 완료 + 딥 리뷰 완료
+
+| 기능 | 설명 | 상태 |
+|------|------|------|
+| **이중 Y축** | `encoding.y2?: AxisSpec` — bar+line 혼합 + 오른쪽 Y축 | ✅ |
+| **패싯** | `facet?: FacetSpec` — ggplot2 `facet_wrap` 등가, MAX_FACETS=12 | ✅ |
+
+- 상호 배타: Y2↔facet, Y2↔color, Y2↔errorBar, facet↔significance, facet↔trendline
+- 테스트: g2-3-features (45) + g2-3-review-sim (28) + g2-bugfix-regression (29) + g2-3-deep-review (35) = **137개**
+- 딥 리뷰: converter 1520줄 전체 읽기 + 10개 테스트 그룹 (DR-1~DR-10)
+
+**G2-3 보류 항목** — 전체 해소 완료
+
+| ID | 심각도 | 내용 | 상태 |
+|---|---|---|---|
+| H-NEW-1 | HIGH | scatter facet x축 범위 공유 누락 | ✅ `85257e2e` — `globalXMin/Max` 추가 |
+| H-NEW-2 | HIGH | Y2 Zod 스키마가 TS `AxisSpec`보다 좁음 | ✅ 의도적 제약 확정 — 변경 불필요 |
+| M-NEW-2 | MEDIUM | facet.field 없는 컬럼 시 빈 결과 | ✅ graceful degradation — 발생 경로 없음 |
+
+### Phase G3: AI-Forward 차별화 (3-6개월)
+
+| 기능 | 설명 |
+|------|------|
+| **저널 자동 포맷** | "Nature format으로" → AI가 규격 자동 적용 |
+| **Smart Flow → Graph 자동 연결** | 통계 결과 → 그래프 + 에러바 자동 생성 |
+| **유의성 마커 자동 배치** | p-value → *, **, *** 자동 추가 (G2-2 유의성 마커 기반) |
+
+**G3 잔여 작업 (코드 리뷰 발견)**
+
+| ID | 우선도 | 내용 | 비고 |
+|----|--------|------|------|
+| G3-E2E | HIGH | Smart Flow E2E에 kaplan-meier/roc-curve 시나리오 추가 | ✅ 테스트 계획 + 데이터 10개 + 스펙 작성 완료 (`survival-roc-e2e.spec.ts`, 13개 시나리오) |
+| G3-E2E-RUN | HIGH | `survival-roc-e2e.spec.ts` 실행 + 실패 시나리오 디버깅 | 프로덕션 빌드 필요 (`pnpm build && npx playwright test`) |
+| G3-SCREENSHOT | MEDIUM | KM/ROC 결과 화면 스크린샷 자동 캡처 + Prism 대비 시각 비교 | E2E 확장 시 자연 해결 |
+| G3-GRAPH-VIZ-TEST | MEDIUM | Graph Studio 차트 시각화 E2E 테스트 | KM 곡선/ROC 곡선 렌더링 검증, ChartPreview 스크린샷 비교, 유의성 마커/에러바/범례 위치 시각적 회귀 테스트 (`toHaveScreenshot`) |
+| G3-R-VERIFY | LOW | `generate-r-references.R` 실행 → KM/ROC 골든값 근사치를 R 정확값으로 교체 | 로컬 R 환경 필요 |
+
+---
+
+## E2E 테스트 확장 계획 (2026-03-02 점검)
+
+> **현황**: 8/46 메서드 E2E 커버 (17%) · 보조 플로우 7개 전무 · 스펙 20개 작성됨(미실행)
+
+### Phase E1: 기존 스펙 실행 + 인프라 검증 [HIGH]
+
+| ID | 내용 | 상태 |
+|----|------|------|
+| E1-RUN | `pnpm build && npx playwright test` — `smart-flow-e2e` 7개 + `survival-roc-e2e` 13개 실행 | = G3-E2E-RUN |
+| E1-LEGACY | 레거시 E2E 6개 (`core-calculation`, `pyodide-*`, `excel-upload` 등) 유효성 검토 → 삭제 or 업데이트 | 구 `/test-calculation` 경로 참조, 현 아키텍처 불일치 가능 |
+| E1-TESTID | 보조 플로우용 `data-testid` 누락 보완 — 내보내기/저장/복사/재분석/히스토리 패널 버튼 | `selectors.ts`에 등록 필요 |
+
+### Phase E2: 핵심 메서드 E2E 확장 [HIGH]
+
+> 사용 빈도 높은 카테고리 우선. 카테고리당 대표 1~2개 메서드 커버.
+
+| ID | 카테고리 | 대상 메서드 | CSV 존재 | 비고 |
+|----|----------|------------|---------|------|
+| E2-ANOVA | 분산분석 | `anova`, `repeated-measures-anova` | ✅ ✅ | 가장 큰 갭 (5개 미커버) |
+| E2-NONPAR | 비모수 | `mann-whitney`, `kruskal-wallis`, `wilcoxon` | ✅ ✅ ✅ | 11개 전무 — 대표 3개 우선 |
+| E2-CORR | 상관 | `correlation` | ✅ | Pearson/Spearman 분기 포함 |
+| E2-REGR | 회귀 | `logistic-regression`, `stepwise` | ✅ ✅ | 기존 `regression` 외 변형 |
+| E2-DESC | 기술통계 | `descriptive`, `normality-test` | ✅ | 탐색적 분석 입구 |
+| E2-TS | 시계열 | `arima` | ✅ | AutoConfirmSelector 경로 |
+| E2-MV | 다변량 | `pca`, `factor-analysis` | ✅ ✅ | 차원축소 대표 2개 |
+
+### Phase E3: 보조 플로우 E2E [MEDIUM]
+
+| ID | 플로우 | 내용 |
+|----|--------|------|
+| E3-EXPORT | 결과 내보내기 | DOCX/Excel/HTML 다운로드 + 클립보드 복사 |
+| E3-HISTORY | 히스토리 + Pin | 분석 저장 → 히스토리 표시 → Pin 고정 → 재분석 |
+| E3-LLM-CHAT | 후속 Q&A | 결과 페이지 follow-up 질문 → AI 응답 스트리밍 |
+| E3-GRAPH | Graph Studio 연결 | 결과 → Graph Studio 열기 → 차트 렌더링 확인 |
+| E3-SAMPLE | 표본 크기 계산기 | Hub 카드 → 모달 → 검정 선택 → 결과 배지 |
+| E3-LLM-ALT | LLM 대안 추천 | alternatives-toggle → 대안 메서드 표시 → 선택 |
+| E3-REANALYZE | 재분석 | 결과 → 다른 방법으로 분석하기 → Step 2 복귀 |
+
+### Phase E4: 시각적 회귀 테스트 [MEDIUM]
+
+| ID | 내용 |
+|----|------|
+| E4-VRT | `toHaveScreenshot` 기반 시각적 회귀 — 결과 테이블/차트/효과크기 카드 (= G3-GRAPH-VIZ-TEST 확장) |
+| E4-RESPONSIVE | 반응형 레이아웃 검증 — 1920/1440/1024px 3개 뷰포트 |
+
+### Phase E5: 전체 메서드 커버리지 [LOW]
+
+> Phase E2 이후 남는 ~25개 메서드 순차 추가 (CSV 생성 포함)
+
+미커버 메서드: `welch-t`, `ancova`, `manova`, `mixed-model`, `two-way-anova`(ID 정리 필요), `friedman`, `sign-test`, `mcnemar`, `cochran-q`, `binomial-test`, `runs-test`, `ks-test`, `mood-median`, `partial-correlation`, `poisson`, `ordinal-regression`, `dose-response`, `response-surface`, `chi-square-goodness`, `cox-regression`, `cluster`, `discriminant`, `power-analysis`, `reliability`, `proportion-test`, `explore-data`, `means-plot`, `seasonal-decompose`, `stationarity-test`, `mann-kendall`
+
+---
+
+## Graph Studio Stage 2 + UX 개선 — 리뷰 패키지 (2026-02-28)
+
+> 외부 AI 리뷰를 위한 요약. Stage 2 구현 + Option C UX 개선 완료 상태.
+
+### 구현 범위
+
+| 파일 | 역할 |
+|------|------|
+| `stats/lib/graph-studio/ai-service.ts` (신규) | `editChart()` — OpenRouter → JSON Patch 생성 + 검증. `AiServiceError` 타입 분류. |
+| `stats/components/graph-studio/panels/AiEditTab.tsx` (수정) | 채팅 UI 활성화. stale spec 방어, zero-patch 감지, MAX_MESSAGES=30, localStorage 지속. |
+| `stats/components/graph-studio/panels/ExportTab.tsx` (수정) | `setExportConfig` 전용 액션 사용, 미사용 import 제거. |
+| `stats/lib/stores/graph-studio-store.ts` (수정) | `setExportConfig` 전용 액션 추가. |
+| `stats/lib/graph-studio/index.ts` (수정) | `editChart`, `buildAiEditRequest` export 추가. |
+| `stats/__tests__/lib/graph-studio/ai-service.test.ts` (신규) | 단위 테스트 17개 |
+| `stats/__tests__/lib/graph-studio/ai-edit-simulation.test.ts` (신규) | 시뮬레이션 13개 (S1–S11) |
+
+### 핵심 설계 결정
+
+1. **Zero-Data Retention**: 실제 데이터 행 미전송. ChartSpec(열 메타데이터)만 AI에 전달.
+2. **OpenRouter 재사용**: `openRouterRecommender.generateRawText()` — fallback 체인·타임아웃·인증캐시 공짜 상속.
+3. **Non-streaming**: JSON Patch는 완전한 응답 후 파싱. 스트리밍 불필요.
+4. **이중 JSON 추출**: 코드 블록 우선 → 중괄호 밸런싱 fallback. AI 규칙 위반에도 복원.
+5. **Readonly 경로 강제**: `/data`, `/version` 프롬프트 명시 + 코드 레벨 whitelist 검사.
+6. **Zod 검증**: `aiEditResponseSchema` — patches(min 1) + explanation + confidence(0–1).
+7. **`AiServiceError` 타입 분류**: `NO_RESPONSE | PARSE_FAILED | VALIDATION_FAILED | READONLY_PATH` — catch 블록에서 코드로 분기.
+8. **stale chartSpec 방어**: `chartSpecRef = useRef(chartSpec)` — `await` 후 최신 spec 참조. PropertiesTab 동시 편집 경쟁 조건 방어.
+9. **zero-patch 감지**: 패치 적용 후 `JSON.stringify` 비교 — 경로 미발견으로 실제 변경 없으면 에러 메시지 표시.
+10. **대화 지속성**: MAX_MESSAGES=30 자동 정리 + `localStorage('graph_studio_ai_chat')` — 브라우저 재시작 후도 기록 유지.
+
+### 알려진 제한사항 (향후 개선)
+
+| 항목 | 현황 | 개선 방향 |
+|------|------|------|
+| Non-streaming | AI 응답까지 "수정 중…" 대기 | Stage 4에서 `streamChatCompletion` 전환 |
+| 컨텍스트 무관 | 매 요청 독립 (이전 편집 히스토리 미전송) | 마지막 2턴 explanation을 user prompt에 포함 |
+| AiEditTab 컴포넌트 테스트 없음 | UI 로직 비커버 | Playwright E2E로 보완 예정 |
+| ChartSpec 크기 제한 | `MAX_SPEC_JSON_LENGTH = 3000` 하드코딩 | 컬럼 수 기반 동적 계산 고려 |
+| zero-patch 에러 메시지 | 고정 문구로 정리 완료 | `AiEditTab`에서 "경로를 찾지 못해 수정이 적용되지 않았습니다..." 메시지 적용 |
+
+### 테스트 시나리오 (시뮬레이션)
+
+S1 X축 라벨 45도 회전 | S2 IEEE 스타일 전환 | S3 에러바 추가 | S4 Y축 제목 변경 | S5 차트 유형 bar→line | S6 색상 인코딩 추가 | S7 연속 2회 편집 누적 | S8 readonly 침범 → spec 불변 | S9 낮은 신뢰도(0.2) | S10 무효 enum("pie") → Zod 실패 | S11 부모 경로 없는 patch → zero-patch 감지
 
 ### 기술 부채 (Tech Debt)
 
