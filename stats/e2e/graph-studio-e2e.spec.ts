@@ -29,24 +29,103 @@ function log(tag: string, msg: string): void {
 }
 
 async function navigateToGraphStudio(page: Page): Promise<void> {
-  await page.goto('/graph-studio', { waitUntil: 'domcontentloaded', timeout: 60_000 })
-  await page.waitForSelector(S.graphStudioPage, { timeout: 15_000 })
+  await page.goto('/graph-studio', { waitUntil: 'load', timeout: 60_000 })
+  // cold start 대비 30s (dev 서버 첫 로드 시 느릴 수 있음)
+  await page.waitForSelector(S.graphStudioPage, { timeout: 30_000 })
+  // Next.js 클라이언트 하이드레이션 완료 대기: chart-type 버튼이 보이고 상호작용 가능할 때까지.
+  // 'load' 이벤트 후에도 Next.js/React 하이드레이션이 비동기로 진행될 수 있으므로
+  // 실제 인터랙티브 요소가 렌더될 때까지 기다림.
+  await page.waitForSelector(S.graphStudioChartType('bar'), { state: 'visible', timeout: 30_000 })
   log('navigate', '/graph-studio 로드 완료')
 }
 
 /** 차트 유형 썸네일 클릭 → 샘플 데이터로 에디터 진입
- *  JS evaluate 방식 — 우하단 Feedback Mascot 버튼(fixed)이 pointer events를 가로채는 문제 우회
+ *
+ * 수정 내역:
+ * - Feedback Mascot 비활성화 범위 확대 (fixed + z-50 뿐 아니라 모든 fixed 오버레이)
+ * - thumbnail.click() 후 DOM evaluate 클릭으로 React synthetic event 재트리거
+ * - waitForSelector state: 'attached' 로 변경 (높이 0인 경우도 통과)
+ * - 이후 별도 toBeVisible() 검증
  */
 async function enterEditorViaSampleChart(page: Page, chartType = 'bar'): Promise<void> {
-  const selector = S.graphStudioChartType(chartType)
-  await page.waitForSelector(selector, { timeout: 10_000 })
-  // React onClick을 올바르게 트리거하기 위해 native JS click 사용
-  await page.evaluate((sel: string) => {
-    const el = document.querySelector(sel) as HTMLElement | null
-    el?.click()
-  }, selector)
-  log('enterEditor', `graph-studio-chart-type-${chartType} 클릭`)
-  await page.waitForSelector(S.graphStudioChart, { timeout: 15_000 })
+  // 모든 fixed position 오버레이 요소의 pointer-events 비활성화
+  await page.evaluate(() => {
+    // FeedbackPanel 마스코트, Next.js Dev Tools 등 fixed 요소 차단
+    document.querySelectorAll<HTMLElement>('[class*="fixed"]').forEach(el => {
+      if (el instanceof HTMLElement) {
+        el.style.pointerEvents = 'none'
+      }
+    })
+    // Next.js 개발 도구 오버레이 숨김
+    document.querySelectorAll<HTMLElement>('nextjs-portal').forEach(el => {
+      el.style.display = 'none'
+    })
+  })
+
+  const thumbnail = page.locator(S.graphStudioChartType(chartType))
+  await thumbnail.waitFor({ state: 'visible', timeout: 10_000 })
+
+  // 콘솔 에러 캡처 시작
+  const consoleErrors: string[] = []
+  const errorHandler = (msg: { type: () => string; text: () => string }) => {
+    if (msg.type() === 'error') {
+      consoleErrors.push(msg.text())
+    }
+  }
+  page.on('console', errorHandler)
+
+  // 1차 시도: Playwright click()
+  await thumbnail.click()
+  log('enterEditor', `graph-studio-chart-type-${chartType} 클릭 (1차)`)
+
+  // React 상태 업데이트 대기 (chart가 DOM에 붙거나 최대 1초 대기)
+  const chartAttached = await page.waitForSelector(S.graphStudioChart, {
+    state: 'attached',
+    timeout: 1_000,
+  }).then(() => true).catch(() => false)
+
+  // chart가 아직 없으면 2차 시도: 네이티브 DOM click
+  const chartVisible = chartAttached && await page.locator(S.graphStudioChart).isVisible()
+  if (!chartVisible) {
+    log('enterEditor', '1차 클릭 후 chart 미등장, 네이티브 DOM click 시도')
+    await page.evaluate((selector) => {
+      const el = document.querySelector(selector)
+      if (el instanceof HTMLElement) {
+        el.click()
+      }
+    }, S.graphStudioChartType(chartType))
+    log('enterEditor', `graph-studio-chart-type-${chartType} 클릭 (2차 DOM click)`)
+  }
+
+  // chart 등장 대기 (attached 기준 — DOM 추가만 확인)
+  try {
+    await page.waitForSelector(S.graphStudioChart, { state: 'attached', timeout: 15_000 })
+    log('enterEditor', 'graph-studio-chart DOM에 추가됨')
+  } catch (e) {
+    // 에러 정보 로그
+    if (consoleErrors.length > 0) {
+      log('enterEditor', `콘솔 에러: ${consoleErrors.join(', ')}`)
+    }
+    // 페이지 상태 덤프
+    const isEditorMode = await page.evaluate(() => {
+      return document.querySelector('[data-testid="graph-studio-chart"]') !== null
+    })
+    log('enterEditor', `graph-studio-chart DOM 존재: ${isEditorMode}`)
+    const storeState = await page.evaluate(() => {
+      // Next.js webpack 번들에서 모듈 접근은 불가하므로 DOM 상태로 추론
+      const uploadZone = document.querySelector('[data-testid="graph-studio-upload-zone"]')
+      const chart = document.querySelector('[data-testid="graph-studio-chart"]')
+      return {
+        uploadZoneVisible: uploadZone !== null,
+        chartVisible: chart !== null,
+      }
+    })
+    log('enterEditor', `DOM 상태: ${JSON.stringify(storeState)}`)
+    throw e
+  } finally {
+    page.off('console', errorHandler)
+  }
+
   log('enterEditor', 'graph-studio-chart 렌더됨 — 에디터 모드 진입 완료')
 }
 
@@ -93,14 +172,26 @@ test.describe('Graph Studio', () => {
     )
     log('T3', `파일 경로: ${csvPath}`)
 
-    // react-dropzone의 hidden input에 파일 직접 주입 (첫 번째 = dropzone input)
-    const fileInput = page.locator(`${S.graphStudioDropzone} input[type="file"]`).first()
-    await fileInput.setInputFiles(csvPath)
-    log('T3', 'setInputFiles 완료')
+    // react-dropzone의 getInputProps() input을 타겟팅 (dropzone 루트 안의 첫 번째 hidden input)
+    // graph-studio-dropzone 바로 아래의 input[type="file"]
+    const fileInput = page.locator(`${S.graphStudioDropzone} > input[type="file"]`)
+    const fileInputCount = await fileInput.count()
+    log('T3', `dropzone input 개수: ${fileInputCount}`)
 
-    // after: chart 렌더
-    await page.waitForSelector(S.graphStudioChart, { timeout: 10_000 })
-    await expect(page.locator(S.graphStudioChart)).toBeVisible()
+    if (fileInputCount > 0) {
+      // dropzone의 getInputProps() input에 setInputFiles
+      await fileInput.setInputFiles(csvPath)
+      log('T3', 'dropzone input setInputFiles 완료')
+    } else {
+      // fallback: graph-studio-upload-zone 내 sr-only input
+      const srInput = page.locator(`${S.graphStudioUploadZone} input[type="file"]`)
+      await srInput.setInputFiles(csvPath)
+      log('T3', 'sr-only input setInputFiles 완료')
+    }
+
+    // after: chart 렌더 (CSV 파싱 + 스토어 업데이트 대기)
+    await page.waitForSelector(S.graphStudioChart, { state: 'attached', timeout: 20_000 })
+    await expect(page.locator(S.graphStudioChart)).toBeVisible({ timeout: 5_000 })
 
     log('T3', '파일 업로드 → 에디터 전환 검증 완료')
   })

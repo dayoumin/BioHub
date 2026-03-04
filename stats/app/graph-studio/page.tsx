@@ -23,7 +23,17 @@ import { downloadChart } from '@/lib/graph-studio/export-utils';
 type LayoutMode = 'upload' | 'editor';
 
 export default function GraphStudioPage(): React.ReactElement {
-  const { isDataLoaded, chartSpec, aiPanelOpen, aiPanelDock } = useGraphStudioStore();
+  // React Compiler(babel-plugin-react-compiler@1.0.0)가 Zustand useSyncExternalStore
+  // 구독을 잘못 메모이즈하는 문제를 방지.
+  // 스토어 업데이트(loadDataPackageWithSpec 등) 시 이 컴포넌트가 반드시 리렌더됩니다.
+  'use no memo';
+
+  // 개별 셀렉터로 구독 — React Compiler가 selector 출력값을 기반으로 스냅샷 비교.
+  // 셀렉터 반환값이 primitive(boolean, null) 이므로 값 비교로 정확히 re-render 트리거됨.
+  const isDataLoaded = useGraphStudioStore(state => state.isDataLoaded);
+  const chartSpec = useGraphStudioStore(state => state.chartSpec);
+  const aiPanelOpen = useGraphStudioStore(state => state.aiPanelOpen);
+  const aiPanelDock = useGraphStudioStore(state => state.aiPanelDock);
 
   const layoutMode: LayoutMode = isDataLoaded && chartSpec ? 'editor' : 'upload';
 
