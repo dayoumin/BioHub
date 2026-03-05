@@ -189,7 +189,7 @@ StyleTab Accordion:
 
 | 항목 | 스키마 필드 | 컨트롤 | 컨버터 수정 내용 |
 |------|----------|--------|----------------|
-| Y축 0 포함 | `encoding.y.scale.zero` | Toggle | `yAxisBase()`에 `scale: { containZero: zero }` 추가 |
+| Y축 0 포함 | `encoding.y.scale.zero` | Toggle | `yAxisBase()`에서 `zero === true`이면 `min: 0` 강제, `false/undefined`이면 ECharts 자동 스케일 (domain `min` 생략). **우선순위**: `domain`이 명시되면 domain 우선 (사용자 의도 존중), `zero`는 domain 미설정 시에만 적용. |
 | 축 레이블 크기 | `encoding.y.labelFontSize` | Number input (pt) | `yAxisBase() axisLabel.fontSize` → global 대신 개별값 우선 |
 | 축 제목 크기 | `encoding.y.titleFontSize` | Number input (pt) | `yAxisBase() nameTextStyle.fontSize` → 개별값 우선 |
 | (동일 X축 적용) | `encoding.x.labelFontSize` | Number input | `xAxisBase()` 동일 패턴 |
@@ -218,7 +218,22 @@ axisLabel: {
 
 **사용 대상 차트**: bar, grouped-bar, error-bar
 
-**구현 전 검증 필요사항**: ECharts scatter series가 categorical xAxis에서 카테고리 문자열(e.g. `'Bass'`)을 x값으로 받는지, 또는 인덱스(0, 1, 2)가 필요한지 확인. POC 코드로 먼저 검증 후 구현.
+**영향 분기 분석** (echarts-converter.ts):
+| 경로 | 라인 | 복잡도 |
+|------|------|--------|
+| plain bar | ~1106 | 낮음 (POC 대상) |
+| bar + errorBar | ~1110-1134 | 중간 |
+| grouped-bar + color | ~1187-1205 | 높음 (그룹별 x 오프셋) |
+| stacked-bar + color | ~1228-1247 | 높음 |
+| error-bar 차트 | ~1516-1543 | 중간 |
+
+> **POC 전략**: plain bar만 먼저 구현 → 검증 → grouped-bar/stacked-bar 순차 확장.
+> grouped-bar에서 color 그룹별 x 오프셋 + jitter 조합, facet/horizontal 조합은 POC 이후 설계.
+
+**구현 전 검증 필요사항** (POC에서 확인):
+1. ECharts scatter series가 categorical xAxis에서 카테고리 문자열(e.g. `'Bass'`)을 x값으로 받는지, 또는 인덱스(0, 1, 2)가 필요한지
+2. `echarts@6.0.0`에서 `jitter`, `jitterOverlap` API가 실제 동작하는지 (릴리즈 노트 기반 추정 → 실증 필요)
+3. 컨버터에 전달되는 `rawData`가 집계 전 원시 데이터인지, 이미 집계된 상태인지 — scatter overlay에 원시 행 데이터가 필요하므로 데이터 흐름 확인 필수
 
 **설계 결정**:
 ```
@@ -257,11 +272,12 @@ showRawPoints?: {
 };
 ```
 
-**스키마 확장 체크리스트** (4곳 동시):
+**스키마 확장 체크리스트** (5곳 동시):
 1. `types/graph-studio.ts` — `showRawPoints` 추가
 2. `chart-spec-schema.ts` — `showRawPointsSchema` 추가 (`.strict()` 유지)
 3. `echarts-converter.ts` — bar/error-bar scatter overlay series 생성
 4. `ai-service.ts` — 시스템 프롬프트 `showRawPoints` 설명 추가
+5. **테스트** — Zod 검증 통과 + converter series 생성 + AI patch 왕복 테스트
 
 **UI 위치**: DataTab > 통계 표현 섹션 (에러바 아래)
 
@@ -278,7 +294,7 @@ export interface ErrorBarSpec {
   type: 'ci' | 'stderr' | 'stdev' | 'iqr' | 'precomputed';
   value?: number;
   direction?: 'both' | 'positive';  // default: 'both'
-  capWidth?: number;                  // default: 6 (px)
+  capWidth?: number;                  // default: 0.12 (0~1, bar 너비 대비 비율)
   // G1-4
   lowerField?: string;
   upperField?: string;
@@ -287,9 +303,11 @@ export interface ErrorBarSpec {
 
 **ECharts 구현**:
 - `direction: 'positive'` → lowerBound = mean (위만 표시)
-- `capWidth` → `markLine` symbol 크기
+- `capWidth` → `buildErrorBarOverlay()` 내부 `renderItem`의 하드코딩 상수(`0.12`)를 `spec.errorBar.capWidth` 값으로 교체
+  - 현재: `const capHalf = api.size([1, 0])[0] * 0.12;` (bar 너비의 24%)
+  - 수정: `const capHalf = api.size([1, 0])[0] * (capWidth ?? 0.12);`
 
-**스키마 확장 체크리스트**: types + schema + converter + ai-service 4곳
+**스키마 확장 체크리스트**: types + schema + converter + ai-service 4곳 + **테스트**
 
 ---
 
@@ -299,6 +317,7 @@ export interface ErrorBarSpec {
 
 **스키마 변경**:
 ```typescript
+// ChartSpec 루트에 추가 (series 전체 기본값)
 lineStyle?: {
   type?: 'solid' | 'dashed' | 'dotted';
   width?: number;
@@ -309,8 +328,10 @@ symbolStyle?: {
 };
 ```
 
-**color group 있을 때**: 각 그룹에 다른 선 유형 + 마커 모양 자동 순환 할당
-(ECharts는 series별 `lineStyle.type`과 `symbol` 개별 설정 지원)
+**위치**: `ChartSpec` 루트 레벨 (encoding이 아닌 시각적 스타일 속성).
+- color group 없을 때: 루트값 그대로 적용
+- **color group 있을 때**: 컨버터가 series별로 `LINE_DASH_CYCLE`, `SYMBOL_CYCLE` 배열에서 자동 순환 할당
+  (ECharts는 series별 `lineStyle.type`과 `symbol` 개별 설정 지원)
 
 **UI 위치**: StyleTab > 조건부 섹션 (line/scatter 선택 시)
 
@@ -353,8 +374,17 @@ KDE 계산을 위해 처음으로 Pyodide 의존성 추가가 필요.
 
 **스키마 변경**:
 ```typescript
-axisBreaks?: { start: number; end: number; }[];
+// encoding.y.scale에 추가 (기존 ScaleSpec 확장 — 축 설정은 모두 이곳에 위치)
+export interface ScaleSpec {
+  domain?: [number, number] | string[];
+  range?: [number, number] | string[];
+  zero?: boolean;
+  type?: 'linear' | 'log' | 'sqrt' | 'symlog';
+  axisBreaks?: { start: number; end: number; }[];  // NEW
+}
 ```
+
+> ⚠️ 루트 레벨이 아닌 `encoding.y.scale.axisBreaks`에 위치. AI patch 경로 일관성 유지.
 
 **UI**: StyleTab > 축 설정 > "축 불연속 범위" 서브섹션 (기본 접힘)
 
@@ -386,16 +416,18 @@ G4.7 (Broken Axis)          ← 단순 래핑. G4.6과 병렬 가능.
 
 ## 6. 스키마 확장 영향 범위
 
-| G4 항목 | types | schema | converter | ai-service | 비고 |
-|---------|-------|--------|-----------|-----------|------|
-| G4.2 (UI만) | — | — | — | — | labelAngle/grid 컨버터 이미 있음 |
-| G4.2 (컨버터 필요) | — | — | ✏️ | — | zero/labelFontSize/titleFontSize |
-| G4.3 showRawPoints | ✏️ | ✏️ | ✏️ | ✏️ | POC 후 진행 |
-| G4.4 direction/capWidth | ✏️ | ✏️ | ✏️ | ✏️ | G1-4와 묶기 권장 |
-| G4.5 lineStyle/symbolStyle | ✏️ | ✏️ | ✏️ | ✏️ | |
-| G4.6 violin KDE | ✏️ | — | ✏️ | ✏️ | Pyodide 방안 결정 후 |
-| G4.7 axisBreaks | ✏️ | ✏️ | ✏️ | ✏️ | |
-| G4.1 (Accordion) | — | — | — | — | UI 구조만 |
+| G4 항목 | types | schema | converter | ai-service | **test** | 비고 |
+|---------|-------|--------|-----------|-----------|---------|------|
+| G4.1 (Accordion) | — | — | — | — | — | UI 구조만 |
+| G4.2 (UI만) | — | — | — | — | — | labelAngle/grid 컨버터 이미 있음 |
+| G4.2 (컨버터 필요) | — | — | ✏️ | — | ✏️ | zero/labelFontSize/titleFontSize |
+| G4.3 showRawPoints | ✏️ | ✏️ | ✏️ | ✏️ | ✏️ | POC(plain bar) 후 진행 |
+| G4.4 direction/capWidth | ✏️ | ✏️ | ✏️ | ✏️ | ✏️ | G1-4와 묶기 권장 |
+| G4.5 lineStyle/symbolStyle | ✏️ | ✏️ | ✏️ | ✏️ | ✏️ | |
+| G4.6 violin KDE | ✏️ | — | ✏️ | ✏️ | ✏️ | Pyodide 방안 결정 후 |
+| G4.7 axisBreaks | ✏️ | ✏️ | ✏️ | ✏️ | ✏️ | `encoding.y.scale.axisBreaks` |
+
+> **테스트 필수**: 스키마 확장 시 Zod strict() 검증 통과 + converter series 생성 + AI patch 왕복 테스트를 반드시 포함.
 
 ---
 
