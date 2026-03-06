@@ -13,7 +13,6 @@ import {
   MessageCircle,
   ChevronRight,
   Loader2,
-  AreaChart,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -129,7 +128,6 @@ export function SmartFlowLayout({
   // 전역 UI 컨텍스트 (채팅, 설정, 도움말 모달)
   const {
     openChatPanel,
-    openSettings,
     openHelp: openGlobalHelp,
     isSettingsOpen,
     isHelpOpen,
@@ -148,47 +146,8 @@ export function SmartFlowLayout({
   const resolvedNextLabel = nextLabel ?? t.smartFlow.layout.nextStep
 
   return (
-    <div className={cn("flex min-h-screen bg-background", className)}>
+    <div className={cn("min-h-screen bg-background", className)}>
 
-      {/* ===== 좌측 사이드바 (Tool Navigator) ===== */}
-      <aside className="w-16 flex-shrink-0 sticky top-0 h-screen border-r border-border bg-background flex flex-col items-center py-3 gap-1 z-40">
-        {/* 통계 분석 (현재 도구 — 항상 활성) */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button className="w-10 h-10 flex items-center justify-center rounded-lg bg-primary/10 text-primary" aria-label="통계 분석">
-              <BarChart3 className="w-5 h-5" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right">통계 분석</TooltipContent>
-        </Tooltip>
-
-        {/* 그래프 스튜디오 (준비 중) — span wrapper: disabled button은 pointer events 차단으로 tooltip 미표시 */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="inline-flex">
-              <button disabled className="w-10 h-10 flex items-center justify-center rounded-lg text-muted-foreground/30 cursor-not-allowed" aria-label="그래프 스튜디오 (준비 중)">
-                <AreaChart className="w-5 h-5" />
-              </button>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent side="right">그래프 스튜디오 (준비 중)</TooltipContent>
-        </Tooltip>
-
-        {/* 설정 (하단 고정) */}
-        <div className="mt-auto">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button onClick={openSettings} className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" aria-label="설정">
-                <Settings className="w-5 h-5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right">설정</TooltipContent>
-          </Tooltip>
-        </div>
-      </aside>
-
-      {/* ===== 메인 영역 ===== */}
-      <div className="flex-1 min-w-0">
 
       {/* ===== 헤더 (Sticky) ===== */}
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background">
@@ -379,7 +338,6 @@ export function SmartFlowLayout({
         </div>
       )}
 
-      </div>{/* end 메인 영역 */}
     </div>
   )
 }

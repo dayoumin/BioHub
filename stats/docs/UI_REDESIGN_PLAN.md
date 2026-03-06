@@ -39,29 +39,35 @@
 ```
 [접힘 — 기본 44px]          [펼침 — 220px, 사용자 토글]
 ┌────┐                      ┌──────────────────────┐
-│ ≡  │  ← 토글 버튼          │ ≡  NIFS 통계 분석    │  ← 앱 타이틀 (통일)
+│ ≡  │  ← 토글 버튼          │ ≡  BioHub            │  ← 앱 타이틀 (배포판별 상이)
 ├────┤                      ├──────────────────────┤
-│ 🏠 │  홈                  │ 🏠  홈               │
-│ 📊 │  통계 분석            │ 📊  통계 분석         │
-│ 📈 │  Graph Studio        │ 📈  Graph Studio      │
-│ 🧬 │  Bio-Tools           │ 🧬  Bio-Tools    예정 │
-│ 📄 │  논문 지원            │ 📄  논문 지원    예정 │
-│ 🔬 │  학명 유효성 검증     │ 🔬  학명 유효성 검증  │
+│ 홈 │  홈                  │ 홈  홈               │
+│ 통 │  통계 분석            │ 통  통계 분석         │
+│ 그 │  Graph Studio        │ 그  Graph Studio      │
+│ 바 │  Bio-Tools           │ 바  Bio-Tools    예정 │
+│ 논 │  논문 지원            │ 논  논문 지원    예정 │
+│ 학 │  학명 유효성 검증     │ 학  학명 유효성 검증  │
 ├────┤                      ├──────────────────────┤
-│ ⭐ │  My Menu (예약)       │ ⭐  My Menu      예정 │
+│ ☆ │  My Menu (예약)       │ ☆  My Menu      예정 │
 ├────┤                      ├──────────────────────┤
-│ ⚙️  │  설정 (하단 고정)     │ ⚙️   설정             │
+│ 설 │  설정 (하단 고정)     │ 설  설정             │
 └────┘                      └──────────────────────┘
 ```
 
 **동작 방식**
 - 기본: 접힘(44px) — 아이콘 + 툴팁
 - 토글(≡ 버튼): 펼침(220px) — 아이콘 + 섹션명
-- 상태 저장: localStorage 영속
+- **상태 저장: HTTP Cookie** (`sidebar-state=collapsed|expanded`)
+  - ⚠️ localStorage 사용 금지: Next.js App Router(SSR) 환경에서 서버 렌더링 값과 클라이언트 값 불일치로 Hydration Mismatch 발생
+  - Cookie는 SSR 시점부터 올바른 너비로 사이드바를 렌더링 → 깜빡임 없음
+  - `cookies().get('sidebar-state')` (서버), `document.cookie` (클라이언트 토글)
+- **접힘/펼침 CSS 전환**: `transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1)` (딱딱 끊기지 않도록)
 - 활성 섹션: 파란 좌측 테두리(2px) + 아이콘 강조
 
-**앱 타이틀 통일**: 사이드바 헤더, Hub 헤더, 브라우저 탭 모두 **"NIFS 통계 분석"** 으로 통일
-(현재 "NIFS 통계 분석 플랫폼" / "NIFS 통계 분석" 혼재 → 단일화)
+**앱 타이틀 (배포판별 분리)**: 사이드바 헤더, Hub 헤더, 브라우저 탭 모두 동일 문구로 통일
+- 외부(공개) 배포: **BioHub**
+- 내부망(NIFS) 배포: **NIFS 통계 분석**
+- 환경변수(`NEXT_PUBLIC_APP_TITLE`)로 주입해 코드 분기 없이 처리
 
 **My Menu 개념 (향후 구현)**
 사용자마다 자주 쓰는 도구가 다름 → 즐겨찾기 핀. 통계의 "빠른 분석" 칩처럼 개인화된 빠른 접근.
@@ -84,6 +90,10 @@
 > - Step 1(데이터 탐색) 이전: 경고 없이 이동 (손실 없음)
 > - Step 2 이후 진행 중: "분석이 자동 저장됩니다" 토스트 + 히스토리에 draft 저장 후 이동
 > - 결과 화면: 경고 없이 이동 (이미 완료)
+
+> **Draft 자동 저장 범위**: 원본 데이터 파일이 아닌 **선택된 조건과 메타데이터만** 저장
+> (분석 방법 ID, 선택된 변수 컬럼명, fileId 참조)
+> 이유: 대용량 데이터(수십 MB)를 통째로 직렬화하면 브라우저 Freeze 발생 위험
 
 ### 2-3. 4단계 스테퍼 재설계
 
@@ -179,8 +189,19 @@ UI 텍스트:  Pretendard Variable
 
 Pretendard는 Google Fonts 미등재 폰트이므로 `next/font/google` 사용 불가.
 
+**방법 A — CDN (권장, 간편)**
+
+```css
+/* globals.css 상단 */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+```
+
+이유: 일반 연구자 대상 서비스로 외부망 제한 없음. 별도 패키지 설치 불필요.
+Dynamic Subset — 사용된 글자만 다운로드해 FOUT 최소화.
+
+**방법 B — pnpm 패키지 (오프라인 빌드 필요 시)**
+
 ```bash
-# 방법 A — npm 패키지 (권장, 오프라인 빌드 가능)
 pnpm add @fontsource-variable/pretendard
 ```
 ```ts
@@ -189,9 +210,16 @@ import '@fontsource-variable/pretendard'
 // CSS: font-family: 'Pretendard Variable', sans-serif;
 ```
 
-```css
-/* 방법 B — CDN @import (외부망 의존, globals.css 상단) */
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+**방법 C (대안) — `next/font/local` + woff2 파일 로컬 서빙**
+
+```ts
+// layout.tsx
+import localFont from 'next/font/local'
+const pretendard = localFont({
+  src: '../public/fonts/PretendardVariable.woff2',
+  variable: '--font-pretendard',
+  preload: true,
+})
 ```
 
 JetBrains Mono는 Google Fonts 등재 폰트이므로 next/font 사용 가능:
@@ -247,25 +275,23 @@ p < .001     Cohen's d = 4.00
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│  NIFS 통계 분석                           [설정]      │  ← Hub 헤더
+│  BioHub  (내부망: NIFS 통계 분석)         [설정]      │  ← Hub 헤더 (앱 타이틀은 환경변수)
 ├──────────────────────────────────────────────────────┤
 │                                                       │
 │  오늘 무엇을 분석하시겠어요?                           │  ← 간결한 인사
 │                                                       │
 │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐  │
-│  │  📊           │ │  📈           │ │  🧬           │  │  ← 사이드바 순서와 일치
-│  │  통계 분석    │ │  Graph Studio │ │  Bio-Tools    │  │
+│  │  통계 분석    │ │  Graph Studio │ │  Bio-Tools    │  │  ← 사이드바 순서와 일치
 │  │  AI 추천 분석 │ │  논문 품질 차트│ │  (준비 중)    │  │
 │  └──────────────┘ └──────────────┘ └──────────────┘  │
 │  ┌──────────────┐ ┌──────────────┐                   │
-│  │  📄           │ │  🔬           │                   │
 │  │  논문 지원    │ │  학명 유효성  │                   │
 │  │  (준비 중)    │ │  검증         │                   │
 │  └──────────────┘ └──────────────┘                   │
 │                                                       │
 │  최근 작업 ────────────────────────────────────────  │
-│  📊 독립표본 t-검정  어제  [계속하기 →]               │
-│  📈 막대 차트 편집   3일전 [계속하기 →]               │
+│  통계 독립표본 t-검정  어제  [계속하기 →]              │
+│  그래프 막대 차트 편집  3일전 [계속하기 →]             │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -282,7 +308,9 @@ Step 2 이후에는 노출하지 않음 (방법 이미 선택된 상태).
 **Step 1: 데이터 탐색**
 - 파일 업로드 dropzone (비주얼 정제)
 - 업로드 후: 데이터 미리보기 테이블 자동 표시
-  - **최대 100행만 렌더링** (전체 행 수는 "30행 × 6열" 형태로 별도 표시)
+  - **기본: 최대 100행만 렌더링** (전체 행 수는 "30행 × 6열" 형태로 별도 표시)
+  - **성능 옵션**: 대용량(>10,000행) 데이터의 경우 `@tanstack/react-virtual`로 테이블 가상화 도입 검토
+    (DOM에 화면 내 20~30행만 유지 → 전체 데이터 탐색 가능)
   - 대용량(>10,000행) 경고 배지 표시
 - 컬럼 요약 (숫자형/범주형 자동 감지 배지)
 - 하단: AI 보조 채팅 패널 (접기 가능)
@@ -328,7 +356,7 @@ AI 해석
 
 ### 4-4. 학명 유효성 검증 (통합)
 
-- 사이드바 🔬 아이콘 클릭 → `/species-validation` 라우트
+- 사이드바 학명 아이콘 클릭 → `/species-validation` 라우트
 - 기존 완성된 코드에 동일 `AppSidebar` + `SectionHeader` 적용
 - 헤더: "학명 유효성 검증" + 검색 상태 표시
 
@@ -356,9 +384,10 @@ AI 해석
 
 - [ ] `SmartFlowLayout` 내 Tool Navigator → `AppSidebar` 독립 컴포넌트 추출
 - [ ] 6개 섹션 + My Menu 예약 공간 + 설정(하단)
-- [ ] 접힘(44px)/펼침(220px) 토글 + localStorage 저장
+- [ ] 접힘(44px)/펼침(220px) 토글 + **Cookie 저장** (localStorage 사용 금지 — SSR Hydration Mismatch)
+- [ ] 접힘/펼침 CSS 전환 (`transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1)`)
 - [ ] 활성 섹션 파란 테두리 표시 (pathname 기반)
-- [ ] 섹션 이탈 정책 구현 (Step 2 이후 draft 자동 저장)
+- [ ] 섹션 이탈 정책 구현 (Step 2 이후 draft 자동 저장 — 메타데이터+fileId만)
 - [ ] `app/layout.tsx`에서 모든 페이지에 일괄 적용
 - [ ] `ConditionalHeader` 제거
 - [ ] Graph Studio 이중 헤더 제거
@@ -419,7 +448,7 @@ AI 해석
 
 - [ ] `/species-validation` 라우트 연결
 - [ ] 동일 `AppSidebar` + `SectionHeader` 적용
-- [ ] 사이드바 🔬 아이콘 활성화
+- [ ] 사이드바 학명 아이콘 활성화
 
 **완료 기준**: 사이드바에서 학명 검증 페이지로 이동 가능
 
@@ -428,7 +457,10 @@ AI 해석
 ### Phase 6 — 마감 (1일)
 
 - [ ] 다크모드 전체 점검 (파란 accent, 사이드바, 카드 일관성)
-- [ ] 1024px 최소 너비 환경에서 레이아웃 확인
+- [ ] 최소 너비 정책 적용: **1024px 미만에서 Blocking Modal 표시**
+  ("안정적인 분석 환경을 위해 브라우저 창을 넓혀주세요")
+  이유: 통계 도구의 특성상 데이터 테이블·변수 선택 레이아웃이 작은 화면에서 깨짐
+  → 반응형으로 맞추는 것보다 명시적 차단이 사용자에게 더 명확한 안내
 - [ ] 전체 일관성 스크린샷 검수 (Hub / Step 1~4 / Graph Studio / 학명 검증)
 - [ ] 색상 대비 최종 실측
 
@@ -453,7 +485,8 @@ AI 해석
 
 | # | 항목 | 현재 상태 |
 |---|------|-----------|
-| A | Pretendard 설치 방식 | npm 패키지 vs CDN — 결정 필요 |
-| B | 앱 타이틀 최종 문구 | "NIFS 통계 분석" 잠정 결정, 확인 필요 |
+| A | Pretendard 설치 방식 | **CDN 확정** (jsdelivr dynamic subset) — 일반 연구자 대상, 외부망 제한 없음 |
+| B | 앱 타이틀 최종 문구 | **확정**: 외부(공개) = **BioHub** / 내부망(NIFS) = **NIFS 통계 분석** |
 | C | My Menu 구체적 구현 시점 | Phase 7 이후 별도 계획 |
 | D | Bio-Tools 사이드바 서브메뉴 | Bio-Tools 개발 시작 시 결정 |
+| E | Step 1 테이블 가상화 적용 시점 | 기본 100행 제한으로 시작, 대용량 요구 시 `@tanstack/react-virtual` 도입 |

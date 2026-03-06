@@ -1,3 +1,4 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "../lib/styles/analysis-styles.css";
@@ -7,8 +8,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: var(--font-jetbrains-mono, 'JetBrains Mono', 'Fira Code', monospace);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -89,8 +90,8 @@
 
 :root {
   --radius: 0.5rem;
-  /* Base - Pure White */
-  --background: oklch(1 0 0);
+  /* Base - 미세 쿨톤 (순백보다 전문적) */
+  --background: oklch(0.985 0.003 250);
   --foreground: oklch(0.2 0.02 260);
   /* Deep Navy Grey */
 
@@ -100,8 +101,8 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.2 0.02 260);
 
-  /* Brand - Trustworthy Science Blue */
-  --primary: oklch(0.45 0.15 260);
+  /* Brand - Vivid Science Blue */
+  --primary: oklch(0.52 0.20 260);
   --primary-foreground: oklch(1 0 0);
 
   /* Secondary/Muted */
@@ -118,9 +119,9 @@
   --destructive: oklch(0.6 0.15 25);
   /* Professional Alert Red */
 
-  /* Borders - Crisp */
-  --border: oklch(0.88 0.01 260);
-  --input: oklch(0.88 0.01 260);
+  /* Borders - Crisp Cool */
+  --border: oklch(0.91 0.008 260);
+  --input: oklch(0.91 0.008 260);
   --ring: oklch(0.7 0.1 260);
 
   /* Charts - Adjusted for White BG */
@@ -135,21 +136,22 @@
   --chart-5: oklch(0.5 0.05 260);
   /* Grey Blue */
 
-  --sidebar: oklch(0.98 0 0);
-  --sidebar-foreground: oklch(0.3 0.02 260);
-  /* Near black */
-  --sidebar-primary: oklch(0.1 0 0);
-  /* Near black */
+  /* Sidebar - Deep Navy (Calm Intelligence) */
+  --sidebar: oklch(0.13 0.02 260);
+  --sidebar-foreground: oklch(0.82 0.01 260);
+  /* Soft white */
+  --sidebar-primary: oklch(0.52 0.20 260);
+  /* Brand blue */
   --sidebar-primary-foreground: oklch(1 0 0);
   /* White */
-  --sidebar-accent: oklch(0.95 0 0);
-  /* Light gray */
-  --sidebar-accent-foreground: oklch(0.1 0 0);
-  /* Near black */
-  --sidebar-border: oklch(0.9 0 0);
-  /* Light gray */
-  --sidebar-ring: oklch(0.6 0 0);
-  /* Medium gray */
+  --sidebar-accent: oklch(0.20 0.03 260);
+  /* Hover - slightly lighter navy */
+  --sidebar-accent-foreground: oklch(0.95 0.005 260);
+  /* Near white */
+  --sidebar-border: oklch(0.22 0.02 260);
+  /* Subtle navy border */
+  --sidebar-ring: oklch(0.52 0.20 260);
+  /* Brand blue focus ring */
 
   /* Monochrome Design System */
   --hover-bg: oklch(0.95 0 0);
@@ -190,15 +192,16 @@
   --info-border: oklch(0.85 0.03 250);
   --info-muted: oklch(0.40 0.05 250);
 
-  /* Statistical Significance - Academic Convention
-     Reference: ggplot2/ggpubr uses grey for non-significant, color intensity for significant
-     See: https://www.sthda.com/english/articles/24-ggpubr-publication-ready-plots/ */
-  --stat-significant: oklch(0.50 0.12 25);
-  /* Rose - draws attention (p < 0.05) */
+  /* Statistical Significance - Academic Convention (Green = valid/significant)
+     변경 근거: 의학·생물학 관례에서 초록 = 통과/유효/유의(p<0.05)
+     장미/빨강은 "경고/위험" 연상 → 유의한 결과가 나쁜 것처럼 오해 유발
+     참조: 임상시험 결과 보고, 생태학 논문 관례 */
+  --stat-significant: oklch(0.50 0.14 145);
+  /* Green - valid/significant (p < 0.05) */
   --stat-non-significant: oklch(0.55 0 0);
   /* Grey - neutral, no judgment (p >= 0.05) */
-  --stat-highly-significant: oklch(0.45 0.15 25);
-  /* Deeper Rose - strong attention (p < 0.01) */
+  --stat-highly-significant: oklch(0.44 0.16 145);
+  /* Deeper Green - strong significance (p < 0.01) */
 
   /* Category Colors - Grayscale */
   --category-1: oklch(0.1 0 0);
@@ -279,8 +282,8 @@
   /* Dark gray */
   --popover-foreground: oklch(0.95 0 0);
   /* Near white */
-  --primary: oklch(0.9 0 0);
-  /* Light gray */
+  --primary: oklch(0.65 0.18 260);
+  /* Brand blue restored - not gray */
   --primary-foreground: oklch(0.05 0 0);
   /* Near black */
   --secondary: oklch(0.15 0 0);
@@ -313,8 +316,8 @@
   /* Dark gray */
   --chart-5: oklch(0.15 0 0);
   /* Very dark gray */
-  --sidebar: oklch(0.08 0 0);
-  /* Very dark gray */
+  --sidebar: oklch(0.08 0.02 260);
+  /* Very dark navy */
   --sidebar-foreground: oklch(0.95 0 0);
   /* Near white */
   --sidebar-primary: oklch(0.9 0 0);
@@ -369,13 +372,13 @@
   --info-border: oklch(0.35 0.03 250);
   --info-muted: oklch(0.58 0.05 250);
 
-  /* Dark Mode Statistical Significance - Academic Convention */
-  --stat-significant: oklch(0.70 0.12 25);
-  /* Rose (p < 0.05) */
+  /* Dark Mode Statistical Significance - Green = valid/significant */
+  --stat-significant: oklch(0.68 0.14 145);
+  /* Green (p < 0.05) */
   --stat-non-significant: oklch(0.60 0 0);
   /* Grey - neutral (p >= 0.05) */
-  --stat-highly-significant: oklch(0.75 0.15 25);
-  /* Brighter Rose (p < 0.01) */
+  --stat-highly-significant: oklch(0.72 0.16 145);
+  /* Brighter Green (p < 0.01) */
 
   /* Dark Mode Category Colors - Grayscale */
   --category-1: oklch(0.9 0 0);
@@ -459,6 +462,23 @@
 }
 
 @layer utilities {
+
+  /* Statistical Number Display - JetBrains Mono, tabular alignment */
+  .font-stats {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  .font-stats-hero {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+    font-size: 3rem;      /* 48px */
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
 
   /* Floating Chatbot - 4-Direction Resize */
   .resizable-container {

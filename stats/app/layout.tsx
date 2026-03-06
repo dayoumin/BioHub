@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next"
+import { JetBrains_Mono } from "next/font/google"
 import "./globals.css"
-import { ConditionalHeader } from "@/components/layout/conditional-header"
+import { AppSidebar } from "@/components/layout/app-sidebar"
 import { Toaster } from "@/components/ui/sonner"
 import { ClientProviders } from "@/components/providers/ClientProviders"
 import { UIProvider } from "@/contexts/ui-context"
@@ -8,15 +9,20 @@ import { LayoutContent } from "@/components/layout/layout-content"
 import { GlobalFeedbackPanel } from "@/components/feedback/GlobalFeedbackPanel"
 import { TerminologyProvider } from "@/lib/terminology"
 
-// 외부망 환경에서 Google Fonts 접근 불가 시 시스템 폰트 사용
-const systemFontClass = "font-sans"
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
+  display: 'swap',
+})
+
+const appTitle = process.env.NEXT_PUBLIC_APP_TITLE ?? "BioHub"
 
 export const metadata: Metadata = {
   title: {
-    default: "통계 분석 플랫폼",
-    template: "%s | 통계 분석 플랫폼"
+    default: appTitle,
+    template: `%s | ${appTitle}`
   },
-  description: "전문가급 통계 분석 도구 - SPSS와 R Studio의 강력함을 웹에서",
+  description: "AI 기반 전문 통계 분석 플랫폼 - 연구자를 위한 데이터 분석 도구",
   keywords: ["통계", "분석", "SPSS", "R", "데이터", "과학", "연구"],
   manifest: "/manifest.json",
   appleWebApp: {
@@ -40,14 +46,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko" suppressHydrationWarning>
-      <body className={`${systemFontClass} min-w-[375px]`}>
+      <body className={`${jetbrainsMono.variable} font-sans min-w-[375px]`}>
         <ClientProviders>
           <TerminologyProvider initialDomain="aquaculture">
             <UIProvider>
               <div className="flex h-screen overflow-hidden">
+                {/* 전체 플랫폼 공유 사이드바 */}
+                <AppSidebar />
+
                 {/* 메인 영역 */}
                 <div className="flex-1 flex flex-col overflow-hidden">
-                  <ConditionalHeader />
                   <div className="relative flex-1 overflow-hidden">
                     <main className="h-full overflow-y-auto overflow-x-hidden scrollbar-hide">
                       {children}
