@@ -3,7 +3,7 @@
  *
  * 검증 범위:
  * 1. previewMode / setPreviewMode 제거 확인 (dead state 정리)
- * 2. sidePanel 초기값 및 setSidePanel
+ * 2. sidePanel / setSidePanel 제거 확인 (G5.0: 3패널 전환)
  * 3. chartSpec 히스토리 (setChartSpec / updateChartSpec / undo / redo)
  * 4. resetAll 후 상태 초기화
  */
@@ -53,25 +53,15 @@ describe('Store 계약 — previewMode 제거', () => {
   })
 })
 
-// ─── sidePanel ────────────────────────────────────────────
+// ─── sidePanel 제거 확인 (G5.0) ─────────────────────────
 
-describe('sidePanel', () => {
-  it("초기값은 'data'이다", () => {
-    expect(useGraphStudioStore.getState().sidePanel).toBe('data')
+describe('sidePanel 제거 (G5.0)', () => {
+  it('sidePanel 필드가 state에 없다', () => {
+    expect('sidePanel' in useGraphStudioStore.getState()).toBe(false)
   })
 
-  it("setSidePanel('style')으로 변경된다", () => {
-    act(() => {
-      useGraphStudioStore.getState().setSidePanel('style')
-    })
-    expect(useGraphStudioStore.getState().sidePanel).toBe('style')
-  })
-
-  it("setSidePanel('data') → setSidePanel('style') 순서 변경이 반영된다", () => {
-    act(() => { useGraphStudioStore.getState().setSidePanel('data') })
-    expect(useGraphStudioStore.getState().sidePanel).toBe('data')
-    act(() => { useGraphStudioStore.getState().setSidePanel('style') })
-    expect(useGraphStudioStore.getState().sidePanel).toBe('style')
+  it('setSidePanel 액션이 state에 없다', () => {
+    expect('setSidePanel' in useGraphStudioStore.getState()).toBe(false)
   })
 })
 
@@ -165,7 +155,6 @@ describe('resetAll', () => {
   it('모든 상태를 초기값으로 되돌린다', () => {
     act(() => {
       useGraphStudioStore.getState().setChartSpec(makeSpec())
-      useGraphStudioStore.getState().setSidePanel('style')
       useGraphStudioStore.getState().resetAll()
     })
 
@@ -173,7 +162,6 @@ describe('resetAll', () => {
     expect(state.chartSpec).toBeNull()
     expect(state.specHistory).toHaveLength(0)
     expect(state.historyIndex).toBe(-1)
-    expect(state.sidePanel).toBe('data')
     expect(state.isDataLoaded).toBe(false)
   })
 })
@@ -238,6 +226,149 @@ describe('loadDataPackage', () => {
 
     const spec = useGraphStudioStore.getState().chartSpec
     expect(spec?.encoding.x.field).not.toBe(spec?.encoding.y.field)
+  })
+})
+
+// ─── loadDataPackage — 프로젝트 복원 모드 ─────────────────
+
+describe('loadDataPackage — 프로젝트 복원 모드', () => {
+  it('setProject 후 같은 컬럼의 데이터 업로드 → 기존 chartSpec 보존', () => {
+    const spec = makeSpec('My Custom Chart')
+    const project = makeProject({ chartSpec: spec })
+
+    // 1. 프로젝트 복원 (데이터 없음)
+    act(() => { useGraphStudioStore.getState().setProject(project) })
+    expect(useGraphStudioStore.getState().isDataLoaded).toBe(false)
+    expect(useGraphStudioStore.getState().currentProject?.id).toBe('proj-1')
+
+    // 2. 같은 컬럼 구조의 데이터 재업로드
+    const pkg = makePkg({
+      id: 'new-upload',
+      columns: [
+        { name: 'group', type: 'nominal', uniqueCount: 3, sampleValues: [], hasNull: false },
+        { name: 'value', type: 'quantitative', uniqueCount: 10, sampleValues: [], hasNull: false },
+      ],
+    })
+    act(() => { useGraphStudioStore.getState().loadDataPackage(pkg) })
+
+    const state = useGraphStudioStore.getState()
+    // 기존 chartSpec 보존 (title 유지)
+    expect(state.chartSpec?.title).toBe('My Custom Chart')
+    // data.sourceId만 갱신
+    expect(state.chartSpec?.data.sourceId).toBe('new-upload')
+    // 프로젝트 연결 유지
+    expect(state.currentProject?.id).toBe('proj-1')
+    expect(state.isDataLoaded).toBe(true)
+  })
+
+  it('setProject 후 다른 컬럼의 데이터 업로드 → 새 spec 생성 + currentProject 해제', () => {
+    const spec = makeSpec('My Custom Chart')
+    const project = makeProject({ chartSpec: spec })
+
+    // 1. 프로젝트 복원
+    act(() => { useGraphStudioStore.getState().setProject(project) })
+
+    // 2. 다른 컬럼 구조의 데이터 업로드 (group, value 없음)
+    const pkg = makePkg({
+      id: 'different-data',
+      columns: [
+        { name: 'temperature', type: 'quantitative', uniqueCount: 50, sampleValues: [], hasNull: false },
+        { name: 'humidity', type: 'quantitative', uniqueCount: 30, sampleValues: [], hasNull: false },
+      ],
+    })
+    act(() => { useGraphStudioStore.getState().loadDataPackage(pkg) })
+
+    const state = useGraphStudioStore.getState()
+    // 새 spec 생성 (기존 title 아님)
+    expect(state.chartSpec?.title).not.toBe('My Custom Chart')
+    // currentProject 해제 → 기존 프로젝트 덮어쓰기 방지
+    expect(state.currentProject).toBeNull()
+    expect(state.isDataLoaded).toBe(true)
+  })
+
+  it('currentProject 없이 loadDataPackage → 기존 동작 유지 (새 spec 생성)', () => {
+    // currentProject가 없는 일반 업로드 경우
+    const pkg = makePkg({
+      id: 'fresh-upload',
+      columns: [
+        { name: 'x', type: 'quantitative', uniqueCount: 5, sampleValues: [], hasNull: false },
+        { name: 'y', type: 'quantitative', uniqueCount: 5, sampleValues: [], hasNull: false },
+      ],
+    })
+    act(() => { useGraphStudioStore.getState().loadDataPackage(pkg) })
+
+    const state = useGraphStudioStore.getState()
+    expect(state.chartSpec).not.toBeNull()
+    expect(state.currentProject).toBeNull()
+    expect(state.isDataLoaded).toBe(true)
+  })
+
+  it('encoding.color 필드가 없는 데이터 → 새 spec + currentProject 해제', () => {
+    const spec: ChartSpec = {
+      ...makeSpec('Color Grouped'),
+      encoding: {
+        x: { field: 'group', type: 'nominal' },
+        y: { field: 'value', type: 'quantitative' },
+        color: { field: 'treatment', type: 'nominal' },
+      },
+    }
+    const project = makeProject({ chartSpec: spec })
+
+    act(() => { useGraphStudioStore.getState().setProject(project) })
+
+    // x, y 있지만 color('treatment')가 없음 → 비호환
+    const pkg = makePkg({
+      columns: [
+        { name: 'group', type: 'nominal', uniqueCount: 3, sampleValues: [], hasNull: false },
+        { name: 'value', type: 'quantitative', uniqueCount: 10, sampleValues: [], hasNull: false },
+      ],
+    })
+    act(() => { useGraphStudioStore.getState().loadDataPackage(pkg) })
+
+    expect(useGraphStudioStore.getState().chartSpec?.title).not.toBe('Color Grouped')
+    expect(useGraphStudioStore.getState().currentProject).toBeNull()
+  })
+
+  it('aggregate.groupBy 필드가 없는 데이터 → 새 spec + currentProject 해제', () => {
+    const spec: ChartSpec = {
+      ...makeSpec('Aggregated'),
+      aggregate: { y: 'mean', groupBy: ['category', 'treatment'] },
+    }
+    const project = makeProject({ chartSpec: spec })
+
+    act(() => { useGraphStudioStore.getState().setProject(project) })
+
+    // x, y 있지만 groupBy 'treatment' 없음 → 비호환
+    const pkg = makePkg({
+      columns: [
+        { name: 'group', type: 'nominal', uniqueCount: 3, sampleValues: [], hasNull: false },
+        { name: 'value', type: 'quantitative', uniqueCount: 10, sampleValues: [], hasNull: false },
+        { name: 'category', type: 'nominal', uniqueCount: 2, sampleValues: [], hasNull: false },
+      ],
+    })
+    act(() => { useGraphStudioStore.getState().loadDataPackage(pkg) })
+
+    expect(useGraphStudioStore.getState().chartSpec?.title).not.toBe('Aggregated')
+    expect(useGraphStudioStore.getState().currentProject).toBeNull()
+  })
+
+  it('encoding.x만 일치하고 y가 없으면 → 새 spec + currentProject 해제', () => {
+    const spec = makeSpec('Partial Match')
+    const project = makeProject({ chartSpec: spec })
+
+    act(() => { useGraphStudioStore.getState().setProject(project) })
+
+    // x('group')는 있지만 y('value')가 없음
+    const pkg = makePkg({
+      columns: [
+        { name: 'group', type: 'nominal', uniqueCount: 3, sampleValues: [], hasNull: false },
+        { name: 'temperature', type: 'quantitative', uniqueCount: 50, sampleValues: [], hasNull: false },
+      ],
+    })
+    act(() => { useGraphStudioStore.getState().loadDataPackage(pkg) })
+
+    expect(useGraphStudioStore.getState().chartSpec?.title).not.toBe('Partial Match')
+    expect(useGraphStudioStore.getState().currentProject).toBeNull()
   })
 })
 

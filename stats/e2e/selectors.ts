@@ -130,6 +130,12 @@ export const S = {
   graphStudioAiInput: '[data-testid="ai-panel-input"]',
   /** Graph Studio AI 패널 — 전송 버튼 */
   graphStudioAiSend: '[data-testid="ai-panel-send"]',
+  /** Graph Studio 좌측 데이터 패널 (G5.0) */
+  graphStudioLeftPanel: '[data-testid="graph-studio-left-panel"]',
+  /** Graph Studio 우측 속성 패널 (G5.0) */
+  graphStudioRightPanel: '[data-testid="graph-studio-right-panel"]',
+  /** Graph Studio 좌측 패널 토글 (G5.0) */
+  graphStudioLeftToggle: '[data-testid="graph-studio-left-toggle"]',
 
   // ===== Hub (추가 카드) =====
   hubVisualizationCard: '[data-testid="hub-visualization-card"]',

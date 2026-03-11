@@ -36,7 +36,6 @@ interface GraphStudioActions {
   redo: () => void;
 
   // UI
-  setSidePanel: (panel: GraphStudioState['sidePanel']) => void;
   toggleAiPanel: () => void;
   setAiPanelDock: (dock: AiPanelDock) => void;
 
@@ -54,7 +53,6 @@ const initialState: GraphStudioState = {
   chartSpec: null,
   specHistory: [],
   historyIndex: -1,
-  sidePanel: 'data',
   aiPanelOpen: false,
   aiPanelDock: 'bottom',
 };
@@ -68,6 +66,44 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
     // ── 데이터 ──
 
     loadDataPackage: (pkg) => {
+      const { chartSpec: existingSpec, currentProject } = get();
+
+      // 프로젝트 복원 모드: ?project= 경유로 setProject가 호출된 뒤 데이터만 재업로드.
+      // 기존 chartSpec을 보존하되 dataSourceId만 갱신한다.
+      // encoding 필드가 새 데이터 컬럼에 없으면 호환 불가 → 새 spec 생성 + currentProject 해제.
+      if (currentProject && existingSpec) {
+        const colNames = new Set(pkg.columns.map(c => c.name));
+
+        // 모든 인코딩 필드 + aggregate.groupBy + facet.field 검사
+        const fieldsToCheck: (string | undefined)[] = [
+          existingSpec.encoding.x?.field,
+          existingSpec.encoding.y?.field,
+          existingSpec.encoding.y2?.field,
+          existingSpec.encoding.color?.field,
+          existingSpec.encoding.shape?.field,
+          existingSpec.encoding.size?.field,
+          existingSpec.facet?.field,
+          ...(existingSpec.aggregate?.groupBy ?? []),
+        ];
+        const allFieldsOk = fieldsToCheck.every(f => !f || colNames.has(f));
+
+        if (allFieldsOk) {
+          const restoredSpec: ChartSpec = {
+            ...existingSpec,
+            data: { ...existingSpec.data, sourceId: pkg.id },
+          };
+          set({
+            dataPackage: pkg,
+            isDataLoaded: true,
+            chartSpec: restoredSpec,
+            specHistory: [restoredSpec],
+            historyIndex: 0,
+          });
+          return;
+        }
+        // encoding 불일치 → 기존 프로젝트 연결 해제 (덮어쓰기 방지)
+      }
+
       const spec = createChartSpecFromDataPackage(pkg);
       set({
         dataPackage: pkg,
@@ -75,6 +111,8 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         chartSpec: spec,
         specHistory: [spec],
         historyIndex: 0,
+        // encoding 불일치로 fall-through한 경우 currentProject 해제
+        currentProject: null,
       });
     },
 
@@ -160,7 +198,6 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
 
     // ── UI ──
 
-    setSidePanel: (panel) => set({ sidePanel: panel }),
     toggleAiPanel: () => set(state => ({ aiPanelOpen: !state.aiPanelOpen })),
     setAiPanelDock: (dock) => set({ aiPanelDock: dock }),
 
@@ -188,8 +225,6 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         chartSpec: spec,
         specHistory: [spec],
         historyIndex: 0,
-        // 구버전 sidePanel 값('properties', 'ai-chat' 등) 마이그레이션 → 'data'
-        sidePanel: 'data',
         // aiPanel 상태는 프로젝트와 독립적 — 구버전 localStorage 값 방지를 위해 초기화
         aiPanelOpen: false,
         aiPanelDock: 'bottom',

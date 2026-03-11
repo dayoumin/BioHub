@@ -10,17 +10,19 @@ import { useCallback } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
 import { Button } from '@/components/ui/button';
-import { Undo2, Redo2, PanelRightOpen, Sparkles } from 'lucide-react';
+import { Undo2, Redo2, PanelLeftOpen, PanelRightOpen, Sparkles } from 'lucide-react';
 import { ExportDialog } from './panels/ExportDialog';
 
 interface GraphStudioHeaderProps {
-  onToggleSidePanel?: () => void;
+  onToggleLeftPanel?: () => void;
+  onToggleRightPanel?: () => void;
   /** Stage 3: Export 버튼 클릭 핸들러 (GraphStudioPage에서 주입) */
   onExport?: () => void;
 }
 
 export function GraphStudioHeader({
-  onToggleSidePanel,
+  onToggleLeftPanel,
+  onToggleRightPanel,
   onExport,
 }: GraphStudioHeaderProps): React.ReactElement {
   const { chartSpec, historyIndex, specHistory, undo, redo, aiPanelOpen, toggleAiPanel } = useGraphStudioStore();
@@ -90,11 +92,22 @@ export function GraphStudioHeader({
           </Button>
         )}
         <ExportDialog onExport={onExport} />
-        {onToggleSidePanel && (
+        {onToggleLeftPanel && (
           <Button
             variant="ghost"
             size="icon"
-            onClick={onToggleSidePanel}
+            onClick={onToggleLeftPanel}
+            aria-label="Toggle left panel"
+            data-testid="graph-studio-left-toggle"
+          >
+            <PanelLeftOpen className="h-4 w-4" />
+          </Button>
+        )}
+        {onToggleRightPanel && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleRightPanel}
             aria-label="Toggle side panel"
             data-testid="graph-studio-side-toggle"
           >

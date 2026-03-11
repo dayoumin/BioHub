@@ -344,7 +344,7 @@ export interface GraphProject {
 
 // ─── AI Panel Dock ─────────────────────────────────────────
 
-export type AiPanelDock = 'bottom' | 'right' | 'left';
+export type AiPanelDock = 'bottom';
 
 // ─── Graph Studio Store State ──────────────────────────────
 
@@ -362,7 +362,6 @@ export interface GraphStudioState {
   historyIndex: number;
 
   // UI
-  sidePanel: 'data' | 'style';
   aiPanelOpen: boolean;
   aiPanelDock: AiPanelDock;
 }

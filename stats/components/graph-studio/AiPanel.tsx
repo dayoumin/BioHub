@@ -1,11 +1,9 @@
 'use client';
 
 /**
- * AiPanel — 도킹 가능한 AI 어시스턴트 패널
+ * AiPanel — 하단 고정 AI 어시스턴트 패널
  *
- * - bottom (기본): 하단 고정 (h-[220px])
- * - left: 좌측 패널 (w-80)
- * - right: 우측 패널 (w-80)
+ * G5.0: bottom 전용 (좌/우 도킹 제거 — 좌측 LeftDataPanel, 우측 RightPropertyPanel 고정)
  *
  * L1 카드 → L2 카드 드릴다운
  * - prompt 있는 L2: AI 입력창에 자동완성
@@ -25,9 +23,6 @@ import {
   Bot,
   User,
   X,
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
   Ruler,
   Palette,
   BarChart2,
@@ -35,8 +30,7 @@ import {
   TrendingUp,
   Maximize2,
 } from 'lucide-react';
-import type { ChatMessage, ChatRole } from '@/lib/graph-studio/use-ai-chat';
-import type { AiPanelDock } from '@/types/graph-studio';
+import type { ChatMessage } from '@/lib/graph-studio/use-ai-chat';
 
 // ─── 카드 데이터 ────────────────────────────────────────────
 
@@ -166,13 +160,10 @@ function MessageBubble({ message }: { message: ChatMessage }): React.ReactElemen
 // ─── AiPanel ───────────────────────────────────────────────
 
 export function AiPanel(): React.ReactElement {
-  const { aiPanelDock, setAiPanelDock, toggleAiPanel, chartSpec, setExportConfig } = useGraphStudioStore();
+  const { toggleAiPanel, chartSpec, setExportConfig } = useGraphStudioStore();
   const { messages, inputValue, setInputValue, isLoading, handleSend, handleKeyDown, textareaRef, messagesEndRef } = useAiChat();
 
   const [selectedL1, setSelectedL1] = useState<string | null>(null);
-
-  const isBottom = aiPanelDock === 'bottom';
-  const isSide = aiPanelDock === 'left' || aiPanelDock === 'right';
 
   // L2 카드 클릭: prompt → 입력창 자동완성 / directApply → 즉시 적용
   // directApply는 getState()로 최신 spec 참조 (useCallback 재생성 최소화)
@@ -191,60 +182,26 @@ export function AiPanel(): React.ReactElement {
 
   const selectedL1Data = AI_CARD_TREE.find(c => c.id === selectedL1);
 
-  // ─── 패널 컨테이너 클래스 ──────────────────────────────────
-
-  const containerClass = isBottom
-    ? 'border-t border-border bg-background flex flex-col'
-    : 'border-l border-border bg-background flex flex-col w-80 flex-shrink-0';
-
-  const containerStyle = isBottom ? { height: 220 } : undefined;
-
   return (
-    <div className={containerClass} style={containerStyle}>
+    <div className="border-t border-border bg-background flex flex-col" style={{ height: 220 }}>
       {/* 헤더 바 */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-border shrink-0">
         <span className="text-xs font-medium text-muted-foreground">AI 어시스턴트</span>
-        <div className="flex items-center gap-0.5">
-          <Button
-            variant="ghost" size="icon"
-            className={`h-6 w-6 ${aiPanelDock === 'left' ? 'text-primary' : ''}`}
-            onClick={() => { setAiPanelDock('left'); setSelectedL1(null); }}
-            title="왼쪽에 도킹"
-          >
-            <ArrowLeft className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost" size="icon"
-            className={`h-6 w-6 ${aiPanelDock === 'bottom' ? 'text-primary' : ''}`}
-            onClick={() => { setAiPanelDock('bottom'); setSelectedL1(null); }}
-            title="하단에 도킹"
-          >
-            <ArrowDown className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost" size="icon"
-            className={`h-6 w-6 ${aiPanelDock === 'right' ? 'text-primary' : ''}`}
-            onClick={() => { setAiPanelDock('right'); setSelectedL1(null); }}
-            title="오른쪽에 도킹"
-          >
-            <ArrowRight className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost" size="icon"
-            className="h-6 w-6"
-            onClick={toggleAiPanel}
-            title="패널 닫기"
-          >
-            <X className="h-3 w-3" />
-          </Button>
-        </div>
+        <Button
+          variant="ghost" size="icon"
+          className="h-6 w-6"
+          onClick={toggleAiPanel}
+          title="패널 닫기"
+        >
+          <X className="h-3 w-3" />
+        </Button>
       </div>
 
       {/* 콘텐츠 영역 */}
-      <div className={`flex flex-1 min-h-0 ${isBottom ? 'flex-row' : 'flex-col'} gap-2 p-2`}>
+      <div className="flex flex-1 min-h-0 flex-row gap-2 p-2">
 
         {/* L1/L2 카드 영역 */}
-        <div className={isBottom ? 'flex flex-col gap-1 shrink-0 w-[260px]' : 'shrink-0'}>
+        <div className="flex flex-col gap-1 shrink-0 w-[260px]">
           {/* L1 카드 */}
           <div className="flex gap-1 flex-wrap">
             {AI_CARD_TREE.map(card => {
