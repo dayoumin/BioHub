@@ -24,6 +24,7 @@ import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import { checkVariableCompatibility, CompatibilityResult } from '@/lib/utils/variable-compatibility'
 import type { ColumnInfo } from '@/lib/statistics/variable-mapping'
 import { useTerminology } from '@/hooks/use-terminology'
+import { extractDetectedVariables } from '@/lib/services/variable-detection-service'
 
 // UI Components
 import { InlineError } from '@/components/common/InlineError'
@@ -88,7 +89,8 @@ export default function HomePage() {
     quickAnalysisMode,
     setQuickAnalysisMode,
     setPurposeInputMode,
-    setUserQuery
+    setUserQuery,
+    setDetectedVariables
   } = useSmartFlowStore()
 
   // 스텝 전환 애니메이션 방향 추적
@@ -166,13 +168,21 @@ export default function HomePage() {
       // 빠른 분석 모드: 메서드 선택 완료 → 업로드 직후 변수 선택(Step 3)으로 자동 이동
       // 재분석 모드는 Step 1에서 호환성 결과를 보여야 하므로 제외
       if (currentState.quickAnalysisMode && currentState.selectedMethod && !currentState.isReanalysisMode) {
+        // Step 2 생략 시에도 heuristic 기반 변수 추론 (프리필용)
+        const detectedVars = extractDetectedVariables(
+          currentState.selectedMethod.id,
+          detailedValidation,
+          null  // LLM recommendation 없음 → 3순위 heuristic fallback
+        )
+        setDetectedVariables(detectedVars)
+
         toast.success(`${file.name} 업로드 완료 — 변수 선택으로 이동합니다`)
         navigateToStep(3)
       }
     } catch (err) {
       setError(t.smartFlow.errors.uploadFailed((err as Error).message))
     }
-  }, [setUploadedFile, setUploadedData, setValidationResults, setError, navigateToStep])
+  }, [setUploadedFile, setUploadedData, setValidationResults, setDetectedVariables, setError, navigateToStep])
 
   const handlePurposeSubmit = useCallback((purpose: string, method: StatisticalMethod) => {
     setAnalysisPurpose(purpose)
