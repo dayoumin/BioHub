@@ -14,46 +14,24 @@ export interface StepItem {
 }
 
 export interface FloatingStepIndicatorProps {
-  /** Step items to display */
   steps: StepItem[]
-  /** Current active step ID */
   currentStep: number
-  /** Callback when step is clicked */
   onStepChange?: (stepId: number) => void
-  /** Additional CSS classes */
   className?: string
-  /** Position variant */
   position?: 'sticky' | 'fixed'
-  /** Top offset for sticky/fixed positioning */
   topOffset?: string
+  /** 우측 보조 영역 (예: "예제 데이터 불러오기" 버튼) */
+  rightSlot?: React.ReactNode
 }
 
 /**
- * FloatingStepIndicator - Pill-shaped floating step indicator
+ * StepIndicator — STITCH 시안 스타일
  *
- * A modern, floating pill-style step indicator that can be used
- * for multi-step flows. Supports sticky or fixed positioning.
- *
- * Features:
- * - Pill-shaped container with backdrop blur
- * - Completed steps show checkmark
- * - Active step is highlighted
- * - Click to navigate (if step is accessible)
- *
- * @example
- * ```tsx
- * const steps = [
- *   { id: 1, label: 'Upload', icon: Upload },
- *   { id: 2, label: 'Configure', icon: Settings },
- *   { id: 3, label: 'Analyze', icon: Play },
- * ]
- *
- * <FloatingStepIndicator
- *   steps={steps}
- *   currentStep={2}
- *   onStepChange={(id) => setStep(id)}
- * />
- * ```
+ * 원형 번호 + 수평 연결선 + 하단 라벨
+ * - 완료: 파란 원 + ✓ 체크
+ * - 현재: 파란 테두리 + 번호
+ * - 미래: 회색 테두리 + 번호
+ * - 스킵: 회색 원 + ✓ (quickAnalysis)
  */
 export const FloatingStepIndicator = memo(function FloatingStepIndicator({
   steps,
@@ -61,27 +39,27 @@ export const FloatingStepIndicator = memo(function FloatingStepIndicator({
   onStepChange,
   className,
   position = 'sticky',
-  topOffset = '3.5rem'
+  topOffset = '3.5rem',
+  rightSlot,
 }: FloatingStepIndicatorProps) {
-  // Calculate completed steps
   const completedSteps = steps.filter(s => s.completed).map(s => s.id)
   const maxAccessibleStep = Math.max(...completedSteps, currentStep)
 
   return (
     <div
       className={cn(
-        "z-40 pointer-events-none",
+        "z-40 bg-background",
         position === 'sticky' && "sticky",
         position === 'fixed' && "fixed left-0 right-0",
         className
       )}
       style={{ top: topOffset }}
     >
-      <div className="max-w-6xl mx-auto px-6 pt-4 pb-2">
-        <div className="flex items-center justify-center">
-          {/* Floating Pill Container */}
+      <div className="max-w-6xl mx-auto px-6 py-4">
+        <div className="flex items-start justify-between">
+          {/* Step indicators */}
           <nav
-            className="pointer-events-auto inline-flex items-center bg-background/80 backdrop-blur-md border shadow-sm rounded-full px-6 py-2"
+            className="flex items-start"
             role="navigation"
             aria-label="Progress steps"
           >
@@ -90,10 +68,11 @@ export const FloatingStepIndicator = memo(function FloatingStepIndicator({
               const isCompleted = completedSteps.includes(step.id) || step.completed
               const isSkipped = !isActive && step.skipped
               const canClick = onStepChange && (isCompleted || step.id <= maxAccessibleStep)
-              const StepIcon = step.icon
+              const isLast = idx === steps.length - 1
 
               return (
-                <div key={step.id} className="flex items-center">
+                <div key={step.id} className="flex items-start">
+                  {/* Step: circle + label */}
                   <button
                     onClick={() => canClick && onStepChange?.(step.id)}
                     disabled={!canClick}
@@ -101,53 +80,69 @@ export const FloatingStepIndicator = memo(function FloatingStepIndicator({
                     aria-label={`${step.label} (Step ${step.id}${isSkipped ? ', auto-skipped' : isCompleted ? ', completed' : ''})`}
                     data-testid={`stepper-step-${step.id}`}
                     className={cn(
-                      "flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 text-sm relative group",
-                      canClick && "hover:bg-muted/80 cursor-pointer active:scale-95",
-                      !canClick && "cursor-default opacity-50",
-                      isActive && "bg-primary text-primary-foreground hover:bg-primary shadow-md",
-                      isSkipped && "text-amber-600 dark:text-amber-400",
-                      isCompleted && !isActive && !isSkipped && "text-muted-foreground hover:text-foreground"
+                      "flex flex-col items-center gap-2 transition-all",
+                      canClick && "cursor-pointer",
+                      !canClick && "cursor-default",
                     )}
                   >
-                    {/* Active Pip Animation */}
-                    {isActive && (
-                      <span className="absolute inset-0 rounded-full bg-primary/20 animate-ping -z-10" />
-                    )}
-                    {/* Step Number/Icon Circle */}
+                    {/* Circle */}
                     <div className={cn(
-                      "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-transform group-hover:scale-110",
-                      isSkipped && "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400",
-                      isCompleted && !isActive && !isSkipped && "bg-primary/10 text-primary",
-                      isActive && "bg-background text-primary",
-                      !isActive && !isCompleted && "bg-muted text-muted-foreground"
+                      "w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all border-2",
+                      // 완료: 파란 배경 + 흰 체크
+                      isCompleted && !isActive && !isSkipped && "bg-primary border-primary text-primary-foreground",
+                      // 스킵(완료): 회색 배경 + 체크
+                      isSkipped && "bg-muted border-muted-foreground/30 text-muted-foreground",
+                      // 현재: 파란 테두리 + 파란 번호
+                      isActive && "border-primary bg-primary text-primary-foreground",
+                      // 미래: 회색 테두리 + 회색 번호
+                      !isActive && !isCompleted && !isSkipped && "border-muted-foreground/30 bg-background text-muted-foreground",
                     )}>
                       {isSkipped ? (
-                        <Zap className="w-3 h-3" />
+                        <Check className="w-4 h-4" />
                       ) : isCompleted && !isActive ? (
-                        <Check className="w-3 h-3" />
-                      ) : StepIcon ? (
-                        <StepIcon className="w-3 h-3" />
+                        <Check className="w-4 h-4" />
                       ) : (
                         <span>{step.id}</span>
                       )}
                     </div>
-                    {/* Step Label */}
+
+                    {/* Label */}
                     <span className={cn(
-                      "font-medium",
-                      isActive ? "text-primary-foreground" : ""
+                      "text-xs font-medium whitespace-nowrap",
+                      isActive && "text-primary",
+                      isCompleted && !isActive && "text-primary",
+                      isSkipped && "text-muted-foreground",
+                      !isActive && !isCompleted && !isSkipped && "text-muted-foreground",
                     )}>
                       {step.label}
                     </span>
                   </button>
 
-                  {/* Connector Line */}
-                  {idx < steps.length - 1 && (
-                    <div className="w-4 h-px bg-border mx-1" aria-hidden="true" />
+                  {/* Connector line */}
+                  {!isLast && (
+                    <div className="flex items-center pt-4 px-1">
+                      <div className={cn(
+                        "w-16 sm:w-24 h-0.5 transition-colors",
+                        // 이 연결선 다음 스텝이 완료됐거나 현재면 파란색
+                        (isCompleted || isActive) && (steps[idx + 1]?.completed || steps[idx + 1]?.id === currentStep)
+                          ? "bg-primary"
+                          : isCompleted || isActive
+                            ? "bg-primary/40"
+                            : "bg-muted-foreground/20",
+                      )} />
+                    </div>
                   )}
                 </div>
               )
             })}
           </nav>
+
+          {/* Right slot */}
+          {rightSlot && (
+            <div className="flex-shrink-0 ml-4">
+              {rightSlot}
+            </div>
+          )}
         </div>
       </div>
     </div>

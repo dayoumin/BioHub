@@ -138,10 +138,10 @@ export const generic: TerminologyDictionary = {
       results: 'Results'
     },
     stepShortLabels: {
-      exploration: 'Explore',
+      exploration: 'Data Upload',
       method: 'Method',
       variable: 'Variables',
-      analysis: 'Analyze'
+      analysis: 'Results'
     },
     statusMessages: {
       analyzing: 'Analyzing data...',
@@ -484,12 +484,12 @@ export const generic: TerminologyDictionary = {
       aiTitle: 'AI Recommend',
       aiDescription: 'Describe your analysis goal in natural language and get optimal method recommendations for your data',
       aiLink: 'Get Started',
-      recentTitle: 'Recent Analyses',
+      recentTitle: 'Recent Activity',
       viewAll: 'View All',
       historyLabel: 'History',
       unknownMethod: 'Unknown',
-      emptyTitle: 'No analysis records yet',
-      emptyDescription: 'Start your first analysis',
+      emptyTitle: 'No activity records yet',
+      emptyDescription: 'Start a statistical analysis or data visualization',
       showMore: (n: number) => `View all ${n}`,
     },
     quickAnalysis: {
@@ -558,6 +558,7 @@ export const generic: TerminologyDictionary = {
     recentStatus: {
       completed: 'Completed',
       inProgress: 'In Progress',
+      visualization: 'Visualization',
     },
   },
 

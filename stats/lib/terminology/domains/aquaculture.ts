@@ -139,10 +139,10 @@ export const aquaculture: TerminologyDictionary = {
       results: '결과 확인'
     },
     stepShortLabels: {
-      exploration: '탐색',
-      method: '방법',
-      variable: '변수',
-      analysis: '분석'
+      exploration: '데이터 업로드',
+      method: '방법 선택',
+      variable: '변수 설정',
+      analysis: '결과'
     },
     statusMessages: {
       analyzing: '데이터 분석 중...',
@@ -485,12 +485,12 @@ export const aquaculture: TerminologyDictionary = {
       aiTitle: 'AI 추천',
       aiDescription: '분석 목적을 자연어로 설명하면 데이터에 맞는 최적의 방법을 추천합니다',
       aiLink: '시작하기',
-      recentTitle: '최근 분석',
+      recentTitle: '최근 활동',
       viewAll: '전체 보기',
       historyLabel: '히스토리',
       unknownMethod: '알 수 없음',
-      emptyTitle: '아직 분석 기록이 없습니다',
-      emptyDescription: '첫 분석을 시작해보세요',
+      emptyTitle: '아직 활동 기록이 없습니다',
+      emptyDescription: '통계 분석이나 데이터 시각화를 시작해보세요',
       showMore: (n: number) => `전체 ${n}개 보기`,
     },
     quickAnalysis: {
@@ -564,6 +564,7 @@ export const aquaculture: TerminologyDictionary = {
     recentStatus: {
       completed: '완료',
       inProgress: '진행 중',
+      visualization: '시각화',
     },
   },
 
