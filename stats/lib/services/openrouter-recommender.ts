@@ -493,6 +493,7 @@ ${userInput}`
           context += `- 고유값: ${col.uniqueValues ?? '-'}\n`
           if (col.missingCount) context += `- 결측: ${col.missingCount}\n`
           if (col.outliers?.length) context += `- 이상치: ${col.outliers.length}개\n`
+          if (col.normality) context += `- 정규성(${col.normality.testName}): p=${col.normality.pValue.toFixed(4)} → ${col.normality.isNormal ? '정규분포' : '비정규분포'}\n`
         } else if (col.type === 'categorical') {
           context += `\n### ${col.name} (범주형)\n`
           context += `- 카테고리 수: ${col.uniqueValues ?? '-'}\n`

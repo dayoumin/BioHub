@@ -25,6 +25,7 @@ import { checkVariableCompatibility, CompatibilityResult } from '@/lib/utils/var
 import type { ColumnInfo } from '@/lib/statistics/variable-mapping'
 import { useTerminology } from '@/hooks/use-terminology'
 import { extractDetectedVariables } from '@/lib/services/variable-detection-service'
+import { enrichWithNormality } from '@/lib/services/normality-enrichment-service'
 
 // UI Components
 import { InlineError } from '@/components/common/InlineError'
@@ -90,7 +91,8 @@ export default function HomePage() {
     setQuickAnalysisMode,
     setPurposeInputMode,
     setUserQuery,
-    setDetectedVariables
+    setDetectedVariables,
+    patchColumnNormality
   } = useSmartFlowStore()
 
   // 스텝 전환 애니메이션 방향 추적
@@ -165,6 +167,23 @@ export default function HomePage() {
         setReanalysisCompatibility(compatibility)
       }
 
+      // 비동기 정규성 검정 (fire-and-forget — UI 비차단)
+      // Step 2 AI 추천 시 normality 정보 활용, 실패해도 분석 흐름 차단 안 함
+      if (detailedValidation.columnStats?.length) {
+        const capturedNonce = useSmartFlowStore.getState().uploadNonce
+        enrichWithNormality(detailedValidation.columnStats, data)
+          .then(({ enrichedColumns, testedCount }) => {
+            if (testedCount > 0) {
+              // stale check: nonce가 바뀌었으면 이미 다른 파일이 업로드된 것
+              const current = useSmartFlowStore.getState()
+              if (current.uploadNonce !== capturedNonce) return
+              // normality만 패치 — assumptionResults/methodCompatibility 보존
+              patchColumnNormality(enrichedColumns)
+            }
+          })
+          .catch(() => { /* graceful degradation — normality 없이 진행 */ })
+      }
+
       // 빠른 분석 모드: 메서드 선택 완료 → 업로드 직후 변수 선택(Step 3)으로 자동 이동
       // 재분석 모드는 Step 1에서 호환성 결과를 보여야 하므로 제외
       if (currentState.quickAnalysisMode && currentState.selectedMethod && !currentState.isReanalysisMode) {
@@ -182,7 +201,7 @@ export default function HomePage() {
     } catch (err) {
       setError(t.smartFlow.errors.uploadFailed((err as Error).message))
     }
-  }, [setUploadedFile, setUploadedData, setValidationResults, setDetectedVariables, setError, navigateToStep])
+  }, [setUploadedFile, setUploadedData, setValidationResults, patchColumnNormality, setDetectedVariables, setError, navigateToStep])
 
   const handlePurposeSubmit = useCallback((purpose: string, method: StatisticalMethod) => {
     setAnalysisPurpose(purpose)

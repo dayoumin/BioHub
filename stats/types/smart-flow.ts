@@ -67,6 +67,13 @@ export interface ColumnStatistics {
   kurtosis?: number
   cv?: number  // Coefficient of Variation
   outliers?: number[]
+  // 정규성 검정 결과 (Step 1 완료 후 Pyodide lazy 계산)
+  normality?: {
+    statistic: number
+    pValue: number
+    isNormal: boolean   // pValue > 0.05
+    testName: 'shapiro-wilk' | 'kolmogorov-smirnov'
+  }
   // 범주형 변수일 경우
   topCategories?: { value: string; count: number }[]
   topValues?: { value: string; count: number }[]

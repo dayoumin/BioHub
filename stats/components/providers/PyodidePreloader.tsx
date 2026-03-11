@@ -23,7 +23,10 @@ import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.ser
 import { PyodideStatisticsService } from '@/lib/services/pyodide-statistics'
 
 /** Pyodide 프리로드가 필요한 라우트 접두사 */
-const PYODIDE_ROUTES = ['/smart-flow', '/statistics']
+const PYODIDE_ROUTE_PREFIXES = ['/smart-flow', '/statistics']
+
+/** 홈('/')은 Smart Flow 허브이므로 Pyodide 필요 (exact match) */
+const PYODIDE_EXACT_ROUTES = ['/']
 
 /**
  * requestIdleCallback 호출 (SSR 안전 + Safari 폴리필)
@@ -56,8 +59,9 @@ export function PyodidePreloader() {
     // 이미 초기화 시작했으면 스킵
     if (startedRef.current) return
 
-    // Smart Flow / Statistics 라우트가 아니면 프리로드 스킵
-    const needsPyodide = PYODIDE_ROUTES.some(route => pathname.startsWith(route))
+    // Smart Flow / Statistics / Home 라우트가 아니면 프리로드 스킵
+    const needsPyodide = PYODIDE_ROUTE_PREFIXES.some(prefix => pathname.startsWith(prefix))
+      || PYODIDE_EXACT_ROUTES.includes(pathname)
     if (!needsPyodide) return
 
     startedRef.current = true
