@@ -572,6 +572,7 @@ export interface HubText {
   recentStatus: {
     completed: string
     inProgress: string
+    visualization: string
   }
 }
 

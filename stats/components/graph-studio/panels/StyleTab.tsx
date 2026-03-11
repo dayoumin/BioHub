@@ -4,11 +4,15 @@
  * 스타일 탭 — 시각적 표현 (어떻게 보일?)
  *
  * Y축 범위·로그 스케일·X축 범위·범례 위치·학술 스타일 프리셋.
- * PropertiesTab에서 분리. 데이터 매핑은 DataTab 참조.
+ * 모든 상태/핸들러는 useStyleTabLogic 훅에서 관리. (G5.2)
  */
 
-import { useCallback, useState, useEffect, useMemo } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
+import {
+  useStyleTabLogic,
+  FONT_OPTIONS,
+  PRESET_LIST,
+} from '@/lib/graph-studio/useStyleTabLogic';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -21,264 +25,26 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Check } from 'lucide-react';
-import { STYLE_PRESETS } from '@/lib/graph-studio/chart-spec-defaults';
-import type { ChartType, LegendSpec, StylePreset } from '@/types/graph-studio';
-
-/** 폰트 옵션 목록 */
-const FONT_OPTIONS: { value: string; label: string }[] = [
-  { value: 'Arial, Helvetica, sans-serif',  label: 'Arial (sans-serif)' },
-  { value: 'Times New Roman, serif',         label: 'Times New Roman (serif)' },
-  { value: 'Noto Sans KR, sans-serif',       label: 'Noto Sans KR (한국어)' },
-  { value: 'Courier New, monospace',         label: 'Courier New (monospace)' },
-  { value: 'Georgia, serif',                 label: 'Georgia (serif)' },
-];
-
-/** 데이터 레이블을 지원하는 차트 유형 */
-const DATA_LABEL_CHART_TYPES = new Set<ChartType>(['bar', 'grouped-bar', 'stacked-bar']);
-
-/** n= 표본 수 표기를 지원하는 차트 유형 */
-const SAMPLE_COUNT_CHART_TYPES = new Set<ChartType>(['bar', 'grouped-bar', 'stacked-bar', 'error-bar']);
-
-const PRESET_LIST: { key: StylePreset; label: string; description: string }[] = [
-  { key: 'default',   label: 'Default',   description: '깔끔한 기본 스타일 (Arial, 컬러)' },
-  { key: 'science',   label: 'Science',   description: 'Nature/Science 유사 (Times New Roman)' },
-  { key: 'ieee',      label: 'IEEE',      description: 'IEEE 학회 스타일 (흑백, 작은 폰트)' },
-  { key: 'grayscale', label: 'Grayscale', description: '흑백 전용 (인쇄 친화)' },
-];
 
 export function StyleTab(): React.ReactElement {
-  const { chartSpec, updateChartSpec, dataPackage } = useGraphStudioStore();
+  const chartSpec = useGraphStudioStore(state => state.chartSpec);
+  const logic = useStyleTabLogic();
 
-  const [yMinInput, setYMinInput] = useState(
-    chartSpec?.encoding.y.scale?.domain?.[0] !== undefined
-      ? String(chartSpec.encoding.y.scale.domain[0])
-      : '',
-  );
-  const [yMaxInput, setYMaxInput] = useState(
-    chartSpec?.encoding.y.scale?.domain?.[1] !== undefined
-      ? String(chartSpec.encoding.y.scale.domain[1])
-      : '',
-  );
-  const [xMinInput, setXMinInput] = useState(
-    chartSpec?.encoding.x.scale?.domain?.[0] !== undefined
-      ? String(chartSpec.encoding.x.scale.domain[0])
-      : '',
-  );
-  const [xMaxInput, setXMaxInput] = useState(
-    chartSpec?.encoding.x.scale?.domain?.[1] !== undefined
-      ? String(chartSpec.encoding.x.scale.domain[1])
-      : '',
-  );
-
-  // B2: 범례 레이블 편집 draft 상태 (onBlur 커밋 패턴)
-  const [customLabelDraft, setCustomLabelDraft] = useState<Record<string, string>>(
-    () => chartSpec?.encoding.color?.legend?.customLabels ?? {},
-  );
-
-  useEffect(() => {
-    const domain = chartSpec?.encoding.y.scale?.domain;
-    setYMinInput(domain?.[0] !== undefined ? String(domain[0]) : '');
-    setYMaxInput(domain?.[1] !== undefined ? String(domain[1]) : '');
-  }, [chartSpec?.encoding.y.scale?.domain]);
-
-  useEffect(() => {
-    const domain = chartSpec?.encoding.x.scale?.domain;
-    setXMinInput(domain?.[0] !== undefined ? String(domain[0]) : '');
-    setXMaxInput(domain?.[1] !== undefined ? String(domain[1]) : '');
-  }, [chartSpec?.encoding.x.scale?.domain]);
-
-  // B2: AI 편집·undo 등 외부 변경 시 draft 동기화
-  useEffect(() => {
-    setCustomLabelDraft(chartSpec?.encoding.color?.legend?.customLabels ?? {});
-  }, [chartSpec?.encoding.color?.legend?.customLabels]);
-
-  // ─── 로그 스케일 ──────────────────────────────────────────
-
-  const handleLogScaleToggle = useCallback((checked: boolean) => {
-    if (!chartSpec) return;
-    const currentDomain = chartSpec.encoding.y.scale?.domain;
-    // 로그 스케일 활성화 시 min ≤ 0인 numeric domain은 무효 → 자동 제거 (로그(0) = -∞)
-    const invalidMinForLog =
-      checked &&
-      typeof currentDomain?.[0] === 'number' &&
-      currentDomain[0] <= 0;
-    const domain = invalidMinForLog ? undefined : currentDomain;
-    if (invalidMinForLog) {
-      setYMinInput('');
-      setYMaxInput('');
-    }
-    updateChartSpec({
-      ...chartSpec,
-      encoding: {
-        ...chartSpec.encoding,
-        y: {
-          ...chartSpec.encoding.y,
-          scale: { ...chartSpec.encoding.y.scale, type: checked ? 'log' : 'linear', domain },
-        },
-      },
-    });
-  }, [chartSpec, updateChartSpec]);
-
-  // ─── Y축 범위 ─────────────────────────────────────────────
-
-  const handleYRangeBlur = useCallback(() => {
-    if (!chartSpec) return;
-    const min = parseFloat(yMinInput);
-    const max = parseFloat(yMaxInput);
-    const domain: [number, number] | undefined =
-      (!isNaN(min) && !isNaN(max)) ? [min, max] : undefined;
-    const currentDomain = chartSpec.encoding.y.scale?.domain;
-    if (JSON.stringify(domain) !== JSON.stringify(currentDomain)) {
-      updateChartSpec({
-        ...chartSpec,
-        encoding: {
-          ...chartSpec.encoding,
-          y: {
-            ...chartSpec.encoding.y,
-            scale: { ...chartSpec.encoding.y.scale, domain },
-          },
-        },
-      });
-    }
-  }, [chartSpec, yMinInput, yMaxInput, updateChartSpec]);
-
-  // ─── X축 범위 ─────────────────────────────────────────────
-
-  const handleXRangeBlur = useCallback(() => {
-    if (!chartSpec) return;
-    const min = parseFloat(xMinInput);
-    const max = parseFloat(xMaxInput);
-    const domain: [number, number] | undefined =
-      (!isNaN(min) && !isNaN(max)) ? [min, max] : undefined;
-    const currentDomain = chartSpec.encoding.x.scale?.domain;
-    if (JSON.stringify(domain) !== JSON.stringify(currentDomain)) {
-      updateChartSpec({
-        ...chartSpec,
-        encoding: {
-          ...chartSpec.encoding,
-          x: {
-            ...chartSpec.encoding.x,
-            scale: { ...chartSpec.encoding.x.scale, domain },
-          },
-        },
-      });
-    }
-  }, [chartSpec, xMinInput, xMaxInput, updateChartSpec]);
-
-  // ─── 범례 위치 ────────────────────────────────────────────
-
-  const handleLegendOrientChange = useCallback((value: string) => {
-    if (!chartSpec?.encoding.color) return;
-    updateChartSpec({
-      ...chartSpec,
-      encoding: {
-        ...chartSpec.encoding,
-        color: {
-          ...chartSpec.encoding.color,
-          legend: {
-            ...chartSpec.encoding.color.legend,
-            orient: value as LegendSpec['orient'],
-          },
-        },
-      },
-    });
-  }, [chartSpec, updateChartSpec]);
-
-  // ─── 데이터 레이블 ────────────────────────────────────────
-
-  const handleDataLabelsToggle = useCallback((checked: boolean) => {
-    if (!chartSpec) return;
-    updateChartSpec({
-      ...chartSpec,
-      style: { ...chartSpec.style, showDataLabels: checked ? true : undefined },
-    });
-  }, [chartSpec, updateChartSpec]);
-
-  // ─── n= 표본 수 표기 (B1) ────────────────────────────────
-
-  const handleSampleCountsToggle = useCallback((checked: boolean) => {
-    if (!chartSpec) return;
-    updateChartSpec({
-      ...chartSpec,
-      style: { ...chartSpec.style, showSampleCounts: checked ? true : undefined },
-    });
-  }, [chartSpec, updateChartSpec]);
-
-  // ─── 범례 레이블 편집 (B2) ────────────────────────────────
-
-  const handleCustomLabelChange = useCallback((raw: string, value: string) => {
-    setCustomLabelDraft(prev => ({ ...prev, [raw]: value }));
-  }, []);
-
-  const commitCustomLabels = useCallback(() => {
-    if (!chartSpec?.encoding.color) return;
-    const cleaned = Object.fromEntries(
-      Object.entries(customLabelDraft).filter(([, v]) => v.trim() !== ''),
-    );
-    updateChartSpec({
-      ...chartSpec,
-      encoding: {
-        ...chartSpec.encoding,
-        color: {
-          ...chartSpec.encoding.color,
-          legend: {
-            ...chartSpec.encoding.color.legend,
-            customLabels: Object.keys(cleaned).length > 0 ? cleaned : undefined,
-          },
-        },
-      },
-    });
-  }, [chartSpec, customLabelDraft, updateChartSpec]);
-
-  // ─── 폰트 선택 ───────────────────────────────────────────
-
-  const handleFontChange = useCallback((fontFamily: string) => {
-    if (!chartSpec) return;
-    updateChartSpec({
-      ...chartSpec,
-      style: {
-        ...chartSpec.style,
-        font: { ...chartSpec.style.font, family: fontFamily },
-      },
-    });
-  }, [chartSpec, updateChartSpec]);
-
-  // ─── 스타일 프리셋 ────────────────────────────────────────
-
-  const handleApplyPreset = useCallback((presetKey: StylePreset) => {
-    if (!chartSpec) return;
-    const preset = STYLE_PRESETS[presetKey];
-    updateChartSpec({ ...chartSpec, style: { ...preset } });
-  }, [chartSpec, updateChartSpec]);
-
-  // B2: color encoding 있을 때 unique 그룹 값 계산 (dataPackage 우선, sampleValues 폴백)
-  // dataPackage.data는 열 지향(columnar) — 해당 컬럼만 직접 접근해 O(n) 처리
-  const colorGroups = useMemo((): string[] => {
-    if (!chartSpec?.encoding.color) return [];
-    const colorField = chartSpec.encoding.color.field;
-    if (dataPackage) {
-      const col = (dataPackage.data[colorField] ?? []) as unknown[];
-      return [...new Set(col.map(v => String(v ?? '')).filter(Boolean))];
-    }
-    return chartSpec?.data.columns.find(c => c.name === colorField)?.sampleValues ?? [];
-  }, [chartSpec?.encoding.color, chartSpec?.data.columns, dataPackage]);
-
-  // ─── 렌더 ─────────────────────────────────────────────────
-
-  if (!chartSpec) {
+  if (!chartSpec || !logic) {
     return <p className="text-sm text-muted-foreground">데이터를 먼저 업로드하세요</p>;
   }
 
-  const isQuantitativeY = chartSpec.encoding.y.type === 'quantitative';
-  const currentFont =
-    chartSpec.style.font?.family
-    ?? STYLE_PRESETS[chartSpec.style.preset]?.font?.family
-    ?? 'Arial, Helvetica, sans-serif';
-  const isQuantitativeX = chartSpec.encoding.x.type === 'quantitative';
-  const isLogScale = chartSpec.encoding.y.scale?.type === 'log';
-  const showLegend = chartSpec.encoding.color !== undefined;
-  const showDataLabelOption = DATA_LABEL_CHART_TYPES.has(chartSpec.chartType);
-  const showSampleCountOption = SAMPLE_COUNT_CHART_TYPES.has(chartSpec.chartType);
+  const {
+    yMinInput, setYMinInput, yMaxInput, setYMaxInput,
+    xMinInput, setXMinInput, xMaxInput, setXMaxInput,
+    customLabelDraft,
+    handleLogScaleToggle, handleYRangeBlur, handleXRangeBlur,
+    handleLegendOrientChange, handleDataLabelsToggle, handleSampleCountsToggle,
+    handleCustomLabelChange, commitCustomLabels,
+    handleFontChange, handleApplyPreset,
+    isQuantitativeY, isQuantitativeX, isLogScale, currentFont,
+    showLegend, showDataLabelOption, showSampleCountOption, colorGroups,
+  } = logic;
 
   return (
     <div className="space-y-4">

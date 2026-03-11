@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import {
   ValidationResults,
+  ColumnStatistics,
   StatisticalMethod,
   AnalysisResult,
   DataRow,
@@ -117,6 +118,8 @@ interface SmartFlowState {
   uploadedFile: File | null
   uploadedData: DataRow[] | null
   uploadedFileName?: string | null
+  /** 업로드마다 증가하는 nonce — 비동기 enrichment의 stale 체크용 */
+  uploadNonce: number
 
   // 데이터 특성 (새로 추가)
   dataCharacteristics: DataCharacteristics | null
@@ -175,6 +178,8 @@ interface SmartFlowState {
   setUploadedFileName: (name: string | null) => void
   setDataCharacteristics: (characteristics: DataCharacteristics | null) => void
   setValidationResults: (results: ValidationResults | null) => void
+  /** normality만 패치 — assumptionResults/methodCompatibility를 초기화하지 않음 */
+  patchColumnNormality: (enrichedColumns: ColumnStatistics[]) => void
   setAssumptionResults: (results: StatisticalAssumptions | null) => void
   setDataSummary: (summary: DataSummary | null) => void
   setMethodCompatibility: (compatibility: Map<string, CompatibilityResult> | null) => void
@@ -226,6 +231,7 @@ const initialState = {
   uploadedFile: null,
   uploadedData: null,
   uploadedFileName: null,
+  uploadNonce: 0,
   dataCharacteristics: null,
   validationResults: null,
   assumptionResults: null,
@@ -262,7 +268,11 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         completedSteps: [...new Set([...state.completedSteps, step])]
       })),
 
-      setUploadedFile: (file) => set({ uploadedFile: file, uploadedFileName: file?.name || null }),
+      setUploadedFile: (file) => set((state) => ({
+        uploadedFile: file,
+        uploadedFileName: file?.name || null,
+        uploadNonce: state.uploadNonce + 1,
+      })),
       setUploadedData: (data) => set({ uploadedData: data }),
       setUploadedFileName: (name) => set({ uploadedFileName: name }),
       setDataCharacteristics: (characteristics) => set({ dataCharacteristics: characteristics }),
@@ -288,6 +298,18 @@ export const useSmartFlowStore = create<SmartFlowState>()(
           methodCompatibility: structuralCompatibility,
           // Clear assumption results when data changes (will be recalculated by Pyodide)
           assumptionResults: null
+        })
+      },
+      patchColumnNormality: (enrichedColumns) => {
+        const state = get()
+        if (!state.validationResults) return
+        set({
+          validationResults: {
+            ...state.validationResults,
+            columnStats: enrichedColumns,
+            columns: enrichedColumns,
+          },
+          // dataSummary / methodCompatibility / assumptionResults 유지
         })
       },
       setAssumptionResults: (results) => {
@@ -709,6 +731,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         uploadedFile: null,
         uploadedData: null,
         uploadedFileName: null,
+        uploadNonce: state.uploadNonce + 1,
         dataCharacteristics: null,
         validationResults: null,
         assumptionResults: null,

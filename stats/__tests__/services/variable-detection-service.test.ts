@@ -99,9 +99,7 @@ describe('extractDetectedVariables', () => {
       expect(result.groupVariable).toBe('치료군')
     })
 
-    it('kaplan-meier: ID 컬럼이 첫 번째면 2순위에서 선택됨 (3순위 ID 제외는 2순위 미설정 시에만 작동)', () => {
-      // 2순위 fallback: categoricalCols[0] = '환자ID' (ID 여부 무관하게 첫 번째 선택)
-      // 3순위 ID 제외: !detectedVars.groupVariable 조건이므로 이미 설정되면 동작 안 함
+    it('kaplan-meier: ID 컬럼이 첫 번째여도 건너뛰고 비-ID categorical 선택', () => {
       const survivalData = {
         columns: [
           makeCol('시간', 'numeric', { min: 1, max: 100 }),
@@ -112,12 +110,24 @@ describe('extractDetectedVariables', () => {
       }
       const result = extractDetectedVariables('kaplan-meier', survivalData, null)
 
-      // 2순위 fallback이 첫 번째 categorical을 선택 (ID 감지 무시)
-      expect(result.groupVariable).toBe('환자ID')
+      // ID 컬럼 건너뛰고 '치료군' 선택
+      expect(result.groupVariable).toBe('치료군')
     })
 
-    it('kaplan-meier: categorical이 없어 2순위 미설정 → 3순위에서 ID 제외 동작', () => {
-      // groupVariable이 2순위에서 설정되지 않아야 3순위 ID 제외 로직 작동
+    it('kaplan-meier: 모든 categorical이 ID면 groupVariable=undefined', () => {
+      const survivalData = {
+        columns: [
+          makeCol('시간', 'numeric', { min: 1, max: 100 }),
+          makeCol('사건', 'numeric', { uniqueValues: 2, min: 0, max: 1 }),
+          makeCol('환자ID', 'categorical', { idDetection: { isId: true, reason: 'name', confidence: 0.9, source: 'name' as const } }),
+        ]
+      }
+      const result = extractDetectedVariables('kaplan-meier', survivalData, null)
+
+      expect(result.groupVariable).toBeUndefined()
+    })
+
+    it('kaplan-meier: categorical이 없으면 groupVariable=undefined', () => {
       const survivalData = {
         columns: [
           makeCol('시간', 'numeric', { min: 1, max: 100 }),
@@ -387,6 +397,25 @@ describe('extractDetectedVariables', () => {
       const result = extractDetectedVariables('one-way-anova', MIXED_DATA, rec)
 
       expect(result.groupVariable).toBe('성별')
+    })
+
+    it('columnStats만 있는 persisted state도 정상 동작 (backward-compat)', () => {
+      const legacyData = { columnStats: [...CATEGORICAL_COLS, ...NUMERIC_COLS] }
+      const result = extractDetectedVariables('independent-samples-t-test', legacyData, null)
+
+      expect(result.groupVariable).toBe('성별')
+      expect(result.dependentCandidate).toBe('체중')
+      expect(result.numericVars).toEqual(['체중', '체장', '나이'])
+    })
+
+    it('columns가 있으면 columnStats보다 우선', () => {
+      const bothData = {
+        columns: [makeCol('A', 'numeric')],
+        columnStats: [makeCol('B', 'numeric')],
+      }
+      const result = extractDetectedVariables('pearson-correlation', bothData, null)
+
+      expect(result.numericVars).toEqual(['A'])
     })
 
     it('within이 2개가 아니면 1순위에서 pairedVars 미설정 → 3순위 heuristic fallback', () => {

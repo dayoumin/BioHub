@@ -320,7 +320,7 @@ describe('SmartFlowLayout', () => {
 
       expect(screen.getByTitle('AI 챗봇')).toBeInTheDocument()
       expect(screen.getByTitle('도움말')).toBeInTheDocument()
-      expect(screen.getByTitle('설정')).toBeInTheDocument()
+      // 설정 버튼은 AppSidebar 하단으로 이전됨
       expect(screen.getByTitle('히스토리 (1개)')).toBeInTheDocument()
     })
   })
