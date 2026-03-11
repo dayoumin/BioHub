@@ -1,6 +1,6 @@
 # 프로젝트 현황 + 할일
 
-**최종 업데이트**: 2026-03-04 (master 통합 머지)
+**최종 업데이트**: 2026-03-11 (feature/ui-redesign 진행 중)
 
 ---
 
@@ -30,6 +30,40 @@
 ---
 
 ## 📅 최근 작업 (7일)
+
+### 2026-03-11 (화) UI 리디자인 + 통합 최근 활동 + G5.2 로직 훅 추출
+
+> **브랜치**: `feature/ui-redesign` (main 기반, 9 commits ahead)
+
+**STITCH UI 리디자인** (계획서: `stats/docs/PLAN-STITCH-UI-REDESIGN.md`)
+- ✅ **Phase 0**: 스텝 인디케이터 교체 (pill→원형번호+연결선) — `350aedc0`
+- ✅ **P0-1**: normality enrichment (fire-and-forget + stale check) — `normality-enrichment-service.ts` 신규
+- ✅ **P0-2**: quickAnalysisMode 변수 추론 + 회귀 테스트 — `f964eb9c`
+- ✅ **Phase 1**: dead code 제거 + 섹션 이탈 정책 — `350aedc0`
+- ✅ **Phase 2**: Chat-First 허브 + 사이드바 + 빠른 시작 리디자인 — `97ef510e`
+
+**Graph Studio 3패널 레이아웃**
+- ✅ **G5.0**: 3패널 레이아웃 전환 (SidePanel→좌/중/우) + AI 패널 bottom 전용 — `39301100`
+- ✅ **G5.1**: 좌측 데이터 패널 (데이터 소스 + 변수 목록 + 추천 차트) — `94c3810b`
+- ✅ **G5.2**: `useDataTabLogic` + `useStyleTabLogic` 훅 추출 → `RightPropertyPanel` 아코디언 통합
+
+**통합 최근 활동 (Hub)**
+- ✅ **QuickAccessBar 전면 개편**: 통계+시각화 통합 카드 리스트 (시간순 정렬, 핀/삭제)
+  - `ActivityType = 'statistics' | 'visualization'`, 초록(통계) vs 보라(시각화) 아이콘
+  - `vizRefreshKey` 패턴 (localStorage 삭제 반응성)
+  - 시각화 카드 클릭 → `?project=<id>` 쿼리로 Graph Studio 프로젝트 복원
+- ✅ **loadDataPackage 복원 모드 P1 fix**: encoding 호환성 검증 (x/y/y2/color/shape/size/facet/groupBy)
+  - 호환 → 기존 chartSpec 보존 (dataSourceId만 갱신)
+  - 비호환 → 새 spec + `currentProject: null` (덮어쓰기 방지)
+  - `restoredProjectRef` 무한 루프 방지 (page.tsx)
+- ✅ **terminology**: "최근 분석"→"최근 활동", `recentStatus.visualization` 추가
+- ✅ **테스트**: QuickAccessBar 16개 + graph-studio-store 복원 모드 6개 + smart-flow-store upload race
+- ✅ **리뷰 문서**: `stats/docs/REVIEW-UNIFIED-RECENT-ACTIVITY.md`
+- 📌 커밋: `f98ef87d`
+
+**기타**
+- ✅ Pyodide 라우트 기반 조건부 프리로드 + 메서드 선택 시 Worker prefetch — `580e2374`
+- ✅ 기존 테스트 타입 에러 수정 (smart-flow-layout, variable-detection-service)
 
 ### 2026-03-03 (월) 브라우저 UX 리뷰 + "저장" semantic 수정
 
@@ -380,9 +414,14 @@
 |------|------|
 | **~~Graph Studio Stage 2~~** | ✅ 완료 (2026-02-28) — AI 편집 서비스, AiEditTab 활성화, 29개 테스트 |
 | **~~Graph Studio G1: 핵심 UI~~** | ✅ 완료 (2026-02-28) — 상세: 아래 |
+| **~~Graph Studio G5.0-G5.2~~** | ✅ 완료 (2026-03-11) — 3패널 레이아웃 + 좌측 패널 + 로직 훅 추출 |
+| **~~통합 최근 활동~~** | ✅ 완료 (2026-03-11) — QuickAccessBar 통계+시각화 통합, P1 encoding 호환성 검증 |
+| **UI 리디자인 잔여** | STITCH Phase 3(Step 4 스타일) + Phase 4(Step 2 + 마무리) |
+| **G5.3~G5.5** | 차트 유형 아이콘 그리드(G5.3) + 인터랙티브 컨트롤(G5.4) + 캔버스 미니 툴바(G5.5) |
+| **AI 채팅 히스토리 (multi-turn)** | `FlowStateMachine` messages 배열화, 최근 2턴 context, 채팅 스레드 UI |
 | **Phase 15-1: Bio-Tools** | 12개 생물학 분석, `/bio-tools/` 5페이지 구현 ([상세](study/PLAN-BIO-STATISTICS-AUDIT.md)) |
 | **Quick Analysis 프리필 개선** | quickAnalysisMode Step 3 프리필 정확도 향상 — normality 파이프라인, detectedVariables 생성, LLM 힌트 파싱 강화 ([상세](stats/docs/PLAN-AI-ASSISTED-STEP-FLOW.md)) |
-| **Pyodide 메모리 최적화 (2차)** | Graph Studio 안정화 후 진행. (1) Graph Studio 진입 시 `dispose()` 검토 — 재로드 6-13초(캐시 히트) 감수 가능한지 실측. (2) `performance.measureUserAgentSpecificMemory()` 기반 메모리 계측 추가 → 실 데이터로 판단. (3) Phase 1+2 완료(`PyodidePreloader` 라우트 체크 + Worker prefetch). 계획서: [PLAN-PYODIDE-LAZY-LOADING.md](stats/docs/PLAN-PYODIDE-LAZY-LOADING.md) |
+| **Pyodide 메모리 최적화 (2차)** | Graph Studio 안정화 후 진행. 계획서: [PLAN-PYODIDE-LAZY-LOADING.md](stats/docs/PLAN-PYODIDE-LAZY-LOADING.md) |
 
 ---
 
