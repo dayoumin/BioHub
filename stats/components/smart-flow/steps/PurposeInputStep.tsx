@@ -37,6 +37,9 @@ import { NaturalLanguageInput } from './purpose/NaturalLanguageInput'
 // Terminology System
 import { useTerminology } from '@/hooks/use-terminology'
 
+// Pyodide Worker Prefetch
+import { prefetchWorkerForMethod } from '@/lib/services/pyodide/prefetch-worker'
+
 /**
  * Phase 5: PurposeInputStep with Method Browser
  *
@@ -463,6 +466,9 @@ export function PurposeInputStep({
       logger.error('AI recommendation failed', { purpose })
     } else {
       setRecommendation(result)
+      if (result.method) {
+        prefetchWorkerForMethod(result.method)
+      }
     }
   }, [analyzeAndRecommend])
 
@@ -470,6 +476,7 @@ export function PurposeInputStep({
   const handleManualMethodSelect = useCallback((method: StatisticalMethod) => {
     logger.info('Manual method selected', { methodId: method.id, methodName: method.name })
     setManualSelectedMethod(method)
+    prefetchWorkerForMethod(method)
   }, [])
 
   // Confirm and proceed

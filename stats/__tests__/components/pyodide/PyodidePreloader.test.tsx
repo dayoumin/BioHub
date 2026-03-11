@@ -16,6 +16,12 @@ import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest'
 
 // --- Mock 설정 ---
 
+// next/navigation mock (usePathname)
+const mockPathname = vi.fn().mockReturnValue('/smart-flow')
+vi.mock('next/navigation', () => ({
+  usePathname: () => mockPathname(),
+}))
+
 // PyodideCoreService mock
 const mockIsInitialized = vi.fn().mockReturnValue(false)
 vi.mock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
@@ -45,6 +51,7 @@ describe('PyodidePreloader', () => {
     vi.clearAllMocks()
     mockIsInitialized.mockReturnValue(false)
     mockInitialize.mockResolvedValue(undefined)
+    mockPathname.mockReturnValue('/smart-flow') // Smart Flow 라우트 기본값
 
     // requestIdleCallback 지원 환경 시뮬레이션
     mockRequestIdleCallback = vi.fn((cb: () => void) => {
@@ -126,6 +133,9 @@ describe('PyodidePreloader', () => {
       vi.resetModules()
 
       // Mock 재설정 (모듈 리셋 후)
+      vi.doMock('next/navigation', () => ({
+        usePathname: () => '/smart-flow',
+      }))
       vi.doMock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
         PyodideCoreService: {
           getInstance: () => ({
@@ -168,6 +178,9 @@ describe('PyodidePreloader', () => {
       mockIsInitialized.mockReturnValue(true)
 
       vi.resetModules()
+      vi.doMock('next/navigation', () => ({
+        usePathname: () => '/smart-flow',
+      }))
       vi.doMock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
         PyodideCoreService: {
           getInstance: () => ({
@@ -194,6 +207,67 @@ describe('PyodidePreloader', () => {
       // requestIdleCallback이 호출되지 않아야 함
       expect(skipInit).not.toHaveBeenCalled()
     })
+
+    it('Smart Flow 외 라우트에서는 프리로드를 스킵한다', async () => {
+      vi.resetModules()
+      vi.doMock('next/navigation', () => ({
+        usePathname: () => '/graph-studio',
+      }))
+      vi.doMock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
+        PyodideCoreService: {
+          getInstance: () => ({
+            isInitialized: vi.fn().mockReturnValue(false),
+          }),
+        },
+      }))
+      const skipInit = vi.fn().mockResolvedValue(undefined)
+      vi.doMock('@/lib/services/pyodide-statistics', () => ({
+        PyodideStatisticsService: {
+          getInstance: () => ({
+            initialize: skipInit,
+          }),
+        },
+      }))
+
+      const { PyodidePreloader } = await import(
+        '@/components/providers/PyodidePreloader'
+      )
+
+      render(<PyodidePreloader />)
+
+      // 비통계 라우트이므로 initialize 호출 안 됨
+      expect(skipInit).not.toHaveBeenCalled()
+    })
+
+    it('/statistics 라우트에서는 프리로드를 실행한다', async () => {
+      vi.resetModules()
+      vi.doMock('next/navigation', () => ({
+        usePathname: () => '/statistics/t-test',
+      }))
+      vi.doMock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
+        PyodideCoreService: {
+          getInstance: () => ({
+            isInitialized: vi.fn().mockReturnValue(false),
+          }),
+        },
+      }))
+      const statsInit = vi.fn().mockResolvedValue(undefined)
+      vi.doMock('@/lib/services/pyodide-statistics', () => ({
+        PyodideStatisticsService: {
+          getInstance: () => ({
+            initialize: statsInit,
+          }),
+        },
+      }))
+
+      const { PyodidePreloader } = await import(
+        '@/components/providers/PyodidePreloader'
+      )
+
+      render(<PyodidePreloader />)
+
+      expect(statsInit).toHaveBeenCalledTimes(1)
+    })
   })
 
   // ===== 시나리오 5: 초기화 실패 시 무시 =====
@@ -202,6 +276,9 @@ describe('PyodidePreloader', () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
       vi.resetModules()
+      vi.doMock('next/navigation', () => ({
+        usePathname: () => '/smart-flow',
+      }))
       vi.doMock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
         PyodideCoreService: {
           getInstance: () => ({
@@ -256,6 +333,9 @@ describe('PyodidePreloader', () => {
       globalThis.cancelIdleCallback = mockCancel
 
       vi.resetModules()
+      vi.doMock('next/navigation', () => ({
+        usePathname: () => '/smart-flow',
+      }))
       vi.doMock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
         PyodideCoreService: {
           getInstance: () => ({

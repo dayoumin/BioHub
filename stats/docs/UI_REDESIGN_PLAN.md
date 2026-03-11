@@ -57,10 +57,10 @@
 **동작 방식**
 - 기본: 접힘(44px) — 아이콘 + 툴팁
 - 토글(≡ 버튼): 펼침(220px) — 아이콘 + 섹션명
-- **상태 저장: HTTP Cookie** (`sidebar-state=collapsed|expanded`)
-  - ⚠️ localStorage 사용 금지: Next.js App Router(SSR) 환경에서 서버 렌더링 값과 클라이언트 값 불일치로 Hydration Mismatch 발생
-  - Cookie는 SSR 시점부터 올바른 너비로 사이드바를 렌더링 → 깜빡임 없음
-  - `cookies().get('sidebar-state')` (서버), `document.cookie` (클라이언트 토글)
+- **상태 저장: localStorage** (`biohub-sidebar=collapsed|expanded`)
+  - 이 앱은 `output: 'export'` 정적 빌드 — 런타임 서버 없음, SSR Hydration Mismatch 해당 없음
+  - Cookie(4KB 제한)보다 localStorage(5~10MB)가 draft 자동 저장 등 확장에 유리
+  - 향후 SSR 전환 시 Cookie 마이그레이션 검토
 - **접힘/펼침 CSS 전환**: `transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1)` (딱딱 끊기지 않도록)
 - 활성 섹션: 파란 좌측 테두리(2px) + 아이콘 강조
 
@@ -384,7 +384,7 @@ AI 해석
 
 - [ ] `SmartFlowLayout` 내 Tool Navigator → `AppSidebar` 독립 컴포넌트 추출
 - [ ] 6개 섹션 + My Menu 예약 공간 + 설정(하단)
-- [ ] 접힘(44px)/펼침(220px) 토글 + **Cookie 저장** (localStorage 사용 금지 — SSR Hydration Mismatch)
+- [x] 접힘(44px)/펼침(220px) 토글 + **localStorage 저장** (정적 빌드 — SSR 없음)
 - [ ] 접힘/펼침 CSS 전환 (`transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1)`)
 - [ ] 활성 섹션 파란 테두리 표시 (pathname 기반)
 - [ ] 섹션 이탈 정책 구현 (Step 2 이후 draft 자동 저장 — 메타데이터+fileId만)

@@ -4,23 +4,26 @@
  * Pyodide 백그라운드 프리로더
  *
  * 루트 레이아웃에 배치되어 브라우저 유휴 시간에 Pyodide를 미리 초기화합니다.
+ * - Smart Flow 라우트에서만 프리로드 (다른 페이지에서는 불필요한 44MB 로드 방지)
  * - requestIdleCallback으로 메인 스레드 블로킹 없이 로드
- * - 통계 페이지 진입 전에 미리 준비 완료
  * - Service Worker 캐시와 연동하여 F5 시에도 빠른 복원
  * - UI를 표시하지 않는 투명 컴포넌트
  *
  * 동작 흐름:
- * 1. 루트 레이아웃 마운트 시 requestIdleCallback 예약
- * 2. 브라우저 유휴 시간에 PyodideStatisticsService.initialize() 호출
- * 3. Singleton 패턴으로 인해 PyodideProvider와 자연스럽게 공유
- *    - Provider가 마운트 시 isInitialized() 체크 → 이미 완료면 즉시 사용
- *    - Provider가 먼저 시작해도 loadPromise 재사용으로 안전
- * 4. 프리로드 실패는 무시 (통계 페이지 진입 시 Provider가 재시도)
+ * 1. 루트 레이아웃 마운트 시 현재 라우트 체크
+ * 2. Smart Flow 라우트가 아니면 프리로드 스킵
+ * 3. Smart Flow 라우트면 requestIdleCallback으로 초기화
+ * 4. Singleton 패턴으로 인해 PyodideProvider와 자연스럽게 공유
+ * 5. 프리로드 실패는 무시 (통계 페이지 진입 시 Provider가 재시도)
  */
 
 import { useEffect, useRef } from 'react'
+import { usePathname } from 'next/navigation'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideStatisticsService } from '@/lib/services/pyodide-statistics'
+
+/** Pyodide 프리로드가 필요한 라우트 접두사 */
+const PYODIDE_ROUTES = ['/smart-flow', '/statistics']
 
 /**
  * requestIdleCallback 호출 (SSR 안전 + Safari 폴리필)
@@ -44,6 +47,7 @@ function cancelScheduledIdle(handle: number): void {
 
 export function PyodidePreloader() {
   const startedRef = useRef(false)
+  const pathname = usePathname()
 
   useEffect(() => {
     // SSR 방어
@@ -51,6 +55,11 @@ export function PyodidePreloader() {
 
     // 이미 초기화 시작했으면 스킵
     if (startedRef.current) return
+
+    // Smart Flow / Statistics 라우트가 아니면 프리로드 스킵
+    const needsPyodide = PYODIDE_ROUTES.some(route => pathname.startsWith(route))
+    if (!needsPyodide) return
+
     startedRef.current = true
 
     // 이미 초기화 완료된 경우 스킵
@@ -62,7 +71,7 @@ export function PyodidePreloader() {
 
     // 브라우저 유휴 시간에 프리로드 시작
     const idleHandle = scheduleIdle(() => {
-      console.log('[PyodidePreloader] 백그라운드 프리로드 시작')
+      console.log(`[PyodidePreloader] 백그라운드 프리로드 시작 (${pathname})`)
       const startTime = performance.now()
 
       const service = PyodideStatisticsService.getInstance()
@@ -80,7 +89,7 @@ export function PyodidePreloader() {
     return () => {
       cancelScheduledIdle(idleHandle)
     }
-  }, [])
+  }, [pathname])
 
   // UI를 표시하지 않는 투명 컴포넌트
   return null
