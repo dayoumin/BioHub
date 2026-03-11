@@ -17,6 +17,8 @@ import {
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useUI } from '@/contexts/ui-context'
+import { toast } from 'sonner'
+import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 
 const STORAGE_KEY = 'biohub-sidebar'
 
@@ -50,6 +52,30 @@ export function AppSidebar() {
   const pathname = usePathname()
   const [expanded, setExpanded] = useState(false)
   const { openSettings } = useUI()
+  const currentStep = useSmartFlowStore(s => s.currentStep)
+  const selectedMethod = useSmartFlowStore(s => s.selectedMethod)
+  const results = useSmartFlowStore(s => s.results)
+
+  /** 통계 분석 Step 2~3 진행 중에 다른 섹션으로 이동 시 토스트
+   *  - Step 1 이전: 경고 없이 이동 (손실 없음)
+   *  - Step 2~3 진행 중: 토스트 알림 (Zustand sessionStorage persist가 자동 저장)
+   *  - 결과 화면(Step 4, results 존재): 경고 없이 이동 (이미 완료) */
+  const handleNavClick = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>, item: NavItem) => {
+      const isInSmartFlow = pathname?.startsWith('/smart-flow')
+      const isLeavingSmartFlow =
+        isInSmartFlow &&
+        !item.href.startsWith('/smart-flow') &&
+        item.href !== '/'
+      if (isLeavingSmartFlow && currentStep >= 2 && selectedMethod && !results) {
+        toast.info('분석이 자동 저장되었습니다', {
+          description: '사이드바에서 통계 분석을 클릭하면 이어서 진행할 수 있습니다.',
+          duration: 3000,
+        })
+      }
+    },
+    [pathname, currentStep, selectedMethod, results],
+  )
 
   // Static export: no SSR cookies, use localStorage after hydration
   useEffect(() => {
@@ -157,7 +183,7 @@ export function AppSidebar() {
           return (
             <Tooltip key={item.href}>
               <TooltipTrigger asChild>
-                <Link href={item.href} className={itemClass}>
+                <Link href={item.href} className={itemClass} onClick={(e) => handleNavClick(e, item)}>
                   {inner}
                 </Link>
               </TooltipTrigger>

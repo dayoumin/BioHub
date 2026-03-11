@@ -382,16 +382,16 @@ AI 해석
 
 **목표**: 플랫폼 전체의 뼈대. 모든 페이지에 동일한 사이드바.
 
-- [ ] `SmartFlowLayout` 내 Tool Navigator → `AppSidebar` 독립 컴포넌트 추출
-- [ ] 6개 섹션 + My Menu 예약 공간 + 설정(하단)
+- [x] `SmartFlowLayout` 내 Tool Navigator → `AppSidebar` 독립 컴포넌트 추출
+- [x] 6개 섹션 + My Menu 예약 공간 + 설정(하단)
 - [x] 접힘(44px)/펼침(220px) 토글 + **localStorage 저장** (정적 빌드 — SSR 없음)
-- [ ] 접힘/펼침 CSS 전환 (`transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1)`)
-- [ ] 활성 섹션 파란 테두리 표시 (pathname 기반)
-- [ ] 섹션 이탈 정책 구현 (Step 2 이후 draft 자동 저장 — 메타데이터+fileId만)
-- [ ] `app/layout.tsx`에서 모든 페이지에 일괄 적용
-- [ ] `ConditionalHeader` 제거
-- [ ] Graph Studio 이중 헤더 제거
-- [ ] Terminology 시스템 연동 (`useTerminology()` 훅)
+- [x] 접힘/펼침 CSS 전환 (`transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1)`)
+- [x] 활성 섹션 파란 테두리 표시 (pathname 기반)
+- [x] 섹션 이탈 정책 구현 (Zustand sessionStorage persist + 이탈 시 토스트 알림)
+- [x] `app/layout.tsx`에서 모든 페이지에 일괄 적용
+- [x] `ConditionalHeader` 제거 (dead code 삭제 — `header.tsx` 포함)
+- [x] Graph Studio 이중 헤더 제거 (이미 해결됨 — layout.tsx에 전역 Header 없음)
+- [x] ~~Terminology 시스템 연동~~ → 해당 없음 (사이드바 레이블은 제품명, 도메인 용어 아님)
 
 **완료 기준**: Hub / 통계 / Graph Studio 모두 동일한 사이드바 표시, 기존 테스트 통과
 
