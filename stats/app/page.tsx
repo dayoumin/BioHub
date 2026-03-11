@@ -344,6 +344,7 @@ export default function HomePage() {
           onHistorySelect={handleHistorySelect}
           onHistoryDelete={handleHistoryDelete}
           onUploadClick={handleHubUploadClick}
+          onHistoryShowMore={handleHistoryToggle}
         />
       )}
 

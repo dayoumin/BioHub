@@ -433,7 +433,7 @@ export const generic: TerminologyDictionary = {
   hub: {
     hero: {
       heading: 'From data to insight,',
-      subheading: 'scientifically.',
+      subheading: 'What would you like to analyze?',
       description: 'Upload CSV or Excel files and AI will analyze your data characteristics and recommend the optimal statistical method. Expert-level analysis in just a few clicks.',
       statMethods: (count: number) => `${count} analysis tools`,
       statCategories: (count: number) => `${count} categories`,
@@ -448,6 +448,7 @@ export const generic: TerminologyDictionary = {
       processingMessage: 'Figuring out the best approach...',
       uploadAriaLabel: 'Upload data file',
       uploadTitle: 'Upload CSV / Excel file',
+      privacyNotice: 'Your data is processed locally in the browser and never sent to external servers',
     },
     tracks: {
       directAnalysis: {
@@ -466,6 +467,14 @@ export const generic: TerminologyDictionary = {
         example: 'What sample size do I need?',
       },
     },
+    quickStart: {
+      title: 'Quick Start',
+      newAnalysis: 'New Analysis',
+      uploadData: 'Upload Data',
+      sampleSize: 'Sample Size Calc',
+      visualization: 'Visualization',
+      bioTools: 'Bio-Tools',
+    },
     experimentNotReady: 'Experiment design is coming soon. Redirecting to data consultation.',
     intentClassificationFailed: 'Could not classify your request. Continuing with data consultation.',
     cards: {
@@ -481,6 +490,7 @@ export const generic: TerminologyDictionary = {
       unknownMethod: 'Unknown',
       emptyTitle: 'No analysis records yet',
       emptyDescription: 'Start your first analysis',
+      showMore: (n: number) => `View all ${n}`,
     },
     quickAnalysis: {
       title: 'Quick Analysis',
@@ -540,6 +550,14 @@ export const generic: TerminologyDictionary = {
       'paired-t-test': 'Paired T-Test', 'mann-whitney': 'Mann-Whitney U',
       'wilcoxon': 'Wilcoxon', 'kruskal-wallis': 'Kruskal-Wallis',
       'fisher-exact': 'Fisher Exact Test',
+    },
+    recommendedAnalyses: {
+      title: 'Recommended',
+      startButton: 'Start',
+    },
+    recentStatus: {
+      completed: 'Completed',
+      inProgress: 'In Progress',
     },
   },
 

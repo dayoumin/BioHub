@@ -1,33 +1,26 @@
 'use client'
 
 /**
- * QuickAccessBar — 빠른 분석 pills + 최근 분석 히스토리
+ * QuickAccessBar — 최근 분석 카드 리스트 (2칼럼 그리드)
  *
- * - 빠른 분석: 커스텀 가능한 메서드 pill 목록
- * - 최근 분석: 히스토리 미리보기 (pinned 우선 + 최신순, 최대 5개)
- *   - 항상 표시 (0개여도 빈 상태 메시지)
- *   - 호버 시 X 삭제 버튼
- *   - 고정(pinned) 항목은 primary dot + 테두리 강조
+ * Stitch 시안 기반:
+ * - 카드 스타일 히스토리 (상태 아이콘 + 메서드명 + p-value + 시간)
+ * - 2칼럼 그리드 레이아웃
+ * - 호버 시 더보기 메뉴 (핀/삭제)
+ * - 고정(pinned) 항목은 테두리 강조
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Zap,
   Clock,
-  Settings2,
+  CheckCircle2,
+  Loader2,
+  MoreVertical,
   X,
   Pin,
   PinOff,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter
-} from '@/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,13 +31,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Checkbox } from '@/components/ui/checkbox'
-import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import { useTerminology } from '@/hooks/use-terminology'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
-import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import {
   usePinnedHistoryIds,
   MAX_PINNED,
@@ -52,50 +48,7 @@ import {
 } from '@/lib/utils/pinned-history-storage'
 import { toast } from 'sonner'
 
-// ===== Constants =====
-
-const STORAGE_KEY = 'main-hub-quick-analysis'
-const DEFAULT_QUICK_METHODS = ['t-test', 'anova', 'correlation', 'regression', 'chi-square']
-
-const METHODS_BY_CATEGORY = Object.entries(STATISTICAL_METHODS).reduce((acc, [id, method]) => {
-  if (method.hasOwnPage !== false) {
-    const cat = method.category
-    if (!acc[cat]) acc[cat] = []
-    acc[cat].push({
-      id,
-      name: method.koreanName || method.name,
-      description: method.koreanDescription || method.description
-    })
-  }
-  return acc
-}, {} as Record<string, Array<{ id: string; name: string; description: string }>>)
-
 // ===== Helpers =====
-
-function loadQuickMethods(): string[] {
-  if (typeof window === 'undefined') return DEFAULT_QUICK_METHODS
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed
-      }
-    }
-  } catch {
-    // ignore
-  }
-  return DEFAULT_QUICK_METHODS
-}
-
-function saveQuickMethods(methods: string[]): void {
-  if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(methods))
-  } catch {
-    // ignore
-  }
-}
 
 function formatTimeAgo(
   date: Date,
@@ -112,14 +65,29 @@ function formatTimeAgo(
   return timeAgo.daysAgo(diffInDays)
 }
 
+/** results에서 p-value 추출 */
+function extractPValue(results: Record<string, unknown> | null): number | null {
+  if (!results) return null
+  const candidates = ['pValue', 'p_value', 'p', 'pval']
+  for (const key of candidates) {
+    const val = results[key]
+    if (typeof val === 'number' && !isNaN(val)) return val
+  }
+  return null
+}
+
 // ===== Types =====
 
-interface HistoryPill {
+interface HistoryCard {
   id: string
   method: { id: string; name: string; category: string; description?: string } | null
   timestamp: Date
   timeAgo: string
   isPinned: boolean
+  pValue: number | null
+  hasResults: boolean
+  name: string
+  dataFileName: string
 }
 
 // ===== Props =====
@@ -128,25 +96,21 @@ interface QuickAccessBarProps {
   onQuickAnalysis: (methodId: string) => void
   onHistoryClick: (historyId: string) => void
   onHistoryDelete: (historyId: string) => Promise<void>
+  onShowMore?: () => void
 }
 
 // ===== Component =====
 
-export function QuickAccessBar({ onQuickAnalysis, onHistoryClick, onHistoryDelete }: QuickAccessBarProps) {
+export function QuickAccessBar({ onHistoryClick, onHistoryDelete, onShowMore }: QuickAccessBarProps) {
   const t = useTerminology()
   const prefersReducedMotion = useReducedMotion()
   const { analysisHistory } = useSmartFlowStore()
-
-  // Quick methods state — lazy initializer로 초기 flash 방지
-  const [quickMethods, setQuickMethods] = useState<string[]>(() => loadQuickMethods())
-  const [showEditDialog, setShowEditDialog] = useState(false)
-  const [editingMethods, setEditingMethods] = useState<string[]>([])
 
   // Pin & delete state
   const [pinnedIds, setPinnedIds] = usePinnedHistoryIds()
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
-  // 삭제된 히스토리 ID가 pinnedIds에 남아있으면 정리 (방어적 백업)
+  // 삭제된 히스토리 ID가 pinnedIds에 남아있으면 정리
   useEffect(() => {
     const validIds = new Set(analysisHistory.map(h => h.id))
     setPinnedIds(prev => {
@@ -155,68 +119,38 @@ export function QuickAccessBar({ onQuickAnalysis, onHistoryClick, onHistoryDelet
     })
   }, [analysisHistory, setPinnedIds])
 
-  const quickMethodsInfo = useMemo(() => {
-    return quickMethods
-      .map(id => {
-        const method = STATISTICAL_METHODS[id]
-        return method ? { id, name: t.hub.quickMethodNames[id] || method.koreanName || method.name } : null
-      })
-      .filter(Boolean) as Array<{ id: string; name: string }>
-  }, [quickMethods, t])
-
-  // pinned 우선 → 최신순, 최대 MAX_VISIBLE_PILLS개
-  const visibleHistory = useMemo((): HistoryPill[] => {
+  // pinned 우선 → 최신순
+  const visibleHistory = useMemo((): HistoryCard[] => {
     const pinnedSet = new Set(pinnedIds)
+
+    const mapEntry = (h: typeof analysisHistory[number], pinned: boolean): HistoryCard => ({
+      id: h.id,
+      method: h.method,
+      timestamp: h.timestamp,
+      timeAgo: formatTimeAgo(new Date(h.timestamp), t.hub.timeAgo),
+      isPinned: pinned,
+      pValue: extractPValue(h.results),
+      hasResults: h.results !== null,
+      name: h.name || h.method?.name || t.hub.cards.unknownMethod,
+      dataFileName: h.dataFileName || '',
+    })
 
     const pinned = analysisHistory
       .filter(h => pinnedSet.has(h.id))
-      .map(h => ({
-        id: h.id,
-        method: h.method,
-        timestamp: h.timestamp,
-        timeAgo: formatTimeAgo(new Date(h.timestamp), t.hub.timeAgo),
-        isPinned: true,
-      }))
+      .map(h => mapEntry(h, true))
 
     const unpinned = analysisHistory
       .filter(h => !pinnedSet.has(h.id))
-      .map(h => ({
-        id: h.id,
-        method: h.method,
-        timestamp: h.timestamp,
-        timeAgo: formatTimeAgo(new Date(h.timestamp), t.hub.timeAgo),
-        isPinned: false,
-      }))
+      .map(h => mapEntry(h, false))
 
     const remaining = Math.max(0, MAX_VISIBLE_PILLS - pinned.length)
     return [...pinned, ...unpinned.slice(0, remaining)]
   }, [analysisHistory, pinnedIds, t])
 
-  // Edit dialog handlers
-  const handleOpenEdit = useCallback(() => {
-    setEditingMethods([...quickMethods])
-    setShowEditDialog(true)
-  }, [quickMethods])
-
-  const handleSaveEdit = useCallback(() => {
-    setQuickMethods(editingMethods)
-    saveQuickMethods(editingMethods)
-    setShowEditDialog(false)
-  }, [editingMethods])
-
-  const handleToggleMethod = useCallback((methodId: string) => {
-    setEditingMethods(prev =>
-      prev.includes(methodId)
-        ? prev.filter(id => id !== methodId)
-        : [...prev, methodId]
-    )
-  }, [])
-
   // Delete handler
   const handleDeleteConfirm = useCallback(async () => {
     if (!deleteConfirmId) return
     await onHistoryDelete(deleteConfirmId)
-    // pinnedIds에서도 제거 (functional updater로 stale closure 방지)
     setPinnedIds(prev => {
       if (!prev.includes(deleteConfirmId)) return prev
       return prev.filter(id => id !== deleteConfirmId)
@@ -240,181 +174,115 @@ export function QuickAccessBar({ onQuickAnalysis, onHistoryClick, onHistoryDelet
 
   return (
     <motion.div
-      className="space-y-3"
       initial={prefersReducedMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4, delay: 0.4 }}
     >
-      {/* 빠른 분석 */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-          <Zap className="w-3.5 h-3.5" />
-          <span>{t.hub.quickAnalysis.title}</span>
-        </div>
-
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {quickMethodsInfo.map(method => (
-            <button
-              key={method.id}
-              type="button"
-              onClick={() => onQuickAnalysis(method.id)}
-              className={cn(
-                'px-2.5 py-1 text-xs rounded-full border',
-                'bg-background/60 hover:bg-accent',
-                'transition-colors duration-150',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40'
-              )}
-            >
-              {method.name}
-            </button>
-          ))}
-
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-bold">{t.hub.cards.recentTitle}</h2>
+        {analysisHistory.length > MAX_VISIBLE_PILLS && onShowMore && (
           <button
             type="button"
-            onClick={handleOpenEdit}
-            className="p-1 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-            title={t.hub.quickAnalysis.editTooltip}
+            onClick={onShowMore}
+            className="text-xs text-muted-foreground hover:text-primary transition-colors"
           >
-            <Settings2 className="w-3.5 h-3.5" />
+            {t.hub.cards.showMore(analysisHistory.length)}
           </button>
-        </div>
+        )}
       </div>
 
-      {/* 최근 분석 — 항상 표시 */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-          <Clock className="w-3.5 h-3.5" />
-          <span>{t.hub.cards.recentTitle}</span>
+      {visibleHistory.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10 text-center rounded-xl border border-dashed border-border">
+          <Clock className="w-8 h-8 text-muted-foreground/30 mb-2" />
+          <p className="text-sm text-muted-foreground/60">{t.hub.cards.emptyTitle}</p>
+          <p className="text-xs text-muted-foreground/40 mt-1">{t.hub.cards.emptyDescription}</p>
         </div>
-
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {visibleHistory.length === 0 ? (
-            <span className="text-xs text-muted-foreground/50 italic">
-              {t.hub.cards.emptyTitle}
-            </span>
-          ) : (
-            visibleHistory.map(h => (
-              <div key={h.id} className="group relative flex items-center">
-                {/* Pin indicator dot — 2px, 고정 시 항상 표시 */}
-                {h.isPinned && (
-                  <span className="absolute -top-0.5 -left-0.5 w-2 h-2 rounded-full bg-primary z-10" />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+          {visibleHistory.map(h => (
+            <div
+              key={h.id}
+              className={cn(
+                'group flex items-center justify-between p-4 rounded-xl',
+                'border border-border bg-card',
+                'hover:shadow-sm transition-shadow cursor-pointer',
+                h.isPinned && 'border-primary/20 bg-primary/[0.02]',
+              )}
+              onClick={() => onHistoryClick(h.id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter') onHistoryClick(h.id) }}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                {/* 상태 아이콘 */}
+                {h.hasResults ? (
+                  <div className="shrink-0 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 p-2 rounded-lg">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                ) : (
+                  <div className="shrink-0 bg-primary/10 text-primary p-2 rounded-lg">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  </div>
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => onHistoryClick(h.id)}
-                  className={cn(
-                    'flex items-center gap-1 pl-2.5 pr-10 py-1 text-xs rounded-full border',
-                    'bg-background/60 hover:bg-accent',
-                    'transition-colors duration-150',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
-                    h.isPinned && 'border-primary/30 bg-primary/5'
-                  )}
-                >
-                  <span className="truncate max-w-[120px]">
-                    {h.method?.name || t.hub.cards.unknownMethod}
-                  </span>
-                  <span className="text-muted-foreground/50 shrink-0">
+                {/* 메서드명 + 데이터 + 메타 */}
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm truncate">
+                    {h.method?.name || h.name}
+                    {h.dataFileName && (
+                      <span className="font-normal text-muted-foreground"> — {h.dataFileName}</span>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {h.hasResults ? t.hub.recentStatus.completed : t.hub.recentStatus.inProgress}
+                    {h.pValue !== null && (
+                      <>, <span className="font-mono text-[11px]">
+                        p={h.pValue < 0.001 ? '<0.001' : h.pValue.toFixed(3)}
+                      </span></>
+                    )}
+                    <span className="mx-1">·</span>
                     {h.timeAgo}
-                  </span>
-                </button>
-
-                {/* Hover actions — pin toggle + delete */}
-                <div className={cn(
-                  'absolute right-1 top-1/2 -translate-y-1/2',
-                  'flex items-center gap-0.5',
-                  'pointer-events-none group-hover:pointer-events-auto',
-                  'opacity-0 group-hover:opacity-100',
-                  'transition-all duration-150',
-                )}>
-                  {/* Pin toggle */}
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); handleTogglePin(h.id) }}
-                    className={cn(
-                      'p-0.5 rounded-full',
-                      'text-muted-foreground/60',
-                      'hover:!text-primary hover:bg-primary/10',
-                      'transition-colors duration-150',
-                      'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40',
-                      'focus-visible:text-primary focus-visible:pointer-events-auto'
-                    )}
-                    title={h.isPinned ? t.history.tooltips.unpin : t.history.tooltips.pin}
-                  >
-                    {h.isPinned ? <PinOff className="w-3 h-3" /> : <Pin className="w-3 h-3" />}
-                  </button>
-
-                  {/* Delete */}
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(h.id) }}
-                    className={cn(
-                      'p-0.5 rounded-full',
-                      'text-muted-foreground/60',
-                      'hover:!text-destructive hover:bg-destructive/10',
-                      'transition-colors duration-150',
-                      'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-destructive/40',
-                      'focus-visible:text-destructive focus-visible:pointer-events-auto'
-                    )}
-                    title={t.history.tooltips.delete}
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
+                  </p>
                 </div>
               </div>
-            ))
-          )}
+
+              {/* 액션 메뉴 */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={(e) => e.stopPropagation()}
+                    className={cn(
+                      'p-1.5 rounded-md text-muted-foreground/40',
+                      'hover:text-foreground hover:bg-accent',
+                      'opacity-0 group-hover:opacity-100 transition-all',
+                      'focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+                    )}
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-36">
+                  <DropdownMenuItem onClick={() => handleTogglePin(h.id)}>
+                    {h.isPinned ? (
+                      <><PinOff className="w-3.5 h-3.5 mr-2" />{t.history.tooltips.unpin}</>
+                    ) : (
+                      <><Pin className="w-3.5 h-3.5 mr-2" />{t.history.tooltips.pin}</>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => setDeleteConfirmId(h.id)}
+                  >
+                    <X className="w-3.5 h-3.5 mr-2" />
+                    {t.history.tooltips.delete}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          ))}
         </div>
-      </div>
-
-      {/* 편집 다이얼로그 */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t.hub.editDialog.title}</DialogTitle>
-          </DialogHeader>
-          <ScrollArea className="max-h-[400px] pr-4">
-            <div className="space-y-4">
-              {Object.entries(METHODS_BY_CATEGORY).map(([category, methods]) => (
-                <div key={category}>
-                  <div className="text-xs font-medium text-muted-foreground mb-2">
-                    {t.hub.categoryLabels[category] || category}
-                  </div>
-                  <div className="space-y-1">
-                    {methods.map(method => (
-                      <label
-                        key={method.id}
-                        className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer"
-                      >
-                        <Checkbox
-                          checked={editingMethods.includes(method.id)}
-                          onCheckedChange={() => handleToggleMethod(method.id)}
-                        />
-                        <span className="text-sm">{method.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-          <DialogFooter>
-            <div className="flex items-center justify-between w-full">
-              <span className="text-xs text-muted-foreground">
-                {t.hub.editDialog.selectedCount(editingMethods.length)}
-              </span>
-              <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setShowEditDialog(false)}>
-                  {t.hub.editDialog.cancel}
-                </Button>
-                <Button size="sm" onClick={handleSaveEdit}>
-                  {t.hub.editDialog.save}
-                </Button>
-              </div>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      )}
 
       {/* 삭제 확인 다이얼로그 */}
       <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>

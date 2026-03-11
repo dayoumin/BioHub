@@ -50,7 +50,7 @@ const APP_TITLE = process.env.NEXT_PUBLIC_APP_TITLE ?? 'BioHub'
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(true)
   const { openSettings } = useUI()
   const currentStep = useSmartFlowStore(s => s.currentStep)
   const selectedMethod = useSmartFlowStore(s => s.selectedMethod)
@@ -80,7 +80,9 @@ export function AppSidebar() {
   // Static export: no SSR cookies, use localStorage after hydration
   useEffect(() => {
     try {
-      if (localStorage.getItem(STORAGE_KEY) === 'expanded') setExpanded(true)
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved === 'collapsed') setExpanded(false)
+      else if (saved === 'expanded') setExpanded(true)
     } catch {}
   }, [])
 
@@ -112,7 +114,7 @@ export function AppSidebar() {
       )}
     >
       {/* 헤더: 토글 버튼 + 앱 타이틀 */}
-      <div className="flex items-center h-14 border-b border-sidebar-border px-2 flex-shrink-0">
+      <div className="flex items-center h-12 border-b border-sidebar-border/50 px-2 flex-shrink-0">
         <button
           onClick={toggle}
           aria-label={expanded ? '사이드바 접기' : '사이드바 펼치기'}
@@ -139,14 +141,14 @@ export function AppSidebar() {
 
           const itemClass = cn(
             'relative flex items-center gap-2 h-9 px-2 rounded-md w-full',
-            'transition-colors duration-150 border-l-2',
+            'transition-colors duration-150',
             active && !item.disabled
-              ? 'bg-sidebar-accent text-sidebar-accent-foreground border-primary'
-              : 'border-transparent',
-            !item.disabled && !active
-              ? 'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/70'
+              ? 'bg-primary/10 text-primary font-medium'
               : '',
-            item.disabled ? 'text-sidebar-foreground/25 cursor-not-allowed' : '',
+            !item.disabled && !active
+              ? 'hover:bg-sidebar-accent text-sidebar-foreground'
+              : '',
+            item.disabled ? 'text-sidebar-foreground/30 cursor-not-allowed' : '',
           )
 
           const inner = (

@@ -1,7 +1,6 @@
 'use client'
 
-import React, { ReactNode, useMemo, useCallback } from 'react'
-import Link from 'next/link'
+import React, { ReactNode, useMemo } from 'react'
 import {
   Clock,
   HelpCircle,
@@ -24,12 +23,10 @@ import {
 } from '@/components/ui/sheet'
 import { FloatingStepIndicator, type StepItem } from '@/components/common/FloatingStepIndicator'
 import { cn } from '@/lib/utils'
-import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { useUI } from '@/contexts/ui-context'
 import { SettingsModal } from '@/components/layout/settings-modal'
 import { HelpModal } from '@/components/layout/help-modal'
 import { STEP_STYLES } from '@/components/smart-flow/common/style-constants'
-import { DomainSwitcher } from '@/components/terminology/DomainSwitcher'
 import { useTerminology } from '@/hooks/use-terminology'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
@@ -135,74 +132,35 @@ export function SmartFlowLayout({
     closeHelp: closeGlobalHelp,
   } = useUI()
 
-  // 로고 클릭 시 Hub로 돌아가기
-  const resetSession = useSmartFlowStore(state => state.resetSession)
-
-  const handleLogoClick = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    resetSession()
-  }, [resetSession])
-
   const resolvedNextLabel = nextLabel ?? t.smartFlow.layout.nextStep
 
   return (
     <div className={cn("min-h-screen bg-background", className)}>
 
 
-      {/* ===== 헤더 (Sticky) ===== */}
-      <header className="sticky top-0 z-50 w-full border-b border-border bg-background">
+      {/* ===== 헤더 (Sticky, 우측 아이콘만) ===== */}
+      <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="flex items-center justify-between h-14">
-            {/* 좌측: 로고 */}
-            <div className="flex items-center gap-3">
-              <Link
-                href="/"
-                onClick={handleLogoClick}
-                className="text-lg font-bold text-foreground hover:text-primary transition-colors"
-              >
-                {t.smartFlow.layout.appTitle}
-              </Link>
-            </div>
-
-            {/* 우측: 앱 아이콘 (히스토리, 채팅, 도움말, 설정) */}
-            <div className="flex items-center gap-1">
-              {/* 히스토리 토글 버튼 */}
-              {onHistoryToggle && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn("relative h-10 w-10", showHistory && "bg-muted")}
-                  onClick={onHistoryToggle}
-                  title={showHistory ? t.smartFlow.layout.historyClose : historyCount > 0 ? t.smartFlow.layout.historyCount(historyCount) : t.smartFlow.layout.historyTitle}
-                >
-                  <Clock className="h-5 w-5" />
-                  {historyCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-0.5 text-[10px] font-medium leading-none text-primary-foreground">
-                      {historyCount > 99 ? '99+' : historyCount}
-                    </span>
-                  )}
-                </Button>
-              )}
+          <div className="flex items-center justify-end h-10">
+            <div className="flex items-center gap-0.5">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
                 onClick={openChatPanel}
                 title={t.smartFlow.layout.aiChatbot}
               >
-                <MessageCircle className="h-5 w-5" />
+                <MessageCircle className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
                 onClick={openGlobalHelp}
                 title={t.smartFlow.layout.helpLabel}
               >
-                <HelpCircle className="h-5 w-5" />
+                <HelpCircle className="h-4 w-4" />
               </Button>
-
-              {/* Settings → 사이드바 하단으로 이전 */}
             </div>
           </div>
         </div>
@@ -214,7 +172,7 @@ export function SmartFlowLayout({
           steps={stepsWithCompleted}
           currentStep={currentStep}
           onStepChange={onStepChange}
-          topOffset="3.5rem"
+          topOffset="3rem"
         />
       )}
 

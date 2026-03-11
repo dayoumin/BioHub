@@ -136,20 +136,18 @@
   --chart-5: oklch(0.5 0.05 260);
   /* Grey Blue */
 
-  /* Sidebar - Deep Navy (Calm Intelligence) */
-  --sidebar: oklch(0.13 0.02 260);
-  --sidebar-foreground: oklch(0.82 0.01 260);
-  /* Soft white */
+  /* Sidebar - Light mode: soft neutral surface */
+  --sidebar: oklch(0.97 0.003 260);
+  --sidebar-foreground: oklch(0.15 0.02 260);
+  /* Near black for readability */
   --sidebar-primary: oklch(0.52 0.20 260);
   /* Brand blue */
   --sidebar-primary-foreground: oklch(1 0 0);
-  /* White */
-  --sidebar-accent: oklch(0.20 0.03 260);
-  /* Hover - slightly lighter navy */
-  --sidebar-accent-foreground: oklch(0.95 0.005 260);
-  /* Near white */
-  --sidebar-border: oklch(0.22 0.02 260);
-  /* Subtle navy border */
+  --sidebar-accent: oklch(0.93 0.005 260);
+  /* Hover - subtle light gray */
+  --sidebar-accent-foreground: oklch(0.1 0.02 260);
+  --sidebar-border: oklch(0.91 0.008 260);
+  /* Matches main border */
   --sidebar-ring: oklch(0.52 0.20 260);
   /* Brand blue focus ring */
 
@@ -244,29 +242,29 @@
   --content-max-width: 80rem;
 
   /* Track Colors - Analysis (Monochrome Gradient) */
-  --track-analysis-from: #404040;
-  --track-analysis-to: #1a1a1a;
-  --track-analysis-hover-from: #2a2a2a;
-  --track-analysis-hover-to: #0a0a0a;
-  --track-analysis-bg-from: #f5f5f5;
-  --track-analysis-bg-to: #e5e5e5;
+  --track-analysis-from: oklch(0.35 0 0);
+  --track-analysis-to: oklch(0.15 0 0);
+  --track-analysis-hover-from: oklch(0.22 0 0);
+  --track-analysis-hover-to: oklch(0.08 0 0);
+  --track-analysis-bg-from: oklch(0.97 0 0);
+  --track-analysis-bg-to: oklch(0.92 0 0);
 
   /* Track Colors - Design (Monochrome Gradient) */
-  --track-design-from: #505050;
-  --track-design-to: #2a2a2a;
-  --track-design-hover-from: #3a3a3a;
-  --track-design-hover-to: #1a1a1a;
-  --track-design-bg-from: #f5f5f5;
-  --track-design-bg-to: #e5e5e5;
+  --track-design-from: oklch(0.40 0 0);
+  --track-design-to: oklch(0.22 0 0);
+  --track-design-hover-from: oklch(0.30 0 0);
+  --track-design-hover-to: oklch(0.15 0 0);
+  --track-design-bg-from: oklch(0.97 0 0);
+  --track-design-bg-to: oklch(0.92 0 0);
 
   /* Experimental Design Page Colors (Monochrome) */
-  --experimental-bg-from: #e5e5e5;
-  --experimental-bg-to: #f5f5f5;
-  --experimental-text-from: #2a2a2a;
-  --experimental-text-to: #1a1a1a;
-  --experimental-success: #404040;
-  --experimental-success-light: #e5e5e5;
-  --experimental-success-text: #2a2a2a;
+  --experimental-bg-from: oklch(0.92 0 0);
+  --experimental-bg-to: oklch(0.97 0 0);
+  --experimental-text-from: oklch(0.22 0 0);
+  --experimental-text-to: oklch(0.15 0 0);
+  --experimental-success: oklch(0.35 0 0);
+  --experimental-success-light: oklch(0.92 0 0);
+  --experimental-success-text: oklch(0.22 0 0);
 }
 
 .dark {
@@ -398,6 +396,30 @@
   --highlight-foreground: oklch(0.15 0 0);
   --highlight-bg: oklch(0.20 0.02 260);
   --highlight-border: oklch(0.35 0.04 260);
+
+  /* Dark Mode Track Colors */
+  --track-analysis-from: oklch(0.70 0 0);
+  --track-analysis-to: oklch(0.85 0 0);
+  --track-analysis-hover-from: oklch(0.80 0 0);
+  --track-analysis-hover-to: oklch(0.92 0 0);
+  --track-analysis-bg-from: oklch(0.15 0 0);
+  --track-analysis-bg-to: oklch(0.20 0 0);
+
+  --track-design-from: oklch(0.65 0 0);
+  --track-design-to: oklch(0.80 0 0);
+  --track-design-hover-from: oklch(0.75 0 0);
+  --track-design-hover-to: oklch(0.88 0 0);
+  --track-design-bg-from: oklch(0.15 0 0);
+  --track-design-bg-to: oklch(0.20 0 0);
+
+  /* Dark Mode Experimental Design */
+  --experimental-bg-from: oklch(0.15 0 0);
+  --experimental-bg-to: oklch(0.20 0 0);
+  --experimental-text-from: oklch(0.80 0 0);
+  --experimental-text-to: oklch(0.90 0 0);
+  --experimental-success: oklch(0.70 0 0);
+  --experimental-success-light: oklch(0.20 0 0);
+  --experimental-success-text: oklch(0.80 0 0);
 
   /* Dark Mode Correlation Heatmap - Blue-Red Diverging */
   --correlation-strong-pos: oklch(0.65 0.12 250);

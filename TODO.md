@@ -310,7 +310,7 @@
 | `lib/constants/methods-registry.json` | 메서드 정의 (params, returns) |
 | `lib/constants/methods-registry.schema.json` | JSON Schema 검증 |
 | `lib/constants/methods-registry.types.ts` | 타입 및 헬퍼 함수 |
-| `lib/generated/method-types.generated.ts` | 자동 생성 타입 래퍼 |
+| `lib/generated/method-types.generated.ts` | 자동 생성 타�� 래퍼 |
 | `scripts/generate-method-types.mjs` | 타입 생성 스크립트 |
 
 **Workers:**
@@ -381,6 +381,7 @@
 | **~~Graph Studio Stage 2~~** | ✅ 완료 (2026-02-28) — AI 편집 서비스, AiEditTab 활성화, 29개 테스트 |
 | **~~Graph Studio G1: 핵심 UI~~** | ✅ 완료 (2026-02-28) — 상세: 아래 |
 | **Phase 15-1: Bio-Tools** | 12개 생물학 분석, `/bio-tools/` 5페이지 구현 ([상세](study/PLAN-BIO-STATISTICS-AUDIT.md)) |
+| **Chat-First 파일 첨부 흐름** | 채팅에서 파일 첨부 + 대화로 메서드/변수 확정 → Step 3/4 직행 ([상세](stats/docs/PLAN-CHAT-FIRST-FILE-ATTACHMENT.md)) |
 | **Pyodide 메모리 최적화 (2차)** | Graph Studio 안정화 후 진행. (1) Graph Studio 진입 시 `dispose()` 검토 — 재로드 6-13초(캐시 히트) 감수 가능한지 실측. (2) `performance.measureUserAgentSpecificMemory()` 기반 메모리 계측 추가 → 실 데이터로 판단. (3) Phase 1+2 완료(`PyodidePreloader` 라우트 체크 + Worker prefetch). 계획서: [PLAN-PYODIDE-LAZY-LOADING.md](stats/docs/PLAN-PYODIDE-LAZY-LOADING.md) |
 
 ---

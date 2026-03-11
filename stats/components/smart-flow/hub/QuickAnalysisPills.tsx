@@ -1,0 +1,199 @@
+'use client'
+
+/**
+ * QuickAnalysisPills — 빠른 분석 메서드 pills
+ *
+ * Hero 섹션 바로 아래, 빠른 시작 그리드 위에 배치
+ * - 커스텀 가능한 메서드 pill 목록
+ * - 편집 다이얼로그로 사용자 설정
+ */
+
+import { useState, useCallback, useMemo } from 'react'
+import { Settings2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@/components/ui/dialog'
+import { Checkbox } from '@/components/ui/checkbox'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { cn } from '@/lib/utils'
+import { useTerminology } from '@/hooks/use-terminology'
+import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
+
+// ===== Constants =====
+
+const STORAGE_KEY = 'main-hub-quick-analysis'
+const DEFAULT_QUICK_METHODS = ['t-test', 'anova', 'correlation', 'regression', 'chi-square']
+
+const METHODS_BY_CATEGORY = Object.entries(STATISTICAL_METHODS).reduce((acc, [id, method]) => {
+  if (method.hasOwnPage !== false) {
+    const cat = method.category
+    if (!acc[cat]) acc[cat] = []
+    acc[cat].push({
+      id,
+      name: method.koreanName || method.name,
+      description: method.koreanDescription || method.description
+    })
+  }
+  return acc
+}, {} as Record<string, Array<{ id: string; name: string; description: string }>>)
+
+// ===== Helpers =====
+
+function loadQuickMethods(): string[] {
+  if (typeof window === 'undefined') return DEFAULT_QUICK_METHODS
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return DEFAULT_QUICK_METHODS
+}
+
+function saveQuickMethods(methods: string[]): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(methods))
+  } catch {
+    // ignore
+  }
+}
+
+// ===== Props =====
+
+interface QuickAnalysisPillsProps {
+  onQuickAnalysis: (methodId: string) => void
+}
+
+// ===== Component =====
+
+export function QuickAnalysisPills({ onQuickAnalysis }: QuickAnalysisPillsProps) {
+  const t = useTerminology()
+
+  const [quickMethods, setQuickMethods] = useState<string[]>(() => loadQuickMethods())
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [editingMethods, setEditingMethods] = useState<string[]>([])
+
+  const quickMethodsInfo = useMemo(() => {
+    return quickMethods
+      .map(id => {
+        const method = STATISTICAL_METHODS[id]
+        return method ? { id, name: t.hub.quickMethodNames[id] || method.koreanName || method.name } : null
+      })
+      .filter(Boolean) as Array<{ id: string; name: string }>
+  }, [quickMethods, t])
+
+  const handleOpenEdit = useCallback(() => {
+    setEditingMethods([...quickMethods])
+    setShowEditDialog(true)
+  }, [quickMethods])
+
+  const handleSaveEdit = useCallback(() => {
+    setQuickMethods(editingMethods)
+    saveQuickMethods(editingMethods)
+    setShowEditDialog(false)
+  }, [editingMethods])
+
+  const handleToggleMethod = useCallback((methodId: string) => {
+    setEditingMethods(prev =>
+      prev.includes(methodId)
+        ? prev.filter(id => id !== methodId)
+        : [...prev, methodId]
+    )
+  }, [])
+
+  return (
+    <>
+      <div className="flex items-center justify-center gap-2 flex-wrap">
+        <span className="text-[13px] font-medium text-muted-foreground mr-0.5">
+          {t.hub.quickAnalysis.title}
+        </span>
+
+        {quickMethodsInfo.map(method => (
+          <button
+            key={method.id}
+            type="button"
+            onClick={() => onQuickAnalysis(method.id)}
+            className={cn(
+              'px-3.5 py-1.5 text-[13px] rounded-full',
+              'border border-border bg-muted/50',
+              'text-foreground/80 hover:text-primary hover:border-primary/40 hover:bg-primary/5',
+              'transition-colors duration-150',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40'
+            )}
+          >
+            {method.name}
+          </button>
+        ))}
+
+        <button
+          type="button"
+          onClick={handleOpenEdit}
+          className="p-1.5 text-muted-foreground/40 hover:text-muted-foreground transition-colors rounded-full hover:bg-accent"
+          title={t.hub.quickAnalysis.editTooltip}
+        >
+          <Settings2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* 편집 다이얼로그 */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t.hub.editDialog.title}</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[400px] pr-4">
+            <div className="space-y-4">
+              {Object.entries(METHODS_BY_CATEGORY).map(([category, methods]) => (
+                <div key={category}>
+                  <div className="text-xs font-medium text-muted-foreground mb-2">
+                    {t.hub.categoryLabels[category] || category}
+                  </div>
+                  <div className="space-y-1">
+                    {methods.map(method => (
+                      <label
+                        key={method.id}
+                        className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer"
+                      >
+                        <Checkbox
+                          checked={editingMethods.includes(method.id)}
+                          onCheckedChange={() => handleToggleMethod(method.id)}
+                        />
+                        <span className="text-sm">{method.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+          <DialogFooter>
+            <div className="flex items-center justify-between w-full">
+              <span className="text-xs text-muted-foreground">
+                {t.hub.editDialog.selectedCount(editingMethods.length)}
+              </span>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setShowEditDialog(false)}>
+                  {t.hub.editDialog.cancel}
+                </Button>
+                <Button size="sm" onClick={handleSaveEdit}>
+                  {t.hub.editDialog.save}
+                </Button>
+              </div>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}

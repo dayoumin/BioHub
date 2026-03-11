@@ -488,12 +488,23 @@ export interface HubText {
     processingMessage: string
     uploadAriaLabel: string
     uploadTitle: string
+    /** 채팅창 하단 프라이버시 안내 문구 */
+    privacyNotice: string
   }
   /** Chat-First 허브: 3트랙 제안 카드 */
   tracks: {
     directAnalysis: { title: string; description: string; example: string }
     dataConsultation: { title: string; description: string; example: string }
     experimentDesign: { title: string; description: string; example: string }
+  }
+  /** 빠른 시작 그리드 */
+  quickStart: {
+    title: string
+    newAnalysis: string
+    uploadData: string
+    sampleSize: string
+    visualization: string
+    bioTools: string
   }
   /** 실험 설계 미구현 안내 메시지 */
   experimentNotReady: string
@@ -512,6 +523,7 @@ export interface HubText {
     unknownMethod: string
     emptyTitle: string
     emptyDescription: string
+    showMore: (n: number) => string
   }
   quickAnalysis: {
     title: string
@@ -551,6 +563,16 @@ export interface HubText {
     history: string
   }
   quickMethodNames: Record<string, string>
+  /** 추천 분석 패널 */
+  recommendedAnalyses: {
+    title: string
+    startButton: string
+  }
+  /** 최근 분석 카드 상태 */
+  recentStatus: {
+    completed: string
+    inProgress: string
+  }
 }
 
 /**

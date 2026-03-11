@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+
+<html lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BioHub Home Dashboard Korean</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#207fdf",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111921",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 flex h-screen overflow-hidden">
+<!-- Sidebar -->
+<div class="flex h-full w-[240px] flex-col bg-[#111921] border-r border-slate-200 dark:border-slate-800 shrink-0 text-slate-100">
+<div class="flex items-center gap-3 p-6">
+<div class="bg-primary aspect-square bg-cover rounded-full size-8 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-xl">science</span>
+</div>
+<h1 class="text-white text-xl font-bold leading-normal">BioHub</h1>
+</div>
+<div class="flex flex-col gap-2 px-4 flex-1">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/20 text-primary" href="#">
+<span class="material-symbols-outlined">home</span>
+<p class="text-sm font-medium leading-normal">홈</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+<p class="text-sm font-medium leading-normal">통계 분석</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined">pie_chart</span>
+<p class="text-sm font-medium leading-normal">Graph Studio</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined">build</span>
+<p class="text-sm font-medium leading-normal">Bio-Tools</p>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined">database</span>
+<p class="text-sm font-medium leading-normal">데이터 도구</p>
+</a>
+</div>
+<div class="p-4 border-t border-slate-800">
+<div class="flex items-center gap-3 px-3 py-2">
+<div class="bg-slate-700 aspect-square rounded-full size-8"></div>
+<div>
+<p class="text-sm font-medium text-white">연구자님</p>
+<p class="text-xs text-slate-400">Basic Plan</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Content -->
+<div class="flex-1 overflow-y-auto bg-white dark:bg-slate-900">
+<div class="max-w-[1080px] mx-auto px-8 py-10">
+<!-- Hero Section -->
+<div class="mb-12">
+<h1 class="text-4xl font-black leading-tight tracking-tight mb-2">안녕하세요, 연구자님</h1>
+<p class="text-slate-500 dark:text-slate-400 text-lg">어떤 분석을 하시겠습니까?</p>
+<div class="mt-6 relative max-w-2xl shadow-sm">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="w-full pl-12 pr-4 py-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-background-light dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:ring-2 focus:ring-primary focus:border-primary text-lg transition-shadow" placeholder="분석 종류, 데이터 등 검색 (예: t-검정, 생존분석)" type="text"/>
+</div>
+</div>
+<!-- Quick Start -->
+<div class="mb-12">
+<h2 class="text-xl font-bold mb-4">빠른 시작</h2>
+<div class="grid grid-cols-4 gap-4">
+<button class="flex flex-col items-center justify-center gap-3 p-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all group">
+<div class="bg-primary/10 text-primary p-3 rounded-full group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-2xl">add</span>
+</div>
+<span class="font-medium">새 분석</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-3 p-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all group">
+<div class="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 p-3 rounded-full group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-2xl">upload_file</span>
+</div>
+<span class="font-medium">데이터 업로드</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-3 p-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all group">
+<div class="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 p-3 rounded-full group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-2xl">library_books</span>
+</div>
+<span class="font-medium">템플릿 불러오기</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-3 p-6 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-primary dark:hover:border-primary hover:shadow-md transition-all group">
+<div class="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 p-3 rounded-full group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-2xl">dataset</span>
+</div>
+<span class="font-medium">예제 데이터</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-3 gap-8">
+<!-- Recent Analyses -->
+<div class="col-span-2">
+<div class="flex items-center justify-between mb-4">
+<h2 class="text-xl font-bold">최근 분석</h2>
+<a class="text-primary text-sm font-medium hover:underline" href="#">모두 보기</a>
+</div>
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:shadow-sm transition-shadow">
+<div class="flex items-center gap-4">
+<div class="bg-emerald-100 text-emerald-600 p-2 rounded-lg">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+<div>
+<p class="font-bold text-slate-900 dark:text-slate-100">독립표본 t-검정 — 암수 체중 차이</p>
+<p class="text-sm text-slate-500 dark:text-slate-400 mt-1">완료, <span class="font-mono text-xs">p=0.003</span> • 2시간 전</p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-primary">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:shadow-sm transition-shadow">
+<div class="flex items-center gap-4">
+<div class="bg-emerald-100 text-emerald-600 p-2 rounded-lg">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+<div>
+<p class="font-bold text-slate-900 dark:text-slate-100">일원분산분석 — 사료 종류별 성장률</p>
+<p class="text-sm text-slate-500 dark:text-slate-400 mt-1">완료, <span class="font-mono text-xs">p=0.041</span> • 어제</p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-primary">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<div class="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:shadow-sm transition-shadow">
+<div class="flex items-center gap-4">
+<div class="bg-blue-100 text-primary p-2 rounded-lg">
+<span class="material-symbols-outlined animate-spin">sync</span>
+</div>
+<div>
+<p class="font-bold text-slate-900 dark:text-slate-100">피어슨 상관분석 — 체중-체장 관계</p>
+<p class="text-sm text-slate-500 dark:text-slate-400 mt-1">진행 중 • 방금 전</p>
+</div>
+</div>
+<button class="text-slate-400 hover:text-primary">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Recommendations -->
+<div class="col-span-1">
+<h2 class="text-xl font-bold mb-4">추천 분석</h2>
+<div class="flex flex-col gap-4">
+<div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+<h3 class="font-bold mb-1">대응표본 t-검정</h3>
+<p class="text-sm text-slate-500 dark:text-slate-400 mb-3 line-clamp-2">동일한 그룹의 전후 차이를 비교할 때 유용한 분석 방법입니다.</p>
+<button class="text-primary text-sm font-medium flex items-center gap-1 hover:underline">
+                                시작하기 <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+<div class="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+<h3 class="font-bold mb-1">다중회귀분석</h3>
+<p class="text-sm text-slate-500 dark:text-slate-400 mb-3 line-clamp-2">여러 독립변수가 종속변수에 미치는 영향을 동시에 파악합니다.</p>
+<button class="text-primary text-sm font-medium flex items-center gap-1 hover:underline">
+                                시작하기 <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>

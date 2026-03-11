@@ -434,7 +434,7 @@ export const aquaculture: TerminologyDictionary = {
   hub: {
     hero: {
       heading: '데이터에서 인사이트까지,',
-      subheading: '과학적으로.',
+      subheading: '어떤 분석을 하시겠습니까?',
       description: 'CSV, Excel 파일을 업로드하면 AI가 데이터 특성을 분석하고 최적의 통계 방법을 추천합니다. 전문가 수준의 분석을 몇 번의 클릭으로.',
       statMethods: (count: number) => `${count}개 분석 도구`,
       statCategories: (count: number) => `${count}개 카테고리`,
@@ -449,6 +449,7 @@ export const aquaculture: TerminologyDictionary = {
       processingMessage: '최적 분석 방향을 파악하고 있습니다...',
       uploadAriaLabel: '데이터 파일 업로드',
       uploadTitle: 'CSV / Excel 파일 업로드',
+      privacyNotice: '데이터는 브라우저에서만 처리되며 외부로 전송되지 않습니다',
     },
     tracks: {
       directAnalysis: {
@@ -467,6 +468,14 @@ export const aquaculture: TerminologyDictionary = {
         example: '적절한 표본 크기는?',
       },
     },
+    quickStart: {
+      title: '빠른 시작',
+      newAnalysis: '새 분석',
+      uploadData: '데이터 업로드',
+      sampleSize: '표본 크기 계산',
+      visualization: '데이터 시각화',
+      bioTools: 'Bio-Tools',
+    },
     experimentNotReady: '실험 설계 기능은 준비 중입니다. 데이터 상담으로 안내해 드릴게요.',
     intentClassificationFailed: '요청을 분류하지 못했습니다. 데이터 상담으로 이어서 진행합니다.',
     cards: {
@@ -482,6 +491,7 @@ export const aquaculture: TerminologyDictionary = {
       unknownMethod: '알 수 없음',
       emptyTitle: '아직 분석 기록이 없습니다',
       emptyDescription: '첫 분석을 시작해보세요',
+      showMore: (n: number) => `전체 ${n}개 보기`,
     },
     quickAnalysis: {
       title: '빠른 분석',
@@ -546,6 +556,14 @@ export const aquaculture: TerminologyDictionary = {
       'wilcoxon': 'Wilcoxon',
       'kruskal-wallis': 'Kruskal-Wallis',
       'fisher-exact': 'Fisher 정확 검정',
+    },
+    recommendedAnalyses: {
+      title: '추천 분석',
+      startButton: '시작하기',
+    },
+    recentStatus: {
+      completed: '완료',
+      inProgress: '진행 중',
     },
   },
 

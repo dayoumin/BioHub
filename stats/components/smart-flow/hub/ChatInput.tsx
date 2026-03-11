@@ -8,13 +8,12 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Send, Loader2, ArrowUpFromLine } from 'lucide-react'
+import { Send, Loader2, ArrowUpFromLine, ShieldCheck } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { useTerminology } from '@/hooks/use-terminology'
-import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { TypingIndicator } from '@/components/common/TypingIndicator'
 
 // ===== Props =====
@@ -39,7 +38,6 @@ export function ChatInput({
   onUploadClick,
 }: ChatInputProps) {
   const t = useTerminology()
-  const prefersReducedMotion = useReducedMotion()
   const [value, setValue] = useState('')
 
   // 최신 콜백을 ref로 캡처 (deps 안정화)
@@ -76,46 +74,39 @@ export function ChatInput({
   }, [])
 
   return (
-    <motion.div
-      initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <div className="rounded-2xl border bg-card p-6 space-y-4">
-        <p className="text-sm font-medium text-muted-foreground">
-          {t.hub.chatInput.heading}
-        </p>
+    <div className="space-y-3">
+      <div className="relative">
+        {/* Textarea with buttons inside */}
+        <Textarea
+          data-testid="ai-chat-input"
+          value={value}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          placeholder={t.hub.chatInput.placeholder}
+          disabled={isProcessing}
+          rows={2}
+          className={cn(
+            'min-h-[64px] max-h-[160px] resize-none pl-5 pr-24',
+            'rounded-2xl border-border bg-background text-base',
+            'shadow-md',
+            'focus:ring-2 focus:ring-primary/30 focus:border-primary',
+            'transition-all duration-200'
+          )}
+        />
 
-        <div className="flex items-end gap-2">
-          <div className="flex-1">
-            <Textarea
-              data-testid="ai-chat-input"
-              value={value}
-              onChange={handleChange}
-              onKeyDown={handleKeyDown}
-              placeholder={t.hub.chatInput.placeholder}
-              disabled={isProcessing}
-              rows={3}
-              className={cn(
-                'min-h-[80px] max-h-[200px] resize-none pr-4',
-                'rounded-xl border-muted-foreground/20 text-base',
-                'focus:ring-2 focus:ring-primary/30',
-                'transition-all duration-200'
-              )}
-            />
-          </div>
-
+        {/* Buttons inside textarea — bottom right */}
+        <div className="absolute right-2 bottom-2 flex items-center gap-1.5">
           {onUploadClick && (
             <Button
               size="icon"
-              variant="outline"
+              variant="ghost"
               onClick={onUploadClick}
               disabled={isProcessing}
-              className="h-12 w-12 rounded-xl shrink-0 self-end text-muted-foreground hover:text-foreground"
+              className="h-9 w-9 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-accent"
               aria-label={t.hub.chatInput.uploadAriaLabel}
               title={t.hub.chatInput.uploadTitle}
             >
-              <ArrowUpFromLine className="h-5 w-5" />
+              <ArrowUpFromLine className="h-4 w-4" />
             </Button>
           )}
 
@@ -124,36 +115,42 @@ export function ChatInput({
             size="icon"
             onClick={handleSubmit}
             disabled={!value.trim() || isProcessing}
-            className="h-12 w-12 rounded-xl shrink-0 self-end"
+            className="h-9 w-9 rounded-lg"
             aria-label={t.hub.chatInput.sendAriaLabel}
           >
             {isProcessing ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Send className="h-5 w-5" />
+              <Send className="h-4 w-4" />
             )}
           </Button>
         </div>
-
-        {/* 처리 중 상태 인디케이터 */}
-        <AnimatePresence>
-          {isProcessing && (
-            <motion.div
-              key="processing"
-              initial={{ opacity: 0, height: 0, marginTop: 0 }}
-              animate={{ opacity: 1, height: 'auto', marginTop: '1.5rem' }}
-              exit={{ opacity: 0, height: 0, marginTop: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <TypingIndicator
-                label={t.hub.chatInput.processingMessage}
-                className="pt-1"
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
-    </motion.div>
+
+      {/* 프라이버시 안내 */}
+      <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground/50">
+        <ShieldCheck className="h-3 w-3 shrink-0" />
+        {t.hub.chatInput.privacyNotice}
+      </p>
+
+      {/* 처리 중 상태 인디케이터 */}
+      <AnimatePresence>
+        {isProcessing && (
+          <motion.div
+            key="processing"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <TypingIndicator
+              label={t.hub.chatInput.processingMessage}
+              className="pt-1"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   )
 }
