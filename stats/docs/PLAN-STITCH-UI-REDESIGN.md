@@ -133,7 +133,7 @@ SelectorType별 슬롯 구성:
 ┌──────────────────┬────────────────────────────────────────────┐
 │ group-comparison  │ dependent(1,연속) + factor(1,범주) + covariate?(N,연속) │
 │ correlation       │ variables(N,연속, min2 max10)                          │
-│ multiple-regression│ dependent(1,연속) + independent(N,연속+범주)           │
+│ multiple-regression│ dependent(1,연속) + independent(N,연속)                │
 │ paired            │ variables(2,연속)                                      │
 │ one-sample        │ dependent(1,연속)  ← testValue는 AnalysisOptions.testValue로 │
 │ chi-square        │ independent(1,범주) + dependent(1,범주)                │
