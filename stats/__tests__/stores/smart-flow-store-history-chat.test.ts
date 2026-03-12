@@ -176,3 +176,89 @@ describe('Smart Flow Store — interpretationChat 복원', () => {
     })
   })
 })
+
+describe('Smart Flow Store — 히스토리 A→B 전환', () => {
+  const chatA: ChatMessage[] = [
+    { id: 'a1', role: 'user', content: 'A 질문', timestamp: 1000 },
+    { id: 'a2', role: 'assistant', content: 'A 답변', timestamp: 2000 },
+  ]
+  const chatB: ChatMessage[] = [
+    { id: 'b1', role: 'user', content: 'B 질문', timestamp: 3000 },
+    { id: 'b2', role: 'assistant', content: 'B 답변', timestamp: 4000 },
+    { id: 'b3', role: 'user', content: 'B 후속', timestamp: 5000 },
+    { id: 'b4', role: 'assistant', content: 'B 후속 답변', timestamp: 6000 },
+  ]
+
+  function makeRecord(id: string, chat?: ChatMessage[]): HistoryRecord {
+    return {
+      id,
+      timestamp: Date.now(),
+      name: `분석 ${id}`,
+      purpose: '비교',
+      method: { id: 'independent-t-test', name: '독립표본 t-검정', category: 'parametric' },
+      dataFileName: `${id}.csv`,
+      dataRowCount: 30,
+      results: { method: 'independent-t-test', pValue: id === 'A' ? 0.01 : 0.99 },
+      aiInterpretation: `${id} 해석`,
+      interpretationChat: chat,
+    }
+  }
+
+  beforeEach(() => {
+    act(() => { useSmartFlowStore.getState().reset() })
+    vi.clearAllMocks()
+  })
+
+  it('A 로드 후 B 로드 시 loadedInterpretationChat이 B 대화로 교체된다', async () => {
+    // A 로드
+    mockGetHistory.mockResolvedValueOnce(makeRecord('A', chatA))
+    await act(async () => {
+      await useSmartFlowStore.getState().loadFromHistory('A')
+    })
+    expect(useSmartFlowStore.getState().loadedInterpretationChat).toHaveLength(2)
+    expect(useSmartFlowStore.getState().currentHistoryId).toBe('A')
+
+    // B 로드
+    mockGetHistory.mockResolvedValueOnce(makeRecord('B', chatB))
+    await act(async () => {
+      await useSmartFlowStore.getState().loadFromHistory('B')
+    })
+    expect(useSmartFlowStore.getState().loadedInterpretationChat).toHaveLength(4)
+    expect(useSmartFlowStore.getState().loadedInterpretationChat?.[0].content).toBe('B 질문')
+    expect(useSmartFlowStore.getState().currentHistoryId).toBe('B')
+  })
+
+  it('A(채팅 있음) → B(채팅 없음) 전환 시 loadedInterpretationChat이 null이 된다', async () => {
+    // A 로드 (채팅 있음)
+    mockGetHistory.mockResolvedValueOnce(makeRecord('A', chatA))
+    await act(async () => {
+      await useSmartFlowStore.getState().loadFromHistory('A')
+    })
+    expect(useSmartFlowStore.getState().loadedInterpretationChat).toHaveLength(2)
+
+    // B 로드 (채팅 없음)
+    mockGetHistory.mockResolvedValueOnce(makeRecord('B', undefined))
+    await act(async () => {
+      await useSmartFlowStore.getState().loadFromHistory('B')
+    })
+    expect(useSmartFlowStore.getState().loadedInterpretationChat).toBeNull()
+  })
+
+  it('A→B 전환 시 currentHistoryId가 변경되어 UI 초기화 트리거가 된다', async () => {
+    mockGetHistory.mockResolvedValueOnce(makeRecord('A', chatA))
+    await act(async () => {
+      await useSmartFlowStore.getState().loadFromHistory('A')
+    })
+    const idA = useSmartFlowStore.getState().currentHistoryId
+
+    mockGetHistory.mockResolvedValueOnce(makeRecord('B', chatB))
+    await act(async () => {
+      await useSmartFlowStore.getState().loadFromHistory('B')
+    })
+    const idB = useSmartFlowStore.getState().currentHistoryId
+
+    expect(idA).toBe('A')
+    expect(idB).toBe('B')
+    expect(idA).not.toBe(idB)
+  })
+})

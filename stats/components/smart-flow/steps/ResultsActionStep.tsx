@@ -262,7 +262,47 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     selectedMethod,
     assumptionResults,
     loadedInterpretationChat,
+    currentHistoryId,
   } = useSmartFlowStore()
+
+  // 히스토리 전환 감지: 로컬 state 전체 초기화 + 진행 중인 스트림 abort
+  const prevHistoryIdRef = useRef<string | null | undefined>(undefined)
+  useEffect(() => {
+    // 첫 마운트(undefined→value)는 건너뜀, 이후 변경만 감지
+    if (prevHistoryIdRef.current === undefined) {
+      prevHistoryIdRef.current = currentHistoryId
+      return
+    }
+    if (prevHistoryIdRef.current === currentHistoryId) return
+    prevHistoryIdRef.current = currentHistoryId
+
+    // 진행 중인 스트림 abort (chunk 오염 방지)
+    interpretAbortRef.current?.abort()
+    followUpAbortRef.current?.abort()
+
+    // AI 해석 로컬 state 초기화 → 자동 재호출 트리거
+    setInterpretation(null)
+    setInterpretationModel(null)
+    setIsInterpreting(false)
+    setInterpretError(null)
+    interpretedResultRef.current = null
+
+    // Q&A 로컬 state 초기화 (loadedInterpretationChat effect가 복원)
+    setFollowUpMessages([])
+    setFollowUpInput('')
+    setIsFollowUpStreaming(false)
+    isFollowUpStreamingRef.current = false
+
+    // Phase 초기화 (단계적 등장 재시작)
+    setPhase(0)
+    if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current)
+
+    // UI state 초기화
+    setIsSaved(false)
+    setSavedName(null)
+    setUsedChips(new Set())
+    hasSavedToHistoryRef.current = false
+  }, [currentHistoryId])
 
   // 히스토리에서 로드된 후속 Q&A 대화 복원
   useEffect(() => {
