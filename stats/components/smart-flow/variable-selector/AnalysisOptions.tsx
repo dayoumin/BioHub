@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import { useTerminology } from '@/hooks/use-terminology'
 
 interface AnalysisOptionsSectionProps {
   /** one-sample 메서드일 때 testValue 입력 표시 */
@@ -30,6 +31,7 @@ export function AnalysisOptionsSection({
   showTestValue = false,
   className,
 }: AnalysisOptionsSectionProps) {
+  const t = useTerminology()
   const analysisOptions = useSmartFlowStore(state => state.analysisOptions)
   const setAnalysisOptions = useSmartFlowStore(state => state.setAnalysisOptions)
 
@@ -55,7 +57,7 @@ export function AnalysisOptionsSection({
         {/* Alpha (significance level) */}
         <div className="flex items-center justify-between">
           <Label htmlFor="alpha-select" className="text-xs text-muted-foreground">
-            유의수준 (α)
+            {t.selectorUI.labels.alpha}
           </Label>
           <Select
             value={String(analysisOptions.alpha)}
@@ -76,7 +78,7 @@ export function AnalysisOptionsSection({
         {showTestValue && (
           <div className="flex items-center justify-between">
             <Label htmlFor="test-value-input" className="text-xs text-muted-foreground">
-              기준값 (μ₀)
+              {t.selectorUI.labels.testValue}
             </Label>
             <Input
               id="test-value-input"
@@ -93,7 +95,7 @@ export function AnalysisOptionsSection({
         {/* Assumption tests toggle */}
         <div className="flex items-center justify-between">
           <Label htmlFor="show-assumptions" className="text-xs text-muted-foreground">
-            가정검정
+            {t.selectorUI.labels.assumptionTest}
           </Label>
           <Switch
             id="show-assumptions"
@@ -106,7 +108,7 @@ export function AnalysisOptionsSection({
         {/* Effect size toggle */}
         <div className="flex items-center justify-between">
           <Label htmlFor="show-effect-size" className="text-xs text-muted-foreground">
-            효과크기
+            {t.selectorUI.labels.effectSize}
           </Label>
           <Switch
             id="show-effect-size"

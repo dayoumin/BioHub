@@ -97,6 +97,11 @@ vi.mock('@/hooks/use-terminology', () => ({
         roles: { dependent: 'Y:', group: 'G:', factors: 'F:', independent: 'X:', covariate: 'C:' },
       },
     },
+    selectorUI: {
+      labels: {
+        analysisOptions: '분석 옵션',
+      },
+    },
   }),
 }))
 

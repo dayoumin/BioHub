@@ -124,7 +124,7 @@ export function AppSidebar() {
         </button>
         <span
           className={cn(
-            'ml-3 text-sm font-bold text-sidebar-foreground whitespace-nowrap',
+            'ml-3 text-sm font-semibold tracking-tight text-sidebar-foreground whitespace-nowrap',
             'transition-[opacity,max-width] duration-200 overflow-hidden',
             expanded ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0',
           )}
@@ -143,10 +143,10 @@ export function AppSidebar() {
             'relative flex items-center gap-2 h-9 px-2 rounded-md w-full',
             'transition-colors duration-150',
             active && !item.disabled
-              ? 'bg-primary/10 text-primary font-medium'
-              : '',
+              ? 'bg-primary/10 text-primary font-medium border-l-2 border-primary'
+              : 'border-l-2 border-transparent',
             !item.disabled && !active
-              ? 'hover:bg-sidebar-accent text-sidebar-foreground'
+              ? 'hover:bg-sidebar-accent/60 text-sidebar-foreground/80 hover:text-sidebar-foreground'
               : '',
             item.disabled ? 'text-sidebar-foreground/30 cursor-not-allowed' : '',
           )
@@ -164,7 +164,9 @@ export function AppSidebar() {
                 {item.label}
               </span>
               {expanded && item.badge && (
-                <span className="ml-auto text-[10px] opacity-40 flex-shrink-0">{item.badge}</span>
+                <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-muted/50 text-muted-foreground/60 font-medium flex-shrink-0">
+                  {item.badge}
+                </span>
               )}
             </>
           )
@@ -232,7 +234,7 @@ export function AppSidebar() {
               onClick={openSettings}
               className={cn(
                 'flex items-center gap-2 h-9 px-2 rounded-md w-full border-l-2 border-transparent',
-                'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground',
+                'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
                 'transition-colors',
               )}
             >

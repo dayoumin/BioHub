@@ -125,7 +125,12 @@ export const aquaculture: TerminologyDictionary = {
       groups: 'groups',
       numeric: 'numeric',
       range: 'Range',
-      mean: 'Mean'
+      mean: 'Mean',
+      analysisOptions: '분석 옵션',
+      alpha: '유의수준 (α)',
+      testValue: '기준값 (μ₀)',
+      assumptionTest: '가정검정',
+      effectSize: '효과크기'
     }
   },
 

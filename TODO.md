@@ -31,7 +31,7 @@
 
 ## 📅 최근 작업 (7일)
 
-### 2026-03-12 (수) STITCH Phase 2+3 완료 (통합 변수 선택 + 결과 UI 리디자인)
+### 2026-03-12 (수) STITCH Phase 2+3+4 완료 (UI 리디자인 전체 완료)
 
 > **브랜치**: `feature/ui-redesign`
 
@@ -52,6 +52,13 @@
   - 효과크기 기호: 12개 EffectSizeType 전체 매핑 (d, g, Δ, η², ε², W 등)
   - terminology: confidenceInterval 추가 (types + generic + aquaculture)
   - 테스트: ResultsActionStep 75/75 통과
+
+**STITCH UI 리디자인 Phase 4** — 공통 마무리
+- ✅ **Phase 4**: AnalysisOptions terminology 이동 + 사이드바 STITCH 스타일 + 간격 통일
+  - AnalysisOptions 한글 5개 → `selectorUI.labels` terminology 이동
+  - 사이드바: 좌측 accent bar, pill 배지, 호버 투명도, 타이포 tracking
+  - PurposeInputStep: `mb-5` → `mb-6` (space-y-6 패턴 통일)
+  - 테스트: VariableSelectionStep 19/19 통과
 
 ### 2026-03-11 (화) UI 리디자인 Phase 0-1 + 통합 최근 활동 + G5.2 로직 훅 추출
 
@@ -440,7 +447,7 @@
 | **~~통합 최근 활동~~** | ✅ 완료 (2026-03-11) — QuickAccessBar 통계+시각화 통합, P1 encoding 호환성 검증 |
 | **~~STITCH Phase 2~~** | ✅ 완료 (2026-03-12) — 통합 변수 선택 + 분석 옵션 + 실시간 요약 |
 | **~~STITCH Phase 3~~** | ✅ 완료 (2026-03-12) — Step 4 결과 UI (Hero 컴팩트 + 4-col + 2-col + 액션) |
-| **UI 리디자인 잔여** | STITCH Phase 4(Step 2 + 마무리) |
+| **~~UI 리디자인~~** | ✅ 완료 (2026-03-12) — STITCH Phase 0-4 전체 완료 |
 | **논문 초안 생성** | 분석 결과 → Methods/Results/Caption/Discussion 학술 텍스트 자동 생성 ([계획서](stats/docs/PLAN-PAPER-DRAFT-GENERATION.md)) |
 | **G5.3~G5.5** | 차트 유형 아이콘 그리드(G5.3) + 인터랙티브 컨트롤(G5.4) + 캔버스 미니 툴바(G5.5) |
 | **AI 채팅 히스토리 (multi-turn)** | `FlowStateMachine` messages 배열화, 최근 2턴 context, 채팅 스레드 UI |

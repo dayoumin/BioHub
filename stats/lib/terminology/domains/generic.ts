@@ -124,7 +124,12 @@ export const generic: TerminologyDictionary = {
       groups: 'groups',
       numeric: 'numeric',
       range: 'Range',
-      mean: 'Mean'
+      mean: 'Mean',
+      analysisOptions: 'Analysis Options',
+      alpha: 'Significance Level (α)',
+      testValue: 'Test Value (μ₀)',
+      assumptionTest: 'Assumption Tests',
+      effectSize: 'Effect Size'
     }
   },
 

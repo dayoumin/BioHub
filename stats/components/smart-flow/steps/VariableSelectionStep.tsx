@@ -380,7 +380,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
       {/* Analysis Options */}
       <CollapsibleSection
-        label="분석 옵션"
+        label={t.selectorUI.labels.analysisOptions}
         open={optionsOpen}
         onOpenChange={setOptionsOpen}
         icon={<SlidersHorizontal className="h-3.5 w-3.5" />}

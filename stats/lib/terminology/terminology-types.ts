@@ -114,6 +114,11 @@ export interface SelectorUIText {
     numeric: string
     range: string
     mean: string
+    analysisOptions: string
+    alpha: string
+    testValue: string
+    assumptionTest: string
+    effectSize: string
   }
 }
 
