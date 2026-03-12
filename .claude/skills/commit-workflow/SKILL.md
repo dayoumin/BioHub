@@ -1,32 +1,21 @@
 ---
 name: commit-workflow
-description: AI 코딩 품질 보증 워크플로우. 코드 수정 → 검증 → 리뷰 → 문서 업데이트 → 커밋 → 푸시 절차. 커밋, 코드 리뷰, 품질 검증 작업 시 자동 적용.
+description: AI 코딩 품질 보증 워크플로우. 코드 수정 → 리뷰 → 문서 → 검증(커밋 직전 1회) → 커밋 → 푸시.
 user-invocable: false
 ---
 
 # AI 코딩 품질 보증 워크플로우
 
-**핵심 흐름**: 수정 → 검증 → 리뷰 → 문서 업데이트 → 커밋 → (사용자 승인) → 푸시
+**핵심 흐름**: 수정 → 리뷰 → 문서 업데이트 → 검증(커밋 직전 1회) → 커밋 → (사용자 승인) → 푸시
+
+> **중요**: tsc/test 검증은 **커밋 직전에 1회만** 실행. 수정 중간에 반복 실행하지 않는다.
 
 ## Step 1: 코드 수정
 
 - Write/Edit Tool 사용
 - VSCode TypeScript 서버가 문법 에러 자동 감지
 
-## Step 2: 검증
-
-**TypeScript 체크** (필수):
-```bash
-cd stats
-pnpm tsc --noEmit
-```
-
-**테스트 실행** (로직 변경 시):
-```bash
-pnpm test [파일명]
-```
-
-## Step 3: 코드 리뷰
+## Step 2: 코드 리뷰
 
 **AI 자체 리뷰**:
 1. 수정 파일 목록 (파일명 + 라인 번호)
@@ -41,7 +30,7 @@ pnpm test [파일명]
 - [ ] 기존 코드 패턴 준수
 - [ ] 다른 파일에 부작용 없음
 
-## Step 3.5: 관련 문서 업데이트
+## Step 3: 관련 문서 업데이트
 
 커밋 전에 아래 항목을 확인하고 필요하면 업데이트한다.
 
@@ -59,7 +48,20 @@ pnpm test [파일명]
 
 > 문서 업데이트가 없으면 이 단계를 건너뛴다. 강제 아님.
 
-## Step 4: Git 커밋
+## Step 4: 검증 (커밋 직전 1회)
+
+**TypeScript 체크** (필수):
+```bash
+cd stats
+pnpm tsc --noEmit
+```
+
+**테스트 실행** (로직 변경 시):
+```bash
+pnpm test [파일명]
+```
+
+## Step 5: Git 커밋
 
 ```bash
 git add [specific files]
@@ -76,10 +78,10 @@ feat/fix/refactor/docs/style/test: 작업 요약 (1줄)
 검증 결과:
 - TypeScript: 0 errors
 
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 ```
 
-## Step 5: 푸시 (사용자 승인 필요)
+## Step 6: 푸시 (사용자 승인 필요)
 
 **AI가 자동으로 푸시하지 않음.**
 - 커밋 완료 후 사용자에게 보고

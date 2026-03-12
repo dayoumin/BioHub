@@ -31,7 +31,7 @@
 
 ## 📅 최근 작업 (7일)
 
-### 2026-03-12 (수) STITCH Phase 2+3+4 완료 (UI 리디자인 전체 완료)
+### 2026-03-12 (수) STITCH Phase 2+3+4 완료 + G5.3~G5.5 완료 + Layer 0 APA 테이블 복사
 
 > **브랜치**: `feature/ui-redesign`
 
@@ -59,6 +59,20 @@
   - 사이드바: 좌측 accent bar, pill 배지, 호버 투명도, 타이포 tracking
   - PurposeInputStep: `mb-5` → `mb-6` (space-y-6 패턴 통일)
   - 테스트: VariableSelectionStep 19/19 통과
+
+**Paper Draft Layer 0: #8 APA 테이블 서식 복사** (IDEAS: `stats/docs/IDEAS-PAPER-DRAFT-ENHANCEMENTS.md`)
+- ✅ `lib/utils/apa-table-formatter.ts`: APA 7th 3-line HTML 생성 (Times New Roman, 이탤릭 기호, p-value 선행0 제거)
+- ✅ `StatisticsTable.tsx`: 복사 버튼 → 드롭다운 (Excel 복사 | APA 서식 복사 | CSV 다운로드)
+- ✅ 테스트: `__tests__/utils/apa-table-formatter.test.ts` (26/26 통과)
+
+**Graph Studio G5.3~G5.5** (계획서: `stats/docs/graph-studio/GRAPH_STUDIO_UI_REDESIGN_PLAN.md`)
+- ✅ **G5.3**: DataTab 차트 유형 Select → 3×4 아이콘 그리드 (Tooltip 설명 포함)
+- ✅ **G5.4**: ECharts `dataZoom` 병합 (스크롤 줌 + 드래그 팬, heatmap/facet 제외, scatter Y축)
+- ✅ **G5.5**: CanvasToolbar 플로팅 미니 툴바 (줌인/아웃/리셋/내보내기, hover 시 표시)
+- ✅ **리뷰 수정**: `zoomEnabled` prop — heatmap/facet에서 줌 버튼 비활성화
+- ✅ **공유 매핑**: `chart-icons.ts` — 12 ChartType lucide 아이콘 (DataTab + LeftDataPanel 공유)
+- ✅ **테스트**: 시뮬레이션 25건 (아이콘 매핑 + dataZoom + 줌 계산 + zoomEnabled)
+- 📌 커밋: `a4d05108` `127ce55b`
 
 ### 2026-03-11 (화) UI 리디자인 Phase 0-1 + 통합 최근 활동 + G5.2 로직 훅 추출
 
@@ -448,11 +462,13 @@
 | **~~STITCH Phase 2~~** | ✅ 완료 (2026-03-12) — 통합 변수 선택 + 분석 옵션 + 실시간 요약 |
 | **~~STITCH Phase 3~~** | ✅ 완료 (2026-03-12) — Step 4 결과 UI (Hero 컴팩트 + 4-col + 2-col + 액션) |
 | **~~UI 리디자인~~** | ✅ 완료 (2026-03-12) — STITCH Phase 0-4 전체 완료 |
+| **~~G5.3~G5.5~~** | ✅ 완료 (2026-03-12) — 아이콘 그리드 + dataZoom + 캔버스 툴바 + 시뮬레이션 25건 — `a4d05108` `127ce55b` |
+| **~~AI 채팅 히스토리 (multi-turn)~~** | ✅ 완료 — FlowChatMessage 배열, slice(-4) 2턴 context, Step 2 채팅 스레드 + Step 4 Follow-up Q&A UI, 테스트 70개 |
+| **~~Quick Analysis 프리필~~** | ✅ 완료 (P0-1, P0-2) — normality enrichment + 3계층 변수 추론 + 테스트 27개. P0-3(fuzzy matching) 보류 |
+| **~~Graph Studio G2-1 Quick Wins~~** | ✅ 완료 — ColorBrewer 15종 + 막대 데이터 레이블 + 수평 막대 + 테스트 57개 |
+| **~~Layer 0: APA 테이블 복사~~** | ✅ 완료 (2026-03-12) — APA 7th HTML 서식 + 보안 수정 + 테스트 26개 — `62177373` |
 | **논문 초안 생성** | 분석 결과 → Methods/Results/Caption/Discussion 학술 텍스트 자동 생성 ([계획서](stats/docs/PLAN-PAPER-DRAFT-GENERATION.md)) |
-| **G5.3~G5.5** | 차트 유형 아이콘 그리드(G5.3) + 인터랙티브 컨트롤(G5.4) + 캔버스 미니 툴바(G5.5) |
-| **AI 채팅 히스토리 (multi-turn)** | `FlowStateMachine` messages 배열화, 최근 2턴 context, 채팅 스레드 UI |
 | **Phase 15-1: Bio-Tools** | 12개 생물학 분석, `/bio-tools/` 5페이지 구현 ([상세](study/PLAN-BIO-STATISTICS-AUDIT.md)) |
-| **Quick Analysis 프리필 개선** | quickAnalysisMode Step 3 프리필 정확도 향상 — normality 파이프라인, detectedVariables 생성, LLM 힌트 파싱 강화 ([상세](stats/docs/PLAN-AI-ASSISTED-STEP-FLOW.md)) |
 | **Pyodide 메모리 최적화 (2차)** | Graph Studio 안정화 후 진행. 계획서: [PLAN-PYODIDE-LAZY-LOADING.md](stats/docs/PLAN-PYODIDE-LAZY-LOADING.md) |
 
 ---
@@ -699,6 +715,80 @@ S1 X축 라벨 45도 회전 | S2 IEEE 스타일 전환 | S3 에러바 추가 | S
 | 작업 | 설명 | 상태 |
 |------|------|------|
 | **Phase 5-2: Pyodide 리팩토링** | callWorkerMethod → Generated Wrapper 전환 + any 타입 35개 제거 | ✅ 완료 |
+
+---
+
+## 🧹 기술 부채 정리 계획 (후순위, 2026-03-12 검토)
+
+> 비판적 코드 검토에서 도출. 현재 진행 중 작업 완료 후 순차 처리.
+
+### TD-1: 보안 — 환경변수 노출 (HIGH)
+
+`NEXT_PUBLIC_OPENROUTER_API_KEY`, `NEXT_PUBLIC_TURSO_AUTH_TOKEN`이 Static Export 번들에 하드코딩됨.
+
+| 옵션 | 설명 |
+|------|------|
+| A. Cloudflare Worker 프록시 | API 호출을 Worker에서 중계, 키는 서버에만 보관 |
+| B. 토큰 회전/수명 제한 | OpenRouter/Turso에서 단기 토큰 발급 |
+| C. 현상 유지 + 모니터링 | 사용량 알림 설정, rate limit 강화 |
+
+### TD-2: 타입 안전성 — `any` 110개 + `!` 313개 (HIGH)
+
+**`any` 제거 우선 파일:**
+
+| 파일 | 개수 | 난이도 |
+|------|------|--------|
+| `lib/services/statistical-executor.ts` | 6 | 중 (Worker 결과 타입 정의 필요) |
+| `lib/statistics/data-type-detector.ts` | 7 | 중 (CSV 동적 데이터) |
+| `lib/services/executors/*.ts` | 12 | 중 (다형 결과 처리) |
+| `components/statistics/common/StatisticsTable.tsx` | 4 | 하 (포맷터 타입화) |
+| `lib/rag/providers/ollama-provider.ts` | 8 | 하 (Ollama 삭제 시 자동 해결) |
+| 테스트 코드 | 75 | 하 (Partial<T> 패턴 적용) |
+
+**`!` 제거 우선 파일:** `BarChartWithCI.tsx`(8), `engine.ts`(5), `assumption-cache.ts`(3)
+
+### TD-3: 번들 최적화 — ~2.5MB 절감 가능 (MEDIUM)
+
+| 항목 | 절감량 | 방법 |
+|------|--------|------|
+| plotly.js 중복 제거 | ~1.2 MB | `plotly.js-basic-dist` 하나만 유지 |
+| sql.js 중복 제거 | ~300 KB | `@jlongster/sql.js` 또는 `sql.js` 하나만 유지 |
+| LangChain 동적 import | ~800 KB | `await import('@langchain/...')` 전환 |
+| 차트 라이브러리 페이지별 분리 | TBD | Recharts/ECharts/Plotly 동적 로드 |
+
+### TD-4: console.log 정리 — 388개 → logger 전환 (MEDIUM)
+
+| 파일 | 개수 | 비고 |
+|------|------|------|
+| `lib/rag/providers/ollama-provider.ts` | 32 | Ollama 삭제 시 자동 해결 |
+| `lib/rag/indexeddb-storage.ts` | 38 | logger.debug 전환 |
+| 기타 라이브러리 코드 | ~50 | 점진적 전환 |
+
+### TD-5: 테스트 품질 강화 (MEDIUM)
+
+- [ ] 약한 단언 475개 (`> 0`) → 구체적 값으로 교체 (CLAUDE.md 원칙)
+- [ ] `as any` 75개 (테스트) → `Partial<T>` 또는 명시적 타입
+- [ ] Mock 과다 파일 정리: `ResultsActionStep-reanalyze`(23개 mock) → 5개 이하
+- [ ] 미테스트 컴포넌트 30+개 중 critical path 우선 (ChatCentricHub, ExportDropdown, LiveDataSummary)
+
+### TD-6: 거대 파일 분할 (LOW)
+
+| 파일 | 줄 수 | 방향 |
+|------|-------|------|
+| `variable-requirements.ts` | 4,974 | 카테고리별 분할 |
+| `statistical-executor.ts` | 2,700 | executor별 모듈 분리 (부분 완료) |
+| `echarts-converter.ts` | 1,887 | Strategy Pattern (차트 타입별 빌더) |
+| `ResultsActionStep.tsx` | 1,635 | 서브컴포넌트 추출 |
+| `ollama-provider.ts` | 2,385 | Ollama 삭제 결정 시 자동 해결 |
+
+### TD-7: 하드코딩 한글 → terminology 이관 (LOW)
+
+주요 대상: `data-tools/cross-tabulation/page.tsx`(50+), `DataExplorationStep.tsx`(40+), `GuidedQuestions.tsx`(30+)
+
+### TD-8: 순환 의존성 해소 (LOW)
+
+- `smart-flow-store → storage → hybrid-adapter → smart-flow-store`
+- `executors → statistical-executor` 순환
 
 ---
 
