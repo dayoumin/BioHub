@@ -417,6 +417,7 @@
 | **~~Graph Studio G5.0-G5.2~~** | ✅ 완료 (2026-03-11) — 3패널 레이아웃 + 좌측 패널 + 로직 훅 추출 |
 | **~~통합 최근 활동~~** | ✅ 완료 (2026-03-11) — QuickAccessBar 통계+시각화 통합, P1 encoding 호환성 검증 |
 | **UI 리디자인 잔여** | STITCH Phase 3(Step 4 스타일) + Phase 4(Step 2 + 마무리) |
+| **논문 초안 생성** | 분석 결과 → Methods/Results/Caption/Discussion 학술 텍스트 자동 생성 ([계획서](stats/docs/PLAN-PAPER-DRAFT-GENERATION.md)) |
 | **G5.3~G5.5** | 차트 유형 아이콘 그리드(G5.3) + 인터랙티브 컨트롤(G5.4) + 캔버스 미니 툴바(G5.5) |
 | **AI 채팅 히스토리 (multi-turn)** | `FlowStateMachine` messages 배열화, 최근 2턴 context, 채팅 스레드 UI |
 | **Phase 15-1: Bio-Tools** | 12개 생물학 분석, `/bio-tools/` 5페이지 구현 ([상세](study/PLAN-BIO-STATISTICS-AUDIT.md)) |

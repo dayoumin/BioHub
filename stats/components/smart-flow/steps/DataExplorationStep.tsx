@@ -431,7 +431,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                 <div className="flex items-center gap-2">
                   <Upload className="h-4 w-4 text-info" />
                   <span className="text-sm font-medium text-info">
-                    {t.dataExploration.replaceMode?.title ?? '다른 데이터 파일을 업로드하세요'}
+                    {t.dataExploration.replaceMode.title}
                   </span>
                 </div>
                 <Button
@@ -440,7 +440,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                   onClick={() => setIsReplaceMode(false)}
                   className="text-xs h-7"
                 >
-                  {t.dataExploration.replaceMode?.cancel ?? '취소'}
+                  {t.dataExploration.replaceMode.cancel}
                 </Button>
               </div>
             </CardContent>
@@ -449,7 +449,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
         <EmptyState
           icon={ChartScatter}
-          title={isReplaceMode ? (t.dataExploration.replaceMode?.title ?? '다른 데이터 파일을 업로드하세요') : t.dataExploration.empty.title}
+          title={isReplaceMode ? t.dataExploration.replaceMode.title : t.dataExploration.empty.title}
           description={isReplaceMode ? undefined : t.dataExploration.empty.description}
           action={
             onUploadComplete && (
@@ -614,7 +614,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                   {uploadedFile?.name || uploadedFileName || t.dataExploration.fallbackFileName}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {data.length}행 &times; {validationResults?.columnCount ?? Object.keys(data[0] ?? {}).length}열
+                  {t.dataExploration.columnPanel.rowColCount(data.length, validationResults?.columnCount ?? Object.keys(data[0] ?? {}).length)}
                 </p>
               </div>
             </div>
@@ -627,7 +627,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                 data-testid="replace-data-button"
               >
                 <Upload className="w-3.5 h-3.5" />
-                {t.dataExploration.replaceMode?.button ?? '파일 변경'}
+                {t.dataExploration.replaceMode.button}
               </Button>
             )}
           </div>
@@ -638,7 +638,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-medium">{t.dataExploration.preview.title}</CardTitle>
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs font-mono tabular-nums">{data.length}행</Badge>
+                  <Badge variant="secondary" className="text-xs font-mono tabular-nums">{t.dataExploration.columnPanel.rowCount(data.length)}</Badge>
                   <Button
                     variant="outline"
                     size="sm"
@@ -729,13 +729,13 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           <Card className="border-border/40 shadow-sm lg:sticky lg:top-4">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium">{t.dataExploration.tabs?.dataSummary ?? '컬럼 정보'}</CardTitle>
+                <CardTitle className="text-sm font-medium">{t.dataExploration.columnPanel.title}</CardTitle>
                 {validationResults && (
                   <Badge
                     variant={!validationResults.isValid ? 'destructive' : (validationResults.warnings?.length ?? 0) > 0 ? 'outline' : 'secondary'}
                     className="text-[10px]"
                   >
-                    {!validationResults.isValid ? '오류' : (validationResults.warnings?.length ?? 0) > 0 ? '주의' : '정상'}
+                    {!validationResults.isValid ? t.dataExploration.columnPanel.statusError : (validationResults.warnings?.length ?? 0) > 0 ? t.dataExploration.columnPanel.statusWarning : t.dataExploration.columnPanel.statusNormal}
                   </Badge>
                 )}
               </div>
@@ -744,11 +744,11 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               {/* 수치형 / 범주형 카운트 */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/50">
-                  <p className="text-[11px] text-muted-foreground">수치형</p>
+                  <p className="text-[11px] text-muted-foreground">{t.dataExploration.columnPanel.numeric}</p>
                   <p className="text-lg font-semibold font-mono tabular-nums">{numericVariables.length}</p>
                 </div>
                 <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200/50 dark:border-green-800/50">
-                  <p className="text-[11px] text-muted-foreground">범주형</p>
+                  <p className="text-[11px] text-muted-foreground">{t.dataExploration.columnPanel.categorical}</p>
                   <p className="text-lg font-semibold font-mono tabular-nums">{categoricalVariables.length}</p>
                 </div>
               </div>
@@ -756,15 +756,15 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               {/* 요약 수치 */}
               <div className="space-y-0 text-sm">
                 <div className="flex items-center justify-between py-1.5 border-b border-border/30">
-                  <span className="text-muted-foreground">표본 수</span>
+                  <span className="text-muted-foreground">{t.dataExploration.columnPanel.sampleSize}</span>
                   <span className="font-mono tabular-nums font-medium">{data.length}</span>
                 </div>
                 <div className="flex items-center justify-between py-1.5 border-b border-border/30">
-                  <span className="text-muted-foreground">결측치</span>
-                  <span className="font-mono tabular-nums font-medium">{validationResults?.missingValues ?? 0}건</span>
+                  <span className="text-muted-foreground">{t.dataExploration.columnPanel.missingValuesLabel}</span>
+                  <span className="font-mono tabular-nums font-medium">{t.dataExploration.columnPanel.missingValues(validationResults?.missingValues ?? 0)}</span>
                 </div>
                 <div className="flex items-center justify-between py-1.5">
-                  <span className="text-muted-foreground">전체 컬럼</span>
+                  <span className="text-muted-foreground">{t.dataExploration.columnPanel.totalColumns}</span>
                   <span className="font-mono tabular-nums font-medium">{validationResults?.columnCount ?? 0}</span>
                 </div>
               </div>
@@ -772,9 +772,9 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               {/* 권장 분석 유형 */}
               {data.length > 0 && (
                 <div className="flex items-center justify-between py-1.5 text-sm">
-                  <span className="text-muted-foreground">권장 분석</span>
+                  <span className="text-muted-foreground">{t.dataExploration.columnPanel.recommendedAnalysis}</span>
                   <Badge variant="outline" className="text-[10px]">
-                    {data.length >= 30 ? '모수적' : '비모수적'}
+                    {data.length >= 30 ? t.dataExploration.columnPanel.parametric : t.dataExploration.columnPanel.nonParametric}
                   </Badge>
                 </div>
               )}
@@ -806,13 +806,13 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               {/* 컬럼 목록 */}
               {validationResults?.columnStats && (
                 <div className="space-y-1.5 pt-1">
-                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">컬럼 목록</p>
+                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{t.dataExploration.columnPanel.columnList}</p>
                   <div className="max-h-[200px] overflow-y-auto space-y-0.5">
                     {validationResults.columnStats.map(col => (
                       <div key={col.name} className="flex items-center justify-between py-1 px-2 rounded text-xs hover:bg-muted/30 transition-colors">
                         <span className="truncate font-medium">{col.name}</span>
                         <Badge variant="outline" className="text-[10px] shrink-0 ml-2">
-                          {col.type === 'numeric' ? '수치' : '범주'}
+                          {col.type === 'numeric' ? t.dataExploration.columnPanel.numericShort : t.dataExploration.columnPanel.categoricalShort}
                         </Badge>
                       </div>
                     ))}
@@ -826,7 +826,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
       {/* ── 상세 분석 (접이식) ── */}
       <CollapsibleSection
-        label={t.dataExploration.tabs?.statistics ?? '상세 분석'}
+        label={t.dataExploration.tabs.statistics}
         icon={<ListOrdered className="h-4 w-4" />}
         open={detailOpen}
         onOpenChange={setDetailOpen}

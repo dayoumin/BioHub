@@ -789,10 +789,31 @@ export interface DataExplorationText {
     nextStepHint: string
   }
   /** 데이터 교체 모드 */
-  replaceMode?: {
+  replaceMode: {
     title: string
     cancel: string
     button: string
+  }
+  /** 우측 컬럼 정보 패널 */
+  columnPanel: {
+    title: string
+    statusError: string
+    statusWarning: string
+    statusNormal: string
+    numeric: string
+    categorical: string
+    sampleSize: string
+    missingValuesLabel: string
+    missingValues: (count: number) => string
+    totalColumns: string
+    recommendedAnalysis: string
+    parametric: string
+    nonParametric: string
+    columnList: string
+    numericShort: string
+    categoricalShort: string
+    rowColCount: (rows: number, cols: number) => string
+    rowCount: (rows: number) => string
   }
   /** 단위/기타 */
   fallbackFileName: string

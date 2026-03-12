@@ -2,39 +2,23 @@
  * VariableSelectionStep 테스트
  *
  * 검증 항목:
- * 1. SELECTOR_MAP: 51개 실제 method ID가 'default' 미반환
- * 2. chi-square → ChiSquareSelector 렌더
- * 3. kaplan-meier → AutoConfirmSelector 렌더
- * 4. anova + 2 factors → TwoWayAnovaSelector 렌더
- * 5. ancova → GroupComparisonSelector + covariate 패널
- * 6. validation 에러 발생 시 Alert 표시
+ * 1. SELECTOR_MAP: 51개 실제 method ID가 올바른 컴포넌트 렌더
+ * 2. auto 메서드 → AutoConfirmSelector
+ * 3. 나머지 전부 → UnifiedVariableSelector
+ * 4. anova + 2 factors → selectorType='two-way-anova'로 전달
+ * 5. validation 에러 발생 시 Alert 표시
+ * 6. AI 감지 변수 배지 표시
+ * 7. 데이터 없음 → EmptyState
  */
 
 import { render, screen, fireEvent } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 
-// ─── Selector component mocks ─────────────────────────────────────────────────
+// ─── Component mocks ─────────────────────────────────────────────────────────
+
+let capturedSelectorType: string | null = null
+
 vi.mock('@/components/common/variable-selectors', () => ({
-  GroupComparisonSelector: ({ showCovariate, onComplete }: { showCovariate?: boolean; onComplete: (m: unknown) => void }) => (
-    <div data-testid="group-comparison-selector">
-      {showCovariate && <div data-testid="covariate-panel">covariate</div>}
-      <button onClick={() => onComplete({ groupVar: 'g', dependentVar: 'd' })}>완료</button>
-    </div>
-  ),
-  TwoWayAnovaSelector: ({ onComplete }: { onComplete: (m: unknown) => void }) => (
-    <div data-testid="two-way-anova-selector">
-      <button onClick={() => onComplete({ groupVar: 'f1,f2', dependentVar: 'd' })}>완료</button>
-    </div>
-  ),
-  CorrelationSelector: () => <div data-testid="correlation-selector" />,
-  MultipleRegressionSelector: () => <div data-testid="multiple-regression-selector" />,
-  PairedSelector: () => <div data-testid="paired-selector" />,
-  OneSampleSelector: () => <div data-testid="one-sample-selector" />,
-  ChiSquareSelector: ({ onComplete }: { onComplete: (m: unknown) => void }) => (
-    <div data-testid="chi-square-selector">
-      <button onClick={() => onComplete({ independentVar: 'r', dependentVar: 'c' })}>완료</button>
-    </div>
-  ),
   AutoConfirmSelector: ({ onComplete }: { onComplete: (m: unknown) => void }) => (
     <div data-testid="auto-confirm-selector">
       <button data-testid="run-analysis-btn" onClick={() => onComplete({})}>분석 시작</button>
@@ -42,8 +26,15 @@ vi.mock('@/components/common/variable-selectors', () => ({
   ),
 }))
 
-vi.mock('@/components/common/VariableSelectorToggle', () => ({
-  VariableSelectorToggle: () => <div data-testid="variable-selector-toggle" />,
+vi.mock('@/components/smart-flow/variable-selector/UnifiedVariableSelector', () => ({
+  UnifiedVariableSelector: ({ selectorType, onComplete }: { selectorType: string; onComplete: (m: unknown) => void }) => {
+    capturedSelectorType = selectorType
+    return (
+      <div data-testid="unified-variable-selector" data-selector-type={selectorType}>
+        <button onClick={() => onComplete({ dependentVar: 'd', groupVar: 'g' })}>완료</button>
+      </div>
+    )
+  },
 }))
 
 vi.mock('@/components/smart-flow/common', () => ({
@@ -67,7 +58,6 @@ const defaultStoreState = {
   uploadedData: [{ x: 1 }] as unknown[],
   selectedMethod: null as { id: string; name: string } | null,
   detectedVariables: null as Record<string, unknown> | null,
-  // use unknown to allow test overrides without full ValidationResults type
   validationResults: null as unknown,
   setVariableMapping: mockSetVariableMapping,
   goToNextStep: mockGoToNextStep,
@@ -82,45 +72,9 @@ vi.mock('@/lib/stores/smart-flow-store', () => ({
 
 vi.mock('@/hooks/use-terminology', () => ({
   useTerminology: () => ({
-    selectorUI: {
-      titles: {
-        groupComparison: 'Group Comparison',
-        twoWayAnova: 'Two-Way ANOVA',
-        multipleRegression: 'Multiple Regression',
-        paired: 'Paired Test',
-        oneSample: 'One-Sample Test',
-        correlation: 'Correlation',
-      },
-      descriptions: {
-        groupComparison: '',
-        twoWayAnova: '',
-        multipleRegression: '',
-        paired: '',
-        oneSample: '',
-        correlation: '',
-      },
-      labels: { groups: 'groups' },
-    },
-    variables: {
-      dependent:    { title: 'Dependent', description: '' },
-      independent:  { title: 'Independent', description: '' },
-      group:        { title: 'Group', description: '' },
-      pairedFirst:  { title: 'First' },
-      pairedSecond: { title: 'Second' },
-    },
-    validation: {
-      factorRequired: 'Factor required',
-      differentVariablesRequired: 'Different variables required',
-      dependentRequired: 'Dependent required',
-      groupRequired: 'Group required',
-      independentRequired: 'Independent required',
-      twoGroupsRequired: (n: number) => `Needs 2 groups (got ${n})`,
-      maxVariablesExceeded: (n: number) => `Max ${n}`,
-      minVariablesRequired: (n: number) => `Min ${n}`,
-    },
-    success: { allVariablesSelected: '완료' },
     smartFlow: {
       stepTitles: { variableSelection: '변수 선택' },
+      layout: { prevStep: '이전 단계' },
       emptyStates: {
         dataRequired: '데이터 필요',
         dataRequiredDescription: '데이터를 업로드하세요',
@@ -155,6 +109,7 @@ function renderWithMethod(
 
 beforeEach(() => {
   storeState = { ...defaultStoreState }
+  capturedSelectorType = null
   vi.clearAllMocks()
 })
 
@@ -163,59 +118,101 @@ describe('VariableSelectionStep', () => {
   // =========================================================================
   describe('SELECTOR_MAP 커버리지', () => {
 
-    const realMethodIds = [
-      't-test', 'welch-t', 'one-sample-t', 'paired-t', 'anova', 'welch-anova',
-      'repeated-measures-anova', 'ancova', 'manova', 'mixed-model',
-      'mann-whitney', 'wilcoxon', 'kruskal-wallis', 'friedman', 'sign-test',
-      'mcnemar', 'cochran-q', 'binomial-test', 'runs-test', 'ks-test',
-      'mood-median', 'non-parametric', 'correlation', 'partial-correlation',
-      'regression', 'logistic-regression', 'poisson', 'ordinal-regression',
-      'stepwise', 'dose-response', 'response-surface',
-      'chi-square', 'chi-square-goodness', 'chi-square-independence',
-      'descriptive', 'normality-test', 'explore-data', 'means-plot',
-      'arima', 'seasonal-decompose', 'stationarity-test', 'mann-kendall',
-      'kaplan-meier', 'cox-regression', 'pca', 'factor-analysis', 'cluster',
-      'discriminant', 'power-analysis', 'reliability', 'proportion-test',
+    const autoMethodIds = [
+      'repeated-measures-anova', 'manova', 'mixed-model',
+      'arima', 'seasonal-decompose', 'stationarity-test',
+      'kaplan-meier', 'cox-regression', 'roc-curve',
+      'discriminant', 'power-analysis',
     ]
 
-    it('실제 method ID 51개 모두 VariableSelectorToggle(default)을 렌더하지 않는다', () => {
-      let defaultCount = 0
+    const nonAutoMethodIds = [
+      't-test', 'welch-t', 'one-sample-t', 'paired-t', 'anova', 'welch-anova',
+      'ancova', 'mann-whitney', 'wilcoxon', 'kruskal-wallis', 'friedman',
+      'sign-test', 'mcnemar', 'cochran-q', 'binomial-test', 'runs-test',
+      'ks-test', 'mood-median', 'non-parametric', 'correlation',
+      'partial-correlation', 'regression', 'logistic-regression', 'poisson',
+      'ordinal-regression', 'stepwise', 'dose-response', 'response-surface',
+      'chi-square', 'chi-square-goodness', 'chi-square-independence',
+      'descriptive', 'normality-test', 'explore-data', 'means-plot',
+      'mann-kendall', 'pca', 'factor-analysis', 'cluster', 'reliability',
+      'proportion-test',
+    ]
 
-      for (const id of realMethodIds) {
+    it('auto 메서드 11개 → AutoConfirmSelector 렌더', () => {
+      for (const id of autoMethodIds) {
         storeState = {
           ...defaultStoreState,
           selectedMethod: { id, name: id },
         }
-        const { unmount, queryByTestId } = render(<VariableSelectionStep />)
-        if (queryByTestId('variable-selector-toggle') !== null) {
-          defaultCount++
-          console.warn(`[SELECTOR_MAP] '${id}' fell to default (VariableSelectorToggle)`)
-        }
+        const { unmount, getByTestId, queryByTestId } = render(<VariableSelectionStep />)
+        expect(getByTestId('auto-confirm-selector')).toBeDefined()
+        expect(queryByTestId('unified-variable-selector')).toBeNull()
         unmount()
       }
+    })
 
-      expect(defaultCount).toBe(0)
+    it('비-auto 메서드 전부 → UnifiedVariableSelector 렌더', () => {
+      for (const id of nonAutoMethodIds) {
+        storeState = {
+          ...defaultStoreState,
+          selectedMethod: { id, name: id },
+        }
+        const { unmount, getByTestId, queryByTestId } = render(<VariableSelectionStep />)
+        expect(getByTestId('unified-variable-selector')).toBeDefined()
+        expect(queryByTestId('auto-confirm-selector')).toBeNull()
+        unmount()
+      }
     })
   })
 
   // =========================================================================
-  describe('chi-square → ChiSquareSelector', () => {
+  describe('SelectorType 전달', () => {
 
-    it('chi-square method → ChiSquareSelector 렌더', () => {
+    it('t-test → selectorType="group-comparison"', () => {
+      renderWithMethod('t-test')
+      expect(capturedSelectorType).toBe('group-comparison')
+    })
+
+    it('correlation → selectorType="correlation"', () => {
+      renderWithMethod('correlation')
+      expect(capturedSelectorType).toBe('correlation')
+    })
+
+    it('regression → selectorType="multiple-regression"', () => {
+      renderWithMethod('regression')
+      expect(capturedSelectorType).toBe('multiple-regression')
+    })
+
+    it('chi-square → selectorType="chi-square"', () => {
       renderWithMethod('chi-square')
-      expect(screen.getByTestId('chi-square-selector')).toBeDefined()
-      expect(screen.queryByTestId('variable-selector-toggle')).toBeNull()
+      expect(capturedSelectorType).toBe('chi-square')
     })
 
-    it('mcnemar method → ChiSquareSelector 렌더 (기존 paired 매핑 제거 확인)', () => {
-      renderWithMethod('mcnemar')
-      expect(screen.getByTestId('chi-square-selector')).toBeDefined()
-      expect(screen.queryByTestId('paired-selector')).toBeNull()
+    it('paired-t → selectorType="paired"', () => {
+      renderWithMethod('paired-t')
+      expect(capturedSelectorType).toBe('paired')
     })
 
-    it('proportion-test → ChiSquareSelector 렌더', () => {
-      renderWithMethod('proportion-test')
-      expect(screen.getByTestId('chi-square-selector')).toBeDefined()
+    it('one-sample-t → selectorType="one-sample"', () => {
+      renderWithMethod('one-sample-t')
+      expect(capturedSelectorType).toBe('one-sample')
+    })
+  })
+
+  // =========================================================================
+  describe('anova + AI factors → two-way-anova', () => {
+
+    it('anova + factors 1개 → group-comparison', () => {
+      renderWithMethod('anova', 'ANOVA', { factors: ['gender'] })
+      expect(capturedSelectorType).toBe('group-comparison')
+    })
+
+    it('anova + factors 2개 → two-way-anova', () => {
+      renderWithMethod('anova', 'ANOVA', {
+        factors: ['gender', 'treatment'],
+        dependentCandidate: 'score'
+      })
+      expect(capturedSelectorType).toBe('two-way-anova')
     })
   })
 
@@ -224,11 +221,6 @@ describe('VariableSelectionStep', () => {
 
     it('kaplan-meier → AutoConfirmSelector 렌더', () => {
       renderWithMethod('kaplan-meier')
-      expect(screen.getByTestId('auto-confirm-selector')).toBeDefined()
-    })
-
-    it('power-analysis → AutoConfirmSelector 렌더', () => {
-      renderWithMethod('power-analysis')
       expect(screen.getByTestId('auto-confirm-selector')).toBeDefined()
     })
 
@@ -241,40 +233,16 @@ describe('VariableSelectionStep', () => {
   })
 
   // =========================================================================
-  describe('anova + AI factors → TwoWayAnovaSelector', () => {
+  describe('onComplete → setVariableMapping + goToNextStep', () => {
 
-    it('anova + factors 1개 → GroupComparisonSelector (일반 one-way)', () => {
-      renderWithMethod('anova', 'ANOVA', { factors: ['gender'] })
-      expect(screen.getByTestId('group-comparison-selector')).toBeDefined()
-      expect(screen.queryByTestId('two-way-anova-selector')).toBeNull()
-    })
-
-    it('anova + factors 2개 → TwoWayAnovaSelector', () => {
-      renderWithMethod('anova', 'ANOVA', {
-        factors: ['gender', 'treatment'],
-        dependentCandidate: 'score'
-      })
-      expect(screen.getByTestId('two-way-anova-selector')).toBeDefined()
-      expect(screen.queryByTestId('group-comparison-selector')).toBeNull()
-    })
-  })
-
-  // =========================================================================
-  describe('ancova → GroupComparisonSelector + covariate', () => {
-
-    it('ancova method → GroupComparisonSelector 렌더', () => {
-      renderWithMethod('ancova')
-      expect(screen.getByTestId('group-comparison-selector')).toBeDefined()
-    })
-
-    it('ancova → covariate 패널 표시', () => {
-      renderWithMethod('ancova')
-      expect(screen.getByTestId('covariate-panel')).toBeDefined()
-    })
-
-    it('t-test → covariate 패널 없음', () => {
+    it('UnifiedVariableSelector 완료 시 store 업데이트 + 다음 스텝', () => {
       renderWithMethod('t-test')
-      expect(screen.queryByTestId('covariate-panel')).toBeNull()
+      fireEvent.click(screen.getByText('완료'))
+      expect(mockSetVariableMapping).toHaveBeenCalledWith({
+        dependentVar: 'd',
+        groupVar: 'g',
+      })
+      expect(mockGoToNextStep).toHaveBeenCalled()
     })
   })
 
@@ -299,7 +267,6 @@ describe('VariableSelectionStep', () => {
       }
 
       render(<VariableSelectionStep />)
-      // GroupComparisonSelector mock의 완료 버튼 클릭
       fireEvent.click(screen.getByText('완료'))
 
       expect(screen.getByText('그룹 변수를 선택하세요')).toBeDefined()

@@ -106,6 +106,31 @@ vi.mock('@/hooks/use-terminology', () => ({
         currentStatus: (n: number, c: number) => `수치형: ${n}개, 범주형: ${c}개`,
         nextStepHint: 'TEST_NEXT_HINT',
       },
+      replaceMode: {
+        title: 'TEST_REPLACE_TITLE',
+        cancel: 'TEST_CANCEL',
+        button: 'TEST_REPLACE_BTN',
+      },
+      columnPanel: {
+        title: 'TEST_COL_PANEL',
+        statusError: 'TEST_ERROR',
+        statusWarning: 'TEST_WARNING',
+        statusNormal: 'TEST_OK',
+        numeric: 'TEST_NUMERIC',
+        categorical: 'TEST_CATEGORICAL',
+        sampleSize: 'TEST_SAMPLE',
+        missingValuesLabel: 'TEST_MISSING',
+        missingValues: (n: number) => `${n}건`,
+        totalColumns: 'TEST_TOTAL_COL',
+        recommendedAnalysis: 'TEST_REC',
+        parametric: 'TEST_PARAM',
+        nonParametric: 'TEST_NONPARAM',
+        columnList: 'TEST_COL_LIST',
+        numericShort: 'TEST_NUM',
+        categoricalShort: 'TEST_CAT',
+        rowColCount: (r: number, c: number) => `${r}행 × ${c}열`,
+        rowCount: (r: number) => `${r}행`,
+      },
       fallbackFileName: 'TEST_FALLBACK',
     },
   }),
@@ -151,6 +176,7 @@ vi.mock('@/lib/stores/template-store', () => ({
 // ===== Mock: Heavy child components =====
 vi.mock('@/components/smart-flow/common', () => ({
   StepHeader: ({ title }: { title: string }) => <div data-testid="step-header">{title}</div>,
+  CollapsibleSection: ({ label, children }: { label: string; children: React.ReactNode }) => <div data-testid="collapsible-section">{label}{children}</div>,
 }))
 
 vi.mock('@/components/common/analysis/DataProfileSummary', () => ({
@@ -207,7 +233,19 @@ vi.mock('@/lib/utils/exploration-profile', () => ({
     focusTabs: null,
     focusHint: null,
     skipCorrelation: false,
+    distribution: 'visible',
+    scatterplots: 'visible',
+    correlationHeatmap: 'visible',
+    defaultChartType: 'histogram',
   }),
+}))
+
+vi.mock('@/components/smart-flow/steps/exploration/DistributionChartSection', () => ({
+  DistributionChartSection: () => null,
+}))
+
+vi.mock('@/components/smart-flow/steps/exploration/ScatterHeatmapSection', () => ({
+  ScatterHeatmapSection: () => null,
 }))
 
 // ===== Tests =====
@@ -279,5 +317,95 @@ describe('DataExplorationStep - Terminology 통합', () => {
     )
 
     expect(screen.getByTestId('data-upload-step')).toBeInTheDocument()
+  })
+
+  describe('columnPanel terminology 렌더링 (2-column 레이아웃)', () => {
+    const multiNumericData: DataRow[] = [
+      { group: 'A', weight: 10, length: 20, age: 3 },
+      { group: 'A', weight: 12, length: 22, age: 4 },
+      { group: 'B', weight: 15, length: 25, age: 5 },
+      { group: 'B', weight: 18, length: 28, age: 6 },
+    ]
+
+    const multiNumericValidation: ValidationResults = {
+      isValid: true,
+      totalRows: 4,
+      totalColumns: 4,
+      columnCount: 4,
+      missingValues: 2,
+      duplicateRows: 0,
+      dataType: 'tabular',
+      variables: ['group', 'weight', 'length', 'age'],
+      errors: [],
+      warnings: ['sample size is small'],
+      columnStats: [
+        { name: 'group', type: 'categorical' as const, uniqueValues: 2, missingCount: 0, numericCount: 0, textCount: 4 },
+        { name: 'weight', type: 'numeric' as const, uniqueValues: 4, missingCount: 1, numericCount: 3, textCount: 0, min: 10, max: 18, mean: 13.75, median: 13.5, std: 3.4 },
+        { name: 'length', type: 'numeric' as const, uniqueValues: 4, missingCount: 1, numericCount: 3, textCount: 0, min: 20, max: 28, mean: 23.75, median: 23.5, std: 3.5 },
+        { name: 'age', type: 'numeric' as const, uniqueValues: 4, missingCount: 0, numericCount: 4, textCount: 0, min: 3, max: 6, mean: 4.5, median: 4.5, std: 1.29 },
+      ],
+    }
+
+    it('우측 패널 제목 = columnPanel.title', () => {
+      render(<DataExplorationStep {...defaultProps} data={multiNumericData} validationResults={multiNumericValidation} />)
+      expect(screen.getByText('TEST_COL_PANEL')).toBeInTheDocument()
+    })
+
+    it('수치형/범주형 라벨 = columnPanel.numeric / columnPanel.categorical', () => {
+      render(<DataExplorationStep {...defaultProps} data={multiNumericData} validationResults={multiNumericValidation} />)
+      expect(screen.getByText('TEST_NUMERIC')).toBeInTheDocument()
+      expect(screen.getByText('TEST_CATEGORICAL')).toBeInTheDocument()
+    })
+
+    it('요약 행: 표본 수 / 결측치 / 전체 컬럼', () => {
+      render(<DataExplorationStep {...defaultProps} data={multiNumericData} validationResults={multiNumericValidation} />)
+      expect(screen.getByText('TEST_SAMPLE')).toBeInTheDocument()
+      expect(screen.getByText('TEST_MISSING')).toBeInTheDocument()
+      expect(screen.getByText('2건')).toBeInTheDocument() // missingValues(2) → '2건'
+      expect(screen.getByText('TEST_TOTAL_COL')).toBeInTheDocument()
+    })
+
+    it('권장 분석 유형 = columnPanel.nonParametric (N<30)', () => {
+      render(<DataExplorationStep {...defaultProps} data={multiNumericData} validationResults={multiNumericValidation} />)
+      expect(screen.getByText('TEST_REC')).toBeInTheDocument()
+      expect(screen.getByText('TEST_NONPARAM')).toBeInTheDocument()
+    })
+
+    it('검증 경고 있을 때 statusWarning 배지 렌더링', () => {
+      render(<DataExplorationStep {...defaultProps} data={multiNumericData} validationResults={multiNumericValidation} />)
+      expect(screen.getByText('TEST_WARNING')).toBeInTheDocument()
+    })
+
+    it('검증 정상일 때 statusNormal 배지 렌더링', () => {
+      const noWarnings = { ...multiNumericValidation, warnings: [] }
+      render(<DataExplorationStep {...defaultProps} data={multiNumericData} validationResults={noWarnings} />)
+      expect(screen.getByText('TEST_OK')).toBeInTheDocument()
+    })
+
+    it('컬럼 목록 = columnPanel.columnList + numericShort/categoricalShort', () => {
+      render(<DataExplorationStep {...defaultProps} data={multiNumericData} validationResults={multiNumericValidation} />)
+      expect(screen.getByText('TEST_COL_LIST')).toBeInTheDocument()
+      // 수치 3개 + 범주 1개
+      expect(screen.getAllByText('TEST_NUM')).toHaveLength(3)
+      expect(screen.getAllByText('TEST_CAT')).toHaveLength(1)
+    })
+
+    it('행×열 카운트 = columnPanel.rowColCount', () => {
+      render(<DataExplorationStep {...defaultProps} data={multiNumericData} validationResults={multiNumericValidation} />)
+      expect(screen.getByText('4행 × 4열')).toBeInTheDocument()
+    })
+
+    it('행 배지 = columnPanel.rowCount', () => {
+      render(<DataExplorationStep {...defaultProps} data={multiNumericData} validationResults={multiNumericValidation} />)
+      expect(screen.getByText('4행')).toBeInTheDocument()
+    })
+
+    it('하드코딩 한글 없음 — 오류/주의/정상/수치형/범주형/표본 수/결측치/전체 컬럼/권장 분석/모수적/비모수적/컬럼 목록/수치/범주 부재 확인', () => {
+      render(<DataExplorationStep {...defaultProps} data={multiNumericData} validationResults={multiNumericValidation} />)
+      const hardcodedKorean = ['오류', '정상', '수치형', '범주형', '표본 수', '결측치', '전체 컬럼', '권장 분석', '모수적', '비모수적', '컬럼 목록', '컬럼 정보']
+      hardcodedKorean.forEach(text => {
+        expect(screen.queryByText(text)).not.toBeInTheDocument()
+      })
+    })
   })
 })

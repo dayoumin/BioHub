@@ -14,17 +14,9 @@ import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, Settings2, Sparkles, Upload } from 'lucide-react'
 import { EmptyState } from '@/components/common/EmptyState'
-import { VariableSelectorToggle } from '@/components/common/VariableSelectorToggle'
-import {
-  TwoWayAnovaSelector,
-  CorrelationSelector,
-  GroupComparisonSelector,
-  MultipleRegressionSelector,
-  PairedSelector,
-  OneSampleSelector,
-  ChiSquareSelector,
-  AutoConfirmSelector
-} from '@/components/common/variable-selectors'
+import { AutoConfirmSelector } from '@/components/common/variable-selectors'
+import { UnifiedVariableSelector } from '@/components/smart-flow/variable-selector/UnifiedVariableSelector'
+import type { SelectorType } from '@/components/smart-flow/variable-selector/slot-configs'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { validateVariableMapping } from '@/lib/statistics/variable-mapping'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
@@ -34,17 +26,6 @@ interface VariableSelectionStepProps {
   onComplete?: () => void
   onBack?: () => void
 }
-
-type SelectorType =
-  | 'one-sample'
-  | 'two-way-anova'
-  | 'correlation'
-  | 'paired'
-  | 'multiple-regression'
-  | 'group-comparison'
-  | 'chi-square'
-  | 'auto'
-  | 'default'
 
 /**
  * Maps real statistical method IDs (from statistical-methods.ts) to selector types.
@@ -174,14 +155,6 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     }
   }, [selectedMethod, columnInfo, setVariableMapping, onComplete, goToNextStep])
 
-  // Legacy handler for VariableSelectorToggle
-  const handleLegacyComplete = useCallback((selection: { dependent: string | null; independent: string | null }) => {
-    handleComplete({
-      dependentVar: selection.dependent || undefined,
-      independentVar: selection.independent || undefined
-    })
-  }, [handleComplete])
-
   const handleBack = useCallback(() => {
     if (onBack) {
       onBack()
@@ -299,100 +272,29 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
   // Render appropriate selector based on method
   const renderSelector = () => {
-    const commonProps = {
-      data: uploadedData,
-      onBack: handleBack,
-      initialSelection,
-      className: 'mt-4'
+    if (selectorType === 'auto') {
+      return (
+        <AutoConfirmSelector
+          data={uploadedData}
+          onBack={handleBack}
+          initialSelection={initialSelection}
+          className="mt-4"
+          onComplete={handleComplete}
+        />
+      )
     }
 
-    switch (selectorType) {
-      case 'one-sample':
-        return (
-          <OneSampleSelector
-            {...commonProps}
-            onComplete={handleComplete}
-          />
-        )
-
-      case 'two-way-anova':
-        return (
-          <TwoWayAnovaSelector
-            {...commonProps}
-            onComplete={handleComplete}
-          />
-        )
-
-      case 'correlation':
-        return (
-          <CorrelationSelector
-            {...commonProps}
-            onComplete={handleComplete}
-            minVariables={2}
-            maxVariables={10}
-          />
-        )
-
-      case 'paired':
-        return (
-          <PairedSelector
-            {...commonProps}
-            onComplete={handleComplete}
-          />
-        )
-
-      case 'multiple-regression':
-        return (
-          <MultipleRegressionSelector
-            {...commonProps}
-            onComplete={handleComplete}
-            minIndependent={1}
-            maxIndependent={10}
-          />
-        )
-
-      case 'group-comparison':
-        return (
-          <GroupComparisonSelector
-            {...commonProps}
-            onComplete={handleComplete}
-            requireTwoGroups={
-              selectedMethod?.id === 't-test' ||
-              selectedMethod?.id === 'welch-t' ||
-              selectedMethod?.id === 'mann-whitney'
-            }
-            methodName={selectedMethod?.name}
-            showCovariate={selectedMethod?.id === 'ancova'}
-          />
-        )
-
-      case 'chi-square':
-        return (
-          <ChiSquareSelector
-            {...commonProps}
-            onComplete={handleComplete}
-            methodId={selectedMethod?.id}
-          />
-        )
-
-      case 'auto':
-        return (
-          <AutoConfirmSelector
-            {...commonProps}
-            onComplete={handleComplete}
-          />
-        )
-
-      default:
-        return (
-          <VariableSelectorToggle
-            data={uploadedData}
-            onComplete={handleLegacyComplete}
-            onBack={handleBack}
-            title={t.smartFlow.stepTitles.variableSelection}
-          />
-        )
-    }
+    // All other selector types use UnifiedVariableSelector
+    return (
+      <UnifiedVariableSelector
+        data={uploadedData}
+        selectorType={selectorType}
+        onComplete={handleComplete}
+        onBack={handleBack}
+        initialSelection={initialSelection}
+        className="mt-4"
+      />
+    )
   }
 
   return (
