@@ -126,7 +126,7 @@ function GraphStudioPageInner(): React.ReactElement {
 
           {/* 중앙 차트 캔버스 */}
           <div className="flex-1 min-w-0">
-            <ChartPreview echartsRef={echartsRef} />
+            <ChartPreview echartsRef={echartsRef} onExport={handleExport} />
           </div>
 
           {/* 우측 속성 패널 (w-80, 320px) — hidden으로 마운트 유지 (탭 상태 보존) */}

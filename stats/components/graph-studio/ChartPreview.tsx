@@ -22,11 +22,14 @@ import type { ECharts, EChartsOption } from 'echarts';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { chartSpecToECharts, columnsToRows } from '@/lib/graph-studio';
 import { getPValueLabel } from '@/lib/graph-studio/chart-spec-utils';
+import { CanvasToolbar } from './CanvasToolbar';
 import type { ChartSpec } from '@/types/graph-studio';
 
 interface ChartPreviewProps {
   /** Export 시 getEchartsInstance() 접근용. GraphStudioPage에서 주입. */
   echartsRef?: RefObject<EChartsReactCore | null>;
+  /** 내보내기 핸들러 (CanvasToolbar → ExportDialog) */
+  onExport?: () => void;
 }
 
 /** 유의성 브래킷을 렌더링할 차트 유형 */
@@ -204,11 +207,12 @@ function buildSignificanceGraphics(
   return [...baseGraphic, ...brackets];
 }
 
-export function ChartPreview({ echartsRef }: ChartPreviewProps): React.ReactElement {
+export function ChartPreview({ echartsRef, onExport }: ChartPreviewProps): React.ReactElement {
   const { chartSpec, dataPackage } = useGraphStudioStore();
 
   // localRef: echartsRef가 주입되지 않을 때 폴백 (유의성 마커 렌더 사용)
   const localRef = useRef<EChartsReactCore | null>(null);
+  const effectiveRef = echartsRef ?? localRef;
 
   // setOption({ graphic }) → finished 재진입 차단 (double-rAF 해제)
   const isDrawingRef = useRef(false);
@@ -218,10 +222,27 @@ export function ChartPreview({ echartsRef }: ChartPreviewProps): React.ReactElem
     [dataPackage],
   );
 
-  const option = useMemo(
+  const baseOption = useMemo(
     () => chartSpec ? chartSpecToECharts(chartSpec, rows) : null,
     [chartSpec, rows],
   );
+
+  // G5.4: dataZoom 병합 (스크롤 줌 + 드래그 팬)
+  // heatmap/facet은 dataZoom 비호환 → 제외
+  const option = useMemo(() => {
+    if (!baseOption || !chartSpec) return baseOption;
+    const noZoom = chartSpec.chartType === 'heatmap' || !!chartSpec.facet;
+    if (noZoom) return baseOption;
+
+    const isScatter = chartSpec.chartType === 'scatter';
+    const dataZoom: Record<string, unknown>[] = [
+      { type: 'inside', xAxisIndex: 0, filterMode: 'none' },
+    ];
+    if (isScatter) {
+      dataZoom.push({ type: 'inside', yAxisIndex: 0, filterMode: 'none' });
+    }
+    return { ...baseOption, dataZoom };
+  }, [baseOption, chartSpec]);
 
   // SVG export 선택 시 SVG 렌더러 사용 (getDataURL 정확도 보장)
   // useMemo로 안정화: opts 매 렌더 새 객체 생성 시 ECharts 불필요한 재초기화 방지
@@ -239,13 +260,12 @@ export function ChartPreview({ echartsRef }: ChartPreviewProps): React.ReactElem
     // 패싯 모드에서는 멀티 grid라 convertToPixel이 단일 grid 가정 → 무시
     if (chartSpec.facet) return;
 
-    const ref = echartsRef ?? localRef;
-    const instance = ref.current?.getEchartsInstance();
+    const instance = effectiveRef.current?.getEchartsInstance();
     if (!instance) return;
 
     // 기존 annotations graphic 추출 (덮어쓰기 방지)
-    const baseGraphic = Array.isArray((option as EChartsOption | null)?.graphic)
-      ? ((option as EChartsOption).graphic as Record<string, unknown>[])
+    const baseGraphic = Array.isArray((baseOption as EChartsOption | null)?.graphic)
+      ? ((baseOption as EChartsOption).graphic as Record<string, unknown>[])
       : [];
 
     const combined = buildSignificanceGraphics(instance, chartSpec, rows, baseGraphic);
@@ -263,7 +283,7 @@ export function ChartPreview({ echartsRef }: ChartPreviewProps): React.ReactElem
         isDrawingRef.current = false;
       });
     });
-  }, [echartsRef, chartSpec, rows, option]);
+  }, [effectiveRef, chartSpec, rows, baseOption]);
 
   const onEvents = useMemo(
     () => ({ finished: handleFinished }),
@@ -279,11 +299,16 @@ export function ChartPreview({ echartsRef }: ChartPreviewProps): React.ReactElem
   }
 
   return (
-    <div className="flex flex-col h-full p-4" data-testid="graph-studio-chart">
-      {/* ECharts canvas */}
-      <div className="flex-1 min-h-0">
+    <div className="flex flex-col h-full p-4 group/canvas" data-testid="graph-studio-chart">
+      {/* ECharts canvas + floating toolbar */}
+      <div className="flex-1 min-h-0 relative">
+        <CanvasToolbar
+          echartsRef={effectiveRef}
+          onExport={onExport}
+          zoomEnabled={chartSpec.chartType !== 'heatmap' && !chartSpec.facet}
+        />
         <ReactECharts
-          ref={echartsRef ?? localRef}
+          ref={effectiveRef}
           option={option}
           opts={opts}
           onEvents={onEvents}

@@ -26,6 +26,11 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   useDataTabLogic,
   SCIENCE_SYMBOLS,
   COLORBREWER_OPTIONS,
@@ -34,6 +39,8 @@ import {
   FIGURE_PRESETS,
   getPValueLabel,
 } from '@/lib/graph-studio/useDataTabLogic';
+import { CHART_TYPE_ICONS } from '@/lib/graph-studio/chart-icons';
+import type { ChartType } from '@/types/graph-studio';
 
 export function DataTab(): React.ReactElement {
   const { chartSpec } = useGraphStudioStore();
@@ -90,17 +97,37 @@ export function DataTab(): React.ReactElement {
         />
       </div>
 
-      {/* 차트 유형 */}
+      {/* 차트 유형 — 3×4 아이콘 그리드 */}
       <div className="space-y-1.5">
         <Label className="text-xs">차트 유형</Label>
-        <Select value={chartSpec.chartType} onValueChange={handleChartTypeChange}>
-          <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {Object.entries(CHART_TYPE_HINTS).map(([type, hint]) => (
-              <SelectItem key={type} value={type} className="text-sm">{hint.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="grid grid-cols-3 gap-1">
+          {(Object.entries(CHART_TYPE_HINTS) as [ChartType, typeof CHART_TYPE_HINTS[ChartType]][]).map(([type, hint]) => {
+            const Icon = CHART_TYPE_ICONS[type];
+            const isActive = chartSpec.chartType === type;
+            return (
+              <Tooltip key={type}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => handleChartTypeChange(type)}
+                    className={[
+                      'flex flex-col items-center gap-0.5 p-1.5 rounded-md border text-[10px] leading-tight transition-colors',
+                      isActive
+                        ? 'border-primary bg-primary/10 text-primary font-medium'
+                        : 'border-border hover:bg-muted/50 text-muted-foreground hover:text-foreground',
+                    ].join(' ')}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span className="truncate w-full text-center">{hint.label}</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs max-w-[180px]">
+                  {hint.description}
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </div>
         {chartSpec.chartType === 'violin' && (
           <p className="text-xs text-amber-600 dark:text-amber-400">현재 박스 플롯으로 표시됩니다 (ECharts 제한)</p>
         )}

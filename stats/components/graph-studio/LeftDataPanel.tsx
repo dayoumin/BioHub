@@ -23,14 +23,9 @@ import {
   Type as TypeIcon,
   Calendar,
   ListOrdered,
-  BarChart2,
-  ScatterChart,
-  LineChart,
-  SlidersHorizontal,
-  BarChart,
-  Grid3X3,
   RefreshCw,
 } from 'lucide-react';
+import { CHART_TYPE_ICONS } from '@/lib/graph-studio/chart-icons';
 
 // ─── 타입 배지 설정 ──────────────────────────────────────
 
@@ -39,17 +34,6 @@ const TYPE_CONFIG: Record<ColumnMeta['type'], { icon: React.ElementType; label: 
   nominal:      { icon: TypeIcon, label: 'Cat', color: 'text-emerald-600 bg-emerald-50' },
   ordinal:      { icon: ListOrdered, label: 'Ord', color: 'text-amber-600 bg-amber-50' },
   temporal:     { icon: Calendar, label: 'Date', color: 'text-violet-600 bg-violet-50' },
-};
-
-// ─── 차트 아이콘 매핑 ────────────────────────────────────
-
-const CHART_ICON: Partial<Record<ChartType, React.ElementType>> = {
-  bar: BarChart2,
-  scatter: ScatterChart,
-  line: LineChart,
-  boxplot: SlidersHorizontal,
-  histogram: BarChart,
-  heatmap: Grid3X3,
 };
 
 // ─── 컴포넌트 ────────────────────────────────────────────
@@ -181,7 +165,7 @@ export function LeftDataPanel(): React.ReactElement {
           <h3 className="text-xs font-medium text-muted-foreground">추천 차트</h3>
           <div className="grid grid-cols-2 gap-1.5">
             {recommendations.map(rec => {
-              const Icon = CHART_ICON[rec.type] ?? BarChart2;
+              const Icon = CHART_TYPE_ICONS[rec.type];
               const isActive = chartSpec?.chartType === rec.type;
               return (
                 <button
