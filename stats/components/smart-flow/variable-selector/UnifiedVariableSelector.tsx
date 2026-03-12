@@ -36,6 +36,7 @@ import {
   type AcceptedType,
 } from './slot-configs'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
+import { LiveDataSummary } from './LiveDataSummary'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -455,7 +456,7 @@ export function UnifiedVariableSelector({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-[1fr_1.2fr] gap-4">
+        <div className="grid grid-cols-[1fr_1.2fr] lg:grid-cols-[1fr_1.2fr_200px] gap-4 items-start">
           {/* Left: Variable Pool */}
           <div className="space-y-1.5">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-2">
@@ -478,7 +479,7 @@ export function UnifiedVariableSelector({
             </div>
           </div>
 
-          {/* Right: Role Slots */}
+          {/* Center: Role Slots */}
           <div className="space-y-3">
             {slots.map(slot => (
               <RoleSlot
@@ -491,6 +492,16 @@ export function UnifiedVariableSelector({
                 isActive={activeSlotId === slot.id}
               />
             ))}
+          </div>
+
+          {/* Right: Live Data Summary */}
+          <div className="hidden lg:block lg:sticky lg:top-4">
+            <LiveDataSummary
+              data={data}
+              assignments={assignments}
+              slots={slots}
+              columns={columns}
+            />
           </div>
         </div>
 
