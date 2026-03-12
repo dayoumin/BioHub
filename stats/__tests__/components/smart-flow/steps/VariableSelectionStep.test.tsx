@@ -4,8 +4,9 @@
  * 검증 항목:
  * 1. SELECTOR_MAP: 51개 실제 method ID가 올바른 컴포넌트 렌더
  * 2. auto 메서드 → AutoConfirmSelector
- * 3. 나머지 전부 → UnifiedVariableSelector
- * 4. anova + 2 factors → selectorType='two-way-anova'로 전달
+ * 3. chi-square 메서드 → ChiSquareSelector
+ * 4. 나머지 전부 → UnifiedVariableSelector
+ * 5. anova + 2 factors → selectorType='two-way-anova'로 전달
  * 5. validation 에러 발생 시 Alert 표시
  * 6. AI 감지 변수 배지 표시
  * 7. 데이터 없음 → EmptyState
@@ -24,6 +25,11 @@ vi.mock('@/components/common/variable-selectors', () => ({
       <button data-testid="run-analysis-btn" onClick={() => onComplete({})}>분석 시작</button>
     </div>
   ),
+  ChiSquareSelector: ({ onComplete }: { onComplete: (m: unknown) => void }) => (
+    <div data-testid="chi-square-selector">
+      <button onClick={() => onComplete({ independentVar: 'row', dependentVar: 'col' })}>완료</button>
+    </div>
+  ),
 }))
 
 vi.mock('@/components/smart-flow/variable-selector/UnifiedVariableSelector', () => ({
@@ -39,6 +45,13 @@ vi.mock('@/components/smart-flow/variable-selector/UnifiedVariableSelector', () 
 
 vi.mock('@/components/smart-flow/common', () => ({
   StepHeader: ({ title }: { title: string }) => <div data-testid="step-header">{title}</div>,
+  CollapsibleSection: ({ children, label }: { children: React.ReactNode; label: string }) => (
+    <div data-testid="collapsible-section" data-label={label}>{children}</div>
+  ),
+}))
+
+vi.mock('@/components/smart-flow/variable-selector/AnalysisOptions', () => ({
+  AnalysisOptionsSection: () => <div data-testid="analysis-options-section" />,
 }))
 
 vi.mock('@/components/common/EmptyState', () => ({
@@ -125,17 +138,20 @@ describe('VariableSelectionStep', () => {
       'discriminant', 'power-analysis',
     ]
 
+    const chiSquareMethodIds = [
+      'chi-square', 'chi-square-goodness', 'chi-square-independence',
+      'mcnemar', 'proportion-test',
+    ]
+
     const nonAutoMethodIds = [
       't-test', 'welch-t', 'one-sample-t', 'paired-t', 'anova', 'welch-anova',
       'ancova', 'mann-whitney', 'wilcoxon', 'kruskal-wallis', 'friedman',
-      'sign-test', 'mcnemar', 'cochran-q', 'binomial-test', 'runs-test',
+      'sign-test', 'cochran-q', 'binomial-test', 'runs-test',
       'ks-test', 'mood-median', 'non-parametric', 'correlation',
       'partial-correlation', 'regression', 'logistic-regression', 'poisson',
       'ordinal-regression', 'stepwise', 'dose-response', 'response-surface',
-      'chi-square', 'chi-square-goodness', 'chi-square-independence',
       'descriptive', 'normality-test', 'explore-data', 'means-plot',
       'mann-kendall', 'pca', 'factor-analysis', 'cluster', 'reliability',
-      'proportion-test',
     ]
 
     it('auto 메서드 11개 → AutoConfirmSelector 렌더', () => {
@@ -147,11 +163,26 @@ describe('VariableSelectionStep', () => {
         const { unmount, getByTestId, queryByTestId } = render(<VariableSelectionStep />)
         expect(getByTestId('auto-confirm-selector')).toBeDefined()
         expect(queryByTestId('unified-variable-selector')).toBeNull()
+        expect(queryByTestId('chi-square-selector')).toBeNull()
         unmount()
       }
     })
 
-    it('비-auto 메서드 전부 → UnifiedVariableSelector 렌더', () => {
+    it('chi-square 메서드 5개 → ChiSquareSelector 렌더', () => {
+      for (const id of chiSquareMethodIds) {
+        storeState = {
+          ...defaultStoreState,
+          selectedMethod: { id, name: id },
+        }
+        const { unmount, getByTestId, queryByTestId } = render(<VariableSelectionStep />)
+        expect(getByTestId('chi-square-selector')).toBeDefined()
+        expect(queryByTestId('unified-variable-selector')).toBeNull()
+        expect(queryByTestId('auto-confirm-selector')).toBeNull()
+        unmount()
+      }
+    })
+
+    it('비-auto/비-chi-square 메서드 전부 → UnifiedVariableSelector 렌더', () => {
       for (const id of nonAutoMethodIds) {
         storeState = {
           ...defaultStoreState,
@@ -160,6 +191,7 @@ describe('VariableSelectionStep', () => {
         const { unmount, getByTestId, queryByTestId } = render(<VariableSelectionStep />)
         expect(getByTestId('unified-variable-selector')).toBeDefined()
         expect(queryByTestId('auto-confirm-selector')).toBeNull()
+        expect(queryByTestId('chi-square-selector')).toBeNull()
         unmount()
       }
     })
@@ -183,9 +215,10 @@ describe('VariableSelectionStep', () => {
       expect(capturedSelectorType).toBe('multiple-regression')
     })
 
-    it('chi-square → selectorType="chi-square"', () => {
+    it('chi-square → ChiSquareSelector 렌더', () => {
       renderWithMethod('chi-square')
-      expect(capturedSelectorType).toBe('chi-square')
+      expect(screen.getByTestId('chi-square-selector')).toBeDefined()
+      expect(screen.queryByTestId('unified-variable-selector')).toBeNull()
     })
 
     it('paired-t → selectorType="paired"', () => {

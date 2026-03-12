@@ -112,6 +112,7 @@ export function AnalysisExecutionStep({
   const uploadedData = useSmartFlowStore(state => state.uploadedData)
   const setAssumptionResults = useSmartFlowStore(state => state.setAssumptionResults)
   const suggestedSettings = useSmartFlowStore(state => state.suggestedSettings)
+  const analysisOptions = useSmartFlowStore(state => state.analysisOptions)
 
   /**
    * 로그 추가 함수
@@ -237,11 +238,25 @@ export function AnalysisExecutionStep({
         }
       }
 
+      // Merge user analysisOptions into AI suggestedSettings
+      // User overrides take precedence (e.g., alpha, testValue)
+      const mergedSettings = {
+        ...suggestedSettings,
+        alpha: analysisOptions.alpha,
+      }
+      const mergedVariables = {
+        ...(variableMapping ?? {}),
+        // testValue는 executor가 variables에서 읽음
+        ...(analysisOptions.testValue !== undefined
+          ? { testValue: String(analysisOptions.testValue) }
+          : {}),
+      }
+
       const result = await executor.executeMethod(
         selectedMethod,
         uploadedData,
-        variableMapping ?? {},
-        suggestedSettings
+        mergedVariables,
+        mergedSettings
       )
 
       if (cancelledRef.current) return

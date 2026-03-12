@@ -8,7 +8,9 @@ import {
   DataRow,
   StatisticalAssumptions,
   SuggestedSettings,
-  AnalysisTrack
+  AnalysisTrack,
+  AnalysisOptions,
+  DEFAULT_ANALYSIS_OPTIONS,
 } from '@/types/smart-flow'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import { DataCharacteristics } from '@/lib/statistics/data-type-detector'
@@ -143,6 +145,8 @@ interface SmartFlowState {
   detectedVariables: DetectedVariables | null
   // AI 추천 설정 (Step 2 -> Step 4 전달용)
   suggestedSettings: SuggestedSettings | null
+  // 사용자 분석 옵션 (Step 3 -> Step 4 전달용)
+  analysisOptions: AnalysisOptions
 
   // 분석 결과
   results: AnalysisResult | null
@@ -189,6 +193,7 @@ interface SmartFlowState {
   setVariableMapping: (mapping: VariableMapping | null) => void
   setDetectedVariables: (vars: DetectedVariables | null) => void
   setSuggestedSettings: (settings: SuggestedSettings | null) => void
+  setAnalysisOptions: (options: Partial<AnalysisOptions>) => void
   setResults: (results: AnalysisResult | null) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
@@ -242,6 +247,7 @@ const initialState = {
   variableMapping: null,
   detectedVariables: null,
   suggestedSettings: null,
+  analysisOptions: { ...DEFAULT_ANALYSIS_OPTIONS },
   results: null,
   analysisHistory: [],
   currentHistoryId: null,
@@ -360,6 +366,9 @@ export const useSmartFlowStore = create<SmartFlowState>()(
       setVariableMapping: (mapping) => set({ variableMapping: mapping }),
       setDetectedVariables: (vars) => set({ detectedVariables: vars }),
       setSuggestedSettings: (settings) => set({ suggestedSettings: settings }),
+      setAnalysisOptions: (options) => set((state) => ({
+        analysisOptions: { ...state.analysisOptions, ...options },
+      })),
       setResults: (results) => set({ results: results }),
       setLoading: (loading) => set({ isLoading: loading }),
       setError: (error) => set({ error: error }),
@@ -825,6 +834,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         variableMapping: state.variableMapping,
         detectedVariables: state.detectedVariables,
         suggestedSettings: state.suggestedSettings,
+        analysisOptions: state.analysisOptions,
         results: state.results,
         uploadedFileName: state.uploadedFileName,
         // Hub 질문 보존 (Step 1 → Step 2 전환 사이 새로고침 시 복원)

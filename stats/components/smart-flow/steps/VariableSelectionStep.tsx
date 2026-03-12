@@ -8,19 +8,22 @@
  */
 
 import React, { useState, useMemo, useCallback } from 'react'
+import { SlidersHorizontal } from 'lucide-react'
 import { logger } from '@/lib/utils/logger'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, Settings2, Sparkles, Upload } from 'lucide-react'
 import { EmptyState } from '@/components/common/EmptyState'
-import { AutoConfirmSelector } from '@/components/common/variable-selectors'
+import { AutoConfirmSelector, ChiSquareSelector } from '@/components/common/variable-selectors'
 import { UnifiedVariableSelector } from '@/components/smart-flow/variable-selector/UnifiedVariableSelector'
 import type { SelectorType } from '@/components/smart-flow/variable-selector/slot-configs'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { validateVariableMapping } from '@/lib/statistics/variable-mapping'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import { useTerminology } from '@/hooks/use-terminology'
+import { CollapsibleSection } from '@/components/smart-flow/common'
+import { AnalysisOptionsSection } from '@/components/smart-flow/variable-selector/AnalysisOptions'
 
 interface VariableSelectionStepProps {
   onComplete?: () => void
@@ -107,6 +110,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   } = useSmartFlowStore()
 
   const [validationAlert, setValidationAlert] = useState<string | null>(null)
+  const [optionsOpen, setOptionsOpen] = useState(false)
 
   // Determine selector type
   // Special case: anova + AI detected 2+ factors → two-way-anova
@@ -284,6 +288,21 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
       )
     }
 
+    // Chi-square family: fallback to ChiSquareSelector
+    // (goodness/proportion need 1-var mode + nullProportion; mcnemar needs binary filter)
+    if (selectorType === 'chi-square') {
+      return (
+        <ChiSquareSelector
+          data={uploadedData}
+          onComplete={handleComplete}
+          onBack={handleBack}
+          initialSelection={initialSelection}
+          className="mt-4"
+          methodId={selectedMethod?.id}
+        />
+      )
+    }
+
     // All other selector types use UnifiedVariableSelector
     return (
       <UnifiedVariableSelector
@@ -358,6 +377,20 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
       {/* Dynamic Selector */}
       {renderSelector()}
+
+      {/* Analysis Options */}
+      <CollapsibleSection
+        label="분석 옵션"
+        open={optionsOpen}
+        onOpenChange={setOptionsOpen}
+        icon={<SlidersHorizontal className="h-3.5 w-3.5" />}
+        data-testid="analysis-options-section"
+      >
+        <AnalysisOptionsSection
+          showTestValue={selectorType === 'one-sample'}
+          className="px-2 py-3"
+        />
+      </CollapsibleSection>
     </div>
   )
 }

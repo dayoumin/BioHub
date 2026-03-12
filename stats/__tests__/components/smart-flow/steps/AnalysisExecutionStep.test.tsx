@@ -154,6 +154,7 @@ type StoreState = {
   uploadedData: { score: number; gender: string }[] | null
   setAssumptionResults: typeof mockSetAssumptionResults
   suggestedSettings: Record<string, unknown> | null
+  analysisOptions: { alpha: number; showAssumptions: boolean; showEffectSize: boolean; testValue?: number }
 }
 
 function makeStoreState(
@@ -167,6 +168,7 @@ function makeStoreState(
     ],
     setAssumptionResults: mockSetAssumptionResults,
     suggestedSettings: null,
+    analysisOptions: { alpha: 0.05, showAssumptions: true, showEffectSize: true },
     ...overrides,
   }
 }

@@ -220,6 +220,27 @@ export interface SuggestedSettings {
   [key: string]: unknown
 }
 
+/**
+ * 사용자가 Step 3에서 직접 설정하는 분석 옵션.
+ * AI suggestedSettings와 병합되어 executor에 전달됨.
+ */
+export interface AnalysisOptions {
+  /** 유의수준 (기본 0.05) */
+  alpha: number
+  /** 가정검정 표시 여부 */
+  showAssumptions: boolean
+  /** 효과크기 표시 여부 */
+  showEffectSize: boolean
+  /** 일표본 검정 기준값 μ₀ (one-sample-t 전용) */
+  testValue?: number
+}
+
+export const DEFAULT_ANALYSIS_OPTIONS: AnalysisOptions = {
+  alpha: 0.05,
+  showAssumptions: true,
+  showEffectSize: true,
+}
+
 // ===== Chat-First Hub Types =====
 
 /**
