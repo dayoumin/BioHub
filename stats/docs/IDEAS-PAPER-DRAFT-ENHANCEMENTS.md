@@ -331,46 +331,11 @@ await navigator.clipboard.write([
 
 ---
 
-## 기존 도구 비교 분석 (2026-03-12)
+## 경쟁력 분석
 
-> 시장의 논문 지원 도구들을 조사하여 BioHub의 포지셔닝과 연동 전략을 정리한 것.
+> 상세: [COMPETITIVE-ANALYSIS.md](COMPETITIVE-ANALYSIS.md)
 
-### BioHub의 차별화 포인트
-
-| BioHub 접근 | 가장 가까운 경쟁자 | 핵심 차이 |
-|---|---|---|
-| 템플릿 기반 Methods/Results (할루시네이션 0%) | R `papaja`/`report` 패키지 | R 코딩 필요 vs 웹 UI |
-| 가정검정 결과를 Methods 문단으로 서술 | JASP/jamovi (테이블만 표시) | "정규성을 Shapiro-Wilk로 검정하였다" 자동 생성 |
-| 한/영 이중 언어 학술 글쓰기 | 없음 | 한국어 학술 글쓰기 도구 전무 |
-| 분석→시각화→논문 통합 파이프라인 | R ecosystem (RMarkdown + knitr) | 코딩 없이 웹에서 전 과정 |
-| Discussion = LLM + 실제 통계값 기반 | 범용 AI (ChatGPT 등) | 실제 수치에 기반 → 할루시네이션 위험 낮음 |
-
-### 외부 도구 연동 전략
-
-**연동 필요 (내보내기 품질 중심)**:
-
-| 도구/포맷 | 연동 방식 | 시기 |
-|---|---|---|
-| **.docx** (Word) | `docx.js`로 APA 서식 문서 생성 | Layer 4 |
-| **.bib** (BibTeX) | 소프트웨어 인용 자동 생성 (아이디어 #7) | Layer 1 |
-| **Semantic Scholar API** | Citation Verification (아이디어 #1) | Layer 4 |
-| **CrossRef API** | DOI 검증 보조 | Layer 4 |
-| **CSL-JSON** | 인용 스타일 변환 (APA/MLA/Chicago) — Zotero 호환 | Layer 4+ |
-
-**연동 불필요 (사용자가 직접 사용)**:
-
-| 도구 | 이유 |
-|---|---|
-| Paperpal / Writefull | BioHub 초안 → 사용자가 이 도구에서 폴리싱. 직접 연동 가치 낮음 |
-| Overleaf / Google Docs | 협업 도구와 직접 연동보다 **내보내기 품질**이 핵심 |
-| JATS XML | 출판사 측 포맷 — 저자가 직접 생성할 일 거의 없음 |
-| Elicit / Consensus | 문헌 검색 도구 — BioHub 범위 밖 |
-
-### 인용 할루시네이션 시장 현실
-
-- NeurIPS 2025: AI 생성 인용 **100+건 허위** 발각 (GPTZero)
-- ChatGPT-3.5 생성 인용의 **39.6~55%가 완전 날조**
-- **BioHub 강점**: Methods/Results = 템플릿 → 할루시네이션 불가능. Discussion만 LLM이지만 실제 통계값에 기반
+**핵심**: 코딩 불필요 + APA 텍스트 생성 사분면에 BioHub만 존재. JASP/jamovi는 표만, R papaja는 코딩 필수, AI 도구는 수치 환각 위험. 템플릿 기반이므로 Methods/Results 수치 정확도 100%.
 
 ---
 
