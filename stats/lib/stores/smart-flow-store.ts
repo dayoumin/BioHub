@@ -154,6 +154,8 @@ interface SmartFlowState {
   // 히스토리
   analysisHistory: AnalysisHistory[]
   currentHistoryId: string | null
+  /** 히스토리 로드 시 복원된 후속 Q&A 대화 (ResultsActionStep에서 소비 후 null) */
+  loadedInterpretationChat: ChatMessage[] | null
 
   // 재분석 모드
   isReanalysisMode: boolean
@@ -251,6 +253,7 @@ const initialState = {
   results: null,
   analysisHistory: [],
   currentHistoryId: null,
+  loadedInterpretationChat: null,
   isLoading: false,
   error: null,
   isReanalysisMode: false,
@@ -470,7 +473,9 @@ export const useSmartFlowStore = create<SmartFlowState>()(
             validationResults: null,
             uploadedFile: null,
             // 이전 세션의 AI 추천 맥락이 새 분석에 섞이지 않도록 초기화
-            lastAiRecommendation: null
+            lastAiRecommendation: null,
+            // 후속 Q&A 대화 복원
+            loadedInterpretationChat: record.interpretationChat?.length ? record.interpretationChat : null,
           })
         }
       },
@@ -753,6 +758,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         suggestedSettings: null,
         results: null,
         currentHistoryId: null,
+        loadedInterpretationChat: null,
         isLoading: false,
         error: null,
         isReanalysisMode: false,

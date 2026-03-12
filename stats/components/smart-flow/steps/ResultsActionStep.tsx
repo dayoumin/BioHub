@@ -261,7 +261,17 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     uploadedFileName,
     selectedMethod,
     assumptionResults,
+    loadedInterpretationChat,
   } = useSmartFlowStore()
+
+  // 히스토리에서 로드된 후속 Q&A 대화 복원
+  useEffect(() => {
+    if (loadedInterpretationChat?.length) {
+      setFollowUpMessages(loadedInterpretationChat)
+      // 소비 후 store에서 제거 (재렌더링 시 중복 방지)
+      useSmartFlowStore.setState({ loadedInterpretationChat: null })
+    }
+  }, [loadedInterpretationChat])
 
   const router = useRouter()
   const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
