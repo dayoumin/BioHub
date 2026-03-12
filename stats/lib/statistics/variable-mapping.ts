@@ -558,11 +558,24 @@ export function validateVariableMapping(
       }
       break
 
-    case 'chi-square':
-      if (!mapping.variables || mapping.variables.length < 2) {
-        errors.push('카이제곱 검정을 위해 2개의 범주형 변수가 필요합니다')
+    case 'chi-square': {
+      // Goodness modes (1 variable): chi-square-goodness, proportion-test
+      const isGoodness = method.id === 'chi-square-goodness' || method.id === 'proportion-test'
+      if (isGoodness) {
+        if (!mapping.dependentVar) {
+          errors.push('검정할 범주형 변수를 선택해주세요')
+        }
+      } else {
+        // Independence modes (2 variables): chi-square, chi-square-independence, mcnemar
+        if (!mapping.independentVar) {
+          errors.push('독립 변수(행)를 선택해주세요')
+        }
+        if (!mapping.dependentVar) {
+          errors.push('종속 변수(열)를 선택해주세요')
+        }
       }
       break
+    }
   }
 
   return {

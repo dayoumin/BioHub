@@ -1,7 +1,7 @@
 # STITCH 시안 기반 Smart Flow UI 리디자인
 
-**상태**: Phase 1 완료, Phase 2 대기
-**최종 업데이트**: 2026-03-11
+**상태**: Phase 3 완료, Phase 4 대기
+**최종 업데이트**: 2026-03-12
 **STITCH 시안**: 4개 화면 (Step 1, Step 3, Step 4)
 
 ---
@@ -184,9 +184,9 @@ SelectorType별 슬롯 구성:
 - `one-sample-t` → testValue 입력 없음 (레거시는 μ₀ 입력 제공 — Phase 2b AnalysisOptions에서 해결 예정)
 - 이 불일치 해소는 Phase 2 범위 밖 (메서드별 세분화 필요, testValue는 Phase 2b)
 
-### 구현 단계 (3 서브 Phase)
+### 구현 단계 (3 서브 Phase) — ✅ 전체 완료
 
-#### Phase 2a: 통합 셀렉터 (핵심)
+#### Phase 2a: 통합 셀렉터 (핵심) ✅ `bdb2c02d` + `90c71d25`
 
 이것만으로 STITCH 시안의 변수 설정 화면 달성.
 
@@ -238,7 +238,7 @@ function getSlotConfigs(selectorType: SelectorType): SlotConfig[]
 
 **커밋 단위**: P2a 전체 = 1 커밋
 
-#### Phase 2b: 분석 옵션 섹션
+#### Phase 2b: 분석 옵션 섹션 ✅ `487a5871`
 
 `stats/components/smart-flow/variable-selector/AnalysisOptions.tsx` (신규)
 - 유의수준 (alpha): Select [0.01, 0.05, 0.10] — Worker 즉시 연결
@@ -261,9 +261,9 @@ function getSlotConfigs(selectorType: SelectorType): SlotConfig[]
 
 **커밋 단위**: Phase 2b = 1 커밋
 
-#### Phase 2c: Live Data Summary 패널
+#### Phase 2c: Live Data Summary 패널 ✅ `b3536b57`
 
-`stats/components/smart-flow/panels/LiveDataSummary.tsx` (신규)
+`stats/components/smart-flow/variable-selector/LiveDataSummary.tsx` (신규)
 - 우측 고정 패널 (Phase 1의 컬럼 요약 패널과 동일 패턴)
 - 선택된 변수 요약: 변수명, 타입, N, 결측
 - 그룹 변수 시: 그룹별 n
@@ -326,41 +326,58 @@ Phase 2c  LiveDataSummary → 커밋
 
 ---
 
-## Phase 3: Step 4 (결과) 스타일
+## Phase 3: Step 4 (결과) 스타일 ✅
 
-### Hero 컴팩트화
-
-```
-현재: 큰 p값 카드 + 결론 박스 + APA + 메타데이터
-시안: [📊] 독립표본 t-검정  ✅ p=0.003 (유의함)  ✓ d=0.85 (큰 효과)
-```
-
-### 통계량 4-column
+### Hero 컴팩트화 ✅
 
 ```
-현재: 3-column (statistic, p, effect)
-시안: 4-column (t통계량, 자유도, 평균차이, 95%CI)
+Before: 큰 p값 카드 + 결론 박스 + APA + 메타데이터
+After:  [📊] 독립표본 t-검정  p=0.003 (유의함)  d=0.85 (큰 효과)  [주의 tooltip]
 ```
 
-### 차트 + 가정검정 2-column
+- 가정 미충족 시: "주의" 배지 + tooltip에 상세 경고 (이모지 없이 AlertCircle 아이콘만)
+- p-value 배지 스타일 유지 (사실관계 표시, 경고색 미적용)
+
+### 통계량 4-column ✅
 
 ```
-현재: 1-column 순차
-시안: 좌(차트) + 우(가정검정 + 기술통계)
+Before: 3-column (statistic, p, effect)
+After:  4-column (통계량+df, p-value, 효과크기, 95%CI)
 ```
 
-### 액션 버튼 정리
+- `confidenceInterval` terminology 추가 (types + generic + aquaculture)
+
+### 차트 + 가정검정 2-column ✅
 
 ```
-현재: 상단 Copy+Save, 하단 5개 버튼
-시안: 상단 "템플릿 저장" + "내보내기 ▾"
+Before: 1-column 순차
+After:  좌(차트+L2) + 우(가정검정+추천+경고) — 진단 없으면 1열
 ```
 
-- Phase 애니메이션: 유지 (시안에 없지만 기존 UX 가치 있음)
-- AI 해석: 기능 유지, 초기 표시만 간결하게
+- `hasDiagnostics` 조건부 grid: `lg:grid-cols-[1.2fr_1fr]` vs `grid-cols-1`
 
-**파일**: `ResultsActionStep.tsx`
+### 액션 버튼 정리 ✅
+
+```
+Before: 상단 Copy+Save, 하단 Back+Export+재분석+새분석+템플릿
+After:  상단 Copy+Save | Export ▾, 하단 Back --- 템플릿+Graph | 재분석+새분석
+```
+
+### 효과크기 기호 매핑 ✅
+
+- `formatEffectSizeSymbol()`: 12개 EffectSizeType 전체 커버
+- `glassDelta`(Δ), `epsilonSquared`(ε²), `w`(W) 추가
+- default `'?'` (미지원 타입 즉시 노출)
+
+### AI 리뷰 피드백 반영 ✅
+
+- High: 가정 미충족 시 Hero 경고 배지 추가 ("주의" + tooltip 상세)
+- Medium: 효과크기 타입 매핑 불완전 수정
+- Medium: 테스트 4건 실패 → 새 UI에 맞게 갱신
+
+**파일**: `ResultsActionStep.tsx`, `ResultsActionStep.test.tsx`, terminology 3파일
 **Step 계약 영향**: 없음
+**테스트**: 75/75 통과
 
 ---
 

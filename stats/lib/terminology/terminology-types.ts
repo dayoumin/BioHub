@@ -847,6 +847,8 @@ export interface ResultsText {
     pValueTooltip: string
     effectSize: string
     effectSizeTooltip: string
+    confidenceInterval: string
+    confidenceIntervalTooltip: string
     significant: string
     notSignificant: string
   }

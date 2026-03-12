@@ -1,6 +1,6 @@
 # 프로젝트 현황 + 할일
 
-**최종 업데이트**: 2026-03-11 (feature/ui-redesign 진행 중)
+**최종 업데이트**: 2026-03-12 (feature/ui-redesign 진행 중)
 
 ---
 
@@ -31,16 +31,38 @@
 
 ## 📅 최근 작업 (7일)
 
-### 2026-03-11 (화) UI 리디자인 + 통합 최근 활동 + G5.2 로직 훅 추출
+### 2026-03-12 (수) STITCH Phase 2+3 완료 (통합 변수 선택 + 결과 UI 리디자인)
 
-> **브랜치**: `feature/ui-redesign` (main 기반, 9 commits ahead)
+> **브랜치**: `feature/ui-redesign`
+
+**STITCH UI 리디자인 Phase 2** (계획서: `stats/docs/PLAN-STITCH-UI-REDESIGN.md`)
+- ✅ **Phase 2a**: 통합 슬롯 기반 변수 선택 UI + @dnd-kit DnD — `bdb2c02d`
+- ✅ **Phase 2a-fix**: UX 개선 (토글/활성 슬롯 하이라이트) — `90c71d25`
+- ✅ **Phase 2b**: AnalysisOptions 섹션 (alpha, 가정검정, 효과크기) + ChiSquareSelector 분리 — `487a5871`
+- ✅ **Phase 2c**: LiveDataSummary 실시간 요약 패널 (3-column 반응형 그리드) — `b3536b57`
+  - slot-configs.ts: 9 SelectorType별 슬롯 정의 + 순수 함수 4개
+  - UnifiedVariableSelector.tsx: 좌(변수 풀) + 중(역할 슬롯) + 우(실시간 요약) + DnD + 클릭
+  - AnalysisOptions.tsx: analysisOptions store 상태 + AnalysisExecutionStep 병합
+  - LiveDataSummary.tsx: validN/missingN + 그룹별 n + Total N
+  - 테스트: slot-configs 25 + VariableSelectionStep 19 + AnalysisExecutionStep 17 (전부 통과)
+
+**STITCH UI 리디자인 Phase 3** — Step 4 결과 화면 리디자인
+- ✅ **Phase 3**: Hero 컴팩트 바 + 4-column 통계량 + 2-column 차트/진단 + 액션 정리
+  - Hero: 메서드명+p배지+효과크기배지+타임스탬프 한 줄 (가정 미충족 시 "주의" tooltip)
+  - 효과크기 기호: 12개 EffectSizeType 전체 매핑 (d, g, Δ, η², ε², W 등)
+  - terminology: confidenceInterval 추가 (types + generic + aquaculture)
+  - 테스트: ResultsActionStep 75/75 통과
+
+### 2026-03-11 (화) UI 리디자인 Phase 0-1 + 통합 최근 활동 + G5.2 로직 훅 추출
+
+> **브랜치**: `feature/ui-redesign` (main 기반)
 
 **STITCH UI 리디자인** (계획서: `stats/docs/PLAN-STITCH-UI-REDESIGN.md`)
 - ✅ **Phase 0**: 스텝 인디케이터 교체 (pill→원형번호+연결선) — `350aedc0`
 - ✅ **P0-1**: normality enrichment (fire-and-forget + stale check) — `normality-enrichment-service.ts` 신규
 - ✅ **P0-2**: quickAnalysisMode 변수 추론 + 회귀 테스트 — `f964eb9c`
 - ✅ **Phase 1**: dead code 제거 + 섹션 이탈 정책 — `350aedc0`
-- ✅ **Phase 2**: Chat-First 허브 + 사이드바 + 빠른 시작 리디자인 — `97ef510e`
+- ✅ **Hub 리디자인**: Chat-First 허브 + 사이드바 + 빠른 시작 — `97ef510e`
 
 **Graph Studio 3패널 레이아웃**
 - ✅ **G5.0**: 3패널 레이아웃 전환 (SidePanel→좌/중/우) + AI 패널 bottom 전용 — `39301100`
@@ -416,7 +438,9 @@
 | **~~Graph Studio G1: 핵심 UI~~** | ✅ 완료 (2026-02-28) — 상세: 아래 |
 | **~~Graph Studio G5.0-G5.2~~** | ✅ 완료 (2026-03-11) — 3패널 레이아웃 + 좌측 패널 + 로직 훅 추출 |
 | **~~통합 최근 활동~~** | ✅ 완료 (2026-03-11) — QuickAccessBar 통계+시각화 통합, P1 encoding 호환성 검증 |
-| **UI 리디자인 잔여** | STITCH Phase 3(Step 4 스타일) + Phase 4(Step 2 + 마무리) |
+| **~~STITCH Phase 2~~** | ✅ 완료 (2026-03-12) — 통합 변수 선택 + 분석 옵션 + 실시간 요약 |
+| **~~STITCH Phase 3~~** | ✅ 완료 (2026-03-12) — Step 4 결과 UI (Hero 컴팩트 + 4-col + 2-col + 액션) |
+| **UI 리디자인 잔여** | STITCH Phase 4(Step 2 + 마무리) |
 | **논문 초안 생성** | 분석 결과 → Methods/Results/Caption/Discussion 학술 텍스트 자동 생성 ([계획서](stats/docs/PLAN-PAPER-DRAFT-GENERATION.md)) |
 | **G5.3~G5.5** | 차트 유형 아이콘 그리드(G5.3) + 인터랙티브 컨트롤(G5.4) + 캔버스 미니 툴바(G5.5) |
 | **AI 채팅 히스토리 (multi-turn)** | `FlowStateMachine` messages 배열화, 최근 2턴 context, 채팅 스레드 UI |

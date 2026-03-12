@@ -793,15 +793,13 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
 
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      // 분석명 (CardTitle)
+      // 분석명 (Hero 바)
       expect(screen.getByText('독립표본 t-검정')).toBeInTheDocument()
-      // 유의함 배너
-      expect(screen.getByText(/통계적으로 유의한 차이가 있습니다/)).toBeInTheDocument()
-      // 유의성 뱃지
+      // p-value 배지 내 유의성 텍스트
       expect(screen.getByText('유의함')).toBeInTheDocument()
     })
 
-    it('비유의한 결과 → 다른 결론 배너', () => {
+    it('비유의한 결과 → p-value 배지에 "유의하지 않음" 표시', () => {
       mockConvert.mockReturnValue({
         testName: 't-검정',
         statistic: 0.5,
@@ -813,7 +811,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
 
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      expect(screen.getByText(/통계적으로 유의한 차이가 없습니다/)).toBeInTheDocument()
+      // p-value 배지 내 비유의 텍스트
       expect(screen.getByText('유의하지 않음')).toBeInTheDocument()
     })
   })
@@ -925,10 +923,9 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
 
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      // 결론 배너가 경고로 변경
-      expect(screen.getByText(/가정 미충족/)).toBeInTheDocument()
-      // Layer 3의 "주의" 뱃지
-      expect(screen.getByText('주의')).toBeInTheDocument()
+      // Hero 경고 배지 + L3 진단 배지에 "주의" 표시
+      const cautionBadges = screen.getAllByText('주의')
+      expect(cautionBadges.length).toBeGreaterThanOrEqual(2)
     })
 
     it('가정 미충족 → useEffect로 diagnosticsOpen 자동 true → AssumptionTestCard 렌더링', () => {
@@ -1538,10 +1535,10 @@ describe('Part 3: Phase 상태 머신 시뮬레이션', () => {
       expect(mockStoreState.navigateToStep).toHaveBeenCalledWith(3)
     })
 
-    it('action-buttons에 내보내기 드롭다운이 존재한다', () => {
+    it('내보내기 드롭다운이 존재한다 (StepHeader)', () => {
       renderPhase(<ResultsActionStep results={baseResults} />)
-      const actionButtons = screen.getByTestId('action-buttons')
-      expect(within(actionButtons).getByText('내보내기')).toBeInTheDocument()
+      // Export는 StepHeader 액션 영역에 위치
+      expect(screen.getByText('내보내기')).toBeInTheDocument()
     })
 
     it('action-buttons에 재분석 / 새 분석 / 템플릿 버튼이 존재한다', () => {

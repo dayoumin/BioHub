@@ -800,6 +800,8 @@ export const aquaculture: TerminologyDictionary = {
       pValueTooltip: 'p < 0.05이면 통계적으로 유의합니다.',
       effectSize: '효과크기',
       effectSizeTooltip: '효과크기: 실질적인 효과의 크기를 나타냅니다. 작음(<0.2), 중간(0.2-0.5), 큼(>0.5)',
+      confidenceInterval: '95% 신뢰구간',
+      confidenceIntervalTooltip: '신뢰구간: 모집단의 참값이 95% 확률로 포함될 것으로 예상되는 범위',
       significant: '유의함',
       notSignificant: '유의하지 않음',
     },

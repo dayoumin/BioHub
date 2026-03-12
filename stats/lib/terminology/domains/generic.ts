@@ -794,6 +794,8 @@ export const generic: TerminologyDictionary = {
       pValueTooltip: 'If p < 0.05, the result is statistically significant.',
       effectSize: 'Effect Size',
       effectSizeTooltip: 'Effect size: indicates practical significance. Small (<0.2), Medium (0.2–0.5), Large (>0.5)',
+      confidenceInterval: '95% CI',
+      confidenceIntervalTooltip: 'Confidence interval: the range within which the true population parameter is expected to fall with 95% probability',
       significant: 'Significant',
       notSignificant: 'Not significant',
     },
