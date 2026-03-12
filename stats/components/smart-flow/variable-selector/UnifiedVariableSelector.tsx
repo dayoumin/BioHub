@@ -108,19 +108,17 @@ function PoolVariable({
   return (
     <button
       ref={setNodeRef}
-      onClick={isAssigned ? undefined : onClick}
+      onClick={onClick}
       className={cn(
         'flex items-center gap-2 w-full px-3 py-2 rounded-lg text-left text-sm',
         'border transition-all duration-150',
         isAssigned
-          ? 'opacity-40 cursor-default border-transparent bg-muted/30'
+          ? 'cursor-pointer border-transparent bg-muted/30 opacity-60 hover:opacity-80 hover:bg-muted/50'
           : 'cursor-pointer border-border/50 hover:border-primary/40 hover:bg-accent/50 active:scale-[0.98]',
         isDragging && 'opacity-50',
       )}
-      disabled={isAssigned}
       data-testid={`pool-var-${column.name}`}
-      {...attributes}
-      {...listeners}
+      {...(isAssigned ? {} : { ...attributes, ...listeners })}
     >
       <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50 flex-shrink-0" />
       <span className="truncate flex-1 font-medium">{column.name}</span>
@@ -159,12 +157,14 @@ function RoleSlot({
   columns,
   onRemove,
   onClickAssign,
+  isActive,
 }: {
   slot: SlotConfig
   assignedVars: string[]
   columns: ColumnInfo[]
   onRemove: (varName: string) => void
   onClickAssign: (slotId: string) => void
+  isActive: boolean
 }) {
   const { isOver, setNodeRef, active } = useDroppable({
     id: `slot-${slot.id}`,
@@ -189,6 +189,7 @@ function RoleSlot({
         isOver && canDrop && 'border-primary/60 bg-primary/5',
         isRejectDrop && 'border-destructive/60 bg-destructive/5',
         !isOver && assignedVars.length > 0 && `${colors.bg} border-solid ${colors.border}`,
+        !isOver && isActive && assignedVars.length === 0 && 'border-primary/50 bg-primary/5 ring-1 ring-primary/20',
       )}
       data-testid={`slot-${slot.id}`}
     >
@@ -251,7 +252,7 @@ function RoleSlot({
           className="w-full text-xs text-muted-foreground/60 py-1 hover:text-muted-foreground transition-colors"
           disabled={isFull || isMultipleFull}
         >
-          {isRejectDrop ? '이 타입은 배치할 수 없습니다' : '클릭하거나 변수를 드래그하세요'}
+          {isRejectDrop ? '이 타입은 배치할 수 없습니다' : '좌측에서 변수를 클릭하거나 드래그하세요'}
         </button>
       )}
     </div>
@@ -342,9 +343,25 @@ export function UnifiedVariableSelector({
     return undefined
   }, [slots, assignments, activeSlotId])
 
-  // Click to assign a variable from pool
+  // Click to assign or unassign (toggle) a variable from pool
   const handlePoolClick = useCallback((column: ColumnInfo) => {
-    if (assignedSet.has(column.name)) return
+    // If already assigned → remove from its slot (toggle off)
+    if (assignedSet.has(column.name)) {
+      setAssignments(prev => {
+        const next = { ...prev }
+        for (const slotId of Object.keys(next)) {
+          if (next[slotId]?.includes(column.name)) {
+            next[slotId] = next[slotId].filter(v => v !== column.name)
+            break
+          }
+        }
+        return next
+      })
+      setValidationErrors([])
+      return
+    }
+
+    // Otherwise assign to target slot
     const targetSlot = findTargetSlot(column.type)
     if (!targetSlot) return
 
@@ -471,6 +488,7 @@ export function UnifiedVariableSelector({
                 columns={columns}
                 onRemove={(varName) => handleRemove(slot.id, varName)}
                 onClickAssign={handleSlotClick}
+                isActive={activeSlotId === slot.id}
               />
             ))}
           </div>
