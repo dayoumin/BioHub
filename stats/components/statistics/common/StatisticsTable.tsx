@@ -20,7 +20,9 @@ import {
   ChevronDown,
   ChevronUp,
   Filter,
-  ArrowUpDown
+  ArrowUpDown,
+  TableProperties,
+  Check,
 } from 'lucide-react'
 import { PValueBadge } from './PValueBadge'
 import { formatNumber, formatConfidenceInterval, formatPercentage } from '@/lib/statistics/formatters'
@@ -35,8 +37,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { copyApaTable } from '@/lib/utils/apa-table-formatter'
 
 export interface TableColumn {
   key: string
@@ -103,6 +107,7 @@ export function StatisticsTable({
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc')
   const [selectedRows, setSelectedRows] = React.useState<Set<number>>(new Set())
   const [expandedRows, setExpandedRows] = React.useState<Set<number>>(new Set())
+  const [apaCopied, setApaCopied] = React.useState(false)
 
   // 정렬된 데이터
   const sortedData = React.useMemo(() => {
@@ -258,6 +263,19 @@ export function StatisticsTable({
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
+  }
+
+  // APA 서식 복사 (Word/Google Docs에 붙여넣기용)
+  const copyApaFormat = async () => {
+    const targetData = selectedRows.size > 0
+      ? sortedData.filter((_, index) => selectedRows.has(index))
+      : sortedData
+
+    const ok = await copyApaTable(columns, targetData, title)
+    if (ok) {
+      setApaCopied(true)
+      setTimeout(() => setApaCopied(false), 2000)
+    }
   }
 
   const tableContent = (
@@ -423,43 +441,47 @@ export function StatisticsTable({
               {description && <CardDescription className="mt-1">{description}</CardDescription>}
             </div>
 
-            {actions && (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={copyToClipboard}
-                  title="클립보드 복사"
-                >
-                  <Copy className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={downloadCSV}
-                  title="CSV 다운로드"
-                >
-                  <Download className="w-4 h-4" />
-                </Button>
-
-                {actions.map((action, idx) => (
-                  <Button
-                    key={idx}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const selected = selectedRows.size > 0
-                        ? sortedData.filter((_, i) => selectedRows.has(i))
-                        : sortedData
-                      action.onClick(selected)
-                    }}
-                  >
-                    {action.icon}
-                    <span className="ml-2">{action.label}</span>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" title="복사">
+                    {apaCopied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
                   </Button>
-                ))}
-              </div>
-            )}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={copyToClipboard}>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Excel 복사 (탭 구분)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={copyApaFormat}>
+                    <TableProperties className="w-4 h-4 mr-2" />
+                    APA 서식 복사 (Word용)
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={downloadCSV}>
+                    <Download className="w-4 h-4 mr-2" />
+                    CSV 다운로드
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {actions?.map((action, idx) => (
+                <Button
+                  key={idx}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const selected = selectedRows.size > 0
+                      ? sortedData.filter((_, i) => selectedRows.has(i))
+                      : sortedData
+                    action.onClick(selected)
+                  }}
+                >
+                  {action.icon}
+                  <span className="ml-2">{action.label}</span>
+                </Button>
+              ))}
+            </div>
           </div>
 
           {selectedRows.size > 0 && (

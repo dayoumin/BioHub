@@ -438,11 +438,13 @@ await navigator.clipboard.write([
 
 ## 구현 로드맵
 
-### Layer 0: 독립 개선 (Paper Draft 무관, 즉시 가능)
+### Layer 0: 독립 개선 (Paper Draft 무관, 즉시 가능) ✅ 완료
 
 ```
-#8 APA 테이블 서식 복사 — 결과 화면(Step 4)에서 바로 제공
-   Paper Draft 없이도 독립 구현 가능. StatisticsTable → APA HTML → clipboard.write()
+#8 APA 테이블 서식 복사 — ✅ 구현 완료 (2026-03-12)
+   StatisticsTable 복사 드롭다운: Excel 복사 | APA 서식 복사 (Word용) | CSV 다운로드
+   lib/utils/apa-table-formatter.ts: APA 7th 3-line HTML + 이탤릭 기호 + p-value 선행0 제거
+   테스트: __tests__/utils/apa-table-formatter.test.ts (26 tests)
 ```
 
 ### Layer 1: 단일 분석 논문 초안 (기존 PLAN + 신규)
@@ -859,3 +861,22 @@ Layer 3(프로젝트) 시작 전:
 | Discussion 맥락 미입력 기본 동작 | 핵심 결정 사항 #6 추가 (필수 입력 아님) | ⚠️ 추가 |
 | #3 추천→재진입 흐름 불명확 | 데이터 유지, 변수 매핑 리셋 명시 | ⚠️ 명시 |
 | #2 품질 체크 개선 안내 실행 가능성 | 미제공 항목은 "참고" 표시, 재분석 유도 아님 | ⚠️ 명시 |
+
+#### 3차 검증 (2026-03-12) — Layer 0 구현 후 자체 리뷰
+
+| # | 문제 | 원인 | 수정 |
+|---|------|------|------|
+| 1 | 복사 드롭다운이 `actions` prop 있을 때만 노출 | `{actions && (...)}` 조건으로 감싸져 있어 title만 있는 테이블에서 APA 복사 불가 | ⚠️ `actions` 조건 제거 → title/actions 어느 하나라도 있으면 복사 드롭다운 표시 |
+| 2 | `formatCellHtml` 함수가 사실상 no-op | pvalue 분기든 아니든 `formatCellPlain` 반환만 함 (미래 확장 의도였으나 dead code) | ⚠️ 삭제, `formatCellValue`로 통합 |
+| 3 | 정수값(n=30)이 `30.000`으로 표시 | `number` 타입 일괄 `.toFixed(3)` | ⚠️ `Number.isInteger` 판별 → 정수는 소수점 없이, 실수는 3자리 |
+| 4 | 그리스 기호 이탤릭 미적용 (η², χ² 등) | `\b`가 Unicode 문자 경계를 인식 못함 | ⚠️ 단일 패스 regex로 통합 (그리스 기호를 ASCII 기호보다 먼저 배치) |
+| 4' | `ηp²` 이탤릭 시 내부 `p`가 이중 래핑 | 2-pass 방식에서 1차 Greek 매칭 후 2차 ASCII `\bp\b`가 내부 p 재매칭 | ⚠️ 단일 패스 regex로 해결 (ηp²가 p보다 먼저 매칭) |
+
+#### 4차 검증 (2026-03-12) — 2차 비판적 검토 (보안 + APA 규칙 정합성)
+
+| # | 문제 | 원인 | 수정 |
+|---|------|------|------|
+| A | XSS — title/header/셀값 이스케이프 없음 | `${title}`, `String(value)` raw 삽입 | ⚠️ 기존 `escapeHtml()` 유틸 적용 (title, header, 셀 default/NaN 분기) |
+| B | 이중 이탤릭 — APA 규칙 위반 | `<th style="font-style:italic">` + `<em>` 중복 | ⚠️ th에서 `font-style:italic` 제거. APA: 통계 기호만 이탤릭 |
+| C | `column.align` 무시 | 정렬을 `col.type` 기반 하드코딩 | ⚠️ `resolveAlign()` 헬퍼 — `col.align` 우선, 미설정 시 type 기본값 |
+| D | `type` undefined 시 동작 불일치 | ResultsActionStep에서 type 미지정 | ⚠️ `resolveAlign()` + default 분기로 해결 |
