@@ -39,7 +39,8 @@ jobs:
         env:
           NEXT_PUBLIC_TURSO_URL: ${{ secrets.NEXT_PUBLIC_TURSO_URL }}
           NEXT_PUBLIC_TURSO_AUTH_TOKEN: ${{ secrets.NEXT_PUBLIC_TURSO_AUTH_TOKEN }}
-          NEXT_PUBLIC_OPENROUTER_API_KEY: ${{ secrets.NEXT_PUBLIC_OPENROUTER_API_KEY }}
+          # OPENROUTER_API_KEY는 Worker secrets로 이동 (번들 미포함)
+          # npx wrangler secret put OPENROUTER_API_KEY 으로 1회 등록
           NEXT_PUBLIC_OPENROUTER_MODEL: ${{ secrets.NEXT_PUBLIC_OPENROUTER_MODEL }}
         run: pnpm run build
 

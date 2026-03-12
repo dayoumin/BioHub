@@ -1,8 +1,10 @@
 name = "biohub"
 account_id = "57140ab2a81a65bf7507b8de95334a06"
 compatibility_date = "2026-02-19"
+main = "src/worker.ts"
 
 [assets]
 directory = "./stats/out"
 not_found_handling = "single-page-application"
 html_handling = "auto-trailing-slash"
+binding = "ASSETS"

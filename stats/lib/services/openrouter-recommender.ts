@@ -31,10 +31,9 @@ import { getSystemPromptConsultant } from './ai/prompts'
  * - 예: NEXT_PUBLIC_OPENROUTER_MODEL=openai/gpt-oss-120b:free,x-ai/grok-4.1-fast
  * - 미지정 시 OpenRouter 서비스 비활성화 (health check에서 false 반환)
  *
- * ⚠️ API 키 노출 주의:
- * NEXT_PUBLIC_ 접두사로 클라이언트 번들에 포함됨.
- * 무료 모델만 사용하면 과금 위험 없음.
- * 유료 모델 전환 시 반드시 서버 사이드 API Route로 이동 필요.
+ * API 키 보안:
+ * - 프로덕션: NEXT_PUBLIC_OPENROUTER_API_KEY 미설정 → /api/ai 프록시 경유 (Worker secrets)
+ * - 로컬 dev: NEXT_PUBLIC_OPENROUTER_API_KEY 설정 → 직접 호출
  */
 
 interface OpenRouterConfig {
@@ -91,14 +90,35 @@ export class OpenRouterRecommender {
       logger.info('[OpenRouter] NEXT_PUBLIC_OPENROUTER_MODEL 미설정 — OpenRouter 비활성화')
     }
 
+    const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY || ''
+
     this.config = {
-      apiKey: process.env.NEXT_PUBLIC_OPENROUTER_API_KEY || '',
+      apiKey,
       models,
-      baseUrl: 'https://openrouter.ai/api/v1',
+      // 프로덕션: API 키 없음 → Worker 프록시 경유 (/api/ai)
+      // 로컬 dev: API 키 있음 → OpenRouter 직접 호출
+      baseUrl: apiKey ? 'https://openrouter.ai/api/v1' : '/api/ai',
       temperature: 0.2,
       maxTokens: 2000,
       timeout: 30000
     }
+  }
+
+  /**
+   * HTTP 헤더 빌드 (4곳 fetch 공통)
+   * - API 키 있으면 Authorization 포함 (로컬 dev)
+   * - 없으면 생략 (Worker 프록시가 추가)
+   */
+  private buildHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
+      'X-Title': 'Statistical Analysis Platform'
+    }
+    if (this.config.apiKey) {
+      headers['Authorization'] = `Bearer ${this.config.apiKey}`
+    }
+    return headers
   }
 
   /**
@@ -113,12 +133,14 @@ export class OpenRouterRecommender {
       return this.healthCache.isAvailable
     }
 
-    const hasApiKey = !!this.config.apiKey && this.config.apiKey !== 'your_openrouter_api_key_here'
+    // 프록시 모드(!apiKey): Worker가 키를 추가하므로 모델만 있으면 사용 가능
+    // 직접 모드(apiKey): 키가 유효해야 함
+    const hasValidKey = !this.config.apiKey || this.config.apiKey !== 'your_openrouter_api_key_here'
     const hasModels = this.config.models.length > 0
 
-    if (!hasApiKey || !hasModels) {
+    if (!hasValidKey || !hasModels) {
       this.healthCache = { isAvailable: false, timestamp: Date.now(), ttl: 5 * 60 * 1000 }
-      if (!hasApiKey) logger.info('[OpenRouter] No API key configured')
+      if (!hasValidKey) logger.info('[OpenRouter] API key is placeholder — set a real key or remove for proxy mode')
       if (!hasModels) logger.info('[OpenRouter] No models configured (set NEXT_PUBLIC_OPENROUTER_MODEL)')
       return false
     }
@@ -128,8 +150,12 @@ export class OpenRouterRecommender {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 3000)
       try {
+        const headers: Record<string, string> = {}
+        if (this.config.apiKey) {
+          headers['Authorization'] = `Bearer ${this.config.apiKey}`
+        }
         const res = await fetch(`${this.config.baseUrl}/models`, {
-          headers: { 'Authorization': `Bearer ${this.config.apiKey}` },
+          headers,
           signal: controller.signal
         })
         if (res.ok) {
@@ -273,12 +299,7 @@ export class OpenRouterRecommender {
     try {
       response = await fetch(`${this.config.baseUrl}/chat/completions`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.apiKey}`,
-          'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
-          'X-Title': 'Statistical Analysis Platform'
-        },
+        headers: this.buildHeaders(),
         body: JSON.stringify({
           model,
           messages: [
@@ -350,12 +371,7 @@ export class OpenRouterRecommender {
         try {
           response = await fetch(`${this.config.baseUrl}/chat/completions`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${this.config.apiKey}`,
-              'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
-              'X-Title': 'Statistical Analysis Platform'
-            },
+            headers: this.buildHeaders(),
             body: JSON.stringify({
               model,
               messages: [
@@ -750,12 +766,7 @@ ${userInput}`
     try {
       const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.apiKey}`,
-          'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000',
-          'X-Title': 'Statistical Analysis Platform'
-        },
+        headers: this.buildHeaders(),
         body: JSON.stringify({
           model,
           messages,
