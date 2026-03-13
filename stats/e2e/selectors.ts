@@ -16,6 +16,8 @@
 export const S = {
   // ===== Hub =====
   hubUploadCard: '[data-testid="hub-upload-card"]',
+  /** TrackSuggestions 내 "데이터 업로드" 클릭 가능 버튼 */
+  hubUploadBtn: '[data-testid="hub-upload-btn"]',
 
   // ===== Stepper =====
   stepperStep: (n: number) => `[data-testid="stepper-step-${n}"]`,
