@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { useCountUp } from '@/hooks/use-count-up'
+import { useInterpretation } from '@/hooks/use-interpretation'
 import {
   Save,
   Copy,
@@ -41,7 +42,7 @@ import { TemplateSaveModal } from '@/components/smart-flow/TemplateSaveModal'
 import ReactMarkdown from 'react-markdown'
 import { cn } from '@/lib/utils'
 import { StepHeader, CollapsibleSection } from '@/components/smart-flow/common'
-import { requestInterpretation, streamFollowUp, type InterpretationContext } from '@/lib/services/result-interpreter'
+import { streamFollowUp, type InterpretationContext } from '@/lib/services/result-interpreter'
 import type { ChatMessage } from '@/lib/types/chat'
 import { type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
 import { AssumptionTestsSection } from '@/components/smart-flow/steps/exploration/AssumptionTestsSection'
@@ -93,15 +94,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   })
   const [resultTimestamp] = useState(() => new Date())
 
-  // AI 해석 상태
-  const [interpretation, setInterpretation] = useState<string | null>(null)
-  const [interpretationModel, setInterpretationModel] = useState<string | null>(null)
-  const [isInterpreting, setIsInterpreting] = useState(false)
-  const [interpretError, setInterpretError] = useState<string | null>(null)
+  // AI 해석 (커스텀 훅으로 캡슐화)
   const [detailedInterpretOpen, setDetailedInterpretOpen] = useState(true)
-  const interpretAbortRef = useRef<AbortController | null>(null)
-  const interpretedResultRef = useRef<string | null>(null) // 캐시 key
-  const aiInterpretationRef = useRef<HTMLDivElement | null>(null)
 
   // 새 분석 시작 확인
   const [showNewAnalysisConfirm, setShowNewAnalysisConfirm] = useState(false)
@@ -155,10 +149,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     currentHistoryId,
   } = useSmartFlowStore()
 
-  // 히스토리 전환 감지: 로컬 state 전체 초기화 + 진행 중인 스트림 abort
+  // 히스토리 전환 시 Q&A·Phase·UI 초기화 (AI 해석은 useInterpretation이 처리)
   const prevHistoryIdRef = useRef<string | null | undefined>(undefined)
   useEffect(() => {
-    // 첫 마운트(undefined→value)는 건너뜀, 이후 변경만 감지
     if (prevHistoryIdRef.current === undefined) {
       prevHistoryIdRef.current = currentHistoryId
       return
@@ -166,16 +159,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     if (prevHistoryIdRef.current === currentHistoryId) return
     prevHistoryIdRef.current = currentHistoryId
 
-    // 진행 중인 스트림 abort (chunk 오염 방지)
-    interpretAbortRef.current?.abort()
+    // 진행 중인 Q&A 스트림 abort
     followUpAbortRef.current?.abort()
-
-    // AI 해석 로컬 state 초기화 → 자동 재호출 트리거
-    setInterpretation(null)
-    setInterpretationModel(null)
-    setIsInterpreting(false)
-    setInterpretError(null)
-    interpretedResultRef.current = null
 
     // Q&A 로컬 state 초기화 (loadedInterpretationChat effect가 복원)
     setFollowUpMessages([])
@@ -234,6 +219,37 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     if (variableMapping?.groupVar) vars.push(variableMapping.groupVar)
     return vars
   }, [variableMapping])
+
+  // AI 해석 훅
+  const {
+    interpretation,
+    interpretationModel,
+    isInterpreting,
+    interpretError,
+    handleInterpretation,
+    resetAndReinterpret,
+    clearInterpretationGuard,
+    interpretAbortRef,
+    aiInterpretationRef,
+    onInterpretationComplete,
+  } = useInterpretation({
+    results,
+    uploadedData,
+    mappedVariables,
+    uploadedFileName,
+    variableMapping: variableMapping as Record<string, unknown> | null,
+    errorMessage: t.results.ai.defaultError,
+  })
+
+  // Phase 진행 콜백: 해석 완료 시 Phase 3→4 전환
+  onInterpretationComplete.current = useCallback(() => {
+    if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current)
+    setPhase(prev => Math.max(prev, 3))
+    phaseTimerRef.current = setTimeout(() => {
+      setPhase(prev => Math.max(prev, 4))
+      phaseTimerRef.current = null
+    }, 300)
+  }, [])
 
   // AnalysisResult -> StatisticalResult 변환
   const statisticalResult = useMemo(() => {
@@ -312,9 +328,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     )
   }, [statisticalResult])
 
-  // APA 형식 요약
+  // APA 형식 요약 (df 없는 검정도 지원: "U = 234.0, p = .003")
   const apaFormat = useMemo(() => {
-    if (!statisticalResult || statisticalResult.df === undefined) return null
+    if (!statisticalResult) return null
     return formatStatisticalResult(
       statisticalResult.statisticName || 'Statistic',
       statisticalResult.statistic,
@@ -444,12 +460,14 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     setValidationResults(null)
     setResults(null)
     setIsReanalysisMode(true)
+    // ★ 새 결과에 대한 AI 자동 해석이 동작하도록 가드 해제
+    clearInterpretationGuard()
     navigateToStep(1)
 
     toast.info(t.results.toast.reanalyzeReady, {
       description: selectedMethod ? t.results.toast.reanalyzeMethod(selectedMethod.name) : ''
     })
-  }, [setUploadedData, setUploadedFile, setValidationResults, setResults, setIsReanalysisMode, navigateToStep, selectedMethod, t])
+  }, [setUploadedData, setUploadedFile, setValidationResults, setResults, setIsReanalysisMode, navigateToStep, clearInterpretationGuard, selectedMethod, t])
 
   const handleNewAnalysis = useCallback(() => {
     setShowNewAnalysisConfirm(true)
@@ -541,76 +559,15 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     router.push('/graph-studio')
   }, [results, uploadedData, loadDataPackageWithSpec, router])
 
-  // AI 해석 요청 (스트리밍)
-  const handleInterpretation = useCallback(async () => {
-    if (!results) return
-
-    // 캐시: 같은 결과 + 동일 변수 매핑이면 재호출 안 함
-    const variableKey = variableMapping
-      ? Object.entries(variableMapping).map(([k, v]) => `${k}:${Array.isArray(v) ? v.join(',') : String(v)}`).sort().join('|')
-      : ''
-    const cacheKey = `${results.method}:${results.pValue}:${results.statistic}:${variableKey}`
-    if (interpretedResultRef.current === cacheKey) return
-
-    setIsInterpreting(true)
-    setInterpretError(null)
-    setInterpretation('')
-
-    const controller = new AbortController()
-    interpretAbortRef.current = controller
-
-    try {
-      const ctx: InterpretationContext = {
-        results,
-        sampleSize: uploadedData?.length,
-        variables: mappedVariables.length > 0 ? mappedVariables : undefined,
-        uploadedFileName: uploadedFileName ?? undefined
-      }
-
-      let accumulated = ''
-      const { model } = await requestInterpretation(
-        ctx,
-        (chunk) => {
-          accumulated += chunk
-          setInterpretation(accumulated)
-        },
-        controller.signal
-      )
-
-      interpretedResultRef.current = cacheKey
-      setInterpretationModel(model)
-    } catch (error) {
-      if (controller.signal.aborted) return
-      const msg = error instanceof Error ? error.message : t.results.ai.defaultError
-      setInterpretError(msg)
-    } finally {
-      setIsInterpreting(false)
-      interpretAbortRef.current = null
-      // Phase 3 (차트+L2 등장) → 300ms 후 Phase 4 (Q&A 등장)
-      if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current)
-      setPhase(prev => Math.max(prev, 3))
-      phaseTimerRef.current = setTimeout(() => {
-        setPhase(prev => Math.max(prev, 4))
-        phaseTimerRef.current = null
-      }, 300)
-      requestAnimationFrame(() => {
-        aiInterpretationRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
-      })
-    }
-  }, [results, uploadedData, mappedVariables, uploadedFileName, variableMapping, t])
-
-  // 재해석 초기화 + 재요청 (중복 로직 추출)
-  const resetAndReinterpret = useCallback(() => {
+  // 재해석 + Q&A 초기화 (훅의 resetAndReinterpret + Q&A 로컬 state)
+  const handleReinterpretWithQAReset = useCallback(() => {
     followUpAbortRef.current?.abort()
     isFollowUpStreamingRef.current = false
     setIsFollowUpStreaming(false)
-    interpretedResultRef.current = null
-    setInterpretation(null)
-    setInterpretationModel(null)
     setFollowUpMessages([])
     setUsedChips(new Set())
-    handleInterpretation()
-  }, [handleInterpretation])
+    resetAndReinterpret()
+  }, [resetAndReinterpret])
 
   // 후속 질문 전송
   const handleFollowUp = useCallback(async (question: string) => {
@@ -672,17 +629,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       requestAnimationFrame(() => chatBottomRef.current?.scrollIntoView?.({ behavior: 'smooth' }))
     }
   }, [results, interpretation, followUpMessages, uploadedData, mappedVariables, uploadedFileName, t])
-
-  // 결과 로드 시 자동 AI 해석 요청
-  useEffect(() => {
-    if (results && interpretation === null && !isInterpreting) {
-      handleInterpretation()
-    }
-    return () => {
-      interpretAbortRef.current?.abort()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [results?.method, results?.pValue, results?.statistic])
 
   const handleCopyResults = useCallback(async () => {
     if (!results || !statisticalResult) return
@@ -913,7 +859,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                           )}
                         </div>
                         {!isInterpreting && (
-                          <Button variant="outline" size="sm" onClick={resetAndReinterpret} className="text-xs h-7 px-2 gap-1">
+                          <Button variant="outline" size="sm" onClick={handleReinterpretWithQAReset} className="text-xs h-7 px-2 gap-1">
                             <RefreshCw className="w-3 h-3" />
                             {t.results.ai.reinterpret}
                           </Button>
@@ -951,7 +897,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="text-sm">
                   {interpretError}
-                  <Button variant="ghost" size="sm" onClick={resetAndReinterpret} className="ml-2 text-xs h-6 px-2">
+                  <Button variant="ghost" size="sm" onClick={handleReinterpretWithQAReset} className="ml-2 text-xs h-6 px-2">
                     {t.results.ai.retry}
                   </Button>
                 </AlertDescription>

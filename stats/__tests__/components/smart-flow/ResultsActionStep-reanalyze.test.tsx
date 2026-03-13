@@ -255,7 +255,8 @@ vi.mock('@/components/statistics/common/StatisticsTable', () => ({
   StatisticsTable: () => null
 }))
 vi.mock('@/lib/statistics/formatters', () => ({
-  formatStatisticalResult: vi.fn(() => null)
+  formatStatisticalResult: vi.fn(() => null),
+  formatPValueAPA: vi.fn((p: number) => p < 0.001 ? '< .001' : `= ${p.toFixed(3)}`),
 }))
 vi.mock('@/components/smart-flow/ResultsVisualization', () => ({
   ResultsVisualization: () => null
