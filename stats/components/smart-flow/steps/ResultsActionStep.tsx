@@ -8,55 +8,28 @@ import {
   Save,
   Copy,
   Download,
-  RotateCcw,
   CheckCircle2,
-  XCircle,
   AlertCircle,
   RefreshCw,
   FileText,
   Sparkles,
   BarChart3,
-  Lightbulb,
-  ChevronRight,
   FileSearch,
-  ArrowLeft,
   Send,
   MessageCircle,
 } from 'lucide-react'
 import { EmptyState } from '@/components/common/EmptyState'
 import { toast } from 'sonner'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { AnalysisResult } from '@/types/smart-flow'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { startNewAnalysis } from '@/lib/services/data-management'
@@ -67,16 +40,12 @@ import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
 import { TemplateSaveModal } from '@/components/smart-flow/TemplateSaveModal'
 import ReactMarkdown from 'react-markdown'
 import { cn } from '@/lib/utils'
-import { StepHeader, CollapsibleSection, StatisticCard } from '@/components/smart-flow/common'
-import { ConfidenceIntervalDisplay } from '@/components/statistics/common/ConfidenceIntervalDisplay'
-import { MethodSpecificResults } from '@/components/smart-flow/steps/results/MethodSpecificResults'
-import { ResultsVisualization } from '@/components/smart-flow/ResultsVisualization'
+import { StepHeader, CollapsibleSection } from '@/components/smart-flow/common'
 import { requestInterpretation, streamFollowUp, type InterpretationContext } from '@/lib/services/result-interpreter'
 import type { ChatMessage } from '@/lib/types/chat'
-import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
-import { AssumptionTestCard, type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
+import { type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
 import { AssumptionTestsSection } from '@/components/smart-flow/steps/exploration/AssumptionTestsSection'
-import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { ResultsHeroCard, ResultsStatsCards, ResultsChartsSection, ResultsActionButtons } from '@/components/smart-flow/steps/results'
 import { formatStatisticalResult } from '@/lib/statistics/formatters'
 import { useTerminology } from '@/hooks/use-terminology'
 import { logger } from '@/lib/utils/logger'
@@ -958,175 +927,28 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         )}
 
         {/* ===== [Phase 0] Hero 컴팩트 바 ===== */}
-        <motion.div
-          data-testid="results-main-card"
-          variants={prefersReducedMotion ? undefined : heroRevealVariants}
-          initial={prefersReducedMotion ? undefined : 'hidden'}
-          animate={prefersReducedMotion ? undefined : 'visible'}
-        >
-          <Card className={cn(
-            "overflow-hidden rounded-xl shadow-sm",
-            !assumptionsPassed ? "border-warning-border" :
-              isSignificant ? "border-success-border/60" : "border-border/50"
-          )}>
-            <CardContent className="py-3.5 px-4">
-              {/* 1행: 아이콘 + 메서드명 + p값 배지 + 효과크기 배지 + 타임스탬프 */}
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
-                  !assumptionsPassed ? "bg-warning-bg" :
-                    isSignificant ? "bg-success-bg" : "bg-muted"
-                )}>
-                  {!assumptionsPassed ? (
-                    <AlertCircle className="w-4 h-4 text-warning" />
-                  ) : isSignificant ? (
-                    <CheckCircle2 className="w-4 h-4 text-success" />
-                  ) : (
-                    <XCircle className="w-4 h-4 text-muted-foreground" />
-                  )}
-                </div>
-
-                <span className="text-sm font-semibold truncate">{statisticalResult.testName}</span>
-
-                {/* p-value 인라인 배지 */}
-                <Badge
-                  variant={isSignificant ? "default" : "secondary"}
-                  className={cn(
-                    "text-xs font-mono tabular-nums",
-                    isSignificant && "bg-success hover:bg-success/90"
-                  )}
-                >
-                  p {formatPValue(statisticalResult.pValue)}
-                  <span className="ml-1 font-sans">
-                    ({isSignificant ? t.results.statistics.significant : t.results.statistics.notSignificant})
-                  </span>
-                </Badge>
-
-                {/* 가정 미충족 경고 배지 (짧은 텍스트 + 상세 tooltip) */}
-                {!assumptionsPassed && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Badge variant="outline" className="text-xs border-warning bg-warning-bg text-warning cursor-help">
-                        <AlertCircle className="w-3 h-3 mr-1" />
-                        {t.results.sections.caution}
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="max-w-xs">
-                      {t.results.conclusion.assumptionWarning}
-                    </TooltipContent>
-                  </Tooltip>
-                )}
-
-                {/* 효과크기 인라인 배지 */}
-                {statisticalResult.effectSize && (
-                  <Badge variant="outline" className="text-xs font-mono tabular-nums">
-                    {formatEffectSizeSymbol(statisticalResult.effectSize.type)}={statisticalResult.effectSize.value.toFixed(2)}
-                    <span className="ml-1 font-sans text-muted-foreground">
-                      ({getEffectSizeInterpretation(statisticalResult.effectSize.value, statisticalResult.effectSize.type, t.results.effectSizeLabels)})
-                    </span>
-                  </Badge>
-                )}
-
-                {/* 타임스탬프 (우측 밀기) */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-[10px] text-muted-foreground/40 font-mono tabular-nums cursor-help ml-auto flex-shrink-0">
-                      {resultTimestamp.toLocaleString('ko-KR', {
-                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                      })}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent side="left">{t.results.metadata.analysisTime}</TooltipContent>
-                </Tooltip>
-              </div>
-
-              {/* 2행: APA + 메타데이터 (간결) */}
-              {(apaFormat || uploadedFileName || uploadedData || statisticalResult.variables) && (
-                <div className="mt-2 pt-2 border-t border-border/10 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-                  {apaFormat && (
-                    <>
-                      <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/40 flex-shrink-0">APA</span>
-                      <code className="text-[11px] font-mono text-foreground/60">{apaFormat}</code>
-                    </>
-                  )}
-                  {uploadedFileName && (
-                    <span className="text-[11px] text-muted-foreground/50">{uploadedFileName}</span>
-                  )}
-                  {uploadedData && (
-                    <span className="text-[11px] text-muted-foreground/50">
-                      {t.results.metadata.rowsCols(uploadedData.length, Object.keys(uploadedData[0] || {}).length)}
-                    </span>
-                  )}
-                  {statisticalResult.variables && (
-                    <span className="text-[11px] text-muted-foreground/50">{statisticalResult.variables.join(', ')}</span>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
+        <ResultsHeroCard
+          statisticalResult={statisticalResult}
+          isSignificant={isSignificant}
+          assumptionsPassed={assumptionsPassed}
+          resultTimestamp={resultTimestamp}
+          apaFormat={apaFormat}
+          uploadedFileName={uploadedFileName ?? null}
+          uploadedData={uploadedData}
+          prefersReducedMotion={prefersReducedMotion}
+          t={t}
+        />
 
         {/* ===== [Phase 1] 수치 카드 4개 (stagger + count-up) ===== */}
-        <motion.div
-          className="grid grid-cols-2 lg:grid-cols-4 gap-3"
-          variants={prefersReducedMotion ? undefined : statsContainerVariants}
-          initial="hidden"
-          animate={phase >= 1 || prefersReducedMotion ? 'visible' : 'hidden'}
-        >
-          <motion.div variants={prefersReducedMotion ? undefined : statsItemVariants}>
-            <StatisticCard label={t.results.statistics.statistic} tooltip={t.results.statistics.statisticTooltip}>
-              <p className="text-lg font-bold font-mono tabular-nums">
-                {statisticalResult.statisticName || 't'} = {statisticDisplay}
-              </p>
-              {statisticalResult.df !== undefined && (
-                <p className="text-[11px] text-muted-foreground mt-0.5 font-mono tabular-nums">
-                  df = {Array.isArray(statisticalResult.df) ? statisticalResult.df.join(', ') : statisticalResult.df}
-                </p>
-              )}
-            </StatisticCard>
-          </motion.div>
-
-          <motion.div variants={prefersReducedMotion ? undefined : statsItemVariants}>
-            <StatisticCard label={t.results.statistics.pValue} tooltip={t.results.statistics.pValueTooltip}>
-              <p className={cn(
-                "text-lg font-bold font-mono tabular-nums",
-                isSignificant ? "text-success" : "text-muted-foreground"
-              )}>
-                p {formatPValue(statisticalResult.pValue)}
-              </p>
-              <Badge variant={isSignificant ? "default" : "secondary"} className="mt-0.5 text-[10px]">
-                {isSignificant ? t.results.statistics.significant : t.results.statistics.notSignificant}
-              </Badge>
-            </StatisticCard>
-          </motion.div>
-
-          <motion.div variants={prefersReducedMotion ? undefined : statsItemVariants}>
-            <StatisticCard label={t.results.statistics.effectSize} tooltip={t.results.statistics.effectSizeTooltip}>
-              {statisticalResult.effectSize ? (
-                <>
-                  <p className="text-lg font-bold font-mono tabular-nums">{effectSizeDisplay}</p>
-                  <Badge variant="outline" className="mt-0.5 text-[10px]">
-                    {getEffectSizeInterpretation(statisticalResult.effectSize.value, statisticalResult.effectSize.type, t.results.effectSizeLabels)}
-                  </Badge>
-                </>
-              ) : (
-                <p className="text-lg font-bold text-muted-foreground">-</p>
-              )}
-            </StatisticCard>
-          </motion.div>
-
-          <motion.div variants={prefersReducedMotion ? undefined : statsItemVariants}>
-            <StatisticCard label={t.results.statistics.confidenceInterval} tooltip={t.results.statistics.confidenceIntervalTooltip}>
-              {statisticalResult.confidenceInterval ? (
-                <p className="text-lg font-bold font-mono tabular-nums leading-tight">
-                  [{statisticalResult.confidenceInterval.lower.toFixed(3)}, {statisticalResult.confidenceInterval.upper.toFixed(3)}]
-                </p>
-              ) : (
-                <p className="text-lg font-bold text-muted-foreground">-</p>
-              )}
-            </StatisticCard>
-          </motion.div>
-        </motion.div>
+        <ResultsStatsCards
+          statisticalResult={statisticalResult}
+          isSignificant={isSignificant}
+          statisticDisplay={statisticDisplay}
+          effectSizeDisplay={effectSizeDisplay}
+          phase={phase}
+          prefersReducedMotion={prefersReducedMotion}
+          t={t}
+        />
 
         {/* ===== [Phase 2] AI 해석 카드 — 래퍼는 항상 렌더링, 내부 콘텐츠만 phase 기반 ===== */}
         <div className="space-y-2" data-testid="ai-interpretation-section" ref={aiInterpretationRef}>
@@ -1216,172 +1038,22 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             )}
           </div>
 
-        {/* ===== [Phase 3+] 2-column: 좌(차트+L2) / 우(L3 진단) — 진단 없으면 1열 ===== */}
-        <div className={cn(
-          "grid gap-4 items-start",
-          hasDiagnostics ? "grid-cols-1 lg:grid-cols-[1.2fr_1fr]" : "grid-cols-1"
-        )}>
-          {/* ── 좌 컬럼: 차트 + L2 상세 ── */}
-          <div className="space-y-4">
-            {/* [Phase 3] 시각화 */}
-            {(phase >= 3 || prefersReducedMotion) && (
-              <motion.div
-                variants={prefersReducedMotion ? undefined : sectionRevealVariants}
-                initial={prefersReducedMotion ? undefined : 'hidden'}
-                animate={prefersReducedMotion ? undefined : 'visible'}
-              >
-                <ResultsVisualization results={results} />
-              </motion.div>
-            )}
-
-            {/* [Phase 2] L2 상세 결과 */}
-            {hasDetailedResults && (phase >= 2 || prefersReducedMotion) && (
-              <motion.div
-                variants={prefersReducedMotion ? undefined : sectionRevealVariants}
-                initial={prefersReducedMotion ? undefined : 'hidden'}
-                animate={prefersReducedMotion ? undefined : 'visible'}
-              >
-                <Card className="overflow-hidden" data-testid="detailed-results-section">
-                  <CollapsibleSection
-                    label={t.results.sections.detailedResults}
-                    open={detailedResultsOpen}
-                    onOpenChange={setDetailedResultsOpen}
-                    contentClassName="pt-0 border-t border-border/10"
-                    icon={<BarChart3 className="h-3.5 w-3.5" />}
-                  >
-                    <div className="px-4 py-4 space-y-4">
-                      {statisticalResult.confidenceInterval && (
-                        <ConfidenceIntervalDisplay
-                          label={t.results.sections.confidenceInterval}
-                          lower={statisticalResult.confidenceInterval.lower}
-                          upper={statisticalResult.confidenceInterval.upper}
-                          estimate={statisticalResult.confidenceInterval.estimate}
-                          level={Math.round((statisticalResult.confidenceInterval.level ?? 0.95) * 100)}
-                          showVisualization
-                          showInterpretation
-                          className="border-0 shadow-none bg-transparent"
-                        />
-                      )}
-
-                      {statisticalResult.effectSize && (
-                        <EffectSizeCard
-                          title={t.smartFlow.resultSections.effectSizeDetail}
-                          value={statisticalResult.effectSize.value}
-                          type={statisticalResult.effectSize.type}
-                          showInterpretation
-                          showVisualScale
-                          className="border-0 shadow-none bg-transparent"
-                        />
-                      )}
-
-                      {statisticalResult.additionalResults?.map((table, idx) => (
-                        <StatisticsTable
-                          key={idx}
-                          title={table.title}
-                          columns={(table.columns as Array<{ key: string; label: string }>).map(col => ({
-                            key: col.key,
-                            header: col.label,
-                          }))}
-                          data={table.data}
-                          compactMode
-                          className="border-0 shadow-none"
-                        />
-                      ))}
-
-                      <MethodSpecificResults results={results} />
-                    </div>
-                  </CollapsibleSection>
-                </Card>
-              </motion.div>
-            )}
-          </div>
-
-          {/* ── 우 컬럼: L3 진단 + 가정검정 (진단 있을 때만 렌더) ── */}
-          {hasDiagnostics && (
-          <div className="space-y-4 lg:sticky lg:top-4">
-              <Card className={cn(
-                "overflow-hidden",
-                !assumptionsPassed && "border-warning-border"
-              )} data-testid="diagnostics-section">
-                <CollapsibleSection
-                  label={t.results.sections.diagnostics}
-                  open={diagnosticsOpen}
-                  onOpenChange={setDiagnosticsOpen}
-                  contentClassName="pt-0 border-t border-border/10"
-                  icon={<Lightbulb className="h-3.5 w-3.5" />}
-                  badge={
-                    !assumptionsPassed ? (
-                      <Badge variant="outline" className="text-xs border-amber-300 text-amber-700 ml-1">
-                        {t.results.sections.caution}
-                      </Badge>
-                    ) : undefined
-                  }
-                >
-                  <div className="px-4 py-4 space-y-4">
-                    {assumptionTests.length > 0 && (
-                      <AssumptionTestCard
-                        tests={assumptionTests}
-                        testType={statisticalResult.testType}
-                        showRecommendations
-                        showDetails
-                        className="border-0 shadow-none bg-transparent"
-                      />
-                    )}
-
-                    {statisticalResult.recommendations && statisticalResult.recommendations.length > 0 && (
-                      <div className="space-y-2" data-testid="recommendations-section">
-                        <p className="text-sm font-medium flex items-center gap-1.5">
-                          <Lightbulb className="w-3.5 h-3.5 text-blue-600" />
-                          {t.results.sections.recommendations}
-                        </p>
-                        <ul className="space-y-1.5">
-                          {statisticalResult.recommendations.map((rec, idx) => (
-                            <li key={idx} className="flex items-start gap-2 text-sm text-muted-foreground">
-                              <ChevronRight className="w-3 h-3 mt-1 shrink-0" />
-                              <span>{rec}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {statisticalResult.warnings && statisticalResult.warnings.length > 0 &&
-                      assumptionTests.length === 0 && (
-                        <Alert variant="destructive" data-testid="warnings-section">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertTitle>{t.results.sections.warnings}</AlertTitle>
-                          <AlertDescription>
-                            <ul className="mt-1 space-y-1">
-                              {statisticalResult.warnings.map((warning, idx) => (
-                                <li key={idx} className="text-sm">{warning}</li>
-                              ))}
-                            </ul>
-                          </AlertDescription>
-                        </Alert>
-                      )}
-
-                    {statisticalResult.alternatives && statisticalResult.alternatives.length > 0 &&
-                      !statisticalResult.testType && (
-                        <div className="space-y-2" data-testid="alternatives-section">
-                          <p className="text-sm font-medium">{t.results.sections.alternatives}</p>
-                          <div className="space-y-1.5">
-                            {statisticalResult.alternatives.map((alt, idx) => (
-                              <div key={idx} className={cn("p-2.5 rounded-lg border text-sm",
-                                alt.action ? "hover:bg-muted/50 cursor-pointer transition-colors" : ""
-                              )} onClick={alt.action}>
-                                <span className="font-medium">{alt.name}</span>
-                                <span className="text-muted-foreground ml-1.5">{alt.reason}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                  </div>
-                </CollapsibleSection>
-              </Card>
-          </div>
-          )}
-        </div>
+        {/* ===== [Phase 3+] 2-column: 좌(차트+L2) / 우(L3 진단) ===== */}
+        <ResultsChartsSection
+          results={results!}
+          statisticalResult={statisticalResult}
+          hasDetailedResults={hasDetailedResults}
+          hasDiagnostics={hasDiagnostics}
+          assumptionTests={assumptionTests}
+          assumptionsPassed={assumptionsPassed}
+          phase={phase}
+          prefersReducedMotion={prefersReducedMotion}
+          detailedResultsOpen={detailedResultsOpen}
+          onDetailedResultsOpenChange={setDetailedResultsOpen}
+          diagnosticsOpen={diagnosticsOpen}
+          onDiagnosticsOpenChange={setDiagnosticsOpen}
+          t={t}
+        />
 
         {/* ===== [Phase 4] 후속 Q&A 카드 ===== */}
         {(phase >= 4 || prefersReducedMotion) && interpretation && !isInterpreting && (
@@ -1513,81 +1185,27 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           </div>
         )}
 
-        {/* ===== 액션 버튼 ===== */}
-        <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-border/20" data-testid="action-buttons">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigateToStep(3)}
-            className="text-muted-foreground hover:text-foreground text-xs h-8"
-          >
-            <ArrowLeft className="w-3 h-3 mr-1" />
-            {t.results.buttons.backToVariables}
-          </Button>
-
-          <div className="flex-1" />
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setTemplateModalOpen(true)}
-            className="text-muted-foreground hover:text-foreground text-xs h-8"
-          >
-            <FileText className="w-3 h-3 mr-1" />
-            {t.results.buttons.saveTemplate}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleOpenInGraphStudio}
-            className="text-muted-foreground hover:text-foreground text-xs h-8"
-            data-testid="open-graph-studio-btn"
-          >
-            <BarChart3 className="w-3 h-3 mr-1" />
-            Graph Studio
-          </Button>
-
-          <div className="w-px h-4 bg-border/30" />
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleReanalyze}
-            className="text-muted-foreground hover:text-foreground text-xs h-8"
-          >
-            <RefreshCw className="w-3 h-3 mr-1" />
-            {t.results.buttons.reanalyze}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleNewAnalysis}
-            className="text-xs h-8"
-            data-testid="new-analysis-btn"
-          >
-            <RotateCcw className="w-3 h-3 mr-1" />
-            {t.results.buttons.newAnalysis}
-          </Button>
-        </div>
-
-        {/* 새 분석 시작 확인 다이얼로그 */}
-        <AlertDialog open={showNewAnalysisConfirm} onOpenChange={setShowNewAnalysisConfirm}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t.results.confirm.newAnalysis.title}</AlertDialogTitle>
-              <AlertDialogDescription>{t.results.confirm.newAnalysis.description}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{t.results.confirm.newAnalysis.cancel}</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleNewAnalysisConfirm}
-                className=""
-              >
-                {t.results.confirm.newAnalysis.confirm}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {/* ===== 액션 버튼 + 다이얼로그 ===== */}
+        <ResultsActionButtons
+          onBackToVariables={() => navigateToStep(3)}
+          onOpenGraphStudio={handleOpenInGraphStudio}
+          onReanalyze={handleReanalyze}
+          onNewAnalysis={handleNewAnalysis}
+          onSaveTemplate={() => setTemplateModalOpen(true)}
+          showNewAnalysisConfirm={showNewAnalysisConfirm}
+          onShowNewAnalysisConfirmChange={setShowNewAnalysisConfirm}
+          onNewAnalysisConfirm={handleNewAnalysisConfirm}
+          exportDialogOpen={exportDialogOpen}
+          onExportDialogOpenChange={setExportDialogOpen}
+          exportFormat={exportFormat}
+          onExportFormatChange={setExportFormat}
+          exportOptions={exportOptions}
+          onExportOptionsChange={setExportOptions}
+          onExportWithOptions={handleExportWithOptions}
+          isExporting={isExporting}
+          hasUploadedData={!!uploadedData && uploadedData.length > 0}
+          t={t}
+        />
 
         {/* 템플릿 저장 모달 */}
         <TemplateSaveModal
@@ -1597,88 +1215,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             toast.success(t.results.toast.templateSaved)
           }}
         />
-
-        <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-          <DialogContent className="sm:max-w-[560px]">
-            <DialogHeader>
-              <DialogTitle>{t.results.exportDialog.title}</DialogTitle>
-              <DialogDescription>
-                {t.results.exportDialog.description}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-5 py-2">
-              <div className="space-y-2">
-                <Label>{t.results.exportDialog.formatLabel}</Label>
-                <RadioGroup
-                  value={exportFormat}
-                  onValueChange={(value) => setExportFormat(value as ExportFormat)}
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="docx" id="export-docx" />
-                    <Label htmlFor="export-docx">Word (.docx)</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="xlsx" id="export-xlsx" />
-                    <Label htmlFor="export-xlsx">Excel (.xlsx)</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="html" id="export-html" />
-                    <Label htmlFor="export-html">HTML (.html)</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t.results.exportDialog.contentLabel}</Label>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="opt-interpretation"
-                      checked={!!exportOptions.includeInterpretation}
-                      onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeInterpretation: !!checked }))}
-                    />
-                    <Label htmlFor="opt-interpretation">{t.results.exportDialog.includeInterpretation}</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="opt-raw-data"
-                      checked={!!exportOptions.includeRawData}
-                      disabled={!uploadedData || uploadedData.length === 0}
-                      onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeRawData: !!checked }))}
-                    />
-                    <Label htmlFor="opt-raw-data">{t.results.exportDialog.includeRawData}</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="opt-methodology"
-                      checked={!!exportOptions.includeMethodology}
-                      onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeMethodology: !!checked }))}
-                    />
-                    <Label htmlFor="opt-methodology">{t.results.exportDialog.includeMethodology}</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="opt-references"
-                      checked={!!exportOptions.includeReferences}
-                      onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeReferences: !!checked }))}
-                    />
-                    <Label htmlFor="opt-references">{t.results.exportDialog.includeReferences}</Label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
-                {t.results.exportDialog.cancel}
-              </Button>
-              <Button onClick={handleExportWithOptions} disabled={isExporting}>
-                {t.results.exportDialog.confirm}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     </TooltipProvider>
   )
