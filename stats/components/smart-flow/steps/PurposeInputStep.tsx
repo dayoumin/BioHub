@@ -2,14 +2,11 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useReducer, useRef } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { TrendingUp, GitCompare, PieChart, LineChart, Clock, Heart, ArrowRight, ArrowLeft, List, Layers, Calculator, Sparkles, Info, Target } from 'lucide-react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { TrendingUp, GitCompare, PieChart, LineChart, Clock, Heart, ArrowRight, List, Layers, Calculator, Sparkles, Target } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
 import { FilterToggle } from '@/components/ui/filter-toggle'
-import { PurposeCard } from '@/components/common/analysis/PurposeCard'
-import { AIAnalysisProgress } from '@/components/common/analysis/AIAnalysisProgress'
 import type { PurposeInputStepProps } from '@/types/smart-flow-navigation'
 import type { AnalysisPurpose, AIRecommendation, ColumnStatistics, StatisticalMethod, AutoAnswerResult, AnalysisCategory, SubcategoryDefinition, FlowChatMessage } from '@/types/smart-flow'
 import { logger } from '@/lib/utils/logger'
@@ -18,7 +15,8 @@ import { StepHeader } from '@/components/smart-flow/common'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { DecisionTreeRecommender } from '@/lib/services/decision-tree-recommender'
 import { llmRecommender } from '@/lib/services/llm-recommender'
-import { MethodBrowser } from './purpose/MethodBrowser'
+import { PurposeBrowseSection } from './purpose/PurposeBrowseSection'
+import { PurposeLegacySection } from './purpose/PurposeLegacySection'
 import { getMethodsGroupedByCategory, getAllMethodsGrouped } from '@/lib/statistics/method-catalog'
 import type { MethodGroup } from '@/lib/statistics/method-catalog'
 
@@ -679,109 +677,41 @@ export function PurposeInputStep({
 
         {/* Browse All - Direct method selection */}
         {flowState.step === 'browse' && (
-          <div key="browse">
-            {/* Header with back button */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleGuidedBack}
-                  className="gap-1.5 text-muted-foreground hover:text-foreground"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  {t.purposeInput.buttons.back}
-                </Button>
-                <div className="h-4 w-px bg-border/60" />
-                <h3 className="text-base font-semibold tracking-tight">
-                  {t.purposeInput.buttons.allMethods}
-                </h3>
-              </div>
-              {/* Action Button - browse 모드에서는 수동 선택만으로 진행 가능 */}
-              {renderSelectedMethodBar({ showOnManual: true, confirmTestId: 'confirm-method-btn' })}
-            </div>
-
-            {/* Method Browser */}
-            <MethodBrowser
-              methodGroups={browseMethodGroups}
-              selectedMethod={manualSelectedMethod}
-              recommendedMethodId={recommendation?.method?.id}
-              onMethodSelect={handleManualMethodSelect}
-              dataProfile={dataProfile}
-            />
-          </div>
+          <PurposeBrowseSection
+            key="browse"
+            browseMethodGroups={browseMethodGroups}
+            manualSelectedMethod={manualSelectedMethod}
+            recommendedMethodId={recommendation?.method?.id}
+            onMethodSelect={handleManualMethodSelect}
+            onBack={handleGuidedBack}
+            dataProfile={dataProfile}
+            selectedMethodBar={renderSelectedMethodBar({ showOnManual: true, confirmTestId: 'confirm-method-btn' })}
+            t={{ back: t.purposeInput.buttons.back, allMethods: t.purposeInput.buttons.allMethods }}
+          />
         )}
       </AnimatePresence>
 
       {/* LEGACY: Purpose Selection - Only show when in 'purpose' step (for backward compatibility) */}
       {flowState.step === 'purpose' && (
-      <>
-      {/* Header with Action Button (상단 배치) */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold tracking-tight" id="purpose-selection-label">
-          {t.purposeInput.labels.purposeHeading}
-        </h3>
-        {/* Action Button - purpose step에서 상단에 표시 */}
-        {renderSelectedMethodBar()}
-      </div>
-
-      {/* Purpose Selection */}
-      <div>
-        <div
-          role="radiogroup"
-          aria-labelledby="purpose-selection-label"
-          aria-describedby="purpose-selection-help"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"
-        >
-          {analysisPurposes.map((purpose, index) => (
-            <div
-              key={purpose.id}
-              className={prefersReducedMotion ? '' : 'animate-slide-in'}
-              style={prefersReducedMotion ? undefined : {
-                animationDelay: `${index * 150}ms`,
-                animationFillMode: 'backwards'
-              }}
-            >
-              <PurposeCard
-                icon={purpose.icon}
-                title={purpose.title}
-                description={purpose.description}
-                examples={purpose.examples}
-                selected={selectedPurpose === purpose.id || flowState.selectedPurpose === purpose.id}
-                onClick={() => {
-                  // Use Guided Flow for purpose selection
-                  handleGuidedPurposeSelect(purpose.id)
-                  // Also run existing AI recommendation for Browse tab
-                  handlePurposeSelect(purpose.id)
-                }}
-                disabled={isAnalyzing}
-              />
-            </div>
-          ))}
-        </div>
-        <div id="purpose-selection-help" className="sr-only">
-          {t.purposeInput.messages.purposeHelp}
-        </div>
-      </div>
-
-      {/* AI Analysis Progress */}
-      {isAnalyzing && (
-        <AIAnalysisProgress
-          progress={aiProgress}
-          title={t.smartFlow.statusMessages.analyzing}
+        <PurposeLegacySection
+          analysisPurposes={analysisPurposes}
+          selectedPurpose={selectedPurpose}
+          guidedSelectedPurpose={flowState.selectedPurpose}
+          isAnalyzing={isAnalyzing}
+          aiProgress={aiProgress}
+          prefersReducedMotion={prefersReducedMotion}
+          onPurposeSelect={(purpose) => {
+            handleGuidedPurposeSelect(purpose)
+            handlePurposeSelect(purpose)
+          }}
+          selectedMethodBar={renderSelectedMethodBar()}
+          t={{
+            purposeHeading: t.purposeInput.labels.purposeHeading,
+            purposeHelp: t.purposeInput.messages.purposeHelp,
+            analyzingTitle: t.smartFlow.statusMessages.analyzing,
+            guidanceAlert: t.purposeInput.messages.guidanceAlert,
+          }}
         />
-      )}
-
-      {/* Initial guidance */}
-      {!selectedPurpose && !isAnalyzing && flowState.step === 'purpose' && (
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            {t.purposeInput.messages.guidanceAlert}
-          </AlertDescription>
-        </Alert>
-      )}
-      </>
       )}
     </div>
   )

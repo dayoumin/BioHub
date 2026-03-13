@@ -580,7 +580,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     } else {
       // 일반 분석: 업로드 데이터 사용
       if (!uploadedData?.length) {
-        toast.error('데이터가 없습니다.')
+        toast.error(t.smartFlow.emptyStates.dataRequired)
         return
       }
       const rows = uploadedData as Record<string, unknown>[]
