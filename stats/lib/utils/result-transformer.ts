@@ -21,6 +21,20 @@ import type { StatisticalExecutorResult } from '@/lib/services/statistical-execu
 type AdditionalInfoAccessor = Record<string, any>
 
 /**
+ * Storage에서 복원한 JSON 데이터가 Executor 결과 형식인지 판별하는 타입 가드
+ *
+ * Executor 형식 구분자: metadata (object with method) + mainResults (object) 존재
+ */
+export function isExecutorResult(
+  data: Record<string, unknown>
+): data is Record<string, unknown> & { metadata: Record<string, unknown>; mainResults: Record<string, unknown> } {
+  if (!data.metadata || typeof data.metadata !== 'object') return false
+  if (!data.mainResults || typeof data.mainResults !== 'object') return false
+  const meta = data.metadata as Record<string, unknown>
+  return typeof meta.method === 'string'
+}
+
+/**
  * Executor의 ExecutorAnalysisResult를 Smart Flow UI의 AnalysisResult로 변환
  * ExecutorAnalysisResult와 StatisticalExecutorResult 모두 지원
  */

@@ -272,13 +272,13 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
 
       // 1. StatisticalResult 변환
       // 히스토리 아이템에는 uploadedData가 없을 수 있으므로 메타데이터에서 일부 정보 복원 시도
-      const statisticalResult = convertToStatisticalResult(item.results as unknown as AnalysisResult, {
+      const analysisResult = item.results as unknown as AnalysisResult
+      const statisticalResult = convertToStatisticalResult(analysisResult, {
         sampleSize: item.dataRowCount,
         timestamp: new Date(item.timestamp)
       })
 
       // 2. ExportContext 생성
-      const analysisResult = item.results as unknown as AnalysisResult
       const context: ExportContext = {
         analysisResult,
         statisticalResult,

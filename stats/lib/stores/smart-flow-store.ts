@@ -36,7 +36,7 @@ import {
 import type { HistoryRecord, AiRecommendationContext } from '@/lib/utils/storage-types'
 import type { ChatMessage } from '@/lib/types/chat'
 import { isIndexedDBAvailable } from '@/lib/utils/adapters/indexeddb-adapter'
-import { transformExecutorResult } from '@/lib/utils/result-transformer'
+import { transformExecutorResult, isExecutorResult } from '@/lib/utils/result-transformer'
 import type { AnalysisResult as ExecutorResult } from '@/lib/services/executors/types'
 
 /**
@@ -444,8 +444,8 @@ export const useSmartFlowStore = create<SmartFlowState>()(
           if (record.results) {
             const results = record.results as Record<string, unknown>
 
-            // Executor 형식 감지: metadata와 mainResults가 있으면 기존 형식
-            if (results.metadata && results.mainResults) {
+            // Executor 형식 감지: isExecutorResult 타입 가드로 검증
+            if (isExecutorResult(results)) {
               try {
                 migratedResults = transformExecutorResult(results as unknown as ExecutorResult)
                 console.log('[History Migration] Transformed executor result to UI format')
@@ -575,8 +575,8 @@ export const useSmartFlowStore = create<SmartFlowState>()(
                   let migratedResults: Record<string, unknown> | null = null
                   if (item.results) {
                     const results = item.results as Record<string, unknown>
-                    // Executor 형식 감지: metadata + mainResults 존재
-                    if (results.metadata && results.mainResults) {
+                    // Executor 형식 감지: isExecutorResult 타입 가드로 검증
+                    if (isExecutorResult(results)) {
                       try {
                         migratedResults = transformExecutorResult(results as unknown as ExecutorResult) as unknown as Record<string, unknown>
                         console.log('[Migration] Transformed executor result for:', item.id || item.name)
@@ -633,7 +633,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
           // Executor 형식 감지 및 변환
           if (h.results) {
             const results = h.results as Record<string, unknown>
-            if (results.metadata && results.mainResults) {
+            if (isExecutorResult(results)) {
               try {
                 transformedResults = transformExecutorResult(results as unknown as ExecutorResult) as unknown as Record<string, unknown>
                 console.log('[History Load] Transformed executor result for:', h.id || h.name)
@@ -799,7 +799,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         // Rehydrate 시 results가 old executor 형식인 경우 변환
         if (state?.results) {
           const results = state.results as unknown as Record<string, unknown>
-          if (results.metadata && results.mainResults) {
+          if (isExecutorResult(results)) {
             try {
               state.results = transformExecutorResult(results as unknown as ExecutorResult)
               console.log('[Rehydrate] Transformed executor result from sessionStorage')

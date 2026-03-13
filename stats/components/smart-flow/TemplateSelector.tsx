@@ -67,7 +67,7 @@ export const TemplateSelector = memo(function TemplateSelector({
     onSelect?.(template)
   }, [selectTemplate, onSelect])
 
-  const handleDelete = useCallback(async (e: React.MouseEvent, templateId: string) => {
+  const handleDelete = useCallback(async (e: { stopPropagation: () => void }, templateId: string) => {
     e.stopPropagation()
     await removeTemplate(templateId)
   }, [removeTemplate])
@@ -225,7 +225,7 @@ export const TemplateSelector = memo(function TemplateSelector({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
-                        onClick={(e) => handleDelete(e as unknown as React.MouseEvent, template.id)}
+                        onClick={(e) => handleDelete(e, template.id)}
                         className="text-destructive focus:text-destructive"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
