@@ -128,9 +128,6 @@ export function DataTab(): React.ReactElement {
             );
           })}
         </div>
-        {chartSpec.chartType === 'violin' && (
-          <p className="text-xs text-amber-600 dark:text-amber-400">현재 박스 플롯으로 표시됩니다 (ECharts 제한)</p>
-        )}
       </div>
 
       {/* X축 */}

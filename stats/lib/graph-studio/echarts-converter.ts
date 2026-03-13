@@ -258,6 +258,92 @@ function buildBoxplotData(
   return { categories, data };
 }
 
+/**
+ * Group raw values per category for violin KDE rendering.
+ * Returns category labels + per-category number arrays.
+ */
+function buildViolinGroups(
+  rows: Record<string, unknown>[],
+  xField: string,
+  yField: string,
+): { categories: string[]; groups: number[][] } {
+  const order: string[] = [];
+  const map = new Map<string, number[]>();
+
+  for (const row of rows) {
+    const cat = toStr(row[xField]);
+    const val = toNumber(row[yField]);
+    if (isNaN(val)) continue;
+    if (!map.has(cat)) { map.set(cat, []); order.push(cat); }
+    map.get(cat)!.push(val);
+  }
+
+  return {
+    categories: order,
+    groups: order.map(c => map.get(c) ?? []),
+  };
+}
+
+// ─── Violin KDE utilities ────────────────────────────────────
+
+/** Epanechnikov kernel — efficient, bounded support. */
+function epanechnikovKernel(u: number): number {
+  return Math.abs(u) <= 1 ? 0.75 * (1 - u * u) : 0;
+}
+
+/** Silverman's rule-of-thumb bandwidth. Adapts to actual data spread. */
+function silvermanBandwidth(values: number[]): number {
+  const n = values.length;
+  if (n < 2) return 1;
+  const mean = values.reduce((s, v) => s + v, 0) / n;
+  const variance = values.reduce((s, v) => s + (v - mean) ** 2, 0) / (n - 1);
+  const std = Math.sqrt(variance);
+  const sorted = [...values].sort((a, b) => a - b);
+  const q1 = percentile(sorted, 0.25);
+  const q3 = percentile(sorted, 0.75);
+  const iqr = q3 - q1;
+  // Silverman: 0.9 * min(std, IQR/1.34) * n^(-1/5)
+  // IQR=0 (ties가 많은 이산 데이터)일 때는 std만 사용
+  const iqrScaled = iqr > 0 ? iqr / 1.34 : Infinity;
+  const spread = Math.min(std, iqrScaled);
+  // spread=0 (모든 값 동일)이면 데이터 범위의 10% 또는 최소 절대값 기반 fallback
+  if (spread <= 0) {
+    const range = sorted[sorted.length - 1] - sorted[0];
+    return Math.max(range * 0.1, Math.abs(mean) * 0.1, 0.1);
+  }
+  return 0.9 * spread * n ** (-0.2);
+}
+
+/**
+ * Compute KDE density curve for one group.
+ * Returns array of [yValue, density] pairs spanning the actual data range.
+ */
+function computeKDE(
+  values: number[],
+  binCount: number,
+): { y: number; density: number }[] {
+  if (values.length === 0) return [];
+  const sorted = [...values].sort((a, b) => a - b);
+  const min = sorted[0];
+  const max = sorted[sorted.length - 1];
+  const bw = silvermanBandwidth(values);
+  // Extend range by 2× bandwidth for smooth tails
+  const lo = min - 2 * bw;
+  const hi = max + 2 * bw;
+  const step = (hi - lo) / (binCount - 1);
+
+  const result: { y: number; density: number }[] = [];
+  for (let i = 0; i < binCount; i++) {
+    const yVal = lo + i * step;
+    let sum = 0;
+    for (const v of values) {
+      sum += epanechnikovKernel((yVal - v) / bw);
+    }
+    result.push({ y: yVal, density: sum / (values.length * bw) });
+  }
+  return result;
+}
+
 /** Bin numeric data for histogram using Sturges' rule. */
 function buildHistogramData(
   rows: Record<string, unknown>[],
@@ -445,7 +531,7 @@ function computeLinearRegression(
   let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
   for (const [x, y] of points) { sumX += x; sumY += y; sumXY += x * y; sumX2 += x * x; }
   const denom = n * sumX2 - sumX * sumX;
-  if (denom === 0) return null;
+  if (Math.abs(denom) < 1e-12) return null;
   const slope = (n * sumXY - sumX * sumY) / denom;
   const intercept = (sumY - slope * sumX) / n;
   const yMean = sumY / n;
@@ -455,7 +541,7 @@ function computeLinearRegression(
     ssTot += (y - yMean) ** 2;
     ssRes += (y - pred) ** 2;
   }
-  const rSquared = ssTot === 0 ? 1 : 1 - ssRes / ssTot;
+  const rSquared = ssTot < 1e-12 ? 1 : 1 - ssRes / ssTot;
   return { slope, intercept, rSquared };
 }
 
@@ -1072,7 +1158,8 @@ export function chartSpecToECharts(
 
   // Apply aggregation (not for chart types that do their own internal aggregation)
   // - histogram: buildHistogramData bins raw values
-  // - boxplot/violin: buildBoxplotData computes per-category IQR stats
+  // - boxplot: buildBoxplotData computes per-category IQR stats
+  // - violin: buildViolinGroups + KDE (custom renderItem)
   // - scatter: no aggregation makes sense for point-level data
   // - heatmap: buildHeatmapData aggregates per cell
   // - error-bar: buildErrorBarData computes mean ± error from raw samples;
@@ -1463,10 +1550,8 @@ export function chartSpecToECharts(
     };
   }
 
-  // ── boxplot / violin ────────────────────────────────────────
-  // violin: ECharts는 네이티브 violin을 미지원. Stage 3에서 custom renderItem으로 구현 예정.
-  // 현재는 동일 데이터를 boxplot으로 렌더링(5-number summary 동일).
-  if (spec.chartType === 'boxplot' || spec.chartType === 'violin') {
+  // ── boxplot ────────────────────────────────────────────────
+  if (spec.chartType === 'boxplot') {
     const { categories, data } = buildBoxplotData(rows, xField, yField);
     return {
       ...base,
@@ -1487,6 +1572,175 @@ export function chartSpecToECharts(
       xAxis: { ...xAxisBase(spec, style, 'category'), data: categories },
       yAxis: yAxisBase(spec, style),
       series: [{ type: 'boxplot', data }],
+    };
+  }
+
+  // ── violin (custom renderItem with proper KDE) ────────────
+  // n<5인 그룹은 boxplot으로 degrade (KDE가 의미 없는 표본 수)
+  if (spec.chartType === 'violin') {
+    const { categories, groups } = buildViolinGroups(rows, xField, yField);
+    const MIN_N_FOR_VIOLIN = 5;
+    const allSmall = groups.every(g => g.length < MIN_N_FOR_VIOLIN);
+
+    // 모든 그룹이 n<5이면 boxplot으로 fallback
+    if (allSmall) {
+      const { categories: bpCats, data: bpData } = buildBoxplotData(rows, xField, yField);
+      return {
+        ...base,
+        tooltip: {
+          trigger: 'item',
+          formatter: (params: unknown) => {
+            const p = params as { name: string; data: [number, number, number, number, number] };
+            return [
+              p.name,
+              `Min: ${p.data[0].toFixed(3)}`,
+              `Q1: ${p.data[1].toFixed(3)}`,
+              `Median: ${p.data[2].toFixed(3)}`,
+              `Q3: ${p.data[3].toFixed(3)}`,
+              `Max: ${p.data[4].toFixed(3)}`,
+            ].join('<br/>');
+          },
+        },
+        xAxis: { ...xAxisBase(spec, style, 'category'), data: bpCats },
+        yAxis: yAxisBase(spec, style),
+        series: [{ type: 'boxplot', data: bpData }],
+      };
+    }
+
+    const BIN_COUNT = 80;
+    const AREA_OPACITY = 0.4;
+
+    // Pre-compute KDE curves per category (n<5는 빈 커브 → renderItem에서 skip)
+    const kdeCurves = groups.map(g =>
+      g.length >= MIN_N_FOR_VIOLIN ? computeKDE(g, BIN_COUNT) : [],
+    );
+
+    // y-axis extent: KDE 커브의 실제 lo/hi를 기반으로 축 범위 결정 (spread 연산자 대신 loop)
+    let globalYMin = Infinity;
+    let globalYMax = -Infinity;
+    for (const curve of kdeCurves) {
+      if (curve.length === 0) continue;
+      const lo = curve[0].y;
+      const hi = curve[curve.length - 1].y;
+      if (lo < globalYMin) globalYMin = lo;
+      if (hi > globalYMax) globalYMax = hi;
+    }
+    // KDE 커브가 없는 경우 (모두 n<5) — 원시 데이터 범위 사용
+    if (!isFinite(globalYMin)) {
+      for (const g of groups) {
+        for (const v of g) {
+          if (v < globalYMin) globalYMin = v;
+          if (v > globalYMax) globalYMax = v;
+        }
+      }
+    }
+
+    // renderItem: draw one violin polygon per category
+    // 카테고리당 데이터포인트 1개 → renderItem 정확히 1회 호출
+    const renderItem: (params: Record<string, unknown>, api: Record<string, unknown>) => unknown =
+      (params, api) => {
+        const dataIndex = params.dataIndex as number;
+        const value = api.value as (dim: number) => number;
+        const coord = api.coord as (val: [number, number]) => [number, number];
+        const size = api.size as ((val: [number, number]) => [number, number]) | undefined;
+        const catIdx = value(0);
+
+        const curve = kdeCurves[catIdx];
+        if (!curve || curve.length === 0) {
+          // n<5 카테고리: 빈 공간 대신 안내 텍스트 표시
+          const cx = coord([catIdx, 0])[0];
+          const cy = coord([0, (globalYMin + globalYMax) / 2])[1];
+          return {
+            type: 'text',
+            style: {
+              text: `n<${MIN_N_FOR_VIOLIN}`,
+              x: cx,
+              y: cy,
+              fill: '#999',
+              fontSize: 11,
+              align: 'center',
+              verticalAlign: 'middle',
+            },
+          };
+        }
+
+        // Compute max density for width normalization (spread 대신 loop — 일관성)
+        let maxDensity = 0;
+        for (const p of curve) { if (p.density > maxDensity) maxDensity = p.density; }
+        if (maxDensity <= 0) return null;
+
+        // Category center x and available half-width
+        const centerX = coord([catIdx, 0])[0];
+        const bandWidth = size
+          ? size([1, 0])[0]
+          : (categories.length > 1 ? coord([1, 0])[0] - coord([0, 0])[0] : 120);
+        const halfWidth = bandWidth * 0.4;
+
+        // Build symmetric polygon points
+        const rightPoints: [number, number][] = [];
+        const leftPoints: [number, number][] = [];
+
+        for (const p of curve) {
+          if (p.density < 1e-6) continue;
+          const py = coord([0, p.y])[1];
+          const dx = (p.density / maxDensity) * halfWidth;
+          rightPoints.push([centerX + dx, py]);
+          leftPoints.push([centerX - dx, py]);
+        }
+
+        if (rightPoints.length < 2) return null;
+
+        const points = [...rightPoints, ...leftPoints.reverse()];
+
+        const visual = api.visual as (key: string) => string;
+        return {
+          type: 'polygon',
+          shape: { points },
+          style: {
+            fill: visual('color'),
+            opacity: AREA_OPACITY,
+            stroke: visual('color'),
+            lineWidth: 1,
+          },
+          z2: dataIndex,
+        };
+      };
+
+    // 카테고리당 1개 데이터포인트 (renderItem 1회 호출 보장)
+    // y 값은 KDE 범위의 중앙값 — axis extent는 yAxis.min/max로 직접 제어
+    const yMid = (globalYMin + globalYMax) / 2;
+    const data: [number, number][] = categories.map((_, i) => [i, yMid]);
+
+    return {
+      ...base,
+      tooltip: {
+        trigger: 'item',
+        formatter: (params: unknown) => {
+          const p = params as { dataIndex: number };
+          // 카테고리당 1개 데이터포인트이므로 dataIndex === catIdx
+          const catIdx = p.dataIndex;
+          const vals = groups[catIdx];
+          if (!vals?.length) return '';
+          const s = [...vals].sort((a, b) => a - b);
+          return [
+            categories[catIdx],
+            `N: ${vals.length}`,
+            `Min: ${s[0].toFixed(3)}`,
+            `Q1: ${percentile(s, 0.25).toFixed(3)}`,
+            `Median: ${percentile(s, 0.5).toFixed(3)}`,
+            `Q3: ${percentile(s, 0.75).toFixed(3)}`,
+            `Max: ${s[s.length - 1].toFixed(3)}`,
+          ].join('<br/>');
+        },
+      },
+      xAxis: { ...xAxisBase(spec, style, 'category'), data: categories },
+      yAxis: { ...yAxisBase(spec, style), min: globalYMin, max: globalYMax },
+      series: [{
+        type: 'custom',
+        renderItem,
+        data,
+        encode: { x: 0, y: 1 },
+      }] as EChartsOption['series'],
     };
   }
 

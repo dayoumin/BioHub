@@ -90,7 +90,8 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
 
   const handleFormatChange = useCallback((value: string) => {
     if (!chartSpec) return;
-    setExportConfig({ ...chartSpec.exportConfig, format: value as ExportFormat });
+    if (value !== 'svg' && value !== 'png') return;
+    setExportConfig({ ...chartSpec.exportConfig, format: value });
   }, [chartSpec, setExportConfig]);
 
   const handleDpiChange = useCallback((value: string) => {
@@ -306,13 +307,13 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
             </div>
 
             {/* 캡션 작성 참고 — A3 */}
-            {(chartSpec.errorBar || chartSpec.chartType === 'boxplot' || chartSpec.chartType === 'violin') && (
+            {(chartSpec.errorBar || chartSpec.chartType === 'boxplot') && (
               <div className="rounded-md bg-muted/50 p-2.5 text-xs space-y-1">
                 <p className="font-medium">캡션 작성 참고</p>
                 {chartSpec.errorBar && (
                   <p className="text-muted-foreground">{getErrorBarCaption(chartSpec.errorBar)}</p>
                 )}
-                {(chartSpec.chartType === 'boxplot' || chartSpec.chartType === 'violin') && (
+                {chartSpec.chartType === 'boxplot' && (
                   <p className="text-muted-foreground">Whiskers: Tukey 1.5×IQR</p>
                 )}
               </div>

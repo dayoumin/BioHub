@@ -324,7 +324,7 @@ export function ChartPreview({ echartsRef, onExport }: ChartPreviewProps): React
           {chartSpec.encoding.x.field ?? '?'} × {chartSpec.encoding.y.field ?? '?'}
         </span>
         <span>
-          {chartSpec.chartType}{chartSpec.chartType === 'violin' ? ' (박스 플롯)' : ''} | {chartSpec.style.preset} | n={rows.length}
+          {chartSpec.chartType} | {chartSpec.style.preset} | n={rows.length}
         </span>
       </div>
     </div>

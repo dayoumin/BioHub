@@ -250,13 +250,11 @@ export const CHART_TYPE_HINTS: Record<ChartType, ChartTypeHint> = {
     supportsFacet: false,
   },
   violin: {
-    // ECharts 네이티브 violin 미지원 → box plot으로 렌더링됨
-    // PropertiesTab에서 선택 시 인라인 안내 표시 (chartType === 'violin' 조건)
     label: '바이올린 플롯',
-    description: '분포 형태 비교',
+    description: '분포 형태 비교 (자체 KDE renderItem)',
     suggestedXType: 'nominal',
     suggestedYType: 'quantitative',
-    supportsColor: true,
+    supportsColor: false,
     supportsErrorBar: false,
     supportsAggregate: false,
     supportsY2: false,

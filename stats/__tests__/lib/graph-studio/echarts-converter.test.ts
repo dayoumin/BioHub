@@ -568,14 +568,17 @@ describe('stacked-bar — colorField 있음', () => {
   })
 })
 
-// ─── violin → boxplot 폴백 ────────────────────────────────
+// ─── violin (자체 KDE renderItem 구현) ─────────────────────
 
-describe('violin → boxplot 렌더링 폴백 (ECharts 네이티브 미지원)', () => {
+describe('violin — custom renderItem with KDE', () => {
+  // n>=5 데이터 → 정상 KDE violin
   const rows = [
     { cat: 'A', val: 1 }, { cat: 'A', val: 2 }, { cat: 'A', val: 3 },
-    { cat: 'B', val: 4 }, { cat: 'B', val: 5 }, { cat: 'B', val: 6 },
+    { cat: 'A', val: 4 }, { cat: 'A', val: 5 },
+    { cat: 'B', val: 6 }, { cat: 'B', val: 7 }, { cat: 'B', val: 8 },
+    { cat: 'B', val: 9 }, { cat: 'B', val: 10 },
   ]
-  const spec = makeSpec({
+  const violinSpec = makeSpec({
     chartType: 'violin',
     encoding: {
       x: { field: 'cat', type: 'nominal' },
@@ -583,20 +586,272 @@ describe('violin → boxplot 렌더링 폴백 (ECharts 네이티브 미지원)',
     },
   })
 
-  it('violin → series[0].type === "boxplot"', () => {
-    const opt = toAny(chartSpecToECharts(spec, rows))
+  it('n>=5이면 custom renderItem으로 렌더링', () => {
+    const opt = toAny(chartSpecToECharts(violinSpec, rows))
+    const series = opt.series as AnyOption[]
+    expect(series[0].type).toBe('custom')
+    expect(typeof series[0].renderItem).toBe('function')
+  })
+
+  it('카테고리당 1개 데이터포인트 (renderItem 1회 호출 보장)', () => {
+    const opt = toAny(chartSpecToECharts(violinSpec, rows))
+    const series = opt.series as AnyOption[]
+    const data = series[0].data as [number, number][]
+    // 2 categories × 1 point = 2
+    expect(data).toHaveLength(2)
+  })
+
+  it('yAxis.min/max가 KDE 커브 범위를 반영한다', () => {
+    const opt = toAny(chartSpecToECharts(violinSpec, rows))
+    const yAxis = opt.yAxis as AnyOption
+    // 실제 데이터: 1~10 → KDE는 ±2*bw로 확장 → yAxis가 데이터 범위를 넘어야 함
+    expect(yAxis.min).toBeLessThan(1)
+    expect(yAxis.max).toBeGreaterThan(10)
+  })
+
+  it('xAxis에 카테고리 이름이 포함된다', () => {
+    const opt = toAny(chartSpecToECharts(violinSpec, rows))
+    expect((opt.xAxis as AnyOption).data).toEqual(['A', 'B'])
+  })
+
+  it('tooltip에 5-number summary가 포함된다', () => {
+    const opt = toAny(chartSpecToECharts(violinSpec, rows))
+    const formatter = (opt.tooltip as AnyOption).formatter as (p: unknown) => string
+    const html = formatter({ dataIndex: 0 })
+    expect(html).toContain('A')
+    expect(html).toContain('N: 5')
+    expect(html).toContain('Min:')
+    expect(html).toContain('Median:')
+    expect(html).toContain('Max:')
+  })
+
+  it('n<5 (모든 그룹)이면 boxplot으로 degrade', () => {
+    const smallRows = [
+      { cat: 'X', val: 1 }, { cat: 'X', val: 2 }, { cat: 'X', val: 3 },
+      { cat: 'Y', val: 4 }, { cat: 'Y', val: 5 },
+    ]
+    const opt = toAny(chartSpecToECharts(violinSpec.chartType === 'violin'
+      ? makeSpec({ chartType: 'violin', encoding: violinSpec.encoding })
+      : violinSpec, smallRows))
     const series = opt.series as AnyOption[]
     expect(series[0].type).toBe('boxplot')
   })
 
-  it('카테고리별 5-number summary가 정확하다 (A: min=1, median=2, max=3)', () => {
-    const opt = toAny(chartSpecToECharts(spec, rows))
+  it('10 초과 데이터도 정상 처리', () => {
+    const largeRows = Array.from({ length: 10 }, (_, i) => ({ cat: 'X', val: 50 + i * 25 }))
+    const largeSpec = makeSpec({
+      chartType: 'violin',
+      encoding: {
+        x: { field: 'cat', type: 'nominal' },
+        y: { field: 'val', type: 'quantitative' },
+      },
+    })
+    const opt = toAny(chartSpecToECharts(largeSpec, largeRows))
     const series = opt.series as AnyOption[]
-    const data = series[0].data as [number, number, number, number, number][]
-    const catA = data[0]
-    expect(catA[0]).toBe(1)             // min
-    expect(catA[2]).toBeCloseTo(2, 5)   // median
-    expect(catA[4]).toBe(3)             // max
+    expect(series[0].type).toBe('custom')
+    // yAxis.max가 실제 데이터 범위(50~275)를 반영
+    const yAxis = opt.yAxis as AnyOption
+    expect(yAxis.max).toBeGreaterThan(200)
+  })
+
+  it('음수값 데이터도 정상 처리', () => {
+    const negRows = Array.from({ length: 5 }, (_, i) => ({ cat: 'Y', val: -30 + i * 15 }))
+    const negSpec = makeSpec({
+      chartType: 'violin',
+      encoding: {
+        x: { field: 'cat', type: 'nominal' },
+        y: { field: 'val', type: 'quantitative' },
+      },
+    })
+    const opt = toAny(chartSpecToECharts(negSpec, negRows))
+    const formatter = (opt.tooltip as AnyOption).formatter as (p: unknown) => string
+    const html = formatter({ dataIndex: 0 })
+    expect(html).toContain('-30.000')
+  })
+
+  it('IQR=0 (동일값 반복)일 때 bandwidth가 붕괴하지 않는다', () => {
+    const tieRows = Array.from({ length: 10 }, () => ({ cat: 'Z', val: 5 }))
+    const tieSpec = makeSpec({
+      chartType: 'violin',
+      encoding: {
+        x: { field: 'cat', type: 'nominal' },
+        y: { field: 'val', type: 'quantitative' },
+      },
+    })
+    const opt = toAny(chartSpecToECharts(tieSpec, tieRows))
+    const series = opt.series as AnyOption[]
+    // 모든 값 동일해도 custom series로 렌더링 (crash 없음)
+    expect(series[0].type).toBe('custom')
+    expect(typeof series[0].renderItem).toBe('function')
+  })
+})
+
+// ─── violin renderItem 시뮬레이션 ─────────────────────────
+
+describe('violin renderItem — mock ECharts API 시뮬레이션', () => {
+  // 차트 영역: 800×400px, y range: 0~100
+  const CHART_LEFT = 80
+  const CHART_RIGHT = 720
+  const CHART_TOP = 20
+  const CHART_BOTTOM = 380
+
+  function makeViolinOption(rows: Record<string, unknown>[]) {
+    return toAny(chartSpecToECharts(makeSpec({
+      chartType: 'violin',
+      encoding: {
+        x: { field: 'cat', type: 'nominal' },
+        y: { field: 'val', type: 'quantitative' },
+      },
+    }), rows))
+  }
+
+  /** Mock ECharts API for renderItem */
+  function mockApi(catCount: number, yMin: number, yMax: number) {
+    const catWidth = (CHART_RIGHT - CHART_LEFT) / catCount
+    return {
+      value: (dim: number, _idx?: number) => dim, // overridden per call
+      coord: ([x, y]: [number, number]): [number, number] => {
+        const px = CHART_LEFT + x * catWidth + catWidth / 2
+        const py = CHART_BOTTOM - ((y - yMin) / (yMax - yMin)) * (CHART_BOTTOM - CHART_TOP)
+        return [px, py]
+      },
+      size: ([w, _h]: [number, number]): [number, number] => {
+        return [w * catWidth, 0]
+      },
+      visual: (_key: string) => '#5470c6',
+    }
+  }
+
+  it('정상 데이터 → polygon 반환 (대칭, 양쪽 포인트 수 동일)', () => {
+    // 정규분포 유사 데이터
+    const rows = [10, 20, 25, 30, 30, 35, 40, 45, 50, 60]
+      .map(v => ({ cat: 'A', val: v }))
+    const opt = makeViolinOption(rows)
+    const series = opt.series as AnyOption[]
+    const renderItem = series[0].renderItem as (
+      params: Record<string, unknown>,
+      api: Record<string, unknown>,
+    ) => AnyOption | null
+
+    const api = mockApi(1, 0, 70)
+    // dataIndex=0에서 value(0) = catIdx, override via proxy
+    const mockApiWithValue = {
+      ...api,
+      value: (dim: number) => dim === 0 ? 0 : 0, // catIdx=0
+    }
+
+    const result = renderItem(
+      { dataIndex: 0, context: {} },
+      mockApiWithValue,
+    )
+
+    expect(result).not.toBeNull()
+    expect(result!.type).toBe('polygon')
+
+    const points = (result!.shape as AnyOption).points as [number, number][]
+    expect(points.length).toBeGreaterThanOrEqual(4) // 최소 좌우 2+2
+
+    // 대칭 검증: polygon 중앙 x 기준으로 좌우 대칭
+    const centerX = api.coord([0, 0])[0]
+    const firstHalf = points.slice(0, Math.floor(points.length / 2))
+    const secondHalf = points.slice(Math.floor(points.length / 2))
+
+    // 오른쪽 → centerX 기준 dx > 0, 왼쪽 → dx < 0
+    for (const [px] of firstHalf) {
+      expect(px).toBeGreaterThanOrEqual(centerX)
+    }
+    for (const [px] of secondHalf) {
+      expect(px).toBeLessThanOrEqual(centerX)
+    }
+  })
+
+  it('polygon y좌표가 실제 데이터 범위를 포함한다', () => {
+    const rows = [100, 150, 200, 250, 300]
+      .map(v => ({ cat: 'X', val: v }))
+    const opt = makeViolinOption(rows)
+    const series = opt.series as AnyOption[]
+    const renderItem = series[0].renderItem as (
+      params: Record<string, unknown>,
+      api: Record<string, unknown>,
+    ) => AnyOption | null
+
+    const api = mockApi(1, 50, 350)
+    const result = renderItem(
+      { dataIndex: 0, context: {} },
+      { ...api, value: (dim: number) => dim === 0 ? 0 : 0 },
+    )
+
+    expect(result).not.toBeNull()
+    const points = (result!.shape as AnyOption).points as [number, number][]
+    const yPixels = points.map(p => p[1])
+
+    // y 픽셀: 100~300 값 범위에 해당하는 영역에 포인트가 분포해야 함
+    const minPy = Math.min(...yPixels)
+    const maxPy = Math.max(...yPixels)
+    // coord 기준: y=100 → 높은 py, y=300 → 낮은 py (canvas 좌표계)
+    const py100 = api.coord([0, 100])[1]
+    const py300 = api.coord([0, 300])[1]
+    expect(maxPy).toBeGreaterThanOrEqual(py100 - 50) // 100 근처까지 도달
+    expect(minPy).toBeLessThanOrEqual(py300 + 50)    // 300 근처까지 도달
+  })
+
+  it('n<5 그룹의 renderItem은 null을 반환한다', () => {
+    // A: 10개(violin), B: 3개(skip)
+    const rows = [
+      ...Array.from({ length: 10 }, (_, i) => ({ cat: 'A', val: 10 + i })),
+      { cat: 'B', val: 1 }, { cat: 'B', val: 2 }, { cat: 'B', val: 3 },
+    ]
+    const opt = makeViolinOption(rows)
+    const series = opt.series as AnyOption[]
+
+    // 혼합이므로 custom (allSmall=false)
+    expect(series[0].type).toBe('custom')
+    const renderItem = series[0].renderItem as (
+      params: Record<string, unknown>,
+      api: Record<string, unknown>,
+    ) => AnyOption | null
+
+    const api = mockApi(2, 0, 25)
+
+    // catIdx=0 (A, n=10) → polygon
+    const resultA = renderItem(
+      { dataIndex: 0, context: {} },
+      { ...api, value: (dim: number) => dim === 0 ? 0 : 0 },
+    )
+    expect(resultA).not.toBeNull()
+    expect(resultA!.type).toBe('polygon')
+
+    // catIdx=1 (B, n=3) → "n<5" 텍스트 라벨
+    const resultB = renderItem(
+      { dataIndex: 1, context: {} },
+      { ...api, value: (dim: number) => dim === 0 ? 1 : 0 },
+    )
+    expect(resultB).not.toBeNull()
+    expect(resultB!.type).toBe('text')
+    expect((resultB!.style as AnyOption).text).toBe('n<5')
+  })
+
+  it('style에 color와 opacity가 포함된다', () => {
+    const rows = Array.from({ length: 8 }, (_, i) => ({ cat: 'C', val: i * 10 }))
+    const opt = makeViolinOption(rows)
+    const series = opt.series as AnyOption[]
+    const renderItem = series[0].renderItem as (
+      params: Record<string, unknown>,
+      api: Record<string, unknown>,
+    ) => AnyOption | null
+
+    const api = mockApi(1, -10, 80)
+    const result = renderItem(
+      { dataIndex: 0, context: {} },
+      { ...api, value: (dim: number) => dim === 0 ? 0 : 0 },
+    )
+
+    expect(result).not.toBeNull()
+    const style = result!.style as AnyOption
+    expect(style.fill).toBe('#5470c6')
+    expect(style.stroke).toBe('#5470c6')
+    expect(style.opacity).toBe(0.4)
+    expect(style.lineWidth).toBe(1)
   })
 })
 
