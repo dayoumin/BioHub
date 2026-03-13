@@ -170,6 +170,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       if (historyIndex <= 0) return;
       const newIndex = historyIndex - 1;
       const snapshot = specHistory[newIndex];
+      if (!snapshot) return;
       set({
         // exportConfig(포맷/DPI/물리 크기)는 차트 편집 히스토리와 무관한 출력 설정.
         // undo로 차트 내용을 되돌려도 사용자의 출력 설정은 유지해야 하므로
@@ -187,6 +188,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       if (historyIndex >= specHistory.length - 1) return;
       const newIndex = historyIndex + 1;
       const snapshot = specHistory[newIndex];
+      if (!snapshot) return;
       set({
         // undo와 동일 이유: exportConfig는 redo 대상이 아님
         chartSpec: chartSpec

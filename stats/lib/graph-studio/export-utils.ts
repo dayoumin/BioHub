@@ -139,6 +139,9 @@ export function downloadChart(
 
   if (config.format === 'svg') {
     // SVG 렌더러 전용 — ReactECharts opts.renderer='svg' 설정 필요
+    if (typeof echartsInstance.getSvgDataURL !== 'function') {
+      throw new Error('SVG export requires SVG renderer. Set opts.renderer="svg" on the chart instance.');
+    }
     dataUrl = echartsInstance.getSvgDataURL();
   } else {
     // Canvas 렌더러 (기본) — PNG export

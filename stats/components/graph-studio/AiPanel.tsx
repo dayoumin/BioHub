@@ -271,7 +271,7 @@ export function AiPanel(): React.ReactElement {
               ref={textareaRef}
               value={inputValue}
               onChange={e => setInputValue(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) setSelectedL1(null); handleKeyDown(e); }}
+              onKeyDown={e => { handleKeyDown(e); if (e.key === 'Enter' && !e.shiftKey) setSelectedL1(null); }}
               placeholder="차트를 어떻게 수정할까요? (Enter 전송)"
               className="min-h-[40px] max-h-[80px] text-xs resize-none"
               disabled={isLoading || !chartSpec}
@@ -280,7 +280,7 @@ export function AiPanel(): React.ReactElement {
             <Button
               size="icon"
               className="self-end shrink-0 h-8 w-8"
-              onClick={() => { void handleSend(); setSelectedL1(null); }}
+              onClick={() => { void handleSend().then(() => setSelectedL1(null)); }}
               disabled={isLoading || !inputValue.trim() || !chartSpec}
               aria-label="전송"
               data-testid="ai-panel-send"

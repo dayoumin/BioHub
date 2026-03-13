@@ -9,7 +9,7 @@
  * D. 데이터 교체 버튼
  */
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import Papa from 'papaparse';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { recommendCharts } from '@/lib/graph-studio/chart-recommender';
@@ -49,19 +49,25 @@ export function LeftDataPanel(): React.ReactElement {
     : 0;
 
   // 현재 인코딩에서 사용 중인 필드 → 역할 매핑
-  const fieldRoles = new Map<string, string>();
-  if (chartSpec) {
-    if (chartSpec.encoding.x?.field) fieldRoles.set(chartSpec.encoding.x.field, 'X');
-    if (chartSpec.encoding.y?.field) fieldRoles.set(chartSpec.encoding.y.field, 'Y');
-    if (chartSpec.encoding.y2?.field) fieldRoles.set(chartSpec.encoding.y2.field, 'Y2');
-    if (chartSpec.encoding.color?.field) fieldRoles.set(chartSpec.encoding.color.field, 'Color');
-    if (chartSpec.encoding.shape?.field) fieldRoles.set(chartSpec.encoding.shape.field, 'Shape');
-    if (chartSpec.encoding.size?.field) fieldRoles.set(chartSpec.encoding.size.field, 'Size');
-    if (chartSpec.facet?.field) fieldRoles.set(chartSpec.facet.field, 'Facet');
-  }
+  const fieldRoles = useMemo(() => {
+    const map = new Map<string, string>();
+    if (chartSpec) {
+      if (chartSpec.encoding.x?.field) map.set(chartSpec.encoding.x.field, 'X');
+      if (chartSpec.encoding.y?.field) map.set(chartSpec.encoding.y.field, 'Y');
+      if (chartSpec.encoding.y2?.field) map.set(chartSpec.encoding.y2.field, 'Y2');
+      if (chartSpec.encoding.color?.field) map.set(chartSpec.encoding.color.field, 'Color');
+      if (chartSpec.encoding.shape?.field) map.set(chartSpec.encoding.shape.field, 'Shape');
+      if (chartSpec.encoding.size?.field) map.set(chartSpec.encoding.size.field, 'Size');
+      if (chartSpec.facet?.field) map.set(chartSpec.facet.field, 'Facet');
+    }
+    return map;
+  }, [chartSpec]);
 
   // 추천 차트
-  const recommendations = dataPackage ? recommendCharts(dataPackage.columns) : [];
+  const recommendations = useMemo(
+    () => dataPackage ? recommendCharts(dataPackage.columns) : [],
+    [dataPackage]
+  );
 
   // 차트 유형 변경
   const handleChartTypeSelect = useCallback((chartType: ChartType) => {

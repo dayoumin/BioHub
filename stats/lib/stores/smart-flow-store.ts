@@ -397,7 +397,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         }
 
         const record: HistoryRecord = {
-          id: `analysis-${Date.now()}`,
+          id: `analysis-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           timestamp: Date.now(),
           name: name || `분석 ${new Date().toLocaleString('ko-KR')}`,
           purpose: state.analysisPurpose,
@@ -465,7 +465,9 @@ export const useSmartFlowStore = create<SmartFlowState>()(
           // 결과만 복원 (원본 데이터는 없음)
           set({
             analysisPurpose: record.purpose,
-            selectedMethod: record.method as StatisticalMethod | null,
+            selectedMethod: (record.method && typeof record.method === 'object' && 'id' in record.method && 'name' in record.method)
+              ? record.method as StatisticalMethod
+              : null,
             results: migratedResults,
             uploadedFileName: record.dataFileName,
             currentHistoryId: historyId,

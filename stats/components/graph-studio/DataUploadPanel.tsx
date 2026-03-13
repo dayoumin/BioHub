@@ -264,6 +264,9 @@ export function DataUploadPanel(): React.ReactElement {
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: 'array' });
       const firstSheet = workbook.SheetNames[0];
+      if (!firstSheet || !workbook.Sheets[firstSheet]) {
+        throw new Error('워크북에 시트가 없습니다');
+      }
       const data = XLSX.utils.sheet_to_json<Record<string, unknown>>(
         workbook.Sheets[firstSheet],
       );

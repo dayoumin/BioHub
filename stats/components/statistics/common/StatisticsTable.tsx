@@ -286,10 +286,10 @@ export function StatisticsTable({
   }
 
   const tableContent = (
-    <div className={cn(
-      'relative overflow-auto',
-      stickyHeader && maxHeight && `max-h-[${maxHeight}]`
-    )}>
+    <div
+      className="relative overflow-auto"
+      style={stickyHeader && maxHeight ? { maxHeight } : undefined}
+    >
       <Table className={cn(
         compactMode && 'text-sm',
         bordered && 'border-collapse border'
@@ -321,10 +321,10 @@ export function StatisticsTable({
                 className={cn(
                   column.align === 'center' && 'text-center',
                   column.align === 'right' && 'text-right',
-                  column.width && `w-[${column.width}]`,
                   sortable && column.sortable !== false && 'cursor-pointer select-none hover:bg-muted/50',
                   bordered && 'border p-2'
                 )}
+                style={column.width ? { width: column.width } : undefined}
                 onClick={() => column.sortable !== false && handleSort(column.key)}
               >
                 <div className="flex items-center gap-2">

@@ -95,7 +95,8 @@ function GraphStudioPageInner(): React.ReactElement {
     const instance = echartsRef.current?.getEchartsInstance();
     if (!instance) return;
     downloadChart(instance, chartSpec.exportConfig, chartSpec.title);
-  }, [chartSpec]);
+    // Note: chartSpec은 Zustand store 참조로 spec 변경 시에만 갱신 → deps 안정적
+  }, [chartSpec?.exportConfig, chartSpec?.title]);
 
   if (layoutMode === 'upload') {
     return (

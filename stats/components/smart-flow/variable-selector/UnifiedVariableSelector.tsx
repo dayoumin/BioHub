@@ -294,10 +294,13 @@ export function UnifiedVariableSelector({
 
   // Sync assignments when initialSelection or selectorType changes after mount
   // (e.g., AI detection results arrive late, or anova upgrades to two-way-anova)
+  // Note: slots/columns are intentionally excluded — they derive from selectorType/data
+  // and including them would cause unnecessary resets on every render
   useEffect(() => {
     if (columns.length === 0) return
     setAssignments(buildInitialAssignments(slots, columns, initialSelection))
-  }, [initialSelection, selectorType]) // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSelection, selectorType])
 
   const [activeSlotId, setActiveSlotId] = useState<string | null>(null)
   const [dragItem, setDragItem] = useState<{ name: string; type: AcceptedType } | null>(null)
@@ -390,11 +393,9 @@ export function UnifiedVariableSelector({
 
   // DnD handlers
   const handleDragStart = useCallback((event: DragStartEvent) => {
-    const { columnName, columnType } = event.active.data.current as {
-      columnName: string
-      columnType: AcceptedType
-    }
-    setDragItem({ name: columnName, type: columnType })
+    const data = event.active.data.current
+    if (!data || typeof data.columnName !== 'string' || typeof data.columnType !== 'string') return
+    setDragItem({ name: data.columnName, type: data.columnType as AcceptedType })
   }, [])
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
@@ -402,13 +403,14 @@ export function UnifiedVariableSelector({
     const { over, active } = event
     if (!over) return
 
-    const slotId = (over.data.current as { slotId?: string })?.slotId
+    const slotId = over.data.current && typeof over.data.current.slotId === 'string'
+      ? over.data.current.slotId : undefined
     if (!slotId) return
 
-    const { columnName, columnType } = active.data.current as {
-      columnName: string
-      columnType: AcceptedType
-    }
+    const data = active.data.current
+    if (!data || typeof data.columnName !== 'string' || typeof data.columnType !== 'string') return
+    const columnName = data.columnName
+    const columnType = data.columnType as AcceptedType
 
     const slot = slots.find(s => s.id === slotId)
     if (!slot || !isTypeAccepted(slot, columnType)) return

@@ -40,7 +40,6 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import type { AnalysisHistory } from '@/lib/stores/smart-flow-store'
-import { startNewAnalysis } from '@/lib/services/data-management'
 import type { AnalysisResult } from '@/types/smart-flow'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -73,7 +72,6 @@ export interface AnalysisHistoryPanelProps {
 export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
   const t = useTerminology()
   const [searchQuery, setSearchQuery] = useState('')
-  const [filterMethod, setFilterMethod] = useState<string | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
@@ -112,7 +110,6 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
     deleteFromHistory,
     clearHistory,
     saveToHistory,
-    reset
   } = useSmartFlowStore()
 
   // 삭제된 히스토리 ID가 pinnedIds에 남아있으면 정리 (방어적 백업)
@@ -148,10 +145,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
         item.purpose.toLowerCase().includes(searchQuery.toLowerCase()) ||
         methodName.toLowerCase().includes(searchQuery.toLowerCase())
 
-      const matchesFilter = filterMethod === null ||
-        methodId === filterMethod
-
-      return matchesSearch && matchesFilter
+      return matchesSearch
     })
 
     const pinnedSet = new Set(pinnedIds)
@@ -159,17 +153,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
       ...filtered.filter(h => pinnedSet.has(h.id)),
       ...filtered.filter(h => !pinnedSet.has(h.id)),
     ]
-  }, [analysisHistory, searchQuery, filterMethod, pinnedIds])
-
-  // 고유한 분석 방법 추출 (필터용) - id와 name 매핑
-  const uniqueMethods = analysisHistory
-    .filter(h => h.method?.id)
-    .reduce((acc, h) => {
-      if (h.method?.id && !acc.find(m => m.id === h.method?.id)) {
-        acc.push({ id: h.method.id, name: h.method.name || h.method.id })
-      }
-      return acc
-    }, [] as Array<{ id: string; name: string }>)
+  }, [analysisHistory, searchQuery, pinnedIds])
 
   const handleLoad = async (historyId: string) => {
     try {
@@ -208,11 +192,6 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
     setShowClearConfirm(false)
   }
 
-  const handleSaveCurrent = () => {
-    setSaveName('')
-    setShowSaveDialog(true)
-  }
-
   const handleSaveConfirm = async () => {
     if (saveName.trim()) {
       try {
@@ -222,16 +201,6 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
       } catch (err) {
         console.error('[HistoryPanel] Failed to save analysis:', err)
       }
-    }
-  }
-
-  const handleNewAnalysis = async () => {
-    try {
-      await startNewAnalysis()
-    } catch (error) {
-      console.error('Failed to start new analysis:', error)
-      // Fallback to basic reset
-      reset()
     }
   }
 
@@ -411,7 +380,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
                         {providerLabel[item.aiRecommendation.provider] ?? item.aiRecommendation.provider}
                       </span>
                       {item.aiRecommendation.provider !== 'keyword' && (
-                        <span>{Math.round(item.aiRecommendation.confidence * 100)}% 확신</span>
+                        <span>{Math.round(Math.min(item.aiRecommendation.confidence, 1) * 100)}% 확신</span>
                       )}
                       {item.aiRecommendation.reasoning.length > 0 && (
                         <button
