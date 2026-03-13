@@ -14,6 +14,9 @@ import {
   DragOverlay,
   useDraggable,
   useDroppable,
+  useSensors,
+  useSensor,
+  PointerSensor,
   type DragStartEvent,
   type DragEndEvent,
   pointerWithin,
@@ -270,6 +273,11 @@ export function UnifiedVariableSelector({
   initialSelection,
   className,
 }: UnifiedVariableSelectorProps) {
+  // dnd-kit: 5px 이동 후에만 드래그 시작 → 클릭과 드래그 구분
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  )
+
   const slots = useMemo(() => getSlotConfigs(selectorType), [selectorType])
 
   // Analyze dataset columns
@@ -292,15 +300,13 @@ export function UnifiedVariableSelector({
     buildInitialAssignments(slots, columns, initialSelection)
   )
 
-  // Sync assignments when initialSelection or selectorType changes after mount
-  // (e.g., AI detection results arrive late, or anova upgrades to two-way-anova)
-  // Note: slots/columns are intentionally excluded — they derive from selectorType/data
-  // and including them would cause unnecessary resets on every render
+  // Sync assignments when initialSelection, slots, or columns change after mount
+  // (e.g., AI detection results arrive late, anova upgrades to two-way-anova, or data replaced)
+  // slots/columns are useMemo results — stable references unless selectorType/data changes
   useEffect(() => {
     if (columns.length === 0) return
     setAssignments(buildInitialAssignments(slots, columns, initialSelection))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialSelection, selectorType])
+  }, [initialSelection, slots, columns])
 
   const [activeSlotId, setActiveSlotId] = useState<string | null>(null)
   const [dragItem, setDragItem] = useState<{ name: string; type: AcceptedType } | null>(null)
@@ -454,6 +460,7 @@ export function UnifiedVariableSelector({
       )}
 
       <DndContext
+        sensors={sensors}
         collisionDetection={pointerWithin}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
@@ -563,20 +570,22 @@ function buildInitialAssignments(
     const value = initial[slot.mappingKey]
     if (value === undefined || value === null) continue
 
-    if (slot.mappingKey === 'variables' && Array.isArray(value)) {
-      result[slot.id] = value.filter(v => colNames.has(v))
+    if (Array.isArray(value)) {
+      // Array input (e.g. variables: string[], covariate: string[])
+      result[slot.id] = value.filter(v => typeof v === 'string' && colNames.has(v))
     } else if (typeof value === 'string') {
-      if (slot.multiple) {
-        // comma-separated (groupVar for two-way-anova, independentVar for regression)
+      if (slot.multiple && slot.multipleFormat === 'comma') {
+        // Comma-separated string → split into array (e.g. groupVar, independentVar)
         const parts = value.split(',').map(s => s.trim()).filter(s => colNames.has(s))
         result[slot.id] = parts
+      } else if (slot.multiple) {
+        // Single string for a multiple-array slot → wrap in array
+        if (colNames.has(value)) result[slot.id] = [value]
       } else {
         if (colNames.has(value)) {
           result[slot.id] = [value]
         }
       }
-    } else if (Array.isArray(value)) {
-      result[slot.id] = value.filter(v => typeof v === 'string' && colNames.has(v))
     }
   }
 

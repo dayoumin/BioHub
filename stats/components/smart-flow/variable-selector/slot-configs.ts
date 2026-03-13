@@ -36,6 +36,8 @@ export interface SlotConfig {
   colorScheme: SlotColorScheme
   /** Key in VariableMapping to write to */
   mappingKey: keyof VariableMapping
+  /** How multiple values are serialized: 'array' keeps string[], 'comma' joins with comma (default: 'array') */
+  multipleFormat?: 'array' | 'comma'
 }
 
 /** SelectorType from VariableSelectionStep */
@@ -129,6 +131,7 @@ export function getSlotConfigs(selectorType: SelectorType): SlotConfig[] {
           maxCount: 10,
           colorScheme: 'highlight',
           mappingKey: 'independentVar',
+          multipleFormat: 'comma',
         },
       ]
 
@@ -209,6 +212,7 @@ export function getSlotConfigs(selectorType: SelectorType): SlotConfig[] {
           maxCount: 2,
           colorScheme: 'success',
           mappingKey: 'groupVar',
+          multipleFormat: 'comma',
         },
       ]
 
@@ -244,10 +248,17 @@ export function getSlotConfigs(selectorType: SelectorType): SlotConfig[] {
 
 /**
  * Maps a column type from variable-type-detector to slot AcceptedType.
- * 'continuous' → 'numeric', everything else → 'categorical'
+ * continuous/count/ordinal → 'numeric', categorical/binary/date → 'categorical'
  */
 export function toAcceptedType(variableType: string): AcceptedType {
-  return variableType === 'continuous' ? 'numeric' : 'categorical'
+  switch (variableType) {
+    case 'continuous':
+    case 'count':
+    case 'ordinal':
+      return 'numeric'
+    default:
+      return 'categorical'
+  }
 }
 
 /**
@@ -259,7 +270,10 @@ export function isTypeAccepted(slot: SlotConfig, variableType: AcceptedType): bo
 
 /**
  * Builds a VariableMapping from slot assignments.
- * Handles both single and multiple variable slots.
+ * Uses slot.multipleFormat to determine serialization:
+ * - 'comma': join with comma (e.g. independentVar for regression)
+ * - 'array' (default): keep as string[] (e.g. variables, covariate)
+ * Single-value slots always use assigned[0].
  */
 export function buildMappingFromSlots(
   slots: SlotConfig[],
@@ -271,22 +285,12 @@ export function buildMappingFromSlots(
     const assigned = assignments[slot.id]
     if (!assigned || assigned.length === 0) continue
 
+    const key = slot.mappingKey
     if (slot.multiple) {
-      if (slot.mappingKey === 'variables') {
-        mapping.variables = assigned
-      } else if (slot.mappingKey === 'covariate') {
-        mapping.covariate = assigned
-      } else if (slot.mappingKey === 'groupVar') {
-        // two-way-anova: factor(2) → groupVar as comma-separated
-        mapping.groupVar = assigned.join(',')
-      } else if (slot.mappingKey === 'independentVar') {
-        mapping.independentVar = assigned.join(',')
-      }
+      const value = slot.multipleFormat === 'comma' ? assigned.join(',') : assigned
+      ;(mapping as Record<string, unknown>)[key] = value
     } else {
-      const key = slot.mappingKey
-      if (key === 'dependentVar') mapping.dependentVar = assigned[0]
-      else if (key === 'independentVar') mapping.independentVar = assigned[0]
-      else if (key === 'groupVar') mapping.groupVar = assigned[0]
+      ;(mapping as Record<string, unknown>)[key] = assigned[0]
     }
   }
 

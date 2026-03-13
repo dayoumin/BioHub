@@ -31,25 +31,28 @@ interface VariableSelectionStepProps {
 }
 
 /**
- * Maps real statistical method IDs (from statistical-methods.ts) to selector types.
- * Only real IDs are listed — dead aliases are intentionally excluded.
+ * Maps method IDs to selector types.
+ * Primary IDs from method-mapping.ts (Smart Flow 실제 사용),
+ * Legacy aliases from statistical-methods.ts (하위 호환).
  */
 const SELECTOR_MAP: ReadonlyMap<string, SelectorType> = new Map([
+  // ─── IDs from method-mapping.ts (Smart Flow에서 실제 사용하는 ID) ───
   // One-sample tests
   ['one-sample-t',            'one-sample'],
   ['binomial-test',           'one-sample'],
   ['runs-test',               'one-sample'],
   ['mann-kendall',            'one-sample'],
+  ['normality-test',          'one-sample'],
+  ['homogeneity-test',        'one-sample'],
   // Paired / within-subjects
   ['paired-t',                'paired'],
   ['wilcoxon',                'paired'],
   ['sign-test',               'paired'],
   ['cochran-q',               'paired'],
-  // Group comparison
-  ['t-test',                  'group-comparison'],
+  // Group comparison (종속=numeric, 그룹=categorical)
+  ['two-sample-t',            'group-comparison'],   // 독립표본 t-검정
   ['welch-t',                 'group-comparison'],
-  ['welch-anova',             'group-comparison'],
-  ['anova',                   'group-comparison'],   // may upgrade to 'two-way-anova' below
+  ['one-way-anova',           'group-comparison'],   // may upgrade to 'two-way-anova' below
   ['ancova',                  'group-comparison'],
   ['mann-whitney',            'group-comparison'],
   ['kruskal-wallis',          'group-comparison'],
@@ -57,25 +60,28 @@ const SELECTOR_MAP: ReadonlyMap<string, SelectorType> = new Map([
   ['mood-median',             'group-comparison'],
   ['non-parametric',          'group-comparison'],
   ['means-plot',              'group-comparison'],
+  ['dunn-test',               'group-comparison'],
+  // Two-way ANOVA (직접 매핑)
+  ['two-way-anova',           'two-way-anova'],
   // Correlation / multivariate numeric
   ['correlation',             'correlation'],
   ['partial-correlation',     'correlation'],
-  ['normality-test',          'one-sample'],
-  ['friedman',                'auto'],  // 반복측정 비모수: 3+ numeric variables 필요
-  ['descriptive',             'correlation'],
+  ['descriptive-stats',       'correlation'],
   ['explore-data',            'correlation'],
   ['pca',                     'correlation'],
   ['factor-analysis',         'correlation'],
-  ['cluster',                 'correlation'],
-  ['reliability',             'correlation'],
+  ['k-means',                 'correlation'],
+  ['hierarchical',            'correlation'],
+  ['reliability-analysis',    'correlation'],
   // Multiple regression
-  ['regression',              'multiple-regression'],
+  ['simple-regression',       'multiple-regression'],
+  ['multiple-regression',     'multiple-regression'],
   ['logistic-regression',     'multiple-regression'],
-  ['poisson',                 'multiple-regression'],
+  ['poisson-regression',      'multiple-regression'],
   ['ordinal-regression',      'multiple-regression'],
   ['dose-response',           'multiple-regression'],
   ['response-surface',        'multiple-regression'],
-  ['stepwise',                'multiple-regression'],
+  ['stepwise-regression',     'multiple-regression'],
   // Chi-square / categorical
   ['chi-square',              'chi-square'],
   ['chi-square-goodness',     'chi-square'],
@@ -83,6 +89,7 @@ const SELECTOR_MAP: ReadonlyMap<string, SelectorType> = new Map([
   ['mcnemar',                 'chi-square'],
   ['proportion-test',         'chi-square'],
   // Auto-confirm (complex methods without custom variable UI)
+  ['friedman',                'auto'],
   ['repeated-measures-anova', 'auto'],
   ['manova',                  'auto'],
   ['mixed-model',             'auto'],
@@ -91,9 +98,18 @@ const SELECTOR_MAP: ReadonlyMap<string, SelectorType> = new Map([
   ['stationarity-test',       'auto'],
   ['kaplan-meier',            'auto'],
   ['cox-regression',          'auto'],
-  ['roc-curve',               'auto'],
   ['discriminant',            'auto'],
   ['power-analysis',          'auto'],
+  // ─── Legacy aliases (statistical-methods.ts ID → 호환성 유지) ───
+  ['t-test',                  'group-comparison'],
+  ['anova',                   'group-comparison'],
+  ['regression',              'multiple-regression'],
+  ['poisson',                 'multiple-regression'],
+  ['stepwise',                'multiple-regression'],
+  ['cluster',                 'correlation'],
+  ['reliability',             'correlation'],
+  ['descriptive',             'correlation'],
+  ['roc-curve',               'auto'],
 ])
 
 export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionStepProps) {
@@ -113,12 +129,12 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   const [optionsOpen, setOptionsOpen] = useState(false)
 
   // Determine selector type
-  // Special case: anova + AI detected 2+ factors → two-way-anova
+  // Special case: one-way-anova/anova + AI detected 2+ factors → two-way-anova
   const selectorType = useMemo((): SelectorType => {
     const id = selectedMethod?.id ?? ''
     const base = SELECTOR_MAP.get(id) ?? 'default'
     if (
-      id === 'anova' &&
+      (id === 'one-way-anova' || id === 'anova') &&
       detectedVariables?.factors &&
       detectedVariables.factors.length >= 2
     ) {
@@ -319,7 +335,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   }
 
   return (
-    <div className="space-y-6" data-testid="variable-selection-step">
+    <div className="space-y-6" data-testid="variable-selection-step" data-method-id={selectedMethod?.id ?? ''} data-selector-type={selectorType}>
       {/* Method indicator — compact, no double header */}
       {selectedMethod && (
         <div className="flex items-center gap-1.5">
