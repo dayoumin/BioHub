@@ -239,28 +239,44 @@ async function assignVarViaModal(
   }
 }
 
-/** Fallback: button text matching (모달 미지원 케이스 대응) */
+/** Fallback: variable-item → button text matching (모달 미지원 케이스 대응) */
 async function assignVarViaButtonFallback(page: Page, varNames: string[]): Promise<void> {
   for (const varName of varNames) {
+    // variable-item 시도
+    const varItem = page.locator(S.variableItem(varName))
+    if ((await varItem.count()) > 0) {
+      await varItem.first().click()
+      log('assignVar', `✓ ${varName} (variable-item)`)
+      await page.waitForTimeout(500)
+      continue
+    }
+    // button text fallback
     const btn = page.locator('button:not([disabled])').filter({ hasText: varName })
     if ((await btn.count()) > 0) {
       await btn.first().click()
       log('assignVar', `✓ ${varName} (button fallback)`)
       await page.waitForTimeout(300)
     } else {
-      log('assignVar', `WARN: button fallback for "${varName}" not found`)
+      log('assignVar', `WARN: fallback for "${varName}" not found`)
     }
   }
 }
 
-/** run-analysis-btn이 이미 활성화되어 있으면 true (자동 할당 완료) */
+/** run-analysis-btn이 이미 활성화되어 있으면 true (자동 할당 완료, 최대 10초 polling) */
 async function isAutoAssigned(page: Page): Promise<boolean> {
   const runBtn = page.locator(S.runAnalysisBtn)
-  await runBtn.waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {
+  await runBtn.waitFor({ state: 'visible', timeout: 20_000 }).catch(() => {
     log('autoAssign', 'run-analysis-btn not visible yet')
   })
-  await page.waitForTimeout(500)
-  return runBtn.isEnabled().catch(() => false)
+
+  for (let i = 0; i < 10; i++) {
+    if (await runBtn.isEnabled().catch(() => false)) {
+      log('autoAssign', `자동 할당 완료 (${i + 1}번째 폴링)`)
+      return true
+    }
+    await page.waitForTimeout(1000)
+  }
+  return false
 }
 
 /** AutoConfirm 방식 — 변수 자동 할당 대기 (KM, ROC 등) */

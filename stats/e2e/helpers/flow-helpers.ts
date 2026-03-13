@@ -239,47 +239,53 @@ export async function goToVariableSelection(page: Page): Promise<void> {
   }
 }
 
-/** 변수 선택 — 모달 기반 (roleZone → modalVar → confirm), fallback: 텍스트 매칭 */
+/** 변수 선택 — 모달 기반 (roleZone → modalVar → confirm), fallback: variable-item 클릭 */
 export async function selectVariables(
   page: Page,
   independentVar: string,
   dependentVar: string,
 ): Promise<void> {
-  // 모달 기반 시도: independent role zone
-  const indepZone = page.locator(S.roleZone('independent'))
-  if ((await indepZone.count()) > 0) {
-    await selectVarViaModal(page, 'independent', independentVar)
-    await selectVarViaModal(page, 'dependent', dependentVar)
-    return
+  // 1. 모달 기반 시도: 존재하는 role zone 찾기
+  for (const role of ['independent', 'factor', 'group']) {
+    const zone = page.locator(S.roleZone(role))
+    if ((await zone.count()) > 0) {
+      log('selectVars', `role-zone-${role} found, modal 시도`)
+      await selectVarViaModal(page, role, independentVar)
+      await selectVarViaModal(page, 'dependent', dependentVar)
+      return
+    }
   }
 
-  // factor role zone (ANOVA 계열)
-  const factorZone = page.locator(S.roleZone('factor'))
-  if ((await factorZone.count()) > 0) {
-    await selectVarViaModal(page, 'factor', independentVar)
-    await selectVarViaModal(page, 'dependent', dependentVar)
-    return
-  }
-
-  // Fallback: button text matching
-  log('selectVars', `WARN: roleZone not found, using button fallback`)
-  const indepBtn = page.locator('button:not([disabled])').filter({ hasText: independentVar })
-  if ((await indepBtn.count()) > 0) {
-    await indepBtn.first().click()
-    log('selectVars', `독립변수: ${independentVar} (button fallback)`)
+  // 2. variable-item 클릭 fallback (좌측 패널의 변수 아이템 클릭)
+  log('selectVars', 'roleZone not found, variable-item fallback 시도')
+  const indepItem = page.locator(S.variableItem(independentVar))
+  if ((await indepItem.count()) > 0) {
+    await indepItem.first().click()
+    log('selectVars', `variable-item-${independentVar} 클릭`)
     await page.waitForTimeout(1000)
   }
 
-  const depBtn = page.locator('button:not([disabled])').filter({ hasText: dependentVar })
-  const count = await depBtn.count()
-  if (count > 1) {
-    await depBtn.nth(1).click()
-    log('selectVars', `종속변수: ${dependentVar} (nth=1, button fallback)`)
-  } else if (count === 1) {
-    await depBtn.first().click()
-    log('selectVars', `종속변수: ${dependentVar} (button fallback)`)
+  const depItem = page.locator(S.variableItem(dependentVar))
+  if ((await depItem.count()) > 0) {
+    await depItem.first().click()
+    log('selectVars', `variable-item-${dependentVar} 클릭`)
+    await page.waitForTimeout(1000)
   }
-  await page.waitForTimeout(500)
+
+  // 3. 최후 fallback: button text matching
+  if ((await indepItem.count()) === 0 && (await depItem.count()) === 0) {
+    log('selectVars', 'WARN: variable-item도 미발견, button text fallback')
+    const indepBtn = page.locator('button:not([disabled])').filter({ hasText: independentVar })
+    if ((await indepBtn.count()) > 0) {
+      await indepBtn.first().click()
+      await page.waitForTimeout(1000)
+    }
+    const depBtn = page.locator('button:not([disabled])').filter({ hasText: dependentVar })
+    if ((await depBtn.count()) > 0) {
+      await depBtn.first().click()
+      await page.waitForTimeout(500)
+    }
+  }
 }
 
 /** 단일 role에 단일 변수 모달 할당 */
