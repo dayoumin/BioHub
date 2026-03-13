@@ -21,18 +21,30 @@ export function useCountUp(
 ): string {
   const { duration = 600, decimals = 2, started = true } = options
 
-  const [displayValue, setDisplayValue] = useState<string>(
-    target == null ? '-' : (0).toFixed(decimals)
-  )
+  // lazy initialization: 첫 렌더링부터 reduced-motion 반영 (애니메이션 flash 방지)
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) {
+      return false
+    }
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  })
+
+  const [displayValue, setDisplayValue] = useState<string>(() => {
+    if (target == null) return '-'
+    // reduced-motion: 첫 렌더링부터 최종값 (0 → target flash 방지)
+    if (prefersReducedMotion && started) return target.toFixed(decimals)
+    return (0).toFixed(decimals)
+  })
   const rafRef = useRef<number | null>(null)
   const startTimeRef = useRef<number | null>(null)
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
 
-  // prefers-reduced-motion 감지 (useEffect로 hydration mismatch 방지)
+  // 실시간 변경 감지 (사용자가 OS 설정을 바꿀 때)
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.matchMedia) {
-      setPrefersReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-    }
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
   }, [])
 
   useEffect(() => {

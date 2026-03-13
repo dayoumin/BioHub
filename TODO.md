@@ -460,7 +460,6 @@
 |------|------|------|
 | **대형 컴포넌트 분리** | `ResultsActionStep.tsx` (~1000줄) | Hero/Stats/Charts/Actions 4개 하위 컴포넌트 |
 | **대형 컴포넌트 분리** | `PurposeInputStep.tsx` (789줄) | 입력/추천/가이드 3개 분리 |
-| **RAG 중복 제거** | RAG 3파일 (~60% 중복) | `useRAGChat` 공통 훅 추출 |
 | **God component 분리** | `app/page.tsx` (527줄, 20+ callbacks) | 레이아웃/콘텐츠 분리 |
 | **하드코딩 한국어** | 다수 파일 | terminology 시스템 미사용 잔여분 |
 | **기존 실패 테스트 9건** | 3개 테스트 파일 | 셀렉터 불일치 + 타입 변경 미반영 |

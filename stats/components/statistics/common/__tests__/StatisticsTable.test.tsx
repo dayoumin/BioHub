@@ -411,6 +411,19 @@ describe('StatisticsTable', () => {
         { name: 'Var "A"', mean: 1.5, pValue: 0.03 },
       ]
 
+      // Blob 생성자를 래핑하여 전달된 CSV 내용을 캡처
+      const blobParts: string[] = []
+      const OriginalBlob = globalThis.Blob
+      class BlobSpy extends OriginalBlob {
+        constructor(parts: BlobPart[], options?: BlobPropertyBag) {
+          super(parts, options)
+          for (const part of parts) {
+            if (typeof part === 'string') blobParts.push(part)
+          }
+        }
+      }
+      globalThis.Blob = BlobSpy as typeof Blob
+
       render(
         <StatisticsTable
           title="테스트"
@@ -420,16 +433,19 @@ describe('StatisticsTable', () => {
         />
       )
 
-      const createElementSpy = vi.spyOn(document, 'createElement')
-
       // DropdownMenu mock으로 메뉴 항목이 항상 렌더링됨
       const csvItem = screen.getByText('CSV 다운로드')
       fireEvent.click(csvItem)
 
-      // Blob 생성 시 " → "" 이스케이프 확인
-      expect(createElementSpy).toHaveBeenCalledWith('a')
-      const blobCall = (globalThis.URL.createObjectURL as ReturnType<typeof vi.fn>).mock.calls
-      expect(blobCall.length).toBeGreaterThan(0)
+      // Blob에 전달된 CSV 내용 검증
+      expect(blobParts.length).toBeGreaterThan(0)
+      const csvContent = blobParts.join('')
+
+      // RFC 4180: 쌍따옴표 포함 필드는 쌍따옴표로 감싸고, 내부 "는 ""로 이스케이프
+      expect(csvContent).toContain('"Var ""A"""')
+
+      // Blob 복원
+      globalThis.Blob = OriginalBlob
     })
   })
 
