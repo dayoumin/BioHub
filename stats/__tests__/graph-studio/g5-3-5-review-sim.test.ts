@@ -187,7 +187,7 @@ describe('SIM-2: dataZoom 병합 로직', () => {
   it('facet 활성 차트는 dataZoom 추가 안 함', () => {
     const spec = makeSpec({
       chartType: 'bar',
-      facet: { field: 'category', columns: 2 },
+      facet: { field: 'category', ncol: 2 },
     });
     const base = { series: [], xAxis: {}, yAxis: {} }; // simplified
     const result = mergeDataZoom(base, spec);
@@ -300,14 +300,14 @@ describe('SIM-4: zoomEnabled 조건', () => {
   it('facet 활성 bar → 줌 비활성', () => {
     expect(isZoomEnabled(makeSpec({
       chartType: 'bar',
-      facet: { field: 'category', columns: 2 },
+      facet: { field: 'category', ncol: 2 },
     }))).toBe(false);
   });
 
   it('facet 활성 scatter → 줌 비활성', () => {
     expect(isZoomEnabled(makeSpec({
       chartType: 'scatter',
-      facet: { field: 'category', columns: 2 },
+      facet: { field: 'category', ncol: 2 },
     }))).toBe(false);
   });
 

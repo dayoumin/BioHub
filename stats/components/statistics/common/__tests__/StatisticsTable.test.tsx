@@ -15,7 +15,23 @@ Object.assign(navigator, {
 global.URL.createObjectURL = vi.fn(() => 'blob:mock-url')
 global.URL.revokeObjectURL = vi.fn()
 
+// Mock DropdownMenu (JSDOM Portal 한계 해결)
+vi.mock('@/components/ui/dropdown-menu', () => ({
+  DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DropdownMenuItem: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
+    <button onClick={onClick}>{children}</button>
+  ),
+  DropdownMenuSeparator: () => <hr />,
+}))
+
 describe('StatisticsTable', () => {
+  beforeEach(() => {
+    vi.mocked(navigator.clipboard.writeText).mockClear()
+    vi.mocked(URL.createObjectURL).mockClear()
+  })
+
   const mockColumns: TableColumn[] = [
     {
       key: 'name',
@@ -167,7 +183,7 @@ describe('StatisticsTable', () => {
         {
           key: 'value',
           header: '값',
-          formatter: (value) => <span className="custom-format">커스텀: {value}</span>
+          formatter: (value) => <span className="custom-format">커스텀: {String(value)}</span>
         }
       ]
 
@@ -328,7 +344,7 @@ describe('StatisticsTable', () => {
   })
 
   describe('액션 버튼', () => {
-    it('클립보드 복사가 작동해야 함', async () => {
+    it('클립보드 복사가 작동해야 함', () => {
       render(
         <StatisticsTable
           title="테스트"
@@ -338,12 +354,11 @@ describe('StatisticsTable', () => {
         />
       )
 
-      const copyButton = screen.getByTitle('클립보드 복사')
-      fireEvent.click(copyButton)
+      // DropdownMenu mock으로 메뉴 항목이 항상 렌더링됨
+      const excelCopyItem = screen.getByText('Excel 복사 (탭 구분)')
+      fireEvent.click(excelCopyItem)
 
-      await waitFor(() => {
-        expect(navigator.clipboard.writeText).toHaveBeenCalled()
-      })
+      expect(navigator.clipboard.writeText).toHaveBeenCalled()
     })
 
     it('CSV 다운로드가 작동해야 함', () => {
@@ -356,14 +371,12 @@ describe('StatisticsTable', () => {
         />
       )
 
-      const downloadButton = screen.getByTitle('CSV 다운로드')
-
       // DOM에 임시 a 태그 생성을 모킹
       const createElementSpy = vi.spyOn(document, 'createElement')
-      const appendChildSpy = vi.spyOn(document.body, 'appendChild')
-      const removeChildSpy = vi.spyOn(document.body, 'removeChild')
 
-      fireEvent.click(downloadButton)
+      // DropdownMenu mock으로 메뉴 항목이 항상 렌더링됨
+      const csvItem = screen.getByText('CSV 다운로드')
+      fireEvent.click(csvItem)
 
       expect(createElementSpy).toHaveBeenCalledWith('a')
       expect(URL.createObjectURL).toHaveBeenCalled()
@@ -419,7 +432,7 @@ describe('StatisticsTable', () => {
         {
           key: 'value',
           header: '값',
-          highlight: (value) => value > 30 ? 'positive' : 'negative'
+          highlight: (value) => (typeof value === 'number' && value > 30) ? 'positive' : 'negative'
         }
       ]
 

@@ -158,7 +158,9 @@ describe('SmartFlowLayout', () => {
     it('컴포넌트가 정상적으로 렌더링되어야 함', () => {
       render(<SmartFlowLayout {...defaultProps} />)
 
-      expect(screen.getByText('NIFS 통계 분석')).toBeInTheDocument()
+      // 헤더 아이콘 버튼 (AI 챗봇, 도움말) 존재 확인
+      expect(screen.getByTitle('AI 챗봇')).toBeInTheDocument()
+      expect(screen.getByTitle('도움말')).toBeInTheDocument()
       expect(screen.getByTestId('test-content')).toBeInTheDocument()
     })
 
@@ -199,33 +201,18 @@ describe('SmartFlowLayout', () => {
       expect(screen.getByTestId('history-panel')).toBeInTheDocument()
     })
 
-    it('historyCount > 0일 때 히스토리 토글 버튼이 표시되어야 함', () => {
-      const onHistoryToggle = vi.fn()
-
-      render(
-        <SmartFlowLayout
-          {...defaultProps}
-          onHistoryToggle={onHistoryToggle}
-          historyCount={3}
-        />
-      )
-
-      const historyButton = screen.getByTitle('히스토리 (3개)')
-      fireEvent.click(historyButton)
-
-      expect(onHistoryToggle).toHaveBeenCalledTimes(1)
-    })
-
-    it('historyCount=0이어도 히스토리 버튼이 표시된다 (항상 접근 가능)', () => {
+    it('historyCount prop이 전달되어도 컴포넌트가 정상 렌더링되어야 함', () => {
       render(
         <SmartFlowLayout
           {...defaultProps}
           onHistoryToggle={vi.fn()}
-          historyCount={0}
+          historyCount={3}
         />
       )
 
-      expect(screen.getByTitle(/히스토리/)).toBeInTheDocument()
+      // 히스토리 토글 버튼은 상위 컴포넌트(AppSidebar)로 이전됨
+      // SmartFlowLayout은 Sheet만 관리
+      expect(screen.getByTestId('test-content')).toBeInTheDocument()
     })
   })
 
@@ -320,8 +307,7 @@ describe('SmartFlowLayout', () => {
 
       expect(screen.getByTitle('AI 챗봇')).toBeInTheDocument()
       expect(screen.getByTitle('도움말')).toBeInTheDocument()
-      // 설정 버튼은 AppSidebar 하단으로 이전됨
-      expect(screen.getByTitle('히스토리 (1개)')).toBeInTheDocument()
+      // 히스토리 토글 + 설정 버튼은 AppSidebar로 이전됨
     })
   })
 

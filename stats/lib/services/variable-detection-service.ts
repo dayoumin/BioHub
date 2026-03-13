@@ -38,18 +38,20 @@ const GROUP_COMPARISON_CATEGORIES = new Set(['t-test', 'anova', 'chi-square', 'n
  */
 export function extractDetectedVariables(
   methodId: string,
-  validationResults: { columns?: ColumnStatistics[] } | null | undefined,
+  validationResults: { columns?: ColumnStatistics[]; columnStats?: ColumnStatistics[] } | null | undefined,
   recommendation?: AIRecommendation | null
 ): DetectedVariablesResult {
-  const numericCols = validationResults?.columns
-    ?.filter((col: ColumnStatistics) => col.type === 'numeric')
-    ?.map((col: ColumnStatistics) => col.name) || []
-  const categoricalCols = validationResults?.columns
-    ?.filter((col: ColumnStatistics) => col.type === 'categorical')
-    ?.map((col: ColumnStatistics) => col.name) || []
+  // columns 우선, columnStats는 backward-compat 폴백
+  const cols = validationResults?.columns ?? validationResults?.columnStats ?? []
+  const numericCols = cols
+    .filter((col: ColumnStatistics) => col.type === 'numeric')
+    .map((col: ColumnStatistics) => col.name)
+  const categoricalCols = cols
+    .filter((col: ColumnStatistics) => col.type === 'categorical')
+    .map((col: ColumnStatistics) => col.name)
   // 모든 컬럼 이름 (mixed 포함)
   const allCols = new Set(
-    validationResults?.columns?.map((col: ColumnStatistics) => col.name) || []
+    cols.map((col: ColumnStatistics) => col.name)
   )
 
   const detectedVars: DetectedVariablesResult = {}
@@ -160,7 +162,7 @@ export function extractDetectedVariables(
 
   // ─── 3순위: 메서드별 데이터 기반 추론 ───
   if (methodId === 'kaplan-meier' || methodId === 'cox-regression') {
-    const allColumns = validationResults?.columns || []
+    const allColumns = cols
     const binaryCol = allColumns.find(
       (col: ColumnStatistics) => col.type === 'numeric' && col.uniqueValues === 2
         && col.min === 0 && col.max === 1
@@ -172,14 +174,13 @@ export function extractDetectedVariables(
       const timeCol = numericCols.find(n => n !== binaryCol?.name)
       if (timeCol) detectedVars.dependentCandidate = timeCol
     }
-    if (!detectedVars.groupVariable && categoricalCols.length > 0) {
+    // 생존분석: ID 컬럼 제외 후 groupVariable 재할당 (2순위 naive 할당 덮어쓰기)
+    if (categoricalCols.length > 0) {
       const nonIdCategorical = categoricalCols.find(name => {
         const col = allColumns.find((c: ColumnStatistics) => c.name === name)
         return !col?.idDetection?.isId
       })
-      if (nonIdCategorical) {
-        detectedVars.groupVariable = nonIdCategorical
-      }
+      detectedVars.groupVariable = nonIdCategorical // 모든 categorical이 ID면 undefined
     }
     detectedVars.numericVars = numericCols
   } else if (methodId === 'two-way-anova' || methodId === 'three-way-anova') {

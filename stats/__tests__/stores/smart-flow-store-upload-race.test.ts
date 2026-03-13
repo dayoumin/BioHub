@@ -126,7 +126,7 @@ describe('Smart Flow Store - Upload Race Conditions', () => {
 
       // Step 2/4: 가정 검정 결과가 먼저 도착
       const assumptions = {
-        normalityTest: { statistic: 0.95, pValue: 0.3, isNormal: true, testUsed: 'shapiro-wilk' as const },
+        normality: { shapiroWilk: { statistic: 0.95, pValue: 0.3, isNormal: true } },
       }
       act(() => { useSmartFlowStore.getState().setAssumptionResults(assumptions) })
       expect(useSmartFlowStore.getState().assumptionResults).not.toBeNull()
@@ -141,7 +141,7 @@ describe('Smart Flow Store - Upload Race Conditions', () => {
       // normality가 추가되었고 assumptionResults가 살아 있어야 함
       expect(useSmartFlowStore.getState().validationResults?.columnStats?.[0].normality).toBeTruthy()
       expect(useSmartFlowStore.getState().assumptionResults).not.toBeNull()
-      expect(useSmartFlowStore.getState().assumptionResults?.normalityTest?.pValue).toBe(0.3)
+      expect(useSmartFlowStore.getState().assumptionResults?.normality?.shapiroWilk?.pValue).toBe(0.3)
     })
 
     it('methodCompatibility를 보존한다', () => {
@@ -185,7 +185,7 @@ describe('Smart Flow Store - Upload Race Conditions', () => {
 
       // 가정 검정 결과 도착
       const assumptions = {
-        normalityTest: { statistic: 0.95, pValue: 0.3, isNormal: true, testUsed: 'shapiro-wilk' as const },
+        normality: { shapiroWilk: { statistic: 0.95, pValue: 0.3, isNormal: true } },
       }
       act(() => { useSmartFlowStore.getState().setAssumptionResults(assumptions) })
       expect(useSmartFlowStore.getState().assumptionResults).not.toBeNull()
@@ -202,7 +202,7 @@ describe('Smart Flow Store - Upload Race Conditions', () => {
       act(() => { useSmartFlowStore.getState().setValidationResults(validation) })
 
       const assumptions = {
-        normalityTest: { statistic: 0.95, pValue: 0.3, isNormal: true, testUsed: 'shapiro-wilk' as const },
+        normality: { shapiroWilk: { statistic: 0.95, pValue: 0.3, isNormal: true } },
       }
       act(() => { useSmartFlowStore.getState().setAssumptionResults(assumptions) })
       expect(useSmartFlowStore.getState().assumptionResults).not.toBeNull()
@@ -216,7 +216,7 @@ describe('Smart Flow Store - Upload Race Conditions', () => {
 
       // 둘 다 존재
       expect(useSmartFlowStore.getState().validationResults?.columnStats?.[0].normality).toBeTruthy()
-      expect(useSmartFlowStore.getState().assumptionResults?.normalityTest?.pValue).toBe(0.3)
+      expect(useSmartFlowStore.getState().assumptionResults?.normality?.shapiroWilk?.pValue).toBe(0.3)
     })
   })
 })
