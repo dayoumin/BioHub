@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Histogram } from '@/components/charts/histogram'
 import { BoxPlot } from '@/components/charts/boxplot'
 import { Scatterplot } from '@/components/charts/scatterplot'
-import { CorrelationHeatmap } from '@/components/smart-flow/steps/validation/charts/CorrelationHeatmap'
+import { CorrelationHeatmap } from '@/components/analysis/steps/validation/charts/CorrelationHeatmap'
 
 // 샘플 데이터
 const sampleHistogramData = [

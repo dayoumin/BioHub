@@ -319,7 +319,7 @@ export interface ComparisonMeta {
 
 export interface DataPackage {
   id: string;
-  source: 'smart-flow' | 'bio-tools' | 'upload' | 'species-checker';
+  source: 'analysis' | 'bio-tools' | 'upload' | 'species-checker';
   label: string;
   columns: ColumnMeta[];
   data: Record<string, unknown[]>;

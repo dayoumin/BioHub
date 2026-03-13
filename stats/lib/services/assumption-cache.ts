@@ -18,7 +18,7 @@
  * }
  */
 
-import type { StatisticalAssumptions } from '@/types/smart-flow'
+import type { StatisticalAssumptions } from '@/types/analysis'
 
 /**
  * 정규성 검정 결과 타입
@@ -221,7 +221,7 @@ class AssumptionCacheService {
   /**
    * Smart Flow StatisticalAssumptions 결과를 캐시에 일괄 저장
    */
-  cacheFromSmartFlowAssumptions(
+  cacheFromAnalysisAssumptions(
     assumptions: StatisticalAssumptions,
     dataInfo: {
       numericVariable?: string

@@ -41,7 +41,7 @@ import type {
   ValidationResults,
   DataRow,
   FlowChatMessage
-} from '@/types/smart-flow'
+} from '@/types/analysis'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import { openRouterRecommender } from './openrouter-recommender'
 import { ollamaRecommender } from './ollama-recommender'

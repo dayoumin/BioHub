@@ -23,7 +23,7 @@ import type {
   StatisticalAssumptions,
   ValidationResults,
   DataRow
-} from '@/types/smart-flow'
+} from '@/types/analysis'
 import { logger } from '@/lib/utils/logger'
 
 interface OllamaConfig {

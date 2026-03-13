@@ -34,7 +34,7 @@ vi.mock('@/lib/utils/adapters/indexeddb-adapter', () => ({
   isIndexedDBAvailable: isIndexedDBAvailableMock,
 }))
 
-import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import type { AiRecommendationContext } from '@/lib/utils/storage-types'
 
 // ===== 공통 픽스처 =====
@@ -131,21 +131,21 @@ describe('Smart Flow Store — lastAiRecommendation 생명주기', () => {
     saveHistoryMock.mockResolvedValue(undefined)
 
     act(() => {
-      useSmartFlowStore.getState().reset()
+      useAnalysisStore.getState().reset()
     })
   })
 
   it('초기 상태는 null이다', () => {
-    expect(useSmartFlowStore.getState().lastAiRecommendation).toBeNull()
+    expect(useAnalysisStore.getState().lastAiRecommendation).toBeNull()
   })
 
   it('setLastAiRecommendation으로 context를 저장한다', () => {
     const ctx = makeAiContext()
     act(() => {
-      useSmartFlowStore.getState().setLastAiRecommendation(ctx)
+      useAnalysisStore.getState().setLastAiRecommendation(ctx)
     })
 
-    const rec = useSmartFlowStore.getState().lastAiRecommendation
+    const rec = useAnalysisStore.getState().lastAiRecommendation
     expect(rec).not.toBeNull()
     expect(rec?.userQuery).toBe('두 그룹 평균을 비교하고 싶어요')
     expect(rec?.confidence).toBe(0.9)
@@ -154,36 +154,36 @@ describe('Smart Flow Store — lastAiRecommendation 생명주기', () => {
 
   it('setLastAiRecommendation(null)로 명시적 해제 가능', () => {
     act(() => {
-      useSmartFlowStore.getState().setLastAiRecommendation(makeAiContext())
+      useAnalysisStore.getState().setLastAiRecommendation(makeAiContext())
     })
-    expect(useSmartFlowStore.getState().lastAiRecommendation).not.toBeNull()
+    expect(useAnalysisStore.getState().lastAiRecommendation).not.toBeNull()
 
     act(() => {
-      useSmartFlowStore.getState().setLastAiRecommendation(null)
+      useAnalysisStore.getState().setLastAiRecommendation(null)
     })
-    expect(useSmartFlowStore.getState().lastAiRecommendation).toBeNull()
+    expect(useAnalysisStore.getState().lastAiRecommendation).toBeNull()
   })
 
   it('resetSession 후 null로 초기화된다', () => {
     // Before: 값 설정
     act(() => {
-      useSmartFlowStore.getState().setLastAiRecommendation(makeAiContext())
+      useAnalysisStore.getState().setLastAiRecommendation(makeAiContext())
     })
-    expect(useSmartFlowStore.getState().lastAiRecommendation).not.toBeNull()
+    expect(useAnalysisStore.getState().lastAiRecommendation).not.toBeNull()
 
     // After: resetSession
     act(() => {
-      useSmartFlowStore.getState().resetSession()
+      useAnalysisStore.getState().resetSession()
     })
-    expect(useSmartFlowStore.getState().lastAiRecommendation).toBeNull()
+    expect(useAnalysisStore.getState().lastAiRecommendation).toBeNull()
   })
 
   it('reset() 후에도 null이다', () => {
     act(() => {
-      useSmartFlowStore.getState().setLastAiRecommendation(makeAiContext())
-      useSmartFlowStore.getState().reset()
+      useAnalysisStore.getState().setLastAiRecommendation(makeAiContext())
+      useAnalysisStore.getState().reset()
     })
-    expect(useSmartFlowStore.getState().lastAiRecommendation).toBeNull()
+    expect(useAnalysisStore.getState().lastAiRecommendation).toBeNull()
   })
 })
 
@@ -199,7 +199,7 @@ describe('saveToHistory — aiRecommendation 포함/미포함', () => {
     saveHistoryMock.mockResolvedValue(undefined)
 
     act(() => {
-      useSmartFlowStore.getState().reset()
+      useAnalysisStore.getState().reset()
     })
   })
 
@@ -207,13 +207,13 @@ describe('saveToHistory — aiRecommendation 포함/미포함', () => {
     const ctx = makeAiContext()
 
     act(() => {
-      const store = useSmartFlowStore.getState()
+      const store = useAnalysisStore.getState()
       store.setResults({ method: 't-test', pValue: 0.03 } as never)
       store.setLastAiRecommendation(ctx)
     })
 
     await act(async () => {
-      await useSmartFlowStore.getState().saveToHistory('AI 추천 분석')
+      await useAnalysisStore.getState().saveToHistory('AI 추천 분석')
     })
 
     expect(saveHistoryMock).toHaveBeenCalledTimes(1)
@@ -231,11 +231,11 @@ describe('saveToHistory — aiRecommendation 포함/미포함', () => {
   it('lastAiRecommendation이 null이면 record.aiRecommendation도 null이다', async () => {
     act(() => {
       // results만 설정, AI 추천 없이 수동 분석
-      useSmartFlowStore.getState().setResults({ method: 'anova', pValue: 0.001 } as never)
+      useAnalysisStore.getState().setResults({ method: 'anova', pValue: 0.001 } as never)
     })
 
     await act(async () => {
-      await useSmartFlowStore.getState().saveToHistory('수동 분석')
+      await useAnalysisStore.getState().saveToHistory('수동 분석')
     })
 
     expect(saveHistoryMock).toHaveBeenCalledTimes(1)
@@ -246,11 +246,11 @@ describe('saveToHistory — aiRecommendation 포함/미포함', () => {
   it('results가 null이면 saveToHistory가 아무것도 하지 않는다', async () => {
     act(() => {
       // results 없이 lastAiRecommendation만 설정
-      useSmartFlowStore.getState().setLastAiRecommendation(makeAiContext())
+      useAnalysisStore.getState().setLastAiRecommendation(makeAiContext())
     })
 
     await act(async () => {
-      await useSmartFlowStore.getState().saveToHistory('결과 없는 분석')
+      await useAnalysisStore.getState().saveToHistory('결과 없는 분석')
     })
 
     // results=null이므로 조기 리턴 → saveHistory 미호출
@@ -260,22 +260,22 @@ describe('saveToHistory — aiRecommendation 포함/미포함', () => {
   it('연속 두 번 저장 시 각각 올바른 aiRecommendation을 갖는다', async () => {
     // 첫 번째 분석 (AI 추천)
     act(() => {
-      const store = useSmartFlowStore.getState()
+      const store = useAnalysisStore.getState()
       store.setResults({ method: 't-test' } as never)
       store.setLastAiRecommendation(makeAiContext({ userQuery: '첫 번째 질문' }))
     })
     await act(async () => {
-      await useSmartFlowStore.getState().saveToHistory('분석 1')
+      await useAnalysisStore.getState().saveToHistory('분석 1')
     })
 
     // 두 번째 분석 (수동)
     act(() => {
-      const store = useSmartFlowStore.getState()
+      const store = useAnalysisStore.getState()
       store.setResults({ method: 'anova' } as never)
       store.setLastAiRecommendation(null) // 수동 선택
     })
     await act(async () => {
-      await useSmartFlowStore.getState().saveToHistory('분석 2')
+      await useAnalysisStore.getState().saveToHistory('분석 2')
     })
 
     expect(saveHistoryMock).toHaveBeenCalledTimes(2)
@@ -300,61 +300,61 @@ describe('loadFromHistory / loadSettingsFromHistory — lastAiRecommendation 초
     getHistoryMock.mockResolvedValue(mockRecord)
 
     act(() => {
-      useSmartFlowStore.getState().reset()
+      useAnalysisStore.getState().reset()
     })
   })
 
   it('loadFromHistory 후 lastAiRecommendation은 null이다 (이전 세션 오염 방지)', async () => {
     // Before: 현재 세션에 AI 추천이 있다
     act(() => {
-      useSmartFlowStore.getState().setLastAiRecommendation(makeAiContext())
+      useAnalysisStore.getState().setLastAiRecommendation(makeAiContext())
     })
-    expect(useSmartFlowStore.getState().lastAiRecommendation).not.toBeNull()
+    expect(useAnalysisStore.getState().lastAiRecommendation).not.toBeNull()
 
     // 히스토리 로드
     await act(async () => {
-      await useSmartFlowStore.getState().loadFromHistory('test-record-001')
+      await useAnalysisStore.getState().loadFromHistory('test-record-001')
     })
 
     // After: lastAiRecommendation은 null (히스토리의 aiRecommendation이 아님)
-    expect(useSmartFlowStore.getState().lastAiRecommendation).toBeNull()
+    expect(useAnalysisStore.getState().lastAiRecommendation).toBeNull()
     // 분석 결과는 복원됨
-    expect(useSmartFlowStore.getState().results).not.toBeNull()
+    expect(useAnalysisStore.getState().results).not.toBeNull()
   })
 
   it('loadSettingsFromHistory 후 lastAiRecommendation은 null이다', async () => {
     // Before: 현재 세션에 AI 추천이 있다
     act(() => {
-      useSmartFlowStore.getState().setLastAiRecommendation(makeAiContext({ confidence: 0.95 }))
+      useAnalysisStore.getState().setLastAiRecommendation(makeAiContext({ confidence: 0.95 }))
     })
-    expect(useSmartFlowStore.getState().lastAiRecommendation).not.toBeNull()
+    expect(useAnalysisStore.getState().lastAiRecommendation).not.toBeNull()
 
     // 설정만 복원 (재분석 모드)
     await act(async () => {
-      await useSmartFlowStore.getState().loadSettingsFromHistory('test-record-001')
+      await useAnalysisStore.getState().loadSettingsFromHistory('test-record-001')
     })
 
     // After: lastAiRecommendation은 null
-    expect(useSmartFlowStore.getState().lastAiRecommendation).toBeNull()
+    expect(useAnalysisStore.getState().lastAiRecommendation).toBeNull()
     // 설정은 복원됨
-    expect(useSmartFlowStore.getState().selectedMethod?.id).toBe('t-test')
+    expect(useAnalysisStore.getState().selectedMethod?.id).toBe('t-test')
     // 결과는 비워짐 (재분석 목적)
-    expect(useSmartFlowStore.getState().results).toBeNull()
+    expect(useAnalysisStore.getState().results).toBeNull()
   })
 
   it('getHistory가 null을 반환하면 loadFromHistory는 상태를 변경하지 않는다', async () => {
     getHistoryMock.mockResolvedValueOnce(null)
 
     act(() => {
-      useSmartFlowStore.getState().setLastAiRecommendation(makeAiContext())
+      useAnalysisStore.getState().setLastAiRecommendation(makeAiContext())
     })
 
     await act(async () => {
-      await useSmartFlowStore.getState().loadFromHistory('nonexistent-id')
+      await useAnalysisStore.getState().loadFromHistory('nonexistent-id')
     })
 
     // record 없으므로 set() 호출 안 됨 → lastAiRecommendation 그대로
-    expect(useSmartFlowStore.getState().lastAiRecommendation).not.toBeNull()
+    expect(useAnalysisStore.getState().lastAiRecommendation).not.toBeNull()
   })
 })
 

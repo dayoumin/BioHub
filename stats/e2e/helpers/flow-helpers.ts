@@ -2,7 +2,7 @@
  * Smart Flow E2E Shared Helpers
  *
  * Phase 1·2 공통 헬퍼 — data-testid(S 레지스트리) 기반.
- * smart-flow-e2e.spec.ts에서 검증 완료된 로직을 추출.
+ * analysis-e2e.spec.ts에서 검증 완료된 로직을 추출.
  */
 
 import { Page } from '@playwright/test'
@@ -125,7 +125,9 @@ export async function uploadCSV(page: Page, filename: string): Promise<boolean> 
 
   await page
     .waitForFunction(
-      () => document.querySelector('[data-testid="data-profile-summary"]') !== null,
+      () =>
+        document.querySelector('[data-testid="data-profile-summary"]') !== null ||
+        document.querySelector('[data-testid="data-exploration-step"]') !== null,
       { timeout: 15000 },
     )
     .catch(() => log('upload', 'validation wait timeout'))

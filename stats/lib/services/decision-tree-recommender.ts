@@ -23,7 +23,7 @@ import type {
   DataRow,
   StatisticalAssumptions,
   VariableSelection
-} from '@/types/smart-flow'
+} from '@/types/analysis'
 import { logger } from '@/lib/utils/logger'
 import { KeywordBasedRecommender } from './keyword-based-recommender'
 import {
@@ -923,7 +923,7 @@ export class DecisionTreeRecommender {
    * @param assumptionResults - 가정 검정 결과
    * @param validationResults - 데이터 검증 결과
    * @param data - 데이터
-   * @param compatibilityMap - 호환성 맵 (from smart-flow-store)
+   * @param compatibilityMap - 호환성 맵 (from analysis-store)
    * @param variableSelection - 변수 선택 (선택적)
    * @returns 호환성이 적용된 AI 추천
    */

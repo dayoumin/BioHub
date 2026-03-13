@@ -25,7 +25,7 @@ import {
   Table
 } from 'lucide-react'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
-import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
+import { DataUploadStep } from '@/components/analysis/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'

@@ -3,7 +3,7 @@
  * 키워드 + 데이터 특성 + 신뢰도 점수 기반
  */
 
-import { StatisticalMethod } from '@/types/smart-flow'
+import { StatisticalMethod } from '@/types/analysis'
 
 interface RecommendationResult {
   methods: StatisticalMethod[]

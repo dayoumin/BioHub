@@ -21,13 +21,13 @@ UI 구조 변경에도 테스트가 깨지지 않는 레이어 분리 전략.
 ```typescript
 // 좋은 예: Store 상태 직접 검증 (UI 변경 무관)
 it('재분석 시 데이터가 초기화된다', () => {
-  const store = useSmartFlowStore.getState()
+  const store = useAnalysisStore.getState()
   store.setResults(null)
   store.setUploadedData(null)
   store.setIsReanalysisMode(true)
   store.setCurrentStep(1)
-  expect(useSmartFlowStore.getState().isReanalysisMode).toBe(true)
-  expect(useSmartFlowStore.getState().uploadedData).toBeNull()
+  expect(useAnalysisStore.getState().isReanalysisMode).toBe(true)
+  expect(useAnalysisStore.getState().uploadedData).toBeNull()
 })
 ```
 

@@ -9,7 +9,7 @@
 
 import { DecisionTreeRecommender } from '@/lib/services/decision-tree-recommender'
 import { KeywordBasedRecommender } from '@/lib/services/keyword-based-recommender'
-import type { StatisticalAssumptions, ValidationResults, DataRow } from '@/types/smart-flow'
+import type { StatisticalAssumptions, ValidationResults, DataRow } from '@/types/analysis'
 
 describe('Phase 4 - expectedReasoningKeywords 기능', () => {
   // Mock 데이터 헬퍼

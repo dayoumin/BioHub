@@ -11,14 +11,14 @@ import {
   BookOpen,
   Microscope,
   Settings,
-  Menu,
+  PanelLeft,
   Star,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useUI } from '@/contexts/ui-context'
 import { toast } from 'sonner'
-import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import { useAnalysisStore } from '@/lib/stores/analysis-store'
 
 const STORAGE_KEY = 'biohub-sidebar'
 
@@ -33,7 +33,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: '/', label: '홈', icon: Home },
-  { href: '/smart-flow', label: '통계 분석', icon: BarChart3, prefix: '/smart-flow' },
+  { href: '/analysis', label: '통계 분석', icon: BarChart3, prefix: '/analysis' },
   { href: '/graph-studio', label: 'Graph Studio', icon: AreaChart, prefix: '/graph-studio' },
   { href: '/bio-tools', label: 'Bio-Tools', icon: Dna, disabled: true, badge: '예정' },
   { href: '/papers', label: '논문 지원', icon: BookOpen, disabled: true, badge: '예정' },
@@ -52,9 +52,9 @@ export function AppSidebar() {
   const pathname = usePathname()
   const [expanded, setExpanded] = useState(true)
   const { openSettings } = useUI()
-  const currentStep = useSmartFlowStore(s => s.currentStep)
-  const selectedMethod = useSmartFlowStore(s => s.selectedMethod)
-  const results = useSmartFlowStore(s => s.results)
+  const currentStep = useAnalysisStore(s => s.currentStep)
+  const selectedMethod = useAnalysisStore(s => s.selectedMethod)
+  const results = useAnalysisStore(s => s.results)
 
   /** 통계 분석 Step 2~3 진행 중에 다른 섹션으로 이동 시 토스트
    *  - Step 1 이전: 경고 없이 이동 (손실 없음)
@@ -62,12 +62,12 @@ export function AppSidebar() {
    *  - 결과 화면(Step 4, results 존재): 경고 없이 이동 (이미 완료) */
   const handleNavClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>, item: NavItem) => {
-      const isInSmartFlow = pathname?.startsWith('/smart-flow')
-      const isLeavingSmartFlow =
-        isInSmartFlow &&
-        !item.href.startsWith('/smart-flow') &&
+      const isInAnalysis = pathname?.startsWith('/analysis')
+      const isLeavingAnalysis =
+        isInAnalysis &&
+        !item.href.startsWith('/analysis') &&
         item.href !== '/'
-      if (isLeavingSmartFlow && currentStep >= 2 && selectedMethod && !results) {
+      if (isLeavingAnalysis && currentStep >= 2 && selectedMethod && !results) {
         toast.info('분석이 자동 저장되었습니다', {
           description: '사이드바에서 통계 분석을 클릭하면 이어서 진행할 수 있습니다.',
           duration: 3000,
@@ -120,17 +120,13 @@ export function AppSidebar() {
           aria-label={expanded ? '사이드바 접기' : '사이드바 펼치기'}
           className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-sidebar-accent transition-colors text-sidebar-foreground/70 hover:text-sidebar-foreground flex-shrink-0"
         >
-          <Menu className="w-4 h-4" />
+          <PanelLeft className="w-4 h-4" />
         </button>
-        <span
-          className={cn(
-            'ml-3 text-sm font-semibold tracking-tight text-sidebar-foreground whitespace-nowrap',
-            'transition-[opacity,max-width] duration-200 overflow-hidden',
-            expanded ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0',
-          )}
-        >
-          {APP_TITLE}
-        </span>
+        {expanded && (
+          <span className="ml-3 text-sm font-semibold tracking-tight text-sidebar-foreground whitespace-nowrap">
+            {APP_TITLE}
+          </span>
+        )}
       </div>
 
       {/* 메인 네비게이션 */}
@@ -154,19 +150,17 @@ export function AppSidebar() {
           const inner = (
             <>
               <Icon className="w-4 h-4 flex-shrink-0" />
-              <span
-                className={cn(
-                  'text-sm whitespace-nowrap overflow-hidden',
-                  'transition-[opacity,max-width] duration-200',
-                  expanded ? 'opacity-100 max-w-[130px]' : 'opacity-0 max-w-0 w-0',
-                )}
-              >
-                {item.label}
-              </span>
-              {expanded && item.badge && (
-                <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-muted/50 text-muted-foreground/60 font-medium flex-shrink-0">
-                  {item.badge}
-                </span>
+              {expanded && (
+                <>
+                  <span className="text-sm whitespace-nowrap overflow-hidden truncate">
+                    {item.label}
+                  </span>
+                  {item.badge && (
+                    <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-muted/50 text-muted-foreground/60 font-medium flex-shrink-0">
+                      {item.badge}
+                    </span>
+                  )}
+                </>
               )}
             </>
           )
@@ -208,17 +202,13 @@ export function AppSidebar() {
               )}
             >
               <Star className="w-4 h-4 flex-shrink-0" />
-              <span
-                className={cn(
-                  'text-sm whitespace-nowrap overflow-hidden',
-                  'transition-[opacity,max-width] duration-200',
-                  expanded ? 'opacity-100 max-w-[100px]' : 'opacity-0 max-w-0 w-0',
-                )}
-              >
-                My Menu
-              </span>
               {expanded && (
-                <span className="ml-auto text-[10px] opacity-40 flex-shrink-0">예정</span>
+                <>
+                  <span className="text-sm whitespace-nowrap overflow-hidden truncate">
+                    My Menu
+                  </span>
+                  <span className="ml-auto text-[10px] opacity-40 flex-shrink-0">예정</span>
+                </>
               )}
             </div>
           </TooltipTrigger>
@@ -239,15 +229,11 @@ export function AppSidebar() {
               )}
             >
               <Settings className="w-4 h-4 flex-shrink-0" />
-              <span
-                className={cn(
-                  'text-sm whitespace-nowrap overflow-hidden',
-                  'transition-[opacity,max-width] duration-200',
-                  expanded ? 'opacity-100 max-w-[120px]' : 'opacity-0 max-w-0 w-0',
-                )}
-              >
-                설정
-              </span>
+              {expanded && (
+                <span className="text-sm whitespace-nowrap overflow-hidden truncate">
+                  설정
+                </span>
+              )}
             </button>
           </TooltipTrigger>
           {!expanded && <TooltipContent side="right">설정</TooltipContent>}

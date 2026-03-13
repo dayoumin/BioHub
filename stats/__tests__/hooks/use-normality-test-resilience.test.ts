@@ -9,9 +9,9 @@ vi.mock('@/hooks/use-terminology', () => ({
   }),
 }))
 
-import { useNormalityTest } from '@/components/smart-flow/steps/validation/hooks/useNormalityTest'
+import { useNormalityTest } from '@/components/analysis/steps/validation/hooks/useNormalityTest'
 import type { PyodideStatisticsService } from '@/lib/services/pyodide-statistics'
-import type { DataRow } from '@/types/smart-flow'
+import type { DataRow } from '@/types/analysis'
 
 describe('useNormalityTest resilience', () => {
   beforeEach(() => {

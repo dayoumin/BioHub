@@ -121,7 +121,7 @@ vi.mock('@/lib/services/pyodide-statistics', () => ({
 // Import after mock
 import { StatisticalExecutor } from '@/lib/services/statistical-executor'
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
-import type { StatisticalMethod } from '@/types/smart-flow'
+import type { StatisticalMethod } from '@/types/analysis'
 
 // Helper to create minimal StatisticalMethod for testing
 const createMethod = (id: string, name: string, category: StatisticalMethod['category']): StatisticalMethod => ({

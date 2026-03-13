@@ -16,7 +16,7 @@ import {
   METHOD_REQUIRED_FIELDS,
   type StatisticsCategory
 } from '@/lib/validation/result-schema-validator'
-import type { AnalysisResult } from '@/types/smart-flow'
+import type { AnalysisResult } from '@/types/analysis'
 
 describe('Result Schema Validator', () => {
   describe('METHOD_TO_CATEGORY mapping', () => {

@@ -7,7 +7,7 @@
  * @module lib/services/data-management
  */
 
-import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useAnalysisCacheStore } from '@/lib/stores/analysis-cache-store'
 import { clearAllHistory } from '@/lib/utils/indexeddb'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
@@ -52,10 +52,10 @@ export async function clearAllAppData(options: ClearDataOptions = {}): Promise<v
   if (clearSession) {
     if (shouldClearHistory) {
       // Full reset including history
-      useSmartFlowStore.getState().reset()
+      useAnalysisStore.getState().reset()
     } else {
       // Session-only reset, keep history visible
-      useSmartFlowStore.getState().resetSession()
+      useAnalysisStore.getState().resetSession()
     }
     console.log('[DataManagement] Session cleared')
   }

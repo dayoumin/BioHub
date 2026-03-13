@@ -5,7 +5,7 @@
 
 import { pyodideStats } from './pyodide-statistics'
 import { StatisticalMethod } from '../statistics/method-mapping'
-import type { SuggestedSettings } from '@/types/smart-flow'
+import type { SuggestedSettings } from '@/types/analysis'
 import { logger } from '../utils/logger'
 import { CorrelationExecutor } from './executors/correlation-executor'
 
@@ -65,7 +65,7 @@ interface NormalizedPostHocComparison {
  * StatisticalExecutor 전용 분석 결과 인터페이스
  * (레거시 - 향후 ExecutorAnalysisResult로 통합 예정)
  *
- * 주의: types/smart-flow.ts의 AnalysisResult와는 다른 구조
+ * 주의: types/analysis.ts의 AnalysisResult와는 다른 구조
  */
 export interface StatisticalExecutorResult {
   // 메타 정보

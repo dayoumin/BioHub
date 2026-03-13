@@ -14,7 +14,7 @@
  */
 
 import { getInterpretation } from '@/lib/interpretation/engine'
-import type { AnalysisResult } from '@/types/smart-flow'
+import type { AnalysisResult } from '@/types/analysis'
 
 // Helper to create test input with extended additional fields
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -133,7 +133,7 @@ export const generic: TerminologyDictionary = {
     }
   },
 
-  smartFlow: {
+  analysis: {
     stepTitles: {
       dataUpload: 'Data Upload',
       dataExploration: 'Data Exploration',

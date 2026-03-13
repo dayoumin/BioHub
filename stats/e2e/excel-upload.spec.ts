@@ -24,10 +24,10 @@ test.describe('Excel 파일 업로드 E2E 테스트', () => {
   })
 
   test('Smart Flow 페이지가 정상 로드되어야 함', async ({ page }) => {
-    await page.goto('/smart-flow', { waitUntil: 'networkidle' })
+    await page.goto('/analysis', { waitUntil: 'networkidle' })
 
     // 페이지 타이틀 또는 주요 요소 확인
-    await expect(page).toHaveURL(/smart-flow/)
+    await expect(page).toHaveURL(/analysis/)
 
     // 데이터 업로드 영역이 존재하는지 확인
     const uploadArea = page.locator('[data-testid="file-upload"]').or(
@@ -44,7 +44,7 @@ test.describe('Excel 파일 업로드 E2E 테스트', () => {
   })
 
   test('기본 통계 Excel 파일 업로드 및 파싱', async ({ page }) => {
-    await page.goto('/smart-flow', { waitUntil: 'networkidle' })
+    await page.goto('/analysis', { waitUntil: 'networkidle' })
 
     // 파일 입력 요소 찾기
     const fileInput = page.locator('input[type="file"]').first()
@@ -75,7 +75,7 @@ test.describe('Excel 파일 업로드 E2E 테스트', () => {
   })
 
   test('상관 분석 Excel 파일 업로드', async ({ page }) => {
-    await page.goto('/smart-flow', { waitUntil: 'networkidle' })
+    await page.goto('/analysis', { waitUntil: 'networkidle' })
 
     const fileInput = page.locator('input[type="file"]').first()
     await expect(fileInput).toBeAttached({ timeout: 10000 })
@@ -97,7 +97,7 @@ test.describe('Excel 파일 업로드 E2E 테스트', () => {
   })
 
   test('멀티시트 Excel 파일 업로드 시 시트 선택 가능', async ({ page }) => {
-    await page.goto('/smart-flow', { waitUntil: 'networkidle' })
+    await page.goto('/analysis', { waitUntil: 'networkidle' })
 
     const fileInput = page.locator('input[type="file"]').first()
     await expect(fileInput).toBeAttached({ timeout: 10000 })
@@ -124,7 +124,7 @@ test.describe('Excel 파일 업로드 E2E 테스트', () => {
   })
 
   test('잘못된 파일 형식 업로드 시 에러 처리', async ({ page }) => {
-    await page.goto('/smart-flow', { waitUntil: 'networkidle' })
+    await page.goto('/analysis', { waitUntil: 'networkidle' })
 
     const fileInput = page.locator('input[type="file"]').first()
     await expect(fileInput).toBeAttached({ timeout: 10000 })
@@ -148,7 +148,7 @@ test.describe('Excel 파일 업로드 E2E 테스트', () => {
   })
 
   test('대용량 데이터 처리 성능 (15행 샘플)', async ({ page }) => {
-    await page.goto('/smart-flow', { waitUntil: 'networkidle' })
+    await page.goto('/analysis', { waitUntil: 'networkidle' })
 
     const fileInput = page.locator('input[type="file"]').first()
     await expect(fileInput).toBeAttached({ timeout: 10000 })
@@ -173,7 +173,7 @@ test.describe('Excel 파일 업로드 E2E 테스트', () => {
 
 test.describe('데이터 업로드 후 분석 플로우', () => {
   test('Excel 업로드 후 다음 단계로 진행 가능', async ({ page }) => {
-    await page.goto('/smart-flow', { waitUntil: 'networkidle' })
+    await page.goto('/analysis', { waitUntil: 'networkidle' })
 
     // 파일 업로드
     const fileInput = page.locator('input[type="file"]').first()
@@ -199,7 +199,7 @@ test.describe('데이터 업로드 후 분석 플로우', () => {
   })
 
   test('업로드된 데이터의 변수 목록 표시', async ({ page }) => {
-    await page.goto('/smart-flow', { waitUntil: 'networkidle' })
+    await page.goto('/analysis', { waitUntil: 'networkidle' })
 
     const fileInput = page.locator('input[type="file"]').first()
     await expect(fileInput).toBeAttached({ timeout: 10000 })

@@ -19,7 +19,7 @@ import { ChevronDown, ChevronUp, Table as TableIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { DataRow } from '@/types/smart-flow'
+import { DataRow } from '@/types/analysis'
 
 export interface DataPreviewTableProps {
   /** 데이터 배열 */

@@ -5,7 +5,7 @@
  */
 
 import { convertToStatisticalResult } from '../result-converter'
-import { AnalysisResult, EffectSizeInfo, StatisticalAssumptions } from '@/types/smart-flow'
+import { AnalysisResult, EffectSizeInfo, StatisticalAssumptions } from '@/types/analysis'
 
 describe('convertToStatisticalResult', () => {
   describe('Basic conversion', () => {

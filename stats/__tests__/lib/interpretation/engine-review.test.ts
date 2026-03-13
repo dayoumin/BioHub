@@ -6,7 +6,7 @@
 
 import { describe, it } from 'vitest'
 import { getInterpretation } from '@/lib/interpretation/engine'
-import type { AnalysisResult } from '@/types/smart-flow'
+import type { AnalysisResult } from '@/types/analysis'
 
 describe('해석 엔진 코드 리뷰 검증', () => {
   // ===== 1. Critical 버그 수정 확인 =====

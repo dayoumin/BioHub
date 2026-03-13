@@ -6,7 +6,7 @@
 
 import { describe, it } from 'vitest'
 import { getInterpretation } from '@/lib/interpretation/engine'
-import type { AnalysisResult } from '@/types/smart-flow'
+import type { AnalysisResult } from '@/types/analysis'
 import { readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 

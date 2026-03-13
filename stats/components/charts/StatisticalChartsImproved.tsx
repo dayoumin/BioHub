@@ -3,7 +3,7 @@
 import { memo, useMemo } from 'react'
 import { PlotlyChartImproved } from './PlotlyChartImproved'
 import { ChartErrorBoundary } from './ChartErrorBoundary'
-import { ColumnStatistics } from '@/types/smart-flow'
+import { ColumnStatistics } from '@/types/analysis'
 import {
   validateNumericData,
   validateBarChartData,

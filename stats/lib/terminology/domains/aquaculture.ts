@@ -6,7 +6,7 @@
  */
 
 import type { TerminologyDictionary } from '../terminology-types'
-import type { GuidedQuestion, CategoryDefinition } from '@/types/smart-flow'
+import type { GuidedQuestion, CategoryDefinition } from '@/types/analysis'
 
 export const aquaculture: TerminologyDictionary = {
   domain: 'aquaculture',
@@ -134,7 +134,7 @@ export const aquaculture: TerminologyDictionary = {
     }
   },
 
-  smartFlow: {
+  analysis: {
     stepTitles: {
       dataUpload: '데이터 업로드',
       dataExploration: '데이터 탐색',

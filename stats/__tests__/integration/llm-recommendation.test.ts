@@ -21,7 +21,7 @@ import type {
   ValidationResults,
   ColumnStatistics,
   AnalysisResult
-} from '@/types/smart-flow'
+} from '@/types/analysis'
 
 // ============================================
 // .env.local 로드 (API 키)

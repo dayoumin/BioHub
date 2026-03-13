@@ -254,7 +254,7 @@ const analysisContextSchema = z.object({
 
 export const dataPackageSchema = z.object({
   id: z.string().min(1),
-  source: z.enum(['smart-flow', 'bio-tools', 'upload', 'species-checker']),
+  source: z.enum(['analysis', 'bio-tools', 'upload', 'species-checker']),
   label: z.string().min(1),
   columns: z.array(columnMetaSchema).min(1),
   data: z.record(z.string(), z.array(z.unknown())),

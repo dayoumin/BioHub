@@ -14,7 +14,7 @@ const useExistingServer = !!process.env.E2E_BASE_URL
 
 export default defineConfig({
   testDir: '.',
-  testMatch: 'smart-flow-e2e.spec.ts',
+  testMatch: 'analysis-e2e.spec.ts',
   fullyParallel: false,
   retries: 0,
   workers: 1,

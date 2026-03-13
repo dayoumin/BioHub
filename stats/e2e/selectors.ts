@@ -26,7 +26,7 @@ export const S = {
   floatingNextBtn: '[data-testid="floating-next-btn"]',
 
   // ===== Data Upload / Exploration =====
-  dataProfileSummary: '[data-testid="data-profile-summary"]',
+  dataProfileSummary: '[data-testid="data-profile-summary"], [data-testid="data-exploration-step"]',
   replaceDataButton: '[data-testid="replace-data-button"]',
 
   // ===== Data Prep Guide =====

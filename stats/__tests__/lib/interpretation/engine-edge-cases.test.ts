@@ -5,7 +5,7 @@
  */
 
 import { getInterpretation } from '@/lib/interpretation/engine'
-import type { AnalysisResult } from '@/types/smart-flow'
+import type { AnalysisResult } from '@/types/analysis'
 
 describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
   describe('formatPValue() - 비정상 p-value 처리', () => {

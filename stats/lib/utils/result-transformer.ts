@@ -3,13 +3,13 @@
  */
 
 import {
-  AnalysisResult as SmartFlowResult,
+  AnalysisResult as AnalysisResult,
   EffectSizeInfo,
   PostHocResult,
   CoefficientResult,
   GroupStats,
   StatisticalAssumptions
-} from '@/types/smart-flow'
+} from '@/types/analysis'
 import { ExecutorAnalysisResult } from '@/lib/services/executors/types'
 import type { StatisticalExecutorResult } from '@/lib/services/statistical-executor'
 
@@ -40,7 +40,7 @@ export function isExecutorResult(
  */
 export function transformExecutorResult(
   executorResult: ExecutorAnalysisResult | StatisticalExecutorResult
-): SmartFlowResult {
+): AnalysisResult {
   // additionalInfo를 안전하게 접근하기 위해 타입 캐스팅
   const additionalInfo = executorResult.additionalInfo as AdditionalInfoAccessor
 
@@ -193,7 +193,7 @@ export function transformExecutorResult(
   } : undefined
 
   // additional 정보 구성
-  const additional: SmartFlowResult['additional'] = {
+  const additional: AnalysisResult['additional'] = {
     isNormal: additionalInfo?.isNormal,
     intercept: additionalInfo?.intercept,
     rmse: additionalInfo?.rmse,

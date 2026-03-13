@@ -12,15 +12,15 @@ import {
   getMemoryInfo,
   ClearDataOptions
 } from '@/lib/services/data-management'
-import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { vi, Mock } from 'vitest'
 import { useAnalysisCacheStore } from '@/lib/stores/analysis-cache-store'
 import * as indexeddb from '@/lib/utils/indexeddb'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 
 // Mock dependencies
-vi.mock('@/lib/stores/smart-flow-store', () => ({
-  useSmartFlowStore: {
+vi.mock('@/lib/stores/analysis-store', () => ({
+  useAnalysisStore: {
     getState: vi.fn(() => ({
       reset: vi.fn(),
       resetSession: vi.fn()
@@ -65,7 +65,7 @@ describe('Data Management Service', () => {
     mockClearAllHistory = indexeddb.clearAllHistory as Mock
     mockDispose = vi.fn()
 
-    ;(useSmartFlowStore.getState as Mock).mockReturnValue({
+    ;(useAnalysisStore.getState as Mock).mockReturnValue({
       reset: mockReset,
       resetSession: mockResetSession
     })
@@ -226,7 +226,7 @@ describe('Integration with UI Components', () => {
     mockResetSession = vi.fn()
     mockClearCache = vi.fn()
 
-    ;(useSmartFlowStore.getState as Mock).mockReturnValue({
+    ;(useAnalysisStore.getState as Mock).mockReturnValue({
       reset: vi.fn(),
       resetSession: mockResetSession
     })
@@ -241,7 +241,7 @@ describe('Integration with UI Components', () => {
 
     // Verify resetSession is used (not reset) to preserve history
     expect(mockResetSession).toHaveBeenCalledTimes(1)
-    expect(useSmartFlowStore.getState).toHaveBeenCalled()
+    expect(useAnalysisStore.getState).toHaveBeenCalled()
   })
 
   it('should be callable from AnalysisHistoryPanel handleNewAnalysis', async () => {
@@ -250,12 +250,12 @@ describe('Integration with UI Components', () => {
 
     // Verify history is preserved
     expect(mockResetSession).toHaveBeenCalledTimes(1)
-    expect(useSmartFlowStore.getState).toHaveBeenCalled()
+    expect(useAnalysisStore.getState).toHaveBeenCalled()
   })
 
   it('REGRESSION: startNewAnalysis must NOT call reset() which clears history', async () => {
     const mockReset = vi.fn()
-    ;(useSmartFlowStore.getState as Mock).mockReturnValue({
+    ;(useAnalysisStore.getState as Mock).mockReturnValue({
       reset: mockReset,
       resetSession: mockResetSession
     })

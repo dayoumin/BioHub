@@ -6,7 +6,7 @@
  */
 
 import { buildInterpretationPrompt, InterpretationContext } from '@/lib/services/result-interpreter'
-import type { AnalysisResult } from '@/types/smart-flow'
+import type { AnalysisResult } from '@/types/analysis'
 
 // ============================================
 // 헬퍼: 최소 AnalysisResult 생성

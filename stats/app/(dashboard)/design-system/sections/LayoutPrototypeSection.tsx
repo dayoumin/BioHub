@@ -311,7 +311,7 @@ export function LayoutPrototypeSection() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
-{`SmartFlowLayout (h-screen)
+{`AnalysisLayout (h-screen)
 ├── 상단 헤더 (히스토리/도움말)
 └── TwoPanelLayout (h-full)
     ├── 좌측 사이드바 (240px)
@@ -336,7 +336,7 @@ export function LayoutPrototypeSection() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
-{`SmartFlowPage
+{`AnalysisPage
 ├── 상단 헤더 (sticky, 얇음)
 │   ├── 브랜드
 │   └── 스테퍼 (1-7)

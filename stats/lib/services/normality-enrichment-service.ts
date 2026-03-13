@@ -9,7 +9,7 @@
  * - immutable: 원본 columnStats를 변이하지 않고 새 배열 반환
  */
 
-import type { ColumnStatistics, DataRow } from '@/types/smart-flow'
+import type { ColumnStatistics, DataRow } from '@/types/analysis'
 import { logger } from '@/lib/utils/logger'
 
 // ===== Types =====

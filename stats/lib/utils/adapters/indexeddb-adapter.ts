@@ -13,7 +13,7 @@ import type {
   StorageStatus
 } from '../storage-types'
 
-const DB_NAME = 'smart-flow-history'
+const DB_NAME = 'analysis-history'
 const DB_VERSION = 2  // 버전 업그레이드 (sync_queue 추가)
 const HISTORY_STORE = 'analyses'
 const SYNC_QUEUE_STORE = 'sync_queue'

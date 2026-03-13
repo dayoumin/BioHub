@@ -11,7 +11,7 @@
 import { STATISTICAL_METHODS, getKoreanName } from '@/lib/constants/statistical-methods'
 import { llmRecommender } from '@/lib/services/llm-recommender'
 import { logger } from '@/lib/utils/logger'
-import type { AnalysisTrack, ResolvedIntent, StatisticalMethod } from '@/types/smart-flow'
+import type { AnalysisTrack, ResolvedIntent, StatisticalMethod } from '@/types/analysis'
 
 type StatMethodCategory = StatisticalMethod['category']
 

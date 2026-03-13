@@ -6,7 +6,7 @@
  * - 스트리밍 응답 → UI에 실시간 표시
  */
 
-import type { AnalysisResult, EffectSizeInfo } from '@/types/smart-flow'
+import type { AnalysisResult, EffectSizeInfo } from '@/types/analysis'
 import { llmRecommender, type LlmStreamResult } from './llm-recommender'
 import { logger } from '@/lib/utils/logger'
 import { SYSTEM_PROMPT_INTERPRETER } from './ai/prompts'

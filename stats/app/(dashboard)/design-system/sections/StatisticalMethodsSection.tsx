@@ -787,9 +787,9 @@ export function StatisticalMethodsSection() {
               <p className="font-medium">Source Files:</p>
               <ul className="text-muted-foreground space-y-1">
                 <li><code className="bg-muted px-1 rounded">lib/constants/statistical-methods.ts</code> - Single source of truth (51 definitions, 48 pages)</li>
-                <li><code className="bg-muted px-1 rounded">components/smart-flow/steps/purpose/DecisionTree.ts</code> - Decision logic</li>
-                <li><code className="bg-muted px-1 rounded">components/smart-flow/steps/purpose/auto-answer.ts</code> - Auto-answer from data</li>
-                <li><code className="bg-muted px-1 rounded">components/smart-flow/steps/purpose/guided-flow-questions.ts</code> - Questions per purpose</li>
+                <li><code className="bg-muted px-1 rounded">components/analysis/steps/purpose/DecisionTree.ts</code> - Decision logic</li>
+                <li><code className="bg-muted px-1 rounded">components/analysis/steps/purpose/auto-answer.ts</code> - Auto-answer from data</li>
+                <li><code className="bg-muted px-1 rounded">components/analysis/steps/purpose/guided-flow-questions.ts</code> - Questions per purpose</li>
               </ul>
             </div>
           </div>

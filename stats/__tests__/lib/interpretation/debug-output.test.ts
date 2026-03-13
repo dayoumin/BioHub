@@ -4,7 +4,7 @@
 
 import { describe, it } from 'vitest'
 import { getInterpretation } from '@/lib/interpretation/engine'
-import type { AnalysisResult } from '@/types/smart-flow'
+import type { AnalysisResult } from '@/types/analysis'
 
 describe('Debug: 실제 출력 확인', () => {
   it('ANOVA 실제 출력', () => {

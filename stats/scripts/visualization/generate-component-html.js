@@ -12,7 +12,7 @@
  *   - progress-stepper.html
  *   - statistics-page-layout.html
  *   - variable-selector.html
- *   - smart-flow-steps.html
+ *   - analysis-steps.html
  */
 
 const fs = require('fs');
@@ -240,7 +240,7 @@ function createHTMLTemplate(title, content, styles = '') {
       <a href="progress-stepper.html">ProgressStepper</a>
       <a href="statistics-page-layout.html">StatisticsPageLayout</a>
       <a href="variable-selector.html">VariableSelector</a>
-      <a href="smart-flow-steps.html">Smart Flow Steps</a>
+      <a href="analysis-steps.html">Smart Flow Steps</a>
     </div>
     <div class="content">
       ${content}
@@ -305,7 +305,7 @@ function generateIndexPage() {
             <td><strong>Smart Flow Steps</strong></td>
             <td>스마트 플로우 6단계 컴포넌트</td>
             <td>스마트 통계</td>
-            <td><a href="smart-flow-steps.html">보기</a></td>
+            <td><a href="analysis-steps.html">보기</a></td>
           </tr>
         </tbody>
       </table>
@@ -321,7 +321,7 @@ statics/
 ├── components/
 │   ├── common/
 │   │   └── StepIndicator.tsx          <span class="comment">// 통합 단계 표시</span>
-│   ├── smart-flow/
+│   ├── analysis/
 │   │   ├── ProgressStepper.tsx        <span class="comment">// 스마트 플로우 진행 표시</span>
 │   │   └── steps/                     <span class="comment">// 6개 단계 컴포넌트</span>
 │   ├── statistics/
@@ -646,7 +646,7 @@ function generateProgressStepperPage() {
       <p>스마트 플로우 전용 단계 진행 표시 컴포넌트입니다. 6단계 플로우를 시각화합니다.</p>
 
       <div class="info-box">
-        <strong>파일 위치:</strong> components/smart-flow/ProgressStepper.tsx
+        <strong>파일 위치:</strong> components/analysis/ProgressStepper.tsx
       </div>
     </div>
 
@@ -726,7 +726,7 @@ function generateProgressStepperPage() {
       <h2>🎨 사용 예시</h2>
 
       <div class="code-block">
-<span class="keyword">import</span> { ProgressStepper } <span class="keyword">from</span> <span class="string">'@/components/smart-flow/ProgressStepper'</span>
+<span class="keyword">import</span> { ProgressStepper } <span class="keyword">from</span> <span class="string">'@/components/analysis/ProgressStepper'</span>
 <span class="keyword">import</span> { Upload, CheckCircle, Target, Settings, Play, BarChart } <span class="keyword">from</span> <span class="string">'lucide-react'</span>
 
 <span class="keyword">const</span> SMART_FLOW_STEPS: StepConfig[] = [
@@ -1434,14 +1434,14 @@ function generateVariableSelectorPage() {
 /**
  * 6. Smart Flow Steps 페이지
  */
-function generateSmartFlowStepsPage() {
+function generateAnalysisStepsPage() {
   const content = `
     <div class="section">
       <h2>🎯 Smart Flow Steps</h2>
       <p>스마트 통계 플로우의 6개 단계 컴포넌트입니다. AI 기반 통계 방법 추천과 자동화된 워크플로우를 제공합니다.</p>
 
       <div class="info-box">
-        <strong>파일 위치:</strong> components/smart-flow/steps/
+        <strong>파일 위치:</strong> components/analysis/steps/
       </div>
     </div>
 
@@ -1504,7 +1504,7 @@ function generateSmartFlowStepsPage() {
       </ul>
 
       <div class="code-block">
-<span class="keyword">import</span> { DataUploadStep } <span class="keyword">from</span> <span class="string">'@/components/smart-flow/steps/DataUploadStep'</span>
+<span class="keyword">import</span> { DataUploadStep } <span class="keyword">from</span> <span class="string">'@/components/analysis/steps/DataUploadStep'</span>
 
 &lt;DataUploadStep
   onDataUploaded={(data) => {
@@ -1530,7 +1530,7 @@ function generateSmartFlowStepsPage() {
       </ul>
 
       <div class="code-block">
-<span class="keyword">import</span> { DataValidationStepWithCharts } <span class="keyword">from</span> <span class="string">'@/components/smart-flow/steps/DataValidationStepWithCharts'</span>
+<span class="keyword">import</span> { DataValidationStepWithCharts } <span class="keyword">from</span> <span class="string">'@/components/analysis/steps/DataValidationStepWithCharts'</span>
 
 &lt;DataValidationStepWithCharts
   data={uploadedData}
@@ -1556,7 +1556,7 @@ function generateSmartFlowStepsPage() {
       </ul>
 
       <div class="code-block">
-<span class="keyword">import</span> { PurposeInputStep } <span class="keyword">from</span> <span class="string">'@/components/smart-flow/steps/PurposeInputStep'</span>
+<span class="keyword">import</span> { PurposeInputStep } <span class="keyword">from</span> <span class="string">'@/components/analysis/steps/PurposeInputStep'</span>
 
 &lt;PurposeInputStep
   data={uploadedData}
@@ -1614,7 +1614,7 @@ function generateSmartFlowStepsPage() {
       </ul>
 
       <div class="code-block">
-<span class="keyword">import</span> { VariableSelectionStep } <span class="keyword">from</span> <span class="string">'@/components/smart-flow/steps/VariableSelectionStep'</span>
+<span class="keyword">import</span> { VariableSelectionStep } <span class="keyword">from</span> <span class="string">'@/components/analysis/steps/VariableSelectionStep'</span>
 
 &lt;VariableSelectionStep
   data={uploadedData}
@@ -1786,9 +1786,9 @@ function generateSmartFlowStepsPage() {
   `;
 
   const html = createHTMLTemplate('Smart Flow Steps', content);
-  const filePath = path.join(OUTPUT_DIR, 'smart-flow-steps.html');
+  const filePath = path.join(OUTPUT_DIR, 'analysis-steps.html');
   fs.writeFileSync(filePath, html, 'utf-8');
-  console.log(`✅ 생성 완료: smart-flow-steps.html`);
+  console.log(`✅ 생성 완료: analysis-steps.html`);
 }
 
 /**
@@ -1802,7 +1802,7 @@ function main() {
   generateProgressStepperPage();
   generateStatisticsPageLayoutPage();
   generateVariableSelectorPage();
-  generateSmartFlowStepsPage();
+  generateAnalysisStepsPage();
 
   console.log('\n✅ 모든 HTML 파일 생성 완료!');
   console.log(`\n📂 출력 위치: ${OUTPUT_DIR}`);
@@ -1812,7 +1812,7 @@ function main() {
   console.log('  - progress-stepper.html');
   console.log('  - statistics-page-layout.html');
   console.log('  - variable-selector.html');
-  console.log('  - smart-flow-steps.html');
+  console.log('  - analysis-steps.html');
   console.log('\n💡 브라우저로 index.html을 열어 확인하세요!\n');
 }
 

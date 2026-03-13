@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { FitScoreIndicator, FitScoreBadge, getFitLevel } from '@/components/smart-flow/visualization/FitScoreIndicator'
+import { FitScoreIndicator, FitScoreBadge, getFitLevel } from '@/components/analysis/visualization/FitScoreIndicator'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
@@ -114,7 +114,7 @@ export function FitScoreIndicatorDemo() {
           <div className="bg-muted rounded-lg p-4">
             <h4 className="text-sm font-medium mb-2">사용법</h4>
             <pre className="text-xs overflow-x-auto">
-{`import { FitScoreIndicator, FitScoreBadge, getFitLevel } from '@/components/smart-flow/visualization/FitScoreIndicator'
+{`import { FitScoreIndicator, FitScoreBadge, getFitLevel } from '@/components/analysis/visualization/FitScoreIndicator'
 
 // 프로그레스 바가 있는 전체 지표
 <FitScoreIndicator score={85} />

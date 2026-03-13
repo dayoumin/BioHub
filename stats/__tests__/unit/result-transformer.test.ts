@@ -8,11 +8,11 @@ import {
   getEffectSizeInfo
 } from '@/lib/utils/result-transformer'
 import { AnalysisResult as ExecutorResult } from '@/lib/services/executors/types'
-import { EffectSizeInfo } from '@/types/smart-flow'
+import { EffectSizeInfo } from '@/types/analysis'
 
 describe('result-transformer', () => {
   describe('transformExecutorResult', () => {
-    it('should transform basic executor result to smart-flow result', () => {
+    it('should transform basic executor result to analysis result', () => {
       const executorResult: ExecutorResult = {
         metadata: {
           method: 'Independent t-test',

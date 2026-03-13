@@ -1,5 +1,5 @@
 import Papa from 'papaparse'
-import { DataRow } from '@/types/smart-flow'
+import { DataRow } from '@/types/analysis'
 
 export interface ProcessingProgress {
   totalRows: number

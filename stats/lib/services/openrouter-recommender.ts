@@ -16,7 +16,7 @@ import type {
   DataRow,
   ColumnStatistics,
   FlowChatMessage
-} from '@/types/smart-flow'
+} from '@/types/analysis'
 import {
   STATISTICAL_METHODS,
   getMethodByIdOrAlias,

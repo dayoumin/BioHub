@@ -17,7 +17,7 @@ import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest'
 // --- Mock 설정 ---
 
 // next/navigation mock (usePathname)
-const mockPathname = vi.fn().mockReturnValue('/smart-flow')
+const mockPathname = vi.fn().mockReturnValue('/analysis')
 vi.mock('next/navigation', () => ({
   usePathname: () => mockPathname(),
 }))
@@ -51,7 +51,7 @@ describe('PyodidePreloader', () => {
     vi.clearAllMocks()
     mockIsInitialized.mockReturnValue(false)
     mockInitialize.mockResolvedValue(undefined)
-    mockPathname.mockReturnValue('/smart-flow') // Smart Flow 라우트 기본값
+    mockPathname.mockReturnValue('/analysis') // Smart Flow 라우트 기본값
 
     // requestIdleCallback 지원 환경 시뮬레이션
     mockRequestIdleCallback = vi.fn((cb: () => void) => {
@@ -134,7 +134,7 @@ describe('PyodidePreloader', () => {
 
       // Mock 재설정 (모듈 리셋 후)
       vi.doMock('next/navigation', () => ({
-        usePathname: () => '/smart-flow',
+        usePathname: () => '/analysis',
       }))
       vi.doMock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
         PyodideCoreService: {
@@ -179,7 +179,7 @@ describe('PyodidePreloader', () => {
 
       vi.resetModules()
       vi.doMock('next/navigation', () => ({
-        usePathname: () => '/smart-flow',
+        usePathname: () => '/analysis',
       }))
       vi.doMock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
         PyodideCoreService: {
@@ -277,7 +277,7 @@ describe('PyodidePreloader', () => {
 
       vi.resetModules()
       vi.doMock('next/navigation', () => ({
-        usePathname: () => '/smart-flow',
+        usePathname: () => '/analysis',
       }))
       vi.doMock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
         PyodideCoreService: {
@@ -334,7 +334,7 @@ describe('PyodidePreloader', () => {
 
       vi.resetModules()
       vi.doMock('next/navigation', () => ({
-        usePathname: () => '/smart-flow',
+        usePathname: () => '/analysis',
       }))
       vi.doMock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
         PyodideCoreService: {

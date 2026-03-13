@@ -3,7 +3,7 @@
  * Smart Flow 분석 결과를 Graph Studio DataPackage의 analysisContext로 변환
  */
 
-import type { AnalysisResult as SmartFlowResult } from '@/types/smart-flow'
+import type { AnalysisResult as AnalysisResult } from '@/types/analysis'
 import type {
   AnalysisContext,
   Comparison,
@@ -157,12 +157,12 @@ export function buildRocCurveColumns(rocData: RocCurveAnalysisResult): RocColumn
 }
 
 /**
- * SmartFlowResult를 AnalysisContext로 변환
+ * AnalysisResult를 AnalysisContext로 변환
  * @param result Smart Flow 분석 결과 (result-transformer.ts 출력)
  * @param groupNames 정수 인덱스 → 그룹명 매핑 (C-2: group ID resolution)
  */
 export function toAnalysisContext(
-  result: SmartFlowResult,
+  result: AnalysisResult,
   groupNames?: string[],
 ): AnalysisContext {
   // C-2: group ID resolution — 정수 인덱스를 라벨로 변환

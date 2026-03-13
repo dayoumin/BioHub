@@ -5,7 +5,7 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
-import { DataRow } from '@/types/smart-flow'
+import { DataRow } from '@/types/analysis'
 
 describe('DataPreviewTable', () => {
   const sampleData: DataRow[] = [

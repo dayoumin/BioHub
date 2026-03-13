@@ -6,7 +6,7 @@
  * - 타입 안전성을 보장하며 중앙 집중식 관리
  */
 
-import type { GuidedQuestion, CategoryDefinition } from '@/types/smart-flow'
+import type { GuidedQuestion, CategoryDefinition } from '@/types/analysis'
 
 /**
  * 변수 타입별 용어
@@ -184,7 +184,7 @@ export interface ExecutionLogsText {
 /**
  * Smart Flow UI 텍스트
  */
-export interface SmartFlowText {
+export interface AnalysisText {
   /** Step 제목 (전체) */
   stepTitles: {
     dataUpload: string
@@ -2095,7 +2095,7 @@ export interface TerminologyDictionary {
   /** Selector UI 텍스트 */
   selectorUI: SelectorUIText
   /** Smart Flow UI 텍스트 */
-  smartFlow: SmartFlowText
+  analysis: AnalysisText
   /** 분석 목적 선택 UI 텍스트 */
   purposeInput: PurposeInputText
   /** 적합도 점수 텍스트 */

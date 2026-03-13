@@ -9,7 +9,7 @@
  * 테스트: Pre-commit hook validation
  */
 
-import { AnalysisResult } from '@/types/smart-flow'
+import { AnalysisResult } from '@/types/analysis'
 
 /**
  * Record<string, unknown> 타입 가드

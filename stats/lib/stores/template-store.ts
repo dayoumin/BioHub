@@ -10,7 +10,7 @@ import type {
   VariableRoleMapping,
   StatisticalMethod,
   ValidationResults
-} from '@/types/smart-flow'
+} from '@/types/analysis'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import {
   getAllTemplates,

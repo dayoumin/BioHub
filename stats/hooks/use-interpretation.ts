@@ -12,10 +12,10 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { getHistory } from '@/lib/utils/storage'
 import { requestInterpretation, type InterpretationContext } from '@/lib/services/result-interpreter'
-import type { AnalysisResult } from '@/types/smart-flow'
+import type { AnalysisResult } from '@/types/analysis'
 
 // ─── 센티널 상태 (magic string 제거) ─────────────────────
 
@@ -101,7 +101,7 @@ export function useInterpretation({
   const {
     loadedAiInterpretation,
     currentHistoryId,
-  } = useSmartFlowStore()
+  } = useAnalysisStore()
 
   // ─── handleInterpretation ───
   const handleInterpretation = useCallback(async () => {
@@ -191,7 +191,7 @@ export function useInterpretation({
     interpretAbortRef.current?.abort()
 
     // 히스토리에 저장된 해석이 있으면 복원, 없으면 직접 해석 요청
-    const cached = useSmartFlowStore.getState().loadedAiInterpretation
+    const cached = useAnalysisStore.getState().loadedAiInterpretation
     setInterpretation(cached ?? null)
     setInterpretationModel(null)
     setIsInterpreting(false)
@@ -212,7 +212,7 @@ export function useInterpretation({
       if (results) {
         sentinelRef.current = buildCacheKey(results, variableMapping)
       }
-      useSmartFlowStore.setState({ loadedAiInterpretation: null })
+      useAnalysisStore.setState({ loadedAiInterpretation: null })
     }
   }, [loadedAiInterpretation, results, variableMapping])
 

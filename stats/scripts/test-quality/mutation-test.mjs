@@ -11,8 +11,8 @@
  *
  * 예시:
  *   node scripts/test-quality/mutation-test.mjs \
- *     __tests__/components/smart-flow/steps/MethodBrowser.test.tsx \
- *     components/smart-flow/steps/purpose/MethodBrowser.tsx
+ *     __tests__/components/analysis/steps/MethodBrowser.test.tsx \
+ *     components/analysis/steps/purpose/MethodBrowser.tsx
  *
  * 결과 해석:
  *   KILLED  = 테스트가 돌연변이를 잡아냄 (좋음)
@@ -141,8 +141,8 @@ if (args.length < 2) {
 
   Example:
     node scripts/test-quality/mutation-test.mjs \\
-      __tests__/components/smart-flow/steps/MethodBrowser.test.tsx \\
-      components/smart-flow/steps/purpose/MethodBrowser.tsx
+      __tests__/components/analysis/steps/MethodBrowser.test.tsx \\
+      components/analysis/steps/purpose/MethodBrowser.tsx
   `)
   process.exit(1)
 }

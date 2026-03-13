@@ -5,7 +5,7 @@
  */
 
 import type { ExportContext } from '@/lib/services/export/export-types'
-import type { AnalysisResult } from '@/types/smart-flow'
+import type { AnalysisResult } from '@/types/analysis'
 import type { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
 
 // downloadBlob mock (DOM 조작 방지)

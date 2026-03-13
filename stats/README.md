@@ -79,12 +79,12 @@ stats/
 │   ├── (dashboard)/        # 대시보드 라우트 그룹
 │   │   ├── dashboard/      # 메인 대시보드
 │   │   ├── analysis/       # 통계 분석 페이지
-│   │   ├── smart-flow/     # 스마트 분석 플로우
+│   │   ├── analysis/     # 스마트 분석 플로우
 │   │   └── data/           # 데이터 관리
 │   └── api/                # API 라우트
 ├── components/             # React 컴포넌트
 │   ├── ui/                 # shadcn/ui 컴포넌트
-│   ├── smart-flow/         # 스마트 플로우 컴포넌트
+│   ├── analysis/         # 스마트 플로우 컴포넌트
 │   │   └── steps/          # 단계별 컴포넌트
 │   └── charts/             # 차트 컴포넌트
 ├── lib/                    # 핵심 라이브러리
@@ -151,7 +151,7 @@ stats/
 
 ## 🎯 주요 기능 소개
 
-### 1. 스마트 분석 플로우 (`/smart-flow`)
+### 1. 스마트 분석 플로우 (`/analysis`)
 
 5단계 가이드형 인터페이스로 통계 분석을 단순화:
 1. **데이터 업로드**: CSV/Excel 파일 업로드 및 자동 파싱

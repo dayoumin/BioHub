@@ -10,8 +10,8 @@
  * 3. 데이터 기반 heuristic 추론 (컬럼 타입별 매핑)
  */
 
-import type { AIRecommendation, ColumnStatistics } from '@/types/smart-flow'
-import type { DetectedVariables } from '@/lib/stores/smart-flow-store'
+import type { AIRecommendation, ColumnStatistics } from '@/types/analysis'
+import type { DetectedVariables } from '@/lib/stores/analysis-store'
 import { logger } from '@/lib/utils/logger'
 
 // ===== Types =====

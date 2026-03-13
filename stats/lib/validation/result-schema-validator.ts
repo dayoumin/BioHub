@@ -11,7 +11,7 @@
  * }
  */
 
-import type { AnalysisResult } from '@/types/smart-flow'
+import type { AnalysisResult } from '@/types/analysis'
 
 /**
  * 통계 카테고리 정의

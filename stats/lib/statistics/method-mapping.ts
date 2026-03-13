@@ -2,9 +2,9 @@
  * 50개 통계 방법 매핑 및 카테고리 정의
  */
 
-import type { StatisticalMethod } from '@/types/smart-flow'
+import type { StatisticalMethod } from '@/types/analysis'
 
-export type { StatisticalMethod } from '@/types/smart-flow'
+export type { StatisticalMethod } from '@/types/analysis'
 
 export const QUESTION_TYPES = [
   {

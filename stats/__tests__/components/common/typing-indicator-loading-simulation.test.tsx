@@ -9,10 +9,10 @@
 
 import { render, screen, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { NaturalLanguageInput } from '@/components/smart-flow/steps/purpose/NaturalLanguageInput'
-import { ChatInput } from '@/components/smart-flow/hub/ChatInput'
+import { NaturalLanguageInput } from '@/components/analysis/steps/purpose/NaturalLanguageInput'
+import { ChatInput } from '@/components/analysis/hub/ChatInput'
 import { TerminologyProvider } from '@/lib/terminology/terminology-context'
-import type { FlowChatMessage } from '@/types/smart-flow'
+import type { FlowChatMessage } from '@/types/analysis'
 
 // =====================================================
 // 공통 모킹

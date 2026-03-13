@@ -5,7 +5,7 @@
  */
 
 import { getInterpretation } from '@/lib/interpretation/engine'
-import type { AnalysisResult } from '@/types/smart-flow'
+import type { AnalysisResult } from '@/types/analysis'
 
 describe('Interpretation Engine Helper Functions', () => {
   describe('formatPValue() - indirect testing via getInterpretation()', () => {

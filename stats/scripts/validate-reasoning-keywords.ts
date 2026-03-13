@@ -9,7 +9,7 @@
  */
 
 import { DecisionTreeRecommender } from '../lib/services/decision-tree-recommender'
-import type { AnalysisPurpose, AIRecommendation } from '../types/smart-flow'
+import type { AnalysisPurpose, AIRecommendation } from '../types/analysis'
 
 /**
  * 큐레이션 테스트 케이스 (교과서 데이터셋)

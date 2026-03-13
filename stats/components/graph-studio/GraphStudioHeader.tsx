@@ -10,7 +10,7 @@ import { useCallback } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
 import { Button } from '@/components/ui/button';
-import { Undo2, Redo2, PanelLeftOpen, PanelRightOpen, Sparkles } from 'lucide-react';
+import { Undo2, Redo2, PanelLeft, PanelRight, Sparkles } from 'lucide-react';
 import { ExportDialog } from './panels/ExportDialog';
 
 interface GraphStudioHeaderProps {
@@ -39,7 +39,7 @@ export function GraphStudioHeader({
   }, [redo]);
 
   return (
-    <header className="flex items-center justify-between border-b border-border px-4 py-2 bg-background">
+    <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border px-4 h-10 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80">
       {/* 좌: 제목 */}
       <div className="flex items-center gap-3">
         <h1 className="text-lg font-semibold">Graph Studio</h1>
@@ -100,7 +100,7 @@ export function GraphStudioHeader({
             aria-label="Toggle left panel"
             data-testid="graph-studio-left-toggle"
           >
-            <PanelLeftOpen className="h-4 w-4" />
+            <PanelLeft className="h-4 w-4" />
           </Button>
         )}
         {onToggleRightPanel && (
@@ -111,7 +111,7 @@ export function GraphStudioHeader({
             aria-label="Toggle side panel"
             data-testid="graph-studio-side-toggle"
           >
-            <PanelRightOpen className="h-4 w-4" />
+            <PanelRight className="h-4 w-4" />
           </Button>
         )}
       </div>

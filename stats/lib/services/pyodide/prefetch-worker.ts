@@ -13,7 +13,7 @@
  */
 
 import { PyodideCoreService } from './core/pyodide-core.service'
-import type { StatisticalMethod } from '@/types/smart-flow'
+import type { StatisticalMethod } from '@/types/analysis'
 import { logger } from '@/lib/utils/logger'
 
 /**

@@ -3,7 +3,7 @@
  */
 
 // Jest globals are available automatically
-import type { AnalysisTemplate, VariableRoleMapping } from '@/types/smart-flow'
+import type { AnalysisTemplate, VariableRoleMapping } from '@/types/analysis'
 import { vi } from 'vitest'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 

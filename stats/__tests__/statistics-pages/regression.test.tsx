@@ -47,7 +47,7 @@ vi.mock('@/components/variable-selection/VariableSelector', () => ({
   )
 }))
 
-vi.mock('@/components/smart-flow/steps/DataUploadStep', () => ({
+vi.mock('@/components/analysis/steps/DataUploadStep', () => ({
   DataUploadStep: ({ onUploadComplete, onNext }: any) => (
     <div data-testid="data-upload-step">Data Upload Step</div>
   )

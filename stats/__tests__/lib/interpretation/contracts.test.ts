@@ -21,7 +21,7 @@ import {
   AdditionalClusterSchema,
   AdditionalReliabilitySchema
 } from '@/lib/interpretation/schemas'
-import type { AnalysisResult } from '@/types/smart-flow'
+import type { AnalysisResult } from '@/types/analysis'
 
 describe('Contract Tests: Input Validation', () => {
   describe('입력 데이터 경계값 검증', () => {

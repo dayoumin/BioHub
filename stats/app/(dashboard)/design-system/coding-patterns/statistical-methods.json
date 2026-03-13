@@ -45,7 +45,7 @@
   ],
   "decisionTree": {
     "description": "사용자 질문에 따라 통계 방법 추천",
-    "sourceFile": "components/smart-flow/steps/purpose/DecisionTree.ts",
+    "sourceFile": "components/analysis/steps/purpose/DecisionTree.ts",
     "purposes": [
       { "id": "compare", "name": "그룹 간 차이 비교" },
       { "id": "relationship", "name": "변수 간 관계 분석" },

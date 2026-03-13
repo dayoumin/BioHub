@@ -9,7 +9,7 @@
  */
 
 import { OpenRouterRecommender } from '@/lib/services/openrouter-recommender'
-import type { ValidationResults, ColumnStatistics } from '@/types/smart-flow'
+import type { ValidationResults, ColumnStatistics } from '@/types/analysis'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- private 메서드 접근 (TypeScript private은 compile-time only)
 type AnyRecommender = Record<string, any>

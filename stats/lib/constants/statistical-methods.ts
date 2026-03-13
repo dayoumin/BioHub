@@ -18,7 +18,7 @@
  * @see design-system -> Dev Tools -> Statistical Methods
  */
 
-import type { StatisticalMethod } from '@/types/smart-flow'
+import type { StatisticalMethod } from '@/types/analysis'
 
 // Extended type with aliases for backward compatibility
 export interface StatisticalMethodWithAliases extends StatisticalMethod {

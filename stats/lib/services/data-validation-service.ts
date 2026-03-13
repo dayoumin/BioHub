@@ -1,4 +1,4 @@
-import { ValidationResults, ColumnStatistics, DataRow, StatisticalAssumptions } from '@/types/smart-flow'
+import { ValidationResults, ColumnStatistics, DataRow, StatisticalAssumptions } from '@/types/analysis'
 import { detectIdColumn } from '@/lib/services/variable-type-detector'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 

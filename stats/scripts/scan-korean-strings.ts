@@ -27,7 +27,7 @@ interface FileReport {
   totalKoreanChars: number
 }
 
-const SMART_FLOW_DIR = path.resolve(__dirname, '../components/smart-flow')
+const SMART_FLOW_DIR = path.resolve(__dirname, '../components/analysis')
 const KOREAN_REGEX = /[\uAC00-\uD7AF\u3131-\u3163]/
 
 function getAllTsxFiles(dir: string): string[] {

@@ -7,7 +7,7 @@
  * Phase 2: 신규 로직 추가 (method 기반)
  */
 
-import type { AnalysisResult, EffectSizeInfo } from '@/types/smart-flow'
+import type { AnalysisResult, EffectSizeInfo } from '@/types/analysis'
 
 /**
  * 해석 기준 임계값 (통계학 표준)

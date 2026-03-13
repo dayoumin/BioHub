@@ -5,7 +5,7 @@
  * 사용하는 StatisticalResult 타입으로 변환합니다.
  */
 
-import { AnalysisResult, EffectSizeInfo, StatisticalAssumptions } from '@/types/smart-flow'
+import { AnalysisResult, EffectSizeInfo, StatisticalAssumptions } from '@/types/analysis'
 import { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
 
 /**

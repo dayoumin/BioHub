@@ -9,9 +9,9 @@
  * - 사용 빈도/최근 사용 기준 정렬 지원
  */
 
-import type { AnalysisTemplate, TemplateListOptions } from '@/types/smart-flow'
+import type { AnalysisTemplate, TemplateListOptions } from '@/types/analysis'
 
-const DB_NAME = 'smart-flow-templates'
+const DB_NAME = 'analysis-templates'
 const DB_VERSION = 1
 const STORE_NAME = 'templates'
 const MAX_TEMPLATES = 50

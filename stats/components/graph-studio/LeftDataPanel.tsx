@@ -5,14 +5,12 @@
  *
  * A. 데이터 소스 카드 — 파일명, 행/변수 수
  * B. 변수 목록 — 타입 배지 + 현재 인코딩 역할 표시
- * C. 추천 차트 썸네일 — 데이터 기반 chart-recommender
- * D. 데이터 교체 버튼
+ * C. 데이터 교체 버튼
  */
 
 import { useCallback, useMemo, useRef } from 'react';
 import Papa from 'papaparse';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
-import { recommendCharts } from '@/lib/graph-studio/chart-recommender';
 import { inferColumnMeta, selectXYFields } from '@/lib/graph-studio/chart-spec-utils';
 import { createDefaultChartSpec, CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
 import { Button } from '@/components/ui/button';
@@ -25,7 +23,6 @@ import {
   ListOrdered,
   RefreshCw,
 } from 'lucide-react';
-import { CHART_TYPE_ICONS } from '@/lib/graph-studio/chart-icons';
 
 // ─── 타입 배지 설정 ──────────────────────────────────────
 
@@ -62,20 +59,6 @@ export function LeftDataPanel(): React.ReactElement {
     }
     return map;
   }, [chartSpec]);
-
-  // 추천 차트
-  const recommendations = useMemo(
-    () => dataPackage ? recommendCharts(dataPackage.columns) : [],
-    [dataPackage]
-  );
-
-  // 차트 유형 변경
-  const handleChartTypeSelect = useCallback((chartType: ChartType) => {
-    if (!dataPackage) return;
-    const { xField, yField } = selectXYFields(dataPackage.columns, CHART_TYPE_HINTS[chartType]);
-    const spec = createDefaultChartSpec(dataPackage.id, chartType, xField, yField, dataPackage.columns);
-    loadDataPackageWithSpec(dataPackage, spec);
-  }, [dataPackage, loadDataPackageWithSpec]);
 
   // 데이터 교체 (CSV 파일)
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,36 +148,7 @@ export function LeftDataPanel(): React.ReactElement {
         </div>
       )}
 
-      {/* C. 추천 차트 */}
-      {recommendations.length > 0 && (
-        <div className="p-3 border-b border-border space-y-1.5">
-          <h3 className="text-xs font-medium text-muted-foreground">추천 차트</h3>
-          <div className="grid grid-cols-2 gap-1.5">
-            {recommendations.map(rec => {
-              const Icon = CHART_TYPE_ICONS[rec.type];
-              const isActive = chartSpec?.chartType === rec.type;
-              return (
-                <button
-                  key={rec.type}
-                  type="button"
-                  onClick={() => handleChartTypeSelect(rec.type)}
-                  className={[
-                    'flex flex-col items-center gap-1 p-2 rounded-md border text-xs transition-colors',
-                    isActive
-                      ? 'border-primary bg-primary/10 text-primary font-medium'
-                      : 'border-border hover:bg-muted/50 text-muted-foreground hover:text-foreground',
-                  ].join(' ')}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="truncate w-full text-center">{rec.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* D. 데이터 교체 버튼 */}
+      {/* C. 데이터 교체 버튼 */}
       <div className="p-3 mt-auto">
         <input
           ref={fileInputRef}

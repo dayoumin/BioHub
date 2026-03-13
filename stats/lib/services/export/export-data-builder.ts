@@ -5,7 +5,7 @@
  * 기존 result-converter.ts와 ResultsActionStep의 클립보드 로직을 참고합니다.
  */
 
-import type { AnalysisResult, EffectSizeInfo } from '@/types/smart-flow'
+import type { AnalysisResult, EffectSizeInfo } from '@/types/analysis'
 import type {
   ExportContext,
   NormalizedExportData,

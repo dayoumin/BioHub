@@ -3,7 +3,7 @@
  * @jest-environment jsdom
  */
 
-import type { AnalysisTemplate } from '@/types/smart-flow'
+import type { AnalysisTemplate } from '@/types/analysis'
 
 describe('IndexedDB Templates', () => {
   describe('AnalysisTemplate 타입', () => {

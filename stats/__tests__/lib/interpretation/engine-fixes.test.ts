@@ -8,7 +8,7 @@
  */
 
 import { getInterpretation } from '@/lib/interpretation/engine'
-import type { AnalysisResult } from '@/types/smart-flow'
+import type { AnalysisResult } from '@/types/analysis'
 
 describe('Interpretation Engine Bug Fixes', () => {
   describe('[High] Mann-Whitney U Test 해석 추가', () => {

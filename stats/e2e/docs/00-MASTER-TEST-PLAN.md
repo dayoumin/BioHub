@@ -31,7 +31,7 @@ BioHub 통계 플랫폼의 **통계 분석 + 그래프 시각화** 전체를 Pla
 
 | Phase | 문서 | 목적 | 테스트 수 (예상) |
 |-------|------|------|-----------------|
-| **1** | [01-SMART-FLOW-CORE.md](01-SMART-FLOW-CORE.md) | 핵심 워크플로우 (기존 강화) | ~20 |
+| **1** | [01-ANALYSIS-CORE.md](01-ANALYSIS-CORE.md) | 핵심 워크플로우 (기존 강화) | ~20 |
 | **2** | [02-STATISTICAL-METHODS.md](02-STATISTICAL-METHODS.md) | 52개 통계 메서드 개별 검증 | ~60 |
 | **3** | [03-GRAPH-VISUALIZATION.md](03-GRAPH-VISUALIZATION.md) | Graph Studio + 차트 렌더링 | ~25 |
 | **4** | [04-USER-EXPERIENCE.md](04-USER-EXPERIENCE.md) | 사용자 관점 시나리오 (통계 + 그래프 각각) | ~30 |
@@ -100,13 +100,13 @@ pnpm e2e:headed                     # 브라우저 표시
 stats/e2e/
 ├── docs/                           # 테스트 계획 문서 (이 폴더)
 │   ├── 00-MASTER-TEST-PLAN.md
-│   ├── 01-SMART-FLOW-CORE.md
+│   ├── 01-ANALYSIS-CORE.md
 │   ├── 02-STATISTICAL-METHODS.md
 │   ├── 03-GRAPH-VISUALIZATION.md
 │   ├── 04-USER-EXPERIENCE.md
 │   └── 05-NON-FUNCTIONAL.md
 │
-├── smart-flow-e2e.spec.ts          # Phase 1: 핵심 (기존)
+├── analysis-e2e.spec.ts          # Phase 1: 핵심 (기존)
 ├── graph-studio-e2e.spec.ts        # Phase 3: Graph Studio (기존)
 ├── survival-roc-e2e.spec.ts        # Phase 2: Survival/ROC (기존)
 │
@@ -138,13 +138,13 @@ stats/e2e/
 │   └── common-nonfunctional.spec.ts      # Part C: 공통 비기능
 │
 ├── helpers/
-│   ├── smart-flow-helpers.ts       # 기존 헬퍼
+│   ├── analysis-helpers.ts       # 기존 헬퍼
 │   ├── method-test-factory.ts      # 메서드별 테스트 팩토리 (신규)
 │   └── chart-helpers.ts            # 차트 검증 헬퍼 (신규)
 │
 ├── selectors.ts                    # 셀렉터 레지스트리
 ├── fixtures/                       # Playwright fixtures (신규)
-│   └── smart-flow.fixture.ts
+│   └── analysis.fixture.ts
 │
 └── results/                        # 결과 출력
     ├── artifacts/
@@ -195,7 +195,7 @@ stats/e2e/
 
 ### 포트 불일치 (구현 시 해결 필요)
 - `playwright.config.ts`: baseURL = `http://localhost:3000`
-- `smart-flow-e2e.spec.ts`: 기본값 = `http://localhost:3005`
+- `analysis-e2e.spec.ts`: 기본값 = `http://localhost:3005`
 - **해결**: 신규 테스트는 `playwright.config.ts`의 3000 사용, 기존 spec의 3005 하드코딩 제거 필요
 
 ### 차트 유형 명칭

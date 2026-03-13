@@ -1,4 +1,4 @@
-import { DataRow } from '@/types/smart-flow'
+import { DataRow } from '@/types/analysis'
 
 // Dynamic import for code splitting (xlsx ~1MB)
 let _xlsxPromise: Promise<typeof import('xlsx')> | null = null

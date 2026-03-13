@@ -4,7 +4,7 @@
  * PyodideCore는 Mock으로 처리하여 순수 로직만 테스트
  */
 
-import type { ValidationResults, StatisticalAssumptions } from '@/types/smart-flow'
+import type { ValidationResults, StatisticalAssumptions } from '@/types/analysis'
 
 describe('Phase B-2: 가정검증 타입 테스트', () => {
   describe('1. ValidationResults 타입 정의', () => {

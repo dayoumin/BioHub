@@ -343,10 +343,10 @@ const E2E_TEST_SCENARIOS = {
   status: 'planned',
   scenarios: [
     {
-      id: 'smart-flow-basic',
+      id: 'analysis-basic',
       name: 'Smart Flow Basic Workflow',
       steps: [
-        '1. Navigate to /smart-flow',
+        '1. Navigate to /analysis',
         '2. Upload CSV file (test-data/t-test.csv)',
         '3. Select analysis purpose: "Compare groups"',
         '4. Verify compatible methods shown (t-test, Mann-Whitney)',
@@ -361,7 +361,7 @@ const E2E_TEST_SCENARIOS = {
       id: 'compatibility-filter',
       name: 'Compatibility Filter Test',
       steps: [
-        '1. Navigate to /smart-flow',
+        '1. Navigate to /analysis',
         '2. Upload small sample CSV (n < 30)',
         '3. Verify non-parametric methods highlighted',
         '4. Upload normal distribution CSV',

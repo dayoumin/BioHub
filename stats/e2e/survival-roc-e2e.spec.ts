@@ -29,7 +29,7 @@ function log(tag: string, msg: string): void {
 }
 
 // ========================================
-// Helper Functions (smart-flow-e2e.spec.ts와 동일 패턴)
+// Helper Functions (analysis-e2e.spec.ts와 동일 패턴)
 // ========================================
 
 async function navigateToUploadStep(page: Page): Promise<void> {

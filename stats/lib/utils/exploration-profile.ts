@@ -1,4 +1,4 @@
-import type { StatisticalMethod } from '@/types/smart-flow'
+import type { StatisticalMethod } from '@/types/analysis'
 
 /**
  * Exploration Profile System

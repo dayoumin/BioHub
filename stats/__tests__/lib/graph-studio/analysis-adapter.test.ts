@@ -24,7 +24,7 @@ import type {
   KaplanMeierAnalysisResult,
   RocCurveAnalysisResult,
 } from '@/lib/generated/method-types.generated'
-import type { AnalysisResult as SmartFlowResult } from '@/types/smart-flow'
+import type { AnalysisResult as AnalysisResult } from '@/types/analysis'
 
 // ─── KM 픽스처 ───────────────────────────────────────────────
 
@@ -286,7 +286,7 @@ describe('buildRocCurveColumns — aucCI 없음', () => {
 
 // ─── toAnalysisContext ────────────────────────────────────────
 
-function makeSmartFlowResult(overrides: Partial<SmartFlowResult> = {}): SmartFlowResult {
+function makeAnalysisResult(overrides: Partial<AnalysisResult> = {}): AnalysisResult {
   return {
     method: 'one-way-anova',
     pValue: 0.012,
@@ -310,7 +310,7 @@ function makeSmartFlowResult(overrides: Partial<SmartFlowResult> = {}): SmartFlo
 }
 
 describe('toAnalysisContext — 기본 매핑', () => {
-  const result = makeSmartFlowResult()
+  const result = makeAnalysisResult()
   const ctx = toAnalysisContext(result)
 
   it('method와 pValue가 전달된다', () => {
@@ -327,7 +327,7 @@ describe('toAnalysisContext — 기본 매핑', () => {
 })
 
 describe('toAnalysisContext — groupStats', () => {
-  const result = makeSmartFlowResult()
+  const result = makeAnalysisResult()
   const ctx = toAnalysisContext(result)
 
   it('groupStats가 3개 변환된다', () => {
@@ -341,7 +341,7 @@ describe('toAnalysisContext — groupStats', () => {
 })
 
 describe('toAnalysisContext — comparisons + comparisonMeta', () => {
-  const result = makeSmartFlowResult()
+  const result = makeAnalysisResult()
   const ctx = toAnalysisContext(result)
 
   it('postHoc 3개가 comparisons로 변환된다', () => {
@@ -372,7 +372,7 @@ describe('toAnalysisContext — comparisons + comparisonMeta', () => {
   })
 
   it('postHoc 없으면 comparisons/comparisonMeta가 undefined이다', () => {
-    const result = makeSmartFlowResult({ postHoc: undefined, postHocMethod: undefined })
+    const result = makeAnalysisResult({ postHoc: undefined, postHocMethod: undefined })
     const ctx = toAnalysisContext(result)
     expect(ctx.comparisons).toBeUndefined()
     expect(ctx.comparisonMeta).toBeUndefined()
@@ -381,7 +381,7 @@ describe('toAnalysisContext — comparisons + comparisonMeta', () => {
 
 describe('toAnalysisContext — group ID 정수 인덱스 → 라벨 변환 (C-2)', () => {
   it('group1이 정수이면 groupStats.name으로 매핑된다', () => {
-    const result = makeSmartFlowResult({
+    const result = makeAnalysisResult({
       postHoc: [
         { group1: 0, group2: 1, pvalue: 0.03, significant: true },
       ],
@@ -392,7 +392,7 @@ describe('toAnalysisContext — group ID 정수 인덱스 → 라벨 변환 (C-2
   })
 
   it('groupNames 파라미터로 명시적 매핑이 가능하다', () => {
-    const result = makeSmartFlowResult({
+    const result = makeAnalysisResult({
       postHoc: [
         { group1: 0, group2: 2, pvalue: 0.05, significant: true },
       ],

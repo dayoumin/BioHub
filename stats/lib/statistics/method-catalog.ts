@@ -6,9 +6,9 @@
  */
 
 import { STATISTICAL_METHODS } from './method-mapping'
-import type { AnalysisPurpose, StatisticalMethod } from '@/types/smart-flow'
+import type { AnalysisPurpose, StatisticalMethod } from '@/types/analysis'
 
-// Cast STATISTICAL_METHODS to the smart-flow type
+// Cast STATISTICAL_METHODS to the analysis type
 const METHODS: StatisticalMethod[] = STATISTICAL_METHODS
 
 /**

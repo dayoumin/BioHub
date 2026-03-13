@@ -2,25 +2,25 @@
 
 import { useCallback, useEffect, useState, useRef, useTransition, useMemo } from 'react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { DataValidationService } from '@/lib/services/data-validation-service'
 import {
   StatisticalMethod,
   AnalysisResult,
   DataRow
-} from '@/types/smart-flow'
-import type { ResolvedIntent } from '@/types/smart-flow'
+} from '@/types/analysis'
+import type { ResolvedIntent } from '@/types/analysis'
 import { toast } from 'sonner'
-import { SmartFlowLayout } from '@/components/smart-flow/layouts/SmartFlowLayout'
-import { DataExplorationStep } from '@/components/smart-flow/steps/DataExplorationStep'
-import { PurposeInputStep } from '@/components/smart-flow/steps/PurposeInputStep'
-import { VariableSelectionStep } from '@/components/smart-flow/steps/VariableSelectionStep'
-import { AnalysisExecutionStep } from '@/components/smart-flow/steps/AnalysisExecutionStep'
-import { ResultsActionStep } from '@/components/smart-flow/steps/ResultsActionStep'
-import { AnalysisHistoryPanel } from '@/components/smart-flow/AnalysisHistoryPanel'
-import { ReanalysisPanel } from '@/components/smart-flow/ReanalysisPanel'
-import { ReanalysisBanner, QuickAnalysisBanner } from '@/components/smart-flow/steps/Step1ModeBanners'
-import { ChatCentricHub } from '@/components/smart-flow/ChatCentricHub'
+import { AnalysisLayout } from '@/components/analysis/layouts/AnalysisLayout'
+import { DataExplorationStep } from '@/components/analysis/steps/DataExplorationStep'
+import { PurposeInputStep } from '@/components/analysis/steps/PurposeInputStep'
+import { VariableSelectionStep } from '@/components/analysis/steps/VariableSelectionStep'
+import { AnalysisExecutionStep } from '@/components/analysis/steps/AnalysisExecutionStep'
+import { ResultsActionStep } from '@/components/analysis/steps/ResultsActionStep'
+import { AnalysisHistoryPanel } from '@/components/analysis/AnalysisHistoryPanel'
+import { ReanalysisPanel } from '@/components/analysis/ReanalysisPanel'
+import { ReanalysisBanner, QuickAnalysisBanner } from '@/components/analysis/steps/Step1ModeBanners'
+import { ChatCentricHub } from '@/components/analysis/ChatCentricHub'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import { checkVariableCompatibility, CompatibilityResult } from '@/lib/utils/variable-compatibility'
 import type { ColumnInfo } from '@/lib/statistics/variable-mapping'
@@ -90,7 +90,7 @@ export default function HomePage() {
     setUserQuery,
     setDetectedVariables,
     patchColumnNormality
-  } = useSmartFlowStore()
+  } = useAnalysisStore()
 
   // 스텝 전환 애니메이션 방향 추적
   const prevStepRef = useRef(currentStep)
@@ -109,7 +109,7 @@ export default function HomePage() {
 
   // Load history from IndexedDB
   useEffect(() => {
-    useSmartFlowStore.getState().loadHistoryFromDB().catch(console.error)
+    useAnalysisStore.getState().loadHistoryFromDB().catch(console.error)
   }, [])
 
   // Reset compatibility when leaving reanalysis mode
@@ -121,7 +121,7 @@ export default function HomePage() {
 
   // Steps configuration
   const steps = useMemo(() => {
-    const sl = t.smartFlow.stepShortLabels
+    const sl = t.analysis.stepShortLabels
     return [
       { id: 1, label: sl.exploration },
       { id: 2, label: sl.method },
@@ -152,7 +152,7 @@ export default function HomePage() {
       const detailedValidation = DataValidationService.performValidation(data)
       setValidationResults(detailedValidation)
 
-      const currentState = useSmartFlowStore.getState()
+      const currentState = useAnalysisStore.getState()
       if (currentState.isReanalysisMode && currentState.variableMapping) {
         const columns: ColumnInfo[] = detailedValidation.columnStats?.map(col => ({
           name: col.name,
@@ -167,12 +167,12 @@ export default function HomePage() {
       // 비동기 정규성 검정 (fire-and-forget — UI 비차단)
       // Step 2 AI 추천 시 normality 정보 활용, 실패해도 분석 흐름 차단 안 함
       if (detailedValidation.columnStats?.length) {
-        const capturedNonce = useSmartFlowStore.getState().uploadNonce
+        const capturedNonce = useAnalysisStore.getState().uploadNonce
         enrichWithNormality(detailedValidation.columnStats, data)
           .then(({ enrichedColumns, testedCount }) => {
             if (testedCount > 0) {
               // stale check: nonce가 바뀌었으면 이미 다른 파일이 업로드된 것
-              const current = useSmartFlowStore.getState()
+              const current = useAnalysisStore.getState()
               if (current.uploadNonce !== capturedNonce) return
               // normality만 패치 — assumptionResults/methodCompatibility 보존
               patchColumnNormality(enrichedColumns)
@@ -196,7 +196,7 @@ export default function HomePage() {
         navigateToStep(3)
       }
     } catch (err) {
-      setError(t.smartFlow.errors.uploadFailed((err as Error).message))
+      setError(t.analysis.errors.uploadFailed((err as Error).message))
     }
   }, [setUploadedFile, setUploadedData, setValidationResults, patchColumnNormality, setDetectedVariables, setError, navigateToStep])
 
@@ -290,7 +290,7 @@ export default function HomePage() {
   // History select from hub
   const handleHistorySelect = useCallback(async (historyId: string) => {
     try {
-      await useSmartFlowStore.getState().loadFromHistory(historyId)
+      await useAnalysisStore.getState().loadFromHistory(historyId)
       setShowHub(false)
     } catch (err) {
       console.error('Failed to load history', err)
@@ -299,7 +299,7 @@ export default function HomePage() {
 
   // History delete from hub
   const handleHistoryDelete = useCallback(async (historyId: string) => {
-    await useSmartFlowStore.getState().deleteFromHistory(historyId)
+    await useAnalysisStore.getState().deleteFromHistory(historyId)
   }, [])
 
   // Hub 채팅창의 파일 버튼 클릭 → Step 1(데이터 업로드)으로 바로 이동
@@ -326,7 +326,7 @@ export default function HomePage() {
   }, [showHub, currentStep, results, canProceedToNext, uploadedData, uploadedFileName, validationResults, selectedMethod, variableMapping])
 
   const getNextStepLabel = useMemo(() => {
-    const nav = t.smartFlow.floatingNav
+    const nav = t.analysis.floatingNav
     switch (currentStep) {
       case 1: return quickAnalysisMode ? nav.toVariables : nav.toMethod
       case 2: return nav.toVariables
@@ -343,7 +343,7 @@ export default function HomePage() {
 
 
   return (
-    <SmartFlowLayout
+    <AnalysisLayout
       currentStep={currentStep}
       steps={steps}
       onStepChange={handleStepClick}
@@ -381,7 +381,7 @@ export default function HomePage() {
           {isReanalysisMode && selectedMethod && !uploadedData && (
             <ReanalysisBanner
               method={selectedMethod}
-              t={{ title: t.reanalysis.title, description: t.smartFlow.modeBanners.reanalysis.description }}
+              t={{ title: t.reanalysis.title, description: t.analysis.modeBanners.reanalysis.description }}
             />
           )}
 
@@ -391,7 +391,7 @@ export default function HomePage() {
               method={selectedMethod}
               onNormalMode={() => setQuickAnalysisMode(false)}
               onChangeMethod={() => { setQuickAnalysisMode(false); navigateToStep(2) }}
-              t={t.smartFlow.modeBanners.quickAnalysis}
+              t={t.analysis.modeBanners.quickAnalysis}
             />
           )}
 
@@ -467,10 +467,10 @@ export default function HomePage() {
           <InlineError
             message={error}
             onRetry={() => setError(null)}
-            retryLabel={t.smartFlow.errors.retryLabel}
+            retryLabel={t.analysis.errors.retryLabel}
           />
         </div>
       )}
-    </SmartFlowLayout>
+    </AnalysisLayout>
   )
 }

@@ -10,7 +10,7 @@
  */
 
 import { getInterpretation } from '@/lib/interpretation/engine'
-import type { AnalysisResult } from '@/types/smart-flow'
+import type { AnalysisResult } from '@/types/analysis'
 
 describe('Interpretation Engine Regression Variants (Phase 3)', () => {
   describe('Poisson Regression (포아송 회귀)', () => {

@@ -6,7 +6,7 @@
  */
 
 import { StatisticalExecutor } from '@/lib/services/statistical-executor'
-import type { StatisticalMethod } from '@/types/smart-flow'
+import type { StatisticalMethod } from '@/types/analysis'
 
 // Access private method for testing
 // We'll test through executeMethod indirectly or use a test helper

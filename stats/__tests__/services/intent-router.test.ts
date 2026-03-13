@@ -29,7 +29,7 @@ vi.mock('@/lib/utils/logger', () => ({
 
 import { intentRouter } from '@/lib/services/intent-router'
 import { llmRecommender } from '@/lib/services/llm-recommender'
-import type { IntentClassification } from '@/types/smart-flow'
+import type { IntentClassification } from '@/types/analysis'
 
 const mockClassifyIntent = vi.mocked(llmRecommender.classifyIntent)
 

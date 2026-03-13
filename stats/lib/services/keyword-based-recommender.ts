@@ -3,7 +3,7 @@
  * LLM 없이 규칙 기반으로 작동
  */
 
-import { StatisticalMethod } from '@/types/smart-flow'
+import { StatisticalMethod } from '@/types/analysis'
 
 interface KeywordPattern {
   keywords: string[]

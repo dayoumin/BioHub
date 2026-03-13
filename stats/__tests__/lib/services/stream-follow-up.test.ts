@@ -31,7 +31,7 @@ vi.mock('@/lib/services/ai/prompts', () => ({
 }))
 
 import { streamFollowUp, type FollowUpMessage } from '@/lib/services/result-interpreter'
-import type { AnalysisResult } from '@/types/smart-flow'
+import type { AnalysisResult } from '@/types/analysis'
 import { OpenRouterRecommender } from '@/lib/services/openrouter-recommender'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- private 메서드 테스트

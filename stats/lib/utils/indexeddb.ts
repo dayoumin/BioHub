@@ -10,7 +10,7 @@
 
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 
-const DB_NAME = 'smart-flow-history'
+const DB_NAME = 'analysis-history'
 const DB_VERSION = 1
 const STORE_NAME = 'analyses'
 const MAX_HISTORY = 100

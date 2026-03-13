@@ -4,7 +4,7 @@
  * AnalysisResult → NormalizedExportData → 각 포맷별 내보내기
  */
 
-import type { AnalysisResult } from '@/types/smart-flow'
+import type { AnalysisResult } from '@/types/analysis'
 import type { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
 
 // ─── 내보내기 포맷 ───

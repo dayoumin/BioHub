@@ -1,11 +1,11 @@
 /**
- * E2E 테스트: /smart-analysis 제거 및 /smart-flow 통합 검증
+ * E2E 테스트: /smart-analysis 제거 및 /analysis 통합 검증
  *
  * 목적: 사용자 관점에서 스마트 분석 기능이 올바르게 동작하는지 검증
  *
  * 시나리오:
- * 1. 홈페이지에서 스마트 분석 버튼 클릭 → /smart-flow로 이동
- * 2. 대시보드에서 스마트 분석 카드 클릭 → /smart-flow로 이동
+ * 1. 홈페이지에서 스마트 분석 버튼 클릭 → /analysis로 이동
+ * 2. 대시보드에서 스마트 분석 카드 클릭 → /analysis로 이동
  * 3. /smart-analysis 직접 접근 시 404 또는 리다이렉트
  */
 
@@ -23,10 +23,10 @@ describe('E2E: Smart Analysis Removal', () => {
       expect(fs.existsSync(smartAnalysisPath)).toBe(false)
     })
 
-    it('should have smart-flow page', () => {
-      const smartFlowPath = path.join(__dirname, '../../app/smart-flow/page.tsx')
+    it('should have analysis page', () => {
+      const analysisPath = path.join(__dirname, '../../app/analysis/page.tsx')
 
-      expect(fs.existsSync(smartFlowPath)).toBe(true)
+      expect(fs.existsSync(analysisPath)).toBe(true)
     })
   })
 
@@ -36,7 +36,7 @@ describe('E2E: Smart Analysis Removal', () => {
       const content = fs.readFileSync(homePagePath, 'utf-8')
 
       // 홈 페이지가 Smart Flow 메인 페이지 (대시보드 리다이렉트 아님)
-      expect(content).toContain('useSmartFlowStore')
+      expect(content).toContain('useAnalysisStore')
       expect(content).not.toContain('href="/smart-analysis"')
     })
 
@@ -84,7 +84,7 @@ describe('E2E: Smart Analysis Removal', () => {
       expect(smartAnalysisPages.length).toBe(0)
     })
 
-    it('should have exactly one smart-flow page', () => {
+    it('should have exactly one analysis page', () => {
       const appDir = path.join(__dirname, '../../app')
 
       const findPageFiles = (dir: string): string[] => {
@@ -106,11 +106,11 @@ describe('E2E: Smart Analysis Removal', () => {
       }
 
       const allPageFiles = findPageFiles(appDir)
-      const smartFlowPages = allPageFiles.filter((file) =>
-        file.includes('smart-flow')
+      const analysisPages = allPageFiles.filter((file) =>
+        file.includes('analysis')
       )
 
-      expect(smartFlowPages.length).toBeGreaterThanOrEqual(1)
+      expect(analysisPages.length).toBeGreaterThanOrEqual(1)
     })
   })
 

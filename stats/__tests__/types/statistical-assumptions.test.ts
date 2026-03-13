@@ -7,7 +7,7 @@
  * Fixed in: DataExplorationStep.tsx:497
  */
 
-import { StatisticalAssumptions } from '@/types/smart-flow';
+import { StatisticalAssumptions } from '@/types/analysis';
 
 describe('StatisticalAssumptions Type Safety', () => {
   describe('Nullish Coalescing Pattern', () => {

@@ -32,29 +32,20 @@ test.setTimeout(180_000)
 
 test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
   test('TC-4A.1.1: 완전 초보 — AI 추천으로 분석 → DOCX 내보내기 @ai-mock', async ({ page }) => {
-    // 1. Hub 접근
-    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60000 })
-    await page.waitForFunction(
-      () => document.querySelector('[data-testid="hub-upload-card"]') !== null,
-      { timeout: 30000 },
-    )
+    // 1. Hub → 데이터 업로드 Step으로 이동
+    // hub-upload-btn을 사용해야 함 (hub-upload-card는 전체 Hub 컨테이너이므로 클릭 시 QuickAnalysisPill 오발동)
+    await navigateToUploadStep(page)
 
-    // 2. 데이터 업로드 카드 인식 → 클릭
-    const uploadCard = page.locator(S.hubUploadCard)
-    await expect(uploadCard).toBeVisible()
-    await uploadCard.click()
-    await page.waitForSelector('input[type="file"]', { timeout: 10000 })
-
-    // 3. CSV 업로드
+    // 2. CSV 업로드
     expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
-    // 4. 다음 단계로 이동 (다음 버튼이 보여야 함)
+    // 3. 다음 단계로 이동 (다음 버튼이 보여야 함)
     const nextBtn = page.locator(S.floatingNextBtn)
     await expect(nextBtn).toBeVisible({ timeout: 5000 })
     await expect(nextBtn).toBeEnabled()
 
-    // 5. AI 추천 흐름
+    // 4. AI 추천 흐름
     await mockOpenRouterAPI(page, 't-test', '독립표본 t-검정')
     await goToMethodSelection(page)
 
@@ -66,16 +57,16 @@ test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
     await page.locator(S.aiChatInput).fill('두 그룹의 평균이 차이가 있는지 알고 싶어요')
     await page.locator(S.aiChatSubmit).click()
 
-    // 6. 추천 카드 → 수락
+    // 5. 추천 카드 → 수락
     await expect(page.locator(S.recommendationCard)).toBeVisible({ timeout: 30000 })
     await page.locator(S.selectRecommendedMethod).click()
     await page.waitForTimeout(1500)
 
-    // 7. 변수 자동 할당 → 분석 실행
+    // 6. 변수 자동 할당 → 분석 실행
     await ensureVariablesOrSkip(page, 'TC-4A.1.1', 'group', 'value')
     await clickAnalysisRun(page)
 
-    // 8. 결과 확인
+    // 7. 결과 확인
     expect(await waitForResults(page, 120000)).toBeTruthy()
     const r = await verifyStatisticalResults(page)
     expect(r.hasStatistic).toBeTruthy()
@@ -87,7 +78,7 @@ test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
       bodyText.includes('유의') || bodyText.includes('결과') || bodyText.includes('해석')
     expect(hasKoreanInterpretation).toBeTruthy()
 
-    // 9. 내보내기 → DOCX
+    // 8. 내보내기 → DOCX
     const exportDD = page.locator(S.exportDropdown)
     if (await exportDD.isVisible({ timeout: 5000 }).catch(() => false)) {
       await exportDD.click()
@@ -121,22 +112,19 @@ test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
       await selectMethodDirect(page, '대응표본', /대응표본.*t.*검정|paired.*t/i),
     ).toBeTruthy()
 
-    // 3. 변수 할당
+    // 3. 변수 할당 (대응표본: pre, post)
     await goToVariableSelection(page)
-    const runBtn = page.locator(S.runAnalysisBtn)
-    await runBtn.waitFor({ state: 'visible', timeout: 15000 })
+    await page.waitForTimeout(2000)
+
+    // pre, post 버튼 클릭으로 비교 변수 할당
+    const preBtn = page.locator('button:not([disabled])').filter({ hasText: 'pre' })
+    const postBtn = page.locator('button:not([disabled])').filter({ hasText: 'post' })
+    if ((await preBtn.count()) > 0) await preBtn.first().click()
     await page.waitForTimeout(500)
+    if ((await postBtn.count()) > 0) await postBtn.first().click()
+    await page.waitForTimeout(1000)
 
-    if (!(await runBtn.isEnabled().catch(() => false))) {
-      const preBtn = page.locator('button:not([disabled])').filter({ hasText: 'pre' })
-      const postBtn = page.locator('button:not([disabled])').filter({ hasText: 'post' })
-      if ((await preBtn.count()) > 0) await preBtn.first().click()
-      await page.waitForTimeout(500)
-      if ((await postBtn.count()) > 0) await postBtn.first().click()
-      await page.waitForTimeout(500)
-    }
-
-    // 4. 분석 실행
+    // 4. 분석 실행 (run-analysis-btn 또는 다음 단계 버튼)
     await clickAnalysisRun(page)
     expect(await waitForResults(page, 120000)).toBeTruthy()
 
@@ -324,8 +312,13 @@ test.describe('@phase4 @critical 에러 복구 — 통계', () => {
     expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
     await goToVariableSelection(page)
 
-    const runBtn = page.locator(S.runAnalysisBtn)
-    await runBtn.waitFor({ state: 'visible', timeout: 15000 })
+    // 변수 할당 UI 대기 (레거시 run-analysis-btn 또는 신규 variable-selection-next)
+    await page.waitForFunction(
+      () =>
+        document.querySelector('[data-testid="run-analysis-btn"]') !== null ||
+        document.querySelector('[data-testid="variable-selection-next"]') !== null,
+      { timeout: 15000 },
+    )
 
     // 변수가 잘못 할당된 경우 에러/경고가 표시되는지 확인
     // (자동 할당이 되므로 수동으로 잘못된 할당을 시도)

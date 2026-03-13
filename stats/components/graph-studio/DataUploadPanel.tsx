@@ -12,6 +12,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { motion } from 'framer-motion';
 import Papa from 'papaparse';
 import {
   BarChart2,
@@ -26,10 +27,13 @@ import {
   Download,
   ChevronRight,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
+import { useReducedMotion } from '@/lib/hooks/useReducedMotion';
 import { inferColumnMeta, selectXYFields } from '@/lib/graph-studio/chart-spec-utils';
 import { createDefaultChartSpec, CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
+import { actionCardBase, iconContainerMuted, staggerContainer, staggerItem } from '@/components/common/card-styles';
 import type { ChartType, DataPackage } from '@/types/graph-studio';
 
 // ─── 샘플 데이터 (어류 성장, 3종 × 10행) ──────────────────
@@ -97,82 +101,23 @@ interface ChartThumbnail {
   label: string;
   desc: string;
   Icon: React.ComponentType<{ className?: string }>;
-  color: string;
-  bg: string;
 }
 
 const CHART_THUMBNAILS: ChartThumbnail[] = [
-  {
-    type: 'bar',
-    label: '막대 차트',
-    desc: '범주 비교',
-    Icon: BarChart2,
-    color: 'text-blue-500',
-    bg: 'bg-blue-50 hover:bg-blue-100 border-blue-100 hover:border-blue-300',
-  },
-  {
-    type: 'scatter',
-    label: '산점도',
-    desc: '변수 상관',
-    Icon: ScatterChart,
-    color: 'text-violet-500',
-    bg: 'bg-violet-50 hover:bg-violet-100 border-violet-100 hover:border-violet-300',
-  },
-  {
-    type: 'line',
-    label: '꺾은선 그래프',
-    desc: '시계열/추세',
-    Icon: LineChart,
-    color: 'text-emerald-500',
-    bg: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-100 hover:border-emerald-300',
-  },
-  {
-    type: 'boxplot',
-    label: '박스 플롯',
-    desc: '분포 비교',
-    Icon: SlidersHorizontal,
-    color: 'text-orange-500',
-    bg: 'bg-orange-50 hover:bg-orange-100 border-orange-100 hover:border-orange-300',
-  },
-  {
-    type: 'histogram',
-    label: '히스토그램',
-    desc: '빈도 분포',
-    Icon: BarChart,
-    color: 'text-pink-500',
-    bg: 'bg-pink-50 hover:bg-pink-100 border-pink-100 hover:border-pink-300',
-  },
-  {
-    type: 'heatmap',
-    label: '히트맵',
-    desc: '교차 분석',
-    Icon: Grid3X3,
-    color: 'text-cyan-500',
-    bg: 'bg-cyan-50 hover:bg-cyan-100 border-cyan-100 hover:border-cyan-300',
-  },
+  { type: 'bar', label: '막대 차트', desc: '범주 비교', Icon: BarChart2 },
+  { type: 'scatter', label: '산점도', desc: '변수 상관', Icon: ScatterChart },
+  { type: 'line', label: '꺾은선 그래프', desc: '시계열/추세', Icon: LineChart },
+  { type: 'boxplot', label: '박스 플롯', desc: '분포 비교', Icon: SlidersHorizontal },
+  { type: 'histogram', label: '히스토그램', desc: '빈도 분포', Icon: BarChart },
+  { type: 'heatmap', label: '히트맵', desc: '교차 분석', Icon: Grid3X3 },
 ];
 
 // ─── Feature highlights ────────────────────────────────────
 
 const FEATURES = [
-  {
-    Icon: Sparkles,
-    title: 'AI 자연어 편집',
-    desc: '텍스트로 차트 수정',
-    color: 'text-violet-500',
-  },
-  {
-    Icon: BookOpen,
-    title: '논문 스타일 프리셋',
-    desc: 'IEEE · Science · 흑백',
-    color: 'text-blue-500',
-  },
-  {
-    Icon: Download,
-    title: '고품질 내보내기',
-    desc: 'SVG · PNG · DPI 300',
-    color: 'text-emerald-500',
-  },
+  { Icon: Sparkles, title: 'AI 자연어 편집', desc: '텍스트로 차트 수정' },
+  { Icon: BookOpen, title: '논문 스타일 프리셋', desc: 'IEEE · Science · 흑백' },
+  { Icon: Download, title: '고품질 내보내기', desc: 'SVG · PNG · DPI 300' },
 ] as const;
 
 // ─── 메인 컴포넌트 ─────────────────────────────────────────
@@ -182,6 +127,7 @@ export function DataUploadPanel(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const prefersReducedMotion = useReducedMotion();
 
   // ── 차트 유형 선택 → 샘플 로드 ──────────────────────────
   const handleChartTypeSelect = useCallback(
@@ -313,21 +259,28 @@ export function DataUploadPanel(): React.ReactElement {
     <div
       {...getRootProps()}
       data-testid="graph-studio-dropzone"
-      className={`
-        w-full max-w-3xl transition-all duration-200
-        ${isDragActive ? 'ring-2 ring-primary ring-offset-4 rounded-2xl' : ''}
-      `}
+      className={cn(
+        'w-full max-w-3xl transition-all duration-200',
+        isDragActive && 'ring-2 ring-primary ring-offset-4 rounded-2xl',
+      )}
     >
       <input {...getInputProps()} />
+      <motion.div
+        className="space-y-6"
+        {...(prefersReducedMotion ? {} : { variants: staggerContainer, initial: 'hidden' as const, animate: 'visible' as const })}
+      >
 
-      {/* ── 헤더 ──────────────────────────────────────── */}
-      <div className="text-center mb-8">
-        <p className="text-base font-semibold text-foreground">
+      {/* ── Hero 헤더 ─────────────────────────────────── */}
+      <motion.div
+        className="text-center py-8"
+        {...(prefersReducedMotion ? {} : { variants: staggerItem })}
+      >
+        <h2 className="text-2xl lg:text-3xl font-bold tracking-tight leading-tight mb-1">
           분포·상관·추세를 논문 수준으로
-        </p>
+        </h2>
 
         {/* 단계 표시 — 클릭 불가, 현재 단계를 pill로 강조 */}
-        <div className="flex items-center justify-center gap-1 mt-3 text-xs text-muted-foreground">
+        <div className="flex items-center justify-center gap-1 mt-3 text-[13px] text-muted-foreground">
           {['① 데이터 선택', '② 편집', '③ 내보내기'].map((step, i) => (
             <span key={step} className="flex items-center gap-1">
               {i > 0 && <ChevronRight className="h-3 w-3" />}
@@ -341,50 +294,46 @@ export function DataUploadPanel(): React.ReactElement {
             </span>
           ))}
         </div>
-      </div>
+      </motion.div>
 
-      {/* ── 차트 유형 썸네일 (Bento 스타일) ─────────────── */}
-      <div className="mb-6">
-        <p className="text-xs font-medium text-muted-foreground mb-3 text-center uppercase tracking-wide">
-          차트 유형으로 바로 시작
-        </p>
-        <div className="grid grid-cols-3 gap-2">
-          {CHART_THUMBNAILS.map(({ type, label, desc, Icon, color, bg }) => (
+      {/* ── 차트 유형 썸네일 (시맨틱 카드 스타일) ──────── */}
+      <motion.div {...(prefersReducedMotion ? {} : { variants: staggerItem })}>
+        <h3 className="text-lg font-bold mb-3">차트 유형으로 바로 시작</h3>
+        <div className="grid grid-cols-3 gap-3">
+          {CHART_THUMBNAILS.map(({ type, label, desc, Icon }) => (
             <button
               key={type}
               type="button"
               onClick={() => handleChartTypeSelect(type)}
-              className={`
-                group flex flex-col items-center gap-2 p-4 rounded-xl border-2
-                cursor-pointer transition-all duration-150
-                ${bg}
-              `}
+              className={cn(actionCardBase, 'gap-2 p-4 cursor-pointer')}
               data-testid={`graph-studio-chart-type-${type}`}
             >
-              <Icon className={`h-7 w-7 ${color} transition-transform group-hover:scale-110`} />
+              <div className={iconContainerMuted}>
+                <Icon className="w-5 h-5" />
+              </div>
               <div className="text-center">
-                <p className="text-xs font-semibold text-foreground leading-tight">{label}</p>
+                <p className="text-sm font-medium text-foreground leading-tight">{label}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
               </div>
             </button>
           ))}
         </div>
-        <p className="text-[11px] text-muted-foreground text-center mt-2">
+        <p className="text-xs text-muted-foreground text-center mt-2">
           클릭하면 샘플 데이터(어류 성장)로 즉시 시작됩니다
         </p>
-      </div>
+      </motion.div>
 
       {/* ── 파일 업로드 + 드래그 존 ───────────────────── */}
-      {/* 점선 테두리로 드래그 가능 영역 명시 */}
-      <div
+      <motion.div
         data-testid="graph-studio-upload-zone"
-        className={`
-        border-2 border-dashed rounded-xl px-6 py-5 mb-4 text-center
-        transition-colors duration-200
-        ${isDragActive
-          ? 'border-primary bg-primary/5'
-          : 'border-border hover:border-muted-foreground/40'}
-      `}>
+        className={cn(
+          'border-2 border-dashed rounded-xl px-6 py-5 text-center transition-colors duration-200',
+          isDragActive
+            ? 'border-primary bg-primary/5'
+            : 'border-border hover:border-muted-foreground/40',
+        )}
+        {...(prefersReducedMotion ? {} : { variants: staggerItem })}
+      >
         <input
           ref={fileInputRef}
           type="file"
@@ -394,7 +343,6 @@ export function DataUploadPanel(): React.ReactElement {
           onChange={(e) => {
             if (e.target.files?.[0]) {
               void handleFile(e.target.files[0]);
-              // 동일 파일 재선택 시 onChange 재발화를 위해 value 리셋
               e.target.value = '';
             }
           }}
@@ -414,30 +362,36 @@ export function DataUploadPanel(): React.ReactElement {
           )}
           {isLoading ? '처리 중...' : '내 파일 업로드'}
         </Button>
-        <p aria-live="polite" className="text-[11px] text-muted-foreground">
+        <p aria-live="polite" className="text-xs text-muted-foreground">
           {isDragActive
             ? '파일을 여기에 놓으세요'
             : 'CSV · TSV · Excel 파일을 드래그해도 됩니다'}
         </p>
-      </div>
+      </motion.div>
 
       {/* 에러 */}
       {error && (
-        <div className="mb-4 p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
+        <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
           {error}
         </div>
       )}
 
       {/* ── Feature highlights ───────────────────────── */}
-      <div className="border-t pt-5 grid grid-cols-3 gap-4">
-        {FEATURES.map(({ Icon, title, desc, color }) => (
-          <div key={title} className="flex flex-col items-center text-center gap-1.5">
-            <Icon className={`h-5 w-5 ${color}`} />
-            <p className="text-xs font-semibold text-foreground leading-tight">{title}</p>
-            <p className="text-[10px] text-muted-foreground">{desc}</p>
+      <motion.div
+        className="border-t border-border pt-6 grid grid-cols-3 gap-4"
+        {...(prefersReducedMotion ? {} : { variants: staggerItem })}
+      >
+        {FEATURES.map(({ Icon, title, desc }) => (
+          <div key={title} className="flex flex-col items-center text-center gap-2">
+            <div className={iconContainerMuted}>
+              <Icon className="w-5 h-5" />
+            </div>
+            <p className="text-sm font-medium text-foreground leading-tight">{title}</p>
+            <p className="text-xs text-muted-foreground">{desc}</p>
           </div>
         ))}
-      </div>
+      </motion.div>
+      </motion.div>
     </div>
   );
 }

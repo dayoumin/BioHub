@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi } from 'vitest'
 import { extractDetectedVariables, type DetectedVariablesResult } from '@/lib/services/variable-detection-service'
-import type { ColumnStatistics, AIRecommendation, StatisticalMethod } from '@/types/smart-flow'
+import type { ColumnStatistics, AIRecommendation, StatisticalMethod } from '@/types/analysis'
 
 // ===== Test Helpers =====
 

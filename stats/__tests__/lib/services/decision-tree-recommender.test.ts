@@ -16,7 +16,7 @@ import type {
   ValidationResults,
   DataRow,
   AnalysisPurpose
-} from '@/types/smart-flow'
+} from '@/types/analysis'
 
 describe('DecisionTreeRecommender', () => {
   // ==================== Mock Data Setup ====================
