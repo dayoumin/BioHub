@@ -324,14 +324,19 @@ export async function ensureVariablesOrSkip(
 ): Promise<void> {
   const runBtn = page.locator(S.runAnalysisBtn)
   await runBtn
-    .waitFor({ state: 'visible', timeout: 15000 })
+    .waitFor({ state: 'visible', timeout: 20000 })
     .catch(() => log(tag, 'run-analysis-btn not found, proceeding anyway'))
-  await page.waitForTimeout(500)
 
-  if (await runBtn.isEnabled().catch(() => false)) {
-    log(tag, '변수 자동 할당됨, 선택 건너뜀')
-    return
+  // AI 자동 할당 대기: 최대 10초 polling (AI 추천이 느릴 수 있음)
+  for (let i = 0; i < 10; i++) {
+    if (await runBtn.isEnabled().catch(() => false)) {
+      log(tag, '변수 자동 할당됨, 선택 건너뜀')
+      return
+    }
+    await page.waitForTimeout(1000)
   }
+
+  log(tag, '자동 할당 미완료, 수동 선택 시도')
   await selectVariables(page, indep, dep)
 }
 

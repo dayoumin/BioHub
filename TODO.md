@@ -23,7 +23,7 @@
 | **DecisionTree 커버리지** | 49/49 (100%) ✅ |
 | **Golden Values 테스트** | 44/44 (100%) ✅ - 5개 라이브러리 |
 | **Methods Registry** | 64개 메서드 (4 Workers) ✅ |
-| **E2E 테스트** | 스펙 20개 작성(미실행), 8/46 메서드 커버 (17%) — 확장 계획 E1~E5 수립 |
+| **E2E 테스트** | 5단계 피라미드 완성: Phase 1-3 (스모크·메서드·플로우) + Phase 4 (UX 35TC) + Phase 5 (비기능 27TC) · 헬퍼 8개 · 미실행 |
 | **LLM 추천/해석** | Phase 1-3 완료 ✅ |
 | **Bio-Tools** | 계획 수립 완료, 구현 예정 🔜 |
 
@@ -575,9 +575,20 @@
 
 ---
 
-## E2E 테스트 확장 계획 (2026-03-02 점검)
+## E2E 테스트 확장 계획 (2026-03-13 점검)
 
-> **현황**: 8/46 메서드 E2E 커버 (17%) · 보조 플로우 7개 전무 · 스펙 20개 작성됨(미실행)
+> **현황**: 5단계 테스트 피라미드 완성 · 스펙 ~30개 · TC ~100개 · 미실행 (빌드 후 실행 필요)
+>
+> **세션 3 완료 (2026-03-13)**: Phase 4 (UX 35TC) + Phase 5 (비기능 27TC) + 헬퍼 2개 + 비판적 검토 7건 수정
+>
+> | Phase | 파일 | TC 수 | 범위 |
+> |-------|------|-------|------|
+> | 1 스모크 | `smoke.spec.ts` | 5 | 페이지 로드, 기본 동작 |
+> | 2 메서드 | `methods/*.spec.ts` (7개) | ~25 | 메서드별 풀 플로우 |
+> | 3 플로우 | `flows/*.spec.ts` (5개) | ~20 | 연속분석, 에러복구 등 |
+> | 4 UX | `ux/*.spec.ts` (3개) | 35 | 통계/그래프/공통 UX |
+> | 5 비기능 | `nonfunctional/*.spec.ts` (3개) | 27 | 성능, 접근성, 호환성 |
+> | 헬퍼 | `helpers/` (8개) | - | flow, perf, a11y, factory 등 |
 
 ### Phase E1: 기존 스펙 실행 + 인프라 검증 [HIGH]
 
@@ -803,6 +814,22 @@ S1 X축 라벨 45도 회전 | S2 IEEE 스타일 전환 | S3 에러바 추가 | S
 
 - `smart-flow-store → storage → hybrid-adapter → smart-flow-store`
 - `executors → statistical-executor` 순환
+
+### TD-9: 사회과학 도메인 확장 (LOW — 검토 완료)
+
+**상세 계획서**: [`study/PLAN-SOCIAL-SCIENCE-DOMAIN.md`](study/PLAN-SOCIAL-SCIENCE-DOMAIN.md) (2026-03-13)
+
+기존 51개 메서드의 80%+가 사회과학에서도 핵심적으로 사용됨.
+Bio-Tools(12개 전부 신규)와 달리 **용어 도메인 추가만으로 즉시 확장 가능**.
+
+| Phase | 내용 | 공수 | 비고 |
+|-------|------|------|------|
+| **S1** | `social-science.ts` 도메인 용어 추가 | 1~2일 | 기존 51개 메서드 즉시 사회과학 UI |
+| **S2** | ICC, Cohen's Kappa, Mediation, HLM 추가 | 3~5일 | Pyodide 구현 가능 확인됨 |
+| **S3** | CFA/SEM | 미정 | `semopy` Pyodide 미지원 — 기술 블로커 |
+
+- DomainSwitcher 컴포넌트 이미 존재 (`medical`, `agriculture` UI 매핑까지 준비됨)
+- QDA(Atlas.ti/Taguette 류)는 완전히 다른 UI 패러다임 — 별도 프로젝트급 (2~3개월)
 
 ---
 
