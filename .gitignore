@@ -43,6 +43,7 @@ nul
 
 # Local settings
 *.local.json
+!.claude/settings.local.json
 
 # Windows
 Thumbs.db

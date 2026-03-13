@@ -109,9 +109,20 @@ async function handleOpenRouterProxy(
   // Rate limit 검사
   const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown'
 
-  // 주기적 정리: 100엔트리 이상이면 만료 엔트리 제거 (메모리 누수 방지)
+  // 메모리 바운드: 만료 엔트리 정리 후에도 상한 초과 시 가장 오래된 엔트리 제거
   if (rateLimitMap.size > 100) {
     cleanupRateLimitMap()
+  }
+  if (rateLimitMap.size > 10_000) {
+    // 분산 트래픽(다수 고유 IP)으로 맵이 무한 성장하는 것을 방지
+    // Map insertion order 순으로 삭제 (LRU가 아님 — 정확한 eviction보다 메모리 상한이 목적)
+    const excess = rateLimitMap.size - 5_000
+    let deleted = 0
+    for (const key of rateLimitMap.keys()) {
+      if (deleted >= excess) break
+      rateLimitMap.delete(key)
+      deleted++
+    }
   }
 
   if (!checkRateLimit(clientIp)) {
