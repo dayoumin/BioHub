@@ -238,7 +238,9 @@ export function StatisticsTable({
       }).join('\t')
     ).join('\n')
 
-    navigator.clipboard.writeText(`${headers}\n${rows}`)
+    navigator.clipboard.writeText(`${headers}\n${rows}`).catch(() => {
+      // Secure context 외 환경에서 clipboard API 사용 불가 — 무시
+    })
   }
 
   // CSV 다운로드
@@ -252,8 +254,8 @@ export function StatisticsTable({
       columns.map(col => {
         const value = row[col.key]
         if (value === null || value === undefined) return ''
-        if (typeof value === 'string' && value.includes(',')) {
-          return `"${value}"`
+        if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
+          return `"${value.replace(/"/g, '""')}"`
         }
         return String(value)
       }).join(',')

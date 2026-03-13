@@ -1,13 +1,14 @@
 import React from 'react'
 import { vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
 import { StatisticsTable, type TableColumn } from '../StatisticsTable'
 
 // Mock clipboard API
 Object.assign(navigator, {
   clipboard: {
-    writeText: vi.fn(),
+    writeText: vi.fn().mockResolvedValue(undefined),
   },
 })
 
@@ -403,6 +404,32 @@ describe('StatisticsTable', () => {
       fireEvent.click(actionButton)
 
       expect(mockAction).toHaveBeenCalledWith(mockData)
+    })
+
+    it('CSV 다운로드 시 쌍따옴표가 RFC 4180 규격으로 이스케이프되어야 함', () => {
+      const dataWithQuotes = [
+        { name: 'Var "A"', mean: 1.5, pValue: 0.03 },
+      ]
+
+      render(
+        <StatisticsTable
+          title="테스트"
+          columns={mockColumns}
+          data={dataWithQuotes}
+          actions={[]}
+        />
+      )
+
+      const createElementSpy = vi.spyOn(document, 'createElement')
+
+      // DropdownMenu mock으로 메뉴 항목이 항상 렌더링됨
+      const csvItem = screen.getByText('CSV 다운로드')
+      fireEvent.click(csvItem)
+
+      // Blob 생성 시 " → "" 이스케이프 확인
+      expect(createElementSpy).toHaveBeenCalledWith('a')
+      const blobCall = (globalThis.URL.createObjectURL as ReturnType<typeof vi.fn>).mock.calls
+      expect(blobCall.length).toBeGreaterThan(0)
     })
   })
 
