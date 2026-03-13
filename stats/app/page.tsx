@@ -1,36 +1,17 @@
 'use client'
 
-import { useCallback, useEffect, useState, useRef, useTransition, useMemo } from 'react'
-import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { useCallback, useEffect, useState } from 'react'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
-import { DataValidationService } from '@/lib/services/data-validation-service'
-import {
-  StatisticalMethod,
-  AnalysisResult,
-  DataRow
-} from '@/types/analysis'
-import type { ResolvedIntent } from '@/types/analysis'
-import { toast } from 'sonner'
-import { AnalysisLayout } from '@/components/analysis/layouts/AnalysisLayout'
-import { DataExplorationStep } from '@/components/analysis/steps/DataExplorationStep'
-import { PurposeInputStep } from '@/components/analysis/steps/PurposeInputStep'
-import { VariableSelectionStep } from '@/components/analysis/steps/VariableSelectionStep'
-import { AnalysisExecutionStep } from '@/components/analysis/steps/AnalysisExecutionStep'
-import { ResultsActionStep } from '@/components/analysis/steps/ResultsActionStep'
-import { AnalysisHistoryPanel } from '@/components/analysis/AnalysisHistoryPanel'
-import { ReanalysisPanel } from '@/components/analysis/ReanalysisPanel'
-import { ReanalysisBanner, QuickAnalysisBanner } from '@/components/analysis/steps/Step1ModeBanners'
-import { ChatCentricHub } from '@/components/analysis/ChatCentricHub'
-import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
-import { checkVariableCompatibility, CompatibilityResult } from '@/lib/utils/variable-compatibility'
-import type { ColumnInfo } from '@/lib/statistics/variable-mapping'
+import { useAnalysisHandlers } from '@/hooks/use-analysis-handlers'
 import { useTerminology } from '@/hooks/use-terminology'
-import { extractDetectedVariables } from '@/lib/services/variable-detection-service'
-import { enrichWithNormality } from '@/lib/services/normality-enrichment-service'
+import { getRecommendations } from '@/lib/services/consultant-service'
+import { toast } from 'sonner'
+import type { ResolvedIntent, ConsultantResponse } from '@/types/analysis'
 
-// UI Components
-import { InlineError } from '@/components/common/InlineError'
-// Note: favorites 기능은 ChatCentricHub 내부에서 처리됨
+import { AnalysisLayout } from '@/components/analysis/layouts/AnalysisLayout'
+import { AnalysisHistoryPanel } from '@/components/analysis/AnalysisHistoryPanel'
+import { ChatCentricHub } from '@/components/analysis/ChatCentricHub'
+import { AnalysisSteps } from '@/components/analysis/AnalysisSteps'
 
 // ===== Main Page Component =====
 
@@ -38,9 +19,22 @@ export default function HomePage() {
   const t = useTerminology()
   const [showHelp, setShowHelp] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
-  const [reanalysisCompatibility, setReanalysisCompatibility] = useState<CompatibilityResult | null>(null)
   const [systemMemory, setSystemMemory] = useState<number | null>(null)
-  const [isPending, startTransition] = useTransition()
+  const [consultantResponse, setConsultantResponse] = useState<ConsultantResponse | null>(null)
+
+  const {
+    showHub,
+    setShowHub,
+    setPurposeInputMode,
+    setUserQuery,
+  } = useAnalysisStore()
+
+  const handlers = useAnalysisHandlers(showHub)
+  const {
+    startQuickAnalysis,
+    setQuickAnalysisMode,
+    navigateToStep,
+  } = handlers
 
   // System memory detection
   useEffect(() => {
@@ -55,177 +49,75 @@ export default function HomePage() {
     }
   }, [])
 
+  // === Hub-specific handlers ===
 
-  // Zustand store
-  const {
-    currentStep,
-    completedSteps,
-    uploadedData,
-    uploadedFileName,
-    validationResults,
-    selectedMethod,
-    variableMapping,
-    results,
-    isLoading,
-    error,
-    analysisHistory,
-    setUploadedFile,
-    setUploadedData,
-    setValidationResults,
-    setAnalysisPurpose,
-    setSelectedMethod,
-    setResults,
-    setError,
-    canProceedToNext,
-    goToNextStep,
-    goToPreviousStep,
-    navigateToStep,
-    canNavigateToStep,
-    isReanalysisMode,
-    showHub,
-    setShowHub,
-    quickAnalysisMode,
-    setQuickAnalysisMode,
-    setPurposeInputMode,
-    setUserQuery,
-    setDetectedVariables,
-    patchColumnNormality
-  } = useAnalysisStore()
+  const handleIntentResolved = useCallback((intent: ResolvedIntent, message: string) => {
+    switch (intent.track) {
+      case 'direct-analysis':
+        setConsultantResponse(null)
+        if (intent.method) {
+          startQuickAnalysis(intent.method.id)
+          setShowHub(false)
+        } else {
+          setUserQuery(message)
+          setQuickAnalysisMode(false)
+          setPurposeInputMode('ai')
+          setShowHub(false)
+          navigateToStep(2)
+        }
+        break
 
-  // 스텝 전환 애니메이션 방향 추적
-  const prevStepRef = useRef(currentStep)
-  const [direction, setDirection] = useState<'forward' | 'backward'>('forward')
+      case 'data-consultation': {
+        const response = getRecommendations(message)
+        if (response.recommendations.length > 0) {
+          setConsultantResponse(response)
+          setUserQuery(message)
+        } else {
+          setUserQuery(message)
+          setQuickAnalysisMode(false)
+          setShowHub(false)
+          navigateToStep(1)
+        }
+        break
+      }
 
-  useEffect(() => {
-    if (currentStep > prevStepRef.current) setDirection('forward')
-    else if (currentStep < prevStepRef.current) setDirection('backward')
-    prevStepRef.current = currentStep
-  }, [currentStep])
+      case 'experiment-design':
+        setConsultantResponse(null)
+        setUserQuery(message)
+        toast.info(t.hub.experimentNotReady)
+        setQuickAnalysisMode(false)
+        setShowHub(false)
+        navigateToStep(1)
+        break
+    }
+  }, [startQuickAnalysis, setQuickAnalysisMode, navigateToStep, setShowHub, setPurposeInputMode, setUserQuery, t])
 
-  const animationClass = useMemo(() => {
-    if (showHub) return 'animate-fade-in'
-    return direction === 'forward' ? 'animate-slide-left' : 'animate-slide-right'
-  }, [direction, showHub])
+  const handleQuickAnalysis = useCallback((methodId: string) => {
+    setConsultantResponse(null)
+    if (startQuickAnalysis(methodId)) {
+      setShowHub(false)
+    }
+  }, [startQuickAnalysis, setShowHub])
 
-  // Load history from IndexedDB
-  useEffect(() => {
-    useAnalysisStore.getState().loadHistoryFromDB().catch(console.error)
+  const handleHistorySelect = useCallback(async (historyId: string) => {
+    try {
+      setConsultantResponse(null)
+      await useAnalysisStore.getState().loadFromHistory(historyId)
+      setShowHub(false)
+    } catch (err) {
+      console.error('Failed to load history', err)
+    }
+  }, [setShowHub])
+
+  const handleHistoryDelete = useCallback(async (historyId: string) => {
+    await useAnalysisStore.getState().deleteFromHistory(historyId)
   }, [])
 
-  // Reset compatibility when leaving reanalysis mode
-  useEffect(() => {
-    if (!isReanalysisMode) {
-      setReanalysisCompatibility(null)
-    }
-  }, [isReanalysisMode])
-
-  // Steps configuration
-  const steps = useMemo(() => {
-    const sl = t.analysis.stepShortLabels
-    return [
-      { id: 1, label: sl.exploration },
-      { id: 2, label: sl.method },
-      { id: 3, label: sl.variable },
-      { id: 4, label: sl.analysis }
-    ].map((step) => ({
-      ...step,
-      completed: (quickAnalysisMode && step.id === 2)
-        ? true
-        : completedSteps.includes(step.id),
-      skipped: quickAnalysisMode && step.id === 2,
-    }))
-  }, [completedSteps, quickAnalysisMode, t])
-
-  // Handlers
-  const handleStepClick = useCallback((stepId: number) => {
-    if (canNavigateToStep(stepId)) {
-      startTransition(() => {
-        navigateToStep(stepId)
-      })
-    }
-  }, [canNavigateToStep, navigateToStep])
-
-  const handleUploadComplete = useCallback(async (file: File, data: DataRow[]) => {
-    try {
-      setUploadedFile(file)
-      setUploadedData(data)
-      const detailedValidation = DataValidationService.performValidation(data)
-      setValidationResults(detailedValidation)
-
-      const currentState = useAnalysisStore.getState()
-      if (currentState.isReanalysisMode && currentState.variableMapping) {
-        const columns: ColumnInfo[] = detailedValidation.columnStats?.map(col => ({
-          name: col.name,
-          type: col.type as 'numeric' | 'categorical' | 'date' | 'text',
-          uniqueValues: col.uniqueValues,
-          missing: col.missingCount
-        })) || []
-        const compatibility = checkVariableCompatibility(currentState.variableMapping, columns)
-        setReanalysisCompatibility(compatibility)
-      }
-
-      // 비동기 정규성 검정 (fire-and-forget — UI 비차단)
-      // Step 2 AI 추천 시 normality 정보 활용, 실패해도 분석 흐름 차단 안 함
-      if (detailedValidation.columnStats?.length) {
-        const capturedNonce = useAnalysisStore.getState().uploadNonce
-        enrichWithNormality(detailedValidation.columnStats, data)
-          .then(({ enrichedColumns, testedCount }) => {
-            if (testedCount > 0) {
-              // stale check: nonce가 바뀌었으면 이미 다른 파일이 업로드된 것
-              const current = useAnalysisStore.getState()
-              if (current.uploadNonce !== capturedNonce) return
-              // normality만 패치 — assumptionResults/methodCompatibility 보존
-              patchColumnNormality(enrichedColumns)
-            }
-          })
-          .catch(() => { /* graceful degradation — normality 없이 진행 */ })
-      }
-
-      // 빠른 분석 모드: 메서드 선택 완료 → 업로드 직후 변수 선택(Step 3)으로 자동 이동
-      // 재분석 모드는 Step 1에서 호환성 결과를 보여야 하므로 제외
-      if (currentState.quickAnalysisMode && currentState.selectedMethod && !currentState.isReanalysisMode) {
-        // Step 2 생략 시에도 heuristic 기반 변수 추론 (프리필용)
-        const detectedVars = extractDetectedVariables(
-          currentState.selectedMethod.id,
-          detailedValidation,
-          null  // LLM recommendation 없음 → 3순위 heuristic fallback
-        )
-        setDetectedVariables(detectedVars)
-
-        toast.success(`${file.name} 업로드 완료 — 변수 선택으로 이동합니다`)
-        navigateToStep(3)
-      }
-    } catch (err) {
-      setError(t.analysis.errors.uploadFailed((err as Error).message))
-    }
-  }, [setUploadedFile, setUploadedData, setValidationResults, patchColumnNormality, setDetectedVariables, setError, navigateToStep])
-
-  const handlePurposeSubmit = useCallback((purpose: string, method: StatisticalMethod) => {
-    setAnalysisPurpose(purpose)
-    setSelectedMethod(method)
-
-    // 데이터가 없으면 데이터 업로드 단계(Step 1)로 이동
-    // QuickAnalysisMode를 켜서 Step 1 완료 후 바로 Step 3(변수 선택)로 이동하게 함
-    if (!uploadedData || uploadedData.length === 0) {
-      setQuickAnalysisMode(true)
-      navigateToStep(1)
-    } else {
-      goToNextStep()
-    }
-  }, [setAnalysisPurpose, setSelectedMethod, goToNextStep, uploadedData, setQuickAnalysisMode, navigateToStep])
-
-  const handleAnalysisComplete = useCallback((results: AnalysisResult) => {
-    setResults(results)
-    goToNextStep()
-  }, [setResults, goToNextStep])
-
-  const handleReanalysisRun = useCallback(() => {
-    navigateToStep(4)
-  }, [navigateToStep])
-
-  const handleReanalysisEditVariables = useCallback(() => {
-    navigateToStep(3)
-  }, [navigateToStep])
+  const handleHubUploadClick = useCallback(() => {
+    setConsultantResponse(null)
+    setShowHub(false)
+    navigateToStep(1)
+  }, [setShowHub, navigateToStep])
 
   const handleHistoryToggle = useCallback(() => {
     setShowHistory(prev => !prev)
@@ -235,132 +127,25 @@ export default function HomePage() {
     setShowHelp(prev => !prev)
   }, [])
 
-  // Hub handlers
-
-  // Intent Router 결과 처리 (Chat-First Hub)
-  const handleIntentResolved = useCallback((intent: ResolvedIntent, message: string) => {
-    switch (intent.track) {
-      case 'direct-analysis':
-        if (intent.method) {
-          // 메서드 확정 → quickAnalysis 경로 (Step 2 건너뜀 → userQuery 불필요)
-          setSelectedMethod(intent.method)
-          setQuickAnalysisMode(true)
-          setShowHub(false)
-          navigateToStep(1)
-        } else {
-          // 방어적 분기: method 없이 → Step 2 AI 추천 경로
-          setUserQuery(message)
-          setQuickAnalysisMode(false)
-          setPurposeInputMode('ai')
-          setShowHub(false)
-          navigateToStep(2)
-        }
-        break
-
-      case 'data-consultation':
-        // Hub 질문 저장 → Step 2 aiChatInput으로 전달
-        setUserQuery(message)
-        setQuickAnalysisMode(false)
-        setShowHub(false)
-        navigateToStep(1)
-        break
-
-      case 'experiment-design':
-        // Phase 2 미구현 → 토스트 + data-consultation fallback
-        setUserQuery(message)
-        toast.info(t.hub.experimentNotReady)
-        setQuickAnalysisMode(false)
-        setShowHub(false)
-        navigateToStep(1)
-        break
-    }
-  }, [setSelectedMethod, setQuickAnalysisMode, setShowHub, setPurposeInputMode, setUserQuery, navigateToStep, t])
-
-  // Quick analysis from category or favorites
-  const handleQuickAnalysis = useCallback((methodId: string) => {
-    const method = STATISTICAL_METHODS[methodId]
-    if (method) {
-      setSelectedMethod(method)
-      setQuickAnalysisMode(true)
-      setShowHub(false)
-      navigateToStep(1)
-    }
-  }, [setSelectedMethod, setQuickAnalysisMode, setShowHub, navigateToStep])
-
-  // History select from hub
-  const handleHistorySelect = useCallback(async (historyId: string) => {
-    try {
-      await useAnalysisStore.getState().loadFromHistory(historyId)
-      setShowHub(false)
-    } catch (err) {
-      console.error('Failed to load history', err)
-    }
-  }, [setShowHub])
-
-  // History delete from hub
-  const handleHistoryDelete = useCallback(async (historyId: string) => {
-    await useAnalysisStore.getState().deleteFromHistory(historyId)
-  }, [])
-
-  // Hub 채팅창의 파일 버튼 클릭 → Step 1(데이터 업로드)으로 바로 이동
-  const handleHubUploadClick = useCallback(() => {
-    setShowHub(false)
-    navigateToStep(1)
-  }, [setShowHub, navigateToStep])
-
-  const handleStep1Next = useCallback(() => {
-    if (quickAnalysisMode && selectedMethod) {
-      navigateToStep(3)
-    } else {
-      goToNextStep()
-    }
-  }, [quickAnalysisMode, selectedMethod, navigateToStep, goToNextStep])
-
-  // Floating navigation button logic
-  // Note: canProceedToNext() reads uploadedFile/uploadedData/validationResults/selectedMethod/variableMapping
-  // internally via get(), so we must include those as deps for proper reactivity
-  const canProceedWithFloatingNav = useMemo(() => {
-    if (showHub) return false
-    if (currentStep === 4 && results) return false // 결과 페이지에서는 숨김
-    return canProceedToNext()
-  }, [showHub, currentStep, results, canProceedToNext, uploadedData, uploadedFileName, validationResults, selectedMethod, variableMapping])
-
-  const getNextStepLabel = useMemo(() => {
-    const nav = t.analysis.floatingNav
-    switch (currentStep) {
-      case 1: return quickAnalysisMode ? nav.toVariables : nav.toMethod
-      case 2: return nav.toVariables
-      case 3: return nav.toExecution
-      case 4: return nav.runAnalysis
-      default: return nav.defaultNext
-    }
-  }, [currentStep, quickAnalysisMode, t])
-
-  const handleFloatingNext = useCallback(() => {
-    // Step 1에서만 사용 (Step 2, 3은 각 스텝 내부에서 처리)
-    handleStep1Next()
-  }, [handleStep1Next])
-
-
   return (
     <AnalysisLayout
-      currentStep={currentStep}
-      steps={steps}
-      onStepChange={handleStepClick}
-      isAnalyzing={isLoading}
+      currentStep={handlers.currentStep}
+      steps={handlers.steps}
+      onStepChange={handlers.handleStepClick}
+      isAnalyzing={handlers.isLoading}
       showHistory={showHistory}
       showHelp={showHelp}
       onHistoryToggle={handleHistoryToggle}
       onHelpToggle={handleHelpToggle}
       systemMemory={systemMemory}
       historyPanel={<AnalysisHistoryPanel />}
-      historyCount={analysisHistory.length}
+      historyCount={handlers.analysisHistory.length}
       showStepper={!showHub}
       showHub={showHub}
-      canGoNext={canProceedWithFloatingNav}
-      onNext={handleFloatingNext}
-      nextLabel={getNextStepLabel}
-      showFloatingNav={currentStep === 1 && !showHub && canProceedWithFloatingNav}
+      canGoNext={handlers.canProceedWithFloatingNav}
+      onNext={handlers.handleFloatingNext}
+      nextLabel={handlers.nextStepLabel}
+      showFloatingNav={handlers.currentStep === 1 && !showHub && handlers.canProceedWithFloatingNav}
     >
       {/* ===== Hub Page (Chat-Centric Style) ===== */}
       {showHub && (
@@ -371,106 +156,12 @@ export default function HomePage() {
           onHistoryDelete={handleHistoryDelete}
           onUploadClick={handleHubUploadClick}
           onHistoryShowMore={handleHistoryToggle}
+          consultantResponse={consultantResponse}
         />
       )}
 
-      {/* ===== Step 1: Data Exploration ===== */}
-      {!showHub && currentStep === 1 && (
-        <div className={animationClass} key="step1">
-          {/* 재분석 모드 안내 (데이터 업로드 전) */}
-          {isReanalysisMode && selectedMethod && !uploadedData && (
-            <ReanalysisBanner
-              method={selectedMethod}
-              t={{ title: t.reanalysis.title, description: t.analysis.modeBanners.reanalysis.description }}
-            />
-          )}
-
-          {/* 빠른 분석 모드 안내 */}
-          {!isReanalysisMode && quickAnalysisMode && selectedMethod && (
-            <QuickAnalysisBanner
-              method={selectedMethod}
-              onNormalMode={() => setQuickAnalysisMode(false)}
-              onChangeMethod={() => { setQuickAnalysisMode(false); navigateToStep(2) }}
-              t={t.analysis.modeBanners.quickAnalysis}
-            />
-          )}
-
-          <ErrorBoundary>
-            <DataExplorationStep
-              validationResults={validationResults}
-              data={uploadedData || []}
-              onUploadComplete={handleUploadComplete}
-              existingFileName={uploadedFileName || undefined}
-            />
-          </ErrorBoundary>
-
-          {/* 재분석 패널 (데이터 업로드 후) */}
-          {isReanalysisMode && uploadedData && uploadedData.length > 0 && (
-            <div className="mt-6">
-              <ReanalysisPanel
-                method={selectedMethod}
-                variableMapping={variableMapping}
-                compatibility={reanalysisCompatibility}
-                onRunAnalysis={handleReanalysisRun}
-                onEditVariables={handleReanalysisEditVariables}
-                isAnalyzing={isLoading}
-              />
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ===== Step 2: Purpose Input ===== */}
-      {!showHub && currentStep === 2 && (
-        <div className={animationClass} key="step2">
-          <PurposeInputStep
-            onPurposeSubmit={handlePurposeSubmit}
-            validationResults={validationResults}
-            data={uploadedData}
-          />
-        </div>
-      )}
-
-      {/* ===== Step 3: Variable Selection ===== */}
-      {!showHub && currentStep === 3 && (
-        <div className={animationClass} key="step3">
-          <VariableSelectionStep onBack={goToPreviousStep} />
-        </div>
-      )}
-
-      {/* ===== Step 4: Analysis & Results =====
-       * 이중 구조: !results → AnalysisExecutionStep (실행), results → ResultsActionStep (결과)
-       * 분석 완료 시 results가 설정되면 자동 전환.
-       * ResultsActionStep에서 navigateToStep(3) 호출 시 results는 유지됨.
-       */}
-      {!showHub && currentStep === 4 && (
-        <div className={animationClass} key="step4">
-          {!results ? (
-            <AnalysisExecutionStep
-              selectedMethod={selectedMethod}
-              variableMapping={variableMapping || {}}
-              onAnalysisComplete={handleAnalysisComplete}
-              onNext={goToNextStep}
-              onPrevious={goToPreviousStep}
-              canGoNext={canProceedToNext()}
-              canGoPrevious={currentStep > 1}
-            />
-          ) : (
-            <ResultsActionStep results={results} />
-          )}
-        </div>
-      )}
-
-      {/* Error Message */}
-      {error && (
-        <div className="mt-6 px-6">
-          <InlineError
-            message={error}
-            onRetry={() => setError(null)}
-            retryLabel={t.analysis.errors.retryLabel}
-          />
-        </div>
-      )}
+      {/* ===== Step 1-4 ===== */}
+      <AnalysisSteps handlers={handlers} isHubVisible={showHub} />
     </AnalysisLayout>
   )
 }

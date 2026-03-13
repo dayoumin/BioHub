@@ -19,6 +19,26 @@ export const actionCardBase = cn(
   'group',
 )
 
+/** 추천 카드 (왼쪽 컬러 보더 + 호버 강조) */
+export const recommendationCardBase = cn(
+  'flex flex-col gap-2 p-4 rounded-xl',
+  'border border-border bg-card',
+  'border-l-4 border-l-primary/30',
+  'transition-all duration-200',
+  'hover:border-l-primary hover:shadow-sm',
+  'group',
+)
+
+/** 카테고리 브라우저 카드 (아이콘 + 라벨 + 메서드 수) */
+export const categoryCardBase = cn(
+  'flex items-center gap-3 p-4 rounded-xl',
+  'border border-border bg-card',
+  'transition-all duration-200',
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+  'hover:border-primary/50 hover:shadow-sm',
+  'cursor-pointer group',
+)
+
 // ===== 아이콘 컨테이너 =====
 
 /** 둥근 아이콘 래퍼 (카드 내부용) */

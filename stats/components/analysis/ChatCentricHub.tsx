@@ -20,13 +20,14 @@ import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { intentRouter } from '@/lib/services/intent-router'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { logger } from '@/lib/utils/logger'
-import type { ResolvedIntent } from '@/types/analysis'
+import type { ResolvedIntent, ConsultantResponse } from '@/types/analysis'
 import { useTerminology } from '@/hooks/use-terminology'
 
 import { ChatInput } from './hub/ChatInput'
 import { QuickAnalysisPills } from './hub/QuickAnalysisPills'
 import { TrackSuggestions } from './hub/TrackSuggestions'
 import { QuickAccessBar } from './hub/QuickAccessBar'
+import { RecommendationCard } from '@/components/common/RecommendationCard'
 
 // ===== Types =====
 
@@ -37,6 +38,8 @@ interface ChatCentricHubProps {
   onHistoryDelete: (historyId: string) => Promise<void>
   onUploadClick?: () => void
   onHistoryShowMore?: () => void
+  /** data-consultation 트랙 감지 시 표시할 추천 결과 */
+  consultantResponse?: ConsultantResponse | null
 }
 
 // ===== Animation =====
@@ -67,6 +70,7 @@ export function ChatCentricHub({
   onHistoryDelete,
   onUploadClick,
   onHistoryShowMore,
+  consultantResponse,
 }: ChatCentricHubProps) {
   const prefersReducedMotion = useReducedMotion()
   const t = useTerminology()
@@ -150,6 +154,24 @@ export function ChatCentricHub({
                 onUploadClick={onUploadClick}
               />
             </div>
+
+            {/* 추천 카드 (data-consultation 트랙) */}
+            {consultantResponse && consultantResponse.recommendations.length > 0 && (
+              <div className="w-full max-w-[680px] mt-6 space-y-3" data-testid="consultant-recommendations">
+                {consultantResponse.summary && (
+                  <p className="text-sm text-muted-foreground text-left">{consultantResponse.summary}</p>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {consultantResponse.recommendations.map(rec => (
+                    <RecommendationCard
+                      key={rec.methodId}
+                      recommendation={rec}
+                      onSelect={onQuickAnalysis}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* 빠른 분석 pills — 중앙 정렬 */}
             <div className="mt-8">
