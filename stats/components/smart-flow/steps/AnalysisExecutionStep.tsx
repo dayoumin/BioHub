@@ -174,8 +174,6 @@ export function AnalysisExecutionStep({
       updateStage('preprocess', 20)
 
       // Stage 2: 데이터 전처리
-      await new Promise(resolve => setTimeout(resolve, 500))
-
       // 데이터 정보 로깅
       addLog(logs.dataLoaded(uploadedData.length))
 
@@ -278,7 +276,6 @@ export function AnalysisExecutionStep({
       updateStage('finalize', 95)
 
       // Stage 6: 결과 정리
-      await new Promise(resolve => setTimeout(resolve, 300))
       addLog(logs.analysisDone)
 
       const totalTime = ((Date.now() - startTime) / 1000).toFixed(1)

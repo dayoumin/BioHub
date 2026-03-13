@@ -20,7 +20,7 @@ import { UnifiedVariableSelector } from '@/components/smart-flow/variable-select
 import type { SelectorType } from '@/components/smart-flow/variable-selector/slot-configs'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { validateVariableMapping } from '@/lib/statistics/variable-mapping'
-import type { VariableMapping } from '@/lib/statistics/variable-mapping'
+import type { VariableMapping, ColumnInfo } from '@/lib/statistics/variable-mapping'
 import { useTerminology } from '@/hooks/use-terminology'
 import { CollapsibleSection } from '@/components/smart-flow/common'
 import { AnalysisOptionsSection } from '@/components/smart-flow/variable-selector/AnalysisOptions'
@@ -61,7 +61,7 @@ const SELECTOR_MAP: ReadonlyMap<string, SelectorType> = new Map([
   ['correlation',             'correlation'],
   ['partial-correlation',     'correlation'],
   ['normality-test',          'one-sample'],
-  ['friedman',                'correlation'],
+  ['friedman',                'group-comparison'],
   ['descriptive',             'correlation'],
   ['explore-data',            'correlation'],
   ['pca',                     'correlation'],
@@ -132,7 +132,9 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     if (!validationResults?.columnStats) return []
     return validationResults.columnStats.map(col => ({
       name: col.name,
-      type: col.type as 'numeric' | 'categorical' | 'date' | 'text',
+      // ColumnStatistics.type ('numeric'|'categorical'|'mixed') → ColumnInfo.type
+      // 'mixed' 타입은 카테고리로 분류 (숫자+문자 혼합 → 범주 취급이 안전)
+      type: (col.type === 'mixed' ? 'categorical' : col.type) as ColumnInfo['type'],
       uniqueValues: col.uniqueValues
     }))
   }, [validationResults])

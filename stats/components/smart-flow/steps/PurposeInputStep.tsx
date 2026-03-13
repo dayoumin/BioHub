@@ -239,15 +239,12 @@ export function PurposeInputStep({
     }
 
     try {
-      setIsAnalyzing(true)
-      setAiProgress(100)
+      // Note: recommendWithoutAssumptions은 동기 함수이므로
+      // setIsAnalyzing/setAiProgress는 렌더 전에 리셋되어 UI에 반영되지 않음 → 제거
       return DecisionTreeRecommender.recommendWithoutAssumptions(purpose, validationResults, data)
     } catch (error) {
       logger.error('[Recommendation] DecisionTree error', { error })
       return null
-    } finally {
-      setIsAnalyzing(false)
-      setAiProgress(0)
     }
   }, [data, validationResults])
 
