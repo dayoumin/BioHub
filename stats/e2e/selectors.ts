@@ -64,6 +64,7 @@ export const S = {
   analysisExecutionStep: '[data-testid="analysis-execution-step"]',
 
   // ===== Variable Selection =====
+  /** 레거시 개별 페이지용 분석 시작 버튼 (VariableSelectorModern) */
   runAnalysisBtn: '[data-testid="run-analysis-btn"]',
   variableSelectorModern: '[data-testid="variable-selector-modern"]',
   /** 왼쪽 패널: 드래그 가능한 변수 아이템 */
@@ -78,6 +79,20 @@ export const S = {
   modalVar: (name: string) => `[data-testid="modal-var-${name}"]`,
   /** 모달 확인 버튼 */
   modalConfirmBtn: '[data-testid="modal-confirm-btn"]',
+
+  // ===== Smart Flow Variable Selection (UnifiedVariableSelector) =====
+  /** Smart Flow 통합 변수 셀렉터 */
+  unifiedVariableSelector: '[data-testid="unified-variable-selector"]',
+  /** 변수 풀 (좌측) */
+  variablePool: '[data-testid="variable-pool"]',
+  /** 풀 변수 아이템 */
+  poolVar: (name: string) => `[data-testid="pool-var-${name}"]`,
+  /** 슬롯 (역할별) */
+  slot: (id: string) => `[data-testid="slot-${id}"]`,
+  /** 변수 칩 (할당된 변수) */
+  chip: (name: string) => `[data-testid="chip-${name}"]`,
+  /** 변수 선택 완료 → 다음 단계 버튼 */
+  variableSelectionNext: '[data-testid="variable-selection-next"]',
 
   // ===== Results =====
   resultsMainCard: '[data-testid="results-main-card"]',

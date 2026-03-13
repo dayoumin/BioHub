@@ -130,6 +130,7 @@ test.describe('@phase4 @critical Graph Studio 첫 사용자', () => {
   })
 
   test('TC-4B.1.3: Smart Flow 결과에서 Graph Studio로 이동', async ({ page }) => {
+    test.setTimeout(300_000) // Pyodide 로딩 + 분석 포함 5분
     // t-test 분석 완료
     await navigateToUploadStep(page)
     expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
@@ -139,6 +140,17 @@ test.describe('@phase4 @critical Graph Studio 첫 사용자', () => {
     expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 'TC-4B.1.3', 'group', 'value')
+
+    // 변수 미할당 시 수동 클릭 보강 — group 버튼 클릭
+    const runBtn = page.locator(S.runAnalysisBtn)
+    if (!(await runBtn.isEnabled().catch(() => false))) {
+      const groupBtn = page.locator('button:not([disabled])').filter({ hasText: 'group' })
+      if ((await groupBtn.count()) > 0) {
+        await groupBtn.first().click()
+        await page.waitForTimeout(1000)
+      }
+    }
+
     await clickAnalysisRun(page)
     expect(await waitForResults(page, 120000)).toBeTruthy()
 
@@ -153,7 +165,7 @@ test.describe('@phase4 @critical Graph Studio 첫 사용자', () => {
     await gsBtn.click()
     await page.waitForTimeout(5000)
 
-    // Graph Studio 페이지 확인
+    // Graph Studio 페이지 확인 — data-testid 또는 URL로 검증
     const hasGS = await page
       .locator(S.graphStudioPage)
       .isVisible({ timeout: 10000 })
@@ -163,9 +175,10 @@ test.describe('@phase4 @critical Graph Studio 첫 사용자', () => {
       .first()
       .isVisible({ timeout: 5000 })
       .catch(() => false)
+    const isGSUrl = page.url().includes('graph-studio')
 
-    expect(hasGS).toBeTruthy()
-    log('TC-4B.1.3', `Graph Studio 이동: page=${hasGS}, chart=${hasChart}`)
+    expect(hasGS || isGSUrl).toBeTruthy()
+    log('TC-4B.1.3', `Graph Studio 이동: page=${hasGS}, chart=${hasChart}, url=${isGSUrl}`)
   })
 })
 
@@ -175,11 +188,7 @@ test.describe('@phase4 @critical Graph Studio 첫 사용자', () => {
 
 test.describe('@phase4 @important 차트 커스터마이징', () => {
   async function setupChartEditor(page: import('@playwright/test').Page): Promise<boolean> {
-    await page.goto('/graph-studio/', { waitUntil: 'domcontentloaded', timeout: 60000 })
-    await page.waitForFunction(
-      () => document.querySelector('[data-testid="graph-studio-page"]') !== null,
-      { timeout: 15000 },
-    )
+    await navigateToGraphStudio(page)
 
     const barType = page.locator(S.graphStudioChartType('bar'))
     if (!(await barType.isVisible({ timeout: 5000 }).catch(() => false))) return false

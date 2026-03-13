@@ -274,18 +274,20 @@ test.describe('@phase1 @critical Step 3: 변수 선택', () => {
 
     await goToVariableSelection(page)
 
-    // run-analysis-btn이 보이고 활성화된 경우 자동 할당 성공
-    const runBtn = page.locator(S.runAnalysisBtn)
-    await runBtn.waitFor({ state: 'visible', timeout: 15000 })
-    await page.waitForTimeout(1000)
-
-    // 변수 셀렉터가 렌더링되었는지 확인
-    const varSelector = page.locator(S.variableSelectorModern)
-    const hasVarSelector = await varSelector.isVisible({ timeout: 3000 }).catch(() => false)
-    // variable-selection-step이 있거나 variable-selector가 보이면 OK
+    // Smart Flow: UnifiedVariableSelector 렌더 확인
+    const unifiedSelector = page.locator(S.unifiedVariableSelector)
+    const hasUnified = await unifiedSelector.isVisible({ timeout: 10000 }).catch(() => false)
+    // 레거시 fallback
     const varStep = page.locator(S.variableSelectionStep)
     const hasVarStep = await varStep.isVisible({ timeout: 3000 }).catch(() => false)
-    expect(hasVarSelector || hasVarStep).toBeTruthy()
+    expect(hasUnified || hasVarStep).toBeTruthy()
+
+    // 변수 할당 확인: chip이 존재하거나 variable-selection-next가 활성화
+    await page.waitForTimeout(2000)
+    const nextBtn = page.locator(S.variableSelectionNext)
+    const nextEnabled = await nextBtn.isEnabled().catch(() => false)
+    const hasChip = (await page.locator('[data-testid^="chip-"]').count()) > 0
+    expect(nextEnabled || hasChip).toBeTruthy()
   })
 })
 

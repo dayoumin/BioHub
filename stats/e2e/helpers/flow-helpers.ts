@@ -239,13 +239,68 @@ export async function goToVariableSelection(page: Page): Promise<void> {
   }
 }
 
-/** 변수 선택 — 모달 기반 (roleZone → modalVar → confirm), fallback: variable-item 클릭 */
+/**
+ * 변수 선택 — Smart Flow의 UnifiedVariableSelector 기반
+ *
+ * Smart Flow 변수 설정 UI:
+ * - 좌측 pool: pool-var-{name} (클릭하면 빈 슬롯에 자동 할당)
+ * - 우측 슬롯: slot-{id} (dependent, factor, independent 등)
+ * - 완료 버튼: variable-selection-next ("다음 단계")
+ * - AI 자동 할당: 대부분의 경우 AI가 변수를 추천/할당함
+ */
 export async function selectVariables(
   page: Page,
   independentVar: string,
   dependentVar: string,
 ): Promise<void> {
-  // 1. 모달 기반 시도: 존재하는 role zone 찾기
+  // 1. Smart Flow UnifiedVariableSelector — 슬롯 활성화 → pool 클릭
+  const unifiedSelector = page.locator(S.unifiedVariableSelector)
+  if ((await unifiedSelector.count()) > 0) {
+    // independentVar → factor/independent 슬롯에 할당
+    const chipIndep = page.locator(S.chip(independentVar))
+    if ((await chipIndep.count()) === 0) {
+      // 빈 슬롯 찾아서 활성화 후 pool 변수 클릭
+      for (const slotId of ['factor', 'independent', 'group']) {
+        const slot = page.locator(S.slot(slotId))
+        if ((await slot.count()) > 0) {
+          await slot.click()
+          log('selectVars', `slot-${slotId} 활성화`)
+          await page.waitForTimeout(300)
+          break
+        }
+      }
+      const poolIndep = page.locator(S.poolVar(independentVar))
+      if ((await poolIndep.count()) > 0) {
+        await poolIndep.click({ force: true })
+        log('selectVars', `pool-var-${independentVar} → 슬롯에 할당`)
+        await page.waitForTimeout(500)
+      }
+    } else {
+      log('selectVars', `${independentVar} 이미 할당됨`)
+    }
+
+    // dependentVar → dependent 슬롯에 할당
+    const chipDep = page.locator(S.chip(dependentVar))
+    if ((await chipDep.count()) === 0) {
+      const depSlot = page.locator(S.slot('dependent'))
+      if ((await depSlot.count()) > 0) {
+        await depSlot.click()
+        log('selectVars', `slot-dependent 활성화`)
+        await page.waitForTimeout(300)
+      }
+      const poolDep = page.locator(S.poolVar(dependentVar))
+      if ((await poolDep.count()) > 0) {
+        await poolDep.click({ force: true })
+        log('selectVars', `pool-var-${dependentVar} → dependent에 할당`)
+        await page.waitForTimeout(500)
+      }
+    } else {
+      log('selectVars', `${dependentVar} 이미 할당됨`)
+    }
+    return
+  }
+
+  // 2. 레거시 모달 기반 (VariableSelectorModern — 개별 페이지용)
   for (const role of ['independent', 'factor', 'group']) {
     const zone = page.locator(S.roleZone(role))
     if ((await zone.count()) > 0) {
@@ -256,39 +311,21 @@ export async function selectVariables(
     }
   }
 
-  // 2. variable-item 클릭 fallback (좌측 패널의 변수 아이템 클릭)
-  log('selectVars', 'roleZone not found, variable-item fallback 시도')
+  // 3. variable-item 클릭 fallback
+  log('selectVars', 'fallback: variable-item 클릭 시도')
   const indepItem = page.locator(S.variableItem(independentVar))
   if ((await indepItem.count()) > 0) {
     await indepItem.first().click()
-    log('selectVars', `variable-item-${independentVar} 클릭`)
-    await page.waitForTimeout(1000)
+    await page.waitForTimeout(500)
   }
-
   const depItem = page.locator(S.variableItem(dependentVar))
   if ((await depItem.count()) > 0) {
     await depItem.first().click()
-    log('selectVars', `variable-item-${dependentVar} 클릭`)
-    await page.waitForTimeout(1000)
-  }
-
-  // 3. 최후 fallback: button text matching
-  if ((await indepItem.count()) === 0 && (await depItem.count()) === 0) {
-    log('selectVars', 'WARN: variable-item도 미발견, button text fallback')
-    const indepBtn = page.locator('button:not([disabled])').filter({ hasText: independentVar })
-    if ((await indepBtn.count()) > 0) {
-      await indepBtn.first().click()
-      await page.waitForTimeout(1000)
-    }
-    const depBtn = page.locator('button:not([disabled])').filter({ hasText: dependentVar })
-    if ((await depBtn.count()) > 0) {
-      await depBtn.first().click()
-      await page.waitForTimeout(500)
-    }
+    await page.waitForTimeout(500)
   }
 }
 
-/** 단일 role에 단일 변수 모달 할당 */
+/** 단일 role에 단일 변수 모달 할당 (레거시 VariableSelectorModern용) */
 async function selectVarViaModal(
   page: Page,
   role: string,
@@ -308,10 +345,8 @@ async function selectVarViaModal(
   const modalVar = page.locator(S.modalVar(varName))
   if ((await modalVar.count()) > 0) {
     await modalVar.click()
-    log('selectVars', `✓ ${role} ← ${varName} (modal)`)
+    log('selectVars', `${role} <- ${varName} (modal)`)
     await page.waitForTimeout(200)
-  } else {
-    log('selectVars', `WARN: modal-var-${varName} not found in ${role} modal`)
   }
 
   const confirmBtn = page.locator(S.modalConfirmBtn)
@@ -321,39 +356,84 @@ async function selectVarViaModal(
   }
 }
 
-/** run-analysis-btn 대기 후 자동할당 확인, 미할당 시 수동 선택 */
+/**
+ * 변수 할당 확인 후 수동 선택, "다음 단계" 버튼 활성화 대기.
+ *
+ * Smart Flow에서는 run-analysis-btn 대신 variable-selection-next 사용.
+ */
 export async function ensureVariablesOrSkip(
   page: Page,
   tag: string,
   indep: string,
   dep: string,
 ): Promise<void> {
-  const runBtn = page.locator(S.runAnalysisBtn)
-  await runBtn
-    .waitFor({ state: 'visible', timeout: 20000 })
-    .catch(() => log(tag, 'run-analysis-btn not found, proceeding anyway'))
+  // Step 3 렌더 대기
+  await page.waitForTimeout(2000)
 
-  // AI 자동 할당 대기: 최대 10초 polling (AI 추천이 느릴 수 있음)
-  for (let i = 0; i < 10; i++) {
+  // Smart Flow: variable-selection-next 버튼 확인
+  const nextBtn = page.locator(S.variableSelectionNext)
+  const nextBtnVisible = await nextBtn
+    .waitFor({ state: 'visible', timeout: 10000 })
+    .then(() => true)
+    .catch(() => false)
+
+  if (nextBtnVisible && (await nextBtn.isEnabled().catch(() => false))) {
+    log(tag, '변수 자동 할당 완료 (variable-selection-next 활성)')
+    return
+  }
+
+  // 레거시: run-analysis-btn 확인
+  const runBtn = page.locator(S.runAnalysisBtn)
+  if (await runBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
     if (await runBtn.isEnabled().catch(() => false)) {
-      log(tag, '변수 자동 할당됨, 선택 건너뜀')
+      log(tag, '변수 자동 할당 완료 (run-analysis-btn 활성)')
+      return
+    }
+  }
+
+  // 수동 변수 선택
+  log(tag, '수동 변수 선택 시도')
+  await selectVariables(page, indep, dep)
+
+  // 선택 후 활성화 대기 (최대 5초)
+  for (let i = 0; i < 5; i++) {
+    if (await nextBtn.isEnabled().catch(() => false)) {
+      log(tag, '수동 선택 후 variable-selection-next 활성화됨')
+      return
+    }
+    if (await runBtn.isEnabled().catch(() => false)) {
+      log(tag, '수동 선택 후 run-analysis-btn 활성화됨')
       return
     }
     await page.waitForTimeout(1000)
   }
-
-  log(tag, '자동 할당 미완료, 수동 선택 시도')
-  await selectVariables(page, indep, dep)
+  log(tag, 'WARN: 변수 선택 버튼 미활성 상태, 계속 진행')
 }
 
 // ========================================
 // Step 4: Run & Wait
 // ========================================
 
-/** 분석 실행 버튼 클릭 */
+/**
+ * 분석 실행 — Smart Flow에서는 variable-selection-next 클릭 → 자동 실행.
+ * 레거시 개별 페이지에서는 run-analysis-btn 클릭.
+ */
 export async function clickAnalysisRun(page: Page): Promise<void> {
-  await page.waitForTimeout(1000)
+  await page.waitForTimeout(500)
 
+  // Smart Flow: variable-selection-next (다음 단계 → 자동 실행)
+  const nextBtn = page.locator(S.variableSelectionNext)
+  if (
+    (await nextBtn.isVisible({ timeout: 3000 }).catch(() => false)) &&
+    (await nextBtn.isEnabled())
+  ) {
+    await nextBtn.click()
+    log('clickRun', 'variable-selection-next 클릭 → 분석 자동 실행')
+    await page.waitForTimeout(3000)
+    return
+  }
+
+  // 레거시: run-analysis-btn
   const btn = page.locator(S.runAnalysisBtn)
   if (
     (await btn.isVisible({ timeout: 3000 }).catch(() => false)) &&
@@ -365,6 +445,7 @@ export async function clickAnalysisRun(page: Page): Promise<void> {
     return
   }
 
+  // Fallback: floating-next-btn
   const floatingBtn = page.locator(S.floatingNextBtn)
   if (
     (await floatingBtn.isVisible({ timeout: 3000 }).catch(() => false)) &&
