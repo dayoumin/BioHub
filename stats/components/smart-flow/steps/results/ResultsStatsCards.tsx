@@ -6,55 +6,12 @@ import { cn } from '@/lib/utils'
 import { StatisticCard } from '@/components/smart-flow/common'
 import type { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
 import type { ResultsText } from '@/lib/terminology/terminology-types'
-
-// ===== Animation Variants =====
-const statsContainerVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.1 } }
-}
-
-const statsItemVariants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' as const } }
-}
-
-// 효과크기 해석 (L1 배지용 — 지역화 레이블 사용)
-function getEffectSizeInterpretation(value: number, type: string | undefined, labels: ResultsText['effectSizeLabels']): string {
-  const absValue = Math.abs(value)
-  switch (type) {
-    case 'cohensD':
-      if (absValue < 0.2) return labels.small
-      if (absValue < 0.5) return labels.medium
-      if (absValue < 0.8) return labels.large
-      return labels.veryLarge
-    case 'etaSquared':
-      if (absValue < 0.01) return labels.small
-      if (absValue < 0.06) return labels.medium
-      if (absValue < 0.14) return labels.large
-      return labels.veryLarge
-    case 'r':
-    case 'phi':
-    case 'cramersV':
-      if (absValue < 0.1) return labels.small
-      if (absValue < 0.3) return labels.medium
-      if (absValue < 0.5) return labels.large
-      return labels.veryLarge
-    default:
-      if (absValue < 0.2) return labels.small
-      if (absValue < 0.5) return labels.medium
-      if (absValue < 0.8) return labels.large
-      return labels.veryLarge
-  }
-}
-
-// p-value 포맷팅
-function formatPValue(p: number): string {
-  if (p == null || isNaN(p)) return '-'
-  if (p < 0.001) return '< .001'
-  if (p < 0.01) return '< .01'
-  if (p < 0.05) return '< .05'
-  return p.toFixed(3)
-}
+import {
+  statsContainerVariants,
+  statsItemVariants,
+  getEffectSizeInterpretation,
+  formatPValue,
+} from './results-helpers'
 
 export interface ResultsStatsCardsProps {
   statisticalResult: StatisticalResult

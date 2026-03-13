@@ -21,11 +21,7 @@ import { ResultsVisualization } from '@/components/smart-flow/ResultsVisualizati
 import type { AnalysisResult } from '@/types/smart-flow'
 import type { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
 
-// ===== Animation Variants =====
-const sectionRevealVariants = {
-  hidden: { opacity: 0, y: 12 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' as const } }
-}
+import { sectionRevealVariants } from './results-helpers'
 
 export interface ResultsChartsSectionProps {
   results: AnalysisResult
@@ -131,19 +127,22 @@ export function ResultsChartsSection({
                     />
                   )}
 
-                  {statisticalResult.additionalResults?.map((table, idx) => (
-                    <StatisticsTable
-                      key={idx}
-                      title={table.title}
-                      columns={(table.columns as Array<{ key: string; label: string }>).map(col => ({
-                        key: col.key,
-                        header: col.label,
-                      }))}
-                      data={table.data}
-                      compactMode
-                      className="border-0 shadow-none"
-                    />
-                  ))}
+                  {statisticalResult.additionalResults?.map((table, idx) => {
+                    if (!Array.isArray(table.columns)) return null
+                    return (
+                      <StatisticsTable
+                        key={idx}
+                        title={table.title}
+                        columns={table.columns.map((col: Record<string, unknown>) => ({
+                          key: String(col.key ?? ''),
+                          header: String(col.label ?? col.header ?? ''),
+                        }))}
+                        data={table.data}
+                        compactMode
+                        className="border-0 shadow-none"
+                      />
+                    )
+                  })}
 
                   <MethodSpecificResults results={results} />
                 </div>
