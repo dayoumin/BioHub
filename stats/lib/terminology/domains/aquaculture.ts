@@ -786,6 +786,7 @@ export const aquaculture: TerminologyDictionary = {
 
   results: {
     effectSizeLabels: {
+      negligible: '무시할 수준',
       small: '작음',
       medium: '중간',
       large: '큼',

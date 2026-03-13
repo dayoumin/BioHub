@@ -101,7 +101,7 @@ export interface StatisticalResult {
   // 효과크기
   effectSize?: {
     value: number
-    type?: 'cohensD' | 'etaSquared' | 'r' | 'phi' | 'cramersV'
+    type?: 'cohensD' | 'hedgesG' | 'glassDelta' | 'etaSquared' | 'partialEtaSquared' | 'omegaSquared' | 'epsilonSquared' | 'r' | 'phi' | 'cramersV' | 'rSquared' | 'w'
     ci?: [number, number]
   }
 

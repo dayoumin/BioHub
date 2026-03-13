@@ -185,14 +185,19 @@ export function interpretPValueKo(pValue: number): string {
 export function formatStatisticalResult(
   statistic: string,
   statisticValue: number,
-  df: number | number[],
+  df: number | number[] | undefined,
   pValue: number
 ): string {
-  const formattedDf = Array.isArray(df) ? `(${df.join(', ')})` : `(${df})`
-  const formattedP = formatPValue(pValue)
+  const formattedP = formatPValueAPA(pValue)
   const formattedValue = formatNumber(statisticValue, PRECISION.STATISTIC)
 
-  return `${statistic}${formattedDf} = ${formattedValue}, p = ${formattedP}`
+  // df 없는 검정 (Mann-Whitney U, Wilcoxon 등): "U = 234.0, p = .003"
+  if (df === undefined) {
+    return `${statistic} = ${formattedValue}, p ${formattedP}`
+  }
+
+  const formattedDf = Array.isArray(df) ? `(${df.join(', ')})` : `(${df})`
+  return `${statistic}${formattedDf} = ${formattedValue}, p ${formattedP}`
 }
 
 /**
@@ -415,13 +420,17 @@ export function formatDf(df?: number | { numerator: number; denominator: number 
 }
 
 /**
- * p-value APA 형식 포맷팅 (선행 0 제거)
- * @param pValue p-value
- * @returns 포맷된 문자열 예: "= .021" 또는 "< .001"
+ * p-value APA 7th 형식 포맷팅 (선행 0 제거)
+ * APA 7th: 정확한 값 보고, 선행 0 생략, p < .001만 예외
+ * p=0.048 → "= .048", p=0.0003 → "< .001", p=1.0 → "= 1.000"
  */
 export function formatPValueAPA(pValue: number): string {
+  if (pValue == null || isNaN(pValue)) return '-'
   if (pValue < 0.001) return '< .001'
-  return `= ${pValue.toFixed(3).replace('0.', '.')}`
+  // p ≥ 1 (예: permutation test)은 선행 0 제거 불가
+  if (pValue >= 1) return `= ${pValue.toFixed(3)}`
+  // APA 7th: 0 < p < 1 → 선행 0 제거
+  return `= ${pValue.toFixed(3).replace(/^0/, '')}`
 }
 
 /**

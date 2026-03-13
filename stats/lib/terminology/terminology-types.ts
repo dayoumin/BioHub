@@ -830,6 +830,7 @@ export interface DataExplorationText {
 export interface ResultsText {
   /** 효과크기 해석 라벨 */
   effectSizeLabels: {
+    negligible?: string
     small: string
     medium: string
     large: string

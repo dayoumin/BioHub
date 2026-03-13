@@ -67,14 +67,24 @@ describe('formatters.ts', () => {
   })
 
   describe('formatStatisticalResult', () => {
-    it('should format t-test result', () => {
+    it('should format t-test result (APA style)', () => {
       const result = formatStatisticalResult('t', 2.5, 28, 0.018)
-      expect(result).toBe('t(28) = 2.5000, p = 0.0180')
+      expect(result).toBe('t(28) = 2.5000, p = .018')
     })
 
-    it('should format ANOVA result with array df', () => {
+    it('should format ANOVA result with array df (APA style)', () => {
       const result = formatStatisticalResult('F', 4.2, [2, 45], 0.021)
-      expect(result).toBe('F(2, 45) = 4.2000, p = 0.0210')
+      expect(result).toBe('F(2, 45) = 4.2000, p = .021')
+    })
+
+    it('should format result without df (e.g. Mann-Whitney U)', () => {
+      const result = formatStatisticalResult('U', 234.0, undefined, 0.003)
+      expect(result).toBe('U = 234.0000, p = .003')
+    })
+
+    it('should format highly significant result', () => {
+      const result = formatStatisticalResult('t', 5.12, 30, 0.0001)
+      expect(result).toBe('t(30) = 5.1200, p < .001')
     })
   })
 

@@ -101,29 +101,53 @@ function convertEffectSize(
   }
 
   // EffectSizeInfo -> StatisticalResult effectSize
-  const typeMap: Record<string, 'cohensD' | 'etaSquared' | 'r' | 'phi' | 'cramersV'> = {
-    "cohen's d": 'cohensD',
-    "cohensD": 'cohensD',
+  // 정규화: lowercase + 공백/하이픈/어포스트로피 제거 후 매칭
+  type EffectSizeType = NonNullable<NonNullable<StatisticalResult['effectSize']>['type']>
+  const typeMap: Record<string, EffectSizeType> = {
+    // Cohen's d 계열 — 정규화 키: 소문자, 공백/하이픈/어포스트로피 제거됨
+    "cohensd": 'cohensD',
     "d": 'cohensD',
-    "eta-squared": 'etaSquared',
-    "etaSquared": 'etaSquared',
+    "hedgesg": 'hedgesG',
+    "g": 'hedgesG',
+    "glassdelta": 'glassDelta',
+    "δ": 'glassDelta',
+    // 분산 설명 비율 계열
+    "etasquared": 'etaSquared',
     "eta²": 'etaSquared',
     "η²": 'etaSquared',
-    "pearson r": 'r',
+    "partialetasquared": 'partialEtaSquared',
+    "η²ₚ": 'partialEtaSquared',
+    "omegasquared": 'omegaSquared',
+    "ω²": 'omegaSquared',
+    "epsilonsquared": 'epsilonSquared',
+    "ε²": 'epsilonSquared',
+    // 상관/연관 계열
+    "pearsonr": 'r',
     "r": 'r',
     "correlation": 'r',
+    "spearmanrho": 'r',       // correlation-executor: "Spearman rho"
+    "kendalltau": 'r',        // correlation-executor: "Kendall tau"
+    "partialr": 'r',          // correlation-executor: "Partial r"
+    "rankbiserialr": 'r',     // nonparametric-executor: "rank-biserial r"
     "phi": 'phi',
     "φ": 'phi',
-    "cramer's v": 'cramersV',
-    "cramersV": 'cramersV',
+    "cramersv": 'cramersV',
+    "v": 'cramersV',
+    "w": 'w',
+    // 결정계수
+    "rsquared": 'rSquared',
+    "r²": 'rSquared',
   }
 
-  // effectSize.type이 undefined인 경우 방어
-  const normalizedType = (effectSize.type ?? '').toLowerCase().trim()
+  // 정규화: lowercase + 공백/하이픈/어포스트로피 제거 (e.g. "Cohen's d" → "cohensd")
+  const normalizedType = (effectSize.type ?? '')
+    .toLowerCase()
+    .trim()
+    .replace(/[\s\-']/g, '')
 
   return {
     value: effectSize.value,
-    type: typeMap[normalizedType] || 'cohensD'
+    type: typeMap[normalizedType] ?? 'cohensD'
   }
 }
 

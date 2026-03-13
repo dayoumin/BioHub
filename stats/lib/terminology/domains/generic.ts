@@ -780,6 +780,7 @@ export const generic: TerminologyDictionary = {
 
   results: {
     effectSizeLabels: {
+      negligible: 'Negligible',
       small: 'Small',
       medium: 'Medium',
       large: 'Large',

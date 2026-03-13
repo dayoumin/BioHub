@@ -201,8 +201,7 @@ export function ResultsChartsSection({
                   </div>
                 )}
 
-                {statisticalResult.warnings && statisticalResult.warnings.length > 0 &&
-                  assumptionTests.length === 0 && (
+                {statisticalResult.warnings && statisticalResult.warnings.length > 0 && (
                     <Alert variant="destructive" data-testid="warnings-section">
                       <AlertCircle className="h-4 w-4" />
                       <AlertTitle>{t.results.sections.warnings}</AlertTitle>
