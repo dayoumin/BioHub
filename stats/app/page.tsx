@@ -399,8 +399,6 @@ export default function HomePage() {
             <DataExplorationStep
               validationResults={validationResults}
               data={uploadedData || []}
-              onNext={handleStep1Next}
-              onPrevious={goToPreviousStep}
               onUploadComplete={handleUploadComplete}
               existingFileName={uploadedFileName || undefined}
             />

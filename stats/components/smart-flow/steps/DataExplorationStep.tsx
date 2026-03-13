@@ -30,8 +30,6 @@ import { calculateCorrelation } from './exploration/correlation-utils'
 interface DataExplorationStepProps {
   validationResults: ValidationResults | null
   data: DataRow[]
-  onNext?: () => void
-  onPrevious?: () => void
   onUploadComplete?: (file: File, data: DataRow[]) => void
   existingFileName?: string
   /** 템플릿 선택 시 콜백 */
@@ -150,7 +148,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       .filter(value => !isNaN(value))
   }, [data])
 
-  const getPercentile = useCallback((sorted: number[], percentile: number): number | undefined => {
+  const getPercentile = (sorted: number[], percentile: number): number | undefined => {
     if (sorted.length === 0) return undefined
     const index = (sorted.length - 1) * percentile
     const lower = Math.floor(index)
@@ -158,7 +156,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     if (lower === upper) return sorted[lower]
     const weight = index - lower
     return sorted[lower] * (1 - weight) + sorted[upper] * weight
-  }, [])
+  }
 
   const numericDistributions = useMemo(() => {
     return numericColumnStats.map(col => {
@@ -209,7 +207,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         outlierCount
       }
     })
-  }, [getNumericValues, getPercentile, numericColumnStats])
+  }, [getNumericValues, numericColumnStats])
 
   // 이상치 총 개수 (배지용 + 자동 펼침 판정)
   const totalOutlierCount = useMemo(
@@ -297,7 +295,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         extremeUpperBound
       }
     }
-  }, [data, getNumericValues, getPercentile])
+  }, [data, getNumericValues])
 
   // 이상치 모달 열기 핸들러
   const handleOpenOutlierModal = useCallback((varName: string) => {

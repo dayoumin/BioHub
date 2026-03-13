@@ -164,7 +164,6 @@ export function ChatCentricHub({
 
       {/* 최근 분석 히스토리 */}
       <QuickAccessBar
-        onQuickAnalysis={onQuickAnalysis}
         onHistoryClick={onHistorySelect}
         onHistoryDelete={onHistoryDelete}
         onShowMore={onHistoryShowMore}

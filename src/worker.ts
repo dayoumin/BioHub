@@ -147,6 +147,12 @@ async function handleOpenRouterProxy(
 
   const targetUrl = `${OPENROUTER_BASE}${subPath}`
 
+  // Request body 크기 제한 (10KB) — 프롬프트 프록시 용도이므로 대용량 불필요
+  const contentLength = request.headers.get('Content-Length')
+  if (contentLength && parseInt(contentLength, 10) > 10_240) {
+    return jsonResponse({ error: 'Payload too large' }, 413)
+  }
+
   // 클라이언트 헤더 중 전달할 것만 선별
   const proxyHeaders = new Headers()
   proxyHeaders.set('Authorization', `Bearer ${env.OPENROUTER_API_KEY}`)
@@ -176,7 +182,6 @@ async function handleOpenRouterProxy(
   // 스트리밍(SSE) 응답 처리
   if (openRouterResponse.headers.get('Content-Type')?.includes('text/event-stream')) {
     responseHeaders.set('Cache-Control', 'no-cache')
-    responseHeaders.set('Connection', 'keep-alive')
   }
 
   return new Response(openRouterResponse.body, {

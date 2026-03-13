@@ -183,7 +183,6 @@ function makeVizProject(overrides: Partial<typeof mockProjects[number]> & { id: 
 }
 
 const defaultProps = {
-  onQuickAnalysis: vi.fn(),
   onHistoryClick: vi.fn(),
   onHistoryDelete: vi.fn().mockResolvedValue(undefined),
   onShowMore: vi.fn(),

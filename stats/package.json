@@ -11,7 +11,7 @@
     "dev:turbo": "next dev --turbo",
     "prebuild": "node scripts/rag/copy-db.js && node scripts/rag/generate-metadata.js",
     "build": "next build",
-    "build:offline": "NEXT_PUBLIC_PYODIDE_USE_LOCAL=true npm run build",
+    "build:offline": "NEXT_PUBLIC_PYODIDE_USE_LOCAL=true pnpm run build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",

@@ -257,7 +257,7 @@ export function SmartFlowLayout({
       <HelpModal open={isHelpOpen} onOpenChange={closeGlobalHelp} />
       {/* ===== 플로팅 네비게이션 버튼 ===== */}
       {showFloatingNav && !showHub && onNext && (
-        <div className="fixed bottom-6 z-40" style={{ left: 'calc(50% + 2rem)', transform: 'translateX(-50%)' }}>
+        <div className="fixed bottom-6 z-40 left-[calc(50%+2rem)] -translate-x-1/2">
           <Tooltip>
             <TooltipTrigger asChild>
               <span>

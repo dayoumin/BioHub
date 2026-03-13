@@ -22,10 +22,7 @@ const nextConfig: NextConfig = {
     },
   }),
 
-  // 개발/테스트 페이지 빌드에서 제외 (LangGraph node:async_hooks 이슈)
-  pageExtensions: ['tsx', 'ts', 'jsx', 'js'].map(ext =>
-    process.env.NODE_ENV === 'production' ? ext : ext
-  ),
+  pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
 
   // Note: redirects() is not compatible with output: 'export'
   // Redirects for moved pages are handled client-side in the pages themselves

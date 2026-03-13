@@ -90,14 +90,13 @@ export class OpenRouterRecommender {
       logger.info('[OpenRouter] NEXT_PUBLIC_OPENROUTER_MODEL 미설정 — OpenRouter 비활성화')
     }
 
-    const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY || ''
+    // Worker 프록시 경유 (/api/ai) — NEXT_PUBLIC_ API 키는 더 이상 사용하지 않음
+    const apiKey = ''
 
     this.config = {
       apiKey,
       models,
-      // 프로덕션: API 키 없음 → Worker 프록시 경유 (/api/ai)
-      // 로컬 dev: API 키 있음 → OpenRouter 직접 호출
-      baseUrl: apiKey ? 'https://openrouter.ai/api/v1' : '/api/ai',
+      baseUrl: '/api/ai',
       temperature: 0.2,
       maxTokens: 2000,
       timeout: 30000
@@ -325,15 +324,19 @@ export class OpenRouterRecommender {
       throw new Error(`API ${response.status}: ${errorText}`)
     }
 
-    const data: OpenRouterResponse = await response.json()
-    const msg = data.choices?.[0]?.message
+    const data = await response.json() as Record<string, unknown>
+    if (!data || !Array.isArray((data as { choices?: unknown }).choices)) {
+      throw new Error('Invalid API response: missing choices array')
+    }
+    const typed = data as unknown as OpenRouterResponse
+    const msg = typed.choices?.[0]?.message
     // Fix 2-D: thinking 모델 <think> 태그 제거 후 사용
     const rawContent = msg?.content?.trim() || msg?.reasoning_content || ''
     const content = this.stripThinkingTags(rawContent)
 
     logger.info('[OpenRouter] Response received', {
-      model: data.model || model,
-      tokens: data.usage?.total_tokens,
+      model: typed.model || model,
+      tokens: typed.usage?.total_tokens,
       contentLength: content.length,
       usedReasoning: !msg?.content?.trim() && !!msg?.reasoning_content
     })

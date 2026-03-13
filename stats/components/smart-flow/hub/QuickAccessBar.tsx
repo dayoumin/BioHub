@@ -120,7 +120,6 @@ interface ActivityCard {
 // ===== Props =====
 
 interface QuickAccessBarProps {
-  onQuickAnalysis: (methodId: string) => void
   onHistoryClick: (historyId: string) => void
   onHistoryDelete: (historyId: string) => Promise<void>
   onShowMore?: () => void
