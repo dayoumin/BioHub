@@ -28,8 +28,8 @@ type AdditionalInfoAccessor = Record<string, any>
 export function isExecutorResult(
   data: Record<string, unknown>
 ): data is Record<string, unknown> & { metadata: Record<string, unknown>; mainResults: Record<string, unknown> } {
-  if (!data.metadata || typeof data.metadata !== 'object') return false
-  if (!data.mainResults || typeof data.mainResults !== 'object') return false
+  if (!data.metadata || typeof data.metadata !== 'object' || Array.isArray(data.metadata)) return false
+  if (!data.mainResults || typeof data.mainResults !== 'object' || Array.isArray(data.mainResults)) return false
   const meta = data.metadata as Record<string, unknown>
   return typeof meta.method === 'string'
 }

@@ -194,8 +194,9 @@ export function StatisticsTable({
       case 'percentage':
         return formatPercentage(numValue ?? 0)
       case 'ci':
-        if (Array.isArray(value) && value.length === 2) {
-          return formatConfidenceInterval(value[0] as number, value[1] as number)
+        if (Array.isArray(value) && value.length === 2
+          && typeof value[0] === 'number' && typeof value[1] === 'number') {
+          return formatConfidenceInterval(value[0], value[1])
         }
         return 'N/A'
       default:

@@ -452,6 +452,21 @@
 | **엣지 케이스 탐색** | 새 입력 경로 추가 후 | REVIEW_CHECKLIST.md #4 (경계 입력 9종) | 미실행 |
 | **회귀 영향 분석** | 공유 함수 수정 후 | REVIEW_CHECKLIST.md #8 (고위험 함수 5개) | 미실행 |
 
+### P3 코드 품질 개선 (2026-03-13 리뷰에서 발견)
+
+> 상세: `stats/docs/REVIEW-MERGE-20-COMMITS.md` — 56 WARNING + 41 INFO
+
+| 항목 | 파일 | 설명 |
+|------|------|------|
+| **대형 컴포넌트 분리** | `ResultsActionStep.tsx` (~1000줄) | Hero/Stats/Charts/Actions 4개 하위 컴포넌트 |
+| **대형 컴포넌트 분리** | `PurposeInputStep.tsx` (789줄) | 입력/추천/가이드 3개 분리 |
+| **RAG 중복 제거** | RAG 3파일 (~60% 중복) | `useRAGChat` 공통 훅 추출 |
+| **God component 분리** | `app/page.tsx` (527줄, 20+ callbacks) | 레이아웃/콘텐츠 분리 |
+| **하드코딩 한국어** | 다수 파일 | terminology 시스템 미사용 잔여분 |
+| **기존 실패 테스트 9건** | 3개 테스트 파일 | 셀렉터 불일치 + 타입 변경 미반영 |
+| **CSV RFC 4180** | `StatisticsTable.tsx:248` | `"` 이스케이프 누락 |
+| **clipboard Promise** | `StatisticsTable.tsx:236` | `writeText` 에러 미처리 |
+
 ### 진행 예정
 | 작업 | 설명 |
 |------|------|
