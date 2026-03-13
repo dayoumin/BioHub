@@ -48,16 +48,17 @@ export interface TableColumn {
   type?: 'text' | 'number' | 'pvalue' | 'percentage' | 'ci' | 'custom'
   align?: 'left' | 'center' | 'right'
   sortable?: boolean
-  formatter?: (value: any, row?: any) => React.ReactNode
+  formatter?: (value: unknown, row?: Record<string, unknown>) => React.ReactNode
   description?: string
   width?: string
-  highlight?: (value: any, row?: any) => 'positive' | 'negative' | 'neutral' | null
+  highlight?: (value: unknown, row?: Record<string, unknown>) => 'positive' | 'negative' | 'neutral' | null
 }
 
-export interface TableRow {
-  [key: string]: any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- 다양한 행 타입을 수용하기 위한 의도적 any (내부에서 unknown으로 처리)
+export type TableRow = Record<string, any> & {
   _highlighted?: boolean
   _className?: string
+  _expandedContent?: React.ReactNode
 }
 
 interface StatisticsTableProps {
@@ -178,30 +179,33 @@ export function StatisticsTable({
   }
 
   // 값 포맷팅
-  const formatCellValue = (column: TableColumn, value: any, row: any) => {
+  const formatCellValue = (column: TableColumn, value: unknown, row: TableRow) => {
     if (column.formatter) {
       return column.formatter(value, row)
     }
 
+    const numValue = typeof value === 'number' ? value : null
+
     switch (column.type) {
       case 'number':
-        return formatNumber(value, 4)
+        return formatNumber(numValue, 4)
       case 'pvalue':
-        return <PValueBadge value={value} size="sm" showLabel={false} />
+        return <PValueBadge value={numValue} size="sm" showLabel={false} />
       case 'percentage':
-        return formatPercentage(value)
+        return formatPercentage(numValue ?? 0)
       case 'ci':
         if (Array.isArray(value) && value.length === 2) {
-          return formatConfidenceInterval(value[0], value[1])
+          return formatConfidenceInterval(value[0] as number, value[1] as number)
         }
         return 'N/A'
       default:
-        return value?.toString() || '-'
+        if (value == null) return '-'
+        return String(value)
     }
   }
 
   // 하이라이트 스타일
-  const getHighlightClass = (column: TableColumn, value: any, row: any) => {
+  const getHighlightClass = (column: TableColumn, value: unknown, row: TableRow) => {
     if (!column.highlight) return ''
 
     const highlightType = column.highlight(value, row)

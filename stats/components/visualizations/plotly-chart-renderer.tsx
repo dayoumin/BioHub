@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Download, Maximize2, Camera } from 'lucide-react'
 import { logger } from '@/lib/utils/logger'
+import { escapeHtml } from '@/lib/utils/html-escape'
 
 // 벤더 접두사 fullscreen API (표준 HTMLElement 타입에 미포함)
 interface FullscreenElement extends HTMLElement {
@@ -143,11 +144,11 @@ export function PlotlyChartRenderer({
     </style>
 </head>
 <body>
-    <h1>${title || 'Statistical Analysis Chart'}</h1>
+    <h1>${escapeHtml(title || 'Statistical Analysis Chart')}</h1>
     <div id="chart"></div>
     <script>
-        const data = ${JSON.stringify(chartData.data)};
-        const layout = ${JSON.stringify(chartData.layout)};
+        const data = ${JSON.stringify(chartData.data).replace(/<\//g, '<\\/')};
+        const layout = ${JSON.stringify(chartData.layout).replace(/<\//g, '<\\/')};
         const config = { responsive: true };
         Plotly.newPlot('chart', data, layout, config);
     </script>

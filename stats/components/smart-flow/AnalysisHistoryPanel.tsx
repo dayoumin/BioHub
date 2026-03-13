@@ -60,6 +60,7 @@ import { ExportService } from '@/lib/services/export/export-service'
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
 import type { ExportContentOptions, ExportContext, ExportFormat } from '@/lib/services/export/export-types'
 import { toast } from 'sonner'
+import { logger } from '@/lib/utils/logger'
 import {
   usePinnedHistoryIds,
   MAX_PINNED,
@@ -171,14 +172,24 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
     }, [] as Array<{ id: string; name: string }>)
 
   const handleLoad = async (historyId: string) => {
-    await loadFromHistory(historyId)
-    onClose?.()
+    try {
+      await loadFromHistory(historyId)
+      onClose?.()
+    } catch (error) {
+      logger.error('[AnalysisHistoryPanel] Failed to load history', { error })
+      toast.error('히스토리 로드에 실패했습니다.')
+    }
   }
 
   // 같은 방법으로 새 데이터 분석 (재분석 모드)
   const handleReanalyze = async (historyId: string) => {
-    await loadSettingsFromHistory(historyId)
-    onClose?.()
+    try {
+      await loadSettingsFromHistory(historyId)
+      onClose?.()
+    } catch (error) {
+      logger.error('[AnalysisHistoryPanel] Failed to load settings', { error })
+      toast.error('설정 로드에 실패했습니다.')
+    }
   }
 
   const handleDelete = useCallback(async (historyId: string) => {

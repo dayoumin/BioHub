@@ -13,7 +13,7 @@
  * - data-testid="hub-upload-card" 유지
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
@@ -73,11 +73,13 @@ export function ChatCentricHub({
   const { setActiveTrack } = useSmartFlowStore()
 
   const [isProcessing, setIsProcessing] = useState(false)
+  const isProcessingRef = useRef(false)
   const [externalValue, setExternalValue] = useState<string | undefined>(undefined)
 
   // 채팅 입력 제출 → Intent Router 분류 → 즉시 이동
   const handleChatSubmit = useCallback(async (message: string) => {
-    if (isProcessing) return
+    if (isProcessingRef.current) return
+    isProcessingRef.current = true
 
     setIsProcessing(true)
     try {
@@ -105,9 +107,10 @@ export function ChatCentricHub({
       setActiveTrack(fallback.track)
       onIntentResolved(fallback, message)
     } finally {
+      isProcessingRef.current = false
       setIsProcessing(false)
     }
-  }, [isProcessing, setActiveTrack, onIntentResolved])
+  }, [setActiveTrack, onIntentResolved, t.hub.intentClassificationFailed])
 
   // 표본 크기 계산기 "분석 시작" CTA → ChatInput 주입
   const handleStartAnalysis = useCallback((example: string) => {

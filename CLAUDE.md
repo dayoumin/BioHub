@@ -32,7 +32,7 @@
 - 모든 함수에 명시적 타입 (파라미터 + 리턴)
 - null/undefined 체크 필수 (early return)
 - 옵셔널 체이닝 (`?.`) 적극 사용
-- Non-null assertion (`!`) **절대 금지**
+- Non-null assertion (`!`) **기본 금지** — 예외: 바로 위에서 존재 확인된 경우, 테스트 코드. 대안: `assertDefined()` 유틸 사용
 
 ## Pyodide 통계 계산 (CRITICAL)
 

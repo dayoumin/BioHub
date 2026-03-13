@@ -541,7 +541,7 @@ export function RAGAssistantCompact({ method, className = '' }: RAGAssistantComp
                       const citedDocIds = msg.response.citedDocIds
                       const filteredSources = citedDocIds && citedDocIds.length > 0
                         ? msg.response.sources.filter((_, idx) => citedDocIds.includes(idx))
-                        : msg.response.sources.filter(s => (s as any).score > 0.5)
+                        : msg.response.sources.filter(s => s.score > 0.5)
 
                       return filteredSources.length > 0 ? (
                         <div className="mt-3 pt-3 border-t border-border/50">

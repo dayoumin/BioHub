@@ -26,12 +26,14 @@ export function useCountUp(
   )
   const rafRef = useRef<number | null>(null)
   const startTimeRef = useRef<number | null>(null)
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
 
-  // prefers-reduced-motion 감지 (SSR 안전)
-  const prefersReducedMotion =
-    typeof window !== 'undefined' && window.matchMedia
-      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      : false
+  // prefers-reduced-motion 감지 (useEffect로 hydration mismatch 방지)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      setPrefersReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    }
+  }, [])
 
   useEffect(() => {
     if (target == null) {

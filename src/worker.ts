@@ -108,9 +108,13 @@ async function handleOpenRouterProxy(
 
   // Rate limit 검사
   const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown'
-  if (!checkRateLimit(clientIp)) {
-    // 100회마다 만료 엔트리 정리
+
+  // 주기적 정리: 100엔트리 이상이면 만료 엔트리 제거 (메모리 누수 방지)
+  if (rateLimitMap.size > 100) {
     cleanupRateLimitMap()
+  }
+
+  if (!checkRateLimit(clientIp)) {
     return jsonResponse(
       { error: 'Rate limit exceeded. Try again later.' },
       429
