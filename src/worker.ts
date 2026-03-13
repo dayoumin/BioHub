@@ -148,8 +148,9 @@ async function handleOpenRouterProxy(
   const targetUrl = `${OPENROUTER_BASE}${subPath}`
 
   // Request body 크기 제한 (10KB) — 프롬프트 프록시 용도이므로 대용량 불필요
-  const contentLength = request.headers.get('Content-Length')
-  if (contentLength && parseInt(contentLength, 10) > 10_240) {
+  // Content-Length 헤더는 생략/위조 가능하므로 실제 body를 읽어서 확인
+  const bodyText = await request.text()
+  if (bodyText.length > 10_240) {
     return jsonResponse({ error: 'Payload too large' }, 413)
   }
 
@@ -172,7 +173,7 @@ async function handleOpenRouterProxy(
   const openRouterResponse = await fetch(targetUrl, {
     method: request.method,
     headers: proxyHeaders,
-    body: request.method !== 'GET' ? request.body : undefined,
+    body: request.method !== 'GET' ? bodyText : undefined,
   })
 
   // 응답 헤더 구성

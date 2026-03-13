@@ -140,7 +140,7 @@ describe('VariableSelectionStep', () => {
       'repeated-measures-anova', 'manova', 'mixed-model',
       'arima', 'seasonal-decompose', 'stationarity-test',
       'kaplan-meier', 'cox-regression', 'roc-curve',
-      'discriminant', 'power-analysis',
+      'discriminant', 'power-analysis', 'friedman',
     ]
 
     const chiSquareMethodIds = [
@@ -150,7 +150,7 @@ describe('VariableSelectionStep', () => {
 
     const nonAutoMethodIds = [
       't-test', 'welch-t', 'one-sample-t', 'paired-t', 'anova', 'welch-anova',
-      'ancova', 'mann-whitney', 'wilcoxon', 'kruskal-wallis', 'friedman',
+      'ancova', 'mann-whitney', 'wilcoxon', 'kruskal-wallis',
       'sign-test', 'cochran-q', 'binomial-test', 'runs-test',
       'ks-test', 'mood-median', 'non-parametric', 'correlation',
       'partial-correlation', 'regression', 'logistic-regression', 'poisson',
@@ -159,7 +159,7 @@ describe('VariableSelectionStep', () => {
       'mann-kendall', 'pca', 'factor-analysis', 'cluster', 'reliability',
     ]
 
-    it('auto 메서드 11개 → AutoConfirmSelector 렌더', () => {
+    it('auto 메서드 12개 → AutoConfirmSelector 렌더', () => {
       for (const id of autoMethodIds) {
         storeState = {
           ...defaultStoreState,

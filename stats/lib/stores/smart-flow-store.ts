@@ -14,6 +14,7 @@ import {
 } from '@/types/smart-flow'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import { DataCharacteristics } from '@/lib/statistics/data-type-detector'
+import { getMethodByIdOrAlias } from '@/lib/constants/statistical-methods'
 import type {
   CompatibilityResult,
   DataSummary,
@@ -465,8 +466,8 @@ export const useSmartFlowStore = create<SmartFlowState>()(
           // 결과만 복원 (원본 데이터는 없음)
           set({
             analysisPurpose: record.purpose,
-            selectedMethod: (record.method && typeof record.method === 'object' && 'id' in record.method && 'name' in record.method)
-              ? record.method as StatisticalMethod
+            selectedMethod: (record.method && typeof record.method === 'object' && 'id' in record.method)
+              ? (getMethodByIdOrAlias(record.method.id as string) as StatisticalMethod | null) ?? null
               : null,
             results: migratedResults,
             uploadedFileName: record.dataFileName,

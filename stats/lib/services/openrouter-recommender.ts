@@ -325,7 +325,7 @@ export class OpenRouterRecommender {
     }
 
     const data = await response.json() as Record<string, unknown>
-    if (!data || !Array.isArray((data as { choices?: unknown }).choices)) {
+    if (!data || !Array.isArray(data.choices)) {
       throw new Error('Invalid API response: missing choices array')
     }
     const typed = data as unknown as OpenRouterResponse

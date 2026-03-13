@@ -61,7 +61,7 @@ const SELECTOR_MAP: ReadonlyMap<string, SelectorType> = new Map([
   ['correlation',             'correlation'],
   ['partial-correlation',     'correlation'],
   ['normality-test',          'one-sample'],
-  ['friedman',                'group-comparison'],
+  ['friedman',                'auto'],  // 반복측정 비모수: 3+ numeric variables 필요
   ['descriptive',             'correlation'],
   ['explore-data',            'correlation'],
   ['pca',                     'correlation'],

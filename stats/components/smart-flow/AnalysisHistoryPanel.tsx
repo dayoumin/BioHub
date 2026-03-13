@@ -138,7 +138,6 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
   const filteredHistory = useMemo(() => {
     const filtered = analysisHistory.filter(item => {
       const methodName = item.method?.name ?? ''
-      const methodId = item.method?.id ?? ''
 
       const matchesSearch = searchQuery === '' ||
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

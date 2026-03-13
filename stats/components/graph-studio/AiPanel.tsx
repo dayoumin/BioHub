@@ -280,7 +280,7 @@ export function AiPanel(): React.ReactElement {
             <Button
               size="icon"
               className="self-end shrink-0 h-8 w-8"
-              onClick={() => { void handleSend().then(() => setSelectedL1(null)); }}
+              onClick={() => { void handleSend().then(() => setSelectedL1(null)).catch(() => { /* handleSend 내부에서 처리 */ }); }}
               disabled={isLoading || !inputValue.trim() || !chartSpec}
               aria-label="전송"
               data-testid="ai-panel-send"

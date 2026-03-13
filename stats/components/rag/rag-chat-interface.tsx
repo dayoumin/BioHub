@@ -118,6 +118,9 @@ export function RAGChatInterface({
         const session = await ChatStorageIndexedDB.loadSession(sessionId)
         if (session && Array.isArray(session.messages)) {
           setMessages(session.messages as ChatMessage[])
+        } else {
+          // 손상된 세션 또는 messages가 배열이 아닌 경우 — stale UI 방지
+          setMessages([])
         }
       } catch (err) {
         console.error('Failed to load session:', err)
@@ -419,6 +422,8 @@ export function RAGChatInterface({
       const updatedSession = await ChatStorageIndexedDB.loadSession(sessionId)
       if (updatedSession && Array.isArray(updatedSession.messages)) {
         setMessages(updatedSession.messages as ChatMessage[])
+      } else {
+        setMessages([])
       }
     } catch (err) {
       console.error('Failed to delete message:', err)

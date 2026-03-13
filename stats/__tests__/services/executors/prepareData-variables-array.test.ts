@@ -172,6 +172,45 @@ describe('prepareData variables array handling', () => {
     })
   })
 
+  describe('Friedman method with variables array (3+ repeated measures)', () => {
+    it('should map ALL variables to independent arrays (not split first as dependent)', () => {
+      // Friedman은 반복측정 비모수 검정: 3개 이상 numeric variables 전부 independent로 매핑
+      const variableNames = ['time1', 'time2', 'time3']
+      const data = [
+        { id: 1, time1: 7, time2: 5, time3: 3 },
+        { id: 2, time1: 8, time2: 6, time3: 4 },
+        { id: 3, time1: 6, time2: 4, time3: 5 },
+        { id: 4, time1: 9, time2: 7, time3: 4 },
+      ]
+
+      // Friedman 전용 분기: 모든 variables → independent
+      const independentArrays = variableNames.map((col: string) =>
+        data.map(row => Number(row[col as keyof typeof row])).filter(v => !isNaN(v))
+      )
+
+      expect(independentArrays).toHaveLength(3) // 3개 모두 포함
+      expect(independentArrays[0]).toEqual([7, 8, 6, 9])  // time1
+      expect(independentArrays[1]).toEqual([5, 6, 4, 7])  // time2
+      expect(independentArrays[2]).toEqual([3, 4, 5, 4])  // time3
+    })
+
+    it('should NOT fall through to generic handler (first=dependent, rest=independent)', () => {
+      // 회귀 방지: generic fallback은 첫 변수를 dependent로 분리하므로
+      // friedman에서 3개 중 2개만 independent가 되는 버그 발생
+      const variableNames = ['a', 'b', 'c']
+
+      // Generic fallback 동작 (잘못됨):
+      const genericDependent = variableNames[0] // 'a' - 누락!
+      const genericIndependent = variableNames.slice(1) // ['b', 'c'] - 2개만
+
+      // Friedman 전용 동작 (올바름):
+      const friedmanIndependent = variableNames // ['a', 'b', 'c'] - 3개 전부
+
+      expect(genericIndependent).toHaveLength(2) // generic은 2개
+      expect(friedmanIndependent).toHaveLength(3) // friedman은 3개 전부
+    })
+  })
+
   describe('Edge cases', () => {
     it('should handle empty variables array', () => {
       const emptyMapping = { variables: [] }

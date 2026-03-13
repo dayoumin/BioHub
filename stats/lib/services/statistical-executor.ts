@@ -391,6 +391,12 @@ export class StatisticalExecutor {
           Number(row[variablesArray[0]])
         ).filter(v => !isNaN(v))
       }
+      // Friedman: 모든 variables → independent (반복측정 변수 3개 이상)
+      else if (method.id === 'friedman') {
+        arrays.independent = variablesArray.map((col: string) =>
+          data.map(row => Number(row[col])).filter(v => !isNaN(v))
+        )
+      }
       // 기타: 첫 변수를 dependent, 나머지를 independent로
       else {
         if (variablesArray.length >= 1) {
