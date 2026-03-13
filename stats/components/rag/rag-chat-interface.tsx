@@ -116,7 +116,7 @@ export function RAGChatInterface({
       setIsLoadingSession(true)
       try {
         const session = await ChatStorageIndexedDB.loadSession(sessionId)
-        if (session) {
+        if (session && Array.isArray(session.messages)) {
           setMessages(session.messages as ChatMessage[])
         }
       } catch (err) {
@@ -417,7 +417,7 @@ export function RAGChatInterface({
       await ChatStorageIndexedDB.deleteMessage(sessionId, messageId)
 
       const updatedSession = await ChatStorageIndexedDB.loadSession(sessionId)
-      if (updatedSession) {
+      if (updatedSession && Array.isArray(updatedSession.messages)) {
         setMessages(updatedSession.messages as ChatMessage[])
       }
     } catch (err) {
