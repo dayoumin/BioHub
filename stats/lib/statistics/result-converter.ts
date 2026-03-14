@@ -406,9 +406,9 @@ export function convertToStatisticalResult(
     // 효과크기
     effectSize: convertEffectSize(result.effectSize),
 
-    // 신뢰구간
+    // 신뢰구간 — estimate는 분석 결과에서 제공된 값을 우선 사용, 없으면 midpoint fallback
     confidenceInterval: result.confidence ? {
-      estimate: (result.confidence.lower + result.confidence.upper) / 2,
+      estimate: result.confidence.estimate ?? (result.confidence.lower + result.confidence.upper) / 2,
       lower: result.confidence.lower,
       upper: result.confidence.upper,
       level: result.confidence.level ?? 0.95

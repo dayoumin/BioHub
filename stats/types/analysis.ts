@@ -473,6 +473,7 @@ export interface AnalysisResult {
   confidence?: {
     lower: number
     upper: number
+    estimate?: number  // 점추정치 (없으면 midpoint 사용)
     level?: number  // 신뢰수준 (기본 0.95)
   }
   interpretation: string
@@ -569,6 +570,7 @@ export interface AnalysisResult {
     sampleSize?: number
     requiredSampleSize?: number  // Required sample size (Power Analysis)
     power?: number
+    powerCurve?: Array<{ n: number; power: number }>  // Power curve data points
     alpha?: number
     ec50?: number
     ic50?: number

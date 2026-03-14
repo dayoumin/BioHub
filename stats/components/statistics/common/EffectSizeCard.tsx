@@ -41,9 +41,7 @@ export function EffectSizeCard({
     return (
       <Card className={cn('opacity-60', className)}>
         <CardContent className="pt-6">
-          <div className="text-center text-muted-foreground">
-            데이터 없음
-          </div>
+          <div className="text-center text-muted-foreground">N/A</div>
         </CardContent>
       </Card>
     )
@@ -184,21 +182,6 @@ export function EffectSizeCard({
           </div>
         )}
 
-        {/* 추가 정보 */}
-        <div className="pt-2 border-t">
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div>
-              <span className="text-muted-foreground">절댓값:</span>
-              <span className="ml-1 font-medium">{formatNumber(absValue, 4)}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">방향:</span>
-              <span className="ml-1 font-medium">
-                {value > 0 ? '양(+)' : value < 0 ? '음(-)' : '없음'}
-              </span>
-            </div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   )

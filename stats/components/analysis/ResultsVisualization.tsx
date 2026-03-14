@@ -5,6 +5,7 @@ import { useTerminology } from '@/hooks/use-terminology'
 import {
   BarChart,
   Bar,
+  ComposedChart,
   LineChart,
   Line,
   ScatterChart,
@@ -93,9 +94,9 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 }
 
 
-// 타입 안전성을 위한 확장 인터페이스
+// 타입 안전성을 위한 확장 인터페이스 — additional에 regression 필드 추가
 interface RegressionResult extends AnalysisResult {
-  additional?: {
+  additional?: AnalysisResult['additional'] & {
     intercept?: number
     rmse?: number
   }
@@ -131,81 +132,112 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
   }
 
   const chartData = useMemo(() => {
-    if (!uploadedData || uploadedData.length === 0) {
-      // 샘플 데이터 사용
-      return {
-        groupData: [
-          { name: 'Group A', mean: 25, std: 2.3, n: 10 },
-          { name: 'Group B', mean: 32.5, std: 2.1, n: 10 }
-        ],
-        scatterData: Array.from({ length: 20 }, (_, i) => ({
-          x: Math.random() * 10 + 20,
-          y: Math.random() * 15 + 25,
-          group: i < 10 ? 'A' : 'B'
-        })),
-        distributionData: Array.from({ length: 50 }, (_, i) => {
-          const x = i / 5 - 5
-          return {
-            x,
-            normal1: Math.exp(-Math.pow(x + 1, 2) / 2) / Math.sqrt(2 * Math.PI),
-            normal2: Math.exp(-Math.pow(x - 1, 2) / 2) / Math.sqrt(2 * Math.PI)
-          }
-        })
+    const empty = { groupData: [] as GroupData[], scatterData: [] as ChartDataPoint[], distributionData: [] as Array<{ x: number; normal1: number; normal2: number }> }
+
+    // ── 1차 소스: results.visualizationData (분석 엔진이 제공하는 정확한 데이터) ──
+    const vizData = results.visualizationData
+    if (vizData?.data) {
+      const d = vizData.data as Record<string, unknown>
+
+      // scatter: {x: number[], y: number[]} — 상관분석, 회귀분석
+      if (vizData.type === 'scatter' && Array.isArray(d.x) && Array.isArray(d.y)) {
+        const xArr = d.x as number[]
+        const yArr = d.y as number[]
+        const scatterData: ChartDataPoint[] = sampleLargeData(
+          xArr.map((x, i) => ({ x, y: yArr[i] })),
+          1000
+        )
+        return { ...empty, scatterData }
       }
+
+      // boxplot: {groups: string[], values: number[][]} — 독립표본 t-test, ANOVA, 비모수
+      if (vizData.type === 'boxplot' && Array.isArray(d.groups) && Array.isArray(d.values)) {
+        const groups = d.groups as string[]
+        const values = d.values as number[][]
+        const groupData: GroupData[] = groups.map((name, i) => {
+          const vals = values[i] ?? []
+          if (vals.length === 0) return { name, mean: 0, std: 0, n: 0 }
+          const mean = vals.reduce((a, b) => a + b, 0) / vals.length
+          const std = Math.sqrt(vals.reduce((sum, v) => sum + (v - mean) ** 2, 0) / vals.length)
+          return { name, mean, std, n: vals.length }
+        })
+        return { ...empty, groupData }
+      }
+
+      // paired-plot: {before: number[], after: number[], labels?: string[]} — 대응표본 t-test, Wilcoxon
+      if (vizData.type === 'paired-plot' && Array.isArray(d.before) && Array.isArray(d.after)) {
+        const before = d.before as number[]
+        const after = d.after as number[]
+        const labels = (d.labels as string[]) ?? ['Before', 'After']
+        const groupData: GroupData[] = [before, after].map((vals, i) => {
+          const mean = vals.reduce((a, b) => a + b, 0) / vals.length
+          const std = Math.sqrt(vals.reduce((sum, v) => sum + (v - mean) ** 2, 0) / vals.length)
+          return { name: labels[i] ?? `Group ${i + 1}`, mean, std, n: vals.length }
+        })
+        return { ...empty, groupData }
+      }
+
+      // cluster-plot: {points: number[][], clusters: number[], centers: number[][]}
+      if (vizData.type === 'cluster-plot' && Array.isArray(d.points) && Array.isArray(d.clusters)) {
+        const points = d.points as number[][]
+        const clusters = d.clusters as number[]
+        const scatterData: ChartDataPoint[] = points.map((pt, i) => ({
+          x: pt[0] ?? 0, y: pt[1] ?? 0, group: `Cluster ${clusters[i]}`
+        }))
+        return { ...empty, scatterData }
+      }
+
+      // histogram, power-curve 등 chartData로 변환할 필요 없는 타입은 fallback으로 진행
     }
 
-    // 실제 데이터 처리 (샘플링 적용)
-    const sampledData = sampleLargeData(uploadedData, 1000)
-    const columns = Object.keys(sampledData[0])
-    const numericColumns = columns.filter(col => {
-      const values = sampledData.slice(0, 100).map(row => row[col]) // 최대 100개만 검사
-      return values.every(v => v != null && !isNaN(Number(v)))
-    })
-
-    if (numericColumns.length >= 2) {
-      // 두 개의 숫자 컬럼이 있는 경우 산점도용 데이터
-      const scatterData: ChartDataPoint[] = sampledData.map(row => ({
-        x: Number(row[numericColumns[0]]),
-        y: Number(row[numericColumns[1]])
+    // ── 2차 소스: groupStats (분석 결과에 포함된 그룹 통계) ──
+    if (results.groupStats && results.groupStats.length > 0) {
+      const groupData: GroupData[] = results.groupStats.map(g => ({
+        name: g.name ?? 'Group',
+        mean: g.mean,
+        std: g.std,
+        n: g.n
       }))
+      return { ...empty, groupData }
+    }
 
-      return { scatterData, groupData: [], distributionData: [] }
-    } else if (numericColumns.length === 1) {
-      // 하나의 숫자 컬럼과 그룹 컬럼
-      const numericCol = numericColumns[0]
-      const categoricalCol = columns.find(col => col !== numericCol)
-      
-      if (categoricalCol) {
-        const groups = [...new Set(sampledData.map(row => row[categoricalCol]))]
-        const groupData: GroupData[] = groups.slice(0, 10).map(group => { // 최대 10개 그룹
-          const values = sampledData
-            .filter(row => row[categoricalCol] === group)
-            .map(row => Number(row[numericCol]))
-            .filter(v => !isNaN(v)) // NaN 필터링
+    // ── 3차 소스: uploadedData (fallback — visualizationData가 없는 레거시) ──
+    if (uploadedData && uploadedData.length > 0) {
+      const sampledData = sampleLargeData(uploadedData, 1000)
+      const columns = Object.keys(sampledData[0])
+      const numericColumns = columns.filter(col => {
+        const values = sampledData.slice(0, 100).map(row => row[col])
+        return values.every(v => v != null && !isNaN(Number(v)))
+      })
 
-          if (values.length === 0) {
-            return { name: String(group), mean: 0, std: 0, n: 0 }
-          }
-          
-          const mean = values.reduce((a, b) => a + b, 0) / values.length
-          const std = Math.sqrt(
-            values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length
-          )
-          
-          return {
-            name: String(group),
-            mean,
-            std,
-            n: values.length
-          }
-        })
-
-        return { groupData, scatterData: [], distributionData: [] }
+      if (numericColumns.length >= 2) {
+        const scatterData: ChartDataPoint[] = sampledData.map(row => ({
+          x: Number(row[numericColumns[0]]),
+          y: Number(row[numericColumns[1]])
+        }))
+        return { ...empty, scatterData }
+      } else if (numericColumns.length === 1) {
+        const numericCol = numericColumns[0]
+        const categoricalCol = columns.find(col => col !== numericCol)
+        if (categoricalCol) {
+          const uniqueGroups = [...new Set(sampledData.map(row => row[categoricalCol]))]
+          const groupData: GroupData[] = uniqueGroups.slice(0, 10).map(group => {
+            const values = sampledData
+              .filter(row => row[categoricalCol] === group)
+              .map(row => Number(row[numericCol]))
+              .filter(v => !isNaN(v))
+            if (values.length === 0) return { name: String(group), mean: 0, std: 0, n: 0 }
+            const mean = values.reduce((a, b) => a + b, 0) / values.length
+            const std = Math.sqrt(values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / values.length)
+            return { name: String(group), mean, std, n: values.length }
+          })
+          return { ...empty, groupData }
+        }
       }
     }
 
-    return { groupData: [], scatterData: [], distributionData: [] }
-  }, [uploadedData])
+    return empty
+  }, [results.visualizationData, results.groupStats, uploadedData])
 
   // t-검정이나 ANOVA의 경우 막대 그래프 + Error Bar
   if (results.method?.includes('검정') || results.method?.includes('ANOVA')) {
@@ -256,12 +288,12 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
     )
   }
 
-  // 상관분석의 경우 산점도
+  // 상관분석의 경우 산점도 (수치 요약은 StatsCards/MethodSpecificResults에서 표시)
   if (results.method?.includes('상관')) {
     return (
       <Card className="p-6 bg-gradient-to-br from-purple-50/30 to-pink-50/30 dark:from-purple-950/20 dark:to-pink-950/20">
         <h4 className="text-lg font-semibold mb-4">{rv.correlation.title}</h4>
-        
+
         <ResponsiveContainer width="100%" height={300}>
           <ScatterChart>
             <CartesianGrid strokeDasharray="3 3" />
@@ -273,34 +305,8 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
               data={chartData.scatterData}
               fill={CHART_COLORS.primary()}
             />
-            {/* 추세선 추가 가능 */}
           </ScatterChart>
         </ResponsiveContainer>
-
-        <div className="mt-4 grid grid-cols-3 gap-4">
-          <div className="bg-muted/50 rounded p-3">
-            <p className="text-sm text-muted-foreground">{rv.correlation.coefficientLabel}</p>
-            <p className="text-lg font-bold">{results.statistic.toFixed(3)}</p>
-          </div>
-          <div className="bg-muted/50 rounded p-3">
-            <p className="text-sm text-muted-foreground">{rv.correlation.determinationLabel}</p>
-            <p className="text-lg font-bold">
-              {results.effectSize
-                ? (typeof results.effectSize === 'number'
-                    ? results.effectSize.toFixed(3)
-                    : results.effectSize.value.toFixed(3))
-                : 'N/A'}
-            </p>
-          </div>
-          <div className="bg-muted/50 rounded p-3">
-            <p className="text-sm text-muted-foreground">p-value</p>
-            <p className={`text-lg font-bold ${
-              results.pValue < 0.05 ? 'text-success' : 'text-muted-foreground'
-            }`}>
-              {results.pValue.toFixed(4)}
-            </p>
-          </div>
-        </div>
       </Card>
     )
   }
@@ -308,29 +314,35 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
   // 회귀분석의 경우 산점도와 회귀선
   if (results.method?.includes('회귀')) {
     const regressionResult = results as RegressionResult
-    const slope = regressionResult.statistic
-    const intercept = regressionResult.additional?.intercept || 0
-    
+    // visualizationData에서 regression 파라미터 우선 사용, 없으면 coefficients fallback
+    const vizRegression = results.visualizationData?.data as Record<string, unknown> | undefined
+    const vizReg = vizRegression?.regression as { slope?: number; intercept?: number } | undefined
+    const intercept = vizReg?.intercept ?? regressionResult.additional?.intercept ?? 0
+    const slopeCoeff = regressionResult.coefficients?.find(c => c.name !== 'Intercept' && c.name !== '(Intercept)')
+    const slope = vizReg?.slope ?? slopeCoeff?.value ?? 0
+    const hasRegressionLine = vizReg?.slope !== undefined || slopeCoeff !== undefined
+
     // 회귀선을 위한 데이터 생성
-    const lineData = chartData.scatterData.length > 0 
-      ? [
-          { x: Math.min(...chartData.scatterData.map(d => d.x)), y: 0 },
-          { x: Math.max(...chartData.scatterData.map(d => d.x)), y: 0 }
-        ].map(point => ({
-          ...point,
-          y: slope * point.x + intercept
-        }))
+    const lineData = hasRegressionLine && chartData.scatterData.length > 0
+      ? (() => {
+          const xMin = Math.min(...chartData.scatterData.map(d => d.x))
+          const xMax = Math.max(...chartData.scatterData.map(d => d.x))
+          return [
+            { x: xMin, y: slope * xMin + intercept },
+            { x: xMax, y: slope * xMax + intercept },
+          ]
+        })()
       : []
 
     return (
       <Card className="p-6 bg-gradient-to-br from-orange-50/30 to-red-50/30 dark:from-orange-950/20 dark:to-red-950/20">
         <h4 className="text-lg font-semibold mb-4">{rv.regression.title}</h4>
-        
+
         <ResponsiveContainer width="100%" height={300}>
-          <ScatterChart>
+          <ComposedChart data={chartData.scatterData}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="x" name={rv.regression.independentVar} />
-            <YAxis dataKey="y" name={rv.regression.dependentVar} />
+            <XAxis dataKey="x" type="number" name={rv.regression.independentVar} />
+            <YAxis dataKey="y" type="number" name={rv.regression.dependentVar} />
             <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
             <Scatter
               name={rv.labels.data}
@@ -348,38 +360,17 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
                 name={rv.regression.regressionLine}
               />
             )}
-          </ScatterChart>
+          </ComposedChart>
         </ResponsiveContainer>
 
-        <div className="mt-4 space-y-3">
-          <div className="bg-muted/50 rounded p-3">
+        {hasRegressionLine && (
+          <div className="mt-4 bg-muted/50 rounded p-3">
             <p className="text-sm font-medium">{rv.regression.equationLabel}</p>
             <p className="font-mono mt-1">
               Y = {slope.toFixed(3)}X {intercept >= 0 ? '+' : ''} {intercept.toFixed(3)}
             </p>
           </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-muted/50 rounded p-3">
-              <p className="text-sm text-muted-foreground">R²</p>
-              <p className="text-lg font-bold">
-                {results.effectSize
-                  ? (typeof results.effectSize === 'number'
-                      ? results.effectSize.toFixed(3)
-                      : results.effectSize.value.toFixed(3))
-                  : 'N/A'}
-              </p>
-            </div>
-            <div className="bg-muted/50 rounded p-3">
-              <p className="text-sm text-muted-foreground">RMSE</p>
-              <p className="text-lg font-bold">
-                {regressionResult.additional?.rmse
-                  ? regressionResult.additional.rmse.toFixed(3)
-                  : 'N/A'}
-              </p>
-            </div>
-          </div>
-        </div>
+        )}
       </Card>
     )
   }
@@ -455,7 +446,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
 
         {varianceData.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={varianceData.slice(0, 10)}>
+            <ComposedChart data={varianceData.slice(0, 10)}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
               <YAxis unit="%" />
@@ -463,7 +454,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
               <Legend />
               <Bar dataKey="variance" fill={CHART_COLORS.accent()} name={rv.pca.individualVariance} radius={[4, 4, 0, 0]} />
               <Line type="monotone" dataKey="cumulative" stroke={CHART_COLORS.accent()} name={rv.pca.cumulativeVariance} />
-            </BarChart>
+            </ComposedChart>
           </ResponsiveContainer>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
@@ -484,8 +475,6 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
 
   // 군집분석 - 산점도 (클러스터별 색상)
   if (results.method?.includes('군집') || results.method?.includes('K-평균')) {
-    const clusterColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
-
     return (
       <Card className="p-6 bg-gradient-to-br from-emerald-50/30 to-green-50/30 dark:from-emerald-950/20 dark:to-green-950/20">
         <h4 className="text-lg font-semibold mb-4">{rv.cluster.title}</h4>
@@ -504,20 +493,6 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
           </ScatterChart>
         </ResponsiveContainer>
 
-        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-          {results.additional?.silhouetteScore !== undefined && (
-            <div className="bg-muted/50 rounded p-3">
-              <p className="text-muted-foreground">Silhouette Score</p>
-              <p className="text-lg font-bold">{results.additional.silhouetteScore.toFixed(3)}</p>
-            </div>
-          )}
-          {results.additional?.clusters && (
-            <div className="bg-muted/50 rounded p-3">
-              <p className="text-muted-foreground">{rv.cluster.clusterCount}</p>
-              <p className="text-lg font-bold">{new Set(results.additional.clusters).size}</p>
-            </div>
-          )}
-        </div>
       </Card>
     )
   }
@@ -556,43 +531,41 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
           </div>
         )}
 
-        {results.additional?.alpha !== undefined && (
-          <div className="mt-4 p-3 bg-amber-100 dark:bg-amber-900/30 rounded">
-            <p className="text-sm">
-              Cronbach's α = <span className="font-bold">{results.additional.alpha.toFixed(3)}</span>
-              {' '}
-              ({results.additional.alpha >= 0.7 ? rv.reliability.acceptable : rv.reliability.low})
-            </p>
-          </div>
-        )}
       </Card>
     )
   }
 
-  // 검정력 분석 - 검정력 곡선
+  // 검정력 분석 — 실제 power curve 데이터가 있을 때만 곡선 표시
   if (results.method?.includes('검정력')) {
-    // 샘플 크기별 검정력 곡선 생성
-    const powerCurveData = Array.from({ length: 20 }, (_, i) => {
-      const n = (i + 1) * 10
-      const power = results.additional?.power || 0.8
-      const adjustedPower = Math.min(1, power * Math.sqrt(n / 100))
-      return { n, power: adjustedPower * 100 }
-    })
+    // 1차: additional.powerCurve, 2차: visualizationData.data (executor가 {sampleSizes, powers}로 제공)
+    const vizPower = results.visualizationData?.type === 'power-curve'
+      ? results.visualizationData.data as { sampleSizes?: number[]; powers?: number[] }
+      : undefined
+    const powerCurveData = results.additional?.powerCurve
+      ?? (vizPower?.sampleSizes && vizPower?.powers
+        ? vizPower.sampleSizes.map((n, i) => ({ n, power: vizPower.powers![i] }))
+        : undefined)
 
     return (
       <Card className="p-6 bg-gradient-to-br from-rose-50/30 to-pink-50/30 dark:from-rose-950/20 dark:to-pink-950/20">
         <h4 className="text-lg font-semibold mb-4">{rv.power.title}</h4>
 
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={powerCurveData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="n" name={rv.labels.sampleSize} />
-            <YAxis unit="%" domain={[0, 100]} />
-            <Tooltip content={<CustomTooltip />} />
-            <ReferenceLine y={80} stroke={CHART_COLORS.destructive()} strokeDasharray="5 5" label="80%" />
-            <Line type="monotone" dataKey="power" stroke={CHART_COLORS.primary()} strokeWidth={2} name={rv.power.powerLabel} />
-          </LineChart>
-        </ResponsiveContainer>
+        {powerCurveData && powerCurveData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={powerCurveData.map(d => ({ ...d, power: d.power * 100 }))}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="n" name={rv.labels.sampleSize} />
+              <YAxis unit="%" domain={[0, 100]} />
+              <Tooltip content={<CustomTooltip />} />
+              <ReferenceLine y={80} stroke={CHART_COLORS.destructive()} strokeDasharray="5 5" label="80%" />
+              <Line type="monotone" dataKey="power" stroke={CHART_COLORS.primary()} strokeWidth={2} name={rv.power.powerLabel} />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground text-sm">
+            <p>{rv.power.currentPower}</p>
+          </div>
+        )}
 
         <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
           {results.additional?.power !== undefined && (() => {

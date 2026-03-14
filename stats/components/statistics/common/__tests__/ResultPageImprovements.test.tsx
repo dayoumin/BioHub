@@ -1,19 +1,11 @@
 import React from 'react'
 import { vi, Mock } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { EasyExplanation } from '../EasyExplanation'
 import { NextStepsCard } from '../NextStepsCard'
 import { AssumptionTestCard } from '../AssumptionTestCard'
 import { useSettingsStore } from '@/lib/stores/settings-store'
-
-// Mock useRouter
-const mockPush = vi.fn()
-vi.mock('next/navigation', () => ({
-    useRouter: () => ({
-        push: mockPush,
-    }),
-}))
 
 // Mock Settings Store
 vi.mock('@/lib/stores/settings-store', () => ({
@@ -82,7 +74,7 @@ describe('Result Page Improvements', () => {
         })
     })
 
-    describe('AssumptionTestCard Navigation', () => {
+    describe('AssumptionTestCard', () => {
         const mockTests = [
             {
                 name: 'Normality',
@@ -91,26 +83,14 @@ describe('Result Page Improvements', () => {
             }
         ]
 
-        it('should show alternative buttons when testType is provided', () => {
+        it('should show violation badge when tests fail', () => {
             render(
                 <AssumptionTestCard
                     tests={mockTests}
                     testType="t-test"
                 />
             )
-            expect(screen.getByText(/Mann-Whitney U/)).toBeInTheDocument()
-        })
-
-        it('should navigate when alternative button is clicked', () => {
-            render(
-                <AssumptionTestCard
-                    tests={mockTests}
-                    testType="t-test"
-                />
-            )
-            const button = screen.getAllByText(/이동/)[0]
-            fireEvent.click(button)
-            expect(mockPush).toHaveBeenCalledWith('/statistics/mann-whitney')
+            expect(screen.getByText(/위반/)).toBeInTheDocument()
         })
     })
 })

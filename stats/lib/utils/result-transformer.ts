@@ -189,6 +189,7 @@ export function transformExecutorResult(
   const confidence = mainResults.confidenceInterval ? {
     lower: mainResults.confidenceInterval.lower,
     upper: mainResults.confidenceInterval.upper,
+    estimate: mainResults.confidenceInterval.estimate as number | undefined,
     level: mainResults.confidenceInterval.level
   } : undefined
 

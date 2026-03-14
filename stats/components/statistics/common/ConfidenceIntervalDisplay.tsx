@@ -1,15 +1,11 @@
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Slider } from '@/components/ui/slider'
 import {
   Info,
   TrendingUp,
   TrendingDown,
   Minus,
-  ZoomIn,
-  ZoomOut,
-  Maximize2
 } from 'lucide-react'
 import { formatNumber, formatConfidenceInterval } from '@/lib/statistics/formatters'
 import { cn } from '@/lib/utils'
@@ -19,7 +15,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Button } from '@/components/ui/button'
 
 interface ConfidenceIntervalProps {
   lower: number
@@ -56,15 +51,15 @@ export function ConfidenceIntervalDisplay({
   className,
   color = 'default'
 }: ConfidenceIntervalProps) {
-  const [zoomLevel, setZoomLevel] = React.useState(1)
-
   // 구간 너비 계산
   const width = upper - lower
   const margin = width * 0.2 // 시각화를 위한 여백
 
-  // 시각화 범위 설정
-  const visualMin = (lower - margin) * zoomLevel
-  const visualMax = (upper + margin) * zoomLevel
+  // 시각화 범위 설정 — 중심점 기준 확대/축소
+  const center = (lower + upper) / 2
+  const halfRange = (width / 2 + margin)
+  const visualMin = center - halfRange
+  const visualMax = center + halfRange
 
   // 위치 계산 (0-100 스케일)
   const getPosition = (value: number) => {
@@ -178,35 +173,6 @@ export function ConfidenceIntervalDisplay({
         {/* 시각화 */}
         {showVisualization && (
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>신뢰구간 시각화</span>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0"
-                  onClick={() => setZoomLevel(Math.min(zoomLevel * 1.2, 3))}
-                >
-                  <ZoomIn className="w-3 h-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0"
-                  onClick={() => setZoomLevel(Math.max(zoomLevel / 1.2, 0.5))}
-                >
-                  <ZoomOut className="w-3 h-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0"
-                  onClick={() => setZoomLevel(1)}
-                >
-                  <Maximize2 className="w-3 h-3" />
-                </Button>
-              </div>
-            </div>
 
             <div className="relative h-12 bg-gray-100 rounded-lg overflow-hidden">
               {/* 기준선 (있는 경우) */}
@@ -301,13 +267,6 @@ export function ConfidenceIntervalDisplay({
           </div>
         )}
 
-        {/* 텍스트 표현 */}
-        <div className="text-center">
-          <code className="text-sm bg-muted px-2 py-1 rounded">
-            {formatConfidenceInterval(lower, upper, precision)}
-            {unit && ` ${unit}`}
-          </code>
-        </div>
       </CardContent>
     </Card>
   )
