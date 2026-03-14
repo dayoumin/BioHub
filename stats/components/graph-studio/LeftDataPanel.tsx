@@ -8,13 +8,13 @@
  * C. 데이터 교체 버튼
  */
 
-import { useCallback, useMemo, useRef } from 'react';
-import Papa from 'papaparse';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
-import { inferColumnMeta, selectXYFields } from '@/lib/graph-studio/chart-spec-utils';
+import { selectXYFields } from '@/lib/graph-studio/chart-spec-utils';
 import { createDefaultChartSpec, CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
+import { parseFile } from '@/lib/graph-studio/file-parser';
 import { Button } from '@/components/ui/button';
-import type { ChartType, ColumnMeta, DataPackage } from '@/types/graph-studio';
+import type { ColumnMeta, DataPackage } from '@/types/graph-studio';
 import {
   Database,
   Hash,
@@ -40,6 +40,8 @@ export function LeftDataPanel(): React.ReactElement {
   const chartSpec = useGraphStudioStore(state => state.chartSpec);
   const loadDataPackageWithSpec = useGraphStudioStore(state => state.loadDataPackageWithSpec);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const rowCount = dataPackage
     ? (Object.values(dataPackage.data)[0]?.length ?? 0)
@@ -60,38 +62,58 @@ export function LeftDataPanel(): React.ReactElement {
     return map;
   }, [chartSpec]);
 
-  // 데이터 교체 (CSV 파일)
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  // 데이터 교체 (CSV/XLSX) — 기존 스타일 보존
+  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    Papa.parse<Record<string, unknown>>(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (result) => {
-        if (!result.data.length) return;
-        const columns = inferColumnMeta(result.data);
-        const data: Record<string, unknown[]> = Object.fromEntries(
-          columns.map(col => [col.name, result.data.map(row => row[col.name])]),
-        );
-        const pkg: DataPackage = {
-          id: `upload-${Date.now()}`,
-          source: 'upload',
-          label: file.name,
-          columns,
-          data,
-          createdAt: new Date().toISOString(),
-        };
-        const chartType: ChartType = columns.some(c => c.type === 'nominal' || c.type === 'ordinal')
-          && columns.some(c => c.type === 'quantitative') ? 'bar' : 'scatter';
-        const { xField, yField } = selectXYFields(columns, CHART_TYPE_HINTS[chartType]);
-        const spec = createDefaultChartSpec(pkg.id, chartType, xField, yField, columns);
-        loadDataPackageWithSpec(pkg, spec);
-      },
-    });
     // 같은 파일 재선택 허용
     e.target.value = '';
-  }, [loadDataPackageWithSpec]);
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { columns, data } = await parseFile(file);
+      const pkg: DataPackage = {
+        id: `upload-${Date.now()}`,
+        source: 'upload',
+        label: file.name,
+        columns,
+        data,
+        createdAt: new Date().toISOString(),
+      };
+
+      // 기존 chartSpec에서 스타일 보존
+      const existingSpec = chartSpec;
+      const chartType = existingSpec?.chartType ?? 'bar';
+      const { xField, yField } = selectXYFields(columns, CHART_TYPE_HINTS[chartType]);
+      const newSpec = createDefaultChartSpec(pkg.id, chartType, xField, yField, columns);
+
+      if (existingSpec) {
+        // 스타일 + 주석 + 출력 설정 복원
+        newSpec.style = { ...existingSpec.style };
+        newSpec.exportConfig = { ...existingSpec.exportConfig };
+        newSpec.annotations = [...existingSpec.annotations];
+        // orientation 보존 (수평 막대)
+        if (existingSpec.orientation) {
+          newSpec.orientation = existingSpec.orientation;
+        }
+        // aggregate.groupBy — 새 컬럼에 있는 필드만 유지
+        if (existingSpec.aggregate) {
+          const colNames = new Set(columns.map(c => c.name));
+          const validGroupBy = existingSpec.aggregate.groupBy.filter(f => colNames.has(f));
+          if (validGroupBy.length > 0) {
+            newSpec.aggregate = { y: existingSpec.aggregate.y, groupBy: validGroupBy };
+          }
+        }
+      }
+
+      loadDataPackageWithSpec(pkg, newSpec);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '파일 파싱 실패');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [chartSpec, loadDataPackageWithSpec]);
 
   return (
     <div
@@ -148,12 +170,15 @@ export function LeftDataPanel(): React.ReactElement {
         </div>
       )}
 
-      {/* C. 데이터 교체 버튼 */}
-      <div className="p-3 mt-auto">
+      {/* C. 에러 + 데이터 교체 버튼 */}
+      <div className="p-3 mt-auto space-y-2">
+        {error && (
+          <p className="text-xs text-destructive">{error}</p>
+        )}
         <input
           ref={fileInputRef}
           type="file"
-          accept=".csv,.tsv,.txt"
+          accept=".csv,.tsv,.txt,.xlsx,.xls"
           className="sr-only"
           onChange={handleFileChange}
           data-testid="graph-studio-left-file-input"
@@ -163,9 +188,10 @@ export function LeftDataPanel(): React.ReactElement {
           size="sm"
           className="w-full text-xs"
           onClick={() => fileInputRef.current?.click()}
+          disabled={isLoading}
         >
-          <RefreshCw className="h-3 w-3 mr-1" />
-          데이터 교체
+          <RefreshCw className={`h-3 w-3 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+          {isLoading ? '처리 중...' : '데이터 교체 (스타일 유지)'}
         </Button>
       </div>
     </div>

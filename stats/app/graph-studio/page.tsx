@@ -17,13 +17,14 @@ import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { loadProject } from '@/lib/graph-studio/project-storage';
 import { GraphStudioHeader } from '@/components/graph-studio/GraphStudioHeader';
 import { DataUploadPanel } from '@/components/graph-studio/DataUploadPanel';
+import { ChartSetupPanel } from '@/components/graph-studio/ChartSetupPanel';
 import { ChartPreview } from '@/components/graph-studio/ChartPreview';
 import { LeftDataPanel } from '@/components/graph-studio/LeftDataPanel';
 import { RightPropertyPanel } from '@/components/graph-studio/RightPropertyPanel';
 import { AiPanel } from '@/components/graph-studio/AiPanel';
 import { downloadChart } from '@/lib/graph-studio/export-utils';
 
-type LayoutMode = 'upload' | 'editor';
+type LayoutMode = 'upload' | 'setup' | 'editor';
 
 /** useSearchParams()는 Suspense 경계 필요 — Next.js App Router 요구사항 */
 export default function GraphStudioPage(): React.ReactElement {
@@ -49,7 +50,10 @@ function GraphStudioPageInner(): React.ReactElement {
   const setProject = useGraphStudioStore(state => state.setProject);
   const aiPanelOpen = useGraphStudioStore(state => state.aiPanelOpen);
 
-  const layoutMode: LayoutMode = isDataLoaded && chartSpec ? 'editor' : 'upload';
+  const layoutMode: LayoutMode =
+    !isDataLoaded ? 'upload' :
+    !chartSpec ? 'setup' :
+    'editor';
 
   // ?project=<id> 쿼리 파라미터로 프로젝트 복원.
   // restoredProjectRef: 이미 복원 시도한 프로젝트 ID를 기억.
@@ -104,6 +108,17 @@ function GraphStudioPageInner(): React.ReactElement {
         <GraphStudioHeader />
         <div className="flex-1 flex items-center justify-center p-8">
           <DataUploadPanel />
+        </div>
+      </div>
+    );
+  }
+
+  if (layoutMode === 'setup') {
+    return (
+      <div className="flex flex-col h-full" data-testid="graph-studio-page">
+        <GraphStudioHeader />
+        <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
+          <ChartSetupPanel />
         </div>
       </div>
     );

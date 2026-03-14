@@ -19,12 +19,24 @@ import {
   generateProjectId,
 } from '@/lib/graph-studio/project-storage';
 
+/** AI 채팅 localStorage 키 (use-ai-chat.ts의 CHAT_STORAGE_KEY와 동일) */
+const AI_CHAT_STORAGE_KEY = 'graph_studio_ai_chat';
+
+/** 데이터 변경 시 AI 채팅 이력 초기화 */
+function clearAiChatHistory(): void {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(AI_CHAT_STORAGE_KEY);
+  }
+}
+
 interface GraphStudioActions {
   // 데이터
   /** DataPackage 로드 + 초기 ChartSpec 자동 생성 (원자적 단일 액션) */
   loadDataPackage: (pkg: DataPackage) => void;
   /** DataPackage + 사전에 계산된 ChartSpec을 단일 set()으로 원자적 등록 (중간 렌더 방지) */
   loadDataPackageWithSpec: (pkg: DataPackage, spec: ChartSpec) => void;
+  /** DataPackage만 로드 (ChartSpec 미생성) — 차트 설정 단계용 */
+  loadDataOnly: (pkg: DataPackage) => void;
   clearData: () => void;
 
   // chartSpec
@@ -34,6 +46,10 @@ interface GraphStudioActions {
   setExportConfig: (config: ExportConfig) => void;
   undo: () => void;
   redo: () => void;
+
+  // 네비게이션
+  /** 에디터→설정 이동: chartSpec 제거 + previousChartSpec에 보관 (dataPackage 유지) */
+  goToSetup: () => void;
 
   // UI
   toggleAiPanel: () => void;
@@ -53,6 +69,7 @@ const initialState: GraphStudioState = {
   chartSpec: null,
   specHistory: [],
   historyIndex: -1,
+  previousChartSpec: null,
   aiPanelOpen: false,
   aiPanelDock: 'bottom',
 };
@@ -98,6 +115,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
             chartSpec: restoredSpec,
             specHistory: [restoredSpec],
             historyIndex: 0,
+            previousChartSpec: null,
           });
           return;
         }
@@ -111,26 +129,48 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         chartSpec: spec,
         specHistory: [spec],
         historyIndex: 0,
+        previousChartSpec: null,
         // encoding 불일치로 fall-through한 경우 currentProject 해제
         currentProject: null,
       });
     },
 
-    loadDataPackageWithSpec: (pkg, spec) => set({
-      dataPackage: pkg,
-      isDataLoaded: true,
-      chartSpec: spec,
-      specHistory: [spec],
-      historyIndex: 0,
-    }),
+    loadDataPackageWithSpec: (pkg, spec) => {
+      clearAiChatHistory();
+      set({
+        dataPackage: pkg,
+        isDataLoaded: true,
+        chartSpec: spec,
+        specHistory: [spec],
+        historyIndex: 0,
+        previousChartSpec: null, // 소비 완료
+      });
+    },
 
-    clearData: () => set({
-      dataPackage: null,
-      isDataLoaded: false,
-      chartSpec: null,
-      specHistory: [],
-      historyIndex: -1,
-    }),
+    loadDataOnly: (pkg) => {
+      clearAiChatHistory();
+      set({
+        dataPackage: pkg,
+        isDataLoaded: true,
+        chartSpec: null,
+        specHistory: [],
+        historyIndex: -1,
+        currentProject: null,
+        previousChartSpec: null, // 데이터 불일치 방지
+      });
+    },
+
+    clearData: () => {
+      clearAiChatHistory();
+      set({
+        dataPackage: null,
+        isDataLoaded: false,
+        chartSpec: null,
+        specHistory: [],
+        historyIndex: -1,
+        previousChartSpec: null, // 세션 리셋
+      });
+    },
 
     // ── chartSpec ──
 
@@ -198,6 +238,19 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       });
     },
 
+    // ── 네비게이션 ──
+
+    goToSetup: () => {
+      const { chartSpec } = get();
+      clearAiChatHistory();
+      set({
+        chartSpec: null,
+        specHistory: [],
+        historyIndex: -1,
+        previousChartSpec: chartSpec, // 이전 spec 보관
+      });
+    },
+
     // ── UI ──
 
     toggleAiPanel: () => set(state => ({ aiPanelOpen: !state.aiPanelOpen })),
@@ -227,6 +280,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         chartSpec: spec,
         specHistory: [spec],
         historyIndex: 0,
+        previousChartSpec: null, // 외부 프로젝트
         // aiPanel 상태는 프로젝트와 독립적 — 구버전 localStorage 값 방지를 위해 초기화
         aiPanelOpen: false,
         aiPanelDock: 'bottom',

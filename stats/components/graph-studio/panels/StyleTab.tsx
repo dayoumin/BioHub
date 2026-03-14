@@ -7,12 +7,14 @@
  * 모든 상태/핸들러는 useStyleTabLogic 훅에서 관리. (G5.2)
  */
 
+import { useState, useCallback } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import {
   useStyleTabLogic,
   FONT_OPTIONS,
   PRESET_LIST,
 } from '@/lib/graph-studio/useStyleTabLogic';
+import { saveTemplate } from '@/lib/graph-studio/style-template-storage';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -24,11 +26,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Check } from 'lucide-react';
+import { Check, Save } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function StyleTab(): React.ReactElement {
   const chartSpec = useGraphStudioStore(state => state.chartSpec);
   const logic = useStyleTabLogic();
+
+  const [showTemplateInput, setShowTemplateInput] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+
+  const handleSaveTemplate = useCallback(() => {
+    if (!chartSpec || !templateName.trim()) return;
+    const now = new Date().toISOString();
+    saveTemplate({
+      id: `tmpl-${Date.now()}`,
+      name: templateName.trim(),
+      style: { ...chartSpec.style },
+      exportConfig: { ...chartSpec.exportConfig },
+      createdAt: now,
+      updatedAt: now,
+    });
+    toast.success(`"${templateName.trim()}" 템플릿이 저장되었습니다`);
+    setTemplateName('');
+    setShowTemplateInput(false);
+  }, [chartSpec, templateName]);
 
   if (!chartSpec || !logic) {
     return <p className="text-sm text-muted-foreground">데이터를 먼저 업로드하세요</p>;
@@ -41,7 +63,9 @@ export function StyleTab(): React.ReactElement {
     handleLogScaleToggle, handleYRangeBlur, handleXRangeBlur,
     handleLegendOrientChange, handleDataLabelsToggle, handleSampleCountsToggle,
     handleCustomLabelChange, commitCustomLabels,
-    handleFontChange, handleApplyPreset,
+    handleFontChange, handleApplyPreset, handleBackgroundChange,
+    handleFontSizeChange, handleSortChange, handleColorChange, handleResetColors,
+    currentTitleSize, currentLabelSize, currentFontSize, currentSort, isCategoryX, currentColors,
     isQuantitativeY, isQuantitativeX, isLogScale, currentFont,
     showLegend, showDataLabelOption, showSampleCountOption, colorGroups,
   } = logic;
@@ -123,6 +147,26 @@ export function StyleTab(): React.ReactElement {
               최솟값·최댓값을 모두 입력해야 적용됩니다.
             </p>
           )}
+        </div>
+      )}
+
+      {/* X축 카테고리 정렬 (nominal/ordinal X만) */}
+      {isCategoryX && (
+        <div className="space-y-1.5">
+          <Label className="text-xs">X축 정렬</Label>
+          <Select
+            value={currentSort ?? 'none'}
+            onValueChange={(v) => handleSortChange(v === 'none' ? null : v as 'ascending' | 'descending')}
+          >
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none" className="text-sm">원본 순서</SelectItem>
+              <SelectItem value="ascending" className="text-sm">오름차순 (A→Z)</SelectItem>
+              <SelectItem value="descending" className="text-sm">내림차순 (Z→A)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       )}
 
@@ -216,6 +260,75 @@ export function StyleTab(): React.ReactElement {
         </Select>
       </div>
 
+      {/* 글꼴 크기 개별 조정 */}
+      <div className="space-y-1.5">
+        <Label className="text-xs">글꼴 크기</Label>
+        <div className="space-y-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground w-16 shrink-0">차트 제목</span>
+            <Input
+              type="number"
+              value={currentTitleSize}
+              onChange={(e) => handleFontSizeChange('titleSize', parseInt(e.target.value, 10))}
+              className="h-6 text-xs w-16"
+              min={6} max={36}
+            />
+            <span className="text-xs text-muted-foreground">px</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground w-16 shrink-0">축 라벨</span>
+            <Input
+              type="number"
+              value={currentLabelSize}
+              onChange={(e) => handleFontSizeChange('labelSize', parseInt(e.target.value, 10))}
+              className="h-6 text-xs w-16"
+              min={6} max={36}
+            />
+            <span className="text-xs text-muted-foreground">px</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground w-16 shrink-0">기본 텍스트</span>
+            <Input
+              type="number"
+              value={currentFontSize}
+              onChange={(e) => handleFontSizeChange('size', parseInt(e.target.value, 10))}
+              className="h-6 text-xs w-16"
+              min={6} max={36}
+            />
+            <span className="text-xs text-muted-foreground">px</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 배경색 */}
+      <div className="space-y-1.5">
+        <Label className="text-xs">배경색</Label>
+        <div className="flex gap-1.5 items-center">
+          <Input
+            type="color"
+            value={chartSpec.style.background ?? '#ffffff'}
+            onChange={(e) => handleBackgroundChange(e.target.value)}
+            className="h-7 w-10 p-0.5 cursor-pointer"
+          />
+          <Input
+            value={chartSpec.style.background ?? ''}
+            onChange={(e) => handleBackgroundChange(e.target.value)}
+            placeholder="#ffffff"
+            className="h-7 text-xs flex-1"
+          />
+          {chartSpec.style.background && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => handleBackgroundChange('')}
+            >
+              초기화
+            </Button>
+          )}
+        </div>
+      </div>
+
       {/* 학술 스타일 프리셋 */}
       <div className="space-y-1.5">
         <Label className="text-xs">학술 스타일</Label>
@@ -240,6 +353,50 @@ export function StyleTab(): React.ReactElement {
             );
           })}
         </div>
+      </div>
+
+      {/* 템플릿으로 저장 */}
+      <div className="space-y-1.5 pt-2 border-t border-border">
+        {showTemplateInput ? (
+          <div className="flex gap-1.5">
+            <Input
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSaveTemplate(); }}
+              placeholder="템플릿 이름 (예: Nature 투고용)"
+              className="h-7 text-xs flex-1"
+              autoFocus
+              data-testid="style-tab-template-name-input"
+            />
+            <Button
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={handleSaveTemplate}
+              disabled={!templateName.trim()}
+            >
+              저장
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2 text-xs"
+              onClick={() => { setShowTemplateInput(false); setTemplateName(''); }}
+            >
+              취소
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full text-xs gap-1"
+            onClick={() => setShowTemplateInput(true)}
+            data-testid="style-tab-save-template-btn"
+          >
+            <Save className="h-3 w-3" />
+            템플릿으로 저장
+          </Button>
+        )}
       </div>
     </div>
   );

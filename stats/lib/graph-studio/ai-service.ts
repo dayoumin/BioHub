@@ -17,7 +17,8 @@ export type AiServiceErrorCode =
   | 'NO_RESPONSE'
   | 'PARSE_FAILED'
   | 'VALIDATION_FAILED'
-  | 'READONLY_PATH';
+  | 'READONLY_PATH'
+  | 'UNRENDERED_PATH';
 
 export class AiServiceError extends Error {
   constructor(
@@ -38,18 +39,26 @@ Generate a minimal RFC 6902 JSON Patch that transforms the ChartSpec to fulfill 
 
 ## ChartSpec Schema Overview
 - version: "1.0"
-- chartType: bar|grouped-bar|stacked-bar|line|scatter|boxplot|histogram|error-bar|heatmap|violin
+- chartType: bar|grouped-bar|stacked-bar|line|scatter|boxplot|histogram|error-bar|heatmap|violin|km-curve|roc-curve
 - title: string (optional)
 - data.sourceId: string
 - data.columns: array of {name, type, uniqueCount, hasNull}  (sample values shown in 컬럼 목록)
-- encoding.x / encoding.y: {field, type, title, labelAngle, labelFontSize, titleFontSize, format, grid, scale, sort}
-- encoding.color: {field, type, scale, legend: {orient, customLabels?}} (optional)  — customLabels: {rawName: displayLabel} for legend label overrides
-- encoding.shape: {field, type} (optional)
-- errorBar: {type: ci|stderr|stdev|iqr, value} (optional)
+- encoding.x / encoding.y: {field, type, title?, labelAngle?, labelFontSize?, titleFontSize?, format?, grid?, scale?: {domain?, range?, zero?, type?: linear|log|sqrt|symlog}, sort?: ascending|descending|null}
+- encoding.y2: {field, type: "quantitative", title?, scale?} (optional) — secondary Y-axis (right side), renders as line. Uses colors[1]. Only field/type/title/scale are allowed (no labelAngle etc.). Only works with bar and line charts.
+- encoding.color: {field, type, legend?: {orient?, fontSize?, customLabels?: {rawName: displayLabel}}} (optional)
+- encoding.color.scale: NOT YET RENDERED — schema exists but renderer ignores it. Do NOT generate patches for this field.
+- encoding.color.legend.title / encoding.color.legend.titleFontSize: NOT YET RENDERED — schema exists but renderer does not use these fields. Do NOT generate patches for them.
+- encoding.shape: NOT YET RENDERED — schema exists but renderer ignores it. Do NOT generate patches for this field.
+- errorBar: {type: ci|stderr|stdev|iqr, value?} (optional)
 - aggregate: {y: mean|median|sum|count|min|max, groupBy: string[]} (optional)
-- style: {preset: default|science|ieee|grayscale, font, colors, background, padding, overrides, showDataLabels?, showSampleCounts?}
-- annotations: array of {type: text|line|rect, ...}
+- orientation: "horizontal" (optional) — horizontal bars (bar/grouped-bar/stacked-bar only)
+- trendline: {type: "linear", color?, strokeDash?, showEquation?} (optional) — regression line (scatter only)
+- facet: {field, ncol?, showTitle?, shareAxis?} (optional) — facet/small multiples (bar, scatter)
+- style: {preset: default|science|ieee|grayscale, scheme?: string (e.g. 'viridis','Set2', overrides preset colors), showDataLabels?, showSampleCounts?, font?: {family?, size?, titleSize?, labelSize?}, colors?: string[], background?}
+- annotations: array of {type: text|line|rect, text?, x?, y?, x2?, y2?, color?, fontSize?, strokeDash?}
 - exportConfig: {format: svg|png, dpi, physicalWidth?: mm, physicalHeight?: mm, transparentBackground?} (physicalWidth/Height=출력 물리 크기(mm), 미지정=DOM 크기)
+- significance: array of {groupA, groupB, pValue?, label?} (optional) — statistical significance brackets (bar/grouped-bar/error-bar only). Rendered as overlay graphics by ChartPreview.
+- encoding.size: NOT YET RENDERED — schema exists but renderer ignores it. Do NOT generate patches for this field.
 
 ## Response Format (STRICT JSON ONLY)
 Return ONLY this JSON object — no markdown, no prose outside the object:
@@ -176,6 +185,72 @@ function assertNonReadonlyPaths(patches: AiEditResponse['patches']): void {
   }
 }
 
+// ─── 미구현 렌더 경로 방어 ────────────────────────────────
+
+/**
+ * 스키마에는 존재하지만 echarts-converter에서 아직 렌더링하지 않는 경로.
+ * AI가 패치를 생성하면 조용히 적용되지만 화면에 반영 안 됨 → 사용자 혼란 방지.
+ */
+const UNRENDERED_PATH_PREFIXES = [
+  '/encoding/size',
+  '/encoding/shape',
+  '/encoding/color/scale',
+] as const;
+
+const UNRENDERED_PATHS = [
+  '/encoding/color/legend/title',
+  '/encoding/color/legend/titleFontSize',
+] as const;
+
+function joinPointer(base: string, token: string): string {
+  const escaped = token.replace(/~/g, '~0').replace(/\//g, '~1');
+  return `${base}/${escaped}`;
+}
+
+function collectTouchedPaths(path: string, value: unknown): string[] {
+  const touched = new Set<string>([path]);
+
+  const walk = (currentPath: string, currentValue: unknown): void => {
+    if (!currentValue || typeof currentValue !== 'object') return;
+    if (Array.isArray(currentValue)) {
+      currentValue.forEach((item, index) => {
+        const childPath = joinPointer(currentPath, String(index));
+        touched.add(childPath);
+        walk(childPath, item);
+      });
+      return;
+    }
+
+    for (const [key, nested] of Object.entries(currentValue)) {
+      const childPath = joinPointer(currentPath, key);
+      touched.add(childPath);
+      walk(childPath, nested);
+    }
+  };
+
+  walk(path, value);
+  return [...touched];
+}
+
+function assertNoUnrenderedPaths(patches: AiEditResponse['patches']): void {
+  for (const patch of patches) {
+    const touchedPaths = patch.op === 'remove'
+      ? [patch.path]
+      : collectTouchedPaths(patch.path, patch.value);
+    const blockedPath = touchedPaths.find(touched =>
+      UNRENDERED_PATH_PREFIXES.some(
+        prefix => touched === prefix || touched.startsWith(`${prefix}/`),
+      ) || UNRENDERED_PATHS.includes(touched as typeof UNRENDERED_PATHS[number]),
+    );
+    if (blockedPath) {
+      throw new AiServiceError(
+        `아직 렌더링이 구현되지 않은 경로입니다: ${blockedPath}. 이 기능은 향후 업데이트에서 지원될 예정입니다.`,
+        'UNRENDERED_PATH',
+      );
+    }
+  }
+}
+
 // ─── 공개 API ─────────────────────────────────────────────
 
 /**
@@ -223,6 +298,7 @@ export async function editChart(request: AiEditRequest): Promise<AiEditResponse>
   // ① result.data가 valid AiEditResponse임이 보장된 상태에서 patch.path 타입 안전 접근
   // ② 프롬프트에서 이미 금지했지만 코드 레벨에서도 강제 (defense-in-depth)
   assertNonReadonlyPaths(result.data.patches);
+  assertNoUnrenderedPaths(result.data.patches);
 
   return result.data;
 }

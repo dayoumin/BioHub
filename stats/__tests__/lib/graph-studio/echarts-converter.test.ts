@@ -1012,7 +1012,7 @@ describe('legend — orient 매핑 (신규)', () => {
     { cat: 'Jan', value: 20, group: 'B' },
   ]
 
-  function makeLineColorSpec(orient?: string): ChartSpec {
+  function makeLineColorSpec(orient?: string, fontSize?: number): ChartSpec {
     return makeSpec({
       chartType: 'line',
       encoding: {
@@ -1020,7 +1020,12 @@ describe('legend — orient 매핑 (신규)', () => {
         y: { field: 'value', type: 'quantitative' },
         color: {
           field: 'group', type: 'nominal',
-          legend: orient ? { orient: orient as never } : undefined,
+          legend: orient || fontSize
+            ? {
+                ...(orient ? { orient: orient as never } : {}),
+                ...(fontSize ? { fontSize } : {}),
+              }
+            : undefined,
         },
       },
     })
@@ -1050,6 +1055,12 @@ describe('legend — orient 매핑 (신규)', () => {
     const opt = toAny(chartSpecToECharts(makeLineColorSpec(), rows))
     const legend = opt.legend as AnyOption
     expect(legend.show).not.toBe(false)
+  })
+
+  it('legend.fontSize → legend.textStyle.fontSize로 반영', () => {
+    const opt = toAny(chartSpecToECharts(makeLineColorSpec('right', 14), rows))
+    const legend = opt.legend as AnyOption
+    expect((legend.textStyle as AnyOption).fontSize).toBe(14)
   })
 })
 

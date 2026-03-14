@@ -298,6 +298,74 @@ describe('editChart', () => {
     await expect(editChart(req)).rejects.toBeInstanceOf(AiServiceError);
     await expect(editChart(req)).rejects.toMatchObject({ code: 'READONLY_PATH' });
   });
+
+  it('/significance 패치는 정상 허용 (ChartPreview 렌더 구현됨)', async () => {
+    mockGenerateRawText.mockResolvedValue(JSON.stringify({
+      patches: [{ op: 'add', path: '/significance', value: [{ groupA: 'A', groupB: 'B' }] }],
+      explanation: 'significance added',
+      confidence: 0.9,
+    }));
+    const req = buildAiEditRequest(makeChartSpec(), 'msg');
+
+    const result = await editChart(req);
+    expect(result.patches[0].path).toBe('/significance');
+  });
+
+  it('AiServiceError code: UNRENDERED_PATH (/encoding/size)', async () => {
+    mockGenerateRawText.mockResolvedValue(JSON.stringify({
+      patches: [{ op: 'add', path: '/encoding/size', value: { field: 'weight', type: 'quantitative' } }],
+      explanation: 'unrendered',
+      confidence: 0.9,
+    }));
+    const req = buildAiEditRequest(makeChartSpec(), 'msg');
+
+    await expect(editChart(req)).rejects.toBeInstanceOf(AiServiceError);
+    await expect(editChart(req)).rejects.toMatchObject({ code: 'UNRENDERED_PATH' });
+  });
+
+  it('AiServiceError code: UNRENDERED_PATH (/encoding/shape)', async () => {
+    mockGenerateRawText.mockResolvedValue(JSON.stringify({
+      patches: [{ op: 'add', path: '/encoding/shape', value: { field: 'species', type: 'nominal' } }],
+      explanation: 'unrendered shape',
+      confidence: 0.9,
+    }));
+    const req = buildAiEditRequest(makeChartSpec(), 'msg');
+
+    await expect(editChart(req)).rejects.toBeInstanceOf(AiServiceError);
+    await expect(editChart(req)).rejects.toMatchObject({ code: 'UNRENDERED_PATH' });
+  });
+
+  it('AiServiceError code: UNRENDERED_PATH (nested /encoding/color/scale)', async () => {
+    mockGenerateRawText.mockResolvedValue(JSON.stringify({
+      patches: [{
+        op: 'add',
+        path: '/encoding/color',
+        value: { field: 'species', type: 'nominal', scale: { scheme: 'Set2' } },
+      }],
+      explanation: 'unrendered nested scale',
+      confidence: 0.9,
+    }));
+    const req = buildAiEditRequest(makeChartSpec(), 'msg');
+
+    await expect(editChart(req)).rejects.toBeInstanceOf(AiServiceError);
+    await expect(editChart(req)).rejects.toMatchObject({ code: 'UNRENDERED_PATH' });
+  });
+
+  it('AiServiceError code: UNRENDERED_PATH (nested /encoding/color/legend/titleFontSize)', async () => {
+    mockGenerateRawText.mockResolvedValue(JSON.stringify({
+      patches: [{
+        op: 'add',
+        path: '/encoding/color',
+        value: { field: 'species', type: 'nominal', legend: { titleFontSize: 16 } },
+      }],
+      explanation: 'unrendered nested legend title font size',
+      confidence: 0.9,
+    }));
+    const req = buildAiEditRequest(makeChartSpec(), 'msg');
+
+    await expect(editChart(req)).rejects.toBeInstanceOf(AiServiceError);
+    await expect(editChart(req)).rejects.toMatchObject({ code: 'UNRENDERED_PATH' });
+  });
 });
 
 // ─── buildUserPrompt 프롬프트 내용 검증 ──────────────────────

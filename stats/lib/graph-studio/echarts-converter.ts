@@ -28,6 +28,23 @@ function sortByDate([a]: [string, number], [b]: [string, number]): number {
   return a.localeCompare(b);
 }
 
+/**
+ * encoding.x.sort 적용 — 카테고리 배열을 정렬하고 연관 배열도 같은 순서로 재배열.
+ * 'ascending': 사전순 오름차순, 'descending': 내림차순, null/undefined: 원본 순서 유지.
+ */
+function applyCategorySort(categories: string[], sort: AxisSpec['sort']): { sorted: string[]; indexMap: number[] } {
+  if (!sort) return { sorted: categories, indexMap: categories.map((_, i) => i) };
+  const indexed = categories.map((c, i) => ({ c, i }));
+  indexed.sort((a, b) => a.c.localeCompare(b.c));
+  if (sort === 'descending') indexed.reverse();
+  return { sorted: indexed.map(e => e.c), indexMap: indexed.map(e => e.i) };
+}
+
+/** 인덱스 맵에 따라 배열 재배열 */
+function reorderByIndexMap<T>(arr: T[], indexMap: number[]): T[] {
+  return indexMap.map(i => arr[i]);
+}
+
 // ─── Facet constants ──────────────────────────────────────
 
 /** 패싯을 렌더링할 차트 유형 */
@@ -167,6 +184,7 @@ function buildGroupedData(
   xField: string,
   colorField: string,
   yField: string,
+  sort?: AxisSpec['sort'],
 ): { categories: string[]; groups: string[]; seriesData: Map<string, number[]> } {
   const catOrder: string[] = [];
   const catSet = new Set<string>();
@@ -212,7 +230,16 @@ function buildGroupedData(
     }
   }
 
-  return { categories: catOrder, groups: groupOrder, seriesData };
+  // sort 적용
+  const { sorted: sortedCats, indexMap } = applyCategorySort(catOrder, sort);
+  if (sort) {
+    for (const grp of groupOrder) {
+      const vals = seriesData.get(grp);
+      if (vals) seriesData.set(grp, reorderByIndexMap(vals, indexMap));
+    }
+  }
+
+  return { categories: sortedCats, groups: groupOrder, seriesData };
 }
 
 /** Linear interpolation percentile (inclusive, same as numpy default). */
@@ -380,6 +407,7 @@ function buildErrorBarData(
   yField: string,
   errorType: 'ci' | 'stderr' | 'stdev' | 'iqr',
   ciValue: number = 95,
+  sort?: AxisSpec['sort'],
 ): { categories: string[]; means: number[]; lowers: number[]; uppers: number[] } {
   const order: string[] = [];
   const groups = new Map<string, number[]>();
@@ -431,6 +459,17 @@ function buildErrorBarData(
       lowers.push(halfWidth);
       uppers.push(halfWidth);
     }
+  }
+
+  // sort 적용
+  if (sort) {
+    const { sorted, indexMap } = applyCategorySort(categories, sort);
+    return {
+      categories: sorted,
+      means: reorderByIndexMap(means, indexMap),
+      lowers: reorderByIndexMap(lowers, indexMap),
+      uppers: reorderByIndexMap(uppers, indexMap),
+    };
   }
 
   return { categories, means, lowers, uppers };
@@ -861,10 +900,11 @@ function buildLegend(
     'bottom-right':{ orient: 'horizontal', bottom: 0,   right: 0       },
   };
   const customLabels = spec.encoding.color?.legend?.customLabels ?? {};
+  const legend = spec.encoding.color?.legend;
   const hasCustom = Object.keys(customLabels).length > 0;
   return {
     ...(orient && posMap[orient] ? posMap[orient] : { orient: 'horizontal' }),
-    textStyle: { fontFamily: style.fontFamily, fontSize: style.labelSize },
+    textStyle: { fontFamily: style.fontFamily, fontSize: legend?.fontSize ?? style.labelSize },
     ...(hasCustom && seriesNames?.length ? {
       formatter: (name: string) => customLabels[name] ?? name,
     } : {}),
@@ -1180,9 +1220,18 @@ export function chartSpecToECharts(
         ? [...spec.aggregate.groupBy, spec.facet.field]
         : spec.aggregate.groupBy)
     : [];
-  const workRows = (spec.aggregate && !requiresNoAgg.has(spec.chartType))
+  const rawWorkRows = (spec.aggregate && !requiresNoAgg.has(spec.chartType))
     ? aggregateRows(rows, aggGroupBy, yField, spec.aggregate.y)
     : rows;
+
+  // encoding.x.sort — dataset 모드에서 rows 순서가 카테고리 순서를 결정하므로
+  // sort가 활성화되면 xField 기준으로 행을 재정렬
+  const workRows = spec.encoding.x.sort
+    ? [...rawWorkRows].sort((a, b) => {
+        const cmp = String(a[xField] ?? '').localeCompare(String(b[xField] ?? ''));
+        return spec.encoding.x.sort === 'descending' ? -cmp : cmp;
+      })
+    : rawWorkRows;
 
   // ── facet (최우선 분기) ──────────────────────────────────
   if (spec.facet && FACET_CHART_TYPES.has(spec.chartType)) {
@@ -1196,7 +1245,7 @@ export function chartSpecToECharts(
     // orientation은 에러바와 함께 사용하지 않음 (renderItem 좌표계 복잡)
     if (spec.errorBar) {
       const { categories, means, lowers, uppers } = buildErrorBarData(
-        rows, xField, yField, spec.errorBar.type, spec.errorBar.value ?? 95,
+        rows, xField, yField, spec.errorBar.type, spec.errorBar.value ?? 95, spec.encoding.x.sort,
       );
       const barEbCounts = spec.style.showSampleCounts
         ? countSamplesPerCategory(rows, xField)
@@ -1272,7 +1321,7 @@ export function chartSpecToECharts(
     const barLabel = buildBarLabel(spec, style);
     const isH = spec.orientation === 'horizontal';
     if (colorField) {
-      const { categories, groups, seriesData } = buildGroupedData(workRows, xField, colorField, yField);
+      const { categories, groups, seriesData } = buildGroupedData(workRows, xField, colorField, yField, spec.encoding.x.sort);
       const gbCounts = spec.style.showSampleCounts
         ? countSamplesPerCategory(rows, xField)
         : undefined;
@@ -1313,7 +1362,7 @@ export function chartSpecToECharts(
     const barLabel = buildBarLabel(spec, style);
     const isH = spec.orientation === 'horizontal';
     if (colorField) {
-      const { categories, groups, seriesData } = buildGroupedData(workRows, xField, colorField, yField);
+      const { categories, groups, seriesData } = buildGroupedData(workRows, xField, colorField, yField, spec.encoding.x.sort);
       const sbCounts = spec.style.showSampleCounts
         ? countSamplesPerCategory(rows, xField)
         : undefined;
@@ -1388,7 +1437,7 @@ export function chartSpecToECharts(
       }
 
       // Non-temporal: category pivot
-      const { categories, groups, seriesData } = buildGroupedData(workRows, xField, colorField, yField);
+      const { categories, groups, seriesData } = buildGroupedData(workRows, xField, colorField, yField, spec.encoding.x.sort);
       return {
         ...base,
         tooltip: { trigger: 'axis' },
@@ -1448,7 +1497,7 @@ export function chartSpecToECharts(
     // 에러바 있으면 explicit data 모드로 전환 (category X만 지원)
     if (spec.errorBar && xType === 'category') {
       const { categories, means, lowers, uppers } = buildErrorBarData(
-        rows, xField, yField, spec.errorBar.type, spec.errorBar.value ?? 95,
+        rows, xField, yField, spec.errorBar.type, spec.errorBar.value ?? 95, spec.encoding.x.sort,
       );
       return {
         ...base,
@@ -1771,7 +1820,7 @@ export function chartSpecToECharts(
     const errorType = spec.errorBar?.type ?? 'stderr';
     const ciValue = spec.errorBar?.value ?? 95;
     const { categories, means, lowers, uppers } = buildErrorBarData(
-      rows, xField, yField, errorType, ciValue,
+      rows, xField, yField, errorType, ciValue, spec.encoding.x.sort,
     );
     const ebCounts = spec.style.showSampleCounts
       ? countSamplesPerCategory(rows, xField)

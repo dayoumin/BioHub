@@ -54,6 +54,17 @@ export interface StyleTabLogic {
   commitCustomLabels: () => void;
   handleFontChange: (fontFamily: string) => void;
   handleApplyPreset: (presetKey: StylePreset) => void;
+  handleBackgroundChange: (color: string) => void;
+  handleFontSizeChange: (key: 'size' | 'titleSize' | 'labelSize', value: number) => void;
+  handleSortChange: (sort: 'ascending' | 'descending' | null) => void;
+  handleColorChange: (index: number, color: string) => void;
+  handleResetColors: () => void;
+  currentTitleSize: number;
+  currentLabelSize: number;
+  currentFontSize: number;
+  currentSort: 'ascending' | 'descending' | null;
+  isCategoryX: boolean;
+  currentColors: string[];
 
   // 파생값
   isQuantitativeY: boolean;
@@ -212,6 +223,38 @@ export function useStyleTabLogic(): StyleTabLogic | null {
     updateChartSpec({ ...chartSpec, style: { ...preset } });
   }, [chartSpec, updateChartSpec]);
 
+  const handleBackgroundChange = useCallback((color: string) => {
+    if (!chartSpec) return;
+    updateChartSpec({ ...chartSpec, style: { ...chartSpec.style, background: color || undefined } });
+  }, [chartSpec, updateChartSpec]);
+
+  const handleFontSizeChange = useCallback((key: 'size' | 'titleSize' | 'labelSize', value: number) => {
+    if (!chartSpec || value < 6 || value > 36) return;
+    updateChartSpec({ ...chartSpec, style: { ...chartSpec.style, font: { ...chartSpec.style.font, [key]: value } } });
+  }, [chartSpec, updateChartSpec]);
+
+  const handleSortChange = useCallback((sort: 'ascending' | 'descending' | null) => {
+    if (!chartSpec) return;
+    updateChartSpec({
+      ...chartSpec,
+      encoding: { ...chartSpec.encoding, x: { ...chartSpec.encoding.x, sort } },
+    });
+  }, [chartSpec, updateChartSpec]);
+
+  const handleColorChange = useCallback((index: number, color: string) => {
+    if (!chartSpec) return;
+    const preset = STYLE_PRESETS[chartSpec.style.preset];
+    const base = chartSpec.style.colors ?? preset?.colors ?? [];
+    const updated = [...base];
+    updated[index] = color;
+    updateChartSpec({ ...chartSpec, style: { ...chartSpec.style, colors: updated } });
+  }, [chartSpec, updateChartSpec]);
+
+  const handleResetColors = useCallback(() => {
+    if (!chartSpec) return;
+    updateChartSpec({ ...chartSpec, style: { ...chartSpec.style, colors: undefined } });
+  }, [chartSpec, updateChartSpec]);
+
   // ─── 파생값 ────────────────────────────────────────────
   const colorGroups = useMemo((): string[] => {
     if (!chartSpec?.encoding.color) return [];
@@ -235,6 +278,14 @@ export function useStyleTabLogic(): StyleTabLogic | null {
   const showLegend = chartSpec.encoding.color !== undefined;
   const showDataLabelOption = DATA_LABEL_CHART_TYPES.has(chartSpec.chartType);
   const showSampleCountOption = SAMPLE_COUNT_CHART_TYPES.has(chartSpec.chartType);
+  const currentSort = chartSpec.encoding.x.sort ?? null;
+  const isCategoryX = chartSpec.encoding.x.type === 'nominal' || chartSpec.encoding.x.type === 'ordinal';
+  const presetColors = STYLE_PRESETS[chartSpec.style.preset]?.colors ?? [];
+  const currentColors = chartSpec.style.colors ?? presetColors;
+  const presetFont = STYLE_PRESETS[chartSpec.style.preset]?.font;
+  const currentTitleSize = chartSpec.style.font?.titleSize ?? presetFont?.titleSize ?? 14;
+  const currentLabelSize = chartSpec.style.font?.labelSize ?? presetFont?.labelSize ?? 11;
+  const currentFontSize = chartSpec.style.font?.size ?? presetFont?.size ?? 12;
 
   return {
     yMinInput, setYMinInput, yMaxInput, setYMaxInput,
@@ -243,7 +294,9 @@ export function useStyleTabLogic(): StyleTabLogic | null {
     handleLogScaleToggle, handleYRangeBlur, handleXRangeBlur,
     handleLegendOrientChange, handleDataLabelsToggle, handleSampleCountsToggle,
     handleCustomLabelChange, commitCustomLabels,
-    handleFontChange, handleApplyPreset,
+    handleFontChange, handleApplyPreset, handleBackgroundChange,
+    handleFontSizeChange, handleSortChange, handleColorChange, handleResetColors,
+    currentTitleSize, currentLabelSize, currentFontSize, currentSort, isCategoryX, currentColors,
     isQuantitativeY, isQuantitativeX, isLogScale, currentFont,
     showLegend, showDataLabelOption, showSampleCountOption, colorGroups,
   };

@@ -29,6 +29,9 @@ import {
   Type,
   TrendingUp,
   Maximize2,
+  LayoutGrid,
+  StickyNote,
+  ArrowUpDown,
 } from 'lucide-react';
 import type { ChatMessage } from '@/lib/graph-studio/use-ai-chat';
 
@@ -57,6 +60,9 @@ const AI_CARD_TREE: L1Card[] = [
       { id: 'log-scale', label: '로그 스케일', prompt: 'Y축을 로그 스케일로 변경해줘' },
       { id: 'y-range',   label: 'Y축 범위',    prompt: 'Y축 범위를 _~_으로 설정해줘' },
       { id: 'x-rotate',  label: 'X라벨 회전',  prompt: 'X축 라벨 45도 회전해줘' },
+      { id: 'x-range',   label: 'X축 범위',    prompt: 'X축 범위를 _~_으로 설정해줘' },
+      { id: 'sort-asc',  label: '오름차순 정렬', prompt: 'X축 카테고리를 오름차순으로 정렬해줘' },
+      { id: 'sort-desc', label: '내림차순 정렬', prompt: 'X축 카테고리를 내림차순으로 정렬해줘' },
     ],
   },
   {
@@ -65,6 +71,8 @@ const AI_CARD_TREE: L1Card[] = [
       { id: 'science',   label: 'Science 스타일', prompt: 'Nature/Science 스타일로 바꿔줘' },
       { id: 'ieee',      label: 'IEEE 스타일',    prompt: 'IEEE 흑백 스타일로 바꿔줘' },
       { id: 'grayscale', label: '흑백 변환',      prompt: '흑백 차트로 변환해줘' },
+      { id: 'bg-color',  label: '배경색 변경',    prompt: '배경색을 ___으로 바꿔줘' },
+      { id: 'font-size', label: '글꼴 크기',      prompt: '축 라벨 글꼴 크기를 14px로 바꿔줘' },
     ],
   },
   {
@@ -78,17 +86,38 @@ const AI_CARD_TREE: L1Card[] = [
   {
     id: 'label', label: '제목·레이블', icon: Type,
     children: [
-      { id: 'chart-title',  label: '차트 제목',  prompt: '차트 제목을 "___"으로 바꿔줘' },
-      { id: 'legend-pos',   label: '범례 위치',  prompt: '범례를 오른쪽으로 이동해줘' },
-      { id: 'hide-legend',  label: '범례 숨기기', prompt: '범례를 숨겨줘' },
+      { id: 'chart-title',  label: '차트 제목',    prompt: '차트 제목을 "___"으로 바꿔줘' },
+      { id: 'legend-pos',   label: '범례 위치',    prompt: '범례를 오른쪽으로 이동해줘' },
+      { id: 'hide-legend',  label: '범례 숨기기',   prompt: '범례를 숨겨줘' },
+      { id: 'legend-font',  label: '범례 글꼴 크기', prompt: '범례 글꼴 크기를 14px로 바꿔줘' },
+      { id: 'data-labels',  label: '데이터 라벨',   prompt: '막대 위에 값을 표시해줘' },
+      { id: 'sample-count', label: '표본 수 표시',  prompt: 'X축 카테고리 아래에 표본 수(n=)를 표시해줘' },
     ],
   },
   {
     id: 'errorbar', label: '에러바·통계', icon: TrendingUp,
     children: [
-      { id: 'add-sem', label: 'SEM 에러바', prompt: '에러바 추가해줘 (표준오차)' },
-      { id: 'add-sd',  label: 'SD 에러바',  prompt: '에러바 추가해줘 (표준편차)' },
-      { id: 'add-ci',  label: '95% CI',     prompt: '95% 신뢰구간 에러바 추가해줘' },
+      { id: 'add-sem',    label: 'SEM 에러바',  prompt: '에러바 추가해줘 (표준오차)' },
+      { id: 'add-sd',     label: 'SD 에러바',   prompt: '에러바 추가해줘 (표준편차)' },
+      { id: 'add-ci',     label: '95% CI',      prompt: '95% 신뢰구간 에러바 추가해줘' },
+      { id: 'trendline',  label: '추세선 추가',  prompt: '선형 추세선을 추가해줘' },
+      { id: 'trendline-eq', label: '추세선+방정식', prompt: '선형 추세선과 회귀 방정식(R²)을 표시해줘' },
+    ],
+  },
+  {
+    id: 'layout', label: '레이아웃', icon: LayoutGrid,
+    children: [
+      { id: 'facet',       label: '패싯 나누기',  prompt: '"___" 필드로 패싯(소규모 배치)을 만들어줘' },
+      { id: 'horizontal',  label: '가로 막대',    prompt: '가로 막대 차트로 바꿔줘' },
+      { id: 'significance', label: '유의성 브래킷', prompt: '그룹 A와 B 사이에 유의성 브래킷(*)을 추가해줘' },
+    ],
+  },
+  {
+    id: 'annotation', label: '주석', icon: StickyNote,
+    children: [
+      { id: 'add-text',   label: '텍스트 주석', prompt: '"___" 텍스트를 차트에 추가해줘' },
+      { id: 'add-hline',  label: '수평선 추가', prompt: 'Y=___ 위치에 점선을 추가해줘' },
+      { id: 'add-vline',  label: '수직선 추가', prompt: 'X=___ 위치에 수직선을 추가해줘' },
     ],
   },
   {

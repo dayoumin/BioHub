@@ -50,6 +50,13 @@ export interface AxisSpec {
   sort?: 'ascending' | 'descending' | null;
 }
 
+export interface SecondaryYAxisSpec {
+  field: string;
+  type: 'quantitative';
+  title?: string;
+  scale?: ScaleSpec;
+}
+
 export interface ScaleSpec {
   domain?: [number, number] | string[];
   range?: [number, number] | string[];
@@ -207,7 +214,7 @@ export interface ChartSpec {
     x: AxisSpec;
     y: AxisSpec;
     /** 보조 Y축 (오른쪽). bar→line, line→line 렌더. colors[1] 사용. */
-    y2?: AxisSpec;
+    y2?: SecondaryYAxisSpec;
     color?: ColorSpec;
     shape?: ShapeSpec;
     size?: { field: string; type: DataType };
@@ -360,6 +367,8 @@ export interface GraphStudioState {
   chartSpec: ChartSpec | null;
   specHistory: ChartSpec[];
   historyIndex: number;
+  /** 차트 재설정(goToSetup) 시 이전 spec 보관 — ChartSetupPanel 초기값용 */
+  previousChartSpec: ChartSpec | null;
 
   // UI
   aiPanelOpen: boolean;

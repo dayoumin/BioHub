@@ -301,6 +301,459 @@ describe('AI 편집 시뮬레이션', () => {
   });
 });
 
+// ─── 프롬프트 정확성 시뮬레이션 (S12–S22) ────────────────
+// 이번 리뷰에서 발견된 누락·불일치 항목이 올바르게 동작하는지 검증
+
+describe('프롬프트 정확성 시뮬레이션', () => {
+  beforeEach(() => { mockRaw.mockReset(); });
+
+  // ── S12: Y축 로그 스케일 (scale 하위 구조 검증) ──
+
+  it('S12. Y축 로그 스케일 → /encoding/y/scale/type = "log"', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'add', path: '/encoding/y/scale', value: { type: 'log' } },
+    ]));
+
+    const spec = baseSpec();
+    const response = await editChart(buildAiEditRequest(spec, 'Y축 로그 스케일로 바꿔줘'));
+    const result = applyAndValidatePatches(spec, response.patches);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.spec.encoding.y.scale?.type).toBe('log');
+    }
+  });
+
+  // ── S13: 범례 위치 변경 (legend 하위 구조 검증) ──
+
+  it('S13. 범례 오른쪽 상단 → /encoding/color/legend/orient = "top-right"', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'add', path: '/encoding/color', value: {
+        field: 'species', type: 'nominal',
+        legend: { orient: 'top-right' },
+      }},
+    ]));
+
+    const spec = baseSpec();
+    const response = await editChart(buildAiEditRequest(spec, '범례를 오른쪽 상단으로'));
+    const result = applyAndValidatePatches(spec, response.patches);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.spec.encoding.color?.legend?.orient).toBe('top-right');
+    }
+  });
+
+  // ── S14: 범례 폰트 크기 (legend.fontSize 렌더링 검증) ──
+
+  it('S14. 범례 폰트 크기 변경 → legend.fontSize', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'add', path: '/encoding/color', value: {
+        field: 'species', type: 'nominal',
+        legend: { orient: 'right', fontSize: 14 },
+      }},
+    ]));
+
+    const spec = baseSpec();
+    const response = await editChart(buildAiEditRequest(spec, '범례 폰트 키워줘'));
+    const result = applyAndValidatePatches(spec, response.patches);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.spec.encoding.color?.legend?.fontSize).toBe(14);
+    }
+  });
+
+  it('S14b. 범례 titleFontSize 변경 → UNRENDERED_PATH 에러', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'add', path: '/encoding/color', value: {
+        field: 'species', type: 'nominal',
+        legend: { titleFontSize: 16 },
+      }},
+    ]));
+
+    const spec = baseSpec();
+    await expect(
+      editChart(buildAiEditRequest(spec, '범례 제목 폰트 키워줘')),
+    ).rejects.toMatchObject({ code: 'UNRENDERED_PATH' });
+  });
+
+  // ── S15: 수평 막대 (orientation 검증) ──
+
+  it('S15. 수평 막대 → orientation = "horizontal"', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'add', path: '/orientation', value: 'horizontal' },
+    ]));
+
+    const spec = baseSpec();
+    const response = await editChart(buildAiEditRequest(spec, '수평 막대 그래프로 바꿔줘'));
+    const result = applyAndValidatePatches(spec, response.patches);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.spec.orientation).toBe('horizontal');
+    }
+  });
+
+  // ── S16: 트렌드라인 추가 (trendline 검증) ──
+
+  it('S16. 회귀선 추가 → trendline = {type: "linear", showEquation: true}', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'replace', path: '/chartType', value: 'scatter' },
+      { op: 'add', path: '/trendline', value: { type: 'linear', showEquation: true } },
+    ]));
+
+    const spec = baseSpec();
+    const response = await editChart(buildAiEditRequest(spec, '산점도에 회귀선 추가'));
+    const result = applyAndValidatePatches(spec, response.patches);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.spec.trendline?.type).toBe('linear');
+      expect(result.spec.trendline?.showEquation).toBe(true);
+    }
+  });
+
+  // ── S17: 패싯 추가 (facet 검증) ──
+
+  it('S17. 패싯 분할 → facet = {field: "species", ncol: 3}', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'add', path: '/facet', value: { field: 'species', ncol: 3, shareAxis: true } },
+    ]));
+
+    const spec = baseSpec();
+    const response = await editChart(buildAiEditRequest(spec, '종별로 패싯 분할해줘'));
+    const result = applyAndValidatePatches(spec, response.patches);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.spec.facet?.field).toBe('species');
+      expect(result.spec.facet?.ncol).toBe(3);
+      expect(result.spec.facet?.shareAxis).toBe(true);
+    }
+  });
+
+  // ── S18: Y2 보조축 (y2 축소 필드만 허용 검증) ──
+
+  it('S18. 보조 Y축 추가 → encoding.y2 = {field, type: "quantitative", title}', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'add', path: '/encoding/y2', value: {
+        field: 'weight', type: 'quantitative', title: '보조축',
+      }},
+    ]));
+
+    const spec = baseSpec();
+    const response = await editChart(buildAiEditRequest(spec, '보조 Y축 추가'));
+    const result = applyAndValidatePatches(spec, response.patches);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.spec.encoding.y2?.field).toBe('weight');
+      expect(result.spec.encoding.y2?.type).toBe('quantitative');
+      expect(result.spec.encoding.y2?.title).toBe('보조축');
+    }
+  });
+
+  // ── S19: Y2에 labelAngle 넣으면 Zod strict()에서 거부 ──
+
+  it('S19. y2에 labelAngle 포함 → Zod strict 검증 실패', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'add', path: '/encoding/y2', value: {
+        field: 'weight', type: 'quantitative', labelAngle: -45,
+      }},
+    ]));
+
+    const spec = baseSpec();
+    const response = await editChart(buildAiEditRequest(spec, '보조축 라벨 회전'));
+    const result = applyAndValidatePatches(spec, response.patches);
+
+    // Zod strict()가 labelAngle 거부
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toContain('y2');
+    }
+  });
+
+  // ── S20: style.scheme 색상 팔레트 ──
+
+  it('S20. 색상 팔레트 viridis 적용 → style.scheme = "viridis"', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'add', path: '/style/scheme', value: 'viridis' },
+    ]));
+
+    const spec = baseSpec();
+    const response = await editChart(buildAiEditRequest(spec, 'viridis 색상 팔레트로'));
+    const result = applyAndValidatePatches(spec, response.patches);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.spec.style.scheme).toBe('viridis');
+    }
+  });
+
+  // ── S21: font 하위 구조 (family + size) ──
+
+  it('S21. 폰트 변경 → style.font = {family: "Times New Roman", size: 14}', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'add', path: '/style/font', value: {
+        family: 'Times New Roman', size: 14, titleSize: 18, labelSize: 12,
+      }},
+    ]));
+
+    const spec = baseSpec();
+    const response = await editChart(buildAiEditRequest(spec, '폰트를 Times New Roman 14pt로'));
+    const result = applyAndValidatePatches(spec, response.patches);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.spec.style.font?.family).toBe('Times New Roman');
+      expect(result.spec.style.font?.size).toBe(14);
+      expect(result.spec.style.font?.titleSize).toBe(18);
+      expect(result.spec.style.font?.labelSize).toBe(12);
+    }
+  });
+
+  // ── S22: annotation 전체 필드 ──
+
+  it('S22. 텍스트 주석 추가 → annotations 배열에 추가', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'replace', path: '/annotations', value: [
+        { type: 'text', text: 'p < 0.05', x: 1, y: 50, color: '#ff0000', fontSize: 14 },
+      ]},
+    ]));
+
+    const spec = baseSpec();
+    const response = await editChart(buildAiEditRequest(spec, 'p값 주석 추가'));
+    const result = applyAndValidatePatches(spec, response.patches);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.spec.annotations).toHaveLength(1);
+      expect(result.spec.annotations[0]).toMatchObject({
+        type: 'text',
+        text: 'p < 0.05',
+        x: 1,
+        y: 50,
+        color: '#ff0000',
+        fontSize: 14,
+      });
+    }
+  });
+
+  // ── S23: km-curve 차트 유형 (새로 추가된 enum 검증) ──
+
+  it('S23. km-curve 차트 유형 → Zod 통과', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'replace', path: '/chartType', value: 'km-curve' },
+    ]));
+
+    const spec = baseSpec();
+    const response = await editChart(buildAiEditRequest(spec, 'KM 곡선으로'));
+    const result = applyAndValidatePatches(spec, response.patches);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.spec.chartType).toBe('km-curve');
+    }
+  });
+
+  // ── S24: significance patch → 정상 통과 (ChartPreview에서 렌더링 구현됨) ──
+
+  it('S24. significance 패치 → 정상 적용 (ChartPreview 오버레이 렌더)', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'add', path: '/significance', value: [
+        { groupA: 'A', groupB: 'B', pValue: 0.03 },
+      ]},
+    ]));
+
+    const spec = baseSpec();
+    const response = await editChart(buildAiEditRequest(spec, '유의성 브래킷 추가'));
+    const result = applyAndValidatePatches(spec, response.patches);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.spec.significance).toHaveLength(1);
+      expect(result.spec.significance?.[0]).toMatchObject({
+        groupA: 'A', groupB: 'B', pValue: 0.03,
+      });
+    }
+  });
+
+  it('S24b. significance 복수 브래킷 추가', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'add', path: '/significance', value: [
+        { groupA: 'A', groupB: 'B', pValue: 0.03 },
+        { groupA: 'B', groupB: 'C', label: 'ns' },
+      ]},
+    ]));
+
+    const spec = baseSpec();
+    const response = await editChart(buildAiEditRequest(spec, 'A-B, B-C 유의성 표시'));
+    const result = applyAndValidatePatches(spec, response.patches);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.spec.significance).toHaveLength(2);
+      expect(result.spec.significance?.[1].label).toBe('ns');
+    }
+  });
+
+  // ── S25: encoding.size patch → UNRENDERED_PATH 코드 방어로 거부 ──
+
+  it('S25. encoding.size 패치 → UNRENDERED_PATH 에러 (렌더러 미구현 방어)', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'add', path: '/encoding/size', value: { field: 'weight', type: 'quantitative' } },
+    ]));
+
+    const spec = baseSpec();
+    await expect(
+      editChart(buildAiEditRequest(spec, '버블 크기 인코딩 추가')),
+    ).rejects.toThrow('렌더링이 구현되지 않은');
+  });
+
+  it('S25b. encoding.size 하위 경로도 거부', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'replace', path: '/encoding/size/field', value: 'newField' },
+    ]));
+
+    const spec = baseSpec();
+    await expect(
+      editChart(buildAiEditRequest(spec, '크기 필드 변경')),
+    ).rejects.toMatchObject({ code: 'UNRENDERED_PATH' });
+  });
+
+  // ── S25c: encoding.shape patch → UNRENDERED_PATH 방어 ──
+
+  it('S25c. encoding.shape 패치 → UNRENDERED_PATH 에러 (렌더러 미구현 방어)', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'add', path: '/encoding/shape', value: { field: 'species', type: 'nominal' } },
+    ]));
+
+    const spec = baseSpec();
+    await expect(
+      editChart(buildAiEditRequest(spec, '모양 인코딩 추가')),
+    ).rejects.toThrow('렌더링이 구현되지 않은');
+  });
+
+  it('S25d. encoding.shape 하위 경로도 거부', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'replace', path: '/encoding/shape/field', value: 'group' },
+    ]));
+
+    const spec = baseSpec();
+    await expect(
+      editChart(buildAiEditRequest(spec, '모양 필드 변경')),
+    ).rejects.toMatchObject({ code: 'UNRENDERED_PATH' });
+  });
+
+  // ── S26: color.scale.scheme 변경 → UNRENDERED_PATH 방어 ──
+
+  it('S26. color.scale.scheme 변경 → UNRENDERED_PATH 에러', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'add', path: '/encoding/color', value: {
+        field: 'species', type: 'nominal',
+        scale: { scheme: 'Set2' },
+      }},
+    ]));
+
+    const spec = baseSpec();
+    await expect(
+      editChart(buildAiEditRequest(spec, 'Set2 색상 팔레트로')),
+    ).rejects.toMatchObject({ code: 'UNRENDERED_PATH' });
+  });
+
+  it('S26b. 범례 title 변경 → UNRENDERED_PATH 에러', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'add', path: '/encoding/color', value: {
+        field: 'species', type: 'nominal',
+        legend: { title: '종 구분' },
+      }},
+    ]));
+
+    const spec = baseSpec();
+    await expect(
+      editChart(buildAiEditRequest(spec, '범례 제목 추가')),
+    ).rejects.toMatchObject({ code: 'UNRENDERED_PATH' });
+  });
+
+  // ── S27: customLabels 범례 라벨 직접 편집 ──
+
+  it('S27. 범례 라벨 커스텀 → legend.customLabels', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'add', path: '/encoding/color', value: {
+        field: 'species', type: 'nominal',
+        legend: { customLabels: { 'A': '종 A', 'B': '종 B', 'C': '종 C' } },
+      }},
+    ]));
+
+    const spec = baseSpec();
+    const response = await editChart(buildAiEditRequest(spec, '범례 라벨을 한글로'));
+    const result = applyAndValidatePatches(spec, response.patches);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.spec.encoding.color?.legend?.customLabels).toEqual({
+        'A': '종 A', 'B': '종 B', 'C': '종 C',
+      });
+    }
+  });
+
+  // ── S28: 잘못된 orientation 값 → Zod 거부 ──
+
+  it('S28. orientation = "vertical" (무효) → Zod 검증 실패', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'add', path: '/orientation', value: 'vertical' },
+    ]));
+
+    const spec = baseSpec();
+    const response = await editChart(buildAiEditRequest(spec, '세로 막대로'));
+    const result = applyAndValidatePatches(spec, response.patches);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toContain('orientation');
+    }
+  });
+
+  // ── S29: exportConfig 투명 배경 ──
+
+  it('S29. 투명 배경 PNG → exportConfig.transparentBackground = true', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'replace', path: '/exportConfig/format', value: 'png' },
+      { op: 'add', path: '/exportConfig/transparentBackground', value: true },
+    ]));
+
+    const spec = baseSpec();
+    const response = await editChart(buildAiEditRequest(spec, '투명 배경 PNG로 내보내기'));
+    const result = applyAndValidatePatches(spec, response.patches);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.spec.exportConfig.format).toBe('png');
+      expect(result.spec.exportConfig.transparentBackground).toBe(true);
+    }
+  });
+
+  // ── S30: showDataLabels + showSampleCounts ──
+
+  it('S30. 데이터 라벨 + 표본 수 표시 → style.showDataLabels + showSampleCounts', async () => {
+    mockRaw.mockResolvedValue(mockResponse([
+      { op: 'add', path: '/style/showDataLabels', value: true },
+      { op: 'add', path: '/style/showSampleCounts', value: true },
+    ]));
+
+    const spec = baseSpec();
+    const response = await editChart(buildAiEditRequest(spec, '막대 위에 값 표시하고 표본 수도 보여줘'));
+    const result = applyAndValidatePatches(spec, response.patches);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.spec.style.showDataLabels).toBe(true);
+      expect(result.spec.style.showSampleCounts).toBe(true);
+    }
+  });
+});
+
 // ─── buildAiEditRequest 엣지 케이스 ──────────────────────
 
 describe('buildAiEditRequest 엣지 케이스', () => {

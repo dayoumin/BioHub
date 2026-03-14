@@ -1,40 +1,34 @@
 'use client';
 
 /**
- * 데이터 업로드 패널 — Graph Studio 첫 화면
+ * 데이터 업로드 패널 — Graph Studio Step 1 (데이터 선택 전용)
  *
- * 2026 UX 개선: Template-first + Dual CTA + Bento 썸네일
- * - 차트 유형 6개 썸네일 클릭 → 샘플 데이터로 즉시 에디터 진입
- * - "샘플로 시작하기" 버튼 (bar 기본)
- * - 파일 업로드 (CSV/TSV/XLSX) — 기존 동작 유지
+ * - 파일 업로드 (CSV/TSV/XLSX) — 드래그 & 드롭 + 클릭
+ * - "샘플 데이터로 시작" 버튼
  * - Feature highlights (AI 편집 / 프리셋 / 내보내기)
+ *
+ * 차트 유형 선택은 Step 2 (ChartSetupPanel)에서 처리
  */
 
 import { useCallback, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { motion } from 'framer-motion';
-import Papa from 'papaparse';
 import {
-  BarChart2,
-  ScatterChart,
-  LineChart,
-  SlidersHorizontal,
-  BarChart,
-  Grid3X3,
   Upload,
   Sparkles,
   BookOpen,
   Download,
-  ChevronRight,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion';
-import { inferColumnMeta, selectXYFields } from '@/lib/graph-studio/chart-spec-utils';
-import { createDefaultChartSpec, CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
-import { actionCardBase, iconContainerMuted, staggerContainer, staggerItem } from '@/components/common/card-styles';
-import type { ChartType, DataPackage } from '@/types/graph-studio';
+import { inferColumnMeta } from '@/lib/graph-studio/chart-spec-utils';
+import { parseFile } from '@/lib/graph-studio/file-parser';
+import { StepIndicator } from '@/components/graph-studio/StepIndicator';
+import { iconContainerMuted, staggerContainer, staggerItem } from '@/components/common/card-styles';
+import type { DataPackage } from '@/types/graph-studio';
 
 // ─── 샘플 데이터 (어류 성장, 3종 × 10행) ──────────────────
 //
@@ -94,24 +88,6 @@ function buildSamplePackage(sourceId: string): DataPackage {
   };
 }
 
-// ─── 차트 썸네일 정의 ──────────────────────────────────────
-
-interface ChartThumbnail {
-  type: ChartType;
-  label: string;
-  desc: string;
-  Icon: React.ComponentType<{ className?: string }>;
-}
-
-const CHART_THUMBNAILS: ChartThumbnail[] = [
-  { type: 'bar', label: '막대 차트', desc: '범주 비교', Icon: BarChart2 },
-  { type: 'scatter', label: '산점도', desc: '변수 상관', Icon: ScatterChart },
-  { type: 'line', label: '꺾은선 그래프', desc: '시계열/추세', Icon: LineChart },
-  { type: 'boxplot', label: '박스 플롯', desc: '분포 비교', Icon: SlidersHorizontal },
-  { type: 'histogram', label: '히스토그램', desc: '빈도 분포', Icon: BarChart },
-  { type: 'heatmap', label: '히트맵', desc: '교차 분석', Icon: Grid3X3 },
-];
-
 // ─── Feature highlights ────────────────────────────────────
 
 const FEATURES = [
@@ -123,125 +99,42 @@ const FEATURES = [
 // ─── 메인 컴포넌트 ─────────────────────────────────────────
 
 export function DataUploadPanel(): React.ReactElement {
-  const { loadDataPackage, loadDataPackageWithSpec } = useGraphStudioStore();
+  const loadDataOnly = useGraphStudioStore(state => state.loadDataOnly);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const prefersReducedMotion = useReducedMotion();
 
-  // ── 차트 유형 선택 → 샘플 로드 ──────────────────────────
-  const handleChartTypeSelect = useCallback(
-    (chartType: ChartType) => {
-      const sourceId = `sample-${Date.now()}`;
-      const pkg = buildSamplePackage(sourceId);
-      const { xField, yField } = selectXYFields(pkg.columns, CHART_TYPE_HINTS[chartType]);
-      const spec = createDefaultChartSpec(sourceId, chartType, xField, yField, pkg.columns);
+  // ── 샘플 데이터 로드 (차트 미생성 → Step 2로 이동) ───────
+  const handleSampleData = useCallback(() => {
+    const sourceId = `sample-${Date.now()}`;
+    const pkg = buildSamplePackage(sourceId);
+    loadDataOnly(pkg);
+  }, [loadDataOnly]);
 
-      // line/scatter 차트: 샘플 데이터의 nominal 컬럼(species)을 color encoding으로 자동 설정
-      // → 3종이 별도 시리즈로 구분되어 렌더링됨 (미설정 시 30점이 단일 선으로 연결되는 zigzag 발생)
-      if (chartType === 'line' || chartType === 'scatter') {
-        const nominalCol = pkg.columns.find(
-          c => c.type === 'nominal' && c.name !== xField && c.name !== yField,
-        );
-        if (nominalCol) {
-          spec.encoding.color = { field: nominalCol.name, type: 'nominal' };
-        }
-      }
-
-      // DataPackage + ChartSpec을 단일 set()으로 원자적 등록 (중간 렌더 없음)
-      loadDataPackageWithSpec(pkg, spec);
-    },
-    [loadDataPackageWithSpec],
-  );
-
-  // ── 파일 처리 (기존 로직 유지) ───────────────────────────
-  const processData = useCallback(
-    (fileName: string, data: Record<string, unknown>[]) => {
-      const sourceId = `${fileName}-${Date.now()}`;
-      const columns = inferColumnMeta(data);
-      const dataRecord: Record<string, unknown[]> = {};
-      for (const col of columns) {
-        dataRecord[col.name] = data.map(row => row[col.name]);
-      }
-      const pkg: DataPackage = {
-        id: sourceId,
-        source: 'upload',
-        label: fileName,
-        columns,
-        data: dataRecord,
-        createdAt: new Date().toISOString(),
-      };
-      loadDataPackage(pkg);
-    },
-    [loadDataPackage],
-  );
-
-  const parseCsv = useCallback(
-    async (file: File) => {
-      const isTsv = file.name.toLowerCase().endsWith('.tsv');
-      return new Promise<void>((resolve, reject) => {
-        Papa.parse<Record<string, unknown>>(file, {
-          header: true,
-          dynamicTyping: true,
-          skipEmptyLines: true,
-          delimiter: isTsv ? '\t' : ',',
-          complete: (results) => {
-            if (results.errors.length > 0) {
-              reject(new Error(`CSV 파싱 오류: ${results.errors[0].message}`));
-              return;
-            }
-            if (results.data.length === 0) {
-              reject(new Error('데이터가 비어 있습니다'));
-              return;
-            }
-            processData(file.name, results.data);
-            resolve();
-          },
-          error: (err) => reject(new Error(err.message)),
-        });
-      });
-    },
-    [processData],
-  );
-
-  const parseExcel = useCallback(
-    async (file: File) => {
-      const XLSX = await import('xlsx');
-      const buffer = await file.arrayBuffer();
-      const workbook = XLSX.read(buffer, { type: 'array' });
-      const firstSheet = workbook.SheetNames[0];
-      if (!firstSheet || !workbook.Sheets[firstSheet]) {
-        throw new Error('워크북에 시트가 없습니다');
-      }
-      const data = XLSX.utils.sheet_to_json<Record<string, unknown>>(
-        workbook.Sheets[firstSheet],
-      );
-      if (data.length === 0) throw new Error('데이터가 비어 있습니다');
-      processData(file.name, data);
-    },
-    [processData],
-  );
-
+  // ── 파일 처리 (데이터만 로드 → Step 2로 이동) ────────────
   const handleFile = useCallback(
     async (file: File) => {
       setError(null);
       setIsLoading(true);
       try {
-        const ext = file.name.split('.').pop()?.toLowerCase();
-        if (ext === 'csv' || ext === 'tsv') {
-          await parseCsv(file);
-        } else if (ext === 'xlsx' || ext === 'xls') {
-          await parseExcel(file);
-        } else {
-          setError('지원하는 형식: CSV, TSV, XLSX, XLS');
-        }
+        const { columns, data } = await parseFile(file);
+        const pkg: DataPackage = {
+          id: `${file.name}-${Date.now()}`,
+          source: 'upload',
+          label: file.name,
+          columns,
+          data,
+          createdAt: new Date().toISOString(),
+        };
+        loadDataOnly(pkg);
       } catch (err) {
         setError(err instanceof Error ? err.message : '파일 파싱 실패');
       } finally {
         setIsLoading(false);
       }
     },
-    [parseCsv, parseExcel],
+    [loadDataOnly],
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -279,48 +172,26 @@ export function DataUploadPanel(): React.ReactElement {
           분포·상관·추세를 논문 수준으로
         </h2>
 
-        {/* 단계 표시 — 클릭 불가, 현재 단계를 pill로 강조 */}
-        <div className="flex items-center justify-center gap-1 mt-3 text-[13px] text-muted-foreground">
-          {['① 데이터 선택', '② 편집', '③ 내보내기'].map((step, i) => (
-            <span key={step} className="flex items-center gap-1">
-              {i > 0 && <ChevronRight className="h-3 w-3" />}
-              {i === 0 ? (
-                <span className="font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                  {step}
-                </span>
-              ) : (
-                <span>{step}</span>
-              )}
-            </span>
-          ))}
+        <div className="mt-3">
+          <StepIndicator currentStep={0} />
         </div>
       </motion.div>
 
-      {/* ── 차트 유형 썸네일 (시맨틱 카드 스타일) ──────── */}
-      <motion.div {...(prefersReducedMotion ? {} : { variants: staggerItem })}>
-        <h3 className="text-lg font-bold mb-3">차트 유형으로 바로 시작</h3>
-        <div className="grid grid-cols-3 gap-3">
-          {CHART_THUMBNAILS.map(({ type, label, desc, Icon }) => (
-            <button
-              key={type}
-              type="button"
-              onClick={() => handleChartTypeSelect(type)}
-              className={cn(actionCardBase, 'gap-2 p-4 cursor-pointer')}
-              data-testid={`graph-studio-chart-type-${type}`}
-            >
-              <div className={iconContainerMuted}>
-                <Icon className="w-5 h-5" />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-medium text-foreground leading-tight">{label}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground text-center mt-2">
-          클릭하면 샘플 데이터(어류 성장)로 즉시 시작됩니다
-        </p>
+      {/* ── 샘플 데이터로 시작 ─────────────────────────── */}
+      <motion.div
+        className="text-center"
+        {...(prefersReducedMotion ? {} : { variants: staggerItem })}
+      >
+        <Button
+          variant="outline"
+          size="lg"
+          className="gap-2"
+          onClick={handleSampleData}
+          data-testid="graph-studio-sample-btn"
+        >
+          <FileSpreadsheet className="h-4 w-4" />
+          샘플 데이터로 시작 (어류 성장)
+        </Button>
       </motion.div>
 
       {/* ── 파일 업로드 + 드래그 존 ───────────────────── */}
