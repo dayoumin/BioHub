@@ -707,7 +707,6 @@ vi.mock('@/lib/services/result-interpreter', () => ({
 
 // Store mock
 const defaultStoreState = {
-  saveToHistory: vi.fn(),
   reset: vi.fn(),
   setCurrentStep: vi.fn(),
   navigateToStep: vi.fn(),
@@ -715,7 +714,6 @@ const defaultStoreState = {
   setUploadedFile: vi.fn(),
   setValidationResults: vi.fn(),
   setResults: vi.fn(),
-  setIsReanalysisMode: vi.fn(),
   uploadedData: [{ score: 10, group: 'A' }, { score: 12, group: 'B' }],
   variableMapping: { dependentVar: 'score', groupVar: 'group' },
   uploadedFileName: 'test-data.csv',
@@ -727,7 +725,38 @@ const defaultStoreState = {
 let mockStoreState = { ...defaultStoreState }
 
 vi.mock('@/lib/stores/analysis-store', () => ({
-  useAnalysisStore: () => mockStoreState
+  useAnalysisStore: Object.assign(() => mockStoreState, {
+    getState: () => mockStoreState,
+  }),
+}))
+
+// Mode store mock (setIsReanalysisMode)
+const defaultModeStoreState = {
+  setIsReanalysisMode: vi.fn(),
+}
+
+let mockModeStoreState = { ...defaultModeStoreState }
+
+vi.mock('@/lib/stores/mode-store', () => ({
+  useModeStore: Object.assign(() => mockModeStoreState, {
+    getState: () => mockModeStoreState,
+  }),
+}))
+
+// History store mock (saveToHistory, loadedInterpretationChat, currentHistoryId)
+const defaultHistoryStoreState = {
+  saveToHistory: vi.fn(),
+  loadedInterpretationChat: null,
+  currentHistoryId: null,
+  setLoadedInterpretationChat: vi.fn(),
+}
+
+let mockHistoryStoreState = { ...defaultHistoryStoreState }
+
+vi.mock('@/lib/stores/history-store', () => ({
+  useHistoryStore: Object.assign(() => mockHistoryStoreState, {
+    getState: () => mockHistoryStoreState,
+  }),
 }))
 
 // Converter mock (vi.hoisted: vi.mock보다 먼저 초기화)
@@ -752,6 +781,8 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockStoreState = { ...defaultStoreState }
+    mockModeStoreState = { ...defaultModeStoreState }
+    mockHistoryStoreState = { ...defaultHistoryStoreState }
   })
 
   const baseResults: AnalysisResult = {
@@ -1119,8 +1150,10 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
     beforeEach(() => {
       vi.clearAllMocks()
       mockStoreState = { ...defaultStoreState }
+      mockModeStoreState = { ...defaultModeStoreState }
+      mockHistoryStoreState = { ...defaultHistoryStoreState }
       mockConvert.mockReturnValue(fullStatResult)
-      mockStoreState.saveToHistory = vi.fn().mockResolvedValue(undefined)
+      mockHistoryStoreState.saveToHistory = vi.fn().mockResolvedValue(undefined)
     })
 
     it('저장 버튼 클릭 → saveToHistory() 호출 (파일 다운로드 없음)', async () => {
@@ -1131,7 +1164,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
         fireEvent.click(saveBtn)
       })
 
-      expect(mockStoreState.saveToHistory).toHaveBeenCalledTimes(1)
+      expect(mockHistoryStoreState.saveToHistory).toHaveBeenCalledTimes(1)
       // 파일 내보내기는 호출되지 않음
       expect(mockExportService.export).not.toHaveBeenCalled()
     })
@@ -1182,7 +1215,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
 
     it('saveToHistory 오류 → 에러 토스트', async () => {
       const { toast } = await import('sonner')
-      mockStoreState.saveToHistory = vi.fn().mockRejectedValue(new Error('IndexedDB 오류'))
+      mockHistoryStoreState.saveToHistory = vi.fn().mockRejectedValue(new Error('IndexedDB 오류'))
 
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
@@ -1201,7 +1234,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       renderWithAct(<ResultsActionStep results={null} />)
 
       expect(screen.queryByText('저장')).not.toBeInTheDocument()
-      expect(mockStoreState.saveToHistory).not.toHaveBeenCalled()
+      expect(mockHistoryStoreState.saveToHistory).not.toHaveBeenCalled()
     })
   })
 
@@ -1218,6 +1251,8 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
     beforeEach(() => {
       vi.clearAllMocks()
       mockStoreState = { ...defaultStoreState }
+      mockModeStoreState = { ...defaultModeStoreState }
+      mockHistoryStoreState = { ...defaultHistoryStoreState }
       mockConvert.mockReturnValue(fullStatResult)
       mockExportService.export.mockResolvedValue({
         success: true,
@@ -1266,7 +1301,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
           expect(toast.error).toHaveBeenCalled()
         })
         // 파일 내보내기는 saveToHistory를 호출하지 않음
-        expect(mockStoreState.saveToHistory).not.toHaveBeenCalled()
+        expect(mockHistoryStoreState.saveToHistory).not.toHaveBeenCalled()
       } else {
         expect(exportTrigger).toBeInTheDocument()
       }
@@ -1296,7 +1331,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       expect(mockStoreState.setUploadedData).toHaveBeenCalledWith(null)
       expect(mockStoreState.setUploadedFile).toHaveBeenCalledWith(null)
       expect(mockStoreState.setResults).toHaveBeenCalledWith(null)
-      expect(mockStoreState.setIsReanalysisMode).toHaveBeenCalledWith(true)
+      expect(mockModeStoreState.setIsReanalysisMode).toHaveBeenCalledWith(true)
       expect(mockStoreState.navigateToStep).toHaveBeenCalledWith(1)
     })
 
@@ -1331,6 +1366,8 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
     beforeEach(async () => {
       vi.clearAllMocks()
       mockStoreState = { ...defaultStoreState }
+      mockModeStoreState = { ...defaultModeStoreState }
+      mockHistoryStoreState = { ...defaultHistoryStoreState }
       mockConvert.mockReturnValue({
         testName: 't-검정',
         statistic: 2.456,

@@ -1,7 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { useModeStore } from '@/lib/stores/mode-store'
+import { useHistoryStore } from '@/lib/stores/history-store'
+import { loadAndRestoreHistory } from '@/lib/stores/store-orchestration'
 import { useAnalysisHandlers } from '@/hooks/use-analysis-handlers'
 import { useTerminology } from '@/hooks/use-terminology'
 import { getRecommendations } from '@/lib/services/consultant-service'
@@ -27,7 +29,7 @@ export default function HomePage() {
     setShowHub,
     setPurposeInputMode,
     setUserQuery,
-  } = useAnalysisStore()
+  } = useModeStore()
 
   const handlers = useAnalysisHandlers(showHub)
   const {
@@ -102,7 +104,7 @@ export default function HomePage() {
   const handleHistorySelect = useCallback(async (historyId: string) => {
     try {
       setConsultantResponse(null)
-      await useAnalysisStore.getState().loadFromHistory(historyId)
+      await loadAndRestoreHistory(historyId)
       setShowHub(false)
     } catch (err) {
       console.error('Failed to load history', err)
@@ -110,7 +112,7 @@ export default function HomePage() {
   }, [setShowHub])
 
   const handleHistoryDelete = useCallback(async (historyId: string) => {
-    await useAnalysisStore.getState().deleteFromHistory(historyId)
+    await useHistoryStore.getState().deleteFromHistory(historyId)
   }, [])
 
   const handleHubUploadClick = useCallback(() => {

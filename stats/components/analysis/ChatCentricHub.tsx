@@ -18,7 +18,7 @@ import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { intentRouter } from '@/lib/services/intent-router'
-import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { useModeStore } from '@/lib/stores/mode-store'
 import { logger } from '@/lib/utils/logger'
 import type { ResolvedIntent, ConsultantResponse } from '@/types/analysis'
 import { useTerminology } from '@/hooks/use-terminology'
@@ -74,7 +74,7 @@ export function ChatCentricHub({
 }: ChatCentricHubProps) {
   const prefersReducedMotion = useReducedMotion()
   const t = useTerminology()
-  const { setActiveTrack } = useAnalysisStore()
+  const { setActiveTrack } = useModeStore()
 
   const [isProcessing, setIsProcessing] = useState(false)
   const isProcessingRef = useRef(false)

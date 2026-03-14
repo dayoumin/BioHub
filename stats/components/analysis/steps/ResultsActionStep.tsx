@@ -33,6 +33,9 @@ import {
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AnalysisResult } from '@/types/analysis'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { useHistoryStore } from '@/lib/stores/history-store'
+import { useModeStore } from '@/lib/stores/mode-store'
+import { buildHistorySnapshot } from '@/lib/stores/store-orchestration'
 import { startNewAnalysis } from '@/lib/services/data-management'
 import { ExportService } from '@/lib/services/export/export-service'
 import type { ExportFormat, ExportContext, ExportContentOptions } from '@/lib/services/export/export-types'
@@ -132,22 +135,20 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   }, [prefersReducedMotion])
 
   const {
-    saveToHistory,
     reset,
     setUploadedData,
     setUploadedFile,
     setValidationResults,
     setResults,
-    setIsReanalysisMode,
     navigateToStep,
     uploadedData,
     variableMapping,
     uploadedFileName,
     selectedMethod,
     assumptionResults,
-    loadedInterpretationChat,
-    currentHistoryId,
   } = useAnalysisStore()
+  const { setIsReanalysisMode } = useModeStore()
+  const { saveToHistory, loadedInterpretationChat, currentHistoryId } = useHistoryStore()
 
   // 히스토리 전환 시 Q&A·Phase·UI 초기화 (AI 해석은 useInterpretation이 처리)
   const prevHistoryIdRef = useRef<string | null | undefined>(undefined)
@@ -184,7 +185,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     if (loadedInterpretationChat?.length) {
       setFollowUpMessages(loadedInterpretationChat)
       // 소비 후 store에서 제거 (재렌더링 시 중복 방지)
-      useAnalysisStore.setState({ loadedInterpretationChat: null })
+      useHistoryStore.getState().setLoadedInterpretationChat(null)
     }
   }, [loadedInterpretationChat])
 
@@ -367,7 +368,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     })}`
 
     try {
-      await saveToHistory(historyName, {
+      await saveToHistory(buildHistorySnapshot(), historyName, {
         aiInterpretation: interpretation,
         apaFormat,
         interpretationChat: !isFollowUpStreaming && followUpMessages.length > 0 ? followUpMessages : undefined,
@@ -426,7 +427,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           const historyName = `${historyLabel} — ${new Date().toLocaleString('ko-KR', {
             month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
           })}`
-          saveToHistory(historyName, {
+          saveToHistory(buildHistorySnapshot(), historyName, {
             aiInterpretation: interpretation,
             apaFormat,
             interpretationChat: !isFollowUpStreaming && followUpMessages.length > 0 ? followUpMessages : undefined,

@@ -11,6 +11,7 @@ import type { PurposeInputStepProps } from '@/types/analysis-navigation'
 import type { AnalysisPurpose, AIRecommendation, ColumnStatistics, StatisticalMethod, AutoAnswerResult, AnalysisCategory, SubcategoryDefinition, FlowChatMessage } from '@/types/analysis'
 import { logger } from '@/lib/utils/logger'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { useModeStore } from '@/lib/stores/mode-store'
 import { StepHeader } from '@/components/analysis/common'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { DecisionTreeRecommender } from '@/lib/services/decision-tree-recommender'
@@ -130,7 +131,7 @@ export function PurposeInputStep({
   const [flowState, flowDispatch] = useReducer(flowReducer, initialFlowState)
 
   // Store에서 초기 입력 모드 가져오기 (useState보다 먼저 선언)
-  const storePurposeInputMode = useAnalysisStore(state => state.purposeInputMode)
+  const storePurposeInputMode = useModeStore(state => state.purposeInputMode)
 
   const [selectedPurpose, setSelectedPurpose] = useState<AnalysisPurpose | null>(null)
   // Note: Variable selection is handled in VariableSelectionStep
@@ -164,9 +165,9 @@ export function PurposeInputStep({
   const setSelectedMethod = useAnalysisStore(state => state.setSelectedMethod)
   const setDetectedVariables = useAnalysisStore(state => state.setDetectedVariables)
   const setSuggestedSettings = useAnalysisStore(state => state.setSuggestedSettings)
-  const userQuery = useAnalysisStore(state => state.userQuery)
-  const setUserQuery = useAnalysisStore(state => state.setUserQuery)
-  const setLastAiRecommendation = useAnalysisStore(state => state.setLastAiRecommendation)
+  const userQuery = useModeStore(state => state.userQuery)
+  const setUserQuery = useModeStore(state => state.setUserQuery)
+  const setLastAiRecommendation = useModeStore(state => state.setLastAiRecommendation)
 
   // Data profile for MethodBrowser
   const dataProfile = useMemo(() => {

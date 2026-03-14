@@ -89,8 +89,8 @@ const mockAnalysisHistory: Array<{
   dataFileName: string
 }> = []
 
-vi.mock('@/lib/stores/analysis-store', () => ({
-  useAnalysisStore: () => ({
+vi.mock('@/lib/stores/history-store', () => ({
+  useHistoryStore: () => ({
     analysisHistory: mockAnalysisHistory,
   }),
 }))

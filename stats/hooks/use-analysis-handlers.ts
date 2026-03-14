@@ -10,6 +10,8 @@
 import { useCallback, useEffect, useState, useRef, useTransition, useMemo } from 'react'
 import { toast } from 'sonner'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { useModeStore } from '@/lib/stores/mode-store'
+import { useHistoryStore } from '@/lib/stores/history-store'
 import { DataValidationService } from '@/lib/services/data-validation-service'
 import { checkVariableCompatibility, CompatibilityResult } from '@/lib/utils/variable-compatibility'
 import { extractDetectedVariables } from '@/lib/services/variable-detection-service'
@@ -19,7 +21,7 @@ import { useTerminology } from '@/hooks/use-terminology'
 import type { ColumnInfo } from '@/lib/statistics/variable-mapping'
 import type { StatisticalMethod, AnalysisResult, DataRow, ValidationResults } from '@/types/analysis'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
-import type { AnalysisHistory } from '@/lib/stores/analysis-store'
+import type { AnalysisHistory } from '@/lib/stores/history-store'
 
 interface AnalysisHandlersReturn {
   // Store state (리렌더 트리거용)
@@ -84,7 +86,7 @@ export function useAnalysisHandlers(
   const [reanalysisCompatibility, setReanalysisCompatibility] = useState<CompatibilityResult | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  // Zustand store
+  // Zustand stores
   const {
     currentStep,
     completedSteps,
@@ -96,7 +98,6 @@ export function useAnalysisHandlers(
     results,
     isLoading,
     error,
-    analysisHistory,
     setUploadedFile,
     setUploadedData,
     setValidationResults,
@@ -109,12 +110,12 @@ export function useAnalysisHandlers(
     goToPreviousStep,
     navigateToStep,
     canNavigateToStep,
-    isReanalysisMode,
-    quickAnalysisMode,
-    setQuickAnalysisMode,
     setDetectedVariables,
     patchColumnNormality,
   } = useAnalysisStore()
+
+  const { isReanalysisMode, quickAnalysisMode, setQuickAnalysisMode } = useModeStore()
+  const { analysisHistory } = useHistoryStore()
 
   // 스텝 전환 애니메이션 방향 추적
   const prevStepRef = useRef(currentStep)
@@ -133,7 +134,7 @@ export function useAnalysisHandlers(
 
   // Load history from IndexedDB
   useEffect(() => {
-    useAnalysisStore.getState().loadHistoryFromDB().catch(console.error)
+    useHistoryStore.getState().loadHistoryFromDB().catch(console.error)
   }, [])
 
   // Reset compatibility when leaving reanalysis mode
@@ -177,15 +178,16 @@ export function useAnalysisHandlers(
       const detailedValidation = DataValidationService.performValidation(data)
       setValidationResults(detailedValidation)
 
-      const currentState = useAnalysisStore.getState()
-      if (currentState.isReanalysisMode && currentState.variableMapping) {
+      const currentAnalysis = useAnalysisStore.getState()
+      const currentMode = useModeStore.getState()
+      if (currentMode.isReanalysisMode && currentAnalysis.variableMapping) {
         const columns: ColumnInfo[] = detailedValidation.columnStats?.map(col => ({
           name: col.name,
           type: col.type as 'numeric' | 'categorical' | 'date' | 'text',
           uniqueValues: col.uniqueValues,
           missing: col.missingCount,
         })) ?? []
-        const compatibility = checkVariableCompatibility(currentState.variableMapping, columns)
+        const compatibility = checkVariableCompatibility(currentAnalysis.variableMapping, columns)
         setReanalysisCompatibility(compatibility)
       }
 
@@ -204,9 +206,9 @@ export function useAnalysisHandlers(
       }
 
       // 빠른 분석 모드: 업로드 직후 Step 3으로 자동 이동
-      if (currentState.quickAnalysisMode && currentState.selectedMethod && !currentState.isReanalysisMode) {
+      if (currentMode.quickAnalysisMode && currentAnalysis.selectedMethod && !currentMode.isReanalysisMode) {
         const detectedVars = extractDetectedVariables(
-          currentState.selectedMethod.id,
+          currentAnalysis.selectedMethod.id,
           detailedValidation,
           null,
         )

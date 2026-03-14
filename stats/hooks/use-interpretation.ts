@@ -12,7 +12,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { useHistoryStore } from '@/lib/stores/history-store'
 import { getHistory } from '@/lib/utils/storage'
 import { requestInterpretation, type InterpretationContext } from '@/lib/services/result-interpreter'
 import type { AnalysisResult } from '@/types/analysis'
@@ -101,7 +101,7 @@ export function useInterpretation({
   const {
     loadedAiInterpretation,
     currentHistoryId,
-  } = useAnalysisStore()
+  } = useHistoryStore()
 
   // ─── handleInterpretation ───
   const handleInterpretation = useCallback(async () => {
@@ -191,7 +191,7 @@ export function useInterpretation({
     interpretAbortRef.current?.abort()
 
     // 히스토리에 저장된 해석이 있으면 복원, 없으면 직접 해석 요청
-    const cached = useAnalysisStore.getState().loadedAiInterpretation
+    const cached = useHistoryStore.getState().loadedAiInterpretation
     setInterpretation(cached ?? null)
     setInterpretationModel(null)
     setIsInterpreting(false)
@@ -212,7 +212,7 @@ export function useInterpretation({
       if (results) {
         sentinelRef.current = buildCacheKey(results, variableMapping)
       }
-      useAnalysisStore.setState({ loadedAiInterpretation: null })
+      useHistoryStore.getState().setLoadedAiInterpretation(null)
     }
   }, [loadedAiInterpretation, results, variableMapping])
 

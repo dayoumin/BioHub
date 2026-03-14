@@ -12,6 +12,7 @@ import React from 'react'
 import { render, act, waitFor } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { useHistoryStore } from '@/lib/stores/history-store'
 import type { AnalysisResult } from '@/types/analysis'
 
 // ─── Mocks ───────────────────────────────────────────────
@@ -249,7 +250,7 @@ function setupStore(results: AnalysisResult, historyId: string | null = null): v
   store.setCurrentStep(4)
   if (historyId) {
     // loadFromHistory 시뮬레이션: currentHistoryId + loadedAiInterpretation 설정
-    useAnalysisStore.setState({ currentHistoryId: historyId })
+    useHistoryStore.setState({ currentHistoryId: historyId })
   }
 }
 
@@ -289,10 +290,12 @@ describe('3차 리뷰 이슈 1: 같은 세션 히스토리 전환 — cache miss
     })
 
     // 2단계: 히스토리 A로 전환 (해석 있음)
-    useAnalysisStore.setState({
+    useHistoryStore.setState({
       currentHistoryId: 'history-A',
-      results: resultsA,
       loadedAiInterpretation: '히스토리 A의 캐시된 해석',
+    })
+    useAnalysisStore.setState({
+      results: resultsA,
     })
     await act(async () => {
       rerender(<ResultsActionStep results={resultsA} />)
@@ -303,10 +306,12 @@ describe('3차 리뷰 이슈 1: 같은 세션 히스토리 전환 — cache miss
     const callsBefore = requestInterpretationMock.mock.calls.length
 
     // 3단계: 히스토리 B로 전환 (해석 없음)
-    useAnalysisStore.setState({
+    useHistoryStore.setState({
       currentHistoryId: 'history-B',
-      results: resultsB,
       loadedAiInterpretation: null, // ★ 해석 없음
+    })
+    useAnalysisStore.setState({
+      results: resultsB,
     })
 
     await act(async () => {
@@ -329,10 +334,12 @@ describe('3차 리뷰 이슈 1: 같은 세션 히스토리 전환 — cache miss
     })
 
     // 2단계: 히스토리 A로 전환
-    useAnalysisStore.setState({
+    useHistoryStore.setState({
       currentHistoryId: 'history-A',
-      results: resultsA,
       loadedAiInterpretation: '히스토리 A 해석',
+    })
+    useAnalysisStore.setState({
+      results: resultsA,
     })
     await act(async () => {
       rerender(<ResultsActionStep results={resultsA} />)
@@ -342,10 +349,12 @@ describe('3차 리뷰 이슈 1: 같은 세션 히스토리 전환 — cache miss
     requestInterpretationMock.mockClear()
 
     // 3단계: 히스토리 C (해석 있음)
-    useAnalysisStore.setState({
+    useHistoryStore.setState({
       currentHistoryId: 'history-C',
-      results: resultsB,
       loadedAiInterpretation: '히스토리 C의 캐시된 해석',
+    })
+    useAnalysisStore.setState({
+      results: resultsB,
     })
 
     await act(async () => {
@@ -406,10 +415,12 @@ describe('3차 리뷰 이슈 2: 새로고침 getHistory() stale 응답 방어', 
     })
 
     // getHistory 응답 도착 전에 다른 히스토리로 전환
-    useAnalysisStore.setState({
+    useHistoryStore.setState({
       currentHistoryId: 'new-id',
-      results: resultsB,
       loadedAiInterpretation: '새 히스토리 해석',
+    })
+    useAnalysisStore.setState({
+      results: resultsB,
     })
 
     await act(async () => {
@@ -427,7 +438,7 @@ describe('3차 리뷰 이슈 2: 새로고침 getHistory() stale 응답 방어', 
 
     // 검증: 현재 store의 히스토리 ID가 'new-id'이고,
     // 'old-id' 기준 해석이 설정되지 않았음을 확인
-    const state = useAnalysisStore.getState()
+    const state = useHistoryStore.getState()
     expect(state.currentHistoryId).toBe('new-id')
   })
 
@@ -454,10 +465,12 @@ describe('3차 리뷰 이슈 2: 새로고침 getHistory() stale 응답 방어', 
     requestInterpretationMock.mockClear()
 
     // 전환
-    useAnalysisStore.setState({
+    useHistoryStore.setState({
       currentHistoryId: 'new-id',
-      results: resultsB,
       loadedAiInterpretation: '새 해석',
+    })
+    useAnalysisStore.setState({
+      results: resultsB,
     })
     await act(async () => {
       rerender(<ResultsActionStep results={resultsB} />)

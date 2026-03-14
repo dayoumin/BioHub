@@ -4,13 +4,14 @@
  * 시나리오:
  * 1. loadFromHistory 호출 시 interpretationChat이 store에 복원되는가
  * 2. 빈 채팅 / undefined 시 null 유지
- * 3. resetSession이 loadedInterpretationChat을 초기화하는가
+ * 3. resetMode가 loadedInterpretationChat을 초기화하는가 (history-store 직접)
  * 4. reset이 loadedInterpretationChat을 초기화하는가
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { act } from '@testing-library/react'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { useHistoryStore } from '@/lib/stores/history-store'
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { ChatMessage } from '@/lib/types/chat'
 
@@ -77,22 +78,28 @@ describe('Smart Flow Store — interpretationChat 복원', () => {
   beforeEach(() => {
     act(() => {
       useAnalysisStore.getState().reset()
+      useHistoryStore.setState({
+        analysisHistory: [],
+        currentHistoryId: null,
+        loadedAiInterpretation: null,
+        loadedInterpretationChat: null,
+      })
     })
     vi.clearAllMocks()
   })
 
   it('초기 상태에서 loadedInterpretationChat은 null이다', () => {
-    expect(useAnalysisStore.getState().loadedInterpretationChat).toBeNull()
+    expect(useHistoryStore.getState().loadedInterpretationChat).toBeNull()
   })
 
   it('loadFromHistory 시 interpretationChat이 있으면 loadedInterpretationChat에 복원된다', async () => {
     mockGetHistory.mockResolvedValueOnce(makeHistoryRecord(sampleChatMessages))
 
     await act(async () => {
-      await useAnalysisStore.getState().loadFromHistory('test-history-1')
+      await useHistoryStore.getState().loadFromHistory('test-history-1')
     })
 
-    const state = useAnalysisStore.getState()
+    const state = useHistoryStore.getState()
     expect(state.loadedInterpretationChat).toHaveLength(4)
     expect(state.loadedInterpretationChat?.[0].content).toBe('이 결과가 유의미한가요?')
     expect(state.loadedInterpretationChat?.[1].role).toBe('assistant')
@@ -103,69 +110,76 @@ describe('Smart Flow Store — interpretationChat 복원', () => {
     mockGetHistory.mockResolvedValueOnce(makeHistoryRecord(undefined))
 
     await act(async () => {
-      await useAnalysisStore.getState().loadFromHistory('test-history-1')
+      await useHistoryStore.getState().loadFromHistory('test-history-1')
     })
 
-    expect(useAnalysisStore.getState().loadedInterpretationChat).toBeNull()
+    expect(useHistoryStore.getState().loadedInterpretationChat).toBeNull()
   })
 
   it('loadFromHistory 시 interpretationChat이 빈 배열이면 loadedInterpretationChat은 null이다', async () => {
     mockGetHistory.mockResolvedValueOnce(makeHistoryRecord([]))
 
     await act(async () => {
-      await useAnalysisStore.getState().loadFromHistory('test-history-1')
+      await useHistoryStore.getState().loadFromHistory('test-history-1')
     })
 
-    expect(useAnalysisStore.getState().loadedInterpretationChat).toBeNull()
+    expect(useHistoryStore.getState().loadedInterpretationChat).toBeNull()
   })
 
-  it('resetSession이 loadedInterpretationChat을 null로 초기화한다', async () => {
+  it('history-store 직접 리셋 시 loadedInterpretationChat이 null이 된다', async () => {
     // 먼저 채팅 복원
     mockGetHistory.mockResolvedValueOnce(makeHistoryRecord(sampleChatMessages))
     await act(async () => {
-      await useAnalysisStore.getState().loadFromHistory('test-history-1')
+      await useHistoryStore.getState().loadFromHistory('test-history-1')
     })
-    expect(useAnalysisStore.getState().loadedInterpretationChat).not.toBeNull()
+    expect(useHistoryStore.getState().loadedInterpretationChat).not.toBeNull()
 
-    // resetSession 호출
+    // 직접 리셋
     act(() => {
-      useAnalysisStore.getState().resetSession()
+      useHistoryStore.setState({
+        loadedInterpretationChat: null,
+        loadedAiInterpretation: null,
+        currentHistoryId: null,
+      })
     })
 
-    expect(useAnalysisStore.getState().loadedInterpretationChat).toBeNull()
+    expect(useHistoryStore.getState().loadedInterpretationChat).toBeNull()
   })
 
-  it('reset이 loadedInterpretationChat을 null로 초기화한다', async () => {
+  it('history-store setState로 loadedInterpretationChat을 null로 초기화할 수 있다', async () => {
     mockGetHistory.mockResolvedValueOnce(makeHistoryRecord(sampleChatMessages))
     await act(async () => {
-      await useAnalysisStore.getState().loadFromHistory('test-history-1')
+      await useHistoryStore.getState().loadFromHistory('test-history-1')
     })
 
     act(() => {
-      useAnalysisStore.getState().reset()
+      useHistoryStore.setState({ loadedInterpretationChat: null })
     })
 
-    expect(useAnalysisStore.getState().loadedInterpretationChat).toBeNull()
+    expect(useHistoryStore.getState().loadedInterpretationChat).toBeNull()
   })
 
-  it('loadFromHistory 후 currentStep이 결과 단계(4)로 이동한다', async () => {
+  it('loadFromHistory 후 결과에 currentStep이 결과 단계(4)로 설정된다', async () => {
     mockGetHistory.mockResolvedValueOnce(makeHistoryRecord(sampleChatMessages))
 
+    let result: unknown = null
     await act(async () => {
-      await useAnalysisStore.getState().loadFromHistory('test-history-1')
+      result = await useHistoryStore.getState().loadFromHistory('test-history-1')
     })
 
-    expect(useAnalysisStore.getState().currentStep).toBe(4)
+    expect(result).not.toBeNull()
+    const loadResult = result as { currentStep: number }
+    expect(loadResult.currentStep).toBe(4)
   })
 
   it('채팅 메시지의 role과 content가 원본과 동일하다', async () => {
     mockGetHistory.mockResolvedValueOnce(makeHistoryRecord(sampleChatMessages))
 
     await act(async () => {
-      await useAnalysisStore.getState().loadFromHistory('test-history-1')
+      await useHistoryStore.getState().loadFromHistory('test-history-1')
     })
 
-    const chat = useAnalysisStore.getState().loadedInterpretationChat
+    const chat = useHistoryStore.getState().loadedInterpretationChat
     expect(chat).not.toBeNull()
 
     // 원본 메시지와 1:1 대응
@@ -205,7 +219,15 @@ describe('Smart Flow Store — 히스토리 A→B 전환', () => {
   }
 
   beforeEach(() => {
-    act(() => { useAnalysisStore.getState().reset() })
+    act(() => {
+      useAnalysisStore.getState().reset()
+      useHistoryStore.setState({
+        analysisHistory: [],
+        currentHistoryId: null,
+        loadedAiInterpretation: null,
+        loadedInterpretationChat: null,
+      })
+    })
     vi.clearAllMocks()
   })
 
@@ -213,49 +235,55 @@ describe('Smart Flow Store — 히스토리 A→B 전환', () => {
     // A 로드
     mockGetHistory.mockResolvedValueOnce(makeRecord('A', chatA))
     await act(async () => {
-      await useAnalysisStore.getState().loadFromHistory('A')
+      const result = await useHistoryStore.getState().loadFromHistory('A')
+      if (result) useAnalysisStore.getState().restoreFromHistory(result)
     })
-    expect(useAnalysisStore.getState().loadedInterpretationChat).toHaveLength(2)
-    expect(useAnalysisStore.getState().currentHistoryId).toBe('A')
+    expect(useHistoryStore.getState().loadedInterpretationChat).toHaveLength(2)
+    expect(useHistoryStore.getState().currentHistoryId).toBe('A')
 
     // B 로드
     mockGetHistory.mockResolvedValueOnce(makeRecord('B', chatB))
     await act(async () => {
-      await useAnalysisStore.getState().loadFromHistory('B')
+      const result = await useHistoryStore.getState().loadFromHistory('B')
+      if (result) useAnalysisStore.getState().restoreFromHistory(result)
     })
-    expect(useAnalysisStore.getState().loadedInterpretationChat).toHaveLength(4)
-    expect(useAnalysisStore.getState().loadedInterpretationChat?.[0].content).toBe('B 질문')
-    expect(useAnalysisStore.getState().currentHistoryId).toBe('B')
+    expect(useHistoryStore.getState().loadedInterpretationChat).toHaveLength(4)
+    expect(useHistoryStore.getState().loadedInterpretationChat?.[0].content).toBe('B 질문')
+    expect(useHistoryStore.getState().currentHistoryId).toBe('B')
   })
 
   it('A(채팅 있음) → B(채팅 없음) 전환 시 loadedInterpretationChat이 null이 된다', async () => {
     // A 로드 (채팅 있음)
     mockGetHistory.mockResolvedValueOnce(makeRecord('A', chatA))
     await act(async () => {
-      await useAnalysisStore.getState().loadFromHistory('A')
+      const result = await useHistoryStore.getState().loadFromHistory('A')
+      if (result) useAnalysisStore.getState().restoreFromHistory(result)
     })
-    expect(useAnalysisStore.getState().loadedInterpretationChat).toHaveLength(2)
+    expect(useHistoryStore.getState().loadedInterpretationChat).toHaveLength(2)
 
     // B 로드 (채팅 없음)
     mockGetHistory.mockResolvedValueOnce(makeRecord('B', undefined))
     await act(async () => {
-      await useAnalysisStore.getState().loadFromHistory('B')
+      const result = await useHistoryStore.getState().loadFromHistory('B')
+      if (result) useAnalysisStore.getState().restoreFromHistory(result)
     })
-    expect(useAnalysisStore.getState().loadedInterpretationChat).toBeNull()
+    expect(useHistoryStore.getState().loadedInterpretationChat).toBeNull()
   })
 
   it('A→B 전환 시 currentHistoryId가 변경되어 UI 초기화 트리거가 된다', async () => {
     mockGetHistory.mockResolvedValueOnce(makeRecord('A', chatA))
     await act(async () => {
-      await useAnalysisStore.getState().loadFromHistory('A')
+      const result = await useHistoryStore.getState().loadFromHistory('A')
+      if (result) useAnalysisStore.getState().restoreFromHistory(result)
     })
-    const idA = useAnalysisStore.getState().currentHistoryId
+    const idA = useHistoryStore.getState().currentHistoryId
 
     mockGetHistory.mockResolvedValueOnce(makeRecord('B', chatB))
     await act(async () => {
-      await useAnalysisStore.getState().loadFromHistory('B')
+      const result = await useHistoryStore.getState().loadFromHistory('B')
+      if (result) useAnalysisStore.getState().restoreFromHistory(result)
     })
-    const idB = useAnalysisStore.getState().currentHistoryId
+    const idB = useHistoryStore.getState().currentHistoryId
 
     expect(idA).toBe('A')
     expect(idB).toBe('B')

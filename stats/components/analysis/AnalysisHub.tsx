@@ -28,7 +28,7 @@ import {
   DialogFooter
 } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
-import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { useHistoryStore } from '@/lib/stores/history-store'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import { useTerminology } from '@/hooks/use-terminology'
 
@@ -131,7 +131,7 @@ export function AnalysisHub({
 }: AnalysisHubProps) {
   const t = useTerminology()
   const hub = t.hub
-  const { analysisHistory } = useAnalysisStore()
+  const { analysisHistory } = useHistoryStore()
 
   // 빠른 분석 방법 상태 (LocalStorage 연동)
   const [quickMethods, setQuickMethods] = useState<string[]>(DEFAULT_QUICK_METHODS)

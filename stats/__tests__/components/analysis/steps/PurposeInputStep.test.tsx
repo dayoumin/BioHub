@@ -14,6 +14,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import { vi, Mock } from 'vitest'
 import { PurposeInputStep } from '@/components/analysis/steps/PurposeInputStep'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { useModeStore } from '@/lib/stores/mode-store'
 import { llmRecommender } from '@/lib/services/llm-recommender'
 
 // Mock Terminology hooks (TerminologyProvider 없이 테스트)
@@ -74,6 +75,10 @@ vi.mock('@/hooks/use-terminology', () => ({
 
 vi.mock('@/lib/stores/analysis-store', () => ({
     useAnalysisStore: vi.fn()
+}))
+
+vi.mock('@/lib/stores/mode-store', () => ({
+    useModeStore: vi.fn()
 }))
 
 vi.mock('@/lib/services/decision-tree-recommender', () => ({
@@ -160,18 +165,24 @@ describe('PurposeInputStep', () => {
     beforeEach(() => {
         vi.clearAllMocks()
 
-        const defaultStoreState = {
+        const defaultAnalysisState = {
             assumptionResults: null,
             setSelectedMethod: vi.fn(),
             setDetectedVariables: vi.fn(),
             setSuggestedSettings: vi.fn(),
+        }
+        ;(useAnalysisStore as unknown as Mock).mockImplementation(
+            (selector: (state: typeof defaultAnalysisState) => unknown) => selector(defaultAnalysisState)
+        )
+
+        const defaultModeState = {
             purposeInputMode: 'ai' as const,
             userQuery: null,
             setUserQuery: vi.fn(),
             setLastAiRecommendation: vi.fn(),
         }
-        ;(useAnalysisStore as unknown as Mock).mockImplementation(
-            (selector: (state: typeof defaultStoreState) => unknown) => selector(defaultStoreState)
+        ;(useModeStore as unknown as Mock).mockImplementation(
+            (selector: (state: typeof defaultModeState) => unknown) => selector(defaultModeState)
         )
     })
 
@@ -244,18 +255,14 @@ describe('PurposeInputStep', () => {
         })
 
         it('userQuery 있을 때 해당 쿼리로 LLM을 호출한다', async () => {
-            const defaultStoreState = {
-                assumptionResults: null,
-                setSelectedMethod: vi.fn(),
-                setDetectedVariables: vi.fn(),
-                setSuggestedSettings: vi.fn(),
+            const modeStateWithQuery = {
                 purposeInputMode: 'ai' as const,
                 userQuery: '두 집단 평균을 비교하고 싶습니다',
                 setUserQuery: vi.fn(),
                 setLastAiRecommendation: vi.fn(),
             }
-            ;(useAnalysisStore as unknown as Mock).mockImplementation(
-                (selector: (state: typeof defaultStoreState) => unknown) => selector(defaultStoreState)
+            ;(useModeStore as unknown as Mock).mockImplementation(
+                (selector: (state: typeof modeStateWithQuery) => unknown) => selector(modeStateWithQuery)
             )
 
             render(

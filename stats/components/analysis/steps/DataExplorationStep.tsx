@@ -10,6 +10,7 @@ import { ValidationResults, DataRow } from '@/types/analysis'
 import { DataProfileSummary } from '@/components/common/analysis/DataProfileSummary'
 import { EmptyState } from '@/components/common/EmptyState'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { useModeStore } from '@/lib/stores/mode-store'
 import { StepHeader, CollapsibleSection } from '@/components/analysis/common'
 import { DistributionChartSection } from './exploration/DistributionChartSection'
 import { ScatterHeatmapSection } from './exploration/ScatterHeatmapSection'
@@ -48,7 +49,8 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   const t = useTerminology()
 
   // Store
-  const { uploadedFile, uploadedFileName, selectedMethod, quickAnalysisMode } = useAnalysisStore()
+  const { uploadedFile, uploadedFileName, selectedMethod } = useAnalysisStore()
+  const { quickAnalysisMode } = useModeStore()
 
   // 빠른 분석 모드: 방법에 맞는 탐색 프로필
   const profile = useMemo(

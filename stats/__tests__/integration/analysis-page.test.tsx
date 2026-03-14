@@ -11,6 +11,8 @@ import { vi } from 'vitest'
 import { render, screen, act } from '@testing-library/react'
 import HomePage from '@/app/page'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { useModeStore } from '@/lib/stores/mode-store'
+import { useHistoryStore } from '@/lib/stores/history-store'
 
 // ===== Mock: useTerminology (TerminologyProvider 없이 테스트) =====
 
@@ -174,6 +176,7 @@ describe('AnalysisPage Integration Tests', () => {
     // 실제 store를 초기 상태로 리셋
     act(() => {
       useAnalysisStore.getState().reset()
+      useModeStore.getState().resetMode()
     })
   })
 
@@ -190,9 +193,8 @@ describe('AnalysisPage Integration Tests', () => {
 
     it('showHub=false, Step 1에서 DataExplorationStep이 표시되어야 함', () => {
       act(() => {
-        const store = useAnalysisStore.getState()
-        store.setShowHub(false)
-        store.setCurrentStep(1)
+        useModeStore.getState().setShowHub(false)
+        useAnalysisStore.getState().setCurrentStep(1)
       })
 
       render(<HomePage />)
@@ -202,7 +204,7 @@ describe('AnalysisPage Integration Tests', () => {
     })
 
     it('IndexedDB 히스토리를 로드해야 함', async () => {
-      const loadSpy = vi.spyOn(useAnalysisStore.getState(), 'loadHistoryFromDB')
+      const loadSpy = vi.spyOn(useHistoryStore.getState(), 'loadHistoryFromDB')
         .mockResolvedValue(undefined)
 
       render(<HomePage />)
@@ -215,7 +217,7 @@ describe('AnalysisPage Integration Tests', () => {
   describe('Step 변경 (4단계 구조)', () => {
     beforeEach(() => {
       act(() => {
-        useAnalysisStore.getState().setShowHub(false)
+        useModeStore.getState().setShowHub(false)
       })
     })
 
@@ -281,9 +283,8 @@ describe('AnalysisPage Integration Tests', () => {
   describe('에러 처리', () => {
     it('에러가 있을 때 에러 메시지가 표시되어야 함', () => {
       act(() => {
-        const store = useAnalysisStore.getState()
-        store.setShowHub(false)
-        store.setError('테스트 에러 메시지')
+        useModeStore.getState().setShowHub(false)
+        useAnalysisStore.getState().setError('테스트 에러 메시지')
       })
 
       render(<HomePage />)
@@ -294,7 +295,7 @@ describe('AnalysisPage Integration Tests', () => {
 
     it('에러가 없을 때 에러 메시지가 표시되지 않아야 함', () => {
       act(() => {
-        useAnalysisStore.getState().setShowHub(false)
+        useModeStore.getState().setShowHub(false)
       })
 
       render(<HomePage />)
@@ -306,8 +307,8 @@ describe('AnalysisPage Integration Tests', () => {
   describe('데이터 상태', () => {
     it('uploadedData가 있을 때 정상 렌더링되어야 함', () => {
       act(() => {
+        useModeStore.getState().setShowHub(false)
         const store = useAnalysisStore.getState()
-        store.setShowHub(false)
         store.setUploadedData([{ col1: 'value1' }])
         store.setUploadedFileName('test.csv')
       })
@@ -319,7 +320,7 @@ describe('AnalysisPage Integration Tests', () => {
 
     it('uploadedData가 없을 때도 정상 렌더링되어야 함', () => {
       act(() => {
-        useAnalysisStore.getState().setShowHub(false)
+        useModeStore.getState().setShowHub(false)
       })
 
       render(<HomePage />)
@@ -338,9 +339,8 @@ describe('AnalysisPage Integration Tests', () => {
 
     it('showHub=false로 전환하면 step 컴포넌트가 표시되어야 함', () => {
       act(() => {
-        const store = useAnalysisStore.getState()
-        store.setShowHub(false)
-        store.setCurrentStep(1)
+        useModeStore.getState().setShowHub(false)
+        useAnalysisStore.getState().setCurrentStep(1)
       })
 
       render(<HomePage />)

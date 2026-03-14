@@ -39,7 +39,10 @@ import {
 } from '@/components/ui/dialog'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
-import type { AnalysisHistory } from '@/lib/stores/analysis-store'
+import { useHistoryStore } from '@/lib/stores/history-store'
+import { useModeStore } from '@/lib/stores/mode-store'
+import { buildHistorySnapshot, loadAndRestoreHistory } from '@/lib/stores/store-orchestration'
+import type { AnalysisHistory } from '@/lib/stores/history-store'
 import type { AnalysisResult } from '@/types/analysis'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -110,7 +113,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
     deleteFromHistory,
     clearHistory,
     saveToHistory,
-  } = useAnalysisStore()
+  } = useHistoryStore()
 
   // 삭제된 히스토리 ID가 pinnedIds에 남아있으면 정리 (방어적 백업)
   useEffect(() => {
@@ -156,7 +159,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
 
   const handleLoad = async (historyId: string) => {
     try {
-      await loadFromHistory(historyId)
+      await loadAndRestoreHistory(historyId)
       onClose?.()
     } catch (error) {
       logger.error('[AnalysisHistoryPanel] Failed to load history', { error })
@@ -167,7 +170,11 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
   // 같은 방법으로 새 데이터 분석 (재분석 모드)
   const handleReanalyze = async (historyId: string) => {
     try {
-      await loadSettingsFromHistory(historyId)
+      const settings = await loadSettingsFromHistory(historyId)
+      if (settings) {
+        useAnalysisStore.getState().restoreSettingsFromHistory(settings)
+        useModeStore.getState().setIsReanalysisMode(true)
+      }
       onClose?.()
     } catch (error) {
       logger.error('[AnalysisHistoryPanel] Failed to load settings', { error })
@@ -194,7 +201,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
   const handleSaveConfirm = async () => {
     if (saveName.trim()) {
       try {
-        await saveToHistory(saveName.trim())
+        await saveToHistory(buildHistorySnapshot(), saveName.trim())
         setShowSaveDialog(false)
         setSaveName('')
       } catch (err) {

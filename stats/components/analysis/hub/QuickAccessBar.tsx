@@ -43,7 +43,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useTerminology } from '@/hooks/use-terminology'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
-import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { useHistoryStore } from '@/lib/stores/history-store'
 import {
   usePinnedHistoryIds,
   MAX_PINNED,
@@ -131,7 +131,7 @@ export function QuickAccessBar({ onHistoryClick, onHistoryDelete, onShowMore }: 
   const t = useTerminology()
   const router = useRouter()
   const prefersReducedMotion = useReducedMotion()
-  const { analysisHistory } = useAnalysisStore()
+  const { analysisHistory } = useHistoryStore()
 
   // Pin & delete state
   const [pinnedIds, setPinnedIds] = usePinnedHistoryIds()
