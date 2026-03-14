@@ -140,6 +140,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     setUploadedFile,
     setValidationResults,
     setResults,
+    setAssumptionResults,
+    setVariableMapping,
+    pruneCompletedStepsFrom,
+    setCurrentStep,
     navigateToStep,
     uploadedData,
     variableMapping,
@@ -147,7 +151,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     selectedMethod,
     assumptionResults,
   } = useAnalysisStore()
-  const { setIsReanalysisMode } = useModeStore()
+  const { setStepTrack } = useModeStore()
   const { saveToHistory, loadedInterpretationChat, currentHistoryId } = useHistoryStore()
 
   // 히스토리 전환 시 Q&A·Phase·UI 초기화 (AI 해석은 useInterpretation이 처리)
@@ -460,7 +464,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     setUploadedFile(null)
     setValidationResults(null)
     setResults(null)
-    setIsReanalysisMode(true)
+    setStepTrack('reanalysis')
     // ★ 새 결과에 대한 AI 자동 해석이 동작하도록 가드 해제
     clearInterpretationGuard()
     navigateToStep(1)
@@ -468,7 +472,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     toast.info(t.results.toast.reanalyzeReady, {
       description: selectedMethod ? t.results.toast.reanalyzeMethod(selectedMethod.name) : ''
     })
-  }, [setUploadedData, setUploadedFile, setValidationResults, setResults, setIsReanalysisMode, navigateToStep, clearInterpretationGuard, selectedMethod, t])
+  }, [setUploadedData, setUploadedFile, setValidationResults, setResults, setStepTrack, navigateToStep, clearInterpretationGuard, selectedMethod, t])
 
   const handleNewAnalysis = useCallback(() => {
     setShowNewAnalysisConfirm(true)
@@ -484,6 +488,17 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       toast.info(t.results.toast.newAnalysis)
     }
   }, [reset, t])
+
+  // U2-3: 방법 변경 — downstream 전체 무효화 후 Step 2 이동
+  // setCurrentStep 직접 사용: navigateToStep → saveCurrentStepData가 pruned step 4를 다시 추가하는 문제 방지
+  const handleChangeMethod = useCallback(() => {
+    setResults(null)
+    setAssumptionResults(null)
+    setVariableMapping(null)
+    pruneCompletedStepsFrom(3)  // Step 3,4 완료 상태 제거
+    setStepTrack('normal')      // quick/reanalysis 모드 누수 방지
+    setCurrentStep(2)
+  }, [setResults, setAssumptionResults, setVariableMapping, pruneCompletedStepsFrom, setStepTrack, setCurrentStep])
 
   // Graph Studio 연결 — DataPackage 빌드 후 이동
   const handleOpenInGraphStudio = useCallback(() => {
@@ -548,6 +563,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       columns,
       data,
       analysisContext: toAnalysisContext(results),
+      analysisResultId: currentHistoryId ?? undefined, // U4-1: 저장된 분석 역참조
       createdAt: new Date().toISOString(),
     }
 
@@ -558,7 +574,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
     loadDataPackageWithSpec(pkg, finalSpec)
     router.push('/graph-studio')
-  }, [results, uploadedData, loadDataPackageWithSpec, router])
+  }, [results, uploadedData, currentHistoryId, loadDataPackageWithSpec, router])
 
   // 재해석 + Q&A 초기화 (훅의 resetAndReinterpret + Q&A 로컬 state)
   const handleReinterpretWithQAReset = useCallback(() => {
@@ -749,6 +765,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 onClick={handleSaveToHistory}
                 disabled={isSaved}
                 className={cn("h-8 px-2.5", isSaved && "text-emerald-600")}
+                data-testid="save-history-btn"
               >
                 {isSaved ? <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> : <Save className="w-3.5 h-3.5 mr-1" />}
                 {isSaved ? t.results.buttons.saved : t.results.buttons.save}
@@ -756,21 +773,21 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               <div className="w-px h-4 bg-border/50" />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" disabled={isExporting} className="h-8 px-2.5 shadow-sm">
+                  <Button variant="outline" size="sm" disabled={isExporting} className="h-8 px-2.5 shadow-sm" data-testid="export-dropdown">
                     <Download className="w-3.5 h-3.5 mr-1" />
                     {isExporting ? t.results.buttons.exporting : t.results.buttons.export}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleSaveAsFile('docx')}>
+                  <DropdownMenuItem onClick={() => handleSaveAsFile('docx')} data-testid="export-docx">
                     <FileText className="w-4 h-4 mr-2" />
                     {t.results.buttons.exportDocx}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSaveAsFile('xlsx')}>
+                  <DropdownMenuItem onClick={() => handleSaveAsFile('xlsx')} data-testid="export-xlsx">
                     <BarChart3 className="w-4 h-4 mr-2" />
                     {t.results.buttons.exportExcel}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSaveAsFile('html')}>
+                  <DropdownMenuItem onClick={() => handleSaveAsFile('html')} data-testid="export-html">
                     <FileText className="w-4 h-4 mr-2" />
                     {t.results.buttons.exportHtml}
                   </DropdownMenuItem>
@@ -1023,7 +1040,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => navigateToStep(2)}
+                    onClick={handleChangeMethod}
                     className="text-xs text-muted-foreground gap-1.5 h-7"
                   >
                     <RefreshCw className="w-3 h-3" />
@@ -1056,6 +1073,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         {/* ===== 액션 버튼 + 다이얼로그 ===== */}
         <ResultsActionButtons
           onBackToVariables={() => navigateToStep(3)}
+          onChangeMethod={handleChangeMethod}
           onOpenGraphStudio={handleOpenInGraphStudio}
           onReanalyze={handleReanalyze}
           onNewAnalysis={handleNewAnalysis}

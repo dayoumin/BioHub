@@ -50,12 +50,13 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
   // Store
   const { uploadedFile, uploadedFileName, selectedMethod } = useAnalysisStore()
-  const { quickAnalysisMode } = useModeStore()
+  const { stepTrack } = useModeStore()
+  const isQuickMode = stepTrack === 'quick'
 
   // 빠른 분석 모드: 방법에 맞는 탐색 프로필
   const profile = useMemo(
-    () => getExplorationProfile(quickAnalysisMode ? selectedMethod : null),
-    [quickAnalysisMode, selectedMethod]
+    () => getExplorationProfile(isQuickMode ? selectedMethod : null),
+    [isQuickMode, selectedMethod]
   )
 
   // 템플릿 관련 상태
@@ -419,7 +420,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   // 데이터 없을 때 또는 교체 모드: 업로드 영역 표시
   if (!validationResults || !data || data.length === 0 || isReplaceMode) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6" data-testid="data-exploration-empty">
         {/* 헤더 */}
         <StepHeader icon={ChartScatter} title={t.analysis.stepTitles.dataExploration} />
 
@@ -464,7 +465,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
         {/* 데이터 준비 안내: 빠른 분석이면 방법별, 아니면 범용 */}
         <DataPrepGuide
-          methodId={quickAnalysisMode && selectedMethod ? selectedMethod.id : undefined}
+          methodId={isQuickMode && selectedMethod ? selectedMethod.id : undefined}
           defaultCollapsed
         />
 
@@ -520,11 +521,11 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   // 수치형 변수 부족: 데이터 표시 + 경고
   if (numericVariables.length < 2) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6" data-testid="data-exploration-empty">
         {/* 헤더 + 다음 단계 버튼 */}
         <StepHeader icon={ChartScatter} title={t.analysis.stepTitles.dataExploration} />
 
-        {quickAnalysisMode && profile.focusHint && data.length > 0 && (
+        {isQuickMode && profile.focusHint && data.length > 0 && (
           <div className="flex items-center gap-2 p-3 bg-info-bg rounded-lg border border-info-border text-sm">
             <Lightbulb className="h-4 w-4 text-info flex-shrink-0" />
             <span className="text-info">{profile.focusHint}</span>
@@ -561,7 +562,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         </Card>
 
         {/* 빠른 분석: 업로드 직후 데이터 적합성 검증 */}
-        {quickAnalysisMode && selectedMethod && (
+        {isQuickMode && selectedMethod && (
           <DataPrepGuide
             methodId={selectedMethod.id}
             uploadedData={data}
@@ -569,7 +570,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           />
         )}
 
-        {!quickAnalysisMode && (
+        {!isQuickMode && (
           <Card className="border-warning-border bg-warning-bg">
             <CardContent className="py-6">
               <div className="text-center text-muted-foreground">
@@ -590,7 +591,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       {/* 헤더 */}
       <StepHeader icon={ChartScatter} title={t.analysis.stepTitles.dataExploration} />
 
-      {quickAnalysisMode && profile.focusHint && data.length > 0 && (
+      {isQuickMode && profile.focusHint && data.length > 0 && (
         <div className="flex items-center gap-2 p-3 bg-info-bg rounded-lg border border-info-border text-sm">
           <Lightbulb className="h-4 w-4 text-info flex-shrink-0" />
           <span className="text-info">{profile.focusHint}</span>
@@ -719,7 +720,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           </Card>
 
           {/* 빠른 분석: 데이터 적합성 검증 */}
-          {quickAnalysisMode && selectedMethod && (
+          {isQuickMode && selectedMethod && (
             <DataPrepGuide methodId={selectedMethod.id} uploadedData={data} defaultCollapsed />
           )}
         </div>

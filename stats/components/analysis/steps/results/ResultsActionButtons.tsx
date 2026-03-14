@@ -34,6 +34,7 @@ import type { ExportFormat, ExportContentOptions } from '@/lib/services/export/e
 export interface ResultsActionButtonsProps {
   // 네비게이션
   onBackToVariables: () => void
+  onChangeMethod: () => void
   onOpenGraphStudio: () => void
   onReanalyze: () => void
   onNewAnalysis: () => void
@@ -60,6 +61,7 @@ export interface ResultsActionButtonsProps {
     results: {
       buttons: {
         backToVariables: string
+        changeMethod: string
         saveTemplate: string
         reanalyze: string
         newAnalysis: string
@@ -90,6 +92,7 @@ export interface ResultsActionButtonsProps {
 
 export function ResultsActionButtons({
   onBackToVariables,
+  onChangeMethod,
   onOpenGraphStudio,
   onReanalyze,
   onNewAnalysis,
@@ -121,6 +124,16 @@ export function ResultsActionButtons({
           <ArrowLeft className="w-3 h-3 mr-1" />
           {t.results.buttons.backToVariables}
         </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onChangeMethod}
+          className="text-muted-foreground hover:text-foreground text-xs h-8"
+          data-testid="change-method-btn"
+        >
+          <RefreshCw className="w-3 h-3 mr-1" />
+          {t.results.buttons.changeMethod}
+        </Button>
 
         <div className="flex-1" />
 
@@ -151,6 +164,7 @@ export function ResultsActionButtons({
           size="sm"
           onClick={onReanalyze}
           className="text-muted-foreground hover:text-foreground text-xs h-8"
+          data-testid="reanalysis-btn"
         >
           <RefreshCw className="w-3 h-3 mr-1" />
           {t.results.buttons.reanalyze}

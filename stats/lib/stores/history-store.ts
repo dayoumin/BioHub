@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import {
   StatisticalMethod,
   AnalysisResult,
+  AnalysisOptions,
+  DEFAULT_ANALYSIS_OPTIONS,
 } from '@/types/analysis'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import { getMethodByIdOrAlias } from '@/lib/constants/statistical-methods'
@@ -83,6 +85,7 @@ export interface HistorySnapshot {
   uploadedFileName: string | null
   uploadedDataLength: number
   variableMapping: VariableMapping | null
+  analysisOptions: AnalysisOptions
   lastAiRecommendation: AiRecommendationContext | null
 }
 
@@ -90,6 +93,8 @@ export interface HistorySnapshot {
 export interface HistoryLoadResult {
   analysisPurpose: string
   selectedMethod: StatisticalMethod | null
+  variableMapping: VariableMapping | null
+  analysisOptions: AnalysisOptions
   results: AnalysisResult | null
   uploadedFileName: string | null
   currentStep: number
@@ -103,20 +108,31 @@ export interface HistorySettingsResult {
   selectedMethod: StatisticalMethod | null
   variableMapping: VariableMapping | null
   analysisPurpose: string
+  analysisOptions: AnalysisOptions
 }
 
-/** Executor 결과 마이그레이션 헬퍼 */
-function migrateResults(raw: Record<string, unknown> | null): AnalysisResult | null {
+/**
+ * Executor 결과 → 변환 후 반환 (이미 변환됐으면 as-is).
+ *
+ * **참조 계약**: 변환이 불필요하면 `raw`를 그대로 반환한다 (새 객체를 생성하지 않음).
+ * 호출부에서 `transformed !== raw`로 변환 여부를 판단할 수 있다.
+ */
+function migrateResults(
+  raw: Record<string, unknown> | null,
+  label?: string
+): Record<string, unknown> | null {
   if (!raw) return null
   if (isExecutorResult(raw)) {
     try {
-      return transformExecutorResult(raw as unknown as ExecutorResult)
+      const transformed = transformExecutorResult(raw as unknown as ExecutorResult)
+      if (label) console.log(`[${label}] Transformed executor result`)
+      return transformed as unknown as Record<string, unknown>
     } catch (error) {
-      console.error('[History Migration] Failed to transform:', error)
-      return raw as unknown as AnalysisResult
+      console.error('[History] Failed to transform result:', error)
+      return raw
     }
   }
-  return raw as unknown as AnalysisResult
+  return raw
 }
 
 /** IndexedDB 히스토리 → UI AnalysisHistory 변환 */
@@ -125,6 +141,30 @@ function toAnalysisHistory(records: HistoryRecord[]): AnalysisHistory[] {
     ...h,
     timestamp: new Date(h.timestamp)
   }))
+}
+
+function normalizeAnalysisOptions(
+  analysisOptions: Record<string, unknown> | undefined
+): AnalysisOptions {
+  if (!analysisOptions) return { ...DEFAULT_ANALYSIS_OPTIONS }
+
+  const normalizedAlpha = typeof analysisOptions.alpha === 'number'
+    ? analysisOptions.alpha
+    : typeof analysisOptions.confidenceLevel === 'number' &&
+        analysisOptions.confidenceLevel > 0 &&
+        analysisOptions.confidenceLevel < 1
+      ? Number((1 - analysisOptions.confidenceLevel).toFixed(10))
+      : DEFAULT_ANALYSIS_OPTIONS.alpha
+
+  const normalized = {
+    ...DEFAULT_ANALYSIS_OPTIONS,
+    ...analysisOptions,
+    alpha: normalizedAlpha,
+  } as Record<string, unknown>
+
+  delete normalized.confidenceLevel
+
+  return normalized as unknown as AnalysisOptions
 }
 
 export const useHistoryStore = create<HistoryState>()((set, get) => ({
@@ -162,6 +202,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
       aiInterpretation: metadata?.aiInterpretation ?? null,
       apaFormat: metadata?.apaFormat ?? null,
       variableMapping: snapshot.variableMapping,
+      analysisOptions: snapshot.analysisOptions as Record<string, unknown> & typeof snapshot.analysisOptions,
       analysisPurpose: snapshot.analysisPurpose,
       aiRecommendation: snapshot.lastAiRecommendation ?? null,
       interpretationChat: metadata?.interpretationChat?.length ? metadata.interpretationChat : undefined
@@ -184,13 +225,15 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
     const record = await getHistory(historyId)
     if (!record) return null
 
-    const migratedResults = migrateResults(record.results)
+    const migratedResults = migrateResults(record.results) as AnalysisResult | null
 
     const result: HistoryLoadResult = {
       analysisPurpose: record.purpose,
       selectedMethod: (record.method && typeof record.method === 'object' && 'id' in record.method)
         ? (getMethodByIdOrAlias(record.method.id as string) as StatisticalMethod | null) ?? null
         : null,
+      variableMapping: record.variableMapping ?? null,
+      analysisOptions: normalizeAnalysisOptions(record.analysisOptions),
       results: migratedResults,
       uploadedFileName: record.dataFileName,
       currentStep: MAX_STEPS,
@@ -231,6 +274,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
       } : null,
       variableMapping: record.variableMapping ?? null,
       analysisPurpose: record.analysisPurpose ?? '',
+      analysisOptions: normalizeAnalysisOptions(record.analysisOptions),
     }
   },
 
@@ -247,7 +291,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
 
     await initStorage()
 
-    // === 마이그레이션 (sessionStorage → IndexedDB, 일회성) ===
+    // === 마이그레이션 (sessionStorage → IndexedDB, 병합) ===
     try {
       const sessionData = sessionStorage.getItem('analysis-storage')
       if (sessionData) {
@@ -255,50 +299,59 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
         const oldHistory = parsed?.state?.analysisHistory
 
         if (oldHistory && Array.isArray(oldHistory) && oldHistory.length > 0) {
+          // Pre-assign stable IDs to id-less items so partial-failure retries can dedup
+          let idsAssigned = false
+          for (const item of oldHistory) {
+            if (item && !item.id) {
+              item.id = `migrated-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+              idsAssigned = true
+            }
+          }
+          if (idsAssigned) {
+            parsed.state.analysisHistory = oldHistory
+            sessionStorage.setItem('analysis-storage', JSON.stringify(parsed))
+          }
+
           const existingHistory = await getAllHistory()
-          if (existingHistory.length === 0) {
-            console.log('[Migration] Copying', oldHistory.length, 'histories from sessionStorage to IndexedDB')
+          const existingIds = new Set(existingHistory.map(item => item.id))
+          const missingHistory = oldHistory.filter(
+            (item: Record<string, unknown>) => item?.id && !existingIds.has(String(item.id))
+          )
 
-            for (const item of oldHistory) {
-              const migratedResults = item.results
-                ? (isExecutorResult(item.results as Record<string, unknown>)
-                  ? (() => {
-                    try {
-                      const transformed = transformExecutorResult(item.results as unknown as ExecutorResult) as unknown as Record<string, unknown>
-                      console.log('[Migration] Transformed executor result for:', item.id || item.name)
-                      return transformed
-                    } catch (error) {
-                      console.error('[Migration] Failed to transform result:', error)
-                      return item.results as Record<string, unknown>
-                    }
-                  })()
-                  : item.results as Record<string, unknown>)
-                : null
+          if (missingHistory.length > 0) {
+            console.log('[Migration] Copying', missingHistory.length, 'missing histories')
 
+            for (const item of missingHistory) {
               const record: HistoryRecord = {
-                id: item.id || `migrated-${Date.now()}-${Math.random()}`,
-                timestamp: item.timestamp ? new Date(item.timestamp).getTime() : Date.now(),
-                name: item.name || 'Migrated Analysis',
-                purpose: item.purpose || '',
+                id: String(item.id),
+                timestamp: item.timestamp ? new Date(item.timestamp as string | number).getTime() : Date.now(),
+                name: (item.name as string) || 'Migrated Analysis',
+                purpose: (item.purpose as string) || (item.analysisPurpose as string) || '',
                 method: item.method ? {
-                  id: item.method.id || 'unknown',
-                  name: item.method.name || 'Unknown Method',
-                  category: item.method.category || 'unknown',
-                  description: item.method.description
+                  id: (item.method as Record<string, string>).id || 'unknown',
+                  name: (item.method as Record<string, string>).name || 'Unknown Method',
+                  category: (item.method as Record<string, string>).category || 'unknown',
+                  description: (item.method as Record<string, string>).description
                 } : null,
-                dataFileName: item.dataFileName || 'unknown',
-                dataRowCount: item.dataRowCount || 0,
-                results: migratedResults,
+                variableMapping: item.variableMapping as HistoryRecord['variableMapping'] ?? null,
+                analysisOptions: normalizeAnalysisOptions(item.analysisOptions as Record<string, unknown>) as Record<string, unknown> & AnalysisOptions,
+                dataFileName: (item.dataFileName as string) || 'unknown',
+                dataRowCount: (item.dataRowCount as number) || 0,
+                results: migrateResults(item.results as Record<string, unknown> | null, 'Migration'),
                 aiInterpretation: typeof item.aiInterpretation === 'string' ? item.aiInterpretation : null,
-                apaFormat: typeof item.apaFormat === 'string' ? item.apaFormat : null
+                apaFormat: typeof item.apaFormat === 'string' ? item.apaFormat : null,
+                analysisPurpose: (item.analysisPurpose as string) || (item.purpose as string) || '',
+                aiRecommendation: item.aiRecommendation as HistoryRecord['aiRecommendation'] ?? null,
+                interpretationChat: Array.isArray(item.interpretationChat) ? item.interpretationChat : undefined,
               }
               await saveHistory(record)
             }
 
-            console.log('[Migration] Successfully migrated', oldHistory.length, 'histories')
-            delete parsed.state.analysisHistory
-            sessionStorage.setItem('analysis-storage', JSON.stringify(parsed))
+            console.log('[Migration] Successfully migrated', missingHistory.length, 'histories')
           }
+
+          delete parsed.state.analysisHistory
+          sessionStorage.setItem('analysis-storage', JSON.stringify(parsed))
         }
       }
     } catch (error) {
@@ -308,34 +361,18 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
     // === IndexedDB에서 로드 + Executor 형식 변환 ===
     const allHistory = await getAllHistory()
     const transformedHistory: AnalysisHistory[] = []
-    let needsPersist = false
 
     for (const h of allHistory) {
-      let transformedResults = h.results
-
-      if (h.results) {
-        const results = h.results as Record<string, unknown>
-        if (isExecutorResult(results)) {
-          try {
-            transformedResults = transformExecutorResult(results as unknown as ExecutorResult) as unknown as Record<string, unknown>
-            console.log('[History Load] Transformed executor result for:', h.id || h.name)
-            needsPersist = true
-            await saveHistory({ ...h, results: transformedResults }, true)
-          } catch (error) {
-            console.error('[History Load] Failed to transform result:', error)
-          }
-        }
+      const transformed = migrateResults(h.results, 'History Load')
+      if (transformed !== h.results) {
+        await saveHistory({ ...h, results: transformed }, true)
       }
 
       transformedHistory.push({
         ...h,
-        results: transformedResults,
+        results: transformed,
         timestamp: new Date(h.timestamp)
       })
-    }
-
-    if (needsPersist) {
-      console.log('[History Load] Persisted transformed results to IndexedDB')
     }
 
     set({ analysisHistory: transformedHistory })

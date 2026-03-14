@@ -104,7 +104,7 @@ export function ReanalysisPanel({
   const summary = compatibility?.summary
 
   return (
-    <Card className="border-2 border-primary/20">
+    <Card className="border-2 border-primary/20" data-testid="reanalysis-panel">
       <CardHeader className="pb-4">
         <div className="flex items-center gap-2">
           <Settings2 className="w-5 h-5 text-primary" />
@@ -183,6 +183,7 @@ export function ReanalysisPanel({
               size="lg"
               onClick={onRunAnalysis}
               disabled={isAnalyzing}
+              data-testid="reanalysis-run-btn"
             >
               {isAnalyzing ? (
                 <>

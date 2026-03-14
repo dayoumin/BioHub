@@ -13,16 +13,8 @@ import {
 } from '@/types/analysis'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import { DataCharacteristics } from '@/lib/statistics/data-type-detector'
-import type {
-  CompatibilityResult,
-  DataSummary,
-} from '@/lib/statistics/data-method-compatibility'
-import {
-  extractDataSummary,
-  getStructuralCompatibilityMap,
-  mergeAssumptionResults,
-  extractAssumptionResults
-} from '@/lib/statistics/data-method-compatibility'
+// TD-10-D: dataSummary/methodCompatibility は useMethodCompatibility 훅으로 이동
+// CompatibilityResult, DataSummary 타입 및 파생 함수는 더 이상 store에서 불필요
 import { transformExecutorResult, isExecutorResult } from '@/lib/utils/result-transformer'
 import type { AnalysisResult as ExecutorResult } from '@/lib/services/executors/types'
 import { useModeStore } from './mode-store'
@@ -78,10 +70,6 @@ interface AnalysisState {
   // 통계적 가정 검정 결과
   assumptionResults: StatisticalAssumptions | null
 
-  // 데이터-방법 호환성
-  dataSummary: DataSummary | null
-  methodCompatibility: Map<string, CompatibilityResult> | null
-
   // 분석 설정
   analysisPurpose: string
   selectedMethod: StatisticalMethod | null
@@ -104,6 +92,8 @@ interface AnalysisState {
   // 기본 setter
   setCurrentStep: (step: number) => void
   addCompletedStep: (step: number) => void
+  /** 지정 단계 이후의 completedSteps를 제거 (무효화 시 사용) */
+  pruneCompletedStepsFrom: (fromStep: number) => void
   setUploadedFile: (file: File | null) => void
   setUploadedData: (data: DataRow[] | null) => void
   setUploadedFileName: (name: string | null) => void
@@ -111,12 +101,11 @@ interface AnalysisState {
   setValidationResults: (results: ValidationResults | null) => void
   patchColumnNormality: (enrichedColumns: ColumnStatistics[]) => void
   setAssumptionResults: (results: StatisticalAssumptions | null) => void
-  setDataSummary: (summary: DataSummary | null) => void
-  setMethodCompatibility: (compatibility: Map<string, CompatibilityResult> | null) => void
-  updateCompatibility: () => void
   setAnalysisPurpose: (purpose: string) => void
   setSelectedMethod: (method: StatisticalMethod | null) => void
   setVariableMapping: (mapping: VariableMapping | null) => void
+  /** U1-3: 변수 변경 + downstream(results/assumptions) 무효화. Step 3 confirm 시 변경 감지된 경우에만 사용 */
+  updateVariableMappingWithInvalidation: (mapping: VariableMapping) => void
   setDetectedVariables: (vars: DetectedVariables | null) => void
   setSuggestedSettings: (settings: SuggestedSettings | null) => void
   setAnalysisOptions: (options: Partial<AnalysisOptions>) => void
@@ -151,8 +140,6 @@ const initialState = {
   dataCharacteristics: null as DataCharacteristics | null,
   validationResults: null as ValidationResults | null,
   assumptionResults: null as StatisticalAssumptions | null,
-  dataSummary: null as DataSummary | null,
-  methodCompatibility: null as Map<string, CompatibilityResult> | null,
   analysisPurpose: '',
   selectedMethod: null as StatisticalMethod | null,
   variableMapping: null as VariableMapping | null,
@@ -176,6 +163,10 @@ export const useAnalysisStore = create<AnalysisState>()(
         completedSteps: [...new Set([...state.completedSteps, step])]
       })),
 
+      pruneCompletedStepsFrom: (fromStep) => set((state) => ({
+        completedSteps: state.completedSteps.filter(s => s < fromStep)
+      })),
+
       setUploadedFile: (file) => set((state) => ({
         uploadedFile: file,
         uploadedFileName: file?.name || null,
@@ -185,24 +176,10 @@ export const useAnalysisStore = create<AnalysisState>()(
       setUploadedFileName: (name) => set({ uploadedFileName: name }),
       setDataCharacteristics: (characteristics) => set({ dataCharacteristics: characteristics }),
       setValidationResults: (results) => {
-        if (!results) {
-          set({
-            validationResults: null,
-            dataSummary: null,
-            methodCompatibility: null,
-            assumptionResults: null
-          })
-          return
-        }
-
-        const dataSummary = extractDataSummary(results)
-        const structuralCompatibility = getStructuralCompatibilityMap(dataSummary)
-
         set({
           validationResults: results,
-          dataSummary,
-          methodCompatibility: structuralCompatibility,
-          assumptionResults: null
+          // validationResults가 변경되면 이전 가정검정 결과는 무효
+          assumptionResults: null,
         })
       },
       patchColumnNormality: (enrichedColumns) => {
@@ -216,48 +193,17 @@ export const useAnalysisStore = create<AnalysisState>()(
           },
         })
       },
-      setAssumptionResults: (results) => {
-        const state = get()
-        if (!results || !state.methodCompatibility || !state.dataSummary) {
-          set({ assumptionResults: results })
-          return
-        }
-
-        const assumptions = extractAssumptionResults(results)
-        const mergedCompatibility = mergeAssumptionResults(
-          state.methodCompatibility,
-          assumptions,
-          state.dataSummary
-        )
-
-        set({
-          assumptionResults: results,
-          methodCompatibility: mergedCompatibility
-        })
-      },
-      setDataSummary: (summary) => set({ dataSummary: summary }),
-      setMethodCompatibility: (compatibility) => set({ methodCompatibility: compatibility }),
-      updateCompatibility: () => {
-        const state = get()
-        if (!state.validationResults) {
-          set({ dataSummary: null, methodCompatibility: null })
-          return
-        }
-
-        const dataSummary = extractDataSummary(state.validationResults)
-        const structuralMap = getStructuralCompatibilityMap(dataSummary)
-
-        if (state.assumptionResults) {
-          const assumptions = extractAssumptionResults(state.assumptionResults)
-          const mergedMap = mergeAssumptionResults(structuralMap, assumptions, dataSummary)
-          set({ dataSummary, methodCompatibility: mergedMap })
-        } else {
-          set({ dataSummary, methodCompatibility: structuralMap })
-        }
-      },
+      // TD-10-D: 호환성 병합은 useMethodCompatibility 훅이 useMemo로 처리
+      setAssumptionResults: (results) => set({ assumptionResults: results }),
       setAnalysisPurpose: (purpose) => set({ analysisPurpose: purpose }),
       setSelectedMethod: (method) => set({ selectedMethod: method }),
       setVariableMapping: (mapping) => set({ variableMapping: mapping }),
+      updateVariableMappingWithInvalidation: (mapping) => set((state) => ({
+        variableMapping: mapping,
+        results: null,
+        assumptionResults: null,
+        completedSteps: state.completedSteps.filter(s => s < 4),
+      })),
       setDetectedVariables: (vars) => set({ detectedVariables: vars }),
       setSuggestedSettings: (settings) => set({ suggestedSettings: settings }),
       setAnalysisOptions: (options) => set((state) => ({
@@ -272,6 +218,7 @@ export const useAnalysisStore = create<AnalysisState>()(
         set({
           analysisPurpose: data.analysisPurpose,
           selectedMethod: data.selectedMethod,
+          variableMapping: data.variableMapping,
           results: data.results,
           uploadedFileName: data.uploadedFileName,
           currentStep: data.currentStep,
@@ -279,6 +226,7 @@ export const useAnalysisStore = create<AnalysisState>()(
           uploadedData: null,
           validationResults: null,
           uploadedFile: null,
+          analysisOptions: data.analysisOptions,
         })
       },
 
@@ -291,40 +239,40 @@ export const useAnalysisStore = create<AnalysisState>()(
           results: null,
           error: null,
           dataCharacteristics: null,
-          dataSummary: null,
           assumptionResults: null,
           selectedMethod: data.selectedMethod,
           variableMapping: data.variableMapping,
           analysisPurpose: data.analysisPurpose,
+          analysisOptions: data.analysisOptions,
           currentStep: 1,
           completedSteps: [],
         })
       },
 
-      // 네비게이션
+      // 네비게이션 — U1-1: canNavigateToStep과 동일 규칙 사용 (우회 없음)
       canNavigateToStep: (step) => {
         const state = get()
-        return step === state.currentStep || state.completedSteps.includes(step)
+        if (step === state.currentStep) return true
+        if (step < state.currentStep) return true         // 이전 단계 항상 허용
+        // 전방 이동: currentStep ~ step-1 까지 모두 completedSteps에 포함되어야 허용
+        if (step > state.currentStep) {
+          for (let i = state.currentStep; i < step; i++) {
+            if (!state.completedSteps.includes(i)) return false
+          }
+          return true
+        }
+        return false
       },
 
       navigateToStep: (step) => {
         const state = get()
-        const isForwardSkip = step > state.currentStep
-        if (state.canNavigateToStep(step) || isForwardSkip) {
+        if (!state.canNavigateToStep(step)) return  // 우회 제거 — canNavigateToStep과 동일 규칙
+        // 전진 이동 시에만 현재 단계를 완료 처리
+        // 뒤로가기는 "포기"이므로 현재 단계를 완료로 마킹하면 안 됨
+        if (step > state.currentStep) {
           state.saveCurrentStepData()
-          if (step > state.currentStep + 1) {
-            const skippedSteps = Array.from(
-              { length: step - state.currentStep - 1 },
-              (_, i) => state.currentStep + 1 + i
-            )
-            set((s) => ({
-              completedSteps: [...new Set([...s.completedSteps, ...skippedSteps])],
-              currentStep: step,
-            }))
-          } else {
-            set({ currentStep: step })
-          }
         }
+        set({ currentStep: step })
       },
 
       saveCurrentStepData: () => {
@@ -414,18 +362,7 @@ export const useAnalysisStore = create<AnalysisState>()(
           }
         }
 
-        // Compatibility 재계산
-        if (state?.validationResults && !state.methodCompatibility) {
-          try {
-            const dataSummary = extractDataSummary(state.validationResults)
-            const compatibilityMap = getStructuralCompatibilityMap(dataSummary)
-            state.dataSummary = dataSummary
-            state.methodCompatibility = compatibilityMap
-            console.log('[Rehydrate] Recalculated compatibility map from validationResults')
-          } catch (error) {
-            console.error('[Rehydrate] Failed to recalculate compatibility:', error)
-          }
-        }
+        // TD-10-D: compatibility는 useMethodCompatibility 훅이 useMemo로 파생 — rehydration 불필요
 
         // 진행 중인 분석이 있으면 Hub 숨기기
         if (state && (state.uploadedData || state.selectedMethod || state.results)) {

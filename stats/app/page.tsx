@@ -1,9 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
 import { useHistoryStore } from '@/lib/stores/history-store'
-import { loadAndRestoreHistory } from '@/lib/stores/store-orchestration'
+import { loadAndRestoreHistory, startFreshAnalysisSession } from '@/lib/stores/store-orchestration'
 import { useAnalysisHandlers } from '@/hooks/use-analysis-handlers'
 import { useTerminology } from '@/hooks/use-terminology'
 import { getRecommendations } from '@/lib/services/consultant-service'
@@ -31,10 +32,10 @@ export default function HomePage() {
     setUserQuery,
   } = useModeStore()
 
+  const addCompletedStep = useAnalysisStore(s => s.addCompletedStep)
   const handlers = useAnalysisHandlers(showHub)
   const {
     startQuickAnalysis,
-    setQuickAnalysisMode,
     navigateToStep,
   } = handlers
 
@@ -58,13 +59,15 @@ export default function HomePage() {
       case 'direct-analysis':
         setConsultantResponse(null)
         if (intent.method) {
+          startFreshAnalysisSession()
           startQuickAnalysis(intent.method.id)
           setShowHub(false)
         } else {
+          startFreshAnalysisSession()
           setUserQuery(message)
-          setQuickAnalysisMode(false)
           setPurposeInputMode('ai')
           setShowHub(false)
+          addCompletedStep(1)  // U1-2: Step 1→2 전진 점프 사전 마킹
           navigateToStep(2)
         }
         break
@@ -75,8 +78,8 @@ export default function HomePage() {
           setConsultantResponse(response)
           setUserQuery(message)
         } else {
+          startFreshAnalysisSession()
           setUserQuery(message)
-          setQuickAnalysisMode(false)
           setShowHub(false)
           navigateToStep(1)
         }
@@ -85,17 +88,18 @@ export default function HomePage() {
 
       case 'experiment-design':
         setConsultantResponse(null)
+        startFreshAnalysisSession()
         setUserQuery(message)
         toast.info(t.hub.experimentNotReady)
-        setQuickAnalysisMode(false)
         setShowHub(false)
         navigateToStep(1)
         break
     }
-  }, [startQuickAnalysis, setQuickAnalysisMode, navigateToStep, setShowHub, setPurposeInputMode, setUserQuery, t])
+  }, [startQuickAnalysis, navigateToStep, setShowHub, setPurposeInputMode, setUserQuery, t])
 
   const handleQuickAnalysis = useCallback((methodId: string) => {
     setConsultantResponse(null)
+    startFreshAnalysisSession()
     if (startQuickAnalysis(methodId)) {
       setShowHub(false)
     }
@@ -117,6 +121,7 @@ export default function HomePage() {
 
   const handleHubUploadClick = useCallback(() => {
     setConsultantResponse(null)
+    startFreshAnalysisSession()
     setShowHub(false)
     navigateToStep(1)
   }, [setShowHub, navigateToStep])
@@ -163,7 +168,7 @@ export default function HomePage() {
       )}
 
       {/* ===== Step 1-4 ===== */}
-      <AnalysisSteps handlers={handlers} isHubVisible={showHub} />
+      <AnalysisSteps isHubVisible={showHub} />
     </AnalysisLayout>
   )
 }

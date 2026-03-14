@@ -15,10 +15,10 @@
 
 import { useState, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
+import { HelpCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { intentRouter } from '@/lib/services/intent-router'
-import { useModeStore } from '@/lib/stores/mode-store'
 import { logger } from '@/lib/utils/logger'
 import type { ResolvedIntent, ConsultantResponse } from '@/types/analysis'
 import { useTerminology } from '@/hooks/use-terminology'
@@ -74,8 +74,6 @@ export function ChatCentricHub({
 }: ChatCentricHubProps) {
   const prefersReducedMotion = useReducedMotion()
   const t = useTerminology()
-  const { setActiveTrack } = useModeStore()
-
   const [isProcessing, setIsProcessing] = useState(false)
   const isProcessingRef = useRef(false)
   const [externalValue, setExternalValue] = useState<string | undefined>(undefined)
@@ -94,7 +92,6 @@ export function ChatCentricHub({
         method: intent.method?.id
       })
 
-      setActiveTrack(intent.track)
       onIntentResolved(intent, message)
     } catch (error) {
       logger.error('[ChatCentricHub] Intent classification failed', { error })
@@ -108,13 +105,12 @@ export function ChatCentricHub({
         needsData: true,
         provider: 'keyword'
       }
-      setActiveTrack(fallback.track)
       onIntentResolved(fallback, message)
     } finally {
       isProcessingRef.current = false
       setIsProcessing(false)
     }
-  }, [setActiveTrack, onIntentResolved, t.hub.intentClassificationFailed])
+  }, [onIntentResolved, t.hub.intentClassificationFailed])
 
   // 표본 크기 계산기 "분석 시작" CTA → ChatInput 주입
   const handleStartAnalysis = useCallback((example: string) => {
@@ -170,6 +166,31 @@ export function ChatCentricHub({
                     />
                   ))}
                 </div>
+
+                {/* Clarification: 동점 시 차이점 안내 + 클릭으로 메서드 선택 */}
+                {consultantResponse.clarification && consultantResponse.clarification.options.length >= 2 && (
+                  <div
+                    className="mt-3 p-4 rounded-xl border border-border bg-muted/40"
+                    data-testid="consultant-clarification"
+                  >
+                    <p className="flex items-center gap-1.5 text-sm font-medium text-foreground mb-2">
+                      <HelpCircle className="w-4 h-4 shrink-0 text-muted-foreground" />
+                      {consultantResponse.clarification.question}
+                    </p>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {consultantResponse.clarification.options.map(option => (
+                        <button
+                          key={option.methodId}
+                          onClick={() => onQuickAnalysis(option.methodId)}
+                          className="px-3 py-1.5 text-sm rounded-lg border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+                          data-testid={`clarification-option-${option.methodId}`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

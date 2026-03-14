@@ -11,6 +11,7 @@
 
 import { useState, useCallback } from 'react'
 import { useAnalysisHandlers } from '@/hooks/use-analysis-handlers'
+import { startFreshAnalysisSession } from '@/lib/stores/store-orchestration'
 import { AnalysisLayout } from '@/components/analysis/layouts/AnalysisLayout'
 import { AnalysisHistoryPanel } from '@/components/analysis/AnalysisHistoryPanel'
 import { StatisticsBrowserHub } from '@/components/analysis/StatisticsBrowserHub'
@@ -25,6 +26,7 @@ export default function AnalysisPage() {
   const { startQuickAnalysis } = handlers
 
   const handleMethodSelect = useCallback((methodId: string) => {
+    startFreshAnalysisSession()
     if (startQuickAnalysis(methodId)) {
       setShowBrowser(false)
     }
@@ -67,7 +69,7 @@ export default function AnalysisPage() {
       )}
 
       {/* ===== Step 1-4 ===== */}
-      <AnalysisSteps handlers={handlers} isHubVisible={showBrowser} onBackToHub={handleBackToBrowser} />
+      <AnalysisSteps isHubVisible={showBrowser} onBackToHub={handleBackToBrowser} />
     </AnalysisLayout>
   )
 }

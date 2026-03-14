@@ -10,8 +10,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import type { StatisticalMethod } from '@/types/analysis'
-import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useTerminology } from '@/hooks/use-terminology'
+import { useMethodCompatibility } from '@/hooks/use-method-compatibility'
 import type { CompatibilityResult, CompatibilityStatus } from '@/lib/statistics/data-method-compatibility'
 import { getCompatibilityForMethod } from '@/lib/statistics/data-method-compatibility'
 
@@ -110,8 +110,8 @@ export function MethodBrowser({
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
   const [hoveredMethod, setHoveredMethod] = useState<StatisticalMethod | null>(null)
 
-  // Get compatibility map from store
-  const methodCompatibility = useAnalysisStore(state => state.methodCompatibility)
+  // TD-10-D: 파생 훅에서 호환성 맵 가져오기
+  const methodCompatibility = useMethodCompatibility()
 
   // Get compatibility info for a method
   const getCompatibility = useCallback((methodId: string): CompatibilityResult | null => {

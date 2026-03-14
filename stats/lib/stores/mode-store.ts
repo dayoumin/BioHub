@@ -1,29 +1,27 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import type { AnalysisTrack } from '@/types/analysis'
 import type { AiRecommendationContext } from '@/lib/utils/storage-types'
 
 /**
  * UI 모드 상태 관리
  *
- * Hub 표시, 빠른 분석, 재분석 등 UI 모드 플래그.
+ * Hub 표시, Step 흐름 트랙, 목적 입력 모드 등 UI 모드 플래그.
  * 분석 데이터와 무관한 순수 UI 상태.
  */
 
+/** Step 네비게이션 흐름 트랙 */
+export type StepTrack = 'normal' | 'quick' | 'reanalysis'
+
 export interface ModeState {
-  isReanalysisMode: boolean
+  stepTrack: StepTrack
   showHub: boolean
-  quickAnalysisMode: boolean
   purposeInputMode: 'ai' | 'browse'
-  activeTrack: AnalysisTrack | null
   userQuery: string | null
   lastAiRecommendation: AiRecommendationContext | null
 
-  setIsReanalysisMode: (mode: boolean) => void
+  setStepTrack: (track: StepTrack) => void
   setShowHub: (show: boolean) => void
-  setQuickAnalysisMode: (mode: boolean) => void
   setPurposeInputMode: (mode: 'ai' | 'browse') => void
-  setActiveTrack: (track: AnalysisTrack | null) => void
   setUserQuery: (query: string | null) => void
   setLastAiRecommendation: (rec: AiRecommendationContext | null) => void
 
@@ -31,11 +29,9 @@ export interface ModeState {
 }
 
 const initialModeState = {
-  isReanalysisMode: false,
+  stepTrack: 'normal' as StepTrack,
   showHub: true,
-  quickAnalysisMode: false,
   purposeInputMode: 'ai' as const,
-  activeTrack: null as AnalysisTrack | null,
   userQuery: null as string | null,
   lastAiRecommendation: null as AiRecommendationContext | null,
 }
@@ -45,11 +41,9 @@ export const useModeStore = create<ModeState>()(
     (set) => ({
       ...initialModeState,
 
-      setIsReanalysisMode: (mode) => set({ isReanalysisMode: mode }),
+      setStepTrack: (track) => set({ stepTrack: track }),
       setShowHub: (show) => set({ showHub: show }),
-      setQuickAnalysisMode: (mode) => set({ quickAnalysisMode: mode }),
       setPurposeInputMode: (mode) => set({ purposeInputMode: mode }),
-      setActiveTrack: (track) => set({ activeTrack: track }),
       setUserQuery: (query) => set({ userQuery: query }),
       setLastAiRecommendation: (rec) => set({ lastAiRecommendation: rec }),
 

@@ -26,6 +26,21 @@ import { useTerminology } from '@/hooks/use-terminology'
 import { CollapsibleSection } from '@/components/analysis/common'
 import { AnalysisOptionsSection } from '@/components/analysis/variable-selector/AnalysisOptions'
 
+/** U1-3: 비교용 정규화 — 키 정렬 + 배열 정렬 + null/undefined 제거 */
+function normalizeMapping(m: VariableMapping): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
+  for (const key of Object.keys(m).sort()) {
+    const value = m[key as keyof VariableMapping]
+    if (value === undefined || value === null) continue
+    if (Array.isArray(value)) {
+      result[key] = [...value].sort()
+    } else {
+      result[key] = value
+    }
+  }
+  return result
+}
+
 interface VariableSelectionStepProps {
   onComplete?: () => void
   onBack?: () => void
@@ -44,8 +59,10 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     uploadedData,
     selectedMethod,
     detectedVariables,
+    variableMapping: existingMapping,
     validationResults,
     setVariableMapping,
+    updateVariableMappingWithInvalidation,
     goToNextStep,
     goToPreviousStep
   } = useAnalysisStore()
@@ -81,6 +98,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   }, [validationResults])
 
   // Handle variable selection complete with validation
+  // U1-3: 변경 감지 — 이전 mapping과 다르면 results/assumptions 무효화
   const handleComplete = useCallback((mapping: VariableMapping) => {
     setValidationAlert(null)
 
@@ -93,14 +111,22 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
       }
     }
 
-    setVariableMapping(mapping)
+    // 변경 감지: 정규화 비교 (배열/문자열 표현 차이 대응)
+    const isMappingChanged = !existingMapping
+      || JSON.stringify(normalizeMapping(mapping)) !== JSON.stringify(normalizeMapping(existingMapping))
+
+    if (isMappingChanged) {
+      updateVariableMappingWithInvalidation(mapping)
+    } else {
+      setVariableMapping(mapping)
+    }
 
     if (onComplete) {
       onComplete()
     } else {
       goToNextStep()
     }
-  }, [selectedMethod, columnInfo, setVariableMapping, onComplete, goToNextStep])
+  }, [selectedMethod, columnInfo, existingMapping, setVariableMapping, updateVariableMappingWithInvalidation, onComplete, goToNextStep])
 
   const handleBack = useCallback(() => {
     if (onBack) {
@@ -110,8 +136,10 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     }
   }, [onBack, goToPreviousStep])
 
-  // Build initial selection from detectedVariables based on selector type
+  // Build initial selection: variableMapping 우선, 없으면 detectedVariables fallback
   const initialSelection = useMemo((): Partial<VariableMapping> => {
+    // U1-3: 이전 확정값이 있으면 1순위로 사용 (결과 화면에서 "변수 수정" 후 재진입 시)
+    if (existingMapping) return existingMapping
     if (!detectedVariables) return {}
 
     const result: Partial<VariableMapping> = {}
@@ -197,7 +225,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     }
 
     return result
-  }, [detectedVariables, selectorType])
+  }, [existingMapping, detectedVariables, selectorType])
 
   // No data check
   if (!uploadedData || uploadedData.length === 0) {

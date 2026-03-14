@@ -21,16 +21,25 @@ export function buildHistorySnapshot(): HistorySnapshot {
     uploadedFileName: state.uploadedFileName ?? null,
     uploadedDataLength: state.uploadedData?.length ?? 0,
     variableMapping: state.variableMapping,
+    analysisOptions: state.analysisOptions,
     lastAiRecommendation: modeState.lastAiRecommendation,
   }
 }
 
-/** 히스토리 로드 → analysis-store 복원 → mode 리셋 (3-step 패턴 통합) */
+/** 새 분석 시작 전 세션 상태를 초기화 (히스토리는 유지) */
+export function startFreshAnalysisSession(): void {
+  useAnalysisStore.getState().resetSession()
+}
+
+/** 히스토리 로드 → analysis-store 복원 → mode 정규화 (3-step 패턴 통합) */
 export async function loadAndRestoreHistory(historyId: string): Promise<HistoryLoadResult | null> {
   const result = await useHistoryStore.getState().loadFromHistory(historyId)
   if (result) {
     useAnalysisStore.getState().restoreFromHistory(result)
-    useModeStore.getState().setLastAiRecommendation(null)
+    // 모드 플래그 전부 정규화 — 히스토리 열람은 "결과 보기"이므로 모든 모드 해제
+    const modeStore = useModeStore.getState()
+    modeStore.setLastAiRecommendation(null)
+    modeStore.setStepTrack('normal')
   }
   return result
 }

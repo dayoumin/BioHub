@@ -173,7 +173,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
       const settings = await loadSettingsFromHistory(historyId)
       if (settings) {
         useAnalysisStore.getState().restoreSettingsFromHistory(settings)
-        useModeStore.getState().setIsReanalysisMode(true)
+        useModeStore.getState().setStepTrack('reanalysis')
       }
       onClose?.()
     } catch (error) {

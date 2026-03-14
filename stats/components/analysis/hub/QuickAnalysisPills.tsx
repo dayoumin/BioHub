@@ -129,6 +129,7 @@ export function QuickAnalysisPills({ onQuickAnalysis }: QuickAnalysisPillsProps)
           <button
             key={method.id}
             type="button"
+            data-testid={`quick-pill-${method.id}`}
             onClick={() => onQuickAnalysis(method.id)}
             className={cn(
               'px-3.5 py-1.5 text-[13px] rounded-full',
@@ -144,6 +145,7 @@ export function QuickAnalysisPills({ onQuickAnalysis }: QuickAnalysisPillsProps)
 
         <button
           type="button"
+          data-testid="quick-analysis-settings"
           onClick={handleOpenEdit}
           className="p-1.5 text-muted-foreground/40 hover:text-muted-foreground transition-colors rounded-full hover:bg-accent"
           title={t.hub.quickAnalysis.editTooltip}

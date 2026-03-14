@@ -935,8 +935,21 @@ export interface MethodRecommendation {
   badge?: 'recommended' | 'alternative'
 }
 
+/** 동점/모호 시 사용자에게 던질 후속 질문 */
+export interface ClarificationQuestion {
+  question: string
+  options: ClarificationOption[]
+}
+
+export interface ClarificationOption {
+  label: string
+  methodId: string
+}
+
 /** Consultant 서비스 응답 */
 export interface ConsultantResponse {
   recommendations: MethodRecommendation[]
   summary?: string
+  /** 동점으로 판단이 모호할 때 사용자에게 추가 질문 */
+  clarification?: ClarificationQuestion
 }

@@ -260,6 +260,7 @@ export function QuickAccessBar({ onHistoryClick, onHistoryDelete, onShowMore }: 
         {analysisHistory.length > MAX_VISIBLE_PILLS && onShowMore && (
           <button
             type="button"
+            data-testid="history-show-more"
             onClick={onShowMore}
             className="text-xs text-muted-foreground hover:text-primary transition-colors"
           >
@@ -334,6 +335,7 @@ function ActivityCardItem({ card, t, onClick, onTogglePin, onDelete }: ActivityC
         isViz ? 'border-l-[3px] border-l-violet-400/60 border-t-border border-r-border border-b-border'
           : 'border-border',
       )}
+      data-testid={`recent-activity-card-${card.id}`}
       onClick={onClick}
       role="button"
       tabIndex={0}
