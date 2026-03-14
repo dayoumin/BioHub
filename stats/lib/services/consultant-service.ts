@@ -5,21 +5,113 @@
  * purpose-categories.ts의 카테고리를 매칭하고,
  * statistical-methods.ts에서 추천 메서드를 반환.
  *
+ * 매칭 2단계:
+ * 1차: 카테고리 키워드 + 소속 메서드 키워드 → 후보 카테고리 선정
+ * 2차: 메서드별 키워드 → 카테고리 내 메서드 우선순위 결정
+ * 3차: 동점 감지 → 카테고리 간 + 카테고리 내 모두 clarification 생성
+ *
  * 데이터 소스:
  * - PURPOSE_CATEGORIES (purpose-categories.ts) — 카테고리 + 키워드
  * - STATISTICAL_METHODS (statistical-methods.ts) — canonical 메서드 정보
+ * - METHOD_KEYWORDS (이 파일) — 메서드별 2차 매칭 키워드
  *
  * 새 ID 매핑을 만들지 않음 → 드리프트 방지
  */
 
 import { PURPOSE_CATEGORIES } from '@/lib/constants/purpose-categories'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
-import type { MethodRecommendation, ConsultantResponse } from '@/types/analysis'
+import type { MethodRecommendation, ConsultantResponse, ClarificationQuestion, ClarificationOption } from '@/types/analysis'
 
 interface CategoryScore {
   categoryId: string
   score: number
   matchedKeywords: string[]
+}
+
+interface MethodScore {
+  methodId: string
+  score: number
+  matchedKeywords: string[]
+  originalIndex: number
+}
+
+/**
+ * 메서드별 2차 매칭 키워드
+ *
+ * 카테고리 매칭 후 카테고리 내에서 메서드 우선순위를 결정.
+ * 키워드가 없는 메서드는 원래 순서(methodIds 배열 순서) 유지.
+ *
+ * 키워드 설계 원칙:
+ * - 2글자 이상 (1글자 한글 오탐 위험)
+ * - 다른 맥락에서 흔히 쓰이는 일반 단어 회피 ("하나", "통제", "반응" 등)
+ * - 복합어 우선 ("단일표본", "공변량 통제" 등)
+ */
+export const METHOD_KEYWORDS: Record<string, string[]> = {
+  // --- 그룹 비교 (compare) ---
+  't-test': ['독립표본', '두 그룹', '두 집단', '실험군', '대조군', 'independent sample', 'two group'],
+  'welch-t': ['등분산', '분산 다른', 'welch', 'unequal variance'],
+  'one-sample-t': ['단일표본', '모집단 평균', 'one sample', 'population mean'],
+  'paired-t': ['전후', '전/후', '사전사후', '사전/사후', '대응표본', 'paired', 'before after', 'pre post', 'matched'],
+  'anova': ['세 그룹', '3개 그룹', '세 집단', '여러 그룹', 'three group', 'multiple group'],
+  'welch-anova': ['등분산 없', 'welch anova'],
+  'repeated-measures-anova': ['반복측정', '반복 측정', '여러 시점', 'repeated measure', 'within subject'],
+  'ancova': ['공변량', '공분산분석', 'covariate', 'ancova'],
+  'manova': ['다변량 분산', '여러 종속', 'manova', 'multiple dependent'],
+  'mixed-model': ['혼합효과', '랜덤효과', '고정효과', 'mixed effect', 'random effect', 'hierarchical'],
+  'mann-whitney': ['비모수 독립', '비모수 두', '비모수', '비정규', '정규분포 아닌', 'nonparametric', 'non-normal', 'mann-whitney'],
+  'wilcoxon': ['비모수 대응', '비모수 전후', '비모수 사전', '비모수 사후', '비모수', '부호순위', 'wilcoxon', 'signed rank'],
+  'kruskal-wallis': ['비모수 세 그룹', '비모수 여러', 'kruskal'],
+  'friedman': ['비모수 반복', 'friedman'],
+  'sign-test': ['부호검정', 'sign test'],
+  'mood-median': ['중앙값 검정', 'mood', 'median test'],
+  'means-plot': ['평균 도표', '평균 그래프', '평균 플롯', 'means plot'],
+
+  // --- 관계/연관성 (relationship) ---
+  'correlation': ['상관', '피어슨', '스피어만', 'pearson', 'spearman'],
+  'partial-correlation': ['편상관', '통제 상관', 'partial correlation', 'controlling for'],
+  'chi-square-independence': ['카이제곱', '독립성', '교차표', '빈도표', 'chi-square', 'cross tab', 'contingency'],
+  'mcnemar': ['맥니마', '이분 대응', 'mcnemar'],
+  'cochran-q': ['코크란', 'cochran'],
+
+  // --- 예측 모델링 (prediction) ---
+  'regression': ['선형 회귀', '단순 회귀', '다중 회귀', 'linear regression', 'multiple regression'],
+  'logistic-regression': ['로지스틱', '이분 분류', '이항 분류', 'logistic', 'binary classification'],
+  'poisson': ['포아송', '빈도 데이터', '건수 데이터', 'poisson', 'count data'],
+  'ordinal-regression': ['순서형 회귀', '서열 회귀', 'ordinal regression'],
+  'stepwise': ['단계적 회귀', '변수 선택', 'stepwise', 'variable selection'],
+  'dose-response': ['용량 반응', 'dose response', 'dose-response'],
+  'response-surface': ['반응 표면', 'response surface', 'rsm'],
+
+  // --- 분포/기술통계 (descriptive) ---
+  'descriptive': ['기술통계', '요약 통계', 'descriptive', 'summary statistics'],
+  'normality-test': ['정규성', '정규분포', '샤피로', 'normality', 'shapiro', 'normal distribution'],
+  'explore-data': ['탐색적', '데이터 탐색', 'explore', 'eda'],
+  'binomial-test': ['이항검정', '성공 확률', 'binomial test'],
+  'runs-test': ['런 검정', '무작위성', 'runs test', 'randomness test'],
+  'ks-test': ['분포 적합', 'kolmogorov', 'ks test'],
+  'chi-square-goodness': ['적합도 검정', '기대빈도', 'goodness of fit'],
+  'proportion-test': ['비율 검정', 'proportion test'],
+
+  // --- 시계열 (timeseries) ---
+  'arima': ['arima', '자기회귀', '이동평균 모형', 'autoregressive'],
+  'seasonal-decompose': ['계절 분해', '계절성', 'seasonal decompose'],
+  'stationarity-test': ['정상성', '단위근', 'stationarity', 'unit root', 'adf'],
+  'mann-kendall': ['추세 검정', 'mann-kendall', 'trend test'],
+
+  // --- 생존 분석 (survival) ---
+  'kaplan-meier': ['카플란', '생존 곡선', 'kaplan', 'survival curve'],
+  'cox-regression': ['콕스', '위험비', 'cox', 'hazard ratio'],
+  'roc-curve': ['roc', 'auc', '민감도 특이도', 'sensitivity specificity'],
+
+  // --- 다변량 (multivariate) ---
+  'pca': ['주성분', '차원 축소', 'pca', 'principal component'],
+  'factor-analysis': ['요인 분석', '잠재 변수', 'factor analysis', 'latent'],
+  'cluster': ['군집 분석', '클러스터', '그룹핑', 'cluster', 'k-means'],
+  'discriminant': ['판별 분석', '판별 함수', 'discriminant', 'lda'],
+
+  // --- 측정/설계 (tools) ---
+  'power-analysis': ['검정력', '표본 크기', '표본수', 'power analysis', 'sample size'],
+  'reliability': ['신뢰도', '크론바흐', '알파 계수', 'reliability', 'cronbach'],
 }
 
 /**
@@ -39,15 +131,28 @@ export function getRecommendations(
   }
 
   // 1. 각 카테고리의 키워드 매칭 점수 계산
+  //    카테고리 자체 키워드 + 소속 메서드의 METHOD_KEYWORDS 매칭을 합산
   const scores: CategoryScore[] = PURPOSE_CATEGORIES
     .filter(cat => !cat.disabled && cat.methodIds.length > 0)
     .map(cat => {
       const matchedKeywords = cat.keywords.filter(kw =>
         normalizedMessage.includes(kw.toLowerCase())
       )
+
+      // 소속 메서드의 METHOD_KEYWORDS에서 매칭되는 것이 있으면 카테고리 점수에 가산
+      let methodKeywordBonus = 0
+      for (const methodId of cat.methodIds) {
+        const kws = METHOD_KEYWORDS[methodId]
+        if (!kws) continue
+        if (kws.some(kw => normalizedMessage.includes(kw.toLowerCase()))) {
+          methodKeywordBonus = 1
+          break
+        }
+      }
+
       return {
         categoryId: cat.id,
-        score: matchedKeywords.length,
+        score: matchedKeywords.length + methodKeywordBonus,
         matchedKeywords,
       }
     })
@@ -58,7 +163,38 @@ export function getRecommendations(
     return { recommendations: [], summary: undefined }
   }
 
-  // 2. 상위 카테고리에서 대표 메서드 추출
+  // 2. 각 카테고리의 메서드 점수를 미리 계산 (추천 + 동점 감지 양쪽에서 재사용)
+  const methodScoresPerCategory = new Map<string, MethodScore[]>()
+  for (const { categoryId } of scores) {
+    const category = PURPOSE_CATEGORIES.find(c => c.id === categoryId)
+    if (!category) continue
+
+    const methodScores: MethodScore[] = category.methodIds
+      .map((methodId, idx) => {
+        const keywords = METHOD_KEYWORDS[methodId]
+        if (!keywords) return { methodId, score: 0, matchedKeywords: [], originalIndex: idx }
+
+        const matched = keywords.filter(kw =>
+          normalizedMessage.includes(kw.toLowerCase())
+        )
+        return { methodId, score: matched.length, matchedKeywords: matched, originalIndex: idx }
+      })
+      .sort((a, b) => b.score - a.score || a.originalIndex - b.originalIndex)
+
+    methodScoresPerCategory.set(categoryId, methodScores)
+  }
+
+  // 2.5 카테고리 동점 시 최고 메서드 점수로 재정렬
+  //     "교차표 비교" → compare(cat 1, method 0) vs relationship(cat 1, method 1)
+  //     → relationship이 먼저 와야 chi-square-independence가 추천됨
+  scores.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score
+    const bestA = methodScoresPerCategory.get(a.categoryId)?.[0]?.score ?? 0
+    const bestB = methodScoresPerCategory.get(b.categoryId)?.[0]?.score ?? 0
+    return bestB - bestA
+  })
+
+  // 3. 추천 메서드 추출
   const recommendations: MethodRecommendation[] = []
   const usedMethodIds = new Set<string>()
 
@@ -68,7 +204,10 @@ export function getRecommendations(
     const category = PURPOSE_CATEGORIES.find(c => c.id === categoryId)
     if (!category) continue
 
-    for (const methodId of category.methodIds) {
+    const methodScores = methodScoresPerCategory.get(categoryId)
+    if (!methodScores) continue
+
+    for (const { methodId, matchedKeywords: methodKws } of methodScores) {
       if (recommendations.length >= maxRecommendations) break
       if (usedMethodIds.has(methodId)) continue
 
@@ -76,26 +215,116 @@ export function getRecommendations(
       if (!method) continue
 
       usedMethodIds.add(methodId)
+
+      const allKws = [...matchedKeywords, ...methodKws]
+      const reason = allKws.length > 0
+        ? buildReason(category.label, allKws)
+        : `${category.label} 분야의 분석 방법입니다.`
+
       recommendations.push({
         methodId,
         methodName: method.name,
         koreanName: method.koreanName ?? method.name,
-        reason: buildReason(category.label, matchedKeywords),
+        reason,
         badge: recommendations.length === 0 ? 'recommended' : 'alternative',
       })
     }
   }
+
+  // 4. 동점 감지 → clarification 생성
+  const clarification = detectAmbiguity(scores, methodScoresPerCategory)
 
   const topCategory = PURPOSE_CATEGORIES.find(c => c.id === scores[0].categoryId)
   const summary = topCategory
     ? `"${topCategory.label}" 분야의 분석 방법을 추천합니다.`
     : undefined
 
-  return { recommendations, summary }
+  return { recommendations, summary, clarification }
+}
+
+/**
+ * 동점 감지: 카테고리 간 + 카테고리 내 모두 확인
+ *
+ * 카테고리 간: 상위 2개 카테고리 점수가 같고 각각 1위 메서드가 다르면 모호
+ * 카테고리 내: 1위 카테고리 안에서 동점 메서드가 2개 이상이면 모호
+ */
+function detectAmbiguity(
+  categoryScores: CategoryScore[],
+  methodScoresPerCategory: Map<string, MethodScore[]>
+): ClarificationQuestion | undefined {
+  // A. 카테고리 간 동점 감지
+  if (categoryScores.length >= 2) {
+    const [cat1, cat2] = categoryScores
+    if (cat1.score === cat2.score && cat1.score > 0) {
+      const scores1 = methodScoresPerCategory.get(cat1.categoryId)
+      const scores2 = methodScoresPerCategory.get(cat2.categoryId)
+      const top1 = scores1?.find(m => m.score > 0)
+      const top2 = scores2?.find(m => m.score > 0)
+
+      if (top1 && top2 && top1.methodId !== top2.methodId) {
+        const label1 = PURPOSE_CATEGORIES.find(c => c.id === cat1.categoryId)?.label
+        const label2 = PURPOSE_CATEGORIES.find(c => c.id === cat2.categoryId)?.label
+        return buildClarificationFromMethods([
+          { ...top1, categoryLabel: label1 },
+          { ...top2, categoryLabel: label2 },
+        ])
+      }
+    }
+  }
+
+  // B. 카테고리 내 동점 감지 (1위 카테고리에서)
+  if (categoryScores.length > 0) {
+    const topCatId = categoryScores[0].categoryId
+    const topCat = PURPOSE_CATEGORIES.find(c => c.id === topCatId)
+    const methodScores = methodScoresPerCategory.get(topCatId)
+    if (!topCat || !methodScores) return undefined
+
+    if (methodScores.length >= 2 && methodScores[0].score > 0) {
+      const topScore = methodScores[0].score
+      const tiedMethods = methodScores.filter(m => m.score === topScore)
+      if (tiedMethods.length >= 2) {
+        return buildClarificationFromMethods(
+          tiedMethods.map(m => ({ ...m, categoryLabel: topCat.label }))
+        )
+      }
+    }
+  }
+
+  return undefined
 }
 
 /** 추천 이유 텍스트 생성 */
 function buildReason(categoryLabel: string, matchedKeywords: string[]): string {
-  const keywordStr = matchedKeywords.slice(0, 3).map(k => `"${k}"`).join(', ')
+  const unique = [...new Set(matchedKeywords)]
+  const keywordStr = unique.slice(0, 3).map(k => `"${k}"`).join(', ')
   return `${categoryLabel} 분석 — 입력에서 ${keywordStr} 키워드가 감지되었습니다.`
+}
+
+/** 동점 메서드 목록에서 clarification 질문 생성 */
+function buildClarificationFromMethods(
+  tiedMethods: Array<MethodScore & { categoryLabel?: string }>
+): ClarificationQuestion {
+  const options: ClarificationOption[] = []
+
+  for (const m of tiedMethods) {
+    const method = STATISTICAL_METHODS[m.methodId]
+    if (!method) continue
+
+    const name = method.koreanName ?? method.name
+    const desc = method.koreanDescription ?? method.description
+
+    options.push({
+      label: m.categoryLabel ? `[${m.categoryLabel}] ${name} — ${desc}` : `${name} — ${desc}`,
+      methodId: m.methodId,
+    })
+  }
+
+  if (options.length === 0) {
+    return { question: '비슷한 점수의 메서드입니다.', options: [] }
+  }
+
+  return {
+    question: '비슷한 점수의 메서드입니다.',
+    options,
+  }
 }

@@ -17,6 +17,9 @@ export { getMethodRequirements } from './method-registry'
 /** 등록된 메서드 ID 목록 / 레지스트리 크기 */
 export { getRegisteredMethodIds, getRegistrySize } from './method-registry'
 
+/** 테스트 전용: prefix로 시작하는 등록 항목을 일괄 제거 */
+export { _unregisterByPrefix } from './method-registry'
+
 /** Types */
 export type { MethodRegistration, MethodRequirements } from './method-registry'
 export type { SelectorType } from './selector-types'

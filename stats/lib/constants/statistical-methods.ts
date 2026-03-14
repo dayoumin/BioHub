@@ -19,6 +19,8 @@
  */
 
 import type { StatisticalMethod } from '@/types/analysis'
+// Ensure registry boot data is initialized before any STATISTICAL_METHODS consumer runs.
+import '@/lib/registry'
 
 // Extended type with aliases for backward compatibility
 export interface StatisticalMethodWithAliases extends StatisticalMethod {
