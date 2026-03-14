@@ -853,6 +853,7 @@ export const aquaculture: TerminologyDictionary = {
       exportHtml: 'HTML (.html)',
       exportWithOptions: '세부 옵션으로 내보내기',
       backToVariables: '변수 선택으로',
+      changeMethod: '방법 변경',
     },
     save: {
       defaultName: (date: string) => `분석 ${date}`,

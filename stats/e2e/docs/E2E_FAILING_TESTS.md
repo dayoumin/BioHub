@@ -8,51 +8,45 @@
 테스트 재현 전 반드시:
 ```bash
 cd stats
-pnpm build                    # out/ 정적 빌드 생성 (필수)
-npx playwright test <spec>    # playwright.config.ts가 `npx serve out -p 3000 -s` 자동 실행
+NEXT_PUBLIC_OPENROUTER_MODEL=test-model pnpm build   # out/ 정적 빌드 생성 (필수, AI mock용 env 포함)
+npx playwright test <spec>    # playwright.config.ts가 `npx serve out -p 3200 -s` 자동 실행
 ```
-`playwright.config.ts:28`에서 `out/` 폴더를 serve로 띄움. 빌드 없이 실행하면 404가 나므로, 실패 원인이 테스트인지 빌드 상태인지 분리 불가.
+`playwright.config.ts:28`에서 `out/` 폴더를 serve로 띄움 (포트 3200). 빌드 없이 실행하면 404가 나므로, 실패 원인이 테스트인지 빌드 상태인지 분리 불가.
 
 ---
 
-## 전체 현황
+## 전체 현황 (2026-03-14 최종)
+
+> ✅ **전체 해결 완료**: 60 passed, 4 skipped, 0 failed (13.4분)
 
 | 테스트 파일 | 통과 | 실패 | 스킵 | 미실행 |
 |---|---|---|---|---|
 | common-ux (Phase 4C) | 9 | 0 | 0 | 0 |
 | common-nonfunctional (Phase 5C) | 9 | 0 | 0 | 0 |
-| graph-ux (Phase 4B) | 10 | 1 | 1 | 0 |
+| graph-ux (Phase 4B) | 11 | 0 | 1 | 0 |
 | graph-nonfunctional (Phase 5B) | 10 | 0 | 0 | 0 |
-| statistics-ux (Phase 4A) | 5 | 3 | 6 | 0 |
-| statistics-nonfunctional (Phase 5A) | 2 | 4 | 0 | 4 |
-| **합계** | **45** | **8** | **7** | **4** |
+| statistics-ux (Phase 4A) | 11 | 0 | 3 | 0 |
+| statistics-nonfunctional (Phase 5A) | 10 | 0 | 0 | 0 |
+| **합계** | **60** | **0** | **4** | **0** |
 
-> **스킵**: 코드 내 `test.skip()` 호출 (기능 미구현 등)
-> **미실행**: Playwright worker crash 후 남은 테스트가 실행되지 않음 (`did not run`)
+> ✅ 2026-03-14 수정 (세션 4):
+> - TC-4A.1.1 (mock URL + auto-trigger), TC-4A.1.2 (chip 기반 변수 할당), TC-4A.3.1 (이전 수정 확인), TC-4B.1.3 (fallback 코드 제거)
+> - **ISSUE-1**: `navigateToUploadStep`에 `sessionStorage.clear()` 추가 → TC-5A.1.2/1.4/1.5 + worker crash 해소
+> - **TC-4A.4.1~3**: `ResultsActionStep.tsx`에 `data-testid="export-dropdown"` 등 추가 → skip→pass
+
+> **스킵 4건**: 코드 내 `test.skip()` 호출 (기능 미구현) — TC-4A.1.3 (Quick Analysis), TC-4A.2.2 (History), TC-4A.2.3 (Re-analysis), TC-4B.5.2 (Graph copy)
 
 ---
 
-## 실패 테스트 상세 (8건)
+## ~~실패 테스트 상세 (8건)~~ — 전체 해결 완료
 
-### ISSUE-1: Smart Flow 반복 네비게이션 시 렌더링 실패
+### ~~ISSUE-1: Smart Flow 반복 네비게이션 시 렌더링 실패~~ ✅ 해결 (2026-03-14)
 
-**관찰된 증상:** `navigateToUploadStep()` (`flow-helpers.ts:28`) 내에서 `page.goto('/', ...)` 후 30초 내에 `hub-upload-card`, `input[type="file"]`, `data-profile-summary` 중 어떤 것도 DOM에 나타나지 않음. 로그에 `[navigate] render failed, retry 1/5` 반복 후 5분 타임아웃.
+**근본 원인 (확정):** `analysis-store.ts`가 `persist` 미들웨어 + `sessionStorage`를 사용. 1회차 분석 완료 후 `page.goto('/')` 하면 sessionStorage에 저장된 zustand 상태가 rehydration되어 결과 화면(Step 4)이 다시 표시됨 → Upload Step 셀렉터들이 DOM에 나타나지 않아 5분 타임아웃.
 
-**관찰 조건:** 같은 페이지 세션에서 Smart Flow를 1회 완료(결과 도달)한 뒤, 2회차 `navigateToUploadStep` 호출 시 발생. 1회차 분석은 항상 성공.
+**수정:** `flow-helpers.ts`의 `navigateToUploadStep` 최상단에 `await page.evaluate(() => sessionStorage.clear()).catch(() => {})` 추가. 이전 분석 상태를 완전 초기화하여 Hub가 정상 마운트됨.
 
-**추정 원인 (미검증):** SPA 상태(Pyodide Worker, Smart Flow 스텝 상태, 결과 캐시 등)가 `goto('/')` 후에도 완전 초기화되지 않아 React hydration이 블로킹되는 것으로 추정. 단, `navigateToUploadStep`에는 ChunkLoadError 복구 + 5회 재시도 + 렌더링 대기 로직이 있음에도 실패하므로, 단순 로딩 지연이 아닌 앱 상태 문제일 가능성이 높음. 정확한 원인은 Playwright trace 분석 또는 앱 디버깅 필요.
-
-**영향 받는 테스트:**
-
-| TC | 파일:라인 | 2회차 네비게이션 발생 지점 |
-|---|---|---|
-| TC-5A.1.2 | statistics-nonfunctional.spec.ts:68 | 1회차 분석 완료 → `navigateToUploadStep` 2회차 (line 89) |
-| TC-5A.1.4 | statistics-nonfunctional.spec.ts:171 | for loop 2회차 `navigateToUploadStep` (line 181) |
-| TC-5A.1.5 | statistics-nonfunctional.spec.ts:206 | 워밍업 분석 완료 → for loop 내 `navigateToUploadStep` (line 227) |
-
-**수정 방향:**
-- 앱 코드: `ChatCentricHub` 마운트 시 이전 분석 상태 강제 초기화 여부 확인
-- 테스트 코드: 반복 분석 테스트를 개별 `test()`로 분리(각각 새 browser context) 또는 `page.reload()` 후 상태 확인 추가
+**후속 효과:** ISSUE-5 (worker crash) + 미실행 4건도 자연 해소 — 선행 테스트의 5분 타임아웃이 사라져 메모리 고갈 없음.
 
 ---
 
@@ -84,78 +78,63 @@ await page.waitForFunction(
 
 ---
 
-### ISSUE-3: TC-4A.1.1, TC-4A.1.2 — 분석 결과 도달 실패
+### ~~ISSUE-3: TC-4A.1.1, TC-4A.1.2 — 분석 결과 도달 실패~~ ✅ 해결 (2026-03-14)
 
-**파일:** `statistics-ux.spec.ts:34` (TC-4A.1.1), `statistics-ux.spec.ts:110` (TC-4A.1.2)
+**근본 원인 (확정):**
+1. **Mock URL 불일치**: `mockOpenRouterAPI`가 `openrouter.ai`만 가로챘으나 앱은 `/api/ai` 프록시 사용
+2. **빌드 env 누락**: `NEXT_PUBLIC_OPENROUTER_MODEL=test-model` 없이 빌드하면 OpenRouter 비활성화
+3. **Auto-trigger 경쟁 조건** (TC-4A.1.1): `PurposeInputStep`이 Step 2 진입 시 자동 AI 요청 → 수동 질문 입력 시 `START_AI_CHAT`이 `aiRecommendation=null`로 리셋
+4. **변수 할당 toggle** (TC-4A.1.2): AI auto-trigger가 변수를 미리 할당 → 테스트가 같은 변수를 다시 클릭하면 toggle off
 
-**관찰된 증상:**
-- TC-4A.1.1: 3분 타임아웃 (test.setTimeout이 180000인 것으로 추정). `waitForResults`는 `results-main-card` 또는 `method-specific-results` testid를 대기 (`flow-helpers.ts:468-471`)
-- TC-4A.1.2: 44.9분 타임아웃 (retry에서 3분). 변수 할당 단계까지는 진행.
-
-**추정 원인:** TC-4A.1.1은 AI 추천 흐름(`mockOpenRouterAPI` → 추천카드 → 수락)이 포함되어 있어 일반 분석보다 복잡. TC-4A.1.2는 paired-t-test.csv 사용 + 변수 수동 할당이 필요. 두 테스트 모두 분석 실행 자체가 시작되는지, Pyodide 로딩에서 멈추는지, 결과 렌더링에서 멈추는지 로그만으로는 특정 불가. Playwright trace 분석 필요.
-
-**참고:** TC-5A.1.1 (Pyodide 첫 분석, t-test.csv, 자동 변수 할당)은 동일 환경에서 3.7초만에 통과. TC-4A.1.1/1.2와의 차이점은 AI 추천 흐름과 다른 CSV/변수 할당 경로.
+**수정:**
+- `flow-helpers.ts`: mock이 `/api/ai/` + `openrouter.ai` 양쪽 인터셉트
+- `statistics-ux.spec.ts` TC-4A.1.1: auto-trigger 대기 (수동 AI 채팅 제거)
+- `statistics-ux.spec.ts` TC-4A.1.2: chip 존재 확인 후 미할당 변수만 pool-var 클릭
+- 빌드: `NEXT_PUBLIC_OPENROUTER_MODEL=test-model pnpm build`
 
 ---
 
-### ISSUE-4: TC-4B.1.3 — Smart Flow 결과 → Graph Studio 이동
+### ~~ISSUE-4: TC-4B.1.3 — Smart Flow 결과 → Graph Studio 이동~~ ✅ 해결 (2026-03-14)
 
-**파일:** `graph-ux.spec.ts:132`
+**근본 원인 (확정):** `ensureVariablesOrSkip` 이후 불필요한 fallback 코드가 `runAnalysisBtn` (레거시, Smart Flow에 없음)을 체크 → false → generic `groupBtn` 클릭 → toggle OFF → 변수 해제 → 분석 실행 불가.
 
-**관찰된 증상:** `ensureVariablesOrSkip`까지 성공 (`variable-selection-next` 활성화 로그 확인), 이후 `clickAnalysisRun` → `waitForResults(page, 120000)` 에서 타임아웃. `waitForResults`는 `results-main-card` 또는 `method-specific-results` testid를 대기 (`flow-helpers.ts:468-471`).
+**수정:** fallback 코드 11줄 제거. `ensureVariablesOrSkip`이 양쪽 버튼 모두 처리.
 
 **추정 원인:** 변수 할당은 되었으나 분석 실행 → 결과 렌더링 과정에서 실패. Graph Studio 이동 로직까지 도달하지 못함. ISSUE-3과 동일한 근본 원인일 가능성.
 
 ---
 
-### ISSUE-5: TC-5A.2.1 — Worker 프로세스 크래시
+### ~~ISSUE-5: TC-5A.2.1 — Worker 프로세스 크래시~~ ✅ 해결 (2026-03-14)
 
-**파일:** `statistics-nonfunctional.spec.ts:257`
-
-**관찰된 증상:** `worker process exited unexpectedly (code=3221225794, signal=null)` — 테스트 시작 0ms 만에 즉시 실패. 코드 자체가 실행되지 않음.
-
-**추정 원인:** 선행 테스트 TC-5A.1.4/TC-5A.1.5에서 반복 분석(3~5회 × 5분 타임아웃)으로 Playwright worker 프로세스의 메모리가 고갈된 후 crash 발생. `code=3221225794`는 Windows의 `STATUS_STACK_BUFFER_OVERRUN` (0xC0000409).
-
-**후속 영향:** 이 crash로 인해 같은 실행 내 TC-5A.2.2~2.5, TC-5A.3.1이 `did not run` 처리됨 (4건). 이들은 코드 문제가 아니라 worker crash의 연쇄 효과.
-
-**수정 방향:** ISSUE-1 해결 시 선행 테스트의 5분 타임아웃이 사라지므로 자연 해소될 가능성. 그래도 남으면 `test.describe`를 분리하여 worker 격리.
+ISSUE-1 해결 (sessionStorage.clear())로 자연 해소. 선행 테스트의 5분 타임아웃이 사라져 메모리 고갈 + worker crash 발생하지 않음.
 
 ---
 
-## 스킵 테스트 (7건) — 각각 `test.skip()` 호출로 정상 동작
+## 스킵 테스트 (4건) — 각각 `test.skip()` 호출 (미구현 기능)
 
 | TC | 파일:라인 | skip 조건 (로그 메시지) |
 |---|---|---|
 | TC-4A.1.3 | statistics-ux.spec.ts:164 | `[data-testid*="quick"]` 카운트 0 → `test.skip()` (line 176) |
 | TC-4A.2.2 | statistics-ux.spec.ts:243 | `[data-testid*="history"]` 미표시 → `test.skip()` (line 265) |
 | TC-4A.2.3 | statistics-ux.spec.ts:284 | `[data-testid*="reanalysis"]` 미표시 → `test.skip()` (line 302) |
-| TC-4A.4.1 | statistics-ux.spec.ts:521 | `export-dropdown` 미표시 → `test.skip()` (line 527). 분석 자체는 성공. |
-| TC-4A.4.2 | statistics-ux.spec.ts:543 | 동일: `export-dropdown` 미표시 → `test.skip()` |
-| TC-4A.4.3 | statistics-ux.spec.ts:565 | 동일: `export-dropdown` 미표시 → `test.skip()` |
 | TC-4B.5.2 | graph-ux.spec.ts:523 | 복사 버튼 미표시 → `test.skip()` |
 
-> **TC-4A.4.1~4.3 참고:** `runAnalysisForExport` 헬퍼로 분석까지는 성공하지만, 결과 화면에 `export-dropdown` testid가 없어서 skip. 이 3건은 ISSUE-1/3과 무관하며, **앱의 내보내기 UI에 `data-testid="export-dropdown"` 추가** 시 해결.
+> ~~TC-4A.4.1~4.3~~: `ResultsActionStep.tsx`에 `data-testid="export-dropdown"` 추가하여 **skip→pass 전환** (2026-03-14)
 
-## 미실행 테스트 (4건) — Worker crash 후 `did not run`
+## ~~미실행 테스트 (4건)~~ ✅ 해결 (2026-03-14)
 
-| TC | 파일:라인 | 원인 |
-|---|---|---|
-| TC-5A.2.2 | statistics-nonfunctional.spec.ts:297 | ISSUE-5 (worker crash) 후 미실행 |
-| TC-5A.2.3 | statistics-nonfunctional.spec.ts:326 | 동일 |
-| TC-5A.2.5 | statistics-nonfunctional.spec.ts:361 | 동일 |
-| TC-5A.3.1 | statistics-nonfunctional.spec.ts:402 | 동일 |
-
-이 4건은 코드 문제가 아님. ISSUE-1/5 해결 후 재실행하면 결과 확인 가능.
+ISSUE-1 해결로 worker crash 자연 해소 → TC-5A.2.1~2.5, TC-5A.3.1 모두 정상 통과.
 
 ---
 
-## 우선순위
+## 우선순위 — ✅ 전체 해결 완료 (2026-03-14)
 
-1. ~~**ISSUE-2 (P0, 테스트 코드)**: TC-4A.3.1 셀렉터 교체~~ — ✅ 수정 완료 (2026-03-13)
-2. **ISSUE-3 (P1, 조사 필요)**: TC-4A.1.1/1.2 분석 결과 도달 실패 — Playwright trace로 어느 단계에서 멈추는지 특정
-3. **ISSUE-1 (P1, 앱+테스트)**: 반복 네비게이션 렌더링 실패 — TC-5A.1.2/1.4/1.5 해결. 해결 시 ISSUE-5 + 미실행 4건도 자연 해소 기대
-4. **ISSUE-4 (P2)**: TC-4B.1.3 — ISSUE-3 해결 후 재검증
-5. **TC-4A.4.1~4.3 (P3, 앱 코드)**: 내보내기 UI에 `data-testid="export-dropdown"` 추가
+1. ~~**ISSUE-2 (P0)**: TC-4A.3.1 셀렉터 교체~~ — ✅ 수정 완료 (2026-03-13)
+2. ~~**ISSUE-3 (P1)**: TC-4A.1.1/1.2 분석 결과 도달 실패~~ — ✅ 수정 완료 (2026-03-14)
+3. ~~**ISSUE-4 (P1)**: TC-4B.1.3 — fallback 코드 제거~~ — ✅ 수정 완료 (2026-03-14)
+4. ~~**ISSUE-1 (P1)**: 반복 네비게이션 렌더링 실패~~ — ✅ sessionStorage.clear() 추가 (2026-03-14)
+5. ~~**ISSUE-5**: Worker crash~~ — ✅ ISSUE-1 해결로 자연 해소 (2026-03-14)
+6. ~~**TC-4A.4.1~4.3 (P3)**: export-dropdown testid 추가~~ — ✅ 수정 완료 (2026-03-14)
 
 ## 재현 명령어
 

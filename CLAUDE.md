@@ -79,7 +79,7 @@ pnpm test:coverage    # 커버리지
 
 ## 품질 워크플로우 요약
 
-수정 → `pnpm tsc --noEmit` → `pnpm test` → 커밋 → (사용자 승인) → 푸시.
+커밋 요청 시: `pnpm tsc --noEmit` → `pnpm test` → 커밋. **커밋 전에만 검증 — 수정 중 자동 실행 금지.**
 상세: `commit-workflow` skill 참조. **AI가 자동 푸시 금지.**
 
 ## 개발 명령어

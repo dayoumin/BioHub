@@ -41,6 +41,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { copyApaTable } from '@/lib/utils/apa-table-formatter'
+import { toast } from 'sonner'
+
+/** RFC 4180 CSV 필드 이스케이프 */
+function escapeCsvField(field: string): string {
+  if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+    return `"${field.replace(/"/g, '""')}"`
+  }
+  return field
+}
 
 export interface TableColumn {
   key: string
@@ -238,8 +247,10 @@ export function StatisticsTable({
       }).join('\t')
     ).join('\n')
 
-    navigator.clipboard.writeText(`${headers}\n${rows}`).catch(() => {
-      // Secure context 외 환경에서 clipboard API 사용 불가 — 무시
+    navigator.clipboard.writeText(`${headers}\n${rows}`).then(() => {
+      toast.success('결과가 복사되었습니다')
+    }).catch(() => {
+      toast.error('복사 실패')
     })
   }
 
@@ -249,15 +260,13 @@ export function StatisticsTable({
       ? sortedData.filter((_, index) => selectedRows.has(index))
       : sortedData
 
-    const headers = columns.map(col => col.header).join(',')
+    const headers = columns.map(col => escapeCsvField(col.header)).join(',')
     const rows = selectedData.map(row =>
       columns.map(col => {
         const value = row[col.key]
         if (value === null || value === undefined) return ''
-        if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
-          return `"${value.replace(/"/g, '""')}"`
-        }
-        return String(value)
+        if (typeof value === 'number') return value.toString()
+        return escapeCsvField(String(value))
       }).join(',')
     ).join('\n')
 

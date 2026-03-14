@@ -904,6 +904,7 @@ export interface ResultsText {
     exportHtml: string
     exportWithOptions: string
     backToVariables: string
+    changeMethod: string
   }
   /** 저장 관련 */
   save: {

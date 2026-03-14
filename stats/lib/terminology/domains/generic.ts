@@ -847,6 +847,7 @@ export const generic: TerminologyDictionary = {
       exportHtml: 'HTML (.html)',
       exportWithOptions: 'Export with options',
       backToVariables: 'Back to Variables',
+      changeMethod: 'Change Method',
     },
     save: {
       defaultName: (date: string) => `Analysis ${date}`,
