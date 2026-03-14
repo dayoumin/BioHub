@@ -31,7 +31,6 @@ import {
   Maximize2,
   LayoutGrid,
   StickyNote,
-  ArrowUpDown,
 } from 'lucide-react';
 import type { ChatMessage } from '@/lib/graph-studio/use-ai-chat';
 
@@ -116,7 +115,7 @@ const AI_CARD_TREE: L1Card[] = [
     id: 'annotation', label: '주석', icon: StickyNote,
     children: [
       { id: 'add-text',   label: '텍스트 주석', prompt: '"___" 텍스트를 차트에 추가해줘' },
-      { id: 'add-hline',  label: '수평선 추가', prompt: 'Y=___ 위치에 점선을 추가해줘' },
+      { id: 'add-hline',  label: '수평선 추가', prompt: 'Y=___ 위치에 수평 참조선을 추가해줘' },
       { id: 'add-vline',  label: '수직선 추가', prompt: 'X=___ 위치에 수직선을 추가해줘' },
     ],
   },

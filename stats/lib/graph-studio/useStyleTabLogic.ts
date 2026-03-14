@@ -55,11 +55,12 @@ export interface StyleTabLogic {
   handleFontChange: (fontFamily: string) => void;
   handleApplyPreset: (presetKey: StylePreset) => void;
   handleBackgroundChange: (color: string) => void;
-  handleFontSizeChange: (key: 'size' | 'titleSize' | 'labelSize', value: number) => void;
+  handleFontSizeChange: (key: 'size' | 'titleSize' | 'labelSize' | 'axisTitleSize', value: number) => void;
   handleSortChange: (sort: 'ascending' | 'descending' | null) => void;
   handleColorChange: (index: number, color: string) => void;
   handleResetColors: () => void;
   currentTitleSize: number;
+  currentAxisTitleSize: number;
   currentLabelSize: number;
   currentFontSize: number;
   currentSort: 'ascending' | 'descending' | null;
@@ -220,7 +221,17 @@ export function useStyleTabLogic(): StyleTabLogic | null {
   const handleApplyPreset = useCallback((presetKey: StylePreset) => {
     if (!chartSpec) return;
     const preset = STYLE_PRESETS[presetKey];
-    updateChartSpec({ ...chartSpec, style: { ...preset } });
+    // 프리셋의 핵심(font, colors, background, preset명)을 적용하되,
+    // 사용자가 설정한 기능 토글(showDataLabels, showSampleCounts, scheme)은 보존
+    updateChartSpec({
+      ...chartSpec,
+      style: {
+        ...preset,
+        showDataLabels: chartSpec.style.showDataLabels,
+        showSampleCounts: chartSpec.style.showSampleCounts,
+        scheme: chartSpec.style.scheme,
+      },
+    });
   }, [chartSpec, updateChartSpec]);
 
   const handleBackgroundChange = useCallback((color: string) => {
@@ -228,8 +239,8 @@ export function useStyleTabLogic(): StyleTabLogic | null {
     updateChartSpec({ ...chartSpec, style: { ...chartSpec.style, background: color || undefined } });
   }, [chartSpec, updateChartSpec]);
 
-  const handleFontSizeChange = useCallback((key: 'size' | 'titleSize' | 'labelSize', value: number) => {
-    if (!chartSpec || value < 6 || value > 36) return;
+  const handleFontSizeChange = useCallback((key: 'size' | 'titleSize' | 'labelSize' | 'axisTitleSize', value: number) => {
+    if (!chartSpec || isNaN(value) || value < 6 || value > 36) return;
     updateChartSpec({ ...chartSpec, style: { ...chartSpec.style, font: { ...chartSpec.style.font, [key]: value } } });
   }, [chartSpec, updateChartSpec]);
 
@@ -284,6 +295,7 @@ export function useStyleTabLogic(): StyleTabLogic | null {
   const currentColors = chartSpec.style.colors ?? presetColors;
   const presetFont = STYLE_PRESETS[chartSpec.style.preset]?.font;
   const currentTitleSize = chartSpec.style.font?.titleSize ?? presetFont?.titleSize ?? 14;
+  const currentAxisTitleSize = chartSpec.style.font?.axisTitleSize ?? chartSpec.style.font?.labelSize ?? presetFont?.axisTitleSize ?? presetFont?.labelSize ?? 11;
   const currentLabelSize = chartSpec.style.font?.labelSize ?? presetFont?.labelSize ?? 11;
   const currentFontSize = chartSpec.style.font?.size ?? presetFont?.size ?? 12;
 
@@ -296,7 +308,7 @@ export function useStyleTabLogic(): StyleTabLogic | null {
     handleCustomLabelChange, commitCustomLabels,
     handleFontChange, handleApplyPreset, handleBackgroundChange,
     handleFontSizeChange, handleSortChange, handleColorChange, handleResetColors,
-    currentTitleSize, currentLabelSize, currentFontSize, currentSort, isCategoryX, currentColors,
+    currentTitleSize, currentAxisTitleSize, currentLabelSize, currentFontSize, currentSort, isCategoryX, currentColors,
     isQuantitativeY, isQuantitativeX, isLogScale, currentFont,
     showLegend, showDataLabelOption, showSampleCountOption, colorGroups,
   };

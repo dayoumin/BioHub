@@ -481,6 +481,7 @@
 | **~~Quick Analysis 프리필~~** | ✅ 완료 (P0-1, P0-2) — normality enrichment + 3계층 변수 추론 + 테스트 27개. P0-3(fuzzy matching) 보류 |
 | **~~Graph Studio G2-1 Quick Wins~~** | ✅ 완료 — ColorBrewer 15종 + 막대 데이터 레이블 + 수평 막대 + 테스트 57개 |
 | **~~Layer 0: APA 테이블 복사~~** | ✅ 완료 (2026-03-12) — APA 7th HTML 서식 + 보안 수정 + 테스트 26개 — `62177373` |
+| **Graph Studio: 주석 UI 편집기** | 수동 GUI로 annotation 추가/편집/삭제 (hline/vline/text). 현재 AI 채팅으로만 가능 → 직접 조작 UI 추가. C-4 ([계획서](stats/docs/graph-studio/PLAN-STYLE-ANNOTATION-IMPROVEMENTS.md)) |
 | **UX 단계별 흐름 개선** | Smart Flow + Graph Studio UX 개선 6단계 — 변수→결과 초기화, 네비게이션 자유도, 통계→그래프 연결 ([계획서](stats/docs/PLAN-UX-STEPFLOW-IMPROVEMENTS.md)) |
 | **논문 초안 생성** | 분석 결과 → Methods/Results/Caption/Discussion 학술 텍스트 자동 생성 ([계획서](stats/docs/PLAN-PAPER-DRAFT-GENERATION.md)) |
 | **Phase 15-1: Bio-Tools** | 12개 생물학 분석, `/bio-tools/` 5페이지 구현 ([상세](study/PLAN-BIO-STATISTICS-AUDIT.md)) |
@@ -573,6 +574,33 @@
 | G3-SCREENSHOT | MEDIUM | KM/ROC 결과 화면 스크린샷 자동 캡처 + Prism 대비 시각 비교 | E2E 확장 시 자연 해결 |
 | G3-GRAPH-VIZ-TEST | MEDIUM | Graph Studio 차트 시각화 E2E 테스트 | KM 곡선/ROC 곡선 렌더링 검증, ChartPreview 스크린샷 비교, 유의성 마커/에러바/범례 위치 시각적 회귀 테스트 (`toHaveScreenshot`) |
 | G3-R-VERIFY | LOW | `generate-r-references.R` 실행 → KM/ROC 골든값 근사치를 R 정확값으로 교체 | 로컬 R 환경 필요 |
+
+### Phase G4: 패널 구조 개선 (Phase 4, 즉시 가능)
+
+| 기능 | 설명 | 계획서 |
+|------|------|--------|
+| 탭명 변경 | "데이터" → "차트 설정" | 4-1 |
+| 좌측 패널 기본 접힘 | `useState(false)` — 캔버스 256px 확보 | 4-2 |
+| 변수 클릭 역할 할당 | Popover + `assignFieldRole()` + capability 체크 | 4-3 |
+| 데이터 교체 프로젝트 해제 | `currentProject: null` 설정 | 4-5 |
+| 색상 hex 복사 | ✅ 완료 | 4-4 |
+
+> 계획서: [PLAN-UX-IMPROVEMENTS.md](stats/docs/graph-studio/PLAN-UX-IMPROVEMENTS.md) Phase 4
+
+### Phase G5: 학술 UX 고도화 (후순위, Phase 4 다음)
+
+> 2025-2026 학술 시각화 도구 동향 조사 기반 (Prism 11, Origin 2025, Figlinq, matplotlib 3.10)
+
+| 기능 | 영감 | 난이도 |
+|------|------|--------|
+| **Contextual Floating Panel** | Origin Mini Toolbar — 차트 요소 클릭 → 해당 설정 Popover | 높음 |
+| **색맹 친화 팔레트** | matplotlib petroff10 — 기본 scheme 변경 + 시뮬레이션 미리보기 | 낮~중 |
+| **AI 변경 투명성** | Figlinq Transparent AI — JSON Patch → 한국어 변경 요약 표시 | 중간 |
+| **데이터 Slicer** | Origin 2025 Slicer — nominal/ordinal 값 필터 (원본 불변) | 높음 |
+| Auto-Annotation 강화 | Prism Stars-on-Graph — 통계 비교 bracket 자동 생성 | 높음 |
+| LaTeX 수식 지원 | Origin — 축 라벨/제목에 수식 표기 | 중간 |
+
+> 계획서: [PLAN-UX-IMPROVEMENTS.md](stats/docs/graph-studio/PLAN-UX-IMPROVEMENTS.md) Phase 5-6
 
 ---
 

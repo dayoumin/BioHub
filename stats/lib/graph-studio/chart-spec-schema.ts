@@ -120,8 +120,7 @@ const facetSchema = z.object({
   shareAxis: z.boolean().optional(),
 }).strict();
 
-const annotationSchema = z.object({
-  type: z.enum(['text', 'line', 'rect']),
+const graphicAnnotationFields = {
   text: z.string().optional(),
   x: z.union([z.number(), z.string()]).optional(),
   y: z.union([z.number(), z.string()]).optional(),
@@ -130,7 +129,40 @@ const annotationSchema = z.object({
   color: z.string().optional(),
   fontSize: z.number().positive().optional(),
   strokeDash: z.array(z.number()).optional(),
+};
+const textAnnotationSchema = z.object({ type: z.literal('text'), ...graphicAnnotationFields }).strict();
+const lineAnnotationSchema = z.object({ type: z.literal('line'), ...graphicAnnotationFields }).strict();
+const rectAnnotationSchema = z.object({ type: z.literal('rect'), ...graphicAnnotationFields }).strict();
+
+const hlineAnnotationSchema = z.object({
+  type: z.literal('hline'),
+  value: z.number(),
+  text: z.string().optional(),
+  color: z.string().optional(),
+  fontSize: z.number().positive().optional(),
+  strokeDash: z.array(z.number()).optional(),
+  lineWidth: z.number().positive().optional(),
+  labelPosition: z.enum(['start', 'middle', 'end']).optional(),
 }).strict();
+
+const vlineAnnotationSchema = z.object({
+  type: z.literal('vline'),
+  value: z.union([z.number(), z.string()]),
+  text: z.string().optional(),
+  color: z.string().optional(),
+  fontSize: z.number().positive().optional(),
+  strokeDash: z.array(z.number()).optional(),
+  lineWidth: z.number().positive().optional(),
+  labelPosition: z.enum(['start', 'middle', 'end']).optional(),
+}).strict();
+
+const annotationSchema = z.discriminatedUnion('type', [
+  textAnnotationSchema,
+  lineAnnotationSchema,
+  rectAnnotationSchema,
+  hlineAnnotationSchema,
+  vlineAnnotationSchema,
+]);
 
 const styleSchema = z.object({
   preset: stylePresetSchema,
@@ -142,6 +174,7 @@ const styleSchema = z.object({
     size: z.number().positive().optional(),
     titleSize: z.number().positive().optional(),
     labelSize: z.number().positive().optional(),
+    axisTitleSize: z.number().positive().optional(),
   }).strict().optional(),
   colors: z.array(z.string()).optional(),
   background: z.string().optional(),

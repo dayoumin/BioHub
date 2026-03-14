@@ -139,7 +139,8 @@ export interface FacetSpec {
 
 // ─── Annotations ───────────────────────────────────────────
 
-export interface AnnotationSpec {
+/** 픽셀/퍼센트 좌표 기반 (text, line, rect) */
+export interface GraphicAnnotation {
   type: 'text' | 'line' | 'rect';
   text?: string;
   x?: number | string;
@@ -150,6 +151,34 @@ export interface AnnotationSpec {
   fontSize?: number;
   strokeDash?: number[];
 }
+
+/** 데이터 좌표 기반 수평 참조선 */
+export interface HLineAnnotation {
+  type: 'hline';
+  /** Y축 데이터 값 (필수) */
+  value: number;
+  text?: string;
+  color?: string;
+  fontSize?: number;
+  strokeDash?: number[];
+  lineWidth?: number;
+  labelPosition?: 'start' | 'middle' | 'end';
+}
+
+/** 데이터 좌표 기반 수직 참조선 */
+export interface VLineAnnotation {
+  type: 'vline';
+  /** X축 데이터 값 또는 카테고리명 (필수) */
+  value: number | string;
+  text?: string;
+  color?: string;
+  fontSize?: number;
+  strokeDash?: number[];
+  lineWidth?: number;
+  labelPosition?: 'start' | 'middle' | 'end';
+}
+
+export type AnnotationSpec = GraphicAnnotation | HLineAnnotation | VLineAnnotation;
 
 // ─── Style Presets ─────────────────────────────────────────
 
@@ -168,6 +197,8 @@ export interface StyleSpec {
     size?: number;
     titleSize?: number;
     labelSize?: number;
+    /** 축 제목 전용 크기 ("Treatment Group" 등). 미설정 시 labelSize 폴백. */
+    axisTitleSize?: number;
   };
   colors?: string[];
   background?: string;

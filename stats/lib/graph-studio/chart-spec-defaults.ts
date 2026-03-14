@@ -57,6 +57,7 @@ export const STYLE_PRESETS: Record<StylePreset, StyleSpec> = {
       size: 12,
       titleSize: 14,
       labelSize: 11,
+      axisTitleSize: 11,
     },
     background: 'white',
     padding: 20,
@@ -69,6 +70,7 @@ export const STYLE_PRESETS: Record<StylePreset, StyleSpec> = {
       size: 10,
       titleSize: 12,
       labelSize: 9,
+      axisTitleSize: 9,
     },
     background: 'white',
     padding: 16,
@@ -81,6 +83,7 @@ export const STYLE_PRESETS: Record<StylePreset, StyleSpec> = {
       size: 8,
       titleSize: 10,
       labelSize: 8,
+      axisTitleSize: 8,
     },
     colors: [
       '#000000', '#555555', '#999999', '#cccccc',
@@ -96,6 +99,7 @@ export const STYLE_PRESETS: Record<StylePreset, StyleSpec> = {
       size: 11,
       titleSize: 13,
       labelSize: 10,
+      axisTitleSize: 10,
     },
     colors: [
       '#000000', '#404040', '#808080', '#b0b0b0', '#d0d0d0',

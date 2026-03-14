@@ -65,7 +65,7 @@ export function StyleTab(): React.ReactElement {
     handleCustomLabelChange, commitCustomLabels,
     handleFontChange, handleApplyPreset, handleBackgroundChange,
     handleFontSizeChange, handleSortChange, handleColorChange, handleResetColors,
-    currentTitleSize, currentLabelSize, currentFontSize, currentSort, isCategoryX, currentColors,
+    currentTitleSize, currentAxisTitleSize, currentLabelSize, currentFontSize, currentSort, isCategoryX, currentColors,
     isQuantitativeY, isQuantitativeX, isLogScale, currentFont,
     showLegend, showDataLabelOption, showSampleCountOption, colorGroups,
   } = logic;
@@ -276,7 +276,18 @@ export function StyleTab(): React.ReactElement {
             <span className="text-xs text-muted-foreground">px</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground w-16 shrink-0">축 라벨</span>
+            <span className="text-xs text-muted-foreground w-16 shrink-0">축 제목</span>
+            <Input
+              type="number"
+              value={currentAxisTitleSize}
+              onChange={(e) => handleFontSizeChange('axisTitleSize', parseInt(e.target.value, 10))}
+              className="h-6 text-xs w-16"
+              min={6} max={36}
+            />
+            <span className="text-xs text-muted-foreground">px</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground w-16 shrink-0">눈금 라벨</span>
             <Input
               type="number"
               value={currentLabelSize}
@@ -328,6 +339,55 @@ export function StyleTab(): React.ReactElement {
           )}
         </div>
       </div>
+
+      {/* 시리즈 색상 개별 지정 */}
+      {currentColors.length > 0 && (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs">시리즈 색상</Label>
+            {chartSpec.style.colors && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 px-1.5 text-xs"
+                onClick={handleResetColors}
+              >
+                초기화
+              </Button>
+            )}
+          </div>
+          <div className="space-y-1">
+            <div className="flex gap-1 flex-wrap">
+              {currentColors.slice(0, 8).map((color, i) => (
+                <Input
+                  key={i}
+                  type="color"
+                  value={color}
+                  onChange={(e) => handleColorChange(i, e.target.value)}
+                  className="h-7 w-7 p-0.5 cursor-pointer rounded"
+                  title={`색상 ${i + 1}: ${color}`}
+                />
+              ))}
+            </div>
+            <div className="flex gap-1 flex-wrap">
+              {currentColors.slice(0, 8).map((color, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="text-[9px] font-mono text-muted-foreground hover:text-foreground cursor-pointer select-all"
+                  title="클릭하여 복사"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(color);
+                    toast.success(`${color} 복사됨`);
+                  }}
+                >
+                  {color}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 학술 스타일 프리셋 */}
       <div className="space-y-1.5">

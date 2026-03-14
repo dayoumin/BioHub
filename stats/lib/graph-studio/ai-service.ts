@@ -43,7 +43,7 @@ Generate a minimal RFC 6902 JSON Patch that transforms the ChartSpec to fulfill 
 - title: string (optional)
 - data.sourceId: string
 - data.columns: array of {name, type, uniqueCount, hasNull}  (sample values shown in 컬럼 목록)
-- encoding.x / encoding.y: {field, type, title?, labelAngle?, labelFontSize?, titleFontSize?, format?, grid?, scale?: {domain?, range?, zero?, type?: linear|log|sqrt|symlog}, sort?: ascending|descending|null}
+- encoding.x / encoding.y: {field, type, title?, labelAngle?, labelFontSize?, titleFontSize?, grid?, scale?: {domain?, range?, zero?, type?: linear|log|sqrt|symlog}, sort?: ascending|descending|null} — NOTE: format field exists in schema but is NOT yet rendered.
 - encoding.y2: {field, type: "quantitative", title?, scale?} (optional) — secondary Y-axis (right side), renders as line. Uses colors[1]. Only field/type/title/scale are allowed (no labelAngle etc.). Only works with bar and line charts.
 - encoding.color: {field, type, legend?: {orient?, fontSize?, customLabels?: {rawName: displayLabel}}} (optional)
 - encoding.color.scale: NOT YET RENDERED — schema exists but renderer ignores it. Do NOT generate patches for this field.
@@ -54,8 +54,14 @@ Generate a minimal RFC 6902 JSON Patch that transforms the ChartSpec to fulfill 
 - orientation: "horizontal" (optional) — horizontal bars (bar/grouped-bar/stacked-bar only)
 - trendline: {type: "linear", color?, strokeDash?, showEquation?} (optional) — regression line (scatter only)
 - facet: {field, ncol?, showTitle?, shareAxis?} (optional) — facet/small multiples (bar, scatter)
-- style: {preset: default|science|ieee|grayscale, scheme?: string (e.g. 'viridis','Set2', overrides preset colors), showDataLabels?, showSampleCounts?, font?: {family?, size?, titleSize?, labelSize?}, colors?: string[], background?}
-- annotations: array of {type: text|line|rect, text?, x?, y?, x2?, y2?, color?, fontSize?, strokeDash?}
+- style: {preset: default|science|ieee|grayscale, scheme?: string (e.g. 'viridis','Set2', overrides preset colors), showDataLabels?, showSampleCounts?, font?: {family?, size?, titleSize? (chart title), labelSize? (tick labels), axisTitleSize? (axis titles, fallback: labelSize)}, colors?: string[], background?}
+- annotations: array of objects. Types:
+  - {type: "text", text: "...", x?: "50%"|number, y?: number, color?, fontSize?} (pixel/% coords)
+  - {type: "hline", value: number (required), text?, color?, strokeDash?: number[], lineWidth?, labelPosition?: "start"|"middle"|"end"}
+  - {type: "vline", value: number|string (required), text?, color?, strokeDash?: number[], lineWidth?, labelPosition?: "start"|"middle"|"end"}
+  - {type: "line", x?, y?, x2?, y2?} (pixel coords)
+  - {type: "rect", x?, y?, x2?, y2?} (pixel coords)
+  For reference lines at data coordinates, prefer hline/vline over line/rect.
 - exportConfig: {format: svg|png, dpi, physicalWidth?: mm, physicalHeight?: mm, transparentBackground?} (physicalWidth/Height=출력 물리 크기(mm), 미지정=DOM 크기)
 - significance: array of {groupA, groupB, pValue?, label?} (optional) — statistical significance brackets (bar/grouped-bar/error-bar only). Rendered as overlay graphics by ChartPreview.
 - encoding.size: NOT YET RENDERED — schema exists but renderer ignores it. Do NOT generate patches for this field.

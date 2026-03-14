@@ -7,7 +7,7 @@
  * AI generation path: LLM -> ChartSpec JSON (directly, no intermediate format)
  */
 
-import type { ChartSpec, AxisSpec, AnnotationSpec, TrendlineSpec, StylePreset, DataType } from '@/types/graph-studio';
+import type { ChartSpec, AxisSpec, AnnotationSpec, GraphicAnnotation, HLineAnnotation, VLineAnnotation, TrendlineSpec, StylePreset, DataType } from '@/types/graph-studio';
 import type { EChartsOption } from 'echarts';
 import { STYLE_PRESETS, ALL_PALETTES, CHART_TYPE_HINTS } from './chart-spec-defaults';
 import { partitionRowsByFacet, computeFacetLayout } from './facet-layout';
@@ -68,6 +68,7 @@ interface StyleConfig {
   fontSize: number;
   titleSize: number;
   labelSize: number;
+  axisTitleSize: number;
   colors: string[];
   background: string;
 }
@@ -83,6 +84,7 @@ function getStyleConfig(spec: ChartSpec): StyleConfig {
     fontSize: font?.size ?? 12,
     titleSize: font?.titleSize ?? 14,
     labelSize: font?.labelSize ?? 11,
+    axisTitleSize: font?.axisTitleSize ?? font?.labelSize ?? 11,
     colors: spec.style.colors
       ?? (spec.style.scheme ? ALL_PALETTES[spec.style.scheme] : undefined)
       ?? PRESET_COLORS[spec.style.preset]
@@ -257,6 +259,7 @@ function buildBoxplotData(
   rows: Record<string, unknown>[],
   xField: string,
   yField: string,
+  sort?: AxisSpec['sort'],
 ): { categories: string[]; data: [number, number, number, number, number][] } {
   const order: string[] = [];
   const groups = new Map<string, number[]>();
@@ -282,6 +285,10 @@ function buildBoxplotData(
     data.push([s[0], percentile(s, 0.25), percentile(s, 0.5), percentile(s, 0.75), s[s.length - 1]]);
   }
 
+  if (sort) {
+    const { sorted, indexMap } = applyCategorySort(categories, sort);
+    return { categories: sorted, data: reorderByIndexMap(data, indexMap) };
+  }
   return { categories, data };
 }
 
@@ -293,6 +300,7 @@ function buildViolinGroups(
   rows: Record<string, unknown>[],
   xField: string,
   yField: string,
+  sort?: AxisSpec['sort'],
 ): { categories: string[]; groups: number[][] } {
   const order: string[] = [];
   const map = new Map<string, number[]>();
@@ -305,10 +313,14 @@ function buildViolinGroups(
     map.get(cat)!.push(val);
   }
 
-  return {
-    categories: order,
-    groups: order.map(c => map.get(c) ?? []),
-  };
+  const categories = order;
+  const grps = order.map(c => map.get(c) ?? []);
+
+  if (sort) {
+    const { sorted, indexMap } = applyCategorySort(categories, sort);
+    return { categories: sorted, groups: reorderByIndexMap(grps, indexMap) };
+  }
+  return { categories, groups: grps };
 }
 
 // ─── Violin KDE utilities ────────────────────────────────────
@@ -488,6 +500,7 @@ function buildHeatmapData(
   yField: string,
   valueField: string | null,
   method: 'mean' | 'sum' | 'count' = 'count',
+  sort?: AxisSpec['sort'],
 ): { xCats: string[]; yCats: string[]; data: [number, number, number][]; min: number; max: number } {
   const xOrder: string[] = [];
   const yOrder: string[] = [];
@@ -501,8 +514,11 @@ function buildHeatmapData(
     if (!ySet.has(y)) { ySet.add(y); yOrder.push(y); }
   }
 
+  // X축 정렬 적용
+  const { sorted: sortedX } = applyCategorySort(xOrder, sort);
+
   // O(1) 인덱스 조회용 Map (xOrder.indexOf → O(n²) 방지)
-  const xIndex = new Map<string, number>(xOrder.map((x, i) => [x, i]));
+  const xIndex = new Map<string, number>(sortedX.map((x, i) => [x, i]));
   const yIndex = new Map<string, number>(yOrder.map((y, i) => [y, i]));
 
   // Map key → { count, sum, vals[] }
@@ -547,7 +563,7 @@ function buildHeatmapData(
     for (const [,, v] of data) { if (v < min) min = v; if (v > max) max = v; }
   }
 
-  return { xCats: xOrder, yCats: yOrder, data, min, max };
+  return { xCats: sortedX, yCats: yOrder, data, min, max };
 }
 
 // ─── Linear regression ─────────────────────────────────────
@@ -649,9 +665,13 @@ function buildGraphicAnnotations(
   annotations: AnnotationSpec[],
   style: StyleConfig,
 ): Record<string, unknown>[] {
-  if (!annotations.length) return [];
+  // graphic 요소만 처리 (hline/vline은 markLine으로 별도 처리)
+  const graphicAnns = annotations.filter(
+    (a): a is GraphicAnnotation => a.type === 'text' || a.type === 'line' || a.type === 'rect',
+  );
+  if (!graphicAnns.length) return [];
 
-  return annotations.map((ann): Record<string, unknown> => {
+  return graphicAnns.map((ann): Record<string, unknown> => {
     const color = ann.color ?? '#333333';
 
     if (ann.type === 'text') {
@@ -703,6 +723,66 @@ function buildGraphicAnnotations(
   });
 }
 
+// ─── markLine annotation helpers ──────────────────────────
+
+function buildMarkLineAnnotations(
+  annotations: AnnotationSpec[],
+  orientation?: 'vertical' | 'horizontal',
+): Record<string, unknown> | null {
+  const lines = annotations.filter(
+    (a): a is HLineAnnotation | VLineAnnotation =>
+      a.type === 'hline' || a.type === 'vline',
+  );
+  if (lines.length === 0) return null;
+
+  return {
+    silent: true,
+    symbol: 'none',
+    data: lines.map(a => {
+      const isH = orientation === 'horizontal';
+      const axisKey = a.type === 'hline'
+        ? (isH ? 'xAxis' : 'yAxis')
+        : (isH ? 'yAxis' : 'xAxis');
+      return {
+        [axisKey]: a.value,
+        label: {
+          show: !!a.text,
+          formatter: a.text ?? `${a.value}`,
+          position: a.labelPosition ?? 'end',
+          fontSize: a.fontSize,
+        },
+        lineStyle: {
+          color: a.color ?? '#999',
+          type: a.strokeDash ?? 'solid',
+          width: a.lineWidth ?? 1,
+        },
+      };
+    }),
+  };
+}
+
+/** Inject markLine annotations into the first series of an ECharts option. */
+function applyMarkLineAnnotations(
+  option: EChartsOption,
+  annotations: AnnotationSpec[] | undefined,
+  orientation?: 'vertical' | 'horizontal',
+): EChartsOption {
+  if (!annotations?.length) return option;
+  const markLine = buildMarkLineAnnotations(annotations, orientation);
+  if (!markLine) return option;
+
+  if (Array.isArray(option.series) && option.series.length > 0) {
+    const first = option.series[0] as Record<string, unknown>;
+    const existing = first.markLine as { data: unknown[] } | undefined;
+    if (existing) {
+      existing.data.push(...(markLine.data as unknown[]));
+    } else {
+      first.markLine = markLine;
+    }
+  }
+  return option;
+}
+
 // ─── Base option builder ───────────────────────────────────
 
 function buildBaseOption(spec: ChartSpec, style: StyleConfig): EChartsOption {
@@ -752,10 +832,10 @@ function xAxisBase(spec: ChartSpec, style: StyleConfig, type: 'category' | 'valu
     name: spec.encoding.x.title ?? spec.encoding.x.field,
     nameLocation: 'middle' as const,
     nameGap: 32,
-    nameTextStyle: { fontFamily: style.fontFamily, fontSize: style.labelSize },
+    nameTextStyle: { fontFamily: style.fontFamily, fontSize: spec.encoding.x.titleFontSize ?? style.axisTitleSize },
     axisLabel: {
       fontFamily: style.fontFamily,
-      fontSize: style.labelSize,
+      fontSize: spec.encoding.x.labelFontSize ?? style.labelSize,
       rotate: spec.encoding.x.labelAngle ?? 0,
     },
     splitLine: { show: spec.encoding.x.grid ?? false },
@@ -779,8 +859,8 @@ function yAxisBase(spec: ChartSpec, style: StyleConfig) {
     name: spec.encoding.y.title ?? spec.encoding.y.field,
     nameLocation: 'middle' as const,
     nameGap: 48,
-    nameTextStyle: { fontFamily: style.fontFamily, fontSize: style.labelSize },
-    axisLabel: { fontFamily: style.fontFamily, fontSize: style.labelSize },
+    nameTextStyle: { fontFamily: style.fontFamily, fontSize: spec.encoding.y.titleFontSize ?? style.axisTitleSize },
+    axisLabel: { fontFamily: style.fontFamily, fontSize: spec.encoding.y.labelFontSize ?? style.labelSize },
     splitLine: { show: spec.encoding.y.grid ?? true },
     ...(domain ? { min: domain[0], max: domain[1] } : {}),
   };
@@ -805,8 +885,8 @@ function buildY2Axis(axis: AxisSpec, style: StyleConfig): Record<string, unknown
     nameLocation: 'middle' as const,
     nameGap: 48,
     position: 'right',
-    nameTextStyle: { fontFamily: style.fontFamily, fontSize: style.labelSize },
-    axisLabel: { fontFamily: style.fontFamily, fontSize: style.labelSize },
+    nameTextStyle: { fontFamily: style.fontFamily, fontSize: axis.titleFontSize ?? style.axisTitleSize },
+    axisLabel: { fontFamily: style.fontFamily, fontSize: axis.labelFontSize ?? style.labelSize },
     splitLine: { show: false },  // 오른쪽 축은 그리드 라인 비표시 (좌측과 중복 방지)
     ...(domain ? { min: domain[0], max: domain[1] } : {}),
   };
@@ -1251,7 +1331,7 @@ export function chartSpecToECharts(
         ? countSamplesPerCategory(rows, xField)
         : undefined;
       const barEbAxBase = xAxisBase(spec, style, 'category');
-      return {
+      return applyMarkLineAnnotations({
         ...base,
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
         xAxis: {
@@ -1266,7 +1346,7 @@ export function chartSpecToECharts(
           { type: 'bar', data: means, name: yField, z: 2, ...(barLabel ? { label: barLabel } : {}) },
           buildErrorBarOverlay(categories, means, lowers, uppers),
         ],
-      };
+      }, spec.annotations, spec.orientation);
     }
     const isH = spec.orientation === 'horizontal';
     const y2Axis = spec.encoding.y2;
@@ -1285,10 +1365,10 @@ export function chartSpecToECharts(
     }
     // showSampleCounts: dataset 모드에서 categories를 rows에서 명시적으로 추출해야 함
     if (spec.style.showSampleCounts) {
-      const catOrder = [...new Map(rows.map(r => [toStr(r[xField]), true])).keys()];
+      const catOrder = [...new Map(workRows.map(r => [toStr(r[xField]), true])).keys()];
       const counts = countSamplesPerCategory(rows, xField);
       const { xAxis: barXAxisN, yAxis: barYAxisN } = buildBarAxes(spec, style, catOrder, counts);
-      return {
+      return applyMarkLineAnnotations({
         ...base,
         tooltip: hasY2
           ? { trigger: 'axis', axisPointer: { type: 'cross' } }
@@ -1299,10 +1379,10 @@ export function chartSpecToECharts(
           : barYAxisN,
         dataset: { source: workRows },
         series: barSeries,
-      };
+      }, spec.annotations, spec.orientation);
     }
     const { xAxis: barXAxis, yAxis: barYAxis } = buildBarAxes(spec, style);
-    return {
+    return applyMarkLineAnnotations({
       ...base,
       tooltip: hasY2
         ? { trigger: 'axis', axisPointer: { type: 'cross' } }
@@ -1313,7 +1393,7 @@ export function chartSpecToECharts(
         : barYAxis,
       dataset: { source: workRows },
       series: barSeries,
-    };
+    }, spec.annotations, spec.orientation);
   }
 
   // ── grouped-bar ────────────────────────────────────────────
@@ -1326,7 +1406,7 @@ export function chartSpecToECharts(
         ? countSamplesPerCategory(rows, xField)
         : undefined;
       const { xAxis: gbXAxis, yAxis: gbYAxis } = buildBarAxes(spec, style, categories, gbCounts);
-      return {
+      return applyMarkLineAnnotations({
         ...base,
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
         legend: buildLegend(spec, style, groups),
@@ -1338,11 +1418,11 @@ export function chartSpecToECharts(
           data: seriesData.get(g) ?? [],
           ...(barLabel ? { label: barLabel } : {}),
         })),
-      };
+      }, spec.annotations, spec.orientation);
     }
     // no color field → fall through to plain bar
     const { xAxis: gbXAxis2, yAxis: gbYAxis2 } = buildBarAxes(spec, style);
-    return {
+    return applyMarkLineAnnotations({
       ...base,
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
       xAxis: gbXAxis2,
@@ -1354,7 +1434,7 @@ export function chartSpecToECharts(
         name: yField,
         ...(barLabel ? { label: barLabel } : {}),
       }],
-    };
+    }, spec.annotations, spec.orientation);
   }
 
   // ── stacked-bar ────────────────────────────────────────────
@@ -1367,7 +1447,7 @@ export function chartSpecToECharts(
         ? countSamplesPerCategory(rows, xField)
         : undefined;
       const { xAxis: sbXAxis, yAxis: sbYAxis } = buildBarAxes(spec, style, categories, sbCounts);
-      return {
+      return applyMarkLineAnnotations({
         ...base,
         tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
         legend: buildLegend(spec, style, groups),
@@ -1380,10 +1460,10 @@ export function chartSpecToECharts(
           data: seriesData.get(g) ?? [],
           ...(barLabel ? { label: barLabel } : {}),
         })),
-      };
+      }, spec.annotations, spec.orientation);
     }
     const { xAxis: sbXAxis2, yAxis: sbYAxis2 } = buildBarAxes(spec, style);
-    return {
+    return applyMarkLineAnnotations({
       ...base,
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
       xAxis: sbXAxis2,
@@ -1395,7 +1475,7 @@ export function chartSpecToECharts(
         name: yField,
         ...(barLabel ? { label: barLabel } : {}),
       }],
-    };
+    }, spec.annotations, spec.orientation);
   }
 
   // ── line ───────────────────────────────────────────────────
@@ -1421,7 +1501,7 @@ export function chartSpecToECharts(
           const arr = groupMap.get(g);
           if (arr) arr.sort(sortByDate);
         }
-        return {
+        return applyMarkLineAnnotations({
           ...base,
           tooltip: { trigger: 'axis' },
           legend: buildLegend(spec, style),
@@ -1433,12 +1513,12 @@ export function chartSpecToECharts(
             data: groupMap.get(g) ?? [],
             smooth: false,
           })),
-        };
+        }, spec.annotations, spec.orientation);
       }
 
       // Non-temporal: category pivot
       const { categories, groups, seriesData } = buildGroupedData(workRows, xField, colorField, yField, spec.encoding.x.sort);
-      return {
+      return applyMarkLineAnnotations({
         ...base,
         tooltip: { trigger: 'axis' },
         legend: buildLegend(spec, style),
@@ -1450,7 +1530,7 @@ export function chartSpecToECharts(
           data: seriesData.get(g) ?? [],
           smooth: false,
         })),
-      };
+      }, spec.annotations, spec.orientation);
     }
 
     // For temporal axis, convert data to [x, y] pairs to ensure proper date parsing
@@ -1481,7 +1561,7 @@ export function chartSpecToECharts(
           itemStyle: { color: style.colors[1] ?? '#dc3545' },
         });
       }
-      return {
+      return applyMarkLineAnnotations({
         ...base,
         tooltip: hasY2Time
           ? { trigger: 'axis', axisPointer: { type: 'cross' } }
@@ -1491,7 +1571,7 @@ export function chartSpecToECharts(
           ? [yAxisBase(spec, style), buildY2Axis(y2AxisTime, style)]
           : yAxisBase(spec, style),
         series: timeSeries,
-      };
+      }, spec.annotations, spec.orientation);
     }
 
     // 에러바 있으면 explicit data 모드로 전환 (category X만 지원)
@@ -1499,7 +1579,7 @@ export function chartSpecToECharts(
       const { categories, means, lowers, uppers } = buildErrorBarData(
         rows, xField, yField, spec.errorBar.type, spec.errorBar.value ?? 95, spec.encoding.x.sort,
       );
-      return {
+      return applyMarkLineAnnotations({
         ...base,
         tooltip: { trigger: 'axis' },
         xAxis: { ...xAxisBase(spec, style, 'category'), data: categories },
@@ -1508,7 +1588,7 @@ export function chartSpecToECharts(
           { type: 'line', data: means, name: yField, smooth: false, z: 2 },
           buildErrorBarOverlay(categories, means, lowers, uppers),
         ],
-      };
+      }, spec.annotations, spec.orientation);
     }
 
     const y2AxisLine = spec.encoding.y2;
@@ -1519,7 +1599,7 @@ export function chartSpecToECharts(
     if (hasY2Line && y2AxisLine) {
       lineSeries.push(buildY2Series(workRows, xField, y2AxisLine.field, style, false));
     }
-    return {
+    return applyMarkLineAnnotations({
       ...base,
       tooltip: hasY2Line
         ? { trigger: 'axis', axisPointer: { type: 'cross' } }
@@ -1530,7 +1610,7 @@ export function chartSpecToECharts(
         : yAxisBase(spec, style),
       dataset: { source: workRows },
       series: lineSeries,
-    };
+    }, spec.annotations, spec.orientation);
   }
 
   // ── scatter ────────────────────────────────────────────────
@@ -1557,14 +1637,14 @@ export function chartSpecToECharts(
         const trendSeries = buildLinearTrendlineSeries(allPoints, spec.trendline, style, yField);
         if (trendSeries) scatterSeries.push(trendSeries);
       }
-      return {
+      return applyMarkLineAnnotations({
         ...base,
         tooltip: { trigger: 'item' },
         legend: buildLegend(spec, style),
         xAxis: { ...xAxisBase(spec, style, 'value') },
         yAxis: yAxisBase(spec, style),
         series: scatterSeries,
-      };
+      }, spec.annotations, spec.orientation);
     }
 
     // 단순 scatter (colorField 없음) — trendline 지원
@@ -1580,29 +1660,29 @@ export function chartSpecToECharts(
     }
     if (simpleSeries.length === 1) {
       // trendline 없음 → dataset 경로 유지 (메모리 효율적)
-      return {
+      return applyMarkLineAnnotations({
         ...base,
         tooltip: { trigger: 'item' },
         xAxis: { ...xAxisBase(spec, style, 'value') },
         yAxis: yAxisBase(spec, style),
         dataset: { source: workRows },
         series: [{ type: 'scatter', encode: { x: xField, y: yField }, name: yField }],
-      };
+      }, spec.annotations, spec.orientation);
     }
-    return {
+    return applyMarkLineAnnotations({
       ...base,
       tooltip: { trigger: 'item' },
       xAxis: { ...xAxisBase(spec, style, 'value') },
       yAxis: yAxisBase(spec, style),
       dataset: { source: workRows },
       series: simpleSeries,
-    };
+    }, spec.annotations, spec.orientation);
   }
 
   // ── boxplot ────────────────────────────────────────────────
   if (spec.chartType === 'boxplot') {
-    const { categories, data } = buildBoxplotData(rows, xField, yField);
-    return {
+    const { categories, data } = buildBoxplotData(rows, xField, yField, spec.encoding.x.sort);
+    return applyMarkLineAnnotations({
       ...base,
       tooltip: {
         trigger: 'item',
@@ -1621,20 +1701,20 @@ export function chartSpecToECharts(
       xAxis: { ...xAxisBase(spec, style, 'category'), data: categories },
       yAxis: yAxisBase(spec, style),
       series: [{ type: 'boxplot', data }],
-    };
+    }, spec.annotations, spec.orientation);
   }
 
   // ── violin (custom renderItem with proper KDE) ────────────
   // n<5인 그룹은 boxplot으로 degrade (KDE가 의미 없는 표본 수)
   if (spec.chartType === 'violin') {
-    const { categories, groups } = buildViolinGroups(rows, xField, yField);
+    const { categories, groups } = buildViolinGroups(rows, xField, yField, spec.encoding.x.sort);
     const MIN_N_FOR_VIOLIN = 5;
     const allSmall = groups.every(g => g.length < MIN_N_FOR_VIOLIN);
 
     // 모든 그룹이 n<5이면 boxplot으로 fallback
     if (allSmall) {
-      const { categories: bpCats, data: bpData } = buildBoxplotData(rows, xField, yField);
-      return {
+      const { categories: bpCats, data: bpData } = buildBoxplotData(rows, xField, yField, spec.encoding.x.sort);
+      return applyMarkLineAnnotations({
         ...base,
         tooltip: {
           trigger: 'item',
@@ -1653,7 +1733,7 @@ export function chartSpecToECharts(
         xAxis: { ...xAxisBase(spec, style, 'category'), data: bpCats },
         yAxis: yAxisBase(spec, style),
         series: [{ type: 'boxplot', data: bpData }],
-      };
+      }, spec.annotations, spec.orientation);
     }
 
     const BIN_COUNT = 80;
@@ -1760,7 +1840,7 @@ export function chartSpecToECharts(
     const yMid = (globalYMin + globalYMax) / 2;
     const data: [number, number][] = categories.map((_, i) => [i, yMid]);
 
-    return {
+    return applyMarkLineAnnotations({
       ...base,
       tooltip: {
         trigger: 'item',
@@ -1790,7 +1870,7 @@ export function chartSpecToECharts(
         data,
         encode: { x: 0, y: 1 },
       }] as EChartsOption['series'],
-    };
+    }, spec.annotations, spec.orientation);
   }
 
   // ── histogram ──────────────────────────────────────────────
@@ -1827,7 +1907,7 @@ export function chartSpecToECharts(
       : undefined;
     const ebXBase = xAxisBase(spec, style, 'category');
 
-    return {
+    return applyMarkLineAnnotations({
       ...base,
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
       xAxis: {
@@ -1842,7 +1922,7 @@ export function chartSpecToECharts(
         { type: 'bar', name: yField, data: means, z: 2 },
         buildErrorBarOverlay(categories, means, lowers, uppers),
       ],
-    };
+    }, spec.annotations, spec.orientation);
   }
 
   // ── heatmap ────────────────────────────────────────────────
@@ -1856,7 +1936,7 @@ export function chartSpecToECharts(
       : defaultMethod;
 
     const { xCats, yCats, data, min, max } = buildHeatmapData(
-      rows, xField, yField, valueField, aggMethod,
+      rows, xField, yField, valueField, aggMethod, spec.encoding.x.sort,
     );
 
     return {
@@ -1881,7 +1961,7 @@ export function chartSpecToECharts(
         name: spec.encoding.y.title ?? yField,
         nameLocation: 'middle',
         nameGap: 48,
-        nameTextStyle: { fontFamily: style.fontFamily, fontSize: style.labelSize },
+        nameTextStyle: { fontFamily: style.fontFamily, fontSize: style.axisTitleSize },
         axisLabel: { fontFamily: style.fontFamily, fontSize: style.labelSize },
         splitArea: { show: true },
       },
@@ -2048,7 +2128,7 @@ export function chartSpecToECharts(
       ? (base as Record<string, unknown>)['graphic'] as Record<string, unknown>[]
       : [];
 
-    return {
+    return applyMarkLineAnnotations({
       ...base,
       tooltip: { trigger: 'axis' },
       legend: groupNames.length > 0 ? buildLegend(spec, style) : { show: false },
@@ -2057,8 +2137,8 @@ export function chartSpecToECharts(
         name: spec.encoding.x.title ?? timeField,
         nameLocation: 'middle' as const,
         nameGap: 32,
-        nameTextStyle: { fontFamily: style.fontFamily, fontSize: style.labelSize },
-        axisLabel: { fontFamily: style.fontFamily, fontSize: style.labelSize },
+        nameTextStyle: { fontFamily: style.fontFamily, fontSize: spec.encoding.x.titleFontSize ?? style.axisTitleSize },
+        axisLabel: { fontFamily: style.fontFamily, fontSize: spec.encoding.x.labelFontSize ?? style.labelSize },
         min: 0,
       },
       yAxis: {
@@ -2066,14 +2146,14 @@ export function chartSpecToECharts(
         name: spec.encoding.y.title ?? 'Survival Probability',
         nameLocation: 'middle' as const,
         nameGap: 48,
-        nameTextStyle: { fontFamily: style.fontFamily, fontSize: style.labelSize },
-        axisLabel: { fontFamily: style.fontFamily, fontSize: style.labelSize },
+        nameTextStyle: { fontFamily: style.fontFamily, fontSize: spec.encoding.y.titleFontSize ?? style.axisTitleSize },
+        axisLabel: { fontFamily: style.fontFamily, fontSize: spec.encoding.y.labelFontSize ?? style.labelSize },
         min: 0,
         max: 1,
       },
       series: allSeries,
       graphic: [...baseGraphics, ...kmGraphics],
-    };
+    }, spec.annotations);
   }
 
   // ── roc-curve ─────────────────────────────────────────────
@@ -2149,7 +2229,7 @@ export function chartSpecToECharts(
       ? (base as Record<string, unknown>)['graphic'] as Record<string, unknown>[]
       : [];
 
-    return {
+    return applyMarkLineAnnotations({
       ...base,
       tooltip: { trigger: 'axis' },
       legend: { show: false },
@@ -2158,8 +2238,8 @@ export function chartSpecToECharts(
         name: spec.encoding.x.title ?? 'False Positive Rate (1 - Specificity)',
         nameLocation: 'middle' as const,
         nameGap: 32,
-        nameTextStyle: { fontFamily: style.fontFamily, fontSize: style.labelSize },
-        axisLabel: { fontFamily: style.fontFamily, fontSize: style.labelSize },
+        nameTextStyle: { fontFamily: style.fontFamily, fontSize: spec.encoding.x.titleFontSize ?? style.axisTitleSize },
+        axisLabel: { fontFamily: style.fontFamily, fontSize: spec.encoding.x.labelFontSize ?? style.labelSize },
         min: 0,
         max: 1,
       },
@@ -2168,23 +2248,23 @@ export function chartSpecToECharts(
         name: spec.encoding.y.title ?? 'True Positive Rate (Sensitivity)',
         nameLocation: 'middle' as const,
         nameGap: 48,
-        nameTextStyle: { fontFamily: style.fontFamily, fontSize: style.labelSize },
-        axisLabel: { fontFamily: style.fontFamily, fontSize: style.labelSize },
+        nameTextStyle: { fontFamily: style.fontFamily, fontSize: spec.encoding.y.titleFontSize ?? style.axisTitleSize },
+        axisLabel: { fontFamily: style.fontFamily, fontSize: spec.encoding.y.labelFontSize ?? style.labelSize },
         min: 0,
         max: 1,
       },
       series: rocSeries,
       graphic: [...baseGraphics, ...rocGraphics],
-    };
+    }, spec.annotations);
   }
 
   // ── fallback ───────────────────────────────────────────────
-  return {
+  return applyMarkLineAnnotations({
     ...base,
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     xAxis: { ...xAxisBase(spec, style, 'category') },
     yAxis: yAxisBase(spec, style),
     dataset: { source: workRows },
     series: [{ type: 'bar', encode: { x: xField, y: yField }, name: yField }],
-  };
+  }, spec.annotations, spec.orientation);
 }
