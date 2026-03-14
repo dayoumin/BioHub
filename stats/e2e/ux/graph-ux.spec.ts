@@ -140,17 +140,6 @@ test.describe('@phase4 @critical Graph Studio 첫 사용자', () => {
     expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 'TC-4B.1.3', 'group', 'value')
-
-    // 변수 미할당 시 수동 클릭 보강 — group 버튼 클릭
-    const runBtn = page.locator(S.runAnalysisBtn)
-    if (!(await runBtn.isEnabled().catch(() => false))) {
-      const groupBtn = page.locator('button:not([disabled])').filter({ hasText: 'group' })
-      if ((await groupBtn.count()) > 0) {
-        await groupBtn.first().click()
-        await page.waitForTimeout(1000)
-      }
-    }
-
     await clickAnalysisRun(page)
     expect(await waitForResults(page, 120000)).toBeTruthy()
 
@@ -529,22 +518,19 @@ test.describe('@phase4 @important 차트 내보내기 & 공유', () => {
       await page.waitForTimeout(3000)
     }
 
-    const copyBtn = page.locator(
-      '[data-testid*="copy"], button:has-text("복사"), button:has-text("Copy")',
-    )
-    if (!(await copyBtn.first().isVisible({ timeout: 5000 }).catch(() => false))) {
-      log('TC-4B.5.2', 'SKIPPED: 복사 버튼 미표시')
-      test.skip()
-      return
-    }
+    const copyBtn = page.locator('[data-testid="canvas-copy-btn"]')
+    await expect(copyBtn).toBeVisible({ timeout: 5000 })
 
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
-    await copyBtn.first().click()
+    await copyBtn.click()
     await page.waitForTimeout(1000)
 
     const bodyText = await page.locator('body').innerText()
-    const hasCopyConfirm =
-      bodyText.includes('복사') || bodyText.includes('클립보드') || bodyText.includes('copied')
-    log('TC-4B.5.2', `copyConfirm=${hasCopyConfirm}`)
+    // 성공 토스트만 확인 (실패 토스트 "실패했습니다"와 구분)
+    const hasCopySuccess =
+      bodyText.includes('복사되었습니다') || bodyText.includes('copied')
+    const hasCopyFailure = bodyText.includes('실패')
+    log('TC-4B.5.2', `copySuccess=${hasCopySuccess}, copyFailure=${hasCopyFailure}`)
+    expect(hasCopySuccess && !hasCopyFailure).toBeTruthy()
   })
 })

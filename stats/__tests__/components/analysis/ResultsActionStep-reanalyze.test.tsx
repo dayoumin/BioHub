@@ -346,13 +346,13 @@ describe('ResultsActionStep - 재분석 로직 (Store-level)', () => {
     store.setUploadedFile(null)
     store.setValidationResults(null)
     store.setResults(null)
-    useModeStore.getState().setIsReanalysisMode(true)
+    useModeStore.getState().setStepTrack('reanalysis')
     store.setCurrentStep(1)
   }
 
-  it('"다른 데이터로 재분석" 시 isReanalysisMode가 true가 된다', () => {
+  it('"다른 데이터로 재분석" 시 stepTrack이 reanalysis가 된다', () => {
     simulateReanalyze()
-    expect(useModeStore.getState().isReanalysisMode).toBe(true)
+    expect(useModeStore.getState().stepTrack).toBe('reanalysis')
   })
 
   it('"다른 데이터로 재분석" 시 Step 1로 이동한다', () => {
@@ -413,12 +413,12 @@ describe('재분석 전체 플로우 시뮬레이션', () => {
     store.setUploadedFile(null)
     store.setValidationResults(null)
     store.setResults(null)
-    useModeStore.getState().setIsReanalysisMode(true)
+    useModeStore.getState().setStepTrack('reanalysis')
     store.setCurrentStep(1)
 
     // 3. 검증: 설정은 유지, 데이터만 초기화
     const stateAfterReanalyze = useAnalysisStore.getState()
-    expect(useModeStore.getState().isReanalysisMode).toBe(true)
+    expect(useModeStore.getState().stepTrack).toBe('reanalysis')
     expect(stateAfterReanalyze.currentStep).toBe(1)
     expect(stateAfterReanalyze.selectedMethod?.id).toBe('anova')
     expect(stateAfterReanalyze.variableMapping?.dependentVar).toBe('score')

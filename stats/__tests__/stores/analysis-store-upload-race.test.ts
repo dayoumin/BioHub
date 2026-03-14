@@ -3,7 +3,7 @@
  *
  * 시나리오:
  * 1. uploadNonce: 같은 파일명 재업로드 시 이전 enrichment가 무시되는지
- * 2. patchColumnNormality: assumptionResults/methodCompatibility를 보존하는지
+ * 2. patchColumnNormality: assumptionResults를 보존하는지
  * 3. resetSession: nonce가 증가하여 진행 중 enrichment를 무효화하는지
  */
 
@@ -144,25 +144,8 @@ describe('Smart Flow Store - Upload Race Conditions', () => {
       expect(useAnalysisStore.getState().assumptionResults?.normality?.shapiroWilk?.pValue).toBe(0.3)
     })
 
-    it('methodCompatibility를 보존한다', () => {
-      const cols = [makeColumnStats()]
-      const validation = makeValidation(cols)
-
-      act(() => { useAnalysisStore.getState().setValidationResults(validation) })
-
-      // setValidationResults가 생성한 methodCompatibility 확인
-      const compatBefore = useAnalysisStore.getState().methodCompatibility
-      expect(compatBefore).not.toBeNull()
-
-      const enriched: ColumnStatistics[] = [{
-        ...cols[0],
-        normality: { statistic: 0.98, pValue: 0.42, isNormal: true, testName: 'shapiro-wilk' },
-      }]
-      act(() => { useAnalysisStore.getState().patchColumnNormality(enriched) })
-
-      // methodCompatibility가 동일하게 유지
-      expect(useAnalysisStore.getState().methodCompatibility).toBe(compatBefore)
-    })
+    // TD-10-D: methodCompatibility는 useMethodCompatibility 훅으로 이동
+    // patchColumnNormality가 validationResults를 업데이트하면 훅이 자동 재계산
 
     it('validationResults가 null이면 아무것도 하지 않는다', () => {
       const enriched: ColumnStatistics[] = [makeColumnStats()]

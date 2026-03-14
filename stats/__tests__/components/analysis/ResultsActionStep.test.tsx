@@ -572,7 +572,7 @@ vi.mock('@/hooks/use-terminology', () => ({
         copied: '복사됨', copy: '복사', saveTemplate: '템플릿으로 저장',
         reanalyze: '다른 데이터로 재분석', newAnalysis: '새 분석 시작',
         export: '내보내기', exporting: '내보내는 중...', exportDocx: 'Word (.docx)', exportExcel: 'Excel (.xlsx)',
-        exportHtml: 'HTML', exportWithOptions: '옵션으로 내보내기', backToVariables: '변수 선택으로',
+        exportHtml: 'HTML', exportWithOptions: '옵션으로 내보내기', backToVariables: '변수 선택으로', changeMethod: '방법 변경',
       },
       save: {
         defaultName: (d: string) => `분석 ${d}`, promptMessage: '분석 이름을 입력하세요:',
@@ -714,6 +714,9 @@ const defaultStoreState = {
   setUploadedFile: vi.fn(),
   setValidationResults: vi.fn(),
   setResults: vi.fn(),
+  setAssumptionResults: vi.fn(),
+  setVariableMapping: vi.fn(),
+  pruneCompletedStepsFrom: vi.fn(),
   uploadedData: [{ score: 10, group: 'A' }, { score: 12, group: 'B' }],
   variableMapping: { dependentVar: 'score', groupVar: 'group' },
   uploadedFileName: 'test-data.csv',
@@ -730,9 +733,9 @@ vi.mock('@/lib/stores/analysis-store', () => ({
   }),
 }))
 
-// Mode store mock (setIsReanalysisMode)
+// Mode store mock (setStepTrack)
 const defaultModeStoreState = {
-  setIsReanalysisMode: vi.fn(),
+  setStepTrack: vi.fn(),
 }
 
 let mockModeStoreState = { ...defaultModeStoreState }
@@ -747,7 +750,7 @@ vi.mock('@/lib/stores/mode-store', () => ({
 const defaultHistoryStoreState = {
   saveToHistory: vi.fn(),
   loadedInterpretationChat: null,
-  currentHistoryId: null,
+  currentHistoryId: null as string | null,
   setLoadedInterpretationChat: vi.fn(),
 }
 
@@ -762,6 +765,35 @@ vi.mock('@/lib/stores/history-store', () => ({
 // Converter mock (vi.hoisted: vi.mock보다 먼저 초기화)
 const mockConvert = vi.hoisted(() => vi.fn())
 const mockStreamFollowUp = vi.hoisted(() => vi.fn())
+const mockLoadDataPackageWithSpec = vi.hoisted(() => vi.fn())
+
+// Graph Studio store mock
+vi.mock('@/lib/stores/graph-studio-store', () => ({
+  useGraphStudioStore: (selector: (s: Record<string, unknown>) => unknown) =>
+    selector({ loadDataPackageWithSpec: mockLoadDataPackageWithSpec }),
+}))
+
+// Graph Studio utility mocks (handleOpenInGraphStudio 내부에서 사용)
+vi.mock('@/lib/graph-studio/analysis-adapter', () => ({
+  toAnalysisContext: vi.fn().mockReturnValue({ method: 'test' }),
+  buildKmCurveColumns: vi.fn(),
+  buildRocCurveColumns: vi.fn(),
+}))
+
+vi.mock('@/lib/graph-studio/chart-spec-utils', () => ({
+  inferColumnMeta: vi.fn().mockReturnValue([
+    { name: 'score', type: 'quantitative' },
+    { name: 'group', type: 'nominal' },
+  ]),
+  suggestChartType: vi.fn().mockReturnValue('bar'),
+  selectXYFields: vi.fn().mockReturnValue({ xField: 'group', yField: 'score' }),
+  applyAnalysisContext: vi.fn().mockImplementation((spec: unknown) => spec),
+}))
+
+vi.mock('@/lib/graph-studio/chart-spec-defaults', () => ({
+  createDefaultChartSpec: vi.fn().mockReturnValue({ encoding: { x: {}, y: {} } }),
+  CHART_TYPE_HINTS: { bar: {} },
+}))
 
 vi.mock('@/lib/statistics/result-converter', () => ({
   convertToStatisticalResult: mockConvert
@@ -1331,7 +1363,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       expect(mockStoreState.setUploadedData).toHaveBeenCalledWith(null)
       expect(mockStoreState.setUploadedFile).toHaveBeenCalledWith(null)
       expect(mockStoreState.setResults).toHaveBeenCalledWith(null)
-      expect(mockModeStoreState.setIsReanalysisMode).toHaveBeenCalledWith(true)
+      expect(mockModeStoreState.setStepTrack).toHaveBeenCalledWith('reanalysis')
       expect(mockStoreState.navigateToStep).toHaveBeenCalledWith(1)
     })
 
@@ -1622,6 +1654,67 @@ describe('Part 3: Phase 상태 머신 시뮬레이션', () => {
       // 충분히 기다려도 L2 없음
       await new Promise(r => setTimeout(r, 500))
       expect(screen.queryByTestId('detailed-results-section')).not.toBeInTheDocument()
+    })
+  })
+
+  // --------------------------------------------------
+  describe('U2-3: handleChangeMethod — 무효화 + stepTrack 초기화', () => {
+    beforeEach(() => {
+      mockConvert.mockReturnValue(statBase)
+      mockStoreState = { ...defaultStoreState }
+      mockModeStoreState = { ...defaultModeStoreState }
+    })
+
+    it('방법 변경 버튼 클릭 → results/assumptions/mapping null + pruneCompletedStepsFrom(3) + setStepTrack("normal") + setCurrentStep(2)', async () => {
+      renderPhase(<ResultsActionStep results={baseResults} />)
+
+      const changeBtn = screen.getByTestId('change-method-btn')
+      await act(async () => { fireEvent.click(changeBtn) })
+
+      expect(mockStoreState.setResults).toHaveBeenCalledWith(null)
+      expect(mockStoreState.setAssumptionResults).toHaveBeenCalledWith(null)
+      expect(mockStoreState.setVariableMapping).toHaveBeenCalledWith(null)
+      expect(mockStoreState.pruneCompletedStepsFrom).toHaveBeenCalledWith(3)
+      expect(mockModeStoreState.setStepTrack).toHaveBeenCalledWith('normal')
+      expect(mockStoreState.setCurrentStep).toHaveBeenCalledWith(2)
+      // navigateToStep이 아닌 setCurrentStep 직접 사용 (saveCurrentStepData 우회)
+      expect(mockStoreState.navigateToStep).not.toHaveBeenCalled()
+    })
+  })
+
+  // --------------------------------------------------
+  describe('U4-1: Graph Studio — analysisResultId 전달', () => {
+    beforeEach(() => {
+      mockConvert.mockReturnValue(statBase)
+      mockStoreState = { ...defaultStoreState }
+      mockModeStoreState = { ...defaultModeStoreState }
+      mockHistoryStoreState = { ...defaultHistoryStoreState }
+      mockLoadDataPackageWithSpec.mockClear()
+    })
+
+    it('currentHistoryId가 있으면 DataPackage.analysisResultId로 전달', async () => {
+      mockHistoryStoreState = { ...defaultHistoryStoreState, currentHistoryId: 'hist-abc-123' }
+      renderPhase(<ResultsActionStep results={baseResults} />)
+
+      const graphBtn = screen.getByTestId('open-graph-studio-btn')
+      await act(async () => { fireEvent.click(graphBtn) })
+
+      expect(mockLoadDataPackageWithSpec).toHaveBeenCalledTimes(1)
+      const pkg = mockLoadDataPackageWithSpec.mock.calls[0][0]
+      expect(pkg.analysisResultId).toBe('hist-abc-123')
+      expect(pkg.source).toBe('analysis')
+    })
+
+    it('currentHistoryId가 null이면 analysisResultId는 undefined', async () => {
+      mockHistoryStoreState = { ...defaultHistoryStoreState, currentHistoryId: null }
+      renderPhase(<ResultsActionStep results={baseResults} />)
+
+      const graphBtn = screen.getByTestId('open-graph-studio-btn')
+      await act(async () => { fireEvent.click(graphBtn) })
+
+      expect(mockLoadDataPackageWithSpec).toHaveBeenCalledTimes(1)
+      const pkg = mockLoadDataPackageWithSpec.mock.calls[0][0]
+      expect(pkg.analysisResultId).toBeUndefined()
     })
   })
 })

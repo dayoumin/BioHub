@@ -60,6 +60,7 @@ export const S = {
 
   // ===== Step Wrappers =====
   dataExplorationStep: '[data-testid="data-exploration-step"]',
+  dataExplorationEmpty: '[data-testid="data-exploration-empty"]',
   variableSelectionStep: '[data-testid="variable-selection-step"]',
   analysisExecutionStep: '[data-testid="analysis-execution-step"]',
 
@@ -98,6 +99,7 @@ export const S = {
   resultsMainCard: '[data-testid="results-main-card"]',
   actionButtons: '[data-testid="action-buttons"]',
   newAnalysisBtn: '[data-testid="new-analysis-btn"]',
+  saveHistoryBtn: '[data-testid="save-history-btn"]',
   detailedResultsSection: '[data-testid="detailed-results-section"]',
   diagnosticsSection: '[data-testid="diagnostics-section"]',
   aiInterpretationSection: '[data-testid="ai-interpretation-section"]',
@@ -153,6 +155,22 @@ export const S = {
   graphStudioRightPanel: '[data-testid="graph-studio-right-panel"]',
   /** Graph Studio 좌측 패널 토글 (G5.0) */
   graphStudioLeftToggle: '[data-testid="graph-studio-left-toggle"]',
+
+  // ===== Quick Analysis Pills =====
+  quickPill: (id: string) => `[data-testid="quick-pill-${id}"]`,
+  quickAnalysisSettings: '[data-testid="quick-analysis-settings"]',
+
+  // ===== Recent Activity =====
+  recentActivityCard: (id: string) => `[data-testid="recent-activity-card-${id}"]`,
+  historyShowMore: '[data-testid="history-show-more"]',
+
+  // ===== Reanalysis =====
+  reanalysisBtn: '[data-testid="reanalysis-btn"]',
+  reanalysisPanel: '[data-testid="reanalysis-panel"]',
+  reanalysisRunBtn: '[data-testid="reanalysis-run-btn"]',
+
+  // ===== Graph Studio Copy =====
+  graphStudioCopyBtn: '[data-testid="canvas-copy-btn"]',
 
   // ===== Hub (추가 카드) =====
   hubVisualizationCard: '[data-testid="hub-visualization-card"]',

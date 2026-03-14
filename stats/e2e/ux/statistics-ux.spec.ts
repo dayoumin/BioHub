@@ -46,19 +46,16 @@ test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
     await expect(nextBtn).toBeEnabled()
 
     // 4. AI 추천 흐름
+    // mock을 먼저 설정 → Step 2 진입 시 auto-trigger가 mock 응답을 받음
     await mockOpenRouterAPI(page, 't-test', '독립표본 t-검정')
     await goToMethodSelection(page)
 
-    const aiTab = page.locator(S.filterAi)
-    await expect(aiTab).toBeVisible({ timeout: 5000 })
-    await aiTab.click()
-    await page.waitForTimeout(500)
-
-    await page.locator(S.aiChatInput).fill('두 그룹의 평균이 차이가 있는지 알고 싶어요')
-    await page.locator(S.aiChatSubmit).click()
-
-    // 5. 추천 카드 → 수락
+    // Step 2 진입 시 auto-trigger가 자동으로 AI 추천 요청을 보냄
+    // mock이 t-test 추천을 반환 → recommendation card 표시 대기
+    // 수동 질문은 auto-trigger와의 race condition 방지를 위해 생략
     await expect(page.locator(S.recommendationCard)).toBeVisible({ timeout: 30000 })
+
+    // 5. 추천 수락
     await page.locator(S.selectRecommendedMethod).click()
     await page.waitForTimeout(1500)
 
@@ -82,7 +79,6 @@ test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
     const exportDD = page.locator(S.exportDropdown)
     if (await exportDD.isVisible({ timeout: 5000 }).catch(() => false)) {
       await exportDD.click()
-      await page.waitForTimeout(500)
 
       const exportDocx = page.locator(S.exportDocx)
       if (await exportDocx.isVisible({ timeout: 3000 }).catch(() => false)) {
@@ -107,22 +103,45 @@ test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
     // 2. 직접 선택 → 대응표본 t-검정
     await goToMethodSelection(page)
     await page.locator(S.filterBrowse).click()
-    await page.waitForTimeout(500)
+    await page.locator(S.methodSearchInput).waitFor({ state: 'visible', timeout: 5000 })
     expect(
       await selectMethodDirect(page, '대응표본', /대응표본.*t.*검정|paired.*t/i),
     ).toBeTruthy()
 
-    // 3. 변수 할당 (대응표본: pre, post)
+    // 3. 변수 할당 (대응표본: pre, post → variables 슬롯에 2개)
     await goToVariableSelection(page)
     await page.waitForTimeout(2000)
 
-    // pre, post 버튼 클릭으로 비교 변수 할당
-    const preBtn = page.locator('button:not([disabled])').filter({ hasText: 'pre' })
-    const postBtn = page.locator('button:not([disabled])').filter({ hasText: 'post' })
-    if ((await preBtn.count()) > 0) await preBtn.first().click()
-    await page.waitForTimeout(500)
-    if ((await postBtn.count()) > 0) await postBtn.first().click()
-    await page.waitForTimeout(1000)
+    // variable-selection-next가 이미 활성이면 자동 할당 완료
+    const nextBtn = page.locator(S.variableSelectionNext)
+    const alreadyReady = await nextBtn.isEnabled().catch(() => false)
+
+    if (!alreadyReady) {
+      // AI auto-trigger가 일부 변수를 이미 할당했을 수 있으므로
+      // chip 존재 여부로 미할당 변수만 클릭 (pool-var 클릭은 toggle이므로)
+      for (const varName of ['pre', 'post']) {
+        const chip = page.locator(S.chip(varName))
+        const isAlreadyAssigned = (await chip.count()) > 0
+        if (!isAlreadyAssigned) {
+          const poolVar = page.locator(S.poolVar(varName))
+          if ((await poolVar.count()) > 0) {
+            await poolVar.click({ force: true })
+            await page.waitForTimeout(500)
+            log('TC-4A.1.2', `pool-var-${varName} 클릭 (미할당 → 할당)`)
+          }
+        } else {
+          log('TC-4A.1.2', `${varName} 이미 할당됨 (chip 존재)`)
+        }
+      }
+      await page.waitForTimeout(1000)
+
+      // 할당 후에도 다음 단계 활성화 안 되면 슬롯 클릭으로 재시도
+      if (!(await nextBtn.isEnabled().catch(() => false))) {
+        log('TC-4A.1.2', 'WARN: 변수 할당 후에도 다음 단계 비활성')
+      }
+    } else {
+      log('TC-4A.1.2', '변수 자동 할당 완료')
+    }
 
     // 4. 분석 실행 (run-analysis-btn 또는 다음 단계 버튼)
     await clickAnalysisRun(page)
@@ -159,15 +178,9 @@ test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
       { timeout: 30000 },
     )
 
-    // Quick Pills 검색 (data-testid 또는 텍스트 기반)
-    const quickPills = page.locator('[data-testid*="quick"], [data-testid*="pill"]')
-    const pillCount = await quickPills.count()
-
-    if (pillCount === 0) {
-      log('TC-4A.1.3', 'SKIPPED: QuickAnalysisPills 미구현')
-      test.skip()
-      return
-    }
+    // Quick Pills 검색 (quick-pill- 접두사로 정확히 매치)
+    const quickPills = page.locator('[data-testid^="quick-pill-"]')
+    await expect(quickPills.first()).toBeVisible({ timeout: 5000 })
 
     // 첫 번째 Pill 클릭
     await quickPills.first().click()
@@ -244,32 +257,36 @@ test.describe('@phase4 @important 연속 분석', () => {
     await clickAnalysisRun(page)
     expect(await waitForResults(page, 120000)).toBeTruthy()
 
-    // Hub로 돌아가기
-    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60000 })
+    // 1) 결과 저장 → IndexedDB에 이력 생성
+    const saveBtn = page.locator('[data-testid="save-history-btn"]')
+    await expect(saveBtn).toBeVisible({ timeout: 5000 })
+    await saveBtn.click()
+    await page.waitForTimeout(2000)
+
+    // 2) 새 분석 버튼 → 확인 다이얼로그 → Hub 복귀 (앱 내 네비게이션)
+    const newAnalysisBtn = page.locator(S.newAnalysisBtn)
+    await expect(newAnalysisBtn).toBeVisible({ timeout: 5000 })
+    await newAnalysisBtn.click()
+    // AlertDialog 확인 버튼 클릭
+    const confirmBtn = page.getByRole('alertdialog').getByRole('button', { name: /확인|시작|새 분석/ })
+    await expect(confirmBtn).toBeVisible({ timeout: 5000 })
+    await confirmBtn.click()
     await page.waitForTimeout(3000)
 
-    // 이력 패널 확인
-    const historyPanel = page.locator('[data-testid*="history"], [data-testid*="recent"]')
-    const hasHistory = await historyPanel.first().isVisible({ timeout: 5000 }).catch(() => false)
+    // 3) 이력 카드 확인
+    const historyCard = page.locator('[data-testid^="recent-activity-card-"]')
+    await expect(historyCard.first()).toBeVisible({ timeout: 10000 })
 
-    if (!hasHistory) {
-      log('TC-4A.2.2', 'SKIPPED: AnalysisHistoryPanel 미구현')
-      test.skip()
-      return
-    }
+    // 4) 이력 카드 클릭 → 결과 복원
+    await historyCard.first().click()
+    await page.waitForTimeout(3000)
 
-    // 이력 항목 클릭 → 결과 복원
-    const historyItem = historyPanel.locator('button, a, [role="button"]').first()
-    if (await historyItem.isVisible().catch(() => false)) {
-      await historyItem.click()
-      await page.waitForTimeout(3000)
-
-      const hasResults = await page
-        .locator(S.resultsMainCard)
-        .isVisible({ timeout: 10000 })
-        .catch(() => false)
-      log('TC-4A.2.2', `이력 복원: ${hasResults ? '성공' : '실패'}`)
-    }
+    const hasResults = await page
+      .locator(S.resultsMainCard)
+      .isVisible()
+      .catch(() => false)
+    log('TC-4A.2.2', `이력 복원: ${hasResults ? '성공' : '실패'}`)
+    expect(hasResults).toBeTruthy()
   })
 
   test('TC-4A.2.3: 변수만 변경하여 재분석 (ReanalysisPanel)', async ({ page }) => {
@@ -284,17 +301,19 @@ test.describe('@phase4 @important 연속 분석', () => {
     await clickAnalysisRun(page)
     expect(await waitForResults(page, 120000)).toBeTruthy()
 
-    // 재분석 패널 확인
-    const reanalysisPanel = page.locator('[data-testid*="reanalysis"], [data-testid*="re-analysis"]')
-    const hasReanalysis = await reanalysisPanel.first().isVisible({ timeout: 5000 }).catch(() => false)
+    // 결과 화면에서 재분석 버튼 확인
+    const reanalysisBtn = page.locator('[data-testid="reanalysis-btn"]')
+    await expect(reanalysisBtn).toBeVisible({ timeout: 5000 })
 
-    if (!hasReanalysis) {
-      log('TC-4A.2.3', 'SKIPPED: ReanalysisPanel 미구현')
-      test.skip()
-      return
-    }
+    // 재분석 버튼 클릭 → Step 1(업로드)로 이동 + stepTrack='reanalysis'
+    await reanalysisBtn.click()
+    await page.waitForTimeout(2000)
 
-    log('TC-4A.2.3', '재분석 패널 존재 확인')
+    // handleReanalyze()는 navigateToStep(1) + 데이터 초기화 → Branch 1 (empty state)
+    // data-exploration-empty: 데이터 없는 상태의 DataExplorationStep
+    const emptyStep = page.locator('[data-testid="data-exploration-empty"]')
+    await expect(emptyStep).toBeVisible({ timeout: 10000 })
+    log('TC-4A.2.3', '재분석 → 업로드 단계 복귀: 성공')
   })
 })
 
@@ -525,7 +544,6 @@ test.describe('@phase4 @important 내보내기 & 결과 활용', () => {
     }
 
     await exportDD.click()
-    await page.waitForTimeout(500)
 
     const docxBtn = page.locator(S.exportDocx)
     if (await docxBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
@@ -547,7 +565,6 @@ test.describe('@phase4 @important 내보내기 & 결과 활용', () => {
     }
 
     await exportDD.click()
-    await page.waitForTimeout(500)
 
     const xlsxBtn = page.locator(S.exportXlsx)
     if (await xlsxBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
@@ -569,7 +586,6 @@ test.describe('@phase4 @important 내보내기 & 결과 활용', () => {
     }
 
     await exportDD.click()
-    await page.waitForTimeout(500)
 
     const htmlBtn = page.locator(S.exportHtml)
     if (await htmlBtn.isVisible({ timeout: 3000 }).catch(() => false)) {

@@ -50,16 +50,13 @@ describe('Smart Flow Store - Hub & InputMode', () => {
   // ===== 시나리오 2: Hub 핸들러 시뮬레이션 =====
   describe('Hub 핸들러 시뮬레이션', () => {
     it('handleStartWithAI: showHub=false, purposeInputMode="ai", step=2', () => {
-      // 시뮬레이션: handleStartWithAI
-      // 실제 page.tsx에서는 navigateToStep을 호출하지만,
-      // completedSteps가 없으면 이동 불가하므로 setCurrentStep 직접 사용
       act(() => {
         const mode = useModeStore.getState()
         const store = useAnalysisStore.getState()
         mode.setShowHub(false)
-        mode.setQuickAnalysisMode(false)
+        mode.setStepTrack('normal')
         mode.setPurposeInputMode('ai')
-        store.addCompletedStep(1) // Step 1 완료 처리
+        store.addCompletedStep(1)
         store.setCurrentStep(2)
       })
 
@@ -71,14 +68,13 @@ describe('Smart Flow Store - Hub & InputMode', () => {
     })
 
     it('handleStartWithMethod: showHub=false, purposeInputMode="browse", step=2', () => {
-      // 시뮬레이션: handleStartWithMethod
       act(() => {
         const mode = useModeStore.getState()
         const store = useAnalysisStore.getState()
         mode.setShowHub(false)
-        mode.setQuickAnalysisMode(false)
+        mode.setStepTrack('normal')
         mode.setPurposeInputMode('browse')
-        store.addCompletedStep(1) // Step 1 완료 처리
+        store.addCompletedStep(1)
         store.setCurrentStep(2)
       })
 
@@ -89,24 +85,23 @@ describe('Smart Flow Store - Hub & InputMode', () => {
       expect(store.currentStep).toBe(2)
     })
 
-    it('handleStartWithData: showHub=false, step=1, quickAnalysisMode=false', () => {
-      // 시뮬레이션: handleStartWithData
+    it('handleStartWithData: showHub=false, step=1, stepTrack=normal', () => {
       act(() => {
         const mode = useModeStore.getState()
         const store = useAnalysisStore.getState()
         mode.setShowHub(false)
-        mode.setQuickAnalysisMode(false)
+        mode.setStepTrack('normal')
         store.navigateToStep(1)
       })
 
       const mode = useModeStore.getState()
       const store = useAnalysisStore.getState()
       expect(mode.showHub).toBe(false)
-      expect(mode.quickAnalysisMode).toBe(false)
+      expect(mode.stepTrack).toBe('normal')
       expect(store.currentStep).toBe(1)
     })
 
-    it('handleQuickAnalysis: quickAnalysisMode=true, selectedMethod 설정, step=1', () => {
+    it('handleQuickAnalysis: stepTrack=quick, selectedMethod 설정, step=1', () => {
       const mockMethod = {
         id: 't-test',
         name: 't-검정',
@@ -114,12 +109,11 @@ describe('Smart Flow Store - Hub & InputMode', () => {
         description: '두 그룹 평균 비교'
       }
 
-      // 시뮬레이션: handleQuickAnalysis
       act(() => {
         const mode = useModeStore.getState()
         const store = useAnalysisStore.getState()
         store.setSelectedMethod(mockMethod)
-        mode.setQuickAnalysisMode(true)
+        mode.setStepTrack('quick')
         mode.setShowHub(false)
         store.navigateToStep(1)
       })
@@ -127,7 +121,7 @@ describe('Smart Flow Store - Hub & InputMode', () => {
       const mode = useModeStore.getState()
       const store = useAnalysisStore.getState()
       expect(mode.showHub).toBe(false)
-      expect(mode.quickAnalysisMode).toBe(true)
+      expect(mode.stepTrack).toBe('quick')
       expect(store.selectedMethod?.id).toBe('t-test')
       expect(store.currentStep).toBe(1)
     })
@@ -136,13 +130,11 @@ describe('Smart Flow Store - Hub & InputMode', () => {
   // ===== 시나리오 3: resetMode 테스트 =====
   describe('resetMode', () => {
     it('resetMode가 purposeInputMode를 "ai"로 리셋한다', () => {
-      // 먼저 browse로 변경
       act(() => {
         useModeStore.getState().setPurposeInputMode('browse')
       })
       expect(useModeStore.getState().purposeInputMode).toBe('browse')
 
-      // resetMode 호출
       act(() => {
         useModeStore.getState().resetMode()
       })
@@ -159,29 +151,28 @@ describe('Smart Flow Store - Hub & InputMode', () => {
       expect(useModeStore.getState().showHub).toBe(true)
     })
 
-    it('resetMode가 quickAnalysisMode를 false로 리셋한다', () => {
+    it('resetMode가 stepTrack을 normal로 리셋한다 (quick)', () => {
       act(() => {
-        useModeStore.getState().setQuickAnalysisMode(true)
+        useModeStore.getState().setStepTrack('quick')
         useModeStore.getState().resetMode()
       })
 
-      expect(useModeStore.getState().quickAnalysisMode).toBe(false)
+      expect(useModeStore.getState().stepTrack).toBe('normal')
     })
 
-    it('resetMode가 isReanalysisMode를 false로 리셋한다', () => {
+    it('resetMode가 stepTrack을 normal로 리셋한다 (reanalysis)', () => {
       act(() => {
-        useModeStore.getState().setIsReanalysisMode(true)
+        useModeStore.getState().setStepTrack('reanalysis')
         useModeStore.getState().resetMode()
       })
 
-      expect(useModeStore.getState().isReanalysisMode).toBe(false)
+      expect(useModeStore.getState().stepTrack).toBe('normal')
     })
   })
 
   // ===== 시나리오 4: 재분석 모드 =====
   describe('재분석 모드', () => {
-    it('handleReanalyze 시뮬레이션: isReanalysisMode=true, step=1, data 초기화', () => {
-      // 먼저 데이터와 결과 설정
+    it('handleReanalyze 시뮬레이션: stepTrack=reanalysis, step=1, data 초기화', () => {
       act(() => {
         const store = useAnalysisStore.getState()
         store.setUploadedData([{ id: 1, value: 10 }])
@@ -189,19 +180,18 @@ describe('Smart Flow Store - Hub & InputMode', () => {
         store.setCurrentStep(4)
       })
 
-      // handleReanalyze 시뮬레이션
       act(() => {
         const store = useAnalysisStore.getState()
         store.setUploadedData(null)
         store.setUploadedFile(null)
         store.setValidationResults(null)
         store.setResults(null)
-        useModeStore.getState().setIsReanalysisMode(true)
+        useModeStore.getState().setStepTrack('reanalysis')
         store.setCurrentStep(1)
       })
 
       const store = useAnalysisStore.getState()
-      expect(useModeStore.getState().isReanalysisMode).toBe(true)
+      expect(useModeStore.getState().stepTrack).toBe('reanalysis')
       expect(store.currentStep).toBe(1)
       expect(store.uploadedData).toBeNull()
       expect(store.results).toBeNull()
@@ -215,7 +205,6 @@ describe('Smart Flow Store - Hub & InputMode', () => {
         description: '세 그룹 이상 비교'
       }
 
-      // 분석 완료 상태 설정
       act(() => {
         const store = useAnalysisStore.getState()
         store.setSelectedMethod(mockMethod)
@@ -223,17 +212,15 @@ describe('Smart Flow Store - Hub & InputMode', () => {
         store.setResults({ method: 'anova', pValue: 0.01 } as never)
       })
 
-      // 재분석 모드로 전환 (데이터만 초기화)
       act(() => {
         const store = useAnalysisStore.getState()
         store.setUploadedData(null)
         store.setResults(null)
-        useModeStore.getState().setIsReanalysisMode(true)
+        useModeStore.getState().setStepTrack('reanalysis')
         store.setCurrentStep(1)
       })
 
       const state = useAnalysisStore.getState()
-      // selectedMethod는 그대로 유지
       expect(state.selectedMethod?.id).toBe('anova')
       expect(state.selectedMethod?.name).toBe('ANOVA')
     })
@@ -241,7 +228,7 @@ describe('Smart Flow Store - Hub & InputMode', () => {
 
   // ===== 시나리오 5: 빠른 분석 후 Step 건너뛰기 =====
   describe('빠른 분석 Step 건너뛰기', () => {
-    it('quickAnalysisMode=true면 Step 1 → Step 3 이동 가능', () => {
+    it('stepTrack=quick이면 Step 1 → Step 3 이동 가능', () => {
       const mockMethod = {
         id: 'correlation',
         name: '상관분석',
@@ -249,26 +236,21 @@ describe('Smart Flow Store - Hub & InputMode', () => {
         description: '변수 간 관계'
       }
 
-      // 빠른 분석 설정
       act(() => {
         const store = useAnalysisStore.getState()
         store.setSelectedMethod(mockMethod)
-        useModeStore.getState().setQuickAnalysisMode(true)
+        useModeStore.getState().setStepTrack('quick')
         store.setCurrentStep(1)
-        // completedSteps에 1 추가 (Step 1 완료로 가정)
         store.addCompletedStep(1)
+        store.addCompletedStep(2) // U1-1: 전진 점프 전 중간 단계 마킹 필요
       })
 
-      // Step 3으로 직접 이동 (Step 2 건너뜀)
       act(() => {
         useAnalysisStore.getState().navigateToStep(3)
       })
 
       const store = useAnalysisStore.getState()
-      // quickAnalysisMode에서는 selectedMethod가 있으므로 Step 3 이동 가능
-      // 단, canNavigateToStep 로직은 completedSteps 기반이므로
-      // 실제로는 goToNextStep을 여러 번 호출하거나 직접 navigateToStep 사용
-      expect(useModeStore.getState().quickAnalysisMode).toBe(true)
+      expect(useModeStore.getState().stepTrack).toBe('quick')
       expect(store.selectedMethod?.id).toBe('correlation')
     })
   })

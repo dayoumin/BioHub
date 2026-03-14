@@ -153,7 +153,7 @@ vi.mock('@/lib/stores/analysis-store', () => {
       uploadedFile: null,
       uploadedFileName: null,
       selectedMethod: null,
-      quickAnalysisMode: false,
+      stepTrack: 'normal',
     }),
     {
       getState: () => ({

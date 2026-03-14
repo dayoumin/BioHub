@@ -16,7 +16,7 @@ export default defineConfig({
 	],
 
 	use: {
-		baseURL: 'http://localhost:3000',
+		baseURL: 'http://localhost:3200',
 		headless: true,
 
 		// Screenshots & traces
@@ -29,8 +29,8 @@ export default defineConfig({
 		// output:'export' → out/ 폴더를 npx serve로 서빙 (next start 불가)
 		// 빌드는 E2E 실행 전 별도 수행: pnpm run build
 		// -s: SPA 라우팅 (404 → index.html 폴백)
-		command: 'npx --yes serve out -p 3000 -s',
-		url: 'http://localhost:3000',
+		command: 'npx --yes serve out -p 3200 -s',
+		url: 'http://localhost:3200',
 		reuseExistingServer: !process.env.CI,
 		timeout: 30000,
 	},

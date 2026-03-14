@@ -26,6 +26,10 @@ export function log(tag: string, msg: string): void {
 
 /** Hub → 데이터 업로드 Step으로 이동 */
 export async function navigateToUploadStep(page: Page): Promise<void> {
+  // 이전 분석 상태가 sessionStorage에 persist되어 있으면
+  // goto('/') 후 Hub 대신 결과 화면이 표시되므로 클리어 필수
+  await page.evaluate(() => sessionStorage.clear()).catch(() => {})
+
   for (let attempt = 0; attempt < 5; attempt++) {
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60000 })
 
@@ -534,19 +538,36 @@ export async function mockOpenRouterAPI(
     ],
   })
 
+  // LLM 응답처럼 설명 텍스트 + JSON 코드 블록 형태로 반환
+  // parseResponse()가 codeBlock 경로로 파싱하도록 함
+  const llmContent = `데이터 분석 결과 ${methodName}을(를) 추천합니다.\n\n\`\`\`json\n${mockRecommendation}\n\`\`\``
+
+  const jsonBody = JSON.stringify({
+    id: 'mock',
+    choices: [{ message: { content: llmContent } }],
+  })
+
+  // 앱은 프록시 경유 /api/ai 사용 (openrouter.ai 직접 호출 아님)
+  // /api/ai/models (health check) + /api/ai/chat/completions (추천 요청) 모두 가로챔
+  await page.route(/\/api\/ai\//, (route) => {
+    const url = route.request().url()
+    if (url.includes('/models')) {
+      route.fulfill({ status: 200, contentType: 'application/json', body: '{"data":[{"id":"test-model"}]}' })
+      return
+    }
+    route.fulfill({ status: 200, contentType: 'application/json', body: jsonBody })
+  })
+
+  // 레거시 호환: 직접 호출 경로도 가로챔
   await page.route(/openrouter\.ai/, (route) => {
     const url = route.request().url()
     if (url.includes('/models')) {
-      route.fulfill({ status: 200, contentType: 'application/json', body: '{"data":[]}' })
+      route.fulfill({ status: 200, contentType: 'application/json', body: '{"data":[{"id":"test-model"}]}' })
       return
     }
-    const jsonBody = JSON.stringify({
-      id: 'mock',
-      choices: [{ message: { content: mockRecommendation } }],
-    })
     route.fulfill({ status: 200, contentType: 'application/json', body: jsonBody })
   })
-  log('mockAPI', `mocked: ${methodId}`)
+  log('mockAPI', `mocked: ${methodId} (routes: /api/ai + openrouter.ai)`)
 }
 
 export async function selectMethodViaLLM(page: Page, question: string): Promise<boolean> {

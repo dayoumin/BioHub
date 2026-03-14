@@ -64,6 +64,7 @@ vi.mock('@/lib/statistics/variable-mapping', () => ({
 
 // ─── Store mock factory ────────────────────────────────────────────────────────
 const mockSetVariableMapping = vi.fn()
+const mockUpdateVariableMappingWithInvalidation = vi.fn()
 const mockGoToNextStep = vi.fn()
 const mockGoToPreviousStep = vi.fn()
 
@@ -71,8 +72,10 @@ const defaultStoreState = {
   uploadedData: [{ x: 1 }] as unknown[],
   selectedMethod: null as { id: string; name: string } | null,
   detectedVariables: null as Record<string, unknown> | null,
+  variableMapping: null as Record<string, unknown> | null,
   validationResults: null as unknown,
   setVariableMapping: mockSetVariableMapping,
+  updateVariableMappingWithInvalidation: mockUpdateVariableMappingWithInvalidation,
   goToNextStep: mockGoToNextStep,
   goToPreviousStep: mockGoToPreviousStep,
 }
@@ -265,7 +268,8 @@ describe('VariableSelectionStep', () => {
     it('AutoConfirmSelector에서 분석 시작 클릭 시 goToNextStep 호출', () => {
       renderWithMethod('arima')
       fireEvent.click(screen.getByTestId('run-analysis-btn'))
-      expect(mockSetVariableMapping).toHaveBeenCalled()
+      // existingMapping=null → updateVariableMappingWithInvalidation 호출
+      expect(mockUpdateVariableMappingWithInvalidation).toHaveBeenCalled()
       expect(mockGoToNextStep).toHaveBeenCalled()
     })
   })
@@ -273,10 +277,11 @@ describe('VariableSelectionStep', () => {
   // =========================================================================
   describe('onComplete → setVariableMapping + goToNextStep', () => {
 
-    it('UnifiedVariableSelector 완료 시 store 업데이트 + 다음 스텝', () => {
+    it('UnifiedVariableSelector 완료 시 store 업데이트 + 다음 스텝 (신규 매핑 → invalidation)', () => {
       renderWithMethod('t-test')
       fireEvent.click(screen.getByText('완료'))
-      expect(mockSetVariableMapping).toHaveBeenCalledWith({
+      // existingMapping=null → 변경 감지 → updateVariableMappingWithInvalidation 호출
+      expect(mockUpdateVariableMappingWithInvalidation).toHaveBeenCalledWith({
         dependentVar: 'd',
         groupVar: 'g',
       })

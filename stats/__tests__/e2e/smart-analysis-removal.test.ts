@@ -36,7 +36,7 @@ describe('E2E: Smart Analysis Removal', () => {
       const content = fs.readFileSync(homePagePath, 'utf-8')
 
       // 홈 페이지가 Smart Flow 메인 페이지 (대시보드 리다이렉트 아님)
-      expect(content).toContain('useAnalysisStore')
+      expect(content).toContain('useAnalysisHandlers')
       expect(content).not.toContain('href="/smart-analysis"')
     })
 

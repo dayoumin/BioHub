@@ -13,13 +13,13 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { vi, Mock } from 'vitest'
 import { MethodBrowser } from '@/components/analysis/steps/purpose/MethodBrowser'
-import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { useMethodCompatibility } from '@/hooks/use-method-compatibility'
 import type { StatisticalMethod } from '@/types/analysis'
 import type { CompatibilityResult } from '@/lib/statistics/data-method-compatibility'
 
-// Mock stores
-vi.mock('@/lib/stores/analysis-store', () => ({
-  useAnalysisStore: vi.fn()
+// Mock useMethodCompatibility (TD-10-D: store → hook)
+vi.mock('@/hooks/use-method-compatibility', () => ({
+  useMethodCompatibility: vi.fn()
 }))
 
 // Mock terminology
@@ -89,10 +89,7 @@ function createCompatMap(entries: Record<string, { status: 'compatible' | 'warni
 }
 
 function setupStore(compatibilityMap: Map<string, CompatibilityResult> | null = null) {
-  (useAnalysisStore as unknown as Mock).mockImplementation(
-    (selector: (state: { methodCompatibility: Map<string, CompatibilityResult> | null }) => unknown) =>
-      selector({ methodCompatibility: compatibilityMap })
-  )
+  (useMethodCompatibility as Mock).mockReturnValue(compatibilityMap)
 }
 
 function renderBrowser(props: Partial<Parameters<typeof MethodBrowser>[0]> = {}) {
