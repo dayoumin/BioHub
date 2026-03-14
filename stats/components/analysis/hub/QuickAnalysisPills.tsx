@@ -29,18 +29,21 @@ import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 const STORAGE_KEY = 'main-hub-quick-analysis'
 const DEFAULT_QUICK_METHODS = ['t-test', 'anova', 'correlation', 'regression', 'chi-square']
 
-const METHODS_BY_CATEGORY = Object.entries(STATISTICAL_METHODS).reduce((acc, [id, method]) => {
-  if (method.hasOwnPage !== false) {
-    const cat = method.category
-    if (!acc[cat]) acc[cat] = []
-    acc[cat].push({
-      id,
-      name: method.koreanName || method.name,
-      description: method.koreanDescription || method.description
-    })
-  }
-  return acc
-}, {} as Record<string, Array<{ id: string; name: string; description: string }>>)
+/** Runtime에 평가하여 registerMethod()로 추가된 메서드도 포함 */
+function buildMethodsByCategory(): Record<string, Array<{ id: string; name: string; description: string }>> {
+  return Object.entries(STATISTICAL_METHODS).reduce((acc, [id, method]) => {
+    if (method.hasOwnPage !== false) {
+      const cat = method.category
+      if (!acc[cat]) acc[cat] = []
+      acc[cat].push({
+        id,
+        name: method.koreanName || method.name,
+        description: method.koreanDescription || method.description
+      })
+    }
+    return acc
+  }, {} as Record<string, Array<{ id: string; name: string; description: string }>>)
+}
 
 // ===== Helpers =====
 
@@ -83,6 +86,9 @@ export function QuickAnalysisPills({ onQuickAnalysis }: QuickAnalysisPillsProps)
   const [quickMethods, setQuickMethods] = useState<string[]>(() => loadQuickMethods())
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [editingMethods, setEditingMethods] = useState<string[]>([])
+
+  // Lazy 평가: module-scope 대신 render 시점에 계산하여 import 순서 의존성 제거
+  const methodsByCategory = useMemo(() => buildMethodsByCategory(), [])
 
   const quickMethodsInfo = useMemo(() => {
     return quickMethods
@@ -154,7 +160,7 @@ export function QuickAnalysisPills({ onQuickAnalysis }: QuickAnalysisPillsProps)
           </DialogHeader>
           <ScrollArea className="max-h-[400px] pr-4">
             <div className="space-y-4">
-              {Object.entries(METHODS_BY_CATEGORY).map(([category, methods]) => (
+              {Object.entries(methodsByCategory).map(([category, methods]) => (
                 <div key={category}>
                   <div className="text-xs font-medium text-muted-foreground mb-2">
                     {t.hub.categoryLabels[category] || category}

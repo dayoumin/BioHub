@@ -40,17 +40,9 @@ export interface SlotConfig {
   multipleFormat?: 'array' | 'comma'
 }
 
-/** SelectorType from VariableSelectionStep */
-export type SelectorType =
-  | 'one-sample'
-  | 'two-way-anova'
-  | 'correlation'
-  | 'paired'
-  | 'multiple-regression'
-  | 'group-comparison'
-  | 'chi-square'
-  | 'auto'
-  | 'default'
+/** SelectorType — canonical 정의는 lib/registry/selector-types.ts, 여기서 re-export */
+import type { SelectorType } from '@/lib/registry/selector-types'
+export type { SelectorType } from '@/lib/registry/selector-types'
 
 /**
  * Returns slot configurations for a given selector type.

@@ -18,6 +18,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { AutoConfirmSelector, ChiSquareSelector } from '@/components/common/variable-selectors'
 import { UnifiedVariableSelector } from '@/components/analysis/variable-selector/UnifiedVariableSelector'
 import type { SelectorType } from '@/components/analysis/variable-selector/slot-configs'
+import { getSelectorType } from '@/lib/registry'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { validateVariableMapping } from '@/lib/statistics/variable-mapping'
 import type { VariableMapping, ColumnInfo } from '@/lib/statistics/variable-mapping'
@@ -31,86 +32,10 @@ interface VariableSelectionStepProps {
 }
 
 /**
- * Maps method IDs to selector types.
- * Primary IDs from method-mapping.ts (Smart Flow 실제 사용),
- * Legacy aliases from statistical-methods.ts (하위 호환).
+ * SELECTOR_MAP은 method-registry.ts로 이전됨.
+ * getSelectorType(methodId) 사용.
+ * @see lib/registry/method-registry.ts
  */
-const SELECTOR_MAP: ReadonlyMap<string, SelectorType> = new Map([
-  // ─── IDs from method-mapping.ts (Smart Flow에서 실제 사용하는 ID) ───
-  // One-sample tests
-  ['one-sample-t',            'one-sample'],
-  ['binomial-test',           'one-sample'],
-  ['runs-test',               'one-sample'],
-  ['mann-kendall',            'one-sample'],
-  ['normality-test',          'one-sample'],
-  ['homogeneity-test',        'one-sample'],
-  // Paired / within-subjects
-  ['paired-t',                'paired'],
-  ['wilcoxon',                'paired'],
-  ['sign-test',               'paired'],
-  ['cochran-q',               'paired'],
-  // Group comparison (종속=numeric, 그룹=categorical)
-  ['two-sample-t',            'group-comparison'],   // 독립표본 t-검정
-  ['welch-t',                 'group-comparison'],
-  ['one-way-anova',           'group-comparison'],   // may upgrade to 'two-way-anova' below
-  ['ancova',                  'group-comparison'],
-  ['mann-whitney',            'group-comparison'],
-  ['kruskal-wallis',          'group-comparison'],
-  ['ks-test',                 'group-comparison'],
-  ['mood-median',             'group-comparison'],
-  ['non-parametric',          'group-comparison'],
-  ['means-plot',              'group-comparison'],
-  ['dunn-test',               'group-comparison'],
-  // Two-way ANOVA (직접 매핑)
-  ['two-way-anova',           'two-way-anova'],
-  // Correlation / multivariate numeric
-  ['correlation',             'correlation'],
-  ['partial-correlation',     'correlation'],
-  ['descriptive-stats',       'correlation'],
-  ['explore-data',            'correlation'],
-  ['pca',                     'correlation'],
-  ['factor-analysis',         'correlation'],
-  ['k-means',                 'correlation'],
-  ['hierarchical',            'correlation'],
-  ['reliability-analysis',    'correlation'],
-  // Multiple regression
-  ['simple-regression',       'multiple-regression'],
-  ['multiple-regression',     'multiple-regression'],
-  ['logistic-regression',     'multiple-regression'],
-  ['poisson-regression',      'multiple-regression'],
-  ['ordinal-regression',      'multiple-regression'],
-  ['dose-response',           'multiple-regression'],
-  ['response-surface',        'multiple-regression'],
-  ['stepwise-regression',     'multiple-regression'],
-  // Chi-square / categorical
-  ['chi-square',              'chi-square'],
-  ['chi-square-goodness',     'chi-square'],
-  ['chi-square-independence', 'chi-square'],
-  ['mcnemar',                 'chi-square'],
-  ['proportion-test',         'chi-square'],
-  // Auto-confirm (complex methods without custom variable UI)
-  ['friedman',                'auto'],
-  ['repeated-measures-anova', 'auto'],
-  ['manova',                  'auto'],
-  ['mixed-model',             'auto'],
-  ['arima',                   'auto'],
-  ['seasonal-decompose',      'auto'],
-  ['stationarity-test',       'auto'],
-  ['kaplan-meier',            'auto'],
-  ['cox-regression',          'auto'],
-  ['discriminant',            'auto'],
-  ['power-analysis',          'auto'],
-  // ─── Legacy aliases (statistical-methods.ts ID → 호환성 유지) ───
-  ['t-test',                  'group-comparison'],
-  ['anova',                   'group-comparison'],
-  ['regression',              'multiple-regression'],
-  ['poisson',                 'multiple-regression'],
-  ['stepwise',                'multiple-regression'],
-  ['cluster',                 'correlation'],
-  ['reliability',             'correlation'],
-  ['descriptive',             'correlation'],
-  ['roc-curve',               'auto'],
-])
 
 export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionStepProps) {
   const t = useTerminology()
@@ -132,7 +57,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   // Special case: one-way-anova/anova + AI detected 2+ factors → two-way-anova
   const selectorType = useMemo((): SelectorType => {
     const id = selectedMethod?.id ?? ''
-    const base = SELECTOR_MAP.get(id) ?? 'default'
+    const base = getSelectorType(id)
     if (
       (id === 'one-way-anova' || id === 'anova') &&
       detectedVariables?.factors &&
