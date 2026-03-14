@@ -11,12 +11,8 @@ import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import type { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
-import type { ResultsText } from '@/lib/terminology/terminology-types'
 import {
   heroRevealVariants,
-  getEffectSizeInterpretation,
-  formatEffectSizeSymbol,
-  formatPValue,
 } from './results-helpers'
 
 export interface ResultsHeroCardProps {
@@ -30,11 +26,9 @@ export interface ResultsHeroCardProps {
   prefersReducedMotion: boolean
   t: {
     results: {
-      statistics: { significant: string; notSignificant: string }
       sections: { caution: string }
       conclusion: { assumptionWarning: string }
       metadata: { analysisTime: string; rowsCols: (rows: number, cols: number) => string }
-      effectSizeLabels: ResultsText['effectSizeLabels']
     }
   }
 }
@@ -63,7 +57,7 @@ export function ResultsHeroCard({
           isSignificant ? "border-success-border/60" : "border-border/50"
       )}>
         <CardContent className="py-3.5 px-4">
-          {/* 1행: 아이콘 + 메서드명 + p값 배지 + 효과크기 배지 + 타임스탬프 */}
+          {/* 1행: 아이콘 + 메서드명 + 경고 배지 + 타임스탬프 */}
           <div className="flex items-center gap-3 flex-wrap">
             <div className={cn(
               "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
@@ -81,20 +75,6 @@ export function ResultsHeroCard({
 
             <span className="text-sm font-semibold truncate">{statisticalResult.testName}</span>
 
-            {/* p-value 인라인 배지 */}
-            <Badge
-              variant={isSignificant ? "default" : "secondary"}
-              className={cn(
-                "text-xs font-mono tabular-nums",
-                isSignificant && "bg-success hover:bg-success/90"
-              )}
-            >
-              p {formatPValue(statisticalResult.pValue)}
-              <span className="ml-1 font-sans">
-                ({isSignificant ? t.results.statistics.significant : t.results.statistics.notSignificant})
-              </span>
-            </Badge>
-
             {/* 가정 미충족 경고 배지 */}
             {!assumptionsPassed && (
               <Tooltip>
@@ -108,16 +88,6 @@ export function ResultsHeroCard({
                   {t.results.conclusion.assumptionWarning}
                 </TooltipContent>
               </Tooltip>
-            )}
-
-            {/* 효과크기 인라인 배지 */}
-            {statisticalResult.effectSize && (
-              <Badge variant="outline" className="text-xs font-mono tabular-nums">
-                {formatEffectSizeSymbol(statisticalResult.effectSize.type)}={statisticalResult.effectSize.value.toFixed(2)}
-                <span className="ml-1 font-sans text-muted-foreground">
-                  ({getEffectSizeInterpretation(statisticalResult.effectSize.value, statisticalResult.effectSize.type, t.results.effectSizeLabels)})
-                </span>
-              </Badge>
             )}
 
             {/* 타임스탬프 (우측 밀기) */}

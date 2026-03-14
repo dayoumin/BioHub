@@ -858,11 +858,11 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
 
       // 분석명 (Hero 바)
       expect(screen.getByText('독립표본 t-검정')).toBeInTheDocument()
-      // p-value 배지 내 유의성 텍스트
+      // StatsCards p-value 카드 내 유의성 텍스트
       expect(screen.getByText('유의함')).toBeInTheDocument()
     })
 
-    it('비유의한 결과 → p-value 배지에 "유의하지 않음" 표시', () => {
+    it('비유의한 결과 → StatsCards에 "유의하지 않음" 표시', () => {
       mockConvert.mockReturnValue({
         testName: 't-검정',
         statistic: 0.5,
@@ -874,13 +874,13 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
 
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      // p-value 배지 내 비유의 텍스트
+      // StatsCards p-value 카드 내 비유의 텍스트
       expect(screen.getByText('유의하지 않음')).toBeInTheDocument()
     })
   })
 
   describe('Layer 2: 상세 결과', () => {
-    it('CI + effectSize 있으면 Layer 2 표시', async () => {
+    it('CI/effectSize만 있으면 Layer 2 미표시 (StatsCards에서 충분)', () => {
       mockConvert.mockReturnValue({
         testName: 't-검정',
         statistic: 2.456,
@@ -894,10 +894,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
 
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      // Phase 2 (400ms)까지 기다려 Layer 2 표시 확인
-      await waitFor(() => {
-        expect(screen.getByText('상세 결과')).toBeInTheDocument()
-      }, { timeout: 1000 })
+      expect(screen.queryByText('상세 결과')).not.toBeInTheDocument()
     })
 
     it('additionalResults 있으면 Layer 2 표시', async () => {
@@ -920,155 +917,21 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       }, { timeout: 1000 })
     })
 
-    it('CI/effectSize/additionalResults 모두 없으면 Layer 2 숨김', () => {
+    it('additionalResults 없으면 Layer 2 숨김', () => {
       mockConvert.mockReturnValue({
         testName: 't-검정',
         statistic: 1.0,
         statisticName: 't',
         pValue: 0.5,
         alpha: 0.05,
-        // 메타데이터만 있고 통계 세부 결과 없음 — L2 숨겨야 함
+        // CI/effectSize만 있어도 L2 트리거 안 함
+        confidenceInterval: { lower: 0.1, upper: 1.0, estimate: 0.55, level: 0.95 },
       } as StatisticalResult)
 
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
       expect(screen.queryByText('상세 결과')).not.toBeInTheDocument()
     })
-  })
-
-  describe('Layer 3: 진단 & 권장', () => {
-    it('assumptions 있으면 Layer 3 표시', () => {
-      mockConvert.mockReturnValue({
-        testName: 't-검정',
-        statistic: 2.456,
-        statisticName: 't',
-        pValue: 0.018,
-        df: 28,
-        alpha: 0.05,
-        assumptions: [
-          { name: '정규성', pValue: 0.32, passed: true },
-          { name: '등분산성', pValue: 0.45, passed: true }
-        ],
-      } as StatisticalResult)
-
-      renderWithAct(<ResultsActionStep results={baseResults} />)
-
-      expect(screen.getByText('진단 & 권장')).toBeInTheDocument()
-    })
-
-    it('assumptions 없으면 Layer 3 숨김', () => {
-      mockConvert.mockReturnValue({
-        testName: 't-검정',
-        statistic: 2.456,
-        statisticName: 't',
-        pValue: 0.018,
-        df: 28,
-        alpha: 0.05,
-      } as StatisticalResult)
-
-      renderWithAct(<ResultsActionStep results={baseResults} />)
-
-      expect(screen.queryByText('진단 & 권장')).not.toBeInTheDocument()
-    })
-
-    it('가정 미충족 → 결론 배너에 경고 + "주의" 뱃지', () => {
-      mockConvert.mockReturnValue({
-        testName: 't-검정',
-        statistic: 2.456,
-        statisticName: 't',
-        pValue: 0.018,
-        df: 28,
-        alpha: 0.05,
-        assumptions: [
-          { name: '정규성', pValue: 0.01, passed: false, recommendation: '비모수' }
-        ],
-      } as StatisticalResult)
-
-      renderWithAct(<ResultsActionStep results={baseResults} />)
-
-      // Hero 경고 배지 + L3 진단 배지에 "주의" 표시
-      const cautionBadges = screen.getAllByText('주의')
-      expect(cautionBadges.length).toBeGreaterThanOrEqual(2)
-    })
-
-    it('가정 미충족 → useEffect로 diagnosticsOpen 자동 true → AssumptionTestCard 렌더링', () => {
-      mockConvert.mockReturnValue({
-        testName: 't-검정',
-        statistic: 2.456,
-        statisticName: 't',
-        pValue: 0.018,
-        df: 28,
-        alpha: 0.05,
-        assumptions: [
-          { name: '정규성', pValue: 0.01, passed: false, recommendation: '비모수' },
-          { name: '등분산성', pValue: 0.02, passed: false, recommendation: 'Welch' }
-        ],
-      } as StatisticalResult)
-
-      renderWithAct(<ResultsActionStep results={baseResults} />)
-
-      // useEffect에 의해 diagnosticsOpen=true → AssumptionTestCard 렌더링됨
-      expect(screen.getByTestId('assumption-test-card')).toBeInTheDocument()
-      expect(screen.getByText('2 tests')).toBeInTheDocument()
-    })
-
-    it('가정 충족 → diagnosticsOpen=false → AssumptionTestCard 숨김', () => {
-      mockConvert.mockReturnValue({
-        testName: 't-검정',
-        statistic: 2.456,
-        statisticName: 't',
-        pValue: 0.018,
-        df: 28,
-        alpha: 0.05,
-        assumptions: [
-          { name: '정규성', pValue: 0.32, passed: true }
-        ],
-      } as StatisticalResult)
-
-      renderWithAct(<ResultsActionStep results={baseResults} />)
-
-      // diagnosticsOpen=false (기본값) → CollapsibleContent 닫혀있음
-      expect(screen.queryByTestId('assumption-test-card')).not.toBeInTheDocument()
-    })
-
-    it('recommendations만 있어도 Layer 3 표시', () => {
-      mockConvert.mockReturnValue({
-        testName: 't-검정',
-        statistic: 2.0,
-        statisticName: 't',
-        pValue: 0.05,
-        alpha: 0.05,
-        recommendations: ['효과크기를 보고하세요'],
-      } as StatisticalResult)
-
-      renderWithAct(<ResultsActionStep results={baseResults} />)
-
-      // hasDiagnostics=true → Layer 3 토글 표시
-      expect(screen.getByText('진단 & 권장')).toBeInTheDocument()
-    })
-
-    it('가정 미충족 + recommendations → recommendations-section 렌더링', () => {
-      mockConvert.mockReturnValue({
-        testName: 't-검정',
-        statistic: 2.456,
-        statisticName: 't',
-        pValue: 0.018,
-        df: 28,
-        alpha: 0.05,
-        assumptions: [
-          { name: '정규성', pValue: 0.01, passed: false }
-        ],
-        recommendations: ['효과크기를 보고하세요', '표본 크기를 확인하세요'],
-      } as StatisticalResult)
-
-      renderWithAct(<ResultsActionStep results={baseResults} />)
-
-      // useEffect → diagnosticsOpen=true → 권장사항 렌더링
-      expect(screen.getByTestId('recommendations-section')).toBeInTheDocument()
-      expect(screen.getByText('효과크기를 보고하세요')).toBeInTheDocument()
-      expect(screen.getByText('표본 크기를 확인하세요')).toBeInTheDocument()
-    })
-
   })
 
   describe('액션 버튼 레이아웃', () => {
@@ -1214,7 +1077,8 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       })
     })
 
-    it('저장 성공 → 배너에 "저장되었습니다" 텍스트 표시', async () => {
+    it('저장 성공 → toast.success 호출', async () => {
+      const { toast } = await import('sonner')
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
       const saveBtn = screen.getByText('저장')
@@ -1222,9 +1086,8 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
         fireEvent.click(saveBtn)
       })
 
-      // 저장 성공 배너 표시 (save.success = '저장되었습니다')
       await waitFor(() => {
-        expect(screen.getByText('저장되었습니다')).toBeInTheDocument()
+        expect(toast.success).toHaveBeenCalled()
       })
     })
 
@@ -1516,10 +1379,12 @@ describe('Part 3: Phase 상태 머신 시뮬레이션', () => {
       expect(screen.getByTestId('ai-interpretation-section')).toBeInTheDocument()
     })
 
-    it('Phase 2 (≈400ms): effectSize 있으면 L2 상세 결과 등장', async () => {
+    it('Phase 2 (≈400ms): additionalResults 있으면 L2 상세 결과 등장', async () => {
       mockConvert.mockReturnValue({
         ...statBase,
-        effectSize: { value: 0.72, type: 'cohensD' },
+        additionalResults: [
+          { title: '그룹별 통계', columns: [{ key: 'g', label: '그룹' }], data: [{ g: 'A' }] }
+        ],
       } as StatisticalResult)
       renderPhase(<ResultsActionStep results={baseResults} />)
 
@@ -1621,16 +1486,15 @@ describe('Part 3: Phase 상태 머신 시뮬레이션', () => {
 
   // --------------------------------------------------
   describe('P2-3: L2 데이터 기반 표시 조건', () => {
-    it('effectSize 있으면 Phase 2 후 L2 자동 표시', async () => {
+    it('effectSize만 있으면 L2 미표시 (StatsCards에서 충분)', async () => {
       mockConvert.mockReturnValue({
         ...statBase,
         effectSize: { value: 0.72, type: 'cohensD' },
       } as StatisticalResult)
       renderPhase(<ResultsActionStep results={baseResults} />)
 
-      await waitFor(() => {
-        expect(screen.getByTestId('detailed-results-section')).toBeInTheDocument()
-      }, { timeout: 1000 })
+      await new Promise(r => setTimeout(r, 500))
+      expect(screen.queryByTestId('detailed-results-section')).not.toBeInTheDocument()
     })
 
     it('additionalResults 있으면 Phase 2 후 L2 자동 표시', async () => {

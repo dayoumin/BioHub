@@ -47,7 +47,6 @@ import { cn } from '@/lib/utils'
 import { StepHeader, CollapsibleSection } from '@/components/analysis/common'
 import { streamFollowUp, type InterpretationContext } from '@/lib/services/result-interpreter'
 import type { ChatMessage } from '@/lib/types/chat'
-import { type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
 import { AssumptionTestsSection } from '@/components/analysis/steps/exploration/AssumptionTestsSection'
 import { ResultsHeroCard, ResultsStatsCards, ResultsChartsSection, ResultsActionButtons } from '@/components/analysis/steps/results'
 import { formatStatisticalResult } from '@/lib/statistics/formatters'
@@ -76,17 +75,15 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   // Reduced motion
   const prefersReducedMotion = useReducedMotion()
 
-  // Phase: 0=Hero만, 1=수치카드(150ms), 2=AI섹션(400ms), 3=차트+L2(AI완료), 4=Q&A(phase3+300ms)
+  // Phase: 0=Hero만, 1=수치카드(150ms), 2=차트+L2(400ms), 3=AI섹션(AI완료), 4=Q&A(phase3+300ms)
   const [phase, setPhase] = useState(0)
   const phaseTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const [isSaved, setIsSaved] = useState(false)
-  const [savedName, setSavedName] = useState<string | null>(null)
   const [isExporting, setIsExporting] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
   const [detailedResultsOpen, setDetailedResultsOpen] = useState(false)
-  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [exportFormat, setExportFormat] = useState<ExportFormat>('docx')
   const [exportOptions, setExportOptions] = useState<ExportContentOptions>({
@@ -179,7 +176,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
     // UI state 초기화
     setIsSaved(false)
-    setSavedName(null)
     setUsedChips(new Set())
     hasSavedToHistoryRef.current = false
   }, [currentHistoryId])
@@ -279,13 +275,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     return statisticalResult.assumptions.every(a => a.passed !== false)
   }, [statisticalResult])
 
-  // 가정 미충족 시 진단 섹션 자동 열림
-  useEffect(() => {
-    if (!assumptionsPassed) {
-      setDiagnosticsOpen(true)
-    }
-  }, [assumptionsPassed])
-
   // L2 상세 결과: post-hoc/계수 테이블(additionalResults) 있을 때만 자동 열기 (P2-3)
   useEffect(() => {
     if (statisticalResult?.additionalResults && statisticalResult.additionalResults.length > 0) {
@@ -293,45 +282,15 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }
   }, [statisticalResult?.additionalResults])
 
-  // AssumptionTest[] 매핑 (AssumptionTestCard용)
-  const assumptionTests = useMemo((): AssumptionTest[] => {
-    if (!statisticalResult?.assumptions) return []
-    return statisticalResult.assumptions.map((a) => ({
-      name: a.name,
-      description: a.description,
-      statistic: a.testStatistic,
-      testStatistic: a.testStatistic,
-      pValue: a.pValue,
-      passed: a.passed,
-      recommendation: a.recommendation,
-      severity: a.severity ?? (a.passed === false ? 'medium' as const : 'low' as const),
-      alpha: 0.05,
-    }))
-  }, [statisticalResult])
-
-  // Layer 2 표시 여부 (CI/effectSize/additionalResults/MethodSpecificResults 중 하나라도 있을 때)
-  // 메타데이터(파일명·데이터 크기)는 L1 카드에 표시되므로 이 조건에서 제외
-  // results.additional은 MethodSpecificResults가 직접 읽으므로 변환 경로(statisticalResult)와 별개로 체크
+  // Layer 2 표시 여부 (추가 테이블 또는 방법별 상세 결과가 있을 때)
+  // CI/효과크기는 StatsCards에서 표시하므로 L2 조건에서 제외
   const hasDetailedResults = useMemo(() => {
     if (!statisticalResult) return false
     return !!(
-      statisticalResult.confidenceInterval ||
-      statisticalResult.effectSize ||
       (statisticalResult.additionalResults && statisticalResult.additionalResults.length > 0) ||
       results?.additional
     )
   }, [statisticalResult, results])
-
-  // Layer 3 표시 여부 (가정검정, 권장사항, 경고, 대안 중 하나라도 있을 때)
-  const hasDiagnostics = useMemo(() => {
-    if (!statisticalResult) return false
-    return !!(
-      (statisticalResult.assumptions && statisticalResult.assumptions.length > 0) ||
-      (statisticalResult.recommendations && statisticalResult.recommendations.length > 0) ||
-      (statisticalResult.warnings && statisticalResult.warnings.length > 0) ||
-      (statisticalResult.alternatives && statisticalResult.alternatives.length > 0)
-    )
-  }, [statisticalResult])
 
   // APA 형식 요약 (df 없는 검정도 지원: "U = 234.0, p = .003")
   const apaFormat = useMemo(() => {
@@ -381,10 +340,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current)
       hasSavedToHistoryRef.current = true  // UI 리셋 후에도 중복 저장 방지용 영속 플래그
       setIsSaved(true)
-      setSavedName(historyName)
+      toast.success(t.results.save.success)
       savedTimeoutRef.current = setTimeout(() => {
         setIsSaved(false)
-        setSavedName(null)
         savedTimeoutRef.current = null
       }, 5000)
     } catch (err) {
@@ -835,7 +793,19 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           t={t}
         />
 
-        {/* ===== [Phase 2] AI 해석 카드 — 래퍼는 항상 렌더링, 내부 콘텐츠만 phase 기반 ===== */}
+        {/* ===== [Phase 2] L2 상세 결과 (CI, 효과크기, 추가 테이블) ===== */}
+        <ResultsChartsSection
+          results={results!}
+          statisticalResult={statisticalResult}
+          hasDetailedResults={hasDetailedResults}
+          phase={phase}
+          prefersReducedMotion={prefersReducedMotion}
+          detailedResultsOpen={detailedResultsOpen}
+          onDetailedResultsOpenChange={setDetailedResultsOpen}
+          t={t}
+        />
+
+        {/* ===== [Phase 3] AI 해석 카드 — 차트 다음에 배치 (데이터 → 해석 인지 흐름) ===== */}
         <div className="space-y-2" data-testid="ai-interpretation-section" ref={aiInterpretationRef}>
             <AnimatePresence mode="wait">
               {isInterpreting && !interpretation && (
@@ -922,23 +892,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               </Alert>
             )}
           </div>
-
-        {/* ===== [Phase 3+] 2-column: 좌(차트+L2) / 우(L3 진단) ===== */}
-        <ResultsChartsSection
-          results={results!}
-          statisticalResult={statisticalResult}
-          hasDetailedResults={hasDetailedResults}
-          hasDiagnostics={hasDiagnostics}
-          assumptionTests={assumptionTests}
-          assumptionsPassed={assumptionsPassed}
-          phase={phase}
-          prefersReducedMotion={prefersReducedMotion}
-          detailedResultsOpen={detailedResultsOpen}
-          onDetailedResultsOpenChange={setDetailedResultsOpen}
-          diagnosticsOpen={diagnosticsOpen}
-          onDiagnosticsOpenChange={setDiagnosticsOpen}
-          t={t}
-        />
 
         {/* ===== [Phase 4] 후속 Q&A 카드 ===== */}
         {(phase >= 4 || prefersReducedMotion) && interpretation && !isInterpreting && (
@@ -1034,40 +987,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 </Button>
               </div>
 
-              {/* 방법 변경 링크 */}
-              {followUpMessages.length > 0 && !isFollowUpStreaming && (
-                <div className="flex justify-end pt-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleChangeMethod}
-                    className="text-xs text-muted-foreground gap-1.5 h-7"
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                    {t.results.followUp.changeMethod}
-                  </Button>
-                </div>
-              )}
             </CardContent>
           </Card>
           </motion.div>
-        )}
-
-        {/* ===== 저장 확인 배너 ===== */}
-        {savedName && (
-          <div className="flex items-center justify-center gap-2.5 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center flex-shrink-0">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div className="text-sm">
-              <span className="font-semibold text-emerald-800 dark:text-emerald-200">
-                {t.results.save.success}
-              </span>
-              <span className="text-emerald-600 dark:text-emerald-400 ml-1.5">
-                — {savedName}
-              </span>
-            </div>
-          </div>
         )}
 
         {/* ===== 액션 버튼 + 다이얼로그 ===== */}
