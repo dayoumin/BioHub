@@ -146,8 +146,8 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
 }))
 vi.mock('@/lib/stores/graph-studio-store', () => ({
-  useGraphStudioStore: (sel: (s: { loadDataPackageWithSpec: ReturnType<typeof vi.fn> }) => unknown) =>
-    sel({ loadDataPackageWithSpec: vi.fn() }),
+  useGraphStudioStore: (sel: (s: { loadDataPackageWithSpec: ReturnType<typeof vi.fn>; disconnectProject: ReturnType<typeof vi.fn> }) => unknown) =>
+    sel({ loadDataPackageWithSpec: vi.fn(), disconnectProject: vi.fn() }),
 }))
 vi.mock('@/lib/graph-studio/analysis-adapter', () => ({
   toAnalysisContext: vi.fn(() => ({})),

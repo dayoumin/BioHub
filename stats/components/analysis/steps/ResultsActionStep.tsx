@@ -191,6 +191,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
   const router = useRouter()
   const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
+  const disconnectProject = useGraphStudioStore(s => s.disconnectProject)
 
   const savedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const copiedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -531,8 +532,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       : spec
 
     loadDataPackageWithSpec(pkg, finalSpec)
+    disconnectProject() // 결과 가져오기는 새 작업 — 기존 프로젝트 덮어쓰기 방지
     router.push('/graph-studio')
-  }, [results, uploadedData, currentHistoryId, loadDataPackageWithSpec, router])
+  }, [results, uploadedData, currentHistoryId, loadDataPackageWithSpec, disconnectProject, router])
 
   // 재해석 + Q&A 초기화 (훅의 resetAndReinterpret + Q&A 로컬 state)
   const handleReinterpretWithQAReset = useCallback(() => {

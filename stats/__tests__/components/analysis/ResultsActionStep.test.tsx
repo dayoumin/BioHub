@@ -770,7 +770,7 @@ const mockLoadDataPackageWithSpec = vi.hoisted(() => vi.fn())
 // Graph Studio store mock
 vi.mock('@/lib/stores/graph-studio-store', () => ({
   useGraphStudioStore: (selector: (s: Record<string, unknown>) => unknown) =>
-    selector({ loadDataPackageWithSpec: mockLoadDataPackageWithSpec }),
+    selector({ loadDataPackageWithSpec: mockLoadDataPackageWithSpec, disconnectProject: vi.fn() }),
 }))
 
 // Graph Studio utility mocks (handleOpenInGraphStudio 내부에서 사용)

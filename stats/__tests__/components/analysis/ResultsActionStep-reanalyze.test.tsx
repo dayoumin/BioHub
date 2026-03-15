@@ -149,8 +149,8 @@ vi.mock('next/navigation', () => ({
 
 // Mock Graph Studio store (prevents cross-store dependency)
 vi.mock('@/lib/stores/graph-studio-store', () => ({
-  useGraphStudioStore: (selector: (s: { loadDataPackageWithSpec: ReturnType<typeof vi.fn> }) => unknown) =>
-    selector({ loadDataPackageWithSpec: vi.fn() }),
+  useGraphStudioStore: (selector: (s: { loadDataPackageWithSpec: ReturnType<typeof vi.fn>; disconnectProject: ReturnType<typeof vi.fn> }) => unknown) =>
+    selector({ loadDataPackageWithSpec: vi.fn(), disconnectProject: vi.fn() }),
 }))
 
 // Mock Graph Studio adapter/utils used by ResultsActionStep

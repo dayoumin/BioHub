@@ -1,6 +1,6 @@
 # 프로젝트 현황 + 할일
 
-**최종 업데이트**: 2026-03-12 (feature/ui-redesign 진행 중)
+**최종 업데이트**: 2026-03-15 (Phase G4 완료)
 
 ---
 
@@ -30,6 +30,15 @@
 ---
 
 ## 📅 최근 작업 (7일)
+
+### 2026-03-15 (토) Graph Studio Phase G4 완료 + E2E 정리
+
+- ✅ **Phase G4 전항목 완료 확인**: 탭명(4-1), 좌측 접힘(4-2), Popover 역할 할당(4-3), hex 복사(4-4), 프로젝트 해제(4-5)
+- ✅ **ResultsActionStep disconnectProject 누락 수정**: 결과→Graph Studio 가져오기 시 기존 프로젝트 덮어쓰기 방지
+- ✅ **E2E 셀렉터 정리**: 삭제된 diagnostics/warnings/recommendations 셀렉터 제거 + chart-setup testid 갱신
+- ✅ **ChartSetupPanel + StepIndicator 신규**: 차트 설정 단계 UI + 3단계 인디케이터
+- ✅ **테스트**: ResultsActionStep 83개 통과 (mock 3파일 disconnectProject 추가)
+- 📌 커밋: `d3761f2a` `be9628a9`
 
 ### 2026-03-12 (수) STITCH Phase 2+3+4 완료 + G5.3~G5.5 완료 + Layer 0 APA 테이블 복사
 
@@ -576,14 +585,14 @@
 | G3-GRAPH-VIZ-TEST | MEDIUM | Graph Studio 차트 시각화 E2E 테스트 | KM 곡선/ROC 곡선 렌더링 검증, ChartPreview 스크린샷 비교, 유의성 마커/에러바/범례 위치 시각적 회귀 테스트 (`toHaveScreenshot`) |
 | G3-R-VERIFY | LOW | `generate-r-references.R` 실행 → KM/ROC 골든값 근사치를 R 정확값으로 교체 | 로컬 R 환경 필요 |
 
-### Phase G4: 패널 구조 개선 (Phase 4, 즉시 가능)
+### Phase G4: 패널 구조 개선 ✅ 완료 (2026-03-15)
 
 | 기능 | 설명 | 계획서 |
 |------|------|--------|
-| 탭명 변경 | "데이터" → "차트 설정" | 4-1 |
-| 좌측 패널 기본 접힘 | `useState(false)` — 캔버스 256px 확보 | 4-2 |
-| 변수 클릭 역할 할당 | Popover + `assignFieldRole()` + capability 체크 | 4-3 |
-| 데이터 교체 프로젝트 해제 | `currentProject: null` 설정 | 4-5 |
+| 탭명 변경 | ✅ "데이터" → "차트 설정" | 4-1 |
+| 좌측 패널 기본 접힘 | ✅ `useState(false)` — 캔버스 256px 확보 | 4-2 |
+| 변수 클릭 역할 할당 | ✅ Popover + `assignFieldRole()` + capability 체크 | 4-3 |
+| 데이터 교체 프로젝트 해제 | ✅ `currentProject: null` 설정 + ResultsActionStep 누락 수정 | 4-5 |
 | 색상 hex 복사 | ✅ 완료 | 4-4 |
 
 > 계획서: [PLAN-UX-IMPROVEMENTS.md](stats/docs/graph-studio/PLAN-UX-IMPROVEMENTS.md) Phase 4
