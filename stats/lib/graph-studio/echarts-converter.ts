@@ -1346,7 +1346,8 @@ export function chartSpecToECharts(
           { type: 'bar', data: means, name: yField, z: 2, ...(barLabel ? { label: barLabel } : {}) },
           buildErrorBarOverlay(categories, means, lowers, uppers),
         ],
-      }, spec.annotations, spec.orientation);
+      }, spec.annotations);
+      // orientation 미전달: 이 분기는 orientation을 무시하고 세로 축 기준으로 구성하므로 markLine도 기본(vertical) 기준
     }
     const isH = spec.orientation === 'horizontal';
     const y2Axis = spec.encoding.y2;
@@ -1961,8 +1962,8 @@ export function chartSpecToECharts(
         name: spec.encoding.y.title ?? yField,
         nameLocation: 'middle',
         nameGap: 48,
-        nameTextStyle: { fontFamily: style.fontFamily, fontSize: style.axisTitleSize },
-        axisLabel: { fontFamily: style.fontFamily, fontSize: style.labelSize },
+        nameTextStyle: { fontFamily: style.fontFamily, fontSize: spec.encoding.y.titleFontSize ?? style.axisTitleSize },
+        axisLabel: { fontFamily: style.fontFamily, fontSize: spec.encoding.y.labelFontSize ?? style.labelSize },
         splitArea: { show: true },
       },
       visualMap: {

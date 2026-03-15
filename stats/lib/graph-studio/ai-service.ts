@@ -62,6 +62,7 @@ Generate a minimal RFC 6902 JSON Patch that transforms the ChartSpec to fulfill 
   - {type: "line", x?, y?, x2?, y2?} (pixel coords)
   - {type: "rect", x?, y?, x2?, y2?} (pixel coords)
   For reference lines at data coordinates, prefer hline/vline over line/rect.
+  NOTE: hline/vline are NOT rendered on heatmap, histogram, or faceted charts. Do NOT add them for these chart types.
 - exportConfig: {format: svg|png, dpi, physicalWidth?: mm, physicalHeight?: mm, transparentBackground?} (physicalWidth/Height=출력 물리 크기(mm), 미지정=DOM 크기)
 - significance: array of {groupA, groupB, pValue?, label?} (optional) — statistical significance brackets (bar/grouped-bar/error-bar only). Rendered as overlay graphics by ChartPreview.
 - encoding.size: NOT YET RENDERED — schema exists but renderer ignores it. Do NOT generate patches for this field.
