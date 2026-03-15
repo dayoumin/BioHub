@@ -491,6 +491,7 @@
 | **~~Graph Studio G2-1 Quick Wins~~** | ✅ 완료 — ColorBrewer 15종 + 막대 데이터 레이블 + 수평 막대 + 테스트 57개 |
 | **~~Layer 0: APA 테이블 복사~~** | ✅ 완료 (2026-03-12) — APA 7th HTML 서식 + 보안 수정 + 테스트 26개 — `62177373` |
 | **Graph Studio: 주석 UI 편집기** | 수동 GUI로 annotation 추가/편집/삭제 (hline/vline/text). 현재 AI 채팅으로만 가능 → 직접 조작 UI 추가. C-4 ([계획서](stats/docs/graph-studio/PLAN-STYLE-ANNOTATION-IMPROVEMENTS.md)) |
+| **섹션별 UX 아이덴티티** | Hub/통계/Graph Studio 시각 구분 — 헤더 섹션명, accent bar, 카드 도착지 표시 ([계획서](stats/docs/PLAN-SECTION-UX-IDENTITY.md)) |
 | **UX 단계별 흐름 개선** | Smart Flow + Graph Studio UX 개선 6단계 — 변수→결과 초기화, 네비게이션 자유도, 통계→그래프 연결 ([계획서](stats/docs/PLAN-UX-STEPFLOW-IMPROVEMENTS.md)) |
 | **논문 초안 생성** | 분석 결과 → Methods/Results/Caption/Discussion 학술 텍스트 자동 생성 ([계획서](stats/docs/PLAN-PAPER-DRAFT-GENERATION.md)) |
 | **Phase 15-1: Bio-Tools** | 12개 생물학 분석, `/bio-tools/` 5페이지 구현 ([상세](study/PLAN-BIO-STATISTICS-AUDIT.md)) |
