@@ -658,3 +658,151 @@ describe('Dead state 제거 — lastAiResponse / setLastAiResponse', () => {
     expect('setLastAiResponse' in useGraphStudioStore.getState()).toBe(false)
   })
 })
+
+// ─── goToSetup / previousChartSpec 수명 관리 ─────────────
+
+describe('goToSetup — 에디터→설정 네비게이션', () => {
+  it('chartSpec을 null로, previousChartSpec에 이전 spec을 보관한다', () => {
+    const spec = makeSpec('Before Setup')
+    act(() => { useGraphStudioStore.getState().setChartSpec(spec) })
+
+    act(() => { useGraphStudioStore.getState().goToSetup() })
+
+    const state = useGraphStudioStore.getState()
+    expect(state.chartSpec).toBeNull()
+    expect(state.previousChartSpec?.title).toBe('Before Setup')
+    expect(state.specHistory).toHaveLength(0)
+    expect(state.historyIndex).toBe(-1)
+  })
+
+  it('chartSpec이 null일 때 goToSetup → previousChartSpec도 null', () => {
+    // resetAll 후 chartSpec = null
+    act(() => { useGraphStudioStore.getState().goToSetup() })
+
+    const state = useGraphStudioStore.getState()
+    expect(state.chartSpec).toBeNull()
+    expect(state.previousChartSpec).toBeNull()
+  })
+
+  it('dataPackage는 goToSetup 후에도 유지된다', () => {
+    const pkg = makePkg({
+      id: 'keep-data',
+      columns: [
+        { name: 'a', type: 'quantitative', uniqueCount: 5, sampleValues: [], hasNull: false },
+        { name: 'b', type: 'quantitative', uniqueCount: 5, sampleValues: [], hasNull: false },
+      ],
+    })
+    act(() => { useGraphStudioStore.getState().loadDataPackage(pkg) })
+    act(() => { useGraphStudioStore.getState().goToSetup() })
+
+    const state = useGraphStudioStore.getState()
+    expect(state.dataPackage?.id).toBe('keep-data')
+    expect(state.isDataLoaded).toBe(true)
+    expect(state.chartSpec).toBeNull()
+  })
+})
+
+describe('previousChartSpec 수명 관리', () => {
+  it('loadDataPackageWithSpec 후 previousChartSpec = null (소비 완료)', () => {
+    const spec = makeSpec('Setup Spec')
+    act(() => { useGraphStudioStore.getState().setChartSpec(spec) })
+    act(() => { useGraphStudioStore.getState().goToSetup() })
+    expect(useGraphStudioStore.getState().previousChartSpec).not.toBeNull()
+
+    const pkg = makePkg({ id: 'new-pkg' })
+    const newSpec = makeSpec('New Spec')
+    act(() => { useGraphStudioStore.getState().loadDataPackageWithSpec(pkg, newSpec) })
+
+    expect(useGraphStudioStore.getState().previousChartSpec).toBeNull()
+  })
+
+  it('clearData 후 previousChartSpec = null (세션 리셋)', () => {
+    act(() => { useGraphStudioStore.getState().setChartSpec(makeSpec()) })
+    act(() => { useGraphStudioStore.getState().goToSetup() })
+    expect(useGraphStudioStore.getState().previousChartSpec).not.toBeNull()
+
+    act(() => { useGraphStudioStore.getState().clearData() })
+
+    expect(useGraphStudioStore.getState().previousChartSpec).toBeNull()
+  })
+
+  it('loadDataOnly 후 previousChartSpec = null (데이터 불일치 방지)', () => {
+    act(() => { useGraphStudioStore.getState().setChartSpec(makeSpec()) })
+    act(() => { useGraphStudioStore.getState().goToSetup() })
+    expect(useGraphStudioStore.getState().previousChartSpec).not.toBeNull()
+
+    const pkg = makePkg({ id: 'data-only' })
+    act(() => { useGraphStudioStore.getState().loadDataOnly(pkg) })
+
+    expect(useGraphStudioStore.getState().previousChartSpec).toBeNull()
+  })
+
+  it('setProject 후 previousChartSpec = null (외부 프로젝트)', () => {
+    act(() => { useGraphStudioStore.getState().setChartSpec(makeSpec()) })
+    act(() => { useGraphStudioStore.getState().goToSetup() })
+    expect(useGraphStudioStore.getState().previousChartSpec).not.toBeNull()
+
+    const project = makeProject()
+    act(() => { useGraphStudioStore.getState().setProject(project) })
+
+    expect(useGraphStudioStore.getState().previousChartSpec).toBeNull()
+  })
+})
+
+// ─── disconnectProject (4-5) ─────────────────────────────
+
+describe('disconnectProject — 프로젝트 연결 해제', () => {
+  it('currentProject를 null로 설정한다', () => {
+    const project = makeProject()
+    act(() => { useGraphStudioStore.getState().setProject(project) })
+    expect(useGraphStudioStore.getState().currentProject).not.toBeNull()
+
+    act(() => { useGraphStudioStore.getState().disconnectProject() })
+
+    expect(useGraphStudioStore.getState().currentProject).toBeNull()
+  })
+
+  it('chartSpec과 dataPackage는 disconnectProject 후에도 유지된다', () => {
+    const spec = makeSpec('Keep This')
+    const pkg = makePkg({ id: 'keep-pkg' })
+    const project = makeProject({ chartSpec: spec })
+
+    act(() => { useGraphStudioStore.getState().setProject(project, pkg) })
+    act(() => { useGraphStudioStore.getState().disconnectProject() })
+
+    const state = useGraphStudioStore.getState()
+    expect(state.currentProject).toBeNull()
+    expect(state.chartSpec).not.toBeNull()
+    expect(state.dataPackage?.id).toBe('keep-pkg')
+    expect(state.isDataLoaded).toBe(true)
+  })
+
+  it('currentProject가 null일 때 disconnectProject는 안전하게 동작한다', () => {
+    expect(useGraphStudioStore.getState().currentProject).toBeNull()
+
+    act(() => { useGraphStudioStore.getState().disconnectProject() })
+
+    expect(useGraphStudioStore.getState().currentProject).toBeNull()
+  })
+
+  it('데이터 교체 시나리오: loadDataPackageWithSpec + disconnectProject → 기존 프로젝트 덮어쓰기 방지', () => {
+    const project = makeProject({ id: 'original-project' })
+    const pkg = makePkg({ id: 'original-data' })
+
+    act(() => { useGraphStudioStore.getState().setProject(project, pkg) })
+    expect(useGraphStudioStore.getState().currentProject?.id).toBe('original-project')
+
+    // 데이터 교체: 새 데이터 + 새 spec
+    const newPkg = makePkg({ id: 'new-data' })
+    const newSpec = makeSpec('Replaced Chart')
+    act(() => {
+      useGraphStudioStore.getState().loadDataPackageWithSpec(newPkg, newSpec)
+      useGraphStudioStore.getState().disconnectProject()
+    })
+
+    const state = useGraphStudioStore.getState()
+    expect(state.currentProject).toBeNull()            // 프로젝트 연결 해제
+    expect(state.dataPackage?.id).toBe('new-data')     // 새 데이터
+    expect(state.chartSpec?.title).toBe('Replaced Chart') // 새 spec
+  })
+})

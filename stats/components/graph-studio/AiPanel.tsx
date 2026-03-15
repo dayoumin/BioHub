@@ -33,6 +33,7 @@ import {
   StickyNote,
 } from 'lucide-react';
 import type { ChatMessage } from '@/lib/graph-studio/use-ai-chat';
+import type { PatchSummaryItem } from '@/lib/graph-studio/ai-patch-summary';
 
 // ─── 카드 데이터 ────────────────────────────────────────────
 
@@ -165,6 +166,19 @@ function MessageBubble({ message }: { message: ChatMessage }): React.ReactElemen
       </div>
       <div className="bg-muted rounded-lg rounded-tl-sm px-3 py-2 text-sm max-w-[85%] space-y-1.5">
         <p>{message.content}</p>
+        {message.patchSummary && message.patchSummary.length > 0 && (
+          <div className="pt-1 border-t border-border/50 space-y-0.5">
+            <span className="text-[10px] font-medium text-muted-foreground">변경 내역:</span>
+            {message.patchSummary.map((item: PatchSummaryItem) => (
+              <div key={item.path} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <span className="font-medium">{item.label}</span>
+                <span className="text-muted-foreground/60">
+                  {item.op === '제거' ? '제거됨' : `→ ${item.value ?? ''}`}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
         {(message.confidence !== undefined || message.patchCount !== undefined) && (
           <div className="flex items-center gap-2 pt-1 border-t border-border/50">
             {message.patchCount !== undefined && (

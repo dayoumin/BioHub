@@ -20,6 +20,8 @@ import type { KeyboardEvent, RefObject } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { applyAndValidatePatches } from '@/lib/graph-studio/chart-spec-utils';
 import { editChart, buildAiEditRequest, AiServiceError } from '@/lib/graph-studio/ai-service';
+import { summarizePatches } from '@/lib/graph-studio/ai-patch-summary';
+import type { PatchSummaryItem } from '@/lib/graph-studio/ai-patch-summary';
 import { logger } from '@/lib/utils/logger';
 
 // ─── 타입 ──────────────────────────────────────────────────
@@ -35,6 +37,8 @@ export interface ChatMessage {
   content: string;
   confidence?: number;
   patchCount?: number;
+  /** AI 변경 요약 항목 — 투명성 표시용 */
+  patchSummary?: PatchSummaryItem[];
 }
 
 export interface AiChatHook {
@@ -135,11 +139,13 @@ export function useAiChat(): AiChatHook {
       }
 
       updateChartSpec(patchResult.spec);
+      const summary = summarizePatches(response.patches);
       appendMessage({
         role: 'assistant',
         content: response.explanation,
         confidence: response.confidence,
         patchCount: response.patches.length,
+        patchSummary: summary,
       });
     } catch (err) {
       let userMessage = '알 수 없는 오류가 발생했습니다.';
