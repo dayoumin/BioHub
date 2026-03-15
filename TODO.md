@@ -499,6 +499,7 @@
 - 영어 전용 → 한국어 UI + 한국 저널 프리셋
 - AI 없음 → 자연어 편집 + 저널 자동 포맷
 - 타겟: 국내 바이오/의학 대학원생
+- **UI 방향**: Figma식 Contextual UI + Prism식 학술 정밀 입력 — 상세: [경쟁 분석](stats/docs/graph-studio/GRAPH_STUDIO_COMPETITIVE_ANALYSIS.md)
 
 ### Phase G1: 핵심 UI ✅ 완료 (2026-02-28)
 

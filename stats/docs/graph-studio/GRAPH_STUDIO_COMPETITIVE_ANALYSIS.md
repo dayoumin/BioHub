@@ -350,3 +350,52 @@ AI 없음          →       자연어 그래프 편집 + AI 자동 포맷
 | Figure 빠른 시작 프리셋 | — | 🔄 G2.5-D 예정 |
 | 유의성 마커 v2 (자동+CLD) | P2 | G3 예정 |
 | 인터랙티브 (줌/툴팁) | P0 | G3 예정 |
+
+---
+
+## UI 방향: Contextual UI + 학술 정밀 입력 (2026-03-15 확정)
+
+> 2025-2026 학술 시각화 도구 동향 조사 기반
+
+### 조사 결과
+
+**학술 도구 UI 표준 (2025-2026)**: Dual-Mode Editing
+
+| 도구 | Quick Mode | Deep Mode | AI |
+|------|-----------|-----------|-----|
+| GraphPad Prism 11 | Mini Toolbar (요소 선택 시) | Plot Details Dialog | 없음 |
+| OriginLab Origin 2025 | Mini Toolbar + Slicer | Plot Details Dialog | 없음 |
+| JASP / jamovi | — | 사이드 패널 | 없음 |
+| Stata 19 | — | 커맨드라인 + GUI | 없음 |
+| Figlinq (신흥) | GUI 에디터 | GUI 에디터 | GPT-4 (코드 투명 공개) |
+| SPSS v31 | — | 전통 UI | watsonx.ai (해석 전용) |
+
+**핵심 발견**:
+- 학술 골드 스탠다드(Prism, Origin)는 **Mini Toolbar(Quick) + Dialog/Panel(Deep)** 이중 구조
+- Modal, Inline 편집은 학술 도구에서 채택 사례 없음
+- AI 도입은 학술 도구에서 극히 보수적 — Figlinq만 "투명 AI" 채택
+- Accordion 세분화는 어느 도구에서도 채택하지 않음
+
+### BioHub UI 방향
+
+**"Figma식 Contextual UI + Prism식 학술 정밀 입력"**
+
+| 원칙 | 설명 | 근거 |
+|------|------|------|
+| **Contextual Quick Action** | 차트 요소 클릭 → 해당 설정만 Floating Panel 표시 | Origin Mini Toolbar + Figma 선택 기반 UI |
+| **학술 정밀 입력** | 슬라이더/드래그 대신 숫자 직접 입력 (0.05, 12pt, 300 DPI) | Prism/Origin — 학술 논문은 정확한 수치 필요 |
+| **사이드 패널 유지** | 우측 패널은 전체 설정 열람/정밀 조정용 — 구조 변경 안 함 | Accordion 세분화·Modal 전환 불필요 — Quick Mode가 과밀 해결 |
+| **AI 선점 + 투명성** | 학술 도구(Prism/Origin/JASP)는 AI 전무 — 경쟁 우위 | Figlinq 패턴: AI 변경 diff 표시로 학술 신뢰도 확보 |
+| **색맹 친화 기본값** | 기본 팔레트를 색맹 친화로 | matplotlib petroff10 — 학술 접근성 표준 |
+
+### 따르지 않을 패턴
+
+| 패턴 | 이유 |
+|------|------|
+| Accordion 세분화 (우측 패널 내부) | Quick Mode(Floating Panel)가 과밀 문제 해결 — 구조 변경 불필요 |
+| Modal/Dialog 방식 (Prism Plot Details) | 웹에서 모달 남발은 UX 저하 — 사이드 패널이 더 적합 |
+| Inline 편집 (요소 위 직접 텍스트 수정) | ECharts 미지원 (드래그/이동 불가) + 학술 정밀도 부적합 |
+| 코드 기반 워크플로우 (R/Quarto/Typst) | 우리는 GUI 도구 — Export(SVG/PNG)로 코드 생태계 통합 |
+| AI 배제 | 학술 도구의 보수성은 레거시 제약 — 웹 기반 도구는 선점 가능 |
+
+> 구현 계획: [PLAN-UX-IMPROVEMENTS.md](PLAN-UX-IMPROVEMENTS.md) Phase 5
