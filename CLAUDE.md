@@ -6,13 +6,13 @@
 
 **전문가급 통계 분석 플랫폼** (PC웹 + 데스크탑 앱)
 - **기술**: Next.js 15 + TypeScript + shadcn/ui + Pyodide + Tauri
-- **통계 분석**: Smart Flow (43개 메서드 통합) — 유일한 진입점
+- **통계 분석**: Analysis (43개 분석 메서드 + 4개 데이터 도구) — 유일한 진입점
 - **Bio-Tools**: 12개 생물학 분석 (5페이지) — 별도 섹션 예정
 - **데이터 도구**: 2개
 
 ## 아키텍처 결정 (CRITICAL)
 
-- **Smart Flow = 통계 분석의 유일한 진입점** (홈 `/` = ChatCentricHub)
+- **Analysis = 통계 분석의 유일한 진입점** (홈 `/` = ChatCentricHub, 분석 `/analysis`)
 - **개별 `/statistics/*` 43개 = 레거시** (코드 유지, 신규 개발 안 함)
 - **Bio-Tools = `/bio-tools/` 별도 섹션**
 

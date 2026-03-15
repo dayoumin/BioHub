@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Undo2, Redo2, PanelLeft, PanelRight, Sparkles, Plus, Settings2 } from 'lucide-react';
+import { Undo2, Redo2, PanelLeft, PanelRight, Sparkles, Plus, Settings2, BarChart3 } from 'lucide-react';
 import { ExportDialog } from './panels/ExportDialog';
 
 interface GraphStudioHeaderProps {
@@ -68,10 +68,16 @@ export function GraphStudioHeader({
   }, [redo]);
 
   return (
-    <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border px-4 h-10 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80">
+    <header
+      className="sticky top-0 z-50 flex items-center justify-between border-b border-border px-4 h-10 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
+      style={{ borderTop: '2px solid var(--section-accent-graph)' }}
+    >
       {/* 좌: 제목 + 새 차트 */}
       <div className="flex items-center gap-3">
-        <h1 className="text-lg font-semibold">Graph Studio</h1>
+        <div className="flex items-center gap-1.5">
+          <BarChart3 className="h-4 w-4" style={{ color: 'var(--section-accent-graph)' }} />
+          <h1 className="text-lg font-semibold">Graph Studio</h1>
+        </div>
         {chartSpec && (
           <>
             <span className="text-sm text-muted-foreground">

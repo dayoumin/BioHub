@@ -12,6 +12,8 @@ import {
   MessageCircle,
   ChevronRight,
   Loader2,
+  Home,
+  FlaskConical,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -138,10 +140,27 @@ export function AnalysisLayout({
     <div className={cn("min-h-screen bg-background", className)}>
 
 
-      {/* ===== 헤더 (Sticky, 우측 아이콘만) ===== */}
-      <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80">
+      {/* ===== 헤더 (Sticky, 섹션 아이덴티티 + accent bar) ===== */}
+      <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
+        style={{ borderTop: `2px solid var(${showHub ? '--section-accent-hub' : '--section-accent-analysis'})` }}
+      >
         <div className="max-w-6xl mx-auto px-6">
-          <div className="flex items-center justify-end h-10">
+          <div className="flex items-center justify-between h-10">
+            {/* 좌: 섹션명 + 아이콘 */}
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              {showHub ? (
+                <>
+                  <Home className="h-4 w-4" style={{ color: 'var(--section-accent-hub)' }} />
+                  <span className="text-sm font-medium">Hub</span>
+                </>
+              ) : (
+                <>
+                  <FlaskConical className="h-4 w-4" style={{ color: 'var(--section-accent-analysis)' }} />
+                  <span className="text-sm font-medium">Analysis</span>
+                </>
+              )}
+            </div>
+            {/* 우: 액션 아이콘 */}
             <div className="flex items-center gap-0.5">
               <Button
                 variant="ghost"

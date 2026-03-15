@@ -20,6 +20,10 @@ import { useUI } from '@/contexts/ui-context'
 import { toast } from 'sonner'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 
+/** 사이드바 접힐 때 텍스트가 즉시 사라지도록 (width 애니메이션 도중 잔상 방지) */
+const textClass = (expanded: boolean) =>
+  expanded ? 'opacity-100' : 'opacity-0 invisible'
+
 const STORAGE_KEY = 'biohub-sidebar'
 
 type NavItem = {
@@ -122,11 +126,9 @@ export function AppSidebar() {
         >
           <PanelLeft className="w-4 h-4" />
         </button>
-        {expanded && (
-          <span className="ml-3 text-sm font-semibold tracking-tight text-sidebar-foreground whitespace-nowrap">
-            {APP_TITLE}
-          </span>
-        )}
+        <span className={cn("ml-3 text-sm font-semibold tracking-tight text-sidebar-foreground whitespace-nowrap", textClass(expanded))}>
+          {APP_TITLE}
+        </span>
       </div>
 
       {/* 메인 네비게이션 */}
@@ -150,17 +152,13 @@ export function AppSidebar() {
           const inner = (
             <>
               <Icon className="w-4 h-4 flex-shrink-0" />
-              {expanded && (
-                <>
-                  <span className="text-sm whitespace-nowrap overflow-hidden truncate">
-                    {item.label}
-                  </span>
-                  {item.badge && (
-                    <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-muted/50 text-muted-foreground/60 font-medium flex-shrink-0">
-                      {item.badge}
-                    </span>
-                  )}
-                </>
+              <span className={cn("text-sm whitespace-nowrap overflow-hidden truncate", textClass(expanded))}>
+                {item.label}
+              </span>
+              {item.badge && (
+                <span className={cn("ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-muted/50 text-muted-foreground/60 font-medium flex-shrink-0", textClass(expanded))}>
+                  {item.badge}
+                </span>
               )}
             </>
           )
@@ -202,14 +200,10 @@ export function AppSidebar() {
               )}
             >
               <Star className="w-4 h-4 flex-shrink-0" />
-              {expanded && (
-                <>
-                  <span className="text-sm whitespace-nowrap overflow-hidden truncate">
-                    My Menu
-                  </span>
-                  <span className="ml-auto text-[10px] opacity-40 flex-shrink-0">예정</span>
-                </>
-              )}
+              <span className={cn("text-sm whitespace-nowrap overflow-hidden truncate", textClass(expanded))}>
+                My Menu
+              </span>
+              <span className={cn("ml-auto text-[10px] flex-shrink-0", expanded ? 'opacity-40' : 'opacity-0 invisible')}>예정</span>
             </div>
           </TooltipTrigger>
           {!expanded && <TooltipContent side="right">My Menu (준비 중)</TooltipContent>}
@@ -229,11 +223,9 @@ export function AppSidebar() {
               )}
             >
               <Settings className="w-4 h-4 flex-shrink-0" />
-              {expanded && (
-                <span className="text-sm whitespace-nowrap overflow-hidden truncate">
-                  설정
-                </span>
-              )}
+              <span className={cn("text-sm whitespace-nowrap overflow-hidden truncate", textClass(expanded))}>
+                설정
+              </span>
             </button>
           </TooltipTrigger>
           {!expanded && <TooltipContent side="right">설정</TooltipContent>}

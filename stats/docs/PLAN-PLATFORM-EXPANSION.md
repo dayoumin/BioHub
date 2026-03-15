@@ -9,10 +9,12 @@
 
 | 섹션 | URL | 상태 |
 |---|---|---|
-| Smart Flow (통계 분석) | `/` | ✅ 완료 — 43~52개 메서드 |
+| Analysis (통계 분석) | `/`, `/analysis` | ✅ 완료 — 43개 분석 메서드 + 4개 데이터 도구 |
 | Graph Studio (시각화) | `/graph-studio` | ✅ 완료 |
 | Chatbot (RAG) | `/chatbot` | ✅ 완료 |
 | Bio-Tools (생물통계) | `/bio-tools` | 🔜 Phase 15-1 예정 |
+
+> **메서드 수 기준**: 통계 검정·모델링 = 43개 (분석 메서드). 기술통계·탐색·평균도표·검정력분석 = 4개 (데이터 도구, 메서드 수에 미포함). 정규성검정·정상성검정은 가설검정이므로 분석 메서드에 포함.
 
 ---
 
@@ -86,7 +88,7 @@
 
 5. 통계 → 시각화 → 논문 끊김 없는 워크플로우
    - 어떤 단일 경쟁상대도 3개를 통합하지 않음
-   - Smart Flow 결과 → Graph Studio → Paper Writer
+   - Analysis 결과 → Graph Studio → Paper Writer
 ```
 
 ---
@@ -133,6 +135,7 @@
   Phase 16    Paper Writer — Methods/Results/Captions/Discussion
                + PRISMA/STROBE/CONSORT 자동 감지 + 체크리스트
                + Semantic Scholar 인용 검증 버튼
+               + R 코드 생성 (분석 결과 → 재현 가능한 R 코드, 템플릿 매핑)
 
 2026 Q3-Q4
   Phase 17    의학/임상 통계 확장
@@ -143,11 +146,6 @@
                — Item Response Theory (IRT), Confirmatory Factor Analysis (CFA)
                — Reliability (이미 있음, 확장), Agreement (Cohen's kappa 이미 있음)
                — Mediation/Moderation analysis
-
-2026 Q4 ~
-  Phase 19    R 코드 생성
-               — 분석 결과 → 재현 가능한 R 코드 (ggplot2 + stats + 적절한 패키지)
-               — 복사 버튼 1개로 R Studio에서 즉시 재현 가능
 
 2027 ~
   Phase 20    scRNA-seq (Pyodide 한도 내)
@@ -163,15 +161,15 @@
 ## 6. 섹션 구조 (목표)
 
 ```
-/                  Smart Flow (통계) — 현재
+/                  Analysis (통계) — 현재
 /graph-studio      Graph Studio (시각화) — 현재
 /bio-tools         Bio-Tools (생물/생태/수산 통계) — Phase 15-1
 /paper             Paper Writer (논문 초안) — Phase 16
-/clinical-stats    의학/임상 통계 — Phase 17 (또는 Smart Flow 메서드 통합)
-/social-stats      사회과학 통계 — Phase 18 (또는 Smart Flow 메서드 통합)
+/clinical-stats    의학/임상 통계 — Phase 17 (또는 Analysis 메서드 통합)
+/social-stats      사회과학 통계 — Phase 18 (또는 Analysis 메서드 통합)
 ```
 
-> Phase 17-18은 독립 섹션보다 **Smart Flow 메서드 추가**로 통합하는 것이 UX 일관성 면에서 유리할 수 있음. 결정 필요.
+> Phase 17-18은 독립 섹션보다 **Analysis 메서드 추가**로 통합하는 것이 UX 일관성 면에서 유리할 수 있음. 결정 필요.
 
 ---
 

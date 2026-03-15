@@ -7,12 +7,19 @@
  * ============================================
  * SUMMARY
  * ============================================
- * - Total definitions: 51
- * - Independent pages: 48 (hasOwnPage !== false)
- * - Embedded methods:   3 (hasOwnPage: false)
- *   - paired-t         -> t-test page
- *   - welch-anova      -> anova page
+ * - Total definitions:    52
+ * - Analysis methods:     43 (가설검정·모델링·분석 기법)
+ * - Data tools:            4 (분석 메서드 아님, 메서드 수에 미포함)
+ *   - descriptive         : 기술통계 요약
+ *   - explore-data        : 데이터 탐색 (EDA)
+ *   - means-plot          : 평균 도표 시각화
+ *   - power-analysis      : 표본 수 사전 설계
+ * - Embedded (hasOwnPage: false): 5
+ *   - paired-t            -> t-test page
+ *   - welch-anova         -> anova page
  *   - logistic-regression -> regression page
+ *   - non-parametric      -> category overview
+ *   - chi-square          -> category overview
  *
  * @see docs/STATISTICAL_METHODS_UNIFICATION_PLAN.md
  * @see design-system -> Dev Tools -> Statistical Methods
@@ -36,9 +43,7 @@ export interface StatisticalMethodWithAliases extends StatisticalMethod {
 }
 
 /**
- * 51 Statistical Method Definitions
- * - 48 independent pages
- * - 3 embedded (paired-t, welch-anova, logistic-regression)
+ * 52 definitions = 43 analysis methods + 4 data tools + 5 embedded
  */
 export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> = {
   // ============================================
@@ -376,9 +381,9 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
   },
 
   // ============================================
-  // 7. Descriptive (4)
+  // 7. Descriptive — 4개 모두 데이터 도구 (분석 메서드 아님)
   // ============================================
-  'descriptive': {
+  'descriptive': {  // ⚠ DATA TOOL — 메서드 수 미포함
     id: 'descriptive',
     name: 'Descriptive Statistics',
     description: 'Summary statistics',
@@ -387,7 +392,7 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     koreanName: '기술통계량',
     koreanDescription: '평균, 표준편차, 분위수 등 요약',
   },
-  'normality-test': {
+  'normality-test': {  // 분석 메서드 — Shapiro-Wilk 등 가설검정 (p값 산출)
     id: 'normality-test',
     name: 'Normality Test',
     description: 'Shapiro-Wilk, Kolmogorov-Smirnov normality tests',
@@ -396,7 +401,7 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     koreanName: '정규성 검정',
     koreanDescription: 'Shapiro-Wilk, K-S 검정',
   },
-  'explore-data': {
+  'explore-data': {  // ⚠ DATA TOOL — 메서드 수 미포함
     id: 'explore-data',
     name: 'Explore Data',
     description: 'Data exploration and visualization',
@@ -405,7 +410,7 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     koreanName: '데이터 탐색',
     koreanDescription: '데이터 탐색 및 시각화',
   },
-  'means-plot': {
+  'means-plot': {  // ⚠ DATA TOOL — 메서드 수 미포함
     id: 'means-plot',
     name: 'Means Plot',
     description: 'Group means visualization with CI',
@@ -529,7 +534,7 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
   // ============================================
   // 11. Other (4)
   // ============================================
-  'power-analysis': {
+  'power-analysis': {  // ⚠ DATA TOOL — 사전 설계 도구, 메서드 수 미포함
     id: 'power-analysis',
     name: 'Power Analysis',
     description: 'Sample size and power calculation',

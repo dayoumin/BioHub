@@ -241,6 +241,11 @@
   --sidebar-width: 16rem;
   --content-max-width: 80rem;
 
+  /* Section Accent Colors (S2: 헤더 accent bar) */
+  --section-accent-hub: oklch(0.55 0.20 260);       /* 블루 — 중립, 안내 */
+  --section-accent-analysis: oklch(0.55 0.15 185);   /* 틸/시안 — 과학적, 분석 */
+  --section-accent-graph: oklch(0.55 0.15 290);      /* 바이올렛 — 창작, 도구 */
+
   /* Track Colors - Analysis (Monochrome Gradient) */
   --track-analysis-from: oklch(0.35 0 0);
   --track-analysis-to: oklch(0.15 0 0);
@@ -389,6 +394,11 @@
   /* Dark gray */
   --category-5: oklch(0.15 0 0);
   /* Very dark gray */
+
+  /* Dark Mode Section Accent Colors (밝기 올림) */
+  --section-accent-hub: oklch(0.65 0.18 260);
+  --section-accent-analysis: oklch(0.65 0.13 185);
+  --section-accent-graph: oklch(0.65 0.13 290);
 
   /* Dark Mode AI/Highlight Colors */
   --highlight: oklch(0.70 0.08 260);
