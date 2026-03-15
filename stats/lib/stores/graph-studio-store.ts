@@ -59,6 +59,8 @@ interface GraphStudioActions {
   setProject: (project: GraphProject, dataPackage?: DataPackage) => void;
   /** 현재 chartSpec을 프로젝트로 저장 (localStorage). 생성된 projectId 반환, 실패 시 null */
   saveCurrentProject: (name: string) => string | null;
+  /** 현재 프로젝트 연결 해제 — 데이터 교체 후 기존 프로젝트 덮어쓰기 방지 */
+  disconnectProject: () => void;
   resetAll: () => void;
 }
 
@@ -308,6 +310,8 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       set({ currentProject: project });
       return projectId;
     },
+
+    disconnectProject: () => set({ currentProject: null }),
 
     resetAll: () => set(initialState),
   }),

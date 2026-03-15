@@ -37,7 +37,7 @@ export function RightPropertyPanel(): React.ReactElement {
               className="px-3 py-2 text-xs"
               data-testid="graph-studio-tab-data"
             >
-              데이터
+              차트 설정
             </AccordionTrigger>
             <AccordionContent className="px-3">
               <DataTab />

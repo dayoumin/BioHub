@@ -80,7 +80,7 @@ function GraphStudioPageInner(): React.ReactElement {
     document.documentElement.setAttribute('data-graph-studio-ready', 'true');
   }, []);
 
-  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
+  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
 
   /** ECharts 인스턴스 접근용 ref */
