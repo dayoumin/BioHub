@@ -162,11 +162,7 @@ test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
       .locator(S.detailedResultsSection)
       .isVisible({ timeout: 3000 })
       .catch(() => false)
-    const hasDiagnostics = await page
-      .locator(S.diagnosticsSection)
-      .isVisible({ timeout: 3000 })
-      .catch(() => false)
-    expect(hasDetailed || hasDiagnostics).toBeTruthy()
+    expect(hasDetailed).toBeTruthy()
 
     log('TC-4A.1.2', '전문가 시나리오 완료')
   })
@@ -347,12 +343,8 @@ test.describe('@phase4 @critical 에러 복구 — 통계', () => {
     const varSelector = page.locator(S.variableSelectorModern)
     if (await varSelector.isVisible({ timeout: 3000 }).catch(() => false)) {
       // 경고/에러 메시지 요소 확인
-      const hasWarning = await page
-        .locator(S.warningsSection)
-        .isVisible({ timeout: 2000 })
-        .catch(() => false)
       const hasValidation = bodyText.includes('경고') || bodyText.includes('주의')
-      log('TC-4A.3.1', `warning=${hasWarning}, validation=${hasValidation}`)
+      log('TC-4A.3.1', `validation=${hasValidation}`)
     }
 
     // 정상 분석 완료 확인

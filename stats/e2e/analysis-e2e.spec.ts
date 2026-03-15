@@ -333,16 +333,12 @@ test.describe('@phase1 @critical @slow Step 4: 실행 & 결과', () => {
     // results-main-card 존재
     await expect(page.locator(S.resultsMainCard)).toBeVisible({ timeout: 5000 })
 
-    // detailed-results-section 또는 diagnostics-section 중 하나 이상 존재
+    // detailed-results-section 존재 확인
     const hasDetailed = await page
       .locator(S.detailedResultsSection)
       .isVisible({ timeout: 3000 })
       .catch(() => false)
-    const hasDiagnostics = await page
-      .locator(S.diagnosticsSection)
-      .isVisible({ timeout: 3000 })
-      .catch(() => false)
-    expect(hasDetailed || hasDiagnostics).toBeTruthy()
+    expect(hasDetailed).toBeTruthy()
   })
 
   test('TC-1.5.3: 내보내기 드롭다운', async ({ page }) => {

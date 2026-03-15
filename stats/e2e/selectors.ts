@@ -101,11 +101,7 @@ export const S = {
   newAnalysisBtn: '[data-testid="new-analysis-btn"]',
   saveHistoryBtn: '[data-testid="save-history-btn"]',
   detailedResultsSection: '[data-testid="detailed-results-section"]',
-  diagnosticsSection: '[data-testid="diagnostics-section"]',
   aiInterpretationSection: '[data-testid="ai-interpretation-section"]',
-  recommendationsSection: '[data-testid="recommendations-section"]',
-  warningsSection: '[data-testid="warnings-section"]',
-  alternativesSection: '[data-testid="alternatives-section"]',
   methodSpecificResults: '[data-testid="method-specific-results"]',
 
   // ===== Export =====
@@ -143,8 +139,8 @@ export const S = {
   graphStudioFileUploadBtn: '[data-testid="graph-studio-file-upload-btn"]',
   /** Graph Studio 업로드 — sr-only file input (E2E setInputFiles 전용 타겟) */
   graphStudioFileInput: '[data-testid="graph-studio-file-input"]',
-  /** Graph Studio 업로드 — 차트 유형 썸네일 */
-  graphStudioChartType: (type: string) => `[data-testid="graph-studio-chart-type-${type}"]`,
+  /** Graph Studio 설정 — 차트 유형 썸네일 */
+  graphStudioChartType: (type: string) => `[data-testid="chart-setup-type-${type}"]`,
   /** Graph Studio AI 패널 — 채팅 입력 */
   graphStudioAiInput: '[data-testid="ai-panel-input"]',
   /** Graph Studio AI 패널 — 전송 버튼 */
