@@ -21,7 +21,6 @@ import {
   List,
   ArrowRight,
   Loader2,
-  MessageSquare,
   Check,
   AlertTriangle,
   ChevronDown,
@@ -30,13 +29,13 @@ import {
   Hash,
   Tag,
   Info,
-  Shield
 } from 'lucide-react'
+import { AssumptionBadges } from '@/components/analysis/common/AssumptionBadges'
 import { TypingIndicator } from '@/components/common/TypingIndicator'
 import { cn } from '@/lib/utils'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { useTerminology } from '@/hooks/use-terminology'
-import type { AIRecommendation, StatisticalMethod, ValidationResults, ColumnStatistics, FlowChatMessage, StatisticalAssumptions } from '@/types/analysis'
+import type { AIRecommendation, StatisticalMethod, ValidationResults, ColumnStatistics, FlowChatMessage } from '@/types/analysis'
 import type { LlmProvider } from '@/lib/services/llm-recommender'
 
 interface NaturalLanguageInputProps {
@@ -68,8 +67,6 @@ interface NaturalLanguageInputProps {
   provider?: LlmProvider | null
   /** 멀티턴 채팅 메시지 목록 */
   chatMessages?: FlowChatMessage[]
-  /** Pyodide 가정 검정 결과 (탐색 단계에서 계산된 신뢰할 수 있는 값) */
-  assumptionResults?: StatisticalAssumptions | null
 }
 
 export const NaturalLanguageInput = memo(function NaturalLanguageInput({
@@ -87,7 +84,6 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
   validationResults,
   provider,
   chatMessages,
-  assumptionResults
 }: NaturalLanguageInputProps) {
   const t = useTerminology()
   const prefersReducedMotion = useReducedMotion()
@@ -182,170 +178,163 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
     textareaRef.current?.focus()
   }, [])
 
+  const messages = chatMessages ?? []
+  const hasMessages = messages.length > 0
+
   return (
-    <div className="space-y-6">
-      {/* 헤더 */}
-      <div className="text-center space-y-2">
-        <div className="flex items-center justify-center gap-2">
-          <MessageSquare className="w-6 h-6 text-primary" />
-          <h2 className="text-xl font-semibold">
-            {t.purposeInput.labels.purposeHeading}
-          </h2>
-        </div>
-        <p className="text-sm text-muted-foreground">
+    <div className="space-y-5">
+      {/* 헤더 — 타이틀 + 데이터 요약 인라인 */}
+      <div className="text-center space-y-3">
+        <h2 className="text-xl font-semibold tracking-tight">
+          {t.purposeInput.labels.purposeHeading}
+        </h2>
+        <p className="text-sm text-muted-foreground max-w-md mx-auto">
           {t.naturalLanguageInput.description}
         </p>
+        {dataSummary && (
+          <div
+            className="inline-flex items-center gap-3 px-3 py-1.5 rounded-full bg-muted/50 text-xs text-muted-foreground"
+            data-testid="data-summary-card"
+          >
+            <span className="inline-flex items-center gap-1">
+              <Database className="w-3 h-3" />
+              {t.naturalLanguageInput.dataSummary.dimension(dataSummary.totalRows, dataSummary.totalCols)}
+            </span>
+            <span className="w-px h-3 bg-border" />
+            <span className="inline-flex items-center gap-1">
+              <Hash className="w-3 h-3 text-blue-500" />
+              {t.naturalLanguageInput.dataSummary.numeric(dataSummary.numericCount)}
+            </span>
+            <span className="w-px h-3 bg-border" />
+            <span className="inline-flex items-center gap-1">
+              <Tag className="w-3 h-3 text-green-500" />
+              {t.naturalLanguageInput.dataSummary.categorical(dataSummary.categoricalCount)}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* 데이터 요약 카드 */}
-      {dataSummary && (
-        <Card className="bg-muted/20 border-muted" data-testid="data-summary-card">
-          <CardContent className="p-3 space-y-2">
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                <Database className="w-4 h-4" />
-                <span>{t.naturalLanguageInput.dataSummary.dimension(dataSummary.totalRows, dataSummary.totalCols)}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Hash className="w-4 h-4 text-blue-500" />
-                <span>{t.naturalLanguageInput.dataSummary.numeric(dataSummary.numericCount)}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Tag className="w-4 h-4 text-green-500" />
-                <span>{t.naturalLanguageInput.dataSummary.categorical(dataSummary.categoricalCount)}</span>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Shield className="w-3 h-3" />
-              {t.naturalLanguageInput.dataSummary.privacyNotice}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 입력 영역 */}
-      <Card className="border-2 border-dashed border-primary/20 hover:border-primary/40 transition-colors">
-        <CardContent className="p-4 space-y-3">
-          <Textarea
-            ref={textareaRef}
-            value={inputValue}
-            onChange={(e) => onInputChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={t.naturalLanguageInput.input.placeholder}
-            className="min-h-[80px] resize-none border-0 focus-visible:ring-0 text-base"
-            disabled={disabled || isLoading}
-            data-testid="ai-chat-input"
-          />
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono">Enter</kbd>
-              <span>{t.naturalLanguageInput.input.sendHint}</span>
-              <span className="mx-1">|</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-muted font-mono">Shift+Enter</kbd>
-              <span>{t.naturalLanguageInput.input.newlineHint}</span>
-            </div>
-            <Button
-              onClick={onSubmit}
-              disabled={disabled || isLoading || !inputValue.trim()}
-              className="gap-2"
-              data-testid="ai-chat-submit"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {t.naturalLanguageInput.buttons.analyzing}
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4" />
-                  {t.naturalLanguageInput.buttons.getRecommendation}
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 예시 프롬프트 — 첫 대화 전에만 표시 */}
-      {(chatMessages ?? []).length === 0 && !isLoading && (
-        <motion.div
-          initial={prefersReducedMotion ? {} : { opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-2"
+      {/* 입력 바 */}
+      <div className="relative max-w-2xl mx-auto">
+        <Textarea
+          ref={textareaRef}
+          value={inputValue}
+          onChange={(e) => onInputChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={t.naturalLanguageInput.input.placeholder}
+          className={cn(
+            'min-h-[52px] max-h-[120px] resize-none pl-4 pr-14 py-3.5',
+            'rounded-2xl bg-muted/40 text-sm',
+            'border border-border/60',
+            'shadow-sm',
+            'focus:border-primary/40 focus:ring-2 focus:ring-primary/10',
+            'transition-all duration-200'
+          )}
+          disabled={disabled || isLoading}
+          rows={1}
+          data-testid="ai-chat-input"
+        />
+        <Button
+          size="icon"
+          onClick={onSubmit}
+          disabled={disabled || isLoading || !inputValue.trim()}
+          className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-xl shadow-sm"
+          data-testid="ai-chat-submit"
         >
-          <p className="text-sm text-muted-foreground">{t.naturalLanguageInput.examplesLabel}</p>
-          <div className="flex flex-wrap gap-2" data-testid="example-prompts">
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
+
+      {/* 예시 프롬프트 — 2-column 카드 */}
+      {!hasMessages && !isLoading && (
+        <motion.div
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+          className="max-w-2xl mx-auto space-y-2.5"
+        >
+          <p className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider">
+            {t.naturalLanguageInput.examplesLabel}
+          </p>
+          <div className="grid grid-cols-2 gap-2" data-testid="example-prompts">
             {examplePrompts.map((example, index) => (
-              <Button
+              <motion.button
                 key={index}
-                variant="outline"
-                size="sm"
-                className="text-xs"
+                type="button"
+                initial={prefersReducedMotion ? {} : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: 0.05 * index }}
+                className={cn(
+                  'group text-left px-4 py-3 rounded-xl text-sm',
+                  'border border-border/50',
+                  'hover:border-primary/30 hover:bg-primary/[0.03]',
+                  'active:scale-[0.98]',
+                  'transition-all duration-150',
+                  'disabled:opacity-40 disabled:pointer-events-none'
+                )}
                 onClick={() => handleExampleClick(example)}
                 disabled={disabled}
               >
-                {example}
-              </Button>
+                <span className="text-muted-foreground group-hover:text-foreground transition-colors">
+                  {example}
+                </span>
+              </motion.button>
             ))}
           </div>
         </motion.div>
       )}
 
-      {/* 에러 표시 */}
+      {/* 에러 */}
       <AnimatePresence>
         {error && (
           <motion.div
-            initial={prefersReducedMotion ? {} : { opacity: 0, y: 10 }}
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
+            className="max-w-2xl mx-auto"
           >
-            <Card className="border-destructive/50 bg-destructive/5" role="alert" aria-live="polite">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
-                    <AlertTriangle className="h-4 w-4 text-destructive" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-destructive">{t.naturalLanguageInput.error.title}</p>
-                    <p className="text-sm text-muted-foreground mt-1">{error}</p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-3"
-                      onClick={onGoToGuided}
-                    >
-                      {t.naturalLanguageInput.buttons.goToGuided}
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex items-start gap-3 p-4 rounded-xl border border-destructive/30 bg-destructive/5" role="alert" aria-live="polite">
+              <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+              <div className="flex-1 space-y-1">
+                <p className="text-sm font-medium text-destructive">{t.naturalLanguageInput.error.title}</p>
+                <p className="text-sm text-muted-foreground">{error}</p>
+                <Button variant="outline" size="sm" className="mt-2" onClick={onGoToGuided}>
+                  {t.naturalLanguageInput.buttons.goToGuided}
+                </Button>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* 채팅 스레드 — 메시지가 있거나 로딩 중일 때 표시 */}
-      {((chatMessages ?? []).length > 0 || isLoading) && (
+      {/* 채팅 스레드 */}
+      {(hasMessages || isLoading) && (
         <div
           ref={threadRef}
-          className="space-y-2 max-h-[280px] overflow-y-auto"
+          className="max-w-2xl mx-auto space-y-2.5 max-h-[320px] overflow-y-auto scroll-smooth"
           data-testid="chat-thread"
         >
-          {(chatMessages ?? []).map(msg => (
+          {messages.map(msg => (
             <div
               key={msg.id}
               className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}
             >
               <div className={cn(
-                'max-w-[85%] rounded-xl px-3 py-2 text-sm',
+                'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
                 msg.role === 'user'
                   ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-foreground'
+                  : 'bg-muted/70 text-foreground'
               )}>
                 {msg.role === 'assistant' && (
                   <span className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1">
                     <Sparkles className="w-3 h-3" />
-                    {msg.provider === 'keyword' ? '키워드 매칭' : 'AI 추천'}
+                    {msg.provider === 'keyword'
+                      ? t.naturalLanguageInput.providers.keyword
+                      : t.naturalLanguageInput.recommendation.badgeLabel}
                   </span>
                 )}
                 <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -357,12 +346,12 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
               <motion.div
                 key="typing"
                 className="flex justify-start"
-                initial={{ opacity: 0, y: 6 }}
+                initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 6 }}
-                transition={{ duration: 0.2 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.15 }}
               >
-                <div className="bg-muted rounded-xl px-3 py-2.5">
+                <div className="bg-muted/70 rounded-2xl px-4 py-2.5">
                   <TypingIndicator label={loadingMessages[loadingStage]} />
                 </div>
               </motion.div>
@@ -483,51 +472,8 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                   </div>
                 )}
 
-                {/* 가정 검정 결과: Pyodide 직접 계산값 우선, 없으면 LLM 반환값 */}
-                {(assumptionResults?.normality?.shapiroWilk || assumptionResults?.homogeneity?.levene) ? (
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    {assumptionResults.normality?.shapiroWilk && (
-                      <Badge
-                        variant={assumptionResults.normality.shapiroWilk.isNormal ? "default" : "destructive"}
-                        className="text-xs"
-                      >
-                        {assumptionResults.normality.shapiroWilk.isNormal
-                          ? <Check className="w-3 h-3 mr-1" />
-                          : <AlertTriangle className="w-3 h-3 mr-1" />}
-                        {assumptionResults.normality.shapiroWilk.isNormal ? t.naturalLanguageInput.recommendation.assumptions.normalityMet : t.naturalLanguageInput.recommendation.assumptions.normalityNotMet}
-                        {assumptionResults.normality.shapiroWilk.pValue !== undefined &&
-                          ` (p=${assumptionResults.normality.shapiroWilk.pValue.toFixed(3)})`}
-                      </Badge>
-                    )}
-                    {assumptionResults.homogeneity?.levene && (
-                      <Badge
-                        variant={assumptionResults.homogeneity.levene.equalVariance ? "default" : "destructive"}
-                        className="text-xs"
-                      >
-                        {assumptionResults.homogeneity.levene.equalVariance
-                          ? <Check className="w-3 h-3 mr-1" />
-                          : <AlertTriangle className="w-3 h-3 mr-1" />}
-                        {assumptionResults.homogeneity.levene.equalVariance ? t.naturalLanguageInput.recommendation.assumptions.homogeneityMet : t.naturalLanguageInput.recommendation.assumptions.homogeneityNotMet}
-                        {assumptionResults.homogeneity.levene.pValue !== undefined &&
-                          ` (p=${assumptionResults.homogeneity.levene.pValue.toFixed(3)})`}
-                      </Badge>
-                    )}
-                  </div>
-                ) : recommendation.assumptions && recommendation.assumptions.length > 0 ? (
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    {recommendation.assumptions.map((assumption, index) => (
-                      <Badge
-                        key={index}
-                        variant={assumption.passed ? "default" : "destructive"}
-                        className="text-xs"
-                      >
-                        {assumption.passed ? <Check className="w-3 h-3 mr-1" /> : <AlertTriangle className="w-3 h-3 mr-1" />}
-                        {assumption.name}
-                        {assumption.pValue !== undefined && ` (p=${assumption.pValue.toFixed(3)})`}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : null}
+                {/* 가정 검정 배지 — recommendation.assumptions 단일 소스 */}
+                <AssumptionBadges assumptions={recommendation.assumptions} className="flex flex-wrap gap-2 pt-2" />
 
                 {/* 경고 */}
                 {recommendation.warnings && recommendation.warnings.length > 0 && (
@@ -660,29 +606,27 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
         )}
       </AnimatePresence>
 
-      {/* 하단 링크 */}
-      <div className="flex items-center justify-center gap-4 pt-4 border-t">
-        <Button
-          variant="ghost"
-          size="sm"
+      {/* 하단 네비게이션 */}
+      <div className="flex items-center justify-center gap-1 pt-3">
+        <button
+          type="button"
           onClick={onGoToGuided}
           disabled={disabled || isLoading}
-          className="gap-1.5 text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/50 transition-colors disabled:opacity-40"
         >
-          <List className="w-4 h-4" />
+          <List className="w-3.5 h-3.5" />
           {t.naturalLanguageInput.buttons.guidedQuestions}
-        </Button>
-        <span className="text-muted-foreground">|</span>
-        <Button
-          variant="ghost"
-          size="sm"
+        </button>
+        <span className="text-border mx-1">|</span>
+        <button
+          type="button"
           onClick={onBrowseAll}
           disabled={disabled || isLoading}
-          className="gap-1.5 text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/50 transition-colors disabled:opacity-40"
         >
-          <List className="w-4 h-4" />
+          <List className="w-3.5 h-3.5" />
           {t.naturalLanguageInput.buttons.browseAll}
-        </Button>
+        </button>
       </div>
     </div>
   )

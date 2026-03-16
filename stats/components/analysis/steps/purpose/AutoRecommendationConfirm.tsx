@@ -19,23 +19,22 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
   ArrowRight,
-  Check,
   AlertTriangle,
   MessageSquare,
   List,
   Sparkles,
   Info,
 } from 'lucide-react'
+import { AssumptionBadges } from '@/components/analysis/common/AssumptionBadges'
 import { cn } from '@/lib/utils'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { useTerminology } from '@/hooks/use-terminology'
-import type { AIRecommendation, StatisticalMethod, StatisticalAssumptions } from '@/types/analysis'
+import type { AIRecommendation, StatisticalMethod } from '@/types/analysis'
 import type { LlmProvider } from '@/lib/services/llm-recommender'
 
 interface AutoRecommendationConfirmProps {
   recommendation: AIRecommendation
   provider?: LlmProvider | null
-  assumptionResults?: StatisticalAssumptions | null
   disabled?: boolean
   onConfirm: (method: StatisticalMethod) => void
   onSelectAlternative: (method: StatisticalMethod) => void
@@ -46,7 +45,6 @@ interface AutoRecommendationConfirmProps {
 export const AutoRecommendationConfirm = memo(function AutoRecommendationConfirm({
   recommendation,
   provider,
-  assumptionResults,
   disabled = false,
   onConfirm,
   onSelectAlternative,
@@ -168,55 +166,8 @@ export const AutoRecommendationConfirm = memo(function AutoRecommendationConfirm
             </div>
           )}
 
-          {/* 가정 검정 배지 */}
-          {(assumptionResults?.normality?.shapiroWilk || assumptionResults?.homogeneity?.levene) ? (
-            <div className="flex flex-wrap gap-2">
-              {assumptionResults.normality?.shapiroWilk && (
-                <Badge
-                  variant={assumptionResults.normality.shapiroWilk.isNormal ? "default" : "destructive"}
-                  className="text-xs"
-                >
-                  {assumptionResults.normality.shapiroWilk.isNormal
-                    ? <Check className="w-3 h-3 mr-1" />
-                    : <AlertTriangle className="w-3 h-3 mr-1" />}
-                  {assumptionResults.normality.shapiroWilk.isNormal
-                    ? t.naturalLanguageInput.recommendation.assumptions.normalityMet
-                    : t.naturalLanguageInput.recommendation.assumptions.normalityNotMet}
-                  {assumptionResults.normality.shapiroWilk.pValue !== undefined &&
-                    ` (p=${assumptionResults.normality.shapiroWilk.pValue.toFixed(3)})`}
-                </Badge>
-              )}
-              {assumptionResults.homogeneity?.levene && (
-                <Badge
-                  variant={assumptionResults.homogeneity.levene.equalVariance ? "default" : "destructive"}
-                  className="text-xs"
-                >
-                  {assumptionResults.homogeneity.levene.equalVariance
-                    ? <Check className="w-3 h-3 mr-1" />
-                    : <AlertTriangle className="w-3 h-3 mr-1" />}
-                  {assumptionResults.homogeneity.levene.equalVariance
-                    ? t.naturalLanguageInput.recommendation.assumptions.homogeneityMet
-                    : t.naturalLanguageInput.recommendation.assumptions.homogeneityNotMet}
-                  {assumptionResults.homogeneity.levene.pValue !== undefined &&
-                    ` (p=${assumptionResults.homogeneity.levene.pValue.toFixed(3)})`}
-                </Badge>
-              )}
-            </div>
-          ) : recommendation.assumptions.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {recommendation.assumptions.map((assumption, i) => (
-                <Badge
-                  key={i}
-                  variant={assumption.passed ? "default" : "destructive"}
-                  className="text-xs"
-                >
-                  {assumption.passed ? <Check className="w-3 h-3 mr-1" /> : <AlertTriangle className="w-3 h-3 mr-1" />}
-                  {assumption.name}
-                  {assumption.pValue !== undefined && ` (p=${assumption.pValue.toFixed(3)})`}
-                </Badge>
-              ))}
-            </div>
-          ) : null}
+          {/* 가정 검정 배지 — recommendation.assumptions 단일 소스 */}
+          <AssumptionBadges assumptions={recommendation.assumptions} />
 
           {/* 경고 */}
           {recommendation.warnings && recommendation.warnings.length > 0 && (

@@ -164,8 +164,10 @@ export function PurposeInputStep({
   const prefersReducedMotion = useReducedMotion()
 
   // Zustand store
-  const assumptionResults = useAnalysisStore(state => state.assumptionResults)
+  const setAssumptionResults = useAnalysisStore(state => state.setAssumptionResults)
   const setSelectedMethod = useAnalysisStore(state => state.setSelectedMethod)
+  const cachedAiRecommendation = useAnalysisStore(state => state.cachedAiRecommendation)
+  const setCachedAiRecommendation = useAnalysisStore(state => state.setCachedAiRecommendation)
   const setDetectedVariables = useAnalysisStore(state => state.setDetectedVariables)
   const setSuggestedSettings = useAnalysisStore(state => state.setSuggestedSettings)
   const userQuery = useModeStore(state => state.userQuery)
@@ -424,12 +426,15 @@ export function PurposeInputStep({
     flowDispatch(flowActions.startAiChat())
     flowDispatch(flowActions.setAiInput(''))
 
+    // 이전 질문의 가정 검정 결과 초기화 (새 추천에 오염 방지)
+    setAssumptionResults(null)
+
     try {
       const { recommendation, responseText, provider } =
         await llmRecommender.recommendFromNaturalLanguage(
           userInput,
           validationResults ?? null,
-          assumptionResults ?? null,
+          null, // 이전 assumptionResults 사용 안 함 — 새 추천 후 재계산
           data ?? null,
           prevChatMessages
         )
@@ -450,20 +455,76 @@ export function PurposeInputStep({
       }
 
       if (recommendation) {
-        flowDispatch(flowActions.setAiRecommendation(recommendation))
+        let finalRecommendation = recommendation
+
+        // 3) 가정 검정 실행 (variableAssignments 기반, 불변 패턴)
+        if (recommendation.variableAssignments && data && data.length > 0 && validationResults) {
+          try {
+            const { runAssumptionTests } = await import('@/lib/services/assumption-testing-service')
+            const testResults = await runAssumptionTests(
+              recommendation.variableAssignments,
+              data,
+              validationResults
+            )
+            if (testResults) {
+              setAssumptionResults(testResults)
+
+              // 가정 검정 결과를 assumptions에 병합 (불변)
+              const mergedAssumptions = [...(recommendation.assumptions || [])]
+              if (testResults.normality?.shapiroWilk) {
+                const idx = mergedAssumptions.findIndex(a => a.name.includes('정규'))
+                const entry = {
+                  name: '정규성 (Shapiro-Wilk)',
+                  passed: testResults.normality.shapiroWilk.isNormal,
+                  pValue: testResults.normality.shapiroWilk.pValue,
+                }
+                if (idx >= 0) mergedAssumptions[idx] = entry
+                else mergedAssumptions.push(entry)
+              }
+              if (testResults.homogeneity?.levene) {
+                const idx = mergedAssumptions.findIndex(a => a.name.includes('등분산'))
+                const entry = {
+                  name: '등분산성 (Levene)',
+                  passed: testResults.homogeneity.levene.equalVariance,
+                  pValue: testResults.homogeneity.levene.pValue,
+                }
+                if (idx >= 0) mergedAssumptions[idx] = entry
+                else mergedAssumptions.push(entry)
+              }
+
+              // 가정 미충족 시 경고 추가 (불변)
+              const normFailed = testResults.normality?.shapiroWilk && !testResults.normality.shapiroWilk.isNormal
+              const homFailed = testResults.homogeneity?.levene && !testResults.homogeneity.levene.equalVariance
+              const mergedWarnings = [...(recommendation.warnings || [])]
+              if (normFailed) mergedWarnings.push('정규성 가정이 충족되지 않습니다. 비모수 검정을 고려해주세요.')
+              if (homFailed) mergedWarnings.push('등분산성 가정이 충족되지 않습니다. Welch 보정 또는 비모수 검정을 고려해주세요.')
+
+              finalRecommendation = {
+                ...recommendation,
+                assumptions: mergedAssumptions,
+                warnings: mergedWarnings.length > 0 ? mergedWarnings : recommendation.warnings,
+              }
+            }
+          } catch (err) {
+            logger.warn('Assumption tests failed, proceeding without', { error: err })
+          }
+        }
+
+        flowDispatch(flowActions.setAiRecommendation(finalRecommendation))
+        setCachedAiRecommendation(finalRecommendation)
         // AI 추천 맥락을 store에 저장 (saveToHistory에서 HistoryRecord에 포함)
         setLastAiRecommendation({
           userQuery: userInput,
-          confidence: recommendation.confidence,
-          reasoning: recommendation.reasoning,
-          warnings: recommendation.warnings,
-          alternatives: recommendation.alternatives?.map(a => ({
+          confidence: finalRecommendation.confidence,
+          reasoning: finalRecommendation.reasoning,
+          warnings: finalRecommendation.warnings,
+          alternatives: finalRecommendation.alternatives?.map(a => ({
             id: a.id,
             name: a.name,
             description: a.description || ''
           })),
           provider,
-          ambiguityNote: recommendation.ambiguityNote,
+          ambiguityNote: finalRecommendation.ambiguityNote,
         })
       } else if (!responseText?.trim()) {
         // responseText가 있으면 스레드에 이미 표시됨 — 에러 카드 억제
@@ -480,7 +541,7 @@ export function PurposeInputStep({
       }))
       flowDispatch(flowActions.aiChatError(t.purposeInput.messages.genericError))
     }
-  }, [flowState.aiChatInput, flowState.chatMessages, flowState.isAiLoading, validationResults, assumptionResults, data, t, setLastAiRecommendation])
+  }, [flowState.aiChatInput, flowState.chatMessages, flowState.isAiLoading, validationResults, data, t, setLastAiRecommendation, setAssumptionResults, setCachedAiRecommendation])
 
   const handleAiSelectMethod = useCallback((method: StatisticalMethod) => {
     if (isNavigating) return
@@ -526,27 +587,44 @@ export function PurposeInputStep({
     }
   }, [storePurposeInputMode, flowDispatch])
 
-  // 탐색 완료 → AI 추천 자동 트리거 + Hub userQuery pre-fill
-  // Note: 가정 검정이 Step 4로 이전(c3c4cb9b)되어 Step 2 진입 시 assumptionResults는 항상 null.
-  //       데이터 존재 여부(data + validationResults)로 대체.
+  // Step 2 진입 시 상태별 분기:
+  // - Path E (뒤로가기): 캐시된 추천 즉시 표시
+  // - Path D (Hub 채팅 + 데이터): userQuery로 AI 추천 호출
+  // - Path A (데이터만): 자동 추천 안 함 → 사용자가 직접 질문/선택
+  // - Path C (데이터 없이 채팅): 입력창 pre-fill
   const hasAutoTriggeredRef = useRef(false)
   const [isAutoTriggered, setIsAutoTriggered] = useState(false)
   useEffect(() => {
     if (hasAutoTriggeredRef.current) return
 
-    if (data && data.length > 0 && validationResults !== null && !flowState.aiRecommendation && !flowState.isAiLoading) {
-      // Case A/B: 탐색 완료 → 완전 자동 LLM 호출 (사용자 입력 불필요)
+    // Path E: 캐시된 추천이 있으면 즉시 사용
+    if (cachedAiRecommendation && data && data.length > 0 && !flowState.aiRecommendation) {
       hasAutoTriggeredRef.current = true
       setIsAutoTriggered(true)
-      const query = userQuery ?? '이 데이터에 적합한 통계 분석 방법을 추천해주세요.'
+      flowDispatch(flowActions.setAiRecommendation(cachedAiRecommendation))
       if (userQuery) setUserQuery(null)
+      return
+    }
+
+    // Path D: userQuery가 있고 데이터도 있으면 → AI 추천 호출
+    if (userQuery && data && data.length > 0 && validationResults !== null && !flowState.aiRecommendation && !flowState.isAiLoading) {
+      hasAutoTriggeredRef.current = true
+      setIsAutoTriggered(true)
+      const query = userQuery
+      setUserQuery(null)
       handleAiSubmit(query)
-    } else if (userQuery && !flowState.aiChatInput && !flowState.aiRecommendation) {
-      // Case C: 탐색 없이 userQuery만 있음 → 입력창 pre-fill만
+      return
+    }
+
+    // Path C: 데이터 없이 userQuery만 → 입력창 pre-fill
+    if (userQuery && !flowState.aiChatInput && !flowState.aiRecommendation) {
       flowDispatch(flowActions.setAiInput(userQuery))
       setUserQuery(null)
     }
-  }, [data, validationResults, userQuery, flowState.aiRecommendation, flowState.isAiLoading, flowState.aiChatInput, flowDispatch, setUserQuery, handleAiSubmit])
+
+    // Path A: 데이터만 있고 userQuery 없음 → 자동 추천 안 함
+    // 사용자가 직접 채팅하거나 목록에서 선택
+  }, [data, validationResults, userQuery, flowState.aiRecommendation, flowState.isAiLoading, flowState.aiChatInput, flowDispatch, setUserQuery, handleAiSubmit, cachedAiRecommendation])
 
   // 사용자가 "AI에게 다시 질문" 클릭 → 채팅 모드로 전환
   const handleOpenChat = useCallback(() => {
@@ -618,13 +696,25 @@ export function PurposeInputStep({
             initial={prefersReducedMotion ? {} : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center py-16 space-y-4"
+            className="flex flex-col items-center justify-center py-16 space-y-6"
           >
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
             <div className="text-center space-y-1">
               <p className="text-sm font-medium">{t.naturalLanguageInput.autoLoading.title}</p>
               <p className="text-xs text-muted-foreground">{t.naturalLanguageInput.autoLoading.subtitle}</p>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setIsAutoTriggered(false)
+                handleBrowseAll()
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground gap-1.5"
+            >
+              <List className="w-3.5 h-3.5" />
+              {t.purposeInput.inputModes.directSelect}
+            </Button>
           </motion.div>
         )}
 
@@ -634,7 +724,6 @@ export function PurposeInputStep({
             key="auto-confirm"
             recommendation={flowState.aiRecommendation}
             provider={flowState.aiProvider}
-            assumptionResults={assumptionResults}
             disabled={isNavigating}
             onConfirm={handleAiSelectMethod}
             onSelectAlternative={handleAiSelectMethod}
@@ -661,7 +750,6 @@ export function PurposeInputStep({
             validationResults={validationResults}
             provider={flowState.aiProvider}
             chatMessages={flowState.chatMessages}
-            assumptionResults={assumptionResults}
           />
         )}
 
@@ -683,7 +771,6 @@ export function PurposeInputStep({
             validationResults={validationResults}
             provider={flowState.aiProvider}
             chatMessages={flowState.chatMessages}
-            assumptionResults={assumptionResults}
           />
         )}
 
@@ -721,7 +808,6 @@ export function PurposeInputStep({
             onBrowseAll={handleBrowseAll}
             onBack={handleGuidedBack}
             validationResults={validationResults}
-            assumptionResults={assumptionResults}
           />
         )}
 
