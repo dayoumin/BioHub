@@ -902,6 +902,16 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                   <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.skewness}</th>
                   <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.kurtosis}</th>
                   <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.outliers}</th>
+                  <th scope="col" className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="underline decoration-dotted cursor-help">{t.dataExploration.normality.title.split(' (')[0]}</span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t.dataExploration.normality.title}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/20">
@@ -936,6 +946,29 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                           >
                             {t.dataExploration.outlier.count(col.outlierCount)}
                           </Badge>
+                        ) : (
+                          <span className="text-muted-foreground/40">-</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
+                        {col.normality ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant={col.normality.isNormal ? 'default' : 'destructive'}
+                                  className="text-[10px] font-mono cursor-help"
+                                >
+                                  {col.normality.isNormal ? '✓' : '✗'} p={col.normality.pValue.toFixed(3)}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {col.normality.isNormal
+                                  ? t.dataExploration.normality.normalInterpretation
+                                  : t.dataExploration.normality.nonNormalInterpretation}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         ) : (
                           <span className="text-muted-foreground/40">-</span>
                         )}
