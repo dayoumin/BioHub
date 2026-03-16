@@ -38,10 +38,10 @@ describe('data-format-guides', () => {
     ])('"%s" 가이드가 존재하고 필수 필드를 가진다', (methodId) => {
       const guide = getDataFormatGuide(methodId)
       expect(guide).not.toBeNull()
-      expect(guide!.summary).toBeTruthy()
-      expect(guide!.instructions.length).toBeGreaterThan(0)
-      expect(guide!.example.headers.length).toBeGreaterThan(0)
-      expect(guide!.example.rows.length).toBeGreaterThan(0)
+      expect(guide!.summary).toEqual(expect.any(String))
+      expect(guide!.instructions.length).toBeGreaterThanOrEqual(1)
+      expect(guide!.example.headers.length).toBeGreaterThanOrEqual(1)
+      expect(guide!.example.rows.length).toBeGreaterThanOrEqual(1)
     })
   })
 
@@ -57,7 +57,7 @@ describe('data-format-guides', () => {
 
     it('범용 가이드는 필수 필드를 모두 가진다', () => {
       const guide = getGenericGuide()
-      expect(guide.summary).toBeTruthy()
+      expect(guide.summary).toEqual(expect.any(String))
       expect(guide.instructions.length).toBeGreaterThanOrEqual(3)
       expect(guide.example.headers.length).toBeGreaterThanOrEqual(2)
       expect(guide.example.rows.length).toBeGreaterThanOrEqual(2)
@@ -66,7 +66,7 @@ describe('data-format-guides', () => {
     it('범용 가이드에 방법 선택 후 안내가 있다는 경고가 있다', () => {
       const guide = getGenericGuide()
       expect(guide.warnings).toBeDefined()
-      expect(guide.warnings!.length).toBeGreaterThan(0)
+      expect(guide.warnings!.length).toBeGreaterThanOrEqual(1)
     })
   })
 

@@ -403,10 +403,10 @@ export class ChatStorageIndexedDB {
         'settings',
         'settings'
       )
-      return setting?.value ?? { floatingButtonEnabled: true, theme: 'system' }
+      return setting?.value ?? { theme: 'system' }
     } catch (error) {
       console.error('[ChatStorageIndexedDB] Failed to load settings:', error)
-      return { floatingButtonEnabled: true, theme: 'system' }
+      return { theme: 'system' }
     }
   }
 

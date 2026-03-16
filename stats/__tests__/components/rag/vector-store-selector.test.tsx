@@ -212,7 +212,7 @@ describe('VectorStoreSelector', () => {
 
       // Info 아이콘 확인 (lucide-react Info 컴포넌트)
       const infoIcons = document.querySelectorAll('.lucide-info')
-      expect(infoIcons.length).toBeGreaterThan(0)
+      expect(infoIcons.length).toBeGreaterThanOrEqual(1)
     })
 
     it('임베딩 필드에 Info 아이콘이 표시되어야 함', () => {
@@ -228,7 +228,7 @@ describe('VectorStoreSelector', () => {
       expect(screen.getByText('임베딩')).toBeInTheDocument()
 
       const infoIcons = document.querySelectorAll('.lucide-info')
-      expect(infoIcons.length).toBeGreaterThan(0)
+      expect(infoIcons.length).toBeGreaterThanOrEqual(1)
     })
   })
 

@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
   Home,
-  BarChart3,
   AreaChart,
   Dna,
   BookOpen,
@@ -19,6 +18,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useUI } from '@/contexts/ui-context'
 import { toast } from 'sonner'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { useModeStore } from '@/lib/stores/mode-store'
 
 /** 사이드바 접힐 때 텍스트가 즉시 사라지도록 (width 애니메이션 도중 잔상 방지) */
 const textClass = (expanded: boolean) =>
@@ -37,7 +37,6 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: '/', label: '홈', icon: Home },
-  { href: '/analysis', label: '통계 분석', icon: BarChart3, prefix: '/analysis' },
   { href: '/graph-studio', label: 'Graph Studio', icon: AreaChart, prefix: '/graph-studio' },
   { href: '/bio-tools', label: 'Bio-Tools', icon: Dna, disabled: true, badge: '예정' },
   { href: '/papers', label: '논문 지원', icon: BookOpen, disabled: true, badge: '예정' },
@@ -60,25 +59,29 @@ export function AppSidebar() {
   const selectedMethod = useAnalysisStore(s => s.selectedMethod)
   const results = useAnalysisStore(s => s.results)
 
-  /** 통계 분석 Step 2~3 진행 중에 다른 섹션으로 이동 시 토스트
-   *  - Step 1 이전: 경고 없이 이동 (손실 없음)
-   *  - Step 2~3 진행 중: 토스트 알림 (Zustand sessionStorage persist가 자동 저장)
-   *  - 결과 화면(Step 4, results 존재): 경고 없이 이동 (이미 완료) */
+  const setShowHub = useModeStore(s => s.setShowHub)
+
+  /** 네비게이션 클릭 핸들러:
+   *  - 홈 클릭 시 showHub=true로 리셋 (ChatCentricHub 표시)
+   *  - 분석 진행 중 다른 페이지 이동 시 토스트 */
   const handleNavClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>, item: NavItem) => {
-      const isInAnalysis = pathname?.startsWith('/analysis')
-      const isLeavingAnalysis =
-        isInAnalysis &&
-        !item.href.startsWith('/analysis') &&
-        item.href !== '/'
-      if (isLeavingAnalysis && currentStep >= 2 && selectedMethod && !results) {
+      // 홈 클릭 → 허브 화면으로 복귀
+      if (item.href === '/') {
+        setShowHub(true)
+      }
+
+      // 분석 진행 중 이탈 경고
+      const isHome = pathname === '/'
+      const isLeavingHome = isHome && item.href !== '/'
+      if (isLeavingHome && currentStep >= 2 && selectedMethod && !results) {
         toast.info('분석이 자동 저장되었습니다', {
-          description: '사이드바에서 통계 분석을 클릭하면 이어서 진행할 수 있습니다.',
+          description: '홈으로 돌아가면 이어서 진행할 수 있습니다.',
           duration: 3000,
         })
       }
     },
-    [pathname, currentStep, selectedMethod, results],
+    [pathname, currentStep, selectedMethod, results, setShowHub],
   )
 
   // Static export: no SSR cookies, use localStorage after hydration

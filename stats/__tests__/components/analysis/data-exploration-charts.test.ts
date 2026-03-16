@@ -246,7 +246,7 @@ describe('DataExplorationStep 차트 시각화', () => {
       const result = calculateOutliers(data)
 
       expect(result.outliers).toContain(100)
-      expect(result.outliers.length).toBeGreaterThan(0)
+      expect(result.outliers.length).toBeGreaterThanOrEqual(1)
     })
 
     it('이상치 없는 경우', () => {

@@ -1109,9 +1109,14 @@ export const generic: TerminologyDictionary = {
       select: 'Select',
       guidedQuestions: 'Guided questions',
       browseAll: 'Browse all methods',
+      askAiAgain: 'Ask AI again',
     },
     providers: {
       keyword: 'Keyword',
+    },
+    autoLoading: {
+      title: 'Analyzing your data...',
+      subtitle: 'Finding the best statistical method',
     },
   },
 

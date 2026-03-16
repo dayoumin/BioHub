@@ -65,7 +65,7 @@ describe('useMethodCompatibility', () => {
 
     expect(result.current).not.toBeNull()
     expect(result.current).toBeInstanceOf(Map)
-    expect(result.current!.size).toBeGreaterThan(0)
+    expect(result.current!.size).toBeGreaterThanOrEqual(1)
   })
 
   it('Map에 주요 메서드의 호환성 정보가 포함된다', () => {

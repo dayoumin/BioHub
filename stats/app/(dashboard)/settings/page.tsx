@@ -12,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
 import { Input } from '@/components/ui/input'
-import { ChatStorage } from '@/lib/services/chat-storage'
 import { clearRecentStatistics, getRecentStatistics } from '@/lib/utils/recent-statistics'
 import { StorageService } from '@/lib/services/storage-service'
 import { useSettingsStore } from '@/lib/stores/settings-store'
@@ -23,7 +22,6 @@ export default function SettingsPage() {
   const [recentCount, setRecentCount] = useState<number>(0)
   const [chatbotModel, setChatbotModel] = useState<string>('llama3.2')
   const [vectorDb, setVectorDb] = useState<string>('chromadb')
-  const [floatingButtonEnabled, setFloatingButtonEnabled] = useState<boolean>(true)
 
   // Ollama 추천 설정 (Zustand store 사용)
   const { useOllamaForRecommendation, setUseOllamaForRecommendation } = useSettingsStore()
@@ -63,10 +61,6 @@ export default function SettingsPage() {
     if (savedDb) {
       setVectorDb(savedDb)
     }
-
-    // 플로팅 버튼 설정 로드
-    const chatSettings = ChatStorage.loadSettings()
-    setFloatingButtonEnabled(chatSettings.floatingButtonEnabled)
 
     // RAG 설정 로드
     const savedOllamaEndpoint = StorageService.getItem('statPlatform_ollamaEndpoint')
@@ -120,17 +114,6 @@ export default function SettingsPage() {
   const handleDbChange = (db: string) => {
     setVectorDb(db)
     StorageService.setItem('statPlatform_vectorDb', db)
-  }
-
-  // 플로팅 버튼 토글 핸들러
-  const handleFloatingButtonToggle = (enabled: boolean) => {
-    setFloatingButtonEnabled(enabled)
-    const settings = ChatStorage.loadSettings()
-    settings.floatingButtonEnabled = enabled
-    ChatStorage.saveSettings(settings)
-
-    // 페이지 새로고침 없이 즉시 반영되도록 window 이벤트 발생
-    window.dispatchEvent(new CustomEvent('chatbot-settings-changed'))
   }
 
   // 최근 사용 목록 초기화 핸들러
@@ -243,34 +226,6 @@ export default function SettingsPage() {
                 <p className="text-sm text-muted-foreground">
                   현재 설정: <strong>{theme === 'light' ? '라이트' : theme === 'dark' ? '다크' : '시스템 자동'}</strong>
                 </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>플로팅 챗봇 버튼</CardTitle>
-              <CardDescription>
-                화면 우측 하단의 플로팅 챗봇 버튼 표시 여부를 설정하세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="space-y-1">
-                  <Label htmlFor="floating-button-page" className="text-base font-medium">
-                    플로팅 버튼 표시
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    {floatingButtonEnabled
-                      ? '플로팅 챗봇 버튼이 화면에 표시됩니다'
-                      : '플로팅 챗봇 버튼이 숨겨집니다'}
-                  </p>
-                </div>
-                <Switch
-                  id="floating-button-page"
-                  checked={floatingButtonEnabled}
-                  onCheckedChange={handleFloatingButtonToggle}
-                />
               </div>
             </CardContent>
           </Card>

@@ -9,11 +9,11 @@ import {
   Target,
   Settings,
   Play,
-  MessageCircle,
   ChevronRight,
   Loader2,
   Home,
   FlaskConical,
+  ArrowLeft,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -59,6 +59,8 @@ export interface AnalysisLayoutProps {
   // 스테퍼 표시 여부 (Hub 페이지에서는 숨김)
   showStepper?: boolean
   showHub?: boolean
+  /** Analysis 모드에서 허브로 돌아가기 */
+  onBackToHub?: () => void
 
   className?: string
   // 플로팅 네비게이션 버튼
@@ -93,6 +95,7 @@ export function AnalysisLayout({
   analyzingMessage,
   showStepper = true,
   showHub = false,
+  onBackToHub,
   canGoNext = false,
   onNext,
   nextLabel,
@@ -124,9 +127,8 @@ export function AnalysisLayout({
     })
     , [steps, STEPS])
 
-  // 전역 UI 컨텍스트 (채팅, 설정, 도움말 모달)
+  // 전역 UI 컨텍스트 (설정, 도움말 모달)
   const {
-    openChatPanel,
     openHelp: openGlobalHelp,
     isSettingsOpen,
     isHelpOpen,
@@ -155,6 +157,17 @@ export function AnalysisLayout({
                 </>
               ) : (
                 <>
+                  {onBackToHub && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onBackToHub}
+                      className="h-7 px-2 text-muted-foreground hover:text-foreground gap-1"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                      <span className="text-xs">{t.analysis.layout.backToHub}</span>
+                    </Button>
+                  )}
                   <FlaskConical className="h-4 w-4" style={{ color: 'var(--section-accent-analysis)' }} />
                   <span className="text-sm font-medium">Analysis</span>
                 </>
@@ -162,15 +175,6 @@ export function AnalysisLayout({
             </div>
             {/* 우: 액션 아이콘 */}
             <div className="flex items-center gap-0.5">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                onClick={openChatPanel}
-                title={t.analysis.layout.aiChatbot}
-              >
-                <MessageCircle className="h-4 w-4" />
-              </Button>
               <Button
                 variant="ghost"
                 size="icon"

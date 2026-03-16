@@ -24,10 +24,10 @@ test.describe('Excel 파일 업로드 E2E 테스트', () => {
   })
 
   test('Smart Flow 페이지가 정상 로드되어야 함', async ({ page }) => {
-    await page.goto('/analysis', { waitUntil: 'networkidle' })
+    await page.goto('/', { waitUntil: 'networkidle' })
 
     // 페이지 타이틀 또는 주요 요소 확인
-    await expect(page).toHaveURL(/analysis/)
+    await expect(page).toHaveURL(/\//)
 
     // 데이터 업로드 영역이 존재하는지 확인
     const uploadArea = page.locator('[data-testid="file-upload"]').or(
@@ -44,7 +44,7 @@ test.describe('Excel 파일 업로드 E2E 테스트', () => {
   })
 
   test('기본 통계 Excel 파일 업로드 및 파싱', async ({ page }) => {
-    await page.goto('/analysis', { waitUntil: 'networkidle' })
+    await page.goto('/', { waitUntil: 'networkidle' })
 
     // 파일 입력 요소 찾기
     const fileInput = page.locator('input[type="file"]').first()
@@ -75,7 +75,7 @@ test.describe('Excel 파일 업로드 E2E 테스트', () => {
   })
 
   test('상관 분석 Excel 파일 업로드', async ({ page }) => {
-    await page.goto('/analysis', { waitUntil: 'networkidle' })
+    await page.goto('/', { waitUntil: 'networkidle' })
 
     const fileInput = page.locator('input[type="file"]').first()
     await expect(fileInput).toBeAttached({ timeout: 10000 })
@@ -84,7 +84,7 @@ test.describe('Excel 파일 업로드 E2E 테스트', () => {
     await fileInput.setInputFiles(filePath)
 
     // 데이터 로드 대기
-    await page.waitForTimeout(3000)
+    await page.waitForLoadState('networkidle')
 
     // 숫자 데이터가 포함되어 있는지 확인
     const pageContent = await page.content()
@@ -97,7 +97,7 @@ test.describe('Excel 파일 업로드 E2E 테스트', () => {
   })
 
   test('멀티시트 Excel 파일 업로드 시 시트 선택 가능', async ({ page }) => {
-    await page.goto('/analysis', { waitUntil: 'networkidle' })
+    await page.goto('/', { waitUntil: 'networkidle' })
 
     const fileInput = page.locator('input[type="file"]').first()
     await expect(fileInput).toBeAttached({ timeout: 10000 })
@@ -106,7 +106,7 @@ test.describe('Excel 파일 업로드 E2E 테스트', () => {
     await fileInput.setInputFiles(filePath)
 
     // 시트 선택 UI가 나타나거나 첫 번째 시트가 자동 로드되어야 함
-    await page.waitForTimeout(3000)
+    await page.waitForLoadState('networkidle')
 
     const pageContent = await page.content()
 
@@ -124,7 +124,7 @@ test.describe('Excel 파일 업로드 E2E 테스트', () => {
   })
 
   test('잘못된 파일 형식 업로드 시 에러 처리', async ({ page }) => {
-    await page.goto('/analysis', { waitUntil: 'networkidle' })
+    await page.goto('/', { waitUntil: 'networkidle' })
 
     const fileInput = page.locator('input[type="file"]').first()
     await expect(fileInput).toBeAttached({ timeout: 10000 })
@@ -148,7 +148,7 @@ test.describe('Excel 파일 업로드 E2E 테스트', () => {
   })
 
   test('대용량 데이터 처리 성능 (15행 샘플)', async ({ page }) => {
-    await page.goto('/analysis', { waitUntil: 'networkidle' })
+    await page.goto('/', { waitUntil: 'networkidle' })
 
     const fileInput = page.locator('input[type="file"]').first()
     await expect(fileInput).toBeAttached({ timeout: 10000 })
@@ -159,7 +159,7 @@ test.describe('Excel 파일 업로드 E2E 테스트', () => {
     await fileInput.setInputFiles(filePath)
 
     // 데이터 로드 완료 대기
-    await page.waitForTimeout(3000)
+    await page.waitForLoadState('networkidle')
 
     const endTime = Date.now()
     const loadTime = endTime - startTime
@@ -173,7 +173,7 @@ test.describe('Excel 파일 업로드 E2E 테스트', () => {
 
 test.describe('데이터 업로드 후 분석 플로우', () => {
   test('Excel 업로드 후 다음 단계로 진행 가능', async ({ page }) => {
-    await page.goto('/analysis', { waitUntil: 'networkidle' })
+    await page.goto('/', { waitUntil: 'networkidle' })
 
     // 파일 업로드
     const fileInput = page.locator('input[type="file"]').first()
@@ -183,7 +183,7 @@ test.describe('데이터 업로드 후 분석 플로우', () => {
     await fileInput.setInputFiles(filePath)
 
     // 데이터 로드 대기
-    await page.waitForTimeout(3000)
+    await page.waitForLoadState('networkidle')
 
     // 다음 버튼 찾기 (다양한 가능한 텍스트)
     const nextButton = page.locator('button').filter({
@@ -199,7 +199,7 @@ test.describe('데이터 업로드 후 분석 플로우', () => {
   })
 
   test('업로드된 데이터의 변수 목록 표시', async ({ page }) => {
-    await page.goto('/analysis', { waitUntil: 'networkidle' })
+    await page.goto('/', { waitUntil: 'networkidle' })
 
     const fileInput = page.locator('input[type="file"]').first()
     await expect(fileInput).toBeAttached({ timeout: 10000 })
@@ -207,7 +207,7 @@ test.describe('데이터 업로드 후 분석 플로우', () => {
     const filePath = path.join(FIXTURES_DIR, 'sample-basic-stats.xlsx')
     await fileInput.setInputFiles(filePath)
 
-    await page.waitForTimeout(3000)
+    await page.waitForLoadState('networkidle')
 
     const pageContent = await page.content()
 

@@ -87,7 +87,7 @@ describe('File Upload Improvements - Korean Filename Handling', () => {
     const uuid = Math.random().toString(36).substring(2, 10)
 
     expect(uuid.length).toBeLessThanOrEqual(8)
-    expect(uuid.length).toBeGreaterThan(0)
+    expect(uuid.length).toBeGreaterThanOrEqual(1)
     expect(uuid).toMatch(/^[a-z0-9]+$/) // 소문자 + 숫자만
   })
 })

@@ -20,7 +20,7 @@ describe('Semantic Rechunk - File Type Detection', () => {
     }
 
     const ext = mockDoc.filePath.toLowerCase().match(/\.(hwp|hwpx)$/)
-    expect(ext).toBeTruthy()
+    expect(ext).not.toBeNull()
   })
 
   it('should detect HWP file by filePath extension (.hwpx)', () => {
@@ -35,7 +35,7 @@ describe('Semantic Rechunk - File Type Detection', () => {
     }
 
     const ext = mockDoc.filePath.toLowerCase().match(/\.(hwp|hwpx)$/)
-    expect(ext).toBeTruthy()
+    expect(ext).not.toBeNull()
   })
 
   it('should detect HWP file by doc_id prefix', () => {
@@ -201,7 +201,7 @@ describe('Semantic Rechunk - Lazy Initialization', () => {
       hwpStrategy = {} // Mock initialization
     }
 
-    expect(hwpStrategy).toBeTruthy()
+    expect(hwpStrategy).not.toBeNull()
   })
 
   it('should reuse HWP strategy instance', () => {
@@ -322,7 +322,7 @@ describe('Semantic Rechunk - Error Handling', () => {
 
     testCases.forEach(filePath => {
       const ext = filePath.toLowerCase().match(/\.(hwp|hwpx)$/)
-      expect(ext).toBeTruthy()
+      expect(ext).not.toBeNull()
     })
   })
 

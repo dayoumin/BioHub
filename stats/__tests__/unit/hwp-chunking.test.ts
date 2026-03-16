@@ -132,7 +132,7 @@ describe('HWP Chunking Strategy - File Path Detection', () => {
       hwpPath: '/path/to/document.hwp'
     }
 
-    expect(mockDoc.hwpPath).toBeTruthy()
+    expect(mockDoc.hwpPath).toBe('/path/to/document.hwp')
     expect(mockDoc.hwpPath.endsWith('.hwp')).toBe(true)
   })
 })

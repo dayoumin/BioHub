@@ -44,7 +44,6 @@ import { ResultContextDemo } from './components/ResultContextDemo'
 import { StatisticalResultDemo } from './components/StatisticalResultDemo'
 import { FloatingStepIndicatorDemo } from './components/FloatingStepIndicatorDemo'
 import { FitScoreIndicatorDemo } from './components/FitScoreIndicatorDemo'
-import { FeedbackPanelDemo } from './components/FeedbackPanelDemo'
 import { COMPONENT_LIST } from './constants'
 
 // 로딩 스켈레톤 (dynamic import용) - 2025 Modern Style
@@ -1352,17 +1351,6 @@ const handleOpenNewWindow = useCallback(() => {
           {/* ========================================
               8.5. Feedback Panel (NEW)
           ======================================== */}
-          {activeSection === 'feedback-panel' && (
-            <div className="space-y-6 animate-in fade-in duration-500">
-              <div>
-                <h1 className="text-4xl font-bold mb-2">피드백 패널</h1>
-                <p className="text-muted-foreground">
-                  사용자 투표 및 피드백 사이드바 컴포넌트 - 원하는 스타일을 선택하세요
-                </p>
-              </div>
-              <FeedbackPanelDemo />
-            </div>
-          )}
 
           {/* ========================================
               Method Card Comparison (리팩토링 비교)

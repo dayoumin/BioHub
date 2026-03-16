@@ -233,7 +233,7 @@ describe('G2-3-B: Facet rendering', () => {
   it('facet 없으면 기존 단일 grid', () => {
     const spec = makeFacetSpec({ chartType: 'bar' });
     const option = chartSpecToECharts(spec, FACET_ROWS);
-    expect(Array.isArray(option.grid)).toBeFalsy();
+    expect(Array.isArray(option.grid)).toBe(false);
   });
 
   it('facet field → grid 배열, 길이 = 그룹 수', () => {

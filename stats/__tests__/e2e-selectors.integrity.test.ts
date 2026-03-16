@@ -139,7 +139,7 @@ describe('E2E Selector Integrity', () => {
 
   it('selectors.ts의 모든 정적 testid가 컴포넌트 소스에 존재한다 (dead reference 없음)', () => {
     const testIds = extractStaticTestIds(selectorsPath)
-    expect(testIds.length).toBeGreaterThan(0)
+    expect(testIds.length).toBeGreaterThanOrEqual(1)
 
     const sourceContent = getAllSourceContent()
     const missing: string[] = []

@@ -150,7 +150,7 @@ describe('SIM-3: Zod .strict() 동작 확인', () => {
     const result = errorBarSchemaStrict.safeParse({ type: 'precomputed' });
     expect(result.success).toBe(false);
     // Zod 버전에 따라 'invalid_enum_value' 또는 'invalid_value' — 실패 여부만 검증
-    expect(result.error?.issues.length).toBeGreaterThan(0);
+    expect(result.error?.issues.length).toBeGreaterThanOrEqual(1);
   });
 
   test('수정된 스키마: precomputed + lowerField/upperField 통과', () => {

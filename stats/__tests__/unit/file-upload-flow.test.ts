@@ -138,7 +138,7 @@ describe('File Upload Flow - API Integration', () => {
     }
 
     expect(mockResponse.success).toBe(true)
-    expect(mockResponse.text).toBeTruthy()
+    expect(mockResponse.text).toBe('Parsed text content')
     expect(mockResponse.metadata.parserName).toBe('pdf-parser')
   })
 
@@ -215,10 +215,10 @@ describe('File Upload Flow - Integration Points', () => {
     }
 
     // RAGService.addDocument(mockDocument) 호출 시뮬레이션
-    expect(mockDocument.doc_id).toBeTruthy()
-    expect(mockDocument.title).toBeTruthy()
-    expect(mockDocument.library).toBeTruthy()
-    expect(mockDocument.content).toBeTruthy()
+    expect(mockDocument.doc_id).toBe('user_123_test')
+    expect(mockDocument.title).toBe('Test')
+    expect(mockDocument.library).toBe('custom')
+    expect(mockDocument.content).toBe('Content')
   })
 
   it('should trigger vector store rebuild manually', () => {

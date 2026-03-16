@@ -39,11 +39,11 @@ async function navigateToGraphStudio(page: import('@playwright/test').Page): Pro
 
   // fallback: 홈에서 사이드바 Graph Studio 링크 클릭
   await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30000 })
-  await page.waitForTimeout(2000)
+  await page.waitForLoadState('networkidle')
   const gsLink = page.locator('a[href*="graph-studio"]').first()
   if (await gsLink.isVisible({ timeout: 5000 }).catch(() => false)) {
     await gsLink.click()
-    await page.waitForTimeout(2000)
+    await page.waitForLoadState('networkidle')
   }
 }
 
@@ -59,7 +59,7 @@ test.describe('@phase4 @critical Graph Studio 첫 사용자', () => {
     const barType = page.locator(S.graphStudioChartType('bar'))
     if (await barType.isVisible({ timeout: 5000 }).catch(() => false)) {
       await barType.click()
-      await page.waitForTimeout(3000)
+      await expect(page.locator(`${S.graphStudioChart}, canvas`).first()).toBeVisible({ timeout: 10000 }).catch(() => {})
 
       // 차트가 렌더링되었는지 확인
       const hasChart = await page
@@ -68,7 +68,8 @@ test.describe('@phase4 @critical Graph Studio 첫 사용자', () => {
         .catch(() => false)
       const hasCanvas = await page.locator('canvas').isVisible({ timeout: 5000 }).catch(() => false)
 
-      expect(hasChart || hasCanvas).toBeTruthy()
+      // Either chart data-testid or canvas element must render
+      expect(hasChart || hasCanvas).toBe(true)
       log('TC-4B.1.1', '샘플 데이터 Bar 차트 렌더링 확인')
 
       // 사이드 패널에서 데이터 확인
@@ -133,15 +134,15 @@ test.describe('@phase4 @critical Graph Studio 첫 사용자', () => {
     test.setTimeout(300_000) // Pyodide 로딩 + 분석 포함 5분
     // t-test 분석 완료
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 'TC-4B.1.3', 'group', 'value')
     await clickAnalysisRun(page)
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
 
     // Graph Studio 버튼 클릭
     const gsBtn = page.locator(S.openGraphStudioBtn)
@@ -166,7 +167,8 @@ test.describe('@phase4 @critical Graph Studio 첫 사용자', () => {
       .catch(() => false)
     const isGSUrl = page.url().includes('graph-studio')
 
-    expect(hasGS || isGSUrl).toBeTruthy()
+    // Either Graph Studio page element or URL contains graph-studio
+    expect(hasGS || isGSUrl).toBe(true)
     log('TC-4B.1.3', `Graph Studio 이동: page=${hasGS}, chart=${hasChart}, url=${isGSUrl}`)
   })
 })
@@ -212,7 +214,7 @@ test.describe('@phase4 @important 차트 커스터마이징', () => {
     // 스타일 패널에서 변경 가능한 옵션 확인
     const sidePanel = page.locator(S.graphStudioSidePanel)
     const hasOptions = await sidePanel.isVisible().catch(() => false)
-    expect(hasOptions).toBeTruthy()
+    expect(hasOptions).toBe(true)
     log('TC-4B.2.1', '스타일 패널 표시 확인')
   })
 
@@ -293,7 +295,7 @@ test.describe('@phase4 @ai-mock @important AI 어시스턴트 — 그래프', ()
     const barType = page.locator(S.graphStudioChartType('bar'))
     if (await barType.isVisible({ timeout: 5000 }).catch(() => false)) {
       await barType.click()
-      await page.waitForTimeout(3000)
+      await expect(page.locator(`${S.graphStudioChart}, canvas`).first()).toBeVisible({ timeout: 10000 }).catch(() => {})
     }
 
     // AI 패널 열기
@@ -481,7 +483,7 @@ test.describe('@phase4 @important 차트 내보내기 & 공유', () => {
     const barType = page.locator(S.graphStudioChartType('bar'))
     if (await barType.isVisible({ timeout: 5000 }).catch(() => false)) {
       await barType.click()
-      await page.waitForTimeout(3000)
+      await expect(page.locator(`${S.graphStudioChart}, canvas`).first()).toBeVisible({ timeout: 10000 }).catch(() => {})
     }
 
     // 내보내기 버튼 찾기
@@ -515,7 +517,7 @@ test.describe('@phase4 @important 차트 내보내기 & 공유', () => {
     const barType = page.locator(S.graphStudioChartType('bar'))
     if (await barType.isVisible({ timeout: 5000 }).catch(() => false)) {
       await barType.click()
-      await page.waitForTimeout(3000)
+      await expect(page.locator(`${S.graphStudioChart}, canvas`).first()).toBeVisible({ timeout: 10000 }).catch(() => {})
     }
 
     const copyBtn = page.locator('[data-testid="canvas-copy-btn"]')
@@ -531,6 +533,6 @@ test.describe('@phase4 @important 차트 내보내기 & 공유', () => {
       bodyText.includes('복사되었습니다') || bodyText.includes('copied')
     const hasCopyFailure = bodyText.includes('실패')
     log('TC-4B.5.2', `copySuccess=${hasCopySuccess}, copyFailure=${hasCopyFailure}`)
-    expect(hasCopySuccess && !hasCopyFailure).toBeTruthy()
+    expect(hasCopySuccess && !hasCopyFailure).toBe(true)
   })
 })

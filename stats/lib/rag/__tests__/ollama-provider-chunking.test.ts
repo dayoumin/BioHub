@@ -228,7 +228,7 @@ describe('OllamaProvider - Chunk-based addDocument (Phase 3)', () => {
 
       // 각 청크가 텍스트 포함 확인
       sortedEmbeddings.forEach((emb) => {
-        expect(emb.chunk_text.length).toBeGreaterThan(0)
+        expect(emb.chunk_text.length).toBeGreaterThanOrEqual(1)
         expect(emb.chunk_tokens).toBeGreaterThan(0)
       })
 
@@ -285,7 +285,7 @@ describe('OllamaProvider - Chunk-based addDocument (Phase 3)', () => {
 
       // 2. 초기 임베딩 확인
       const embeddingsBefore = await IndexedDBStorage.getEmbeddingsByDocId('update_test_doc')
-      expect(embeddingsBefore.length).toBeGreaterThan(0)
+      expect(embeddingsBefore.length).toBeGreaterThanOrEqual(1)
       const originalChunkCount = embeddingsBefore.length
       const originalFirstChunk = embeddingsBefore.find((e) => e.chunk_index === 0)!
       expect(originalFirstChunk.chunk_text).toContain('original0')
@@ -301,7 +301,7 @@ describe('OllamaProvider - Chunk-based addDocument (Phase 3)', () => {
 
       // 4. 새 임베딩 확인
       const embeddingsAfter = await IndexedDBStorage.getEmbeddingsByDocId('update_test_doc')
-      expect(embeddingsAfter.length).toBeGreaterThan(0)
+      expect(embeddingsAfter.length).toBeGreaterThanOrEqual(1)
       const newChunkCount = embeddingsAfter.length
 
       // 텍스트 변경 확인
@@ -365,7 +365,7 @@ describe('OllamaProvider - Chunk-based addDocument (Phase 3)', () => {
 
       // 2. 임베딩 생성 확인
       const embeddingsBefore = await IndexedDBStorage.getEmbeddingsByDocId('delete_test_doc')
-      expect(embeddingsBefore.length).toBeGreaterThan(0)
+      expect(embeddingsBefore.length).toBeGreaterThanOrEqual(1)
       const chunkCount = embeddingsBefore.length
       console.log(`  - 생성된 임베딩: ${chunkCount}개`)
 
@@ -404,8 +404,8 @@ describe('OllamaProvider - Chunk-based addDocument (Phase 3)', () => {
       // 임베딩 확인
       const docAEmbeddings = await IndexedDBStorage.getEmbeddingsByDocId('doc_a')
       const docBEmbeddings = await IndexedDBStorage.getEmbeddingsByDocId('doc_b')
-      expect(docAEmbeddings.length).toBeGreaterThan(0)
-      expect(docBEmbeddings.length).toBeGreaterThan(0)
+      expect(docAEmbeddings.length).toBeGreaterThanOrEqual(1)
+      expect(docBEmbeddings.length).toBeGreaterThanOrEqual(1)
 
       // doc_a만 삭제
       await provider.deleteDocument('doc_a')
@@ -496,7 +496,7 @@ describe('OllamaProvider - Chunk-based addDocument (Phase 3)', () => {
       // 검색
       const results = await provider['searchByVector']('hypothesis testing')
 
-      expect(results.length).toBeGreaterThan(0)
+      expect(results.length).toBeGreaterThanOrEqual(1)
       expect(results[0].doc_id).toBe('long_doc')
 
       console.log(`✓ ${embeddings.length}개 청크 중 최고 점수로 문서 랭킹`)

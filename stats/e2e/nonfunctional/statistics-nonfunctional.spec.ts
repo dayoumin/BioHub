@@ -42,11 +42,11 @@ test.setTimeout(300_000) // 5분 — Pyodide 로딩 포함
 test.describe('@phase5 @critical 성능 — 통계 분석', () => {
   test('TC-5A.1.1: Pyodide 초기 로딩 시간', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 'TC-5A.1.1', 'group', 'value')
 
@@ -62,43 +62,43 @@ test.describe('@phase5 @critical 성능 — 통계 분석', () => {
 
     const timing = checkTiming('Pyodide 첫 분석', duration, 120000) // 2분 이내
     log('TC-5A.1.1', `Pyodide 첫 분석: ${(duration / 1000).toFixed(1)}s (threshold: 120s)`)
-    expect(timing.passed).toBeTruthy()
+    expect(timing.passed).toBe(true)
   })
 
   test('TC-5A.1.2: 통계 분석 실행 시간 (Pyodide 로딩 후)', async ({ page }) => {
     // 먼저 1회 분석으로 Pyodide 로딩
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 'TC-5A.1.2-warmup', 'group', 'value')
     await clickAnalysisRun(page)
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
 
     // 2번째 분석: 새로운 분석 시작
     const newBtn = page.locator(S.newAnalysisBtn)
     if (await newBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       await newBtn.click()
-      await page.waitForTimeout(3000)
+      await page.waitForLoadState('networkidle')
     }
 
     // 재업로드 + 재분석
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 'TC-5A.1.2', 'group', 'value')
 
     // 후속 분석 시간 측정
     const start = Date.now()
     await clickAnalysisRun(page)
-    expect(await waitForResults(page, 30000)).toBeTruthy()
+    expect(await waitForResults(page, 30000)).toBe(true)
     const duration = Date.now() - start
 
     const timing = checkTiming('후속 t-test', duration, 10000) // 10초 이내
@@ -179,15 +179,15 @@ test.describe('@phase5 @critical 성능 — 통계 분석', () => {
     // 분석 3회 연속 실행
     for (let i = 1; i <= 3; i++) {
       await navigateToUploadStep(page)
-      expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+      expect(await uploadCSV(page, 't-test.csv')).toBe(true)
       await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
       await goToMethodSelection(page)
-      expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+      expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
       await goToVariableSelection(page)
       await ensureVariablesOrSkip(page, `TC-5A.1.4-${i}`, 'group', 'value')
       await clickAnalysisRun(page)
-      expect(await waitForResults(page, 120000)).toBeTruthy()
+      expect(await waitForResults(page, 120000)).toBe(true)
 
       const memAfter = await getMemoryUsage(page)
       const diff = memoryDiffMB(memBefore, memAfter)
@@ -206,14 +206,14 @@ test.describe('@phase5 @critical 성능 — 통계 분석', () => {
   test('TC-5A.1.5: 성능 저하 — 1회차 vs 5회차 비교', async ({ page }) => {
     // 첫 분석 (Pyodide 워밍업)
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 'TC-5A.1.5-warmup', 'group', 'value')
     await clickAnalysisRun(page)
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
 
     // 1회차 측정
     const durations: number[] = []
@@ -225,16 +225,16 @@ test.describe('@phase5 @critical 성능 — 통계 분석', () => {
       }
 
       await navigateToUploadStep(page)
-      expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+      expect(await uploadCSV(page, 't-test.csv')).toBe(true)
       await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
       await goToMethodSelection(page)
-      expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+      expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
       await goToVariableSelection(page)
       await ensureVariablesOrSkip(page, `TC-5A.1.5-${i}`, 'group', 'value')
 
       const start = Date.now()
       await clickAnalysisRun(page)
-      expect(await waitForResults(page, 60000)).toBeTruthy()
+      expect(await waitForResults(page, 60000)).toBe(true)
       durations.push(Date.now() - start)
 
       log('TC-5A.1.5', `${i}회차: ${(durations[i - 1] / 1000).toFixed(1)}s`)
@@ -297,15 +297,15 @@ test.describe('@phase5 @important 접근성 — 통계 분석', () => {
   test('TC-5A.2.2: 스크린 리더 — 결과 화면 ARIA', async ({ page }) => {
     // 분석 완료까지 진행
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 'TC-5A.2.2', 'group', 'value')
     await clickAnalysisRun(page)
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
 
     // results-main-card ARIA 속성 확인
     const resultsAria = await getAriaAttributes(page, '[data-testid="results-main-card"]')
@@ -325,15 +325,15 @@ test.describe('@phase5 @important 접근성 — 통계 분석', () => {
 
   test('TC-5A.2.3: 색각 이상 — 통계 결과 비색상 지표', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 'TC-5A.2.3', 'group', 'value')
     await clickAnalysisRun(page)
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
 
     // 유의/비유의 구분이 텍스트/아이콘으로 보충되는지 확인
     const bodyText = await page.locator('body').innerText()
@@ -360,11 +360,11 @@ test.describe('@phase5 @important 접근성 — 통계 분석', () => {
 
   test('TC-5A.2.5: 포커스 트랩 — 모달', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
     await goToVariableSelection(page)
 
     // 변수 모달이 열리는지 확인
@@ -379,12 +379,12 @@ test.describe('@phase5 @important 접근성 — 통계 분석', () => {
         // 포커스 트랩 검증
         const trapped = await verifyFocusTrap(page, '[data-testid="variable-modal-dependent"]', 10)
         log('TC-5A.2.5', `포커스 트랩: ${trapped}`)
-        expect(trapped).toBeTruthy()
+        expect(trapped).toBe(true)
 
         // ESC로 모달 닫기
         const closed = await verifyEscClosesModal(page, modal)
         log('TC-5A.2.5', `ESC 닫기: ${closed}`)
-        expect(closed).toBeTruthy()
+        expect(closed).toBe(true)
       } else {
         log('TC-5A.2.5', 'SKIPPED: variable-modal 미표시')
       }
@@ -403,15 +403,15 @@ test.describe('@phase5 @nice-to-have 호환성 — 통계', () => {
     // 이 테스트는 현재 브라우저(chromium)에서의 기본 동작 확인
     // Firefox/WebKit은 playwright.config.ts에 프로젝트 추가 필요
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 'TC-5A.3.1', 'group', 'value')
     await clickAnalysisRun(page)
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
 
     log('TC-5A.3.1', '기본 브라우저 E2E 통과')
   })

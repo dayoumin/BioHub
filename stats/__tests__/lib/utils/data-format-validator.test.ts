@@ -75,7 +75,7 @@ describe('validateDataFormat', () => {
     it('빈 데이터는 isCompatible=false', () => {
       const result = validateDataFormat('t-test', [])
       expect(result.isCompatible).toBe(false)
-      expect(result.warnings.length).toBeGreaterThan(0)
+      expect(result.warnings.length).toBeGreaterThanOrEqual(1)
     })
 
     it('미등록 methodId는 기본 통과', () => {

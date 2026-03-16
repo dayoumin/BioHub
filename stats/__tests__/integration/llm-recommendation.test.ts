@@ -360,7 +360,7 @@ describeIfApi('LLM Integration Tests (실제 API)', () => {
       try {
         expect(recommendation).not.toBeNull()
         expect(recommendation!.confidence).toBeGreaterThanOrEqual(0.7)
-        expect(recommendation!.reasoning.length).toBeGreaterThan(0)
+        expect(recommendation!.reasoning.length).toBeGreaterThanOrEqual(1)
 
         // ANOVA 계열: 'anova'가 One-Way ANOVA의 기본 ID (one-way-anova는 alias)
         const anovaRelated = ['anova', 'kruskal-wallis', 'welch-anova', 'manova']
@@ -425,7 +425,7 @@ describeIfApi('LLM Integration Tests (실제 API)', () => {
 
       try {
         expect(recommendation).not.toBeNull()
-        expect(recommendation!.method.id).toBeTruthy()
+        expect(recommendation!.method.id).toEqual(expect.any(String))
 
         // 모호한 질문: confidence ≤ 0.8 또는 ambiguityNote 존재 또는 대안 2개 이상
         const isAmbiguityHandled =
@@ -561,7 +561,7 @@ describeIfApi('LLM Integration Tests (실제 API)', () => {
 
       try {
         expect(recommendation).not.toBeNull()
-        expect(recommendation!.method.id).toBeTruthy()
+        expect(recommendation!.method.id).toEqual(expect.any(String))
         expect(recommendation!.confidence).toBeGreaterThan(0)
 
         // 한국어 컬럼명이 variableAssignments에 올바르게 매핑되는지
@@ -656,7 +656,7 @@ describeIfApi('LLM Integration Tests (실제 API)', () => {
 
       try {
         expect(recommendation).not.toBeNull()
-        expect(recommendation!.method.id).toBeTruthy()
+        expect(recommendation!.method.id).toEqual(expect.any(String))
 
         // 데이터 없을 때 LLM이 placeholder 반환 가능 (예: "종속변수 컬럼명")
         // filterInvalidVariables는 validColumnNames.size===0이면 실행 안 됨
@@ -976,14 +976,14 @@ describeIfApi('LLM Integration Tests (실제 API)', () => {
         const { summary, detail } = splitInterpretation(fullText)
 
         // summary는 비어있지 않아야 함
-        expect(summary.length).toBeGreaterThan(0)
+        expect(summary.length).toBeGreaterThanOrEqual(1)
         // "### 한줄 요약" 헤더는 summary에 포함되지 않아야 함
         expect(summary).not.toContain('### 한줄 요약')
 
         // 2단 구조가 제대로 되었으면 detail도 있어야 함
         // (LLM이 2단 구조를 안 따를 수도 있으므로 soft check)
         if (fullText.includes('### 상세 해석') || fullText.includes('상세 해석')) {
-          expect(detail.length).toBeGreaterThan(0)
+          expect(detail.length).toBeGreaterThanOrEqual(1)
         }
 
         result.status = 'PASS'
@@ -1013,7 +1013,7 @@ describeIfApi('LLM Integration Tests (실제 API)', () => {
             .flat()
             .filter((v): v is string => typeof v === 'string')
 
-          expect(allVars.length).toBeGreaterThan(0)
+          expect(allVars.length).toBeGreaterThanOrEqual(1)
 
           const validNames = new Set(IRIS_VALIDATION.variables)
           for (const v of allVars) {

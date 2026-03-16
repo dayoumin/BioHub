@@ -330,7 +330,7 @@ describe('Pyodide Init Logic - Real Function Tests', () => {
       const result = validateInitializationOrder(steps)
 
       expect(result.isValid).toBe(false)
-      expect(result.errors.length).toBeGreaterThan(0)
+      expect(result.errors.length).toBeGreaterThanOrEqual(1)
     })
   })
 

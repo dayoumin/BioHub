@@ -268,7 +268,7 @@ describe('statisticalTests.ts - Statistical Utility Functions', () => {
 
       // Step 2: 기초 통계 계산
       const stats = calculateBasicStats(values)
-      expect(stats.mean).toBeGreaterThan(0)
+      expect(stats.mean).toBeCloseTo(86.6, 1)
       expect(stats.std).toBeGreaterThan(0)
 
       // Step 3: 이론적 분위수 생성

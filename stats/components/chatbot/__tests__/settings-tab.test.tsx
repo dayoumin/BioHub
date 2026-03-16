@@ -39,7 +39,7 @@ describe('SettingsTab', () => {
 
     // shadcn Card 컴포넌트는 특정 클래스를 가짐
     const cards = container.querySelectorAll('[class*="card"]')
-    expect(cards.length).toBeGreaterThan(0)
+    expect(cards.length).toBeGreaterThanOrEqual(1)
   })
 
   it('max-w-4xl 컨테이너로 레이아웃됨', () => {

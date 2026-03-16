@@ -95,6 +95,9 @@ describe('handleTogglePin 시뮬레이션', () => {
     savePinnedHistoryIds(['h1', 'h2'])
     const { result } = renderHook(() => usePinnedHistoryIds())
 
+    // before: h1이 pinned 목록에 존재
+    expect(result.current[0]).toContain('h1')
+
     act(() => {
       result.current[1](prev => {
         if (prev.includes('h1')) return prev.filter(id => id !== 'h1')
@@ -104,6 +107,8 @@ describe('handleTogglePin 시뮬레이션', () => {
     })
 
     expect(result.current[0]).toEqual(['h2'])
+    // unpin된 항목이 목록에 없음
+    expect(result.current[0]).not.toContain('h1')
   })
 
   it('MAX_PINNED 초과 시 추가 거부', () => {
@@ -152,14 +157,20 @@ describe('handleTogglePin 시뮬레이션', () => {
       })
     }
 
+    // step 1: pin
     act(() => toggle('h1'))
     expect(result.current[0]).toEqual(['h1'])
+    expect(result.current[0]).toContain('h1')
 
+    // step 2: unpin
     act(() => toggle('h1'))
     expect(result.current[0]).toEqual([])
+    expect(result.current[0]).not.toContain('h1')
 
+    // step 3: re-pin
     act(() => toggle('h1'))
     expect(result.current[0]).toEqual(['h1'])
+    expect(result.current[0]).toContain('h1')
   })
 })
 
@@ -381,8 +392,20 @@ describe('QuickAccessBar ↔ AnalysisHistoryPanel 동기화', () => {
     const { result: panel } = renderHook(() => usePinnedHistoryIds())
     const { result: quickBar } = renderHook(() => usePinnedHistoryIds())
 
+    // before: 양쪽 모두 빈 상태
+    expect(panel.current[0]).toEqual([])
+    expect(quickBar.current[0]).toEqual([])
+
     act(() => { panel.current[1](prev => [...prev, 'a']) })
+    // step 1: 'a'만 존재
+    expect(panel.current[0]).toEqual(['a'])
+    expect(panel.current[0]).not.toContain('b')
+
     act(() => { quickBar.current[1](prev => [...prev, 'b']) })
+    // step 2: 'a', 'b' 존재
+    expect(quickBar.current[0]).toEqual(['a', 'b'])
+    expect(quickBar.current[0]).not.toContain('c')
+
     act(() => { panel.current[1](prev => [...prev, 'c']) })
 
     const expected = ['a', 'b', 'c']

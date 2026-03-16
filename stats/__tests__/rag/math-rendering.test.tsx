@@ -29,7 +29,7 @@ describe('Math Formula Rendering', () => {
 
       // KaTeX가 생성하는 .katex 클래스 확인
       const mathElements = container.querySelectorAll('.katex')
-      expect(mathElements.length).toBeGreaterThan(0)
+      expect(mathElements.length).toBeGreaterThanOrEqual(1)
     })
 
     it('여러 개의 인라인 수식을 렌더링해야 함', () => {
@@ -74,8 +74,8 @@ $$
       const displayMath = container.querySelectorAll('.katex-display')
       const inlineMath = container.querySelectorAll('.katex')
 
-      expect(displayMath.length).toBeGreaterThan(0) // 블록 수식
-      expect(inlineMath.length).toBeGreaterThan(0) // 인라인 수식 ($s_p$)
+      expect(displayMath.length).toBeGreaterThanOrEqual(1) // 블록 수식
+      expect(inlineMath.length).toBeGreaterThanOrEqual(1) // 인라인 수식 ($s_p$)
     })
 
     it('ANOVA F-통계량 공식을 렌더링해야 함', () => {
@@ -95,7 +95,7 @@ $$
       )
 
       const displayMath = container.querySelectorAll('.katex-display')
-      expect(displayMath.length).toBeGreaterThan(0)
+      expect(displayMath.length).toBeGreaterThanOrEqual(1)
     })
   })
 
@@ -119,7 +119,7 @@ $$
       )
 
       const displayMath = container.querySelectorAll('.katex-display')
-      expect(displayMath.length).toBeGreaterThan(0)
+      expect(displayMath.length).toBeGreaterThanOrEqual(1)
 
       // HTML에 렌더링된 수식 확인 (KaTeX는 <span> 태그로 변환)
       expect(container.innerHTML).toContain('katex')
@@ -145,7 +145,7 @@ $$
       )
 
       const displayMath = container.querySelectorAll('.katex-display')
-      expect(displayMath.length).toBeGreaterThan(0)
+      expect(displayMath.length).toBeGreaterThanOrEqual(1)
     })
   })
 
@@ -185,17 +185,17 @@ $$
       )
 
       // 제목, 굵은 텍스트, 리스트 확인
-      expect(container.querySelector('h2')).toBeTruthy()
-      expect(container.querySelector('h3')).toBeTruthy()
-      expect(container.querySelector('strong')).toBeTruthy()
-      expect(container.querySelector('ul')).toBeTruthy()
-      expect(container.querySelector('ol')).toBeTruthy()
+      expect(container.querySelector('h2')).not.toBeNull()
+      expect(container.querySelector('h3')).not.toBeNull()
+      expect(container.querySelector('strong')).not.toBeNull()
+      expect(container.querySelector('ul')).not.toBeNull()
+      expect(container.querySelector('ol')).not.toBeNull()
 
       // 수식 확인
       const displayMath = container.querySelectorAll('.katex-display')
       const inlineMath = container.querySelectorAll('.katex')
 
-      expect(displayMath.length).toBeGreaterThan(0) // 블록 수식
+      expect(displayMath.length).toBeGreaterThanOrEqual(1) // 블록 수식
       expect(inlineMath.length).toBeGreaterThan(5) // 여러 인라인 수식
     })
   })
@@ -220,8 +220,8 @@ $$
       )
 
       // 수식이 없어도 정상 렌더링
-      expect(container.querySelector('h2')).toBeTruthy()
-      expect(container.querySelector('ul')).toBeTruthy()
+      expect(container.querySelector('h2')).not.toBeNull()
+      expect(container.querySelector('ul')).not.toBeNull()
 
       // KaTeX 요소는 없어야 함
       const mathElements = container.querySelectorAll('.katex')

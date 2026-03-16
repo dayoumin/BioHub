@@ -283,7 +283,7 @@ describe('OllamaRAGProvider', () => {
 
       // 더미 데이터 확인
       expect(provider['documents']).toBeDefined()
-      expect(provider['documents'].length).toBeGreaterThan(0)
+      expect(provider['documents'].length).toBeGreaterThanOrEqual(1)
     })
   })
 

@@ -128,7 +128,7 @@ describe('사용자 관점 UX 감사', () => {
   describe('시계열 질문', () => {
     it('시간에 따른 추세 변화 → 시계열 카테고리 내 메서드', () => {
       const methods = topMethods('시간에 따른 추세 변화를 분석하고 싶어요')
-      expect(methods.length).toBeGreaterThan(0)
+      expect(methods.length).toBeGreaterThanOrEqual(1)
       const timeseriesMethods = ['arima', 'seasonal-decompose', 'stationarity-test', 'mann-kendall']
       expect(timeseriesMethods).toContain(methods[0])
     })

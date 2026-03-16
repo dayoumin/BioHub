@@ -196,8 +196,8 @@ describe('getPyodideCDNUrls - Real Function Test', () => {
       const { scriptURL, indexURL } = getPyodideCDNUrls()
 
       // pyodide-core.service.ts에서 사용하는 패턴
-      expect(scriptURL).toBeTruthy()
-      expect(indexURL).toBeTruthy()
+      expect(scriptURL).toEqual(expect.any(String))
+      expect(indexURL).toEqual(expect.any(String))
       expect(typeof scriptURL).toBe('string')
       expect(typeof indexURL).toBe('string')
     })

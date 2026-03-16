@@ -428,7 +428,7 @@ describe('Intent Router — 비판적 검토', () => {
 
       expect(result.track).toBe('direct-analysis')
       expect(result.method?.id).toBe('anova')
-      expect(result.method?.name).toBeTruthy()
+      expect(result.method?.name).toEqual(expect.any(String))
       expect(result.reasoning).toBe('ANOVA 적합')
     })
 

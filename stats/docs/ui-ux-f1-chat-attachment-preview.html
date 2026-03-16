@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>F1 Chat-First 파일 첨부 UI 미리보기</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet"/>
+<style>
+  /* ===== Reset & Base ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    /* globals.css :root 토큰 미러 (oklch) */
+    --bg: oklch(0.985 0.003 250);
+    --fg: oklch(0.2 0.02 260);
+    --card: oklch(1 0 0);
+    --primary: oklch(0.52 0.20 260);
+    --primary-fg: oklch(1 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-fg: oklch(0.55 0.02 260);
+    --border: oklch(0.91 0.008 260);
+    --ring: oklch(0.7 0.1 260);
+    --accent: oklch(0.95 0.02 260);
+    --radius: 8px;
+
+    /* Semantic Status — globals.css 미러 */
+    --success: oklch(0.55 0.08 155);
+    --success-bg: oklch(0.96 0.02 155);
+    --success-border: oklch(0.85 0.04 155);
+    --error: oklch(0.55 0.10 15);
+    --error-bg: oklch(0.96 0.02 15);
+    --error-border: oklch(0.85 0.05 15);
+    --warning: oklch(0.55 0.08 75);
+    --warning-bg: oklch(0.96 0.02 75);
+    --warning-border: oklch(0.85 0.04 75);
+
+    /* AI/Highlight — globals.css 미러 */
+    --highlight: oklch(0.50 0.08 260);
+    --highlight-bg: oklch(0.97 0.015 260);
+    --highlight-border: oklch(0.88 0.03 260);
+
+    --font: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  .dark {
+    --bg: oklch(0.05 0 0);
+    --fg: oklch(0.95 0 0);
+    --card: oklch(0.1 0 0);
+    --primary: oklch(0.65 0.18 260);
+    --primary-fg: oklch(0.05 0 0);
+    --muted: oklch(0.15 0 0);
+    --muted-fg: oklch(0.6 0 0);
+    --border: oklch(0.2 0 0);
+    --ring: oklch(0.5 0 0);
+    --accent: oklch(0.2 0 0);
+
+    --success: oklch(0.70 0.08 155);
+    --success-bg: oklch(0.22 0.03 155);
+    --success-border: oklch(0.35 0.04 155);
+    --error: oklch(0.70 0.10 15);
+    --error-bg: oklch(0.22 0.03 15);
+    --error-border: oklch(0.35 0.05 15);
+    --warning: oklch(0.70 0.08 75);
+    --warning-bg: oklch(0.22 0.03 75);
+    --warning-border: oklch(0.35 0.04 75);
+
+    --highlight: oklch(0.68 0.06 260);
+    --highlight-bg: oklch(0.15 0.02 260);
+    --highlight-border: oklch(0.30 0.03 260);
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.6;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* ===== Page Layout (ui-ux-ideas-preview.html 패턴) ===== */
+  .page-header {
+    background: oklch(0.13 0.02 260);
+    color: oklch(0.82 0.01 260);
+    padding: 40px 48px;
+    border-bottom: 1px solid oklch(0.22 0.02 260);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .page-header h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+  .page-header p { color: oklch(0.6 0 0); margin-top: 4px; font-size: 14px; }
+
+  .theme-toggle {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid oklch(0.3 0 0);
+    background: oklch(0.2 0 0);
+    color: oklch(0.8 0 0);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .theme-toggle:hover { background: oklch(0.25 0 0); color: oklch(0.95 0 0); }
+
+  .states-grid {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+  }
+
+  /* ===== State Section (ui-ux-ideas-preview.html .idea-section 패턴) ===== */
+  .state-section {
+    background: var(--card);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    box-shadow: 0 1px 3px oklch(0 0 0 / 0.04);
+  }
+  .state-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .state-tag {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--primary);
+  }
+  .state-tag.warn { background: var(--warning-bg); color: var(--warning); }
+  .state-tag.err { background: var(--error-bg); color: var(--error); }
+  .state-tag.ok { background: var(--success-bg); color: var(--success); }
+  .state-tag.ai { background: var(--highlight-bg); color: var(--highlight); }
+  .state-header h2 { font-size: 16px; font-weight: 600; }
+  .state-body { padding: 32px; }
+
+  /* ===== Hub Hero ===== */
+  .hub-hero { text-align: center; margin-bottom: 24px; }
+  .hub-hero h2 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+    color: var(--fg);
+    margin-bottom: 4px;
+  }
+  .hub-hero p { font-size: 16px; color: var(--muted-fg); }
+
+  /* ===== ChatInput Area ===== */
+  .chat-input-wrap {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+  .chat-textarea-wrap {
+    position: relative;
+  }
+  .chat-textarea {
+    width: 100%;
+    min-height: 64px;
+    resize: none;
+    padding: 16px 96px 16px 20px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--fg);
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.5;
+    box-shadow: 0 2px 8px oklch(0 0 0 / 0.06);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .chat-textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px oklch(from var(--primary) l c h / 0.15);
+  }
+  .chat-textarea::placeholder { color: var(--muted-fg); }
+  .chat-textarea.dropzone-active {
+    border: 2px dashed var(--primary);
+    background: oklch(from var(--primary) l c h / 0.05);
+    opacity: 0.3;
+  }
+
+  .chat-buttons {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Lucide-style SVG icon buttons */
+  .icon-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .icon-btn.ghost {
+    background: transparent;
+    color: var(--muted-fg);
+  }
+  .icon-btn.ghost:hover { background: var(--accent); color: var(--fg); }
+  .icon-btn.primary {
+    background: var(--primary);
+    color: var(--primary-fg);
+  }
+  .icon-btn.primary:hover { filter: brightness(1.1); }
+  .icon-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .icon-btn svg { width: 16px; height: 16px; }
+
+  /* Lucide icon paths */
+  .lucide { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ===== Privacy Notice ===== */
+  .privacy-notice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 12px;
+    color: oklch(from var(--muted-fg) l c h / 0.5);
+    margin-top: 12px;
+  }
+  .privacy-notice svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+  /* ===== Quick Analysis Pills ===== */
+  .pills {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 24px;
+  }
+  .pill {
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--fg);
+    font-family: var(--font);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .pill:hover { border-color: var(--primary); color: var(--primary); }
+
+  /* ===== Dropzone Overlay ===== */
+  .dropzone-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    border: 2px dashed var(--primary);
+    background: oklch(from var(--primary) l c h / 0.06);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .dropzone-overlay svg { width: 36px; height: 36px; color: var(--primary); }
+  .dropzone-overlay .label { font-weight: 500; color: var(--primary); font-size: 15px; }
+  .dropzone-overlay .sub { font-size: 13px; color: oklch(from var(--primary) l c h / 0.6); }
+
+  /* ===== File Chip ===== */
+  .file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .file-chip svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .file-chip .name { font-weight: 500; color: var(--fg); }
+  .file-chip .meta { font-size: 12px; color: var(--muted-fg); }
+  .file-chip .close-btn {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: oklch(from var(--muted-fg) l c h / 0.6);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-left: 4px;
+  }
+  .file-chip .close-btn:hover { background: var(--accent); color: var(--fg); }
+  .file-chip .close-btn svg { width: 12px; height: 12px; }
+
+  /* Chip variants */
+  .file-chip.loading {
+    border: 1px solid oklch(from var(--primary) l c h / 0.3);
+    background: oklch(from var(--primary) l c h / 0.06);
+    animation: pulse-border 1.5s ease-in-out infinite;
+  }
+  .file-chip.success {
+    border: 1px solid var(--success-border);
+    background: var(--success-bg);
+  }
+  .file-chip.success svg.status { color: var(--success); }
+  .file-chip.error {
+    border: 1px solid var(--error-border);
+    background: var(--error-bg);
+  }
+  .file-chip.error svg.status { color: var(--error); }
+  .file-chip.error .err-msg { font-size: 12px; color: var(--error); }
+  .file-chip.warning {
+    border: 1px solid var(--warning-border);
+    background: var(--warning-bg);
+  }
+  .file-chip.warning svg.status { color: var(--warning); }
+  .file-chip.invalidated {
+    border: 1px solid var(--border);
+    background: var(--muted);
+    opacity: 0.5;
+  }
+
+  @keyframes pulse-border {
+    0%, 100% { border-color: oklch(from var(--primary) l c h / 0.3); }
+    50% { border-color: oklch(from var(--primary) l c h / 0.6); }
+  }
+
+  /* Spinner */
+  .spinner {
+    width: 16px; height: 16px;
+    animation: spin 1s linear infinite;
+    color: var(--primary);
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Progress bar (inside chip) */
+  .chip-progress {
+    flex: 1;
+    max-width: 120px;
+    height: 4px;
+    border-radius: 2px;
+    background: oklch(from var(--primary) l c h / 0.15);
+    overflow: hidden;
+  }
+  .chip-progress-bar {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--primary);
+    animation: progress 2.5s ease-out forwards;
+  }
+  @keyframes progress { from { width: 0%; } to { width: 72%; } }
+
+  /* ===== Sheet Selection ===== */
+  .sheet-buttons {
+    display: flex;
+    gap: 6px;
+    padding-left: 12px;
+    margin-top: 4px;
+    margin-bottom: 8px;
+  }
+  .sheet-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-family: var(--font);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .sheet-btn.active {
+    border: 2px solid var(--primary);
+    background: oklch(from var(--primary) l c h / 0.08);
+    color: var(--primary);
+    font-weight: 500;
+  }
+  .sheet-btn.inactive {
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--muted-fg);
+  }
+  .sheet-btn.inactive:hover { border-color: var(--primary); color: var(--primary); }
+
+  /* ===== Chat Bubbles ===== */
+  .chat-messages { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+  .chat-bubble {
+    max-width: 80%;
+    padding: 10px 16px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .chat-bubble.user {
+    align-self: flex-end;
+    background: var(--primary);
+    color: var(--primary-fg);
+    border-bottom-right-radius: 6px;
+  }
+  .chat-bubble.ai {
+    align-self: flex-start;
+    background: var(--muted);
+    color: var(--fg);
+    border-bottom-left-radius: 6px;
+  }
+
+  /* ===== Analysis Proposal Card ===== */
+  .proposal-card {
+    border: 1px solid oklch(from var(--primary) l c h / 0.2);
+    background: linear-gradient(135deg, oklch(from var(--primary) l c h / 0.04), var(--card));
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px oklch(0 0 0 / 0.04);
+  }
+  .proposal-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .proposal-icon {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    background: oklch(from var(--primary) l c h / 0.08);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .proposal-icon svg { width: 22px; height: 22px; color: var(--primary); }
+  .proposal-title { font-size: 16px; font-weight: 700; color: var(--fg); }
+  .proposal-reasoning { font-size: 13px; color: var(--muted-fg); margin-top: 2px; }
+  .proposal-vars {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--muted-fg);
+    margin-bottom: 16px;
+    padding-left: 4px;
+  }
+  .proposal-vars .var-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .proposal-vars svg { width: 16px; height: 16px; color: oklch(from var(--primary) l c h / 0.6); }
+  .proposal-vars strong { color: var(--fg); font-weight: 600; }
+  .proposal-actions { display: flex; gap: 8px; }
+  .btn {
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn.outline {
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--muted-fg);
+  }
+  .btn.outline:hover { background: var(--accent); color: var(--fg); }
+  .btn.primary {
+    border: none;
+    background: var(--primary);
+    color: var(--primary-fg);
+  }
+  .btn.primary:hover { filter: brightness(1.1); }
+  .btn svg { width: 16px; height: 16px; }
+
+  /* Invalidated proposal */
+  .proposal-card.invalidated {
+    opacity: 0.45;
+    position: relative;
+  }
+  .proposal-card.invalidated .invalidated-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--error-bg);
+    color: var(--error);
+    border: 1px solid var(--error-border);
+  }
+  .proposal-card.invalidated .btn { pointer-events: none; opacity: 0.3; }
+
+  /* ===== Annotation ===== */
+  .annotation {
+    margin-top: 16px;
+    padding: 10px 14px;
+    background: var(--highlight-bg);
+    border-left: 3px solid var(--highlight-border);
+    border-radius: 0 8px 8px 0;
+    font-size: 12px;
+    color: var(--muted-fg);
+    line-height: 1.6;
+  }
+  .annotation strong { font-weight: 600; color: var(--fg); }
+  .annotation code {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  /* ===== System Message ===== */
+  .system-msg {
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted-fg);
+    padding: 8px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .system-msg svg { width: 14px; height: 14px; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div>
+    <h1>F1: Chat-First 파일 첨부 UI 미리보기</h1>
+    <p>각 상태별 ChatInput 영역 변화 + 확인 카드 + 엣지 케이스</p>
+  </div>
+  <button class="theme-toggle" onclick="document.body.classList.toggle('dark'); this.textContent = document.body.classList.contains('dark') ? 'Light Mode' : 'Dark Mode'">Dark Mode</button>
+</div>
+
+<div class="states-grid">
+
+  <!-- ===== State 1: 기본 상태 ===== -->
+  <div class="state-section">
+    <div class="state-header">
+      <span class="state-tag">State 1</span>
+      <h2>기본 상태 (파일 없음)</h2>
+    </div>
+    <div class="state-body">
+      <div class="hub-hero">
+        <h2>안녕하세요, 연구자님</h2>
+        <p>어떤 분석을 하시겠습니까?</p>
+      </div>
+
+      <div class="chat-input-wrap">
+        <div class="chat-textarea-wrap">
+          <textarea class="chat-textarea" rows="2" placeholder="분석하고 싶은 내용을 입력하세요 (예: 두 그룹 간 체중 차이가 있는지 검정)" readonly></textarea>
+          <div class="chat-buttons">
+            <!-- Lucide: ArrowUpFromLine -->
+            <button class="icon-btn ghost" title="파일 첨부">
+              <svg class="lucide" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/><path d="M5 3h14"/></svg>
+            </button>
+            <!-- Lucide: Send -->
+            <button class="icon-btn primary disabled">
+              <svg class="lucide" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+            </button>
+          </div>
+        </div>
+        <!-- Lucide: ShieldCheck -->
+        <div class="privacy-notice">
+          <svg class="lucide" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+          데이터는 브라우저에서만 처리되며 외부로 전송되지 않습니다
+        </div>
+      </div>
+
+      <div class="pills">
+        <button class="pill">독립표본 t-검정</button>
+        <button class="pill">일원분산분석</button>
+        <button class="pill">피어슨 상관분석</button>
+        <button class="pill">카이제곱 검정</button>
+      </div>
+
+      <div class="annotation">
+        <strong>현재 구현과 동일.</strong> <code>ChatInput.tsx</code> — Lucide 아이콘 (<code>ArrowUpFromLine</code>, <code>Send</code>, <code>ShieldCheck</code>).
+        드롭존 범위: 칩+textarea를 감싸는 래퍼에 <code>react-dropzone getRootProps()</code> 적용.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== State 2: 드래그 중 ===== -->
+  <div class="state-section">
+    <div class="state-header">
+      <span class="state-tag">State 2</span>
+      <h2>파일 드래그 중 (Dropzone 활성)</h2>
+    </div>
+    <div class="state-body">
+      <div class="hub-hero">
+        <h2>안녕하세요, 연구자님</h2>
+        <p>어떤 분석을 하시겠습니까?</p>
+      </div>
+
+      <div class="chat-input-wrap">
+        <div class="chat-textarea-wrap">
+          <!-- Dropzone overlay — 드롭 이벤트는 wrapper가 수신 -->
+          <div class="dropzone-overlay">
+            <!-- Lucide: Upload -->
+            <svg class="lucide" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+            <span class="label">여기에 파일을 놓으세요</span>
+            <span class="sub">CSV, Excel (.xlsx) 지원</span>
+          </div>
+          <textarea class="chat-textarea dropzone-active" rows="2" placeholder="분석하고 싶은 내용을 입력하세요" readonly></textarea>
+          <div class="chat-buttons" style="opacity: 0.3;">
+            <button class="icon-btn ghost">
+              <svg class="lucide" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/><path d="M5 3h14"/></svg>
+            </button>
+            <button class="icon-btn primary disabled">
+              <svg class="lucide" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <strong>구현 참고:</strong> overlay에 <code>pointer-events: none</code> — 드롭 이벤트는 wrapper(<code>getRootProps()</code>)가 수신.
+        wrapper = 칩 + textarea를 감싸는 <code>div</code>.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== State 3a: 파싱 중 (소용량 — 스피너) ===== -->
+  <div class="state-section">
+    <div class="state-header">
+      <span class="state-tag">State 3a</span>
+      <h2>파일 파싱 중 (소용량 — 스피너)</h2>
+    </div>
+    <div class="state-body">
+      <div class="hub-hero">
+        <h2>안녕하세요, 연구자님</h2>
+        <p>어떤 분석을 하시겠습니까?</p>
+      </div>
+
+      <div class="chat-input-wrap">
+        <div class="file-chip loading">
+          <!-- Lucide: FileText -->
+          <svg class="lucide" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+          <span class="name">실험데이터.csv</span>
+          <span class="meta">파싱 중...</span>
+          <svg class="spinner lucide" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        </div>
+
+        <div class="chat-textarea-wrap">
+          <textarea class="chat-textarea" rows="2" placeholder="분석하고 싶은 내용을 입력하세요" readonly></textarea>
+          <div class="chat-buttons">
+            <button class="icon-btn ghost disabled">
+              <svg class="lucide" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/><path d="M5 3h14"/></svg>
+            </button>
+            <button class="icon-btn primary disabled">
+              <svg class="lucide" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== State 3b: 파싱 중 (대용량 — 프로그레스 바) ===== -->
+  <div class="state-section">
+    <div class="state-header">
+      <span class="state-tag">State 3b</span>
+      <h2>파일 파싱 중 (대용량 — 프로그레스 바)</h2>
+    </div>
+    <div class="state-body">
+      <div class="hub-hero">
+        <h2>안녕하세요, 연구자님</h2>
+        <p>어떤 분석을 하시겠습니까?</p>
+      </div>
+
+      <div class="chat-input-wrap">
+        <div class="file-chip loading">
+          <svg class="lucide" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+          <span class="name">large_experiment.csv</span>
+          <span class="meta">72%</span>
+          <div class="chip-progress">
+            <div class="chip-progress-bar"></div>
+          </div>
+        </div>
+
+        <div class="chat-textarea-wrap">
+          <textarea class="chat-textarea" rows="2" placeholder="분석하고 싶은 내용을 입력하세요" readonly></textarea>
+          <div class="chat-buttons">
+            <button class="icon-btn ghost disabled">
+              <svg class="lucide" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/><path d="M5 3h14"/></svg>
+            </button>
+            <button class="icon-btn primary disabled">
+              <svg class="lucide" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <strong>대용량 파일 (>10MB):</strong> <code>onProgress</code> 콜백에서 퍼센트 수신 → 칩 내 프로그레스 바 표시.
+        <code>LargeFileProcessor.processInChunks()</code> 연동.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== State 4: 파일 첨부 완료 ===== -->
+  <div class="state-section">
+    <div class="state-header">
+      <span class="state-tag ok">State 4</span>
+      <h2>파일 첨부 완료</h2>
+    </div>
+    <div class="state-body">
+      <div class="hub-hero">
+        <h2>안녕하세요, 연구자님</h2>
+        <p>어떤 분석을 하시겠습니까?</p>
+      </div>
+
+      <div class="chat-input-wrap">
+        <div class="file-chip success">
+          <!-- Lucide: CheckCircle2 -->
+          <svg class="lucide status" viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          <span class="name">실험데이터.csv</span>
+          <span class="meta">2,450행 x 8열</span>
+          <button class="close-btn" title="파일 제거">
+            <svg class="lucide" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="chat-textarea-wrap">
+          <textarea class="chat-textarea" rows="2" readonly>이 데이터로 독립표본 t-검정 해줘</textarea>
+          <div class="chat-buttons">
+            <button class="icon-btn ghost" title="파일 교체">
+              <svg class="lucide" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/><path d="M5 3h14"/></svg>
+            </button>
+            <button class="icon-btn primary">
+              <svg class="lucide" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="privacy-notice">
+          <svg class="lucide" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+          데이터는 브라우저에서만 처리되며 외부로 전송되지 않습니다
+        </div>
+      </div>
+
+      <!-- Pills stay visible after file attachment -->
+      <div class="pills">
+        <button class="pill">독립표본 t-검정</button>
+        <button class="pill">일원분산분석</button>
+        <button class="pill">피어슨 상관분석</button>
+        <button class="pill">카이제곱 검정</button>
+      </div>
+
+      <div class="annotation">
+        <strong>결정:</strong> 파일 첨부 후에도 pills 유지 — "이 데이터로 [메서드]" 빠른 선택 가능.
+        placeholder가 "이 데이터로 어떤 분석을 하고 싶으신가요?"로 변경됨.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== State 5: 파일 에러 ===== -->
+  <div class="state-section">
+    <div class="state-header">
+      <span class="state-tag err">State 5</span>
+      <h2>파일 에러</h2>
+    </div>
+    <div class="state-body">
+      <div class="hub-hero">
+        <h2>안녕하세요, 연구자님</h2>
+        <p>어떤 분석을 하시겠습니까?</p>
+      </div>
+
+      <div class="chat-input-wrap">
+        <div class="file-chip error">
+          <!-- Lucide: AlertCircle -->
+          <svg class="lucide status" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+          <span class="name">broken_data.pdf</span>
+          <span class="err-msg">지원하지 않는 형식 (CSV, Excel만 가능)</span>
+          <button class="close-btn" title="제거">
+            <svg class="lucide" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="chat-textarea-wrap">
+          <textarea class="chat-textarea" rows="2" placeholder="분석하고 싶은 내용을 입력하세요" readonly></textarea>
+          <div class="chat-buttons">
+            <button class="icon-btn ghost">
+              <svg class="lucide" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/><path d="M5 3h14"/></svg>
+            </button>
+            <button class="icon-btn primary disabled">
+              <svg class="lucide" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <strong>에러 코드별 메시지:</strong> <code>FileProcessingError.code</code> 에 따라
+        <code>INVALID_FORMAT</code>, <code>FILE_TOO_LARGE</code>, <code>SECURITY_VIOLATION</code> 등 분기.
+        칩 X 버튼으로 제거 후 재시도.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== State 6: Excel 다중 시트 선택 ===== -->
+  <div class="state-section">
+    <div class="state-header">
+      <span class="state-tag warn">State 6</span>
+      <h2>Excel 다중 시트 선택</h2>
+    </div>
+    <div class="state-body">
+      <div class="hub-hero">
+        <h2>안녕하세요, 연구자님</h2>
+        <p>어떤 분석을 하시겠습니까?</p>
+      </div>
+
+      <div class="chat-input-wrap">
+        <div class="file-chip warning">
+          <!-- Lucide: Table -->
+          <svg class="lucide status" viewBox="0 0 24 24"><path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/></svg>
+          <span class="name">multi_sheet_data.xlsx</span>
+          <span class="meta" style="color: var(--warning);">시트를 선택하세요</span>
+        </div>
+        <!-- 시트 클릭 → 즉시 파싱 시작 (State 3a로 전환) -->
+        <div class="sheet-buttons">
+          <button class="sheet-btn active">Sheet1 (2,450행)</button>
+          <button class="sheet-btn inactive">실험결과 (890행)</button>
+          <button class="sheet-btn inactive">메타데이터 (12행)</button>
+        </div>
+
+        <div class="chat-textarea-wrap">
+          <textarea class="chat-textarea" rows="2" placeholder="분석하고 싶은 내용을 입력하세요" readonly></textarea>
+          <div class="chat-buttons">
+            <button class="icon-btn ghost disabled">
+              <svg class="lucide" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/><path d="M5 3h14"/></svg>
+            </button>
+            <button class="icon-btn primary disabled">
+              <svg class="lucide" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <strong>전환 흐름:</strong> 시트 버튼 클릭 → State 3a (파싱 중) → State 4 (완료).
+        <code>onSheetSelect</code> 콜백이 선택된 시트명 반환 → <code>FileProcessingService</code>가 해당 시트 파싱.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== State 7a: AI 확인 카드 (정상) ===== -->
+  <div class="state-section">
+    <div class="state-header">
+      <span class="state-tag ai">State 7a</span>
+      <h2>AI 확인 카드 — 정상</h2>
+    </div>
+    <div class="state-body">
+      <div class="chat-input-wrap">
+        <!-- File chip -->
+        <div class="file-chip success">
+          <svg class="lucide status" viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          <span class="name">실험데이터.csv</span>
+          <span class="meta">2,450행 x 8열</span>
+          <button class="close-btn" title="파일 제거">
+            <svg class="lucide" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- Chat conversation -->
+        <div class="chat-messages">
+          <div class="chat-bubble user">이 데이터로 독립표본 t-검정 해줘</div>
+          <div class="chat-bubble ai">데이터를 확인했습니다. 2개 그룹(암/수)과 연속변수(체중)가 있어 독립표본 t-검정이 적합합니다.</div>
+        </div>
+
+        <!-- Analysis Proposal Card -->
+        <div class="proposal-card">
+          <div class="proposal-header">
+            <div class="proposal-icon">
+              <!-- Lucide: BarChart3 -->
+              <svg class="lucide" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+            </div>
+            <div>
+              <div class="proposal-title">독립표본 t-검정</div>
+              <div class="proposal-reasoning">2그룹 비교 + 연속변수이므로 독립표본 t-검정이 적합합니다</div>
+            </div>
+          </div>
+          <div class="proposal-vars">
+            <div class="var-item">
+              <!-- Lucide: Layers -->
+              <svg class="lucide" viewBox="0 0 24 24"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
+              <span>그룹 변수: <strong>성별</strong></span>
+            </div>
+            <div class="var-item">
+              <!-- Lucide: TrendingUp -->
+              <svg class="lucide" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+              <span>종속 변수: <strong>체중</strong></span>
+            </div>
+          </div>
+          <div class="proposal-actions">
+            <button class="btn outline">변수 수정하기</button>
+            <button class="btn primary">
+              분석 시작
+              <!-- Lucide: ArrowRight -->
+              <svg class="lucide" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Input stays available for objection -->
+        <div class="chat-textarea-wrap">
+          <textarea class="chat-textarea" rows="2" placeholder="다른 분석을 원하시면 입력하세요..." readonly></textarea>
+          <div class="chat-buttons">
+            <button class="icon-btn ghost">
+              <svg class="lucide" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/><path d="M5 3h14"/></svg>
+            </button>
+            <button class="icon-btn primary disabled">
+              <svg class="lucide" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <strong>3가지 탈출 경로:</strong>
+        (1) "분석 시작" → store 저장 → Step 3 프리필,
+        (2) "변수 수정하기" → Step 3 빈 매핑,
+        (3) textarea에 이의 입력 → 카드 무효화 (State 7b).
+        <code>propose_analysis</code> LLM tool call로 구조화된 데이터 수신.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== State 7b: 사용자 이의 → 카드 무효화 ===== -->
+  <div class="state-section">
+    <div class="state-header">
+      <span class="state-tag ai">State 7b</span>
+      <h2>사용자 이의 → 카드 무효화</h2>
+    </div>
+    <div class="state-body">
+      <div class="chat-input-wrap">
+        <div class="file-chip success">
+          <svg class="lucide status" viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          <span class="name">실험데이터.csv</span>
+          <span class="meta">2,450행 x 8열</span>
+          <button class="close-btn">
+            <svg class="lucide" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="chat-messages">
+          <div class="chat-bubble user">이 데이터로 독립표본 t-검정 해줘</div>
+          <div class="chat-bubble ai">데이터를 확인했습니다. 2개 그룹(암/수)과 연속변수(체중)가 있어 독립표본 t-검정이 적합합니다.</div>
+
+          <!-- Invalidated proposal -->
+          <div class="proposal-card invalidated" style="align-self: stretch;">
+            <span class="invalidated-badge">무효</span>
+            <div class="proposal-header">
+              <div class="proposal-icon">
+                <svg class="lucide" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+              </div>
+              <div>
+                <div class="proposal-title">독립표본 t-검정</div>
+                <div class="proposal-reasoning">2그룹 비교 + 연속변수이므로...</div>
+              </div>
+            </div>
+            <div class="proposal-actions">
+              <button class="btn outline">변수 수정하기</button>
+              <button class="btn primary">분석 시작</button>
+            </div>
+          </div>
+
+          <!-- User objection -->
+          <div class="chat-bubble user">아니, ANOVA로 하고 싶어</div>
+          <div class="chat-bubble ai">ANOVA는 3개 이상 그룹이 필요합니다. 현재 데이터에는 2개 그룹(암/수)만 있어서 독립표본 t-검정이 더 적합합니다. 그래도 진행하시겠어요?</div>
+        </div>
+
+        <div class="chat-textarea-wrap">
+          <textarea class="chat-textarea" rows="2" placeholder="계속 대화하세요..." readonly></textarea>
+          <div class="chat-buttons">
+            <button class="icon-btn ghost">
+              <svg class="lucide" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/><path d="M5 3h14"/></svg>
+            </button>
+            <button class="icon-btn primary disabled">
+              <svg class="lucide" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <strong>카드 무효화:</strong> 사용자가 텍스트로 이의를 제기하면 기존 카드는 <code>opacity: 0.45</code> + "무효" 배지.
+        버튼 비활성. 대화 루프 계속 → AI가 새 <code>propose_analysis</code> tool call 시 새 카드 생성.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== State 7c: 파일 교체 → 카드 무효화 ===== -->
+  <div class="state-section">
+    <div class="state-header">
+      <span class="state-tag err">State 7c</span>
+      <h2>파일 교체 → 전면 리셋</h2>
+    </div>
+    <div class="state-body">
+      <div class="chat-input-wrap">
+        <!-- New file -->
+        <div class="file-chip success">
+          <svg class="lucide status" viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          <span class="name">새로운_데이터.csv</span>
+          <span class="meta">1,200행 x 5열</span>
+          <button class="close-btn">
+            <svg class="lucide" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="chat-messages">
+          <!-- Previous conversation (read-only, dimmed) -->
+          <div class="chat-bubble user" style="opacity: 0.4;">이 데이터로 독립표본 t-검정 해줘</div>
+          <div class="chat-bubble ai" style="opacity: 0.4;">데이터를 확인했습니다. 2개 그룹(암/수)과...</div>
+
+          <div class="proposal-card invalidated" style="align-self: stretch;">
+            <span class="invalidated-badge">파일 변경으로 무효</span>
+            <div class="proposal-header">
+              <div class="proposal-icon">
+                <svg class="lucide" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+              </div>
+              <div>
+                <div class="proposal-title">독립표본 t-검정</div>
+                <div class="proposal-reasoning">2그룹 비교 + 연속변수이므로...</div>
+              </div>
+            </div>
+            <div class="proposal-actions">
+              <button class="btn outline">변수 수정하기</button>
+              <button class="btn primary">분석 시작</button>
+            </div>
+          </div>
+
+          <!-- System message -->
+          <div class="system-msg">
+            <!-- Lucide: RefreshCw -->
+            <svg class="lucide" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+            파일이 변경되었습니다 — 새로운_데이터.csv (1,200행 x 5열)
+          </div>
+        </div>
+
+        <div class="chat-textarea-wrap">
+          <textarea class="chat-textarea" rows="2" placeholder="새 데이터로 어떤 분석을 하고 싶으신가요?" readonly></textarea>
+          <div class="chat-buttons">
+            <button class="icon-btn ghost">
+              <svg class="lucide" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/><path d="M12 9v12"/><path d="M5 3h14"/></svg>
+            </button>
+            <button class="icon-btn primary disabled">
+              <svg class="lucide" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="annotation">
+        <strong>파일 교체 정책 (R5):</strong> <code>dataProfile</code>, <code>candidateMethod</code> 전면 리셋.
+        이전 대화 UI 유지 (읽기전용, dimmed). LLM 컨텍스트에는 새 <code>dataProfile</code>만 전달.
+        카드에 "파일 변경으로 무효" 배지.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="text-align: center; font-size: 12px; color: var(--muted-fg); padding: 24px 0 48px;">
+  <p>BioHub — F1 Chat-First 파일 첨부 UI 미리보기 (10개 상태)</p>
+  <p style="margin-top: 4px;">디자인 토큰: <code style="font-family: monospace; font-size: 11px; padding: 1px 5px; border-radius: 4px; background: var(--muted); border: 1px solid var(--border);">globals.css</code> oklch 미러 | 아이콘: Lucide | 다크 모드 지원</p>
+</div>
+
+</body>
+</html>

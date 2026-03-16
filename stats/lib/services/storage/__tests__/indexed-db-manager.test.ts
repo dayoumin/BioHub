@@ -147,7 +147,7 @@ describe('IndexedDBManager', () => {
 
     it('should retrieve all objects', async () => {
       const results = await manager.getAll('test-store')
-      expect(results.length).toBeGreaterThan(0)
+      expect(results.length).toBeGreaterThanOrEqual(1)
     })
 
     it('should preserve object structure', async () => {
@@ -192,7 +192,7 @@ describe('IndexedDBManager', () => {
 
     it('should query by index', async () => {
       const results = await manager.query('test-store', 'status', 'active')
-      expect(results.length).toBeGreaterThan(0)
+      expect(results.length).toBeGreaterThanOrEqual(1)
       expect(results.every((r: any) => r.status === 'active')).toBe(true)
     })
 

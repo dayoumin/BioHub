@@ -42,11 +42,11 @@ async function navigateToUploadStep(page: Page): Promise<void> {
       const retryBtn = page.locator('button').filter({ hasText: '다시 시도' })
       if (await retryBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
         await retryBtn.click()
-        await page.waitForTimeout(5000)
+        await page.waitForLoadState('networkidle')
         continue
       }
       await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => {})
-      await page.waitForTimeout(5000)
+      await page.waitForLoadState('networkidle')
       continue
     }
 
@@ -60,9 +60,8 @@ async function navigateToUploadStep(page: Page): Promise<void> {
 
     if (rendered) break
     log('navigate', `render failed, retry ${attempt + 1}/5`)
-    await page.waitForTimeout(5000)
+    await page.waitForLoadState('networkidle')
   }
-  await page.waitForTimeout(500)
 
   const uploadCard = page.locator(S.hubUploadCard)
   if (await uploadCard.isVisible({ timeout: 3000 }).catch(() => false)) {
@@ -75,7 +74,7 @@ async function navigateToUploadStep(page: Page): Promise<void> {
   const step1 = page.locator(S.stepperStep(1))
   if (await step1.count() > 0) {
     await step1.click()
-    await page.waitForTimeout(1000)
+    await page.waitForLoadState('networkidle')
   }
 }
 
@@ -91,7 +90,6 @@ async function uploadCSV(page: Page, filename: string): Promise<boolean> {
     return document.querySelector('[data-testid="data-profile-summary"]') !== null
   }, { timeout: 15000 }).catch(() => log('upload', 'validation wait timeout'))
 
-  await page.waitForTimeout(1000)
   return true
 }
 
@@ -100,14 +98,14 @@ async function goToMethodSelection(page: Page): Promise<void> {
   if (await btn.isVisible({ timeout: 3000 }).catch(() => false) && await btn.isEnabled()) {
     await btn.click()
     log('goToMethod', 'floating-next-btn 클릭')
-    await page.waitForTimeout(1500)
+    await page.waitForLoadState('networkidle')
     return
   }
   const step2 = page.locator(S.stepperStep(2))
   if (await step2.count() > 0 && await step2.isEnabled().catch(() => false)) {
     await step2.click()
     log('goToMethod', 'stepper-step-2 클릭')
-    await page.waitForTimeout(1500)
+    await page.waitForLoadState('networkidle')
   }
 }
 
@@ -115,13 +113,13 @@ async function selectMethodDirect(page: Page, searchTerm: string, methodName: Re
   const browseTab = page.locator(S.filterBrowse)
   if (await browseTab.isVisible({ timeout: 3000 }).catch(() => false)) {
     await browseTab.click()
-    await page.waitForTimeout(1000)
+    await expect(page.locator(S.methodSearchInput)).toBeVisible({ timeout: 5000 }).catch(() => {})
   }
 
   const searchInput = page.locator(S.methodSearchInput)
   if (await searchInput.isVisible({ timeout: 3000 }).catch(() => false)) {
     await searchInput.fill(searchTerm)
-    await page.waitForTimeout(1500)
+    await expect(page.locator(`button:has-text("${searchTerm}")`).first()).toBeVisible({ timeout: 5000 }).catch(() => {})
   }
 
   const allMatches = page.locator(`button:has-text("${searchTerm}")`)
@@ -145,7 +143,7 @@ async function selectMethodDirect(page: Page, searchTerm: string, methodName: Re
     if (await btn.isVisible()) {
       await btn.click()
       log('selectDirect', `selected: "${text.trim().slice(0, 40)}"`)
-      await page.waitForTimeout(1500)
+      await page.waitForLoadState('networkidle')
       return true
     }
   }
@@ -160,7 +158,7 @@ async function goToVariableSelection(page: Page): Promise<void> {
     if (await confirmBtn.first().isEnabled()) {
       await confirmBtn.first().click()
       log('goToVar', 'confirm-method-btn 클릭')
-      await page.waitForTimeout(2000)
+      await page.waitForLoadState('networkidle')
       return
     }
   }
@@ -169,7 +167,7 @@ async function goToVariableSelection(page: Page): Promise<void> {
   if (await floatingBtn.isVisible({ timeout: 2000 }).catch(() => false) && await floatingBtn.isEnabled()) {
     await floatingBtn.click()
     log('goToVar', 'floating-next-btn 클릭')
-    await page.waitForTimeout(2000)
+    await page.waitForLoadState('networkidle')
     return
   }
 
@@ -177,18 +175,16 @@ async function goToVariableSelection(page: Page): Promise<void> {
   if (await step3.count() > 0 && await step3.isEnabled().catch(() => false)) {
     await step3.click()
     log('goToVar', 'stepper-step-3 클릭')
-    await page.waitForTimeout(2000)
+    await page.waitForLoadState('networkidle')
   }
 }
 
 async function clickAnalysisRun(page: Page): Promise<void> {
-  await page.waitForTimeout(1000)
-
   const btn = page.locator(S.runAnalysisBtn)
   if (await btn.isVisible({ timeout: 3000 }).catch(() => false) && await btn.isEnabled()) {
     await btn.click()
     log('clickRun', 'run-analysis-btn 클릭')
-    await page.waitForTimeout(2000)
+    await page.waitForLoadState('networkidle')
     return
   }
 
@@ -196,7 +192,7 @@ async function clickAnalysisRun(page: Page): Promise<void> {
   if (await floatingBtn.isVisible({ timeout: 3000 }).catch(() => false) && await floatingBtn.isEnabled()) {
     await floatingBtn.click()
     log('clickRun', 'floating-next-btn 클릭')
-    await page.waitForTimeout(2000)
+    await page.waitForLoadState('networkidle')
   }
 }
 
@@ -280,14 +276,13 @@ async function waitForAutoConfirmOrManual(page: Page, tag: string): Promise<void
   await runBtn.waitFor({ state: 'visible', timeout: 15000 }).catch(() =>
     log(tag, 'run-analysis-btn not found, proceeding anyway')
   )
-  await page.waitForTimeout(1000)
 
   if (await runBtn.isEnabled().catch(() => false)) {
     log(tag, '변수 자동 할당됨 (AutoConfirmSelector)')
     return
   }
   log(tag, '변수 수동 선택 필요 — 대기')
-  await page.waitForTimeout(2000)
+  await page.waitForLoadState('networkidle')
 }
 
 /** OpenRouter mock for LLM tests */
@@ -327,7 +322,7 @@ async function selectMethodViaLLM(page: Page, question: string): Promise<boolean
     if (isActive !== 'true') {
       await aiTab.click()
       log('selectLLM', 'filter-ai 클릭')
-      await page.waitForTimeout(500)
+      await page.waitForTimeout(300)
     }
   }
 
@@ -359,7 +354,7 @@ async function selectMethodViaLLM(page: Page, question: string): Promise<boolean
   if (await selectBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
     await selectBtn.click()
     log('selectLLM', '추천 수락')
-    await page.waitForTimeout(1500)
+    await page.waitForLoadState('networkidle')
     return true
   }
   return false
@@ -373,84 +368,84 @@ test.describe('KM/ROC E2E - Phase 1: 정상 플로우', () => {
 
   test('1-1 Kaplan-Meier 2그룹 비교: 업로드 → 분석 → 생존곡선 + Log-rank', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'survival.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 'survival.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, 'Kaplan', /Kaplan.*Meier|카플란.*마이어|생존분석/i)).toBeTruthy()
+    expect(await selectMethodDirect(page, 'Kaplan', /Kaplan.*Meier|카플란.*마이어|생존분석/i)).toBe(true)
 
     await goToVariableSelection(page)
     await waitForAutoConfirmOrManual(page, 'km-2group')
     await clickAnalysisRun(page)
 
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
     const r = await verifyKMResults(page)
     log('km-2group', r.details)
-    expect(r.hasResultsCard).toBeTruthy()
-    expect(r.hasSurvivalInfo).toBeTruthy()
+    expect(r.hasResultsCard).toBe(true)
+    expect(r.hasSurvivalInfo).toBe(true)
 
     await page.screenshot({ path: 'e2e/results/screenshots/km-2group-result.png', fullPage: true })
   })
 
   test('1-2 Kaplan-Meier 그룹 없음 (단일 곡선): 업로드 → 분석 → 생존곡선', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'survival-no-group.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 'survival-no-group.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, 'Kaplan', /Kaplan.*Meier|카플란.*마이어|생존분석/i)).toBeTruthy()
+    expect(await selectMethodDirect(page, 'Kaplan', /Kaplan.*Meier|카플란.*마이어|생존분석/i)).toBe(true)
 
     await goToVariableSelection(page)
     await waitForAutoConfirmOrManual(page, 'km-nogroup')
     await clickAnalysisRun(page)
 
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
     const r = await verifyKMResults(page)
     log('km-nogroup', r.details)
-    expect(r.hasResultsCard).toBeTruthy()
-    expect(r.hasSurvivalInfo).toBeTruthy()
+    expect(r.hasResultsCard).toBe(true)
+    expect(r.hasSurvivalInfo).toBe(true)
 
     await page.screenshot({ path: 'e2e/results/screenshots/km-nogroup-result.png', fullPage: true })
   })
 
   test('1-3 ROC 곡선 진단 정확도: 업로드 → 분석 → AUC + 민감도/특이도', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'roc-diagnostic.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 'roc-diagnostic.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, 'ROC', /ROC.*곡선|ROC.*curve|ROC/i)).toBeTruthy()
+    expect(await selectMethodDirect(page, 'ROC', /ROC.*곡선|ROC.*curve|ROC/i)).toBe(true)
 
     await goToVariableSelection(page)
     await waitForAutoConfirmOrManual(page, 'roc-diagnostic')
     await clickAnalysisRun(page)
 
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
     const r = await verifyROCResults(page)
     log('roc-diagnostic', r.details)
-    expect(r.hasResultsCard).toBeTruthy()
-    expect(r.hasAUC).toBeTruthy()
+    expect(r.hasResultsCard).toBe(true)
+    expect(r.hasAUC).toBe(true)
 
     await page.screenshot({ path: 'e2e/results/screenshots/roc-diagnostic-result.png', fullPage: true })
   })
 
   test('1-4 ROC 약한 분류기 (AUC ≈ 0.5): 업로드 → 분석 → 낮은 AUC 확인', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'roc-weak.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 'roc-weak.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, 'ROC', /ROC.*곡선|ROC.*curve|ROC/i)).toBeTruthy()
+    expect(await selectMethodDirect(page, 'ROC', /ROC.*곡선|ROC.*curve|ROC/i)).toBe(true)
 
     await goToVariableSelection(page)
     await waitForAutoConfirmOrManual(page, 'roc-weak')
     await clickAnalysisRun(page)
 
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
     const r = await verifyROCResults(page)
     log('roc-weak', r.details)
-    expect(r.hasResultsCard).toBeTruthy()
-    expect(r.hasAUC).toBeTruthy()
+    expect(r.hasResultsCard).toBe(true)
+    expect(r.hasAUC).toBe(true)
 
     await page.screenshot({ path: 'e2e/results/screenshots/roc-weak-result.png', fullPage: true })
   })
@@ -464,105 +459,105 @@ test.describe('KM/ROC E2E - Phase 2: 엣지 케이스', () => {
 
   test('2-1 KM 높은 중도절단 (80%): 생존확률 플래토 확인', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'survival-heavy-censor.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 'survival-heavy-censor.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, 'Kaplan', /Kaplan.*Meier|카플란.*마이어|생존분석/i)).toBeTruthy()
+    expect(await selectMethodDirect(page, 'Kaplan', /Kaplan.*Meier|카플란.*마이어|생존분석/i)).toBe(true)
 
     await goToVariableSelection(page)
     await waitForAutoConfirmOrManual(page, 'km-censor')
     await clickAnalysisRun(page)
 
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
     const r = await verifyKMResults(page)
     log('km-censor', r.details)
-    expect(r.hasResultsCard).toBeTruthy()
-    expect(r.hasSurvivalInfo).toBeTruthy()
+    expect(r.hasResultsCard).toBe(true)
+    expect(r.hasSurvivalInfo).toBe(true)
 
     await page.screenshot({ path: 'e2e/results/screenshots/km-heavy-censor-result.png', fullPage: true })
   })
 
   test('2-2 KM 3그룹 비교: Placebo vs LowDose vs HighDose', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'survival-3group.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 'survival-3group.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, 'Kaplan', /Kaplan.*Meier|카플란.*마이어|생존분석/i)).toBeTruthy()
+    expect(await selectMethodDirect(page, 'Kaplan', /Kaplan.*Meier|카플란.*마이어|생존분석/i)).toBe(true)
 
     await goToVariableSelection(page)
     await waitForAutoConfirmOrManual(page, 'km-3group')
     await clickAnalysisRun(page)
 
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
     const r = await verifyKMResults(page)
     log('km-3group', r.details)
-    expect(r.hasResultsCard).toBeTruthy()
-    expect(r.hasSurvivalInfo).toBeTruthy()
+    expect(r.hasResultsCard).toBe(true)
+    expect(r.hasSurvivalInfo).toBe(true)
 
     await page.screenshot({ path: 'e2e/results/screenshots/km-3group-result.png', fullPage: true })
   })
 
   test('2-3 KM 최소 데이터 (10행): 최소 요건 통과 확인', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'survival-minimal.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 'survival-minimal.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, 'Kaplan', /Kaplan.*Meier|카플란.*마이어|생존분석/i)).toBeTruthy()
+    expect(await selectMethodDirect(page, 'Kaplan', /Kaplan.*Meier|카플란.*마이어|생존분석/i)).toBe(true)
 
     await goToVariableSelection(page)
     await waitForAutoConfirmOrManual(page, 'km-minimal')
     await clickAnalysisRun(page)
 
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
     const r = await verifyKMResults(page)
     log('km-minimal', r.details)
-    expect(r.hasResultsCard).toBeTruthy()
-    expect(r.hasSurvivalInfo).toBeTruthy()
+    expect(r.hasResultsCard).toBe(true)
+    expect(r.hasSurvivalInfo).toBe(true)
 
     await page.screenshot({ path: 'e2e/results/screenshots/km-minimal-result.png', fullPage: true })
   })
 
   test('2-4 ROC 완벽 분류기 (AUC ≈ 1.0): 높은 AUC 확인', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'roc-perfect.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 'roc-perfect.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, 'ROC', /ROC.*곡선|ROC.*curve|ROC/i)).toBeTruthy()
+    expect(await selectMethodDirect(page, 'ROC', /ROC.*곡선|ROC.*curve|ROC/i)).toBe(true)
 
     await goToVariableSelection(page)
     await waitForAutoConfirmOrManual(page, 'roc-perfect')
     await clickAnalysisRun(page)
 
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
     const r = await verifyROCResults(page)
     log('roc-perfect', r.details)
-    expect(r.hasResultsCard).toBeTruthy()
-    expect(r.hasAUC).toBeTruthy()
+    expect(r.hasResultsCard).toBe(true)
+    expect(r.hasAUC).toBe(true)
 
     await page.screenshot({ path: 'e2e/results/screenshots/roc-perfect-result.png', fullPage: true })
   })
 
   test('2-5 KM 모든 사건 (중도절단 0): S(t)→0 확인', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'survival-all-events.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 'survival-all-events.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, 'Kaplan', /Kaplan.*Meier|카플란.*마이어|생존분석/i)).toBeTruthy()
+    expect(await selectMethodDirect(page, 'Kaplan', /Kaplan.*Meier|카플란.*마이어|생존분석/i)).toBe(true)
 
     await goToVariableSelection(page)
     await waitForAutoConfirmOrManual(page, 'km-allevents')
     await clickAnalysisRun(page)
 
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
     const r = await verifyKMResults(page)
     log('km-allevents', r.details)
-    expect(r.hasResultsCard).toBeTruthy()
-    expect(r.hasSurvivalInfo).toBeTruthy()
+    expect(r.hasResultsCard).toBe(true)
+    expect(r.hasSurvivalInfo).toBe(true)
 
     await page.screenshot({ path: 'e2e/results/screenshots/km-all-events-result.png', fullPage: true })
   })
@@ -576,7 +571,7 @@ test.describe('KM/ROC E2E - Phase 3: 에러 핸들링 + LLM', () => {
 
   test('3-1 KM 데이터 부족 (<10행): 에러 메시지 또는 경고 표시', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'survival-too-small.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 'survival-too-small.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
@@ -593,20 +588,20 @@ test.describe('KM/ROC E2E - Phase 3: 에러 핸들링 + LLM', () => {
     await goToVariableSelection(page)
     await waitForAutoConfirmOrManual(page, 'km-toosmall')
     await clickAnalysisRun(page)
-    await page.waitForTimeout(5000)
+    await page.waitForLoadState('networkidle')
 
     const hasError = await verifyErrorShown(page)
     log('km-toosmall', `error shown: ${hasError}`)
-    // 에러가 표시되거나 결과가 없어야 함
+    // Either error shown or no results — both valid for insufficient data
     const hasResults = await page.locator(S.resultsMainCard).isVisible().catch(() => false)
-    expect(hasError || !hasResults).toBeTruthy()
+    expect(hasError || !hasResults).toBe(true)
 
     await page.screenshot({ path: 'e2e/results/screenshots/km-too-small-result.png', fullPage: true })
   })
 
   test('3-2 ROC 데이터 부족 (<20행): 에러 메시지 또는 경고 표시', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'roc-too-small.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 'roc-too-small.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
@@ -620,56 +615,57 @@ test.describe('KM/ROC E2E - Phase 3: 에러 핸들링 + LLM', () => {
     await goToVariableSelection(page)
     await waitForAutoConfirmOrManual(page, 'roc-toosmall')
     await clickAnalysisRun(page)
-    await page.waitForTimeout(5000)
+    await page.waitForLoadState('networkidle')
 
     const hasError = await verifyErrorShown(page)
     log('roc-toosmall', `error shown: ${hasError}`)
+    // Either error shown or no results — both valid for insufficient data
     const hasResults = await page.locator(S.resultsMainCard).isVisible().catch(() => false)
-    expect(hasError || !hasResults).toBeTruthy()
+    expect(hasError || !hasResults).toBe(true)
 
     await page.screenshot({ path: 'e2e/results/screenshots/roc-too-small-result.png', fullPage: true })
   })
 
   test('3-3 KM via LLM 추천: AI가 Kaplan-Meier 추천 → 분석 완료', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'survival.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 'survival.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await mockOpenRouterAPI(page, 'kaplan-meier', 'Kaplan-Meier 생존분석')
 
     await goToMethodSelection(page)
-    expect(await selectMethodViaLLM(page, '두 치료군의 생존율을 비교하고 싶어요')).toBeTruthy()
+    expect(await selectMethodViaLLM(page, '두 치료군의 생존율을 비교하고 싶어요')).toBe(true)
 
     await waitForAutoConfirmOrManual(page, 'llm-km')
     await clickAnalysisRun(page)
 
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
     const r = await verifyKMResults(page)
     log('llm-km', r.details)
-    expect(r.hasResultsCard).toBeTruthy()
-    expect(r.hasSurvivalInfo).toBeTruthy()
+    expect(r.hasResultsCard).toBe(true)
+    expect(r.hasSurvivalInfo).toBe(true)
 
     await page.screenshot({ path: 'e2e/results/screenshots/llm-km-result.png', fullPage: true })
   })
 
   test('3-4 ROC via LLM 추천: AI가 ROC 곡선 추천 → 분석 완료', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'roc-diagnostic.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 'roc-diagnostic.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await mockOpenRouterAPI(page, 'roc-curve', 'ROC 곡선 분석')
 
     await goToMethodSelection(page)
-    expect(await selectMethodViaLLM(page, '진단 모델의 정확도를 ROC 곡선으로 평가하고 싶어요')).toBeTruthy()
+    expect(await selectMethodViaLLM(page, '진단 모델의 정확도를 ROC 곡선으로 평가하고 싶어요')).toBe(true)
 
     await waitForAutoConfirmOrManual(page, 'llm-roc')
     await clickAnalysisRun(page)
 
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
     const r = await verifyROCResults(page)
     log('llm-roc', r.details)
-    expect(r.hasResultsCard).toBeTruthy()
-    expect(r.hasAUC).toBeTruthy()
+    expect(r.hasResultsCard).toBe(true)
+    expect(r.hasAUC).toBe(true)
 
     await page.screenshot({ path: 'e2e/results/screenshots/llm-roc-result.png', fullPage: true })
   })

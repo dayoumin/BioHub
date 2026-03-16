@@ -41,7 +41,7 @@ test.describe('@phase5 @critical 페이지 로드 성능', () => {
 
   test('TC-5C.1.2: FCP (First Contentful Paint)', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30000 })
-    await page.waitForTimeout(3000)
+    await page.waitForLoadState('networkidle')
 
     const fcp = await measureFCP(page)
     if (fcp > 0) {
@@ -64,7 +64,7 @@ test.describe('@phase5 @critical 페이지 로드 성능', () => {
     })
 
     await page.goto('/', { waitUntil: 'networkidle', timeout: 60000 })
-    await page.waitForTimeout(3000)
+    await page.waitForLoadState('networkidle')
 
     log('TC-5C.1.3', `초기 요청: ${requestCount}개, 총 크기: ${(totalSize / 1024 / 1024).toFixed(1)}MB`)
     // 적정 기준: 초기 요청 < 100개 (정적 빌드 기준 여유)
@@ -99,7 +99,7 @@ test.describe('@phase5 @important 에러 경계', () => {
     const vizCard = page.locator(S.hubVisualizationCard)
     if (await vizCard.isVisible({ timeout: 5000 }).catch(() => false)) {
       await vizCard.click()
-      await page.waitForTimeout(5000)
+      await page.waitForLoadState('networkidle')
 
       // 에러 UI 확인
       const bodyText = await page.locator('body').innerText()
@@ -119,7 +119,7 @@ test.describe('@phase5 @important 에러 경계', () => {
       const retryBtn = page.locator('button:has-text("다시 시도"), button:has-text("재시도"), button:has-text("Retry")')
       if (await retryBtn.first().isVisible({ timeout: 3000 }).catch(() => false)) {
         await retryBtn.first().click()
-        await page.waitForTimeout(5000)
+        await page.waitForLoadState('networkidle')
         log('TC-5C.2.1', '재시도 버튼 클릭')
       }
     }
@@ -138,7 +138,7 @@ test.describe('@phase5 @important 에러 경계', () => {
       () => document.querySelector('[data-testid="hub-upload-card"]') !== null,
       { timeout: 30000 },
     )
-    await page.waitForTimeout(3000)
+    await page.waitForLoadState('networkidle')
 
     // 치명적 에러가 없어야 함 (일부 경고는 허용)
     const criticalErrors = consoleErrors.filter(
@@ -197,7 +197,7 @@ test.describe('@phase5 @important 반응형 레이아웃', () => {
 
       // Graph Studio
       await page.goto('/graph-studio/', { waitUntil: 'domcontentloaded', timeout: 30000 })
-      await page.waitForTimeout(3000)
+      await page.waitForLoadState('networkidle')
 
       const hasGS = await page
         .locator(S.graphStudioPage)
@@ -224,7 +224,7 @@ test.describe('@phase5 @important 반응형 레이아웃', () => {
             const overlaps = leftBox.x + leftBox.width > rightBox.x
             log(`TC-5C.3-${vp.name}`, `패널 겹침: ${overlaps}`)
             if (vp.width >= 1440) {
-              expect(overlaps).toBeFalsy()
+              expect(overlaps).toBe(false)
             }
           }
         }

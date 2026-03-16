@@ -9,7 +9,8 @@
 
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useAnalysisCacheStore } from '@/lib/stores/analysis-cache-store'
-import { clearAllHistory } from '@/lib/utils/indexeddb'
+import { useModeStore } from '@/lib/stores/mode-store'
+import { useHistoryStore } from '@/lib/stores/history-store'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 
 /**
@@ -66,13 +67,16 @@ export async function clearAllAppData(options: ClearDataOptions = {}): Promise<v
     console.log('[DataManagement] Cache cleared')
   }
 
-  // 3. Clear IndexedDB history (optional)
+  // 3. Clear history — IndexedDB + in-memory store state (optional)
+  // useHistoryStore.clearHistory() handles both: IndexedDB deletion + analysisHistory[] reset.
+  // Also reset mode-store flags that survive analysis-store.reset().
   if (shouldClearHistory) {
+    useModeStore.getState().resetMode()
     try {
-      await clearAllHistory()
-      console.log('[DataManagement] IndexedDB history cleared')
+      await useHistoryStore.getState().clearHistory()
+      console.log('[DataManagement] History cleared (IndexedDB + in-memory)')
     } catch (error) {
-      console.warn('[DataManagement] Failed to clear IndexedDB:', error)
+      console.warn('[DataManagement] Failed to clear history:', error)
     }
   }
 

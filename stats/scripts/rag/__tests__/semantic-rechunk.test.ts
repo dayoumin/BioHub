@@ -46,7 +46,7 @@ describe('Semantic Rechunk Script - Configuration', () => {
       ""
     ]
 
-    expect(separators.length).toBeGreaterThan(0)
+    expect(separators.length).toBeGreaterThanOrEqual(1)
     expect(separators[0]).toBe("\n\n\n") // 가장 큰 단위부터
     expect(separators[separators.length - 1]).toBe("") // 마지막은 빈 문자열
   })

@@ -102,7 +102,7 @@ export function createMethodTest(config: MethodTestConfig): void {
   test(title, async ({ page }) => {
     // Step 1: Upload
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, csvFile)).toBeTruthy()
+    expect(await uploadCSV(page, csvFile)).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15_000 })
 
     // Step 2: Method Selection
@@ -114,7 +114,7 @@ export function createMethodTest(config: MethodTestConfig): void {
       test.skip()
       return
     }
-    expect(selected).toBeTruthy()
+    expect(selected).toBe(true)
 
     // Step 3: Variable Selection
     await goToVariableSelection(page)
@@ -146,20 +146,20 @@ export function createMethodTest(config: MethodTestConfig): void {
 
     // Step 4: Run Analysis
     await clickAnalysisRun(page)
-    expect(await waitForResults(page, timeout)).toBeTruthy()
+    expect(await waitForResults(page, timeout)).toBe(true)
 
     // Step 5: Verify Results
     const r = await verifyStatisticalResults(page)
     log(id, r.details)
 
     if (expectedResults?.hasStatistic !== false) {
-      expect(r.hasStatistic).toBeTruthy()
+      expect(r.hasStatistic).toBe(true)
     }
     if (expectedResults?.hasPValue !== false) {
-      expect(r.hasPValue).toBeTruthy()
+      expect(r.hasPValue).toBe(true)
     }
     if (expectedResults?.hasEffectSize) {
-      expect(r.hasEffectSize).toBeTruthy()
+      expect(r.hasEffectSize).toBe(true)
     }
     if (expectedResults?.custom) {
       await expectedResults.custom(page)
@@ -247,7 +247,7 @@ async function assignVarViaButtonFallback(page: Page, varNames: string[]): Promi
     if ((await varItem.count()) > 0) {
       await varItem.first().click()
       log('assignVar', `✓ ${varName} (variable-item)`)
-      await page.waitForTimeout(500)
+      await page.waitForTimeout(300)
       continue
     }
     // button text fallback

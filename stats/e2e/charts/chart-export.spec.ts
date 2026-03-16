@@ -15,14 +15,14 @@ test.setTimeout(180_000)
 
 async function runTTestAnalysis(page: Page): Promise<void> {
   await navigateToUploadStep(page)
-  expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+  expect(await uploadCSV(page, 't-test.csv')).toBe(true)
   await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15_000 })
   await goToMethodSelection(page)
-  expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+  expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
   await goToVariableSelection(page)
   await ensureVariablesOrSkip(page, 'export', 'group', 'value')
   await clickAnalysisRun(page)
-  expect(await waitForResults(page, 120_000)).toBeTruthy()
+  expect(await waitForResults(page, 120_000)).toBe(true)
 }
 
 test.describe('Phase 3.5: Chart Export', () => {
@@ -31,7 +31,7 @@ test.describe('Phase 3.5: Chart Export', () => {
     const exportBtn = page.locator(S.exportDropdown)
     if (!await exportBtn.isVisible({ timeout: 5000 }).catch(() => false)) { test.skip(); return }
     await exportBtn.click()
-    await page.waitForTimeout(500)
+    await page.waitForTimeout(300)
     const htmlExport = page.locator(S.exportHtml)
     if (await htmlExport.isVisible({ timeout: 3000 }).catch(() => false)) {
       const [download] = await Promise.all([

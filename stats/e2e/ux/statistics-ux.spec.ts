@@ -37,7 +37,7 @@ test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
     await navigateToUploadStep(page)
 
     // 2. CSV 업로드
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     // 3. 다음 단계로 이동 (다음 버튼이 보여야 함)
@@ -57,23 +57,23 @@ test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
 
     // 5. 추천 수락
     await page.locator(S.selectRecommendedMethod).click()
-    await page.waitForTimeout(1500)
+    await page.waitForLoadState('networkidle')
 
     // 6. 변수 자동 할당 → 분석 실행
     await ensureVariablesOrSkip(page, 'TC-4A.1.1', 'group', 'value')
     await clickAnalysisRun(page)
 
     // 7. 결과 확인
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
     const r = await verifyStatisticalResults(page)
-    expect(r.hasStatistic).toBeTruthy()
-    expect(r.hasPValue).toBeTruthy()
+    expect(r.hasStatistic).toBe(true)
+    expect(r.hasPValue).toBe(true)
 
     // 해석 텍스트가 한국어로 존재하는지 확인
     const bodyText = await page.locator('body').innerText()
     const hasKoreanInterpretation =
       bodyText.includes('유의') || bodyText.includes('결과') || bodyText.includes('해석')
-    expect(hasKoreanInterpretation).toBeTruthy()
+    expect(hasKoreanInterpretation).toBe(true)
 
     // 8. 내보내기 → DOCX
     const exportDD = page.locator(S.exportDropdown)
@@ -97,7 +97,7 @@ test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
   test('TC-4A.1.2: 통계 전문가 — 직접 선택 → 상세 결과 확인', async ({ page }) => {
     // 1. 업로드
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'paired-t-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 'paired-t-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     // 2. 직접 선택 → 대응표본 t-검정
@@ -106,11 +106,10 @@ test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
     await page.locator(S.methodSearchInput).waitFor({ state: 'visible', timeout: 5000 })
     expect(
       await selectMethodDirect(page, '대응표본', /대응표본.*t.*검정|paired.*t/i),
-    ).toBeTruthy()
+    ).toBe(true)
 
     // 3. 변수 할당 (대응표본: pre, post → variables 슬롯에 2개)
     await goToVariableSelection(page)
-    await page.waitForTimeout(2000)
 
     // variable-selection-next가 이미 활성이면 자동 할당 완료
     const nextBtn = page.locator(S.variableSelectionNext)
@@ -126,14 +125,14 @@ test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
           const poolVar = page.locator(S.poolVar(varName))
           if ((await poolVar.count()) > 0) {
             await poolVar.click({ force: true })
-            await page.waitForTimeout(500)
+            await page.waitForTimeout(300)
             log('TC-4A.1.2', `pool-var-${varName} 클릭 (미할당 → 할당)`)
           }
         } else {
           log('TC-4A.1.2', `${varName} 이미 할당됨 (chip 존재)`)
         }
       }
-      await page.waitForTimeout(1000)
+      await page.waitForTimeout(300)
 
       // 할당 후에도 다음 단계 활성화 안 되면 슬롯 클릭으로 재시도
       if (!(await nextBtn.isEnabled().catch(() => false))) {
@@ -145,13 +144,13 @@ test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
 
     // 4. 분석 실행 (run-analysis-btn 또는 다음 단계 버튼)
     await clickAnalysisRun(page)
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
 
     // 5. 전문 통계 용어 확인
     const bodyText = await page.locator('body').innerText()
     const r = await verifyStatisticalResults(page)
-    expect(r.hasStatistic).toBeTruthy()
-    expect(r.hasPValue).toBeTruthy()
+    expect(r.hasStatistic).toBe(true)
+    expect(r.hasPValue).toBe(true)
 
     // 효과크기 확인
     const hasEffectSize = /효과크기|Cohen|effect\s*size/i.test(bodyText)
@@ -162,7 +161,7 @@ test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
       .locator(S.detailedResultsSection)
       .isVisible({ timeout: 3000 })
       .catch(() => false)
-    expect(hasDetailed).toBeTruthy()
+    expect(hasDetailed).toBe(true)
 
     log('TC-4A.1.2', '전문가 시나리오 완료')
   })
@@ -180,15 +179,9 @@ test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
 
     // 첫 번째 Pill 클릭
     await quickPills.first().click()
-    await page.waitForTimeout(2000)
 
     // Step 1(업로드)으로 직행하는지 확인
-    const hasFileInput = await page
-      .locator('input[type="file"]')
-      .count()
-      .then((c) => c > 0)
-      .catch(() => false)
-    expect(hasFileInput).toBeTruthy()
+    await expect(page.locator('input[type="file"]').first()).toBeAttached({ timeout: 10000 })
     log('TC-4A.1.3', 'QuickPills → 업로드 직행 확인')
   })
 })
@@ -201,15 +194,15 @@ test.describe('@phase4 @important 연속 분석', () => {
   test('TC-4A.2.1: 같은 데이터 → 다른 메서드로 재분석', async ({ page }) => {
     // 1차 분석: t-test
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 'TC-4A.2.1-1', 'group', 'value')
     await clickAnalysisRun(page)
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
 
     // 새 분석 버튼 클릭
     const newBtn = page.locator(S.newAnalysisBtn)
@@ -220,7 +213,7 @@ test.describe('@phase4 @important 연속 분석', () => {
     }
 
     await newBtn.click()
-    await page.waitForTimeout(3000)
+    await page.waitForLoadState('networkidle')
 
     // 데이터가 유지되는지 확인: 프로파일이 보이거나 Step 2로 직행
     const hasProfile = await page
@@ -243,21 +236,21 @@ test.describe('@phase4 @important 연속 분석', () => {
   test('TC-4A.2.2: 분석 이력에서 과거 결과 복원', async ({ page }) => {
     // 먼저 분석 1회 수행
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 'TC-4A.2.2', 'group', 'value')
     await clickAnalysisRun(page)
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
 
     // 1) 결과 저장 → IndexedDB에 이력 생성
     const saveBtn = page.locator('[data-testid="save-history-btn"]')
     await expect(saveBtn).toBeVisible({ timeout: 5000 })
     await saveBtn.click()
-    await page.waitForTimeout(2000)
+    await page.waitForLoadState('networkidle')
 
     // 2) 새 분석 버튼 → 확인 다이얼로그 → Hub 복귀 (앱 내 네비게이션)
     const newAnalysisBtn = page.locator(S.newAnalysisBtn)
@@ -267,7 +260,6 @@ test.describe('@phase4 @important 연속 분석', () => {
     const confirmBtn = page.getByRole('alertdialog').getByRole('button', { name: /확인|시작|새 분석/ })
     await expect(confirmBtn).toBeVisible({ timeout: 5000 })
     await confirmBtn.click()
-    await page.waitForTimeout(3000)
 
     // 3) 이력 카드 확인
     const historyCard = page.locator('[data-testid^="recent-activity-card-"]')
@@ -275,27 +267,27 @@ test.describe('@phase4 @important 연속 분석', () => {
 
     // 4) 이력 카드 클릭 → 결과 복원
     await historyCard.first().click()
-    await page.waitForTimeout(3000)
+    await expect(page.locator(S.resultsMainCard)).toBeVisible({ timeout: 15000 })
 
     const hasResults = await page
       .locator(S.resultsMainCard)
       .isVisible()
       .catch(() => false)
     log('TC-4A.2.2', `이력 복원: ${hasResults ? '성공' : '실패'}`)
-    expect(hasResults).toBeTruthy()
+    expect(hasResults).toBe(true)
   })
 
   test('TC-4A.2.3: 변수만 변경하여 재분석 (ReanalysisPanel)', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'anova.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 'anova.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '일원', /일원.*분산|one.*way.*anova/i)).toBeTruthy()
+    expect(await selectMethodDirect(page, '일원', /일원.*분산|one.*way.*anova/i)).toBe(true)
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 'TC-4A.2.3', 'group', 'value')
     await clickAnalysisRun(page)
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
 
     // 결과 화면에서 재분석 버튼 확인
     const reanalysisBtn = page.locator('[data-testid="reanalysis-btn"]')
@@ -303,7 +295,6 @@ test.describe('@phase4 @important 연속 분석', () => {
 
     // 재분석 버튼 클릭 → Step 1(업로드)로 이동 + stepTrack='reanalysis'
     await reanalysisBtn.click()
-    await page.waitForTimeout(2000)
 
     // handleReanalyze()는 navigateToStep(1) + 데이터 초기화 → Branch 1 (empty state)
     // data-exploration-empty: 데이터 없는 상태의 DataExplorationStep
@@ -320,11 +311,11 @@ test.describe('@phase4 @important 연속 분석', () => {
 test.describe('@phase4 @critical 에러 복구 — 통계', () => {
   test('TC-4A.3.1: 잘못된 변수 할당 → 에러 → 수정', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
     await goToVariableSelection(page)
 
     // 변수 할당 UI 대기 (레거시 run-analysis-btn 또는 신규 variable-selection-next)
@@ -350,17 +341,17 @@ test.describe('@phase4 @critical 에러 복구 — 통계', () => {
     // 정상 분석 완료 확인
     await ensureVariablesOrSkip(page, 'TC-4A.3.1', 'group', 'value')
     await clickAnalysisRun(page)
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
     log('TC-4A.3.1', '에러 복구 후 정상 분석 완료')
   })
 
   test('TC-4A.3.2: Pyodide 로딩 실패 → 재시도', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 'TC-4A.3.2', 'group', 'value')
 
@@ -368,7 +359,14 @@ test.describe('@phase4 @critical 에러 복구 — 통계', () => {
     await page.route('**/pyodide/**', (route) => route.abort())
 
     await clickAnalysisRun(page)
-    await page.waitForTimeout(10000)
+    // Wait for error UI to appear after Pyodide CDN block
+    await page.waitForFunction(
+      () => {
+        const text = document.body.innerText
+        return /오류|실패|에러|로딩|네트워크|error/i.test(text)
+      },
+      { timeout: 30000 },
+    ).catch(() => {})
 
     // 에러/실패 메시지 확인
     const bodyText = await page.locator('body').innerText()
@@ -387,7 +385,6 @@ test.describe('@phase4 @critical 에러 복구 — 통계', () => {
     const retryBtn = page.locator('button:has-text("다시 시도"), button:has-text("재시도"), button:has-text("Retry")')
     if (await retryBtn.first().isVisible({ timeout: 5000 }).catch(() => false)) {
       await retryBtn.first().click()
-      await page.waitForTimeout(5000)
       log('TC-4A.3.2', '재시도 버튼 클릭')
     } else {
       // 재시도 버튼 없으면 분석 다시 실행
@@ -401,23 +398,23 @@ test.describe('@phase4 @critical 에러 복구 — 통계', () => {
 
   test('TC-4A.3.3: 분석 중 취소 → 복구', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 'TC-4A.3.3', 'group', 'value')
 
     // 분석 실행 → 즉시 뒤로가기
     await clickAnalysisRun(page)
-    await page.waitForTimeout(1000) // 로딩 시작 대기
+    await page.waitForTimeout(300) // 로딩 시작 대기 (animation)
 
     // Step 3(변수 선택)으로 돌아가기 시도
     const step3 = page.locator(S.stepperStep(3))
     if (await step3.isVisible({ timeout: 2000 }).catch(() => false)) {
       await step3.click()
-      await page.waitForTimeout(2000)
+      await page.waitForLoadState('networkidle')
 
       // 앱 상태 정상 확인
       const hasVarSelector = await page
@@ -433,13 +430,13 @@ test.describe('@phase4 @critical 에러 복구 — 통계', () => {
         log('TC-4A.3.3', '취소 후 변수 선택 복귀 성공')
         // 재실행 → 정상 완료
         await clickAnalysisRun(page)
-        expect(await waitForResults(page, 120000)).toBeTruthy()
+        expect(await waitForResults(page, 120000)).toBe(true)
       } else {
         log('TC-4A.3.3', '취소 후 상태 — 이미 결과 표시 중일 수 있음')
       }
     } else {
       // Stepper가 없으면 결과 대기
-      expect(await waitForResults(page, 120000)).toBeTruthy()
+      expect(await waitForResults(page, 120000)).toBe(true)
       log('TC-4A.3.3', '분석 중 취소 불가 — 결과까지 진행')
     }
   })
@@ -465,7 +462,7 @@ test.describe('@phase4 @critical 에러 복구 — 통계', () => {
       mimeType: 'text/csv',
       buffer: Buffer.from(smallCsv),
     })
-    await page.waitForTimeout(3000)
+    await page.waitForLoadState('networkidle')
 
     // 데이터 프로파일이 보이면 진행
     const hasProfile = await page
@@ -483,7 +480,17 @@ test.describe('@phase4 @critical 에러 복구 — 통계', () => {
         await clickAnalysisRun(page)
 
         // 에러 또는 경고 메시지 확인 (분석 실패할 수 있음)
-        await page.waitForTimeout(15000)
+        // Wait for either results or error message
+        await page.waitForFunction(
+          () => {
+            const text = document.body.innerText
+            return (
+              document.querySelector('[data-testid="results-main-card"]') !== null ||
+              /부족|오류|에러|insufficient|error/i.test(text)
+            )
+          },
+          { timeout: 30000 },
+        ).catch(() => {})
         const bodyText = await page.locator('body').innerText()
         const hasError =
           bodyText.includes('부족') ||
@@ -496,8 +503,8 @@ test.describe('@phase4 @critical 에러 복구 — 통계', () => {
           .isVisible({ timeout: 5000 })
           .catch(() => false)
         log('TC-4A.3.4', `error=${hasError}, results=${hasResults}`)
-        // 에러 메시지 OR 결과 중 하나는 있어야 함
-        expect(hasError || hasResults).toBeTruthy()
+        // Either error message or results — both valid outcomes
+        expect(hasError || hasResults).toBe(true)
       }
     } else {
       // 업로드 단계에서 에러 처리
@@ -526,7 +533,7 @@ test.describe('@phase4 @important 내보내기 & 결과 활용', () => {
   }
 
   test('TC-4A.4.1: 결과 → DOCX 내보내기', async ({ page }) => {
-    expect(await runAnalysisForExport(page)).toBeTruthy()
+    expect(await runAnalysisForExport(page)).toBe(true)
 
     const exportDD = page.locator(S.exportDropdown)
     if (!(await exportDD.isVisible({ timeout: 5000 }).catch(() => false))) {
@@ -547,7 +554,7 @@ test.describe('@phase4 @important 내보내기 & 결과 활용', () => {
   })
 
   test('TC-4A.4.2: 결과 → XLSX 내보내기', async ({ page }) => {
-    expect(await runAnalysisForExport(page)).toBeTruthy()
+    expect(await runAnalysisForExport(page)).toBe(true)
 
     const exportDD = page.locator(S.exportDropdown)
     if (!(await exportDD.isVisible({ timeout: 5000 }).catch(() => false))) {
@@ -568,7 +575,7 @@ test.describe('@phase4 @important 내보내기 & 결과 활용', () => {
   })
 
   test('TC-4A.4.3: 결과 → HTML 보고서', async ({ page }) => {
-    expect(await runAnalysisForExport(page)).toBeTruthy()
+    expect(await runAnalysisForExport(page)).toBe(true)
 
     const exportDD = page.locator(S.exportDropdown)
     if (!(await exportDD.isVisible({ timeout: 5000 }).catch(() => false))) {
@@ -589,7 +596,7 @@ test.describe('@phase4 @important 내보내기 & 결과 활용', () => {
   })
 
   test('TC-4A.4.4: 결과 클립보드 복사', async ({ page }) => {
-    expect(await runAnalysisForExport(page)).toBeTruthy()
+    expect(await runAnalysisForExport(page)).toBe(true)
 
     // 복사 버튼 찾기
     const copyBtn = page.locator('[data-testid*="copy"], button:has-text("복사")')
@@ -605,7 +612,7 @@ test.describe('@phase4 @important 내보내기 & 결과 활용', () => {
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
 
     await copyBtn.first().click()
-    await page.waitForTimeout(1000)
+    await page.waitForLoadState('networkidle')
 
     // 토스트 메시지 확인
     const bodyText = await page.locator('body').innerText()

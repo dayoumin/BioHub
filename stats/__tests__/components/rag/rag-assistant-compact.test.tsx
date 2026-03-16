@@ -175,7 +175,7 @@ describe('RAGAssistantCompact', () => {
         return svg !== null
       })
 
-      expect(starIcons.length).toBeGreaterThan(0)
+      expect(starIcons.length).toBeGreaterThanOrEqual(1)
 
       const favoriteButton = starIcons[0]
       fireEvent.click(favoriteButton)
@@ -332,7 +332,7 @@ describe('RAGAssistantCompact', () => {
       await waitFor(() => {
         const loadingIndicators = screen.getAllByText('생각 중...')
         // 적어도 하나는 있어야 함
-        expect(loadingIndicators.length).toBeGreaterThan(0)
+        expect(loadingIndicators.length).toBeGreaterThanOrEqual(1)
       }, { timeout: 500 })
 
       // 프로미스 완료

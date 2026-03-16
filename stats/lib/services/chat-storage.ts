@@ -233,7 +233,6 @@ export class ChatStorage {
       const data = localStorage.getItem(this.SETTINGS_KEY)
       if (!data) {
         return {
-          floatingButtonEnabled: false, // Ollama 필요하므로 기본 비활성화
           theme: 'system',
         }
       }
@@ -242,7 +241,6 @@ export class ChatStorage {
     } catch (error) {
       console.error('Failed to load settings:', error)
       return {
-        floatingButtonEnabled: false, // Ollama 필요하므로 기본 비활성화
         theme: 'system',
       }
     }

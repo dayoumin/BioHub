@@ -100,7 +100,7 @@ describe('ModelRecommender', () => {
 
       // 가장 작은 모델도 실행할 수 없으므로 null 또는 경고 메시지
       // (현재 구현상 폴백으로 가장 작은 모델을 반환할 수도 있음)
-      expect(result).toBeTruthy() // 폴백 동작 확인
+      expect(result).not.toBeNull() // 폴백 동작 확인
     })
 
     it('should return null when no inference models available', () => {
@@ -151,7 +151,7 @@ describe('ModelRecommender', () => {
       const result = recommendModel([mockOllamaModels[0]] as any, 2.5)
 
       // 폴백 로직으로 경고와 함께 모델 반환 (또는 null)
-      expect(result).toBeTruthy() // 폴백 동작
+      expect(result).not.toBeNull() // 폴백 동작
     })
   })
 
@@ -234,7 +234,7 @@ describe('ModelRecommender', () => {
       const result = recommendModel(mockOllamaModels as any, 0.5)
 
       // 폴백: 가장 작은 모델 선택 (경고 메시지와 함께)
-      expect(result).toBeTruthy()
+      expect(result).not.toBeNull()
       expect(result).toBe('llama3.2:1b-q4_K_M') // 가장 작은 모델
     })
   })

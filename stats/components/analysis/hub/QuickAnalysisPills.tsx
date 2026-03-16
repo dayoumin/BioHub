@@ -8,7 +8,7 @@
  * - 편집 다이얼로그로 사용자 설정
  */
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { Settings2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -83,7 +83,15 @@ interface QuickAnalysisPillsProps {
 export function QuickAnalysisPills({ onQuickAnalysis }: QuickAnalysisPillsProps) {
   const t = useTerminology()
 
-  const [quickMethods, setQuickMethods] = useState<string[]>(() => loadQuickMethods())
+  const [quickMethods, setQuickMethods] = useState<string[]>(DEFAULT_QUICK_METHODS)
+
+  // localStorage는 useEffect에서 로드하여 hydration mismatch 방지
+  useEffect(() => {
+    const saved = loadQuickMethods()
+    if (JSON.stringify(saved) !== JSON.stringify(DEFAULT_QUICK_METHODS)) {
+      setQuickMethods(saved)
+    }
+  }, [])
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [editingMethods, setEditingMethods] = useState<string[]>([])
 

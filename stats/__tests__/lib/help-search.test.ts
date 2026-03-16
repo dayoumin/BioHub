@@ -16,7 +16,7 @@ describe('Help Search System', () => {
     it('should return all help items as flat array', () => {
       const items = getAllHelpItems()
       expect(Array.isArray(items)).toBe(true)
-      expect(items.length).toBeGreaterThan(0)
+      expect(items.length).toBeGreaterThanOrEqual(1)
     })
 
     it('should have required fields in each item', () => {
@@ -35,7 +35,7 @@ describe('Help Search System', () => {
   describe('getHelpSectionsByCategory', () => {
     it('should return sections for guide category', () => {
       const sections = getHelpSectionsByCategory('guide')
-      expect(sections.length).toBeGreaterThan(0)
+      expect(sections.length).toBeGreaterThanOrEqual(1)
       sections.forEach(section => {
         expect(section.category).toBe('guide')
       })
@@ -43,7 +43,7 @@ describe('Help Search System', () => {
 
     it('should return sections for faq category', () => {
       const sections = getHelpSectionsByCategory('faq')
-      expect(sections.length).toBeGreaterThan(0)
+      expect(sections.length).toBeGreaterThanOrEqual(1)
       sections.forEach(section => {
         expect(section.category).toBe('faq')
       })
@@ -52,7 +52,7 @@ describe('Help Search System', () => {
     it('should return sections for all categories', () => {
       HELP_CATEGORIES.forEach(cat => {
         const sections = getHelpSectionsByCategory(cat.id)
-        expect(sections.length).toBeGreaterThan(0)
+        expect(sections.length).toBeGreaterThanOrEqual(1)
       })
     })
   })
@@ -65,7 +65,7 @@ describe('Help Search System', () => {
 
     it('should find results for "결측값"', () => {
       const results = searchHelp('결측값')
-      expect(results.length).toBeGreaterThan(0)
+      expect(results.length).toBeGreaterThanOrEqual(1)
 
       // 결측값 관련 항목이 상위에 있어야 함
       const hasRelevantResult = results.some(
@@ -76,7 +76,7 @@ describe('Help Search System', () => {
 
     it('should find results for "CSV"', () => {
       const results = searchHelp('CSV')
-      expect(results.length).toBeGreaterThan(0)
+      expect(results.length).toBeGreaterThanOrEqual(1)
 
       const hasCsvResult = results.some(
         r => r.item.title.includes('CSV') || r.item.keywords.includes('CSV')
@@ -86,12 +86,12 @@ describe('Help Search System', () => {
 
     it('should find results for "단축키"', () => {
       const results = searchHelp('단축키')
-      expect(results.length).toBeGreaterThan(0)
+      expect(results.length).toBeGreaterThanOrEqual(1)
     })
 
     it('should find results for "ANOVA"', () => {
       const results = searchHelp('ANOVA')
-      expect(results.length).toBeGreaterThan(0)
+      expect(results.length).toBeGreaterThanOrEqual(1)
     })
 
     it('should respect limit parameter', () => {
@@ -116,7 +116,7 @@ describe('Help Search System', () => {
       results.forEach(result => {
         expect(result).toHaveProperty('matchedIn')
         expect(Array.isArray(result.matchedIn)).toBe(true)
-        expect(result.matchedIn.length).toBeGreaterThan(0)
+        expect(result.matchedIn.length).toBeGreaterThanOrEqual(1)
       })
     })
 
@@ -176,13 +176,13 @@ describe('Help Search System', () => {
 
   describe('SUGGESTED_QUERIES', () => {
     it('should have suggested queries', () => {
-      expect(SUGGESTED_QUERIES.length).toBeGreaterThan(0)
+      expect(SUGGESTED_QUERIES.length).toBeGreaterThanOrEqual(1)
     })
 
     it('should all return search results', () => {
       SUGGESTED_QUERIES.forEach(query => {
         const results = searchHelp(query)
-        expect(results.length).toBeGreaterThan(0)
+        expect(results.length).toBeGreaterThanOrEqual(1)
       })
     })
   })

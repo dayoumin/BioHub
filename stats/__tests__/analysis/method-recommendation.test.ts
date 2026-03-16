@@ -376,7 +376,7 @@ describe('스마트 분석 메서드 추천 시스템', () => {
       const result = checkMethodRequirements(method, profile)
 
       expect(result.canUse).toBe(false)
-      expect(result.warnings.length).toBeGreaterThan(0)
+      expect(result.warnings.length).toBeGreaterThanOrEqual(1)
       expect(result.warnings.some(w => w.includes('샘플') || w.includes('데이터'))).toBe(true)
     })
 
@@ -486,7 +486,7 @@ describe('스마트 분석 메서드 추천 시스템', () => {
       const context = createContext('그냥 뭔가 분석')
       const result = SmartRecommender.recommend(context)
 
-      expect(result.warnings.length).toBeGreaterThan(0)
+      expect(result.warnings.length).toBeGreaterThanOrEqual(1)
       expect(result.confidence).toBe('low')
     })
 
@@ -706,7 +706,7 @@ describe('스마트 분석 메서드 추천 시스템', () => {
       expect(() => recommendMethods(profile)).not.toThrow()
 
       const recommendations = recommendMethods(profile)
-      expect(recommendations.length).toBeGreaterThan(0)
+      expect(recommendations.length).toBeGreaterThanOrEqual(1)
     })
   })
 

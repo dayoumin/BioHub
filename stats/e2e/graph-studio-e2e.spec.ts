@@ -6,14 +6,17 @@
  * - 각 테스트는 beforeEach에서 /graph-studio로 이동 (독립 실행 가능)
  * - hydration 완료 신호: html[data-graph-studio-ready="true"] (page.tsx useEffect)
  *
+ * 흐름 (G5.0):
+ *   Step 1 (upload) → Step 2 (setup: 차트 타입 + 필드 매핑) → Step 3 (editor)
+ *
  * T1: 업로드 모드 렌더링 (smoke)
- * T2: 차트 유형 클릭 → 에디터 진입 (샘플 데이터)
- * T3: 파일 업로드 → 에디터 전환
+ * T2: 샘플 데이터 → 설정 → 에디터 진입
+ * T3: 파일 업로드 → 설정 → 에디터 전환
  * T4: 에디터 사이드 패널 탭 전환
  * T5: 사이드 패널 토글
  * T6: AI 패널 토글 (smoke)
  *
- * 실행: npx playwright test e2e/graph-studio-e2e.spec.ts --headed
+ * 실행: npx playwright test --config=playwright-graph.config.ts
  */
 
 import { test, expect, type Page } from '@playwright/test'
@@ -22,46 +25,48 @@ import { S } from './selectors'
 
 // ── 헬퍼 ────────────────────────────────────────────────────────────────────
 
-/** /graph-studio로 이동 후 React hydration 완료까지 대기.
- *
- * about:blank 경유:
- *   - 동일 URL 재방문 시 Next.js SPA 소프트 내비게이션을 방지
- *   - Zustand 스토어 상태가 이전 테스트로부터 누수되지 않음
- *
- * html[data-graph-studio-ready="true"] 대기:
- *   - page.tsx의 useEffect가 React hydration 완료 후 설정
- *   - SSR에서는 실행되지 않으므로 이 속성 = 이벤트 핸들러 부착 완료 보장
- *   - waitForTimeout 같은 타이머 기반 방식보다 결정론적
- */
+/** /graph-studio로 이동 후 React hydration 완료까지 대기. */
 async function navigateToGraphStudio(page: Page): Promise<void> {
   await page.goto('about:blank')
   await page.goto('/graph-studio', { waitUntil: 'load', timeout: 60_000 })
-  // waitForSelector는 html 요소에 대해 visibility 체크를 수행하므로 간헐적 타임아웃 발생.
-  // waitForFunction은 JS로 직접 속성을 확인 → 더 신뢰성 있음.
   await page.waitForFunction(
     () => document.documentElement.getAttribute('data-graph-studio-ready') === 'true',
     { timeout: 30_000 },
   )
 }
 
-/** 차트 유형 썸네일 클릭 → 샘플 데이터로 에디터 진입.
- *
- * navigateToGraphStudio 완료 후 호출 → hydration 보장 상태.
- * ECharts 첫 초기화는 무거우므로 chart attached 대기를 10s로 설정.
- */
-async function enterEditorViaSampleChart(page: Page, chartType = 'bar'): Promise<void> {
-  const thumbnail = page.locator(S.graphStudioChartType(chartType))
-  await thumbnail.waitFor({ state: 'visible', timeout: 10_000 })
-  await thumbnail.click()
+/** Step 1 → 2: 샘플 데이터 로드 → ChartSetupPanel 진입 */
+async function loadSampleData(page: Page): Promise<void> {
+  const sampleBtn = page.locator(S.graphStudioSampleBtn)
+  await sampleBtn.waitFor({ state: 'visible', timeout: 10_000 })
+  await sampleBtn.click()
+  // setup 모드 대기: 차트 타입 선택 그리드가 보일 때까지
+  await page.locator(S.graphStudioChartType('bar')).waitFor({ state: 'visible', timeout: 10_000 })
+}
 
-  await page.waitForSelector(S.graphStudioChart, { state: 'attached', timeout: 10_000 })
+/** Step 2 → 3: 차트 타입 선택 + "차트 만들기" → 에디터 진입 */
+async function createChart(page: Page, chartType = 'bar'): Promise<void> {
+  const typeBtn = page.locator(S.graphStudioChartType(chartType))
+  await typeBtn.waitFor({ state: 'visible', timeout: 10_000 })
+  await typeBtn.click()
+
+  const createBtn = page.locator(S.graphStudioCreateBtn)
+  await createBtn.waitFor({ state: 'visible', timeout: 5_000 })
+  await createBtn.click()
+
+  await page.waitForSelector(S.graphStudioChart, { state: 'attached', timeout: 15_000 })
+}
+
+/** 샘플 데이터 → 에디터 진입 (전체 흐름) */
+async function enterEditorViaSampleChart(page: Page, chartType = 'bar'): Promise<void> {
+  await loadSampleData(page)
+  await createChart(page, chartType)
 }
 
 // ── 테스트 ──────────────────────────────────────────────────────────────────
 
 test.describe('Graph Studio', () => {
   test.beforeEach(async ({ page }) => {
-    // pageerror 수집 → SyntaxError 등 JS 런타임 에러를 30s 타임아웃 대신 즉시 노출
     const pageErrors: Error[] = []
     page.on('pageerror', err => pageErrors.push(err))
 
@@ -78,25 +83,33 @@ test.describe('Graph Studio', () => {
     await expect(page.locator(S.graphStudioDropzone)).toBeVisible()
     await expect(page.locator(S.graphStudioUploadZone)).toBeVisible()
     await expect(page.locator(S.graphStudioFileUploadBtn)).toBeVisible()
-    await expect(page.locator(S.graphStudioChartType('bar'))).toBeVisible()
+    await expect(page.locator(S.graphStudioSampleBtn)).toBeVisible()
   })
 
-  // T2: 차트 유형 클릭 → 에디터 진입 (샘플 데이터)
-  test('T2: 차트 유형 클릭 → 에디터 진입 (샘플 데이터)', async ({ page }) => {
-    // before: upload-zone 보임
+  // T2: 샘플 데이터 → 설정 → 에디터 진입
+  test('T2: 샘플 데이터 → 설정 → 에디터 진입', async ({ page }) => {
+    // before: upload 모드
     await expect(page.locator(S.graphStudioUploadZone)).toBeVisible()
 
-    await enterEditorViaSampleChart(page, 'bar')
+    // Step 1 → 2: 샘플 데이터 로드
+    await loadSampleData(page)
 
-    // after: chart + side-panel 렌더, upload-zone 사라짐
+    // setup 모드: 차트 타입 그리드 + 만들기 버튼 보임, 업로드 영역 사라짐
+    await expect(page.locator(S.graphStudioChartType('bar'))).toBeVisible()
+    await expect(page.locator(S.graphStudioCreateBtn)).toBeVisible()
+    await expect(page.locator(S.graphStudioUploadZone)).not.toBeVisible()
+
+    // Step 2 → 3: 차트 만들기
+    await createChart(page, 'bar')
+
+    // editor 모드: 차트 + 사이드 패널 렌더
     await expect(page.locator(S.graphStudioChart)).toBeVisible({ timeout: 15_000 })
     await expect(page.locator(S.graphStudioSidePanel)).toBeVisible()
-    await expect(page.locator(S.graphStudioUploadZone)).not.toBeVisible()
   })
 
-  // T3: 파일 업로드 → 에디터 전환
+  // T3: 파일 업로드 → 설정 → 에디터 전환
   test('T3: 파일 업로드 → 에디터 전환', async ({ page }) => {
-    // before: upload-zone 보임
+    // before: upload 모드
     await expect(page.locator(S.graphStudioUploadZone)).toBeVisible()
 
     const csvPath = path.resolve(
@@ -104,30 +117,37 @@ test.describe('Graph Studio', () => {
       '../public/test-data/독립표본t검정_암수차이.csv',
     )
 
-    // data-testid="graph-studio-file-input" — sr-only input에 직접 파일 설정
-    // react-dropzone의 getInputProps() input(noClick:true)과 달리 onChange가 확실히 발화
+    // Step 1: 파일 업로드 → setup 모드로 전환
     await page.locator(S.graphStudioFileInput).setInputFiles(csvPath)
 
-    // after: CSV 파싱 + 스토어 업데이트 + chart 렌더
-    await expect(page.locator(S.graphStudioChart)).toBeVisible({ timeout: 20_000 })
+    // setup 모드 대기
+    await page.locator(S.graphStudioChartType('bar')).waitFor({ state: 'visible', timeout: 20_000 })
+
+    // Step 2 → 3: 차트 만들기
+    await createChart(page, 'bar')
+
+    // editor 모드: 차트 렌더
+    await expect(page.locator(S.graphStudioChart)).toBeVisible({ timeout: 15_000 })
   })
 
-  // T4: 에디터 사이드 패널 탭 전환
-  test('T4: 에디터 사이드 패널 탭 전환', async ({ page }) => {
+  // T4: 에디터 사이드 패널 아코디언 토글
+  test('T4: 에디터 사이드 패널 아코디언 토글', async ({ page }) => {
     await enterEditorViaSampleChart(page, 'bar')
     await expect(page.locator(S.graphStudioSidePanel)).toBeVisible()
 
     const dataTab = page.locator(S.graphStudioTabData)
     const styleTab = page.locator(S.graphStudioTabStyle)
 
-    // before: data 탭 → active 전환
-    await dataTab.click()
-    await expect(dataTab).toHaveAttribute('data-state', 'active')
+    // 두 트리거 모두 존재 확인
+    await expect(dataTab).toBeVisible()
+    await expect(styleTab).toBeVisible()
 
-    // after: style 탭 → active, data 탭 → inactive
+    // 스타일 섹션 토글: 현재 상태 확인 후 반전 검증
+    const styleBefore = await styleTab.getAttribute('data-state')
     await styleTab.click()
-    await expect(styleTab).toHaveAttribute('data-state', 'active')
-    await expect(dataTab).not.toHaveAttribute('data-state', 'active')
+    const styleAfter = await styleTab.getAttribute('data-state')
+    // 토글 동작 확인: open↔closed 전환됨
+    expect(styleBefore).not.toBe(styleAfter)
   })
 
   // T5: 사이드 패널 토글

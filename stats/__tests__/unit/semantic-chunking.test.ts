@@ -129,7 +129,7 @@ describe('SemanticChunkingStrategy - Parser Independence', () => {
 
   it('should accept plain text', () => {
     const plainText = 'Just some plain text without structure.'
-    expect(plainText.length).toBeGreaterThan(0)
+    expect(plainText.length).toBeGreaterThanOrEqual(1)
   })
 
   it('should work with any text format', () => {
@@ -141,7 +141,7 @@ describe('SemanticChunkingStrategy - Parser Independence', () => {
 
     textFormats.forEach(text => {
       expect(typeof text).toBe('string')
-      expect(text.length).toBeGreaterThan(0)
+      expect(text.length).toBeGreaterThanOrEqual(1)
     })
   })
 })

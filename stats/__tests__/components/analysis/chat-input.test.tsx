@@ -176,7 +176,7 @@ describe('ChatInput', () => {
         <ChatInput onSubmit={vi.fn()} isProcessing={false} onUploadClick={vi.fn()} />
       )
 
-      expect(screen.getByRole('button', { name: '데이터 파일 업로드' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: '데이터 파일 업로드' })).toBeInTheDocument()
     })
 
     it('업로드 버튼 클릭 → onUploadClick 호출', () => {

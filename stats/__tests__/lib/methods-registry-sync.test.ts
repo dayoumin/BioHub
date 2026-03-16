@@ -205,7 +205,7 @@ describe('Methods Registry SSOT 검증', () => {
     it('모든 Worker가 최소 1개 이상의 메서드를 가져야 함', () => {
       for (const workerNum of [1, 2, 3, 4] as WorkerNumber[]) {
         const methods = getWorkerMethods(workerNum)
-        expect(methods.length).toBeGreaterThan(0)
+        expect(methods.length).toBeGreaterThanOrEqual(1)
       }
     })
 
@@ -218,8 +218,8 @@ describe('Methods Registry SSOT 검증', () => {
     it('모든 메서드에 description이 있어야 함', () => {
       const allMethods = getAllMethods()
       for (const { methodName, definition } of allMethods) {
-        expect(definition.description).toBeTruthy()
-        expect(definition.description.length).toBeGreaterThan(0)
+        expect(definition.description).toEqual(expect.any(String))
+        expect(definition.description.length).toBeGreaterThanOrEqual(1)
       }
     })
 

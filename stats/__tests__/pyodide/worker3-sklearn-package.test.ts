@@ -86,7 +86,7 @@ describe('Worker 3 scikit-learn 패키지', () => {
 
       allPackages.forEach(pkg => {
         expect(typeof pkg).toBe('string')
-        expect(pkg.length).toBeGreaterThan(0)
+        expect(pkg.length).toBeGreaterThanOrEqual(1)
       })
     })
 

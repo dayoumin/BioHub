@@ -134,6 +134,10 @@ export default function HomePage() {
     setShowHelp(prev => !prev)
   }, [])
 
+  const handleBackToHub = useCallback(() => {
+    setShowHub(true)
+  }, [setShowHub])
+
   return (
     <AnalysisLayout
       currentStep={handlers.currentStep}
@@ -149,6 +153,7 @@ export default function HomePage() {
       historyCount={handlers.analysisHistory.length}
       showStepper={!showHub}
       showHub={showHub}
+      onBackToHub={handleBackToHub}
       canGoNext={handlers.canProceedWithFloatingNav}
       onNext={handlers.handleFloatingNext}
       nextLabel={handlers.nextStepLabel}

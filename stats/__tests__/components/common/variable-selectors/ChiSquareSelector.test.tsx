@@ -107,7 +107,7 @@ describe('ChiSquareSelector', () => {
         b => b.textContent?.includes('gender')
       ) as HTMLButtonElement[]
       const disabledGender = allBtnsAfter.filter(b => b.disabled)
-      expect(disabledGender.length).toBeGreaterThan(0)
+      expect(disabledGender.length).toBeGreaterThanOrEqual(1)
     })
 
     it('initialSelection으로 사전 선택이 반영된다', () => {

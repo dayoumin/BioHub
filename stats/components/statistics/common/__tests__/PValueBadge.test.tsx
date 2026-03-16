@@ -97,6 +97,6 @@ describe('PValueGroup', () => {
     render(<PValueGroup values={mockValues} />)
     // 0.045는 alpha=0.01 기준으로 유의하지 않음
     const badges = screen.getAllByRole('status')
-    expect(badges.length).toBeGreaterThan(0)
+    expect(badges.length).toBeGreaterThanOrEqual(1)
   })
 })

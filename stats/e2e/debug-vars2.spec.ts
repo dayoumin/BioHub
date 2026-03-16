@@ -4,10 +4,10 @@ import { navigateToUploadStep, uploadCSV, goToMethodSelection, selectMethodDirec
 
 test('debug2: 메서드 ID + 슬롯 확인', async ({ page }) => {
   await navigateToUploadStep(page)
-  expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+  expect(await uploadCSV(page, 't-test.csv')).toBe(true)
   await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
   await goToMethodSelection(page)
-  expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+  expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
   await goToVariableSelection(page)
   await page.waitForTimeout(3000)
 

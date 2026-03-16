@@ -57,7 +57,7 @@ describe('Phase B-2: 가정검증 타입 테스트', () => {
         isNormal: true,
       }
 
-      expect(shapiroResult.statistic).toBeGreaterThan(0)
+      expect(shapiroResult.statistic).toBe(0.95)
       expect(shapiroResult.pValue).toBeGreaterThanOrEqual(0)
       expect(shapiroResult.pValue).toBeLessThanOrEqual(1)
       expect(shapiroResult.isNormal).toBe(shapiroResult.pValue >= 0.05)
@@ -70,7 +70,7 @@ describe('Phase B-2: 가정검증 타입 테스트', () => {
         equalVariance: true,
       }
 
-      expect(leveneResult.statistic).toBeGreaterThan(0)
+      expect(leveneResult.statistic).toBe(2.5)
       expect(leveneResult.pValue).toBeGreaterThanOrEqual(0)
       expect(leveneResult.pValue).toBeLessThanOrEqual(1)
       expect(leveneResult.equalVariance).toBe(leveneResult.pValue >= 0.05)
@@ -230,7 +230,7 @@ describe('Phase B-2: 가정검증 타입 테스트', () => {
         }
       }
 
-      expect(result.warnings.length).toBeGreaterThan(0)
+      expect(result.warnings.length).toBeGreaterThanOrEqual(1)
       expect(result.warnings[0]).toContain('정규성 검정')
       expect(result.warnings[0]).toContain('value')
       expect(result.assumptionTests?.normality?.shapiroWilk?.isNormal).toBe(false)

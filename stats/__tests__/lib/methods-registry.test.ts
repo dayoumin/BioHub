@@ -153,7 +153,7 @@ describe('Methods Registry', () => {
         expect(Array.isArray(definition.params)).toBe(true)
         expect(Array.isArray(definition.returns)).toBe(true)
         expect(typeof definition.description).toBe('string')
-        expect(definition.description.length).toBeGreaterThan(0)
+        expect(definition.description.length).toBeGreaterThanOrEqual(1)
       }
     })
   })

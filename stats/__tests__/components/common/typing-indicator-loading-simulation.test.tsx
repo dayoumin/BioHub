@@ -132,7 +132,7 @@ describe('NaturalLanguageInput — 로딩 단계 메시지 사이클', () => {
     const srSpan = status.querySelector('.sr-only')
     expect(srSpan).toBeInTheDocument()
     const firstLabel = srSpan?.textContent
-    expect(firstLabel).toBeTruthy()
+    expect(firstLabel).toEqual(expect.any(String))
   })
 
   it('2초 후 두 번째 loadingMessage로 변경된다', () => {
@@ -141,13 +141,13 @@ describe('NaturalLanguageInput — 로딩 단계 메시지 사이클', () => {
     )
     // before: 첫 번째 메시지 (stage 0)
     const firstLabel = screen.getByRole('status').querySelector('.sr-only')?.textContent
-    expect(firstLabel).toBeTruthy()
+    expect(firstLabel).toEqual(expect.any(String))
 
     act(() => { vi.advanceTimersByTime(2000) })
 
     // after: 두 번째 메시지 (stage 1) — 반드시 다른 문자열이어야 함
     const secondLabel = screen.getByRole('status').querySelector('.sr-only')?.textContent
-    expect(secondLabel).toBeTruthy()
+    expect(secondLabel).toEqual(expect.any(String))
     expect(secondLabel).not.toBe(firstLabel)
   })
 
@@ -161,7 +161,7 @@ describe('NaturalLanguageInput — 로딩 단계 메시지 사이클', () => {
     act(() => { vi.advanceTimersByTime(3000) }) // 누적 5000ms
 
     const thirdLabel = screen.getByRole('status').querySelector('.sr-only')?.textContent
-    expect(thirdLabel).toBeTruthy()
+    expect(thirdLabel).toEqual(expect.any(String))
     expect(thirdLabel).not.toBe(secondLabel)
   })
 
@@ -205,7 +205,7 @@ describe('ChatInput — isProcessing 상태 인디케이터', () => {
     )
     // processingMessage 텍스트가 sr-only span에 표시됨
     const status = screen.getByRole('status')
-    expect(status.querySelector('.sr-only')?.textContent).toBeTruthy()
+    expect(status.querySelector('.sr-only')?.textContent).toEqual(expect.any(String))
   })
 
   it('isProcessing=true → false: 상태 인디케이터가 사라진다', () => {

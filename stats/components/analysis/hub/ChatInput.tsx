@@ -5,6 +5,9 @@
  *
  * - 입력 후 Enter로 제출, Shift+Enter로 줄바꿈
  * - onSubmit 시 Intent Router를 통해 트랙 분류
+ * - 업로드 아이콘(ArrowUpFromLine): 통계 분석용 데이터 업로드 (Step 1 이동)
+ *   → TrackSuggestions의 "데이터 업로드" 카드와 동일 기능 (중복 진입점)
+ *   TODO: 업로드 진입점 중복 정리 — ChatInput 내 아이콘 vs TrackSuggestions 카드
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react'

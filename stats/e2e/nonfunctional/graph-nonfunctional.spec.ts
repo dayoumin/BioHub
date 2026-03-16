@@ -34,11 +34,11 @@ async function navigateToGraphStudio(page: import('@playwright/test').Page): Pro
   if (direct) return
 
   await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30000 })
-  await page.waitForTimeout(2000)
+  await page.waitForLoadState('networkidle')
   const gsLink = page.locator('a[href*="graph-studio"]').first()
   if (await gsLink.isVisible({ timeout: 5000 }).catch(() => false)) {
     await gsLink.click()
-    await page.waitForTimeout(2000)
+    await page.waitForLoadState('networkidle')
   }
 }
 
@@ -82,7 +82,7 @@ test.describe('@phase5 @critical 성능 — 그래프', () => {
     const barType = page.locator(S.graphStudioChartType('bar'))
     if (await barType.isVisible({ timeout: 5000 }).catch(() => false)) {
       await barType.click()
-      await page.waitForTimeout(3000)
+      await page.waitForLoadState('networkidle')
     } else {
       log('TC-5B.1.2', 'SKIPPED: bar chart type 미표시')
       test.skip()
@@ -159,7 +159,7 @@ test.describe('@phase5 @critical 성능 — 그래프', () => {
     const barType = page.locator(S.graphStudioChartType('bar'))
     if (await barType.isVisible({ timeout: 5000 }).catch(() => false)) {
       await barType.click()
-      await page.waitForTimeout(3000)
+      await page.waitForLoadState('networkidle')
     } else {
       log('TC-5B.1.4', 'SKIPPED: bar chart type 미표시')
       test.skip()
@@ -253,7 +253,7 @@ test.describe('@phase5 @important 접근성 — 그래프', () => {
     const barType = page.locator(S.graphStudioChartType('bar'))
     if (await barType.isVisible({ timeout: 5000 }).catch(() => false)) {
       await barType.click()
-      await page.waitForTimeout(3000)
+      await page.waitForLoadState('networkidle')
     }
 
     // ECharts canvas의 aria-label 확인
@@ -294,7 +294,7 @@ test.describe('@phase5 @important 접근성 — 그래프', () => {
     const barType = page.locator(S.graphStudioChartType('bar'))
     if (await barType.isVisible({ timeout: 5000 }).catch(() => false)) {
       await barType.click()
-      await page.waitForTimeout(3000)
+      await page.waitForLoadState('networkidle')
     }
 
     // 차트가 정상 렌더링되는지 확인 (모션 감소 모드에서)

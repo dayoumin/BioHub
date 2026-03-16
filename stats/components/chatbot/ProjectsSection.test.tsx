@@ -181,7 +181,7 @@ describe('ProjectsSection', () => {
 
       // 배지에 세션 카운트 표시
       const badges = screen.getAllByText('2')
-      expect(badges.length).toBeGreaterThan(0)
+      expect(badges.length).toBeGreaterThanOrEqual(1)
     })
   })
 

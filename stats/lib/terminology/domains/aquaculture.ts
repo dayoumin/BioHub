@@ -1115,9 +1115,14 @@ export const aquaculture: TerminologyDictionary = {
       select: '선택',
       guidedQuestions: '단계별 가이드',
       browseAll: '전체 목록 보기',
+      askAiAgain: 'AI에게 다시 질문',
     },
     providers: {
       keyword: '키워드',
+    },
+    autoLoading: {
+      title: '데이터를 분석하고 있습니다...',
+      subtitle: '최적의 통계 방법을 찾고 있습니다',
     },
   },
 

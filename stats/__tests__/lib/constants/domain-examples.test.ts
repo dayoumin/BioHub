@@ -117,7 +117,7 @@ describe('domain-examples.ts', () => {
         (v) => v.includes('_g') || v.includes('_kg') || v.includes('_C') || v.includes('_ppt') || v.includes('_%')
       );
 
-      expect(withUnits.length).toBeGreaterThan(0);
+      expect(withUnits.length).toBeGreaterThanOrEqual(1);
 
       // 모든 단위 표기 변수가 언더스코어 사용
       withUnits.forEach((variable) => {
@@ -252,7 +252,7 @@ describe('domain-examples.ts', () => {
         const example = STATISTICS_EXAMPLES[preset as keyof typeof STATISTICS_EXAMPLES];
         expect(example).toHaveProperty('description');
         expect(typeof example.description).toBe('string');
-        expect(example.description.length).toBeGreaterThan(0);
+        expect(example.description.length).toBeGreaterThanOrEqual(1);
       });
     });
 
@@ -290,16 +290,16 @@ describe('domain-examples.ts', () => {
 
       // continuous
       Object.values(fisheries.continuous).forEach((arr) => {
-        expect(arr.length).toBeGreaterThan(0);
+        expect(arr.length).toBeGreaterThanOrEqual(1);
       });
 
       // categorical
       Object.values(fisheries.categorical).forEach((arr) => {
-        expect(arr.length).toBeGreaterThan(0);
+        expect(arr.length).toBeGreaterThanOrEqual(1);
       });
 
       // id
-      expect(fisheries.id.length).toBeGreaterThan(0);
+      expect(fisheries.id.length).toBeGreaterThanOrEqual(1);
     });
 
     it('중복된 값이 없어야 함', () => {
@@ -342,7 +342,7 @@ describe('domain-examples.ts', () => {
 
       allValues.forEach((value) => {
         expect(typeof value).toBe('string');
-        expect(value.length).toBeGreaterThan(0);
+        expect(value.length).toBeGreaterThanOrEqual(1);
         expect(value.trim()).toBe(value); // 앞뒤 공백 없음
       });
     });

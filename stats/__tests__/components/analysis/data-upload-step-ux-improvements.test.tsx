@@ -148,7 +148,7 @@ describe('DataUploadStep UX Improvements', () => {
       )
 
       const recentFileBtn = screen.getByRole('button', { name: /data\.csv/ })
-      expect(recentFileBtn).toBeTruthy()
+      expect(recentFileBtn).toBeInTheDocument()
       expect(recentFileBtn).toHaveAttribute('tabindex', '0')
     })
 

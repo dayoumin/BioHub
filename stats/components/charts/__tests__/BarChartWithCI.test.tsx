@@ -172,7 +172,7 @@ describe('BarChartWithCI', () => {
 
       // 기준선 라인 확인
       const baselineLine = container.querySelector('line.text-muted-foreground\\/50[stroke-width="2"]')
-      expect(baselineLine).toBeTruthy()
+      expect(baselineLine).not.toBeNull()
     })
 
     it('기준선 대비 차이가 표시되어야 함', async () => {
@@ -200,7 +200,7 @@ describe('BarChartWithCI', () => {
 
       // 기준선보다 높은 막대는 녹색, 낮은 막대는 빨간색이어야 함
       const bars = container.querySelectorAll('rect')
-      expect(bars.length).toBeGreaterThan(0)
+      expect(bars.length).toBeGreaterThanOrEqual(1)
     })
   })
 
@@ -228,7 +228,7 @@ describe('BarChartWithCI', () => {
 
         // 호버 상태 확인
         const rect = firstGroup.querySelector('rect')
-        expect(rect).toBeTruthy()
+        expect(rect).not.toBeNull()
       }
     })
 
@@ -254,7 +254,7 @@ describe('BarChartWithCI', () => {
 
       // CI 선과 캡이 있어야 함
       const lines = container.querySelectorAll('svg g line')
-      expect(lines.length).toBeGreaterThan(0)
+      expect(lines.length).toBeGreaterThanOrEqual(1)
     })
 
     it('CI가 없는 데이터에 경고가 표시되어야 함', () => {
@@ -407,7 +407,7 @@ describe('BarChartWithCI', () => {
 
         // 값이 표시되어야 함 (호버 또는 선택 시)
         const valueTexts = container.querySelectorAll('text.font-medium')
-        expect(valueTexts.length).toBeGreaterThan(0)
+        expect(valueTexts.length).toBeGreaterThanOrEqual(1)
       }
     })
   })

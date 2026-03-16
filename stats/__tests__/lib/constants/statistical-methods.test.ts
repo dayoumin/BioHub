@@ -29,7 +29,7 @@ describe('statistical-methods.ts', () => {
       for (const [id, method] of Object.entries(STATISTICAL_METHODS)) {
         expect(method.id).toBe(id) // ID 일치
         expect(method.name).toBeDefined()
-        expect(method.name.length).toBeGreaterThan(0)
+        expect(method.name.length).toBeGreaterThanOrEqual(1)
         expect(method.description).toBeDefined()
         expect(method.category).toBeDefined()
       }

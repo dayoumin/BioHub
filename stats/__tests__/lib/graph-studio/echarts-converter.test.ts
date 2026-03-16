@@ -556,7 +556,7 @@ describe('stacked-bar — colorField 있음', () => {
   it('모든 series에 stack: "total"이 있다', () => {
     const opt = toAny(chartSpecToECharts(spec, rows))
     const series = opt.series as AnyOption[]
-    expect(series.length).toBeGreaterThan(0)
+    expect(series.length).toBeGreaterThanOrEqual(1)
     for (const s of series) {
       expect(s.stack).toBe('total')
     }

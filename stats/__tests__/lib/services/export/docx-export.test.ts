@@ -63,7 +63,7 @@ describe('exportDocx', () => {
     // downloadBlob 호출 인자 검증
     const [blob, fileName] = (downloadBlob as ReturnType<typeof vi.fn>).mock.calls[0]
     expect(blob).toBeInstanceOf(Blob)
-    expect(blob.size).toBeGreaterThan(0)
+    expect(blob.size).toBeGreaterThanOrEqual(1)
     expect(fileName).toMatch(/\.docx$/)
   })
 

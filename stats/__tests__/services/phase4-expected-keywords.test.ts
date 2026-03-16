@@ -100,7 +100,7 @@ describe('Phase 4 - expectedReasoningKeywords 기능', () => {
       methods.forEach(methodId => {
         const keywords = KeywordBasedRecommender.getExpectedReasoningKeywords(methodId)
         expect(keywords).toBeDefined()
-        expect(keywords.length).toBeGreaterThan(0)
+        expect(keywords.length).toBeGreaterThanOrEqual(1)
       })
     })
 
@@ -280,7 +280,7 @@ describe('Phase 4 - expectedReasoningKeywords 기능', () => {
 
       expect(recommendation.method.id).toBe('mann-whitney')
       expect(recommendation.expectedReasoningKeywords).toBeDefined()
-      expect(recommendation.expectedReasoningKeywords?.length).toBeGreaterThan(0)
+      expect(recommendation.expectedReasoningKeywords?.length).toBeGreaterThanOrEqual(1)
     })
 
     it('3-group compare (assumptions 없음) → kruskal-wallis', () => {
@@ -295,7 +295,7 @@ describe('Phase 4 - expectedReasoningKeywords 기능', () => {
 
       expect(recommendation.method.id).toBe('kruskal-wallis')
       expect(recommendation.expectedReasoningKeywords).toBeDefined()
-      expect(recommendation.expectedReasoningKeywords?.length).toBeGreaterThan(0)
+      expect(recommendation.expectedReasoningKeywords?.length).toBeGreaterThanOrEqual(1)
     })
 
     it('relationship (assumptions 없음) → correlation', () => {
@@ -323,7 +323,7 @@ describe('Phase 4 - expectedReasoningKeywords 기능', () => {
 
       expect(recommendation.method.id).toBe('correlation')
       expect(recommendation.expectedReasoningKeywords).toBeDefined()
-      expect(recommendation.expectedReasoningKeywords?.length).toBeGreaterThan(0)
+      expect(recommendation.expectedReasoningKeywords?.length).toBeGreaterThanOrEqual(1)
     })
   })
 

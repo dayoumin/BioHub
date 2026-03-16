@@ -194,7 +194,7 @@ vi.mock('@/components/analysis/TemplateSaveModal', () => ({
 vi.mock('@/contexts/ui-context', () => ({
   useUI: () => ({
     isMobile: false, isDesktop: true, sidebarOpen: false,
-    setSidebarOpen: vi.fn(), openChatPanel: vi.fn(),
+    setSidebarOpen: vi.fn(),
   }),
 }))
 vi.mock('@/lib/rag/utils/ollama-check', () => ({

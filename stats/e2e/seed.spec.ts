@@ -43,7 +43,7 @@ test.describe('Statistical Platform - Seed Tests', () => {
 
     // Pyodide 로딩 대기 (최대 30초)
     // 통계 계산은 Pyodide(Python in Browser)를 사용하므로 초기 로딩 시간 필요
-    await page.waitForTimeout(3000);
+    await page.waitForLoadState('networkidle');
   });
 
   test('통계 페이지 기본 플로우 - 샘플 데이터', async ({ page }) => {
@@ -75,7 +75,8 @@ test.describe('Statistical Platform - Seed Tests', () => {
     const hasFileInput = await fileInput.count() > 0;
     const hasDropZone = await dropZone.count() > 0;
 
-    expect(hasFileInput || hasDropZone).toBeTruthy();
+    // Either file input or drop zone must exist
+    expect(hasFileInput || hasDropZone).toBe(true);
   });
 
 });

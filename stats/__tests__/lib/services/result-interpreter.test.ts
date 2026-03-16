@@ -468,7 +468,7 @@ describe('buildInterpretationPrompt: 엣지 케이스', () => {
     const result = makeResult()
     const prompt = buildInterpretationPrompt(makeContext(result))
 
-    expect(prompt).toBeTruthy()
+    expect(prompt).toEqual(expect.any(String))
     expect(prompt).toContain('test-method')
     // 선택적 섹션들이 없어야 함
     expect(prompt).not.toContain('효과크기')

@@ -162,6 +162,11 @@ describe('U1-3: updateVariableMappingWithInvalidation', () => {
       store.addCompletedStep(4)
     })
 
+    // before: results와 assumptionResults가 설정된 상태
+    expect(useAnalysisStore.getState().results).not.toBeNull()
+    expect(useAnalysisStore.getState().assumptionResults).not.toBeNull()
+    expect(useAnalysisStore.getState().completedSteps).toContain(4)
+
     act(() => {
       useAnalysisStore.getState().updateVariableMappingWithInvalidation({
         dependentVar: 'B', groupVar: 'G'
@@ -188,12 +193,17 @@ describe('U1-3: updateVariableMappingWithInvalidation', () => {
       store.addCompletedStep(4)
     })
 
+    // before: 4개 모두 완료 상태
+    expect(useAnalysisStore.getState().completedSteps).toEqual([1, 2, 3, 4])
+
     act(() => {
       useAnalysisStore.getState().pruneCompletedStepsFrom(3)
     })
 
     const store = useAnalysisStore.getState()
     expect(store.completedSteps).toEqual([1, 2])
+    expect(store.completedSteps).toContain(1)
+    expect(store.completedSteps).toContain(2)
     expect(store.completedSteps).not.toContain(3)
     expect(store.completedSteps).not.toContain(4)
   })

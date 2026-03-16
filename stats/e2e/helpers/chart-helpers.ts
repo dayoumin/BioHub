@@ -57,7 +57,7 @@ export async function hoverChartAndCheckTooltip(page: Page): Promise<boolean> {
   const box = await chart.boundingBox()
   if (!box) return false
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
-  await page.waitForTimeout(500)
+  await page.waitForTimeout(300)
   const tooltip = page.locator(".echarts-tooltip, .plotly-tooltip, .recharts-tooltip-wrapper")
   return tooltip.count().then(c => c > 0)
 }

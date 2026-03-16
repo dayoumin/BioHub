@@ -15,7 +15,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import { Moon, Sun, Monitor, ExternalLink, Settings2 } from 'lucide-react'
-import { ChatStorage } from '@/lib/services/chat-storage'
 import { StorageService } from '@/lib/services/storage-service'
 
 interface SettingsModalProps {
@@ -26,19 +25,12 @@ interface SettingsModalProps {
 export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const { theme, setTheme } = useTheme()
 
-  // 플로팅 챗봇 버튼 설정
-  const [floatingButtonEnabled, setFloatingButtonEnabled] = useState<boolean>(false)
-
   // 알림 설정
   const [notifyAnalysisComplete, setNotifyAnalysisComplete] = useState<boolean>(true)
   const [notifyError, setNotifyError] = useState<boolean>(true)
 
   // 설정 로드
   useEffect(() => {
-    // 플로팅 버튼 설정
-    const chatSettings = ChatStorage.loadSettings()
-    setFloatingButtonEnabled(chatSettings.floatingButtonEnabled)
-
     // 알림 설정
     const savedNotifyComplete = StorageService.getItem('statPlatform_notifyAnalysisComplete')
     if (savedNotifyComplete !== null) {
@@ -50,15 +42,6 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
       setNotifyError(savedNotifyError === 'true')
     }
   }, [])
-
-  // 플로팅 버튼 토글
-  const handleFloatingButtonToggle = (enabled: boolean) => {
-    setFloatingButtonEnabled(enabled)
-    const settings = ChatStorage.loadSettings()
-    settings.floatingButtonEnabled = enabled
-    ChatStorage.saveSettings(settings)
-    window.dispatchEvent(new CustomEvent('chatbot-settings-changed'))
-  }
 
   // 알림 설정 변경
   const handleNotifyAnalysisComplete = (checked: boolean) => {
@@ -129,30 +112,6 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                 </Label>
               </div>
             </RadioGroup>
-          </div>
-
-          <Separator />
-
-          {/* 플로팅 챗봇 버튼 */}
-          <div className="space-y-4">
-            <Label className="text-base font-semibold">플로팅 챗봇 버튼</Label>
-            <div className="flex items-center justify-between">
-              <div className="space-y-1 flex-1">
-                <Label htmlFor="floating-button" className="text-sm font-normal cursor-pointer">
-                  화면 우측 하단에 챗봇 버튼 표시
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  {floatingButtonEnabled
-                    ? '플로팅 챗봇 버튼이 화면에 표시됩니다'
-                    : '플로팅 챗봇 버튼이 숨겨집니다 (전용 페이지는 사용 가능)'}
-                </p>
-              </div>
-              <Switch
-                id="floating-button"
-                checked={floatingButtonEnabled}
-                onCheckedChange={handleFloatingButtonToggle}
-              />
-            </div>
           </div>
 
           <Separator />

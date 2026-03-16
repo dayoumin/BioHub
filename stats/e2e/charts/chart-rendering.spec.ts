@@ -29,7 +29,7 @@ async function runAndCheckChart(
   variableSetup?: (page: Page) => Promise<void>,
 ): Promise<void> {
   await navigateToUploadStep(page)
-  expect(await uploadCSV(page, csvFile)).toBeTruthy()
+  expect(await uploadCSV(page, csvFile)).toBe(true)
   await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15_000 })
 
   await goToMethodSelection(page)
@@ -41,13 +41,13 @@ async function runAndCheckChart(
   else await ensureVariablesOrSkip(page, tag, 'group', 'value')
 
   await clickAnalysisRun(page)
-  expect(await waitForResults(page, 120_000)).toBeTruthy()
+  expect(await waitForResults(page, 120_000)).toBe(true)
 
   const hasChart = await waitForChart(page, 10_000)
   const chartType = await detectChartType(page)
   log(tag, 'chart=' + hasChart + ' type=' + chartType)
   if (hasChart) await captureChartScreenshot(page, tag + '-chart')
-  expect(hasChart).toBeTruthy()
+  expect(hasChart).toBe(true)
 }
 
 test.describe('Phase 3.5: Smart Flow Result Charts', () => {
@@ -63,7 +63,6 @@ test.describe('Phase 3.5: Smart Flow Result Charts', () => {
     await runAndCheckChart(page, 'correlation.csv', 'Pearson', /Pearson|피어슨/i, 'chart-corr', async (p) => {
       const runBtn = p.locator(S.runAnalysisBtn)
       await runBtn.waitFor({ state: 'visible', timeout: 15_000 })
-      await p.waitForTimeout(500)
     })
   })
 

@@ -235,7 +235,7 @@ describe('ChatStorageIndexedDB - Initialization Timing', () => {
 
       expect(session).toHaveProperty('id')
       expect(Array.isArray(sessions)).toBe(true)
-      expect(settings).toHaveProperty('floatingButtonEnabled')
+      expect(settings).toHaveProperty('theme')
     })
   })
 

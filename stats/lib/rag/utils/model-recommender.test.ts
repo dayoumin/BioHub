@@ -86,7 +86,7 @@ describe('Model Recommender - Embedding Models', () => {
     // Test 2: 적당한 메모리 (4GB) - 작은 임베딩 모델 선택
     test('4GB 메모리: nomic-embed-text 또는 작은 모델 선택', () => {
       const result = recommendEmbeddingModel(mockEmbeddingModels, 4)
-      expect(result).toBeTruthy()
+      expect(result).not.toBeNull()
       expect(['nomic-embed-text:latest', 'ZimaBlueAI/Qwen3-Embedding-0.6B:f16']).toContain(result)
     })
 
@@ -94,7 +94,7 @@ describe('Model Recommender - Embedding Models', () => {
     test('2GB 메모리: 폴백으로 가장 작은 모델 선택', () => {
       const result = recommendEmbeddingModel(mockEmbeddingModels, 2)
       // 메모리 부족 시에도 어떤 모델이든 선택 (폴백)
-      expect(result).toBeTruthy()
+      expect(result).not.toBeNull()
     })
 
     // Test 4: 임베딩 모델이 없는 경우
@@ -141,7 +141,7 @@ describe('Model Recommender - Embedding Models', () => {
     // Test 1: 추론 모델만 선택 (임베딩 모델 제외)
     test('추론 모델만 선택 (임베딩 모델 제외)', () => {
       const result = recommendModel(mockModels, 8)
-      expect(result).toBeTruthy()
+      expect(result).not.toBeNull()
       expect(['qwen3:4b', 'gemma3:2b']).toContain(result)
       expect(result).not.toBe('nomic-embed-text:latest')
     })
@@ -155,7 +155,7 @@ describe('Model Recommender - Embedding Models', () => {
     // Test 3: 메모리 부족 시 가장 작은 모델 선택
     test('메모리 부족 시 가장 작은 모델 선택 (폴백)', () => {
       const result = recommendModel(mockModels, 0.5) // 500MB만 사용 가능
-      expect(result).toBeTruthy() // 어떤 모델이든 폴백으로 선택
+      expect(result).not.toBeNull() // 어떤 모델이든 폴백으로 선택
     })
   })
 
@@ -198,7 +198,7 @@ describe('Model Recommender - Embedding Models', () => {
       ]
 
       const result = recommendEmbeddingModel(mockModels, 100)
-      expect(result).toBeTruthy()
+      expect(result).not.toBeNull()
     })
 
     // Test 2: 정보 부족한 모델 (파라미터 크기 없음)
@@ -228,7 +228,7 @@ describe('Model Recommender - Embedding Models', () => {
       // 안전 마진 = 메모리 * 0.5
       // 예: 2GB 메모리 → 1GB 안전 마진
       const result = recommendEmbeddingModel(mockModels, 2)
-      expect(result).toBeTruthy()
+      expect(result).not.toBeNull()
     })
   })
 })

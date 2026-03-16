@@ -57,6 +57,7 @@ describe('store-orchestration', () => {
         useAnalysisStore.getState().setSelectedMethod({
           id: 't-test',
           name: 'Independent t-Test',
+          description: '두 독립 그룹의 평균 비교',
           category: 't-test',
         })
         useAnalysisStore.getState().setUploadedFile(new File(['data'], 'test.csv'))
@@ -138,9 +139,9 @@ describe('store-orchestration', () => {
       // loadFromHistory를 mock
       const mockResult = {
         analysisPurpose: '히스토리 분석',
-        selectedMethod: { id: 't-test', name: 't-검정', category: 't-test' },
+        selectedMethod: { id: 't-test', name: 't-검정', description: '두 독립 그룹의 평균 비교', category: 't-test' as const },
         variableMapping: null,
-        analysisOptions: { alpha: 0.05, alternativeHypothesis: 'two-sided' as const },
+        analysisOptions: { alpha: 0.05, showAssumptions: true, showEffectSize: true },
         results: makeMinimalResult(),
         uploadedFileName: 'data.csv',
         currentStep: 4,

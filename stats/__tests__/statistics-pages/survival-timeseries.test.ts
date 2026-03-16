@@ -192,7 +192,7 @@ describe('Menu Statistics Summary', () => {
 
     for (const pageId of newPageIds) {
       const item = allItems.find(i => i.id === pageId)
-      expect(item?.comingSoon).toBeFalsy()
+      expect(item?.comingSoon).toBeUndefined()
     }
   })
 })

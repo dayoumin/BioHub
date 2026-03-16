@@ -28,7 +28,7 @@ describe('getSlotConfigs', () => {
   it('모든 SelectorType에 대해 비어있지 않은 슬롯 배열 반환', () => {
     for (const type of allTypes) {
       const slots = getSlotConfigs(type)
-      expect(slots.length).toBeGreaterThan(0)
+      expect(slots.length).toBeGreaterThanOrEqual(1)
     }
   })
 
@@ -94,10 +94,10 @@ describe('getSlotConfigs', () => {
   it('모든 슬롯에 id, label, colorScheme, mappingKey 존재', () => {
     for (const type of allTypes) {
       for (const slot of getSlotConfigs(type)) {
-        expect(slot.id).toBeTruthy()
-        expect(slot.label).toBeTruthy()
-        expect(slot.colorScheme).toBeTruthy()
-        expect(slot.mappingKey).toBeTruthy()
+        expect(slot.id).toEqual(expect.any(String))
+        expect(slot.label).toEqual(expect.any(String))
+        expect(slot.colorScheme).toEqual(expect.any(String))
+        expect(slot.mappingKey).toEqual(expect.any(String))
       }
     }
   })

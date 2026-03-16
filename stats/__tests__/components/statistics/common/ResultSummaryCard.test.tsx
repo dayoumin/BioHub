@@ -56,7 +56,7 @@ describe('ResultSummaryCard', () => {
 
       // Multiple elements may exist (grid + APA reference), so use getAllByText
       const elements = screen.getAllByText(/t\(28\) = 2\.456/)
-      expect(elements.length).toBeGreaterThan(0)
+      expect(elements.length).toBeGreaterThanOrEqual(1)
     })
 
     it('displays statistic with numerator/denominator df', () => {
@@ -74,7 +74,7 @@ describe('ResultSummaryCard', () => {
       )
 
       const elements = screen.getAllByText(/F\(2, 45\) = 4\.123/)
-      expect(elements.length).toBeGreaterThan(0)
+      expect(elements.length).toBeGreaterThanOrEqual(1)
     })
   })
 
@@ -96,7 +96,7 @@ describe('ResultSummaryCard', () => {
 
       // Effect size value appears in grid and possibly in APA reference
       const valueElements = screen.getAllByText(/0\.650/)
-      expect(valueElements.length).toBeGreaterThan(0)
+      expect(valueElements.length).toBeGreaterThanOrEqual(1)
       expect(screen.getByText("Cohen's d (medium)")).toBeInTheDocument()
     })
 

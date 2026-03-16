@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState, useMemo, useCallback, useEffect, useReducer, useRef } from 'react'
-import { AnimatePresence } from 'framer-motion'
-import { TrendingUp, GitCompare, PieChart, LineChart, Clock, Heart, ArrowRight, List, Layers, Calculator, Sparkles, Target } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { TrendingUp, GitCompare, PieChart, LineChart, Clock, Heart, ArrowRight, List, Layers, Calculator, Sparkles, Target, Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
@@ -32,6 +32,9 @@ import { SubcategorySelector } from './purpose/SubcategorySelector'
 
 // NEW: Natural Language Input (AI Chat)
 import { NaturalLanguageInput } from './purpose/NaturalLanguageInput'
+
+// NEW: Auto Recommendation Confirm (자동 추천 → 확인 카드)
+import { AutoRecommendationConfirm } from './purpose/AutoRecommendationConfirm'
 
 // Terminology System
 import { useTerminology } from '@/hooks/use-terminology'
@@ -526,13 +529,15 @@ export function PurposeInputStep({
   // 탐색 완료 → AI 추천 자동 트리거 + Hub userQuery pre-fill
   // Note: 가정 검정이 Step 4로 이전(c3c4cb9b)되어 Step 2 진입 시 assumptionResults는 항상 null.
   //       데이터 존재 여부(data + validationResults)로 대체.
-  const hasAutoTriggered = useRef(false)
+  const hasAutoTriggeredRef = useRef(false)
+  const [isAutoTriggered, setIsAutoTriggered] = useState(false)
   useEffect(() => {
-    if (hasAutoTriggered.current) return
+    if (hasAutoTriggeredRef.current) return
 
     if (data && data.length > 0 && validationResults !== null && !flowState.aiRecommendation && !flowState.isAiLoading) {
       // Case A/B: 탐색 완료 → 완전 자동 LLM 호출 (사용자 입력 불필요)
-      hasAutoTriggered.current = true
+      hasAutoTriggeredRef.current = true
+      setIsAutoTriggered(true)
       const query = userQuery ?? '이 데이터에 적합한 통계 분석 방법을 추천해주세요.'
       if (userQuery) setUserQuery(null)
       handleAiSubmit(query)
@@ -542,6 +547,11 @@ export function PurposeInputStep({
       setUserQuery(null)
     }
   }, [data, validationResults, userQuery, flowState.aiRecommendation, flowState.isAiLoading, flowState.aiChatInput, flowDispatch, setUserQuery, handleAiSubmit])
+
+  // 사용자가 "AI에게 다시 질문" 클릭 → 채팅 모드로 전환
+  const handleOpenChat = useCallback(() => {
+    setIsAutoTriggered(false)
+  }, [])
 
   // Cleanup
   useEffect(() => {
@@ -601,8 +611,40 @@ export function PurposeInputStep({
       </div>
 
       <AnimatePresence mode="wait">
-        {/* NEW: AI Chat - Natural Language Input (2025 UI/UX) */}
-        {flowState.step === 'ai-chat' && (
+        {/* 자동 추천 로딩 중 — 전용 로딩 뷰 */}
+        {flowState.step === 'ai-chat' && isAutoTriggered && flowState.isAiLoading && (
+          <motion.div
+            key="auto-loading"
+            initial={prefersReducedMotion ? {} : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex flex-col items-center justify-center py-16 space-y-4"
+          >
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div className="text-center space-y-1">
+              <p className="text-sm font-medium">{t.naturalLanguageInput.autoLoading.title}</p>
+              <p className="text-xs text-muted-foreground">{t.naturalLanguageInput.autoLoading.subtitle}</p>
+            </div>
+          </motion.div>
+        )}
+
+        {/* AI 자동 추천 확인 카드 (데이터 있고 + 자동 트리거 + 추천 완료) */}
+        {flowState.step === 'ai-chat' && isAutoTriggered && !flowState.isAiLoading && flowState.aiRecommendation && (
+          <AutoRecommendationConfirm
+            key="auto-confirm"
+            recommendation={flowState.aiRecommendation}
+            provider={flowState.aiProvider}
+            assumptionResults={assumptionResults}
+            disabled={isNavigating}
+            onConfirm={handleAiSelectMethod}
+            onSelectAlternative={handleAiSelectMethod}
+            onOpenChat={handleOpenChat}
+            onBrowseAll={handleBrowseAll}
+          />
+        )}
+
+        {/* AI 자동 추천 실패 또는 수동 입력 — 채팅 UI */}
+        {flowState.step === 'ai-chat' && !isAutoTriggered && (
           <NaturalLanguageInput
             key="ai-chat"
             inputValue={flowState.aiChatInput || ''}
@@ -610,6 +652,28 @@ export function PurposeInputStep({
             error={flowState.aiError}
             recommendation={flowState.aiRecommendation}
             isLoading={flowState.isAiLoading}
+            onInputChange={handleAiInputChange}
+            onSubmit={handleAiSubmit}
+            onSelectMethod={handleAiSelectMethod}
+            onGoToGuided={handleGoToGuided}
+            onBrowseAll={handleBrowseAll}
+            disabled={isNavigating}
+            validationResults={validationResults}
+            provider={flowState.aiProvider}
+            chatMessages={flowState.chatMessages}
+            assumptionResults={assumptionResults}
+          />
+        )}
+
+        {/* 자동 추천 에러 시에도 채팅으로 폴백 */}
+        {flowState.step === 'ai-chat' && isAutoTriggered && !flowState.isAiLoading && !flowState.aiRecommendation && (
+          <NaturalLanguageInput
+            key="ai-chat-fallback"
+            inputValue={flowState.aiChatInput || ''}
+            responseText={flowState.aiResponseText}
+            error={flowState.aiError}
+            recommendation={null}
+            isLoading={false}
             onInputChange={handleAiInputChange}
             onSubmit={handleAiSubmit}
             onSelectMethod={handleAiSelectMethod}

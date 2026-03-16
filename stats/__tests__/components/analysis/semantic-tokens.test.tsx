@@ -159,8 +159,8 @@ describe('AssumptionResultChart — 통과/실패 시맨틱 색상', () => {
     // text-success, text-error 토큰 사용
     const successTexts = container.querySelectorAll('.text-success')
     const errorTexts = container.querySelectorAll('.text-error')
-    expect(successTexts.length).toBeGreaterThan(0)
-    expect(errorTexts.length).toBeGreaterThan(0)
+    expect(successTexts.length).toBeGreaterThanOrEqual(1)
+    expect(errorTexts.length).toBeGreaterThanOrEqual(1)
 
     // 하드코딩 green/red 미사용
     const allElements = container.querySelectorAll('*')

@@ -32,9 +32,9 @@ describe('statistical-methods contract', () => {
     it.each(allIds)('%s: id, name, description, category가 존재해야 함', (id) => {
       const method = STATISTICAL_METHODS[id]
       expect(method.id).toBe(id) // id와 key가 일치
-      expect(method.name).toBeTruthy()
-      expect(method.description).toBeTruthy()
-      expect(method.category).toBeTruthy()
+      expect(method.name).toEqual(expect.any(String))
+      expect(method.description).toEqual(expect.any(String))
+      expect(method.category).toEqual(expect.any(String))
     })
   })
 
@@ -168,7 +168,7 @@ describe('statistical-methods contract', () => {
 
   describe('헬퍼 함수', () => {
     it('getAllMethods()는 빈 배열이 아니어야 함', () => {
-      expect(getAllMethods().length).toBeGreaterThan(0)
+      expect(getAllMethods().length).toBeGreaterThanOrEqual(1)
     })
 
     it('getAllMethodIds()는 STATISTICAL_METHODS 키와 일치해야 함', () => {

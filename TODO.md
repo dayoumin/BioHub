@@ -1005,3 +1005,42 @@ npx playwright test e2e/comprehensive   # 핵심 테스트
 
 - Design System: http://localhost:3000/design-system
 - Test Calculation: http://localhost:3000/test-calculation
+
+---
+
+## UX 결정 대기 사항 (2026-03-16)
+
+### 홈 빠른 시작 카드 — 내부 동작 vs 페이지 이동 구분
+
+현재 4개 카드가 동일한 스타일이지만 동작이 다름:
+
+| 카드 | 동작 유형 | 목적지 |
+|------|----------|--------|
+| 데이터 업로드 | 같은 페이지 내 | Step 1 (통계 분석용) |
+| 표본 크기 계산 | 같은 페이지 내 모달 | SampleSizeModal |
+| 데이터 시각화 | **페이지 이동** | /graph-studio |
+| Bio-Tools | **페이지 이동** | /bio-tools |
+
+**문제**: 사용자가 어떤 카드가 페이지를 떠나는지 인지 못함
+**옵션**: (1) 이동 카드에 ↗ 아이콘 추가 (2) 카드 스타일 차별화 (3) 그리드를 2개로 분리
+
+관련 파일: `stats/components/analysis/hub/TrackSuggestions.tsx`
+
+### 업로드 진입점 중복
+
+ChatInput 내 업로드 아이콘과 "데이터 업로드" 카드가 동일 기능 (Step 1 이동).
+하나로 통합할지, 각각의 역할을 차별화할지 결정 필요.
+
+관련 파일: `stats/components/analysis/hub/ChatInput.tsx`, `TrackSuggestions.tsx`
+
+### 프라이버시 문구 정확성
+
+"데이터는 브라우저에서만 처리" — 데이터 파일은 맞지만, 채팅 텍스트 쿼리는 OpenRouter API로 전송될 수 있음.
+문구를 "업로드된 데이터 파일은 브라우저에서만 처리됩니다. 텍스트 입력은 AI 분석 추천을 위해 사용될 수 있습니다." 로 수정 검토.
+
+### 통계 분석 페이지 제거 (완료 2026-03-16)
+
+- `/analysis` → `/` 리다이렉트 처리 완료
+- 사이드바에서 "통계 분석" 항목 제거 완료
+- `StatisticsBrowserHub` 컴포넌트는 미사용 상태 (향후 재활용 또는 삭제)
+- E2E 테스트 `excel-upload.spec.ts` → `/` 경로로 수정 완료

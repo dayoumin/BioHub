@@ -46,10 +46,10 @@ describe('variable-requirements contract', () => {
     it.each(
       STATISTICAL_METHOD_REQUIREMENTS.map((r) => [r.id, r] as [string, StatisticalMethodRequirements])
     )('%s: id, name, category, description, variables가 존재해야 함', (_id, req) => {
-      expect(req.id).toBeTruthy()
-      expect(req.name).toBeTruthy()
-      expect(req.category).toBeTruthy()
-      expect(req.description).toBeTruthy()
+      expect(req.id).toEqual(expect.any(String))
+      expect(req.name).toEqual(expect.any(String))
+      expect(req.category).toEqual(expect.any(String))
+      expect(req.description).toEqual(expect.any(String))
       expect(Array.isArray(req.variables)).toBe(true)
     })
   })
@@ -228,7 +228,7 @@ describe('variable-requirements contract', () => {
     it('같은 requirement 내에서 label이 비어있으면 안 됨', () => {
       for (const req of STATISTICAL_METHOD_REQUIREMENTS) {
         for (const v of req.variables) {
-          expect(v.label).toBeTruthy()
+          expect(v.label).toEqual(expect.any(String))
         }
       }
     })
@@ -236,7 +236,7 @@ describe('variable-requirements contract', () => {
     it('같은 requirement 내에서 description이 비어있으면 안 됨', () => {
       for (const req of STATISTICAL_METHOD_REQUIREMENTS) {
         for (const v of req.variables) {
-          expect(v.description).toBeTruthy()
+          expect(v.description).toEqual(expect.any(String))
         }
       }
     })
@@ -244,7 +244,7 @@ describe('variable-requirements contract', () => {
     it('같은 requirement 내에서 types 배열이 비어있으면 안 됨', () => {
       for (const req of STATISTICAL_METHOD_REQUIREMENTS) {
         for (const v of req.variables) {
-          expect(v.types.length).toBeGreaterThan(0)
+          expect(v.types.length).toBeGreaterThanOrEqual(1)
         }
       }
     })

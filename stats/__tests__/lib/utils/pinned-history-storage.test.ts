@@ -93,11 +93,16 @@ describe('usePinnedHistoryIds', () => {
     savePinnedHistoryIds(['a'])
     const { result } = renderHook(() => usePinnedHistoryIds())
 
+    // before: 'a'만 존재
+    expect(result.current[0]).toEqual(['a'])
+
     act(() => {
       result.current[1](prev => [...prev, 'b'])
     })
 
+    // after: 이전 상태(['a'])와 다름
     expect(result.current[0]).toEqual(['a', 'b'])
+    expect(result.current[0]).not.toEqual(['a'])
     expect(loadPinnedHistoryIds()).toEqual(['a', 'b'])
   })
 
@@ -180,6 +185,7 @@ describe('usePinnedHistoryIds', () => {
     })
 
     expect(result.current[0]).toEqual(['a', 'c'])
+    expect(result.current[0]).not.toContain('b')
     expect(loadPinnedHistoryIds()).toEqual(['a', 'c'])
   })
 

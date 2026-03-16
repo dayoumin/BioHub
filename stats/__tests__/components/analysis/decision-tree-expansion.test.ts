@@ -384,11 +384,11 @@ describe('DecisionTree - KOREAN_NAMES 검증', () => {
 
       // 메서드 이름이 있어야 함
       expect(result.method.name).toBeDefined()
-      expect(result.method.name.length).toBeGreaterThan(0)
+      expect(result.method.name.length).toBeGreaterThanOrEqual(1)
 
       // 메서드 설명이 있어야 함
       expect(result.method.description).toBeDefined()
-      expect(result.method.description.length).toBeGreaterThan(0)
+      expect(result.method.description.length).toBeGreaterThanOrEqual(1)
 
       // 영어만 있는 이름은 허용하지만, 대부분 한글이어야 함
       // (fallback 케이스 제외)

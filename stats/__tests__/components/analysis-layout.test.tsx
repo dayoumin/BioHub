@@ -98,7 +98,6 @@ vi.mock('@/components/common/FloatingStepIndicator', () => ({
 // Mock UI Context
 vi.mock('@/contexts/ui-context', () => ({
   useUI: () => ({
-    openChatPanel: vi.fn(),
     openSettings: vi.fn(),
     openHelp: vi.fn(),
     isSettingsOpen: false,

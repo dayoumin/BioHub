@@ -7,17 +7,8 @@
  */
 
 import { render, screen } from '@testing-library/react'
-import { vi, Mock } from 'vitest'
+import { vi } from 'vitest'
 import SettingsPage from '@/app/(dashboard)/settings/page'
-import { ChatStorage } from '@/lib/services/chat-storage'
-
-// ChatStorage 모킹
-vi.mock('@/lib/services/chat-storage', () => ({
-  ChatStorage: {
-    loadSettings: vi.fn(),
-    saveSettings: vi.fn(),
-  },
-}))
 
 // recent-statistics 유틸 모킹
 vi.mock('@/lib/utils/recent-statistics', () => ({
@@ -47,12 +38,6 @@ describe('SettingsPage - Simple Tests', () => {
       writable: true,
     })
 
-    // ChatStorage 기본값
-    ;(ChatStorage.loadSettings as Mock).mockReturnValue({
-      floatingButtonEnabled: true,
-      theme: 'system',
-    })
-
     // window.dispatchEvent 모킹
     window.dispatchEvent = vi.fn()
   })
@@ -78,7 +63,7 @@ describe('SettingsPage - Simple Tests', () => {
     render(<SettingsPage />)
 
     expect(screen.getByText('테마 설정')).toBeInTheDocument()
-    expect(screen.getByText('플로팅 챗봇 버튼')).toBeInTheDocument()
+    expect(screen.queryByText('플로팅 챗봇 버튼')).not.toBeInTheDocument()
     expect(screen.getByText('알림 설정')).toBeInTheDocument()
   })
 
@@ -93,12 +78,6 @@ describe('SettingsPage - Simple Tests', () => {
     expect(window.localStorage.getItem).toHaveBeenCalledWith('statPlatform_ollamaEndpoint')
     expect(window.localStorage.getItem).toHaveBeenCalledWith('statPlatform_embeddingModel')
     expect(window.localStorage.getItem).toHaveBeenCalledWith('statPlatform_topK')
-  })
-
-  it('ChatStorage에서 플로팅 버튼 설정을 로드해야 함', () => {
-    render(<SettingsPage />)
-
-    expect(ChatStorage.loadSettings).toHaveBeenCalled()
   })
 
   it('4개 탭이 모두 존재해야 함', () => {

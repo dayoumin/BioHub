@@ -1740,10 +1740,16 @@ export function chartSpecToECharts(
     const BIN_COUNT = 80;
     const AREA_OPACITY = 0.4;
 
-    // Pre-compute KDE curves per category (n<5는 빈 커브 → renderItem에서 skip)
+    // Pre-compute KDE curves + maxDensity per category (n<5는 빈 커브 → renderItem에서 skip)
     const kdeCurves = groups.map(g =>
       g.length >= MIN_N_FOR_VIOLIN ? computeKDE(g, BIN_COUNT) : [],
     );
+    // 사전 계산: renderItem 내부 loop 제거
+    const kdeMaxDensities = kdeCurves.map(curve => {
+      let max = 0;
+      for (const p of curve) { if (p.density > max) max = p.density; }
+      return max;
+    });
 
     // y-axis extent: KDE 커브의 실제 lo/hi를 기반으로 축 범위 결정 (spread 연산자 대신 loop)
     let globalYMin = Infinity;
@@ -1794,9 +1800,8 @@ export function chartSpecToECharts(
           };
         }
 
-        // Compute max density for width normalization (spread 대신 loop — 일관성)
-        let maxDensity = 0;
-        for (const p of curve) { if (p.density > maxDensity) maxDensity = p.density; }
+        // 사전 계산된 maxDensity 사용 (renderItem 호출마다 loop 제거)
+        const maxDensity = kdeMaxDensities[catIdx];
         if (maxDensity <= 0) return null;
 
         // Category center x and available half-width

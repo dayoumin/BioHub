@@ -160,7 +160,7 @@ describe('OpenRouter LLM 추천 시뮬레이션', () => {
     expect(result.recommendation!.reasoning[1]).toContain('education')
 
     // 7) alternatives 파싱
-    expect(result.recommendation!.alternatives?.length).toBeGreaterThan(0)
+    expect(result.recommendation!.alternatives?.length).toBeGreaterThanOrEqual(1)
     expect(result.recommendation!.alternatives![0].id).toBe('kruskal-wallis')
 
     // 8) responseText에 설명 포함
@@ -358,7 +358,7 @@ describe('[패치 검증] AggregateError 에러 전파', () => {
     const agg = thrown as AggregateError
     expect(agg.message).toContain('error(s)')
     // 모델별 에러가 errors 배열에 있어야 함
-    expect(agg.errors.length).toBeGreaterThan(0)
+    expect(agg.errors.length).toBeGreaterThanOrEqual(1)
     expect((agg.errors[0] as Error).message).toContain('Network error')
   })
 

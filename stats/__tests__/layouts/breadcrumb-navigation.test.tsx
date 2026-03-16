@@ -342,7 +342,7 @@ describe('실제 사용 시나리오', () => {
     expect(screen.getByText('회귀분석')).toBeInTheDocument() // 사이드바에만 존재
 
     // Step 확인 (getAllByText 사용 - 좌측 사이드바 + 메인 콘텐츠에 모두 나타남)
-    expect(screen.getAllByText('회귀 유형 선택').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('회귀 유형 선택').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('데이터 업로드')).toBeInTheDocument()
 
     // 메인 콘텐츠 확인

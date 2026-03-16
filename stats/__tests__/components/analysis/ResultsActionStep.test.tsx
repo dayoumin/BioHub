@@ -108,7 +108,7 @@ describe('Part 1: Layer 조건 시뮬레이션 (순수 로직)', () => {
       expect(sr.confidenceInterval?.lower).toBe(0.35)
       expect(sr.effectSize).toBeDefined()
       expect(sr.effectSize?.type).toBe('cohensD')
-      expect(sr.additionalResults!.length).toBeGreaterThan(0)
+      expect(sr.additionalResults!.length).toBeGreaterThanOrEqual(1)
     })
 
     it('assumptions 3개 모두 passed=true', () => {
@@ -650,7 +650,7 @@ vi.mock('next/navigation', () => ({
 }))
 
 vi.mock('@/contexts/ui-context', () => ({
-  useUI: () => ({ openChatPanel: vi.fn() })
+  useUI: () => ({ openSettings: vi.fn(), openHelp: vi.fn(), isSettingsOpen: false, isHelpOpen: false, closeSettings: vi.fn(), closeHelp: vi.fn() })
 }))
 
 vi.mock('@/lib/rag/utils/ollama-check', () => ({

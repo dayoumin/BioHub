@@ -219,7 +219,7 @@ describe('스마트 분석 커버리지', () => {
 
     it('getMethodsByQuestionType이 올바르게 필터링해야 한다', () => {
       const comparisonMethods = getMethodsByQuestionType('comparison')
-      expect(comparisonMethods.length).toBeGreaterThan(0)
+      expect(comparisonMethods.length).toBeGreaterThanOrEqual(1)
 
       // t-test, anova, nonparametric 카테고리만 포함
       comparisonMethods.forEach(method => {

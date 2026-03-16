@@ -65,7 +65,7 @@ describe('AssumptionTestCard', () => {
       const { container } = render(<AssumptionTestCard tests={[mockTests[0]]} />)
       // SVG 아이콘 존재 여부로 간접 확인
       const svgs = container.querySelectorAll('svg')
-      expect(svgs.length).toBeGreaterThan(0)
+      expect(svgs.length).toBeGreaterThanOrEqual(1)
     })
 
     it('실패한 테스트에 경고가 표시되어야 함', () => {

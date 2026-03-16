@@ -105,7 +105,7 @@ describe('RAGService - Core Functionality', () => {
       }
 
       expect(config).toBeDefined()
-      expect(Object.keys(config).length).toBeGreaterThan(0)
+      expect(Object.keys(config).length).toBeGreaterThanOrEqual(1)
     })
 
     it('should allow partial configuration', () => {

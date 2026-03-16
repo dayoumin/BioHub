@@ -80,6 +80,10 @@ describe('ChatStorage - Projects', () => {
     it('프로젝트 삭제', () => {
       const project = ChatStorage.createProject('Test')
 
+      // before: 프로젝트가 존재함
+      expect(ChatStorage.getProjects()).toHaveLength(1)
+      expect(ChatStorage.getProjects()[0].id).toBe(project.id)
+
       ChatStorage.deleteProject(project.id)
 
       const projects = ChatStorage.getProjects()
@@ -110,10 +114,15 @@ describe('ChatStorage - Projects', () => {
       const project = ChatStorage.createProject('Test')
       const session = ChatStorage.createNewSession()
 
+      // before: 세션은 프로젝트에 속하지 않음
+      expect(ChatStorage.loadSession(session.id)?.projectId).toBeUndefined()
+
       const moved = ChatStorage.moveSessionToProject(session.id, project.id)
 
       expect(moved).not.toBeNull()
       expect(moved?.projectId).toBe(project.id)
+      // 이전 상태(프로젝트 미속)가 아님
+      expect(moved?.projectId).not.toBeUndefined()
     })
 
     it('세션을 root로 이동 (projectId = null)', () => {
@@ -121,9 +130,14 @@ describe('ChatStorage - Projects', () => {
       const session = ChatStorage.createNewSession()
 
       ChatStorage.moveSessionToProject(session.id, project.id)
+      // before: 세션이 프로젝트에 속함
+      expect(ChatStorage.loadSession(session.id)?.projectId).toBe(project.id)
+
       const movedBack = ChatStorage.moveSessionToProject(session.id, null)
 
       expect(movedBack?.projectId).toBeUndefined()
+      // 이전 projectId가 남아있지 않음
+      expect(ChatStorage.loadSession(session.id)?.projectId).not.toBe(project.id)
     })
 
     it('존재하지 않는 프로젝트로 이동 시도 - 실패', () => {

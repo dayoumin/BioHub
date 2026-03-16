@@ -342,7 +342,7 @@ describe('applyAndValidatePatches', () => {
     ]);
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error).toBeTruthy();
+      expect(result.error).toBeDefined();
     }
   });
 

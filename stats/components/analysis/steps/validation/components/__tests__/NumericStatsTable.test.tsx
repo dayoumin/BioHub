@@ -228,7 +228,7 @@ describe('NumericStatsTable', () => {
       expect(screen.getByText(/CV \(변동계수\)/)).toBeInTheDocument()
       expect(screen.getByText(/15% 이하면 안정적/)).toBeInTheDocument()
       // 설명 섹션에 왜도/첨도 관련 텍스트가 있는지 확인 (중복 텍스트이므로 getAllByText 사용)
-      expect(screen.getAllByText(/정규분포/).length).toBeGreaterThan(0)
+      expect(screen.getAllByText(/정규분포/).length).toBeGreaterThanOrEqual(1)
       expect(screen.getByText(/약간 치우침/)).toBeInTheDocument()
     })
   })
@@ -247,7 +247,7 @@ describe('NumericStatsTable', () => {
 
       expect(screen.getByText(/첨도 문제.*해결 방법/)).toBeInTheDocument()
       // "Winsorization"은 왜도 가이드와 첨도 가이드 둘 다에 나타나므로 getAllByText 사용
-      expect(screen.getAllByText(/Winsorization/).length).toBeGreaterThan(0)
+      expect(screen.getAllByText(/Winsorization/).length).toBeGreaterThanOrEqual(1)
     })
 
     it('이상치 문제 (10% 초과) 있으면 해결 가이드 표시', () => {
@@ -308,7 +308,7 @@ describe('NumericStatsTable', () => {
       render(<NumericStatsTable columnStats={columns} />)
 
       const cells = screen.getAllByText('-')
-      expect(cells.length).toBeGreaterThan(0)
+      expect(cells.length).toBeGreaterThanOrEqual(1)
     })
   })
 
@@ -329,7 +329,7 @@ describe('NumericStatsTable', () => {
       render(<NumericStatsTable columnStats={columns} />)
 
       // CV 컬럼에도 "-"가 있을 수 있으므로, 최소 1개 이상 존재하는지만 확인
-      expect(screen.getAllByText('-').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('-').length).toBeGreaterThanOrEqual(1)
     })
 
     it('kurtosis가 undefined이면 "-" 표시', () => {
@@ -341,7 +341,7 @@ describe('NumericStatsTable', () => {
       ]
       render(<NumericStatsTable columnStats={columns} />)
 
-      expect(screen.getAllByText('-').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('-').length).toBeGreaterThanOrEqual(1)
     })
   })
 })

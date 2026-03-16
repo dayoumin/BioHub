@@ -132,7 +132,10 @@ describe('Smart Flow Store — interpretationChat 복원', () => {
     await act(async () => {
       await useHistoryStore.getState().loadFromHistory('test-history-1')
     })
-    expect(useHistoryStore.getState().loadedInterpretationChat).not.toBeNull()
+    // before: 채팅 4건이 복원된 상태 (구체적 값 확인)
+    expect(useHistoryStore.getState().loadedInterpretationChat).toHaveLength(4)
+    expect(useHistoryStore.getState().loadedAiInterpretation).toBe('AI 해석 텍스트')
+    expect(useHistoryStore.getState().currentHistoryId).toBe('test-history-1')
 
     // 직접 리셋
     act(() => {
@@ -239,6 +242,7 @@ describe('Smart Flow Store — 히스토리 A→B 전환', () => {
       if (result) useAnalysisStore.getState().restoreFromHistory(result)
     })
     expect(useHistoryStore.getState().loadedInterpretationChat).toHaveLength(2)
+    expect(useHistoryStore.getState().loadedInterpretationChat?.[0].content).toBe('A 질문')
     expect(useHistoryStore.getState().currentHistoryId).toBe('A')
 
     // B 로드
@@ -249,6 +253,8 @@ describe('Smart Flow Store — 히스토리 A→B 전환', () => {
     })
     expect(useHistoryStore.getState().loadedInterpretationChat).toHaveLength(4)
     expect(useHistoryStore.getState().loadedInterpretationChat?.[0].content).toBe('B 질문')
+    // A의 대화 내용이 남아있지 않음
+    expect(useHistoryStore.getState().loadedInterpretationChat?.[0].content).not.toBe('A 질문')
     expect(useHistoryStore.getState().currentHistoryId).toBe('B')
   })
 

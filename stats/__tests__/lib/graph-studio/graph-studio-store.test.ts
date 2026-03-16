@@ -69,6 +69,10 @@ describe('sidePanel 제거 (G5.0)', () => {
 
 describe('chartSpec — setChartSpec', () => {
   it('setChartSpec은 historyIndex를 0으로 초기화한다', () => {
+    // before: chartSpec은 null
+    expect(useGraphStudioStore.getState().chartSpec).toBeNull()
+    expect(useGraphStudioStore.getState().historyIndex).toBe(-1)
+
     const spec = makeSpec()
     act(() => { useGraphStudioStore.getState().setChartSpec(spec) })
     const state = useGraphStudioStore.getState()
@@ -90,6 +94,10 @@ describe('chartSpec — setChartSpec', () => {
 describe('chartSpec — updateChartSpec / undo / redo', () => {
   it('updateChartSpec은 히스토리에 append된다', () => {
     act(() => { useGraphStudioStore.getState().setChartSpec(makeSpec('v1')) })
+    // before: v1만 존재
+    expect(useGraphStudioStore.getState().chartSpec?.title).toBe('v1')
+    expect(useGraphStudioStore.getState().specHistory).toHaveLength(1)
+
     act(() => { useGraphStudioStore.getState().updateChartSpec(makeSpec('v2')) })
     act(() => { useGraphStudioStore.getState().updateChartSpec(makeSpec('v3')) })
 
@@ -97,6 +105,8 @@ describe('chartSpec — updateChartSpec / undo / redo', () => {
     expect(state.specHistory).toHaveLength(3)
     expect(state.historyIndex).toBe(2)
     expect(state.chartSpec?.title).toBe('v3')
+    // 이전 spec('v1')은 현재가 아님
+    expect(state.chartSpec?.title).not.toBe('v1')
   })
 
   it('undo는 이전 spec으로 되돌린다', () => {
@@ -146,6 +156,9 @@ describe('chartSpec — updateChartSpec / undo / redo', () => {
     expect(state.specHistory).toHaveLength(3) // v1, v2, v4
     expect(state.chartSpec?.title).toBe('v4')
     expect(state.historyIndex).toBe(2)
+    // v3는 잘라내졌으므로 히스토리에 없어야 함
+    const titles = state.specHistory.map(s => s.title)
+    expect(titles).not.toContain('v3')
   })
 })
 
@@ -460,7 +473,7 @@ describe('saveCurrentProject', () => {
       projectId = useGraphStudioStore.getState().saveCurrentProject('My Chart')
     })
 
-    expect(projectId).toBeTruthy()
+    expect(projectId).not.toBeNull()
     const state = useGraphStudioStore.getState()
     expect(state.currentProject?.id).toBe(projectId)
     expect(state.currentProject?.name).toBe('My Chart')

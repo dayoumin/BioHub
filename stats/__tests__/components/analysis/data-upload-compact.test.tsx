@@ -110,7 +110,7 @@ describe('DataUploadStep compact 모드', () => {
 
       // 전체 UI에서는 도움말이 표시됨
       const helpTexts = screen.getAllByText(/첫 번째 행은 변수명/i)
-      expect(helpTexts.length).toBeGreaterThan(0)
+      expect(helpTexts.length).toBeGreaterThanOrEqual(1)
     })
 
     it('RefreshCw 아이콘이 버튼에 포함되어야 함', () => {

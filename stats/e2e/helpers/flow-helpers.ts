@@ -43,13 +43,13 @@ export async function navigateToUploadStep(page: Page): Promise<void> {
       const retryBtn = page.locator('button').filter({ hasText: '다시 시도' })
       if (await retryBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
         await retryBtn.click()
-        await page.waitForTimeout(5000)
+        await page.waitForLoadState('networkidle')
         continue
       }
       await page
         .reload({ waitUntil: 'domcontentloaded', timeout: 60000 })
         .catch(() => {})
-      await page.waitForTimeout(5000)
+      await page.waitForLoadState('networkidle')
       continue
     }
 
@@ -67,9 +67,8 @@ export async function navigateToUploadStep(page: Page): Promise<void> {
 
     if (rendered) break
     log('navigate', `render failed, retry ${attempt + 1}/5`)
-    await page.waitForTimeout(5000)
+    await page.waitForLoadState('networkidle')
   }
-  await page.waitForTimeout(500)
 
   // Hub → "데이터 업로드" 버튼 클릭 (TrackSuggestions 내 실제 버튼)
   const uploadBtn = page.locator(S.hubUploadBtn)
@@ -93,7 +92,6 @@ export async function navigateToUploadStep(page: Page): Promise<void> {
         { timeout: 15000 },
       )
       .catch(() => log('navigate', 'DataUploadStep 렌더 대기 timeout'))
-    await page.waitForTimeout(500)
     return
   }
 
@@ -102,7 +100,7 @@ export async function navigateToUploadStep(page: Page): Promise<void> {
   if (await uploadCard.isVisible({ timeout: 3000 }).catch(() => false)) {
     await uploadCard.click()
     log('navigate', 'hub-upload-card fallback 클릭')
-    await page.waitForTimeout(3000)
+    await page.waitForLoadState('networkidle')
     return
   }
 
@@ -110,7 +108,7 @@ export async function navigateToUploadStep(page: Page): Promise<void> {
   const step1 = page.locator(S.stepperStep(1))
   if ((await step1.count()) > 0) {
     await step1.click()
-    await page.waitForTimeout(1000)
+    await page.waitForLoadState('networkidle')
   }
 }
 
@@ -136,7 +134,6 @@ export async function uploadCSV(page: Page, filename: string): Promise<boolean> 
     )
     .catch(() => log('upload', 'validation wait timeout'))
 
-  await page.waitForTimeout(1000)
   return true
 }
 
@@ -153,14 +150,14 @@ export async function goToMethodSelection(page: Page): Promise<void> {
   ) {
     await btn.click()
     log('goToMethod', 'floating-next-btn 클릭')
-    await page.waitForTimeout(1500)
+    await page.waitForLoadState('networkidle')
     return
   }
   const step2 = page.locator(S.stepperStep(2))
   if ((await step2.count()) > 0 && (await step2.isEnabled().catch(() => false))) {
     await step2.click()
     log('goToMethod', 'stepper-step-2 클릭')
-    await page.waitForTimeout(1500)
+    await page.waitForLoadState('networkidle')
   }
 }
 
@@ -173,13 +170,13 @@ export async function selectMethodDirect(
   const browseTab = page.locator(S.filterBrowse)
   if (await browseTab.isVisible({ timeout: 3000 }).catch(() => false)) {
     await browseTab.click()
-    await page.waitForTimeout(1000)
+    await page.waitForLoadState('networkidle')
   }
 
   const searchInput = page.locator(S.methodSearchInput)
   if (await searchInput.isVisible({ timeout: 3000 }).catch(() => false)) {
     await searchInput.fill(searchTerm)
-    await page.waitForTimeout(1500)
+    await page.waitForLoadState('networkidle')
   }
 
   const allMatches = page.locator(`button:has-text("${searchTerm}")`)
@@ -201,7 +198,7 @@ export async function selectMethodDirect(
     if (await btn.isVisible()) {
       await btn.click()
       log('selectDirect', `selected: "${text.trim().slice(0, 40)}"`)
-      await page.waitForTimeout(1500)
+      await page.waitForLoadState('networkidle')
       return true
     }
   }
@@ -221,7 +218,7 @@ export async function goToVariableSelection(page: Page): Promise<void> {
     if (await confirmBtn.first().isEnabled()) {
       await confirmBtn.first().click()
       log('goToVar', 'confirm-method-btn 클릭')
-      await page.waitForTimeout(2000)
+      await page.waitForLoadState('networkidle')
       return
     }
   }
@@ -233,7 +230,7 @@ export async function goToVariableSelection(page: Page): Promise<void> {
   ) {
     await floatingBtn.click()
     log('goToVar', 'floating-next-btn 클릭')
-    await page.waitForTimeout(2000)
+    await page.waitForLoadState('networkidle')
     return
   }
 
@@ -241,7 +238,7 @@ export async function goToVariableSelection(page: Page): Promise<void> {
   if ((await step3.count()) > 0 && (await step3.isEnabled().catch(() => false))) {
     await step3.click()
     log('goToVar', 'stepper-step-3 클릭')
-    await page.waitForTimeout(2000)
+    await page.waitForLoadState('networkidle')
   }
 }
 
@@ -374,7 +371,7 @@ export async function ensureVariablesOrSkip(
   dep: string,
 ): Promise<void> {
   // Step 3 렌더 대기
-  await page.waitForTimeout(2000)
+  await page.waitForLoadState('networkidle')
 
   // Smart Flow: variable-selection-next 버튼 확인
   const nextBtn = page.locator(S.variableSelectionNext)
@@ -425,8 +422,6 @@ export async function ensureVariablesOrSkip(
  * 레거시 개별 페이지에서는 run-analysis-btn 클릭.
  */
 export async function clickAnalysisRun(page: Page): Promise<void> {
-  await page.waitForTimeout(500)
-
   // Smart Flow: variable-selection-next (다음 단계 → 자동 실행)
   const nextBtn = page.locator(S.variableSelectionNext)
   if (
@@ -435,7 +430,7 @@ export async function clickAnalysisRun(page: Page): Promise<void> {
   ) {
     await nextBtn.click()
     log('clickRun', 'variable-selection-next 클릭 → 분석 자동 실행')
-    await page.waitForTimeout(3000)
+    await page.waitForLoadState('networkidle')
     return
   }
 
@@ -447,7 +442,7 @@ export async function clickAnalysisRun(page: Page): Promise<void> {
   ) {
     await btn.click()
     log('clickRun', 'run-analysis-btn 클릭')
-    await page.waitForTimeout(2000)
+    await page.waitForLoadState('networkidle')
     return
   }
 
@@ -459,7 +454,7 @@ export async function clickAnalysisRun(page: Page): Promise<void> {
   ) {
     await floatingBtn.click()
     log('clickRun', 'floating-next-btn 클릭')
-    await page.waitForTimeout(2000)
+    await page.waitForLoadState('networkidle')
   }
 }
 
@@ -577,7 +572,7 @@ export async function selectMethodViaLLM(page: Page, question: string): Promise<
     if (isActive !== 'true') {
       await aiTab.click()
       log('selectLLM', 'filter-ai 클릭')
-      await page.waitForTimeout(500)
+      await page.waitForTimeout(300)
     }
   }
 
@@ -609,7 +604,7 @@ export async function selectMethodViaLLM(page: Page, question: string): Promise<
   if (await selectBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
     await selectBtn.click()
     log('selectLLM', '추천 수락')
-    await page.waitForTimeout(1500)
+    await page.waitForLoadState('networkidle')
     return true
   }
   return false

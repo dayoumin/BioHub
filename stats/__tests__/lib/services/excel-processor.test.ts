@@ -100,7 +100,7 @@ describe('xlsx 라이브러리 기본 기능', () => {
 
       // xlsx 0.20.x에서는 ArrayBuffer 반환
       expect(binary).toBeInstanceOf(ArrayBuffer)
-      expect(binary.byteLength).toBeGreaterThan(0)
+      expect(binary.byteLength).toBeGreaterThanOrEqual(1)
     })
 
     it('바이너리에서 워크북 읽기가 가능해야 함', () => {

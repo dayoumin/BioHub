@@ -114,7 +114,7 @@ describe('Result Schema Validator', () => {
         const validation = validateResultSchema(result, 't-test')
 
         expect(validation.valid).toBe(true) // required fields present
-        expect(validation.missingRecommended.length).toBeGreaterThan(0)
+        expect(validation.missingRecommended.length).toBeGreaterThanOrEqual(1)
         expect(validation.missingRecommended).toContain('effectSize')
       })
 
@@ -453,7 +453,7 @@ describe('Result Schema Validator', () => {
 
       categories.forEach(category => {
         expect(REQUIRED_FIELDS[category]).toBeDefined()
-        expect(REQUIRED_FIELDS[category].length).toBeGreaterThan(0)
+        expect(REQUIRED_FIELDS[category].length).toBeGreaterThanOrEqual(1)
       })
     })
 
@@ -491,7 +491,7 @@ describe('Result Schema Validator', () => {
 
       const validation = validateResultSchema(result, 'regression')
 
-      expect(validation.suggestions.length).toBeGreaterThan(0)
+      expect(validation.suggestions.length).toBeGreaterThanOrEqual(1)
       expect(validation.suggestions[0]).toContain('rSquared')
     })
 

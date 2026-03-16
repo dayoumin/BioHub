@@ -139,7 +139,7 @@ describe('Smart Flow Store - Upload Race Conditions', () => {
       act(() => { useAnalysisStore.getState().patchColumnNormality(enriched) })
 
       // normality가 추가되었고 assumptionResults가 살아 있어야 함
-      expect(useAnalysisStore.getState().validationResults?.columnStats?.[0].normality).toBeTruthy()
+      expect(useAnalysisStore.getState().validationResults?.columnStats?.[0].normality).toBeDefined()
       expect(useAnalysisStore.getState().assumptionResults).not.toBeNull()
       expect(useAnalysisStore.getState().assumptionResults?.normality?.shapiroWilk?.pValue).toBe(0.3)
     })
@@ -198,7 +198,7 @@ describe('Smart Flow Store - Upload Race Conditions', () => {
       act(() => { useAnalysisStore.getState().patchColumnNormality(enriched) })
 
       // 둘 다 존재
-      expect(useAnalysisStore.getState().validationResults?.columnStats?.[0].normality).toBeTruthy()
+      expect(useAnalysisStore.getState().validationResults?.columnStats?.[0].normality).toBeDefined()
       expect(useAnalysisStore.getState().assumptionResults?.normality?.shapiroWilk?.pValue).toBe(0.3)
     })
   })

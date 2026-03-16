@@ -363,7 +363,7 @@ describe('Boxplot Multi-Data Calculation', () => {
     const stats = result.current[0]
     expect(stats?.outliers).toBeDefined()
     // 100과 1은 IQR 범위를 벗어나므로 이상치
-    expect(stats?.outliers.length).toBeGreaterThan(0)
+    expect(stats?.outliers.length).toBeGreaterThanOrEqual(1)
   })
 })
 

@@ -385,7 +385,7 @@ describe('ModelSettings', () => {
 
       // TooltipTrigger로 감싸진 RadioGroup 확인
       const tooltipTriggers = document.querySelectorAll('[data-radix-tooltip-trigger]')
-      expect(tooltipTriggers.length).toBeGreaterThan(0)
+      expect(tooltipTriggers.length).toBeGreaterThanOrEqual(1)
     })
   })
 })

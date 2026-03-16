@@ -232,7 +232,6 @@ vi.mock('@/contexts/ui-context', () => ({
     isDesktop: true,
     sidebarOpen: false,
     setSidebarOpen: vi.fn(),
-    openChatPanel: vi.fn(),
   })
 }))
 

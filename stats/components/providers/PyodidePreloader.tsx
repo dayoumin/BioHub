@@ -23,7 +23,7 @@ import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.ser
 import { PyodideStatisticsService } from '@/lib/services/pyodide-statistics'
 
 /** Pyodide 프리로드가 필요한 라우트 접두사 */
-const PYODIDE_ROUTE_PREFIXES = ['/analysis', '/statistics']
+const PYODIDE_ROUTE_PREFIXES = ['/statistics']
 
 /** 홈('/')은 Smart Flow 허브이므로 Pyodide 필요 (exact match) */
 const PYODIDE_EXACT_ROUTES = ['/']

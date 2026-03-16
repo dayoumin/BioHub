@@ -216,7 +216,7 @@ describe('StatisticsTable', () => {
       // formatNumber로 인해 12.3450으로 표시됨
       const cells = screen.getAllByRole('cell')
       const firstDataRow = cells.filter(cell => cell.textContent?.includes('12.3450'))
-      expect(firstDataRow.length).toBeGreaterThan(0)
+      expect(firstDataRow.length).toBeGreaterThanOrEqual(1)
     })
 
     it('정렬 방향이 토글되어야 함', () => {
@@ -271,7 +271,7 @@ describe('StatisticsTable', () => {
       )
 
       const checkboxes = screen.getAllByRole('checkbox')
-      expect(checkboxes.length).toBeGreaterThan(0)
+      expect(checkboxes.length).toBeGreaterThanOrEqual(1)
 
       // 첫 번째 행 선택
       fireEvent.click(checkboxes[1]) // 0번은 전체 선택
@@ -438,7 +438,7 @@ describe('StatisticsTable', () => {
       fireEvent.click(csvItem)
 
       // Blob에 전달된 CSV 내용 검증
-      expect(blobParts.length).toBeGreaterThan(0)
+      expect(blobParts.length).toBeGreaterThanOrEqual(1)
       const csvContent = blobParts.join('')
 
       // RFC 4180: 쌍따옴표 포함 필드는 쌍따옴표로 감싸고, 내부 "는 ""로 이스케이프
@@ -492,8 +492,8 @@ describe('StatisticsTable', () => {
       const positiveCells = container.querySelectorAll('.bg-success-bg')
       const negativeCells = container.querySelectorAll('.bg-error-bg')
 
-      expect(positiveCells.length).toBeGreaterThan(0)
-      expect(negativeCells.length).toBeGreaterThan(0)
+      expect(positiveCells.length).toBeGreaterThanOrEqual(1)
+      expect(negativeCells.length).toBeGreaterThanOrEqual(1)
     })
   })
 

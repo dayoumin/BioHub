@@ -239,7 +239,7 @@ describe('ANCOVA Worker2 시뮬레이션', () => {
       expect(depVar).toBe('score')
       expect(factorVars).toEqual(['group'])
       expect(covVars).toEqual(['baseline'])
-      expect(rows.length).toBeGreaterThan(0)
+      expect(rows.length).toBeGreaterThanOrEqual(1)
 
       // mainResults
       expect(result.mainResults.statistic).toBe(8.5)

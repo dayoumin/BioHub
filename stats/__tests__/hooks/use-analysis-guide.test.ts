@@ -69,7 +69,7 @@ describe('useAnalysisGuide', () => {
       }))
 
       // two-sample-t는 정규성, 등분산성, 독립성 가정이 있음
-      expect(result.current.assumptionItems.length).toBeGreaterThan(0)
+      expect(result.current.assumptionItems.length).toBeGreaterThanOrEqual(1)
 
       // 각 아이템에 필수 속성이 있어야 함
       result.current.assumptionItems.forEach(item => {
@@ -243,7 +243,7 @@ describe('useAnalysisGuide', () => {
       expect(method).toBeDefined()
       expect(method?.dataFormat).toBeDefined()
       expect(method?.dataFormat?.type).toMatch(/^(wide|long|both)$/)
-      expect(method?.dataFormat?.columns?.length).toBeGreaterThan(0)
+      expect(method?.dataFormat?.columns?.length).toBeGreaterThanOrEqual(1)
     })
 
     it.each(extendedMethods)('%s 메서드에 settings가 정의되어 있어야 함', (methodId) => {
@@ -258,8 +258,8 @@ describe('useAnalysisGuide', () => {
       const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === methodId)
       expect(method).toBeDefined()
       expect(method?.sampleData).toBeDefined()
-      expect(method?.sampleData?.headers?.length).toBeGreaterThan(0)
-      expect(method?.sampleData?.rows?.length).toBeGreaterThan(0)
+      expect(method?.sampleData?.headers?.length).toBeGreaterThanOrEqual(1)
+      expect(method?.sampleData?.rows?.length).toBeGreaterThanOrEqual(1)
     })
 
     it('one-sample-t에 testValue 설정이 있어야 함', () => {
@@ -271,7 +271,7 @@ describe('useAnalysisGuide', () => {
     it('one-way-anova에 postHoc 설정이 있어야 함', () => {
       const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'one-way-anova')
       expect(method?.settings?.postHoc).toBeDefined()
-      expect(method?.settings?.postHoc?.options?.length).toBeGreaterThan(0)
+      expect(method?.settings?.postHoc?.options?.length).toBeGreaterThanOrEqual(1)
     })
 
     it('chi-square-independence에 yatesCorrection 설정이 있어야 함', () => {
@@ -311,7 +311,7 @@ describe('useAnalysisGuide', () => {
     it.each(batch2Methods)('%s 메서드에 sampleData가 정의되어 있어야 함', (methodId) => {
       const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === methodId)
       expect(method?.sampleData).toBeDefined()
-      expect(method?.sampleData?.rows?.length).toBeGreaterThan(0)
+      expect(method?.sampleData?.rows?.length).toBeGreaterThanOrEqual(1)
     })
 
     it('kruskal-wallis에 postHoc과 pAdjust 설정이 있어야 함', () => {
@@ -354,7 +354,7 @@ describe('useAnalysisGuide', () => {
     it.each(batch3Methods)('%s 메서드에 settings와 sampleData가 정의되어 있어야 함', (methodId) => {
       const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === methodId)
       expect(method?.settings?.alpha).toBeDefined()
-      expect(method?.sampleData?.rows?.length).toBeGreaterThan(0)
+      expect(method?.sampleData?.rows?.length).toBeGreaterThanOrEqual(1)
     })
 
     it('상관분석 4개 모두 완료 확인', () => {

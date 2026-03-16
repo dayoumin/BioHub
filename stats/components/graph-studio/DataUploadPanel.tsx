@@ -8,6 +8,11 @@
  * - Feature highlights (AI 편집 / 프리셋 / 내보내기)
  *
  * 차트 유형 선택은 Step 2 (ChartSetupPanel)에서 처리
+ *
+ * NOTE: 홈(/)의 통계 업로드와는 완전히 다른 흐름:
+ *   - 여기(Graph Studio): CSV → 컬럼 메타 추론(inferColumnMeta) → 차트 타입 선택 → 시각화
+ *   - 홈(통계 분석):     CSV → 변수 역할 매핑(dependent/independent) → 통계 검정 실행
+ *   파서는 같지만(parseFile), 이후 흐름과 목적이 완전히 다름
  */
 
 import { useCallback, useRef, useState } from 'react';

@@ -11,6 +11,7 @@
  */
 
 import { useCallback, useEffect, useTransition, useMemo } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
 import type { StepTrack } from '@/lib/stores/mode-store'
@@ -54,7 +55,7 @@ export function useAnalysisHandlers(
   const t = useTerminology()
   const [isPending, startTransition] = useTransition()
 
-  // Zustand stores
+  // Zustand stores — useShallow로 불필요한 리렌더 방지
   const {
     currentStep,
     completedSteps,
@@ -70,10 +71,30 @@ export function useAnalysisHandlers(
     goToNextStep,
     navigateToStep,
     canNavigateToStep,
-  } = useAnalysisStore()
+  } = useAnalysisStore(useShallow((s) => ({
+    currentStep: s.currentStep,
+    completedSteps: s.completedSteps,
+    uploadedData: s.uploadedData,
+    uploadedFileName: s.uploadedFileName,
+    selectedMethod: s.selectedMethod,
+    variableMapping: s.variableMapping,
+    results: s.results,
+    isLoading: s.isLoading,
+    validationResults: s.validationResults,
+    canProceedToNext: s.canProceedToNext,
+    addCompletedStep: s.addCompletedStep,
+    goToNextStep: s.goToNextStep,
+    navigateToStep: s.navigateToStep,
+    canNavigateToStep: s.canNavigateToStep,
+  })))
 
-  const { stepTrack, setStepTrack } = useModeStore()
-  const { analysisHistory } = useHistoryStore()
+  const { stepTrack, setStepTrack } = useModeStore(useShallow((s) => ({
+    stepTrack: s.stepTrack,
+    setStepTrack: s.setStepTrack,
+  })))
+  const { analysisHistory } = useHistoryStore(useShallow((s) => ({
+    analysisHistory: s.analysisHistory,
+  })))
 
   // Load history from IndexedDB
   useEffect(() => {

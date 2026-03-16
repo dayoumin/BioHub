@@ -800,7 +800,7 @@ describe('Edge Cases and Boundary Conditions', () => {
         const result = checkStructuralCompatibility(data, method)
 
         expect(result.status).toBe('incompatible')
-        expect(result.reasons.length).toBeGreaterThan(0)
+        expect(result.reasons.length).toBeGreaterThanOrEqual(1)
       })
 
       it('should not include assumption warnings in structural check', () => {

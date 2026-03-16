@@ -1194,10 +1194,16 @@ export interface NaturalLanguageInputText {
     select: string
     guidedQuestions: string
     browseAll: string
+    askAiAgain: string
   }
   /** Provider 라벨 */
   providers: {
     keyword: string
+  }
+  /** 자동 추천 로딩 */
+  autoLoading: {
+    title: string
+    subtitle: string
   }
 }
 

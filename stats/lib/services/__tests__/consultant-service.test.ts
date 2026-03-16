@@ -17,7 +17,7 @@ describe('consultant-service', () => {
 
     it('기본 카테고리 매칭 동작', () => {
       const result = getRecommendations('두 그룹 비교')
-      expect(result.recommendations.length).toBeGreaterThan(0)
+      expect(result.recommendations.length).toBeGreaterThanOrEqual(1)
       expect(result.summary).toContain('그룹 비교')
     })
 
@@ -115,7 +115,7 @@ describe('consultant-service', () => {
     it('clarification 옵션에 한글 설명 포함', () => {
       const result = getRecommendations('비모수 비교')
       if (result.clarification) {
-        expect(result.clarification.question).toBeTruthy()
+        expect(result.clarification.question).toEqual(expect.any(String))
         for (const opt of result.clarification.options) {
           expect(opt.label.length).toBeGreaterThan(5)
         }
@@ -142,7 +142,7 @@ describe('consultant-service', () => {
       // methodKeywordBonus로만 활성화된 카테고리
       const result = getRecommendations('부호순위 검정')
       for (const rec of result.recommendations) {
-        expect(rec.reason.length).toBeGreaterThan(0)
+        expect(rec.reason.length).toBeGreaterThanOrEqual(1)
         expect(rec.reason).not.toContain('입력에서  키워드')
       }
     })

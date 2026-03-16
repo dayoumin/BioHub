@@ -5,8 +5,6 @@ import { AppSidebar } from "@/components/layout/app-sidebar"
 import { Toaster } from "@/components/ui/sonner"
 import { ClientProviders } from "@/components/providers/ClientProviders"
 import { UIProvider } from "@/contexts/ui-context"
-import { LayoutContent } from "@/components/layout/layout-content"
-import { GlobalFeedbackPanel } from "@/components/feedback/GlobalFeedbackPanel"
 import { TerminologyProvider } from "@/lib/terminology"
 
 const jetbrainsMono = JetBrains_Mono({
@@ -65,13 +63,7 @@ export default function RootLayout({
                   </div>
                 </div>
 
-                {/* 우측 챗봇 패널 (조건부 렌더링) */}
-                <LayoutContent />
               </div>
-
-
-              {/* 전역 피드백 패널 */}
-              <GlobalFeedbackPanel />
 
               <Toaster
                 position="top-center"

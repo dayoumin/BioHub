@@ -54,7 +54,7 @@ describe('buildExportData', () => {
 
     expect(data.title).toBe('independent-t-test Analysis Report')
     expect(data.method).toBe('independent-t-test')
-    expect(data.date).toBeTruthy()
+    expect(data.date).toEqual(expect.any(String))
 
     // mainResults: statistic, df, p-value, effectSize, CI
     expect(data.mainResults.length).toBeGreaterThanOrEqual(3)
@@ -101,7 +101,7 @@ describe('buildExportData', () => {
 
     // mainResults에도 CI 포함
     const ciRow = data.mainResults.find(r => r.label.includes('CI'))
-    expect(ciRow).toBeTruthy()
+    expect(ciRow).toBeDefined()
     expect(ciRow!.value).toBe('[0.1200, 1.8800]')
   })
 
@@ -331,7 +331,7 @@ describe('buildExportData - exportOptions', () => {
       },
     })
     const data = buildExportData(ctx)
-    expect(data.methodology).toBeTruthy()
+    expect(data.methodology).toBeDefined()
     expect(data.references && data.references.length > 0).toBe(true)
   })
 
@@ -363,7 +363,7 @@ describe('buildExportData - ANOVA 특수 필드', () => {
     })
     const data = buildExportData(ctx)
     const omegaRow = data.mainResults.find(r => r.label === 'ω²')
-    expect(omegaRow).toBeTruthy()
+    expect(omegaRow).toBeDefined()
     expect(omegaRow!.value).toBe('0.1500')
   })
 })

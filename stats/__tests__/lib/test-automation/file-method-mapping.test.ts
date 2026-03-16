@@ -51,7 +51,7 @@ describe('Worker-Method Mapping SSOT', () => {
 
     it('should have methods for each worker', () => {
       for (const [worker, methods] of Object.entries(WORKER_METHOD_MAPPING)) {
-        expect(methods.length).toBeGreaterThan(0)
+        expect(methods.length).toBeGreaterThanOrEqual(1)
         expect(Array.isArray(methods)).toBe(true)
       }
     })
@@ -75,7 +75,7 @@ describe('Worker-Method Mapping SSOT', () => {
 
   describe('CRITICAL_FILES', () => {
     it('should have critical files defined', () => {
-      expect(CRITICAL_FILES.length).toBeGreaterThan(0)
+      expect(CRITICAL_FILES.length).toBeGreaterThanOrEqual(1)
     })
 
     it('should include pyodide-core.ts', () => {

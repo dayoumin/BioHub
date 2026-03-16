@@ -32,14 +32,14 @@ test.describe('@phase4 @critical 내비게이션 & 라우팅', () => {
       const bodyText = await page.locator('body').innerText()
       const hasGSText = bodyText.includes('Graph Studio') || bodyText.includes('차트')
       log('TC-4C.1.1', `/graph-studio: testid=${hasGS}, text=${hasGSText}`)
-      expect(hasGSText).toBeTruthy()
+      expect(hasGSText).toBe(true)
     } else {
       log('TC-4C.1.1', `/graph-studio: ${hasGS}`)
     }
 
     // /dashboard 접근 (있을 경우)
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 30000 })
-    await page.waitForTimeout(3000)
+    await page.waitForLoadState('networkidle')
     const dashboardText = await page.locator('body').innerText()
     const hasDashboard =
       !dashboardText.includes('404') && !dashboardText.includes('not found')
@@ -51,7 +51,7 @@ test.describe('@phase4 @critical 내비게이션 & 라우팅', () => {
       .locator(S.hubUploadCard)
       .isVisible({ timeout: 15000 })
       .catch(() => false)
-    expect(hasHub).toBeTruthy()
+    expect(hasHub).toBe(true)
     log('TC-4C.1.1', `/: ${hasHub}`)
   })
 
@@ -67,7 +67,7 @@ test.describe('@phase4 @critical 내비게이션 & 라우팅', () => {
     const vizCard = page.locator(S.hubVisualizationCard)
     if (await vizCard.isVisible({ timeout: 5000 }).catch(() => false)) {
       await vizCard.click()
-      await page.waitForTimeout(3000)
+      await page.waitForLoadState('networkidle')
 
       // Graph Studio 확인
       const hasGS = await page
@@ -78,7 +78,7 @@ test.describe('@phase4 @critical 내비게이션 & 라우팅', () => {
       if (hasGS) {
         // 뒤로가기
         await page.goBack()
-        await page.waitForTimeout(3000)
+        await page.waitForLoadState('networkidle')
 
         // Hub 복귀 확인
         const hasHub = await page
@@ -89,7 +89,7 @@ test.describe('@phase4 @critical 내비게이션 & 라우팅', () => {
 
         // 앞으로가기
         await page.goForward()
-        await page.waitForTimeout(3000)
+        await page.waitForLoadState('networkidle')
 
         const hasGSAgain = await page
           .locator(S.graphStudioPage)
@@ -105,7 +105,7 @@ test.describe('@phase4 @critical 내비게이션 & 라우팅', () => {
       waitUntil: 'domcontentloaded',
       timeout: 30000,
     })
-    await page.waitForTimeout(3000)
+    await page.waitForLoadState('networkidle')
 
     const bodyText = await page.locator('body').innerText()
     // Next.js 정적 빌드에서는 404 페이지 또는 Hub로 리다이렉트될 수 있음
@@ -114,7 +114,7 @@ test.describe('@phase4 @critical 내비게이션 & 라우팅', () => {
       bodyText.includes('not found') ||
       bodyText.includes('찾을 수 없') ||
       (await page.locator(S.hubUploadCard).isVisible({ timeout: 5000 }).catch(() => false))
-    expect(is404OrRedirect).toBeTruthy()
+    expect(is404OrRedirect).toBe(true)
     log('TC-4C.1.3', `404 처리: ${is404OrRedirect}`)
   })
 })
@@ -153,7 +153,8 @@ test.describe('@phase4 @important 반응형 & 레이아웃', () => {
     if (!hasGS) {
       // fallback: data-testid 미부착 시 텍스트로 확인
       const bodyText = await page.locator('body').innerText()
-      expect(bodyText.includes('Graph Studio') || bodyText.includes('차트')).toBeTruthy()
+      // Either Graph Studio or chart text must be present
+      expect(bodyText.includes('Graph Studio') || bodyText.includes('차트')).toBe(true)
     }
 
     await page.screenshot({
@@ -213,7 +214,6 @@ test.describe('@phase4 @important 세션 관리', () => {
 
     // 새로고침
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 })
-    await page.waitForTimeout(3000)
 
     // 페이지가 정상 로드되는지 확인
     const hasPage = await page
@@ -226,7 +226,7 @@ test.describe('@phase4 @important 세션 관리', () => {
       )
       .then(() => true)
       .catch(() => false)
-    expect(hasPage).toBeTruthy()
+    expect(hasPage).toBe(true)
     log('TC-4C.3.1', `새로고침 후 복원: ${hasPage}`)
   })
 
@@ -257,8 +257,8 @@ test.describe('@phase4 @important 세션 관리', () => {
       .isVisible()
       .catch(() => false)
 
-    expect(tab1Hub).toBeTruthy()
-    expect(tab2Hub).toBeTruthy()
+    expect(tab1Hub).toBe(true)
+    expect(tab2Hub).toBe(true)
     log('TC-4C.3.2', `탭 독립성: tab1=${tab1Hub}, tab2=${tab2Hub}`)
 
     await page1.close()
@@ -282,7 +282,7 @@ test.describe('@phase4 @important 한국어 로케일', () => {
     const hubText = await page.locator('body').innerText()
     // 한국어 문자가 포함되어 있는지 확인
     const hasKorean = /[\uAC00-\uD7AF]/.test(hubText)
-    expect(hasKorean).toBeTruthy()
+    expect(hasKorean).toBe(true)
     log('TC-4C.4.1', `Hub 한국어: ${hasKorean}`)
 
     // 영어 fallback 주요 키워드가 노출되지 않는지 확인 (일부는 의도적 영어)
@@ -305,7 +305,7 @@ test.describe('@phase4 @important 한국어 로케일', () => {
 
     // Graph Studio 화면
     await page.goto('/graph-studio/', { waitUntil: 'domcontentloaded', timeout: 30000 })
-    await page.waitForTimeout(3000)
+    await page.waitForLoadState('networkidle')
     const gsText = await page.locator('body').innerText()
     const gsHasKorean = /[\uAC00-\uD7AF]/.test(gsText)
     log('TC-4C.4.1', `Graph Studio 한국어: ${gsHasKorean}`)
