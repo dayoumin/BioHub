@@ -9,7 +9,7 @@
  */
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { Info, ArrowRight } from 'lucide-react'
+import { Info, ArrowRight, RotateCcw } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -382,6 +382,23 @@ export function SampleSizeModal({ open, onClose, onStartAnalysis }: SampleSizeMo
 
   const handleToggleHelper = useCallback(() => setShowHelper(v => !v), [])
 
+  const handleReset = useCallback(() => {
+    setTestType('two-sample')
+    setAlpha('0.05')
+    setPower('0.80')
+    setCohenD('0.5')
+    setCohenF('0.25')
+    setGroups('3')
+    setP1('0.5')
+    setP2('0.3')
+    setPearsonR('0.3')
+    setShowHelper(false)
+    setHelperMean1('')
+    setHelperMean2('')
+    setHelperSd('')
+    setDSource('manual')
+  }, [])
+
   const handleOpenChange = useCallback((v: boolean) => {
     if (!v) onClose()
   }, [onClose])
@@ -453,21 +470,22 @@ export function SampleSizeModal({ open, onClose, onStartAnalysis }: SampleSizeMo
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-lg max-h-[640px] flex flex-col overflow-hidden">
+      <DialogContent className="max-w-lg flex flex-col overflow-hidden" style={{ height: '620px' }}>
         <TooltipProvider delayDuration={200}>
           <DialogHeader className="shrink-0">
             <DialogTitle>표본 크기 계산기</DialogTitle>
           </DialogHeader>
 
           {/* 스크롤 가능한 입력 영역 — min-h-0 필수 (flexbox overflow 버그 방지) */}
-          <div className="flex-1 overflow-y-auto pr-1 min-h-0">
+          <div className="flex-1 overflow-y-auto [scrollbar-gutter:stable] pr-1 min-h-0">
           <Tabs
             value={testType}
             onValueChange={v => setTestType(v as TestType)}
             className="mt-2"
           >
-            {/* 검정 유형 선택 — 3×2 그리드 */}
-            <TabsList className="grid grid-cols-3 h-auto gap-1 p-1">
+            {/* 검정 유형 선택 — 3×2 그리드 + 초기화 */}
+            <div className="flex items-start gap-2">
+            <TabsList className="grid grid-cols-3 h-auto gap-1 p-1 flex-1">
               <TabsTrigger value="two-sample" className="text-xs py-1.5">
                 독립 t-검정
               </TabsTrigger>
@@ -487,6 +505,15 @@ export function SampleSizeModal({ open, onClose, onStartAnalysis }: SampleSizeMo
                 피어슨 상관
               </TabsTrigger>
             </TabsList>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="shrink-0 mt-1 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-1.5 py-1 rounded-md hover:bg-muted/50"
+              title="초기화"
+            >
+              <RotateCcw className="w-3 h-3" />
+            </button>
+            </div>
 
             {/* ── 독립 t-검정 ── */}
             <TabsContent value="two-sample" className="mt-4 space-y-4">
