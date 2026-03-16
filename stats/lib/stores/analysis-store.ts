@@ -10,6 +10,7 @@ import {
   SuggestedSettings,
   AnalysisOptions,
   DEFAULT_ANALYSIS_OPTIONS,
+  AIRecommendation,
 } from '@/types/analysis'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import { DataCharacteristics } from '@/lib/statistics/data-type-detector'
@@ -75,6 +76,8 @@ interface AnalysisState {
   selectedMethod: StatisticalMethod | null
   variableMapping: VariableMapping | null
 
+  // AI 추천 결과 캐시 (Step 2 뒤로가기 시 재사용)
+  cachedAiRecommendation: AIRecommendation | null
   // AI 감지 변수 (Step 2 → Step 3)
   detectedVariables: DetectedVariables | null
   // AI 추천 설정 (Step 2 → Step 4)
@@ -106,6 +109,7 @@ interface AnalysisState {
   setVariableMapping: (mapping: VariableMapping | null) => void
   /** U1-3: 변수 변경 + downstream(results/assumptions) 무효화. Step 3 confirm 시 변경 감지된 경우에만 사용 */
   updateVariableMappingWithInvalidation: (mapping: VariableMapping) => void
+  setCachedAiRecommendation: (rec: AIRecommendation | null) => void
   setDetectedVariables: (vars: DetectedVariables | null) => void
   setSuggestedSettings: (settings: SuggestedSettings | null) => void
   setAnalysisOptions: (options: Partial<AnalysisOptions>) => void
@@ -142,6 +146,7 @@ const initialState = {
   assumptionResults: null as StatisticalAssumptions | null,
   analysisPurpose: '',
   selectedMethod: null as StatisticalMethod | null,
+  cachedAiRecommendation: null as AIRecommendation | null,
   variableMapping: null as VariableMapping | null,
   detectedVariables: null as DetectedVariables | null,
   suggestedSettings: null as SuggestedSettings | null,
@@ -172,7 +177,7 @@ export const useAnalysisStore = create<AnalysisState>()(
         uploadedFileName: file?.name || null,
         uploadNonce: state.uploadNonce + 1,
       })),
-      setUploadedData: (data) => set({ uploadedData: data }),
+      setUploadedData: (data) => set({ uploadedData: data, cachedAiRecommendation: null }),
       setUploadedFileName: (name) => set({ uploadedFileName: name }),
       setDataCharacteristics: (characteristics) => set({ dataCharacteristics: characteristics }),
       setValidationResults: (results) => {
@@ -197,6 +202,7 @@ export const useAnalysisStore = create<AnalysisState>()(
       setAssumptionResults: (results) => set({ assumptionResults: results }),
       setAnalysisPurpose: (purpose) => set({ analysisPurpose: purpose }),
       setSelectedMethod: (method) => set({ selectedMethod: method }),
+      setCachedAiRecommendation: (rec) => set({ cachedAiRecommendation: rec }),
       setVariableMapping: (mapping) => set({ variableMapping: mapping }),
       updateVariableMappingWithInvalidation: (mapping) => set((state) => ({
         variableMapping: mapping,
