@@ -37,8 +37,6 @@ export function useDataUpload(): UseDataUploadReturn {
     setDetectedVariables,
     patchColumnNormality,
     setError,
-    addCompletedStep,
-    navigateToStep,
   } = useAnalysisStore()
 
   const { stepTrack } = useModeStore()
@@ -84,8 +82,8 @@ export function useDataUpload(): UseDataUploadReturn {
           .catch(() => { /* graceful degradation */ })
       }
 
-      // 빠른 분석 모드: 업로드 직후 Step 3으로 자동 이동
-      // U1-2: 전진 점프 전 중간 단계 사전 마킹
+      // 빠른 분석 모드: 업로드 후 Step 1에 머물러 데이터 탐색 확인
+      // 사용자가 데이터를 확인하고 "다음" 버튼으로 진행
       if (currentMode.stepTrack === 'quick' && currentAnalysis.selectedMethod) {
         const detectedVars = extractDetectedVariables(
           currentAnalysis.selectedMethod.id,
@@ -93,15 +91,12 @@ export function useDataUpload(): UseDataUploadReturn {
           null,
         )
         setDetectedVariables(detectedVars)
-        toast.success(`${file.name} 업로드 완료 — 변수 선택으로 이동합니다`)
-        addCompletedStep(1)
-        addCompletedStep(2)
-        navigateToStep(3)
+        toast.success(`${file.name} 업로드 완료 — 데이터를 확인해주세요`)
       }
     } catch (err) {
       setError(t.analysis.errors.uploadFailed((err as Error).message))
     }
-  }, [setUploadedFile, setUploadedData, setValidationResults, patchColumnNormality, setDetectedVariables, setError, addCompletedStep, navigateToStep, t])
+  }, [setUploadedFile, setUploadedData, setValidationResults, patchColumnNormality, setDetectedVariables, setError, t])
 
   return {
     handleUploadComplete,

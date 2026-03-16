@@ -63,12 +63,13 @@ export default function HomePage() {
           startQuickAnalysis(intent.method.id)
           setShowHub(false)
         } else {
+          // 메서드 미감지 → Step 1(데이터 업로드+탐색)부터 시작
+          // userQuery는 보존하여 Step 2 진입 시 AI 추천에 사용
           startFreshAnalysisSession()
           setUserQuery(message)
           setPurposeInputMode('ai')
           setShowHub(false)
-          addCompletedStep(1)  // U1-2: Step 1→2 전진 점프 사전 마킹
-          navigateToStep(2)
+          navigateToStep(1)
         }
         break
 
