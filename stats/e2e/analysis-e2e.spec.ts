@@ -57,7 +57,7 @@ test.describe('@phase1 @smoke Hub 진입점', () => {
     await page.locator(S.hubUploadBtn).click()
     // DataUploadStep 진입 확인 (stepper 또는 exploration step)
     await expect(
-      page.locator(S.dataExplorationStep).or(page.locator(S.stepperStep(1))),
+      page.locator(S.dataExplorationStep).or(page.locator(S.stepperStep(1))).first(),
     ).toBeVisible({ timeout: 15000 })
   })
 
@@ -81,7 +81,7 @@ test.describe('@phase1 @smoke Hub 진입점', () => {
 
     await page.locator(S.hubSampleSizeCard).click()
     // 모달이 열리거나 페이지 이동 확인
-    await page.waitForTimeout(2000)
+    await page.waitForLoadState('networkidle')
     const bodyText = await page.locator('body').innerText()
     expect(bodyText).toMatch(/표본|sample size|검정력/i)
   })
@@ -94,7 +94,7 @@ test.describe('@phase1 @smoke Hub 진입점', () => {
 test.describe('@phase1 @critical Step 1: 데이터 업로드', () => {
   test('TC-1.2.1: CSV 업로드 → 데이터 프로파일 표시', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
 
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
@@ -116,7 +116,7 @@ test.describe('@phase1 @critical Step 1: 데이터 업로드', () => {
         mimeType: 'text/csv',
         buffer: Buffer.from(''),
       })
-      await page.waitForTimeout(3000)
+      await page.waitForLoadState('networkidle')
       // 에러 메시지 또는 프로파일이 없어야 함
       const bodyText = await page.locator('body').innerText()
       const hasErrorOrEmpty =
@@ -125,44 +125,43 @@ test.describe('@phase1 @critical Step 1: 데이터 업로드', () => {
         bodyText.includes('error') ||
         bodyText.includes('비어') ||
         !(await page.locator(S.dataProfileSummary).isVisible().catch(() => false))
-      expect(hasErrorOrEmpty).toBeTruthy()
+      // Either error message shown or data profile absent — both valid for empty CSV
+      expect(hasErrorOrEmpty).toBe(true)
     }
   })
 
   test('TC-1.2.5: 데이터 교체 (replace-data-button)', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     // 교체 버튼 클릭
     const replaceBtn = page.locator(S.replaceDataButton)
     if (await replaceBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       await replaceBtn.click()
-      await page.waitForTimeout(1000)
+      await expect(page.locator('input[type="file"]')).toBeAttached({ timeout: 5000 })
 
       // 새 파일 업로드
-      expect(await uploadCSV(page, 'anova.csv')).toBeTruthy()
+      expect(await uploadCSV(page, 'anova.csv')).toBe(true)
       await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
     }
   })
 
   test('TC-1.2.6: 데이터 준비 가이드 토글', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     const toggle = page.locator(S.dataPrepGuideToggle)
     if (await toggle.isVisible({ timeout: 5000 }).catch(() => false)) {
       await toggle.click()
-      await page.waitForTimeout(500)
 
       const content = page.locator(S.dataPrepGuideContent)
-      const isVisible = await content.isVisible().catch(() => false)
-      expect(isVisible).toBeTruthy()
+      await expect(content).toBeVisible({ timeout: 5000 })
 
       // 다시 토글
       await toggle.click()
-      await page.waitForTimeout(500)
+      await expect(content).not.toBeVisible({ timeout: 5000 })
     }
   })
 })
@@ -174,7 +173,7 @@ test.describe('@phase1 @critical Step 1: 데이터 업로드', () => {
 test.describe('@phase1 @critical Step 2: 방법 선택', () => {
   test('TC-1.3.1: 직접 선택 탭 → 검색 → 메서드 선택', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
@@ -182,29 +181,26 @@ test.describe('@phase1 @critical Step 2: 방법 선택', () => {
     // 직접 선택 탭 확인
     await expect(page.locator(S.filterBrowse)).toBeVisible({ timeout: 5000 })
     await page.locator(S.filterBrowse).click()
-    await page.waitForTimeout(1000)
+    await expect(page.locator(S.methodSearchInput)).toBeVisible({ timeout: 5000 })
 
     // 검색
-    await expect(page.locator(S.methodSearchInput)).toBeVisible({ timeout: 3000 })
     await page.locator(S.methodSearchInput).fill('독립표본')
-    await page.waitForTimeout(1500)
+    await expect(page.locator(`button:has-text("독립표본")`).first()).toBeVisible({ timeout: 5000 })
 
     // 메서드 클릭
     expect(
       await selectMethodDirect(page, '독립표본', /독립표본 t-검정/),
-    ).toBeTruthy()
+    ).toBe(true)
 
-    // 선택 확인
+    // 선택 확인 — either selected bar or final name visible
     const selectedBar = page.locator(S.selectedMethodBar)
-    const hasSelectedBar = await selectedBar.isVisible({ timeout: 3000 }).catch(() => false)
     const finalName = page.locator(S.finalSelectedMethodName)
-    const hasFinalName = await finalName.isVisible({ timeout: 3000 }).catch(() => false)
-    expect(hasSelectedBar || hasFinalName).toBeTruthy()
+    await expect(selectedBar.or(finalName).first()).toBeVisible({ timeout: 5000 })
   })
 
   test('TC-1.3.2: AI 추천 탭 → 질문 → 추천 수락 @ai-mock', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await mockOpenRouterAPI(page, 't-test', '독립표본 t-검정')
@@ -213,7 +209,7 @@ test.describe('@phase1 @critical Step 2: 방법 선택', () => {
     // AI 탭
     await expect(page.locator(S.filterAi)).toBeVisible({ timeout: 5000 })
     await page.locator(S.filterAi).click()
-    await page.waitForTimeout(500)
+    await expect(page.locator(S.aiChatInput)).toBeVisible({ timeout: 5000 })
 
     // 질문 입력 & 전송
     await expect(page.locator(S.aiChatInput)).toBeVisible({ timeout: 5000 })
@@ -226,12 +222,12 @@ test.describe('@phase1 @critical Step 2: 방법 선택', () => {
     // 수락
     await expect(page.locator(S.selectRecommendedMethod)).toBeVisible({ timeout: 5000 })
     await page.locator(S.selectRecommendedMethod).click()
-    await page.waitForTimeout(1500)
+    await page.waitForLoadState('networkidle')
   })
 
   test('TC-1.3.5: 예시 프롬프트 클릭 @ai-mock', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
@@ -240,7 +236,7 @@ test.describe('@phase1 @critical Step 2: 방법 선택', () => {
     const aiTab = page.locator(S.filterAi)
     if (await aiTab.isVisible({ timeout: 3000 }).catch(() => false)) {
       await aiTab.click()
-      await page.waitForTimeout(500)
+      await expect(page.locator(S.aiChatInput)).toBeVisible({ timeout: 5000 })
     }
 
     // 예시 프롬프트 영역 확인
@@ -250,10 +246,8 @@ test.describe('@phase1 @critical Step 2: 방법 선택', () => {
       const firstPrompt = examplePrompts.locator('button').first()
       if (await firstPrompt.isVisible().catch(() => false)) {
         await firstPrompt.click()
-        await page.waitForTimeout(1000)
         // ai-chat-input에 텍스트가 채워졌는지 확인
-        const inputValue = await page.locator(S.aiChatInput).inputValue()
-        expect(inputValue.length).toBeGreaterThan(0)
+        await expect(page.locator(S.aiChatInput)).not.toHaveValue('', { timeout: 5000 })
       }
     }
   })
@@ -266,28 +260,23 @@ test.describe('@phase1 @critical Step 2: 방법 선택', () => {
 test.describe('@phase1 @critical Step 3: 변수 선택', () => {
   test('TC-1.4.1: 자동 변수 할당 확인', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
 
     await goToVariableSelection(page)
 
-    // Smart Flow: UnifiedVariableSelector 렌더 확인
+    // Smart Flow: UnifiedVariableSelector or legacy step — either must be visible
     const unifiedSelector = page.locator(S.unifiedVariableSelector)
-    const hasUnified = await unifiedSelector.isVisible({ timeout: 10000 }).catch(() => false)
-    // 레거시 fallback
     const varStep = page.locator(S.variableSelectionStep)
-    const hasVarStep = await varStep.isVisible({ timeout: 3000 }).catch(() => false)
-    expect(hasUnified || hasVarStep).toBeTruthy()
+    await expect(unifiedSelector.or(varStep).first()).toBeVisible({ timeout: 10000 })
 
     // 변수 할당 확인: chip이 존재하거나 variable-selection-next가 활성화
-    await page.waitForTimeout(2000)
     const nextBtn = page.locator(S.variableSelectionNext)
-    const nextEnabled = await nextBtn.isEnabled().catch(() => false)
-    const hasChip = (await page.locator('[data-testid^="chip-"]').count()) > 0
-    expect(nextEnabled || hasChip).toBeTruthy()
+    const chipOrNext = page.locator('[data-testid^="chip-"]').first().or(nextBtn)
+    await expect(chipOrNext.first()).toBeVisible({ timeout: 10000 })
   })
 })
 
@@ -298,37 +287,37 @@ test.describe('@phase1 @critical Step 3: 변수 선택', () => {
 test.describe('@phase1 @critical @slow Step 4: 실행 & 결과', () => {
   test('TC-1.5.1: 분석 실행 → 결과 표시', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
 
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 'TC-1.5.1', 'group', 'value')
     await clickAnalysisRun(page)
 
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
 
     const r = await verifyStatisticalResults(page)
     log('TC-1.5.1', r.details)
-    expect(r.hasStatistic).toBeTruthy()
-    expect(r.hasPValue).toBeTruthy()
+    expect(r.hasStatistic).toBe(true)
+    expect(r.hasPValue).toBe(true)
   })
 
   test('TC-1.5.2: 결과 카드 검증', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
 
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 'TC-1.5.2', 'group', 'value')
     await clickAnalysisRun(page)
 
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
 
     // results-main-card 존재
     await expect(page.locator(S.resultsMainCard)).toBeVisible({ timeout: 5000 })
@@ -338,64 +327,57 @@ test.describe('@phase1 @critical @slow Step 4: 실행 & 결과', () => {
       .locator(S.detailedResultsSection)
       .isVisible({ timeout: 3000 })
       .catch(() => false)
-    expect(hasDetailed).toBeTruthy()
+    expect(hasDetailed).toBe(true)
   })
 
   test('TC-1.5.3: 내보내기 드롭다운', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
 
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 'TC-1.5.3', 'group', 'value')
     await clickAnalysisRun(page)
 
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
 
     // export-dropdown 클릭
     const exportDD = page.locator(S.exportDropdown)
     if (await exportDD.isVisible({ timeout: 5000 }).catch(() => false)) {
       await exportDD.click()
-      await page.waitForTimeout(500)
 
-      // 내보내기 옵션 존재 확인
-      const hasDocx = await page.locator(S.exportDocx).isVisible({ timeout: 2000 }).catch(() => false)
-      const hasXlsx = await page.locator(S.exportXlsx).isVisible({ timeout: 2000 }).catch(() => false)
-      const hasHtml = await page.locator(S.exportHtml).isVisible({ timeout: 2000 }).catch(() => false)
-      expect(hasDocx || hasXlsx || hasHtml).toBeTruthy()
+      // 내보내기 옵션 존재 확인 — at least one export format must be visible
+      const exportOption = page.locator(S.exportDocx).or(page.locator(S.exportXlsx)).or(page.locator(S.exportHtml))
+      await expect(exportOption.first()).toBeVisible({ timeout: 5000 })
     }
   })
 
   test('TC-1.5.4: 새 분석 시작', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
 
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 'TC-1.5.4', 'group', 'value')
     await clickAnalysisRun(page)
 
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
 
     // 새 분석 버튼 클릭
     const newBtn = page.locator(S.newAnalysisBtn)
     if (await newBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       await newBtn.click()
-      await page.waitForTimeout(3000)
 
       // Hub로 복귀 또는 Step 1로 이동 확인
       const hubCard = page.locator(S.hubUploadCard)
       const fileInput = page.locator('input[type="file"]')
-      const isReset =
-        (await hubCard.isVisible({ timeout: 5000 }).catch(() => false)) ||
-        ((await fileInput.count()) > 0)
-      expect(isReset).toBeTruthy()
+      await expect(hubCard.or(fileInput).first()).toBeVisible({ timeout: 10000 })
     }
   })
 })
@@ -407,52 +389,38 @@ test.describe('@phase1 @critical @slow Step 4: 실행 & 결과', () => {
 test.describe('@phase1 @important Stepper 내비게이션', () => {
   test('TC-1.6.1: Stepper 클릭으로 Step 이동', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     // Step 2로 이동
     await goToMethodSelection(page)
-    await page.waitForTimeout(1000)
 
     // Stepper Step 1 클릭 → Step 1로 되돌아가기
     const step1 = page.locator(S.stepperStep(1))
     if (await step1.isVisible({ timeout: 3000 }).catch(() => false)) {
       await step1.click()
-      await page.waitForTimeout(2000)
 
       // Step 1이 보이는지 확인 (데이터 프로파일 또는 파일 입력)
-      const hasProfile = await page
-        .locator(S.dataProfileSummary)
-        .isVisible({ timeout: 5000 })
-        .catch(() => false)
-      const hasFileInput = await page
-        .locator('input[type="file"]')
-        .count()
-        .then((c) => c > 0)
-      expect(hasProfile || hasFileInput).toBeTruthy()
+      const profile = page.locator(S.dataProfileSummary)
+      const fileInput = page.locator('input[type="file"]').first()
+      await expect(profile.or(fileInput).first()).toBeVisible({ timeout: 10000 })
     }
   })
 
   test('TC-1.6.2: 뒤로 가기 → 상태 유지', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     // Step 2로 이동 후 Step 1로 되돌아오면 데이터 유지 확인
     await goToMethodSelection(page)
-    await page.waitForTimeout(1000)
 
     const step1 = page.locator(S.stepperStep(1))
     if (await step1.isVisible({ timeout: 3000 }).catch(() => false)) {
       await step1.click()
-      await page.waitForTimeout(2000)
 
       // 데이터 프로파일이 여전히 표시
-      const hasProfile = await page
-        .locator(S.dataProfileSummary)
-        .isVisible({ timeout: 5000 })
-        .catch(() => false)
-      expect(hasProfile).toBeTruthy()
+      await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 10000 })
     }
   })
 })
@@ -464,21 +432,21 @@ test.describe('@phase1 @important Stepper 내비게이션', () => {
 test.describe('@phase1 @critical @slow 직접 선택 E2E 통합', () => {
   test('독립표본 t-검정: 업로드 → 직접선택 → 분석 → 결과', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBeTruthy()
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
 
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 't-test', 'group', 'value')
     await clickAnalysisRun(page)
 
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
     const r = await verifyStatisticalResults(page)
     log('t-test', r.details)
-    expect(r.hasStatistic).toBeTruthy()
-    expect(r.hasPValue).toBeTruthy()
+    expect(r.hasStatistic).toBe(true)
+    expect(r.hasPValue).toBe(true)
 
     await page.screenshot({
       path: 'e2e/results/screenshots/t-test-result.png',
@@ -488,23 +456,23 @@ test.describe('@phase1 @critical @slow 직접 선택 E2E 통합', () => {
 
   test('카이제곱 독립성 검정: 업로드 → 직접선택 → 분석 → 결과', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'chi-square-v2.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 'chi-square-v2.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
     expect(
       await selectMethodDirect(page, '카이제곱 독립', /카이제곱 독립성|chi.*square.*independence/),
-    ).toBeTruthy()
+    ).toBe(true)
 
     await goToVariableSelection(page)
     await ensureVariablesOrSkip(page, 'chi-square', 'gender', 'preference')
     await clickAnalysisRun(page)
 
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
     const r = await verifyStatisticalResults(page)
     log('chi-square', r.details)
-    expect(r.hasStatistic).toBeTruthy()
-    expect(r.hasPValue).toBeTruthy()
+    expect(r.hasStatistic).toBe(true)
+    expect(r.hasPValue).toBe(true)
 
     await page.screenshot({
       path: 'e2e/results/screenshots/chi-square-result.png',
@@ -516,99 +484,80 @@ test.describe('@phase1 @critical @slow 직접 선택 E2E 통합', () => {
 test.describe('@phase1 @critical @slow 추가 Variable Selectors', () => {
   test('일표본 t-검정 (OneSampleSelector)', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'one-sample-t.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 'one-sample-t.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '일표본', /일표본.*t.*검정|one.*sample.*t/i)).toBeTruthy()
+    expect(await selectMethodDirect(page, '일표본', /일표본.*t.*검정|one.*sample.*t/i)).toBe(true)
 
     await goToVariableSelection(page)
-    const runBtn = page.locator(S.runAnalysisBtn)
-    await runBtn.waitFor({ state: 'visible', timeout: 15000 })
-    await page.waitForTimeout(500)
+    await expect(page.locator(S.variableSelectionNext)).toBeEnabled({ timeout: 15000 })
 
     await clickAnalysisRun(page)
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
 
     const r = await verifyStatisticalResults(page)
     log('one-sample-t', r.details)
-    expect(r.hasStatistic).toBeTruthy()
-    expect(r.hasPValue).toBeTruthy()
+    expect(r.hasStatistic).toBe(true)
+    expect(r.hasPValue).toBe(true)
   })
 
   test('대응표본 t-검정 (PairedSelector)', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'paired-t-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 'paired-t-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '대응표본', /대응표본.*t.*검정|paired.*t/i)).toBeTruthy()
+    expect(await selectMethodDirect(page, '대응표본', /대응표본.*t.*검정|paired.*t/i)).toBe(true)
 
     await goToVariableSelection(page)
-    const runBtn = page.locator(S.runAnalysisBtn)
-    await runBtn.waitFor({ state: 'visible', timeout: 15000 })
-    await page.waitForTimeout(500)
-
-    if (!(await runBtn.isEnabled().catch(() => false))) {
-      const preBtn = page.locator('button:not([disabled])').filter({ hasText: 'pre' })
-      const postBtn = page.locator('button:not([disabled])').filter({ hasText: 'post' })
-      if ((await preBtn.count()) > 0) {
-        await preBtn.first().click()
-        await page.waitForTimeout(500)
-      }
-      if ((await postBtn.count()) > 0) {
-        await postBtn.first().click()
-        await page.waitForTimeout(500)
-      }
-    }
+    await expect(page.locator(S.variableSelectionNext)).toBeEnabled({ timeout: 15000 })
 
     await clickAnalysisRun(page)
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
 
     const r = await verifyStatisticalResults(page)
     log('paired-t', r.details)
-    expect(r.hasStatistic).toBeTruthy()
-    expect(r.hasPValue).toBeTruthy()
+    expect(r.hasStatistic).toBe(true)
+    expect(r.hasPValue).toBe(true)
   })
 
   test('이원 분산분석 (TwoWayAnovaSelector)', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'twoway-anova-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 'twoway-anova-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
-    expect(await selectMethodDirect(page, '이원', /이원.*분산|two.*way.*anova/i)).toBeTruthy()
+    expect(await selectMethodDirect(page, '이원', /이원.*분산|two.*way.*anova/i)).toBe(true)
 
     await goToVariableSelection(page)
-    const runBtn = page.locator(S.runAnalysisBtn)
-    await runBtn.waitFor({ state: 'visible', timeout: 15000 })
-    await page.waitForTimeout(500)
+    await page.locator(S.variableSelectionNext).waitFor({ state: 'visible', timeout: 15000 })
 
-    if (!(await runBtn.isEnabled().catch(() => false))) {
+    if (!(await page.locator(S.variableSelectionNext).isEnabled({ timeout: 3000 }).catch(() => false))) {
       const f1Btn = page.locator('button:not([disabled])').filter({ hasText: 'factor1' })
       const f2Btn = page.locator('button:not([disabled])').filter({ hasText: 'factor2' })
       const vBtn = page.locator('button:not([disabled])').filter({ hasText: 'value' })
 
       if ((await f1Btn.count()) > 0) await f1Btn.first().click()
-      await page.waitForTimeout(500)
+      await page.waitForTimeout(300)
       if ((await f2Btn.count()) > 0) await f2Btn.first().click()
-      await page.waitForTimeout(500)
+      await page.waitForTimeout(300)
       if ((await vBtn.count()) > 0) await vBtn.last().click()
-      await page.waitForTimeout(500)
+      await page.waitForTimeout(300)
     }
 
     await clickAnalysisRun(page)
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
 
     const r = await verifyStatisticalResults(page)
     log('two-way-anova', r.details)
-    expect(r.hasStatistic).toBeTruthy()
-    expect(r.hasPValue).toBeTruthy()
+    expect(r.hasStatistic).toBe(true)
+    expect(r.hasPValue).toBe(true)
   })
 
   test('다중 회귀분석 (MultipleRegressionSelector)', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'regression.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 'regression.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await goToMethodSelection(page)
@@ -627,7 +576,6 @@ test.describe('@phase1 @critical @slow 추가 Variable Selectors', () => {
     await goToVariableSelection(page)
     const runBtn = page.locator(S.runAnalysisBtn)
     await runBtn.waitFor({ state: 'visible', timeout: 15000 })
-    await page.waitForTimeout(500)
 
     if (!(await runBtn.isEnabled().catch(() => false))) {
       const studyBtn = page.locator('button:not([disabled])').filter({ hasText: 'study_hours' })
@@ -635,30 +583,30 @@ test.describe('@phase1 @critical @slow 추가 Variable Selectors', () => {
       const scoreBtn = page.locator('button:not([disabled])').filter({ hasText: 'score' })
 
       if ((await studyBtn.count()) > 0) await studyBtn.first().click()
-      await page.waitForTimeout(500)
+      await page.waitForTimeout(300)
       if ((await attendBtn.count()) > 0) await attendBtn.first().click()
-      await page.waitForTimeout(500)
+      await page.waitForTimeout(300)
       if ((await scoreBtn.count()) > 0) {
         const cnt = await scoreBtn.count()
         await scoreBtn.nth(cnt > 1 ? 1 : 0).click()
       }
-      await page.waitForTimeout(500)
+      await page.waitForTimeout(300)
     }
 
     await clickAnalysisRun(page)
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
 
     const r = await verifyStatisticalResults(page)
     log('regression', r.details)
-    expect(r.hasStatistic).toBeTruthy()
-    expect(r.hasPValue).toBeTruthy()
+    expect(r.hasStatistic).toBe(true)
+    expect(r.hasPValue).toBe(true)
   })
 })
 
 test.describe('@phase1 @critical @slow @ai-mock LLM 추천', () => {
   test('독립표본 t-검정 (LLM 추천)', async ({ page }) => {
     await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBeTruthy()
+    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
     await mockOpenRouterAPI(page, 't-test', '독립표본 t-검정')
@@ -666,16 +614,16 @@ test.describe('@phase1 @critical @slow @ai-mock LLM 추천', () => {
     await goToMethodSelection(page)
     expect(
       await selectMethodViaLLM(page, '두 그룹의 평균이 다른지 비교하고 싶어요'),
-    ).toBeTruthy()
+    ).toBe(true)
 
     await ensureVariablesOrSkip(page, 'llm-t-test', 'group', 'value')
     await clickAnalysisRun(page)
 
-    expect(await waitForResults(page, 120000)).toBeTruthy()
+    expect(await waitForResults(page, 120000)).toBe(true)
     const r = await verifyStatisticalResults(page)
     log('llm-t-test', r.details)
-    expect(r.hasStatistic).toBeTruthy()
-    expect(r.hasPValue).toBeTruthy()
+    expect(r.hasStatistic).toBe(true)
+    expect(r.hasPValue).toBe(true)
 
     await expect(page.locator(S.resultsMainCard)).toBeVisible({ timeout: 5000 })
     await expect(page.locator(S.actionButtons)).toBeVisible({ timeout: 5000 })

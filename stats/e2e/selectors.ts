@@ -65,7 +65,11 @@ export const S = {
   analysisExecutionStep: '[data-testid="analysis-execution-step"]',
 
   // ===== Variable Selection =====
-  /** 레거시 개별 페이지용 분석 시작 버튼 (VariableSelectorModern) */
+  /**
+   * @deprecated 구버전 개별 셀렉터(OneSampleSelector 등)용 버튼.
+   * Smart Flow(UnifiedVariableSelector)는 variableSelectionNext 사용.
+   * E2E 테스트에서 이 값을 직접 참조하지 말 것.
+   */
   runAnalysisBtn: '[data-testid="run-analysis-btn"]',
   variableSelectorModern: '[data-testid="variable-selector-modern"]',
   /** 왼쪽 패널: 드래그 가능한 변수 아이템 */
@@ -141,6 +145,12 @@ export const S = {
   graphStudioFileInput: '[data-testid="graph-studio-file-input"]',
   /** Graph Studio 설정 — 차트 유형 썸네일 */
   graphStudioChartType: (type: string) => `[data-testid="chart-setup-type-${type}"]`,
+  /** Graph Studio 업로드 — "샘플 데이터로 시작" 버튼 */
+  graphStudioSampleBtn: '[data-testid="graph-studio-sample-btn"]',
+  /** Graph Studio 설정 — "차트 만들기" CTA 버튼 */
+  graphStudioCreateBtn: '[data-testid="chart-setup-create-btn"]',
+  /** Graph Studio 설정 — 스타일 프리셋 */
+  graphStudioPreset: (key: string) => `[data-testid="chart-setup-preset-${key}"]`,
   /** Graph Studio AI 패널 — 채팅 입력 */
   graphStudioAiInput: '[data-testid="ai-panel-input"]',
   /** Graph Studio AI 패널 — 전송 버튼 */

@@ -139,6 +139,35 @@ describe('extractDetectedVariables', () => {
       expect(result.groupVariable).toBeUndefined()
     })
 
+    it('one-sample-t: ID 컬럼(isId=true) 제외하고 value 선택', () => {
+      // 회귀 방지: id+value 패턴에서 id가 dependentCandidate로 잘못 감지되던 버그 (2026-03-16 수정)
+      const data = {
+        columns: [
+          makeCol('id', 'numeric', { idDetection: { isId: true, reason: 'id 이름 패턴', confidence: 0.95, source: 'name' } }),
+          makeCol('value', 'numeric'),
+        ]
+      }
+      const result = extractDetectedVariables('one-sample-t', data, null)
+
+      expect(result.dependentCandidate).toBe('value')
+      expect(result.dependentCandidate).not.toBe('id')
+    })
+
+    it('paired-t-test: subject(isId=true) 제외하고 pre, post 선택', () => {
+      // 회귀 방지: subject+pre+post 패턴에서 ['subject','pre']가 pairedVars로 잘못 설정되던 버그 (2026-03-16 수정)
+      const data = {
+        columns: [
+          makeCol('subject', 'numeric', { idDetection: { isId: true, reason: '연속 정수 패턴', confidence: 0.9, source: 'value' } }),
+          makeCol('pre', 'numeric'),
+          makeCol('post', 'numeric'),
+        ]
+      }
+      const result = extractDetectedVariables('paired-t-test', data, null)
+
+      expect(result.pairedVars).toEqual(['pre', 'post'])
+      expect(result.pairedVars).not.toContain('subject')
+    })
+
     it('numeric 컬럼만 있으면 groupVariable=undefined', () => {
       const numericOnly = { columns: NUMERIC_COLS }
       const result = extractDetectedVariables('independent-samples-t-test', numericOnly, null)
@@ -261,6 +290,96 @@ describe('extractDetectedVariables', () => {
       const result = extractDetectedVariables('ancova', MIXED_DATA, rec)
 
       expect(result.covariates).toEqual(['나이'])
+    })
+  })
+
+  // ─── ID 컬럼 오제안 필터링 (AI 리뷰 지적: 2026-03-16) ───
+
+  describe('ID 컬럼 오제안 필터링 — 1순위/2순위 경로', () => {
+
+    it('LLM이 dependent로 ID 컬럼을 제안해도 무시하고 heuristic fallback 사용', () => {
+      const data = {
+        columns: [
+          makeCol('id', 'numeric', { idDetection: { isId: true, reason: 'id 이름 패턴', confidence: 0.95, source: 'name' } }),
+          makeCol('value', 'numeric'),
+        ]
+      }
+      const rec = makeRecommendation({
+        variableAssignments: { dependent: ['id'] },
+      })
+      const result = extractDetectedVariables('one-sample-t', data, rec)
+
+      // LLM이 'id'를 제안했지만 ID 컬럼이므로 무시 → heuristic fallback → 'value'
+      expect(result.dependentCandidate).not.toBe('id')
+      expect(result.dependentCandidate).toBe('value')
+    })
+
+    it('LLM이 within으로 [subject, pre]를 제안해도 ID subject는 selectableCol 실패 → within 조건 불충족 → heuristic fallback', () => {
+      const data = {
+        columns: [
+          makeCol('subject', 'numeric', { idDetection: { isId: true, reason: '연속 정수 패턴', confidence: 0.9, source: 'value' } }),
+          makeCol('pre', 'numeric'),
+          makeCol('post', 'numeric'),
+        ]
+      }
+      const rec = makeRecommendation({
+        variableAssignments: { within: ['subject', 'pre'] },
+      })
+      const result = extractDetectedVariables('paired-t-test', data, rec)
+
+      // within[0]='subject'가 ID → selectableCol 실패 → within 조건 불충족 → heuristic fallback
+      expect(result.pairedVars).toEqual(['pre', 'post'])
+      expect(result.pairedVars).not.toContain('subject')
+    })
+
+    it('LLM이 time(생존분석)으로 ID 컬럼을 제안해도 무시 → dependentCandidate 미설정', () => {
+      const survivalData = {
+        columns: [
+          makeCol('patient_id', 'numeric', { idDetection: { isId: true, reason: 'id 이름 패턴', confidence: 0.95, source: 'name' } }),
+          makeCol('survival_time', 'numeric'),
+          makeCol('event', 'numeric', { uniqueValues: 2, min: 0, max: 1 }),
+        ]
+      }
+      const rec = makeRecommendation({
+        variableAssignments: { time: ['patient_id'], event: ['event'] },
+      })
+      const result = extractDetectedVariables('kaplan-meier', survivalData, rec)
+
+      expect(result.dependentCandidate).not.toBe('patient_id')
+      expect(result.eventVariable).toBe('event')
+    })
+
+    it('ID 컬럼 오제안은 filteredOutVars에 기록됨 (silent drop 아님)', () => {
+      const data = {
+        columns: [
+          makeCol('id', 'numeric', { idDetection: { isId: true, reason: 'id 이름 패턴', confidence: 0.95, source: 'name' } }),
+          makeCol('value', 'numeric'),
+        ]
+      }
+      const rec = makeRecommendation({
+        variableAssignments: { dependent: ['id'] },
+      })
+      const result = extractDetectedVariables('one-sample-t', data, rec)
+
+      expect(result.filteredOutVars).toContain('id')
+    })
+
+    it('legacy detectedVariables가 ID 컬럼을 dependent로 가리켜도 무시', () => {
+      const data = {
+        columns: [
+          makeCol('id', 'numeric', { idDetection: { isId: true, reason: 'id 이름 패턴', confidence: 0.95, source: 'name' } }),
+          makeCol('score', 'numeric'),
+        ]
+      }
+      const rec = makeRecommendation({
+        detectedVariables: {
+          dependentVariables: ['id'],
+        },
+      })
+      const result = extractDetectedVariables('one-sample-t', data, rec)
+
+      expect(result.dependentCandidate).not.toBe('id')
+      expect(result.dependentCandidate).toBe('score')
     })
   })
 

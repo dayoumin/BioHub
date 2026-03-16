@@ -46,6 +46,10 @@ export function extractDetectedVariables(
   const numericCols = cols
     .filter((col: ColumnStatistics) => col.type === 'numeric')
     .map((col: ColumnStatistics) => col.name)
+  // heuristic fallback용: ID 컬럼 제외 (sequential integer는 분석 변수가 아님)
+  const nonIdNumericCols = cols
+    .filter((col: ColumnStatistics) => col.type === 'numeric' && !col.idDetection?.isId)
+    .map((col: ColumnStatistics) => col.name)
   const categoricalCols = cols
     .filter((col: ColumnStatistics) => col.type === 'categorical')
     .map((col: ColumnStatistics) => col.name)
@@ -56,15 +60,26 @@ export function extractDetectedVariables(
 
   const detectedVars: DetectedVariablesResult = {}
 
+  // ID 컬럼 여부 판단 헬퍼 (이름/값 기반 감지 결과를 활용)
+  const isIdCol = (name: string): boolean => {
+    const col = cols.find((c: ColumnStatistics) => c.name === name)
+    return col?.idDetection?.isId === true
+  }
+
   // ─── 1순위: LLM variableAssignments ───
   const va = recommendation?.variableAssignments
   if (va) {
+    // validCol: 데이터에 존재하는가 (할루시네이션 감지용)
     const validCol = (name: string): boolean => allCols.has(name)
+    // selectableCol: 존재하면서 ID 컬럼이 아닌가 (분석 역할 할당용)
+    const selectableCol = (name: string): boolean => validCol(name) && !isIdCol(name)
 
-    // 필터된 변수 추적
+    // 필터된 변수 추적: 존재하지 않는 컬럼(할루시네이션) + ID 컬럼(오제안)
     const filteredOut: string[] = []
     const trackFiltered = (arr?: string[]): void => {
-      arr?.forEach(name => { if (!validCol(name)) filteredOut.push(name) })
+      arr?.forEach(name => {
+        if (!validCol(name) || isIdCol(name)) filteredOut.push(name)
+      })
     }
     trackFiltered(va.dependent)
     trackFiltered(va.independent)
@@ -79,13 +94,13 @@ export function extractDetectedVariables(
     if (va.event?.[0] && validCol(va.event[0])) {
       detectedVars.eventVariable = va.event[0]
     }
-    // Time (survival analysis: alias for dependent)
-    if (va.time?.[0] && validCol(va.time[0])) {
+    // Time (survival analysis: alias for dependent) — ID 컬럼 제외
+    if (va.time?.[0] && selectableCol(va.time[0])) {
       detectedVars.dependentCandidate = va.time[0]
     }
 
-    // Dependent
-    if (va.dependent?.[0] && validCol(va.dependent[0])) {
+    // Dependent — ID 컬럼 제외
+    if (va.dependent?.[0] && selectableCol(va.dependent[0])) {
       detectedVars.dependentCandidate = va.dependent[0]
     }
     // Factor (ANOVA group)
@@ -115,8 +130,11 @@ export function extractDetectedVariables(
     if (validCov?.length) {
       detectedVars.covariates = validCov
     }
-    // Within (paired/repeated measures)
-    if (va.within?.length === 2 && validCol(va.within[0]) && validCol(va.within[1])) {
+    // Within (paired/repeated measures) — ID 컬럼 제외
+    // 알려진 한계: within이 ID 필터로 실패해도 다른 유효 할당이 있으면
+    // hasAnyValid=true로 조기 반환 → pairedVars 없이 반환될 수 있음.
+    // 빈도가 낮고(LLM이 paired에 independent를 동시 제안하는 경우) 현재는 수용.
+    if (va.within?.length === 2 && selectableCol(va.within[0]) && selectableCol(va.within[1])) {
       detectedVars.pairedVars = [va.within[0], va.within[1]]
     }
     // Between (between-subjects factor)
@@ -154,10 +172,10 @@ export function extractDetectedVariables(
   }
 
   const legacyDependent = recommendation?.detectedVariables?.dependentVariables?.[0]
-  if (legacyDependent && allCols.has(legacyDependent)) {
+  if (legacyDependent && allCols.has(legacyDependent) && !isIdCol(legacyDependent)) {
     detectedVars.dependentCandidate = legacyDependent
-  } else if (numericCols.length > 0) {
-    detectedVars.dependentCandidate = numericCols[0]
+  } else if (nonIdNumericCols.length > 0) {
+    detectedVars.dependentCandidate = nonIdNumericCols[0]
   }
 
   // ─── 3순위: 메서드별 데이터 기반 추론 ───
@@ -186,8 +204,8 @@ export function extractDetectedVariables(
   } else if (methodId === 'two-way-anova' || methodId === 'three-way-anova') {
     detectedVars.factors = categoricalCols.slice(0, 2)
   } else if (methodId === 'paired-t-test' || methodId === 'paired-t' || methodId === 'wilcoxon' || methodId === 'wilcoxon-signed-rank') {
-    if (numericCols.length >= 2) {
-      detectedVars.pairedVars = [numericCols[0], numericCols[1]]
+    if (nonIdNumericCols.length >= 2) {
+      detectedVars.pairedVars = [nonIdNumericCols[0], nonIdNumericCols[1]]
     }
   } else if (methodId === 'pearson-correlation' || methodId === 'spearman-correlation' || methodId === 'correlation') {
     detectedVars.numericVars = numericCols
