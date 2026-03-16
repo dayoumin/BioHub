@@ -165,7 +165,7 @@ export function AnalysisLayout({
                       className="h-7 px-2 text-muted-foreground hover:text-foreground gap-1"
                     >
                       <ArrowLeft className="h-3.5 w-3.5" />
-                      <span className="text-xs">{t.analysis.layout.backToHub}</span>
+                      <span className="text-xs">{t.analysis.buttons.backToHub}</span>
                     </Button>
                   )}
                   <FlaskConical className="h-4 w-4" style={{ color: 'var(--section-accent-analysis)' }} />
