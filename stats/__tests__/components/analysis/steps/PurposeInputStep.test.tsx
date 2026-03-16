@@ -65,6 +65,29 @@ vi.mock('@/hooks/use-terminology', () => ({
             messages: { purposeHelp: '도움말', guidanceAlert: '안내', aiRecommendError: '추천 실패', genericError: '오류 발생' },
             aiLabels: { recommendTitle: 'AI 추천' },
         },
+        naturalLanguageInput: {
+            description: '',
+            dataSummary: { dimension: () => '', numeric: () => '', categorical: () => '', privacyNotice: '' },
+            input: { placeholder: '', sendHint: '', newlineHint: '' },
+            examplesLabel: '',
+            examples: [],
+            loadingMessages: ['', '', ''],
+            error: { title: '' },
+            aiAnalysis: { label: '' },
+            recommendation: {
+                badgeLabel: 'AI 추천',
+                confidenceUnit: '%',
+                reasoningTitle: '',
+                variableAssignmentTitle: '',
+                preprocessingTitle: () => '',
+                alternativesTitle: () => '',
+                variableRoles: { dependent: '', independent: '', factor: '', covariate: '', within: '', between: '' },
+                assumptions: { normalityMet: '', normalityNotMet: '', homogeneityMet: '', homogeneityNotMet: '' },
+            },
+            buttons: { getRecommendation: '', analyzing: '', goToGuided: '', selectMethod: '', retry: '', select: '', guidedQuestions: '', browseAll: '', askAiAgain: '' },
+            providers: { keyword: '' },
+            autoLoading: { title: '분석 중...', subtitle: '방법을 찾고 있습니다' },
+        },
     }),
     useTerminologyContext: () => ({
         dictionary: { domain: 'generic', displayName: '범용 통계' },
@@ -167,7 +190,10 @@ describe('PurposeInputStep', () => {
 
         const defaultAnalysisState = {
             assumptionResults: null,
+            setAssumptionResults: vi.fn(),
             setSelectedMethod: vi.fn(),
+            cachedAiRecommendation: null,
+            setCachedAiRecommendation: vi.fn(),
             setDetectedVariables: vi.fn(),
             setSuggestedSettings: vi.fn(),
         }
@@ -236,7 +262,7 @@ describe('PurposeInputStep', () => {
     })
 
     describe('자동 AI 추천 트리거 (auto-trigger)', () => {
-        it('data + validationResults 있을 때 LLM 추천을 자동 호출한다', async () => {
+        it('data + validationResults만 있고 userQuery 없으면 자동 LLM 호출하지 않는다', () => {
             render(
                 <PurposeInputStep
                     onPurposeSubmit={vi.fn()}
@@ -245,13 +271,8 @@ describe('PurposeInputStep', () => {
                 />
             )
 
-            await waitFor(() => {
-                expect(vi.mocked(llmRecommender.recommendFromNaturalLanguage)).toHaveBeenCalledTimes(1)
-            })
-
-            // 기본 쿼리로 호출되어야 함
-            const [query] = vi.mocked(llmRecommender.recommendFromNaturalLanguage).mock.calls[0]
-            expect(query).toBe('이 데이터에 적합한 통계 분석 방법을 추천해주세요.')
+            // userQuery 없이 data만 있으면 자동 추천 안 함 (모호한 기본 쿼리 방지)
+            expect(vi.mocked(llmRecommender.recommendFromNaturalLanguage)).not.toHaveBeenCalled()
         })
 
         it('userQuery 있을 때 해당 쿼리로 LLM을 호출한다', async () => {
