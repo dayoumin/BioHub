@@ -15,7 +15,6 @@
 - **Analysis = 통계 분석의 유일한 진입점** (홈 `/` = ChatCentricHub, 분석 `/analysis`)
 - **개별 `/statistics/*` 43개 = 레거시** (코드 유지, 신규 개발 안 함)
 - **Bio-Tools = `/bio-tools/` 별도 섹션**
-- **`ollama-*` 파일 보존**: Tauri 데스크탑 로컬 LLM 전용 — 수정/삭제 금지. 웹 빌드는 OpenRouter만 사용 (`useOllamaForRecommendation: false`)
 
 ## 핵심 규칙 (CRITICAL)
 
@@ -24,6 +23,7 @@
 3. **공통 컴포넌트 우선**: StatisticsTable, EffectSizeCard, VariableSelectorModern 등
 4. **통계 방법 ID**: `lib/constants/statistical-methods.ts`에서만 정의, 임의 ID 금지
 5. **pyodideStats 하이브리드**: 단순=Generated 래퍼, 복잡=callWorkerMethod 직접 호출
+6. **`ollama-*` 파일 삭제 금지**: Tauri 데스크탑 로컬 LLM 예정 (`lib/services/ollama-*.ts`, `lib/rag/*/ollama-*.ts`). 웹에서는 `useOllamaForRecommendation: false`로 비활성화.
 
 상세: [STATISTICS_CODING_STANDARDS.md](stats/docs/STATISTICS_CODING_STANDARDS.md)
 
