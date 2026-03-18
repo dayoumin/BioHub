@@ -10,18 +10,17 @@ vi.mock('@/components/providers/PyodideProvider', () => ({
 }))
 
 describe('AnalysisLayout', () => {
-  it('PyodideProvider로 children을 감싸야 함', () => {
+  it('children을 그대로 렌더링해야 함', () => {
+    // AnalysisLayout은 /analysis → / 리다이렉트 라우트의 최소 레이아웃
+    // PyodideProvider 래퍼 없이 children을 직접 렌더링
     render(
       <AnalysisLayout>
         <div data-testid="child-content">Test Content</div>
       </AnalysisLayout>
     )
 
-    // PyodideProvider가 렌더링되었는지 확인
-    expect(screen.getByTestId('pyodide-provider')).toBeInTheDocument()
-
-    // children이 정상적으로 렌더링되는지 확인
     expect(screen.getByTestId('child-content')).toBeInTheDocument()
+    expect(screen.queryByTestId('pyodide-provider')).not.toBeInTheDocument()
   })
 
   it('Smart Flow 페이지에서 usePyodide hook을 사용할 수 있어야 함', () => {

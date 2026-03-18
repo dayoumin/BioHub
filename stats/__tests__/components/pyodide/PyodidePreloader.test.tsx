@@ -51,7 +51,7 @@ describe('PyodidePreloader', () => {
     vi.clearAllMocks()
     mockIsInitialized.mockReturnValue(false)
     mockInitialize.mockResolvedValue(undefined)
-    mockPathname.mockReturnValue('/analysis') // Smart Flow 라우트 기본값
+    mockPathname.mockReturnValue('/') // 홈(Smart Flow) 라우트 기본값 — 프리로드 대상
 
     // requestIdleCallback 지원 환경 시뮬레이션
     mockRequestIdleCallback = vi.fn((cb: () => void) => {
@@ -134,7 +134,7 @@ describe('PyodidePreloader', () => {
 
       // Mock 재설정 (모듈 리셋 후)
       vi.doMock('next/navigation', () => ({
-        usePathname: () => '/analysis',
+        usePathname: () => '/',
       }))
       vi.doMock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
         PyodideCoreService: {
@@ -179,7 +179,7 @@ describe('PyodidePreloader', () => {
 
       vi.resetModules()
       vi.doMock('next/navigation', () => ({
-        usePathname: () => '/analysis',
+        usePathname: () => '/',
       }))
       vi.doMock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
         PyodideCoreService: {
@@ -277,7 +277,7 @@ describe('PyodidePreloader', () => {
 
       vi.resetModules()
       vi.doMock('next/navigation', () => ({
-        usePathname: () => '/analysis',
+        usePathname: () => '/',
       }))
       vi.doMock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
         PyodideCoreService: {
@@ -334,7 +334,7 @@ describe('PyodidePreloader', () => {
 
       vi.resetModules()
       vi.doMock('next/navigation', () => ({
-        usePathname: () => '/analysis',
+        usePathname: () => '/',
       }))
       vi.doMock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
         PyodideCoreService: {

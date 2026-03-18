@@ -185,7 +185,6 @@ export function ChatCentricHub({
               timestamp: Date.now(),
               intent,
             })
-            // eslint-disable-next-line no-restricted-syntax
             await new Promise<void>((resolve) => setTimeout(resolve, 1000))
             onIntentResolved(intent, message)
           }

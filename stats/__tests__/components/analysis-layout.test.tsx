@@ -157,8 +157,7 @@ describe('AnalysisLayout', () => {
     it('컴포넌트가 정상적으로 렌더링되어야 함', () => {
       render(<AnalysisLayout {...defaultProps} />)
 
-      // 헤더 아이콘 버튼 (AI 챗봇, 도움말) 존재 확인
-      expect(screen.getByTitle('AI 챗봇')).toBeInTheDocument()
+      // 헤더 아이콘 버튼 (도움말) 존재 확인 — AI 챗봇 버튼은 레이아웃에서 제거됨
       expect(screen.getByTitle('도움말')).toBeInTheDocument()
       expect(screen.getByTestId('test-content')).toBeInTheDocument()
     })
@@ -304,9 +303,8 @@ describe('AnalysisLayout', () => {
         />
       )
 
-      expect(screen.getByTitle('AI 챗봇')).toBeInTheDocument()
       expect(screen.getByTitle('도움말')).toBeInTheDocument()
-      // 히스토리 토글 + 설정 버튼은 AppSidebar로 이전됨
+      // AI 챗봇 버튼은 레이아웃에서 제거됨. 히스토리 토글 + 설정 버튼은 AppSidebar로 이전됨
     })
   })
 

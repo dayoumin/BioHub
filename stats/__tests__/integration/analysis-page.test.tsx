@@ -14,6 +14,15 @@ import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
 import { useHistoryStore } from '@/lib/stores/history-store'
 
+// ===== Mock: next/navigation (useRouter, usePathname) =====
+
+const mockPush = vi.fn()
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush, replace: vi.fn(), back: vi.fn() }),
+  usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(),
+}))
+
 // ===== Mock: useTerminology (TerminologyProvider 없이 테스트) =====
 
 vi.mock('@/hooks/use-terminology', () => ({

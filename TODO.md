@@ -1,6 +1,6 @@
 # 프로젝트 현황 + 할일
 
-**최종 업데이트**: 2026-03-15 (Phase G4 완료)
+**최종 업데이트**: 2026-03-18 (Chat-First 허브 + 기술 부채)
 
 ---
 
@@ -30,6 +30,19 @@
 ---
 
 ## 📅 최근 작업 (7일)
+
+### 2026-03-18 (화) Chat-First 허브 기능 + 기술 부채
+
+**Chat-First 허브** (`b3a1bff8`)
+- ✅ **hub-chat-store**: 채팅 메시지 + 데이터 컨텍스트 상태 (sessionStorage 부분 persist, dataContext 제외)
+- ✅ **hub-chat-service**: LLM 기반 데이터 상담 응답 (chatHistory 멀티턴)
+- ✅ **data-context-builder**: 데이터 컨텍스트 → LLM 프롬프트 마크다운 변환
+- ✅ **use-hub-data-upload**: 인라인 CSV 업로드 훅 (request token 경쟁 상태 방지)
+- ✅ **ChatThread / DataContextBadge**: 채팅 스레드 UI + 데이터 로드 배지
+- ✅ **ChatCentricHub**: 3-track intent 분류 + 데이터 컨텍스트 연동. 추천 없음 경로 1초 대기 후 이동
+- ✅ **bridgeHubDataToGraphStudio**: 허브 업로드 → Graph Studio DataPackage 브리지
+- ✅ **visualization 트랙**: page.tsx에서 브리지 호출 후 라우팅 (기존 빈 이동 수정)
+- ✅ **테스트**: hub-chat-store 17 + use-hub-data-upload 4 + store-orchestration 15 = 36개
 
 ### 2026-03-15 (토) Graph Studio Phase G4 완료 + E2E 정리
 
