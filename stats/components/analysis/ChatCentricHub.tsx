@@ -51,6 +51,9 @@ function createMessageId(): string {
   return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 }
 
+/** 추천 없음 시 "이동합니다" 메시지를 사용자가 읽을 시간 (ms) */
+const NAVIGATE_DELAY_MS = 1000
+
 // ===== Animation =====
 
 const containerVariants = {
@@ -102,7 +105,9 @@ export function ChatCentricHub({
     isProcessingRef.current = true
     setIsProcessing(true)
 
-    // 1. user 메시지 저장
+    // 1. user 메시지 저장 전 히스토리 스냅샷 (addMessage 후엔 현재 메시지가 포함되어 LLM에 중복 전달됨)
+    const priorMessages = useHubChatStore.getState().messages
+
     addMessage({
       id: createMessageId(),
       role: 'user',
@@ -122,12 +127,11 @@ export function ChatCentricHub({
       if (intent.track === 'data-consultation') {
         if (dataContext) {
           // === 데이터 있음: LLM 기반 정밀 추천 ===
-          const messages = useHubChatStore.getState().messages
           const aiResponse = await getHubAiResponse({
             userMessage: message,
             intent,
             dataContext,
-            chatHistory: messages,
+            chatHistory: priorMessages,
           })
           setStreaming(false)
 
@@ -185,7 +189,7 @@ export function ChatCentricHub({
               timestamp: Date.now(),
               intent,
             })
-            await new Promise<void>((resolve) => setTimeout(resolve, 1000))
+            await new Promise<void>((resolve) => setTimeout(resolve, NAVIGATE_DELAY_MS))
             onIntentResolved(intent, message)
           }
         }
@@ -247,9 +251,11 @@ export function ChatCentricHub({
     const messages = useHubChatStore.getState().messages
     const errorIndex = messages.findIndex((m) => m.id === errorMessageId)
     if (errorIndex === -1) return
-    const lastUserMsg = [...messages.slice(0, errorIndex)]
-      .reverse()
-      .find((m) => m.role === 'user')
+    // errorIndex 앞에서 역순으로 탐색 (배열 복사 없이)
+    let lastUserMsg: typeof messages[number] | undefined
+    for (let i = errorIndex - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') { lastUserMsg = messages[i]; break }
+    }
     if (!lastUserMsg) return
     useHubChatStore.getState().removeMessages([errorMessageId, lastUserMsg.id])
     void handleChatSubmit(lastUserMsg.content)

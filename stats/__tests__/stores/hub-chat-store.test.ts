@@ -186,10 +186,10 @@ describe('hub-chat-store', () => {
     })
   })
 
-  // ===== removeMessage =====
+  // ===== removeMessages =====
 
-  describe('removeMessage', () => {
-    it('id로 특정 메시지만 제거한다', () => {
+  describe('removeMessages', () => {
+    it('id 목록의 메시지를 원자적으로 제거한다', () => {
       const a = makeMsg({ id: 'a', content: '첫 번째' })
       const b = makeMsg({ id: 'b', content: '두 번째' })
       const c = makeMsg({ id: 'c', content: '세 번째' })
@@ -199,7 +199,7 @@ describe('hub-chat-store', () => {
         useHubChatStore.getState().addMessage(c)
       })
 
-      act(() => { useHubChatStore.getState().removeMessage('b') })
+      act(() => { useHubChatStore.getState().removeMessages(['b']) })
 
       const { messages } = useHubChatStore.getState()
       expect(messages).toHaveLength(2)
@@ -208,9 +208,23 @@ describe('hub-chat-store', () => {
       expect(messages.find((m) => m.id === 'b')).toBeUndefined()
     })
 
+    it('여러 id를 단일 set()으로 동시 제거한다', () => {
+      act(() => {
+        useHubChatStore.getState().addMessage(makeMsg({ id: 'err' }))
+        useHubChatStore.getState().addMessage(makeMsg({ id: 'user' }))
+        useHubChatStore.getState().addMessage(makeMsg({ id: 'keep' }))
+      })
+
+      act(() => { useHubChatStore.getState().removeMessages(['err', 'user']) })
+
+      const { messages } = useHubChatStore.getState()
+      expect(messages).toHaveLength(1)
+      expect(messages[0].id).toBe('keep')
+    })
+
     it('존재하지 않는 id는 무시한다', () => {
       act(() => { useHubChatStore.getState().addMessage(makeMsg({ id: 'x' })) })
-      act(() => { useHubChatStore.getState().removeMessage('nonexistent') })
+      act(() => { useHubChatStore.getState().removeMessages(['nonexistent']) })
       expect(useHubChatStore.getState().messages).toHaveLength(1)
     })
   })

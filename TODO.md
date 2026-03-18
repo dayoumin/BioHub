@@ -31,6 +31,14 @@
 
 ## 📅 최근 작업 (7일)
 
+### 2026-03-18 (화) P3 기술 부채 현황 확인
+
+**P3 완료 확인** (이전 세션에서 이미 완료됨):
+- ✅ **대형 컴포넌트 분리**: ResultsActionStep → `steps/results/` 9개, PurposeInputStep → `steps/purpose/` 21개, page.tsx → 183줄
+- ✅ **기존 실패 테스트 수정**: 24개 테스트 실패 → 0 (6495 전체 통과)
+- ✅ **CSV RFC 4180 + clipboard Promise**: StatisticsTable.tsx에 이미 적용됨
+- 🔜 **하드코딩 한국어**: 3개 파일 117건 잔여 (다음 세션)
+
 ### 2026-03-18 (화) Chat-First 허브 기능 + 기술 부채
 
 **Chat-First 허브** (`b3a1bff8`)
@@ -498,37 +506,52 @@
 
 > 상세: `stats/docs/REVIEW-MERGE-20-COMMITS.md` — 56 WARNING + 41 INFO
 
-| 항목 | 파일 | 설명 |
-|------|------|------|
-| **대형 컴포넌트 분리** | `ResultsActionStep.tsx` (~1000줄) | Hero/Stats/Charts/Actions 4개 하위 컴포넌트 |
-| **대형 컴포넌트 분리** | `PurposeInputStep.tsx` (789줄) | 입력/추천/가이드 3개 분리 |
-| **God component 분리** | `app/page.tsx` (527줄, 20+ callbacks) | 레이아웃/콘텐츠 분리 |
-| **하드코딩 한국어** | 다수 파일 | terminology 시스템 미사용 잔여분 |
-| **기존 실패 테스트 9건** | 3개 테스트 파일 | 셀렉터 불일치 + 타입 변경 미반영 |
-| **CSV RFC 4180** | `StatisticsTable.tsx:248` | `"` 이스케이프 누락 |
-| **clipboard Promise** | `StatisticsTable.tsx:236` | `writeText` 에러 미처리 |
+| 항목 | 파일 | 설명 | 상태 |
+|------|------|------|------|
+| **대형 컴포넌트 분리** | `ResultsActionStep.tsx` | `steps/results/` 9개 파일로 분리 완료 (804줄) | ✅ 완료 |
+| **대형 컴포넌트 분리** | `PurposeInputStep.tsx` | `steps/purpose/` 21개 파일로 분리 완료 (866줄) | ✅ 완료 |
+| **God component 분리** | `app/page.tsx` | 183줄로 축소 완료 | ✅ 완료 |
+| **기존 실패 테스트 9건** | 3개 테스트 파일 | 2026-03-18 전체 수정 완료 (6495 통과) | ✅ 완료 |
+| **CSV RFC 4180** | `StatisticsTable.tsx` | `escapeCsvField` 함수에 이미 `"` 이스케이프 적용됨 | ✅ 이미 수정 |
+| **clipboard Promise** | `StatisticsTable.tsx` | `.catch()` 이미 있음 | ✅ 이미 수정 |
+| **하드코딩 한국어** | 3개 파일 | terminology는 도메인 전환용, 한국어 전용 앱에서 이관 가치 낮음 — 낮은 우선순위 | ⏳ 보류 |
 
-### 진행 예정
-| 작업 | 설명 |
-|------|------|
-| **~~Graph Studio Stage 2~~** | ✅ 완료 (2026-02-28) — AI 편집 서비스, AiEditTab 활성화, 29개 테스트 |
-| **~~Graph Studio G1: 핵심 UI~~** | ✅ 완료 (2026-02-28) — 상세: 아래 |
-| **~~Graph Studio G5.0-G5.2~~** | ✅ 완료 (2026-03-11) — 3패널 레이아웃 + 좌측 패널 + 로직 훅 추출 |
-| **~~통합 최근 활동~~** | ✅ 완료 (2026-03-11) — QuickAccessBar 통계+시각화 통합, P1 encoding 호환성 검증 |
-| **~~STITCH Phase 2~~** | ✅ 완료 (2026-03-12) — 통합 변수 선택 + 분석 옵션 + 실시간 요약 |
-| **~~STITCH Phase 3~~** | ✅ 완료 (2026-03-12) — Step 4 결과 UI (Hero 컴팩트 + 4-col + 2-col + 액션) |
-| **~~UI 리디자인~~** | ✅ 완료 (2026-03-12) — STITCH Phase 0-4 전체 완료 |
-| **~~G5.3~G5.5~~** | ✅ 완료 (2026-03-12) — 아이콘 그리드 + dataZoom + 캔버스 툴바 + 시뮬레이션 25건 — `a4d05108` `127ce55b` |
-| **~~AI 채팅 히스토리 (multi-turn)~~** | ✅ 완료 — FlowChatMessage 배열, slice(-4) 2턴 context, Step 2 채팅 스레드 + Step 4 Follow-up Q&A UI, 테스트 70개 |
-| **~~Quick Analysis 프리필~~** | ✅ 완료 (P0-1, P0-2) — normality enrichment + 3계층 변수 추론 + 테스트 27개. P0-3(fuzzy matching) 보류 |
-| **~~Graph Studio G2-1 Quick Wins~~** | ✅ 완료 — ColorBrewer 15종 + 막대 데이터 레이블 + 수평 막대 + 테스트 57개 |
-| **~~Layer 0: APA 테이블 복사~~** | ✅ 완료 (2026-03-12) — APA 7th HTML 서식 + 보안 수정 + 테스트 26개 — `62177373` |
-| **Graph Studio: 주석 UI 편집기** | 수동 GUI로 annotation 추가/편집/삭제 (hline/vline/text). 현재 AI 채팅으로만 가능 → 직접 조작 UI 추가. C-4 ([계획서](stats/docs/graph-studio/PLAN-STYLE-ANNOTATION-IMPROVEMENTS.md)) |
-| **섹션별 UX 아이덴티티** | Hub/통계/Graph Studio 시각 구분 — 헤더 섹션명, accent bar, 카드 도착지 표시 ([계획서](stats/docs/PLAN-SECTION-UX-IDENTITY.md)) |
-| **UX 단계별 흐름 개선** | Smart Flow + Graph Studio UX 개선 6단계 — 변수→결과 초기화, 네비게이션 자유도, 통계→그래프 연결 ([계획서](stats/docs/PLAN-UX-STEPFLOW-IMPROVEMENTS.md)) |
-| **논문 초안 생성** | 분석 결과 → Methods/Results/Caption/Discussion 학술 텍스트 자동 생성 ([계획서](stats/docs/PLAN-PAPER-DRAFT-GENERATION.md)) |
-| **Phase 15-1: Bio-Tools** | 12개 생물학 분석, `/bio-tools/` 5페이지 구현 ([상세](study/PLAN-BIO-STATISTICS-AUDIT.md)) |
-| **Pyodide 메모리 최적화 (2차)** | Graph Studio 안정화 후 진행. 계획서: [PLAN-PYODIDE-LAZY-LOADING.md](stats/docs/PLAN-PYODIDE-LAZY-LOADING.md) |
+**하드코딩 한국어 잔여분** (2026-03-18 스캔):
+| 파일 | 건수 | 내용 |
+|------|------|------|
+| `steps/purpose/guided-flow-questions.ts` | 97건 | 질문 텍스트, 옵션 레이블, 추천 이유 문구 전체 |
+| `steps/purpose/MethodBrowser.tsx` | 13건 | 카테고리명 10개 (`'anova': '분산분석'` 등) + 경고 문구 + CTA |
+| `analysis/AnalysisHistoryPanel.tsx` | 7건 | toast 메시지 6개 (로드실패, 설정로드실패, 결과없음, 보고서생성중, 다운로드완료, 생성실패, 오류) |
+
+### 🔜 다음 작업 (우선순위순)
+
+| 순서 | 작업 | 설명 | 계획서 |
+|------|------|------|--------|
+| **1** | **Graph Studio: 주석 UI 편집기 (C-4)** | 수동 GUI — hline/vline/text 직접 추가·편집·삭제. B+C-1~C-3은 이미 구현 완료 | [계획서](stats/docs/graph-studio/PLAN-STYLE-ANNOTATION-IMPROVEMENTS.md) |
+| **2** | **섹션별 UX 아이덴티티** | Hub/통계/Graph Studio 시각 구분 — 헤더 섹션명, accent bar, 카드 도착지 표시 | [계획서](stats/docs/PLAN-SECTION-UX-IDENTITY.md) |
+| — | **논문 초안 생성** | 분석 결과 → Methods/Results/Caption/Discussion 학술 텍스트 자동 생성 (신규 기능, 후순위) | [계획서](stats/docs/PLAN-PAPER-DRAFT-GENERATION.md) |
+| — | **Phase 15-1: Bio-Tools** | 12개 생물학 분석, `/bio-tools/` 5페이지 구현 (신규 기능, 후순위) | [상세](study/PLAN-BIO-STATISTICS-AUDIT.md) |
+| — | **Pyodide 메모리 최적화 (2차)** | Graph Studio 안정화 후 진행 | [계획서](stats/docs/PLAN-PYODIDE-LAZY-LOADING.md) |
+
+### ✅ 완료 목록
+
+| 작업 | 완료일 |
+|------|--------|
+| ~~Graph Studio Stage 2~~ — AI 편집 서비스, AiEditTab 활성화, 29개 테스트 | 2026-02-28 |
+| ~~Graph Studio G1: 핵심 UI~~ — 출력크기/저널프리셋/에러바/Y축로그/X축범위 | 2026-02-28 |
+| ~~Graph Studio G5.0-G5.2~~ — 3패널 레이아웃 + 좌측 패널 + 로직 훅 추출 | 2026-03-11 |
+| ~~통합 최근 활동~~ — QuickAccessBar 통계+시각화 통합, P1 encoding 호환성 검증 | 2026-03-11 |
+| ~~STITCH Phase 2~~ — 통합 변수 선택 + 분석 옵션 + 실시간 요약 | 2026-03-12 |
+| ~~STITCH Phase 3~~ — Step 4 결과 UI (Hero 컴팩트 + 4-col + 2-col + 액션) | 2026-03-12 |
+| ~~UI 리디자인~~ — STITCH Phase 0-4 전체 완료 | 2026-03-12 |
+| ~~G5.3~G5.5~~ — 아이콘 그리드 + dataZoom + 캔버스 툴바 + 시뮬레이션 25건 | 2026-03-12 |
+| ~~AI 채팅 히스토리 (multi-turn)~~ — FlowChatMessage 배열, 2턴 context, 채팅 스레드, 테스트 70개 | 2026-03-12 |
+| ~~Quick Analysis 프리필~~ — normality enrichment + 3계층 변수 추론 + 테스트 27개 | 2026-03-12 |
+| ~~Graph Studio G2-1 Quick Wins~~ — ColorBrewer 15종 + 막대 데이터 레이블 + 수평 막대 + 테스트 57개 | 2026-03-12 |
+| ~~Layer 0: APA 테이블 복사~~ — APA 7th HTML 서식 + 보안 수정 + 테스트 26개 | 2026-03-12 |
+| ~~UX 단계별 흐름 개선~~ — U1~U4 전부 구현 확인 (네비게이션 계약/무효화/Quick 확인/브리지) | 2026-03-18 |
+| ~~Graph Studio: labelSize 분리 (B)~~ — axisTitleSize 타입/Zod/프리셋/렌더러 8곳/hook/UI/AI 프롬프트 | 2026-03-18 확인 |
+| ~~Graph Studio: hline/vline 렌더러 (C-1~C-3)~~ — discriminated union + buildMarkLineAnnotations + applyMarkLineAnnotations wrapper 20+곳 + AI 카드 | 2026-03-18 확인 |
 
 ---
 

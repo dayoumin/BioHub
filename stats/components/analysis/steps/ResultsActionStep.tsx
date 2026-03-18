@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { useCountUp } from '@/hooks/use-count-up'
 import { useInterpretation } from '@/hooks/use-interpretation'
@@ -10,20 +9,13 @@ import {
   Copy,
   Download,
   CheckCircle2,
-  AlertCircle,
-  RefreshCw,
   FileText,
-  Sparkles,
   BarChart3,
   FileSearch,
-  Send,
-  MessageCircle,
 } from 'lucide-react'
 import { EmptyState } from '@/components/common/EmptyState'
 import { toast } from 'sonner'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,13 +34,11 @@ import type { ExportFormat, ExportContext, ExportContentOptions } from '@/lib/se
 import { splitInterpretation, generateSummaryText } from '@/lib/services/export/export-data-builder'
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
 import { TemplateSaveModal } from '@/components/analysis/TemplateSaveModal'
-import ReactMarkdown from 'react-markdown'
 import { cn } from '@/lib/utils'
-import { StepHeader, CollapsibleSection } from '@/components/analysis/common'
-import { streamFollowUp, type InterpretationContext } from '@/lib/services/result-interpreter'
-import type { ChatMessage } from '@/lib/types/chat'
+import { StepHeader } from '@/components/analysis/common'
 import { AssumptionTestsSection } from '@/components/analysis/steps/exploration/AssumptionTestsSection'
-import { ResultsHeroCard, ResultsStatsCards, ResultsChartsSection, ResultsActionButtons } from '@/components/analysis/steps/results'
+import { ResultsHeroCard, ResultsStatsCards, ResultsChartsSection, ResultsActionButtons, AiInterpretationCard, FollowUpQASection } from '@/components/analysis/steps/results'
+import { useFollowUpQA } from '@/hooks/use-follow-up-qa'
 import { formatStatisticalResult } from '@/lib/statistics/formatters'
 import { useTerminology } from '@/hooks/use-terminology'
 import { logger } from '@/lib/utils/logger'
@@ -63,9 +53,6 @@ import type { KaplanMeierAnalysisResult, RocCurveAnalysisResult } from '@/lib/ge
 interface ResultsActionStepProps {
   results: AnalysisResult | null
 }
-
-// Shared helpers (animation variants + formatters)
-import { sectionRevealVariants } from './results/results-helpers'
 
 
 export function ResultsActionStep({ results }: ResultsActionStepProps) {
@@ -103,18 +90,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   // 후속 칩 사용 추적
   const [usedChips, setUsedChips] = useState<Set<string>>(new Set())
 
-  // 후속 Q&A 상태
-  const [followUpMessages, setFollowUpMessages] = useState<ChatMessage[]>([])
-  const [followUpInput, setFollowUpInput] = useState('')
-  const [isFollowUpStreaming, setIsFollowUpStreaming] = useState(false)
-  const isFollowUpStreamingRef = useRef(false)  // 동기 가드 (더블클릭 방지)
-  const followUpAbortRef = useRef<AbortController | null>(null)
-  const chatBottomRef = useRef<HTMLDivElement | null>(null)
-
-  // 언마운트 시 후속 Q&A 스트림 취소 + phaseTimer 정리
+  // 언마운트 시 phaseTimer 정리
   useEffect(() => {
     return () => {
-      followUpAbortRef.current?.abort()
       if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current)
     }
   }, [])
@@ -161,14 +139,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     if (prevHistoryIdRef.current === currentHistoryId) return
     prevHistoryIdRef.current = currentHistoryId
 
-    // 진행 중인 Q&A 스트림 abort
-    followUpAbortRef.current?.abort()
-
-    // Q&A 로컬 state 초기화 (loadedInterpretationChat effect가 복원)
-    setFollowUpMessages([])
-    setFollowUpInput('')
-    setIsFollowUpStreaming(false)
-    isFollowUpStreamingRef.current = false
+    // 진행 중인 Q&A 스트림 abort + 상태 초기화 (loadedInterpretationChat effect가 복원)
+    resetFollowUp()
 
     // Phase 초기화 (단계적 등장 재시작)
     setPhase(0)
@@ -241,6 +213,26 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     uploadedFileName,
     variableMapping: variableMapping as Record<string, unknown> | null,
     errorMessage: t.results.ai.defaultError,
+  })
+
+  // 후속 Q&A 훅
+  const {
+    followUpMessages,
+    setFollowUpMessages,
+    followUpInput,
+    setFollowUpInput,
+    isFollowUpStreaming,
+    chatBottomRef,
+    handleFollowUp,
+    resetFollowUp,
+  } = useFollowUpQA({
+    results,
+    interpretation,
+    sampleSize: uploadedData?.length,
+    mappedVariables,
+    uploadedFileName: uploadedFileName ?? null,
+    errorPrefix: t.analysis.executionLogs.errorPrefix,
+    errorMessage: t.results.followUp.errorMessage,
   })
 
   // Phase 진행 콜백: 해석 완료 시 Phase 3→4 전환
@@ -536,76 +528,13 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     router.push('/graph-studio')
   }, [results, uploadedData, currentHistoryId, loadDataPackageWithSpec, disconnectProject, router])
 
-  // 재해석 + Q&A 초기화 (훅의 resetAndReinterpret + Q&A 로컬 state)
+  // 재해석 + Q&A 초기화
   const handleReinterpretWithQAReset = useCallback(() => {
-    followUpAbortRef.current?.abort()
-    isFollowUpStreamingRef.current = false
-    setIsFollowUpStreaming(false)
-    setFollowUpMessages([])
+    resetFollowUp()
     setUsedChips(new Set())
     resetAndReinterpret()
-  }, [resetAndReinterpret])
+  }, [resetFollowUp, resetAndReinterpret])
 
-  // 후속 질문 전송
-  const handleFollowUp = useCallback(async (question: string) => {
-    // ref 기반 동기 가드 — state 업데이트 지연으로 인한 더블클릭 race 방지
-    if (!results || !interpretation || isFollowUpStreamingRef.current || !question.trim()) return
-    isFollowUpStreamingRef.current = true
-
-    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: question.trim(), timestamp: Date.now() }
-    setFollowUpMessages(prev => [...prev, userMsg])
-    setFollowUpInput('')
-
-    const assistantPlaceholder: ChatMessage = { id: crypto.randomUUID(), role: 'assistant', content: '', timestamp: Date.now() }
-    setFollowUpMessages(prev => [...prev, assistantPlaceholder])
-    setIsFollowUpStreaming(true)
-
-    const controller = new AbortController()
-    followUpAbortRef.current = controller
-
-    const ctx: InterpretationContext = {
-      results,
-      sampleSize: uploadedData?.length,
-      variables: mappedVariables.length > 0 ? mappedVariables : undefined,
-      uploadedFileName: uploadedFileName ?? undefined,
-    }
-
-    try {
-      let accumulated = ''
-      await streamFollowUp(
-        question.trim(),
-        followUpMessages,
-        ctx,
-        interpretation,
-        (chunk) => {
-          accumulated += chunk
-          setFollowUpMessages(prev => {
-            if (prev.length === 0) return prev  // 재해석으로 배열이 초기화된 경우 무시
-            const last = prev[prev.length - 1]
-            if (last.role !== 'assistant') return prev  // 마지막이 assistant가 아니면 무시
-            return [...prev.slice(0, -1), { ...last, content: accumulated }]
-          })
-        },
-        controller.signal
-      )
-    } catch (error) {
-      if (controller.signal.aborted) return
-      const errorContent = error instanceof Error
-        ? t.analysis.executionLogs.errorPrefix(error.message)
-        : t.results.followUp.errorMessage
-      setFollowUpMessages(prev => {
-        if (prev.length === 0) return prev
-        const last = prev[prev.length - 1]
-        if (last.role !== 'assistant') return prev
-        return [...prev.slice(0, -1), { ...last, content: errorContent }]
-      })
-    } finally {
-      isFollowUpStreamingRef.current = false
-      setIsFollowUpStreaming(false)
-      followUpAbortRef.current = null
-      requestAnimationFrame(() => chatBottomRef.current?.scrollIntoView?.({ behavior: 'smooth' }))
-    }
-  }, [results, interpretation, followUpMessages, uploadedData, mappedVariables, uploadedFileName, t])
 
   const handleCopyResults = useCallback(async () => {
     if (!results || !statisticalResult) return
@@ -807,192 +736,36 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           t={t}
         />
 
-        {/* ===== [Phase 3] AI 해석 카드 — 차트 다음에 배치 (데이터 → 해석 인지 흐름) ===== */}
-        <div className="space-y-2" data-testid="ai-interpretation-section" ref={aiInterpretationRef}>
-            <AnimatePresence mode="wait">
-              {isInterpreting && !interpretation && (
-                <motion.div
-                  key="ai-loading"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Card className="border-violet-200 dark:border-violet-800/50">
-                    <CardContent className="py-4 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
-                        <Sparkles className="w-4 h-4 text-violet-500 animate-pulse" />
-                      </div>
-                      <span className="text-sm text-violet-700 dark:text-violet-300 font-medium">{t.results.ai.loading}</span>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
-
-              {parsedInterpretation && (
-                <motion.div
-                  key="ai-content"
-                  initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, ease: 'easeOut' }}
-                >
-                  <Card className="border-violet-200 dark:border-violet-800/50">
-                    <CardHeader className="pb-2 pt-4 px-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-md bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center">
-                            <Sparkles className="w-3.5 h-3.5 text-violet-500" />
-                          </div>
-                          <span className="text-sm font-semibold text-violet-700 dark:text-violet-300">{t.results.ai.label}</span>
-                          {interpretationModel && interpretationModel !== 'unknown' && (
-                            <span className="text-[10px] text-muted-foreground/40 font-mono hidden sm:inline">{interpretationModel}</span>
-                          )}
-                        </div>
-                        {!isInterpreting && (
-                          <Button variant="outline" size="sm" onClick={handleReinterpretWithQAReset} className="text-xs h-7 px-2 gap-1">
-                            <RefreshCw className="w-3 h-3" />
-                            {t.results.ai.reinterpret}
-                          </Button>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-2 pb-4 px-4 space-y-2">
-                      <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
-                        <ReactMarkdown>{parsedInterpretation.summary}</ReactMarkdown>
-                        {isInterpreting && (
-                          <span className="inline-block w-1.5 h-4 bg-violet-500 animate-pulse ml-0.5 align-text-bottom" />
-                        )}
-                      </div>
-                      {parsedInterpretation.detail && (
-                        <CollapsibleSection
-                          label={t.results.ai.detailedLabel}
-                          open={detailedInterpretOpen}
-                          onOpenChange={setDetailedInterpretOpen}
-                          contentClassName="pt-2"
-                          icon={<Sparkles className="h-3.5 w-3.5 text-violet-400" />}
-                        >
-                          <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed border-t border-border/10 pt-3">
-                            <ReactMarkdown>{parsedInterpretation.detail}</ReactMarkdown>
-                          </div>
-                        </CollapsibleSection>
-                      )}
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {interpretError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-sm">
-                  {interpretError}
-                  <Button variant="ghost" size="sm" onClick={handleReinterpretWithQAReset} className="ml-2 text-xs h-6 px-2">
-                    {t.results.ai.retry}
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            )}
-          </div>
+        {/* ===== [Phase 3] AI 해석 카드 ===== */}
+        <AiInterpretationCard
+          parsedInterpretation={parsedInterpretation}
+          isInterpreting={isInterpreting}
+          interpretationModel={interpretationModel}
+          interpretError={interpretError}
+          prefersReducedMotion={prefersReducedMotion}
+          detailedInterpretOpen={detailedInterpretOpen}
+          onDetailedInterpretOpenChange={setDetailedInterpretOpen}
+          onReinterpret={handleReinterpretWithQAReset}
+          containerRef={aiInterpretationRef}
+          t={t}
+        />
 
         {/* ===== [Phase 4] 후속 Q&A 카드 ===== */}
-        {(phase >= 4 || prefersReducedMotion) && interpretation && !isInterpreting && (
-          <motion.div
-            variants={prefersReducedMotion ? undefined : sectionRevealVariants}
-            initial={prefersReducedMotion ? undefined : 'hidden'}
-            animate={prefersReducedMotion ? undefined : 'visible'}
-          >
-          <Card data-testid="follow-up-section">
-            <CardHeader className="pb-3 pt-4 px-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                <MessageCircle className="w-4 h-4" />
-                {t.results.followUp.title}
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0 pb-4 px-4 space-y-3">
-              {/* 이전 Q&A 스레드 */}
-              {followUpMessages.length > 0 && (
-                <div className="space-y-2">
-                  {followUpMessages.map((msg, idx) => (
-                    <div
-                      key={msg.id}
-                      className={cn(
-                        'px-3 py-2.5 rounded-lg text-sm',
-                        msg.role === 'user'
-                          ? 'bg-muted/60 ml-6'
-                          : 'bg-violet-50 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/30'
-                      )}
-                    >
-                      {msg.role === 'user' ? (
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{t.results.followUp.userLabel}</p>
-                      ) : (
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-500 dark:text-violet-400 mb-1 flex items-center gap-1">
-                          <Sparkles className="w-2.5 h-2.5" /> {t.results.followUp.aiLabel}
-                        </p>
-                      )}
-                      <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
-                      </div>
-                      {msg.role === 'assistant' && isFollowUpStreaming && idx === followUpMessages.length - 1 && (
-                        <span className="inline-block w-1.5 h-3.5 bg-violet-500 animate-pulse ml-0.5 align-text-bottom" />
-                      )}
-                    </div>
-                  ))}
-                  <div ref={chatBottomRef} />
-                </div>
-              )}
-
-              {/* 빠른 질문 칩 */}
-              <div className="flex flex-wrap gap-1.5">
-                {t.results.followUp.chips.map((chip) => (
-                  <button
-                    key={chip.label}
-                    onClick={() => {
-                      setUsedChips(prev => new Set(prev).add(chip.label))
-                      handleFollowUp(chip.prompt)
-                    }}
-                    disabled={isFollowUpStreaming}
-                    className={cn(
-                      "text-xs px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:bg-muted/50 hover:border-border disabled:opacity-40 transition-colors",
-                      usedChips.has(chip.label) && "opacity-50 line-through"
-                    )}
-                  >
-                    {chip.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* 직접 입력 */}
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={followUpInput}
-                  onChange={(e) => setFollowUpInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
-                      handleFollowUp(followUpInput)
-                    }
-                  }}
-                  placeholder={t.results.followUp.placeholder}
-                  disabled={isFollowUpStreaming}
-                  className="flex-1 text-sm px-3 py-1.5 rounded-lg border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
-                />
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleFollowUp(followUpInput)}
-                  disabled={isFollowUpStreaming || !followUpInput.trim()}
-                  className="px-2.5"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-
-            </CardContent>
-          </Card>
-          </motion.div>
-        )}
+        <FollowUpQASection
+          phase={phase}
+          prefersReducedMotion={prefersReducedMotion}
+          interpretation={interpretation}
+          isInterpreting={isInterpreting}
+          followUpMessages={followUpMessages}
+          isFollowUpStreaming={isFollowUpStreaming}
+          chatBottomRef={chatBottomRef}
+          followUpInput={followUpInput}
+          onFollowUpInputChange={setFollowUpInput}
+          onFollowUp={handleFollowUp}
+          usedChips={usedChips}
+          onChipUsed={(label) => setUsedChips(prev => new Set(prev).add(label))}
+          t={t}
+        />
 
         {/* ===== 액션 버튼 + 다이얼로그 ===== */}
         <ResultsActionButtons

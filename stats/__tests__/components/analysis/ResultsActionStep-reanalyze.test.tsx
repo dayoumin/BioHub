@@ -52,6 +52,16 @@ vi.mock('@/hooks/use-terminology', () => ({
         logSectionLabel: () => '', noLogs: '', dataRequired: '',
         unknownError: '', estimatedTimeRemaining: () => '',
       },
+      executionLogs: {
+        stageStart: () => '', engineReadyCached: '', engineLoading: '', engineReady: '',
+        dataLoaded: () => '', missingHandled: () => '', normalityTestStart: '',
+        normalityTestDone: () => '', normalityTestFailed: '', homogeneityTestStart: '',
+        homogeneityTestDone: () => '', homogeneityTestFailed: '', assumptionSkipped: '',
+        methodExecuting: () => '', aiSettingsApplied: () => '', aiPostHoc: () => '',
+        aiAlternative: () => '', effectSizeDone: '', confidenceIntervalDone: '',
+        analysisDone: '', totalTime: () => '', errorPrefix: (msg: string) => `오류: ${msg}`,
+        userCancelled: '', locale: 'ko',
+      },
     },
     purposeInput: {
       purposes: {}, inputModes: { aiRecommend: '', directSelect: '', modeAriaLabel: '' },

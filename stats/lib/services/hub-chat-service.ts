@@ -10,7 +10,6 @@
 
 import { openRouterRecommender } from './openrouter-recommender'
 import { getSystemPromptConsultant, getSystemPromptDiagnostic } from './ai/prompts'
-import { buildContextForIntent } from './ai/data-context-builder'
 import { logger } from '@/lib/utils/logger'
 import type { HubChatMessage, HubDataContext } from '@/lib/stores/hub-chat-store'
 import type { AIRecommendation, ResolvedIntent, FlowChatMessage } from '@/types/analysis'
@@ -59,19 +58,14 @@ export async function getHubAiResponse(request: HubChatRequest): Promise<HubChat
     ? getSystemPromptDiagnostic()
     : getSystemPromptConsultant()
 
-  // 의도별 최적화된 데이터 컨텍스트 주입 (있으면)
-  const dataContextMarkdown = hasData
-    ? buildContextForIntent(intent.track, dataContext.validationResults)
-    : ''
-
-  // 사용자 프롬프트 구성
-  const userPrompt = hasData
-    ? `${dataContextMarkdown}\n\n## 사용자 질문\n${userMessage}`
-    : userMessage
-
+  // validationResults를 그대로 전달:
+  // 1) openRouterRecommender 내부에서 validColumnNames 생성 → 변수 검증 정상 동작
+  // 2) buildUserPrompt()가 buildDataContextMarkdown()으로 컨텍스트 단일 빌드
+  // NOTE: intent별 경량화(visualization → buildVisualizationContext)는 현재 미적용.
+  //       recommender API에 track 파라미터 추가 시 buildContextForIntent로 교체 예정.
   try {
     const result = await openRouterRecommender.recommendWithSystemPrompt(
-      userPrompt,
+      userMessage,
       systemPrompt,
       hasData ? dataContext.validationResults : null,
       null, // assumptionResults — 허브에서는 아직 없음

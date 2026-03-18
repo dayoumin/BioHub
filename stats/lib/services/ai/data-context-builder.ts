@@ -25,8 +25,7 @@ export function buildDataContextMarkdown(validationResults: ValidationResults | 
   if (!validationResults) return '## 데이터 정보\n(데이터가 업로드되지 않았습니다)'
 
   const columns = validationResults.columns ?? []
-  const numericCols = columns.filter((c: ColumnStatistics) => c.type === 'numeric')
-  const categoricalCols = columns.filter((c: ColumnStatistics) => c.type === 'categorical')
+  const { numeric: numericCols, categorical: categoricalCols } = splitColumnsByType(columns)
 
   let context = `## 데이터 요약
 - 전체: ${validationResults.totalRows ?? 0}행 × ${columns.length}열
@@ -101,6 +100,18 @@ export function buildAssumptionContextMarkdown(assumptionResults: StatisticalAss
   return `## 통계적 가정 검정 결과\n${parts.join('\n')}`
 }
 
+// ===== 내부 헬퍼 =====
+
+function splitColumnsByType(columns: ColumnStatistics[]): {
+  numeric: ColumnStatistics[]
+  categorical: ColumnStatistics[]
+} {
+  return {
+    numeric: columns.filter((c) => c.type === 'numeric'),
+    categorical: columns.filter((c) => c.type === 'categorical'),
+  }
+}
+
 // ===== 의도별 컨텍스트 빌더 =====
 
 /**
@@ -110,8 +121,7 @@ export function buildVisualizationContext(validationResults: ValidationResults |
   if (!validationResults) return '## 데이터 정보\n(데이터가 업로드되지 않았습니다)'
 
   const columns = validationResults.columns ?? []
-  const numericCols = columns.filter((c: ColumnStatistics) => c.type === 'numeric')
-  const categoricalCols = columns.filter((c: ColumnStatistics) => c.type === 'categorical')
+  const { numeric: numericCols, categorical: categoricalCols } = splitColumnsByType(columns)
 
   let context = `## 시각화 데이터 요약
 - 전체: ${validationResults.totalRows ?? 0}행 × ${columns.length}열

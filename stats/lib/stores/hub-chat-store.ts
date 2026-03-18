@@ -43,7 +43,6 @@ interface HubChatState {
   hasSeenUploadSuggestion: boolean
 
   addMessage: (msg: HubChatMessage) => void
-  removeMessage: (id: string) => void
   /** 여러 메시지를 단일 set()으로 원자적 제거 (재시도 시 에러+유저 메시지 동시 삭제용) */
   removeMessages: (ids: string[]) => void
   clearMessages: () => void
@@ -70,15 +69,11 @@ export const useHubChatStore = create<HubChatState>()(
           messages: [...state.messages, msg].slice(-MAX_MESSAGES),
         })),
 
-      removeMessage: (id) =>
-        set((state) => ({
-          messages: state.messages.filter((m) => m.id !== id),
-        })),
-
       removeMessages: (ids) =>
-        set((state) => ({
-          messages: state.messages.filter((m) => !ids.includes(m.id)),
-        })),
+        set((state) => {
+          const idSet = new Set(ids)
+          return { messages: state.messages.filter((m) => !idSet.has(m.id)) }
+        }),
 
       clearMessages: () =>
         set({ messages: [], hasSeenUploadSuggestion: false }),
