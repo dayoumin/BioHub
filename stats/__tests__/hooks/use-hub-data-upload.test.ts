@@ -56,6 +56,19 @@ vi.mock('@/lib/services/normality-enrichment-service', () => ({
 
 // ===== 헬퍼 =====
 
+/**
+ * Papa.parse는 오버로드 함수라 mockImplementationOnce에 직접 구현을 넘기면
+ * TypeScript가 스트림 오버로드로 해석해 타입 에러가 발생한다.
+ * 테스트에서 필요한 파일 파싱 오버로드만 사용하도록 좁힌 타입으로 캐스팅하는 헬퍼.
+ */
+type MockParseImpl = (_file: File, config?: { complete?: (r: ParseResult<Record<string, string>>) => void }) => void
+function mockParseOnce(
+  parseMock: { mockImplementationOnce: (_fn: never) => unknown },
+  impl: MockParseImpl
+): void {
+  parseMock.mockImplementationOnce(impl as never)
+}
+
 function makeFile(name: string): File {
   return new File(['a,b\n1,2\n3,4'], name, { type: 'text/csv' })
 }
@@ -100,16 +113,16 @@ describe('use-hub-data-upload — 경쟁 상태 시뮬레이션', () => {
       const { default: Papa } = await import('papaparse')
       const parseMock = vi.mocked(Papa.parse)
 
-      let firstComplete: ((results: ParseResult<Record<string, string>>) => void) | null = null
+      let firstComplete: ((_r: ParseResult<Record<string, string>>) => void) | null = null
 
       // 첫 번째 parse: complete를 캡처만 (아직 실행 안 함)
-      parseMock.mockImplementationOnce((_file, config: { complete?: (r: ParseResult<Record<string, string>>) => void }) => {
-        firstComplete = config.complete ?? null
+      mockParseOnce(parseMock, (_file, config) => {
+        firstComplete = config?.complete ?? null
       })
 
       // 두 번째 parse: 즉시 실행
-      parseMock.mockImplementationOnce((_file, config: { complete?: (r: ParseResult<Record<string, string>>) => void }) => {
-        config.complete?.(makeParseResult('file2.csv'))
+      mockParseOnce(parseMock, (_file, config) => {
+        config?.complete?.(makeParseResult('file2.csv'))
       })
 
       const { result } = renderHook(() => useHubDataUpload())
@@ -134,8 +147,8 @@ describe('use-hub-data-upload — 경쟁 상태 시뮬레이션', () => {
       const { default: Papa } = await import('papaparse')
       const parseMock = vi.mocked(Papa.parse)
 
-      parseMock.mockImplementationOnce((_file, config: { complete?: (r: ParseResult<Record<string, string>>) => void }) => {
-        config.complete?.(makeParseResult('solo.csv'))
+      mockParseOnce(parseMock, (_file, config) => {
+        config?.complete?.(makeParseResult('solo.csv'))
       })
 
       const { result } = renderHook(() => useHubDataUpload())
@@ -160,8 +173,8 @@ describe('use-hub-data-upload — 경쟁 상태 시뮬레이션', () => {
         new Promise((resolve) => { resolveEnrich = resolve })
       )
 
-      parseMock.mockImplementationOnce((_file, config: { complete?: (r: ParseResult<Record<string, string>>) => void }) => {
-        config.complete?.(makeParseResult('data.csv'))
+      mockParseOnce(parseMock, (_file, config) => {
+        config?.complete?.(makeParseResult('data.csv'))
       })
 
       const { result } = renderHook(() => useHubDataUpload())
@@ -233,8 +246,8 @@ describe('use-hub-data-upload — 경쟁 상태 시뮬레이션', () => {
       }
 
       enrichMock.mockResolvedValueOnce({ enrichedColumns: [enrichedCol], testedCount: 1, failedColumns: [] })
-      parseMock.mockImplementationOnce((_file, config: { complete?: (r: ParseResult<Record<string, string>>) => void }) => {
-        config.complete?.(makeParseResult('data.csv'))
+      mockParseOnce(parseMock, (_file, config) => {
+        config?.complete?.(makeParseResult('data.csv'))
       })
 
       const { result } = renderHook(() => useHubDataUpload())
