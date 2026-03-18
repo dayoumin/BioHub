@@ -52,6 +52,18 @@
 - ✅ **visualization 트랙**: page.tsx에서 브리지 호출 후 라우팅 (기존 빈 이동 수정)
 - ✅ **테스트**: hub-chat-store 17 + use-hub-data-upload 4 + store-orchestration 15 = 36개
 
+### 2026-03-18 (화) Graph Studio C-4 주석 편집기 + 테스트 수정
+
+**Graph Studio 주석 UI 편집기 (C-4)** (`d2242272`)
+- ✅ **AnnotationTab.tsx** 신규: hline/vline 수동 추가·삭제 GUI (value 입력, 레이블, 색상 피커, 점선 스위치)
+- ✅ **RightPropertyPanel** 세 번째 Accordion 섹션으로 통합 (`data-testid="graph-studio-tab-annotation"`)
+- ✅ **리팩토링**: `hlines`/`vlines` 불필요한 filter 변수 제거 → `.some()` 교체 (`660f8580`)
+- ✅ **시뮬레이션 테스트 27개** (`annotation-tab-sim.test.ts`, `0b4f27d2`): SIM-1 hline 파싱 / SIM-2 vline 숫자·카테고리 / SIM-3 유효성(NaN·빈값) / SIM-4 삭제(불변성) / SIM-5 옵션(점선) / SIM-6 스토어 통합(undo 복원)
+
+**간헐적 실패 테스트 수정** (`f2c91b1c`)
+- ✅ **history-restore**: `beforeEach` lazy import → 파일 레벨 `beforeAll` 1회만 실행 (beforeEach 타임아웃 방지)
+- ✅ **ROC benchmark**: 100K 한계 500ms → 1000ms (스위트 병렬 실행 시 부하 고려)
+
 ### 2026-03-15 (토) Graph Studio Phase G4 완료 + E2E 정리
 
 - ✅ **Phase G4 전항목 완료 확인**: 탭명(4-1), 좌측 접힘(4-2), Popover 역할 할당(4-3), hex 복사(4-4), 프로젝트 해제(4-5)
@@ -527,8 +539,7 @@
 
 | 순서 | 작업 | 설명 | 계획서 |
 |------|------|------|--------|
-| **1** | **Graph Studio: 주석 UI 편집기 (C-4)** | 수동 GUI — hline/vline/text 직접 추가·편집·삭제. B+C-1~C-3은 이미 구현 완료 | [계획서](stats/docs/graph-studio/PLAN-STYLE-ANNOTATION-IMPROVEMENTS.md) |
-| **2** | **섹션별 UX 아이덴티티** | Hub/통계/Graph Studio 시각 구분 — 헤더 섹션명, accent bar, 카드 도착지 표시 | [계획서](stats/docs/PLAN-SECTION-UX-IDENTITY.md) |
+| — | ~~섹션별 UX 아이덴티티 전체 완료~~ | S1~S5 모두 구현 | — |
 | — | **논문 초안 생성** | 분석 결과 → Methods/Results/Caption/Discussion 학술 텍스트 자동 생성 (신규 기능, 후순위) | [계획서](stats/docs/PLAN-PAPER-DRAFT-GENERATION.md) |
 | — | **Phase 15-1: Bio-Tools** | 12개 생물학 분석, `/bio-tools/` 5페이지 구현 (신규 기능, 후순위) | [상세](study/PLAN-BIO-STATISTICS-AUDIT.md) |
 | — | **Pyodide 메모리 최적화 (2차)** | Graph Studio 안정화 후 진행 | [계획서](stats/docs/PLAN-PYODIDE-LAZY-LOADING.md) |
@@ -552,6 +563,8 @@
 | ~~UX 단계별 흐름 개선~~ — U1~U4 전부 구현 확인 (네비게이션 계약/무효화/Quick 확인/브리지) | 2026-03-18 |
 | ~~Graph Studio: labelSize 분리 (B)~~ — axisTitleSize 타입/Zod/프리셋/렌더러 8곳/hook/UI/AI 프롬프트 | 2026-03-18 확인 |
 | ~~Graph Studio: hline/vline 렌더러 (C-1~C-3)~~ — discriminated union + buildMarkLineAnnotations + applyMarkLineAnnotations wrapper 20+곳 + AI 카드 | 2026-03-18 확인 |
+| ~~Graph Studio: 주석 UI 편집기 (C-4)~~ — AnnotationTab.tsx: hline/vline 수동 추가·편집·삭제 GUI, RightPropertyPanel Accordion 통합 | 2026-03-18 확인 |
+| ~~섹션별 UX 아이덴티티 S1~S5~~ — 헤더 섹션명+아이콘, accent bar, 분석 플로우 틴트(S3), Hub 카드 도착지 뱃지(S4), Graph Studio 캔버스 배경(S5) | 2026-03-18 |
 
 ---
 
