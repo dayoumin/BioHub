@@ -69,7 +69,7 @@ export function AnnotationTab(): React.ReactElement | null {
   const addVline = useCallback(() => {
     const raw = vlineForm.value.trim();
     if (!raw) return;
-    const numVal = parseFloat(raw);
+    const numVal = Number(raw);
     const val: number | string = isNaN(numVal) ? raw : numVal;
     const ann: VLineAnnotation = {
       type: 'vline',

@@ -27,7 +27,7 @@ vi.mock('papaparse', () => ({
 }))
 
 vi.mock('sonner', () => ({
-  toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
+  toast: { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() },
 }))
 
 vi.mock('@/lib/services/data-validation-service', () => ({
@@ -81,6 +81,15 @@ function makeParseResult(fileName: string): ParseResult<Record<string, string>> 
     ],
     errors: [],
     meta: { delimiter: ',', linebreak: '\n', aborted: false, truncated: false, cursor: 0, fields: ['weight', 'group'] },
+  }
+}
+
+function makeParseResultWithErrors(
+  errors: ParseResult<Record<string, string>>['errors'],
+): ParseResult<Record<string, string>> {
+  return {
+    ...makeParseResult('data.csv'),
+    errors,
   }
 }
 
@@ -228,6 +237,136 @@ describe('use-hub-data-upload — 경쟁 상태 시뮬레이션', () => {
       expect(normalityAfter).toBeUndefined()
       // fresh validationResults 자체는 보존됨 (clearDataContext가 다시 호출되지 않았음)
       expect(useAnalysisStore.getState().validationResults).not.toBeNull()
+    })
+  })
+
+  // ── S4: PapaParse 에러 — 치명적 오류 (Delimiter/Quotes) ─────
+
+  describe('S4: 치명적 CSV 파싱 오류 — Delimiter/Quotes', () => {
+    it('Delimiter 에러 → toast.error + 스토어 업데이트 안 됨', async () => {
+      const Papa = (await import('papaparse')).default
+      const parseMock = vi.mocked(Papa.parse)
+      const { toast } = await import('sonner')
+
+      mockParseOnce(parseMock, (_file, config) => {
+        config?.complete?.(makeParseResultWithErrors([
+          { type: 'Delimiter', code: 'UndetectableDelimiter', message: '구분자를 감지할 수 없습니다.', row: 0 },
+        ]))
+      })
+
+      const { result } = renderHook(() => useHubDataUpload())
+      act(() => { result.current.handleFileSelected(makeFile('bad.csv')) })
+
+      expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+        expect.stringContaining('구분자를 감지할 수 없습니다.')
+      )
+      // 스토어에 데이터가 들어가면 안 됨
+      expect(useAnalysisStore.getState().uploadedFileName).toBeNull()
+      expect(useHubChatStore.getState().dataContext).toBeNull()
+    })
+
+    it('Quotes 에러 → toast.error + 스토어 업데이트 안 됨', async () => {
+      const Papa = (await import('papaparse')).default
+      const parseMock = vi.mocked(Papa.parse)
+      const { toast } = await import('sonner')
+
+      mockParseOnce(parseMock, (_file, config) => {
+        config?.complete?.(makeParseResultWithErrors([
+          { type: 'Quotes', code: 'InvalidQuotes', message: '따옴표가 올바르지 않습니다.', row: 2 },
+        ]))
+      })
+
+      const { result } = renderHook(() => useHubDataUpload())
+      act(() => { result.current.handleFileSelected(makeFile('bad.csv')) })
+
+      expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+        expect.stringContaining('따옴표가 올바르지 않습니다.')
+      )
+      expect(useAnalysisStore.getState().uploadedFileName).toBeNull()
+    })
+  })
+
+  // ── S5: PapaParse 에러 — 경고 수준 (FieldMismatch) ──────────
+
+  describe('S5: 경고 수준 CSV 파싱 오류 — FieldMismatch', () => {
+    it('FieldMismatch → toast.warning + 스토어 업데이트는 진행됨', async () => {
+      const Papa = (await import('papaparse')).default
+      const parseMock = vi.mocked(Papa.parse)
+      const { toast } = await import('sonner')
+
+      mockParseOnce(parseMock, (_file, config) => {
+        config?.complete?.(makeParseResultWithErrors([
+          { type: 'FieldMismatch', code: 'TooFewFields', message: '필드 수가 맞지 않습니다.', row: 3 },
+        ]))
+      })
+
+      const { result } = renderHook(() => useHubDataUpload())
+      act(() => { result.current.handleFileSelected(makeFile('partial.csv')) })
+
+      expect(vi.mocked(toast.warning)).toHaveBeenCalledWith(
+        expect.stringContaining('1건')
+      )
+      // 데이터는 스토어에 들어가야 함
+      expect(useAnalysisStore.getState().uploadedFileName).toBe('partial.csv')
+      expect(useHubChatStore.getState().dataContext?.fileName).toBe('partial.csv')
+      // toast.error는 호출되면 안 됨
+      expect(vi.mocked(toast.error)).not.toHaveBeenCalled()
+    })
+
+    it('FieldMismatch 여러 개 → 건수가 toast에 포함됨', async () => {
+      const Papa = (await import('papaparse')).default
+      const parseMock = vi.mocked(Papa.parse)
+      const { toast } = await import('sonner')
+
+      mockParseOnce(parseMock, (_file, config) => {
+        config?.complete?.(makeParseResultWithErrors([
+          { type: 'FieldMismatch', code: 'TooFewFields', message: 'err', row: 1 },
+          { type: 'FieldMismatch', code: 'TooFewFields', message: 'err', row: 2 },
+          { type: 'FieldMismatch', code: 'TooFewFields', message: 'err', row: 5 },
+        ]))
+      })
+
+      const { result } = renderHook(() => useHubDataUpload())
+      act(() => { result.current.handleFileSelected(makeFile('partial.csv')) })
+
+      expect(vi.mocked(toast.warning)).toHaveBeenCalledWith(
+        expect.stringContaining('3건')
+      )
+    })
+  })
+
+  // ── S6: error 콜백 token 가드 ───────────────────────────────
+
+  describe('S6: error 콜백 — stale 토큰 무시', () => {
+    it('첫 번째 파일 에러가 두 번째 파일 선택 후 발생하면 toast 호출 안 됨', async () => {
+      const Papa = (await import('papaparse')).default
+      const parseMock = vi.mocked(Papa.parse)
+      const { toast } = await import('sonner')
+
+      type ParseConfig = { complete?: (_r: ParseResult<Record<string, string>>) => void; error?: (_e: Error) => void }
+      let firstErrorCallback: ((_e: Error) => void) | null = null
+
+      // 첫 번째 parse: error 콜백 캡처만 (실행 안 함)
+      parseMock.mockImplementationOnce(((_file: File, config?: ParseConfig) => {
+        firstErrorCallback = config?.error ?? null
+      }) as never)
+      // 두 번째 parse: 정상 완료
+      parseMock.mockImplementationOnce(((_file: File, config?: ParseConfig) => {
+        config?.complete?.(makeParseResult('file2.csv'))
+      }) as never)
+
+      const { result } = renderHook(() => useHubDataUpload())
+
+      act(() => { result.current.handleFileSelected(makeFile('file1.csv')) })
+      act(() => { result.current.handleFileSelected(makeFile('file2.csv')) })
+
+      // file2 완료 후 file1의 stale error 콜백 실행
+      act(() => { firstErrorCallback?.(new Error('파일 읽기 실패')) })
+
+      // stale error이므로 toast.error가 호출되면 안 됨
+      expect(vi.mocked(toast.error)).not.toHaveBeenCalled()
+      // file2 데이터는 유지됨
+      expect(useAnalysisStore.getState().uploadedFileName).toBe('file2.csv')
     })
   })
 

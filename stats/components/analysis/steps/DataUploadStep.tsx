@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { Upload, AlertCircle, Loader2, Clock, FileSpreadsheet, X, Lightbulb } from 'lucide-react'
 import { toast } from 'sonner'
 import { getUserFriendlyErrorMessage } from '@/lib/constants/error-messages'
+import { findCriticalParseError, parseWarningMessage } from '@/lib/utils/csv-parse-errors'
 import { useTerminology } from '@/hooks/use-terminology'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -176,11 +177,14 @@ export function DataUploadStep({
             encoding: 'UTF-8', // UTF-8 인코딩 명시
             complete: (result) => {
               if (result.errors.length > 0) {
-                const errorMessages = result.errors.map(e => e.message).join(', ')
-                const friendlyError = getUserFriendlyErrorMessage(`CSV parsing error: ${errorMessages}`)
-                setError(friendlyError)
-                setIsUploading(false)
-                return
+                const critical = findCriticalParseError(result.errors)
+                if (critical) {
+                  setError(getUserFriendlyErrorMessage(`CSV parsing error: ${critical.message}`))
+                  setIsUploading(false)
+                  return
+                }
+                // FieldMismatch 등 경고 수준 — 계속 진행 (오류 행도 포함됨)
+                toast.warning(parseWarningMessage(result.errors.length))
               }
 
               const dataRows = result.data as DataRow[]

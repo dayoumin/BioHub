@@ -1,5 +1,6 @@
 import Papa from 'papaparse'
 import { DataRow } from '@/types/analysis'
+import { findCriticalParseError } from '@/lib/utils/csv-parse-errors'
 
 export interface ProcessingProgress {
   totalRows: number
@@ -145,8 +146,14 @@ export class LargeFileProcessor {
         },
         complete: (results) => {
           if (results && results.errors && results.errors.length > 0 && !shouldStop) {
-            reject(new Error(`CSV 파싱 오류: ${results.errors[0].message}`))
-          } else {
+            const critical = findCriticalParseError(results.errors)
+            if (critical) {
+              reject(new Error(`CSV 파싱 오류: ${critical.message}`))
+              return
+            }
+            // FieldMismatch 등 경고 수준 — 계속 진행 (오류 행도 포함됨)
+          }
+          if (!shouldStop) {
             // 최종 진행률 업데이트
             if (onProgress) {
               onProgress({

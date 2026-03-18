@@ -62,7 +62,7 @@ function buildVline(
 ): VLineAnnotation | null {
   const trimmed = raw.trim()
   if (!trimmed) return null
-  const numVal = parseFloat(trimmed)
+  const numVal = Number(trimmed)
   const val: number | string = isNaN(numVal) ? trimmed : numVal
   return {
     type: 'vline',
@@ -139,6 +139,24 @@ describe('SIM-2: vline 추가', () => {
   it('음수도 숫자로 파싱된다', () => {
     const ann = buildVline('-10', '', '#999999', false)
     expect(ann!.value).toBe(-10)
+  })
+
+  it('날짜 형식("2024-01") → string으로 저장된다 (parseFloat 버그 방지)', () => {
+    const ann = buildVline('2024-01', '', '#999999', false)
+    expect(ann!.value).toBe('2024-01')
+    expect(typeof ann!.value).toBe('string')
+  })
+
+  it('숫자+한글 혼합("1차") → string으로 저장된다', () => {
+    const ann = buildVline('1차', '', '#999999', false)
+    expect(ann!.value).toBe('1차')
+    expect(typeof ann!.value).toBe('string')
+  })
+
+  it('숫자+영문 혼합("3A") → string으로 저장된다', () => {
+    const ann = buildVline('3A', '', '#999999', false)
+    expect(ann!.value).toBe('3A')
+    expect(typeof ann!.value).toBe('string')
   })
 })
 

@@ -19,6 +19,7 @@ import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useHubChatStore } from '@/lib/stores/hub-chat-store'
 import { DataValidationService } from '@/lib/services/data-validation-service'
 import { enrichWithNormality } from '@/lib/services/normality-enrichment-service'
+import { findCriticalParseError, parseWarningMessage } from '@/lib/utils/csv-parse-errors'
 import type { DataRow, ColumnStatistics } from '@/types/analysis'
 
 interface UseHubDataUploadReturn {
@@ -58,6 +59,17 @@ export function useHubDataUpload(): UseHubDataUploadReturn {
       complete: (results) => {
         // 이 콜백이 실행되는 시점에 더 최근 업로드가 시작됐으면 무시
         if (token !== uploadTokenRef.current) return
+
+        // PapaParse 파싱 오류 확인 (malformed CSV)
+        if (results.errors.length > 0) {
+          const critical = findCriticalParseError(results.errors)
+          if (critical) {
+            toast.error(`CSV 파싱 오류: ${critical.message}`)
+            return
+          }
+          // FieldMismatch 등 경고 수준 — 계속 진행 (오류 행도 results.data에 포함됨)
+          toast.warning(parseWarningMessage(results.errors.length))
+        }
 
         const data = results.data as DataRow[]
         if (data.length === 0) {
@@ -129,6 +141,7 @@ export function useHubDataUpload(): UseHubDataUploadReturn {
         }
       },
       error: (err) => {
+        if (token !== uploadTokenRef.current) return
         toast.error(`파일 파싱 실패: ${err.message}`)
       },
     })
