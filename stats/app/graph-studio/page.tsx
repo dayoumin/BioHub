@@ -140,8 +140,8 @@ function GraphStudioPageInner(): React.ReactElement {
             <LeftDataPanel />
           </div>
 
-          {/* 중앙 차트 캔버스 */}
-          <div className="flex-1 min-w-0">
+          {/* 중앙 차트 캔버스 — S5: 에디터 모드 배경 차별화 */}
+          <div className="flex-1 min-w-0 bg-muted/20">
             <ChartPreview echartsRef={echartsRef} onExport={handleExport} />
           </div>
 

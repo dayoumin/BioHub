@@ -19,12 +19,25 @@
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { BarChart2, ChevronRight, Calculator, Upload, FlaskConical } from 'lucide-react'
+import { BarChart2, Calculator, Upload, FlaskConical } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTerminology } from '@/hooks/use-terminology'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { actionCardBase, iconContainerMuted, iconContainerPrimary } from '@/components/common/card-styles'
 import { SampleSizeModal } from './SampleSizeModal'
+
+// ===== 섹션 아이덴티티 뱃지 스타일 상수 (렌더마다 객체 재생성 방지) =====
+
+const BADGE_BASE = 'absolute bottom-2 right-2 text-[10px] font-medium px-1.5 py-0.5 rounded-full'
+const BADGE_MUTED = cn(BADGE_BASE, 'bg-muted text-muted-foreground')
+const BADGE_ANALYSIS_STYLE = {
+  background: 'color-mix(in oklch, var(--section-accent-analysis) 12%, transparent)',
+  color: 'var(--section-accent-analysis)',
+} as const
+const BADGE_GRAPH_STYLE = {
+  background: 'color-mix(in oklch, var(--section-accent-graph) 12%, transparent)',
+  color: 'var(--section-accent-graph)',
+} as const
 
 // ===== Props =====
 
@@ -72,6 +85,7 @@ export function TrackSuggestions({ onStartAnalysis, onUploadClick }: TrackSugges
               <Upload className="w-5 h-5" />
             </div>
             <span className="font-medium text-sm">{t.hub.quickStart.uploadData}</span>
+            <span className={BADGE_BASE} style={BADGE_ANALYSIS_STYLE}>{t.hub.quickStart.badges.analysis}</span>
           </motion.button>
 
           {/* 표본 크기 계산기 */}
@@ -88,6 +102,7 @@ export function TrackSuggestions({ onStartAnalysis, onUploadClick }: TrackSugges
               <Calculator className="w-5 h-5" />
             </div>
             <span className="font-medium text-sm">{t.hub.quickStart.sampleSize}</span>
+            <span className={BADGE_MUTED}>{t.hub.quickStart.badges.tool}</span>
           </motion.button>
 
           {/* 데이터 시각화 */}
@@ -100,13 +115,13 @@ export function TrackSuggestions({ onStartAnalysis, onUploadClick }: TrackSugges
             <Link
               href="/graph-studio"
               data-testid="hub-visualization-card"
-              className={cn(actionCardBase, 'h-full relative')}
+              className={cn(actionCardBase, 'h-full')}
             >
               <div className={iconContainerMuted}>
                 <BarChart2 className="w-5 h-5" />
               </div>
               <span className="font-medium text-sm">{t.hub.quickStart.visualization}</span>
-              <ChevronRight className="absolute right-3 top-3 w-3.5 h-3.5 text-muted-foreground/30 group-hover:text-primary/50" />
+              <span className={BADGE_BASE} style={BADGE_GRAPH_STYLE}>Graph Studio</span>
             </Link>
           </motion.div>
 
@@ -120,13 +135,13 @@ export function TrackSuggestions({ onStartAnalysis, onUploadClick }: TrackSugges
             <Link
               href="/bio-tools"
               data-testid="hub-biotools-card"
-              className={cn(actionCardBase, 'h-full relative')}
+              className={cn(actionCardBase, 'h-full')}
             >
               <div className={iconContainerMuted}>
                 <FlaskConical className="w-5 h-5" />
               </div>
               <span className="font-medium text-sm">{t.hub.quickStart.bioTools}</span>
-              <ChevronRight className="absolute right-3 top-3 w-3.5 h-3.5 text-muted-foreground/30 group-hover:text-primary/50" />
+              <span className={BADGE_MUTED}>Bio-Tools</span>
             </Link>
           </motion.div>
         </motion.div>

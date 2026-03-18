@@ -479,6 +479,10 @@ export const generic: TerminologyDictionary = {
       sampleSize: 'Sample Size Calc',
       visualization: 'Visualization',
       bioTools: 'Bio-Tools',
+      badges: {
+        analysis: 'Analysis',
+        tool: 'Tool',
+      },
     },
     experimentNotReady: 'Experiment design is coming soon. Redirecting to data consultation.',
     intentClassificationFailed: 'Could not classify your request. Continuing with data consultation.',

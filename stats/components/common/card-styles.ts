@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 
 /** 클릭 가능한 액션 카드 (아이콘 + 라벨 그리드용) */
 export const actionCardBase = cn(
-  'flex flex-col items-center justify-center gap-2 p-4 rounded-xl',
+  'relative flex flex-col items-center justify-center gap-2 p-4 rounded-xl',
   'border border-border bg-card',
   'transition-all duration-200',
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',

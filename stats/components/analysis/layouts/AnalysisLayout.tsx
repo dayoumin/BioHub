@@ -79,6 +79,12 @@ export interface AnalysisLayoutProps {
  * - 헤더(sticky) + 스테퍼(sticky) + 콘텐츠
  * - 좌우 버튼 제거 → 스텝 클릭으로 이동
  */
+
+// S3: 분석 플로우 배경 틴트 (렌더마다 객체 재생성 방지)
+const ANALYSIS_FLOW_BG_STYLE = {
+  backgroundColor: 'color-mix(in oklch, var(--section-accent-analysis) 4%, var(--background))',
+} as const
+
 export function AnalysisLayout({
   currentStep,
   steps,
@@ -138,8 +144,14 @@ export function AnalysisLayout({
 
   const resolvedNextLabel = nextLabel ?? t.analysis.layout.nextStep
 
+  // S3: 분석 플로우 진입 시 미세한 틸 틴트 (Hub/브라우저는 제외)
+  const isAnalysisFlow = showStepper && !showHub
+
   return (
-    <div className={cn("min-h-screen bg-background", className)}>
+    <div
+      className={cn("min-h-screen bg-background", className)}
+      style={isAnalysisFlow ? ANALYSIS_FLOW_BG_STYLE : undefined}
+    >
 
 
       {/* ===== 헤더 (Sticky, 섹션 아이덴티티 + accent bar) ===== */}
