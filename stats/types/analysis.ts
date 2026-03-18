@@ -244,9 +244,9 @@ export const DEFAULT_ANALYSIS_OPTIONS: AnalysisOptions = {
 // ===== Chat-First Hub Types =====
 
 /**
- * 사용자 의도 기반 3가지 분석 트랙
+ * 사용자 의도 기반 분석 트랙
  */
-export type AnalysisTrack = 'direct-analysis' | 'data-consultation' | 'experiment-design'
+export type AnalysisTrack = 'direct-analysis' | 'data-consultation' | 'experiment-design' | 'visualization'
 
 /**
  * Intent Router가 반환하는 의도 분류 결과

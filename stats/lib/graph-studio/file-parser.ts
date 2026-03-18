@@ -63,6 +63,35 @@ function parseCsv(file: File, isTsv: boolean): Promise<Record<string, unknown>[]
   });
 }
 
+/**
+ * 텍스트 문자열을 파싱하여 columnar 데이터 반환.
+ * 클립보드 붙여넣기(엑셀 → TSV) 및 fetch 기반 샘플 데이터용.
+ * @throws 파싱 실패, 빈 데이터
+ */
+export function parseText(text: string): ParsedFileData {
+  const delimiter = text.includes('\t') ? '\t' : ',';
+  const result = Papa.parse<Record<string, unknown>>(text, {
+    header: true,
+    dynamicTyping: true,
+    skipEmptyLines: true,
+    delimiter,
+  });
+
+  if (result.errors.length > 0) {
+    throw new Error(`파싱 오류: ${result.errors[0].message}`);
+  }
+  if (result.data.length === 0) {
+    throw new Error('데이터가 비어 있습니다');
+  }
+
+  const columns = inferColumnMeta(result.data);
+  const data: Record<string, unknown[]> = Object.fromEntries(
+    columns.map(col => [col.name, result.data.map(row => row[col.name])]),
+  );
+
+  return { columns, data };
+}
+
 async function parseExcel(file: File): Promise<Record<string, unknown>[]> {
   const XLSX = await import('xlsx');
   const buffer = await file.arrayBuffer();

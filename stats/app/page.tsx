@@ -1,15 +1,14 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { useRouter } from 'next/navigation'
 import { useModeStore } from '@/lib/stores/mode-store'
 import { useHistoryStore } from '@/lib/stores/history-store'
-import { loadAndRestoreHistory, startFreshAnalysisSession } from '@/lib/stores/store-orchestration'
+import { loadAndRestoreHistory, startFreshAnalysisSession, bridgeHubDataToGraphStudio } from '@/lib/stores/store-orchestration'
 import { useAnalysisHandlers } from '@/hooks/use-analysis-handlers'
 import { useTerminology } from '@/hooks/use-terminology'
-import { getRecommendations } from '@/lib/services/consultant-service'
 import { toast } from 'sonner'
-import type { ResolvedIntent, ConsultantResponse } from '@/types/analysis'
+import type { ResolvedIntent } from '@/types/analysis'
 
 import { AnalysisLayout } from '@/components/analysis/layouts/AnalysisLayout'
 import { AnalysisHistoryPanel } from '@/components/analysis/AnalysisHistoryPanel'
@@ -19,11 +18,11 @@ import { AnalysisSteps } from '@/components/analysis/AnalysisSteps'
 // ===== Main Page Component =====
 
 export default function HomePage() {
+  const router = useRouter()
   const t = useTerminology()
   const [showHelp, setShowHelp] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [systemMemory, setSystemMemory] = useState<number | null>(null)
-  const [consultantResponse, setConsultantResponse] = useState<ConsultantResponse | null>(null)
 
   const {
     showHub,
@@ -32,7 +31,6 @@ export default function HomePage() {
     setUserQuery,
   } = useModeStore()
 
-  const addCompletedStep = useAnalysisStore(s => s.addCompletedStep)
   const handlers = useAnalysisHandlers(showHub)
   const {
     startQuickAnalysis,
@@ -54,17 +52,23 @@ export default function HomePage() {
 
   // === Hub-specific handlers ===
 
+  /**
+   * Intent resolved — ChatCentricHub에서 호출
+   *
+   * data-consultation은 이제 허브 내부(ChatThread)에서 처리.
+   * 여기에 도달하는 경우:
+   * - data-consultation + 추천 없음 → Step 1 이동
+   * - direct-analysis → Step 1 또는 quick analysis
+   * - experiment-design → Step 1 이동
+   */
   const handleIntentResolved = useCallback((intent: ResolvedIntent, message: string) => {
     switch (intent.track) {
       case 'direct-analysis':
-        setConsultantResponse(null)
         if (intent.method) {
           startFreshAnalysisSession()
           startQuickAnalysis(intent.method.id)
           setShowHub(false)
         } else {
-          // 메서드 미감지 → Step 1(데이터 업로드+탐색)부터 시작
-          // userQuery는 보존하여 Step 2 진입 시 AI 추천에 사용
           startFreshAnalysisSession()
           setUserQuery(message)
           setPurposeInputMode('ai')
@@ -73,33 +77,35 @@ export default function HomePage() {
         }
         break
 
-      case 'data-consultation': {
-        const response = getRecommendations(message)
-        if (response.recommendations.length > 0) {
-          setConsultantResponse(response)
-          setUserQuery(message)
-        } else {
-          startFreshAnalysisSession()
-          setUserQuery(message)
-          setShowHub(false)
-          navigateToStep(1)
-        }
+      case 'data-consultation':
+        // 추천 없음 → Step 1 이동 (추천 있으면 허브 ChatThread에서 표시)
+        startFreshAnalysisSession()
+        setUserQuery(message)
+        setShowHub(false)
+        navigateToStep(1)
         break
-      }
 
       case 'experiment-design':
-        setConsultantResponse(null)
         startFreshAnalysisSession()
         setUserQuery(message)
         toast.info(t.hub.experimentNotReady)
         setShowHub(false)
         navigateToStep(1)
         break
+
+      case 'visualization': {
+        // 허브에 업로드된 데이터가 있으면 Graph Studio로 전달 후 이동
+        const bridged = bridgeHubDataToGraphStudio()
+        if (!bridged) {
+          toast.info('Graph Studio를 열었습니다. 데이터를 직접 업로드해주세요.')
+        }
+        router.push('/graph-studio')
+        break
+      }
     }
-  }, [startQuickAnalysis, navigateToStep, setShowHub, setPurposeInputMode, setUserQuery, t])
+  }, [startQuickAnalysis, navigateToStep, setShowHub, setPurposeInputMode, setUserQuery, t, router])
 
   const handleQuickAnalysis = useCallback((methodId: string) => {
-    setConsultantResponse(null)
     startFreshAnalysisSession()
     if (startQuickAnalysis(methodId)) {
       setShowHub(false)
@@ -108,7 +114,6 @@ export default function HomePage() {
 
   const handleHistorySelect = useCallback(async (historyId: string) => {
     try {
-      setConsultantResponse(null)
       await loadAndRestoreHistory(historyId)
       setShowHub(false)
     } catch (err) {
@@ -121,7 +126,6 @@ export default function HomePage() {
   }, [])
 
   const handleHubUploadClick = useCallback(() => {
-    setConsultantResponse(null)
     startFreshAnalysisSession()
     setShowHub(false)
     navigateToStep(1)
@@ -169,7 +173,6 @@ export default function HomePage() {
           onHistoryDelete={handleHistoryDelete}
           onUploadClick={handleHubUploadClick}
           onHistoryShowMore={handleHistoryToggle}
-          consultantResponse={consultantResponse}
         />
       )}
 

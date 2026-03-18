@@ -5,9 +5,8 @@
  *
  * - 입력 후 Enter로 제출, Shift+Enter로 줄바꿈
  * - onSubmit 시 Intent Router를 통해 트랙 분류
- * - 업로드 아이콘(ArrowUpFromLine): 통계 분석용 데이터 업로드 (Step 1 이동)
- *   → TrackSuggestions의 "데이터 업로드" 카드와 동일 기능 (중복 진입점)
- *   TODO: 업로드 진입점 중복 정리 — ChatInput 내 아이콘 vs TrackSuggestions 카드
+ * - 업로드 아이콘(ArrowUpFromLine): 인라인 파일 선택 또는 Step 1 이동
+ *   → onFileSelected가 있으면 인라인, 없으면 onUploadClick 호출
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react'
@@ -27,8 +26,10 @@ interface ChatInputProps {
   /** 외부에서 값을 주입 (트랙 카드 클릭 시) */
   externalValue?: string
   onExternalValueConsumed?: () => void
-  /** 파일 업로드 버튼 클릭 시 (Step 1으로 이동) */
+  /** 파일 업로드 버튼 클릭 시 (Step 1으로 이동) — 인라인 업로드 미지원 시 fallback */
   onUploadClick?: () => void
+  /** 인라인 파일 선택 시 (허브에서 바로 업로드) */
+  onFileSelected?: (file: File) => void
 }
 
 // ===== Component =====
@@ -39,9 +40,11 @@ export function ChatInput({
   externalValue,
   onExternalValueConsumed,
   onUploadClick,
+  onFileSelected,
 }: ChatInputProps) {
   const t = useTerminology()
   const [value, setValue] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 최신 콜백을 ref로 캡처 (deps 안정화)
   const onSubmitRef = useRef(onSubmit)
@@ -76,6 +79,29 @@ export function ChatInput({
     setValue(e.target.value)
   }, [])
 
+  // 업로드 버튼 클릭: 인라인 우선, fallback은 Step 1 이동
+  const handleUploadClick = useCallback(() => {
+    if (onFileSelected && fileInputRef.current) {
+      fileInputRef.current.click()
+    } else {
+      onUploadClick?.()
+    }
+  }, [onFileSelected, onUploadClick])
+
+  // 파일 선택 완료
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && onFileSelected) {
+      onFileSelected(file)
+    }
+    // 같은 파일 재선택 허용
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }, [onFileSelected])
+
+  const showUploadButton = onUploadClick ?? onFileSelected
+
   return (
     <div className="space-y-3">
       <div className="relative">
@@ -99,11 +125,11 @@ export function ChatInput({
 
         {/* Buttons inside textarea — bottom right */}
         <div className="absolute right-2 bottom-2 flex items-center gap-1.5">
-          {onUploadClick && (
+          {showUploadButton && (
             <Button
               size="icon"
               variant="ghost"
-              onClick={onUploadClick}
+              onClick={handleUploadClick}
               disabled={isProcessing}
               className="h-9 w-9 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-accent"
               aria-label={t.hub.chatInput.uploadAriaLabel}
@@ -128,6 +154,18 @@ export function ChatInput({
             )}
           </Button>
         </div>
+
+        {/* Hidden file input for inline upload */}
+        {onFileSelected && (
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleFileChange}
+            className="hidden"
+            aria-hidden="true"
+          />
+        )}
       </div>
 
       {/* 프라이버시 안내 */}

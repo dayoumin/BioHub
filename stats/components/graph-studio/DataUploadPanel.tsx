@@ -3,44 +3,42 @@
 /**
  * 데이터 업로드 패널 — Graph Studio Step 1 (데이터 선택 전용)
  *
- * - 파일 업로드 (CSV/TSV/XLSX) — 드래그 & 드롭 + 클릭
- * - "샘플 데이터로 시작" 버튼
- * - Feature highlights (AI 편집 / 프리셋 / 내보내기)
+ * 4가지 편의 기능:
+ * - F1: 최근 프로젝트 바로가기
+ * - F2: 저장된 스타일 템플릿 미리 선택
+ * - F3: 클립보드 붙여넣기 (엑셀 TSV)
+ * - F4: 다양한 샘플 데이터 (4종)
  *
  * 차트 유형 선택은 Step 2 (ChartSetupPanel)에서 처리
- *
- * NOTE: 홈(/)의 통계 업로드와는 완전히 다른 흐름:
- *   - 여기(Graph Studio): CSV → 컬럼 메타 추론(inferColumnMeta) → 차트 타입 선택 → 시각화
- *   - 홈(통계 분석):     CSV → 변수 역할 매핑(dependent/independent) → 통계 검정 실행
- *   파서는 같지만(parseFile), 이후 흐름과 목적이 완전히 다름
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useDropzone } from 'react-dropzone';
 import { motion } from 'framer-motion';
 import {
   Upload,
-  Sparkles,
-  BookOpen,
-  Download,
   FileSpreadsheet,
+  Clock,
+  Palette,
+  Check,
+  Lightbulb,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion';
 import { inferColumnMeta } from '@/lib/graph-studio/chart-spec-utils';
-import { parseFile } from '@/lib/graph-studio/file-parser';
+import { parseFile, parseText } from '@/lib/graph-studio/file-parser';
+import { listProjects } from '@/lib/graph-studio/project-storage';
+import { loadTemplates } from '@/lib/graph-studio/style-template-storage';
+import { CHART_TYPE_ICONS } from '@/lib/graph-studio/chart-icons';
 import { StepIndicator } from '@/components/graph-studio/StepIndicator';
-import { iconContainerMuted, staggerContainer, staggerItem } from '@/components/common/card-styles';
-import type { DataPackage } from '@/types/graph-studio';
+import { staggerContainer, staggerItem } from '@/components/common/card-styles';
+import type { DataPackage, ChartType, GraphProject } from '@/types/graph-studio';
+import type { StyleTemplate } from '@/lib/graph-studio/style-template-storage';
 
 // ─── 샘플 데이터 (어류 성장, 3종 × 10행) ──────────────────
-//
-// year: 날짜 문자열 (YYYY-MM-DD) → inferDataType이 'temporal'로 추론
-//   → line 차트 선택 시 X=year(temporal), Y=length_cm 으로 올바르게 매핑됨
-// species: nominal  → bar/boxplot/heatmap X축
-// length_cm, weight_g: quantitative → scatter X/Y, line Y
 
 const SAMPLE_ROWS: Record<string, unknown>[] = [
   { species: 'Bass',    length_cm: 12.3, weight_g:  28.5, year: '2015-01-01' },
@@ -75,8 +73,6 @@ const SAMPLE_ROWS: Record<string, unknown>[] = [
   { species: 'Carp',    length_cm: 57.8, weight_g: 2421.3, year: '2024-01-01' },
 ];
 
-// ─── 샘플 컬럼 메타 (모듈 레벨 1회 계산) ──────────────────
-// SAMPLE_ROWS가 상수이므로 inferColumnMeta 결과도 항상 동일 → 재계산 불필요
 const _SAMPLE_COLUMNS = inferColumnMeta(SAMPLE_ROWS);
 const _SAMPLE_DATA: Record<string, unknown[]> = Object.fromEntries(
   _SAMPLE_COLUMNS.map(col => [col.name, SAMPLE_ROWS.map(row => row[col.name])]),
@@ -93,31 +89,100 @@ function buildSamplePackage(sourceId: string): DataPackage {
   };
 }
 
-// ─── Feature highlights ────────────────────────────────────
+// ─── 샘플 데이터셋 정의 (F4) ──────────────────────────────
 
-const FEATURES = [
-  { Icon: Sparkles, title: 'AI 자연어 편집', desc: '텍스트로 차트 수정' },
-  { Icon: BookOpen, title: '논문 스타일 프리셋', desc: 'IEEE · Science · 흑백' },
-  { Icon: Download, title: '고품질 내보내기', desc: 'SVG · PNG · DPI 300' },
-] as const;
+interface SampleDataset {
+  id: string;
+  label: string;
+  chartHint: string;
+  type: 'inline' | 'fetch';
+  url?: string;
+}
+
+const SAMPLE_DATASETS: SampleDataset[] = [
+  { id: 'fish-growth', label: '어류 성장', chartHint: 'Line', type: 'inline' },
+  { id: 'correlation', label: '키 · 몸무게', chartHint: 'Scatter', type: 'fetch', url: '/example-data/correlation.csv' },
+  { id: 'group-compare', label: '그룹 비교', chartHint: 'Bar', type: 'fetch', url: '/example-data/independent-t-test.csv' },
+  { id: 'anova', label: '사료 비교', chartHint: 'Box', type: 'fetch', url: '/example-data/one-way-anova.csv' },
+];
+
+// ─── 상대 시간 포맷 ────────────────────────────────────────
+
+function formatTimeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return '방금';
+  if (minutes < 60) return `${minutes}분 전`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}시간 전`;
+  const days = Math.floor(hours / 24);
+  return `${days}일 전`;
+}
 
 // ─── 메인 컴포넌트 ─────────────────────────────────────────
 
 export function DataUploadPanel(): React.ReactElement {
+  const router = useRouter();
   const loadDataOnly = useGraphStudioStore(state => state.loadDataOnly);
+  const setPendingTemplateId = useGraphStudioStore(state => state.setPendingTemplateId);
+  const pendingTemplateId = useGraphStudioStore(state => state.pendingTemplateId);
+
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingSampleId, setLoadingSampleId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const prefersReducedMotion = useReducedMotion();
 
-  // ── 샘플 데이터 로드 (차트 미생성 → Step 2로 이동) ───────
-  const handleSampleData = useCallback(() => {
-    const sourceId = `sample-${Date.now()}`;
-    const pkg = buildSamplePackage(sourceId);
+  // SSR-safe localStorage 읽기
+  const [projects, setProjects] = useState<GraphProject[]>([]);
+  const [templates, setTemplates] = useState<StyleTemplate[]>([]);
+  useEffect(() => {
+    setProjects(listProjects().sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 4));
+    setTemplates(loadTemplates());
+  }, []);
+
+  // ── 인라인 샘플 데이터 로드 ─────────────────────────────
+  const handleInlineSample = useCallback(() => {
+    const pkg = buildSamplePackage(`sample-${Date.now()}`);
     loadDataOnly(pkg);
   }, [loadDataOnly]);
 
-  // ── 파일 처리 (데이터만 로드 → Step 2로 이동) ────────────
+  // ── fetch 기반 샘플 데이터 로드 ─────────────────────────
+  const handleFetchSample = useCallback(async (sample: SampleDataset) => {
+    if (!sample.url) return;
+    setError(null);
+    setLoadingSampleId(sample.id);
+    try {
+      const response = await fetch(sample.url);
+      if (!response.ok) throw new Error(`샘플 데이터 로드 실패: ${response.status}`);
+      const text = await response.text();
+      const { columns, data } = parseText(text);
+      const pkg: DataPackage = {
+        id: `sample-${sample.id}-${Date.now()}`,
+        source: 'upload',
+        label: `샘플: ${sample.label}`,
+        columns,
+        data,
+        createdAt: new Date().toISOString(),
+      };
+      loadDataOnly(pkg);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '샘플 데이터 로드 실패');
+    } finally {
+      setLoadingSampleId(null);
+    }
+  }, [loadDataOnly]);
+
+  // ── 샘플 클릭 핸들러 ───────────────────────────────────
+  const handleSampleClick = useCallback((sample: SampleDataset) => {
+    if (sample.type === 'inline') {
+      handleInlineSample();
+    } else {
+      void handleFetchSample(sample);
+    }
+  }, [handleInlineSample, handleFetchSample]);
+
+  // ── 파일 처리 ──────────────────────────────────────────
   const handleFile = useCallback(
     async (file: File) => {
       setError(null);
@@ -142,6 +207,42 @@ export function DataUploadPanel(): React.ReactElement {
     [loadDataOnly],
   );
 
+  // ── 클립보드 붙여넣기 (F3) ─────────────────────────────
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const text = e.clipboardData.getData('text/plain');
+    if (!text.trim()) return;
+    e.preventDefault();
+
+    setError(null);
+    setIsLoading(true);
+    try {
+      const { columns, data } = parseText(text);
+      const pkg: DataPackage = {
+        id: `clipboard-${Date.now()}`,
+        source: 'upload',
+        label: '클립보드 데이터',
+        columns,
+        data,
+        createdAt: new Date().toISOString(),
+      };
+      loadDataOnly(pkg);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '클립보드 데이터 파싱 실패');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loadDataOnly]);
+
+  // ── 최근 프로젝트 클릭 (F1) ────────────────────────────
+  const handleProjectClick = useCallback((projectId: string) => {
+    router.push(`/graph-studio?project=${projectId}`);
+  }, [router]);
+
+  // ── 스타일 템플릿 선택 토글 (F2) ───────────────────────
+  const handleTemplateToggle = useCallback((templateId: string) => {
+    setPendingTemplateId(pendingTemplateId === templateId ? null : templateId);
+  }, [setPendingTemplateId, pendingTemplateId]);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (files) => { if (files[0]) void handleFile(files[0]); },
     accept: {
@@ -150,15 +251,20 @@ export function DataUploadPanel(): React.ReactElement {
       'application/vnd.ms-excel': ['.xls'],
     },
     multiple: false,
-    noClick: true,  // 클릭은 별도 버튼으로 처리
+    noClick: true,
   });
+
+  const hasProjects = projects.length > 0;
+  const hasTemplates = templates.length > 0;
 
   return (
     <div
       {...getRootProps()}
       data-testid="graph-studio-dropzone"
+      onPaste={handlePaste}
+      tabIndex={0}
       className={cn(
-        'w-full max-w-3xl transition-all duration-200',
+        'w-full max-w-3xl transition-all duration-200 outline-none',
         isDragActive && 'ring-2 ring-primary ring-offset-4 rounded-2xl',
       )}
     >
@@ -176,30 +282,38 @@ export function DataUploadPanel(): React.ReactElement {
         <h2 className="text-2xl lg:text-3xl font-bold tracking-tight leading-tight mb-1">
           분포·상관·추세를 논문 수준으로
         </h2>
-
         <div className="mt-3">
           <StepIndicator currentStep={0} />
         </div>
       </motion.div>
 
-      {/* ── 샘플 데이터로 시작 ─────────────────────────── */}
+      {/* ── F4: 샘플 데이터 (4종) ─────────────────────── */}
       <motion.div
-        className="text-center"
+        className="flex flex-wrap justify-center gap-2"
         {...(prefersReducedMotion ? {} : { variants: staggerItem })}
       >
-        <Button
-          variant="outline"
-          size="lg"
-          className="gap-2"
-          onClick={handleSampleData}
-          data-testid="graph-studio-sample-btn"
-        >
-          <FileSpreadsheet className="h-4 w-4" />
-          샘플 데이터로 시작 (어류 성장)
-        </Button>
+        {SAMPLE_DATASETS.map((sample) => (
+          <Button
+            key={sample.id}
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-xs"
+            onClick={() => handleSampleClick(sample)}
+            disabled={isLoading || loadingSampleId !== null}
+            data-testid={`graph-studio-sample-${sample.id}`}
+          >
+            {loadingSampleId === sample.id ? (
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : (
+              <FileSpreadsheet className="h-3.5 w-3.5" />
+            )}
+            {sample.label}
+            <span className="text-muted-foreground/60">{sample.chartHint}</span>
+          </Button>
+        ))}
       </motion.div>
 
-      {/* ── 파일 업로드 + 드래그 존 ───────────────────── */}
+      {/* ── F3: 파일 업로드 + 드래그 + 붙여넣기 존 ──── */}
       <motion.div
         data-testid="graph-studio-upload-zone"
         className={cn(
@@ -241,7 +355,7 @@ export function DataUploadPanel(): React.ReactElement {
         <p aria-live="polite" className="text-xs text-muted-foreground">
           {isDragActive
             ? '파일을 여기에 놓으세요'
-            : 'CSV · TSV · Excel 파일을 드래그해도 됩니다'}
+            : '파일 드래그 또는 엑셀 데이터 Ctrl+V 붙여넣기'}
         </p>
       </motion.div>
 
@@ -252,21 +366,103 @@ export function DataUploadPanel(): React.ReactElement {
         </div>
       )}
 
-      {/* ── Feature highlights ───────────────────────── */}
-      <motion.div
-        className="border-t border-border pt-6 grid grid-cols-3 gap-4"
-        {...(prefersReducedMotion ? {} : { variants: staggerItem })}
-      >
-        {FEATURES.map(({ Icon, title, desc }) => (
-          <div key={title} className="flex flex-col items-center text-center gap-2">
-            <div className={iconContainerMuted}>
-              <Icon className="w-5 h-5" />
-            </div>
-            <p className="text-sm font-medium text-foreground leading-tight">{title}</p>
-            <p className="text-xs text-muted-foreground">{desc}</p>
+      {/* ── F1: 최근 프로젝트 ─────────────────────────── */}
+      {hasProjects && (
+        <motion.div
+          className="space-y-2"
+          {...(prefersReducedMotion ? {} : { variants: staggerItem })}
+        >
+          <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5" />
+            최근 프로젝트
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {projects.map((project) => {
+              const chartType = project.chartSpec?.chartType as ChartType | undefined;
+              const IconComp = chartType ? CHART_TYPE_ICONS[chartType] : null;
+              return (
+                <button
+                  key={project.id}
+                  type="button"
+                  onClick={() => handleProjectClick(project.id)}
+                  className={cn(
+                    'flex flex-col items-start gap-1 p-3 rounded-lg text-left',
+                    'border border-border bg-card',
+                    'hover:border-primary/50 hover:shadow-sm transition-all duration-200',
+                    'text-xs',
+                  )}
+                  data-testid={`graph-studio-recent-${project.id}`}
+                >
+                  <span className="font-medium text-foreground truncate w-full">
+                    {project.name}
+                  </span>
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    {IconComp && <IconComp className="w-3 h-3" />}
+                    {formatTimeAgo(project.updatedAt)}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-        ))}
-      </motion.div>
+        </motion.div>
+      )}
+
+      {/* ── F2: 저장된 스타일 템플릿 ──────────────────── */}
+      {hasTemplates ? (
+        <motion.div
+          className="space-y-2"
+          {...(prefersReducedMotion ? {} : { variants: staggerItem })}
+        >
+          <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+            <Palette className="w-3.5 h-3.5" />
+            저장된 스타일
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {templates.map((tmpl) => {
+              const isSelected = pendingTemplateId === tmpl.id;
+              return (
+                <button
+                  key={tmpl.id}
+                  type="button"
+                  onClick={() => handleTemplateToggle(tmpl.id)}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs',
+                    'border transition-all duration-200',
+                    isSelected
+                      ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary/30'
+                      : 'border-border bg-card text-foreground hover:border-primary/50',
+                  )}
+                  data-testid={`graph-studio-template-${tmpl.id}`}
+                >
+                  {isSelected && <Check className="w-3 h-3" />}
+                  {tmpl.name}
+                  <span className="text-muted-foreground/60">{tmpl.style.preset}</span>
+                </button>
+              );
+            })}
+          </div>
+        </motion.div>
+      ) : hasProjects ? (
+        /* 프로젝트는 있는데 템플릿이 없을 때 → 안내 */
+        <motion.div
+          className="text-xs text-muted-foreground/70 text-center"
+          {...(prefersReducedMotion ? {} : { variants: staggerItem })}
+        >
+          차트 편집 후 스타일 탭에서 템플릿으로 저장하면 다음에 바로 적용할 수 있습니다
+        </motion.div>
+      ) : null}
+
+      {/* ── 빈 상태 안내 (프로젝트·템플릿 모두 없을 때) ── */}
+      {!hasProjects && !hasTemplates && (
+        <motion.div
+          className="flex items-center justify-center gap-2 text-xs text-muted-foreground/60 py-2"
+          {...(prefersReducedMotion ? {} : { variants: staggerItem })}
+        >
+          <Lightbulb className="w-3.5 h-3.5 shrink-0" />
+          <span>차트 완성 후 스타일을 템플릿으로 저장하면 다음에 바로 적용할 수 있습니다</span>
+        </motion.div>
+      )}
+
       </motion.div>
     </div>
   );

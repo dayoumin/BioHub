@@ -54,6 +54,8 @@ interface GraphStudioActions {
   // UI
   toggleAiPanel: () => void;
   setAiPanelDock: (dock: AiPanelDock) => void;
+  /** Step 1에서 미리 선택한 스타일 템플릿 ID 설정 */
+  setPendingTemplateId: (id: string | null) => void;
 
   // 프로젝트
   setProject: (project: GraphProject, dataPackage?: DataPackage) => void;
@@ -74,6 +76,7 @@ const initialState: GraphStudioState = {
   previousChartSpec: null,
   aiPanelOpen: false,
   aiPanelDock: 'bottom',
+  pendingTemplateId: null,
 };
 
 const MAX_HISTORY = 50;
@@ -257,6 +260,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
 
     toggleAiPanel: () => set(state => ({ aiPanelOpen: !state.aiPanelOpen })),
     setAiPanelDock: (dock) => set({ aiPanelDock: dock }),
+    setPendingTemplateId: (id) => set({ pendingTemplateId: id }),
 
     // ── 프로젝트 ──
 

@@ -404,4 +404,7 @@ export interface GraphStudioState {
   // UI
   aiPanelOpen: boolean;
   aiPanelDock: AiPanelDock;
+
+  /** Step 1에서 미리 선택한 스타일 템플릿 ID — ChartSetupPanel 초기값용 */
+  pendingTemplateId: string | null;
 }

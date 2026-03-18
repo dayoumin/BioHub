@@ -6,6 +6,7 @@
  * 2026 Chat-First UX:
  * - 대화창이 메인 진입점
  * - Intent Router가 3트랙 분류 (직접 분석 / 데이터 상담 / 실험 설계)
+ * - 대화 히스토리 유지 (hubChatStore)
  * - 빠른 분석 pills + 최근 히스토리
  *
  * 기존 호환성:
@@ -15,19 +16,23 @@
 
 import { useState, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { HelpCircle } from 'lucide-react'
-import { toast } from 'sonner'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { intentRouter } from '@/lib/services/intent-router'
+import { getRecommendations } from '@/lib/services/consultant-service'
+import { getHubAiResponse } from '@/lib/services/hub-chat-service'
+import { getKoreanName } from '@/lib/constants/statistical-methods'
 import { logger } from '@/lib/utils/logger'
-import type { ResolvedIntent, ConsultantResponse } from '@/types/analysis'
+import type { ResolvedIntent } from '@/types/analysis'
 import { useTerminology } from '@/hooks/use-terminology'
+import { useHubChatStore } from '@/lib/stores/hub-chat-store'
+import { useHubDataUpload } from '@/hooks/use-hub-data-upload'
 
 import { ChatInput } from './hub/ChatInput'
+import { ChatThread } from './hub/ChatThread'
+import { DataContextBadge } from './hub/DataContextBadge'
 import { QuickAnalysisPills } from './hub/QuickAnalysisPills'
 import { TrackSuggestions } from './hub/TrackSuggestions'
 import { QuickAccessBar } from './hub/QuickAccessBar'
-import { RecommendationCard } from '@/components/common/RecommendationCard'
 
 // ===== Types =====
 
@@ -38,8 +43,12 @@ interface ChatCentricHubProps {
   onHistoryDelete: (historyId: string) => Promise<void>
   onUploadClick?: () => void
   onHistoryShowMore?: () => void
-  /** data-consultation 트랙 감지 시 표시할 추천 결과 */
-  consultantResponse?: ConsultantResponse | null
+}
+
+// ===== Helpers =====
+
+function createMessageId(): string {
+  return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 }
 
 // ===== Animation =====
@@ -70,7 +79,6 @@ export function ChatCentricHub({
   onHistoryDelete,
   onUploadClick,
   onHistoryShowMore,
-  consultantResponse,
 }: ChatCentricHubProps) {
   const prefersReducedMotion = useReducedMotion()
   const t = useTerminology()
@@ -78,39 +86,147 @@ export function ChatCentricHub({
   const isProcessingRef = useRef(false)
   const [externalValue, setExternalValue] = useState<string | undefined>(undefined)
 
-  // 채팅 입력 제출 → Intent Router 분류 → 즉시 이동
+  const addMessage = useHubChatStore((s) => s.addMessage)
+  const clearMessages = useHubChatStore((s) => s.clearMessages)
+  const hasSeenUploadSuggestion = useHubChatStore((s) => s.hasSeenUploadSuggestion)
+  const setHasSeenUploadSuggestion = useHubChatStore((s) => s.setHasSeenUploadSuggestion)
+  const setStreaming = useHubChatStore((s) => s.setStreaming)
+  const dataContext = useHubChatStore((s) => s.dataContext)
+
+  // 인라인 데이터 업로드
+  const { handleFileSelected, clearDataContext } = useHubDataUpload()
+
+  // 채팅 입력 제출 → Intent Router 분류 → 트랙별 처리
   const handleChatSubmit = useCallback(async (message: string) => {
     if (isProcessingRef.current) return
     isProcessingRef.current = true
-
     setIsProcessing(true)
+
+    // 1. user 메시지 저장
+    addMessage({
+      id: createMessageId(),
+      role: 'user',
+      content: message,
+      timestamp: Date.now(),
+    })
+
     try {
+      setStreaming(true)
       const intent = await intentRouter.classify(message)
       logger.debug('[ChatCentricHub] Intent resolved', {
         track: intent.track,
         confidence: intent.confidence,
-        method: intent.method?.id
+        method: intent.method?.id,
       })
 
-      onIntentResolved(intent, message)
+      if (intent.track === 'data-consultation') {
+        if (dataContext) {
+          // === 데이터 있음: LLM 기반 정밀 추천 ===
+          const messages = useHubChatStore.getState().messages
+          const aiResponse = await getHubAiResponse({
+            userMessage: message,
+            intent,
+            dataContext,
+            chatHistory: messages,
+          })
+          setStreaming(false)
+
+          addMessage({
+            id: createMessageId(),
+            role: 'assistant',
+            content: aiResponse.content,
+            timestamp: Date.now(),
+            intent,
+            // AI가 추천한 메서드가 있으면 카드로 표시
+            recommendations: aiResponse.recommendation?.method ? [{
+              methodId: aiResponse.recommendation.method.id,
+              methodName: aiResponse.recommendation.method.name,
+              koreanName: getKoreanName(aiResponse.recommendation.method.id) ?? aiResponse.recommendation.method.name,
+              reason: aiResponse.recommendation.reasoning?.join(', ') ?? '',
+              badge: 'recommended' as const,
+            }] : undefined,
+          })
+        } else {
+          // === 데이터 없음: 키워드 기반 빠른 추천 ===
+          const response = getRecommendations(message)
+          setStreaming(false)
+
+          if (response.recommendations.length > 0) {
+            const shouldSuggestUpload = !hasSeenUploadSuggestion
+            addMessage({
+              id: createMessageId(),
+              role: 'assistant',
+              content: response.summary ?? '추천 분석 방법을 찾았습니다.',
+              timestamp: Date.now(),
+              intent,
+              recommendations: response.recommendations,
+              suggestUpload: shouldSuggestUpload,
+            })
+
+            if (shouldSuggestUpload) {
+              setHasSeenUploadSuggestion(true)
+            }
+
+            // clarification이 있으면 추가 메시지
+            if (response.clarification && response.clarification.options.length >= 2) {
+              addMessage({
+                id: createMessageId(),
+                role: 'assistant',
+                content: response.clarification.question,
+                timestamp: Date.now(),
+              })
+            }
+          } else {
+            // 추천 없음 → 메시지 먼저 표시, 1초 후 Step 1 이동
+            addMessage({
+              id: createMessageId(),
+              role: 'assistant',
+              content: '딱 맞는 방법을 찾으려면 데이터가 필요해요. 분석 단계로 이동합니다.',
+              timestamp: Date.now(),
+              intent,
+            })
+            await new Promise<void>((resolve) => setTimeout(resolve, 1000))
+            onIntentResolved(intent, message)
+          }
+        }
+      } else {
+        // direct-analysis / experiment-design / visualization: 확인 메시지 → 이동
+        let confirmMsg: string
+        if (intent.track === 'direct-analysis' && intent.method) {
+          confirmMsg = `${getKoreanName(intent.method.id) ?? intent.method.name} 분석을 시작합니다.`
+        } else if (intent.track === 'visualization') {
+          confirmMsg = 'Graph Studio로 이동합니다.'
+        } else {
+          // experiment-design
+          confirmMsg = '표본 크기 계산 단계로 이동합니다.'
+        }
+        setStreaming(false)
+        addMessage({
+          id: createMessageId(),
+          role: 'assistant',
+          content: confirmMsg,
+          timestamp: Date.now(),
+          intent,
+        })
+        onIntentResolved(intent, message)
+      }
     } catch (error) {
       logger.error('[ChatCentricHub] Intent classification failed', { error })
-      toast.info(t.hub.intentClassificationFailed)
-      // fallback: 데이터 상담으로 이동
-      const fallback: ResolvedIntent = {
-        track: 'data-consultation',
-        confidence: 0.5,
-        method: null,
-        reasoning: '분류 실패, 기본 경로',
-        needsData: true,
-        provider: 'keyword'
-      }
-      onIntentResolved(fallback, message)
+
+      // 자동 이탈 없이 에러 버블 표시 — 재시도 버튼으로 직접 재전송
+      addMessage({
+        id: createMessageId(),
+        role: 'assistant',
+        content: '분류 중 오류가 발생했습니다. 다시 시도해 주세요.',
+        timestamp: Date.now(),
+        isError: true,
+      })
     } finally {
+      setStreaming(false)
       isProcessingRef.current = false
       setIsProcessing(false)
     }
-  }, [onIntentResolved, t.hub.intentClassificationFailed])
+  }, [onIntentResolved, addMessage, setStreaming, dataContext, hasSeenUploadSuggestion, setHasSeenUploadSuggestion])
 
   // 표본 크기 계산기 "분석 시작" CTA → ChatInput 주입
   const handleStartAnalysis = useCallback((example: string) => {
@@ -121,6 +237,24 @@ export function ChatCentricHub({
     setExternalValue(undefined)
   }, [])
 
+  // 새 대화 초기화
+  const handleClearChat = useCallback(() => {
+    clearMessages()
+  }, [clearMessages])
+
+  // 에러 메시지 재시도 — 에러 메시지 + 직전 user 메시지 제거 후 재전송 (중복 방지)
+  const handleRetry = useCallback((errorMessageId: string) => {
+    const messages = useHubChatStore.getState().messages
+    const errorIndex = messages.findIndex((m) => m.id === errorMessageId)
+    if (errorIndex === -1) return
+    const lastUserMsg = [...messages.slice(0, errorIndex)]
+      .reverse()
+      .find((m) => m.role === 'user')
+    if (!lastUserMsg) return
+    useHubChatStore.getState().removeMessages([errorMessageId, lastUserMsg.id])
+    void handleChatSubmit(lastUserMsg.content)
+  }, [handleChatSubmit])
+
   // data-testid="hub-upload-card": E2E 호환용 마커 (컨테이너 가시성 감지).
   return (
     <motion.div
@@ -128,7 +262,7 @@ export function ChatCentricHub({
       data-testid="hub-upload-card"
       {...(prefersReducedMotion ? {} : { variants: containerVariants, initial: 'hidden' as const, animate: 'visible' as const })}
     >
-      {/* ====== Hero Section + ChatInput ====== */}
+      {/* ====== Hero Section + ChatThread + ChatInput ====== */}
       <motion.div {...(prefersReducedMotion ? {} : { variants: itemVariants })}>
         <div className="py-8 lg:py-12">
           <div className="flex flex-col items-center text-center">
@@ -140,6 +274,17 @@ export function ChatCentricHub({
               {t.hub.hero.subheading}
             </p>
 
+            {/* ChatThread — 대화 히스토리 (메시지 있을 때만) */}
+            <ChatThread
+              onMethodSelect={onQuickAnalysis}
+              onUploadClick={onUploadClick}
+              onClearChat={handleClearChat}
+              onRetry={handleRetry}
+            />
+
+            {/* DataContextBadge — 데이터 로드됨 표시 */}
+            <DataContextBadge onClear={clearDataContext} />
+
             {/* ChatInput — centered, wider */}
             <div className="w-full max-w-[680px]">
               <ChatInput
@@ -148,51 +293,9 @@ export function ChatCentricHub({
                 externalValue={externalValue}
                 onExternalValueConsumed={handleExternalValueConsumed}
                 onUploadClick={onUploadClick}
+                onFileSelected={handleFileSelected}
               />
             </div>
-
-            {/* 추천 카드 (data-consultation 트랙) */}
-            {consultantResponse && consultantResponse.recommendations.length > 0 && (
-              <div className="w-full max-w-[680px] mt-6 space-y-3" data-testid="consultant-recommendations">
-                {consultantResponse.summary && (
-                  <p className="text-sm text-muted-foreground text-left">{consultantResponse.summary}</p>
-                )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {consultantResponse.recommendations.map(rec => (
-                    <RecommendationCard
-                      key={rec.methodId}
-                      recommendation={rec}
-                      onSelect={onQuickAnalysis}
-                    />
-                  ))}
-                </div>
-
-                {/* Clarification: 동점 시 차이점 안내 + 클릭으로 메서드 선택 */}
-                {consultantResponse.clarification && consultantResponse.clarification.options.length >= 2 && (
-                  <div
-                    className="mt-3 p-4 rounded-xl border border-border bg-muted/40"
-                    data-testid="consultant-clarification"
-                  >
-                    <p className="flex items-center gap-1.5 text-sm font-medium text-foreground mb-2">
-                      <HelpCircle className="w-4 h-4 shrink-0 text-muted-foreground" />
-                      {consultantResponse.clarification.question}
-                    </p>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {consultantResponse.clarification.options.map(option => (
-                        <button
-                          key={option.methodId}
-                          onClick={() => onQuickAnalysis(option.methodId)}
-                          className="px-3 py-1.5 text-sm rounded-lg border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
-                          data-testid={`clarification-option-${option.methodId}`}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* 빠른 분석 pills — 중앙 정렬 */}
             <div className="mt-8">

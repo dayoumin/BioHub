@@ -79,6 +79,20 @@ const EXPERIMENT_DESIGN_PATTERNS: RegExp[] = [
   /사전\s*검정력|a[\s-]?priori/i,
 ]
 
+/** Track 4: 시각화/그래프 키워드 */
+const VISUALIZATION_PATTERNS: RegExp[] = [
+  /시각화|visualization|visualize/i,
+  /그래프|graph|plot|chart/i,
+  /차트|히스토그램|histogram/i,
+  /산점도|scatter\s*plot/i,
+  /boxplot|box\s*plot|상자\s*그림/i,
+  /분포\s*(도|그림|확인)/i,
+  /막대\s*(그래프|차트)/i,
+  /선\s*그래프|line\s*chart/i,
+  /heatmap|히트맵/i,
+  /그려|그리고\s*싶/i,
+]
+
 /** Track 2: 데이터 상담 키워드 (모호한 질문, 도움 요청) */
 const DATA_CONSULTATION_PATTERNS: RegExp[] = [
   /어떤\s*(분석|방법|검정|통계)/i,
@@ -160,6 +174,22 @@ class IntentRouterService {
           needsData: false,
           provider: 'keyword'
         }
+      }
+    }
+
+    // Track 4: 시각화 (그래프/차트 키워드)
+    const vizScore = VISUALIZATION_PATTERNS.reduce(
+      (score, pattern) => score + (pattern.test(input) ? 1 : 0),
+      0
+    )
+    if (vizScore >= 1) {
+      return {
+        track: 'visualization',
+        confidence: Math.min(0.7 + vizScore * 0.1, 0.95),
+        method: null,
+        reasoning: '시각화/그래프 관련 키워드 감지',
+        needsData: true,
+        provider: 'keyword'
       }
     }
 

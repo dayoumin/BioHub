@@ -10,7 +10,7 @@
  * - "차트 만들기" CTA + "뒤로" 버튼
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, Database, Sparkles, X } from 'lucide-react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { selectXYFields } from '@/lib/graph-studio/chart-spec-utils';
@@ -98,6 +98,8 @@ export function ChartSetupPanel(): React.ReactElement {
   const loadDataPackageWithSpec = useGraphStudioStore(state => state.loadDataPackageWithSpec);
   const clearData = useGraphStudioStore(state => state.clearData);
   const previousSpec = useGraphStudioStore(state => state.previousChartSpec);
+  const storePendingTemplateId = useGraphStudioStore(state => state.pendingTemplateId);
+  const setPendingTemplateId = useGraphStudioStore(state => state.setPendingTemplateId);
 
   const columns = dataPackage?.columns ?? [];
   const rowCount = dataPackage
@@ -135,7 +137,18 @@ export function ChartSetupPanel(): React.ReactElement {
 
   // ── 스타일 템플릿 ─────────────────────────────────────
   const [templates, setTemplates] = useState<StyleTemplate[]>(() => loadTemplates());
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(storePendingTemplateId);
+
+  // Step 1에서 미리 선택한 템플릿이 있으면 프리셋도 동기화 + 스토어에서 소비
+  useEffect(() => {
+    if (!storePendingTemplateId) return;
+    const tmpl = templates.find(t => t.id === storePendingTemplateId);
+    if (tmpl) {
+      setSelectedTemplateId(tmpl.id);
+      setSelectedPreset(tmpl.style.preset);
+    }
+    setPendingTemplateId(null);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- mount 시 1회만
 
   const handleSelectTemplate = useCallback((template: StyleTemplate) => {
     setSelectedTemplateId(template.id);

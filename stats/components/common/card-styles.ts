@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 
 /** 클릭 가능한 액션 카드 (아이콘 + 라벨 그리드용) */
 export const actionCardBase = cn(
-  'flex flex-col items-center justify-center gap-3 p-6 rounded-xl',
+  'flex flex-col items-center justify-center gap-2 p-4 rounded-xl',
   'border border-border bg-card',
   'transition-all duration-200',
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
@@ -43,7 +43,7 @@ export const categoryCardBase = cn(
 
 /** 둥근 아이콘 래퍼 (카드 내부용) */
 export const iconContainerBase = cn(
-  'p-3 rounded-full transition-colors duration-200',
+  'p-2.5 rounded-full transition-colors duration-200',
 )
 
 /** 기본 아이콘 컨테이너 (비활성 상태) */

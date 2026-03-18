@@ -53,7 +53,7 @@ export function TrackSuggestions({ onStartAnalysis, onUploadClick }: TrackSugges
       <div>
         <h2 className="text-lg font-bold mb-3">{t.hub.quickStart.title}</h2>
         <motion.div
-          className="grid grid-cols-2 sm:grid-cols-4 gap-3"
+          className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3"
           initial={prefersReducedMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
