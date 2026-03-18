@@ -91,18 +91,19 @@ describe('hub-chat-store', () => {
       expect(messages[2].content).toBe('세 번째')
     })
 
-    it('30개 초과 시 FIFO로 오래된 메시지를 제거한다', () => {
+    it('MAX_MESSAGES 초과 시 FIFO로 오래된 메시지를 제거한다', () => {
+      const excess = 5
       act(() => {
-        for (let i = 0; i < 35; i++) {
+        for (let i = 0; i < MAX_MESSAGES + excess; i++) {
           useHubChatStore.getState().addMessage(makeMsg({ id: `msg_${i}`, content: `메시지 ${i}` }))
         }
       })
 
       const { messages } = useHubChatStore.getState()
-      expect(messages).toHaveLength(30)
+      expect(messages).toHaveLength(MAX_MESSAGES)
       // 가장 오래된 5개(0~4) 제거, 5번부터 시작
-      expect(messages[0].content).toBe('메시지 5')
-      expect(messages[29].content).toBe('메시지 34')
+      expect(messages[0].content).toBe(`메시지 ${excess}`)
+      expect(messages[MAX_MESSAGES - 1].content).toBe(`메시지 ${MAX_MESSAGES + excess - 1}`)
     })
   })
 

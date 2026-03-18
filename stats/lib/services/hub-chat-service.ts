@@ -10,7 +10,7 @@
 
 import { openRouterRecommender } from './openrouter-recommender'
 import { getSystemPromptConsultant, getSystemPromptDiagnostic } from './ai/prompts'
-import { buildContextForIntent, buildAssumptionContextMarkdown } from './ai/data-context-builder'
+import { buildContextForIntent } from './ai/data-context-builder'
 import { logger } from '@/lib/utils/logger'
 import type { HubChatMessage, HubDataContext } from '@/lib/stores/hub-chat-store'
 import type { AIRecommendation, ResolvedIntent, FlowChatMessage } from '@/types/analysis'
@@ -66,7 +66,7 @@ export async function getHubAiResponse(request: HubChatRequest): Promise<HubChat
 
   // 사용자 프롬프트 구성
   const userPrompt = hasData
-    ? `${dataContextMarkdown}\n\n${buildAssumptionContextMarkdown(null)}\n\n## 사용자 질문\n${userMessage}`
+    ? `${dataContextMarkdown}\n\n## 사용자 질문\n${userMessage}`
     : userMessage
 
   try {

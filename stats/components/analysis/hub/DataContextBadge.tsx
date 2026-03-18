@@ -52,13 +52,10 @@ export function DataContextBadge({ onClear }: DataContextBadgeProps) {
           )}
         </button>
 
-        {/* 스페이서 */}
-        <div className="flex-1" />
-
         {/* 클리어 버튼 */}
         <button
           onClick={onClear}
-          className="p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+          className="ml-auto p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0"
           aria-label="데이터 제거"
           title="데이터 제거"
         >

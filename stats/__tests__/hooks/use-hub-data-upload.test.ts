@@ -8,7 +8,7 @@
  * 시나리오별 검증:
  *   S1: 파일 A 파싱 중 파일 B 선택 → A complete 콜백은 무시됨
  *   S2: 파일 A complete 후 정규성 검정 중 clearDataContext() → 패치 무시됨
- *   S3: 정상 흐름 — 단일 업로드 완료 시 normaliy 패치 적용됨
+ *   S3: 정상 흐름 — 단일 업로드 완료 시 normality 패치 적용됨
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -155,7 +155,7 @@ describe('use-hub-data-upload — 경쟁 상태 시뮬레이션', () => {
       const enrichMock = vi.mocked(enrichWithNormality)
 
       // enrichWithNormality를 수동으로 resolve할 수 있도록 제어
-      let resolveEnrich!: (val: { enrichedColumns: ColumnStatistics[]; testedCount: number }) => void
+      let resolveEnrich!: (val: { enrichedColumns: ColumnStatistics[]; testedCount: number; failedColumns: string[] }) => void
       enrichMock.mockReturnValueOnce(
         new Promise((resolve) => { resolveEnrich = resolve })
       )
@@ -175,11 +175,23 @@ describe('use-hub-data-upload — 경쟁 상태 시뮬레이션', () => {
       const normalityBefore = useAnalysisStore.getState().validationResults?.columnStats?.[0].normality
       expect(normalityBefore).toBeUndefined()
 
-      // 사용자가 데이터 클리어 → setUploadedFile(null) → uploadNonce 증가
+      // 사용자가 데이터 클리어 → setUploadedFile(null) → uploadNonce 증가 (uploadTokenRef는 변경 없음)
       act(() => { result.current.clearDataContext() })
-
-      // clearDataContext 후 uploadedFile은 null
       expect(useAnalysisStore.getState().uploadedFileName).toBeNull()
+
+      // 클리어 후 새 validationResults를 수동 설정:
+      // — 실제로는 새 파일 업로드가 시작됐지만 아직 enrichWithNormality를 호출하지 않은 상황 시뮬레이션
+      // — validationResults가 null이 아닌 상태에서도 nonce 가드가 패치를 막는지 검증하기 위함
+      // — patchColumnNormality는 validationResults가 null이면 자체 early return하므로,
+      //   null이 아닌 상태에서 테스트해야 nonce 가드의 실제 동작을 증명할 수 있음
+      const freshValidation = {
+        isValid: true, totalRows: 5, columnCount: 1, missingValues: 0,
+        dataType: 'tabular' as const, variables: ['weight'], errors: [], warnings: [],
+        columnStats: [
+          { name: 'weight', type: 'numeric', numericCount: 5, textCount: 0, missingCount: 0, uniqueValues: 5 },
+        ] as ColumnStatistics[],
+      }
+      act(() => { useAnalysisStore.getState().setValidationResults(freshValidation) })
 
       // 이제 enrichWithNormality 늦게 완료 — nonce 불일치로 패치 차단되어야 함
       await act(async () => {
@@ -192,14 +204,17 @@ describe('use-hub-data-upload — 경쟁 상태 시뮬레이션', () => {
             },
           ],
           testedCount: 1,
+          failedColumns: [],
         })
         await Promise.resolve()
       })
 
-      // After: normality가 여전히 undefined여야 함 — nonce 가드가 patchColumnNormality를 차단
-      // clearDataContext() 후 validationResults 자체가 null이므로, 패치 시도가 있었어도 반영 안 됨
+      // nonce 가드가 patchColumnNormality 호출을 차단했으므로 fresh validationResults에 normality가 없어야 함
+      // (validationResults가 null이 아닌 상태에서 normality가 undefined → 실제로 패치가 막힌 것)
       const normalityAfter = useAnalysisStore.getState().validationResults?.columnStats?.[0].normality
       expect(normalityAfter).toBeUndefined()
+      // fresh validationResults 자체는 보존됨 (clearDataContext가 다시 호출되지 않았음)
+      expect(useAnalysisStore.getState().validationResults).not.toBeNull()
     })
   })
 
@@ -217,7 +232,7 @@ describe('use-hub-data-upload — 경쟁 상태 시뮬레이션', () => {
         normality: { statistic: 0.97, pValue: 0.3, isNormal: true, testName: 'shapiro-wilk' },
       }
 
-      enrichMock.mockResolvedValueOnce({ enrichedColumns: [enrichedCol], testedCount: 1 })
+      enrichMock.mockResolvedValueOnce({ enrichedColumns: [enrichedCol], testedCount: 1, failedColumns: [] })
       parseMock.mockImplementationOnce((_file, config: { complete?: (r: ParseResult<Record<string, string>>) => void }) => {
         config.complete?.(makeParseResult('data.csv'))
       })
