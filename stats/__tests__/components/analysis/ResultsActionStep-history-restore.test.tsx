@@ -10,7 +10,7 @@
 
 import React from 'react'
 import { render, act, waitFor } from '@testing-library/react'
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { vi, describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useHistoryStore } from '@/lib/stores/history-store'
 import type { AnalysisResult } from '@/types/analysis'
@@ -222,8 +222,13 @@ vi.mock('@/lib/statistics/formatters', () => ({
 vi.mock('@/components/analysis/ResultsVisualization', () => ({ ResultsVisualization: () => null }))
 vi.mock('@/components/analysis/steps/results/MethodSpecificResults', () => ({ MethodSpecificResults: () => null }))
 
-// ─── Lazy import (mocks 등록 후) ─────────────────────────
+// ─── Lazy import (mocks 등록 후 — vi.mock hoisted이므로 beforeAll 1회만 실행) ─────────
 let ResultsActionStep: React.ComponentType<{ results: AnalysisResult }>
+
+beforeAll(async () => {
+  const mod = await import('@/components/analysis/steps/ResultsActionStep')
+  ResultsActionStep = mod.ResultsActionStep
+})
 
 // ─── Test data ───────────────────────────────────────────
 
@@ -267,7 +272,7 @@ function setupStore(results: AnalysisResult, historyId: string | null = null): v
 // ─── Tests ───────────────────────────────────────────────
 
 describe('3차 리뷰 이슈 1: 같은 세션 히스토리 전환 — cache miss 시 자동 해석', () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks()
     // getHistory: 기본적으로 null 반환 (첫 마운트 경로 안전)
     getHistoryMock.mockResolvedValue(null)
@@ -278,9 +283,6 @@ describe('3차 리뷰 이슈 1: 같은 세션 히스토리 전환 — cache miss
         return { model: 'test-model' }
       }
     )
-    // Lazy import
-    const mod = await import('@/components/analysis/steps/ResultsActionStep')
-    ResultsActionStep = mod.ResultsActionStep
   })
 
   afterEach(() => {
@@ -381,7 +383,7 @@ describe('3차 리뷰 이슈 1: 같은 세션 히스토리 전환 — cache miss
 })
 
 describe('3차 리뷰 이슈 2: 새로고침 getHistory() stale 응답 방어', () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks()
     requestInterpretationMock.mockImplementation(
       async (_ctx: unknown, onChunk: (c: string) => void) => {
@@ -389,8 +391,6 @@ describe('3차 리뷰 이슈 2: 새로고침 getHistory() stale 응답 방어', 
         return { model: 'test-model' }
       }
     )
-    const mod = await import('@/components/analysis/steps/ResultsActionStep')
-    ResultsActionStep = mod.ResultsActionStep
   })
 
   afterEach(() => {

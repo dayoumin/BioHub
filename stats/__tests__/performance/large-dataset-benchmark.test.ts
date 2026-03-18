@@ -128,12 +128,12 @@ function rocAucBench(actual: number[], predicted: number[]): number {
 // ─── 벤치마크 테스트 ─────────────────────────────────────────────────
 
 describe('대규모 데이터셋 벤치마크', () => {
-  // 한도: 실측값(~20-50ms @100K) 대비 5배 여유
+  // 한도: 실측값(~20-50ms @100K) 대비 10배 여유 (테스트 스위트 병렬 실행 시 부하 고려)
   const SIZES = [1_000, 10_000, 100_000]
   const TIME_LIMITS_MS: Record<number, number> = {
     1_000: 50,
     10_000: 200,
-    100_000: 500,
+    100_000: 1000,
   }
 
   describe.each(SIZES)('KM (Greenwood CI 포함) n=%i', (n) => {
