@@ -85,9 +85,6 @@ export function AnnotationTab(): React.ReactElement | null {
 
   if (!chartSpec) return null;
 
-  const hlines = annotations.filter((a): a is HLineAnnotation => a.type === 'hline');
-  const vlines = annotations.filter((a): a is VLineAnnotation => a.type === 'vline');
-
   return (
     <div className="space-y-3 py-1">
 
@@ -161,7 +158,7 @@ export function AnnotationTab(): React.ReactElement | null {
           </div>
         )}
 
-        {hlines.length > 0 ? (
+        {annotations.some((a) => a.type === 'hline') ? (
           <ul className="space-y-1">
             {annotations.map((ann, i) =>
               ann.type !== 'hline' ? null : (
@@ -272,7 +269,7 @@ export function AnnotationTab(): React.ReactElement | null {
           </div>
         )}
 
-        {vlines.length > 0 ? (
+        {annotations.some((a) => a.type === 'vline') ? (
           <ul className="space-y-1">
             {annotations.map((ann, i) =>
               ann.type !== 'vline' ? null : (
