@@ -277,6 +277,10 @@ export class IndexedDBAdapter implements SyncableAdapter {
     console.log('[IndexedDB] Pull not applicable for standalone mode')
   }
 
+  async syncHistoryRecord(_id: string): Promise<void> {
+    // IndexedDB 단독 사용 시 클라우드 동기화 없음 (no-op)
+  }
+
   // === Metadata ===
 
   getStorageType(): StorageType {

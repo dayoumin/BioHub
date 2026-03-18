@@ -6,6 +6,7 @@
 
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import type { ChatMessage } from '@/lib/types/chat'
+import type { PaperDraft } from '@/lib/services/paper-draft/paper-types'
 
 /** LLM 추천 제공자 */
 export type LlmProvider = 'openrouter' | 'ollama' | 'keyword'
@@ -77,6 +78,9 @@ export interface HistoryRecord {
 
   // === 결과 해설 후속 Q&A ===
   interpretationChat?: ChatMessage[]
+
+  // === 논문 초안 ===
+  paperDraft?: PaperDraft | null
 
   // === 동기화 ===
   deviceId?: string

@@ -118,4 +118,9 @@ export interface SyncableAdapter extends StorageAdapter {
    * 클라우드에서 데이터 가져오기
    */
   pullFromCloud(): Promise<void>
+
+  /**
+   * 개별 레코드 즉시 클라우드 동기화 (전역 큐 우회)
+   */
+  syncHistoryRecord(id: string): Promise<void>
 }

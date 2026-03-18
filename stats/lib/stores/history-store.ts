@@ -18,8 +18,11 @@ import {
   getHistory,
   deleteHistory,
   clearAllHistory,
-  initStorage
+  initStorage,
+  updateHistory,
+  syncHistoryRecord,
 } from '@/lib/utils/storage'
+import type { PaperDraft } from '@/lib/services/paper-draft/paper-types'
 
 /**
  * 분석 히스토리 상태 관리
@@ -49,6 +52,7 @@ export interface AnalysisHistory {
   aiInterpretation?: string | null
   apaFormat?: string | null
   aiRecommendation?: AiRecommendationContext | null
+  paperDraft?: PaperDraft | null
 }
 
 export interface HistoryState {
@@ -58,17 +62,21 @@ export interface HistoryState {
   loadedAiInterpretation: string | null
   /** 히스토리 로드 시 복원된 후속 Q&A 대화 (ResultsActionStep에서 소비 후 null) */
   loadedInterpretationChat: ChatMessage[] | null
+  /** 히스토리 로드 시 복원된 논문 초안 (PaperDraftPanel에서 소비) */
+  loadedPaperDraft: PaperDraft | null
 
   // 액션
   setCurrentHistoryId: (id: string | null) => void
   setLoadedAiInterpretation: (text: string | null) => void
   setLoadedInterpretationChat: (chat: ChatMessage[] | null) => void
+  setLoadedPaperDraft: (draft: PaperDraft | null) => void
+  patchHistoryPaperDraft: (historyId: string, paperDraft: PaperDraft | null) => Promise<void>
 
   saveToHistory: (
     /** 분석 상태 스냅샷 (analysis-store에서 전달) */
     snapshot: HistorySnapshot,
     name?: string,
-    metadata?: { aiInterpretation?: string | null; apaFormat?: string | null; interpretationChat?: ChatMessage[] }
+    metadata?: { aiInterpretation?: string | null; apaFormat?: string | null; interpretationChat?: ChatMessage[]; paperDraft?: PaperDraft | null }
   ) => Promise<void>
   loadFromHistory: (historyId: string) => Promise<HistoryLoadResult | null>
   deleteFromHistory: (historyId: string) => Promise<void>
@@ -101,6 +109,7 @@ export interface HistoryLoadResult {
   completedSteps: number[]
   loadedAiInterpretation: string | null
   loadedInterpretationChat: ChatMessage[] | null
+  loadedPaperDraft: PaperDraft | null
 }
 
 /** loadSettingsFromHistory가 반환하는 설정 데이터 */
@@ -172,10 +181,22 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
   currentHistoryId: null,
   loadedAiInterpretation: null,
   loadedInterpretationChat: null,
+  loadedPaperDraft: null,
 
   setCurrentHistoryId: (id) => set({ currentHistoryId: id }),
   setLoadedAiInterpretation: (text) => set({ loadedAiInterpretation: text }),
   setLoadedInterpretationChat: (chat) => set({ loadedInterpretationChat: chat }),
+  setLoadedPaperDraft: (draft) => set({ loadedPaperDraft: draft }),
+
+  patchHistoryPaperDraft: async (historyId, paperDraft) => {
+    await updateHistory(historyId, { paperDraft })
+    await syncHistoryRecord(historyId)
+    set((state) => ({
+      analysisHistory: state.analysisHistory.map(h =>
+        h.id === historyId ? { ...h, paperDraft } : h
+      ),
+    }))
+  },
 
   saveToHistory: async (snapshot, name, metadata) => {
     if (!snapshot.results) return
@@ -205,7 +226,8 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
       analysisOptions: snapshot.analysisOptions as Record<string, unknown> & typeof snapshot.analysisOptions,
       analysisPurpose: snapshot.analysisPurpose,
       aiRecommendation: snapshot.lastAiRecommendation ?? null,
-      interpretationChat: metadata?.interpretationChat?.length ? metadata.interpretationChat : undefined
+      interpretationChat: metadata?.interpretationChat?.length ? metadata.interpretationChat : undefined,
+      paperDraft: metadata?.paperDraft ?? null
     }
 
     try {
@@ -240,6 +262,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
       completedSteps: Array.from({ length: MAX_STEPS }, (_, index) => index + 1),
       loadedAiInterpretation: record.aiInterpretation ?? null,
       loadedInterpretationChat: record.interpretationChat?.length ? record.interpretationChat : null,
+      loadedPaperDraft: record.paperDraft ?? null,
     }
 
     // 히스토리 스토어 자체 상태 업데이트
@@ -247,6 +270,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
       currentHistoryId: historyId,
       loadedAiInterpretation: result.loadedAiInterpretation,
       loadedInterpretationChat: result.loadedInterpretationChat,
+      loadedPaperDraft: result.loadedPaperDraft,
     })
 
     return result

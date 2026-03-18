@@ -187,6 +187,7 @@ describe('store-orchestration', () => {
         completedSteps: [1, 2, 3, 4],
         loadedAiInterpretation: null,
         loadedInterpretationChat: null,
+        loadedPaperDraft: null,
       }
 
       vi.spyOn(useHistoryStore.getState(), 'loadFromHistory').mockResolvedValueOnce(mockResult)

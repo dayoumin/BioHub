@@ -249,6 +249,26 @@ export class HybridAdapter implements SyncableAdapter {
   }
 
   /**
+   * 개별 레코드 즉시 Turso 동기화 (전역 큐 우회)
+   * patchHistoryPaperDraft 등 부분 업데이트 완료 후 호출
+   */
+  async syncHistoryRecord(id: string): Promise<void> {
+    if (!this.isOnline() || !this.cloudAdapter.isAvailable()) return
+
+    const record = await this.localAdapter.getHistory(id)
+    if (!record) return
+
+    try {
+      await this.cloudAdapter.saveHistory(record, true)
+      const syncedRecord = { ...record, syncedAt: Date.now() }
+      await this.localAdapter.saveHistory(syncedRecord, true)
+    } catch (error) {
+      console.warn(`[Hybrid] syncHistoryRecord failed for ${id}, queuing:`, error)
+      await this.localAdapter.addToSyncQueue(id, 'save')
+    }
+  }
+
+  /**
    * 클라우드에서 데이터 가져오기 (온라인 → 로컬)
    * 충돌 해결: timestamp 기반 (최신 우선)
    */

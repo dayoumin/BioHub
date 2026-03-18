@@ -121,6 +121,29 @@ export async function getHistory(id: string): Promise<HistoryRecord | null> {
 }
 
 /**
+ * 히스토리 부분 업데이트 (기존 레코드를 유지하면서 일부 필드만 수정)
+ * patchHistoryPaperDraft 등 부분 업데이트가 필요한 경우에 사용
+ */
+export async function updateHistory(id: string, partial: Partial<HistoryRecord>): Promise<void> {
+  const storage = await getStorage()
+  const current = await storage.getHistory(id)
+  if (!current) throw new Error(`[Storage] History not found: ${id}`)
+  return storage.saveHistory({ ...current, ...partial, updatedAt: Date.now() }, true)
+}
+
+/**
+ * 개별 히스토리 레코드 즉시 Turso 동기화 (Hybrid 모드만)
+ * 전역 큐와 별도로 특정 레코드를 우선 동기화
+ */
+export async function syncHistoryRecord(id: string): Promise<void> {
+  const storage = await getStorage()
+  if ('syncHistoryRecord' in storage) {
+    return (storage as SyncableAdapter).syncHistoryRecord(id)
+  }
+  // IndexedDB 전용 모드에서는 no-op
+}
+
+/**
  * 히스토리 삭제
  */
 export async function deleteHistory(id: string): Promise<void> {
@@ -229,6 +252,8 @@ export const storage = {
   saveHistory,
   getAllHistory,
   getHistory,
+  updateHistory,
+  syncHistoryRecord,
   deleteHistory,
   clearAllHistory,
   getHistoryCount,

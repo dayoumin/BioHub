@@ -123,6 +123,7 @@ export class TursoAdapter implements StorageAdapter {
     await this.ensureColumn('history', 'apaFormat', 'TEXT')
     await this.ensureColumn('history', 'aiRecommendation', 'TEXT')
     await this.ensureColumn('history', 'interpretationChat', 'TEXT')
+    await this.ensureColumn('history', 'paperDraft', 'TEXT')
   }
 
   private async ensureColumn(table: string, column: string, type: string): Promise<void> {
@@ -166,8 +167,8 @@ export class TursoAdapter implements StorageAdapter {
             (id, timestamp, name, purpose, analysisPurpose, method,
              variableMapping, analysisOptions, dataFileName, dataRowCount,
              columnInfo, results, aiInterpretation, apaFormat, aiRecommendation,
-             interpretationChat, deviceId, syncedAt, updatedAt)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             interpretationChat, paperDraft, deviceId, syncedAt, updatedAt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       args: [
         record.id,
         record.timestamp,
@@ -185,6 +186,7 @@ export class TursoAdapter implements StorageAdapter {
         record.apaFormat ?? null,
         record.aiRecommendation ? JSON.stringify(record.aiRecommendation) : null,
         record.interpretationChat ? JSON.stringify(record.interpretationChat) : null,
+        record.paperDraft ? JSON.stringify(record.paperDraft) : null,
         record.deviceId || this.getDeviceId(),
         now,
         record.updatedAt || now
@@ -296,6 +298,7 @@ export class TursoAdapter implements StorageAdapter {
       apaFormat: (row.apaFormat as string | null) ?? null,
       aiRecommendation: row.aiRecommendation ? JSON.parse(row.aiRecommendation as string) : null,
       interpretationChat: row.interpretationChat ? JSON.parse(row.interpretationChat as string) : undefined,
+      paperDraft: row.paperDraft ? JSON.parse(row.paperDraft as string) : null,
       deviceId: row.deviceId as string | undefined,
       syncedAt: row.syncedAt as number | undefined,
       updatedAt: row.updatedAt as number | undefined

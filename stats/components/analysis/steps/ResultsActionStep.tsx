@@ -12,6 +12,7 @@ import {
   FileText,
   BarChart3,
   FileSearch,
+  BookOpen,
 } from 'lucide-react'
 import { EmptyState } from '@/components/common/EmptyState'
 import { toast } from 'sonner'
@@ -23,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { AnalysisResult } from '@/types/analysis'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useHistoryStore } from '@/lib/stores/history-store'
@@ -49,6 +51,10 @@ import { inferColumnMeta, suggestChartType, selectXYFields, applyAnalysisContext
 import { createDefaultChartSpec, CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults'
 import type { DataPackage, ChartType } from '@/types/graph-studio'
 import type { KaplanMeierAnalysisResult, RocCurveAnalysisResult } from '@/lib/generated/method-types.generated'
+import { generatePaperDraft } from '@/lib/services/paper-draft'
+import type { PaperDraft, DiscussionState, DraftContext } from '@/lib/services/paper-draft'
+import { DraftContextEditor } from './DraftContextEditor'
+import { PaperDraftPanel } from './PaperDraftPanel'
 
 interface ResultsActionStepProps {
   results: AnalysisResult | null
@@ -72,6 +78,12 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
   const [detailedResultsOpen, setDetailedResultsOpen] = useState(false)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
+  const [draftEditorOpen, setDraftEditorOpen] = useState(false)
+  const [paperDraftOpen, setPaperDraftOpen] = useState(false)
+  const [paperDraft, setPaperDraft] = useState<PaperDraft | null>(null)
+  const [discussionState, setDiscussionState] = useState<DiscussionState>({ status: 'idle' })
+  const [lastDraftContext, setLastDraftContext] = useState<DraftContext | undefined>(undefined)
+  const [lastDraftOptions, setLastDraftOptions] = useState<{ language: 'ko' | 'en'; postHocDisplay: 'significant-only' | 'all' }>({ language: 'ko', postHocDisplay: 'significant-only' })
   const [exportFormat, setExportFormat] = useState<ExportFormat>('docx')
   const [exportOptions, setExportOptions] = useState<ExportContentOptions>({
     includeInterpretation: true,
@@ -127,7 +139,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     assumptionResults,
   } = useAnalysisStore()
   const { setStepTrack } = useModeStore()
-  const { saveToHistory, loadedInterpretationChat, currentHistoryId } = useHistoryStore()
+  const { saveToHistory, loadedInterpretationChat, currentHistoryId, loadedPaperDraft, patchHistoryPaperDraft, setLoadedPaperDraft } = useHistoryStore()
 
   // 히스토리 전환 시 Q&A·Phase·UI 초기화 (AI 해석은 useInterpretation이 처리)
   const prevHistoryIdRef = useRef<string | null | undefined>(undefined)
@@ -150,6 +162,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     setIsSaved(false)
     setUsedChips(new Set())
     hasSavedToHistoryRef.current = false
+    setPaperDraft(null)
+    setPaperDraftOpen(false)
+    setLastDraftContext(undefined)
+    setLastDraftOptions({ language: 'ko', postHocDisplay: 'significant-only' })
   }, [currentHistoryId])
 
   // 히스토리에서 로드된 후속 Q&A 대화 복원
@@ -160,6 +176,19 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       useHistoryStore.getState().setLoadedInterpretationChat(null)
     }
   }, [loadedInterpretationChat])
+
+  // 히스토리에서 로드된 논문 초안 복원 (context/options도 함께 복원 → 재생성/언어전환 가능)
+  useEffect(() => {
+    if (loadedPaperDraft) {
+      setPaperDraft(loadedPaperDraft)
+      setLastDraftContext(loadedPaperDraft.context)
+      setLastDraftOptions({
+        language: loadedPaperDraft.language,
+        postHocDisplay: loadedPaperDraft.postHocDisplay ?? 'significant-only',
+      })
+      setLoadedPaperDraft(null)
+    }
+  }, [loadedPaperDraft, setLoadedPaperDraft])
 
   const router = useRouter()
   const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
@@ -307,6 +336,20 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }
   }, [uploadedData, uploadedFileName])
 
+  // 논문 초안 생성용 ExportContext (두 핸들러 공용)
+  const draftExportCtx = useMemo(() => {
+    if (!results || !statisticalResult) return null
+    return {
+      analysisResult: results,
+      statisticalResult,
+      aiInterpretation: interpretation,
+      apaFormat,
+      exportOptions: { includeInterpretation: false, includeRawData: false, includeMethodology: false, includeReferences: false } as const,
+      dataInfo: exportDataInfo,
+      rawDataRows: uploadedData as Array<Record<string, unknown>> | null,
+    }
+  }, [results, statisticalResult, interpretation, apaFormat, exportDataInfo, uploadedData])
+
   // AI 해석 파싱 (summary/detail 분리) — 렌더마다 재파싱 방지
   const parsedInterpretation = useMemo(() => {
     if (!interpretation) return null
@@ -328,6 +371,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         aiInterpretation: interpretation,
         apaFormat,
         interpretationChat: !isFollowUpStreaming && followUpMessages.length > 0 ? followUpMessages : undefined,
+        paperDraft: paperDraft ?? null,
       })
 
       if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current)
@@ -386,6 +430,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             aiInterpretation: interpretation,
             apaFormat,
             interpretationChat: !isFollowUpStreaming && followUpMessages.length > 0 ? followUpMessages : undefined,
+            paperDraft: paperDraft ?? null,
           }).catch(() => { /* 히스토리 저장 실패 무시 */ })
         }
       } else {
@@ -535,6 +580,53 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     resetAndReinterpret()
   }, [resetFollowUp, resetAndReinterpret])
 
+  const handlePaperDraftToggle = useCallback(() => {
+    if (paperDraft) {
+      setPaperDraftOpen(true)
+    } else {
+      setDraftEditorOpen(true)
+    }
+  }, [paperDraft])
+
+  // 논문 초안 생성 확정 (DraftContextEditor → generatePaperDraft)
+  const handleDraftConfirm = useCallback((
+    context: DraftContext,
+    options: { language: 'ko' | 'en'; postHocDisplay: 'significant-only' | 'all' }
+  ) => {
+    if (!draftExportCtx) return
+    setDraftEditorOpen(false)
+    setLastDraftContext(context)
+    setLastDraftOptions(options)
+
+    const draft = generatePaperDraft(draftExportCtx, context, selectedMethod?.id ?? '', {
+      language: options.language,
+      postHocDisplay: options.postHocDisplay,
+    })
+    setPaperDraft(draft)
+    setDiscussionState({ status: 'idle' })
+    setPaperDraftOpen(true)
+    if (currentHistoryId) {
+      patchHistoryPaperDraft(currentHistoryId, draft).catch(console.error)
+    }
+  }, [draftExportCtx, selectedMethod, currentHistoryId, patchHistoryPaperDraft])
+
+  // 논문 초안 언어 변경 (패널 내 토글 → 재생성)
+  const handleDraftLanguageChange = useCallback((lang: 'ko' | 'en') => {
+    if (!draftExportCtx || !lastDraftContext) return
+    const newOptions = { ...lastDraftOptions, language: lang }
+    setLastDraftOptions(newOptions)
+
+    const draft = generatePaperDraft(draftExportCtx, lastDraftContext, selectedMethod?.id ?? '', {
+      language: lang,
+      postHocDisplay: newOptions.postHocDisplay,
+    })
+    setPaperDraft(draft)
+    setDiscussionState({ status: 'idle' })
+    if (currentHistoryId) {
+      patchHistoryPaperDraft(currentHistoryId, draft).catch(console.error)
+    }
+  }, [draftExportCtx, lastDraftContext, lastDraftOptions, selectedMethod, currentHistoryId, patchHistoryPaperDraft])
+
 
   const handleCopyResults = useCallback(async () => {
     if (!results || !statisticalResult) return
@@ -658,6 +750,16 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               >
                 {isSaved ? <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> : <Save className="w-3.5 h-3.5 mr-1" />}
                 {isSaved ? t.results.buttons.saved : t.results.buttons.save}
+              </Button>
+              <Button
+                variant={paperDraft ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={handlePaperDraftToggle}
+                className={cn("h-8 px-2.5 shadow-sm", paperDraft && "text-primary")}
+                data-testid="paper-draft-btn"
+              >
+                <BookOpen className="w-3.5 h-3.5 mr-1" />
+                {paperDraft ? '초안 보기' : '논문 초안'}
               </Button>
               <div className="w-px h-4 bg-border/50" />
               <DropdownMenu>
@@ -789,6 +891,37 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           hasUploadedData={!!uploadedData && uploadedData.length > 0}
           t={t}
         />
+
+        {/* 논문 초안 — 컨텍스트 에디터 모달 */}
+        {draftEditorOpen && results && (
+          <DraftContextEditor
+            analysisResult={results}
+            variableMapping={variableMapping ?? null}
+            initialContext={lastDraftContext}
+            onConfirm={handleDraftConfirm}
+            onCancel={() => setDraftEditorOpen(false)}
+          />
+        )}
+
+        {/* 논문 초안 패널 */}
+        <Sheet open={paperDraftOpen} onOpenChange={setPaperDraftOpen}>
+          <SheetContent side="right" className="w-[560px] max-w-[90vw] p-0 flex flex-col gap-0">
+            <SheetHeader className="px-4 py-3 border-b shrink-0">
+              <SheetTitle className="text-sm font-semibold">논문 초안</SheetTitle>
+            </SheetHeader>
+            {paperDraft && (
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <PaperDraftPanel
+                  draft={paperDraft}
+                  discussionState={discussionState}
+                  onGenerateDiscussion={() => { /* Phase B: LLM Discussion 생성 */ }}
+                  onCancelDiscussion={() => setDiscussionState({ status: 'idle' })}
+                  onLanguageChange={handleDraftLanguageChange}
+                />
+              </div>
+            )}
+          </SheetContent>
+        </Sheet>
 
         {/* 템플릿 저장 모달 */}
         <TemplateSaveModal
