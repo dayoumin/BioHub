@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/accordion';
 import { DataTab } from './panels/DataTab';
 import { StyleTab } from './panels/StyleTab';
+import { AnnotationTab } from './panels/AnnotationTab';
 
 export function RightPropertyPanel(): React.ReactElement {
   return (
@@ -53,6 +54,18 @@ export function RightPropertyPanel(): React.ReactElement {
             </AccordionTrigger>
             <AccordionContent className="px-3">
               <StyleTab />
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="annotation">
+            <AccordionTrigger
+              className="px-3 py-2 text-xs"
+              data-testid="graph-studio-tab-annotation"
+            >
+              주석
+            </AccordionTrigger>
+            <AccordionContent className="px-3">
+              <AnnotationTab />
             </AccordionContent>
           </AccordionItem>
         </Accordion>
