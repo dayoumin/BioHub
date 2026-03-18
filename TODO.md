@@ -37,7 +37,6 @@
 - ✅ **대형 컴포넌트 분리**: ResultsActionStep → `steps/results/` 9개, PurposeInputStep → `steps/purpose/` 21개, page.tsx → 183줄
 - ✅ **기존 실패 테스트 수정**: 24개 테스트 실패 → 0 (6495 전체 통과)
 - ✅ **CSV RFC 4180 + clipboard Promise**: StatisticsTable.tsx에 이미 적용됨
-- 🔜 **하드코딩 한국어**: 3개 파일 117건 잔여 (다음 세션)
 
 ### 2026-03-18 (화) Chat-First 허브 기능 + 기술 부채
 
@@ -565,6 +564,8 @@
 | ~~Graph Studio: hline/vline 렌더러 (C-1~C-3)~~ — discriminated union + buildMarkLineAnnotations + applyMarkLineAnnotations wrapper 20+곳 + AI 카드 | 2026-03-18 확인 |
 | ~~Graph Studio: 주석 UI 편집기 (C-4)~~ — AnnotationTab.tsx: hline/vline 수동 추가·편집·삭제 GUI, RightPropertyPanel Accordion 통합 | 2026-03-18 확인 |
 | ~~섹션별 UX 아이덴티티 S1~S5~~ — 헤더 섹션명+아이콘, accent bar, 분석 플로우 틴트(S3), Hub 카드 도착지 뱃지(S4), Graph Studio 캔버스 배경(S5) | 2026-03-18 |
+| ~~ResultsActionStep 리팩토링~~ — AiInterpretationCard + FollowUpQASection + useFollowUpQA 추출, ChatCentricHub 버그 3건, setFollowUpInput 회귀 픽스 | 2026-03-18 |
+| ~~훅 시뮬레이션 테스트~~ — useFollowUpQA 12개 + useInterpretation 히스토리 전환 8개 (2-phase act 패턴) | 2026-03-18 |
 
 ---
 
