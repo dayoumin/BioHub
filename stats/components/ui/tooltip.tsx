@@ -58,4 +58,11 @@ function TooltipContent({
   )
 }
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
+/** Provider 없이 사용하는 Root — 외부에서 TooltipProvider를 공유할 때 사용 */
+function TooltipRoot({
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Root>) {
+  return <TooltipPrimitive.Root data-slot="tooltip" {...props} />
+}
+
+export { Tooltip, TooltipRoot, TooltipTrigger, TooltipContent, TooltipProvider }
