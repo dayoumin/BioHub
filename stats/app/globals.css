@@ -448,9 +448,9 @@
     @apply border-border outline-ring/50;
   }
 
-  /* PC 전용 - 최소 창 크기 제한 (1024x600) */
+  /* PC 전용 - 최소 폭은 사이드바+콘텐츠 최소 영역만 보장 */
   html {
-    min-width: 1024px;
+    min-width: 768px;
     min-height: 600px;
   }
 
@@ -705,6 +705,7 @@
 
   /* Layout utilities */
   .main-content {
+    width: 100%;
     max-width: var(--content-max-width);
     margin: 0 auto;
     padding: 1.5rem;

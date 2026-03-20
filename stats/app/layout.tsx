@@ -44,7 +44,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko" suppressHydrationWarning>
-      <body className={`${jetbrainsMono.variable} font-sans min-w-[375px]`}>
+      <body className={`${jetbrainsMono.variable} font-sans`}>
         <ClientProviders>
           <TerminologyProvider initialDomain="aquaculture">
             <UIProvider>

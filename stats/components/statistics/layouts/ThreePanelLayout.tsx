@@ -127,7 +127,7 @@ export function ThreePanelLayout({
 
       {/* 우측 패널 - Preview or Results */}
       <aside className={cn(
-        "w-[40%] min-w-[400px] max-w-[600px] border-l border-border overflow-y-auto",
+        "w-[40%] min-w-[320px] max-w-[600px] border-l border-border overflow-y-auto",
         "bg-muted/10"
       )}>
         <div className="p-6">
