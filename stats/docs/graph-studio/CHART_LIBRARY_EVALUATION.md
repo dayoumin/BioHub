@@ -7,6 +7,30 @@
 
 **편집은 ECharts, 제출은 matplotlib. 나머지는 필요할 때.**
 
+### 왜 2개 엔진인가? (FAQ)
+
+> **Q: 처음부터 matplotlib만 쓰면 안 되나?**
+>
+> **A: 안 된다.** matplotlib은 정적 이미지를 만드는 도구이지 인터랙티브 편집 도구가 아니다.
+>
+> | 기능 | ECharts (편집) | matplotlib (출력) |
+> |------|:-:|:-:|
+> | 마우스 호버 툴팁 | O | X |
+> | 드래그 줌/팬 | O | X |
+> | 실시간 데이터 편집 | O | X |
+> | AI JSON 패치로 수정 | O | X (Python 재실행 필요) |
+> | 10만 점 실시간 렌더링 | O (<16ms) | X (1-2초) |
+> | PDF/TIFF/EPS export | X | O |
+> | SciencePlots 저널 스타일 | X | O |
+>
+> **업계 표준 패턴**: 편집은 빠른 엔진, 출력은 정확한 엔진.
+> - GraphPad Prism: 자체 GUI + 자체 PDF 렌더러
+> - Origin: 자체 GUI + 자체 EPS 렌더러
+> - Jupyter: plotly/bokeh(인터랙티브) + matplotlib savefig(논문)
+> - BioHub: ECharts(인터랙티브) + matplotlib(논문)
+>
+> **사용자 관점**: ECharts 화면에서 편집하고 "논문용 내보내기" 버튼을 누르면 matplotlib이 뒤에서 동작. 사용자는 matplotlib의 존재를 모른다.
+
 | 역할 | 선택 | 상태 |
 |------|------|------|
 | 인터랙티브 편집 | **ECharts 6.0** | 유지 (이미 구축) |
