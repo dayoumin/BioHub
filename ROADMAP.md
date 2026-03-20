@@ -833,6 +833,25 @@ npx wrangler pages deploy out --project-name=stats
 
 ---
 
+### Phase G5: matplotlib 논문 Export 파이프라인 (예정)
+
+**목표**: 저널 투고 가능한 정적 이미지 출력 (PDF/TIFF/EPS/SVG/PNG 300-600 DPI)
+**근거**: [CHART_LIBRARY_EVALUATION.md](stats/docs/graph-studio/CHART_LIBRARY_EVALUATION.md) (2026-03-20 평가)
+**핵심 결정**: 편집은 ECharts, 제출은 matplotlib. Plotly.js는 보류.
+
+| 단계 | 내용 | 비용 | 비고 |
+|------|------|------|------|
+| **G5.1** | matplotlib Agg 백엔드 export PoC | 낮음 | Pyodide 내장 (추가 번들 0). BytesIO → base64 → 브라우저 다운로드 |
+| **G5.2** | ChartSpec → matplotlib 변환기 | 중간 | bar, line, scatter 우선. 10개 차트 타입 단계적 |
+| **G5.3** | SciencePlots 스타일 적용 | 낮음 | `no-latex` 스타일 또는 rcParams 직접 적용 (LaTeX 불필요) |
+| **G5.4** | ECharts violin 검증 (echarts-custom-series) | 낮음 | 6.0 공식 custom series, KDE 품질 검증 |
+| **G5.5** | plotnine 통합 (조건부) | 낮음 | Pyodide statsmodels >= 0.14.6 필요 (현재 0.14.4) |
+
+**PoC 검증 완료 (2026-03-20)**: matplotlib PNG/PDF/SVG/TIFF/EPS 모두 성공, SciencePlots no-latex 동작 확인, violin 자체 구현 유지 결정.
+**모니터링 항목**: [CHART_LIBRARY_EVALUATION.md §10](stats/docs/graph-studio/CHART_LIBRARY_EVALUATION.md) 참조 (분기 1회 Pyodide 릴리스 노트 확인)
+
+---
+
 ### Phase 10.6: 분석 결과 URL 공유 (미검토, 장기)
 
 **배경** (2026-03-04 조사):

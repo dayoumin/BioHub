@@ -29,17 +29,37 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Download, AlertTriangle } from 'lucide-react';
+import { Download, AlertTriangle, Loader2, FileText } from 'lucide-react';
 import { JOURNAL_SIZE_PRESETS, mmToPx } from '@/lib/graph-studio';
 import type { ExportFormat, ErrorBarSpec } from '@/types/graph-studio';
+import type { MatplotlibExportFormat, MatplotlibStylePreset } from '@/types/matplotlib-export';
+import { DEFAULT_MATPLOTLIB_EXPORT_CONFIG } from '@/types/matplotlib-export';
+import { useMatplotlibExport } from '@/lib/graph-studio/use-matplotlib-export';
 
 const DPI_OPTIONS = [72, 150, 300, 600] as const;
+
+const MPL_FORMAT_OPTIONS: { value: MatplotlibExportFormat; label: string }[] = [
+  { value: 'pdf', label: 'PDF (벡터)' },
+  { value: 'png', label: 'PNG (래스터)' },
+  { value: 'svg', label: 'SVG (벡터)' },
+  { value: 'tiff', label: 'TIFF (래스터)' },
+  { value: 'eps', label: 'EPS (벡터)' },
+];
+
+const MPL_STYLE_OPTIONS: { value: MatplotlibStylePreset; label: string }[] = [
+  { value: 'science', label: 'Science (Nature 스타일)' },
+  { value: 'ieee', label: 'IEEE (흑백)' },
+  { value: 'default', label: 'Default' },
+];
 
 // ECharts getDataURL가 지원하는 포맷만 노출 (TIFF/PDF 제외)
 const SUPPORTED_FORMATS: { value: ExportFormat; label: string }[] = [
   { value: 'svg', label: 'SVG (벡터)' },
   { value: 'png', label: 'PNG (래스터)' },
 ];
+
+// matplotlib가 지원하는 차트 타입 (worker6-matplotlib.py RENDERER_MAP과 동기화)
+const MPL_SUPPORTED_CHART_TYPES = new Set(['bar', 'grouped-bar', 'stacked-bar', 'line', 'scatter']);
 
 // 다른 OS에서도 렌더링이 보장되는 웹 안전 폰트 (A4 경고 기준)
 const WEB_SAFE_FONTS = new Set([
@@ -73,6 +93,14 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
 
   // shadcn Dialog: disabled trigger가 열릴 수 있는 엣지 케이스 방지
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // ── matplotlib 논문용 내보내기 상태 ──
+  const { exportWithMatplotlib, isExporting: isMplExporting, progress: mplProgress, error: mplError } = useMatplotlibExport();
+  const [mplFormat, setMplFormat] = useState<MatplotlibExportFormat>(DEFAULT_MATPLOTLIB_EXPORT_CONFIG.format);
+  const [mplStyle, setMplStyle] = useState<MatplotlibStylePreset>(DEFAULT_MATPLOTLIB_EXPORT_CONFIG.style);
+  const [mplDpi, setMplDpi] = useState(DEFAULT_MATPLOTLIB_EXPORT_CONFIG.dpi);
+
+  const isMplSupported = chartSpec ? MPL_SUPPORTED_CHART_TYPES.has(chartSpec.chartType) : false;
 
   // 물리적 크기 로컬 state — onBlur 시 setExportConfig (undo 히스토리 제외 의도)
   const [widthInput, setWidthInput] = useState(() =>
@@ -117,6 +145,20 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
       physicalHeight: !isNaN(h) && h > 0 ? h : undefined,
     });
   }, [chartSpec, widthInput, heightInput, setExportConfig]);
+
+  const handleMatplotlibExport = useCallback(() => {
+    if (!chartSpec) return;
+    const w = parseFloat(widthInput);
+    const h = parseFloat(heightInput);
+    exportWithMatplotlib({
+      format: mplFormat,
+      dpi: mplDpi,
+      physicalWidthMm: !isNaN(w) && w > 0 ? w : DEFAULT_MATPLOTLIB_EXPORT_CONFIG.physicalWidthMm,
+      physicalHeightMm: !isNaN(h) && h > 0 ? h : DEFAULT_MATPLOTLIB_EXPORT_CONFIG.physicalHeightMm,
+      style: mplStyle,
+      transparentBackground: chartSpec.exportConfig.transparentBackground,
+    });
+  }, [chartSpec, widthInput, heightInput, mplFormat, mplDpi, mplStyle, exportWithMatplotlib]);
 
   const handleJournalPreset = useCallback((width: number) => {
     if (!chartSpec) return;
@@ -329,6 +371,116 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
               <Download className="h-4 w-4 mr-2" />
               {chartSpec.exportConfig.format.toUpperCase()} 내보내기
             </Button>
+
+            {/* ── 논문용 내보내기 (matplotlib) ── */}
+            <div className="border-t pt-4 space-y-3">
+              <div className="flex items-center gap-1.5">
+                <FileText className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">논문용 내보내기</span>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                matplotlib + SciencePlots로 저널 투고 품질 출력 (PDF/TIFF/EPS)
+              </p>
+
+              {!isMplSupported && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 flex items-start gap-1">
+                  <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+                  현재 차트 타입({chartSpec?.chartType})은 논문용 내보내기 미지원. Bar, Line, Scatter만 지원합니다.
+                </p>
+              )}
+
+              {/* 포맷 + 스타일 */}
+              <div className="flex gap-1.5">
+                <div className="flex-1 space-y-1">
+                  <Label className="text-xs">포맷</Label>
+                  <Select value={mplFormat} onValueChange={(v) => setMplFormat(v as MatplotlibExportFormat)}>
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MPL_FORMAT_OPTIONS.map(({ value, label }) => (
+                        <SelectItem key={value} value={value} className="text-sm">
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1 space-y-1">
+                  <Label className="text-xs">스타일</Label>
+                  <Select value={mplStyle} onValueChange={(v) => setMplStyle(v as MatplotlibStylePreset)}>
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MPL_STYLE_OPTIONS.map(({ value, label }) => (
+                        <SelectItem key={value} value={value} className="text-sm">
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* DPI */}
+              <div className="space-y-1">
+                <Label className="text-xs">DPI</Label>
+                <Select value={String(mplDpi)} onValueChange={(v) => setMplDpi(Number(v))}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DPI_OPTIONS.map(dpi => (
+                      <SelectItem key={dpi} value={String(dpi)} className="text-sm">
+                        {dpi} DPI {dpi === 300 ? '(권장)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* TIFF + 고DPI 경고 */}
+              {mplFormat === 'tiff' && mplDpi >= 600 && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 flex items-start gap-1">
+                  <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+                  TIFF 600 DPI는 파일 크기가 20-30MB 이상 될 수 있습니다.
+                </p>
+              )}
+
+              {/* 에러 표시 */}
+              {mplError && (
+                <p className="text-xs text-destructive">{mplError}</p>
+              )}
+
+              {/* 진행 상태 */}
+              {isMplExporting && mplProgress && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  {mplProgress}
+                </p>
+              )}
+
+              {/* 논문용 내보내기 버튼 */}
+              <Button
+                className="w-full"
+                variant="secondary"
+                disabled={isMplExporting || !isMplSupported}
+                onClick={handleMatplotlibExport}
+              >
+                {isMplExporting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FileText className="h-4 w-4 mr-2" />
+                )}
+                {isMplExporting ? '렌더링 중...' : `${mplFormat.toUpperCase()} 논문용 내보내기`}
+              </Button>
+
+              <p className="text-xs text-muted-foreground/60">
+                처음 사용 시 matplotlib 로딩에 약 5초 소요됩니다.
+              </p>
+            </div>
           </div>
         )}
       </DialogContent>

@@ -40,7 +40,7 @@ export type { FacetGridItem, FacetLayout } from './facet-layout';
 export { chartSpecToECharts } from './echarts-converter';
 
 // Export 유틸리티
-export { downloadChart, mmToPx } from './export-utils';
+export { downloadChart, downloadBase64File, sanitizeFilename, mmToPx } from './export-utils';
 
 // 프로젝트 저장소
 export {

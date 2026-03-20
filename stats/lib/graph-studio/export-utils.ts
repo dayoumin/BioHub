@@ -163,7 +163,7 @@ export function downloadChart(
   }
 
   const ext = config.format === 'svg' ? 'svg' : 'png';
-  const safeFilename = (filename ?? 'chart').replace(/[^\w\-]/g, '_') || 'chart';
+  const safeFilename = sanitizeFilename(filename);
 
   const link = document.createElement('a');
   link.href = dataUrl;
@@ -172,4 +172,46 @@ export function downloadChart(
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+}
+
+// ── 공통 유틸 ───────────────────────────────────────────────
+
+/** 파일명에서 안전하지 않은 문자를 underscore로 치환. */
+export function sanitizeFilename(name: string | undefined, fallback = 'chart'): string {
+  return (name ?? fallback).replace(/[^\w\-]/g, '_') || fallback;
+}
+
+// ── matplotlib base64 export 다운로드 ────────────────────────
+
+/**
+ * base64 인코딩된 바이너리 데이터를 파일로 다운로드.
+ * matplotlib export 결과 (PDF/TIFF/EPS 등) 다운로드에 사용.
+ * fetch(data:...) 방식으로 중간 복사 최소화 (대용량 TIFF 대응).
+ */
+import { MATPLOTLIB_MIME_MAP } from '@/types/matplotlib-export';
+
+/** 허용된 MIME 타입 (MATPLOTLIB_MIME_MAP에서 파생) */
+const ALLOWED_MIME_TYPES = new Set(Object.values(MATPLOTLIB_MIME_MAP));
+
+export async function downloadBase64File(
+  base64Data: string,
+  mimeType: string,
+  filename: string,
+  extension: string,
+): Promise<void> {
+  if (!ALLOWED_MIME_TYPES.has(mimeType)) {
+    throw new Error(`Unsupported MIME type: ${mimeType}`);
+  }
+  const res = await fetch(`data:${mimeType};base64,${base64Data}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+
+  const safeFilename = sanitizeFilename(filename);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${safeFilename}.${extension}`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

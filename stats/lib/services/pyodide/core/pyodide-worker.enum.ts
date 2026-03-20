@@ -77,7 +77,14 @@ export enum PyodideWorker {
    * - kaplan_meier_analysis (scipy 기반, 그룹 비교 + log-rank)
    * - roc_curve_analysis (sklearn.metrics)
    */
-  Survival = 5
+  Survival = 5,
+
+  /**
+   * Worker 6: matplotlib 논문용 Export
+   * - render_chart (ChartSpec → matplotlib figure → base64 이미지)
+   * - SciencePlots no-latex 스타일 (science, ieee)
+   */
+  Matplotlib = 6
 }
 
 /**
@@ -90,7 +97,8 @@ export const WORKER_PACKAGES = Object.freeze({
   [PyodideWorker.Hypothesis]: ['statsmodels', 'pandas'] as const,
   [PyodideWorker.NonparametricAnova]: ['statsmodels', 'pandas'] as const,
   [PyodideWorker.RegressionAdvanced]: ['statsmodels', 'scikit-learn'] as const,
-  [PyodideWorker.Survival]: ['scikit-learn'] as const
+  [PyodideWorker.Survival]: ['scikit-learn'] as const,
+  [PyodideWorker.Matplotlib]: ['matplotlib', 'micropip'] as const
 } as const)
 
 /**
@@ -101,5 +109,6 @@ export const WORKER_FILE_PATHS = Object.freeze({
   [PyodideWorker.Hypothesis]: '/workers/python/worker2-hypothesis.py',
   [PyodideWorker.NonparametricAnova]: '/workers/python/worker3-nonparametric-anova.py',
   [PyodideWorker.RegressionAdvanced]: '/workers/python/worker4-regression-advanced.py',
-  [PyodideWorker.Survival]: '/workers/python/worker5-survival.py'
+  [PyodideWorker.Survival]: '/workers/python/worker5-survival.py',
+  [PyodideWorker.Matplotlib]: '/workers/python/worker6-matplotlib.py'
 } as const)
