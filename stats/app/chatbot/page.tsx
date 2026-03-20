@@ -5,8 +5,6 @@
  * - Grok 스타일 사이드바 (검색, 즐겨찾기, 프로젝트, 히스토리)
  * - 프로젝트 관리 (생성, 편집, 삭제)
  * - 세션 이동 (프로젝트 간)
- * - RAG 챗봇 통합
- * - 퀵 프롬프트 (빈 상태)
  * - 키보드 단축키 (Ctrl+N: 새 대화)
  */
 
@@ -15,11 +13,9 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Plus, ChevronLeft, Edit2, MoreVertical, Pin, MapPin, FolderInput, Trash2, Home } from 'lucide-react'
-import Link from 'next/link'
+import { Plus, ChevronLeft, Edit2, MoreVertical, Pin, MapPin, FolderInput, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexed-db'
-import { RAGChatInterface } from '@/components/rag/rag-chat-interface'
 import type { ChatSession, ChatProject } from '@/lib/types/chat'
 import { SidebarSearch } from '@/components/chatbot/SidebarSearch'
 import { FavoritesSection } from '@/components/chatbot/FavoritesSection'
@@ -28,30 +24,6 @@ import { HistorySection } from '@/components/chatbot/HistorySection'
 import { ProjectDialog } from '@/components/chatbot/ProjectDialog'
 import { MoveSessionDialog } from '@/components/chatbot/MoveSessionDialog'
 import { DeleteConfirmDialog } from '@/components/chatbot/DeleteConfirmDialog'
-import { DocumentManagerDialog } from '@/components/chatbot/document-manager-dialog'
-
-const QUICK_PROMPTS = [
-  {
-    icon: '📊',
-    title: 't-test 사용법',
-    prompt: 't-test는 언제 사용하나요? 가정과 해석 방법을 알려주세요.',
-  },
-  {
-    icon: '📈',
-    title: 'ANOVA vs Regression',
-    prompt: 'ANOVA와 회귀분석의 차이점은 무엇인가요?',
-  },
-  {
-    icon: '🔍',
-    title: '정규성 검정',
-    prompt: '정규성 검정은 왜 필요하고 어떻게 해석하나요?',
-  },
-  {
-    icon: '💡',
-    title: '표본 크기 계산',
-    prompt: '적절한 표본 크기는 어떻게 계산하나요?',
-  },
-]
 
 export default function ChatbotPage() {
   // 클라이언트 마운트 상태
@@ -87,7 +59,6 @@ export default function ChatbotPage() {
   const [moveDialogSessionId, setMoveDialogSessionId] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'session' | 'project'; id: string } | null>(null)
-  const [isDocManagerOpen, setIsDocManagerOpen] = useState(false)
 
   // 데이터 로드 (useMemo로 성능 최적화, 클라이언트에서만)
   const { searchedProjects, searchedSessions } = useMemo(() => {
@@ -342,13 +313,6 @@ export default function ChatbotPage() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleNewChat])
 
-  // 퀵 프롬프트 클릭
-  const handleQuickPrompt = useCallback((prompt: string) => {
-    // RAGChatInterface에 전달할 초기 메시지로 사용
-    // 실제 구현은 RAGChatInterface에서 처리
-    console.log('Quick prompt:', prompt)
-  }, [])
-
   // 클라이언트 마운트 전에는 로딩 표시
   if (!isMounted) {
     return (
@@ -418,18 +382,6 @@ export default function ChatbotPage() {
           />
         </ScrollArea>
 
-        {/* 하단 문서 관리 버튼 */}
-        <div className="p-4 flex-shrink-0 border-t">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full justify-start gap-2"
-            onClick={() => setIsDocManagerOpen(true)}
-          >
-            <FolderInput className="h-4 w-4" />
-            <span className="text-sm">문서 관리</span>
-          </Button>
-        </div>
       </aside>
 
       {/* 사이드바 토글 버튼 */}
@@ -558,15 +510,10 @@ export default function ChatbotPage() {
               )}
             </div>
 
-            {/* 채팅 인터페이스 */}
-            <RAGChatInterface
-              sessionId={currentSession.id}
-              onSessionUpdate={() => {
-                void reloadData()
-              }}
-              quickPrompts={currentSession.messages.length === 0 ? QUICK_PROMPTS : undefined}
-              onQuickPrompt={handleQuickPrompt}
-            />
+            {/* 채팅 인터페이스 (RAG 제거됨 — 추후 재구현 예정) */}
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+              AI 챗봇 기능 준비 중
+            </div>
           </>
         ) : (
           <div className="h-full flex items-center justify-center text-muted-foreground">
@@ -597,10 +544,6 @@ export default function ChatbotPage() {
         onConfirm={handleConfirmDelete}
       />
 
-      <DocumentManagerDialog
-        open={isDocManagerOpen}
-        onOpenChange={setIsDocManagerOpen}
-      />
     </div>
   )
 }

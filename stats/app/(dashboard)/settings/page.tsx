@@ -4,39 +4,22 @@ import React, { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Settings, Palette, Bot, Star, Moon, Sun, Clock, HardDrive } from 'lucide-react'
+import { Settings, Palette, Star, Moon, Sun, Clock, HardDrive } from 'lucide-react'
 import { STATISTICS_MENU } from '@/lib/statistics/menu-config'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Slider } from '@/components/ui/slider'
-import { Input } from '@/components/ui/input'
 import { clearRecentStatistics, getRecentStatistics } from '@/lib/utils/recent-statistics'
 import { StorageService } from '@/lib/services/storage-service'
-import { useSettingsStore } from '@/lib/stores/settings-store'
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
   const [favorites, setFavorites] = useState<string[]>([])
   const [recentCount, setRecentCount] = useState<number>(0)
-  const [chatbotModel, setChatbotModel] = useState<string>('llama3.2')
-  const [vectorDb, setVectorDb] = useState<string>('chromadb')
-
-  // Ollama 추천 설정 (Zustand store 사용)
-  const { useOllamaForRecommendation, setUseOllamaForRecommendation } = useSettingsStore()
-
-  // RAG 설정
-  const [ollamaEndpoint, setOllamaEndpoint] = useState<string>('http://localhost:11434')
-  const [embeddingModel, setEmbeddingModel] = useState<string>('nomic-embed-text')
-  const [inferenceModel, setInferenceModel] = useState<string>('qwen3:4b-q4_K_M')
-  const [topK, setTopK] = useState<number>(5)
-
   // 알림 설정
   const [notifyAnalysisComplete, setNotifyAnalysisComplete] = useState<boolean>(true)
   const [notifyError, setNotifyError] = useState<boolean>(true)
-
-
 
   // localStorage에서 설정 로드
   useEffect(() => {
@@ -48,39 +31,6 @@ export default function SettingsPage() {
       } catch (error) {
         console.error('Failed to load favorites:', error)
       }
-    }
-
-    // 챗봇 모델 로드
-    const savedModel = StorageService.getItem('statPlatform_chatbotModel')
-    if (savedModel) {
-      setChatbotModel(savedModel)
-    }
-
-    // Vector DB 로드
-    const savedDb = StorageService.getItem('statPlatform_vectorDb')
-    if (savedDb) {
-      setVectorDb(savedDb)
-    }
-
-    // RAG 설정 로드
-    const savedOllamaEndpoint = StorageService.getItem('statPlatform_ollamaEndpoint')
-    if (savedOllamaEndpoint) {
-      setOllamaEndpoint(savedOllamaEndpoint)
-    }
-
-    const savedEmbeddingModel = StorageService.getItem('statPlatform_embeddingModel')
-    if (savedEmbeddingModel) {
-      setEmbeddingModel(savedEmbeddingModel)
-    }
-
-    const savedInferenceModel = StorageService.getItem('statPlatform_inferenceModel')
-    if (savedInferenceModel) {
-      setInferenceModel(savedInferenceModel)
-    }
-
-    const savedTopK = StorageService.getItem('statPlatform_topK')
-    if (savedTopK) {
-      setTopK(parseInt(savedTopK, 10))
     }
 
     // 알림 설정 로드
@@ -104,44 +54,10 @@ export default function SettingsPage() {
     category.items.map((item) => item.id)
   )
 
-  // 챗봇 모델 변경 핸들러
-  const handleModelChange = (model: string) => {
-    setChatbotModel(model)
-    StorageService.setItem('statPlatform_chatbotModel', model)
-  }
-
-  // Vector DB 변경 핸들러
-  const handleDbChange = (db: string) => {
-    setVectorDb(db)
-    StorageService.setItem('statPlatform_vectorDb', db)
-  }
-
   // 최근 사용 목록 초기화 핸들러
   const handleClearRecent = () => {
     clearRecentStatistics()
     setRecentCount(0)
-  }
-
-  // RAG 설정 변경 핸들러
-  const handleOllamaEndpointChange = (value: string) => {
-    setOllamaEndpoint(value)
-    StorageService.setItem('statPlatform_ollamaEndpoint', value)
-  }
-
-  const handleEmbeddingModelChange = (value: string) => {
-    setEmbeddingModel(value)
-    StorageService.setItem('statPlatform_embeddingModel', value)
-  }
-
-  const handleInferenceModelChange = (value: string) => {
-    setInferenceModel(value)
-    StorageService.setItem('statPlatform_inferenceModel', value)
-  }
-
-  const handleTopKChange = (value: number[]) => {
-    const newValue = value[0]
-    setTopK(newValue)
-    StorageService.setItem('statPlatform_topK', String(newValue))
   }
 
   // 알림 설정 변경 핸들러
@@ -167,14 +83,10 @@ export default function SettingsPage() {
 
       {/* 탭 기반 설정 UI */}
       <Tabs defaultValue="appearance" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="appearance">
             <Palette className="h-4 w-4 mr-2" />
             외관 및 알림
-          </TabsTrigger>
-          <TabsTrigger value="rag">
-            <Bot className="h-4 w-4 mr-2" />
-            AI 챗봇 (RAG)
           </TabsTrigger>
           <TabsTrigger value="data">
             <HardDrive className="h-4 w-4 mr-2" />
@@ -279,180 +191,6 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* RAG 설정 */}
-        <TabsContent value="rag" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Ollama 엔드포인트</CardTitle>
-              <CardDescription>
-                로컬 또는 원격 Ollama 서버 주소를 설정하세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-3">
-                <Label htmlFor="ollama-endpoint">Ollama 서버 주소</Label>
-                <Input
-                  id="ollama-endpoint"
-                  type="url"
-                  value={ollamaEndpoint}
-                  onChange={(e) => handleOllamaEndpointChange(e.target.value)}
-                  placeholder="http://localhost:11434"
-                />
-                <p className="text-sm text-muted-foreground">
-                  기본값: <code className="bg-muted px-1 py-0.5 rounded">http://localhost:11434</code>
-                </p>
-              </div>
-
-              <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
-                <p className="text-sm">
-                  <strong>참고:</strong> Ollama 서버가 실행 중이어야 RAG 챗봇을 사용할 수 있습니다.
-                  <a
-                    href="https://ollama.com/download"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline ml-1"
-                  >
-                    Ollama 다운로드
-                  </a>
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>AI 분석 방법 추천</CardTitle>
-              <CardDescription>
-                Smart Flow에서 통계 분석 방법 추천 시 Ollama LLM 사용 여부를 설정하세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="space-y-1">
-                  <Label htmlFor="ollama-recommendation" className="text-base font-medium">
-                    Ollama LLM 추천 사용
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    {useOllamaForRecommendation
-                      ? 'Ollama LLM으로 분석 방법을 추천합니다 (더 정확하지만 느림)'
-                      : 'DecisionTree로 분석 방법을 추천합니다 (빠르고 안정적)'}
-                  </p>
-                </div>
-                <Switch
-                  id="ollama-recommendation"
-                  checked={useOllamaForRecommendation}
-                  onCheckedChange={setUseOllamaForRecommendation}
-                />
-              </div>
-
-              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p className="text-sm">
-                  <strong>비교:</strong><br />
-                  • <strong>DecisionTree (기본)</strong>: 빠르고 안정적, 85-89% 정확도<br />
-                  • <strong>Ollama LLM</strong>: 더 정확하지만 Ollama 서버 필요, 95% 정확도
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>임베딩 모델</CardTitle>
-              <CardDescription>
-                문서 검색에 사용할 임베딩 모델을 선택하세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-3">
-                <Label htmlFor="embedding-model">임베딩 모델</Label>
-                <Select value={embeddingModel} onValueChange={handleEmbeddingModelChange}>
-                  <SelectTrigger id="embedding-model">
-                    <SelectValue placeholder="모델 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="nomic-embed-text">nomic-embed-text (274MB, 추천)</SelectItem>
-                    <SelectItem value="mxbai-embed-large">mxbai-embed-large (669MB)</SelectItem>
-                    <SelectItem value="ZimaBlueAI/Qwen3-Embedding-0.6B:f16">Qwen3-Embedding (1.2GB, 더 정확)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground">
-                  현재 모델: <strong>{embeddingModel}</strong>
-                </p>
-              </div>
-
-              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p className="text-sm">
-                  <strong>모델 설치:</strong> <code className="bg-muted px-1 py-0.5 rounded">ollama pull {embeddingModel}</code>
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>추론 모델 (채팅)</CardTitle>
-              <CardDescription>
-                챗봇 응답 생성에 사용할 LLM 모델을 선택하세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-3">
-                <Label htmlFor="inference-model">추론 모델</Label>
-                <Select value={inferenceModel} onValueChange={handleInferenceModelChange}>
-                  <SelectTrigger id="inference-model">
-                    <SelectValue placeholder="모델 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="qwen3:4b-q4_K_M">Qwen3 4B (2.6GB, 한국어 우수, 추천)</SelectItem>
-                    <SelectItem value="deepseek-r1:7b">DeepSeek R1 7B (4.7GB, 추론 능력 우수)</SelectItem>
-                    <SelectItem value="exaone-deep">EXAONE Deep (4.8GB, 한국어 특화)</SelectItem>
-                    <SelectItem value="llama3.2">Llama 3.2 (2GB)</SelectItem>
-                    <SelectItem value="gemma">Gemma (1.7GB)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground">
-                  현재 모델: <strong>{inferenceModel}</strong>
-                </p>
-              </div>
-
-              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p className="text-sm">
-                  <strong>모델 설치:</strong> <code className="bg-muted px-1 py-0.5 rounded">ollama pull {inferenceModel}</code>
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>검색 설정</CardTitle>
-              <CardDescription>
-                RAG 시스템의 검색 결과 개수를 조절하세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="top-k">Top-K 검색 결과 수</Label>
-                  <span className="text-sm font-medium">{topK}개</span>
-                </div>
-                <Slider
-                  id="top-k"
-                  min={1}
-                  max={10}
-                  step={1}
-                  value={[topK]}
-                  onValueChange={handleTopKChange}
-                  className="w-full"
-                />
-                <p className="text-sm text-muted-foreground">
-                  검색 결과가 많을수록 더 많은 문맥을 참고하지만, 응답 시간이 길어질 수 있습니다.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         {/* 데이터 설정 */}
         <TabsContent value="data" className="space-y-4">
           <Card>
@@ -509,32 +247,6 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Vector 데이터베이스</CardTitle>
-              <CardDescription>
-                RAG 시스템에서 사용하는 Vector DB 정보
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-3">
-                <Label>현재 사용 중인 Vector DB</Label>
-                <div className="p-4 border rounded-lg bg-muted">
-                  <p className="text-sm font-medium">로컬 파일 시스템 (IndexedDB)</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    브라우저 내장 IndexedDB를 사용하여 벡터 임베딩을 저장합니다
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
-                <p className="text-sm">
-                  <strong>참고:</strong> 웹 플랫폼이므로 Vector DB는 브라우저 IndexedDB를 사용합니다.
-                  외부 Vector DB(ChromaDB, FAISS 등)는 데스크탑 앱 버전에서 지원됩니다.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         {/* 즐겨찾기 관리 */}
