@@ -7,7 +7,9 @@ import ReactMarkdown from 'react-markdown'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import { CollapsibleSection } from '@/components/analysis/common'
+import { proseBase } from '@/components/common/card-styles'
 import type { TerminologyDictionary } from '@/lib/terminology/terminology-types'
 
 interface ParsedInterpretation {
@@ -90,7 +92,7 @@ export function AiInterpretationCard({
                 </div>
               </CardHeader>
               <CardContent className="pt-2 pb-4 px-4 space-y-2">
-                <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
+                <div className={cn(proseBase, 'text-sm leading-relaxed')}>
                   <ReactMarkdown>{parsedInterpretation.summary}</ReactMarkdown>
                   {isInterpreting && (
                     <span className="inline-block w-1.5 h-4 bg-violet-500 animate-pulse ml-0.5 align-text-bottom" />
@@ -104,7 +106,7 @@ export function AiInterpretationCard({
                     contentClassName="pt-2"
                     icon={<Sparkles className="h-3.5 w-3.5 text-violet-400" />}
                   >
-                    <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed border-t border-border/10 pt-3">
+                    <div className={cn(proseBase, 'text-sm leading-relaxed border-t border-border/10 pt-3')}>
                       <ReactMarkdown>{parsedInterpretation.detail}</ReactMarkdown>
                     </div>
                   </CollapsibleSection>

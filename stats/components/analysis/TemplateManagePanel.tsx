@@ -61,6 +61,7 @@ import {
 import { useTerminology } from '@/hooks/use-terminology'
 import { useTemplateStore } from '@/lib/stores/template-store'
 import type { AnalysisTemplate, TemplateListOptions } from '@/types/analysis'
+import { listItemBase } from '@/components/common/card-styles'
 
 interface TemplateManagePanelProps {
   /** 패널 열림 상태 */
@@ -267,7 +268,7 @@ export const TemplateManagePanel = memo(function TemplateManagePanel({
                   {templates.map(template => (
                     <div
                       key={template.id}
-                      className="group p-4 rounded-lg border hover:border-primary/50 hover:bg-muted/30 cursor-pointer transition-colors"
+                      className={`${listItemBase} p-4`}
                       onClick={() => handleSelect(template)}
                     >
                       <div className="flex items-start justify-between gap-3">

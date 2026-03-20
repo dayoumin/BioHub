@@ -65,8 +65,9 @@ function getDependentVarCol(mapping: VariableMapping | null): string | undefined
 }
 
 /** 한글 포함 여부 */
+const KOREAN_RE = /[\uAC00-\uD7A3]/
 function hasKorean(s: string): boolean {
-  return /[\uAC00-\uD7A3]/.test(s)
+  return KOREAN_RE.test(s)
 }
 
 // ── 컴포넌트 ──────────────────────────────────────────────────

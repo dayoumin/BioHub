@@ -35,6 +35,8 @@ const nextConfig: NextConfig = {
       'recharts',
       'framer-motion',
       'date-fns',
+      'echarts',
+      'docx',
     ]
   },
   eslint: {

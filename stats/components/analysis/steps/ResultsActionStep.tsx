@@ -54,7 +54,11 @@ import type { KaplanMeierAnalysisResult, RocCurveAnalysisResult } from '@/lib/ge
 import { generatePaperDraft } from '@/lib/services/paper-draft'
 import type { PaperDraft, DiscussionState, DraftContext } from '@/lib/services/paper-draft'
 import { DraftContextEditor } from './DraftContextEditor'
-import { PaperDraftPanel } from './PaperDraftPanel'
+import dynamic from 'next/dynamic'
+
+const PaperDraftPanel = dynamic(() => import('./PaperDraftPanel').then(m => ({ default: m.PaperDraftPanel })), {
+  ssr: false,
+})
 
 interface ResultsActionStepProps {
   results: AnalysisResult | null

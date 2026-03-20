@@ -446,3 +446,78 @@ export function hasPostHoc<T extends { postHoc?: PostHocComparison[] }>(
 ): result is T & { postHoc: PostHocComparison[] } {
   return Array.isArray(result.postHoc) && result.postHoc.length > 0
 }
+
+// ============================================================================
+// UI Presentation Type (StatisticalResultCard용)
+// ============================================================================
+
+/**
+ * 통계 결과 카드 표시용 통합 타입
+ *
+ * AnalysisResult → StatisticalResult 변환은 result-converter.ts에서 처리.
+ * 원래 StatisticalResultCard.tsx에 정의되어 있었으나, 서비스/내보내기 계층에서도
+ * 사용하므로 types/로 이동.
+ */
+export interface StatisticalResult {
+  // 기본 정보
+  testName: string
+  testType?: string
+  description?: string
+
+  // 주요 통계량
+  statistic: number
+  statisticName?: string // 't', 'F', 'χ²' 등
+  df?: number | number[]
+  pValue: number
+  alpha?: number
+
+  // 효과크기
+  effectSize?: {
+    value: number
+    type?: 'cohensD' | 'hedgesG' | 'glassDelta' | 'etaSquared' | 'partialEtaSquared' | 'omegaSquared' | 'epsilonSquared' | 'r' | 'phi' | 'cramersV' | 'rSquared' | 'w'
+    ci?: [number, number]
+  }
+
+  // 신뢰구간
+  confidenceInterval?: {
+    estimate: number
+    lower: number
+    upper: number
+    level?: number
+  }
+
+  // 가정 검정
+  assumptions?: Array<{
+    name: string
+    description?: string
+    testStatistic?: number
+    pValue: number | null
+    passed: boolean | null
+    recommendation?: string
+    severity?: 'low' | 'medium' | 'high'
+  }>
+
+  // 추가 결과 테이블 (배열 지원 - 여러 테이블 표시)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 레거시 호환: 다양한 테이블 구조 수용
+  additionalResults?: Array<{
+    title: string
+    columns: any[]  // eslint-disable-line @typescript-eslint/no-explicit-any
+    data: any[]  // eslint-disable-line @typescript-eslint/no-explicit-any
+  }>
+
+  // 해석 및 권장사항
+  interpretation?: string
+  recommendations?: string[]
+  warnings?: string[]
+  alternatives?: Array<{
+    name: string
+    reason: string
+    action?: () => void
+  }>
+
+  // 메타데이터
+  sampleSize?: number
+  groups?: number
+  variables?: string[]
+  timestamp?: Date
+}

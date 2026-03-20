@@ -160,7 +160,7 @@ function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry }: Mess
         className="flex justify-end gap-2 px-1"
       >
         <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-[85%]">
-          <p className="text-sm whitespace-pre-wrap">{content}</p>
+          <p className="text-sm whitespace-pre-wrap leading-relaxed">{content}</p>
         </div>
         <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
           <User className="w-4 h-4 text-primary" />
@@ -196,7 +196,7 @@ function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry }: Mess
               오류 발생
             </div>
           )}
-          <p className="text-sm whitespace-pre-wrap">{content}</p>
+          <p className="text-sm whitespace-pre-wrap leading-relaxed">{content}</p>
 
           {/* 에러 재시도 버튼 */}
           {isError && onRetry && (

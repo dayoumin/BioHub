@@ -39,6 +39,8 @@ export function DataContextBadge({ onClear }: DataContextBadgeProps) {
         {/* 파일 정보 (클릭으로 확장) */}
         <button
           onClick={toggleExpand}
+          aria-expanded={isExpanded}
+          aria-label="데이터 상세정보 펼치기"
           className="flex items-center gap-1 text-foreground hover:text-primary transition-colors min-w-0"
         >
           <span className="truncate font-medium">{dataContext.fileName}</span>

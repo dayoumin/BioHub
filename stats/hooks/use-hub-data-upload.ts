@@ -19,6 +19,7 @@ import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useHubChatStore } from '@/lib/stores/hub-chat-store'
 import { DataValidationService } from '@/lib/services/data-validation-service'
 import { enrichWithNormality } from '@/lib/services/normality-enrichment-service'
+import { raceWithTimeout } from '@/lib/utils/promise-utils'
 import { findCriticalParseError, parseWarningMessage } from '@/lib/utils/csv-parse-errors'
 import type { DataRow, ColumnStatistics } from '@/types/analysis'
 
@@ -112,7 +113,11 @@ export function useHubDataUpload(): UseHubDataUploadReturn {
         // 5. 비동기 정규성 검정 (fire-and-forget)
         if (validation.columnStats?.length) {
           const capturedNonce = useAnalysisStore.getState().uploadNonce
-          enrichWithNormality(validation.columnStats, data)
+          raceWithTimeout(
+              enrichWithNormality(validation.columnStats, data),
+              15_000,
+              'Normality enrichment timed out'
+            )
             .then(({ enrichedColumns, testedCount }) => {
               // token 가드: 더 최신 파일 업로드가 시작됐으면 무시
               if (token !== uploadTokenRef.current) return

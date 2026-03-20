@@ -23,6 +23,7 @@ import { useTerminology } from '@/hooks/use-terminology'
 import { useTemplateStore } from '@/lib/stores/template-store'
 import type { AnalysisTemplate } from '@/types/analysis'
 import { cn } from '@/lib/utils'
+import { listItemBase } from '@/components/common/card-styles'
 
 interface TemplateSelectorProps {
   /** 템플릿 선택 시 콜백 */
@@ -175,7 +176,7 @@ export const TemplateSelector = memo(function TemplateSelector({
               displayTemplates.map(template => (
                 <div
                   key={template.id}
-                  className="group flex items-center gap-3 p-3 rounded-lg border hover:border-primary/50 hover:bg-muted/30 cursor-pointer transition-colors"
+                  className={cn(listItemBase, 'flex items-center gap-3')}
                   onClick={() => handleSelect(template)}
                 >
                   {/* 아이콘 */}
