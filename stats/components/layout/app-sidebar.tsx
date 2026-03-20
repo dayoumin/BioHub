@@ -8,7 +8,8 @@ import {
   AreaChart,
   Dna,
   BookOpen,
-  Microscope,
+  BookCheck,
+  ExternalLink,
   Settings,
   PanelLeft,
   Star,
@@ -36,20 +37,15 @@ type NavItem = {
   prefix?: string
   disabled?: boolean
   badge?: string
+  external?: boolean
 }
 
 const NAV_ITEMS: NavItem[] = [
   { href: '/', label: '홈', icon: Home },
   { href: '/graph-studio', label: 'Graph Studio', icon: AreaChart, prefix: '/graph-studio' },
-  { href: '/bio-tools', label: 'Bio-Tools', icon: Dna, disabled: true, badge: '예정' },
+  { href: '/bio-tools', label: 'Bio-Tools', icon: Dna, prefix: '/bio-tools' },
   { href: '/papers', label: '결과 정리', icon: BookOpen, prefix: '/papers', badge: 'NEW' },
-  {
-    href: '/species-validation',
-    label: '학명 유효성 검증',
-    icon: Microscope,
-    disabled: true,
-    badge: '준비 중',
-  },
+  { href: 'https://species-checker.vercel.app', label: '학명 검증', icon: BookCheck, external: true },
 ]
 
 const APP_TITLE = process.env.NEXT_PUBLIC_APP_TITLE ?? 'BioHub'
@@ -177,6 +173,9 @@ export function AppSidebar() {
                 <span className={cn("text-sm whitespace-nowrap overflow-hidden truncate", textClass(expanded))}>
                   {item.label}
                 </span>
+                {item.external && expanded && (
+                  <ExternalLink className="ml-auto w-3 h-3 flex-shrink-0 text-muted-foreground/50" />
+                )}
                 {item.badge && expanded && (
                   <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-muted/50 text-muted-foreground/60 font-medium flex-shrink-0">
                     {item.badge}
@@ -185,13 +184,28 @@ export function AppSidebar() {
               </>
             )
 
-            const tooltipLabel = item.badge ? `${item.label} (${item.badge})` : item.label
+            const tooltipLabel = item.external
+              ? `${item.label} (외부 링크)`
+              : item.badge ? `${item.label} (${item.badge})` : item.label
 
             if (item.disabled) {
               return (
                 <TooltipRoot key={item.href}>
                   <TooltipTrigger asChild>
                     <div className={itemClass}>{inner}</div>
+                  </TooltipTrigger>
+                  {!expanded && <TooltipContent side="right">{tooltipLabel}</TooltipContent>}
+                </TooltipRoot>
+              )
+            }
+
+            if (item.external) {
+              return (
+                <TooltipRoot key={item.href}>
+                  <TooltipTrigger asChild>
+                    <a href={item.href} target="_blank" rel="noopener noreferrer" className={itemClass}>
+                      {inner}
+                    </a>
                   </TooltipTrigger>
                   {!expanded && <TooltipContent side="right">{tooltipLabel}</TooltipContent>}
                 </TooltipRoot>

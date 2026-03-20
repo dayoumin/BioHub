@@ -7,7 +7,7 @@
 **전문가급 통계 분석 플랫폼** (PC웹 + 데스크탑 앱)
 - **기술**: Next.js 15 + TypeScript + shadcn/ui + Pyodide + Tauri
 - **통계 분석**: Analysis (43개 분석 메서드 + 4개 데이터 도구) — 유일한 진입점
-- **Bio-Tools**: 12개 생물학 분석 (5페이지) — 별도 섹션 예정
+- **Bio-Tools**: 16개 생물학 도구 (4카테고리) — 별도 섹션, 계획 확정
 - **데이터 도구**: 2개
 
 ## 아키텍처 결정 (CRITICAL)
@@ -26,6 +26,20 @@
 6. **`ollama-*` 파일 삭제 금지**: Tauri 데스크탑 로컬 LLM 예정 (`lib/services/ollama-*.ts`, `lib/rag/*/ollama-*.ts`). 웹에서는 `useOllamaForRecommendation: false`로 비활성화.
 
 상세: [STATISTICS_CODING_STANDARDS.md](stats/docs/STATISTICS_CODING_STANDARDS.md)
+
+## Bio-Tools 코딩 규칙
+
+- **아키텍처**: [PLAN-BIO-TOOLS-ARCHITECTURE.md](stats/docs/PLAN-BIO-TOOLS-ARCHITECTURE.md) 참조
+- **레지스트리 필수**: 도구 추가/수정 시 `lib/bio-tools/bio-tool-registry.ts`만 수정
+- **공통 훅**: `useBioToolAnalysis<T>()` 사용 (CSV 업로드 → Pyodide 분석 → 결과 상태)
+- **디자인 토큰 필수** (`components/bio-tools/bio-styles.ts`):
+  - 섹션 accent: `BIO_HEADER_BORDER`, `BIO_BG_TINT`, `BIO_ICON_BG`, `BIO_ICON_COLOR`
+  - 유의성 배지: `SIGNIFICANCE_BADGE.significant/nonSignificant` (하드코딩 green/gray 금지)
+  - 테이블 셀: `BIO_TABLE.headerCell/bodyCell` (하드코딩 `px-3 py-2` 금지)
+  - 뱃지: `BADGE_BIO_STYLE`
+- **차트 색상**: `BIO_CHART_COLORS` (`lib/bio-tools/bio-chart-colors.ts`) — 페이지별 색상 배열 금지
+- **공통 컴포넌트**: `BioToolShell` (페이지 래퍼), `BioCsvUpload` (CSV 업로드), `BioToolCard` (허브 카드)
+- **Worker**: `PyodideWorker.Ecology` (7번) — Python 반환 키 camelCase 필수
 
 ## TypeScript (CRITICAL)
 

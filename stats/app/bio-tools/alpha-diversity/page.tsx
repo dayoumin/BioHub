@@ -1,0 +1,155 @@
+'use client'
+
+import { useCallback } from 'react'
+import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
+import { BioToolShell } from '@/components/bio-tools/BioToolShell'
+import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
+import { Button } from '@/components/ui/button'
+import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
+import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
+
+interface SiteResult {
+  siteName: string
+  speciesRichness: number
+  totalAbundance: number
+  shannonH: number
+  simpsonDominance: number
+  simpsonDiversity: number
+  simpsonReciprocal: number
+  margalef: number
+  pielou: number
+}
+
+interface SummaryRow {
+  index: string
+  mean: number
+  sd: number
+  min: number
+  max: number
+}
+
+interface AlphaDiversityResult {
+  siteResults: SiteResult[]
+  summaryTable: SummaryRow[]
+  speciesNames: string[]
+  siteCount: number
+}
+
+const INDEX_LABELS: Record<string, string> = {
+  shannonH: "Shannon H'",
+  simpsonDiversity: 'Simpson 1-D',
+  simpsonReciprocal: 'Simpson 1/D',
+  margalef: 'Margalef d',
+  pielou: "Pielou J'",
+}
+
+const tool = getBioToolById('alpha-diversity')
+
+export default function AlphaDiversityPage(): React.ReactElement {
+  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, runAnalysis } =
+    useBioToolAnalysis<AlphaDiversityResult>()
+
+  const handleAnalyze = useCallback(() => {
+    if (!csvData) return
+    runAnalysis('alpha_diversity', { rows: csvData.rows, site_col: siteCol })
+  }, [csvData, siteCol, runAnalysis])
+
+  if (!tool) return <div>도구를 찾을 수 없습니다</div>
+
+  return (
+    <BioToolShell tool={tool}>
+      <div className="space-y-6">
+        <BioCsvUpload
+          onDataLoaded={handleDataLoaded}
+          description="종×지점 행렬 CSV (행=지점, 열=종, 첫 열=지점명)"
+        />
+
+        {csvData && (
+          <div className="flex items-center gap-4">
+            <label className="text-sm text-muted-foreground">지점명 열:</label>
+            <select
+              value={siteCol}
+              onChange={(e) => setSiteCol(e.target.value)}
+              className="text-sm border rounded-md px-2 py-1 bg-background"
+            >
+              {csvData.headers.map((h) => (
+                <option key={h} value={h}>{h}</option>
+              ))}
+            </select>
+            <Button onClick={handleAnalyze} disabled={isAnalyzing} size="sm">
+              {isAnalyzing ? '분석 중...' : '분석 실행'}
+            </Button>
+          </div>
+        )}
+
+        {error && <p className="text-sm text-destructive">{error}</p>}
+
+        {results && (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-sm font-semibold mb-2">지점별 다양성 지수</h3>
+              <div className="overflow-auto border rounded-lg">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/30">
+                      <th className={`text-left ${BIO_TABLE.headerCell}`}>지점</th>
+                      <th className={`text-right ${BIO_TABLE.headerCell}`}>종수 (S)</th>
+                      <th className={`text-right ${BIO_TABLE.headerCell}`}>개체수 (N)</th>
+                      <th className={`text-right ${BIO_TABLE.headerCell}`}>Shannon H&apos;</th>
+                      <th className={`text-right ${BIO_TABLE.headerCell}`}>Simpson 1-D</th>
+                      <th className={`text-right ${BIO_TABLE.headerCell}`}>Margalef d</th>
+                      <th className={`text-right ${BIO_TABLE.headerCell}`}>Pielou J&apos;</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {results.siteResults.map((r) => (
+                      <tr key={r.siteName} className="border-b last:border-b-0">
+                        <td className={`${BIO_TABLE.bodyCell} font-medium`}>{r.siteName}</td>
+                        <td className={`text-right ${BIO_TABLE.bodyCell}`}>{r.speciesRichness}</td>
+                        <td className={`text-right ${BIO_TABLE.bodyCell}`}>{r.totalAbundance}</td>
+                        <td className={`text-right ${BIO_TABLE.bodyCell}`}>{r.shannonH}</td>
+                        <td className={`text-right ${BIO_TABLE.bodyCell}`}>{r.simpsonDiversity}</td>
+                        <td className={`text-right ${BIO_TABLE.bodyCell}`}>{r.margalef}</td>
+                        <td className={`text-right ${BIO_TABLE.bodyCell}`}>{r.pielou}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {results.summaryTable.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold mb-2">요약 통계</h3>
+                <div className="overflow-auto border rounded-lg">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/30">
+                        <th className={`text-left ${BIO_TABLE.headerCell}`}>지수</th>
+                        <th className={`text-right ${BIO_TABLE.headerCell}`}>평균</th>
+                        <th className={`text-right ${BIO_TABLE.headerCell}`}>표준편차</th>
+                        <th className={`text-right ${BIO_TABLE.headerCell}`}>최소</th>
+                        <th className={`text-right ${BIO_TABLE.headerCell}`}>최대</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {results.summaryTable.map((s) => (
+                        <tr key={s.index} className="border-b last:border-b-0">
+                          <td className={`${BIO_TABLE.bodyCell} font-medium`}>{INDEX_LABELS[s.index] ?? s.index}</td>
+                          <td className={`text-right ${BIO_TABLE.bodyCell}`}>{s.mean}</td>
+                          <td className={`text-right ${BIO_TABLE.bodyCell}`}>{s.sd}</td>
+                          <td className={`text-right ${BIO_TABLE.bodyCell}`}>{s.min}</td>
+                          <td className={`text-right ${BIO_TABLE.bodyCell}`}>{s.max}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </BioToolShell>
+  )
+}

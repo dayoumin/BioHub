@@ -1,6 +1,6 @@
 # 프로젝트 현황 + 할일
 
-**최종 업데이트**: 2026-03-18 (Chat-First 허브 + 기술 부채)
+**최종 업데이트**: 2026-03-20 (Bio-Tools 계획 확정)
 
 ---
 
@@ -12,7 +12,7 @@
 **아키텍처 결정 (2026-02-13)**:
 - **Smart Flow** = 통계 분석의 유일한 진입점 (홈 `/`)
 - **개별 `/statistics/*` 43개 페이지** = 레거시 (코드 유지, 신규 개발 안 함)
-- **Bio-Tools** = `/bio-tools/` 별도 섹션 (12개 분석, 5페이지, 예정)
+- **Bio-Tools** = `/bio-tools/` 별도 섹션 (16개 도구, 4카테고리, 계획 확정)
 
 | 항목 | 현황 |
 |------|------|
@@ -25,7 +25,7 @@
 | **Methods Registry** | 64개 메서드 (4 Workers) ✅ |
 | **E2E 테스트** | 5단계 피라미드 · **60/64 통과** ✅ · 스킵 4 (미구현) · 실패 0 |
 | **LLM 추천/해석** | Phase 1-3 완료 ✅ |
-| **Bio-Tools** | 계획 수립 완료, 구현 예정 🔜 |
+| **Bio-Tools** | S1 공통 인프라 ✅ + S4 군집생태 6개 도구 ✅ (Alpha/Rarefaction/Beta/NMDS/PERMANOVA/Mantel) |
 
 ---
 
@@ -540,7 +540,7 @@
 |------|------|------|--------|
 | — | ~~섹션별 UX 아이덴티티 전체 완료~~ | S1~S5 모두 구현 | — |
 | — | **논문 초안 생성** | 분석 결과 → Methods/Results/Caption/Discussion 학술 텍스트 자동 생성 (신규 기능, 후순위) | [계획서](stats/docs/PLAN-PAPER-DRAFT-GENERATION.md) |
-| — | **Phase 15-1: Bio-Tools** | 12개 생물학 분석, `/bio-tools/` 5페이지 구현 (신규 기능, 후순위) | [상세](study/PLAN-BIO-STATISTICS-AUDIT.md) |
+| — | **Bio-Tools (16개 도구)** | 4카테고리(군집생태6·수산학3·유전학3·방법론4), S1 공통 인프라 → S2 Barcoding(첫 도구) → S3~S6 나머지 | [아키텍처](stats/docs/PLAN-BIO-TOOLS-ARCHITECTURE.md) · [Barcoding](stats/docs/PLAN-NCBI-BARCODING.md) |
 | — | **Pyodide 메모리 최적화 (2차)** | Graph Studio 안정화 후 진행 | [계획서](stats/docs/PLAN-PYODIDE-LAZY-LOADING.md) |
 
 ### ✅ 완료 목록
@@ -943,7 +943,7 @@ S1 X축 라벨 45도 회전 | S2 IEEE 스타일 전환 | S3 에러바 추가 | S
 **상세 계획서**: [`study/PLAN-SOCIAL-SCIENCE-DOMAIN.md`](study/PLAN-SOCIAL-SCIENCE-DOMAIN.md) (2026-03-13)
 
 기존 51개 메서드의 80%+가 사회과학에서도 핵심적으로 사용됨.
-Bio-Tools(12개 전부 신규)와 달리 **용어 도메인 추가만으로 즉시 확장 가능**.
+Bio-Tools(16개 전부 신규)와 달리 **용어 도메인 추가만으로 즉시 확장 가능**.
 
 | Phase | 내용 | 공수 | 비고 |
 |-------|------|------|------|
