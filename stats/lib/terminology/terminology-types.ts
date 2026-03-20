@@ -510,10 +510,12 @@ export interface HubText {
     sampleSize: string
     visualization: string
     bioTools: string
+    resultsSummary: string
     /** 카드 우하단 도착지 뱃지 */
     badges: {
       analysis: string  // "통계 분석" / "Analysis"
       tool: string      // "도구" / "Tool"
+      resultsSummary: string  // "NEW"
     }
   }
   /** 실험 설계 미구현 안내 메시지 */

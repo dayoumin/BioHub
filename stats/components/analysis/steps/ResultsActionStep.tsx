@@ -759,7 +759,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 data-testid="paper-draft-btn"
               >
                 <BookOpen className="w-3.5 h-3.5 mr-1" />
-                {paperDraft ? '초안 보기' : '논문 초안'}
+                {paperDraft ? '정리 보기' : '결과 정리'}
               </Button>
               <div className="w-px h-4 bg-border/50" />
               <DropdownMenu>
@@ -907,7 +907,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         <Sheet open={paperDraftOpen} onOpenChange={setPaperDraftOpen}>
           <SheetContent side="right" className="w-[560px] max-w-[90vw] p-0 flex flex-col gap-0">
             <SheetHeader className="px-4 py-3 border-b shrink-0">
-              <SheetTitle className="text-sm font-semibold">논문 초안</SheetTitle>
+              <SheetTitle className="text-sm font-semibold">결과 정리</SheetTitle>
             </SheetHeader>
             {paperDraft && (
               <div className="flex-1 min-h-0 overflow-hidden">

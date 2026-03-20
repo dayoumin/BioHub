@@ -480,9 +480,11 @@ export const aquaculture: TerminologyDictionary = {
       sampleSize: '표본 크기 계산',
       visualization: '데이터 시각화',
       bioTools: 'Bio-Tools',
+      resultsSummary: '결과 정리',
       badges: {
         analysis: '통계 분석',
         tool: '도구',
+        resultsSummary: 'NEW',
       },
     },
     experimentNotReady: '실험 설계 기능은 준비 중입니다. 데이터 상담으로 안내해 드릴게요.',

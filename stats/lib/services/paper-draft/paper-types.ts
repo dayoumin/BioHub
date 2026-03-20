@@ -28,12 +28,22 @@ export interface CaptionItem {
   text: string   // 캡션 본문
 }
 
+/** 통계 결과 표 */
+export interface PaperTable {
+  id: 'descriptive' | 'test-result' | 'post-hoc'
+  title: string          // '표 1. 기술통계량' 등
+  htmlContent: string    // 렌더링용 HTML 테이블
+  plainText: string      // 복사용 탭 구분 텍스트
+}
+
 /** 각 섹션은 null 가능 — 부분 생성 + 스트리밍 중간 상태 표현 */
 export interface PaperDraft {
   methods: string | null
   results: string | null
   captions: CaptionItem[] | null
   discussion: string | null
+  tables?: PaperTable[]           // 통계 결과 표 (기술통계, 검정결과, 사후검정)
+  chartImageUrl?: string          // 분석 차트 이미지 (data URL)
   language: 'ko' | 'en'
   postHocDisplay: 'significant-only' | 'all'  // 복원 후 재생성 시 옵션 유지
   generatedAt: string

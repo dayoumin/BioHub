@@ -479,9 +479,11 @@ export const generic: TerminologyDictionary = {
       sampleSize: 'Sample Size Calc',
       visualization: 'Visualization',
       bioTools: 'Bio-Tools',
+      resultsSummary: 'Results Summary',
       badges: {
         analysis: 'Analysis',
         tool: 'Tool',
+        resultsSummary: 'NEW',
       },
     },
     experimentNotReady: 'Experiment design is coming soon. Redirecting to data consultation.',

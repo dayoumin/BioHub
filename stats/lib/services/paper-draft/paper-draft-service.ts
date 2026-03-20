@@ -14,6 +14,7 @@ import type {
   PaperDraftOptions,
   DraftContext,
 } from './paper-types'
+import { generatePaperTables } from './paper-tables'
 
 /**
  * 논문 초안 생성 (Methods + Results + Captions 즉시 생성, Discussion = null)
@@ -33,6 +34,14 @@ export function generatePaperDraft(
   const lang = options.language
   const generatedAt = new Date().toISOString()
 
+  // 통계 결과 표 생성 (한글/영문 모두)
+  const tables = generatePaperTables(
+    r,
+    draftCtx,
+    lang,
+    options.postHocDisplay ?? 'significant-only',
+  )
+
   // 영문 전용 stub (Phase A는 한글 완성도에 집중)
   if (lang === 'en') {
     return {
@@ -40,6 +49,7 @@ export function generatePaperDraft(
       results: 'English template coming soon.',
       captions: null,
       discussion: null,
+      tables,
       language: lang,
       postHocDisplay: options.postHocDisplay ?? 'significant-only',
       generatedAt,
@@ -63,6 +73,7 @@ export function generatePaperDraft(
     results: template.results(input),
     captions: template.captions(input),
     discussion: null,  // Phase B: LLM 생성
+    tables,
     language: lang,
     postHocDisplay: options.postHocDisplay ?? 'significant-only',
     generatedAt,

@@ -4,10 +4,11 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Check, Copy, Loader2, X, Sparkles, RefreshCw } from 'lucide-react'
+import { Check, Copy, Loader2, X, Sparkles, RefreshCw, Download, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { PaperDraft, DiscussionState } from '@/lib/services/paper-draft/paper-types'
+import type { PaperDraft, PaperTable, DiscussionState } from '@/lib/services/paper-draft/paper-types'
 import { LangToggle } from '@/components/common/LangToggle'
+import { toast } from 'sonner'
 
 // ── 타입 ─────────────────────────────────────────────────────
 
@@ -22,9 +23,11 @@ interface PaperDraftPanelProps {
 // ── 섹션 정의 ─────────────────────────────────────────────────
 
 const SECTIONS = [
-  { id: 'methods',    label: 'Methods'    },
-  { id: 'results',    label: 'Results'    },
-  { id: 'captions',   label: 'Captions'  },
+  { id: 'tables',     label: '통계표' },
+  { id: 'chart',      label: '그래프' },
+  { id: 'methods',    label: 'Methods' },
+  { id: 'results',    label: 'Results' },
+  { id: 'captions',   label: 'Captions' },
   { id: 'discussion', label: 'Discussion' },
 ] as const
 
@@ -56,22 +59,56 @@ async function copyRichText(text: string): Promise<void> {
   }
 }
 
+async function copyHtmlDirect(html: string, plain: string): Promise<void> {
+  try {
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([plain], { type: 'text/plain' }),
+      }),
+    ])
+  } catch {
+    await navigator.clipboard.writeText(plain)
+  }
+}
+
+// ── 파일 다운로드 헬퍼 ────────────────────────────────────────
+
+function downloadTextFile(content: string, filename: string): void {
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 // ── 복사 버튼 훅 ──────────────────────────────────────────────
 
 function useCopyState() {
   const [copied, setCopied] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const trigger = useCallback(async (text: string) => {
+  const trigger = useCallback(async (text: string, sectionName?: string) => {
     await copyRichText(text)
     setCopied(true)
+    if (sectionName) toast.success(`${sectionName} 복사됨`)
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => setCopied(false), 2000)
+  }, [])
+
+  const triggerHtml = useCallback(async (html: string, plain: string, sectionName?: string) => {
+    await copyHtmlDirect(html, plain)
+    setCopied(true)
+    if (sectionName) toast.success(`${sectionName} 복사됨`)
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => setCopied(false), 2000)
   }, [])
 
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
 
-  return { copied, trigger }
+  return { copied, trigger, triggerHtml }
 }
 
 // ── 복사 버튼 ────────────────────────────────────────────────
@@ -82,9 +119,10 @@ interface CopyButtonProps {
   label?: string
   size?: 'sm' | 'default'
   className?: string
+  sectionName?: string
 }
 
-function CopyButton({ text, 'data-testid': testId, label = '복사', size = 'sm', className }: CopyButtonProps) {
+function CopyButton({ text, 'data-testid': testId, label = '복사', size = 'sm', className, sectionName }: CopyButtonProps) {
   const { copied, trigger } = useCopyState()
 
   return (
@@ -93,7 +131,7 @@ function CopyButton({ text, 'data-testid': testId, label = '복사', size = 'sm'
       size={size}
       data-testid={testId}
       className={cn('gap-1.5 text-xs', className)}
-      onClick={() => trigger(text)}
+      onClick={() => trigger(text, sectionName)}
     >
       {copied ? (
         <><Check className="h-3.5 w-3.5 text-green-500" />복사됨</>
@@ -104,38 +142,126 @@ function CopyButton({ text, 'data-testid': testId, label = '복사', size = 'sm'
   )
 }
 
+// ── HTML 복사 버튼 (테이블용) ──────────────────────────────────
+
+interface HtmlCopyButtonProps {
+  html: string
+  plain: string
+  'data-testid': string
+  sectionName?: string
+}
+
+function HtmlCopyButton({ html, plain, 'data-testid': testId, sectionName }: HtmlCopyButtonProps) {
+  const { copied, triggerHtml } = useCopyState()
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      data-testid={testId}
+      className="gap-1.5 text-xs"
+      onClick={() => triggerHtml(html, plain, sectionName)}
+    >
+      {copied ? (
+        <><Check className="h-3.5 w-3.5 text-green-500" />복사됨</>
+      ) : (
+        <><Copy className="h-3.5 w-3.5" />복사</>
+      )}
+    </Button>
+  )
+}
+
 // ── 섹션 헤더 ────────────────────────────────────────────────
 
 interface SectionHeaderProps {
   title: string
+  badge?: string
   copyText?: string
   copyTestId: string
+  /** HTML 복사 모드 (테이블용) */
+  htmlCopy?: { html: string; plain: string }
+  onSave?: () => void
+  sectionName?: string
 }
 
-function SectionHeader({ title, copyText, copyTestId }: SectionHeaderProps) {
+function SectionHeader({ title, badge, copyText, copyTestId, htmlCopy, onSave, sectionName }: SectionHeaderProps) {
   return (
     <div className="flex items-center justify-between mb-3">
       <div className="flex items-center gap-2">
         <h3 className="text-sm font-semibold">{title}</h3>
-        <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground">
-          APA 7th
-        </Badge>
+        {badge && (
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal text-muted-foreground">
+            {badge}
+          </Badge>
+        )}
       </div>
-      {copyText ? (
-        <CopyButton text={copyText} data-testid={copyTestId} />
-      ) : null}
+      <div className="flex items-center gap-1">
+        {htmlCopy ? (
+          <HtmlCopyButton html={htmlCopy.html} plain={htmlCopy.plain} data-testid={copyTestId} sectionName={sectionName} />
+        ) : copyText ? (
+          <CopyButton text={copyText} data-testid={copyTestId} sectionName={sectionName} />
+        ) : null}
+        {onSave && (
+          <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={onSave}>
+            <Download className="h-3.5 w-3.5" />저장
+          </Button>
+        )}
+      </div>
     </div>
   )
 }
 
-// ── 본문 텍스트 ───────────────────────────────────────────────
+// ── 본문 텍스트 (워드 스타일) ─────────────────────────────────
 
 function DraftText({ text, className }: { text: string; className?: string }) {
   return (
     <p
-      className={cn('text-sm leading-relaxed whitespace-pre-wrap', className)}
+      className={cn(
+        'text-sm leading-[1.8] whitespace-pre-wrap',
+        'text-foreground/90',
+        className,
+      )}
       dangerouslySetInnerHTML={{ __html: markdownToHtml(text) }}
     />
+  )
+}
+
+// ── 통계표 렌더러 ─────────────────────────────────────────────
+
+function TableRenderer({ table }: { table: PaperTable }) {
+  return (
+    <div className="overflow-x-auto">
+      <div
+        className="[&_table]:w-full [&_th]:text-left [&_th]:font-semibold [&_th]:text-xs [&_td]:text-xs [&_caption]:text-left [&_caption]:font-semibold [&_caption]:text-xs [&_caption]:mb-2"
+        dangerouslySetInnerHTML={{ __html: table.htmlContent }}
+      />
+    </div>
+  )
+}
+
+// ── 차트 이미지 렌더러 ────────────────────────────────────────
+
+function ChartImageSection({ imageUrl }: { imageUrl: string }) {
+  const handleSave = useCallback(() => {
+    const a = document.createElement('a')
+    a.href = imageUrl
+    a.download = 'analysis-chart.png'
+    a.click()
+  }, [imageUrl])
+
+  return (
+    <div className="space-y-2">
+      <img
+        src={imageUrl}
+        alt="Analysis chart"
+        className="w-full rounded border bg-white"
+      />
+      <div className="flex gap-2">
+        <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={handleSave}>
+          <Download className="h-3.5 w-3.5" />PNG 저장
+        </Button>
+      </div>
+    </div>
   )
 }
 
@@ -148,11 +274,9 @@ export function PaperDraftPanel({
   onCancelDiscussion,
   onLanguageChange,
 }: PaperDraftPanelProps) {
-  // 사용자가 선택한 언어 (draft.language와 일치하면 로딩 완료)
   const [selectedLang, setSelectedLang] = useState<'ko' | 'en'>(draft.language)
   const isLangLoading = selectedLang !== draft.language
 
-  // draft가 새로 도착하면 selectedLang 동기화
   useEffect(() => {
     setSelectedLang(draft.language)
   }, [draft.language])
@@ -163,43 +287,65 @@ export function PaperDraftPanel({
     onLanguageChange(next)
   }, [selectedLang, onLanguageChange])
 
-  // 앵커 스크롤 — Radix ScrollArea는 네이티브 href 앵커 미동작
   const handleAnchorClick = useCallback((e: React.MouseEvent, sectionId: string) => {
     e.preventDefault()
     document.getElementById(`draft-section-${sectionId}`)?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
-  // Captions 전체 복사 텍스트
+  // 전체 복사용 텍스트
   const captionsFullText = useMemo(
     () => draft.captions?.map((c) => `${c.label}. ${c.text}`).join('\n\n') ?? '',
     [draft.captions]
   )
 
-  // 전체 복사 텍스트 — discussionState.partial 변경(streaming)으로 불필요한 재계산 방지
+  const tablesFullText = useMemo(
+    () => draft.tables?.map(t => `${t.title}\n${t.plainText}`).join('\n\n') ?? '',
+    [draft.tables]
+  )
+
+  const tablesFullHtml = useMemo(
+    () => draft.tables?.map(t => t.htmlContent).join('<br/><br/>') ?? '',
+    [draft.tables]
+  )
+
   const discussionDoneText = discussionState.status === 'done' ? discussionState.text : ''
+
   const allText = useMemo(
     () => [
-      draft.methods  ? `## Methods\n\n${draft.methods}`   : '',
-      draft.results  ? `## Results\n\n${draft.results}`   : '',
+      tablesFullText ? `## 통계표\n\n${tablesFullText}` : '',
+      draft.methods  ? `## Methods\n\n${draft.methods}` : '',
+      draft.results  ? `## Results\n\n${draft.results}` : '',
       captionsFullText ? `## Captions\n\n${captionsFullText}` : '',
       discussionDoneText ? `## Discussion\n\n${discussionDoneText}` : '',
     ].filter(Boolean).join('\n\n'),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [draft.methods, draft.results, captionsFullText, discussionDoneText]
+    [tablesFullText, draft.methods, draft.results, captionsFullText, discussionDoneText]
   )
+
+  // 전체 저장 핸들러
+  const handleSaveAll = useCallback(() => {
+    downloadTextFile(allText, `결과정리_${new Date().toISOString().slice(0, 10)}.txt`)
+    toast.success('전체 내용 저장됨')
+  }, [allText])
+
+  // 가시적 섹션 필터
+  const visibleSections = useMemo(() => {
+    return SECTIONS.filter(s => {
+      if (s.id === 'tables') return (draft.tables?.length ?? 0) > 0
+      if (s.id === 'chart') return !!draft.chartImageUrl
+      if (s.id === 'captions') return (draft.captions?.length ?? 0) > 0
+      if (s.id === 'discussion') return true
+      return !!draft[s.id as 'methods' | 'results']
+    })
+  }, [draft])
 
   return (
     <div data-testid="paper-draft-panel" className="flex flex-col h-full">
 
       {/* 상단 바: 앵커 + 언어 토글 */}
       <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30 shrink-0">
-        {/* 앵커 링크 */}
         <nav className="flex items-center gap-1 text-xs text-muted-foreground overflow-x-auto">
-          {SECTIONS.filter(s => {
-            if (s.id === 'captions') return (draft.captions?.length ?? 0) > 0
-            if (s.id === 'discussion') return true
-            return !!draft[s.id as 'methods' | 'results']
-          }).map((s, i) => (
+          {visibleSections.map((s, i) => (
             <span key={s.id} className="flex items-center gap-0.5">
               {i > 0 && <span className="text-muted-foreground/30 select-none">·</span>}
               <a
@@ -216,25 +362,77 @@ export function PaperDraftPanel({
         <LangToggle value={selectedLang} onChange={handleLangChange} loading={isLangLoading} />
       </div>
 
-      {/* 본문 */}
+      {/* 본문 — 워드 문서 스타일 */}
       <ScrollArea className="flex-1 min-h-0">
         <div
           className={cn(
-            'px-5 py-4 space-y-8 transition-opacity duration-150',
-            isLangLoading && 'opacity-40 pointer-events-none'
+            'px-6 py-6 space-y-8 transition-opacity duration-150',
+            'bg-white dark:bg-card',
+            'mx-auto',
+            isLangLoading && 'opacity-40 pointer-events-none',
           )}
+          style={{ fontFamily: "'Times New Roman', 'Batang', serif" }}
         >
+
+          {/* 통계표 */}
+          {draft.tables && draft.tables.length > 0 && (
+            <section id="draft-section-tables">
+              <SectionHeader
+                title="통계표"
+                htmlCopy={{ html: tablesFullHtml, plain: tablesFullText }}
+                copyTestId="draft-copy-btn-tables"
+                sectionName="통계표"
+                onSave={() => {
+                  downloadTextFile(tablesFullText, '통계표.tsv')
+                  toast.success('통계표 저장됨 (TSV)')
+                }}
+              />
+              <div className="space-y-6">
+                {draft.tables.map((table) => (
+                  <div key={table.id} className="space-y-2">
+                    <TableRenderer table={table} />
+                    <div className="flex gap-1">
+                      <HtmlCopyButton
+                        html={table.htmlContent}
+                        plain={table.plainText}
+                        data-testid={`draft-copy-btn-table-${table.id}`}
+                        sectionName={table.title}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* 차트 이미지 */}
+          {draft.chartImageUrl && (
+            <section id="draft-section-chart">
+              <SectionHeader
+                title="그래프"
+                copyTestId="draft-copy-btn-chart"
+                sectionName="그래프"
+              />
+              <ChartImageSection imageUrl={draft.chartImageUrl} />
+            </section>
+          )}
 
           {/* Methods */}
           {draft.methods && (
             <section id="draft-section-methods">
               <SectionHeader
                 title="Methods"
+                badge="APA 7th"
                 copyText={draft.methods}
                 copyTestId="draft-copy-btn-methods"
+                sectionName="Methods"
+                onSave={() => {
+                  downloadTextFile(draft.methods ?? '', 'methods.txt')
+                  toast.success('Methods 저장됨')
+                }}
               />
               <DraftText text={draft.methods} />
-              <p className="mt-3 text-[11px] text-muted-foreground border-t pt-2">
+              <p className="mt-3 text-[11px] text-muted-foreground border-t pt-2" style={{ fontFamily: 'inherit' }}>
                 BioHub Statistical Platform (SciPy 1.x / statsmodels 0.x 기반, Python 브라우저 내 실행)
               </p>
             </section>
@@ -245,8 +443,14 @@ export function PaperDraftPanel({
             <section id="draft-section-results">
               <SectionHeader
                 title="Results"
+                badge="APA 7th"
                 copyText={draft.results}
                 copyTestId="draft-copy-btn-results"
+                sectionName="Results"
+                onSave={() => {
+                  downloadTextFile(draft.results ?? '', 'results.txt')
+                  toast.success('Results 저장됨')
+                }}
               />
               <DraftText text={draft.results} />
             </section>
@@ -259,6 +463,7 @@ export function PaperDraftPanel({
                 title="Captions"
                 copyText={captionsFullText}
                 copyTestId="draft-copy-btn-captions"
+                sectionName="Captions"
               />
               <div className="space-y-3">
                 {draft.captions.map((cap, i) => (
@@ -266,13 +471,14 @@ export function PaperDraftPanel({
                     key={i}
                     className="flex items-start justify-between gap-3 p-3 rounded-lg border bg-muted/20"
                   >
-                    <p className="text-sm leading-relaxed flex-1">
+                    <p className="text-sm leading-relaxed flex-1" style={{ fontFamily: 'inherit' }}>
                       <strong>{cap.label}.</strong>{' '}
                       <span dangerouslySetInnerHTML={{ __html: markdownToHtml(cap.text) }} />
                     </p>
                     <CopyButton
                       text={`${cap.label}. ${cap.text}`}
                       data-testid={`draft-copy-btn-caption-${i}`}
+                      sectionName={cap.label}
                     />
                   </div>
                 ))}
@@ -286,9 +492,9 @@ export function PaperDraftPanel({
               title="Discussion"
               copyText={discussionState.status === 'done' ? discussionState.text : undefined}
               copyTestId="draft-copy-btn-discussion"
+              sectionName="Discussion"
             />
 
-            {/* idle */}
             {discussionState.status === 'idle' && (
               <div className="flex flex-col items-start gap-1.5">
                 <Button
@@ -309,7 +515,6 @@ export function PaperDraftPanel({
               </div>
             )}
 
-            {/* streaming */}
             {discussionState.status === 'streaming' && (
               <div className="space-y-3">
                 <DraftText text={discussionState.partial} />
@@ -329,7 +534,6 @@ export function PaperDraftPanel({
               </div>
             )}
 
-            {/* cancelling */}
             {discussionState.status === 'cancelling' && (
               <div className="space-y-2">
                 <DraftText text={discussionState.partial} className="opacity-60" />
@@ -337,7 +541,6 @@ export function PaperDraftPanel({
               </div>
             )}
 
-            {/* done — 재생성 버튼 포함 */}
             {discussionState.status === 'done' && (
               <div className="space-y-3">
                 <DraftText text={discussionState.text} />
@@ -354,7 +557,6 @@ export function PaperDraftPanel({
               </div>
             )}
 
-            {/* error */}
             {discussionState.status === 'error' && (
               <div className="space-y-2">
                 <p className="text-sm text-destructive">{discussionState.message}</p>
@@ -375,14 +577,21 @@ export function PaperDraftPanel({
         </div>
       </ScrollArea>
 
-      {/* 하단 전체 복사 */}
+      {/* 하단 액션 바 */}
       <div className="px-4 py-3 border-t bg-muted/20 shrink-0 flex items-center justify-between">
-        <CopyButton
-          text={allText}
-          data-testid="draft-copy-btn-all"
-          label="전체 복사 (Markdown)"
-          size="default"
-        />
+        <div className="flex items-center gap-2">
+          <CopyButton
+            text={allText}
+            data-testid="draft-copy-btn-all"
+            label="전체 복사"
+            size="default"
+            sectionName="전체"
+          />
+          <Button variant="ghost" size="default" className="gap-1.5 text-xs" onClick={handleSaveAll}>
+            <FileText className="h-3.5 w-3.5" />
+            전체 저장
+          </Button>
+        </div>
         {!discussionDoneText && discussionState.status !== 'streaming' && (
           <span className="text-[11px] text-muted-foreground/60">
             Discussion 미포함
