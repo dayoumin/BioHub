@@ -89,7 +89,9 @@ const WORKER_FILE_NAMES: Record<number, string> = {
   2: 'worker2-hypothesis',
   3: 'worker3-nonparametric-anova',
   4: 'worker4-regression-advanced',
-  5: 'worker5-survival'
+  5: 'worker5-survival',
+  6: 'worker6-fisheries',
+  7: 'worker7-ecology'
 }
 
 // ============================================================================
