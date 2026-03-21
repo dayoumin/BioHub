@@ -776,7 +776,7 @@ describe('DecisionTreeRecommender', () => {
       expect(result).toBeDefined()
       expect(result.method).toBeDefined()
       expect(result.confidence).toBeGreaterThan(0)
-      expect(result.reasoning.some(r => r.includes('가정 검정') || r.includes('통계적 가정'))).toBe(true)
+      expect(result.reasoning.some(r => r.includes('가정 검정') || r.includes('통계적 가정') || r.includes('정규성'))).toBe(true)
     })
 
     it('should recommend nonparametric test by default (without assumptions)', () => {

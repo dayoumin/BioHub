@@ -168,19 +168,40 @@ export class DecisionTreeRecommender {
   ): AIRecommendation {
     logger.warn('DecisionTree: No assumptionResults, using conservative approach', { purpose })
 
-    // 보수적 추천 (비모수 검정 우선)
+    // Step 1 정규성 검정 힌트 (참고용 — 확정 가정 검정이 아님)
+    const normalityHint = this.extractNormalityHint(validationResults)
+    const hintLabel = normalityHint.available
+      ? `정규성 힌트: ${normalityHint.normalCount}/${normalityHint.testedCount}개 변수 정규 (p>0.05)`
+      : '정규성 검정 미완료'
+
     switch (purpose) {
       case 'compare': {
         const groups = this.detectGroupCount(data, validationResults)
 
         if (groups === 2) {
           const n = data.length
+          // 정규성 힌트가 있고 과반수 정규 → 모수 검정 추천 (신뢰도 상향)
+          if (normalityHint.available && normalityHint.mostlyNormal) {
+            return this.addExpectedKeywords({
+              method: createMethod('t-test'),
+              confidence: 0.75,
+              reasoning: [
+                '✓ 보통 신뢰도 (75%)로 독립표본 t 검정을 추천합니다.',
+                `ℹ ${hintLabel} — 참고용 (확정 가정 검정은 Step 4에서 수행)`,
+                `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
+              ],
+              assumptions: [],
+              alternatives: [
+                createMethod('mann-whitney', { description: '정규성 가정이 충족되지 않으면 자동 전환' })
+              ]
+            })
+          }
           return this.addExpectedKeywords({
             method: createMethod('mann-whitney'),
             confidence: 0.70,
             reasoning: [
               '✓ 보통 신뢰도 (70%)로 Mann-Whitney U 검정을 추천합니다.',
-              '⚠ 통계적 가정 검정을 수행하지 않았습니다.',
+              `ℹ ${hintLabel}`,
               '비모수 검정을 권장합니다 (보수적 접근).',
               `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
             ],
@@ -191,12 +212,28 @@ export class DecisionTreeRecommender {
           })
         } else if (groups >= 3) {
           const n = data.length
+          if (normalityHint.available && normalityHint.mostlyNormal) {
+            return this.addExpectedKeywords({
+              method: createMethod('anova'),
+              confidence: 0.75,
+              reasoning: [
+                '✓ 보통 신뢰도 (75%)로 일원배치 분산분석을 추천합니다.',
+                `ℹ ${hintLabel} — 참고용 (등분산성은 Step 4에서 검정)`,
+                `${groups}개 그룹 비교`,
+                `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
+              ],
+              assumptions: [],
+              alternatives: [
+                createMethod('kruskal-wallis', { description: '가정이 충족되지 않으면 자동 전환' })
+              ]
+            })
+          }
           return this.addExpectedKeywords({
             method: createMethod('kruskal-wallis'),
             confidence: 0.70,
             reasoning: [
               '✓ 보통 신뢰도 (70%)로 Kruskal-Wallis 검정을 추천합니다.',
-              '⚠ 통계적 가정 검정을 수행하지 않았습니다.',
+              `ℹ ${hintLabel}`,
               `${groups}개 그룹 비교를 위한 비모수 검정을 권장합니다.`,
               `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
             ],
@@ -211,6 +248,24 @@ export class DecisionTreeRecommender {
 
       case 'relationship': {
         const n = data.length
+        if (normalityHint.available && normalityHint.mostlyNormal) {
+          return this.addExpectedKeywords({
+            method: createMethod('correlation', {
+              name: 'Pearson 상관분석',
+              description: '선형 상관관계 분석'
+            }),
+            confidence: 0.75,
+            reasoning: [
+              '✓ 보통 신뢰도 (75%)로 Pearson 상관분석을 추천합니다.',
+              `ℹ ${hintLabel} — 참고용`,
+              `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
+            ],
+            assumptions: [],
+            alternatives: [
+              createMethod('correlation', { name: 'Spearman 상관분석', description: '정규성 불충족 시 사용' })
+            ]
+          })
+        }
         return this.addExpectedKeywords({
           method: createMethod('correlation', {
             name: 'Spearman 상관분석',
@@ -219,7 +274,7 @@ export class DecisionTreeRecommender {
           confidence: 0.70,
           reasoning: [
             '✓ 보통 신뢰도 (70%)로 Spearman 상관분석을 추천합니다.',
-            '⚠ 통계적 가정 검정을 수행하지 않았습니다.',
+            `ℹ ${hintLabel}`,
             '비모수 상관분석을 권장합니다.',
             `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
           ],
@@ -886,6 +941,32 @@ export class DecisionTreeRecommender {
         : 'All categorical variables have < 2 or > 10 unique values'
     })
     return null
+  }
+
+  /**
+   * Step 1 정규성 검정 결과 요약 (참고용 힌트 — 확정 가정 검정이 아님)
+   * ID 컬럼 제외, normality 결과가 있는 수치형 변수만 집계
+   */
+  private static extractNormalityHint(validationResults: ValidationResults): {
+    available: boolean
+    testedCount: number
+    normalCount: number
+    mostlyNormal: boolean
+  } {
+    const cols = validationResults.columnStats ?? []
+    const tested = cols.filter(c =>
+      c.type === 'numeric' && !c.idDetection?.isId && c.normality !== undefined
+    )
+    if (tested.length === 0) {
+      return { available: false, testedCount: 0, normalCount: 0, mostlyNormal: false }
+    }
+    const normalCount = tested.filter(c => c.normality!.isNormal).length
+    return {
+      available: true,
+      testedCount: tested.length,
+      normalCount,
+      mostlyNormal: normalCount > tested.length / 2
+    }
   }
 
   /**

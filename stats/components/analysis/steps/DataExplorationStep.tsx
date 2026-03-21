@@ -127,6 +127,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     categoricalVariables,
     numericDistributions,
     totalOutlierCount,
+    recommendedType,
     formatStat,
     getOutlierDetails
   } = useDescriptiveStats(validationResults, data)
@@ -293,7 +294,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           categoricalVars={categoricalVariables.length}
           missingValues={validationResults.missingValues}
           totalCells={data.length * validationResults.columnCount}
-          recommendedType={data.length >= 30 ? 'parametric' : 'nonparametric'}
+          recommendedType={recommendedType}
           status="warning"
           warnings={[t.dataExploration.warnings.fewNumericVars]}
         />
@@ -511,7 +512,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                 <div className="flex items-center justify-between py-1.5 text-sm">
                   <span className="text-muted-foreground">{t.dataExploration.columnPanel.recommendedAnalysis}</span>
                   <Badge variant="outline" className="text-[10px]">
-                    {data.length >= 30 ? t.dataExploration.columnPanel.parametric : t.dataExploration.columnPanel.nonParametric}
+                    {recommendedType === 'parametric' ? t.dataExploration.columnPanel.parametric : t.dataExploration.columnPanel.nonParametric}
                   </Badge>
                 </div>
               )}
