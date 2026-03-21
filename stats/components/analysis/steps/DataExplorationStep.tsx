@@ -27,7 +27,7 @@ import type { AnalysisTemplate } from '@/types/analysis'
 import { getExplorationProfile } from '@/lib/utils/exploration-profile'
 import { useTerminology } from '@/hooks/use-terminology'
 import { calculateCorrelation } from './exploration/correlation-utils'
-import { getPercentile } from './exploration/stats-utils'
+import { getPercentile } from '@/lib/utils/stats-math'
 
 interface DataExplorationStepProps {
   validationResults: ValidationResults | null

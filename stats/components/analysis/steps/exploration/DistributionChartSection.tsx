@@ -10,7 +10,7 @@ import { Histogram } from '@/components/charts/histogram'
 import { BoxPlot } from '@/components/charts/boxplot'
 import type { DataRow } from '@/types/analysis'
 import { useTerminology } from '@/hooks/use-terminology'
-import { getPercentile } from './stats-utils'
+import { getPercentile } from '@/lib/utils/stats-math'
 
 interface DistributionChartSectionProps {
   data: DataRow[]
