@@ -21,6 +21,7 @@ export const TOAST = {
     emptyData: '데이터가 비어 있습니다.',
     loadSuccess: (name: string): string => `${name} 로드 완료`,
     uploadSuccess: (name: string): string => `${name} 업로드 완료 — 데이터를 확인해주세요`,
+    variableDetectionEmpty: '변수를 자동 감지하지 못했습니다. 변수 선택 단계에서 직접 지정해주세요.',
   },
   history: {
     loadError: '히스토리 로드에 실패했습니다.',

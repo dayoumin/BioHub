@@ -225,6 +225,8 @@ export function ChatCentricHub({
         timestamp: Date.now(),
         isError: true,
       })
+      // 에러 시 원래 입력 복원 — 사용자가 다시 타이핑하지 않아도 됨
+      setExternalValue(message)
     } finally {
       setStreaming(false)
       isProcessingRef.current = false

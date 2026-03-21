@@ -16,6 +16,7 @@ import { useModeStore } from '@/lib/stores/mode-store'
 import { DataValidationService } from '@/lib/services/data-validation-service'
 import { checkVariableCompatibility, CompatibilityResult } from '@/lib/utils/variable-compatibility'
 import { extractDetectedVariables } from '@/lib/services/variable-detection-service'
+import { TOAST } from '@/lib/constants/toast-messages'
 import { enrichWithNormality } from '@/lib/services/normality-enrichment-service'
 import { useTerminology } from '@/hooks/use-terminology'
 import type { ColumnInfo } from '@/lib/statistics/variable-mapping'
@@ -91,7 +92,12 @@ export function useDataUpload(): UseDataUploadReturn {
           null,
         )
         setDetectedVariables(detectedVars)
-        toast.success(`${file.name} 업로드 완료 — 데이터를 확인해주세요`)
+        const hasMapping = Object.values(detectedVars).some(v => v !== undefined && v !== null && (Array.isArray(v) ? v.length > 0 : true))
+        if (hasMapping) {
+          toast.success(TOAST.data.uploadSuccess(file.name))
+        } else {
+          toast.info(TOAST.data.variableDetectionEmpty)
+        }
       }
     } catch (err) {
       setError(t.analysis.errors.uploadFailed((err as Error).message))
