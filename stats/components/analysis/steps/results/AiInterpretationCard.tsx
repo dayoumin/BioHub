@@ -22,6 +22,8 @@ interface AiInterpretationCardProps {
   isInterpreting: boolean
   interpretationModel: string | null | undefined
   interpretError: string | null
+  /** 재시도 횟수 소진 — true이면 retry 대신 안내 메시지 표시 */
+  isRetryExhausted?: boolean
   prefersReducedMotion: boolean
   detailedInterpretOpen: boolean
   onDetailedInterpretOpenChange: (open: boolean) => void
@@ -35,6 +37,7 @@ export function AiInterpretationCard({
   isInterpreting,
   interpretationModel,
   interpretError,
+  isRetryExhausted = false,
   prefersReducedMotion,
   detailedInterpretOpen,
   onDetailedInterpretOpenChange,
@@ -118,15 +121,24 @@ export function AiInterpretationCard({
       </AnimatePresence>
 
       {interpretError && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="text-sm">
-            {interpretError}
-            <Button variant="ghost" size="sm" onClick={onReinterpret} className="ml-2 text-xs h-6 px-2">
-              {t.results.ai.retry}
-            </Button>
-          </AlertDescription>
-        </Alert>
+        isRetryExhausted ? (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              AI 해석을 불러올 수 없습니다. 위의 통계 수치와 차트만으로도 결과를 확인할 수 있습니다.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              {interpretError}
+              <Button variant="ghost" size="sm" onClick={onReinterpret} className="ml-2 text-xs h-6 px-2">
+                {t.results.ai.retry}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )
       )}
     </div>
   )

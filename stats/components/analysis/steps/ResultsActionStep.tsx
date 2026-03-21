@@ -51,6 +51,7 @@ import { StepHeader } from '@/components/analysis/common'
 import { AssumptionTestsSection } from '@/components/analysis/steps/exploration/AssumptionTestsSection'
 import { ResultsHeroCard, ResultsStatsCards, ResultsChartsSection, ResultsActionButtons, AiInterpretationCard, FollowUpQASection } from '@/components/analysis/steps/results'
 import { useFollowUpQA } from '@/hooks/use-follow-up-qa'
+import { useErrorRecovery } from '@/hooks/use-error-recovery'
 import { formatStatisticalResult } from '@/lib/statistics/formatters'
 import { useTerminology } from '@/hooks/use-terminology'
 import { logger } from '@/lib/utils/logger'
@@ -117,6 +118,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
   // AI 해석 (커스텀 훅으로 캡슐화)
   const [detailedInterpretOpen, setDetailedInterpretOpen] = useState(true)
+  const interpretRecovery = useErrorRecovery({ maxRetries: 2 })
 
   // 새 분석 시작 확인
   const [showNewAnalysisConfirm, setShowNewAnalysisConfirm] = useState(false)
@@ -191,6 +193,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     hasSavedToHistoryRef.current = false
     setPaperDraft(null)
     setPaperDraftOpen(false)
+    interpretRecovery.reset()
     setLastDraftContext(undefined)
     setLastDraftOptions({ language: 'ko', postHocDisplay: 'significant-only' })
   }, [currentHistoryId])
@@ -649,12 +652,14 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     router.push('/graph-studio')
   }, [results, uploadedData, currentHistoryId, historyEntries, loadDataPackageWithSpec, disconnectProject, router])
 
-  // 재해석 + Q&A 초기화
+  // 재해석 + Q&A 초기화 (소진 시 차단)
   const handleReinterpretWithQAReset = useCallback(() => {
+    if (interpretRecovery.isExhausted) return
+    interpretRecovery.recordRetry()
     resetFollowUp()
     setUsedChips(new Set())
     resetAndReinterpret()
-  }, [resetFollowUp, resetAndReinterpret])
+  }, [resetFollowUp, resetAndReinterpret, interpretRecovery])
 
   const handlePaperDraftToggle = useCallback(() => {
     if (paperDraft) {
@@ -867,7 +872,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             </div>
           }
         />
-        {/*
+        <Dialog open={projectSaveDialogOpen} onOpenChange={setProjectSaveDialogOpen}>
           <DialogContent className="sm:max-w-[560px]" data-testid="project-save-dialog">
             <DialogHeader>
               <DialogTitle>분석 저장 위치 선택</DialogTitle>
@@ -882,10 +887,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               className="space-y-3 py-2"
             >
               <Label
-                htmlFor="save-project-none"
+                htmlFor="save-project-none-clean"
                 className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/60 p-3"
               >
-                <RadioGroupItem value={NO_PROJECT_SAVE_ID} id="save-project-none" className="mt-0.5" />
+                <RadioGroupItem value={NO_PROJECT_SAVE_ID} id="save-project-none-clean" className="mt-0.5" />
                 <div className="space-y-1">
                   <div className="text-sm font-medium">프로젝트 없이 저장</div>
                   <div className="text-xs text-muted-foreground">
@@ -898,10 +903,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 availableProjects.map(project => (
                   <Label
                     key={project.id}
-                    htmlFor={`save-project-${project.id}`}
+                    htmlFor={`save-project-clean-${project.id}`}
                     className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/60 p-3"
                   >
-                    <RadioGroupItem value={project.id} id={`save-project-${project.id}`} className="mt-0.5" />
+                    <RadioGroupItem value={project.id} id={`save-project-clean-${project.id}`} className="mt-0.5" />
                     <div className="min-w-0 space-y-1">
                       <div className="flex items-center gap-2 text-sm font-medium">
                         {project.presentation?.emoji ? <span>{project.presentation.emoji}</span> : null}
@@ -926,69 +931,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               </Button>
               <Button onClick={handleSaveToHistory} disabled={isSavingToHistory}>
                 {isSavingToHistory ? '저장 중...' : '저장'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        */}
-        <Dialog open={projectSaveDialogOpen} onOpenChange={setProjectSaveDialogOpen}>
-          <DialogContent className="sm:max-w-[560px]" data-testid="project-save-dialog">
-            <DialogHeader>
-              <DialogTitle>Select Save Target</DialogTitle>
-              <DialogDescription>
-                Choose a ResearchProject for this analysis, or save it as a standalone record.
-              </DialogDescription>
-            </DialogHeader>
-
-            <RadioGroup
-              value={selectedSaveProjectId}
-              onValueChange={setSelectedSaveProjectId}
-              className="space-y-3 py-2"
-            >
-              <Label
-                htmlFor="save-project-none-clean"
-                className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/60 p-3"
-              >
-                <RadioGroupItem value={NO_PROJECT_SAVE_ID} id="save-project-none-clean" className="mt-0.5" />
-                <div className="space-y-1">
-                  <div className="text-sm font-medium">Save without project</div>
-                  <div className="text-xs text-muted-foreground">
-                    The analysis will be saved to history only and will not be linked to a ResearchProject.
-                  </div>
-                </div>
-              </Label>
-
-              {availableProjects.length > 0 ? (
-                availableProjects.map(project => (
-                  <Label
-                    key={project.id}
-                    htmlFor={`save-project-clean-${project.id}`}
-                    className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/60 p-3"
-                  >
-                    <RadioGroupItem value={project.id} id={`save-project-clean-${project.id}`} className="mt-0.5" />
-                    <div className="min-w-0 space-y-1">
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        {project.presentation?.emoji ? <span>{project.presentation.emoji}</span> : null}
-                        <span>{project.name}</span>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {project.description?.trim() || 'No description'}
-                      </div>
-                    </div>
-                  </Label>
-                ))
-              ) : (
-                <div className="rounded-lg border border-dashed border-border/60 px-4 py-5 text-sm text-muted-foreground">
-                  No active projects are available. Save without a project, or create one first and try again.
-                </div>
-              )}
-            </RadioGroup>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setProjectSaveDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveToHistory} disabled={isSavingToHistory}>
-                {isSavingToHistory ? 'Saving...' : 'Save'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1046,6 +988,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           isInterpreting={isInterpreting}
           interpretationModel={interpretationModel}
           interpretError={interpretError}
+          isRetryExhausted={interpretRecovery.isExhausted}
           prefersReducedMotion={prefersReducedMotion}
           detailedInterpretOpen={detailedInterpretOpen}
           onDetailedInterpretOpenChange={setDetailedInterpretOpen}
