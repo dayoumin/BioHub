@@ -27,6 +27,7 @@ import type { AnalysisTemplate } from '@/types/analysis'
 import { getExplorationProfile } from '@/lib/utils/exploration-profile'
 import { useTerminology } from '@/hooks/use-terminology'
 import { calculateCorrelation } from './exploration/correlation-utils'
+import { getPercentile } from './exploration/stats-utils'
 
 interface DataExplorationStepProps {
   validationResults: ValidationResults | null
@@ -150,16 +151,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       .map(Number)
       .filter(value => !isNaN(value))
   }, [data])
-
-  const getPercentile = (sorted: number[], percentile: number): number | undefined => {
-    if (sorted.length === 0) return undefined
-    const index = (sorted.length - 1) * percentile
-    const lower = Math.floor(index)
-    const upper = Math.ceil(index)
-    if (lower === upper) return sorted[lower]
-    const weight = index - lower
-    return sorted[lower] * (1 - weight) + sorted[upper] * weight
-  }
 
   const numericDistributions = useMemo(() => {
     return numericColumnStats.map(col => {
