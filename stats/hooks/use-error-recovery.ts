@@ -51,7 +51,9 @@ export function useErrorRecovery({
   // ref 기반 가드 — 동기 연속 호출 시에도 정확한 카운트 보장
   const countRef = useRef(0)
 
-  const isExhausted = retryCount >= maxRetries
+  // isExhausted: ref 기반으로 즉시 반영 (state 업데이트 전에도 정확)
+  // retryCount state는 UI 리렌더 트리거 용도
+  const isExhausted = countRef.current >= maxRetries
 
   const recordRetry = useCallback((): boolean => {
     if (countRef.current >= maxRetries) return false

@@ -19,13 +19,16 @@ function readJson<T>(key: string, fallback: T): T {
   }
 }
 
-function writeJson(key: string, value: unknown): void {
-  if (!isClient()) return
+/** localStorage 쓰기. 성공 시 true, 실패(quota 초과 등) 시 false */
+function writeJson(key: string, value: unknown): boolean {
+  if (!isClient()) return false
 
   try {
     localStorage.setItem(key, JSON.stringify(value))
+    return true
   } catch (error) {
     console.warn(`[research-project-storage] Failed to write ${key}:`, error)
+    return false
   }
 }
 
@@ -50,12 +53,13 @@ export function saveResearchProject(project: ResearchProject): void {
   writeJson(PROJECTS_KEY, projects)
 }
 
-export function deleteResearchProject(projectId: string): void {
+export function deleteResearchProject(projectId: string): boolean {
   const nextProjects = listResearchProjects().filter(project => project.id !== projectId)
   const nextRefs = listProjectEntityRefs().filter(ref => ref.projectId !== projectId)
 
-  writeJson(PROJECTS_KEY, nextProjects)
-  writeJson(PROJECT_REFS_KEY, nextRefs)
+  const ok1 = writeJson(PROJECTS_KEY, nextProjects)
+  const ok2 = writeJson(PROJECT_REFS_KEY, nextRefs)
+  return ok1 && ok2
 }
 
 export function generateResearchProjectId(): string {
