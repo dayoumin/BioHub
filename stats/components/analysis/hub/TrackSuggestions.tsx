@@ -82,7 +82,7 @@ export function TrackSuggestions({ onStartAnalysis, onUploadClick }: TrackSugges
             transition={{ duration: 0.4, delay: 0.3 }}
           >
             <div className={iconContainerPrimary}>
-              <Upload className="w-5 h-5" />
+              <Upload className="w-5 h-5" aria-hidden="true" />
             </div>
             <span className="font-medium text-sm">{t.hub.quickStart.uploadData}</span>
             <span className={BADGE_BASE} style={BADGE_ANALYSIS_STYLE}>{t.hub.quickStart.badges.analysis}</span>
@@ -99,7 +99,7 @@ export function TrackSuggestions({ onStartAnalysis, onUploadClick }: TrackSugges
             transition={{ duration: 0.4, delay: 0.38 }}
           >
             <div className={iconContainerMuted}>
-              <Calculator className="w-5 h-5" />
+              <Calculator className="w-5 h-5" aria-hidden="true" />
             </div>
             <span className="font-medium text-sm">{t.hub.quickStart.sampleSize}</span>
             <span className={BADGE_MUTED}>{t.hub.quickStart.badges.tool}</span>
@@ -118,7 +118,7 @@ export function TrackSuggestions({ onStartAnalysis, onUploadClick }: TrackSugges
               className={cn(actionCardBase, 'h-full')}
             >
               <div className={iconContainerMuted}>
-                <BarChart2 className="w-5 h-5" />
+                <BarChart2 className="w-5 h-5" aria-hidden="true" />
               </div>
               <span className="font-medium text-sm">{t.hub.quickStart.visualization}</span>
               <span className={BADGE_BASE} style={BADGE_GRAPH_STYLE}>Graph Studio</span>
@@ -138,7 +138,7 @@ export function TrackSuggestions({ onStartAnalysis, onUploadClick }: TrackSugges
               className={cn(actionCardBase, 'h-full')}
             >
               <div className={iconContainerMuted}>
-                <FlaskConical className="w-5 h-5" />
+                <FlaskConical className="w-5 h-5" aria-hidden="true" />
               </div>
               <span className="font-medium text-sm">{t.hub.quickStart.bioTools}</span>
               <span className={BADGE_MUTED}>Bio-Tools</span>

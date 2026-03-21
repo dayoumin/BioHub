@@ -13,6 +13,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bot, User, AlertCircle, RefreshCw, Upload, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { focusRing } from '@/components/common/card-styles'
 import { Button } from '@/components/ui/button'
 import { RecommendationCard } from '@/components/common/RecommendationCard'
 import { TypingIndicator } from '@/components/common/TypingIndicator'
@@ -233,7 +234,8 @@ function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry }: Mess
               'flex items-center gap-2 px-3 py-2 rounded-lg',
               'border border-dashed border-primary/30 bg-primary/5',
               'text-xs text-primary hover:bg-primary/10 transition-colors',
-              'w-full justify-center'
+              'w-full justify-center',
+              focusRing
             )}
           >
             <Upload className="w-3.5 h-3.5" />
