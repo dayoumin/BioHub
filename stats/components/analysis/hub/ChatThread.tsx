@@ -215,7 +215,7 @@ function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry }: Mess
 
         {/* 추천 카드 (인라인) */}
         {recommendations && recommendations.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {recommendations.map((rec) => (
               <RecommendationCard
                 key={rec.methodId}

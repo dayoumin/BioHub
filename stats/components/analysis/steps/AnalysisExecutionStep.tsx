@@ -327,7 +327,14 @@ export function AnalysisExecutionStep({
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription className="flex items-center justify-between gap-4">
+            <span>{error}</span>
+            {onPrevious && (
+              <Button variant="outline" size="sm" onClick={onPrevious} className="shrink-0">
+                {t.analysis.layout.prevStep}
+              </Button>
+            )}
+          </AlertDescription>
         </Alert>
       )}
 
