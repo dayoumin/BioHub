@@ -133,6 +133,12 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
   const { correlationMatrix, heatmapMatrix, getPairedData } = useCorrelationData(data, numericVariables)
 
+  // 이상치 상세 정보 메모이제이션 (선택된 변수가 바뀔 때만 data 풀스캔)
+  const outlierDetails = useMemo(
+    () => selectedOutlierVar ? getOutlierDetails(selectedOutlierVar) : null,
+    [selectedOutlierVar, getOutlierDetails]
+  )
+
   // 이상치 모달 열기 핸들러
   const handleOpenOutlierModal = useCallback((varName: string) => {
     setSelectedOutlierVar(varName)
@@ -150,6 +156,26 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     setIsReplaceMode(false)
     onUploadComplete?.(file, newData)
   }, [onUploadComplete])
+
+  // 빠른 분석 모드 힌트 (2곳에서 사용)
+  const focusHintBanner = isQuickMode && profile.focusHint && data.length > 0 ? (
+    <div className="flex items-center gap-2 p-3 bg-info-bg rounded-lg border border-info-border text-sm">
+      <Lightbulb className="h-4 w-4 text-info flex-shrink-0" />
+      <span className="text-info">{profile.focusHint}</span>
+    </div>
+  ) : null
+
+  // 데이터 미리보기 split (상단 5 + 하단 5)
+  const splitPreview = useMemo(() => {
+    if (data.length <= 10) return null
+    return {
+      rows: [...data.slice(0, 5), ...data.slice(-5)],
+      omittedCount: data.length - 10,
+      indices: [1, 2, 3, 4, 5].concat(
+        [...Array(5).keys()].map(i => data.length - 4 + i)
+      )
+    }
+  }, [data])
 
   // 데이터 없을 때 또는 교체 모드: 업로드 영역 표시
   if (!validationResults || !data || data.length === 0 || isReplaceMode) {
@@ -259,12 +285,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         {/* 헤더 + 다음 단계 버튼 */}
         <StepHeader icon={ChartScatter} title={t.analysis.stepTitles.dataExploration} />
 
-        {isQuickMode && profile.focusHint && data.length > 0 && (
-          <div className="flex items-center gap-2 p-3 bg-info-bg rounded-lg border border-info-border text-sm">
-            <Lightbulb className="h-4 w-4 text-info flex-shrink-0" />
-            <span className="text-info">{profile.focusHint}</span>
-          </div>
-        )}
+        {focusHintBanner}
 
         <DataProfileSummary
           sampleSize={data.length}
@@ -325,12 +346,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       {/* 헤더 */}
       <StepHeader icon={ChartScatter} title={t.analysis.stepTitles.dataExploration} />
 
-      {isQuickMode && profile.focusHint && data.length > 0 && (
-        <div className="flex items-center gap-2 p-3 bg-info-bg rounded-lg border border-info-border text-sm">
-          <Lightbulb className="h-4 w-4 text-info flex-shrink-0" />
-          <span className="text-info">{profile.focusHint}</span>
-        </div>
-      )}
+      {focusHintBanner}
 
       {/* ── 2-column 레이아웃 ── */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-start">
@@ -422,34 +438,20 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                     </div>
                   )}
                 </div>
-              ) : (
-                <>
-                  {data.length <= 10 ? (
-                    <DataPreviewTable data={data} maxRows={10} defaultOpen={true} title="" height="auto" />
-                  ) : (
-                    (() => {
-                      const topRows = data.slice(0, 5)
-                      const bottomRows = data.slice(-5)
-                      const omittedCount = data.length - 10
-                      const indices = [1, 2, 3, 4, 5].concat(
-                        [...Array(5).keys()].map(i => data.length - 4 + i)
-                      )
-                      return (
-                        <DataPreviewTable
-                          data={[...topRows, ...bottomRows]}
-                          maxRows={10}
-                          defaultOpen={true}
-                          title=""
-                          height="auto"
-                          omittedRows={omittedCount}
-                          omitAfterIndex={4}
-                          rowIndices={indices}
-                        />
-                      )
-                    })()
-                  )}
-                </>
-              )}
+              ) : data.length <= 10 ? (
+                <DataPreviewTable data={data} maxRows={10} defaultOpen={true} title="" height="auto" />
+              ) : splitPreview ? (
+                <DataPreviewTable
+                  data={splitPreview.rows}
+                  maxRows={10}
+                  defaultOpen={true}
+                  title=""
+                  height="auto"
+                  omittedRows={splitPreview.omittedCount}
+                  omitAfterIndex={4}
+                  rowIndices={splitPreview.indices}
+                />
+              ) : null}
             </CardContent>
           </Card>
 
@@ -613,21 +615,16 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       </CollapsibleSection>
 
       {/* 이상치 상세 모달 */}
-      {selectedOutlierVar && (() => {
-        const details = getOutlierDetails(selectedOutlierVar)
-        if (!details) return null
-
-        return (
-          <OutlierDetailPanel
-            open={outlierModalOpen}
-            onOpenChange={setOutlierModalOpen}
-            variableName={selectedOutlierVar}
-            outliers={details.outliers}
-            statistics={details.statistics}
-            onViewInData={handleViewOutliersInData}
-          />
-        )
-      })()}
+      {selectedOutlierVar && outlierDetails && (
+        <OutlierDetailPanel
+          open={outlierModalOpen}
+          onOpenChange={setOutlierModalOpen}
+          variableName={selectedOutlierVar}
+          outliers={outlierDetails.outliers}
+          statistics={outlierDetails.statistics}
+          onViewInData={handleViewOutliersInData}
+        />
+      )}
 
     </div>
   )

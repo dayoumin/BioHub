@@ -25,12 +25,11 @@ export const DescriptiveStatsTable = memo(function DescriptiveStatsTable({
 
   // 이상치가 있는 변수 목록 (배너용)
   const varsWithOutliers = useMemo(
-    () => totalOutlierCount > 0
-      ? numericDistributions
-          .filter(v => v.outlierCount > 0)
-          .sort((a, b) => b.outlierCount - a.outlierCount)
-      : [],
-    [numericDistributions, totalOutlierCount]
+    () => {
+      const vars = numericDistributions.filter(v => v.outlierCount > 0)
+      return vars.length > 0 ? vars.sort((a, b) => b.outlierCount - a.outlierCount) : []
+    },
+    [numericDistributions]
   )
 
   return (

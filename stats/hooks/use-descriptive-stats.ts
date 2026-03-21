@@ -139,9 +139,11 @@ export function useDescriptiveStats(
   const getOutlierDetails = useCallback((varName: string): OutlierDetails | null => {
     const dist = numericDistributions.find(d => d.name === varName)
     if (!dist || dist.n === 0) return null
+    // q1/q3 없으면 IQR 기반 이상치 판정 불가
+    if (dist.q1 === undefined || dist.q3 === undefined) return null
 
-    const q1 = dist.q1 ?? 0
-    const q3 = dist.q3 ?? 0
+    const q1 = dist.q1
+    const q3 = dist.q3
     const median = dist.median ?? 0
     const iqr = q3 - q1
 
