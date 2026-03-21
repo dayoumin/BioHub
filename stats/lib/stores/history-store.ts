@@ -184,7 +184,7 @@ function normalizeAnalysisOptions(
   return normalized as unknown as AnalysisOptions
 }
 
-export const useHistoryStore = create<HistoryState>()((set, get) => ({
+export const useHistoryStore = create<HistoryState>()((set) => ({
   analysisHistory: [],
   currentHistoryId: null,
   loadedAiInterpretation: null,
@@ -242,12 +242,21 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
     try {
       await saveHistory(record)
       if (record.projectId) {
-        upsertProjectEntityRef({
-          projectId: record.projectId,
-          entityKind: 'analysis',
-          entityId: record.id,
-          label: record.name,
-        })
+        try {
+          upsertProjectEntityRef({
+            projectId: record.projectId,
+            entityKind: 'analysis',
+            entityId: record.id,
+            label: record.name,
+          })
+        } catch (linkError) {
+          try {
+            await deleteHistory(record.id)
+          } catch (rollbackError) {
+            console.error('[History] Failed to rollback saved record after project link error:', rollbackError)
+          }
+          throw linkError
+        }
       }
       const allHistory = await getAllHistory()
       set({
@@ -296,8 +305,19 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
   deleteFromHistory: async (historyId) => {
     const record = await getHistory(historyId)
     await deleteHistory(historyId)
-    if (record?.projectId) {
-      removeProjectEntityRef(record.projectId, 'analysis', historyId)
+    try {
+      if (record?.projectId) {
+        removeProjectEntityRef(record.projectId, 'analysis', historyId)
+      }
+    } catch (error) {
+      if (record) {
+        try {
+          await saveHistory(record)
+        } catch (rollbackError) {
+          console.error('[History] Failed to rollback deleted history after project unlink error:', rollbackError)
+        }
+      }
+      throw error
     }
     const allHistory = await getAllHistory()
     set((state) => ({
@@ -326,11 +346,22 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
   clearHistory: async () => {
     const records = await getAllHistory()
     await clearAllHistory()
-    records.forEach((record) => {
-      if (record.projectId) {
-        removeProjectEntityRef(record.projectId, 'analysis', record.id)
+    try {
+      records.forEach((record) => {
+        if (record.projectId) {
+          removeProjectEntityRef(record.projectId, 'analysis', record.id)
+        }
+      })
+    } catch (error) {
+      try {
+        for (const record of records) {
+          await saveHistory(record)
+        }
+      } catch (rollbackError) {
+        console.error('[History] Failed to rollback cleared history after project unlink error:', rollbackError)
       }
-    })
+      throw error
+    }
     set({ analysisHistory: [], currentHistoryId: null })
   },
 

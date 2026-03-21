@@ -108,6 +108,24 @@ describe('history-store project links', () => {
     })
   })
 
+  it('saveToHistory rolls back the saved record when project link creation fails', async () => {
+    mockUpsertProjectEntityRef.mockImplementationOnce(() => {
+      throw new Error('link failed')
+    })
+
+    await expect(
+      act(async () => {
+        await useHistoryStore.getState().saveToHistory(makeSnapshot(), 'Saved analysis', {
+          projectId: 'proj-1',
+        })
+      })
+    ).rejects.toThrow('link failed')
+
+    expect(mockSaveHistory).toHaveBeenCalledTimes(1)
+    const savedRecord = mockSaveHistory.mock.calls[0][0] as HistoryRecord
+    expect(mockDeleteHistory).toHaveBeenCalledWith(savedRecord.id)
+  })
+
   it('deleteFromHistory removes the linked analysis ref', async () => {
     mockGetHistory.mockResolvedValueOnce(makeHistoryRecord({ id: 'analysis-77', projectId: 'proj-7' }))
     mockGetAllHistory.mockResolvedValueOnce([])
@@ -118,6 +136,19 @@ describe('history-store project links', () => {
 
     expect(mockDeleteHistory).toHaveBeenCalledWith('analysis-77')
     expect(mockRemoveProjectEntityRef).toHaveBeenCalledWith('proj-7', 'analysis', 'analysis-77')
+  })
+
+  it('deleteFromHistory restores the record when linked ref removal fails', async () => {
+    const record = makeHistoryRecord({ id: 'analysis-77', projectId: 'proj-7' })
+    mockGetHistory.mockResolvedValueOnce(record)
+    mockRemoveProjectEntityRef.mockImplementationOnce(() => {
+      throw new Error('unlink failed')
+    })
+
+    await expect(useHistoryStore.getState().deleteFromHistory('analysis-77')).rejects.toThrow('unlink failed')
+
+    expect(mockDeleteHistory).toHaveBeenCalledWith('analysis-77')
+    expect(mockSaveHistory).toHaveBeenCalledWith(record)
   })
 
   it('clearHistory removes refs for all project-linked analyses', async () => {

@@ -20,15 +20,16 @@ function readJson<T>(key: string, fallback: T): T {
 }
 
 /** localStorage 쓰기. 성공 시 true, 실패(quota 초과 등) 시 false */
-function writeJson(key: string, value: unknown): boolean {
-  if (!isClient()) return false
+function writeJson(key: string, value: unknown): void {
+  if (!isClient()) {
+    throw new Error(`[research-project-storage] ${key} is unavailable outside the browser`)
+  }
 
   try {
     localStorage.setItem(key, JSON.stringify(value))
-    return true
   } catch (error) {
     console.warn(`[research-project-storage] Failed to write ${key}:`, error)
-    return false
+    throw new Error(`[research-project-storage] Failed to write ${key}`)
   }
 }
 
@@ -53,13 +54,25 @@ export function saveResearchProject(project: ResearchProject): void {
   writeJson(PROJECTS_KEY, projects)
 }
 
-export function deleteResearchProject(projectId: string): boolean {
-  const nextProjects = listResearchProjects().filter(project => project.id !== projectId)
-  const nextRefs = listProjectEntityRefs().filter(ref => ref.projectId !== projectId)
+export function deleteResearchProject(projectId: string): void {
+  const prevProjects = listResearchProjects()
+  const prevRefs = listProjectEntityRefs()
+  const nextProjects = prevProjects.filter(project => project.id !== projectId)
+  const nextRefs = prevRefs.filter(ref => ref.projectId !== projectId)
 
-  const ok1 = writeJson(PROJECTS_KEY, nextProjects)
-  const ok2 = writeJson(PROJECT_REFS_KEY, nextRefs)
-  return ok1 && ok2
+  writeJson(PROJECTS_KEY, nextProjects)
+
+  try {
+    writeJson(PROJECT_REFS_KEY, nextRefs)
+  } catch (error) {
+    try {
+      writeJson(PROJECTS_KEY, prevProjects)
+      writeJson(PROJECT_REFS_KEY, prevRefs)
+    } catch (rollbackError) {
+      console.error('[research-project-storage] Failed to rollback deleteResearchProject:', rollbackError)
+    }
+    throw error
+  }
 }
 
 export function generateResearchProjectId(): string {
@@ -121,4 +134,3 @@ export function removeProjectEntityRef(
   )
   writeJson(PROJECT_REFS_KEY, nextRefs)
 }
-

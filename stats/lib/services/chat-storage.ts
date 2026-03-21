@@ -423,24 +423,39 @@ export class ChatStorage {
     name: string,
     options?: { description?: string; emoji?: string; color?: string }
   ): ChatProject {
-    const newProject: ChatProject = {
-      id: this.generateId(),
+    try {
+      const newProject: ChatProject = {
+        id: this.generateId(),
       name: name.trim() || '새 프로젝트',
-      description: options?.description,
-      emoji: options?.emoji,
-      color: options?.color,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      isArchived: false,
-      isFavorite: false,
+        description: options?.description,
+        emoji: options?.emoji,
+        color: options?.color,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        isArchived: false,
+        isFavorite: false,
+      }
+
+      saveResearchProject(toResearchProject(newProject))
+
+      try {
+        const projects = this.loadAllProjects()
+        projects.push(newProject)
+        this.saveAllProjects(projects)
+      } catch (error) {
+        try {
+          deleteResearchProject(newProject.id)
+        } catch (rollbackError) {
+          console.error('Failed to rollback research project creation:', rollbackError)
+        }
+        throw error
+      }
+
+      return newProject
+    } catch (error) {
+      console.error('Failed to create project:', error)
+      throw new Error('프로젝트 생성에 실패했습니다.')
     }
-
-    const projects = this.loadAllProjects()
-    projects.push(newProject)
-    this.saveAllProjects(projects)
-    saveResearchProject(toResearchProject(newProject))
-
-    return newProject
   }
 
   /**
@@ -465,18 +480,35 @@ export class ChatStorage {
   ): ChatProject | null {
     try {
       const projects = this.loadAllProjects()
-      const project = projects.find(p => p.id === projectId)
+      const projectIndex = projects.findIndex(p => p.id === projectId)
+      const project = projectIndex >= 0 ? projects[projectIndex] : undefined
 
       if (!project) {
         console.error('Project not found:', projectId)
         return null
       }
 
-      Object.assign(project, updates, { updatedAt: Date.now() })
-      this.saveAllProjects(projects)
-      saveResearchProject(toResearchProject(project))
+      const updatedProject: ChatProject = {
+        ...project,
+        ...updates,
+        updatedAt: Date.now(),
+      }
 
-      return project
+      saveResearchProject(toResearchProject(updatedProject))
+
+      try {
+        projects[projectIndex] = updatedProject
+        this.saveAllProjects(projects)
+      } catch (error) {
+        try {
+          saveResearchProject(toResearchProject(project))
+        } catch (rollbackError) {
+          console.error('Failed to rollback research project update:', rollbackError)
+        }
+        throw error
+      }
+
+      return updatedProject
     } catch (error) {
       console.error('Failed to update project:', error)
       return null
@@ -491,15 +523,26 @@ export class ChatStorage {
       // 1. 프로젝트 삭제
       const projects = this.loadAllProjects()
       const filtered = projects.filter(p => p.id !== projectId)
-      this.saveAllProjects(filtered)
-      deleteResearchProject(projectId)
-
-      // 2. 해당 프로젝트의 세션들 projectId 제거 (루트로 이동)
-      const sessions = this.loadAllSessions()
-      const updated = sessions.map(s =>
+      const previousSessions = this.loadAllSessions()
+      const nextSessions = previousSessions.map(s =>
         s.projectId === projectId ? { ...s, projectId: undefined } : s
       )
-      this.saveAllSessions(updated)
+
+      this.saveAllProjects(filtered)
+
+      try {
+        this.saveAllSessions(nextSessions)
+        deleteResearchProject(projectId)
+      } catch (error) {
+        try {
+          this.saveAllProjects(projects)
+          this.saveAllSessions(previousSessions)
+        } catch (rollbackError) {
+          console.error('Failed to rollback project deletion:', rollbackError)
+        }
+        throw error
+      }
+
     } catch (error) {
       console.error('Failed to delete project:', error)
       throw new Error('프로젝트 삭제에 실패했습니다.')
@@ -518,10 +561,28 @@ export class ChatStorage {
         throw new Error('Project not found')
       }
 
-      project.isArchived = !project.isArchived
-      project.updatedAt = Date.now()
-      this.saveAllProjects(projects)
-      saveResearchProject(toResearchProject(project))
+      const updatedProject: ChatProject = {
+        ...project,
+        isArchived: !project.isArchived,
+        updatedAt: Date.now(),
+      }
+
+      saveResearchProject(toResearchProject(updatedProject))
+
+      try {
+        const nextProjects = projects.map(existing =>
+          existing.id === projectId ? updatedProject : existing
+        )
+        this.saveAllProjects(nextProjects)
+      } catch (error) {
+        try {
+          saveResearchProject(toResearchProject(project))
+        } catch (rollbackError) {
+          console.error('Failed to rollback project archive toggle:', rollbackError)
+        }
+        throw error
+      }
+
     } catch (error) {
       console.error('Failed to toggle project archive:', error)
       throw new Error('프로젝트 보관 설정에 실패했습니다.')
@@ -540,10 +601,28 @@ export class ChatStorage {
         throw new Error('Project not found')
       }
 
-      project.isFavorite = !project.isFavorite
-      project.updatedAt = Date.now()
-      this.saveAllProjects(projects)
-      saveResearchProject(toResearchProject(project))
+      const updatedProject: ChatProject = {
+        ...project,
+        isFavorite: !project.isFavorite,
+        updatedAt: Date.now(),
+      }
+
+      saveResearchProject(toResearchProject(updatedProject))
+
+      try {
+        const nextProjects = projects.map(existing =>
+          existing.id === projectId ? updatedProject : existing
+        )
+        this.saveAllProjects(nextProjects)
+      } catch (error) {
+        try {
+          saveResearchProject(toResearchProject(project))
+        } catch (rollbackError) {
+          console.error('Failed to rollback project favorite toggle:', rollbackError)
+        }
+        throw error
+      }
+
     } catch (error) {
       console.error('Failed to toggle project favorite:', error)
       throw new Error('프로젝트 즐겨찾기 설정에 실패했습니다.')

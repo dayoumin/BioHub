@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef } from 'react'
 
 interface UseErrorRecoveryOptions {
   /** 최대 재시도 횟수 (기본 2) */

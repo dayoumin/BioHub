@@ -15,6 +15,7 @@ import type {
 } from '@/types/graph-studio';
 import { createChartSpecFromDataPackage } from '@/lib/graph-studio/chart-spec-utils';
 import {
+  deleteProject as deleteStoredProject,
   saveProject,
   generateProjectId,
 } from '@/lib/graph-studio/project-storage';
@@ -313,14 +314,28 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         updatedAt: now,
       };
 
-      saveProject(project);
-      if (project.projectId) {
-        upsertProjectEntityRef({
-          projectId: project.projectId,
-          entityKind: 'figure',
-          entityId: project.id,
-          label: project.name,
-        });
+      try {
+        saveProject(project);
+        if (project.projectId) {
+          upsertProjectEntityRef({
+            projectId: project.projectId,
+            entityKind: 'figure',
+            entityId: project.id,
+            label: project.name,
+          });
+        }
+      } catch (error) {
+        console.error('[GraphStudioStore] Failed to save linked project:', error);
+        try {
+          if (currentProject) {
+            saveProject(currentProject);
+          } else {
+            deleteStoredProject(project.id);
+          }
+        } catch (rollbackError) {
+          console.error('[GraphStudioStore] Failed to rollback linked project save:', rollbackError);
+        }
+        return null;
       }
       set({ currentProject: project });
       return projectId;
