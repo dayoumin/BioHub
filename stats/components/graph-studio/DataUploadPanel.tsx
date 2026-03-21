@@ -29,7 +29,11 @@ import { Button } from '@/components/ui/button';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion';
 import { inferColumnMeta } from '@/lib/graph-studio/chart-spec-utils';
+import { toast } from 'sonner';
 import { parseFile, parseText } from '@/lib/graph-studio/file-parser';
+import { getDataSizeLevel, getRowCount } from '@/lib/graph-studio/chart-data-guard';
+import { TOAST } from '@/lib/constants/toast-messages';
+import { LargeDataBlockDialog } from './LargeDataBlockDialog';
 import { listProjects } from '@/lib/graph-studio/project-storage';
 import { loadTemplates } from '@/lib/graph-studio/style-template-storage';
 import { CHART_TYPE_ICONS } from '@/lib/graph-studio/chart-icons';
@@ -130,6 +134,7 @@ export function DataUploadPanel(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingSampleId, setLoadingSampleId] = useState<string | null>(null);
+  const [blockedRowCount, setBlockedRowCount] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const prefersReducedMotion = useReducedMotion();
 
@@ -182,6 +187,20 @@ export function DataUploadPanel(): React.ReactElement {
     }
   }, [handleInlineSample, handleFetchSample]);
 
+  // ── 대용량 데이터 체크 (행 수 기반) ──────────────────────
+  const checkDataSize = useCallback((pkg: DataPackage): boolean => {
+    const rowCount = getRowCount(pkg.data);
+    const level = getDataSizeLevel(rowCount);
+    if (level === 'block') {
+      setBlockedRowCount(rowCount);
+      return false;
+    }
+    if (level === 'warn') {
+      toast.warning(TOAST.graphStudio.largeDataWarning(rowCount));
+    }
+    return true;
+  }, []);
+
   // ── 파일 처리 ──────────────────────────────────────────
   const handleFile = useCallback(
     async (file: File) => {
@@ -197,6 +216,7 @@ export function DataUploadPanel(): React.ReactElement {
           data,
           createdAt: new Date().toISOString(),
         };
+        if (!checkDataSize(pkg)) return;
         loadDataOnly(pkg);
       } catch (err) {
         setError(err instanceof Error ? err.message : '파일 파싱 실패');
@@ -204,7 +224,7 @@ export function DataUploadPanel(): React.ReactElement {
         setIsLoading(false);
       }
     },
-    [loadDataOnly],
+    [loadDataOnly, checkDataSize],
   );
 
   // ── 클립보드 붙여넣기 (F3) ─────────────────────────────
@@ -225,13 +245,14 @@ export function DataUploadPanel(): React.ReactElement {
         data,
         createdAt: new Date().toISOString(),
       };
+      if (!checkDataSize(pkg)) return;
       loadDataOnly(pkg);
     } catch (err) {
       setError(err instanceof Error ? err.message : '클립보드 데이터 파싱 실패');
     } finally {
       setIsLoading(false);
     }
-  }, [loadDataOnly]);
+  }, [loadDataOnly, checkDataSize]);
 
   // ── 최근 프로젝트 클릭 (F1) ────────────────────────────
   const handleProjectClick = useCallback((projectId: string) => {
@@ -464,6 +485,12 @@ export function DataUploadPanel(): React.ReactElement {
       )}
 
       </motion.div>
+
+      <LargeDataBlockDialog
+        open={blockedRowCount !== null}
+        onOpenChange={() => setBlockedRowCount(null)}
+        rowCount={blockedRowCount ?? 0}
+      />
     </div>
   );
 }

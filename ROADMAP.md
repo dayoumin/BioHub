@@ -895,10 +895,19 @@ npx wrangler pages deploy out --project-name=stats
    - 자동 업데이트 기능
    - 시스템 트레이 통합
 
-3. **성능 최적화**
+3. **대용량 데이터 처리 (웹 한계 극복)**
+   - 브라우저 메모리 제한(~4GB) 해제 → 시스템 RAM 전체 활용
+   - 네이티브 Python 런타임 (Pyodide 대신) → WASM 2GB 제한 없음
+   - 스트리밍 파일 파싱 (수백만 행 CSV/XLSX 청크 로드)
+   - 멀티스레드 계산 (Rust sidecar 또는 Python multiprocessing)
+   - RNA-seq, GWAS 등 50만행+ 데이터 직접 시각화 가능
+   - ECharts GL + 네이티브 GPU 가속 (WebGL 제한 없음)
+
+4. **성능 최적화**
    - 웹 버전보다 빠른 로딩
    - 메모리 효율적 관리
    - 백그라운드 계산 지원
+   - 대용량 파일 저장/내보내기 (디스크 직접 기록, Blob 메모리 복사 없음)
 
 **배포 크기**:
 - Windows: ~250MB (Pyodide 포함)
