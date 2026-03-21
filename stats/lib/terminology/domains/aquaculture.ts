@@ -822,6 +822,7 @@ export const aquaculture: TerminologyDictionary = {
       reinterpret: '다시 해석',
       retry: '다시 시도',
       defaultError: 'AI 해석 중 오류가 발생했습니다.',
+      retryExhausted: 'AI 해석을 불러올 수 없습니다. 위의 통계 수치와 차트만으로도 결과를 확인할 수 있습니다.',
     },
     sections: {
       detailedResults: '상세 결과',
@@ -865,6 +866,15 @@ export const aquaculture: TerminologyDictionary = {
       success: '저장되었습니다',
       errorTitle: '저장 실패',
       unknownError: '알 수 없는 오류',
+      projectDialog: {
+        title: '분석 저장 위치 선택',
+        description: '이 분석을 연구 프로젝트에 연결하거나, 단독으로 저장합니다.',
+        withoutProjectTitle: '프로젝트 없이 저장',
+        withoutProjectDescription: '히스토리에만 저장됩니다. 연구 프로젝트와 연결되지 않습니다.',
+        noDescription: '설명 없음',
+        noProjects: '활성 프로젝트가 없습니다. 프로젝트 없이 저장하거나, 먼저 프로젝트를 만들어주세요.',
+        saving: '저장 중...',
+      },
     },
     toast: {
       reanalyzeReady: '새 데이터를 업로드하세요',

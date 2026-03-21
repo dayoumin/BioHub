@@ -125,7 +125,7 @@ export function AiInterpretationCard({
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="text-sm">
-              AI 해석을 불러올 수 없습니다. 위의 통계 수치와 차트만으로도 결과를 확인할 수 있습니다.
+              {t.results.ai.retryExhausted}
             </AlertDescription>
           </Alert>
         ) : (
