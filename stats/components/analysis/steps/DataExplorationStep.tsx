@@ -117,8 +117,8 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     return { rows, rowIndices }
   }, [data, highlightedRows])
 
-  // 상세 분석 접이식 섹션 (Phase 1: EDA를 collapsible로 이동)
-  const [detailOpen, setDetailOpen] = useState(false)
+  // 상세 분석 섹션: 기술통계+분포는 EDA 핵심이므로 기본 펼침
+  const [detailOpen, setDetailOpen] = useState(true)
 
   // 수치형/범주형 변수 목록
   // ID로 감지된 컬럼은 시각화/분석에서 제외
@@ -217,13 +217,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     () => numericDistributions.reduce((sum, v) => sum + v.outlierCount, 0),
     [numericDistributions]
   )
-
-  // 데이터 변경 시: 이상치 있으면 상세 분석 자동 펼침
-  useEffect(() => {
-    if (numericDistributions.length === 0) return
-    const totalOutliers = numericDistributions.reduce((sum, v) => sum + v.outlierCount, 0)
-    if (totalOutliers > 0) setDetailOpen(true)
-  }, [numericDistributions])
 
   const formatStat = useCallback((value?: number, digits = 2) => {
     return value !== undefined && !Number.isNaN(value) ? value.toFixed(digits) : 'N/A'

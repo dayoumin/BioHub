@@ -164,7 +164,6 @@ vi.mock('@/components/ErrorBoundary', () => ({
 vi.mock('@/lib/services/data-validation-service', () => ({
   DataValidationService: {
     performValidation: vi.fn(() => ({ columnStats: [], rowCount: 0, isValid: true })),
-    performDetailedValidation: vi.fn()
   }
 }))
 
