@@ -2,7 +2,7 @@
 
 import { useMemo, useCallback } from 'react'
 import type { DataRow } from '@/types/analysis'
-import { calculateCorrelation, type CorrelationPair } from '@/components/analysis/steps/exploration/correlation-utils'
+import { calculateCorrelation, type CorrelationPair } from '@/lib/utils/correlation'
 
 interface UseCorrelationDataReturn {
   getPairedData: (var1: string, var2: string) => { x: number[]; y: number[] }

@@ -1,11 +1,4 @@
 /**
- * 정렬된 숫자 배열에서 분위수를 선형 보간으로 계산한다.
- * numpy default (inclusive) 방식과 동일.
- * @param sorted - 오름차순 정렬된 숫자 배열
- * @param p - 분위수 (0~1, 예: 0.25 = Q1)
- * @returns 분위수 값. 빈 배열이면 undefined
- */
-/**
  * 수치형 컬럼의 정규성 검정 결과 요약 (참고용 힌트)
  * ID 컬럼 제외, normality 결과가 있는 수치형 변수만 집계
  */
@@ -35,6 +28,13 @@ export function summarizeNormality(
   }
 }
 
+/**
+ * 정렬된 숫자 배열에서 분위수를 선형 보간으로 계산한다.
+ * numpy default (inclusive) 방식과 동일.
+ * @param sorted - 오름차순 정렬된 숫자 배열
+ * @param p - 분위수 (0~1, 예: 0.25 = Q1)
+ * @returns 분위수 값. 빈 배열이면 undefined
+ */
 export function getPercentile(sorted: number[], p: number): number | undefined {
   if (sorted.length === 0) return undefined
   const idx = p * (sorted.length - 1)

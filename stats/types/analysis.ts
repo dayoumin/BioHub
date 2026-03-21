@@ -621,6 +621,15 @@ export interface DataRow {
   [columnName: string]: string | number | null | undefined
 }
 
+/** IQR 기반 이상치 정보 (OutlierDetailPanel, useDescriptiveStats에서 사용) */
+export interface OutlierInfo {
+  value: number
+  /** 원본 데이터에서의 행 번호 (1-indexed) */
+  rowIndex: number
+  /** 극단 이상치 여부 (3.0 IQR 기준) */
+  isExtreme?: boolean
+}
+
 export interface AnalysisState {
   currentStep: number
   completedSteps: number[]

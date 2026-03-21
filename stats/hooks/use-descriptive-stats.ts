@@ -1,8 +1,7 @@
 'use client'
 
 import { useMemo, useCallback } from 'react'
-import type { ValidationResults, DataRow, ColumnStatistics } from '@/types/analysis'
-import type { OutlierInfo } from '@/components/common/analysis/OutlierDetailPanel'
+import type { ValidationResults, DataRow, ColumnStatistics, OutlierInfo } from '@/types/analysis'
 import { getPercentile, summarizeNormality } from '@/lib/utils/stats-math'
 
 export interface NumericDistribution extends ColumnStatistics {

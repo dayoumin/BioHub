@@ -33,14 +33,9 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export interface OutlierInfo {
-  /** 이상치 값 */
-  value: number
-  /** 원본 데이터에서의 행 번호 (1-indexed) */
-  rowIndex: number
-  /** 극단 이상치 여부 (3.0 IQR 기준) */
-  isExtreme?: boolean
-}
+import type { OutlierInfo } from '@/types/analysis'
+// 기존 import 호환용 re-export
+export type { OutlierInfo }
 
 export interface OutlierDetailPanelProps {
   /** 모달 열림 상태 */
