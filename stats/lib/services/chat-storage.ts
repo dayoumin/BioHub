@@ -9,6 +9,26 @@
  */
 
 import type { ChatSession, ChatMessage, ChatSettings, ChatProject } from '@/lib/types/chat'
+import {
+  deleteResearchProject,
+  saveResearchProject,
+} from '@/lib/research/project-storage'
+import type { ResearchProject } from '@/lib/types/research'
+
+function toResearchProject(project: ChatProject): ResearchProject {
+  return {
+    id: project.id,
+    name: project.name,
+    description: project.description,
+    status: project.isArchived ? 'archived' : 'active',
+    presentation: {
+      emoji: project.emoji,
+      color: project.color,
+    },
+    createdAt: new Date(project.createdAt).toISOString(),
+    updatedAt: new Date(project.updatedAt).toISOString(),
+  }
+}
 
 export class ChatStorage {
   private static readonly SESSIONS_KEY = 'rag-chat-sessions'
@@ -418,6 +438,7 @@ export class ChatStorage {
     const projects = this.loadAllProjects()
     projects.push(newProject)
     this.saveAllProjects(projects)
+    saveResearchProject(toResearchProject(newProject))
 
     return newProject
   }
@@ -453,6 +474,7 @@ export class ChatStorage {
 
       Object.assign(project, updates, { updatedAt: Date.now() })
       this.saveAllProjects(projects)
+      saveResearchProject(toResearchProject(project))
 
       return project
     } catch (error) {
@@ -470,6 +492,7 @@ export class ChatStorage {
       const projects = this.loadAllProjects()
       const filtered = projects.filter(p => p.id !== projectId)
       this.saveAllProjects(filtered)
+      deleteResearchProject(projectId)
 
       // 2. 해당 프로젝트의 세션들 projectId 제거 (루트로 이동)
       const sessions = this.loadAllSessions()
@@ -498,6 +521,7 @@ export class ChatStorage {
       project.isArchived = !project.isArchived
       project.updatedAt = Date.now()
       this.saveAllProjects(projects)
+      saveResearchProject(toResearchProject(project))
     } catch (error) {
       console.error('Failed to toggle project archive:', error)
       throw new Error('프로젝트 보관 설정에 실패했습니다.')
@@ -519,6 +543,7 @@ export class ChatStorage {
       project.isFavorite = !project.isFavorite
       project.updatedAt = Date.now()
       this.saveAllProjects(projects)
+      saveResearchProject(toResearchProject(project))
     } catch (error) {
       console.error('Failed to toggle project favorite:', error)
       throw new Error('프로젝트 즐겨찾기 설정에 실패했습니다.')

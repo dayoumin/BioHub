@@ -291,6 +291,7 @@ export const dataPackageSchema = z.object({
   label: z.string().min(1),
   columns: z.array(columnMetaSchema).min(1),
   data: z.record(z.string(), z.array(z.unknown())),
+  projectId: z.string().optional(),
   analysisContext: analysisContextSchema.optional(),
   analysisResultId: z.string().optional(),
   createdAt: z.string().datetime(),

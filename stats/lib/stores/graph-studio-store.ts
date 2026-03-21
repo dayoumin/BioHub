@@ -18,6 +18,7 @@ import {
   saveProject,
   generateProjectId,
 } from '@/lib/graph-studio/project-storage';
+import { upsertProjectEntityRef } from '@/lib/research/project-storage';
 
 /** AI 채팅 localStorage 키 (use-ai-chat.ts의 CHAT_STORAGE_KEY와 동일) */
 const AI_CHAT_STORAGE_KEY = 'graph_studio_ai_chat';
@@ -303,6 +304,8 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       const project: GraphProject = {
         id: projectId,
         name,
+        projectId: currentProject?.projectId ?? dataPackage?.projectId,
+        analysisId: currentProject?.analysisId ?? dataPackage?.analysisResultId,
         chartSpec,
         dataPackageId: dataPackage?.id ?? '',
         editHistory: currentProject?.editHistory ?? [],
@@ -311,6 +314,14 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       };
 
       saveProject(project);
+      if (project.projectId) {
+        upsertProjectEntityRef({
+          projectId: project.projectId,
+          entityKind: 'figure',
+          entityId: project.id,
+          label: project.name,
+        });
+      }
       set({ currentProject: project });
       return projectId;
     },

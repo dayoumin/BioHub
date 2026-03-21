@@ -361,6 +361,8 @@ export interface DataPackage {
   label: string;
   columns: ColumnMeta[];
   data: Record<string, unknown[]>;
+  /** 상위 연구 프로젝트 연결용. */
+  projectId?: string;
   /** 분석 맥락 — 생산자가 "무슨 분석을 했는가"를 기술 */
   analysisContext?: AnalysisContext;
   /** Smart Flow 히스토리 원본 참조 ID (논문 도구 역참조용) */
@@ -373,6 +375,10 @@ export interface DataPackage {
 export interface GraphProject {
   id: string;
   name: string;
+  /** 상위 연구 프로젝트 연결용. 미연결 상태 허용. */
+  projectId?: string;
+  /** 이 차트가 어떤 분석에서 파생되었는지 추적용. */
+  analysisId?: string;
   chartSpec: ChartSpec;
   dataPackageId: string;
   editHistory: AiEditResponse[];

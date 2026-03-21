@@ -1,271 +1,359 @@
-# 📋 통계 분석 플랫폼 로드맵
+# BioHub Roadmap
 
-**프로젝트**: 전문가급 통계 분석 플랫폼 (SPSS/R Studio 급)
-**목표**: 웹버전 (Vercel) + 로컬버전 (오프라인 HTML)
-**기술**: Next.js 15 + TypeScript + Pyodide + Ollama (RAG)
-
----
-
-## 🎯 전체 개요
-
-```
-Phase 1-4: 핵심 기능 구축 (2025-09 ~ 10)
-Phase 5: Registry + 성능 최적화 (2025-10 ~)
-Phase 6+: 고도화 (예정)
-```
+**Last updated**: 2026-03-21
+**References**: [Platform Vision](docs/PLATFORM_VISION.md), [Product Strategy](docs/PRODUCT_STRATEGY.md), [Research Project Status](docs/RESEARCH_PROJECT_STATUS.md)
 
 ---
 
-## ✅ 완료된 Phase
+## 1. Roadmap role
 
-### Phase 1: 기반 구축 (2025-09-11 ~ 09-26) ✅
+This document is the medium-term delivery plan for BioHub.
 
-**목표**: Next.js 15 + shadcn/ui 프로젝트 구축
+It should answer:
 
-**성과**:
-- ✅ Next.js 15 + TypeScript 환경 구성
-- ✅ shadcn/ui + Tailwind CSS 통합
-- ✅ 38개 통계 페이지 100% 구현
-- ✅ 스마트 분석 플로우 (파일 업로드 → 검증 → 분석 → 결과)
-- ✅ 4단계 워크플로우 UI (방법론 소개 → 데이터 → 변수 선택 → 결과)
+- what product capabilities are being built next
+- what order they should be built in
+- what depends on what
 
-**핵심 산출물**:
-- `app/(dashboard)/statistics/` - 38개 통계 페이지
-- `components/StatisticsPageLayout.tsx` - 4단계 마법사
-- `components/smart-flow/` - 스마트 분석 플로우
+It should not become:
 
----
+- a long historical dev log
+- a scratchpad backlog
+- a strategy document
 
-### Phase 2: 통계 엔진 리팩토링 (2025-10-01) ✅
-
-**목표**: 2,488줄 Switch 문 → 112줄 라우터 기반 (95.5% 감소)
-
-**성과**:
-- ✅ 50/50 메서드 (100% 완료)
-- ✅ 16개 핸들러 파일 (6,651줄)
-- ✅ 27개 테스트 100% 통과
-- ✅ 코드 리뷰 평균 97.5/100점
-
-**핵심 산출물**:
-- `lib/statistics/method-router.ts` (112줄) - 라우터
-- `lib/statistics/calculator-handlers/` - 16개 핸들러 파일
-- `lib/statistics/calculator-types.ts` - 타입 정의
-
-**문서**:
-- [phase2-complete.md](stats/docs/phase2-complete.md)
+Use `TODO.md` for active execution items.
 
 ---
 
-### Phase 3: Pyodide Python 구현 (2025-10-01) ✅
+## 2. Product north star
 
-**목표**: Groups 5-6 고급 통계 메서드 9개 Python 구현 완료
+BioHub is becoming a:
 
-**성과**:
-- ✅ pyodide-statistics.ts (2,518 → 3,434줄, +916줄)
-- ✅ 9개 Python 메서드 (936줄)
-- ✅ 17개 통합 테스트 100% 통과
-- ✅ **50/50 메서드 Python 구현 완료**
+**trusted research workflow platform for biology and marine research**
 
-**핵심 산출물**:
-- `lib/services/pyodide-statistics.ts` (3,434줄) - 50개 Python 메서드
+The product chain to optimize is:
 
-**문서**:
-- [phase3-complete.md](stats/docs/phase3-complete.md)
+**data -> validated analysis -> explainable interpretation -> domain verification -> reviewer-ready output**
 
 ---
 
-### Phase 4-1: Pyodide 런타임 테스트 (2025-10-02) ✅
+## 3. Current product baseline
 
-**목표**: Pyodide 런타임 검증 및 성능 측정
+Already strong:
 
-**성과**:
-- ✅ E2E 테스트 3/3 통과 (100%)
-- ✅ 30개 Python 메서드 import 문제 해결
-- ✅ 싱글톤 패턴 44배 성능 개선 검증 (11.8초 → 0.27초)
-- ✅ Pyodide + NumPy + SciPy 브라우저 작동 확인
+- Smart Flow analysis workflow
+- Graph Studio foundation
+- AI interpretation and follow-up Q&A
+- history and project-related UI groundwork
+- paper draft groundwork
+- species validation direction and external domain integration plans
 
-**성능 지표**:
-- 첫 계산: 11.8초 (Pyodide 초기화 포함)
-- 두 번째 계산: 0.27초 (캐싱 활용)
-- 성능 개선: 97.7% (44배)
+Current weakness:
 
-**문서**:
-- [phase4-runtime-test-complete.md](stats/docs/phase4-runtime-test-complete.md)
+- project model is not yet unified across modules
+- trust and provenance are not productized enough
+- analysis, figures, domain outputs, and drafts are not yet fully linked
+- reviewer-ready workflow is incomplete
+- the user-facing project concept is not yet visible enough in navigation and module structure
 
----
-
-### Phase 5-1: Registry Pattern 구축 (2025-10-10) ✅
-
-**목표**: Registry Pattern + Groups 구조 완성
-
-**성과**:
-- ✅ method-metadata.ts: 60개 메서드 메타데이터 등록
-- ✅ Groups 6개 생성 (descriptive, hypothesis, regression, nonparametric, anova, advanced)
-- ✅ statistical-registry.ts: 동적 import 메커니즘 구현
-- ✅ pyodide-statistics.ts: 41개 메서드 Python 구현 완료
-
-**아키텍처**:
-```
-사용자 → Groups (TypeScript) → PyodideService → Python (SciPy/statsmodels)
-         ↓                       ↓
-    데이터 가공/검증         통계 계산 실행
-    UI 포맷팅               (Pyodide Worker)
-```
-
-**핵심 산출물**:
-- `lib/statistics/registry/method-metadata.ts` (60개)
-- `lib/statistics/registry/statistical-registry.ts`
-- `lib/statistics/groups/` (6개 그룹 파일)
-
-**문서**:
-- [phase5-architecture.md](stats/docs/phase5-architecture.md)
-- [phase5-implementation-plan.md](stats/docs/phase5-implementation-plan.md)
-- [phase5-migration-guide.md](stats/docs/phase5-migration-guide.md)
+This roadmap prioritizes those gaps first.
 
 ---
 
-## 🔄 진행 중인 Phase
+## 4. Roadmap streams
 
-### Phase 6: PyodideCore Direct Connection (2025-10-17) ✅
+### Stream 1. Trust and Reproducibility
 
-**목표**: PyodideStatistics Facade 제거 및 PyodideCore 직접 연결
+Goal:
 
-**성과**:
-- ✅ **아키텍처 단순화**: PyodideStatistics 2,110줄 완전 제거
-- ✅ **타입 안전성 강화**: Worker enum + 80+ 공통 타입
-- ✅ **10개 핸들러 100% 변환**: 39개 메서드 (descriptive, hypothesis-tests, anova, nonparametric, regression, crosstab, proportion-test, reliability, hypothesis, **advanced**)
-- ✅ **TypeScript 컴파일 에러 0개**
-- ✅ **코드 품질**: 4.9/5
+Make every important result inspectable, explainable, and reproducible.
 
-**핵심 산출물**:
-- `lib/services/pyodide/core/pyodide-worker.enum.ts` (97줄) - Worker enum
-- `types/pyodide-results.ts` (500+줄) - 100+ 공통 타입
-- `lib/statistics/calculator-handlers/*.ts` (10개 핸들러 변환)
+Includes:
 
-**아키텍처 변경**:
-```
-Before: Groups → PyodideStatistics (Facade) → PyodideCore → Python Workers
-After:  Groups → PyodideCore → Python Workers (10-15% 성능 향상)
-```
+- provenance metadata for AI outputs
+- method rationale and statistical context
+- source metadata for external domain data
+- reproducible R/Python code generation
+- reviewer-facing explanation exports
 
-**문서**:
-- [CODE_REVIEW_PHASE6_2025-10-17.md](docs/CODE_REVIEW_PHASE6_2025-10-17.md) - 상세 코드 리뷰
+### Stream 2. Project-Centered Workflow
 
----
+Goal:
 
-### Phase 5-2: 구현 검증 및 TypeScript 래퍼 추가 (보류)
+Make project the main operating unit across the platform.
 
-**목표**: Python Worker 구현 100% TypeScript 래퍼 완성
+Includes:
 
-**정확한 현황** (2025-10-15 검증):
-- ✅ **Python Worker 함수**: 55개 (100% 완성)
-- ✅ **TypeScript 메서드**: 76개 (별칭 포함)
-- ✅ **완전 매칭**: 43개 (78%)
-- ⚠️ **TypeScript 래퍼 필요**: 12개 (22%)
+- shared `ResearchProject` model
+- project as the top-level research unit, above individual pages and tools
+- links between chat, analysis, figure, and draft
+- project history and context continuity
+- project context propagation across pages
+- project-level organization and export
 
-**작업 내용**:
-1. ✅ 실제 파일 검증 스크립트 작성 (generate-complete-mapping.js)
-2. ✅ 정확한 매핑 테이블 생성 (implementation-status.md)
-3. 🔄 TypeScript 래퍼 12개 추가
-4. ✅ 문서 전면 업데이트
+### Stream 3. Domain Intelligence
 
-**TypeScript 래퍼 추가 필요 (12개)** - 모두 Worker 4:
-| # | Python 함수 | TypeScript 메서드 | 우선순위 |
-|---|-------------|------------------|---------|
-| 1 | linear_regression | linearRegression | High |
-| 2 | pca_analysis | pcaAnalysis | High |
-| 3 | curve_estimation | curveEstimation | High |
-| 4 | binary_logistic | binaryLogistic | High |
-| 5 | nonlinear_regression | nonlinearRegression | Medium |
-| 6 | stepwise_regression | stepwiseRegression | Medium |
-| 7 | multinomial_logistic | multinomialLogistic | Medium |
-| 8 | ordinal_logistic | ordinalLogistic | Medium |
-| 9 | probit_regression | probitRegression | Medium |
-| 10 | poisson_regression | poissonRegression | Medium |
-| 11 | durbin_watson_test | durbinWatsonTest | Medium |
-| 12 | negative_binomial_regression | negativeBinomialRegression | Low |
+Goal:
 
-**최종 목표**:
-- 현재: 43/55 (78%)
-- 목표: 55/55 (100%)
-- 예상 시간: 3시간
+Build the moat where generic AI tools are weak.
 
-**문서** (✅ 최신):
-- **[implementation-status.md](docs/implementation-status.md)** ⭐ 정확한 매핑 테이블
-- [complete-mapping.json](stats/complete-mapping.json) - 기계 판독용
-- [generate-complete-mapping.js](stats/generate-complete-mapping.js) - 검증 스크립트
+Includes:
 
----
+- scientific name validation
+- legal/protected status records
+- source-aware domain outputs
+- future WoRMS / GBIF / OBIS / CITES / CMS integrations
 
-## ⏳ 예정된 Phase
+### Stream 4. Reviewer-Ready Manuscript Workflow
 
-### Phase 5-3: Worker Pool 통합 (🔜 준비 완료, 시작 대기 중)
+Goal:
 
-**목표**: 2+2 Adaptive Worker Pool 구축
+Help researchers move from analysis to defensible submission materials.
 
-**기대 효과**:
-- 초기 로딩: 83% 빠름 (3초 → 0.5초)
-- 첫 계산: 74% 빠름 (11.8초 → 3초)
-- UI 블로킹: 100% 제거 (11.8초 → 0초)
-- 병렬 처리: 89% 빠름 (35.4초 → 3.8초)
+Includes:
 
-**작업 내용**:
-1. AdaptiveWorkerPool 클래스 구현
-2. Worker별 Pyodide 인스턴스 최적화
-3. Worker 메시지 프로토콜 정의
-4. 20분 미사용 시 확장 Worker 종료 로직
+- multi-analysis draft assembly
+- figure and table linkage
+- methods and reporting checklist
+- reviewer checklist and simulation
+- journal format adaptation and fit review
 
-**Worker 매핑**:
-- Worker 1: Descriptive (10개)
-- Worker 2: Hypothesis (8개)
-- Worker 3: Nonparametric + ANOVA (18개)
-- Worker 4: Regression + Advanced (24개)
+### Stream 5. Research Copilot
 
-**✅ 사전 준비 완료 (2025-10-29)**:
-- ✅ Worker 환경 검증 시스템 ([WORKER_ENVIRONMENT_VERIFICATION.md](docs/WORKER_ENVIRONMENT_VERIFICATION.md))
-- ✅ 성능 회귀 테스트 시스템 ([PERFORMANCE_REGRESSION_TESTING.md](docs/PERFORMANCE_REGRESSION_TESTING.md))
-- ✅ CI/CD 자동화 (GitHub Actions)
-- ✅ Phase 5-3 준비 가이드 ([phase5-3-readiness-guide.md](docs/planning/phase5-3-readiness-guide.md))
-- ✅ Phase 5-3 체크리스트 ([phase5-3-checklist.md](docs/planning/phase5-3-checklist.md))
+Goal:
 
-**시작 조건**:
-- 현재 리팩토링 작업 완료
-- Git working directory clean
-- 성능 baseline 측정 완료
+Add higher-level research assistance after trust and workflow foundations are credible.
+
+Includes:
+
+- cross-analysis synthesis
+- next analysis suggestions
+- hypothesis and experiment suggestions
+- broader literature automation
 
 ---
 
-### Phase 6: 추가 메서드 구현 (예정)
+## 5. Horizon priorities
 
-**목표**: 나머지 통계 메서드 구현
+### Horizon 1. Foundation
 
-**대상 메서드**:
-- 우선순위 3-4: 약 20개 메서드
-- 수산과학 특화 기능
-- 고급 시각화
+Current focus. Must come first.
+
+Priority streams:
+
+- Stream 1. Trust and Reproducibility
+- Stream 2. Project-Centered Workflow
+- Stream 3. Domain Intelligence baseline
+
+Must deliver:
+
+- unified project model
+- evidence/provenance layer
+- reproducible code payloads
+- analysis-to-figure links
+- source-aware domain records
+
+### Horizon 2. Review Readiness
+
+Build after Horizon 1 is stable.
+
+Priority streams:
+
+- Stream 4. Reviewer-Ready Manuscript Workflow
+- Stream 3. Domain Intelligence expansion
+
+Must deliver:
+
+- project-level manuscript assembly
+- methods/reporting checklist
+- reviewer-facing review package
+- reviewer simulator
+- journal formatting and fit review
+
+### Horizon 3. Research Copilot
+
+Build only after Horizon 1 and 2 are credible.
+
+Priority streams:
+
+- Stream 5. Research Copilot
+
+Must deliver:
+
+- project-wide insight generation
+- follow-up experiment suggestions
+- cross-analysis synthesis
+- higher-level research ideation
 
 ---
 
-### Phase 7: 배포 환경 구성 (진행 중)
+## 6. Delivery phases
 
-**목표**: 웹버전 + 로컬버전 양방향 배포
+### Phase A. Unified Research Project
 
-#### 7-1. 웹버전 (Vercel 배포) ⭐ 우선
-**배포 URL**: https://stats-nifs.vercel.app (예정)
+Scope:
 
-**특징**:
-- ✅ CDN을 통한 Pyodide 로드 (빠른 초기 로딩)
-- ✅ 인터넷 연결 필수 (첫 방문 시)
-- ✅ Service Worker 캐싱 (두 번째 방문부터 오프라인 가능)
-- ⚠️ RAG 기능: 사용자 PC에 Ollama 설치 필요
+- define shared `ResearchProject` model
+- connect chat, analysis history, graph projects, and paper draft
+- establish shared ids for `projectId`, `analysisId`, and `figureId`
+- define when users are inside a project context versus standalone mode
+- add visible project entry points before deeper project-linked save UX
 
-**현재 상태** (2025-11-10 수정):
-- ✅ `next.config.ts`: `output: 'export'` (정적 HTML 생성)
-- ✅ Service Worker: Pyodide CDN 캐싱 (365일)
-- ✅ localhost 우회 로직 (Ollama 연결 지원)
-- ✅ `vercel.json`: rewrite 규칙 제거 (정적 export 최적화)
-- ✅ `/rag-test`: 프로덕션 환경 숨김 처리
-- ✅ `public/pyodide/`: .gitignore 추가 (800MB+)
+Exit criteria:
+
+- a user can organize work under one project
+- the project concept is visible enough that project-linked saving does not feel surprising
+- analyses and figures can be traced to the same project
+- draft generation can reference project-linked analyses
+
+### Phase B. Evidence and Provenance Layer
+
+Scope:
+
+- define `EvidenceRecord` or equivalent provenance schema
+- attach provenance to interpretation output
+- attach source metadata to species/legal status output
+- persist generation metadata for major outputs
+- add reproducible code generation
+
+Exit criteria:
+
+- every AI-assisted result can show its basis
+- external domain outputs include source and checked date
+- reproducible code export exists for core analysis paths
+
+### Phase C. Reviewer-Ready Workflow
+
+Scope:
+
+- assemble manuscript sections from multiple analyses
+- link figures and tables into draft flow
+- add methods/reporting completeness checks
+- produce reviewer-oriented explanation bundles
+
+Exit criteria:
+
+- a project can produce a connected draft package
+- figures and tables are referenced from the project
+- review checklist exists at project level
+
+### Phase D. Domain Expansion
+
+Scope:
+
+- expand domain integrations
+- improve legal/protected status resolution
+- connect validation outputs into manuscript and review flows
+
+Exit criteria:
+
+- species and legal information are first-class project records
+- domain outputs can be cited or reviewed in downstream flows
+
+### Phase E. Research Copilot
+
+Scope:
+
+- cross-analysis reasoning
+- idea generation
+- follow-up experiment guidance
+- stronger literature-assisted synthesis
+
+Exit criteria:
+
+- project context can power higher-level research assistance
+- copilot features operate on grounded project history, not isolated prompts
+
+---
+
+## 7. Priority order
+
+Build in this order:
+
+1. Unified project model
+2. Evidence and provenance layer
+3. Reproducible code generation
+4. Analysis-figure-draft linkage
+5. Source-aware domain records
+6. Reviewer-ready checklist and package
+7. Reviewer simulator
+8. Journal fit and formatting review
+9. Research copilot
+
+---
+
+## 8. Not a current roadmap priority
+
+Do not prioritize now:
+
+- acceptance probability prediction
+- generic AI writing features without domain leverage
+- isolated chatbot features without project continuity
+- broad research ideation before provenance and workflow are stable
+
+---
+
+## 9. Dependency map
+
+### Foundation dependencies
+
+- reviewer workflow depends on unified project ids
+- reviewer workflow depends on evidence/provenance
+- research copilot depends on accumulated project context
+- domain intelligence value increases when outputs are linked into project and draft flows
+
+### Practical implication
+
+If a feature does not strengthen:
+
+- trust
+- project continuity
+- domain moat
+- reviewer-ready outputs
+
+then it should usually come after the current roadmap items.
+
+---
+
+## 10. Near-term roadmap focus
+
+### Now
+
+- project-centered workflow foundation
+- provenance and evidence schema
+- analysis-to-graph linkage
+- source-aware species/legal outputs
+- reproducible code generation design
+
+### Next
+
+- project-level paper assembly
+- review checklist
+- reviewer package export
+- reviewer simulator
+- journal fit and formatting review
+
+### Later
+
+- project-wide research insight generation
+- next experiment suggestions
+- advanced literature-assisted synthesis
+
+---
+
+## 11. Roadmap maintenance policy
+
+Update this file when:
+
+- product priorities shift
+- a roadmap phase is completed
+- a new stream becomes strategically important
+
+Do not use this file for:
+
+- detailed implementation tasks
+- commit logs
+- daily progress notes
 
 **배포 크기**: ~5 MB (Pyodide 제외)
 

@@ -6,6 +6,7 @@
 
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import type { ChatMessage } from '@/lib/types/chat'
+import type { EvidenceRecord } from '@/lib/types/research'
 import type { PaperDraft } from '@/lib/services/paper-draft/paper-types'
 
 /** LLM 추천 제공자 */
@@ -37,6 +38,7 @@ export interface HistoryRecord {
   id: string
   timestamp: number
   name: string
+  projectId?: string
 
   // === 분석 설정 ===
   purpose: string
@@ -81,6 +83,9 @@ export interface HistoryRecord {
 
   // === 논문 초안 ===
   paperDraft?: PaperDraft | null
+
+  // === 근거 / provenance ===
+  evidenceRecords?: EvidenceRecord[] | null
 
   // === 동기화 ===
   deviceId?: string

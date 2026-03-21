@@ -766,11 +766,16 @@ vi.mock('@/lib/stores/history-store', () => ({
 const mockConvert = vi.hoisted(() => vi.fn())
 const mockStreamFollowUp = vi.hoisted(() => vi.fn())
 const mockLoadDataPackageWithSpec = vi.hoisted(() => vi.fn())
+const mockListResearchProjects = vi.hoisted(() => vi.fn().mockReturnValue([]))
 
 // Graph Studio store mock
 vi.mock('@/lib/stores/graph-studio-store', () => ({
   useGraphStudioStore: (selector: (s: Record<string, unknown>) => unknown) =>
     selector({ loadDataPackageWithSpec: mockLoadDataPackageWithSpec, disconnectProject: vi.fn() }),
+}))
+
+vi.mock('@/lib/research/project-storage', () => ({
+  listResearchProjects: mockListResearchProjects,
 }))
 
 // Graph Studio utility mocks (handleOpenInGraphStudio 내부에서 사용)
@@ -815,6 +820,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
     mockStoreState = { ...defaultStoreState }
     mockModeStoreState = { ...defaultModeStoreState }
     mockHistoryStoreState = { ...defaultHistoryStoreState }
+    mockListResearchProjects.mockReturnValue([])
   })
 
   const baseResults: AnalysisResult = {
@@ -1579,6 +1585,63 @@ describe('Part 3: Phase 상태 머신 시뮬레이션', () => {
       expect(mockLoadDataPackageWithSpec).toHaveBeenCalledTimes(1)
       const pkg = mockLoadDataPackageWithSpec.mock.calls[0][0]
       expect(pkg.analysisResultId).toBeUndefined()
+    })
+  })
+
+  describe('Project save selection', () => {
+    beforeEach(() => {
+      mockConvert.mockReturnValue(statBase)
+      mockStoreState = { ...defaultStoreState }
+      mockModeStoreState = { ...defaultModeStoreState }
+      mockHistoryStoreState = { ...defaultHistoryStoreState }
+      mockHistoryStoreState.saveToHistory = vi.fn().mockResolvedValue(undefined)
+      mockListResearchProjects.mockReturnValue([
+        {
+          id: 'proj-1',
+          name: 'Marine Survey',
+          description: 'Field season 2026',
+          status: 'active',
+          createdAt: '2026-03-20T00:00:00.000Z',
+          updatedAt: '2026-03-21T00:00:00.000Z',
+        },
+      ])
+    })
+
+    it('활성 프로젝트가 있으면 저장 전에 프로젝트 선택 다이얼로그를 연다', async () => {
+      renderPhase(<ResultsActionStep results={baseResults} />)
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('save-history-btn'))
+      })
+
+      expect(await screen.findByTestId('project-save-dialog')).toBeInTheDocument()
+      expect(screen.getByText('Marine Survey')).toBeInTheDocument()
+      expect(mockHistoryStoreState.saveToHistory).not.toHaveBeenCalled()
+    })
+
+    it('선택한 프로젝트 id를 함께 저장한다', async () => {
+      renderPhase(<ResultsActionStep results={baseResults} />)
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('save-history-btn'))
+      })
+
+      const saveDialog = await screen.findByTestId('project-save-dialog')
+
+      await act(async () => {
+        fireEvent.click(screen.getByText('Marine Survey'))
+      })
+
+      await act(async () => {
+        fireEvent.click(within(saveDialog).getByRole('button', { name: 'Save' }))
+      })
+
+      expect(mockHistoryStoreState.saveToHistory).toHaveBeenCalledTimes(1)
+      expect(mockHistoryStoreState.saveToHistory).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(String),
+        expect.objectContaining({ projectId: 'proj-1' })
+      )
     })
   })
 })

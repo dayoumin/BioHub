@@ -23,6 +23,7 @@ import {
   syncHistoryRecord,
 } from '@/lib/utils/storage'
 import type { PaperDraft } from '@/lib/services/paper-draft/paper-types'
+import { removeProjectEntityRef, upsertProjectEntityRef } from '@/lib/research/project-storage'
 
 /**
  * 분석 히스토리 상태 관리
@@ -39,6 +40,7 @@ export interface AnalysisHistory {
   id: string
   timestamp: Date
   name: string
+  projectId?: string
   purpose: string
   method: {
     id: string
@@ -76,7 +78,13 @@ export interface HistoryState {
     /** 분석 상태 스냅샷 (analysis-store에서 전달) */
     snapshot: HistorySnapshot,
     name?: string,
-    metadata?: { aiInterpretation?: string | null; apaFormat?: string | null; interpretationChat?: ChatMessage[]; paperDraft?: PaperDraft | null }
+    metadata?: {
+      projectId?: string
+      aiInterpretation?: string | null
+      apaFormat?: string | null
+      interpretationChat?: ChatMessage[]
+      paperDraft?: PaperDraft | null
+    }
   ) => Promise<void>
   loadFromHistory: (historyId: string) => Promise<HistoryLoadResult | null>
   deleteFromHistory: (historyId: string) => Promise<void>
@@ -210,6 +218,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
       id: `analysis-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       timestamp: Date.now(),
       name: name || `분석 ${new Date().toLocaleString('ko-KR')}`,
+      projectId: metadata?.projectId,
       purpose: snapshot.analysisPurpose,
       method: snapshot.selectedMethod ? {
         id: snapshot.selectedMethod.id,
@@ -232,6 +241,14 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
 
     try {
       await saveHistory(record)
+      if (record.projectId) {
+        upsertProjectEntityRef({
+          projectId: record.projectId,
+          entityKind: 'analysis',
+          entityId: record.id,
+          label: record.name,
+        })
+      }
       const allHistory = await getAllHistory()
       set({
         analysisHistory: toAnalysisHistory(allHistory),
@@ -277,7 +294,11 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
   },
 
   deleteFromHistory: async (historyId) => {
+    const record = await getHistory(historyId)
     await deleteHistory(historyId)
+    if (record?.projectId) {
+      removeProjectEntityRef(record.projectId, 'analysis', historyId)
+    }
     const allHistory = await getAllHistory()
     set((state) => ({
       analysisHistory: toAnalysisHistory(allHistory),
@@ -303,7 +324,13 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
   },
 
   clearHistory: async () => {
+    const records = await getAllHistory()
     await clearAllHistory()
+    records.forEach((record) => {
+      if (record.projectId) {
+        removeProjectEntityRef(record.projectId, 'analysis', record.id)
+      }
+    })
     set({ analysisHistory: [], currentHistoryId: null })
   },
 
