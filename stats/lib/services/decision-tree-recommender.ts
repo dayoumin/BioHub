@@ -25,6 +25,7 @@ import type {
   VariableSelection
 } from '@/types/analysis'
 import { logger } from '@/lib/utils/logger'
+import { summarizeNormality } from '@/lib/utils/stats-math'
 import { KeywordBasedRecommender } from './keyword-based-recommender'
 import {
   getMethodByIdOrAlias
@@ -169,7 +170,7 @@ export class DecisionTreeRecommender {
     logger.warn('DecisionTree: No assumptionResults, using conservative approach', { purpose })
 
     // Step 1 정규성 검정 힌트 (참고용 — 확정 가정 검정이 아님)
-    const normalityHint = this.extractNormalityHint(validationResults)
+    const normalityHint = summarizeNormality(validationResults.columnStats ?? [])
     const hintLabel = normalityHint.available
       ? `정규성 힌트: ${normalityHint.normalCount}/${normalityHint.testedCount}개 변수 정규 (p>0.05)`
       : '정규성 검정 미완료'
@@ -941,32 +942,6 @@ export class DecisionTreeRecommender {
         : 'All categorical variables have < 2 or > 10 unique values'
     })
     return null
-  }
-
-  /**
-   * Step 1 정규성 검정 결과 요약 (참고용 힌트 — 확정 가정 검정이 아님)
-   * ID 컬럼 제외, normality 결과가 있는 수치형 변수만 집계
-   */
-  private static extractNormalityHint(validationResults: ValidationResults): {
-    available: boolean
-    testedCount: number
-    normalCount: number
-    mostlyNormal: boolean
-  } {
-    const cols = validationResults.columnStats ?? []
-    const tested = cols.filter(c =>
-      c.type === 'numeric' && !c.idDetection?.isId && c.normality !== undefined
-    )
-    if (tested.length === 0) {
-      return { available: false, testedCount: 0, normalCount: 0, mostlyNormal: false }
-    }
-    const normalCount = tested.filter(c => c.normality!.isNormal).length
-    return {
-      available: true,
-      testedCount: tested.length,
-      normalCount,
-      mostlyNormal: normalCount > tested.length / 2
-    }
   }
 
   /**

@@ -3,7 +3,7 @@
 import { useMemo, useCallback } from 'react'
 import type { ValidationResults, DataRow, ColumnStatistics } from '@/types/analysis'
 import type { OutlierInfo } from '@/components/common/analysis/OutlierDetailPanel'
-import { getPercentile } from '@/lib/utils/stats-math'
+import { getPercentile, summarizeNormality } from '@/lib/utils/stats-math'
 
 export interface NumericDistribution extends ColumnStatistics {
   n: number
@@ -136,14 +136,13 @@ export function useDescriptiveStats(
 
   // 정규성 결과 기반 권장 분석 유형 (참고용 — 확정 가정 검정은 Step 4에서 수행)
   const recommendedType = useMemo((): 'parametric' | 'nonparametric' => {
-    const withNormality = numericDistributions.filter(d => d.normality !== undefined)
-    if (withNormality.length === 0) {
+    const hint = summarizeNormality(numericDistributions)
+    if (!hint.available) {
       // 정규성 결과 없으면 표본 크기 폴백
       return numericDistributions.length > 0 && numericDistributions[0].n >= 30
         ? 'parametric' : 'nonparametric'
     }
-    const normalCount = withNormality.filter(d => d.normality!.isNormal).length
-    return normalCount > withNormality.length / 2 ? 'parametric' : 'nonparametric'
+    return hint.mostlyNormal ? 'parametric' : 'nonparametric'
   }, [numericDistributions])
 
   const formatStat = useCallback((value?: number, digits = 2): string => {
