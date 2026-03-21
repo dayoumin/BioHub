@@ -104,7 +104,7 @@ pnpm setup:pyodide   # Pyodide 다운로드 (200MB, 오프라인용)
 - **현재**: Next.js static export (`stats/out/`) → Pages 정적 배포
 - **전환 예정**: Workers 기반 동적 배포 (D1/R2/KV 추가) — Phase 16
   - 정적 배포는 일부 기능만 별도로 유지 예정
-  - 상세: [PLAN-CLOUDFLARE-BACKEND.md](study/PLAN-CLOUDFLARE-BACKEND.md)
+  - 상세: [PLAN-CLOUDFLARE-BACKEND.md](docs/PLAN-CLOUDFLARE-BACKEND.md)
 - **Workers 제한**: 10만 req/일 무료 포함, CPU 10ms/req (유료 50ms)
 - **번들**: Pages 정적 파일 용량 제한 없음. 초기 로드 성능 고려
 - **Pyodide**: 동적 로드 (초기 번들 미포함), scipy/numpy ~15MB

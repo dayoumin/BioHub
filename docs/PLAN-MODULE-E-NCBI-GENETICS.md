@@ -56,6 +56,8 @@
 
 ### E-0. DNA 바코딩 종 동정 (신규 추가)
 
+> **참고 자료**: [genetic-identification/REFERENCE-E0-BARCODING-SERVICE.md](genetic-identification/REFERENCE-E0-BARCODING-SERVICE.md) — 시장 분석, COI 실패 대응 엔진, 캐싱/rate limit 아키텍처, 상용화 비용
+
 - **사용 맥락**: 서열 1개 입력 → 참조 DB 비교 → 종 동정
 - **최근 현황**: 수산물 원산지/종 위변조 검사 표준. 계통분류 1차 스크리닝
 - **지원 마커**:
@@ -87,6 +89,36 @@
                                                   │
                                         [Module A 연동]─→ WoRMS/FishBase 종 상세 정보
 ```
+
+#### Marker Recommendation Engine — 데이터 스키마
+
+> **데이터 출처**: [genetic-identification/02-taxa-guide.md](genetic-identification/02-taxa-guide.md) 요약 매트릭스
+
+**TypeScript 인터페이스** (구현 시 사용):
+
+```typescript
+interface SpeciesMarkerRecord {
+  taxonName: string;            // "Thunnus" | "Amphibia" | "Insecta"
+  rank: "species" | "genus" | "family" | "order" | "class";
+  primaryMarker: string;        // "CR" | "COI" | "COI+16S"
+  secondaryMarkers: string[];   // ["ITS1", "Cyt b"]
+  coiResolution: number;        // 0.0~1.0 — 서열 확보 후 종 해상도 (barcode gap 기반)
+  coiAmplification: number;     // 0.0~1.0 — 프라이머 증폭/시퀀싱 성공률
+  coiFailureReason: string;     // "" (신뢰 시) | "최근 진화 + mtDNA introgression"
+  thresholds: {
+    species: number;            // 0.97 (일반) | 0.90 (양서류)
+    genus: number;              // 0.90
+  };
+  ednaMarker: string;           // "12S" | "COI" | "12S+16S"
+  degradedMarker: string;       // "mini-COI" | "Cyt b 단편"
+}
+// coiResolution: "깨끗한 서열을 얻었을 때 종 구분이 되는가?"
+// coiAmplification: "프라이머로 서열을 얻을 수 있는가?"
+// Decision Engine은 둘 다 참조: 증폭 실패 → 프라이머 문제 안내, 해상도 낮음 → 대안 마커 추천
+```
+
+**시드 데이터**: 구현 시 별도 파일로 작성 예정. 각 수치에 논문 출처(DOI)를 반드시 첨부할 것.
+정성적 참고 데이터는 [02-taxa-guide.md](genetic-identification/02-taxa-guide.md) 요약 매트릭스 참조.
 
 ---
 

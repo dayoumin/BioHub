@@ -130,7 +130,7 @@ Step 4: 외부 플랫폼 확장
 |------|------|
 | 계획 | 12개 생물학 분석, 5페이지 |
 | 구현 | 미시작 (Phase 4 예정) |
-| 상세 계획 | `stats/study/PLAN-BIO-STATISTICS-AUDIT.md` |
+| 상세 계획 | `docs/PLAN-BIO-STATISTICS-AUDIT.md` |
 
 ---
 
@@ -218,7 +218,7 @@ Step 4: 외부 플랫폼 확장
 | `/bio-tools/` 라우트 | 5개 페이지 구현 | 🔜 |
 | 테스트 | Golden Values 테스트 | 🔜 |
 
-상세 계획: `stats/study/PLAN-BIO-STATISTICS-AUDIT.md`
+상세 계획: `docs/PLAN-BIO-STATISTICS-AUDIT.md`
 
 ---
 

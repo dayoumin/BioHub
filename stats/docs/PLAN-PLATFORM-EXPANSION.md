@@ -178,4 +178,4 @@
 - **Graph Studio 경쟁 분석**: [graph-studio/GRAPH_STUDIO_COMPETITIVE_ANALYSIS.md](graph-studio/GRAPH_STUDIO_COMPETITIVE_ANALYSIS.md)
 - **기존 Paper Writer 계획**: [PLAN-PAPER-DRAFT-GENERATION.md](PLAN-PAPER-DRAFT-GENERATION.md)
 - **Paper Writer 아이디어 확장**: [IDEAS-PAPER-DRAFT-ENHANCEMENTS.md](IDEAS-PAPER-DRAFT-ENHANCEMENTS.md)
-- **Bio-Tools 상세**: [../../study/PLAN-BIO-STATISTICS-AUDIT.md](../../study/PLAN-BIO-STATISTICS-AUDIT.md)
+- **Bio-Tools 상세**: [../../docs/PLAN-BIO-STATISTICS-AUDIT.md](../../docs/PLAN-BIO-STATISTICS-AUDIT.md)

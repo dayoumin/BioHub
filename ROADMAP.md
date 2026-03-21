@@ -1266,9 +1266,9 @@ STATISTICS_EXAMPLES.oneWayAnova = {
 - `lib/services/openrouter-recommender.ts` — 추천 + 스트리밍 API
 - `lib/services/result-interpreter.ts` — 결과 해석 프롬프트 빌더
 - `components/smart-flow/steps/purpose/NaturalLanguageInput.tsx` — AI 입력 UI
-- `study/PLAN-LLM-ENHANCED-RECOMMENDATION.md` — 구현 계획 (Phase 1-3 + 부록)
+- `docs/PLAN-LLM-ENHANCED-RECOMMENDATION.md` — 구현 계획 (Phase 1-3 + 부록)
 
-**문서**: [PLAN-LLM-ENHANCED-RECOMMENDATION.md](study/PLAN-LLM-ENHANCED-RECOMMENDATION.md)
+**문서**: [PLAN-LLM-ENHANCED-RECOMMENDATION.md](docs/PLAN-LLM-ENHANCED-RECOMMENDATION.md)
 
 > 이전 Phase 13 (Rule-based Insights)은 LLM 기반 해석으로 대체됨.
 
@@ -1453,8 +1453,8 @@ Knowledge Graph가 필요한 경우는: 엔티티 5개+ 쿼리, 멀티홉 추론
 **목표**: 통계 분석 플랫폼을 생물학 연구자 올인원 도구로 확장
 **원칙**: 단순 AI wrapper가 아닌, 실제 계산/검증/가공 엔진
 **전략**: 빌드(핵심) + 연결+가공(외부 API) + 안함(기존 도구 충분)
-**상세 계획서**: [PLAN-BIORESEARCH-PLATFORM.md](study/PLAN-BIORESEARCH-PLATFORM.md)
-**Bio-Tools 검증 보고서**: [PLAN-BIO-STATISTICS-AUDIT.md](study/PLAN-BIO-STATISTICS-AUDIT.md)
+**상세 계획서**: [PLAN-BIORESEARCH-PLATFORM.md](docs/PLAN-BIORESEARCH-PLATFORM.md)
+**Bio-Tools 검증 보고서**: [PLAN-BIO-STATISTICS-AUDIT.md](docs/PLAN-BIO-STATISTICS-AUDIT.md)
 
 ### 아키텍처 결정 (2026-02-13)
 
@@ -1535,7 +1535,7 @@ Knowledge Graph가 필요한 경우는: 엔티티 5개+ 쿼리, 멀티홉 추론
 
 12개 생물학 분석을 `/bio-tools/` 5페이지로 구현. Pyodide 내장 패키지만 사용 (외부 의존 없음).
 
-**상세 계획**: [PLAN-BIO-STATISTICS-AUDIT.md](study/PLAN-BIO-STATISTICS-AUDIT.md)
+**상세 계획**: [PLAN-BIO-STATISTICS-AUDIT.md](docs/PLAN-BIO-STATISTICS-AUDIT.md)
 
 #### Phase 15-2: 종 정보 허브 — 2주
 
@@ -1573,7 +1573,7 @@ Knowledge Graph가 필요한 경우는: 엔티티 5개+ 쿼리, 멀티홉 추론
 
 #### Phase 15-5: NCBI 연결 + 개체군 유전학 — 2.5주
 
-**상세 계획서**: [PLAN-MODULE-E-NCBI-GENETICS.md](study/PLAN-MODULE-E-NCBI-GENETICS.md)
+**상세 계획서**: [PLAN-MODULE-E-NCBI-GENETICS.md](docs/PLAN-MODULE-E-NCBI-GENETICS.md)
 
 | 기능 | 시간 | 기술 |
 |------|------|------|
@@ -1619,7 +1619,7 @@ Knowledge Graph가 필요한 경우는: 엔티티 5개+ 쿼리, 멀티홉 추론
 **전략**: 어댑터 패턴으로 클라우드(Cloudflare) + 내부망(Docker) 양쪽 배포
 **브랜치**: `feature/cloudflare-backend` (별도 분기)
 **의존성**: Phase 10-0 (Cloudflare Pages 배포) + LLM 브랜치 머지 후
-**상세 계획서**: [PLAN-CLOUDFLARE-BACKEND.md](study/PLAN-CLOUDFLARE-BACKEND.md)
+**상세 계획서**: [PLAN-CLOUDFLARE-BACKEND.md](docs/PLAN-CLOUDFLARE-BACKEND.md)
 
 ### 배경
 
