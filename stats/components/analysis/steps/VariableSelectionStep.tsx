@@ -22,6 +22,7 @@ import { getSelectorType } from '@/lib/registry'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { validateVariableMapping } from '@/lib/statistics/variable-mapping'
 import type { VariableMapping, ColumnInfo } from '@/lib/statistics/variable-mapping'
+import { startPreemptiveAssumptions } from '@/lib/services/preemptive-assumption-service'
 import { useTerminology } from '@/hooks/use-terminology'
 import { CollapsibleSection } from '@/components/analysis/common'
 import { AnalysisOptionsSection } from '@/components/analysis/variable-selector/AnalysisOptions'
@@ -121,12 +122,17 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
       setVariableMapping(mapping)
     }
 
+    // 매핑 변경 시 Step 4 도달 전에 가정 검정 선행 실행
+    if (isMappingChanged && uploadedData) {
+      startPreemptiveAssumptions(mapping, uploadedData)
+    }
+
     if (onComplete) {
       onComplete()
     } else {
       goToNextStep()
     }
-  }, [selectedMethod, columnInfo, existingMapping, setVariableMapping, updateVariableMappingWithInvalidation, onComplete, goToNextStep])
+  }, [selectedMethod, columnInfo, existingMapping, uploadedData, setVariableMapping, updateVariableMappingWithInvalidation, onComplete, goToNextStep])
 
   const handleBack = useCallback(() => {
     if (onBack) {

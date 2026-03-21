@@ -11,10 +11,10 @@ import type { StatisticalExecutorResult as ExecutorResult } from '@/lib/services
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import { transformExecutorResult } from '@/lib/utils/result-transformer'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { awaitPreemptiveAssumptions, executeAssumptionTests } from '@/lib/services/preemptive-assumption-service'
 import { StepHeader, StatusIndicator, CollapsibleSection } from '@/components/analysis/common'
 import { logger } from '@/lib/utils/logger'
-import type { AnalysisExecutionStepProps, VariableMapping } from '@/types/analysis-navigation'
-import type { StatisticalAssumptions, DataRow } from '@/types/analysis'
+import type { AnalysisExecutionStepProps } from '@/types/analysis-navigation'
 import { useTerminology } from '@/hooks/use-terminology'
 
 // Stage IDs (순서 고정)
@@ -29,48 +29,6 @@ const STAGE_RANGES: Record<StageId, [number, number]> = {
   analysis: [50, 75],
   additional: [75, 90],
   finalize: [90, 100]
-}
-
-function buildAssumptionPayload(
-  mapping: VariableMapping | null,
-  data: DataRow[]
-): { values?: number[]; groups?: number[][]; testedVariable?: string } {
-  if (!mapping) return {}
-
-  const depVar =
-    (Array.isArray(mapping.dependentVar) ? mapping.dependentVar[0] : mapping.dependentVar) ??
-    (Array.isArray(mapping.variables) ? mapping.variables[0] : mapping.variables?.[0])
-
-  if (!depVar) return {}
-
-  const values = data
-    .map(r => parseFloat(String(r[depVar])))
-    .filter(v => !isNaN(v))
-
-  if (values.length < 3) return {}
-
-  const result: { values: number[]; groups?: number[][]; testedVariable: string } = {
-    values,
-    testedVariable: depVar
-  }
-
-  // groupVar가 "A,B" 같은 복합 요인(2-way/3-way ANOVA)이면 등분산성 검정 스킵
-  // r["A,B"]는 항상 undefined → 그룹 분리 불가
-  if (mapping.groupVar && !mapping.groupVar.includes(',')) {
-    const groupVar = mapping.groupVar
-    const uniqueGroups = [...new Set(data.map(r => r[groupVar]))]
-    const groups = uniqueGroups
-      .map(g => data
-        .filter(r => r[groupVar] === g)
-        .map(r => parseFloat(String(r[depVar])))
-        .filter(v => !isNaN(v))
-      )
-      .filter(g => g.length >= 3)
-
-    if (groups.length >= 2) result.groups = groups
-  }
-
-  return result
 }
 
 export function AnalysisExecutionStep({
@@ -190,29 +148,21 @@ export function AnalysisExecutionStep({
       setCompletedStages(prev => [...prev, 'preprocess'])
       updateStage('assumptions', 35)
 
-      // Stage 3: 가정 검정 — variableMapping 기반 (이전 결과 먼저 초기화)
-      setAssumptionResults(null)
-      const { values, groups, testedVariable } = buildAssumptionPayload(variableMapping, uploadedData)
-
-      if (values) {
+      // Stage 3: 가정 검정 — 선행 결과 우선, 없으면 직접 실행
+      {
         addLog(logs.normalityTestStart)
-        const rawResult = await pyodideStats.checkAllAssumptions({ values, groups })
-        const assumptionsResult: StatisticalAssumptions = {
-          ...rawResult,
-          testedVariable,
-          summary: rawResult.summary ? {
-            ...rawResult.summary,
-            // testError 시 판정 불가 → meetsAssumptions를 undefined로 두어 UI에서 "판정 불가" 처리
-            meetsAssumptions: rawResult.summary.testError
-              ? undefined
-              : rawResult.summary.canUseParametric,
-            recommendation: rawResult.summary.recommendations.at(-1) ?? ''
-          } : undefined
+        let assumptionResult = await awaitPreemptiveAssumptions()
+
+        if (assumptionResult) {
+          logger.info('선행 가정 검정 결과 사용', { testedVariable: assumptionResult.testedVariable })
+        } else if (variableMapping) {
+          assumptionResult = await executeAssumptionTests(variableMapping, uploadedData)
+          if (!assumptionResult) addLog(logs.assumptionSkipped)
+        } else {
+          addLog(logs.assumptionSkipped)
         }
-        setAssumptionResults(assumptionsResult)
-        logger.info('가정 검정 결과 저장 완료', { testedVariable })
-      } else {
-        addLog(logs.assumptionSkipped)
+
+        setAssumptionResults(assumptionResult)
       }
 
       if (cancelledRef.current) return
