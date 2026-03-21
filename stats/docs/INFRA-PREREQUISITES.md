@@ -22,21 +22,25 @@
 
 ```typescript
 // 사용 예시
-const { retry, retryCount, isExhausted, reset } = useErrorRecovery({ maxRetries: 2 })
+const { recordRetry, isExhausted, setError, reset } = useErrorRecovery({ maxRetries: 2 })
 
 // AI 해석 실패 시
-if (isExhausted) {
-  showFallbackInterpretation()  // 대안 표시
-} else {
-  retry(() => handleInterpretation())  // 재시도
+const handleError = async (error: Error) => {
+  setError(error.message)
+  if (isExhausted) {
+    showFallbackInterpretation()  // 대안 표시
+  } else if (recordRetry()) {
+    await handleInterpretation()  // 호출자가 직접 실행
+  }
 }
 ```
 
 ### 설계 포인트
+- **순수 카운터** — 실행 로직(fetch, stream, abort)은 호출자가 관리
+- `recordRetry()` — ref 기반 가드로 동기 연속 호출 시에도 정확한 차단
 - `maxRetries` 기본값 2 (프로젝트 전체 통일)
 - `isExhausted` 상태에서 대안 UI 표시는 각 컴포넌트가 결정
-- 컴포넌트 언마운트 시 자동 리셋
-- `raceWithTimeout` (이미 추출됨, `lib/utils/promise-utils.ts`)과 조합 가능
+- AbortController, raceWithTimeout 등은 각 기능 훅(useInterpretation 등)이 담당
 
 ---
 

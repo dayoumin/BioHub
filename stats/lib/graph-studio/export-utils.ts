@@ -4,6 +4,11 @@
  * ECharts instance.getDataURL() → 브라우저 다운로드
  * PNG: Canvas renderer + pixelRatio(DPI 환산) + pHYs DPI 메타데이터 주입
  * SVG: SVG renderer + getSvgDataURL()
+ *
+ * NOTE: ECharts만으로도 논문 수준 export 가능 (300 DPI, PDF, TIFF 등).
+ * matplotlib export는 별도 서비스(matplotlib-export.service.ts)로 제공되며,
+ * "불가능해서"가 아니라 SciencePlots 프리셋 등 "편의성" 때문에 추가된 것.
+ * 일반 저널 요구사항(300 DPI, TIFF/PDF, Arial)은 이 ECharts 유틸로 충분.
  */
 
 import type { EChartsType } from 'echarts';

@@ -21,6 +21,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
+import { focusRing } from '@/components/common'
 import { useTerminology } from '@/hooks/use-terminology'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 
@@ -144,7 +145,7 @@ export function QuickAnalysisPills({ onQuickAnalysis }: QuickAnalysisPillsProps)
               'border border-border bg-muted/50',
               'text-foreground/80 hover:text-primary hover:border-primary/40 hover:bg-primary/5',
               'transition-colors duration-150',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40'
+              focusRing
             )}
           >
             {method.name}

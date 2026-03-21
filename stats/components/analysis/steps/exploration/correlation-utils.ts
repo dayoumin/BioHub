@@ -15,8 +15,6 @@ export interface CorrelationPair {
   var2: string
   r: number
   r2: number
-  strength: string
-  color: string
 }
 
 /**

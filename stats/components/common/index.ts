@@ -21,6 +21,7 @@ export { VariableSelectorToggle } from './VariableSelectorToggle'
 
 // ===== 스타일 토큰 =====
 export {
+  focusRing,
   actionCardBase,
   recommendationCardBase,
   categoryCardBase,

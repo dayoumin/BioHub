@@ -5,6 +5,11 @@
  * ChartSpec + DataPackage → matplotlib → base64 이미지/문서 → 브라우저 다운로드.
  *
  * Lazy loading: matplotlib는 첫 export 시에만 로드 (~5초).
+ *
+ * NOTE: 이 서비스는 ECharts export의 "대체"가 아니라 "보완".
+ * ECharts(export-utils.ts)만으로도 논문 그래프 export 가능.
+ * matplotlib은 SciencePlots 저널 프리셋(nature, ieee 등) 편의성 때문에 추가.
+ * 대부분의 연구자는 ECharts export로 충분 — 이 서비스는 고급 옵션.
  */
 
 import type { ChartSpec, DataPackage } from '@/types/graph-studio';

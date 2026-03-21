@@ -7,6 +7,11 @@
 
 import { cn } from '@/lib/utils'
 
+// ===== Focus ring 표준 =====
+
+/** 표준 focus ring — 모든 인터랙티브 요소에 사용 */
+export const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40'
+
 // ===== 카드 스타일 =====
 
 /** 클릭 가능한 액션 카드 (아이콘 + 라벨 그리드용) */
@@ -14,7 +19,7 @@ export const actionCardBase = cn(
   'relative flex flex-col items-center justify-center gap-2 p-4 rounded-xl',
   'border border-border bg-card',
   'transition-all duration-200',
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+  focusRing,
   'hover:border-primary/50 hover:shadow-md',
   'group',
 )
@@ -34,7 +39,7 @@ export const categoryCardBase = cn(
   'flex items-center gap-3 p-4 rounded-xl',
   'border border-border bg-card',
   'transition-all duration-200',
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+  focusRing,
   'hover:border-primary/50 hover:shadow-sm',
   'cursor-pointer group',
 )
@@ -43,7 +48,7 @@ export const categoryCardBase = cn(
 export const selectableItemBase = cn(
   'p-3 rounded-lg border text-left',
   'transition-all duration-200',
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+  focusRing,
 )
 
 /** 호버 가능한 리스트 카드 (템플릿/히스토리 목록용) */
