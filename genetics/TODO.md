@@ -1,0 +1,68 @@
+# Genetics — 유전적 종 판별 TODO
+
+**레퍼런스**: [docs/genetic-identification/](../docs/genetic-identification/)
+**설계/UX**: [REFERENCE-E0-BARCODING-SERVICE.md](../docs/genetic-identification/REFERENCE-E0-BARCODING-SERVICE.md)
+**구현 계획**: [PLAN-MODULE-E-NCBI-GENETICS.md](../docs/PLAN-MODULE-E-NCBI-GENETICS.md)
+
+---
+
+## MVP (Phase 1)
+
+- [ ] 프로젝트 초기 설정 (Next.js 앱 또는 stats 공유 구조 결정)
+- [ ] 서열 입력 UI (textarea + 파일 업로드)
+  - [ ] 실시간 유효성 검사 (길이, 문자, N 비율)
+  - [ ] FASTA 형식 자동 보정
+  - [ ] 마커 선택 드롭다운 (COI 기본)
+- [ ] NCBI BLAST API 연동
+  - [ ] Workers 프록시 (`/api/ncbi-blast`)
+  - [ ] 초당 스로틀 (10초 간격)
+  - [ ] 비동기 워크플로우 (제출 → RID → 폴링 → 결과)
+- [ ] Turso 캐시
+  - [ ] 스키마 (md5(sequence) 키, 14일 TTL)
+  - [ ] 캐시 히트 시 즉시 반환 + "캐시됨" 뱃지
+  - [ ] "최신 결과로 다시 분석" 버튼
+- [ ] Decision Engine
+  - [ ] 4단계 결과 분류 (고신뢰/모호/저신뢰/실패)
+  - [ ] 색상 카드 UI (녹/노/주/빨)
+  - [ ] Top hits 테이블 (종명, 유사도%, accession)
+- [ ] 대기 상태 UX
+  - [ ] 프로그레스 바 (제출 → 처리 중 → 완료)
+  - [ ] 스로틀 카운트다운
+- [ ] "다음 행동" 버튼 (보고서 생성, 마커 추천, 종 상세정보)
+
+## Phase 2
+
+- [ ] 분류군 감지 → 맞춤 안내 카드
+  - [ ] Thunnus (참치): D-loop 권장
+  - [ ] Amphibia (양서류): 16S 병행 권장
+  - [ ] Bivalvia (이매패류): 핵 마커 필수
+  - [ ] Salmonidae (연어과): D-loop + microsatellite
+  - [ ] 가공 시료: 미니바코드 안내
+  - [ ] 저유사도: 서열 품질 체크 안내
+- [ ] EBI BLAST 자동 전환 (NCBI 실패 시)
+- [ ] 보고서 자동 생성
+  - [ ] 서열 품질 통계 (길이, GC%, N%)
+  - [ ] DB 검색 결과 표
+  - [ ] 종 할당 + 신뢰 수준
+  - [ ] 실패 시: 원인 + 대안 + 근거
+- [ ] Methods 문구 자동 생성 (논문 삽입용)
+
+## Phase 3 (고도화)
+
+- [ ] K2P 유전 거리 계산 (Pyodide)
+- [ ] NJ 계통수 시각화
+- [ ] 다중 마커 분석 지원
+- [ ] OpenAlex 논문 추천 연동
+- [ ] BOLD Portal API 메타데이터 조회 (BIN, voucher)
+- [ ] Tauri 데스크탑: 직접 API 호출 (CORS 우회, rate limit 분산)
+
+---
+
+## API 테스트 결과 (2026-03-22)
+
+| API | 상태 | 비고 |
+|-----|------|------|
+| NCBI BLAST | ✅ 작동 확인 | RID 제출 → 30초 → 결과 수신 |
+| EBI BLAST | ✅ 제출 확인 | 백업용 |
+| BOLD v3 | ✅ 아직 작동 | 폐지 예정 |
+| BOLD v5 ID Engine | ❌ REST API 없음 | 웹 UI만 |

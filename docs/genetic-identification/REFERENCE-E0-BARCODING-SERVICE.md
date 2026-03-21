@@ -76,10 +76,11 @@ BLAST 유사도(%)만 출력 → 사용자가 "이 결과로 뭘 해야 하지?"
 
 ## 2. 추가 기능 (구현 우선순위 순)
 
-### 2-1. BOLD ID Engine 병행 검색 (강력 추천)
+### 2-1. BOLD 데이터 병행 조회 (Phase 2)
 - BOLD는 NCBI보다 **바코딩 특화** (BIN 시스템, voucher 사진/수집지 정보)
-- REST API 무료: `https://v3.boldsystems.org/index.php/IDS_OpenIdEngine` 또는 XML API
-- NCBI + BOLD 결과 병렬 표시: "NCBI 99.2% vs BOLD BIN: BOLD:AAA1234"
+- **주의**: BOLD v5 ID Engine REST API 미공개 (2026.03 확인). v3 API 아직 작동하나 폐지 예정
+- NCBI BLAST 결과의 accession으로 BOLD Portal API에서 BIN/메타데이터 조회하는 방식으로 우회
+- 상세: [03-databases.md](03-databases.md) 섹션 1, 11
 
 ### 2-2. Top Hit 자동 부가정보 수집 (Entrez E-utilities)
 Accession 클릭 시 자동 수집:
