@@ -78,13 +78,14 @@ export function useDescriptiveStats(
       const sorted = [...values].sort((a, b) => a - b)
 
       const mean = col.mean ?? (n > 0 ? values.reduce((sum, v) => sum + v, 0) / n : undefined)
-      // 표본 표준편차 (n-1) — col.std가 있으면 그것을 우선 사용
+      // 모집단 표준편차 (/ n) — data-validation-service와 동일
       const std = col.std ?? (n > 1 && mean !== undefined
-        ? Math.sqrt(values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / (n - 1))
+        ? Math.sqrt(values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / n)
         : undefined)
 
-      const q1 = col.q1 ?? col.q25 ?? getPercentile(sorted, 0.25)
-      const q3 = col.q3 ?? col.q75 ?? getPercentile(sorted, 0.75)
+      // 항상 선형 보간(getPercentile) 사용 — col.q1은 인덱스 선택 방식이라 일관성을 위해 무시
+      const q1 = getPercentile(sorted, 0.25)
+      const q3 = getPercentile(sorted, 0.75)
       const median = col.median ?? getPercentile(sorted, 0.5)
       const min = col.min ?? (n > 0 ? sorted[0] : undefined)
       const max = col.max ?? (n > 0 ? sorted[sorted.length - 1] : undefined)
