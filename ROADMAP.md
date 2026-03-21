@@ -1483,7 +1483,9 @@ Knowledge Graph가 필요한 경우는: 엔티티 5개+ 쿼리, 멀티홉 추론
 | Figure caption 생성 | 1일 | 템플릿 |
 | 분석 히스토리 로그 (자동 저장) | 2일 | IndexedDB |
 
-#### Phase 15-5: NCBI 연결 + 개체군 유전학 — 2주
+#### Phase 15-5: NCBI 연결 + 개체군 유전학 — 2.5주
+
+**상세 계획서**: [PLAN-MODULE-E-NCBI-GENETICS.md](study/PLAN-MODULE-E-NCBI-GENETICS.md)
 
 | 기능 | 시간 | 기술 |
 |------|------|------|
