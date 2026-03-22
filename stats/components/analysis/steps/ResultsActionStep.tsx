@@ -17,7 +17,6 @@ import {
 import { EmptyState } from '@/components/common/EmptyState'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,7 +31,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { AnalysisResult } from '@/types/analysis'
@@ -57,7 +55,7 @@ import { useTerminology } from '@/hooks/use-terminology'
 import { logger } from '@/lib/utils/logger'
 import { useRouter } from 'next/navigation'
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
-import { listResearchProjects } from '@/lib/research/project-storage'
+import { useResearchProjectStore, selectActiveProject } from '@/lib/stores/research-project-store'
 import { toAnalysisContext, buildKmCurveColumns, buildRocCurveColumns } from '@/lib/graph-studio/analysis-adapter'
 import { inferColumnMeta, suggestChartType, selectXYFields, applyAnalysisContext } from '@/lib/graph-studio/chart-spec-utils'
 import { createDefaultChartSpec, CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults'
@@ -65,7 +63,6 @@ import type { DataPackage, ChartType } from '@/types/graph-studio'
 import type { KaplanMeierAnalysisResult, RocCurveAnalysisResult } from '@/lib/generated/method-types.generated'
 import { generatePaperDraft } from '@/lib/services/paper-draft'
 import type { PaperDraft, DiscussionState, DraftContext } from '@/lib/services/paper-draft'
-import type { ResearchProject } from '@/lib/types/research'
 import { DraftContextEditor } from './DraftContextEditor'
 import dynamic from 'next/dynamic'
 
@@ -76,8 +73,6 @@ const PaperDraftPanel = dynamic(() => import('./PaperDraftPanel').then(m => ({ d
 interface ResultsActionStepProps {
   results: AnalysisResult | null
 }
-
-const NO_PROJECT_SAVE_ID = '__no-project__'
 
 export function ResultsActionStep({ results }: ResultsActionStepProps) {
   // Terminology System
@@ -96,10 +91,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
   const [detailedResultsOpen, setDetailedResultsOpen] = useState(false)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
-  const [projectSaveDialogOpen, setProjectSaveDialogOpen] = useState(false)
-  const [availableProjects, setAvailableProjects] = useState<ResearchProject[]>([])
-  const [selectedSaveProjectId, setSelectedSaveProjectId] = useState(NO_PROJECT_SAVE_ID)
   const [isSavingToHistory, setIsSavingToHistory] = useState(false)
+  const activeProject = useResearchProjectStore(selectActiveProject)
   const [draftEditorOpen, setDraftEditorOpen] = useState(false)
   const [paperDraftOpen, setPaperDraftOpen] = useState(false)
   const [paperDraft, setPaperDraft] = useState<PaperDraft | null>(null)
@@ -384,26 +377,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     return splitInterpretation(interpretation)
   }, [interpretation])
 
-  const refreshAvailableProjects = useCallback(() => {
-    const projects = listResearchProjects()
-      .filter(project => project.status !== 'archived')
-      .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
-
-    setAvailableProjects(projects)
-    return projects
-  }, [])
-
-  const openProjectSaveDialog = useCallback(() => {
-    if (!results || !statisticalResult || isSaved || isSavingToHistory) return
-
-    const projects = refreshAvailableProjects()
-    const defaultProjectId = currentHistoryProjectId && projects.some(project => project.id === currentHistoryProjectId)
-      ? currentHistoryProjectId
-      : NO_PROJECT_SAVE_ID
-
-    setSelectedSaveProjectId(defaultProjectId)
-    setProjectSaveDialogOpen(true)
-  }, [currentHistoryProjectId, isSaved, isSavingToHistory, refreshAvailableProjects, results, statisticalResult])
 
   // Handlers
   // 히스토리 저장 (IndexedDB — 파일 다운로드 없음)
@@ -425,11 +398,13 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         paperDraft: paperDraft ?? null,
       })
 
-      setProjectSaveDialogOpen(false)
       if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current)
       hasSavedToHistoryRef.current = true  // UI 리셋 후에도 중복 저장 방지용 영속 플래그
       setIsSaved(true)
-      toast.success(t.results.save.success)
+      toast.success(activeProject
+        ? `'${activeProject.name}'에 저장됨`
+        : t.results.save.success,
+      )
       savedTimeoutRef.current = setTimeout(() => {
         setIsSaved(false)
         savedTimeoutRef.current = null
@@ -440,25 +415,12 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     } finally {
       setIsSavingToHistory(false)
     }
-  }, [results, statisticalResult, selectedMethod, interpretation, apaFormat, isSaved, isSavingToHistory, saveToHistory, followUpMessages, isFollowUpStreaming, paperDraft, t])
+  }, [results, statisticalResult, selectedMethod, interpretation, apaFormat, isSaved, isSavingToHistory, saveToHistory, followUpMessages, isFollowUpStreaming, paperDraft, activeProject, t])
 
   const handleSaveButtonClick = useCallback(() => {
     if (!results || !statisticalResult || isSaved || isSavingToHistory) return
-
-    const projects = refreshAvailableProjects()
-    if (projects.length === 0) {
-      setSelectedSaveProjectId(NO_PROJECT_SAVE_ID)
-      void saveAnalysisToHistory()
-      return
-    }
-
-    openProjectSaveDialog()
-  }, [isSaved, isSavingToHistory, openProjectSaveDialog, refreshAvailableProjects, results, saveAnalysisToHistory, statisticalResult])
-
-  const handleSaveToHistory = useCallback(async () => {
-    const projectId = selectedSaveProjectId === NO_PROJECT_SAVE_ID ? undefined : selectedSaveProjectId
-    await saveAnalysisToHistory(projectId)
-  }, [saveAnalysisToHistory, selectedSaveProjectId])
+    void saveAnalysisToHistory(activeProject?.id)
+  }, [isSaved, isSavingToHistory, results, saveAnalysisToHistory, statisticalResult, activeProject])
 
   // 파일 내보내기 (DOCX/Excel/HTML 다운로드)
   const handleSaveAsFile = useCallback(async (
@@ -869,69 +831,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             </div>
           }
         />
-        <Dialog open={projectSaveDialogOpen} onOpenChange={setProjectSaveDialogOpen}>
-          <DialogContent className="sm:max-w-[560px]" data-testid="project-save-dialog">
-            <DialogHeader>
-              <DialogTitle>{t.results.save.projectDialog.title}</DialogTitle>
-              <DialogDescription>
-                {t.results.save.projectDialog.description}
-              </DialogDescription>
-            </DialogHeader>
-
-            <RadioGroup
-              value={selectedSaveProjectId}
-              onValueChange={setSelectedSaveProjectId}
-              className="space-y-3 py-2"
-            >
-              <Label
-                htmlFor="save-project-none-clean"
-                className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/60 p-3"
-              >
-                <RadioGroupItem value={NO_PROJECT_SAVE_ID} id="save-project-none-clean" className="mt-0.5" />
-                <div className="space-y-1">
-                  <div className="text-sm font-medium">{t.results.save.projectDialog.withoutProjectTitle}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {t.results.save.projectDialog.withoutProjectDescription}
-                  </div>
-                </div>
-              </Label>
-
-              {availableProjects.length > 0 ? (
-                availableProjects.map(project => (
-                  <Label
-                    key={project.id}
-                    htmlFor={`save-project-clean-${project.id}`}
-                    className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/60 p-3"
-                  >
-                    <RadioGroupItem value={project.id} id={`save-project-clean-${project.id}`} className="mt-0.5" />
-                    <div className="min-w-0 space-y-1">
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        {project.presentation?.emoji ? <span>{project.presentation.emoji}</span> : null}
-                        <span>{project.name}</span>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {project.description?.trim() || t.results.save.projectDialog.noDescription}
-                      </div>
-                    </div>
-                  </Label>
-                ))
-              ) : (
-                <div className="rounded-lg border border-dashed border-border/60 px-4 py-5 text-sm text-muted-foreground">
-                  {t.results.save.projectDialog.noProjects}
-                </div>
-              )}
-            </RadioGroup>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setProjectSaveDialogOpen(false)}>
-                {t.history.buttons.cancel}
-              </Button>
-              <Button onClick={handleSaveToHistory} disabled={isSavingToHistory}>
-                {isSavingToHistory ? t.results.save.projectDialog.saving : t.results.buttons.save}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         {/* ===== 가정 검정 결과 (Step 4 store 기반) — executor result에 assumptions가 없을 때만 표시 */}
         {assumptionResults && !statisticalResult?.assumptions?.length && (

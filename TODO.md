@@ -49,9 +49,9 @@ These items should be the current focus.
 - ~~`[workflow]` `/projects` 페이지 구현~~ — 완료 (목록, 생성, 이름수정, 보관, 삭제)
 - ~~`[workflow]` 사이드바 프로젝트 전환기 추가~~ — 완료 (드롭다운 + 활성 프로젝트 표시)
 - ~~`[workflow]` `/chatbot` `ProjectsSection` IA 정리~~ — 완료 (편집 제거, 다이얼로그 props 기반, 생성 전용). 용어("주제" vs "프로젝트") 통일은 보류 — 챗봇 역할 확정 후 진행
-- `[workflow]` 각 모듈 저장 시 활성 프로젝트 auto-link (통계·그래프) — 유전적 분석 완료, 나머지 Phase 3
-- `[workflow]` 토스트 기반 저장 피드백 (`'{projectName}'에 저장됨 · 변경` / `프로젝트에 추가`) — Phase 3
-- `[workflow]` `ResultsActionStep` 프로젝트 선택 팝업 → 컨텍스트 기반 동작으로 교체 — Phase 3
+- ~~`[workflow]` 각 모듈 저장 시 활성 프로젝트 auto-link~~ — 완료 (통계: activeProject 자동, 그래프: DataPackage → activeResearchProjectId fallback, 유전적: 이전 완료)
+- ~~`[workflow]` 토스트 기반 저장 피드백~~ — 완료 (통계: 프로젝트명 표시. 유전적: 자동 저장이라 불필요. 그래프: 저장 UI 미구현 — UI 추가 시 토스트 함께)
+- ~~`[workflow]` `ResultsActionStep` 프로젝트 선택 팝업 → 컨텍스트 기반 동작으로 교체~~ — 완료 (다이얼로그 제거, activeProject 자동 연결)
 - `[trust]` Define an `EvidenceRecord` or provenance schema for AI interpretation outputs.
 - `[trust]` Persist method rationale, key statistical context, and generation metadata with saved interpretation results.
 - `[trust]` Design reproducible code payload generation for core analysis flows in R and/or Python.
