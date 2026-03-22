@@ -1,7 +1,17 @@
 # Genetics — 유전적 분석 로드맵
 
-> 현재 구현: DNA 바코딩 종 판별 (Phase 1 MVP)
+> 현재 구현: DNA 바코딩 종 판별 (Phase 1 MVP + UX 고도화 완료)
 > TODO (구현 계획): [TODO.md](TODO.md)
+
+### Phase 1 완료 사항 (2026-03-22)
+
+- [x] NCBI BLAST 연동 (Workers 프록시, 폴링, Tabular 파싱, D1 캐시)
+- [x] Decision Engine (5단계 판정, 분류군 감지, 대안 마커 추천)
+- [x] esummary 종명 조회 (채집국가, 바코드 여부, Bit score)
+- [x] 히스토리 (DecisionResult 저장, 클릭 → 결과 복원, 핀, 전체 선택·삭제)
+- [x] BOLD 검색 (서열 클립보드 복사 + id.boldsystems.org 링크)
+- [x] BlastError 코드 기반 에러 분기 (문자열 includes() 제거)
+- [x] shadcn Button 통일, 시료명 입력, 마커 툴팁
 
 ---
 
@@ -9,7 +19,6 @@
 
 - [ ] 대안 마커 상세 모달 (프라이머 정보, 관련 논문, 실험 팁)
   - 범용 프라이머 목록 포함 (LCO1490/HCO2198, Fish1F/2R 등)
-- [ ] 히스토리 결과 재열람 (DecisionResult 전체 저장)
 - [ ] 히스토리 엑셀 내보내기 (선택 → xlsx)
 - [ ] EBI BLAST 자동 전환 (NCBI 실패 시)
 - [ ] 보고서 자동 생성 (서열 품질 + 결과 + 해석 + Methods 문구)

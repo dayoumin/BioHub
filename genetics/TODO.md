@@ -39,7 +39,7 @@
 ### Decision Engine
 - [x] 4단계 결과 분류 (고신뢰/모호/저신뢰/실패/매칭없음)
 - [x] 색상 카드 UI (녹/노/주/빨)
-- [x] Top hits 테이블 (종명, 유사도%, Coverage, Bit score, 채집국가, 바코드 배지)
+- [x] Top hits 테이블 (종명, 유사도%, Align%, Bit score, 채집국가, 바코드 배지)
 - [x] 분류군 감지 + 맞춤 안내 (Thunnus, Salmonidae, Amphibia, Bivalvia)
 - [x] 추천 마커 배지 + 인라인 설명 (reason, detail)
 - [x] accession → 종명/taxid/채집국가/바코드 여부 (NCBI esummary)
@@ -118,6 +118,10 @@
 | 웹 BLAST | Workers 경유 (CORS) + 사용자별 NCBI API 키 |
 | 데스크탑 BLAST | Tauri에서 직접 호출 (rate limit 분산) |
 | 프로젝트 공유 | D1 통해 모든 앱 접근 가능 |
+| 정본 코드 | `stats/` (genetics/src/ DEPRECATED) |
+| BOLD 연동 | 서열 클립보드 복사 + 웹 UI 이동 (API 없음) |
+| Coverage 표시 | Align% (query length 없어 진짜 coverage 계산 불가) |
+| 에러 처리 | BlastError 클래스 (코드 기반, 문자열 매칭 제거) |
 
 ## 나중에 구현
 
