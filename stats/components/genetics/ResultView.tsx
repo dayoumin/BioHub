@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import { Copy, Check } from 'lucide-react'
+import { useState } from 'react'
 import type { BlastMarker, BlastResultStatus } from '@biohub/types'
 import type { DecisionResult, MarkerRecommendation } from '@/lib/genetics/decision-engine'
 
@@ -19,14 +18,6 @@ const STATUS_STYLES: Record<BlastResultStatus, { bg: string; border: string; tex
   no_hit:    { bg: 'bg-red-50',    border: 'border-red-200',    text: 'text-red-800',    badge: 'bg-red-100 text-red-700' },
 }
 
-const STATUS_LABELS: Record<BlastResultStatus, string> = {
-  high: '종 수준 확인',
-  ambiguous: '종 구분 불확실',
-  low: '속 수준 확인',
-  failed: '동정 실패',
-  no_hit: '매칭 없음',
-}
-
 const needsAlternative = (status: BlastResultStatus): boolean =>
   status !== 'high'
 
@@ -37,25 +28,17 @@ export function ResultView({ decision, marker, onReset }: ResultViewProps) {
   return (
     <div className="space-y-4" role="region" aria-label="분석 결과">
       <div className={`rounded-xl border ${style.border} ${style.bg} p-6`} role="status" aria-live="polite">
-        <div className="mb-3 flex items-center justify-between">
-          <span className={`rounded-full px-3 py-1 text-xs font-medium ${style.badge}`}>
-            {STATUS_LABELS[decision.status]}
-          </span>
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className={`text-lg font-bold ${style.text}`}>
+            {decision.title}
+          </h2>
           {decision.topHits[0] && (
             <span className="text-sm font-semibold text-gray-700">
               {(decision.topHits[0].identity * 100).toFixed(1)}%
             </span>
           )}
         </div>
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className={`mb-1 text-xl font-bold ${style.text}`}>
-              {decision.title}
-            </h2>
-            <p className="text-sm text-gray-600">{decision.description}</p>
-          </div>
-          <CopyResultButton decision={decision} />
-        </div>
+        <p className="text-sm text-gray-600">{decision.description}</p>
       </div>
 
       {showAltTop && (
@@ -287,29 +270,3 @@ function NextActionButtons({ decision }: { decision: DecisionResult }) {
   )
 }
 
-function CopyResultButton({ decision }: { decision: DecisionResult }) {
-  const [copied, setCopied] = useState(false)
-  const handleCopy = useCallback(async () => {
-    const lines = [
-      `[DNA 바코딩 결과] ${decision.title}`,
-      decision.description,
-      '',
-      ...decision.topHits.slice(0, 5).map((hit, i) =>
-        `${i + 1}. ${hit.species} — ${(hit.identity * 100).toFixed(1)}% (${hit.accession})`
-      ),
-    ]
-    try {
-      await navigator.clipboard.writeText(lines.join('\n'))
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    } catch { /* clipboard unavailable */ }
-  }, [decision])
-
-  return (
-    <button type="button" onClick={handleCopy}
-      className={`shrink-0 rounded p-1.5 transition ${copied ? 'text-green-500' : 'text-gray-400 hover:bg-white/50 hover:text-gray-600'}`}
-      title={copied ? '복사됨' : '결과 요약 복사'}>
-      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-    </button>
-  )
-}
