@@ -52,15 +52,16 @@ These items should be the current focus.
 - ~~`[workflow]` 각 모듈 저장 시 활성 프로젝트 auto-link~~ — 완료 (통계: activeProject 자동, 그래프: DataPackage → activeResearchProjectId fallback, 유전적: 이전 완료)
 - ~~`[workflow]` 토스트 기반 저장 피드백~~ — 완료 (통계: 프로젝트명 표시. 유전적: 자동 저장이라 불필요. 그래프: 저장 UI 미구현 — UI 추가 시 토스트 함께)
 - ~~`[workflow]` `ResultsActionStep` 프로젝트 선택 팝업 → 컨텍스트 기반 동작으로 교체~~ — 완료 (다이얼로그 제거, activeProject 자동 연결)
-- `[trust]` Define an `EvidenceRecord` or provenance schema for AI interpretation outputs.
-- `[trust]` Persist method rationale, key statistical context, and generation metadata with saved interpretation results.
-- `[trust]` Design reproducible code payload generation for core analysis flows in R and/or Python.
-- `[graph]` Link Graph Studio project records and exported figures to `projectId` and `analysisId`.
-- `[graph]` Ensure result-to-graph handoff preserves enough metadata for later draft and review use.
-- `[domain]` Define source-aware record schema for species validation results.
-- `[domain]` Define source-aware record schema for legal/protected status results, including checked date and jurisdiction.
-- `[paper]` Define project-level draft assembly model so multiple analyses can contribute to one manuscript structure.
-- `[docs]` Align implementation docs that still assume isolated module flows with the new project-centered model.
+- `[workflow]` 프로젝트 상세/개요 페이지 — linked outputs 브라우저 (Phase 4, [RESEARCH_PROJECT_STATUS.md](docs/RESEARCH_PROJECT_STATUS.md) §6)
+- `[quality]` `@biohub/types` `Project.createdAt: number` vs `research.ts` `ResearchProject.createdAt: string` 타임스탬프 타입 통일 — D1 마이그레이션 전 필수
+- ~~`[trust]` `EvidenceRecord` 스키마 정의~~ — 완료 (타입 존재: `research.ts`). 다음: 저장/조회 구현
+- `[trust]` `EvidenceRecord` 저장 구현 — AI 해석에 method rationale, 생성 메타데이터 persist
+- `[trust]` 재현 가능 코드 페이로드 (R/Python) 설계
+- ~~`[graph]` Graph Studio → projectId/analysisId 연결~~ — 완료 (`graph-studio-store.ts` activeResearchProjectId fallback + upsertRef)
+- ~~`[graph]` result→graph handoff 메타데이터 보존~~ — 완료
+- `[domain]` species-validation 레코드 스키마 정의
+- `[domain]` legal-status 레코드 스키마 정의 (source metadata + checked date)
+- `[paper]` 프로젝트 레벨 draft assembly 모델 정의
 
 ---
 
@@ -78,7 +79,8 @@ These should start after the current foundation is in place.
 - `[trust]` Add user-facing evidence cards to major AI-assisted outputs.
 - ~~`[ux]` ResultsActionStep.test.tsx TDZ 에러~~ — 해결됨 (useEffect 위치 이동)
 - `[ux]` AI 해석 실패 graceful degradation (`useErrorRecovery` 활용)
-- `[test]` `use-analysis-handlers.test.ts` tsc 에러 2건 (TerminologyProviderProps children 누락, testName 미존재) — 기존 미수정
+- `[test]` `PurposeInputStep.test.tsx` 3건 실패 — 미추적
+- `[test]` `use-analysis-handlers.test.ts` tsc 에러 2건 — 기존 미수정
 - `[test]` `graph-studio-store.test.ts` 전체 suite 실행 시 1건 실패 (단독 52/52 통과) — 테스트 순서 의존성
 - `[quality]` `graph-studio/project-storage.ts`와 `research/project-storage.ts`의 `isClient()`·read/write 패턴 중복 — 저장소 추가 시 공통 팩토리 검토
 - ~~`[quality]` `formatRelativeTime` 중복 4곳 → `formatTimeAgo` 공유 유틸로 교체~~ — 완료 (SessionItem, TemplateSelector, TemplateManagePanel, DataUploadStep → `format-time.ts`)
@@ -124,12 +126,13 @@ These are valid directions, but not current execution priorities.
 1. ~~Project UX rule and visible project structure~~ — 확정 (2026-03-22)
 2. ~~Prerequisites: `ProjectEntityKind` 정렬, 저장소 분기 해소, `activeResearchProjectId` 명명 확보~~ — 완료
 3. ~~`useResearchProjectStore` + `/projects` 페이지 + 사이드바 전환기~~ — 완료
-4. 컨텍스트 기반 자동 저장 (토스트 + override) — 모듈 안정 후
-5. Evidence/provenance schema
-6. Species/legal source-aware records
-7. Project-level draft assembly model
-8. Reviewer checklist and export bundle
-9. Reviewer simulator
+4. ~~컨텍스트 기반 자동 저장 (토스트 + override)~~ — 완료 (통계·그래프·유전적 분석)
+5. 프로젝트 상세/개요 페이지 (Phase 4) + 타임스탬프 타입 통일
+6. Evidence/provenance 저장 구현
+7. Species/legal source-aware records
+8. Project-level draft assembly model
+9. Reviewer checklist and export bundle
+10. Reviewer simulator
 
 ---
 

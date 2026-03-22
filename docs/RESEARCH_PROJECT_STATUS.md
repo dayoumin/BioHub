@@ -65,91 +65,72 @@ Single-use analysis flows should still work without requiring project setup.
 
 ## 3. What has been done
 
-### Foundation completed
+### Foundation — complete
 
-The shared model and storage foundation are partially in place.
-
-Implemented:
-
-- shared `ResearchProject`, `ProjectEntityRef`, and `EvidenceRecord` types
-- project storage for research-level records (localStorage: `research/project-storage.ts`)
-- D1 database schema (`projects`, `project_entity_refs` tables with FK cascades)
-- Worker API: `/api/projects` CRUD + `/api/entities/link` entity linking
-- `HistoryRecord.projectId`
-- `GraphProject.projectId` and `GraphProject.analysisId`
+- shared `ResearchProject`, `ProjectEntityRef`, `EvidenceRecord` types
+- project storage (localStorage: `research/project-storage.ts`)
+- D1 schema (`projects`, `project_entity_refs` tables with FK cascades)
+- Worker API: `/api/projects` CRUD + `/api/entities/link`
+- `HistoryRecord.projectId` + `upsertProjectEntityRef` on save/delete
+- `GraphProject.projectId` + `upsertProjectEntityRef` on save
+- `AnalysisHistoryEntry.projectId` (genetics BLAST) + ref 연동
 - result-to-graph handoff carrying analysis and project linkage
-- project/entity reference creation for figures and saved analyses
 
-### Storage divergence (current risk)
+### Core infrastructure — complete
 
-The chatbot module has two storage backends that are out of sync:
+- `useResearchProjectStore` (zustand + localStorage persist)
+- `/projects` page (list, create, rename, archive, delete)
+- Sidebar project switcher (dropdown + active project display)
 
-- `/chatbot/page.tsx` reads and writes via `ChatStorageIndexedDB`
-- `ProjectDialog.tsx` and `MoveSessionDialog.tsx` use `ChatStorage` (localStorage)
-- `ResearchProject` sync (`toResearchProject()`) exists only in the localStorage `ChatStorage`
-- `ChatStorageIndexedDB` has no `ResearchProject` sync
+### Context-aware save — complete
 
-This means chat-originated projects may not propagate to the research project storage depending on which code path creates them. This must be resolved before adding a unified project switcher.
+- Statistics: `activeResearchProjectId` 자동 연결, 토스트 피드백
+- Graph Studio: `activeResearchProjectId` fallback, `upsertProjectEntityRef`
+- Genetics BLAST: `activeResearchProjectId` 자동 연결
+- `ResultsActionStep` 프로젝트 선택 팝업 → 컨텍스트 기반 동작으로 교체
 
-### Naming collision with Graph Studio
+### Chatbot IA — complete
 
-Graph Studio already uses "project" to mean "graph document":
+- `ChatStorage`/`ChatStorageIndexedDB` 분기 해소 (IndexedDB 일원화)
+- `toResearchProject()` 동기화 제거 (연구 프로젝트와 채팅 프로젝트 분리)
+- `ProjectDialog`/`MoveSessionDialog` dumb dialog 전환 (props 기반, 비동기 에러 처리)
+- 챗봇 역할 미확정 → 추가 개발 보류
 
-- `?project=<id>` query parameter restores a `GraphProject` (graph-studio/page.tsx)
-- `currentProject` / `currentProjectId` in `graph-studio-store` refers to `GraphProject`
-- `graph-studio/project-storage.ts` manages `GraphProject` records
+### Resolved risks
 
-Any new global project context must use a distinct name (e.g. `activeResearchProjectId`) to avoid collision with Graph Studio's existing `project` semantics.
+1. ~~Storage divergence~~ — 해소 (IndexedDB 일원화, `ChatStorage` 직접 호출 제거)
+2. ~~Naming collision~~ — 해소 (`activeResearchProjectId` 사용, Graph Studio `currentProjectId` 유지)
+3. ~~Type alignment~~ — 해소 (`stats/lib/types/research.ts` → `@biohub/types` re-export)
+4. ~~IA duplication~~ — 해소 (chatbot 프로젝트 UI 축소, `/projects` 페이지 분리)
 
-### Type system gap
+### Remaining type issue
 
-`ProjectEntityKind` is defined in two places with different values:
-
-- `packages/types/src/project.ts`: includes `blast-result` and `sequence-data`
-- `stats/lib/types/research.ts`: only 8 kinds (missing `blast-result`, `sequence-data`)
-
-The shared package is ahead of the stats app. Before declaring "all output types supported", the stats app type must be aligned or deprecated in favor of the shared package type.
-
-### Current UI experiment
-
-A save-time project selection dialog was added in the results step (ResultsActionStep).
-
-That implementation is technically valid, but product-wise it is premature:
-
-- the project concept exists in data and storage
-- but it is not yet clearly expressed in the app information architecture
-- so the dialog appears before users understand the concept
-
-The data model direction is correct. The current save UX is provisional and will be replaced by context-aware saving.
+`@biohub/types`의 `Project` 인터페이스는 `createdAt: number` (Unix ms)을 사용하지만, `stats/lib/types/research.ts`의 `ResearchProject`는 `createdAt: string` (ISO 8601)을 사용한다. D1 마이그레이션 전에 통일 필요.
 
 ---
 
 ## 4. Current state summary
 
-### Done enough to continue
+### Complete (Phase 1–3)
 
-- project-centered data model exists
-- D1 schema and Worker API are operational
-- analysis and figure linkage has started
-- project refs are being recorded
-- project as a top-level concept is now technically feasible
+- project-centered data model + storage + D1 schema + Worker API
+- top-level project navigation (sidebar switcher + `/projects` page)
+- context-aware auto-link (통계·그래프·유전적 분석)
+- UX rule 확정 (Decision D–H)
+- implementation risks 4건 모두 해소
 
-### Not done yet
+### Not done yet (Phase 4–5)
 
-- clear top-level project navigation
-- project home or overview screen
-- consistent project entry flow across pages
-- project-scoped manuscript flow
+- project detail/overview screen (linked outputs 브라우저)
+- project metadata editor (domain, tags, paper config)
+- project-scoped manuscript assembly
 - project-scoped species/legal outputs
-- evidence records attached to major AI outputs
-- clear UX rule for when project selection should appear
+- evidence records attached to AI outputs
+- reviewer package + checklist
 
-### Implementation risks to resolve first
+### Remaining technical issue
 
-1. **Storage divergence**: unify ChatStorage and ChatStorageIndexedDB project handling, or decouple research projects from chat projects entirely
-2. **Naming collision**: use `activeResearchProjectId` (not `activeProjectId`) for the global project context store
-3. **Type alignment**: sync `ProjectEntityKind` between `stats/lib/types/research.ts` and `packages/types/src/project.ts`
-4. **IA duplication**: `/chatbot` already has project management UI (`ProjectsSection`). Adding `/projects` requires either absorbing or scoping down the chatbot project UI to avoid duplicate information architecture
+- `@biohub/types` `Project.createdAt: number` vs `research.ts` `ResearchProject.createdAt: string` — 타임스탬프 타입 불일치, D1 마이그레이션 전 통일 필요
 
 ---
 
@@ -230,13 +211,13 @@ AI chat sessions are optionally linkable but not auto-linked. Chat sessions are 
 5. ~~`/projects` page~~ — list, create, rename, archive, delete
 6. ~~Sidebar project switcher~~ — dropdown with active project display
 
-### Phase 3. Context-aware behavior — BLOCKED on module stabilization
+### Phase 3. Context-aware behavior — DONE
 
-7. Wire statistics save to auto-link `activeResearchProjectId`
-8. Wire Graph Studio figure save to auto-link
-9. Wire genetics BLAST save to auto-link
-10. Implement toast-based save feedback (auto-link confirmation + override link)
-11. Replace ResultsActionStep project selection popup with context-aware behavior
+7. ~~Wire statistics save to auto-link `activeResearchProjectId`~~ — 완료
+8. ~~Wire Graph Studio figure save to auto-link~~ — 완료 (activeResearchProjectId fallback)
+9. ~~Wire genetics BLAST save to auto-link~~ — 완료 (projectId + upsertRef + batch removeRefs)
+10. ~~Toast-based save feedback~~ — 완료 (통계: 프로젝트명 표시)
+11. ~~ResultsActionStep project selection popup → context-aware~~ — 완료
 
 ### Phase 4. Project overview
 
