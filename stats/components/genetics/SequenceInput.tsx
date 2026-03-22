@@ -87,18 +87,12 @@ export function SequenceInput({
           maxLength={100}
           className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         />
-        <p className="mt-1 text-xs text-gray-400">
-          나중에 분석 기록을 구분하는 데 사용됩니다
-        </p>
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
+        <label className="mb-2 block text-sm font-medium text-gray-700">
           마커
         </label>
-        <p className="mb-2 text-xs text-gray-500">
-          시퀀싱에 사용한 프라이머의 마커 영역을 선택하세요. 모르면 COI(기본값)로 시작하세요.
-        </p>
         <div className="flex flex-wrap gap-2">
           {MARKERS.map((m) => (
             <button

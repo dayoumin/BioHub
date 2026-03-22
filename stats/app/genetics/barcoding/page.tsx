@@ -88,23 +88,15 @@ function BarcodingContent() {
 
   return (
     <main>
-      <div className="mb-8">
-        <Link href="/genetics" className="mb-4 inline-block text-sm text-primary hover:underline">
+      <div className="mb-6">
+        <Link href="/genetics" className="mb-3 inline-block text-sm text-primary hover:underline">
           &larr; 유전적 분석
         </Link>
-        <h1 className="mb-2 text-2xl font-bold">DNA 바코딩 종 판별</h1>
-        <p className="text-sm text-muted-foreground">
-          마커 선택 → 서열 입력 → 종 동정 + 결과 해석 + 대안 마커 안내
-        </p>
+        <h1 className="text-2xl font-bold">DNA 바코딩 종 판별</h1>
       </div>
 
       {state.step === 'input' && (
         <>
-          <div className="rounded bg-muted/50 p-3 text-xs text-muted-foreground">
-            <strong>COI로 잘 안 되는 분류군이 있나요?</strong> 참치류, 양서류, 이매패류 등은 COI만으로 종 구분이
-            어렵습니다. 분석 결과에서 자동으로 대안 마커를 추천합니다.
-          </div>
-
           <SequenceInput
             sequence={sequence}
             onSequenceChange={setSequence}
