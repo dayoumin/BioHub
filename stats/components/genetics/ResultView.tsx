@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+import { Copy, Check } from 'lucide-react'
 import type { BlastMarker, BlastResultStatus } from '@biohub/types'
 import type { DecisionResult, MarkerRecommendation } from '@/lib/genetics/decision-engine'
 
@@ -35,7 +36,6 @@ export function ResultView({ decision, marker, onReset }: ResultViewProps) {
 
   return (
     <div className="space-y-4" role="region" aria-label="분석 결과">
-      {/* 결과 카드 */}
       <div className={`rounded-xl border ${style.border} ${style.bg} p-6`} role="status" aria-live="polite">
         <div className="mb-3 flex items-center justify-between">
           <span className={`rounded-full px-3 py-1 text-xs font-medium ${style.badge}`}>
@@ -47,18 +47,21 @@ export function ResultView({ decision, marker, onReset }: ResultViewProps) {
             </span>
           )}
         </div>
-        <h2 className={`mb-1 text-xl font-bold ${style.text}`}>
-          {decision.title}
-        </h2>
-        <p className="text-sm text-gray-600">{decision.description}</p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className={`mb-1 text-xl font-bold ${style.text}`}>
+              {decision.title}
+            </h2>
+            <p className="text-sm text-gray-600">{decision.description}</p>
+          </div>
+          <CopyResultButton decision={decision} />
+        </div>
       </div>
 
-      {/* 대안 마커 안내 */}
       {showAltTop && (
-        <AlternativeMarkersCard marker={marker} markers={decision.recommendedMarkers} />
+        <AlternativeMarkersCard key={marker} marker={marker} markers={decision.recommendedMarkers} />
       )}
 
-      {/* 분류군 맞춤 안내 */}
       {decision.taxonAlert && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
           <h3 className="mb-2 text-sm font-semibold text-amber-900">
@@ -74,7 +77,6 @@ export function ResultView({ decision, marker, onReset }: ResultViewProps) {
         </div>
       )}
 
-      {/* Top Hits 테이블 */}
       {decision.topHits.length > 0 && (
         <div className="rounded-xl border border-gray-200 bg-white p-5">
           <h3 className="mb-3 text-sm font-semibold text-gray-700">매칭 결과</h3>
@@ -92,7 +94,7 @@ export function ResultView({ decision, marker, onReset }: ResultViewProps) {
               </thead>
               <tbody>
                 {decision.topHits.map((hit, i) => (
-                  <tr key={i} className="border-b border-gray-50">
+                  <tr key={hit.accession || i} className="border-b border-gray-50">
                     <td className="py-2 text-gray-400">{i + 1}</td>
                     <td className="py-2">
                       <span className="italic">{hit.species}</span>
@@ -128,44 +130,13 @@ export function ResultView({ decision, marker, onReset }: ResultViewProps) {
         </div>
       )}
 
-      {/* 다음 단계 + 재분석 */}
       <div className="flex flex-wrap items-center gap-2">
-        {decision.nextActions.map((action) => {
-          if (action.action === 'genbank' && decision.topHits[0]) {
-            return (
-              <a
-                key={action.action}
-                href={`https://www.ncbi.nlm.nih.gov/nuccore/${decision.topHits[0].accession}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
-              >
-                {action.label}
-              </a>
-            )
-          }
-          return (
-            <button
-              key={action.action}
-              disabled
-              title="준비 중인 기능입니다"
-              className="rounded-lg border border-gray-100 px-3 py-2 text-xs text-gray-400 cursor-not-allowed"
-            >
-              {action.label} <span className="text-[10px] text-gray-300">(준비 중)</span>
-            </button>
-          )
-        })}
+        <NextActionButtons decision={decision} />
         <div className="ml-auto flex gap-2">
-          <button
-            onClick={() => onReset(false)}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-600 transition hover:bg-gray-50"
-          >
+          <button onClick={() => onReset(false)} className={RESET_BTN}>
             서열 유지하고 재분석
           </button>
-          <button
-            onClick={() => onReset(true)}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-600 transition hover:bg-gray-50"
-          >
+          <button onClick={() => onReset(true)} className={RESET_BTN}>
             새 서열로 분석
           </button>
         </div>
@@ -224,5 +195,98 @@ function AlternativeMarkersCard({ marker, markers }: { marker: BlastMarker; mark
         같은 서열로 마커만 바꿔도 동일한 결과가 나옵니다. 해당 마커 영역을 별도로 시퀀싱해야 합니다.
       </p>
     </div>
+  )
+}
+
+const RESET_BTN = 'rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-600 transition hover:bg-gray-50'
+const ACTION_LINK = 'rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50'
+const ACTION_DISABLED = 'rounded-lg border border-gray-100 px-3 py-2 text-xs text-gray-400 cursor-not-allowed'
+
+/** 다음 단계 버튼 — 활성/비활성 분기 */
+function NextActionButtons({ decision }: { decision: DecisionResult }) {
+  const topHit = decision.topHits[0]
+  const topSpecies = topHit?.species ?? ''
+  const topAccession = topHit?.accession ?? ''
+
+  // 중복 제거: recommend-marker, change-marker는 AlternativeMarkersCard가 대체
+  const actions = decision.nextActions.filter(
+    a => a.action !== 'recommend-marker' && a.action !== 'change-marker'
+  )
+
+  return (
+    <>
+      {actions.map((action) => {
+        switch (action.action) {
+          case 'genbank':
+            if (!topAccession) return null
+            return (
+              <a key={action.action} href={`https://www.ncbi.nlm.nih.gov/nuccore/${topAccession}`}
+                target="_blank" rel="noopener noreferrer" className={ACTION_LINK}>
+                {action.label}
+              </a>
+            )
+
+          case 'species-info':
+            if (!topSpecies || topSpecies === topAccession) return null
+            return (
+              <a key={action.action}
+                href={`https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?name=${encodeURIComponent(topSpecies)}`}
+                target="_blank" rel="noopener noreferrer" className={ACTION_LINK}>
+                종 상세정보
+              </a>
+            )
+
+          case 'quality-check':
+            // 서열 품질은 이미 입력 시 validation으로 표시 → 입력 화면으로 돌아가기
+            return null
+
+          default:
+            return (
+              <button key={action.action} disabled title="준비 중인 기능입니다" className={ACTION_DISABLED}>
+                {action.label} <span className="text-[10px] text-gray-300">(준비 중)</span>
+              </button>
+            )
+        }
+      })}
+
+      {/* BOLD 검색 — 항상 표시 */}
+      {topHit && (
+        <a
+          href={`https://www.boldsystems.org/index.php/IDS_OpenIdEngine?query=${encodeURIComponent(topAccession)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={ACTION_LINK}
+        >
+          BOLD 검색
+        </a>
+      )}
+    </>
+  )
+}
+
+function CopyResultButton({ decision }: { decision: DecisionResult }) {
+  const [copied, setCopied] = useState(false)
+  const handleCopy = useCallback(async () => {
+    const lines = [
+      `[DNA 바코딩 결과] ${decision.title}`,
+      decision.description,
+      '',
+      ...decision.topHits.slice(0, 5).map((hit, i) =>
+        `${i + 1}. ${hit.species} — ${(hit.identity * 100).toFixed(1)}% (${hit.accession})`
+      ),
+    ]
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'))
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch { /* clipboard unavailable */ }
+  }, [decision])
+
+  return (
+    <button type="button" onClick={handleCopy}
+      className={`shrink-0 rounded p-1.5 transition ${copied ? 'text-green-500' : 'text-gray-400 hover:bg-white/50 hover:text-gray-600'}`}
+      title={copied ? '복사됨' : '결과 요약 복사'}>
+      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+    </button>
   )
 }
