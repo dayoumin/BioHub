@@ -6,7 +6,7 @@ import type { BlastMarker, SequenceValidation } from '@biohub/types'
 import { SequenceInput } from '@/components/SequenceInput'
 import { BlastRunner } from '@/components/BlastRunner'
 import { ResultView } from '@/components/ResultView'
-import { parseBlastHits, analyzeBlastResult, detectTaxonAlert, getRecommendedMarkers } from '@/lib/decision-engine'
+import { parseBlastHits, analyzeBlastResult } from '@/lib/decision-engine'
 import type { DecisionResult } from '@/lib/decision-engine'
 
 type AppState =
@@ -29,18 +29,14 @@ export default function BarcodingPage() {
       if (prev.step !== 'analyzing') return prev
 
       const topHits = parseBlastHits(data)
-      const decision = analyzeBlastResult(topHits)
+      const decision = analyzeBlastResult(topHits, prev.marker)
 
-      // 분류군 감지로 안내 보강
-      const taxonAlert = detectTaxonAlert(topHits)
-      const recommendedMarkers = getRecommendedMarkers(decision.status, taxonAlert, prev.marker)
-
-      return {
-        step: 'result',
-        marker: prev.marker,
-        decision: { ...decision, taxonAlert, recommendedMarkers },
-      }
+      return { step: 'result', marker: prev.marker, decision }
     })
+  }, [])
+
+  const handleError = useCallback((msg: string) => {
+    setState({ step: 'error', message: msg })
   }, [])
 
   const handleReset = useCallback(() => {
@@ -95,7 +91,7 @@ export default function BarcodingPage() {
           sequence={state.sequence}
           marker={state.marker}
           onResult={handleResult}
-          onError={(msg) => setState({ step: 'error', message: msg })}
+          onError={handleError}
         />
       )}
 

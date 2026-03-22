@@ -37,7 +37,7 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
   const [elapsed, setElapsed] = useState(0)
   const [pollCount, setPollCount] = useState(0)
   const [errorMessage, setErrorMessage] = useState('')
-  const abortRef = useRef(false)
+  const abortCtrlRef = useRef<AbortController | null>(null)
   const startTimeRef = useRef(Date.now())
 
   // 경과 시간 타이머
@@ -53,7 +53,9 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
 
   // 메인 실행 로직
   useEffect(() => {
-    abortRef.current = false
+    const ctrl = new AbortController()
+    abortCtrlRef.current = ctrl
+    const { signal } = ctrl
 
     async function run(): Promise<void> {
       try {
@@ -65,6 +67,7 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sequence: cleaned, marker }),
+          signal,
         })
 
         if (!submitRes.ok) {
@@ -73,7 +76,7 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
         }
 
         const submitData = await submitRes.json() as { rid: string; rtoe: number }
-        if (abortRef.current) return
+        if (signal.aborted) return
 
         setRid(submitData.rid)
         setEstimatedTime(submitData.rtoe)
@@ -82,15 +85,15 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
         // 2. 폴링
         let polls = 0
         while (polls < MAX_POLLS) {
-          if (abortRef.current) return
+          if (signal.aborted) return
 
-          await sleep(POLL_INTERVAL_MS)
-          if (abortRef.current) return
+          await sleep(POLL_INTERVAL_MS, signal)
+          if (signal.aborted) return
 
           polls++
           setPollCount(polls)
 
-          const statusRes = await fetch(`/api/blast/status/${submitData.rid}`)
+          const statusRes = await fetch(`/api/blast/status/${submitData.rid}`, { signal })
           if (!statusRes.ok) continue
 
           const statusData = await statusRes.json() as { status: string }
@@ -108,21 +111,21 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
         }
 
         // 3. 결과 조회
-        if (abortRef.current) return
+        if (signal.aborted) return
         setPhase('fetching')
 
-        const resultRes = await fetch(`/api/blast/result/${submitData.rid}`)
+        const resultRes = await fetch(`/api/blast/result/${submitData.rid}`, { signal })
         if (!resultRes.ok) {
           throw new Error(`결과 조회 실패 (${resultRes.status})`)
         }
 
         const resultData = await resultRes.json()
-        if (abortRef.current) return
+        if (signal.aborted) return
 
         setPhase('done')
         onResult(resultData)
       } catch (err) {
-        if (abortRef.current) return
+        if (signal.aborted) return
         const msg = err instanceof Error ? err.message : '알 수 없는 오류'
         setErrorMessage(msg)
         setPhase('error')
@@ -133,7 +136,7 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
     run()
 
     return () => {
-      abortRef.current = true
+      ctrl.abort()
     }
   }, [sequence, marker, onResult, onError])
 
@@ -198,6 +201,12 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
   )
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const id = setTimeout(resolve, ms)
+    signal?.addEventListener('abort', () => {
+      clearTimeout(id)
+      reject(new DOMException('Aborted', 'AbortError'))
+    }, { once: true })
+  })
 }

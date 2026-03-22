@@ -56,47 +56,53 @@ export function parseBlastHits(data: unknown): BlastTopHit[] {
       const speciesMatch = title.match(/^([A-Z][a-z]+ [a-z]+)/)
       const species = speciesMatch ? speciesMatch[1] : title.split(' ').slice(0, 2).join(' ')
 
-      const identityNum = hsps['identity'] as number
-      const alignLen = hsps['align_len'] as number
-      const identity = alignLen > 0 ? identityNum / alignLen : 0
+      // NCBI JSON2: identity 또는 num_ident (버전에 따라 다름)
+      const identityNum = (hsps['identity'] ?? hsps['num_ident'] ?? 0) as number
+      const alignLen = (hsps['align_len'] as number) || 1
+
+      const identity = identityNum / alignLen
+
+      const queryFrom = (hsps['query_from'] as number) || 0
+      const queryTo = (hsps['query_to'] as number) || 0
+      const queryLen = (hsps['query_len'] as number) || alignLen
 
       hits.push({
         species,
         identity,
         accession,
         evalue: hsps['evalue'] as number,
-        queryCoverage: alignLen > 0 ? (hsps['query_to'] as number - (hsps['query_from'] as number) + 1) / alignLen : undefined,
+        queryCoverage: queryLen > 0 ? (queryTo - queryFrom + 1) / queryLen : undefined,
         description: title,
       })
     }
-  } catch {
-    // 파싱 실패 시 빈 배열 반환
+  } catch (err) {
+    console.warn('[parseBlastHits] NCBI 응답 파싱 실패:', err)
   }
 
   return hits
 }
 
 /** 4단계 분류 + 맞춤 안내 생성 */
-export function analyzeBlastResult(topHits: BlastTopHit[]): DecisionResult {
+export function analyzeBlastResult(topHits: BlastTopHit[], currentMarker?: string): DecisionResult {
+  const mk = currentMarker || ''
+
   if (topHits.length === 0) {
     return makeResult('no_hit', topHits, '매칭 없음', 'DB에 유사 서열이 없습니다.', [
       { label: '서열 품질 확인', type: 'primary', action: 'quality-check' },
       { label: '다른 마커로 분석', type: 'secondary', action: 'change-marker' },
       { label: '신종 후보 안내', type: 'secondary', action: 'novel-species' },
-    ])
+    ], mk)
   }
 
   const best = topHits[0]
   const bestIdentity = best.identity
 
-  // top 3의 종이 같은지 체크
   const topSpecies = topHits.slice(0, 3).map(h => h.species)
   const uniqueSpecies = new Set(topSpecies)
   const isAmbiguous = uniqueSpecies.size > 1 &&
     topHits.length >= 2 &&
     Math.abs(topHits[0].identity - topHits[1].identity) < 0.02
 
-  // 4단계 분류
   if (bestIdentity >= 0.97 && !isAmbiguous) {
     return makeResult('high', topHits,
       '종 수준 확인됨',
@@ -105,8 +111,7 @@ export function analyzeBlastResult(topHits: BlastTopHit[]): DecisionResult {
         { label: '보고서 생성', type: 'primary', action: 'report' },
         { label: '종 상세정보', type: 'secondary', action: 'species-info' },
         { label: 'GenBank 레코드', type: 'secondary', action: 'genbank' },
-      ]
-    )
+      ], mk)
   }
 
   if (bestIdentity >= 0.95 || isAmbiguous) {
@@ -114,15 +119,11 @@ export function analyzeBlastResult(topHits: BlastTopHit[]): DecisionResult {
       ? `${uniqueSpecies.size}개 종이 유사하게 매칭됨 (${[...uniqueSpecies].join(', ')})`
       : `최고 유사도 ${(bestIdentity * 100).toFixed(1)}% — 종 수준 확신 불가`
 
-    return makeResult('ambiguous', topHits,
-      '종 구분 불확실',
-      desc,
-      [
-        { label: '추가 마커 추천', type: 'primary', action: 'recommend-marker' },
-        { label: '관련 논문 보기', type: 'secondary', action: 'papers' },
-        { label: '계통수 보기', type: 'secondary', action: 'phylogeny' },
-      ]
-    )
+    return makeResult('ambiguous', topHits, '종 구분 불확실', desc, [
+      { label: '추가 마커 추천', type: 'primary', action: 'recommend-marker' },
+      { label: '관련 논문 보기', type: 'secondary', action: 'papers' },
+      { label: '계통수 보기', type: 'secondary', action: 'phylogeny' },
+    ], mk)
   }
 
   if (bestIdentity >= 0.90) {
@@ -133,8 +134,7 @@ export function analyzeBlastResult(topHits: BlastTopHit[]): DecisionResult {
         { label: '대안 마커 안내', type: 'primary', action: 'recommend-marker' },
         { label: '실험 프로토콜', type: 'secondary', action: 'protocol' },
         { label: '관련 논문', type: 'secondary', action: 'papers' },
-      ]
-    )
+      ], mk)
   }
 
   return makeResult('failed', topHits,
@@ -144,8 +144,7 @@ export function analyzeBlastResult(topHits: BlastTopHit[]): DecisionResult {
       { label: '서열 품질 재검사', type: 'primary', action: 'quality-check' },
       { label: '다른 DB 검색', type: 'secondary', action: 'alt-db' },
       { label: '신종 등록 가이드', type: 'secondary', action: 'novel-species' },
-    ]
-  )
+    ], mk)
 }
 
 /** 분류군별 맞춤 안내 */
@@ -231,10 +230,11 @@ function makeResult(
   topHits: BlastTopHit[],
   title: string,
   description: string,
-  nextActions: NextAction[]
+  nextActions: NextAction[],
+  currentMarker: string
 ): DecisionResult {
   const taxonAlert = detectTaxonAlert(topHits)
-  const recommendedMarkers = getRecommendedMarkers(status, taxonAlert, '')
+  const recommendedMarkers = getRecommendedMarkers(status, taxonAlert, currentMarker)
 
   return { status, title, description, topHits, taxonAlert, recommendedMarkers, nextActions }
 }
