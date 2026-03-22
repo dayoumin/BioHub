@@ -42,10 +42,12 @@ export function SequenceInput({
 }: SequenceInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const debouncedSequence = useDebounce(sequence, 300)
+  const isStale = sequence !== debouncedSequence
   const validation = useMemo<SequenceValidation | null>(
     () => debouncedSequence.trim() ? validateSequence(debouncedSequence) : null,
     [debouncedSequence],
   )
+  const canSubmit = validation?.valid === true && !isStale
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -68,8 +70,9 @@ export function SequenceInput({
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault()
-    if (validation?.valid) onSubmit(validation)
-  }, [validation, onSubmit])
+    if (!canSubmit || !validation) return
+    onSubmit(validation)
+  }, [canSubmit, validation, onSubmit])
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -206,7 +209,7 @@ export function SequenceInput({
       <div>
         <button
           type="submit"
-          disabled={!validation?.valid}
+          disabled={!canSubmit}
           className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
         >
           분석 시작
@@ -230,9 +233,13 @@ function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = useCallback(async () => {
-    await navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      console.warn('[CopyButton] 클립보드 복사 실패')
+    }
   }, [text])
 
   return (
