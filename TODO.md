@@ -62,6 +62,7 @@ These items should be the current focus.
 - `[domain]` species-validation 레코드 스키마 정의
 - `[domain]` legal-status 레코드 스키마 정의 (source metadata + checked date)
 - `[paper]` 프로젝트 레벨 draft assembly 모델 정의
+- `[deploy]` CF Pages 빌드 실패 — `/genetics/barcoding` prerender 에러. 원인: `useSearchParams()` Suspense boundary 감지 실패 (Next.js 15.5 static export). `BarcodingPage`에 `<Suspense>`가 있지만 빌드 시 인식 안 됨. CI 캐시 경로도 수정 완료 (`stats/pnpm-lock.yaml` → `pnpm-lock.yaml`). 머지 시 빌드 확인 필수.
 
 ---
 
