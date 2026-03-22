@@ -70,6 +70,7 @@ These items should be the current focus.
 
 These should start after the current foundation is in place.
 
+- `[infra]` D1 스키마 갭 해소 — 상세: [D1-SCHEMA-GAP.md](docs/D1-SCHEMA-GAP.md). 현재 프론트엔드는 localStorage/IndexedDB 기반이라 급하지 않음. 인증/멀티디바이스 동기화 시 필수.
 - `[paper]` Build project-level manuscript assembly UI across multiple analyses.
 - `[paper]` Add figure and table references that can be inserted into draft sections.
 - `[review]` Define a project-level methods and reporting completeness checklist.
@@ -108,6 +109,7 @@ These are valid directions, but not current execution priorities.
 - `[domain]` Add stronger citation and traceability support for domain records in downstream outputs.
 - `[review]` Add figure and table compliance review against journal expectations.
 - `[workflow]` Add project-level collaboration or sharing concepts if storage architecture supports it.
+- `[domain]` 학명검증(species_checker) 통합 + 알림 시스템 통합 — 상세: [PLAN-SPECIES-INTEGRATION.md](docs/PLAN-SPECIES-INTEGRATION.md)
 
 ---
 
