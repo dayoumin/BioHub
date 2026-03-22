@@ -171,7 +171,7 @@ NCBI API key 기준 **초당 10회**, 초과 시 HTTP 429.
 - 사용자별 추가 제한: 무료 1~2회/초, 일 50회 / 유료 5회/초, 일 500회
 - 큐 시스템 (Celery + Redis or BullMQ): 몰리면 큐 → "처리 중 (대기: 3초)" 표시
 
-### 6-2. Turso DB 캐싱 전략
+### 6-2. D1 DB 캐싱 전략
 
 **캐시 키**: `md5(sequence + "_" + marker + "_" + db)` (예: `md5(seq + "_coi_nt")`)
 
@@ -182,7 +182,7 @@ NCBI API key 기준 **초당 10회**, 초과 시 HTTP 429.
 
 **캐시 로직:**
 ```
-요청 → 키로 Turso SELECT
+요청 → 키로 D1 SELECT
   ├─ hit + 유효 → 바로 반환 (0.1~1초)
   └─ miss or expired → NCBI/BOLD 호출 → INSERT/UPDATE → 반환
 ```
@@ -219,13 +219,13 @@ NCBI API key 기준 **초당 10회**, 초과 시 HTTP 429.
   ↓
 Rate Limiter (Redis: 초당 8회 전역 + 사용자별 제한)
   ↓ (통과)
-Cache Check (Turso: MD5 키로 hit?)
+Cache Check (D1: MD5 키로 hit?)
   ├─ Yes → 바로 결과 반환 (cached)
   └─ No → Job Queue (Celery/BullMQ)
             ↓
       NCBI/BOLD API 호출 (with API key)
             ↓
-      결과 저장 Turso + 반환
+      결과 저장 D1 + 반환
 ```
 
 ## 7. COI 실패 대응 엔진 (Decision Engine)
@@ -439,7 +439,7 @@ if (low_identity)          → scenario_C (Low identity)
 ### MVP (Phase 1)
 1. 서열 입력 UI (유효성 검사 + 마커 선택)
 2. NCBI BLAST API 연동 (Workers 프록시, 초당 스로틀)
-3. Turso 캐시 (md5(sequence) 키, 14일 TTL)
+3. D1 캐시 (md5(sequence) 키, 14일 TTL)
 4. Decision Engine (4단계 결과 분류 + 색상 카드)
 5. "다음 행동" 버튼 3개 (보고서 · 마커 추천 · 종 정보)
 
@@ -478,7 +478,7 @@ if (low_identity)          → scenario_C (Low identity)
 > |-------------|------------|------|
 > | Redis + Celery | Cloudflare Workers (큐잉) | Workers 내 rate limit 로직 |
 > | AWS EC2 | Cloudflare Workers + Pages | 서버리스 |
-> | Redis 캐싱 | Turso DB 캐싱 | 이미 일치 |
+> | Redis 캐싱 | D1 DB 캐싱 | 이미 일치 |
 > | N/A | **Tauri 데스크탑** | CORS 없이 직접 API 호출, 사용자별 IP 분산 |
 >
 > 상세: [03-databases.md](03-databases.md) 섹션 10 "BioHub 아키텍처 결정 사항"

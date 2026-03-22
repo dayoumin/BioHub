@@ -73,7 +73,7 @@
   - 상위 10개 매칭 종 + 유사도 % + 신뢰도 등급 (Decision Engine 4단계)
   - 분류군 감지 → 맞춤 안내 (참치/양서류/이매패류 등)
   - 실패 시: 원인 + 대안 마커 + 근거
-- **구현**: Cloudflare Workers 프록시 (`/api/ncbi-blast`) + Turso 캐시
+- **구현**: Cloudflare Workers 프록시 (`/api/ncbi-blast`) + D1 캐시
 - **기술 제약**:
   - BOLD API: CORS 미지원 → Workers 필수. 동기 응답
   - NCBI BLAST: 비동기 방식 — `qblast()` 제출 → RID(Request ID) 반환 → 결과 polling 필요
@@ -83,7 +83,7 @@
 ```
 [FASTA 서열 입력]
     │
-    ├─ Turso 캐시 체크 ─→ 히트 → 즉시 반환 (캐시 뱃지)
+    ├─ D1 캐시 체크 ─→ 히트 → 즉시 반환 (캐시 뱃지)
     │
     └─ 미스 → [NCBI BLAST API] (Workers 프록시, 초당 스로틀)
                     │
