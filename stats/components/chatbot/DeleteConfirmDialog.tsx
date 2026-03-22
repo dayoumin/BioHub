@@ -37,7 +37,7 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
   const description =
     target?.type === 'session'
       ? '이 대화를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.'
-      : '이 프로젝트를 삭제하시겠습니까? 하위 대화는 루트로 이동됩니다.'
+      : '이 프로젝트를 삭제하시겠습니까? 하위 대화는 프로젝트 밖으로 이동됩니다.'
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>

@@ -29,7 +29,7 @@ interface MoveSessionDialogProps {
   onOpenChange: (open: boolean) => void
   session: ChatSession | null
   projects: ChatProject[]
-  onMove: (sessionId: string, projectId: string | null) => void
+  onMove: (sessionId: string, projectId: string | null) => void | Promise<void>
 }
 
 export const MoveSessionDialog: React.FC<MoveSessionDialogProps> = ({
@@ -40,17 +40,30 @@ export const MoveSessionDialog: React.FC<MoveSessionDialogProps> = ({
   onMove,
 }) => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (open && session) {
       setSelectedProjectId(session.projectId ?? null)
+      setIsSubmitting(false)
+      setError(null)
     }
   }, [open, session])
 
-  const handleMove = (): void => {
+  const handleMove = async (): Promise<void> => {
     if (!session) return
-    onMove(session.id, selectedProjectId)
-    onOpenChange(false)
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      await onMove(session.id, selectedProjectId)
+      onOpenChange(false)
+    } catch {
+      setError('이동에 실패했습니다. 다시 시도해 주세요.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -59,7 +72,7 @@ export const MoveSessionDialog: React.FC<MoveSessionDialogProps> = ({
         <DialogHeader>
           <DialogTitle>대화 이동</DialogTitle>
           <DialogDescription>
-            &quot;{session?.title}&quot;를 다른 주제로 이동합니다.
+            &quot;{session?.title}&quot;를 다른 프로젝트로 이동합니다.
           </DialogDescription>
         </DialogHeader>
 
@@ -70,12 +83,13 @@ export const MoveSessionDialog: React.FC<MoveSessionDialogProps> = ({
             onValueChange={(val) =>
               setSelectedProjectId(val === 'root' ? null : val)
             }
+            disabled={isSubmitting}
           >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="root">📂 루트 (주제 없음)</SelectItem>
+              <SelectItem value="root">📂 루트 (프로젝트 없음)</SelectItem>
               {projects.map((project) => (
                 <SelectItem key={project.id} value={project.id}>
                   {project.emoji || '📁'} {project.name}
@@ -85,11 +99,15 @@ export const MoveSessionDialog: React.FC<MoveSessionDialogProps> = ({
           </Select>
         </div>
 
+        {error && (
+          <p className="text-sm text-destructive">{error}</p>
+        )}
+
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             취소
           </Button>
-          <Button onClick={handleMove}>이동</Button>
+          <Button onClick={() => void handleMove()} disabled={isSubmitting}>이동</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

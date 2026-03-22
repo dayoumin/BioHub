@@ -90,7 +90,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
             size="icon"
             className="h-6 w-6 flex-shrink-0"
             onClick={onCreateProject}
-            title="새 주제 만들기"
+            title="새 프로젝트 만들기"
           >
             <Plus className="h-3 w-3" />
           </Button>

@@ -101,7 +101,7 @@ describe('ProjectsSection', () => {
       )
 
       // HelpCircle 아이콘 확인 (aria-label이 없으므로 parent로 확인)
-      const helpIcon = screen.getByRole('button', { name: '새 주제 만들기' })
+      const helpIcon = screen.getByRole('button', { name: '새 프로젝트 만들기' })
         .parentElement?.previousElementSibling
 
       // SVG나 icon 요소가 있는지 확인
@@ -285,7 +285,7 @@ describe('ProjectsSection', () => {
         />
       )
 
-      const createButton = screen.getByRole('button', { name: '새 주제 만들기' })
+      const createButton = screen.getByRole('button', { name: '새 프로젝트 만들기' })
       fireEvent.click(createButton)
 
       expect(mockHandlers.onCreateProject).toHaveBeenCalled()
@@ -333,7 +333,7 @@ describe('ProjectsSection', () => {
   })
 
   describe('UI 일관성', () => {
-    it('"새 주제 만들기" 타이틀을 가진 버튼이 있어야 함', () => {
+    it('"새 프로젝트 만들기" 타이틀을 가진 버튼이 있어야 함', () => {
       render(
         <ProjectsSection
           projects={[]}
@@ -344,7 +344,7 @@ describe('ProjectsSection', () => {
         />
       )
 
-      expect(screen.getByRole('button', { name: '새 주제 만들기' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: '새 프로젝트 만들기' })).toBeInTheDocument()
     })
 
     it('TooltipProvider가 컴포넌트를 감싸야 함 (tooltip 작동)', () => {

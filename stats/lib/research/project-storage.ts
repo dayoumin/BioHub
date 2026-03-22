@@ -124,13 +124,19 @@ export function removeProjectEntityRef(
   entityKind: ProjectEntityKind,
   entityId: string
 ): void {
+  removeProjectEntityRefs([{ projectId, entityKind, entityId }])
+}
+
+/** 여러 entity ref를 한 번의 localStorage 읽기-쓰기로 제거 */
+export function removeProjectEntityRefs(
+  targets: ReadonlyArray<{ projectId: string; entityKind: ProjectEntityKind; entityId: string }>
+): void {
+  if (targets.length === 0) return
+  const targetSet = new Set(
+    targets.map(t => `${t.projectId}|${t.entityKind}|${t.entityId}`)
+  )
   const nextRefs = listProjectEntityRefs().filter(
-    ref =>
-      !(
-        ref.projectId === projectId &&
-        ref.entityKind === entityKind &&
-        ref.entityId === entityId
-      )
+    ref => !targetSet.has(`${ref.projectId}|${ref.entityKind}|${ref.entityId}`)
   )
   writeJson(PROJECT_REFS_KEY, nextRefs)
 }
