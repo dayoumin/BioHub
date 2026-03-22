@@ -39,9 +39,10 @@
 ### Decision Engine
 - [x] 4단계 결과 분류 (고신뢰/모호/저신뢰/실패/매칭없음)
 - [x] 색상 카드 UI (녹/노/주/빨)
-- [x] Top hits 테이블 (accession, 유사도%, Coverage, E-value)
+- [x] Top hits 테이블 (종명, 유사도%, Coverage, Bit score, 채집국가, 바코드 배지)
 - [x] 분류군 감지 + 맞춤 안내 (Thunnus, Salmonidae, Amphibia, Bivalvia)
-- [x] 추천 마커 칩 (클릭 시 같은 서열로 재분석)
+- [x] 추천 마커 배지 + 인라인 설명 (reason, detail)
+- [x] accession → 종명/taxid/채집국가/바코드 여부 (NCBI esummary)
 
 ### 대기 상태 UX
 - [x] 3단계 프로그레스 바 (제출 → 처리 중 → 완료)
@@ -49,10 +50,12 @@
 - [x] 취소 버튼 (AbortController)
 
 ### 결과 저장
-- [x] localStorage 히스토리 (최근 10건, analysis-history.ts)
+- [x] localStorage 히스토리 (최근 20건, DecisionResult 포함, 결과 복원 가능)
+- [x] 히스토리 사이드바 (핀, 전체 선택·삭제, 클릭 → 결과 복원)
+- [x] 시료명 입력 (분석 기록 구분용)
 - [ ] blast_results 테이블 (D1, 사용자별 영구 기록)
 - [ ] 프로젝트 연결 (project_entity_refs)
-- [x] "다음 행동" 버튼 (GenBank 링크 활성, 나머지 준비 중)
+- [x] "다음 행동" 버튼 (GenBank/종 상세정보/BOLD 검색 활성, 나머지 준비 중)
 
 ### 메인 페이지 UX
 - [x] 도구 카드 (활성/준비중 분리, 아이콘)
@@ -69,7 +72,7 @@
   - [x] Salmonidae (연어과): D-loop + microsatellite
   - [ ] 가공 시료: 미니바코드 안내
   - [ ] 저유사도: 서열 품질 체크 안내
-- [x] accession → 종명 매핑 (NCBI E-utilities esummary)
+- [x] accession → 종명 매핑 (NCBI E-utilities esummary) + 채집국가, 바코드 여부
 - [ ] EBI BLAST 자동 전환 (NCBI 실패 시)
 - [ ] 보고서 자동 생성
   - [ ] 서열 품질 통계 (길이, GC%, N%)
@@ -122,8 +125,6 @@
 - [ ] DNA 바코딩 — Worker 없이 로컬 개발 시 안내 UX 개선 (현재 `wrangler dev` 미실행 시 `ERR_CONNECTION_REFUSED`)
 - [ ] 결과 비교 — 이전 분석 결과와 현재 결과를 나란히 비교하는 UI (히스토리에서 선택 → side-by-side 비교)
 - [ ] 대안 마커 상세 모달 — 각 추천 마커 클릭 시 모달로 상세 설명 표시 (프라이머 정보, 관련 논문, 실험 팁, 성공 사례). 현재는 인라인 간단 설명만 제공
-- [ ] 히스토리 공유 사이드바 — genetics layout.tsx에 히스토리 사이드바를 넣어 메인/barcoding/결과 등 전체 genetics 페이지에서 접근 가능하게
-- [ ] 히스토리 결과 재열람 — 히스토리 항목 클릭 시 해당 분석 결과로 이동. DecisionResult 전체를 localStorage에 저장하여 재현 (RID는 24시간 후 만료되므로 불가)
 - [ ] 히스토리 엑셀 내보내기 — 선택한 분석 기록을 xlsx로 저장 (시료명, 마커, 종명, 일치도, 날짜 등)
 - [ ] My Pages 연동 — 개인 대시보드에서 분석 기록 모아보기, 프로젝트별 분류, 결과 비교 (D1 영구 저장 필요)
 - [ ] 다른 DB 검색 — 같은 서열로 BOLD/EBI BLAST 자동 검색 (현재 BOLD 링크만 제공)

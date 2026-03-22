@@ -7,6 +7,12 @@ import { Button } from '@/components/ui/button'
 
 export type BlastErrorCode = 'network' | 'timeout' | 'blast-failed' | 'unknown'
 
+class BlastError extends Error {
+  constructor(message: string, public readonly code: BlastErrorCode) {
+    super(message)
+  }
+}
+
 interface BlastRunnerProps {
   sequence: string
   marker: BlastMarker
@@ -88,15 +94,16 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
         if (!submitRes.ok) {
           const contentType = submitRes.headers.get('Content-Type') || ''
           if (!contentType.includes('application/json')) {
-            throw new Error(
+            throw new BlastError(
               '분석 서버에 연결할 수 없습니다. ' +
               (process.env.NODE_ENV === 'development'
                 ? '개발 환경에서는 wrangler dev로 Worker를 실행해야 합니다.'
-                : '잠시 후 다시 시도하세요.')
+                : '잠시 후 다시 시도하세요.'),
+              'network'
             )
           }
           const err = await submitRes.json() as { error?: string; message?: string }
-          throw new Error(err.message || err.error || `제출 실패 (${submitRes.status})`)
+          throw new BlastError(err.message || err.error || `제출 실패 (${submitRes.status})`, 'network')
         }
 
         const submitData = await submitRes.json() as {
@@ -148,12 +155,12 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
               break
             }
             if (statusData.status === 'FAILED' || statusData.status === 'UNKNOWN') {
-              throw new Error(`NCBI BLAST 실패: ${statusData.status}`)
+              throw new BlastError(`NCBI BLAST 실패: ${statusData.status}`, 'blast-failed')
             }
           }
 
           if (polls >= MAX_POLLS) {
-            throw new Error('분석 시간 초과 (10분). 나중에 다시 시도하세요.')
+            throw new BlastError('분석 시간 초과 (10분). 나중에 다시 시도하세요.', 'timeout')
           }
 
           if (signal.aborted) return
@@ -164,7 +171,7 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
             : `/api/blast/result/${submitData.rid}`
           const resultRes = await fetch(resultUrl, { signal })
           if (!resultRes.ok) {
-            throw new Error(`결과 조회 실패 (${resultRes.status})`)
+            throw new BlastError(`결과 조회 실패 (${resultRes.status})`, 'network')
           }
 
           resultData = await resultRes.json() as { hits?: Array<Record<string, unknown>> }
@@ -182,9 +189,8 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
         if (signal.aborted) return
         const msg = err instanceof Error ? err.message : '알 수 없는 오류'
         const code: BlastErrorCode =
-          err instanceof TypeError || msg.includes('연결') || msg.includes('서버') ? 'network'
-          : msg.includes('시간 초과') ? 'timeout'
-          : msg.includes('BLAST 실패') ? 'blast-failed'
+          err instanceof BlastError ? err.code
+          : err instanceof TypeError ? 'network'
           : 'unknown'
         setErrorMessage(msg)
         setPhase('error')

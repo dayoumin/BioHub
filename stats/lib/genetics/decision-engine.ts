@@ -67,6 +67,7 @@ export function parseBlastHits(data: unknown): BlastTopHit[] {
         accession,
         evalue: (hit['evalue'] as number) ?? undefined,
         bitScore: (hit['bitScore'] as number) ?? undefined,
+        // 정렬 커버리지 (query coverage 아님 — payload에 query length 없음)
         queryCoverage: alignLength > 0 ? (queryEnd - queryStart + 1) / alignLength : undefined,
         taxid: (hit['taxid'] as number) ?? undefined,
         country: (hit['country'] as string) ?? undefined,

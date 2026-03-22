@@ -72,7 +72,7 @@ export function ResultView({ decision, marker, sequence, onReset }: ResultViewPr
                   <th className="pb-2">#</th>
                   <th className="pb-2">종명</th>
                   <th className="pb-2 text-right">유사도</th>
-                  <th className="pb-2 text-right">Coverage</th>
+                  <th className="pb-2 text-right" title="정렬 커버리지 — 정렬된 구간 내 매칭 비율 (전체 서열 대비 아님)">Align%</th>
                   <th className="pb-2 text-right" title="Bit score — 높을수록 좋은 매칭 (E-value가 0일 때 더 유용)">Score</th>
                   <th className="pb-2 text-right">Accession</th>
                 </tr>
@@ -141,9 +141,11 @@ export function ResultView({ decision, marker, sequence, onReset }: ResultViewPr
       <div className="flex flex-wrap items-center gap-2">
         <NextActionButtons decision={decision} marker={marker} sequence={sequence} />
         <div className="ml-auto flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => onReset(false)}>
-            서열 유지하고 재분석
-          </Button>
+          {sequence && (
+            <Button variant="outline" size="sm" onClick={() => onReset(false)}>
+              서열 유지하고 재분석
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => onReset(true)}>
             새 서열로 분석
           </Button>

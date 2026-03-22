@@ -579,7 +579,8 @@ async function handleSpeciesLookup(
         // accession 매핑 (버전 있는/없는 + 원본 입력)
         const accBase = accVer.split('.')[0]
         for (const acc of limited) {
-          if (acc === accVer || acc === accBase || acc.startsWith(accBase)) {
+          const accBaseOfHit = acc.split('.')[0]
+          if (acc === accVer || accBaseOfHit === accBase) {
             species[acc] = name
             meta[acc] = info
           }
