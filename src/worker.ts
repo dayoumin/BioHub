@@ -13,6 +13,7 @@
 interface Env {
   ASSETS: Fetcher
   OPENROUTER_API_KEY: string
+  NCBI_API_KEY?: string
 }
 
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1'
@@ -64,6 +65,11 @@ export default {
     // /api/ai/* → OpenRouter 프록시
     if (url.pathname.startsWith('/api/ai/') || url.pathname === '/api/ai') {
       return handleOpenRouterProxy(request, env, url)
+    }
+
+    // /api/blast/* → NCBI BLAST 프록시
+    if (url.pathname.startsWith('/api/blast/')) {
+      return handleBlastProxy(request, env, url)
     }
 
     // 그 외 → Static Assets (기존 동작)
@@ -191,9 +197,196 @@ async function handleOpenRouterProxy(
   })
 }
 
-function jsonResponse(body: Record<string, string>, status: number): Response {
+function jsonResponse(body: Record<string, unknown>, status: number): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'Content-Type': 'application/json' },
   })
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NCBI BLAST 프록시
+// ═══════════════════════════════════════════════════════════════
+
+const NCBI_BLAST_BASE = 'https://blast.ncbi.nlm.nih.gov/Blast.cgi'
+
+/** BLAST 제출 간 최소 간격 (NCBI 정책: 10초) */
+const BLAST_MIN_INTERVAL_MS = 10_000
+let lastBlastSubmitAt = 0
+
+/**
+ * BLAST API 프록시
+ *
+ * POST /api/blast/submit — 서열 제출 → RID 반환
+ * GET  /api/blast/status/:rid — RID 상태 확인
+ * GET  /api/blast/result/:rid — 결과 조회 (JSON2)
+ */
+async function handleBlastProxy(
+  request: Request,
+  env: Env,
+  url: URL
+): Promise<Response> {
+  // Origin 검증
+  const origin = request.headers.get('Origin')
+  const referer = request.headers.get('Referer')
+  const requestHost = url.host
+
+  if (origin) {
+    if (new URL(origin).host !== requestHost) return jsonResponse({ error: 'Forbidden' }, 403)
+  } else if (referer) {
+    if (new URL(referer).host !== requestHost) return jsonResponse({ error: 'Forbidden' }, 403)
+  } else {
+    return jsonResponse({ error: 'Forbidden' }, 403)
+  }
+
+  // IP rate limit (분당 30회, OpenRouter와 공유)
+  const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown'
+  if (!checkRateLimit(clientIp)) {
+    return jsonResponse({ error: 'Rate limit exceeded' }, 429)
+  }
+
+  const subPath = url.pathname.replace(/^\/api\/blast/, '')
+
+  if (subPath === '/submit' && request.method === 'POST') {
+    return handleBlastSubmit(request, env)
+  }
+
+  const statusMatch = subPath.match(/^\/status\/([A-Z0-9]+)$/)
+  if (statusMatch && request.method === 'GET') {
+    return handleBlastStatus(statusMatch[1])
+  }
+
+  const resultMatch = subPath.match(/^\/result\/([A-Z0-9]+)$/)
+  if (resultMatch && request.method === 'GET') {
+    return handleBlastResult(resultMatch[1])
+  }
+
+  return jsonResponse({ error: 'Not found' }, 404)
+}
+
+/**
+ * POST /api/blast/submit
+ * Body: { sequence: string, marker?: string, apiKey?: string }
+ *
+ * NCBI BLAST에 서열 제출 → RID 반환
+ */
+async function handleBlastSubmit(
+  request: Request,
+  env: Env
+): Promise<Response> {
+  // 스로틀: NCBI 정책 준수 (10초 간격)
+  const now = Date.now()
+  const elapsed = now - lastBlastSubmitAt
+  if (elapsed < BLAST_MIN_INTERVAL_MS) {
+    const waitSec = Math.ceil((BLAST_MIN_INTERVAL_MS - elapsed) / 1000)
+    return jsonResponse({
+      error: 'throttled',
+      message: `NCBI rate limit. ${waitSec}초 후 다시 시도하세요.`,
+      retryAfter: waitSec,
+    }, 429)
+  }
+
+  let body: { sequence?: string; marker?: string; apiKey?: string }
+  try {
+    body = await request.json() as typeof body
+  } catch {
+    return jsonResponse({ error: 'Invalid JSON body' }, 400)
+  }
+
+  const sequence = body.sequence?.trim()
+  if (!sequence || sequence.length < 100) {
+    return jsonResponse({ error: '서열은 최소 100bp 이상이어야 합니다.' }, 400)
+  }
+
+  // 사용자 API 키 우선, 없으면 서버 키
+  const apiKey = body.apiKey || env.NCBI_API_KEY || ''
+
+  const params = new URLSearchParams({
+    CMD: 'Put',
+    PROGRAM: 'blastn',
+    MEGABLAST: 'on',
+    DATABASE: 'nt',
+    QUERY: sequence,
+    HITLIST_SIZE: '10',
+    FORMAT_TYPE: 'JSON2',
+  })
+  if (apiKey) {
+    params.set('api_key', apiKey)
+  }
+
+  lastBlastSubmitAt = Date.now()
+
+  const ncbiRes = await fetch(`${NCBI_BLAST_BASE}?${params.toString()}`)
+  const text = await ncbiRes.text()
+
+  // RID 추출: "RID = XXXXXXXX"
+  const ridMatch = text.match(/RID\s*=\s*([A-Z0-9]+)/)
+  const rtoeMatch = text.match(/RTOE\s*=\s*(\d+)/)
+
+  if (!ridMatch) {
+    return jsonResponse({ error: 'NCBI BLAST 제출 실패', detail: text.slice(0, 500) }, 502)
+  }
+
+  return jsonResponse({
+    rid: ridMatch[1],
+    rtoe: rtoeMatch ? Number(rtoeMatch[1]) : 30,
+  }, 200)
+}
+
+/**
+ * GET /api/blast/status/:rid
+ *
+ * NCBI BLAST 작업 상태 확인
+ * 반환: { status: 'WAITING' | 'RUNNING' | 'READY' | 'FAILED' | 'UNKNOWN' }
+ */
+async function handleBlastStatus(rid: string): Promise<Response> {
+  const params = new URLSearchParams({
+    CMD: 'Get',
+    RID: rid,
+    FORMAT_OBJECT: 'SearchInfo',
+  })
+
+  const ncbiRes = await fetch(`${NCBI_BLAST_BASE}?${params.toString()}`)
+  const text = await ncbiRes.text()
+
+  // Status 파싱: "Status=WAITING" | "Status=READY" etc.
+  const statusMatch = text.match(/Status=(\w+)/)
+  const status = statusMatch ? statusMatch[1] : 'UNKNOWN'
+
+  return jsonResponse({ rid, status }, 200)
+}
+
+/**
+ * GET /api/blast/result/:rid
+ *
+ * NCBI BLAST 결과 조회 (JSON2 형식)
+ */
+async function handleBlastResult(rid: string): Promise<Response> {
+  const params = new URLSearchParams({
+    CMD: 'Get',
+    RID: rid,
+    FORMAT_TYPE: 'JSON2',
+  })
+
+  const ncbiRes = await fetch(`${NCBI_BLAST_BASE}?${params.toString()}`)
+  const contentType = ncbiRes.headers.get('Content-Type') || ''
+
+  // JSON 응답이면 그대로 전달
+  if (contentType.includes('application/json')) {
+    const data = await ncbiRes.text()
+    return new Response(data, {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  // HTML/Text 응답 (아직 준비 안 됐거나 에러)
+  const text = await ncbiRes.text()
+
+  // 결과가 아직 준비 안 된 경우
+  if (text.includes('Status=WAITING') || text.includes('Status=RUNNING')) {
+    return jsonResponse({ rid, status: 'RUNNING', message: '아직 처리 중입니다.' }, 202)
+  }
+
+  return jsonResponse({ error: 'NCBI 결과 조회 실패', detail: text.slice(0, 500) }, 502)
 }
