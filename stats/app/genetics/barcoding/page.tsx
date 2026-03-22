@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 
-/** useSearchParams() 사용 컴포넌트를 dynamic import — static export prerender 우회 */
+/** static export prerender 우회 — ssr: false로 클라이언트에서만 렌더링 */
 const BarcodingContent = dynamic(() => import('./BarcodingContent'), { ssr: false })
 
 export default function BarcodingPage(): React.ReactElement {

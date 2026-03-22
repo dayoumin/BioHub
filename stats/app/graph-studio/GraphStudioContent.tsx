@@ -11,7 +11,6 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 import type EChartsReactCore from 'echarts-for-react/lib/core';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { loadProject } from '@/lib/graph-studio/project-storage';
@@ -33,7 +32,6 @@ export default function GraphStudioContent(): React.ReactElement {
 
   // 개별 셀렉터로 구독 — React Compiler가 selector 출력값을 기반으로 스냅샷 비교.
   // 셀렉터 반환값이 primitive(boolean, null) 이므로 값 비교로 정확히 re-render 트리거됨.
-  const searchParams = useSearchParams();
   const isDataLoaded = useGraphStudioStore(state => state.isDataLoaded);
   const chartSpec = useGraphStudioStore(state => state.chartSpec);
   // primitive 셀렉터: React Compiler 스냅샷 비교에 안전
@@ -51,7 +49,8 @@ export default function GraphStudioContent(): React.ReactElement {
   // 비호환 데이터 업로드 → currentProject: null → useEffect 재실행 방지.
   const restoredProjectRef = useRef<string | null>(null);
   useEffect(() => {
-    const projectId = searchParams.get('project');
+    const params = new URLSearchParams(window.location.search);
+    const projectId = params.get('project');
     if (!projectId) return;
     // 이미 같은 프로젝트가 로드되어 있으면 스킵
     if (currentProjectId === projectId) return;
@@ -62,7 +61,7 @@ export default function GraphStudioContent(): React.ReactElement {
     if (project) {
       setProject(project);
     }
-  }, [searchParams, currentProjectId, setProject]);
+  }, [currentProjectId, setProject]);
 
   // E2E 테스트용 hydration 완료 신호.
   // useEffect는 SSR에서 실행되지 않으며, React가 DOM에 이벤트 핸들러를 완전히

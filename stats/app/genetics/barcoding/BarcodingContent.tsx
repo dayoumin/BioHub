@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import type { BlastMarker, SequenceValidation } from '@biohub/types'
 import { SequenceInput } from '@/components/genetics/SequenceInput'
@@ -22,7 +21,6 @@ type AppState =
   | { step: 'error'; message: string; code: BlastErrorCode }
 
 export default function BarcodingContent(): React.ReactElement {
-  const searchParams = useSearchParams()
   const [marker, setMarker] = useState<BlastMarker>('COI')
   const [sequence, setSequence] = useState('')
   const [sampleName, setSampleName] = useState('')
@@ -31,8 +29,10 @@ export default function BarcodingContent(): React.ReactElement {
   const activeResearchProjectId = useResearchProjectStore(s => s.activeResearchProjectId)
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+
     // 히스토리 결과 복원
-    const historyId = searchParams.get('history')
+    const historyId = params.get('history')
     if (historyId) {
       const entry = loadAnalysisHistory().find(e => e.id === historyId)
       if (entry?.resultData) {
@@ -43,7 +43,7 @@ export default function BarcodingContent(): React.ReactElement {
     }
 
     // 예제 쿼리 파라미터 처리
-    const exampleId = searchParams.get('example')
+    const exampleId = params.get('example')
     if (exampleId) {
       const example = getExampleById(exampleId)
       if (example) {
@@ -51,7 +51,7 @@ export default function BarcodingContent(): React.ReactElement {
         setMarker(example.marker)
       }
     }
-  }, [searchParams])
+  }, [])
 
   const handleAnalyze = useCallback((_validation: SequenceValidation) => {
     setState({ step: 'analyzing', sequence, marker })

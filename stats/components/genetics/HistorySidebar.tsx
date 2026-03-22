@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Clock, PanelRightClose, Pin } from 'lucide-react'
 import type { AnalysisHistoryEntry } from '@/lib/genetics/analysis-history'
 import { Button } from '@/components/ui/button'
@@ -9,8 +9,11 @@ import { loadAnalysisHistory, deleteMultipleEntries, togglePinEntry, HISTORY_KEY
 
 export function HistorySidebar() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const activeHistoryId = searchParams.get('history')
+  const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setActiveHistoryId(new URLSearchParams(window.location.search).get('history'))
+  }, [])
   const [open, setOpen] = useState(false)
   const [history, setHistory] = useState<AnalysisHistoryEntry[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
