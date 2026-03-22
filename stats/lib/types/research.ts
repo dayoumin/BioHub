@@ -4,7 +4,12 @@
  * These types sit above feature-specific records such as HistoryRecord,
  * GraphProject, and PaperDraft, and define the cross-module project and
  * provenance model.
+ *
+ * ProjectEntityKind is re-exported from @biohub/types (canonical source).
  */
+
+import type { ProjectEntityKind } from '@biohub/types'
+export type { ProjectEntityKind }
 
 export type ResearchDomain =
   | 'general'
@@ -14,16 +19,6 @@ export type ResearchDomain =
   | 'microbiology'
 
 export type ResearchProjectStatus = 'active' | 'archived'
-
-export type ProjectEntityKind =
-  | 'analysis'
-  | 'figure'
-  | 'draft'
-  | 'chat-session'
-  | 'species-validation'
-  | 'legal-status'
-  | 'review-report'
-  | 'data-asset'
 
 export interface ResearchPaperConfig {
   title?: string

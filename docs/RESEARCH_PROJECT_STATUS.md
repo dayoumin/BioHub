@@ -1,6 +1,6 @@
 # BioHub Research Project Status
 
-**Last updated**: 2026-03-21  
+**Last updated**: 2026-03-22
 **References**: [Platform Vision](PLATFORM_VISION.md), [Product Strategy](PRODUCT_STRATEGY.md), [Research Data Model](RESEARCH_DATA_MODEL.md), [Roadmap](../ROADMAP.md), [TODO](../TODO.md)
 
 ---
@@ -52,6 +52,7 @@ Examples of outputs inside one project:
 - draft sections
 - species validation records
 - legal status checks
+- BLAST results and sequence data
 - later reviewer notes and evidence records
 
 ### Important rule
@@ -66,45 +67,60 @@ Single-use analysis flows should still work without requiring project setup.
 
 ### Foundation completed
 
-The shared model and storage foundation are now in place.
+The shared model and storage foundation are partially in place.
 
 Implemented:
 
 - shared `ResearchProject`, `ProjectEntityRef`, and `EvidenceRecord` types
-- project storage for research-level records
+- project storage for research-level records (localStorage: `research/project-storage.ts`)
+- D1 database schema (`projects`, `project_entity_refs` tables with FK cascades)
+- Worker API: `/api/projects` CRUD + `/api/entities/link` entity linking
 - `HistoryRecord.projectId`
-- `GraphProject.projectId`
-- `GraphProject.analysisId`
+- `GraphProject.projectId` and `GraphProject.analysisId`
 - result-to-graph handoff carrying analysis and project linkage
-- project/entity reference creation for figures
-- project/entity reference creation for saved analyses
+- project/entity reference creation for figures and saved analyses
 
-### Existing project source reuse
+### Storage divergence (current risk)
 
-Current chat-style projects are being reused as the early project shell.
+The chatbot module has two storage backends that are out of sync:
 
-This means:
+- `/chatbot/page.tsx` reads and writes via `ChatStorageIndexedDB`
+- `ProjectDialog.tsx` and `MoveSessionDialog.tsx` use `ChatStorage` (localStorage)
+- `ResearchProject` sync (`toResearchProject()`) exists only in the localStorage `ChatStorage`
+- `ChatStorageIndexedDB` has no `ResearchProject` sync
 
-- project metadata can already exist
-- analysis and graph outputs can start linking to a common project id
-- migration can stay small while the model matures
+This means chat-originated projects may not propagate to the research project storage depending on which code path creates them. This must be resolved before adding a unified project switcher.
+
+### Naming collision with Graph Studio
+
+Graph Studio already uses "project" to mean "graph document":
+
+- `?project=<id>` query parameter restores a `GraphProject` (graph-studio/page.tsx)
+- `currentProject` / `currentProjectId` in `graph-studio-store` refers to `GraphProject`
+- `graph-studio/project-storage.ts` manages `GraphProject` records
+
+Any new global project context must use a distinct name (e.g. `activeResearchProjectId`) to avoid collision with Graph Studio's existing `project` semantics.
+
+### Type system gap
+
+`ProjectEntityKind` is defined in two places with different values:
+
+- `packages/types/src/project.ts`: includes `blast-result` and `sequence-data`
+- `stats/lib/types/research.ts`: only 8 kinds (missing `blast-result`, `sequence-data`)
+
+The shared package is ahead of the stats app. Before declaring "all output types supported", the stats app type must be aligned or deprecated in favor of the shared package type.
 
 ### Current UI experiment
 
-A save-time project selection dialog was added in the results step.
+A save-time project selection dialog was added in the results step (ResultsActionStep).
 
-That implementation is technically valid, but product-wise it is still premature.
-
-Reason:
+That implementation is technically valid, but product-wise it is premature:
 
 - the project concept exists in data and storage
 - but it is not yet clearly expressed in the app information architecture
 - so the dialog appears before users understand the concept
 
-Conclusion:
-
-The data model direction is correct.  
-The current save UX is provisional and should be revised.
+The data model direction is correct. The current save UX is provisional and will be replaced by context-aware saving.
 
 ---
 
@@ -113,6 +129,7 @@ The current save UX is provisional and should be revised.
 ### Done enough to continue
 
 - project-centered data model exists
+- D1 schema and Worker API are operational
 - analysis and figure linkage has started
 - project refs are being recorded
 - project as a top-level concept is now technically feasible
@@ -127,71 +144,118 @@ The current save UX is provisional and should be revised.
 - evidence records attached to major AI outputs
 - clear UX rule for when project selection should appear
 
----
+### Implementation risks to resolve first
 
-## 5. Immediate next steps
-
-These should happen next, in this order.
-
-### Step 1. Clarify the project UX
-
-Decide the user-facing rule:
-
-- when is the user "inside a project"?
-- when should saving be automatic into the active project?
-- when should the user be asked?
-- when should no prompt appear at all?
-
-Recommended direction:
-
-- if the user is already inside a project context, save into that project silently
-- if the user is not in a project context, allow standalone save
-- do not interrupt every save with a selection dialog by default
-
-### Step 2. Add a visible top-level project structure
-
-Before pushing project selection deeper into the product, BioHub needs visible project structure such as:
-
-- project list
-- project switcher
-- project summary or dashboard
-- project-level related outputs list
-
-Without this, project linkage feels hidden and arbitrary.
-
-### Step 3. Define project context propagation
-
-Pages need a consistent way to know the current active project:
-
-- statistics page
-- Graph Studio
-- paper draft
-- future species/legal pages
-
-This likely means adding an explicit project context/store or route-based project state.
-
-### Step 4. Normalize project-linked save behavior
-
-Once project context exists:
-
-- statistics saves should inherit active `projectId`
-- graph saves should inherit active `projectId`
-- draft saves should inherit active `projectId`
-- cross-links should update without extra prompting
+1. **Storage divergence**: unify ChatStorage and ChatStorageIndexedDB project handling, or decouple research projects from chat projects entirely
+2. **Naming collision**: use `activeResearchProjectId` (not `activeProjectId`) for the global project context store
+3. **Type alignment**: sync `ProjectEntityKind` between `stats/lib/types/research.ts` and `packages/types/src/project.ts`
+4. **IA duplication**: `/chatbot` already has project management UI (`ProjectsSection`). Adding `/projects` requires either absorbing or scoping down the chatbot project UI to avoid duplicate information architecture
 
 ---
 
-## 6. After that
+## 5. Confirmed UX decisions
+
+These decisions are confirmed as of 2026-03-22.
+
+### Decision D. Project entry point — sidebar switcher + `/projects` page
+
+The sidebar gets a project switcher at the top (dropdown showing active project name). A dedicated `/projects` page handles project list, creation, and overview.
+
+The current `/chatbot` project UI (`ProjectsSection`) will be scoped down to chat-session organization only, not research project management. Research project management moves to `/projects`.
+
+### Decision E. Project context propagation — global zustand store
+
+A global zustand store holds `activeResearchProjectId`, persisted to localStorage.
+
+- All pages (statistics, Graph Studio, genetics, paper draft) read the active project from this store
+- The sidebar switcher reads and writes this store
+- Graph Studio's existing `currentProjectId` (which means `GraphProject`) is unaffected
+- URL-based or route-based project context is not used
+
+### Decision F. Save behavior — auto-link with override
+
+When a project is active:
+
+- new outputs (analysis, graph, BLAST result) auto-link to the active project
+- a toast confirms: `"'{projectName}'에 저장됨 · 변경"` — the "변경" link opens a reassignment dialog
+- no selection popup interrupts the flow
+
+When no project is active:
+
+- outputs save standalone (no project link)
+- a toast offers: `"프로젝트에 추가"` link for optional assignment
+
+### Decision G. Standalone mode — basic tools standalone, assembly requires project
+
+These work without a project:
+
+- individual statistical analysis
+- single graph creation
+- BLAST species identification
+- species name validation
+- legal status check
+
+These require an active project:
+
+- manuscript assembly (linking multiple analyses into one draft)
+- reviewer package generation
+- cross-analysis synthesis
+
+### Decision H. Output scope — all types included, chat sessions optional
+
+All research outputs belong to projects when a project is active:
+
+- statistical analysis results
+- Graph Studio figures
+- BLAST / genetic analysis results
+- species validation records
+- legal status checks
+- paper draft sections
+
+AI chat sessions are optionally linkable but not auto-linked. Chat sessions are exploratory and not always research deliverables.
+
+---
+
+## 6. Implementation sequence
+
+### Phase 1. Prerequisites (before any UI) — DONE
+
+1. ~~Align `ProjectEntityKind`~~ — stats re-exports from `@biohub/types`
+2. ~~Decide chat project fate~~ — decoupled: `toResearchProject()` sync removed from `ChatStorage`
+3. ~~Reserve `activeResearchProjectId` naming~~ — confirmed no collision
+
+### Phase 2. Core infrastructure — DONE
+
+4. ~~`useResearchProjectStore`~~ — `research-project-store.ts` (zustand + localStorage persist)
+5. ~~`/projects` page~~ — list, create, rename, archive, delete
+6. ~~Sidebar project switcher~~ — dropdown with active project display
+
+### Phase 3. Context-aware behavior — BLOCKED on module stabilization
+
+7. Wire statistics save to auto-link `activeResearchProjectId`
+8. Wire Graph Studio figure save to auto-link
+9. Wire genetics BLAST save to auto-link
+10. Implement toast-based save feedback (auto-link confirmation + override link)
+11. Replace ResultsActionStep project selection popup with context-aware behavior
+
+### Phase 4. Project overview
+
+12. Project detail page — linked outputs browser (analyses, figures, drafts, BLAST results)
+13. Project metadata editor (name, description, domain, tags, paper config)
+14. Quick actions from project overview (start new analysis, create graph, etc.)
+
+### Phase 5. Assembly features (project required)
+
+15. Project-level manuscript assembly UI
+16. Figure and table references in draft sections
+17. Reviewer package structure
+18. Methods and reporting completeness checklist
+
+---
+
+## 7. After that
 
 Once project context is visible and stable, the next layer should be built.
-
-### Near-term product expansion
-
-- project-level draft assembly
-- project-level analysis and figure browser
-- project-linked species validation outputs
-- project-linked legal status outputs
-- project-linked reviewer package structure
 
 ### Trust layer expansion
 
@@ -200,11 +264,9 @@ Once project context is visible and stable, the next layer should be built.
 - reproducible code records
 - reviewer-facing reasoning and method trace
 
----
+### Later plan
 
-## 7. Later plan
-
-These should happen after the project model and trust model are stable.
+These should happen after the project model and trust model are stable:
 
 - reviewer checklist
 - reviewer-ready export bundle
@@ -247,19 +309,7 @@ That flexibility is important.
 
 ---
 
-## 9. Suggested implementation sequence from here
-
-1. Document and decide project UX rules.
-2. Introduce visible project navigation or project overview.
-3. Add project context propagation across pages.
-4. Replace the provisional save dialog behavior with context-aware saving.
-5. Extend project linkage to draft, species, and legal outputs.
-6. Attach evidence and provenance to major project outputs.
-7. Build reviewer-ready packaging on top of linked project records.
-
----
-
-## 10. Definition of success for this phase
+## 9. Definition of success for this phase
 
 This phase is successful when:
 

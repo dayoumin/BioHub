@@ -13,13 +13,26 @@ import {
   Settings,
   PanelLeft,
   Star,
+  FolderKanban,
+  ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { useUI } from '@/contexts/ui-context'
 import { toast } from 'sonner'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
+import {
+  useResearchProjectStore,
+  selectActiveProject,
+} from '@/lib/stores/research-project-store'
 
 /** 사이드바 접힐 때 텍스트가 즉시 사라지도록 (width 애니메이션 도중 잔상 방지) */
 const textClass = (expanded: boolean) =>
@@ -38,6 +51,7 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: '/', label: '홈', icon: Home },
+  { href: '/projects', label: '연구 프로젝트', icon: FolderKanban, prefix: '/projects' },
   { href: '/graph-studio', label: 'Graph Studio', icon: AreaChart, prefix: '/graph-studio' },
   { href: '/bio-tools', label: 'Bio-Tools', icon: Dna, prefix: '/bio-tools' },
   { href: '/genetics', label: '유전적 분석', icon: FlaskConical, prefix: '/genetics' },
@@ -62,6 +76,18 @@ export function AppSidebar() {
   const results = useAnalysisStore(s => s.results)
 
   const setShowHub = useModeStore(s => s.setShowHub)
+
+  const activeProject = useResearchProjectStore(selectActiveProject)
+  const projects = useResearchProjectStore(s => s.projects)
+  const setActiveProject = useResearchProjectStore(s => s.setActiveProject)
+  const clearActiveProject = useResearchProjectStore(s => s.clearActiveProject)
+  const refreshProjects = useResearchProjectStore(s => s.refreshProjects)
+
+  useEffect(() => {
+    refreshProjects()
+  }, [refreshProjects])
+
+  const availableProjects = projects.filter(p => p.status === 'active')
 
   /** 네비게이션 클릭 핸들러:
    *  - 홈 클릭 시 showHub=true로 리셋 (ChatCentricHub 표시)
@@ -134,6 +160,72 @@ export function AppSidebar() {
         <span className={cn("ml-3 text-sm font-semibold tracking-tight text-sidebar-foreground whitespace-nowrap", textClass(expanded))}>
           {APP_TITLE}
         </span>
+      </div>
+
+      {/* 프로젝트 전환기 */}
+      <div className="flex-shrink-0 px-1.5 pt-2 pb-1">
+        <DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className={cn(
+                    'flex items-center gap-1.5 w-full h-8 px-2 rounded-md text-xs transition-colors',
+                    'border border-sidebar-border/60 hover:bg-sidebar-accent/60',
+                    activeProject
+                      ? 'text-sidebar-foreground'
+                      : 'text-sidebar-foreground/50',
+                  )}
+                >
+                  <FolderKanban className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span className={cn('flex-1 truncate text-left', textClass(expanded))}>
+                    {activeProject?.name ?? '프로젝트 없음'}
+                  </span>
+                  <ChevronDown className={cn('h-3 w-3 flex-shrink-0', textClass(expanded))} />
+                </button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            {!expanded && (
+              <TooltipContent side="right">
+                {activeProject ? `프로젝트: ${activeProject.name}` : '프로젝트 없음'}
+              </TooltipContent>
+            )}
+          </Tooltip>
+          <DropdownMenuContent align="start" className="w-52">
+            {availableProjects.length === 0 ? (
+              <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+                프로젝트가 없습니다
+              </DropdownMenuItem>
+            ) : (
+              availableProjects.map(p => (
+                <DropdownMenuItem
+                  key={p.id}
+                  onClick={() => {
+                    setActiveProject(p.id)
+                    toast.success(`'${p.name}' 활성화`)
+                  }}
+                  className={cn(
+                    'text-xs',
+                    activeProject?.id === p.id && 'bg-accent',
+                  )}
+                >
+                  {p.presentation?.emoji && (
+                    <span className="mr-1.5">{p.presentation.emoji}</span>
+                  )}
+                  <span className="truncate">{p.name}</span>
+                </DropdownMenuItem>
+              ))
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => clearActiveProject()}
+              disabled={!activeProject}
+              className="text-xs text-muted-foreground"
+            >
+              프로젝트 해제
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* 메인 네비게이션 */}

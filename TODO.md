@@ -43,12 +43,15 @@ These items should be the current focus.
 - ~~`[workflow]` Define a single `ResearchProject` model shared by chat, analysis history, Graph Studio, and paper draft flows.~~ — 확정 (Decision E: `activeResearchProjectId` zustand store)
 - ~~`[workflow]` Define canonical ids and relationships for `projectId`, `analysisId`, `figureId`, and draft section references.~~ — 확정 (Decision E: `activeResearchProjectId`로 통일, Graph Studio의 `currentProjectId`는 `GraphProject`로 유지)
 - ~~`[workflow]` Decide the source of truth for project-linked records across local storage, IndexedDB, and adapter-based persistence.~~ — 확정 (zustand + localStorage persist → 추후 D1 마이그레이션)
-- `[workflow]` `ProjectEntityKind` 타입 정렬 — `stats/lib/types/research.ts`에 `blast-result`, `sequence-data` 추가하거나 shared package로 통일
-- `[workflow]` 채팅 프로젝트 저장소 분기 해소 — `ChatStorage`(localStorage)와 `ChatStorageIndexedDB`의 프로젝트 처리 통일, 또는 연구 프로젝트와 분리
-- `[workflow]` `useResearchProjectStore` 생성 — `activeResearchProjectId` + persist + sidebar switcher 연동
-- `[workflow]` `/projects` 페이지 구현 — 프로젝트 목록, 생성, 개요
-- `[workflow]` 사이드바 프로젝트 전환기 추가
+- ~~`[workflow]` `ProjectEntityKind` 타입 정렬~~ — 완료 (`stats/lib/types/research.ts` → `@biohub/types` re-export)
+- ~~`[workflow]` 채팅 프로젝트 저장소 분기 해소~~ — 완료 (연구 프로젝트와 분리, `toResearchProject()` 동기화 제거)
+- ~~`[workflow]` `useResearchProjectStore` 생성~~ — 완료 (`research-project-store.ts`, zustand + localStorage persist)
+- ~~`[workflow]` `/projects` 페이지 구현~~ — 완료 (목록, 생성, 이름수정, 보관, 삭제)
+- ~~`[workflow]` 사이드바 프로젝트 전환기 추가~~ — 완료 (드롭다운 + 활성 프로젝트 표시)
 - `[workflow]` `/chatbot` `ProjectsSection` IA 정리 — 연구 프로젝트 관리는 `/projects`로 이동, 채팅 프로젝트는 세션 정리용으로 축소
+- `[workflow]` 각 모듈 저장 시 활성 프로젝트 auto-link (통계·그래프·유전적 분석) — 모듈 안정 후 진행 (Phase 3)
+- `[workflow]` 토스트 기반 저장 피드백 (`'{projectName}'에 저장됨 · 변경` / `프로젝트에 추가`) — Phase 3
+- `[workflow]` `ResultsActionStep` 프로젝트 선택 팝업 → 컨텍스트 기반 동작으로 교체 — Phase 3
 - `[trust]` Define an `EvidenceRecord` or provenance schema for AI interpretation outputs.
 - `[trust]` Persist method rationale, key statistical context, and generation metadata with saved interpretation results.
 - `[trust]` Design reproducible code payload generation for core analysis flows in R and/or Python.
@@ -78,7 +81,7 @@ These should start after the current foundation is in place.
 - `[test]` `use-analysis-handlers.test.ts` tsc 에러 2건 (TerminologyProviderProps children 누락, testName 미존재) — 기존 미수정
 - `[test]` `graph-studio-store.test.ts` 전체 suite 실행 시 1건 실패 (단독 52/52 통과) — 테스트 순서 의존성
 - `[quality]` `graph-studio/project-storage.ts`와 `research/project-storage.ts`의 `isClient()`·read/write 패턴 중복 — 저장소 추가 시 공통 팩토리 검토
-- `[quality]` `formatRelativeTime` 중복 4곳 → `lib/utils/format-time.ts` 공유 유틸로 교체 (SessionItem, TemplateSelector, TemplateManagePanel, DataUploadStep)
+- `[quality]` `formatRelativeTime` 중복 5곳 → `lib/utils/format-time.ts` 공유 유틸로 교체 (SessionItem, TemplateSelector, TemplateManagePanel, DataUploadStep, projects/page.tsx)
 - `[ux]` 접근성 focus ring 통일 (`focusRing` 상수 → 기존 5곳 점진 교체)
 - `[ux]` 토스트 메시지 기존 19곳 점진적 `TOAST.*` 마이그레이션
 - `[ux]` ChatBubble 공통 컴포넌트 추출
@@ -117,9 +120,9 @@ These are valid directions, but not current execution priorities.
 ## 6. Suggested execution order
 
 1. ~~Project UX rule and visible project structure~~ — 확정 (2026-03-22)
-2. Prerequisites: `ProjectEntityKind` 정렬, 저장소 분기 해소, `activeResearchProjectId` 명명 확보
-3. `useResearchProjectStore` + `/projects` 페이지 + 사이드바 전환기
-4. 컨텍스트 기반 자동 저장 (토스트 + override)
+2. ~~Prerequisites: `ProjectEntityKind` 정렬, 저장소 분기 해소, `activeResearchProjectId` 명명 확보~~ — 완료
+3. ~~`useResearchProjectStore` + `/projects` 페이지 + 사이드바 전환기~~ — 완료
+4. 컨텍스트 기반 자동 저장 (토스트 + override) — 모듈 안정 후
 5. Evidence/provenance schema
 6. Species/legal source-aware records
 7. Project-level draft assembly model

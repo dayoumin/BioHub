@@ -9,26 +9,6 @@
  */
 
 import type { ChatSession, ChatMessage, ChatSettings, ChatProject } from '@/lib/types/chat'
-import {
-  deleteResearchProject,
-  saveResearchProject,
-} from '@/lib/research/project-storage'
-import type { ResearchProject } from '@/lib/types/research'
-
-function toResearchProject(project: ChatProject): ResearchProject {
-  return {
-    id: project.id,
-    name: project.name,
-    description: project.description,
-    status: project.isArchived ? 'archived' : 'active',
-    presentation: {
-      emoji: project.emoji,
-      color: project.color,
-    },
-    createdAt: new Date(project.createdAt).toISOString(),
-    updatedAt: new Date(project.updatedAt).toISOString(),
-  }
-}
 
 export class ChatStorage {
   private static readonly SESSIONS_KEY = 'rag-chat-sessions'
@@ -338,14 +318,15 @@ export class ChatStorage {
       const data = localStorage.getItem(this.SESSIONS_KEY)
       if (!data) return
 
+      const sessions = JSON.parse(data) as ChatSession[]
+
       // 1. 크기 체크
       if (data.length > this.MAX_SIZE) {
-        this.cleanupBySize()
+        this.cleanupBySize(sessions)
         return
       }
 
       // 2. 개수 체크
-      const sessions = JSON.parse(data) as ChatSession[]
       const nonArchivedSessions = sessions.filter(s => !s.isArchived)
 
       if (nonArchivedSessions.length > this.MAX_SESSIONS) {
@@ -359,15 +340,11 @@ export class ChatStorage {
   /**
    * 크기 기준 정리
    */
-  private static cleanupBySize(): void {
-    const sessions = this.loadAllSessions()
-
-    // 즐겨찾기가 아닌 세션만 정렬 (오래된 순)
+  private static cleanupBySize(sessions: ChatSession[]): void {
     const nonFavoriteSessions = sessions
       .filter(s => !s.isFavorite)
       .sort((a, b) => a.updatedAt - b.updatedAt)
 
-    // 가장 오래된 세션부터 삭제
     if (nonFavoriteSessions.length > 0) {
       const toDelete = nonFavoriteSessions[0]
       this.deleteSession(toDelete.id)
@@ -436,20 +413,9 @@ export class ChatStorage {
         isFavorite: false,
       }
 
-      saveResearchProject(toResearchProject(newProject))
-
-      try {
-        const projects = this.loadAllProjects()
-        projects.push(newProject)
-        this.saveAllProjects(projects)
-      } catch (error) {
-        try {
-          deleteResearchProject(newProject.id)
-        } catch (rollbackError) {
-          console.error('Failed to rollback research project creation:', rollbackError)
-        }
-        throw error
-      }
+      const projects = this.loadAllProjects()
+      projects.push(newProject)
+      this.saveAllProjects(projects)
 
       return newProject
     } catch (error) {
@@ -494,19 +460,8 @@ export class ChatStorage {
         updatedAt: Date.now(),
       }
 
-      saveResearchProject(toResearchProject(updatedProject))
-
-      try {
-        projects[projectIndex] = updatedProject
-        this.saveAllProjects(projects)
-      } catch (error) {
-        try {
-          saveResearchProject(toResearchProject(project))
-        } catch (rollbackError) {
-          console.error('Failed to rollback research project update:', rollbackError)
-        }
-        throw error
-      }
+      projects[projectIndex] = updatedProject
+      this.saveAllProjects(projects)
 
       return updatedProject
     } catch (error) {
@@ -529,19 +484,7 @@ export class ChatStorage {
       )
 
       this.saveAllProjects(filtered)
-
-      try {
-        this.saveAllSessions(nextSessions)
-        deleteResearchProject(projectId)
-      } catch (error) {
-        try {
-          this.saveAllProjects(projects)
-          this.saveAllSessions(previousSessions)
-        } catch (rollbackError) {
-          console.error('Failed to rollback project deletion:', rollbackError)
-        }
-        throw error
-      }
+      this.saveAllSessions(nextSessions)
 
     } catch (error) {
       console.error('Failed to delete project:', error)
@@ -567,22 +510,10 @@ export class ChatStorage {
         updatedAt: Date.now(),
       }
 
-      saveResearchProject(toResearchProject(updatedProject))
-
-      try {
-        const nextProjects = projects.map(existing =>
-          existing.id === projectId ? updatedProject : existing
-        )
-        this.saveAllProjects(nextProjects)
-      } catch (error) {
-        try {
-          saveResearchProject(toResearchProject(project))
-        } catch (rollbackError) {
-          console.error('Failed to rollback project archive toggle:', rollbackError)
-        }
-        throw error
-      }
-
+      const nextProjects = projects.map(existing =>
+        existing.id === projectId ? updatedProject : existing
+      )
+      this.saveAllProjects(nextProjects)
     } catch (error) {
       console.error('Failed to toggle project archive:', error)
       throw new Error('프로젝트 보관 설정에 실패했습니다.')
@@ -607,22 +538,10 @@ export class ChatStorage {
         updatedAt: Date.now(),
       }
 
-      saveResearchProject(toResearchProject(updatedProject))
-
-      try {
-        const nextProjects = projects.map(existing =>
-          existing.id === projectId ? updatedProject : existing
-        )
-        this.saveAllProjects(nextProjects)
-      } catch (error) {
-        try {
-          saveResearchProject(toResearchProject(project))
-        } catch (rollbackError) {
-          console.error('Failed to rollback project favorite toggle:', rollbackError)
-        }
-        throw error
-      }
-
+      const nextProjects = projects.map(existing =>
+        existing.id === projectId ? updatedProject : existing
+      )
+      this.saveAllProjects(nextProjects)
     } catch (error) {
       console.error('Failed to toggle project favorite:', error)
       throw new Error('프로젝트 즐겨찾기 설정에 실패했습니다.')
