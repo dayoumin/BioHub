@@ -1,6 +1,6 @@
 # BioHub TODO
 
-**Last updated**: 2026-03-21
+**Last updated**: 2026-03-22
 **References**: [Product Strategy](docs/PRODUCT_STRATEGY.md), [Roadmap](ROADMAP.md), [Research Project Status](docs/RESEARCH_PROJECT_STATUS.md)
 
 ---
@@ -37,12 +37,18 @@ Recommended tags:
 
 These items should be the current focus.
 
-- `[workflow]` Finalize the user-facing definition of `ResearchProject` as one research unit above individual pages and tools.
-- `[workflow]` Define the UX rule for project context vs standalone mode before adding more save-time prompts.
-- `[workflow]` Add visible project entry points such as project list, project switcher, or project overview so the concept is explicit in the app.
-- `[workflow]` Define a single `ResearchProject` model shared by chat, analysis history, Graph Studio, and paper draft flows.
-- `[workflow]` Define canonical ids and relationships for `projectId`, `analysisId`, `figureId`, and draft section references.
-- `[workflow]` Decide the source of truth for project-linked records across local storage, IndexedDB, and adapter-based persistence.
+- ~~`[workflow]` Finalize the user-facing definition of `ResearchProject` as one research unit above individual pages and tools.~~ — 확정 ([RESEARCH_PROJECT_STATUS.md](docs/RESEARCH_PROJECT_STATUS.md) §5 Decision D–H)
+- ~~`[workflow]` Define the UX rule for project context vs standalone mode before adding more save-time prompts.~~ — 확정 (Decision F: 자동 연결 + override, Decision G: 기본 도구 standalone / 조립 기능 프로젝트 필수)
+- ~~`[workflow]` Add visible project entry points such as project list, project switcher, or project overview so the concept is explicit in the app.~~ — 확정 (Decision D: 사이드바 전환기 + `/projects` 페이지)
+- ~~`[workflow]` Define a single `ResearchProject` model shared by chat, analysis history, Graph Studio, and paper draft flows.~~ — 확정 (Decision E: `activeResearchProjectId` zustand store)
+- ~~`[workflow]` Define canonical ids and relationships for `projectId`, `analysisId`, `figureId`, and draft section references.~~ — 확정 (Decision E: `activeResearchProjectId`로 통일, Graph Studio의 `currentProjectId`는 `GraphProject`로 유지)
+- ~~`[workflow]` Decide the source of truth for project-linked records across local storage, IndexedDB, and adapter-based persistence.~~ — 확정 (zustand + localStorage persist → 추후 D1 마이그레이션)
+- `[workflow]` `ProjectEntityKind` 타입 정렬 — `stats/lib/types/research.ts`에 `blast-result`, `sequence-data` 추가하거나 shared package로 통일
+- `[workflow]` 채팅 프로젝트 저장소 분기 해소 — `ChatStorage`(localStorage)와 `ChatStorageIndexedDB`의 프로젝트 처리 통일, 또는 연구 프로젝트와 분리
+- `[workflow]` `useResearchProjectStore` 생성 — `activeResearchProjectId` + persist + sidebar switcher 연동
+- `[workflow]` `/projects` 페이지 구현 — 프로젝트 목록, 생성, 개요
+- `[workflow]` 사이드바 프로젝트 전환기 추가
+- `[workflow]` `/chatbot` `ProjectsSection` IA 정리 — 연구 프로젝트 관리는 `/projects`로 이동, 채팅 프로젝트는 세션 정리용으로 축소
 - `[trust]` Define an `EvidenceRecord` or provenance schema for AI interpretation outputs.
 - `[trust]` Persist method rationale, key statistical context, and generation metadata with saved interpretation results.
 - `[trust]` Design reproducible code payload generation for core analysis flows in R and/or Python.
@@ -79,6 +85,8 @@ These should start after the current foundation is in place.
 - `[ux]` paper-draft/PaperDraftPanel.tsx 데드 코드 삭제
 - ~~`[quality]` `barcoding/page.tsx` 에러 분기가 한국어 문자열 `includes()` 매칭 → 에러 코드 기반으로 전환~~ — 완료 (`BlastErrorCode` 타입 도입)
 - ~~`[quality]` `session-sorter.ts` `sortSessionsByFavoriteAndRecent`가 `.sort()` in-place mutation → `[...sessions].sort()` 방어적 복사로 변경~~ — 완료
+- `[quality]` `NextAction.type` ('primary'|'secondary') 미사용 — 렌더링에 반영하거나 필드 제거 결정 필요
+- `[quality]` genetics 모듈 raw `<button>` 19개 → shadcn `Button` 컴포넌트로 전환 (6파일, 일관성·접근성 개선)
 
 ---
 
@@ -108,11 +116,11 @@ These are valid directions, but not current execution priorities.
 
 ## 6. Suggested execution order
 
-1. Project UX rule and visible project structure
-2. Shared `ResearchProject` model
-3. Shared ids and persistence rules
-4. Evidence/provenance schema
-5. Analysis-to-graph linkage
+1. ~~Project UX rule and visible project structure~~ — 확정 (2026-03-22)
+2. Prerequisites: `ProjectEntityKind` 정렬, 저장소 분기 해소, `activeResearchProjectId` 명명 확보
+3. `useResearchProjectStore` + `/projects` 페이지 + 사이드바 전환기
+4. 컨텍스트 기반 자동 저장 (토스트 + override)
+5. Evidence/provenance schema
 6. Species/legal source-aware records
 7. Project-level draft assembly model
 8. Reviewer checklist and export bundle

@@ -29,10 +29,16 @@ export interface TaxonAlert {
   recommendation: string
 }
 
+export type NextActionId =
+  | 'quality-check' | 'change-marker' | 'novel-species'
+  | 'report' | 'species-info' | 'genbank'
+  | 'recommend-marker' | 'papers' | 'phylogeny'
+  | 'protocol' | 'alt-db'
+
 export interface NextAction {
   label: string
   type: 'primary' | 'secondary'
-  action: string // 식별자 (UI에서 매핑)
+  action: NextActionId
 }
 
 /**
