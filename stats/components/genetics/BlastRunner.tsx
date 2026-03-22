@@ -10,6 +10,7 @@ export type BlastErrorCode = 'network' | 'timeout' | 'blast-failed' | 'unknown'
 class BlastError extends Error {
   constructor(message: string, public readonly code: BlastErrorCode) {
     super(message)
+    this.name = 'BlastError'
   }
 }
 
