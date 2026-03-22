@@ -1,7 +1,7 @@
 # NCBI BLAST API 기술 참고
 
 > **검증일**: 2026-03-22
-> **관련 코드**: `src/worker.ts` (BLAST 프록시), `stats/lib/genetics/decision-engine.ts`, `genetics/src/lib/decision-engine.ts`
+> **관련 코드**: `src/worker.ts` (BLAST 프록시), `stats/lib/genetics/decision-engine.ts`
 
 ---
 

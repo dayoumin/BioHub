@@ -5,7 +5,7 @@
 **구현 계획**: [PLAN-MODULE-E-NCBI-GENETICS.md](../docs/PLAN-MODULE-E-NCBI-GENETICS.md)
 **프로젝트 시스템**: [PLAN-PROJECT-SYSTEM.md](../docs/PLAN-PROJECT-SYSTEM.md)
 **정본 코드**: `stats/` 앱 내 (`stats/app/genetics/`, `stats/components/genetics/`, `stats/lib/genetics/`)
-**genetics/src/**: **DEPRECATED** — 독립 앱 테스트용 복사본. 여기서 개발하지 말 것. stats가 정본 (참고용으로만 보존)
+**genetics/src/**: 삭제됨 (2026-03-22). 정본은 stats/ 내 코드
 
 ---
 
@@ -16,7 +16,7 @@
 - [x] `packages/types/` — 공유 타입 (BlastMarker, BlastResultStatus 등)
 - [ ] `packages/db/` — D1 스키마 (Drizzle ORM)
 - [x] Workers API — `src/worker.ts` (BLAST 프록시)
-- [x] `genetics/` — 독립 앱 초기화 (stats 내 정본 코드 + genetics/src 참고용)
+- [x] `genetics/` — 독립 앱 초기화 (stats 내 정본 코드)
 
 ### 서열 입력 UI
 - [x] textarea (FASTA 붙여넣기) + 파일 업로드 (.fasta, .fa, .txt, 1MB 제한)
