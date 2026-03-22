@@ -75,6 +75,15 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
         })
 
         if (!submitRes.ok) {
+          const contentType = submitRes.headers.get('Content-Type') || ''
+          if (!contentType.includes('application/json')) {
+            throw new Error(
+              '분석 서버에 연결할 수 없습니다. ' +
+              (process.env.NODE_ENV === 'development'
+                ? '개발 환경에서는 wrangler dev로 Worker를 실행해야 합니다.'
+                : '잠시 후 다시 시도하세요.')
+            )
+          }
           const err = await submitRes.json() as { error?: string; message?: string }
           throw new Error(err.message || err.error || `제출 실패 (${submitRes.status})`)
         }
