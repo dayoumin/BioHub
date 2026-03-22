@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Clock, PanelRightClose, Pin, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Clock, PanelRightClose, Pin } from 'lucide-react'
 import type { AnalysisHistoryEntry } from '@/lib/genetics/analysis-history'
-import { loadAnalysisHistory, deleteMultipleEntries, deleteAnalysisEntry, togglePinEntry, HISTORY_KEY, HISTORY_CHANGE_EVENT } from '@/lib/genetics/analysis-history'
-import { formatTimeAgo } from '@/lib/utils/format-time'
+import { loadAnalysisHistory, deleteMultipleEntries, togglePinEntry, HISTORY_KEY, HISTORY_CHANGE_EVENT } from '@/lib/genetics/analysis-history'
 
 export function HistorySidebar() {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [history, setHistory] = useState<AnalysisHistoryEntry[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -42,8 +43,13 @@ export function HistorySidebar() {
     }
   }, [])
 
-  const handleDelete = (id: string): void => setHistory(deleteAnalysisEntry(id))
   const handleTogglePin = (id: string): void => setHistory(togglePinEntry(id))
+
+  const handleClick = (entry: AnalysisHistoryEntry): void => {
+    if (entry.resultData) {
+      router.push(`/genetics/barcoding?history=${entry.id}`)
+    }
+  }
 
   const handleToggleSelect = (id: string): void => {
     setSelectedIds(prev => {
@@ -125,7 +131,7 @@ export function HistorySidebar() {
                 selected={selectedIds.has(entry.id)}
                 onToggleSelect={handleToggleSelect}
                 onTogglePin={handleTogglePin}
-                onDelete={handleDelete}
+                onClick={handleClick}
               />
             ))}
           </div>
@@ -142,26 +148,30 @@ interface HistoryRowProps {
   selected: boolean
   onToggleSelect: (id: string) => void
   onTogglePin: (id: string) => void
-  onDelete: (id: string) => void
+  onClick: (entry: AnalysisHistoryEntry) => void
 }
 
-function HistoryRow({ entry, selected, onToggleSelect, onTogglePin, onDelete }: HistoryRowProps) {
+function HistoryRow({ entry, selected, onToggleSelect, onTogglePin, onClick }: HistoryRowProps) {
   const identityText = entry.topIdentity != null
     ? `${(entry.topIdentity * 100).toFixed(1)}%`
     : null
+  const hasResult = !!entry.resultData
 
   return (
-    <div className={`group relative px-3 py-2 transition ${selected ? 'bg-primary/5' : ''}`}>
+    <div
+      className={`group relative px-3 py-2 transition ${selected ? 'bg-primary/5' : ''} ${hasResult ? 'cursor-pointer hover:bg-muted/30' : ''}`}
+      onClick={() => hasResult && onClick(entry)}
+    >
       <div className="flex items-start gap-2">
         <input
           type="checkbox"
           checked={selected}
           onChange={() => onToggleSelect(entry.id)}
+          onClick={(e) => e.stopPropagation()}
           className="mt-0.5 h-3 w-3 shrink-0 rounded border-gray-300 accent-primary"
         />
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[11px]">
-            {entry.pinned && <Pin className="mr-1 inline-block h-2.5 w-2.5 text-primary" />}
+          <div className="flex items-center gap-1 truncate text-[11px]">
             {entry.sampleName || entry.sequencePreview}
           </div>
           <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-gray-700">
@@ -180,16 +190,11 @@ function HistoryRow({ entry, selected, onToggleSelect, onTogglePin, onDelete }: 
             )}
           </div>
         </div>
-      </div>
-      <div className="absolute right-2 top-1.5 hidden items-center gap-0.5 group-hover:flex">
-        <button type="button" onClick={() => onTogglePin(entry.id)}
-          className={`rounded p-0.5 transition ${entry.pinned ? 'text-primary' : 'text-muted-foreground/40 hover:text-primary'}`}
+        <button type="button"
+          onClick={(e) => { e.stopPropagation(); onTogglePin(entry.id) }}
+          className={`shrink-0 rounded p-0.5 transition ${entry.pinned ? 'text-primary' : 'text-muted-foreground/30 hover:text-primary'}`}
           title={entry.pinned ? '고정 해제' : '상단 고정'}>
-          <Pin className="h-2.5 w-2.5" />
-        </button>
-        <button type="button" onClick={() => onDelete(entry.id)}
-          className="rounded p-0.5 text-muted-foreground/40 transition hover:text-destructive" title="삭제">
-          <X className="h-2.5 w-2.5" />
+          <Pin className="h-3 w-3" />
         </button>
       </div>
     </div>

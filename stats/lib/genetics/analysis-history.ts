@@ -1,4 +1,5 @@
 import type { BlastMarker, BlastResultStatus } from '@biohub/types'
+import type { DecisionResult } from '@/lib/genetics/decision-engine'
 
 export interface AnalysisHistoryEntry {
   id: string
@@ -9,6 +10,7 @@ export interface AnalysisHistoryEntry {
   topIdentity: number | null
   status: BlastResultStatus | null
   pinned?: boolean
+  resultData?: DecisionResult
   createdAt: number
 }
 

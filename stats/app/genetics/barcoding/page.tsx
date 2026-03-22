@@ -11,7 +11,7 @@ import { ResultView } from '@/components/genetics/ResultView'
 import { parseBlastHits, analyzeBlastResult } from '@/lib/genetics/decision-engine'
 import type { DecisionResult } from '@/lib/genetics/decision-engine'
 import { getExampleById } from '@/lib/genetics/example-sequences'
-import { saveAnalysisHistory } from '@/lib/genetics/analysis-history'
+import { saveAnalysisHistory, loadAnalysisHistory } from '@/lib/genetics/analysis-history'
 
 type AppState =
   | { step: 'input' }
@@ -35,15 +35,26 @@ function BarcodingContent() {
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
   const [state, setState] = useState<AppState>({ step: 'input' })
 
-  // 예제 쿼리 파라미터 처리
   useEffect(() => {
-    const exampleId = searchParams.get('example')
-    if (!exampleId) return
+    // 히스토리 결과 복원
+    const historyId = searchParams.get('history')
+    if (historyId) {
+      const entry = loadAnalysisHistory().find(e => e.id === historyId)
+      if (entry?.resultData) {
+        setMarker(entry.marker)
+        setState({ step: 'result', marker: entry.marker, decision: entry.resultData })
+        return
+      }
+    }
 
-    const example = getExampleById(exampleId)
-    if (example) {
-      setSequence(example.sequence)
-      setMarker(example.marker)
+    // 예제 쿼리 파라미터 처리
+    const exampleId = searchParams.get('example')
+    if (exampleId) {
+      const example = getExampleById(exampleId)
+      if (example) {
+        setSequence(example.sequence)
+        setMarker(example.marker)
+      }
     }
   }, [searchParams])
 
@@ -75,6 +86,7 @@ function BarcodingContent() {
       topSpecies: decision.topHits[0]?.species ?? null,
       topIdentity: decision.topHits[0]?.identity ?? null,
       status: decision.status,
+      resultData: decision,
     })
   }, [marker, sequence, sampleName, uploadedFileName])
 
