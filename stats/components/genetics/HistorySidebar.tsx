@@ -156,20 +156,31 @@ function HistoryRow({ entry, selected, onToggleSelect, onTogglePin, onDelete }: 
     : ''
 
   return (
-    <div className={`group flex items-center gap-1.5 px-3 py-1.5 transition ${selected ? 'bg-primary/5' : ''}`}>
-      <input
-        type="checkbox"
-        checked={selected}
-        onChange={() => onToggleSelect(entry.id)}
-        className="h-3 w-3 shrink-0 rounded border-gray-300 accent-primary"
-      />
-      {entry.pinned && <Pin className="h-2.5 w-2.5 shrink-0 text-primary" />}
-      <span className="min-w-0 truncate text-[11px]">{entry.sampleName || entry.sequencePreview}</span>
-      <span className="shrink-0 text-[10px] text-muted-foreground/50">{entry.marker}</span>
-      {identityText && (
-        <span className={`shrink-0 text-[10px] font-mono ${identityColor}`}>{identityText}</span>
-      )}
-      <div className="ml-auto hidden shrink-0 items-center gap-0.5 group-hover:flex">
+    <div className={`group relative px-3 py-2 transition ${selected ? 'bg-primary/5' : ''}`}>
+      <div className="flex items-start gap-2">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelect(entry.id)}
+          className="mt-0.5 h-3 w-3 shrink-0 rounded border-gray-300 accent-primary"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[11px]">
+            {entry.pinned && <Pin className="mr-1 inline-block h-2.5 w-2.5 text-primary" />}
+            {entry.sampleName || entry.sequencePreview}
+          </div>
+          <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
+            <span>{entry.marker}</span>
+            {identityText && (
+              <>
+                <span className="text-border">·</span>
+                <span className={`font-mono ${identityColor}`}>{identityText}</span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="absolute right-2 top-1.5 hidden items-center gap-0.5 group-hover:flex">
         <button type="button" onClick={() => onTogglePin(entry.id)}
           className={`rounded p-0.5 transition ${entry.pinned ? 'text-primary' : 'text-muted-foreground/40 hover:text-primary'}`}
           title={entry.pinned ? '고정 해제' : '상단 고정'}>
