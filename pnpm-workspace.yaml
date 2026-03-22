@@ -1,0 +1,4 @@
+packages:
+  - "stats"
+  - "genetics"
+  - "packages/*"

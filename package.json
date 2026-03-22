@@ -1,0 +1,15 @@
+{
+  "name": "biohub",
+  "private": true,
+  "scripts": {
+    "dev:stats": "pnpm --filter stats dev",
+    "dev:genetics": "pnpm --filter genetics dev",
+    "build:stats": "pnpm --filter stats build",
+    "build:genetics": "pnpm --filter genetics build",
+    "typecheck": "pnpm -r run typecheck",
+    "deploy": "wrangler deploy"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
