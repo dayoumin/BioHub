@@ -77,24 +77,9 @@
 
 ---
 
-## 구현 중 발견/기록 사항
+## 개발 로그
 
-### NCBI BLAST API
-- JSON2 포맷 요청 시 ZIP으로 응답하는 경우 있음 → **Tabular(TSV) 포맷으로 전환**
-- Tabular 응답에는 종명이 없음 (accession만) → E-utilities `efetch`로 종명 조회 필요 (Phase 2)
-- dev 환경: Next.js(3000) → wrangler(8787) 프록시 연결 필요 (next.config.ts rewrites)
-- dev 환경: Origin 검증에서 localhost 포트 차이 허용 필요
-
-### 아키텍처
-- `@biohub/types` 워크스페이스 패키지 사용 시 `transpilePackages` 설정 필수
-- `stats/pnpm-lock.yaml`, `package-lock.json` 등 중복 lockfile 제거 필요
-- genetics/ 독립 앱은 참고용 (정본은 stats/ 안)
-- 보안 체크리스트: [docs/SECURITY-CHECKLIST.md](../docs/SECURITY-CHECKLIST.md)
-
-### Phase 2 필요 작업
-- accession → 종명 매핑 (NCBI E-utilities efetch)
-- D1 캐시 연동 (wrangler.toml에 D1 바인딩)
-- 사용자별 NCBI API 키 입력 UI
+구현 중 발견사항 → [DEVLOG.md](DEVLOG.md)
 
 ---
 
