@@ -1,11 +1,7 @@
 /**
  * MoveSessionDialog - 세션 이동 모달
  *
- * 기능:
- * - 세션을 다른 프로젝트로 이동
- * - 프로젝트 목록 드롭다운
- * - "루트로 이동" 옵션 (projectId = null)
- * - 현재 속한 프로젝트 표시
+ * 저장소 직접 호출 없이 props로 데이터를 받고 onMove 콜백으로 위임.
  */
 
 import React, { useState, useEffect } from 'react'
@@ -26,37 +22,34 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { ChatStorage } from '@/lib/services/chat-storage'
+import type { ChatProject, ChatSession } from '@/lib/types/chat'
 
 interface MoveSessionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  sessionId: string | null
-  onComplete: () => void
+  session: ChatSession | null
+  projects: ChatProject[]
+  onMove: (sessionId: string, projectId: string | null) => void
 }
 
 export const MoveSessionDialog: React.FC<MoveSessionDialogProps> = ({
   open,
   onOpenChange,
-  sessionId,
-  onComplete,
+  session,
+  projects,
+  onMove,
 }) => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
 
-  const projects = ChatStorage.getProjects()
-  const session = sessionId ? ChatStorage.loadSession(sessionId) : null
-
   useEffect(() => {
-    if (session) {
-      setSelectedProjectId(session.projectId || null)
+    if (open && session) {
+      setSelectedProjectId(session.projectId ?? null)
     }
-  }, [session, open])
+  }, [open, session])
 
-  const handleMove = () => {
-    if (!sessionId) return
-
-    ChatStorage.moveSessionToProject(sessionId, selectedProjectId)
-    onComplete()
+  const handleMove = (): void => {
+    if (!session) return
+    onMove(session.id, selectedProjectId)
     onOpenChange(false)
   }
 
@@ -66,32 +59,30 @@ export const MoveSessionDialog: React.FC<MoveSessionDialogProps> = ({
         <DialogHeader>
           <DialogTitle>대화 이동</DialogTitle>
           <DialogDescription>
-            &quot;{session?.title}&quot;를 다른 프로젝트로 이동합니다.
+            &quot;{session?.title}&quot;를 다른 주제로 이동합니다.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div>
-            <Label>이동할 위치</Label>
-            <Select
-              value={selectedProjectId || 'root'}
-              onValueChange={(val) =>
-                setSelectedProjectId(val === 'root' ? null : val)
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="root">📂 루트 (프로젝트 없음)</SelectItem>
-                {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.emoji} {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div>
+          <Label>이동할 위치</Label>
+          <Select
+            value={selectedProjectId ?? 'root'}
+            onValueChange={(val) =>
+              setSelectedProjectId(val === 'root' ? null : val)
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="root">📂 루트 (주제 없음)</SelectItem>
+              {projects.map((project) => (
+                <SelectItem key={project.id} value={project.id}>
+                  {project.emoji || '📁'} {project.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <DialogFooter>

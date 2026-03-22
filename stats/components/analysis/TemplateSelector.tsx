@@ -23,6 +23,7 @@ import { useTerminology } from '@/hooks/use-terminology'
 import { useTemplateStore } from '@/lib/stores/template-store'
 import type { AnalysisTemplate } from '@/types/analysis'
 import { cn } from '@/lib/utils'
+import { formatTimeAgo } from '@/lib/utils/format-time'
 import { listItemBase } from '@/components/common/card-styles'
 
 interface TemplateSelectorProps {
@@ -73,21 +74,8 @@ export const TemplateSelector = memo(function TemplateSelector({
     await removeTemplate(templateId)
   }, [removeTemplate])
 
-  // 상대 시간 포맷
-  const formatRelativeTime = useCallback((timestamp: number | null): string => {
-    if (!timestamp) return ''
-
-    const diff = Date.now() - timestamp
-    const minutes = Math.floor(diff / 60000)
-    const hours = Math.floor(diff / 3600000)
-    const days = Math.floor(diff / 86400000)
-
-    if (minutes < 1) return t.template.timeAgo.justNow
-    if (minutes < 60) return t.template.timeAgo.minutesAgo(minutes)
-    if (hours < 24) return t.template.timeAgo.hoursAgo(hours)
-    if (days < 7) return t.template.timeAgo.daysAgo(days)
-    return new Date(timestamp).toLocaleDateString()
-  }, [t])
+  const formatRelativeTime = (timestamp: number | null): string =>
+    formatTimeAgo(timestamp, t.template.timeAgo, 7)
 
   // 카테고리 라벨 변환
   const getCategoryLabel = useCallback((category: string): string => {

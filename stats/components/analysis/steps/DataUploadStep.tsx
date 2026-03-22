@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress'
 import { useDropzone } from 'react-dropzone'
 import Papa from 'papaparse'
 import { cn } from '@/lib/utils'
+import { formatTimeAgo } from '@/lib/utils/format-time'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { DataValidationService, DATA_LIMITS } from '@/lib/services/data-validation-service'
 import { LargeFileProcessor, ProcessingProgress } from '@/lib/services/large-file-processor'
@@ -361,19 +362,8 @@ export function DataUploadStep({
     return `${(bytes / 1024 / 1024).toFixed(1)}MB`
   }
 
-  // 상대 시간 포맷
-  const formatRelativeTime = (timestamp: number) => {
-    const diff = Date.now() - timestamp
-    const minutes = Math.floor(diff / 60000)
-    const hours = Math.floor(diff / 3600000)
-    const days = Math.floor(diff / 86400000)
-
-    if (minutes < 1) return t.hub.timeAgo.justNow
-    if (minutes < 60) return t.hub.timeAgo.minutesAgo(minutes)
-    if (hours < 24) return t.hub.timeAgo.hoursAgo(hours)
-    if (days < 7) return t.hub.timeAgo.daysAgo(days)
-    return new Date(timestamp).toLocaleDateString()
-  }
+  const formatRelativeTime = (timestamp: number): string =>
+    formatTimeAgo(timestamp, t.hub.timeAgo, 7)
 
   return (
     <div className="space-y-4">

@@ -4,7 +4,7 @@
  * 하드코딩 한국어와 i18n labels 양쪽 지원.
  */
 
-interface TimeAgoLabels {
+export interface TimeAgoLabels {
   justNow: string
   minutesAgo: (n: number) => string
   hoursAgo: (n: number) => string
@@ -21,13 +21,16 @@ const KO_LABELS: TimeAgoLabels = {
 /**
  * timestamp(ms)를 상대 시간 문자열로 변환
  *
- * @param timestamp - Unix timestamp (ms) 또는 Date
+ * @param timestamp - Unix timestamp (ms) 또는 Date (null이면 빈 문자열)
  * @param labels - i18n 레이블 (생략 시 한국어 기본값)
+ * @param fallbackAfterDays - 이 일수 이후 날짜 문자열로 전환 (0이면 항상 "N일 전")
  */
 export function formatTimeAgo(
-  timestamp: number | Date,
+  timestamp: number | Date | null,
   labels: TimeAgoLabels = KO_LABELS,
+  fallbackAfterDays = 0,
 ): string {
+  if (timestamp == null) return ''
   const ms = typeof timestamp === 'number' ? timestamp : timestamp.getTime()
   const diff = Date.now() - ms
   const minutes = Math.floor(diff / 60_000)
@@ -39,5 +42,8 @@ export function formatTimeAgo(
   if (hours < 24) return labels.hoursAgo(hours)
 
   const days = Math.floor(hours / 24)
+  if (fallbackAfterDays > 0 && days >= fallbackAfterDays) {
+    return new Date(ms).toLocaleDateString()
+  }
   return labels.daysAgo(days)
 }

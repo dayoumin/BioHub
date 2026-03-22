@@ -13,6 +13,7 @@ import { FolderInput, Trash2, Pin, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { ChatSession } from '@/lib/types/chat'
 import { cn } from '@/lib/utils'
+import { formatTimeAgo } from '@/lib/utils/format-time'
 
 interface SessionItemProps {
   session: ChatSession
@@ -24,26 +25,9 @@ interface SessionItemProps {
   showFavoriteIndicator?: boolean
 }
 
-/**
- * 상대 시간 표시 (예: "2시간 전", "방금 전")
- */
-function formatRelativeTime(timestamp: number): string {
-  const now = Date.now()
-  const diff = now - timestamp
-  const seconds = Math.floor(diff / 1000)
-  const minutes = Math.floor(seconds / 60)
-  const hours = Math.floor(minutes / 60)
-  const days = Math.floor(hours / 24)
-
-  if (seconds < 60) return '방금 전'
-  if (minutes < 60) return `${minutes}분 전`
-  if (hours < 24) return `${hours}시간 전`
-  if (days < 7) return `${days}일 전`
-
-  // 7일 이상이면 날짜 표시
-  const date = new Date(timestamp)
-  return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
-}
+/** 상대 시간 표시 — 7일 이후 날짜 전환 */
+const formatRelativeTime = (timestamp: number): string =>
+  formatTimeAgo(timestamp, undefined, 7)
 
 export const SessionItem: React.FC<SessionItemProps> = ({
   session,

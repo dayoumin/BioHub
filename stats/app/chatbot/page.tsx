@@ -3,7 +3,7 @@
  *
  * 기능:
  * - Grok 스타일 사이드바 (검색, 즐겨찾기, 프로젝트, 히스토리)
- * - 프로젝트 관리 (생성, 편집, 삭제)
+ * - 프로젝트 관리 (생성, 삭제)
  * - 세션 이동 (프로젝트 간)
  * - 키보드 단축키 (Ctrl+N: 새 대화)
  */
@@ -31,7 +31,6 @@ export default function ChatbotPage() {
 
   // 세션 상태
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [projects, setProjects] = useState<ChatProject[]>([])
 
@@ -54,7 +53,6 @@ export default function ChatbotPage() {
 
   // 모달 상태
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false)
-  const [editingProjectId, setEditingProjectId] = useState<string | null>(null)
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false)
   const [moveDialogSessionId, setMoveDialogSessionId] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -195,6 +193,12 @@ export default function ChatbotPage() {
     setIsMoveDialogOpen(true)
   }, [])
 
+  // 세션 이동 (IndexedDB, atomic)
+  const handleSessionMove = useCallback(async (sessionId: string, projectId: string | null) => {
+    await ChatStorageIndexedDB.moveSessionToProject(sessionId, projectId)
+    await reloadData()
+  }, [reloadData])
+
   // 세션 제목 변경 시작
   const handleRenameSession = useCallback(async (sessionId: string) => {
     const session = await ChatStorageIndexedDB.loadSession(sessionId)
@@ -227,17 +231,16 @@ export default function ChatbotPage() {
     })
   }, [])
 
-  // 프로젝트 생성
+  // 프로젝트 생성 다이얼로그 열기
   const handleCreateProject = useCallback(() => {
-    setEditingProjectId(null)
     setIsProjectDialogOpen(true)
   }, [])
 
-  // 프로젝트 편집
-  const handleEditProject = useCallback((projectId: string) => {
-    setEditingProjectId(projectId)
-    setIsProjectDialogOpen(true)
-  }, [])
+  // 프로젝트 생성 (IndexedDB)
+  const handleProjectCreate = useCallback(async (name: string) => {
+    await ChatStorageIndexedDB.createNewProject(name)
+    await reloadData()
+  }, [reloadData])
 
   // 프로젝트 삭제 (모달로 위임 - Phase 4)
   const handleDeleteProject = useCallback((projectId: string) => {
@@ -262,28 +265,18 @@ export default function ChatbotPage() {
       const allSessions = await ChatStorageIndexedDB.loadAllSessions()
       const projectSessions = allSessions.filter(s => s.projectId === deleteTarget.id)
 
-      // 각 세션의 projectId 제거
       for (const session of projectSessions) {
-        await ChatStorageIndexedDB.saveSession({
-          ...session,
-          projectId: undefined,
-        })
+        await ChatStorageIndexedDB.moveSessionToProject(session.id, null)
       }
 
-      // IndexedDB에서 프로젝트 삭제
       await ChatStorageIndexedDB.deleteProject(deleteTarget.id)
-
-      // 삭제한 프로젝트가 현재 프로젝트면 해제
-      if (currentProjectId === deleteTarget.id) {
-        setCurrentProjectId(null)
-      }
 
       await reloadData()
     }
 
     setIsDeleteDialogOpen(false)
     setDeleteTarget(null)
-  }, [deleteTarget, currentSessionId, currentProjectId, handleNewChat, reloadData])
+  }, [deleteTarget, currentSessionId, handleNewChat, reloadData])
 
   // 드롭다운 메뉴 외부 클릭 처리
   useEffect(() => {
@@ -366,7 +359,6 @@ export default function ChatbotPage() {
             onToggleFavorite={handleToggleFavorite}
             onDeleteSession={handleDeleteSession}
             onMoveSession={handleMoveSession}
-            onEditProject={handleEditProject}
             onDeleteProject={handleDeleteProject}
             onCreateProject={handleCreateProject}
           />
@@ -526,15 +518,15 @@ export default function ChatbotPage() {
       <ProjectDialog
         open={isProjectDialogOpen}
         onOpenChange={setIsProjectDialogOpen}
-        projectId={editingProjectId}
-        onComplete={() => void reloadData()}
+        onCreate={handleProjectCreate}
       />
 
       <MoveSessionDialog
         open={isMoveDialogOpen}
         onOpenChange={setIsMoveDialogOpen}
-        sessionId={moveDialogSessionId}
-        onComplete={() => void reloadData()}
+        session={sessions.find(s => s.id === moveDialogSessionId) ?? null}
+        projects={projects}
+        onMove={handleSessionMove}
       />
 
       <DeleteConfirmDialog

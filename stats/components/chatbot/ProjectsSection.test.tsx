@@ -6,7 +6,7 @@
  * 2. 헬프 아이콘 및 Tooltip 표시
  * 3. 빈 상태 메시지
  * 4. 프로젝트 목록 렌더링
- * 5. 액션 버튼 (생성, 수정, 삭제)
+ * 5. 액션 버튼 (생성, 삭제)
  * 6. "첫 프로젝트 만들기" 버튼 제거 확인
  */
 
@@ -65,7 +65,6 @@ const mockHandlers = {
   onToggleFavorite: vi.fn(),
   onDeleteSession: vi.fn(),
   onMoveSession: vi.fn(),
-  onEditProject: vi.fn(),
   onDeleteProject: vi.fn(),
   onCreateProject: vi.fn(),
 }
@@ -235,7 +234,7 @@ describe('ProjectsSection', () => {
   })
 
   describe('액션 버튼', () => {
-    it('프로젝트 호버 시 수정/삭제 버튼을 표시해야 함', async () => {
+    it('프로젝트 호버 시 삭제 버튼을 표시해야 함', async () => {
       const { container } = render(
         <ProjectsSection
           projects={[mockProject]}
@@ -250,29 +249,7 @@ describe('ProjectsSection', () => {
       fireEvent.mouseEnter(projectDiv!)
 
       await waitFor(() => {
-        expect(container.querySelector('[title="편집"]')).toBeInTheDocument()
         expect(container.querySelector('[title="삭제"]')).toBeInTheDocument()
-      })
-    })
-
-    it('수정 버튼 클릭 시 onEditProject를 호출해야 함', async () => {
-      const { container } = render(
-        <ProjectsSection
-          projects={[mockProject]}
-          sessions={[]}
-          activeSessionId={null}
-          expandedProjectIds={new Set()}
-          {...mockHandlers}
-        />
-      )
-
-      const projectDiv = screen.getByText('Python 학습').closest('[role="button"]')
-      fireEvent.mouseEnter(projectDiv!)
-
-      await waitFor(() => {
-        const editButton = container.querySelector('[title="편집"]') as HTMLButtonElement
-        fireEvent.click(editButton)
-        expect(mockHandlers.onEditProject).toHaveBeenCalledWith('proj-1')
       })
     })
 

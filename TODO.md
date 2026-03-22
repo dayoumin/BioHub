@@ -81,15 +81,15 @@ These should start after the current foundation is in place.
 - `[test]` `use-analysis-handlers.test.ts` tsc 에러 2건 (TerminologyProviderProps children 누락, testName 미존재) — 기존 미수정
 - `[test]` `graph-studio-store.test.ts` 전체 suite 실행 시 1건 실패 (단독 52/52 통과) — 테스트 순서 의존성
 - `[quality]` `graph-studio/project-storage.ts`와 `research/project-storage.ts`의 `isClient()`·read/write 패턴 중복 — 저장소 추가 시 공통 팩토리 검토
-- `[quality]` `formatRelativeTime` 중복 5곳 → `lib/utils/format-time.ts` 공유 유틸로 교체 (SessionItem, TemplateSelector, TemplateManagePanel, DataUploadStep, projects/page.tsx)
+- ~~`[quality]` `formatRelativeTime` 중복 4곳 → `formatTimeAgo` 공유 유틸로 교체~~ — 완료 (SessionItem, TemplateSelector, TemplateManagePanel, DataUploadStep → `format-time.ts`)
 - `[ux]` 접근성 focus ring 통일 (`focusRing` 상수 → 기존 5곳 점진 교체)
 - `[ux]` 토스트 메시지 기존 19곳 점진적 `TOAST.*` 마이그레이션
 - `[ux]` ChatBubble 공통 컴포넌트 추출
 - `[ux]` paper-draft/PaperDraftPanel.tsx 데드 코드 삭제
 - ~~`[quality]` `barcoding/page.tsx` 에러 분기가 한국어 문자열 `includes()` 매칭 → 에러 코드 기반으로 전환~~ — 완료 (`BlastErrorCode` 타입 도입)
 - ~~`[quality]` `session-sorter.ts` `sortSessionsByFavoriteAndRecent`가 `.sort()` in-place mutation → `[...sessions].sort()` 방어적 복사로 변경~~ — 완료
-- `[quality]` `NextAction.type` ('primary'|'secondary') 미사용 — 렌더링에 반영하거나 필드 제거 결정 필요
-- `[quality]` genetics 모듈 raw `<button>` 19개 → shadcn `Button` 컴포넌트로 전환 (6파일, 일관성·접근성 개선)
+- ~~`[quality]` `NextAction.type` 미사용 필드 제거~~ — 완료 (인터페이스 + 할당 10곳 정리)
+- ~~`[quality]` genetics 모듈 raw `<button>` 16개 → shadcn `Button` 전환~~ — 완료 (6파일)
 
 ---
 
