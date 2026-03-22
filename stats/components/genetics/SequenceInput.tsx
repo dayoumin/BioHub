@@ -22,7 +22,8 @@ interface SequenceInputProps {
   onMarkerChange: (marker: BlastMarker) => void
   sampleName: string
   onSampleNameChange: (name: string) => void
-  onFileNameChange?: (fileName: string | null) => void
+  uploadedFileName: string | null
+  onUploadedFileNameChange: (name: string | null) => void
   onSubmit: (validation: SequenceValidation) => void
 }
 
@@ -33,11 +34,11 @@ export function SequenceInput({
   onMarkerChange,
   sampleName,
   onSampleNameChange,
-  onFileNameChange,
+  uploadedFileName,
+  onUploadedFileNameChange,
   onSubmit,
 }: SequenceInputProps) {
   const [validation, setValidation] = useState<SequenceValidation | null>(null)
-  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const debouncedSequence = useDebounce(sequence, 300)
 
@@ -62,12 +63,11 @@ export function SequenceInput({
       const text = ev.target?.result
       if (typeof text === 'string') {
         onSequenceChange(text)
-        setUploadedFileName(file.name)
-        onFileNameChange?.(file.name)
+        onUploadedFileNameChange(file.name)
       }
     }
     reader.readAsText(file)
-  }, [onSequenceChange, onFileNameChange])
+  }, [onSequenceChange, onUploadedFileNameChange])
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault()
@@ -137,7 +137,7 @@ export function SequenceInput({
                 type="button"
                 onClick={() => {
                   onSequenceChange(EXAMPLE_SEQUENCES[0].sequence)
-                  setUploadedFileName(null)
+                  onUploadedFileNameChange(null)
                 }}
                 className="text-xs text-green-600 hover:text-green-800"
               >
@@ -149,13 +149,12 @@ export function SequenceInput({
                 type="button"
                 onClick={() => {
                   onSequenceChange('')
-                  setUploadedFileName(null)
-                  onFileNameChange?.(null)
+                  onUploadedFileNameChange(null)
                   setValidation(null)
                 }}
                 className="text-xs text-red-500 hover:text-red-700"
               >
-                서열 지우기 ✕
+                지우기
               </button>
             )}
             <button
@@ -184,7 +183,7 @@ export function SequenceInput({
           value={sequence}
           onChange={(e) => {
             onSequenceChange(e.target.value)
-            if (uploadedFileName) setUploadedFileName(null)
+            if (uploadedFileName) onUploadedFileNameChange(null)
           }}
           placeholder={">sample_sequence\nATGCGTACGTACGTACG..."}
           rows={8}

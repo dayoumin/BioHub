@@ -112,7 +112,8 @@ function BarcodingContent() {
             onMarkerChange={setMarker}
             sampleName={sampleName}
             onSampleNameChange={setSampleName}
-            onFileNameChange={setUploadedFileName}
+            uploadedFileName={uploadedFileName}
+            onUploadedFileNameChange={setUploadedFileName}
             onSubmit={handleAnalyze}
           />
         </>
