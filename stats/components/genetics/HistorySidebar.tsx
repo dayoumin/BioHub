@@ -1,13 +1,15 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Clock, PanelRightClose, Pin } from 'lucide-react'
 import type { AnalysisHistoryEntry } from '@/lib/genetics/analysis-history'
 import { loadAnalysisHistory, deleteMultipleEntries, togglePinEntry, HISTORY_KEY, HISTORY_CHANGE_EVENT } from '@/lib/genetics/analysis-history'
 
 export function HistorySidebar() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const activeHistoryId = searchParams.get('history')
   const [open, setOpen] = useState(false)
   const [history, setHistory] = useState<AnalysisHistoryEntry[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -128,6 +130,7 @@ export function HistorySidebar() {
               <HistoryRow
                 key={entry.id}
                 entry={entry}
+                active={entry.id === activeHistoryId}
                 selected={selectedIds.has(entry.id)}
                 onToggleSelect={handleToggleSelect}
                 onTogglePin={handleTogglePin}
@@ -145,13 +148,14 @@ export function HistorySidebar() {
 
 interface HistoryRowProps {
   entry: AnalysisHistoryEntry
+  active: boolean
   selected: boolean
   onToggleSelect: (id: string) => void
   onTogglePin: (id: string) => void
   onClick: (entry: AnalysisHistoryEntry) => void
 }
 
-function HistoryRow({ entry, selected, onToggleSelect, onTogglePin, onClick }: HistoryRowProps) {
+function HistoryRow({ entry, active, selected, onToggleSelect, onTogglePin, onClick }: HistoryRowProps) {
   const identityText = entry.topIdentity != null
     ? `${(entry.topIdentity * 100).toFixed(1)}%`
     : null
@@ -159,7 +163,7 @@ function HistoryRow({ entry, selected, onToggleSelect, onTogglePin, onClick }: H
 
   return (
     <div
-      className={`group relative px-3 py-2 transition ${selected ? 'bg-primary/5' : ''} ${hasResult ? 'cursor-pointer hover:bg-muted/30' : ''}`}
+      className={`group relative px-3 py-2 transition ${active ? 'border-l-2 border-primary bg-primary/5' : selected ? 'bg-primary/5' : ''} ${hasResult ? 'cursor-pointer hover:bg-muted/30' : ''}`}
       onClick={() => hasResult && onClick(entry)}
     >
       <div className="flex items-start gap-2">
