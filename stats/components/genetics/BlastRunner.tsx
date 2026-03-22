@@ -333,11 +333,19 @@ async function enrichHitsWithSpecies(
       signal,
     })
     if (res.ok) {
-      const { species } = await res.json() as { species: Record<string, string> }
+      const { species, meta } = await res.json() as {
+        species: Record<string, string>
+        meta?: Record<string, { title?: string; taxid?: number; country?: string; isBarcode?: boolean }>
+      }
       for (const hit of hits) {
         const acc = hit['accession'] as string
-        if (acc && species[acc]) {
-          hit['species'] = species[acc]
+        if (!acc) continue
+        if (species[acc]) hit['species'] = species[acc]
+        if (meta?.[acc]) {
+          const m = meta[acc]
+          if (m.taxid) hit['taxid'] = m.taxid
+          if (m.country) hit['country'] = m.country
+          if (m.isBarcode) hit['isBarcode'] = true
         }
       }
     }

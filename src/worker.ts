@@ -554,6 +554,7 @@ async function handleSpeciesLookup(
     // NCBI esummary는 UID를 키로 반환 → accession 매핑이 필요
     const uids = result['uids'] as string[] | undefined
     const species: Record<string, string> = {}
+    const meta: Record<string, { title?: string; taxid?: number; country?: string; isBarcode?: boolean }> = {}
 
     if (uids) {
       for (const uid of uids) {
@@ -565,21 +566,30 @@ async function handleSpeciesLookup(
         const name = organism || title.split(' ').slice(0, 2).join(' ')
         if (!name) continue
 
-        // accession (버전 있는/없는 모두 매핑)
-        if (accVer) species[accVer] = name
-        const accBase = accVer.split('.')[0]
-        if (accBase) species[accBase] = name
+        const taxid = entry['taxid'] as number | undefined
+        const subname = (entry['subname'] as string) || ''
+        const tech = (entry['tech'] as string) || ''
+        // subname 형식: "voucher|country|lat_lon|..." — country는 두 번째 필드
+        const subParts = subname.split('|')
+        const country = subParts[1]?.trim() || undefined
+        const isBarcode = tech === 'barcode'
 
-        // 원본 입력에 있는 accession으로도 매핑
+        const info = { title: title || undefined, taxid, country, isBarcode }
+
+        // accession 매핑 (버전 있는/없는 + 원본 입력)
+        const accBase = accVer.split('.')[0]
         for (const acc of limited) {
           if (acc === accVer || acc === accBase || acc.startsWith(accBase)) {
             species[acc] = name
+            meta[acc] = info
           }
         }
+        if (accVer && !species[accVer]) { species[accVer] = name; meta[accVer] = info }
+        if (accBase && !species[accBase]) { species[accBase] = name; meta[accBase] = info }
       }
     }
 
-    return jsonResponse({ species }, 200)
+    return jsonResponse({ species, meta }, 200)
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'
     return jsonResponse({ error: `NCBI 요청 실패: ${msg}` }, 502)

@@ -88,42 +88,65 @@ export function ResultView({ decision, marker, onReset }: ResultViewProps) {
                   <th className="pb-2">종명</th>
                   <th className="pb-2 text-right">유사도</th>
                   <th className="pb-2 text-right">Coverage</th>
-                  <th className="pb-2 text-right">E-value</th>
+                  <th className="pb-2 text-right" title="Bit score — 높을수록 좋은 매칭 (E-value가 0일 때 더 유용)">Score</th>
                   <th className="pb-2 text-right">Accession</th>
                 </tr>
               </thead>
               <tbody>
-                {decision.topHits.map((hit, i) => (
-                  <tr key={hit.accession || i} className="border-b border-gray-50">
-                    <td className="py-2 text-gray-400">{i + 1}</td>
-                    <td className="py-2">
-                      <span className="italic">{hit.species}</span>
-                    </td>
-                    <td className="py-2 text-right font-mono">
-                      {(hit.identity * 100).toFixed(1)}%
-                    </td>
-                    <td className="py-2 text-right font-mono text-gray-500">
-                      {hit.queryCoverage != null
-                        ? `${(hit.queryCoverage * 100).toFixed(0)}%`
-                        : '-'}
-                    </td>
-                    <td className="py-2 text-right font-mono text-gray-500">
-                      {hit.evalue != null
-                        ? hit.evalue === 0 ? '0' : hit.evalue.toExponential(1)
-                        : '-'}
-                    </td>
-                    <td className="py-2 text-right">
-                      <a
-                        href={`https://www.ncbi.nlm.nih.gov/nuccore/${hit.accession}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        {hit.accession}
-                      </a>
-                    </td>
-                  </tr>
-                ))}
+                {decision.topHits.map((hit, i) => {
+                  const speciesIsAccession = hit.species === hit.accession
+
+                  return (
+                    <tr key={hit.accession || i} className="border-b border-gray-50">
+                      <td className="py-2 text-gray-400">{i + 1}</td>
+                      <td className="py-2">
+                        {hit.taxid && !speciesIsAccession ? (
+                          <a
+                            href={`https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=${hit.taxid}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="italic text-gray-900 hover:text-blue-600 hover:underline"
+                          >
+                            {hit.species}
+                          </a>
+                        ) : (
+                          <span className="italic">{hit.species}</span>
+                        )}
+                        {(hit.country || hit.isBarcode) && (
+                          <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-gray-400">
+                            {hit.country && <span title="채집 국가">{hit.country.split(':')[0]}</span>}
+                            {hit.isBarcode && <span className="rounded bg-green-50 px-1 text-green-600" title="BOLD 등록 바코드 서열">barcode</span>}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-2 text-right font-mono">
+                        {(hit.identity * 100).toFixed(1)}%
+                      </td>
+                      <td className="py-2 text-right font-mono text-gray-500">
+                        {hit.queryCoverage != null
+                          ? `${(hit.queryCoverage * 100).toFixed(0)}%`
+                          : '-'}
+                      </td>
+                      <td className="py-2 text-right font-mono text-gray-500">
+                        {hit.bitScore != null
+                          ? Math.round(hit.bitScore)
+                          : hit.evalue != null
+                            ? hit.evalue === 0 ? '0' : hit.evalue.toExponential(1)
+                            : '-'}
+                      </td>
+                      <td className="py-2 text-right">
+                        <a
+                          href={`https://www.ncbi.nlm.nih.gov/nuccore/${hit.accession}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          {hit.accession}
+                        </a>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

@@ -28,8 +28,12 @@ export interface BlastTopHit {
   identity: number       // 0-1 (예: 0.992)
   accession: string
   evalue?: number
+  bitScore?: number
   queryCoverage?: number
   description?: string
+  taxid?: number
+  country?: string
+  isBarcode?: boolean
 }
 
 export interface BlastResult {

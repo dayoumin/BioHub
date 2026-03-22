@@ -67,7 +67,11 @@ export function parseBlastHits(data: unknown): BlastTopHit[] {
         identity,
         accession,
         evalue: (hit['evalue'] as number) ?? undefined,
+        bitScore: (hit['bitScore'] as number) ?? undefined,
         queryCoverage: alignLength > 0 ? (queryEnd - queryStart + 1) / alignLength : undefined,
+        taxid: (hit['taxid'] as number) ?? undefined,
+        country: (hit['country'] as string) ?? undefined,
+        isBarcode: (hit['isBarcode'] as boolean) ?? undefined,
         description: species,
       }
     })
