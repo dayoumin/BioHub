@@ -97,8 +97,8 @@ export function saveAnalysisHistory(entry: Omit<AnalysisHistoryEntry, 'id' | 'cr
     const kept = sorted.slice(0, MAX_HISTORY)
     const overflow = sorted.slice(MAX_HISTORY)
 
-    removeRefsForEntries(overflow)
     saveToStorage(kept)
+    removeRefsForEntries(overflow)
   } catch {
     // localStorage full
     return

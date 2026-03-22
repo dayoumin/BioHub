@@ -48,8 +48,8 @@ These items should be the current focus.
 - ~~`[workflow]` `useResearchProjectStore` 생성~~ — 완료 (`research-project-store.ts`, zustand + localStorage persist)
 - ~~`[workflow]` `/projects` 페이지 구현~~ — 완료 (목록, 생성, 이름수정, 보관, 삭제)
 - ~~`[workflow]` 사이드바 프로젝트 전환기 추가~~ — 완료 (드롭다운 + 활성 프로젝트 표시)
-- `[workflow]` `/chatbot` `ProjectsSection` IA 정리 — 연구 프로젝트 관리는 `/projects`로 이동, 채팅 프로젝트는 세션 정리용으로 축소
-- `[workflow]` 각 모듈 저장 시 활성 프로젝트 auto-link (통계·그래프·유전적 분석) — 모듈 안정 후 진행 (Phase 3)
+- ~~`[workflow]` `/chatbot` `ProjectsSection` IA 정리~~ — 완료 (편집 제거, 다이얼로그 props 기반, 생성 전용). 용어("주제" vs "프로젝트") 통일은 보류 — 챗봇 역할 확정 후 진행
+- `[workflow]` 각 모듈 저장 시 활성 프로젝트 auto-link (통계·그래프) — 유전적 분석 완료, 나머지 Phase 3
 - `[workflow]` 토스트 기반 저장 피드백 (`'{projectName}'에 저장됨 · 변경` / `프로젝트에 추가`) — Phase 3
 - `[workflow]` `ResultsActionStep` 프로젝트 선택 팝업 → 컨텍스트 기반 동작으로 교체 — Phase 3
 - `[trust]` Define an `EvidenceRecord` or provenance schema for AI interpretation outputs.
@@ -110,6 +110,8 @@ These are valid directions, but not current execution priorities.
 
 ## 5. Blocked or deferred
 
+- `[chatbot]` `/chatbot` 역할 정의 필요 — 현재 범용 AI 채팅이지만, 통계 해석·그래프 편집 등 AI가 각 모듈에 이미 내장됨. 챗봇 고유 역할(논문 작성 도우미? 크로스모듈 Q&A? 연구 노트?)이 확정되어야 UI/용어/연구 프로젝트 연결 방향을 정할 수 있음. 확정 전까지: 현재 코드 유지(dumb dialog, IndexedDB 일원화 완료), 추가 기능 개발 보류.
+- `[chatbot]` 챗봇 주제 폴더 인라인 이름 수정 — 현재 생성만 가능, 수정 불가. 챗봇 역할 확정 후 구현.
 - `[review]` Do not implement acceptance probability prediction.
 - `[workflow]` Do not expand disconnected AI features before the shared project model exists.
 - `[paper]` Do not overbuild manuscript automation before analysis, figure, and provenance linkage is stable.
