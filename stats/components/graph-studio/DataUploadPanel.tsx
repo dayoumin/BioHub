@@ -41,6 +41,7 @@ import { StepIndicator } from '@/components/graph-studio/StepIndicator';
 import { staggerContainer, staggerItem } from '@/components/common/card-styles';
 import type { DataPackage, ChartType, GraphProject } from '@/types/graph-studio';
 import type { StyleTemplate } from '@/lib/graph-studio/style-template-storage';
+import { formatTimeAgo } from '@/lib/utils/format-time';
 
 // ─── 샘플 데이터 (어류 성장, 3종 × 10행) ──────────────────
 
@@ -109,19 +110,6 @@ const SAMPLE_DATASETS: SampleDataset[] = [
   { id: 'group-compare', label: '그룹 비교', chartHint: 'Bar', type: 'fetch', url: '/example-data/independent-t-test.csv' },
   { id: 'anova', label: '사료 비교', chartHint: 'Box', type: 'fetch', url: '/example-data/one-way-anova.csv' },
 ];
-
-// ─── 상대 시간 포맷 ────────────────────────────────────────
-
-function formatTimeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return '방금';
-  if (minutes < 60) return `${minutes}분 전`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}시간 전`;
-  const days = Math.floor(hours / 24);
-  return `${days}일 전`;
-}
 
 // ─── 메인 컴포넌트 ─────────────────────────────────────────
 
@@ -419,7 +407,7 @@ export function DataUploadPanel(): React.ReactElement {
                   </span>
                   <span className="text-muted-foreground flex items-center gap-1">
                     {IconComp && <IconComp className="w-3 h-3" />}
-                    {formatTimeAgo(project.updatedAt)}
+                    {formatTimeAgo(new Date(project.updatedAt))}
                   </span>
                 </button>
               );

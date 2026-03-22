@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Dna, BarChart3, Grid3X3, GitFork, Users, ArrowRight, HelpCircle, FileText, FlaskConical, ChevronDown, Clock, Play, Trash2 } from 'lucide-react'
+import { Dna, BarChart3, Grid3X3, GitFork, Users, ArrowRight, HelpCircle, FileText, FlaskConical, Clock, Play, Trash2 } from 'lucide-react'
 import type { ComponentType } from 'react'
 import type { BlastResultStatus } from '@biohub/types'
 import type { AnalysisHistoryEntry } from '@/lib/genetics/analysis-history'
 import { loadAnalysisHistory, clearAnalysisHistory } from '@/lib/genetics/analysis-history'
 import { EXAMPLE_SEQUENCES } from '@/lib/genetics/example-sequences'
+import { formatTimeAgo } from '@/lib/utils/format-time'
 
 // ── 타입 ──
 
@@ -92,31 +93,31 @@ const STATUS_LABELS: Record<BlastResultStatus, { text: string; className: string
   no_hit: { text: '매칭 없음', className: 'bg-red-100 text-red-700' },
 }
 
-// ── 유틸 ──
-
-function formatTimeAgo(timestamp: number): string {
-  const diff = Date.now() - timestamp
-  const minutes = Math.floor(diff / 60_000)
-  if (minutes < 1) return '방금 전'
-  if (minutes < 60) return `${minutes}분 전`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}시간 전`
-  const days = Math.floor(hours / 24)
-  return `${days}일 전`
-}
+const READY_TOOLS = TOOLS.filter(t => t.ready)
+const PENDING_TOOLS = TOOLS.filter(t => !t.ready)
 
 // ── 페이지 ──
 
 export default function GeneticsHome() {
   const [guideOpen, setGuideOpen] = useState(false)
   const [history, setHistory] = useState<AnalysisHistoryEntry[]>([])
-
-  const readyTools = TOOLS.filter(t => t.ready)
-  const pendingTools = TOOLS.filter(t => !t.ready)
+  const guideRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setHistory(loadAnalysisHistory())
   }, [])
+
+  // 외부 클릭 시 도움말 닫기
+  useEffect(() => {
+    if (!guideOpen) return
+    function handleClick(e: MouseEvent): void {
+      if (guideRef.current && !guideRef.current.contains(e.target as Node)) {
+        setGuideOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [guideOpen])
 
   const handleClearHistory = (): void => {
     clearAnalysisHistory()
@@ -125,16 +126,79 @@ export default function GeneticsHome() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <div className="mb-8">
-        <h1 className="mb-2 text-2xl font-bold">유전적 분석</h1>
-        <p className="text-sm text-muted-foreground">
-          DNA 서열 기반 종 판별, 서열 통계, 계통 분석, 집단 유전학 도구
-        </p>
+      <div className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="mb-2 text-2xl font-bold">유전적 분석</h1>
+          <p className="text-sm text-muted-foreground">
+            DNA 서열 기반 종 판별, 서열 통계, 계통 분석, 집단 유전학 도구
+          </p>
+        </div>
+        <div ref={guideRef} className="relative">
+          <button
+            type="button"
+            onClick={() => setGuideOpen(prev => !prev)}
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition ${
+              guideOpen
+                ? 'border-primary/30 bg-primary/5 text-primary'
+                : 'border-border text-muted-foreground hover:border-primary/20 hover:text-foreground'
+            }`}
+          >
+            <HelpCircle className="h-3.5 w-3.5" />
+            도움말
+          </button>
+          {guideOpen && (
+            <div className="absolute right-0 top-full z-10 mt-2 w-[min(480px,calc(100vw-2rem))] rounded-xl border border-border bg-card p-5 shadow-lg">
+              <div className="grid gap-6 sm:grid-cols-2">
+                {/* 상황별 안내 */}
+                <div>
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">상황별 도구 선택</h3>
+                  <div className="space-y-3">
+                    <GuideRow icon={Dna} question="이 시료가 어떤 종인지 모르겠어요" answer="DNA 바코딩 종 판별" />
+                    <GuideRow icon={BarChart3} question="서열의 품질을 확인하고 싶어요" answer="서열 기본 통계" />
+                    <GuideRow icon={Grid3X3} question="종 간 유전적 거리를 비교하고 싶어요" answer="다종 유사도 행렬" />
+                    <GuideRow icon={GitFork} question="진화적 관계를 시각화하고 싶어요" answer="계통수 시각화" />
+                    <GuideRow icon={Users} question="집단 간 유전적 차이를 분석하고 싶어요" answer="집단 유전학" />
+                  </div>
+                </div>
+
+                {/* 분석 순서 */}
+                <div>
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">일반적인 분석 순서</h3>
+                  <div>
+                    {WORKFLOW_STEPS.map((step, i) => {
+                      const Icon = step.icon
+                      return (
+                        <div key={step.label} className="flex items-center gap-3">
+                          <div className="flex flex-col items-center">
+                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
+                              {i + 1}
+                            </div>
+                            {i < WORKFLOW_STEPS.length - 1 && (
+                              <div className="h-4 w-px bg-border" />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 pb-1">
+                            <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">{step.label}</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <p className="mt-4 text-xs leading-relaxed text-muted-foreground/70">
+                    처음이라면 <span className="font-medium text-primary">DNA 바코딩</span>부터 시작하세요.
+                    서열 하나만 있으면 종을 판별할 수 있습니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 활성 도구 */}
       <div className="mb-6 space-y-4">
-        {readyTools.map((tool) => (
+        {READY_TOOLS.map((tool) => (
           <ReadyCard key={tool.id} tool={tool} />
         ))}
       </div>
@@ -187,81 +251,19 @@ export default function GeneticsHome() {
       )}
 
       {/* 준비 중 도구 */}
-      {pendingTools.length > 0 && (
+      {PENDING_TOOLS.length > 0 && (
         <div className="mb-6">
           <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
             개발 예정
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
-            {pendingTools.map((tool) => (
+            {PENDING_TOOLS.map((tool) => (
               <PendingCard key={tool.id} tool={tool} />
             ))}
           </div>
         </div>
       )}
 
-      {/* 도움말 — 접힘/펼침 */}
-      <div className="rounded-xl border border-border bg-card">
-        <button
-          type="button"
-          onClick={() => setGuideOpen(prev => !prev)}
-          className="flex w-full items-center gap-2 p-4 text-left transition hover:bg-muted/30"
-        >
-          <HelpCircle className="h-4 w-4 text-muted-foreground" />
-          <span className="flex-1 text-sm font-medium text-muted-foreground">
-            어떤 도구를 써야 할지 모르겠다면?
-          </span>
-          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${guideOpen ? 'rotate-180' : ''}`} />
-        </button>
-
-        {guideOpen && (
-          <div className="border-t border-border px-5 pb-5 pt-4">
-            <div className="grid gap-6 sm:grid-cols-2">
-              {/* 상황별 안내 */}
-              <div>
-                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">상황별 도구 선택</h3>
-                <div className="space-y-3">
-                  <GuideRow icon={Dna} question="이 시료가 어떤 종인지 모르겠어요" answer="DNA 바코딩 종 판별" />
-                  <GuideRow icon={BarChart3} question="서열의 품질을 확인하고 싶어요" answer="서열 기본 통계" />
-                  <GuideRow icon={Grid3X3} question="종 간 유전적 거리를 비교하고 싶어요" answer="다종 유사도 행렬" />
-                  <GuideRow icon={GitFork} question="진화적 관계를 시각화하고 싶어요" answer="계통수 시각화" />
-                  <GuideRow icon={Users} question="집단 간 유전적 차이를 분석하고 싶어요" answer="집단 유전학" />
-                </div>
-              </div>
-
-              {/* 분석 순서 */}
-              <div>
-                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">일반적인 분석 순서</h3>
-                <div>
-                  {WORKFLOW_STEPS.map((step, i) => {
-                    const Icon = step.icon
-                    return (
-                      <div key={step.label} className="flex items-center gap-3">
-                        <div className="flex flex-col items-center">
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
-                            {i + 1}
-                          </div>
-                          {i < WORKFLOW_STEPS.length - 1 && (
-                            <div className="h-4 w-px bg-border" />
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 pb-1">
-                          <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">{step.label}</span>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-                <p className="mt-4 text-xs leading-relaxed text-muted-foreground/70">
-                  처음이라면 <span className="font-medium text-primary">DNA 바코딩</span>부터 시작하세요.
-                  서열 하나만 있으면 종을 판별할 수 있습니다.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   )
 }

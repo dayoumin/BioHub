@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import type { BlastMarker, SequenceValidation } from '@biohub/types'
 import { validateSequence } from '@/lib/genetics/validate-sequence'
 import { EXAMPLE_SEQUENCES } from '@/lib/genetics/example-sequences'
+import { useDebounce } from '@/hooks/useDebounce'
 
 const MARKERS: { value: BlastMarker; label: string; help: string }[] = [
   { value: 'COI', label: 'COI (동물 표준)', help: '어류, 곤충 등 대부분의 동물' },
@@ -32,25 +33,15 @@ export function SequenceInput({
   const [validation, setValidation] = useState<SequenceValidation | null>(null)
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const debouncedSequence = useDebounce(sequence, 300)
 
-  // 디바운스 300ms로 유효성 검사
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-
-    if (!sequence.trim()) {
+    if (!debouncedSequence.trim()) {
       setValidation(null)
       return
     }
-
-    debounceRef.current = setTimeout(() => {
-      setValidation(validateSequence(sequence))
-    }, 300)
-
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-    }
-  }, [sequence])
+    setValidation(validateSequence(debouncedSequence))
+  }, [debouncedSequence])
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { Suspense, useState, useCallback, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import type { BlastMarker, SequenceValidation } from '@biohub/types'
@@ -19,6 +19,14 @@ type AppState =
   | { step: 'error'; message: string }
 
 export default function BarcodingPage() {
+  return (
+    <Suspense fallback={null}>
+      <BarcodingContent />
+    </Suspense>
+  )
+}
+
+function BarcodingContent() {
   const searchParams = useSearchParams()
   const [marker, setMarker] = useState<BlastMarker>('COI')
   const [sequence, setSequence] = useState('')
@@ -42,23 +50,20 @@ export default function BarcodingPage() {
 
   const handleResult = useCallback((data: unknown) => {
     const topHits = parseBlastHits(data)
+    const decision = analyzeBlastResult(topHits, marker)
 
     setState(prev => {
       if (prev.step !== 'analyzing') return prev
-      const decision = analyzeBlastResult(topHits, prev.marker)
-
-      // 히스토리 저장
-      const topSpecies = decision.topHits[0]?.species ?? null
-      saveAnalysisHistory({
-        marker: prev.marker,
-        sequencePreview: prev.sequence.slice(0, 50),
-        topSpecies,
-        status: decision.status,
-      })
-
       return { step: 'result', marker: prev.marker, decision }
     })
-  }, [])
+
+    saveAnalysisHistory({
+      marker,
+      sequencePreview: sequence.slice(0, 50),
+      topSpecies: decision.topHits[0]?.species ?? null,
+      status: decision.status,
+    })
+  }, [marker, sequence])
 
   const handleError = useCallback((msg: string) => {
     setState({ step: 'error', message: msg })

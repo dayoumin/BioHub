@@ -53,23 +53,9 @@ import { listProjects, deleteProject } from '@/lib/graph-studio/project-storage'
 import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults'
 import type { ChartType } from '@/types/graph-studio'
 import { toast } from 'sonner'
+import { formatTimeAgo } from '@/lib/utils/format-time'
 
 // ===== Helpers =====
-
-function formatTimeAgo(
-  date: Date,
-  timeAgo: { justNow: string; minutesAgo: (n: number) => string; hoursAgo: (n: number) => string; daysAgo: (n: number) => string }
-): string {
-  const now = new Date()
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
-  if (diffInSeconds < 60) return timeAgo.justNow
-  const diffInMinutes = Math.floor(diffInSeconds / 60)
-  if (diffInMinutes < 60) return timeAgo.minutesAgo(diffInMinutes)
-  const diffInHours = Math.floor(diffInMinutes / 60)
-  if (diffInHours < 24) return timeAgo.hoursAgo(diffInHours)
-  const diffInDays = Math.floor(diffInHours / 24)
-  return timeAgo.daysAgo(diffInDays)
-}
 
 /** results에서 p-value 추출 */
 function extractPValue(results: Record<string, unknown> | null): number | null {
