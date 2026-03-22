@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import type { BlastMarker, SequenceValidation } from '@biohub/types'
 import { validateSequence } from '@/lib/genetics/validate-sequence'
+import { EXAMPLE_SEQUENCES } from '@/lib/genetics/example-sequences'
 
 const MARKERS: { value: BlastMarker; label: string; help: string }[] = [
   { value: 'COI', label: 'COI (동물 표준)', help: '어류, 곤충 등 대부분의 동물' },
@@ -12,22 +13,6 @@ const MARKERS: { value: BlastMarker; label: string; help: string }[] = [
   { value: 'ITS', label: 'ITS (진균)', help: '진균, 식물' },
   { value: 'D-loop', label: 'D-loop (참치/연어)', help: '참치류, 연어과 종 세분화' },
 ]
-
-/** 대구(Gadus morhua) COI 예제 — 종 수준 확인(high) 결과 예상 */
-const EXAMPLE_SEQUENCE = `>Example_Gadus_morhua_COI
-CCTCTACCTGGTGTTTGGTGCCTGAGCCGGAATAGTCGGCACAGCTCTAAG
-CCTTCTAATTCGAGCTGAGCTGAGCCAACCAGGCGCCCTTCTAGGCGATGA
-CCAAATTTATAATGTAATTGTTACAGCACATGCCTTTGTAATAATTTTCTTT
-ATAGTAATACCAATTATAATTGGAGGATTTGGAAACTGACTAGTGCCCCTAA
-TGATCGGTGCCCCAGACATAGCATTCCCACGAATAAACAACATAAGTTTCTG
-ACTTCTCCCTCCATCATTCCTTCTTCTCCTAGCCTCTTCTGGCGTAGAAGCC
-GGAGCAGGAACAGGATGAACTGTATATCCCCCCCTATCAGGCAACCTAGCCC
-ATGCCGGAGCATCAGTTGATCTAACAATTTTCTCACTCCACCTGGCAGGTGT
-CTCATCAATCCTAGGCGCAATCAACTTTATTACAACAATCATTAACATGAAA
-CCCCCAGCCATTTCTCAATACCAAACACCCCTGTTCGTGTGAGCAGTTCTCA
-TTACAGCCGTACTACTCCTCCTATCTCTTCCAGTCCTCGCCGCCGGCATTAC
-CATGCTTTTAACAGACCGAAACCTTAATACAACCTTCTTTGACCCTGCAGGA
-GGAGGAGACCCAATTCTTTACCAACACTTATTT`
 
 interface SequenceInputProps {
   sequence: string
@@ -94,20 +79,26 @@ export function SequenceInput({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label htmlFor="marker" className="mb-1 block text-sm font-medium text-gray-700">
+        <label className="mb-2 block text-sm font-medium text-gray-700">
           마커
         </label>
-        <select
-          id="marker"
-          value={marker}
-          onChange={(e) => onMarkerChange(e.target.value as BlastMarker)}
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-        >
+        <div className="flex flex-wrap gap-2">
           {MARKERS.map((m) => (
-            <option key={m.value} value={m.value}>{m.label}</option>
+            <button
+              key={m.value}
+              type="button"
+              onClick={() => onMarkerChange(m.value)}
+              className={`rounded-lg border px-3 py-1.5 text-sm transition ${
+                marker === m.value
+                  ? 'border-blue-500 bg-blue-50 font-medium text-blue-700'
+                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              {m.label}
+            </button>
           ))}
-        </select>
-        <p className="mt-1 text-xs text-gray-400">
+        </div>
+        <p className="mt-2 text-xs text-gray-400">
           {MARKERS.find(m => m.value === marker)?.help}
         </p>
       </div>
@@ -121,7 +112,10 @@ export function SequenceInput({
             {!sequence.trim() && (
               <button
                 type="button"
-                onClick={() => onSequenceChange(EXAMPLE_SEQUENCE)}
+                onClick={() => {
+                  onSequenceChange(EXAMPLE_SEQUENCES[0].sequence)
+                  setUploadedFileName(null)
+                }}
                 className="text-xs text-green-600 hover:text-green-800"
               >
                 예제 서열 넣기
@@ -186,7 +180,7 @@ export function SequenceInput({
         >
           분석 시작
         </button>
-        {!validation?.valid && sequence.trim() && validation && (
+        {validation && !validation.valid && sequence.trim() && (
           <p className="mt-1 text-center text-xs text-red-500">
             위 오류를 수정하면 분석을 시작할 수 있습니다
           </p>

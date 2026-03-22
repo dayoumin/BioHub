@@ -155,7 +155,6 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-8">
-      {/* 프로그레스 */}
       <div className="mb-6">
         <div className="mb-2 flex items-center justify-between text-sm">
           <span className="font-medium text-gray-700">
@@ -167,7 +166,6 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
           <span className="text-gray-500">{elapsed}초 경과</span>
         </div>
 
-        {/* 3단계 프로그레스 바 */}
         <div className="flex gap-1">
           <div className={`h-2 flex-1 rounded-l-full transition-colors ${
             phase === 'submitting' ? 'animate-pulse bg-blue-400' :
@@ -192,7 +190,6 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
         </div>
       </div>
 
-      {/* 상태별 메시지 */}
       {phase === 'polling' && (
         <div className="space-y-2 text-sm text-gray-600" role="status" aria-live="polite">
           <p>
@@ -218,7 +215,6 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
         </div>
       )}
 
-      {/* 취소 버튼 */}
       {phase !== 'done' && phase !== 'error' && (
         <button
           onClick={() => {

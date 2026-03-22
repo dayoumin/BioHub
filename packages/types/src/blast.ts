@@ -8,6 +8,9 @@
 /** 서열 최소 길이 (클라이언트 + 서버 공유) */
 export const MIN_SEQUENCE_LENGTH = 100
 
+/** 서열 최대 길이 (클라이언트 + 서버 공유) */
+export const MAX_SEQUENCE_LENGTH = 10_000
+
 export type BlastMarker = 'COI' | 'CytB' | '16S' | '12S' | 'ITS' | 'D-loop'
 
 export type BlastApiSource = 'ncbi' | 'ebi'

@@ -14,8 +14,9 @@ const MARKER_ALIAS: Record<string, BlastMarker> = {
 }
 
 function toBlastMarker(name: string): BlastMarker | null {
-  if (VALID_MARKERS.has(name)) return name as BlastMarker
-  return MARKER_ALIAS[name] ?? null
+  const normalized = MARKER_ALIAS[name] ?? name
+  if (VALID_MARKERS.has(normalized)) return normalized as BlastMarker
+  return null
 }
 
 interface ResultViewProps {

@@ -1,7 +1,7 @@
 # BioHub Roadmap
 
 **Last updated**: 2026-03-21
-**References**: [Platform Vision](docs/PLATFORM_VISION.md), [Product Strategy](docs/PRODUCT_STRATEGY.md), [Research Project Status](docs/RESEARCH_PROJECT_STATUS.md)
+**References**: [Platform Vision](docs/PLATFORM_VISION.md), [Product Strategy](docs/PRODUCT_STRATEGY.md), [Research Project Status](docs/RESEARCH_PROJECT_STATUS.md), [Deployment Strategy](docs/DEPLOYMENT-STRATEGY.md)
 
 ---
 

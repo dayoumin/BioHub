@@ -1,9 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Dna, BarChart3, Grid3X3, GitFork, Users, ArrowRight, HelpCircle, FileText, FlaskConical, ChevronDown } from 'lucide-react'
+import { Dna, BarChart3, Grid3X3, GitFork, Users, ArrowRight, HelpCircle, FileText, FlaskConical, ChevronDown, Clock, Play, Trash2 } from 'lucide-react'
 import type { ComponentType } from 'react'
+import type { BlastResultStatus } from '@biohub/types'
+import type { AnalysisHistoryEntry } from '@/lib/genetics/analysis-history'
+import { loadAnalysisHistory, clearAnalysisHistory } from '@/lib/genetics/analysis-history'
+import { EXAMPLE_SEQUENCES } from '@/lib/genetics/example-sequences'
+
+// ── 타입 ──
 
 interface Tool {
   id: string
@@ -15,6 +21,8 @@ interface Tool {
   badge: string
   icon: ComponentType<{ className?: string }>
 }
+
+// ── 상수 ──
 
 const TOOLS: Tool[] = [
   {
@@ -76,10 +84,44 @@ const WORKFLOW_STEPS = [
   { label: '비교 분석', icon: FlaskConical },
 ]
 
+const STATUS_LABELS: Record<BlastResultStatus, { text: string; className: string }> = {
+  high: { text: '고신뢰', className: 'bg-green-100 text-green-700' },
+  ambiguous: { text: '모호', className: 'bg-amber-100 text-amber-700' },
+  low: { text: '저신뢰', className: 'bg-orange-100 text-orange-700' },
+  failed: { text: '실패', className: 'bg-red-100 text-red-700' },
+  no_hit: { text: '매칭 없음', className: 'bg-red-100 text-red-700' },
+}
+
+// ── 유틸 ──
+
+function formatTimeAgo(timestamp: number): string {
+  const diff = Date.now() - timestamp
+  const minutes = Math.floor(diff / 60_000)
+  if (minutes < 1) return '방금 전'
+  if (minutes < 60) return `${minutes}분 전`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}시간 전`
+  const days = Math.floor(hours / 24)
+  return `${days}일 전`
+}
+
+// ── 페이지 ──
+
 export default function GeneticsHome() {
   const [guideOpen, setGuideOpen] = useState(false)
+  const [history, setHistory] = useState<AnalysisHistoryEntry[]>([])
+
   const readyTools = TOOLS.filter(t => t.ready)
   const pendingTools = TOOLS.filter(t => !t.ready)
+
+  useEffect(() => {
+    setHistory(loadAnalysisHistory())
+  }, [])
+
+  const handleClearHistory = (): void => {
+    clearAnalysisHistory()
+    setHistory([])
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -96,6 +138,53 @@ export default function GeneticsHome() {
           <ReadyCard key={tool.id} tool={tool} />
         ))}
       </div>
+
+      {/* 예제 서열 */}
+      <div className="mb-6">
+        <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          예제 서열로 체험하기
+        </h2>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {EXAMPLE_SEQUENCES.map((ex) => (
+            <Link key={ex.id} href={`/genetics/barcoding?example=${ex.id}`}>
+              <div className="group rounded-lg border border-border bg-card p-3 transition hover:border-primary/30 hover:shadow-sm">
+                <div className="mb-1.5 flex items-center gap-2">
+                  <Play className="h-3 w-3 text-primary" />
+                  <span className="text-xs font-medium">{ex.species}</span>
+                </div>
+                <p className="mb-2 text-[11px] leading-relaxed text-muted-foreground">{ex.description}</p>
+                <div className="flex items-center gap-2 text-[10px] text-muted-foreground/60">
+                  <span>{ex.marker}</span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* 최근 분석 히스토리 */}
+      {history.length > 0 && (
+        <div className="mb-6">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              최근 분석
+            </h2>
+            <button
+              type="button"
+              onClick={handleClearHistory}
+              className="flex items-center gap-1 text-[11px] text-muted-foreground/50 transition hover:text-destructive"
+            >
+              <Trash2 className="h-3 w-3" />
+              기록 삭제
+            </button>
+          </div>
+          <div className="space-y-2">
+            {history.map((entry) => (
+              <HistoryRow key={entry.id} entry={entry} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 준비 중 도구 */}
       {pendingTools.length > 0 && (
@@ -177,6 +266,8 @@ export default function GeneticsHome() {
   )
 }
 
+// ── 컴포넌트 ──
+
 function ReadyCard({ tool }: { tool: Tool }) {
   const Icon = tool.icon
 
@@ -221,6 +312,33 @@ function PendingCard({ tool }: { tool: Tool }) {
             </span>
           </div>
           <p className="text-xs text-muted-foreground/70">{tool.description}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function HistoryRow({ entry }: { entry: AnalysisHistoryEntry }) {
+  const statusInfo = entry.status ? STATUS_LABELS[entry.status] : null
+
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-card px-4 py-3">
+      <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="truncate text-sm font-medium">
+            {entry.topSpecies ?? entry.sequencePreview}
+          </span>
+          {statusInfo && (
+            <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${statusInfo.className}`}>
+              {statusInfo.text}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 text-[11px] text-muted-foreground/60">
+          <span>{entry.marker}</span>
+          <span className="text-border">·</span>
+          <span>{formatTimeAgo(entry.createdAt)}</span>
         </div>
       </div>
     </div>

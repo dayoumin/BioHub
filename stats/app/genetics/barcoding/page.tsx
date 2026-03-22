@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import type { BlastMarker, SequenceValidation } from '@biohub/types'
 import { SequenceInput } from '@/components/genetics/SequenceInput'
@@ -8,6 +9,8 @@ import { BlastRunner } from '@/components/genetics/BlastRunner'
 import { ResultView } from '@/components/genetics/ResultView'
 import { parseBlastHits, analyzeBlastResult } from '@/lib/genetics/decision-engine'
 import type { DecisionResult } from '@/lib/genetics/decision-engine'
+import { getExampleById } from '@/lib/genetics/example-sequences'
+import { saveAnalysisHistory } from '@/lib/genetics/analysis-history'
 
 type AppState =
   | { step: 'input' }
@@ -16,9 +19,22 @@ type AppState =
   | { step: 'error'; message: string }
 
 export default function BarcodingPage() {
+  const searchParams = useSearchParams()
   const [marker, setMarker] = useState<BlastMarker>('COI')
   const [sequence, setSequence] = useState('')
   const [state, setState] = useState<AppState>({ step: 'input' })
+
+  // 예제 쿼리 파라미터 처리
+  useEffect(() => {
+    const exampleId = searchParams.get('example')
+    if (!exampleId) return
+
+    const example = getExampleById(exampleId)
+    if (example) {
+      setSequence(example.sequence)
+      setMarker(example.marker)
+    }
+  }, [searchParams])
 
   const handleAnalyze = useCallback((_validation: SequenceValidation) => {
     setState({ step: 'analyzing', sequence, marker })
@@ -30,6 +46,16 @@ export default function BarcodingPage() {
     setState(prev => {
       if (prev.step !== 'analyzing') return prev
       const decision = analyzeBlastResult(topHits, prev.marker)
+
+      // 히스토리 저장
+      const topSpecies = decision.topHits[0]?.species ?? null
+      saveAnalysisHistory({
+        marker: prev.marker,
+        sequencePreview: prev.sequence.slice(0, 50),
+        topSpecies,
+        status: decision.status,
+      })
+
       return { step: 'result', marker: prev.marker, decision }
     })
   }, [])

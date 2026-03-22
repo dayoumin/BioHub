@@ -12,23 +12,24 @@
 ## MVP (Phase 1)
 
 ### 모노레포 초기 설정
-- [ ] `pnpm-workspace.yaml` 생성
-- [ ] `packages/types/` — 공유 타입 (ProjectEntityKind 등)
+- [x] `pnpm-workspace.yaml` 생성
+- [x] `packages/types/` — 공유 타입 (BlastMarker, BlastResultStatus 등)
 - [ ] `packages/db/` — D1 스키마 (Drizzle ORM)
-- [ ] `workers/` — Cloudflare Workers API
-- [ ] `genetics/` — Next.js 앱 초기화
+- [x] Workers API — `src/worker.ts` (BLAST 프록시)
+- [x] `genetics/` — 독립 앱 초기화 (stats 내 정본 코드 + genetics/src 참고용)
 
 ### 서열 입력 UI
-- [ ] textarea (FASTA 붙여넣기) + 파일 업로드 (.fasta, .fa, .txt)
-- [ ] 실시간 유효성 검사 (길이, 문자, N 비율)
-- [ ] FASTA 형식 자동 보정
-- [ ] 마커 선택 드롭다운 (COI 기본)
+- [x] textarea (FASTA 붙여넣기) + 파일 업로드 (.fasta, .fa, .txt, 1MB 제한)
+- [x] 실시간 유효성 검사 (길이, 문자, N 비율, 300ms 디바운스)
+- [x] FASTA 형식 자동 보정 (cleanSequence)
+- [x] 마커 선택 버튼 (COI 기본, 6개 마커 + 도움말)
+- [x] 예제 서열 (대구 COI, 황다랑어 COI, 효모 ITS)
 
 ### NCBI BLAST API 연동
-- [ ] Workers 프록시 (`/api/ncbi-blast`)
-- [ ] 초당 스로틀 (10초 간격)
-- [ ] 비동기 워크플로우 (제출 → RID → 폴링 → 결과)
-- [ ] 사용자별 NCBI API 키 입력 (설정) — 웹 rate limit 분산
+- [x] Workers 프록시 (`/api/blast/submit`, `/status/:rid`, `/result/:rid`)
+- [x] 초당 스로틀 (10초 간격, per-isolate)
+- [x] 비동기 워크플로우 (제출 → RID → 폴링 → Tabular 결과 파싱)
+- [ ] 사용자별 NCBI API 키 입력 (설정 UI) — 웹 rate limit 분산
 
 ### D1 캐시
 - [ ] 스키마 (md5(sequence) 키, 14일 TTL) — blast_cache 테이블
@@ -36,28 +37,39 @@
 - [ ] "최신 결과로 다시 분석" 버튼
 
 ### Decision Engine
-- [ ] 4단계 결과 분류 (고신뢰/모호/저신뢰/실패)
-- [ ] 색상 카드 UI (녹/노/주/빨)
-- [ ] Top hits 테이블 (종명, 유사도%, accession)
+- [x] 4단계 결과 분류 (고신뢰/모호/저신뢰/실패/매칭없음)
+- [x] 색상 카드 UI (녹/노/주/빨)
+- [x] Top hits 테이블 (accession, 유사도%, Coverage, E-value)
+- [x] 분류군 감지 + 맞춤 안내 (Thunnus, Salmonidae, Amphibia, Bivalvia)
+- [x] 추천 마커 칩 (클릭 시 같은 서열로 재분석)
 
 ### 대기 상태 UX
-- [ ] 프로그레스 바 (제출 → 처리 중 → 완료)
-- [ ] 스로틀 카운트다운
+- [x] 3단계 프로그레스 바 (제출 → 처리 중 → 완료)
+- [x] 경과 시간 표시 + 예상 시간 카운트다운
+- [x] 취소 버튼 (AbortController)
 
 ### 결과 저장
+- [x] localStorage 히스토리 (최근 10건, analysis-history.ts)
 - [ ] blast_results 테이블 (D1, 사용자별 영구 기록)
 - [ ] 프로젝트 연결 (project_entity_refs)
-- [ ] "다음 행동" 버튼 (보고서 생성, 마커 추천, 종 상세정보)
+- [x] "다음 행동" 버튼 (GenBank 링크 활성, 나머지 준비 중)
+
+### 메인 페이지 UX
+- [x] 도구 카드 (활성/준비중 분리, 아이콘)
+- [x] 예제 서열 카드 (?example= 쿼리 파라미터)
+- [x] 최근 분석 히스토리 (시간/상태 표시, 삭제)
+- [x] 도움말 (상황별 도구 선택 + 분석 순서)
 
 ## Phase 2
 
-- [ ] 분류군 감지 → 맞춤 안내 카드
-  - [ ] Thunnus (참치): D-loop 권장
-  - [ ] Amphibia (양서류): 16S 병행 권장
-  - [ ] Bivalvia (이매패류): 핵 마커 필수
-  - [ ] Salmonidae (연어과): D-loop + microsatellite
+- [x] 분류군 감지 → 맞춤 안내 카드 (기본 구현, 종명 매핑 후 개선 필요)
+  - [x] Thunnus (참치): D-loop 권장
+  - [x] Amphibia (양서류): 16S 병행 권장
+  - [x] Bivalvia (이매패류): 핵 마커 필수
+  - [x] Salmonidae (연어과): D-loop + microsatellite
   - [ ] 가공 시료: 미니바코드 안내
   - [ ] 저유사도: 서열 품질 체크 안내
+- [ ] accession → 종명 매핑 (NCBI E-utilities efetch)
 - [ ] EBI BLAST 자동 전환 (NCBI 실패 시)
 - [ ] 보고서 자동 생성
   - [ ] 서열 품질 통계 (길이, GC%, N%)
@@ -103,3 +115,9 @@
 | 웹 BLAST | Workers 경유 (CORS) + 사용자별 NCBI API 키 |
 | 데스크탑 BLAST | Tauri에서 직접 호출 (rate limit 분산) |
 | 프로젝트 공유 | D1 통해 모든 앱 접근 가능 |
+
+## 나중에 구현
+
+- [ ] 다크모드 지원 — 현재 `forcedTheme="light"`로 고정. 유전 페이지 포함 전체 UI 다크모드 대응 후 `enableSystem` 복원
+- [ ] DNA 바코딩 — Worker 없이 로컬 개발 시 안내 UX 개선 (현재 `wrangler dev` 미실행 시 `ERR_CONNECTION_REFUSED`)
+- [ ] 결과 비교 — 이전 분석 결과와 현재 결과를 나란히 비교하는 UI (히스토리에서 선택 → side-by-side 비교)
