@@ -7,12 +7,12 @@ import { EXAMPLE_SEQUENCES } from '@/lib/genetics/example-sequences'
 import { useDebounce } from '@/hooks/useDebounce'
 
 const MARKERS: { value: BlastMarker; label: string; help: string }[] = [
-  { value: 'COI', label: 'COI (동물 표준)', help: '어류, 곤충 등 대부분의 동물' },
-  { value: 'CytB', label: 'Cyt b (포유류 법의학)', help: '포유류, 법의학 시료' },
-  { value: '16S', label: '16S rRNA (양서류/eDNA)', help: '양서류, 환경 DNA' },
-  { value: '12S', label: '12S rRNA (어류 eDNA)', help: '어류 환경 DNA (짧은 단편)' },
-  { value: 'ITS', label: 'ITS (진균)', help: '진균, 식물' },
-  { value: 'D-loop', label: 'D-loop (참치/연어)', help: '참치류, 연어과 종 세분화' },
+  { value: 'COI', label: 'COI', help: '동물 표준 바코드 — 어류, 곤충 등 대부분의 동물' },
+  { value: 'CytB', label: 'Cyt b', help: '포유류, 법의학 시료 — COI 보완 마커' },
+  { value: '16S', label: '16S rRNA', help: '양서류 표준 — 환경 DNA, 보편적 프라이머' },
+  { value: '12S', label: '12S rRNA', help: '어류 eDNA — 짧은 단편, 열화 시료 적합' },
+  { value: 'ITS', label: 'ITS', help: '진균 표준 바코드 — 진균, 식물' },
+  { value: 'D-loop', label: 'D-loop', help: '참치류, 연어과 종 세분화 — 가장 빠른 진화 영역' },
 ]
 
 interface SequenceInputProps {
@@ -105,7 +105,8 @@ export function SequenceInput({
               key={m.value}
               type="button"
               onClick={() => onMarkerChange(m.value)}
-              className={`rounded-lg border px-3 py-1.5 text-sm transition ${
+              title={m.help}
+              className={`min-w-[4.5rem] rounded-lg border px-3 py-1.5 text-center text-sm transition ${
                 marker === m.value
                   ? 'border-blue-500 bg-blue-50 font-medium text-blue-700'
                   : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -115,9 +116,6 @@ export function SequenceInput({
             </button>
           ))}
         </div>
-        <p className="mt-2 text-xs text-gray-400">
-          {MARKERS.find(m => m.value === marker)?.help}
-        </p>
       </div>
 
       <div>
