@@ -1537,9 +1537,9 @@ Knowledge Graph가 필요한 경우는: 엔티티 5개+ 쿼리, 멀티홉 추론
 
 **상세 계획**: [PLAN-BIO-STATISTICS-AUDIT.md](docs/PLAN-BIO-STATISTICS-AUDIT.md)
 
-#### Phase 15-2: 종 정보 허브 — 2주
+#### Phase 15-2: 종 정보 허브 + 학명 검증 통합 — 2주
 
-학명 하나로 모든 생물 정보 한 화면에.
+학명 하나로 모든 생물 정보 한 화면에. species_checker(`d:\Projects\species_checker`, v1.0.0) 통합 포함.
 
 | 기능 | 시간 | API |
 |------|------|-----|
@@ -1548,6 +1548,8 @@ Knowledge Graph가 필요한 경우는: 엔티티 5개+ 쿼리, 멀티홉 추론
 | GBIF 연동 + 분포 지도 | 3일 | GBIF API (CORS ✅) + Leaflet |
 | GBIF 데이터 → 공간 통계 가공 | 2일 | Pyodide |
 | Cloudflare Workers CORS 프록시 | 1일 | Wrangler |
+
+**species_checker 통합 계획**: [PLAN-SPECIES-INTEGRATION.md](docs/PLAN-SPECIES-INTEGRATION.md) — API 연동 → ResearchProject 연결 → 모노레포 패키지 추출 (3단계). 알림 시스템 통합 포함.
 
 #### Phase 15-3: 문헌 도구 — 1.5주
 
