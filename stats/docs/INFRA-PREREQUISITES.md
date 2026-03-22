@@ -132,7 +132,7 @@ export const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-
 
 | 항목 | 판단 |
 |------|------|
-| ChatBubble 추출 | 독립 진행 가능. 다른 TODO에 의존하지 않음 |
+| ChatBubble 추출 | **불필요** — 4곳(ChatThread, FollowUpQA, NaturalLanguageInput, AiPanel) 검토 결과 공통은 아바타+정렬뿐, 고유 기능(retry/recommendations/streaming/patchSummary)이 버블 내부에 있어 추출 시 prop 폭증. 현상 유지 |
 | Button 표준화 | raw button 4곳 모두 의도적. 추가 인프라 불필요 |
 | LoadingIndicator | TypingIndicator 이미 존재. 개별 작업 시 처리 |
 | 라우팅 | 22개 라우트 안정. 추가 정리 불필요 |

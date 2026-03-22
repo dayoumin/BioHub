@@ -67,6 +67,12 @@ These should start after the current foundation is in place.
 - `[review]` Design reviewer simulator inputs and output schema.
 - `[domain]` Connect species and legal status outputs into manuscript and review flows.
 - `[trust]` Add user-facing evidence cards to major AI-assisted outputs.
+- `[ux]` ResultsActionStep.test.tsx 격리 실행 시 45개 실패 — `useFollowUpQA` mock 누락으로 `resetFollowUp` TDZ 에러. 전체 suite에서는 통과.
+- `[ux]` AI 해석 실패 graceful degradation (`useErrorRecovery` 활용)
+- `[ux]` 접근성 focus ring 통일 (`focusRing` 상수 → 기존 5곳 점진 교체)
+- `[ux]` 토스트 메시지 기존 19곳 점진적 `TOAST.*` 마이그레이션
+- `[ux]` ChatBubble 공통 컴포넌트 추출
+- `[ux]` paper-draft/PaperDraftPanel.tsx 데드 코드 삭제
 
 ---
 

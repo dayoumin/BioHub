@@ -38,7 +38,7 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { href: '/', label: '홈', icon: Home },
   { href: '/graph-studio', label: 'Graph Studio', icon: AreaChart, prefix: '/graph-studio' },
-  { href: '/bio-tools', label: 'Bio-Tools', icon: Dna, disabled: true, badge: '예정' },
+  { href: '/bio-tools', label: 'Bio-Tools', icon: Dna, prefix: '/bio-tools' },
   { href: '/papers', label: '논문 지원', icon: BookOpen, disabled: true, badge: '예정' },
   {
     href: '/species-validation',
