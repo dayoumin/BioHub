@@ -346,14 +346,26 @@ export const useHistoryStore = create<HistoryState>()((set) => ({
   clearHistory: async () => {
     const records = await getAllHistory()
     await clearAllHistory()
+    const removedRefs: Array<{ projectId: string; entityId: string }> = []
     try {
-      records.forEach((record) => {
+      for (const record of records) {
         if (record.projectId) {
           removeProjectEntityRef(record.projectId, 'analysis', record.id)
+          removedRefs.push({ projectId: record.projectId, entityId: record.id })
         }
-      })
+      }
     } catch (error) {
       try {
+        // 이미 삭제된 ref 복원
+        for (const ref of removedRefs) {
+          upsertProjectEntityRef({
+            projectId: ref.projectId,
+            entityKind: 'analysis',
+            entityId: ref.entityId,
+            label: records.find(r => r.id === ref.entityId)?.name ?? '',
+          })
+        }
+        // IndexedDB 레코드 복원
         for (const record of records) {
           await saveHistory(record)
         }

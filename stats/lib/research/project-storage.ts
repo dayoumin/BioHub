@@ -19,7 +19,7 @@ function readJson<T>(key: string, fallback: T): T {
   }
 }
 
-/** localStorage 쓰기. 성공 시 true, 실패(quota 초과 등) 시 false */
+/** localStorage 쓰기. 실패(quota 초과 등) 시 throw */
 function writeJson(key: string, value: unknown): void {
   if (!isClient()) {
     throw new Error(`[research-project-storage] ${key} is unavailable outside the browser`)

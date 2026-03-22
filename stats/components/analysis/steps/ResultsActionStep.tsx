@@ -79,7 +79,6 @@ interface ResultsActionStepProps {
 
 const NO_PROJECT_SAVE_ID = '__no-project__'
 
-
 export function ResultsActionStep({ results }: ResultsActionStepProps) {
   // Terminology System
   const t = useTerminology()
@@ -87,7 +86,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   // Reduced motion
   const prefersReducedMotion = useReducedMotion()
 
-  // Phase: 0=Hero�? 1=?�치카드(150ms), 2=차트+L2(400ms), 3=AI?�션(AI?�료), 4=Q&A(phase3+300ms)
+  // Phase: 0=Hero만, 1=수치카드(150ms), 2=차트+L2(400ms), 3=AI섹션(AI완료), 4=Q&A(phase3+300ms)
   const [phase, setPhase] = useState(0)
   const phaseTimerRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -116,31 +115,31 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   })
   const [resultTimestamp] = useState(() => new Date())
 
-  // AI ?�석 (커스?� ?�으�?캡슐??
+  // AI 해석 (커스텀 훅으로 캡슐화)
   const [detailedInterpretOpen, setDetailedInterpretOpen] = useState(true)
   const interpretRecovery = useErrorRecovery({ maxRetries: 2 })
 
-  // ??분석 ?�작 ?�인
+  // 새 분석 시작 확인
   const [showNewAnalysisConfirm, setShowNewAnalysisConfirm] = useState(false)
 
-  // ?�속 �??�용 추적
+  // 후속 칩 사용 추적
   const [usedChips, setUsedChips] = useState<Set<string>>(new Set())
 
-  // ?�마?�트 ??phaseTimer ?�리
+  // 언마운트 시 phaseTimer 정리
   useEffect(() => {
     return () => {
       if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current)
     }
   }, [])
 
-  // Phase 0??(150ms)??(400ms) ?�동 진행
+  // Phase 0→1(150ms)→2(400ms) 자동 진행
   useEffect(() => {
     const t1 = setTimeout(() => setPhase(prev => Math.max(prev, 1)), 150)
     const t2 = setTimeout(() => setPhase(prev => Math.max(prev, 2)), 400)
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [results?.method, results?.pValue])
 
-  // reduced-motion: 모든 ?�션 즉시 ?�시
+  // reduced-motion: 모든 섹션 즉시 표시
   useEffect(() => {
     if (prefersReducedMotion) setPhase(4)
   }, [prefersReducedMotion])
@@ -169,15 +168,14 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     () => historyEntries.find(entry => entry.id === currentHistoryId)?.projectId,
     [currentHistoryId, historyEntries]
   )
-
   const router = useRouter()
   const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
   const disconnectProject = useGraphStudioStore(s => s.disconnectProject)
 
   const savedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const copiedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  // UI ?�태(isSaved)?� 별도�?"?�스?�리???�?�됐?��?" ?��? 추적
-  // isSaved??5�???리셋?��?�???ref??컴포?�트 ?�애 ?�안 ?��? ??중복 ?�??방�?
+  // UI 상태(isSaved)와 별도로 "히스토리에 저장됐는지" 여부 추적
+  // isSaved는 5초 후 리셋되지만 이 ref는 컴포넌트 생애 동안 유지 → 중복 저장 방지
   const hasSavedToHistoryRef = useRef(false)
 
   // Cleanup timeouts on unmount
@@ -188,7 +186,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }
   }, [])
 
-  // variableMapping ??변???�름 배열 (statisticalResult, handleInterpretation 공유)
+  // variableMapping → 변수 이름 배열 (statisticalResult, handleInterpretation 공유)
   const mappedVariables = useMemo(() => {
     const vars: string[] = []
     if (variableMapping?.dependentVar) {
@@ -203,14 +201,16 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     return vars
   }, [variableMapping])
 
-  // AI ?�석 ??
+  // AI 해석 훅
   const {
     interpretation,
     interpretationModel,
     isInterpreting,
     interpretError,
+
     resetAndReinterpret,
     clearInterpretationGuard,
+
     aiInterpretationRef,
     onInterpretationComplete,
   } = useInterpretation({
@@ -222,7 +222,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     errorMessage: t.results.ai.defaultError,
   })
 
-  // ?�속 Q&A ??
+  // 후속 Q&A 훅
   const {
     followUpMessages,
     setFollowUpMessages,
@@ -255,7 +255,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     // 진행 중인 Q&A 스트림 abort + 상태 초기화 (loadedInterpretationChat effect가 복원)
     resetFollowUp()
 
-    // Phase 초기화 (단계적 등장 다시)
+    // Phase 초기화 (단계적 등장 재시작)
     setPhase(0)
     if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current)
 
@@ -268,7 +268,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     interpretRecovery.reset()
     setLastDraftContext(undefined)
     setLastDraftOptions({ language: 'ko', postHocDisplay: 'significant-only' })
-  }, [currentHistoryId, resetFollowUp])
+  }, [currentHistoryId])
 
   // 히스토리에서 로드된 후속 Q&A 대화 복원
   useEffect(() => {
@@ -277,9 +277,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       // 소비 후 store에서 제거 (재렌더링 시 중복 방지)
       useHistoryStore.getState().setLoadedInterpretationChat(null)
     }
-  }, [loadedInterpretationChat, setFollowUpMessages])
+  }, [loadedInterpretationChat])
 
-  // 히스토리에서 로드된 논문 초안 복원 (context/options도 함께 복원 → 재생성 시 언어전환 가능)
+  // 히스토리에서 로드된 논문 초안 복원 (context/options도 함께 복원 → 재생성/언어전환 가능)
   useEffect(() => {
     if (loadedPaperDraft) {
       setPaperDraft(loadedPaperDraft)
@@ -292,7 +292,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }
   }, [loadedPaperDraft, setLoadedPaperDraft])
 
-  // Phase 진행 콜백: ?�석 ?�료 ??Phase 3?? ?�환
+  // Phase 진행 콜백: 해석 완료 시 Phase 3→4 전환
   onInterpretationComplete.current = useCallback(() => {
     if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current)
     setPhase(prev => Math.max(prev, 3))
@@ -302,7 +302,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }, 300)
   }, [])
 
-  // AnalysisResult -> StatisticalResult 변??
+  // AnalysisResult -> StatisticalResult 변환
   const statisticalResult = useMemo(() => {
     if (!results) return null
     return convertToStatisticalResult(results, {
@@ -313,27 +313,27 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     })
   }, [results, uploadedData, mappedVariables, resultTimestamp])
 
-  // ?�의???�단
+  // 유의성 판단
   const isSignificant = useMemo(() => {
     if (!statisticalResult) return false
     return statisticalResult.pValue < (statisticalResult.alpha || 0.05)
   }, [statisticalResult])
 
-  // 가??충족 ?��?
+  // 가정 충족 여부
   const assumptionsPassed = useMemo(() => {
     if (!statisticalResult?.assumptions) return true
     return statisticalResult.assumptions.every(a => a.passed !== false)
   }, [statisticalResult])
 
-  // L2 ?�세 결과: post-hoc/계수 ?�이�?additionalResults) ?�을 ?�만 ?�동 ?�기 (P2-3)
+  // L2 상세 결과: post-hoc/계수 테이블(additionalResults) 있을 때만 자동 열기 (P2-3)
   useEffect(() => {
     if (statisticalResult?.additionalResults && statisticalResult.additionalResults.length > 0) {
       setDetailedResultsOpen(true)
     }
   }, [statisticalResult?.additionalResults])
 
-  // Layer 2 ?�시 ?��? (추�? ?�이�??�는 방법�??�세 결과가 ?�을 ??
-  // CI/?�과?�기??StatsCards?�서 ?�시?��?�?L2 조건?�서 ?�외
+  // Layer 2 표시 여부 (추가 테이블 또는 방법별 상세 결과가 있을 때)
+  // CI/효과크기는 StatsCards에서 표시하므로 L2 조건에서 제외
   const hasDetailedResults = useMemo(() => {
     if (!statisticalResult) return false
     return !!(
@@ -342,7 +342,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     )
   }, [statisticalResult, results])
 
-  // APA ?�식 ?�약 (df ?�는 검?�도 지?? "U = 234.0, p = .003")
+  // APA 형식 요약 (df 없는 검정도 지원: "U = 234.0, p = .003")
   const apaFormat = useMemo(() => {
     if (!statisticalResult) return null
     return formatStatisticalResult(
@@ -353,7 +353,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     )
   }, [statisticalResult])
 
-  // ?�보?�기???�이???�보
+  // 내보내기용 데이터 정보
   const exportDataInfo = useMemo(() => {
     if (!uploadedData || uploadedData.length === 0) return null
     return {
@@ -364,7 +364,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }
   }, [uploadedData, uploadedFileName])
 
-  // ?�문 초안 ?�성??ExportContext (???�들??공용)
+  // 논문 초안 생성용 ExportContext (두 핸들러 공용)
   const draftExportCtx = useMemo(() => {
     if (!results || !statisticalResult) return null
     return {
@@ -378,7 +378,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }
   }, [results, statisticalResult, interpretation, apaFormat, exportDataInfo, uploadedData])
 
-  // AI ?�석 ?�싱 (summary/detail 분리) ???�더마다 ?�파??방�?
+  // AI 해석 파싱 (summary/detail 분리) — 렌더마다 재파싱 방지
   const parsedInterpretation = useMemo(() => {
     if (!interpretation) return null
     return splitInterpretation(interpretation)
@@ -406,12 +406,12 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   }, [currentHistoryProjectId, isSaved, isSavingToHistory, refreshAvailableProjects, results, statisticalResult])
 
   // Handlers
-  // ?�스?�리 ?�??(IndexedDB ???�일 ?�운로드 ?�음)
+  // 히스토리 저장 (IndexedDB — 파일 다운로드 없음)
   const saveAnalysisToHistory = useCallback(async (projectId?: string) => {
     if (!results || !statisticalResult || isSaved || isSavingToHistory) return
 
     const historyLabel = statisticalResult.testName || selectedMethod?.name || 'Analysis'
-    const historyName = `${historyLabel} ??${new Date().toLocaleString('ko-KR', {
+    const historyName = `${historyLabel} — ${new Date().toLocaleString('ko-KR', {
       month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
     })}`
 
@@ -427,7 +427,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
       setProjectSaveDialogOpen(false)
       if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current)
-      hasSavedToHistoryRef.current = true  // UI 리셋 ?�에??중복 ?�??방�????�속 ?�래�?
+      hasSavedToHistoryRef.current = true  // UI 리셋 후에도 중복 저장 방지용 영속 플래그
       setIsSaved(true)
       toast.success(t.results.save.success)
       savedTimeoutRef.current = setTimeout(() => {
@@ -460,7 +460,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     await saveAnalysisToHistory(projectId)
   }, [saveAnalysisToHistory, selectedSaveProjectId])
 
-  // ?�일 ?�보?�기 (DOCX/Excel/HTML ?�운로드)
+  // 파일 내보내기 (DOCX/Excel/HTML 다운로드)
   const handleSaveAsFile = useCallback(async (
     format: ExportFormat = 'docx',
     optionsOverride?: ExportContentOptions,
@@ -491,11 +491,11 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       if (result.success) {
         toast.success(t.results.toast.exportSuccess ?? t.results.save.success)
 
-        // 명시??"?�?????�직 ???�으�??�스?�리??silent ?�??(?�보?�기�??�고 ?�는 경우 ?��?
-        // isSaved ?�??ref ?�용: ?�로?� staleness + 5�?리셋 문제 ?�결
+        // 명시적 "저장"을 아직 안 했으면 히스토리에 silent 저장 (내보내기만 하고 닫는 경우 대비)
+        // isSaved 대신 ref 사용: 클로저 staleness + 5초 리셋 문제 해결
         if (!hasSavedToHistoryRef.current) {
           const historyLabel = statisticalResult.testName || selectedMethod?.name || 'Analysis'
-          const historyName = `${historyLabel} ??${new Date().toLocaleString('ko-KR', {
+          const historyName = `${historyLabel} — ${new Date().toLocaleString('ko-KR', {
             month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
           })}`
           saveToHistory(buildHistorySnapshot(), historyName, {
@@ -504,7 +504,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             apaFormat,
             interpretationChat: !isFollowUpStreaming && followUpMessages.length > 0 ? followUpMessages : undefined,
             paperDraft: paperDraft ?? null,
-          }).catch(() => { /* ?�스?�리 ?�???�패 무시 */ })
+          }).catch(() => { /* 히스토리 저장 실패 무시 */ })
         }
       } else {
         toast.error(t.results.save.errorTitle, { description: result.error })
@@ -534,7 +534,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     setValidationResults(null)
     setResults(null)
     setStepTrack('reanalysis')
-    // ????결과???�??AI ?�동 ?�석???�작?�도�?가???�제
+    // ★ 새 결과에 대한 AI 자동 해석이 동작하도록 가드 해제
     clearInterpretationGuard()
     navigateToStep(1)
 
@@ -558,18 +558,18 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }
   }, [reset, t])
 
-  // U2-3: 방법 변�???downstream ?�체 무효????Step 2 ?�동
-  // setCurrentStep 직접 ?�용: navigateToStep ??saveCurrentStepData가 pruned step 4�??�시 추�??�는 문제 방�?
+  // U2-3: 방법 변경 — downstream 전체 무효화 후 Step 2 이동
+  // setCurrentStep 직접 사용: navigateToStep → saveCurrentStepData가 pruned step 4를 다시 추가하는 문제 방지
   const handleChangeMethod = useCallback(() => {
     setResults(null)
     setAssumptionResults(null)
     setVariableMapping(null)
-    pruneCompletedStepsFrom(3)  // Step 3,4 ?�료 ?�태 ?�거
-    setStepTrack('normal')      // quick/reanalysis 모드 ?�수 방�?
+    pruneCompletedStepsFrom(3)  // Step 3,4 완료 상태 제거
+    setStepTrack('normal')      // quick/reanalysis 모드 누수 방지
     setCurrentStep(2)
   }, [setResults, setAssumptionResults, setVariableMapping, pruneCompletedStepsFrom, setStepTrack, setCurrentStep])
 
-  // Graph Studio ?�결 ??DataPackage 빌드 ???�동
+  // Graph Studio 연결 — DataPackage 빌드 후 이동
   const handleOpenInGraphStudio = useCallback(() => {
     if (!results) return
 
@@ -605,7 +605,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       yField = built.yField
       colorField = undefined
     } else {
-      // ?�반 분석: ?�로???�이???�용
+      // 일반 분석: 업로드 데이터 사용
       if (!uploadedData?.length) {
         toast.error(t.analysis.emptyStates.dataRequired)
         return
@@ -636,28 +636,28 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       data,
       projectId: linkedHistory?.projectId,
       analysisContext: toAnalysisContext(results),
-      analysisResultId: currentHistoryId ?? undefined, // U4-1: ?�?�된 분석 ??���?
+      analysisResultId: currentHistoryId ?? undefined, // U4-1: 저장된 분석 역참조
       createdAt: new Date().toISOString(),
     }
 
-    // analysisContext?�서 significance marks ?�동 ?�용
+    // analysisContext에서 significance marks 자동 적용
     const finalSpec = pkg.analysisContext
       ? applyAnalysisContext(spec, pkg.analysisContext)
       : spec
 
     loadDataPackageWithSpec(pkg, finalSpec)
-    disconnectProject() // 결과 가?�오기는 ???�업 ??기존 ?�로?�트 ??��?�기 방�?
+    disconnectProject() // 결과 가져오기는 새 작업 — 기존 프로젝트 덮어쓰기 방지
     router.push('/graph-studio')
   }, [results, uploadedData, currentHistoryId, historyEntries, loadDataPackageWithSpec, disconnectProject, router])
 
-  // ?�해??+ Q&A 초기??(?�진 ??차단)
+  // 재해석 + Q&A 초기화 (소진 시 차단)
   const handleReinterpretWithQAReset = useCallback(() => {
     if (interpretRecovery.isExhausted) return
     interpretRecovery.recordRetry()
     resetFollowUp()
     setUsedChips(new Set())
     resetAndReinterpret()
-  }, [resetFollowUp, resetAndReinterpret, interpretRecovery.isExhausted, interpretRecovery.recordRetry])
+  }, [resetFollowUp, resetAndReinterpret, interpretRecovery])
 
   const handlePaperDraftToggle = useCallback(() => {
     if (paperDraft) {
@@ -667,7 +667,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }
   }, [paperDraft])
 
-  // ?�문 초안 ?�성 ?�정 (DraftContextEditor ??generatePaperDraft)
+  // 논문 초안 생성 확정 (DraftContextEditor → generatePaperDraft)
   const handleDraftConfirm = useCallback((
     context: DraftContext,
     options: { language: 'ko' | 'en'; postHocDisplay: 'significant-only' | 'all' }
@@ -689,7 +689,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }
   }, [draftExportCtx, selectedMethod, currentHistoryId, patchHistoryPaperDraft])
 
-  // ?�문 초안 ?�어 변�?(?�널 ???��? ???�생??
+  // 논문 초안 언어 변경 (패널 내 토글 → 재생성)
   const handleDraftLanguageChange = useCallback((lang: 'ko' | 'en') => {
     if (!draftExportCtx || !lastDraftContext) return
     const newOptions = { ...lastDraftOptions, language: lang }
@@ -705,7 +705,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       patchHistoryPaperDraft(currentHistoryId, draft).catch(console.error)
     }
   }, [draftExportCtx, lastDraftContext, lastDraftOptions, selectedMethod, currentHistoryId, patchHistoryPaperDraft])
-
 
   const handleCopyResults = useCallback(async () => {
     if (!results || !statisticalResult) return
@@ -747,7 +746,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         html += `<p><b>APA:</b> <i>${apaFormat}</i></p>`
       }
 
-      // AI ?�석 (?�을 ?�만) ??마크?�운 ?�문??pre�?감싸???�식 ?��?
+      // AI 해석 (있을 때만) — 마크다운 원문을 pre로 감싸서 서식 유지
       if (interpretation) {
         const { summary, detail } = splitInterpretation(interpretation)
         html += `<hr/><h4>${t.results.clipboard.aiInterpretation}</h4>`
@@ -757,7 +756,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         }
       }
 
-      // ClipboardItem API (HTML + plain text ?�시 ?�공)
+      // ClipboardItem API (HTML + plain text 동시 제공)
       if (typeof ClipboardItem !== 'undefined') {
         const htmlBlob = new Blob([html], { type: 'text/html' })
         const textBlob = new Blob([plainText + aiPlain], { type: 'text/plain' })
@@ -768,7 +767,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           }),
         ])
       } else {
-        // ?�백: plain text only
+        // 폴백: plain text only
         await navigator.clipboard.writeText(plainText + aiPlain)
       }
 
@@ -786,7 +785,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }
   }, [results, statisticalResult, interpretation, apaFormat, t])
 
-  // count-up: 컴포?�트 ?�벨 ?�출 (Rules of Hooks ??early return ??
+  // count-up: 컴포넌트 레벨 호출 (Rules of Hooks — early return 전)
   const statisticDisplay = useCountUp(statisticalResult?.statistic, { started: phase >= 1 })
   const effectSizeDisplay = useCountUp(statisticalResult?.effectSize?.value, { started: phase >= 1 })
 
@@ -803,7 +802,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   return (
     <TooltipProvider>
       <div className="space-y-4">
-        {/* ===== ?�텝 ?�더 (P0-1: Copy + Save ?�단 배치) ===== */}
+        {/* ===== 스텝 헤더 (P0-1: Copy + Save 상단 배치) ===== */}
         <StepHeader
           icon={BarChart3}
           title={t.analysis.stepTitles.results}
@@ -838,7 +837,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 data-testid="paper-draft-btn"
               >
                 <BookOpen className="w-3.5 h-3.5 mr-1" />
-                {paperDraft ? '초안 보기' : '?�문 초안'}
+                {paperDraft ? '초안 보기' : '논문 초안'}
               </Button>
               <div className="w-px h-4 bg-border/50" />
               <DropdownMenu>
@@ -934,7 +933,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           </DialogContent>
         </Dialog>
 
-        {/* ===== 가??검??결과 (Step 4 store 기반) ??executor result??assumptions가 ?�을 ?�만 ?�시 */}
+        {/* ===== 가정 검정 결과 (Step 4 store 기반) — executor result에 assumptions가 없을 때만 표시 */}
         {assumptionResults && !statisticalResult?.assumptions?.length && (
           <AssumptionTestsSection
             assumptionResults={assumptionResults}
@@ -944,7 +943,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           />
         )}
 
-        {/* ===== [Phase 0] Hero 컴팩??�?===== */}
+        {/* ===== [Phase 0] Hero 컴팩트 바 ===== */}
         <ResultsHeroCard
           statisticalResult={statisticalResult}
           isSignificant={isSignificant}
@@ -957,7 +956,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           t={t}
         />
 
-        {/* ===== [Phase 1] ?�치 카드 4�?(stagger + count-up) ===== */}
+        {/* ===== [Phase 1] 수치 카드 4개 (stagger + count-up) ===== */}
         <ResultsStatsCards
           statisticalResult={statisticalResult}
           isSignificant={isSignificant}
@@ -968,7 +967,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           t={t}
         />
 
-        {/* ===== [Phase 2] L2 ?�세 결과 (CI, ?�과?�기, 추�? ?�이�? ===== */}
+        {/* ===== [Phase 2] L2 상세 결과 (CI, 효과크기, 추가 테이블) ===== */}
         <ResultsChartsSection
           results={results!}
           statisticalResult={statisticalResult}
@@ -980,7 +979,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           t={t}
         />
 
-        {/* ===== [Phase 3] AI ?�석 카드 ===== */}
+        {/* ===== [Phase 3] AI 해석 카드 ===== */}
         <AiInterpretationCard
           parsedInterpretation={parsedInterpretation}
           isInterpreting={isInterpreting}
@@ -995,7 +994,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           t={t}
         />
 
-        {/* ===== [Phase 4] ?�속 Q&A 카드 ===== */}
+        {/* ===== [Phase 4] 후속 Q&A 카드 ===== */}
         <FollowUpQASection
           phase={phase}
           prefersReducedMotion={prefersReducedMotion}
@@ -1012,7 +1011,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           t={t}
         />
 
-        {/* ===== ?�션 버튼 + ?�이?�로�?===== */}
+        {/* ===== 액션 버튼 + 다이얼로그 ===== */}
         <ResultsActionButtons
           onBackToVariables={() => navigateToStep(3)}
           onChangeMethod={handleChangeMethod}
@@ -1035,7 +1034,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           t={t}
         />
 
-        {/* ?�문 초안 ??컨텍?�트 ?�디??모달 */}
+        {/* 논문 초안 — 컨텍스트 에디터 모달 */}
         {draftEditorOpen && results && (
           <DraftContextEditor
             analysisResult={results}
@@ -1046,18 +1045,18 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           />
         )}
 
-        {/* ?�문 초안 ?�널 */}
+        {/* 논문 초안 패널 */}
         <Sheet open={paperDraftOpen} onOpenChange={setPaperDraftOpen}>
           <SheetContent side="right" className="w-[560px] max-w-[90vw] p-0 flex flex-col gap-0">
             <SheetHeader className="px-4 py-3 border-b shrink-0">
-              <SheetTitle className="text-sm font-semibold">?�문 초안</SheetTitle>
+              <SheetTitle className="text-sm font-semibold">논문 초안</SheetTitle>
             </SheetHeader>
             {paperDraft && (
               <div className="flex-1 min-h-0 overflow-hidden">
                 <PaperDraftPanel
                   draft={paperDraft}
                   discussionState={discussionState}
-                  onGenerateDiscussion={() => { /* Phase B: LLM Discussion ?�성 */ }}
+                  onGenerateDiscussion={() => { /* Phase B: LLM Discussion 생성 */ }}
                   onCancelDiscussion={() => setDiscussionState({ status: 'idle' })}
                   onLanguageChange={handleDraftLanguageChange}
                 />
@@ -1066,7 +1065,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           </SheetContent>
         </Sheet>
 
-        {/* ?�플�??�??모달 */}
+        {/* 템플릿 저장 모달 */}
         <TemplateSaveModal
           open={templateModalOpen}
           onOpenChange={setTemplateModalOpen}
@@ -1078,4 +1077,3 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     </TooltipProvider>
   )
 }
-

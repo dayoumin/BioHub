@@ -169,4 +169,55 @@ describe('history-store project links', () => {
     expect(mockRemoveProjectEntityRef).toHaveBeenCalledWith('proj-a', 'analysis', 'analysis-a')
     expect(mockRemoveProjectEntityRef).toHaveBeenCalledWith('proj-c', 'analysis', 'analysis-c')
   })
+
+  it('clearHistory partial failure: restores already-removed refs AND IndexedDB records', async () => {
+    // 시나리오: A,B,C 3개 레코드 중 A의 ref 삭제 성공 → C에서 실패
+    // 기대: A의 ref가 upsert로 복원 + 모든 레코드 IndexedDB에 재저장
+    const records = [
+      makeHistoryRecord({ id: 'analysis-a', name: 'Analysis A', projectId: 'proj-a' }),
+      makeHistoryRecord({ id: 'analysis-b', name: 'Analysis B', projectId: undefined }),
+      makeHistoryRecord({ id: 'analysis-c', name: 'Analysis C', projectId: 'proj-c' }),
+    ]
+    mockGetAllHistory.mockResolvedValueOnce(records)
+
+    let callCount = 0
+    mockRemoveProjectEntityRef.mockImplementation(() => {
+      callCount++
+      if (callCount === 2) throw new Error('quota exceeded on second ref removal')
+    })
+
+    let caughtError: unknown = null
+    try {
+      await useHistoryStore.getState().clearHistory()
+    } catch (e) {
+      caughtError = e
+    }
+
+    // 디버깅: mock 호출 확인
+    console.log('removeProjectEntityRef calls:', mockRemoveProjectEntityRef.mock.calls.length)
+    console.log('upsertProjectEntityRef calls:', mockUpsertProjectEntityRef.mock.calls.length)
+    console.log('saveHistory calls:', mockSaveHistory.mock.calls.length)
+    console.log('caughtError:', caughtError)
+
+    expect(caughtError).toBeInstanceOf(Error)
+    expect((caughtError as Error).message).toBe('quota exceeded on second ref removal')
+
+    // A의 ref는 성공적으로 삭제됐으므로 복원(upsert)이 호출돼야 함
+    expect(mockUpsertProjectEntityRef).toHaveBeenCalledTimes(1)
+    expect(mockUpsertProjectEntityRef).toHaveBeenCalledWith({
+      projectId: 'proj-a',
+      entityKind: 'analysis',
+      entityId: 'analysis-a',
+      label: 'Analysis A',
+    })
+
+    // 모든 레코드가 IndexedDB에 재저장돼야 함
+    expect(mockSaveHistory).toHaveBeenCalledTimes(3)
+    expect(mockSaveHistory).toHaveBeenCalledWith(records[0])
+    expect(mockSaveHistory).toHaveBeenCalledWith(records[1])
+    expect(mockSaveHistory).toHaveBeenCalledWith(records[2])
+
+    // store 상태는 변경되지 않아야 함 (rollback 후 throw)
+    expect(useHistoryStore.getState().analysisHistory).toEqual([])
+  })
 })
