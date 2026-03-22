@@ -270,9 +270,11 @@ async function handleBlastSubmit(
   }
 
   const sequence = body.sequence?.trim()
-  // @biohub/types MIN_SEQUENCE_LENGTH와 동일 값
   if (!sequence || sequence.length < 100) {
     return jsonResponse({ error: '서열은 최소 100 bp 이상이어야 합니다.' }, 400)
+  }
+  if (sequence.length > 10_000) {
+    return jsonResponse({ error: '서열은 최대 10,000 bp까지 허용됩니다.' }, 400)
   }
 
   // 사용자 API 키 우선, 없으면 서버 키

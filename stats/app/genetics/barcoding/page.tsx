@@ -39,9 +39,9 @@ export default function BarcodingPage() {
     setState({ step: 'error', message: msg })
   }, [])
 
-  const handleReset = useCallback(() => {
+  const handleReset = useCallback((clearSequence = true) => {
     setState({ step: 'input' })
-    setSequence('')
+    if (clearSequence) setSequence('')
   }, [])
 
   return (
@@ -101,10 +101,10 @@ export default function BarcodingPage() {
             <p className="text-sm text-destructive/80">{state.message}</p>
           </div>
           <button
-            onClick={handleReset}
+            onClick={() => handleReset(false)}
             className="w-full rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted"
           >
-            다시 시도
+            다시 시도 (서열 유지)
           </button>
         </div>
       )}

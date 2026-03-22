@@ -4,6 +4,8 @@
 **설계/UX**: [REFERENCE-E0-BARCODING-SERVICE.md](../docs/genetic-identification/REFERENCE-E0-BARCODING-SERVICE.md)
 **구현 계획**: [PLAN-MODULE-E-NCBI-GENETICS.md](../docs/PLAN-MODULE-E-NCBI-GENETICS.md)
 **프로젝트 시스템**: [PLAN-PROJECT-SYSTEM.md](../docs/PLAN-PROJECT-SYSTEM.md)
+**정본 코드**: `stats/` 앱 내 (`stats/app/genetics/`, `stats/components/genetics/`, `stats/lib/genetics/`)
+**genetics/src/**: 독립 앱 테스트용 복사본 (stats가 정본, 여기는 참고용)
 
 ---
 

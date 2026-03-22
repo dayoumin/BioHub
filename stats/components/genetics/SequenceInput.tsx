@@ -53,6 +53,10 @@ export function SequenceInput({
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    if (file.size > 1_000_000) {
+      alert('파일 크기가 1MB를 초과합니다. 더 작은 파일을 사용하세요.')
+      return
+    }
 
     const reader = new FileReader()
     reader.onload = (ev) => {

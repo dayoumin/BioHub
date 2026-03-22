@@ -39,6 +39,10 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
   const [errorMessage, setErrorMessage] = useState('')
   const abortCtrlRef = useRef<AbortController | null>(null)
   const startTimeRef = useRef(Date.now())
+  const onResultRef = useRef(onResult)
+  const onErrorRef = useRef(onError)
+  onResultRef.current = onResult
+  onErrorRef.current = onError
 
   // 경과 시간 타이머
   useEffect(() => {
@@ -123,13 +127,13 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
         if (signal.aborted) return
 
         setPhase('done')
-        onResult(resultData)
+        onResultRef.current(resultData)
       } catch (err) {
         if (signal.aborted) return
         const msg = err instanceof Error ? err.message : '알 수 없는 오류'
         setErrorMessage(msg)
         setPhase('error')
-        onError(msg)
+        onErrorRef.current(msg)
       }
     }
 
@@ -138,7 +142,7 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
     return () => {
       ctrl.abort()
     }
-  }, [sequence, marker, onResult, onError])
+  }, [sequence, marker]) // onResult/onError는 ref로 참조 — deps에서 제외
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-8">

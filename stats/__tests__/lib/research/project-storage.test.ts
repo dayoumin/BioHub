@@ -22,6 +22,7 @@ function makeProject(id: string, name = 'Test Project'): ResearchProject {
     id,
     name,
     description: '',
+    status: 'active' as const,
     createdAt: now,
     updatedAt: now,
   }

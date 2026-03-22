@@ -52,9 +52,10 @@ export function parseBlastHits(data: unknown): BlastTopHit[] {
       const title = (desc['title'] as string) || ''
       const accession = (desc['accession'] as string) || ''
 
-      // 종명 추출: "Gadus morhua isolate XYZ cytochrome..." → "Gadus morhua"
-      const speciesMatch = title.match(/^([A-Z][a-z]+ [a-z]+)/)
-      const species = speciesMatch ? speciesMatch[1] : title.split(' ').slice(0, 2).join(' ')
+      // 종명 추출: PREDICTED/UNVERIFIED 접두어 제거 후 "Genus species" 추출
+      const cleanedTitle = title.replace(/^(?:PREDICTED|UNVERIFIED|PREDICTED:|UNVERIFIED:)\s*/i, '')
+      const speciesMatch = cleanedTitle.match(/^([A-Z][a-z]+ [a-z]+)/)
+      const species = speciesMatch ? speciesMatch[1] : cleanedTitle.split(' ').slice(0, 2).join(' ')
 
       // NCBI JSON2: identity 또는 num_ident (버전에 따라 다름)
       const identityNum = (hsps['identity'] ?? hsps['num_ident'] ?? 0) as number
@@ -114,7 +115,7 @@ export function analyzeBlastResult(topHits: BlastTopHit[], currentMarker?: strin
       ], mk)
   }
 
-  if (bestIdentity >= 0.95 || isAmbiguous) {
+  if (bestIdentity >= 0.95 || (isAmbiguous && bestIdentity >= 0.90)) {
     const desc = isAmbiguous
       ? `${uniqueSpecies.size}개 종이 유사하게 매칭됨 (${[...uniqueSpecies].join(', ')})`
       : `최고 유사도 ${(bestIdentity * 100).toFixed(1)}% — 종 수준 확신 불가`

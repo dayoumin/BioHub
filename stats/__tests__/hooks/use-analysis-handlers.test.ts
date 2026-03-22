@@ -10,7 +10,7 @@ import { TerminologyProvider } from '@/lib/terminology/terminology-context'
 
 // TerminologyProvider wrapper
 function wrapper({ children }: { children: ReactNode }): ReactNode {
-  return createElement(TerminologyProvider, { initialDomain: 'generic' }, children)
+  return createElement(TerminologyProvider, { initialDomain: 'generic', children })
 }
 
 beforeEach(() => {
@@ -87,7 +87,7 @@ describe('useAnalysisHandlers', () => {
       act(() => {
         const store = useAnalysisStore.getState()
         store.navigateToStep(4)
-        store.setResults({ testName: 'test', pValue: 0.05 })
+        store.setResults({ method: 't-test', statistic: 2.1, pValue: 0.05, interpretation: 'test' })
       })
 
       const { result } = renderHook(() => useAnalysisHandlers(false), { wrapper })

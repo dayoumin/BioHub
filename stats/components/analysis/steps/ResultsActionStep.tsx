@@ -801,7 +801,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
   return (
     <TooltipProvider>
-      <div className="space-y-4">
+      <div className="space-y-6">
         {/* ===== 스텝 헤더 (P0-1: Copy + Save 상단 배치) ===== */}
         <StepHeader
           icon={BarChart3}

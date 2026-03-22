@@ -24,7 +24,7 @@ import { validateVariableMapping } from '@/lib/statistics/variable-mapping'
 import type { VariableMapping, ColumnInfo } from '@/lib/statistics/variable-mapping'
 import { startPreemptiveAssumptions } from '@/lib/services/preemptive-assumption-service'
 import { useTerminology } from '@/hooks/use-terminology'
-import { CollapsibleSection } from '@/components/analysis/common'
+import { CollapsibleSection, StepHeader } from '@/components/analysis/common'
 import { AnalysisOptionsSection } from '@/components/analysis/variable-selector/AnalysisOptions'
 
 /** U1-3: 비교용 정규화 — 키 정렬 + 배열 정렬 + null/undefined 제거 */
@@ -295,15 +295,11 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
   return (
     <div className="space-y-6" data-testid="variable-selection-step" data-method-id={selectedMethod?.id ?? ''} data-selector-type={selectorType}>
-      {/* Method indicator — compact, no double header */}
-      {selectedMethod && (
-        <div className="flex items-center gap-1.5">
-          <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
-          <Badge variant="outline" className="text-xs font-medium">
-            {selectedMethod.name}
-          </Badge>
-        </div>
-      )}
+      <StepHeader
+        icon={Settings2}
+        title={t.analysis.stepTitles.variableSelection}
+        badge={selectedMethod ? { label: selectedMethod.name } : undefined}
+      />
 
       {/* Validation Alert (from variable mapping validation) */}
       {validationAlert && (
