@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useMemo, useCallback, useRef } from 'react'
+import { Upload, Trash2 } from 'lucide-react'
 import type { BlastMarker, SequenceValidation } from '@biohub/types'
 import { validateSequence } from '@/lib/genetics/validate-sequence'
 import { EXAMPLE_SEQUENCES } from '@/lib/genetics/example-sequences'
@@ -38,17 +39,12 @@ export function SequenceInput({
   onUploadedFileNameChange,
   onSubmit,
 }: SequenceInputProps) {
-  const [validation, setValidation] = useState<SequenceValidation | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const debouncedSequence = useDebounce(sequence, 300)
-
-  useEffect(() => {
-    if (!debouncedSequence.trim()) {
-      setValidation(null)
-      return
-    }
-    setValidation(validateSequence(debouncedSequence))
-  }, [debouncedSequence])
+  const validation = useMemo<SequenceValidation | null>(
+    () => debouncedSequence.trim() ? validateSequence(debouncedSequence) : null,
+    [debouncedSequence],
+  )
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -131,7 +127,7 @@ export function SequenceInput({
           <label htmlFor="sequence" className="block text-sm font-medium text-gray-700">
             DNA 서열 (FASTA)
           </label>
-          <div className="flex gap-3">
+          <div className="flex items-center gap-1.5">
             {!sequence.trim() && (
               <button
                 type="button"
@@ -152,17 +148,19 @@ export function SequenceInput({
                   onUploadedFileNameChange(null)
                   setValidation(null)
                 }}
-                className="text-xs text-red-500 hover:text-red-700"
+                className="rounded p-1 text-gray-400 transition hover:bg-red-50 hover:text-red-500"
+                title="서열 지우기"
               >
-                지우기
+                <Trash2 className="h-4 w-4" />
               </button>
             )}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="text-xs text-blue-600 hover:text-blue-800"
+              className="rounded p-1 text-gray-400 transition hover:bg-blue-50 hover:text-blue-600"
+              title="FASTA 파일 업로드"
             >
-              파일 업로드
+              <Upload className="h-4 w-4" />
             </button>
           </div>
           <input
