@@ -149,11 +149,6 @@ function HistoryRow({ entry, selected, onToggleSelect, onTogglePin, onDelete }: 
   const identityText = entry.topIdentity != null
     ? `${(entry.topIdentity * 100).toFixed(1)}%`
     : null
-  const identityColor = entry.topIdentity != null
-    ? entry.topIdentity >= 0.97 ? 'text-green-600'
-    : entry.topIdentity >= 0.90 ? 'text-amber-600'
-    : 'text-red-500'
-    : ''
 
   return (
     <div className={`group relative px-3 py-2 transition ${selected ? 'bg-primary/5' : ''}`}>
@@ -180,7 +175,7 @@ function HistoryRow({ entry, selected, onToggleSelect, onTogglePin, onDelete }: 
             {identityText && (
               <>
                 <span className="text-border">·</span>
-                <span className={`font-mono ${identityColor}`}>{identityText}</span>
+                <span className="font-mono">{identityText}</span>
               </>
             )}
           </div>
