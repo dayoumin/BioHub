@@ -167,15 +167,9 @@ function HistoryRow({ entry, selected, onToggleSelect, onTogglePin, onDelete }: 
         <div className="min-w-0 flex-1">
           <div className="truncate text-xs font-medium">
             {entry.pinned && <Pin className="mr-1 inline-block h-2.5 w-2.5 text-primary" />}
-            {entry.sampleName || entry.topSpecies || entry.sequencePreview}
+            {entry.sampleName || entry.sequencePreview}
           </div>
           <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground/60">
-            {entry.sampleName && entry.topSpecies && (
-              <>
-                <span className="truncate italic">{entry.topSpecies}</span>
-                <span className="text-border">·</span>
-              </>
-            )}
             <span>{entry.marker}</span>
             <span className="text-border">·</span>
             <span>{formatTimeAgo(entry.createdAt)}</span>

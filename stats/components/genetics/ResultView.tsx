@@ -175,9 +175,9 @@ function AlternativeMarkersCard({ marker, markers }: { marker: BlastMarker; mark
 
   return (
     <div className="rounded-xl border border-blue-200 bg-blue-50 p-5">
-      <h3 className="mb-2 text-sm font-semibold text-blue-900">대안 마커로 재시도하세요</h3>
+      <h3 className="mb-2 text-sm font-semibold text-blue-900">다른 마커를 시도해볼 수 있습니다</h3>
       <p className="mb-3 text-xs text-blue-800">
-        {marker}로는 정확한 종 판별이 어렵습니다. 아래 마커의 서열을 확보하여 분석해보세요.
+        {marker} 마커로는 종 수준 판별이 충분하지 않을 수 있습니다. 아래 마커의 서열을 확보하면 더 나은 결과를 기대할 수 있습니다.
       </p>
 
       <div className="mb-3 flex flex-wrap gap-2">
