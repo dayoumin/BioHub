@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import type { BlastMarker } from '@/lib/genetics/types'
+import type { BlastMarker } from '@biohub/types'
 import { cleanSequence } from '@/lib/genetics/validate-sequence'
 
 interface BlastRunnerProps {

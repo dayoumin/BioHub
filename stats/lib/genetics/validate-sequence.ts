@@ -1,4 +1,4 @@
-import type { SequenceValidation } from '@/lib/genetics/types'
+import type { SequenceValidation } from '@biohub/types'
 
 const DNA_CHARS = new Set('ATGCN')
 const MIN_SEQUENCE_LENGTH = 100

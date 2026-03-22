@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import Link from 'next/link'
-import type { BlastMarker, SequenceValidation } from '@/lib/genetics/types'
+import type { BlastMarker, SequenceValidation } from '@biohub/types'
 import { SequenceInput } from '@/components/genetics/SequenceInput'
 import { BlastRunner } from '@/components/genetics/BlastRunner'
 import { ResultView } from '@/components/genetics/ResultView'

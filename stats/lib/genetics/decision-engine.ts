@@ -1,4 +1,4 @@
-import type { BlastResultStatus, BlastTopHit } from '@/lib/genetics/types'
+import type { BlastResultStatus, BlastTopHit } from '@biohub/types'
 
 /**
  * Decision Engine — BLAST 결과를 4단계로 분류하고 맞춤 안내 생성

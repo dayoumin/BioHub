@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
     trailingSlash: true,
   }),
 
+  // 워크스페이스 패키지 TypeScript 트랜스파일
+  transpilePackages: ['@biohub/types', '@biohub/db'],
+
   // Image optimization disabled for static export
   images: {
     unoptimized: true,
