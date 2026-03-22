@@ -70,10 +70,19 @@ function verifySameOrigin(request: Request, url: URL): Response | null {
   const origin = request.headers.get('Origin')
   const referer = request.headers.get('Referer')
 
+  // dev 환경: localhost 간 프록시 허용 (Next.js :3000 → Worker :8787)
+  const isLocalDev = url.hostname === 'localhost' || url.hostname === '127.0.0.1'
+
   if (origin) {
-    if (new URL(origin).host !== url.host) return jsonResponse({ error: 'Forbidden' }, 403)
+    const originUrl = new URL(origin)
+    const sameHost = originUrl.hostname === url.hostname
+    const bothLocal = isLocalDev && (originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1')
+    if (!sameHost && !bothLocal) return jsonResponse({ error: 'Forbidden' }, 403)
   } else if (referer) {
-    if (new URL(referer).host !== url.host) return jsonResponse({ error: 'Forbidden' }, 403)
+    const refererUrl = new URL(referer)
+    const sameHost = refererUrl.hostname === url.hostname
+    const bothLocal = isLocalDev && (refererUrl.hostname === 'localhost' || refererUrl.hostname === '127.0.0.1')
+    if (!sameHost && !bothLocal) return jsonResponse({ error: 'Forbidden' }, 403)
   } else {
     return jsonResponse({ error: 'Forbidden' }, 403)
   }
@@ -341,31 +350,49 @@ async function handleBlastStatus(rid: string): Promise<Response> {
  * NCBI BLAST 결과 조회 (JSON2 형식)
  */
 async function handleBlastResult(rid: string): Promise<Response> {
+  // Tabular 포맷으로 요청 — JSON2는 ZIP으로 오는 경우가 있어 파싱 불가
   const params = new URLSearchParams({
     CMD: 'Get',
     RID: rid,
-    FORMAT_TYPE: 'JSON2',
+    FORMAT_TYPE: 'Text',
+    ALIGNMENT_VIEW: 'Tabular',
   })
 
   const ncbiRes = await fetch(`${NCBI_BLAST_BASE}?${params.toString()}`)
-  const contentType = ncbiRes.headers.get('Content-Type') || ''
-
-  // JSON 응답이면 그대로 전달
-  if (contentType.includes('application/json')) {
-    const data = await ncbiRes.text()
-    return new Response(data, {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  }
-
-  // HTML/Text 응답 (아직 준비 안 됐거나 에러)
   const text = await ncbiRes.text()
 
-  // 결과가 아직 준비 안 된 경우
+  // 아직 준비 안 된 경우
   if (text.includes('Status=WAITING') || text.includes('Status=RUNNING')) {
     return jsonResponse({ rid, status: 'RUNNING', message: '아직 처리 중입니다.' }, 202)
   }
 
-  return jsonResponse({ error: 'NCBI 결과 조회 실패', detail: text.slice(0, 500) }, 502)
+  // Tabular 결과 파싱
+  // Fields: query, subject acc.ver, % identity, alignment length, mismatches, gap opens,
+  //         q.start, q.end, s.start, s.end, evalue, bit score
+  const hits: Array<Record<string, unknown>> = []
+  for (const line of text.split('\n')) {
+    if (line.startsWith('#') || line.startsWith('<') || !line.trim()) continue
+    const cols = line.split('\t')
+    if (cols.length < 12) continue
+
+    hits.push({
+      accession: cols[1],
+      identity: parseFloat(cols[2]) / 100, // % → 0-1
+      alignLength: parseInt(cols[3]),
+      mismatches: parseInt(cols[4]),
+      gapOpens: parseInt(cols[5]),
+      queryStart: parseInt(cols[6]),
+      queryEnd: parseInt(cols[7]),
+      subjectStart: parseInt(cols[8]),
+      subjectEnd: parseInt(cols[9]),
+      evalue: parseFloat(cols[10]),
+      bitScore: parseFloat(cols[11]),
+    })
+  }
+
+  if (hits.length === 0) {
+    return jsonResponse({ rid, hits: [], message: '매칭 결과 없음' }, 200)
+  }
+
+  return jsonResponse({ rid, hits }, 200)
 }

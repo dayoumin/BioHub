@@ -30,57 +30,37 @@ export interface NextAction {
 }
 
 /** NCBI BLAST JSON2 응답에서 top hits 추출 */
+/**
+ * Worker의 tabular BLAST 응답 파싱
+ * Worker가 { hits: [{ accession, identity, alignLength, evalue, ... }] }를 반환
+ */
 export function parseBlastHits(data: unknown): BlastTopHit[] {
-  const hits: BlastTopHit[] = []
-
   try {
     const root = data as Record<string, unknown>
-    const report = root['BlastOutput2'] as Record<string, unknown>[] | undefined
-    if (!report?.[0]) return hits
+    const rawHits = root['hits'] as Array<Record<string, unknown>> | undefined
 
-    const search = (report[0]['report'] as Record<string, unknown>)?.['results'] as Record<string, unknown>
-    const searchHits = (search?.['search'] as Record<string, unknown>)?.['hits'] as Record<string, unknown>[]
+    if (!rawHits || rawHits.length === 0) return []
 
-    if (!searchHits) return hits
+    return rawHits.slice(0, 10).map(hit => {
+      const accession = (hit['accession'] as string) || ''
+      const identity = (hit['identity'] as number) || 0
+      const alignLength = (hit['alignLength'] as number) || 0
+      const queryStart = (hit['queryStart'] as number) || 0
+      const queryEnd = (hit['queryEnd'] as number) || 0
 
-    for (const hit of searchHits.slice(0, 10)) {
-      const desc = (hit['description'] as Record<string, unknown>[])?.[0]
-      const hsps = (hit['hsps'] as Record<string, unknown>[])?.[0]
-
-      if (!desc || !hsps) continue
-
-      const title = (desc['title'] as string) || ''
-      const accession = (desc['accession'] as string) || ''
-
-      // 종명 추출: PREDICTED/UNVERIFIED 접두어 제거 후 "Genus species" 추출
-      const cleanedTitle = title.replace(/^(?:PREDICTED|UNVERIFIED|PREDICTED:|UNVERIFIED:)\s*/i, '')
-      const speciesMatch = cleanedTitle.match(/^([A-Z][a-z]+ [a-z]+)/)
-      const species = speciesMatch ? speciesMatch[1] : cleanedTitle.split(' ').slice(0, 2).join(' ')
-
-      // NCBI JSON2: identity 또는 num_ident (버전에 따라 다름)
-      const identityNum = (hsps['identity'] ?? hsps['num_ident'] ?? 0) as number
-      const alignLen = (hsps['align_len'] as number) || 1
-
-      const identity = identityNum / alignLen
-
-      const queryFrom = (hsps['query_from'] as number) || 0
-      const queryTo = (hsps['query_to'] as number) || 0
-      const queryLen = (hsps['query_len'] as number) || alignLen
-
-      hits.push({
-        species,
+      return {
+        species: accession, // 종명은 accession으로 우선 표시 (E-utilities 연동 시 개선)
         identity,
         accession,
-        evalue: hsps['evalue'] as number,
-        queryCoverage: queryLen > 0 ? (queryTo - queryFrom + 1) / queryLen : undefined,
-        description: title,
-      })
-    }
+        evalue: (hit['evalue'] as number) ?? undefined,
+        queryCoverage: alignLength > 0 ? (queryEnd - queryStart + 1) / alignLength : undefined,
+        description: accession,
+      }
+    })
   } catch (err) {
-    console.warn('[parseBlastHits] NCBI 응답 파싱 실패:', err)
+    console.warn('[parseBlastHits] 응답 파싱 실패:', err)
+    return []
   }
-
-  return hits
 }
 
 /** 4단계 분류 + 맞춤 안내 생성 */
