@@ -1,7 +1,8 @@
 'use client'
 
 import { useMemo, useCallback, useRef } from 'react'
-import { Upload, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { Upload, X, Copy, Check } from 'lucide-react'
 import type { BlastMarker, SequenceValidation } from '@biohub/types'
 import { validateSequence } from '@/lib/genetics/validate-sequence'
 import { EXAMPLE_SEQUENCES } from '@/lib/genetics/example-sequences'
@@ -127,7 +128,7 @@ export function SequenceInput({
           <label htmlFor="sequence" className="block text-sm font-medium text-gray-700">
             DNA 서열 (FASTA)
           </label>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             {!sequence.trim() && (
               <button
                 type="button"
@@ -140,6 +141,17 @@ export function SequenceInput({
                 예제 서열 넣기
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="rounded p-1 text-gray-400 transition hover:bg-blue-50 hover:text-blue-600"
+              title="FASTA 파일 업로드"
+            >
+              <Upload className="h-4 w-4" />
+            </button>
+            {sequence.trim() && (
+              <CopyButton text={sequence} />
+            )}
             {sequence.trim() && (
               <button
                 type="button"
@@ -150,17 +162,9 @@ export function SequenceInput({
                 className="rounded p-1 text-gray-400 transition hover:bg-red-50 hover:text-red-500"
                 title="서열 지우기"
               >
-                <Trash2 className="h-4 w-4" />
+                <X className="h-4 w-4" />
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="rounded p-1 text-gray-400 transition hover:bg-blue-50 hover:text-blue-600"
-              title="FASTA 파일 업로드"
-            >
-              <Upload className="h-4 w-4" />
-            </button>
           </div>
           <input
             ref={fileInputRef}
@@ -225,5 +229,26 @@ export function SequenceInput({
         )}
       </div>
     </form>
+  )
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = useCallback(async () => {
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }, [text])
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className={`rounded p-1 transition ${copied ? 'text-green-500' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}`}
+      title={copied ? '복사됨' : '서열 복사'}
+    >
+      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+    </button>
   )
 }
