@@ -65,25 +65,24 @@ function checkRateLimit(ip: string): boolean {
   return true
 }
 
+/** 두 hostname이 같은 사이트인지 (localhost 간 포트 차이 허용) */
+function isSameHost(sourceHostname: string, targetHostname: string, isLocalDev: boolean): boolean {
+  if (sourceHostname === targetHostname) return true
+  if (isLocalDev && (sourceHostname === 'localhost' || sourceHostname === '127.0.0.1')) return true
+  return false
+}
+
 /** Origin/Referer 검증 — same-site만 허용. 실패 시 403 Response 반환, 통과 시 null */
 function verifySameOrigin(request: Request, url: URL): Response | null {
   const origin = request.headers.get('Origin')
   const referer = request.headers.get('Referer')
-
-  // dev 환경: localhost 간 프록시 허용 (Next.js :3000 → Worker :8787)
   const isLocalDev = url.hostname === 'localhost' || url.hostname === '127.0.0.1'
 
-  if (origin) {
-    const originUrl = new URL(origin)
-    const sameHost = originUrl.hostname === url.hostname
-    const bothLocal = isLocalDev && (originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1')
-    if (!sameHost && !bothLocal) return jsonResponse({ error: 'Forbidden' }, 403)
-  } else if (referer) {
-    const refererUrl = new URL(referer)
-    const sameHost = refererUrl.hostname === url.hostname
-    const bothLocal = isLocalDev && (refererUrl.hostname === 'localhost' || refererUrl.hostname === '127.0.0.1')
-    if (!sameHost && !bothLocal) return jsonResponse({ error: 'Forbidden' }, 403)
-  } else {
+  const sourceUrl = origin || referer
+  if (!sourceUrl) return jsonResponse({ error: 'Forbidden' }, 403)
+
+  const sourceHostname = new URL(sourceUrl).hostname
+  if (!isSameHost(sourceHostname, url.hostname, isLocalDev)) {
     return jsonResponse({ error: 'Forbidden' }, 403)
   }
   return null
@@ -215,7 +214,7 @@ let lastBlastSubmitAt = 0
  *
  * POST /api/blast/submit — 서열 제출 → RID 반환
  * GET  /api/blast/status/:rid — RID 상태 확인
- * GET  /api/blast/result/:rid — 결과 조회 (JSON2)
+ * GET  /api/blast/result/:rid — 결과 조회 (Tabular → JSON)
  */
 async function handleBlastProxy(
   request: Request,
@@ -296,7 +295,7 @@ async function handleBlastSubmit(
     DATABASE: 'nt',
     QUERY: sequence,
     HITLIST_SIZE: '10',
-    FORMAT_TYPE: 'JSON2',
+    // FORMAT_TYPE 생략: 결과는 Get에서 Tabular로 요청 (JSON2는 항상 ZIP → Workers 파싱 불가)
   })
   if (apiKey) {
     params.set('api_key', apiKey)
@@ -347,10 +346,11 @@ async function handleBlastStatus(rid: string): Promise<Response> {
 /**
  * GET /api/blast/result/:rid
  *
- * NCBI BLAST 결과 조회 (JSON2 형식)
+ * NCBI BLAST 결과 조회 — Tabular 텍스트를 파싱해서 JSON으로 반환
+ * JSON2는 항상 ZIP으로 반환됨 (NCBI 표준 동작) → Workers에서 ZIP 파싱 불가 → Tabular 사용
  */
 async function handleBlastResult(rid: string): Promise<Response> {
-  // Tabular 포맷으로 요청 — JSON2는 ZIP으로 오는 경우가 있어 파싱 불가
+  // Tabular 포맷으로 요청 — JSON2는 항상 ZIP으로 반환됨 (NCBI 표준), Workers에서 ZIP 파싱 불가
   const params = new URLSearchParams({
     CMD: 'Get',
     RID: rid,

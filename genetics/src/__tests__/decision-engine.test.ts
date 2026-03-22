@@ -45,6 +45,15 @@ describe('analyzeBlastResult', () => {
     expect(result.status).toBe('ambiguous')
   })
 
+  it('90% 미만에서 2종 유사 → failed (ambiguous가 아님)', () => {
+    const hits = [
+      makeHit('Species A', 0.85),
+      makeHit('Species B', 0.84),
+    ]
+    const result = analyzeBlastResult(hits)
+    expect(result.status).toBe('failed')
+  })
+
   it('90-95% → low', () => {
     const hits = [makeHit('Gadus morhua', 0.92)]
     const result = analyzeBlastResult(hits)
@@ -160,68 +169,54 @@ describe('parseBlastHits', () => {
     expect(parseBlastHits(null)).toEqual([])
     expect(parseBlastHits({})).toEqual([])
     expect(parseBlastHits('string')).toEqual([])
+    expect(parseBlastHits({ hits: [] })).toEqual([])
   })
 
-  it('유효한 NCBI JSON2 응답 파싱', () => {
+  it('Worker tabular 응답 파싱', () => {
     const data = {
-      BlastOutput2: [{
-        report: {
-          results: {
-            search: {
-              hits: [{
-                description: [{ title: 'Gadus morhua isolate XYZ cytochrome c oxidase', accession: 'KF601412' }],
-                hsps: [{
-                  identity: 648,
-                  align_len: 654,
-                  evalue: 0.0,
-                  query_from: 1,
-                  query_to: 654,
-                  query_len: 654,
-                }],
-              }],
-            },
-          },
-        },
+      hits: [{
+        accession: 'KF601412',
+        identity: 0.9908,
+        alignLength: 654,
+        evalue: 0.0,
+        queryStart: 1,
+        queryEnd: 654,
       }],
     }
 
     const hits = parseBlastHits(data)
     expect(hits).toHaveLength(1)
-    expect(hits[0].species).toBe('Gadus morhua')
-    expect(hits[0].identity).toBeCloseTo(0.9908, 3)
+    expect(hits[0].species).toBe('KF601412') // tabular에서는 accession이 종명 대체
+    expect(hits[0].identity).toBe(0.9908)
     expect(hits[0].accession).toBe('KF601412')
   })
 
-  it('종명 추출: 첫 두 단어', () => {
+  it('queryCoverage 계산', () => {
     const data = {
-      BlastOutput2: [{
-        report: {
-          results: {
-            search: {
-              hits: [{
-                description: [{ title: 'Thunnus albacares voucher ABC123 COI gene', accession: 'AB000001' }],
-                hsps: [{ identity: 600, align_len: 650, evalue: 0.0, query_from: 1, query_to: 650, query_len: 650 }],
-              }],
-            },
-          },
-        },
+      hits: [{
+        accession: 'AB000001',
+        identity: 0.95,
+        alignLength: 650,
+        queryStart: 1,
+        queryEnd: 650,
+        evalue: 0.0,
       }],
     }
 
     const hits = parseBlastHits(data)
-    expect(hits[0].species).toBe('Thunnus albacares')
+    expect(hits[0].queryCoverage).toBe(1)
   })
 
   it('최대 10개까지만', () => {
     const manyHits = Array.from({ length: 15 }, (_, i) => ({
-      description: [{ title: `Species ${i}`, accession: `ACC${i}` }],
-      hsps: [{ identity: 600, align_len: 650, evalue: 0.0, query_from: 1, query_to: 650, query_len: 650 }],
+      accession: `ACC${i}`,
+      identity: 0.95,
+      alignLength: 650,
+      queryStart: 1,
+      queryEnd: 650,
+      evalue: 0.0,
     }))
 
-    const data = {
-      BlastOutput2: [{ report: { results: { search: { hits: manyHits } } } }],
-    }
-
-    expect(parseBlastHits(data)).toHaveLength(10)
+    expect(parseBlastHits({ hits: manyHits })).toHaveLength(10)
   })
 })

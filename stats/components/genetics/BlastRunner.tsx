@@ -9,6 +9,7 @@ interface BlastRunnerProps {
   marker: BlastMarker
   onResult: (data: unknown) => void
   onError: (error: string) => void
+  onCancel: () => void
 }
 
 type BlastPhase =
@@ -30,12 +31,10 @@ const MAX_POLLS = 40 // 최대 10분
  * 3. READY → /api/blast/result/:rid
  * 4. onResult 콜백
  */
-export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunnerProps) {
+export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: BlastRunnerProps) {
   const [phase, setPhase] = useState<BlastPhase>('submitting')
-  const [rid, setRid] = useState<string | null>(null)
   const [estimatedTime, setEstimatedTime] = useState(30)
   const [elapsed, setElapsed] = useState(0)
-  const [pollCount, setPollCount] = useState(0)
   const [errorMessage, setErrorMessage] = useState('')
   const abortCtrlRef = useRef<AbortController | null>(null)
   const startTimeRef = useRef(Date.now())
@@ -49,7 +48,10 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
     if (phase === 'done' || phase === 'error') return
 
     const timer = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000))
+      setElapsed(prev => {
+        const next = Math.floor((Date.now() - startTimeRef.current) / 1000)
+        return next === prev ? prev : next
+      })
     }, 1000)
 
     return () => clearInterval(timer)
@@ -91,7 +93,6 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
         const submitData = await submitRes.json() as { rid: string; rtoe: number }
         if (signal.aborted) return
 
-        setRid(submitData.rid)
         setEstimatedTime(submitData.rtoe)
         setPhase('polling')
 
@@ -103,11 +104,10 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
           await sleep(POLL_INTERVAL_MS, signal)
           if (signal.aborted) return
 
-          polls++
-          setPollCount(polls)
-
           const statusRes = await fetch(`/api/blast/status/${submitData.rid}`, { signal })
-          if (!statusRes.ok) continue
+          if (!statusRes.ok) continue // 네트워크 에러 시 polls 미증가 — 재시도 기회 보존
+
+          polls++
 
           const statusData = await statusRes.json() as { status: string }
 
@@ -160,7 +160,7 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
         <div className="mb-2 flex items-center justify-between text-sm">
           <span className="font-medium text-gray-700">
             {phase === 'submitting' && '서열 제출 중...'}
-            {phase === 'polling' && `분석 처리 중... (폴링 ${pollCount}회)`}
+            {phase === 'polling' && '분석 처리 중...'}
             {phase === 'fetching' && '결과 수신 중...'}
             {phase === 'error' && '오류 발생'}
           </span>
@@ -194,9 +194,16 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
 
       {/* 상태별 메시지 */}
       {phase === 'polling' && (
-        <div className="space-y-2 text-sm text-gray-600">
-          {rid && <p>Request ID: <code className="rounded bg-gray-100 px-1 text-xs">{rid}</code></p>}
-          <p>예상 시간: 약 {estimatedTime}초 · 페이지를 떠나도 분석은 계속됩니다.</p>
+        <div className="space-y-2 text-sm text-gray-600" role="status" aria-live="polite">
+          <p>
+            예상 시간: 약 {estimatedTime}초
+            {estimatedTime > 0 && elapsed < estimatedTime
+              ? ` · 남은 시간 약 ${Math.max(estimatedTime - elapsed, 1)}초`
+              : ''}
+          </p>
+          <p className="text-amber-600/80">
+            분석이 완료될 때까지 이 페이지를 유지해주세요. 페이지를 떠나면 결과를 받을 수 없습니다.
+          </p>
           {elapsed > 120 && (
             <p className="text-amber-600">
               평소보다 오래 걸리고 있습니다. NCBI 서버 상태에 따라 지연될 수 있습니다.
@@ -210,16 +217,37 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
           <p className="text-sm text-red-700">{errorMessage}</p>
         </div>
       )}
+
+      {/* 취소 버튼 */}
+      {phase !== 'done' && phase !== 'error' && (
+        <button
+          onClick={() => {
+            abortCtrlRef.current?.abort()
+            onCancel()
+          }}
+          className="mt-4 w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+        >
+          분석 취소
+        </button>
+      )}
     </div>
   )
 }
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
-    const id = setTimeout(resolve, ms)
-    signal?.addEventListener('abort', () => {
+    if (signal?.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'))
+      return
+    }
+    const onAbort = (): void => {
       clearTimeout(id)
       reject(new DOMException('Aborted', 'AbortError'))
-    }, { once: true })
+    }
+    const id = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve()
+    }, ms)
+    signal?.addEventListener('abort', onAbort, { once: true })
   })
 }

@@ -9,6 +9,7 @@ interface BlastRunnerProps {
   marker: BlastMarker
   onResult: (data: unknown) => void
   onError: (error: string) => void
+  onCancel: () => void
 }
 
 type BlastPhase =
@@ -30,22 +31,27 @@ const MAX_POLLS = 40 // 최대 10분
  * 3. READY → /api/blast/result/:rid
  * 4. onResult 콜백
  */
-export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunnerProps) {
+export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: BlastRunnerProps) {
   const [phase, setPhase] = useState<BlastPhase>('submitting')
-  const [rid, setRid] = useState<string | null>(null)
   const [estimatedTime, setEstimatedTime] = useState(30)
   const [elapsed, setElapsed] = useState(0)
-  const [pollCount, setPollCount] = useState(0)
   const [errorMessage, setErrorMessage] = useState('')
   const abortCtrlRef = useRef<AbortController | null>(null)
   const startTimeRef = useRef(Date.now())
+  const onResultRef = useRef(onResult)
+  const onErrorRef = useRef(onError)
+  onResultRef.current = onResult
+  onErrorRef.current = onError
 
   // 경과 시간 타이머
   useEffect(() => {
     if (phase === 'done' || phase === 'error') return
 
     const timer = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000))
+      setElapsed(prev => {
+        const next = Math.floor((Date.now() - startTimeRef.current) / 1000)
+        return next === prev ? prev : next
+      })
     }, 1000)
 
     return () => clearInterval(timer)
@@ -71,6 +77,15 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
         })
 
         if (!submitRes.ok) {
+          const contentType = submitRes.headers.get('Content-Type') || ''
+          if (!contentType.includes('application/json')) {
+            throw new Error(
+              '분석 서버에 연결할 수 없습니다. ' +
+              (process.env.NODE_ENV === 'development'
+                ? '개발 환경에서는 wrangler dev로 Worker를 실행해야 합니다.'
+                : '잠시 후 다시 시도하세요.')
+            )
+          }
           const err = await submitRes.json() as { error?: string; message?: string }
           throw new Error(err.message || err.error || `제출 실패 (${submitRes.status})`)
         }
@@ -78,7 +93,6 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
         const submitData = await submitRes.json() as { rid: string; rtoe: number }
         if (signal.aborted) return
 
-        setRid(submitData.rid)
         setEstimatedTime(submitData.rtoe)
         setPhase('polling')
 
@@ -91,7 +105,6 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
           if (signal.aborted) return
 
           polls++
-          setPollCount(polls)
 
           const statusRes = await fetch(`/api/blast/status/${submitData.rid}`, { signal })
           if (!statusRes.ok) continue
@@ -123,13 +136,13 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
         if (signal.aborted) return
 
         setPhase('done')
-        onResult(resultData)
+        onResultRef.current(resultData)
       } catch (err) {
         if (signal.aborted) return
         const msg = err instanceof Error ? err.message : '알 수 없는 오류'
         setErrorMessage(msg)
         setPhase('error')
-        onError(msg)
+        onErrorRef.current(msg)
       }
     }
 
@@ -138,7 +151,7 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
     return () => {
       ctrl.abort()
     }
-  }, [sequence, marker, onResult, onError])
+  }, [sequence, marker])
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-8">
@@ -147,7 +160,7 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
         <div className="mb-2 flex items-center justify-between text-sm">
           <span className="font-medium text-gray-700">
             {phase === 'submitting' && '서열 제출 중...'}
-            {phase === 'polling' && `분석 처리 중... (폴링 ${pollCount}회)`}
+            {phase === 'polling' && '분석 처리 중...'}
             {phase === 'fetching' && '결과 수신 중...'}
             {phase === 'error' && '오류 발생'}
           </span>
@@ -181,9 +194,16 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
 
       {/* 상태별 메시지 */}
       {phase === 'polling' && (
-        <div className="space-y-2 text-sm text-gray-600">
-          {rid && <p>Request ID: <code className="rounded bg-gray-100 px-1 text-xs">{rid}</code></p>}
-          <p>예상 시간: 약 {estimatedTime}초 · 페이지를 떠나도 분석은 계속됩니다.</p>
+        <div className="space-y-2 text-sm text-gray-600" role="status" aria-live="polite">
+          <p>
+            예상 시간: 약 {estimatedTime}초
+            {estimatedTime > 0 && elapsed < estimatedTime
+              ? ` · 남은 시간 약 ${Math.max(estimatedTime - elapsed, 1)}초`
+              : ''}
+          </p>
+          <p className="text-amber-600/80">
+            분석이 완료될 때까지 이 페이지를 유지해주세요. 페이지를 떠나면 결과를 받을 수 없습니다.
+          </p>
           {elapsed > 120 && (
             <p className="text-amber-600">
               평소보다 오래 걸리고 있습니다. NCBI 서버 상태에 따라 지연될 수 있습니다.
@@ -196,6 +216,19 @@ export function BlastRunner({ sequence, marker, onResult, onError }: BlastRunner
         <div className="rounded-lg border border-red-200 bg-red-50 p-4">
           <p className="text-sm text-red-700">{errorMessage}</p>
         </div>
+      )}
+
+      {/* 취소 버튼 */}
+      {phase !== 'done' && phase !== 'error' && (
+        <button
+          onClick={() => {
+            abortCtrlRef.current?.abort()
+            onCancel()
+          }}
+          className="mt-4 w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+        >
+          분석 취소
+        </button>
       )}
     </div>
   )

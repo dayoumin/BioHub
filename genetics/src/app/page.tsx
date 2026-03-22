@@ -10,7 +10,7 @@ const TOOLS = [
     input: '서열 1개 (FASTA)',
     href: '/barcoding',
     ready: true,
-    badge: 'E-0',
+    badge: '사용 가능',
   },
   {
     id: 'seq-stats',
@@ -19,7 +19,7 @@ const TOOLS = [
     input: '서열 1개 이상',
     href: '/seq-stats',
     ready: false,
-    badge: 'E-1',
+    badge: '개발 중',
   },
   {
     id: 'similarity',
@@ -28,7 +28,7 @@ const TOOLS = [
     input: '서열 여러 개 (정렬된 FASTA)',
     href: '/similarity',
     ready: false,
-    badge: 'E-1',
+    badge: '개발 중',
   },
   {
     id: 'phylogeny',
@@ -37,7 +37,7 @@ const TOOLS = [
     input: '서열 여러 개',
     href: '/phylogeny',
     ready: false,
-    badge: 'E-1',
+    badge: '개발 중',
   },
   {
     id: 'population',
@@ -46,7 +46,7 @@ const TOOLS = [
     input: '서열 + 집단 정보',
     href: '/population',
     ready: false,
-    badge: 'E-2',
+    badge: '예정',
   },
 ] as const
 

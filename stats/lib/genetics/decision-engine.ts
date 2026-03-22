@@ -29,7 +29,6 @@ export interface NextAction {
   action: string // 식별자 (UI에서 매핑)
 }
 
-/** NCBI BLAST JSON2 응답에서 top hits 추출 */
 /**
  * Worker의 tabular BLAST 응답 파싱
  * Worker가 { hits: [{ accession, identity, alignLength, evalue, ... }] }를 반환
