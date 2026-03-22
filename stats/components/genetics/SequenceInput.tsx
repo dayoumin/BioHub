@@ -7,6 +7,7 @@ import type { BlastMarker, SequenceValidation } from '@biohub/types'
 import { validateSequence } from '@/lib/genetics/validate-sequence'
 import { EXAMPLE_SEQUENCES } from '@/lib/genetics/example-sequences'
 import { useDebounce } from '@/hooks/useDebounce'
+import { Button } from '@/components/ui/button'
 
 const MARKERS: { value: BlastMarker; label: string; help: string }[] = [
   { value: 'COI', label: 'COI', help: '동물 표준 바코드 — 어류, 곤충 등 대부분의 동물' },
@@ -100,19 +101,21 @@ export function SequenceInput({
         </label>
         <div className="flex flex-wrap gap-2">
           {MARKERS.map((m) => (
-            <button
+            <Button
               key={m.value}
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => onMarkerChange(m.value)}
               title={m.help}
-              className={`min-w-[4.5rem] rounded-lg border px-3 py-1.5 text-center text-sm transition ${
+              className={`min-w-[4.5rem] ${
                 marker === m.value
-                  ? 'border-blue-500 bg-blue-50 font-medium text-blue-700'
-                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                  ? 'border-blue-500 bg-blue-50 font-medium text-blue-700 hover:bg-blue-50'
+                  : 'border-gray-200 text-gray-600 hover:border-gray-300'
               }`}
             >
               {m.label}
-            </button>
+            </Button>
           ))}
         </div>
         {marker && (
@@ -129,40 +132,46 @@ export function SequenceInput({
           </label>
           <div className="flex items-center gap-1">
             {!sequence.trim() && (
-              <button
+              <Button
                 type="button"
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-xs text-green-600 hover:text-green-800"
                 onClick={() => {
                   onSequenceChange(EXAMPLE_SEQUENCES[0].sequence)
                   onUploadedFileNameChange(null)
                 }}
-                className="text-xs text-green-600 hover:text-green-800"
               >
                 예제 서열 넣기
-              </button>
+              </Button>
             )}
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-gray-400 hover:bg-blue-50 hover:text-blue-600"
               onClick={() => fileInputRef.current?.click()}
-              className="rounded p-1 text-gray-400 transition hover:bg-blue-50 hover:text-blue-600"
               title="FASTA 파일 업로드"
             >
               <Upload className="h-4 w-4" />
-            </button>
+            </Button>
             {sequence.trim() && (
               <CopyButton text={sequence} />
             )}
             {sequence.trim() && (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-gray-400 hover:bg-red-50 hover:text-red-500"
                 onClick={() => {
                   onSequenceChange('')
                   onUploadedFileNameChange(null)
                 }}
-                className="rounded p-1 text-gray-400 transition hover:bg-red-50 hover:text-red-500"
                 title="서열 지우기"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </Button>
             )}
           </div>
           <input
@@ -209,13 +218,13 @@ export function SequenceInput({
       </div>
 
       <div>
-        <button
+        <Button
           type="submit"
           disabled={!canSubmit}
-          className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+          className="w-full py-3"
         >
           분석 시작
-        </button>
+        </Button>
         {validation && !validation.valid && sequence.trim() && (
           <p className="mt-1 text-center text-xs text-red-500">
             위 오류를 수정하면 분석을 시작할 수 있습니다
@@ -245,13 +254,15 @@ function CopyButton({ text }: { text: string }) {
   }, [text])
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="icon"
+      className={`h-7 w-7 ${copied ? 'text-green-500' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}`}
       onClick={handleCopy}
-      className={`rounded p-1 transition ${copied ? 'text-green-500' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'}`}
       title={copied ? '복사됨' : '서열 복사'}
     >
       {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-    </button>
+    </Button>
   )
 }

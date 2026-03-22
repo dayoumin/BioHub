@@ -12,11 +12,13 @@ import { parseBlastHits, analyzeBlastResult } from '@/lib/genetics/decision-engi
 import type { DecisionResult } from '@/lib/genetics/decision-engine'
 import { getExampleById } from '@/lib/genetics/example-sequences'
 import { saveAnalysisHistory, loadAnalysisHistory } from '@/lib/genetics/analysis-history'
+import { useResearchProjectStore } from '@/lib/stores/research-project-store'
+import { Button } from '@/components/ui/button'
 
 type AppState =
   | { step: 'input' }
   | { step: 'analyzing'; sequence: string; marker: BlastMarker }
-  | { step: 'result'; marker: BlastMarker; decision: DecisionResult }
+  | { step: 'result'; marker: BlastMarker; decision: DecisionResult; analyzedSequence: string }
   | { step: 'error'; message: string; code: BlastErrorCode }
 
 export default function BarcodingPage() {
@@ -34,6 +36,7 @@ function BarcodingContent() {
   const [sampleName, setSampleName] = useState('')
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
   const [state, setState] = useState<AppState>({ step: 'input' })
+  const activeResearchProjectId = useResearchProjectStore(s => s.activeResearchProjectId)
 
   useEffect(() => {
     // 히스토리 결과 복원
@@ -42,7 +45,7 @@ function BarcodingContent() {
       const entry = loadAnalysisHistory().find(e => e.id === historyId)
       if (entry?.resultData) {
         setMarker(entry.marker)
-        setState({ step: 'result', marker: entry.marker, decision: entry.resultData })
+        setState({ step: 'result', marker: entry.marker, decision: entry.resultData, analyzedSequence: '' })
         return
       }
     }
@@ -68,7 +71,7 @@ function BarcodingContent() {
 
     setState(prev => {
       if (prev.step !== 'analyzing') return prev
-      return { step: 'result', marker: prev.marker, decision }
+      return { step: 'result', marker: prev.marker, decision, analyzedSequence: prev.sequence }
     })
 
     // 시료명 자동 생성: 비어 있으면 "마커 + (파일명) + 날짜"
@@ -87,8 +90,9 @@ function BarcodingContent() {
       topIdentity: decision.topHits[0]?.identity ?? null,
       status: decision.status,
       resultData: decision,
+      projectId: activeResearchProjectId ?? undefined,
     })
-  }, [marker, sequence, sampleName, uploadedFileName])
+  }, [marker, sequence, sampleName, uploadedFileName, activeResearchProjectId])
 
   const handleError = useCallback((msg: string, code: BlastErrorCode) => {
     setState({ step: 'error', message: msg, code })
@@ -141,6 +145,7 @@ function BarcodingContent() {
         <ResultView
           decision={state.decision}
           marker={state.marker}
+          sequence={state.analyzedSequence}
           onReset={handleReset}
         />
       )}
@@ -173,12 +178,13 @@ function BarcodingContent() {
               )}
             </ul>
           </div>
-          <button
+          <Button
+            variant="outline"
+            className="w-full"
             onClick={() => handleReset(false)}
-            className="w-full rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted"
           >
             다시 시도 (서열 유지)
-          </button>
+          </Button>
         </div>
       )}
     </main>

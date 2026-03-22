@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Dna, BarChart3, Grid3X3, GitFork, Users, ArrowRight, HelpCircle, FileText, FlaskConical, Play } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { EXAMPLE_SEQUENCES } from '@/lib/genetics/example-sequences'
+import { Button } from '@/components/ui/button'
 
 // ── 타입 ──
 
@@ -111,18 +112,20 @@ export default function GeneticsHome() {
           </p>
         </div>
         <div ref={guideRef} className="relative">
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={() => setGuideOpen(prev => !prev)}
-            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition ${
+            className={`gap-1.5 text-xs ${
               guideOpen
                 ? 'border-primary/30 bg-primary/5 text-primary'
-                : 'border-border text-muted-foreground hover:border-primary/20 hover:text-foreground'
+                : 'text-muted-foreground hover:border-primary/20 hover:text-foreground'
             }`}
           >
             <HelpCircle className="h-3.5 w-3.5" />
             도움말
-          </button>
+          </Button>
           {guideOpen && (
             <div className="absolute right-0 top-full z-10 mt-2 w-[min(480px,calc(100vw-2rem))] rounded-xl border border-border bg-card p-5 shadow-lg">
               <div className="grid gap-6 sm:grid-cols-2">

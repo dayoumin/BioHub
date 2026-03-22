@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Clock, PanelRightClose, Pin } from 'lucide-react'
 import type { AnalysisHistoryEntry } from '@/lib/genetics/analysis-history'
+import { Button } from '@/components/ui/button'
 import { loadAnalysisHistory, deleteMultipleEntries, togglePinEntry, HISTORY_KEY, HISTORY_CHANGE_EVENT } from '@/lib/genetics/analysis-history'
 
 export function HistorySidebar() {
@@ -73,15 +74,17 @@ export function HistorySidebar() {
   if (!open) {
     return (
       <div className="hidden lg:block">
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() => { userClosedRef.current = false; setOpen(true) }}
-          className="fixed right-4 top-24 z-10 flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-sm transition hover:border-primary/20 hover:text-foreground"
+          className="fixed right-4 top-24 z-10 gap-1.5 bg-card shadow-sm"
         >
           <Clock className="h-3.5 w-3.5" />
           최근 분석
           <span className="rounded-full bg-muted px-1.5 text-[10px]">{history.length}</span>
-        </button>
+        </Button>
       </div>
     )
   }
@@ -107,22 +110,26 @@ export function HistorySidebar() {
             </div>
             <div className="flex items-center gap-1">
               {selectedIds.size > 0 && (
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto px-1.5 py-0.5 text-[10px] font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
                   onClick={handleDeleteSelected}
-                  className="rounded px-1.5 py-0.5 text-[10px] font-medium text-destructive transition hover:bg-destructive/10"
                 >
                   {selectedIds.size}건 삭제
-                </button>
+                </Button>
               )}
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground/40 hover:text-foreground"
                 onClick={() => { userClosedRef.current = true; setOpen(false) }}
-                className="rounded p-1 text-muted-foreground/40 transition hover:text-foreground"
                 title="패널 닫기"
               >
                 <PanelRightClose className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             </div>
           </div>
           <div className="max-h-[calc(100vh-10rem)] divide-y divide-border/50 overflow-y-auto">
@@ -194,12 +201,14 @@ function HistoryRow({ entry, active, selected, onToggleSelect, onTogglePin, onCl
             )}
           </div>
         </div>
-        <button type="button"
+        <Button type="button"
+          variant="ghost"
+          size="icon"
           onClick={(e) => { e.stopPropagation(); onTogglePin(entry.id) }}
-          className={`shrink-0 rounded p-0.5 transition ${entry.pinned ? 'text-primary' : 'text-muted-foreground/30 hover:text-primary'}`}
+          className={`h-5 w-5 shrink-0 ${entry.pinned ? 'text-primary' : 'text-muted-foreground/30 hover:text-primary'}`}
           title={entry.pinned ? '고정 해제' : '상단 고정'}>
           <Pin className="h-3 w-3" />
-        </button>
+        </Button>
       </div>
     </div>
   )

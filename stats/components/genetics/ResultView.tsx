@@ -1,12 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import type { BlastMarker, BlastResultStatus } from '@biohub/types'
 import type { DecisionResult, MarkerRecommendation } from '@/lib/genetics/decision-engine'
+import { Button } from '@/components/ui/button'
 
 interface ResultViewProps {
   decision: DecisionResult
   marker: BlastMarker
+  sequence?: string
   onReset: (clearSequence?: boolean) => void
 }
 
@@ -21,7 +23,7 @@ const STATUS_STYLES: Record<BlastResultStatus, { bg: string; border: string; tex
 const needsAlternative = (status: BlastResultStatus): boolean =>
   status !== 'high'
 
-export function ResultView({ decision, marker, onReset }: ResultViewProps) {
+export function ResultView({ decision, marker, sequence, onReset }: ResultViewProps) {
   const style = STATUS_STYLES[decision.status]
   const showAltTop = needsAlternative(decision.status) && decision.recommendedMarkers.length > 0
 
@@ -137,14 +139,14 @@ export function ResultView({ decision, marker, onReset }: ResultViewProps) {
       )}
 
       <div className="flex flex-wrap items-center gap-2">
-        <NextActionButtons decision={decision} />
+        <NextActionButtons decision={decision} marker={marker} sequence={sequence} />
         <div className="ml-auto flex gap-2">
-          <button onClick={() => onReset(false)} className={RESET_BTN}>
+          <Button variant="outline" size="sm" onClick={() => onReset(false)}>
             서열 유지하고 재분석
-          </button>
-          <button onClick={() => onReset(true)} className={RESET_BTN}>
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => onReset(true)}>
             새 서열로 분석
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -165,21 +167,23 @@ function AlternativeMarkersCard({ marker, markers }: { marker: BlastMarker; mark
 
       <div className="mb-3 flex flex-wrap gap-2">
         {markers.map((m, i) => (
-          <button
+          <Button
             key={m.name}
             type="button"
+            variant="outline"
+            size="sm"
             onClick={() => setSelected(m.name)}
-            className={`rounded-full border px-3 py-1 text-sm font-medium transition ${
+            className={`rounded-full ${
               selected === m.name
-                ? 'border-blue-400 bg-blue-600 text-white shadow-sm'
-                : 'border-blue-200 bg-white text-blue-700 hover:border-blue-300 hover:bg-blue-50'
+                ? 'border-blue-400 bg-blue-600 text-white shadow-sm hover:bg-blue-600'
+                : 'border-blue-200 text-blue-700 hover:border-blue-300 hover:bg-blue-50'
             }`}
           >
             {m.name}
             {i === 0 && selected !== m.name && (
               <span className="ml-1 text-[10px] text-blue-400">추천</span>
             )}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -204,12 +208,21 @@ function AlternativeMarkersCard({ marker, markers }: { marker: BlastMarker; mark
   )
 }
 
-const RESET_BTN = 'rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-600 transition hover:bg-gray-50'
 const ACTION_LINK = 'rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50'
-const ACTION_DISABLED = 'rounded-lg border border-gray-100 px-3 py-2 text-xs text-gray-400 cursor-not-allowed'
+
+/** BOLD에서 지원하는 마커인지 확인 (COI 계열만 동물 바코딩 DB) */
+const BOLD_SUPPORTED_MARKERS: ReadonlySet<BlastMarker> = new Set(['COI', 'ITS'])
 
 /** 다음 단계 버튼 — 활성/비활성 분기 */
-function NextActionButtons({ decision }: { decision: DecisionResult }) {
+function NextActionButtons({
+  decision,
+  marker,
+  sequence,
+}: {
+  decision: DecisionResult
+  marker: BlastMarker
+  sequence?: string
+}) {
   const topHit = decision.topHits[0]
   const topSpecies = topHit?.species ?? ''
   const topAccession = topHit?.accession ?? ''
@@ -218,6 +231,18 @@ function NextActionButtons({ decision }: { decision: DecisionResult }) {
   const actions = decision.nextActions.filter(
     a => a.action !== 'recommend-marker' && a.action !== 'change-marker'
   )
+
+  const [boldCopied, setBoldCopied] = useState(false)
+  const handleBoldClick = useCallback(() => {
+    if (sequence) {
+      navigator.clipboard.writeText(sequence).then(() => {
+        setBoldCopied(true)
+        setTimeout(() => setBoldCopied(false), 2000)
+      }).catch(() => {
+        // clipboard API 실패 시 무시 — 사용자가 직접 붙여넣기
+      })
+    }
+  }, [sequence])
 
   return (
     <>
@@ -248,22 +273,28 @@ function NextActionButtons({ decision }: { decision: DecisionResult }) {
 
           default:
             return (
-              <button key={action.action} disabled title="준비 중인 기능입니다" className={ACTION_DISABLED}>
+              <Button key={action.action} variant="outline" size="sm" disabled title="준비 중인 기능입니다">
                 {action.label} <span className="text-[10px] text-gray-300">(준비 중)</span>
-              </button>
+              </Button>
             )
         }
       })}
 
-      {/* BOLD 검색 — 항상 표시 */}
-      {topHit && (
+      {/* BOLD 검색 — COI/ITS만 지원 */}
+      {topHit && BOLD_SUPPORTED_MARKERS.has(marker) && (
         <a
-          href={`https://www.boldsystems.org/index.php/IDS_OpenIdEngine?query=${encodeURIComponent(topAccession)}`}
+          href="https://id.boldsystems.org/"
           target="_blank"
           rel="noopener noreferrer"
           className={ACTION_LINK}
+          title={boldCopied
+            ? '서열이 복사되었습니다!'
+            : sequence
+              ? '클릭 시 서열이 클립보드에 복사됩니다. BOLD에서 붙여넣기하세요.'
+              : '서열을 직접 붙여넣으세요'}
+          onClick={handleBoldClick}
         >
-          BOLD 검색
+          {boldCopied ? '서열 복사됨!' : 'BOLD 검색'}
         </a>
       )}
     </>

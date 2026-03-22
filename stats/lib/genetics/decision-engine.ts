@@ -37,7 +37,6 @@ export type NextActionId =
 
 export interface NextAction {
   label: string
-  type: 'primary' | 'secondary'
   action: NextActionId
 }
 
@@ -87,9 +86,9 @@ export function analyzeBlastResult(topHits: BlastTopHit[], currentMarker: BlastM
 
   if (topHits.length === 0) {
     return makeResult('no_hit', topHits, '매칭 없음', 'DB에서 유사한 서열을 찾지 못했습니다. 서열 품질을 확인하거나 다른 마커를 시도해보세요.', [
-      { label: '서열 품질 확인', type: 'primary', action: 'quality-check' },
-      { label: '다른 마커로 분석', type: 'secondary', action: 'change-marker' },
-      { label: '신종 후보 안내', type: 'secondary', action: 'novel-species' },
+      { label: '서열 품질 확인', action: 'quality-check' },
+      { label: '다른 마커로 분석', action: 'change-marker' },
+      { label: '신종 후보 안내', action: 'novel-species' },
     ], mk)
   }
 
@@ -107,9 +106,9 @@ export function analyzeBlastResult(topHits: BlastTopHit[], currentMarker: BlastM
       '종 수준 동정 가능',
       `${best.species}와 ${(bestIdentity * 100).toFixed(1)}% 일치합니다.`,
       [
-        { label: '보고서 생성', type: 'primary', action: 'report' },
-        { label: '종 상세정보', type: 'secondary', action: 'species-info' },
-        { label: 'GenBank 레코드', type: 'secondary', action: 'genbank' },
+        { label: '보고서 생성', action: 'report' },
+        { label: '종 상세정보', action: 'species-info' },
+        { label: 'GenBank 레코드', action: 'genbank' },
       ], mk)
   }
 
@@ -119,9 +118,9 @@ export function analyzeBlastResult(topHits: BlastTopHit[], currentMarker: BlastM
       : `최고 유사도 ${(bestIdentity * 100).toFixed(1)}%로, 종 수준 동정에는 추가 확인이 필요합니다.`
 
     return makeResult('ambiguous', topHits, '종 구분 불확실', desc, [
-      { label: '추가 마커 추천', type: 'primary', action: 'recommend-marker' },
-      { label: '관련 논문 보기', type: 'secondary', action: 'papers' },
-      { label: '계통수 보기', type: 'secondary', action: 'phylogeny' },
+      { label: '추가 마커 추천', action: 'recommend-marker' },
+      { label: '관련 논문 보기', action: 'papers' },
+      { label: '계통수 보기', action: 'phylogeny' },
     ], mk)
   }
 
@@ -130,9 +129,9 @@ export function analyzeBlastResult(topHits: BlastTopHit[], currentMarker: BlastM
       '속 수준 추정, 종 수준은 불확실',
       `최고 유사도 ${(bestIdentity * 100).toFixed(1)}%로, 속 수준까지 추정 가능합니다. 종 확인을 위해 추가 마커 분석을 권장합니다.`,
       [
-        { label: '대안 마커 안내', type: 'primary', action: 'recommend-marker' },
-        { label: '실험 프로토콜', type: 'secondary', action: 'protocol' },
-        { label: '관련 논문', type: 'secondary', action: 'papers' },
+        { label: '대안 마커 안내', action: 'recommend-marker' },
+        { label: '실험 프로토콜', action: 'protocol' },
+        { label: '관련 논문', action: 'papers' },
       ], mk)
   }
 
@@ -140,9 +139,9 @@ export function analyzeBlastResult(topHits: BlastTopHit[], currentMarker: BlastM
     '동정 어려움',
     `최고 유사도 ${(bestIdentity * 100).toFixed(1)}%로, 종 판별이 어렵습니다. 서열 품질 문제이거나 DB에 미등록된 종일 수 있습니다.`,
     [
-      { label: '서열 품질 재검사', type: 'primary', action: 'quality-check' },
-      { label: '다른 DB 검색', type: 'secondary', action: 'alt-db' },
-      { label: '신종 등록 가이드', type: 'secondary', action: 'novel-species' },
+      { label: '서열 품질 재검사', action: 'quality-check' },
+      { label: '다른 DB 검색', action: 'alt-db' },
+      { label: '신종 등록 가이드', action: 'novel-species' },
     ], mk)
 }
 

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { BlastMarker } from '@biohub/types'
 import { cleanSequence } from '@/lib/genetics/validate-sequence'
+import { Button } from '@/components/ui/button'
 
 export type BlastErrorCode = 'network' | 'timeout' | 'blast-failed' | 'unknown'
 
@@ -302,15 +303,16 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
       )}
 
       {phase !== 'done' && phase !== 'error' && (
-        <button
+        <Button
+          variant="outline"
+          className="mt-4 w-full"
           onClick={() => {
             abortCtrlRef.current?.abort()
             onCancel()
           }}
-          className="mt-4 w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
         >
           분석 취소
-        </button>
+        </Button>
       )}
     </div>
   )
