@@ -813,6 +813,7 @@ export type GuidedFlowAction =
   | { type: 'SET_AI_RECOMMENDATION'; recommendation: AIRecommendation }
   | { type: 'AI_CHAT_ERROR'; error: string }
   | { type: 'GO_TO_GUIDED' }  // AI에서 단계별 가이드로 이동
+  | { type: 'GO_TO_AI_CHAT' }  // 가이드에서 AI 채팅으로 이동
   | { type: 'SET_AI_PROVIDER'; provider: 'openrouter' | 'ollama' | 'keyword' }
   // Multi-turn 채팅 액션
   | { type: 'ADD_CHAT_MESSAGE'; message: FlowChatMessage }
