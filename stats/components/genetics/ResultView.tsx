@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import type { BlastMarker, BlastResultStatus } from '@biohub/types'
 import type { DecisionResult, MarkerRecommendation } from '@/lib/genetics/decision-engine'
 import { Button } from '@/components/ui/button'
@@ -233,11 +233,15 @@ function NextActionButtons({
   )
 
   const [boldCopied, setBoldCopied] = useState(false)
+  const boldTimerRef = useRef<ReturnType<typeof setTimeout>>(null)
+  useEffect(() => () => { if (boldTimerRef.current) clearTimeout(boldTimerRef.current) }, [])
+
   const handleBoldClick = useCallback(() => {
     if (sequence) {
       navigator.clipboard.writeText(sequence).then(() => {
         setBoldCopied(true)
-        setTimeout(() => setBoldCopied(false), 2000)
+        if (boldTimerRef.current) clearTimeout(boldTimerRef.current)
+        boldTimerRef.current = setTimeout(() => setBoldCopied(false), 2000)
       }).catch(() => {
         // clipboard API 실패 시 무시 — 사용자가 직접 붙여넣기
       })
@@ -280,8 +284,8 @@ function NextActionButtons({
         }
       })}
 
-      {/* BOLD 검색 — COI/ITS만 지원 */}
-      {topHit && BOLD_SUPPORTED_MARKERS.has(marker) && (
+      {/* BOLD 검색 — COI/ITS만, 서열 있을 때만 (히스토리 복원 시 서열 없음) */}
+      {topHit && sequence && BOLD_SUPPORTED_MARKERS.has(marker) && (
         <a
           href="https://id.boldsystems.org/"
           target="_blank"
