@@ -13,6 +13,7 @@ export interface AnalysisHistoryEntry {
 }
 
 export const HISTORY_KEY = 'biohub:genetics:history'
+export const HISTORY_CHANGE_EVENT = 'genetics-history-changed'
 const MAX_HISTORY = 20
 
 function isValidEntry(item: unknown): item is AnalysisHistoryEntry {
@@ -26,7 +27,6 @@ function isValidEntry(item: unknown): item is AnalysisHistoryEntry {
   )
 }
 
-/** 고정 항목 먼저, 그 다음 최신순 */
 function sortEntries(entries: AnalysisHistoryEntry[]): AnalysisHistoryEntry[] {
   return [...entries].sort((a, b) => {
     if (a.pinned && !b.pinned) return -1
@@ -39,14 +39,24 @@ function saveToStorage(entries: AnalysisHistoryEntry[]): void {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(entries))
 }
 
-export function loadAnalysisHistory(): AnalysisHistoryEntry[] {
+/** raw JSON 문자열에서 유효한 엔트리만 추출 (정렬 없음) */
+function parseValidEntries(raw: string | null): AnalysisHistoryEntry[] {
+  if (!raw) return []
+  const parsed: unknown = JSON.parse(raw)
+  if (!Array.isArray(parsed)) return []
+  return parsed.filter(isValidEntry)
+}
+
+function notifyChange(): void {
+  window.dispatchEvent(new Event(HISTORY_CHANGE_EVENT))
+}
+
+/** preloadedRaw를 전달하면 localStorage 재읽기 생략 */
+export function loadAnalysisHistory(preloadedRaw?: string | null): AnalysisHistoryEntry[] {
   if (typeof window === 'undefined') return []
   try {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    if (!raw) return []
-    const parsed: unknown = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return []
-    return sortEntries(parsed.filter(isValidEntry).slice(0, MAX_HISTORY))
+    const raw = preloadedRaw !== undefined ? preloadedRaw : localStorage.getItem(HISTORY_KEY)
+    return sortEntries(parseValidEntries(raw).slice(0, MAX_HISTORY))
   } catch {
     return []
   }
@@ -63,7 +73,7 @@ export function saveAnalysisHistory(entry: Omit<AnalysisHistoryEntry, 'id' | 'cr
     }
     const updated = sortEntries([newEntry, ...history]).slice(0, MAX_HISTORY)
     saveToStorage(updated)
-    window.dispatchEvent(new Event('genetics-history-changed'))
+    notifyChange()
   } catch {
     // localStorage full
   }
@@ -87,13 +97,10 @@ export function togglePinEntry(id: string): AnalysisHistoryEntry[] {
   if (typeof window === 'undefined') return []
   try {
     const raw = localStorage.getItem(HISTORY_KEY)
-    if (!raw) return []
-    const parsed: unknown = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return []
-    const entries = parsed.filter(isValidEntry)
-    const entry = entries.find(e => e.id === id)
-    if (entry) entry.pinned = !entry.pinned
-    const sorted = sortEntries(entries)
+    const entries = parseValidEntries(raw)
+    const sorted = sortEntries(
+      entries.map(e => e.id === id ? { ...e, pinned: !e.pinned } : e)
+    )
     saveToStorage(sorted)
     return sorted
   } catch {

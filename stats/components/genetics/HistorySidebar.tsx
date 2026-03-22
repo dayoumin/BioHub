@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Clock, PanelRightClose, Pin, X } from 'lucide-react'
 import type { AnalysisHistoryEntry } from '@/lib/genetics/analysis-history'
-import { loadAnalysisHistory, deleteMultipleEntries, deleteAnalysisEntry, togglePinEntry, HISTORY_KEY } from '@/lib/genetics/analysis-history'
+import { loadAnalysisHistory, deleteMultipleEntries, deleteAnalysisEntry, togglePinEntry, HISTORY_KEY, HISTORY_CHANGE_EVENT } from '@/lib/genetics/analysis-history'
 import { formatTimeAgo } from '@/lib/utils/format-time'
 
 export function HistorySidebar() {
@@ -11,30 +11,34 @@ export function HistorySidebar() {
   const [history, setHistory] = useState<AnalysisHistoryEntry[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const lastRawRef = useRef<string | null>(null)
+  const userClosedRef = useRef(false)
 
-  /** localStorage에서 히스토리를 읽되, 변경이 없으면 상태 업데이트 생략 */
   function refreshHistory(): void {
     const raw = localStorage.getItem(HISTORY_KEY)
     if (raw === lastRawRef.current) return
     lastRawRef.current = raw
-    const loaded = loadAnalysisHistory()
+    const loaded = loadAnalysisHistory(raw)
     setHistory(loaded)
-    if (loaded.length > 0 && !open) setOpen(true)
+    // 사용자가 명시적으로 닫은 경우 자동으로 다시 열지 않음
+    if (loaded.length > 0 && !userClosedRef.current) setOpen(true)
   }
 
   useEffect(() => {
     refreshHistory()
   }, [])
 
-  // 같은 탭에서 분석 완료 시 갱신 (saveAnalysisHistory가 커스텀 이벤트 발행)
-  // + 다른 탭에서 변경 시 갱신 (window focus)
   useEffect(() => {
     function onHistoryChange(): void { refreshHistory() }
-    window.addEventListener('genetics-history-changed', onHistoryChange)
-    window.addEventListener('focus', onHistoryChange)
+    // 같은 탭: 커스텀 이벤트 (saveAnalysisHistory가 발행)
+    window.addEventListener(HISTORY_CHANGE_EVENT, onHistoryChange)
+    // 다른 탭: storage 이벤트 (같은 탭에서는 발화하지 않음)
+    function onStorage(e: StorageEvent): void {
+      if (e.key === HISTORY_KEY) refreshHistory()
+    }
+    window.addEventListener('storage', onStorage)
     return () => {
-      window.removeEventListener('genetics-history-changed', onHistoryChange)
-      window.removeEventListener('focus', onHistoryChange)
+      window.removeEventListener(HISTORY_CHANGE_EVENT, onHistoryChange)
+      window.removeEventListener('storage', onStorage)
     }
   }, [])
 
@@ -63,7 +67,7 @@ export function HistorySidebar() {
       <div className="hidden lg:block">
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={() => { userClosedRef.current = false; setOpen(true) }}
           className="fixed right-4 top-20 z-10 flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-sm transition hover:border-primary/20 hover:text-foreground"
         >
           <Clock className="h-3.5 w-3.5" />
@@ -105,7 +109,7 @@ export function HistorySidebar() {
               )}
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={() => { userClosedRef.current = true; setOpen(false) }}
                 className="rounded p-1 text-muted-foreground/40 transition hover:text-foreground"
                 title="패널 닫기"
               >
