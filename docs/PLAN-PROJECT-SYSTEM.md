@@ -2,7 +2,7 @@
 
 **작성일**: 2026-03-22
 **목적**: BioHub 다중 앱(통계/유전/그래프) 간 프로젝트 공유 아키텍처 설계
-**핵심 결정**: Turso DB 중심, 독립 앱 가능
+**핵심 결정**: Cloudflare D1 + Workers 중심, 독립 앱 가능
 
 ---
 
@@ -51,7 +51,7 @@ BioHub/
 │   └── hub/            ← 프로젝트 허브 + 메인 (미래)
 ├── packages/
 │   ├── ui/             ← 공유 shadcn/ui 컴포넌트
-│   ├── db/             ← 공유 Turso 스키마 + 클라이언트
+│   ├── db/             ← 공유 D1 스키마 + Drizzle 클라이언트
 │   └── types/          ← 공유 타입 (프로젝트, 엔티티)
 ├── workers/            ← Cloudflare Workers API
 ├── docs/
@@ -59,42 +59,71 @@ BioHub/
 └── turbo.json
 ```
 
-### 데이터 흐름
+### Cloudflare Workers의 역할
+
+Workers = 서버리스 API 서버. 앱과 DB/외부 서비스 사이의 중계 계층.
+
+| 역할 | 설명 |
+|------|------|
+| **DB 게이트웨이** | D1에 접근하는 유일한 통로 (앱이 DB에 직접 접근 안 함) |
+| **인증/권한** | 사용자 확인 + 프로젝트 접근 권한 체크 |
+| **API 프록시** | 웹 브라우저의 CORS 우회 (NCBI BLAST 등 외부 API 중계) |
+| **비즈니스 로직** | Decision Engine, 캐시 체크, 스로틀 |
+
+**비용**: $5/월 Workers Paid 플랜에 D1/R2/KV 모두 포함.
+
+### 데이터 흐름 — 웹 vs 데스크탑
 
 ```
-stats ──┐                          ┌── 프로젝트 목록
-genetics ┼── Workers API ── Turso ──┼── 분석 결과
-graph   ──┘    (공유)      (공유)   ├── 그래프
-hub ──────┘                        └── 사용자 데이터
+[웹 브라우저]
+├── DB/파일 접근 ──→ Workers API ──→ D1/R2/KV
+└── BLAST API ────→ Workers API ──→ NCBI/EBI  (CORS 때문에 경유 필수)
+                         │
+                    Workers가 사용자별 NCBI API 키로 호출
+                    (서버 키 1개 공유 시 rate limit 병목)
+
+[Tauri 데스크탑]
+├── DB/파일 접근 ──→ Workers API ──→ D1/R2/KV  (동일)
+└── BLAST API ────→ NCBI/EBI 직접 호출 ✅     (CORS 없음)
+                         │
+                    사용자 IP로 직접 → rate limit 자연 분산
 ```
 
-모든 앱이 같은 Turso DB에 접근 → 앱 분리 여부와 무관하게 프로젝트 공유 가능.
+**핵심 차이**: 웹은 BLAST도 Workers 경유 (CORS), 데스크탑은 BLAST만 직접 호출.
+DB 접근은 양쪽 모두 Workers 경유 (D1 바인딩 전용 + 보안).
 
-### 파일 저장
+### 저장소 분담
 
-```
-Turso/D1: 구조화 데이터 (프로젝트, 결과, 메타데이터)
-R2: 대용량 파일 (FASTA, CSV, 이미지, PDF 보고서)
-KV: 세션 상태, 캐시
-```
+| 저장소 | 용도 | 접근 방식 |
+|--------|------|----------|
+| **D1** (SQLite) | 프로젝트, 분석 결과, 사용자, 캐시 | Workers 바인딩 |
+| **R2** (S3 호환) | FASTA, CSV, 이미지, PDF 보고서 | Workers 바인딩 |
+| **KV** | 세션 상태, LLM 응답 캐시 | Workers 바인딩 |
 
-> 상세: [PLAN-CLOUDFLARE-BACKEND.md](PLAN-CLOUDFLARE-BACKEND.md) — R2/KV 활용 계획
+모든 앱이 같은 Workers API → 같은 D1 → 프로젝트 공유 가능.
+
+> 상세: [PLAN-CLOUDFLARE-BACKEND.md](PLAN-CLOUDFLARE-BACKEND.md) — 저장소 아키텍처, 어댑터 패턴
+
+### 웹에서 BLAST rate limit 해결
+
+NCBI rate limit: API 키당 10 req/sec. Workers 서버 키 1개로는 전체 사용자가 공유 → 병목.
+
+| 방법 | 설명 |
+|------|------|
+| **사용자별 NCBI API 키** | 설정에서 자기 키 입력 → Workers가 해당 키로 호출. 키당 10 req/sec |
+| **서버 키 (기본)** | 키 미입력 시 서버 키 사용 + 일일 제한 안내 (예: "무료 50건/일") |
+| **D1 캐시** | 동일 서열은 DB에서 즉시 반환 → API 호출 대폭 감소 |
 
 ---
 
-## 3. Turso DB 스키마
+## 3. D1 DB 스키마
 
-### 참고: DB 선택 — Turso vs D1
-
-| | Turso (현재 선택) | D1 (Cloudflare 네이티브) |
-|---|---|---|
-| Workers 연동 | 외부 HTTP 호출 | 네이티브 바인딩 (더 빠름) |
-| 기존 프로젝트 | Kemi에서 사용 중 | PLAN-CLOUDFLARE-BACKEND.md |
-| Drizzle 지원 | O | O |
-| 무료 | 500 DB, 9GB | 5GB |
-
-> **미결정**: 둘 다 SQLite 기반이라 스키마 동일. Drizzle 어댑터만 교체하면 전환 가능.
-> 구현 시 결정하되, 어댑터 패턴([PLAN-CLOUDFLARE-BACKEND.md](PLAN-CLOUDFLARE-BACKEND.md) StorageAdapter)으로 추상화.
+> **DB 선택: D1 확정 (2026-03-22)**
+> - BioHub는 Cloudflare 올인 스택 (Pages + Workers + R2 + KV) → D1이 네이티브 통합
+> - Workers 바인딩으로 HTTP 오버헤드 없음, 콜드 스타트 ~0.5초 (Turso 6-7초 대비)
+> - $5/월 Workers Paid 플랜에 D1/R2/KV 모두 포함
+> - Kemi는 Turso 유지 (별도 프로젝트, 멀티 클라우드 고려)
+> - 둘 다 SQLite 기반이라 스키마 동일. 필요시 어댑터 패턴으로 전환 가능
 
 ### 3-1. 사용자
 
@@ -274,21 +303,21 @@ PATCH  /api/graphs/:id            ← 그래프 수정
 
 ---
 
-## 5. 기존 localStorage → Turso 마이그레이션
+## 5. 기존 localStorage → D1 마이그레이션
 
 ### 전략: 점진적 전환
 
 ```
-Phase A: Turso 스키마 생성 + Workers API
-Phase B: genetics는 처음부터 Turso 사용
-Phase C: stats 신규 저장은 Turso, 기존은 localStorage 유지
-Phase D: 기존 localStorage 데이터 → Turso 일괄 마이그레이션
+Phase A: D1 스키마 생성 + Workers API
+Phase B: genetics는 처음부터 D1 사용
+Phase C: stats 신규 저장은 D1, 기존은 localStorage 유지
+Phase D: 기존 localStorage 데이터 → D1 일괄 마이그레이션
 Phase E: localStorage 코드 제거
 ```
 
-### 기존 타입 → Turso 매핑
+### 기존 타입 → D1 매핑
 
-| 기존 (localStorage) | Turso 테이블 | 변환 |
+| 기존 (localStorage) | D1 테이블 | 변환 |
 |---------------------|-------------|------|
 | `ResearchProject` | `projects` | 거의 동일, user_id 추가 |
 | `ProjectEntityRef` | `project_entity_refs` | 동일 |
@@ -323,24 +352,24 @@ type ProjectEntityKind =
 
 ```
 1. hub에서 프로젝트 생성: "동해 참치 종 판별 연구"
-   → Turso: projects 테이블에 저장
+   → D1: projects 테이블에 저장
 
 2. genetics에서 시료1 COI 분석
    → Workers: /api/blast/analyze
-   → Turso: blast_cache (전역) + blast_results (사용자)
-   → Turso: project_entity_refs (blast-result 연결)
+   → D1: blast_cache (전역) + blast_results (사용자)
+   → D1: project_entity_refs (blast-result 연결)
 
 3. genetics에서 시료1 D-loop 추가 분석 (COI 모호 결과 후)
    → 동일 플로우, 같은 프로젝트에 연결
 
 4. stats에서 유전 거리 통계
    → blast_results에서 데이터 로드
-   → Turso: analysis_results에 저장
+   → D1: analysis_results에 저장
    → project_entity_refs (analysis 연결)
 
 5. graph-studio에서 계통수 그래프
    → blast_results + analysis_results에서 데이터 로드
-   → Turso: graph_projects에 저장
+   → D1: graph_projects에 저장
    → project_entity_refs (figure 연결)
 
 6. hub에서 프로젝트 열기 → 모든 결과 한눈에
@@ -367,7 +396,7 @@ BioHub/
 ├── genetics/           ← 독립 Next.js 앱 생성
 ├── workers/            ← Cloudflare Workers (공유 API)
 ├── packages/
-│   ├── db/             ← Turso 스키마 + Drizzle
+│   ├── db/             ← D1 스키마 + Drizzle
 │   └── types/          ← 공유 타입 (ProjectEntityKind 등)
 ├── docs/
 ├── pnpm-workspace.yaml
@@ -392,7 +421,7 @@ BioHub/
 
 1. `pnpm-workspace.yaml` 생성
 2. `packages/types/` — 공유 타입 (ProjectEntityKind, ResearchProject 등)
-3. `packages/db/` — Turso 스키마 (Drizzle ORM)
+3. `packages/db/` — D1 스키마 (Drizzle ORM)
 4. `workers/` — API 엔드포인트 (blast/analyze, projects CRUD)
 5. `genetics/` — Next.js 앱 (서열 입력 → BLAST → Decision Engine)
 
@@ -406,7 +435,7 @@ BioHub/
 사용자 구분 없이 브라우저 세션 기반
 └── 로컬 UUID 생성 → localStorage에 저장
 └── API 요청 시 헤더에 포함
-└── Turso에 user 레코드 자동 생성
+└── D1에 user 레코드 자동 생성
 ```
 
 ### 이후 (카카오/네이버/구글)
@@ -424,7 +453,7 @@ BioHub/
 
 | # | 항목 | 선택지 | 결정 시점 |
 |---|------|--------|----------|
-| 1 | **DB 선택: Turso vs D1** | Turso (기존) vs D1 (Workers 네이티브) | Phase A 시작 시. 어댑터 패턴으로 추상화 |
+| ~~1~~ | ~~DB 선택~~ | **D1 확정** (2026-03-22) | ~~해결됨~~ |
 | 2 | Graph Studio 분리 시기 | Phase A에서 같이 vs Phase B | Phase A 완료 후 |
 | 3 | 인증 도입 시기 | genetics MVP vs 이후 | MVP에서는 UUID |
 | 4 | DataPackage (원시 데이터) 저장 | DB에 저장 vs R2 vs 사용자 재업로드 | 용량/비용 고려 후 |
