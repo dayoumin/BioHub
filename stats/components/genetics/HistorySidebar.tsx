@@ -164,7 +164,7 @@ function HistoryRow({ entry, selected, onToggleSelect, onTogglePin, onDelete }: 
             {entry.pinned && <Pin className="mr-1 inline-block h-2.5 w-2.5 text-primary" />}
             {entry.sampleName || entry.sequencePreview}
           </div>
-          <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
+          <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-gray-700">
             {entry.topSpecies && entry.topSpecies !== entry.sampleName && (
               <>
                 <span className="truncate italic">{entry.topSpecies}</span>
