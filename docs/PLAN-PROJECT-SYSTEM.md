@@ -70,17 +70,40 @@ hub ──────┘                        └── 사용자 데이터
 
 모든 앱이 같은 Turso DB에 접근 → 앱 분리 여부와 무관하게 프로젝트 공유 가능.
 
+### 파일 저장
+
+```
+Turso/D1: 구조화 데이터 (프로젝트, 결과, 메타데이터)
+R2: 대용량 파일 (FASTA, CSV, 이미지, PDF 보고서)
+KV: 세션 상태, 캐시
+```
+
+> 상세: [PLAN-CLOUDFLARE-BACKEND.md](PLAN-CLOUDFLARE-BACKEND.md) — R2/KV 활용 계획
+
 ---
 
 ## 3. Turso DB 스키마
+
+### 참고: DB 선택 — Turso vs D1
+
+| | Turso (현재 선택) | D1 (Cloudflare 네이티브) |
+|---|---|---|
+| Workers 연동 | 외부 HTTP 호출 | 네이티브 바인딩 (더 빠름) |
+| 기존 프로젝트 | Kemi에서 사용 중 | PLAN-CLOUDFLARE-BACKEND.md |
+| Drizzle 지원 | O | O |
+| 무료 | 500 DB, 9GB | 5GB |
+
+> **미결정**: 둘 다 SQLite 기반이라 스키마 동일. Drizzle 어댑터만 교체하면 전환 가능.
+> 구현 시 결정하되, 어댑터 패턴([PLAN-CLOUDFLARE-BACKEND.md](PLAN-CLOUDFLARE-BACKEND.md) StorageAdapter)으로 추상화.
 
 ### 3-1. 사용자
 
 ```sql
 CREATE TABLE users (
   id TEXT PRIMARY KEY,           -- 'user_' prefix
-  email TEXT UNIQUE NOT NULL,
+  email TEXT UNIQUE,             -- NULL 허용 (MVP: UUID만, 이후 OAuth 연결)
   name TEXT,
+  auth_provider TEXT,            -- NULL | 'kakao' | 'naver' | 'google'
   created_at INTEGER NOT NULL,   -- unix ms
   updated_at INTEGER NOT NULL
 );
@@ -152,20 +175,18 @@ CREATE TABLE blast_results (
   id TEXT PRIMARY KEY,            -- 'br_' prefix
   user_id TEXT NOT NULL REFERENCES users(id),
   project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
-  sequence_hash TEXT NOT NULL,    -- md5(sequence) — 캐시 키
+  sequence_hash TEXT NOT NULL,    -- md5(sequence) — 캐시 조회 키
+  sequence TEXT,                  -- 원본 서열 (재확인용, 대형 서열은 R2에 저장)
   marker TEXT NOT NULL,           -- 'COI' | 'CytB' | '16S' | ...
   sequence_length INTEGER,
   gc_content REAL,
   ambiguous_count INTEGER,
-  api_source TEXT NOT NULL,       -- 'ncbi' | 'ebi' | 'bold'
+  api_source TEXT NOT NULL,       -- 'ncbi' | 'ebi'
   status TEXT NOT NULL,           -- 'high' | 'ambiguous' | 'low' | 'failed' | 'no_hit'
   top_hits TEXT NOT NULL,         -- JSON array [{species, identity, accession, evalue}]
   decision_reason TEXT,           -- Decision Engine 설명
   recommended_markers TEXT,       -- JSON array ["D-loop", "ITS1"]
   taxon_alert TEXT,               -- 분류군 맞춤 안내 (참치, 양서류 등)
-  raw_response TEXT,              -- API 원본 응답 (디버깅용)
-  cached_at INTEGER,
-  expires_at INTEGER,             -- TTL (14-30일)
   created_at INTEGER NOT NULL
 );
 
@@ -273,6 +294,7 @@ Phase E: localStorage 코드 제거
 | `ProjectEntityRef` | `project_entity_refs` | 동일 |
 | `GraphProject` | `graph_projects` | chartSpec만 저장 (DataPackage 제외는 동일) |
 | `HistoryRecord` | `analysis_results` | result → result_json |
+| `ChatProject` + `ChatSession` | 미정 (chat 테이블) | 구현 시 설계 |
 | 신규 | `blast_results` | genetics 전용 |
 | 신규 | `blast_cache` | 전역 캐시 |
 
@@ -402,7 +424,8 @@ BioHub/
 
 | # | 항목 | 선택지 | 결정 시점 |
 |---|------|--------|----------|
-| 1 | Graph Studio 분리 시기 | Phase A에서 같이 vs Phase B | Phase A 완료 후 |
-| 2 | 인증 도입 시기 | genetics MVP vs 이후 | MVP에서는 UUID |
-| 3 | DataPackage (원시 데이터) 저장 여부 | Turso에 저장 vs 사용자 재업로드 | 용량/비용 고려 후 |
-| 4 | 오프라인 지원 (Tauri) | IndexedDB 동기화 vs Turso 직접 | Tauri 구현 시 |
+| 1 | **DB 선택: Turso vs D1** | Turso (기존) vs D1 (Workers 네이티브) | Phase A 시작 시. 어댑터 패턴으로 추상화 |
+| 2 | Graph Studio 분리 시기 | Phase A에서 같이 vs Phase B | Phase A 완료 후 |
+| 3 | 인증 도입 시기 | genetics MVP vs 이후 | MVP에서는 UUID |
+| 4 | DataPackage (원시 데이터) 저장 | DB에 저장 vs R2 vs 사용자 재업로드 | 용량/비용 고려 후 |
+| 5 | 오프라인 지원 (Tauri) | IndexedDB 동기화 vs DB 직접 | Tauri 구현 시 |
