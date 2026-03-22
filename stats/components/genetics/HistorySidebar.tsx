@@ -170,6 +170,12 @@ function HistoryRow({ entry, selected, onToggleSelect, onTogglePin, onDelete }: 
             {entry.sampleName || entry.sequencePreview}
           </div>
           <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
+            {entry.topSpecies && entry.topSpecies !== entry.sampleName && (
+              <>
+                <span className="truncate italic">{entry.topSpecies}</span>
+                <span className="text-border">·</span>
+              </>
+            )}
             <span>{entry.marker}</span>
             {identityText && (
               <>
