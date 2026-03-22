@@ -67,8 +67,11 @@ These should start after the current foundation is in place.
 - `[review]` Design reviewer simulator inputs and output schema.
 - `[domain]` Connect species and legal status outputs into manuscript and review flows.
 - `[trust]` Add user-facing evidence cards to major AI-assisted outputs.
-- `[ux]` ResultsActionStep.test.tsx 격리 실행 시 45개 실패 — `useFollowUpQA` mock 누락으로 `resetFollowUp` TDZ 에러. 전체 suite에서는 통과.
+- ~~`[ux]` ResultsActionStep.test.tsx TDZ 에러~~ — 해결됨 (useEffect 위치 이동)
 - `[ux]` AI 해석 실패 graceful degradation (`useErrorRecovery` 활용)
+- `[test]` `use-analysis-handlers.test.ts` tsc 에러 2건 (TerminologyProviderProps children 누락, testName 미존재) — 기존 미수정
+- `[test]` `graph-studio-store.test.ts` 전체 suite 실행 시 1건 실패 (단독 52/52 통과) — 테스트 순서 의존성
+- `[quality]` `graph-studio/project-storage.ts`와 `research/project-storage.ts`의 `isClient()`·read/write 패턴 중복 — 저장소 추가 시 공통 팩토리 검토
 - `[ux]` 접근성 focus ring 통일 (`focusRing` 상수 → 기존 5곳 점진 교체)
 - `[ux]` 토스트 메시지 기존 19곳 점진적 `TOAST.*` 마이그레이션
 - `[ux]` ChatBubble 공통 컴포넌트 추출

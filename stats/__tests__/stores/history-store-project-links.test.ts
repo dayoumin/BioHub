@@ -178,6 +178,8 @@ describe('history-store project links', () => {
       makeHistoryRecord({ id: 'analysis-b', name: 'Analysis B', projectId: undefined }),
       makeHistoryRecord({ id: 'analysis-c', name: 'Analysis C', projectId: 'proj-c' }),
     ]
+    // 기본값 제거 후 Once 설정 (beforeEach의 mockResolvedValue([])와 충돌 방지)
+    mockGetAllHistory.mockReset()
     mockGetAllHistory.mockResolvedValueOnce(records)
 
     let callCount = 0
@@ -192,12 +194,6 @@ describe('history-store project links', () => {
     } catch (e) {
       caughtError = e
     }
-
-    // 디버깅: mock 호출 확인
-    console.log('removeProjectEntityRef calls:', mockRemoveProjectEntityRef.mock.calls.length)
-    console.log('upsertProjectEntityRef calls:', mockUpsertProjectEntityRef.mock.calls.length)
-    console.log('saveHistory calls:', mockSaveHistory.mock.calls.length)
-    console.log('caughtError:', caughtError)
 
     expect(caughtError).toBeInstanceOf(Error)
     expect((caughtError as Error).message).toBe('quota exceeded on second ref removal')
