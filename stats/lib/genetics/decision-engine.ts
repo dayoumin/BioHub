@@ -40,6 +40,7 @@ export interface NextAction {
  * Worker가 { hits: [{ accession, identity, alignLength, evalue, ... }] }를 반환
  */
 export function parseBlastHits(data: unknown): BlastTopHit[] {
+  if (!data || typeof data !== 'object') return []
   try {
     const root = data as Record<string, unknown>
     const rawHits = root['hits'] as Array<Record<string, unknown>> | undefined

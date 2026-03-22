@@ -83,14 +83,12 @@ export function deleteMultipleEntries(ids: Set<string>): AnalysisHistoryEntry[] 
   if (typeof window === 'undefined') return []
   const history = loadAnalysisHistory().filter(e => !ids.has(e.id))
   saveToStorage(history)
+  notifyChange()
   return history
 }
 
 export function deleteAnalysisEntry(id: string): AnalysisHistoryEntry[] {
-  if (typeof window === 'undefined') return []
-  const history = loadAnalysisHistory().filter(e => e.id !== id)
-  saveToStorage(history)
-  return history
+  return deleteMultipleEntries(new Set([id]))
 }
 
 export function togglePinEntry(id: string): AnalysisHistoryEntry[] {
@@ -102,6 +100,7 @@ export function togglePinEntry(id: string): AnalysisHistoryEntry[] {
       entries.map(e => e.id === id ? { ...e, pinned: !e.pinned } : e)
     )
     saveToStorage(sorted)
+    notifyChange()
     return sorted
   } catch {
     return []
@@ -111,4 +110,5 @@ export function togglePinEntry(id: string): AnalysisHistoryEntry[] {
 export function clearAnalysisHistory(): void {
   if (typeof window === 'undefined') return
   localStorage.removeItem(HISTORY_KEY)
+  notifyChange()
 }

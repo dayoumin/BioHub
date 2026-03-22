@@ -146,7 +146,6 @@ export function SequenceInput({
                 onClick={() => {
                   onSequenceChange('')
                   onUploadedFileNameChange(null)
-                  setValidation(null)
                 }}
                 className="rounded p-1 text-gray-400 transition hover:bg-red-50 hover:text-red-500"
                 title="서열 지우기"
