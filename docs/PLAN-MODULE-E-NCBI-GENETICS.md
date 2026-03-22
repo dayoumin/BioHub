@@ -66,12 +66,14 @@
   - 16S rRNA — 세균
   - rbcL / matK — 식물
 - **데이터베이스**:
-  - **BOLD Systems API** — COI 특화, 유사도 % + 종 동정 결과 직접 반환
-  - **NCBI BLAST API** — 범용, 모든 마커 지원
+  - **NCBI BLAST API** — 1순위. 범용, 모든 마커 지원. API 테스트 완료 (2026-03-22)
+  - **EBI BLAST API** — 백업. NCBI 실패 시 자동 전환
+  - **BOLD Portal API** — 메타데이터 조회용 (BIN, voucher). 종 동정 REST API 미공개 (v5)
 - **출력**:
-  - 상위 10개 매칭 종 + 유사도 % + 신뢰도 등급
-  - Best match 종 정보 (Module A WoRMS/FishBase 연동)
-- **구현**: Cloudflare Workers 프록시 (`/api/bold`, `/api/ncbi-blast`)
+  - 상위 10개 매칭 종 + 유사도 % + 신뢰도 등급 (Decision Engine 4단계)
+  - 분류군 감지 → 맞춤 안내 (참치/양서류/이매패류 등)
+  - 실패 시: 원인 + 대안 마커 + 근거
+- **구현**: Cloudflare Workers 프록시 (`/api/ncbi-blast`) + Turso 캐시
 - **기술 제약**:
   - BOLD API: CORS 미지원 → Workers 필수. 동기 응답
   - NCBI BLAST: 비동기 방식 — `qblast()` 제출 → RID(Request ID) 반환 → 결과 polling 필요
@@ -81,14 +83,21 @@
 ```
 [FASTA 서열 입력]
     │
-    ├─ COI 마커 선택 ─→ [BOLD API]─→ 유사도 % + 종명 + 분류 계급
-    │                                      │
-    └─ 기타 마커 선택 ─→ [NCBI BLAST API]─→ Top 10 hits (E-value, % identity)
-                          (ITS / 16S / rbcL)      │
-                                          [Best match 종명]
-                                                  │
-                                        [Module A 연동]─→ WoRMS/FishBase 종 상세 정보
+    ├─ Turso 캐시 체크 ─→ 히트 → 즉시 반환 (캐시 뱃지)
+    │
+    └─ 미스 → [NCBI BLAST API] (Workers 프록시, 초당 스로틀)
+                    │
+              [RID 반환 → 폴링 → 결과 수신]
+                    │         └─ 실패 → [EBI BLAST 자동 전환]
+                    │
+              [Decision Engine] (4단계: 고신뢰/모호/저신뢰/실패)
+                    │
+              [분류군 감지] → 맞춤 안내 카드 (참치, 양서류 등)
+                    │
+              [보고서 생성 + 다음 행동 버튼]
 ```
+
+> 상세 UX 플로우: [REFERENCE-E0 섹션 8](genetic-identification/REFERENCE-E0-BARCODING-SERVICE.md)
 
 #### Marker Recommendation Engine — 데이터 스키마
 
