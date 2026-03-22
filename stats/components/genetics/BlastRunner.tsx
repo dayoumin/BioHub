@@ -22,6 +22,13 @@ type BlastPhase =
 const POLL_INTERVAL_MS = 15_000
 const MAX_POLLS = 40 // 최대 10분
 
+const STEP_LABELS = [
+  '입력 서열을 NCBI BLAST 서버에 전송',
+  'NCBI 유전자 데이터베이스에서 유사 서열 검색',
+  '유사도 정렬 및 통계적 유의성 계산',
+  '결과 수신 및 종 판별',
+] as const
+
 /**
  * BLAST 분석 실행 컴포넌트
  *
@@ -65,7 +72,6 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
 
     async function run(): Promise<void> {
       try {
-        // 1. 제출
         setPhase('submitting')
         const cleaned = cleanSequence(sequence)
 
@@ -90,75 +96,81 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
           throw new Error(err.message || err.error || `제출 실패 (${submitRes.status})`)
         }
 
-        const submitData = await submitRes.json() as { rid: string; rtoe: number }
+        const submitData = await submitRes.json() as {
+          rid?: string; rtoe?: number; sequenceHash?: string
+          cached?: boolean; hits?: Array<Record<string, unknown>>
+        }
         if (signal.aborted) return
 
-        setEstimatedTime(submitData.rtoe)
-        setPhase('polling')
+        let resultData: { hits?: Array<Record<string, unknown>> }
 
-        // 2. 폴링
-        let polls = 0
-        while (polls < MAX_POLLS) {
+        if (submitData.cached && submitData.hits) {
+          // 캐시 히트: NCBI 호출 스킵, UX 흐름은 동일하게 유지
+          resultData = { hits: submitData.hits }
+
+          // efetch를 UX 딜레이와 병렬 실행
+          const speciesPromise = enrichHitsWithSpecies(resultData.hits, signal)
+
+          setPhase('polling')
+          setEstimatedTime(2)
+          // step 1(검색) ~800ms → step 2(분석) ~800ms (임계값 2*0.6=1.2s)
+          await sleep(800, signal)
+          if (signal.aborted) return
+          await sleep(800, signal)
           if (signal.aborted) return
 
-          await sleep(POLL_INTERVAL_MS, signal)
+          setPhase('fetching')
+          await speciesPromise
           if (signal.aborted) return
+        } else {
+          // NCBI BLAST 폴링
+          setEstimatedTime(submitData.rtoe ?? 30)
+          setPhase('polling')
 
-          const statusRes = await fetch(`/api/blast/status/${submitData.rid}`, { signal })
-          if (!statusRes.ok) continue // 네트워크 에러 시 polls 미증가 — 재시도 기회 보존
+          let polls = 0
+          while (polls < MAX_POLLS) {
+            if (signal.aborted) return
 
-          polls++
+            await sleep(POLL_INTERVAL_MS, signal)
+            if (signal.aborted) return
 
-          const statusData = await statusRes.json() as { status: string }
+            const statusRes = await fetch(`/api/blast/status/${submitData.rid}`, { signal })
+            if (!statusRes.ok) continue
 
-          if (statusData.status === 'READY') {
-            break
-          }
-          if (statusData.status === 'FAILED' || statusData.status === 'UNKNOWN') {
-            throw new Error(`NCBI BLAST 실패: ${statusData.status}`)
-          }
-        }
+            polls++
 
-        if (polls >= MAX_POLLS) {
-          throw new Error('분석 시간 초과 (10분). 나중에 다시 시도하세요.')
-        }
+            const statusData = await statusRes.json() as { status: string }
 
-        // 3. 결과 조회
-        if (signal.aborted) return
-        setPhase('fetching')
-
-        const resultRes = await fetch(`/api/blast/result/${submitData.rid}`, { signal })
-        if (!resultRes.ok) {
-          throw new Error(`결과 조회 실패 (${resultRes.status})`)
-        }
-
-        const resultData = await resultRes.json() as { hits?: Array<Record<string, unknown>> }
-        if (signal.aborted) return
-
-        // 4. 종명 조회 (efetch) — 실패해도 accession으로 표시
-        if (resultData.hits && resultData.hits.length > 0) {
-          try {
-            const accessions = resultData.hits.map(h => h['accession'] as string).filter(Boolean)
-            if (accessions.length > 0) {
-              const speciesRes = await fetch('/api/ncbi/species', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accessions }),
-                signal,
-              })
-              if (speciesRes.ok) {
-                const { species } = await speciesRes.json() as { species: Record<string, string> }
-                for (const hit of resultData.hits) {
-                  const acc = hit['accession'] as string
-                  if (acc && species[acc]) {
-                    hit['species'] = species[acc]
-                  }
-                }
-              }
+            if (statusData.status === 'READY') {
+              break
             }
-          } catch (speciesErr) {
-            console.warn('[BlastRunner] 종명 조회 실패, accession으로 표시:', speciesErr)
+            if (statusData.status === 'FAILED' || statusData.status === 'UNKNOWN') {
+              throw new Error(`NCBI BLAST 실패: ${statusData.status}`)
+            }
           }
+
+          if (polls >= MAX_POLLS) {
+            throw new Error('분석 시간 초과 (10분). 나중에 다시 시도하세요.')
+          }
+
+          if (signal.aborted) return
+          setPhase('fetching')
+
+          const resultUrl = submitData.sequenceHash
+            ? `/api/blast/result/${submitData.rid}?hash=${submitData.sequenceHash}&marker=${marker}`
+            : `/api/blast/result/${submitData.rid}`
+          const resultRes = await fetch(resultUrl, { signal })
+          if (!resultRes.ok) {
+            throw new Error(`결과 조회 실패 (${resultRes.status})`)
+          }
+
+          resultData = await resultRes.json() as { hits?: Array<Record<string, unknown>> }
+          if (signal.aborted) return
+        }
+
+        // 종명 조회 — 캐시 히트는 위에서 병렬 처리, 여기는 일반 경로만
+        if (!submitData.cached) {
+          await enrichHitsWithSpecies(resultData.hits, signal)
         }
 
         setPhase('done')
@@ -177,74 +189,94 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
     return () => {
       ctrl.abort()
     }
-  }, [sequence, marker]) // onResult/onError는 ref로 참조 — deps에서 제외
+  }, [sequence, marker])
+
+  // 현재 활성 단계 (0-indexed): phase + 경과 시간 기반
+  const currentStep =
+    phase === 'submitting' ? 0
+    : phase === 'polling' ? (elapsed < estimatedTime * 0.6 ? 1 : 2)
+    : phase === 'fetching' ? 3
+    : 3
+
+  const phaseHeader =
+    phase === 'submitting' ? '서열 제출 중...'
+    : phase === 'polling' && currentStep === 1 ? '데이터베이스 검색 중...'
+    : phase === 'polling' ? '유사도 분석 중...'
+    : phase === 'fetching' ? '결과 수신 중...'
+    : phase === 'error' ? '오류 발생' : ''
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-8">
       <div className="mb-6">
         <div className="mb-2 flex items-center justify-between text-sm">
-          <span className="font-medium text-gray-700">
-            {phase === 'submitting' && '서열 제출 중...'}
-            {phase === 'polling' && '분석 처리 중...'}
-            {phase === 'fetching' && '결과 수신 중...'}
-            {phase === 'error' && '오류 발생'}
-          </span>
+          <span className="font-medium text-gray-700">{phaseHeader}</span>
           <span className="text-gray-500">{elapsed}초 경과</span>
         </div>
 
+        {/* 4-segment progress bar */}
         <div className="flex gap-1">
-          <div className={`h-2 flex-1 rounded-l-full transition-colors ${
-            phase === 'submitting' ? 'animate-pulse bg-blue-400' :
-            phase !== 'error' ? 'bg-blue-600' : 'bg-red-300'
-          }`} />
-          <div className={`h-2 flex-1 transition-colors ${
-            phase === 'polling' ? 'animate-pulse bg-blue-400' :
-            phase === 'fetching' || phase === 'done' ? 'bg-blue-600' :
-            phase === 'error' ? 'bg-red-300' : 'bg-gray-200'
-          }`} />
-          <div className={`h-2 flex-1 rounded-r-full transition-colors ${
-            phase === 'fetching' ? 'animate-pulse bg-blue-400' :
-            phase === 'done' ? 'bg-blue-600' :
-            phase === 'error' ? 'bg-red-300' : 'bg-gray-200'
-          }`} />
+          {[0, 1, 2, 3].map(i => (
+            <div
+              key={i}
+              className={`h-2 flex-1 transition-colors${
+                i === 0 ? ' rounded-l-full' : i === 3 ? ' rounded-r-full' : ''
+              } ${
+                phase === 'error' ? 'bg-red-300'
+                : i < currentStep ? 'bg-blue-600'
+                : i === currentStep ? 'animate-pulse bg-blue-400'
+                : 'bg-gray-200'
+              }`}
+            />
+          ))}
         </div>
 
         <div className="mt-2 flex justify-between text-xs text-gray-400">
           <span>제출</span>
-          <span>처리 중</span>
-          <span>완료</span>
+          <span>검색</span>
+          <span>분석</span>
+          <span>결과</span>
         </div>
       </div>
 
-      {phase === 'polling' && (
+      {/* 분석 과정 — 모든 활성 단계에서 표시 */}
+      {phase !== 'done' && phase !== 'error' && (
         <div className="space-y-3" role="status" aria-live="polite">
-          {/* 분석 과정 설명 */}
           <div className="rounded-lg bg-gray-50 p-4">
             <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">분석 과정</h4>
-            <ol className="space-y-1.5 text-xs text-gray-600">
-              <li className={elapsed < 5 ? 'font-medium text-blue-700' : 'text-gray-400'}>
-                1. 입력 서열을 NCBI BLAST 서버에 전송
-              </li>
-              <li className={elapsed >= 5 && elapsed < estimatedTime * 0.7 ? 'font-medium text-blue-700' : elapsed >= 5 ? 'text-gray-400' : 'text-gray-400'}>
-                2. 전 세계 유전자 데이터베이스(nt)에서 유사 서열 검색
-              </li>
-              <li className={elapsed >= estimatedTime * 0.7 ? 'font-medium text-blue-700' : 'text-gray-400'}>
-                3. 유사도 정렬 및 통계적 유의성 계산
-              </li>
-              <li className="text-gray-400">
-                4. 결과 수신 → 종 판별 및 해석
-              </li>
+            <ol className="space-y-1.5 text-xs">
+              {STEP_LABELS.map((label, i) => (
+                <li
+                  key={i}
+                  className={
+                    i < currentStep ? 'text-emerald-600'
+                    : i === currentStep ? 'font-medium text-blue-700'
+                    : 'text-gray-400'
+                  }
+                >
+                  <span className="mr-1.5 inline-block w-4 text-center">
+                    {i < currentStep ? '\u2713' : `${i + 1}.`}
+                  </span>
+                  {label}
+                </li>
+              ))}
             </ol>
           </div>
 
-          <div className="text-sm text-gray-600">
-            <p>
-              예상 시간: 약 {estimatedTime}초
-              {estimatedTime > 0 && elapsed < estimatedTime
-                ? ` · 남은 시간 약 ${Math.max(estimatedTime - elapsed, 1)}초`
-                : ''}
-            </p>
-          </div>
+          {phase === 'polling' && (
+            <div className="text-sm text-gray-600">
+              <p>
+                예상 시간: 약 {estimatedTime}초
+                {estimatedTime > 0 && elapsed < estimatedTime
+                  ? ` · 남은 시간 약 ${Math.max(estimatedTime - elapsed, 1)}초`
+                  : ''}
+              </p>
+            </div>
+          )}
+
+          {phase === 'fetching' && (
+            <p className="text-sm text-gray-600">거의 완료되었습니다...</p>
+          )}
+
           <p className="text-xs text-amber-600/80">
             분석이 완료될 때까지 이 페이지를 유지해주세요.
           </p>
@@ -275,6 +307,36 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
       )}
     </div>
   )
+}
+
+/** accession → 종명 일괄 조회 (실패 시 무시) */
+async function enrichHitsWithSpecies(
+  hits: Array<Record<string, unknown>> | undefined,
+  signal: AbortSignal
+): Promise<void> {
+  if (!hits || hits.length === 0) return
+  try {
+    const accessions = hits.map(h => h['accession'] as string).filter(Boolean)
+    if (accessions.length === 0) return
+
+    const res = await fetch('/api/ncbi/species', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessions }),
+      signal,
+    })
+    if (res.ok) {
+      const { species } = await res.json() as { species: Record<string, string> }
+      for (const hit of hits) {
+        const acc = hit['accession'] as string
+        if (acc && species[acc]) {
+          hit['species'] = species[acc]
+        }
+      }
+    }
+  } catch {
+    // 종명 조회 실패 시 accession으로 표시
+  }
 }
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {

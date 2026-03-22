@@ -1,4 +1,4 @@
-import type { BlastResultStatus, BlastTopHit } from '@biohub/types'
+import type { BlastMarker, BlastResultStatus, BlastTopHit } from '@biohub/types'
 
 /**
  * Decision Engine — BLAST 결과를 4단계로 분류하고 맞춤 안내 생성
@@ -6,13 +6,19 @@ import type { BlastResultStatus, BlastTopHit } from '@biohub/types'
  * REFERENCE-E0 섹션 7 + 8-3 + 8-4 기반
  */
 
+export interface MarkerRecommendation {
+  name: string
+  reason: string
+  detail: string
+}
+
 export interface DecisionResult {
   status: BlastResultStatus
   title: string
   description: string
   topHits: BlastTopHit[]
   taxonAlert: TaxonAlert | null
-  recommendedMarkers: string[]
+  recommendedMarkers: MarkerRecommendation[]
   nextActions: NextAction[]
 }
 
@@ -65,8 +71,8 @@ export function parseBlastHits(data: unknown): BlastTopHit[] {
 }
 
 /** 4단계 분류 + 맞춤 안내 생성 */
-export function analyzeBlastResult(topHits: BlastTopHit[], currentMarker?: string): DecisionResult {
-  const mk = currentMarker || ''
+export function analyzeBlastResult(topHits: BlastTopHit[], currentMarker: BlastMarker = 'COI'): DecisionResult {
+  const mk = currentMarker
 
   if (topHits.length === 0) {
     return makeResult('no_hit', topHits, '매칭 없음', 'DB에 유사 서열이 없습니다.', [
@@ -181,30 +187,89 @@ export function detectTaxonAlert(topHits: BlastTopHit[]): TaxonAlert | null {
   return null
 }
 
+/** 마커별 상세 정보 */
+const MARKER_INFO: Record<string, { reason: string; detail: string }> = {
+  'COI': {
+    reason: '동물 표준 바코드',
+    detail: '대부분의 동물에서 가장 먼저 시도되는 마커. BOLD/GenBank 레퍼런스가 가장 풍부하여 매칭 확률이 높습니다.',
+  },
+  'Cyt b': {
+    reason: '포유류/어류 종 세분화',
+    detail: 'COI와 다른 진화 속도를 가져 COI로 구분이 안 되는 근연종에서 차이를 보일 수 있습니다. 특히 포유류와 어류에서 레퍼런스가 풍부합니다.',
+  },
+  'D-loop': {
+    reason: '가장 빠르게 진화하는 영역',
+    detail: 'mt DNA에서 가장 변이가 큰 영역. 참치류, 연어과 등 COI가 종간 거의 동일한 분류군에서 종 구분이 가능합니다. 단, 정렬이 어려울 수 있습니다.',
+  },
+  '16S rRNA': {
+    reason: '양서류 표준 + 보편적 프라이머',
+    detail: '양서류에서는 COI보다 16S가 종 판별 정확도가 높습니다. 보편적 프라이머로 다양한 분류군에 적용 가능하며, 열화된 시료에서도 증폭 성공률이 높습니다.',
+  },
+  '12S': {
+    reason: '어류 eDNA · 짧은 단편',
+    detail: '환경 DNA(eDNA) 분석에 최적화된 짧은 마커(~170bp). 열화된 시료나 혼합 시료에서 증폭 성공률이 높지만 종 수준 해상도는 COI보다 낮을 수 있습니다.',
+  },
+  'ITS': {
+    reason: '진균 표준 바코드',
+    detail: '진균류의 공식 바코드 마커. 핵 DNA 마커로 미토콘드리아 마커와 독립적인 정보를 제공합니다.',
+  },
+  'ITS1': {
+    reason: '핵 마커 · 교차 검증',
+    detail: '핵 DNA 마커로 미토콘드리아(COI, Cyt b 등)와 독립적인 계통 정보를 제공합니다. mtDNA introgression이 의심될 때 교차 검증에 유용합니다.',
+  },
+  'ITS2': {
+    reason: '핵 마커 · 이매패류 필수',
+    detail: '이매패류는 DUI(이중 미토콘드리아 유전) 때문에 mtDNA 마커가 오도될 수 있어, 핵 마커 병행이 필수입니다.',
+  },
+  'RAG1': {
+    reason: '핵 유전자 · 양서류 계통',
+    detail: '핵 단백질 코딩 유전자로 양서류의 속~과 수준 계통 관계를 해결하는 데 유용합니다. mtDNA와 독립적인 확인이 필요할 때 사용합니다.',
+  },
+  'H3': {
+    reason: '핵 유전자 · 무척추동물',
+    detail: 'Histone H3 핵 마커. 이매패류 등 무척추동물에서 mtDNA와 독립적인 종 확인에 사용됩니다.',
+  },
+  '28S': {
+    reason: '리보솜 핵 마커',
+    detail: '28S rDNA는 과~목 수준의 넓은 분류에 유용하며, 이매패류에서 핵 마커로 병행 사용됩니다.',
+  },
+  'microsatellite': {
+    reason: '집단 수준 구분',
+    detail: '종 수준이 아닌 집단/개체군 수준 구분이 필요할 때 사용합니다. 연어과의 양식 vs 자연산 구분 등에 활용됩니다.',
+  },
+}
+
+function toRecommendation(name: string): MarkerRecommendation {
+  const info = MARKER_INFO[name]
+  return info
+    ? { name, reason: info.reason, detail: info.detail }
+    : { name, reason: '대안 마커', detail: '현재 마커로 충분한 해상도를 얻지 못했을 때 시도할 수 있는 마커입니다.' }
+}
+
 /** 추천 마커 결정 */
 export function getRecommendedMarkers(
   status: BlastResultStatus,
   taxonAlert: TaxonAlert | null,
-  currentMarker: string
-): string[] {
+  currentMarker: BlastMarker
+): MarkerRecommendation[] {
   if (status === 'high') return []
 
   // 분류군별 추천
   if (taxonAlert) {
     switch (taxonAlert.taxon) {
-      case 'Thunnus': return ['D-loop', 'ITS1', 'Cyt b']
-      case 'Salmonidae': return ['D-loop', 'microsatellite', 'ITS']
-      case 'Amphibia': return ['16S rRNA', 'RAG1']
-      case 'Bivalvia': return ['ITS2', 'H3', '28S']
+      case 'Thunnus': return ['D-loop', 'ITS1', 'Cyt b'].map(toRecommendation)
+      case 'Salmonidae': return ['D-loop', 'microsatellite', 'ITS'].map(toRecommendation)
+      case 'Amphibia': return ['16S rRNA', 'RAG1'].map(toRecommendation)
+      case 'Bivalvia': return ['ITS2', 'H3', '28S'].map(toRecommendation)
     }
   }
 
   // 일반 대안 (현재 마커에 따라)
-  if (currentMarker === 'COI') return ['Cyt b', 'D-loop', '16S rRNA']
-  if (currentMarker === '16S') return ['COI', '12S']
-  if (currentMarker === '12S') return ['COI', '16S']
+  if (currentMarker === 'COI') return ['Cyt b', 'D-loop', '16S rRNA'].map(toRecommendation)
+  if (currentMarker === '16S') return ['COI', '12S'].map(toRecommendation)
+  if (currentMarker === '12S') return ['COI', '16S'].map(toRecommendation)
 
-  return ['COI', 'Cyt b']
+  return ['COI', 'Cyt b'].map(toRecommendation)
 }
 
 function makeResult(
@@ -213,7 +278,7 @@ function makeResult(
   title: string,
   description: string,
   nextActions: NextAction[],
-  currentMarker: string
+  currentMarker: BlastMarker
 ): DecisionResult {
   const taxonAlert = detectTaxonAlert(topHits)
   const recommendedMarkers = getRecommendedMarkers(status, taxonAlert, currentMarker)

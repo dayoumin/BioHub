@@ -1,7 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import type { BlastMarker, BlastResultStatus } from '@biohub/types'
-import type { DecisionResult } from '@/lib/genetics/decision-engine'
+import type { DecisionResult, MarkerRecommendation } from '@/lib/genetics/decision-engine'
 
 interface ResultViewProps {
   decision: DecisionResult
@@ -206,28 +207,56 @@ export function ResultView({ decision, marker, onReset }: ResultViewProps) {
   )
 }
 
-/** 대안 마커 안내 카드 — 재분석이 아니라 "새 서열 확보" 안내 */
-function AlternativeMarkersCard({ marker, markers }: { marker: BlastMarker; markers: string[] }) {
+/** 대안 마커 안내 카드 — 배지 클릭 → 설명 펼침, 첫 번째(최우선) 자동 선택 */
+function AlternativeMarkersCard({ marker, markers }: { marker: BlastMarker; markers: MarkerRecommendation[] }) {
+  const [selected, setSelected] = useState<string>(markers[0]?.name ?? '')
+  const selectedInfo = markers.find(m => m.name === selected)
+
   return (
     <div className="rounded-xl border border-blue-200 bg-blue-50 p-5">
       <h3 className="mb-2 text-sm font-semibold text-blue-900">대안 마커로 재시도하세요</h3>
       <p className="mb-3 text-xs text-blue-800">
-        현재 {marker} 마커로는 정확한 종 판별이 어렵습니다.
-        아래 마커의 서열을 새로 확보하여 분석하면 더 좋은 결과를 얻을 수 있습니다.
+        {marker}로는 정확한 종 판별이 어렵습니다. 아래 마커의 서열을 확보하여 분석해보세요.
       </p>
-      <div className="flex flex-wrap gap-2">
-        {markers.map((m) => (
-          <span
-            key={m}
-            className="rounded-full border border-blue-200 bg-white px-3 py-1 text-sm font-medium text-blue-700"
+
+      {/* 마커 배지 */}
+      <div className="mb-3 flex flex-wrap gap-2">
+        {markers.map((m, i) => (
+          <button
+            key={m.name}
+            type="button"
+            onClick={() => setSelected(m.name)}
+            className={`rounded-full border px-3 py-1 text-sm font-medium transition ${
+              selected === m.name
+                ? 'border-blue-400 bg-blue-600 text-white shadow-sm'
+                : 'border-blue-200 bg-white text-blue-700 hover:border-blue-300 hover:bg-blue-50'
+            }`}
           >
-            {m}
-          </span>
+            {m.name}
+            {i === 0 && selected !== m.name && (
+              <span className="ml-1 text-[10px] text-blue-400">추천</span>
+            )}
+          </button>
         ))}
       </div>
-      <p className="mt-3 text-[11px] text-blue-600/70">
-        BLAST는 서열 자체로 검색하므로, 같은 서열로 마커만 바꿔도 동일한 결과가 나옵니다.
-        해당 마커 영역의 서열을 별도로 시퀀싱해야 합니다.
+
+      {/* 선택된 마커 설명 */}
+      {selectedInfo && (
+        <div className="rounded-lg border border-blue-200 bg-white p-4">
+          <div className="mb-1 flex items-center gap-2">
+            <span className="text-sm font-bold text-blue-900">{selectedInfo.name}</span>
+            <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-600">
+              {selectedInfo.reason}
+            </span>
+          </div>
+          <p className="text-xs leading-relaxed text-blue-800/80">
+            {selectedInfo.detail}
+          </p>
+        </div>
+      )}
+
+      <p className="mt-3 text-[11px] text-blue-600/50">
+        같은 서열로 마커만 바꿔도 동일한 결과가 나옵니다. 해당 마커 영역을 별도로 시퀀싱해야 합니다.
       </p>
     </div>
   )

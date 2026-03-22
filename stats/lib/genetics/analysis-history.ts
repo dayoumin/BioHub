@@ -68,6 +68,13 @@ export function saveAnalysisHistory(entry: Omit<AnalysisHistoryEntry, 'id' | 'cr
   }
 }
 
+export function deleteMultipleEntries(ids: Set<string>): AnalysisHistoryEntry[] {
+  if (typeof window === 'undefined') return []
+  const history = loadAnalysisHistory().filter(e => !ids.has(e.id))
+  saveToStorage(history)
+  return history
+}
+
 export function deleteAnalysisEntry(id: string): AnalysisHistoryEntry[] {
   if (typeof window === 'undefined') return []
   const history = loadAnalysisHistory().filter(e => e.id !== id)

@@ -32,9 +32,9 @@
 - [ ] 사용자별 NCBI API 키 입력 (설정 UI) — 웹 rate limit 분산
 
 ### D1 캐시
-- [ ] 스키마 (md5(sequence) 키, 14일 TTL) — blast_cache 테이블
-- [ ] 캐시 히트 시 즉시 반환 + "캐시됨" 뱃지
-- [ ] "최신 결과로 다시 분석" 버튼
+- [x] 스키마 (SHA-256(sequence) 키, 14일 TTL) — blast_cache 테이블
+- [x] 캐시 히트 시 NCBI 호출 스킵 (UX는 동일 흐름 유지)
+- [ ] "최신 결과로 다시 분석" 버튼 (캐시 우회)
 
 ### Decision Engine
 - [x] 4단계 결과 분류 (고신뢰/모호/저신뢰/실패/매칭없음)
@@ -69,7 +69,7 @@
   - [x] Salmonidae (연어과): D-loop + microsatellite
   - [ ] 가공 시료: 미니바코드 안내
   - [ ] 저유사도: 서열 품질 체크 안내
-- [ ] accession → 종명 매핑 (NCBI E-utilities efetch)
+- [x] accession → 종명 매핑 (NCBI E-utilities esummary)
 - [ ] EBI BLAST 자동 전환 (NCBI 실패 시)
 - [ ] 보고서 자동 생성
   - [ ] 서열 품질 통계 (길이, GC%, N%)
@@ -121,3 +121,8 @@
 - [ ] 다크모드 지원 — 현재 `forcedTheme="light"`로 고정. 유전 페이지 포함 전체 UI 다크모드 대응 후 `enableSystem` 복원
 - [ ] DNA 바코딩 — Worker 없이 로컬 개발 시 안내 UX 개선 (현재 `wrangler dev` 미실행 시 `ERR_CONNECTION_REFUSED`)
 - [ ] 결과 비교 — 이전 분석 결과와 현재 결과를 나란히 비교하는 UI (히스토리에서 선택 → side-by-side 비교)
+- [ ] 대안 마커 상세 모달 — 각 추천 마커 클릭 시 모달로 상세 설명 표시 (프라이머 정보, 관련 논문, 실험 팁, 성공 사례). 현재는 인라인 간단 설명만 제공
+- [ ] 히스토리 공유 사이드바 — genetics layout.tsx에 히스토리 사이드바를 넣어 메인/barcoding/결과 등 전체 genetics 페이지에서 접근 가능하게
+- [ ] 히스토리 결과 재열람 — 히스토리 항목 클릭 시 해당 분석 결과로 이동. DecisionResult 전체를 localStorage에 저장하여 재현 (RID는 24시간 후 만료되므로 불가)
+- [ ] 히스토리 엑셀 내보내기 — 선택한 분석 기록을 xlsx로 저장 (시료명, 마커, 종명, 일치도, 날짜 등)
+- [ ] My Pages 연동 — 개인 대시보드에서 분석 기록 모아보기, 프로젝트별 분류, 결과 비교 (D1 영구 저장 필요)

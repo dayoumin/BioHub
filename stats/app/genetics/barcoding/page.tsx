@@ -87,29 +87,20 @@ function BarcodingContent() {
   }, [])
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8">
+    <main>
       <div className="mb-8">
         <Link href="/genetics" className="mb-4 inline-block text-sm text-primary hover:underline">
           &larr; 유전적 분석
         </Link>
         <h1 className="mb-2 text-2xl font-bold">DNA 바코딩 종 판별</h1>
         <p className="text-sm text-muted-foreground">
-          서열을 입력하면 종을 동정하고, 결과 해석과 다음 단계를 안내합니다.
+          마커 선택 → 서열 입력 → 종 동정 + 결과 해석 + 대안 마커 안내
         </p>
       </div>
 
       {state.step === 'input' && (
         <>
-          <div className="mb-8 rounded-lg border border-blue-200 bg-blue-50 p-5">
-            <h2 className="mb-3 text-sm font-semibold text-blue-900">사용 방법</h2>
-            <ol className="space-y-2 text-sm text-blue-800">
-              <li><span className="mr-2 font-bold text-blue-600">1.</span>마커를 선택하세요 (기본: COI — 동물 표준 바코드)</li>
-              <li><span className="mr-2 font-bold text-blue-600">2.</span>FASTA 서열을 붙여넣거나 파일을 업로드하세요</li>
-              <li><span className="mr-2 font-bold text-blue-600">3.</span>결과와 함께 <strong className="text-blue-900">해석, 대안 마커, 다음 단계</strong>를 안내합니다</li>
-            </ol>
-          </div>
-
-          <div className="mt-4 rounded bg-muted/50 p-3 text-xs text-muted-foreground">
+          <div className="rounded bg-muted/50 p-3 text-xs text-muted-foreground">
             <strong>COI로 잘 안 되는 분류군이 있나요?</strong> 참치류, 양서류, 이매패류 등은 COI만으로 종 구분이
             어렵습니다. 분석 결과에서 자동으로 대안 마커를 추천합니다.
           </div>

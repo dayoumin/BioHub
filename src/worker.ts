@@ -216,6 +216,9 @@ function jsonResponse(body: Record<string, unknown>, status: number): Response {
 
 const NCBI_BLAST_BASE = 'https://blast.ncbi.nlm.nih.gov/Blast.cgi'
 
+/** BLAST 캐시 TTL: 14일 */
+const BLAST_CACHE_TTL_MS = 14 * 24 * 60 * 60 * 1000
+
 /** BLAST 제출 간 최소 간격 (NCBI 정책: 10초) */
 const BLAST_MIN_INTERVAL_MS = 10_000
 /**
@@ -225,12 +228,20 @@ const BLAST_MIN_INTERVAL_MS = 10_000
  */
 let lastBlastSubmitAt = 0
 
+/** SHA-256 해시 (Web Crypto API) */
+async function hashSequence(sequence: string): Promise<string> {
+  const data = new TextEncoder().encode(sequence)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = new Uint8Array(hashBuffer)
+  return Array.from(hashArray, b => b.toString(16).padStart(2, '0')).join('')
+}
+
 /**
  * BLAST API 프록시
  *
- * POST /api/blast/submit — 서열 제출 → RID 반환
+ * POST /api/blast/submit — 서열 제출 → RID 반환 (캐시 히트 시 즉시 반환)
  * GET  /api/blast/status/:rid — RID 상태 확인
- * GET  /api/blast/result/:rid — 결과 조회 (Tabular → JSON)
+ * GET  /api/blast/result/:rid — 결과 조회 (Tabular → JSON, 캐시 저장)
  */
 async function handleBlastProxy(
   request: Request,
@@ -258,7 +269,9 @@ async function handleBlastProxy(
 
   const resultMatch = subPath.match(/^\/result\/([A-Z0-9]+)$/)
   if (resultMatch && request.method === 'GET') {
-    return handleBlastResult(resultMatch[1])
+    const seqHash = url.searchParams.get('hash') || undefined
+    const marker = url.searchParams.get('marker') || undefined
+    return handleBlastResult(resultMatch[1], env, seqHash, marker)
   }
 
   return jsonResponse({ error: 'Not found' }, 404)
@@ -274,18 +287,6 @@ async function handleBlastSubmit(
   request: Request,
   env: Env
 ): Promise<Response> {
-  // 스로틀: NCBI 정책 준수 (10초 간격)
-  const now = Date.now()
-  const elapsed = now - lastBlastSubmitAt
-  if (elapsed < BLAST_MIN_INTERVAL_MS) {
-    const waitSec = Math.ceil((BLAST_MIN_INTERVAL_MS - elapsed) / 1000)
-    return jsonResponse({
-      error: 'throttled',
-      message: `NCBI rate limit. ${waitSec}초 후 다시 시도하세요.`,
-      retryAfter: waitSec,
-    }, 429)
-  }
-
   let body: { sequence?: string; marker?: string; apiKey?: string }
   try {
     body = await request.json() as typeof body
@@ -301,6 +302,35 @@ async function handleBlastSubmit(
     return jsonResponse({ error: '서열은 최대 10,000 bp까지 허용됩니다.' }, 400)
   }
 
+  const marker = body.marker || 'COI'
+  const seqHash = await hashSequence(sequence)
+
+  // D1 캐시 확인
+  try {
+    const cached = await env.DB.prepare(
+      'SELECT result_json FROM blast_cache WHERE sequence_hash = ? AND marker = ? AND expires_at > ?'
+    ).bind(seqHash, marker, Date.now()).first<{ result_json: string }>()
+
+    if (cached) {
+      const hits = JSON.parse(cached.result_json) as Array<Record<string, unknown>>
+      return jsonResponse({ cached: true, hits }, 200)
+    }
+  } catch {
+    // 캐시 조회 실패 시 무시하고 NCBI 호출 진행
+  }
+
+  // 스로틀: NCBI 정책 준수 (10초 간격)
+  const now = Date.now()
+  const elapsed = now - lastBlastSubmitAt
+  if (elapsed < BLAST_MIN_INTERVAL_MS) {
+    const waitSec = Math.ceil((BLAST_MIN_INTERVAL_MS - elapsed) / 1000)
+    return jsonResponse({
+      error: 'throttled',
+      message: `NCBI rate limit. ${waitSec}초 후 다시 시도하세요.`,
+      retryAfter: waitSec,
+    }, 429)
+  }
+
   // 사용자 API 키 우선, 없으면 서버 키
   const apiKey = body.apiKey || env.NCBI_API_KEY || ''
 
@@ -311,7 +341,6 @@ async function handleBlastSubmit(
     DATABASE: 'nt',
     QUERY: sequence,
     HITLIST_SIZE: '10',
-    // FORMAT_TYPE 생략: 결과는 Get에서 Tabular로 요청 (JSON2는 항상 ZIP → Workers 파싱 불가)
   })
   if (apiKey) {
     params.set('api_key', apiKey)
@@ -322,7 +351,6 @@ async function handleBlastSubmit(
   const ncbiRes = await fetch(`${NCBI_BLAST_BASE}?${params.toString()}`)
   const text = await ncbiRes.text()
 
-  // RID 추출: "RID = XXXXXXXX"
   const ridMatch = text.match(/RID\s*=\s*([A-Z0-9]+)/)
   const rtoeMatch = text.match(/RTOE\s*=\s*(\d+)/)
 
@@ -333,6 +361,7 @@ async function handleBlastSubmit(
   return jsonResponse({
     rid: ridMatch[1],
     rtoe: rtoeMatch ? Number(rtoeMatch[1]) : 30,
+    sequenceHash: seqHash,
   }, 200)
 }
 
@@ -365,7 +394,12 @@ async function handleBlastStatus(rid: string): Promise<Response> {
  * NCBI BLAST 결과 조회 — Tabular 텍스트를 파싱해서 JSON으로 반환
  * JSON2는 항상 ZIP으로 반환됨 (NCBI 표준 동작) → Workers에서 ZIP 파싱 불가 → Tabular 사용
  */
-async function handleBlastResult(rid: string): Promise<Response> {
+async function handleBlastResult(
+  rid: string,
+  env: Env,
+  sequenceHash?: string,
+  marker?: string
+): Promise<Response> {
   // Tabular 포맷으로 요청 — JSON2는 항상 ZIP으로 반환됨 (NCBI 표준), Workers에서 ZIP 파싱 불가
   const params = new URLSearchParams({
     CMD: 'Get',
@@ -383,17 +417,18 @@ async function handleBlastResult(rid: string): Promise<Response> {
   }
 
   // Tabular 결과 파싱
-  // Fields: query, subject acc.ver, % identity, alignment length, mismatches, gap opens,
-  //         q.start, q.end, s.start, s.end, evalue, bit score
   const hits: Array<Record<string, unknown>> = []
   for (const line of text.split('\n')) {
     if (line.startsWith('#') || line.startsWith('<') || !line.trim()) continue
     const cols = line.split('\t')
     if (cols.length < 12) continue
+    const accession = cols[1]?.trim()
+    const identity = parseFloat(cols[2])
+    if (!accession || isNaN(identity)) continue
 
     hits.push({
-      accession: cols[1],
-      identity: parseFloat(cols[2]) / 100, // % → 0-1
+      accession,
+      identity: identity / 100,
       alignLength: parseInt(cols[3]),
       mismatches: parseInt(cols[4]),
       gapOpens: parseInt(cols[5]),
@@ -404,6 +439,19 @@ async function handleBlastResult(rid: string): Promise<Response> {
       evalue: parseFloat(cols[10]),
       bitScore: parseFloat(cols[11]),
     })
+  }
+
+  // 캐시 저장 (hash + marker가 있고, 결과가 있을 때)
+  if (sequenceHash && marker && hits.length > 0) {
+    const now = Date.now()
+    try {
+      await env.DB.prepare(
+        `INSERT OR REPLACE INTO blast_cache (sequence_hash, marker, api_source, result_json, cached_at, expires_at)
+         VALUES (?, ?, 'ncbi', ?, ?, ?)`
+      ).bind(sequenceHash, marker, JSON.stringify(hits), now, now + BLAST_CACHE_TTL_MS).run()
+    } catch {
+      // 캐시 저장 실패는 무시
+    }
   }
 
   if (hits.length === 0) {
