@@ -132,8 +132,34 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
           throw new Error(`결과 조회 실패 (${resultRes.status})`)
         }
 
-        const resultData = await resultRes.json()
+        const resultData = await resultRes.json() as { hits?: Array<Record<string, unknown>> }
         if (signal.aborted) return
+
+        // 4. 종명 조회 (efetch) — 실패해도 accession으로 표시
+        if (resultData.hits && resultData.hits.length > 0) {
+          try {
+            const accessions = resultData.hits.map(h => h['accession'] as string).filter(Boolean)
+            if (accessions.length > 0) {
+              const speciesRes = await fetch('/api/ncbi/species', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accessions }),
+                signal,
+              })
+              if (speciesRes.ok) {
+                const { species } = await speciesRes.json() as { species: Record<string, string> }
+                for (const hit of resultData.hits) {
+                  const acc = hit['accession'] as string
+                  if (acc && species[acc]) {
+                    hit['species'] = species[acc]
+                  }
+                }
+              }
+            }
+          } catch (speciesErr) {
+            console.warn('[BlastRunner] 종명 조회 실패, accession으로 표시:', speciesErr)
+          }
+        }
 
         setPhase('done')
         onResultRef.current(resultData)
@@ -191,18 +217,39 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
       </div>
 
       {phase === 'polling' && (
-        <div className="space-y-2 text-sm text-gray-600" role="status" aria-live="polite">
-          <p>
-            예상 시간: 약 {estimatedTime}초
-            {estimatedTime > 0 && elapsed < estimatedTime
-              ? ` · 남은 시간 약 ${Math.max(estimatedTime - elapsed, 1)}초`
-              : ''}
-          </p>
-          <p className="text-amber-600/80">
-            분석이 완료될 때까지 이 페이지를 유지해주세요. 페이지를 떠나면 결과를 받을 수 없습니다.
+        <div className="space-y-3" role="status" aria-live="polite">
+          {/* 분석 과정 설명 */}
+          <div className="rounded-lg bg-gray-50 p-4">
+            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">분석 과정</h4>
+            <ol className="space-y-1.5 text-xs text-gray-600">
+              <li className={elapsed < 5 ? 'font-medium text-blue-700' : 'text-gray-400'}>
+                1. 입력 서열을 NCBI BLAST 서버에 전송
+              </li>
+              <li className={elapsed >= 5 && elapsed < estimatedTime * 0.7 ? 'font-medium text-blue-700' : elapsed >= 5 ? 'text-gray-400' : 'text-gray-400'}>
+                2. 전 세계 유전자 데이터베이스(nt)에서 유사 서열 검색
+              </li>
+              <li className={elapsed >= estimatedTime * 0.7 ? 'font-medium text-blue-700' : 'text-gray-400'}>
+                3. 유사도 정렬 및 통계적 유의성 계산
+              </li>
+              <li className="text-gray-400">
+                4. 결과 수신 → 종 판별 및 해석
+              </li>
+            </ol>
+          </div>
+
+          <div className="text-sm text-gray-600">
+            <p>
+              예상 시간: 약 {estimatedTime}초
+              {estimatedTime > 0 && elapsed < estimatedTime
+                ? ` · 남은 시간 약 ${Math.max(estimatedTime - elapsed, 1)}초`
+                : ''}
+            </p>
+          </div>
+          <p className="text-xs text-amber-600/80">
+            분석이 완료될 때까지 이 페이지를 유지해주세요.
           </p>
           {elapsed > 120 && (
-            <p className="text-amber-600">
+            <p className="text-xs text-amber-600">
               평소보다 오래 걸리고 있습니다. NCBI 서버 상태에 따라 지연될 수 있습니다.
             </p>
           )}

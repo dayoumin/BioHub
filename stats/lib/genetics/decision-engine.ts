@@ -47,13 +47,15 @@ export function parseBlastHits(data: unknown): BlastTopHit[] {
       const queryStart = (hit['queryStart'] as number) || 0
       const queryEnd = (hit['queryEnd'] as number) || 0
 
+      const species = (hit['species'] as string) || accession
+
       return {
-        species: accession, // 종명은 accession으로 우선 표시 (E-utilities 연동 시 개선)
+        species,
         identity,
         accession,
         evalue: (hit['evalue'] as number) ?? undefined,
         queryCoverage: alignLength > 0 ? (queryEnd - queryStart + 1) / alignLength : undefined,
-        description: accession,
+        description: species,
       }
     })
   } catch (err) {

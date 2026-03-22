@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Dna, BarChart3, Grid3X3, GitFork, Users, ArrowRight, HelpCircle, FileText, FlaskConical, Clock, Play, Trash2 } from 'lucide-react'
+import { Dna, BarChart3, Grid3X3, GitFork, Users, ArrowRight, HelpCircle, FileText, FlaskConical, Clock, Play, Trash2, PanelRightClose, Pin, X } from 'lucide-react'
 import type { ComponentType } from 'react'
 import type { BlastResultStatus } from '@biohub/types'
 import type { AnalysisHistoryEntry } from '@/lib/genetics/analysis-history'
-import { loadAnalysisHistory, clearAnalysisHistory } from '@/lib/genetics/analysis-history'
+import { loadAnalysisHistory, clearAnalysisHistory, deleteAnalysisEntry, togglePinEntry } from '@/lib/genetics/analysis-history'
 import { EXAMPLE_SEQUENCES } from '@/lib/genetics/example-sequences'
 import { formatTimeAgo } from '@/lib/utils/format-time'
 
@@ -100,11 +100,15 @@ const PENDING_TOOLS = TOOLS.filter(t => !t.ready)
 
 export default function GeneticsHome() {
   const [guideOpen, setGuideOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const [history, setHistory] = useState<AnalysisHistoryEntry[]>([])
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const guideRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    setHistory(loadAnalysisHistory())
+    const loaded = loadAnalysisHistory()
+    setHistory(loaded)
+    if (loaded.length > 0) setHistoryOpen(true)
   }, [])
 
   // 외부 클릭 시 도움말 닫기
@@ -124,146 +128,203 @@ export default function GeneticsHome() {
     setHistory([])
   }
 
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
-      <div className="mb-8 flex items-start justify-between">
-        <div>
-          <h1 className="mb-2 text-2xl font-bold">유전적 분석</h1>
-          <p className="text-sm text-muted-foreground">
-            DNA 서열 기반 종 판별, 서열 통계, 계통 분석, 집단 유전학 도구
-          </p>
-        </div>
-        <div ref={guideRef} className="relative">
-          <button
-            type="button"
-            onClick={() => setGuideOpen(prev => !prev)}
-            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition ${
-              guideOpen
-                ? 'border-primary/30 bg-primary/5 text-primary'
-                : 'border-border text-muted-foreground hover:border-primary/20 hover:text-foreground'
-            }`}
-          >
-            <HelpCircle className="h-3.5 w-3.5" />
-            도움말
-          </button>
-          {guideOpen && (
-            <div className="absolute right-0 top-full z-10 mt-2 w-[min(480px,calc(100vw-2rem))] rounded-xl border border-border bg-card p-5 shadow-lg">
-              <div className="grid gap-6 sm:grid-cols-2">
-                {/* 상황별 안내 */}
-                <div>
-                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">상황별 도구 선택</h3>
-                  <div className="space-y-3">
-                    <GuideRow icon={Dna} question="이 시료가 어떤 종인지 모르겠어요" answer="DNA 바코딩 종 판별" />
-                    <GuideRow icon={BarChart3} question="서열의 품질을 확인하고 싶어요" answer="서열 기본 통계" />
-                    <GuideRow icon={Grid3X3} question="종 간 유전적 거리를 비교하고 싶어요" answer="다종 유사도 행렬" />
-                    <GuideRow icon={GitFork} question="진화적 관계를 시각화하고 싶어요" answer="계통수 시각화" />
-                    <GuideRow icon={Users} question="집단 간 유전적 차이를 분석하고 싶어요" answer="집단 유전학" />
-                  </div>
-                </div>
+  const handleDeleteEntry = (id: string): void => {
+    setHistory(deleteAnalysisEntry(id))
+  }
 
-                {/* 분석 순서 */}
-                <div>
-                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">일반적인 분석 순서</h3>
-                  <div>
-                    {WORKFLOW_STEPS.map((step, i) => {
-                      const Icon = step.icon
-                      return (
-                        <div key={step.label} className="flex items-center gap-3">
-                          <div className="flex flex-col items-center">
-                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
-                              {i + 1}
-                            </div>
-                            {i < WORKFLOW_STEPS.length - 1 && (
-                              <div className="h-4 w-px bg-border" />
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 pb-1">
-                            <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">{step.label}</span>
-                          </div>
+  const handleTogglePin = (id: string): void => {
+    setHistory(togglePinEntry(id))
+  }
+
+  const handleToggleSelect = (id: string): void => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleDeleteSelected = (): void => {
+    let updated = loadAnalysisHistory()
+    for (const id of selectedIds) {
+      updated = updated.filter(e => e.id !== id)
+    }
+    clearAnalysisHistory()
+    if (updated.length > 0) {
+      localStorage.setItem('biohub:genetics:history', JSON.stringify(updated))
+    }
+    setHistory(updated)
+    setSelectedIds(new Set())
+  }
+
+  return (
+    <div className="mx-auto max-w-6xl px-4 py-8">
+      <div className="flex gap-6">
+        {/* ── 좌측: 메인 콘텐츠 ── */}
+        <div className="min-w-0 flex-1">
+          <div className="mb-8 flex items-start justify-between">
+            <div>
+              <h1 className="mb-2 text-2xl font-bold">유전적 분석</h1>
+              <p className="text-sm text-muted-foreground">
+                DNA 서열 기반 종 판별, 서열 통계, 계통 분석, 집단 유전학 도구
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* 히스토리 토글 (닫혀 있을 때만 표시) */}
+              {history.length > 0 && !historyOpen && (
+                <button
+                  type="button"
+                  onClick={() => setHistoryOpen(true)}
+                  className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition hover:border-primary/20 hover:text-foreground"
+                >
+                  <Clock className="h-3.5 w-3.5" />
+                  최근 분석
+                  <span className="rounded-full bg-muted px-1.5 text-[10px]">{history.length}</span>
+                </button>
+              )}
+              <div ref={guideRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setGuideOpen(prev => !prev)}
+                  className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition ${
+                    guideOpen
+                      ? 'border-primary/30 bg-primary/5 text-primary'
+                      : 'border-border text-muted-foreground hover:border-primary/20 hover:text-foreground'
+                  }`}
+                >
+                  <HelpCircle className="h-3.5 w-3.5" />
+                  도움말
+                </button>
+                {guideOpen && (
+                  <div className="absolute right-0 top-full z-10 mt-2 w-[min(480px,calc(100vw-2rem))] rounded-xl border border-border bg-card p-5 shadow-lg">
+                    <div className="grid gap-6 sm:grid-cols-2">
+                      <div>
+                        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">상황별 도구 선택</h3>
+                        <div className="space-y-3">
+                          <GuideRow icon={Dna} question="이 시료가 어떤 종인지 모르겠어요" answer="DNA 바코딩 종 판별" />
+                          <GuideRow icon={BarChart3} question="서열의 품질을 확인하고 싶어요" answer="서열 기본 통계" />
+                          <GuideRow icon={Grid3X3} question="종 간 유전적 거리를 비교하고 싶어요" answer="다종 유사도 행렬" />
+                          <GuideRow icon={GitFork} question="진화적 관계를 시각화하고 싶어요" answer="계통수 시각화" />
+                          <GuideRow icon={Users} question="집단 간 유전적 차이를 분석하고 싶어요" answer="집단 유전학" />
                         </div>
-                      )
-                    })}
+                      </div>
+                      <div>
+                        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">일반적인 분석 순서</h3>
+                        <div>
+                          {WORKFLOW_STEPS.map((step, i) => {
+                            const Icon = step.icon
+                            return (
+                              <div key={step.label} className="flex items-center gap-3">
+                                <div className="flex flex-col items-center">
+                                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
+                                    {i + 1}
+                                  </div>
+                                  {i < WORKFLOW_STEPS.length - 1 && (
+                                    <div className="h-4 w-px bg-border" />
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 pb-1">
+                                  <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <span className="text-sm text-muted-foreground">{step.label}</span>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                        <p className="mt-4 text-xs leading-relaxed text-muted-foreground/70">
+                          처음이라면 <span className="font-medium text-primary">DNA 바코딩</span>부터 시작하세요.
+                          서열 하나만 있으면 종을 판별할 수 있습니다.
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <p className="mt-4 text-xs leading-relaxed text-muted-foreground/70">
-                    처음이라면 <span className="font-medium text-primary">DNA 바코딩</span>부터 시작하세요.
-                    서열 하나만 있으면 종을 판별할 수 있습니다.
-                  </p>
-                </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 활성 도구 */}
+          <div className="mb-6 space-y-4">
+            {READY_TOOLS.map((tool) => (
+              <ReadyCard key={tool.id} tool={tool} />
+            ))}
+          </div>
+
+          {/* 예제 서열 */}
+          <div className="mb-6">
+            <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              예제 서열로 체험하기
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {EXAMPLE_SEQUENCES.map((ex) => (
+                <Link key={ex.id} href={`/genetics/barcoding?example=${ex.id}`}>
+                  <div className="group rounded-lg border border-border bg-card p-3 transition hover:border-primary/30 hover:shadow-sm">
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <Play className="h-3 w-3 text-primary" />
+                      <span className="text-xs font-medium">{ex.species}</span>
+                    </div>
+                    <p className="mb-2 text-[11px] leading-relaxed text-muted-foreground">{ex.description}</p>
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground/60">
+                      <span>{ex.marker}</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* 준비 중 도구 */}
+          {PENDING_TOOLS.length > 0 && (
+            <div className="mb-6">
+              <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                개발 예정
+              </h2>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {PENDING_TOOLS.map((tool) => (
+                  <PendingCard key={tool.id} tool={tool} />
+                ))}
               </div>
             </div>
           )}
         </div>
-      </div>
 
-      {/* 활성 도구 */}
-      <div className="mb-6 space-y-4">
-        {READY_TOOLS.map((tool) => (
-          <ReadyCard key={tool.id} tool={tool} />
-        ))}
-      </div>
-
-      {/* 예제 서열 */}
-      <div className="mb-6">
-        <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          예제 서열로 체험하기
-        </h2>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {EXAMPLE_SEQUENCES.map((ex) => (
-            <Link key={ex.id} href={`/genetics/barcoding?example=${ex.id}`}>
-              <div className="group rounded-lg border border-border bg-card p-3 transition hover:border-primary/30 hover:shadow-sm">
-                <div className="mb-1.5 flex items-center gap-2">
-                  <Play className="h-3 w-3 text-primary" />
-                  <span className="text-xs font-medium">{ex.species}</span>
+        {/* ── 우측: 최근 분석 사이드바 ── */}
+        {history.length > 0 && historyOpen && (
+          <div className="hidden w-64 shrink-0 lg:block">
+            <div className="sticky top-8">
+              <div className="rounded-xl border border-border bg-card">
+                <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">최근 분석</h2>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={handleClearHistory}
+                      className="rounded p-1 text-muted-foreground/40 transition hover:text-destructive"
+                      title="기록 삭제"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHistoryOpen(false)}
+                      className="rounded p-1 text-muted-foreground/40 transition hover:text-foreground"
+                      title="패널 닫기"
+                    >
+                      <PanelRightClose className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <p className="mb-2 text-[11px] leading-relaxed text-muted-foreground">{ex.description}</p>
-                <div className="flex items-center gap-2 text-[10px] text-muted-foreground/60">
-                  <span>{ex.marker}</span>
+                <div className="divide-y divide-border/50">
+                  {history.map((entry) => (
+                    <HistoryRow key={entry.id} entry={entry} />
+                  ))}
                 </div>
               </div>
-            </Link>
-          ))}
-        </div>
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* 최근 분석 히스토리 */}
-      {history.length > 0 && (
-        <div className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              최근 분석
-            </h2>
-            <button
-              type="button"
-              onClick={handleClearHistory}
-              className="flex items-center gap-1 text-[11px] text-muted-foreground/50 transition hover:text-destructive"
-            >
-              <Trash2 className="h-3 w-3" />
-              기록 삭제
-            </button>
-          </div>
-          <div className="space-y-2">
-            {history.map((entry) => (
-              <HistoryRow key={entry.id} entry={entry} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 준비 중 도구 */}
-      {PENDING_TOOLS.length > 0 && (
-        <div className="mb-6">
-          <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            개발 예정
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {PENDING_TOOLS.map((tool) => (
-              <PendingCard key={tool.id} tool={tool} />
-            ))}
-          </div>
-        </div>
-      )}
-
     </div>
   )
 }
@@ -281,12 +342,7 @@ function ReadyCard({ tool }: { tool: Tool }) {
             <Icon className="h-5 w-5" />
           </div>
           <div className="flex-1">
-            <div className="mb-1 flex items-center gap-2">
-              <h2 className="text-lg font-semibold">{tool.title}</h2>
-              <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                {tool.badge}
-              </span>
-            </div>
+            <h2 className="mb-1 text-lg font-semibold">{tool.title}</h2>
             <p className="mb-2 text-sm text-muted-foreground">{tool.description}</p>
             <p className="text-xs text-muted-foreground/70">입력: {tool.input}</p>
           </div>
@@ -321,27 +377,37 @@ function PendingCard({ tool }: { tool: Tool }) {
 }
 
 function HistoryRow({ entry }: { entry: AnalysisHistoryEntry }) {
-  const statusInfo = entry.status ? STATUS_LABELS[entry.status] : null
+  const identityText = entry.topIdentity != null
+    ? `${(entry.topIdentity * 100).toFixed(1)}%`
+    : null
+  const identityColor = entry.topIdentity != null
+    ? entry.topIdentity >= 0.97 ? 'text-green-600'
+    : entry.topIdentity >= 0.90 ? 'text-amber-600'
+    : 'text-red-500'
+    : ''
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-border/50 bg-card px-4 py-3">
-      <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-medium">
-            {entry.topSpecies ?? entry.sequencePreview}
+    <div className="px-4 py-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="truncate text-xs font-medium">
+          {entry.sampleName || entry.topSpecies || entry.sequencePreview}
+        </span>
+        {identityText && (
+          <span className={`shrink-0 text-xs font-mono font-semibold ${identityColor}`}>
+            {identityText}
           </span>
-          {statusInfo && (
-            <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${statusInfo.className}`}>
-              {statusInfo.text}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2 text-[11px] text-muted-foreground/60">
-          <span>{entry.marker}</span>
-          <span className="text-border">·</span>
-          <span>{formatTimeAgo(entry.createdAt)}</span>
-        </div>
+        )}
+      </div>
+      <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground/60">
+        {entry.sampleName && entry.topSpecies && (
+          <>
+            <span className="truncate italic">{entry.topSpecies}</span>
+            <span className="text-border">·</span>
+          </>
+        )}
+        <span>{entry.marker}</span>
+        <span className="text-border">·</span>
+        <span>{formatTimeAgo(entry.createdAt)}</span>
       </div>
     </div>
   )

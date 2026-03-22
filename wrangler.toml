@@ -8,3 +8,8 @@ directory = "./stats/out"
 not_found_handling = "single-page-application"
 html_handling = "auto-trailing-slash"
 binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "biohub-db"
+database_id = "local"  # 배포 시 실제 ID로 교체

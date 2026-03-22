@@ -30,6 +30,8 @@ function BarcodingContent() {
   const searchParams = useSearchParams()
   const [marker, setMarker] = useState<BlastMarker>('COI')
   const [sequence, setSequence] = useState('')
+  const [sampleName, setSampleName] = useState('')
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
   const [state, setState] = useState<AppState>({ step: 'input' })
 
   // 예제 쿼리 파라미터 처리
@@ -57,13 +59,23 @@ function BarcodingContent() {
       return { step: 'result', marker: prev.marker, decision }
     })
 
+    // 시료명 자동 생성: 비어 있으면 "마커 + (파일명) + 날짜"
+    const now = new Date()
+    const dateStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+    const autoName = sampleName.trim()
+      || (uploadedFileName
+        ? `${marker} · ${uploadedFileName} · ${dateStr}`
+        : `${marker} 바코딩 · ${dateStr}`)
+
     saveAnalysisHistory({
+      sampleName: autoName,
       marker,
       sequencePreview: sequence.slice(0, 50),
       topSpecies: decision.topHits[0]?.species ?? null,
+      topIdentity: decision.topHits[0]?.identity ?? null,
       status: decision.status,
     })
-  }, [marker, sequence])
+  }, [marker, sequence, sampleName, uploadedFileName])
 
   const handleError = useCallback((msg: string) => {
     setState({ step: 'error', message: msg })
@@ -74,13 +86,8 @@ function BarcodingContent() {
     if (clearSequence) setSequence('')
   }, [])
 
-  const handleRetryWithMarker = useCallback((newMarker: BlastMarker) => {
-    setMarker(newMarker)
-    setState({ step: 'analyzing', sequence, marker: newMarker })
-  }, [sequence])
-
   return (
-    <main className="mx-auto max-w-3xl px-4 py-8">
+    <main className="mx-auto max-w-5xl px-4 py-8">
       <div className="mb-8">
         <Link href="/genetics" className="mb-4 inline-block text-sm text-primary hover:underline">
           &larr; 유전적 분석
@@ -112,6 +119,9 @@ function BarcodingContent() {
             onSequenceChange={setSequence}
             marker={marker}
             onMarkerChange={setMarker}
+            sampleName={sampleName}
+            onSampleNameChange={setSampleName}
+            onFileNameChange={setUploadedFileName}
             onSubmit={handleAnalyze}
           />
         </>
@@ -132,7 +142,6 @@ function BarcodingContent() {
           decision={state.decision}
           marker={state.marker}
           onReset={handleReset}
-          onRetryWithMarker={handleRetryWithMarker}
         />
       )}
 

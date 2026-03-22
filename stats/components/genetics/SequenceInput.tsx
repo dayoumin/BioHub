@@ -20,6 +20,9 @@ interface SequenceInputProps {
   onSequenceChange: (seq: string) => void
   marker: BlastMarker
   onMarkerChange: (marker: BlastMarker) => void
+  sampleName: string
+  onSampleNameChange: (name: string) => void
+  onFileNameChange?: (fileName: string | null) => void
   onSubmit: (validation: SequenceValidation) => void
 }
 
@@ -28,6 +31,9 @@ export function SequenceInput({
   onSequenceChange,
   marker,
   onMarkerChange,
+  sampleName,
+  onSampleNameChange,
+  onFileNameChange,
   onSubmit,
 }: SequenceInputProps) {
   const [validation, setValidation] = useState<SequenceValidation | null>(null)
@@ -57,10 +63,11 @@ export function SequenceInput({
       if (typeof text === 'string') {
         onSequenceChange(text)
         setUploadedFileName(file.name)
+        onFileNameChange?.(file.name)
       }
     }
     reader.readAsText(file)
-  }, [onSequenceChange])
+  }, [onSequenceChange, onFileNameChange])
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault()
@@ -69,6 +76,25 @@ export function SequenceInput({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* 시료명 */}
+      <div>
+        <label htmlFor="sampleName" className="mb-1 block text-sm font-medium text-gray-700">
+          시료명 <span className="font-normal text-gray-400">(선택)</span>
+        </label>
+        <input
+          id="sampleName"
+          type="text"
+          value={sampleName}
+          onChange={(e) => onSampleNameChange(e.target.value)}
+          placeholder="예: 제주 채집 시료 #3, 시장 구매 참치"
+          maxLength={100}
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        />
+        <p className="mt-1 text-xs text-gray-400">
+          나중에 분석 기록을 구분하는 데 사용됩니다
+        </p>
+      </div>
+
       <div>
         <label className="mb-2 block text-sm font-medium text-gray-700">
           마커
