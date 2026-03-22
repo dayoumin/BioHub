@@ -6,6 +6,7 @@ import Link from 'next/link'
 import type { BlastMarker, SequenceValidation } from '@biohub/types'
 import { SequenceInput } from '@/components/genetics/SequenceInput'
 import { BlastRunner } from '@/components/genetics/BlastRunner'
+import type { BlastErrorCode } from '@/components/genetics/BlastRunner'
 import { ResultView } from '@/components/genetics/ResultView'
 import { parseBlastHits, analyzeBlastResult } from '@/lib/genetics/decision-engine'
 import type { DecisionResult } from '@/lib/genetics/decision-engine'
@@ -16,7 +17,7 @@ type AppState =
   | { step: 'input' }
   | { step: 'analyzing'; sequence: string; marker: BlastMarker }
   | { step: 'result'; marker: BlastMarker; decision: DecisionResult }
-  | { step: 'error'; message: string }
+  | { step: 'error'; message: string; code: BlastErrorCode }
 
 export default function BarcodingPage() {
   return (
@@ -77,8 +78,8 @@ function BarcodingContent() {
     })
   }, [marker, sequence, sampleName, uploadedFileName])
 
-  const handleError = useCallback((msg: string) => {
-    setState({ step: 'error', message: msg })
+  const handleError = useCallback((msg: string, code: BlastErrorCode) => {
+    setState({ step: 'error', message: msg, code })
   }, [])
 
   const handleReset = useCallback((clearSequence = true) => {
@@ -138,12 +139,12 @@ function BarcodingContent() {
           <div className="rounded-lg border border-border bg-muted/30 p-4">
             <h3 className="mb-2 text-sm font-medium text-muted-foreground">해결 방법</h3>
             <ul className="space-y-1 text-xs text-muted-foreground/80">
-              {state.message.includes('연결') || state.message.includes('서버') ? (
+              {state.code === 'network' ? (
                 <>
                   <li>- 인터넷 연결을 확인하세요</li>
                   <li>- 잠시 후 다시 시도하세요 (NCBI 서버 점검일 수 있습니다)</li>
                 </>
-              ) : state.message.includes('시간 초과') ? (
+              ) : state.code === 'timeout' ? (
                 <>
                   <li>- NCBI 서버가 혼잡합니다. 몇 분 후 다시 시도하세요</li>
                   <li>- 서열이 너무 길면 잘라서 시도해보세요</li>

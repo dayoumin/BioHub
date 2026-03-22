@@ -4,11 +4,13 @@ import { useEffect, useRef, useState } from 'react'
 import type { BlastMarker } from '@biohub/types'
 import { cleanSequence } from '@/lib/genetics/validate-sequence'
 
+export type BlastErrorCode = 'network' | 'timeout' | 'blast-failed' | 'unknown'
+
 interface BlastRunnerProps {
   sequence: string
   marker: BlastMarker
   onResult: (data: unknown) => void
-  onError: (error: string) => void
+  onError: (message: string, code: BlastErrorCode) => void
   onCancel: () => void
 }
 
@@ -178,9 +180,14 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
       } catch (err) {
         if (signal.aborted) return
         const msg = err instanceof Error ? err.message : '알 수 없는 오류'
+        const code: BlastErrorCode =
+          err instanceof TypeError || msg.includes('연결') || msg.includes('서버') ? 'network'
+          : msg.includes('시간 초과') ? 'timeout'
+          : msg.includes('BLAST 실패') ? 'blast-failed'
+          : 'unknown'
         setErrorMessage(msg)
         setPhase('error')
-        onErrorRef.current(msg)
+        onErrorRef.current(msg, code)
       }
     }
 
