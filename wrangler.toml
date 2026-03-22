@@ -12,4 +12,4 @@ binding = "ASSETS"
 [[d1_databases]]
 binding = "DB"
 database_name = "biohub-db"
-database_id = "local"  # 배포 시 실제 ID로 교체
+database_id = "c176058f-cf48-4659-a08f-b151f357ae55"
