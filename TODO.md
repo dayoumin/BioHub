@@ -77,6 +77,8 @@ These should start after the current foundation is in place.
 - `[ux]` 토스트 메시지 기존 19곳 점진적 `TOAST.*` 마이그레이션
 - `[ux]` ChatBubble 공통 컴포넌트 추출
 - `[ux]` paper-draft/PaperDraftPanel.tsx 데드 코드 삭제
+- `[quality]` `barcoding/page.tsx` 에러 분기가 한국어 문자열 `includes()` 매칭 → 에러 코드 기반으로 전환 (`'network' | 'timeout' | 'unknown'`)
+- `[quality]` `session-sorter.ts` `sortSessionsByFavoriteAndRecent`가 `.sort()` in-place mutation → `[...sessions].sort()` 방어적 복사로 변경
 
 ---
 
