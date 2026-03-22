@@ -1,6 +1,6 @@
 'use client'
 
-import type { BlastMarker } from '@biohub/types'
+import type { BlastMarker } from '@/lib/genetics/types'
 import type { DecisionResult } from '@/lib/genetics/decision-engine'
 
 interface ResultViewProps {

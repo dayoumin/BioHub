@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import type { BlastMarker, SequenceValidation } from '@biohub/types'
+import type { BlastMarker, SequenceValidation } from '@/lib/genetics/types'
 import { validateSequence } from '@/lib/genetics/validate-sequence'
 
 const MARKERS: { value: BlastMarker; label: string }[] = [

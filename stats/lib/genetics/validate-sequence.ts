@@ -1,7 +1,7 @@
-import { MIN_SEQUENCE_LENGTH } from '@biohub/types'
-import type { SequenceValidation } from '@biohub/types'
+import type { SequenceValidation } from '@/lib/genetics/types'
 
 const DNA_CHARS = new Set('ATGCN')
+const MIN_SEQUENCE_LENGTH = 100
 const AMBIGUOUS_WARN_RATIO = 0.05
 
 /** FASTA에서 순수 서열만 추출 (헤더, 공백, 숫자 제거) */
