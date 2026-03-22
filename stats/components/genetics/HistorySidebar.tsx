@@ -68,7 +68,7 @@ export function HistorySidebar() {
         <button
           type="button"
           onClick={() => { userClosedRef.current = false; setOpen(true) }}
-          className="fixed right-4 top-20 z-10 flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-sm transition hover:border-primary/20 hover:text-foreground"
+          className="fixed right-4 top-24 z-10 flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-sm transition hover:border-primary/20 hover:text-foreground"
         >
           <Clock className="h-3.5 w-3.5" />
           최근 분석
@@ -80,7 +80,7 @@ export function HistorySidebar() {
 
   return (
     <div className="hidden w-64 shrink-0 lg:block">
-      <div className="sticky top-8">
+      <div className="sticky top-24">
         <div className="rounded-xl border border-border bg-card">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <div className="flex items-center gap-2">
@@ -189,7 +189,6 @@ function HistoryRow({ entry, selected, onToggleSelect, onTogglePin, onDelete }: 
         </div>
       </div>
 
-      {/* 호버 시 액션 */}
       <div className="absolute right-2 top-2 hidden items-center gap-0.5 group-hover:flex">
         <button
           type="button"
