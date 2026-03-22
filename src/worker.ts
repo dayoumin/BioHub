@@ -551,14 +551,31 @@ async function handleSpeciesLookup(
       return jsonResponse({ error: 'NCBI 응답 파싱 실패' }, 502)
     }
 
-    // accession → species 매핑 추출
+    // NCBI esummary는 UID를 키로 반환 → accession 매핑이 필요
+    const uids = result['uids'] as string[] | undefined
     const species: Record<string, string> = {}
-    for (const acc of limited) {
-      const entry = result[acc] as Record<string, unknown> | undefined
-      if (entry) {
+
+    if (uids) {
+      for (const uid of uids) {
+        const entry = result[uid] as Record<string, unknown> | undefined
+        if (!entry) continue
         const organism = (entry['organism'] as string) || ''
+        const accVer = (entry['accessionversion'] as string) || (entry['caption'] as string) || ''
         const title = (entry['title'] as string) || ''
-        species[acc] = organism || title.split(' ').slice(0, 2).join(' ')
+        const name = organism || title.split(' ').slice(0, 2).join(' ')
+        if (!name) continue
+
+        // accession (버전 있는/없는 모두 매핑)
+        if (accVer) species[accVer] = name
+        const accBase = accVer.split('.')[0]
+        if (accBase) species[accBase] = name
+
+        // 원본 입력에 있는 accession으로도 매핑
+        for (const acc of limited) {
+          if (acc === accVer || acc === accBase || acc.startsWith(accBase)) {
+            species[acc] = name
+          }
+        }
       }
     }
 
