@@ -26,7 +26,6 @@ const STATUS_LABELS: Record<BlastResultStatus, string> = {
   no_hit: '매칭 없음',
 }
 
-/** high가 아닌 경우 대안 마커를 상단에 강조 표시 */
 const needsAlternative = (status: BlastResultStatus): boolean =>
   status !== 'high'
 
@@ -35,171 +34,139 @@ export function ResultView({ decision, marker, onReset }: ResultViewProps) {
   const showAltTop = needsAlternative(decision.status) && decision.recommendedMarkers.length > 0
 
   return (
-    <div className="flex gap-6" role="region" aria-label="분석 결과">
-      {/* ── 좌측: 결과 본문 ── */}
-      <div className="min-w-0 flex-1 space-y-4">
-        {/* 1. 결과 카드 */}
-        <div className={`rounded-xl border ${style.border} ${style.bg} p-6`} role="status" aria-live="polite">
-          <div className="mb-3 flex items-center justify-between">
-            <span className={`rounded-full px-3 py-1 text-xs font-medium ${style.badge}`}>
-              {STATUS_LABELS[decision.status]}
+    <div className="space-y-4" role="region" aria-label="분석 결과">
+      {/* 결과 카드 */}
+      <div className={`rounded-xl border ${style.border} ${style.bg} p-6`} role="status" aria-live="polite">
+        <div className="mb-3 flex items-center justify-between">
+          <span className={`rounded-full px-3 py-1 text-xs font-medium ${style.badge}`}>
+            {STATUS_LABELS[decision.status]}
+          </span>
+          {decision.topHits[0] && (
+            <span className="text-sm font-semibold text-gray-700">
+              {(decision.topHits[0].identity * 100).toFixed(1)}%
             </span>
-            {decision.topHits[0] && (
-              <span className="text-sm font-semibold text-gray-700">
-                {(decision.topHits[0].identity * 100).toFixed(1)}%
-              </span>
-            )}
-          </div>
-          <h2 className={`mb-1 text-xl font-bold ${style.text}`}>
-            {decision.title}
-          </h2>
-          <p className="text-sm text-gray-600">{decision.description}</p>
+          )}
         </div>
+        <h2 className={`mb-1 text-xl font-bold ${style.text}`}>
+          {decision.title}
+        </h2>
+        <p className="text-sm text-gray-600">{decision.description}</p>
+      </div>
 
-        {/* 2. 대안 마커 안내 (실패/저신뢰/모호 시 상단 강조) */}
-        {showAltTop && (
-          <AlternativeMarkersCard marker={marker} markers={decision.recommendedMarkers} />
-        )}
+      {/* 대안 마커 안내 */}
+      {showAltTop && (
+        <AlternativeMarkersCard marker={marker} markers={decision.recommendedMarkers} />
+      )}
 
-        {/* 3. 분류군 맞춤 안내 */}
-        {decision.taxonAlert && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
-            <h3 className="mb-2 text-sm font-semibold text-amber-900">
-              {decision.taxonAlert.title}
-            </h3>
-            <p className="mb-3 text-sm text-amber-800">
-              {decision.taxonAlert.description}
-            </p>
-            <div className="rounded-lg bg-white/60 p-3">
-              <p className="text-sm font-medium text-amber-900">권장 조치</p>
-              <p className="text-sm text-amber-800">{decision.taxonAlert.recommendation}</p>
-            </div>
+      {/* 분류군 맞춤 안내 */}
+      {decision.taxonAlert && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+          <h3 className="mb-2 text-sm font-semibold text-amber-900">
+            {decision.taxonAlert.title}
+          </h3>
+          <p className="mb-3 text-sm text-amber-800">
+            {decision.taxonAlert.description}
+          </p>
+          <div className="rounded-lg bg-white/60 p-3">
+            <p className="text-sm font-medium text-amber-900">권장 조치</p>
+            <p className="text-sm text-amber-800">{decision.taxonAlert.recommendation}</p>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* 4. Top Hits 테이블 */}
-        {decision.topHits.length > 0 && (
-          <div className="rounded-xl border border-gray-200 bg-white p-5">
-            <h3 className="mb-3 text-sm font-semibold text-gray-700">매칭 결과</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-xs text-gray-500">
-                    <th className="pb-2">#</th>
-                    <th className="pb-2">종명</th>
-                    <th className="pb-2 text-right">유사도</th>
-                    <th className="pb-2 text-right">Coverage</th>
-                    <th className="pb-2 text-right">E-value</th>
-                    <th className="pb-2 text-right">Accession</th>
+      {/* Top Hits 테이블 */}
+      {decision.topHits.length > 0 && (
+        <div className="rounded-xl border border-gray-200 bg-white p-5">
+          <h3 className="mb-3 text-sm font-semibold text-gray-700">매칭 결과</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-xs text-gray-500">
+                  <th className="pb-2">#</th>
+                  <th className="pb-2">종명</th>
+                  <th className="pb-2 text-right">유사도</th>
+                  <th className="pb-2 text-right">Coverage</th>
+                  <th className="pb-2 text-right">E-value</th>
+                  <th className="pb-2 text-right">Accession</th>
+                </tr>
+              </thead>
+              <tbody>
+                {decision.topHits.map((hit, i) => (
+                  <tr key={i} className="border-b border-gray-50">
+                    <td className="py-2 text-gray-400">{i + 1}</td>
+                    <td className="py-2">
+                      <span className="italic">{hit.species}</span>
+                    </td>
+                    <td className="py-2 text-right font-mono">
+                      {(hit.identity * 100).toFixed(1)}%
+                    </td>
+                    <td className="py-2 text-right font-mono text-gray-500">
+                      {hit.queryCoverage != null
+                        ? `${(hit.queryCoverage * 100).toFixed(0)}%`
+                        : '-'}
+                    </td>
+                    <td className="py-2 text-right font-mono text-gray-500">
+                      {hit.evalue != null
+                        ? hit.evalue === 0 ? '0' : hit.evalue.toExponential(1)
+                        : '-'}
+                    </td>
+                    <td className="py-2 text-right">
+                      <a
+                        href={`https://www.ncbi.nlm.nih.gov/nuccore/${hit.accession}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        {hit.accession}
+                      </a>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {decision.topHits.map((hit, i) => (
-                    <tr key={i} className="border-b border-gray-50">
-                      <td className="py-2 text-gray-400">{i + 1}</td>
-                      <td className="py-2">
-                        <span className="italic">{hit.species}</span>
-                      </td>
-                      <td className="py-2 text-right font-mono">
-                        {(hit.identity * 100).toFixed(1)}%
-                      </td>
-                      <td className="py-2 text-right font-mono text-gray-500">
-                        {hit.queryCoverage != null
-                          ? `${(hit.queryCoverage * 100).toFixed(0)}%`
-                          : '-'}
-                      </td>
-                      <td className="py-2 text-right font-mono text-gray-500">
-                        {hit.evalue != null
-                          ? hit.evalue === 0 ? '0' : hit.evalue.toExponential(1)
-                          : '-'}
-                      </td>
-                      <td className="py-2 text-right">
-                        <a
-                          href={`https://www.ncbi.nlm.nih.gov/nuccore/${hit.accession}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline"
-                        >
-                          {hit.accession}
-                        </a>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── 우측: 사이드바 ── */}
-      <div className="hidden w-56 shrink-0 lg:block">
-        <div className="sticky top-8 space-y-4">
-          {/* 다음 단계 */}
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">다음 단계</h3>
-            <div className="space-y-2">
-              {decision.nextActions.map((action) => {
-                if (action.action === 'genbank' && decision.topHits[0]) {
-                  return (
-                    <a
-                      key={action.action}
-                      href={`https://www.ncbi.nlm.nih.gov/nuccore/${decision.topHits[0].accession}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block rounded-lg border border-gray-200 px-3 py-2 text-center text-xs font-medium text-gray-700 transition hover:bg-gray-50"
-                    >
-                      {action.label}
-                    </a>
-                  )
-                }
-                return (
-                  <button
-                    key={action.action}
-                    disabled
-                    title="준비 중인 기능입니다"
-                    className="block w-full rounded-lg border border-gray-100 px-3 py-2 text-xs text-gray-400 cursor-not-allowed"
-                  >
-                    {action.label}
-                    <span className="ml-1 text-[10px] text-gray-300">(준비 중)</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* 재분석 */}
-          <div className="space-y-2">
-            <button
-              onClick={() => onReset(false)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-600 transition hover:bg-gray-50"
-            >
-              서열 유지하고 재분석
-            </button>
-            <button
-              onClick={() => onReset(true)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-600 transition hover:bg-gray-50"
-            >
-              새 서열로 분석
-            </button>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* ── 모바일 하단 버튼 (lg 미만에서만 표시) ── */}
-      <div className="fixed inset-x-0 bottom-0 border-t border-gray-200 bg-white p-3 lg:hidden">
-        <div className="mx-auto flex max-w-3xl gap-2">
+      {/* 다음 단계 + 재분석 */}
+      <div className="flex flex-wrap items-center gap-2">
+        {decision.nextActions.map((action) => {
+          if (action.action === 'genbank' && decision.topHits[0]) {
+            return (
+              <a
+                key={action.action}
+                href={`https://www.ncbi.nlm.nih.gov/nuccore/${decision.topHits[0].accession}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+              >
+                {action.label}
+              </a>
+            )
+          }
+          return (
+            <button
+              key={action.action}
+              disabled
+              title="준비 중인 기능입니다"
+              className="rounded-lg border border-gray-100 px-3 py-2 text-xs text-gray-400 cursor-not-allowed"
+            >
+              {action.label} <span className="text-[10px] text-gray-300">(준비 중)</span>
+            </button>
+          )
+        })}
+        <div className="ml-auto flex gap-2">
           <button
             onClick={() => onReset(false)}
-            className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-600 transition hover:bg-gray-50"
           >
-            서열 유지
+            서열 유지하고 재분석
           </button>
           <button
             onClick={() => onReset(true)}
-            className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+            className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-medium text-gray-600 transition hover:bg-gray-50"
           >
-            새 서열
+            새 서열로 분석
           </button>
         </div>
       </div>
@@ -207,7 +174,7 @@ export function ResultView({ decision, marker, onReset }: ResultViewProps) {
   )
 }
 
-/** 대안 마커 안내 카드 — 배지 클릭 → 설명 펼침, 첫 번째(최우선) 자동 선택 */
+/** 대안 마커 안내 카드 */
 function AlternativeMarkersCard({ marker, markers }: { marker: BlastMarker; markers: MarkerRecommendation[] }) {
   const [selected, setSelected] = useState<string>(markers[0]?.name ?? '')
   const selectedInfo = markers.find(m => m.name === selected)
@@ -219,7 +186,6 @@ function AlternativeMarkersCard({ marker, markers }: { marker: BlastMarker; mark
         {marker}로는 정확한 종 판별이 어렵습니다. 아래 마커의 서열을 확보하여 분석해보세요.
       </p>
 
-      {/* 마커 배지 */}
       <div className="mb-3 flex flex-wrap gap-2">
         {markers.map((m, i) => (
           <button
@@ -240,7 +206,6 @@ function AlternativeMarkersCard({ marker, markers }: { marker: BlastMarker; mark
         ))}
       </div>
 
-      {/* 선택된 마커 설명 */}
       {selectedInfo && (
         <div className="rounded-lg border border-blue-200 bg-white p-4">
           <div className="mb-1 flex items-center gap-2">
