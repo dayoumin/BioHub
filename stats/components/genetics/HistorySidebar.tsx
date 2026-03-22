@@ -169,7 +169,6 @@ function HistoryRow({ entry, selected, onToggleSelect, onTogglePin, onDelete }: 
       {identityText && (
         <span className={`shrink-0 text-[10px] font-mono ${identityColor}`}>{identityText}</span>
       )}
-      <span className="shrink-0 text-[10px] text-muted-foreground/40">{formatTimeAgo(entry.createdAt)}</span>
       <div className="ml-auto hidden shrink-0 items-center gap-0.5 group-hover:flex">
         <button type="button" onClick={() => onTogglePin(entry.id)}
           className={`rounded p-0.5 transition ${entry.pinned ? 'text-primary' : 'text-muted-foreground/40 hover:text-primary'}`}
