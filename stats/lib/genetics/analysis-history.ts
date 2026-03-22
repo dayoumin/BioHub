@@ -12,7 +12,7 @@ export interface AnalysisHistoryEntry {
   createdAt: number
 }
 
-const HISTORY_KEY = 'biohub:genetics:history'
+export const HISTORY_KEY = 'biohub:genetics:history'
 const MAX_HISTORY = 20
 
 function isValidEntry(item: unknown): item is AnalysisHistoryEntry {
@@ -28,7 +28,7 @@ function isValidEntry(item: unknown): item is AnalysisHistoryEntry {
 
 /** 고정 항목 먼저, 그 다음 최신순 */
 function sortEntries(entries: AnalysisHistoryEntry[]): AnalysisHistoryEntry[] {
-  return entries.sort((a, b) => {
+  return [...entries].sort((a, b) => {
     if (a.pinned && !b.pinned) return -1
     if (!a.pinned && b.pinned) return 1
     return b.createdAt - a.createdAt
@@ -63,6 +63,7 @@ export function saveAnalysisHistory(entry: Omit<AnalysisHistoryEntry, 'id' | 'cr
     }
     const updated = sortEntries([newEntry, ...history]).slice(0, MAX_HISTORY)
     saveToStorage(updated)
+    window.dispatchEvent(new Event('genetics-history-changed'))
   } catch {
     // localStorage full
   }
@@ -84,12 +85,20 @@ export function deleteAnalysisEntry(id: string): AnalysisHistoryEntry[] {
 
 export function togglePinEntry(id: string): AnalysisHistoryEntry[] {
   if (typeof window === 'undefined') return []
-  const history = loadAnalysisHistory()
-  const entry = history.find(e => e.id === id)
-  if (entry) entry.pinned = !entry.pinned
-  const sorted = sortEntries(history)
-  saveToStorage(sorted)
-  return sorted
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY)
+    if (!raw) return []
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    const entries = parsed.filter(isValidEntry)
+    const entry = entries.find(e => e.id === id)
+    if (entry) entry.pinned = !entry.pinned
+    const sorted = sortEntries(entries)
+    saveToStorage(sorted)
+    return sorted
+  } catch {
+    return []
+  }
 }
 
 export function clearAnalysisHistory(): void {

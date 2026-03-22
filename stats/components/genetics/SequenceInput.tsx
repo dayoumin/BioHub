@@ -96,9 +96,12 @@ export function SequenceInput({
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-medium text-gray-700">
+        <label className="mb-1 block text-sm font-medium text-gray-700">
           마커
         </label>
+        <p className="mb-2 text-xs text-gray-500">
+          시퀀싱에 사용한 프라이머의 마커 영역을 선택하세요. 모르면 COI(기본값)로 시작하세요.
+        </p>
         <div className="flex flex-wrap gap-2">
           {MARKERS.map((m) => (
             <button
@@ -116,6 +119,11 @@ export function SequenceInput({
             </button>
           ))}
         </div>
+        {marker && (
+          <p className="mt-1.5 text-xs text-blue-600/80">
+            {MARKERS.find(m => m.value === marker)?.help}
+          </p>
+        )}
       </div>
 
       <div>
@@ -134,6 +142,20 @@ export function SequenceInput({
                 className="text-xs text-green-600 hover:text-green-800"
               >
                 예제 서열 넣기
+              </button>
+            )}
+            {sequence.trim() && (
+              <button
+                type="button"
+                onClick={() => {
+                  onSequenceChange('')
+                  setUploadedFileName(null)
+                  onFileNameChange?.(null)
+                  setValidation(null)
+                }}
+                className="text-xs text-red-500 hover:text-red-700"
+              >
+                서열 지우기 ✕
               </button>
             )}
             <button

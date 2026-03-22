@@ -1,29 +1,41 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Clock, PanelRightClose, Pin, X } from 'lucide-react'
 import type { AnalysisHistoryEntry } from '@/lib/genetics/analysis-history'
-import { loadAnalysisHistory, deleteMultipleEntries, deleteAnalysisEntry, togglePinEntry } from '@/lib/genetics/analysis-history'
+import { loadAnalysisHistory, deleteMultipleEntries, deleteAnalysisEntry, togglePinEntry, HISTORY_KEY } from '@/lib/genetics/analysis-history'
 import { formatTimeAgo } from '@/lib/utils/format-time'
 
 export function HistorySidebar() {
   const [open, setOpen] = useState(false)
   const [history, setHistory] = useState<AnalysisHistoryEntry[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const lastRawRef = useRef<string | null>(null)
 
-  useEffect(() => {
+  /** localStorage에서 히스토리를 읽되, 변경이 없으면 상태 업데이트 생략 */
+  function refreshHistory(): void {
+    const raw = localStorage.getItem(HISTORY_KEY)
+    if (raw === lastRawRef.current) return
+    lastRawRef.current = raw
     const loaded = loadAnalysisHistory()
     setHistory(loaded)
-    if (loaded.length > 0) setOpen(true)
+    if (loaded.length > 0 && !open) setOpen(true)
+  }
+
+  useEffect(() => {
+    refreshHistory()
   }, [])
 
-  // 페이지 이동 후 히스토리 갱신
+  // 같은 탭에서 분석 완료 시 갱신 (saveAnalysisHistory가 커스텀 이벤트 발행)
+  // + 다른 탭에서 변경 시 갱신 (window focus)
   useEffect(() => {
-    function onFocus(): void {
-      setHistory(loadAnalysisHistory())
+    function onHistoryChange(): void { refreshHistory() }
+    window.addEventListener('genetics-history-changed', onHistoryChange)
+    window.addEventListener('focus', onHistoryChange)
+    return () => {
+      window.removeEventListener('genetics-history-changed', onHistoryChange)
+      window.removeEventListener('focus', onHistoryChange)
     }
-    window.addEventListener('focus', onFocus)
-    return () => window.removeEventListener('focus', onFocus)
   }, [])
 
   const handleDelete = (id: string): void => setHistory(deleteAnalysisEntry(id))
