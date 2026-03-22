@@ -5,6 +5,9 @@
  * Decision Engine 상태, 마커 추천, 분류군 안내 포함.
  */
 
+/** 서열 최소 길이 (클라이언트 + 서버 공유) */
+export const MIN_SEQUENCE_LENGTH = 100
+
 export type BlastMarker = 'COI' | 'CytB' | '16S' | '12S' | 'ITS' | 'D-loop'
 
 export type BlastApiSource = 'ncbi' | 'ebi'

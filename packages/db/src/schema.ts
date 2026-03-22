@@ -6,6 +6,8 @@
  */
 
 import { sqliteTable, text, integer, real, uniqueIndex, index } from 'drizzle-orm/sqlite-core'
+import type { BlastMarker, BlastApiSource, BlastResultStatus } from '@biohub/types'
+import type { ProjectStatus } from '@biohub/types'
 
 // ─── 3-1. 사용자 ───
 
@@ -25,7 +27,7 @@ export const projects = sqliteTable('projects', {
   userId: text('user_id').notNull().references(() => users.id),
   name: text('name').notNull(),
   description: text('description'),
-  status: text('status').notNull().default('active'),   // 'active' | 'archived'
+  status: text('status').$type<ProjectStatus>().notNull().default('active'),
   primaryDomain: text('primary_domain'),
   tags: text('tags'),                             // JSON array
   paperConfig: text('paper_config'),              // JSON
@@ -79,12 +81,12 @@ export const blastResults = sqliteTable('blast_results', {
   projectId: text('project_id').references(() => projects.id, { onDelete: 'set null' }),
   sequenceHash: text('sequence_hash').notNull(),  // md5(sequence)
   sequence: text('sequence'),                     // 원본 서열
-  marker: text('marker').notNull(),               // 'COI' | 'CytB' | '16S' | ...
+  marker: text('marker').$type<BlastMarker>().notNull(),
   sequenceLength: integer('sequence_length'),
   gcContent: real('gc_content'),
   ambiguousCount: integer('ambiguous_count'),
-  apiSource: text('api_source').notNull(),         // 'ncbi' | 'ebi'
-  status: text('status').notNull(),                // 'high' | 'ambiguous' | 'low' | 'failed' | 'no_hit'
+  apiSource: text('api_source').$type<BlastApiSource>().notNull(),
+  status: text('status').$type<BlastResultStatus>().notNull(),
   topHits: text('top_hits').notNull(),             // JSON array
   decisionReason: text('decision_reason'),
   recommendedMarkers: text('recommended_markers'), // JSON array
@@ -117,8 +119,8 @@ export const graphProjects = sqliteTable('graph_projects', {
 
 export const blastCache = sqliteTable('blast_cache', {
   sequenceHash: text('sequence_hash').notNull(),
-  marker: text('marker').notNull(),
-  apiSource: text('api_source').notNull(),
+  marker: text('marker').$type<BlastMarker>().notNull(),
+  apiSource: text('api_source').$type<BlastApiSource>().notNull(),
   resultJson: text('result_json').notNull(),
   cachedAt: integer('cached_at').notNull(),
   expiresAt: integer('expires_at').notNull(),

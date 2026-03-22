@@ -7,6 +7,8 @@ export type {
   ProjectEntityRef,
 } from './project'
 
+export { MIN_SEQUENCE_LENGTH } from './blast'
+
 export type {
   BlastMarker,
   BlastApiSource,

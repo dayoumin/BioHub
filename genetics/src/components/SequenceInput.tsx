@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import type { BlastMarker, SequenceValidation } from '@biohub/types'
 import { validateSequence } from '@/lib/validate-sequence'
 
@@ -18,9 +18,7 @@ interface SequenceInputProps {
   onSequenceChange: (seq: string) => void
   marker: BlastMarker
   onMarkerChange: (marker: BlastMarker) => void
-  validation: SequenceValidation | null
-  onValidationChange: (v: SequenceValidation) => void
-  onSubmit: () => void
+  onSubmit: (validation: SequenceValidation) => void
 }
 
 export function SequenceInput({
@@ -28,18 +26,29 @@ export function SequenceInput({
   onSequenceChange,
   marker,
   onMarkerChange,
-  validation,
-  onValidationChange,
   onSubmit,
 }: SequenceInputProps) {
+  const [validation, setValidation] = useState<SequenceValidation | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // 서열 변경 시 실시간 유효성 검사
+  // 디바운스 300ms로 유효성 검사
   useEffect(() => {
-    if (sequence.trim()) {
-      onValidationChange(validateSequence(sequence))
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    if (!sequence.trim()) {
+      setValidation(null)
+      return
     }
-  }, [sequence, onValidationChange])
+
+    debounceRef.current = setTimeout(() => {
+      setValidation(validateSequence(sequence))
+    }, 300)
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [sequence])
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -57,12 +66,11 @@ export function SequenceInput({
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault()
-    if (validation?.valid) onSubmit()
+    if (validation?.valid) onSubmit(validation)
   }, [validation, onSubmit])
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* 마커 선택 */}
       <div>
         <label htmlFor="marker" className="mb-1 block text-sm font-medium text-gray-700">
           마커
@@ -79,7 +87,6 @@ export function SequenceInput({
         </select>
       </div>
 
-      {/* 서열 입력 */}
       <div>
         <div className="mb-1 flex items-center justify-between">
           <label htmlFor="sequence" className="block text-sm font-medium text-gray-700">
@@ -109,7 +116,6 @@ export function SequenceInput({
           className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 font-mono text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         />
 
-        {/* 유효성 검사 결과 */}
         {validation && (
           <div className="mt-2 space-y-1">
             {validation.errors.map((err, i) => (
@@ -128,7 +134,6 @@ export function SequenceInput({
         )}
       </div>
 
-      {/* 제출 버튼 */}
       <button
         type="submit"
         disabled={!validation?.valid}

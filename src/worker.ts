@@ -32,6 +32,23 @@ const RATE_LIMIT_WINDOW_MS = 60_000
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 
 function checkRateLimit(ip: string): boolean {
+  // 메모리 바운드: 만료 엔트리 정리 + 상한 초과 시 가장 오래된 엔트리 제거
+  if (rateLimitMap.size > 100) {
+    const now = Date.now()
+    for (const [key, entry] of rateLimitMap) {
+      if (now >= entry.resetAt) rateLimitMap.delete(key)
+    }
+  }
+  if (rateLimitMap.size > 10_000) {
+    const excess = rateLimitMap.size - 5_000
+    let deleted = 0
+    for (const key of rateLimitMap.keys()) {
+      if (deleted >= excess) break
+      rateLimitMap.delete(key)
+      deleted++
+    }
+  }
+
   const now = Date.now()
   const entry = rateLimitMap.get(ip)
 
@@ -48,14 +65,19 @@ function checkRateLimit(ip: string): boolean {
   return true
 }
 
-/** 주기적 정리: 만료된 엔트리 제거 (메모리 누수 방지) */
-function cleanupRateLimitMap(): void {
-  const now = Date.now()
-  for (const [ip, entry] of rateLimitMap) {
-    if (now >= entry.resetAt) {
-      rateLimitMap.delete(ip)
-    }
+/** Origin/Referer 검증 — same-site만 허용. 실패 시 403 Response 반환, 통과 시 null */
+function verifySameOrigin(request: Request, url: URL): Response | null {
+  const origin = request.headers.get('Origin')
+  const referer = request.headers.get('Referer')
+
+  if (origin) {
+    if (new URL(origin).host !== url.host) return jsonResponse({ error: 'Forbidden' }, 403)
+  } else if (referer) {
+    if (new URL(referer).host !== url.host) return jsonResponse({ error: 'Forbidden' }, 403)
+  } else {
+    return jsonResponse({ error: 'Forbidden' }, 403)
   }
+  return null
 }
 
 export default {
@@ -90,52 +112,12 @@ async function handleOpenRouterProxy(
   env: Env,
   url: URL
 ): Promise<Response> {
-  // Origin 검증: 같은 도메인에서만 허용
-  const origin = request.headers.get('Origin')
-  const referer = request.headers.get('Referer')
-  const requestHost = url.host
+  const originErr = verifySameOrigin(request, url)
+  if (originErr) return originErr
 
-  // Origin 또는 Referer가 있으면 같은 호스트인지 확인
-  // (curl 등 헤더 없는 요청도 차단)
-  if (origin) {
-    const originHost = new URL(origin).host
-    if (originHost !== requestHost) {
-      return jsonResponse({ error: 'Forbidden' }, 403)
-    }
-  } else if (referer) {
-    const refererHost = new URL(referer).host
-    if (refererHost !== requestHost) {
-      return jsonResponse({ error: 'Forbidden' }, 403)
-    }
-  } else {
-    // Origin도 Referer도 없는 요청 (curl, Postman 등) 차단
-    return jsonResponse({ error: 'Forbidden' }, 403)
-  }
-
-  // Rate limit 검사
   const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown'
-
-  // 메모리 바운드: 만료 엔트리 정리 후에도 상한 초과 시 가장 오래된 엔트리 제거
-  if (rateLimitMap.size > 100) {
-    cleanupRateLimitMap()
-  }
-  if (rateLimitMap.size > 10_000) {
-    // 분산 트래픽(다수 고유 IP)으로 맵이 무한 성장하는 것을 방지
-    // Map insertion order 순으로 삭제 (LRU가 아님 — 정확한 eviction보다 메모리 상한이 목적)
-    const excess = rateLimitMap.size - 5_000
-    let deleted = 0
-    for (const key of rateLimitMap.keys()) {
-      if (deleted >= excess) break
-      rateLimitMap.delete(key)
-      deleted++
-    }
-  }
-
   if (!checkRateLimit(clientIp)) {
-    return jsonResponse(
-      { error: 'Rate limit exceeded. Try again later.' },
-      429
-    )
+    return jsonResponse({ error: 'Rate limit exceeded. Try again later.' }, 429)
   }
 
   // /api/ai/chat/completions → /chat/completions
@@ -212,6 +194,11 @@ const NCBI_BLAST_BASE = 'https://blast.ncbi.nlm.nih.gov/Blast.cgi'
 
 /** BLAST 제출 간 최소 간격 (NCBI 정책: 10초) */
 const BLAST_MIN_INTERVAL_MS = 10_000
+/**
+ * 단일 isolate 내에서만 유효한 best-effort 스로틀.
+ * Workers는 다수 isolate를 생성할 수 있어 동시 요청이 모두 통과할 수 있음.
+ * 트래픽 증가 시 KV 또는 Durable Objects로 교체 필요.
+ */
 let lastBlastSubmitAt = 0
 
 /**
@@ -226,20 +213,9 @@ async function handleBlastProxy(
   env: Env,
   url: URL
 ): Promise<Response> {
-  // Origin 검증
-  const origin = request.headers.get('Origin')
-  const referer = request.headers.get('Referer')
-  const requestHost = url.host
+  const originErr = verifySameOrigin(request, url)
+  if (originErr) return originErr
 
-  if (origin) {
-    if (new URL(origin).host !== requestHost) return jsonResponse({ error: 'Forbidden' }, 403)
-  } else if (referer) {
-    if (new URL(referer).host !== requestHost) return jsonResponse({ error: 'Forbidden' }, 403)
-  } else {
-    return jsonResponse({ error: 'Forbidden' }, 403)
-  }
-
-  // IP rate limit (분당 30회, OpenRouter와 공유)
   const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown'
   if (!checkRateLimit(clientIp)) {
     return jsonResponse({ error: 'Rate limit exceeded' }, 429)
@@ -294,8 +270,9 @@ async function handleBlastSubmit(
   }
 
   const sequence = body.sequence?.trim()
+  // @biohub/types MIN_SEQUENCE_LENGTH와 동일 값
   if (!sequence || sequence.length < 100) {
-    return jsonResponse({ error: '서열은 최소 100bp 이상이어야 합니다.' }, 400)
+    return jsonResponse({ error: '서열은 최소 100 bp 이상이어야 합니다.' }, 400)
   }
 
   // 사용자 API 키 우선, 없으면 서버 키

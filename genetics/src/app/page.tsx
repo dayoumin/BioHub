@@ -7,13 +7,11 @@ import { SequenceInput } from '@/components/SequenceInput'
 export default function GeneticsPage() {
   const [marker, setMarker] = useState<BlastMarker>('COI')
   const [sequence, setSequence] = useState('')
-  const [validation, setValidation] = useState<SequenceValidation | null>(null)
 
-  const handleAnalyze = useCallback(async () => {
-    if (!validation?.valid) return
+  const handleAnalyze = useCallback((validation: SequenceValidation) => {
     // TODO: BLAST API 호출
-    console.log('Analyze:', { marker, sequence: sequence.slice(0, 50) + '...' })
-  }, [marker, sequence, validation])
+    console.log('Analyze:', { marker, length: validation.length })
+  }, [marker])
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-12">
@@ -29,8 +27,6 @@ export default function GeneticsPage() {
         onSequenceChange={setSequence}
         marker={marker}
         onMarkerChange={setMarker}
-        validation={validation}
-        onValidationChange={setValidation}
         onSubmit={handleAnalyze}
       />
     </main>
