@@ -98,7 +98,7 @@ export function togglePinEntry(id: string): AnalysisHistoryEntry[] {
     const entries = parseValidEntries(raw)
     const sorted = sortEntries(
       entries.map(e => e.id === id ? { ...e, pinned: !e.pinned } : e)
-    )
+    ).slice(0, MAX_HISTORY)
     saveToStorage(sorted)
     notifyChange()
     return sorted

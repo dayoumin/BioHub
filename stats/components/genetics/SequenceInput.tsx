@@ -42,11 +42,13 @@ export function SequenceInput({
 }: SequenceInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const debouncedSequence = useDebounce(sequence, 300)
-  const isStale = sequence !== debouncedSequence
-  const validation = useMemo<SequenceValidation | null>(
+  const debouncedValidation = useMemo<SequenceValidation | null>(
     () => debouncedSequence.trim() ? validateSequence(debouncedSequence) : null,
     [debouncedSequence],
   )
+  // raw sequence가 비었으면 debounce 지연과 무관하게 즉시 null
+  const validation = sequence.trim() ? debouncedValidation : null
+  const isStale = sequence !== debouncedSequence
   const canSubmit = validation?.valid === true && !isStale
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {

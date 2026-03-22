@@ -84,7 +84,10 @@ function BarcodingContent() {
 
   const handleReset = useCallback((clearSequence = true) => {
     setState({ step: 'input' })
-    if (clearSequence) setSequence('')
+    if (clearSequence) {
+      setSequence('')
+      setUploadedFileName(null)
+    }
   }, [])
 
   return (
