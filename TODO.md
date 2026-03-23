@@ -109,7 +109,12 @@ These are valid directions, but not current execution priorities.
 - `[domain]` Add stronger citation and traceability support for domain records in downstream outputs.
 - `[review]` Add figure and table compliance review against journal expectations.
 - `[workflow]` Add project-level collaboration or sharing concepts if storage architecture supports it.
-- `[domain]` 학명검증(species_checker) 통합 + 알림 시스템 통합 — 상세: [PLAN-SPECIES-INTEGRATION.md](docs/PLAN-SPECIES-INTEGRATION.md)
+- `[domain]` 학명검증(species_checker) 통합 + 알림 시스템 통합 — 상세: [PLAN-SPECIES-INTEGRATION.md](docs/PLAN-SPECIES-INTEGRATION.md). WoRMS 연동은 `D:\Projects\scientific-name-validator`에 별도 프로젝트 존재, 내재화 대기.
+- `[domain]` 외부 DB 연동 우선순위 — 레퍼런스: [docs/databases/](docs/databases/)
+  - **1순위**: BOLD ID Engine (종 동정 1차 검색, CORS 미지원→프록시 필요)
+  - **2순위**: GBIF (분포/출현 기록, CORS 지원→브라우저 직접 호출 가능)
+  - **3순위**: UniProt ID Mapping (BLAST→단백질 기능 연결, CORS 지원)
+  - **안함**: GO/KEGG/Ensembl 유전자 기능 심화 — Galaxy/Bioconductor 영역, BioHub 차별점 아님
 
 ---
 

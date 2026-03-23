@@ -1599,7 +1599,9 @@ Knowledge Graph가 필요한 경우는: 엔티티 5개+ 쿼리, 멀티홉 추론
 |------|------|------|
 | **빌드** | 통계, 생태지수, 성장곡선, 논문도구, 메타분석, 개체군유전, 분석로그 | 핵심 가치, Pyodide 확장 |
 | **연결+가공** | WoRMS, FishBase, GBIF, NCBI, OpenAlex, CrossRef | API 조회 → 통계 가공 |
-| **안함** | 풀 ELN(Benchling), 프로젝트관리(Notion), BLAST, AlphaFold, 이미지AI | 기존 도구가 최고 |
+| **연결(후순위)** | UniProt ID Mapping (BLAST→기능 연결) | 있으면 좋지만 핵심 아님, CORS 지원으로 프록시 불필요 |
+| **안함** | 풀 ELN(Benchling), 프로젝트관리(Notion), BLAST 자체구현, AlphaFold, 이미지AI | 기존 도구가 최고 |
+| **안함** | GO/KEGG/Ensembl 유전자 기능 심화 연동 | Galaxy/Bioconductor 영역, BioHub 차별점 아님 |
 
 ### 총 일정
 
