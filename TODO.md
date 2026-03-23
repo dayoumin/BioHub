@@ -55,7 +55,7 @@ These items should be the current focus.
 - ~~`[workflow]` 토스트 기반 저장 피드백~~ — 완료 (통계: 프로젝트명 표시. 유전적: 자동 저장이라 불필요. 그래프: 저장 UI 미구현 — UI 추가 시 토스트 함께)
 - ~~`[workflow]` `ResultsActionStep` 프로젝트 선택 팝업 → 컨텍스트 기반 동작으로 교체~~ — 완료 (다이얼로그 제거, activeProject 자동 연결)
 - ~~`[workflow]` 프로젝트 상세/개요 페이지 — linked outputs 브라우저~~ — 완료 (1단계: EntityBrowser + 탭/검색/필터 + ReportComposer stub. [PLAN-PROJECT-DETAIL-PAGE.md](stats/docs/PLAN-PROJECT-DETAIL-PAGE.md))
-- `[quality]` `@biohub/types` `Project.createdAt: number` vs `research.ts` `ResearchProject.createdAt: string` 타임스탬프 타입 통일 — D1 마이그레이션 전 필수
+- ~~`[quality]` `@biohub/types` `Project.createdAt: number` vs `research.ts` `ResearchProject.createdAt: string` 타임스탬프 타입 통일~~ — 조사 완료: 프로젝트 레이어는 이미 string(ISO)으로 통일됨. 유일한 불일치 `BlastResult.createdAt: number` → `string` 수정 + worker.ts Date.now() → toISOString() 수정
 - ~~`[trust]` `EvidenceRecord` 스키마 정의~~ — 완료 (타입 존재: `research.ts`). 다음: 저장/조회 구현
 - `[trust]` `EvidenceRecord` 저장 구현 — AI 해석에 method rationale, 생성 메타데이터 persist
 - `[trust]` 재현 가능 코드 페이로드 (R/Python) 설계
@@ -73,7 +73,7 @@ These items should be the current focus.
 These should start after the current foundation is in place.
 
 - `[infra]` D1 스키마 갭 해소 — 상세: [D1-SCHEMA-GAP.md](docs/D1-SCHEMA-GAP.md). 현재 프론트엔드는 localStorage/IndexedDB 기반이라 급하지 않음. 인증/멀티디바이스 동기화 시 필수.
-- `[paper]` 프로젝트 보고서 APA 포맷 구현 — 현재 구조(ReportComposer + report-export)는 완성, 내용은 summary 한 줄 수준. ResolvedEntity에 원본 data 필드 복원 → analysis results(통계량, 효과크기, CI) + BLAST alignment 상세를 APA 포맷으로 렌더. 상세: [PLAN-PROJECT-DETAIL-PAGE.md](stats/docs/PLAN-PROJECT-DETAIL-PAGE.md)
+- ~~`[paper]` 프로젝트 보고서 APA 포맷 구현~~ — 완료: ResolvedEntity.rawData 확장, apaFormat 우선 사용 + statistics-formatters fallback, BLAST topHits 테이블 지원. 신규: `report-apa-format.ts`
 - `[paper]` Build project-level manuscript assembly UI across multiple analyses.
 - `[paper]` Add figure and table references that can be inserted into draft sections.
 - `[review]` Define a project-level methods and reporting completeness checklist.

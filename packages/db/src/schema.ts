@@ -16,8 +16,8 @@ export const users = sqliteTable('users', {
   email: text('email').unique(),                  // NULL 허용 (MVP: UUID, 이후 OAuth)
   name: text('name'),
   authProvider: text('auth_provider'),            // NULL | 'kakao' | 'naver' | 'google'
-  createdAt: integer('created_at').notNull(),     // unix ms
-  updatedAt: integer('updated_at').notNull(),
+  createdAt: text('created_at').notNull(),         // ISO 8601
+  updatedAt: text('updated_at').notNull(),
 })
 
 // ─── 3-2. 프로젝트 ───
@@ -32,8 +32,8 @@ export const projects = sqliteTable('projects', {
   tags: text('tags'),                             // JSON array
   paperConfig: text('paper_config'),              // JSON
   presentation: text('presentation'),             // JSON (emoji, color)
-  createdAt: integer('created_at').notNull(),
-  updatedAt: integer('updated_at').notNull(),
+  createdAt: text('created_at').notNull(),        // ISO 8601
+  updatedAt: text('updated_at').notNull(),
 }, (table) => [
   index('idx_projects_user').on(table.userId),
   index('idx_projects_status').on(table.status),
@@ -48,8 +48,8 @@ export const projectEntityRefs = sqliteTable('project_entity_refs', {
   entityId: text('entity_id').notNull(),
   label: text('label'),
   sortOrder: integer('sort_order').default(0),
-  createdAt: integer('created_at').notNull(),
-  updatedAt: integer('updated_at'),
+  createdAt: text('created_at').notNull(),        // ISO 8601
+  updatedAt: text('updated_at'),
 }, (table) => [
   uniqueIndex('idx_pref_unique').on(table.projectId, table.entityKind, table.entityId),
   index('idx_pref_project').on(table.projectId),
@@ -67,7 +67,7 @@ export const analysisResults = sqliteTable('analysis_results', {
   summary: text('summary'),
   aiInterpretation: text('ai_interpretation'),
   apaFormat: text('apa_format'),
-  createdAt: integer('created_at').notNull(),
+  createdAt: text('created_at').notNull(),        // ISO 8601
 }, (table) => [
   index('idx_ar_user').on(table.userId),
   index('idx_ar_project').on(table.projectId),
@@ -91,7 +91,7 @@ export const blastResults = sqliteTable('blast_results', {
   decisionReason: text('decision_reason'),
   recommendedMarkers: text('recommended_markers'), // JSON array
   taxonAlert: text('taxon_alert'),
-  createdAt: integer('created_at').notNull(),
+  createdAt: text('created_at').notNull(),          // ISO 8601
 }, (table) => [
   index('idx_br_user').on(table.userId),
   index('idx_br_project').on(table.projectId),
@@ -108,8 +108,8 @@ export const graphProjects = sqliteTable('graph_projects', {
   name: text('name').notNull(),
   chartSpec: text('chart_spec').notNull(),         // JSON
   editHistory: text('edit_history'),               // JSON array
-  createdAt: integer('created_at').notNull(),
-  updatedAt: integer('updated_at').notNull(),
+  createdAt: text('created_at').notNull(),            // ISO 8601
+  updatedAt: text('updated_at').notNull(),
 }, (table) => [
   index('idx_gp_user').on(table.userId),
   index('idx_gp_project').on(table.projectId),

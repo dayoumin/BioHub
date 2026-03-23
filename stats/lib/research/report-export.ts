@@ -10,6 +10,7 @@
 import type { ResolvedEntity } from './entity-resolver'
 import { escapeHtml } from '@/lib/utils/html-escape'
 import type { ProjectReport, ReportSection, RenderedContent } from './report-types'
+import { generateAnalysisContent, generateBlastContent } from './report-apa-format'
 
 // ── 보고서 생성 ──
 
@@ -56,8 +57,9 @@ function renderEntityContent(entity: ResolvedEntity): RenderedContent {
 }
 
 function renderAnalysis(entity: ResolvedEntity): RenderedContent {
-  // entity.summary에 이미 통계량 요약이 포함됨 (entity-resolver에서 생성)
-  // TODO: APA 포맷 완전 지원은 ResolvedEntity에 원본 data 복원 후 구현
+  if (entity.rawData?.kind === 'analysis') {
+    return generateAnalysisContent(entity.summary.title, entity.rawData)
+  }
   return {
     heading: entity.summary.title,
     body: entity.summary.subtitle ?? '',
@@ -78,18 +80,14 @@ function renderFigure(entity: ResolvedEntity): RenderedContent {
 }
 
 function renderBlast(entity: ResolvedEntity): RenderedContent {
-  const heading = entity.summary.title
+  if (entity.rawData?.kind === 'blast-result') {
+    return generateBlastContent(entity.summary.title, entity.rawData)
+  }
   const lines: string[] = []
-
-  if (entity.summary.subtitle) {
-    lines.push(entity.summary.subtitle)
-  }
-  if (entity.summary.badge) {
-    lines.push(`판정: ${entity.summary.badge.label}`)
-  }
-
+  if (entity.summary.subtitle) lines.push(entity.summary.subtitle)
+  if (entity.summary.badge) lines.push(`판정: ${entity.summary.badge.label}`)
   return {
-    heading,
+    heading: entity.summary.title,
     body: lines.join('\n'),
   }
 }

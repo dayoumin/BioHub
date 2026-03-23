@@ -47,8 +47,9 @@ export interface Project {
     emoji?: string
     color?: string
   }
-  createdAt: number
-  updatedAt: number
+  /** ISO 8601 문자열. DB/localStorage 모두 string 저장. */
+  createdAt: string
+  updatedAt: string
 }
 
 export interface ProjectEntityRef {
@@ -58,6 +59,7 @@ export interface ProjectEntityRef {
   entityId: string
   label?: string
   order?: number
-  createdAt: number
-  updatedAt?: number
+  /** ISO 8601 문자열. */
+  createdAt: string
+  updatedAt?: string
 }

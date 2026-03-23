@@ -32,10 +32,28 @@ export interface EntitySummary {
   kindLabel?: string
 }
 
+export interface AnalysisRawData {
+  kind: 'analysis'
+  apaFormat?: string | null
+  results: Record<string, unknown> | null
+  methodId?: string
+  methodCategory?: string
+}
+
+export interface BlastRawData {
+  kind: 'blast-result'
+  status: string
+  description: string
+  topHits: Array<{ species: string; identity: number; accession: string }>
+}
+
+export type EntityRawData = AnalysisRawData | BlastRawData
+
 export interface ResolvedEntity {
   ref: ProjectEntityRef
   loaded: boolean
   summary: EntitySummary
+  rawData?: EntityRawData
 }
 
 // ── 외부 데이터 최소 인터페이스 (import 순환 방지) ──
@@ -46,6 +64,7 @@ export interface HistoryRecordLike {
   method: { id: string; name: string; category: string } | null
   dataFileName: string
   results: Record<string, unknown> | null
+  apaFormat?: string | null
 }
 
 export interface GraphProjectLike {
@@ -64,14 +83,19 @@ export interface BlastEntryLike {
   topIdentity: number | null
   status: string | null
   createdAt: number
+  resultData?: {
+    status: string
+    description: string
+    topHits: Array<{ species: string; identity: number; accession: string }>
+  }
 }
 
 // ── 유틸 ──
 
 /**
  * ref.createdAt 정규화.
- * stats/lib/types/research.ts: string(ISO), packages/types: number(Unix ms).
- * 실제 저장은 new Date().toISOString() (string).
+ * 모든 계층에서 string(ISO 8601)로 통일됨.
+ * number 입력은 하위호환용 (기존 localStorage 데이터).
  */
 function normalizeTimestamp(value: string | number): number {
   if (typeof value === 'number') return value
@@ -92,7 +116,7 @@ function formatP(p: number): string {
   return `p = ${p.toFixed(3).replace(/^0\./, '.')}`
 }
 
-function extractNumber(obj: Record<string, unknown> | null, key: string): number | undefined {
+export function extractNumber(obj: Record<string, unknown> | null, key: string): number | undefined {
   if (!obj) return undefined
   const val = obj[key]
   return typeof val === 'number' && isFinite(val) ? val : undefined
@@ -141,6 +165,13 @@ function resolveAnalysis(
       timestamp: ts,
       navigateTo: '/',
       ...kindMeta(ref.entityKind),
+    },
+    rawData: {
+      kind: 'analysis',
+      apaFormat: record.apaFormat ?? null,
+      results: record.results,
+      methodId: record.method?.id,
+      methodCategory: record.method?.category,
     },
   }
 }
@@ -203,6 +234,12 @@ function resolveBlast(
       navigateTo: `/genetics/barcoding?history=${encodeURIComponent(ref.entityId)}`,
       ...kindMeta(ref.entityKind),
     },
+    rawData: entry.resultData ? {
+      kind: 'blast-result',
+      status: entry.resultData.status,
+      description: entry.resultData.description,
+      topHits: entry.resultData.topHits,
+    } : undefined,
   }
 }
 

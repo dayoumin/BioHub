@@ -302,7 +302,7 @@ describe('패널 탭 상태 보존 (Medium)', () => {
     // 파일 내용에서 패턴 검증
     const fs = await import('fs')
     const content = fs.readFileSync(
-      'app/graph-studio/page.tsx',
+      'app/graph-studio/GraphStudioContent.tsx',
       'utf-8',
     )
 

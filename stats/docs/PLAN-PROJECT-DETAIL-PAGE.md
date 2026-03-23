@@ -208,7 +208,7 @@ interface ResolvedEntity {
 - `HistoryRecord.timestamp` → `number` (Unix ms) — 그대로 사용
 - `GraphProject.updatedAt` → `string` (ISO) — `new Date(updatedAt).getTime()`
 - `AnalysisHistoryEntry.createdAt` → `number` (Unix ms) — 그대로 사용
-- 기타/dangling → `ref.createdAt` 사용. **주의**: 실제 저장값은 `new Date().toISOString()` (string, `project-storage.ts:92`). `packages/types`의 타입 선언은 `number`이지만 런타임은 ISO 문자열. 정규화: `typeof ref.createdAt === 'string' ? new Date(ref.createdAt).getTime() : ref.createdAt`
+- 기타/dangling → `ref.createdAt` 사용. 타입/런타임 모두 ISO 8601 문자열 (`project-storage.ts:92`). 정규화: `new Date(ref.createdAt).getTime()`
 
 | entityKind | 저장소 | 로더 | 출처 |
 |---|---|---|---|

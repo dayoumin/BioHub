@@ -942,8 +942,8 @@ async function handleSaveBlastResult(
     }
   }
 
-  const now = Date.now()
-  const id = `br_${now}_${Math.random().toString(36).slice(2, 8)}`
+  const now = new Date().toISOString()
+  const id = `br_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 
   await db.prepare(
     `INSERT INTO blast_results

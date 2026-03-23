@@ -27,6 +27,16 @@ vi.mock('@/hooks/use-terminology', () => ({
         validation: {},
         success: {},
         selectorUI: {},
+        progressiveCategoryData: [],
+        decisionTree: {
+            steps: { normality: '', homogeneity: '', groupCount: '', sampleType: '', variableType: '', comparisonTarget: '', analysisType: '', variableCount: '', predictorCount: '', outcomeVariable: '', modelType: '', variableSelection: '', designType: '', dependentVariable: '' },
+            options: {},
+        },
+        flowStateMachine: {
+            evidencePrefix: () => '',
+            directSelection: '',
+            directSelectionDescription: '',
+        },
         analysis: {
             stepTitles: { purposeInput: '분석 방법 선택' },
             stepShortLabels: { exploration: '', method: '', variable: '', analysis: '' },
@@ -141,7 +151,12 @@ vi.mock('@/lib/hooks/useReducedMotion', () => ({
 
 // Mock subcomponents with data-testid (UI 변경에 안전)
 vi.mock('@/components/analysis/steps/purpose/NaturalLanguageInput', () => ({
-    NaturalLanguageInput: () => <div data-testid="natural-language-input">AI Chat</div>
+    NaturalLanguageInput: ({ inputValue = '' }: { inputValue?: string }) => (
+        <div data-testid="natural-language-input">
+            <textarea data-testid="ai-chat-input" value={inputValue} readOnly />
+            <button data-testid="ai-chat-submit" type="button">Submit</button>
+        </div>
+    )
 }))
 
 vi.mock('@/components/analysis/steps/purpose/CategorySelector', () => ({
@@ -224,7 +239,7 @@ describe('PurposeInputStep', () => {
         expect(screen.getByText('분석 방법 선택')).toBeInTheDocument()
     })
 
-    it('initial state shows NaturalLanguageInput (ai-chat mode)', () => {
+    it('initial state shows category selector', () => {
         render(
             <PurposeInputStep
                 onPurposeSubmit={vi.fn()}
@@ -233,20 +248,32 @@ describe('PurposeInputStep', () => {
             />
         )
 
-        expect(screen.getByTestId('natural-language-input')).toBeInTheDocument()
+        expect(screen.getByTestId('category-selector')).toBeInTheDocument()
     })
 
-    it('renders mode toggle section', () => {
-        const { container } = render(
+    it('userQuery만 있으면 AI chat input과 submit button을 렌더한다', async () => {
+        const modeStateWithQueryOnly = {
+            purposeInputMode: 'ai' as const,
+            userQuery: '적절한 분석 방법을 추천해 주세요',
+            setUserQuery: vi.fn(),
+            setLastAiRecommendation: vi.fn(),
+        }
+        ;(useModeStore as unknown as Mock).mockImplementation(
+            (selector: (state: typeof modeStateWithQueryOnly) => unknown) => selector(modeStateWithQueryOnly)
+        )
+
+        render(
             <PurposeInputStep
                 onPurposeSubmit={vi.fn()}
-                validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
-                data={mockData}
+                validationResults={null}
+                data={null}
             />
         )
 
-        const toggleArea = container.querySelector('[aria-label="분석 방법 선택 모드"]')
-        expect(toggleArea).toBeInTheDocument()
+        await waitFor(() => {
+            expect(screen.getByTestId('ai-chat-input')).toBeInTheDocument()
+        })
+        expect(screen.getByTestId('ai-chat-submit')).toBeInTheDocument()
     })
 
     it('does not crash with null validationResults', () => {

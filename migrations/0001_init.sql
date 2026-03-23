@@ -1,5 +1,6 @@
 -- BioHub D1 초기 스키마
 -- packages/db/src/schema.ts 기반
+-- 타임스탬프: ISO 8601 문자열 (TEXT). 사전순 정렬 = 시간순.
 
 -- 사용자
 CREATE TABLE IF NOT EXISTS users (
@@ -7,8 +8,8 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT UNIQUE,
   name TEXT,
   auth_provider TEXT,
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
 );
 
 -- 프로젝트
@@ -22,8 +23,8 @@ CREATE TABLE IF NOT EXISTS projects (
   tags TEXT,
   paper_config TEXT,
   presentation TEXT,
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_projects_user ON projects(user_id);
 CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
@@ -36,8 +37,8 @@ CREATE TABLE IF NOT EXISTS project_entity_refs (
   entity_id TEXT NOT NULL,
   label TEXT,
   sort_order INTEGER DEFAULT 0,
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER
+  created_at TEXT NOT NULL,
+  updated_at TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_pref_unique ON project_entity_refs(project_id, entity_kind, entity_id);
 CREATE INDEX IF NOT EXISTS idx_pref_project ON project_entity_refs(project_id);
@@ -53,7 +54,7 @@ CREATE TABLE IF NOT EXISTS analysis_results (
   summary TEXT,
   ai_interpretation TEXT,
   apa_format TEXT,
-  created_at INTEGER NOT NULL
+  created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_ar_user ON analysis_results(user_id);
 CREATE INDEX IF NOT EXISTS idx_ar_project ON analysis_results(project_id);
@@ -75,7 +76,7 @@ CREATE TABLE IF NOT EXISTS blast_results (
   decision_reason TEXT,
   recommended_markers TEXT,
   taxon_alert TEXT,
-  created_at INTEGER NOT NULL
+  created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_br_user ON blast_results(user_id);
 CREATE INDEX IF NOT EXISTS idx_br_project ON blast_results(project_id);
@@ -90,13 +91,13 @@ CREATE TABLE IF NOT EXISTS graph_projects (
   name TEXT NOT NULL,
   chart_spec TEXT NOT NULL,
   edit_history TEXT,
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_gp_user ON graph_projects(user_id);
 CREATE INDEX IF NOT EXISTS idx_gp_project ON graph_projects(project_id);
 
--- BLAST 캐시 (전역)
+-- BLAST 캐시 (전역) — TTL 비교용이므로 INTEGER 유지
 CREATE TABLE IF NOT EXISTS blast_cache (
   sequence_hash TEXT NOT NULL,
   marker TEXT NOT NULL,

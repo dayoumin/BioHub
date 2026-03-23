@@ -52,7 +52,7 @@ export interface BlastResult {
   decisionReason?: string
   recommendedMarkers?: string[]
   taxonAlert?: string
-  createdAt: number
+  createdAt: string
 }
 
 export interface BlastCacheEntry {
