@@ -76,23 +76,24 @@ export function ProjectHeader({ project, totalCount, onBack }: ProjectHeaderProp
             variant="ghost"
             size="icon"
             className="h-8 w-8"
+            aria-label="탭 설정"
             onClick={() => setSettingsOpen(true)}
           >
             <Settings className="h-4 w-4" />
           </Button>
         </div>
 
-        <div className="ml-11 mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="ml-[2.75rem] mt-1 flex items-center gap-2 text-xs text-muted-foreground">
           {project.primaryDomain && (
             <Badge variant="outline" className="text-[10px]">
               {project.primaryDomain}
             </Badge>
           )}
-          <span>{totalCount}개 항목</span>
+          <span className="font-medium text-foreground">{totalCount}개 항목</span>
         </div>
 
         {project.description && (
-          <p className="ml-11 mt-1 text-sm text-muted-foreground">
+          <p className="ml-[2.75rem] mt-1 text-xs text-muted-foreground">
             {project.description}
           </p>
         )}

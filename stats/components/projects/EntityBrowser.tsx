@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
+import type { KeyboardEvent } from 'react'
+import Link from 'next/link'
 import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,7 +18,6 @@ import {
   loadTabSettings,
   getTabEntry,
 } from '@/lib/research/entity-tab-registry'
-import type { EntityTabEntry } from '@/lib/research/entity-tab-registry'
 import type { ProjectEntityKind } from '@/lib/types/research'
 import type { ResolvedEntity } from '@/lib/research/entity-resolver'
 import { EntityListItem } from './EntityListItem'
@@ -64,6 +65,11 @@ export function EntityBrowser({ entities, projectId, projectName, onNavigate, on
       .map(tab => ({ ...tab, count: counts.get(tab.id) ?? 0 }))
   }, [entities, tabSettings])
 
+  const tabOrder = useMemo<Array<'all' | ProjectEntityKind>>(
+    () => ['all', ...tabsWithCounts.map(tab => tab.id)],
+    [tabsWithCounts],
+  )
+
   const loadedCount = useMemo(
     () => entities.filter(e => e.loaded).length,
     [entities],
@@ -108,6 +114,38 @@ export function EntityBrowser({ entities, projectId, projectName, onNavigate, on
     setActiveTab(tab)
   }, [])
 
+  const handleTabKeyDown = useCallback((
+    event: KeyboardEvent<HTMLButtonElement>,
+    currentTab: 'all' | ProjectEntityKind,
+  ) => {
+    const currentIndex = tabOrder.indexOf(currentTab)
+    if (currentIndex === -1) return
+
+    let nextIndex = currentIndex
+
+    switch (event.key) {
+      case 'ArrowRight':
+        nextIndex = (currentIndex + 1) % tabOrder.length
+        break
+      case 'ArrowLeft':
+        nextIndex = (currentIndex - 1 + tabOrder.length) % tabOrder.length
+        break
+      case 'Home':
+        nextIndex = 0
+        break
+      case 'End':
+        nextIndex = tabOrder.length - 1
+        break
+      default:
+        return
+    }
+
+    event.preventDefault()
+    const nextTab = tabOrder[nextIndex]
+    setActiveTab(nextTab)
+    document.getElementById(`entity-tab-${nextTab}`)?.focus()
+  }, [tabOrder])
+
   const handleToggleSelect = useCallback((refId: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev)
@@ -125,9 +163,19 @@ export function EntityBrowser({ entities, projectId, projectName, onNavigate, on
   return (
     <div>
       {/* 탭 */}
-      <div className="flex items-center gap-1 border-b mb-4 overflow-x-auto">
+      <div
+        role="tablist"
+        aria-label="엔티티 유형 탭"
+        className="flex items-center gap-1 border-b mb-4 overflow-x-auto"
+      >
         <button
+          id="entity-tab-all"
+          role="tab"
+          aria-selected={activeTab === 'all'}
+          aria-controls="entity-browser-panel"
+          tabIndex={activeTab === 'all' ? 0 : -1}
           onClick={() => handleTabClick('all')}
+          onKeyDown={e => handleTabKeyDown(e, 'all')}
           className={`shrink-0 px-3 pb-2 text-sm font-medium transition-colors ${
             activeTab === 'all'
               ? 'border-b-2 border-primary text-primary'
@@ -139,7 +187,13 @@ export function EntityBrowser({ entities, projectId, projectName, onNavigate, on
         {tabsWithCounts.map(tab => (
           <button
             key={tab.id}
+            id={`entity-tab-${tab.id}`}
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            aria-controls="entity-browser-panel"
+            tabIndex={activeTab === tab.id ? 0 : -1}
             onClick={() => handleTabClick(tab.id)}
+            onKeyDown={e => handleTabKeyDown(e, tab.id)}
             className={`shrink-0 px-3 pb-2 text-sm font-medium transition-colors ${
               activeTab === tab.id
                 ? 'border-b-2 border-primary text-primary'
@@ -185,23 +239,29 @@ export function EntityBrowser({ entities, projectId, projectName, onNavigate, on
       </div>
 
       {/* 목록 */}
-      {filtered.length === 0 ? (
-        <EmptyState activeTab={activeTab} hasEntities={entities.length > 0} />
-      ) : (
-        <div className="space-y-2">
-          {filtered.map(entity => (
-            <EntityListItem
-              key={entity.ref.id}
-              entity={entity}
-              showKindBadge={activeTab === 'all'}
-              selected={selectedIds.has(entity.ref.id)}
-              onToggleSelect={() => handleToggleSelect(entity.ref.id)}
-              onNavigate={onNavigate}
-              onUnlink={() => onUnlink(entity)}
-            />
-          ))}
-        </div>
-      )}
+      <div
+        role="tabpanel"
+        id="entity-browser-panel"
+        aria-labelledby={`entity-tab-${activeTab}`}
+      >
+        {filtered.length === 0 ? (
+          <EmptyState activeTab={activeTab} hasEntities={entities.length > 0} />
+        ) : (
+          <div className="space-y-2">
+            {filtered.map(entity => (
+              <EntityListItem
+                key={entity.ref.id}
+                entity={entity}
+                showKindBadge={activeTab === 'all'}
+                selected={selectedIds.has(entity.ref.id)}
+                onToggleSelect={() => handleToggleSelect(entity.ref.id)}
+                onNavigate={onNavigate}
+                onUnlink={() => onUnlink(entity)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* 하단 고정 바 */}
       {selectedEntities.length > 0 && (
@@ -246,12 +306,12 @@ function EmptyState({ activeTab, hasEntities }: { activeTab: 'all' | ProjectEnti
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <p className="text-sm text-muted-foreground">{tab.emptyMessage}</p>
           {tab.emptyActionPath && tab.emptyActionLabel && (
-            <a
+            <Link
               href={tab.emptyActionPath}
               className="mt-2 text-sm text-primary hover:underline"
             >
               {tab.emptyActionLabel}
-            </a>
+            </Link>
           )}
         </div>
       )
@@ -260,8 +320,18 @@ function EmptyState({ activeTab, hasEntities }: { activeTab: 'all' | ProjectEnti
 
   // 전체 빈 상태
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
+    <div className="flex flex-col items-center justify-center py-16 text-center">
       <p className="text-sm text-muted-foreground">아직 연결된 항목이 없습니다</p>
+      <p className="mt-2 text-xs text-muted-foreground/70">
+        통계 분석, Graph Studio, 종 동정에서 결과를 저장하면 여기에 표시됩니다
+      </p>
+      <div className="mt-4 flex gap-2">
+        <Link href="/" className="text-xs text-primary hover:underline">분석 시작</Link>
+        <span className="text-xs text-muted-foreground/30">·</span>
+        <Link href="/graph-studio" className="text-xs text-primary hover:underline">Graph Studio</Link>
+        <span className="text-xs text-muted-foreground/30">·</span>
+        <Link href="/genetics/barcoding" className="text-xs text-primary hover:underline">종 동정</Link>
+      </div>
     </div>
   )
 }

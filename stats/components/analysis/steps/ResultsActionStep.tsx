@@ -13,6 +13,7 @@ import {
   BarChart3,
   FileSearch,
   BookOpen,
+  Code2,
 } from 'lucide-react'
 import { EmptyState } from '@/components/common/EmptyState'
 import { toast } from 'sonner'
@@ -21,6 +22,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
@@ -41,6 +43,8 @@ import { buildHistorySnapshot } from '@/lib/stores/store-orchestration'
 import { startNewAnalysis } from '@/lib/services/data-management'
 import { ExportService } from '@/lib/services/export/export-service'
 import type { ExportFormat, ExportContext, ExportContentOptions } from '@/lib/services/export/export-types'
+import { exportCodeFromAnalysis, isCodeExportAvailable } from '@/lib/services/export/code-export'
+import type { CodeLanguage } from '@/lib/services/export/code-template-types'
 import { splitInterpretation, generateSummaryText } from '@/lib/services/export/export-data-builder'
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
 import { TemplateSaveModal } from '@/components/analysis/TemplateSaveModal'
@@ -153,6 +157,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     uploadedFileName,
     selectedMethod,
     assumptionResults,
+    analysisOptions,
   } = useAnalysisStore()
   const { setStepTrack } = useModeStore()
   const { analysisHistory, saveToHistory, loadedInterpretationChat, currentHistoryId, loadedPaperDraft, patchHistoryPaperDraft, setLoadedPaperDraft } = useHistoryStore()
@@ -479,6 +484,28 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       setIsExporting(false)
     }
   }, [results, statisticalResult, interpretation, apaFormat, exportDataInfo, uploadedData, selectedMethod, currentHistoryProjectId, saveToHistory, followUpMessages, isFollowUpStreaming, paperDraft, t])
+
+  // 재현 가능 코드 내보내기 (R/Python)
+  const codeExportAvailable = isCodeExportAvailable(selectedMethod?.id)
+
+  const handleCodeExport = useCallback((language: CodeLanguage) => {
+    const exportResult = exportCodeFromAnalysis({
+      method: selectedMethod,
+      variableMapping,
+      analysisOptions,
+      dataFileName: uploadedFileName ?? null,
+      dataRowCount: uploadedData?.length ?? 0,
+      results: results as unknown as Record<string, unknown> | null,
+    }, language)
+
+    if (exportResult.success) {
+      toast.success(`${language === 'R' ? 'R' : 'Python'} 코드를 다운로드했습니다.`, {
+        description: exportResult.fileName,
+      })
+    } else {
+      toast.error(exportResult.error ?? '코드 내보내기에 실패했습니다.')
+    }
+  }, [selectedMethod, variableMapping, analysisOptions, uploadedFileName, uploadedData, results])
 
   const openExportDialog = useCallback((format: ExportFormat) => {
     setExportFormat(format)
@@ -826,6 +853,19 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                     <FileSearch className="w-4 h-4 mr-2" />
                     {t.results.buttons.exportWithOptions}
                   </DropdownMenuItem>
+                  {codeExportAvailable && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => handleCodeExport('R')} data-testid="export-r">
+                        <Code2 className="w-4 h-4 mr-2" />
+                        R Script (.R)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleCodeExport('python')} data-testid="export-python">
+                        <Code2 className="w-4 h-4 mr-2" />
+                        Python (.py)
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

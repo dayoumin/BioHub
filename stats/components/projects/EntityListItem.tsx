@@ -33,7 +33,7 @@ export function EntityListItem({
         loaded
           ? selected
             ? 'border-primary/40 bg-primary/5 hover:border-primary/60'
-            : 'border-border bg-card hover:border-primary/20'
+            : 'border-border bg-card hover:border-primary/50'
           : 'border-dashed border-muted bg-muted/30'
       }`}
     >
@@ -52,7 +52,7 @@ export function EntityListItem({
       {/* 내용 */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className={`font-medium leading-tight truncate ${!loaded ? 'text-muted-foreground line-through' : ''}`}>
+          <span className={`text-sm font-medium leading-snug truncate ${!loaded ? 'text-muted-foreground line-through' : ''}`}>
             {summary.title}
           </span>
 
@@ -75,7 +75,7 @@ export function EntityListItem({
         </div>
 
         {summary.subtitle && (
-          <p className="mt-0.5 text-xs text-muted-foreground truncate">
+          <p className="mt-1 text-xs text-muted-foreground truncate">
             {summary.subtitle}
           </p>
         )}
@@ -87,12 +87,13 @@ export function EntityListItem({
       </span>
 
       {/* 액션 */}
-      <div className="flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex shrink-0 items-center gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
         {loaded && summary.navigateTo != null && onNavigate && (
           <Button
             variant="ghost"
             size="icon"
             className="h-7 w-7"
+            aria-label="이동"
             onClick={() => onNavigate(summary.navigateTo ?? '')}
             title="이동"
           >
@@ -104,6 +105,7 @@ export function EntityListItem({
             variant="ghost"
             size="icon"
             className="h-7 w-7 text-muted-foreground hover:text-destructive"
+            aria-label="연결 해제"
             onClick={onUnlink}
             title="연결 해제"
           >

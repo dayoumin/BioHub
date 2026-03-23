@@ -1,6 +1,12 @@
 # BioHub TODO
 
 > **Setup:** `.claude/skills/cf-deploy/SKILL.md`를 전역(`~/.claude/skills/cf-deploy/`)으로 복사할 것. Cloudflare 배포 스킬이 모든 프로젝트에서 동작하도록.
+>
+> **cf-deploy 스킬 업데이트 (2026-03-23):** 전역 스킬이 이미 업데이트됨. BioHub 로컬 스킬에도 아래 내용 반영 필요:
+> - `build` 스크립트: `next build && opennextjs-cloudflare build --skipNextBuild` (재귀 방지)
+> - `next.config.ts`에 `output: "standalone"` 필수 (OpenNext이 `.next/standalone/` 사용)
+> - Cloudflare Pages → Workers 통합됨, Git 푸시 자동 빌드가 아닌 수동 트리거일 수 있음
+> - 상세 내용은 전역 스킬 참고: `~/.claude/skills/cf-deploy/SKILL.md`
 
 **Last updated**: 2026-03-22
 **References**: [Product Strategy](docs/PRODUCT_STRATEGY.md), [Roadmap](ROADMAP.md), [Research Project Status](docs/RESEARCH_PROJECT_STATUS.md)
