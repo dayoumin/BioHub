@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
-import { Plus, FolderOpen, Archive, Trash2, Pencil, MoreHorizontal } from 'lucide-react'
+import { Suspense, useState, useCallback, useEffect, useMemo } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Plus, FolderOpen, Archive, Trash2, Pencil, MoreHorizontal, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -25,6 +26,8 @@ import {
 import type { ResearchProject } from '@/lib/types/research'
 import { toast } from 'sonner'
 import { listProjectEntityRefs } from '@/lib/research/project-storage'
+import { formatTimeAgo } from '@/lib/utils/format-time'
+import { ProjectDetailContent } from '@/components/projects/ProjectDetailContent'
 
 // ── 프로젝트 생성 다이얼로그 ──
 
@@ -106,6 +109,7 @@ function ProjectCard({
   isActive,
   refCount,
   onSelect,
+  onOpen,
   onEdit,
   onArchive,
   onDelete,
@@ -114,6 +118,7 @@ function ProjectCard({
   isActive: boolean
   refCount: number
   onSelect: () => void
+  onOpen: () => void
   onEdit: () => void
   onArchive: () => void
   onDelete: () => void
@@ -158,31 +163,46 @@ function ProjectCard({
           </div>
         </button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onEdit}>
-              <Pencil className="mr-2 h-3.5 w-3.5" />
-              이름 수정
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onArchive}>
-              <Archive className="mr-2 h-3.5 w-3.5" />
-              {project.status === 'archived' ? '보관 해제' : '보관'}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onDelete} className="text-destructive">
-              <Trash2 className="mr-2 h-3.5 w-3.5" />
-              삭제
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={onOpen}
+            title="열기"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onOpen}>
+                <Eye className="mr-2 h-3.5 w-3.5" />
+                열기
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onEdit}>
+                <Pencil className="mr-2 h-3.5 w-3.5" />
+                이름 수정
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onArchive}>
+                <Archive className="mr-2 h-3.5 w-3.5" />
+                {project.status === 'archived' ? '보관 해제' : '보관'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onDelete} className="text-destructive">
+                <Trash2 className="mr-2 h-3.5 w-3.5" />
+                삭제
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </div>
   )
@@ -243,6 +263,28 @@ function RenameDialog({
 // ── 메인 페이지 ──
 
 export default function ProjectsPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-3xl px-6 py-8 animate-pulse"><div className="h-8 w-48 bg-muted rounded" /></div>}>
+      <ProjectsPageInner />
+    </Suspense>
+  )
+}
+
+function ProjectsPageInner() {
+  const searchParams = useSearchParams()
+  const projectId = searchParams.get('id')
+
+  if (projectId) {
+    return <ProjectDetailContent projectId={projectId} />
+  }
+
+  return <ProjectsListView />
+}
+
+// ── 프로젝트 목록 뷰 ──
+
+function ProjectsListView() {
+  const router = useRouter()
   const projects = useResearchProjectStore(s => s.projects)
   const activeProject = useResearchProjectStore(selectActiveProject)
   const setActiveProject = useResearchProjectStore(s => s.setActiveProject)
@@ -373,6 +415,7 @@ export default function ProjectsPage() {
               isActive={activeProject?.id === project.id}
               refCount={refCountMap.get(project.id) ?? 0}
               onSelect={() => handleSelect(project)}
+              onOpen={() => router.push(`/projects?id=${project.id}`)}
               onEdit={() => setRenameTarget(project)}
               onArchive={() => handleArchive(project)}
               onDelete={() => handleDelete(project)}
@@ -396,18 +439,7 @@ export default function ProjectsPage() {
 // ── 유틸 ──
 
 function formatDate(iso: string): string {
-  try {
-    const date = new Date(iso)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-    if (diffDays === 0) return '오늘'
-    if (diffDays === 1) return '어제'
-    if (diffDays < 7) return `${diffDays}일 전`
-
-    return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })
-  } catch {
-    return ''
-  }
+  const ts = new Date(iso).getTime()
+  if (Number.isNaN(ts)) return ''
+  return formatTimeAgo(ts, undefined, 7)
 }

@@ -1,0 +1,231 @@
+/**
+ * 프로젝트 보고서 마크다운/HTML 생성
+ *
+ * 선택된 entity들을 순서대로 마크다운으로 렌더하고,
+ * 클립보드 복사 또는 HTML 파일 다운로드를 지원한다.
+ *
+ * 기존 paper-templates.ts의 fmtP(), fmt()를 재활용.
+ */
+
+import type { ResolvedEntity } from './entity-resolver'
+import { escapeHtml } from '@/lib/utils/html-escape'
+import type { ProjectReport, ReportSection, RenderedContent } from './report-types'
+
+// ── 보고서 생성 ──
+
+/** 선택된 entity들로 ProjectReport 생성 */
+export function buildReport(
+  title: string,
+  projectId: string,
+  entities: ResolvedEntity[],
+  language: 'ko' | 'en' = 'ko',
+): ProjectReport {
+  const sections: ReportSection[] = entities.map((entity, i) => ({
+    ref: entity.ref,
+    order: i,
+    include: true,
+    rendered: renderEntityContent(entity),
+  }))
+
+  return {
+    title,
+    projectId,
+    language,
+    sections,
+    generatedAt: new Date().toISOString(),
+  }
+}
+
+// ── 종류별 렌더 ──
+
+function renderEntityContent(entity: ResolvedEntity): RenderedContent {
+  if (!entity.loaded) {
+    return { heading: entity.summary.title, body: '*(원본이 삭제되었습니다)*' }
+  }
+
+  switch (entity.ref.entityKind) {
+    case 'analysis':
+      return renderAnalysis(entity)
+    case 'figure':
+      return renderFigure(entity)
+    case 'blast-result':
+      return renderBlast(entity)
+    default:
+      return renderGeneric(entity)
+  }
+}
+
+function renderAnalysis(entity: ResolvedEntity): RenderedContent {
+  // entity.summary에 이미 통계량 요약이 포함됨 (entity-resolver에서 생성)
+  // TODO: APA 포맷 완전 지원은 ResolvedEntity에 원본 data 복원 후 구현
+  return {
+    heading: entity.summary.title,
+    body: entity.summary.subtitle ?? '',
+  }
+}
+
+function renderFigure(entity: ResolvedEntity): RenderedContent {
+  const lines: string[] = []
+  if (entity.summary.subtitle) {
+    lines.push(`차트 유형: ${entity.summary.subtitle}`)
+  }
+  lines.push(`*(Graph Studio에서 차트 이미지를 내보내기 하세요)*`)
+
+  return {
+    heading: entity.summary.title,
+    body: lines.join('\n'),
+  }
+}
+
+function renderBlast(entity: ResolvedEntity): RenderedContent {
+  const heading = entity.summary.title
+  const lines: string[] = []
+
+  if (entity.summary.subtitle) {
+    lines.push(entity.summary.subtitle)
+  }
+  if (entity.summary.badge) {
+    lines.push(`판정: ${entity.summary.badge.label}`)
+  }
+
+  return {
+    heading,
+    body: lines.join('\n'),
+  }
+}
+
+function renderGeneric(entity: ResolvedEntity): RenderedContent {
+  return {
+    heading: entity.summary.title,
+    body: entity.summary.subtitle ?? '',
+  }
+}
+
+// ── 마크다운 출력 ──
+
+/** 보고서를 마크다운 문자열로 변환 */
+export function reportToMarkdown(report: ProjectReport): string {
+  const lines: string[] = []
+
+  lines.push(`# ${report.title}`)
+  lines.push('')
+  lines.push(`> 생성: ${new Date(report.generatedAt).toLocaleDateString('ko-KR')}`)
+  lines.push('')
+
+  const included = report.sections
+    .filter(s => s.include)
+    .sort((a, b) => a.order - b.order)
+
+  for (const section of included) {
+    if (!section.rendered) continue
+    lines.push(`## ${section.rendered.heading}`)
+    lines.push('')
+    if (section.rendered.body) {
+      lines.push(section.rendered.body)
+      lines.push('')
+    }
+    if (section.rendered.tables) {
+      for (const table of section.rendered.tables) {
+        lines.push(renderMarkdownTable(table.headers, table.rows, table.caption))
+        lines.push('')
+      }
+    }
+  }
+
+  return lines.join('\n')
+}
+
+/** 마크다운 테이블 렌더 */
+function renderMarkdownTable(headers: string[], rows: string[][], caption?: string): string {
+  const lines: string[] = []
+  if (caption) lines.push(`**${caption}**\n`)
+  lines.push(`| ${headers.join(' | ')} |`)
+  lines.push(`| ${headers.map(() => '---').join(' | ')} |`)
+  for (const row of rows) {
+    lines.push(`| ${row.join(' | ')} |`)
+  }
+  return lines.join('\n')
+}
+
+// ── 내보내기 ──
+
+/** 마크다운을 클립보드에 복사 */
+export async function copyReportToClipboard(report: ProjectReport): Promise<void> {
+  const md = reportToMarkdown(report)
+  await navigator.clipboard.writeText(md)
+}
+
+/** HTML 파일 다운로드 */
+export function downloadReportAsHtml(report: ProjectReport): void {
+  const md = reportToMarkdown(report)
+  // 간단한 마크다운→HTML 변환 (헤더, 볼드, 이탤릭, 테이블)
+  const html = markdownToSimpleHtml(md)
+  const fullHtml = `<!DOCTYPE html>
+<html lang="${report.language}">
+<head>
+<meta charset="utf-8">
+<title>${escapeHtml(report.title)}</title>
+<style>
+body { font-family: 'Noto Sans KR', sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.8; color: #333; }
+h1 { border-bottom: 2px solid #333; padding-bottom: 8px; }
+h2 { border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-top: 32px; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f5f5f5; font-weight: 600; }
+blockquote { border-left: 3px solid #ddd; margin: 0; padding: 8px 16px; color: #666; }
+em { font-style: italic; }
+</style>
+</head>
+<body>
+${html}
+</body>
+</html>`
+
+  const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  const safeName = report.title.replace(/[^a-zA-Z0-9가-힣 ]/g, '').trim() || 'report'
+  a.download = `${safeName}.html`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+/** 간단한 마크다운→HTML 변환 (라이브러리 없이, 파일 다운로드 전용) */
+function markdownToSimpleHtml(md: string): string {
+  return md
+    .split('\n')
+    .map(line => {
+      // 헤더
+      if (line.startsWith('# ')) return `<h1>${escapeHtml(line.slice(2))}</h1>`
+      if (line.startsWith('## ')) return `<h2>${escapeHtml(line.slice(3))}</h2>`
+      if (line.startsWith('### ')) return `<h3>${escapeHtml(line.slice(4))}</h3>`
+      // blockquote
+      if (line.startsWith('> ')) return `<blockquote>${escapeHtml(line.slice(2))}</blockquote>`
+      // 테이블 구분선 (|---|)
+      if (/^\|[\s-|]+\|$/.test(line)) return ''
+      // 테이블 행 (구분선 다음 행부터 body, 그 전은 header)
+      if (line.startsWith('|') && line.endsWith('|')) {
+        const cells = line.slice(1, -1).split('|').map(c => c.trim())
+        return `<tr>${cells.map(c => `<td>${formatInline(escapeHtml(c))}</td>`).join('')}</tr>`
+      }
+      // 빈 줄
+      if (!line.trim()) return ''
+      // 일반 텍스트
+      return `<p>${formatInline(escapeHtml(line))}</p>`
+    })
+    .filter(Boolean)
+    .join('\n')
+    // 테이블 행을 <table>로 감싸기
+    .replace(/(<tr>.*?<\/tr>\n?)+/g, '<table>$&</table>')
+}
+
+function formatInline(text: string): string {
+  // **bold** → <strong>
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+}
+

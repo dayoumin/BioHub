@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Clock, PanelRightClose, Pin } from 'lucide-react'
+import { ChevronRight, Clock, Pin } from 'lucide-react'
 import type { AnalysisHistoryEntry } from '@/lib/genetics/analysis-history'
 import { Button } from '@/components/ui/button'
 import { loadAnalysisHistory, deleteMultipleEntries, togglePinEntry, HISTORY_KEY, HISTORY_CHANGE_EVENT } from '@/lib/genetics/analysis-history'
@@ -14,11 +14,10 @@ export function HistorySidebar() {
   useEffect(() => {
     setActiveHistoryId(new URLSearchParams(window.location.search).get('history'))
   }, [])
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(true)
   const [history, setHistory] = useState<AnalysisHistoryEntry[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const lastRawRef = useRef<string | null>(null)
-  const userClosedRef = useRef(false)
 
   function refreshHistory(): void {
     const raw = localStorage.getItem(HISTORY_KEY)
@@ -26,19 +25,13 @@ export function HistorySidebar() {
     lastRawRef.current = raw
     const loaded = loadAnalysisHistory(raw)
     setHistory(loaded)
-    // 사용자가 명시적으로 닫은 경우 자동으로 다시 열지 않음
-    if (loaded.length > 0 && !userClosedRef.current) setOpen(true)
   }
 
-  useEffect(() => {
-    refreshHistory()
-  }, [])
+  useEffect(() => { refreshHistory() }, [])
 
   useEffect(() => {
     function onHistoryChange(): void { refreshHistory() }
-    // 같은 탭: 커스텀 이벤트 (saveAnalysisHistory가 발행)
     window.addEventListener(HISTORY_CHANGE_EVENT, onHistoryChange)
-    // 다른 탭: storage 이벤트 (같은 탭에서는 발화하지 않음)
     function onStorage(e: StorageEvent): void {
       if (e.key === HISTORY_KEY) refreshHistory()
     }
@@ -71,71 +64,91 @@ export function HistorySidebar() {
     setSelectedIds(new Set())
   }
 
-  if (history.length === 0) return null
-
-  // 닫혀 있을 때 — 열기 버튼만
+  // 접힌 상태
   if (!open) {
     return (
       <div className="hidden lg:block">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => { userClosedRef.current = false; setOpen(true) }}
-          className="fixed right-4 top-24 z-10 gap-1.5 bg-card shadow-sm"
-        >
-          <Clock className="h-3.5 w-3.5" />
-          최근 분석
-          <span className="rounded-full bg-muted px-1.5 text-[10px]">{history.length}</span>
-        </Button>
+        <div className="sticky top-24">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="group relative flex h-8 w-8 items-center justify-center rounded-full border border-border/60 text-muted-foreground/50 transition-all hover:border-border hover:bg-muted/50 hover:text-foreground"
+            title="히스토리 패널 열기"
+          >
+            <Clock className="h-4 w-4" />
+            {history.length > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                {history.length}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="hidden w-64 shrink-0 lg:block">
+    <div className="hidden w-52 shrink-0 lg:block">
       <div className="sticky top-24">
-        <div className="rounded-xl border border-border bg-card">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={history.length > 0 && selectedIds.size === history.length}
-                ref={(el) => { if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < history.length }}
-                onChange={() => {
-                  if (selectedIds.size === history.length) setSelectedIds(new Set())
-                  else setSelectedIds(new Set(history.map(e => e.id)))
-                }}
-                className="h-3 w-3 rounded border-gray-300 accent-primary"
-                title="전체 선택"
-              />
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">최근 분석</h2>
-            </div>
-            <div className="flex items-center gap-1">
-              {selectedIds.size > 0 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-auto px-1.5 py-0.5 text-[10px] font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={handleDeleteSelected}
-                >
-                  {selectedIds.size}건 삭제
-                </Button>
-              )}
+        {/* 헤더 */}
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5 text-muted-foreground/50" />
+            <h2 className="text-xs font-semibold tracking-wide text-muted-foreground">최근 분석</h2>
+            {history.length > 0 && (
+              <span className="rounded-full bg-muted px-1.5 text-[11px] tabular-nums text-muted-foreground">{history.length}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-0.5">
+            {selectedIds.size > 0 && (
               <Button
                 type="button"
                 variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-muted-foreground/40 hover:text-foreground"
-                onClick={() => { userClosedRef.current = true; setOpen(false) }}
-                title="패널 닫기"
+                size="sm"
+                className="h-auto px-1.5 py-0.5 text-[11px] font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={handleDeleteSelected}
               >
-                <PanelRightClose className="h-3.5 w-3.5" />
+                {selectedIds.size}건 삭제
               </Button>
-            </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="rounded p-0.5 text-muted-foreground/30 transition-colors hover:bg-muted hover:text-foreground"
+              title="패널 접기"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
           </div>
-          <div className="max-h-[calc(100vh-10rem)] divide-y divide-border/50 overflow-y-auto">
+        </div>
+
+        {/* 전체 선택 (히스토리 있을 때) */}
+        {history.length > 1 && (
+          <div className="mb-1 flex items-center gap-1.5 pl-0.5">
+            <input
+              type="checkbox"
+              checked={selectedIds.size === history.length}
+              ref={(el) => { if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < history.length }}
+              onChange={() => {
+                if (selectedIds.size === history.length) setSelectedIds(new Set())
+                else setSelectedIds(new Set(history.map(e => e.id)))
+              }}
+              className="h-3 w-3 rounded border-gray-300 accent-primary"
+              title="전체 선택"
+            />
+            <span className="text-[11px] text-muted-foreground/50">전체 선택</span>
+          </div>
+        )}
+
+        {/* 콘텐츠 */}
+        {history.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-border/60 px-4 py-6 text-center">
+            <p className="text-xs text-muted-foreground/50">
+              분석을 실행하면<br />여기에 기록됩니다
+            </p>
+          </div>
+        ) : (
+          <div className="max-h-[calc(100vh-12rem)] divide-y divide-border/30 overflow-y-auto">
             {history.map((entry) => (
               <HistoryRow
                 key={entry.id}
@@ -148,7 +161,7 @@ export function HistorySidebar() {
               />
             ))}
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
@@ -173,10 +186,10 @@ function HistoryRow({ entry, active, selected, onToggleSelect, onTogglePin, onCl
 
   return (
     <div
-      className={`group relative px-3 py-2 transition ${active ? 'border-l-2 border-primary bg-primary/5' : selected ? 'bg-primary/5' : ''} ${hasResult ? 'cursor-pointer hover:bg-muted/30' : ''}`}
+      className={`group relative rounded py-2 transition ${active ? 'bg-primary/5 ring-1 ring-primary/20' : ''} ${selected && !active ? 'bg-muted/40' : ''} ${hasResult ? 'cursor-pointer hover:bg-muted/30' : ''}`}
       onClick={() => hasResult && onClick(entry)}
     >
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-1.5 px-1">
         <input
           type="checkbox"
           checked={selected}
@@ -185,10 +198,10 @@ function HistoryRow({ entry, active, selected, onToggleSelect, onTogglePin, onCl
           className="mt-0.5 h-3 w-3 shrink-0 rounded border-gray-300 accent-primary"
         />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1 truncate text-[11px]">
+          <div className="truncate text-xs leading-tight">
             {entry.sampleName || entry.sequencePreview}
           </div>
-          <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-gray-700">
+          <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
             {entry.topSpecies && entry.topSpecies !== entry.sampleName && (
               <>
                 <span className="truncate italic">{entry.topSpecies}</span>
@@ -204,14 +217,14 @@ function HistoryRow({ entry, active, selected, onToggleSelect, onTogglePin, onCl
             )}
           </div>
         </div>
-        <Button type="button"
-          variant="ghost"
-          size="icon"
+        <button
+          type="button"
           onClick={(e) => { e.stopPropagation(); onTogglePin(entry.id) }}
-          className={`h-5 w-5 shrink-0 ${entry.pinned ? 'text-primary' : 'text-muted-foreground/30 hover:text-primary'}`}
-          title={entry.pinned ? '고정 해제' : '상단 고정'}>
+          className={`mt-0.5 shrink-0 rounded p-0.5 transition-colors ${entry.pinned ? 'text-primary' : 'text-muted-foreground/20 hover:text-primary'}`}
+          title={entry.pinned ? '고정 해제' : '상단 고정'}
+        >
           <Pin className="h-3 w-3" />
-        </Button>
+        </button>
       </div>
     </div>
   )
