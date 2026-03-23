@@ -1377,4 +1377,6 @@ export type Worker5Method = 'kaplan_meier_analysis' | 'roc_curve_analysis'
 export type Worker6Method = 'render_chart'
 export type Worker7Method = 'fit_vbgf' | 'length_weight' | 'condition_factor'
 
-export type AllMethodName = Worker1Method | Worker2Method | Worker3Method | Worker4Method | Worker5Method | Worker6Method | Worker7Method
+export type Worker8Method = 'alpha_diversity' | 'rarefaction' | 'beta_diversity' | 'nmds' | 'permanova' | 'mantel_test'
+
+export type AllMethodName = Worker1Method | Worker2Method | Worker3Method | Worker4Method | Worker5Method | Worker6Method | Worker7Method | Worker8Method

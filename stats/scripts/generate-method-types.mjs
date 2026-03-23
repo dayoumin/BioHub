@@ -560,6 +560,12 @@ export async function ${funcName}(${params}): Promise<${resultType}> {
 function generate() {
   const lines = []
 
+  // 레지스트리에서 worker 번호 동적 추출
+  const workerNums = Object.keys(registry)
+    .filter(k => /^worker\d+$/.test(k))
+    .map(k => parseInt(k.replace('worker', ''), 10))
+    .sort((a, b) => a - b)
+
   // 헤더
   lines.push(`/**
  * Auto-generated from methods-registry.json
@@ -580,7 +586,11 @@ export const WORKER = {
   DESCRIPTIVE: 1,
   HYPOTHESIS: 2,
   NONPARAMETRIC_ANOVA: 3,
-  REGRESSION_ADVANCED: 4
+  REGRESSION_ADVANCED: 4,
+  SURVIVAL: 5,
+  MATPLOTLIB: 6,
+  FISHERIES: 7,
+  ECOLOGY: 8,
 } as const
 
 export type WorkerNumber = typeof WORKER[keyof typeof WORKER]
@@ -612,7 +622,7 @@ async function callWorkerMethod<T>(
 `)
 
   // 각 Worker별 타입과 함수 생성
-  for (const workerNum of [1, 2, 3, 4]) {
+  for (const workerNum of workerNums) {
     const workerKey = `worker${workerNum}`
     const worker = registry[workerKey]
 
@@ -642,15 +652,16 @@ async function callWorkerMethod<T>(
 // ========================================
 `)
 
-  for (const workerNum of [1, 2, 3, 4]) {
+  for (const workerNum of workerNums) {
     const workerKey = `worker${workerNum}`
     const worker = registry[workerKey]
     const methodNames = Object.keys(worker.methods).map(m => `'${m}'`).join(' | ')
     lines.push(`export type Worker${workerNum}Method = ${methodNames}`)
   }
 
+  const allMethodUnion = workerNums.map(n => `Worker${n}Method`).join(' | ')
   lines.push(`
-export type AllMethodName = Worker1Method | Worker2Method | Worker3Method | Worker4Method
+export type AllMethodName = ${allMethodUnion}
 `)
 
   // 출력 디렉토리 생성
@@ -663,13 +674,13 @@ export type AllMethodName = Worker1Method | Worker2Method | Worker3Method | Work
 
   // 통계 출력
   let totalMethods = 0
-  for (const workerNum of [1, 2, 3, 4]) {
+  for (const workerNum of workerNums) {
     const workerKey = `worker${workerNum}`
     totalMethods += Object.keys(registry[workerKey].methods).length
   }
 
   console.log(`Generated: ${outputPath}`)
-  console.log(`  - Workers: 4`)
+  console.log(`  - Workers: ${workerNums.length}`)
   console.log(`  - Methods: ${totalMethods}`)
 }
 

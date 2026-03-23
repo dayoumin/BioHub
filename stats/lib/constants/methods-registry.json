@@ -1170,5 +1170,94 @@
         "description": "급내상관계수 (ICC)"
       }
     }
+  },
+  "worker6": {
+    "name": "matplotlib",
+    "description": "논문용 차트 Export 렌더러 (matplotlib)",
+    "packages": ["numpy", "matplotlib"],
+    "methods": {
+      "render_chart": {
+        "params": ["chartSpec", "data", "exportConfig"],
+        "returns": ["base64Data", "mimeType", "extension"],
+        "description": "ChartSpec + 데이터 → matplotlib figure → base64 이미지/문서"
+      }
+    }
+  },
+  "worker7": {
+    "name": "fisheries",
+    "description": "Fisheries stock assessment (VBGF, length-weight, condition factor)",
+    "packages": ["numpy", "scipy"],
+    "methods": {
+      "fit_vbgf": {
+        "params": ["ages", "lengths"],
+        "returns": [
+          "lInf", "k", "t0", "standardErrors", "ci95",
+          "rSquared", "predicted", "residuals", "nObservations",
+          "aic", "parameterTable"
+        ],
+        "description": "von Bertalanffy 성장 모델 파라미터 추정"
+      },
+      "length_weight": {
+        "params": ["lengths", "weights"],
+        "returns": [
+          "a", "b", "logA", "rSquared", "bStdError",
+          "isometricTStat", "isometricPValue", "growthType",
+          "predicted", "nObservations", "logLogPoints"
+        ],
+        "description": "체장-체중 관계식 추정 (W = aL^b)"
+      },
+      "condition_factor": {
+        "params": ["lengths", "weights", "groups?"],
+        "returns": [
+          "individualK", "mean", "std", "median", "min", "max", "n",
+          "groupStats", "comparison"
+        ],
+        "description": "Fulton's Condition Factor (K = 100 × W / L³)"
+      }
+    }
+  },
+  "worker8": {
+    "name": "ecology",
+    "description": "Community ecology analysis (diversity, ordination, hypothesis testing)",
+    "packages": ["numpy", "scipy", "scikit-learn"],
+    "methods": {
+      "alpha_diversity": {
+        "params": ["rows", "site_col?"],
+        "returns": [
+          "siteResults", "summaryTable", "speciesNames", "siteCount"
+        ],
+        "description": "지점별 알파 다양성 지수 (Shannon, Simpson, Margalef, Pielou)"
+      },
+      "rarefaction": {
+        "params": ["rows", "site_col?", "n_steps?"],
+        "returns": ["curves"],
+        "description": "종 희박화 곡선 (Hurlbert 1971)"
+      },
+      "beta_diversity": {
+        "params": ["rows", "site_col?", "metric?"],
+        "returns": ["distanceMatrix", "siteLabels", "metric"],
+        "description": "지점 간 베타 다양성 거리행렬 (Bray-Curtis, Jaccard, Sørensen)"
+      },
+      "nmds": {
+        "params": ["distance_matrix", "site_labels?", "groups?", "n_components?", "max_iter?", "random_state?"],
+        "returns": [
+          "coordinates", "stress", "stressInterpretation", "siteLabels", "groups"
+        ],
+        "description": "NMDS 비계량 다차원 척도법"
+      },
+      "permanova": {
+        "params": ["distance_matrix", "grouping", "permutations?"],
+        "returns": [
+          "pseudoF", "pValue", "rSquared", "permutations",
+          "ssBetween", "ssWithin", "ssTotal"
+        ],
+        "description": "PERMANOVA 순열 다변량 분산분석 (Anderson 2001)"
+      },
+      "mantel_test": {
+        "params": ["matrix_x", "matrix_y", "permutations?", "method?"],
+        "returns": ["r", "pValue", "permutations", "method"],
+        "description": "Mantel 검정 — 두 거리행렬 간 상관"
+      }
+    }
   }
 }

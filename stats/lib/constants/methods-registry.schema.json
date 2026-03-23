@@ -23,7 +23,11 @@
     "worker1": { "$ref": "#/definitions/workerDefinition" },
     "worker2": { "$ref": "#/definitions/workerDefinition" },
     "worker3": { "$ref": "#/definitions/workerDefinition" },
-    "worker4": { "$ref": "#/definitions/workerDefinition" }
+    "worker4": { "$ref": "#/definitions/workerDefinition" },
+    "worker5": { "$ref": "#/definitions/workerDefinition" },
+    "worker6": { "$ref": "#/definitions/workerDefinition" },
+    "worker7": { "$ref": "#/definitions/workerDefinition" },
+    "worker8": { "$ref": "#/definitions/workerDefinition" }
   },
   "required": ["worker1", "worker2", "worker3", "worker4"],
   "additionalProperties": false,

@@ -40,6 +40,18 @@ describe('Methods Registry', () => {
       expect(getWorkerForMethod('cluster_analysis')).toBe(4)
     })
 
+    it('Worker 7 (fisheries) 메서드를 올바르게 찾아야 함', () => {
+      expect(getWorkerForMethod('fit_vbgf')).toBe(7)
+      expect(getWorkerForMethod('length_weight')).toBe(7)
+      expect(getWorkerForMethod('condition_factor')).toBe(7)
+    })
+
+    it('Worker 8 (ecology) 메서드를 올바르게 찾아야 함', () => {
+      expect(getWorkerForMethod('alpha_diversity')).toBe(8)
+      expect(getWorkerForMethod('nmds')).toBe(8)
+      expect(getWorkerForMethod('permanova')).toBe(8)
+    })
+
     it('존재하지 않는 메서드는 null 반환', () => {
       expect(getWorkerForMethod('non_existent_method')).toBeNull()
       expect(getWorkerForMethod('')).toBeNull()
@@ -128,16 +140,22 @@ describe('Methods Registry', () => {
       expect(stats.methodsByWorker[3]).toBeGreaterThan(10)
       expect(stats.methodsByWorker[4]).toBeGreaterThan(10)
 
+      // Worker 7, 8 검증
+      expect(stats.methodsByWorker[7]).toBe(3)   // fisheries: 3 methods
+      expect(stats.methodsByWorker[8]).toBe(6)   // ecology: 6 methods
+
       // 합계 검증
-      const sum = stats.methodsByWorker[1] + stats.methodsByWorker[2] +
-                  stats.methodsByWorker[3] + stats.methodsByWorker[4]
+      let sum = 0
+      for (const num of [1, 2, 3, 4, 5, 6, 7, 8] as const) {
+        sum += stats.methodsByWorker[num] ?? 0
+      }
       expect(sum).toBe(stats.totalMethods)
     })
   })
 
   describe('레지스트리 구조 검증', () => {
     it('모든 Worker가 필수 필드를 가져야 함', () => {
-      for (const workerKey of ['worker1', 'worker2', 'worker3', 'worker4'] as const) {
+      for (const workerKey of ['worker1', 'worker2', 'worker3', 'worker4', 'worker5', 'worker6', 'worker7', 'worker8'] as const) {
         const worker = methodsRegistry[workerKey]
         expect(worker.name).toBeDefined()
         expect(worker.description).toBeDefined()
@@ -199,9 +217,11 @@ describe('Methods Registry', () => {
       expect(methodsRegistry).toHaveProperty('worker2')
       expect(methodsRegistry).toHaveProperty('worker3')
       expect(methodsRegistry).toHaveProperty('worker4')
+      expect(methodsRegistry).toHaveProperty('worker7')
+      expect(methodsRegistry).toHaveProperty('worker8')
 
       // 각 Worker 구조 확인
-      for (const workerKey of ['worker1', 'worker2', 'worker3', 'worker4'] as const) {
+      for (const workerKey of ['worker1', 'worker2', 'worker3', 'worker4', 'worker5', 'worker6', 'worker7', 'worker8'] as const) {
         const worker = methodsRegistry[workerKey]
         expect(worker).toHaveProperty('name')
         expect(worker).toHaveProperty('description')
@@ -228,8 +248,8 @@ describe('Methods Registry', () => {
         // params 형식 확인 (문자열 배열, 옵셔널은 ? 접미사)
         for (const param of definition.params) {
           expect(typeof param).toBe('string')
-          // camelCase 또는 camelCase? 형식
-          expect(param).toMatch(/^[a-zA-Z][a-zA-Z0-9]*\??$/)
+          // camelCase/snake_case 또는 ?접미사 (ecology/fisheries는 snake_case 사용)
+          expect(param).toMatch(/^[a-zA-Z][a-zA-Z0-9_]*\??$/)
         }
       }
     })

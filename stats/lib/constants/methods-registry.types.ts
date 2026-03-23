@@ -16,12 +16,12 @@ import methodsRegistry from './methods-registry.json'
 /**
  * Worker 번호 타입
  */
-export type WorkerNumber = 1 | 2 | 3 | 4
+export type WorkerNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
 
 /**
  * Worker 키 타입
  */
-export type WorkerKey = 'worker1' | 'worker2' | 'worker3' | 'worker4'
+export type WorkerKey = 'worker1' | 'worker2' | 'worker3' | 'worker4' | 'worker5' | 'worker6' | 'worker7' | 'worker8'
 
 /**
  * Worker 번호 → 키 매핑
@@ -30,7 +30,11 @@ export const WORKER_NUM_TO_KEY: Record<WorkerNumber, WorkerKey> = {
   1: 'worker1',
   2: 'worker2',
   3: 'worker3',
-  4: 'worker4'
+  4: 'worker4',
+  5: 'worker5',
+  6: 'worker6',
+  7: 'worker7',
+  8: 'worker8',
 }
 
 /**
@@ -40,8 +44,15 @@ export const WORKER_KEY_TO_NUM: Record<WorkerKey, WorkerNumber> = {
   worker1: 1,
   worker2: 2,
   worker3: 3,
-  worker4: 4
+  worker4: 4,
+  worker5: 5,
+  worker6: 6,
+  worker7: 7,
+  worker8: 8,
 }
+
+/** 모든 Worker 번호 (루프용) */
+const ALL_WORKER_NUMS: readonly WorkerNumber[] = [1, 2, 3, 4, 5, 6, 7, 8] as const
 
 // ========================================
 // 레지스트리 타입 추출
@@ -98,6 +109,10 @@ export type Worker3Method = keyof typeof methodsRegistry.worker3.methods
  * Worker 4 메서드 이름
  */
 export type Worker4Method = keyof typeof methodsRegistry.worker4.methods
+export type Worker5Method = keyof typeof methodsRegistry.worker5.methods
+export type Worker6Method = keyof typeof methodsRegistry.worker6.methods
+export type Worker7Method = keyof typeof methodsRegistry.worker7.methods
+export type Worker8Method = keyof typeof methodsRegistry.worker8.methods
 
 /**
  * 모든 메서드 이름 (Union)
@@ -107,6 +122,10 @@ export type AllMethodNames =
   | Worker2Method
   | Worker3Method
   | Worker4Method
+  | Worker5Method
+  | Worker6Method
+  | Worker7Method
+  | Worker8Method
 
 // ========================================
 // 유틸리티 함수
@@ -119,10 +138,11 @@ export type AllMethodNames =
  * @returns Worker 번호 (1-4) 또는 null
  */
 export function getWorkerForMethod(methodName: string): WorkerNumber | null {
-  if (methodName in methodsRegistry.worker1.methods) return 1
-  if (methodName in methodsRegistry.worker2.methods) return 2
-  if (methodName in methodsRegistry.worker3.methods) return 3
-  if (methodName in methodsRegistry.worker4.methods) return 4
+  for (const workerNum of ALL_WORKER_NUMS) {
+    const workerKey = WORKER_NUM_TO_KEY[workerNum]
+    const worker = methodsRegistry[workerKey] as WorkerDefinition | undefined
+    if (worker && methodName in worker.methods) return workerNum
+  }
   return null
 }
 
@@ -179,9 +199,10 @@ export function getAllMethods(): Array<{
     definition: MethodDefinition
   }> = []
 
-  for (const workerNum of [1, 2, 3, 4] as WorkerNumber[]) {
+  for (const workerNum of ALL_WORKER_NUMS) {
     const workerKey = WORKER_NUM_TO_KEY[workerNum]
-    const worker = methodsRegistry[workerKey] as WorkerDefinition
+    const worker = methodsRegistry[workerKey] as WorkerDefinition | undefined
+    if (!worker) continue
 
     for (const [methodName, definition] of Object.entries(worker.methods)) {
       result.push({
@@ -202,15 +223,18 @@ export function getRegistryStats(): {
   totalMethods: number
   methodsByWorker: Record<WorkerNumber, number>
 } {
-  const methodsByWorker: Record<WorkerNumber, number> = {
-    1: Object.keys(methodsRegistry.worker1.methods).length,
-    2: Object.keys(methodsRegistry.worker2.methods).length,
-    3: Object.keys(methodsRegistry.worker3.methods).length,
-    4: Object.keys(methodsRegistry.worker4.methods).length
+  const methodsByWorker = {} as Record<WorkerNumber, number>
+  let total = 0
+  for (const workerNum of ALL_WORKER_NUMS) {
+    const workerKey = WORKER_NUM_TO_KEY[workerNum]
+    const worker = methodsRegistry[workerKey] as WorkerDefinition | undefined
+    const count = worker ? Object.keys(worker.methods).length : 0
+    methodsByWorker[workerNum] = count
+    total += count
   }
 
   return {
-    totalMethods: methodsByWorker[1] + methodsByWorker[2] + methodsByWorker[3] + methodsByWorker[4],
+    totalMethods: total,
     methodsByWorker
   }
 }

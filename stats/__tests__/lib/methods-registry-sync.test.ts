@@ -22,11 +22,15 @@ import {
 // Python Worker 파일 경로
 const WORKER_DIR = join(__dirname, '../../public/workers/python')
 
-const WORKER_FILES: Record<WorkerNumber, string> = {
+const WORKER_FILES: Partial<Record<WorkerNumber, string>> = {
   1: 'worker1-descriptive.py',
   2: 'worker2-hypothesis.py',
   3: 'worker3-nonparametric-anova.py',
-  4: 'worker4-regression-advanced.py'
+  4: 'worker4-regression-advanced.py',
+  5: 'worker5-survival.py',
+  6: 'worker6-matplotlib.py',
+  7: 'worker7-fisheries.py',
+  8: 'worker8-ecology.py',
 }
 
 /**
@@ -34,7 +38,9 @@ const WORKER_FILES: Record<WorkerNumber, string> = {
  * (_로 시작하는 private 함수 제외)
  */
 function extractPythonFunctions(workerNum: WorkerNumber): string[] {
-  const filePath = join(WORKER_DIR, WORKER_FILES[workerNum])
+  const fileName = WORKER_FILES[workerNum]
+  if (!fileName) return []
+  const filePath = join(WORKER_DIR, fileName)
   const content = readFileSync(filePath, 'utf8')
 
   // "def function_name(" 패턴 매칭 (private 함수 제외)
@@ -53,7 +59,9 @@ function extractPythonFunctions(workerNum: WorkerNumber): string[] {
  * Python 함수의 파라미터 추출
  */
 function extractPythonParams(workerNum: WorkerNumber, funcName: string): string[] {
-  const filePath = join(WORKER_DIR, WORKER_FILES[workerNum])
+  const fileName = WORKER_FILES[workerNum]
+  if (!fileName) return []
+  const filePath = join(WORKER_DIR, fileName)
   const content = readFileSync(filePath, 'utf8')
 
   // 멀티라인 함수 정의 지원
@@ -203,7 +211,7 @@ describe('Methods Registry SSOT 검증', () => {
 
   describe('레지스트리 무결성 검증', () => {
     it('모든 Worker가 최소 1개 이상의 메서드를 가져야 함', () => {
-      for (const workerNum of [1, 2, 3, 4] as WorkerNumber[]) {
+      for (const workerNum of [1, 2, 3, 4, 5, 6, 7, 8] as WorkerNumber[]) {
         const methods = getWorkerMethods(workerNum)
         expect(methods.length).toBeGreaterThanOrEqual(1)
       }
