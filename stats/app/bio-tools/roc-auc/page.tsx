@@ -90,10 +90,7 @@ export default function RocAucPage(): React.ReactElement {
     }
   }, [results])
 
-  const aucInterp = useMemo(() => {
-    if (!results) return null
-    return getAucInterpretation(results.auc)
-  }, [results])
+  const aucInterp = results ? getAucInterpretation(results.auc) : null
 
   if (!tool) return <div>도구를 찾을 수 없습니다</div>
 

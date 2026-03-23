@@ -257,12 +257,17 @@ describe('Pyodide Init Logic - Real Function Tests', () => {
 
     it('should return correct filename for Worker 6', () => {
       const fileName = getWorkerFileName(6)
-      expect(fileName).toBe('worker6-fisheries')
+      expect(fileName).toBe('worker6-matplotlib')
     })
 
     it('should return correct filename for Worker 7', () => {
       const fileName = getWorkerFileName(7)
-      expect(fileName).toBe('worker7-ecology')
+      expect(fileName).toBe('worker7-fisheries')
+    })
+
+    it('should return correct filename for Worker 8', () => {
+      const fileName = getWorkerFileName(8)
+      expect(fileName).toBe('worker8-ecology')
     })
 
     it('should throw error for invalid worker number', () => {
