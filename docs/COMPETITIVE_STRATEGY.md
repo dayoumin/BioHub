@@ -3,6 +3,7 @@
 > **작성일**: 2026-03-13
 > **범위**: 플랫폼 전체 (통계 + 시각화 + 논문 작성)
 > **관련**: [VISION.md](../VISION.md) · [MARKET_STRATEGY_KOREA.md](../stats/docs/graph-studio/MARKET_STRATEGY_KOREA.md)
+> **국내 서비스 경쟁 분석**: [COMPETITIVE-ANALYSIS.md](../stats/docs/COMPETITIVE-ANALYSIS.md) 섹션 9
 
 ---
 
