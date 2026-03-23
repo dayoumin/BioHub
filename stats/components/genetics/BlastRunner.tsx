@@ -31,6 +31,8 @@ type BlastPhase =
 
 const POLL_INTERVAL_MS = 15_000
 const MAX_POLLS = 40 // 최대 10분
+const RESULT_RETRY_MS = 3_000
+const MAX_RESULT_RETRIES = 5
 
 const STEP_LABELS = [
   '입력 서열을 NCBI BLAST 서버에 전송',
@@ -170,15 +172,7 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
           const resultUrl = submitData.sequenceHash
             ? `/api/blast/result/${submitData.rid}?hash=${submitData.sequenceHash}&marker=${marker}`
             : `/api/blast/result/${submitData.rid}`
-          const resultRes = await fetch(resultUrl, { signal })
-          if (resultRes.status === 202) {
-            throw new BlastError('BLAST 결과가 아직 준비되지 않았습니다. 잠시 후 다시 시도하세요.', 'blast-failed')
-          }
-          if (!resultRes.ok) {
-            throw new BlastError(`결과 조회 실패 (${resultRes.status})`, 'network')
-          }
-
-          resultData = await resultRes.json() as { hits?: Array<Record<string, unknown>> }
+          resultData = await fetchBlastResult(resultUrl, signal)
           if (signal.aborted) return
         }
 
@@ -382,4 +376,26 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
     }, ms)
     signal?.addEventListener('abort', onAbort, { once: true })
   })
+}
+
+async function fetchBlastResult(
+  resultUrl: string,
+  signal: AbortSignal
+): Promise<{ hits?: Array<Record<string, unknown>> }> {
+  for (let attempt = 0; attempt < MAX_RESULT_RETRIES; attempt++) {
+    const resultRes = await fetch(resultUrl, { signal })
+
+    if (resultRes.status === 202) {
+      await sleep(RESULT_RETRY_MS, signal)
+      continue
+    }
+
+    if (!resultRes.ok) {
+      throw new BlastError(`결과 조회 실패 (${resultRes.status})`, 'network')
+    }
+
+    return await resultRes.json() as { hits?: Array<Record<string, unknown>> }
+  }
+
+  throw new BlastError('결과가 아직 준비되지 않았습니다. 잠시 후 다시 시도하세요.', 'timeout')
 }

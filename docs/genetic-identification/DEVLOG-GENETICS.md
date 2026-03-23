@@ -42,7 +42,7 @@
 
 ## 2026-03-22: 보안
 
-- 보안 체크리스트: [docs/SECURITY-CHECKLIST.md](../docs/SECURITY-CHECKLIST.md)
+- 보안 체크리스트: [docs/SECURITY-CHECKLIST.md](../SECURITY-CHECKLIST.md)
 - 서열 크기 제한: 100-10,000bp (Worker에서 검증)
 - 파일 업로드: 1MB 제한 (클라이언트에서 검증)
 - Origin 스푸핑: 비브라우저 클라이언트에서 가능 → CF Rate Limiting 필요 (배포 시)

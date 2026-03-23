@@ -12,6 +12,7 @@ import {
   Microscope,
   Settings,
   PanelLeft,
+  Plus,
   Star,
   FolderKanban,
   ChevronDown,
@@ -163,7 +164,7 @@ export function AppSidebar() {
       </div>
 
       {/* 프로젝트 전환기 */}
-      <div className="flex-shrink-0 px-1.5 pt-2 pb-1">
+      <div className="flex-shrink-0 px-1.5 pt-2 pb-2 border-b border-sidebar-border/50">
         <DropdownMenu>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -223,6 +224,13 @@ export function AppSidebar() {
               className="text-xs text-muted-foreground"
             >
               프로젝트 해제
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild className="text-xs">
+              <Link href="/projects">
+                <Plus className="mr-1.5 h-3 w-3" />
+                새 프로젝트
+              </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

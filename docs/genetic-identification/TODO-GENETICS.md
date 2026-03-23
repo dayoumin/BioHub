@@ -1,11 +1,10 @@
 # Genetics — 유전적 종 판별 TODO
 
-**레퍼런스**: [docs/genetic-identification/](../docs/genetic-identification/)
-**설계/UX**: [REFERENCE-E0-BARCODING-SERVICE.md](../docs/genetic-identification/REFERENCE-E0-BARCODING-SERVICE.md)
-**구현 계획**: [PLAN-MODULE-E-NCBI-GENETICS.md](../docs/PLAN-MODULE-E-NCBI-GENETICS.md)
-**프로젝트 시스템**: [PLAN-PROJECT-SYSTEM.md](../docs/PLAN-PROJECT-SYSTEM.md)
+**레퍼런스**: [docs/genetic-identification/](./)
+**설계/UX**: [REFERENCE-E0-BARCODING-SERVICE.md](./REFERENCE-E0-BARCODING-SERVICE.md)
+**구현 계획**: [PLAN-MODULE-E-NCBI-GENETICS.md](../PLAN-MODULE-E-NCBI-GENETICS.md)
+**프로젝트 시스템**: [PLAN-PROJECT-SYSTEM.md](../PLAN-PROJECT-SYSTEM.md)
 **정본 코드**: `stats/` 앱 내 (`stats/app/genetics/`, `stats/components/genetics/`, `stats/lib/genetics/`)
-**genetics/src/**: 삭제됨 (2026-03-22). 정본은 stats/ 내 코드
 
 ---
 

@@ -98,12 +98,19 @@ export default function GeneticsHome() {
         setGuideOpen(false)
       }
     }
+    function handleKeyDown(e: KeyboardEvent): void {
+      if (e.key === 'Escape') setGuideOpen(false)
+    }
     document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClick)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [guideOpen])
 
   return (
-    <div>
+    <div className="mx-auto max-w-4xl">
       <div className="mb-8 flex items-start justify-between">
         <div>
           <h1 className="mb-2 text-2xl font-bold">유전적 분석</h1>
@@ -181,7 +188,7 @@ export default function GeneticsHome() {
       </div>
 
       {/* 예제 서열 */}
-      <div className="mb-6">
+      <div className="mb-10">
         <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
           예제 서열로 체험하기
         </h2>
@@ -193,7 +200,7 @@ export default function GeneticsHome() {
                   <Play className="h-3 w-3 text-primary" />
                   <span className="text-xs font-medium">{ex.species}</span>
                 </div>
-                <p className="mb-2 text-[11px] leading-relaxed text-muted-foreground">{ex.description}</p>
+                <p className="mb-2 text-xs leading-relaxed text-muted-foreground">{ex.description}</p>
                 <div className="flex items-center gap-2 text-[10px] text-muted-foreground/60">
                   <span>{ex.marker}</span>
                 </div>
@@ -227,7 +234,7 @@ function ReadyCard({ tool }: { tool: Tool }) {
 
   return (
     <Link href={tool.href}>
-      <div className="group rounded-xl border border-primary/20 bg-card p-6 transition hover:border-primary/40 hover:shadow-md">
+      <div className="group rounded-xl border border-primary/20 bg-primary/5 p-6 transition hover:border-primary/40 hover:shadow-md">
         <div className="flex items-start gap-4">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <Icon className="h-5 w-5" />
@@ -237,7 +244,7 @@ function ReadyCard({ tool }: { tool: Tool }) {
             <p className="mb-2 text-sm text-muted-foreground">{tool.description}</p>
             <p className="text-xs text-muted-foreground/70">입력: {tool.input}</p>
           </div>
-          <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
+          <ArrowRight className="mt-1 h-5 w-5 shrink-0 text-primary/40 transition group-hover:translate-x-1 group-hover:text-primary" />
         </div>
       </div>
     </Link>
@@ -248,7 +255,7 @@ function PendingCard({ tool }: { tool: Tool }) {
   const Icon = tool.icon
 
   return (
-    <div className="rounded-xl border border-border/50 bg-muted/20 p-4">
+    <div className="rounded-xl border border-border/50 bg-muted/20 p-4 cursor-not-allowed">
       <div className="flex items-start gap-3">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
           <Icon className="h-4 w-4" />
