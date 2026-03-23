@@ -28,24 +28,48 @@ function needsRQuoting(name: string): boolean {
   return !/^[A-Za-z.][A-Za-z0-9._]*$/.test(name)
 }
 
+/** R/Python 공용 문자열 리터럴 이스케이프 */
+function escapeStringLiteral(value: string): string {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\r/g, '\\r')
+    .replace(/\n/g, '\\n')
+    .replace(/\t/g, '\\t')
+    .replace(/\0/g, '')
+}
+
 /** R에서 안전하게 사용할 수 있는 변수명 (backtick 래핑) */
 export function safeR(name: string): string {
-  return needsRQuoting(name) ? `\`${name}\`` : name
+  return needsRQuoting(name)
+    ? `\`${name
+      .replace(/\\/g, '\\\\')
+      .replace(/`/g, '\\`')
+      .replace(/\r/g, '\\r')
+      .replace(/\n/g, '\\n')
+      .replace(/\t/g, '\\t')
+      .replace(/\0/g, '')}\``
+    : name
+}
+
+/** R 문자열 리터럴 */
+export function safeRString(value: string): string {
+  return `"${escapeStringLiteral(value)}"`
 }
 
 /** R data$column 접근 — 특수문자 있으면 data[["col"]] 형태 */
 export function safeRCol(df: string, col: string): string {
-  return needsRQuoting(col) ? `${df}[["${col}"]]` : `${df}$${col}`
+  return needsRQuoting(col) ? `${df}[[${safeRString(col)}]]` : `${df}$${col}`
 }
 
 /** R formula에서 안전한 변수명 (backtick 래핑) */
 export function safeRFormula(name: string): string {
-  return needsRQuoting(name) ? `\`${name}\`` : name
+  return safeR(name)
 }
 
 /** Python에서 안전하게 사용할 수 있는 컬럼명 (따옴표 이스케이프) */
 export function safePy(name: string): string {
-  return name.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+  return escapeStringLiteral(name)
 }
 
 /** Python data["column"] 접근 */
@@ -55,5 +79,5 @@ export function safePyCol(df: string, col: string): string {
 
 /** 파일명 안전 처리 (따옴표 이스케이프) */
 export function safeFileName(name: string): string {
-  return name.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+  return escapeStringLiteral(name)
 }

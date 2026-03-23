@@ -4,7 +4,7 @@
  */
 
 import type { CodeTemplate } from '../code-template-types'
-import { dep, group, safeRFormula, safePy, safePyCol, safeFileName } from './template-helpers'
+import { dep, group, safeRFormula, safePy, safePyCol, safeFileName, safeRString } from './template-helpers'
 
 export const anovaR: CodeTemplate = {
   methodId: 'anova',
@@ -13,17 +13,26 @@ export const anovaR: CodeTemplate = {
   generate: (input) => {
     const d = dep(input)
     const g = group(input)
+    const postHocMethod = input.options.postHocMethod ?? 'games-howell'
+    const postHocBlock = postHocMethod === 'games-howell'
+      ? `# 사후검정 (Games-Howell)
+library(rstatix)
+print(games_howell_test(data, ${safeRFormula(d)} ~ ${safeRFormula(g)}))`
+      : postHocMethod === 'bonferroni'
+        ? `# 사후검정 (Bonferroni)
+print(pairwise.t.test(data[[${safeRString(d)}]], data[[${safeRString(g)}]], p.adjust.method = "bonferroni"))`
+        : `# 사후검정 (Tukey HSD)
+print(TukeyHSD(model))`
     return `library(tidyverse)
 
 data <- read_csv("${safeFileName(input.dataFileName)}")
-data[[${JSON.stringify(g)}]] <- as.factor(data[[${JSON.stringify(g)}]])
+data[[${safeRString(g)}]] <- as.factor(data[[${safeRString(g)}]])
 
 # 일원분산분석 (One-Way ANOVA)
 model <- aov(${safeRFormula(d)} ~ ${safeRFormula(g)}, data = data)
 summary(model)
 
-# 사후검정 (Tukey HSD)
-TukeyHSD(model)
+${postHocBlock}
 
 # 효과 크기 (Eta-squared)
 ss <- summary(model)[[1]]
@@ -35,13 +44,31 @@ cat(sprintf("Eta-squared: %.4f\\n", eta_sq))`
 export const anovaPython: CodeTemplate = {
   methodId: 'anova',
   language: 'python',
-  libraries: ['pandas', 'scipy', 'scikit-posthocs'],
+  libraries: ['pandas', 'scipy', 'statsmodels', 'pingouin'],
   generate: (input) => {
     const d = dep(input)
     const g = group(input)
+    const postHocMethod = input.options.postHocMethod ?? 'games-howell'
+    const imports = postHocMethod === 'tukey'
+      ? 'from statsmodels.stats.multicomp import pairwise_tukeyhsd'
+      : 'import pingouin as pg'
+    const postHocBlock = postHocMethod === 'games-howell'
+      ? `# 사후검정 (Games-Howell)
+posthoc = pg.pairwise_gameshowell(data=data, dv="${safePy(d)}", between="${safePy(g)}")
+print("\\nPost-hoc (Games-Howell):")
+print(posthoc)`
+      : postHocMethod === 'bonferroni'
+        ? `# 사후검정 (Bonferroni)
+posthoc = pg.pairwise_tests(data=data, dv="${safePy(d)}", between="${safePy(g)}", padjust="bonf")
+print("\\nPost-hoc (Bonferroni):")
+print(posthoc)`
+        : `# 사후검정 (Tukey HSD)
+posthoc = pairwise_tukeyhsd(endog=data["${safePy(d)}"], groups=data["${safePy(g)}"], alpha=${(1 - input.options.confidenceLevel).toFixed(2)})
+print("\\nPost-hoc (Tukey HSD):")
+print(posthoc.summary())`
     return `import pandas as pd
 from scipy import stats
-import scikit_posthocs as sp
+${imports}
 
 data = pd.read_csv("${safeFileName(input.dataFileName)}")
 
@@ -53,10 +80,7 @@ f_stat, p_value = stats.f_oneway(*groups)
 print(f"F-statistic: {f_stat:.4f}")
 print(f"p-value: {p_value:.4f}")
 
-# 사후검정 (Dunn's test)
-posthoc = sp.posthoc_dunn(data, val_col="${safePy(d)}", group_col="${safePy(g)}", p_adjust="bonferroni")
-print("\\nPost-hoc (Dunn's test):")
-print(posthoc)
+${postHocBlock}
 
 # 효과 크기 (Eta-squared)
 grand_mean = ${safePyCol('data', d)}.mean()

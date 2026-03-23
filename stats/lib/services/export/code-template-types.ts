@@ -25,6 +25,7 @@ export interface CodeTemplateInput {
     confidenceLevel: number
     /** 'two-sided' (저장값) 또는 'two.sided' (R 변환 후) */
     alternative: string
+    equalVariance?: boolean
     postHocMethod?: string
     testValue?: number
   }

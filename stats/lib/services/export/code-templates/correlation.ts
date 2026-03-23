@@ -4,7 +4,7 @@
  */
 
 import type { CodeTemplate, CodeTemplateInput } from '../code-template-types'
-import { safeRCol, safePyCol, safeFileName } from './template-helpers'
+import { safeRCol, safePyCol, safeFileName, safeRString } from './template-helpers'
 
 function getVarPair(input: CodeTemplateInput): [string, string] {
   const vars = input.variableMapping.variables
@@ -39,8 +39,13 @@ spearman <- cor.test(${safeRCol('data', x)}, ${safeRCol('data', y)},
                      method = "spearman")
 print(spearman)
 
+# Kendall 상관분석
+kendall <- cor.test(${safeRCol('data', x)}, ${safeRCol('data', y)},
+                    method = "kendall")
+print(kendall)
+
 # 산점도
-ggplot(data, aes(x = ${x}, y = ${y})) +
+ggplot(data, aes(x = .data[[${safeRString(x)}]], y = .data[[${safeRString(y)}]])) +
   geom_point() +
   geom_smooth(method = "lm", se = TRUE) +
   theme_minimal()`
@@ -64,6 +69,10 @@ print(f"Pearson r: {r_pearson:.4f}, p-value: {p_pearson:.4f}")
 
 # Spearman 상관분석
 r_spearman, p_spearman = stats.spearmanr(${safePyCol('data', x)}, ${safePyCol('data', y)})
-print(f"Spearman rho: {r_spearman:.4f}, p-value: {p_spearman:.4f}")`
+print(f"Spearman rho: {r_spearman:.4f}, p-value: {p_spearman:.4f}")
+
+# Kendall 상관분석
+r_kendall, p_kendall = stats.kendalltau(${safePyCol('data', x)}, ${safePyCol('data', y)})
+print(f"Kendall tau: {r_kendall:.4f}, p-value: {p_kendall:.4f}")`
   },
 }

@@ -7,7 +7,7 @@
 
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
-import type { StatisticalMethod, AnalysisOptions } from '@/types/analysis'
+import type { StatisticalMethod, AnalysisOptions, AnalysisResult } from '@/types/analysis'
 import type {
   CodeLanguage,
   CodeTemplateInput,
@@ -24,7 +24,7 @@ export interface CodeExportParams {
   analysisOptions?: AnalysisOptions | null
   dataFileName: string | null
   dataRowCount: number
-  results?: { statistic?: number; pValue?: number; effectSize?: number | { value: number } } | null
+  results?: Pick<AnalysisResult, 'statistic' | 'pValue' | 'effectSize' | 'assumptions' | 'postHocMethod'> | null
 }
 
 // ─── 내부 유틸 ───
@@ -62,6 +62,38 @@ function buildExpectedResults(
     pValue: typeof results.pValue === 'number' ? results.pValue : undefined,
     effectSize,
   }
+}
+
+function extractEqualVariance(
+  results: { assumptions?: AnalysisResult['assumptions'] } | Record<string, unknown> | null,
+): boolean | undefined {
+  if (!results) return undefined
+
+  const assumptions = 'assumptions' in results ? results.assumptions : undefined
+  if (!assumptions || typeof assumptions !== 'object' || Array.isArray(assumptions)) return undefined
+
+  const homogeneity = 'homogeneity' in assumptions ? assumptions.homogeneity : undefined
+  if (!homogeneity || typeof homogeneity !== 'object' || Array.isArray(homogeneity)) return undefined
+
+  const levene = 'levene' in homogeneity ? homogeneity.levene : undefined
+  if (levene && typeof levene === 'object' && !Array.isArray(levene) && 'equalVariance' in levene) {
+    return typeof levene.equalVariance === 'boolean' ? levene.equalVariance : undefined
+  }
+
+  const bartlett = 'bartlett' in homogeneity ? homogeneity.bartlett : undefined
+  if (bartlett && typeof bartlett === 'object' && !Array.isArray(bartlett) && 'equalVariance' in bartlett) {
+    return typeof bartlett.equalVariance === 'boolean' ? bartlett.equalVariance : undefined
+  }
+
+  return undefined
+}
+
+function extractPostHocMethod(
+  results: { postHocMethod?: string } | Record<string, unknown> | null,
+): string | undefined {
+  if (!results) return undefined
+  const method = 'postHocMethod' in results ? results.postHocMethod : undefined
+  return typeof method === 'string' ? method : undefined
 }
 
 // ─── 코드 헤더 ───
@@ -137,6 +169,8 @@ export function exportCode(
 
   const options = record.analysisOptions ?? {}
   const results = record.results as Record<string, unknown> | null
+  const equalVariance = extractEqualVariance(results)
+  const postHocMethod = extractPostHocMethod(results) ?? (options.postHocMethod as string | undefined)
 
   const rawInput: CodeTemplateInput = {
     dataFileName: record.dataFileName,
@@ -144,7 +178,8 @@ export function exportCode(
     options: {
       confidenceLevel: (options.confidenceLevel as number) ?? 0.95,
       alternative: (options.alternative as string) ?? 'two-sided',
-      postHocMethod: options.postHocMethod as string | undefined,
+      equalVariance,
+      postHocMethod,
       testValue: options.testValue as number | undefined,
     },
     expectedResults: buildExpectedResults(
@@ -175,12 +210,17 @@ export function exportCodeFromAnalysis(
     return { success: false, error: '분석 메서드 정보가 없습니다.' }
   }
 
+  const equalVariance = extractEqualVariance(params.results ?? null)
+  const postHocMethod = extractPostHocMethod(params.results ?? null)
+
   const rawInput: CodeTemplateInput = {
     dataFileName: params.dataFileName ?? 'data.csv',
     variableMapping: params.variableMapping ?? {},
     options: {
       confidenceLevel: 1 - (params.analysisOptions?.alpha ?? 0.05),
       alternative: 'two-sided',
+      equalVariance,
+      postHocMethod,
       testValue: params.analysisOptions?.testValue,
     },
     expectedResults: buildExpectedResults(params.results ?? null),

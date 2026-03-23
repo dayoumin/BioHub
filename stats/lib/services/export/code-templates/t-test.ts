@@ -19,6 +19,7 @@ export const tTestR: CodeTemplate = {
     const g = group(input)
     const alt = input.options.alternative
     const cl = input.options.confidenceLevel
+    const equalVar = input.options.equalVariance ?? false
     return `library(tidyverse)
 library(effsize)
 
@@ -29,6 +30,7 @@ result <- t.test(
   ${safeRFormula(d)} ~ ${safeRFormula(g)},
   data = data,
   alternative = "${alt}",
+  var.equal = ${equalVar ? 'TRUE' : 'FALSE'},
   conf.level = ${cl}
 )
 print(result)
@@ -46,6 +48,7 @@ export const tTestPython: CodeTemplate = {
     const d = dep(input)
     const g = group(input)
     const alt = input.options.alternative
+    const equalVar = input.options.equalVariance ?? false
     return `import pandas as pd
 from scipy import stats
 
@@ -57,7 +60,7 @@ group1 = groups.get_group(group_names[0])
 group2 = groups.get_group(group_names[1])
 
 # 독립표본 t-검정
-stat, p_value = stats.ttest_ind(group1, group2, alternative="${alt}")
+stat, p_value = stats.ttest_ind(group1, group2, equal_var=${equalVar ? 'True' : 'False'}, alternative="${alt}")
 print(f"t-statistic: {stat:.4f}")
 print(f"p-value: {p_value:.4f}")
 
