@@ -17,6 +17,7 @@ import type {
 } from '@/types/analysis'
 import type { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { logger } from '@/lib/utils/logger'
+import { raceWithTimeout } from '@/lib/utils/promise-utils'
 
 // ===== Worker 3 응답 타입 =====
 
@@ -52,19 +53,6 @@ interface NormalityWorkerResult {
 
 const MIN_GROUP_SIZE = 3
 const TIMEOUT_MS = 10_000
-
-// ===== Helpers =====
-
-/** Promise.race with auto-cleanup timeout (no timer leak) */
-function raceWithTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
-  let timerId: ReturnType<typeof setTimeout> | undefined
-  const timeout = new Promise<never>((_, reject) => {
-    timerId = setTimeout(() => reject(new Error(message)), ms)
-  })
-  return Promise.race([promise, timeout]).finally(() => {
-    if (timerId !== undefined) clearTimeout(timerId)
-  })
-}
 
 // ===== Main Function =====
 
@@ -165,7 +153,7 @@ async function runGroupedAssumptionTests(
 
     const groupKey = String(groupVal)
     if (!groupMap.has(groupKey)) groupMap.set(groupKey, [])
-    groupMap.get(groupKey)!.push(num)
+    groupMap.get(groupKey)?.push(num)
   }
 
   // 유효 그룹만 필터링하되 라벨도 함께 유지

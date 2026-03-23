@@ -9,7 +9,7 @@
  */
 
 import type { AnalysisResult, EffectSizeInfo } from '@/types/analysis'
-import type { DraftContext, FlatAssumption, CaptionItem, PaperDraftOptions } from './paper-types'
+import type { DraftContext, FlatAssumption, GroupedAssumptions, CaptionItem, PaperDraftOptions } from './paper-types'
 import { getMethodDisplayName } from './terminology-utils'
 
 // ─── 포맷 헬퍼 ──────────────────────────────────────────────────────────────
@@ -262,6 +262,8 @@ function buildFigureCaption(
 export interface TemplateInput {
   r: AnalysisResult
   assumptions: FlatAssumption[]
+  /** 카테고리별 사전 그룹핑 — filter 반복 제거용 */
+  grouped: GroupedAssumptions
   ctx: DraftContext
   lang: 'ko' | 'en'
   methodId: string
@@ -307,12 +309,12 @@ function buildCaptions(input: TemplateInput, tableText = ''): CaptionItem[] {
 // ─── GENERIC 템플릿 (fallback) ───────────────────────────────────────────────
 
 const GENERIC_TEMPLATE: CategoryTemplate = {
-  methods({ r, assumptions, ctx, lang, methodId }) {
+  methods({ r, grouped, ctx, lang, methodId }) {
     if (lang === 'en') return 'English template coming soon.'
     const methodName = getMethodDisplayName(methodId, 'ko')
     const alpha = r.additional?.alpha ?? 0.05
-    const normTests = assumptions.filter(a => a.category === 'normality')
-    const homoTests = assumptions.filter(a => a.category === 'homogeneity')
+    const normTests = grouped.normality ?? []
+    const homoTests = grouped.homogeneity ?? []
 
     const intro = ctx.researchContext
       ? `${ctx.researchContext}를 위해 ${methodName}을(를) 실시하였다.`
@@ -346,12 +348,12 @@ const GENERIC_TEMPLATE: CategoryTemplate = {
 // ─── T-TEST 템플릿 ───────────────────────────────────────────────────────────
 
 const T_TEST_TEMPLATE: CategoryTemplate = {
-  methods({ r, assumptions, ctx, lang, methodId }) {
+  methods({ r, grouped, ctx, lang, methodId }) {
     if (lang === 'en') return 'English template coming soon.'
     const methodName = getMethodDisplayName(methodId, 'ko')
     const alpha = r.additional?.alpha ?? 0.05
-    const normTests = assumptions.filter(a => a.category === 'normality')
-    const homoTests = assumptions.filter(a => a.category === 'homogeneity')
+    const normTests = grouped.normality ?? []
+    const homoTests = grouped.homogeneity ?? []
 
     const depVar = ctx.dependentVariable ?? '종속변수'
     const intro = ctx.researchContext
@@ -412,10 +414,10 @@ const T_TEST_TEMPLATE: CategoryTemplate = {
 // ─── ONE-SAMPLE T-TEST override ───────────────────────────────────────────────
 
 const ONE_SAMPLE_T_TEMPLATE: CategoryTemplate = {
-  methods({ r, assumptions, ctx, lang }) {
+  methods({ r, grouped, ctx, lang }) {
     if (lang === 'en') return 'English template coming soon.'
     const alpha = r.additional?.alpha ?? 0.05
-    const normTests = assumptions.filter(a => a.category === 'normality')
+    const normTests = grouped.normality ?? []
     const depVar = ctx.dependentVariable ?? '변수'
     const testValue = r.additional?.testValue ?? r.additional?.mu ?? 0
 
@@ -451,10 +453,10 @@ const ONE_SAMPLE_T_TEMPLATE: CategoryTemplate = {
 // ─── PAIRED T-TEST override ───────────────────────────────────────────────────
 
 const PAIRED_T_TEMPLATE: CategoryTemplate = {
-  methods({ r, assumptions, ctx, lang }) {
+  methods({ r, grouped, ctx, lang }) {
     if (lang === 'en') return 'English template coming soon.'
     const alpha = r.additional?.alpha ?? 0.05
-    const normTests = assumptions.filter(a => a.category === 'normality')
+    const normTests = grouped.normality ?? []
     const depVar = ctx.dependentVariable ?? '변수'
 
     const intro = `반복 측정 전후 ${depVar}의 차이를 검증하기 위해 대응표본 t-검정을 실시하였다.`
@@ -498,13 +500,13 @@ const PAIRED_T_TEMPLATE: CategoryTemplate = {
 // ─── ANOVA 템플릿 ────────────────────────────────────────────────────────────
 
 const ANOVA_TEMPLATE: CategoryTemplate = {
-  methods({ r, assumptions, ctx, lang, methodId }) {
+  methods({ r, grouped, ctx, lang, methodId }) {
     if (lang === 'en') return 'English template coming soon.'
     const methodName = getMethodDisplayName(methodId, 'ko')
     const alpha = r.additional?.alpha ?? 0.05
-    const normTests = assumptions.filter(a => a.category === 'normality')
-    const homoTests = assumptions.filter(a => a.category === 'homogeneity')
-    const spherTests = assumptions.filter(a => a.category === 'sphericity')
+    const normTests = grouped.normality ?? []
+    const homoTests = grouped.homogeneity ?? []
+    const spherTests = grouped.sphericity ?? []
     const depVar = ctx.dependentVariable ?? '종속변수'
 
     const intro = ctx.researchContext
@@ -560,11 +562,11 @@ const ANOVA_TEMPLATE: CategoryTemplate = {
 // ─── NONPARAMETRIC 템플릿 ────────────────────────────────────────────────────
 
 const NONPARAMETRIC_TEMPLATE: CategoryTemplate = {
-  methods({ r, assumptions, ctx, lang, methodId }) {
+  methods({ r, grouped, ctx, lang, methodId }) {
     if (lang === 'en') return 'English template coming soon.'
     const methodName = getMethodDisplayName(methodId, 'ko')
     const alpha = r.additional?.alpha ?? 0.05
-    const normTests = assumptions.filter(a => a.category === 'normality')
+    const normTests = grouped.normality ?? []
     const depVar = ctx.dependentVariable ?? '종속변수'
 
     const intro = ctx.researchContext
@@ -620,11 +622,11 @@ const NONPARAMETRIC_TEMPLATE: CategoryTemplate = {
 // ─── CORRELATION 템플릿 ──────────────────────────────────────────────────────
 
 const CORRELATION_TEMPLATE: CategoryTemplate = {
-  methods({ r, assumptions, ctx, lang, methodId }) {
+  methods({ r, grouped, ctx, lang, methodId }) {
     if (lang === 'en') return 'English template coming soon.'
     const methodName = getMethodDisplayName(methodId, 'ko')
     const alpha = r.additional?.alpha ?? 0.05
-    const normTests = assumptions.filter(a => a.category === 'normality')
+    const normTests = grouped.normality ?? []
 
     const varNames = Object.values(ctx.variableLabels).join('와 ')
     const intro = ctx.researchContext
@@ -666,13 +668,13 @@ const CORRELATION_TEMPLATE: CategoryTemplate = {
 // ─── REGRESSION 템플릿 ───────────────────────────────────────────────────────
 
 const REGRESSION_TEMPLATE: CategoryTemplate = {
-  methods({ r, assumptions, ctx, lang, methodId }) {
+  methods({ r, grouped, ctx, lang, methodId }) {
     if (lang === 'en') return 'English template coming soon.'
     const methodName = getMethodDisplayName(methodId, 'ko')
     const alpha = r.additional?.alpha ?? 0.05
-    const normTests = assumptions.filter(a => a.category === 'normality')
-    const homoTests = assumptions.filter(a => a.category === 'homogeneity')
-    const indepTests = assumptions.filter(a => a.category === 'independence')
+    const normTests = grouped.normality ?? []
+    const homoTests = grouped.homogeneity ?? []
+    const indepTests = grouped.independence ?? []
     const depVar = ctx.dependentVariable ?? '종속변수'
 
     const intro = ctx.researchContext
@@ -733,7 +735,7 @@ const REGRESSION_TEMPLATE: CategoryTemplate = {
 // ─── CHI-SQUARE 템플릿 ───────────────────────────────────────────────────────
 
 const CHI_SQUARE_TEMPLATE: CategoryTemplate = {
-  methods({ r, assumptions, ctx, lang, methodId }) {
+  methods({ r, ctx, lang, methodId }) {
     if (lang === 'en') return 'English template coming soon.'
     const methodName = getMethodDisplayName(methodId, 'ko')
     const alpha = r.additional?.alpha ?? 0.05
@@ -778,10 +780,10 @@ const CHI_SQUARE_TEMPLATE: CategoryTemplate = {
 // ─── DESCRIPTIVE 템플릿 ──────────────────────────────────────────────────────
 
 const DESCRIPTIVE_TEMPLATE: CategoryTemplate = {
-  methods({ r, assumptions, ctx, lang }) {
+  methods({ r, grouped, ctx, lang }) {
     if (lang === 'en') return 'English template coming soon.'
     const alpha = r.additional?.alpha ?? 0.05
-    const normTests = assumptions.filter(a => a.category === 'normality')
+    const normTests = grouped.normality ?? []
     const depVar = ctx.dependentVariable ?? '변수'
 
     const intro = ctx.researchContext
@@ -830,11 +832,11 @@ const DESCRIPTIVE_TEMPLATE: CategoryTemplate = {
 // ─── TIMESERIES 템플릿 ───────────────────────────────────────────────────────
 
 const TIMESERIES_TEMPLATE: CategoryTemplate = {
-  methods({ r, assumptions, ctx, lang, methodId }) {
+  methods({ r, grouped, ctx, lang, methodId }) {
     if (lang === 'en') return 'English template coming soon.'
     const methodName = getMethodDisplayName(methodId, 'ko')
     const alpha = r.additional?.alpha ?? 0.05
-    const statTests = assumptions.filter(a => a.category === 'stationarity')
+    const statTests = grouped.stationarity ?? []
 
     const intro = ctx.researchContext
       ? `${ctx.researchContext}를 위해 ${methodName}을 실시하였다.`
@@ -875,11 +877,11 @@ const TIMESERIES_TEMPLATE: CategoryTemplate = {
 // ─── SURVIVAL 템플릿 ─────────────────────────────────────────────────────────
 
 const SURVIVAL_TEMPLATE: CategoryTemplate = {
-  methods({ r, assumptions, ctx, lang, methodId }) {
+  methods({ r, grouped, ctx, lang, methodId }) {
     if (lang === 'en') return 'English template coming soon.'
     const methodName = getMethodDisplayName(methodId, 'ko')
     const alpha = r.additional?.alpha ?? 0.05
-    const hazardTests = assumptions.filter(a => a.category === 'proportionalHazards')
+    const hazardTests = grouped.proportionalHazards ?? []
 
     const intro = ctx.researchContext
       ? `${ctx.researchContext}를 위해 ${methodName}을 실시하였다.`
@@ -920,7 +922,7 @@ const SURVIVAL_TEMPLATE: CategoryTemplate = {
 // ─── MULTIVARIATE 템플릿 ─────────────────────────────────────────────────────
 
 const MULTIVARIATE_TEMPLATE: CategoryTemplate = {
-  methods({ r, assumptions, ctx, lang, methodId }) {
+  methods({ r, ctx, lang, methodId }) {
     if (lang === 'en') return 'English template coming soon.'
     const methodName = getMethodDisplayName(methodId, 'ko')
     const alpha = r.additional?.alpha ?? 0.05

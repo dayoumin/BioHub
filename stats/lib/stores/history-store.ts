@@ -23,6 +23,7 @@ import {
   syncHistoryRecord,
 } from '@/lib/utils/storage'
 import type { PaperDraft } from '@/lib/services/paper-draft/paper-types'
+import { removeProjectEntityRef, upsertProjectEntityRef } from '@/lib/research/project-storage'
 
 /**
  * 분석 히스토리 상태 관리
@@ -39,6 +40,7 @@ export interface AnalysisHistory {
   id: string
   timestamp: Date
   name: string
+  projectId?: string
   purpose: string
   method: {
     id: string
@@ -76,7 +78,13 @@ export interface HistoryState {
     /** 분석 상태 스냅샷 (analysis-store에서 전달) */
     snapshot: HistorySnapshot,
     name?: string,
-    metadata?: { aiInterpretation?: string | null; apaFormat?: string | null; interpretationChat?: ChatMessage[]; paperDraft?: PaperDraft | null }
+    metadata?: {
+      projectId?: string
+      aiInterpretation?: string | null
+      apaFormat?: string | null
+      interpretationChat?: ChatMessage[]
+      paperDraft?: PaperDraft | null
+    }
   ) => Promise<void>
   loadFromHistory: (historyId: string) => Promise<HistoryLoadResult | null>
   deleteFromHistory: (historyId: string) => Promise<void>
@@ -176,7 +184,7 @@ function normalizeAnalysisOptions(
   return normalized as unknown as AnalysisOptions
 }
 
-export const useHistoryStore = create<HistoryState>()((set, get) => ({
+export const useHistoryStore = create<HistoryState>()((set) => ({
   analysisHistory: [],
   currentHistoryId: null,
   loadedAiInterpretation: null,
@@ -210,6 +218,7 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
       id: `analysis-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       timestamp: Date.now(),
       name: name || `분석 ${new Date().toLocaleString('ko-KR')}`,
+      projectId: metadata?.projectId,
       purpose: snapshot.analysisPurpose,
       method: snapshot.selectedMethod ? {
         id: snapshot.selectedMethod.id,
@@ -232,6 +241,23 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
 
     try {
       await saveHistory(record)
+      if (record.projectId) {
+        try {
+          upsertProjectEntityRef({
+            projectId: record.projectId,
+            entityKind: 'analysis',
+            entityId: record.id,
+            label: record.name,
+          })
+        } catch (linkError) {
+          try {
+            await deleteHistory(record.id)
+          } catch (rollbackError) {
+            console.error('[History] Failed to rollback saved record after project link error:', rollbackError)
+          }
+          throw linkError
+        }
+      }
       const allHistory = await getAllHistory()
       set({
         analysisHistory: toAnalysisHistory(allHistory),
@@ -277,7 +303,22 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
   },
 
   deleteFromHistory: async (historyId) => {
+    const record = await getHistory(historyId)
     await deleteHistory(historyId)
+    try {
+      if (record?.projectId) {
+        removeProjectEntityRef(record.projectId, 'analysis', historyId)
+      }
+    } catch (error) {
+      if (record) {
+        try {
+          await saveHistory(record)
+        } catch (rollbackError) {
+          console.error('[History] Failed to rollback deleted history after project unlink error:', rollbackError)
+        }
+      }
+      throw error
+    }
     const allHistory = await getAllHistory()
     set((state) => ({
       analysisHistory: toAnalysisHistory(allHistory),
@@ -303,7 +344,36 @@ export const useHistoryStore = create<HistoryState>()((set, get) => ({
   },
 
   clearHistory: async () => {
+    const records = await getAllHistory()
     await clearAllHistory()
+    const removedRefs: Array<{ projectId: string; entityId: string }> = []
+    try {
+      for (const record of records) {
+        if (record.projectId) {
+          removeProjectEntityRef(record.projectId, 'analysis', record.id)
+          removedRefs.push({ projectId: record.projectId, entityId: record.id })
+        }
+      }
+    } catch (error) {
+      try {
+        // 이미 삭제된 ref 복원
+        for (const ref of removedRefs) {
+          upsertProjectEntityRef({
+            projectId: ref.projectId,
+            entityKind: 'analysis',
+            entityId: ref.entityId,
+            label: records.find(r => r.id === ref.entityId)?.name ?? '',
+          })
+        }
+        // IndexedDB 레코드 복원
+        for (const record of records) {
+          await saveHistory(record)
+        }
+      } catch (rollbackError) {
+        console.error('[History] Failed to rollback cleared history after project unlink error:', rollbackError)
+      }
+      throw error
+    }
     set({ analysisHistory: [], currentHistoryId: null })
   },
 

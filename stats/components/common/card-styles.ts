@@ -7,6 +7,11 @@
 
 import { cn } from '@/lib/utils'
 
+// ===== Focus ring 표준 =====
+
+/** 표준 focus ring — 모든 인터랙티브 요소에 사용 */
+export const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40'
+
 // ===== 카드 스타일 =====
 
 /** 클릭 가능한 액션 카드 (아이콘 + 라벨 그리드용) */
@@ -14,7 +19,7 @@ export const actionCardBase = cn(
   'relative flex flex-col items-center justify-center gap-2 p-4 rounded-xl',
   'border border-border bg-card',
   'transition-all duration-200',
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+  focusRing,
   'hover:border-primary/50 hover:shadow-md',
   'group',
 )
@@ -34,9 +39,34 @@ export const categoryCardBase = cn(
   'flex items-center gap-3 p-4 rounded-xl',
   'border border-border bg-card',
   'transition-all duration-200',
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+  focusRing,
   'hover:border-primary/50 hover:shadow-sm',
   'cursor-pointer group',
+)
+
+/** 선택 가능한 리스트 아이템 (메서드/카테고리/질문 선택용) */
+export const selectableItemBase = cn(
+  'p-3 rounded-lg border text-left',
+  'transition-all duration-200',
+  focusRing,
+)
+
+/** 호버 가능한 리스트 카드 (템플릿/히스토리 목록용) */
+export const listItemBase = cn(
+  'p-3 rounded-lg border border-border',
+  'transition-colors duration-200',
+  'hover:border-primary/50 hover:bg-muted/30',
+  'cursor-pointer group',
+)
+
+/** 정적 콘텐츠 패널 (가정검정 결과, 상세정보 등 읽기 전용) */
+export const staticPanelBase = cn(
+  'p-4 rounded-xl border border-border/40 bg-background',
+)
+
+/** 마크다운 렌더링 래퍼 (ReactMarkdown 컨테이너) */
+export const proseBase = cn(
+  'prose prose-sm dark:prose-invert max-w-none',
 )
 
 // ===== 아이콘 컨테이너 =====

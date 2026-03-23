@@ -283,7 +283,7 @@ export const Histogram = memo(function Histogram({
                   domain={[0, maxCount + 1]}
                 />
                 <Tooltip
-                  formatter={(value?: number) => [value ?? 0, '빈도']}
+                  formatter={(value) => [Number(value ?? 0), '빈도']}
                   labelFormatter={(label) => {
                     const item = histogramData.find(d => d.bin === label)
                     return item ? `구간 ${label}: ${item.range}` : `구간 ${label}`

@@ -21,6 +21,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
+import { focusRing } from '@/components/common'
 import { useTerminology } from '@/hooks/use-terminology'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 
@@ -129,7 +130,7 @@ export function QuickAnalysisPills({ onQuickAnalysis }: QuickAnalysisPillsProps)
   return (
     <>
       <div className="flex items-center justify-center gap-2 flex-wrap">
-        <span className="text-[13px] font-medium text-muted-foreground mr-0.5">
+        <span className="text-xs font-medium text-muted-foreground mr-0.5">
           {t.hub.quickAnalysis.title}
         </span>
 
@@ -140,11 +141,11 @@ export function QuickAnalysisPills({ onQuickAnalysis }: QuickAnalysisPillsProps)
             data-testid={`quick-pill-${method.id}`}
             onClick={() => onQuickAnalysis(method.id)}
             className={cn(
-              'px-3.5 py-1.5 text-[13px] rounded-full',
+              'px-3.5 py-1.5 text-xs rounded-full',
               'border border-border bg-muted/50',
               'text-foreground/80 hover:text-primary hover:border-primary/40 hover:bg-primary/5',
               'transition-colors duration-150',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40'
+              focusRing
             )}
           >
             {method.name}

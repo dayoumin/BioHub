@@ -107,6 +107,21 @@ describe('ChatStorage - Projects', () => {
       expect(loadedSession).not.toBeNull()
       expect(loadedSession?.projectId).toBeUndefined()
     })
+
+    it('chat project 저장이 실패하면 에러를 throw한다', () => {
+      const originalSetItem = localStorage.setItem
+      localStorage.setItem = ((key: string, value: string) => {
+        if (key === 'rag-chat-projects') {
+          throw new Error('chat project write failed')
+        }
+        originalSetItem.call(localStorage, key, value)
+      }) as typeof localStorage.setItem
+
+      expect(() => ChatStorage.createProject('Rollback Project')).toThrow()
+      expect(localStorage.getItem('rag-chat-projects')).toBeNull()
+
+      localStorage.setItem = originalSetItem
+    })
   })
 
   describe('세션 이동', () => {

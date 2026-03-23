@@ -56,23 +56,37 @@ export function bridgeHubDataToGraphStudio(): boolean {
   // DataValidationService와 일관성을 유지한다. 없으면 raw data에서 재추론(fallback).
   const colStats = dataContext.validationResults.columnStats ?? dataContext.validationResults.columns
   const columns: ColumnMeta[] = colStats?.length
-    ? colStats.map((col) => {
-        const values = rows.map((r) => r[col.name])
-        const nonNull = values.filter((v) => v !== null && v !== undefined && v !== '')
-        const uniqueVals = new Set(nonNull.map(String))
-        return {
-          name: col.name,
-          type: col.type === 'numeric' ? 'quantitative' as const : 'nominal' as const,
-          uniqueCount: col.uniqueValues,
-          sampleValues: Array.from(uniqueVals).slice(0, 5).map(String),
-          hasNull: col.missingCount > 0,
-        }
-      })
+    ? colStats.map((col) => ({
+        name: col.name,
+        type: col.type === 'numeric' ? 'quantitative' as const : 'nominal' as const,
+        uniqueCount: col.uniqueValues,
+        sampleValues: [] as string[],  // populated below in single pass
+        hasNull: col.missingCount > 0,
+      }))
     : inferColumnMeta(rows)
 
+  // Single-pass: build column arrays + sample values simultaneously
   const data: Record<string, unknown[]> = {}
+  const sampleSets = new Map<string, Set<string>>()
   for (const col of columns) {
-    data[col.name] = rows.map((r) => r[col.name])
+    data[col.name] = []
+    sampleSets.set(col.name, new Set())
+  }
+  for (const row of rows) {
+    for (const col of columns) {
+      const v = row[col.name]
+      ;(data[col.name] as unknown[]).push(v)
+      const samples = sampleSets.get(col.name)
+      if (v !== null && v !== undefined && v !== '' && samples && samples.size < 5) {
+        samples.add(String(v))
+      }
+    }
+  }
+  // Backfill sampleValues for colStats-derived columns
+  if (colStats?.length) {
+    for (const col of columns) {
+      col.sampleValues = Array.from(sampleSets.get(col.name) ?? [])
+    }
   }
 
   const pkg: DataPackage = {

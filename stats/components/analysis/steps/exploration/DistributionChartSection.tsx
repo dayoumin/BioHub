@@ -10,21 +10,13 @@ import { Histogram } from '@/components/charts/histogram'
 import { BoxPlot } from '@/components/charts/boxplot'
 import type { DataRow } from '@/types/analysis'
 import { useTerminology } from '@/hooks/use-terminology'
+import { getPercentile } from '@/lib/utils/stats-math'
 
 interface DistributionChartSectionProps {
   data: DataRow[]
   numericVariables: string[]
   visibility: 'primary' | 'secondary' | 'hidden'
   defaultChartType: 'histogram' | 'boxplot'
-}
-
-function getPercentile(sorted: number[], p: number): number {
-  if (sorted.length === 0) return 0
-  const idx = p * (sorted.length - 1)
-  const low = Math.floor(idx)
-  const high = Math.ceil(idx)
-  if (low === high) return sorted[low]
-  return sorted[low] + (sorted[high] - sorted[low]) * (idx - low)
 }
 
 export const DistributionChartSection = memo(function DistributionChartSection({
@@ -88,9 +80,9 @@ export const DistributionChartSection = memo(function DistributionChartSection({
 
       const sortedData = [...colData].sort((a, b) => a - b)
       const n = sortedData.length
-      const q1 = getPercentile(sortedData, 0.25)
-      const q3 = getPercentile(sortedData, 0.75)
-      const median = getPercentile(sortedData, 0.5)
+      const q1 = getPercentile(sortedData, 0.25) ?? 0
+      const q3 = getPercentile(sortedData, 0.75) ?? 0
+      const median = getPercentile(sortedData, 0.5) ?? 0
       const min = sortedData[0]
       const max = sortedData[n - 1]
       const mean = colData.reduce((sum, v) => sum + v, 0) / n
@@ -157,8 +149,8 @@ export const DistributionChartSection = memo(function DistributionChartSection({
               if (colData.length === 0) return null
 
               const sortedData = [...colData].sort((a, b) => a - b)
-              const q1 = getPercentile(sortedData, 0.25)
-              const q3 = getPercentile(sortedData, 0.75)
+              const q1 = getPercentile(sortedData, 0.25) ?? 0
+              const q3 = getPercentile(sortedData, 0.75) ?? 0
               const iqr = q3 - q1
               const lowerBound = q1 - 1.5 * iqr
               const upperBound = q3 + 1.5 * iqr

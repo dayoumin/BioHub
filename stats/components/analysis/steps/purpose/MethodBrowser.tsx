@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { selectableItemBase } from '@/components/common/card-styles'
 import type { StatisticalMethod } from '@/types/analysis'
 import { useTerminology } from '@/hooks/use-terminology'
 import { useMethodCompatibility } from '@/hooks/use-method-compatibility'
@@ -378,9 +379,9 @@ export function MethodBrowser({
                             onMouseEnter={() => setHoveredMethod(method)}
                             onMouseLeave={() => setHoveredMethod(null)}
                             className={cn(
-                              "w-full text-left p-3 rounded-lg border transition-all",
+                              selectableItemBase,
+                              "w-full",
                               "hover:border-primary/50 hover:bg-accent/30",
-                              "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1",
                               isSelected && "border-primary bg-primary/5 ring-2 ring-primary/20",
                               isRecommended && !isSelected && "border-amber-300 bg-amber-50/50 dark:bg-amber-950/20",
                               hasWarnings && "border-amber-200 dark:border-amber-800"

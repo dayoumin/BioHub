@@ -873,6 +873,7 @@ export interface ResultsText {
     reinterpret: string
     retry: string
     defaultError: string
+    retryExhausted: string
   }
   /** 섹션 라벨 */
   sections: {
@@ -920,6 +921,15 @@ export interface ResultsText {
     success: string
     errorTitle: string
     unknownError: string
+    projectDialog: {
+      title: string
+      description: string
+      withoutProjectTitle: string
+      withoutProjectDescription: string
+      noDescription: string
+      noProjects: string
+      saving: string
+    }
   }
   /** 토스트 메시지 */
   toast: {

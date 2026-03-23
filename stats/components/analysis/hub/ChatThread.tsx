@@ -13,6 +13,7 @@ import { useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bot, User, AlertCircle, RefreshCw, Upload, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { focusRing } from '@/components/common/card-styles'
 import { Button } from '@/components/ui/button'
 import { RecommendationCard } from '@/components/common/RecommendationCard'
 import { TypingIndicator } from '@/components/common/TypingIndicator'
@@ -160,7 +161,7 @@ function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry }: Mess
         className="flex justify-end gap-2 px-1"
       >
         <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-[85%]">
-          <p className="text-sm whitespace-pre-wrap">{content}</p>
+          <p className="text-sm whitespace-pre-wrap leading-relaxed">{content}</p>
         </div>
         <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
           <User className="w-4 h-4 text-primary" />
@@ -196,7 +197,7 @@ function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry }: Mess
               오류 발생
             </div>
           )}
-          <p className="text-sm whitespace-pre-wrap">{content}</p>
+          <p className="text-sm whitespace-pre-wrap leading-relaxed">{content}</p>
 
           {/* 에러 재시도 버튼 */}
           {isError && onRetry && (
@@ -214,7 +215,7 @@ function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry }: Mess
 
         {/* 추천 카드 (인라인) */}
         {recommendations && recommendations.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {recommendations.map((rec) => (
               <RecommendationCard
                 key={rec.methodId}
@@ -233,7 +234,8 @@ function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry }: Mess
               'flex items-center gap-2 px-3 py-2 rounded-lg',
               'border border-dashed border-primary/30 bg-primary/5',
               'text-xs text-primary hover:bg-primary/10 transition-colors',
-              'w-full justify-center'
+              'w-full justify-center',
+              focusRing
             )}
           >
             <Upload className="w-3.5 h-3.5" />

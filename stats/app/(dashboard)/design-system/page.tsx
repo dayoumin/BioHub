@@ -16,7 +16,7 @@ import { useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import {
   Copy, Check, Menu, X, Palette, Type, SquareStack, Cpu,
-  ExternalLink, Table, Zap, GitCompare, Code, Shield, MessageCircle, FlaskConical, Layout, Calculator, ToggleLeft,
+  ExternalLink, Table, Zap, GitCompare, Code, Shield, FlaskConical, Layout, Calculator, ToggleLeft,
   ChevronDown, Settings, Vote, Server, Route, CheckCircle2, TestTube2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -100,13 +100,6 @@ const StatisticsPagePatternSection = process.env.NODE_ENV !== 'production'
 
 const TypeGuardsSection = process.env.NODE_ENV !== 'production'
   ? dynamic(() => import('./sections/TypeGuardsSection').then(mod => ({ default: mod.TypeGuardsSection })), {
-      ssr: false,
-      loading: LoadingSpinner
-    })
-  : null
-
-const RAGComponentsSection = process.env.NODE_ENV !== 'production'
-  ? dynamic(() => import('./sections/RAGComponentsSection').then(mod => ({ default: mod.RAGComponentsSection })), {
       ssr: false,
       loading: LoadingSpinner
     })
@@ -250,7 +243,6 @@ const DEV_CATEGORIES: NavCategory[] = [
         { id: 'stats-pattern', label: 'Statistics Pattern', icon: Code, devOnly: true },
         { id: 'stats-formatting', label: 'Statistical Formatting', icon: Calculator, devOnly: true },
         { id: 'type-guards', label: 'Type Guards', icon: Shield, devOnly: true },
-        { id: 'rag-components', label: 'RAG Components', icon: MessageCircle, devOnly: true },
         { id: 'test-snippets', label: 'Test Snippets', icon: FlaskConical, devOnly: true },
         { id: 'validation-dashboard', label: 'Validation Dashboard', icon: CheckCircle2, devOnly: true },
         { id: 'test-automation', label: 'Test Automation', icon: TestTube2, isNew: true, devOnly: true },
@@ -1382,14 +1374,7 @@ const handleOpenNewWindow = useCallback(() => {
           )}
 
           {/* ========================================
-              11. RAG Components (개발 전용)
-          ======================================== */}
-          {activeSection === 'rag-components' && RAGComponentsSection && (
-            <RAGComponentsSection />
-          )}
-
-          {/* ========================================
-              12. Test Snippets (개발 전용)
+              11. Test Snippets (개발 전용)
           ======================================== */}
           {activeSection === 'test-snippets' && TestSnippetsSection && (
             <TestSnippetsSection />

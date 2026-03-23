@@ -5,7 +5,7 @@
  */
 
 import type { AnalysisResult } from '@/types/analysis'
-import type { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
+import type { StatisticalResult } from '@/types/statistics-results'
 
 // ─── 내보내기 포맷 ───
 export type ExportFormat = 'docx' | 'xlsx' | 'html'

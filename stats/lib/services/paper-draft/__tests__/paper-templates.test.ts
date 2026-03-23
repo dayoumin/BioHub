@@ -12,6 +12,7 @@ import { fmtP, fmt, getTemplate } from '../paper-templates'
 import type { TemplateInput } from '../paper-templates'
 import type { AnalysisResult } from '@/types/analysis'
 import type { DraftContext, FlatAssumption, PaperDraftOptions } from '../paper-types'
+import { groupAssumptions } from '@/lib/services/export/assumption-utils'
 
 // ─── 공통 픽스처 ──────────────────────────────────────────────────────────────
 
@@ -60,9 +61,11 @@ function makeInput(
   rOverrides: Partial<AnalysisResult> = {},
   assumptionOverrides: FlatAssumption[] = [...normAssumptions, ...homoAssumptions]
 ): TemplateInput {
+  const assumptions = assumptionOverrides
   return {
     r: makeResult(rOverrides),
-    assumptions: assumptionOverrides,
+    assumptions,
+    grouped: groupAssumptions(assumptions),
     ctx,
     lang: 'ko',
     methodId,
@@ -497,6 +500,7 @@ describe('불완전 데이터 처리 (null guard)', () => {
     const input: TemplateInput = {
       r: makeResult(),
       assumptions: [],  // flattenAssumptions(undefined) → []
+      grouped: {},
       ctx,
       lang: 'ko',
       methodId: 't-test',

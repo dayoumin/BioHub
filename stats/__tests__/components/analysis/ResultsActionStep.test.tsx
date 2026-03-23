@@ -541,6 +541,9 @@ vi.mock('@/hooks/use-terminology', () => ({
       messages: { purposeHelp: '', guidanceAlert: '', aiRecommendError: '', genericError: '' },
       aiLabels: { recommendTitle: '' },
     },
+    history: {
+      buttons: { cancel: 'Cancel' },
+    },
     results: {
       effectSizeLabels: { small: '작음', medium: '중간', large: '큼', veryLarge: '매우 큼' },
       noResults: '분석을 먼저 실행해주세요.',
@@ -577,6 +580,15 @@ vi.mock('@/hooks/use-terminology', () => ({
       save: {
         defaultName: (d: string) => `분석 ${d}`, promptMessage: '분석 이름을 입력하세요:',
         success: '저장되었습니다', errorTitle: '저장 실패', unknownError: '알 수 없는 오류',
+        projectDialog: {
+          title: 'Select Save Target',
+          description: 'Choose where to save this analysis.',
+          withoutProjectTitle: 'Save without project',
+          withoutProjectDescription: 'Save only to history.',
+          noDescription: 'No description',
+          noProjects: 'No projects available.',
+          saving: 'Saving...',
+        },
       },
       toast: {
         reanalyzeReady: '새 데이터를 업로드하세요', reanalyzeMethod: (n: string) => `${n} 분석이 준비되어 있습니다`,
@@ -766,11 +778,19 @@ vi.mock('@/lib/stores/history-store', () => ({
 const mockConvert = vi.hoisted(() => vi.fn())
 const mockStreamFollowUp = vi.hoisted(() => vi.fn())
 const mockLoadDataPackageWithSpec = vi.hoisted(() => vi.fn())
+const mockActiveProject = vi.hoisted(() => ({ current: null as { id: string; name: string } | null }))
 
 // Graph Studio store mock
 vi.mock('@/lib/stores/graph-studio-store', () => ({
   useGraphStudioStore: (selector: (s: Record<string, unknown>) => unknown) =>
     selector({ loadDataPackageWithSpec: mockLoadDataPackageWithSpec, disconnectProject: vi.fn() }),
+}))
+
+vi.mock('@/lib/stores/research-project-store', () => ({
+  useResearchProjectStore: (selector: (s: Record<string, unknown>) => unknown) =>
+    selector({ activeResearchProjectId: mockActiveProject.current?.id ?? null, projects: [] }),
+  selectActiveProject: (state: { activeResearchProjectId: string | null; projects: Array<{ id: string }> }) =>
+    mockActiveProject.current,
 }))
 
 // Graph Studio utility mocks (handleOpenInGraphStudio 내부에서 사용)
@@ -815,6 +835,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
     mockStoreState = { ...defaultStoreState }
     mockModeStoreState = { ...defaultModeStoreState }
     mockHistoryStoreState = { ...defaultHistoryStoreState }
+    mockActiveProject.current = null
   })
 
   const baseResults: AnalysisResult = {
@@ -1579,6 +1600,48 @@ describe('Part 3: Phase 상태 머신 시뮬레이션', () => {
       expect(mockLoadDataPackageWithSpec).toHaveBeenCalledTimes(1)
       const pkg = mockLoadDataPackageWithSpec.mock.calls[0][0]
       expect(pkg.analysisResultId).toBeUndefined()
+    })
+  })
+
+  describe('Project auto-link', () => {
+    beforeEach(() => {
+      mockConvert.mockReturnValue(statBase)
+      mockStoreState = { ...defaultStoreState }
+      mockModeStoreState = { ...defaultModeStoreState }
+      mockHistoryStoreState = { ...defaultHistoryStoreState }
+      mockHistoryStoreState.saveToHistory = vi.fn().mockResolvedValue(undefined)
+    })
+
+    it('활성 프로젝트가 있으면 다이얼로그 없이 프로젝트 id와 함께 바로 저장한다', async () => {
+      mockActiveProject.current = { id: 'proj-1', name: 'Marine Survey' }
+      renderPhase(<ResultsActionStep results={baseResults} />)
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('save-history-btn'))
+      })
+
+      expect(mockHistoryStoreState.saveToHistory).toHaveBeenCalledTimes(1)
+      expect(mockHistoryStoreState.saveToHistory).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(String),
+        expect.objectContaining({ projectId: 'proj-1' })
+      )
+    })
+
+    it('활성 프로젝트가 없으면 projectId 없이 저장한다', async () => {
+      mockActiveProject.current = null
+      renderPhase(<ResultsActionStep results={baseResults} />)
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('save-history-btn'))
+      })
+
+      expect(mockHistoryStoreState.saveToHistory).toHaveBeenCalledTimes(1)
+      expect(mockHistoryStoreState.saveToHistory).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.any(String),
+        expect.objectContaining({ projectId: undefined })
+      )
     })
   })
 })

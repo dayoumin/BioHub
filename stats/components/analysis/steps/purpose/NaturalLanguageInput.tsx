@@ -25,18 +25,17 @@ import {
   AlertTriangle,
   ChevronDown,
   RotateCcw,
-  Database,
-  Hash,
-  Tag,
   Info,
+  Compass,
 } from 'lucide-react'
 import { AssumptionBadges } from '@/components/analysis/common/AssumptionBadges'
 import { TypingIndicator } from '@/components/common/TypingIndicator'
 import { cn } from '@/lib/utils'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { useTerminology } from '@/hooks/use-terminology'
-import type { AIRecommendation, StatisticalMethod, ValidationResults, ColumnStatistics, FlowChatMessage } from '@/types/analysis'
+import type { AIRecommendation, StatisticalMethod, FlowChatMessage } from '@/types/analysis'
 import type { LlmProvider } from '@/lib/services/llm-recommender'
+import { SecondaryLink } from './CategorySelector'
 
 interface NaturalLanguageInputProps {
   /** AI 입력 텍스트 */
@@ -61,8 +60,6 @@ interface NaturalLanguageInputProps {
   onBrowseAll: () => void
   /** 비활성화 */
   disabled?: boolean
-  /** 데이터 검증 결과 */
-  validationResults?: ValidationResults | null
   /** AI provider 정보 */
   provider?: LlmProvider | null
   /** 멀티턴 채팅 메시지 목록 */
@@ -81,7 +78,6 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
   onGoToGuided,
   onBrowseAll,
   disabled = false,
-  validationResults,
   provider,
   chatMessages,
 }: NaturalLanguageInputProps) {
@@ -124,20 +120,6 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
       threadRef.current.scrollTop = threadRef.current.scrollHeight
     }
   }, [chatMessages?.length, isLoading])
-
-  // 데이터 요약 계산
-  const dataSummary = useMemo(() => {
-    if (!validationResults?.columns) return null
-    const columns = validationResults.columns
-    const numericCount = columns.filter((c: ColumnStatistics) => c.type === 'numeric').length
-    const categoricalCount = columns.filter((c: ColumnStatistics) => c.type === 'categorical').length
-    return {
-      totalRows: validationResults.totalRows ?? 0,
-      totalCols: columns.length,
-      numericCount,
-      categoricalCount
-    }
-  }, [validationResults])
 
   // Enter 키 처리
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -183,39 +165,13 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
 
   return (
     <div className="space-y-5">
-      {/* 헤더 — 타이틀 + 데이터 요약 인라인 */}
-      <div className="text-center space-y-3">
-        <h2 className="text-xl font-semibold tracking-tight">
-          {t.purposeInput.labels.purposeHeading}
-        </h2>
-        <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          {t.naturalLanguageInput.description}
-        </p>
-        {dataSummary && (
-          <div
-            className="inline-flex items-center gap-3 px-3 py-1.5 rounded-full bg-muted/50 text-xs text-muted-foreground"
-            data-testid="data-summary-card"
-          >
-            <span className="inline-flex items-center gap-1">
-              <Database className="w-3 h-3" />
-              {t.naturalLanguageInput.dataSummary.dimension(dataSummary.totalRows, dataSummary.totalCols)}
-            </span>
-            <span className="w-px h-3 bg-border" />
-            <span className="inline-flex items-center gap-1">
-              <Hash className="w-3 h-3 text-blue-500" />
-              {t.naturalLanguageInput.dataSummary.numeric(dataSummary.numericCount)}
-            </span>
-            <span className="w-px h-3 bg-border" />
-            <span className="inline-flex items-center gap-1">
-              <Tag className="w-3 h-3 text-green-500" />
-              {t.naturalLanguageInput.dataSummary.categorical(dataSummary.categoricalCount)}
-            </span>
-          </div>
-        )}
-      </div>
+      {/* 안내 문구 */}
+      <p className="text-sm text-muted-foreground">
+        {t.naturalLanguageInput.description}
+      </p>
 
       {/* 입력 바 */}
-      <div className="relative max-w-2xl mx-auto">
+      <div className="relative">
         <Textarea
           ref={textareaRef}
           value={inputValue}
@@ -236,7 +192,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
         />
         <Button
           size="icon"
-          onClick={onSubmit}
+          onClick={() => onSubmit()}
           disabled={disabled || isLoading || !inputValue.trim()}
           className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-xl shadow-sm"
           data-testid="ai-chat-submit"
@@ -249,42 +205,40 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
         </Button>
       </div>
 
-      {/* 예시 프롬프트 — 2-column 카드 */}
+      {/* 예시 프롬프트 — flex-wrap chip */}
       {!hasMessages && !isLoading && (
         <motion.div
           initial={prefersReducedMotion ? {} : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
-          className="max-w-2xl mx-auto space-y-2.5"
+          className="flex flex-wrap items-center gap-2"
+          data-testid="example-prompts"
         >
-          <p className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider">
+          <span className="text-xs text-muted-foreground/70">
             {t.naturalLanguageInput.examplesLabel}
-          </p>
-          <div className="grid grid-cols-2 gap-2" data-testid="example-prompts">
-            {examplePrompts.map((example, index) => (
-              <motion.button
-                key={index}
-                type="button"
-                initial={prefersReducedMotion ? {} : { opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, delay: 0.05 * index }}
-                className={cn(
-                  'group text-left px-4 py-3 rounded-xl text-sm',
-                  'border border-border/50',
-                  'hover:border-primary/30 hover:bg-primary/[0.03]',
-                  'active:scale-[0.98]',
-                  'transition-all duration-150',
-                  'disabled:opacity-40 disabled:pointer-events-none'
-                )}
-                onClick={() => handleExampleClick(example)}
-                disabled={disabled}
-              >
-                <span className="text-muted-foreground group-hover:text-foreground transition-colors">
-                  {example}
-                </span>
-              </motion.button>
-            ))}
-          </div>
+          </span>
+          {examplePrompts.map((example, index) => (
+            <motion.button
+              key={index}
+              type="button"
+              initial={prefersReducedMotion ? {} : { opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.15, delay: 0.03 * index }}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-sm',
+                'border border-border/50 bg-muted/30',
+                'text-muted-foreground hover:text-foreground',
+                'hover:border-primary/30 hover:bg-primary/[0.03]',
+                'active:scale-[0.97]',
+                'transition-all duration-150',
+                'disabled:opacity-40 disabled:pointer-events-none'
+              )}
+              onClick={() => handleExampleClick(example)}
+              disabled={disabled}
+            >
+              {example}
+            </motion.button>
+          ))}
         </motion.div>
       )}
 
@@ -295,7 +249,6 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
             initial={prefersReducedMotion ? {} : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="max-w-2xl mx-auto"
           >
             <div className="flex items-start gap-3 p-4 rounded-xl border border-destructive/30 bg-destructive/5" role="alert" aria-live="polite">
               <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
@@ -315,7 +268,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
       {(hasMessages || isLoading) && (
         <div
           ref={threadRef}
-          className="max-w-2xl mx-auto space-y-2.5 max-h-[320px] overflow-y-auto scroll-smooth"
+          className="space-y-2.5 max-h-[320px] overflow-y-auto scroll-smooth"
           data-testid="chat-thread"
         >
           {messages.map(msg => (
@@ -606,27 +559,11 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
         )}
       </AnimatePresence>
 
-      {/* 하단 네비게이션 */}
-      <div className="flex items-center justify-center gap-1 pt-3">
-        <button
-          type="button"
-          onClick={onGoToGuided}
-          disabled={disabled || isLoading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/50 transition-colors disabled:opacity-40"
-        >
-          <List className="w-3.5 h-3.5" />
-          {t.naturalLanguageInput.buttons.guidedQuestions}
-        </button>
-        <span className="text-border mx-1">|</span>
-        <button
-          type="button"
-          onClick={onBrowseAll}
-          disabled={disabled || isLoading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground/70 hover:text-foreground hover:bg-muted/50 transition-colors disabled:opacity-40"
-        >
-          <List className="w-3.5 h-3.5" />
-          {t.naturalLanguageInput.buttons.browseAll}
-        </button>
+      {/* 하단 보조 경로 */}
+      <div className="flex items-center justify-center gap-3 pt-2">
+        <SecondaryLink onClick={onGoToGuided} disabled={disabled || isLoading} icon={Compass} label={t.naturalLanguageInput.buttons.guidedQuestions} />
+        <span className="text-border">|</span>
+        <SecondaryLink onClick={onBrowseAll} disabled={disabled || isLoading} icon={List} label={t.naturalLanguageInput.buttons.browseAll} />
       </div>
     </div>
   )

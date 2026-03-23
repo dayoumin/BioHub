@@ -23,6 +23,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { AnalysisResult } from '@/types/analysis'
@@ -41,11 +49,13 @@ import { StepHeader } from '@/components/analysis/common'
 import { AssumptionTestsSection } from '@/components/analysis/steps/exploration/AssumptionTestsSection'
 import { ResultsHeroCard, ResultsStatsCards, ResultsChartsSection, ResultsActionButtons, AiInterpretationCard, FollowUpQASection } from '@/components/analysis/steps/results'
 import { useFollowUpQA } from '@/hooks/use-follow-up-qa'
+import { useErrorRecovery } from '@/hooks/use-error-recovery'
 import { formatStatisticalResult } from '@/lib/statistics/formatters'
 import { useTerminology } from '@/hooks/use-terminology'
 import { logger } from '@/lib/utils/logger'
 import { useRouter } from 'next/navigation'
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
+import { useResearchProjectStore, selectActiveProject } from '@/lib/stores/research-project-store'
 import { toAnalysisContext, buildKmCurveColumns, buildRocCurveColumns } from '@/lib/graph-studio/analysis-adapter'
 import { inferColumnMeta, suggestChartType, selectXYFields, applyAnalysisContext } from '@/lib/graph-studio/chart-spec-utils'
 import { createDefaultChartSpec, CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults'
@@ -54,12 +64,15 @@ import type { KaplanMeierAnalysisResult, RocCurveAnalysisResult } from '@/lib/ge
 import { generatePaperDraft } from '@/lib/services/paper-draft'
 import type { PaperDraft, DiscussionState, DraftContext } from '@/lib/services/paper-draft'
 import { DraftContextEditor } from './DraftContextEditor'
-import { PaperDraftPanel } from './PaperDraftPanel'
+import dynamic from 'next/dynamic'
+
+const PaperDraftPanel = dynamic(() => import('./PaperDraftPanel').then(m => ({ default: m.PaperDraftPanel })), {
+  ssr: false,
+})
 
 interface ResultsActionStepProps {
   results: AnalysisResult | null
 }
-
 
 export function ResultsActionStep({ results }: ResultsActionStepProps) {
   // Terminology System
@@ -78,6 +91,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
   const [detailedResultsOpen, setDetailedResultsOpen] = useState(false)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
+  const [isSavingToHistory, setIsSavingToHistory] = useState(false)
+  const activeProject = useResearchProjectStore(selectActiveProject)
   const [draftEditorOpen, setDraftEditorOpen] = useState(false)
   const [paperDraftOpen, setPaperDraftOpen] = useState(false)
   const [paperDraft, setPaperDraft] = useState<PaperDraft | null>(null)
@@ -95,6 +110,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
   // AI 해석 (커스텀 훅으로 캡슐화)
   const [detailedInterpretOpen, setDetailedInterpretOpen] = useState(true)
+  const interpretRecovery = useErrorRecovery({ maxRetries: 2 })
 
   // 새 분석 시작 확인
   const [showNewAnalysisConfirm, setShowNewAnalysisConfirm] = useState(false)
@@ -139,57 +155,12 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     assumptionResults,
   } = useAnalysisStore()
   const { setStepTrack } = useModeStore()
-  const { saveToHistory, loadedInterpretationChat, currentHistoryId, loadedPaperDraft, patchHistoryPaperDraft, setLoadedPaperDraft } = useHistoryStore()
-
-  // 히스토리 전환 시 Q&A·Phase·UI 초기화 (AI 해석은 useInterpretation이 처리)
-  const prevHistoryIdRef = useRef<string | null | undefined>(undefined)
-  useEffect(() => {
-    if (prevHistoryIdRef.current === undefined) {
-      prevHistoryIdRef.current = currentHistoryId
-      return
-    }
-    if (prevHistoryIdRef.current === currentHistoryId) return
-    prevHistoryIdRef.current = currentHistoryId
-
-    // 진행 중인 Q&A 스트림 abort + 상태 초기화 (loadedInterpretationChat effect가 복원)
-    resetFollowUp()
-
-    // Phase 초기화 (단계적 등장 재시작)
-    setPhase(0)
-    if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current)
-
-    // UI state 초기화
-    setIsSaved(false)
-    setUsedChips(new Set())
-    hasSavedToHistoryRef.current = false
-    setPaperDraft(null)
-    setPaperDraftOpen(false)
-    setLastDraftContext(undefined)
-    setLastDraftOptions({ language: 'ko', postHocDisplay: 'significant-only' })
-  }, [currentHistoryId])
-
-  // 히스토리에서 로드된 후속 Q&A 대화 복원
-  useEffect(() => {
-    if (loadedInterpretationChat?.length) {
-      setFollowUpMessages(loadedInterpretationChat)
-      // 소비 후 store에서 제거 (재렌더링 시 중복 방지)
-      useHistoryStore.getState().setLoadedInterpretationChat(null)
-    }
-  }, [loadedInterpretationChat])
-
-  // 히스토리에서 로드된 논문 초안 복원 (context/options도 함께 복원 → 재생성/언어전환 가능)
-  useEffect(() => {
-    if (loadedPaperDraft) {
-      setPaperDraft(loadedPaperDraft)
-      setLastDraftContext(loadedPaperDraft.context)
-      setLastDraftOptions({
-        language: loadedPaperDraft.language,
-        postHocDisplay: loadedPaperDraft.postHocDisplay ?? 'significant-only',
-      })
-      setLoadedPaperDraft(null)
-    }
-  }, [loadedPaperDraft, setLoadedPaperDraft])
-
+  const { analysisHistory, saveToHistory, loadedInterpretationChat, currentHistoryId, loadedPaperDraft, patchHistoryPaperDraft, setLoadedPaperDraft } = useHistoryStore()
+  const historyEntries = useMemo(() => analysisHistory ?? [], [analysisHistory])
+  const currentHistoryProjectId = useMemo(
+    () => historyEntries.find(entry => entry.id === currentHistoryId)?.projectId,
+    [currentHistoryId, historyEntries]
+  )
   const router = useRouter()
   const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
   const disconnectProject = useGraphStudioStore(s => s.disconnectProject)
@@ -229,10 +200,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     interpretationModel,
     isInterpreting,
     interpretError,
-    handleInterpretation,
+
     resetAndReinterpret,
     clearInterpretationGuard,
-    interpretAbortRef,
+
     aiInterpretationRef,
     onInterpretationComplete,
   } = useInterpretation({
@@ -263,6 +234,56 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     errorPrefix: t.analysis.executionLogs.errorPrefix,
     errorMessage: t.results.followUp.errorMessage,
   })
+
+  // 히스토리 전환 시 Q&A·Phase·UI 초기화 (AI 해석은 useInterpretation이 처리)
+  const prevHistoryIdRef = useRef<string | null | undefined>(undefined)
+  useEffect(() => {
+    if (prevHistoryIdRef.current === undefined) {
+      prevHistoryIdRef.current = currentHistoryId
+      return
+    }
+    if (prevHistoryIdRef.current === currentHistoryId) return
+    prevHistoryIdRef.current = currentHistoryId
+
+    // 진행 중인 Q&A 스트림 abort + 상태 초기화 (loadedInterpretationChat effect가 복원)
+    resetFollowUp()
+
+    // Phase 초기화 (단계적 등장 재시작)
+    setPhase(0)
+    if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current)
+
+    // UI state 초기화
+    setIsSaved(false)
+    setUsedChips(new Set())
+    hasSavedToHistoryRef.current = false
+    setPaperDraft(null)
+    setPaperDraftOpen(false)
+    interpretRecovery.reset()
+    setLastDraftContext(undefined)
+    setLastDraftOptions({ language: 'ko', postHocDisplay: 'significant-only' })
+  }, [currentHistoryId])
+
+  // 히스토리에서 로드된 후속 Q&A 대화 복원
+  useEffect(() => {
+    if (loadedInterpretationChat?.length) {
+      setFollowUpMessages(loadedInterpretationChat)
+      // 소비 후 store에서 제거 (재렌더링 시 중복 방지)
+      useHistoryStore.getState().setLoadedInterpretationChat(null)
+    }
+  }, [loadedInterpretationChat])
+
+  // 히스토리에서 로드된 논문 초안 복원 (context/options도 함께 복원 → 재생성/언어전환 가능)
+  useEffect(() => {
+    if (loadedPaperDraft) {
+      setPaperDraft(loadedPaperDraft)
+      setLastDraftContext(loadedPaperDraft.context)
+      setLastDraftOptions({
+        language: loadedPaperDraft.language,
+        postHocDisplay: loadedPaperDraft.postHocDisplay ?? 'significant-only',
+      })
+      setLoadedPaperDraft(null)
+    }
+  }, [loadedPaperDraft, setLoadedPaperDraft])
 
   // Phase 진행 콜백: 해석 완료 시 Phase 3→4 전환
   onInterpretationComplete.current = useCallback(() => {
@@ -356,10 +377,11 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     return splitInterpretation(interpretation)
   }, [interpretation])
 
+
   // Handlers
   // 히스토리 저장 (IndexedDB — 파일 다운로드 없음)
-  const handleSaveToHistory = useCallback(async () => {
-    if (!results || !statisticalResult || isSaved) return
+  const saveAnalysisToHistory = useCallback(async (projectId?: string) => {
+    if (!results || !statisticalResult || isSaved || isSavingToHistory) return
 
     const historyLabel = statisticalResult.testName || selectedMethod?.name || 'Analysis'
     const historyName = `${historyLabel} — ${new Date().toLocaleString('ko-KR', {
@@ -367,7 +389,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     })}`
 
     try {
+      setIsSavingToHistory(true)
       await saveToHistory(buildHistorySnapshot(), historyName, {
+        projectId,
         aiInterpretation: interpretation,
         apaFormat,
         interpretationChat: !isFollowUpStreaming && followUpMessages.length > 0 ? followUpMessages : undefined,
@@ -377,7 +401,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current)
       hasSavedToHistoryRef.current = true  // UI 리셋 후에도 중복 저장 방지용 영속 플래그
       setIsSaved(true)
-      toast.success(t.results.save.success)
+      toast.success(activeProject
+        ? `'${activeProject.name}'에 저장됨`
+        : t.results.save.success,
+      )
       savedTimeoutRef.current = setTimeout(() => {
         setIsSaved(false)
         savedTimeoutRef.current = null
@@ -385,8 +412,15 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     } catch (err) {
       logger.error('Save to history failed', { error: err })
       toast.error(t.results.save.errorTitle, { description: t.results.save.unknownError })
+    } finally {
+      setIsSavingToHistory(false)
     }
-  }, [results, statisticalResult, selectedMethod, interpretation, apaFormat, isSaved, saveToHistory, followUpMessages, isFollowUpStreaming, t])
+  }, [results, statisticalResult, selectedMethod, interpretation, apaFormat, isSaved, isSavingToHistory, saveToHistory, followUpMessages, isFollowUpStreaming, paperDraft, activeProject, t])
+
+  const handleSaveButtonClick = useCallback(() => {
+    if (!results || !statisticalResult || isSaved || isSavingToHistory) return
+    void saveAnalysisToHistory(activeProject?.id)
+  }, [isSaved, isSavingToHistory, results, saveAnalysisToHistory, statisticalResult, activeProject])
 
   // 파일 내보내기 (DOCX/Excel/HTML 다운로드)
   const handleSaveAsFile = useCallback(async (
@@ -427,6 +461,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
           })}`
           saveToHistory(buildHistorySnapshot(), historyName, {
+            projectId: currentHistoryProjectId,
             aiInterpretation: interpretation,
             apaFormat,
             interpretationChat: !isFollowUpStreaming && followUpMessages.length > 0 ? followUpMessages : undefined,
@@ -443,7 +478,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     } finally {
       setIsExporting(false)
     }
-  }, [results, statisticalResult, interpretation, apaFormat, exportDataInfo, uploadedData, selectedMethod, saveToHistory, followUpMessages, isFollowUpStreaming, t])
+  }, [results, statisticalResult, interpretation, apaFormat, exportDataInfo, uploadedData, selectedMethod, currentHistoryProjectId, saveToHistory, followUpMessages, isFollowUpStreaming, paperDraft, t])
 
   const openExportDialog = useCallback((format: ExportFormat) => {
     setExportFormat(format)
@@ -502,6 +537,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
     const pkgId = crypto.randomUUID()
     const vizType = results.visualizationData?.type
+    const linkedHistory = currentHistoryId
+      ? historyEntries.find(history => history.id === currentHistoryId)
+      : null
 
     let columns: DataPackage['columns']
     let data: DataPackage['data']
@@ -558,6 +596,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       label: `${results.method} 결과`,
       columns,
       data,
+      projectId: linkedHistory?.projectId,
       analysisContext: toAnalysisContext(results),
       analysisResultId: currentHistoryId ?? undefined, // U4-1: 저장된 분석 역참조
       createdAt: new Date().toISOString(),
@@ -571,14 +610,16 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     loadDataPackageWithSpec(pkg, finalSpec)
     disconnectProject() // 결과 가져오기는 새 작업 — 기존 프로젝트 덮어쓰기 방지
     router.push('/graph-studio')
-  }, [results, uploadedData, currentHistoryId, loadDataPackageWithSpec, disconnectProject, router])
+  }, [results, uploadedData, currentHistoryId, historyEntries, loadDataPackageWithSpec, disconnectProject, router])
 
-  // 재해석 + Q&A 초기화
+  // 재해석 + Q&A 초기화 (소진 시 차단)
   const handleReinterpretWithQAReset = useCallback(() => {
+    if (interpretRecovery.isExhausted) return
+    interpretRecovery.recordRetry()
     resetFollowUp()
     setUsedChips(new Set())
     resetAndReinterpret()
-  }, [resetFollowUp, resetAndReinterpret])
+  }, [resetFollowUp, resetAndReinterpret, interpretRecovery])
 
   const handlePaperDraftToggle = useCallback(() => {
     if (paperDraft) {
@@ -626,7 +667,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       patchHistoryPaperDraft(currentHistoryId, draft).catch(console.error)
     }
   }, [draftExportCtx, lastDraftContext, lastDraftOptions, selectedMethod, currentHistoryId, patchHistoryPaperDraft])
-
 
   const handleCopyResults = useCallback(async () => {
     if (!results || !statisticalResult) return
@@ -723,7 +763,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
   return (
     <TooltipProvider>
-      <div className="space-y-4">
+      <div className="space-y-6">
         {/* ===== 스텝 헤더 (P0-1: Copy + Save 상단 배치) ===== */}
         <StepHeader
           icon={BarChart3}
@@ -743,8 +783,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleSaveToHistory}
-                disabled={isSaved}
+                onClick={handleSaveButtonClick}
+                disabled={isSaved || isSavingToHistory}
                 className={cn("h-8 px-2.5", isSaved && "text-emerald-600")}
                 data-testid="save-history-btn"
               >
@@ -844,6 +884,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           isInterpreting={isInterpreting}
           interpretationModel={interpretationModel}
           interpretError={interpretError}
+          isRetryExhausted={interpretRecovery.isExhausted}
           prefersReducedMotion={prefersReducedMotion}
           detailedInterpretOpen={detailedInterpretOpen}
           onDetailedInterpretOpenChange={setDetailedInterpretOpen}

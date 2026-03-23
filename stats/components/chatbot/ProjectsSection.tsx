@@ -9,7 +9,7 @@
  */
 
 import React from 'react'
-import { Folder, Plus, ChevronDown, ChevronRight, Edit, Trash2, HelpCircle } from 'lucide-react'
+import { Folder, Plus, ChevronDown, ChevronRight, Trash2, HelpCircle } from 'lucide-react'
 import { SessionItem } from './SessionItem'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -31,7 +31,6 @@ interface ProjectsSectionProps {
   onToggleFavorite: (sessionId: string) => void
   onDeleteSession: (sessionId: string) => void
   onMoveSession: (sessionId: string) => void
-  onEditProject: (projectId: string) => void
   onDeleteProject: (projectId: string) => void
   onCreateProject: () => void
 }
@@ -46,7 +45,6 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
   onToggleFavorite,
   onDeleteSession,
   onMoveSession,
-  onEditProject,
   onDeleteProject,
   onCreateProject,
 }) => {
@@ -92,7 +90,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
             size="icon"
             className="h-6 w-6 flex-shrink-0"
             onClick={onCreateProject}
-            title="새 주제 만들기"
+            title="새 프로젝트 만들기"
           >
             <Plus className="h-3 w-3" />
           </Button>
@@ -142,34 +140,20 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                       {projectSessions.length}
                     </Badge>
 
-                    {/* 호버 시 액션 버튼 */}
-                    <div
-                      className="hidden group-hover:flex items-center gap-1 flex-shrink-0"
-                      onClick={(e) => e.stopPropagation()}
+                    {/* 호버 시 삭제 버튼 */}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="hidden group-hover:inline-flex h-6 w-6 flex-shrink-0 text-destructive hover:text-destructive hover:bg-accent"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onDeleteProject(project.id)
+                      }}
+                      title="삭제"
                     >
-                      <button
-                        type="button"
-                        className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-6 w-6 hover:bg-accent"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onEditProject(project.id)
-                        }}
-                        title="편집"
-                      >
-                        <Edit className="h-3 w-3" />
-                      </button>
-                      <button
-                        type="button"
-                        className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-6 w-6 text-destructive hover:text-destructive"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onDeleteProject(project.id)
-                        }}
-                        title="삭제"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   </div>
                 </div>
 

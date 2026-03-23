@@ -33,14 +33,12 @@
 stats/app/(dashboard)/design-system/
 ├── coding-patterns/
 │   ├── type-guards.json              (18개 타입 가드 함수)
-│   ├── rag-components.json           (9개 RAG 컴포넌트 + 서비스)
 │   ├── statistics-page-pattern.json  (통계 페이지 코딩 표준)
 │   ├── test-snippets.json            (12개 테스트 패턴)
 │   ├── statistical-methods.json      (51개 통계 방법 정의)
 │   └── statistical-formatting.json   (통계 포맷팅 규칙)
 ├── sections/
 │   ├── TypeGuardsSection.tsx
-│   ├── RAGComponentsSection.tsx
 │   ├── StatisticsPagePatternSection.tsx
 │   └── TestSnippetsSection.tsx
 └── page.tsx (메인 페이지, NODE_ENV 체크)
@@ -84,52 +82,7 @@ stats/app/(dashboard)/design-system/
 
 ---
 
-### 트리거 2: RAG Components
-
-**파일**:
-- `components/rag/*.tsx`
-- `lib/rag/*.ts`
-- `docs/RAG_ARCHITECTURE.md`
-
-**메타데이터**: `coding-patterns/rag-components.json`
-
-**업데이트 조건**:
-- ✅ 새 RAG 컴포넌트 추가 시
-- ✅ 컴포넌트 Props 변경 시
-- ✅ 새 서비스/유틸리티 추가 시
-- ✅ 아키텍처 변경 시 (레이어, 데이터 흐름)
-
-**업데이트 필드**:
-```json
-{
-  "lastUpdated": "2025-11-24",
-  "categories": [
-    {
-      "name": "Core RAG Components",
-      "components": [
-        {
-          "name": "RAGAssistantCompact",
-          "path": "components/rag/rag-assistant-compact.tsx",
-          "props": {
-            "method": "string (선택)",
-            "className": "string (선택)"
-          },
-          "features": [...],
-          "usage": "..."
-        }
-      ]
-    }
-  ],
-  "architecture": {
-    "diagram": "...",
-    "layers": [...]
-  }
-}
-```
-
----
-
-### 트리거 3: Statistics Page Pattern
+### 트리거 2: Statistics Page Pattern
 
 **파일**:
 - `docs/STATISTICS_CODING_STANDARDS.md`
@@ -242,8 +195,6 @@ stats/app/(dashboard)/design-system/
 // AI 내부 로직 (개념적)
 const TRIGGERS = {
   'lib/utils/type-guards.ts': 'coding-patterns/type-guards.json',
-  'components/rag/*.tsx': 'coding-patterns/rag-components.json',
-  'lib/rag/*.ts': 'coding-patterns/rag-components.json',
   'docs/STATISTICS_CODING_STANDARDS.md': 'coding-patterns/statistics-page-pattern.json',
   'hooks/use-statistics-page.ts': 'coding-patterns/statistics-page-pattern.json',
   '__tests__/**/*.test.tsx': 'coding-patterns/test-snippets.json',
@@ -344,50 +295,7 @@ export function isValidEmail(value: unknown): value is string {
 
 ---
 
-### 예제 2: RAG 컴포넌트 Props 변경
-
-**Before** (`components/rag/rag-assistant-compact.tsx`):
-```typescript
-interface RAGAssistantCompactProps {
-  method?: string;
-  className?: string;
-}
-```
-
-**After** (새 Prop 추가):
-```typescript
-interface RAGAssistantCompactProps {
-  method?: string;
-  className?: string;
-  onSessionChange?: (sessionId: string) => void;  // ✅ 새 Prop
-}
-```
-
-**메타데이터 업데이트** (`coding-patterns/rag-components.json`):
-```json
-{
-  "lastUpdated": "2025-11-24",
-  "categories": [
-    {
-      "name": "Core RAG Components",
-      "components": [
-        {
-          "name": "RAGAssistantCompact",
-          "props": {
-            "method": "string (선택) - 현재 통계 메서드",
-            "className": "string (선택) - 스타일 클래스",
-            "onSessionChange": "((sessionId: string) => void) (선택) - 세션 변경 콜백"  // ✅ 추가
-          }
-        }
-      ]
-    }
-  ]
-}
-```
-
----
-
-### 예제 3: Critical Bug 발견
+### 예제 2: Critical Bug 발견
 
 **Before**: 새 버그 발견 없음
 
@@ -451,13 +359,7 @@ const TRIGGERS = {
   'stats/lib/utils/type-guards.ts':
     'stats/app/(dashboard)/design-system/coding-patterns/type-guards.json',
 
-  // 2. RAG Components
-  'stats/components/rag/':
-    'stats/app/(dashboard)/design-system/coding-patterns/rag-components.json',
-  'stats/lib/rag/':
-    'stats/app/(dashboard)/design-system/coding-patterns/rag-components.json',
-
-  // 3. Statistics Page Pattern
+  // 2. Statistics Page Pattern
   'stats/docs/STATISTICS_CODING_STANDARDS.md':
     'stats/app/(dashboard)/design-system/coding-patterns/statistics-page-pattern.json',
   'stats/hooks/use-statistics-page.ts':
@@ -755,7 +657,6 @@ npm run dev
 
 1. **트리거 파일 수정 시 즉시 메타데이터 업데이트** (`coding-patterns/` 폴더)
    - `lib/utils/type-guards.ts` → `type-guards.json`
-   - `components/rag/*.tsx` → `rag-components.json`
    - `docs/STATISTICS_CODING_STANDARDS.md` → `statistics-page-pattern.json`
    - `__tests__/**/*.test.tsx` (새 패턴) → `test-snippets.json`
    - `lib/constants/statistical-methods.ts` → `statistical-methods.json`

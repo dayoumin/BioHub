@@ -22,7 +22,7 @@ import { ChatStorage } from '@/lib/services/chat-storage'
 export function sortSessionsByFavoriteAndRecent(
   sessions: ChatSession[]
 ): ChatSession[] {
-  return sessions.sort((a, b) => {
+  return [...sessions].sort((a, b) => {
     // 1. 즐겨찾기 우선
     if (a.isFavorite && !b.isFavorite) return -1
     if (!a.isFavorite && b.isFavorite) return 1

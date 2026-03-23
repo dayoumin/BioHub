@@ -86,6 +86,9 @@ vi.mock('@/hooks/use-terminology', () => ({
       messages: { purposeHelp: '', guidanceAlert: '', aiRecommendError: '', genericError: '' },
       aiLabels: { recommendTitle: '' },
     },
+    history: {
+      buttons: { cancel: '' },
+    },
     results: {
       effectSizeLabels: { small: '작음', medium: '중간', large: '큼', veryLarge: '매우 큼' },
       noResults: '분석을 먼저 실행해주세요.',
@@ -119,6 +122,15 @@ vi.mock('@/hooks/use-terminology', () => ({
       save: {
         defaultName: (d: string) => `분석 ${d}`, promptMessage: '',
         success: '', errorTitle: '', unknownError: '',
+        projectDialog: {
+          title: '',
+          description: '',
+          withoutProjectTitle: '',
+          withoutProjectDescription: '',
+          noDescription: '',
+          noProjects: '',
+          saving: '',
+        },
       },
       toast: {
         reanalyzeReady: '', reanalyzeMethod: () => '',

@@ -6,7 +6,7 @@
  */
 
 import { AnalysisResult, EffectSizeInfo, StatisticalAssumptions } from '@/types/analysis'
-import { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
+import type { StatisticalResult } from '@/types/statistics-results'
 
 /**
  * 추가 결과 테이블 인터페이스

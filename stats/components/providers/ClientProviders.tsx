@@ -14,8 +14,8 @@ export function ClientProviders({ children }: ClientProvidersProps) {
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme="system"
-      enableSystem
+      defaultTheme="light"
+      forcedTheme="light"
       disableTransitionOnChange
     >
       <ServiceWorkerProvider />

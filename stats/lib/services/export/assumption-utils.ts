@@ -6,7 +6,7 @@
  */
 
 import type { StatisticalAssumptions } from '@/types/analysis'
-import type { FlatAssumption } from '@/lib/services/paper-draft/paper-types'
+import type { FlatAssumption, GroupedAssumptions } from '@/lib/services/paper-draft/paper-types'
 
 /** normality 객체에서 그룹 결과(group1, group2 등)가 아닌 검정 메서드 키 */
 const NORMALITY_METHOD_KEYS = new Set(['shapiroWilk', 'kolmogorovSmirnov'])
@@ -202,4 +202,13 @@ export function flattenAssumptions(
   }
 
   return result
+}
+
+/** FlatAssumption[] → 카테고리별 그룹핑 (한 번 계산, 여러 템플릿에서 재사용) */
+export function groupAssumptions(assumptions: FlatAssumption[]): GroupedAssumptions {
+  const grouped: GroupedAssumptions = {}
+  for (const a of assumptions) {
+    (grouped[a.category] ??= []).push(a)
+  }
+  return grouped
 }

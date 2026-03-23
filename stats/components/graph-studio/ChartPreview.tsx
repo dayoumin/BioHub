@@ -15,12 +15,15 @@
  * - 기존 annotations graphic과 병합하여 덮어쓰기 방지
  */
 
-import { useCallback, useMemo, useRef, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type RefObject } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type EChartsReactCore from 'echarts-for-react/lib/core';
 import type { ECharts, EChartsOption } from 'echarts';
+import { toast } from 'sonner';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { chartSpecToECharts, columnsToRows } from '@/lib/graph-studio';
+import { CHART_DATA_LIMITS } from '@/lib/graph-studio/chart-data-guard';
+import { TOAST } from '@/lib/constants/toast-messages';
 import { getPValueLabel } from '@/lib/graph-studio/chart-spec-utils';
 import { CanvasToolbar } from './CanvasToolbar';
 import type { ChartSpec } from '@/types/graph-studio';
@@ -217,6 +220,14 @@ export function ChartPreview({ echartsRef, onExport }: ChartPreviewProps): React
   // setOption({ graphic }) → finished 재진입 차단 (double-rAF 해제)
   const isDrawingRef = useRef(false);
 
+  // 렌더링 시간 실측 (적응형 성능 경고)
+  // 데이터 교체 시 리셋 — 같은 컴포넌트 인스턴스에서 다른 데이터 로드 시 재경고 허용
+  const renderStartRef = useRef(0);
+  const hasWarnedSlowRef = useRef(false);
+  useEffect(() => {
+    hasWarnedSlowRef.current = false;
+  }, [dataPackage]);
+
   const rows = useMemo(
     () => dataPackage ? columnsToRows(dataPackage.data) : [],
     [dataPackage],
@@ -253,6 +264,26 @@ export function ChartPreview({ echartsRef, onExport }: ChartPreviewProps): React
     [chartSpec?.exportConfig.format],
   );
 
+  // option 변경 시 렌더링 시작 시간 기록
+  useEffect(() => {
+    if (option) {
+      renderStartRef.current = performance.now();
+    }
+  }, [option]);
+
+  // 렌더링 시간 측정 → 느림 경고 (세션당 1회)
+  const handleRenderTiming = useCallback(() => {
+    if (hasWarnedSlowRef.current || !renderStartRef.current) return;
+    const elapsed = performance.now() - renderStartRef.current;
+    if (elapsed >= CHART_DATA_LIMITS.RENDER_VERY_SLOW_MS) {
+      toast.warning(TOAST.graphStudio.renderingVerySlow);
+      hasWarnedSlowRef.current = true;
+    } else if (elapsed >= CHART_DATA_LIMITS.RENDER_SLOW_MS) {
+      toast.warning(TOAST.graphStudio.renderingSlow);
+      hasWarnedSlowRef.current = true;
+    }
+  }, []);
+
   const handleFinished = useCallback(() => {
     if (isDrawingRef.current) return;
     if (!chartSpec?.significance?.length) return;
@@ -285,9 +316,15 @@ export function ChartPreview({ echartsRef, onExport }: ChartPreviewProps): React
     });
   }, [effectiveRef, chartSpec, rows, baseOption]);
 
+  // finished 이벤트: 렌더링 시간 측정 + 유의성 브래킷 (래퍼로 병합)
+  const handleFinishedCombined = useCallback(() => {
+    handleRenderTiming();
+    handleFinished();
+  }, [handleRenderTiming, handleFinished]);
+
   const onEvents = useMemo(
-    () => ({ finished: handleFinished }),
-    [handleFinished],
+    () => ({ finished: handleFinishedCombined }),
+    [handleFinishedCombined],
   );
 
   if (!chartSpec) {

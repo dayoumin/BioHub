@@ -3,10 +3,8 @@
  *
  * 기능:
  * - Grok 스타일 사이드바 (검색, 즐겨찾기, 프로젝트, 히스토리)
- * - 프로젝트 관리 (생성, 편집, 삭제)
+ * - 프로젝트 관리 (생성, 삭제)
  * - 세션 이동 (프로젝트 간)
- * - RAG 챗봇 통합
- * - 퀵 프롬프트 (빈 상태)
  * - 키보드 단축키 (Ctrl+N: 새 대화)
  */
 
@@ -15,11 +13,9 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Plus, ChevronLeft, Edit2, MoreVertical, Pin, MapPin, FolderInput, Trash2, Home } from 'lucide-react'
-import Link from 'next/link'
+import { Plus, ChevronLeft, Edit2, MoreVertical, Pin, MapPin, FolderInput, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexed-db'
-import { RAGChatInterface } from '@/components/rag/rag-chat-interface'
 import type { ChatSession, ChatProject } from '@/lib/types/chat'
 import { SidebarSearch } from '@/components/chatbot/SidebarSearch'
 import { FavoritesSection } from '@/components/chatbot/FavoritesSection'
@@ -28,30 +24,6 @@ import { HistorySection } from '@/components/chatbot/HistorySection'
 import { ProjectDialog } from '@/components/chatbot/ProjectDialog'
 import { MoveSessionDialog } from '@/components/chatbot/MoveSessionDialog'
 import { DeleteConfirmDialog } from '@/components/chatbot/DeleteConfirmDialog'
-import { DocumentManagerDialog } from '@/components/chatbot/document-manager-dialog'
-
-const QUICK_PROMPTS = [
-  {
-    icon: '📊',
-    title: 't-test 사용법',
-    prompt: 't-test는 언제 사용하나요? 가정과 해석 방법을 알려주세요.',
-  },
-  {
-    icon: '📈',
-    title: 'ANOVA vs Regression',
-    prompt: 'ANOVA와 회귀분석의 차이점은 무엇인가요?',
-  },
-  {
-    icon: '🔍',
-    title: '정규성 검정',
-    prompt: '정규성 검정은 왜 필요하고 어떻게 해석하나요?',
-  },
-  {
-    icon: '💡',
-    title: '표본 크기 계산',
-    prompt: '적절한 표본 크기는 어떻게 계산하나요?',
-  },
-]
 
 export default function ChatbotPage() {
   // 클라이언트 마운트 상태
@@ -59,7 +31,6 @@ export default function ChatbotPage() {
 
   // 세션 상태
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
-  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [projects, setProjects] = useState<ChatProject[]>([])
 
@@ -82,12 +53,10 @@ export default function ChatbotPage() {
 
   // 모달 상태
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false)
-  const [editingProjectId, setEditingProjectId] = useState<string | null>(null)
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false)
   const [moveDialogSessionId, setMoveDialogSessionId] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'session' | 'project'; id: string } | null>(null)
-  const [isDocManagerOpen, setIsDocManagerOpen] = useState(false)
 
   // 데이터 로드 (useMemo로 성능 최적화, 클라이언트에서만)
   const { searchedProjects, searchedSessions } = useMemo(() => {
@@ -224,6 +193,12 @@ export default function ChatbotPage() {
     setIsMoveDialogOpen(true)
   }, [])
 
+  // 세션 이동 (IndexedDB, atomic)
+  const handleSessionMove = useCallback(async (sessionId: string, projectId: string | null) => {
+    await ChatStorageIndexedDB.moveSessionToProject(sessionId, projectId)
+    await reloadData()
+  }, [reloadData])
+
   // 세션 제목 변경 시작
   const handleRenameSession = useCallback(async (sessionId: string) => {
     const session = await ChatStorageIndexedDB.loadSession(sessionId)
@@ -256,17 +231,16 @@ export default function ChatbotPage() {
     })
   }, [])
 
-  // 프로젝트 생성
+  // 프로젝트 생성 다이얼로그 열기
   const handleCreateProject = useCallback(() => {
-    setEditingProjectId(null)
     setIsProjectDialogOpen(true)
   }, [])
 
-  // 프로젝트 편집
-  const handleEditProject = useCallback((projectId: string) => {
-    setEditingProjectId(projectId)
-    setIsProjectDialogOpen(true)
-  }, [])
+  // 프로젝트 생성 (IndexedDB)
+  const handleProjectCreate = useCallback(async (name: string) => {
+    await ChatStorageIndexedDB.createNewProject(name)
+    await reloadData()
+  }, [reloadData])
 
   // 프로젝트 삭제 (모달로 위임 - Phase 4)
   const handleDeleteProject = useCallback((projectId: string) => {
@@ -291,28 +265,18 @@ export default function ChatbotPage() {
       const allSessions = await ChatStorageIndexedDB.loadAllSessions()
       const projectSessions = allSessions.filter(s => s.projectId === deleteTarget.id)
 
-      // 각 세션의 projectId 제거
       for (const session of projectSessions) {
-        await ChatStorageIndexedDB.saveSession({
-          ...session,
-          projectId: undefined,
-        })
+        await ChatStorageIndexedDB.moveSessionToProject(session.id, null)
       }
 
-      // IndexedDB에서 프로젝트 삭제
       await ChatStorageIndexedDB.deleteProject(deleteTarget.id)
-
-      // 삭제한 프로젝트가 현재 프로젝트면 해제
-      if (currentProjectId === deleteTarget.id) {
-        setCurrentProjectId(null)
-      }
 
       await reloadData()
     }
 
     setIsDeleteDialogOpen(false)
     setDeleteTarget(null)
-  }, [deleteTarget, currentSessionId, currentProjectId, handleNewChat, reloadData])
+  }, [deleteTarget, currentSessionId, handleNewChat, reloadData])
 
   // 드롭다운 메뉴 외부 클릭 처리
   useEffect(() => {
@@ -341,13 +305,6 @@ export default function ChatbotPage() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleNewChat])
-
-  // 퀵 프롬프트 클릭
-  const handleQuickPrompt = useCallback((prompt: string) => {
-    // RAGChatInterface에 전달할 초기 메시지로 사용
-    // 실제 구현은 RAGChatInterface에서 처리
-    console.log('Quick prompt:', prompt)
-  }, [])
 
   // 클라이언트 마운트 전에는 로딩 표시
   if (!isMounted) {
@@ -402,7 +359,6 @@ export default function ChatbotPage() {
             onToggleFavorite={handleToggleFavorite}
             onDeleteSession={handleDeleteSession}
             onMoveSession={handleMoveSession}
-            onEditProject={handleEditProject}
             onDeleteProject={handleDeleteProject}
             onCreateProject={handleCreateProject}
           />
@@ -418,18 +374,6 @@ export default function ChatbotPage() {
           />
         </ScrollArea>
 
-        {/* 하단 문서 관리 버튼 */}
-        <div className="p-4 flex-shrink-0 border-t">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full justify-start gap-2"
-            onClick={() => setIsDocManagerOpen(true)}
-          >
-            <FolderInput className="h-4 w-4" />
-            <span className="text-sm">문서 관리</span>
-          </Button>
-        </div>
       </aside>
 
       {/* 사이드바 토글 버튼 */}
@@ -558,15 +502,10 @@ export default function ChatbotPage() {
               )}
             </div>
 
-            {/* 채팅 인터페이스 */}
-            <RAGChatInterface
-              sessionId={currentSession.id}
-              onSessionUpdate={() => {
-                void reloadData()
-              }}
-              quickPrompts={currentSession.messages.length === 0 ? QUICK_PROMPTS : undefined}
-              onQuickPrompt={handleQuickPrompt}
-            />
+            {/* 채팅 인터페이스 (RAG 제거됨 — 추후 재구현 예정) */}
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+              AI 챗봇 기능 준비 중
+            </div>
           </>
         ) : (
           <div className="h-full flex items-center justify-center text-muted-foreground">
@@ -579,15 +518,15 @@ export default function ChatbotPage() {
       <ProjectDialog
         open={isProjectDialogOpen}
         onOpenChange={setIsProjectDialogOpen}
-        projectId={editingProjectId}
-        onComplete={() => void reloadData()}
+        onCreate={handleProjectCreate}
       />
 
       <MoveSessionDialog
         open={isMoveDialogOpen}
         onOpenChange={setIsMoveDialogOpen}
-        sessionId={moveDialogSessionId}
-        onComplete={() => void reloadData()}
+        session={sessions.find(s => s.id === moveDialogSessionId) ?? null}
+        projects={projects}
+        onMove={handleSessionMove}
       />
 
       <DeleteConfirmDialog
@@ -597,10 +536,6 @@ export default function ChatbotPage() {
         onConfirm={handleConfirmDelete}
       />
 
-      <DocumentManagerDialog
-        open={isDocManagerOpen}
-        onOpenChange={setIsDocManagerOpen}
-      />
     </div>
   )
 }

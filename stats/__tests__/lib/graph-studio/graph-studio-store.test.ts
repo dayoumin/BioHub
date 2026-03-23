@@ -8,9 +8,10 @@
  * 4. resetAll 후 상태 초기화
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { act } from '@testing-library/react'
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
+import * as researchProjectStorage from '@/lib/research/project-storage'
 import type { ChartSpec, DataPackage, GraphProject } from '@/types/graph-studio'
 
 // ─── 최소 ChartSpec 픽스처 ────────────────────────────────
@@ -507,6 +508,40 @@ describe('saveCurrentProject', () => {
     act(() => { useGraphStudioStore.getState().saveCurrentProject('Second') })
 
     expect(useGraphStudioStore.getState().currentProject?.createdAt).toBe(createdAt)
+  })
+
+  it('linked project ref 저장이 실패하면 graph project 저장을 롤백하고 null을 반환한다', () => {
+    act(() => {
+      useGraphStudioStore.getState().setProject(
+        makeProject({
+          projectId: 'research-project-1',
+          chartSpec: makeSpec('Linked Chart'),
+        }),
+        makePkg({
+          columns: [
+            { name: 'group', type: 'nominal', uniqueCount: 2, sampleValues: [], hasNull: false },
+            { name: 'value', type: 'quantitative', uniqueCount: 5, sampleValues: [], hasNull: false },
+          ],
+        })
+      )
+    })
+
+    const refSpy = vi.spyOn(researchProjectStorage, 'upsertProjectEntityRef').mockImplementation(() => {
+      throw new Error('ref write failed')
+    })
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    let result: string | null = null
+    act(() => {
+      result = useGraphStudioStore.getState().saveCurrentProject('Linked Graph')
+    })
+
+    expect(result).toBeNull()
+    expect(useGraphStudioStore.getState().currentProject?.id).toBe('proj-1')
+    expect(localStorage.getItem('graph_studio_projects')).toContain('"id":"proj-1"')
+
+    refSpy.mockRestore()
+    consoleErrorSpy.mockRestore()
   })
 })
 

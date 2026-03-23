@@ -12,7 +12,11 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { selectXYFields } from '@/lib/graph-studio/chart-spec-utils';
 import { createDefaultChartSpec, CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults';
+import { toast } from 'sonner';
 import { parseFile } from '@/lib/graph-studio/file-parser';
+import { getDataSizeLevel, getRowCount } from '@/lib/graph-studio/chart-data-guard';
+import { TOAST } from '@/lib/constants/toast-messages';
+import { LargeDataBlockDialog } from './LargeDataBlockDialog';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -49,10 +53,9 @@ export function LeftDataPanel(): React.ReactElement {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [blockedRowCount, setBlockedRowCount] = useState<number | null>(null);
 
-  const rowCount = dataPackage
-    ? (Object.values(dataPackage.data)[0]?.length ?? 0)
-    : 0;
+  const rowCount = dataPackage ? getRowCount(dataPackage.data) : 0;
 
   // 현재 인코딩에서 사용 중인 필드 → 역할 매핑
   const fieldRoles = useMemo(() => {
@@ -146,6 +149,17 @@ export function LeftDataPanel(): React.ReactElement {
         data,
         createdAt: new Date().toISOString(),
       };
+
+      // 대용량 데이터 체크
+      const incomingRowCount = getRowCount(pkg.data);
+      const sizeLevel = getDataSizeLevel(incomingRowCount);
+      if (sizeLevel === 'block') {
+        setBlockedRowCount(incomingRowCount);
+        return;
+      }
+      if (sizeLevel === 'warn') {
+        toast.warning(TOAST.graphStudio.largeDataWarning(incomingRowCount));
+      }
 
       // 기존 chartSpec에서 스타일 보존
       const existingSpec = chartSpec;
@@ -252,6 +266,12 @@ export function LeftDataPanel(): React.ReactElement {
           {isLoading ? '처리 중...' : '데이터 교체 (스타일 유지)'}
         </Button>
       </div>
+
+      <LargeDataBlockDialog
+        open={blockedRowCount !== null}
+        onOpenChange={() => setBlockedRowCount(null)}
+        rowCount={blockedRowCount ?? 0}
+      />
     </div>
   );
 }

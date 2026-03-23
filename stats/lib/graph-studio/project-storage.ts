@@ -49,6 +49,7 @@ export function saveProject(project: GraphProject): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
   } catch (err) {
     console.warn('[project-storage] 프로젝트 저장 실패 (localStorage 용량 초과?):', err);
+    throw new Error('[project-storage] 프로젝트 저장 실패');
   }
 }
 
@@ -58,6 +59,7 @@ export function deleteProject(projectId: string): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
   } catch (err) {
     console.warn('[project-storage] 프로젝트 삭제 실패 (localStorage 오류):', err);
+    throw new Error('[project-storage] 프로젝트 삭제 실패');
   }
 }
 

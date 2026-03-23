@@ -95,7 +95,7 @@ describe('FlowStateMachine — chatMessages', () => {
       const reset = flowReducer(withError, { type: 'RESET' })
 
       expect(reset.chatMessages).toHaveLength(0)
-      expect(reset.step).toBe('ai-chat')
+      expect(reset.step).toBe('category')
       expect(reset.aiRecommendation).toBeNull()
       expect(reset.aiError).toBeNull()
     })
@@ -122,7 +122,7 @@ describe('FlowStateMachine — chatMessages', () => {
       expect(reset.chatMessages[1].id).toBe('a1')
 
       // 초기화: 네비게이션
-      expect(reset.step).toBe('ai-chat')
+      expect(reset.step).toBe('category')
       expect(reset.selectedCategory).toBeNull()
       expect(reset.aiRecommendation).toBeNull()
       expect(reset.isAiLoading).toBe(false)
@@ -132,14 +132,18 @@ describe('FlowStateMachine — chatMessages', () => {
       const result = flowReducer(initialFlowState, { type: 'RESET_NAVIGATION' })
 
       expect(result.chatMessages).toHaveLength(0)
-      expect(result.step).toBe('ai-chat')
+      expect(result.step).toBe('category')
     })
   })
 
   describe('GO_BACK', () => {
     it('뒤로 가도 chatMessages가 보존된다 (preserveAiState)', () => {
+      // category → ai-chat으로 이동 (히스토리에 'category' 쌓임) → 메시지 추가
       const withMsg = flowReducer(
-        flowReducer(initialFlowState, { type: 'ADD_CHAT_MESSAGE', message: USER_MSG }),
+        flowReducer(
+          flowReducer(initialFlowState, { type: 'GO_TO_AI_CHAT' }),
+          { type: 'ADD_CHAT_MESSAGE', message: USER_MSG }
+        ),
         { type: 'GO_TO_GUIDED' }  // step: 'category'로 이동 (히스토리에 'ai-chat' 쌓임)
       )
       expect(withMsg.chatMessages).toHaveLength(1)
@@ -396,7 +400,7 @@ describe('handleAiSubmit 디스패치 시퀀스 — flowReducer', () => {
     expect(afterReset.chatMessages[1].isError).toBe(true)
 
     // 네비게이션은 초기화
-    expect(afterReset.step).toBe('ai-chat')
+    expect(afterReset.step).toBe('category')
     expect(afterReset.aiRecommendation).toBeNull()
   })
 })

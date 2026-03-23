@@ -156,13 +156,14 @@ export function Scatterplot({
                 label={{ value: yAxisLabel, angle: -90, position: 'insideLeft' }}
               />
               <Tooltip 
-                formatter={(value?: number, name?: string) => [
-                  (value ?? 0).toFixed(4),
+                formatter={(value, name) => [
+                  Number(value ?? 0).toFixed(4),
                   name === 'x' ? xAxisLabel : yAxisLabel
                 ]}
-                labelFormatter={(label: any, payload: any) => {
+                labelFormatter={(_label, payload) => {
                   if (payload && payload[0]) {
-                    return `점 #${payload[0].payload.index}`
+                    const entry = payload[0].payload as Record<string, unknown>
+                    return `점 #${entry.index ?? ''}`
                   }
                   return ''
                 }}

@@ -2,9 +2,10 @@
  * Guided Flow 상태 머신
  * useReducer와 함께 사용
  *
- * 2025 UI/UX 현대화 + AI Chat:
- * - ai-chat → (옵션) questions → result
- * - 또는 category → subcategory → questions → result (기존 가이드)
+ * 2025 UI/UX 현대화:
+ * - category → subcategory → questions → result (기본 가이드)
+ * - ai-chat → questions → result (보조: AI 추천)
+ * - browse → result (보조: 직접 선택)
  *
  * Fix 3-A: previousStep 단일값 → stepHistory 스택으로 변경
  * Fix 3-B: AI 상태 유지/초기화 일관성 보장
@@ -65,10 +66,10 @@ function pushHistory(state: GuidedFlowState): GuidedFlowStep[] {
 }
 
 /**
- * 초기 상태 (ai-chat부터 시작)
+ * 초기 상태 (category 선택부터 시작)
  */
 export const initialFlowState: GuidedFlowState = {
-  step: 'ai-chat',
+  step: 'category',
   selectedCategory: null,
   selectedSubcategory: null,
   selectedPurpose: null,
@@ -198,6 +199,14 @@ function flowReducerWithText(
       return {
         ...state,
         step: 'category',
+        stepHistory: pushHistory(state),
+      }
+
+    case 'GO_TO_AI_CHAT':
+      // 가이드에서 AI 채팅으로 이동 — AI 상태 유지
+      return {
+        ...state,
+        step: 'ai-chat',
         stepHistory: pushHistory(state),
       }
 
@@ -457,6 +466,10 @@ export const flowActions = {
 
   goToGuided: (): GuidedFlowAction => ({
     type: 'GO_TO_GUIDED'
+  }),
+
+  goToAiChat: (): GuidedFlowAction => ({
+    type: 'GO_TO_AI_CHAT'
   }),
 
   setAiProvider: (provider: 'openrouter' | 'ollama' | 'keyword'): GuidedFlowAction => ({

@@ -29,7 +29,11 @@ import { Button } from '@/components/ui/button';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion';
 import { inferColumnMeta } from '@/lib/graph-studio/chart-spec-utils';
+import { toast } from 'sonner';
 import { parseFile, parseText } from '@/lib/graph-studio/file-parser';
+import { getDataSizeLevel, getRowCount } from '@/lib/graph-studio/chart-data-guard';
+import { TOAST } from '@/lib/constants/toast-messages';
+import { LargeDataBlockDialog } from './LargeDataBlockDialog';
 import { listProjects } from '@/lib/graph-studio/project-storage';
 import { loadTemplates } from '@/lib/graph-studio/style-template-storage';
 import { CHART_TYPE_ICONS } from '@/lib/graph-studio/chart-icons';
@@ -37,6 +41,7 @@ import { StepIndicator } from '@/components/graph-studio/StepIndicator';
 import { staggerContainer, staggerItem } from '@/components/common/card-styles';
 import type { DataPackage, ChartType, GraphProject } from '@/types/graph-studio';
 import type { StyleTemplate } from '@/lib/graph-studio/style-template-storage';
+import { formatTimeAgo } from '@/lib/utils/format-time';
 
 // ─── 샘플 데이터 (어류 성장, 3종 × 10행) ──────────────────
 
@@ -106,19 +111,6 @@ const SAMPLE_DATASETS: SampleDataset[] = [
   { id: 'anova', label: '사료 비교', chartHint: 'Box', type: 'fetch', url: '/example-data/one-way-anova.csv' },
 ];
 
-// ─── 상대 시간 포맷 ────────────────────────────────────────
-
-function formatTimeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return '방금';
-  if (minutes < 60) return `${minutes}분 전`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}시간 전`;
-  const days = Math.floor(hours / 24);
-  return `${days}일 전`;
-}
-
 // ─── 메인 컴포넌트 ─────────────────────────────────────────
 
 export function DataUploadPanel(): React.ReactElement {
@@ -130,6 +122,7 @@ export function DataUploadPanel(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingSampleId, setLoadingSampleId] = useState<string | null>(null);
+  const [blockedRowCount, setBlockedRowCount] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const prefersReducedMotion = useReducedMotion();
 
@@ -182,6 +175,20 @@ export function DataUploadPanel(): React.ReactElement {
     }
   }, [handleInlineSample, handleFetchSample]);
 
+  // ── 대용량 데이터 체크 (행 수 기반) ──────────────────────
+  const checkDataSize = useCallback((pkg: DataPackage): boolean => {
+    const rowCount = getRowCount(pkg.data);
+    const level = getDataSizeLevel(rowCount);
+    if (level === 'block') {
+      setBlockedRowCount(rowCount);
+      return false;
+    }
+    if (level === 'warn') {
+      toast.warning(TOAST.graphStudio.largeDataWarning(rowCount));
+    }
+    return true;
+  }, []);
+
   // ── 파일 처리 ──────────────────────────────────────────
   const handleFile = useCallback(
     async (file: File) => {
@@ -197,6 +204,7 @@ export function DataUploadPanel(): React.ReactElement {
           data,
           createdAt: new Date().toISOString(),
         };
+        if (!checkDataSize(pkg)) return;
         loadDataOnly(pkg);
       } catch (err) {
         setError(err instanceof Error ? err.message : '파일 파싱 실패');
@@ -204,7 +212,7 @@ export function DataUploadPanel(): React.ReactElement {
         setIsLoading(false);
       }
     },
-    [loadDataOnly],
+    [loadDataOnly, checkDataSize],
   );
 
   // ── 클립보드 붙여넣기 (F3) ─────────────────────────────
@@ -225,13 +233,14 @@ export function DataUploadPanel(): React.ReactElement {
         data,
         createdAt: new Date().toISOString(),
       };
+      if (!checkDataSize(pkg)) return;
       loadDataOnly(pkg);
     } catch (err) {
       setError(err instanceof Error ? err.message : '클립보드 데이터 파싱 실패');
     } finally {
       setIsLoading(false);
     }
-  }, [loadDataOnly]);
+  }, [loadDataOnly, checkDataSize]);
 
   // ── 최근 프로젝트 클릭 (F1) ────────────────────────────
   const handleProjectClick = useCallback((projectId: string) => {
@@ -398,7 +407,7 @@ export function DataUploadPanel(): React.ReactElement {
                   </span>
                   <span className="text-muted-foreground flex items-center gap-1">
                     {IconComp && <IconComp className="w-3 h-3" />}
-                    {formatTimeAgo(project.updatedAt)}
+                    {formatTimeAgo(new Date(project.updatedAt))}
                   </span>
                 </button>
               );
@@ -464,6 +473,12 @@ export function DataUploadPanel(): React.ReactElement {
       )}
 
       </motion.div>
+
+      <LargeDataBlockDialog
+        open={blockedRowCount !== null}
+        onOpenChange={() => setBlockedRowCount(null)}
+        rowCount={blockedRowCount ?? 0}
+      />
     </div>
   );
 }

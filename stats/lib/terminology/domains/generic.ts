@@ -818,6 +818,7 @@ export const generic: TerminologyDictionary = {
       reinterpret: 'Re-interpret',
       retry: 'Retry',
       defaultError: 'An error occurred during AI interpretation.',
+      retryExhausted: 'AI 해석을 불러올 수 없습니다. 위의 통계 수치와 차트만으로도 결과를 확인할 수 있습니다.',
     },
     sections: {
       detailedResults: 'Detailed Results',
@@ -861,6 +862,15 @@ export const generic: TerminologyDictionary = {
       success: 'Saved successfully',
       errorTitle: 'Save failed',
       unknownError: 'Unknown error',
+      projectDialog: {
+        title: 'Select Save Target',
+        description: 'Choose a ResearchProject for this analysis, or save it as a standalone record.',
+        withoutProjectTitle: 'Save without project',
+        withoutProjectDescription: 'The analysis will be saved to history only and will not be linked to a ResearchProject.',
+        noDescription: 'No description',
+        noProjects: 'No active projects are available. Save without a project, or create one first and try again.',
+        saving: 'Saving...',
+      },
     },
     toast: {
       reanalyzeReady: 'Please upload new data',

@@ -11,6 +11,7 @@ import type { ChartSpec, AxisSpec, AnnotationSpec, GraphicAnnotation, HLineAnnot
 import type { EChartsOption } from 'echarts';
 import { STYLE_PRESETS, ALL_PALETTES, CHART_TYPE_HINTS } from './chart-spec-defaults';
 import { partitionRowsByFacet, computeFacetLayout } from './facet-layout';
+import { getPercentile } from '@/lib/utils/stats-math';
 
 // ─── Axis type mapping ─────────────────────────────────────
 
@@ -244,14 +245,9 @@ function buildGroupedData(
   return { categories: sortedCats, groups: groupOrder, seriesData };
 }
 
-/** Linear interpolation percentile (inclusive, same as numpy default). */
+/** getPercentile 래퍼 — ECharts는 number 반환 필요 */
 function percentile(sorted: number[], p: number): number {
-  if (!sorted.length) return 0;
-  const idx = (sorted.length - 1) * p;
-  const lo = Math.floor(idx);
-  const hi = Math.ceil(idx);
-  if (lo === hi) return sorted[lo];
-  return sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
+  return getPercentile(sorted, p) ?? 0;
 }
 
 /** Compute boxplot statistics [min, Q1, median, Q3, max] per category. */

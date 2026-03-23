@@ -18,6 +18,7 @@ import { DataCharacteristics } from '@/lib/statistics/data-type-detector'
 // CompatibilityResult, DataSummary 타입 및 파생 함수는 더 이상 store에서 불필요
 import { transformExecutorResult, isExecutorResult } from '@/lib/utils/result-transformer'
 import type { AnalysisResult as ExecutorResult } from '@/lib/services/executors/types'
+import { resetPreemptiveState } from '@/lib/services/preemptive-assumption-service'
 import { useModeStore } from './mode-store'
 import { useHistoryStore } from './history-store'
 import type { HistoryLoadResult, HistorySettingsResult } from './history-store'
@@ -322,7 +323,8 @@ export const useAnalysisStore = create<AnalysisState>()(
       reset: () => set(initialState),
 
       resetSession: () => {
-        // 모드 + 히스토리 상태도 리셋
+        // 모드 + 히스토리 + 선행 가정 검정 상태 리셋
+        resetPreemptiveState()
         useModeStore.getState().resetMode()
         useHistoryStore.getState().setCurrentHistoryId(null)
         useHistoryStore.getState().setLoadedAiInterpretation(null)

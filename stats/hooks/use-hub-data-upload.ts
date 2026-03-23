@@ -15,10 +15,12 @@
 import { useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 import Papa from 'papaparse'
+import { TOAST } from '@/lib/constants/toast-messages'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useHubChatStore } from '@/lib/stores/hub-chat-store'
 import { DataValidationService } from '@/lib/services/data-validation-service'
 import { enrichWithNormality } from '@/lib/services/normality-enrichment-service'
+import { raceWithTimeout } from '@/lib/utils/promise-utils'
 import { findCriticalParseError, parseWarningMessage } from '@/lib/utils/csv-parse-errors'
 import type { DataRow, ColumnStatistics } from '@/types/analysis'
 
@@ -46,7 +48,7 @@ export function useHubDataUpload(): UseHubDataUploadReturn {
     // CSV만 지원 (Excel은 추후 확장 가능)
     const isExcel = /\.xlsx?$/i.test(file.name)
     if (isExcel) {
-      toast.error('현재 허브에서는 CSV 파일만 지원합니다. Excel 파일은 분석 페이지에서 업로드해 주세요.')
+      toast.error(TOAST.data.csvOnlyInHub)
       return
     }
 
@@ -64,7 +66,7 @@ export function useHubDataUpload(): UseHubDataUploadReturn {
         if (results.errors.length > 0) {
           const critical = findCriticalParseError(results.errors)
           if (critical) {
-            toast.error(`CSV 파싱 오류: ${critical.message}`)
+            toast.error(TOAST.data.csvParseError(critical.message))
             return
           }
           // FieldMismatch 등 경고 수준 — 계속 진행 (오류 행도 results.data에 포함됨)
@@ -73,7 +75,7 @@ export function useHubDataUpload(): UseHubDataUploadReturn {
 
         const data = results.data as DataRow[]
         if (data.length === 0) {
-          toast.error('데이터가 비어 있습니다.')
+          toast.error(TOAST.data.emptyData)
           return
         }
 
@@ -107,12 +109,16 @@ export function useHubDataUpload(): UseHubDataUploadReturn {
           timestamp: Date.now(),
         })
 
-        toast.success(`${file.name} 로드 완료`)
+        toast.success(TOAST.data.loadSuccess(file.name))
 
         // 5. 비동기 정규성 검정 (fire-and-forget)
         if (validation.columnStats?.length) {
           const capturedNonce = useAnalysisStore.getState().uploadNonce
-          enrichWithNormality(validation.columnStats, data)
+          raceWithTimeout(
+              enrichWithNormality(validation.columnStats, data),
+              15_000,
+              'Normality enrichment timed out'
+            )
             .then(({ enrichedColumns, testedCount }) => {
               // token 가드: 더 최신 파일 업로드가 시작됐으면 무시
               if (token !== uploadTokenRef.current) return
@@ -142,7 +148,7 @@ export function useHubDataUpload(): UseHubDataUploadReturn {
       },
       error: (err) => {
         if (token !== uploadTokenRef.current) return
-        toast.error(`파일 파싱 실패: ${err.message}`)
+        toast.error(TOAST.data.fileParseError(err.message))
       },
     })
   }, [setUploadedFile, setUploadedData, setValidationResults, patchColumnNormality, addMessage, setDataContext])

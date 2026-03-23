@@ -470,7 +470,7 @@ export function SampleSizeModal({ open, onClose, onStartAnalysis }: SampleSizeMo
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-lg flex flex-col overflow-hidden" style={{ height: '620px' }}>
+      <DialogContent className="max-w-lg flex flex-col overflow-hidden max-h-[80vh]" style={{ height: '620px' }}>
         <TooltipProvider delayDuration={200}>
           <DialogHeader className="shrink-0">
             <DialogTitle>표본 크기 계산기</DialogTitle>

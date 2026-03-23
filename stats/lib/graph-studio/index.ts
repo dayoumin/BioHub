@@ -40,7 +40,7 @@ export type { FacetGridItem, FacetLayout } from './facet-layout';
 export { chartSpecToECharts } from './echarts-converter';
 
 // Export 유틸리티
-export { downloadChart, mmToPx } from './export-utils';
+export { downloadChart, downloadBase64File, sanitizeFilename, mmToPx } from './export-utils';
 
 // 프로젝트 저장소
 export {
@@ -50,6 +50,10 @@ export {
   deleteProject,
   generateProjectId,
 } from './project-storage';
+
+// 대용량 데이터 보호
+export { CHART_DATA_LIMITS, getRowCount, getDataSizeLevel } from './chart-data-guard';
+export type { DataSizeLevel } from './chart-data-guard';
 
 // AI 서비스
 export { editChart, buildAiEditRequest } from './ai-service';

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Loader2, BarChart3, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { staticPanelBase } from '@/components/common/card-styles'
 import type { StatisticalAssumptions } from '@/types/analysis'
 import { useTerminology } from '@/hooks/use-terminology'
 
@@ -87,7 +88,7 @@ export const AssumptionTestsSection = memo(function AssumptionTestsSection({
           )}
           {/* 정규성 검정 결과 */}
           {assumptionResults.normality?.shapiroWilk && (
-            <div className="p-4 bg-background rounded-xl border border-border/40">
+            <div className={staticPanelBase}>
               <div className="flex items-center justify-between mb-3">
                 <span className="font-semibold text-sm flex items-center gap-2 tracking-tight">
                   <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
@@ -117,7 +118,7 @@ export const AssumptionTestsSection = memo(function AssumptionTestsSection({
 
           {/* 등분산성 검정 결과 */}
           {assumptionResults.homogeneity?.levene && (
-            <div className="p-4 bg-background rounded-xl border border-border/40">
+            <div className={staticPanelBase}>
               <div className="flex items-center justify-between mb-3">
                 <span className="font-semibold text-sm flex items-center gap-2 tracking-tight">
                   <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />

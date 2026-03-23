@@ -8,6 +8,21 @@ const nextConfig: NextConfig = {
     trailingSlash: true,
   }),
 
+  // 워크스페이스 패키지 TypeScript 트랜스파일
+  transpilePackages: ['@biohub/types', '@biohub/db'],
+
+  // 개발 환경: /api/* → wrangler dev (8787) 프록시
+  ...(process.env.NODE_ENV !== 'production' && {
+    async rewrites() {
+      return [
+        {
+          source: '/api/:path*',
+          destination: 'http://localhost:8787/api/:path*',
+        },
+      ]
+    },
+  }),
+
   // Image optimization disabled for static export
   images: {
     unoptimized: true,
@@ -35,6 +50,8 @@ const nextConfig: NextConfig = {
       'recharts',
       'framer-motion',
       'date-fns',
+      'echarts',
+      'docx',
     ]
   },
   eslint: {

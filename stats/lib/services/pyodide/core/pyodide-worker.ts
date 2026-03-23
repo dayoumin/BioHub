@@ -90,8 +90,9 @@ const WORKER_FILE_NAMES: Record<number, string> = {
   3: 'worker3-nonparametric-anova',
   4: 'worker4-regression-advanced',
   5: 'worker5-survival',
-  6: 'worker6-fisheries',
-  7: 'worker7-ecology'
+  6: 'worker6-matplotlib',
+  7: 'worker7-fisheries',
+  8: 'worker8-ecology'
 }
 
 // ============================================================================
@@ -164,7 +165,8 @@ function getAdditionalPackages(workerNum: number): string[] {
     2: ['statsmodels', 'pandas'], // worker2-hypothesis.py (ANCOVA, partial correlation 등)
     3: ['statsmodels', 'pandas', 'scikit-learn'], // worker3-nonparametric-anova.py (KMeans, PCA, LDA, Factor Analysis)
     4: ['statsmodels', 'scikit-learn'], // worker4-regression-advanced.py (stepwise + cluster/factor)
-    5: ['scikit-learn'] // worker5-survival.py (KM scipy 직접 구현, ROC sklearn)
+    5: ['scikit-learn'], // worker5-survival.py (KM scipy 직접 구현, ROC sklearn)
+    6: ['matplotlib', 'micropip'] // worker6-matplotlib.py (논문용 export, SciencePlots)
   }
 
   return packageMap[workerNum] || []

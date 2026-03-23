@@ -1,11 +1,7 @@
 /**
  * MoveSessionDialog - 세션 이동 모달
  *
- * 기능:
- * - 세션을 다른 프로젝트로 이동
- * - 프로젝트 목록 드롭다운
- * - "루트로 이동" 옵션 (projectId = null)
- * - 현재 속한 프로젝트 표시
+ * 저장소 직접 호출 없이 props로 데이터를 받고 onMove 콜백으로 위임.
  */
 
 import React, { useState, useEffect } from 'react'
@@ -26,38 +22,48 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { ChatStorage } from '@/lib/services/chat-storage'
+import type { ChatProject, ChatSession } from '@/lib/types/chat'
 
 interface MoveSessionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  sessionId: string | null
-  onComplete: () => void
+  session: ChatSession | null
+  projects: ChatProject[]
+  onMove: (sessionId: string, projectId: string | null) => void | Promise<void>
 }
 
 export const MoveSessionDialog: React.FC<MoveSessionDialogProps> = ({
   open,
   onOpenChange,
-  sessionId,
-  onComplete,
+  session,
+  projects,
+  onMove,
 }) => {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
-
-  const projects = ChatStorage.getProjects()
-  const session = sessionId ? ChatStorage.loadSession(sessionId) : null
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (session) {
-      setSelectedProjectId(session.projectId || null)
+    if (open && session) {
+      setSelectedProjectId(session.projectId ?? null)
+      setIsSubmitting(false)
+      setError(null)
     }
-  }, [session, open])
+  }, [open, session])
 
-  const handleMove = () => {
-    if (!sessionId) return
+  const handleMove = async (): Promise<void> => {
+    if (!session) return
+    setIsSubmitting(true)
+    setError(null)
 
-    ChatStorage.moveSessionToProject(sessionId, selectedProjectId)
-    onComplete()
-    onOpenChange(false)
+    try {
+      await onMove(session.id, selectedProjectId)
+      onOpenChange(false)
+    } catch {
+      setError('이동에 실패했습니다. 다시 시도해 주세요.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -70,35 +76,38 @@ export const MoveSessionDialog: React.FC<MoveSessionDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div>
-            <Label>이동할 위치</Label>
-            <Select
-              value={selectedProjectId || 'root'}
-              onValueChange={(val) =>
-                setSelectedProjectId(val === 'root' ? null : val)
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="root">📂 루트 (프로젝트 없음)</SelectItem>
-                {projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.emoji} {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div>
+          <Label>이동할 위치</Label>
+          <Select
+            value={selectedProjectId ?? 'root'}
+            onValueChange={(val) =>
+              setSelectedProjectId(val === 'root' ? null : val)
+            }
+            disabled={isSubmitting}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="root">📂 루트 (프로젝트 없음)</SelectItem>
+              {projects.map((project) => (
+                <SelectItem key={project.id} value={project.id}>
+                  {project.emoji || '📁'} {project.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
+        {error && (
+          <p className="text-sm text-destructive">{error}</p>
+        )}
+
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             취소
           </Button>
-          <Button onClick={handleMove}>이동</Button>
+          <Button onClick={() => void handleMove()} disabled={isSubmitting}>이동</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

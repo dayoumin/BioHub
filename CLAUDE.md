@@ -39,7 +39,7 @@
   - 뱃지: `BADGE_BIO_STYLE`
 - **차트 색상**: `BIO_CHART_COLORS` (`lib/bio-tools/bio-chart-colors.ts`) — 페이지별 색상 배열 금지
 - **공통 컴포넌트**: `BioToolShell` (페이지 래퍼), `BioCsvUpload` (CSV 업로드), `BioToolCard` (허브 카드)
-- **Worker**: `PyodideWorker.Ecology` (7번) — Python 반환 키 camelCase 필수
+- **Worker**: `PyodideWorker.Ecology` (8번), `PyodideWorker.Fisheries` (7번) — Python 반환 키 camelCase 필수
 
 ## TypeScript (CRITICAL)
 
@@ -112,9 +112,20 @@ pnpm tsc --noEmit    # 타입 체크
 pnpm setup:pyodide   # Pyodide 다운로드 (200MB, 오프라인용)
 ```
 
+## 배포 환경
+
+- **플랫폼**: Cloudflare Pages + Workers (Workers Paid $5/월)
+- **현재**: Next.js static export (`stats/out/`) → Pages 정적 배포
+- **전환 예정**: Workers 기반 동적 배포 (D1/R2/KV 추가) — Phase 16
+  - 정적 배포는 일부 기능만 별도로 유지 예정
+  - 상세: [PLAN-CLOUDFLARE-BACKEND.md](docs/PLAN-CLOUDFLARE-BACKEND.md)
+- **Workers 제한**: 10만 req/일 무료 포함, CPU 10ms/req (유료 50ms)
+- **번들**: Pages 정적 파일 용량 제한 없음. 초기 로드 성능 고려
+- **Pyodide**: 동적 로드 (초기 번들 미포함), scipy/numpy ~15MB
+- **신규 라이브러리 추가 시**: tree-shaking 확인 필수
+
 ## 문서 관리
 
 - **TODO.md**: 현황 + 할일
 - **ROADMAP.md**: 개발 로드맵
 - 분석/검토 문서 새 파일 생성 금지 → TODO.md에 요약
-- 배포: Cloudflare Pages (`wrangler.toml` 참조)

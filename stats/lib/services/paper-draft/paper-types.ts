@@ -80,3 +80,6 @@ export interface FlatAssumption {
   passed: boolean
   group?: string      // 'group1', 'group2' (정규성 그룹별)
 }
+
+/** 카테고리별 사전 그룹핑 결과 — 템플릿에서 반복 filter 제거용 */
+export type GroupedAssumptions = Partial<Record<FlatAssumptionCategory, FlatAssumption[]>>

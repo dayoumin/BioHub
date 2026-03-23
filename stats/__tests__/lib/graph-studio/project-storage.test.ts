@@ -137,6 +137,51 @@ describe('generateProjectId', () => {
   });
 });
 
+// ─── localStorage 실패 전파 ──────────────────────────────────
+
+describe('localStorage 실패 시 throw', () => {
+  it('saveProject: localStorage.setItem 실패 → throw (에러 삼키지 않음)', () => {
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('quota exceeded', 'QuotaExceededError');
+    });
+
+    expect(() => saveProject(makeProject('fail'))).toThrow('[project-storage]');
+    spy.mockRestore();
+  });
+
+  it('deleteProject: localStorage.setItem 실패 → throw', () => {
+    // 먼저 정상 저장
+    saveProject(makeProject('p1'));
+    saveProject(makeProject('p2'));
+
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('quota exceeded', 'QuotaExceededError');
+    });
+
+    expect(() => deleteProject('p1')).toThrow('[project-storage]');
+    spy.mockRestore();
+
+    // 원래 데이터는 삭제 전 상태 유지 (throw 전에 setItem이 실패했으므로)
+    expect(listProjects()).toHaveLength(2);
+  });
+
+  it('saveProject 실패 후 기존 데이터 손상 없음', () => {
+    saveProject(makeProject('existing', 'Existing'));
+
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('quota exceeded', 'QuotaExceededError');
+    });
+
+    expect(() => saveProject(makeProject('new-fail'))).toThrow();
+    spy.mockRestore();
+
+    // 기존 데이터 무결성 확인
+    const list = listProjects();
+    expect(list).toHaveLength(1);
+    expect(list[0].id).toBe('existing');
+  });
+});
+
 // ─── 데이터 직렬화 무결성 ─────────────────────────────────────
 
 describe('저장/로드 왕복 (serialization round-trip)', () => {

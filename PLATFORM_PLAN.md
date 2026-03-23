@@ -96,7 +96,7 @@ Step 4: 외부 플랫폼 확장
 
 | 항목 | 현황 |
 |------|------|
-| 버전 | v2.3.0 |
+| 버전 | v1.0.0 |
 | 배포 | Vercel 프로덕션 운영 중 ✅ |
 | 기능 | WoRMS / LPSN / CoL 3개 DB 검증 ✅ |
 | 국명 검색 | NIBR 61,230종 ✅ |
@@ -105,7 +105,7 @@ Step 4: 외부 플랫폼 확장
 | DB | Supabase (LPSN, NIBR, WoRMS 캐시) ✅ |
 | BioHub 통합 | 미통합 (Phase 5 예정) |
 
-**위치**: `d:\Projects\scientific-name-validator\`
+**위치**: `d:\Projects\species_checker\`
 **기술**: Next.js 15 + TypeScript + Supabase + Tauri
 
 ---
@@ -130,7 +130,7 @@ Step 4: 외부 플랫폼 확장
 |------|------|
 | 계획 | 12개 생물학 분석, 5페이지 |
 | 구현 | 미시작 (Phase 4 예정) |
-| 상세 계획 | `stats/study/PLAN-BIO-STATISTICS-AUDIT.md` |
+| 상세 계획 | `docs/PLAN-BIO-STATISTICS-AUDIT.md` |
 
 ---
 
@@ -218,7 +218,7 @@ Step 4: 외부 플랫폼 확장
 | `/bio-tools/` 라우트 | 5개 페이지 구현 | 🔜 |
 | 테스트 | Golden Values 테스트 | 🔜 |
 
-상세 계획: `stats/study/PLAN-BIO-STATISTICS-AUDIT.md`
+상세 계획: `docs/PLAN-BIO-STATISTICS-AUDIT.md`
 
 ---
 
@@ -252,7 +252,19 @@ Step 4: 외부 플랫폼 확장
 
 ---
 
-## 5. 수익화 구조 (예정 — 사용자 확보 후 결정)
+## 5. 배포 전략
+
+> 상세: [docs/DEPLOYMENT-STRATEGY.md](docs/DEPLOYMENT-STRATEGY.md)
+
+**핵심 원칙**: 빠르게 배포 → 사용자 확보 → 데이터 축적 → 수익화
+- 2026: 무료 배포 + Freemium (하루 10회) + 데이터 수집
+- 2027: 공모전 + 정부지원 + 수익화
+- 완벽주의로 배포 지연 금지
+- 핵심 로직 비공개 유지
+
+---
+
+## 6. 수익화 구조 (예정 — 사용자 확보 후 결정)
 
 ```
 무료 (사용자 확보 우선)
@@ -276,7 +288,7 @@ Pro (월 요금 미정)
 
 ---
 
-## 6. 기술 아키텍처 결정사항
+## 7. 기술 아키텍처 결정사항
 
 ### AI 프로바이더 구조
 
@@ -323,18 +335,18 @@ lib/ai/
 
 ---
 
-## 7. 연관 프로젝트 현황
+## 8. 연관 프로젝트 현황
 
 | 프로젝트 | 경로 | 배포 | 상태 |
 |----------|------|------|------|
 | BioHub (통계) | `d:\Projects\BioHub\stats\` | Cloudflare | 운영 중 |
-| 학명 검증기 | `d:\Projects\scientific-name-validator\` | Vercel | 운영 중 |
+| 학명 검증기 | `d:\Projects\species_checker\` | Vercel | 운영 중 |
 | Graph Studio | **확인 필요** | 미정 | 로컬 완성 |
 | Bio-Tools | BioHub 내 예정 | - | 미시작 |
 
 ---
 
-## 8. 미결정 사항 (결정 필요)
+## 9. 미결정 사항 (결정 필요)
 
 | 항목 | 옵션 | 비고 |
 |------|------|------|
@@ -347,7 +359,7 @@ lib/ai/
 
 ---
 
-## 9. 하지 않을 것
+## 10. 하지 않을 것
 
 - 프로젝트 복사 (내부망 전용 별도 폴더 금지)
 - Monorepo 전환 (Phase 5 이후 검토)
@@ -358,7 +370,7 @@ lib/ai/
 
 ---
 
-## 10. 다음 액션 (우선순위 순)
+## 11. 다음 액션 (우선순위 순)
 
 1. **UI/UX 설계 — 제품 A (내부망)** — 통계+그래프 통합 워크플로우, 3컬럼 레이아웃
 2. **UI/UX 설계 — 제품 B (외부)** — 플랫폼 Shell, 경쟁 제품 대비 차별화 포인트

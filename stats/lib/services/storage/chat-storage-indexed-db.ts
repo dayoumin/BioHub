@@ -510,7 +510,47 @@ export class ChatStorageIndexedDB {
   }
 
   /**
-   * 세션 ID 생성
+   * 새 프로젝트 생성
+   */
+  static async createNewProject(name: string): Promise<ChatProject> {
+    await this.ensureReady()
+
+    const newProject: ChatProject = {
+      id: `project-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      name,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      isArchived: false,
+    }
+
+    await this.saveProject(newProject)
+    return newProject
+  }
+
+  /**
+   * 세션을 다른 프로젝트로 이동 (atomic)
+   */
+  static async moveSessionToProject(
+    sessionId: string,
+    projectId: string | null
+  ): Promise<void> {
+    await this.ensureReady()
+
+    await this.manager!.updateInTransaction<ChatSession>(
+      'sessions',
+      sessionId,
+      (session) => {
+        session.projectId = projectId ?? undefined
+        session.updatedAt = Date.now()
+        return session
+      }
+    )
+
+    this.broadcastChange('session', 'save', sessionId)
+  }
+
+  /**
+   * ID 생성
    */
   private static generateId(): string {
     return `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`

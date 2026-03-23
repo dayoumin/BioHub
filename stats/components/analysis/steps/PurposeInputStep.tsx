@@ -2,11 +2,10 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useReducer, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { TrendingUp, GitCompare, PieChart, LineChart, Clock, Heart, ArrowRight, List, Layers, Calculator, Sparkles, Target, Loader2 } from 'lucide-react'
+import { TrendingUp, GitCompare, PieChart, LineChart, Clock, Heart, ArrowRight, List, Layers, Calculator, Target, Loader2, Database, Hash, Tag } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
-import { FilterToggle } from '@/components/ui/filter-toggle'
 import type { PurposeInputStepProps } from '@/types/analysis-navigation'
 import type { AnalysisPurpose, AIRecommendation, ColumnStatistics, StatisticalMethod, AutoAnswerResult, AnalysisCategory, SubcategoryDefinition, FlowChatMessage } from '@/types/analysis'
 import { logger } from '@/lib/utils/logger'
@@ -46,14 +45,46 @@ import { prefetchWorkerForMethod } from '@/lib/services/pyodide/prefetch-worker'
 import { extractDetectedVariables } from '@/lib/services/variable-detection-service'
 
 /**
- * Phase 5: PurposeInputStep with Method Browser
- *
- * NEW FEATURES:
- * 1. Purpose selection shows AI recommendation + ALL available methods
- * 2. User can browse all methods by category
- * 3. User can ignore AI recommendation and select any method
- * 4. "Browse All" tab to see entire method catalog
+ * userQuery를 AnalysisPurpose로 분류 (키워드 기반).
+ * PURPOSE_CATEGORIES.keywords를 재활용하고, ID 불일치만 매핑.
+ * 매칭 실패 시 null → AI 채팅 fallback.
  */
+import { PURPOSE_CATEGORIES } from '@/lib/constants/purpose-categories'
+
+/** PURPOSE_CATEGORIES.id → AnalysisPurpose 매핑 (불일치하는 것만) */
+const CATEGORY_TO_PURPOSE: Record<string, AnalysisPurpose> = {
+  descriptive: 'distribution',
+  tools: 'utility',
+}
+
+const VALID_PURPOSES = new Set<string>([
+  'compare', 'relationship', 'distribution', 'prediction',
+  'timeseries', 'survival', 'multivariate', 'utility',
+])
+
+const PURPOSE_KEYWORD_ENTRIES = PURPOSE_CATEGORIES
+  .filter(cat => !cat.disabled && cat.methodIds.length > 0)
+  .map(cat => ({
+    keywords: cat.keywords.map(kw => kw.toLowerCase()),
+    purpose: CATEGORY_TO_PURPOSE[cat.id] ?? cat.id,
+  }))
+  .filter((entry): entry is { keywords: string[]; purpose: AnalysisPurpose } =>
+    VALID_PURPOSES.has(entry.purpose)
+  )
+
+function classifyPurpose(query: string): AnalysisPurpose | null {
+  const lower = query.toLowerCase()
+  let bestPurpose: AnalysisPurpose | null = null
+  let bestScore = 0
+  for (const { keywords, purpose } of PURPOSE_KEYWORD_ENTRIES) {
+    const score = keywords.filter(kw => lower.includes(kw)).length
+    if (score > bestScore) {
+      bestScore = score
+      bestPurpose = purpose
+    }
+  }
+  return bestScore > 0 ? bestPurpose : null
+}
 
 // Purpose icons (텍스트는 terminology에서 동적으로 가져옴)
 const PURPOSE_ICONS: Record<string, React.ReactNode> = {
@@ -133,32 +164,15 @@ export function PurposeInputStep({
   )
   const [flowState, flowDispatch] = useReducer(flowReducer, initialFlowState)
 
-  // Store에서 초기 입력 모드 가져오기 (useState보다 먼저 선언)
-  const storePurposeInputMode = useModeStore(state => state.purposeInputMode)
-
   const [selectedPurpose, setSelectedPurpose] = useState<AnalysisPurpose | null>(null)
   // Note: Variable selection is handled in VariableSelectionStep
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  // NEW: 입력 모드 (AI 추천 vs 직접 선택) - store에서 초기값 가져옴
-  const [inputMode, setInputMode] = useState<'ai' | 'browse'>(storePurposeInputMode)
   const [aiProgress, setAiProgress] = useState(0)
   const [recommendation, setRecommendation] = useState<AIRecommendation | null>(null)
   const [isNavigating, setIsNavigating] = useState(false)
 
   // NEW: Manual method selection (user override)
   const [manualSelectedMethod, setManualSelectedMethod] = useState<StatisticalMethod | null>(null)
-
-  // NEW: 입력 모드 변경 핸들러
-  const handleInputModeChange = useCallback((mode: 'ai' | 'browse') => {
-    setInputMode(mode)
-    if (mode === 'ai') {
-      // AI 추천 모드로 전환 — chatMessages는 보존하여 L1 로그 유지
-      flowDispatch(flowActions.resetNavigation())
-    } else {
-      // 직접 선택 모드로 전환 - browseAll()이 browse 단계로 설정
-      flowDispatch(flowActions.browseAll())
-    }
-  }, [flowDispatch])
 
   // WCAG 2.3.3: prefers-reduced-motion
   const prefersReducedMotion = useReducedMotion()
@@ -568,62 +582,62 @@ export function PurposeInputStep({
     flowDispatch(flowActions.goToGuided())
   }, [])
 
-  // Fix 3-C: Store의 purposeInputMode 변경 시 동기화
-  // 이전 값을 useRef로 추적하여 불필요한 실행 방지
-  const prevStoreModeRef = React.useRef(storePurposeInputMode)
-  useEffect(() => {
-    // 실제로 store 값이 변경된 경우에만 동기화 (초기 렌더 제외)
-    if (prevStoreModeRef.current === storePurposeInputMode) return
-    prevStoreModeRef.current = storePurposeInputMode
-
-    setInputMode(storePurposeInputMode)
-    // flowState 동기화: reset() 대신 개별 액션 사용 (AI 상태 보존)
-    if (storePurposeInputMode === 'browse') {
-      flowDispatch(flowActions.browseAll())
-    } else {
-      // ai 모드: category/browse에서 ai-chat으로 돌아가기
-      // reset()은 AI 상태를 초기화하므로 사용하지 않음
-      flowDispatch(flowActions.goBack())
-    }
-  }, [storePurposeInputMode, flowDispatch])
+  const handleGoToAiChat = useCallback(() => {
+    flowDispatch(flowActions.goToAiChat())
+  }, [])
 
   // Step 2 진입 시 상태별 분기:
-  // - Path E (뒤로가기): 캐시된 추천 즉시 표시
-  // - Path D (Hub 채팅 + 데이터): userQuery로 AI 추천 호출
-  // - Path A (데이터만): 자동 추천 안 함 → 사용자가 직접 질문/선택
-  // - Path C (데이터 없이 채팅): 입력창 pre-fill
+  // - Path E (뒤로가기): 캐시된 추천 → AI 확인 카드로 직행
+  // - Path D (Hub 채팅 + 데이터): userQuery → 목적 분류 시도 → Guided 또는 AI fallback
+  // - Path C (데이터 없이 채팅): AI 채팅 입력창 pre-fill
+  // - Path A (데이터만): 기본 화면 (CategorySelector)
   const hasAutoTriggeredRef = useRef(false)
   const [isAutoTriggered, setIsAutoTriggered] = useState(false)
   useEffect(() => {
     if (hasAutoTriggeredRef.current) return
 
-    // Path E: 캐시된 추천이 있으면 즉시 사용
+    // Path E: 캐시된 추천이 있으면 AI 확인 카드로 직행
     if (cachedAiRecommendation && data && data.length > 0 && !flowState.aiRecommendation) {
       hasAutoTriggeredRef.current = true
       setIsAutoTriggered(true)
+      flowDispatch(flowActions.goToAiChat())
       flowDispatch(flowActions.setAiRecommendation(cachedAiRecommendation))
       if (userQuery) setUserQuery(null)
       return
     }
 
-    // Path D: userQuery가 있고 데이터도 있으면 → AI 추천 호출
+    // Path D: userQuery가 있고 데이터도 있으면 → 목적 분류 시도
     if (userQuery && data && data.length > 0 && validationResults !== null && !flowState.aiRecommendation && !flowState.isAiLoading) {
       hasAutoTriggeredRef.current = true
-      setIsAutoTriggered(true)
       const query = userQuery
       setUserQuery(null)
-      handleAiSubmit(query)
+
+      const purpose = classifyPurpose(query)
+      const matchedCategory = purpose
+        ? t.progressiveCategoryData.find(cat =>
+            cat.subcategories.some(sub => sub.mapsToPurpose === purpose)
+          )
+        : null
+
+      if (matchedCategory) {
+        flowDispatch(flowActions.selectCategory(matchedCategory.id))
+      } else {
+        setIsAutoTriggered(true)
+        flowDispatch(flowActions.goToAiChat())
+        handleAiSubmit(query)
+      }
       return
     }
 
-    // Path C: 데이터 없이 userQuery만 → 입력창 pre-fill
+    // Path C: 데이터 없이 userQuery만 → AI 채팅 입력창 pre-fill
     if (userQuery && !flowState.aiChatInput && !flowState.aiRecommendation) {
+      flowDispatch(flowActions.goToAiChat())
       flowDispatch(flowActions.setAiInput(userQuery))
       setUserQuery(null)
     }
 
-    // Path A: 데이터만 있고 userQuery 없음 → 자동 추천 안 함
-    // 사용자가 직접 채팅하거나 목록에서 선택
+    // Path A: 데이터만 있고 userQuery 없음 → 기본 화면 (CategorySelector)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- t.progressiveCategoryData는 도메인 전환 시에만 변경되는 정적 데이터
   }, [data, validationResults, userQuery, flowState.aiRecommendation, flowState.isAiLoading, flowState.aiChatInput, flowDispatch, setUserQuery, handleAiSubmit, cachedAiRecommendation])
 
   // 사용자가 "AI에게 다시 질문" 클릭 → 채팅 모드로 전환
@@ -670,23 +684,30 @@ export function PurposeInputStep({
     )
   }, [finalSelectedMethod, selectedPurpose, manualSelectedMethod, isAnalyzing, isNavigating, handleConfirmMethod, t])
 
+  // 데이터 요약 배지 — category / ai-chat 뷰에서만 StepHeader에 표시
+  const dataSummaryBadge = (flowState.step === 'category' || flowState.step === 'ai-chat') && dataProfile ? (
+    <div className="inline-flex items-center gap-3 px-3 py-1.5 rounded-full bg-muted/50 text-xs text-muted-foreground">
+      <span className="inline-flex items-center gap-1">
+        <Database className="w-3 h-3" />
+        {t.naturalLanguageInput.dataSummary.dimension(dataProfile.totalRows, dataProfile.numericVars + dataProfile.categoricalVars)}
+      </span>
+      <span className="w-px h-3 bg-border" />
+      <span className="inline-flex items-center gap-1">
+        <Hash className="w-3 h-3 text-blue-500" />
+        {t.naturalLanguageInput.dataSummary.numeric(dataProfile.numericVars)}
+      </span>
+      <span className="w-px h-3 bg-border" />
+      <span className="inline-flex items-center gap-1">
+        <Tag className="w-3 h-3 text-green-500" />
+        {t.naturalLanguageInput.dataSummary.categorical(dataProfile.categoricalVars)}
+      </span>
+    </div>
+  ) : undefined
+
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      <StepHeader icon={Target} title={t.analysis.stepTitles.purposeInput} />
-
-      {/* 입력 모드 탭 (AI 추천 vs 직접 선택) */}
-      <div className="flex items-center justify-between">
-        <FilterToggle
-          options={[
-            { id: 'ai', label: t.purposeInput.inputModes.aiRecommend, icon: Sparkles },
-            { id: 'browse', label: t.purposeInput.inputModes.directSelect, icon: List }
-          ]}
-          value={inputMode}
-          onChange={(mode) => handleInputModeChange(mode as 'ai' | 'browse')}
-          ariaLabel={t.purposeInput.inputModes.modeAriaLabel}
-        />
-      </div>
+      <StepHeader icon={Target} title={t.analysis.stepTitles.purposeInput} action={dataSummaryBadge} />
 
       <AnimatePresence mode="wait">
         {/* 자동 추천 로딩 중 — 전용 로딩 뷰 */}
@@ -747,7 +768,6 @@ export function PurposeInputStep({
             onGoToGuided={handleGoToGuided}
             onBrowseAll={handleBrowseAll}
             disabled={isNavigating}
-            validationResults={validationResults}
             provider={flowState.aiProvider}
             chatMessages={flowState.chatMessages}
           />
@@ -768,17 +788,18 @@ export function PurposeInputStep({
             onGoToGuided={handleGoToGuided}
             onBrowseAll={handleBrowseAll}
             disabled={isNavigating}
-            validationResults={validationResults}
             provider={flowState.aiProvider}
             chatMessages={flowState.chatMessages}
           />
         )}
 
-        {/* Category Selection (단계별 가이드) */}
+        {/* Category Selection (기본 화면) */}
         {flowState.step === 'category' && (
           <CategorySelector
             key="category"
             onSelect={handleCategorySelect}
+            onBrowseAll={handleBrowseAll}
+            onAiChat={handleGoToAiChat}
             disabled={isAnalyzing}
           />
         )}

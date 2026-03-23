@@ -5,8 +5,10 @@ import { motion } from 'framer-motion'
 import { Sparkles, MessageCircle, Send } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { proseBase } from '@/components/common/card-styles'
 import { sectionRevealVariants } from './results-helpers'
 import type { ChatMessage } from '@/lib/types/chat'
 import type { TerminologyDictionary } from '@/lib/terminology/terminology-types'
@@ -80,7 +82,7 @@ export function FollowUpQASection({
                       <Sparkles className="w-2.5 h-2.5" /> {t.results.followUp.aiLabel}
                     </p>
                   )}
-                  <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed">
+                  <div className={cn(proseBase, 'leading-relaxed')}>
                     <ReactMarkdown>{msg.content}</ReactMarkdown>
                   </div>
                   {msg.role === 'assistant' && isFollowUpStreaming && idx === followUpMessages.length - 1 && (
@@ -114,8 +116,7 @@ export function FollowUpQASection({
 
           {/* 직접 입력 */}
           <div className="flex gap-2">
-            <input
-              type="text"
+            <Input
               value={followUpInput}
               onChange={(e) => onFollowUpInputChange(e.target.value)}
               onKeyDown={(e) => {
@@ -126,7 +127,7 @@ export function FollowUpQASection({
               }}
               placeholder={t.results.followUp.placeholder}
               disabled={isFollowUpStreaming}
-              className="flex-1 text-sm px-3 py-1.5 rounded-lg border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+              className="flex-1 text-sm h-auto py-1.5"
             />
             <Button
               size="sm"

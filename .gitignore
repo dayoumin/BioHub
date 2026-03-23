@@ -58,5 +58,11 @@ Desktop.ini
 *.swp
 *.swo
 
+# Wrangler local state
+.wrangler/
+
+# Screenshots (manual captures)
+screenshots/
+
 # Monetization planning (private)
 monetization/

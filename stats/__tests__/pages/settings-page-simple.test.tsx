@@ -52,9 +52,8 @@ describe('SettingsPage - Simple Tests', () => {
     expect(screen.getByText('설정')).toBeInTheDocument()
     expect(screen.getByText('애플리케이션 설정을 관리하세요')).toBeInTheDocument()
 
-    // 4개 탭 확인
+    // 3개 탭 확인
     expect(screen.getByRole('tab', { name: /외관 및 알림/ })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: /AI 챗봇/ })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: /데이터/ })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: /즐겨찾기/ })).toBeInTheDocument()
   })
@@ -68,28 +67,25 @@ describe('SettingsPage - Simple Tests', () => {
   })
 
   it('localStorage에서 설정을 로드해야 함', () => {
-    localStorageMock['statPlatform_ollamaEndpoint'] = 'http://custom:11434'
-    localStorageMock['statPlatform_embeddingModel'] = 'mxbai-embed-large'
-    localStorageMock['statPlatform_topK'] = '7'
+    localStorageMock['statPlatform_notifyAnalysisComplete'] = 'false'
+    localStorageMock['statPlatform_notifyError'] = 'false'
 
     render(<SettingsPage />)
 
     // localStorage.getItem이 호출되었는지 확인
-    expect(window.localStorage.getItem).toHaveBeenCalledWith('statPlatform_ollamaEndpoint')
-    expect(window.localStorage.getItem).toHaveBeenCalledWith('statPlatform_embeddingModel')
-    expect(window.localStorage.getItem).toHaveBeenCalledWith('statPlatform_topK')
+    expect(window.localStorage.getItem).toHaveBeenCalledWith('statPlatform_notifyAnalysisComplete')
+    expect(window.localStorage.getItem).toHaveBeenCalledWith('statPlatform_notifyError')
   })
 
-  it('4개 탭이 모두 존재해야 함', () => {
+  it('3개 탭이 모두 존재해야 함', () => {
     render(<SettingsPage />)
 
     // 모든 탭 확인
     const tabs = screen.getAllByRole('tab')
-    expect(tabs).toHaveLength(4)
+    expect(tabs).toHaveLength(3)
 
     // 탭 텍스트 확인
     expect(screen.getByText('외관 및 알림')).toBeInTheDocument()
-    expect(screen.getByText('AI 챗봇 (RAG)')).toBeInTheDocument()
     expect(screen.getByText('데이터')).toBeInTheDocument()
     expect(screen.getByText('즐겨찾기')).toBeInTheDocument()
   })

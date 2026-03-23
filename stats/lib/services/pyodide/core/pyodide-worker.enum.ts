@@ -80,15 +80,22 @@ export enum PyodideWorker {
   Survival = 5,
 
   /**
-   * Worker 6: 수산학 (Fisheries)
+   * Worker 6: matplotlib 논문용 Export
+   * - render_chart (ChartSpec → matplotlib figure → base64 이미지)
+   * - SciencePlots no-latex 스타일 (science, ieee)
+   */
+  Matplotlib = 6,
+
+  /**
+   * Worker 7: 수산학 (Fisheries)
    * - fit_vbgf (von Bertalanffy 성장 모델)
    * - length_weight (체장-체중 관계식)
    * - condition_factor (Fulton's K 비만도)
    */
-  Fisheries = 6,
+  Fisheries = 7,
 
   /**
-   * Worker 7: 군집생태 (Ecology)
+   * Worker 8: 군집생태 (Ecology)
    * - alpha_diversity (Shannon, Simpson, Margalef, Pielou)
    * - rarefaction (Hurlbert 1971)
    * - beta_diversity (Bray-Curtis, Jaccard, Sorensen)
@@ -96,7 +103,7 @@ export enum PyodideWorker {
    * - permanova (Anderson 2001)
    * - mantel_test (거리행렬 상관)
    */
-  Ecology = 7
+  Ecology = 8
 }
 
 /**
@@ -110,6 +117,7 @@ export const WORKER_PACKAGES = Object.freeze({
   [PyodideWorker.NonparametricAnova]: ['statsmodels', 'pandas'] as const,
   [PyodideWorker.RegressionAdvanced]: ['statsmodels', 'scikit-learn'] as const,
   [PyodideWorker.Survival]: ['scikit-learn'] as const,
+  [PyodideWorker.Matplotlib]: ['matplotlib', 'micropip'] as const,
   [PyodideWorker.Fisheries]: [] as const,
   [PyodideWorker.Ecology]: ['scikit-learn'] as const
 } as const)
@@ -123,6 +131,7 @@ export const WORKER_FILE_PATHS = Object.freeze({
   [PyodideWorker.NonparametricAnova]: '/workers/python/worker3-nonparametric-anova.py',
   [PyodideWorker.RegressionAdvanced]: '/workers/python/worker4-regression-advanced.py',
   [PyodideWorker.Survival]: '/workers/python/worker5-survival.py',
-  [PyodideWorker.Fisheries]: '/workers/python/worker6-fisheries.py',
-  [PyodideWorker.Ecology]: '/workers/python/worker7-ecology.py'
+  [PyodideWorker.Matplotlib]: '/workers/python/worker6-matplotlib.py',
+  [PyodideWorker.Fisheries]: '/workers/python/worker7-fisheries.py',
+  [PyodideWorker.Ecology]: '/workers/python/worker8-ecology.py'
 } as const)

@@ -1,6 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
+import { selectableItemBase } from '@/components/common/card-styles'
 import { Badge } from '@/components/ui/badge'
 import { Sparkles, Check, AlertCircle } from 'lucide-react'
 import type { GuidedQuestion, AutoAnswerResult } from '@/types/analysis'
@@ -62,7 +63,8 @@ export function QuestionCard({
               type="button"
               onClick={() => onSelect(option.value)}
               className={cn(
-                'flex items-start gap-3 p-3 rounded-lg border text-left transition-all',
+                selectableItemBase,
+                'flex items-start gap-3',
                 'hover:border-primary/50 hover:bg-accent/50',
                 isSelected
                   ? 'border-primary bg-primary/5 ring-1 ring-primary/20'

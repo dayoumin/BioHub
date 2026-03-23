@@ -7,7 +7,7 @@
 
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import type { ExportContext } from '@/lib/services/export/export-types'
-import { flattenAssumptions } from '@/lib/services/export/assumption-utils'
+import { flattenAssumptions, groupAssumptions } from '@/lib/services/export/assumption-utils'
 import { getTemplate } from './paper-templates'
 import type {
   PaperDraft,
@@ -61,12 +61,13 @@ export function generatePaperDraft(
   // 카테고리 조회
   const category = STATISTICAL_METHODS[methodId]?.category ?? 'other'
 
-  // 가정검정 flat화
+  // 가정검정 flat화 + 카테고리별 그룹핑 (템플릿에서 반복 filter 제거)
   const assumptions = flattenAssumptions(r.assumptions)
+  const grouped = groupAssumptions(assumptions)
 
   // 템플릿 선택
   const template = getTemplate(methodId, category)
-  const input = { r, assumptions, ctx: draftCtx, lang, methodId, options }
+  const input = { r, assumptions, grouped, ctx: draftCtx, lang, methodId, options }
 
   return {
     methods: template.methods(input),

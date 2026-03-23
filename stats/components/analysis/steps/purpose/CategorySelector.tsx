@@ -7,9 +7,9 @@
  * Framer Motion으로 부드러운 애니메이션을 제공합니다.
  */
 
-import { memo } from 'react'
+import { memo, type ComponentType } from 'react'
 import { motion } from 'framer-motion'
-import { GitCompare, TrendingUp, LineChart, Layers, Sparkles } from 'lucide-react'
+import { GitCompare, TrendingUp, LineChart, Layers, Sparkles, List, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
@@ -21,6 +21,33 @@ import {
   hoverScaleVariants,
   getReducedMotionVariants,
 } from './motion-variants'
+
+/** 보조 경로 링크 스타일 (CategorySelector, NaturalLanguageInput 공용) */
+export const secondaryLinkClass = cn(
+  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg',
+  'text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50',
+  'transition-colors',
+)
+
+export interface SecondaryLinkProps {
+  onClick: () => void
+  disabled: boolean
+  icon: ComponentType<{ className?: string }>
+  label: string
+}
+
+export function SecondaryLink({ onClick, disabled, icon: Icon, label }: SecondaryLinkProps) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(secondaryLinkClass, disabled && 'opacity-50 cursor-not-allowed')}
+    >
+      <Icon className="w-4 h-4" />
+      {label}
+    </button>
+  )
+}
 
 // 아이콘 매핑
 const ICON_MAP = {
@@ -39,6 +66,10 @@ interface CategorySelectorProps {
   disabled?: boolean
   /** 추가 CSS 클래스 */
   className?: string
+  /** "전체 목록에서 선택" 클릭 콜백 */
+  onBrowseAll?: () => void
+  /** "AI에게 추천받기" 클릭 콜백 */
+  onAiChat?: () => void
 }
 
 export const CategorySelector = memo(function CategorySelector({
@@ -46,6 +77,8 @@ export const CategorySelector = memo(function CategorySelector({
   recommendedCategory,
   disabled = false,
   className,
+  onBrowseAll,
+  onAiChat,
 }: CategorySelectorProps) {
   const t = useTerminology()
   const categories = t.progressiveCategoryData
@@ -160,15 +193,25 @@ export const CategorySelector = memo(function CategorySelector({
         })}
       </motion.div>
 
-      {/* 하단 안내 */}
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        className="text-center text-sm text-muted-foreground"
-      >
-        선택 후 더 구체적인 분석 방법을 안내해드립니다
-      </motion.p>
+      {/* 하단 보조 경로 */}
+      {(onBrowseAll || onAiChat) && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.5 }}
+          className="flex items-center justify-center gap-3 pt-2"
+        >
+          {onBrowseAll && (
+            <SecondaryLink onClick={onBrowseAll} disabled={disabled} icon={List} label="전체 목록에서 선택" />
+          )}
+          {onBrowseAll && onAiChat && (
+            <span className="text-border">|</span>
+          )}
+          {onAiChat && (
+            <SecondaryLink onClick={onAiChat} disabled={disabled} icon={MessageSquare} label="AI에게 추천받기" />
+          )}
+        </motion.div>
+      )}
     </div>
   )
 })
