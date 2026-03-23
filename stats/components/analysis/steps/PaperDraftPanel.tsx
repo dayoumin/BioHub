@@ -233,6 +233,7 @@ function TableRenderer({ table }: { table: PaperTable }) {
     <div className="overflow-x-auto">
       <div
         className="[&_table]:w-full [&_th]:text-left [&_th]:font-semibold [&_th]:text-xs [&_td]:text-xs [&_caption]:text-left [&_caption]:font-semibold [&_caption]:text-xs [&_caption]:mb-2"
+        // htmlContent is pre-sanitized via escapeHtml in paper-tables.ts
         dangerouslySetInnerHTML={{ __html: table.htmlContent }}
       />
     </div>
