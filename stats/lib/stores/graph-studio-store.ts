@@ -128,6 +128,11 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
           return;
         }
         // encoding 불일치 → 기존 프로젝트 연결 해제 (덮어쓰기 방지)
+        const missingFields = fieldsToCheck.filter(f => f && !colNames.has(f));
+        console.warn(
+          '[graph-studio-store] 프로젝트 인코딩 불일치 — 프로젝트 연결을 해제합니다.',
+          { projectName: currentProject.name, missingFields },
+        );
       }
 
       const spec = createChartSpecFromDataPackage(pkg);

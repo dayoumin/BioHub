@@ -181,7 +181,7 @@ function AlternativeMarkersCard({ marker, markers }: { marker: BlastMarker; mark
                 : 'border-blue-200 text-blue-700 hover:border-blue-300 hover:bg-blue-50'
             }`}
           >
-            {m.name}
+            {m.displayName}
             {i === 0 && selected !== m.name && (
               <span className="ml-1 text-[10px] text-blue-400">추천</span>
             )}
@@ -192,7 +192,7 @@ function AlternativeMarkersCard({ marker, markers }: { marker: BlastMarker; mark
       {selectedInfo && (
         <div className="rounded-lg border border-blue-200 bg-white p-4">
           <div className="mb-1 flex items-center gap-2">
-            <span className="text-sm font-bold text-blue-900">{selectedInfo.name}</span>
+            <span className="text-sm font-bold text-blue-900">{selectedInfo.displayName}</span>
             <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-600">
               {selectedInfo.reason}
             </span>

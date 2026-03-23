@@ -151,12 +151,21 @@ export function AnalysisExecutionStep({
       // Stage 3: 가정 검정 — 선행 결과 우선, 없으면 직접 실행
       {
         addLog(logs.normalityTestStart)
-        let assumptionResult = await awaitPreemptiveAssumptions()
+        let assumptionResult: Awaited<ReturnType<typeof awaitPreemptiveAssumptions>> = null
+        try {
+          assumptionResult = await awaitPreemptiveAssumptions()
+        } catch (err) {
+          logger.error('선행 가정 검정 대기 실패', { error: err, method: selectedMethod?.id })
+        }
 
         if (assumptionResult) {
           logger.info('선행 가정 검정 결과 사용', { testedVariable: assumptionResult.testedVariable })
         } else if (variableMapping) {
-          assumptionResult = await executeAssumptionTests(variableMapping, uploadedData)
+          try {
+            assumptionResult = await executeAssumptionTests(variableMapping, uploadedData)
+          } catch (err) {
+            logger.error('가정 검정 실행 실패', { error: err, method: selectedMethod?.id })
+          }
           if (!assumptionResult) addLog(logs.assumptionSkipped)
         } else {
           addLog(logs.assumptionSkipped)

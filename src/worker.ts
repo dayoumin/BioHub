@@ -225,6 +225,9 @@ const BLAST_MIN_INTERVAL_MS = 10_000
  * 단일 isolate 내에서만 유효한 best-effort 스로틀.
  * Workers는 다수 isolate를 생성할 수 있어 동시 요청이 모두 통과할 수 있음.
  * 트래픽 증가 시 KV 또는 Durable Objects로 교체 필요.
+ *
+ * 클라이언트 보완: BlastRunner가 429 응답 시 retryAfter 기반 자동 재시도 (최대 3회).
+ * 다중 isolate에서 동시 통과하더라도 NCBI 측 429 → 클라이언트 재시도로 복구.
  */
 let lastBlastSubmitAt = 0
 
@@ -552,9 +555,19 @@ async function handleSpeciesLookup(
     }
 
     // NCBI esummary는 UID를 키로 반환 → accession 매핑이 필요
+    // 역매핑: base accession → 원본 입력 accession 목록 (응답 순서 무관)
     const uids = result['uids'] as string[] | undefined
     const species: Record<string, string> = {}
     const meta: Record<string, { title?: string; taxid?: number; country?: string; isBarcode?: boolean }> = {}
+
+    // 사전 인덱스: base accession → 원본 입력 accession(들)
+    const baseToInputs = new Map<string, string[]>()
+    for (const acc of limited) {
+      const base = acc.split('.')[0].toUpperCase()
+      const existing = baseToInputs.get(base) ?? []
+      existing.push(acc)
+      baseToInputs.set(base, existing)
+    }
 
     if (uids) {
       for (const uid of uids) {
@@ -576,17 +589,18 @@ async function handleSpeciesLookup(
 
         const info = { title: title || undefined, taxid, country, isBarcode }
 
-        // accession 매핑 (버전 있는/없는 + 원본 입력)
-        const accBase = accVer.split('.')[0]
-        for (const acc of limited) {
-          const accBaseOfHit = acc.split('.')[0]
-          if (acc === accVer || accBaseOfHit === accBase) {
-            species[acc] = name
-            meta[acc] = info
-          }
+        // base accession으로 원본 입력 accession과 매칭 (대소문자 무시)
+        const accBase = accVer.split('.')[0].toUpperCase()
+        const matchedInputs = baseToInputs.get(accBase) ?? []
+        for (const inputAcc of matchedInputs) {
+          species[inputAcc] = name
+          meta[inputAcc] = info
         }
+        // 버전 포함 키도 저장 (클라이언트가 버전 포함 accession으로 조회할 수 있음)
         if (accVer && !species[accVer]) { species[accVer] = name; meta[accVer] = info }
-        if (accBase && !species[accBase]) { species[accBase] = name; meta[accBase] = info }
+        // 원래 대소문자 유지한 base accession도 저장
+        const accBaseOriginal = accVer.split('.')[0]
+        if (accBaseOriginal && !species[accBaseOriginal]) { species[accBaseOriginal] = name; meta[accBaseOriginal] = info }
       }
     }
 

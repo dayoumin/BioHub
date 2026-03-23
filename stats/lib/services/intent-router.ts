@@ -112,6 +112,9 @@ const DIRECT_INTENT_PATTERNS: RegExp[] = [
   /바로\s*(실행|분석|시작)/i,
   /빠른\s*분석/i,
   /run|execute|perform/i,
+  /하겠|할게|해주|해볼/i,
+  /해봐|하자/i,
+  /분석\s*(해봐|해줘|하자|시작)/i,
 ]
 
 // ===== Intent Router =====
@@ -128,7 +131,7 @@ class IntentRouterService {
 
     // 1차: 키워드 기반 분류 (즉시)
     const keywordResult = this.classifyByKeyword(input)
-    if (keywordResult && keywordResult.confidence >= 0.7) {
+    if (keywordResult && keywordResult.confidence >= 0.6) {
       logger.debug('[IntentRouter] Keyword match', {
         track: keywordResult.track,
         confidence: keywordResult.confidence

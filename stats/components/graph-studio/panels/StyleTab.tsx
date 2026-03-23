@@ -39,15 +39,20 @@ export function StyleTab(): React.ReactElement {
   const handleSaveTemplate = useCallback(() => {
     if (!chartSpec || !templateName.trim()) return;
     const now = new Date().toISOString();
-    saveTemplate({
-      id: `tmpl-${Date.now()}`,
-      name: templateName.trim(),
-      style: { ...chartSpec.style },
-      exportConfig: { ...chartSpec.exportConfig },
-      createdAt: now,
-      updatedAt: now,
-    });
-    toast.success(`"${templateName.trim()}" 템플릿이 저장되었습니다`);
+    try {
+      saveTemplate({
+        id: `tmpl-${Date.now()}`,
+        name: templateName.trim(),
+        style: { ...chartSpec.style },
+        exportConfig: { ...chartSpec.exportConfig },
+        createdAt: now,
+        updatedAt: now,
+      });
+      toast.success(`"${templateName.trim()}" 템플릿이 저장되었습니다`);
+    } catch {
+      toast.error('템플릿 저장에 실패했습니다 (저장 공간 부족)');
+      return;
+    }
     setTemplateName('');
     setShowTemplateInput(false);
   }, [chartSpec, templateName]);

@@ -39,10 +39,20 @@ export function saveTemplate(template: StyleTemplate): void {
   } else {
     templates.push(template);
   }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
+  } catch (err) {
+    console.warn('[style-template-storage] 템플릿 저장 실패 (localStorage 용량 초과?):', err);
+    throw new Error('[style-template-storage] 템플릿 저장 실패');
+  }
 }
 
 export function deleteTemplate(id: string): void {
   const templates = loadTemplates().filter(t => t.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
+  } catch (err) {
+    console.warn('[style-template-storage] 템플릿 삭제 실패 (localStorage 오류):', err);
+    throw new Error('[style-template-storage] 템플릿 삭제 실패');
+  }
 }

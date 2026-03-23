@@ -33,6 +33,7 @@ const POLL_INTERVAL_MS = 15_000
 const MAX_POLLS = 40 // 최대 10분
 const RESULT_RETRY_MS = 3_000
 const MAX_RESULT_RETRIES = 5
+const MAX_SUBMIT_RETRIES = 3
 
 const STEP_LABELS = [
   '입력 서열을 NCBI BLAST 서버에 전송',
@@ -87,13 +88,32 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
         setPhase('submitting')
         const cleaned = cleanSequence(sequence)
 
-        const submitRes = await fetch('/api/blast/submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sequence: cleaned, marker }),
-          signal,
-        })
+        let submitRes: Response | undefined
+        for (let submitAttempt = 0; submitAttempt < MAX_SUBMIT_RETRIES; submitAttempt++) {
+          submitRes = await fetch('/api/blast/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sequence: cleaned, marker }),
+            signal,
+          })
 
+          if (submitRes.status === 429) {
+            let waitSec = 10
+            try {
+              const body429 = await submitRes.json() as { retryAfter?: number }
+              if (typeof body429.retryAfter === 'number') waitSec = body429.retryAfter
+            } catch { /* non-JSON 429 (Cloudflare edge 등) — 기본값 사용 */ }
+            const waitMs = Math.min((waitSec + 1) * 1000, 60_000)
+            await sleep(waitMs, signal)
+            if (signal.aborted) return
+            continue
+          }
+          break
+        }
+
+        if (!submitRes || submitRes.status === 429) {
+          throw new BlastError('요청이 너무 많습니다. 잠시 후 다시 시도하세요.', 'network')
+        }
         if (!submitRes.ok) {
           const contentType = submitRes.headers.get('Content-Type') || ''
           if (!contentType.includes('application/json')) {
@@ -121,16 +141,17 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
           // 캐시 히트: NCBI 호출 스킵, UX 흐름은 동일하게 유지
           resultData = { hits: submitData.hits }
 
-          // efetch를 UX 딜레이와 병렬 실행
+          // efetch를 UX 딜레이와 병렬 실행 (abort 시 catch 내부에서 해소)
           const speciesPromise = enrichHitsWithSpecies(resultData.hits, signal)
+            .catch(() => { /* abort 시 무시 — enrichHitsWithSpecies 내부 catch와 이중 보호 */ })
 
           setPhase('polling')
           setEstimatedTime(2)
           // step 1(검색) ~800ms → step 2(분석) ~800ms (임계값 2*0.6=1.2s)
           await sleep(800, signal)
-          if (signal.aborted) return
+          if (signal.aborted) { await speciesPromise; return }
           await sleep(800, signal)
-          if (signal.aborted) return
+          if (signal.aborted) { await speciesPromise; return }
 
           setPhase('fetching')
           await speciesPromise
@@ -179,6 +200,7 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
         // 종명 조회 — 캐시 히트는 위에서 병렬 처리, 여기는 일반 경로만
         if (!submitData.cached) {
           await enrichHitsWithSpecies(resultData.hits, signal)
+          if (signal.aborted) return
         }
 
         setPhase('done')

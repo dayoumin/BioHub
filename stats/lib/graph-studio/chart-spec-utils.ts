@@ -60,6 +60,12 @@ function getNode(
   return { parent: current, key };
 }
 
+/**
+ * JSON Patch 적용 (검증 없음).
+ *
+ * **주의**: 스키마 검증이 필요하면 `applyAndValidatePatches`를 사용할 것.
+ * 이 함수는 내부 전용이며, 외부에서 직접 호출 시 결과가 유효한 ChartSpec이라는 보장 없음.
+ */
 export function applyPatches(
   spec: ChartSpec,
   patches: ChartSpecPatch[],
@@ -114,10 +120,9 @@ export function applyAndValidatePatches(
     return { success: true, spec: patched };
   }
 
-  return {
-    success: false,
-    error: result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', '),
-  };
+  const error = result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ');
+  console.warn('[chart-spec-utils] AI 패치 후 스키마 검증 실패:', error, { patchCount: patches.length });
+  return { success: false, error };
 }
 
 // ─── 데이터 컬럼 자동 추론 ─────────────────────────────────

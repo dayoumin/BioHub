@@ -91,20 +91,23 @@ export function saveAnalysisHistory(entry: Omit<AnalysisHistoryEntry, 'id' | 'cr
     createdAt: Date.now(),
   }
 
+  let overflow: AnalysisHistoryEntry[] = []
   try {
     const history = loadAnalysisHistory()
     const sorted = sortEntries([newEntry, ...history])
     const kept = sorted.slice(0, MAX_HISTORY)
-    const overflow = sorted.slice(MAX_HISTORY)
+    overflow = sorted.slice(MAX_HISTORY)
 
     saveToStorage(kept)
-    removeRefsForEntries(overflow)
   } catch {
-    // localStorage full
+    // localStorage full — 기존 히스토리 불변, ref 건드리지 않음
     return
   }
 
-  // ref 생성은 entry 저장 성공 후 별도 처리
+  // saveToStorage 성공 후: overflow ref 정리 (독립 try-catch)
+  removeRefsForEntries(overflow)
+
+  // ref 생성 — entry 저장과 독립적으로 처리
   if (newEntry.projectId) {
     try {
       upsertProjectEntityRef({

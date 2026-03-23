@@ -73,22 +73,22 @@ These items should be the current focus.
 
 ### 점검 결과 — Critical
 
-- `[genetics]` Worker rate limit 동기화 실패 — `lastBlastSubmitAt` 메모리 변수가 다중 isolate에서 무효. NCBI IP 차단 위험. 단기: 클라이언트 429 재시도, 장기: Durable Objects/KV. (`src/worker.ts:229`)
-- `[genetics]` 히스토리 저장 실패 시 ref 불일치 — `saveToStorage` throw 시 overflow ref 미정리 + `upsertProjectEntityRef` 실패 시 entry만 저장. (`analysis-history.ts:94-119`)
-- `[genetics]` NCBI E-utilities accession 매핑 불완전 — 응답 순서 미보장, 버전 없는 accession 우회. (`src/worker.ts:554-591`)
-- `[graph]` localStorage QuotaExceededError 처리 없음 — `project-storage.ts`, `style-template-storage.ts`, `use-ai-chat.ts` 3곳. 사용자 피드백 없음.
-- `[graph]` AI 패치 적용 후 스키마 검증 없음 — `applyPatches()` 후 `chartSpecSchema.safeParse()` 미호출. (`chart-spec-utils.ts`)
-- `[analysis]` intent-router 신뢰도 임계값 0.7 — 명확한 의도("t-test 하겠습니다")도 LLM 재분류. (`intent-router.ts:131`)
-- `[analysis]` AnalysisExecutionStep 가정 검정 실패 시 로그 없음 — try-catch 없이 silent skip. (`AnalysisExecutionStep.tsx:159`)
+- ~~`[genetics]` Worker rate limit 동기화 실패~~ — 수정 완료. 클라이언트(BlastRunner) 429 재시도 로직 추가 (최대 3회, retryAfter 기반, 상한 60초). Worker 주석에 클라이언트 보완 전략 문서화. 장기: Durable Objects/KV 전환 시 제거.
+- ~~`[genetics]` 히스토리 저장 실패 시 ref 불일치~~ — 수정 완료. try-catch 분리: saveToStorage 실패 시 early return (ref 미정리 = 정상), 성공 후 overflow ref 정리와 new entry ref 생성을 독립 실행.
+- ~~`[genetics]` NCBI E-utilities accession 매핑 불완전~~ — 수정 완료. base accession → 입력 accession 역매핑 Map 사전 구축 (대소문자 무시). 원본 케이스 fallback 키 보존.
+- ~~`[graph]` localStorage QuotaExceededError 처리 없음~~ — 수정 완료. `style-template-storage.ts` try-catch 추가, `use-ai-chat.ts` logger.warn 추가. `project-storage.ts`는 이미 처리됨.
+- ~~`[graph]` AI 패치 적용 후 스키마 검증 없음~~ — 수정 완료. `applyAndValidatePatches`에 검증 실패 시 console.warn 추가 + `applyPatches` JSDoc에 내부 전용 명시. 모든 프로덕션 호출은 이미 `applyAndValidatePatches` 사용.
+- ~~`[analysis]` intent-router 신뢰도 임계값 0.7~~ — 수정 완료. 임계값 0.7→0.6 조정 + DIRECT_INTENT_PATTERNS에 한국어 의도 패턴 추가 (`하겠/할게/해주/해볼/해봐/하자`).
+- ~~`[analysis]` AnalysisExecutionStep 가정 검정 실패 시 로그 없음~~ — 수정 완료. `executeAssumptionTests` 호출에 try-catch + logger.error 추가.
 
 ### 점검 결과 — High
 
-- `[genetics]` BlastMarker("CytB") vs MARKER_INFO("Cyt b") 스펠 불일치 — 타입과 런타임 키 불일치. (`decision-engine.ts:202`)
-- `[genetics]` 캐시 히트 abort signal cleanup 누락 — abort 후 listener 미제거. (`BlastRunner.tsx:369`)
-- `[graph]` echarts-converter 필드 미존재 시 silent NaN — aggregateRows에서 yField 없으면 조용히 NaN. (`echarts-converter.ts:150`)
-- `[graph]` 프로젝트 복원 시 인코딩 불일치 무경고 해제 — currentProject null로 자동 해제, 사용자 안내 없음. (`graph-studio-store.ts:94`)
-- `[analysis]` chi-square-goodness 1변수 전용 selector 없음 — 2변수 selector 재사용, UX 불편
-- `[analysis]` proportion-test testValue 입력 UI 없음 — AnalysisOptionsSection에서 미표시
+- ~~`[genetics]` BlastMarker/MARKER_INFO 스펠 불일치~~ — 수정 완료. MARKER_INFO에 'CytB'/'16S' 키 추가 (공유 참조), 추천 배열을 BlastMarker 값으로 통일.
+- ~~`[genetics]` 캐시 히트 abort signal cleanup 누락~~ — 수정 완료. speciesPromise에 .catch() 가드 추가, abort 경로에서 await 후 return (floating promise 방지).
+- ~~`[graph]` echarts-converter 필드 미존재 시 silent NaN~~ — 수정 완료. `aggregateRows`에 yField 존재 확인 + console.warn 추가.
+- ~~`[graph]` 프로젝트 복원 시 인코딩 불일치 무경고 해제~~ — 수정 완료. 인코딩 불일치 시 console.warn (프로젝트명 + 누락 필드) 추가.
+- ~~`[analysis]` chi-square-goodness 1변수 전용 selector 없음~~ — 이미 구현됨. `ChiSquareSelector`가 `GOODNESS_IDS`로 1변수 모드 자동 전환.
+- ~~`[analysis]` proportion-test testValue 입력 UI 없음~~ — 이미 구현됨. `ChiSquareSelector`에 `nullProportion` 입력 UI + 검증 포함.
 - ~~`[deploy]` CF 빌드 실패 — `useSearchParams()` prerender 에러~~ — 수정 완료. `barcoding/page.tsx`와 `graph-studio/page.tsx`에서 `dynamic(() => import('./Content'), { ssr: false })`로 분리. 푸시 후 CI 빌드 확인 필수.
 
 ---

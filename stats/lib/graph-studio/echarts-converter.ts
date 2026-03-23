@@ -130,6 +130,11 @@ function aggregateRows(
   yField: string,
   method: 'mean' | 'median' | 'sum' | 'count' | 'min' | 'max',
 ): Record<string, unknown>[] {
+  // yField가 데이터에 존재하는지 확인
+  if (rows.length > 0 && !(yField in rows[0])) {
+    console.warn(`[echarts-converter] yField "${yField}" 가 데이터에 존재하지 않습니다. 집계 결과가 비어있을 수 있습니다.`);
+  }
+
   const groups = new Map<string, number[]>();
   const groupKeys = new Map<string, Record<string, unknown>>();
 

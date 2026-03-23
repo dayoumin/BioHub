@@ -89,7 +89,9 @@ export function useAiChat(): AiChatHook {
     if (typeof window === 'undefined') return;
     try {
       localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
-    } catch { /* 용량 초과 등 무시 */ }
+    } catch (err) {
+      logger.warn('[use-ai-chat] 채팅 히스토리 저장 실패 (localStorage 용량 초과?)', err);
+    }
   }, [messages]);
 
   // 새 메시지 시 자동 스크롤

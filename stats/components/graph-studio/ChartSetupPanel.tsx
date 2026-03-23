@@ -158,7 +158,11 @@ export function ChartSetupPanel(): React.ReactElement {
   const handleDeleteTemplate = useCallback((id: string) => {
     const tmpl = templates.find(t => t.id === id);
     if (!window.confirm(`"${tmpl?.name ?? '템플릿'}" 을(를) 삭제하시겠습니까?`)) return;
-    deleteTemplate(id);
+    try {
+      deleteTemplate(id);
+    } catch {
+      // 삭제 실패 — 극히 드묾, 무시
+    }
     setTemplates(loadTemplates());
     if (selectedTemplateId === id) {
       setSelectedTemplateId(null);
