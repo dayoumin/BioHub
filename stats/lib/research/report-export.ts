@@ -193,31 +193,54 @@ ${html}
 
 /** 간단한 마크다운→HTML 변환 (라이브러리 없이, 파일 다운로드 전용) */
 function markdownToSimpleHtml(md: string): string {
-  return md
-    .split('\n')
-    .map(line => {
-      // 헤더
-      if (line.startsWith('# ')) return `<h1>${escapeHtml(line.slice(2))}</h1>`
-      if (line.startsWith('## ')) return `<h2>${escapeHtml(line.slice(3))}</h2>`
-      if (line.startsWith('### ')) return `<h3>${escapeHtml(line.slice(4))}</h3>`
-      // blockquote
-      if (line.startsWith('> ')) return `<blockquote>${escapeHtml(line.slice(2))}</blockquote>`
-      // 테이블 구분선 (|---|)
-      if (/^\|[\s-|]+\|$/.test(line)) return ''
-      // 테이블 행 (구분선 다음 행부터 body, 그 전은 header)
-      if (line.startsWith('|') && line.endsWith('|')) {
-        const cells = line.slice(1, -1).split('|').map(c => c.trim())
-        return `<tr>${cells.map(c => `<td>${formatInline(escapeHtml(c))}</td>`).join('')}</tr>`
+  const lines = md.split('\n')
+  const out: string[] = []
+
+  // 테이블 상태 머신: 행 수집 → 비테이블 행 만나면 flush
+  let theadRow: string | null = null
+  let tbodyRows: string[] = []
+  let headerRowPending = false
+
+  function flushTable(): void {
+    if (!theadRow && tbodyRows.length === 0) return
+    out.push('<table>')
+    if (theadRow) out.push(`<thead>${theadRow}</thead>`)
+    if (tbodyRows.length > 0) out.push(`<tbody>${tbodyRows.join('\n')}</tbody>`)
+    out.push('</table>')
+    theadRow = null
+    tbodyRows = []
+    headerRowPending = false
+  }
+
+  for (const line of lines) {
+    // 헤더
+    if (line.startsWith('# ')) { flushTable(); out.push(`<h1>${escapeHtml(line.slice(2))}</h1>`); continue }
+    if (line.startsWith('## ')) { flushTable(); out.push(`<h2>${escapeHtml(line.slice(3))}</h2>`); continue }
+    if (line.startsWith('### ')) { flushTable(); out.push(`<h3>${escapeHtml(line.slice(4))}</h3>`); continue }
+    // blockquote
+    if (line.startsWith('> ')) { flushTable(); out.push(`<blockquote>${escapeHtml(line.slice(2))}</blockquote>`); continue }
+    // 테이블 구분선 (|---|) → 이전 행이 헤더였음을 표시
+    if (/^\|[\s-|]+\|$/.test(line)) { headerRowPending = true; continue }
+    // 테이블 행
+    if (line.startsWith('|') && line.endsWith('|')) {
+      const cells = line.slice(1, -1).split('|').map(c => c.trim())
+      if (!headerRowPending) {
+        theadRow = `<tr>${cells.map(c => `<th>${formatInline(escapeHtml(c))}</th>`).join('')}</tr>`
+      } else {
+        tbodyRows.push(`<tr>${cells.map(c => `<td>${formatInline(escapeHtml(c))}</td>`).join('')}</tr>`)
       }
-      // 빈 줄
-      if (!line.trim()) return ''
-      // 일반 텍스트
-      return `<p>${formatInline(escapeHtml(line))}</p>`
-    })
-    .filter(Boolean)
-    .join('\n')
-    // 테이블 행을 <table>로 감싸기
-    .replace(/(<tr>.*?<\/tr>\n?)+/g, '<table>$&</table>')
+      continue
+    }
+    // 비테이블 행 → 테이블 종료
+    flushTable()
+    // 빈 줄
+    if (!line.trim()) continue
+    // 일반 텍스트
+    out.push(`<p>${formatInline(escapeHtml(line))}</p>`)
+  }
+
+  flushTable()
+  return out.join('\n')
 }
 
 function formatInline(text: string): string {

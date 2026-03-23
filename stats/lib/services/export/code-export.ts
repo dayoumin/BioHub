@@ -29,38 +29,54 @@ export interface CodeExportParams {
 
 // ─── 내부 유틸 ───
 
+/** alternative 허용 값 화이트리스트 */
+const VALID_ALTERNATIVES = new Set(['two-sided', 'two.sided', 'less', 'greater'])
+
+/** 안전한 alternative 값 반환 (화이트리스트 외 → 'two-sided') */
+function sanitizeAlternative(alt: string): string {
+  return VALID_ALTERNATIVES.has(alt) ? alt : 'two-sided'
+}
+
 /** HistoryRecord의 'two-sided' → R의 'two.sided' */
 function toRAlternative(alt: string): string {
   return alt === 'two-sided' ? 'two.sided' : alt
 }
 
-/** R alternative 변환 적용 (Python은 그대로) */
+/** R alternative 변환 적용 (Python은 그대로) + alternative 화이트리스트 검증 */
 function applyLanguageTransforms(
   input: CodeTemplateInput,
   language: CodeLanguage,
 ): CodeTemplateInput {
-  if (language !== 'R') return input
+  const sanitized = sanitizeAlternative(input.options.alternative)
+  const alternative = language === 'R' ? toRAlternative(sanitized) : sanitized
   return {
     ...input,
     options: {
       ...input.options,
-      // R 전용: alternative 값 변환. 타입은 넓혀둠 (템플릿에서 문자열로만 사용)
-      alternative: toRAlternative(input.options.alternative),
+      alternative,
     },
   }
 }
 
+/** effectSize가 number 또는 { value: number } 형태일 수 있음 */
+function extractNumericEffectSize(es: unknown): number | undefined {
+  if (typeof es === 'number') return es
+  if (typeof es === 'object' && es !== null && 'value' in es) {
+    const v = (es as { value: unknown }).value
+    return typeof v === 'number' ? v : undefined
+  }
+  return undefined
+}
+
 /** 기대 결과 추출 (주석에 포함할 BioHub 결과값) */
 function buildExpectedResults(
-  results: { statistic?: number; pValue?: number; effectSize?: number | { value: number } } | null,
+  results: { statistic?: unknown; pValue?: unknown; effectSize?: unknown } | null,
 ): CodeTemplateInput['expectedResults'] {
   if (!results) return undefined
-  const es = results.effectSize
-  const effectSize = typeof es === 'number' ? es : typeof es === 'object' && es !== null ? es.value : undefined
   return {
     statistic: typeof results.statistic === 'number' ? results.statistic : undefined,
     pValue: typeof results.pValue === 'number' ? results.pValue : undefined,
-    effectSize,
+    effectSize: extractNumericEffectSize(results.effectSize),
   }
 }
 
@@ -170,21 +186,21 @@ export function exportCode(
   const options = record.analysisOptions ?? {}
   const results = record.results as Record<string, unknown> | null
   const equalVariance = extractEqualVariance(results)
-  const postHocMethod = extractPostHocMethod(results) ?? (options.postHocMethod as string | undefined)
+  const postHocMethod = extractPostHocMethod(results) ?? (typeof options.postHocMethod === 'string' ? options.postHocMethod : undefined)
 
   const rawInput: CodeTemplateInput = {
     dataFileName: record.dataFileName,
     variableMapping: record.variableMapping ?? {},
     options: {
-      confidenceLevel: (options.confidenceLevel as number) ?? 0.95,
-      alternative: (options.alternative as string) ?? 'two-sided',
+      confidenceLevel: typeof options.confidenceLevel === 'number' ? options.confidenceLevel : 0.95,
+      alternative: typeof options.alternative === 'string' ? options.alternative : 'two-sided',
       equalVariance,
       postHocMethod,
-      testValue: options.testValue as number | undefined,
+      testValue: typeof options.testValue === 'number' ? options.testValue : undefined,
     },
     expectedResults: buildExpectedResults(
       results
-        ? { statistic: results.statistic as number, pValue: results.pValue as number, effectSize: results.effectSize as number }
+        ? { statistic: results.statistic, pValue: results.pValue, effectSize: results.effectSize }
         : null,
     ),
     meta: {

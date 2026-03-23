@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { formatNumber, formatPValue } from '@/lib/statistics/formatters'
+import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
 
 type IccType = 'ICC1_1' | 'ICC2_1' | 'ICC3_1'
 
@@ -43,7 +44,7 @@ const INTERPRETATION_LABELS: Record<string, { label: string; color: string }> = 
 }
 
 export default function IccPage(): React.ReactElement {
-  const { csvData, isAnalyzing, results, error, handleDataLoaded, runAnalysis } =
+  const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<IccResult>({ worker: PyodideWorker.Survival })
 
   const [subjectCol, setSubjectCol] = useState('')
@@ -82,6 +83,7 @@ export default function IccPage(): React.ReactElement {
       <div className="space-y-6">
         <BioCsvUpload
           onDataLoaded={handleData}
+          onClear={handleClear}
           description="ICC CSV (첫 열: 대상ID, 나머지 열: 측정값/평가자별 값)"
         />
 
@@ -126,50 +128,50 @@ export default function IccPage(): React.ReactElement {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-muted/30">
-                      <th className="text-left px-3 py-2">항목</th>
-                      <th className="text-right px-3 py-2">값</th>
+                      <th className={`text-left ${BIO_TABLE.headerCell}`}>항목</th>
+                      <th className={`text-right ${BIO_TABLE.headerCell}`}>값</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr className="border-b">
-                      <td className="px-3 py-2">유형</td>
-                      <td className="text-right px-3 py-2">{ICC_TYPE_LABELS[results.iccType] ?? results.iccType}</td>
+                      <td className={BIO_TABLE.bodyCell}>유형</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell}`}>{ICC_TYPE_LABELS[results.iccType] ?? results.iccType}</td>
                     </tr>
                     <tr className="border-b">
-                      <td className="px-3 py-2">ICC</td>
-                      <td className="text-right px-3 py-2 font-semibold text-lg">{formatNumber(results.icc)}</td>
+                      <td className={BIO_TABLE.bodyCell}>ICC</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell} font-semibold text-lg`}>{formatNumber(results.icc)}</td>
                     </tr>
                     <tr className="border-b">
-                      <td className="px-3 py-2">95% CI</td>
-                      <td className="text-right px-3 py-2">
+                      <td className={BIO_TABLE.bodyCell}>95% CI</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell}`}>
                         [{formatNumber(results.ci[0])}, {formatNumber(results.ci[1])}]
                       </td>
                     </tr>
                     <tr className="border-b">
-                      <td className="px-3 py-2">해석 (Cicchetti, 1994)</td>
-                      <td className={`text-right px-3 py-2 font-medium ${INTERPRETATION_LABELS[results.interpretation]?.color ?? ''}`}>
+                      <td className={BIO_TABLE.bodyCell}>해석 (Cicchetti, 1994)</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell} font-medium ${INTERPRETATION_LABELS[results.interpretation]?.color ?? ''}`}>
                         {INTERPRETATION_LABELS[results.interpretation]?.label ?? results.interpretation}
                       </td>
                     </tr>
                     <tr className="border-b">
-                      <td className="px-3 py-2">F</td>
-                      <td className="text-right px-3 py-2">{formatNumber(results.fValue, 2)}</td>
+                      <td className={BIO_TABLE.bodyCell}>F</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell}`}>{formatNumber(results.fValue, 2)}</td>
                     </tr>
                     <tr className="border-b">
-                      <td className="px-3 py-2">df</td>
-                      <td className="text-right px-3 py-2">({results.df1}, {results.df2})</td>
+                      <td className={BIO_TABLE.bodyCell}>df</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell}`}>({results.df1}, {results.df2})</td>
                     </tr>
                     <tr className="border-b">
-                      <td className="px-3 py-2">p-value</td>
-                      <td className="text-right px-3 py-2 font-medium">{formatPValue(results.pValue)}</td>
+                      <td className={BIO_TABLE.bodyCell}>p-value</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell} font-medium`}>{formatPValue(results.pValue)}</td>
                     </tr>
                     <tr className="border-b">
-                      <td className="px-3 py-2">대상 수 (n)</td>
-                      <td className="text-right px-3 py-2">{results.nSubjects}</td>
+                      <td className={BIO_TABLE.bodyCell}>대상 수 (n)</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell}`}>{results.nSubjects}</td>
                     </tr>
                     <tr className="border-b last:border-b-0">
-                      <td className="px-3 py-2">평가자/측정 수 (k)</td>
-                      <td className="text-right px-3 py-2">{results.nRaters}</td>
+                      <td className={BIO_TABLE.bodyCell}>평가자/측정 수 (k)</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell}`}>{results.nRaters}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -183,22 +185,22 @@ export default function IccPage(): React.ReactElement {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-muted/30">
-                      <th className="text-left px-3 py-2">변동원</th>
-                      <th className="text-right px-3 py-2">MS</th>
+                      <th className={`text-left ${BIO_TABLE.headerCell}`}>변동원</th>
+                      <th className={`text-right ${BIO_TABLE.headerCell}`}>MS</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr className="border-b">
-                      <td className="px-3 py-2">대상간 (Between Subjects)</td>
-                      <td className="text-right px-3 py-2">{formatNumber(results.msRows, 4)}</td>
+                      <td className={BIO_TABLE.bodyCell}>대상간 (Between Subjects)</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell}`}>{formatNumber(results.msRows, 4)}</td>
                     </tr>
                     <tr className="border-b">
-                      <td className="px-3 py-2">평가자간 (Between Raters)</td>
-                      <td className="text-right px-3 py-2">{formatNumber(results.msCols, 4)}</td>
+                      <td className={BIO_TABLE.bodyCell}>평가자간 (Between Raters)</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell}`}>{formatNumber(results.msCols, 4)}</td>
                     </tr>
                     <tr className="border-b last:border-b-0">
-                      <td className="px-3 py-2">잔차 (Residual)</td>
-                      <td className="text-right px-3 py-2">{formatNumber(results.msError, 4)}</td>
+                      <td className={BIO_TABLE.bodyCell}>잔차 (Residual)</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell}`}>{formatNumber(results.msError, 4)}</td>
                     </tr>
                   </tbody>
                 </table>

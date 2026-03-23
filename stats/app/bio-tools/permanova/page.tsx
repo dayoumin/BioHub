@@ -23,27 +23,33 @@ interface PermanovaResult {
 const tool = getBioToolById('permanova')
 
 export default function PermanovaPage(): React.ReactElement {
-  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, runAnalysis } =
+  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, setError, runAnalysis } =
     useBioToolAnalysis<PermanovaResult>()
   const [groupCol, setGroupCol] = useState<string>('')
 
   const handleAnalyze = useCallback(async () => {
     if (!csvData || !groupCol) return
-    const pyodide = PyodideCoreService.getInstance()
+    setError(null)
 
-    const betaResult = await pyodide.callWorkerMethod<{ distanceMatrix: number[][] }>(
-      PyodideWorker.Ecology,
-      'beta_diversity',
-      { rows: csvData.rows, site_col: siteCol },
-    )
+    try {
+      const pyodide = PyodideCoreService.getInstance()
 
-    const grouping = csvData.rows.map((r) => String(r[groupCol] ?? ''))
+      const betaResult = await pyodide.callWorkerMethod<{ distanceMatrix: number[][] }>(
+        PyodideWorker.Ecology,
+        'beta_diversity',
+        { rows: csvData.rows, site_col: siteCol },
+      )
 
-    await runAnalysis('permanova', {
-      distance_matrix: betaResult.distanceMatrix,
-      grouping,
-    })
-  }, [csvData, siteCol, groupCol, runAnalysis])
+      const grouping = csvData.rows.map((r) => String(r[groupCol] ?? ''))
+
+      await runAnalysis('permanova', {
+        distance_matrix: betaResult.distanceMatrix,
+        grouping,
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '거리행렬 계산 중 오류가 발생했습니다')
+    }
+  }, [csvData, siteCol, groupCol, setError, runAnalysis])
 
   const significant = results ? results.pValue < 0.05 : false
 
@@ -54,6 +60,7 @@ export default function PermanovaPage(): React.ReactElement {
       <div className="space-y-6">
         <BioCsvUpload
           onDataLoaded={handleDataLoaded}
+          onClear={handleClear}
           description="종×지점 행렬 CSV (행=지점, 열=종, 그룹 열 포함)"
         />
 

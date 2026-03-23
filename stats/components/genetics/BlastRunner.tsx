@@ -143,7 +143,11 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
 
           // efetch를 UX 딜레이와 병렬 실행 (abort 시 catch 내부에서 해소)
           const speciesPromise = enrichHitsWithSpecies(resultData.hits, signal)
-            .catch(() => { /* abort 시 무시 — enrichHitsWithSpecies 내부 catch와 이중 보호 */ })
+            .catch((err: unknown) => {
+              if (!(err instanceof DOMException && err.name === 'AbortError')) {
+                console.warn('enrichHitsWithSpecies failed:', err)
+              }
+            })
 
           setPhase('polling')
           setEstimatedTime(2)

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { formatNumber } from '@/lib/statistics/formatters'
+import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
 
 interface RocPoint {
   fpr: number
@@ -33,7 +34,7 @@ function getAucInterpretation(auc: number): { label: string; color: string } {
 }
 
 export default function RocAucPage(): React.ReactElement {
-  const { csvData, isAnalyzing, results, error, handleDataLoaded, runAnalysis } =
+  const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<RocAucResult>({ worker: PyodideWorker.Survival })
 
   const [actualCol, setActualCol] = useState('')
@@ -99,6 +100,7 @@ export default function RocAucPage(): React.ReactElement {
       <div className="space-y-6">
         <BioCsvUpload
           onDataLoaded={handleData}
+          onClear={handleClear}
           description="ROC 분석 CSV (actual: 0/1, predicted_prob: 예측 확률)"
         />
 
@@ -141,38 +143,38 @@ export default function RocAucPage(): React.ReactElement {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-muted/30">
-                      <th className="text-left px-3 py-2">항목</th>
-                      <th className="text-right px-3 py-2">값</th>
+                      <th className={`text-left ${BIO_TABLE.headerCell}`}>항목</th>
+                      <th className={`text-right ${BIO_TABLE.headerCell}`}>값</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr className="border-b">
-                      <td className="px-3 py-2">AUC</td>
-                      <td className="text-right px-3 py-2 font-medium">{formatNumber(results.auc)}</td>
+                      <td className={BIO_TABLE.bodyCell}>AUC</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell} font-medium`}>{formatNumber(results.auc)}</td>
                     </tr>
                     <tr className="border-b">
-                      <td className="px-3 py-2">AUC 95% CI</td>
-                      <td className="text-right px-3 py-2">
+                      <td className={BIO_TABLE.bodyCell}>AUC 95% CI</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell}`}>
                         [{formatNumber(results.aucCI.lower)}, {formatNumber(results.aucCI.upper)}]
                       </td>
                     </tr>
                     <tr className="border-b">
-                      <td className="px-3 py-2">해석</td>
-                      <td className={`text-right px-3 py-2 font-medium ${aucInterp?.color ?? ''}`}>
+                      <td className={BIO_TABLE.bodyCell}>해석</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell} font-medium ${aucInterp?.color ?? ''}`}>
                         {aucInterp?.label ?? ''}
                       </td>
                     </tr>
                     <tr className="border-b">
-                      <td className="px-3 py-2">최적 임계값 (Youden&apos;s J)</td>
-                      <td className="text-right px-3 py-2">{formatNumber(results.optimalThreshold)}</td>
+                      <td className={BIO_TABLE.bodyCell}>최적 임계값 (Youden&apos;s J)</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell}`}>{formatNumber(results.optimalThreshold)}</td>
                     </tr>
                     <tr className="border-b">
-                      <td className="px-3 py-2">민감도 (Sensitivity)</td>
-                      <td className="text-right px-3 py-2">{formatNumber(results.sensitivity)}</td>
+                      <td className={BIO_TABLE.bodyCell}>민감도 (Sensitivity)</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell}`}>{formatNumber(results.sensitivity)}</td>
                     </tr>
                     <tr className="border-b last:border-b-0">
-                      <td className="px-3 py-2">특이도 (Specificity)</td>
-                      <td className="text-right px-3 py-2">{formatNumber(results.specificity)}</td>
+                      <td className={BIO_TABLE.bodyCell}>특이도 (Specificity)</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell}`}>{formatNumber(results.specificity)}</td>
                     </tr>
                   </tbody>
                 </table>

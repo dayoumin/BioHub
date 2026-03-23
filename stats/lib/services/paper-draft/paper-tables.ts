@@ -9,6 +9,7 @@
 
 import type { AnalysisResult, GroupStats, PostHocResult, EffectSizeInfo } from '@/types/analysis'
 import type { DraftContext, PaperTable } from './paper-types'
+import { escapeHtml } from '@/lib/utils/html-escape'
 
 // ─── 포맷 헬퍼 ────────────────────────────────────────────────────────
 
@@ -47,13 +48,13 @@ function esType(es: number | EffectSizeInfo | undefined | null): string {
 // ─── HTML 테이블 빌더 ──────────────────────────────────────────────
 
 function htmlTable(headers: string[], rows: string[][], caption?: string): string {
-  const thCells = headers.map(h => `<th style="padding:6px 12px;border-bottom:2px solid #333;text-align:left;font-weight:600">${h}</th>`).join('')
+  const thCells = headers.map(h => `<th style="padding:6px 12px;border-bottom:2px solid #333;text-align:left;font-weight:600">${escapeHtml(h)}</th>`).join('')
   const bodyRows = rows.map(row => {
-    const cells = row.map(cell => `<td style="padding:4px 12px;border-bottom:1px solid #ddd">${cell}</td>`).join('')
+    const cells = row.map(cell => `<td style="padding:4px 12px;border-bottom:1px solid #ddd">${escapeHtml(cell)}</td>`).join('')
     return `<tr>${cells}</tr>`
   }).join('')
 
-  const captionTag = caption ? `<caption style="text-align:left;font-weight:600;margin-bottom:8px;font-size:0.9em">${caption}</caption>` : ''
+  const captionTag = caption ? `<caption style="text-align:left;font-weight:600;margin-bottom:8px;font-size:0.9em">${escapeHtml(caption)}</caption>` : ''
 
   return `<table style="border-collapse:collapse;width:100%;font-size:0.85em;font-family:serif">${captionTag}<thead><tr>${thCells}</tr></thead><tbody>${bodyRows}</tbody></table>`
 }

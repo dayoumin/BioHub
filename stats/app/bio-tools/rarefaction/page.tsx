@@ -21,7 +21,7 @@ interface RarefactionResult {
 const tool = getBioToolById('rarefaction')
 
 export default function RarefactionPage(): React.ReactElement {
-  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, runAnalysis } =
+  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<RarefactionResult>()
 
   const handleAnalyze = useCallback(() => {
@@ -44,6 +44,7 @@ export default function RarefactionPage(): React.ReactElement {
       <div className="space-y-6">
         <BioCsvUpload
           onDataLoaded={handleDataLoaded}
+          onClear={handleClear}
           description="종×지점 행렬 CSV (행=지점, 열=종)"
         />
 

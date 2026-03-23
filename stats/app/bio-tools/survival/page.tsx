@@ -9,6 +9,7 @@ import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { formatNumber, formatPValue } from '@/lib/statistics/formatters'
 import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
+import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
 
 interface KmCurve {
   time: number[]
@@ -30,7 +31,7 @@ interface SurvivalResult {
 const tool = getBioToolById('survival')
 
 export default function SurvivalPage(): React.ReactElement {
-  const { csvData, isAnalyzing, results, error, handleDataLoaded, runAnalysis } =
+  const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<SurvivalResult>({ worker: PyodideWorker.Survival })
 
   const [timeCol, setTimeCol] = useState('')
@@ -76,6 +77,7 @@ export default function SurvivalPage(): React.ReactElement {
       <div className="space-y-6">
         <BioCsvUpload
           onDataLoaded={handleData}
+          onClear={handleClear}
           description="생존 분석 CSV (time, event, group 열)"
         />
 
@@ -277,11 +279,11 @@ export default function SurvivalPage(): React.ReactElement {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-muted/30">
-                      <th className="text-left px-3 py-2">그룹</th>
-                      <th className="text-right px-3 py-2">중앙 생존 시간</th>
-                      <th className="text-right px-3 py-2">관측 수</th>
-                      <th className="text-right px-3 py-2">사건 수</th>
-                      <th className="text-right px-3 py-2">중도절단 수</th>
+                      <th className={`text-left ${BIO_TABLE.headerCell}`}>그룹</th>
+                      <th className={`text-right ${BIO_TABLE.headerCell}`}>중앙 생존 시간</th>
+                      <th className={`text-right ${BIO_TABLE.headerCell}`}>관측 수</th>
+                      <th className={`text-right ${BIO_TABLE.headerCell}`}>사건 수</th>
+                      <th className={`text-right ${BIO_TABLE.headerCell}`}>중도절단 수</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -290,13 +292,13 @@ export default function SurvivalPage(): React.ReactElement {
                       const nCensored = curve.censored.length
                       return (
                         <tr key={groupName} className="border-b last:border-b-0">
-                          <td className="px-3 py-2 font-medium">{groupName}</td>
-                          <td className="text-right px-3 py-2">
+                          <td className={`${BIO_TABLE.bodyCell} font-medium`}>{groupName}</td>
+                          <td className={`text-right ${BIO_TABLE.bodyCell}`}>
                             {curve.medianSurvival !== null ? formatNumber(curve.medianSurvival) : '—'}
                           </td>
-                          <td className="text-right px-3 py-2">{nTotal}</td>
-                          <td className="text-right px-3 py-2">{curve.nEvents}</td>
-                          <td className="text-right px-3 py-2">{nCensored}</td>
+                          <td className={`text-right ${BIO_TABLE.bodyCell}`}>{nTotal}</td>
+                          <td className={`text-right ${BIO_TABLE.bodyCell}`}>{curve.nEvents}</td>
+                          <td className={`text-right ${BIO_TABLE.bodyCell}`}>{nCensored}</td>
                         </tr>
                       )
                     })}

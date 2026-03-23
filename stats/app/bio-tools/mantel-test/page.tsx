@@ -35,9 +35,23 @@ export default function MantelTestPage(): React.ReactElement {
     setError(null)
   }, [])
 
+  const handleClearX = useCallback(() => {
+    setCsvDataX(null)
+    setSiteColX('')
+    setResults(null)
+    setError(null)
+  }, [])
+
   const handleDataLoadedY = useCallback((data: CsvData) => {
     setCsvDataY(data)
     setSiteColY(data.headers[0])
+    setResults(null)
+    setError(null)
+  }, [])
+
+  const handleClearY = useCallback(() => {
+    setCsvDataY(null)
+    setSiteColY('')
     setResults(null)
     setError(null)
   }, [])
@@ -95,6 +109,7 @@ export default function MantelTestPage(): React.ReactElement {
           <h3 className="text-sm font-semibold mb-2">거리행렬 X (데이터셋 1)</h3>
           <BioCsvUpload
             onDataLoaded={handleDataLoadedX}
+            onClear={handleClearX}
             description="종×지점 행렬 CSV (첫 번째 데이터셋)"
           />
           {csvDataX && (
@@ -117,6 +132,7 @@ export default function MantelTestPage(): React.ReactElement {
           <h3 className="text-sm font-semibold mb-2">거리행렬 Y (데이터셋 2)</h3>
           <BioCsvUpload
             onDataLoaded={handleDataLoadedY}
+            onClear={handleClearY}
             description="종×지점 행렬 CSV (두 번째 데이터셋)"
           />
           {csvDataY && (

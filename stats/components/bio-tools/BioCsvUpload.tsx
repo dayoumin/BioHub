@@ -15,12 +15,14 @@ export interface CsvData {
 
 interface BioCsvUploadProps {
   onDataLoaded: (data: CsvData) => void
+  onClear?: () => void
   description?: string
   className?: string
 }
 
 export function BioCsvUpload({
   onDataLoaded,
+  onClear,
   description = 'CSV 파일을 드래그하거나 클릭하여 업로드',
   className,
 }: BioCsvUploadProps): React.ReactElement {
@@ -86,7 +88,8 @@ export function BioCsvUpload({
   const handleClear = useCallback(() => {
     setFileName(null)
     setError(null)
-  }, [])
+    onClear?.()
+  }, [onClear])
 
   if (fileName) {
     return (

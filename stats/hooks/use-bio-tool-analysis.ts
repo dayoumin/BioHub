@@ -22,6 +22,8 @@ interface UseBioToolAnalysisReturn<T> {
   results: T | null
   error: string | null
   handleDataLoaded: (data: CsvData) => void
+  handleClear: () => void
+  setError: (error: string | null) => void
   runAnalysis: (methodName: string, params: Record<string, WorkerMethodParam>) => Promise<void>
 }
 
@@ -38,6 +40,13 @@ export function useBioToolAnalysis<T>(
   const handleDataLoaded = useCallback((data: CsvData) => {
     setCsvData(data)
     setSiteCol(data.headers[0])
+    setResults(null)
+    setError(null)
+  }, [])
+
+  const handleClear = useCallback(() => {
+    setCsvData(null)
+    setSiteCol('')
     setResults(null)
     setError(null)
   }, [])
@@ -69,6 +78,8 @@ export function useBioToolAnalysis<T>(
     results,
     error,
     handleDataLoaded,
+    handleClear,
+    setError,
     runAnalysis,
   }
 }

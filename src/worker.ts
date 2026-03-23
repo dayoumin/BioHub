@@ -682,7 +682,7 @@ async function handleProjectsApi(
 
 /** MVP: 사용자 첫 요청 시 자동 생성 */
 async function ensureUser(db: D1Database, userId: string): Promise<void> {
-  const now = Date.now()
+  const now = new Date().toISOString()
   await db.prepare(
     'INSERT OR IGNORE INTO users (id, created_at, updated_at) VALUES (?, ?, ?)'
   ).bind(userId, now, now).run()
@@ -712,8 +712,9 @@ async function handleCreateProject(
     return jsonResponse({ error: '프로젝트 이름이 필요합니다.' }, 400)
   }
 
-  const now = Date.now()
-  const id = `proj_${now}_${Math.random().toString(36).slice(2, 8)}`
+  const ts = Date.now()
+  const now = new Date(ts).toISOString()
+  const id = `proj_${ts}_${Math.random().toString(36).slice(2, 8)}`
 
   await db.prepare(
     `INSERT INTO projects (id, user_id, name, description, status, primary_domain, tags, created_at, updated_at)
@@ -790,7 +791,7 @@ async function handleUpdateProject(
   }
 
   sets.push('updated_at = ?')
-  values.push(Date.now())
+  values.push(new Date().toISOString())
   values.push(projectId, userId)
 
   await db.prepare(
@@ -876,8 +877,9 @@ async function handleLinkEntity(db: D1Database, userId: string, request: Request
     return jsonResponse({ error: '프로젝트를 찾을 수 없습니다.' }, 404)
   }
 
-  const now = Date.now()
-  const id = `pref_${now}_${Math.random().toString(36).slice(2, 8)}`
+  const ts = Date.now()
+  const now = new Date(ts).toISOString()
+  const id = `pref_${ts}_${Math.random().toString(36).slice(2, 8)}`
 
   await db.prepare(
     `INSERT OR REPLACE INTO project_entity_refs (id, project_id, entity_kind, entity_id, label, created_at)

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { formatNumber, formatPValue } from '@/lib/statistics/formatters'
+import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
 
 interface MetaAnalysisResult {
   pooledEffect: number
@@ -30,7 +31,7 @@ interface MetaAnalysisResult {
 const tool = getBioToolById('meta-analysis')
 
 export default function MetaAnalysisPage(): React.ReactElement {
-  const { csvData, isAnalyzing, results, error, handleDataLoaded, runAnalysis } =
+  const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<MetaAnalysisResult>({ worker: PyodideWorker.Survival })
 
   const [effectCol, setEffectCol] = useState('')
@@ -84,6 +85,7 @@ export default function MetaAnalysisPage(): React.ReactElement {
       <div className="space-y-6">
         <BioCsvUpload
           onDataLoaded={handleData}
+          onClear={handleClear}
           description="메타분석 CSV (study, effect_size, se 열 포함)"
         />
 
@@ -147,50 +149,50 @@ export default function MetaAnalysisPage(): React.ReactElement {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-muted/30">
-                      <th className="text-left px-3 py-2">항목</th>
-                      <th className="text-right px-3 py-2">값</th>
+                      <th className={`text-left ${BIO_TABLE.headerCell}`}>항목</th>
+                      <th className={`text-right ${BIO_TABLE.headerCell}`}>값</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr className="border-b">
-                      <td className="px-3 py-2">모델</td>
-                      <td className="text-right px-3 py-2 font-medium">
+                      <td className={BIO_TABLE.bodyCell}>모델</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell} font-medium`}>
                         {results.model === 'random' ? '랜덤 효과' : '고정 효과'}
                       </td>
                     </tr>
                     <tr className="border-b">
-                      <td className="px-3 py-2">통합 효과크기</td>
-                      <td className="text-right px-3 py-2 font-medium">{formatNumber(results.pooledEffect)}</td>
+                      <td className={BIO_TABLE.bodyCell}>통합 효과크기</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell} font-medium`}>{formatNumber(results.pooledEffect)}</td>
                     </tr>
                     <tr className="border-b">
-                      <td className="px-3 py-2">95% CI</td>
-                      <td className="text-right px-3 py-2">
+                      <td className={BIO_TABLE.bodyCell}>95% CI</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell}`}>
                         [{formatNumber(results.ci[0])}, {formatNumber(results.ci[1])}]
                       </td>
                     </tr>
                     <tr className="border-b">
-                      <td className="px-3 py-2">z</td>
-                      <td className="text-right px-3 py-2">{formatNumber(results.zValue)}</td>
+                      <td className={BIO_TABLE.bodyCell}>z</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell}`}>{formatNumber(results.zValue)}</td>
                     </tr>
                     <tr className="border-b">
-                      <td className="px-3 py-2">p-value</td>
-                      <td className="text-right px-3 py-2 font-medium">{formatPValue(results.pValue)}</td>
+                      <td className={BIO_TABLE.bodyCell}>p-value</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell} font-medium`}>{formatPValue(results.pValue)}</td>
                     </tr>
                     <tr className="border-b">
-                      <td className="px-3 py-2">Q (이질성)</td>
-                      <td className="text-right px-3 py-2">{formatNumber(results.Q, 2)}</td>
+                      <td className={BIO_TABLE.bodyCell}>Q (이질성)</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell}`}>{formatNumber(results.Q, 2)}</td>
                     </tr>
                     <tr className="border-b">
-                      <td className="px-3 py-2">Q p-value</td>
-                      <td className="text-right px-3 py-2">{formatPValue(results.QpValue)}</td>
+                      <td className={BIO_TABLE.bodyCell}>Q p-value</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell}`}>{formatPValue(results.QpValue)}</td>
                     </tr>
                     <tr className="border-b">
-                      <td className="px-3 py-2">I²</td>
-                      <td className="text-right px-3 py-2">{formatNumber(results.iSquared, 1)}%</td>
+                      <td className={BIO_TABLE.bodyCell}>I²</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell}`}>{formatNumber(results.iSquared, 1)}%</td>
                     </tr>
                     <tr className="border-b last:border-b-0">
-                      <td className="px-3 py-2">τ²</td>
-                      <td className="text-right px-3 py-2">{formatNumber(results.tauSquared, 4)}</td>
+                      <td className={BIO_TABLE.bodyCell}>τ²</td>
+                      <td className={`text-right ${BIO_TABLE.bodyCell}`}>{formatNumber(results.tauSquared, 4)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -295,21 +297,21 @@ export default function MetaAnalysisPage(): React.ReactElement {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-muted/30">
-                      <th className="text-left px-3 py-2">연구</th>
-                      <th className="text-right px-3 py-2">효과크기</th>
-                      <th className="text-right px-3 py-2">95% CI</th>
-                      <th className="text-right px-3 py-2">가중치 (%)</th>
+                      <th className={`text-left ${BIO_TABLE.headerCell}`}>연구</th>
+                      <th className={`text-right ${BIO_TABLE.headerCell}`}>효과크기</th>
+                      <th className={`text-right ${BIO_TABLE.headerCell}`}>95% CI</th>
+                      <th className={`text-right ${BIO_TABLE.headerCell}`}>가중치 (%)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {results.studyNames.map((name, i) => (
                       <tr key={name} className="border-b last:border-b-0">
-                        <td className="px-3 py-2 font-medium">{name}</td>
-                        <td className="text-right px-3 py-2">{formatNumber(results.effectSizes[i])}</td>
-                        <td className="text-right px-3 py-2">
+                        <td className={`${BIO_TABLE.bodyCell} font-medium`}>{name}</td>
+                        <td className={`text-right ${BIO_TABLE.bodyCell}`}>{formatNumber(results.effectSizes[i])}</td>
+                        <td className={`text-right ${BIO_TABLE.bodyCell}`}>
                           [{formatNumber(results.studyCiLower[i])}, {formatNumber(results.studyCiUpper[i])}]
                         </td>
-                        <td className="text-right px-3 py-2">{formatNumber(results.weights[i], 1)}</td>
+                        <td className={`text-right ${BIO_TABLE.bodyCell}`}>{formatNumber(results.weights[i], 1)}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -136,6 +136,17 @@ These should start after the current foundation is in place.
 - ~~`[quality]` `NextAction.type` 미사용 필드 제거~~ — 완료 (인터페이스 + 할당 10곳 정리)
 - ~~`[quality]` genetics 모듈 raw `<button>` 16개 → shadcn `Button` 전환~~ — 완료 (6파일)
 
+### /simplify 리뷰 결과 (2026-03-23 머지분)
+
+- `[quality]` `escapeHtml` 중복 4곳 → 공유 `@/lib/utils/html-escape` 통합 (`open-data-window.ts`, `help-search.ts`, `html-export.ts`, ~~`paper-tables.ts`~~ 완료)
+- `[quality]` NMDS/PERMANOVA `beta_diversity` pre-step에 `isAnalyzing` 미설정 — 로딩 표시 누락 (`nmds/page.tsx`, `permanova/page.tsx`)
+- `[quality]` `useBioToolAnalysis` hook에서 `setError` 직접 노출 — leaky abstraction. `runMultiStepAnalysis` 패턴으로 캡슐화 검토
+- `[quality]` `runAnalysis(methodName: string)` stringly-typed → Worker method union 타입 제약 검토
+- `[quality]` `markdownToSimpleHtml` negative lookbehind — Safari < 16.4 미지원 가능성. 구조적 접근으로 교체 검토
+- `[quality]` Worker 번호 하드코딩 (`callWorkerMethod(7, ...)`) → `WORKER.FISHERIES` 상수 사용으로 전환
+- `[perf]` `ensureUser` INSERT OR IGNORE 매 요청 실행 — KV 캐시 또는 첫 요청만 실행으로 최적화
+- `[ux]` ProjectHeader onBlur+Enter 이중 save → 이중 토스트 (`ProjectHeader.tsx:73`)
+
 ---
 
 ## 4. Later

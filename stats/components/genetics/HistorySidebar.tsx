@@ -46,6 +46,7 @@ export function HistorySidebar() {
 
   const handleClick = (entry: AnalysisHistoryEntry): void => {
     if (entry.resultData) {
+      setActiveHistoryId(entry.id)
       router.push(`/genetics/barcoding?history=${entry.id}`)
     }
   }

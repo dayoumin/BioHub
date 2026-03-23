@@ -35,34 +35,40 @@ const STRESS_LABELS: Record<string, string> = {
 const tool = getBioToolById('nmds')
 
 export default function NmdsPage(): React.ReactElement {
-  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, runAnalysis } =
+  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, setError, runAnalysis } =
     useBioToolAnalysis<NmdsResult>()
   const [groupCol, setGroupCol] = useState<string>('')
 
   const handleAnalyze = useCallback(async () => {
     if (!csvData) return
-    const pyodide = PyodideCoreService.getInstance()
+    setError(null)
 
-    // Beta Diversity → 거리행렬
-    const betaResult = await pyodide.callWorkerMethod<{
-      distanceMatrix: number[][]
-      siteLabels: string[]
-    }>(
-      PyodideWorker.Ecology,
-      'beta_diversity',
-      { rows: csvData.rows, site_col: siteCol },
-    )
+    try {
+      const pyodide = PyodideCoreService.getInstance()
 
-    const groups = groupCol
-      ? csvData.rows.map((r) => String(r[groupCol] ?? ''))
-      : null
+      // Beta Diversity → 거리행렬
+      const betaResult = await pyodide.callWorkerMethod<{
+        distanceMatrix: number[][]
+        siteLabels: string[]
+      }>(
+        PyodideWorker.Ecology,
+        'beta_diversity',
+        { rows: csvData.rows, site_col: siteCol },
+      )
 
-    await runAnalysis('nmds', {
-      distance_matrix: betaResult.distanceMatrix,
-      site_labels: betaResult.siteLabels,
-      groups,
-    })
-  }, [csvData, siteCol, groupCol, runAnalysis])
+      const groups = groupCol
+        ? csvData.rows.map((r) => String(r[groupCol] ?? ''))
+        : null
+
+      await runAnalysis('nmds', {
+        distance_matrix: betaResult.distanceMatrix,
+        site_labels: betaResult.siteLabels,
+        groups,
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '거리행렬 계산 중 오류가 발생했습니다')
+    }
+  }, [csvData, siteCol, groupCol, setError, runAnalysis])
 
   const coords = results?.coordinates ?? []
 
@@ -87,6 +93,7 @@ export default function NmdsPage(): React.ReactElement {
       <div className="space-y-6">
         <BioCsvUpload
           onDataLoaded={handleDataLoaded}
+          onClear={handleClear}
           description="종×지점 행렬 CSV (행=지점, 열=종)"
         />
 

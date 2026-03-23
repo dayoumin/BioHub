@@ -26,7 +26,7 @@ const METRIC_LABELS: Record<MetricOption, string> = {
 const tool = getBioToolById('beta-diversity')
 
 export default function BetaDiversityPage(): React.ReactElement {
-  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, runAnalysis } =
+  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<BetaDiversityResult>()
   const [metric, setMetric] = useState<MetricOption>('braycurtis')
 
@@ -42,6 +42,7 @@ export default function BetaDiversityPage(): React.ReactElement {
       <div className="space-y-6">
         <BioCsvUpload
           onDataLoaded={handleDataLoaded}
+          onClear={handleClear}
           description="종×지점 행렬 CSV (행=지점, 열=종)"
         />
 

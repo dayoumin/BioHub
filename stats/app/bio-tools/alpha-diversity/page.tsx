@@ -46,7 +46,7 @@ const INDEX_LABELS: Record<string, string> = {
 const tool = getBioToolById('alpha-diversity')
 
 export default function AlphaDiversityPage(): React.ReactElement {
-  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, runAnalysis } =
+  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<AlphaDiversityResult>()
 
   const handleAnalyze = useCallback(() => {
@@ -61,6 +61,7 @@ export default function AlphaDiversityPage(): React.ReactElement {
       <div className="space-y-6">
         <BioCsvUpload
           onDataLoaded={handleDataLoaded}
+          onClear={handleClear}
           description="종×지점 행렬 CSV (행=지점, 열=종, 첫 열=지점명)"
         />
 

@@ -6,7 +6,7 @@
  */
 
 import type { CodeTemplate } from '../code-template-types'
-import { dep, group, safeRCol, safeRFormula, safePy, safePyCol, safeFileName } from './template-helpers'
+import { dep, group, safeRCol, safeRFormula, safeRString, safePy, safePyCol, safeFileName } from './template-helpers'
 
 // ─── Mann-Whitney U ───
 
@@ -141,7 +141,7 @@ export const kruskalWallisR: CodeTemplate = {
 library(FSA)
 
 data <- read_csv("${safeFileName(input.dataFileName)}")
-data[[${JSON.stringify(g)}]] <- as.factor(data[[${JSON.stringify(g)}]])
+data[[${safeRString(g)}]] <- as.factor(data[[${safeRString(g)}]])
 
 # Kruskal-Wallis 검정
 result <- kruskal.test(${safeRFormula(d)} ~ ${safeRFormula(g)}, data = data)
@@ -151,7 +151,7 @@ print(result)
 dunnTest(${safeRFormula(d)} ~ ${safeRFormula(g)}, data = data, method = "bonferroni")
 
 # 효과 크기 (Eta-squared H)
-eta_sq_h <- (result$statistic - length(levels(data[[${JSON.stringify(g)}]])) + 1) / (nrow(data) - length(levels(data[[${JSON.stringify(g)}]])))
+eta_sq_h <- (result$statistic - length(levels(data[[${safeRString(g)}]])) + 1) / (nrow(data) - length(levels(data[[${safeRString(g)}]])))
 cat(sprintf("Eta-squared H: %.4f\\n", eta_sq_h))`
   },
 }

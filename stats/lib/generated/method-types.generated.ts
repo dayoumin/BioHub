@@ -19,8 +19,9 @@ export const WORKER = {
   NONPARAMETRIC_ANOVA: 3,
   REGRESSION_ADVANCED: 4,
   SURVIVAL: 5,
-  FISHERIES: 6,
-  ECOLOGY: 7
+  MATPLOTLIB: 6,
+  FISHERIES: 7,
+  ECOLOGY: 8
 } as const
 
 export type WorkerNumber = typeof WORKER[keyof typeof WORKER]
@@ -1332,36 +1333,36 @@ export interface ConditionFactorResult {
 
 /**
  * von Bertalanffy 성장 모델 파라미터 추정
- * @worker Worker 6
+ * @worker Worker 7
  */
 export async function fitVbgf(
   ages: number[],
   lengths: number[]
 ): Promise<VbgfResult> {
-  return callWorkerMethod<VbgfResult>(6, 'fit_vbgf', { ages, lengths })
+  return callWorkerMethod<VbgfResult>(7, 'fit_vbgf', { ages, lengths })
 }
 
 /**
  * 체장-체중 관계식 (W = aL^b)
- * @worker Worker 6
+ * @worker Worker 7
  */
 export async function lengthWeight(
   lengths: number[],
   weights: number[]
 ): Promise<LengthWeightResult> {
-  return callWorkerMethod<LengthWeightResult>(6, 'length_weight', { lengths, weights })
+  return callWorkerMethod<LengthWeightResult>(7, 'length_weight', { lengths, weights })
 }
 
 /**
  * Fulton's Condition Factor (비만도 K)
- * @worker Worker 6
+ * @worker Worker 7
  */
 export async function conditionFactor(
   lengths: number[],
   weights: number[],
   groups?: string[]
 ): Promise<ConditionFactorResult> {
-  return callWorkerMethod<ConditionFactorResult>(6, 'condition_factor', { lengths, weights, groups })
+  return callWorkerMethod<ConditionFactorResult>(7, 'condition_factor', { lengths, weights, groups })
 }
 
 // ========================================
@@ -1373,6 +1374,7 @@ export type Worker2Method = 't_test_two_sample' | 't_test_paired' | 't_test_one_
 export type Worker3Method = 'mann_whitney_test' | 'wilcoxon_test' | 'kruskal_wallis_test' | 'friedman_test' | 'one_way_anova' | 'two_way_anova' | 'tukey_hsd' | 'sign_test' | 'runs_test' | 'mcnemar_test' | 'cochran_q_test' | 'mood_median_test' | 'repeated_measures_anova' | 'ancova' | 'manova' | 'scheffe_test' | 'dunn_test' | 'games_howell_test'
 export type Worker4Method = 'linear_regression' | 'multiple_regression' | 'logistic_regression' | 'pca_analysis' | 'curve_estimation' | 'nonlinear_regression' | 'stepwise_regression' | 'binary_logistic' | 'multinomial_logistic' | 'ordinal_logistic' | 'probit_regression' | 'poisson_regression' | 'negative_binomial_regression' | 'factor_analysis' | 'cluster_analysis' | 'time_series_analysis' | 'durbin_watson_test' | 'discriminant_analysis' | 'kaplan_meier_survival' | 'cox_regression'
 export type Worker5Method = 'kaplan_meier_analysis' | 'roc_curve_analysis'
-export type Worker6Method = 'fit_vbgf' | 'length_weight' | 'condition_factor'
+export type Worker6Method = 'render_chart'
+export type Worker7Method = 'fit_vbgf' | 'length_weight' | 'condition_factor'
 
-export type AllMethodName = Worker1Method | Worker2Method | Worker3Method | Worker4Method | Worker5Method | Worker6Method
+export type AllMethodName = Worker1Method | Worker2Method | Worker3Method | Worker4Method | Worker5Method | Worker6Method | Worker7Method
