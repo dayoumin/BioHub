@@ -23,6 +23,7 @@ import {
   syncHistoryRecord,
 } from '@/lib/utils/storage'
 import type { PaperDraft } from '@/lib/services/paper-draft/paper-types'
+import { buildAnalysisEvidence } from '@/lib/research/evidence-factory'
 import { removeProjectEntityRef, upsertProjectEntityRef } from '@/lib/research/project-storage'
 
 /**
@@ -82,6 +83,7 @@ export interface HistoryState {
       projectId?: string
       aiInterpretation?: string | null
       apaFormat?: string | null
+      interpretationModel?: string | null
       interpretationChat?: ChatMessage[]
       paperDraft?: PaperDraft | null
     }
@@ -214,8 +216,19 @@ export const useHistoryStore = create<HistoryState>()((set) => ({
       throw new Error('IndexedDB not available')
     }
 
+    const historyId = `analysis-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
+    // Evidence 조립 (AI 추천 근거 + AI 해석 출처)
+    const evidenceRecords = buildAnalysisEvidence({
+      historyId,
+      methodName: snapshot.selectedMethod?.name,
+      aiRecommendation: snapshot.lastAiRecommendation,
+      aiInterpretation: metadata?.aiInterpretation,
+      interpretationModel: metadata?.interpretationModel,
+    })
+
     const record: HistoryRecord = {
-      id: `analysis-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      id: historyId,
       timestamp: Date.now(),
       name: name || `분석 ${new Date().toLocaleString('ko-KR')}`,
       projectId: metadata?.projectId,
@@ -236,7 +249,8 @@ export const useHistoryStore = create<HistoryState>()((set) => ({
       analysisPurpose: snapshot.analysisPurpose,
       aiRecommendation: snapshot.lastAiRecommendation ?? null,
       interpretationChat: metadata?.interpretationChat?.length ? metadata.interpretationChat : undefined,
-      paperDraft: metadata?.paperDraft ?? null
+      paperDraft: metadata?.paperDraft ?? null,
+      evidenceRecords: evidenceRecords.length > 0 ? evidenceRecords : undefined,
     }
 
     try {

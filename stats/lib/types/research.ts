@@ -64,6 +64,7 @@ export type EvidenceOwnerKind =
   | 'analysis'
   | 'figure'
   | 'draft'
+  | 'blast-result'
   | 'species-validation'
   | 'legal-status'
   | 'review-report'
@@ -71,7 +72,9 @@ export type EvidenceOwnerKind =
 
 export type EvidenceKind =
   | 'ai-interpretation'
+  | 'ai-edit'
   | 'method-rationale'
+  | 'rule-decision'
   | 'reproducible-code'
   | 'external-source'
   | 'review-check'
