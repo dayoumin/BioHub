@@ -171,6 +171,9 @@ export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: B
             ? `/api/blast/result/${submitData.rid}?hash=${submitData.sequenceHash}&marker=${marker}`
             : `/api/blast/result/${submitData.rid}`
           const resultRes = await fetch(resultUrl, { signal })
+          if (resultRes.status === 202) {
+            throw new BlastError('BLAST 결과가 아직 준비되지 않았습니다. 잠시 후 다시 시도하세요.', 'blast-failed')
+          }
           if (!resultRes.ok) {
             throw new BlastError(`결과 조회 실패 (${resultRes.status})`, 'network')
           }
