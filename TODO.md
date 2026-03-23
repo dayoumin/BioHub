@@ -8,7 +8,7 @@
 > - Cloudflare Pages → Workers 통합됨, Git 푸시 자동 빌드가 아닌 수동 트리거일 수 있음
 > - 상세 내용은 전역 스킬 참고: `~/.claude/skills/cf-deploy/SKILL.md`
 
-**Last updated**: 2026-03-22
+**Last updated**: 2026-03-23
 **References**: [Product Strategy](docs/PRODUCT_STRATEGY.md), [Roadmap](ROADMAP.md), [Research Project Status](docs/RESEARCH_PROJECT_STATUS.md)
 
 ---
@@ -63,13 +63,32 @@ These items should be the current focus.
 - ~~`[workflow]` 프로젝트 상세/개요 페이지 — linked outputs 브라우저~~ — 완료 (1단계: EntityBrowser + 탭/검색/필터 + ReportComposer stub. [PLAN-PROJECT-DETAIL-PAGE.md](stats/docs/PLAN-PROJECT-DETAIL-PAGE.md))
 - ~~`[quality]` `@biohub/types` `Project.createdAt: number` vs `research.ts` `ResearchProject.createdAt: string` 타임스탬프 타입 통일~~ — 조사 완료: 프로젝트 레이어는 이미 string(ISO)으로 통일됨. 유일한 불일치 `BlastResult.createdAt: number` → `string` 수정 + worker.ts Date.now() → toISOString() 수정
 - ~~`[trust]` `EvidenceRecord` 스키마 정의~~ — 완료 (타입 존재: `research.ts`). 다음: 저장/조회 구현
-- `[trust]` `EvidenceRecord` 저장 구현 — AI 해석에 method rationale, 생성 메타데이터 persist
-- `[trust]` 재현 가능 코드 페이로드 (R/Python) 설계
+- ~~`[trust]` `EvidenceRecord` 저장 구현~~ — Phase 1 완료 (evidence-factory + saveToHistory 인라인 연동. Phase 2: Graph Studio/유전 분석은 별도. [PLAN-EVIDENCE-RECORD.md](stats/docs/PLAN-EVIDENCE-RECORD.md))
+- ~~`[trust]` 재현 가능 코드 페이로드 (R/Python) 설계~~ — 완료 (12개 메서드 R/Python 템플릿, sanitization, ExportDropdown 통합. `code-export.ts` + `code-templates/`)
 - ~~`[graph]` Graph Studio → projectId/analysisId 연결~~ — 완료 (`graph-studio-store.ts` activeResearchProjectId fallback + upsertRef)
 - ~~`[graph]` result→graph handoff 메타데이터 보존~~ — 완료
-- `[domain]` species-validation 레코드 스키마 정의
-- `[domain]` legal-status 레코드 스키마 정의 (source metadata + checked date)
-- `[paper]` 프로젝트 레벨 draft assembly 모델 정의
+- ~~`[analysis]` 통계 분석 모듈 점검~~ — 완료 (2026-03-23). 발견 항목 아래 등록.
+- ~~`[graph]` Graph Studio 점검~~ — 완료. 발견 항목 아래 등록.
+- ~~`[genetics]` 유전적 분석 점검~~ — 완료. 발견 항목 아래 등록.
+
+### 점검 결과 — Critical
+
+- `[genetics]` Worker rate limit 동기화 실패 — `lastBlastSubmitAt` 메모리 변수가 다중 isolate에서 무효. NCBI IP 차단 위험. 단기: 클라이언트 429 재시도, 장기: Durable Objects/KV. (`src/worker.ts:229`)
+- `[genetics]` 히스토리 저장 실패 시 ref 불일치 — `saveToStorage` throw 시 overflow ref 미정리 + `upsertProjectEntityRef` 실패 시 entry만 저장. (`analysis-history.ts:94-119`)
+- `[genetics]` NCBI E-utilities accession 매핑 불완전 — 응답 순서 미보장, 버전 없는 accession 우회. (`src/worker.ts:554-591`)
+- `[graph]` localStorage QuotaExceededError 처리 없음 — `project-storage.ts`, `style-template-storage.ts`, `use-ai-chat.ts` 3곳. 사용자 피드백 없음.
+- `[graph]` AI 패치 적용 후 스키마 검증 없음 — `applyPatches()` 후 `chartSpecSchema.safeParse()` 미호출. (`chart-spec-utils.ts`)
+- `[analysis]` intent-router 신뢰도 임계값 0.7 — 명확한 의도("t-test 하겠습니다")도 LLM 재분류. (`intent-router.ts:131`)
+- `[analysis]` AnalysisExecutionStep 가정 검정 실패 시 로그 없음 — try-catch 없이 silent skip. (`AnalysisExecutionStep.tsx:159`)
+
+### 점검 결과 — High
+
+- `[genetics]` BlastMarker("CytB") vs MARKER_INFO("Cyt b") 스펠 불일치 — 타입과 런타임 키 불일치. (`decision-engine.ts:202`)
+- `[genetics]` 캐시 히트 abort signal cleanup 누락 — abort 후 listener 미제거. (`BlastRunner.tsx:369`)
+- `[graph]` echarts-converter 필드 미존재 시 silent NaN — aggregateRows에서 yField 없으면 조용히 NaN. (`echarts-converter.ts:150`)
+- `[graph]` 프로젝트 복원 시 인코딩 불일치 무경고 해제 — currentProject null로 자동 해제, 사용자 안내 없음. (`graph-studio-store.ts:94`)
+- `[analysis]` chi-square-goodness 1변수 전용 selector 없음 — 2변수 selector 재사용, UX 불편
+- `[analysis]` proportion-test testValue 입력 UI 없음 — AnalysisOptionsSection에서 미표시
 - ~~`[deploy]` CF 빌드 실패 — `useSearchParams()` prerender 에러~~ — 수정 완료. `barcoding/page.tsx`와 `graph-studio/page.tsx`에서 `dynamic(() => import('./Content'), { ssr: false })`로 분리. 푸시 후 CI 빌드 확인 필수.
 
 ---
@@ -79,7 +98,16 @@ These items should be the current focus.
 These should start after the current foundation is in place.
 
 - `[infra]` D1 스키마 갭 해소 — 상세: [D1-SCHEMA-GAP.md](docs/D1-SCHEMA-GAP.md). 현재 프론트엔드는 localStorage/IndexedDB 기반이라 급하지 않음. 인증/멀티디바이스 동기화 시 필수.
+- `[domain]` species-validation 레코드 스키마 정의
+- `[domain]` legal-status 레코드 스키마 정의 (source metadata + checked date)
+- `[paper]` 프로젝트 레벨 문서 조립 (DocumentBlueprint) — 설계 완료, 구현 대기. 4개 프리셋(논문/보고서/현장보고/커스텀) + 자동 병합 + LLM 보강. 상세: [PLAN-DOCUMENT-ASSEMBLY.md](stats/docs/PLAN-DOCUMENT-ASSEMBLY.md)
 - ~~`[paper]` 프로젝트 보고서 APA 포맷 구현~~ — 완료: ResolvedEntity.rawData 확장, apaFormat 우선 사용 + statistics-formatters fallback, BLAST topHits 테이블 지원. 신규: `report-apa-format.ts`
+- `[genetics]` 다중 FASTA 시퀀스 혼합 미감지 — cleanSequence가 >seq1 + >seq2 합침. (`validate-sequence.ts:8`)
+- `[genetics]` deep-link 복원 실패 시 UI 피드백 없음 — ?history= entry.resultData null이면 빈 화면. (`BarcodingContent.tsx:41`)
+- `[graph]` CSV BOM/인코딩 자동 감지 없음 — Excel→CSV BOM 포함 시 첫 열 이름 깨짐. (`file-parser.ts:47`)
+- `[graph]` matplotlib export 에러 시 ECharts 대체 안내 없음
+- `[analysis]` Hub Chat 데이터 컨텍스트 token 낭비 — validationResults 전체 전달. intent별 경량화 필요.
+- `[analysis]` intent-router 테스트 부재 — 키워드 + LLM 분류 검증 없음
 - `[paper]` Build project-level manuscript assembly UI across multiple analyses.
 - `[paper]` Add figure and table references that can be inserted into draft sections.
 - `[review]` Define a project-level methods and reporting completeness checklist.
@@ -92,7 +120,9 @@ These should start after the current foundation is in place.
 - `[quality]` Graph Studio localStorage quota 정책 — 현재 무제한 저장, evidence 추가 시 터짐 위험. MAX_GRAPH_PROJECTS + 자동 정리 필요.
 - ~~`[ux]` ResultsActionStep.test.tsx TDZ 에러~~ — 해결됨 (useEffect 위치 이동)
 - `[ux]` AI 해석 실패 graceful degradation (`useErrorRecovery` 활용)
-- `[test]` `PurposeInputStep.test.tsx` 3건 실패 — 미추적
+- ~~`[test]` `PurposeInputStep.test.tsx` 3건 실패~~ — 수정 완료 (mock 누락 `progressiveCategoryData`/`decisionTree`/`flowStateMachine` 추가 + stale testid 수정)
+- ~~`[test]` `g5-review-fixes.test.ts` 1건 실패~~ — 수정 완료 (파일 경로 `page.tsx` → `GraphStudioContent.tsx`)
+- ~~`[ux]` HistorySidebar 빈 상태 레이아웃 점프~~ — 수정 완료 (빈 상태 플레이스홀더 + 접기/펴기 토글 + 폰트 크기 조정)
 - `[test]` `use-analysis-handlers.test.ts` tsc 에러 2건 — 기존 미수정
 - `[test]` `graph-studio-store.test.ts` 전체 suite 실행 시 1건 실패 (단독 52/52 통과) — 테스트 순서 의존성
 - `[quality]` `graph-studio/project-storage.ts`와 `research/project-storage.ts`의 `isClient()`·read/write 패턴 중복 — 저장소 추가 시 공통 팩토리 검토
@@ -152,8 +182,8 @@ These are valid directions, but not current execution priorities.
 2. ~~Prerequisites: `ProjectEntityKind` 정렬, 저장소 분기 해소, `activeResearchProjectId` 명명 확보~~ — 완료
 3. ~~`useResearchProjectStore` + `/projects` 페이지 + 사이드바 전환기~~ — 완료
 4. ~~컨텍스트 기반 자동 저장 (토스트 + override)~~ — 완료 (통계·그래프·유전적 분석)
-5. 프로젝트 상세/개요 페이지 (Phase 4) + 타임스탬프 타입 통일
-6. Evidence/provenance 저장 구현
+5. ~~프로젝트 상세/개요 페이지 (Phase 4) + 타임스탬프 타입 통일~~ — 완료
+6. ~~Evidence/provenance 저장 구현~~ — Phase 1 완료 (evidence-factory + saveToHistory 연동) + 재현 코드 내보내기 완료
 7. Species/legal source-aware records
 8. Project-level draft assembly model
 9. Reviewer checklist and export bundle
