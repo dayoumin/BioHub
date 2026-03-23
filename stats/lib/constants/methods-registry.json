@@ -1083,5 +1083,92 @@
         "description": "Cox 비례위험모형"
       }
     }
+  },
+  "worker5": {
+    "name": "survival",
+    "description": "생존분석, ROC, 메타분석, ICC",
+    "packages": [
+      "numpy",
+      "scipy",
+      "scikit-learn"
+    ],
+    "methods": {
+      "kaplan_meier_analysis": {
+        "params": [
+          "time",
+          "event",
+          "group"
+        ],
+        "returns": [
+          "curves",
+          "logRankP",
+          "medianSurvivalTime"
+        ],
+        "description": "Kaplan-Meier 생존분석 (그룹 비교 + Log-rank)"
+      },
+      "roc_curve_analysis": {
+        "params": [
+          "actualClass",
+          "predictedProb"
+        ],
+        "returns": [
+          "rocPoints",
+          "auc",
+          "aucCI",
+          "optimalThreshold",
+          "sensitivity",
+          "specificity"
+        ],
+        "description": "ROC 곡선 + AUC 분석"
+      },
+      "meta_analysis": {
+        "params": [
+          "effectSizes",
+          "standardErrors",
+          "studyNames",
+          "model"
+        ],
+        "returns": [
+          "pooledEffect",
+          "pooledSE",
+          "ci",
+          "zValue",
+          "pValue",
+          "Q",
+          "QpValue",
+          "iSquared",
+          "tauSquared",
+          "model",
+          "weights",
+          "studyCiLower",
+          "studyCiUpper",
+          "studyNames",
+          "effectSizes"
+        ],
+        "description": "고정/랜덤 효과 메타분석 (Forest Plot)"
+      },
+      "icc_analysis": {
+        "params": [
+          "data",
+          "iccType"
+        ],
+        "returns": [
+          "icc",
+          "iccType",
+          "fValue",
+          "df1",
+          "df2",
+          "pValue",
+          "ci",
+          "msRows",
+          "msCols",
+          "msError",
+          "nSubjects",
+          "nRaters",
+          "interpretation"
+        ],
+        "description": "급내상관계수 (ICC)"
+      }
+    }
   }
 }

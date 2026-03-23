@@ -255,9 +255,18 @@ describe('Pyodide Init Logic - Real Function Tests', () => {
       expect(fileName).toBe('worker5-survival')
     })
 
+    it('should return correct filename for Worker 6', () => {
+      const fileName = getWorkerFileName(6)
+      expect(fileName).toBe('worker6-fisheries')
+    })
+
+    it('should return correct filename for Worker 7', () => {
+      const fileName = getWorkerFileName(7)
+      expect(fileName).toBe('worker7-ecology')
+    })
+
     it('should throw error for invalid worker number', () => {
       expect(() => getWorkerFileName(0)).toThrow('Invalid worker number: 0')
-      expect(() => getWorkerFileName(6)).toThrow('Invalid worker number: 6')
       expect(() => getWorkerFileName(99)).toThrow('Invalid worker number: 99')
     })
 

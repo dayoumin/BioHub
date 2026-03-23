@@ -1,12 +1,13 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
 import { BioToolShell } from '@/components/bio-tools/BioToolShell'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { Button } from '@/components/ui/button'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { formatNumber } from '@/lib/statistics/formatters'
 
 interface RocPoint {
   fpr: number
@@ -23,10 +24,6 @@ interface RocAucResult {
 }
 
 const tool = getBioToolById('roc-auc')
-
-function formatNum(n: number, digits = 3): string {
-  return Number(n).toFixed(digits)
-}
 
 function getAucInterpretation(auc: number): { label: string; color: string } {
   if (auc >= 0.9) return { label: '우수 (Excellent)', color: 'text-green-600' }
@@ -58,6 +55,45 @@ export default function RocAucPage(): React.ReactElement {
     const predictedProb = csvData.rows.map(r => Number(r[predCol]))
     runAnalysis('roc_curve_analysis', { actualClass, predictedProb })
   }, [csvData, actualCol, predCol, runAnalysis])
+
+  // ROC SVG 데이터: 1회 패스로 polygon, polyline, optimal point 계산
+  const rocSvg = useMemo(() => {
+    if (!results) return null
+    const pts = results.rocPoints
+    const polygonParts: string[] = ['40,270']
+    const polylineParts: string[] = []
+    let bestJ = -1
+    let optX = 0
+    let optY = 0
+
+    for (let i = 0; i < pts.length; i++) {
+      const x = 40 + pts[i].fpr * 260
+      const y = 270 - pts[i].tpr * 260
+      const coord = `${x},${y}`
+      polygonParts.push(coord)
+      polylineParts.push(coord)
+
+      const j = pts[i].tpr - pts[i].fpr
+      if (j > bestJ) {
+        bestJ = j
+        optX = x
+        optY = y
+      }
+    }
+    polygonParts.push('300,270')
+
+    return {
+      polygon: polygonParts.join(' '),
+      polyline: polylineParts.join(' '),
+      optX,
+      optY,
+    }
+  }, [results])
+
+  const aucInterp = useMemo(() => {
+    if (!results) return null
+    return getAucInterpretation(results.auc)
+  }, [results])
 
   if (!tool) return <div>도구를 찾을 수 없습니다</div>
 
@@ -115,31 +151,31 @@ export default function RocAucPage(): React.ReactElement {
                   <tbody>
                     <tr className="border-b">
                       <td className="px-3 py-2">AUC</td>
-                      <td className="text-right px-3 py-2 font-medium">{formatNum(results.auc)}</td>
+                      <td className="text-right px-3 py-2 font-medium">{formatNumber(results.auc)}</td>
                     </tr>
                     <tr className="border-b">
                       <td className="px-3 py-2">AUC 95% CI</td>
                       <td className="text-right px-3 py-2">
-                        [{formatNum(results.aucCI.lower)}, {formatNum(results.aucCI.upper)}]
+                        [{formatNumber(results.aucCI.lower)}, {formatNumber(results.aucCI.upper)}]
                       </td>
                     </tr>
                     <tr className="border-b">
                       <td className="px-3 py-2">해석</td>
-                      <td className={`text-right px-3 py-2 font-medium ${getAucInterpretation(results.auc).color}`}>
-                        {getAucInterpretation(results.auc).label}
+                      <td className={`text-right px-3 py-2 font-medium ${aucInterp?.color ?? ''}`}>
+                        {aucInterp?.label ?? ''}
                       </td>
                     </tr>
                     <tr className="border-b">
                       <td className="px-3 py-2">최적 임계값 (Youden&apos;s J)</td>
-                      <td className="text-right px-3 py-2">{formatNum(results.optimalThreshold)}</td>
+                      <td className="text-right px-3 py-2">{formatNumber(results.optimalThreshold)}</td>
                     </tr>
                     <tr className="border-b">
                       <td className="px-3 py-2">민감도 (Sensitivity)</td>
-                      <td className="text-right px-3 py-2">{formatNum(results.sensitivity)}</td>
+                      <td className="text-right px-3 py-2">{formatNumber(results.sensitivity)}</td>
                     </tr>
                     <tr className="border-b last:border-b-0">
                       <td className="px-3 py-2">특이도 (Specificity)</td>
-                      <td className="text-right px-3 py-2">{formatNum(results.specificity)}</td>
+                      <td className="text-right px-3 py-2">{formatNumber(results.specificity)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -171,45 +207,18 @@ export default function RocAucPage(): React.ReactElement {
                   {/* 대각선 (chance line) */}
                   <line x1="40" y1="270" x2="300" y2="10" stroke="currentColor" strokeOpacity="0.2" strokeDasharray="4 4" />
 
-                  {/* AUC 영역 */}
-                  <polygon
-                    points={[
-                      '40,270',
-                      ...results.rocPoints.map(p => `${40 + p.fpr * 260},${270 - p.tpr * 260}`),
-                      '300,270',
-                    ].join(' ')}
-                    fill="currentColor"
-                    fillOpacity="0.06"
-                  />
+                  {rocSvg && (
+                    <>
+                      {/* AUC 영역 */}
+                      <polygon points={rocSvg.polygon} fill="currentColor" fillOpacity="0.06" />
 
-                  {/* ROC 곡선 */}
-                  <polyline
-                    points={results.rocPoints
-                      .map(p => `${40 + p.fpr * 260},${270 - p.tpr * 260}`)
-                      .join(' ')}
-                    fill="none"
-                    stroke="var(--section-accent-bio)"
-                    strokeWidth="2"
-                  />
+                      {/* ROC 곡선 */}
+                      <polyline points={rocSvg.polyline} fill="none" stroke="var(--section-accent-bio)" strokeWidth="2" />
 
-                  {/* 최적 임계값 점 */}
-                  {(() => {
-                    const optPoint = results.rocPoints.reduce((best, p) => {
-                      const j = p.tpr - p.fpr
-                      const bestJ = best.tpr - best.fpr
-                      return j > bestJ ? p : best
-                    }, results.rocPoints[0])
-                    return (
-                      <circle
-                        cx={40 + optPoint.fpr * 260}
-                        cy={270 - optPoint.tpr * 260}
-                        r="4"
-                        fill="var(--section-accent-bio)"
-                        stroke="white"
-                        strokeWidth="1.5"
-                      />
-                    )
-                  })()}
+                      {/* 최적 임계값 점 */}
+                      <circle cx={rocSvg.optX} cy={rocSvg.optY} r="4" fill="var(--section-accent-bio)" stroke="white" strokeWidth="1.5" />
+                    </>
+                  )}
 
                   {/* 축 라벨 */}
                   {[0, 0.2, 0.4, 0.6, 0.8, 1.0].map(v => (
@@ -234,7 +243,7 @@ export default function RocAucPage(): React.ReactElement {
 
                   {/* AUC 텍스트 */}
                   <text x="220" y="240" fontSize="12" fill="currentColor" fontWeight="600">
-                    AUC = {formatNum(results.auc)}
+                    AUC = {formatNumber(results.auc)}
                   </text>
                 </svg>
               </div>

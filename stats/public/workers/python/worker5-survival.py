@@ -78,6 +78,9 @@ def _km_estimate(
     # 중도절단 시점 목록 (event=0인 관측치의 시간)
     censored_times: List[float] = [float(t[i]) for i in range(len(t)) if e[i] == 0]
 
+    # 총 이벤트 수 (동일 시점 복수 이벤트 포함)
+    total_events = int(np.sum(e == 1))
+
     return {
         'time': km_time,
         'survival': km_surv,
@@ -86,6 +89,7 @@ def _km_estimate(
         'atRisk': at_risk_list,
         'medianSurvival': median_survival,
         'censored': censored_times,
+        'nEvents': total_events,
     }
 
 
@@ -221,6 +225,216 @@ def kaplan_meier_analysis(
         'curves': curves,
         'logRankP': log_rank_p,
         'medianSurvivalTime': overall_median,
+    }
+
+
+def meta_analysis(
+    effectSizes: List[float],
+    standardErrors: List[float],
+    studyNames: Optional[List[str]] = None,
+    model: str = 'random',
+) -> Dict:
+    """
+    고정/랜덤 효과 메타분석 (DerSimonian-Laird).
+
+    Parameters
+    ----------
+    effectSizes     : 각 연구의 효과크기 (Cohen's d, log OR, Hedges' g 등)
+    standardErrors  : 각 연구의 표준오차
+    studyNames      : 연구 이름 (선택적, Forest plot 라벨용)
+    model           : 'fixed' 또는 'random' (기본: random)
+
+    Returns
+    -------
+    {
+        pooledEffect, pooledSE, ci, zValue, pValue,
+        Q, QpValue, iSquared, tauSquared, model,
+        weights, studyCiLower, studyCiUpper, studyNames,
+    }
+    """
+    es = np.array(effectSizes, dtype=float)
+    se = np.array(standardErrors, dtype=float)
+    k = len(es)
+
+    if k < 2:
+        raise ValueError(f"Meta-analysis requires at least 2 studies, got {k}")
+    if len(se) != k:
+        raise ValueError(f"effectSizes and standardErrors must have the same length")
+    if np.any(se <= 0):
+        raise ValueError("All standard errors must be positive")
+
+    names = studyNames if studyNames else [f"Study {i+1}" for i in range(k)]
+
+    # 역분산 가중치 (고정 효과)
+    w_fixed = 1.0 / se**2
+
+    # --- 고정 효과 모델 ---
+    pooled_fixed = float(np.sum(w_fixed * es) / np.sum(w_fixed))
+    se_fixed = float(np.sqrt(1.0 / np.sum(w_fixed)))
+
+    # --- 이질성 검정 ---
+    Q = float(np.sum(w_fixed * (es - pooled_fixed)**2))
+    df = k - 1
+    Q_pvalue = float(1.0 - stats.chi2.cdf(Q, df))
+    I_squared = max(0.0, (Q - df) / Q * 100.0) if Q > 0 else 0.0
+
+    # --- 랜덤 효과 모델 (DerSimonian-Laird) ---
+    C = float(np.sum(w_fixed) - np.sum(w_fixed**2) / np.sum(w_fixed))
+    tau_squared = max(0.0, (Q - df) / C) if C > 0 else 0.0
+
+    w_random = 1.0 / (se**2 + tau_squared)
+    pooled_random = float(np.sum(w_random * es) / np.sum(w_random))
+    se_random = float(np.sqrt(1.0 / np.sum(w_random)))
+
+    # 선택된 모델
+    if model == 'fixed':
+        pooled, se_pooled, weights = pooled_fixed, se_fixed, w_fixed
+    else:
+        pooled, se_pooled, weights = pooled_random, se_random, w_random
+
+    # 95% CI + z-test
+    ci_lower = pooled - 1.96 * se_pooled
+    ci_upper = pooled + 1.96 * se_pooled
+    z = pooled / se_pooled if se_pooled > 0 else 0.0
+    p_value = float(2.0 * (1.0 - stats.norm.cdf(abs(z))))
+
+    # 개별 연구 CI (forest plot용)
+    study_ci_lower = (es - 1.96 * se).tolist()
+    study_ci_upper = (es + 1.96 * se).tolist()
+
+    # 정규화 가중치 (%)
+    norm_weights = (weights / np.sum(weights) * 100.0).tolist()
+
+    return {
+        'pooledEffect': float(pooled),
+        'pooledSE': float(se_pooled),
+        'ci': [float(ci_lower), float(ci_upper)],
+        'zValue': float(z),
+        'pValue': float(p_value),
+        'Q': Q,
+        'QpValue': Q_pvalue,
+        'iSquared': float(I_squared),
+        'tauSquared': float(tau_squared),
+        'model': model,
+        'weights': norm_weights,
+        'studyCiLower': study_ci_lower,
+        'studyCiUpper': study_ci_upper,
+        'studyNames': list(names),
+        'effectSizes': es.tolist(),
+    }
+
+
+def icc_analysis(
+    data: List[List[float]],
+    iccType: str = 'ICC3_1',
+) -> Dict:
+    """
+    ICC (Intraclass Correlation Coefficient) 계산.
+    Shrout & Fleiss (1979) 공식.
+
+    Parameters
+    ----------
+    data    : n_subjects × n_raters 행렬 (2D list)
+    iccType : 'ICC1_1', 'ICC2_1', 'ICC3_1' (기본: ICC3_1)
+
+    Returns
+    -------
+    {
+        icc, iccType, fValue, df1, df2, pValue,
+        ci, msRows, msCols, msError,
+        nSubjects, nRaters, interpretation,
+    }
+    """
+    mat = np.array(data, dtype=float)
+    if mat.ndim != 2:
+        raise ValueError("Data must be a 2D matrix (subjects × raters)")
+
+    n, k = mat.shape  # n=대상 수, k=평가자 수
+
+    if n < 3:
+        raise ValueError(f"ICC requires at least 3 subjects, got {n}")
+    if k < 2:
+        raise ValueError(f"ICC requires at least 2 raters/measurements, got {k}")
+
+    # 평균 제곱 (Mean Squares)
+    grand_mean = np.mean(mat)
+    row_means = np.mean(mat, axis=1)
+    col_means = np.mean(mat, axis=0)
+
+    SS_rows = k * np.sum((row_means - grand_mean)**2)      # Between subjects
+    SS_cols = n * np.sum((col_means - grand_mean)**2)      # Between raters
+    SS_total = np.sum((mat - grand_mean)**2)
+    SS_error = SS_total - SS_rows - SS_cols                 # Residual
+
+    MS_rows = SS_rows / (n - 1)
+    MS_cols = SS_cols / (k - 1) if k > 1 else 0.0
+    MS_error = SS_error / ((n - 1) * (k - 1)) if (n - 1) * (k - 1) > 0 else 0.0
+
+    # ICC 유형별 계산
+    if iccType == 'ICC1_1':
+        # One-way random, single measures
+        MS_within = (SS_total - SS_rows) / (n * (k - 1)) if n * (k - 1) > 0 else 0.0
+        icc_val = (MS_rows - MS_within) / (MS_rows + (k - 1) * MS_within) if (MS_rows + (k - 1) * MS_within) > 0 else 0.0
+        # F-test for ICC(1,1)
+        f_value = MS_rows / MS_within if MS_within > 0 else 0.0
+        df1 = n - 1
+        df2 = n * (k - 1)
+    elif iccType == 'ICC2_1':
+        # Two-way random, single measures
+        denom = MS_rows + (k - 1) * MS_error + k * (MS_cols - MS_error) / n
+        icc_val = (MS_rows - MS_error) / denom if denom > 0 else 0.0
+        f_value = MS_rows / MS_error if MS_error > 0 else 0.0
+        df1 = n - 1
+        df2 = (n - 1) * (k - 1)
+    elif iccType == 'ICC3_1':
+        # Two-way mixed, single measures (가장 흔히 사용)
+        denom = MS_rows + (k - 1) * MS_error
+        icc_val = (MS_rows - MS_error) / denom if denom > 0 else 0.0
+        f_value = MS_rows / MS_error if MS_error > 0 else 0.0
+        df1 = n - 1
+        df2 = (n - 1) * (k - 1)
+    else:
+        raise ValueError(f"Unknown ICC type: {iccType}. Use 'ICC1_1', 'ICC2_1', or 'ICC3_1'")
+
+    # p-value
+    p_value = float(1.0 - stats.f.cdf(f_value, df1, df2)) if f_value > 0 else 1.0
+
+    # 95% CI (McGraw & Wong, 1996 — F-based)
+    if iccType in ('ICC3_1', 'ICC2_1'):
+        F_L = f_value / stats.f.ppf(0.975, df1, df2) if f_value > 0 else 0.0
+        F_U = f_value / stats.f.ppf(0.025, df1, df2) if f_value > 0 else 0.0
+        ci_lower = max(-1.0, (F_L - 1) / (F_L + k - 1))
+        ci_upper = min(1.0, (F_U - 1) / (F_U + k - 1))
+    else:
+        # ICC(1,1) CI — Shrout & Fleiss approximation
+        ci_lower = max(-1.0, float(icc_val - 1.96 * np.sqrt(2.0 * (1 - icc_val)**2 * (1 + (k - 1) * icc_val)**2 / (k * (n - 1) * (k - 1)))))
+        ci_upper = min(1.0, float(icc_val + 1.96 * np.sqrt(2.0 * (1 - icc_val)**2 * (1 + (k - 1) * icc_val)**2 / (k * (n - 1) * (k - 1)))))
+
+    # 해석 기준 (Cicchetti, 1994)
+    icc_float = float(icc_val)
+    if icc_float < 0.40:
+        interpretation = 'poor'
+    elif icc_float < 0.60:
+        interpretation = 'fair'
+    elif icc_float < 0.75:
+        interpretation = 'good'
+    else:
+        interpretation = 'excellent'
+
+    return {
+        'icc': icc_float,
+        'iccType': iccType,
+        'fValue': float(f_value),
+        'df1': int(df1),
+        'df2': int(df2),
+        'pValue': float(p_value),
+        'ci': [float(ci_lower), float(ci_upper)],
+        'msRows': float(MS_rows),
+        'msCols': float(MS_cols),
+        'msError': float(MS_error),
+        'nSubjects': int(n),
+        'nRaters': int(k),
+        'interpretation': interpretation,
     }
 
 

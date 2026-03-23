@@ -854,6 +854,9 @@ S1 X축 라벨 45도 회전 | S2 IEEE 스타일 전환 | S3 에러바 추가 | S
 **🟢 Low**
 | 항목 | 설명 |
 |------|------|
+| 레이아웃 max-width 통일 검토 | 페이지별 max-w 상이 — Analysis `max-w-6xl`, Bio-Tools `max-w-5xl`, Hub `max-w-4xl`, Papers `max-w-3xl`, Chat `680px`. 현재는 의도적 차이(콘텐츠 유형별)이나 디자인 일관성 관점에서 재검토 필요. `c3a22ed9`에서 글로벌 min-width 1024→768 완화 완료 |
+| BioToolShell 반응형 점검 | `BioToolShell` 래퍼(`max-w-5xl mx-auto px-6`) + `BioCsvUpload` + 결과 테이블/차트가 좁은 창(768~1024px)에서 정상 표시되는지 전체 Bio-Tools 16개 페이지 일괄 점검. 테이블 overflow-x, SVG viewBox 비율, 카드 그리드 breakpoint 등 |
+| AppSidebar 반응형 점검 | `AUTO_COLLAPSE_WIDTH=1100` 기준값 적정성, 축소 시 아이콘 정렬, 확장↔축소 전환 애니메이션, 768px 뷰포트에서 사이드바+콘텐츠 겹침 여부 확인 |
 | ~~Deprecated 함수~~ | ~~`pyodide-statistics.ts`~~ — ✅ `testHomogeneity` / `testIndependence` 삭제 완료 (`2026-02-25`). 나머지 6개(`mannWhitneyU` 등)는 executor에서 활발 사용 중 → 삭제 불가 |
 | SW 업데이트 알림 | `register-sw.ts:76` — 새로고침 권장 UI 미구현 |
 | console.log 잔존 | `use-pyodide-service.ts`, `plotly-chart-renderer.tsx` |

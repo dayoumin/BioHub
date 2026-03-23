@@ -7,6 +7,7 @@ import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { Button } from '@/components/ui/button'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { formatNumber, formatPValue } from '@/lib/statistics/formatters'
 
 interface MetaAnalysisResult {
   pooledEffect: number
@@ -27,15 +28,6 @@ interface MetaAnalysisResult {
 }
 
 const tool = getBioToolById('meta-analysis')
-
-function formatP(p: number): string {
-  if (p < 0.001) return '< 0.001'
-  return p.toFixed(3)
-}
-
-function formatNum(n: number, digits = 3): string {
-  return Number(n).toFixed(digits)
-}
 
 export default function MetaAnalysisPage(): React.ReactElement {
   const { csvData, isAnalyzing, results, error, handleDataLoaded, runAnalysis } =
@@ -168,37 +160,37 @@ export default function MetaAnalysisPage(): React.ReactElement {
                     </tr>
                     <tr className="border-b">
                       <td className="px-3 py-2">통합 효과크기</td>
-                      <td className="text-right px-3 py-2 font-medium">{formatNum(results.pooledEffect)}</td>
+                      <td className="text-right px-3 py-2 font-medium">{formatNumber(results.pooledEffect)}</td>
                     </tr>
                     <tr className="border-b">
                       <td className="px-3 py-2">95% CI</td>
                       <td className="text-right px-3 py-2">
-                        [{formatNum(results.ci[0])}, {formatNum(results.ci[1])}]
+                        [{formatNumber(results.ci[0])}, {formatNumber(results.ci[1])}]
                       </td>
                     </tr>
                     <tr className="border-b">
                       <td className="px-3 py-2">z</td>
-                      <td className="text-right px-3 py-2">{formatNum(results.zValue)}</td>
+                      <td className="text-right px-3 py-2">{formatNumber(results.zValue)}</td>
                     </tr>
                     <tr className="border-b">
                       <td className="px-3 py-2">p-value</td>
-                      <td className="text-right px-3 py-2 font-medium">{formatP(results.pValue)}</td>
+                      <td className="text-right px-3 py-2 font-medium">{formatPValue(results.pValue)}</td>
                     </tr>
                     <tr className="border-b">
                       <td className="px-3 py-2">Q (이질성)</td>
-                      <td className="text-right px-3 py-2">{formatNum(results.Q, 2)}</td>
+                      <td className="text-right px-3 py-2">{formatNumber(results.Q, 2)}</td>
                     </tr>
                     <tr className="border-b">
                       <td className="px-3 py-2">Q p-value</td>
-                      <td className="text-right px-3 py-2">{formatP(results.QpValue)}</td>
+                      <td className="text-right px-3 py-2">{formatPValue(results.QpValue)}</td>
                     </tr>
                     <tr className="border-b">
                       <td className="px-3 py-2">I²</td>
-                      <td className="text-right px-3 py-2">{formatNum(results.iSquared, 1)}%</td>
+                      <td className="text-right px-3 py-2">{formatNumber(results.iSquared, 1)}%</td>
                     </tr>
                     <tr className="border-b last:border-b-0">
                       <td className="px-3 py-2">τ²</td>
-                      <td className="text-right px-3 py-2">{formatNum(results.tauSquared, 4)}</td>
+                      <td className="text-right px-3 py-2">{formatNumber(results.tauSquared, 4)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -254,7 +246,7 @@ export default function MetaAnalysisPage(): React.ReactElement {
                         />
                       </div>
                       <span className="w-20 text-right flex-shrink-0 tabular-nums">
-                        {formatNum(es)} [{formatNum(ciLo)}, {formatNum(ciHi)}]
+                        {formatNumber(es)} [{formatNumber(ciLo)}, {formatNumber(ciHi)}]
                       </span>
                     </div>
                   )
@@ -290,7 +282,7 @@ export default function MetaAnalysisPage(): React.ReactElement {
                     </div>
                   </div>
                   <span className="w-20 text-right flex-shrink-0 tabular-nums font-semibold">
-                    {formatNum(results.pooledEffect)} [{formatNum(results.ci[0])}, {formatNum(results.ci[1])}]
+                    {formatNumber(results.pooledEffect)} [{formatNumber(results.ci[0])}, {formatNumber(results.ci[1])}]
                   </span>
                 </div>
               </div>
@@ -313,11 +305,11 @@ export default function MetaAnalysisPage(): React.ReactElement {
                     {results.studyNames.map((name, i) => (
                       <tr key={name} className="border-b last:border-b-0">
                         <td className="px-3 py-2 font-medium">{name}</td>
-                        <td className="text-right px-3 py-2">{formatNum(results.effectSizes[i])}</td>
+                        <td className="text-right px-3 py-2">{formatNumber(results.effectSizes[i])}</td>
                         <td className="text-right px-3 py-2">
-                          [{formatNum(results.studyCiLower[i])}, {formatNum(results.studyCiUpper[i])}]
+                          [{formatNumber(results.studyCiLower[i])}, {formatNumber(results.studyCiUpper[i])}]
                         </td>
-                        <td className="text-right px-3 py-2">{formatNum(results.weights[i], 1)}</td>
+                        <td className="text-right px-3 py-2">{formatNumber(results.weights[i], 1)}</td>
                       </tr>
                     ))}
                   </tbody>

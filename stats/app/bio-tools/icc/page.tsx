@@ -7,10 +7,13 @@ import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { Button } from '@/components/ui/button'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { formatNumber, formatPValue } from '@/lib/statistics/formatters'
+
+type IccType = 'ICC1_1' | 'ICC2_1' | 'ICC3_1'
 
 interface IccResult {
   icc: number
-  iccType: string
+  iccType: IccType
   fValue: number
   df1: number
   df2: number
@@ -39,21 +42,12 @@ const INTERPRETATION_LABELS: Record<string, { label: string; color: string }> = 
   excellent: { label: '우수 (Excellent, ≥ 0.75)', color: 'text-green-600' },
 }
 
-function formatNum(n: number, digits = 3): string {
-  return Number(n).toFixed(digits)
-}
-
-function formatP(p: number): string {
-  if (p < 0.001) return '< 0.001'
-  return p.toFixed(3)
-}
-
 export default function IccPage(): React.ReactElement {
   const { csvData, isAnalyzing, results, error, handleDataLoaded, runAnalysis } =
     useBioToolAnalysis<IccResult>({ worker: PyodideWorker.Survival })
 
   const [subjectCol, setSubjectCol] = useState('')
-  const [iccType, setIccType] = useState<string>('ICC3_1')
+  const [iccType, setIccType] = useState<IccType>('ICC3_1')
 
   const handleData = useCallback(
     (data: Parameters<typeof handleDataLoaded>[0]) => {
@@ -107,7 +101,7 @@ export default function IccPage(): React.ReactElement {
               <label className="text-xs text-muted-foreground">ICC 유형</label>
               <select
                 value={iccType}
-                onChange={(e) => setIccType(e.target.value)}
+                onChange={(e) => setIccType(e.target.value as IccType)}
                 className="text-sm border rounded-md px-2 py-1 bg-background block"
               >
                 <option value="ICC1_1">ICC(1,1) One-way random</option>
@@ -143,12 +137,12 @@ export default function IccPage(): React.ReactElement {
                     </tr>
                     <tr className="border-b">
                       <td className="px-3 py-2">ICC</td>
-                      <td className="text-right px-3 py-2 font-semibold text-lg">{formatNum(results.icc)}</td>
+                      <td className="text-right px-3 py-2 font-semibold text-lg">{formatNumber(results.icc)}</td>
                     </tr>
                     <tr className="border-b">
                       <td className="px-3 py-2">95% CI</td>
                       <td className="text-right px-3 py-2">
-                        [{formatNum(results.ci[0])}, {formatNum(results.ci[1])}]
+                        [{formatNumber(results.ci[0])}, {formatNumber(results.ci[1])}]
                       </td>
                     </tr>
                     <tr className="border-b">
@@ -159,7 +153,7 @@ export default function IccPage(): React.ReactElement {
                     </tr>
                     <tr className="border-b">
                       <td className="px-3 py-2">F</td>
-                      <td className="text-right px-3 py-2">{formatNum(results.fValue, 2)}</td>
+                      <td className="text-right px-3 py-2">{formatNumber(results.fValue, 2)}</td>
                     </tr>
                     <tr className="border-b">
                       <td className="px-3 py-2">df</td>
@@ -167,7 +161,7 @@ export default function IccPage(): React.ReactElement {
                     </tr>
                     <tr className="border-b">
                       <td className="px-3 py-2">p-value</td>
-                      <td className="text-right px-3 py-2 font-medium">{formatP(results.pValue)}</td>
+                      <td className="text-right px-3 py-2 font-medium">{formatPValue(results.pValue)}</td>
                     </tr>
                     <tr className="border-b">
                       <td className="px-3 py-2">대상 수 (n)</td>
@@ -196,15 +190,15 @@ export default function IccPage(): React.ReactElement {
                   <tbody>
                     <tr className="border-b">
                       <td className="px-3 py-2">대상간 (Between Subjects)</td>
-                      <td className="text-right px-3 py-2">{formatNum(results.msRows, 4)}</td>
+                      <td className="text-right px-3 py-2">{formatNumber(results.msRows, 4)}</td>
                     </tr>
                     <tr className="border-b">
                       <td className="px-3 py-2">평가자간 (Between Raters)</td>
-                      <td className="text-right px-3 py-2">{formatNum(results.msCols, 4)}</td>
+                      <td className="text-right px-3 py-2">{formatNumber(results.msCols, 4)}</td>
                     </tr>
                     <tr className="border-b last:border-b-0">
                       <td className="px-3 py-2">잔차 (Residual)</td>
-                      <td className="text-right px-3 py-2">{formatNum(results.msError, 4)}</td>
+                      <td className="text-right px-3 py-2">{formatNumber(results.msError, 4)}</td>
                     </tr>
                   </tbody>
                 </table>

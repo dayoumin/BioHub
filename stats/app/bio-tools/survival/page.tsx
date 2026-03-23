@@ -1,12 +1,13 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
 import { BioToolShell } from '@/components/bio-tools/BioToolShell'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { Button } from '@/components/ui/button'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { formatNumber, formatPValue } from '@/lib/statistics/formatters'
 import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
 
 interface KmCurve {
@@ -17,6 +18,7 @@ interface KmCurve {
   atRisk: number[]
   medianSurvival: number | null
   censored: number[]
+  nEvents: number
 }
 
 interface SurvivalResult {
@@ -26,15 +28,6 @@ interface SurvivalResult {
 }
 
 const tool = getBioToolById('survival')
-
-function formatP(p: number): string {
-  if (p < 0.001) return '< 0.001'
-  return p.toFixed(3)
-}
-
-function formatNum(n: number, digits = 2): string {
-  return Number(n).toFixed(digits)
-}
 
 export default function SurvivalPage(): React.ReactElement {
   const { csvData, isAnalyzing, results, error, handleDataLoaded, runAnalysis } =
@@ -64,12 +57,19 @@ export default function SurvivalPage(): React.ReactElement {
     runAnalysis('kaplan_meier_analysis', { time, event, group })
   }, [csvData, timeCol, eventCol, groupCol, runAnalysis])
 
-  if (!tool) return <div>도구를 찾을 수 없습니다</div>
+  const { curveEntries, maxTime } = useMemo(() => {
+    if (!results) return { curveEntries: [] as [string, KmCurve][], maxTime: 0 }
+    const entries = Object.entries(results.curves)
+    let max = 0
+    for (const [, c] of entries) {
+      for (const t of c.time) {
+        if (t > max) max = t
+      }
+    }
+    return { curveEntries: entries, maxTime: max }
+  }, [results])
 
-  const curveEntries = results ? Object.entries(results.curves) : []
-  const maxTime = results
-    ? Math.max(...curveEntries.flatMap(([, c]) => c.time))
-    : 0
+  if (!tool) return <div>도구를 찾을 수 없습니다</div>
 
   return (
     <BioToolShell tool={tool}>
@@ -127,7 +127,7 @@ export default function SurvivalPage(): React.ReactElement {
               <div className="flex items-center gap-4 p-3 rounded-lg border bg-card">
                 <span className="text-sm text-muted-foreground">Log-rank 검정:</span>
                 <span className="text-sm font-semibold">
-                  p = {formatP(results.logRankP)}
+                  p = {formatPValue(results.logRankP)}
                 </span>
                 <span className={`text-xs px-2 py-0.5 rounded-full ${
                   results.logRankP < 0.05
@@ -287,16 +287,15 @@ export default function SurvivalPage(): React.ReactElement {
                   <tbody>
                     {curveEntries.map(([groupName, curve]) => {
                       const nTotal = curve.atRisk[0]
-                      const nEvents = curve.time.length - 1 // time[0]=0, 나머지가 이벤트 시점
                       const nCensored = curve.censored.length
                       return (
                         <tr key={groupName} className="border-b last:border-b-0">
                           <td className="px-3 py-2 font-medium">{groupName}</td>
                           <td className="text-right px-3 py-2">
-                            {curve.medianSurvival !== null ? formatNum(curve.medianSurvival) : '—'}
+                            {curve.medianSurvival !== null ? formatNumber(curve.medianSurvival) : '—'}
                           </td>
                           <td className="text-right px-3 py-2">{nTotal}</td>
-                          <td className="text-right px-3 py-2">{nEvents}</td>
+                          <td className="text-right px-3 py-2">{curve.nEvents}</td>
                           <td className="text-right px-3 py-2">{nCensored}</td>
                         </tr>
                       )
