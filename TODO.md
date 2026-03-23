@@ -70,7 +70,6 @@ These items should be the current focus.
 - ~~`[analysis]` 통계 분석 모듈 점검~~ — 완료 (2026-03-23). 발견 항목 아래 등록.
 - ~~`[graph]` Graph Studio 점검~~ — 완료. 발견 항목 아래 등록.
 - ~~`[genetics]` 유전적 분석 점검~~ — 완료. 발견 항목 아래 등록.
-
 ### 점검 결과 — Critical
 
 - ~~`[genetics]` Worker rate limit 동기화 실패~~ — 수정 완료. 클라이언트(BlastRunner) 429 재시도 로직 추가 (최대 3회, retryAfter 기반, 상한 60초). Worker 주석에 클라이언트 보완 전략 문서화. 장기: Durable Objects/KV 전환 시 제거.
@@ -89,7 +88,7 @@ These items should be the current focus.
 - ~~`[graph]` 프로젝트 복원 시 인코딩 불일치 무경고 해제~~ — 수정 완료. 인코딩 불일치 시 console.warn (프로젝트명 + 누락 필드) 추가.
 - ~~`[analysis]` chi-square-goodness 1변수 전용 selector 없음~~ — 이미 구현됨. `ChiSquareSelector`가 `GOODNESS_IDS`로 1변수 모드 자동 전환.
 - ~~`[analysis]` proportion-test testValue 입력 UI 없음~~ — 이미 구현됨. `ChiSquareSelector`에 `nullProportion` 입력 UI + 검증 포함.
-- ~~`[deploy]` CF 빌드 실패 — `useSearchParams()` prerender 에러~~ — 수정 완료. `barcoding/page.tsx`와 `graph-studio/page.tsx`에서 `dynamic(() => import('./Content'), { ssr: false })`로 분리. 푸시 후 CI 빌드 확인 필수.
+- ~~`[deploy]` CF 빌드 실패 — `useSearchParams()` prerender 에러~~ — 수정 완료. `useSearchParams` 완전 제거 → `window.location.search`로 전환 (barcoding, graph-studio, HistorySidebar). page.tsx는 `dynamic(() => import('./Content'), { ssr: false })` 분리. **주의**: 향후 `useSearchParams` 사용 시 같은 패턴 적용 필수.
 
 ---
 
@@ -98,6 +97,7 @@ These items should be the current focus.
 These should start after the current foundation is in place.
 
 - `[infra]` D1 스키마 갭 해소 — 상세: [D1-SCHEMA-GAP.md](docs/D1-SCHEMA-GAP.md). 현재 프론트엔드는 localStorage/IndexedDB 기반이라 급하지 않음. 인증/멀티디바이스 동기화 시 필수.
+- `[infra]` Turso → D1 통합 — `turso-adapter.ts`, `hybrid-adapter.ts`, `NEXT_PUBLIC_TURSO_*` 환경변수 제거. D1 마이그레이션 완료 후 진행.
 - `[domain]` species-validation 레코드 스키마 정의
 - `[domain]` legal-status 레코드 스키마 정의 (source metadata + checked date)
 - `[paper]` 프로젝트 레벨 문서 조립 (DocumentBlueprint) — 설계 완료, 구현 대기. 4개 프리셋(논문/보고서/현장보고/커스텀) + 자동 병합 + LLM 보강. 상세: [PLAN-DOCUMENT-ASSEMBLY.md](stats/docs/PLAN-DOCUMENT-ASSEMBLY.md)
