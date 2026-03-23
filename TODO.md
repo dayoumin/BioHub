@@ -82,6 +82,8 @@ These should start after the current foundation is in place.
 - `[review]` Design reviewer simulator inputs and output schema.
 - `[domain]` Connect species and legal status outputs into manuscript and review flows.
 - `[trust]` Add user-facing evidence cards to major AI-assisted outputs.
+- `[trust]` `requestInterpretation()` 반환 타입에 `provider` 추가 — 현재 `model`만 반환, `LlmStreamResult`에는 둘 다 있음. evidence 완전성을 위해 필요.
+- `[quality]` Graph Studio localStorage quota 정책 — 현재 무제한 저장, evidence 추가 시 터짐 위험. MAX_GRAPH_PROJECTS + 자동 정리 필요.
 - ~~`[ux]` ResultsActionStep.test.tsx TDZ 에러~~ — 해결됨 (useEffect 위치 이동)
 - `[ux]` AI 해석 실패 graceful degradation (`useErrorRecovery` 활용)
 - `[test]` `PurposeInputStep.test.tsx` 3건 실패 — 미추적
