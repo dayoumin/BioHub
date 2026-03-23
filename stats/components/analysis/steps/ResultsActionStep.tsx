@@ -495,7 +495,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       analysisOptions,
       dataFileName: uploadedFileName ?? null,
       dataRowCount: uploadedData?.length ?? 0,
-      results: results as unknown as Record<string, unknown> | null,
+      results: results ?? null,
     }, language)
 
     if (exportResult.success) {
