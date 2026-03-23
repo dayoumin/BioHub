@@ -1,4 +1,4 @@
-# Worker 7: Community Ecology Python Module
+# Worker 8: Community Ecology Python Module
 # Notes:
 # - Dependencies: NumPy, SciPy, scikit-learn (for NMDS only)
 # - 6 tools: alpha_diversity, rarefaction, beta_diversity, nmds, permanova, mantel_test

@@ -1,4 +1,4 @@
-# Worker 6: Fisheries Stock Assessment Python Module
+# Worker 7: Fisheries Stock Assessment Python Module
 # Notes:
 # - Dependencies: NumPy, SciPy (no additional packages beyond base)
 # - Tools: VBGF growth model, Length-Weight relationship, Condition Factor
