@@ -1,37 +1,10 @@
 import type { ProjectEntityKind, ProjectEntityRef, ResearchProject } from '@/lib/types/research'
+import { createLocalStorageIO } from '@/lib/utils/local-storage-factory'
 
 const PROJECTS_KEY = 'research_projects'
 const PROJECT_REFS_KEY = 'research_project_entity_refs'
 
-function isClient(): boolean {
-  return typeof window !== 'undefined'
-}
-
-function readJson<T>(key: string, fallback: T): T {
-  if (!isClient()) return fallback
-
-  try {
-    const raw = localStorage.getItem(key)
-    if (!raw) return fallback
-    return JSON.parse(raw) as T
-  } catch {
-    return fallback
-  }
-}
-
-/** localStorage 쓰기. 실패(quota 초과 등) 시 throw */
-function writeJson(key: string, value: unknown): void {
-  if (!isClient()) {
-    throw new Error(`[research-project-storage] ${key} is unavailable outside the browser`)
-  }
-
-  try {
-    localStorage.setItem(key, JSON.stringify(value))
-  } catch (error) {
-    console.warn(`[research-project-storage] Failed to write ${key}:`, error)
-    throw new Error(`[research-project-storage] Failed to write ${key}`)
-  }
-}
+const { readJson, writeJson } = createLocalStorageIO('[research-project-storage]')
 
 export function listResearchProjects(): ResearchProject[] {
   return readJson<ResearchProject[]>(PROJECTS_KEY, [])

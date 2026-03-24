@@ -10,25 +10,15 @@
  */
 
 import type { GraphProject } from '@/types/graph-studio';
+import { createLocalStorageIO } from '@/lib/utils/local-storage-factory';
 
 const STORAGE_KEY = 'graph_studio_projects';
-
-/** SSR(Node.js) 환경에서는 localStorage가 없으므로 안전하게 가드 */
-function isClient(): boolean {
-  return typeof window !== 'undefined';
-}
+const { readJson, writeJson } = createLocalStorageIO('[project-storage]');
 
 // ─── 읽기 ───────────────────────────────────────────────────
 
 export function listProjects(): GraphProject[] {
-  if (!isClient()) return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as GraphProject[];
-  } catch {
-    return [];
-  }
+  return readJson<GraphProject[]>(STORAGE_KEY, []);
 }
 
 export function loadProject(projectId: string): GraphProject | null {
@@ -45,22 +35,12 @@ export function saveProject(project: GraphProject): void {
   } else {
     list.push(project);
   }
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  } catch (err) {
-    console.warn('[project-storage] 프로젝트 저장 실패 (localStorage 용량 초과?):', err);
-    throw new Error('[project-storage] 프로젝트 저장 실패');
-  }
+  writeJson(STORAGE_KEY, list);
 }
 
 export function deleteProject(projectId: string): void {
   const list = listProjects().filter(p => p.id !== projectId);
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  } catch (err) {
-    console.warn('[project-storage] 프로젝트 삭제 실패 (localStorage 오류):', err);
-    throw new Error('[project-storage] 프로젝트 삭제 실패');
-  }
+  writeJson(STORAGE_KEY, list);
 }
 
 // ─── ID 생성 ─────────────────────────────────────────────────

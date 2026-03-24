@@ -35,6 +35,8 @@ function makeSpec(title = 'Test Chart'): ChartSpec {
 // ─── 공통 리셋 ────────────────────────────────────────────
 
 beforeEach(() => {
+  vi.restoreAllMocks()
+  localStorage.clear()
   act(() => {
     useGraphStudioStore.getState().resetAll()
   })
@@ -457,10 +459,6 @@ describe('setProject', () => {
 // ─── saveCurrentProject ───────────────────────────────────
 
 describe('saveCurrentProject', () => {
-  beforeEach(() => {
-    localStorage.clear()
-  })
-
   it('chartSpec이 없으면 null 반환', () => {
     const result = useGraphStudioStore.getState().saveCurrentProject('No Spec')
     expect(result).toBeNull()
