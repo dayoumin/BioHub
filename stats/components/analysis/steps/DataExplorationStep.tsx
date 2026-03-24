@@ -1,16 +1,15 @@
 'use client'
 
 import { memo, useState, useMemo, useCallback, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ChartScatter, ListOrdered, ExternalLink, BarChart3, Flame, AlertTriangle, Lightbulb, Upload, FileText } from 'lucide-react'
+import { ChartScatter, ListOrdered, ExternalLink, BarChart3, Flame, AlertTriangle, Lightbulb, Upload, FileText, Table2, TrendingUp, Maximize2, Loader2 } from 'lucide-react'
 import { ValidationResults, DataRow } from '@/types/analysis'
-import { DataProfileSummary } from '@/components/common/analysis/DataProfileSummary'
 import { EmptyState } from '@/components/common/EmptyState'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
-import { StepHeader, CollapsibleSection } from '@/components/analysis/common'
+import { StepHeader } from '@/components/analysis/common'
 import { DescriptiveStatsTable } from './exploration/DescriptiveStatsTable'
 import { DistributionChartSection } from './exploration/DistributionChartSection'
 import { ScatterHeatmapSection } from './exploration/ScatterHeatmapSection'
@@ -26,7 +25,15 @@ import type { AnalysisTemplate } from '@/types/analysis'
 import { getExplorationProfile } from '@/lib/utils/exploration-profile'
 import { useTerminology } from '@/hooks/use-terminology'
 import { useDescriptiveStats } from '@/hooks/use-descriptive-stats'
+import { summarizeNormality } from '@/lib/utils/stats-math'
 import { useCorrelationData } from '@/hooks/use-correlation-data'
+import { SummaryCard, type CardId } from './exploration/SummaryCard'
+import { useLeveneTest } from '@/hooks/use-levene-test'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+
+/** 기초통계 미리보기에 표시할 최대 변수 수 */
+const MAX_PREVIEW_VARS = 5
 
 interface DataExplorationStepProps {
   validationResults: ValidationResults | null
@@ -58,6 +65,9 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     () => getExplorationProfile(isQuickMode ? selectedMethod : null),
     [isQuickMode, selectedMethod]
   )
+
+  // 현재 선택된 카드
+  const [selectedCard, setSelectedCard] = useState<CardId>('overview')
 
   // 템플릿 관련 상태
   const { recentTemplates, loadTemplates: loadTemplatesFromDB } = useTemplateStore()
@@ -117,11 +127,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     return { rows, rowIndices }
   }, [data, highlightedRows])
 
-  // 기술통계 & 분포 섹션: EDA 핵심이므로 기본 펼침
-  const [detailOpen, setDetailOpen] = useState(true)
-  // 상관분석 섹션: 보조 정보이므로 기본 접힘
-  const [correlationOpen, setCorrelationOpen] = useState(false)
-
   const {
     numericVariables,
     categoricalVariables,
@@ -133,6 +138,9 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   } = useDescriptiveStats(validationResults, data)
 
   const { correlationMatrix, heatmapMatrix, getPairedData } = useCorrelationData(data, numericVariables)
+
+  // 등분산성 검정 (Step 1 — 범주형 그룹 변수 자동 감지)
+  const levene = useLeveneTest(validationResults, data, numericVariables[0])
 
   // 이상치 상세 정보 메모이제이션 (선택된 변수가 바뀔 때만 data 풀스캔)
   const outlierDetails = useMemo(
@@ -150,6 +158,8 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   const handleViewOutliersInData = useCallback((rowIndices: number[]) => {
     setHighlightedRows(rowIndices)
     setHighlightedColumn(selectedOutlierVar ?? undefined)
+    // 이상치를 데이터에서 보려면 개요 카드로 이동
+    setSelectedCard('overview')
   }, [selectedOutlierVar])
 
   // 데이터 교체 완료 핸들러
@@ -177,6 +187,49 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       )
     }
   }, [data])
+
+  // 결측값 수
+  const missingCount = validationResults?.missingValues ?? 0
+
+  // 풀스크린 기초통계 모달
+  const [fullStatsOpen, setFullStatsOpen] = useState(false)
+
+  // 문제 변수 우선 정렬 (정규성 실패 → 이상치 → 나머지)
+  const sortedDistributions = useMemo(() => {
+    return [...numericDistributions].sort((a, b) => {
+      const aNorm = a.normality?.isNormal === false ? 0 : 1
+      const bNorm = b.normality?.isNormal === false ? 0 : 1
+      if (aNorm !== bNorm) return aNorm - bNorm
+      if (b.outlierCount !== a.outlierCount) return b.outlierCount - a.outlierCount
+      return 0
+    })
+  }, [numericDistributions])
+
+  const previewDistributions = sortedDistributions.slice(0, MAX_PREVIEW_VARS)
+  const hasMoreVars = sortedDistributions.length > MAX_PREVIEW_VARS
+
+  // 카드 가시성 (Quick 모드 프로필 기반 — trivial 연산이므로 useMemo 불필요)
+  const cardVisibility = {
+    overview: profile.dataPreview,
+    descriptive: numericVariables.length === 0 ? 'hidden' as const : profile.descriptiveStats,
+    distribution: numericVariables.length === 0 ? 'hidden' as const : profile.distribution,
+    correlation: numericVariables.length < 2 ? 'hidden' as const : profile.correlationHeatmap,
+  }
+
+  // 상관 요약 (카드 4용)
+  const correlationSummary = useMemo(() => {
+    if (correlationMatrix.length === 0) return null
+    const maxPair = correlationMatrix[0] // correlationMatrix는 |r| 내림차순 정렬됨
+    const MODERATE_CORRELATION = 0.5 // THRESHOLDS.EFFECT_SIZE.PEARSON_R.MODERATE (engine.ts)
+    const significantCount = correlationMatrix.filter(p => Math.abs(p.r) >= MODERATE_CORRELATION).length
+    return { maxR: maxPair?.r ?? 0, significantCount }
+  }, [correlationMatrix])
+
+  // 정규성 요약 (카드 3용) — summarizeNormality 재사용
+  const normalitySummary = useMemo(() => {
+    const hint = summarizeNormality(numericDistributions)
+    return { normal: hint.normalCount, nonNormal: hint.testedCount - hint.normalCount }
+  }, [numericDistributions])
 
   // 데이터 없을 때 또는 교체 모드: 업로드 영역 표시
   if (!validationResults || !data || data.length === 0 || isReplaceMode) {
@@ -279,191 +332,251 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     )
   }
 
-  // 수치형 변수 부족: 데이터 표시 + 경고
-  if (numericVariables.length < 2) {
-    return (
-      <div className="space-y-6" data-testid="data-exploration-empty">
-        {/* 헤더 + 다음 단계 버튼 */}
-        <StepHeader icon={ChartScatter} title={t.analysis.stepTitles.dataExploration} />
+  // 수치형 변수 부족 경고 (early return 제거 → 메인 렌더에서 카드 가시성으로 처리)
+  const fewNumericVarsWarning = numericVariables.length < 2 && !isQuickMode
 
-        {focusHintBanner}
-
-        <DataProfileSummary
-          sampleSize={data.length}
-          numericVars={numericVariables.length}
-          categoricalVars={categoricalVariables.length}
-          missingValues={validationResults.missingValues}
-          totalCells={data.length * validationResults.columnCount}
-          recommendedType={recommendedType}
-          status="warning"
-          warnings={[t.dataExploration.warnings.fewNumericVars]}
-        />
-
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base">{t.dataExploration.preview.title}</CardTitle>
-                <CardDescription>{t.dataExploration.preview.topN(Math.min(20, data.length))}</CardDescription>
-              </div>
-              <Button variant="outline" size="sm" onClick={handleOpenDataInNewWindow} className="gap-2">
-                <ExternalLink className="w-4 h-4" />
-                {t.dataExploration.preview.viewAll(data.length)}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <DataPreviewTable data={data} maxRows={20} defaultOpen={true} title="" height="300px" />
-          </CardContent>
-        </Card>
-
-        {/* 빠른 분석: 업로드 직후 데이터 적합성 검증 */}
-        {isQuickMode && selectedMethod && (
-          <DataPrepGuide
-            methodId={selectedMethod.id}
-            uploadedData={data}
-            defaultCollapsed
-          />
-        )}
-
-        {!isQuickMode && (
-          <Card className="border-warning-border bg-warning-bg">
-            <CardContent className="py-6">
-              <div className="text-center text-muted-foreground">
-                <p>{t.dataExploration.warnings.correlationRequires}</p>
-                <p className="text-sm mt-2">{t.dataExploration.warnings.currentStatus(numericVariables.length, categoricalVariables.length)}</p>
-                <p className="text-sm mt-1">{t.dataExploration.warnings.nextStepHint}</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-      </div>
-    )
-  }
+  const columnCount = validationResults?.columnCount ?? Object.keys(data[0] ?? {}).length
 
   return (
-    <div className="space-y-6" data-testid="data-exploration-step">
-      {/* 헤더 */}
+    <div className="space-y-5" data-testid="data-exploration-step">
+      {/* ── 헤더 ── */}
       <StepHeader icon={ChartScatter} title={t.analysis.stepTitles.dataExploration} />
 
       {focusHintBanner}
 
-      {/* ── 2-column 레이아웃 ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-start">
+      {/* ── 컴팩트 요약 배지 바 ── */}
+      <div className="flex items-center gap-2 flex-wrap p-3 bg-muted/30 rounded-xl border border-border/40">
+        {/* 파일 정보 */}
+        <div className="flex items-center gap-2 mr-2">
+          <div className="p-1.5 rounded-md bg-primary/10">
+            <FileText className="h-3.5 w-3.5 text-primary" />
+          </div>
+          <span className="text-sm font-medium truncate max-w-[200px]">
+            {uploadedFile?.name || uploadedFileName || t.dataExploration.fallbackFileName}
+          </span>
+        </div>
 
-        {/* ── 좌: 업로드 완료 카드 + 데이터 미리보기 ── */}
-        <div className="space-y-4 min-w-0">
+        {/* 구분선 */}
+        <div className="h-4 w-px bg-border/60" />
 
-          {/* 업로드 완료 카드 (점선 테두리) */}
-          <div className="flex items-center justify-between p-4 border-2 border-dashed border-border rounded-xl bg-muted/10">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-                <FileText className="h-5 w-5 text-primary" />
-              </div>
-              <div className="min-w-0">
-                <p className="font-medium text-sm truncate">
-                  {uploadedFile?.name || uploadedFileName || t.dataExploration.fallbackFileName}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {t.dataExploration.columnPanel.rowColCount(data.length, validationResults?.columnCount ?? Object.keys(data[0] ?? {}).length)}
-                </p>
-              </div>
+        {/* 행/열 배지 */}
+        <Badge variant="secondary" className="text-xs font-mono tabular-nums gap-1">
+          {data.length} rows
+        </Badge>
+        <Badge variant="secondary" className="text-xs font-mono tabular-nums gap-1">
+          {columnCount} cols
+        </Badge>
+
+        {/* 구분선 */}
+        <div className="h-4 w-px bg-border/60" />
+
+        {/* 변수 타입 배지 */}
+        <Badge variant="outline" className="text-xs gap-1 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/30">
+          <span className="font-mono">{numericVariables.length}</span> 숫자
+        </Badge>
+        <Badge variant="outline" className="text-xs gap-1 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/30">
+          <span className="font-mono">{categoricalVariables.length}</span> 범주
+        </Badge>
+
+        {/* 결측치 (있을 때만) */}
+        {missingCount > 0 && (
+          <Badge variant="outline" className="text-xs gap-1 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30">
+            결측 <span className="font-mono">{missingCount}</span>
+          </Badge>
+        )}
+
+        {/* 이상치 배지 (클릭 시 기술통계 탭으로) */}
+        {totalOutlierCount > 0 && (
+          <Badge
+            variant="outline"
+            role="button"
+            tabIndex={0}
+            className="text-xs gap-1 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/30 cursor-pointer hover:bg-red-100 dark:hover:bg-red-950/50 transition-colors"
+            onClick={() => setSelectedCard('descriptive')}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedCard('descriptive') } }}
+          >
+            <AlertTriangle className="h-3 w-3" />
+            이상치 <span className="font-mono">{totalOutlierCount}</span>
+          </Badge>
+        )}
+
+        {/* 데이터 교체 버튼 (우측 정렬) */}
+        {onUploadComplete && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsReplaceMode(true)}
+            className="ml-auto gap-1.5 h-7 text-xs text-muted-foreground hover:text-foreground"
+            data-testid="replace-data-button"
+          >
+            <Upload className="w-3 h-3" />
+            {t.dataExploration.replaceMode.button}
+          </Button>
+        )}
+      </div>
+
+      {/* 수치형 변수 부족 경고 */}
+      {fewNumericVarsWarning && (
+        <Card className="border-warning-border bg-warning-bg">
+          <CardContent className="py-4">
+            <div className="text-center text-muted-foreground text-sm">
+              <p>{t.dataExploration.warnings.correlationRequires}</p>
+              <p className="mt-1">{t.dataExploration.warnings.currentStatus(numericVariables.length, categoricalVariables.length)}</p>
+              <p className="mt-1">{t.dataExploration.warnings.nextStepHint}</p>
             </div>
-            {onUploadComplete && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsReplaceMode(true)}
-                className="gap-1.5 shrink-0"
-                data-testid="replace-data-button"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                {t.dataExploration.replaceMode.button}
-              </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── 요약 카드 대시보드 ── */}
+      <div className="flex flex-wrap gap-3" role="group" aria-label="데이터 탐색 카드">
+        <SummaryCard
+          id="overview"
+          icon={Table2}
+          title="데이터 미리보기"
+          selected={selectedCard === 'overview'}
+          visibility={cardVisibility.overview}
+          onClick={setSelectedCard}
+        >
+          <p>{data.length}행 × {columnCount}열</p>
+          <p>숫자 {numericVariables.length} · 범주 {categoricalVariables.length}</p>
+          {missingCount > 0 && <p className="text-amber-600">결측 {missingCount}건</p>}
+        </SummaryCard>
+
+        <SummaryCard
+          id="descriptive"
+          icon={ListOrdered}
+          title="기초통계"
+          selected={selectedCard === 'descriptive'}
+          visibility={cardVisibility.descriptive}
+          onClick={setSelectedCard}
+        >
+          <p>{numericDistributions.length} 변수</p>
+          {totalOutlierCount > 0 && <p className="text-amber-600">⚠ 이상치 {totalOutlierCount}건</p>}
+          {totalOutlierCount === 0 && <p>이상치 없음</p>}
+        </SummaryCard>
+
+        <SummaryCard
+          id="distribution"
+          icon={BarChart3}
+          title="분포 & 검정"
+          selected={selectedCard === 'distribution'}
+          visibility={cardVisibility.distribution}
+          onClick={setSelectedCard}
+        >
+          {normalitySummary.normal + normalitySummary.nonNormal > 0 ? (
+            <p>정규 ✓{normalitySummary.normal} ✗{normalitySummary.nonNormal}</p>
+          ) : (
+            <p>정규성 검정 중...</p>
+          )}
+          {levene.isLoading && <p>등분산 검정 중...</p>}
+          {levene.result && (
+            <p>등분산 {levene.result.equalVariance ? '✓' : '✗'}</p>
+          )}
+        </SummaryCard>
+
+        <SummaryCard
+          id="correlation"
+          icon={TrendingUp}
+          title="변수 간 관계"
+          selected={selectedCard === 'correlation'}
+          visibility={cardVisibility.correlation}
+          disabled={numericVariables.length < 2}
+          onClick={setSelectedCard}
+        >
+          {correlationSummary ? (
+            <>
+              <p>최대 r = {Math.abs(correlationSummary.maxR).toFixed(2)}</p>
+              <p>강한 상관 {correlationSummary.significantCount}쌍</p>
+            </>
+          ) : (
+            <p>수치형 변수 2개 이상 필요</p>
+          )}
+        </SummaryCard>
+      </div>
+
+      {/* ── 상세 패널: 데이터 미리보기 (CSS hidden — state 보존) ── */}
+      <div className={selectedCard === 'overview' ? 'grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-start' : 'hidden'}>
+          {/* 좌: 데이터 미리보기 */}
+          <div className="space-y-4 min-w-0">
+            <Card className="border-border/40 shadow-sm overflow-hidden">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium">{t.dataExploration.preview.title}</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs font-mono tabular-nums">{t.dataExploration.columnPanel.rowCount(data.length)}</Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleOpenDataInNewWindow}
+                      className="gap-1.5 h-7 text-xs"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      {t.dataExploration.tabs.fullDataView(data.length)}
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {highlightedRows.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-2.5 bg-warning-bg rounded-lg border border-warning-border">
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-warning" aria-hidden="true">&#9679;</span>
+                        <span className="font-medium text-warning-muted">
+                          {t.dataExploration.highlight.description(highlightedColumn ?? '', highlightedRows.length)}
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-xs"
+                        onClick={() => { setHighlightedRows([]); setHighlightedColumn(undefined) }}
+                      >
+                        {t.dataExploration.highlight.clearButton}
+                      </Button>
+                    </div>
+                    {highlightedPreview.rowIndices.length > 0 ? (
+                      <DataPreviewTable
+                        data={highlightedPreview.rows}
+                        maxRows={highlightedPreview.rows.length || 1}
+                        defaultOpen={true}
+                        title=""
+                        height="300px"
+                        rowIndices={highlightedPreview.rowIndices}
+                        highlightRows={highlightedPreview.rowIndices}
+                        highlightColumn={highlightedColumn}
+                      />
+                    ) : (
+                      <div className="p-3 text-sm text-muted-foreground border rounded-md bg-muted/30">
+                        {t.dataExploration.highlight.notFound}
+                      </div>
+                    )}
+                  </div>
+                ) : data.length <= 10 ? (
+                  <DataPreviewTable data={data} maxRows={10} defaultOpen={true} title="" height="auto" />
+                ) : splitPreview ? (
+                  <DataPreviewTable
+                    data={splitPreview.rows}
+                    maxRows={10}
+                    defaultOpen={true}
+                    title=""
+                    height="auto"
+                    omittedRows={splitPreview.omittedCount}
+                    omitAfterIndex={4}
+                    rowIndices={splitPreview.indices}
+                  />
+                ) : null}
+              </CardContent>
+            </Card>
+
+            {/* 빠른 분석: 데이터 적합성 검증 */}
+            {isQuickMode && selectedMethod && (
+              <DataPrepGuide methodId={selectedMethod.id} uploadedData={data} defaultCollapsed />
             )}
           </div>
 
-          {/* 데이터 미리보기 */}
-          <Card className="border-border/40 shadow-sm overflow-hidden">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium">{t.dataExploration.preview.title}</CardTitle>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs font-mono tabular-nums">{t.dataExploration.columnPanel.rowCount(data.length)}</Badge>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleOpenDataInNewWindow}
-                    className="gap-1.5 h-7 text-xs"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    {t.dataExploration.tabs.fullDataView(data.length)}
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {highlightedRows.length > 0 ? (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-2.5 bg-warning-bg rounded-lg border border-warning-border">
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="text-warning">&#9679;</span>
-                      <span className="font-medium text-warning-muted">
-                        {t.dataExploration.highlight.description(highlightedColumn ?? '', highlightedRows.length)}
-                      </span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs"
-                      onClick={() => { setHighlightedRows([]); setHighlightedColumn(undefined) }}
-                    >
-                      {t.dataExploration.highlight.clearButton}
-                    </Button>
-                  </div>
-                  {highlightedPreview.rowIndices.length > 0 ? (
-                    <DataPreviewTable
-                      data={highlightedPreview.rows}
-                      maxRows={highlightedPreview.rows.length || 1}
-                      defaultOpen={true}
-                      title=""
-                      height="300px"
-                      rowIndices={highlightedPreview.rowIndices}
-                      highlightRows={highlightedPreview.rowIndices}
-                      highlightColumn={highlightedColumn}
-                    />
-                  ) : (
-                    <div className="p-3 text-sm text-muted-foreground border rounded-md bg-muted/30">
-                      {t.dataExploration.highlight.notFound}
-                    </div>
-                  )}
-                </div>
-              ) : data.length <= 10 ? (
-                <DataPreviewTable data={data} maxRows={10} defaultOpen={true} title="" height="auto" />
-              ) : splitPreview ? (
-                <DataPreviewTable
-                  data={splitPreview.rows}
-                  maxRows={10}
-                  defaultOpen={true}
-                  title=""
-                  height="auto"
-                  omittedRows={splitPreview.omittedCount}
-                  omitAfterIndex={4}
-                  rowIndices={splitPreview.indices}
-                />
-              ) : null}
-            </CardContent>
-          </Card>
-
-          {/* 빠른 분석: 데이터 적합성 검증 */}
-          {isQuickMode && selectedMethod && (
-            <DataPrepGuide methodId={selectedMethod.id} uploadedData={data} defaultCollapsed />
-          )}
-        </div>
-
-        {/* ── 우: 컬럼 정보 패널 ── */}
-        <div className="space-y-4">
+          {/* 우: 컬럼 정보 패널 */}
           <Card className="border-border/40 shadow-sm lg:sticky lg:top-4">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -479,13 +592,13 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {/* 수치형 / 범주형 카운트 */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/50">
+              {/* 변수 타입 카운트 */}
+              <div className="grid grid-cols-2 gap-2 text-center">
+                <div className="p-2 rounded-lg bg-muted/40">
                   <p className="text-[11px] text-muted-foreground">{t.dataExploration.columnPanel.numeric}</p>
                   <p className="text-lg font-semibold font-mono tabular-nums">{numericVariables.length}</p>
                 </div>
-                <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200/50 dark:border-green-800/50">
+                <div className="p-2 rounded-lg bg-muted/40">
                   <p className="text-[11px] text-muted-foreground">{t.dataExploration.columnPanel.categorical}</p>
                   <p className="text-lg font-semibold font-mono tabular-nums">{categoricalVariables.length}</p>
                 </div>
@@ -501,21 +614,19 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                   <span className="text-muted-foreground">{t.dataExploration.columnPanel.missingValuesLabel}</span>
                   <span className="font-mono tabular-nums font-medium">{t.dataExploration.columnPanel.missingValues(validationResults?.missingValues ?? 0)}</span>
                 </div>
-                <div className="flex items-center justify-between py-1.5">
+                <div className="flex items-center justify-between py-1.5 border-b border-border/30">
                   <span className="text-muted-foreground">{t.dataExploration.columnPanel.totalColumns}</span>
                   <span className="font-mono tabular-nums font-medium">{validationResults?.columnCount ?? 0}</span>
                 </div>
+                {data.length > 0 && (
+                  <div className="flex items-center justify-between py-1.5">
+                    <span className="text-muted-foreground">{t.dataExploration.columnPanel.recommendedAnalysis}</span>
+                    <Badge variant="outline" className="text-[10px]">
+                      {recommendedType === 'parametric' ? t.dataExploration.columnPanel.parametric : t.dataExploration.columnPanel.nonParametric}
+                    </Badge>
+                  </div>
+                )}
               </div>
-
-              {/* 권장 분석 유형 */}
-              {data.length > 0 && (
-                <div className="flex items-center justify-between py-1.5 text-sm">
-                  <span className="text-muted-foreground">{t.dataExploration.columnPanel.recommendedAnalysis}</span>
-                  <Badge variant="outline" className="text-[10px]">
-                    {recommendedType === 'parametric' ? t.dataExploration.columnPanel.parametric : t.dataExploration.columnPanel.nonParametric}
-                  </Badge>
-                </div>
-              )}
 
               {/* 검증 오류 */}
               {validationResults && (validationResults.errors?.length ?? 0) > 0 && (
@@ -559,61 +670,135 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               )}
             </CardContent>
           </Card>
-        </div>
       </div>
 
-      {/* ── 상세 분석 (접이식) ── */}
-      <CollapsibleSection
-        label={t.dataExploration.tabs.statistics}
-        icon={<ListOrdered className="h-4 w-4" />}
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-        badge={totalOutlierCount > 0 ? (
-          <Badge variant="secondary" className="text-[10px] font-mono">
-            {t.dataExploration.outlier.count(totalOutlierCount)}
-          </Badge>
-        ) : undefined}
-        data-testid="detail-analysis-section"
-      >
-        <div className="space-y-6 pt-4">
-          {/* 기술통계 테이블 (이상치 배너 + 테이블 + 해석 가이드) */}
-          <DescriptiveStatsTable
-            numericDistributions={numericDistributions}
-            formatStat={formatStat}
-            totalOutlierCount={totalOutlierCount}
-            onOpenOutlierModal={handleOpenOutlierModal}
-          />
+      {/* ── 상세 패널: 기초통계 (CSS hidden — state 보존) ── */}
+      <div className={selectedCard === 'descriptive' ? 'space-y-4' : 'hidden'}>
+        <DescriptiveStatsTable
+          numericDistributions={previewDistributions}
+          formatStat={formatStat}
+          totalOutlierCount={totalOutlierCount}
+          onOpenOutlierModal={handleOpenOutlierModal}
+        />
+        {hasMoreVars && (
+          <div className="flex justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFullStatsOpen(true)}
+              className="gap-1.5 text-xs"
+            >
+              <Maximize2 className="h-3 w-3" />
+              전체 {sortedDistributions.length}개 변수 보기
+            </Button>
+          </div>
+        )}
+      </div>
 
-          {/* 데이터 분포 시각화 */}
-          <DistributionChartSection
-            data={data}
-            numericVariables={numericVariables}
-            visibility={profile.distribution}
-            defaultChartType={profile.defaultChartType ?? 'histogram'}
-          />
-        </div>
-      </CollapsibleSection>
+      {/* 풀스크린 기초통계 Sheet */}
+      <Sheet open={fullStatsOpen} onOpenChange={setFullStatsOpen}>
+        <SheetContent side="bottom" className="h-[85vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>전체 변수 기초통계 ({sortedDistributions.length}개)</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">
+            <DescriptiveStatsTable
+              numericDistributions={sortedDistributions}
+              formatStat={formatStat}
+              totalOutlierCount={totalOutlierCount}
+              onOpenOutlierModal={handleOpenOutlierModal}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
 
-      {/* ── 상관분석 (접이식, 기본 접힘) ── */}
-      {/* numericVariables >= 2 는 위 early return으로 보장됨 */}
-      <CollapsibleSection
-        label={t.dataExploration.features.correlationTitle}
-        icon={<Flame className="h-4 w-4" />}
-        open={correlationOpen}
-        onOpenChange={setCorrelationOpen}
-        data-testid="correlation-analysis-section"
-      >
-        <div className="space-y-6 pt-4">
-          <ScatterHeatmapSection
-            numericVariables={numericVariables}
-            correlationMatrix={correlationMatrix}
-            heatmapMatrix={heatmapMatrix}
-            scatterVisibility={profile.scatterplots}
-            heatmapVisibility={profile.correlationHeatmap}
-            getPairedData={getPairedData}
-          />
-        </div>
-      </CollapsibleSection>
+      {/* ── 상세 패널: 분포 & 검정 (CSS hidden — state 보존) ── */}
+      <div className={selectedCard === 'distribution' ? 'space-y-4' : 'hidden'}>
+        {/* 정규성 배지 격자 (profile.assumptionTests로 가시성 제어) */}
+        {profile.assumptionTests !== 'hidden' && numericDistributions.some(d => d.normality) && (
+          <Card className="border-border/40 shadow-sm">
+            <CardContent className="py-4">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">정규성 검정 (Shapiro-Wilk)</p>
+              <div className="flex flex-wrap gap-2">
+                {sortedDistributions.map(dist => dist.normality ? (
+                  <Badge
+                    key={dist.name}
+                    variant={dist.normality.isNormal ? 'secondary' : 'destructive'}
+                    className="text-[11px] font-mono gap-1"
+                  >
+                    {dist.name} {dist.normality.isNormal ? '✓' : '✗'} p={dist.normality.pValue.toFixed(3)}
+                  </Badge>
+                ) : null)}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 등분산성 검정 (profile.assumptionTests로 가시성 제어) */}
+        {profile.assumptionTests !== 'hidden' && levene.groupCandidates.length > 0 && (
+          <Card className="border-border/40 shadow-sm">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">등분산성 검정 (Levene)</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">그룹:</span>
+                  <Select value={levene.groupVariable ?? ''} onValueChange={levene.setGroupVariable}>
+                    <SelectTrigger className="h-7 w-[140px] text-xs" aria-label="등분산 검정 그룹 변수 선택">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {levene.groupCandidates.map(name => (
+                        <SelectItem key={name} value={name} className="text-xs">{name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {levene.isLoading && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  등분산성 검정 중...
+                </div>
+              )}
+              {levene.result && (
+                <div className="flex items-center gap-3">
+                  <Badge variant={levene.result.equalVariance ? 'secondary' : 'destructive'} className="text-[11px] font-mono">
+                    {levene.result.equalVariance ? '✓ 등분산' : '✗ 이분산'} p={levene.result.pValue.toFixed(3)}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    {levene.result.equalVariance
+                      ? '그룹 간 분산이 동일 → 모수 검정 적합'
+                      : '그룹 간 분산 다름 → Welch 검정 또는 비모수 검정 권장'}
+                  </span>
+                </div>
+              )}
+              {!levene.isLoading && !levene.result && (
+                <p className="text-xs text-muted-foreground">검정 불가 (그룹당 최소 3개 관측치 필요)</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 분포 차트 */}
+        <DistributionChartSection
+          data={data}
+          numericVariables={numericVariables}
+          visibility={profile.distribution}
+          defaultChartType={profile.defaultChartType ?? 'histogram'}
+        />
+      </div>
+
+      {/* ── 상세 패널: 변수 간 관계 (CSS hidden — state 보존) ── */}
+      <div className={selectedCard === 'correlation' ? undefined : 'hidden'}>
+        <ScatterHeatmapSection
+          numericVariables={numericVariables}
+          correlationMatrix={correlationMatrix}
+          heatmapMatrix={heatmapMatrix}
+          scatterVisibility={profile.scatterplots}
+          heatmapVisibility={profile.correlationHeatmap}
+          getPairedData={getPairedData}
+        />
+      </div>
 
       {/* 이상치 상세 모달 */}
       {selectedOutlierVar && outlierDetails && (

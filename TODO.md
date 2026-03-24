@@ -120,6 +120,7 @@ These should start after the current foundation is in place.
 - `[quality]` Graph Studio localStorage quota 정책 — 현재 무제한 저장, evidence 추가 시 터짐 위험. MAX_GRAPH_PROJECTS + 자동 정리 필요.
 - ~~`[ux]` ResultsActionStep.test.tsx TDZ 에러~~ — 해결됨 (useEffect 위치 이동)
 - `[ux]` AI 해석 실패 graceful degradation (`useErrorRecovery` 활용)
+- `[ux]` Step 1 카드 대시보드: 하드코딩 한글 → terminology 시스템 등록. 카드 제목 4개 + 카드 내용 텍스트 + 배지 바 라벨 (`숫자`/`범주`/`결측`/`이상치`/`rows`/`cols`). `DataExplorationText` 인터페이스에 `summaryCards` 섹션 추가 필요.
 - ~~`[test]` `PurposeInputStep.test.tsx` 3건 실패~~ — 수정 완료 (mock 누락 `progressiveCategoryData`/`decisionTree`/`flowStateMachine` 추가 + stale testid 수정)
 - ~~`[test]` `g5-review-fixes.test.ts` 1건 실패~~ — 수정 완료 (파일 경로 `page.tsx` → `GraphStudioContent.tsx`)
 - ~~`[ux]` HistorySidebar 빈 상태 레이아웃 점프~~ — 수정 완료 (빈 상태 플레이스홀더 + 접기/펴기 토글 + 폰트 크기 조정)
@@ -158,6 +159,7 @@ These are valid directions, but not current execution priorities.
 - `[paper]` Add stronger project-wide draft synthesis and section merge assistance.
 - `[trust]` Expand reproducible code export to more advanced analysis paths.
 - `[workflow]` Add richer project dashboard and project health summary.
+- `[ux]` 사이드바 My Menu — 메뉴 항목 순서 이동(드래그) 및 즐겨찾기 고정 기능. 현재 "My Menu (예정)" 플레이스홀더 존재 (`app-sidebar.tsx`).
 - `[quality]` entity-resolver `*Like` 인터페이스 → `Pick<OriginalType, ...>` 전환 — import 순환 해결 후. 현재 수동 동기화 필요.
 - `[quality]` `report-export.ts` blob→download 패턴 → 공통 유틸 `utils/download-file.ts` 추출 검토 — `html-export.ts`에도 동일 패턴 존재
 - `[quality]` `report-export.ts` `markdownToSimpleHtml()` → 공통 유틸 추출 검토 — `html-export.ts`의 인라인 `escapeHtml()`도 `@/lib/utils/html-escape` import로 교체

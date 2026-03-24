@@ -18,6 +18,7 @@ import type {
 import type { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { logger } from '@/lib/utils/logger'
 import { raceWithTimeout } from '@/lib/utils/promise-utils'
+import { extractGroupedNumericData } from '@/lib/utils/grouped-data'
 
 // ===== Worker 3 응답 타입 =====
 
@@ -139,22 +140,7 @@ async function runGroupedAssumptionTests(
   groupVar: string
 ): Promise<StatisticalAssumptions | null> {
   // 그룹별 데이터 추출
-  const groupMap = new Map<string, number[]>()
-
-  for (const row of data) {
-    const groupVal = row[groupVar]
-    if (groupVal === null || groupVal === undefined || groupVal === '') continue
-
-    const depVal = row[dependentVar]
-    if (depVal === null || depVal === undefined || depVal === '') continue
-
-    const num = typeof depVal === 'number' ? depVal : Number(depVal)
-    if (Number.isNaN(num) || !Number.isFinite(num)) continue
-
-    const groupKey = String(groupVal)
-    if (!groupMap.has(groupKey)) groupMap.set(groupKey, [])
-    groupMap.get(groupKey)?.push(num)
-  }
+  const groupMap = extractGroupedNumericData(data, dependentVar, groupVar)
 
   // 유효 그룹만 필터링하되 라벨도 함께 유지
   const entries = [...groupMap.entries()]
