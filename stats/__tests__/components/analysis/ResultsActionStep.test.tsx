@@ -1007,7 +1007,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       // requestInterpretation → callback 호출로 interpretation 상태 설정
       vi.mocked(requestInterpretation).mockImplementation(async (_ctx, onChunk) => {
         onChunk('요약문입니다.\n\n상세 해석 내용입니다.')
-        return { model: 'test-model' }
+        return { model: 'test-model', provider: 'openrouter' as const }
       })
 
       // splitInterpretation → detail 포함 반환
@@ -1030,7 +1030,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
 
       vi.mocked(requestInterpretation).mockImplementation(async (_ctx, onChunk) => {
         onChunk('단순 요약만 있는 텍스트')
-        return { model: 'test-model' }
+        return { model: 'test-model', provider: 'openrouter' as const }
       })
 
       vi.mocked(splitInterpretation).mockReturnValue({
@@ -1294,7 +1294,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       const { requestInterpretation } = await import('@/lib/services/result-interpreter')
       vi.mocked(requestInterpretation).mockImplementation(async (_ctx, onChunk) => {
         onChunk('테스트 AI 해석입니다.')
-        return { model: 'test-model' }
+        return { model: 'test-model', provider: 'openrouter' as const }
       })
     })
 
@@ -1424,7 +1424,7 @@ describe('Part 3: Phase 상태 머신 시뮬레이션', () => {
       const { requestInterpretation } = await import('@/lib/services/result-interpreter')
       vi.mocked(requestInterpretation).mockImplementation(async (_ctx, onChunk) => {
         onChunk('AI 해석이 완료되었습니다.')
-        return { model: 'test-model' }
+        return { model: 'test-model', provider: 'openrouter' as const }
       })
 
       mockConvert.mockReturnValue(statBase)

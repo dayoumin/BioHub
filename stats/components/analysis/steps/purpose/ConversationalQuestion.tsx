@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
+import { focusRing } from '@/components/common/card-styles'
 import { Badge } from '@/components/ui/badge'
 import { Sparkles, Check, Info } from 'lucide-react'
 import { useTerminology } from '@/hooks/use-terminology'
@@ -110,7 +111,7 @@ export function ConversationalQuestion({
               className={cn(
                 'w-full group relative flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-all duration-200',
                 'hover:border-primary/50 hover:bg-accent/30 hover:shadow-sm',
-                'focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2',
+                focusRing,
                 isSelected
                   ? 'border-primary bg-primary/5 shadow-sm'
                   : isAISuggested

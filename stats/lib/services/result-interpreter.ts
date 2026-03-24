@@ -7,7 +7,7 @@
  */
 
 import type { AnalysisResult, EffectSizeInfo } from '@/types/analysis'
-import { llmRecommender, type LlmStreamResult } from './llm-recommender'
+import { llmRecommender, type LlmStreamResult, type LlmProvider } from './llm-recommender'
 import { logger } from '@/lib/utils/logger'
 import { SYSTEM_PROMPT_INTERPRETER } from './ai/prompts'
 
@@ -178,7 +178,7 @@ export async function requestInterpretation(
   ctx: InterpretationContext,
   onChunk: (text: string) => void,
   signal?: AbortSignal
-): Promise<{ model: string }> {
+): Promise<{ model: string; provider: LlmProvider }> {
   const userPrompt = buildInterpretationPrompt(ctx)
 
   logger.info('[ResultInterpreter] Requesting interpretation via unified LlmRecommender', {
@@ -205,7 +205,10 @@ export async function requestInterpretation(
     onChunk(value)
   }
 
-  return { model: streamResult?.model ?? 'unknown' }
+  return {
+    model: streamResult?.model ?? 'unknown',
+    provider: streamResult?.provider ?? 'openrouter',
+  }
 }
 
 /**
@@ -221,7 +224,7 @@ export async function streamFollowUp(
   initialInterpretation: string,
   onChunk: (text: string) => void,
   signal?: AbortSignal
-): Promise<{ model: string }> {
+): Promise<{ model: string; provider: LlmProvider }> {
   const analysisPrompt = buildInterpretationPrompt(ctx)
 
   const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
@@ -251,5 +254,8 @@ export async function streamFollowUp(
     onChunk(value)
   }
 
-  return { model: streamResult?.model ?? 'unknown' }
+  return {
+    model: streamResult?.model ?? 'unknown',
+    provider: streamResult?.provider ?? 'openrouter',
+  }
 }

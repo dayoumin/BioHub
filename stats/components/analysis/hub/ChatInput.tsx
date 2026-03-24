@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import { focusRing } from '@/components/common/card-styles'
 import { useTerminology } from '@/hooks/use-terminology'
 import { TypingIndicator } from '@/components/common/TypingIndicator'
 
@@ -118,7 +119,7 @@ export function ChatInput({
             'min-h-[64px] max-h-[160px] resize-none pl-5 pr-24',
             'rounded-2xl border-border bg-background text-base',
             'shadow-md',
-            'focus:ring-2 focus:ring-primary/30 focus:border-primary',
+            focusRing,
             'transition-all duration-200'
           )}
         />

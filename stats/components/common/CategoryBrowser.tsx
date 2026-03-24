@@ -10,7 +10,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { Search, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { categoryCardBase } from '@/components/common/card-styles'
+import { categoryCardBase, focusRing } from '@/components/common/card-styles'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import type { PurposeCategory } from '@/lib/constants/purpose-categories'
 
@@ -62,7 +62,7 @@ export function CategoryBrowser({ categories, onMethodSelect, searchable = true 
               'w-full pl-10 pr-4 py-2.5 rounded-xl text-sm',
               'border border-border bg-card',
               'placeholder:text-muted-foreground/60',
-              'focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50',
+              focusRing,
             )}
             data-testid="category-browser-search"
           />

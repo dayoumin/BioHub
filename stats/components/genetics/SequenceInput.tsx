@@ -8,6 +8,7 @@ import { validateSequence } from '@/lib/genetics/validate-sequence'
 import { EXAMPLE_SEQUENCES } from '@/lib/genetics/example-sequences'
 import { useDebounce } from '@/hooks/useDebounce'
 import { Button } from '@/components/ui/button'
+import { focusRing } from '@/components/common/card-styles'
 
 const MARKERS: { value: BlastMarker; label: string; help: string }[] = [
   { value: 'COI', label: 'COI', help: '동물 표준 바코드 — 어류, 곤충 등 대부분의 동물' },
@@ -91,7 +92,7 @@ export function SequenceInput({
           onChange={(e) => onSampleNameChange(e.target.value)}
           placeholder="예: 제주 채집 시료 #3, 시장 구매 참치"
           maxLength={100}
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className={`w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm ${focusRing}`}
         />
       </div>
 
@@ -196,7 +197,7 @@ export function SequenceInput({
           }}
           placeholder={">sample_sequence\nATGCGTACGTACGTACG..."}
           rows={8}
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 font-mono text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className={`w-full rounded-lg border border-gray-300 bg-white px-3 py-2 font-mono text-sm ${focusRing}`}
         />
 
         {validation && (

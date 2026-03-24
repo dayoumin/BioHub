@@ -230,7 +230,7 @@ describe('streamFollowUp: 스트리밍 + 반환값', () => {
 
     const result = await streamFollowUp('질문', [], makeCtx(), '초기', vi.fn())
 
-    expect(result).toEqual({ model: 'gpt-4o' })
+    expect(result).toEqual({ model: 'gpt-4o', provider: 'openrouter' })
   })
 
   it('스트림이 비어도 정상 완료된다', async () => {

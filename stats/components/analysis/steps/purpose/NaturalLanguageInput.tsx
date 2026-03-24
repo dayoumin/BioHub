@@ -31,6 +31,7 @@ import {
 import { AssumptionBadges } from '@/components/analysis/common/AssumptionBadges'
 import { TypingIndicator } from '@/components/common/TypingIndicator'
 import { cn } from '@/lib/utils'
+import { focusRing } from '@/components/common/card-styles'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { useTerminology } from '@/hooks/use-terminology'
 import type { AIRecommendation, StatisticalMethod, FlowChatMessage } from '@/types/analysis'
@@ -183,7 +184,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
             'rounded-2xl bg-muted/40 text-sm',
             'border border-border/60',
             'shadow-sm',
-            'focus:border-primary/40 focus:ring-2 focus:ring-primary/10',
+            focusRing,
             'transition-all duration-200'
           )}
           disabled={disabled || isLoading}

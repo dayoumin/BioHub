@@ -11,6 +11,7 @@ import { memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, ArrowRight, Sparkles, List } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { focusRing } from '@/components/common/card-styles'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
@@ -145,7 +146,7 @@ export const SubcategorySelector = memo(function SubcategorySelector({
                 disabled={disabled}
                 className={cn(
                   'w-full p-4 rounded-lg border text-left transition-colors',
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+                  focusRing,
                   disabled
                     ? 'opacity-50 cursor-not-allowed'
                     : 'cursor-pointer hover:border-primary/50 hover:bg-accent/30',

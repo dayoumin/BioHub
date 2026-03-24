@@ -41,6 +41,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import { focusRing } from '@/components/common/card-styles'
 import { useTerminology } from '@/hooks/use-terminology'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { useHistoryStore } from '@/lib/stores/history-store'
@@ -378,7 +379,7 @@ function ActivityCardItem({ card, t, onClick, onTogglePin, onDelete }: ActivityC
               'p-1.5 rounded-md text-muted-foreground/40',
               'hover:text-foreground hover:bg-accent',
               'opacity-0 group-hover:opacity-100 transition-all',
-              'focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+              `focus-visible:opacity-100 ${focusRing}`,
             )}
           >
             <MoreVertical className="w-4 h-4" />

@@ -291,7 +291,7 @@ describe('3차 리뷰 이슈 1: 같은 세션 히스토리 전환 — cache miss
     requestInterpretationMock.mockImplementation(
       async (_ctx: unknown, onChunk: (c: string) => void) => {
         onChunk('해석 결과 텍스트')
-        return { model: 'test-model' }
+        return { model: 'test-model', provider: 'openrouter' as const }
       }
     )
   })
@@ -399,7 +399,7 @@ describe('3차 리뷰 이슈 2: 새로고침 getHistory() stale 응답 방어', 
     requestInterpretationMock.mockImplementation(
       async (_ctx: unknown, onChunk: (c: string) => void) => {
         onChunk('새 해석')
-        return { model: 'test-model' }
+        return { model: 'test-model', provider: 'openrouter' as const }
       }
     )
   })

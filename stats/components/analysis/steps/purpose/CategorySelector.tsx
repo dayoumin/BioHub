@@ -11,6 +11,7 @@ import { memo, type ComponentType } from 'react'
 import { motion } from 'framer-motion'
 import { GitCompare, TrendingUp, LineChart, Layers, Sparkles, List, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { focusRing } from '@/components/common/card-styles'
 import { Badge } from '@/components/ui/badge'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { useTerminology } from '@/hooks/use-terminology'
@@ -128,7 +129,7 @@ export const CategorySelector = memo(function CategorySelector({
               disabled={disabled}
               className={cn(
                 'relative p-6 rounded-xl border-2 text-left transition-colors',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+                focusRing,
                 disabled
                   ? 'opacity-50 cursor-not-allowed'
                   : 'cursor-pointer hover:border-primary/50 hover:shadow-lg',
