@@ -24,12 +24,3 @@ export {
   getNumericColumnData
 } from './correlationUtils'
 
-// Chart Helpers
-export {
-  createQQPlotData,
-  createHistogramData,
-  createBoxPlotData,
-  getQQPlotLayout,
-  getHistogramLayout,
-  getBoxPlotLayout
-} from './chartHelpers'

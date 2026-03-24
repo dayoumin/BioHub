@@ -231,7 +231,6 @@ vi.mock('@/lib/statistics/formatters', () => ({
   formatStatisticalResult: vi.fn(() => null),
   formatPValueAPA: vi.fn((p: number) => p < 0.001 ? '< .001' : `= ${p.toFixed(3)}`),
 }))
-vi.mock('@/components/analysis/ResultsVisualization', () => ({ ResultsVisualization: () => null }))
 vi.mock('@/components/analysis/steps/results/MethodSpecificResults', () => ({ MethodSpecificResults: () => null }))
 
 // ─── Lazy import (mocks 등록 후 — vi.mock hoisted이므로 beforeAll 1회만 실행) ─────────

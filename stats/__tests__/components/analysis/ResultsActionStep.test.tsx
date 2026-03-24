@@ -702,9 +702,6 @@ vi.mock('@/components/statistics/common/StatisticsTable', () => ({
   )
 }))
 
-vi.mock('@/components/analysis/ResultsVisualization', () => ({
-  ResultsVisualization: () => <div data-testid="results-visualization" />
-}))
 
 vi.mock('@/components/analysis/steps/results/MethodSpecificResults', () => ({
   MethodSpecificResults: () => <div data-testid="method-specific-results" />
