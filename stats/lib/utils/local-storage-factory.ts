@@ -47,7 +47,7 @@ export function createLocalStorageIO(tag: string): LocalStorageIO {
       localStorage.setItem(key, JSON.stringify(value))
     } catch (error) {
       console.warn(`${tag} Failed to write ${key}:`, error)
-      throw new Error(`${tag} Failed to write ${key}`)
+      throw new Error(`${tag} Failed to write ${key}`, { cause: error })
     }
   }
 

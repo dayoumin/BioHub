@@ -62,7 +62,7 @@ export function CategoryBrowser({ categories, onMethodSelect, searchable = true 
               'w-full pl-10 pr-4 py-2.5 rounded-xl text-sm',
               'border border-border bg-card',
               'placeholder:text-muted-foreground/60',
-              focusRing,
+              focusRing, 'focus-visible:border-primary/50',
             )}
             data-testid="category-browser-search"
           />

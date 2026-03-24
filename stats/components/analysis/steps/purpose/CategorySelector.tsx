@@ -129,7 +129,7 @@ export const CategorySelector = memo(function CategorySelector({
               disabled={disabled}
               className={cn(
                 'relative p-6 rounded-xl border-2 text-left transition-colors',
-                focusRing,
+                focusRing, 'focus-visible:ring-offset-2',
                 disabled
                   ? 'opacity-50 cursor-not-allowed'
                   : 'cursor-pointer hover:border-primary/50 hover:shadow-lg',

@@ -146,8 +146,7 @@ export function useLeveneTest(
         logger.warn('Levene test failed in Step 1', { error: err })
         if (!cancelled) setResult(null)
       } finally {
-        // cancelled 여부와 무관하게 isLoading 리셋 — cleanup 대신 여기서 처리
-        setIsLoading(false)
+        if (!cancelled) setIsLoading(false)
       }
     }
 

@@ -146,7 +146,7 @@ export const SubcategorySelector = memo(function SubcategorySelector({
                 disabled={disabled}
                 className={cn(
                   'w-full p-4 rounded-lg border text-left transition-colors',
-                  focusRing,
+                  focusRing, 'focus-visible:ring-offset-2',
                   disabled
                     ? 'opacity-50 cursor-not-allowed'
                     : 'cursor-pointer hover:border-primary/50 hover:bg-accent/30',

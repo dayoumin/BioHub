@@ -111,7 +111,7 @@ export function ConversationalQuestion({
               className={cn(
                 'w-full group relative flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-all duration-200',
                 'hover:border-primary/50 hover:bg-accent/30 hover:shadow-sm',
-                focusRing,
+                focusRing, 'focus-visible:ring-offset-2',
                 isSelected
                   ? 'border-primary bg-primary/5 shadow-sm'
                   : isAISuggested

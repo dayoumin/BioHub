@@ -184,7 +184,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
             'rounded-2xl bg-muted/40 text-sm',
             'border border-border/60',
             'shadow-sm',
-            focusRing,
+            focusRing, 'focus-visible:border-primary/40',
             'transition-all duration-200'
           )}
           disabled={disabled || isLoading}
