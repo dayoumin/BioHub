@@ -639,6 +639,37 @@ export interface DataExplorationText {
     title: string
     description: string
   }
+  /** 요약 배지 바 */
+  badgeBar: {
+    rows: string
+    cols: string
+    numeric: string
+    categorical: string
+    missing: string
+    outlier: string
+  }
+  /** 요약 카드 대시보드 */
+  summaryCards: {
+    ariaLabel: string
+    overview: string
+    descriptive: string
+    distribution: string
+    correlation: string
+    rowsCols: (rows: number, cols: number) => string
+    numericCategorical: (n: number, c: number) => string
+    missingCount: (n: number) => string
+    variables: (n: number) => string
+    outlierCount: (n: number) => string
+    noOutliers: string
+    normalitySummary: (pass: number, fail: number) => string
+    normalityTesting: string
+    homogeneityTesting: string
+    homogeneityPass: string
+    homogeneityFail: string
+    maxCorrelation: (r: string) => string
+    strongPairs: (n: number) => string
+    needsTwoNumeric: string
+  }
   /** 지원 기능 카드 */
   features: {
     descriptiveTitle: string

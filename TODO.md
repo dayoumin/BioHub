@@ -102,7 +102,7 @@ These items should be the current focus.
 - ~~`[analysis]` NMDS/PERMANOVA `beta_diversity` pre-step에 `isAnalyzing` 미설정~~ — 완료 (hook에 `setIsAnalyzing` 노출 + 페이지에서 pre-step 감싸기)
 - ~~`[analysis]` Worker 번호 하드코딩~~ — 완료 (`use-levene-test.ts:133` `3` → `PyodideWorker.NonparametricAnova`. 나머지는 이미 enum 사용)
 - ~~`[ux]` SummaryCard focusRing 누락~~ — 완료 (`focusRing` import + className 추가)
-- `[ux]` Step 1 카드 대시보드: 하드코딩 한글 → terminology 시스템 등록. 카드 제목 4개 + 카드 내용 텍스트 + 배지 바 라벨 (`숫자`/`범주`/`결측`/`이상치`/`rows`/`cols`). `DataExplorationText` 인터페이스에 `summaryCards` 섹션 추가 필요.
+- ~~`[ux]` Step 1 카드 대시보드: 하드코딩 한글 → terminology 시스템 등록~~ — 완료 (`badgeBar` + `summaryCards` 섹션 추가, aquaculture/generic 양쪽 등록)
 
 **순차 처리 (설계 필요):**
 - `[analysis]` Hub Chat 데이터 컨텍스트 token 낭비 — validationResults 전체 전달. intent별 경량화 필요.

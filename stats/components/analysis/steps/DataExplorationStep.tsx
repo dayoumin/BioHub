@@ -370,10 +370,10 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
         {/* 행/열 배지 */}
         <Badge variant="secondary" className="text-xs font-mono tabular-nums gap-1">
-          {data.length} rows
+          {data.length} {t.dataExploration.badgeBar.rows}
         </Badge>
         <Badge variant="secondary" className="text-xs font-mono tabular-nums gap-1">
-          {columnCount} cols
+          {columnCount} {t.dataExploration.badgeBar.cols}
         </Badge>
 
         {/* 구분선 */}
@@ -381,16 +381,16 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
         {/* 변수 타입 배지 */}
         <Badge variant="outline" className="text-xs gap-1 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/30">
-          <span className="font-mono">{numericVariables.length}</span> 숫자
+          <span className="font-mono">{numericVariables.length}</span> {t.dataExploration.badgeBar.numeric}
         </Badge>
         <Badge variant="outline" className="text-xs gap-1 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/30">
-          <span className="font-mono">{categoricalVariables.length}</span> 범주
+          <span className="font-mono">{categoricalVariables.length}</span> {t.dataExploration.badgeBar.categorical}
         </Badge>
 
         {/* 결측치 (있을 때만) */}
         {missingCount > 0 && (
           <Badge variant="outline" className="text-xs gap-1 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30">
-            결측 <span className="font-mono">{missingCount}</span>
+            {t.dataExploration.badgeBar.missing} <span className="font-mono">{missingCount}</span>
           </Badge>
         )}
 
@@ -405,7 +405,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedCard('descriptive') } }}
           >
             <AlertTriangle className="h-3 w-3" />
-            이상치 <span className="font-mono">{totalOutlierCount}</span>
+            {t.dataExploration.badgeBar.outlier} <span className="font-mono">{totalOutlierCount}</span>
           </Badge>
         )}
 
@@ -438,56 +438,56 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       )}
 
       {/* ── 요약 카드 대시보드 ── */}
-      <div className="flex flex-wrap gap-3" role="group" aria-label="데이터 탐색 카드">
+      <div className="flex flex-wrap gap-3" role="group" aria-label={t.dataExploration.summaryCards.ariaLabel}>
         <SummaryCard
           id="overview"
           icon={Table2}
-          title="데이터 미리보기"
+          title={t.dataExploration.summaryCards.overview}
           selected={selectedCard === 'overview'}
           visibility={cardVisibility.overview}
           onClick={setSelectedCard}
         >
-          <p>{data.length}행 × {columnCount}열</p>
-          <p>숫자 {numericVariables.length} · 범주 {categoricalVariables.length}</p>
-          {missingCount > 0 && <p className="text-amber-600">결측 {missingCount}건</p>}
+          <p>{t.dataExploration.summaryCards.rowsCols(data.length, columnCount)}</p>
+          <p>{t.dataExploration.summaryCards.numericCategorical(numericVariables.length, categoricalVariables.length)}</p>
+          {missingCount > 0 && <p className="text-amber-600">{t.dataExploration.summaryCards.missingCount(missingCount)}</p>}
         </SummaryCard>
 
         <SummaryCard
           id="descriptive"
           icon={ListOrdered}
-          title="기초통계"
+          title={t.dataExploration.summaryCards.descriptive}
           selected={selectedCard === 'descriptive'}
           visibility={cardVisibility.descriptive}
           onClick={setSelectedCard}
         >
-          <p>{numericDistributions.length} 변수</p>
-          {totalOutlierCount > 0 && <p className="text-amber-600">⚠ 이상치 {totalOutlierCount}건</p>}
-          {totalOutlierCount === 0 && <p>이상치 없음</p>}
+          <p>{t.dataExploration.summaryCards.variables(numericDistributions.length)}</p>
+          {totalOutlierCount > 0 && <p className="text-amber-600">{t.dataExploration.summaryCards.outlierCount(totalOutlierCount)}</p>}
+          {totalOutlierCount === 0 && <p>{t.dataExploration.summaryCards.noOutliers}</p>}
         </SummaryCard>
 
         <SummaryCard
           id="distribution"
           icon={BarChart3}
-          title="분포 & 검정"
+          title={t.dataExploration.summaryCards.distribution}
           selected={selectedCard === 'distribution'}
           visibility={cardVisibility.distribution}
           onClick={setSelectedCard}
         >
           {normalitySummary.normal + normalitySummary.nonNormal > 0 ? (
-            <p>정규 ✓{normalitySummary.normal} ✗{normalitySummary.nonNormal}</p>
+            <p>{t.dataExploration.summaryCards.normalitySummary(normalitySummary.normal, normalitySummary.nonNormal)}</p>
           ) : (
-            <p>정규성 검정 중...</p>
+            <p>{t.dataExploration.summaryCards.normalityTesting}</p>
           )}
-          {levene.isLoading && <p>등분산 검정 중...</p>}
+          {levene.isLoading && <p>{t.dataExploration.summaryCards.homogeneityTesting}</p>}
           {levene.result && (
-            <p>등분산 {levene.result.equalVariance ? '✓' : '✗'}</p>
+            <p>{levene.result.equalVariance ? t.dataExploration.summaryCards.homogeneityPass : t.dataExploration.summaryCards.homogeneityFail}</p>
           )}
         </SummaryCard>
 
         <SummaryCard
           id="correlation"
           icon={TrendingUp}
-          title="변수 간 관계"
+          title={t.dataExploration.summaryCards.correlation}
           selected={selectedCard === 'correlation'}
           visibility={cardVisibility.correlation}
           disabled={numericVariables.length < 2}
@@ -495,11 +495,11 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         >
           {correlationSummary ? (
             <>
-              <p>최대 r = {Math.abs(correlationSummary.maxR).toFixed(2)}</p>
-              <p>강한 상관 {correlationSummary.significantCount}쌍</p>
+              <p>{t.dataExploration.summaryCards.maxCorrelation(Math.abs(correlationSummary.maxR).toFixed(2))}</p>
+              <p>{t.dataExploration.summaryCards.strongPairs(correlationSummary.significantCount)}</p>
             </>
           ) : (
-            <p>수치형 변수 2개 이상 필요</p>
+            <p>{t.dataExploration.summaryCards.needsTwoNumeric}</p>
           )}
         </SummaryCard>
       </div>
