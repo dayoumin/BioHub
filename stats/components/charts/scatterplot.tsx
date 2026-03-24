@@ -66,18 +66,26 @@ export const Scatterplot = memo(function Scatterplot({
 }: ScatterplotProps) {
   const dotColor = color ?? STAT_COLORS[0]
 
-  const { trendLine, xRange } = useMemo(() => {
+  const { trendLine, xExtent, meanX, meanY } = useMemo(() => {
     if (data.length === 0) {
-      return { trendLine: null, xRange: [0, 1] as [number, number] }
+      return { trendLine: null, xExtent: [0, 1] as [number, number], meanX: 0, meanY: 0 }
     }
 
     const trendLine = showTrendLine ? calculateTrendLine(data) : null
-    const xRange: [number, number] = [
-      data.reduce((min, p) => Math.min(min, p.x), Infinity),
-      data.reduce((max, p) => Math.max(max, p.x), -Infinity),
-    ]
+    let xMin = Infinity, xMax = -Infinity, sumX = 0, sumY = 0
+    for (const p of data) {
+      if (p.x < xMin) xMin = p.x
+      if (p.x > xMax) xMax = p.x
+      sumX += p.x
+      sumY += p.y
+    }
 
-    return { trendLine, xRange }
+    return {
+      trendLine,
+      xExtent: [xMin, xMax] as [number, number],
+      meanX: sumX / data.length,
+      meanY: sumY / data.length,
+    }
   }, [data, showTrendLine])
 
   const chartOption = useMemo((): EChartsOption => {
@@ -96,12 +104,12 @@ export const Scatterplot = memo(function Scatterplot({
       } as Record<string, unknown>,
     ]
 
-    // 추세선
+    // 추세선 (실제 데이터 범위만 — 외삽 방지)
     if (showTrendLine && trendLine && data.length >= 2) {
       const { slope, intercept } = trendLine
       const trendData = [
-        [xRange[0], slope * xRange[0] + intercept],
-        [xRange[1], slope * xRange[1] + intercept],
+        [xExtent[0], slope * xExtent[0] + intercept],
+        [xExtent[1], slope * xExtent[1] + intercept],
       ]
       series.push({
         name: '추세선',
@@ -115,8 +123,8 @@ export const Scatterplot = memo(function Scatterplot({
 
     return {
       ...statBaseOption(),
-      xAxis: { ...statValueAxis(xAxisLabel), type: 'value' as const },
-      yAxis: { ...statValueAxis(yAxisLabel), name: yAxisLabel },
+      xAxis: { ...statValueAxis(xAxisLabel), type: 'value' as const, scale: true },
+      yAxis: { ...statValueAxis(yAxisLabel), name: yAxisLabel, scale: true },
       series,
       tooltip: statTooltip({
         formatter(params: unknown) {
@@ -131,7 +139,7 @@ export const Scatterplot = memo(function Scatterplot({
         feature: { saveAsImage: { title: 'PNG 저장', pixelRatio: 2 } },
       },
     }
-  }, [data, dotColor, showTrendLine, trendLine, xRange, xAxisLabel, yAxisLabel])
+  }, [data, dotColor, showTrendLine, trendLine, xExtent, xAxisLabel, yAxisLabel])
 
   if (data.length === 0) {
     return (
@@ -185,11 +193,11 @@ export const Scatterplot = memo(function Scatterplot({
             <div className="text-sm space-y-1">
               <div>
                 <span className="text-muted-foreground">{xAxisLabel}: </span>
-                <span>평균 {(data.reduce((sum, p) => sum + p.x, 0) / data.length).toFixed(3)}</span>
+                <span>평균 {meanX.toFixed(3)}</span>
               </div>
               <div>
                 <span className="text-muted-foreground">{yAxisLabel}: </span>
-                <span>평균 {(data.reduce((sum, p) => sum + p.y, 0) / data.length).toFixed(3)}</span>
+                <span>평균 {meanY.toFixed(3)}</span>
               </div>
               <div>
                 <span className="text-muted-foreground">데이터 포인트: </span>

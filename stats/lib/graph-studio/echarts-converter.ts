@@ -1121,10 +1121,11 @@ function buildFacetOption(
     // x축/y축: 차트 유형 + orientation에 따라 결정
     const isHFacet = isBarFacet && spec.orientation === 'horizontal';
     if (spec.chartType === 'scatter') {
-      // scatter: value 축 + shareAxis 시 x 범위 공유
+      // scatter: value 축 + shareAxis 시 x 범위 공유 + scale:true로 0 강제 포함 방지
       xAxes.push({
         gridIndex: i,
         type: 'value',
+        scale: true,
         name: i >= groups.size - layout.cols ? xField : undefined,
         nameLocation: 'middle' as const,
         nameGap: 24,
@@ -1139,6 +1140,7 @@ function buildFacetOption(
       yAxes.push({
         gridIndex: i,
         type: facetYAxisType,
+        scale: true,
         axisLabel: {
           fontFamily: style.fontFamily,
           fontSize: style.labelSize,
@@ -1643,8 +1645,8 @@ export function chartSpecToECharts(
         ...base,
         tooltip: { trigger: 'item' },
         legend: buildLegend(spec, style),
-        xAxis: { ...xAxisBase(spec, style, 'value') },
-        yAxis: yAxisBase(spec, style),
+        xAxis: { ...xAxisBase(spec, style, 'value'), scale: true },
+        yAxis: { ...yAxisBase(spec, style), scale: true },
         series: scatterSeries,
       }, spec.annotations, spec.orientation);
     }
@@ -1665,8 +1667,8 @@ export function chartSpecToECharts(
       return applyMarkLineAnnotations({
         ...base,
         tooltip: { trigger: 'item' },
-        xAxis: { ...xAxisBase(spec, style, 'value') },
-        yAxis: yAxisBase(spec, style),
+        xAxis: { ...xAxisBase(spec, style, 'value'), scale: true },
+        yAxis: { ...yAxisBase(spec, style), scale: true },
         dataset: { source: workRows },
         series: [{ type: 'scatter', encode: { x: xField, y: yField }, name: yField }],
       }, spec.annotations, spec.orientation);
@@ -1674,8 +1676,8 @@ export function chartSpecToECharts(
     return applyMarkLineAnnotations({
       ...base,
       tooltip: { trigger: 'item' },
-      xAxis: { ...xAxisBase(spec, style, 'value') },
-      yAxis: yAxisBase(spec, style),
+      xAxis: { ...xAxisBase(spec, style, 'value'), scale: true },
+      yAxis: { ...yAxisBase(spec, style), scale: true },
       dataset: { source: workRows },
       series: simpleSeries,
     }, spec.annotations, spec.orientation);
