@@ -116,7 +116,7 @@ These should start after the current foundation is in place.
 - `[review]` Design reviewer simulator inputs and output schema.
 - `[domain]` Connect species and legal status outputs into manuscript and review flows.
 - `[trust]` Add user-facing evidence cards to major AI-assisted outputs.
-- `[trust]` `requestInterpretation()` 반환 타입에 `provider` 추가 — 현재 `model`만 반환, `LlmStreamResult`에는 둘 다 있음. evidence 완전성을 위해 필요.
+- ~~`[trust]` `requestInterpretation()` 반환 타입에 `provider` 추가~~ — 완료 (`result-interpreter.ts` 반환에 `provider: LlmProvider` 추가, 호출부는 forward-compatible)
 - `[quality]` Graph Studio localStorage quota 정책 — 현재 무제한 저장, evidence 추가 시 터짐 위험. MAX_GRAPH_PROJECTS + 자동 정리 필요.
 - ~~`[ux]` ResultsActionStep.test.tsx TDZ 에러~~ — 해결됨 (useEffect 위치 이동)
 - `[ux]` AI 해석 실패 graceful degradation (`useErrorRecovery` 활용)
@@ -124,14 +124,16 @@ These should start after the current foundation is in place.
 - ~~`[test]` `PurposeInputStep.test.tsx` 3건 실패~~ — 수정 완료 (mock 누락 `progressiveCategoryData`/`decisionTree`/`flowStateMachine` 추가 + stale testid 수정)
 - ~~`[test]` `g5-review-fixes.test.ts` 1건 실패~~ — 수정 완료 (파일 경로 `page.tsx` → `GraphStudioContent.tsx`)
 - ~~`[ux]` HistorySidebar 빈 상태 레이아웃 점프~~ — 수정 완료 (빈 상태 플레이스홀더 + 접기/펴기 토글 + 폰트 크기 조정)
-- `[test]` `use-analysis-handlers.test.ts` tsc 에러 2건 — 기존 미수정
-- `[test]` `graph-studio-store.test.ts` 전체 suite 실행 시 1건 실패 (단독 52/52 통과) — 테스트 순서 의존성
-- `[quality]` `graph-studio/project-storage.ts`와 `research/project-storage.ts`의 `isClient()`·read/write 패턴 중복 — 저장소 추가 시 공통 팩토리 검토
+- ~~`[test]` `use-analysis-handlers.test.ts` tsc 에러 2건~~ — 확인 결과 이미 수정됨 (0 에러, 9 테스트 통과)
+- ~~`[test]` `graph-studio-store.test.ts` 전체 suite 실행 시 1건 실패~~ — 수정 완료 (beforeEach에 vi.restoreAllMocks + localStorage.clear 추가)
+- ~~`[quality]` `graph-studio/project-storage.ts`와 `research/project-storage.ts`의 `isClient()`·read/write 패턴 중복~~ — 완료 (`createLocalStorageIO()` 공통 팩토리 추출, 2파일 적용)
 - ~~`[quality]` `formatRelativeTime` 중복 4곳 → `formatTimeAgo` 공유 유틸로 교체~~ — 완료 (SessionItem, TemplateSelector, TemplateManagePanel, DataUploadStep → `format-time.ts`)
-- `[ux]` 접근성 focus ring 통일 (`focusRing` 상수 → 기존 5곳 점진 교체)
+- ~~`[ux]` 접근성 focus ring 통일~~ — 완료 (9곳 → `focusRing` 상수 통일 + 버튼류 ring-offset + 인풋류 border 복원)
 - `[ux]` 토스트 메시지 기존 19곳 점진적 `TOAST.*` 마이그레이션
 - `[ux]` ChatBubble 공통 컴포넌트 추출
-- `[ux]` paper-draft/PaperDraftPanel.tsx 데드 코드 삭제
+- ~~`[ux]` paper-draft/PaperDraftPanel.tsx 데드 코드 삭제~~ — 감사 결과 클린 (내부 함수/변수/분기 모두 사용 중)
+- `[quality]` `createLocalStorageIO` 추가 적용 — `pinned-history-storage`, `recent-statistics`, `style-template-storage`, `analysis-history`, `entity-tab-registry` (5곳 점진적)
+- `[ux]` SummaryCard focusRing 누락 — `role="button"` + `tabIndex={0}` 요소에 focus ring 없음 (접근성)
 - ~~`[quality]` `barcoding/page.tsx` 에러 분기가 한국어 문자열 `includes()` 매칭 → 에러 코드 기반으로 전환~~ — 완료 (`BlastErrorCode` 타입 도입)
 - ~~`[quality]` `session-sorter.ts` `sortSessionsByFavoriteAndRecent`가 `.sort()` in-place mutation → `[...sessions].sort()` 방어적 복사로 변경~~ — 완료
 - ~~`[quality]` `NextAction.type` 미사용 필드 제거~~ — 완료 (인터페이스 + 할당 10곳 정리)
