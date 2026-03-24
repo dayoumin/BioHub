@@ -44,6 +44,12 @@ export async function parseFile(file: File): Promise<ParsedFileData> {
   return { columns, data };
 }
 
+/** BOM(U+FEFF) 제거 + trim */
+function stripBom(header: string): string {
+  const s = header.charCodeAt(0) === 0xFEFF ? header.slice(1) : header;
+  return s.trim();
+}
+
 function parseCsv(file: File, isTsv: boolean): Promise<Record<string, unknown>[]> {
   return new Promise((resolve, reject) => {
     Papa.parse<Record<string, unknown>>(file, {
@@ -51,6 +57,8 @@ function parseCsv(file: File, isTsv: boolean): Promise<Record<string, unknown>[]
       dynamicTyping: true,
       skipEmptyLines: true,
       delimiter: isTsv ? '\t' : ',',
+      encoding: 'UTF-8',
+      transformHeader: stripBom,
       complete: (results) => {
         if (results.errors.length > 0) {
           reject(new Error(`CSV 파싱 오류: ${results.errors[0].message}`));
@@ -75,6 +83,7 @@ export function parseText(text: string): ParsedFileData {
     dynamicTyping: true,
     skipEmptyLines: true,
     delimiter,
+    transformHeader: stripBom,
   });
 
   if (result.errors.length > 0) {

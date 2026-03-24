@@ -94,7 +94,10 @@ export function parseCSVFile(file: File): Promise<ParsedData> {
       skipEmptyLines: true,
       dynamicTyping: true,
       encoding: 'UTF-8', // UTF-8 인코딩 명시
-      transformHeader: (header: string) => header.trim(),
+      transformHeader: (header: string) => {
+        const s = header.charCodeAt(0) === 0xFEFF ? header.slice(1) : header;
+        return s.trim();
+      },
       complete: (results) => {
         const errors: string[] = []
         

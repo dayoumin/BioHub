@@ -448,9 +448,12 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
                 </p>
               )}
 
-              {/* 에러 표시 */}
+              {/* 에러 표시 + ECharts 대체 안내 */}
               {mplError && (
-                <p className="text-xs text-destructive">{mplError}</p>
+                <div className="text-xs space-y-1.5 bg-destructive/5 border border-destructive/20 rounded-md p-2.5">
+                  <p className="text-destructive font-medium">{mplError}</p>
+                  <p className="text-muted-foreground">일반 내보내기(SVG/PNG)로 대신 다운로드할 수 있습니다. 위 &quot;일반 내보내기&quot; 섹션을 이용해주세요.</p>
+                </div>
               )}
 
               {/* 미지원 옵션 경고 (export 완료 후에도 유지) */}

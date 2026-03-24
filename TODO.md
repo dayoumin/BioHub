@@ -114,8 +114,8 @@ These items should be the current focus.
 ### 3-B. 그래프 (Graph Studio)
 
 **병렬 처리 가능:**
-- `[graph]` CSV BOM/인코딩 자동 감지 없음 — Excel→CSV BOM 포함 시 첫 열 이름 깨짐. (`file-parser.ts:47`)
-- `[graph]` matplotlib export 에러 시 ECharts 대체 안내 없음
+- ~~`[graph]` CSV BOM/인코딩 자동 감지 없음~~ — 완료 (`stripBom` + `transformHeader` + `encoding: UTF-8` 적용: file-parser 2곳, data-processing 1곳)
+- ~~`[graph]` matplotlib export 에러 시 ECharts 대체 안내 없음~~ — 완료 (ExportDialog 에러 시 일반 내보내기 안내 표시)
 
 **순차 처리:**
 - `[graph]` localStorage quota 정책 — 현재 무제한 저장, evidence 추가 시 터짐 위험. MAX_GRAPH_PROJECTS + 자동 정리 필요.
