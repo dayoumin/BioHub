@@ -90,6 +90,8 @@ Includes:
 - project history and context continuity
 - project context propagation across pages
 - project-level organization and export
+- **sample research project**: 내장 데모 연구과제 1개 (통계 분석 + Graph Studio 그래프 + 유전적 분석 + 결과 정리가 모두 포함된 완성된 예시). 신규 사용자가 "연구과제가 뭔지" 바로 이해할 수 있도록 함
+- UI 용어: "프로젝트" → "연구과제" (PLAN-PROJECT-UX-IMPROVEMENT.md 참조)
 
 ### Stream 3. Domain Intelligence
 

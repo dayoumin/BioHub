@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -34,6 +34,7 @@ import {
   useResearchProjectStore,
   selectActiveProject,
 } from '@/lib/stores/research-project-store'
+import { listProjectEntityRefs } from '@/lib/research/project-storage'
 
 /** 사이드바 접힐 때 텍스트가 즉시 사라지도록 (width 애니메이션 도중 잔상 방지) */
 const textClass = (expanded: boolean) =>
@@ -52,7 +53,6 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: '/', label: '홈', icon: Home },
-  { href: '/projects', label: '연구 프로젝트', icon: FolderKanban, prefix: '/projects' },
   { href: '/graph-studio', label: 'Graph Studio', icon: AreaChart, prefix: '/graph-studio' },
   { href: '/bio-tools', label: 'Bio-Tools', icon: Dna, prefix: '/bio-tools' },
   { href: '/genetics', label: '유전적 분석', icon: FlaskConical, prefix: '/genetics' },
@@ -89,6 +89,17 @@ export function AppSidebar() {
   }, [refreshProjects])
 
   const availableProjects = projects.filter(p => p.status === 'active')
+
+  /** 연구과제별 엔티티 수 — localStorage 1회 읽기로 전체 집계 */
+  const refCountMap = useMemo(() => {
+    if (availableProjects.length === 0) return new Map<string, number>()
+    const allRefs = listProjectEntityRefs()
+    const counts = new Map<string, number>()
+    for (const ref of allRefs) {
+      counts.set(ref.projectId, (counts.get(ref.projectId) ?? 0) + 1)
+    }
+    return counts
+  }, [availableProjects])
 
   /** 네비게이션 클릭 핸들러:
    *  - 홈 클릭 시 showHub=true로 리셋 (ChatCentricHub 표시)
@@ -163,8 +174,13 @@ export function AppSidebar() {
         </span>
       </div>
 
-      {/* 프로젝트 전환기 */}
-      <div className="flex-shrink-0 px-1.5 pt-2 pb-2 border-b border-sidebar-border/50">
+      {/* 연구과제 전환기 — 배경색 + 라벨로 메뉴와 시각 구분 */}
+      <div className="flex-shrink-0 px-1.5 pt-1.5 pb-2 border-b border-sidebar-border/50 bg-sidebar-accent/30">
+        {expanded && (
+          <span className="block text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-wider px-2 mb-1">
+            연구과제
+          </span>
+        )}
         <DropdownMenu>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -172,15 +188,19 @@ export function AppSidebar() {
                 <button
                   className={cn(
                     'flex items-center gap-1.5 w-full h-8 px-2 rounded-md text-xs transition-colors',
-                    'border border-sidebar-border/60 hover:bg-sidebar-accent/60',
+                    'hover:bg-sidebar-accent/60',
                     activeProject
-                      ? 'text-sidebar-foreground'
-                      : 'text-sidebar-foreground/50',
+                      ? 'border border-primary/40 bg-primary/5 text-sidebar-foreground border-l-[3px] border-l-primary'
+                      : 'border border-sidebar-border/60 text-sidebar-foreground/50',
                   )}
                 >
-                  <FolderKanban className="h-3.5 w-3.5 flex-shrink-0" />
-                  <span className={cn('flex-1 truncate text-left', textClass(expanded))}>
-                    {activeProject?.name ?? '프로젝트 없음'}
+                  {activeProject?.presentation?.emoji ? (
+                    <span className="text-sm flex-shrink-0">{activeProject.presentation.emoji}</span>
+                  ) : (
+                    <FolderKanban className="h-3.5 w-3.5 flex-shrink-0" />
+                  )}
+                  <span className={cn('flex-1 truncate text-left', activeProject && 'font-medium', textClass(expanded))}>
+                    {activeProject?.name ?? '개별 작업 중'}
                   </span>
                   <ChevronDown className={cn('h-3 w-3 flex-shrink-0', textClass(expanded))} />
                 </button>
@@ -188,48 +208,75 @@ export function AppSidebar() {
             </TooltipTrigger>
             {!expanded && (
               <TooltipContent side="right">
-                {activeProject ? `프로젝트: ${activeProject.name}` : '프로젝트 없음'}
+                {activeProject ? `연구과제: ${activeProject.name}` : '개별 작업 중'}
               </TooltipContent>
             )}
           </Tooltip>
-          <DropdownMenuContent align="start" className="w-52">
+          <DropdownMenuContent align="start" className="w-56">
             {availableProjects.length === 0 ? (
-              <DropdownMenuItem disabled className="text-xs text-muted-foreground">
-                프로젝트가 없습니다
-              </DropdownMenuItem>
-            ) : (
-              availableProjects.map(p => (
-                <DropdownMenuItem
-                  key={p.id}
-                  onClick={() => {
-                    setActiveProject(p.id)
-                    toast.success(`'${p.name}' 활성화`)
-                  }}
-                  className={cn(
-                    'text-xs',
-                    activeProject?.id === p.id && 'bg-accent',
-                  )}
+              <div className="px-3 py-4 text-center">
+                <p className="text-xs text-muted-foreground mb-2">
+                  연구과제를 만들면 분석·그래프·BLAST 결과를 한곳에 모아 관리할 수 있어요
+                </p>
+                <Link
+                  href="/projects"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                 >
-                  {p.presentation?.emoji && (
-                    <span className="mr-1.5">{p.presentation.emoji}</span>
-                  )}
-                  <span className="truncate">{p.name}</span>
-                </DropdownMenuItem>
-              ))
+                  <Plus className="h-3 w-3" />
+                  첫 연구과제 만들기
+                </Link>
+              </div>
+            ) : (
+              <>
+                <div className="px-2 pt-1.5 pb-1">
+                  <span className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">
+                    연구과제 전환
+                  </span>
+                </div>
+                {availableProjects.map(p => {
+                  const refCount = refCountMap.get(p.id) ?? 0
+                  return (
+                    <DropdownMenuItem
+                      key={p.id}
+                      onClick={() => {
+                        setActiveProject(p.id)
+                        toast.success(`'${p.name}' 활성화`)
+                      }}
+                      className={cn(
+                        'text-xs',
+                        activeProject?.id === p.id && 'bg-accent',
+                      )}
+                    >
+                      {p.presentation?.emoji ? (
+                        <span className="mr-1.5">{p.presentation.emoji}</span>
+                      ) : (
+                        <FolderKanban className="mr-1.5 h-3.5 w-3.5" />
+                      )}
+                      <span className="flex-1 truncate">{p.name}</span>
+                      {refCount > 0 && (
+                        <span className="ml-auto text-[10px] text-muted-foreground/50">{refCount}개</span>
+                      )}
+                      {activeProject?.id === p.id && (
+                        <span className="ml-1 text-primary font-bold">✓</span>
+                      )}
+                    </DropdownMenuItem>
+                  )
+                })}
+              </>
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => clearActiveProject()}
-              disabled={!activeProject}
-              className="text-xs text-muted-foreground"
-            >
-              프로젝트 해제
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
+            {activeProject && (
+              <DropdownMenuItem
+                onClick={() => clearActiveProject()}
+                className="text-xs text-muted-foreground"
+              >
+                개별 작업으로 전환
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem asChild className="text-xs">
               <Link href="/projects">
-                <Plus className="mr-1.5 h-3 w-3" />
-                새 프로젝트
+                <Settings className="mr-1.5 h-3 w-3" />
+                연구과제 관리
               </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
