@@ -30,13 +30,14 @@ export function ProjectHeader({ project, totalCount, onBack }: ProjectHeaderProp
     toast.success('프로젝트 이름이 변경되었습니다')
   }, [editName, project.id, updateProject])
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSave()
-    if (e.key === 'Escape') {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+      e.currentTarget.blur()
+    } else if (e.key === 'Escape') {
       setEditName(project.name)
       setIsEditing(false)
     }
-  }, [handleSave, project.name])
+  }, [project.name])
 
   return (
     <>

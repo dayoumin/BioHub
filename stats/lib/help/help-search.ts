@@ -108,19 +108,7 @@ export function searchHelp(query: string, limit = 10): HelpSearchResult[] {
     .slice(0, limit)
 }
 
-/**
- * HTML 특수문자 이스케이프
- */
-function escapeHtml(text: string): string {
-  const htmlEscapeMap: Record<string, string> = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
-  }
-  return text.replace(/[&<>"']/g, (char) => htmlEscapeMap[char] || char)
-}
+import { escapeHtml } from '@/lib/utils/html-escape'
 
 /**
  * 검색어 하이라이트 (HTML 반환)

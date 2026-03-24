@@ -120,12 +120,19 @@ These items should be the current focus.
 **순차 처리:**
 - `[graph]` localStorage quota 정책 — 현재 무제한 저장, evidence 추가 시 터짐 위험. MAX_GRAPH_PROJECTS + 자동 정리 필요.
 
-### 3-C. 공통 품질/UX
+### 3-C. UI 일관성 통일 — [PLAN-UI-CONSISTENCY.md](stats/docs/PLAN-UI-CONSISTENCY.md)
+
+**Phase 1~3 순차:**
+- `[ux]` Phase 1: Shell 통일 — 헤더(bg/sticky/h-12) + `max-w-7xl` + 배경 틴트 + BioToolsHub 헤더 추가
+- `[ux]` Phase 2: Upload 통일 — BioCsvUpload → UploadDropZone 시각 채택
+- `[ux]` Phase 3: Bio 페이지 일괄 — Combobox(컬럼)/Select(단순) + 테이블 bg 토큰 + 유의성 배지 토큰 + Loader2 스피너 + scrollIntoView + 에러 박스 + 다크모드 검증
+
+### 3-D. 공통 품질/UX
 
 **병렬 처리 가능:**
-- `[quality]` `escapeHtml` 중복 3곳 → 공유 `@/lib/utils/html-escape` 통합 (`open-data-window.ts`, `help-search.ts`, `html-export.ts`)
-- `[quality]` `markdownToSimpleHtml` negative lookbehind — Safari < 16.4 미지원 가능성. 구조적 접근으로 교체 검토
-- `[ux]` ProjectHeader onBlur+Enter 이중 save → 이중 토스트 (`ProjectHeader.tsx:73`)
+- ~~`[quality]` `escapeHtml` 중복 3곳 → 공유 `@/lib/utils/html-escape` 통합~~ — 완료 (open-data-window, help-search, html-export → 공유 모듈 import)
+- ~~`[quality]` `markdownToSimpleHtml` negative lookbehind~~ — 확인 결과 lookbehind 패턴 없음 (이미 해결 또는 오기재)
+- ~~`[ux]` ProjectHeader onBlur+Enter 이중 save → 이중 토스트~~ — 완료 (Enter→`e.currentTarget.blur()` 패턴으로 단일 이벤트 보장)
 
 **순차 처리:**
 - `[quality]` `createLocalStorageIO` 추가 적용 — `pinned-history-storage`, `recent-statistics`, `style-template-storage`, `analysis-history`, `entity-tab-registry` (5곳 점진적)
@@ -133,7 +140,7 @@ These items should be the current focus.
 - `[ux]` ChatBubble 공통 컴포넌트 추출
 - `[perf]` `ensureUser` INSERT OR IGNORE 매 요청 실행 — KV 캐시 또는 첫 요청만 실행으로 최적화
 
-### 3-D. 기타 (genetics, infra, domain, paper)
+### 3-E. 기타 (genetics, infra, domain, paper)
 
 - `[genetics]` 다중 FASTA 시퀀스 혼합 미감지 — cleanSequence가 >seq1 + >seq2 합침. (`validate-sequence.ts:8`)
 - `[genetics]` deep-link 복원 실패 시 UI 피드백 없음 — ?history= entry.resultData null이면 빈 화면. (`BarcodingContent.tsx:41`)
@@ -162,6 +169,14 @@ These are valid directions, but not current execution priorities.
 - `[paper]` Add stronger project-wide draft synthesis and section merge assistance.
 - `[trust]` Expand reproducible code export to more advanced analysis paths.
 - `[workflow]` Add richer project dashboard and project health summary.
+- `[ux]` 사이드바 IA 재구성 — "홈"에 Analysis가 숨겨져 있어 발견성 낮음, "유전적 분석"이 Bio-Tools 밖에 독립 메뉴, 섹션/기능/예정 레벨 혼재. 네비게이션 계층 재설계 필요.
+- `[ux]` Command Palette (Cmd+K) — 43개 분석 메서드 + 16개 Bio 도구 + Graph Studio 빠른 접근. 검색·탐색 UX 대폭 향상.
+- `[ux]` 키보드 단축키 — `Ctrl+Enter` 분석 실행, `Escape` 뒤로, `Ctrl+S` 저장/내보내기
+- `[ux]` Bio-Tools 결과 내보내기 — 현재 0개. 최소 "테이블 복사" / "CSV 다운로드" 버튼
+- `[ux]` Bio-Tools 샘플 데이터 — Graph Studio처럼 "샘플로 시작" 옵션 (신규 사용자 마찰 감소)
+- `[ux]` Bio-Tools data-testid + aria-label 추가 — E2E 테스트 + 접근성 보강
+- `[ux]` 콘텐츠 밀도 검토 — `py-8 space-y-6`이 전문 도구에 느슨할 수 있음. `py-6 space-y-4` 비교 테스트
+- `[ux]` Bio-Tools 데이터 프리뷰 — 업로드 후 분석 전 5행 미리보기 (Analysis Step 1과 일관)
 - `[ux]` 사이드바 My Menu — 메뉴 항목 순서 이동(드래그) 및 즐겨찾기 고정 기능. 현재 "My Menu (예정)" 플레이스홀더 존재 (`app-sidebar.tsx`).
 - `[quality]` entity-resolver `*Like` 인터페이스 → `Pick<OriginalType, ...>` 전환 — import 순환 해결 후. 현재 수동 동기화 필요.
 - `[quality]` `report-export.ts` blob→download 패턴 → 공통 유틸 `utils/download-file.ts` 추출 검토 — `html-export.ts`에도 동일 패턴 존재

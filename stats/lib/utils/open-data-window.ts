@@ -5,19 +5,7 @@
  * @see docs/DESIGN_SYSTEM_SYNC_RULES.md - Section 6
  */
 
-// HTML escape for XSS prevention
-function escapeHtml(text: string | number | null | undefined): string {
-  if (text == null) return ''
-  const str = String(text)
-  const map: Record<string, string> = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;'
-  }
-  return str.replace(/[&<>"']/g, m => map[m])
-}
+import { escapeHtml } from '@/lib/utils/html-escape'
 
 export interface OpenDataWindowOptions {
   /** 파일명 (타이틀에 표시) */

@@ -10,6 +10,7 @@
 
 import type { NormalizedExportData, ExportResult, ExportRow } from './export-types'
 import { buildFileName, downloadBlob } from './export-data-builder'
+import { escapeHtml } from '@/lib/utils/html-escape'
 
 const STYLE = `
 :root {
@@ -185,16 +186,6 @@ tr:last-child td {
   .no-print { display: none; }
 }
 `
-
-function escapeHtml(input: string | number | null | undefined): string {
-  const text = String(input ?? '')
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
 
 function renderTable(
   headers: string[],
