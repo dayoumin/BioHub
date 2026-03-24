@@ -189,6 +189,7 @@ export interface AnalysisText {
   stepTitles: {
     dataUpload: string
     dataExploration: string
+    dataPreparation: string
     purposeInput: string
     variableSelection: string
     analysisExecution: string

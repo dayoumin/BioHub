@@ -17,7 +17,6 @@ import { useRouter } from 'next/navigation';
 import { useDropzone } from 'react-dropzone';
 import { motion } from 'framer-motion';
 import {
-  Upload,
   FileSpreadsheet,
   Clock,
   Palette,
@@ -26,6 +25,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { UploadDropZoneContent, uploadZoneClassName } from '@/components/common/UploadDropZone';
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store';
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion';
 import { inferColumnMeta } from '@/lib/graph-studio/chart-spec-utils';
@@ -325,12 +325,7 @@ export function DataUploadPanel(): React.ReactElement {
       {/* ── F3: 파일 업로드 + 드래그 + 붙여넣기 존 ──── */}
       <motion.div
         data-testid="graph-studio-upload-zone"
-        className={cn(
-          'border-2 border-dashed rounded-xl px-6 py-5 text-center transition-colors duration-200',
-          isDragActive
-            ? 'border-primary bg-primary/5'
-            : 'border-border hover:border-muted-foreground/40',
-        )}
+        className={cn(uploadZoneClassName(isDragActive, { compact: true }), 'group')}
         {...(prefersReducedMotion ? {} : { variants: staggerItem })}
       >
         <input
@@ -347,25 +342,17 @@ export function DataUploadPanel(): React.ReactElement {
           }}
           disabled={isLoading}
         />
-        <Button
-          variant="outline"
-          className="gap-2 mb-3"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isLoading}
-          data-testid="graph-studio-file-upload-btn"
-        >
-          {isLoading ? (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          ) : (
-            <Upload className="h-4 w-4" />
-          )}
-          {isLoading ? '처리 중...' : '내 파일 업로드'}
-        </Button>
-        <p aria-live="polite" className="text-xs text-muted-foreground">
-          {isDragActive
-            ? '파일을 여기에 놓으세요'
-            : '파일 드래그 또는 엑셀 데이터 Ctrl+V 붙여넣기'}
-        </p>
+        <UploadDropZoneContent
+          isDragActive={isDragActive}
+          isLoading={isLoading}
+          label="파일을 드래그하여 업로드"
+          subtitle="CSV, Excel · 엑셀 데이터 Ctrl+V 붙여넣기"
+          buttonLabel="파일 선택"
+          loadingLabel="처리 중..."
+          onButtonClick={() => fileInputRef.current?.click()}
+          buttonTestId="graph-studio-file-upload-btn"
+          showIcon={false}
+        />
       </motion.div>
 
       {/* 에러 */}

@@ -304,6 +304,18 @@ describe('G2-3-B: Facet rendering', () => {
     expect(series.every(s => s.type === 'scatter')).toBe(true);
   });
 
+  it('scatter + facet → 모든 value 축에 scale=true 적용', () => {
+    const spec = makeFacetSpec({
+      chartType: 'scatter',
+      facet: { field: 'species' },
+    });
+    const option = chartSpecToECharts(spec, FACET_ROWS);
+    const xAxes = option.xAxis as Record<string, unknown>[];
+    const yAxes = option.yAxis as Record<string, unknown>[];
+    expect(xAxes.every(axis => axis.type === 'value' && axis.scale === true)).toBe(true);
+    expect(yAxes.every(axis => axis.type === 'value' && axis.scale === true)).toBe(true);
+  });
+
   it('facet → legend 숨김', () => {
     const spec = makeFacetSpec({
       chartType: 'bar',

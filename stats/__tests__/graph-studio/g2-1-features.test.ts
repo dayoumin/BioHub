@@ -631,6 +631,15 @@ describe('G2-2-C: 산점도 회귀선 (trendline)', () => {
     expect(data.length).toBe(50);
   });
 
+  test('trendline 경로에서도 xAxis/yAxis scale=true 유지', () => {
+    const spec = makeScatterSpec({ trendline: { type: 'linear' } });
+    const option = chartSpecToECharts(spec, SCATTER_ROWS) as Record<string, unknown>;
+    const xAxis = option.xAxis as Record<string, unknown>;
+    const yAxis = option.yAxis as Record<string, unknown>;
+    expect(xAxis.scale).toBe(true);
+    expect(yAxis.scale).toBe(true);
+  });
+
   test('trendline 포인트 — x 범위가 데이터 x 범위와 일치', () => {
     const spec = makeScatterSpec({ trendline: { type: 'linear' } });
     const option = chartSpecToECharts(spec, SCATTER_ROWS) as Record<string, unknown>;

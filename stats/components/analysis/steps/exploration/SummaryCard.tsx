@@ -3,6 +3,7 @@
 import { memo } from 'react'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { focusRing } from '@/components/common/card-styles'
 import type { LucideIcon } from 'lucide-react'
 
 export type CardId = 'overview' | 'descriptive' | 'distribution' | 'correlation'
@@ -47,8 +48,9 @@ export const SummaryCard = memo(function SummaryCard({
       }}
       className={cn(
         'relative cursor-pointer transition-all duration-200 p-3',
+        focusRing,
         'hover:border-primary/40 hover:shadow-sm',
-        selected && 'ring-2 ring-primary border-primary shadow-sm',
+        selected && 'ring-2 ring-primary focus-visible:ring-primary border-primary shadow-sm',
         !selected && 'border-border/40',
         disabled && 'opacity-40 cursor-not-allowed',
         visibility === 'secondary' && 'opacity-60',

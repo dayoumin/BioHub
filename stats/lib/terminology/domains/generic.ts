@@ -137,6 +137,7 @@ export const generic: TerminologyDictionary = {
     stepTitles: {
       dataUpload: 'Data Upload',
       dataExploration: 'Data Exploration',
+      dataPreparation: 'Data Preparation',
       purposeInput: 'Method Selection',
       variableSelection: 'Variable Selection',
       analysisExecution: 'Run Analysis',

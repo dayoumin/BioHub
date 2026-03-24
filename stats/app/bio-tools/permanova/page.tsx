@@ -23,17 +23,15 @@ interface PermanovaResult {
 const tool = getBioToolById('permanova')
 
 export default function PermanovaPage(): React.ReactElement {
-  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, setError, runAnalysis } =
+  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runWithPreStep } =
     useBioToolAnalysis<PermanovaResult>()
   const [groupCol, setGroupCol] = useState<string>('')
 
   const handleAnalyze = useCallback(async () => {
     if (!csvData || !groupCol) return
-    setError(null)
 
-    try {
+    await runWithPreStep(async () => {
       const pyodide = PyodideCoreService.getInstance()
-
       const betaResult = await pyodide.callWorkerMethod<{ distanceMatrix: number[][] }>(
         PyodideWorker.Ecology,
         'beta_diversity',
@@ -42,14 +40,12 @@ export default function PermanovaPage(): React.ReactElement {
 
       const grouping = csvData.rows.map((r) => String(r[groupCol] ?? ''))
 
-      await runAnalysis('permanova', {
+      return {
         distance_matrix: betaResult.distanceMatrix,
         grouping,
-      })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '거리행렬 계산 중 오류가 발생했습니다')
-    }
-  }, [csvData, siteCol, groupCol, setError, runAnalysis])
+      }
+    }, 'permanova')
+  }, [csvData, siteCol, groupCol, runWithPreStep])
 
   const significant = results ? results.pValue < 0.05 : false
 

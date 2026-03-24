@@ -94,61 +94,62 @@ These items should be the current focus.
 
 ## 3. Next
 
-These should start after the current foundation is in place.
+우선순위: **통계 분석 → 그래프 → 공통 품질 → 기타**
 
+### 3-A. 통계 분석 (Analysis)
+
+**병렬 처리 가능 (독립적, 소규모):**
+- ~~`[analysis]` NMDS/PERMANOVA `beta_diversity` pre-step에 `isAnalyzing` 미설정~~ — 완료 (hook에 `setIsAnalyzing` 노출 + 페이지에서 pre-step 감싸기)
+- ~~`[analysis]` Worker 번호 하드코딩~~ — 완료 (`use-levene-test.ts:133` `3` → `PyodideWorker.NonparametricAnova`. 나머지는 이미 enum 사용)
+- ~~`[ux]` SummaryCard focusRing 누락~~ — 완료 (`focusRing` import + className 추가)
+- `[ux]` Step 1 카드 대시보드: 하드코딩 한글 → terminology 시스템 등록. 카드 제목 4개 + 카드 내용 텍스트 + 배지 바 라벨 (`숫자`/`범주`/`결측`/`이상치`/`rows`/`cols`). `DataExplorationText` 인터페이스에 `summaryCards` 섹션 추가 필요.
+
+**순차 처리 (설계 필요):**
+- `[analysis]` Hub Chat 데이터 컨텍스트 token 낭비 — validationResults 전체 전달. intent별 경량화 필요.
+- `[analysis]` intent-router 테스트 부재 — 키워드 + LLM 분류 검증 없음
+- `[analysis]` `runAnalysis(methodName: string)` stringly-typed → Worker method union 타입 제약 검토
+- `[analysis]` `useBioToolAnalysis` hook에서 `setError` 직접 노출 — leaky abstraction. `runMultiStepAnalysis` 패턴으로 캡슐화 검토
+- `[ux]` AI 해석 실패 graceful degradation (`useErrorRecovery` 활용)
+
+### 3-B. 그래프 (Graph Studio)
+
+**병렬 처리 가능:**
+- `[graph]` CSV BOM/인코딩 자동 감지 없음 — Excel→CSV BOM 포함 시 첫 열 이름 깨짐. (`file-parser.ts:47`)
+- `[graph]` matplotlib export 에러 시 ECharts 대체 안내 없음
+
+**순차 처리:**
+- `[graph]` localStorage quota 정책 — 현재 무제한 저장, evidence 추가 시 터짐 위험. MAX_GRAPH_PROJECTS + 자동 정리 필요.
+
+### 3-C. 공통 품질/UX
+
+**병렬 처리 가능:**
+- `[quality]` `escapeHtml` 중복 3곳 → 공유 `@/lib/utils/html-escape` 통합 (`open-data-window.ts`, `help-search.ts`, `html-export.ts`)
+- `[quality]` `markdownToSimpleHtml` negative lookbehind — Safari < 16.4 미지원 가능성. 구조적 접근으로 교체 검토
+- `[ux]` ProjectHeader onBlur+Enter 이중 save → 이중 토스트 (`ProjectHeader.tsx:73`)
+
+**순차 처리:**
+- `[quality]` `createLocalStorageIO` 추가 적용 — `pinned-history-storage`, `recent-statistics`, `style-template-storage`, `analysis-history`, `entity-tab-registry` (5곳 점진적)
+- `[ux]` 토스트 메시지 기존 19곳 점진적 `TOAST.*` 마이그레이션
+- `[ux]` ChatBubble 공통 컴포넌트 추출
+- `[perf]` `ensureUser` INSERT OR IGNORE 매 요청 실행 — KV 캐시 또는 첫 요청만 실행으로 최적화
+
+### 3-D. 기타 (genetics, infra, domain, paper)
+
+- `[genetics]` 다중 FASTA 시퀀스 혼합 미감지 — cleanSequence가 >seq1 + >seq2 합침. (`validate-sequence.ts:8`)
+- `[genetics]` deep-link 복원 실패 시 UI 피드백 없음 — ?history= entry.resultData null이면 빈 화면. (`BarcodingContent.tsx:41`)
 - `[infra]` D1 스키마 갭 해소 — 상세: [D1-SCHEMA-GAP.md](docs/D1-SCHEMA-GAP.md). 현재 프론트엔드는 localStorage/IndexedDB 기반이라 급하지 않음. 인증/멀티디바이스 동기화 시 필수.
 - `[infra]` Turso → D1 통합 — `turso-adapter.ts`, `hybrid-adapter.ts`, `NEXT_PUBLIC_TURSO_*` 환경변수 제거. D1 마이그레이션 완료 후 진행.
 - `[domain]` species-validation 레코드 스키마 정의
 - `[domain]` legal-status 레코드 스키마 정의 (source metadata + checked date)
+- `[domain]` Connect species and legal status outputs into manuscript and review flows.
 - `[paper]` 프로젝트 레벨 문서 조립 (DocumentBlueprint) — 설계 완료, 구현 대기. 4개 프리셋(논문/보고서/현장보고/커스텀) + 자동 병합 + LLM 보강. 상세: [PLAN-DOCUMENT-ASSEMBLY.md](stats/docs/PLAN-DOCUMENT-ASSEMBLY.md)
-- ~~`[paper]` 프로젝트 보고서 APA 포맷 구현~~ — 완료: ResolvedEntity.rawData 확장, apaFormat 우선 사용 + statistics-formatters fallback, BLAST topHits 테이블 지원. 신규: `report-apa-format.ts`
-- `[genetics]` 다중 FASTA 시퀀스 혼합 미감지 — cleanSequence가 >seq1 + >seq2 합침. (`validate-sequence.ts:8`)
-- `[genetics]` deep-link 복원 실패 시 UI 피드백 없음 — ?history= entry.resultData null이면 빈 화면. (`BarcodingContent.tsx:41`)
-- `[graph]` CSV BOM/인코딩 자동 감지 없음 — Excel→CSV BOM 포함 시 첫 열 이름 깨짐. (`file-parser.ts:47`)
-- `[graph]` matplotlib export 에러 시 ECharts 대체 안내 없음
-- `[analysis]` Hub Chat 데이터 컨텍스트 token 낭비 — validationResults 전체 전달. intent별 경량화 필요.
-- `[analysis]` intent-router 테스트 부재 — 키워드 + LLM 분류 검증 없음
 - `[paper]` Build project-level manuscript assembly UI across multiple analyses.
 - `[paper]` Add figure and table references that can be inserted into draft sections.
 - `[review]` Define a project-level methods and reporting completeness checklist.
 - `[review]` Define reviewer-ready export bundle structure.
 - `[review]` Add journal format review and fit review workflow.
 - `[review]` Design reviewer simulator inputs and output schema.
-- `[domain]` Connect species and legal status outputs into manuscript and review flows.
 - `[trust]` Add user-facing evidence cards to major AI-assisted outputs.
-- ~~`[trust]` `requestInterpretation()` 반환 타입에 `provider` 추가~~ — 완료 (`result-interpreter.ts` 반환에 `provider: LlmProvider` 추가, 호출부는 forward-compatible)
-- `[quality]` Graph Studio localStorage quota 정책 — 현재 무제한 저장, evidence 추가 시 터짐 위험. MAX_GRAPH_PROJECTS + 자동 정리 필요.
-- ~~`[ux]` ResultsActionStep.test.tsx TDZ 에러~~ — 해결됨 (useEffect 위치 이동)
-- `[ux]` AI 해석 실패 graceful degradation (`useErrorRecovery` 활용)
-- `[ux]` Step 1 카드 대시보드: 하드코딩 한글 → terminology 시스템 등록. 카드 제목 4개 + 카드 내용 텍스트 + 배지 바 라벨 (`숫자`/`범주`/`결측`/`이상치`/`rows`/`cols`). `DataExplorationText` 인터페이스에 `summaryCards` 섹션 추가 필요.
-- ~~`[test]` `PurposeInputStep.test.tsx` 3건 실패~~ — 수정 완료 (mock 누락 `progressiveCategoryData`/`decisionTree`/`flowStateMachine` 추가 + stale testid 수정)
-- ~~`[test]` `g5-review-fixes.test.ts` 1건 실패~~ — 수정 완료 (파일 경로 `page.tsx` → `GraphStudioContent.tsx`)
-- ~~`[ux]` HistorySidebar 빈 상태 레이아웃 점프~~ — 수정 완료 (빈 상태 플레이스홀더 + 접기/펴기 토글 + 폰트 크기 조정)
-- ~~`[test]` `use-analysis-handlers.test.ts` tsc 에러 2건~~ — 확인 결과 이미 수정됨 (0 에러, 9 테스트 통과)
-- ~~`[test]` `graph-studio-store.test.ts` 전체 suite 실행 시 1건 실패~~ — 수정 완료 (beforeEach에 vi.restoreAllMocks + localStorage.clear 추가)
-- ~~`[quality]` `graph-studio/project-storage.ts`와 `research/project-storage.ts`의 `isClient()`·read/write 패턴 중복~~ — 완료 (`createLocalStorageIO()` 공통 팩토리 추출, 2파일 적용)
-- ~~`[quality]` `formatRelativeTime` 중복 4곳 → `formatTimeAgo` 공유 유틸로 교체~~ — 완료 (SessionItem, TemplateSelector, TemplateManagePanel, DataUploadStep → `format-time.ts`)
-- ~~`[ux]` 접근성 focus ring 통일~~ — 완료 (9곳 → `focusRing` 상수 통일 + 버튼류 ring-offset + 인풋류 border 복원)
-- `[ux]` 토스트 메시지 기존 19곳 점진적 `TOAST.*` 마이그레이션
-- `[ux]` ChatBubble 공통 컴포넌트 추출
-- ~~`[ux]` paper-draft/PaperDraftPanel.tsx 데드 코드 삭제~~ — 감사 결과 클린 (내부 함수/변수/분기 모두 사용 중)
-- `[quality]` `createLocalStorageIO` 추가 적용 — `pinned-history-storage`, `recent-statistics`, `style-template-storage`, `analysis-history`, `entity-tab-registry` (5곳 점진적)
-- `[ux]` SummaryCard focusRing 누락 — `role="button"` + `tabIndex={0}` 요소에 focus ring 없음 (접근성)
-- ~~`[quality]` `barcoding/page.tsx` 에러 분기가 한국어 문자열 `includes()` 매칭 → 에러 코드 기반으로 전환~~ — 완료 (`BlastErrorCode` 타입 도입)
-- ~~`[quality]` `session-sorter.ts` `sortSessionsByFavoriteAndRecent`가 `.sort()` in-place mutation → `[...sessions].sort()` 방어적 복사로 변경~~ — 완료
-- ~~`[quality]` `NextAction.type` 미사용 필드 제거~~ — 완료 (인터페이스 + 할당 10곳 정리)
-- ~~`[quality]` genetics 모듈 raw `<button>` 16개 → shadcn `Button` 전환~~ — 완료 (6파일)
-
-### /simplify 리뷰 결과 (2026-03-23 머지분)
-
-- `[quality]` `escapeHtml` 중복 4곳 → 공유 `@/lib/utils/html-escape` 통합 (`open-data-window.ts`, `help-search.ts`, `html-export.ts`, ~~`paper-tables.ts`~~ 완료)
-- `[quality]` NMDS/PERMANOVA `beta_diversity` pre-step에 `isAnalyzing` 미설정 — 로딩 표시 누락 (`nmds/page.tsx`, `permanova/page.tsx`)
-- `[quality]` `useBioToolAnalysis` hook에서 `setError` 직접 노출 — leaky abstraction. `runMultiStepAnalysis` 패턴으로 캡슐화 검토
-- `[quality]` `runAnalysis(methodName: string)` stringly-typed → Worker method union 타입 제약 검토
-- `[quality]` `markdownToSimpleHtml` negative lookbehind — Safari < 16.4 미지원 가능성. 구조적 접근으로 교체 검토
-- `[quality]` Worker 번호 하드코딩 (`callWorkerMethod(7, ...)`) → `WORKER.FISHERIES` 상수 사용으로 전환
-- `[perf]` `ensureUser` INSERT OR IGNORE 매 요청 실행 — KV 캐시 또는 첫 요청만 실행으로 최적화
-- `[ux]` ProjectHeader onBlur+Enter 이중 save → 이중 토스트 (`ProjectHeader.tsx:73`)
 
 ---
 

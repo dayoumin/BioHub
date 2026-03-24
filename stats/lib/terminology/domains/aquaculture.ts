@@ -138,6 +138,7 @@ export const aquaculture: TerminologyDictionary = {
     stepTitles: {
       dataUpload: '데이터 업로드',
       dataExploration: '데이터 탐색',
+      dataPreparation: '데이터 준비',
       purposeInput: '분석 방법 선택',
       variableSelection: '변수 선택',
       analysisExecution: '분석 실행',

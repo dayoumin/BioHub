@@ -213,7 +213,7 @@ export function AnalysisLayout({
 
       {/* ===== 메인 콘텐츠 영역 ===== */}
       <main className="max-w-6xl mx-auto">
-        <div className={`${STEP_STYLES.mainContentPaddingX} ${STEP_STYLES.mainContentPaddingY} ${STEP_STYLES.sectionGap}`}>
+        <div className={cn(STEP_STYLES.mainContentPaddingX, STEP_STYLES.mainContentPaddingY, STEP_STYLES.sectionGap, showFloatingNav && !showHub && onNext && 'pb-20')}>
           {/* Analysis 전용 도움말 패널 */}
           {showHelp && onHelpToggle && (
             <Card className="border-info-border bg-info-bg">
@@ -290,44 +290,45 @@ export function AnalysisLayout({
       {/* 전역 모달들 */}
       <SettingsModal open={isSettingsOpen} onOpenChange={closeSettings} />
       <HelpModal open={isHelpOpen} onOpenChange={closeGlobalHelp} />
-      {/* ===== 플로팅 네비게이션 버튼 ===== */}
+      {/* ===== 하단 네비게이션 바 ===== */}
       {showFloatingNav && !showHub && onNext && (
-        <div className="fixed bottom-6 z-40 left-[calc(50%+2rem)] -translate-x-1/2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                <Button
-                  onClick={onNext}
-                  disabled={!canGoNext || isAnalyzing}
-                  size="lg"
-                  data-testid="floating-next-btn"
-                  className={cn(
-                    "shadow-lg px-6 gap-2 transition-all",
-                    canGoNext && !isAnalyzing
-                      ? "bg-primary hover:bg-primary/90"
-                      : "bg-muted text-muted-foreground"
-                  )}
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      {t.analysis.layout.analyzingDefault}
-                    </>
-                  ) : (
-                    <>
-                      {resolvedNextLabel}
-                      <ChevronRight className="w-4 h-4" />
-                    </>
-                  )}
-                </Button>
-              </span>
-            </TooltipTrigger>
-            {!canGoNext && !isAnalyzing && (
-              <TooltipContent side="top">
-                {t.analysis.layout.floatingNavDisabledHint}
-              </TooltipContent>
-            )}
-          </Tooltip>
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-background/80 backdrop-blur-md">
+          <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-end">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    onClick={onNext}
+                    disabled={!canGoNext || isAnalyzing}
+                    data-testid="floating-next-btn"
+                    className={cn(
+                      "px-5 gap-2 transition-all",
+                      canGoNext && !isAnalyzing
+                        ? "bg-primary hover:bg-primary/90"
+                        : "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        {t.analysis.layout.analyzingDefault}
+                      </>
+                    ) : (
+                      <>
+                        {resolvedNextLabel}
+                        <ChevronRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {!canGoNext && !isAnalyzing && (
+                <TooltipContent side="top">
+                  {t.analysis.layout.floatingNavDisabledHint}
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </div>
         </div>
       )}
 

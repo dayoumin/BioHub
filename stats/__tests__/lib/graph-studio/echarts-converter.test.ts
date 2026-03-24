@@ -113,6 +113,14 @@ describe('scatter chart', () => {
     expect((series[0].encode as AnyOption).x).toBe('x')
   })
 
+  it('colorField 없음 → xAxis/yAxis 모두 scale=true', () => {
+    const opt = toAny(chartSpecToECharts(baseSpec, rows))
+    const xAxis = opt.xAxis as AnyOption
+    const yAxis = opt.yAxis as AnyOption
+    expect(xAxis.scale).toBe(true)
+    expect(yAxis.scale).toBe(true)
+  })
+
   it('colorField 있음 → [number, number][] per group', () => {
     const rowsWithColor = [
       { x: 1, y: 2, grp: 'A' },
@@ -133,6 +141,27 @@ describe('scatter chart', () => {
     const groupA = series[0].data as [number, number][]
     expect(groupA).toHaveLength(2)
     expect(groupA[0]).toEqual([1, 2])
+  })
+
+  it('colorField 있음 → grouped scatter도 xAxis/yAxis 모두 scale=true', () => {
+    const rowsWithColor = [
+      { x: 1, y: 2, grp: 'A' },
+      { x: 3, y: 4, grp: 'A' },
+      { x: 5, y: 1, grp: 'B' },
+    ]
+    const specWithColor = makeSpec({
+      chartType: 'scatter',
+      encoding: {
+        x: { field: 'x', type: 'quantitative' },
+        y: { field: 'y', type: 'quantitative' },
+        color: { field: 'grp', type: 'nominal' },
+      },
+    })
+    const opt = toAny(chartSpecToECharts(specWithColor, rowsWithColor))
+    const xAxis = opt.xAxis as AnyOption
+    const yAxis = opt.yAxis as AnyOption
+    expect(xAxis.scale).toBe(true)
+    expect(yAxis.scale).toBe(true)
   })
 })
 

@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ChartScatter, ListOrdered, ExternalLink, BarChart3, Flame, AlertTriangle, Lightbulb, Upload, FileText, Table2, TrendingUp, Maximize2, Loader2 } from 'lucide-react'
 import { ValidationResults, DataRow } from '@/types/analysis'
-import { EmptyState } from '@/components/common/EmptyState'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
 import { StepHeader } from '@/components/analysis/common'
@@ -233,10 +232,32 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
   // 데이터 없을 때 또는 교체 모드: 업로드 영역 표시
   if (!validationResults || !data || data.length === 0 || isReplaceMode) {
+    // ── 빠른 분석 모드: 방법 중심 컴팩트 레이아웃 ──
+    if (isQuickMode && selectedMethod && !isReplaceMode) {
+      return (
+        <div className="space-y-5" data-testid="data-exploration-empty">
+          <StepHeader icon={ChartScatter} title={t.analysis.stepTitles.dataPreparation} />
+
+          <DataPrepGuide methodId={selectedMethod.id} />
+
+          {onUploadComplete && (
+            <DataUploadStep
+              onUploadComplete={onUploadComplete}
+              existingFileName={existingFileName}
+            />
+          )}
+        </div>
+      )
+    }
+
+    // ── 일반 모드: 업로드 + 탐색 안내 ──
     return (
       <div className="space-y-6" data-testid="data-exploration-empty">
-        {/* 헤더 */}
         <StepHeader icon={ChartScatter} title={t.analysis.stepTitles.dataExploration} />
+
+        {!isReplaceMode && (
+          <p className="text-sm text-muted-foreground">{t.dataExploration.empty.description}</p>
+        )}
 
         {/* 데이터 교체 모드 배너 */}
         {isReplaceMode && (
@@ -262,26 +283,15 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           </Card>
         )}
 
-        <EmptyState
-          icon={ChartScatter}
-          title={isReplaceMode ? t.dataExploration.replaceMode.title : t.dataExploration.empty.title}
-          description={isReplaceMode ? undefined : t.dataExploration.empty.description}
-          action={
-            onUploadComplete && (
-              <DataUploadStep
-                onUploadComplete={isReplaceMode ? handleReplaceUploadComplete : onUploadComplete}
-                existingFileName={existingFileName}
-              />
-            )
-          }
-          className="border-dashed border-2 border-muted-foreground/25"
-        />
+        {onUploadComplete && (
+          <DataUploadStep
+            onUploadComplete={isReplaceMode ? handleReplaceUploadComplete : onUploadComplete}
+            existingFileName={existingFileName}
+          />
+        )}
 
-        {/* 데이터 준비 안내: 빠른 분석이면 방법별, 아니면 범용 */}
-        <DataPrepGuide
-          methodId={isQuickMode && selectedMethod ? selectedMethod.id : undefined}
-          defaultCollapsed
-        />
+        {/* 데이터 준비 안내 */}
+        <DataPrepGuide defaultCollapsed />
 
         {/* 템플릿 선택 영역 (저장된 템플릿이 있을 때만 표시) */}
         {recentTemplates.length > 0 && (
@@ -297,7 +307,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           </Card>
         )}
 
-        {/* 템플릿 관리 패널 */}
         <TemplateManagePanel
           open={templatePanelOpen}
           onOpenChange={setTemplatePanelOpen}

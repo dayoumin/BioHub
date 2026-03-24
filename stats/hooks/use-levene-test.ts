@@ -13,6 +13,7 @@ import type { ValidationResults, DataRow, ColumnStatistics } from '@/types/analy
 import { logger } from '@/lib/utils/logger'
 import { extractGroupedNumericData } from '@/lib/utils/grouped-data'
 import { raceWithTimeout } from '@/lib/utils/promise-utils'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // ── Types ──
 
@@ -130,7 +131,7 @@ export function useLeveneTest(
         }
 
         const workerResult = await raceWithTimeout(
-          pyodide.callWorkerMethod<WorkerLeveneResult>(3, 'test_assumptions', { groups: validGroups }),
+          pyodide.callWorkerMethod<WorkerLeveneResult>(PyodideWorker.NonparametricAnova, 'test_assumptions', { groups: validGroups }),
           TIMEOUT_MS,
           'Levene test timeout',
         )

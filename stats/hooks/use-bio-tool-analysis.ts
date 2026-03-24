@@ -25,6 +25,8 @@ interface UseBioToolAnalysisReturn<T> {
   handleClear: () => void
   setError: (error: string | null) => void
   runAnalysis: (methodName: string, params: Record<string, WorkerMethodParam>) => Promise<void>
+  /** pre-step이 필요한 분석 (beta_diversity → main analysis 등). isAnalyzing를 단일 소유. */
+  runWithPreStep: (preStep: () => Promise<Record<string, WorkerMethodParam>>, methodName: string) => Promise<void>
 }
 
 export function useBioToolAnalysis<T>(
@@ -70,6 +72,29 @@ export function useBioToolAnalysis<T>(
     }
   }, [workerNum])
 
+  const runWithPreStep = useCallback(async (
+    preStep: () => Promise<Record<string, WorkerMethodParam>>,
+    methodName: string,
+  ) => {
+    setIsAnalyzing(true)
+    setError(null)
+
+    try {
+      const params = await preStep()
+      const pyodide = PyodideCoreService.getInstance()
+      const result = await pyodide.callWorkerMethod<T>(
+        workerNum,
+        methodName,
+        params,
+      )
+      setResults(result)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }, [workerNum])
+
   return {
     csvData,
     siteCol,
@@ -81,5 +106,6 @@ export function useBioToolAnalysis<T>(
     handleClear,
     setError,
     runAnalysis,
+    runWithPreStep,
   }
 }

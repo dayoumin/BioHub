@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { Upload, AlertCircle, Loader2, Clock, FileSpreadsheet, X, Lightbulb } from 'lucide-react'
+import { AlertCircle, Loader2, Clock, FileSpreadsheet, X, Lightbulb } from 'lucide-react'
 import { toast } from 'sonner'
 import { getUserFriendlyErrorMessage } from '@/lib/constants/error-messages'
 import { findCriticalParseError, parseWarningMessage } from '@/lib/utils/csv-parse-errors'
@@ -12,6 +12,7 @@ import { useDropzone } from 'react-dropzone'
 import Papa from 'papaparse'
 import { cn } from '@/lib/utils'
 import { focusRing } from '@/components/common/card-styles'
+import { UploadDropZoneContent, uploadZoneClassName } from '@/components/common/UploadDropZone'
 import { formatTimeAgo } from '@/lib/utils/format-time'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { DataValidationService, DATA_LIMITS } from '@/lib/services/data-validation-service'
@@ -372,25 +373,18 @@ export function DataUploadStep({
       {!uploadedFileName ? (
         <div
           {...getRootProps()}
-          className={cn(
-            "relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 cursor-pointer group",
-            isDragActive
-              ? "border-primary bg-primary/5 shadow-[0_0_0_4px_rgba(var(--primary-rgb,0,0,0),0.05)]"
-              : "border-border/60 hover:border-primary/40 hover:bg-muted/20",
-            isUploading && "pointer-events-none opacity-50"
-          )}
+          className={cn(uploadZoneClassName(isDragActive, { isLoading: isUploading, clickable: true }), 'group relative')}
         >
           <input {...getInputProps()} />
-          <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-muted/50 border border-border/40 flex items-center justify-center group-hover:bg-primary/5 group-hover:border-primary/20 transition-colors duration-300">
-            <Upload className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
-          </div>
-          <h3 className="text-sm font-semibold tracking-tight mb-1">
-            {isDragActive ? t.dataUpload.labels.dropHere : t.dataUpload.labels.dragOrClick}
-          </h3>
-          <p className="text-xs text-muted-foreground/80 mb-3">{t.dataUpload.labels.fileSpecifications}</p>
-          <Button variant="outline" size="sm" disabled={isUploading} className="shadow-sm">
-            {isUploading ? t.dataUpload.buttons.uploading : t.dataUpload.buttons.selectFile}
-          </Button>
+          <UploadDropZoneContent
+            isDragActive={isDragActive}
+            isLoading={isUploading}
+            label={t.dataUpload.labels.dragOrClick}
+            dragActiveLabel={t.dataUpload.labels.dropHere}
+            subtitle={t.dataUpload.labels.fileSpecifications}
+            buttonLabel={t.dataUpload.buttons.selectFile}
+            loadingLabel={t.dataUpload.buttons.uploading}
+          />
         </div>
       ) : (
         <div className="border border-border/40 rounded-xl p-4 flex items-center justify-between bg-muted/20 backdrop-blur-sm">

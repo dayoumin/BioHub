@@ -35,18 +35,15 @@ const STRESS_LABELS: Record<string, string> = {
 const tool = getBioToolById('nmds')
 
 export default function NmdsPage(): React.ReactElement {
-  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, setError, runAnalysis } =
+  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runWithPreStep } =
     useBioToolAnalysis<NmdsResult>()
   const [groupCol, setGroupCol] = useState<string>('')
 
   const handleAnalyze = useCallback(async () => {
     if (!csvData) return
-    setError(null)
 
-    try {
+    await runWithPreStep(async () => {
       const pyodide = PyodideCoreService.getInstance()
-
-      // Beta Diversity → 거리행렬
       const betaResult = await pyodide.callWorkerMethod<{
         distanceMatrix: number[][]
         siteLabels: string[]
@@ -60,15 +57,13 @@ export default function NmdsPage(): React.ReactElement {
         ? csvData.rows.map((r) => String(r[groupCol] ?? ''))
         : null
 
-      await runAnalysis('nmds', {
+      return {
         distance_matrix: betaResult.distanceMatrix,
         site_labels: betaResult.siteLabels,
         groups,
-      })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '거리행렬 계산 중 오류가 발생했습니다')
-    }
-  }, [csvData, siteCol, groupCol, setError, runAnalysis])
+      }
+    }, 'nmds')
+  }, [csvData, siteCol, groupCol, runWithPreStep])
 
   const coords = results?.coordinates ?? []
 
