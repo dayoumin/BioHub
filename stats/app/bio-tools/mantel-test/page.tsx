@@ -1,11 +1,14 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
 import { BioToolShell } from '@/components/bio-tools/BioToolShell'
 import { BioCsvUpload, type CsvData } from '@/components/bio-tools/BioCsvUpload'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SIGNIFICANCE_BADGE, BIO_TABLE } from '@/components/bio-tools/bio-styles'
+import { cn } from '@/lib/utils'
+import { AlertCircle, Loader2 } from 'lucide-react'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
@@ -19,6 +22,7 @@ interface MantelResult {
 const tool = getBioToolById('mantel-test')
 
 export default function MantelTestPage(): React.ReactElement {
+  const resultsRef = useRef<HTMLDivElement>(null)
   const [csvDataX, setCsvDataX] = useState<CsvData | null>(null)
   const [csvDataY, setCsvDataY] = useState<CsvData | null>(null)
   const [siteColX, setSiteColX] = useState<string>('')
@@ -27,6 +31,12 @@ export default function MantelTestPage(): React.ReactElement {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [results, setResults] = useState<MantelResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (results) {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [results])
 
   const handleDataLoadedX = useCallback((data: CsvData) => {
     setCsvDataX(data)
@@ -115,15 +125,16 @@ export default function MantelTestPage(): React.ReactElement {
           {csvDataX && (
             <div className="flex items-center gap-3 mt-2">
               <label className="text-xs text-muted-foreground">지점명 열:</label>
-              <select
-                value={siteColX}
-                onChange={(e) => setSiteColX(e.target.value)}
-                className="text-xs border rounded px-1.5 py-0.5 bg-background"
-              >
-                {csvDataX.headers.map((h) => (
-                  <option key={h} value={h}>{h}</option>
-                ))}
-              </select>
+              <Select value={siteColX || undefined} onValueChange={setSiteColX}>
+                <SelectTrigger className="h-8 text-sm w-[180px]">
+                  <SelectValue placeholder="선택..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {csvDataX.headers.map((h) => (
+                    <SelectItem key={h} value={h}>{h}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
         </div>
@@ -138,15 +149,16 @@ export default function MantelTestPage(): React.ReactElement {
           {csvDataY && (
             <div className="flex items-center gap-3 mt-2">
               <label className="text-xs text-muted-foreground">지점명 열:</label>
-              <select
-                value={siteColY}
-                onChange={(e) => setSiteColY(e.target.value)}
-                className="text-xs border rounded px-1.5 py-0.5 bg-background"
-              >
-                {csvDataY.headers.map((h) => (
-                  <option key={h} value={h}>{h}</option>
-                ))}
-              </select>
+              <Select value={siteColY || undefined} onValueChange={setSiteColY}>
+                <SelectTrigger className="h-8 text-sm w-[180px]">
+                  <SelectValue placeholder="선택..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {csvDataY.headers.map((h) => (
+                    <SelectItem key={h} value={h}>{h}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
         </div>
@@ -154,25 +166,31 @@ export default function MantelTestPage(): React.ReactElement {
         {csvDataX && csvDataY && (
           <div className="flex items-center gap-4">
             <label className="text-sm text-muted-foreground">상관 방법:</label>
-            <select
-              value={method}
-              onChange={(e) => setMethod(e.target.value as 'pearson' | 'spearman')}
-              className="text-sm border rounded-md px-2 py-1 bg-background"
-            >
-              <option value="pearson">Pearson</option>
-              <option value="spearman">Spearman</option>
-            </select>
+            <Select value={method} onValueChange={(v) => setMethod(v as 'pearson' | 'spearman')}>
+              <SelectTrigger className="h-8 text-sm w-[180px]">
+                <SelectValue placeholder="선택..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pearson">Pearson</SelectItem>
+                <SelectItem value="spearman">Spearman</SelectItem>
+              </SelectContent>
+            </Select>
 
             <Button onClick={handleAnalyze} disabled={isAnalyzing} size="sm">
-              {isAnalyzing ? '분석 중...' : '분석 실행'}
+              {isAnalyzing ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" />분석 중...</> : '분석 실행'}
             </Button>
           </div>
         )}
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {error}
+          </div>
+        )}
 
         {results && (
-          <div className="space-y-4">
+          <div ref={resultsRef} className="space-y-4">
             <div className="flex items-center gap-2">
               <span
                 className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
@@ -185,7 +203,7 @@ export default function MantelTestPage(): React.ReactElement {
             <div className="overflow-auto border rounded-lg">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-muted/30">
+                  <tr className={cn('border-b', BIO_TABLE.headerBg)}>
                     <th className={`text-left ${BIO_TABLE.headerCell}`}>항목</th>
                     <th className={`text-right ${BIO_TABLE.headerCell}`}>값</th>
                   </tr>

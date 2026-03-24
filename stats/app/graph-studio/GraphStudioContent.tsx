@@ -25,6 +25,10 @@ import { downloadChart } from '@/lib/graph-studio/export-utils';
 
 type LayoutMode = 'upload' | 'setup' | 'editor';
 
+const GRAPH_BG_TINT = {
+  backgroundColor: 'color-mix(in oklch, var(--section-accent-graph) 4%, var(--background))',
+} as const;
+
 export default function GraphStudioContent(): React.ReactElement {
   // React Compiler(babel-plugin-react-compiler@1.0.0)가 Zustand useSyncExternalStore
   // 구독을 잘못 메모이즈하는 문제를 방지.
@@ -94,7 +98,7 @@ export default function GraphStudioContent(): React.ReactElement {
 
   if (layoutMode === 'upload') {
     return (
-      <div className="flex flex-col h-full" data-testid="graph-studio-page">
+      <div className="flex flex-col h-full" data-testid="graph-studio-page" style={GRAPH_BG_TINT}>
         <GraphStudioHeader />
         <div className="flex-1 flex items-center justify-center p-8">
           <DataUploadPanel />
@@ -105,7 +109,7 @@ export default function GraphStudioContent(): React.ReactElement {
 
   if (layoutMode === 'setup') {
     return (
-      <div className="flex flex-col h-full" data-testid="graph-studio-page">
+      <div className="flex flex-col h-full" data-testid="graph-studio-page" style={GRAPH_BG_TINT}>
         <GraphStudioHeader />
         <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
           <ChartSetupPanel />

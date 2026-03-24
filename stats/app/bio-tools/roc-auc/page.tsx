@@ -1,14 +1,17 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
 import { BioToolShell } from '@/components/bio-tools/BioToolShell'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { formatNumber } from '@/lib/statistics/formatters'
-import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
+import { BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
+import { cn } from '@/lib/utils'
+import { AlertCircle, Loader2 } from 'lucide-react'
 
 interface RocPoint {
   fpr: number
@@ -26,14 +29,15 @@ interface RocAucResult {
 
 const tool = getBioToolById('roc-auc')
 
-function getAucInterpretation(auc: number): { label: string; color: string } {
-  if (auc >= 0.9) return { label: '우수 (Excellent)', color: 'text-green-600' }
-  if (auc >= 0.8) return { label: '양호 (Good)', color: 'text-blue-600' }
-  if (auc >= 0.7) return { label: '허용 (Fair)', color: 'text-yellow-600' }
-  return { label: '불량 (Poor)', color: 'text-red-600' }
+function getAucInterpretation(auc: number): { label: string; style: React.CSSProperties } {
+  if (auc >= 0.9) return { label: '우수 (Excellent)', style: SIGNIFICANCE_BADGE.significant }
+  if (auc >= 0.8) return { label: '양호 (Good)', style: SIGNIFICANCE_BADGE.significant }
+  if (auc >= 0.7) return { label: '허용 (Fair)', style: SIGNIFICANCE_BADGE.nonSignificant }
+  return { label: '불량 (Poor)', style: SIGNIFICANCE_BADGE.nonSignificant }
 }
 
 export default function RocAucPage(): React.ReactElement {
+  const resultsRef = useRef<HTMLDivElement>(null)
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<RocAucResult>({ worker: PyodideWorker.Survival })
 
@@ -91,6 +95,12 @@ export default function RocAucPage(): React.ReactElement {
     }
   }, [results])
 
+  useEffect(() => {
+    if (results) {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [results])
+
   const aucInterp = results ? getAucInterpretation(results.auc) : null
 
   if (!tool) return <div>도구를 찾을 수 없습니다</div>
@@ -108,41 +118,52 @@ export default function RocAucPage(): React.ReactElement {
           <div className="flex flex-wrap items-end gap-4">
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">실제값 열 (0/1)</label>
-              <select
-                value={actualCol}
-                onChange={(e) => setActualCol(e.target.value)}
-                className="text-sm border rounded-md px-2 py-1 bg-background block"
-              >
-                {csvData.headers.map(h => <option key={h} value={h}>{h}</option>)}
-              </select>
+              <Select value={actualCol || undefined} onValueChange={setActualCol}>
+                <SelectTrigger className="h-8 text-sm w-[180px]">
+                  <SelectValue placeholder="선택..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {csvData.headers.map(h => (
+                    <SelectItem key={h} value={h}>{h}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">예측 확률 열</label>
-              <select
-                value={predCol}
-                onChange={(e) => setPredCol(e.target.value)}
-                className="text-sm border rounded-md px-2 py-1 bg-background block"
-              >
-                {csvData.headers.map(h => <option key={h} value={h}>{h}</option>)}
-              </select>
+              <Select value={predCol || undefined} onValueChange={setPredCol}>
+                <SelectTrigger className="h-8 text-sm w-[180px]">
+                  <SelectValue placeholder="선택..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {csvData.headers.map(h => (
+                    <SelectItem key={h} value={h}>{h}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <Button onClick={handleAnalyze} disabled={isAnalyzing} size="sm">
-              {isAnalyzing ? '분석 중...' : '분석 실행'}
+              {isAnalyzing ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" />분석 중...</> : '분석 실행'}
             </Button>
           </div>
         )}
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {error}
+          </div>
+        )}
 
         {results && (
-          <div className="space-y-6">
+          <div ref={resultsRef} className="space-y-6">
             {/* 결과 요약 */}
             <div>
               <h3 className="text-sm font-semibold mb-2">분석 결과</h3>
               <div className="overflow-auto border rounded-lg">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b bg-muted/30">
+                    <tr className={cn('border-b', BIO_TABLE.headerBg)}>
                       <th className={`text-left ${BIO_TABLE.headerCell}`}>항목</th>
                       <th className={`text-right ${BIO_TABLE.headerCell}`}>값</th>
                     </tr>
@@ -160,8 +181,13 @@ export default function RocAucPage(): React.ReactElement {
                     </tr>
                     <tr className="border-b">
                       <td className={BIO_TABLE.bodyCell}>해석</td>
-                      <td className={`text-right ${BIO_TABLE.bodyCell} font-medium ${aucInterp?.color ?? ''}`}>
-                        {aucInterp?.label ?? ''}
+                      <td className={`text-right ${BIO_TABLE.bodyCell} font-medium`}>
+                        <span
+                          className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                          style={aucInterp?.style}
+                        >
+                          {aucInterp?.label ?? ''}
+                        </span>
                       </td>
                     </tr>
                     <tr className="border-b">

@@ -69,7 +69,7 @@ export function GraphStudioHeader({
 
   return (
     <header
-      className="sticky top-0 z-50 flex items-center justify-between border-b border-border px-4 h-10 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
+      className="sticky top-0 z-50 flex items-center justify-between border-b border-border px-6 h-10 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
       style={{ borderTop: '2px solid var(--section-accent-graph)' }}
     >
       {/* 좌: 제목 + 새 차트 */}

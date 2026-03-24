@@ -1,14 +1,17 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
 import { BioToolShell } from '@/components/bio-tools/BioToolShell'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { formatNumber, formatPValue } from '@/lib/statistics/formatters'
-import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
+import { BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
+import { cn } from '@/lib/utils'
+import { AlertCircle, Loader2 } from 'lucide-react'
 
 type IccType = 'ICC1_1' | 'ICC2_1' | 'ICC3_1'
 
@@ -36,19 +39,26 @@ const ICC_TYPE_LABELS: Record<string, string> = {
   ICC3_1: 'ICC(3,1) — Two-way mixed, 단일 측정',
 }
 
-const INTERPRETATION_LABELS: Record<string, { label: string; color: string }> = {
-  poor: { label: '불량 (Poor, < 0.40)', color: 'text-red-600' },
-  fair: { label: '보통 (Fair, 0.40–0.59)', color: 'text-yellow-600' },
-  good: { label: '양호 (Good, 0.60–0.74)', color: 'text-blue-600' },
-  excellent: { label: '우수 (Excellent, ≥ 0.75)', color: 'text-green-600' },
+const INTERPRETATION_STYLES: Record<string, { label: string; style: React.CSSProperties }> = {
+  poor: { label: '불량 (Poor, < 0.40)', style: SIGNIFICANCE_BADGE.nonSignificant },
+  fair: { label: '보통 (Fair, 0.40–0.59)', style: SIGNIFICANCE_BADGE.nonSignificant },
+  good: { label: '양호 (Good, 0.60–0.74)', style: SIGNIFICANCE_BADGE.significant },
+  excellent: { label: '우수 (Excellent, ≥ 0.75)', style: SIGNIFICANCE_BADGE.significant },
 }
 
 export default function IccPage(): React.ReactElement {
+  const resultsRef = useRef<HTMLDivElement>(null)
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<IccResult>({ worker: PyodideWorker.Survival })
 
   const [subjectCol, setSubjectCol] = useState('')
   const [iccType, setIccType] = useState<IccType>('ICC3_1')
+
+  useEffect(() => {
+    if (results) {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [results])
 
   const handleData = useCallback(
     (data: Parameters<typeof handleDataLoaded>[0]) => {
@@ -91,43 +101,52 @@ export default function IccPage(): React.ReactElement {
           <div className="flex flex-wrap items-end gap-4">
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">대상(Subject) 열</label>
-              <select
-                value={subjectCol}
-                onChange={(e) => setSubjectCol(e.target.value)}
-                className="text-sm border rounded-md px-2 py-1 bg-background block"
-              >
-                {csvData.headers.map(h => <option key={h} value={h}>{h}</option>)}
-              </select>
+              <Select value={subjectCol || undefined} onValueChange={setSubjectCol}>
+                <SelectTrigger className="h-8 text-sm w-[180px]">
+                  <SelectValue placeholder="선택..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {csvData.headers.map(h => (
+                    <SelectItem key={h} value={h}>{h}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">ICC 유형</label>
-              <select
-                value={iccType}
-                onChange={(e) => setIccType(e.target.value as IccType)}
-                className="text-sm border rounded-md px-2 py-1 bg-background block"
-              >
-                <option value="ICC1_1">ICC(1,1) One-way random</option>
-                <option value="ICC2_1">ICC(2,1) Two-way random</option>
-                <option value="ICC3_1">ICC(3,1) Two-way mixed</option>
-              </select>
+              <Select value={iccType} onValueChange={(v) => setIccType(v as IccType)}>
+                <SelectTrigger className="h-8 text-sm w-[220px]">
+                  <SelectValue placeholder="선택..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ICC1_1">ICC(1,1) One-way random</SelectItem>
+                  <SelectItem value="ICC2_1">ICC(2,1) Two-way random</SelectItem>
+                  <SelectItem value="ICC3_1">ICC(3,1) Two-way mixed</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <Button onClick={handleAnalyze} disabled={isAnalyzing} size="sm">
-              {isAnalyzing ? '분석 중...' : '분석 실행'}
+              {isAnalyzing ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" />분석 중...</> : '분석 실행'}
             </Button>
           </div>
         )}
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {error}
+          </div>
+        )}
 
         {results && (
-          <div className="space-y-6">
+          <div ref={resultsRef} className="space-y-6">
             {/* ICC 결과 */}
             <div>
               <h3 className="text-sm font-semibold mb-2">ICC 분석 결과</h3>
               <div className="overflow-auto border rounded-lg">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b bg-muted/30">
+                    <tr className={cn('border-b', BIO_TABLE.headerBg)}>
                       <th className={`text-left ${BIO_TABLE.headerCell}`}>항목</th>
                       <th className={`text-right ${BIO_TABLE.headerCell}`}>값</th>
                     </tr>
@@ -149,8 +168,16 @@ export default function IccPage(): React.ReactElement {
                     </tr>
                     <tr className="border-b">
                       <td className={BIO_TABLE.bodyCell}>해석 (Cicchetti, 1994)</td>
-                      <td className={`text-right ${BIO_TABLE.bodyCell} font-medium ${INTERPRETATION_LABELS[results.interpretation]?.color ?? ''}`}>
-                        {INTERPRETATION_LABELS[results.interpretation]?.label ?? results.interpretation}
+                      <td
+                        className={`text-right ${BIO_TABLE.bodyCell} font-medium`}
+                        style={INTERPRETATION_STYLES[results.interpretation]?.style}
+                      >
+                        <span
+                          className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                          style={INTERPRETATION_STYLES[results.interpretation]?.style}
+                        >
+                          {INTERPRETATION_STYLES[results.interpretation]?.label ?? results.interpretation}
+                        </span>
                       </td>
                     </tr>
                     <tr className="border-b">
@@ -184,7 +211,7 @@ export default function IccPage(): React.ReactElement {
               <div className="overflow-auto border rounded-lg">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b bg-muted/30">
+                    <tr className={cn('border-b', BIO_TABLE.headerBg)}>
                       <th className={`text-left ${BIO_TABLE.headerCell}`}>변동원</th>
                       <th className={`text-right ${BIO_TABLE.headerCell}`}>MS</th>
                     </tr>

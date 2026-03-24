@@ -3,9 +3,10 @@
 import { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import Papa from 'papaparse'
-import { Upload, FileSpreadsheet, X } from 'lucide-react'
+import { FileSpreadsheet, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { uploadZoneClassName, UploadDropZoneContent } from '@/components/common/UploadDropZone'
 
 export interface CsvData {
   headers: string[]
@@ -110,17 +111,15 @@ export function BioCsvUpload({
     <div className={className}>
       <div
         {...getRootProps()}
-        className={cn(
-          'flex flex-col items-center justify-center gap-3 p-8 rounded-xl',
-          'border-2 border-dashed border-border cursor-pointer',
-          'transition-colors duration-200',
-          isDragActive && 'border-primary/50 bg-primary/5',
-          !isDragActive && 'hover:border-muted-foreground/30',
-        )}
+        className={cn(uploadZoneClassName(isDragActive, { clickable: true }), 'group')}
       >
         <input {...getInputProps()} />
-        <Upload className="w-8 h-8 text-muted-foreground/50" />
-        <p className="text-sm text-muted-foreground text-center">{description}</p>
+        <UploadDropZoneContent
+          isDragActive={isDragActive}
+          label={description}
+          subtitle="CSV, TSV 파일 지원"
+          buttonLabel="파일 선택"
+        />
       </div>
       {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
     </div>

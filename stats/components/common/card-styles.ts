@@ -90,6 +90,16 @@ export const iconContainerPrimary = cn(
   'group-hover:bg-primary group-hover:text-primary-foreground',
 )
 
+// ===== 전역 레이아웃 토큰 =====
+
+/** 모든 섹션(Analysis, Graph Studio, Bio-Tools, Genetics)에서 공유하는 레이아웃 토큰 */
+export const LAYOUT = {
+  /** 콘텐츠 최대 너비 + 센터링 */
+  maxWidth: 'max-w-7xl mx-auto',
+  /** sticky 헤더 베이스 (border는 각 섹션에서 cn()으로 추가) */
+  stickyHeader: 'sticky top-0 z-50 bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80',
+} as const
+
 // ===== 모션 프리셋 =====
 
 /** 컨테이너 stagger 애니메이션 */

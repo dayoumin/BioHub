@@ -1,14 +1,17 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
 import { BioToolShell } from '@/components/bio-tools/BioToolShell'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { formatNumber, formatPValue } from '@/lib/statistics/formatters'
 import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
+import { cn } from '@/lib/utils'
+import { AlertCircle, Loader2 } from 'lucide-react'
 
 interface MetaAnalysisResult {
   pooledEffect: number
@@ -31,6 +34,7 @@ interface MetaAnalysisResult {
 const tool = getBioToolById('meta-analysis')
 
 export default function MetaAnalysisPage(): React.ReactElement {
+  const resultsRef = useRef<HTMLDivElement>(null)
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<MetaAnalysisResult>({ worker: PyodideWorker.Survival })
 
@@ -66,6 +70,12 @@ export default function MetaAnalysisPage(): React.ReactElement {
     })
   }, [csvData, effectCol, seCol, studyCol, model, runAnalysis])
 
+  useEffect(() => {
+    if (results) {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [results])
+
   // Forest plot 데이터
   const forestData = useMemo(() => {
     if (!results) return null
@@ -93,62 +103,77 @@ export default function MetaAnalysisPage(): React.ReactElement {
           <div className="flex flex-wrap items-end gap-4">
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">연구명 열</label>
-              <select
-                value={studyCol}
-                onChange={(e) => setStudyCol(e.target.value)}
-                className="text-sm border rounded-md px-2 py-1 bg-background block"
-              >
-                {csvData.headers.map(h => <option key={h} value={h}>{h}</option>)}
-              </select>
+              <Select value={studyCol || undefined} onValueChange={setStudyCol}>
+                <SelectTrigger className="h-8 text-sm w-[180px]">
+                  <SelectValue placeholder="선택..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {csvData.headers.map(h => (
+                    <SelectItem key={h} value={h}>{h}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">효과크기 열</label>
-              <select
-                value={effectCol}
-                onChange={(e) => setEffectCol(e.target.value)}
-                className="text-sm border rounded-md px-2 py-1 bg-background block"
-              >
-                {csvData.headers.map(h => <option key={h} value={h}>{h}</option>)}
-              </select>
+              <Select value={effectCol || undefined} onValueChange={setEffectCol}>
+                <SelectTrigger className="h-8 text-sm w-[180px]">
+                  <SelectValue placeholder="선택..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {csvData.headers.map(h => (
+                    <SelectItem key={h} value={h}>{h}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">표준오차 열</label>
-              <select
-                value={seCol}
-                onChange={(e) => setSeCol(e.target.value)}
-                className="text-sm border rounded-md px-2 py-1 bg-background block"
-              >
-                {csvData.headers.map(h => <option key={h} value={h}>{h}</option>)}
-              </select>
+              <Select value={seCol || undefined} onValueChange={setSeCol}>
+                <SelectTrigger className="h-8 text-sm w-[180px]">
+                  <SelectValue placeholder="선택..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {csvData.headers.map(h => (
+                    <SelectItem key={h} value={h}>{h}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">모델</label>
-              <select
-                value={model}
-                onChange={(e) => setModel(e.target.value as 'random' | 'fixed')}
-                className="text-sm border rounded-md px-2 py-1 bg-background block"
-              >
-                <option value="random">랜덤 효과</option>
-                <option value="fixed">고정 효과</option>
-              </select>
+              <Select value={model} onValueChange={(v) => setModel(v as 'random' | 'fixed')}>
+                <SelectTrigger className="h-8 text-sm w-[180px]">
+                  <SelectValue placeholder="선택..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="random">랜덤 효과</SelectItem>
+                  <SelectItem value="fixed">고정 효과</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <Button onClick={handleAnalyze} disabled={isAnalyzing} size="sm">
-              {isAnalyzing ? '분석 중...' : '분석 실행'}
+              {isAnalyzing ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" />분석 중...</> : '분석 실행'}
             </Button>
           </div>
         )}
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {error}
+          </div>
+        )}
 
         {results && forestData && (
-          <div className="space-y-6">
+          <div ref={resultsRef} className="space-y-6">
             {/* 통합 결과 테이블 */}
             <div>
               <h3 className="text-sm font-semibold mb-2">통합 결과</h3>
               <div className="overflow-auto border rounded-lg">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b bg-muted/30">
+                    <tr className={cn('border-b', BIO_TABLE.headerBg)}>
                       <th className={`text-left ${BIO_TABLE.headerCell}`}>항목</th>
                       <th className={`text-right ${BIO_TABLE.headerCell}`}>값</th>
                     </tr>
@@ -296,7 +321,7 @@ export default function MetaAnalysisPage(): React.ReactElement {
               <div className="overflow-auto border rounded-lg">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b bg-muted/30">
+                    <tr className={cn('border-b', BIO_TABLE.headerBg)}>
                       <th className={`text-left ${BIO_TABLE.headerCell}`}>연구</th>
                       <th className={`text-right ${BIO_TABLE.headerCell}`}>효과크기</th>
                       <th className={`text-right ${BIO_TABLE.headerCell}`}>95% CI</th>

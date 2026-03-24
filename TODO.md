@@ -125,7 +125,7 @@ These items should be the current focus.
 **Phase 1~3 순차:**
 - `[ux]` Phase 1: Shell 통일 — 헤더(bg/sticky/h-12) + `max-w-7xl` + 배경 틴트 + BioToolsHub 헤더 추가
 - `[ux]` Phase 2: Upload 통일 — BioCsvUpload → UploadDropZone 시각 채택
-- `[ux]` Phase 3: Bio 페이지 일괄 — Combobox(컬럼)/Select(단순) + 테이블 bg 토큰 + 유의성 배지 토큰 + Loader2 스피너 + scrollIntoView + 에러 박스 + 다크모드 검증
+- `[ux]` Phase 3: Bio 페이지 일괄 — Select(전체) + 테이블 bg 토큰 + 유의성 배지 토큰 + Loader2 스피너 + scrollIntoView + 에러 박스 + 다크모드 검증 + smoke 테스트
 
 ### 3-D. 공통 품질/UX
 
@@ -170,6 +170,7 @@ These are valid directions, but not current execution priorities.
 - `[trust]` Expand reproducible code export to more advanced analysis paths.
 - `[workflow]` Add richer project dashboard and project health summary.
 - `[ux]` 사이드바 IA 재구성 — "홈"에 Analysis가 숨겨져 있어 발견성 낮음, "유전적 분석"이 Bio-Tools 밖에 독립 메뉴, 섹션/기능/예정 레벨 혼재. 네비게이션 계층 재설계 필요.
+- `[ux]` Bio-Tools 컬럼 Combobox — `pnpm add cmdk` + `command.tsx` 생성 → 컬럼 select를 검색 가능 Combobox로 업그레이드 (Phase 3에서 Select로 통일 후 후속)
 - `[ux]` Command Palette (Cmd+K) — 43개 분석 메서드 + 16개 Bio 도구 + Graph Studio 빠른 접근. 검색·탐색 UX 대폭 향상.
 - `[ux]` 키보드 단축키 — `Ctrl+Enter` 분석 실행, `Escape` 뒤로, `Ctrl+S` 저장/내보내기
 - `[ux]` Bio-Tools 결과 내보내기 — 현재 0개. 최소 "테이블 복사" / "CSV 다운로드" 버튼

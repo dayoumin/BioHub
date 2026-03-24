@@ -60,6 +60,11 @@ export const BIO_TABLE = {
   headerBg: STEP_STYLES.cardHeaderBg,
 } as const
 
+// ─── Select 빈 값 sentinel ────────────────────────
+
+/** shadcn Select에서 "없음" 옵션을 표현하기 위한 sentinel 값 (Radix는 value="" 불허) */
+export const NONE_VALUE = '__none__' as const
+
 // ─── 레이아웃 토큰 (STEP_STYLES 재활용) ───────────
 
 export const BIO_LAYOUT = {

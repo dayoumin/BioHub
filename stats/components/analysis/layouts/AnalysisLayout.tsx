@@ -29,6 +29,7 @@ import { useUI } from '@/contexts/ui-context'
 import { SettingsModal } from '@/components/layout/settings-modal'
 import { HelpModal } from '@/components/layout/help-modal'
 import { STEP_STYLES } from '@/components/analysis/common/style-constants'
+import { LAYOUT } from '@/components/common/card-styles'
 import { useTerminology } from '@/hooks/use-terminology'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
@@ -158,7 +159,7 @@ export function AnalysisLayout({
       <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
         style={{ borderTop: `2px solid var(${showHub ? '--section-accent-hub' : '--section-accent-analysis'})` }}
       >
-        <div className="max-w-6xl mx-auto px-6">
+        <div className={cn(LAYOUT.maxWidth, 'px-6')}>
           <div className="flex items-center justify-between h-10">
             {/* 좌: 섹션명 + 아이콘 */}
             <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -212,7 +213,7 @@ export function AnalysisLayout({
       )}
 
       {/* ===== 메인 콘텐츠 영역 ===== */}
-      <main className="max-w-6xl mx-auto">
+      <main className={LAYOUT.maxWidth}>
         <div className={cn(STEP_STYLES.mainContentPaddingX, STEP_STYLES.mainContentPaddingY, STEP_STYLES.sectionGap, showFloatingNav && !showHub && onNext && 'pb-20')}>
           {/* Analysis 전용 도움말 패널 */}
           {showHelp && onHelpToggle && (
@@ -293,7 +294,7 @@ export function AnalysisLayout({
       {/* ===== 하단 네비게이션 바 ===== */}
       {showFloatingNav && !showHub && onNext && (
         <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-background/80 backdrop-blur-md">
-          <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-end">
+          <div className={cn(LAYOUT.maxWidth, 'px-6 py-3 flex items-center justify-end')}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <span>

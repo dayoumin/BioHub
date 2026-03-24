@@ -22,6 +22,7 @@ import {
 // import { StatisticalGuideSystem, FileNamingSystem } from "@/lib/statistical-guide"
 // import { StatisticalTestResult, CorrelationResult } from "@/lib/statistics"
 import { useState } from "react"
+import { LAYOUT } from "@/components/common/card-styles"
 
 export default function HelpPage() {
   const [currentDemo, setCurrentDemo] = useState<'ttest' | 'correlation'>('ttest')
@@ -116,7 +117,7 @@ export default function HelpPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className={`space-y-6 ${LAYOUT.maxWidth}`}>
         <div className="text-center space-y-4">
           <div className="flex items-center justify-center gap-3">
             <HelpCircle className="h-8 w-8 text-primary" />

@@ -1,12 +1,15 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
 import { BioToolShell } from '@/components/bio-tools/BioToolShell'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
+import { cn } from '@/lib/utils'
+import { AlertCircle, Loader2 } from 'lucide-react'
 
 interface SiteResult {
   siteName: string
@@ -46,8 +49,15 @@ const INDEX_LABELS: Record<string, string> = {
 const tool = getBioToolById('alpha-diversity')
 
 export default function AlphaDiversityPage(): React.ReactElement {
+  const resultsRef = useRef<HTMLDivElement>(null)
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<AlphaDiversityResult>()
+
+  useEffect(() => {
+    if (results) {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [results])
 
   const handleAnalyze = useCallback(() => {
     if (!csvData) return
@@ -68,31 +78,37 @@ export default function AlphaDiversityPage(): React.ReactElement {
         {csvData && (
           <div className="flex items-center gap-4">
             <label className="text-sm text-muted-foreground">지점명 열:</label>
-            <select
-              value={siteCol}
-              onChange={(e) => setSiteCol(e.target.value)}
-              className="text-sm border rounded-md px-2 py-1 bg-background"
-            >
-              {csvData.headers.map((h) => (
-                <option key={h} value={h}>{h}</option>
-              ))}
-            </select>
+            <Select value={siteCol || undefined} onValueChange={setSiteCol}>
+              <SelectTrigger className="h-8 text-sm w-[180px]">
+                <SelectValue placeholder="선택..." />
+              </SelectTrigger>
+              <SelectContent>
+                {csvData.headers.map((h) => (
+                  <SelectItem key={h} value={h}>{h}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button onClick={handleAnalyze} disabled={isAnalyzing} size="sm">
-              {isAnalyzing ? '분석 중...' : '분석 실행'}
+              {isAnalyzing ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" />분석 중...</> : '분석 실행'}
             </Button>
           </div>
         )}
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {error}
+          </div>
+        )}
 
         {results && (
-          <div className="space-y-6">
+          <div ref={resultsRef} className="space-y-6">
             <div>
               <h3 className="text-sm font-semibold mb-2">지점별 다양성 지수</h3>
               <div className="overflow-auto border rounded-lg">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b bg-muted/30">
+                    <tr className={cn('border-b', BIO_TABLE.headerBg)}>
                       <th className={`text-left ${BIO_TABLE.headerCell}`}>지점</th>
                       <th className={`text-right ${BIO_TABLE.headerCell}`}>종수 (S)</th>
                       <th className={`text-right ${BIO_TABLE.headerCell}`}>개체수 (N)</th>
@@ -125,7 +141,7 @@ export default function AlphaDiversityPage(): React.ReactElement {
                 <div className="overflow-auto border rounded-lg">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b bg-muted/30">
+                      <tr className={cn('border-b', BIO_TABLE.headerBg)}>
                         <th className={`text-left ${BIO_TABLE.headerCell}`}>지수</th>
                         <th className={`text-right ${BIO_TABLE.headerCell}`}>평균</th>
                         <th className={`text-right ${BIO_TABLE.headerCell}`}>표준편차</th>

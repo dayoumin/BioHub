@@ -1,12 +1,15 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
 import { BioToolShell } from '@/components/bio-tools/BioToolShell'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
+import { NONE_VALUE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
+import { AlertCircle, Loader2 } from 'lucide-react'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
@@ -18,11 +21,11 @@ interface NmdsResult {
   groups: string[] | null
 }
 
-const STRESS_COLORS: Record<string, string> = {
-  excellent: 'text-green-600',
-  good: 'text-blue-600',
-  fair: 'text-yellow-600',
-  poor: 'text-red-600',
+const STRESS_STYLES: Record<string, React.CSSProperties> = {
+  excellent: SIGNIFICANCE_BADGE.significant,
+  good: SIGNIFICANCE_BADGE.significant,
+  fair: SIGNIFICANCE_BADGE.nonSignificant,
+  poor: SIGNIFICANCE_BADGE.nonSignificant,
 }
 
 const STRESS_LABELS: Record<string, string> = {
@@ -35,9 +38,16 @@ const STRESS_LABELS: Record<string, string> = {
 const tool = getBioToolById('nmds')
 
 export default function NmdsPage(): React.ReactElement {
+  const resultsRef = useRef<HTMLDivElement>(null)
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runWithPreStep } =
     useBioToolAnalysis<NmdsResult>()
   const [groupCol, setGroupCol] = useState<string>('')
+
+  useEffect(() => {
+    if (results) {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [results])
 
   const handleAnalyze = useCallback(async () => {
     if (!csvData) return
@@ -95,41 +105,51 @@ export default function NmdsPage(): React.ReactElement {
         {csvData && (
           <div className="flex flex-wrap items-center gap-4">
             <label className="text-sm text-muted-foreground">지점명 열:</label>
-            <select
-              value={siteCol}
-              onChange={(e) => setSiteCol(e.target.value)}
-              className="text-sm border rounded-md px-2 py-1 bg-background"
-            >
-              {csvData.headers.map((h) => (
-                <option key={h} value={h}>{h}</option>
-              ))}
-            </select>
+            <Select value={siteCol || undefined} onValueChange={setSiteCol}>
+              <SelectTrigger className="h-8 text-sm w-[180px]">
+                <SelectValue placeholder="선택..." />
+              </SelectTrigger>
+              <SelectContent>
+                {csvData.headers.map((h) => (
+                  <SelectItem key={h} value={h}>{h}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             <label className="text-sm text-muted-foreground">그룹 열 (선택):</label>
-            <select
-              value={groupCol}
-              onChange={(e) => setGroupCol(e.target.value)}
-              className="text-sm border rounded-md px-2 py-1 bg-background"
-            >
-              <option value="">없음</option>
-              {csvData.headers.map((h) => (
-                <option key={h} value={h}>{h}</option>
-              ))}
-            </select>
+            <Select value={groupCol || NONE_VALUE} onValueChange={(v) => setGroupCol(v === NONE_VALUE ? '' : v)}>
+              <SelectTrigger className="h-8 text-sm w-[180px]">
+                <SelectValue placeholder="선택..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_VALUE}>없음 (단일 그룹)</SelectItem>
+                {csvData.headers.map((h) => (
+                  <SelectItem key={h} value={h}>{h}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             <Button onClick={handleAnalyze} disabled={isAnalyzing} size="sm">
-              {isAnalyzing ? '분석 중...' : '분석 실행'}
+              {isAnalyzing ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" />분석 중...</> : '분석 실행'}
             </Button>
           </div>
         )}
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {error}
+          </div>
+        )}
 
         {results && (
-          <div className="space-y-4">
+          <div ref={resultsRef} className="space-y-4">
             <div className="flex items-center gap-3">
               <span className="text-sm text-muted-foreground">Stress:</span>
-              <span className={`text-sm font-semibold ${STRESS_COLORS[results.stressInterpretation] ?? ''}`}>
+              <span
+                className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                style={STRESS_STYLES[results.stressInterpretation] ?? {}}
+              >
                 {results.stress} — {STRESS_LABELS[results.stressInterpretation] ?? results.stressInterpretation}
               </span>
             </div>

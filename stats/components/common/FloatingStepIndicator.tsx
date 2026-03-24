@@ -2,6 +2,7 @@
 
 import { memo } from 'react'
 import { cn } from '@/lib/utils'
+import { LAYOUT } from '@/components/common/card-styles'
 import { Check, Zap, LucideIcon } from 'lucide-react'
 
 export interface StepItem {
@@ -55,7 +56,7 @@ export const FloatingStepIndicator = memo(function FloatingStepIndicator({
       )}
       style={{ top: topOffset }}
     >
-      <div className="max-w-6xl mx-auto px-6 py-4">
+      <div className={cn(LAYOUT.maxWidth, 'px-6 py-4')}>
         <div className="flex items-start justify-between">
           {/* Step indicators */}
           <nav
