@@ -1,16 +1,15 @@
 'use client'
 
-import { memo, useState } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { FilterToggle } from '@/components/ui/filter-toggle'
-import { PlotlyChartImproved } from '@/components/charts/PlotlyChartImproved'
-import { BarChart as BarChartComponent } from '@/components/charts/StatisticalChartsImproved'
-import { getModalLayout, CHART_STYLES } from '@/lib/plotly-config'
 import { ColumnStatistics } from '@/types/analysis'
 import { getNumericColumnData } from '../utils/correlationUtils'
-import type { Data } from 'plotly.js'
 import { BarChart3, GitCommitHorizontal } from 'lucide-react'
 import { useTerminology } from '@/hooks/use-terminology'
+import { LazyReactECharts } from '@/lib/charts/LazyECharts'
+import { statBaseOption, statCategoryAxis, statValueAxis, statTooltip, STAT_COLORS } from '@/lib/charts/echarts-stat-utils'
+import type { EChartsOption } from 'echarts'
 
 interface ColumnDetailModalProps {
   column: ColumnStatistics | null
@@ -29,9 +28,109 @@ export const ColumnDetailModal = memo(function ColumnDetailModal({
   const vs = t.validationSummary
   const [chartType, setChartType] = useState<'histogram' | 'boxplot'>('histogram')
 
-  if (!column) return null
+  const numericData = useMemo(() => {
+    if (!column || !isOpen || column.type !== 'numeric') return []
+    return getNumericColumnData(data, column.name)
+  }, [column, isOpen, data])
 
-  const numericData = column.type === 'numeric' ? getNumericColumnData(data, column.name) : []
+  const histogramOption = useMemo((): EChartsOption | null => {
+    if (!column || numericData.length === 0) return null
+
+    const min = numericData.reduce((a, b) => Math.min(a, b), Infinity)
+    const max = numericData.reduce((a, b) => Math.max(a, b), -Infinity)
+
+    // constant data: single bin
+    if (min === max) {
+      return {
+        ...statBaseOption(),
+        xAxis: statCategoryAxis([`${min.toFixed(1)}`], column.name),
+        yAxis: { ...statValueAxis(vs.axisLabels.frequency), name: vs.axisLabels.frequency },
+        series: [{ type: 'bar', data: [numericData.length], itemStyle: { color: STAT_COLORS[1] }, barWidth: '50%' }],
+        tooltip: statTooltip({ trigger: 'axis', axisPointer: { type: 'shadow' } }),
+      }
+    }
+
+    const binCount = 20
+    const binWidth = (max - min) / binCount
+    const bins = new Array(binCount).fill(0) as number[]
+    const binLabels: string[] = []
+
+    for (let i = 0; i < binCount; i++) {
+      binLabels.push(`${(min + i * binWidth).toFixed(1)}`)
+    }
+
+    numericData.forEach((v) => {
+      const idx = Math.min(Math.floor((v - min) / binWidth), binCount - 1)
+      bins[idx]++
+    })
+
+    return {
+      ...statBaseOption(),
+      xAxis: { ...statCategoryAxis(binLabels, column.name), axisLabel: { fontSize: 10, color: '#64748b', rotate: 45 } },
+      yAxis: { ...statValueAxis(vs.axisLabels.frequency), name: vs.axisLabels.frequency },
+      series: [{ type: 'bar', data: bins, itemStyle: { color: STAT_COLORS[1], borderColor: STAT_COLORS[1], borderWidth: 1 }, barWidth: '90%' }],
+      tooltip: statTooltip({ trigger: 'axis', axisPointer: { type: 'shadow' } }),
+    }
+  }, [column, numericData, vs])
+
+  const boxplotOption = useMemo((): EChartsOption | null => {
+    if (!column || numericData.length === 0) return null
+
+    const sorted = [...numericData].sort((a, b) => a - b)
+    const n = sorted.length
+    const q1 = sorted[Math.floor(n * 0.25)]
+    const median = sorted[Math.floor(n * 0.5)]
+    const q3 = sorted[Math.floor(n * 0.75)]
+    const minVal = sorted[0]
+    const maxVal = sorted[n - 1]
+    const mean = numericData.reduce((a, b) => a + b, 0) / n
+
+    return {
+      ...statBaseOption(),
+      xAxis: { type: 'category', data: [column.name] },
+      yAxis: { ...statValueAxis(column.name), name: column.name },
+      series: [
+        {
+          type: 'boxplot',
+          data: [[minVal, q1, median, q3, maxVal]],
+          itemStyle: { color: STAT_COLORS[1] + '33', borderColor: STAT_COLORS[1] },
+        },
+        {
+          type: 'scatter',
+          symbol: 'diamond',
+          symbolSize: 10,
+          data: [[0, mean]],
+          itemStyle: { color: '#fff', borderColor: STAT_COLORS[1], borderWidth: 2 },
+          tooltip: { formatter: () => `평균: ${mean.toFixed(2)}` },
+        },
+      ],
+      tooltip: statTooltip(),
+    }
+  }, [column, numericData])
+
+  const barOption = useMemo((): EChartsOption | null => {
+    if (!column || column.type !== 'categorical' || !column.topCategories) return null
+
+    const categories = column.topCategories.map((c) => c.value)
+    const values = column.topCategories.map((c) => c.count)
+
+    return {
+      ...statBaseOption(),
+      grid: { left: 120, right: 20, top: 30, bottom: 50, containLabel: true },
+      yAxis: { type: 'category', data: categories, axisLabel: { fontSize: 11, color: '#64748b' } },
+      xAxis: { type: 'value', ...statValueAxis() },
+      series: [{
+        type: 'bar',
+        data: values.map((v, i) => ({
+          value: v,
+          itemStyle: { color: STAT_COLORS[i % STAT_COLORS.length] },
+        })),
+      }],
+      tooltip: statTooltip({ trigger: 'axis', axisPointer: { type: 'shadow' } }),
+    }
+  }, [column])
+
+  if (!column) return null
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -54,58 +153,15 @@ export const ColumnDetailModal = memo(function ColumnDetailModal({
                 ariaLabel={vs.chartTypes.ariaLabel}
               />
 
-              {chartType === 'histogram' && (
-                <div className="h-[400px] w-full mt-4">
-                  <PlotlyChartImproved
-                    data={[{
-                      x: numericData,
-                      type: 'histogram',
-                      ...CHART_STYLES.histogram,
-                      nbinsx: 20,
-                      name: column.name,
-                      hovertemplate: vs.histogramHoverTemplate
-                    } as Data]}
-                    layout={getModalLayout({
-                      title: { text: '' },
-                      xaxis: { title: { text: column.name } },
-                      yaxis: { title: { text: vs.axisLabels.frequency } },
-                      height: 380,
-                      showlegend: false,
-                      margin: { l: 50, r: 30, t: 20, b: 50 }
-                    })}
-                    config={{
-                      displayModeBar: true,
-                      displaylogo: false,
-                      responsive: true
-                    }}
-                  />
+              {chartType === 'histogram' && histogramOption && (
+                <div className="mt-4">
+                  <LazyReactECharts option={histogramOption} style={{ height: 380 }} opts={{ renderer: 'svg' }} />
                 </div>
               )}
 
-              {chartType === 'boxplot' && (
-                <div className="h-[400px] w-full mt-4">
-                  <PlotlyChartImproved
-                    data={[{
-                      y: numericData,
-                      type: 'box',
-                      ...CHART_STYLES.box,
-                      name: column.name,
-                      boxmean: true,
-                      hovertemplate: '%{y}<extra></extra>'
-                    } as Data]}
-                    layout={getModalLayout({
-                      title: { text: '' },
-                      yaxis: { title: { text: column.name } },
-                      height: 380,
-                      showlegend: false,
-                      margin: { l: 60, r: 30, t: 20, b: 40 }
-                    })}
-                    config={{
-                      displayModeBar: true,
-                      displaylogo: false,
-                      responsive: true
-                    }}
-                  />
+              {chartType === 'boxplot' && boxplotOption && (
+                <div className="mt-4">
+                  <LazyReactECharts option={boxplotOption} style={{ height: 380 }} opts={{ renderer: 'svg' }} />
                 </div>
               )}
 
@@ -130,14 +186,10 @@ export const ColumnDetailModal = memo(function ColumnDetailModal({
                 </div>
               </div>
             </>
-          ) : column.type === 'categorical' && column.topCategories ? (
+          ) : column.type === 'categorical' && column.topCategories && barOption ? (
             <div>
-              <BarChartComponent
-                categories={column.topCategories.map(c => c.value)}
-                values={column.topCategories.map(c => c.count)}
-                title={vs.categoryFrequencyTitle}
-                orientation="h"
-              />
+              <h4 className="text-sm font-medium mb-2">{vs.categoryFrequencyTitle}</h4>
+              <LazyReactECharts option={barOption} style={{ height: 320 }} opts={{ renderer: 'svg' }} />
             </div>
           ) : (
             <p className="text-muted-foreground">{vs.mixedTypeMessage}</p>

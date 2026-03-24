@@ -2,97 +2,12 @@
 
 import { useMemo } from 'react'
 import { useTerminology } from '@/hooks/use-terminology'
-import {
-  BarChart,
-  Bar,
-  ComposedChart,
-  LineChart,
-  Line,
-  ScatterChart,
-  Scatter,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  ReferenceLine,
-  Cell,
-  ErrorBar
-} from 'recharts'
 import { Card } from '@/components/ui/card'
 import { AnalysisResult } from '@/types/analysis'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
-
-// CSS 변수를 Recharts용 HEX 색상으로 변환 (Design System 통일)
-// Canvas 2D를 사용하여 oklch/hsl/rgb 등 모든 CSS 색상 형식을 HEX로 변환
-let _colorCtx: CanvasRenderingContext2D | null = null
-
-const getCSSColor = (variable: string): string => {
-  if (typeof window === 'undefined') return '#000000' // SSR 안전성
-
-  const value = getComputedStyle(document.documentElement).getPropertyValue(variable).trim()
-  if (!value) return '#000000'
-
-  if (!_colorCtx) {
-    _colorCtx = document.createElement('canvas').getContext('2d')
-  }
-  if (!_colorCtx) return '#000000'
-
-  _colorCtx.fillStyle = '#000000' // Reset to detect unsupported values
-  _colorCtx.fillStyle = value
-  return _colorCtx.fillStyle
-}
-
-// Design System 색상 (shadcn/ui)
-const CHART_COLORS = {
-  primary: () => getCSSColor('--primary'),        // 메인 색상 (파란색)
-  success: () => getCSSColor('--success'),        // 성공 색상 (초록색)
-  accent: () => getCSSColor('--accent'),          // 강조 색상 (보라색)
-  muted: () => getCSSColor('--muted'),            // 배경/비활성 색상
-  destructive: () => getCSSColor('--destructive'), // 삭제/에러 색상
-  foreground: () => getCSSColor('--foreground'),  // 기본 텍스트 색상
-  warning: () => getCSSColor('--warning'),        // 경고 색상 (노란색)
-  info: () => getCSSColor('--info'),              // 정보 색상 (파란색)
-  error: () => getCSSColor('--error'),            // 에러 색상 (빨간색)
-}
-
-// Custom Tooltip 컴포넌트 (Recharts 최신 UX - 깔끔한 hover 정보)
-interface CustomTooltipProps {
-  active?: boolean
-  payload?: Array<{
-    value: number
-    name: string
-    dataKey: string
-    color?: string
-  }>
-  label?: string
-}
-
-function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
-  if (!active || !payload || payload.length === 0) return null
-
-  return (
-    <div className="bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-3">
-      {label && (
-        <p className="font-semibold text-sm mb-2 text-foreground">{label}</p>
-      )}
-      <div className="space-y-1">
-        {payload.map((entry, index) => (
-          <div key={index} className="flex items-center gap-2 text-sm">
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: entry.color || CHART_COLORS.primary() }}
-            />
-            <span className="text-muted-foreground">{entry.name}:</span>
-            <span className="font-medium text-foreground">{entry.value.toFixed(2)}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
+import { LazyReactECharts } from '@/lib/charts/LazyECharts'
+import { statBaseOption, statCategoryAxis, statValueAxis, statTooltip, errorBarSeries, STAT_COLORS } from '@/lib/charts/echarts-stat-utils'
+import type { EChartsOption } from 'echarts'
 
 // 타입 안전성을 위한 확장 인터페이스 — additional에 regression 필드 추가
 interface RegressionResult extends AnalysisResult {
@@ -119,17 +34,69 @@ interface ResultsVisualizationProps {
   results: AnalysisResult
 }
 
+/** 공통 bar+errorBar ECharts option 생성 (t-검정/ANOVA/비모수) */
+function groupBarOption(
+  groupData: GroupData[],
+  color: string,
+  altColor?: string,
+): EChartsOption {
+  const categories = groupData.map((g) => g.name)
+  const means = groupData.map((g) => g.mean)
+
+
+  const errorBarUpper = groupData.map((g) => g.mean + g.std)
+  const errorBarLower = groupData.map((g) => g.mean - g.std)
+
+  return {
+    ...statBaseOption(),
+    xAxis: statCategoryAxis(categories),
+    yAxis: statValueAxis(),
+    tooltip: statTooltip({
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter(params: unknown) {
+        const arr = params as Array<Record<string, unknown>>
+        const p = arr[0]
+        const idx = p.dataIndex as number
+        const g = groupData[idx]
+        if (!g) return ''
+        return `<b>${g.name}</b><br/>평균: ${g.mean.toFixed(2)}<br/>표준편차: ${g.std.toFixed(2)}<br/>n = ${g.n}`
+      },
+    }),
+    series: [
+      {
+        type: 'bar',
+        data: means.map((val, i) => ({
+          value: val,
+          itemStyle: {
+            color: altColor && i > 0 ? altColor : color,
+            borderRadius: [8, 8, 0, 0],
+          },
+        })),
+        label: {
+          show: true,
+          position: 'top',
+          formatter: (p: Record<string, unknown>) => (p.value as number).toFixed(2),
+          fontSize: 11,
+        },
+        barMaxWidth: 60,
+      },
+      errorBarSeries(groupData.map((_, i) => [i, errorBarUpper[i], errorBarLower[i]])),
+    ] as NonNullable<EChartsOption['series']>,
+  }
+}
+
+/** 대용량 데이터 샘플링 (순수 함수 — 컴포넌트 외부) */
+function sampleLargeData<T>(data: T[], maxSize: number = 1000): T[] {
+  if (data.length <= maxSize) return data
+  const step = Math.ceil(data.length / maxSize)
+  return data.filter((_, index) => index % step === 0)
+}
+
 export function ResultsVisualization({ results }: ResultsVisualizationProps) {
   const t = useTerminology()
   const rv = t.resultsVisualization
-  const { uploadedData, selectedMethod } = useAnalysisStore()
-
-  // 대용량 데이터 샘플링 함수
-  const sampleLargeData = <T,>(data: T[], maxSize: number = 1000): T[] => {
-    if (data.length <= maxSize) return data
-    const step = Math.ceil(data.length / maxSize)
-    return data.filter((_, index) => index % step === 0)
-  }
+  const { uploadedData } = useAnalysisStore()
 
   const chartData = useMemo(() => {
     const empty = { groupData: [] as GroupData[], scatterData: [] as ChartDataPoint[], distributionData: [] as Array<{ x: number; normal1: number; normal2: number }> }
@@ -241,31 +208,13 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
 
   // t-검정이나 ANOVA의 경우 막대 그래프 + Error Bar
   if (results.method?.includes('검정') || results.method?.includes('ANOVA')) {
+    const option = groupBarOption(chartData.groupData, STAT_COLORS[0], STAT_COLORS[2])
+
     return (
       <Card className="p-6 bg-gradient-to-br from-blue-50/30 to-success-bg/30 dark:from-blue-950/20 dark:to-success-bg/20">
         <h4 className="text-lg font-semibold mb-4">{rv.groupComparison.title}</h4>
 
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={chartData.groupData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }} />
-            <Legend />
-            <Bar
-              dataKey="mean"
-              fill={CHART_COLORS.primary()}
-              name={rv.labels.mean}
-              label={{ position: 'top', formatter: (label) => typeof label === 'number' ? label.toFixed(2) : String(label) }}
-              radius={[8, 8, 0, 0]}
-            >
-              {chartData.groupData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={index === 0 ? CHART_COLORS.primary() : CHART_COLORS.success()} />
-              ))}
-              <ErrorBar dataKey="std" width={4} strokeWidth={2} stroke={CHART_COLORS.foreground()} />
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        <LazyReactECharts option={option} style={{ height: 300 }} opts={{ renderer: 'svg' }} />
 
         <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
           {chartData.groupData.map((group, index) => (
@@ -288,25 +237,32 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
     )
   }
 
-  // 상관분석의 경우 산점도 (수치 요약은 StatsCards/MethodSpecificResults에서 표시)
+  // 상관분석의 경우 산점도
   if (results.method?.includes('상관')) {
+    const scatterOption: EChartsOption = {
+      ...statBaseOption(),
+  
+      xAxis: { type: 'value', name: 'X', ...statValueAxis() },
+      yAxis: { type: 'value', name: 'Y', ...statValueAxis() },
+      series: [{
+        type: 'scatter',
+        data: chartData.scatterData.map((p) => [p.x, p.y]),
+        symbolSize: 8,
+        itemStyle: { color: STAT_COLORS[4], opacity: 0.7 },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.2)', opacity: 1 } },
+      }],
+      tooltip: statTooltip({
+        formatter(params: unknown) {
+          const p = params as { value: number[] }
+          return `X: ${p.value[0].toFixed(4)}<br/>Y: ${p.value[1].toFixed(4)}`
+        },
+      }),
+    }
+
     return (
       <Card className="p-6 bg-gradient-to-br from-purple-50/30 to-pink-50/30 dark:from-purple-950/20 dark:to-pink-950/20">
         <h4 className="text-lg font-semibold mb-4">{rv.correlation.title}</h4>
-
-        <ResponsiveContainer width="100%" height={300}>
-          <ScatterChart>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="x" name="X" />
-            <YAxis dataKey="y" name="Y" />
-            <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-            <Scatter
-              name={rv.labels.data}
-              data={chartData.scatterData}
-              fill={CHART_COLORS.primary()}
-            />
-          </ScatterChart>
-        </ResponsiveContainer>
+        <LazyReactECharts option={scatterOption} style={{ height: 300 }} opts={{ renderer: 'svg' }} />
       </Card>
     )
   }
@@ -314,7 +270,6 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
   // 회귀분석의 경우 산점도와 회귀선
   if (results.method?.includes('회귀')) {
     const regressionResult = results as RegressionResult
-    // visualizationData에서 regression 파라미터 우선 사용, 없으면 coefficients fallback
     const vizRegression = results.visualizationData?.data as Record<string, unknown> | undefined
     const vizReg = vizRegression?.regression as { slope?: number; intercept?: number } | undefined
     const intercept = vizReg?.intercept ?? regressionResult.additional?.intercept ?? 0
@@ -322,46 +277,49 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
     const slope = vizReg?.slope ?? slopeCoeff?.value ?? 0
     const hasRegressionLine = vizReg?.slope !== undefined || slopeCoeff !== undefined
 
-    // 회귀선을 위한 데이터 생성
-    const lineData = hasRegressionLine && chartData.scatterData.length > 0
-      ? (() => {
-          const xMin = Math.min(...chartData.scatterData.map(d => d.x))
-          const xMax = Math.max(...chartData.scatterData.map(d => d.x))
-          return [
-            { x: xMin, y: slope * xMin + intercept },
-            { x: xMax, y: slope * xMax + intercept },
-          ]
-        })()
-      : []
+    const scatterPoints = chartData.scatterData.map((p) => [p.x, p.y])
+    const series: NonNullable<EChartsOption['series']> = [
+      {
+        type: 'scatter',
+        data: scatterPoints,
+        symbolSize: 8,
+        itemStyle: { color: STAT_COLORS[0], opacity: 0.7 },
+        name: rv.labels.data,
+      } as Record<string, unknown>,
+    ]
+
+    if (hasRegressionLine && chartData.scatterData.length > 0) {
+      const xMin = Math.min(...chartData.scatterData.map((d) => d.x))
+      const xMax = Math.max(...chartData.scatterData.map((d) => d.x))
+      series.push({
+        type: 'line',
+        data: [
+          [xMin, slope * xMin + intercept],
+          [xMax, slope * xMax + intercept],
+        ],
+        symbol: 'none',
+        lineStyle: { color: STAT_COLORS[5], width: 2 },
+        name: rv.regression.regressionLine,
+      } as Record<string, unknown>)
+    }
+
+    const regressionOption: EChartsOption = {
+      ...statBaseOption(),
+      xAxis: { type: 'value', name: rv.regression.independentVar, ...statValueAxis() },
+      yAxis: { type: 'value', name: rv.regression.dependentVar, ...statValueAxis() },
+      series,
+      tooltip: statTooltip({
+        formatter(params: unknown) {
+          const p = params as { value: number[] }
+          return `X: ${p.value[0].toFixed(4)}<br/>Y: ${p.value[1].toFixed(4)}`
+        },
+      }),
+    }
 
     return (
       <Card className="p-6 bg-gradient-to-br from-orange-50/30 to-red-50/30 dark:from-orange-950/20 dark:to-red-950/20">
         <h4 className="text-lg font-semibold mb-4">{rv.regression.title}</h4>
-
-        <ResponsiveContainer width="100%" height={300}>
-          <ComposedChart data={chartData.scatterData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="x" type="number" name={rv.regression.independentVar} />
-            <YAxis dataKey="y" type="number" name={rv.regression.dependentVar} />
-            <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-            <Scatter
-              name={rv.labels.data}
-              data={chartData.scatterData}
-              fill={CHART_COLORS.primary()}
-            />
-            {lineData.length > 0 && (
-              <Line
-                data={lineData}
-                type="monotone"
-                dataKey="y"
-                stroke={CHART_COLORS.destructive()}
-                strokeWidth={2}
-                dot={false}
-                name={rv.regression.regressionLine}
-              />
-            )}
-          </ComposedChart>
-        </ResponsiveContainer>
+        <LazyReactECharts option={regressionOption} style={{ height: 300 }} opts={{ renderer: 'svg' }} />
 
         {hasRegressionLine && (
           <div className="mt-4 bg-muted/50 rounded p-3">
@@ -375,36 +333,18 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
     )
   }
 
-  // 비모수 검정 (Mann-Whitney, Wilcoxon, Kruskal-Wallis 등) - Error Bar 포함
+  // 비모수 검정 (Mann-Whitney, Wilcoxon, Kruskal-Wallis 등)
   if (results.method?.includes('Mann-Whitney') ||
       results.method?.includes('Wilcoxon') ||
       results.method?.includes('Kruskal') ||
       results.method?.includes('비모수')) {
+    const option = groupBarOption(chartData.groupData, STAT_COLORS[6])
+
     return (
       <Card className="p-6 bg-gradient-to-br from-teal-50/30 to-cyan-50/30 dark:from-teal-950/20 dark:to-cyan-950/20">
         <h4 className="text-lg font-semibold mb-4">{rv.nonparametric.title}</h4>
 
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={chartData.groupData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }} />
-            <Legend />
-            <Bar
-              dataKey="mean"
-              fill={CHART_COLORS.accent()}
-              name={rv.nonparametric.medianMean}
-              label={{ position: 'top', formatter: (label) => typeof label === 'number' ? label.toFixed(2) : String(label) }}
-              radius={[8, 8, 0, 0]}
-            >
-              {chartData.groupData.map((_, index) => (
-                <Cell key={`cell-${index}`} fill={CHART_COLORS.accent()} />
-              ))}
-              <ErrorBar dataKey="std" width={4} strokeWidth={2} stroke={CHART_COLORS.foreground()} />
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        <LazyReactECharts option={option} style={{ height: 300 }} opts={{ renderer: 'svg' }} />
 
         <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
           {chartData.groupData.map((group, index) => (
@@ -427,9 +367,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
     )
   }
 
-  // 기술통계는 데이터 탐색 단계에서 표시됨 (제거됨)
-
-  // PCA/요인분석 - 분산 설명률 바 차트
+  // PCA/요인분석 - 분산 설명률 바+라인 차트
   if (results.method?.includes('주성분') ||
       results.method?.includes('PCA') ||
       results.method?.includes('요인')) {
@@ -440,22 +378,37 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
       cumulative: explainedRatios.slice(0, idx + 1).reduce((a, b) => a + b, 0) * 100
     }))
 
+    const pcaOption: EChartsOption = varianceData.length > 0 ? {
+      ...statBaseOption(),
+      xAxis: statCategoryAxis(varianceData.slice(0, 10).map((d) => d.name)),
+      yAxis: { ...statValueAxis(), name: '%', axisLabel: { formatter: '{value}%' } },
+      series: [
+        {
+          type: 'bar',
+          data: varianceData.slice(0, 10).map((d) => d.variance),
+          itemStyle: { color: STAT_COLORS[6], borderRadius: [4, 4, 0, 0] },
+          name: rv.pca.individualVariance,
+        },
+        {
+          type: 'line',
+          data: varianceData.slice(0, 10).map((d) => d.cumulative),
+          itemStyle: { color: STAT_COLORS[4] },
+          lineStyle: { color: STAT_COLORS[4] },
+          name: rv.pca.cumulativeVariance,
+          symbol: 'circle',
+          symbolSize: 6,
+        },
+      ],
+      tooltip: statTooltip({ trigger: 'axis' }),
+      legend: { bottom: 0 },
+    } : { ...statBaseOption() }
+
     return (
       <Card className="p-6 bg-gradient-to-br from-indigo-50/30 to-violet-50/30 dark:from-indigo-950/20 dark:to-violet-950/20">
         <h4 className="text-lg font-semibold mb-4">{rv.pca.title}</h4>
 
         {varianceData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <ComposedChart data={varianceData.slice(0, 10)}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis unit="%" />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend />
-              <Bar dataKey="variance" fill={CHART_COLORS.accent()} name={rv.pca.individualVariance} radius={[4, 4, 0, 0]} />
-              <Line type="monotone" dataKey="cumulative" stroke={CHART_COLORS.accent()} name={rv.pca.cumulativeVariance} />
-            </ComposedChart>
-          </ResponsiveContainer>
+          <LazyReactECharts option={pcaOption} style={{ height: 300 }} opts={{ renderer: 'svg' }} />
         ) : (
           <div className="text-center py-8 text-muted-foreground">
             <p>{rv.pca.noDataMessage}</p>
@@ -475,69 +428,90 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
 
   // 군집분석 - 산점도 (클러스터별 색상)
   if (results.method?.includes('군집') || results.method?.includes('K-평균')) {
+    // 클러스터별 시리즈 분리
+    const clusterGroups = new Map<string, Array<[number, number]>>()
+    chartData.scatterData.forEach((p) => {
+      const key = p.group ?? 'default'
+      if (!clusterGroups.has(key)) clusterGroups.set(key, [])
+      clusterGroups.get(key)!.push([p.x, p.y])
+    })
+
+    const clusterSeries: NonNullable<EChartsOption['series']> = Array.from(clusterGroups.entries()).map(
+      ([name, points], i) => ({
+        type: 'scatter' as const,
+        name,
+        data: points,
+        symbolSize: 8,
+        itemStyle: { color: STAT_COLORS[i % STAT_COLORS.length] },
+      }),
+    )
+
+    const clusterOption: EChartsOption = {
+      ...statBaseOption(),
+      xAxis: { type: 'value', name: rv.cluster.dimension1, ...statValueAxis() },
+      yAxis: { type: 'value', name: rv.cluster.dimension2, ...statValueAxis() },
+      series: clusterSeries,
+      legend: { bottom: 0 },
+      tooltip: statTooltip({
+        formatter(params: unknown) {
+          const p = params as { value: number[]; seriesName: string }
+          return `<b>${p.seriesName}</b><br/>X: ${p.value[0].toFixed(4)}<br/>Y: ${p.value[1].toFixed(4)}`
+        },
+      }),
+    }
+
     return (
       <Card className="p-6 bg-gradient-to-br from-emerald-50/30 to-green-50/30 dark:from-emerald-950/20 dark:to-green-950/20">
         <h4 className="text-lg font-semibold mb-4">{rv.cluster.title}</h4>
-
-        <ResponsiveContainer width="100%" height={300}>
-          <ScatterChart>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="x" name={rv.cluster.dimension1} />
-            <YAxis dataKey="y" name={rv.cluster.dimension2} />
-            <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-            <Scatter
-              name={rv.labels.data}
-              data={chartData.scatterData}
-              fill={CHART_COLORS.success()}
-            />
-          </ScatterChart>
-        </ResponsiveContainer>
-
+        <LazyReactECharts option={clusterOption} style={{ height: 300 }} opts={{ renderer: 'svg' }} />
       </Card>
     )
   }
 
-  // 신뢰도 분석 - 항목별 상관 바 차트
+  // 신뢰도 분석 - 항목별 상관 바 차트 (horizontal)
   if (results.method?.includes('신뢰도') || results.method?.includes('Cronbach')) {
     const itemData = results.additional?.itemTotalCorrelations?.map((corr, idx) => ({
       name: rv.reliability.itemLabel(idx + 1),
       correlation: corr
     })) || []
 
+    const reliabilityOption: EChartsOption = itemData.length > 0 ? {
+      ...statBaseOption(),
+      grid: { left: 80, right: 20, top: 30, bottom: 50, containLabel: true },
+      xAxis: { type: 'value', min: 0, max: 1, ...statValueAxis() },
+      yAxis: { type: 'category', data: itemData.map((d) => d.name), axisLabel: { fontSize: 11, color: '#64748b' } },
+      series: [{
+        type: 'bar',
+        data: itemData.map((d) => ({
+          value: d.correlation,
+          itemStyle: {
+            color: d.correlation < 0.3 ? '#ef4444' : STAT_COLORS[0],
+            borderRadius: [0, 4, 4, 0],
+          },
+        })),
+      }],
+      tooltip: {
+        ...statTooltip({ trigger: 'axis', axisPointer: { type: 'shadow' } }),
+      },
+    } : { ...statBaseOption() }
+
     return (
       <Card className="p-6 bg-gradient-to-br from-amber-50/30 to-yellow-50/30 dark:from-amber-950/20 dark:to-yellow-950/20">
         <h4 className="text-lg font-semibold mb-4">{rv.reliability.title}</h4>
 
         {itemData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={itemData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" domain={[0, 1]} />
-              <YAxis dataKey="name" type="category" width={60} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="correlation" fill={CHART_COLORS.warning()} radius={[0, 4, 4, 0]}>
-                {itemData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={entry.correlation < 0.3 ? CHART_COLORS.error() : CHART_COLORS.warning()}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <LazyReactECharts option={reliabilityOption} style={{ height: 300 }} opts={{ renderer: 'svg' }} />
         ) : (
           <div className="text-center py-8 text-muted-foreground">
             <p>{rv.reliability.noDataMessage}</p>
           </div>
         )}
-
       </Card>
     )
   }
 
-  // 검정력 분석 — 실제 power curve 데이터가 있을 때만 곡선 표시
+  // 검정력 분석 — power curve
   if (results.method?.includes('검정력')) {
-    // 1차: additional.powerCurve, 2차: visualizationData.data (executor가 {sampleSizes, powers}로 제공)
     const vizPower = results.visualizationData?.type === 'power-curve'
       ? results.visualizationData.data as { sampleSizes?: number[]; powers?: number[] }
       : undefined
@@ -546,21 +520,41 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
         ? vizPower.sampleSizes.map((n, i) => ({ n, power: vizPower.powers![i] }))
         : undefined)
 
+    const powerOption: EChartsOption = powerCurveData && powerCurveData.length > 0 ? {
+      ...statBaseOption(),
+      xAxis: { type: 'value', name: rv.labels.sampleSize, ...statValueAxis() },
+      yAxis: { type: 'value', name: '%', min: 0, max: 100, ...statValueAxis(), axisLabel: { formatter: '{value}%' } },
+      series: [{
+        type: 'line',
+        data: powerCurveData.map((d) => [d.n, d.power * 100]),
+        smooth: true,
+        lineStyle: { color: STAT_COLORS[0], width: 2 },
+        itemStyle: { color: STAT_COLORS[0] },
+        name: rv.power.powerLabel,
+        markLine: {
+          silent: true,
+          symbol: 'none',
+          lineStyle: { color: '#ef4444', type: 'dashed' as const, width: 1.5 },
+          data: [{ yAxis: 80, label: { formatter: '80%', position: 'end' as const } }],
+        },
+      }],
+      tooltip: statTooltip({
+        trigger: 'axis',
+        formatter(params: unknown) {
+          const arr = params as Array<Record<string, unknown>>
+          const p = arr[0]
+          const val = p.value as number[]
+          return `n = ${val[0]}<br/>검정력: ${val[1].toFixed(1)}%`
+        },
+      }),
+    } : { ...statBaseOption() }
+
     return (
       <Card className="p-6 bg-gradient-to-br from-rose-50/30 to-pink-50/30 dark:from-rose-950/20 dark:to-pink-950/20">
         <h4 className="text-lg font-semibold mb-4">{rv.power.title}</h4>
 
         {powerCurveData && powerCurveData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={powerCurveData.map(d => ({ ...d, power: d.power * 100 }))}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="n" name={rv.labels.sampleSize} />
-              <YAxis unit="%" domain={[0, 100]} />
-              <Tooltip content={<CustomTooltip />} />
-              <ReferenceLine y={80} stroke={CHART_COLORS.destructive()} strokeDasharray="5 5" label="80%" />
-              <Line type="monotone" dataKey="power" stroke={CHART_COLORS.primary()} strokeWidth={2} name={rv.power.powerLabel} />
-            </LineChart>
-          </ResponsiveContainer>
+          <LazyReactECharts option={powerOption} style={{ height: 300 }} opts={{ renderer: 'svg' }} />
         ) : (
           <div className="text-center py-8 text-muted-foreground text-sm">
             <p>{rv.power.currentPower}</p>

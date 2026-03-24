@@ -22,6 +22,9 @@ import {
 import { cn } from '@/lib/utils'
 import { ChartSkeleton } from './ChartSkeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { LazyReactECharts } from '@/lib/charts/LazyECharts'
+import { statBaseOption, statCategoryAxis, statValueAxis, statTooltip, STAT_COLORS } from '@/lib/charts/echarts-stat-utils'
+import type { EChartsOption } from 'echarts'
 
 interface BoxPlotData {
   name: string
@@ -54,6 +57,116 @@ interface BoxPlotProps {
   onDataPointClick?: (data: BoxPlotData, point: string) => void
   /** Whether to wrap content in a Card component (default: true) */
   showCard?: boolean
+}
+
+/** BoxPlotData → ECharts option 변환 */
+function toEChartsOption(
+  data: BoxPlotData[],
+  opts: { showMean: boolean; showOutliers: boolean; unit: string; height: number },
+): EChartsOption {
+  const categories = data.map((d) => d.name);
+  const boxData = data.map((d) => [d.min, d.q1, d.median, d.q3, d.max]);
+  const colors = data.map((d, i) => d.color ?? STAT_COLORS[i % STAT_COLORS.length]);
+
+  const series: NonNullable<EChartsOption['series']> = [
+    {
+      name: '분포',
+      type: 'boxplot',
+      data: boxData.map((row, i) => ({
+        value: row,
+        itemStyle: { color: colors[i] + '33', borderColor: colors[i] },
+      })),
+      emphasis: {
+        itemStyle: { borderWidth: 2, shadowBlur: 6, shadowColor: 'rgba(0,0,0,0.15)' },
+      },
+      tooltip: {
+        formatter(params: unknown) {
+          const p = params as { value: number[]; dataIndex: number };
+          const val = p.value;
+          const idx = p.dataIndex;
+          const name = categories[idx];
+          const u = opts.unit;
+          return `<b>${name}</b><br/>
+최대: ${val[4].toFixed(2)}${u}<br/>
+Q3: ${val[3].toFixed(2)}${u}<br/>
+중앙값: ${val[2].toFixed(2)}${u}<br/>
+Q1: ${val[1].toFixed(2)}${u}<br/>
+최소: ${val[0].toFixed(2)}${u}`;
+        },
+      },
+    } as Record<string, unknown>,
+  ];
+
+  // 평균 마커
+  if (opts.showMean) {
+    const meanData = data
+      .map((d, i) =>
+        d.mean != null ? { value: [i, d.mean], itemStyle: { color: '#fff', borderColor: colors[i] } } : null,
+      )
+      .filter(Boolean);
+    if (meanData.length > 0) {
+      series.push({
+        name: '평균',
+        type: 'scatter',
+        symbol: 'diamond',
+        symbolSize: 10,
+        data: meanData,
+        z: 10,
+        tooltip: {
+          formatter(params: unknown) {
+            const val = (params as { value: number[] }).value;
+            const idx = val[0];
+            return `<b>${categories[idx]}</b> 평균: ${val[1].toFixed(2)}${opts.unit}`;
+          },
+        },
+      } as Record<string, unknown>);
+    }
+  }
+
+  // 이상치
+  if (opts.showOutliers) {
+    const outlierPoints: Array<{ value: number[]; itemStyle: { color: string } }> = [];
+    data.forEach((d, i) => {
+      (d.outliers ?? []).forEach((v) => {
+        outlierPoints.push({ value: [i, v], itemStyle: { color: colors[i] } });
+      });
+    });
+    if (outlierPoints.length > 0) {
+      series.push({
+        name: '이상치',
+        type: 'scatter',
+        symbol: 'circle',
+        symbolSize: 6,
+        data: outlierPoints,
+        itemStyle: { opacity: 0.7 },
+        tooltip: {
+          formatter(params: unknown) {
+            const val = (params as { value: number[] }).value;
+            const idx = val[0];
+            return `<b>${categories[idx]}</b> 이상치: ${val[1].toFixed(2)}${opts.unit}`;
+          },
+        },
+      } as Record<string, unknown>);
+    }
+  }
+
+  return {
+    ...statBaseOption(),
+    xAxis: statCategoryAxis(categories),
+    yAxis: {
+      ...statValueAxis(opts.unit || undefined),
+      name: opts.unit || '',
+    },
+    series,
+    dataZoom: [{ type: 'inside', yAxisIndex: 0 }],
+    toolbox: {
+      right: 10,
+      top: 0,
+      feature: {
+        saveAsImage: { title: 'PNG 저장', pixelRatio: 2 },
+      },
+    },
+  };
 }
 
 /**
@@ -94,55 +207,15 @@ export const BoxPlot = memo(function BoxPlot({
 }: BoxPlotProps) {
   const [selectedBox, setSelectedBox] = useState<number | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [hoveredBox, setHoveredBox] = useState<number | null>(null)
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart')
 
-  // 전체 데이터 범위 계산 (early return 전에 훅 호출)
-  const { minValue, maxValue, range } = useMemo(() => {
-    // 빈 데이터 처리
-    if (data.length === 0) {
-      return { minValue: 0, maxValue: 1, range: 1 }
-    }
-
-    let min = Infinity
-    let max = -Infinity
-
-    data.forEach(d => {
-      min = Math.min(min, d.min)
-      max = Math.max(max, d.max)
-      if (d.outliers) {
-        d.outliers.forEach(outlier => {
-          min = Math.min(min, outlier)
-          max = Math.max(max, outlier)
-        })
-      }
-    })
-
-    // Infinity 체크
-    if (!isFinite(min) || !isFinite(max)) {
-      return { minValue: 0, maxValue: 1, range: 1 }
-    }
-
-    const padding = (max - min) * 0.1
-    return {
-      minValue: min - padding,
-      maxValue: max + padding,
-      range: max - min + padding * 2
-    }
-  }, [data])
-
-  // 값을 픽셀 위치로 변환
-  const valueToPosition = (value: number) => {
-    const plotHeight = height - 100
-    return plotHeight - ((value - minValue) / range) * plotHeight
-  }
-
-  // 박스 너비 및 간격 계산
-  const boxWidth = Math.min(80, 500 / data.length)
-  const boxSpacing = 600 / data.length
+  const chartOption = useMemo(
+    () => toEChartsOption(data, { showMean, showOutliers, unit, height }),
+    [data, showMean, showOutliers, unit, height],
+  )
 
   // 통계 요약 계산
-  const calculateStatistics = (d: BoxPlotData) => {
+  const calculateStatistics = useCallback((d: BoxPlotData) => {
     const iqr = d.q3 - d.q1
     const whiskerLower = Math.max(d.min, d.q1 - 1.5 * iqr)
     const whiskerUpper = Math.min(d.max, d.q3 + 1.5 * iqr)
@@ -155,25 +228,15 @@ export const BoxPlot = memo(function BoxPlot({
       outlierCount: d.outliers?.length || 0,
       cv: d.mean && d.std ? (d.std / d.mean * 100) : null
     }
-  }
+  }, [])
 
   // 색상 생성 함수
-  const getBoxColor = (index: number, customColor?: string) => {
+  const getBoxColor = useCallback((index: number, customColor?: string) => {
     if (customColor) return customColor
+    return STAT_COLORS[index % STAT_COLORS.length]
+  }, [])
 
-    const colors = [
-      '#3B82F6', // blue-500
-      '#10B981', // emerald-500
-      '#F59E0B', // amber-500
-      '#EF4444', // red-500
-      '#8B5CF6', // violet-500
-      '#EC4899', // pink-500
-    ]
-
-    return colors[index % colors.length]
-  }
-
-  // CSV 다운로드 함수 (메모이제이션)
+  // CSV 다운로드 함수
   const downloadCSV = useCallback(() => {
     try {
     const headers = ['Group', 'Min', 'Q1', 'Median', 'Q3', 'Max', 'Mean', 'StdDev', 'IQR', 'Outliers']
@@ -201,13 +264,45 @@ export const BoxPlot = memo(function BoxPlot({
     a.download = `boxplot_${Date.now()}.csv`
     a.click()
     URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('CSV 다운로드 실패:', error)
-      // 사용자에게 오류 알림 (toast 사용 가능)
+    } catch (err) {
+      console.error('CSV 다운로드 실패:', err)
     }
-  }, [data])
+  }, [data, calculateStatistics])
 
-  // 로딩 상태 처리 (훅 이후)
+  // ECharts 이벤트 핸들러
+  const onChartClick = useCallback(
+    (params: Record<string, unknown>) => {
+      const idx = params.dataIndex as number | undefined
+      if (idx == null) return
+
+      if (params.seriesType === 'boxplot') {
+        setSelectedBox((prev) => (prev === idx ? null : idx))
+        if (onDataPointClick && data[idx]) {
+          onDataPointClick(data[idx], 'box')
+        }
+      } else if (params.seriesName === '평균') {
+        const val = params.value as number[]
+        const dataIdx = val[0]
+        if (onDataPointClick && data[dataIdx]) {
+          onDataPointClick(data[dataIdx], 'mean')
+        }
+      } else if (params.seriesName === '이상치') {
+        const val = params.value as number[]
+        const dataIdx = val[0]
+        if (onDataPointClick && data[dataIdx]) {
+          onDataPointClick(data[dataIdx], `outlier`)
+        }
+      }
+    },
+    [data, onDataPointClick],
+  )
+
+  const echartsEvents = useMemo(
+    () => (interactive ? { click: onChartClick } : undefined),
+    [interactive, onChartClick],
+  )
+
+  // 로딩 상태 처리
   if (isLoading) {
     return <ChartSkeleton height={height} title={!!title} description={!!description} showCard={showCard} />
   }
@@ -239,215 +334,6 @@ export const BoxPlot = memo(function BoxPlot({
           </Alert>
         </CardContent>
       </Card>
-    )
-  }
-
-  const renderBox = (d: BoxPlotData, index: number) => {
-    const stats = calculateStatistics(d)
-    const color = getBoxColor(index, d.color)
-    const isHovered = hoveredBox === index
-    const isSelected = selectedBox === index
-
-    const x = index * boxSpacing + boxSpacing / 2
-
-    return (
-      <g
-        key={d.name}
-        role="button"
-        tabIndex={interactive ? 0 : -1}
-        aria-label={`${d.name} 박스플롯: 중앙값 ${d.median.toFixed(2)}${unit}`}
-        onMouseEnter={() => interactive && setHoveredBox(index)}
-        onMouseLeave={() => interactive && setHoveredBox(null)}
-        onClick={() => interactive && setSelectedBox(index === selectedBox ? null : index)}
-        onKeyDown={(e) => {
-          if (interactive && (e.key === 'Enter' || e.key === ' ')) {
-            e.preventDefault()
-            setSelectedBox(index === selectedBox ? null : index)
-          }
-        }}
-        style={{ cursor: interactive ? 'pointer' : 'default' }}
-        className="transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary rounded"
-      >
-        {/* Whiskers */}
-        <line
-          x1={x}
-          y1={valueToPosition(stats.whiskerUpper)}
-          x2={x}
-          y2={valueToPosition(stats.whiskerLower)}
-          stroke={color}
-          strokeWidth={isHovered ? 2 : 1}
-          strokeDasharray="2,2"
-          opacity={isHovered ? 1 : 0.6}
-        />
-
-        {/* Whisker caps */}
-        <line
-          x1={x - boxWidth / 4}
-          y1={valueToPosition(stats.whiskerUpper)}
-          x2={x + boxWidth / 4}
-          y2={valueToPosition(stats.whiskerUpper)}
-          stroke={color}
-          strokeWidth={isHovered ? 2 : 1}
-        />
-        <line
-          x1={x - boxWidth / 4}
-          y1={valueToPosition(stats.whiskerLower)}
-          x2={x + boxWidth / 4}
-          y2={valueToPosition(stats.whiskerLower)}
-          stroke={color}
-          strokeWidth={isHovered ? 2 : 1}
-        />
-
-        {/* Box */}
-        <rect
-          x={x - boxWidth / 2}
-          y={valueToPosition(d.q3)}
-          width={boxWidth}
-          height={Math.abs(valueToPosition(d.q3) - valueToPosition(d.q1))}
-          fill={color}
-          fillOpacity={isHovered ? 0.3 : 0.2}
-          stroke={color}
-          strokeWidth={isHovered ? 2 : 1}
-          rx={2}
-        />
-
-        {/* Median line */}
-        <line
-          x1={x - boxWidth / 2}
-          y1={valueToPosition(d.median)}
-          x2={x + boxWidth / 2}
-          y2={valueToPosition(d.median)}
-          stroke={color}
-          strokeWidth={isHovered ? 3 : 2}
-        />
-
-        {/* Mean point */}
-        {showMean && d.mean && (
-          <>
-            <circle
-              cx={x}
-              cy={valueToPosition(d.mean)}
-              r={isHovered ? 5 : 4}
-              fill="white"
-              stroke={color}
-              strokeWidth={2}
-              onClick={(e) => {
-                e.stopPropagation()
-                onDataPointClick?.(d, 'mean')
-              }}
-            />
-            <text
-              x={x + boxWidth / 2 + 5}
-              y={valueToPosition(d.mean) + 3}
-              className="text-xs fill-muted-foreground"
-              style={{ display: isHovered ? 'block' : 'none' }}
-            >
-              평균
-            </text>
-          </>
-        )}
-
-        {/* Outliers */}
-        {showOutliers && d.outliers?.map((outlier, i) => (
-          <circle
-            key={i}
-            cx={x}
-            cy={valueToPosition(outlier)}
-            r={isHovered ? 4 : 3}
-            fill="none"
-            stroke={color}
-            strokeWidth={1.5}
-            opacity={isHovered ? 1 : 0.6}
-            onClick={(e) => {
-              e.stopPropagation()
-              onDataPointClick?.(d, `outlier-${i}`)
-            }}
-          />
-        ))}
-
-        {/* Label */}
-        <text
-          x={x}
-          y={height - 70}
-          textAnchor="middle"
-          className="text-xs fill-muted-foreground"
-          fontWeight={isHovered || isSelected ? 600 : 400}
-        >
-          {d.name}
-        </text>
-
-        {/* N count if available */}
-        {d.outliers && (
-          <text
-            x={x}
-            y={height - 55}
-            textAnchor="middle"
-            className="text-xs fill-muted-foreground"
-          >
-            n={d.outliers.length + 5}
-          </text>
-        )}
-      </g>
-    )
-  }
-
-  const renderAxis = () => {
-    const ticks = 5
-    const tickValues = Array.from({ length: ticks }, (_, i) =>
-      minValue + (range / (ticks - 1)) * i
-    )
-
-    return (
-      <>
-        {/* Y-axis */}
-        <line
-          x1={40}
-          y1={0}
-          x2={40}
-          y2={height - 100}
-          stroke="currentColor"
-          strokeWidth={1}
-          className="text-muted-foreground/30"
-        />
-
-        {/* Y-axis ticks and labels */}
-        {tickValues.map((value, i) => (
-          <g key={i}>
-            <line
-              x1={35}
-              y1={valueToPosition(value)}
-              x2={40}
-              y2={valueToPosition(value)}
-              stroke="currentColor"
-              strokeWidth={1}
-              className="text-muted-foreground/50"
-            />
-            <text
-              x={30}
-              y={valueToPosition(value) + 4}
-              textAnchor="end"
-              className="text-xs fill-muted-foreground"
-            >
-              {value.toFixed(1)}{unit}
-            </text>
-          </g>
-        ))}
-
-        {/* Grid lines */}
-        {tickValues.map((value, i) => (
-          <line
-            key={`grid-${i}`}
-            x1={40}
-            y1={valueToPosition(value)}
-            x2={640}
-            y2={valueToPosition(value)}
-            stroke="currentColor"
-            strokeWidth={0.5}
-            strokeDasharray="2,4"
-            className="text-muted-foreground/10"
-          />
-        ))}
-      </>
     )
   }
 
@@ -496,7 +382,7 @@ export const BoxPlot = memo(function BoxPlot({
                   <td className="text-right py-2 px-3">{d.q3.toFixed(2)}{unit}</td>
                   <td className="text-right py-2 px-3">{d.max.toFixed(2)}{unit}</td>
                   <td className="text-right py-2 px-3">
-                    {d.mean ? `${d.mean.toFixed(2)}${unit}` : '-'}
+                    {d.mean != null ? `${d.mean.toFixed(2)}${unit}` : '-'}
                   </td>
                   <td className="text-right py-2 px-3">{stats.iqr.toFixed(2)}{unit}</td>
                   <td className="text-right py-2 px-3">
@@ -510,7 +396,7 @@ export const BoxPlot = memo(function BoxPlot({
       </div>
     )
   }
-  
+
   // Header controls (reusable)
   const headerControls = (
     <div className="flex items-center gap-2">
@@ -570,23 +456,16 @@ export const BoxPlot = memo(function BoxPlot({
     <div className="space-y-4">
       {viewMode === 'chart' ? (
         <>
-          {/* SVG Plot */}
-          <div className="relative">
-            <svg
-              width="100%"
-              height={height}
-              viewBox={`0 0 680 ${height}`}
-              className="overflow-visible"
-              role="img"
-              aria-label={`${title || 'BoxPlot'} 차트`}
-            >
-              {renderAxis()}
-              {data.map((d, i) => renderBox(d, i))}
-            </svg>
-          </div>
+          {/* ECharts Plot */}
+          <LazyReactECharts
+            option={chartOption}
+            style={{ height: isFullscreen ? height * 1.5 : height }}
+            opts={{ renderer: 'svg' }}
+            onEvents={echartsEvents}
+          />
 
           {/* Statistics Panel */}
-          {showStatistics && selectedBox !== null && (
+          {showStatistics && selectedBox !== null && data[selectedBox] && (
             <div className="mt-4 p-4 bg-muted/50 rounded-lg space-y-2 animate-in slide-in-from-bottom-2 duration-200">
               <h4 className="font-semibold flex items-center gap-2">
                 <Activity className="h-4 w-4" />
@@ -614,13 +493,13 @@ export const BoxPlot = memo(function BoxPlot({
                   <div className="text-xs text-muted-foreground">최대값</div>
                   <div className="font-medium">{data[selectedBox].max.toFixed(2)}{unit}</div>
                 </div>
-                {data[selectedBox].mean && (
+                {data[selectedBox].mean != null && (
                   <div className="space-y-1">
                     <div className="text-xs text-muted-foreground">평균</div>
                     <div className="font-medium text-blue-600">{data[selectedBox].mean.toFixed(2)}{unit}</div>
                   </div>
                 )}
-                {data[selectedBox].std && (
+                {data[selectedBox].std != null && (
                   <div className="space-y-1">
                     <div className="text-xs text-muted-foreground">표준편차</div>
                     <div className="font-medium">{data[selectedBox].std.toFixed(2)}{unit}</div>
@@ -636,7 +515,7 @@ export const BoxPlot = memo(function BoxPlot({
 
               {/* 분포 해석 */}
               <div className="mt-3 pt-3 border-t space-y-2">
-                {data[selectedBox].mean && data[selectedBox].median && (
+                {data[selectedBox].mean != null && (
                   <div className="flex items-center gap-2 text-sm">
                     {data[selectedBox].median > data[selectedBox].mean! ? (
                       <>
@@ -699,9 +578,8 @@ export const BoxPlot = memo(function BoxPlot({
           <p>• 박스: 데이터의 50%가 포함된 범위 (Q1~Q3, IQR)</p>
           <p>• 중앙선: 데이터를 반으로 나누는 중앙값</p>
           <p>• 수염: 이상치를 제외한 데이터의 범위</p>
-          {showMean && <p>• 흰색 점: 데이터의 평균값</p>}
-          {showOutliers && <p>• 빈 원: 극단적인 값 (이상치)</p>}
-          <p className="pt-1 font-medium">💡 박스가 작을수록 데이터가 밀집되어 있고, 클수록 분산되어 있습니다.</p>
+          {showMean && <p>• 다이아몬드: 데이터의 평균값</p>}
+          {showOutliers && <p>• 원: 극단적인 값 (이상치)</p>}
         </div>
       </div>
     </div>

@@ -1,13 +1,15 @@
 "use client"
 
 import { useMemo, useState, useCallback, memo } from "react"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ChartBar, Table as TableIcon, Maximize2, Minimize2, Download, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { LazyReactECharts } from "@/lib/charts/LazyECharts"
+import { statBaseOption, statValueAxis, statTooltip, STAT_COLORS } from "@/lib/charts/echarts-stat-utils"
+import type { EChartsOption } from "echarts"
 
 interface HistogramProps {
   data: number[]
@@ -37,7 +39,7 @@ export const Histogram = memo(function Histogram({
   xAxisLabel = "값",
   yAxisLabel = "빈도",
   bins = 10,
-  color = "#8884d8",
+  color,
   height = 256,
   interactive = true,
   className,
@@ -45,6 +47,8 @@ export const Histogram = memo(function Histogram({
 }: HistogramProps) {
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart')
   const [isFullscreen, setIsFullscreen] = useState(false)
+
+  const barColor = color ?? STAT_COLORS[0]
 
   // Calculate statistics
   const statistics = useMemo(() => {
@@ -72,8 +76,8 @@ export const Histogram = memo(function Histogram({
   const histogramData = useMemo((): HistogramData[] => {
     if (data.length === 0) return []
 
-    const min = Math.min(...data)
-    const max = Math.max(...data)
+    const min = data.reduce((a, b) => Math.min(a, b), Infinity)
+    const max = data.reduce((a, b) => Math.max(a, b), -Infinity)
 
     // Handle constant data (all values identical): single bin with all counts
     if (min === max) {
@@ -89,7 +93,7 @@ export const Histogram = memo(function Histogram({
     const binWidth = (max - min) / bins
 
     // Create bins
-    const binCounts = new Array(bins).fill(0)
+    const binCounts = new Array(bins).fill(0) as number[]
     const binRanges: Array<{ start: number; end: number }> = []
 
     // Calculate bin ranges
@@ -115,7 +119,80 @@ export const Histogram = memo(function Histogram({
     }))
   }, [data, bins])
 
-  const maxCount = histogramData.length > 0 ? Math.max(...histogramData.map(d => d.count)) : 0
+  // ECharts option
+  const chartOption = useMemo((): EChartsOption => {
+    const categories = histogramData.map((d) => d.range)
+    const counts = histogramData.map((d) => d.count)
+
+    const barSeries: Record<string, unknown> = {
+      type: 'bar',
+      data: counts,
+      itemStyle: { color: barColor, borderColor: barColor, borderWidth: 1 },
+      barWidth: '90%',
+      emphasis: {
+        itemStyle: { shadowBlur: 6, shadowColor: 'rgba(0,0,0,0.15)' },
+      },
+    }
+
+    // 평균선 추가 (statistics가 있을 때만)
+    if (statistics) {
+      barSeries.markLine = {
+        silent: true,
+        symbol: 'none',
+        lineStyle: { color: '#ef4444', type: 'dashed' as const, width: 1.5 },
+        data: [
+          {
+            name: '평균',
+            xAxis: histogramData.findIndex(
+              (d) => d.binStart <= statistics.mean && statistics.mean <= d.binEnd,
+            ),
+            label: { formatter: `평균: ${statistics.mean.toFixed(2)}`, position: 'end' as const },
+          },
+        ],
+      }
+    }
+
+    return {
+      ...statBaseOption(),
+      xAxis: {
+        type: 'category',
+        data: categories,
+        name: xAxisLabel,
+        nameLocation: 'middle',
+        nameGap: 30,
+        axisLine: { lineStyle: { color: '#94a3b8' } },
+        axisTick: { alignWithLabel: true },
+        axisLabel: {
+          fontSize: 10,
+          color: '#64748b',
+          rotate: categories.length > 8 ? 45 : 0,
+        },
+      },
+      yAxis: {
+        ...statValueAxis(yAxisLabel),
+        name: yAxisLabel,
+      },
+      series: [barSeries],
+      tooltip: statTooltip({
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter(params: unknown) {
+          const p = (params as Array<Record<string, unknown>>)[0]
+          const idx = p.dataIndex as number
+          const d = histogramData[idx]
+          if (!d) return ''
+          const total = histogramData.reduce((s, v) => s + v.count, 0)
+          const pct = total > 0 ? ((d.count / total) * 100).toFixed(1) : '0'
+          return `<b>구간 ${d.bin}</b>: ${d.range}<br/>빈도: ${d.count} (${pct}%)`
+        },
+      }),
+      toolbox: {
+        right: 10,
+        top: 0,
+        feature: { saveAsImage: { title: 'PNG 저장', pixelRatio: 2 } },
+      },
+    }
+  }, [histogramData, xAxisLabel, yAxisLabel, barColor, statistics])
 
   // CSV download function
   const downloadCSV = useCallback(() => {
@@ -150,8 +227,8 @@ export const Histogram = memo(function Histogram({
       a.download = `histogram_${Date.now()}.csv`
       a.click()
       URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('CSV download failed:', error)
+    } catch (err) {
+      console.error('CSV download failed:', err)
     }
   }, [histogramData, statistics])
 
@@ -270,34 +347,11 @@ export const Histogram = memo(function Histogram({
     <div className="space-y-4">
       {viewMode === 'chart' ? (
         <>
-          <div style={{ height: isFullscreen ? 'calc(100vh - 350px)' : height }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={histogramData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="bin"
-                  label={{ value: xAxisLabel, position: 'insideBottom', offset: -10 }}
-                />
-                <YAxis
-                  label={{ value: yAxisLabel, angle: -90, position: 'insideLeft' }}
-                  domain={[0, maxCount + 1]}
-                />
-                <Tooltip
-                  formatter={(value) => [Number(value ?? 0), '빈도']}
-                  labelFormatter={(label) => {
-                    const item = histogramData.find(d => d.bin === label)
-                    return item ? `구간 ${label}: ${item.range}` : `구간 ${label}`
-                  }}
-                />
-                <Bar
-                  dataKey="count"
-                  fill={color}
-                  stroke={color}
-                  strokeWidth={1}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <LazyReactECharts
+            option={chartOption}
+            style={{ height: isFullscreen ? 'calc(100vh - 350px)' : height }}
+            opts={{ renderer: 'svg' }}
+          />
 
           {/* Statistics summary */}
           {statistics && (
@@ -372,7 +426,6 @@ export const Histogram = memo(function Histogram({
           <p>• 각 막대는 해당 구간에 속하는 데이터의 빈도를 나타냅니다</p>
           <p>• 막대가 높을수록 해당 구간에 데이터가 많이 분포합니다</p>
           <p>• 분포의 모양으로 정규성을 시각적으로 판단할 수 있습니다</p>
-          <p className="pt-1 font-medium">💡 종 모양에 가까울수록 정규분포에 가깝습니다.</p>
         </div>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Info,
@@ -22,6 +22,9 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ChartSkeleton } from './ChartSkeleton'
+import { LazyReactECharts } from '@/lib/charts/LazyECharts'
+import { statBaseOption, statCategoryAxis, statValueAxis, statTooltip, errorBarSeries, STAT_COLORS } from '@/lib/charts/echarts-stat-utils'
+import type { EChartsOption } from 'echarts'
 
 interface BarChartData {
   name: string
@@ -51,26 +54,17 @@ interface BarChartWithCIProps {
   onBarClick?: (data: BarChartData, index: number) => void
 }
 
-/**
- * BarChartWithCI 컴포넌트
- *
- * 신뢰구간(Confidence Interval)이 포함된 막대차트를 표시하는 컴포넌트
- * 평균값과 오차 범위를 함께 시각화하여 통계적 불확실성을 표현
- *
- * @component
- * @example
- * ```tsx
- * <BarChartWithCI
- *   data={[
- *     { name: '그룹A', value: 25, ci: [20, 30], se: 2.5 }
- *   ]}
- *   title="그룹별 평균 비교"
- *   showCI={true}
- *   ciLevel={95}
- *   baseline={20}
- * />
- * ```
- */
+/** 기준선 대비 색상 결정 */
+function getBarColor(index: number, value: number, baseline: number, showBaseline: boolean, customColor?: string): string {
+  if (customColor) return customColor
+  if (showBaseline) {
+    if (value > baseline) return '#10B981'
+    if (value < baseline) return '#EF4444'
+    return '#6B7280'
+  }
+  return STAT_COLORS[index % STAT_COLORS.length]
+}
+
 export const BarChartWithCI = memo(function BarChartWithCI({
   data,
   title,
@@ -91,123 +85,149 @@ export const BarChartWithCI = memo(function BarChartWithCI({
 }: BarChartWithCIProps) {
   const [selectedBar, setSelectedBar] = useState<number | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [hoveredBar, setHoveredBar] = useState<number | null>(null)
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart')
 
-  // 데이터 범위 계산 (early return 전에 훅 호출)
-  const { minValue, maxValue, range } = useMemo(() => {
-    // 빈 데이터 처리
-    if (data.length === 0) {
-      return { minValue: 0, maxValue: 1, range: 1 }
-    }
-
-    let min = Math.min(baseline, 0)
-    let max = 0
-
-    data.forEach(d => {
-      min = Math.min(min, d.value)
-      max = Math.max(max, d.value)
-      if (d.ci) {
-        min = Math.min(min, d.ci[0])
-        max = Math.max(max, d.ci[1])
-      }
-    })
-
-    // Infinity 체크
-    if (!isFinite(min) || !isFinite(max)) {
-      return { minValue: 0, maxValue: 1, range: 1 }
-    }
-
-    const padding = (max - min) * 0.1
-    return {
-      minValue: min - padding,
-      maxValue: max + padding,
-      range: max - min + padding * 2
-    }
-  }, [data, baseline])
-
-  // 값을 픽셀 위치로 변환
-  const valueToPosition = (value: number) => {
-    const plotHeight = height - 120
-    return plotHeight - ((value - minValue) / range) * plotHeight
-  }
-
-  // 막대 너비 및 간격 계산
-  const barWidth = Math.min(60, 500 / data.length)
-  const barSpacing = 600 / data.length
-
-  // 색상 생성 함수
-  const getBarColor = (index: number, value: number, customColor?: string) => {
-    if (customColor) return customColor
-
-    // 기준선과 비교하여 색상 결정
-    if (showBaseline && baseline !== undefined) {
-      if (value > baseline) return '#10B981' // emerald-500
-      if (value < baseline) return '#EF4444' // red-500
-      return '#6B7280' // gray-500
-    }
-
-    const colors = [
-      '#3B82F6', // blue-500
-      '#10B981', // emerald-500
-      '#F59E0B', // amber-500
-      '#EF4444', // red-500
-      '#8B5CF6', // violet-500
-      '#EC4899', // pink-500
-    ]
-
-    return colors[index % colors.length]
-  }
-
-  // CI 너비 계산
-  const calculateCIWidth = (d: BarChartData) => {
-    if (!d.ci) return null
-    return d.ci[1] - d.ci[0]
-  }
-
-  // 효과크기 계산 (간단한 예시)
-  const calculateEffectSize = (value: number) => {
-    if (!baseline) return null
+  // 효과크기 계산
+  const calculateEffectSize = useCallback((value: number) => {
+    if (baseline == null) return null
     const diff = Math.abs(value - baseline)
     if (diff < 0.2) return '작음'
     if (diff < 0.5) return '중간'
     if (diff < 0.8) return '큼'
     return '매우 큼'
-  }
+  }, [baseline])
 
-  // CSV 다운로드 함수 (메모이제이션)
+  // ECharts option
+  const chartOption = useMemo((): EChartsOption => {
+    const categories = data.map((d) => d.label || d.name)
+    const values = data.map((d) => d.value)
+    const colors = data.map((d, i) => getBarColor(i, d.value, baseline, showBaseline, d.color))
+
+    const series: NonNullable<EChartsOption['series']> = [
+      {
+        type: 'bar',
+        data: values.map((val, i) => ({
+          value: val,
+          itemStyle: { color: colors[i], borderRadius: [4, 4, 0, 0] },
+        })),
+        label: showValues ? {
+          show: true,
+          position: 'top',
+          formatter: (p: Record<string, unknown>) => `${(p.value as number).toFixed(2)}${unit}`,
+          fontSize: 11,
+        } : undefined,
+        barMaxWidth: 60,
+      } as Record<string, unknown>,
+    ]
+
+    // 신뢰구간 에러바
+    if (showCI) {
+      const ciData = data.map((d, i) => {
+        const upper = d.ci ? d.ci[1] : d.value
+        const lower = d.ci ? d.ci[0] : d.value
+        return [i, upper, lower]
+      }).filter((_, i) => data[i].ci != null)
+
+      if (ciData.length > 0) {
+        series.push(errorBarSeries(ciData as Array<[number, number, number]>, { halfWidth: 8 }) as Record<string, unknown>)
+      }
+    }
+
+    return {
+      ...statBaseOption(),
+      xAxis: statCategoryAxis(categories),
+      yAxis: { ...statValueAxis(unit || undefined), name: unit || '' },
+      series,
+      tooltip: statTooltip({
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter(params: unknown) {
+          const arr = params as Array<Record<string, unknown>>
+          const p = arr[0]
+          const idx = p.dataIndex as number
+          const d = data[idx]
+          if (!d) return ''
+          let html = `<b>${d.label || d.name}</b><br/>값: ${d.value.toFixed(3)}${unit}`
+          if (d.ci) html += `<br/>${ciLevel}% CI: [${d.ci[0].toFixed(3)}, ${d.ci[1].toFixed(3)}]`
+          if (d.se) html += `<br/>SE: ±${d.se.toFixed(3)}`
+          return html
+        },
+      }),
+      toolbox: {
+        right: 10,
+        top: 0,
+        feature: { saveAsImage: { title: 'PNG 저장', pixelRatio: 2 } },
+      },
+    }
+  }, [data, showCI, showValues, showBaseline, baseline, unit, ciLevel])
+
+  // 기준선 markLine을 series에 추가
+  const finalOption = useMemo((): EChartsOption => {
+    if (!showBaseline || !chartOption.series) return chartOption
+
+    const seriesArr = Array.isArray(chartOption.series) ? chartOption.series : [chartOption.series]
+    if (seriesArr.length === 0) return chartOption
+
+    const firstSeries = { ...(seriesArr[0] as Record<string, unknown>) }
+    firstSeries.markLine = {
+      silent: true,
+      symbol: 'none',
+      lineStyle: { color: '#64748b', type: 'solid' as const, width: 2 },
+      data: [{ yAxis: baseline, label: { formatter: '기준선', position: 'end' as const } }],
+    }
+
+    return {
+      ...chartOption,
+      series: [firstSeries, ...seriesArr.slice(1)] as NonNullable<EChartsOption['series']>,
+    }
+  }, [chartOption, showBaseline, baseline])
+
+  // CSV 다운로드
   const downloadCSV = useCallback(() => {
     try {
-    const headers = ['Group', 'Value', 'CI_Lower', 'CI_Upper', 'SE', 'CI_Width']
-    const rows = data.map(d => [
-      d.name,
-      d.value.toFixed(4),
-      d.ci ? d.ci[0].toFixed(4) : '',
-      d.ci ? d.ci[1].toFixed(4) : '',
-      d.se ? d.se.toFixed(4) : '',
-      d.ci ? (d.ci[1] - d.ci[0]).toFixed(4) : ''
-    ].join(','))
+      const headers = ['Group', 'Value', 'CI_Lower', 'CI_Upper', 'SE', 'CI_Width']
+      const rows = data.map(d => [
+        d.name,
+        d.value.toFixed(4),
+        d.ci ? d.ci[0].toFixed(4) : '',
+        d.ci ? d.ci[1].toFixed(4) : '',
+        d.se ? d.se.toFixed(4) : '',
+        d.ci ? (d.ci[1] - d.ci[0]).toFixed(4) : ''
+      ].join(','))
 
-    const csv = [headers.join(','), ...rows].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `barchart_ci_${Date.now()}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('CSV 다운로드 실패:', error)
-      // 사용자에게 오류 알림
+      const csv = [headers.join(','), ...rows].join('\n')
+      const blob = new Blob([csv], { type: 'text/csv' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `barchart_ci_${Date.now()}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('CSV 다운로드 실패:', err)
     }
   }, [data])
 
-  // 로딩 상태 처리 (훅 이후)
+  // ECharts 클릭 핸들러
+  const onChartClick = useCallback(
+    (params: Record<string, unknown>) => {
+      const idx = params.dataIndex as number | undefined
+      if (idx == null) return
+      setSelectedBar((prev) => (prev === idx ? null : idx))
+      if (onBarClick && data[idx]) onBarClick(data[idx], idx)
+    },
+    [data, onBarClick],
+  )
+
+  const echartsEvents = useMemo(
+    () => (interactive ? { click: onChartClick } : undefined),
+    [interactive, onChartClick],
+  )
+
   if (isLoading) {
     return <ChartSkeleton height={height} title={!!title} description={!!description} />
   }
 
-  // 에러 상태 처리
   if (error) {
     return (
       <Card className={cn('w-full', className)}>
@@ -224,206 +244,6 @@ export const BarChartWithCI = memo(function BarChartWithCI({
           </Alert>
         </CardContent>
       </Card>
-    )
-  }
-
-  const renderBar = (d: BarChartData, index: number) => {
-    const color = getBarColor(index, d.value, d.color)
-    const isHovered = hoveredBar === index
-    const isSelected = selectedBar === index
-    const x = index * barSpacing + barSpacing / 2
-
-    return (
-      <g
-        key={d.name}
-        role="button"
-        tabIndex={interactive ? 0 : -1}
-        aria-label={`${d.name || d.label} 막대: 값 ${d.value.toFixed(2)}${unit}`}
-        onMouseEnter={() => interactive && setHoveredBar(index)}
-        onMouseLeave={() => interactive && setHoveredBar(null)}
-        onClick={() => {
-          if (interactive) {
-            setSelectedBar(index === selectedBar ? null : index)
-            onBarClick?.(d, index)
-          }
-        }}
-        onKeyDown={(e) => {
-          if (interactive && (e.key === 'Enter' || e.key === ' ')) {
-            e.preventDefault()
-            setSelectedBar(index === selectedBar ? null : index)
-            onBarClick?.(d, index)
-          }
-        }}
-        style={{ cursor: interactive ? 'pointer' : 'default' }}
-        className="transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary rounded"
-      >
-        {/* 막대 */}
-        <rect
-          x={x - barWidth / 2}
-          y={Math.min(valueToPosition(d.value), valueToPosition(baseline))}
-          width={barWidth}
-          height={Math.abs(valueToPosition(d.value) - valueToPosition(baseline))}
-          fill={color}
-          fillOpacity={isHovered ? 0.8 : 0.6}
-          stroke={color}
-          strokeWidth={isSelected ? 2 : 0}
-          rx={2}
-        />
-
-        {/* 신뢰구간 */}
-        {showCI && d.ci && (
-          <>
-            {/* CI 선 */}
-            <line
-              x1={x}
-              y1={valueToPosition(d.ci[0])}
-              x2={x}
-              y2={valueToPosition(d.ci[1])}
-              stroke={color}
-              strokeWidth={isHovered ? 3 : 2}
-              opacity={0.8}
-            />
-
-            {/* CI 캡 (위) */}
-            <line
-              x1={x - barWidth / 4}
-              y1={valueToPosition(d.ci[1])}
-              x2={x + barWidth / 4}
-              y2={valueToPosition(d.ci[1])}
-              stroke={color}
-              strokeWidth={isHovered ? 2 : 1.5}
-            />
-
-            {/* CI 캡 (아래) */}
-            <line
-              x1={x - barWidth / 4}
-              y1={valueToPosition(d.ci[0])}
-              x2={x + barWidth / 4}
-              y2={valueToPosition(d.ci[0])}
-              stroke={color}
-              strokeWidth={isHovered ? 2 : 1.5}
-            />
-          </>
-        )}
-
-        {/* 값 표시 */}
-        {showValues && (
-          <text
-            x={x}
-            y={valueToPosition(d.value) - 5}
-            textAnchor="middle"
-            className="text-xs font-medium fill-foreground"
-            style={{ display: isHovered || isSelected ? 'block' : 'none' }}
-          >
-            {d.value.toFixed(2)}{unit}
-          </text>
-        )}
-
-        {/* 레이블 */}
-        <text
-          x={x}
-          y={height - 90}
-          textAnchor="middle"
-          className="text-xs fill-muted-foreground"
-          fontWeight={isHovered || isSelected ? 600 : 400}
-        >
-          {d.label || d.name}
-        </text>
-
-        {/* CI 범위 표시 (호버 시) */}
-        {isHovered && d.ci && (
-          <text
-            x={x}
-            y={height - 75}
-            textAnchor="middle"
-            className="text-xs fill-muted-foreground"
-          >
-            [{d.ci[0].toFixed(1)}, {d.ci[1].toFixed(1)}]
-          </text>
-        )}
-      </g>
-    )
-  }
-
-  const renderAxis = () => {
-    const ticks = 5
-    const tickValues = Array.from({ length: ticks }, (_, i) =>
-      minValue + (range / (ticks - 1)) * i
-    )
-
-    return (
-      <>
-        {/* Y축 */}
-        <line
-          x1={40}
-          y1={0}
-          x2={40}
-          y2={height - 120}
-          stroke="currentColor"
-          strokeWidth={1}
-          className="text-muted-foreground/30"
-        />
-
-        {/* Y축 눈금 및 레이블 */}
-        {tickValues.map((value, i) => (
-          <g key={i}>
-            <line
-              x1={35}
-              y1={valueToPosition(value)}
-              x2={40}
-              y2={valueToPosition(value)}
-              stroke="currentColor"
-              strokeWidth={1}
-              className="text-muted-foreground/50"
-            />
-            <text
-              x={30}
-              y={valueToPosition(value) + 4}
-              textAnchor="end"
-              className="text-xs fill-muted-foreground"
-            >
-              {value.toFixed(1)}{unit}
-            </text>
-          </g>
-        ))}
-
-        {/* 격자선 */}
-        {tickValues.map((value, i) => (
-          <line
-            key={`grid-${i}`}
-            x1={40}
-            y1={valueToPosition(value)}
-            x2={640}
-            y2={valueToPosition(value)}
-            stroke="currentColor"
-            strokeWidth={0.5}
-            strokeDasharray="2,4"
-            className="text-muted-foreground/10"
-          />
-        ))}
-
-        {/* 기준선 */}
-        {showBaseline && (
-          <>
-            <line
-              x1={40}
-              y1={valueToPosition(baseline)}
-              x2={640}
-              y2={valueToPosition(baseline)}
-              stroke="currentColor"
-              strokeWidth={2}
-              className="text-muted-foreground/50"
-            />
-            <text
-              x={645}
-              y={valueToPosition(baseline) + 4}
-              className="text-xs fill-muted-foreground font-medium"
-            >
-              기준선
-            </text>
-          </>
-        )}
-      </>
     )
   }
 
@@ -452,7 +272,7 @@ export const BarChartWithCI = memo(function BarChartWithCI({
           </thead>
           <tbody>
             {data.map((d, i) => {
-              const color = getBarColor(i, d.value, d.color)
+              const color = getBarColor(i, d.value, baseline, showBaseline, d.color)
               const diff = d.value - baseline
               return (
                 <tr
@@ -465,46 +285,26 @@ export const BarChartWithCI = memo(function BarChartWithCI({
                 >
                   <td className="py-2 px-3 font-medium">
                     <div className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded"
-                        style={{ backgroundColor: color }}
-                      />
+                      <div className="w-3 h-3 rounded" style={{ backgroundColor: color }} />
                       {d.label || d.name}
                     </div>
                   </td>
-                  <td className="text-right py-2 px-3 font-medium">
-                    {d.value.toFixed(3)}{unit}
-                  </td>
+                  <td className="text-right py-2 px-3 font-medium">{d.value.toFixed(3)}{unit}</td>
                   {showCI && (
                     <>
-                      <td className="text-right py-2 px-3">
-                        {d.ci ? `${d.ci[0].toFixed(3)}${unit}` : '-'}
-                      </td>
-                      <td className="text-right py-2 px-3">
-                        {d.ci ? `${d.ci[1].toFixed(3)}${unit}` : '-'}
-                      </td>
-                      <td className="text-right py-2 px-3">
-                        {d.ci ? `${(d.ci[1] - d.ci[0]).toFixed(3)}${unit}` : '-'}
-                      </td>
+                      <td className="text-right py-2 px-3">{d.ci ? `${d.ci[0].toFixed(3)}${unit}` : '-'}</td>
+                      <td className="text-right py-2 px-3">{d.ci ? `${d.ci[1].toFixed(3)}${unit}` : '-'}</td>
+                      <td className="text-right py-2 px-3">{d.ci ? `${(d.ci[1] - d.ci[0]).toFixed(3)}${unit}` : '-'}</td>
                     </>
                   )}
                   {data.some(d => d.se) && (
-                    <td className="text-right py-2 px-3">
-                      {d.se ? `±${d.se.toFixed(3)}${unit}` : '-'}
-                    </td>
+                    <td className="text-right py-2 px-3">{d.se ? `±${d.se.toFixed(3)}${unit}` : '-'}</td>
                   )}
                   {showBaseline && (
                     <td className="text-right py-2 px-3">
                       <div className="flex items-center justify-end gap-1">
-                        {diff > 0 ? (
-                          <TrendingUp className="h-3 w-3 text-success" />
-                        ) : diff < 0 ? (
-                          <TrendingDown className="h-3 w-3 text-error" />
-                        ) : null}
-                        <span className={cn(
-                          diff > 0 && "text-success",
-                          diff < 0 && "text-error"
-                        )}>
+                        {diff > 0 ? <TrendingUp className="h-3 w-3 text-success" /> : diff < 0 ? <TrendingDown className="h-3 w-3 text-error" /> : null}
+                        <span className={cn(diff > 0 && "text-success", diff < 0 && "text-error")}>
                           {diff > 0 ? '+' : ''}{diff.toFixed(3)}{unit}
                         </span>
                       </div>
@@ -546,18 +346,11 @@ export const BarChartWithCI = memo(function BarChartWithCI({
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setIsFullscreen(!isFullscreen)}
-                      aria-label={isFullscreen ? '원래 크기로' : '전체 화면'}
-                    >
+                    <Button variant="outline" size="icon" onClick={() => setIsFullscreen(!isFullscreen)} aria-label={isFullscreen ? '원래 크기로' : '전체 화면'}>
                       {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>
-                    {isFullscreen ? '원래 크기로' : '전체 화면'}
-                  </TooltipContent>
+                  <TooltipContent>{isFullscreen ? '원래 크기로' : '전체 화면'}</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             )}
@@ -565,12 +358,7 @@ export const BarChartWithCI = memo(function BarChartWithCI({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={downloadCSV}
-                    aria-label="CSV 다운로드"
-                  >
+                  <Button variant="outline" size="icon" onClick={downloadCSV} aria-label="CSV 다운로드">
                     <Download className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
@@ -585,7 +373,6 @@ export const BarChartWithCI = memo(function BarChartWithCI({
         <div className="space-y-4">
           {viewMode === 'chart' ? (
             <>
-              {/* 신뢰수준 표시 */}
               {showCI && (
                 <div className="flex items-center justify-between mb-2">
                   <Badge variant="outline" className="text-xs">
@@ -603,23 +390,15 @@ export const BarChartWithCI = memo(function BarChartWithCI({
                 </div>
               )}
 
-              {/* SVG 차트 */}
-              <div className="relative">
-                <svg
-                  width="100%"
-                  height={height}
-                  viewBox={`0 0 680 ${height}`}
-                  className="overflow-visible"
-                  role="img"
-                  aria-label={`${title || 'BarChart'} 차트`}
-                >
-                  {renderAxis()}
-                  {data.map((d, i) => renderBar(d, i))}
-                </svg>
-              </div>
+              <LazyReactECharts
+                option={finalOption}
+                style={{ height: isFullscreen ? height * 1.5 : height }}
+                opts={{ renderer: 'svg' }}
+                onEvents={echartsEvents}
+              />
 
               {/* 선택된 막대 상세 정보 */}
-              {selectedBar !== null && (
+              {selectedBar !== null && data[selectedBar] && (
                 <div className="mt-4 p-4 bg-muted/50 rounded-lg space-y-3 animate-in slide-in-from-bottom-2 duration-200">
                   <h4 className="font-semibold flex items-center gap-2">
                     <BarChart3 className="h-4 w-4" />
@@ -629,24 +408,18 @@ export const BarChartWithCI = memo(function BarChartWithCI({
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     <div className="space-y-1">
                       <div className="text-xs text-muted-foreground">값</div>
-                      <div className="font-medium text-lg">
-                        {data[selectedBar].value.toFixed(3)}{unit}
-                      </div>
+                      <div className="font-medium text-lg">{data[selectedBar].value.toFixed(3)}{unit}</div>
                     </div>
 
                     {data[selectedBar].ci && (
                       <>
                         <div className="space-y-1">
                           <div className="text-xs text-muted-foreground">{ciLevel}% 신뢰구간</div>
-                          <div className="font-medium">
-                            [{data[selectedBar].ci![0].toFixed(3)}, {data[selectedBar].ci![1].toFixed(3)}]{unit}
-                          </div>
+                          <div className="font-medium">[{data[selectedBar].ci![0].toFixed(3)}, {data[selectedBar].ci![1].toFixed(3)}]{unit}</div>
                         </div>
                         <div className="space-y-1">
                           <div className="text-xs text-muted-foreground">CI 너비</div>
-                          <div className="font-medium">
-                            {(data[selectedBar].ci![1] - data[selectedBar].ci![0]).toFixed(3)}{unit}
-                          </div>
+                          <div className="font-medium">{(data[selectedBar].ci![1] - data[selectedBar].ci![0]).toFixed(3)}{unit}</div>
                         </div>
                       </>
                     )}
@@ -654,9 +427,7 @@ export const BarChartWithCI = memo(function BarChartWithCI({
                     {data[selectedBar].se && (
                       <div className="space-y-1">
                         <div className="text-xs text-muted-foreground">표준오차</div>
-                        <div className="font-medium">
-                          ±{data[selectedBar].se!.toFixed(3)}{unit}
-                        </div>
+                        <div className="font-medium">±{data[selectedBar].se!.toFixed(3)}{unit}</div>
                       </div>
                     )}
 
@@ -665,44 +436,32 @@ export const BarChartWithCI = memo(function BarChartWithCI({
                         <div className="space-y-1">
                           <div className="text-xs text-muted-foreground">기준선 대비</div>
                           <div className="font-medium flex items-center gap-1">
-                            {data[selectedBar].value > baseline ? (
-                              <TrendingUp className="h-4 w-4 text-success" />
-                            ) : data[selectedBar].value < baseline ? (
-                              <TrendingDown className="h-4 w-4 text-error" />
-                            ) : null}
-                            <span className={cn(
-                              data[selectedBar].value > baseline && "text-success",
-                              data[selectedBar].value < baseline && "text-error"
-                            )}>
-                              {data[selectedBar].value > baseline ? '+' : ''}
-                              {(data[selectedBar].value - baseline).toFixed(3)}{unit}
+                            {data[selectedBar].value > baseline ? <TrendingUp className="h-4 w-4 text-success" /> : data[selectedBar].value < baseline ? <TrendingDown className="h-4 w-4 text-error" /> : null}
+                            <span className={cn(data[selectedBar].value > baseline && "text-success", data[selectedBar].value < baseline && "text-error")}>
+                              {data[selectedBar].value > baseline ? '+' : ''}{(data[selectedBar].value - baseline).toFixed(3)}{unit}
                             </span>
                           </div>
                         </div>
                         <div className="space-y-1">
                           <div className="text-xs text-muted-foreground">효과크기</div>
-                          <div className="font-medium">
-                            {calculateEffectSize(data[selectedBar].value) || '-'}
-                          </div>
+                          <div className="font-medium">{calculateEffectSize(data[selectedBar].value) || '-'}</div>
                         </div>
                       </>
                     )}
                   </div>
 
-                  {/* CI 해석 */}
                   {data[selectedBar].ci && (
                     <div className="mt-3 pt-3 border-t text-sm space-y-1">
                       <p className="text-muted-foreground">
-                        💡 {ciLevel}% 확률로 실제 값이 {data[selectedBar].ci![0].toFixed(2)}
-                        {unit}와 {data[selectedBar].ci![1].toFixed(2)}{unit} 사이에 있습니다.
+                        {ciLevel}% 확률로 실제 값이 {data[selectedBar].ci![0].toFixed(2)}{unit}와 {data[selectedBar].ci![1].toFixed(2)}{unit} 사이에 있습니다.
                       </p>
-                      {showBaseline && baseline !== undefined && (
+                      {showBaseline && (
                         <p className="text-muted-foreground">
                           {data[selectedBar].ci![0] > baseline
-                            ? `✅ 신뢰구간 전체가 기준선(${baseline})보다 높으므로 통계적으로 유의한 증가입니다.`
+                            ? `신뢰구간 전체가 기준선(${baseline})보다 높으므로 통계적으로 유의한 증가입니다.`
                             : data[selectedBar].ci![1] < baseline
-                            ? `📉 신뢰구간 전체가 기준선(${baseline})보다 낮으므로 통계적으로 유의한 감소입니다.`
-                            : `⚠️ 신뢰구간이 기준선(${baseline})을 포함하므로 통계적으로 유의하지 않습니다.`}
+                            ? `신뢰구간 전체가 기준선(${baseline})보다 낮으므로 통계적으로 유의한 감소입니다.`
+                            : `신뢰구간이 기준선(${baseline})을 포함하므로 통계적으로 유의하지 않습니다.`}
                         </p>
                       )}
                     </div>

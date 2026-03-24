@@ -53,20 +53,9 @@ vi.mock('@/components/analysis/steps/DataUploadStep', () => ({
   )
 }))
 
-vi.mock('recharts', () => ({
-  ResponsiveContainer: ({ children }: any) => <div>{children}</div>,
-  ScatterChart: ({ children }: any) => <div>{children}</div>,
-  ComposedChart: ({ children }: any) => <div>{children}</div>,
-  LineChart: ({ children }: any) => <div>{children}</div>,
-  BarChart: ({ children }: any) => <div>{children}</div>,
-  Scatter: () => null,
-  Line: () => null,
-  Bar: () => null,
-  XAxis: () => null,
-  YAxis: () => null,
-  CartesianGrid: () => null,
-  Tooltip: () => null,
-  Legend: () => null
+// Mock ECharts (replaced Recharts)
+vi.mock('@/lib/charts/LazyECharts', () => ({
+  LazyReactECharts: (props: any) => <div data-testid="echarts-container">ECharts</div>
 }))
 
 // Type definitions for testing

@@ -6,6 +6,8 @@ const CHART_SELECTORS = [
   ".js-plotly-plot",
   ".recharts-surface",
   '[data-testid="graph-studio-chart"]',
+  '[_echarts_instance_]',        // ECharts SVG 렌더러
+  'div[class*="echarts"]',       // echarts-for-react 래퍼
 ] as const
 
 export async function assertChartRendered(page: Page): Promise<boolean> {
@@ -31,7 +33,9 @@ export async function waitForChart(page: Page, timeout = 15_000): Promise<boolea
 export async function detectChartType(page: Page): Promise<"echarts" | "plotly" | "recharts" | "unknown"> {
   if (await page.locator(".js-plotly-plot").count() > 0) return "plotly"
   if (await page.locator(".recharts-surface").count() > 0) return "recharts"
+  // ECharts: canvas 렌더러 또는 SVG 렌더러 모두 감지
   if (await page.locator("canvas").count() > 0) return "echarts"
+  if (await page.locator("[_echarts_instance_]").count() > 0) return "echarts"
   return "unknown"
 }
 
@@ -52,7 +56,7 @@ export async function assertCanvasHasContent(page: Page): Promise<boolean> {
 }
 
 export async function hoverChartAndCheckTooltip(page: Page): Promise<boolean> {
-  const chart = page.locator("canvas, .js-plotly-plot, .recharts-surface").first()
+  const chart = page.locator("canvas, .js-plotly-plot, .recharts-surface, [_echarts_instance_]").first()
   if (await chart.count() === 0) return false
   const box = await chart.boundingBox()
   if (!box) return false
@@ -63,7 +67,7 @@ export async function hoverChartAndCheckTooltip(page: Page): Promise<boolean> {
 }
 
 export async function captureChartScreenshot(page: Page, name: string): Promise<void> {
-  const chart = page.locator('[data-testid="graph-studio-chart"], .js-plotly-plot, .recharts-wrapper, canvas').first()
+  const chart = page.locator('[data-testid="graph-studio-chart"], .js-plotly-plot, .recharts-wrapper, canvas, [_echarts_instance_]').first()
   if (await chart.count() > 0) {
     await chart.screenshot({ path: `e2e/results/screenshots/charts/${name}.png` })
   }

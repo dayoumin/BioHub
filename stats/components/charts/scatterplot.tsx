@@ -1,9 +1,11 @@
 "use client"
 
-import { useMemo } from "react"
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"
+import { useMemo, memo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { LazyReactECharts } from "@/lib/charts/LazyECharts"
+import { statBaseOption, statValueAxis, statTooltip, STAT_COLORS } from "@/lib/charts/echarts-stat-utils"
+import type { EChartsOption } from "echarts"
 
 interface ScatterplotProps {
   data: Array<{ x: number; y: number }>
@@ -16,86 +18,121 @@ interface ScatterplotProps {
   pValue?: number
 }
 
-interface ScatterData {
-  x: number
-  y: number
-}
-
 interface TrendLineData {
   slope: number
   intercept: number
   r2: number
 }
 
-function calculateTrendLine(data: ScatterData[]): TrendLineData {
+function calculateTrendLine(data: Array<{ x: number; y: number }>): TrendLineData {
   const n = data.length
   if (n < 2) return { slope: 0, intercept: 0, r2: 0 }
-  
+
   const sumX = data.reduce((sum, point) => sum + point.x, 0)
   const sumY = data.reduce((sum, point) => sum + point.y, 0)
   const sumXY = data.reduce((sum, point) => sum + point.x * point.y, 0)
   const sumXX = data.reduce((sum, point) => sum + point.x * point.x, 0)
   const sumYY = data.reduce((sum, point) => sum + point.y * point.y, 0)
-  
+
   const meanX = sumX / n
   const meanY = sumY / n
-  
-  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX)
+
+  const denom = n * sumXX - sumX * sumX
+  if (denom === 0) return { slope: 0, intercept: meanY, r2: 0 }
+  const slope = (n * sumXY - sumX * sumY) / denom
   const intercept = meanY - slope * meanX
-  
+
   // Calculate R-squared
   const totalSumSquares = sumYY - n * meanY * meanY
   const residualSumSquares = data.reduce((sum, point) => {
     const predicted = slope * point.x + intercept
     return sum + Math.pow(point.y - predicted, 2)
   }, 0)
-  
+
   const r2 = totalSumSquares > 0 ? 1 - (residualSumSquares / totalSumSquares) : 0
-  
+
   return { slope, intercept, r2 }
 }
 
-export function Scatterplot({ 
-  data, 
-  title = "산점도", 
+export const Scatterplot = memo(function Scatterplot({
+  data,
+  title = "산점도",
   xAxisLabel = "X 변수",
   yAxisLabel = "Y 변수",
   showTrendLine = true,
-  color = "#8884d8",
+  color,
   correlationCoefficient,
   pValue
 }: ScatterplotProps) {
-  
-  const { chartData, trendLine, xRange, yRange } = useMemo(() => {
-    if (data.length === 0) {
-      return { chartData: [], trendLine: null, xRange: [0, 1], yRange: [0, 1] }
-    }
-    
-    const chartData = data.map((point, index) => ({
-      ...point,
-      index: index + 1
-    }))
-    
-    const trendLine = showTrendLine ? calculateTrendLine(data) : null
-    
-    const xValues = data.map(p => p.x)
-    const yValues = data.map(p => p.y)
-    const xRange = [Math.min(...xValues), Math.max(...xValues)]
-    const yRange = [Math.min(...yValues), Math.max(...yValues)]
-    
-    return { chartData, trendLine, xRange, yRange }
-  }, [data, showTrendLine])
-  
-  const trendLinePoints = useMemo((): [{ x: number; y: number }, { x: number; y: number }] | null => {
-    if (!trendLine || data.length === 0) return null
+  const dotColor = color ?? STAT_COLORS[0]
 
-    const { slope, intercept } = trendLine
-    return [
-      { x: xRange[0], y: slope * xRange[0] + intercept },
-      { x: xRange[1], y: slope * xRange[1] + intercept }
+  const { trendLine, xRange } = useMemo(() => {
+    if (data.length === 0) {
+      return { trendLine: null, xRange: [0, 1] as [number, number] }
+    }
+
+    const trendLine = showTrendLine ? calculateTrendLine(data) : null
+    const xRange: [number, number] = [
+      data.reduce((min, p) => Math.min(min, p.x), Infinity),
+      data.reduce((max, p) => Math.max(max, p.x), -Infinity),
     ]
-  }, [trendLine, xRange, data.length])
-  
+
+    return { trendLine, xRange }
+  }, [data, showTrendLine])
+
+  const chartOption = useMemo((): EChartsOption => {
+    const scatterData = data.map((p) => [p.x, p.y])
+
+    const series: NonNullable<EChartsOption['series']> = [
+      {
+        name: '데이터',
+        type: 'scatter',
+        data: scatterData,
+        symbolSize: 8,
+        itemStyle: { color: dotColor, opacity: 0.7 },
+        emphasis: {
+          itemStyle: { shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.2)', opacity: 1 },
+        },
+      } as Record<string, unknown>,
+    ]
+
+    // 추세선
+    if (showTrendLine && trendLine && data.length >= 2) {
+      const { slope, intercept } = trendLine
+      const trendData = [
+        [xRange[0], slope * xRange[0] + intercept],
+        [xRange[1], slope * xRange[1] + intercept],
+      ]
+      series.push({
+        name: '추세선',
+        type: 'line',
+        data: trendData,
+        symbol: 'none',
+        lineStyle: { color: '#ff7300', width: 2, type: 'dashed' as const },
+        tooltip: { show: false },
+      } as Record<string, unknown>)
+    }
+
+    return {
+      ...statBaseOption(),
+      xAxis: { ...statValueAxis(xAxisLabel), type: 'value' as const },
+      yAxis: { ...statValueAxis(yAxisLabel), name: yAxisLabel },
+      series,
+      tooltip: statTooltip({
+        formatter(params: unknown) {
+          const p = params as { seriesName: string; value: number[] }
+          if (p.seriesName === '추세선') return ''
+          return `<b>${xAxisLabel}</b>: ${p.value[0].toFixed(4)}<br/><b>${yAxisLabel}</b>: ${p.value[1].toFixed(4)}`
+        },
+      }),
+      toolbox: {
+        right: 10,
+        top: 0,
+        feature: { saveAsImage: { title: 'PNG 저장', pixelRatio: 2 } },
+      },
+    }
+  }, [data, dotColor, showTrendLine, trendLine, xRange, xAxisLabel, yAxisLabel])
+
   if (data.length === 0) {
     return (
       <Card>
@@ -111,7 +148,7 @@ export function Scatterplot({
       </Card>
     )
   }
-  
+
   return (
     <Card>
       <CardHeader>
@@ -136,58 +173,12 @@ export function Scatterplot({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart 
-              data={chartData} 
-              margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="x" 
-                type="number"
-                domain={['dataMin - 5%', 'dataMax + 5%']}
-                label={{ value: xAxisLabel, position: 'insideBottom', offset: -10 }}
-              />
-              <YAxis 
-                dataKey="y"
-                type="number"
-                domain={['dataMin - 5%', 'dataMax + 5%']}
-                label={{ value: yAxisLabel, angle: -90, position: 'insideLeft' }}
-              />
-              <Tooltip 
-                formatter={(value, name) => [
-                  Number(value ?? 0).toFixed(4),
-                  name === 'x' ? xAxisLabel : yAxisLabel
-                ]}
-                labelFormatter={(_label, payload) => {
-                  if (payload && payload[0]) {
-                    const entry = payload[0].payload as Record<string, unknown>
-                    return `점 #${entry.index ?? ''}`
-                  }
-                  return ''
-                }}
-              />
-              <Scatter 
-                dataKey="y" 
-                fill={color}
-                strokeWidth={2}
-                stroke={color}
-              />
+        <LazyReactECharts
+          option={chartOption}
+          style={{ height: 320 }}
+          opts={{ renderer: 'svg' }}
+        />
 
-              {/* Trend line */}
-              {showTrendLine && trendLine && trendLinePoints && (
-                <ReferenceLine
-                  segment={trendLinePoints}
-                  stroke="#ff7300"
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                />
-              )}
-            </ScatterChart>
-          </ResponsiveContainer>
-        </div>
-        
         <div className="mt-4 grid grid-cols-2 gap-4">
           <div>
             <h4 className="font-medium mb-2">데이터 요약</h4>
@@ -206,7 +197,7 @@ export function Scatterplot({
               </div>
             </div>
           </div>
-          
+
           {trendLine && (
             <div>
               <h4 className="font-medium mb-2">추세선 정보</h4>
@@ -230,7 +221,7 @@ export function Scatterplot({
             </div>
           )}
         </div>
-        
+
         {correlationCoefficient !== undefined && (
           <div className="mt-4 p-3 bg-muted rounded-lg">
             <div className="text-sm">
@@ -252,4 +243,4 @@ export function Scatterplot({
       </CardContent>
     </Card>
   )
-}
+})

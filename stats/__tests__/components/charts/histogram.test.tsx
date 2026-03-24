@@ -13,15 +13,11 @@ import { vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { Histogram } from '@/components/charts/histogram'
 
-// Mock recharts to avoid canvas issues in tests
-vi.mock('recharts', () => ({
-  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="responsive-container">{children}</div>,
-  BarChart: ({ children }: { children: React.ReactNode }) => <div data-testid="bar-chart">{children}</div>,
-  Bar: () => <div data-testid="bar" />,
-  XAxis: () => <div data-testid="x-axis" />,
-  YAxis: () => <div data-testid="y-axis" />,
-  CartesianGrid: () => <div data-testid="cartesian-grid" />,
-  Tooltip: () => <div data-testid="tooltip" />
+// Mock LazyReactECharts (ECharts는 jsdom에서 렌더링 불가)
+vi.mock('@/lib/charts/LazyECharts', () => ({
+  LazyReactECharts: (props: { style?: React.CSSProperties }) => (
+    <div data-testid="echarts-container" style={props.style}>ECharts</div>
+  )
 }))
 
 // Sample data for tests
@@ -60,8 +56,8 @@ describe('Histogram Component', () => {
     it('starts in chart view by default', () => {
       render(<Histogram data={sampleData} />)
 
-      // Chart should be visible
-      expect(screen.getByTestId('responsive-container')).toBeInTheDocument()
+      // ECharts container should be visible
+      expect(screen.getByTestId('echarts-container')).toBeInTheDocument()
     })
 
     it('renders both chart and table toggle buttons', () => {
@@ -157,7 +153,6 @@ describe('Histogram Component', () => {
       render(<Histogram data={sampleData} />)
 
       expect(screen.getByText('히스토그램 해석 가이드')).toBeInTheDocument()
-      expect(screen.getByText(/종 모양에 가까울수록 정규분포에 가깝습니다/)).toBeInTheDocument()
     })
   })
 
@@ -175,15 +170,11 @@ describe('Histogram Component', () => {
 
   describe('Edge Cases', () => {
     it('handles constant data (all identical values) without NaN', () => {
-      // All values are the same - this caused NaN bug before fix
       const constantData = [5, 5, 5, 5, 5]
       render(<Histogram data={constantData} />)
 
-      // Should render without errors
       expect(screen.getByText('분포 히스토그램')).toBeInTheDocument()
-      // Data count should be correct
       expect(screen.getByText(/n = 5/)).toBeInTheDocument()
-      // Statistics should show mean = 5 (may match multiple: mean and median are same)
       const statsElements = screen.getAllByText(/5\.000/)
       expect(statsElements.length).toBeGreaterThanOrEqual(1)
     })

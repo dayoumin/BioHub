@@ -1,9 +1,11 @@
 "use client"
 
 import { useMemo } from "react"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ErrorBar } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { LazyReactECharts } from "@/lib/charts/LazyECharts"
+import { statBaseOption, statCategoryAxis, statValueAxis, statTooltip, errorBarSeries, STAT_COLORS } from "@/lib/charts/echarts-stat-utils"
+import type { EChartsOption } from "echarts"
 
 interface GroupComparisonProps {
   data: Array<{ group: string; value: number }>
@@ -31,38 +33,36 @@ function calculateGroupStats(values: number[]): Omit<GroupSummary, 'group' | 'co
   if (n === 0) {
     return { mean: 0, std: 0, sem: 0, n: 0, min: 0, max: 0 }
   }
-  
+
   const mean = values.reduce((sum, val) => sum + val, 0) / n
-  const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (n - 1)
+  const variance = n > 1 ? values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (n - 1) : 0
   const std = Math.sqrt(variance)
-  const sem = std / Math.sqrt(n) // Standard Error of Mean
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  
+  const sem = n > 1 ? std / Math.sqrt(n) : 0
+  const min = values.reduce((a, b) => Math.min(a, b), Infinity)
+  const max = values.reduce((a, b) => Math.max(a, b), -Infinity)
+
   return { mean, std, sem, n, min, max }
 }
 
-export function GroupComparison({ 
-  data, 
-  title = "그룹별 평균 비교", 
+export function GroupComparison({
+  data,
+  title = "그룹별 평균 비교",
   xAxisLabel = "그룹",
   yAxisLabel = "평균값",
   showErrorBars = true,
-  colors = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#8dd1e1", "#d084d0", "#ffb347"],
+  colors = STAT_COLORS,
   significantPairs = []
 }: GroupComparisonProps) {
-  
+
   const groupData = useMemo(() => {
     if (data.length === 0) return []
-    
-    // Group data by group name
+
     const grouped = data.reduce((acc, item) => {
       if (!acc[item.group]) acc[item.group] = []
       acc[item.group].push(item.value)
       return acc
     }, {} as Record<string, number[]>)
-    
-    // Calculate statistics for each group
+
     return Object.entries(grouped).map(([group, values], index) => {
       const stats = calculateGroupStats(values)
       return {
@@ -72,14 +72,48 @@ export function GroupComparison({
       }
     })
   }, [data, colors])
-  
-  const maxMean = Math.max(...groupData.map(g => g.mean))
-  const minMean = Math.min(...groupData.map(g => g.mean))
-  const yDomain = [
-    Math.min(0, minMean - Math.abs(minMean) * 0.1), 
-    maxMean + Math.abs(maxMean) * 0.1
-  ]
-  
+
+  const chartOption = useMemo((): EChartsOption => {
+    const categories = groupData.map((g) => g.group)
+    const means = groupData.map((g) => g.mean)
+    const errorUpper = groupData.map((g) => g.mean + g.sem)
+    const errorLower = groupData.map((g) => g.mean - g.sem)
+
+    return {
+      ...statBaseOption(),
+      xAxis: { ...statCategoryAxis(categories, xAxisLabel) },
+      yAxis: { ...statValueAxis(yAxisLabel), name: yAxisLabel },
+      tooltip: statTooltip({
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter(params: unknown) {
+          const arr = params as Array<Record<string, unknown>>
+          const p = arr[0]
+          const idx = p.dataIndex as number
+          const g = groupData[idx]
+          if (!g) return ''
+          return `<b>${g.group}</b><br/>평균: ${g.mean.toFixed(4)} ± ${g.sem.toFixed(4)}<br/>표준편차: ${g.std.toFixed(4)}<br/>n = ${g.n}<br/>범위: [${g.min.toFixed(2)}, ${g.max.toFixed(2)}]`
+        },
+      }),
+      series: [
+        {
+          type: 'bar',
+          data: means.map((val, i) => ({
+            value: val,
+            itemStyle: { color: groupData[i].color },
+          })),
+          barMaxWidth: 60,
+        },
+        ...(showErrorBars
+          ? [errorBarSeries(
+              groupData.map((_, i) => [i, errorUpper[i], errorLower[i]]),
+              { stroke: '#666', lineWidth: 1 },
+            )]
+          : []),
+      ] as NonNullable<EChartsOption['series']>,
+    }
+  }, [groupData, xAxisLabel, yAxisLabel, showErrorBars])
+
   if (groupData.length === 0) {
     return (
       <Card>
@@ -95,7 +129,7 @@ export function GroupComparison({
       </Card>
     )
   }
-  
+
   return (
     <Card>
       <CardHeader>
@@ -106,64 +140,16 @@ export function GroupComparison({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart 
-              data={groupData} 
-              margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="group" 
-                label={{ value: xAxisLabel, position: 'insideBottom', offset: -10 }}
-              />
-              <YAxis 
-                domain={yDomain}
-                label={{ value: yAxisLabel, angle: -90, position: 'insideLeft' }}
-              />
-              <Tooltip 
-                content={({ active, payload }) => {
-                  if (!active || !payload || !payload[0]) return null
-                  
-                  const data = payload[0].payload as GroupSummary
-                  return (
-                    <div className="bg-background border rounded-lg p-3 shadow-lg">
-                      <h4 className="font-medium">{data.group}</h4>
-                      <div className="text-sm space-y-1">
-                        <div>평균: {data.mean.toFixed(4)} ± {data.sem.toFixed(4)}</div>
-                        <div>표준편차: {data.std.toFixed(4)}</div>
-                        <div>표본 크기: {data.n}</div>
-                        <div>범위: [{data.min.toFixed(2)}, {data.max.toFixed(2)}]</div>
-                      </div>
-                    </div>
-                  )
-                }}
-              />
-              <Bar dataKey="mean">
-                {groupData.map((entry, index) => (
-                  <Bar key={`bar-${index}`} fill={entry.color} />
-                ))}
-                {showErrorBars && (
-                  <ErrorBar 
-                    dataKey="sem" 
-                    width={4}
-                    stroke="#666"
-                    strokeWidth={1}
-                  />
-                )}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        
+        <LazyReactECharts option={chartOption} style={{ height: 320 }} opts={{ renderer: 'svg' }} />
+
         <div className="mt-4">
           <h4 className="font-medium mb-3">그룹별 상세 정보</h4>
           <div className="grid gap-3 max-h-40 overflow-y-auto">
             {groupData.map((group) => (
               <div key={group.group} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <div className="flex items-center gap-3">
-                  <div 
-                    className="w-4 h-4 rounded" 
+                  <div
+                    className="w-4 h-4 rounded"
                     style={{ backgroundColor: group.color }}
                   />
                   <div>
@@ -181,7 +167,7 @@ export function GroupComparison({
             ))}
           </div>
         </div>
-        
+
         {significantPairs.length > 0 && (
           <div className="mt-4">
             <h4 className="font-medium mb-3">유의한 그룹 간 차이</h4>
@@ -199,7 +185,7 @@ export function GroupComparison({
             </div>
           </div>
         )}
-        
+
         <div className="mt-4 p-3 bg-muted rounded-lg">
           <div className="text-sm">
             <div className="font-medium mb-1">해석 가이드:</div>
