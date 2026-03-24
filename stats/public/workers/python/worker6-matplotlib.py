@@ -314,7 +314,7 @@ def render_chart(chartSpec, data, exportConfig):
         warnings.append(f'aggregate.y={agg_y}는 아직 미지원 (mean으로 대체)')
     if chartSpec.get('facet'):
         warnings.append('facet은 아직 미지원 (단일 패널로 출력)')
-    if chartSpec.get('significanceMarks'):
+    if chartSpec.get('significance'):
         warnings.append('significance marks는 아직 미지원')
 
     # 1. 스타일 적용 (context manager로 전역 오염 방지)

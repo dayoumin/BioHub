@@ -58,8 +58,7 @@ const SUPPORTED_FORMATS: { value: ExportFormat; label: string }[] = [
   { value: 'png', label: 'PNG (래스터)' },
 ];
 
-// matplotlib가 지원하는 차트 타입 (worker6-matplotlib.py RENDERER_MAP과 동기화)
-const MPL_SUPPORTED_CHART_TYPES = new Set(['bar', 'grouped-bar', 'stacked-bar', 'line', 'scatter']);
+import { MPL_SUPPORTED_CHART_TYPES } from '@/lib/graph-studio/matplotlib-compat';
 
 // 다른 OS에서도 렌더링이 보장되는 웹 안전 폰트 (A4 경고 기준)
 const WEB_SAFE_FONTS = new Set([
@@ -95,7 +94,7 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // ── matplotlib 논문용 내보내기 상태 ──
-  const { exportWithMatplotlib, isExporting: isMplExporting, progress: mplProgress, error: mplError } = useMatplotlibExport();
+  const { exportWithMatplotlib, isExporting: isMplExporting, progress: mplProgress, error: mplError, warnings: mplWarnings, clearWarnings: clearMplWarnings } = useMatplotlibExport();
   const [mplFormat, setMplFormat] = useState<MatplotlibExportFormat>(DEFAULT_MATPLOTLIB_EXPORT_CONFIG.format);
   const [mplStyle, setMplStyle] = useState<MatplotlibStylePreset>(DEFAULT_MATPLOTLIB_EXPORT_CONFIG.style);
   const [mplDpi, setMplDpi] = useState(DEFAULT_MATPLOTLIB_EXPORT_CONFIG.dpi);
@@ -452,6 +451,16 @@ export function ExportDialog({ onExport }: ExportDialogProps): React.ReactElemen
               {/* 에러 표시 */}
               {mplError && (
                 <p className="text-xs text-destructive">{mplError}</p>
+              )}
+
+              {/* 미지원 옵션 경고 (export 완료 후에도 유지) */}
+              {mplWarnings.length > 0 && (
+                <div className="text-xs bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded p-2 space-y-1">
+                  <p className="font-medium text-amber-700 dark:text-amber-300">미지원 옵션 경고:</p>
+                  {mplWarnings.map((w, i) => (
+                    <p key={i} className="text-amber-600 dark:text-amber-400">• {w}</p>
+                  ))}
+                </div>
               )}
 
               {/* 진행 상태 */}

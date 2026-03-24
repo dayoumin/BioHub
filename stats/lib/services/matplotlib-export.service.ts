@@ -84,7 +84,7 @@ export class MatplotlibExportService {
     dataPackage: DataPackage,
     config: MatplotlibExportConfig,
     onProgress?: ProgressCallback,
-  ): Promise<void> {
+  ): Promise<{ warnings?: string[] }> {
     // 1. Worker 준비
     await this.ensureReady(onProgress);
 
@@ -132,6 +132,8 @@ export class MatplotlibExportService {
     await downloadBase64File(result.base64Data, result.mimeType, filename, result.extension);
 
     onProgress?.('완료');
+
+    return { warnings: result.warnings };
   }
 
   /**
