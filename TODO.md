@@ -123,9 +123,9 @@ These items should be the current focus.
 ### 3-C. UI 일관성 통일 — [PLAN-UI-CONSISTENCY.md](stats/docs/PLAN-UI-CONSISTENCY.md)
 
 **Phase 1~3 순차:**
-- `[ux]` Phase 1: Shell 통일 — 헤더(bg/sticky/h-12) + `max-w-7xl` + 배경 틴트 + BioToolsHub 헤더 추가
-- `[ux]` Phase 2: Upload 통일 — BioCsvUpload → UploadDropZone 시각 채택
-- `[ux]` Phase 3: Bio 페이지 일괄 — Select(전체) + 테이블 bg 토큰 + 유의성 배지 토큰 + Loader2 스피너 + scrollIntoView + 에러 박스 + 다크모드 검증 + smoke 테스트
+- ~~`[ux]` Phase 1: Shell 통일~~ — 완료 (헤더 sticky + max-w-7xl + 배경 틴트 + LAYOUT 토큰 추출)
+- ~~`[ux]` Phase 2: Upload 통일~~ — 완료 (BioCsvUpload → UploadDropZone 시각 채택)
+- ~~`[ux]` Phase 3: Bio 페이지 일괄~~ — 완료 (Select 통일 + 에러 박스 + Loader2 + scrollIntoView. smoke 테스트 미진행)
 
 ### 3-D. 공통 품질/UX
 
