@@ -12,12 +12,15 @@ import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { formatNumber, formatPValue } from '@/lib/statistics/formatters'
 import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
-import { BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
+import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
+import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { getBioToolMeta } from '@/lib/bio-tools/bio-tool-metadata'
 import type { SurvivalResult, KmCurve } from '@/types/bio-tools-results'
 
 const tool = getBioToolById('survival')
+const meta = getBioToolMeta('survival')
 
 export default function SurvivalPage(): React.ReactElement {
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
@@ -60,15 +63,17 @@ export default function SurvivalPage(): React.ReactElement {
     return { curveEntries: entries, maxTime: max }
   }, [results])
 
-  if (!tool) return <div>도구를 찾을 수 없습니다</div>
+  if (!tool || !meta) return <div>도구를 찾을 수 없습니다</div>
 
   return (
     <BioToolShell tool={tool}>
       <div className="space-y-6">
+        <BioToolIntro meta={meta} collapsed={!!results} />
         <BioCsvUpload
           onDataLoaded={handleData}
           onClear={handleClear}
           description="생존 분석 CSV (time, event, group 열)"
+          exampleDataPath={meta?.exampleDataPath}
         />
 
         {csvData && (
@@ -94,7 +99,7 @@ export default function SurvivalPage(): React.ReactElement {
                   p = {formatPValue(results.logRankP)}
                 </span>
                 <span
-                  className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                  className={BIO_BADGE_CLASS}
                   style={results.logRankP < 0.05 ? SIGNIFICANCE_BADGE.significant : SIGNIFICANCE_BADGE.nonSignificant}
                 >
                   {results.logRankP < 0.05 ? '유의함' : '유의하지 않음'}

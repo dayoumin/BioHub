@@ -1000,7 +1000,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       } as StatisticalResult)
     })
 
-    it('detail에 볼드 섹션이 있으면 pill이 렌더링된다', async () => {
+    it('detail에 볼드 섹션이 있으면 전체 보기 버튼이 렌더링된다', async () => {
       const { splitInterpretation } = await import('@/lib/services/export/export-data-builder')
       const { requestInterpretation } = await import('@/lib/services/result-interpreter')
 
@@ -1016,9 +1016,9 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
 
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      // 파싱된 섹션의 shortLabel pill이 렌더링됨
+      // 섹션 pill이 있으면 "전체 보기" 버튼도 렌더링됨
       await waitFor(() => {
-        expect(screen.getByText('통계량')).toBeInTheDocument()
+        expect(screen.getByText('전체 보기')).toBeInTheDocument()
       })
     })
 
@@ -1042,8 +1042,7 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
         expect(screen.getByTestId('ai-interpretation-section')).toBeInTheDocument()
       })
 
-      // pill이 없어야 함
-      expect(screen.queryByText('통계량')).not.toBeInTheDocument()
+      // "전체 보기" 버튼이 없어야 함 (섹션 없음)
       expect(screen.queryByText('전체 보기')).not.toBeInTheDocument()
     })
   })

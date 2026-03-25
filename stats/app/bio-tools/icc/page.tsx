@@ -12,12 +12,15 @@ import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { formatNumber, formatPValue } from '@/lib/statistics/formatters'
-import { BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
+import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
+import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { getBioToolMeta } from '@/lib/bio-tools/bio-tool-metadata'
 import type { IccResult, IccType } from '@/types/bio-tools-results'
 
 const tool = getBioToolById('icc')
+const meta = getBioToolMeta('icc')
 
 const ICC_TYPE_LABELS: Record<string, string> = {
   ICC1_1: 'ICC(1,1) — One-way random, 단일 측정',
@@ -66,15 +69,17 @@ export default function IccPage(): React.ReactElement {
     runAnalysis('icc_analysis', { data, iccType })
   }, [csvData, subjectCol, iccType, runAnalysis])
 
-  if (!tool) return <div>도구를 찾을 수 없습니다</div>
+  if (!tool || !meta) return <div>도구를 찾을 수 없습니다</div>
 
   return (
     <BioToolShell tool={tool}>
       <div className="space-y-6">
+        <BioToolIntro meta={meta} collapsed={!!results} />
         <BioCsvUpload
           onDataLoaded={handleData}
           onClear={handleClear}
           description="ICC CSV (첫 열: 대상ID, 나머지 열: 측정값/평가자별 값)"
+          exampleDataPath={meta?.exampleDataPath}
         />
 
         {csvData && (
@@ -136,7 +141,7 @@ export default function IccPage(): React.ReactElement {
                         style={INTERPRETATION_STYLES[results.interpretation]?.style}
                       >
                         <span
-                          className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                          className={BIO_BADGE_CLASS}
                           style={INTERPRETATION_STYLES[results.interpretation]?.style}
                         >
                           {INTERPRETATION_STYLES[results.interpretation]?.label ?? results.interpretation}

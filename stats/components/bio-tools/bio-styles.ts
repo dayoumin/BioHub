@@ -38,6 +38,11 @@ export const BIO_BG_TINT = {
   backgroundColor: `color-mix(in oklch, var(${BIO_ACCENT_VAR}) 4%, var(--background))`,
 } as const
 
+// ─── 배지 레이아웃 ────────────────────────────────
+
+/** Bio-Tools 배지 공통 레이아웃 클래스 (색상은 style prop으로 적용) */
+export const BIO_BADGE_CLASS = 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold' as const
+
 // ─── 유의성 배지 ──────────────────────────────────
 
 /** p-value 유의성 스타일 (CSS 변수 --stat-significant 사용) */

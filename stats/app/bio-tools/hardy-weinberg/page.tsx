@@ -13,13 +13,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
-import { BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
+import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { detectLocusColumn } from '@/lib/bio-tools/genetics-columns'
+import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { getBioToolMeta } from '@/lib/bio-tools/bio-tool-metadata'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import type { HardyWeinbergResult } from '@/types/bio-tools-results'
 
 const tool = getBioToolById('hardy-weinberg')
+const meta = getBioToolMeta('hardy-weinberg')
 
 export default function HardyWeinbergPage(): React.ReactElement {
   const [inputMode, setInputMode] = useState<'direct' | 'csv'>('direct')
@@ -88,13 +91,14 @@ export default function HardyWeinbergPage(): React.ReactElement {
     runAnalysis('hardy_weinberg', { rows, locusLabels })
   }, [csvData, locusCol, aaCol, abCol, bbCol, runAnalysis, setError])
 
-  if (!tool) return <div>도구를 찾을 수 없습니다</div>
+  if (!tool || !meta) return <div>도구를 찾을 수 없습니다</div>
 
   const isDirectValid = countAA !== '' && countAa !== '' && countaa !== ''
 
   return (
     <BioToolShell tool={tool}>
       <div className="space-y-6">
+        <BioToolIntro meta={meta} collapsed={!!results} />
         <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as 'direct' | 'csv')}>
           <TabsList>
             <TabsTrigger value="direct">직접 입력</TabsTrigger>
@@ -127,6 +131,7 @@ export default function HardyWeinbergPage(): React.ReactElement {
               onDataLoaded={onDataLoaded}
               onClear={handleClear}
               description="CSV (유전자좌 열 + 유전자형 3열: AA, Aa, aa)"
+              exampleDataPath={meta?.exampleDataPath}
             />
             {csvData && (
               <div className="flex flex-wrap items-center gap-4">
@@ -167,15 +172,15 @@ export default function HardyWeinbergPage(): React.ReactElement {
 
             <div className="flex items-center gap-3">
               {results.isMonomorphic ? (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground">
+                <span className={`${BIO_BADGE_CLASS} bg-muted text-muted-foreground`}>
                   단형성 (monomorphic) — 검정 불가
                 </span>
               ) : (
                 <span
-                  className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                  className={BIO_BADGE_CLASS}
                   style={results.inEquilibrium ? SIGNIFICANCE_BADGE.nonSignificant : SIGNIFICANCE_BADGE.significant}
                 >
-                  p = {results.pValue.toFixed(4)} — {results.inEquilibrium ? 'HW 평형 유지' : 'HW 평형 이탈'}
+                  p = {results.exactPValue.toFixed(4)} — {results.inEquilibrium ? 'HW 평형 유지' : 'HW 평형 이탈'}
                 </span>
               )}
             </div>
@@ -208,7 +213,7 @@ export default function HardyWeinbergPage(): React.ReactElement {
 
             {results.lowExpectedWarning && (
               <p className="text-xs text-amber-600 dark:text-amber-400">
-                기대빈도 &lt; 5인 셀이 있어 chi-square 근사가 부정확할 수 있습니다. 소표본에서는 Fisher exact test를 권장합니다.
+                기대빈도 &lt; 5인 셀이 있어 chi-square 근사가 부정확할 수 있습니다. Exact test p-value를 판정 기준으로 사용합니다.
               </p>
             )}
 
@@ -223,7 +228,8 @@ export default function HardyWeinbergPage(): React.ReactElement {
                         <th className={`text-right ${BIO_TABLE.headerCell}`}>p</th>
                         <th className={`text-right ${BIO_TABLE.headerCell}`}>q</th>
                         <th className={`text-right ${BIO_TABLE.headerCell}`}>χ²</th>
-                        <th className={`text-right ${BIO_TABLE.headerCell}`}>p-value</th>
+                        <th className={`text-right ${BIO_TABLE.headerCell}`}>χ² p</th>
+                        <th className={`text-right ${BIO_TABLE.headerCell}`}>exact p</th>
                         <th className={`text-center ${BIO_TABLE.headerCell}`}>판정</th>
                       </tr>
                     </thead>
@@ -235,6 +241,7 @@ export default function HardyWeinbergPage(): React.ReactElement {
                           <td className={`text-right ${BIO_TABLE.bodyCell} font-mono`}>{lr.alleleFreqQ.toFixed(4)}</td>
                           <td className={`text-right ${BIO_TABLE.bodyCell} font-mono`}>{lr.isMonomorphic ? '—' : lr.chiSquare}</td>
                           <td className={`text-right ${BIO_TABLE.bodyCell} font-mono`}>{lr.isMonomorphic ? '—' : lr.pValue.toFixed(4)}</td>
+                          <td className={`text-right ${BIO_TABLE.bodyCell} font-mono`}>{lr.isMonomorphic ? '—' : lr.exactPValue.toFixed(4)}</td>
                           <td className={`text-center ${BIO_TABLE.bodyCell}`}>
                             {lr.isMonomorphic ? (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground">

@@ -7,14 +7,15 @@
 **전문가급 통계 분석 플랫폼** (PC웹 + 데스크탑 앱)
 - **기술**: Next.js 15 + TypeScript + shadcn/ui + Pyodide + Tauri
 - **통계 분석**: Analysis (43개 분석 메서드 + 4개 데이터 도구) — 유일한 진입점
-- **Bio-Tools**: 16개 생물학 도구 (4카테고리) — 별도 섹션, 계획 확정
+- **Bio-Tools**: 16개 생물학 분석 도구 (4카테고리) — 통계 하위 간편 분석
 - **데이터 도구**: 2개
 
 ## 아키텍처 결정 (CRITICAL)
 
 - **Analysis = 통계 분석의 유일한 진입점** (홈 `/` = ChatCentricHub, 분석 `/analysis`)
 - **개별 `/statistics/*` 43개 = 레거시** (코드 유지, 신규 개발 안 함)
-- **Bio-Tools = `/bio-tools/` 별도 섹션**
+- **Bio-Tools = 통계 하위 간편 분석** (`/bio-tools/`). HW/Fst 등 집단 유전학 포함.
+- **유전적 분석 = 서열 분석** (`/genetics/`). Bio-Tools 유전학 도구 cross-link.
 
 ## 핵심 규칙 (CRITICAL)
 
@@ -51,10 +52,9 @@
 
 ## Pyodide 통계 계산 (CRITICAL)
 
-- JS/Python으로 통계 알고리즘 **직접 구현 절대 금지**
-- 반드시 검증된 라이브러리 사용 (SciPy, statsmodels, pingouin)
-- 직접 구현 시 사용자 사전 승인 필수
-- **예외**: 표본 수 계산(power analysis) — 사전분석 도구로 순수 TS 허용. JS 표준 라이브러리 없음, Pyodide 로드 과잉.
+- 통계 알고리즘은 **검증된 라이브러리 우선** (SciPy, statsmodels, pingouin)
+- 라이브러리에 없는 경우 직접 구현 허용 — 참조 구현 기반 + 단위 테스트 필수
+- **예외**: power analysis — 순수 TS 허용 (Pyodide 로드 과잉)
 
 ## 통계 코딩 표준
 

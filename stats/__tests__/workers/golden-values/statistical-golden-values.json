@@ -1112,5 +1112,181 @@
       "library": "statsmodels",
       "code": "RSM quadratic model fitting"
     }
-  ]
+  ],
+
+  "hardyWeinberg": {
+    "singleLocus": [
+      {
+        "name": "perfect HW equilibrium (p=0.6)",
+        "input": { "rows": [[36, 48, 16]] },
+        "expected": {
+          "alleleFreqP": 0.6,
+          "alleleFreqQ": 0.4,
+          "chiSquare": 0.0,
+          "pValue": 1.0,
+          "isMonomorphic": false,
+          "inEquilibrium": true,
+          "degreesOfFreedom": 1
+        },
+        "tolerance": 0.001,
+        "scipyCode": "stats.chisquare([36,48,16], [36,48,16], ddof=1)",
+        "note": "Observed exactly matches expected under HW → chi²=0"
+      },
+      {
+        "name": "HW departure (heterozygote excess)",
+        "input": { "rows": [[10, 80, 10]] },
+        "expected": {
+          "alleleFreqP": 0.5,
+          "alleleFreqQ": 0.5,
+          "chiSquare": 36.0,
+          "pValue": 0.0,
+          "isMonomorphic": false,
+          "inEquilibrium": false
+        },
+        "tolerance": { "abs": 0.5, "rel": 0.01 },
+        "scipyCode": "stats.chisquare([10,80,10], [25,50,25], ddof=1)",
+        "note": "p=0.5 → expected [25,50,25], massive Het excess"
+      },
+      {
+        "name": "textbook data (p=0.7857)",
+        "input": { "rows": [[90, 40, 10]] },
+        "expected": {
+          "alleleFreqP": 0.7857,
+          "chiSquare": 3.214,
+          "pValue": 0.073,
+          "isMonomorphic": false,
+          "inEquilibrium": true
+        },
+        "tolerance": { "abs": 0.05, "rel": 0.02 },
+        "scipyCode": "n=140; p=(2*90+40)/(2*n); exp=[n*p**2, n*2*p*(1-p), n*(1-p)**2]; stats.chisquare([90,40,10], exp, ddof=1)",
+        "note": "Not in equilibrium departure — p=0.073 > 0.05, equilibrium maintained"
+      },
+      {
+        "name": "monomorphic p=0 (all homozygous recessive)",
+        "input": { "rows": [[0, 0, 100]] },
+        "expected": {
+          "alleleFreqP": 0.0,
+          "alleleFreqQ": 1.0,
+          "chiSquare": 0.0,
+          "pValue": 1.0,
+          "isMonomorphic": true,
+          "inEquilibrium": true
+        },
+        "tolerance": 0.0001,
+        "note": "Monomorphic: no variation, chi-square test meaningless"
+      },
+      {
+        "name": "monomorphic p=1 (all homozygous dominant)",
+        "input": { "rows": [[100, 0, 0]] },
+        "expected": {
+          "alleleFreqP": 1.0,
+          "alleleFreqQ": 0.0,
+          "chiSquare": 0.0,
+          "pValue": 1.0,
+          "isMonomorphic": true,
+          "inEquilibrium": true
+        },
+        "tolerance": 0.0001,
+        "note": "Monomorphic: no variation"
+      },
+      {
+        "name": "low expected frequency warning",
+        "input": { "rows": [[9, 1, 0]] },
+        "expected": {
+          "lowExpectedWarning": true,
+          "isMonomorphic": false,
+          "nTotal": 10
+        },
+        "tolerance": 0.01,
+        "note": "Small sample → expected freq < 5 for some cells"
+      }
+    ],
+    "multiLocus": [
+      {
+        "name": "two loci with custom labels",
+        "input": {
+          "rows": [[36, 48, 16], [25, 50, 25]],
+          "locusLabels": ["LocA", "LocB"]
+        },
+        "expected": {
+          "locusResultsLength": 2,
+          "locusLabels": ["LocA", "LocB"]
+        },
+        "tolerance": 0.001,
+        "note": "Multi-locus: locusResults array with correct labels"
+      },
+      {
+        "name": "lowExpectedWarning propagation (one locus triggers)",
+        "input": {
+          "rows": [[36, 48, 16], [9, 1, 0]]
+        },
+        "expected": {
+          "lowExpectedWarning": true,
+          "locusResultsLength": 2
+        },
+        "tolerance": 0.001,
+        "note": "Top-level warning is OR of all loci warnings"
+      }
+    ]
+  },
+
+  "fst": {
+    "pairwise": [
+      {
+        "name": "identical populations → Fst=0",
+        "input": { "populations": [[50, 50], [50, 50]] },
+        "expected": { "globalFst": 0.0, "nPopulations": 2 },
+        "tolerance": 0.0001,
+        "note": "Same allele frequencies → no differentiation"
+      },
+      {
+        "name": "fixed different alleles → high Fst",
+        "input": { "populations": [[100, 0], [0, 100]] },
+        "expected": { "globalFst": 1.0, "nPopulations": 2 },
+        "tolerance": 0.02,
+        "note": "Complete fixation for different alleles → maximum differentiation (bias correction may reduce slightly below 1.0)"
+      },
+      {
+        "name": "three populations — symmetry and global=mean(pairwise)",
+        "input": {
+          "populations": [[80, 20], [50, 50], [20, 80]],
+          "populationLabels": ["Pop1", "Pop2", "Pop3"]
+        },
+        "expected": {
+          "nPopulations": 3,
+          "symmetricMatrix": true,
+          "diagonalZero": true
+        },
+        "tolerance": 0.001,
+        "note": "Pairwise matrix must be symmetric with zero diagonal. Global Fst = mean of upper triangle."
+      },
+      {
+        "name": "large differentiation (Fst≈0.158)",
+        "input": { "populations": [[70, 30], [40, 60]] },
+        "expected": { "globalFst": 0.158, "nPopulations": 2 },
+        "tolerance": 0.01,
+        "note": "Wright 1978: 0.15-0.25 = large differentiation (Fst=0.158 with bias correction)"
+      }
+    ],
+    "edgeCases": [
+      {
+        "name": "n<=1 rejection (sample size too small)",
+        "input": { "populations": [[1], [50, 50]] },
+        "expected": { "error": "대립유전자 총 수는 2 이상" },
+        "note": "Bias correction requires n >= 2 per population"
+      },
+      {
+        "name": "zero total alleles rejection",
+        "input": { "populations": [[0], [50, 50]] },
+        "expected": { "error": "총 대립유전자 수가 0" },
+        "note": "Empty population is invalid"
+      },
+      {
+        "name": "single population rejection",
+        "input": { "populations": [[50, 50]] },
+        "expected": { "error": "최소 2개 집단" },
+        "note": "Need at least 2 populations for Fst"
+      }
+    ]
+  }
 }

@@ -1269,18 +1269,21 @@
         "params": ["rows", "locusLabels?"],
         "returns": [
           "alleleFreqP", "alleleFreqQ", "observedCounts", "expectedCounts",
-          "chiSquare", "pValue", "degreesOfFreedom", "inEquilibrium",
+          "chiSquare", "pValue", "exactPValue", "degreesOfFreedom", "inEquilibrium",
           "isMonomorphic", "interpretation", "nTotal", "locusResults", "lowExpectedWarning"
         ],
-        "description": "Hardy-Weinberg 평형 chi-square 검정"
+        "description": "Hardy-Weinberg 평형 검정 (chi-square + exact test)"
       },
       "fst": {
-        "params": ["populations", "populationLabels?"],
+        "params": ["populations?", "populationLabels?", "genotypes?", "individualPopulations?", "locusNames?", "nPermutations?", "nBootstrap?"],
         "returns": [
           "globalFst", "pairwiseFst", "populationLabels",
-          "nPopulations", "interpretation"
+          "nPopulations", "interpretation",
+          "nIndividuals?", "nLoci?", "locusNames?",
+          "permutationPValue?", "nPermutations?",
+          "bootstrapCi?", "nBootstrap?", "bootstrapWarning?"
         ],
-        "description": "Fst 집단 분화 지수 (Hudson 1992 + Bhatia 2013)"
+        "description": "Fst 집단 분화 지수 — v1: allele count, v2: 개체별 유전자형 (Hudson 1992 + Bhatia 2013)"
       }
     }
   }

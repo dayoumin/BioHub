@@ -251,6 +251,7 @@ export interface HwLocusResult {
   alleleFreqQ: number
   chiSquare: number
   pValue: number
+  exactPValue: number
   degreesOfFreedom: number
   inEquilibrium: boolean
   isMonomorphic: boolean
@@ -266,6 +267,7 @@ export interface HardyWeinbergResult {
   expectedCounts: number[]
   chiSquare: number
   pValue: number
+  exactPValue: number
   degreesOfFreedom: number
   inEquilibrium: boolean
   isMonomorphic: boolean
@@ -282,4 +284,13 @@ export interface FstResult {
   populationLabels: string[]
   nPopulations: number
   interpretation: string
+  /** v2 optional fields (개체별 유전자형 입력 시) */
+  nIndividuals?: number
+  nLoci?: number
+  locusNames?: string[]
+  permutationPValue?: number | null
+  nPermutations?: number
+  bootstrapCi?: [number, number] | null
+  nBootstrap?: number
+  bootstrapWarning?: string | null
 }

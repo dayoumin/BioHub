@@ -11,12 +11,15 @@ import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { formatNumber } from '@/lib/statistics/formatters'
-import { BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
+import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
+import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { getBioToolMeta } from '@/lib/bio-tools/bio-tool-metadata'
 import type { RocAucResult } from '@/types/bio-tools-results'
 
 const tool = getBioToolById('roc-auc')
+const meta = getBioToolMeta('roc-auc')
 
 function getAucInterpretation(auc: number): { label: string; style: React.CSSProperties } {
   if (auc >= 0.9) return { label: '우수 (Excellent)', style: SIGNIFICANCE_BADGE.significant }
@@ -86,15 +89,17 @@ export default function RocAucPage(): React.ReactElement {
 
   const aucInterp = results ? getAucInterpretation(results.auc) : null
 
-  if (!tool) return <div>도구를 찾을 수 없습니다</div>
+  if (!tool || !meta) return <div>도구를 찾을 수 없습니다</div>
 
   return (
     <BioToolShell tool={tool}>
       <div className="space-y-6">
+        <BioToolIntro meta={meta} collapsed={!!results} />
         <BioCsvUpload
           onDataLoaded={handleData}
           onClear={handleClear}
           description="ROC 분석 CSV (actual: 0/1, predicted_prob: 예측 확률)"
+          exampleDataPath={meta?.exampleDataPath}
         />
 
         {csvData && (
@@ -137,7 +142,7 @@ export default function RocAucPage(): React.ReactElement {
                       <td className={BIO_TABLE.bodyCell}>해석</td>
                       <td className={`text-right ${BIO_TABLE.bodyCell} font-medium`}>
                         <span
-                          className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                          className={BIO_BADGE_CLASS}
                           style={aucInterp?.style}
                         >
                           {aucInterp?.label ?? ''}

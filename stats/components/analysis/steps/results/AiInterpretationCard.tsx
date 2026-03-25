@@ -242,17 +242,24 @@ export function AiInterpretationCard({
   const [showAll, setShowAll] = useState(false)
   const detailRef = useRef(parsedInterpretation?.detail)
   const autoSelectPending = useRef(true)
+  // 사용자가 pill/전체보기를 직접 조작했으면 자동 선택을 억제
+  const userInteracted = useRef(false)
 
-  // detail 변경 시 리셋 + 자동 선택 재활성화 (재해석, 히스토리 전환)
+  // detail 변경 시: 스트리밍 중에는 autoSelect만 유지, 완료/전환 시 UI 리셋
   if (detailRef.current !== parsedInterpretation?.detail) {
     detailRef.current = parsedInterpretation?.detail
-    if (activeSection !== null) setActiveSection(null)
-    if (showAll) setShowAll(false)
-    autoSelectPending.current = true
+    if (!isInterpreting) {
+      // 재해석 완료 또는 히스토리 전환 → 전면 리셋
+      if (activeSection !== null) setActiveSection(null)
+      if (showAll) setShowAll(false)
+      autoSelectPending.current = true
+      userInteracted.current = false
+    }
+    // 스트리밍 중에는 pill 상태·userInteracted를 건드리지 않음
   }
 
-  // 스트리밍 완료 또는 히스토리 복원 → 첫 detail 섹션 자동 선택 (1회)
-  if (autoSelectPending.current && !isInterpreting && detailSections.length > 0) {
+  // 스트리밍 완료 또는 히스토리 복원 → 첫 detail 섹션 자동 선택 (사용자 조작 없었을 때만)
+  if (autoSelectPending.current && !userInteracted.current && !isInterpreting && detailSections.length > 0) {
     setActiveSection(detailSections[0].key)
     autoSelectPending.current = false
   }
@@ -264,11 +271,15 @@ export function AiInterpretationCard({
   )
 
   const handlePillClick = useCallback((key: string): void => {
+    userInteracted.current = true
+    autoSelectPending.current = false
     setActiveSection(prev => prev === key ? null : key)
     setShowAll(false)
   }, [])
 
   const handleShowAll = useCallback((): void => {
+    userInteracted.current = true
+    autoSelectPending.current = false
     setShowAll(prev => !prev)
     setActiveSection(null)
   }, [])

@@ -9,7 +9,9 @@ import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
-import { SIGNIFICANCE_BADGE, BIO_TABLE } from '@/components/bio-tools/bio-styles'
+import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
+import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { getBioToolMeta } from '@/lib/bio-tools/bio-tool-metadata'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
@@ -17,6 +19,7 @@ import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import type { MantelResult } from '@/types/bio-tools-results'
 
 const tool = getBioToolById('mantel-test')
+const meta = getBioToolMeta('mantel-test')
 
 export default function MantelTestPage(): React.ReactElement {
   const [csvDataX, setCsvDataX] = useState<CsvData | null>(null)
@@ -101,17 +104,20 @@ export default function MantelTestPage(): React.ReactElement {
 
   const significant = results ? results.pValue < 0.05 : false
 
-  if (!tool) return <div>도구를 찾을 수 없습니다</div>
+  if (!tool || !meta) return <div>도구를 찾을 수 없습니다</div>
 
   return (
     <BioToolShell tool={tool}>
       <div className="space-y-6">
+        <BioToolIntro meta={meta} collapsed={!!results} />
         <div>
           <h3 className="text-sm font-semibold mb-2">거리행렬 X (데이터셋 1)</h3>
           <BioCsvUpload
             onDataLoaded={handleDataLoadedX}
             onClear={handleClearX}
             description="종×지점 행렬 CSV (첫 번째 데이터셋)"
+            exampleDataPath="/example-data/mantel-species.csv"
+            exampleLabel="종 행렬 예제"
           />
           {csvDataX && (
             <div className="flex items-center gap-3 mt-2">
@@ -126,6 +132,8 @@ export default function MantelTestPage(): React.ReactElement {
             onDataLoaded={handleDataLoadedY}
             onClear={handleClearY}
             description="종×지점 행렬 CSV (두 번째 데이터셋)"
+            exampleDataPath="/example-data/mantel-env.csv"
+            exampleLabel="환경 행렬 예제"
           />
           {csvDataY && (
             <div className="flex items-center gap-3 mt-2">
@@ -159,7 +167,7 @@ export default function MantelTestPage(): React.ReactElement {
           <div ref={resultsRef} className="space-y-4">
             <div className="flex items-center gap-2">
               <span
-                className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                className={BIO_BADGE_CLASS}
                 style={significant ? SIGNIFICANCE_BADGE.significant : SIGNIFICANCE_BADGE.nonSignificant}
               >
                 p = {results.pValue} (양측) {significant ? '(유의)' : '(비유의)'}

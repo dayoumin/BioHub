@@ -1011,6 +1011,159 @@ json.dumps({
     }
   }
 
+  // ============================================================
+  // POPULATION GENETICS (Worker 9)
+  // ============================================================
+
+  // Load worker9-genetics.py into Pyodide
+  console.log(colorize('\n🧬 Population Genetics (Worker 9)', 'cyan'));
+  const workerCode = readFileSync(join(__dirname, '../public/workers/python/worker9-genetics.py'), 'utf-8');
+  await pyodide.runPythonAsync(workerCode);
+  console.log(colorize('  ✓ Worker 9 loaded', 'green'));
+
+  // Hardy-Weinberg: Single Locus
+  if (goldenValues.hardyWeinberg?.singleLocus) {
+    console.log(colorize('\n📊 Hardy-Weinberg: Single Locus', 'cyan'));
+    for (const tc of goldenValues.hardyWeinberg.singleLocus) {
+      await runTest(tc.name, async () => {
+        const code = `
+import json
+result = hardy_weinberg(${JSON.stringify(tc.input.rows)}${tc.input.locusLabels ? `, ${JSON.stringify(tc.input.locusLabels)}` : ''})
+json.dumps(result, default=str)
+`;
+        const resultJson = await pyodide.runPythonAsync(code);
+        const result = JSON.parse(resultJson);
+
+        for (const [key, expectedVal] of Object.entries(tc.expected)) {
+          if (key === 'locusResultsLength') {
+            const actual = result.locusResults ? result.locusResults.length : 0;
+            if (actual !== expectedVal) {
+              throw new Error(`locusResults.length: expected ${expectedVal}, got ${actual}`);
+            }
+          } else if (key === 'locusLabels') {
+            // Skip — checked via locusResults
+          } else if (typeof expectedVal === 'number') {
+            if (!isCloseEnough(result[key], expectedVal, tc.tolerance)) {
+              throw new Error(`${key}: expected ${expectedVal}, got ${result[key]}`);
+            }
+          } else if (typeof expectedVal === 'boolean') {
+            if (result[key] !== expectedVal) {
+              throw new Error(`${key}: expected ${expectedVal}, got ${result[key]}`);
+            }
+          }
+        }
+      });
+    }
+  }
+
+  // Hardy-Weinberg: Multi-Locus
+  if (goldenValues.hardyWeinberg?.multiLocus) {
+    console.log(colorize('\n📊 Hardy-Weinberg: Multi-Locus', 'cyan'));
+    for (const tc of goldenValues.hardyWeinberg.multiLocus) {
+      await runTest(tc.name, async () => {
+        const code = `
+import json
+result = hardy_weinberg(${JSON.stringify(tc.input.rows)}${tc.input.locusLabels ? `, ${JSON.stringify(tc.input.locusLabels)}` : ''})
+json.dumps(result, default=str)
+`;
+        const resultJson = await pyodide.runPythonAsync(code);
+        const result = JSON.parse(resultJson);
+
+        if (tc.expected.locusResultsLength !== undefined) {
+          const actual = result.locusResults ? result.locusResults.length : 0;
+          if (actual !== tc.expected.locusResultsLength) {
+            throw new Error(`locusResults.length: expected ${tc.expected.locusResultsLength}, got ${actual}`);
+          }
+        }
+        if (tc.expected.lowExpectedWarning !== undefined) {
+          if (result.lowExpectedWarning !== tc.expected.lowExpectedWarning) {
+            throw new Error(`lowExpectedWarning: expected ${tc.expected.lowExpectedWarning}, got ${result.lowExpectedWarning}`);
+          }
+        }
+        if (tc.expected.locusLabels) {
+          for (let i = 0; i < tc.expected.locusLabels.length; i++) {
+            if (result.locusResults[i].locus !== tc.expected.locusLabels[i]) {
+              throw new Error(`locus[${i}]: expected ${tc.expected.locusLabels[i]}, got ${result.locusResults[i].locus}`);
+            }
+          }
+        }
+      });
+    }
+  }
+
+  // Fst: Pairwise
+  if (goldenValues.fst?.pairwise) {
+    console.log(colorize('\n📊 Fst: Pairwise', 'cyan'));
+    for (const tc of goldenValues.fst.pairwise) {
+      await runTest(tc.name, async () => {
+        const code = `
+import json
+result = fst(${JSON.stringify(tc.input.populations)}${tc.input.populationLabels ? `, ${JSON.stringify(tc.input.populationLabels)}` : ''})
+json.dumps(result, default=str)
+`;
+        const resultJson = await pyodide.runPythonAsync(code);
+        const result = JSON.parse(resultJson);
+
+        if (tc.expected.globalFst !== undefined) {
+          if (!isCloseEnough(result.globalFst, tc.expected.globalFst, tc.tolerance)) {
+            throw new Error(`globalFst: expected ${tc.expected.globalFst}, got ${result.globalFst}`);
+          }
+        }
+        if (tc.expected.nPopulations !== undefined) {
+          if (result.nPopulations !== tc.expected.nPopulations) {
+            throw new Error(`nPopulations: expected ${tc.expected.nPopulations}, got ${result.nPopulations}`);
+          }
+        }
+        if (tc.expected.symmetricMatrix) {
+          const m = result.pairwiseFst;
+          for (let i = 0; i < m.length; i++) {
+            for (let j = i + 1; j < m[i].length; j++) {
+              if (Math.abs(m[i][j] - m[j][i]) > 1e-10) {
+                throw new Error(`pairwise not symmetric: [${i}][${j}]=${m[i][j]} vs [${j}][${i}]=${m[j][i]}`);
+              }
+            }
+          }
+        }
+        if (tc.expected.diagonalZero) {
+          const m = result.pairwiseFst;
+          for (let i = 0; i < m.length; i++) {
+            if (m[i][i] !== 0) {
+              throw new Error(`diagonal not zero: [${i}][${i}]=${m[i][i]}`);
+            }
+          }
+        }
+      });
+    }
+  }
+
+  // Fst: Edge Cases (error expected)
+  if (goldenValues.fst?.edgeCases) {
+    console.log(colorize('\n📊 Fst: Edge Cases', 'cyan'));
+    for (const tc of goldenValues.fst.edgeCases) {
+      await runTest(tc.name, async () => {
+        const code = `
+import json
+_out = ''
+try:
+    result = fst(${JSON.stringify(tc.input.populations)}${tc.input.populationLabels ? `, ${JSON.stringify(tc.input.populationLabels)}` : ''})
+    _out = json.dumps({'error': None})
+except ValueError as e:
+    _out = json.dumps({'error': str(e)})
+_out
+`;
+        const resultJson = await pyodide.runPythonAsync(code);
+        const result = JSON.parse(resultJson);
+
+        if (!result.error) {
+          throw new Error(`Expected error containing "${tc.expected.error}", but no error was raised`);
+        }
+        if (!result.error.includes(tc.expected.error)) {
+          throw new Error(`Error message mismatch: expected to contain "${tc.expected.error}", got "${result.error}"`);
+        }
+      });
+    }
+  }
+
   // 결과 요약
   console.log(colorize('\n' + '=' .repeat(60), 'blue'));
   console.log(colorize('📋 SUMMARY', 'cyan'));

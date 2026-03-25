@@ -9,6 +9,8 @@ import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
 import { Button } from '@/components/ui/button'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
+import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { getBioToolMeta } from '@/lib/bio-tools/bio-tool-metadata'
 import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
@@ -23,6 +25,7 @@ const INDEX_LABELS: Record<string, string> = {
 }
 
 const tool = getBioToolById('alpha-diversity')
+const meta = getBioToolMeta('alpha-diversity')
 
 export default function AlphaDiversityPage(): React.ReactElement {
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
@@ -34,15 +37,17 @@ export default function AlphaDiversityPage(): React.ReactElement {
     runAnalysis('alpha_diversity', { rows: csvData.rows, site_col: siteCol })
   }, [csvData, siteCol, runAnalysis])
 
-  if (!tool) return <div>도구를 찾을 수 없습니다</div>
+  if (!tool || !meta) return <div>도구를 찾을 수 없습니다</div>
 
   return (
     <BioToolShell tool={tool}>
       <div className="space-y-6">
+        <BioToolIntro meta={meta} collapsed={!!results} />
         <BioCsvUpload
           onDataLoaded={handleDataLoaded}
           onClear={handleClear}
           description="종×지점 행렬 CSV (행=지점, 열=종, 첫 열=지점명)"
+          exampleDataPath={meta?.exampleDataPath}
         />
 
         {csvData && (

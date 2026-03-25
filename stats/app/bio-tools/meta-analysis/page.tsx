@@ -15,9 +15,12 @@ import { formatNumber, formatPValue } from '@/lib/statistics/formatters'
 import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
+import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { getBioToolMeta } from '@/lib/bio-tools/bio-tool-metadata'
 import type { MetaAnalysisResult } from '@/types/bio-tools-results'
 
 const tool = getBioToolById('meta-analysis')
+const meta = getBioToolMeta('meta-analysis')
 
 export default function MetaAnalysisPage(): React.ReactElement {
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
@@ -68,15 +71,17 @@ export default function MetaAnalysisPage(): React.ReactElement {
     return { range }
   }, [results])
 
-  if (!tool) return <div>도구를 찾을 수 없습니다</div>
+  if (!tool || !meta) return <div>도구를 찾을 수 없습니다</div>
 
   return (
     <BioToolShell tool={tool}>
       <div className="space-y-6">
+        <BioToolIntro meta={meta} collapsed={!!results} />
         <BioCsvUpload
           onDataLoaded={handleData}
           onClear={handleClear}
           description="메타분석 CSV (study, effect_size, se 열 포함)"
+          exampleDataPath={meta?.exampleDataPath}
         />
 
         {csvData && (

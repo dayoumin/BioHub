@@ -2,7 +2,7 @@
  * Auto-generated from methods-registry.json
  * DO NOT EDIT MANUALLY
  *
- * Generated: 2026-03-25T04:16:40.306Z
+ * Generated: 2026-03-25T06:13:02.454Z
  */
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -1488,12 +1488,13 @@ export interface HardyWeinbergResult {
   expectedCounts: number[]
   chiSquare: number
   pValue: number
+  exactPValue: number
   degreesOfFreedom: number
   inEquilibrium: boolean
   isMonomorphic: boolean
   interpretation: string
   nTotal: number
-  locusResults: Array<{ locus: string; observedCounts: number[]; expectedCounts: number[]; alleleFreqP: number; alleleFreqQ: number; chiSquare: number; pValue: number; degreesOfFreedom: number; inEquilibrium: boolean; isMonomorphic: boolean; nTotal: number; lowExpectedWarning: boolean }> | null
+  locusResults: Array<{ locus: string; observedCounts: number[]; expectedCounts: number[]; alleleFreqP: number; alleleFreqQ: number; chiSquare: number; pValue: number; exactPValue: number; degreesOfFreedom: number; inEquilibrium: boolean; isMonomorphic: boolean; nTotal: number; lowExpectedWarning: boolean }> | null
   lowExpectedWarning: boolean
 }
 
@@ -1503,11 +1504,19 @@ export interface FstResult {
   populationLabels: string[]
   nPopulations: number
   interpretation: string
+  nIndividuals?: number
+  nLoci?: number
+  locusNames?: string[]
+  permutationPValue?: number | null
+  nPermutations?: number
+  bootstrapCi?: [number, number] | null
+  nBootstrap?: number
+  bootstrapWarning?: string | null
 }
 
 
 /**
- * Hardy-Weinberg 평형 chi-square 검정
+ * Hardy-Weinberg 평형 검정 (chi-square + exact test)
  * @worker Worker 9
  */
 export async function hardyWeinberg(rows: number[][], locusLabels?: string[]): Promise<HardyWeinbergResult> {
@@ -1515,11 +1524,11 @@ export async function hardyWeinberg(rows: number[][], locusLabels?: string[]): P
 }
 
 /**
- * Fst 집단 분화 지수 (Hudson 1992 + Bhatia 2013)
+ * Fst 집단 분화 지수 — v1: allele count, v2: 개체별 유전자형 (Hudson 1992 + Bhatia 2013)
  * @worker Worker 9
  */
-export async function fst(populations: number[][], populationLabels?: string[]): Promise<FstResult> {
-  return callWorkerMethod<FstResult>(9, 'fst', { populations, populationLabels })
+export async function fst(populations?: number[][], populationLabels?: string[], genotypes?: string[][], individualPopulations?: string[], locusNames?: string[], nPermutations?: number, nBootstrap?: number): Promise<FstResult> {
+  return callWorkerMethod<FstResult>(9, 'fst', { populations, populationLabels, genotypes, individualPopulations, locusNames, nPermutations, nBootstrap })
 }
 
 // ========================================

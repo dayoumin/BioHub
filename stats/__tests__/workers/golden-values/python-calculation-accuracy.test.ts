@@ -662,3 +662,111 @@ describe('Response Surface Golden Values', () => {
     }
   });
 });
+
+// ============================================
+// Population Genetics (Worker 9)
+// ============================================
+describe('Hardy-Weinberg Golden Values', () => {
+  describe('Single Locus', () => {
+    it('should have valid test cases', () => {
+      const testCases = goldenValues.hardyWeinberg.singleLocus;
+      expect(testCases.length).toBeGreaterThanOrEqual(5);
+
+      for (const tc of testCases) {
+        expect(tc).toHaveProperty('name');
+        expect(tc).toHaveProperty('input');
+        expect(tc).toHaveProperty('expected');
+        expect(tc.input).toHaveProperty('rows');
+        expect(Array.isArray(tc.input.rows)).toBe(true);
+        // Each row is [AA, Aa, aa]
+        for (const row of tc.input.rows) {
+          expect(row.length).toBe(3);
+          expect(row.every((v: number) => v >= 0)).toBe(true);
+        }
+      }
+    });
+
+    it('should include monomorphic edge cases', () => {
+      const testCases = goldenValues.hardyWeinberg.singleLocus;
+      const monomorphic = testCases.filter(
+        (tc: { expected: { isMonomorphic?: boolean } }) => tc.expected.isMonomorphic === true
+      );
+      expect(monomorphic.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should verify HW equilibrium math for perfect equilibrium case', () => {
+      const perfect = goldenValues.hardyWeinberg.singleLocus.find(
+        (tc: { name: string }) => tc.name.includes('perfect HW equilibrium')
+      );
+      expect(perfect).toBeDefined();
+      // p = (2*36 + 48) / (2*100) = 0.6
+      const [AA, Aa, aa] = perfect.input.rows[0];
+      const n = AA + Aa + aa;
+      const p = (2 * AA + Aa) / (2 * n);
+      expect(p).toBeCloseTo(perfect.expected.alleleFreqP, 4);
+      expect(1 - p).toBeCloseTo(perfect.expected.alleleFreqQ, 4);
+      // Expected == Observed → chi²=0
+      expect(perfect.expected.chiSquare).toBe(0);
+      expect(perfect.expected.pValue).toBe(1.0);
+    });
+  });
+
+  describe('Multi-Locus', () => {
+    it('should have valid multi-locus test cases', () => {
+      const testCases = goldenValues.hardyWeinberg.multiLocus;
+      expect(testCases.length).toBeGreaterThanOrEqual(2);
+
+      for (const tc of testCases) {
+        expect(tc.input.rows.length).toBeGreaterThan(1);
+        expect(tc.expected).toHaveProperty('locusResultsLength');
+        expect(tc.expected.locusResultsLength).toBe(tc.input.rows.length);
+      }
+    });
+  });
+});
+
+describe('Fst Golden Values', () => {
+  describe('Pairwise', () => {
+    it('should have valid pairwise test cases', () => {
+      const testCases = goldenValues.fst.pairwise;
+      expect(testCases.length).toBeGreaterThanOrEqual(3);
+
+      for (const tc of testCases) {
+        expect(tc.input).toHaveProperty('populations');
+        expect(tc.input.populations.length).toBeGreaterThanOrEqual(2);
+        // All counts are non-negative integers
+        for (const pop of tc.input.populations) {
+          expect(pop.every((v: number) => v >= 0 && Number.isInteger(v))).toBe(true);
+        }
+      }
+    });
+
+    it('should verify identical populations give Fst=0', () => {
+      const identical = goldenValues.fst.pairwise.find(
+        (tc: { name: string }) => tc.name.includes('identical')
+      );
+      expect(identical).toBeDefined();
+      expect(identical.expected.globalFst).toBe(0);
+    });
+
+    it('should verify fixed different alleles give high Fst', () => {
+      const fixed = goldenValues.fst.pairwise.find(
+        (tc: { name: string }) => tc.name.includes('fixed different')
+      );
+      expect(fixed).toBeDefined();
+      expect(fixed.expected.globalFst).toBeGreaterThanOrEqual(0.9);
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should have error cases for invalid inputs', () => {
+      const testCases = goldenValues.fst.edgeCases;
+      expect(testCases.length).toBeGreaterThanOrEqual(2);
+
+      for (const tc of testCases) {
+        expect(tc.expected).toHaveProperty('error');
+        expect(typeof tc.expected.error).toBe('string');
+      }
+    });
+  });
+});

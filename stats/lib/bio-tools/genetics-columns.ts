@@ -18,3 +18,10 @@ export function detectLocusColumn(headers: string[]): string {
 export function detectPopulationColumn(headers: string[]): string {
   return detectColumn(headers, POP_HINTS, 0)
 }
+
+/** 개체 컬럼 후보 (case-insensitive 매칭) */
+const IND_HINTS = ['individual', 'sample', 'id', 'ind', 'specimen', '개체', '시료'] as const
+
+export function detectIndividualColumn(headers: string[]): string {
+  return detectColumn(headers, IND_HINTS, 0)
+}

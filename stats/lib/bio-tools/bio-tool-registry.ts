@@ -33,6 +33,12 @@ export type BioToolInputType = 'csv' | 'fasta' | 'matrix' | 'csv-or-matrix'
 
 export type BioToolStatus = 'ready' | 'coming-soon'
 
+export interface BioToolColumnSpec {
+  label: string
+  required: boolean
+  example: string
+}
+
 export interface BioTool {
   id: string
   nameEn: string
@@ -44,6 +50,15 @@ export interface BioTool {
   computeType: 'pyodide' | 'api'
   status: BioToolStatus
   requiredPackages?: readonly string[]
+}
+
+/** 확장 메타데이터 — BioToolIntro + BioCsvUpload에서 사용 */
+export interface BioToolExtendedMeta {
+  descriptionLong: string
+  outputHighlights: string[]
+  columns: BioToolColumnSpec[]
+  exampleDataPath?: string
+  relatedTools?: string[]
 }
 
 export interface BioToolCategoryMeta {

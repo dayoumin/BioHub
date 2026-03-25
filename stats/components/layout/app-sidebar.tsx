@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
-  Home,
+  BarChart3,
   AreaChart,
   Dna,
   FlaskConical,
@@ -54,10 +54,10 @@ type NavItem = {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: '/', label: '홈', icon: Home },
-  { href: '/graph-studio', label: 'Graph Studio', icon: AreaChart, prefix: '/graph-studio' },
+  { href: '/', label: '통계분석', icon: BarChart3 },
   { href: '/bio-tools', label: 'Bio-Tools', icon: Dna, prefix: '/bio-tools' },
   { href: '/genetics', label: '유전적 분석', icon: FlaskConical, prefix: '/genetics' },
+  { href: '/graph-studio', label: 'Graph Studio', icon: AreaChart, prefix: '/graph-studio' },
   { href: '/papers', label: '논문 지원', icon: BookOpen, disabled: true, badge: '예정' },
   {
     href: '/species-validation',

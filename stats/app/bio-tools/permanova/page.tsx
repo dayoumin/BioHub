@@ -9,7 +9,9 @@ import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
 import { Button } from '@/components/ui/button'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
-import { SIGNIFICANCE_BADGE, BIO_TABLE } from '@/components/bio-tools/bio-styles'
+import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { getBioToolMeta } from '@/lib/bio-tools/bio-tool-metadata'
+import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
@@ -17,6 +19,7 @@ import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import type { PermanovaResult } from '@/types/bio-tools-results'
 
 const tool = getBioToolById('permanova')
+const meta = getBioToolMeta('permanova')
 
 export default function PermanovaPage(): React.ReactElement {
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runWithPreStep } =
@@ -46,15 +49,17 @@ export default function PermanovaPage(): React.ReactElement {
 
   const significant = results ? results.pValue < 0.05 : false
 
-  if (!tool) return <div>도구를 찾을 수 없습니다</div>
+  if (!tool || !meta) return <div>도구를 찾을 수 없습니다</div>
 
   return (
     <BioToolShell tool={tool}>
       <div className="space-y-6">
+        <BioToolIntro meta={meta} collapsed={!!results} />
         <BioCsvUpload
           onDataLoaded={handleDataLoaded}
           onClear={handleClear}
           description="종×지점 행렬 CSV (행=지점, 열=종, 그룹 열 포함)"
+          exampleDataPath={meta?.exampleDataPath}
         />
 
         {csvData && (
@@ -74,7 +79,7 @@ export default function PermanovaPage(): React.ReactElement {
           <div ref={resultsRef} className="space-y-4">
             <div className="flex items-center gap-2">
               <span
-                className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                className={BIO_BADGE_CLASS}
                 style={significant ? SIGNIFICANCE_BADGE.significant : SIGNIFICANCE_BADGE.nonSignificant}
               >
                 p = {results.pValue} {significant ? '(유의)' : '(비유의)'}

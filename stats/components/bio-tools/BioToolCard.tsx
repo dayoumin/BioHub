@@ -29,7 +29,7 @@ export function BioToolCard({ tool }: BioToolCardProps): React.ReactElement {
     <div
       className={cn(
         actionCardBase,
-        'min-h-[120px] cursor-pointer',
+        'min-h-[140px] cursor-pointer',
         disabled && 'opacity-50 cursor-not-allowed hover:border-border hover:shadow-none',
       )}
     >
@@ -61,6 +61,9 @@ export function BioToolCard({ tool }: BioToolCardProps): React.ReactElement {
       </div>
       <span className="text-sm font-medium text-center leading-tight">{tool.nameEn}</span>
       <span className="text-xs text-muted-foreground text-center">{tool.nameKo}</span>
+      <span className="text-[11px] text-muted-foreground/60 text-center leading-snug line-clamp-2 px-1">
+        {tool.description}
+      </span>
     </div>
   )
 

@@ -99,8 +99,8 @@ These items should be the current focus.
 ### 3-0. 구조 정리 (개별 기능 개발 선행 조건)
 
 **먼저 해야 할 것 (기능 개발 전):**
-- `[structure]` genetics/ vs bio-tools/ 이중 구조 해소 — genetics 허브가 자체 도구 목록 관리, Bio-Tools 레지스트리와 무관, layout 다름. HW/Fst 소속 확정 필요.
-- `[structure]` Bio-Tools 결과 타입 중앙화 — 14개 결과 타입이 각 page.tsx에 로컬 정의. `types/bio-tools-results.ts` 등 공유 파일로 이동 필요.
+- ~~`[structure]` genetics/ vs bio-tools/ 이중 구조 해소~~ — 완료 (HW/Fst는 Bio-Tools 소속 확정, genetics hub에서 집단유전학 제거 + cross-link 추가, 사이드바 순서 조정, CLAUDE.md 문서화)
+- ~~`[structure]` Bio-Tools 결과 타입 중앙화~~ — 완료 (15개 페이지 전부 `types/bio-tools-results.ts`에서 import 확인, 로컬 타입 0개)
 - ~~`[structure]` Worker Genetics enum 정리~~ — 완료 (Worker 9 = Genetics enum + stub, 계획서 번호 교정, Worker 3 PACKAGES 동기화)
 
 **기능 개발과 병행 가능:**
@@ -161,21 +161,30 @@ These items should be the current focus.
 ### 3-E. Bio-Tools 확장
 
 **Fisheries 2차 (차트):**
-- `[bio]` VBGF 성장곡선 차트 — 산점도 + 적합곡선 + 95% CI 밴드 (Worker에서 predicted/residuals 이미 반환)
-- `[bio]` Length-Weight log-log 산점도 — 회귀선 + 관측값 (logLogPoints 이미 반환)
-- `[bio]` Condition Factor 박스플롯 — 개체별 K 분포 + 그룹별 비교 (individualK 이미 반환)
+- ~~`[bio]` VBGF 성장곡선 차트~~ — 완료 (산점도 + 적합곡선, analyzedCols 스냅샷 패턴)
+- ~~`[bio]` Length-Weight log-log 산점도~~ — 완료 (회귀선 + 관측값 + 수식 표시)
+- ~~`[bio]` Condition Factor 히스토그램~~ — 완료 (√n bins + mean/median 참조선)
 
 **HW/Fst 2차:**
-- `[bio]` HW Exact Test (소표본, N<25) — chi-square 대신 Fisher exact test. snphwe 알고리즘 포팅
-- `[bio]` Fst permutation p-value — 개체별 유전자형 데이터 입력 지원 필요 (v2 입력 형식)
-- `[bio]` Fst bootstrap 95% CI — 다중 유전자좌 입력 지원 필요 (v2 입력 형식)
+- ~~`[bio]` HW Exact Test (소표본, N<25)~~ — 완료 (Wigginton 2005 재귀 구현, worker9-genetics.py)
+- ~~`[bio]` Fst permutation p-value~~ — 완료 (v2 genotype 입력 + Phipson-Smyth 보정)
+- ~~`[bio]` Fst bootstrap 95% CI~~ — 완료 (locus 복원추출 + ratio-of-sums)
 - `[bio]` Fst long-format CSV 지원 — population/locus/allele/count 4컬럼 입력
 - `[bio]` HW `inEquilibrium` 단형성 시 의미 명확화 — 현재 True 반환되나 검정 불가. UI에서 isMonomorphic으로 mask하지만 API 계약 개선 여지
 
+**Bio-Tools 코드 품질 (보류):**
+- `[bio]` `getBioToolWithMeta` 편의 함수 — 15개 페이지에서 `getBioToolById` + `getBioToolMeta` 이중 호출 패턴을 단일 함수로 통합. ID 불일치 리스크 제거.
+- `[bio]` `BioToolId` union 타입 도입 — `(typeof BIO_TOOLS)[number]['id']`로 추출, `getBioToolById`/`getBioToolMeta`에 적용. 타입 안전성 강화 + metadata 누락 컴파일 타임 감지.
+- `[bio]` `relatedTools` 소비처 구현 또는 제거 — metadata에 정의되어 있으나 UI에서 미사용. "관련 도구" 추천 UI 구현 예정이면 유지, 아니면 제거.
+
 **Bio-Tools 공통 개선:**
-- `[bio]` Bio-Tools 배지 클래스 토큰화 — `"inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"` 9개 페이지 반복 → `bio-styles.ts`에 `BIO_BADGE_CLASS` 추출
+- ~~`[bio]` Bio-Tools 배지 클래스 토큰화~~ — 완료 (`BIO_BADGE_CLASS` 추출, 8페이지 9곳 마이그레이션)
 - `[bio]` Bio-Tools 결과 프로젝트 연결 — `ProjectEntityKind`에 `'bio-tool-result'` 추가 + 저장 시 `upsertProjectEntityRef` 호출
-- `[bio]` Worker 9 계산 정확성 단위 테스트 — HW chi-square/단형성/다중유전자좌, Fst Hudson/n≤1 방어/쌍별 대칭성
+- ~~`[bio]` Worker 9 계산 정확성 골든 테스트~~ — 완료 (HW 8케이스 + Fst 7케이스, JSON + Vitest 스키마 + Pyodide 러너 확장)
+- `[bio]` Worker 9 골든 테스트 확장 — exactPValue 직접 검증, v2 genotype Fst permutation/bootstrap 경로 커버, HW/Fst 입력 검증 에러 케이스 추가
+- `[bio]` v1/v2 global Fst 계산 차이 문서화 — v1 mean(pairwise) vs v2 ratio-of-sums, 동일 데이터에서 다른 결과 가능. 사용자 혼동 방지 필요
+- `[bio]` SVG 차트 보일러플레이트 공통 추출 — 7개 Bio-Tools 차트가 동일 레이아웃 상수(viewBox 400x300, margin 50/20, plot 320x230) 반복. `BioSvgChartFrame` 컴포넌트 또는 상수 추출
+- `[bio]` 대용량 scatter 포인트 제한 — VBGF/Length-Weight에서 10K+ 행 시 SVG circle 과다. 샘플링 또는 Canvas 전환
 
 ### 3-F. 기타 (genetics, infra, domain, paper)
 

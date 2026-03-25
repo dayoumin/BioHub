@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Dna, BarChart3, Grid3X3, GitFork, Users, ArrowRight, HelpCircle, FileText, FlaskConical, Play } from 'lucide-react'
+import { Dna, BarChart3, Grid3X3, GitFork, ArrowRight, HelpCircle, FileText, FlaskConical, Play } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { EXAMPLE_SEQUENCES } from '@/lib/genetics/example-sequences'
+import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
 import { Button } from '@/components/ui/button'
 
 // ── 타입 ──
@@ -63,16 +64,6 @@ const TOOLS: Tool[] = [
     badge: '준비 중',
     icon: GitFork,
   },
-  {
-    id: 'population',
-    title: '집단 유전학',
-    description: 'Haplotype 빈도 · Fst · AMOVA',
-    input: '서열 + 집단 정보',
-    href: '/genetics/population',
-    ready: false,
-    badge: '예정',
-    icon: Users,
-  },
 ]
 
 const WORKFLOW_STEPS = [
@@ -115,7 +106,7 @@ export default function GeneticsHome() {
         <div>
           <h1 className="mb-2 text-2xl font-bold">유전적 분석</h1>
           <p className="text-sm text-muted-foreground">
-            DNA 서열 기반 종 판별, 서열 통계, 계통 분석, 집단 유전학 도구
+            DNA 서열 기반 종 판별, 서열 통계, 계통 분석 도구
           </p>
         </div>
         <div ref={guideRef} className="relative">
@@ -143,7 +134,7 @@ export default function GeneticsHome() {
                     <GuideRow icon={BarChart3} question="서열의 품질을 확인하고 싶어요" answer="서열 기본 통계" />
                     <GuideRow icon={Grid3X3} question="종 간 유전적 거리를 비교하고 싶어요" answer="다종 유사도 행렬" />
                     <GuideRow icon={GitFork} question="진화적 관계를 시각화하고 싶어요" answer="계통수 시각화" />
-                    <GuideRow icon={Users} question="집단 간 유전적 차이를 분석하고 싶어요" answer="집단 유전학" />
+                    <GuideRow icon={Dna} question="집단 간 유전적 차이를 분석하고 싶어요" answer="Bio-Tools → HW 검정 / Fst" />
                   </div>
                 </div>
                 <div>
@@ -223,6 +214,9 @@ export default function GeneticsHome() {
           </div>
         </div>
       )}
+
+      {/* 집단 유전학 cross-link */}
+      <PopulationGeneticsLinks />
     </div>
   )
 }
@@ -269,6 +263,37 @@ function PendingCard({ tool }: { tool: Tool }) {
           </div>
           <p className="text-xs text-muted-foreground/70">{tool.description}</p>
         </div>
+      </div>
+    </div>
+  )
+}
+
+const CROSS_LINK_TOOL_IDS = ['hardy-weinberg', 'fst'] as const
+
+const crossLinkClass =
+  'inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium transition hover:border-primary/30 hover:text-primary'
+
+function PopulationGeneticsLinks(): React.ReactElement | null {
+  const tools = CROSS_LINK_TOOL_IDS.map(getBioToolById).filter(
+    (t): t is NonNullable<typeof t> => Boolean(t)
+  )
+  if (tools.length === 0) return null
+
+  return (
+    <div className="rounded-lg border border-border/60 bg-muted/20 p-4">
+      <h2 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        집단 유전학
+      </h2>
+      <p className="mb-3 text-xs text-muted-foreground">
+        대립유전자 빈도 기반 집단 분석은 Bio-Tools에서 제공합니다.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {tools.map((tool) => (
+          <Link key={tool.id} href={`/bio-tools/${tool.id}`} className={crossLinkClass}>
+            {tool.nameKo}
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        ))}
       </div>
     </div>
   )

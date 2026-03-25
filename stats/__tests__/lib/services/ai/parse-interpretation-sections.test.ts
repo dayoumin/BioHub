@@ -176,4 +176,76 @@ d=0.82.`
     expect(sections[0].content).toContain('**큰 차이**')
     expect(sections[1].key).toBe('effectSize')
   })
+
+  it('축약형/동의어 헤딩이 올바른 카테고리로 분류됨', () => {
+    const aliases = `**주의사항**: 표본이 작아요.
+
+**추가 분석**: Tukey HSD를 해보세요.
+
+**가정 검정**: 정규성이 충족이에요.`
+
+    const sections = parseDetailSections(aliases, false)
+    expect(sections).toHaveLength(3)
+
+    // '주의사항' → warning 카테고리
+    expect(sections[0].key).toBe('cautions')
+    expect(sections[0].category).toBe('warning')
+
+    // '추가 분석' → action 카테고리
+    expect(sections[1].key).toBe('suggestions')
+    expect(sections[1].category).toBe('action')
+
+    // '가정 검정' → detail 카테고리 (assumptions 키)
+    expect(sections[2].key).toBe('assumptions')
+    expect(sections[2].category).toBe('detail')
+  })
+
+  it('다양한 warning 동의어가 모두 warning으로 분류됨', () => {
+    const warningVariants = [
+      '**유의사항**: 내용.',
+      '**한계점**: 내용.',
+      '**주의 사항**: 내용.',
+      '**해석 시 주의**: 내용.',
+    ]
+
+    for (const text of warningVariants) {
+      const sections = parseDetailSections(text, false)
+      expect(sections).toHaveLength(1)
+      expect(sections[0].category).toBe('warning')
+    }
+  })
+
+  it('다양한 action 동의어가 모두 action으로 분류됨', () => {
+    const actionVariants = [
+      '**후속 분석**: 내용.',
+      '**후속 분석 제안**: 내용.',
+      '**추천 분석**: 내용.',
+    ]
+
+    for (const text of actionVariants) {
+      const sections = parseDetailSections(text, false)
+      expect(sections).toHaveLength(1)
+      expect(sections[0].category).toBe('action')
+    }
+  })
+
+  it('compound heading이 축약형 부분 매칭으로 올바르게 분류됨', () => {
+    const compounds = `**한계점 및 제안**: 표본이 부족해요.
+
+**추가 분석 방향**: 다변량 분석을 추천해요.
+
+**실무 활용 방안**: 사료 배합 개선에 활용.`
+
+    const sections = parseDetailSections(compounds, false)
+    expect(sections).toHaveLength(3)
+
+    // '한계점 및 제안' → '한계점'(3글자) alias 매칭 → warning
+    expect(sections[0].category).toBe('warning')
+
+    // '추가 분석 방향' → HEADING_MAP '추가 분석 제안' 부분 매칭 실패 → ALIASES '추가 분석'(4글자) 매칭 → action
+    expect(sections[1].category).toBe('action')
+
+    // '실무 활용 방안' → ALIASES '실무 활용'(4글자) 매칭 → detail (practical)
+    expect(sections[2].key).toBe('practical')
+  })
 })

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
 import { BioToolShell } from '@/components/bio-tools/BioToolShell'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
@@ -12,12 +12,16 @@ import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
+import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
 import { detectLengthColumn, detectWeightColumn } from '@/lib/bio-tools/fisheries-columns'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
+import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { getBioToolMeta } from '@/lib/bio-tools/bio-tool-metadata'
 import type { ConditionFactorResult } from '@/types/bio-tools-results'
 
 const tool = getBioToolById('condition-factor')
+const meta = getBioToolMeta('condition-factor')
 
 export default function ConditionFactorPage(): React.ReactElement {
   const [lengthCol, setLengthCol] = useState<string>('')
@@ -52,17 +56,46 @@ export default function ConditionFactorPage(): React.ReactElement {
     runAnalysis('condition_factor', { lengths, weights, groups })
   }, [csvData, lengthCol, weightCol, groupCol, runAnalysis])
 
-  if (!tool) return <div>도구를 찾을 수 없습니다</div>
+  // 히스토그램 데이터
+  const histData = useMemo(() => {
+    if (!results || results.individualK.length === 0) return null
+    const k = results.individualK
+    const n = k.length
+    let kMin = k[0], kMax = k[0]
+    for (let i = 1; i < n; i++) {
+      if (k[i] < kMin) kMin = k[i]
+      if (k[i] > kMax) kMax = k[i]
+    }
+    if (kMin === kMax) { kMin -= 0.1; kMax += 0.1 }
+
+    const nBins = Math.min(Math.ceil(Math.sqrt(n)), 20)
+    const binWidth = (kMax - kMin) / nBins
+    const bins = new Array<number>(nBins).fill(0)
+    for (const val of k) {
+      const idx = Math.min(Math.floor((val - kMin) / binWidth), nBins - 1)
+      bins[idx]++
+    }
+    const maxCount = Math.max(...bins)
+    // 참조선 SVG X좌표 (IIFE 제거)
+    const range = kMax - kMin || 1
+    const meanX = 50 + ((results.mean - kMin) / range) * 320
+    const medianX = 50 + ((results.median - kMin) / range) * 320
+    return { kMin, kMax, nBins, binWidth, bins, maxCount, meanX, medianX }
+  }, [results])
+
+  if (!tool || !meta) return <div>도구를 찾을 수 없습니다</div>
 
   const groupEntries = results?.groupStats ? Object.entries(results.groupStats) : []
 
   return (
     <BioToolShell tool={tool}>
       <div className="space-y-6">
+        <BioToolIntro meta={meta} collapsed={!!results} />
         <BioCsvUpload
           onDataLoaded={onDataLoaded}
           onClear={onClear}
           description="CSV (체장 열 + 체중 열, 선택적으로 그룹 열 포함)"
+          exampleDataPath={meta?.exampleDataPath}
         />
 
         {csvData && (
@@ -103,6 +136,66 @@ export default function ConditionFactorPage(): React.ReactElement {
                 ))}
               </div>
             </div>
+
+            {histData && (
+              <div>
+                <h3 className="text-sm font-semibold mb-2">K 분포</h3>
+                <div className="border rounded-lg p-4 bg-card">
+                  <svg viewBox="0 0 400 300" className="w-full max-w-lg mx-auto">
+                    {/* 배경 */}
+                    <rect x="50" y="20" width="320" height="230" fill="none" stroke="currentColor" strokeOpacity="0.2" />
+                    {/* Y축 눈금 */}
+                    {[0.25, 0.5, 0.75, 1].map(frac => (
+                      <g key={frac}>
+                        <line x1={50} y1={250 - frac * 230} x2={370} y2={250 - frac * 230} stroke="currentColor" strokeOpacity="0.08" />
+                        <text x="45" y={254 - frac * 230} textAnchor="end" fontSize="9" fill="currentColor" fillOpacity="0.5">
+                          {Math.round(histData.maxCount * frac)}
+                        </text>
+                      </g>
+                    ))}
+                    <text x="45" y="254" textAnchor="end" fontSize="9" fill="currentColor" fillOpacity="0.5">0</text>
+                    {/* X축 눈금 */}
+                    {[0, 0.25, 0.5, 0.75, 1].map(frac => {
+                      const val = histData.kMin + (histData.kMax - histData.kMin) * frac
+                      return (
+                        <text key={frac} x={50 + frac * 320} y="268" textAnchor="middle" fontSize="9" fill="currentColor" fillOpacity="0.5">
+                          {val.toFixed(2)}
+                        </text>
+                      )
+                    })}
+                    {/* 히스토그램 막대 */}
+                    {histData.bins.map((count, i) => {
+                      const barW = 320 / histData.nBins
+                      const barH = histData.maxCount > 0 ? (count / histData.maxCount) * 230 : 0
+                      return (
+                        <rect
+                          key={i}
+                          x={50 + i * barW + 1}
+                          y={250 - barH}
+                          width={Math.max(barW - 2, 1)}
+                          height={barH}
+                          fill={BIO_CHART_COLORS[0]}
+                          fillOpacity="0.6"
+                          stroke={BIO_CHART_COLORS[0]}
+                          strokeWidth="0.5"
+                        />
+                      )
+                    })}
+                    {/* Mean/Median 참조선 */}
+                    <line x1={histData.meanX} y1={20} x2={histData.meanX} y2={250} stroke={BIO_CHART_COLORS[1]} strokeWidth="1.5" />
+                    <line x1={histData.medianX} y1={20} x2={histData.medianX} y2={250} stroke={BIO_CHART_COLORS[2]} strokeWidth="1.5" strokeDasharray="4 3" />
+                    {/* 범례 */}
+                    <line x1={60} y1={32} x2={78} y2={32} stroke={BIO_CHART_COLORS[1]} strokeWidth="1.5" />
+                    <text x={82} y={36} fontSize="9" fill="currentColor">Mean</text>
+                    <line x1={120} y1={32} x2={138} y2={32} stroke={BIO_CHART_COLORS[2]} strokeWidth="1.5" strokeDasharray="4 3" />
+                    <text x={142} y={36} fontSize="9" fill="currentColor">Median</text>
+                    {/* 축 라벨 */}
+                    <text x="210" y="290" textAnchor="middle" fontSize="10" fill="currentColor" fillOpacity="0.6">Condition Factor (K)</text>
+                    <text x="15" y="135" textAnchor="middle" fontSize="10" fill="currentColor" fillOpacity="0.6" transform="rotate(-90, 15, 135)">Frequency</text>
+                  </svg>
+                </div>
+              </div>
+            )}
 
             {groupEntries.length > 0 && (
               <div>
