@@ -109,10 +109,10 @@ export default function BetaDiversityTool({ tool, meta }: ToolComponentProps): R
           </div>
 
           <div className="flex gap-3 pt-2">
-            <Link href="/bio-tools/nmds" className="text-sm text-primary hover:underline">
+            <Link href="/bio-tools?tool=nmds" className="text-sm text-primary hover:underline">
               NMDS 시각화 →
             </Link>
-            <Link href="/bio-tools/permanova" className="text-sm text-primary hover:underline">
+            <Link href="/bio-tools?tool=permanova" className="text-sm text-primary hover:underline">
               PERMANOVA 검정 →
             </Link>
           </div>

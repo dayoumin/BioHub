@@ -9,9 +9,11 @@ import { usePinnedToolsStore } from '@/lib/bio-tools/pinned-tools-store'
 
 interface BioToolCardProps {
   tool: BioTool
+  /** 워크스페이스 모드: 클릭 시 Link 대신 콜백 호출 */
+  onSelect?: (toolId: string) => void
 }
 
-export function BioToolCard({ tool }: BioToolCardProps): React.ReactElement {
+export function BioToolCard({ tool, onSelect }: BioToolCardProps): React.ReactElement {
   const isPinned = usePinnedToolsStore((s) => s.pinnedIds.includes(tool.id))
   const togglePin = usePinnedToolsStore((s) => s.togglePin)
 
@@ -69,8 +71,22 @@ export function BioToolCard({ tool }: BioToolCardProps): React.ReactElement {
 
   if (disabled) return card
 
+  if (onSelect) {
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => onSelect(tool.id)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(tool.id) } }}
+        className="block w-full text-left cursor-pointer"
+      >
+        {card}
+      </div>
+    )
+  }
+
   return (
-    <Link href={`/bio-tools/${tool.id}`} className="block">
+    <Link href={`/bio-tools?tool=${tool.id}`} className="block">
       {card}
     </Link>
   )

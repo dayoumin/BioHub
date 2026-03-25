@@ -251,7 +251,7 @@ export default function LengthWeightTool({ tool, meta }: ToolComponentProps): Re
 
           <div className="p-3 border rounded-lg bg-muted/30">
             <Link
-              href="/bio-tools/condition-factor"
+              href="/bio-tools?tool=condition-factor"
               className="flex items-center gap-2 text-sm text-primary hover:underline"
             >
               <ArrowRight className="h-4 w-4" />

@@ -289,7 +289,7 @@ function PopulationGeneticsLinks(): React.ReactElement | null {
       </p>
       <div className="flex flex-wrap gap-2">
         {tools.map((tool) => (
-          <Link key={tool.id} href={`/bio-tools/${tool.id}`} className={crossLinkClass}>
+          <Link key={tool.id} href={`/bio-tools?tool=${tool.id}`} className={crossLinkClass}>
             {tool.nameKo}
             <ArrowRight className="h-3 w-3" />
           </Link>
