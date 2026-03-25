@@ -260,9 +260,11 @@ export interface LwColumnsResult {
  * scatter + linear trendline 구성 (log-log 변환).
  */
 export function buildLengthWeightColumns(result: LengthWeightResult): LwColumnsResult {
-  const n = result.logLogPoints.length;
-  const logLengthArr = result.logLogPoints.map(p => p.logL);
-  const logWeightArr = result.logLogPoints.map(p => p.logW);
+  // NaN 포인트 제거 (Python Worker가 유효 데이터만 반환하지만 방어적 필터링)
+  const validPoints = result.logLogPoints.filter(p => !isNaN(p.logL) && !isNaN(p.logW));
+  const n = validPoints.length;
+  const logLengthArr = validPoints.map(p => p.logL);
+  const logWeightArr = validPoints.map(p => p.logW);
 
   // 메타: row 0에 값, 나머지 null
   const logAArr: (number | null)[] = new Array(n).fill(null);
@@ -307,7 +309,8 @@ export interface CfColumnsResult {
  * histogram 구성 (mean/median markLine 참조선용 메타 포함).
  */
 export function buildConditionFactorColumns(result: ConditionFactorResult): CfColumnsResult {
-  const kArr = [...result.individualK];
+  // NaN 값 제거 (방어적 필터링)
+  const kArr = result.individualK.filter(v => !isNaN(v));
   const n = kArr.length;
 
   // 메타: row 0에 값, 나머지 null

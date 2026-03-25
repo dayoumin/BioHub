@@ -62,7 +62,7 @@ export default function ConditionFactorTool({ tool, meta }: ToolComponentProps):
     if (!results) return
     const built = buildConditionFactorColumns(results)
     const pkgId = crypto.randomUUID()
-    // histogram은 yField 불필요 — xField로 빈도 분포 생성
+    // histogram은 yField를 사용하지 않으나 createDefaultChartSpec이 필수 요구 — xField 재전달
     const spec = createDefaultChartSpec(pkgId, 'histogram', built.xField, built.xField, built.columns)
     // mean/median 참조선 추가
     const annotations: VLineAnnotation[] = [

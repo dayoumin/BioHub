@@ -153,8 +153,8 @@ These items should be the current focus.
 - ~~`[ux]` 토스트 메시지 기존 19곳 점진적 `TOAST.*` 마이그레이션~~ — 완료 (12파일, ~35곳)
 - `[ux]` ChatBubble 공통 컴포넌트 추출 — chatbot 페이지 미완성, 역할 확정 후 진행. Hub/GraphStudio/FollowUp 3곳 독립 구현 중.
 - ~~`[quality]` 공통 `WarningBanner` 컴포넌트 추출~~ — 완료 (Alert warning variant + WarningBanner 래퍼, 3곳 마이그레이션 + 경량 컨텍스트 컬럼 제한 추가)
-- `[quality]` `isQuotaExceededError()` 유틸 추출 — 현재 1곳, quota-aware 스토리지 모듈 추가 시 `local-storage-factory.ts`에 추출
-- `[perf]` `ensureUser` INSERT OR IGNORE 매 요청 실행 — KV 캐시 또는 첫 요청만 실행으로 최적화
+- `[quality]` `isQuotaExceededError()` 유틸 추출 — 현재 프로덕션 1곳만 사용. 2번째 저장소 구현 시 추출 (조사 완료 2026-03-25)
+- ~~`[perf]` `ensureUser` INSERT OR IGNORE 매 요청 실행~~ — 조사 완료: 이미 INSERT OR IGNORE로 최적화됨, 쓰기 요청만 호출 (2곳). 추가 최적화 불필요.
 - `[a11y]` 접근성 일괄 패스 — AiInterpretationCard expand 버튼 `aria-expanded` 누락, 서브컴포넌트 `prefersReducedMotion` 미적용. 이 컴포넌트만 수정하면 전체 수준과 불일치 → 전체 감사 후 일괄 적용
 - `[analysis]` intent-router 0.6 임계값 검증 — "추천" 단독 입력(0.65)이 LLM을 생략. 사용 로그 수집 후 데이터 기반 재검토 필요. 현재는 latency 우선으로 유지
 
@@ -169,8 +169,8 @@ These items should be the current focus.
 - ~~`[bio]` HW Exact Test (소표본, N<25)~~ — 완료 (Wigginton 2005 재귀 구현, worker9-genetics.py)
 - ~~`[bio]` Fst permutation p-value~~ — 완료 (v2 genotype 입력 + Phipson-Smyth 보정)
 - ~~`[bio]` Fst bootstrap 95% CI~~ — 완료 (locus 복원추출 + ratio-of-sums)
-- `[bio]` Fst long-format CSV 지원 — population/locus/allele/count 4컬럼 입력
-- `[bio]` HW `inEquilibrium` 단형성 시 의미 명확화 — 현재 True 반환되나 검정 불가. UI에서 isMonomorphic으로 mask하지만 API 계약 개선 여지
+- `[bio]` Fst long-format CSV 지원 — population/locus/allele/count 4컬럼. 논문 발표 allele frequency 분석용. v2 인프라 위에 ~150줄 pre-processing. 우선순위 낮음.
+- ~~`[bio]` HW `inEquilibrium` 단형성 시 의미 명확화~~ — 검토 완료: 변경 불필요. vacuously true (수학적 정당), 모든 소비자가 isMonomorphic guard 사용, null 전환 시 4곳 breaking change + 이득 0.
 
 **Bio-Tools 코드 품질 (보류):**
 - `[bio]` `getBioToolWithMeta` 편의 함수 — 15개 페이지에서 `getBioToolById` + `getBioToolMeta` 이중 호출 패턴을 단일 함수로 통합. ID 불일치 리스크 제거.
@@ -181,8 +181,8 @@ These items should be the current focus.
 - ~~`[bio]` Bio-Tools 배지 클래스 토큰화~~ — 완료 (`BIO_BADGE_CLASS` 추출, 8페이지 9곳 마이그레이션)
 - `[bio]` Bio-Tools 결과 프로젝트 연결 — `ProjectEntityKind`에 `'bio-tool-result'` 추가 + 저장 시 `upsertProjectEntityRef` 호출
 - ~~`[bio]` Worker 9 계산 정확성 골든 테스트~~ — 완료 (HW 8케이스 + Fst 7케이스, JSON + Vitest 스키마 + Pyodide 러너 확장)
-- `[bio]` Worker 9 골든 테스트 확장 — exactPValue 직접 검증, v2 genotype Fst permutation/bootstrap 경로 커버, HW/Fst 입력 검증 에러 케이스 추가
-- `[bio]` v1/v2 global Fst 계산 차이 문서화 — v1 mean(pairwise) vs v2 ratio-of-sums, 동일 데이터에서 다른 결과 가능. 사용자 혼동 방지 필요
+- ~~`[bio]` Worker 9 골든 테스트 확장~~ — 완료 (HW exactPValue 4케이스 + Fst v2 genotype 4케이스 + v2 에러 2케이스, 65 passed)
+- ~~`[bio]` v1/v2 global Fst 계산 차이 문서화~~ — 완료 (PLAN-GENETICS-V2.md에 비교 섹션 추가: 공식 차이, 수치 예시, UI 표시, 향후 고려)
 - `[bio]` SVG 차트 보일러플레이트 공통 추출 — 7개 Bio-Tools 차트가 동일 레이아웃 상수(viewBox 400x300, margin 50/20, plot 320x230) 반복. `BioSvgChartFrame` 컴포넌트 또는 상수 추출
 - `[bio]` 대용량 scatter 포인트 제한 — VBGF/Length-Weight에서 10K+ 행 시 SVG circle 과다. 샘플링 또는 Canvas 전환
 
@@ -228,8 +228,8 @@ These are valid directions, but not current execution priorities.
 - `[architecture]` 모노레포 전환 트리거 모니터링 — `domains/` 분리: 빌드 5분 초과 또는 팀 분할 시. `packages/` 승격: 2번째 앱 등장 시. 상세: [REVIEW-MONOREPO-ARCHITECTURE.md](docs/REVIEW-MONOREPO-ARCHITECTURE.md)
 - `[architecture]` 프로젝트 연결 DB 동기화 강화 — Phase 16 (Workers 동적 배포) 시 D1 연동. 현재 localStorage `ProjectEntityRef` 레이어는 동작 중
 - `[quality]` entity-resolver `*Like` 인터페이스 → `Pick<OriginalType, ...>` 전환 — import 순환 해결 후. 현재 수동 동기화 필요.
-- `[quality]` `report-export.ts` blob→download 패턴 → 공통 유틸 `utils/download-file.ts` 추출 검토 — `html-export.ts`에도 동일 패턴 존재
-- `[quality]` `report-export.ts` `markdownToSimpleHtml()` → 공통 유틸 추출 검토 — `html-export.ts`의 인라인 `escapeHtml()`도 `@/lib/utils/html-escape` import로 교체
+- ~~`[quality]` `report-export.ts` blob→download 패턴 추출 검토~~ — 조사 완료: 3곳 사용이나 각 2~3줄, 추출 가치 낮음. 4번째 사용처 등장 시 재검토
+- ~~`[quality]` `markdownToSimpleHtml()` 공통 유틸 추출 검토~~ — 조사 완료: 1곳만 사용, 추출 불필요
 - `[quality]` `entity-tab-registry.ts` raw localStorage 패턴 → Zustand persist 전환 검토 — 현재 동작에 문제 없으나 코드베이스 일관성 차원
 - `[ux]` 프로젝트 카드 클릭 동작 재검토 — 현재 활성화 토글, UX 관례는 상세 진입. 사용자 피드백 후 결정.
 - `[quality]` dangling ref 정리 방안 — 현재 영구 누적. 수동 "정리" 버튼 또는 주기적 GC 검토.

@@ -316,6 +316,46 @@ Phase 4: Fst Bootstrap CI ─── (Phase 2 의존, Phase 3과 병렬 가능)
 3. **Fst Bootstrap**: numpy.random.choice(replace=True) + locus별 Hudson num/den
    - 사유: 표준 라이브러리에 Fst bootstrap 없음
 
+## v1/v2 Global Fst 계산 차이
+
+동일한 데이터를 v1(간편)과 v2(상세)로 분석하면 **globalFst 값이 다를 수 있다.**
+
+| 항목 | v1 (간편 분석) | v2 (상세 분석) |
+|------|---------------|---------------|
+| 입력 | 집단별 allele count matrix | 개체별 유전자형 (wide-format CSV) |
+| 유전자좌 | 단일 locus (또는 합산된 count) | 다중 locus 개별 처리 |
+| globalFst 공식 | `mean(pairwise_fst)` — 쌍별 Fst의 산술 평균 | `Σnum / Σden` — ratio of sums (locus×pair 합산) |
+| pairwiseFst 공식 | 단일 locus Hudson Fst | locus별 num/den 합산 후 비율 |
+| 통계학적 표준 | 비표준 (ad-hoc aggregate) | 표준 (Hudson 1992, Bhatia 2013) |
+| 유의성 검정 | 없음 | Permutation p-value + Bootstrap 95% CI |
+
+### 왜 다른가?
+
+**v1**: 단일 locus에서 `Fst = num / den`을 계산하고, 3+집단이면 쌍별 값의 **산술 평균**을 취한다.
+이는 각 쌍에 동일한 가중치를 부여하므로, 표본 크기가 작은 쌍이 과대 대표된다.
+
+**v2**: 모든 locus의 모든 쌍에서 num과 den을 각각 합산한 뒤 **한 번에 나눈다** (ratio of sums).
+이는 표본 크기에 비례하는 자연스러운 가중을 적용하며, 멀티로커스 Fst의 표준 추정량이다.
+
+### 수치 예시
+
+3집단 (PopA: n=100, PopB: n=100, PopC: n=10), 1 locus:
+- Fst(A-B) = 0.05, Fst(A-C) = 0.30, Fst(B-C) = 0.25
+- v1 globalFst = mean(0.05, 0.30, 0.25) = **0.200**
+- v2 globalFst = (num_AB + num_AC + num_BC) / (den_AB + den_AC + den_BC)
+  → PopC의 작은 n이 den에 적게 기여 → 결과가 다름
+
+### UI 표시
+
+- 간편 분석 탭: "Global Fst" (mean of pairwise) + Wright 해석
+- 상세 분석 탭: "Global Fst" (ratio of sums) + Wright 해석 + permutation p + bootstrap CI
+- 하단 참고: "Multilocus Fst = Σnum / Σden (ratio of sums)"로 v2 방식 명시
+
+### 향후 고려
+
+v1을 ratio-of-sums로 전환하면 일관성이 높아지지만, 기존 사용자의 결과가 달라지는 breaking change.
+현재는 별도 탭으로 분리하여 공존시킨다.
+
 ## 참고 문헌
 
 - Wigginton JE et al. (2005) "A Note on Exact Tests of Hardy-Weinberg Equilibrium" AJHG 76:887-893

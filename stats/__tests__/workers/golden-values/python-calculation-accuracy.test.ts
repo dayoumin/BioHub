@@ -723,6 +723,53 @@ describe('Hardy-Weinberg Golden Values', () => {
       }
     });
   });
+
+  describe('Exact Test (Phase 1)', () => {
+    it('should have exactPValue test cases', () => {
+      const testCases = goldenValues.hardyWeinberg.singleLocus;
+      const exactCases = testCases.filter(
+        (tc: { expected: Record<string, unknown> }) => 'exactPValue' in tc.expected
+      );
+      expect(exactCases.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('should verify perfect equilibrium gives exactPValue ≈ 1.0', () => {
+      const perfect = goldenValues.hardyWeinberg.singleLocus.find(
+        (tc: { name: string }) => tc.name.includes('exactPValue for perfect equilibrium')
+      );
+      expect(perfect).toBeDefined();
+      expect(perfect.expected.exactPValue).toBeCloseTo(1.0, 1);
+      expect(perfect.expected.inEquilibrium).toBe(true);
+    });
+
+    it('should verify heterozygote excess gives exactPValue ≈ 0', () => {
+      const excess = goldenValues.hardyWeinberg.singleLocus.find(
+        (tc: { name: string }) => tc.name.includes('exactPValue for heterozygote excess')
+      );
+      expect(excess).toBeDefined();
+      expect(excess.expected.exactPValue).toBeLessThan(0.001);
+      expect(excess.expected.inEquilibrium).toBe(false);
+    });
+
+    it('should verify monomorphic exactPValue = 1.0', () => {
+      const mono = goldenValues.hardyWeinberg.singleLocus.find(
+        (tc: { name: string }) => tc.name.includes('exactPValue monomorphic')
+      );
+      expect(mono).toBeDefined();
+      expect(mono.expected.exactPValue).toBe(1.0);
+      expect(mono.expected.isMonomorphic).toBe(true);
+    });
+
+    it('should verify small sample exactPValue is within valid range', () => {
+      const small = goldenValues.hardyWeinberg.singleLocus.find(
+        (tc: { name: string }) => tc.name.includes('exactPValue for small sample')
+      );
+      expect(small).toBeDefined();
+      expect(small.expected.exactPValue).toBeGreaterThan(0);
+      expect(small.expected.exactPValue).toBeLessThanOrEqual(1);
+      expect(small.expected.nTotal).toBe(10);
+    });
+  });
 });
 
 describe('Fst Golden Values', () => {
@@ -767,6 +814,90 @@ describe('Fst Golden Values', () => {
         expect(tc.expected).toHaveProperty('error');
         expect(typeof tc.expected.error).toBe('string');
       }
+    });
+  });
+});
+
+// ============================================
+// Fst v2 Genotype (Phase 2-4)
+// ============================================
+describe('Fst v2 Genotype Golden Values', () => {
+  describe('Genotype Input', () => {
+    it('should have valid v2 genotype test cases', () => {
+      const testCases = goldenValues.fstV2.genotype;
+      expect(testCases.length).toBeGreaterThanOrEqual(3);
+
+      for (const tc of testCases) {
+        expect(tc.input).toHaveProperty('genotypes');
+        expect(tc.input).toHaveProperty('individualPopulations');
+        expect(tc.input).toHaveProperty('locusNames');
+        expect(Array.isArray(tc.input.genotypes)).toBe(true);
+        expect(tc.input.genotypes.length).toBe(tc.input.individualPopulations.length);
+      }
+    });
+
+    it('should verify basic genotype input produces positive Fst', () => {
+      const basic = goldenValues.fstV2.genotype.find(
+        (tc: { name: string }) => tc.name.includes('basic genotype input')
+      );
+      expect(basic).toBeDefined();
+      expect(basic.expected.nPopulations).toBe(2);
+      expect(basic.expected.nIndividuals).toBe(6);
+      expect(basic.expected.nLoci).toBe(2);
+      expect(basic.expected.globalFstMin).toBeGreaterThan(0);
+    });
+
+    it('should verify identical genotype populations give Fst≈0', () => {
+      const identical = goldenValues.fstV2.genotype.find(
+        (tc: { name: string }) => tc.name.includes('identical genotype')
+      );
+      expect(identical).toBeDefined();
+      expect(identical.expected.globalFst).toBe(0.0);
+    });
+
+    it('should verify single locus rejects bootstrap CI', () => {
+      const singleLocus = goldenValues.fstV2.genotype.find(
+        (tc: { name: string }) => tc.name.includes('bootstrap CI requires')
+      );
+      expect(singleLocus).toBeDefined();
+      expect(singleLocus.expected.bootstrapCiNull).toBe(true);
+      expect(singleLocus.expected.bootstrapWarningPresent).toBe(true);
+    });
+
+    it('should verify NA/missing genotype handling', () => {
+      const na = goldenValues.fstV2.genotype.find(
+        (tc: { name: string }) => tc.name.includes('NA/missing')
+      );
+      expect(na).toBeDefined();
+      expect(na.expected.nIndividuals).toBe(6);
+      expect(na.expected.globalFstMin).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Error Cases', () => {
+    it('should have v2 error cases', () => {
+      const testCases = goldenValues.fstV2.errors;
+      expect(testCases.length).toBeGreaterThanOrEqual(2);
+
+      for (const tc of testCases) {
+        expect(tc.expected).toHaveProperty('error');
+      }
+    });
+
+    it('should reject single population in v2', () => {
+      const single = goldenValues.fstV2.errors.find(
+        (tc: { name: string }) => tc.name.includes('single population')
+      );
+      expect(single).toBeDefined();
+      expect(single.expected.error).toContain('2개 집단');
+    });
+
+    it('should reject invalid genotype format', () => {
+      const invalid = goldenValues.fstV2.errors.find(
+        (tc: { name: string }) => tc.name.includes('invalid genotype')
+      );
+      expect(invalid).toBeDefined();
+      expect(invalid.expected.error).toContain('슬래시');
     });
   });
 });
