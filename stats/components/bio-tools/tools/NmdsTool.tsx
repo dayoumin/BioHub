@@ -13,11 +13,8 @@ import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
-import { useRouter } from 'next/navigation'
-import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
+import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildNmdsColumns } from '@/lib/graph-studio/analysis-adapter'
-import { createDefaultChartSpec } from '@/lib/graph-studio/chart-spec-defaults'
-import type { DataPackage } from '@/types/graph-studio'
 import type { NmdsResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
@@ -39,8 +36,7 @@ export default function NmdsTool({ tool, meta }: ToolComponentProps): React.Reac
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runWithPreStep } =
     useBioToolAnalysis<NmdsResult>()
   const resultsRef = useScrollToResults(results)
-  const router = useRouter()
-  const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
+  const openInGraphStudio = useOpenInGraphStudio()
   const [groupCol, setGroupCol] = useState<string>('')
 
   const handleAnalyze = useCallback(async () => {
@@ -71,23 +67,12 @@ export default function NmdsTool({ tool, meta }: ToolComponentProps): React.Reac
 
   const handleOpenInGraphStudio = useCallback(() => {
     if (!results) return
-    const built = buildNmdsColumns(results)
-    const pkgId = crypto.randomUUID()
-    const spec = createDefaultChartSpec(pkgId, 'scatter', built.xField, built.yField, built.columns)
-    if (built.colorField) {
-      spec.encoding.color = { field: built.colorField, type: 'nominal' }
-    }
-    const pkg: DataPackage = {
-      id: pkgId,
-      source: 'bio-tools',
+    openInGraphStudio({
+      built: buildNmdsColumns(results),
+      chartType: 'scatter',
       label: 'NMDS 좌표',
-      columns: built.columns,
-      data: built.data,
-      createdAt: new Date().toISOString(),
-    }
-    loadDataPackageWithSpec(pkg, spec)
-    router.push('/graph-studio')
-  }, [results, loadDataPackageWithSpec, router])
+    })
+  }, [results, openInGraphStudio])
 
   const coords = results?.coordinates ?? []
 

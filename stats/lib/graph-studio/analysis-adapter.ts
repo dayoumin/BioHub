@@ -26,6 +26,23 @@ import type {
   MetaAnalysisResult,
 } from '@/types/bio-tools-results'
 
+// ─── 공통 유틸 ──────────────────────────────────────────────
+
+/** 배열의 고유 값 수를 반환 (ColumnMeta.uniqueCount 용) */
+function uniqCount(arr: readonly (string | number)[]): number {
+  return new Set(arr).size;
+}
+
+/**
+ * 스칼라 메타데이터를 컬럼 형식으로 변환.
+ * row 0에만 값, 나머지 null — DataPackage 컬럼 규약.
+ */
+function metaColumn<T>(n: number, value: T): (T | null)[] {
+  const arr: (T | null)[] = new Array(n).fill(null);
+  if (n > 0) arr[0] = value;
+  return arr;
+}
+
 // ─── DataPackage 컬럼 빌더 (KM/ROC 전용) ────────────────────
 
 /** buildKmCurveColumns 반환 형태 */
@@ -87,9 +104,7 @@ export function buildKmCurveColumns(kmData: KaplanMeierAnalysisResult): KmColumn
 
   const n = timeArr.length;
 
-  // __logRankP: row 0에 값, 나머지 null (이벤트 시점 행이 앞쪽에 오도록 보장됨)
-  const logRankPArr: (number | null)[] = new Array(n).fill(null);
-  if (n > 0 && kmData.logRankP !== null) logRankPArr[0] = kmData.logRankP;
+  const logRankPArr = kmData.logRankP !== null ? metaColumn(n, kmData.logRankP) : new Array<number | null>(n).fill(null);
 
   const data: Record<string, unknown[]> = {
     time: timeArr,
@@ -101,7 +116,7 @@ export function buildKmCurveColumns(kmData: KaplanMeierAnalysisResult): KmColumn
     __logRankP: logRankPArr,
   };
 
-  const uniqCount = (arr: (string | number)[]) => new Set(arr).size;
+
 
   const columns: ColumnMeta[] = [
     { name: 'time', type: 'quantitative', uniqueCount: uniqCount(timeArr), sampleValues: timeArr.slice(0, 5).map(String), hasNull: false },
@@ -134,15 +149,9 @@ export function buildRocCurveColumns(rocData: RocCurveAnalysisResult): RocColumn
   const fprArr = rocData.rocPoints.map(p => p.fpr);
   const tprArr = rocData.rocPoints.map(p => p.tpr);
 
-  // AUC 메타: row 0에 값, 나머지 null
-  const aucArr: (number | null)[] = new Array(n).fill(null);
-  const aucLoArr: (number | null)[] = new Array(n).fill(null);
-  const aucHiArr: (number | null)[] = new Array(n).fill(null);
-  if (n > 0) {
-    aucArr[0] = rocData.auc;
-    aucLoArr[0] = rocData.aucCI?.lower ?? null;
-    aucHiArr[0] = rocData.aucCI?.upper ?? null;
-  }
+  const aucArr = metaColumn(n, rocData.auc);
+  const aucLoArr = metaColumn(n, rocData.aucCI?.lower ?? null);
+  const aucHiArr = metaColumn(n, rocData.aucCI?.upper ?? null);
 
   const data: Record<string, unknown[]> = {
     fpr: fprArr,
@@ -152,7 +161,7 @@ export function buildRocCurveColumns(rocData: RocCurveAnalysisResult): RocColumn
     __aucHi: aucHiArr,
   };
 
-  const uniqCount = (arr: number[]) => new Set(arr).size;
+
   const columns: ColumnMeta[] = [
     { name: 'fpr', type: 'quantitative', uniqueCount: uniqCount(fprArr), sampleValues: fprArr.slice(0, 5).map(String), hasNull: false },
     { name: 'tpr', type: 'quantitative', uniqueCount: uniqCount(tprArr), sampleValues: tprArr.slice(0, 5).map(String), hasNull: false },
@@ -221,13 +230,8 @@ export function buildVbgfColumns(
 
   const n = ageArr.length;
 
-  // 메타: row 0에 값, 나머지 null
-  const rSquaredArr: (number | null)[] = new Array(n).fill(null);
-  const equationArr: (string | null)[] = new Array(n).fill(null);
-  if (n > 0) {
-    rSquaredArr[0] = result.rSquared;
-    equationArr[0] = `L(t) = ${result.lInf.toFixed(2)} × (1 - e^(-${result.k.toFixed(4)} × (t - ${result.t0.toFixed(4)})))`;
-  }
+  const rSquaredArr = metaColumn(n, result.rSquared);
+  const equationArr = metaColumn(n, `L(t) = ${result.lInf.toFixed(2)} × (1 - e^(-${result.k.toFixed(4)} × (t - ${result.t0.toFixed(4)})))`);
 
   const data: Record<string, unknown[]> = {
     age: ageArr,
@@ -237,7 +241,7 @@ export function buildVbgfColumns(
     __equation: equationArr,
   };
 
-  const uniqCount = (arr: (string | number)[]) => new Set(arr).size;
+
   const columns: ColumnMeta[] = [
     { name: 'age', type: 'quantitative', uniqueCount: uniqCount(ageArr), sampleValues: ageArr.slice(0, 5).map(String), hasNull: false },
     { name: 'length', type: 'quantitative', uniqueCount: uniqCount(lengthArr), sampleValues: lengthArr.slice(0, 5).map(String), hasNull: false },
@@ -269,15 +273,9 @@ export function buildLengthWeightColumns(result: LengthWeightResult): LwColumnsR
   const logLengthArr = validPoints.map(p => p.logL);
   const logWeightArr = validPoints.map(p => p.logW);
 
-  // 메타: row 0에 값, 나머지 null
-  const logAArr: (number | null)[] = new Array(n).fill(null);
-  const bArr: (number | null)[] = new Array(n).fill(null);
-  const rSquaredArr: (number | null)[] = new Array(n).fill(null);
-  if (n > 0) {
-    logAArr[0] = result.logA;
-    bArr[0] = result.b;
-    rSquaredArr[0] = result.rSquared;
-  }
+  const logAArr = metaColumn(n, result.logA);
+  const bArr = metaColumn(n, result.b);
+  const rSquaredArr = metaColumn(n, result.rSquared);
 
   const data: Record<string, unknown[]> = {
     logLength: logLengthArr,
@@ -287,7 +285,7 @@ export function buildLengthWeightColumns(result: LengthWeightResult): LwColumnsR
     __rSquared: rSquaredArr,
   };
 
-  const uniqCount = (arr: number[]) => new Set(arr).size;
+
   const columns: ColumnMeta[] = [
     { name: 'logLength', type: 'quantitative', uniqueCount: uniqCount(logLengthArr), sampleValues: logLengthArr.slice(0, 5).map(String), hasNull: false },
     { name: 'logWeight', type: 'quantitative', uniqueCount: uniqCount(logWeightArr), sampleValues: logWeightArr.slice(0, 5).map(String), hasNull: false },
@@ -316,13 +314,8 @@ export function buildConditionFactorColumns(result: ConditionFactorResult): CfCo
   const kArr = result.individualK.filter(v => !isNaN(v));
   const n = kArr.length;
 
-  // 메타: row 0에 값, 나머지 null
-  const meanArr: (number | null)[] = new Array(n).fill(null);
-  const medianArr: (number | null)[] = new Array(n).fill(null);
-  if (n > 0) {
-    meanArr[0] = result.mean;
-    medianArr[0] = result.median;
-  }
+  const meanArr = metaColumn(n, result.mean);
+  const medianArr = metaColumn(n, result.median);
 
   const data: Record<string, unknown[]> = {
     k: kArr,
@@ -330,7 +323,7 @@ export function buildConditionFactorColumns(result: ConditionFactorResult): CfCo
     __median: medianArr,
   };
 
-  const uniqCount = (arr: number[]) => new Set(arr).size;
+
   const columns: ColumnMeta[] = [
     { name: 'k', type: 'quantitative', uniqueCount: uniqCount(kArr), sampleValues: kArr.slice(0, 5).map(String), hasNull: false },
     { name: '__mean', type: 'quantitative', uniqueCount: 2, sampleValues: [], hasNull: true },
@@ -360,16 +353,11 @@ export function buildNmdsColumns(result: NmdsResult): NmdsColumnsResult {
   const nmds1Arr = result.coordinates.map(c => c[0]);
   const nmds2Arr = result.coordinates.map(c => c[1]);
   const siteArr = result.siteLabels;
-  const hasGroups = result.groups !== null && result.groups.length > 0;
-  const groupArr = hasGroups ? result.groups! : undefined;
+  const groupArr = result.groups !== null && result.groups.length > 0 ? result.groups : undefined;
+  const hasGroups = groupArr !== undefined;
 
-  // 메타: row 0에 값, 나머지 null
-  const stressArr: (number | null)[] = new Array(n).fill(null);
-  const stressInterpArr: (string | null)[] = new Array(n).fill(null);
-  if (n > 0) {
-    stressArr[0] = result.stress;
-    stressInterpArr[0] = result.stressInterpretation;
-  }
+  const stressArr = metaColumn(n, result.stress);
+  const stressInterpArr = metaColumn(n, result.stressInterpretation);
 
   const data: Record<string, unknown[]> = {
     nmds1: nmds1Arr,
@@ -380,12 +368,12 @@ export function buildNmdsColumns(result: NmdsResult): NmdsColumnsResult {
     __stressInterpretation: stressInterpArr,
   };
 
-  const uniqCount = (arr: (string | number)[]) => new Set(arr).size;
+
   const columns: ColumnMeta[] = [
     { name: 'nmds1', type: 'quantitative', uniqueCount: uniqCount(nmds1Arr), sampleValues: nmds1Arr.slice(0, 5).map(String), hasNull: false },
     { name: 'nmds2', type: 'quantitative', uniqueCount: uniqCount(nmds2Arr), sampleValues: nmds2Arr.slice(0, 5).map(String), hasNull: false },
     { name: 'site', type: 'nominal', uniqueCount: uniqCount(siteArr), sampleValues: siteArr.slice(0, 5), hasNull: false },
-    ...(groupArr ? [{ name: 'group', type: 'nominal' as const, uniqueCount: uniqCount(groupArr), sampleValues: [...new Set(groupArr)].slice(0, 5), hasNull: false }] : []),
+    ...(groupArr ? [(() => { const unique = [...new Set(groupArr)]; return { name: 'group', type: 'nominal' as const, uniqueCount: unique.length, sampleValues: unique.slice(0, 5), hasNull: false }; })()] : []),
     { name: '__stress', type: 'quantitative', uniqueCount: 2, sampleValues: [], hasNull: true },
     { name: '__stressInterpretation', type: 'nominal', uniqueCount: 2, sampleValues: [], hasNull: true },
   ];
@@ -426,11 +414,11 @@ export function buildRarefactionColumns(result: RarefactionResult): RarefactionC
     site: siteArr,
   };
 
-  const uniqCount = (arr: (string | number)[]) => new Set(arr).size;
+
   const columns: ColumnMeta[] = [
     { name: 'individuals', type: 'quantitative', uniqueCount: uniqCount(individualsArr), sampleValues: individualsArr.slice(0, 5).map(String), hasNull: false },
     { name: 'expectedSpecies', type: 'quantitative', uniqueCount: uniqCount(speciesArr), sampleValues: speciesArr.slice(0, 5).map(String), hasNull: false },
-    { name: 'site', type: 'nominal', uniqueCount: uniqCount(siteArr), sampleValues: [...new Set(siteArr)].slice(0, 5), hasNull: false },
+    { name: 'site', type: 'nominal', uniqueCount: result.curves.length, sampleValues: result.curves.slice(0, 5).map(c => c.siteName), hasNull: false },
   ];
 
   return { columns, data, xField: 'individuals', yField: 'expectedSpecies', colorField: 'site' };
@@ -458,17 +446,10 @@ export function buildMetaAnalysisColumns(result: MetaAnalysisResult): MetaAnalys
 
   const n = studyArr.length;
 
-  // 메타: row 0에 값, 나머지 null
-  const modelArr: (string | null)[] = new Array(n).fill(null);
-  const qArr: (number | null)[] = new Array(n).fill(null);
-  const iSquaredArr: (number | null)[] = new Array(n).fill(null);
-  const tauSquaredArr: (number | null)[] = new Array(n).fill(null);
-  if (n > 0) {
-    modelArr[0] = result.model;
-    qArr[0] = result.Q;
-    iSquaredArr[0] = result.iSquared;
-    tauSquaredArr[0] = result.tauSquared;
-  }
+  const modelArr = metaColumn(n, result.model);
+  const qArr = metaColumn(n, result.Q);
+  const iSquaredArr = metaColumn(n, result.iSquared);
+  const tauSquaredArr = metaColumn(n, result.tauSquared);
 
   const data: Record<string, unknown[]> = {
     study: studyArr,
@@ -482,7 +463,7 @@ export function buildMetaAnalysisColumns(result: MetaAnalysisResult): MetaAnalys
     __tauSquared: tauSquaredArr,
   };
 
-  const uniqCount = (arr: (string | number)[]) => new Set(arr).size;
+
   const columns: ColumnMeta[] = [
     { name: 'study', type: 'nominal', uniqueCount: uniqCount(studyArr), sampleValues: studyArr.slice(0, 5), hasNull: false },
     { name: 'effectSize', type: 'quantitative', uniqueCount: uniqCount(effectArr), sampleValues: effectArr.slice(0, 5).map(String), hasNull: false },

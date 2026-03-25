@@ -16,11 +16,8 @@ import { detectLengthColumn, detectWeightColumn } from '@/lib/bio-tools/fisherie
 import { cn } from '@/lib/utils'
 import { ArrowRight, BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
-import { useRouter } from 'next/navigation'
-import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
+import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildLengthWeightColumns } from '@/lib/graph-studio/analysis-adapter'
-import { createDefaultChartSpec } from '@/lib/graph-studio/chart-spec-defaults'
-import type { DataPackage } from '@/types/graph-studio'
 import type { ToolComponentProps } from './types'
 import type { LengthWeightResult } from '@/types/bio-tools-results'
 
@@ -37,8 +34,7 @@ export default function LengthWeightTool({ tool, meta }: ToolComponentProps): Re
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<LengthWeightResult>({ worker: PyodideWorker.Fisheries })
   const resultsRef = useScrollToResults(results)
-  const router = useRouter()
-  const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
+  const openInGraphStudio = useOpenInGraphStudio()
 
   const onDataLoaded = useCallback((data: Parameters<typeof handleDataLoaded>[0]) => {
     handleDataLoaded(data)
@@ -61,21 +57,13 @@ export default function LengthWeightTool({ tool, meta }: ToolComponentProps): Re
 
   const handleOpenInGraphStudio = useCallback(() => {
     if (!results) return
-    const built = buildLengthWeightColumns(results)
-    const pkgId = crypto.randomUUID()
-    const spec = createDefaultChartSpec(pkgId, 'scatter', built.xField, built.yField, built.columns)
-    spec.trendline = { type: 'linear', showEquation: true }
-    const pkg: DataPackage = {
-      id: pkgId,
-      source: 'bio-tools',
+    openInGraphStudio({
+      built: buildLengthWeightColumns(results),
+      chartType: 'scatter',
       label: '체장-체중 관계 (Log-Log)',
-      columns: built.columns,
-      data: built.data,
-      createdAt: new Date().toISOString(),
-    }
-    loadDataPackageWithSpec(pkg, spec)
-    router.push('/graph-studio')
-  }, [results, loadDataPackageWithSpec, router])
+      customize: (spec) => { spec.trendline = { type: 'linear', showEquation: true } },
+    })
+  }, [results, openInGraphStudio])
 
   // log-log 산점도 데이터
   const chartData = useMemo(() => {

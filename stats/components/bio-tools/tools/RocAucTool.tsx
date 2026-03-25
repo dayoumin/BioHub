@@ -13,11 +13,8 @@ import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio
 import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
-import { useRouter } from 'next/navigation'
-import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
+import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildRocCurveColumns } from '@/lib/graph-studio/analysis-adapter'
-import { createDefaultChartSpec } from '@/lib/graph-studio/chart-spec-defaults'
-import type { DataPackage } from '@/types/graph-studio'
 import type { RocAucResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
@@ -33,8 +30,7 @@ export default function RocAucTool({ tool, meta }: ToolComponentProps): React.Re
     useBioToolAnalysis<RocAucResult>({ worker: PyodideWorker.Survival })
   const resultsRef = useScrollToResults(results)
 
-  const router = useRouter()
-  const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
+  const openInGraphStudio = useOpenInGraphStudio()
 
   const [actualCol, setActualCol] = useState('')
   const [predCol, setPredCol] = useState('')
@@ -58,21 +54,12 @@ export default function RocAucTool({ tool, meta }: ToolComponentProps): React.Re
 
   const handleOpenInGraphStudio = useCallback(() => {
     if (!results) return
-    // RocAucResult는 RocCurveAnalysisResult와 구조적으로 동일
-    const built = buildRocCurveColumns(results)
-    const pkgId = crypto.randomUUID()
-    const spec = createDefaultChartSpec(pkgId, 'roc-curve', built.xField, built.yField, built.columns)
-    const pkg: DataPackage = {
-      id: pkgId,
-      source: 'bio-tools',
+    openInGraphStudio({
+      built: buildRocCurveColumns(results),
+      chartType: 'roc-curve',
       label: 'ROC 곡선',
-      columns: built.columns,
-      data: built.data,
-      createdAt: new Date().toISOString(),
-    }
-    loadDataPackageWithSpec(pkg, spec)
-    router.push('/graph-studio')
-  }, [results, loadDataPackageWithSpec, router])
+    })
+  }, [results, openInGraphStudio])
 
   // ROC SVG 데이터: 1회 패스로 polygon, polyline, optimal point 계산
   const rocSvg = useMemo(() => {

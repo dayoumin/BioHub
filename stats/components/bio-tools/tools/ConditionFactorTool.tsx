@@ -15,11 +15,9 @@ import { detectLengthColumn, detectWeightColumn } from '@/lib/bio-tools/fisherie
 import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
-import { useRouter } from 'next/navigation'
-import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
+import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildConditionFactorColumns } from '@/lib/graph-studio/analysis-adapter'
-import { createDefaultChartSpec } from '@/lib/graph-studio/chart-spec-defaults'
-import type { DataPackage, VLineAnnotation } from '@/types/graph-studio'
+import type { VLineAnnotation } from '@/types/graph-studio'
 import type { ToolComponentProps } from './types'
 import type { ConditionFactorResult } from '@/types/bio-tools-results'
 
@@ -31,8 +29,7 @@ export default function ConditionFactorTool({ tool, meta }: ToolComponentProps):
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<ConditionFactorResult>({ worker: PyodideWorker.Fisheries })
   const resultsRef = useScrollToResults(results)
-  const router = useRouter()
-  const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
+  const openInGraphStudio = useOpenInGraphStudio()
 
   const onDataLoaded = useCallback((data: Parameters<typeof handleDataLoaded>[0]) => {
     handleDataLoaded(data)
@@ -60,27 +57,17 @@ export default function ConditionFactorTool({ tool, meta }: ToolComponentProps):
 
   const handleOpenInGraphStudio = useCallback(() => {
     if (!results) return
-    const built = buildConditionFactorColumns(results)
-    const pkgId = crypto.randomUUID()
-    // histogram은 yField를 사용하지 않으나 createDefaultChartSpec이 필수 요구 — xField 재전달
-    const spec = createDefaultChartSpec(pkgId, 'histogram', built.xField, built.xField, built.columns)
-    // mean/median 참조선 추가
     const annotations: VLineAnnotation[] = [
       { type: 'vline', value: results.mean, text: `Mean = ${results.mean.toFixed(4)}`, color: '#E64B35' },
       { type: 'vline', value: results.median, text: `Median = ${results.median.toFixed(4)}`, color: '#4DBBD5', strokeDash: [4, 3] },
     ]
-    spec.annotations = annotations
-    const pkg: DataPackage = {
-      id: pkgId,
-      source: 'bio-tools',
+    openInGraphStudio({
+      built: buildConditionFactorColumns(results),
+      chartType: 'histogram',
       label: 'Condition Factor (K) 분포',
-      columns: built.columns,
-      data: built.data,
-      createdAt: new Date().toISOString(),
-    }
-    loadDataPackageWithSpec(pkg, spec)
-    router.push('/graph-studio')
-  }, [results, loadDataPackageWithSpec, router])
+      customize: (spec) => { spec.annotations = annotations },
+    })
+  }, [results, openInGraphStudio])
 
   // 히스토그램 데이터
   const histData = useMemo(() => {

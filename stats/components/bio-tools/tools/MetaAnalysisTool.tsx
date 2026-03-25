@@ -14,11 +14,8 @@ import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
-import { useRouter } from 'next/navigation'
-import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
+import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildMetaAnalysisColumns } from '@/lib/graph-studio/analysis-adapter'
-import { createDefaultChartSpec } from '@/lib/graph-studio/chart-spec-defaults'
-import type { DataPackage, VLineAnnotation } from '@/types/graph-studio'
 import type { MetaAnalysisResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
@@ -27,8 +24,7 @@ export default function MetaAnalysisTool({ tool, meta }: ToolComponentProps): Re
     useBioToolAnalysis<MetaAnalysisResult>({ worker: PyodideWorker.Survival })
   const resultsRef = useScrollToResults(results)
 
-  const router = useRouter()
-  const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
+  const openInGraphStudio = useOpenInGraphStudio()
 
   const [effectCol, setEffectCol] = useState('')
   const [seCol, setSeCol] = useState('')
@@ -64,25 +60,15 @@ export default function MetaAnalysisTool({ tool, meta }: ToolComponentProps): Re
 
   const handleOpenInGraphStudio = useCallback(() => {
     if (!results) return
-    const built = buildMetaAnalysisColumns(results)
-    const pkgId = crypto.randomUUID()
-    const spec = createDefaultChartSpec(pkgId, 'error-bar', built.xField, built.yField, built.columns)
-    // null effect 참조선
-    const annotations: VLineAnnotation[] = [
-      { type: 'vline', value: 0, text: 'Null effect', color: '#999999', strokeDash: [4, 3] },
-    ]
-    spec.annotations = annotations
-    const pkg: DataPackage = {
-      id: pkgId,
-      source: 'bio-tools',
+    openInGraphStudio({
+      built: buildMetaAnalysisColumns(results),
+      chartType: 'error-bar',
       label: `메타분석 Forest Plot (${results.model === 'random' ? '랜덤' : '고정'} 효과)`,
-      columns: built.columns,
-      data: built.data,
-      createdAt: new Date().toISOString(),
-    }
-    loadDataPackageWithSpec(pkg, spec)
-    router.push('/graph-studio')
-  }, [results, loadDataPackageWithSpec, router])
+      customize: (spec) => {
+        spec.annotations = [{ type: 'vline', value: 0, text: 'Null effect', color: '#999999', strokeDash: [4, 3] }]
+      },
+    })
+  }, [results, openInGraphStudio])
 
   // Forest plot 데이터
   const forestData = useMemo(() => {

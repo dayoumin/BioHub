@@ -14,11 +14,8 @@ import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio
 import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
-import { useRouter } from 'next/navigation'
-import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
+import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildKmCurveColumns } from '@/lib/graph-studio/analysis-adapter'
-import { createDefaultChartSpec } from '@/lib/graph-studio/chart-spec-defaults'
-import type { DataPackage } from '@/types/graph-studio'
 import type { SurvivalResult, KmCurve } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
@@ -27,8 +24,7 @@ export default function SurvivalTool({ tool, meta }: ToolComponentProps): React.
     useBioToolAnalysis<SurvivalResult>({ worker: PyodideWorker.Survival })
   const resultsRef = useScrollToResults(results)
 
-  const router = useRouter()
-  const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
+  const openInGraphStudio = useOpenInGraphStudio()
 
   const [timeCol, setTimeCol] = useState('')
   const [eventCol, setEventCol] = useState('')
@@ -56,24 +52,12 @@ export default function SurvivalTool({ tool, meta }: ToolComponentProps): React.
 
   const handleOpenInGraphStudio = useCallback(() => {
     if (!results) return
-    // SurvivalResult는 KaplanMeierAnalysisResult와 구조적으로 동일
-    const built = buildKmCurveColumns(results)
-    const pkgId = crypto.randomUUID()
-    const spec = createDefaultChartSpec(pkgId, 'km-curve', built.xField, built.yField, built.columns)
-    if (built.colorField) {
-      spec.encoding.color = { field: built.colorField, type: 'nominal' }
-    }
-    const pkg: DataPackage = {
-      id: pkgId,
-      source: 'bio-tools',
+    openInGraphStudio({
+      built: buildKmCurveColumns(results),
+      chartType: 'km-curve',
       label: 'Kaplan-Meier 생존 곡선',
-      columns: built.columns,
-      data: built.data,
-      createdAt: new Date().toISOString(),
-    }
-    loadDataPackageWithSpec(pkg, spec)
-    router.push('/graph-studio')
-  }, [results, loadDataPackageWithSpec, router])
+    })
+  }, [results, openInGraphStudio])
 
   const { curveEntries, maxTime } = useMemo(() => {
     if (!results) return { curveEntries: [] as [string, KmCurve][], maxTime: 0 }
