@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
@@ -16,7 +17,7 @@ import type { RarefactionResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
 export default function RarefactionTool({ tool, meta }: ToolComponentProps): React.ReactElement {
-  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
+  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<RarefactionResult>()
   const resultsRef = useScrollToResults(results)
   const openInGraphStudio = useOpenInGraphStudio()
@@ -34,6 +35,15 @@ export default function RarefactionTool({ tool, meta }: ToolComponentProps): Rea
     if (!csvData) return
     runAnalysis('rarefaction', { rows: csvData.rows, site_col: siteCol })
   }, [csvData, siteCol, runAnalysis])
+
+  const handleSave = useCallback(() => {
+    saveToHistory({
+      toolId: tool.id,
+      toolNameEn: tool.nameEn,
+      toolNameKo: tool.nameKo,
+      columnConfig: { siteCol },
+    })
+  }, [saveToHistory, tool, siteCol])
 
   const { maxX, maxY } = useMemo(() => {
     if (!results || results.curves.length === 0) return { maxX: 0, maxY: 0 }
@@ -66,6 +76,7 @@ export default function RarefactionTool({ tool, meta }: ToolComponentProps): Rea
 
       {results && results.curves.length > 0 && (
         <div ref={resultsRef} className="space-y-4">
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
           <h3 className="text-sm font-semibold">종 희박화 곡선</h3>
 
           <div className="border rounded-lg p-4 bg-card">

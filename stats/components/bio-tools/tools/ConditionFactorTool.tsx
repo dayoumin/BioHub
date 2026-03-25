@@ -15,6 +15,7 @@ import { detectLengthColumn, detectWeightColumn } from '@/lib/bio-tools/fisherie
 import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildConditionFactorColumns } from '@/lib/graph-studio/analysis-adapter'
 import type { VLineAnnotation } from '@/types/graph-studio'
@@ -26,7 +27,7 @@ export default function ConditionFactorTool({ tool, meta }: ToolComponentProps):
   const [weightCol, setWeightCol] = useState<string>('')
   const [groupCol, setGroupCol] = useState<string>('')
 
-  const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
+  const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<ConditionFactorResult>({ worker: PyodideWorker.Fisheries })
   const resultsRef = useScrollToResults(results)
   const openInGraphStudio = useOpenInGraphStudio()
@@ -96,6 +97,15 @@ export default function ConditionFactorTool({ tool, meta }: ToolComponentProps):
     return { kMin, kMax, nBins, binWidth, bins, maxCount, meanX, medianX }
   }, [results])
 
+  const handleSave = useCallback(() => {
+    saveToHistory({
+      toolId: tool.id,
+      toolNameEn: tool.nameEn,
+      toolNameKo: tool.nameKo,
+      columnConfig: { lengthCol, weightCol, groupCol },
+    })
+  }, [saveToHistory, tool, lengthCol, weightCol, groupCol])
+
   const groupEntries = results?.groupStats ? Object.entries(results.groupStats) : []
 
   return (
@@ -128,6 +138,7 @@ export default function ConditionFactorTool({ tool, meta }: ToolComponentProps):
 
       {results && (
         <div ref={resultsRef} className="space-y-6">
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
           <div>
             <h3 className="text-sm font-semibold mb-2">Fulton&apos;s K 요약</h3>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">

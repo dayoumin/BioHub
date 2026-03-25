@@ -13,6 +13,7 @@ import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio
 import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildRocCurveColumns } from '@/lib/graph-studio/analysis-adapter'
 import type { RocAucResult } from '@/types/bio-tools-results'
@@ -26,7 +27,7 @@ function getAucInterpretation(auc: number): { label: string; style: React.CSSPro
 }
 
 export default function RocAucTool({ tool, meta }: ToolComponentProps): React.ReactElement {
-  const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
+  const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<RocAucResult>({ worker: PyodideWorker.Survival })
   const resultsRef = useScrollToResults(results)
 
@@ -60,6 +61,15 @@ export default function RocAucTool({ tool, meta }: ToolComponentProps): React.Re
       label: 'ROC 곡선',
     })
   }, [results, openInGraphStudio])
+
+  const handleSave = useCallback(() => {
+    saveToHistory({
+      toolId: tool.id,
+      toolNameEn: tool.nameEn,
+      toolNameKo: tool.nameKo,
+      columnConfig: { actualCol, predCol },
+    })
+  }, [saveToHistory, tool, actualCol, predCol])
 
   // ROC SVG 데이터: 1회 패스로 polygon, polyline, optimal point 계산
   const rocSvg = useMemo(() => {
@@ -121,6 +131,7 @@ export default function RocAucTool({ tool, meta }: ToolComponentProps): React.Re
 
       {results && (
         <div ref={resultsRef} className="space-y-6">
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
           {/* 결과 요약 */}
           <div>
             <h3 className="text-sm font-semibold mb-2">분석 결과</h3>

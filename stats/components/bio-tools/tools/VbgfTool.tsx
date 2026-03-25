@@ -14,6 +14,7 @@ import { detectAgeColumn, detectLengthColumn } from '@/lib/bio-tools/fisheries-c
 import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildVbgfColumns } from '@/lib/graph-studio/analysis-adapter'
 import type { ToolComponentProps } from './types'
@@ -26,7 +27,7 @@ export default function VbgfTool({ tool, meta }: ToolComponentProps): React.Reac
   // 분석 시점의 컬럼 스냅샷 (stale scatter 방지)
   const [analyzedCols, setAnalyzedCols] = useState<{ age: string; length: string } | null>(null)
 
-  const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
+  const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<VbgfResult>({ worker: PyodideWorker.Fisheries })
   const resultsRef = useScrollToResults(results)
   const openInGraphStudio = useOpenInGraphStudio()
@@ -94,6 +95,15 @@ export default function VbgfTool({ tool, meta }: ToolComponentProps): React.Reac
     })
   }, [results, chartData, openInGraphStudio])
 
+  const handleSave = useCallback(() => {
+    saveToHistory({
+      toolId: tool.id,
+      toolNameEn: tool.nameEn,
+      toolNameKo: tool.nameKo,
+      columnConfig: { ageCol, lengthCol },
+    })
+  }, [saveToHistory, tool, ageCol, lengthCol])
+
   return (
     <div className="space-y-6">
       <BioToolIntro meta={meta} collapsed={!!results} />
@@ -122,6 +132,7 @@ export default function VbgfTool({ tool, meta }: ToolComponentProps): React.Reac
 
       {results && (
         <div ref={resultsRef} className="space-y-6">
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
           <div>
             <h3 className="text-sm font-semibold mb-2">파라미터 추정</h3>
             <div className="overflow-auto border rounded-lg">

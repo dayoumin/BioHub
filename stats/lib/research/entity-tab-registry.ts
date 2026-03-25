@@ -45,6 +45,15 @@ export const ENTITY_TAB_REGISTRY: readonly EntityTabEntry[] = [
     emptyActionLabel: 'Graph Studio 열기',
   },
   {
+    id: 'bio-tool-result',
+    label: 'Bio-Tools',
+    icon: '🧪',
+    defaultVisible: true,
+    emptyMessage: '아직 Bio-Tools 분석 결과가 없습니다.',
+    emptyActionPath: '/bio-tools',
+    emptyActionLabel: 'Bio-Tools 열기',
+  },
+  {
     id: 'blast-result',
     label: '유전적 분석',
     icon: '🧬',

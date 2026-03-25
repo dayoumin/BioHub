@@ -16,6 +16,7 @@ import { detectLengthColumn, detectWeightColumn } from '@/lib/bio-tools/fisherie
 import { cn } from '@/lib/utils'
 import { ArrowRight, BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildLengthWeightColumns } from '@/lib/graph-studio/analysis-adapter'
 import type { ToolComponentProps } from './types'
@@ -31,7 +32,7 @@ export default function LengthWeightTool({ tool, meta }: ToolComponentProps): Re
   const [lengthCol, setLengthCol] = useState<string>('')
   const [weightCol, setWeightCol] = useState<string>('')
 
-  const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
+  const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<LengthWeightResult>({ worker: PyodideWorker.Fisheries })
   const resultsRef = useScrollToResults(results)
   const openInGraphStudio = useOpenInGraphStudio()
@@ -94,6 +95,15 @@ export default function LengthWeightTool({ tool, meta }: ToolComponentProps): Re
     return { pts, xMin, xMax, yMin, yMax, regLineY1, regLineY2 }
   }, [results])
 
+  const handleSave = useCallback(() => {
+    saveToHistory({
+      toolId: tool.id,
+      toolNameEn: tool.nameEn,
+      toolNameKo: tool.nameKo,
+      columnConfig: { lengthCol, weightCol },
+    })
+  }, [saveToHistory, tool, lengthCol, weightCol])
+
   const growthLabel = results ? GROWTH_TYPE_LABELS[results.growthType] : null
   const isSignificant = results ? results.isometricPValue < 0.05 : false
 
@@ -125,6 +135,7 @@ export default function LengthWeightTool({ tool, meta }: ToolComponentProps): Re
 
       {results && (
         <div ref={resultsRef} className="space-y-6">
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
           <div className="p-4 border rounded-lg space-y-3">
             <div className="text-sm text-muted-foreground">추정된 관계식</div>
             <div className="text-lg font-semibold font-mono">

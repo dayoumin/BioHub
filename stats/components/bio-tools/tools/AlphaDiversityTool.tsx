@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
@@ -23,7 +24,7 @@ const INDEX_LABELS: Record<string, string> = {
 }
 
 export default function AlphaDiversityTool({ tool, meta }: ToolComponentProps): React.ReactElement {
-  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
+  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<AlphaDiversityResult>()
   const resultsRef = useScrollToResults(results)
 
@@ -31,6 +32,15 @@ export default function AlphaDiversityTool({ tool, meta }: ToolComponentProps): 
     if (!csvData) return
     runAnalysis('alpha_diversity', { rows: csvData.rows, site_col: siteCol })
   }, [csvData, siteCol, runAnalysis])
+
+  const handleSave = useCallback(() => {
+    saveToHistory({
+      toolId: tool.id,
+      toolNameEn: tool.nameEn,
+      toolNameKo: tool.nameKo,
+      columnConfig: { siteCol },
+    })
+  }, [saveToHistory, tool, siteCol])
 
   return (
     <div className="space-y-6">
@@ -55,6 +65,7 @@ export default function AlphaDiversityTool({ tool, meta }: ToolComponentProps): 
 
       {results && (
         <div ref={resultsRef} className="space-y-6">
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
           <div>
             <h3 className="text-sm font-semibold mb-2">지점별 다양성 지수</h3>
             <div className="overflow-auto border rounded-lg">

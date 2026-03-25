@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
@@ -17,7 +18,7 @@ import type { PermanovaResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
 export default function PermanovaTool({ tool, meta }: ToolComponentProps): React.ReactElement {
-  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runWithPreStep } =
+  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runWithPreStep, saveToHistory, isSaved } =
     useBioToolAnalysis<PermanovaResult>()
   const resultsRef = useScrollToResults(results)
   const [groupCol, setGroupCol] = useState<string>('')
@@ -41,6 +42,15 @@ export default function PermanovaTool({ tool, meta }: ToolComponentProps): React
       }
     }, 'permanova')
   }, [csvData, siteCol, groupCol, runWithPreStep])
+
+  const handleSave = useCallback(() => {
+    saveToHistory({
+      toolId: tool.id,
+      toolNameEn: tool.nameEn,
+      toolNameKo: tool.nameKo,
+      columnConfig: { siteCol, groupCol },
+    })
+  }, [saveToHistory, tool, siteCol, groupCol])
 
   const significant = results ? results.pValue < 0.05 : false
 
@@ -69,6 +79,7 @@ export default function PermanovaTool({ tool, meta }: ToolComponentProps): React
 
       {results && (
         <div ref={resultsRef} className="space-y-4">
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
           <div className="flex items-center gap-2">
             <span
               className={BIO_BADGE_CLASS}

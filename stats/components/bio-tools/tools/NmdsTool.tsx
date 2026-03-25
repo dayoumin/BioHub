@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { BIO_BADGE_CLASS, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
 import { BarChart3, Loader2 } from 'lucide-react'
@@ -33,7 +34,7 @@ const STRESS_LABELS: Record<string, string> = {
 }
 
 export default function NmdsTool({ tool, meta }: ToolComponentProps): React.ReactElement {
-  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runWithPreStep } =
+  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runWithPreStep, saveToHistory, isSaved } =
     useBioToolAnalysis<NmdsResult>()
   const resultsRef = useScrollToResults(results)
   const openInGraphStudio = useOpenInGraphStudio()
@@ -73,6 +74,15 @@ export default function NmdsTool({ tool, meta }: ToolComponentProps): React.Reac
       label: 'NMDS 좌표',
     })
   }, [results, openInGraphStudio])
+
+  const handleSave = useCallback(() => {
+    saveToHistory({
+      toolId: tool.id,
+      toolNameEn: tool.nameEn,
+      toolNameKo: tool.nameKo,
+      columnConfig: { siteCol, groupCol },
+    })
+  }, [saveToHistory, tool, siteCol, groupCol])
 
   const coords = results?.coordinates ?? []
 
@@ -115,6 +125,7 @@ export default function NmdsTool({ tool, meta }: ToolComponentProps): React.Reac
 
       {results && (
         <div ref={resultsRef} className="space-y-4">
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">Stress:</span>
             <span

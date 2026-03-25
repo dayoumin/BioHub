@@ -17,6 +17,7 @@ export type ProjectDomain =
 export type ProjectEntityKind =
   | 'analysis'
   | 'figure'
+  | 'bio-tool-result'
   | 'draft'
   | 'chat-session'
   | 'species-validation'

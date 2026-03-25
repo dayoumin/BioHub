@@ -14,6 +14,7 @@ import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import type { IccResult, IccType } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
@@ -31,7 +32,7 @@ const INTERPRETATION_STYLES: Record<string, { label: string; style: React.CSSPro
 }
 
 export default function IccTool({ tool, meta }: ToolComponentProps): React.ReactElement {
-  const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
+  const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<IccResult>({ worker: PyodideWorker.Survival })
   const resultsRef = useScrollToResults(results)
 
@@ -46,6 +47,15 @@ export default function IccTool({ tool, meta }: ToolComponentProps): React.React
     },
     [handleDataLoaded],
   )
+
+  const handleSave = useCallback(() => {
+    saveToHistory({
+      toolId: tool.id,
+      toolNameEn: tool.nameEn,
+      toolNameKo: tool.nameKo,
+      columnConfig: { subjectCol, iccType },
+    })
+  }, [saveToHistory, tool, subjectCol, iccType])
 
   const handleAnalyze = useCallback(() => {
     if (!csvData || !subjectCol) return
@@ -100,6 +110,7 @@ export default function IccTool({ tool, meta }: ToolComponentProps): React.React
 
       {results && (
         <div ref={resultsRef} className="space-y-6">
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
           {/* ICC 결과 */}
           <div>
             <h3 className="text-sm font-semibold mb-2">ICC 분석 결과</h3>

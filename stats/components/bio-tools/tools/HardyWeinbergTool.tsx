@@ -14,6 +14,7 @@ import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { detectLocusColumn } from '@/lib/bio-tools/genetics-columns'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import type { ToolComponentProps } from './types'
@@ -33,7 +34,7 @@ export default function HardyWeinbergTool({ tool, meta }: ToolComponentProps): R
   const [abCol, setAbCol] = useState('')   // Aa 열
   const [bbCol, setBbCol] = useState('')   // aa 열
 
-  const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, setError, runAnalysis } =
+  const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, setError, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<HardyWeinbergResult>({ worker: PyodideWorker.Genetics })
   const resultsRef = useScrollToResults(results)
 
@@ -85,6 +86,15 @@ export default function HardyWeinbergTool({ tool, meta }: ToolComponentProps): R
     const locusLabels = csvData.rows.map((r) => String(r[locusCol]))
     runAnalysis('hardy_weinberg', { rows, locusLabels })
   }, [csvData, locusCol, aaCol, abCol, bbCol, runAnalysis, setError])
+
+  const handleSave = useCallback(() => {
+    saveToHistory({
+      toolId: tool.id,
+      toolNameEn: tool.nameEn,
+      toolNameKo: tool.nameKo,
+      columnConfig: { inputMode, locusCol, aaCol, abCol, bbCol },
+    })
+  }, [saveToHistory, tool, inputMode, locusCol, aaCol, abCol, bbCol])
 
   const isDirectValid = countAA !== '' && countAa !== '' && countaa !== ''
 
@@ -143,6 +153,7 @@ export default function HardyWeinbergTool({ tool, meta }: ToolComponentProps): R
 
       {results && (
         <div ref={resultsRef} className="space-y-6">
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-3 border rounded-lg text-center">
               <div className="text-xs text-muted-foreground">p (빈도)</div>

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
@@ -25,7 +26,7 @@ const METRIC_LABELS: Record<MetricOption, string> = {
 }
 
 export default function BetaDiversityTool({ tool, meta }: ToolComponentProps): React.ReactElement {
-  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
+  const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<BetaDiversityResult>()
   const resultsRef = useScrollToResults(results)
   const [metric, setMetric] = useState<MetricOption>('braycurtis')
@@ -34,6 +35,15 @@ export default function BetaDiversityTool({ tool, meta }: ToolComponentProps): R
     if (!csvData) return
     runAnalysis('beta_diversity', { rows: csvData.rows, site_col: siteCol, metric })
   }, [csvData, siteCol, metric, runAnalysis])
+
+  const handleSave = useCallback(() => {
+    saveToHistory({
+      toolId: tool.id,
+      toolNameEn: tool.nameEn,
+      toolNameKo: tool.nameKo,
+      columnConfig: { siteCol, metric },
+    })
+  }, [saveToHistory, tool, siteCol, metric])
 
   return (
     <div className="space-y-6">
@@ -71,6 +81,7 @@ export default function BetaDiversityTool({ tool, meta }: ToolComponentProps): R
 
       {results && (
         <div ref={resultsRef} className="space-y-4">
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
           <h3 className="text-sm font-semibold">
             거리행렬 ({METRIC_LABELS[results.metric as MetricOption] ?? results.metric})
           </h3>

@@ -14,13 +14,14 @@ import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildMetaAnalysisColumns } from '@/lib/graph-studio/analysis-adapter'
 import type { MetaAnalysisResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
 export default function MetaAnalysisTool({ tool, meta }: ToolComponentProps): React.ReactElement {
-  const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
+  const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<MetaAnalysisResult>({ worker: PyodideWorker.Survival })
   const resultsRef = useScrollToResults(results)
 
@@ -69,6 +70,15 @@ export default function MetaAnalysisTool({ tool, meta }: ToolComponentProps): Re
       },
     })
   }, [results, openInGraphStudio])
+
+  const handleSave = useCallback(() => {
+    saveToHistory({
+      toolId: tool.id,
+      toolNameEn: tool.nameEn,
+      toolNameKo: tool.nameKo,
+      columnConfig: { studyCol, effectCol, seCol, model },
+    })
+  }, [saveToHistory, tool, studyCol, effectCol, seCol, model])
 
   // Forest plot 데이터
   const forestData = useMemo(() => {
@@ -119,6 +129,7 @@ export default function MetaAnalysisTool({ tool, meta }: ToolComponentProps): Re
 
       {results && forestData && (
         <div ref={resultsRef} className="space-y-6">
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
           {/* 통합 결과 테이블 */}
           <div>
             <h3 className="text-sm font-semibold mb-2">통합 결과</h3>

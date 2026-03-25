@@ -14,13 +14,14 @@ import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio
 import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildKmCurveColumns } from '@/lib/graph-studio/analysis-adapter'
 import type { SurvivalResult, KmCurve } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
 export default function SurvivalTool({ tool, meta }: ToolComponentProps): React.ReactElement {
-  const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
+  const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<SurvivalResult>({ worker: PyodideWorker.Survival })
   const resultsRef = useScrollToResults(results)
 
@@ -40,6 +41,15 @@ export default function SurvivalTool({ tool, meta }: ToolComponentProps): React.
     },
     [handleDataLoaded],
   )
+
+  const handleSave = useCallback(() => {
+    saveToHistory({
+      toolId: tool.id,
+      toolNameEn: tool.nameEn,
+      toolNameKo: tool.nameKo,
+      columnConfig: { timeCol, eventCol, groupCol },
+    })
+  }, [saveToHistory, tool, timeCol, eventCol, groupCol])
 
   const handleAnalyze = useCallback(() => {
     if (!csvData) return
@@ -96,6 +106,7 @@ export default function SurvivalTool({ tool, meta }: ToolComponentProps): React.
 
       {results && (
         <div ref={resultsRef} className="space-y-6">
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
           {/* Log-rank 결과 */}
           {results.logRankP !== null && (
             <div className="flex items-center gap-4 p-3 rounded-lg border bg-card">
