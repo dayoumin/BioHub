@@ -1,17 +1,20 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
 import { BioToolShell } from '@/components/bio-tools/BioToolShell'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
+import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
+import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
+import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { formatNumber, formatPValue } from '@/lib/statistics/formatters'
 import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
-import { AlertCircle, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 interface MetaAnalysisResult {
   pooledEffect: number
@@ -34,9 +37,9 @@ interface MetaAnalysisResult {
 const tool = getBioToolById('meta-analysis')
 
 export default function MetaAnalysisPage(): React.ReactElement {
-  const resultsRef = useRef<HTMLDivElement>(null)
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<MetaAnalysisResult>({ worker: PyodideWorker.Survival })
+  const resultsRef = useScrollToResults(results)
 
   const [effectCol, setEffectCol] = useState('')
   const [seCol, setSeCol] = useState('')
@@ -70,12 +73,6 @@ export default function MetaAnalysisPage(): React.ReactElement {
     })
   }, [csvData, effectCol, seCol, studyCol, model, runAnalysis])
 
-  useEffect(() => {
-    if (results) {
-      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-  }, [results])
-
   // Forest plot 데이터
   const forestData = useMemo(() => {
     if (!results) return null
@@ -101,45 +98,9 @@ export default function MetaAnalysisPage(): React.ReactElement {
 
         {csvData && (
           <div className="flex flex-wrap items-end gap-4">
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">연구명 열</label>
-              <Select value={studyCol || undefined} onValueChange={setStudyCol}>
-                <SelectTrigger className="h-8 text-sm w-[180px]">
-                  <SelectValue placeholder="선택..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {csvData.headers.map(h => (
-                    <SelectItem key={h} value={h}>{h}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">효과크기 열</label>
-              <Select value={effectCol || undefined} onValueChange={setEffectCol}>
-                <SelectTrigger className="h-8 text-sm w-[180px]">
-                  <SelectValue placeholder="선택..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {csvData.headers.map(h => (
-                    <SelectItem key={h} value={h}>{h}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">표준오차 열</label>
-              <Select value={seCol || undefined} onValueChange={setSeCol}>
-                <SelectTrigger className="h-8 text-sm w-[180px]">
-                  <SelectValue placeholder="선택..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {csvData.headers.map(h => (
-                    <SelectItem key={h} value={h}>{h}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <BioColumnSelect label="연구명 열" headers={csvData.headers} value={studyCol} onChange={setStudyCol} labelSize="xs" />
+            <BioColumnSelect label="효과크기 열" headers={csvData.headers} value={effectCol} onChange={setEffectCol} labelSize="xs" />
+            <BioColumnSelect label="표준오차 열" headers={csvData.headers} value={seCol} onChange={setSeCol} labelSize="xs" />
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">모델</label>
               <Select value={model} onValueChange={(v) => setModel(v as 'random' | 'fixed')}>
@@ -158,12 +119,7 @@ export default function MetaAnalysisPage(): React.ReactElement {
           </div>
         )}
 
-        {error && (
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            {error}
-          </div>
-        )}
+        <BioErrorBanner error={error} />
 
         {results && forestData && (
           <div ref={resultsRef} className="space-y-6">

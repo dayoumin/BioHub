@@ -1,15 +1,17 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
 import { BioToolShell } from '@/components/bio-tools/BioToolShell'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
+import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
+import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
-import { NONE_VALUE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
+import { useScrollToResults } from '@/hooks/use-scroll-to-results'
+import { SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
-import { AlertCircle, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
@@ -38,16 +40,10 @@ const STRESS_LABELS: Record<string, string> = {
 const tool = getBioToolById('nmds')
 
 export default function NmdsPage(): React.ReactElement {
-  const resultsRef = useRef<HTMLDivElement>(null)
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runWithPreStep } =
     useBioToolAnalysis<NmdsResult>()
+  const resultsRef = useScrollToResults(results)
   const [groupCol, setGroupCol] = useState<string>('')
-
-  useEffect(() => {
-    if (results) {
-      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-  }, [results])
 
   const handleAnalyze = useCallback(async () => {
     if (!csvData) return
@@ -104,30 +100,8 @@ export default function NmdsPage(): React.ReactElement {
 
         {csvData && (
           <div className="flex flex-wrap items-center gap-4">
-            <label className="text-sm text-muted-foreground">지점명 열:</label>
-            <Select value={siteCol || undefined} onValueChange={setSiteCol}>
-              <SelectTrigger className="h-8 text-sm w-[180px]">
-                <SelectValue placeholder="선택..." />
-              </SelectTrigger>
-              <SelectContent>
-                {csvData.headers.map((h) => (
-                  <SelectItem key={h} value={h}>{h}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <label className="text-sm text-muted-foreground">그룹 열 (선택):</label>
-            <Select value={groupCol || NONE_VALUE} onValueChange={(v) => setGroupCol(v === NONE_VALUE ? '' : v)}>
-              <SelectTrigger className="h-8 text-sm w-[180px]">
-                <SelectValue placeholder="선택..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NONE_VALUE}>없음 (단일 그룹)</SelectItem>
-                {csvData.headers.map((h) => (
-                  <SelectItem key={h} value={h}>{h}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <BioColumnSelect label="지점명 열" headers={csvData.headers} value={siteCol} onChange={setSiteCol} />
+            <BioColumnSelect label="그룹 열 (선택)" headers={csvData.headers} value={groupCol} onChange={setGroupCol} allowNone />
 
             <Button onClick={handleAnalyze} disabled={isAnalyzing} size="sm">
               {isAnalyzing ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" />분석 중...</> : '분석 실행'}
@@ -135,12 +109,7 @@ export default function NmdsPage(): React.ReactElement {
           </div>
         )}
 
-        {error && (
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            {error}
-          </div>
-        )}
+        <BioErrorBanner error={error} />
 
         {results && (
           <div ref={resultsRef} className="space-y-4">

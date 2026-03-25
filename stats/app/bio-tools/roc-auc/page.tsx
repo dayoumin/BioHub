@@ -1,17 +1,19 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
 import { BioToolShell } from '@/components/bio-tools/BioToolShell'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
+import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
+import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
+import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { formatNumber } from '@/lib/statistics/formatters'
 import { BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
-import { AlertCircle, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 interface RocPoint {
   fpr: number
@@ -37,9 +39,9 @@ function getAucInterpretation(auc: number): { label: string; style: React.CSSPro
 }
 
 export default function RocAucPage(): React.ReactElement {
-  const resultsRef = useRef<HTMLDivElement>(null)
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<RocAucResult>({ worker: PyodideWorker.Survival })
+  const resultsRef = useScrollToResults(results)
 
   const [actualCol, setActualCol] = useState('')
   const [predCol, setPredCol] = useState('')
@@ -95,12 +97,6 @@ export default function RocAucPage(): React.ReactElement {
     }
   }, [results])
 
-  useEffect(() => {
-    if (results) {
-      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-  }, [results])
-
   const aucInterp = results ? getAucInterpretation(results.auc) : null
 
   if (!tool) return <div>도구를 찾을 수 없습니다</div>
@@ -116,44 +112,15 @@ export default function RocAucPage(): React.ReactElement {
 
         {csvData && (
           <div className="flex flex-wrap items-end gap-4">
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">실제값 열 (0/1)</label>
-              <Select value={actualCol || undefined} onValueChange={setActualCol}>
-                <SelectTrigger className="h-8 text-sm w-[180px]">
-                  <SelectValue placeholder="선택..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {csvData.headers.map(h => (
-                    <SelectItem key={h} value={h}>{h}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">예측 확률 열</label>
-              <Select value={predCol || undefined} onValueChange={setPredCol}>
-                <SelectTrigger className="h-8 text-sm w-[180px]">
-                  <SelectValue placeholder="선택..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {csvData.headers.map(h => (
-                    <SelectItem key={h} value={h}>{h}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <BioColumnSelect label="실제값 열 (0/1)" headers={csvData.headers} value={actualCol} onChange={setActualCol} labelSize="xs" />
+            <BioColumnSelect label="예측 확률 열" headers={csvData.headers} value={predCol} onChange={setPredCol} labelSize="xs" />
             <Button onClick={handleAnalyze} disabled={isAnalyzing} size="sm">
               {isAnalyzing ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" />분석 중...</> : '분석 실행'}
             </Button>
           </div>
         )}
 
-        {error && (
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            {error}
-          </div>
-        )}
+        <BioErrorBanner error={error} />
 
         {results && (
           <div ref={resultsRef} className="space-y-6">

@@ -1,18 +1,20 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
 import { BioToolShell } from '@/components/bio-tools/BioToolShell'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
+import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
+import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
+import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { formatNumber, formatPValue } from '@/lib/statistics/formatters'
 import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
-import { BIO_TABLE, NONE_VALUE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
+import { BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
-import { AlertCircle, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 interface KmCurve {
   time: number[]
@@ -34,9 +36,9 @@ interface SurvivalResult {
 const tool = getBioToolById('survival')
 
 export default function SurvivalPage(): React.ReactElement {
-  const resultsRef = useRef<HTMLDivElement>(null)
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<SurvivalResult>({ worker: PyodideWorker.Survival })
+  const resultsRef = useScrollToResults(results)
 
   const [timeCol, setTimeCol] = useState('')
   const [eventCol, setEventCol] = useState('')
@@ -61,12 +63,6 @@ export default function SurvivalPage(): React.ReactElement {
 
     runAnalysis('kaplan_meier_analysis', { time, event, group })
   }, [csvData, timeCol, eventCol, groupCol, runAnalysis])
-
-  useEffect(() => {
-    if (results) {
-      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-  }, [results])
 
   const { curveEntries, maxTime } = useMemo(() => {
     if (!results) return { curveEntries: [] as [string, KmCurve][], maxTime: 0 }
@@ -93,58 +89,16 @@ export default function SurvivalPage(): React.ReactElement {
 
         {csvData && (
           <div className="flex flex-wrap items-end gap-4">
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">시간 열</label>
-              <Select value={timeCol || undefined} onValueChange={setTimeCol}>
-                <SelectTrigger className="h-8 text-sm w-[180px]">
-                  <SelectValue placeholder="선택..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {csvData.headers.map(h => (
-                    <SelectItem key={h} value={h}>{h}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">사건 열 (1=사건, 0=중도절단)</label>
-              <Select value={eventCol || undefined} onValueChange={setEventCol}>
-                <SelectTrigger className="h-8 text-sm w-[180px]">
-                  <SelectValue placeholder="선택..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {csvData.headers.map(h => (
-                    <SelectItem key={h} value={h}>{h}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">그룹 열 (선택)</label>
-              <Select value={groupCol || NONE_VALUE} onValueChange={(v) => setGroupCol(v === NONE_VALUE ? '' : v)}>
-                <SelectTrigger className="h-8 text-sm w-[180px]">
-                  <SelectValue placeholder="선택..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE_VALUE}>없음 (단일 그룹)</SelectItem>
-                  {csvData.headers.map(h => (
-                    <SelectItem key={h} value={h}>{h}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <BioColumnSelect label="시간 열" headers={csvData.headers} value={timeCol} onChange={setTimeCol} labelSize="xs" />
+            <BioColumnSelect label="사건 열 (1=사건, 0=중도절단)" headers={csvData.headers} value={eventCol} onChange={setEventCol} labelSize="xs" />
+            <BioColumnSelect label="그룹 열 (선택)" headers={csvData.headers} value={groupCol} onChange={setGroupCol} labelSize="xs" allowNone />
             <Button onClick={handleAnalyze} disabled={isAnalyzing} size="sm">
               {isAnalyzing ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" />분석 중...</> : '분석 실행'}
             </Button>
           </div>
         )}
 
-        {error && (
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            {error}
-          </div>
-        )}
+        <BioErrorBanner error={error} />
 
         {results && (
           <div ref={resultsRef} className="space-y-6">

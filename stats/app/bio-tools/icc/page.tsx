@@ -1,17 +1,20 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
 import { BioToolShell } from '@/components/bio-tools/BioToolShell'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
+import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
+import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
+import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { formatNumber, formatPValue } from '@/lib/statistics/formatters'
 import { BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
-import { AlertCircle, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 type IccType = 'ICC1_1' | 'ICC2_1' | 'ICC3_1'
 
@@ -47,18 +50,12 @@ const INTERPRETATION_STYLES: Record<string, { label: string; style: React.CSSPro
 }
 
 export default function IccPage(): React.ReactElement {
-  const resultsRef = useRef<HTMLDivElement>(null)
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<IccResult>({ worker: PyodideWorker.Survival })
+  const resultsRef = useScrollToResults(results)
 
   const [subjectCol, setSubjectCol] = useState('')
   const [iccType, setIccType] = useState<IccType>('ICC3_1')
-
-  useEffect(() => {
-    if (results) {
-      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-  }, [results])
 
   const handleData = useCallback(
     (data: Parameters<typeof handleDataLoaded>[0]) => {
@@ -99,19 +96,7 @@ export default function IccPage(): React.ReactElement {
 
         {csvData && (
           <div className="flex flex-wrap items-end gap-4">
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground">대상(Subject) 열</label>
-              <Select value={subjectCol || undefined} onValueChange={setSubjectCol}>
-                <SelectTrigger className="h-8 text-sm w-[180px]">
-                  <SelectValue placeholder="선택..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {csvData.headers.map(h => (
-                    <SelectItem key={h} value={h}>{h}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <BioColumnSelect label="대상(Subject) 열" headers={csvData.headers} value={subjectCol} onChange={setSubjectCol} labelSize="xs" />
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground">ICC 유형</label>
               <Select value={iccType} onValueChange={(v) => setIccType(v as IccType)}>
@@ -131,12 +116,7 @@ export default function IccPage(): React.ReactElement {
           </div>
         )}
 
-        {error && (
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            {error}
-          </div>
-        )}
+        <BioErrorBanner error={error} />
 
         {results && (
           <div ref={resultsRef} className="space-y-6">
