@@ -1885,7 +1885,7 @@ export function chartSpecToECharts(
   // ── histogram ──────────────────────────────────────────────
   if (spec.chartType === 'histogram') {
     const { labels, counts } = buildHistogramData(rows, xField);
-    return {
+    return applyMarkLineAnnotations({
       ...base,
       tooltip: {
         trigger: 'axis',
@@ -1901,7 +1901,7 @@ export function chartSpecToECharts(
         name: 'Count',
       },
       series: [{ type: 'bar', data: counts, barWidth: '98%', name: 'Count' }],
-    };
+    }, spec.annotations, spec.orientation);
   }
 
   // ── error-bar ──────────────────────────────────────────────

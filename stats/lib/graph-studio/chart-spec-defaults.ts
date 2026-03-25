@@ -324,6 +324,19 @@ export const FIGURE_PRESETS: Record<string, FigurePreset> = {
     label: '시계열',
     chartType: 'line',
   },
+  'vbgf': {
+    label: '성장곡선 (VBGF)',
+    chartType: 'scatter',
+  },
+  'length-weight': {
+    label: '체장-체중 관계',
+    chartType: 'scatter',
+    trendline: { type: 'linear', showEquation: true },
+  },
+  'condition-factor': {
+    label: '비만도 분포',
+    chartType: 'histogram',
+  },
 };
 
 // ─── 기본 ChartSpec 생성 ───────────────────────────────────

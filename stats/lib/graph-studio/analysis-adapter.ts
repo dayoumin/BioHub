@@ -17,6 +17,11 @@ import type {
   RocCurveAnalysisResult,
 } from '@/lib/generated/method-types.generated'
 import type { KmCurve as KmCurveData } from '@/types/bio-tools-results'
+import type {
+  VbgfResult,
+  LengthWeightResult,
+  ConditionFactorResult,
+} from '@/types/bio-tools-results'
 
 // ─── DataPackage 컬럼 빌더 (KM/ROC 전용) ────────────────────
 
@@ -154,6 +159,179 @@ export function buildRocCurveColumns(rocData: RocCurveAnalysisResult): RocColumn
   ];
 
   return { columns, data, xField: 'fpr', yField: 'tpr', colorField: undefined };
+}
+
+// ─── DataPackage 컬럼 빌더 (Fisheries) ─────────────────────
+
+/** buildVbgfColumns 반환 형태 */
+export interface VbgfColumnsResult {
+  columns: ColumnMeta[];
+  data: Record<string, unknown[]>;
+  xField: 'age';
+  yField: 'length';
+  colorField: 'series';
+}
+
+/** 관측 데이터 포인트 (VBGF 어댑터용) */
+interface VbgfObservedPoint {
+  age: number;
+  length: number;
+}
+
+/**
+ * VbgfResult + 원본 관측 데이터 → DataPackage 컬럼 변환.
+ * scatter(observed) + line(fitted) 2-series 구성.
+ */
+export function buildVbgfColumns(
+  result: VbgfResult,
+  observedData: VbgfObservedPoint[],
+): VbgfColumnsResult {
+  const ageArr: number[] = [];
+  const lengthArr: number[] = [];
+  const seriesArr: string[] = [];
+
+  // 관측값
+  for (const p of observedData) {
+    ageArr.push(p.age);
+    lengthArr.push(p.length);
+    seriesArr.push('observed');
+  }
+
+  // 적합곡선: 관측 연령 범위에서 50포인트
+  if (observedData.length > 0) {
+    let ageMin = observedData[0].age;
+    let ageMax = observedData[0].age;
+    for (const p of observedData) {
+      if (p.age < ageMin) ageMin = p.age;
+      if (p.age > ageMax) ageMax = p.age;
+    }
+    const N_CURVE = 50;
+    const range = ageMax - ageMin || 1;
+    for (let i = 0; i <= N_CURVE; i++) {
+      const t = ageMin + range * (i / N_CURVE);
+      const l = result.lInf * (1 - Math.exp(-result.k * (t - result.t0)));
+      ageArr.push(t);
+      lengthArr.push(l);
+      seriesArr.push('fitted');
+    }
+  }
+
+  const n = ageArr.length;
+
+  // 메타: row 0에 값, 나머지 null
+  const rSquaredArr: (number | null)[] = new Array(n).fill(null);
+  const equationArr: (string | null)[] = new Array(n).fill(null);
+  if (n > 0) {
+    rSquaredArr[0] = result.rSquared;
+    equationArr[0] = `L(t) = ${result.lInf.toFixed(2)} × (1 - e^(-${result.k.toFixed(4)} × (t - ${result.t0.toFixed(4)})))`;
+  }
+
+  const data: Record<string, unknown[]> = {
+    age: ageArr,
+    length: lengthArr,
+    series: seriesArr,
+    __rSquared: rSquaredArr,
+    __equation: equationArr,
+  };
+
+  const uniqCount = (arr: (string | number)[]) => new Set(arr).size;
+  const columns: ColumnMeta[] = [
+    { name: 'age', type: 'quantitative', uniqueCount: uniqCount(ageArr), sampleValues: ageArr.slice(0, 5).map(String), hasNull: false },
+    { name: 'length', type: 'quantitative', uniqueCount: uniqCount(lengthArr), sampleValues: lengthArr.slice(0, 5).map(String), hasNull: false },
+    { name: 'series', type: 'nominal', uniqueCount: 2, sampleValues: ['observed', 'fitted'], hasNull: false },
+    { name: '__rSquared', type: 'quantitative', uniqueCount: 2, sampleValues: [], hasNull: true },
+    { name: '__equation', type: 'nominal', uniqueCount: 2, sampleValues: [], hasNull: true },
+  ];
+
+  return { columns, data, xField: 'age', yField: 'length', colorField: 'series' };
+}
+
+/** buildLengthWeightColumns 반환 형태 */
+export interface LwColumnsResult {
+  columns: ColumnMeta[];
+  data: Record<string, unknown[]>;
+  xField: 'logLength';
+  yField: 'logWeight';
+  colorField: undefined;
+}
+
+/**
+ * LengthWeightResult → DataPackage 컬럼 변환.
+ * scatter + linear trendline 구성 (log-log 변환).
+ */
+export function buildLengthWeightColumns(result: LengthWeightResult): LwColumnsResult {
+  const n = result.logLogPoints.length;
+  const logLengthArr = result.logLogPoints.map(p => p.logL);
+  const logWeightArr = result.logLogPoints.map(p => p.logW);
+
+  // 메타: row 0에 값, 나머지 null
+  const logAArr: (number | null)[] = new Array(n).fill(null);
+  const bArr: (number | null)[] = new Array(n).fill(null);
+  const rSquaredArr: (number | null)[] = new Array(n).fill(null);
+  if (n > 0) {
+    logAArr[0] = result.logA;
+    bArr[0] = result.b;
+    rSquaredArr[0] = result.rSquared;
+  }
+
+  const data: Record<string, unknown[]> = {
+    logLength: logLengthArr,
+    logWeight: logWeightArr,
+    __logA: logAArr,
+    __b: bArr,
+    __rSquared: rSquaredArr,
+  };
+
+  const uniqCount = (arr: number[]) => new Set(arr).size;
+  const columns: ColumnMeta[] = [
+    { name: 'logLength', type: 'quantitative', uniqueCount: uniqCount(logLengthArr), sampleValues: logLengthArr.slice(0, 5).map(String), hasNull: false },
+    { name: 'logWeight', type: 'quantitative', uniqueCount: uniqCount(logWeightArr), sampleValues: logWeightArr.slice(0, 5).map(String), hasNull: false },
+    { name: '__logA', type: 'quantitative', uniqueCount: 2, sampleValues: [], hasNull: true },
+    { name: '__b', type: 'quantitative', uniqueCount: 2, sampleValues: [], hasNull: true },
+    { name: '__rSquared', type: 'quantitative', uniqueCount: 2, sampleValues: [], hasNull: true },
+  ];
+
+  return { columns, data, xField: 'logLength', yField: 'logWeight', colorField: undefined };
+}
+
+/** buildConditionFactorColumns 반환 형태 */
+export interface CfColumnsResult {
+  columns: ColumnMeta[];
+  data: Record<string, unknown[]>;
+  xField: 'k';
+  yField: undefined;
+}
+
+/**
+ * ConditionFactorResult → DataPackage 컬럼 변환.
+ * histogram 구성 (mean/median markLine 참조선용 메타 포함).
+ */
+export function buildConditionFactorColumns(result: ConditionFactorResult): CfColumnsResult {
+  const kArr = [...result.individualK];
+  const n = kArr.length;
+
+  // 메타: row 0에 값, 나머지 null
+  const meanArr: (number | null)[] = new Array(n).fill(null);
+  const medianArr: (number | null)[] = new Array(n).fill(null);
+  if (n > 0) {
+    meanArr[0] = result.mean;
+    medianArr[0] = result.median;
+  }
+
+  const data: Record<string, unknown[]> = {
+    k: kArr,
+    __mean: meanArr,
+    __median: medianArr,
+  };
+
+  const uniqCount = (arr: number[]) => new Set(arr).size;
+  const columns: ColumnMeta[] = [
+    { name: 'k', type: 'quantitative', uniqueCount: uniqCount(kArr), sampleValues: kArr.slice(0, 5).map(String), hasNull: false },
+    { name: '__mean', type: 'quantitative', uniqueCount: 2, sampleValues: [], hasNull: true },
+    { name: '__median', type: 'quantitative', uniqueCount: 2, sampleValues: [], hasNull: true },
+  ];
+
+  return { columns, data, xField: 'k', yField: undefined };
 }
 
 /**

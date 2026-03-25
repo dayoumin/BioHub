@@ -13,8 +13,13 @@ import { BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles
 import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
 import { detectLengthColumn, detectWeightColumn } from '@/lib/bio-tools/fisheries-columns'
 import { cn } from '@/lib/utils'
-import { Loader2 } from 'lucide-react'
+import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { useRouter } from 'next/navigation'
+import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
+import { buildConditionFactorColumns } from '@/lib/graph-studio/analysis-adapter'
+import { createDefaultChartSpec } from '@/lib/graph-studio/chart-spec-defaults'
+import type { DataPackage, VLineAnnotation } from '@/types/graph-studio'
 import type { ToolComponentProps } from './types'
 import type { ConditionFactorResult } from '@/types/bio-tools-results'
 
@@ -26,6 +31,8 @@ export default function ConditionFactorTool({ tool, meta }: ToolComponentProps):
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<ConditionFactorResult>({ worker: PyodideWorker.Fisheries })
   const resultsRef = useScrollToResults(results)
+  const router = useRouter()
+  const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
 
   const onDataLoaded = useCallback((data: Parameters<typeof handleDataLoaded>[0]) => {
     handleDataLoaded(data)
@@ -50,6 +57,30 @@ export default function ConditionFactorTool({ tool, meta }: ToolComponentProps):
       : null
     runAnalysis('condition_factor', { lengths, weights, groups })
   }, [csvData, lengthCol, weightCol, groupCol, runAnalysis])
+
+  const handleOpenInGraphStudio = useCallback(() => {
+    if (!results) return
+    const built = buildConditionFactorColumns(results)
+    const pkgId = crypto.randomUUID()
+    // histogram은 yField 불필요 — xField로 빈도 분포 생성
+    const spec = createDefaultChartSpec(pkgId, 'histogram', built.xField, built.xField, built.columns)
+    // mean/median 참조선 추가
+    const annotations: VLineAnnotation[] = [
+      { type: 'vline', value: results.mean, text: `Mean = ${results.mean.toFixed(4)}`, color: '#E64B35' },
+      { type: 'vline', value: results.median, text: `Median = ${results.median.toFixed(4)}`, color: '#4DBBD5', strokeDash: [4, 3] },
+    ]
+    spec.annotations = annotations
+    const pkg: DataPackage = {
+      id: pkgId,
+      source: 'bio-tools',
+      label: 'Condition Factor (K) 분포',
+      columns: built.columns,
+      data: built.data,
+      createdAt: new Date().toISOString(),
+    }
+    loadDataPackageWithSpec(pkg, spec)
+    router.push('/graph-studio')
+  }, [results, loadDataPackageWithSpec, router])
 
   // 히스토그램 데이터
   const histData = useMemo(() => {
@@ -238,6 +269,11 @@ export default function ConditionFactorTool({ tool, meta }: ToolComponentProps):
               )}
             </div>
           )}
+
+          <Button variant="outline" size="sm" onClick={handleOpenInGraphStudio}>
+            <BarChart3 className="h-4 w-4 mr-1.5" />
+            Graph Studio에서 열기
+          </Button>
 
           <div className="p-3 border rounded-lg bg-muted/30 text-xs text-muted-foreground space-y-1">
             <p className="font-medium text-foreground text-sm">Fulton&apos;s K 주의사항</p>

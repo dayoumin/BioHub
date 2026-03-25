@@ -12,8 +12,13 @@ import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
 import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
 import { detectAgeColumn, detectLengthColumn } from '@/lib/bio-tools/fisheries-columns'
 import { cn } from '@/lib/utils'
-import { Loader2 } from 'lucide-react'
+import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { useRouter } from 'next/navigation'
+import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
+import { buildVbgfColumns } from '@/lib/graph-studio/analysis-adapter'
+import { createDefaultChartSpec } from '@/lib/graph-studio/chart-spec-defaults'
+import type { DataPackage } from '@/types/graph-studio'
 import type { ToolComponentProps } from './types'
 
 import type { VbgfResult } from '@/types/bio-tools-results'
@@ -27,6 +32,8 @@ export default function VbgfTool({ tool, meta }: ToolComponentProps): React.Reac
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<VbgfResult>({ worker: PyodideWorker.Fisheries })
   const resultsRef = useScrollToResults(results)
+  const router = useRouter()
+  const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
 
   const onDataLoaded = useCallback((data: Parameters<typeof handleDataLoaded>[0]) => {
     handleDataLoaded(data)
@@ -48,6 +55,29 @@ export default function VbgfTool({ tool, meta }: ToolComponentProps): React.Reac
     const lengths = csvData.rows.map((r) => r[lengthCol] as number | null)
     runAnalysis('fit_vbgf', { ages, lengths })
   }, [csvData, ageCol, lengthCol, runAnalysis])
+
+  const handleOpenInGraphStudio = useCallback(() => {
+    if (!results || !csvData || !analyzedCols) return
+    const observedData = csvData.rows
+      .map(r => ({ age: r[analyzedCols.age], length: r[analyzedCols.length] }))
+      .filter(p => p.age != null && p.age !== '' && p.length != null && p.length !== '')
+      .map(p => ({ age: Number(p.age), length: Number(p.length) }))
+      .filter(p => !isNaN(p.age) && !isNaN(p.length))
+    const built = buildVbgfColumns(results, observedData)
+    const pkgId = crypto.randomUUID()
+    const spec = createDefaultChartSpec(pkgId, 'scatter', built.xField, built.yField, built.columns)
+    spec.encoding.color = { field: built.colorField, type: 'nominal' }
+    const pkg: DataPackage = {
+      id: pkgId,
+      source: 'bio-tools',
+      label: 'VBGF 성장곡선',
+      columns: built.columns,
+      data: built.data,
+      createdAt: new Date().toISOString(),
+    }
+    loadDataPackageWithSpec(pkg, spec)
+    router.push('/graph-studio')
+  }, [results, csvData, analyzedCols, loadDataPackageWithSpec, router])
 
   // 성장곡선 차트 데이터 (분석 시점 컬럼 사용)
   const chartData = useMemo(() => {
@@ -193,6 +223,11 @@ export default function VbgfTool({ tool, meta }: ToolComponentProps): React.Reac
               </div>
             </div>
           )}
+
+          <Button variant="outline" size="sm" onClick={handleOpenInGraphStudio}>
+            <BarChart3 className="h-4 w-4 mr-1.5" />
+            Graph Studio에서 열기
+          </Button>
 
           <div>
             <h3 className="text-sm font-semibold mb-2">적합도</h3>
