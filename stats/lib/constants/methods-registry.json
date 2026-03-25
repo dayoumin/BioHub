@@ -1097,7 +1097,7 @@
         "params": [
           "time",
           "event",
-          "group"
+          "group?"
         ],
         "returns": [
           "curves",

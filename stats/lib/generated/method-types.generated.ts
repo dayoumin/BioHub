@@ -2,7 +2,7 @@
  * Auto-generated from methods-registry.json
  * DO NOT EDIT MANUALLY
  *
- * Generated: 2026-03-25T03:52:48.306Z
+ * Generated: 2026-03-25T04:16:40.306Z
  */
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -22,6 +22,7 @@ export const WORKER = {
   MATPLOTLIB: 6,
   FISHERIES: 7,
   ECOLOGY: 8,
+  GENETICS: 9,
 } as const
 
 export type WorkerNumber = typeof WORKER[keyof typeof WORKER]
@@ -1208,51 +1209,51 @@ export async function coxRegression(times: number[], events: number[], covariate
 // ========================================
 
 export interface KaplanMeierAnalysisResult {
-  curves: unknown
-  logRankP: unknown
-  medianSurvivalTime: unknown
+  curves: Record<string, { time: number[]; survival: number[]; ciLo: number[]; ciHi: number[]; atRisk: number[]; medianSurvival: number | null; censored: number[]; nEvents: number }>
+  logRankP: number | null
+  medianSurvivalTime: number | null
 }
 
 export interface RocCurveAnalysisResult {
-  rocPoints: unknown
+  rocPoints: Array<{ fpr: number; tpr: number }>
   auc: number
-  aucCI: unknown
-  optimalThreshold: unknown
+  aucCI: { lower: number; upper: number }
+  optimalThreshold: number
   sensitivity: number
   specificity: number
 }
 
 export interface MetaAnalysisResult {
-  pooledEffect: unknown
-  pooledSE: unknown
-  ci: unknown
-  zValue: unknown
+  pooledEffect: number
+  pooledSE: number
+  ci: [number, number]
+  zValue: number
   pValue: number
-  Q: unknown
-  QpValue: unknown
-  iSquared: unknown
-  tauSquared: unknown
-  model: unknown
-  weights: unknown
-  studyCiLower: unknown
-  studyCiUpper: unknown
-  studyNames: unknown
-  effectSizes: unknown
+  Q: number
+  QpValue: number
+  iSquared: number
+  tauSquared: number
+  model: string
+  weights: number[]
+  studyCiLower: number[]
+  studyCiUpper: number[]
+  studyNames: string[]
+  effectSizes: number[]
 }
 
 export interface IccAnalysisResult {
-  icc: unknown
-  iccType: unknown
-  fValue: unknown
-  df1: unknown
-  df2: unknown
+  icc: number
+  iccType: string
+  fValue: number
+  df1: number
+  df2: number
   pValue: number
-  ci: unknown
-  msRows: unknown
-  msCols: unknown
-  msError: unknown
-  nSubjects: unknown
-  nRaters: unknown
+  ci: [number, number]
+  msRows: number
+  msCols: number
+  msError: number
+  nSubjects: number
+  nRaters: number
   interpretation: string
 }
 
@@ -1261,7 +1262,7 @@ export interface IccAnalysisResult {
  * Kaplan-Meier 생존분석 (그룹 비교 + Log-rank)
  * @worker Worker 5
  */
-export async function kaplanMeierAnalysis(time: unknown, event: unknown, group: unknown): Promise<KaplanMeierAnalysisResult> {
+export async function kaplanMeierAnalysis(time: number[], event: number[], group?: (string | number)[]): Promise<KaplanMeierAnalysisResult> {
   return callWorkerMethod<KaplanMeierAnalysisResult>(5, 'kaplan_meier_analysis', { time, event, group })
 }
 
@@ -1269,7 +1270,7 @@ export async function kaplanMeierAnalysis(time: unknown, event: unknown, group: 
  * ROC 곡선 + AUC 분석
  * @worker Worker 5
  */
-export async function rocCurveAnalysis(actualClass: unknown, predictedProb: unknown): Promise<RocCurveAnalysisResult> {
+export async function rocCurveAnalysis(actualClass: (string | number)[], predictedProb: number[]): Promise<RocCurveAnalysisResult> {
   return callWorkerMethod<RocCurveAnalysisResult>(5, 'roc_curve_analysis', { actualClass, predictedProb })
 }
 
@@ -1277,7 +1278,7 @@ export async function rocCurveAnalysis(actualClass: unknown, predictedProb: unkn
  * 고정/랜덤 효과 메타분석 (Forest Plot)
  * @worker Worker 5
  */
-export async function metaAnalysis(effectSizes: unknown, standardErrors: unknown, studyNames: unknown, model: unknown): Promise<MetaAnalysisResult> {
+export async function metaAnalysis(effectSizes: number[], standardErrors: number[], studyNames: string[], model: string): Promise<MetaAnalysisResult> {
   return callWorkerMethod<MetaAnalysisResult>(5, 'meta_analysis', { effectSizes, standardErrors, studyNames, model })
 }
 
@@ -1285,7 +1286,7 @@ export async function metaAnalysis(effectSizes: unknown, standardErrors: unknown
  * 급내상관계수 (ICC)
  * @worker Worker 5
  */
-export async function iccAnalysis(data: number[] | number[][], iccType: unknown): Promise<IccAnalysisResult> {
+export async function iccAnalysis(data: number[] | number[][], iccType: string): Promise<IccAnalysisResult> {
   return callWorkerMethod<IccAnalysisResult>(5, 'icc_analysis', { data, iccType })
 }
 
@@ -1295,9 +1296,9 @@ export async function iccAnalysis(data: number[] | number[][], iccType: unknown)
 // ========================================
 
 export interface RenderChartResult {
-  base64Data: unknown
-  mimeType: unknown
-  extension: unknown
+  base64Data: string
+  mimeType: string
+  extension: string
 }
 
 
@@ -1305,7 +1306,7 @@ export interface RenderChartResult {
  * ChartSpec + 데이터 → matplotlib figure → base64 이미지/문서
  * @worker Worker 6
  */
-export async function renderChart(chartSpec: unknown, data: number[] | number[][], exportConfig: unknown): Promise<RenderChartResult> {
+export async function renderChart(chartSpec: Record<string, WorkerMethodParam>, data: number[] | number[][], exportConfig: Record<string, WorkerMethodParam>): Promise<RenderChartResult> {
   return callWorkerMethod<RenderChartResult>(6, 'render_chart', { chartSpec, data, exportConfig })
 }
 
@@ -1315,43 +1316,43 @@ export async function renderChart(chartSpec: unknown, data: number[] | number[][
 // ========================================
 
 export interface FitVbgfResult {
-  lInf: unknown
-  k: unknown
-  t0: unknown
-  standardErrors: unknown
-  ci95: unknown
+  lInf: number
+  k: number
+  t0: number
+  standardErrors: number[]
+  ci95: number[]
   rSquared: number
-  predicted: unknown
+  predicted: number[]
   residuals: number[]
   nObservations: number
   aic: number
-  parameterTable: unknown
+  parameterTable: Array<{ name: string; unit: string; estimate: number; standardError: number; ciLower: number; ciUpper: number }>
 }
 
 export interface LengthWeightResult {
-  a: unknown
-  b: unknown
-  logA: unknown
+  a: number
+  b: number
+  logA: number
   rSquared: number
-  bStdError: unknown
-  isometricTStat: unknown
-  isometricPValue: unknown
-  growthType: unknown
-  predicted: unknown
+  bStdError: number
+  isometricTStat: number
+  isometricPValue: number
+  growthType: string
+  predicted: number[]
   nObservations: number
-  logLogPoints: unknown
+  logLogPoints: Array<{ logL: number; logW: number }>
 }
 
 export interface ConditionFactorResult {
-  individualK: unknown
+  individualK: number[]
   mean: number
   std: number
   median: number
   min: number
   max: number
   n: number
-  groupStats: unknown
-  comparison: unknown
+  groupStats: Record<string, { mean: number; std: number; n: number; median: number }> | undefined
+  comparison: { test: string; statistic: number; pValue: number; df: number; df2?: number } | undefined
 }
 
 
@@ -1359,7 +1360,7 @@ export interface ConditionFactorResult {
  * von Bertalanffy 성장 모델 파라미터 추정
  * @worker Worker 7
  */
-export async function fitVbgf(ages: unknown, lengths: unknown): Promise<FitVbgfResult> {
+export async function fitVbgf(ages: number[], lengths: number[]): Promise<FitVbgfResult> {
   return callWorkerMethod<FitVbgfResult>(7, 'fit_vbgf', { ages, lengths })
 }
 
@@ -1367,7 +1368,7 @@ export async function fitVbgf(ages: unknown, lengths: unknown): Promise<FitVbgfR
  * 체장-체중 관계식 추정 (W = aL^b)
  * @worker Worker 7
  */
-export async function lengthWeight(lengths: unknown, weights: unknown): Promise<LengthWeightResult> {
+export async function lengthWeight(lengths: number[], weights: number[]): Promise<LengthWeightResult> {
   return callWorkerMethod<LengthWeightResult>(7, 'length_weight', { lengths, weights })
 }
 
@@ -1375,7 +1376,7 @@ export async function lengthWeight(lengths: unknown, weights: unknown): Promise<
  * Fulton's Condition Factor (K = 100 × W / L³)
  * @worker Worker 7
  */
-export async function conditionFactor(lengths: unknown, weights: unknown, groups?: number[][] | number[]): Promise<ConditionFactorResult> {
+export async function conditionFactor(lengths: number[], weights: number[], groups?: string[]): Promise<ConditionFactorResult> {
   return callWorkerMethod<ConditionFactorResult>(7, 'condition_factor', { lengths, weights, groups })
 }
 
@@ -1385,44 +1386,44 @@ export async function conditionFactor(lengths: unknown, weights: unknown, groups
 // ========================================
 
 export interface AlphaDiversityResult {
-  siteResults: unknown
-  summaryTable: unknown
-  speciesNames: unknown
-  siteCount: unknown
+  siteResults: Array<{ siteName: string; speciesRichness: number; totalAbundance: number; shannonH: number; simpsonDominance: number; simpsonDiversity: number; simpsonReciprocal: number; margalef: number; pielou: number }>
+  summaryTable: Array<{ index: string; mean: number; sd: number; min: number; max: number }>
+  speciesNames: string[]
+  siteCount: number
 }
 
 export interface RarefactionResult {
-  curves: unknown
+  curves: Array<{ siteName: string; steps: number[]; expectedSpecies: number[] }>
 }
 
 export interface BetaDiversityResult {
-  distanceMatrix: unknown
-  siteLabels: unknown
-  metric: unknown
+  distanceMatrix: number[][]
+  siteLabels: string[]
+  metric: string
 }
 
 export interface NmdsResult {
-  coordinates: unknown
-  stress: unknown
-  stressInterpretation: unknown
-  siteLabels: unknown
-  groups: unknown
+  coordinates: number[][]
+  stress: number
+  stressInterpretation: string
+  siteLabels: string[]
+  groups: string[] | null
 }
 
 export interface PermanovaResult {
-  pseudoF: unknown
+  pseudoF: number
   pValue: number
   rSquared: number
-  permutations: unknown
-  ssBetween: unknown
-  ssWithin: unknown
-  ssTotal: unknown
+  permutations: number
+  ssBetween: number
+  ssWithin: number
+  ssTotal: number
 }
 
 export interface MantelTestResult {
-  r: unknown
+  r: number
   pValue: number
-  permutations: unknown
+  permutations: number
   method: string
 }
 
@@ -1431,7 +1432,7 @@ export interface MantelTestResult {
  * 지점별 알파 다양성 지수 (Shannon, Simpson, Margalef, Pielou)
  * @worker Worker 8
  */
-export async function alphaDiversity(rows: unknown, site_col?: unknown): Promise<AlphaDiversityResult> {
+export async function alphaDiversity(rows: Record<string, number>[], site_col?: string): Promise<AlphaDiversityResult> {
   return callWorkerMethod<AlphaDiversityResult>(8, 'alpha_diversity', { rows, site_col })
 }
 
@@ -1439,7 +1440,7 @@ export async function alphaDiversity(rows: unknown, site_col?: unknown): Promise
  * 종 희박화 곡선 (Hurlbert 1971)
  * @worker Worker 8
  */
-export async function rarefaction(rows: unknown, site_col?: unknown, n_steps?: unknown): Promise<RarefactionResult> {
+export async function rarefaction(rows: Record<string, number>[], site_col?: string, n_steps?: number): Promise<RarefactionResult> {
   return callWorkerMethod<RarefactionResult>(8, 'rarefaction', { rows, site_col, n_steps })
 }
 
@@ -1447,7 +1448,7 @@ export async function rarefaction(rows: unknown, site_col?: unknown, n_steps?: u
  * 지점 간 베타 다양성 거리행렬 (Bray-Curtis, Jaccard, Sørensen)
  * @worker Worker 8
  */
-export async function betaDiversity(rows: unknown, site_col?: unknown, metric?: unknown): Promise<BetaDiversityResult> {
+export async function betaDiversity(rows: Record<string, number>[], site_col?: string, metric?: string): Promise<BetaDiversityResult> {
   return callWorkerMethod<BetaDiversityResult>(8, 'beta_diversity', { rows, site_col, metric })
 }
 
@@ -1455,7 +1456,7 @@ export async function betaDiversity(rows: unknown, site_col?: unknown, metric?: 
  * NMDS 비계량 다차원 척도법
  * @worker Worker 8
  */
-export async function nmds(distance_matrix: number[][], site_labels?: unknown, groups?: number[][] | number[], n_components?: unknown, max_iter?: unknown, random_state?: unknown): Promise<NmdsResult> {
+export async function nmds(distance_matrix: number[][], site_labels?: string[], groups?: string[], n_components?: number, max_iter?: number, random_state?: number): Promise<NmdsResult> {
   return callWorkerMethod<NmdsResult>(8, 'nmds', { distance_matrix, site_labels, groups, n_components, max_iter, random_state })
 }
 
@@ -1463,7 +1464,7 @@ export async function nmds(distance_matrix: number[][], site_labels?: unknown, g
  * PERMANOVA 순열 다변량 분산분석 (Anderson 2001)
  * @worker Worker 8
  */
-export async function permanova(distance_matrix: number[][], grouping: unknown, permutations?: unknown): Promise<PermanovaResult> {
+export async function permanova(distance_matrix: number[][], grouping: (string | number)[], permutations?: number): Promise<PermanovaResult> {
   return callWorkerMethod<PermanovaResult>(8, 'permanova', { distance_matrix, grouping, permutations })
 }
 
@@ -1471,7 +1472,7 @@ export async function permanova(distance_matrix: number[][], grouping: unknown, 
  * Mantel 검정 — 두 거리행렬 간 상관
  * @worker Worker 8
  */
-export async function mantelTest(matrix_x: unknown, matrix_y: unknown, permutations?: unknown, method?: string): Promise<MantelTestResult> {
+export async function mantelTest(matrix_x: number[][], matrix_y: number[][], permutations?: number, method?: string): Promise<MantelTestResult> {
   return callWorkerMethod<MantelTestResult>(8, 'mantel_test', { matrix_x, matrix_y, permutations, method })
 }
 
@@ -1481,26 +1482,26 @@ export async function mantelTest(matrix_x: unknown, matrix_y: unknown, permutati
 // ========================================
 
 export interface HardyWeinbergResult {
-  alleleFreqP: unknown
-  alleleFreqQ: unknown
-  observedCounts: unknown
-  expectedCounts: unknown
+  alleleFreqP: number
+  alleleFreqQ: number
+  observedCounts: number[]
+  expectedCounts: number[]
   chiSquare: number
   pValue: number
   degreesOfFreedom: number
-  inEquilibrium: unknown
-  isMonomorphic: unknown
+  inEquilibrium: boolean
+  isMonomorphic: boolean
   interpretation: string
-  nTotal: unknown
-  locusResults: unknown
-  lowExpectedWarning: unknown
+  nTotal: number
+  locusResults: Array<{ locus: string; observedCounts: number[]; expectedCounts: number[]; alleleFreqP: number; alleleFreqQ: number; chiSquare: number; pValue: number; degreesOfFreedom: number; inEquilibrium: boolean; isMonomorphic: boolean; nTotal: number; lowExpectedWarning: boolean }> | null
+  lowExpectedWarning: boolean
 }
 
 export interface FstResult {
-  globalFst: unknown
-  pairwiseFst: unknown
-  populationLabels: unknown
-  nPopulations: unknown
+  globalFst: number
+  pairwiseFst: number[][] | null
+  populationLabels: string[]
+  nPopulations: number
   interpretation: string
 }
 
@@ -1509,7 +1510,7 @@ export interface FstResult {
  * Hardy-Weinberg 평형 chi-square 검정
  * @worker Worker 9
  */
-export async function hardyWeinberg(rows: unknown, locusLabels?: unknown): Promise<HardyWeinbergResult> {
+export async function hardyWeinberg(rows: number[][], locusLabels?: string[]): Promise<HardyWeinbergResult> {
   return callWorkerMethod<HardyWeinbergResult>(9, 'hardy_weinberg', { rows, locusLabels })
 }
 
@@ -1517,7 +1518,7 @@ export async function hardyWeinberg(rows: unknown, locusLabels?: unknown): Promi
  * Fst 집단 분화 지수 (Hudson 1992 + Bhatia 2013)
  * @worker Worker 9
  */
-export async function fst(populations: unknown, populationLabels?: unknown): Promise<FstResult> {
+export async function fst(populations: number[][], populationLabels?: string[]): Promise<FstResult> {
   return callWorkerMethod<FstResult>(9, 'fst', { populations, populationLabels })
 }
 

@@ -39,6 +39,7 @@ function makeKmData(overrides: Partial<KaplanMeierAnalysisResult> = {}): KaplanM
         atRisk: [10, 8, 6, 4],
         medianSurvival: 20,
         censored: [7, 15], // 중도절단 시점
+        nEvents: 6,
       },
     },
     logRankP: null,
@@ -58,6 +59,7 @@ function makeKmDataMultiGroup(): KaplanMeierAnalysisResult {
         atRisk: [5, 4, 3],
         medianSurvival: null,
         censored: [],
+        nEvents: 2,
       },
       B: {
         time: [0, 5, 10],
@@ -67,6 +69,7 @@ function makeKmDataMultiGroup(): KaplanMeierAnalysisResult {
         atRisk: [5, 3, 2],
         medianSurvival: 5,
         censored: [8],
+        nEvents: 3,
       },
     },
     logRankP: 0.032,

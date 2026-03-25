@@ -256,6 +256,129 @@ const METHOD_TYPE_OVERRIDES = {
     'df': '{ numerator: number; denominator: number }',
     'sphericity': 'Record<string, unknown>',
   },
+  // Worker 6 (Matplotlib) — 반환 타입
+  'render_chart': {
+    'base64Data': 'string',
+    'mimeType': 'string',
+    'extension': 'string',
+  },
+  // Worker 5 (Survival) — 복합 반환 타입
+  'kaplan_meier_analysis': {
+    'curves': 'Record<string, { time: number[]; survival: number[]; ciLo: number[]; ciHi: number[]; atRisk: number[]; medianSurvival: number | null; censored: number[]; nEvents: number }>',
+    'logRankP': 'number | null',
+    'medianSurvivalTime': 'number | null',
+  },
+  'roc_curve_analysis': {
+    'rocPoints': 'Array<{ fpr: number; tpr: number }>',
+    'aucCI': '{ lower: number; upper: number }',
+    'optimalThreshold': 'number',
+  },
+  'meta_analysis': {
+    'pooledEffect': 'number',
+    'pooledSE': 'number',
+    'ci': '[number, number]',
+    'zValue': 'number',
+    'Q': 'number',
+    'QpValue': 'number',
+    'iSquared': 'number',
+    'tauSquared': 'number',
+    'model': 'string',
+    'weights': 'number[]',
+    'studyCiLower': 'number[]',
+    'studyCiUpper': 'number[]',
+    'studyNames': 'string[]',
+    'effectSizes': 'number[]',
+  },
+  'icc_analysis': {
+    'icc': 'number',
+    'iccType': 'string',
+    'fValue': 'number',
+    'df1': 'number',
+    'df2': 'number',
+    'ci': '[number, number]',
+    'msRows': 'number',
+    'msCols': 'number',
+    'msError': 'number',
+    'nSubjects': 'number',
+    'nRaters': 'number',
+  },
+  // Worker 7 (Fisheries) — 복합 반환 타입
+  'fit_vbgf': {
+    'lInf': 'number',
+    'k': 'number',
+    't0': 'number',
+    'standardErrors': 'number[]',
+    'ci95': 'number[]',
+    'predicted': 'number[]',
+    'parameterTable': 'Array<{ name: string; unit: string; estimate: number; standardError: number; ciLower: number; ciUpper: number }>',
+  },
+  'length_weight': {
+    'a': 'number',
+    'b': 'number',
+    'logA': 'number',
+    'bStdError': 'number',
+    'isometricTStat': 'number',
+    'isometricPValue': 'number',
+    'growthType': 'string',
+    'predicted': 'number[]',
+    'logLogPoints': 'Array<{ logL: number; logW: number }>',
+  },
+  'condition_factor': {
+    'individualK': 'number[]',
+    'groupStats': 'Record<string, { mean: number; std: number; n: number; median: number }> | undefined',
+    'comparison': '{ test: string; statistic: number; pValue: number; df: number; df2?: number } | undefined',
+  },
+  // Worker 8 (Ecology) — 복합 반환 타입
+  'alpha_diversity': {
+    'siteResults': 'Array<{ siteName: string; speciesRichness: number; totalAbundance: number; shannonH: number; simpsonDominance: number; simpsonDiversity: number; simpsonReciprocal: number; margalef: number; pielou: number }>',
+    'summaryTable': 'Array<{ index: string; mean: number; sd: number; min: number; max: number }>',
+    'speciesNames': 'string[]',
+    'siteCount': 'number',
+  },
+  'rarefaction': {
+    'curves': 'Array<{ siteName: string; steps: number[]; expectedSpecies: number[] }>',
+  },
+  'beta_diversity': {
+    'distanceMatrix': 'number[][]',
+    'siteLabels': 'string[]',
+    'metric': 'string',
+  },
+  'nmds': {
+    'coordinates': 'number[][]',
+    'stress': 'number',
+    'stressInterpretation': 'string',
+    'siteLabels': 'string[]',
+    'groups': 'string[] | null',
+  },
+  'permanova': {
+    'pseudoF': 'number',
+    'permutations': 'number',
+    'ssBetween': 'number',
+    'ssWithin': 'number',
+    'ssTotal': 'number',
+  },
+  'mantel_test': {
+    'r': 'number',
+    'permutations': 'number',
+  },
+  // Worker 9 (Genetics) — 복합 반환 타입
+  'hardy_weinberg': {
+    'alleleFreqP': 'number',
+    'alleleFreqQ': 'number',
+    'observedCounts': 'number[]',
+    'expectedCounts': 'number[]',
+    'inEquilibrium': 'boolean',
+    'isMonomorphic': 'boolean',
+    'nTotal': 'number',
+    'lowExpectedWarning': 'boolean',
+    'locusResults': 'Array<{ locus: string; observedCounts: number[]; expectedCounts: number[]; alleleFreqP: number; alleleFreqQ: number; chiSquare: number; pValue: number; degreesOfFreedom: number; inEquilibrium: boolean; isMonomorphic: boolean; nTotal: number; lowExpectedWarning: boolean }> | null',
+  },
+  'fst': {
+    'globalFst': 'number',
+    'pairwiseFst': 'number[][] | null',
+    'populationLabels': 'string[]',
+    'nPopulations': 'number',
+  },
 }
 
 /**
@@ -525,6 +648,87 @@ const METHOD_PARAM_OVERRIDES = {
   'partial_correlation': {
     'controlIndices': 'number[]',
   },
+  // Worker 5 (Survival)
+  'kaplan_meier_analysis': {
+    'time': 'number[]',
+    'event': 'number[]',
+    'group': '(string | number)[]',
+  },
+  'roc_curve_analysis': {
+    'actualClass': '(string | number)[]',
+    'predictedProb': 'number[]',
+  },
+  'meta_analysis': {
+    'effectSizes': 'number[]',
+    'standardErrors': 'number[]',
+    'studyNames': 'string[]',
+    'model': 'string',
+  },
+  'icc_analysis': {
+    'iccType': 'string',
+  },
+  // Worker 6 (Matplotlib)
+  'render_chart': {
+    'chartSpec': 'Record<string, WorkerMethodParam>',
+    'exportConfig': 'Record<string, WorkerMethodParam>',
+  },
+  // Worker 7 (Fisheries)
+  'fit_vbgf': {
+    'ages': 'number[]',
+    'lengths': 'number[]',
+  },
+  'length_weight': {
+    'lengths': 'number[]',
+    'weights': 'number[]',
+  },
+  'condition_factor': {
+    'lengths': 'number[]',
+    'weights': 'number[]',
+    'groups': 'string[]',
+  },
+  // Worker 8 (Ecology)
+  'alpha_diversity': {
+    'rows': 'Record<string, number>[]',
+    'site_col': 'string',
+  },
+  'rarefaction': {
+    'rows': 'Record<string, number>[]',
+    'site_col': 'string',
+    'n_steps': 'number',
+  },
+  'beta_diversity': {
+    'rows': 'Record<string, number>[]',
+    'site_col': 'string',
+    'metric': 'string',
+  },
+  'nmds': {
+    'distance_matrix': 'number[][]',
+    'site_labels': 'string[]',
+    'groups': 'string[]',
+    'n_components': 'number',
+    'max_iter': 'number',
+    'random_state': 'number',
+  },
+  'permanova': {
+    'distance_matrix': 'number[][]',
+    'grouping': '(string | number)[]',
+    'permutations': 'number',
+  },
+  'mantel_test': {
+    'matrix_x': 'number[][]',
+    'matrix_y': 'number[][]',
+    'permutations': 'number',
+    'method': 'string',
+  },
+  // Worker 9 (Genetics)
+  'hardy_weinberg': {
+    'rows': 'number[][]',
+    'locusLabels': 'string[]',
+  },
+  'fst': {
+    'populations': 'number[][]',
+    'populationLabels': 'string[]',
+  },
 }
 
 /**
@@ -556,6 +760,18 @@ export async function ${funcName}(${params}): Promise<${resultType}> {
 }`
 }
 
+/**
+ * WORKER 상수 블록 동적 생성
+ */
+function buildWorkerConst(workerNums, reg) {
+  return workerNums
+    .map(n => {
+      const name = reg[`worker${n}`].name.toUpperCase().replace(/[^A-Z0-9]/g, '_')
+      return `  ${name}: ${n},`
+    })
+    .join('\n')
+}
+
 // 메인 생성 로직
 function generate() {
   const lines = []
@@ -583,14 +799,7 @@ import { PyodideCoreService, type WorkerMethodParam } from '@/lib/services/pyodi
 // ========================================
 
 export const WORKER = {
-  DESCRIPTIVE: 1,
-  HYPOTHESIS: 2,
-  NONPARAMETRIC_ANOVA: 3,
-  REGRESSION_ADVANCED: 4,
-  SURVIVAL: 5,
-  MATPLOTLIB: 6,
-  FISHERIES: 7,
-  ECOLOGY: 8,
+${buildWorkerConst(workerNums, registry)}
 } as const
 
 export type WorkerNumber = typeof WORKER[keyof typeof WORKER]

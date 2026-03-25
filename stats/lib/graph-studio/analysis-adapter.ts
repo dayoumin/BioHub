@@ -14,9 +14,9 @@ import type {
 } from '@/types/graph-studio'
 import type {
   KaplanMeierAnalysisResult,
-  KmCurveData,
   RocCurveAnalysisResult,
 } from '@/lib/generated/method-types.generated'
+import type { KmCurve as KmCurveData } from '@/types/bio-tools-results'
 
 // ─── DataPackage 컬럼 빌더 (KM/ROC 전용) ────────────────────
 
