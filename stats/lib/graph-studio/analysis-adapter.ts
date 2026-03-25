@@ -21,6 +21,9 @@ import type {
   VbgfResult,
   LengthWeightResult,
   ConditionFactorResult,
+  NmdsResult,
+  RarefactionResult,
+  MetaAnalysisResult,
 } from '@/types/bio-tools-results'
 
 // ─── DataPackage 컬럼 빌더 (KM/ROC 전용) ────────────────────
@@ -335,6 +338,164 @@ export function buildConditionFactorColumns(result: ConditionFactorResult): CfCo
   ];
 
   return { columns, data, xField: 'k', yField: undefined };
+}
+
+// ─── DataPackage 컬럼 빌더 (Ecology / Methods) ──────────────
+
+/** buildNmdsColumns 반환 형태 */
+export interface NmdsColumnsResult {
+  columns: ColumnMeta[];
+  data: Record<string, unknown[]>;
+  xField: 'nmds1';
+  yField: 'nmds2';
+  colorField: 'group' | undefined;
+}
+
+/**
+ * NmdsResult → DataPackage 컬럼 변환.
+ * scatter (NMDS1 vs NMDS2) + 선택적 그룹 색상.
+ */
+export function buildNmdsColumns(result: NmdsResult): NmdsColumnsResult {
+  const n = result.coordinates.length;
+  const nmds1Arr = result.coordinates.map(c => c[0]);
+  const nmds2Arr = result.coordinates.map(c => c[1]);
+  const siteArr = result.siteLabels;
+  const hasGroups = result.groups !== null && result.groups.length > 0;
+  const groupArr = hasGroups ? result.groups! : undefined;
+
+  // 메타: row 0에 값, 나머지 null
+  const stressArr: (number | null)[] = new Array(n).fill(null);
+  const stressInterpArr: (string | null)[] = new Array(n).fill(null);
+  if (n > 0) {
+    stressArr[0] = result.stress;
+    stressInterpArr[0] = result.stressInterpretation;
+  }
+
+  const data: Record<string, unknown[]> = {
+    nmds1: nmds1Arr,
+    nmds2: nmds2Arr,
+    site: siteArr,
+    ...(groupArr ? { group: groupArr } : {}),
+    __stress: stressArr,
+    __stressInterpretation: stressInterpArr,
+  };
+
+  const uniqCount = (arr: (string | number)[]) => new Set(arr).size;
+  const columns: ColumnMeta[] = [
+    { name: 'nmds1', type: 'quantitative', uniqueCount: uniqCount(nmds1Arr), sampleValues: nmds1Arr.slice(0, 5).map(String), hasNull: false },
+    { name: 'nmds2', type: 'quantitative', uniqueCount: uniqCount(nmds2Arr), sampleValues: nmds2Arr.slice(0, 5).map(String), hasNull: false },
+    { name: 'site', type: 'nominal', uniqueCount: uniqCount(siteArr), sampleValues: siteArr.slice(0, 5), hasNull: false },
+    ...(groupArr ? [{ name: 'group', type: 'nominal' as const, uniqueCount: uniqCount(groupArr), sampleValues: [...new Set(groupArr)].slice(0, 5), hasNull: false }] : []),
+    { name: '__stress', type: 'quantitative', uniqueCount: 2, sampleValues: [], hasNull: true },
+    { name: '__stressInterpretation', type: 'nominal', uniqueCount: 2, sampleValues: [], hasNull: true },
+  ];
+
+  return { columns, data, xField: 'nmds1', yField: 'nmds2', colorField: hasGroups ? 'group' : undefined };
+}
+
+/** buildRarefactionColumns 반환 형태 */
+export interface RarefactionColumnsResult {
+  columns: ColumnMeta[];
+  data: Record<string, unknown[]>;
+  xField: 'individuals';
+  yField: 'expectedSpecies';
+  colorField: 'site';
+}
+
+/**
+ * RarefactionResult → DataPackage 컬럼 변환.
+ * line (다중 시리즈: 사이트별 희박화 곡선).
+ */
+export function buildRarefactionColumns(result: RarefactionResult): RarefactionColumnsResult {
+  const individualsArr: number[] = [];
+  const speciesArr: number[] = [];
+  const siteArr: string[] = [];
+
+  for (const curve of result.curves) {
+    for (let i = 0; i < curve.steps.length; i++) {
+      individualsArr.push(curve.steps[i]);
+      speciesArr.push(curve.expectedSpecies[i]);
+      siteArr.push(curve.siteName);
+    }
+  }
+
+  const n = individualsArr.length;
+  const data: Record<string, unknown[]> = {
+    individuals: individualsArr,
+    expectedSpecies: speciesArr,
+    site: siteArr,
+  };
+
+  const uniqCount = (arr: (string | number)[]) => new Set(arr).size;
+  const columns: ColumnMeta[] = [
+    { name: 'individuals', type: 'quantitative', uniqueCount: uniqCount(individualsArr), sampleValues: individualsArr.slice(0, 5).map(String), hasNull: false },
+    { name: 'expectedSpecies', type: 'quantitative', uniqueCount: uniqCount(speciesArr), sampleValues: speciesArr.slice(0, 5).map(String), hasNull: false },
+    { name: 'site', type: 'nominal', uniqueCount: uniqCount(siteArr), sampleValues: [...new Set(siteArr)].slice(0, 5), hasNull: false },
+  ];
+
+  return { columns, data, xField: 'individuals', yField: 'expectedSpecies', colorField: 'site' };
+}
+
+/** buildMetaAnalysisColumns 반환 형태 */
+export interface MetaAnalysisColumnsResult {
+  columns: ColumnMeta[];
+  data: Record<string, unknown[]>;
+  xField: 'effectSize';
+  yField: 'study';
+}
+
+/**
+ * MetaAnalysisResult → DataPackage 컬럼 변환.
+ * error-bar (Forest Plot: 연구별 효과크기 + CI).
+ */
+export function buildMetaAnalysisColumns(result: MetaAnalysisResult): MetaAnalysisColumnsResult {
+  // 개별 연구 + 통합 효과
+  const studyArr = [...result.studyNames, 'Pooled'];
+  const effectArr = [...result.effectSizes, result.pooledEffect];
+  const ciLowerArr = [...result.studyCiLower, result.ci[0]];
+  const ciUpperArr = [...result.studyCiUpper, result.ci[1]];
+  const weightArr = [...result.weights, 100];
+
+  const n = studyArr.length;
+
+  // 메타: row 0에 값, 나머지 null
+  const modelArr: (string | null)[] = new Array(n).fill(null);
+  const qArr: (number | null)[] = new Array(n).fill(null);
+  const iSquaredArr: (number | null)[] = new Array(n).fill(null);
+  const tauSquaredArr: (number | null)[] = new Array(n).fill(null);
+  if (n > 0) {
+    modelArr[0] = result.model;
+    qArr[0] = result.Q;
+    iSquaredArr[0] = result.iSquared;
+    tauSquaredArr[0] = result.tauSquared;
+  }
+
+  const data: Record<string, unknown[]> = {
+    study: studyArr,
+    effectSize: effectArr,
+    ciLower: ciLowerArr,
+    ciUpper: ciUpperArr,
+    weight: weightArr,
+    __model: modelArr,
+    __Q: qArr,
+    __iSquared: iSquaredArr,
+    __tauSquared: tauSquaredArr,
+  };
+
+  const uniqCount = (arr: (string | number)[]) => new Set(arr).size;
+  const columns: ColumnMeta[] = [
+    { name: 'study', type: 'nominal', uniqueCount: uniqCount(studyArr), sampleValues: studyArr.slice(0, 5), hasNull: false },
+    { name: 'effectSize', type: 'quantitative', uniqueCount: uniqCount(effectArr), sampleValues: effectArr.slice(0, 5).map(String), hasNull: false },
+    { name: 'ciLower', type: 'quantitative', uniqueCount: uniqCount(ciLowerArr), sampleValues: ciLowerArr.slice(0, 5).map(String), hasNull: false },
+    { name: 'ciUpper', type: 'quantitative', uniqueCount: uniqCount(ciUpperArr), sampleValues: ciUpperArr.slice(0, 5).map(String), hasNull: false },
+    { name: 'weight', type: 'quantitative', uniqueCount: uniqCount(weightArr), sampleValues: weightArr.slice(0, 5).map(String), hasNull: false },
+    { name: '__model', type: 'nominal', uniqueCount: 2, sampleValues: [], hasNull: true },
+    { name: '__Q', type: 'quantitative', uniqueCount: 2, sampleValues: [], hasNull: true },
+    { name: '__iSquared', type: 'quantitative', uniqueCount: 2, sampleValues: [], hasNull: true },
+    { name: '__tauSquared', type: 'quantitative', uniqueCount: 2, sampleValues: [], hasNull: true },
+  ];
+
+  return { columns, data, xField: 'effectSize', yField: 'study' };
 }
 
 /**

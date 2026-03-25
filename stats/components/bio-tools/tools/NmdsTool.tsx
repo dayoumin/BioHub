@@ -10,9 +10,14 @@ import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BIO_BADGE_CLASS, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
-import { Loader2 } from 'lucide-react'
+import { BarChart3, Loader2 } from 'lucide-react'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { useRouter } from 'next/navigation'
+import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
+import { buildNmdsColumns } from '@/lib/graph-studio/analysis-adapter'
+import { createDefaultChartSpec } from '@/lib/graph-studio/chart-spec-defaults'
+import type { DataPackage } from '@/types/graph-studio'
 import type { NmdsResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
@@ -34,6 +39,8 @@ export default function NmdsTool({ tool, meta }: ToolComponentProps): React.Reac
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runWithPreStep } =
     useBioToolAnalysis<NmdsResult>()
   const resultsRef = useScrollToResults(results)
+  const router = useRouter()
+  const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
   const [groupCol, setGroupCol] = useState<string>('')
 
   const handleAnalyze = useCallback(async () => {
@@ -61,6 +68,26 @@ export default function NmdsTool({ tool, meta }: ToolComponentProps): React.Reac
       }
     }, 'nmds')
   }, [csvData, siteCol, groupCol, runWithPreStep])
+
+  const handleOpenInGraphStudio = useCallback(() => {
+    if (!results) return
+    const built = buildNmdsColumns(results)
+    const pkgId = crypto.randomUUID()
+    const spec = createDefaultChartSpec(pkgId, 'scatter', built.xField, built.yField, built.columns)
+    if (built.colorField) {
+      spec.encoding.color = { field: built.colorField, type: 'nominal' }
+    }
+    const pkg: DataPackage = {
+      id: pkgId,
+      source: 'bio-tools',
+      label: 'NMDS 좌표',
+      columns: built.columns,
+      data: built.data,
+      createdAt: new Date().toISOString(),
+    }
+    loadDataPackageWithSpec(pkg, spec)
+    router.push('/graph-studio')
+  }, [results, loadDataPackageWithSpec, router])
 
   const coords = results?.coordinates ?? []
 
@@ -140,6 +167,11 @@ export default function NmdsTool({ tool, meta }: ToolComponentProps): React.Reac
               })}
             </svg>
           </div>
+
+          <Button variant="outline" size="sm" onClick={handleOpenInGraphStudio}>
+            <BarChart3 className="h-4 w-4 mr-1.5" />
+            Graph Studio에서 열기
+          </Button>
 
           {uniqueGroups.length > 0 && (
             <div className="flex gap-4">

@@ -12,8 +12,13 @@ import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { formatNumber, formatPValue } from '@/lib/statistics/formatters'
 import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
-import { Loader2 } from 'lucide-react'
+import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { useRouter } from 'next/navigation'
+import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
+import { buildMetaAnalysisColumns } from '@/lib/graph-studio/analysis-adapter'
+import { createDefaultChartSpec } from '@/lib/graph-studio/chart-spec-defaults'
+import type { DataPackage, VLineAnnotation } from '@/types/graph-studio'
 import type { MetaAnalysisResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
@@ -21,6 +26,9 @@ export default function MetaAnalysisTool({ tool, meta }: ToolComponentProps): Re
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<MetaAnalysisResult>({ worker: PyodideWorker.Survival })
   const resultsRef = useScrollToResults(results)
+
+  const router = useRouter()
+  const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
 
   const [effectCol, setEffectCol] = useState('')
   const [seCol, setSeCol] = useState('')
@@ -53,6 +61,28 @@ export default function MetaAnalysisTool({ tool, meta }: ToolComponentProps): Re
       model,
     })
   }, [csvData, effectCol, seCol, studyCol, model, runAnalysis])
+
+  const handleOpenInGraphStudio = useCallback(() => {
+    if (!results) return
+    const built = buildMetaAnalysisColumns(results)
+    const pkgId = crypto.randomUUID()
+    const spec = createDefaultChartSpec(pkgId, 'error-bar', built.xField, built.yField, built.columns)
+    // null effect 참조선
+    const annotations: VLineAnnotation[] = [
+      { type: 'vline', value: 0, text: 'Null effect', color: '#999999', strokeDash: [4, 3] },
+    ]
+    spec.annotations = annotations
+    const pkg: DataPackage = {
+      id: pkgId,
+      source: 'bio-tools',
+      label: `메타분석 Forest Plot (${results.model === 'random' ? '랜덤' : '고정'} 효과)`,
+      columns: built.columns,
+      data: built.data,
+      createdAt: new Date().toISOString(),
+    }
+    loadDataPackageWithSpec(pkg, spec)
+    router.push('/graph-studio')
+  }, [results, loadDataPackageWithSpec, router])
 
   // Forest plot 데이터
   const forestData = useMemo(() => {
@@ -250,6 +280,11 @@ export default function MetaAnalysisTool({ tool, meta }: ToolComponentProps): Re
               </div>
             </div>
           </div>
+
+          <Button variant="outline" size="sm" onClick={handleOpenInGraphStudio}>
+            <BarChart3 className="h-4 w-4 mr-1.5" />
+            Graph Studio에서 열기
+          </Button>
 
           {/* 개별 연구 상세 */}
           <div>

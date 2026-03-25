@@ -11,8 +11,13 @@ import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { formatNumber } from '@/lib/statistics/formatters'
 import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
-import { Loader2 } from 'lucide-react'
+import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { useRouter } from 'next/navigation'
+import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
+import { buildRocCurveColumns } from '@/lib/graph-studio/analysis-adapter'
+import { createDefaultChartSpec } from '@/lib/graph-studio/chart-spec-defaults'
+import type { DataPackage } from '@/types/graph-studio'
 import type { RocAucResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
@@ -27,6 +32,9 @@ export default function RocAucTool({ tool, meta }: ToolComponentProps): React.Re
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<RocAucResult>({ worker: PyodideWorker.Survival })
   const resultsRef = useScrollToResults(results)
+
+  const router = useRouter()
+  const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
 
   const [actualCol, setActualCol] = useState('')
   const [predCol, setPredCol] = useState('')
@@ -47,6 +55,24 @@ export default function RocAucTool({ tool, meta }: ToolComponentProps): React.Re
     const predictedProb = csvData.rows.map(r => Number(r[predCol]))
     runAnalysis('roc_curve_analysis', { actualClass, predictedProb })
   }, [csvData, actualCol, predCol, runAnalysis])
+
+  const handleOpenInGraphStudio = useCallback(() => {
+    if (!results) return
+    // RocAucResult는 RocCurveAnalysisResult와 구조적으로 동일
+    const built = buildRocCurveColumns(results)
+    const pkgId = crypto.randomUUID()
+    const spec = createDefaultChartSpec(pkgId, 'roc-curve', built.xField, built.yField, built.columns)
+    const pkg: DataPackage = {
+      id: pkgId,
+      source: 'bio-tools',
+      label: 'ROC 곡선',
+      columns: built.columns,
+      data: built.data,
+      createdAt: new Date().toISOString(),
+    }
+    loadDataPackageWithSpec(pkg, spec)
+    router.push('/graph-studio')
+  }, [results, loadDataPackageWithSpec, router])
 
   // ROC SVG 데이터: 1회 패스로 polygon, polyline, optimal point 계산
   const rocSvg = useMemo(() => {
@@ -224,6 +250,10 @@ export default function RocAucTool({ tool, meta }: ToolComponentProps): React.Re
               </svg>
             </div>
           </div>
+          <Button variant="outline" size="sm" onClick={handleOpenInGraphStudio}>
+            <BarChart3 className="h-4 w-4 mr-1.5" />
+            Graph Studio에서 열기
+          </Button>
         </div>
       )}
     </div>

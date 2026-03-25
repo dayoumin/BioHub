@@ -12,8 +12,13 @@ import { formatNumber, formatPValue } from '@/lib/statistics/formatters'
 import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
 import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
-import { Loader2 } from 'lucide-react'
+import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
+import { useRouter } from 'next/navigation'
+import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
+import { buildKmCurveColumns } from '@/lib/graph-studio/analysis-adapter'
+import { createDefaultChartSpec } from '@/lib/graph-studio/chart-spec-defaults'
+import type { DataPackage } from '@/types/graph-studio'
 import type { SurvivalResult, KmCurve } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
@@ -21,6 +26,9 @@ export default function SurvivalTool({ tool, meta }: ToolComponentProps): React.
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<SurvivalResult>({ worker: PyodideWorker.Survival })
   const resultsRef = useScrollToResults(results)
+
+  const router = useRouter()
+  const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
 
   const [timeCol, setTimeCol] = useState('')
   const [eventCol, setEventCol] = useState('')
@@ -45,6 +53,27 @@ export default function SurvivalTool({ tool, meta }: ToolComponentProps): React.
 
     runAnalysis('kaplan_meier_analysis', { time, event, group })
   }, [csvData, timeCol, eventCol, groupCol, runAnalysis])
+
+  const handleOpenInGraphStudio = useCallback(() => {
+    if (!results) return
+    // SurvivalResult는 KaplanMeierAnalysisResult와 구조적으로 동일
+    const built = buildKmCurveColumns(results)
+    const pkgId = crypto.randomUUID()
+    const spec = createDefaultChartSpec(pkgId, 'km-curve', built.xField, built.yField, built.columns)
+    if (built.colorField) {
+      spec.encoding.color = { field: built.colorField, type: 'nominal' }
+    }
+    const pkg: DataPackage = {
+      id: pkgId,
+      source: 'bio-tools',
+      label: 'Kaplan-Meier 생존 곡선',
+      columns: built.columns,
+      data: built.data,
+      createdAt: new Date().toISOString(),
+    }
+    loadDataPackageWithSpec(pkg, spec)
+    router.push('/graph-studio')
+  }, [results, loadDataPackageWithSpec, router])
 
   const { curveEntries, maxTime } = useMemo(() => {
     if (!results) return { curveEntries: [] as [string, KmCurve][], maxTime: 0 }
@@ -229,6 +258,11 @@ export default function SurvivalTool({ tool, meta }: ToolComponentProps): React.
               </svg>
             </div>
           </div>
+
+          <Button variant="outline" size="sm" onClick={handleOpenInGraphStudio}>
+            <BarChart3 className="h-4 w-4 mr-1.5" />
+            Graph Studio에서 열기
+          </Button>
 
           {/* 그룹별 요약 */}
           <div>

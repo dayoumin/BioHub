@@ -9,7 +9,12 @@ import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
-import { Loader2 } from 'lucide-react'
+import { BarChart3, Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
+import { buildRarefactionColumns } from '@/lib/graph-studio/analysis-adapter'
+import { createDefaultChartSpec } from '@/lib/graph-studio/chart-spec-defaults'
+import type { DataPackage } from '@/types/graph-studio'
 import type { RarefactionResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
@@ -17,6 +22,26 @@ export default function RarefactionTool({ tool, meta }: ToolComponentProps): Rea
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis } =
     useBioToolAnalysis<RarefactionResult>()
   const resultsRef = useScrollToResults(results)
+  const router = useRouter()
+  const loadDataPackageWithSpec = useGraphStudioStore(s => s.loadDataPackageWithSpec)
+
+  const handleOpenInGraphStudio = useCallback(() => {
+    if (!results) return
+    const built = buildRarefactionColumns(results)
+    const pkgId = crypto.randomUUID()
+    const spec = createDefaultChartSpec(pkgId, 'line', built.xField, built.yField, built.columns)
+    spec.encoding.color = { field: built.colorField, type: 'nominal' }
+    const pkg: DataPackage = {
+      id: pkgId,
+      source: 'bio-tools',
+      label: '종 희박화 곡선',
+      columns: built.columns,
+      data: built.data,
+      createdAt: new Date().toISOString(),
+    }
+    loadDataPackageWithSpec(pkg, spec)
+    router.push('/graph-studio')
+  }, [results, loadDataPackageWithSpec, router])
 
   const handleAnalyze = useCallback(() => {
     if (!csvData) return
@@ -92,6 +117,11 @@ export default function RarefactionTool({ tool, meta }: ToolComponentProps): Rea
               })}
             </svg>
           </div>
+
+          <Button variant="outline" size="sm" onClick={handleOpenInGraphStudio}>
+            <BarChart3 className="h-4 w-4 mr-1.5" />
+            Graph Studio에서 열기
+          </Button>
 
           <p className="text-xs text-muted-foreground">
             곡선이 평탄해지면 샘플링이 충분함을 의미합니다.
