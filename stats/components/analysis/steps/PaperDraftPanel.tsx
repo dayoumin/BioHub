@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import type { PaperDraft, PaperTable, DiscussionState } from '@/lib/services/paper-draft/paper-types'
 import { LangToggle } from '@/components/common/LangToggle'
 import { toast } from 'sonner'
+import { TOAST } from '@/lib/constants/toast-messages'
 
 // ── 타입 ─────────────────────────────────────────────────────
 
@@ -93,7 +94,7 @@ function useCopyState() {
   const trigger = useCallback(async (text: string, sectionName?: string) => {
     await copyRichText(text)
     setCopied(true)
-    if (sectionName) toast.success(`${sectionName} 복사됨`)
+    if (sectionName) toast.success(TOAST.clipboard.sectionCopied(sectionName))
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => setCopied(false), 2000)
   }, [])
@@ -101,7 +102,7 @@ function useCopyState() {
   const triggerHtml = useCallback(async (html: string, plain: string, sectionName?: string) => {
     await copyHtmlDirect(html, plain)
     setCopied(true)
-    if (sectionName) toast.success(`${sectionName} 복사됨`)
+    if (sectionName) toast.success(TOAST.clipboard.sectionCopied(sectionName))
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => setCopied(false), 2000)
   }, [])
@@ -326,7 +327,7 @@ export function PaperDraftPanel({
   // 전체 저장 핸들러
   const handleSaveAll = useCallback(() => {
     downloadTextFile(allText, `결과정리_${new Date().toISOString().slice(0, 10)}.txt`)
-    toast.success('전체 내용 저장됨')
+    toast.success(TOAST.paperDraft.allSaved)
   }, [allText])
 
   // 가시적 섹션 필터
@@ -385,7 +386,7 @@ export function PaperDraftPanel({
                 sectionName="통계표"
                 onSave={() => {
                   downloadTextFile(tablesFullText, '통계표.tsv')
-                  toast.success('통계표 저장됨 (TSV)')
+                  toast.success(TOAST.paperDraft.tablesSaved)
                 }}
               />
               <div className="space-y-6">
@@ -429,7 +430,7 @@ export function PaperDraftPanel({
                 sectionName="Methods"
                 onSave={() => {
                   downloadTextFile(draft.methods ?? '', 'methods.txt')
-                  toast.success('Methods 저장됨')
+                  toast.success(TOAST.paperDraft.methodsSaved)
                 }}
               />
               <DraftText text={draft.methods} />
@@ -450,7 +451,7 @@ export function PaperDraftPanel({
                 sectionName="Results"
                 onSave={() => {
                   downloadTextFile(draft.results ?? '', 'results.txt')
-                  toast.success('Results 저장됨')
+                  toast.success(TOAST.paperDraft.resultsSaved)
                 }}
               />
               <DraftText text={draft.results} />

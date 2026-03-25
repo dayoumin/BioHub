@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/select';
 import { Check, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { TOAST } from '@/lib/constants/toast-messages';
 
 export function StyleTab(): React.ReactElement {
   const chartSpec = useGraphStudioStore(state => state.chartSpec);
@@ -48,9 +49,9 @@ export function StyleTab(): React.ReactElement {
         createdAt: now,
         updatedAt: now,
       });
-      toast.success(`"${templateName.trim()}" 템플릿이 저장되었습니다`);
+      toast.success(TOAST.graphStudio.templateSaved(templateName.trim()));
     } catch {
-      toast.error('템플릿 저장에 실패했습니다 (저장 공간 부족)');
+      toast.error(TOAST.graphStudio.templateSaveError);
       return;
     }
     setTemplateName('');
@@ -383,7 +384,7 @@ export function StyleTab(): React.ReactElement {
                   title="클릭하여 복사"
                   onClick={() => {
                     void navigator.clipboard.writeText(color);
-                    toast.success(`${color} 복사됨`);
+                    toast.success(TOAST.graphStudio.colorCopied(color));
                   }}
                 >
                   {color}

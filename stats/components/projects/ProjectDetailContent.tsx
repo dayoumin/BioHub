@@ -13,6 +13,7 @@ import { getAllHistory } from '@/lib/utils/storage'
 import { listProjects as listGraphProjects } from '@/lib/graph-studio/project-storage'
 import { loadAnalysisHistory } from '@/lib/genetics/analysis-history'
 import { toast } from 'sonner'
+import { TOAST } from '@/lib/constants/toast-messages'
 
 interface ProjectDetailContentProps {
   projectId: string
@@ -62,7 +63,7 @@ export function ProjectDetailContent({ projectId }: ProjectDetailContentProps): 
       setEntities(resolved)
     } catch (error) {
       console.error('[ProjectDetail] Failed to load entities', error)
-      toast.error('항목 로드에 실패했습니다')
+      toast.error(TOAST.project.entityLoadError)
     } finally {
       setLoading(false)
     }
@@ -90,7 +91,7 @@ export function ProjectDetailContent({ projectId }: ProjectDetailContentProps): 
       entity.ref.entityKind,
       entity.ref.entityId,
     )
-    toast.success('연결이 해제되었습니다')
+    toast.success(TOAST.project.unlinked)
     loadEntities()
   }, [loadEntities])
 

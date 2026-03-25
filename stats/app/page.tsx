@@ -8,6 +8,7 @@ import { loadAndRestoreHistory, startFreshAnalysisSession, bridgeHubDataToGraphS
 import { useAnalysisHandlers } from '@/hooks/use-analysis-handlers'
 import { useTerminology } from '@/hooks/use-terminology'
 import { toast } from 'sonner'
+import { TOAST } from '@/lib/constants/toast-messages'
 import type { ResolvedIntent } from '@/types/analysis'
 
 import { AnalysisLayout } from '@/components/analysis/layouts/AnalysisLayout'
@@ -97,7 +98,7 @@ export default function HomePage() {
         // 허브에 업로드된 데이터가 있으면 Graph Studio로 전달 후 이동
         const bridged = bridgeHubDataToGraphStudio()
         if (!bridged) {
-          toast.info('Graph Studio를 열었습니다. 데이터를 직접 업로드해주세요.')
+          toast.info(TOAST.navigation.graphStudioOpened)
         }
         router.push('/graph-studio')
         break

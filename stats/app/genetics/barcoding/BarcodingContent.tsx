@@ -26,6 +26,7 @@ export default function BarcodingContent(): React.ReactElement {
   const [sampleName, setSampleName] = useState('')
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
   const [state, setState] = useState<AppState>({ step: 'input' })
+  const [deepLinkError, setDeepLinkError] = useState<string | null>(null)
   const activeResearchProjectId = useResearchProjectStore(s => s.activeResearchProjectId)
 
   useEffect(() => {
@@ -40,6 +41,18 @@ export default function BarcodingContent(): React.ReactElement {
         setState({ step: 'result', marker: entry.marker, decision: entry.resultData, analyzedSequence: '' })
         return
       }
+      // entry가 없거나 resultData가 없는 경우 — 사용자에게 피드백
+      setDeepLinkError(
+        entry
+          ? '이 분석 기록의 결과 데이터가 손실되었습니다. 새로 분석을 실행해 주세요.'
+          : '요청한 분석 기록을 찾을 수 없습니다. 삭제되었거나 다른 브라우저의 기록일 수 있습니다.'
+      )
+      // URL에서 history 파라미터 제거 (뒤로가기 시 재트리거 방지)
+      const cleaned = new URLSearchParams(params)
+      cleaned.delete('history')
+      const qs = cleaned.toString()
+      window.history.replaceState({}, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`)
+      return
     }
 
     // 예제 쿼리 파라미터 처리
@@ -106,6 +119,19 @@ export default function BarcodingContent(): React.ReactElement {
         </Link>
         <h1 className="text-2xl font-bold">DNA 바코딩 종 판별</h1>
       </div>
+
+      {deepLinkError && (
+        <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-50/50 p-6 dark:bg-amber-950/20" role="alert">
+          <h2 className="mb-2 font-semibold text-amber-800 dark:text-amber-300">분석 기록 복원 실패</h2>
+          <p className="mb-4 text-sm text-amber-700 dark:text-amber-400">{deepLinkError}</p>
+          <Button
+            variant="outline"
+            onClick={() => setDeepLinkError(null)}
+          >
+            새 분석 시작
+          </Button>
+        </div>
+      )}
 
       {state.step === 'input' && (
         <>

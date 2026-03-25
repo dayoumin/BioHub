@@ -14,6 +14,7 @@ import {
 import type { ResolvedEntity } from '@/lib/research/entity-resolver'
 import { buildReport, reportToMarkdown, copyReportToClipboard, downloadReportAsHtml } from '@/lib/research/report-export'
 import { toast } from 'sonner'
+import { TOAST } from '@/lib/constants/toast-messages'
 import { proseBase } from '@/components/common/card-styles'
 
 const ReactMarkdown = lazy(() => import('react-markdown'))
@@ -68,15 +69,15 @@ export function ReportComposer({
   const handleCopy = useCallback(async () => {
     try {
       await copyReportToClipboard(report)
-      toast.success('마크다운이 클립보드에 복사되었습니다')
+      toast.success(TOAST.clipboard.markdownCopied)
     } catch {
-      toast.error('클립보드 복사에 실패했습니다')
+      toast.error(TOAST.clipboard.copyError)
     }
   }, [report])
 
   const handleDownloadHtml = useCallback(() => {
     downloadReportAsHtml(report)
-    toast.success('HTML 파일이 다운로드되었습니다')
+    toast.success(TOAST.report.htmlDownloaded)
   }, [report])
 
   // 드래그 정렬 (간단한 swap 방식)

@@ -8,6 +8,7 @@
  */
 
 import type { ProjectEntityKind } from '@/lib/types/research'
+import { createLocalStorageIO } from '@/lib/utils/local-storage-factory'
 
 // ── 탭 정의 ──
 
@@ -108,37 +109,34 @@ export const ENTITY_TAB_REGISTRY: readonly EntityTabEntry[] = [
 // ── 탭 설정 (표시/숨김) ──
 
 const TAB_SETTINGS_KEY = 'biohub:project-tab-settings'
+const { readJson, writeJson } = createLocalStorageIO('[entity-tab-registry]')
 
 export type TabVisibilityMap = Partial<Record<ProjectEntityKind, boolean>>
 
 /** 저장된 탭 설정 로드. 없으면 defaultVisible 기반 초기값 반환. */
 export function loadTabSettings(): TabVisibilityMap {
-  if (typeof window === 'undefined') return getDefaultTabSettings()
-
-  try {
-    const raw = localStorage.getItem(TAB_SETTINGS_KEY)
-    if (!raw) return getDefaultTabSettings()
-    const parsed: unknown = JSON.parse(raw)
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      return getDefaultTabSettings()
-    }
-    const saved = parsed as TabVisibilityMap
-
-    // 레지스트리에 새로 추가된 kind가 있으면 defaultVisible로 보충
-    const result: TabVisibilityMap = {}
-    for (const entry of ENTITY_TAB_REGISTRY) {
-      result[entry.id] = saved[entry.id] ?? entry.defaultVisible
-    }
-    return result
-  } catch {
-    return getDefaultTabSettings()
+  const defaults = getDefaultTabSettings()
+  const saved = readJson<unknown>(TAB_SETTINGS_KEY, null)
+  if (typeof saved !== 'object' || saved === null || Array.isArray(saved)) {
+    return defaults
   }
+  const map = saved as TabVisibilityMap
+
+  // 레지스트리에 새로 추가된 kind가 있으면 defaultVisible로 보충
+  const result: TabVisibilityMap = {}
+  for (const entry of ENTITY_TAB_REGISTRY) {
+    result[entry.id] = map[entry.id] ?? entry.defaultVisible
+  }
+  return result
 }
 
 /** 탭 설정 저장 */
 export function saveTabSettings(settings: TabVisibilityMap): void {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(TAB_SETTINGS_KEY, JSON.stringify(settings))
+  try {
+    writeJson(TAB_SETTINGS_KEY, settings)
+  } catch {
+    // SSR 또는 quota 초과 — 무시 (기존 동작 유지)
+  }
 }
 
 /** 기본 탭 설정 (defaultVisible 기반) */

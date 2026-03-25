@@ -37,6 +37,8 @@ export const TOAST = {
     copyError: '복사 실패',
     chartCopySuccess: '차트가 클립보드에 복사되었습니다',
     chartCopyError: '클립보드 복사에 실패했습니다',
+    markdownCopied: '마크다운이 클립보드에 복사되었습니다',
+    sectionCopied: (name: string): string => `${name} 복사됨`,
   },
   navigation: {
     autoSaved: '분석이 자동 저장되었습니다',
@@ -45,10 +47,40 @@ export const TOAST = {
   },
   graphStudio: {
     templateSaved: (name: string): string => `"${name}" 템플릿이 저장되었습니다`,
+    templateSaveError: '템플릿 저장에 실패했습니다 (저장 공간 부족)',
     colorCopied: (color: string): string => `${color} 복사됨`,
     largeDataWarning: (rows: number): string =>
       `데이터가 큽니다 (${rows.toLocaleString()}행). 집계 또는 필터링을 권장합니다.`,
     renderingSlow: '렌더링이 느립니다. 데이터를 집계하거나 필터를 적용하면 빨라집니다.',
     renderingVerySlow: '렌더링 시간이 매우 깁니다. 집계 적용을 강력히 권장합니다.',
+  },
+  project: {
+    created: (name: string): string => `'${name}' 프로젝트가 생성되었습니다`,
+    renamed: '프로젝트 이름이 변경되었습니다',
+    activated: (name: string): string => `'${name}' 프로젝트가 활성화되었습니다`,
+    activatedShort: (name: string): string => `'${name}' 활성화`,
+    deactivated: '프로젝트 연결이 해제되었습니다',
+    archived: '프로젝트가 보관되었습니다',
+    restored: '프로젝트가 복원되었습니다',
+    deleted: '프로젝트가 삭제되었습니다',
+    entityLoadError: '항목 로드에 실패했습니다',
+    unlinked: '연결이 해제되었습니다',
+    savedToProject: (name: string): string => `'${name}'에 저장됨`,
+  },
+  report: {
+    htmlDownloaded: 'HTML 파일이 다운로드되었습니다',
+  },
+  paperDraft: {
+    allSaved: '전체 내용 저장됨',
+    tablesSaved: '통계표 저장됨 (TSV)',
+    methodsSaved: 'Methods 저장됨',
+    resultsSaved: 'Results 저장됨',
+  },
+  codeExport: {
+    success: (language: string): string => {
+      const label: Record<string, string> = { R: 'R', python: 'Python' }
+      return `${label[language] ?? language} 코드를 다운로드했습니다.`
+    },
+    error: '코드 내보내기에 실패했습니다.',
   },
 } as const

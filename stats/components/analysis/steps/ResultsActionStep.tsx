@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { EmptyState } from '@/components/common/EmptyState'
 import { toast } from 'sonner'
+import { TOAST } from '@/lib/constants/toast-messages'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -407,7 +408,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       hasSavedToHistoryRef.current = true  // UI 리셋 후에도 중복 저장 방지용 영속 플래그
       setIsSaved(true)
       toast.success(activeProject
-        ? `'${activeProject.name}'에 저장됨`
+        ? TOAST.project.savedToProject(activeProject.name)
         : t.results.save.success,
       )
       savedTimeoutRef.current = setTimeout(() => {
@@ -499,11 +500,11 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }, language)
 
     if (exportResult.success) {
-      toast.success(`${language === 'R' ? 'R' : 'Python'} 코드를 다운로드했습니다.`, {
+      toast.success(TOAST.codeExport.success(language), {
         description: exportResult.fileName,
       })
     } else {
-      toast.error(exportResult.error ?? '코드 내보내기에 실패했습니다.')
+      toast.error(exportResult.error ?? TOAST.codeExport.error)
     }
   }, [selectedMethod, variableMapping, analysisOptions, uploadedFileName, uploadedData, results])
 

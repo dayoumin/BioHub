@@ -3,7 +3,7 @@
 **작성일**: 2026-03-20
 **상태**: 계획 수립
 **선행 조건**: NCBI Barcoding 등 개별 도구 구현 전에 이 구조를 먼저 잡는다
-**참조**: [PLAN-BIO-STATISTICS-AUDIT.md](../../study/PLAN-BIO-STATISTICS-AUDIT.md) (도구 선정 근거)
+**참조**: PLAN-BIO-STATISTICS-AUDIT.md (도구 선정 근거, 완료 후 삭제됨)
 
 ---
 

@@ -62,6 +62,7 @@ import { ExportService } from '@/lib/services/export/export-service'
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
 import type { ExportContentOptions, ExportContext, ExportFormat } from '@/lib/services/export/export-types'
 import { toast } from 'sonner'
+import { TOAST } from '@/lib/constants/toast-messages'
 import { logger } from '@/lib/utils/logger'
 import {
   usePinnedHistoryIds,
@@ -163,7 +164,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
       onClose?.()
     } catch (error) {
       logger.error('[AnalysisHistoryPanel] Failed to load history', { error })
-      toast.error('히스토리 로드에 실패했습니다.')
+      toast.error(TOAST.history.loadError)
     }
   }
 
@@ -178,7 +179,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
       onClose?.()
     } catch (error) {
       logger.error('[AnalysisHistoryPanel] Failed to load settings', { error })
-      toast.error('설정 로드에 실패했습니다.')
+      toast.error(TOAST.history.settingsLoadError)
     }
   }
 
@@ -217,7 +218,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
   ) => {
     try {
       if (!item.results) {
-        toast.error('분석 결과가 없습니다.')
+        toast.error(TOAST.history.noResults)
         return
       }
 
@@ -269,24 +270,24 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
         rawDataRows: null,
       }
 
-      toast.info(`${format.toUpperCase()} 보고서를 생성하고 있습니다...`)
+      toast.info(TOAST.history.reportGenerating(format))
 
       // 3. 내보내기
       const result = await ExportService.export(context, format)
 
       if (result.success) {
-        toast.success('보고서가 다운로드되었습니다.', {
+        toast.success(TOAST.history.reportSuccess, {
           description: result.fileName
         })
 
       } else {
-        toast.error('보고서 생성 실패', {
+        toast.error(TOAST.history.reportError, {
           description: result.error
         })
       }
     } catch (error) {
       console.error('Export failed:', error)
-      toast.error('내보내기 중 오류가 발생했습니다.')
+      toast.error(TOAST.history.exportError)
     }
   }
 

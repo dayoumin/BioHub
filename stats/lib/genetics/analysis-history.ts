@@ -4,6 +4,7 @@ import {
   upsertProjectEntityRef,
   removeProjectEntityRefs,
 } from '@/lib/research/project-storage'
+import { createLocalStorageIO } from '@/lib/utils/local-storage-factory'
 
 export interface AnalysisHistoryEntry {
   id: string
@@ -22,6 +23,8 @@ export interface AnalysisHistoryEntry {
 export const HISTORY_KEY = 'biohub:genetics:history'
 export const HISTORY_CHANGE_EVENT = 'genetics-history-changed'
 const MAX_HISTORY = 20
+
+const { readJson, writeJson } = createLocalStorageIO('[analysis-history]')
 
 function isValidEntry(item: unknown): item is AnalysisHistoryEntry {
   if (typeof item !== 'object' || item === null) return false
@@ -43,7 +46,7 @@ function sortEntries(entries: AnalysisHistoryEntry[]): AnalysisHistoryEntry[] {
 }
 
 function saveToStorage(entries: AnalysisHistoryEntry[]): void {
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(entries))
+  writeJson(HISTORY_KEY, entries)
 }
 
 /** raw JSON 문자열에서 유효한 엔트리만 추출 (정렬 없음) */
@@ -73,17 +76,18 @@ function removeRefsForEntries(entries: AnalysisHistoryEntry[]): void {
 
 /** preloadedRaw를 전달하면 localStorage 재읽기 생략 */
 export function loadAnalysisHistory(preloadedRaw?: string | null): AnalysisHistoryEntry[] {
-  if (typeof window === 'undefined') return []
   try {
-    const raw = preloadedRaw !== undefined ? preloadedRaw : localStorage.getItem(HISTORY_KEY)
-    return sortEntries(parseValidEntries(raw).slice(0, MAX_HISTORY))
+    if (preloadedRaw !== undefined) {
+      return sortEntries(parseValidEntries(preloadedRaw).slice(0, MAX_HISTORY))
+    }
+    const all = readJson<unknown[]>(HISTORY_KEY, [])
+    return sortEntries(all.filter(isValidEntry).slice(0, MAX_HISTORY))
   } catch {
     return []
   }
 }
 
 export function saveAnalysisHistory(entry: Omit<AnalysisHistoryEntry, 'id' | 'createdAt'>): void {
-  if (typeof window === 'undefined') return
 
   const newEntry: AnalysisHistoryEntry = {
     ...entry,
@@ -142,10 +146,8 @@ export function deleteAnalysisEntry(id: string): AnalysisHistoryEntry[] {
 }
 
 export function togglePinEntry(id: string): AnalysisHistoryEntry[] {
-  if (typeof window === 'undefined') return []
   try {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    const entries = parseValidEntries(raw)
+    const entries = readJson<unknown[]>(HISTORY_KEY, []).filter(isValidEntry)
     const sorted = sortEntries(
       entries.map(e => e.id === id ? { ...e, pinned: !e.pinned } : e)
     ).slice(0, MAX_HISTORY)
@@ -164,6 +166,6 @@ export function clearAnalysisHistory(): void {
   const all = loadAnalysisHistory()
   removeRefsForEntries(all)
 
-  localStorage.removeItem(HISTORY_KEY)
+  writeJson(HISTORY_KEY, [])
   notifyChange()
 }

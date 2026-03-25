@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import type { ResearchProject } from '@/lib/types/research'
 import { useResearchProjectStore } from '@/lib/stores/research-project-store'
 import { toast } from 'sonner'
+import { TOAST } from '@/lib/constants/toast-messages'
 import { TabSettingsDialog } from './TabSettingsDialog'
 
 interface ProjectHeaderProps {
@@ -27,7 +28,7 @@ export function ProjectHeader({ project, totalCount, onBack }: ProjectHeaderProp
     if (!trimmed) return
     updateProject(project.id, { name: trimmed })
     setIsEditing(false)
-    toast.success('프로젝트 이름이 변경되었습니다')
+    toast.success(TOAST.project.renamed)
   }, [editName, project.id, updateProject])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {

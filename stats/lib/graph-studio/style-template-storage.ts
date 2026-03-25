@@ -6,8 +6,10 @@
  */
 
 import type { ExportConfig, StyleSpec } from '@/types/graph-studio';
+import { createLocalStorageIO } from '@/lib/utils/local-storage-factory';
 
 const STORAGE_KEY = 'graph_studio_style_templates';
+const { readJson, writeJson } = createLocalStorageIO('[style-template-storage]');
 
 export interface StyleTemplate {
   id: string;
@@ -19,16 +21,7 @@ export interface StyleTemplate {
 }
 
 export function loadTemplates(): StyleTemplate[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed as StyleTemplate[];
-  } catch {
-    return [];
-  }
+  return readJson<StyleTemplate[]>(STORAGE_KEY, []);
 }
 
 export function saveTemplate(template: StyleTemplate): void {
@@ -39,20 +32,10 @@ export function saveTemplate(template: StyleTemplate): void {
   } else {
     templates.push(template);
   }
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
-  } catch (err) {
-    console.warn('[style-template-storage] 템플릿 저장 실패 (localStorage 용량 초과?):', err);
-    throw new Error('[style-template-storage] 템플릿 저장 실패');
-  }
+  writeJson(STORAGE_KEY, templates);
 }
 
 export function deleteTemplate(id: string): void {
   const templates = loadTemplates().filter(t => t.id !== id);
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(templates));
-  } catch (err) {
-    console.warn('[style-template-storage] 템플릿 삭제 실패 (localStorage 오류):', err);
-    throw new Error('[style-template-storage] 템플릿 삭제 실패');
-  }
+  writeJson(STORAGE_KEY, templates);
 }

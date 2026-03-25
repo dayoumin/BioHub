@@ -3,8 +3,12 @@
  * localStorage를 사용하여 최근 사용한 통계 ID를 저장합니다.
  */
 
+import { createLocalStorageIO } from '@/lib/utils/local-storage-factory'
+
 const STORAGE_KEY = 'statPlatform_recent'
 const MAX_RECENT_ITEMS = 5
+
+const { readJson, writeJson } = createLocalStorageIO('[recent-statistics]')
 
 /**
  * 통계 페이지 방문 시 최근 사용 목록에 추가
@@ -12,9 +16,7 @@ const MAX_RECENT_ITEMS = 5
  */
 export function addToRecentStatistics(statisticId: string): void {
   try {
-    // 현재 목록 가져오기
-    const saved = localStorage.getItem(STORAGE_KEY)
-    let recent: string[] = saved ? JSON.parse(saved) : []
+    let recent = readJson<string[]>(STORAGE_KEY, [])
 
     // 이미 존재하면 제거 (맨 앞으로 이동하기 위해)
     recent = recent.filter(id => id !== statisticId)
@@ -28,7 +30,7 @@ export function addToRecentStatistics(statisticId: string): void {
     }
 
     // 저장
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(recent))
+    writeJson(STORAGE_KEY, recent)
   } catch (error) {
     console.error('Failed to add to recent statistics:', error)
   }
@@ -39,13 +41,7 @@ export function addToRecentStatistics(statisticId: string): void {
  * @returns 최근 사용한 통계 ID 배열
  */
 export function getRecentStatistics(): string[] {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    return saved ? JSON.parse(saved) : []
-  } catch (error) {
-    console.error('Failed to load recent statistics:', error)
-    return []
-  }
+  return readJson<string[]>(STORAGE_KEY, [])
 }
 
 /**
@@ -53,7 +49,7 @@ export function getRecentStatistics(): string[] {
  */
 export function clearRecentStatistics(): void {
   try {
-    localStorage.removeItem(STORAGE_KEY)
+    writeJson(STORAGE_KEY, [])
   } catch (error) {
     console.error('Failed to clear recent statistics:', error)
   }

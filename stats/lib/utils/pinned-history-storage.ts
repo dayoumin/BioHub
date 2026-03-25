@@ -8,9 +8,12 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { createLocalStorageIO } from '@/lib/utils/local-storage-factory'
 
 const PINNED_HISTORY_KEY = 'analysis-history-pinned'
 const PINNED_CHANGE_EVENT = 'pinned-history-change'
+
+const { readJson, writeJson } = createLocalStorageIO('[pinned-history-storage]')
 
 /** 최대 고정 가능 개수 */
 export const MAX_PINNED = 3
@@ -19,27 +22,15 @@ export const MAX_PINNED = 3
 export const MAX_VISIBLE_PILLS = 5
 
 export function loadPinnedHistoryIds(): string[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const saved = localStorage.getItem(PINNED_HISTORY_KEY)
-    if (saved) {
-      const parsed: unknown = JSON.parse(saved)
-      if (Array.isArray(parsed)) {
-        return parsed.filter((x): x is string => typeof x === 'string')
-      }
-    }
-  } catch {
-    // ignore
-  }
-  return []
+  const parsed = readJson<unknown[]>(PINNED_HISTORY_KEY, [])
+  return parsed.filter((x): x is string => typeof x === 'string')
 }
 
 export function savePinnedHistoryIds(ids: string[]): void {
-  if (typeof window === 'undefined') return
   try {
-    localStorage.setItem(PINNED_HISTORY_KEY, JSON.stringify(ids))
+    writeJson(PINNED_HISTORY_KEY, ids)
   } catch {
-    // ignore
+    // ignore — SSR 또는 quota 초과
   }
 }
 

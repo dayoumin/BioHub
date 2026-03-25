@@ -120,7 +120,7 @@ These items should be the current focus.
 **순차 처리:**
 - `[graph]` localStorage quota 정책 — 현재 무제한 저장, evidence 추가 시 터짐 위험. MAX_GRAPH_PROJECTS + 자동 정리 필요.
 
-### 3-C. UI 일관성 통일 — [PLAN-UI-CONSISTENCY.md](stats/docs/PLAN-UI-CONSISTENCY.md)
+### 3-C. UI 일관성 통일 (완료)
 
 **Phase 1~3 순차:**
 - ~~`[ux]` Phase 1: Shell 통일~~ — 완료 (헤더 sticky + max-w-7xl + 배경 틴트 + LAYOUT 토큰 추출)

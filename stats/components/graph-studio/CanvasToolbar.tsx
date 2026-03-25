@@ -14,6 +14,7 @@ import type { RefObject } from 'react';
 import type EChartsReactCore from 'echarts-for-react/lib/core';
 import { ZoomIn, ZoomOut, Maximize, Copy, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import { TOAST } from '@/lib/constants/toast-messages';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface CanvasToolbarProps {
@@ -96,9 +97,9 @@ export function CanvasToolbar({ echartsRef, onExport, zoomEnabled = true }: Canv
       } else {
         await navigator.clipboard.writeText(dataURL);
       }
-      toast.success('차트가 클립보드에 복사되었습니다');
+      toast.success(TOAST.clipboard.chartCopySuccess);
     } catch {
-      toast.error('클립보드 복사에 실패했습니다');
+      toast.error(TOAST.clipboard.chartCopyError);
     }
   }, [echartsRef]);
 

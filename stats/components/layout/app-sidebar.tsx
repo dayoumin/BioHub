@@ -16,6 +16,7 @@ import {
   Star,
   FolderKanban,
   ChevronDown,
+  Check,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -28,6 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useUI } from '@/contexts/ui-context'
 import { toast } from 'sonner'
+import { TOAST } from '@/lib/constants/toast-messages'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
 import {
@@ -99,7 +101,7 @@ export function AppSidebar() {
       counts.set(ref.projectId, (counts.get(ref.projectId) ?? 0) + 1)
     }
     return counts
-  }, [availableProjects])
+  }, [projects])
 
   /** 네비게이션 클릭 핸들러:
    *  - 홈 클릭 시 showHub=true로 리셋 (ChatCentricHub 표시)
@@ -115,8 +117,8 @@ export function AppSidebar() {
       const isHome = pathname === '/'
       const isLeavingHome = isHome && item.href !== '/'
       if (isLeavingHome && currentStep >= 2 && selectedMethod && !results) {
-        toast.info('분석이 자동 저장되었습니다', {
-          description: '홈으로 돌아가면 이어서 진행할 수 있습니다.',
+        toast.info(TOAST.navigation.autoSaved, {
+          description: TOAST.navigation.autoSavedDescription,
           duration: 3000,
         })
       }
@@ -240,7 +242,7 @@ export function AppSidebar() {
                       key={p.id}
                       onClick={() => {
                         setActiveProject(p.id)
-                        toast.success(`'${p.name}' 활성화`)
+                        toast.success(TOAST.project.activatedShort(p.name))
                       }}
                       className={cn(
                         'text-xs',
@@ -257,7 +259,7 @@ export function AppSidebar() {
                         <span className="ml-auto text-[10px] text-muted-foreground/50">{refCount}개</span>
                       )}
                       {activeProject?.id === p.id && (
-                        <span className="ml-1 text-primary font-bold">✓</span>
+                        <Check className="ml-1 h-3.5 w-3.5 text-primary" />
                       )}
                     </DropdownMenuItem>
                   )

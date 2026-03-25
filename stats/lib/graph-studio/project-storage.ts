@@ -6,6 +6,11 @@
  * - DataPackage (원본 데이터) → 저장 안 함 (세션 메모리 only)
  *   → 프로젝트 로드 후 사용자가 데이터 재업로드 필요
  *
+ * Quota 정책:
+ * - 최대 MAX_GRAPH_PROJECTS개까지 저장
+ * - 초과 시 updatedAt이 가장 오래된 프로젝트부터 자동 삭제
+ * - QuotaExceededError 발생 시 가장 오래된 프로젝트 삭제 후 재시도
+ *
  * 이 분리 덕분에 저장 공간 부담 없이 차트 설정을 영구 보관 가능.
  */
 
@@ -14,6 +19,12 @@ import { createLocalStorageIO } from '@/lib/utils/local-storage-factory';
 
 const STORAGE_KEY = 'graph_studio_projects';
 const { readJson, writeJson } = createLocalStorageIO('[project-storage]');
+
+/** 프로젝트 최대 저장 수. 초과 시 가장 오래된 프로젝트부터 자동 삭제. */
+export const MAX_GRAPH_PROJECTS = 50;
+
+/** QuotaExceededError 발생 시 자동 정리 재시도 최대 횟수 */
+const MAX_EVICTION_RETRIES = 5;
 
 // ─── 읽기 ───────────────────────────────────────────────────
 
@@ -25,17 +36,96 @@ export function loadProject(projectId: string): GraphProject | null {
   return listProjects().find(p => p.id === projectId) ?? null;
 }
 
+// ─── Quota 관리 ──────────────────────────────────────────────
+
+/**
+ * updatedAt이 가장 오래된 프로젝트를 evict 대상으로 정렬.
+ * 현재 저장 중인 프로젝트(excludeId)는 제외.
+ */
+function getEvictionCandidates(
+  list: GraphProject[],
+  excludeId: string,
+): GraphProject[] {
+  return list
+    .filter(p => p.id !== excludeId)
+    .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
+}
+
+/**
+ * 프로젝트 수가 maxCount를 초과하면 가장 오래된 것부터 삭제하여 maxCount 이하로 맞춘다.
+ * 현재 저장 중인 프로젝트(excludeId)는 삭제하지 않는다.
+ *
+ * @returns 정리된 프로젝트 목록
+ */
+function enforceMaxCount(
+  list: GraphProject[],
+  maxCount: number,
+  excludeId: string,
+): GraphProject[] {
+  if (list.length <= maxCount) return list;
+
+  const candidates = getEvictionCandidates(list, excludeId);
+  const evictCount = list.length - maxCount;
+  const evictIds = new Set(
+    candidates.slice(0, evictCount).map(p => p.id),
+  );
+
+  return list.filter(p => !evictIds.has(p.id));
+}
+
+/**
+ * writeJson 래퍼: QuotaExceededError 발생 시 가장 오래된 프로젝트를 삭제 후 재시도.
+ * 최대 MAX_EVICTION_RETRIES회까지 시도한 뒤 여전히 실패하면 throw.
+ */
+function writeWithQuotaRetry(list: GraphProject[], excludeId: string): void {
+  for (let attempt = 0; attempt <= MAX_EVICTION_RETRIES; attempt++) {
+    try {
+      writeJson(STORAGE_KEY, list);
+      return;
+    } catch (error: unknown) {
+      // QuotaExceededError인지 확인
+      const isQuota =
+        error instanceof Error &&
+        (error.message.includes('quota') ||
+          error.message.includes('QuotaExceededError') ||
+          (error.cause instanceof DOMException &&
+            error.cause.name === 'QuotaExceededError'));
+
+      if (!isQuota || attempt === MAX_EVICTION_RETRIES) {
+        throw error;
+      }
+
+      // 삭제할 후보가 없으면 throw
+      const candidates = getEvictionCandidates(list, excludeId);
+      if (candidates.length === 0) {
+        throw error;
+      }
+
+      // 가장 오래된 프로젝트 1개 삭제 후 재시도
+      const evictId = candidates[0].id;
+      list = list.filter(p => p.id !== evictId);
+      console.warn(
+        `[project-storage] QuotaExceededError — 프로젝트 "${evictId}" 자동 삭제 후 재시도 (${attempt + 1}/${MAX_EVICTION_RETRIES})`,
+      );
+    }
+  }
+}
+
 // ─── 쓰기 ───────────────────────────────────────────────────
 
 export function saveProject(project: GraphProject): void {
-  const list = listProjects();
+  let list = listProjects();
   const idx = list.findIndex(p => p.id === project.id);
   if (idx >= 0) {
     list[idx] = project;
   } else {
     list.push(project);
   }
-  writeJson(STORAGE_KEY, list);
+
+  // 프로젝트 수 상한 적용
+  list = enforceMaxCount(list, MAX_GRAPH_PROJECTS, project.id);
+
+  writeWithQuotaRetry(list, project.id);
 }
 
 export function deleteProject(projectId: string): void {

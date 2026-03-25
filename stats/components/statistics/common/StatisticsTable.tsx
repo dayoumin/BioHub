@@ -42,6 +42,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { copyApaTable } from '@/lib/utils/apa-table-formatter'
 import { toast } from 'sonner'
+import { TOAST } from '@/lib/constants/toast-messages'
 
 /** RFC 4180 CSV 필드 이스케이프 */
 function escapeCsvField(field: string): string {
@@ -248,9 +249,9 @@ export function StatisticsTable({
     ).join('\n')
 
     navigator.clipboard.writeText(`${headers}\n${rows}`).then(() => {
-      toast.success('결과가 복사되었습니다')
+      toast.success(TOAST.clipboard.copySuccess)
     }).catch(() => {
-      toast.error('복사 실패')
+      toast.error(TOAST.clipboard.copyError)
     })
   }
 

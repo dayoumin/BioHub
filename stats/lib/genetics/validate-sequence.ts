@@ -25,6 +25,21 @@ export function cleanSequence(raw: string): string {
 export function validateSequence(raw: string): SequenceValidation {
   const errors: string[] = []
   const warnings: string[] = []
+
+  // 다중 FASTA 시퀀스 감지: >로 시작하는 헤더가 2개 이상이면 에러 (early exit)
+  let headerCount = 0
+  let idx = -1
+  while ((idx = raw.indexOf('>', idx + 1)) !== -1) {
+    if (idx === 0 || raw[idx - 1] === '\n' || raw[idx - 1] === '\r') {
+      headerCount++
+      if (headerCount > 1) break
+    }
+  }
+  if (headerCount > 1) {
+    errors.push('다중 서열이 감지되었습니다. 한 번에 하나의 서열만 입력하세요.')
+    return { valid: false, length: 0, gcContent: 0, ambiguousCount: 0, ambiguousRatio: 0, errors, warnings }
+  }
+
   const cleaned = cleanSequence(raw)
 
   if (cleaned.length === 0) {

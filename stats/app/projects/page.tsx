@@ -25,6 +25,7 @@ import {
 } from '@/lib/stores/research-project-store'
 import type { ResearchProject } from '@/lib/types/research'
 import { toast } from 'sonner'
+import { TOAST } from '@/lib/constants/toast-messages'
 import { listProjectEntityRefs } from '@/lib/research/project-storage'
 import { formatTimeAgo } from '@/lib/utils/format-time'
 import { ProjectDetailContent } from '@/components/projects/ProjectDetailContent'
@@ -49,7 +50,7 @@ function CreateProjectDialog({
       description: description.trim() || undefined,
     })
     setActiveProject(project.id)
-    toast.success(`'${project.name}' 프로젝트가 생성되었습니다`)
+    toast.success(TOAST.project.created(project.name))
     setName('')
     setDescription('')
     onOpenChange(false)
@@ -229,7 +230,7 @@ function RenameDialog({
   const handleRename = useCallback(() => {
     if (!project || !name.trim()) return
     updateProject(project.id, { name: name.trim() })
-    toast.success('프로젝트 이름이 변경되었습니다')
+    toast.success(TOAST.project.renamed)
     onOpenChange(false)
   }, [project, name, updateProject, onOpenChange])
 
@@ -318,10 +319,10 @@ function ProjectsListView() {
     (project: ResearchProject) => {
       if (activeProject?.id === project.id) {
         clearActiveProject()
-        toast.info('프로젝트 연결이 해제되었습니다')
+        toast.info(TOAST.project.deactivated)
       } else {
         setActiveProject(project.id)
-        toast.success(`'${project.name}' 프로젝트가 활성화되었습니다`)
+        toast.success(TOAST.project.activated(project.name))
       }
     },
     [activeProject, setActiveProject, clearActiveProject],
@@ -331,7 +332,7 @@ function ProjectsListView() {
     (project: ResearchProject) => {
       const nextStatus = project.status === 'archived' ? 'active' : 'archived'
       updateProject(project.id, { status: nextStatus })
-      toast.success(nextStatus === 'archived' ? '프로젝트가 보관되었습니다' : '프로젝트가 복원되었습니다')
+      toast.success(nextStatus === 'archived' ? TOAST.project.archived : TOAST.project.restored)
     },
     [updateProject],
   )
@@ -342,7 +343,7 @@ function ProjectsListView() {
         return
       }
       removeProject(project.id)
-      toast.success('프로젝트가 삭제되었습니다')
+      toast.success(TOAST.project.deleted)
     },
     [removeProject],
   )
