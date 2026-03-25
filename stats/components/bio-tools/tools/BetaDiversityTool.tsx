@@ -25,9 +25,9 @@ const METRIC_LABELS: Record<MetricOption, string> = {
   sorensen: 'Sorensen',
 }
 
-export default function BetaDiversityTool({ tool, meta }: ToolComponentProps): React.ReactElement {
+export default function BetaDiversityTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
-    useBioToolAnalysis<BetaDiversityResult>()
+    useBioToolAnalysis<BetaDiversityResult>({ initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
   const [metric, setMetric] = useState<MetricOption>('braycurtis')
 

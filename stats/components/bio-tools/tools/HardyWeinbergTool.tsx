@@ -20,7 +20,7 @@ import { Loader2 } from 'lucide-react'
 import type { ToolComponentProps } from './types'
 import type { HardyWeinbergResult } from '@/types/bio-tools-results'
 
-export default function HardyWeinbergTool({ tool, meta }: ToolComponentProps): React.ReactElement {
+export default function HardyWeinbergTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const [inputMode, setInputMode] = useState<'direct' | 'csv'>('direct')
 
   // 직접 입력
@@ -35,7 +35,7 @@ export default function HardyWeinbergTool({ tool, meta }: ToolComponentProps): R
   const [bbCol, setBbCol] = useState('')   // aa 열
 
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, setError, runAnalysis, saveToHistory, isSaved } =
-    useBioToolAnalysis<HardyWeinbergResult>({ worker: PyodideWorker.Genetics })
+    useBioToolAnalysis<HardyWeinbergResult>({ worker: PyodideWorker.Genetics, initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
 
   const onDataLoaded = useCallback((data: Parameters<typeof handleDataLoaded>[0]) => {

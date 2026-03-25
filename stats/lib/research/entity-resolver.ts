@@ -258,6 +258,24 @@ function makeDangling(ref: ProjectEntityRef): ResolvedEntity {
   }
 }
 
+function resolveBioTool(ref: ProjectEntityRef, map: Map<string, BioToolEntryLike>): ResolvedEntity {
+  const entry = map.get(ref.entityId)
+  if (!entry) return makeGeneric(ref)
+  const ts = normalizeTimestamp(entry.createdAt)
+  return {
+    ref,
+    loaded: true,
+    summary: {
+      title: entry.toolNameEn,
+      subtitle: entry.csvFileName,
+      date: fmtDate(ts),
+      timestamp: ts,
+      navigateTo: `/bio-tools?tool=${entry.toolId}&history=${entry.id}`,
+      ...kindMeta(ref.entityKind),
+    },
+  }
+}
+
 function makeGeneric(ref: ProjectEntityRef): ResolvedEntity {
   const ts = normalizeTimestamp(ref.createdAt)
   return {
@@ -274,10 +292,19 @@ function makeGeneric(ref: ProjectEntityRef): ResolvedEntity {
 
 // ── 공개 API ──
 
+export interface BioToolEntryLike {
+  id: string
+  toolId: string
+  toolNameEn: string
+  csvFileName: string
+  createdAt: number
+}
+
 export interface ResolveOptions {
   analysisHistory?: HistoryRecordLike[]
   graphProjects?: GraphProjectLike[]
   blastHistory?: BlastEntryLike[]
+  bioToolHistory?: BioToolEntryLike[]
 }
 
 /**
@@ -297,6 +324,9 @@ export function resolveEntities(
   const blastMap = new Map(
     (options.blastHistory ?? []).map(e => [e.id, e])
   )
+  const bioToolMap = new Map(
+    (options.bioToolHistory ?? []).map(e => [e.id, e])
+  )
 
   return refs.map(ref => {
     switch (ref.entityKind) {
@@ -306,6 +336,8 @@ export function resolveEntities(
         return resolveFigure(ref, graphMap)
       case 'blast-result':
         return resolveBlast(ref, blastMap)
+      case 'bio-tool-result':
+        return resolveBioTool(ref, bioToolMap)
       default:
         return makeGeneric(ref)
     }

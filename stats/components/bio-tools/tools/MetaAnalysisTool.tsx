@@ -20,9 +20,9 @@ import { buildMetaAnalysisColumns } from '@/lib/graph-studio/analysis-adapter'
 import type { MetaAnalysisResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
-export default function MetaAnalysisTool({ tool, meta }: ToolComponentProps): React.ReactElement {
+export default function MetaAnalysisTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
-    useBioToolAnalysis<MetaAnalysisResult>({ worker: PyodideWorker.Survival })
+    useBioToolAnalysis<MetaAnalysisResult>({ worker: PyodideWorker.Survival, initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
 
   const openInGraphStudio = useOpenInGraphStudio()

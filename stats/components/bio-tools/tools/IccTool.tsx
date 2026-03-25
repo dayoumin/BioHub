@@ -31,9 +31,9 @@ const INTERPRETATION_STYLES: Record<string, { label: string; style: React.CSSPro
   excellent: { label: '우수 (Excellent, ≥ 0.75)', style: SIGNIFICANCE_BADGE.significant },
 }
 
-export default function IccTool({ tool, meta }: ToolComponentProps): React.ReactElement {
+export default function IccTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
-    useBioToolAnalysis<IccResult>({ worker: PyodideWorker.Survival })
+    useBioToolAnalysis<IccResult>({ worker: PyodideWorker.Survival, initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
 
   const [subjectCol, setSubjectCol] = useState('')

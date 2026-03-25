@@ -22,13 +22,13 @@ import type { VLineAnnotation } from '@/types/graph-studio'
 import type { ToolComponentProps } from './types'
 import type { ConditionFactorResult } from '@/types/bio-tools-results'
 
-export default function ConditionFactorTool({ tool, meta }: ToolComponentProps): React.ReactElement {
+export default function ConditionFactorTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const [lengthCol, setLengthCol] = useState<string>('')
   const [weightCol, setWeightCol] = useState<string>('')
   const [groupCol, setGroupCol] = useState<string>('')
 
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
-    useBioToolAnalysis<ConditionFactorResult>({ worker: PyodideWorker.Fisheries })
+    useBioToolAnalysis<ConditionFactorResult>({ worker: PyodideWorker.Fisheries, initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
   const openInGraphStudio = useOpenInGraphStudio()
 

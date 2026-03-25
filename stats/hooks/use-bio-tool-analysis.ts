@@ -11,10 +11,7 @@ import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import type { AllMethodNames } from '@/lib/constants/methods-registry.types'
 import type { CsvData } from '@/components/bio-tools/BioCsvUpload'
 import { saveBioToolEntry } from '@/lib/bio-tools/bio-tool-history'
-import { useResearchProjectStore } from '@/lib/stores/research-project-store'
-
-const selectActiveProject = (s: ReturnType<typeof useResearchProjectStore.getState>) =>
-  s.projects.find(p => p.id === s.activeResearchProjectId && p.status === 'active') ?? null
+import { useResearchProjectStore, selectActiveProject } from '@/lib/stores/research-project-store'
 import { toast } from 'sonner'
 
 interface UseBioToolAnalysisOptions {

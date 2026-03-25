@@ -28,12 +28,12 @@ const GROWTH_TYPE_LABELS: Record<string, { ko: string; en: string }> = {
   negative_allometric: { ko: '음의 이성장', en: 'Negative allometric (b < 3)' },
 }
 
-export default function LengthWeightTool({ tool, meta }: ToolComponentProps): React.ReactElement {
+export default function LengthWeightTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const [lengthCol, setLengthCol] = useState<string>('')
   const [weightCol, setWeightCol] = useState<string>('')
 
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
-    useBioToolAnalysis<LengthWeightResult>({ worker: PyodideWorker.Fisheries })
+    useBioToolAnalysis<LengthWeightResult>({ worker: PyodideWorker.Fisheries, initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
   const openInGraphStudio = useOpenInGraphStudio()
 

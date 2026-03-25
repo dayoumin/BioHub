@@ -17,9 +17,9 @@ import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import type { PermanovaResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
-export default function PermanovaTool({ tool, meta }: ToolComponentProps): React.ReactElement {
+export default function PermanovaTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runWithPreStep, saveToHistory, isSaved } =
-    useBioToolAnalysis<PermanovaResult>()
+    useBioToolAnalysis<PermanovaResult>({ initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
   const [groupCol, setGroupCol] = useState<string>('')
 

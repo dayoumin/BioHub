@@ -26,9 +26,9 @@ function getAucInterpretation(auc: number): { label: string; style: React.CSSPro
   return { label: '불량 (Poor)', style: SIGNIFICANCE_BADGE.nonSignificant }
 }
 
-export default function RocAucTool({ tool, meta }: ToolComponentProps): React.ReactElement {
+export default function RocAucTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
-    useBioToolAnalysis<RocAucResult>({ worker: PyodideWorker.Survival })
+    useBioToolAnalysis<RocAucResult>({ worker: PyodideWorker.Survival, initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
 
   const openInGraphStudio = useOpenInGraphStudio()

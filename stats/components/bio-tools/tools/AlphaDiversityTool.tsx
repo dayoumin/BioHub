@@ -23,9 +23,9 @@ const INDEX_LABELS: Record<string, string> = {
   pielou: "Pielou J'",
 }
 
-export default function AlphaDiversityTool({ tool, meta }: ToolComponentProps): React.ReactElement {
+export default function AlphaDiversityTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
-    useBioToolAnalysis<AlphaDiversityResult>()
+    useBioToolAnalysis<AlphaDiversityResult>({ initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
 
   const handleAnalyze = useCallback(() => {

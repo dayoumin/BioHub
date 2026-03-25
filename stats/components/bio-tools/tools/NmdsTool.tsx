@@ -33,9 +33,9 @@ const STRESS_LABELS: Record<string, string> = {
   poor: '불량 (≥ 0.2)',
 }
 
-export default function NmdsTool({ tool, meta }: ToolComponentProps): React.ReactElement {
+export default function NmdsTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runWithPreStep, saveToHistory, isSaved } =
-    useBioToolAnalysis<NmdsResult>()
+    useBioToolAnalysis<NmdsResult>({ initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
   const openInGraphStudio = useOpenInGraphStudio()
   const [groupCol, setGroupCol] = useState<string>('')

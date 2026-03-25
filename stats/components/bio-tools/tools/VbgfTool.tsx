@@ -21,14 +21,14 @@ import type { ToolComponentProps } from './types'
 
 import type { VbgfResult } from '@/types/bio-tools-results'
 
-export default function VbgfTool({ tool, meta }: ToolComponentProps): React.ReactElement {
+export default function VbgfTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const [ageCol, setAgeCol] = useState<string>('')
   const [lengthCol, setLengthCol] = useState<string>('')
   // 분석 시점의 컬럼 스냅샷 (stale scatter 방지)
   const [analyzedCols, setAnalyzedCols] = useState<{ age: string; length: string } | null>(null)
 
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
-    useBioToolAnalysis<VbgfResult>({ worker: PyodideWorker.Fisheries })
+    useBioToolAnalysis<VbgfResult>({ worker: PyodideWorker.Fisheries, initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
   const openInGraphStudio = useOpenInGraphStudio()
 

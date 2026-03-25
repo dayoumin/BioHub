@@ -16,9 +16,9 @@ import { buildRarefactionColumns } from '@/lib/graph-studio/analysis-adapter'
 import type { RarefactionResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
-export default function RarefactionTool({ tool, meta }: ToolComponentProps): React.ReactElement {
+export default function RarefactionTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
-    useBioToolAnalysis<RarefactionResult>()
+    useBioToolAnalysis<RarefactionResult>({ initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
   const openInGraphStudio = useOpenInGraphStudio()
 

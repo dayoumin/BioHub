@@ -42,6 +42,8 @@ function isValidEntry(item: unknown): item is BioToolHistoryEntry {
   return (
     typeof obj.id === 'string' &&
     typeof obj.toolId === 'string' &&
+    typeof obj.toolNameEn === 'string' &&
+    typeof obj.csvFileName === 'string' &&
     typeof obj.createdAt === 'number'
   )
 }
@@ -108,8 +110,9 @@ export function saveBioToolEntry(
     overflow = sorted.slice(MAX_HISTORY)
     saveToStorage(kept)
   } catch (err) {
-    // localStorage quota 초과 시 저장 실패를 호출자에게 알림
-    const isQuota = err instanceof DOMException && (err.name === 'QuotaExceededError' || err.code === 22)
+    // writeJson이 DOMException을 Error로 래핑하므로 cause 확인
+    const cause = err instanceof Error ? (err as Error & { cause?: unknown }).cause : err
+    const isQuota = cause instanceof DOMException && (cause.name === 'QuotaExceededError' || cause.code === 22)
     if (isQuota) {
       throw new Error('QUOTA_EXCEEDED')
     }

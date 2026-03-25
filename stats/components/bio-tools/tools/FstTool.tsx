@@ -26,7 +26,7 @@ const FST_THRESHOLDS = [
   { max: Infinity, label: '매우 큰 분화', level: 'very_great' },
 ] as const
 
-export default function FstTool({ tool, meta }: ToolComponentProps): React.ReactElement {
+export default function FstTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const [inputMode, setInputMode] = useState<'simple' | 'genotype'>('simple')
 
   // v1 간편 분석
@@ -37,7 +37,7 @@ export default function FstTool({ tool, meta }: ToolComponentProps): React.React
   const [popColV2, setPopColV2] = useState('')
 
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, setError, runAnalysis, saveToHistory, isSaved } =
-    useBioToolAnalysis<FstResult>({ worker: PyodideWorker.Genetics })
+    useBioToolAnalysis<FstResult>({ worker: PyodideWorker.Genetics, initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
 
   const onDataLoadedV1 = useCallback((data: Parameters<typeof handleDataLoaded>[0]) => {

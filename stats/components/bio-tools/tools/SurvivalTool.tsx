@@ -20,9 +20,9 @@ import { buildKmCurveColumns } from '@/lib/graph-studio/analysis-adapter'
 import type { SurvivalResult, KmCurve } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
-export default function SurvivalTool({ tool, meta }: ToolComponentProps): React.ReactElement {
+export default function SurvivalTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
-    useBioToolAnalysis<SurvivalResult>({ worker: PyodideWorker.Survival })
+    useBioToolAnalysis<SurvivalResult>({ worker: PyodideWorker.Survival, initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
 
   const openInGraphStudio = useOpenInGraphStudio()
