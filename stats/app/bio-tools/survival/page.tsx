@@ -15,23 +15,7 @@ import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
 import { BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
-
-interface KmCurve {
-  time: number[]
-  survival: number[]
-  ciLo: number[]
-  ciHi: number[]
-  atRisk: number[]
-  medianSurvival: number | null
-  censored: number[]
-  nEvents: number
-}
-
-interface SurvivalResult {
-  curves: Record<string, KmCurve>
-  logRankP: number | null
-  medianSurvivalTime: number | null
-}
+import type { SurvivalResult, KmCurve } from '@/types/bio-tools-results'
 
 const tool = getBioToolById('survival')
 
@@ -91,7 +75,7 @@ export default function SurvivalPage(): React.ReactElement {
           <div className="flex flex-wrap items-end gap-4">
             <BioColumnSelect label="시간 열" headers={csvData.headers} value={timeCol} onChange={setTimeCol} labelSize="xs" />
             <BioColumnSelect label="사건 열 (1=사건, 0=중도절단)" headers={csvData.headers} value={eventCol} onChange={setEventCol} labelSize="xs" />
-            <BioColumnSelect label="그룹 열 (선택)" headers={csvData.headers} value={groupCol} onChange={setGroupCol} labelSize="xs" allowNone />
+            <BioColumnSelect label="그룹 열 (선택)" headers={csvData.headers} value={groupCol} onChange={setGroupCol} labelSize="xs" allowNone noneLabel="없음 (단일 그룹)" />
             <Button onClick={handleAnalyze} disabled={isAnalyzing} size="sm">
               {isAnalyzing ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" />분석 중...</> : '분석 실행'}
             </Button>

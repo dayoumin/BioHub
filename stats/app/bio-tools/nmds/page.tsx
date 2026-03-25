@@ -14,14 +14,7 @@ import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
 import { Loader2 } from 'lucide-react'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
-
-interface NmdsResult {
-  coordinates: number[][]
-  stress: number
-  stressInterpretation: string
-  siteLabels: string[]
-  groups: string[] | null
-}
+import type { NmdsResult } from '@/types/bio-tools-results'
 
 const STRESS_STYLES: Record<string, React.CSSProperties> = {
   excellent: SIGNIFICANCE_BADGE.significant,
@@ -101,7 +94,7 @@ export default function NmdsPage(): React.ReactElement {
         {csvData && (
           <div className="flex flex-wrap items-center gap-4">
             <BioColumnSelect label="지점명 열" headers={csvData.headers} value={siteCol} onChange={setSiteCol} />
-            <BioColumnSelect label="그룹 열 (선택)" headers={csvData.headers} value={groupCol} onChange={setGroupCol} allowNone />
+            <BioColumnSelect label="그룹 열 (선택)" headers={csvData.headers} value={groupCol} onChange={setGroupCol} allowNone noneLabel="없음 (단일 그룹)" />
 
             <Button onClick={handleAnalyze} disabled={isAnalyzing} size="sm">
               {isAnalyzing ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" />분석 중...</> : '분석 실행'}

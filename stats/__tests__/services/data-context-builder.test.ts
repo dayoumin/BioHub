@@ -273,3 +273,44 @@ describe('buildContextForIntent', () => {
     }
   })
 })
+
+// ===== 넓은 스키마 토큰 제한 테스트 =====
+
+describe('넓은 스키마 (25열) 토큰 제한', () => {
+  const wideCols = Array.from({ length: 25 }, (_, i) =>
+    i % 2 === 0
+      ? makeNumericCol(`num_${i}`, { min: 0, max: 100 })
+      : makeCategoricalCol(`cat_${i}`)
+  )
+  const wideValidation = makeValidation({ totalRows: 500, columns: wideCols })
+
+  it('buildVisualizationContext: 상세 정보 10개 제한, 나머지 생략', () => {
+    const result = buildVisualizationContext(wideValidation)
+    // 처음 10개 컬럼만 상세 정보 포함
+    expect(result).toContain('num_0: 수치형')
+    expect(result).toContain('cat_9: 범주형')
+    // 11번째부터는 상세 없음
+    expect(result).not.toContain('num_10: 수치형')
+    expect(result).not.toContain('cat_11:')
+  })
+
+  it('buildVisualizationContext: 컬럼명 나열 10개 제한 + "외" 표시', () => {
+    const result = buildVisualizationContext(wideValidation)
+    // 13개 수치형 중 10개만 이름 나열
+    expect(result).toContain('외')
+  })
+
+  it('buildConsultationContext: 15개 컬럼까지만 표시 + "외" 표시', () => {
+    const result = buildConsultationContext(wideValidation)
+    // 25개 중 15개만 표시
+    expect(result).toContain('외 10개')
+    // 16번째 컬럼은 미포함
+    expect(result).not.toContain('num_16')
+  })
+
+  it('buildDataContextMarkdown: 기존 20개 제한 유지', () => {
+    const result = buildDataContextMarkdown(wideValidation)
+    expect(result).toContain('num_0 (수치형)')
+    expect(result).toContain('외 5개 변수 생략')
+  })
+})

@@ -11,6 +11,9 @@ from scipy.optimize import curve_fit
 from helpers import clean_paired_arrays
 
 
+# ─── 상수 ──────────────────────────────────────────────────
+INVALID_GROUP_VALUES = ('none', 'nan', 'null', 'na', 'n/a', '#n/a')
+
 # ─── 내부 유틸 ─────────────────────────────────────────────
 
 
@@ -252,7 +255,24 @@ def condition_factor(
 
     # 그룹별 비교 (정제된 인덱스에 맞춰 groups 동기화)
     if has_groups:
-        group_arr = np.array([str(groups[i]) for i in valid_mask])
+        raw_groups = [groups[i] for i in valid_mask]
+        # None, NaN, 빈 문자열 필터링 — 유효 그룹만 남김
+        valid_idx = []
+        clean_groups = []
+        for gi, gval in enumerate(raw_groups):
+            if gval is None:
+                continue
+            s = str(gval).strip()
+            if s == '' or s.lower() in INVALID_GROUP_VALUES:
+                continue
+            valid_idx.append(gi)
+            clean_groups.append(s)
+
+        if len(valid_idx) == 0:
+            return result
+
+        K = K[valid_idx]
+        group_arr = np.array(clean_groups)
 
         unique_groups = sorted(set(group_arr.tolist()))
         group_stats: Dict = {}
@@ -286,11 +306,13 @@ def condition_factor(
         elif len(valid_groups) > 2:
             group_data = [K[group_arr == g] for g in valid_groups]
             f_stat, p_value = stats.f_oneway(*group_data)
+            n_total = sum(len(gd) for gd in group_data)
             result['comparison'] = {
                 'test': 'ANOVA',
                 'statistic': float(f_stat),
                 'pValue': float(p_value),
                 'df': int(len(valid_groups) - 1),
+                'df2': int(n_total - len(valid_groups)),
             }
 
     return result

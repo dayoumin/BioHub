@@ -9,6 +9,7 @@
  */
 
 import { STATISTICAL_METHODS, getKoreanName } from '@/lib/constants/statistical-methods'
+import { escapeRegex } from '@/lib/escape-regex'
 import { llmRecommender } from '@/lib/services/llm-recommender'
 import { logger } from '@/lib/utils/logger'
 import type { AnalysisTrack, ResolvedIntent, StatisticalMethod } from '@/types/analysis'
@@ -55,9 +56,6 @@ function buildMethodPatterns(): Map<string, RegExp> {
   return patterns
 }
 
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
 
 let _methodPatterns: Map<string, RegExp> | null = null
 function getMethodPatterns(): Map<string, RegExp> {

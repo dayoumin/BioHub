@@ -15,28 +15,7 @@ import { detectAgeColumn, detectLengthColumn } from '@/lib/bio-tools/fisheries-c
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 
-interface ParameterRow {
-  name: string
-  unit: string
-  estimate: number
-  standardError: number
-  ciLower: number
-  ciUpper: number
-}
-
-interface VbgfResult {
-  lInf: number
-  k: number
-  t0: number
-  standardErrors: number[]
-  ci95: number[]
-  rSquared: number
-  predicted: number[]   // 2차: 성장곡선 차트용
-  residuals: number[]   // 2차: 잔차 플롯용
-  nObservations: number
-  aic: number | null
-  parameterTable: ParameterRow[]
-}
+import type { VbgfResult } from '@/types/bio-tools-results'
 
 const tool = getBioToolById('vbgf')
 

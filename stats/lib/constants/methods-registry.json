@@ -1259,5 +1259,29 @@
         "description": "Mantel 검정 — 두 거리행렬 간 상관"
       }
     }
+  },
+  "worker9": {
+    "name": "genetics",
+    "description": "Population genetics (Hardy-Weinberg, Fst)",
+    "packages": ["numpy", "scipy"],
+    "methods": {
+      "hardy_weinberg": {
+        "params": ["rows", "locusLabels?"],
+        "returns": [
+          "alleleFreqP", "alleleFreqQ", "observedCounts", "expectedCounts",
+          "chiSquare", "pValue", "degreesOfFreedom", "inEquilibrium",
+          "isMonomorphic", "interpretation", "nTotal", "locusResults", "lowExpectedWarning"
+        ],
+        "description": "Hardy-Weinberg 평형 chi-square 검정"
+      },
+      "fst": {
+        "params": ["populations", "populationLabels?"],
+        "returns": [
+          "globalFst", "pairwiseFst", "populationLabels",
+          "nPopulations", "interpretation"
+        ],
+        "description": "Fst 집단 분화 지수 (Hudson 1992 + Bhatia 2013)"
+      }
+    }
   }
 }

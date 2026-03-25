@@ -25,6 +25,7 @@
  */
 
 import type { PyodideInterface } from '@/types/pyodide'
+import type { WorkerNumber } from '@/lib/constants/methods-registry.types'
 import { getPyodideCDNUrls } from '@/lib/constants'
 import type { WorkerRequest, WorkerResponse } from './pyodide-worker'
 import { registerHelpersModule } from './pyodide-init-logic'
@@ -188,7 +189,7 @@ export interface StatisticsResult {
  * - Worker 4: statsmodels + scikit-learn (회귀, PCA 등)
  * - Worker 6: matplotlib + micropip (논문용 export, SciencePlots)
  */
-export const WORKER_EXTRA_PACKAGES = Object.freeze<Record<1 | 2 | 3 | 4 | 5 | 6 | 7 | 8, readonly string[]>>({
+export const WORKER_EXTRA_PACKAGES = Object.freeze<Record<WorkerNumber, readonly string[]>>({
   1: [],
   2: ['statsmodels', 'pandas'],
   3: ['statsmodels', 'pandas', 'scikit-learn'],
@@ -196,7 +197,8 @@ export const WORKER_EXTRA_PACKAGES = Object.freeze<Record<1 | 2 | 3 | 4 | 5 | 6 
   5: ['scikit-learn'],
   6: ['matplotlib', 'micropip'],
   7: [],
-  8: ['scikit-learn']
+  8: ['scikit-learn'],
+  9: [],
 })
 
 // ========================================
@@ -500,11 +502,11 @@ export class PyodideCoreService {
   /**
    * Worker 파일 로드 (Lazy Loading)
    *
-   * @param workerNumber Worker 번호 (1-4)
+   * @param workerNumber Worker 번호 (1-9)
    * @throws {Error} Pyodide가 초기화되지 않은 경우
    */
 
-  async ensureWorkerLoaded(workerNumber: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8): Promise<void> {
+  async ensureWorkerLoaded(workerNumber: WorkerNumber): Promise<void> {
     if (this.isWebWorkerMode()) {
       if (this.loadedWorkers.has(workerNumber)) {
         return
@@ -598,7 +600,7 @@ export class PyodideCoreService {
    */
 
   async callWorkerMethod<T>(
-    workerNum: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8,
+    workerNum: WorkerNumber,
     methodName: string,
     params: Record<string, WorkerMethodParam>,
     options: WorkerMethodOptions = {}
@@ -754,8 +756,8 @@ json.dumps(result)
    * @param workerNumber Worker 번호
    * @returns Worker 파일명 (확장자 제외)
    */
-  private getWorkerFileName(workerNumber: number): string {
-    const fileNames: Record<number, string> = {
+  private getWorkerFileName(workerNumber: WorkerNumber): string {
+    const fileNames: Record<WorkerNumber, string> = {
       1: 'worker1-descriptive',
       2: 'worker2-hypothesis',
       3: 'worker3-nonparametric-anova',
@@ -763,7 +765,8 @@ json.dumps(result)
       5: 'worker5-survival',
       6: 'worker6-matplotlib',
       7: 'worker7-fisheries',
-      8: 'worker8-ecology'
+      8: 'worker8-ecology',
+      9: 'worker9-genetics'
     }
     const name = fileNames[workerNumber];
     if (!name) {
@@ -777,8 +780,8 @@ json.dumps(result)
    *
    * @param workerNumber Worker 번호
    */
-  private async loadAdditionalPackages(workerNumber: number): Promise<void> {
-    const packages = WORKER_EXTRA_PACKAGES[workerNumber as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8]
+  private async loadAdditionalPackages(workerNumber: WorkerNumber): Promise<void> {
+    const packages = WORKER_EXTRA_PACKAGES[workerNumber]
 
     if (!packages || packages.length === 0) {
       return // Worker 1은 추가 패키지 없음
@@ -998,7 +1001,7 @@ json.dumps(result)
   }
 
   private async callWorkerMethodViaWebWorker<T>(
-    workerNum: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8,
+    workerNum: WorkerNumber,
     methodName: string,
     params: Record<string, WorkerMethodParam>,
     options: WorkerMethodOptions = {}

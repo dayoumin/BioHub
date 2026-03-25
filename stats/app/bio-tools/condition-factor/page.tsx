@@ -15,18 +15,7 @@ import { BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles
 import { detectLengthColumn, detectWeightColumn } from '@/lib/bio-tools/fisheries-columns'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
-
-interface ConditionFactorResult {
-  individualK: number[]  // 2차: 히스토그램/박스플롯용
-  mean: number
-  std: number
-  median: number
-  min: number
-  max: number
-  n: number
-  groupStats?: Record<string, { mean: number; std: number; n: number; median: number }>
-  comparison?: { test: string; statistic: number; pValue: number; df: number; df2?: number }
-}
+import type { ConditionFactorResult } from '@/types/bio-tools-results'
 
 const tool = getBioToolById('condition-factor')
 

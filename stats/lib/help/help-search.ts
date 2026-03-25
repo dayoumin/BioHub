@@ -5,6 +5,7 @@
 
 import type { HelpItem, HelpSearchResult } from './types'
 import { getAllHelpItems } from './help-data'
+import { escapeRegex } from '@/lib/escape-regex'
 
 /**
  * 검색어를 정규화 (소문자, 공백 제거)
@@ -128,12 +129,6 @@ export function highlightMatch(text: string, query: string): string {
   return escapedText.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800 rounded px-0.5">$1</mark>')
 }
 
-/**
- * 정규표현식 특수문자 이스케이프
- */
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
 
 /**
  * 인기 검색어 / 추천 검색어

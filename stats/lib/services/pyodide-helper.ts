@@ -4,14 +4,7 @@
  */
 
 import type { PyodideInterface } from '@/types/pyodide'
-
-/**
- * 정규식 특수문자를 이스케이프 처리하는 함수
- * 보안 취약점 방지를 위해 필수
- */
-function escapeRegExp(string: string): string {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
+import { escapeRegex } from '@/lib/escape-regex'
 
 /**
  * Pyodide 실행 컨텍스트 관리자
@@ -61,7 +54,7 @@ export class PyodideContext {
       const originalKey = fullKey.replace(`${this.namespace}_`, '')
       // 정규식 특수문자를 안전하게 이스케이프 처리
       namespacedCode = namespacedCode.replace(
-        new RegExp(`\\b${escapeRegExp(originalKey)}\\b`, 'g'),
+        new RegExp(`\\b${escapeRegex(originalKey)}\\b`, 'g'),
         fullKey
       )
     })

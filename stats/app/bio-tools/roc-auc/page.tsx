@@ -14,20 +14,7 @@ import { formatNumber } from '@/lib/statistics/formatters'
 import { BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
-
-interface RocPoint {
-  fpr: number
-  tpr: number
-}
-
-interface RocAucResult {
-  rocPoints: RocPoint[]
-  auc: number
-  aucCI: { lower: number; upper: number }
-  optimalThreshold: number
-  sensitivity: number
-  specificity: number
-}
+import type { RocAucResult } from '@/types/bio-tools-results'
 
 const tool = getBioToolById('roc-auc')
 

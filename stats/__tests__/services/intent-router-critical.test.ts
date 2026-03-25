@@ -3,7 +3,7 @@
  *
  * 기존 intent-router.test.ts가 커버하지 못하는 경우의 수:
  *
- * A. Confidence 경계값 (0.7 키워드 임계값)
+ * A. Confidence 경계값 (0.6 키워드 임계값)
  * B. classifyByLLM() 구조적 검증 (null 반환, 방어 로직)
  * C. classifyIntent() 실패 시 fallback 동작
  * D. 한글 메서드명 매칭 (koreanName 괄호 문제 포함)
@@ -62,21 +62,23 @@ describe('Intent Router — 비판적 검토', () => {
 
   // ===== A. Confidence 경계값 테스트 =====
   describe('A. Confidence 경계값', () => {
-    it('키워드 confidence=0.8 (>= 0.7) → LLM 호출 생략', async () => {
+    it('키워드 confidence=0.8 (>= 0.6) → LLM 호출 생략', async () => {
       // 메서드명만 감지 (실행 의도 없음) → confidence=0.8
       await intentRouter.classify('t-test')
 
       expect(mockClassifyIntent).not.toHaveBeenCalled()
     })
 
-    it('consultation 키워드 1개 → confidence=0.65 (< 0.7) → LLM 호출됨', async () => {
-      // "추천" 1개 매칭 → 0.5 + 1*0.15 = 0.65
-      await intentRouter.classify('추천해줘')
+    it('consultation 키워드 1개 → confidence=0.65 (>= 0.6) → LLM 호출 생략', async () => {
+      // "추천" 1개 매칭 → 0.5 + 1*0.15 = 0.65 (>= 0.6 임계값)
+      const result = await intentRouter.classify('추천해줘')
 
-      expect(mockClassifyIntent).toHaveBeenCalledTimes(1)
+      expect(mockClassifyIntent).not.toHaveBeenCalled()
+      expect(result.track).toBe('data-consultation')
+      expect(result.confidence).toBe(0.65)
     })
 
-    it('consultation 키워드 2개 → confidence=0.8 (>= 0.7) → LLM 호출 생략', async () => {
+    it('consultation 키워드 2개 → confidence=0.8 (>= 0.6) → LLM 호출 생략', async () => {
       // "추천" + "도와" → 2개 매칭 → 0.5 + 2*0.15 = 0.8
       await intentRouter.classify('분석 추천 좀 도와줘')
 
@@ -157,19 +159,13 @@ describe('Intent Router — 비판적 검토', () => {
       expect(result.method).toBeNull()
     })
 
-    it('키워드 0.65 + LLM 성공 → LLM이 우선', async () => {
-      // "추천" → consultation confidence=0.65 (< 0.7, LLM 호출됨)
-      mockClassifyIntent.mockResolvedValue(createClassification({
-        track: 'data-consultation',
-        confidence: 0.8,
-        reasoning: '상담 필요',
-      }))
-
+    it('키워드 0.65 (>= 0.6) → 키워드 결과 사용, LLM 미호출', async () => {
+      // "추천" → consultation confidence=0.65 (>= 0.6 임계값, 키워드 충분)
       const result = await intentRouter.classify('분석 추천')
 
-      // LLM 결과가 우선
-      expect(result.provider).toBe('llm')
-      expect(result.confidence).toBe(0.8)
+      expect(result.provider).toBe('keyword')
+      expect(result.confidence).toBe(0.65)
+      expect(mockClassifyIntent).not.toHaveBeenCalled()
     })
   })
 
@@ -185,11 +181,11 @@ describe('Intent Router — 비판적 검토', () => {
       expect(result.provider).toBe('keyword') // createFallback
     })
 
-    it('classifyIntent() null + 키워드 결과 있음 → 3차 키워드 결과 사용', async () => {
+    it('키워드 0.65 (>= 0.6) → LLM mock null이어도 키워드 short-circuit', async () => {
       mockClassifyIntent.mockResolvedValue(null)
 
-      // "추천" → consultation 0.65 (< 0.7, LLM 호출)
-      // LLM null → 3차에서 키워드 결과 사용
+      // "추천" → consultation 0.65 (>= 0.6, 키워드 충분 → LLM 미호출)
+      // LLM null 설정은 short-circuit 증명용 — 실제 호출되지 않음
       const result = await intentRouter.classify('분석 추천')
 
       expect(result.track).toBe('data-consultation')
@@ -460,13 +456,12 @@ describe('Intent Router — 비판적 검토', () => {
 
   // ===== J. 3단계 fallback 체인 완전 검증 =====
   describe('J. 3단계 fallback 체인 시나리오 매트릭스', () => {
-    // | 키워드 | LLM          | 예상 결과                      |
-    // |--------|--------------|-------------------------------|
-    // | High   | -            | 키워드 (LLM 호출 안 함)         |
-    // | Low    | 성공         | LLM                           |
-    // | Low    | null/throw   | 키워드 (3차)                   |
-    // | 없음   | 성공         | LLM                           |
-    // | 없음   | null/throw   | 최종 fallback                  |
+    // 임계값 0.6 기준: 모든 키워드 매칭은 confidence >= 0.65 → 항상 1차 반환
+    // | 키워드 | LLM          | 예상 결과                        |
+    // |--------|--------------|----------------------------------|
+    // | 매칭됨 | -            | 키워드 (LLM 호출 안 함, >= 0.6)   |
+    // | 없음   | 성공         | LLM                              |
+    // | 없음   | null/throw   | 최종 fallback                    |
 
     it('시나리오 1: 키워드 High → LLM 미호출', async () => {
       const result = await intentRouter.classify('t-test 해줘') // confidence=0.95
@@ -476,28 +471,31 @@ describe('Intent Router — 비판적 검토', () => {
       expect(mockClassifyIntent).not.toHaveBeenCalled()
     })
 
-    it('시나리오 2: 키워드 Low + LLM 성공 → LLM 결과', async () => {
+    it('시나리오 2: 키워드 매칭 (최소 0.65) → LLM 미호출, 키워드 결과', async () => {
+      // LLM mock 설정 (호출되지 않아야 함)
       mockClassifyIntent.mockResolvedValue(createClassification({
         track: 'direct-analysis',
         confidence: 0.8,
         methodId: 'anova',
       }))
 
-      // "추천" → consultation 0.65 (< 0.7)
+      // "추천" → consultation 0.65 (>= 0.6 임계값)
       const result = await intentRouter.classify('분석 추천')
 
-      expect(result.track).toBe('direct-analysis') // LLM이 ANOVA 분류
-      expect(result.provider).toBe('llm')
-    })
-
-    it('시나리오 3: 키워드 Low + LLM null → 키워드 결과 (3차)', async () => {
-      mockClassifyIntent.mockResolvedValue(null)
-
-      const result = await intentRouter.classify('분석 추천')
-
-      expect(result.track).toBe('data-consultation')
+      expect(result.track).toBe('data-consultation') // 키워드 consultation
       expect(result.provider).toBe('keyword')
       expect(result.confidence).toBe(0.65)
+      expect(mockClassifyIntent).not.toHaveBeenCalled()
+    })
+
+    it('시나리오 3: 키워드 없음 + LLM null → 최종 fallback', async () => {
+      mockClassifyIntent.mockResolvedValue(null)
+
+      const result = await intentRouter.classify('가나다라마바사')
+
+      expect(result.track).toBe('data-consultation')
+      expect(result.confidence).toBe(0.5)
+      expect(result.provider).toBe('keyword') // createFallback
     })
 
     it('시나리오 4: 키워드 없음 + LLM 성공 → LLM 결과', async () => {

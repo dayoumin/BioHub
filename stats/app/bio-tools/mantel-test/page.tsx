@@ -14,13 +14,7 @@ import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
-
-interface MantelResult {
-  r: number
-  pValue: number
-  permutations: number
-  method: string
-}
+import type { MantelResult } from '@/types/bio-tools-results'
 
 const tool = getBioToolById('mantel-test')
 

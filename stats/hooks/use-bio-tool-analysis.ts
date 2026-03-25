@@ -8,6 +8,7 @@
 import { useCallback, useState } from 'react'
 import { PyodideCoreService, type WorkerMethodParam } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import type { AllMethodNames } from '@/lib/constants/methods-registry.types'
 import type { CsvData } from '@/components/bio-tools/BioCsvUpload'
 
 interface UseBioToolAnalysisOptions {
@@ -24,9 +25,9 @@ interface UseBioToolAnalysisReturn<T> {
   handleDataLoaded: (data: CsvData) => void
   handleClear: () => void
   setError: (error: string | null) => void
-  runAnalysis: (methodName: string, params: Record<string, WorkerMethodParam>) => Promise<void>
+  runAnalysis: (methodName: AllMethodNames, params: Record<string, WorkerMethodParam>) => Promise<void>
   /** pre-step이 필요한 분석 (beta_diversity → main analysis 등). isAnalyzing를 단일 소유. */
-  runWithPreStep: (preStep: () => Promise<Record<string, WorkerMethodParam>>, methodName: string) => Promise<void>
+  runWithPreStep: (preStep: () => Promise<Record<string, WorkerMethodParam>>, methodName: AllMethodNames) => Promise<void>
 }
 
 export function useBioToolAnalysis<T>(
@@ -53,7 +54,7 @@ export function useBioToolAnalysis<T>(
     setError(null)
   }, [])
 
-  const runAnalysis = useCallback(async (methodName: string, params: Record<string, WorkerMethodParam>) => {
+  const runAnalysis = useCallback(async (methodName: AllMethodNames, params: Record<string, WorkerMethodParam>) => {
     setIsAnalyzing(true)
     setError(null)
 
@@ -74,7 +75,7 @@ export function useBioToolAnalysis<T>(
 
   const runWithPreStep = useCallback(async (
     preStep: () => Promise<Record<string, WorkerMethodParam>>,
-    methodName: string,
+    methodName: AllMethodNames,
   ) => {
     setIsAnalyzing(true)
     setError(null)

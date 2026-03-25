@@ -15,24 +15,7 @@ import { formatNumber, formatPValue } from '@/lib/statistics/formatters'
 import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
-
-interface MetaAnalysisResult {
-  pooledEffect: number
-  pooledSE: number
-  ci: [number, number]
-  zValue: number
-  pValue: number
-  Q: number
-  QpValue: number
-  iSquared: number
-  tauSquared: number
-  model: string
-  weights: number[]
-  studyCiLower: number[]
-  studyCiUpper: number[]
-  studyNames: string[]
-  effectSizes: number[]
-}
+import type { MetaAnalysisResult } from '@/types/bio-tools-results'
 
 const tool = getBioToolById('meta-analysis')
 

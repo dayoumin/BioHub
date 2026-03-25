@@ -118,11 +118,11 @@ These items should be the current focus.
 - ~~`[ux]` Step 1 카드 대시보드: 하드코딩 한글 → terminology 시스템 등록~~ — 완료 (`badgeBar` + `summaryCards` 섹션 추가, aquaculture/generic 양쪽 등록)
 
 **순차 처리 (설계 필요):**
-- `[analysis]` Hub Chat 데이터 컨텍스트 token 낭비 — validationResults 전체 전달. intent별 경량화 필요.
-- `[analysis]` intent-router 테스트 부재 — 키워드 + LLM 분류 검증 없음
-- `[analysis]` `runAnalysis(methodName: string)` stringly-typed → Worker method union 타입 제약 검토
-- `[analysis]` `useBioToolAnalysis` hook에서 `setError` 직접 노출 — leaky abstraction. `runMultiStepAnalysis` 패턴으로 캡슐화 검토
-- `[ux]` AI 해석 실패 graceful degradation (`useErrorRecovery` 활용)
+- ~~`[analysis]` Hub Chat 데이터 컨텍스트 token 낭비~~ — 완료 (`buildContextForIntent` 연결: visualization ~60%, experiment-design ~90% 절감)
+- ~~`[analysis]` intent-router 테스트 부재~~ — 완료 (52개 테스트, 임계값 0.7→0.6 반영)
+- ~~`[analysis]` `runAnalysis(methodName: string)` stringly-typed~~ — 완료 (`AllMethodNames` union 타입 적용 + Worker 9 registry 동기화)
+- ~~`[analysis]` `useBioToolAnalysis` hook `setError` 직접 노출~~ — 검토 완료. 14개 중 2개만 사용 (fst, hardy-weinberg pre-validation). 2 caller 위한 캡슐화는 과잉, 현 상태 유지.
+- ~~`[ux]` AI 해석 실패 graceful degradation~~ — 이미 구현됨 (`useErrorRecovery` + `AiInterpretationCard` 2회 재시도 → 소진 시 안내 메시지)
 
 ### 3-B. 그래프 (Graph Studio)
 

@@ -34,7 +34,7 @@ export function BioColumnSelect({
 
   return (
     <div className={wrapperClass}>
-      <label className={`text-${labelSize} text-muted-foreground whitespace-nowrap`}>{label}{labelSuffix}</label>
+      <label className={`${labelSize === 'xs' ? 'text-xs' : 'text-sm'} text-muted-foreground whitespace-nowrap`}>{label}{labelSuffix}</label>
       <Select value={displayValue} onValueChange={handleChange}>
         <SelectTrigger className="h-8 text-sm" style={{ width: `${width}px` }}>
           <SelectValue placeholder="선택..." />

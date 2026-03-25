@@ -15,24 +15,7 @@ import { formatNumber, formatPValue } from '@/lib/statistics/formatters'
 import { BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
-
-type IccType = 'ICC1_1' | 'ICC2_1' | 'ICC3_1'
-
-interface IccResult {
-  icc: number
-  iccType: IccType
-  fValue: number
-  df1: number
-  df2: number
-  pValue: number
-  ci: [number, number]
-  msRows: number
-  msCols: number
-  msError: number
-  nSubjects: number
-  nRaters: number
-  interpretation: string
-}
+import type { IccResult, IccType } from '@/types/bio-tools-results'
 
 const tool = getBioToolById('icc')
 

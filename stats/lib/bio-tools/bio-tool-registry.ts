@@ -178,7 +178,7 @@ export const BIO_TOOLS: readonly BioTool[] = [
     description: 'Hardy-Weinberg 평형 검정',
     inputType: 'csv',
     computeType: 'pyodide',
-    status: 'coming-soon',
+    status: 'ready',
   },
   {
     id: 'species-validation',
@@ -200,7 +200,7 @@ export const BIO_TOOLS: readonly BioTool[] = [
     description: 'Fixation Index (집단 간 유전적 분화)',
     inputType: 'csv',
     computeType: 'pyodide',
-    status: 'coming-soon',
+    status: 'ready',
   },
 
   // === 방법론 (4개) ===

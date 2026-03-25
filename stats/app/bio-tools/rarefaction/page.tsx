@@ -11,16 +11,7 @@ import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
 import { Loader2 } from 'lucide-react'
-
-interface RarefactionCurve {
-  siteName: string
-  steps: number[]
-  expectedSpecies: number[]
-}
-
-interface RarefactionResult {
-  curves: RarefactionCurve[]
-}
+import type { RarefactionResult } from '@/types/bio-tools-results'
 
 const tool = getBioToolById('rarefaction')
 

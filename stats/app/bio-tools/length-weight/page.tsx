@@ -16,20 +16,7 @@ import { BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles
 import { detectLengthColumn, detectWeightColumn } from '@/lib/bio-tools/fisheries-columns'
 import { cn } from '@/lib/utils'
 import { ArrowRight, Loader2 } from 'lucide-react'
-
-interface LengthWeightResult {
-  a: number
-  b: number
-  logA: number
-  rSquared: number
-  bStdError: number
-  isometricTStat: number
-  isometricPValue: number
-  growthType: 'isometric' | 'positive_allometric' | 'negative_allometric'
-  predicted: number[]   // 2차: 적합곡선 차트용
-  nObservations: number
-  logLogPoints: Array<{ logL: number; logW: number }>  // 2차: log-log 산점도용
-}
+import type { LengthWeightResult } from '@/types/bio-tools-results'
 
 const GROWTH_TYPE_LABELS: Record<string, { ko: string; en: string }> = {
   isometric: { ko: '등성장', en: 'Isometric (b ≈ 3)' },

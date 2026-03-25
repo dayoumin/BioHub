@@ -213,9 +213,9 @@ export class OpenRouterRecommender {
     validationResults: ValidationResults | null,
     assumptionResults: StatisticalAssumptions | null,
     _data: DataRow[] | null,
-    options?: { temperature?: number; maxTokens?: number; chatHistory?: FlowChatMessage[] }
+    options?: { temperature?: number; maxTokens?: number; chatHistory?: FlowChatMessage[]; dataContextOverride?: string }
   ): Promise<{ recommendation: AIRecommendation | null; responseText: string }> {
-    const userPrompt = this.buildUserPrompt(userInput, validationResults, assumptionResults)
+    const userPrompt = this.buildUserPrompt(userInput, validationResults, assumptionResults, options?.dataContextOverride)
 
     // 실제 컬럼명 세트 (변수 검증용)
     const validColumnNames = new Set(
@@ -466,9 +466,10 @@ export class OpenRouterRecommender {
   private buildUserPrompt(
     userInput: string,
     validationResults: ValidationResults | null,
-    assumptionResults: StatisticalAssumptions | null
+    assumptionResults: StatisticalAssumptions | null,
+    dataContextOverride?: string
   ): string {
-    const dataContext = this.buildDataContext(validationResults)
+    const dataContext = (dataContextOverride && dataContextOverride.trim()) || this.buildDataContext(validationResults)
     const assumptionContext = this.buildAssumptionContext(assumptionResults)
 
     return `${dataContext}

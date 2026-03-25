@@ -1,16 +1,21 @@
 'use client'
 
-import { type RefObject } from 'react'
+import { type RefObject, memo, useCallback, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, RefreshCw, AlertCircle } from 'lucide-react'
+import { Sparkles, RefreshCw, AlertCircle, AlertTriangle, ArrowRight, ChevronDown, List } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { CollapsibleSection } from '@/components/analysis/common'
 import { proseBase } from '@/components/common/card-styles'
+import { parseDetailSections, type InterpretationSection, type SectionCategory } from '@/lib/services/ai/parse-interpretation-sections'
+import { getSectionIcon } from './ai-section-config'
 import type { TerminologyDictionary } from '@/lib/terminology/terminology-types'
+
+// ============================================
+// 타입
+// ============================================
 
 interface ParsedInterpretation {
   summary: string
@@ -25,12 +30,188 @@ interface AiInterpretationCardProps {
   /** 재시도 횟수 소진 — true이면 retry 대신 안내 메시지 표시 */
   isRetryExhausted?: boolean
   prefersReducedMotion: boolean
-  detailedInterpretOpen: boolean
-  onDetailedInterpretOpenChange: (open: boolean) => void
   onReinterpret: () => void
   containerRef: RefObject<HTMLDivElement | null>
   t: TerminologyDictionary
 }
+
+// ============================================
+// 스트리밍 커서
+// ============================================
+
+function StreamingCursor(): React.ReactElement {
+  return <span className="inline-block w-1.5 h-4 bg-violet-500 animate-pulse ml-0.5 align-text-bottom" />
+}
+
+// ============================================
+// Summary 블록 (memo — detail 스트리밍 중 summary 안정 후 재렌더 방지)
+// ============================================
+
+const SummaryBlock = memo(function SummaryBlock({
+  summary,
+  showCursor,
+}: {
+  summary: string
+  showCursor: boolean
+}): React.ReactElement {
+  return (
+    <div className="border-l-4 border-l-violet-400 dark:border-l-violet-600 bg-violet-50/50 dark:bg-violet-950/20 rounded-r-lg p-3">
+      <div className={cn(proseBase, 'text-sm leading-relaxed')}>
+        <ReactMarkdown>{summary}</ReactMarkdown>
+        {showCursor && <StreamingCursor />}
+      </div>
+    </div>
+  )
+})
+
+// ============================================
+// 섹션 pill 버튼
+// ============================================
+
+function SectionPill({
+  section,
+  isActive,
+  onSelect,
+}: {
+  section: InterpretationSection
+  isActive: boolean
+  onSelect: (key: string) => void
+}): React.ReactElement {
+  const Icon = getSectionIcon(section.key)
+  const handleClick = useCallback(() => onSelect(section.key), [onSelect, section.key])
+
+  return (
+    <motion.button
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.2 }}
+      onClick={handleClick}
+      className={cn(
+        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+        'border transition-all duration-150',
+        isActive
+          ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 border-violet-300 dark:border-violet-700'
+          : 'bg-muted/50 text-muted-foreground border-border/60 hover:bg-muted hover:border-border',
+      )}
+    >
+      <Icon className="w-3 h-3" />
+      {section.shortLabel}
+    </motion.button>
+  )
+}
+
+// ============================================
+// 개별 섹션 콘텐츠 렌더링
+// ============================================
+
+function SectionContent({
+  section,
+}: {
+  section: InterpretationSection
+}): React.ReactElement {
+  const Icon = getSectionIcon(section.key)
+
+  return (
+    <div className="flex items-start gap-2.5 py-3">
+      <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
+        <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          {section.label}
+        </span>
+        <div className={cn(proseBase, 'text-sm leading-relaxed mt-1')}>
+          <ReactMarkdown>{section.content}</ReactMarkdown>
+          {section.isStreaming && <StreamingCursor />}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============================================
+// 주의사항 callout (Warning 스타일)
+// ============================================
+
+function WarningCallout({
+  section,
+}: {
+  section: InterpretationSection
+}): React.ReactElement {
+  const [expanded, setExpanded] = useState(false)
+  const isLong = section.content.length > 120
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="rounded-lg border border-warning-border bg-warning-bg/50 p-3"
+    >
+      <div className="flex items-start gap-2">
+        <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <span className="text-xs font-semibold text-warning uppercase tracking-wider">
+            {section.label}
+          </span>
+          <div className={cn(
+            proseBase,
+            'text-sm leading-relaxed mt-0.5',
+            !expanded && isLong && 'overflow-hidden max-h-[3.5em]',
+          )}>
+            <ReactMarkdown>{section.content}</ReactMarkdown>
+            {section.isStreaming && <StreamingCursor />}
+          </div>
+          {isLong && (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="text-xs text-warning/80 hover:text-warning mt-1 flex items-center gap-0.5"
+            >
+              <ChevronDown className={cn('w-3 h-3 transition-transform', expanded && 'rotate-180')} />
+              {expanded ? '접기' : '더 보기'}
+            </button>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+// ============================================
+// 추가 분석 제안 CTA
+// ============================================
+
+function ActionCallout({
+  section,
+}: {
+  section: InterpretationSection
+}): React.ReactElement {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="rounded-lg border border-violet-200 dark:border-violet-800/50 bg-violet-50/30 dark:bg-violet-950/20 p-3"
+    >
+      <div className="flex items-start gap-2">
+        <ArrowRight className="w-4 h-4 text-violet-500 flex-shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <span className="text-xs font-semibold text-violet-600 dark:text-violet-400 uppercase tracking-wider">
+            {section.label}
+          </span>
+          <div className={cn(proseBase, 'text-sm leading-relaxed mt-0.5')}>
+            <ReactMarkdown>{section.content}</ReactMarkdown>
+            {section.isStreaming && <StreamingCursor />}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+// ============================================
+// 메인 컴포넌트
+// ============================================
 
 export function AiInterpretationCard({
   parsedInterpretation,
@@ -39,15 +220,67 @@ export function AiInterpretationCard({
   interpretError,
   isRetryExhausted = false,
   prefersReducedMotion,
-  detailedInterpretOpen,
-  onDetailedInterpretOpenChange,
   onReinterpret,
   containerRef,
   t,
-}: AiInterpretationCardProps) {
+}: AiInterpretationCardProps): React.ReactElement {
+  // 상세 섹션 파싱
+  const sections = useMemo(
+    () => parseDetailSections(parsedInterpretation?.detail ?? null, isInterpreting),
+    [parsedInterpretation?.detail, isInterpreting],
+  )
+
+  // 카테고리별 분류 (single-pass)
+  const { detail: detailSections, warning: warningSections, action: actionSections } = useMemo(() => {
+    const grouped: Record<SectionCategory, InterpretationSection[]> = { detail: [], warning: [], action: [] }
+    for (const s of sections) grouped[s.category].push(s)
+    return grouped
+  }, [sections])
+
+  // pill 탐색 상태
+  const [activeSection, setActiveSection] = useState<string | null>(null)
+  const [showAll, setShowAll] = useState(false)
+  const detailRef = useRef(parsedInterpretation?.detail)
+  const autoSelectPending = useRef(true)
+
+  // detail 변경 시 리셋 + 자동 선택 재활성화 (재해석, 히스토리 전환)
+  if (detailRef.current !== parsedInterpretation?.detail) {
+    detailRef.current = parsedInterpretation?.detail
+    if (activeSection !== null) setActiveSection(null)
+    if (showAll) setShowAll(false)
+    autoSelectPending.current = true
+  }
+
+  // 스트리밍 완료 또는 히스토리 복원 → 첫 detail 섹션 자동 선택 (1회)
+  if (autoSelectPending.current && !isInterpreting && detailSections.length > 0) {
+    setActiveSection(detailSections[0].key)
+    autoSelectPending.current = false
+  }
+
+  // 선택된 섹션 찾기
+  const selectedSection = useMemo(
+    () => activeSection ? detailSections.find(s => s.key === activeSection) ?? null : null,
+    [activeSection, detailSections],
+  )
+
+  const handlePillClick = useCallback((key: string): void => {
+    setActiveSection(prev => prev === key ? null : key)
+    setShowAll(false)
+  }, [])
+
+  const handleShowAll = useCallback((): void => {
+    setShowAll(prev => !prev)
+    setActiveSection(null)
+  }, [])
+
+  // 섹션이 없고 detail이 있으면 plain markdown fallback
+  const hasSections = sections.length > 0
+  const hasDetail = !!parsedInterpretation?.detail
+
   return (
     <div className="space-y-2" data-testid="ai-interpretation-section" ref={containerRef}>
       <AnimatePresence mode="wait">
+        {/* === 로딩 상태 === */}
         {isInterpreting && !parsedInterpretation && (
           <motion.div
             key="ai-loading"
@@ -67,6 +300,7 @@ export function AiInterpretationCard({
           </motion.div>
         )}
 
+        {/* === 콘텐츠 === */}
         {parsedInterpretation && (
           <motion.div
             key="ai-content"
@@ -75,6 +309,7 @@ export function AiInterpretationCard({
             transition={{ duration: 0.3, ease: 'easeOut' }}
           >
             <Card className="border-violet-200 dark:border-violet-800/50">
+              {/* --- Header --- */}
               <CardHeader className="pb-2 pt-4 px-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -94,32 +329,95 @@ export function AiInterpretationCard({
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="pt-2 pb-4 px-4 space-y-2">
-                <div className={cn(proseBase, 'text-sm leading-relaxed')}>
-                  <ReactMarkdown>{parsedInterpretation.summary}</ReactMarkdown>
-                  {isInterpreting && (
-                    <span className="inline-block w-1.5 h-4 bg-violet-500 animate-pulse ml-0.5 align-text-bottom" />
-                  )}
-                </div>
-                {parsedInterpretation.detail && (
-                  <CollapsibleSection
-                    label={t.results.ai.detailedLabel}
-                    open={detailedInterpretOpen}
-                    onOpenChange={onDetailedInterpretOpenChange}
-                    contentClassName="pt-2"
-                    icon={<Sparkles className="h-3.5 w-3.5 text-violet-400" />}
-                  >
-                    <div className={cn(proseBase, 'text-sm leading-relaxed border-t border-border/10 pt-3')}>
-                      <ReactMarkdown>{parsedInterpretation.detail}</ReactMarkdown>
-                    </div>
-                  </CollapsibleSection>
+
+              <CardContent className="pt-2 pb-4 px-4 space-y-3">
+                {/* --- 1. Summary Hero --- */}
+                <SummaryBlock
+                  summary={parsedInterpretation.summary}
+                  showCursor={isInterpreting && !hasDetail}
+                />
+
+                {/* --- 2. Section Pills --- */}
+                {detailSections.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {detailSections.map(section => (
+                      <SectionPill
+                        key={section.key}
+                        section={section}
+                        isActive={activeSection === section.key}
+                        onSelect={handlePillClick}
+                      />
+                    ))}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleShowAll}
+                      className={cn(
+                        'text-xs h-6 px-2 gap-1 ml-auto',
+                        showAll && 'text-violet-600 dark:text-violet-400',
+                      )}
+                    >
+                      <List className="w-3 h-3" />
+                      {showAll ? '접기' : '전체 보기'}
+                    </Button>
+                  </div>
                 )}
+
+                {/* --- 3. Selected Section Content --- */}
+                <AnimatePresence mode="wait">
+                  {selectedSection && !showAll && (
+                    <motion.div
+                      key={selectedSection.key}
+                      initial={prefersReducedMotion ? false : { opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      className="border border-border/40 rounded-lg px-3"
+                    >
+                      <SectionContent section={selectedSection} />
+                    </motion.div>
+                  )}
+
+                  {showAll && (
+                    <motion.div
+                      key="show-all"
+                      initial={prefersReducedMotion ? false : { opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="border border-border/40 rounded-lg px-3 divide-y divide-border/30"
+                    >
+                      {detailSections.map(section => (
+                        <SectionContent key={section.key} section={section} />
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* --- Fallback: 볼드 소제목 없는 상세 텍스트 --- */}
+                {hasDetail && !hasSections && (
+                  <div className={cn(proseBase, 'text-sm leading-relaxed border-t border-border/10 pt-3')}>
+                    <ReactMarkdown>{parsedInterpretation.detail}</ReactMarkdown>
+                    {isInterpreting && <StreamingCursor />}
+                  </div>
+                )}
+
+                {/* --- 4. 주의사항 (Warning) --- */}
+                {warningSections.map(section => (
+                  <WarningCallout key={section.key} section={section} />
+                ))}
+
+                {/* --- 5. 추가 분석 제안 (CTA) --- */}
+                {actionSections.map(section => (
+                  <ActionCallout key={section.key} section={section} />
+                ))}
               </CardContent>
             </Card>
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* === 에러 상태 === */}
       {interpretError && (
         isRetryExhausted ? (
           <Alert>

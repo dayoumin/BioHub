@@ -14,12 +14,7 @@ import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
-
-interface BetaDiversityResult {
-  distanceMatrix: number[][]
-  siteLabels: string[]
-  metric: string
-}
+import type { BetaDiversityResult } from '@/types/bio-tools-results'
 
 type MetricOption = 'braycurtis' | 'jaccard' | 'sorensen'
 

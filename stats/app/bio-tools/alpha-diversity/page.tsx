@@ -12,33 +12,7 @@ import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
-
-interface SiteResult {
-  siteName: string
-  speciesRichness: number
-  totalAbundance: number
-  shannonH: number
-  simpsonDominance: number
-  simpsonDiversity: number
-  simpsonReciprocal: number
-  margalef: number
-  pielou: number
-}
-
-interface SummaryRow {
-  index: string
-  mean: number
-  sd: number
-  min: number
-  max: number
-}
-
-interface AlphaDiversityResult {
-  siteResults: SiteResult[]
-  summaryTable: SummaryRow[]
-  speciesNames: string[]
-  siteCount: number
-}
+import type { AlphaDiversityResult } from '@/types/bio-tools-results'
 
 const INDEX_LABELS: Record<string, string> = {
   shannonH: "Shannon H'",

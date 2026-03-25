@@ -1000,31 +1000,29 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
       } as StatisticalResult)
     })
 
-    it('detail이 있으면 상세 해석 CollapsibleSection이 렌더링된다', async () => {
+    it('detail에 볼드 섹션이 있으면 pill이 렌더링된다', async () => {
       const { splitInterpretation } = await import('@/lib/services/export/export-data-builder')
       const { requestInterpretation } = await import('@/lib/services/result-interpreter')
 
-      // requestInterpretation → callback 호출로 interpretation 상태 설정
       vi.mocked(requestInterpretation).mockImplementation(async (_ctx, onChunk) => {
-        onChunk('요약문입니다.\n\n상세 해석 내용입니다.')
+        onChunk('요약문입니다.\n\n**통계량 해석**: 상세 내용입니다.')
         return { model: 'test-model', provider: 'openrouter' as const }
       })
 
-      // splitInterpretation → detail 포함 반환
       vi.mocked(splitInterpretation).mockReturnValue({
         summary: '요약문입니다.',
-        detail: '상세 해석 내용입니다.',
+        detail: '**통계량 해석**: 상세 내용입니다.',
       })
 
       renderWithAct(<ResultsActionStep results={baseResults} />)
 
-      // useEffect → handleInterpretation → onChunk → setInterpretation → parsedInterpretation
+      // 파싱된 섹션의 shortLabel pill이 렌더링됨
       await waitFor(() => {
-        expect(screen.getByText('상세 해석')).toBeInTheDocument()
+        expect(screen.getByText('통계량')).toBeInTheDocument()
       })
     })
 
-    it('detail이 없으면 상세 해석 섹션이 렌더링되지 않는다', async () => {
+    it('detail이 없으면 섹션 pill이 렌더링되지 않는다', async () => {
       const { splitInterpretation } = await import('@/lib/services/export/export-data-builder')
       const { requestInterpretation } = await import('@/lib/services/result-interpreter')
 
@@ -1044,8 +1042,9 @@ describe('Part 2: 컴포넌트 렌더링 검증', () => {
         expect(screen.getByTestId('ai-interpretation-section')).toBeInTheDocument()
       })
 
-      // "상세 해석" CollapsibleSection label은 없어야 함
-      expect(screen.queryByText('상세 해석')).not.toBeInTheDocument()
+      // pill이 없어야 함
+      expect(screen.queryByText('통계량')).not.toBeInTheDocument()
+      expect(screen.queryByText('전체 보기')).not.toBeInTheDocument()
     })
   })
 

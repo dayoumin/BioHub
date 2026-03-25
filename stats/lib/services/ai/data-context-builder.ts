@@ -123,14 +123,22 @@ export function buildVisualizationContext(validationResults: ValidationResults |
   const columns = validationResults.columns ?? []
   const { numeric: numericCols, categorical: categoricalCols } = splitColumnsByType(columns)
 
+  // 컬럼명 나열도 토큰 소비 — 10개까지만 표시
+  const MAX_VIZ_NAMES = 10
+  const numNames = numericCols.slice(0, MAX_VIZ_NAMES).map((c: ColumnStatistics) => c.name).join(', ')
+  const numSuffix = numericCols.length > MAX_VIZ_NAMES ? ` 외 ${numericCols.length - MAX_VIZ_NAMES}개` : ''
+  const catNames = categoricalCols.slice(0, MAX_VIZ_NAMES).map((c: ColumnStatistics) => c.name).join(', ')
+  const catSuffix = categoricalCols.length > MAX_VIZ_NAMES ? ` 외 ${categoricalCols.length - MAX_VIZ_NAMES}개` : ''
+
   let context = `## 시각화 데이터 요약
 - 전체: ${validationResults.totalRows ?? 0}행 × ${columns.length}열
-- 수치형 (${numericCols.length}개): ${numericCols.map((c: ColumnStatistics) => c.name).join(', ')}
-- 범주형 (${categoricalCols.length}개): ${categoricalCols.map((c: ColumnStatistics) => c.name).join(', ')}
+- 수치형 (${numericCols.length}개): ${numNames}${numSuffix}
+- 범주형 (${categoricalCols.length}개): ${catNames}${catSuffix}
 
 ## 변수별 시각화 정보\n`
 
-  for (const col of columns.slice(0, 20)) {
+  // 상세 정보도 10개까지만 (넓은 스키마에서 토큰 절감)
+  for (const col of columns.slice(0, 10)) {
     if (col.type === 'numeric') {
       context += `- ${col.name}: 수치형`
       if (col.min !== undefined && col.max !== undefined) context += `, 범위 ${col.min.toFixed(1)}~${col.max.toFixed(1)}`
@@ -148,15 +156,20 @@ export function buildVisualizationContext(validationResults: ValidationResults |
 }
 
 /**
- * 일반 상담용 경량 컨텍스트: 컬럼명 + 행 수만 (~100 토큰)
+ * 일반 상담용 경량 컨텍스트: 컬럼명 + 행 수만
+ *
+ * 넓은 스키마(20+열)에서도 토큰 제한을 위해 15개까지만 표시.
  */
 export function buildConsultationContext(validationResults: ValidationResults | null): string {
   if (!validationResults) return '## 데이터 정보\n(데이터가 업로드되지 않았습니다)'
 
   const columns = validationResults.columns ?? []
+  const MAX_CONSULT_COLS = 15
+  const displayed = columns.slice(0, MAX_CONSULT_COLS)
+  const suffix = columns.length > MAX_CONSULT_COLS ? ` 외 ${columns.length - MAX_CONSULT_COLS}개` : ''
   return `## 데이터 개요
 - ${validationResults.totalRows ?? 0}행 × ${columns.length}열
-- 변수: ${columns.map((c: ColumnStatistics) => `${c.name}(${c.type})`).join(', ')}`
+- 변수: ${displayed.map((c: ColumnStatistics) => `${c.name}(${c.type})`).join(', ')}${suffix}`
 }
 
 /**

@@ -14,16 +14,7 @@ import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
-
-interface PermanovaResult {
-  pseudoF: number
-  pValue: number
-  rSquared: number
-  permutations: number
-  ssBetween: number
-  ssWithin: number
-  ssTotal: number
-}
+import type { PermanovaResult } from '@/types/bio-tools-results'
 
 const tool = getBioToolById('permanova')
 

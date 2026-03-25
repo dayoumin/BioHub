@@ -114,7 +114,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const [resultTimestamp] = useState(() => new Date())
 
   // AI 해석 (커스텀 훅으로 캡슐화)
-  const [detailedInterpretOpen, setDetailedInterpretOpen] = useState(true)
   const interpretRecovery = useErrorRecovery({ maxRetries: 2 })
 
   // 새 분석 시작 확인
@@ -927,8 +926,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           interpretError={interpretError}
           isRetryExhausted={interpretRecovery.isExhausted}
           prefersReducedMotion={prefersReducedMotion}
-          detailedInterpretOpen={detailedInterpretOpen}
-          onDetailedInterpretOpenChange={setDetailedInterpretOpen}
           onReinterpret={handleReinterpretWithQAReset}
           containerRef={aiInterpretationRef}
           t={t}
