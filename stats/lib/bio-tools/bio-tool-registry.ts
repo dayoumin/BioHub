@@ -17,7 +17,6 @@ import {
   Ruler,
   Scale,
   Dna,
-  Microscope,
   GitBranch,
   BarChart3,
   Target,
@@ -144,7 +143,7 @@ export const BIO_TOOLS: readonly BioTool[] = [
     description: '성장 곡선 파라미터 추정 (L∞, K, t₀)',
     inputType: 'csv',
     computeType: 'pyodide',
-    status: 'coming-soon',
+    status: 'ready',
   },
   {
     id: 'length-weight',
@@ -155,7 +154,7 @@ export const BIO_TOOLS: readonly BioTool[] = [
     description: 'W = aL^b 관계식 추정',
     inputType: 'csv',
     computeType: 'pyodide',
-    status: 'coming-soon',
+    status: 'ready',
   },
   {
     id: 'condition-factor',
@@ -166,10 +165,10 @@ export const BIO_TOOLS: readonly BioTool[] = [
     description: 'Fulton\'s K 비만도 지수 계산',
     inputType: 'csv',
     computeType: 'pyodide',
-    status: 'coming-soon',
+    status: 'ready',
   },
 
-  // === 유전학 (4개) ===
+  // === 유전학 (3개) ===
   {
     id: 'hardy-weinberg',
     nameEn: 'Hardy-Weinberg',
@@ -180,17 +179,6 @@ export const BIO_TOOLS: readonly BioTool[] = [
     inputType: 'csv',
     computeType: 'pyodide',
     status: 'coming-soon',
-  },
-  {
-    id: 'barcoding',
-    nameEn: 'DNA Barcoding',
-    nameKo: 'DNA Barcoding',
-    category: 'genetics',
-    icon: Microscope,
-    description: 'NCBI BLAST + BOLD Systems 기반 종 동정',
-    inputType: 'fasta',
-    computeType: 'api',
-    status: 'ready',
   },
   {
     id: 'species-validation',

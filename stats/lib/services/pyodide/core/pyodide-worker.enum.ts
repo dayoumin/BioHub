@@ -103,7 +103,14 @@ export enum PyodideWorker {
    * - permanova (Anderson 2001)
    * - mantel_test (거리행렬 상관)
    */
-  Ecology = 8
+  Ecology = 8,
+
+  /**
+   * Worker 9: 유전학 (Genetics)
+   * - hardy_weinberg (Hardy-Weinberg 평형 검정)
+   * - fst (집단 간 유전적 분화 지수)
+   */
+  Genetics = 9
 }
 
 /**
@@ -114,12 +121,13 @@ export enum PyodideWorker {
 export const WORKER_PACKAGES = Object.freeze({
   [PyodideWorker.Descriptive]: [] as const,
   [PyodideWorker.Hypothesis]: ['statsmodels', 'pandas'] as const,
-  [PyodideWorker.NonparametricAnova]: ['statsmodels', 'pandas'] as const,
+  [PyodideWorker.NonparametricAnova]: ['statsmodels', 'pandas', 'scikit-learn'] as const,
   [PyodideWorker.RegressionAdvanced]: ['statsmodels', 'scikit-learn'] as const,
   [PyodideWorker.Survival]: ['scikit-learn'] as const,
   [PyodideWorker.Matplotlib]: ['matplotlib', 'micropip'] as const,
   [PyodideWorker.Fisheries]: [] as const,
-  [PyodideWorker.Ecology]: ['scikit-learn'] as const
+  [PyodideWorker.Ecology]: ['scikit-learn'] as const,
+  [PyodideWorker.Genetics]: [] as const
 } as const)
 
 /**
@@ -133,5 +141,6 @@ export const WORKER_FILE_PATHS = Object.freeze({
   [PyodideWorker.Survival]: '/workers/python/worker5-survival.py',
   [PyodideWorker.Matplotlib]: '/workers/python/worker6-matplotlib.py',
   [PyodideWorker.Fisheries]: '/workers/python/worker7-fisheries.py',
-  [PyodideWorker.Ecology]: '/workers/python/worker8-ecology.py'
+  [PyodideWorker.Ecology]: '/workers/python/worker8-ecology.py',
+  [PyodideWorker.Genetics]: '/workers/python/worker9-genetics.py'
 } as const)

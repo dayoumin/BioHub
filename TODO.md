@@ -94,7 +94,20 @@ These items should be the current focus.
 
 ## 3. Next
 
-우선순위: **통계 분석 → 그래프 → 공통 품질 → 기타**
+우선순위: **구조 정리 (선행) → 통계 분석 → 공통 품질 → 기타**
+
+### 3-0. 구조 정리 (개별 기능 개발 선행 조건)
+
+**먼저 해야 할 것 (기능 개발 전):**
+- `[structure]` genetics/ vs bio-tools/ 이중 구조 해소 — genetics 허브가 자체 도구 목록 관리, Bio-Tools 레지스트리와 무관, layout 다름. HW/Fst 소속 확정 필요.
+- `[structure]` Bio-Tools 결과 타입 중앙화 — 14개 결과 타입이 각 page.tsx에 로컬 정의. `types/bio-tools-results.ts` 등 공유 파일로 이동 필요.
+- ~~`[structure]` Worker Genetics enum 정리~~ — 완료 (Worker 9 = Genetics enum + stub, 계획서 번호 교정, Worker 3 PACKAGES 동기화)
+
+**기능 개발과 병행 가능:**
+- `[structure]` `ProjectEntityKind`에 `'bio-tool-result'` 추가 + `ENTITY_TAB_REGISTRY` Bio-Tools 탭 — 첫 Bio-Tool 완성 시
+- `[structure]` Bio-Tools 결과 내보내기 (`BioResultsSection` + Shell Export 버튼) — 첫 Bio-Tool 완성 시
+- `[structure]` `useBioToolAnalysis` 훅에 `projectId` opt-in — ProjectEntityKind 확장과 함께
+- `[structure]` Bio-Tools 테스트 인프라 + 패턴 가이드 — 첫 도구 테스트 작성 시 확립
 
 ### 3-A. 통계 분석 (Analysis)
 
@@ -118,7 +131,7 @@ These items should be the current focus.
 - ~~`[graph]` matplotlib export 에러 시 ECharts 대체 안내 없음~~ — 완료 (ExportDialog 에러 시 일반 내보내기 안내 표시)
 
 **순차 처리:**
-- `[graph]` localStorage quota 정책 — 현재 무제한 저장, evidence 추가 시 터짐 위험. MAX_GRAPH_PROJECTS + 자동 정리 필요.
+- ~~`[graph]` localStorage quota 정책~~ — 완료 (MAX_GRAPH_PROJECTS=50, 자동 eviction + QuotaExceededError 재시도)
 
 ### 3-C. UI 일관성 통일 (완료)
 
@@ -126,6 +139,7 @@ These items should be the current focus.
 - ~~`[ux]` Phase 1: Shell 통일~~ — 완료 (헤더 sticky + max-w-7xl + 배경 틴트 + LAYOUT 토큰 추출)
 - ~~`[ux]` Phase 2: Upload 통일~~ — 완료 (BioCsvUpload → UploadDropZone 시각 채택)
 - ~~`[ux]` Phase 3: Bio 페이지 일괄~~ — 완료 (Select 통일 + 에러 박스 + Loader2 + scrollIntoView. smoke 테스트 미진행)
+- ~~`[ux]` BioColumnSelect `layout`/`noneLabel` prop 추가~~ — 완료 (stacked 레이아웃 meta-analysis/icc 지원, nmds "없음 (단일 그룹)" 커스텀 라벨)
 
 ### 3-D. 공통 품질/UX
 
@@ -135,15 +149,17 @@ These items should be the current focus.
 - ~~`[ux]` ProjectHeader onBlur+Enter 이중 save → 이중 토스트~~ — 완료 (Enter→`e.currentTarget.blur()` 패턴으로 단일 이벤트 보장)
 
 **순차 처리:**
-- `[quality]` `createLocalStorageIO` 추가 적용 — `pinned-history-storage`, `recent-statistics`, `style-template-storage`, `analysis-history`, `entity-tab-registry` (5곳 점진적)
-- `[ux]` 토스트 메시지 기존 19곳 점진적 `TOAST.*` 마이그레이션
+- ~~`[quality]` `createLocalStorageIO` 추가 적용~~ — 완료 (5곳: pinned-history, recent-statistics, style-template, analysis-history, entity-tab-registry)
+- ~~`[ux]` 토스트 메시지 기존 19곳 점진적 `TOAST.*` 마이그레이션~~ — 완료 (12파일, ~35곳)
 - `[ux]` ChatBubble 공통 컴포넌트 추출
+- `[quality]` 공통 `WarningBanner` 컴포넌트 추출 — amber 경고 배너 4+ 곳 수동 작성. shadcn `Alert` warning variant 또는 별도 컴포넌트
+- `[quality]` `isQuotaExceededError()` 유틸 추출 — 현재 1곳, quota-aware 스토리지 모듈 추가 시 `local-storage-factory.ts`에 추출
 - `[perf]` `ensureUser` INSERT OR IGNORE 매 요청 실행 — KV 캐시 또는 첫 요청만 실행으로 최적화
 
 ### 3-E. 기타 (genetics, infra, domain, paper)
 
-- `[genetics]` 다중 FASTA 시퀀스 혼합 미감지 — cleanSequence가 >seq1 + >seq2 합침. (`validate-sequence.ts:8`)
-- `[genetics]` deep-link 복원 실패 시 UI 피드백 없음 — ?history= entry.resultData null이면 빈 화면. (`BarcodingContent.tsx:41`)
+- ~~`[genetics]` 다중 FASTA 시퀀스 혼합 미감지~~ — 완료 (early-exit 헤더 스캔 + 테스트 17개)
+- ~~`[genetics]` deep-link 복원 실패 시 UI 피드백 없음~~ — 완료 (에러 배너 + URL 정리 + "새 분석 시작" 버튼)
 - `[infra]` D1 스키마 갭 해소 — 상세: [D1-SCHEMA-GAP.md](docs/D1-SCHEMA-GAP.md). 현재 프론트엔드는 localStorage/IndexedDB 기반이라 급하지 않음. 인증/멀티디바이스 동기화 시 필수.
 - `[infra]` Turso → D1 통합 — `turso-adapter.ts`, `hybrid-adapter.ts`, `NEXT_PUBLIC_TURSO_*` 환경변수 제거. D1 마이그레이션 완료 후 진행.
 - `[domain]` species-validation 레코드 스키마 정의

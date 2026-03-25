@@ -332,8 +332,8 @@ VBGF (연령 데이터 추가 시)
 ### Pyodide Worker
 - **참조**: `public/workers/python/worker4-regression-advanced.py` (curve_fit 패턴)
 - **데이터 정제**: `helpers.py`의 `clean_paired_arrays()` 사용
-- **타입 생성**: `lib/generated/method-types.generated.ts` 자동 생성
-- **Worker 번호**: Worker 6 (fisheries 전용)
+- **타입 정의**: 각 page.tsx에 로컬 인터페이스 정의 (Bio-Tools 공통 패턴)
+- **Worker 번호**: Worker 7 (`PyodideWorker.Fisheries = 7`)
 - **추가 패키지**: 없음 (scipy, numpy 이미 로드됨)
 
 ### UI 컴포넌트
@@ -344,7 +344,7 @@ VBGF (연령 데이터 추가 시)
 ### 페이지 구조
 - **전제**: [PLAN-BIO-TOOLS-ARCHITECTURE.md](PLAN-BIO-TOOLS-ARCHITECTURE.md) S1 단계 (공통 Shell) 완료 필수
 - **라우팅**: `app/bio-tools/vbgf/`, `app/bio-tools/length-weight/`, `app/bio-tools/condition-factor/`
-- **공통 Shell**: `BioToolShell`, `BioResultsSection` 상속
+- **공통 Shell**: `BioToolShell` 래퍼 + 인라인 결과 렌더링 (alpha-diversity 패턴)
 
 ---
 

@@ -363,11 +363,12 @@ const BIO_TOOL_CATEGORIES: readonly BioToolCategoryMeta[] = [ ... ]
 | Worker | 파일 | 담당 |
 |--------|------|------|
 | Worker 1-5 | 기존 (descriptive, hypothesis, anova, regression, survival) | Analysis 43개 |
-| Worker 6 | `worker6-fisheries.py` (기존) | VBGF, L-W, Condition Factor |
-| Worker 7 | `worker7-ecology.py` (신규) | Alpha, Rarefaction, Beta, NMDS, PERMANOVA, Mantel |
-| Worker 8 | `worker8-genetics.py` (신규) | HW, Fst |
+| Worker 6 | `worker6-matplotlib.py` (기존) | matplotlib 논문용 Export |
+| Worker 7 | `worker7-fisheries.py` (기존) | VBGF, L-W, Condition Factor |
+| Worker 8 | `worker8-ecology.py` (신규) | Alpha, Rarefaction, Beta, NMDS, PERMANOVA, Mantel |
+| Worker 9 | `worker9-genetics.py` (신규) | HW, Fst |
 | — | Worker 5 재사용 | Survival, ROC (기존 Python 코드 재사용, 새로 작성 안 함) |
-| — | 해당 없음 | Meta-Analysis, ICC (numpy/scipy 직접, Worker 7에 포함하거나 별도) |
+| — | 해당 없음 | Meta-Analysis, ICC (numpy/scipy 직접, Worker 8에 포함하거나 별도) |
 
 > Bio-Tools의 Survival/ROC는 **Worker 5의 기존 Python 함수를 재사용**. UI만 Bio-Tools 전용으로 새로 구현.
 
