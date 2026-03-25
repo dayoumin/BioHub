@@ -155,6 +155,8 @@ These items should be the current focus.
 - `[quality]` 공통 `WarningBanner` 컴포넌트 추출 — amber 경고 배너 4+ 곳 수동 작성. shadcn `Alert` warning variant 또는 별도 컴포넌트
 - `[quality]` `isQuotaExceededError()` 유틸 추출 — 현재 1곳, quota-aware 스토리지 모듈 추가 시 `local-storage-factory.ts`에 추출
 - `[perf]` `ensureUser` INSERT OR IGNORE 매 요청 실행 — KV 캐시 또는 첫 요청만 실행으로 최적화
+- `[a11y]` 접근성 일괄 패스 — AiInterpretationCard expand 버튼 `aria-expanded` 누락, 서브컴포넌트 `prefersReducedMotion` 미적용. 이 컴포넌트만 수정하면 전체 수준과 불일치 → 전체 감사 후 일괄 적용
+- `[analysis]` intent-router 0.6 임계값 검증 — "추천" 단독 입력(0.65)이 LLM을 생략. 사용 로그 수집 후 데이터 기반 재검토 필요. 현재는 latency 우선으로 유지
 
 ### 3-E. 기타 (genetics, infra, domain, paper)
 
