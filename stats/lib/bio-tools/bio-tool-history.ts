@@ -138,9 +138,11 @@ export function saveBioToolEntry(
   return newEntry
 }
 
-export function getBioToolEntry(id: string): BioToolHistoryEntry | null {
+export function getBioToolEntry(id: string, expectedToolId?: string): BioToolHistoryEntry | null {
   const all = loadBioToolHistory()
-  return all.find(e => e.id === id) ?? null
+  const entry = all.find(e => e.id === id) ?? null
+  if (expectedToolId && entry && entry.toolId !== expectedToolId) return null
+  return entry
 }
 
 export function deleteBioToolEntries(ids: Set<string>): BioToolHistoryEntry[] {

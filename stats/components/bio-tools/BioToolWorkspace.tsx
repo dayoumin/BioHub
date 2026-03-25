@@ -38,7 +38,9 @@ export function BioToolWorkspace(): React.ReactElement {
   const tool = toolId ? getBioToolById(toolId) : null
   const meta = toolId ? getBioToolMeta(toolId) : null
   const ToolComponent = toolId ? TOOL_COMPONENTS[toolId] : null
-  const initialEntry = historyId ? getBioToolEntry(historyId) ?? undefined : undefined
+  const initialEntry = historyId
+    ? getBioToolEntry(historyId, toolId ?? undefined) ?? undefined
+    : undefined
 
   const handleSelectTool = useCallback((id: string) => {
     router.push(`/bio-tools?tool=${id}`, { scroll: false })
