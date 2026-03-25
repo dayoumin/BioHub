@@ -85,16 +85,19 @@ export function BioToolWorkspace(): React.ReactElement {
           {/* 워크스페이스 본문 */}
           <div className="flex-1 overflow-y-auto">
             <div className={cn(
-              LAYOUT.maxWidth,
               BIO_LAYOUT.contentPaddingX,
               BIO_LAYOUT.contentPaddingY,
             )}>
               {!toolId || !tool || !meta || !ToolComponent ? (
-                <BioToolsHub onSelectTool={handleSelectTool} />
+                <div className={LAYOUT.maxWidth}>
+                  <BioToolsHub onSelectTool={handleSelectTool} />
+                </div>
               ) : (
-                <Suspense fallback={<ToolLoadingSkeleton />}>
-                  <ToolComponent key={`${toolId}-${historyId ?? ''}`} tool={tool} meta={meta} initialEntry={initialEntry} />
-                </Suspense>
+                <div className="mx-auto max-w-4xl">
+                  <Suspense fallback={<ToolLoadingSkeleton />}>
+                    <ToolComponent key={`${toolId}-${historyId ?? ''}`} tool={tool} meta={meta} initialEntry={initialEntry} />
+                  </Suspense>
+                </div>
               )}
             </div>
           </div>
@@ -102,8 +105,10 @@ export function BioToolWorkspace(): React.ReactElement {
 
         {/* 히스토리 사이드바 (오른쪽) — 도구 선택 시만 표시 */}
         {isToolActive && (
-          <div className="border-l border-border/40 pl-4 pr-2 pt-6">
-            <BioToolHistorySidebar onLoadHistory={handleLoadHistory} />
+          <div className="hidden w-56 shrink-0 border-l border-border/40 px-4 pt-8 lg:block">
+            <div className="sticky top-24">
+              <BioToolHistorySidebar onLoadHistory={handleLoadHistory} />
+            </div>
           </div>
         )}
       </div>
