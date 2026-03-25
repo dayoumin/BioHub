@@ -2,7 +2,7 @@
  * Auto-generated from methods-registry.json
  * DO NOT EDIT MANUALLY
  *
- * Generated: 2026-02-26T02:17:51.757Z
+ * Generated: 2026-03-25T03:52:48.306Z
  */
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -21,7 +21,7 @@ export const WORKER = {
   SURVIVAL: 5,
   MATPLOTLIB: 6,
   FISHERIES: 7,
-  ECOLOGY: 8
+  ECOLOGY: 8,
 } as const
 
 export type WorkerNumber = typeof WORKER[keyof typeof WORKER]
@@ -1203,180 +1203,336 @@ export async function coxRegression(times: number[], events: number[], covariate
 }
 
 // ========================================
-// Worker 5: 생존 분석 + ROC 곡선
+// Worker 5: survival
+// 생존분석, ROC, 메타분석, ICC
 // ========================================
 
-export interface KmCurveData {
-  time: number[]
-  survival: number[]
-  ciLo: number[]
-  ciHi: number[]
-  atRisk: number[]
-  medianSurvival: number | null
-  censored: number[]  // 중도절단 시점 목록 (event=0)
-}
-
 export interface KaplanMeierAnalysisResult {
-  curves: Record<string, KmCurveData>
-  logRankP: number | null
-  medianSurvivalTime: number | null
-}
-
-export interface RocPoint {
-  fpr: number
-  tpr: number
+  curves: unknown
+  logRankP: unknown
+  medianSurvivalTime: unknown
 }
 
 export interface RocCurveAnalysisResult {
-  rocPoints: RocPoint[]
+  rocPoints: unknown
   auc: number
-  aucCI: { lower: number; upper: number }
-  optimalThreshold: number
+  aucCI: unknown
+  optimalThreshold: unknown
   sensitivity: number
   specificity: number
 }
 
+export interface MetaAnalysisResult {
+  pooledEffect: unknown
+  pooledSE: unknown
+  ci: unknown
+  zValue: unknown
+  pValue: number
+  Q: unknown
+  QpValue: unknown
+  iSquared: unknown
+  tauSquared: unknown
+  model: unknown
+  weights: unknown
+  studyCiLower: unknown
+  studyCiUpper: unknown
+  studyNames: unknown
+  effectSizes: unknown
+}
+
+export interface IccAnalysisResult {
+  icc: unknown
+  iccType: unknown
+  fValue: unknown
+  df1: unknown
+  df2: unknown
+  pValue: number
+  ci: unknown
+  msRows: unknown
+  msCols: unknown
+  msError: unknown
+  nSubjects: unknown
+  nRaters: unknown
+  interpretation: string
+}
+
+
 /**
- * 그룹 인식 Kaplan-Meier 생존 분석 (scipy 기반)
+ * Kaplan-Meier 생존분석 (그룹 비교 + Log-rank)
  * @worker Worker 5
  */
-export async function kaplanMeierAnalysis(
-  time: number[],
-  event: number[],
-  group?: string[]
-): Promise<KaplanMeierAnalysisResult> {
+export async function kaplanMeierAnalysis(time: unknown, event: unknown, group: unknown): Promise<KaplanMeierAnalysisResult> {
   return callWorkerMethod<KaplanMeierAnalysisResult>(5, 'kaplan_meier_analysis', { time, event, group })
 }
 
 /**
- * ROC 곡선 분석 (AUC, 최적 임계값, CI)
+ * ROC 곡선 + AUC 분석
  * @worker Worker 5
  */
-export async function rocCurveAnalysis(
-  actualClass: number[],
-  predictedProb: number[]
-): Promise<RocCurveAnalysisResult> {
+export async function rocCurveAnalysis(actualClass: unknown, predictedProb: unknown): Promise<RocCurveAnalysisResult> {
   return callWorkerMethod<RocCurveAnalysisResult>(5, 'roc_curve_analysis', { actualClass, predictedProb })
 }
 
-// ========================================
-// Worker 6: 수산학 (Fisheries)
-// ========================================
-
-export interface VbgfParameterRow {
-  name: string
-  unit: string
-  estimate: number
-  standardError: number
-  ciLower: number
-  ciUpper: number
+/**
+ * 고정/랜덤 효과 메타분석 (Forest Plot)
+ * @worker Worker 5
+ */
+export async function metaAnalysis(effectSizes: unknown, standardErrors: unknown, studyNames: unknown, model: unknown): Promise<MetaAnalysisResult> {
+  return callWorkerMethod<MetaAnalysisResult>(5, 'meta_analysis', { effectSizes, standardErrors, studyNames, model })
 }
 
-export interface VbgfResult {
-  lInf: number
-  k: number
-  t0: number
-  standardErrors: number[]
-  ci95: number[]
+/**
+ * 급내상관계수 (ICC)
+ * @worker Worker 5
+ */
+export async function iccAnalysis(data: number[] | number[][], iccType: unknown): Promise<IccAnalysisResult> {
+  return callWorkerMethod<IccAnalysisResult>(5, 'icc_analysis', { data, iccType })
+}
+
+// ========================================
+// Worker 6: matplotlib
+// 논문용 차트 Export 렌더러 (matplotlib)
+// ========================================
+
+export interface RenderChartResult {
+  base64Data: unknown
+  mimeType: unknown
+  extension: unknown
+}
+
+
+/**
+ * ChartSpec + 데이터 → matplotlib figure → base64 이미지/문서
+ * @worker Worker 6
+ */
+export async function renderChart(chartSpec: unknown, data: number[] | number[][], exportConfig: unknown): Promise<RenderChartResult> {
+  return callWorkerMethod<RenderChartResult>(6, 'render_chart', { chartSpec, data, exportConfig })
+}
+
+// ========================================
+// Worker 7: fisheries
+// Fisheries stock assessment (VBGF, length-weight, condition factor)
+// ========================================
+
+export interface FitVbgfResult {
+  lInf: unknown
+  k: unknown
+  t0: unknown
+  standardErrors: unknown
+  ci95: unknown
   rSquared: number
-  predicted: number[]
+  predicted: unknown
   residuals: number[]
   nObservations: number
-  aic: number | null
-  parameterTable: VbgfParameterRow[]
-}
-
-export interface LogLogPoint {
-  logL: number
-  logW: number
+  aic: number
+  parameterTable: unknown
 }
 
 export interface LengthWeightResult {
-  a: number
-  b: number
-  logA: number
+  a: unknown
+  b: unknown
+  logA: unknown
   rSquared: number
-  bStdError: number
-  isometricTStat: number
-  isometricPValue: number
-  growthType: 'isometric' | 'positive_allometric' | 'negative_allometric'
-  predicted: number[]
+  bStdError: unknown
+  isometricTStat: unknown
+  isometricPValue: unknown
+  growthType: unknown
+  predicted: unknown
   nObservations: number
-  logLogPoints: LogLogPoint[]
-}
-
-export interface ConditionFactorGroupStats {
-  mean: number
-  std: number
-  n: number
-  median: number
-}
-
-export interface ConditionFactorComparison {
-  test: 't-test' | 'ANOVA'
-  statistic: number
-  pValue: number
-  df: number
+  logLogPoints: unknown
 }
 
 export interface ConditionFactorResult {
-  individualK: number[]
+  individualK: unknown
   mean: number
   std: number
   median: number
   min: number
   max: number
   n: number
-  groupStats?: Record<string, ConditionFactorGroupStats>
-  comparison?: ConditionFactorComparison
+  groupStats: unknown
+  comparison: unknown
 }
+
 
 /**
  * von Bertalanffy 성장 모델 파라미터 추정
  * @worker Worker 7
  */
-export async function fitVbgf(
-  ages: number[],
-  lengths: number[]
-): Promise<VbgfResult> {
-  return callWorkerMethod<VbgfResult>(7, 'fit_vbgf', { ages, lengths })
+export async function fitVbgf(ages: unknown, lengths: unknown): Promise<FitVbgfResult> {
+  return callWorkerMethod<FitVbgfResult>(7, 'fit_vbgf', { ages, lengths })
 }
 
 /**
- * 체장-체중 관계식 (W = aL^b)
+ * 체장-체중 관계식 추정 (W = aL^b)
  * @worker Worker 7
  */
-export async function lengthWeight(
-  lengths: number[],
-  weights: number[]
-): Promise<LengthWeightResult> {
+export async function lengthWeight(lengths: unknown, weights: unknown): Promise<LengthWeightResult> {
   return callWorkerMethod<LengthWeightResult>(7, 'length_weight', { lengths, weights })
 }
 
 /**
- * Fulton's Condition Factor (비만도 K)
+ * Fulton's Condition Factor (K = 100 × W / L³)
  * @worker Worker 7
  */
-export async function conditionFactor(
-  lengths: number[],
-  weights: number[],
-  groups?: string[]
-): Promise<ConditionFactorResult> {
+export async function conditionFactor(lengths: unknown, weights: unknown, groups?: number[][] | number[]): Promise<ConditionFactorResult> {
   return callWorkerMethod<ConditionFactorResult>(7, 'condition_factor', { lengths, weights, groups })
+}
+
+// ========================================
+// Worker 8: ecology
+// Community ecology analysis (diversity, ordination, hypothesis testing)
+// ========================================
+
+export interface AlphaDiversityResult {
+  siteResults: unknown
+  summaryTable: unknown
+  speciesNames: unknown
+  siteCount: unknown
+}
+
+export interface RarefactionResult {
+  curves: unknown
+}
+
+export interface BetaDiversityResult {
+  distanceMatrix: unknown
+  siteLabels: unknown
+  metric: unknown
+}
+
+export interface NmdsResult {
+  coordinates: unknown
+  stress: unknown
+  stressInterpretation: unknown
+  siteLabels: unknown
+  groups: unknown
+}
+
+export interface PermanovaResult {
+  pseudoF: unknown
+  pValue: number
+  rSquared: number
+  permutations: unknown
+  ssBetween: unknown
+  ssWithin: unknown
+  ssTotal: unknown
+}
+
+export interface MantelTestResult {
+  r: unknown
+  pValue: number
+  permutations: unknown
+  method: string
+}
+
+
+/**
+ * 지점별 알파 다양성 지수 (Shannon, Simpson, Margalef, Pielou)
+ * @worker Worker 8
+ */
+export async function alphaDiversity(rows: unknown, site_col?: unknown): Promise<AlphaDiversityResult> {
+  return callWorkerMethod<AlphaDiversityResult>(8, 'alpha_diversity', { rows, site_col })
+}
+
+/**
+ * 종 희박화 곡선 (Hurlbert 1971)
+ * @worker Worker 8
+ */
+export async function rarefaction(rows: unknown, site_col?: unknown, n_steps?: unknown): Promise<RarefactionResult> {
+  return callWorkerMethod<RarefactionResult>(8, 'rarefaction', { rows, site_col, n_steps })
+}
+
+/**
+ * 지점 간 베타 다양성 거리행렬 (Bray-Curtis, Jaccard, Sørensen)
+ * @worker Worker 8
+ */
+export async function betaDiversity(rows: unknown, site_col?: unknown, metric?: unknown): Promise<BetaDiversityResult> {
+  return callWorkerMethod<BetaDiversityResult>(8, 'beta_diversity', { rows, site_col, metric })
+}
+
+/**
+ * NMDS 비계량 다차원 척도법
+ * @worker Worker 8
+ */
+export async function nmds(distance_matrix: number[][], site_labels?: unknown, groups?: number[][] | number[], n_components?: unknown, max_iter?: unknown, random_state?: unknown): Promise<NmdsResult> {
+  return callWorkerMethod<NmdsResult>(8, 'nmds', { distance_matrix, site_labels, groups, n_components, max_iter, random_state })
+}
+
+/**
+ * PERMANOVA 순열 다변량 분산분석 (Anderson 2001)
+ * @worker Worker 8
+ */
+export async function permanova(distance_matrix: number[][], grouping: unknown, permutations?: unknown): Promise<PermanovaResult> {
+  return callWorkerMethod<PermanovaResult>(8, 'permanova', { distance_matrix, grouping, permutations })
+}
+
+/**
+ * Mantel 검정 — 두 거리행렬 간 상관
+ * @worker Worker 8
+ */
+export async function mantelTest(matrix_x: unknown, matrix_y: unknown, permutations?: unknown, method?: string): Promise<MantelTestResult> {
+  return callWorkerMethod<MantelTestResult>(8, 'mantel_test', { matrix_x, matrix_y, permutations, method })
+}
+
+// ========================================
+// Worker 9: genetics
+// Population genetics (Hardy-Weinberg, Fst)
+// ========================================
+
+export interface HardyWeinbergResult {
+  alleleFreqP: unknown
+  alleleFreqQ: unknown
+  observedCounts: unknown
+  expectedCounts: unknown
+  chiSquare: number
+  pValue: number
+  degreesOfFreedom: number
+  inEquilibrium: unknown
+  isMonomorphic: unknown
+  interpretation: string
+  nTotal: unknown
+  locusResults: unknown
+  lowExpectedWarning: unknown
+}
+
+export interface FstResult {
+  globalFst: unknown
+  pairwiseFst: unknown
+  populationLabels: unknown
+  nPopulations: unknown
+  interpretation: string
+}
+
+
+/**
+ * Hardy-Weinberg 평형 chi-square 검정
+ * @worker Worker 9
+ */
+export async function hardyWeinberg(rows: unknown, locusLabels?: unknown): Promise<HardyWeinbergResult> {
+  return callWorkerMethod<HardyWeinbergResult>(9, 'hardy_weinberg', { rows, locusLabels })
+}
+
+/**
+ * Fst 집단 분화 지수 (Hudson 1992 + Bhatia 2013)
+ * @worker Worker 9
+ */
+export async function fst(populations: unknown, populationLabels?: unknown): Promise<FstResult> {
+  return callWorkerMethod<FstResult>(9, 'fst', { populations, populationLabels })
 }
 
 // ========================================
 // 메서드 이름 유니온 타입
 // ========================================
 
-export type Worker1Method ='descriptive_stats' | 'normality_test' | 'outlier_detection' | 'frequency_analysis' | 'crosstab_analysis' | 'one_sample_proportion_test' | 'cronbach_alpha' | 'kolmogorov_smirnov_test' | 'ks_test_one_sample' | 'ks_test_two_sample' | 'mann_kendall_test' | 'bonferroni_correction' | 'means_plot_data'
-export type Worker2Method = 't_test_two_sample' | 't_test_paired' | 't_test_one_sample' | 't_test_one_sample_summary' | 't_test_two_sample_summary' | 't_test_paired_summary' | 'z_test' | 'chi_square_test' | 'binomial_test' | 'correlation_test' | 'partial_correlation' | 'levene_test' | 'bartlett_test' | 'chi_square_goodness_test' | 'chi_square_independence_test' | 'fisher_exact_test' | 'power_analysis' | 'ancova_analysis'
+export type Worker1Method = 'descriptive_stats' | 'normality_test' | 'outlier_detection' | 'frequency_analysis' | 'crosstab_analysis' | 'one_sample_proportion_test' | 'cronbach_alpha' | 'kolmogorov_smirnov_test' | 'ks_test_one_sample' | 'ks_test_two_sample' | 'mann_kendall_test' | 'bonferroni_correction' | 'means_plot_data'
+export type Worker2Method = 't_test_two_sample' | 't_test_paired' | 't_test_one_sample' | 't_test_one_sample_summary' | 't_test_two_sample_summary' | 't_test_paired_summary' | 'z_test' | 'chi_square_test' | 'binomial_test' | 'correlation_test' | 'partial_correlation' | 'levene_test' | 'bartlett_test' | 'chi_square_goodness_test' | 'chi_square_independence_test' | 'fisher_exact_test' | 'power_analysis'
 export type Worker3Method = 'mann_whitney_test' | 'wilcoxon_test' | 'kruskal_wallis_test' | 'friedman_test' | 'one_way_anova' | 'two_way_anova' | 'tukey_hsd' | 'sign_test' | 'runs_test' | 'mcnemar_test' | 'cochran_q_test' | 'mood_median_test' | 'repeated_measures_anova' | 'ancova' | 'manova' | 'scheffe_test' | 'dunn_test' | 'games_howell_test'
 export type Worker4Method = 'linear_regression' | 'multiple_regression' | 'logistic_regression' | 'pca_analysis' | 'curve_estimation' | 'nonlinear_regression' | 'stepwise_regression' | 'binary_logistic' | 'multinomial_logistic' | 'ordinal_logistic' | 'probit_regression' | 'poisson_regression' | 'negative_binomial_regression' | 'factor_analysis' | 'cluster_analysis' | 'time_series_analysis' | 'durbin_watson_test' | 'discriminant_analysis' | 'kaplan_meier_survival' | 'cox_regression'
-export type Worker5Method = 'kaplan_meier_analysis' | 'roc_curve_analysis'
+export type Worker5Method = 'kaplan_meier_analysis' | 'roc_curve_analysis' | 'meta_analysis' | 'icc_analysis'
 export type Worker6Method = 'render_chart'
 export type Worker7Method = 'fit_vbgf' | 'length_weight' | 'condition_factor'
-
 export type Worker8Method = 'alpha_diversity' | 'rarefaction' | 'beta_diversity' | 'nmds' | 'permanova' | 'mantel_test'
+export type Worker9Method = 'hardy_weinberg' | 'fst'
 
-export type AllMethodName = Worker1Method | Worker2Method | Worker3Method | Worker4Method | Worker5Method | Worker6Method | Worker7Method | Worker8Method
+export type AllMethodName = Worker1Method | Worker2Method | Worker3Method | Worker4Method | Worker5Method | Worker6Method | Worker7Method | Worker8Method | Worker9Method

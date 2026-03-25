@@ -26,6 +26,7 @@ import {
   Info,
 } from 'lucide-react'
 import { AssumptionBadges } from '@/components/analysis/common/AssumptionBadges'
+import { WarningBanner } from '@/components/common/WarningBanner'
 import { cn } from '@/lib/utils'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { useTerminology } from '@/hooks/use-terminology'
@@ -103,10 +104,9 @@ export const AutoRecommendationConfirm = memo(function AutoRecommendationConfirm
 
           {/* 모호성 안내 */}
           {recommendation.ambiguityNote && (
-            <div data-testid="ambiguity-note" className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
-              <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-              <p className="text-sm text-amber-800 dark:text-amber-200">{recommendation.ambiguityNote}</p>
-            </div>
+            <WarningBanner data-testid="ambiguity-note" icon={<Info />}>
+              {recommendation.ambiguityNote}
+            </WarningBanner>
           )}
 
           {/* 추천 근거 */}

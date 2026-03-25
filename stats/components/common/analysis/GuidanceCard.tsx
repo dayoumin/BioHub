@@ -1,8 +1,9 @@
 'use client'
 
-import { CheckCircle2, AlertTriangle } from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { WarningBanner } from '@/components/common/WarningBanner'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 
 export interface GuidanceCardProps {
@@ -76,12 +77,7 @@ export function GuidanceCard({
       <CardContent className="p-4">
         {/* 경고 메시지 (최상단) */}
         {warningMessage && (
-          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-2.5 mb-3">
-            <div className="flex items-center gap-2 text-xs text-amber-900 dark:text-amber-100">
-              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="font-medium">{warningMessage}</span>
-            </div>
-          </div>
+          <WarningBanner className="mb-3 text-xs">{warningMessage}</WarningBanner>
         )}
 
         {/* 메인 컨텐츠: 수평 레이아웃 (모바일에서 수직) */}
