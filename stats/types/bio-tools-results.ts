@@ -278,7 +278,7 @@ export interface HardyWeinbergResult {
 /** Fst (집단 분화 지수) 결과 */
 export interface FstResult {
   globalFst: number
-  pairwiseFst: number[][] | null
+  pairwiseFst: number[][]
   populationLabels: string[]
   nPopulations: number
   interpretation: string

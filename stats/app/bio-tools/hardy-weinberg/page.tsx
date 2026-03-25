@@ -233,15 +233,21 @@ export default function HardyWeinbergPage(): React.ReactElement {
                           <td className={`${BIO_TABLE.bodyCell} font-medium`}>{lr.locus}</td>
                           <td className={`text-right ${BIO_TABLE.bodyCell} font-mono`}>{lr.alleleFreqP.toFixed(4)}</td>
                           <td className={`text-right ${BIO_TABLE.bodyCell} font-mono`}>{lr.alleleFreqQ.toFixed(4)}</td>
-                          <td className={`text-right ${BIO_TABLE.bodyCell} font-mono`}>{lr.chiSquare}</td>
-                          <td className={`text-right ${BIO_TABLE.bodyCell} font-mono`}>{lr.pValue.toFixed(4)}</td>
+                          <td className={`text-right ${BIO_TABLE.bodyCell} font-mono`}>{lr.isMonomorphic ? '—' : lr.chiSquare}</td>
+                          <td className={`text-right ${BIO_TABLE.bodyCell} font-mono`}>{lr.isMonomorphic ? '—' : lr.pValue.toFixed(4)}</td>
                           <td className={`text-center ${BIO_TABLE.bodyCell}`}>
-                            <span
-                              className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
-                              style={lr.inEquilibrium ? SIGNIFICANCE_BADGE.nonSignificant : SIGNIFICANCE_BADGE.significant}
-                            >
-                              {lr.inEquilibrium ? '평형' : '이탈'}
-                            </span>
+                            {lr.isMonomorphic ? (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground">
+                                단형성
+                              </span>
+                            ) : (
+                              <span
+                                className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
+                                style={lr.inEquilibrium ? SIGNIFICANCE_BADGE.nonSignificant : SIGNIFICANCE_BADGE.significant}
+                              >
+                                {lr.inEquilibrium ? '평형' : '이탈'}
+                              </span>
+                            )}
                           </td>
                         </tr>
                       ))}

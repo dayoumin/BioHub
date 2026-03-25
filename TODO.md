@@ -151,14 +151,33 @@ These items should be the current focus.
 **순차 처리:**
 - ~~`[quality]` `createLocalStorageIO` 추가 적용~~ — 완료 (5곳: pinned-history, recent-statistics, style-template, analysis-history, entity-tab-registry)
 - ~~`[ux]` 토스트 메시지 기존 19곳 점진적 `TOAST.*` 마이그레이션~~ — 완료 (12파일, ~35곳)
-- `[ux]` ChatBubble 공통 컴포넌트 추출
-- `[quality]` 공통 `WarningBanner` 컴포넌트 추출 — amber 경고 배너 4+ 곳 수동 작성. shadcn `Alert` warning variant 또는 별도 컴포넌트
+- `[ux]` ChatBubble 공통 컴포넌트 추출 — chatbot 페이지 미완성, 역할 확정 후 진행. Hub/GraphStudio/FollowUp 3곳 독립 구현 중.
+- ~~`[quality]` 공통 `WarningBanner` 컴포넌트 추출~~ — 완료 (Alert warning variant + WarningBanner 래퍼, 3곳 마이그레이션 + 경량 컨텍스트 컬럼 제한 추가)
 - `[quality]` `isQuotaExceededError()` 유틸 추출 — 현재 1곳, quota-aware 스토리지 모듈 추가 시 `local-storage-factory.ts`에 추출
 - `[perf]` `ensureUser` INSERT OR IGNORE 매 요청 실행 — KV 캐시 또는 첫 요청만 실행으로 최적화
 - `[a11y]` 접근성 일괄 패스 — AiInterpretationCard expand 버튼 `aria-expanded` 누락, 서브컴포넌트 `prefersReducedMotion` 미적용. 이 컴포넌트만 수정하면 전체 수준과 불일치 → 전체 감사 후 일괄 적용
 - `[analysis]` intent-router 0.6 임계값 검증 — "추천" 단독 입력(0.65)이 LLM을 생략. 사용 로그 수집 후 데이터 기반 재검토 필요. 현재는 latency 우선으로 유지
 
-### 3-E. 기타 (genetics, infra, domain, paper)
+### 3-E. Bio-Tools 확장
+
+**Fisheries 2차 (차트):**
+- `[bio]` VBGF 성장곡선 차트 — 산점도 + 적합곡선 + 95% CI 밴드 (Worker에서 predicted/residuals 이미 반환)
+- `[bio]` Length-Weight log-log 산점도 — 회귀선 + 관측값 (logLogPoints 이미 반환)
+- `[bio]` Condition Factor 박스플롯 — 개체별 K 분포 + 그룹별 비교 (individualK 이미 반환)
+
+**HW/Fst 2차:**
+- `[bio]` HW Exact Test (소표본, N<25) — chi-square 대신 Fisher exact test. snphwe 알고리즘 포팅
+- `[bio]` Fst permutation p-value — 개체별 유전자형 데이터 입력 지원 필요 (v2 입력 형식)
+- `[bio]` Fst bootstrap 95% CI — 다중 유전자좌 입력 지원 필요 (v2 입력 형식)
+- `[bio]` Fst long-format CSV 지원 — population/locus/allele/count 4컬럼 입력
+- `[bio]` HW `inEquilibrium` 단형성 시 의미 명확화 — 현재 True 반환되나 검정 불가. UI에서 isMonomorphic으로 mask하지만 API 계약 개선 여지
+
+**Bio-Tools 공통 개선:**
+- `[bio]` Bio-Tools 배지 클래스 토큰화 — `"inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"` 9개 페이지 반복 → `bio-styles.ts`에 `BIO_BADGE_CLASS` 추출
+- `[bio]` Bio-Tools 결과 프로젝트 연결 — `ProjectEntityKind`에 `'bio-tool-result'` 추가 + 저장 시 `upsertProjectEntityRef` 호출
+- `[bio]` Worker 9 계산 정확성 단위 테스트 — HW chi-square/단형성/다중유전자좌, Fst Hudson/n≤1 방어/쌍별 대칭성
+
+### 3-F. 기타 (genetics, infra, domain, paper)
 
 - ~~`[genetics]` 다중 FASTA 시퀀스 혼합 미감지~~ — 완료 (early-exit 헤더 스캔 + 테스트 17개)
 - ~~`[genetics]` deep-link 복원 실패 시 UI 피드백 없음~~ — 완료 (에러 배너 + URL 정리 + "새 분석 시작" 버튼)
@@ -197,6 +216,8 @@ These are valid directions, but not current execution priorities.
 - `[ux]` 콘텐츠 밀도 검토 — `py-8 space-y-6`이 전문 도구에 느슨할 수 있음. `py-6 space-y-4` 비교 테스트
 - `[ux]` Bio-Tools 데이터 프리뷰 — 업로드 후 분석 전 5행 미리보기 (Analysis Step 1과 일관)
 - `[ux]` 사이드바 My Menu — 메뉴 항목 순서 이동(드래그) 및 즐겨찾기 고정 기능. 현재 "My Menu (예정)" 플레이스홀더 존재 (`app-sidebar.tsx`).
+- `[architecture]` 모노레포 전환 트리거 모니터링 — `domains/` 분리: 빌드 5분 초과 또는 팀 분할 시. `packages/` 승격: 2번째 앱 등장 시. 상세: [REVIEW-MONOREPO-ARCHITECTURE.md](docs/REVIEW-MONOREPO-ARCHITECTURE.md)
+- `[architecture]` 프로젝트 연결 DB 동기화 강화 — Phase 16 (Workers 동적 배포) 시 D1 연동. 현재 localStorage `ProjectEntityRef` 레이어는 동작 중
 - `[quality]` entity-resolver `*Like` 인터페이스 → `Pick<OriginalType, ...>` 전환 — import 순환 해결 후. 현재 수동 동기화 필요.
 - `[quality]` `report-export.ts` blob→download 패턴 → 공통 유틸 `utils/download-file.ts` 추출 검토 — `html-export.ts`에도 동일 패턴 존재
 - `[quality]` `report-export.ts` `markdownToSimpleHtml()` → 공통 유틸 추출 검토 — `html-export.ts`의 인라인 `escapeHtml()`도 `@/lib/utils/html-escape` import로 교체

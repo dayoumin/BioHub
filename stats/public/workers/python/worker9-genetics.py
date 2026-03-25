@@ -95,8 +95,10 @@ def hardy_weinberg(
     # 첫 번째 유전자좌 (또는 유일한 유전자좌) 결과를 메인으로
     first = _test_single(rows[0])
 
-    # 해석 텍스트
-    if first['inEquilibrium']:
+    # 해석 텍스트 (단형성 별도 처리)
+    if first['isMonomorphic']:
+        first['interpretation'] = "단형성 (monomorphic) — 다형성이 없어 HW 검정 불가"
+    elif first['inEquilibrium']:
         first['interpretation'] = f"HW 평형 유지 (χ² = {first['chiSquare']}, p = {first['pValue']:.4f}, p > 0.05)"
     else:
         first['interpretation'] = f"HW 평형 이탈 (χ² = {first['chiSquare']}, p = {first['pValue']:.4f}, p ≤ 0.05)"
@@ -104,13 +106,14 @@ def hardy_weinberg(
     # 다중 유전자좌
     if len(rows) > 1:
         labels = locusLabels if locusLabels and len(locusLabels) == len(rows) else [f"Locus {i+1}" for i in range(len(rows))]
-        first['locus'] = labels[0]
-        locus_results = [first]
-        for i, row in enumerate(rows[1:], 1):
+        locus_results = []
+        for i, row in enumerate(rows):
             result = _test_single(row)
             result['locus'] = labels[i]
             locus_results.append(result)
         first['locusResults'] = locus_results
+        # top-level lowExpectedWarning: 어느 유전자좌든 해당되면 true
+        first['lowExpectedWarning'] = any(lr['lowExpectedWarning'] for lr in locus_results)
     else:
         first['locusResults'] = None
 
@@ -198,10 +201,7 @@ def fst(
         'interpretation': interpretation,
     }
 
-    # 3+ 집단이면 쌍별 행렬 포함
-    if n_pops > 2:
-        result['pairwiseFst'] = [[round(float(pairwise[i][j]), 6) for j in range(n_pops)] for i in range(n_pops)]
-    else:
-        result['pairwiseFst'] = None
+    # 2+ 집단이면 쌍별 행렬 포함
+    result['pairwiseFst'] = [[round(float(pairwise[i][j]), 6) for j in range(n_pops)] for i in range(n_pops)]
 
     return result

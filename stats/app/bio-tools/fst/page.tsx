@@ -105,35 +105,33 @@ export default function FstPage(): React.ReactElement {
 
             <p className="text-sm text-muted-foreground">{results.interpretation}</p>
 
-            {results.pairwiseFst && (
-              <div>
-                <h3 className="text-sm font-semibold mb-2">쌍별 Fst 행렬</h3>
-                <div className="overflow-auto border rounded-lg">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className={cn('border-b', BIO_TABLE.headerBg)}>
-                        <th className={`text-left ${BIO_TABLE.headerCell}`}></th>
-                        {results.populationLabels.map((label) => (
-                          <th key={label} className={`text-right ${BIO_TABLE.headerCell}`}>{label}</th>
+            <div>
+              <h3 className="text-sm font-semibold mb-2">쌍별 Fst 행렬</h3>
+              <div className="overflow-auto border rounded-lg">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className={cn('border-b', BIO_TABLE.headerBg)}>
+                      <th className={`text-left ${BIO_TABLE.headerCell}`}></th>
+                      {results.populationLabels.map((label) => (
+                        <th key={label} className={`text-right ${BIO_TABLE.headerCell}`}>{label}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {results.pairwiseFst.map((row, i) => (
+                      <tr key={results.populationLabels[i]} className="border-b last:border-b-0">
+                        <td className={`${BIO_TABLE.bodyCell} font-medium`}>{results.populationLabels[i]}</td>
+                        {row.map((val, j) => (
+                          <td key={j} className={`text-right ${BIO_TABLE.bodyCell} font-mono`}>
+                            {i === j ? '—' : val.toFixed(4)}
+                          </td>
                         ))}
                       </tr>
-                    </thead>
-                    <tbody>
-                      {results.pairwiseFst.map((row, i) => (
-                        <tr key={results.populationLabels[i]} className="border-b last:border-b-0">
-                          <td className={`${BIO_TABLE.bodyCell} font-medium`}>{results.populationLabels[i]}</td>
-                          {row.map((val, j) => (
-                            <td key={j} className={`text-right ${BIO_TABLE.bodyCell} font-mono`}>
-                              {i === j ? '—' : val.toFixed(4)}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            )}
+            </div>
 
             <div className="p-3 border rounded-lg bg-muted/30 text-xs text-muted-foreground space-y-1">
               <p className="font-medium text-foreground text-sm">Wright (1978) Fst 해석 기준</p>
