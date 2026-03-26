@@ -1,14 +1,12 @@
 # BioHub TODO
 
-> **Setup:** `.claude/skills/cf-deploy/SKILL.md`를 전역(`~/.claude/skills/cf-deploy/`)으로 복사할 것. Cloudflare 배포 스킬이 모든 프로젝트에서 동작하도록.
->
-> **cf-deploy 스킬 업데이트 (2026-03-23):** 전역 스킬이 이미 업데이트됨. BioHub 로컬 스킬에도 아래 내용 반영 필요:
-> - `build` 스크립트: `next build && opennextjs-cloudflare build --skipNextBuild` (재귀 방지)
-> - `next.config.ts`에 `output: "standalone"` 필수 (OpenNext이 `.next/standalone/` 사용)
-> - Cloudflare Pages → Workers 통합됨, Git 푸시 자동 빌드가 아닌 수동 트리거일 수 있음
-> - 상세 내용은 전역 스킬 참고: `~/.claude/skills/cf-deploy/SKILL.md`
+> **집 PC 동기화 (2026-03-26):**
+> 1. `git pull` → `pnpm install` (BioHub, Kemi, Clean_Style 모두)
+> 2. Node.js 22 설치: `nvm install 22 && nvm use 22`
+> 3. cf-deploy 글로벌 스킬 복사: `~/.claude/skills/cf-deploy/SKILL.md` (두 모드 자동 감지 통합본)
+> 4. Kemi / Clean_Style도 Node 22 업그레이드 필요 (`.nvmrc`, `deploy.yml`, `@types/node`)
 
-**Last updated**: 2026-03-23
+**Last updated**: 2026-03-26
 **References**: [Product Strategy](docs/PRODUCT_STRATEGY.md), [Roadmap](ROADMAP.md), [Research Project Status](docs/RESEARCH_PROJECT_STATUS.md)
 
 ---
@@ -44,6 +42,11 @@ Recommended tags:
 ## 2. Now
 
 These items should be the current focus.
+
+### 🔥 집 PC 우선 작업
+- `[infra]` 집 PC 환경 동기화 — Node 22 설치 + cf-deploy 스킬 복사 + git pull (상단 Setup 참조)
+- `[infra]` Kemi(T4U) Node 22 업그레이드 — `.nvmrc`, `deploy.yml` node-version, `@types/node ^22`
+- `[infra]` Clean_Style Node 22 업그레이드 — 동일
 
 - ~~`[workflow]` Finalize the user-facing definition of `ResearchProject` as one research unit above individual pages and tools.~~ — 확정 ([RESEARCH_PROJECT_STATUS.md](docs/RESEARCH_PROJECT_STATUS.md) §5 Decision D–H)
 - ~~`[workflow]` Define the UX rule for project context vs standalone mode before adding more save-time prompts.~~ — 확정 (Decision F: 자동 연결 + override, Decision G: 기본 도구 standalone / 조립 기능 프로젝트 필수)
