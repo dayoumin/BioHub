@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import type { IccResult, IccType } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
@@ -110,7 +111,7 @@ export default function IccTool({ tool, meta, initialEntry }: ToolComponentProps
 
       {results && (
         <div ref={resultsRef} className="space-y-6">
-          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
           {/* ICC 결과 */}
           <div>
             <h3 className="text-sm font-semibold mb-2">ICC 분석 결과</h3>

@@ -15,6 +15,7 @@ import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio
 import { detectLocusColumn } from '@/lib/bio-tools/genetics-columns'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import type { ToolComponentProps } from './types'
@@ -153,7 +154,7 @@ export default function HardyWeinbergTool({ tool, meta, initialEntry }: ToolComp
 
       {results && (
         <div ref={resultsRef} className="space-y-6">
-          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-3 border rounded-lg text-center">
               <div className="text-xs text-muted-foreground">p (빈도)</div>

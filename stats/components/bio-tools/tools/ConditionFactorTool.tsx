@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildConditionFactorColumns } from '@/lib/graph-studio/analysis-adapter'
 import type { VLineAnnotation } from '@/types/graph-studio'
@@ -59,8 +60,8 @@ export default function ConditionFactorTool({ tool, meta, initialEntry }: ToolCo
   const handleOpenInGraphStudio = useCallback(() => {
     if (!results) return
     const annotations: VLineAnnotation[] = [
-      { type: 'vline', value: results.mean, text: `Mean = ${results.mean.toFixed(4)}`, color: '#E64B35' },
-      { type: 'vline', value: results.median, text: `Median = ${results.median.toFixed(4)}`, color: '#4DBBD5', strokeDash: [4, 3] },
+      { type: 'vline', value: results.mean, text: `Mean = ${results.mean.toFixed(4)}`, color: BIO_CHART_COLORS[5] },
+      { type: 'vline', value: results.median, text: `Median = ${results.median.toFixed(4)}`, color: BIO_CHART_COLORS[4], strokeDash: [4, 3] },
     ]
     openInGraphStudio({
       built: buildConditionFactorColumns(results),
@@ -138,7 +139,7 @@ export default function ConditionFactorTool({ tool, meta, initialEntry }: ToolCo
 
       {results && (
         <div ref={resultsRef} className="space-y-6">
-          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
           <div>
             <h3 className="text-sm font-semibold mb-2">Fulton&apos;s K 요약</h3>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">

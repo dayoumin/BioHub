@@ -14,6 +14,7 @@ import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio
 import { detectPopulationColumn, detectIndividualColumn } from '@/lib/bio-tools/genetics-columns'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import type { ToolComponentProps } from './types'
@@ -156,7 +157,7 @@ export default function FstTool({ tool, meta, initialEntry }: ToolComponentProps
 
       {results && (
         <div ref={resultsRef} className="space-y-6">
-          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
           <div className="p-4 border rounded-lg space-y-3">
             <div className="text-sm text-muted-foreground">Global Fst</div>
             <div className="text-2xl font-bold font-mono">

@@ -11,10 +11,12 @@ import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { formatNumber, formatPValue } from '@/lib/statistics/formatters'
 import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
+import { resolveAxisColors } from '@/lib/charts/chart-color-resolver'
 import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildMetaAnalysisColumns } from '@/lib/graph-studio/analysis-adapter'
 import type { MetaAnalysisResult } from '@/types/bio-tools-results'
@@ -66,7 +68,7 @@ export default function MetaAnalysisTool({ tool, meta, initialEntry }: ToolCompo
       chartType: 'error-bar',
       label: `메타분석 Forest Plot (${results.model === 'random' ? '랜덤' : '고정'} 효과)`,
       customize: (spec) => {
-        spec.annotations = [{ type: 'vline', value: 0, text: 'Null effect', color: '#999999', strokeDash: [4, 3] }]
+        spec.annotations = [{ type: 'vline', value: 0, text: 'Null effect', color: resolveAxisColors().annotationMuted, strokeDash: [4, 3] }]
       },
     })
   }, [results, openInGraphStudio])
@@ -129,7 +131,7 @@ export default function MetaAnalysisTool({ tool, meta, initialEntry }: ToolCompo
 
       {results && forestData && (
         <div ref={resultsRef} className="space-y-6">
-          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
           {/* 통합 결과 테이블 */}
           <div>
             <h3 className="text-sm font-semibold mb-2">통합 결과</h3>

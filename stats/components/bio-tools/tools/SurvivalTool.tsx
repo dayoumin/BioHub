@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildKmCurveColumns } from '@/lib/graph-studio/analysis-adapter'
 import type { SurvivalResult, KmCurve } from '@/types/bio-tools-results'
@@ -106,7 +107,7 @@ export default function SurvivalTool({ tool, meta, initialEntry }: ToolComponent
 
       {results && (
         <div ref={resultsRef} className="space-y-6">
-          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
           {/* Log-rank 결과 */}
           {results.logRankP !== null && (
             <div className="flex items-center gap-4 p-3 rounded-lg border bg-card">

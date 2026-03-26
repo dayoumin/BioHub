@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildRocCurveColumns } from '@/lib/graph-studio/analysis-adapter'
 import type { RocAucResult } from '@/types/bio-tools-results'
@@ -131,7 +132,7 @@ export default function RocAucTool({ tool, meta, initialEntry }: ToolComponentPr
 
       {results && (
         <div ref={resultsRef} className="space-y-6">
-          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
           {/* 결과 요약 */}
           <div>
             <h3 className="text-sm font-semibold mb-2">분석 결과</h3>

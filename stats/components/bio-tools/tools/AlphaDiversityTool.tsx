@@ -9,19 +9,14 @@ import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { getBioExportTables, ALPHA_INDEX_LABELS } from '@/lib/bio-tools/bio-export-tables'
 import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import type { AlphaDiversityResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
-const INDEX_LABELS: Record<string, string> = {
-  shannonH: "Shannon H'",
-  simpsonDiversity: 'Simpson 1-D',
-  simpsonReciprocal: 'Simpson 1/D',
-  margalef: 'Margalef d',
-  pielou: "Pielou J'",
-}
+const INDEX_LABELS = ALPHA_INDEX_LABELS
 
 export default function AlphaDiversityTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
@@ -65,7 +60,7 @@ export default function AlphaDiversityTool({ tool, meta, initialEntry }: ToolCom
 
       {results && (
         <div ref={resultsRef} className="space-y-6">
-          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
           <div>
             <h3 className="text-sm font-semibold mb-2">지점별 다양성 지수</h3>
             <div className="overflow-auto border rounded-lg">

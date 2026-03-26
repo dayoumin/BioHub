@@ -9,6 +9,7 @@ import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { BIO_BADGE_CLASS, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
 import { BarChart3, Loader2 } from 'lucide-react'
@@ -125,7 +126,7 @@ export default function NmdsTool({ tool, meta, initialEntry }: ToolComponentProp
 
       {results && (
         <div ref={resultsRef} className="space-y-4">
-          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">Stress:</span>
             <span

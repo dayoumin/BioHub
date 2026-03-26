@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildVbgfColumns } from '@/lib/graph-studio/analysis-adapter'
 import type { ToolComponentProps } from './types'
@@ -132,7 +133,7 @@ export default function VbgfTool({ tool, meta, initialEntry }: ToolComponentProp
 
       {results && (
         <div ref={resultsRef} className="space-y-6">
-          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
           <div>
             <h3 className="text-sm font-semibold mb-2">파라미터 추정</h3>
             <div className="overflow-auto border rounded-lg">

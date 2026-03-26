@@ -11,6 +11,7 @@ import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
@@ -81,7 +82,7 @@ export default function BetaDiversityTool({ tool, meta, initialEntry }: ToolComp
 
       {results && (
         <div ref={resultsRef} className="space-y-4">
-          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
           <h3 className="text-sm font-semibold">
             거리행렬 ({METRIC_LABELS[results.metric as MetricOption] ?? results.metric})
           </h3>

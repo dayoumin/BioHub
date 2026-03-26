@@ -1,6 +1,16 @@
 # BioHub TODO
 
 > **집 PC 동기화 (2026-03-26):**
+> 0. **Claude Code 글로벌 설정 — 읽기 도구 자동 승인 (모든 프로젝트 공통)**
+>    `C:\Users\User\.claude\settings.json`의 `permissions.allow` 배열에 아래 4개 추가:
+>    ```json
+>    "Bash(rg *)",
+>    "Read",
+>    "Glob",
+>    "Grep",
+>    ```
+>    → 파일 읽기/검색이 매번 승인 요구 없이 자동 실행됨
+>    → 글로벌 설정이므로 BioHub, Kemi, Clean_Style 등 모든 프로젝트에 적용
 > 1. `git pull` → `pnpm install` (BioHub, Kemi, Clean_Style 모두)
 > 2. Node.js 22 설치: `nvm install 22 && nvm use 22`
 > 3. cf-deploy 글로벌 스킬 복사: `~/.claude/skills/cf-deploy/SKILL.md` (두 모드 자동 감지 통합본)
@@ -108,7 +118,7 @@ These items should be the current focus.
 
 **기능 개발과 병행 가능:**
 - ~~`[structure]` `ProjectEntityKind`에 `'bio-tool-result'` 추가 + `ENTITY_TAB_REGISTRY` Bio-Tools 탭~~ — 이미 구현됨 (타입, 탭 레지스트리, entity-resolver 모두 완성 상태)
-- `[structure]` Bio-Tools 결과 내보내기 (`BioResultsSection` + Shell Export 버튼) — 첫 Bio-Tool 완성 시
+- ~~`[structure]` Bio-Tools 결과 내보내기~~ — 완료 (`BioResultsHeader`에 CSV 다운로드 + 클립보드 복사 버튼 추가, `bio-export-csv.ts` + `bio-export-tables.ts` 유틸리티, 15개 도구 전체 연결)
 - ~~`[structure]` `useBioToolAnalysis` 훅에 `projectId` opt-in~~ — 이미 구��됨 (activeProject 자동 연결, saveBioToolEntry에서 upsertProjectEntityRef 호출)
 - `[structure]` Bio-Tools 테스트 인프라 + 패턴 가이드 — 첫 도구 테스트 작성 시 확립
 

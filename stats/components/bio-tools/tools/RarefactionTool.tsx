@@ -9,6 +9,7 @@ import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
@@ -76,7 +77,7 @@ export default function RarefactionTool({ tool, meta, initialEntry }: ToolCompon
 
       {results && results.curves.length > 0 && (
         <div ref={resultsRef} className="space-y-4">
-          <BioResultsHeader onSave={handleSave} isSaved={isSaved} />
+          <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
           <h3 className="text-sm font-semibold">종 희박화 곡선</h3>
 
           <div className="border rounded-lg p-4 bg-card">
