@@ -5,9 +5,10 @@
  * 코어 레지스트리(bio-tool-registry.ts)와 분리하여 유지보수 용이.
  */
 
-import type { BioToolExtendedMeta } from './bio-tool-registry'
+import type { BioToolId, BioTool, BioToolExtendedMeta } from './bio-tool-registry'
+import { getBioToolById } from './bio-tool-registry'
 
-const META: Record<string, BioToolExtendedMeta> = {
+const META: Record<BioToolId, BioToolExtendedMeta> = {
   // ═══ 군집생태 ═══════════════════════════════════
 
   'alpha-diversity': {
@@ -283,5 +284,19 @@ const META: Record<string, BioToolExtendedMeta> = {
 // ─── 접근 함수 ────────────────────────────────────
 
 export function getBioToolMeta(id: string): BioToolExtendedMeta | undefined {
-  return META[id]
+  return META[id as BioToolId]
+}
+
+/**
+ * tool + meta 통합 조회.
+ * BioToolWorkspace 등에서 getBioToolById + getBioToolMeta 이중 호출 대신 사용.
+ */
+export function getBioToolWithMeta(
+  id: string,
+): { tool: BioTool; meta: BioToolExtendedMeta } | undefined {
+  const tool = getBioToolById(id)
+  if (!tool) return undefined
+  const meta = META[id as BioToolId]
+  if (!meta) return undefined
+  return { tool, meta }
 }

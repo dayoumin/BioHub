@@ -104,9 +104,9 @@ These items should be the current focus.
 - ~~`[structure]` Worker Genetics enum 정리~~ — 완료 (Worker 9 = Genetics enum + stub, 계획서 번호 교정, Worker 3 PACKAGES 동기화)
 
 **기능 개발과 병행 가능:**
-- `[structure]` `ProjectEntityKind`에 `'bio-tool-result'` 추가 + `ENTITY_TAB_REGISTRY` Bio-Tools 탭 — 첫 Bio-Tool 완성 시
+- ~~`[structure]` `ProjectEntityKind`에 `'bio-tool-result'` 추가 + `ENTITY_TAB_REGISTRY` Bio-Tools 탭~~ — 이미 구현됨 (타입, 탭 레지스트리, entity-resolver 모두 완성 상태)
 - `[structure]` Bio-Tools 결과 내보내기 (`BioResultsSection` + Shell Export 버튼) — 첫 Bio-Tool 완성 시
-- `[structure]` `useBioToolAnalysis` 훅에 `projectId` opt-in — ProjectEntityKind 확장과 함께
+- ~~`[structure]` `useBioToolAnalysis` 훅에 `projectId` opt-in~~ — 이미 구��됨 (activeProject 자동 연결, saveBioToolEntry에서 upsertProjectEntityRef 호출)
 - `[structure]` Bio-Tools 테스트 인프라 + 패턴 가이드 — 첫 도구 테스트 작성 시 확립
 
 ### 3-A. 통계 분석 (Analysis)
@@ -172,14 +172,14 @@ These items should be the current focus.
 - `[bio]` Fst long-format CSV 지원 — population/locus/allele/count 4컬럼. 논문 발표 allele frequency 분석용. v2 인프라 위에 ~150줄 pre-processing. 우선순위 낮음.
 - ~~`[bio]` HW `inEquilibrium` 단형성 시 의미 명확화~~ — 검토 완료: 변경 불필요. vacuously true (수학적 정당), 모든 소비자가 isMonomorphic guard 사용, null 전환 시 4곳 breaking change + 이득 0.
 
-**Bio-Tools 코드 품질 (보류):**
-- `[bio]` `getBioToolWithMeta` 편의 함수 — 15개 페이지에서 `getBioToolById` + `getBioToolMeta` 이중 호출 패턴을 단일 함수로 통합. ID 불일치 리스크 제거.
-- `[bio]` `BioToolId` union 타입 도입 — `(typeof BIO_TOOLS)[number]['id']`로 추출, `getBioToolById`/`getBioToolMeta`에 적용. 타입 안전성 강화 + metadata 누락 컴파일 타임 감지.
-- `[bio]` `relatedTools` 소비처 구현 또는 제거 — metadata에 정의되어 있으나 UI에서 미사용. "관련 도구" 추천 UI 구현 예정이면 유지, 아니면 제거.
+**Bio-Tools 코드 품질:**
+- ~~`[bio]` `BioToolId` union 타입 도입~~ — 완료. 16개 ID 유니온 + `BioTool.id: BioToolId` + `META: Record<BioToolId, ...>` + `relatedTools?: BioToolId[]`. 레지스트리/메타데이터 누락 컴파일 타임 감지.
+- ~~`[bio]` `getBioToolWithMeta` 편의 함수~~ — 완료. `bio-tool-metadata.ts`에 추가, `BioToolWorkspace` 이중 호출 해소.
+- ~~`[bio]` `relatedTools` 소비처 구현 또는 제거~~ — 유지 결정. `BioToolId[]` 타입 적용으로 오타 방지. UI 소비처("관련 도구" 추천)는 UX 기능으로 후속 진행.
 
 **Bio-Tools 공통 개선:**
 - ~~`[bio]` Bio-Tools 배지 클래스 토큰화~~ — 완료 (`BIO_BADGE_CLASS` 추출, 8페이지 9곳 마이그레이션)
-- `[bio]` Bio-Tools 결과 프로젝트 연결 — `ProjectEntityKind`에 `'bio-tool-result'` 추가 + 저장 시 `upsertProjectEntityRef` 호출
+- ~~`[bio]` Bio-Tools 결과 프로젝트 연결~~ — 완료 (저장 시 upsertProjectEntityRef 호출 + ProjectDetailContent에서 bioToolHistory 로드/표시 연결)
 - ~~`[bio]` Worker 9 계산 정확성 골든 테스트~~ — 완료 (HW 8케이스 + Fst 7케이스, JSON + Vitest 스키마 + Pyodide 러너 확장)
 - ~~`[bio]` Worker 9 골든 테스트 확장~~ — 완료 (HW exactPValue 4케이스 + Fst v2 genotype 4케이스 + v2 에러 2케이스, 65 passed)
 - ~~`[bio]` v1/v2 global Fst 계산 차이 문서화~~ — 완료 (PLAN-GENETICS-V2.md에 비교 섹션 추가: 공식 차이, 수치 예시, UI 표시, 향후 고려)

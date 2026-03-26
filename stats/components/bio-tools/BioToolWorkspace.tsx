@@ -5,8 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { LAYOUT } from '@/components/common/card-styles'
-import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
-import { getBioToolMeta } from '@/lib/bio-tools/bio-tool-metadata'
+import { getBioToolWithMeta } from '@/lib/bio-tools/bio-tool-metadata'
 import { getBioToolEntry, type BioToolHistoryEntry } from '@/lib/bio-tools/bio-tool-history'
 import { TOOL_COMPONENTS } from './tools'
 import { BioToolsHub } from './BioToolsHub'
@@ -34,8 +33,9 @@ export function BioToolWorkspace(): React.ReactElement {
 
   const historyId = searchParams.get('history')
 
-  const tool = toolId ? getBioToolById(toolId) : null
-  const meta = toolId ? getBioToolMeta(toolId) : null
+  const found = toolId ? getBioToolWithMeta(toolId) : undefined
+  const tool = found?.tool ?? null
+  const meta = found?.meta ?? null
   const ToolComponent = toolId ? TOOL_COMPONENTS[toolId] : null
   const initialEntry = useMemo(
     () => historyId

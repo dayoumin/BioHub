@@ -1,8 +1,8 @@
 /**
  * Bio-Tools 도구 레지스트리
  *
- * 15개 Bio-Tool 메타데이터 + 타입 정의.
- * 도구 추가/수정 시 이 파일만 수정.
+ * 16개 Bio-Tool 코어 메타데이터 + 타입 정의.
+ * 도구 추가 시: BioToolId 유니온 + BIO_TOOLS 배열 + bio-tool-metadata.ts META.
  */
 
 import type { LucideIcon } from 'lucide-react'
@@ -27,6 +27,13 @@ import {
 
 // ─── 타입 ─────────────────────────────────────────
 
+/** 레지스트리에 등록된 모든 Bio-Tool ID. 새 도구 추가 시 여기에 추가. */
+export type BioToolId =
+  | 'alpha-diversity' | 'rarefaction' | 'beta-diversity' | 'nmds' | 'permanova' | 'mantel-test'
+  | 'vbgf' | 'length-weight' | 'condition-factor'
+  | 'hardy-weinberg' | 'species-validation' | 'fst'
+  | 'meta-analysis' | 'roc-auc' | 'icc' | 'survival'
+
 export type BioToolCategory = 'ecology' | 'fisheries' | 'genetics' | 'methods'
 
 export type BioToolInputType = 'csv' | 'fasta' | 'matrix' | 'csv-or-matrix'
@@ -40,7 +47,7 @@ export interface BioToolColumnSpec {
 }
 
 export interface BioTool {
-  id: string
+  id: BioToolId
   nameEn: string
   nameKo: string
   category: BioToolCategory
@@ -58,7 +65,7 @@ export interface BioToolExtendedMeta {
   outputHighlights: string[]
   columns: BioToolColumnSpec[]
   exampleDataPath?: string
-  relatedTools?: string[]
+  relatedTools?: BioToolId[]
 }
 
 export interface BioToolCategoryMeta {
