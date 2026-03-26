@@ -24,6 +24,7 @@ import { ChartSkeleton } from './ChartSkeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { LazyReactECharts } from '@/lib/charts/LazyECharts'
 import { statBaseOption, statCategoryAxis, statValueAxis, statTooltip, STAT_COLORS } from '@/lib/charts/echarts-stat-utils'
+import { resolveCssVar } from '@/lib/charts/chart-color-resolver'
 import type { EChartsOption } from 'echarts'
 
 interface BoxPlotData {
@@ -101,7 +102,7 @@ Q1: ${val[1].toFixed(2)}${u}<br/>
   if (opts.showMean) {
     const meanData = data
       .map((d, i) =>
-        d.mean != null ? { value: [i, d.mean], itemStyle: { color: '#fff', borderColor: colors[i] } } : null,
+        d.mean != null ? { value: [i, d.mean], itemStyle: { color: resolveCssVar('--background', '#fff'), borderColor: colors[i] } } : null,
       )
       .filter(Boolean);
     if (meanData.length > 0) {

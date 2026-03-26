@@ -107,7 +107,7 @@ export function GroupComparison({
         ...(showErrorBars
           ? [errorBarSeries(
               groupData.map((_, i) => [i, errorUpper[i], errorLower[i]]),
-              { stroke: '#666', lineWidth: 1 },
+              { lineWidth: 1 },
             )]
           : []),
       ] as NonNullable<EChartsOption['series']>,

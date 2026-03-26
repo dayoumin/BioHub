@@ -360,16 +360,16 @@
   /* Dark gray */
   --ring: oklch(0.5 0 0);
   /* Medium gray */
-  --chart-1: oklch(0.8 0 0);
-  /* Light gray */
-  --chart-2: oklch(0.6 0 0);
-  /* Medium light gray */
-  --chart-3: oklch(0.4 0 0);
-  /* Medium gray */
-  --chart-4: oklch(0.25 0 0);
-  /* Dark gray */
-  --chart-5: oklch(0.15 0 0);
-  /* Very dark gray */
+  --chart-1: oklch(0.7 0.12 260);
+  /* Blue */
+  --chart-2: oklch(0.75 0.12 150);
+  /* Teal */
+  --chart-3: oklch(0.8 0.12 30);
+  /* Orange */
+  --chart-4: oklch(0.75 0.12 300);
+  /* Purple */
+  --chart-5: oklch(0.65 0.06 260);
+  /* Grey Blue */
   --chart-6: oklch(0.7 0.12 200);
   /* Cyan (chromatic for multi-series) */
   --chart-7: oklch(0.7 0.18 15);
