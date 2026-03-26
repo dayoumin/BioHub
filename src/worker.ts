@@ -118,6 +118,13 @@ export default {
       return handleEntitiesApi(request, env, url)
     }
 
+    // RSC payload(.txt)에 브라우저가 직접 접근하면 HTML 페이지로 리다이렉트
+    // Next.js 클라이언트 라우터는 RSC: 1 헤더와 함께 fetch하므로 영향 없음
+    if (url.pathname.endsWith('/index.txt') && !request.headers.get('RSC')) {
+      const htmlPath = url.pathname.replace(/\/index\.txt$/, '/')
+      return Response.redirect(new URL(htmlPath, url.origin).toString(), 302)
+    }
+
     // 그 외 → Static Assets (기존 동작)
     return env.ASSETS.fetch(request)
   },
