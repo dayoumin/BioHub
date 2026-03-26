@@ -86,7 +86,47 @@
   --color-correlation-weak: var(--correlation-weak);
   --color-correlation-medium-neg: var(--correlation-medium-neg);
   --color-correlation-strong-neg: var(--correlation-strong-neg);
+
+  /* Animations */
+  --animate-fade-in: fade-in 0.5s ease-out;
+  --animate-slide-in: slide-in-from-bottom 0.5s ease-out;
+  --animate-slide-left: slide-left 0.3s ease-out;
+  --animate-slide-right: slide-right 0.3s ease-out;
 }
+
+/* Keyframes */
+@keyframes fade-in {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-in-from-bottom {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-left {
+  0% { opacity: 0; transform: translateX(20px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+@keyframes slide-right {
+  0% { opacity: 0; transform: translateX(-20px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+/* Safelist — 동적으로 생성되는 클래스 (스캐너가 감지 못함) */
+@source inline("
+  bg-highlight-bg border-highlight-border text-highlight
+  bg-correlation-strong-pos bg-correlation-medium-pos bg-correlation-weak
+  bg-correlation-medium-neg bg-correlation-strong-neg
+  bg-info-bg border-info-border text-info text-info-muted
+  text-blue-600 text-green-600 text-purple-600 text-orange-600
+  text-indigo-600 text-teal-600 text-rose-600
+  dark:text-blue-400 dark:text-green-400 dark:text-purple-400 dark:text-orange-400
+  dark:text-indigo-400 dark:text-teal-400 dark:text-rose-400
+  bg-blue-50 bg-green-50 bg-purple-50 bg-orange-50
+  bg-indigo-50 bg-teal-50 bg-rose-50
+  dark:bg-blue-950/30 dark:bg-green-950/30 dark:bg-purple-950/30 dark:bg-orange-950/30
+  dark:bg-indigo-950/30 dark:bg-teal-950/30 dark:bg-rose-950/30
+");
 
 :root {
   --radius: 0.5rem;
