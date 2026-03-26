@@ -204,12 +204,12 @@ export default function ConditionFactorTool({ tool, meta, initialEntry }: ToolCo
                     )
                   })}
                   {/* Mean/Median 참조선 */}
-                  <line x1={histData.meanX} y1={20} x2={histData.meanX} y2={250} stroke={BIO_CHART_COLORS[1]} strokeWidth="1.5" />
-                  <line x1={histData.medianX} y1={20} x2={histData.medianX} y2={250} stroke={BIO_CHART_COLORS[2]} strokeWidth="1.5" strokeDasharray="4 3" />
+                  <line x1={histData.meanX} y1={20} x2={histData.meanX} y2={250} stroke={BIO_CHART_COLORS[5]} strokeWidth="1.5" />
+                  <line x1={histData.medianX} y1={20} x2={histData.medianX} y2={250} stroke={BIO_CHART_COLORS[4]} strokeWidth="1.5" strokeDasharray="4 3" />
                   {/* 범례 */}
-                  <line x1={60} y1={32} x2={78} y2={32} stroke={BIO_CHART_COLORS[1]} strokeWidth="1.5" />
+                  <line x1={60} y1={32} x2={78} y2={32} stroke={BIO_CHART_COLORS[5]} strokeWidth="1.5" />
                   <text x={82} y={36} fontSize="9" fill="currentColor">Mean</text>
-                  <line x1={120} y1={32} x2={138} y2={32} stroke={BIO_CHART_COLORS[2]} strokeWidth="1.5" strokeDasharray="4 3" />
+                  <line x1={120} y1={32} x2={138} y2={32} stroke={BIO_CHART_COLORS[4]} strokeWidth="1.5" strokeDasharray="4 3" />
                   <text x={142} y={36} fontSize="9" fill="currentColor">Median</text>
                   {/* 축 라벨 */}
                   <text x="210" y="290" textAnchor="middle" fontSize="10" fill="currentColor" fillOpacity="0.6">Condition Factor (K)</text>

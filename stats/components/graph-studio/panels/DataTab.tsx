@@ -111,7 +111,7 @@ export function DataTab(): React.ReactElement {
                     type="button"
                     onClick={() => handleChartTypeChange(type)}
                     className={[
-                      'flex flex-col items-center gap-0.5 p-1.5 rounded-md border text-[10px] leading-tight transition-colors',
+                      'flex flex-col items-center gap-0.5 p-1.5 rounded-md border text-xs leading-tight transition-colors',
                       isActive
                         ? 'border-primary bg-primary/10 text-primary font-medium'
                         : 'border-border hover:bg-muted/50 text-muted-foreground hover:text-foreground',

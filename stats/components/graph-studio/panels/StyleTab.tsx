@@ -380,7 +380,7 @@ export function StyleTab(): React.ReactElement {
                 <button
                   key={i}
                   type="button"
-                  className="text-[9px] font-mono text-muted-foreground hover:text-foreground cursor-pointer select-all"
+                  className="text-xs font-mono text-muted-foreground hover:text-foreground cursor-pointer select-all"
                   title="클릭하여 복사"
                   onClick={() => {
                     void navigator.clipboard.writeText(color);

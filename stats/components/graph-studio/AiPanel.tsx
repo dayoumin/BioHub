@@ -184,7 +184,7 @@ function MessageBubble({ message }: { message: ChatMessage }): React.ReactElemen
         {message.patchSummary && message.patchSummary.length > 0 && (
           <div className="space-y-0.5">
             {message.patchSummary.map((item: PatchSummaryItem, idx: number) => (
-              <div key={`${item.path}-${idx}`} className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <div key={`${item.path}-${idx}`} className="flex items-center gap-1 text-xs text-muted-foreground">
                 <span className="font-medium">{item.label}</span>
                 <span className="text-muted-foreground/60">
                   {item.op === '제거' ? '제거됨' : `${item.op === '추가' ? '+' : '→'} ${item.value ?? ''}`}

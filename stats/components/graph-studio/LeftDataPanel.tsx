@@ -324,11 +324,11 @@ function VariableRow({ col, role, xField, yField, canAssignColor, canAssignFacet
           <Icon className={`h-3 w-3 shrink-0 ${cfg.color.split(' ')[0]}`} />
           <span className="truncate flex-1">{col.name}</span>
           {role && (
-            <span className="text-[10px] font-medium text-primary bg-primary/10 px-1 rounded shrink-0">
+            <span className="text-xs font-medium text-primary bg-primary/10 px-1 rounded shrink-0">
               {role}
             </span>
           )}
-          <span className={`text-[10px] px-1 rounded shrink-0 ${cfg.color}`}>
+          <span className={`text-xs px-1 rounded shrink-0 ${cfg.color}`}>
             {cfg.label}
           </span>
         </button>

@@ -7,6 +7,7 @@
 
 import type { EChartsOption } from 'echarts';
 import { JOURNAL_PALETTES } from '@/lib/graph-studio/chart-spec-defaults';
+import { resolveAxisColors } from './chart-color-resolver';
 
 /** 분석 차트 공통 색상 (OkabeIto — 색맹 안전) */
 export const STAT_COLORS: string[] = JOURNAL_PALETTES.OkabeIto;
@@ -26,17 +27,18 @@ export function statCategoryAxis(
   categories: string[],
   label?: string,
 ): Record<string, unknown> {
+  const ax = resolveAxisColors();
   return {
     type: 'category' as const,
     data: categories,
     name: label ?? '',
     nameLocation: 'middle',
     nameGap: 30,
-    axisLine: { lineStyle: { color: '#94a3b8' } },
+    axisLine: { lineStyle: { color: ax.axisLine } },
     axisTick: { alignWithLabel: true },
     axisLabel: {
       fontSize: 11,
-      color: '#64748b',
+      color: ax.axisLabel,
       rotate: categories.length > 6 ? 30 : 0,
     },
   };
@@ -44,25 +46,27 @@ export function statCategoryAxis(
 
 /** 수치 축 기본 설정 */
 export function statValueAxis(title?: string): Record<string, unknown> {
+  const ax = resolveAxisColors();
   return {
     type: 'value' as const,
     name: title ?? '',
     nameLocation: 'middle',
     nameGap: 45,
-    axisLine: { lineStyle: { color: '#94a3b8' } },
-    splitLine: { lineStyle: { color: '#e2e8f0', type: 'dashed' as const } },
-    axisLabel: { fontSize: 11, color: '#64748b' },
+    axisLine: { lineStyle: { color: ax.axisLine } },
+    splitLine: { lineStyle: { color: ax.splitLine, type: 'dashed' as const } },
+    axisLabel: { fontSize: 11, color: ax.axisLabel },
   };
 }
 
 /** 공통 tooltip 스타일 (overrides로 trigger/formatter 등 확장 가능) */
 export function statTooltip(overrides?: Record<string, unknown>): Record<string, unknown> {
+  const ax = resolveAxisColors();
   return {
     trigger: 'item',
-    backgroundColor: 'rgba(255,255,255,0.96)',
-    borderColor: '#e2e8f0',
+    backgroundColor: ax.tooltipBg,
+    borderColor: ax.tooltipBorder,
     borderWidth: 1,
-    textStyle: { color: '#334155', fontSize: 12 },
+    textStyle: { color: ax.tooltipText, fontSize: 12 },
     extraCssText: 'box-shadow: 0 2px 8px rgba(0,0,0,0.1);',
     ...overrides,
   };
@@ -74,7 +78,7 @@ export function errorBarSeries(
   opts?: { halfWidth?: number; stroke?: string; lineWidth?: number },
 ): Record<string, unknown> {
   const hw = opts?.halfWidth ?? 6;
-  const stroke = opts?.stroke ?? '#334155';
+  const stroke = opts?.stroke ?? resolveAxisColors().tooltipText;
   const lw = opts?.lineWidth ?? 2;
   return {
     type: 'custom',

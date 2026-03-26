@@ -175,6 +175,16 @@
   /* Purple */
   --chart-5: oklch(0.5 0.05 260);
   /* Grey Blue */
+  --chart-6: oklch(0.6 0.12 200);
+  /* Cyan */
+  --chart-7: oklch(0.55 0.22 15);
+  /* Rose */
+  --chart-8: oklch(0.6 0.16 130);
+  /* Lime */
+  --chart-9: oklch(0.65 0.16 70);
+  /* Amber */
+  --chart-10: oklch(0.5 0.22 290);
+  /* Violet */
 
   /* Sidebar - Light mode: soft neutral surface */
   --sidebar: oklch(0.97 0.003 260);
@@ -360,6 +370,16 @@
   /* Dark gray */
   --chart-5: oklch(0.15 0 0);
   /* Very dark gray */
+  --chart-6: oklch(0.7 0.12 200);
+  /* Cyan (chromatic for multi-series) */
+  --chart-7: oklch(0.7 0.18 15);
+  /* Rose */
+  --chart-8: oklch(0.7 0.14 130);
+  /* Lime */
+  --chart-9: oklch(0.75 0.14 70);
+  /* Amber */
+  --chart-10: oklch(0.65 0.18 290);
+  /* Violet */
   --sidebar: oklch(0.08 0.02 260);
   /* Very dark navy */
   --sidebar-foreground: oklch(0.95 0 0);

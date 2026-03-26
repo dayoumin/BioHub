@@ -166,7 +166,7 @@ export function AnnotationTab(): React.ReactElement | null {
                   key={i}
                   className="flex items-center gap-1.5 text-xs px-2 py-1 rounded bg-muted/40"
                 >
-                  <Badge variant="outline" className="text-[10px] px-1 py-0 shrink-0 font-mono">
+                  <Badge variant="outline" className="text-xs px-1 py-0 shrink-0 font-mono">
                     H
                   </Badge>
                   <span
@@ -177,7 +177,7 @@ export function AnnotationTab(): React.ReactElement | null {
                     {ann.text && <span className="text-muted-foreground ml-1">"{ann.text}"</span>}
                   </span>
                   {ann.strokeDash && (
-                    <span className="text-muted-foreground text-[10px]">- -</span>
+                    <span className="text-muted-foreground text-xs">- -</span>
                   )}
                   <button
                     onClick={() => deleteAnnotation(i)}
@@ -277,7 +277,7 @@ export function AnnotationTab(): React.ReactElement | null {
                   key={i}
                   className="flex items-center gap-1.5 text-xs px-2 py-1 rounded bg-muted/40"
                 >
-                  <Badge variant="outline" className="text-[10px] px-1 py-0 shrink-0 font-mono">
+                  <Badge variant="outline" className="text-xs px-1 py-0 shrink-0 font-mono">
                     V
                   </Badge>
                   <span
@@ -288,7 +288,7 @@ export function AnnotationTab(): React.ReactElement | null {
                     {ann.text && <span className="text-muted-foreground ml-1">"{ann.text}"</span>}
                   </span>
                   {ann.strokeDash && (
-                    <span className="text-muted-foreground text-[10px]">- -</span>
+                    <span className="text-muted-foreground text-xs">- -</span>
                   )}
                   <button
                     onClick={() => deleteAnnotation(i)}

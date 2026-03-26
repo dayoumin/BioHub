@@ -9,6 +9,7 @@ import { ChartBar, Table as TableIcon, Maximize2, Minimize2, Download, Info } fr
 import { cn } from "@/lib/utils"
 import { LazyReactECharts } from "@/lib/charts/LazyECharts"
 import { statBaseOption, statValueAxis, statTooltip, STAT_COLORS } from "@/lib/charts/echarts-stat-utils"
+import { resolveAxisColors, resolveSemanticColors } from "@/lib/charts/chart-color-resolver"
 import type { EChartsOption } from "echarts"
 
 interface HistogramProps {
@@ -139,7 +140,7 @@ export const Histogram = memo(function Histogram({
       barSeries.markLine = {
         silent: true,
         symbol: 'none',
-        lineStyle: { color: '#ef4444', type: 'dashed' as const, width: 1.5 },
+        lineStyle: { color: resolveSemanticColors().error, type: 'dashed' as const, width: 1.5 },
         data: [
           {
             name: '평균',
@@ -152,6 +153,7 @@ export const Histogram = memo(function Histogram({
       }
     }
 
+    const ax = resolveAxisColors()
     return {
       ...statBaseOption(),
       xAxis: {
@@ -160,11 +162,11 @@ export const Histogram = memo(function Histogram({
         name: xAxisLabel,
         nameLocation: 'middle',
         nameGap: 30,
-        axisLine: { lineStyle: { color: '#94a3b8' } },
+        axisLine: { lineStyle: { color: ax.axisLine } },
         axisTick: { alignWithLabel: true },
         axisLabel: {
           fontSize: 10,
-          color: '#64748b',
+          color: ax.axisLabel,
           rotate: categories.length > 8 ? 45 : 0,
         },
       },

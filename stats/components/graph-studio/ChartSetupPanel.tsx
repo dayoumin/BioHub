@@ -260,7 +260,7 @@ export function ChartSetupPanel(): React.ReactElement {
           </div>
           <div className="flex gap-1 flex-wrap">
             {columns.map(col => (
-              <span key={col.name} className="text-[10px] px-1.5 py-0.5 rounded bg-background border border-border text-muted-foreground">
+              <span key={col.name} className="text-xs px-1.5 py-0.5 rounded bg-background border border-border text-muted-foreground">
                 {col.name}
               </span>
             ))}
@@ -386,7 +386,7 @@ export function ChartSetupPanel(): React.ReactElement {
                 data-testid={`chart-setup-preset-${preset.key}`}
               >
                 <span className="font-medium">{preset.label}</span>
-                <span className={cn('text-[10px] leading-tight text-center', isActive ? 'text-primary/80' : 'text-muted-foreground')}>
+                <span className={cn('text-xs leading-tight text-center', isActive ? 'text-primary/80' : 'text-muted-foreground')}>
                   {preset.desc}
                 </span>
                 {isActive && <Check className="h-3 w-3 mt-0.5" />}
@@ -429,7 +429,7 @@ export function ChartSetupPanel(): React.ReactElement {
                     <X className="h-3 w-3" />
                   </span>
                   <span className="font-medium pr-4 truncate w-full">{tmpl.name}</span>
-                  <span className={cn('text-[10px] leading-tight', isActive ? 'text-primary/80' : 'text-muted-foreground')}>
+                  <span className={cn('text-xs leading-tight', isActive ? 'text-primary/80' : 'text-muted-foreground')}>
                     {tmpl.style.preset} · {fontInfo} · {dpiInfo}
                   </span>
                   {isActive && <Check className="h-3 w-3 mt-0.5" />}

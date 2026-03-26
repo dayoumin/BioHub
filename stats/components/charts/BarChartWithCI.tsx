@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils'
 import { ChartSkeleton } from './ChartSkeleton'
 import { LazyReactECharts } from '@/lib/charts/LazyECharts'
 import { statBaseOption, statCategoryAxis, statValueAxis, statTooltip, errorBarSeries, STAT_COLORS } from '@/lib/charts/echarts-stat-utils'
+import { resolveSemanticColors } from '@/lib/charts/chart-color-resolver'
 import type { EChartsOption } from 'echarts'
 
 interface BarChartData {
@@ -54,13 +55,16 @@ interface BarChartWithCIProps {
   onBarClick?: (data: BarChartData, index: number) => void
 }
 
-/** 기준선 대비 색상 결정 */
-function getBarColor(index: number, value: number, baseline: number, showBaseline: boolean, customColor?: string): string {
+/** 기준선 대비 색상 결정. sem은 호출자에서 1회 resolve하여 전달. */
+function getBarColor(
+  index: number, value: number, baseline: number, showBaseline: boolean,
+  sem: ReturnType<typeof resolveSemanticColors>, customColor?: string,
+): string {
   if (customColor) return customColor
   if (showBaseline) {
-    if (value > baseline) return '#10B981'
-    if (value < baseline) return '#EF4444'
-    return '#6B7280'
+    if (value > baseline) return sem.success
+    if (value < baseline) return sem.error
+    return sem.neutral
   }
   return STAT_COLORS[index % STAT_COLORS.length]
 }
@@ -101,7 +105,8 @@ export const BarChartWithCI = memo(function BarChartWithCI({
   const chartOption = useMemo((): EChartsOption => {
     const categories = data.map((d) => d.label || d.name)
     const values = data.map((d) => d.value)
-    const colors = data.map((d, i) => getBarColor(i, d.value, baseline, showBaseline, d.color))
+    const sem = resolveSemanticColors()
+    const colors = data.map((d, i) => getBarColor(i, d.value, baseline, showBaseline, sem, d.color))
 
     const series: NonNullable<EChartsOption['series']> = [
       {
@@ -172,7 +177,7 @@ export const BarChartWithCI = memo(function BarChartWithCI({
     firstSeries.markLine = {
       silent: true,
       symbol: 'none',
-      lineStyle: { color: '#64748b', type: 'solid' as const, width: 2 },
+      lineStyle: { color: resolveSemanticColors().neutral, type: 'solid' as const, width: 2 },
       data: [{ yAxis: baseline, label: { formatter: '기준선', position: 'end' as const } }],
     }
 
@@ -248,6 +253,7 @@ export const BarChartWithCI = memo(function BarChartWithCI({
   }
 
   const renderTable = () => {
+    const tableSem = resolveSemanticColors()
     return (
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -272,7 +278,7 @@ export const BarChartWithCI = memo(function BarChartWithCI({
           </thead>
           <tbody>
             {data.map((d, i) => {
-              const color = getBarColor(i, d.value, baseline, showBaseline, d.color)
+              const color = getBarColor(i, d.value, baseline, showBaseline, tableSem, d.color)
               const diff = d.value - baseline
               return (
                 <tr

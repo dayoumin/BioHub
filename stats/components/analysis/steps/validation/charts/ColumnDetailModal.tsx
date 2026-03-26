@@ -9,6 +9,7 @@ import { BarChart3, GitCommitHorizontal } from 'lucide-react'
 import { useTerminology } from '@/hooks/use-terminology'
 import { LazyReactECharts } from '@/lib/charts/LazyECharts'
 import { statBaseOption, statCategoryAxis, statValueAxis, statTooltip, STAT_COLORS } from '@/lib/charts/echarts-stat-utils'
+import { resolveAxisColors } from '@/lib/charts/chart-color-resolver'
 import type { EChartsOption } from 'echarts'
 
 interface ColumnDetailModalProps {
@@ -66,7 +67,7 @@ export const ColumnDetailModal = memo(function ColumnDetailModal({
 
     return {
       ...statBaseOption(),
-      xAxis: { ...statCategoryAxis(binLabels, column.name), axisLabel: { fontSize: 10, color: '#64748b', rotate: 45 } },
+      xAxis: { ...statCategoryAxis(binLabels, column.name), axisLabel: { fontSize: 10, color: resolveAxisColors().axisLabel, rotate: 45 } },
       yAxis: { ...statValueAxis(vs.axisLabels.frequency), name: vs.axisLabels.frequency },
       series: [{ type: 'bar', data: bins, itemStyle: { color: STAT_COLORS[1], borderColor: STAT_COLORS[1], borderWidth: 1 }, barWidth: '90%' }],
       tooltip: statTooltip({ trigger: 'axis', axisPointer: { type: 'shadow' } }),
@@ -117,7 +118,7 @@ export const ColumnDetailModal = memo(function ColumnDetailModal({
     return {
       ...statBaseOption(),
       grid: { left: 120, right: 20, top: 30, bottom: 50, containLabel: true },
-      yAxis: { type: 'category', data: categories, axisLabel: { fontSize: 11, color: '#64748b' } },
+      yAxis: { type: 'category', data: categories, axisLabel: { fontSize: 11, color: resolveAxisColors().axisLabel } },
       xAxis: { type: 'value', ...statValueAxis() },
       series: [{
         type: 'bar',

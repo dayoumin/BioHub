@@ -4,6 +4,7 @@ import { memo, useMemo } from 'react'
 import { useTerminology } from '@/hooks/use-terminology'
 import { LazyReactECharts } from '@/lib/charts/LazyECharts'
 import { statBaseOption, statTooltip } from '@/lib/charts/echarts-stat-utils'
+import { resolveAxisColors, resolveCssVar } from '@/lib/charts/chart-color-resolver'
 import type { EChartsOption } from 'echarts'
 
 interface CorrelationHeatmapProps {
@@ -29,19 +30,20 @@ export const CorrelationHeatmap = memo(function CorrelationHeatmap({
       })
     })
 
+    const ax = resolveAxisColors()
     return {
       ...statBaseOption(),
       grid: { left: 100, right: 60, top: 30, bottom: 80, containLabel: true },
       xAxis: {
         type: 'category',
         data: labels,
-        axisLabel: { fontSize: 10, color: '#64748b', rotate: 45 },
+        axisLabel: { fontSize: 10, color: ax.axisLabel, rotate: 45 },
         splitArea: { show: true },
       },
       yAxis: {
         type: 'category',
         data: labels,
-        axisLabel: { fontSize: 10, color: '#64748b' },
+        axisLabel: { fontSize: 10, color: ax.axisLabel },
         splitArea: { show: true },
       },
       visualMap: {
@@ -52,7 +54,11 @@ export const CorrelationHeatmap = memo(function CorrelationHeatmap({
         right: 0,
         top: 'center',
         inRange: {
-          color: ['#2563EB', '#FFFFFF', '#DC2626'],
+          color: [
+            resolveCssVar('--correlation-strong-pos', '#2563EB'),
+            resolveCssVar('--correlation-weak', '#FFFFFF'),
+            resolveCssVar('--correlation-strong-neg', '#DC2626'),
+          ],
         },
         textStyle: { fontSize: 11 },
       },

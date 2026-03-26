@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { LazyReactECharts } from "@/lib/charts/LazyECharts"
 import { statBaseOption, statValueAxis, statTooltip, STAT_COLORS } from "@/lib/charts/echarts-stat-utils"
+import { resolveChartPalette } from "@/lib/charts/chart-color-resolver"
 import type { EChartsOption } from "echarts"
 
 interface ScatterplotProps {
@@ -116,7 +117,7 @@ export const Scatterplot = memo(function Scatterplot({
         type: 'line',
         data: trendData,
         symbol: 'none',
-        lineStyle: { color: '#ff7300', width: 2, type: 'dashed' as const },
+        lineStyle: { color: resolveChartPalette(3)[2], width: 2, type: 'dashed' as const },
         tooltip: { show: false },
       } as Record<string, unknown>)
     }

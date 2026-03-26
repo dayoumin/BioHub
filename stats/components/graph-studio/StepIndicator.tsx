@@ -16,7 +16,7 @@ interface StepIndicatorProps {
 
 export function StepIndicator({ currentStep }: StepIndicatorProps): React.ReactElement {
   return (
-    <div className="flex items-center justify-center gap-1 text-[13px] text-muted-foreground">
+    <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
       {STEPS.map((step, i) => (
         <span key={step} className="flex items-center gap-1">
           {i > 0 && <ChevronRight className="h-3 w-3" />}
