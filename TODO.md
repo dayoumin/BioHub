@@ -120,7 +120,7 @@ These items should be the current focus.
 - ~~`[structure]` `ProjectEntityKind`에 `'bio-tool-result'` 추가 + `ENTITY_TAB_REGISTRY` Bio-Tools 탭~~ — 이미 구현됨 (타입, 탭 레지스트리, entity-resolver 모두 완성 상태)
 - ~~`[structure]` Bio-Tools 결과 내보내기~~ — 완료 (`BioResultsHeader`에 CSV 다운로드 + 클립보드 복사 버튼 추가, `bio-export-csv.ts` + `bio-export-tables.ts` 유틸리티, 15개 도구 전체 연결)
 - ~~`[structure]` `useBioToolAnalysis` 훅에 `projectId` opt-in~~ — 이미 구��됨 (activeProject 자동 연결, saveBioToolEntry에서 upsertProjectEntityRef 호출)
-- `[structure]` Bio-Tools 테스트 인프라 + 패턴 가이드 — 첫 도구 테스트 작성 시 확립
+- ~~`[structure]` Bio-Tools 테스트 인프라 + 패턴 가이드~~ — 완료 (기존 `parse-numeric-cell` + `fisheries-columns` + 신규 `bio-export-csv` 테스트 13개)
 
 ### 3-A. 통계 분석 (Analysis)
 
