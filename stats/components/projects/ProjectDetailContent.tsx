@@ -5,13 +5,11 @@ import { useRouter } from 'next/navigation'
 import { useResearchProjectStore } from '@/lib/stores/research-project-store'
 import { listProjectEntityRefs, removeProjectEntityRef } from '@/lib/research/project-storage'
 import { resolveEntities } from '@/lib/research/entity-resolver'
+import { loadEntityHistories } from '@/lib/research/entity-loader'
 import type { ResolvedEntity } from '@/lib/research/entity-resolver'
 import type { ProjectEntityRef } from '@/lib/types/research'
 import { ProjectHeader } from './ProjectHeader'
 import { EntityBrowser } from './EntityBrowser'
-import { getAllHistory } from '@/lib/utils/storage'
-import { listProjects as listGraphProjects } from '@/lib/graph-studio/project-storage'
-import { loadAnalysisHistory } from '@/lib/genetics/analysis-history'
 import { toast } from 'sonner'
 import { TOAST } from '@/lib/constants/toast-messages'
 
@@ -43,22 +41,8 @@ export function ProjectDetailContent({ projectId }: ProjectDetailContentProps): 
         return
       }
 
-      // 배치 로드: 각 저장소에서 한 번만 조회
-      const hasAnalysis = projectRefs.some(r => r.entityKind === 'analysis')
-      const hasFigure = projectRefs.some(r => r.entityKind === 'figure')
-      const hasBlast = projectRefs.some(r => r.entityKind === 'blast-result')
-
-      const [analysisHistory, graphProjects, blastHistory] = await Promise.all([
-        hasAnalysis ? getAllHistory() : Promise.resolve([]),
-        Promise.resolve(hasFigure ? listGraphProjects() : []),
-        Promise.resolve(hasBlast ? loadAnalysisHistory() : []),
-      ])
-
-      const resolved = resolveEntities(projectRefs, {
-        analysisHistory,
-        graphProjects,
-        blastHistory,
-      })
+      const options = await loadEntityHistories(projectRefs)
+      const resolved = resolveEntities(projectRefs, options)
 
       setEntities(resolved)
     } catch (error) {

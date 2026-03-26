@@ -17,6 +17,19 @@
 - **Bio-Tools = 통계 하위 간편 분석** (`/bio-tools/`). HW/Fst 등 집단 유전학 포함.
 - **유전적 분석 = 서열 분석** (`/genetics/`). Bio-Tools 유전학 도구 cross-link.
 
+## 프로젝트 Entity 확장 체크리스트
+
+새 `ProjectEntityKind`를 추가할 때:
+
+1. **타입**: `packages/types/src/project.ts` 유니온에 추가
+2. **분기**: `lib/research/entity-resolver.ts`에서 경로 선택 (누락 시 **컴파일 에러**)
+   - **Full support**: `EntityKindDescriptors` + `*Like` 인터페이스 + switch case + `entity-loader.ts` `ENTITY_LOADERS`
+   - **Generic-only**: `_GENERIC_ONLY_KINDS`에 등록 (다른 수정 불필요)
+3. **탭 메타**: `lib/research/entity-tab-registry.ts` (아이콘/라벨)
+4. **도메인 저장**: 저장 시 `upsertProjectEntityRef()`, 삭제 시 `removeProjectEntityRefs()`
+
+소비자(`ProjectDetailContent` 등)는 변경 불필요.
+
 ## 핵심 규칙 (CRITICAL)
 
 1. **변수 role 일치**: `variable-requirements.ts`의 `role`을 `types/statistics.ts`에 정확히 반영

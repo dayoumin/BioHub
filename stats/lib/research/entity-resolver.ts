@@ -7,11 +7,13 @@
  * 배치 최적화: analysis(IndexedDB), blast-result(localStorage)는
  * 전체 로드 후 Map 캐싱 → 개별 ref를 O(1) resolve. N+1 방지.
  *
- * 새 entityKind 추가 시 resolveEntities()의 switch에 case 추가.
+ * === 새 entityKind 추가 시 ===
+ * Full support: EntityKindDescriptors + switch case + entity-loader.ts ENTITY_LOADERS
+ * Generic-only: _GENERIC_ONLY_KINDS에 등록
+ * → 누락 시 컴파일 에러 발생
  */
 
 import type { ProjectEntityRef, ProjectEntityKind } from '@/lib/types/research'
-import { listProjectEntityRefs } from '@/lib/research/project-storage'
 import { getTabEntry } from '@/lib/research/entity-tab-registry'
 import { formatTimeAgo } from '@/lib/utils/format-time'
 
@@ -300,16 +302,57 @@ export interface BioToolEntryLike {
   createdAt: number
 }
 
-export interface ResolveOptions {
-  analysisHistory?: HistoryRecordLike[]
-  graphProjects?: GraphProjectLike[]
-  blastHistory?: BlastEntryLike[]
-  bioToolHistory?: BioToolEntryLike[]
+// ── Kind 분류 (컴파일 타임 안전망) ──
+
+/**
+ * 전용 resolver가 있는 kind → option key + 데이터 타입 매핑.
+ * full support 추가 시 여기에 엔트리 추가 → switch case + ENTITY_LOADERS도 추가.
+ */
+interface EntityKindDescriptors {
+  analysis: { optionKey: 'analysisHistory'; data: HistoryRecordLike }
+  figure: { optionKey: 'graphProjects'; data: GraphProjectLike }
+  'blast-result': { optionKey: 'blastHistory'; data: BlastEntryLike }
+  'bio-tool-result': { optionKey: 'bioToolHistory'; data: BioToolEntryLike }
+}
+
+export type SupportedEntityKind = keyof EntityKindDescriptors
+
+/**
+ * generic 표시만 하는 kind.
+ * ProjectEntityKind에 새 kind 추가 시 EntityKindDescriptors에 넣거나
+ * 이 record에 등록해야 컴파일 통과.
+ */
+type GenericOnlyEntityKind = Exclude<ProjectEntityKind, SupportedEntityKind>
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- compile-time exhaustiveness check
+const _GENERIC_ONLY_KINDS: Record<GenericOnlyEntityKind, true> = {
+  draft: true,
+  'chat-session': true,
+  'species-validation': true,
+  'legal-status': true,
+  'review-report': true,
+  'data-asset': true,
+  'sequence-data': true,
+}
+
+/** entity-loader.ts 전용. kind·optionKey·load 반환 타입을 묶는 discriminated union. */
+export type EntityLoaderEntry = {
+  [K in SupportedEntityKind]: {
+    kind: K
+    optionKey: EntityKindDescriptors[K]['optionKey']
+    load: () => Promise<EntityKindDescriptors[K]['data'][]> | EntityKindDescriptors[K]['data'][]
+  }
+}[SupportedEntityKind]
+
+export type ResolveOptions = {
+  [K in SupportedEntityKind as EntityKindDescriptors[K]['optionKey']]?: EntityKindDescriptors[K]['data'][]
 }
 
 /**
  * entity ref 배열을 배치 resolve.
- * 호출부에서 저장소 데이터를 미리 로드해서 options로 전달.
+ * 로딩은 entity-loader.ts의 loadEntityHistories()로 중앙 처리.
+ *
+ * 새 entityKind 추가 시: ResolveOptions 필드 + switch case + entity-loader.ts ENTITY_LOADERS
  */
 export function resolveEntities(
   refs: ProjectEntityRef[],
@@ -338,20 +381,13 @@ export function resolveEntities(
         return resolveBlast(ref, blastMap)
       case 'bio-tool-result':
         return resolveBioTool(ref, bioToolMap)
-      default:
+      default: {
+        // exhaustive check: SupportedEntityKind 누락 시 컴파일 에러
+        const _kind: GenericOnlyEntityKind = ref.entityKind
+        void _kind
         return makeGeneric(ref)
+      }
     }
   })
 }
 
-/**
- * 특정 프로젝트의 모든 entity를 resolve.
- * refs는 project-storage에서 로드.
- */
-export function resolveProjectEntities(
-  projectId: string,
-  options: ResolveOptions,
-): ResolvedEntity[] {
-  const refs = listProjectEntityRefs(projectId)
-  return resolveEntities(refs, options)
-}

@@ -150,7 +150,7 @@
   <div class="logo">
     <div class="name">🧬 BioHub</div>
     <div class="sub">Research Platform Dashboard</div>
-    <div class="sub" style="margin-top:6px;font-size:10px;color:#64748b;">Updated: 2026-03-01</div>
+    <div class="sub" style="margin-top:6px;font-size:10px;color:#64748b;">Updated: 2026-03-26</div>
   </div>
 
   <div class="nav-section">Overview</div>
@@ -164,6 +164,9 @@
   <div class="nav-section">시장 분석</div>
   <div class="nav-item" onclick="show('competition', event)"><span class="icon">⚔️</span> 경쟁사 비교</div>
   <div class="nav-item" onclick="show('korea', event)"><span class="icon">🇰🇷</span> 한국 시장 전략</div>
+
+  <div class="nav-section">아키텍처</div>
+  <div class="nav-item" onclick="show('entity', event)"><span class="icon">🔗</span> Entity 시스템</div>
 
   <div class="nav-section">기술</div>
   <div class="nav-item" onclick="show('tech', event)"><span class="icon">⚙️</span> 기술 스택</div>
@@ -858,6 +861,189 @@
       </div>
     </div>
   </div>
+</div>
+
+<!-- ─────── ENTITY SYSTEM ─────── -->
+<div id="entity" class="section">
+  <div class="page-title">Entity 시스템</div>
+  <div class="page-sub">프로젝트에 연결 가능한 산출물(entity) 관리 — 11종 정의, 4종 구현</div>
+
+  <!-- 요약 메트릭 -->
+  <div class="grid grid-4">
+    <div class="metric-card" style="--accent:var(--green);">
+      <div class="metric-icon">✅</div>
+      <div class="metric-label">구현 완료</div>
+      <div class="metric-val">4종</div>
+      <div class="metric-sub">analysis · figure · bio-tool · blast</div>
+    </div>
+    <div class="metric-card" style="--accent:var(--muted);">
+      <div class="metric-icon">📋</div>
+      <div class="metric-label">스텁 (탭만 정의)</div>
+      <div class="metric-val">7종</div>
+      <div class="metric-sub">chat · draft · species · legal 등</div>
+    </div>
+    <div class="metric-card" style="--accent:var(--amber);">
+      <div class="metric-icon">⚠️</div>
+      <div class="metric-label">알려진 갭</div>
+      <div class="metric-val">2건</div>
+      <div class="metric-sub">figure 삭제 ref · analysis deep-link</div>
+    </div>
+    <div class="metric-card" style="--accent:var(--blue);">
+      <div class="metric-icon">📂</div>
+      <div class="metric-label">확장 시 수정</div>
+      <div class="metric-val">3곳</div>
+      <div class="metric-sub">타입+탭 · resolver+loader · 저장함수</div>
+    </div>
+  </div>
+
+  <!-- 구현 현황 테이블 -->
+  <div class="sec-header mt24"><span class="sec-label">구현 완료 — 4종</span><span class="sec-line"></span></div>
+  <div class="card" style="padding:0;overflow:hidden;">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Kind</th>
+          <th>라벨</th>
+          <th>저장소</th>
+          <th>저장→연결</th>
+          <th>삭제→정리</th>
+          <th>Deep-link</th>
+          <th>비고</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>analysis</code></td>
+          <td>📈 통계 분석</td>
+          <td><span class="chip chip-purple">IndexedDB</span></td>
+          <td><span class="badge badge-green">✅</span></td>
+          <td><span class="badge badge-green">✅</span></td>
+          <td><span class="badge badge-amber">⚠️ 없음</span></td>
+          <td style="font-size:12px;color:var(--muted);">히스토리 사이드바 경유만</td>
+        </tr>
+        <tr class="row-warn">
+          <td><code>figure</code></td>
+          <td>📊 그래프</td>
+          <td><span class="chip chip-blue">localStorage</span></td>
+          <td><span class="badge badge-green">✅</span></td>
+          <td><span class="badge badge-red">❌ 미구현</span></td>
+          <td><span class="badge badge-green">✅ <code>?project=</code></span></td>
+          <td style="font-size:12px;color:var(--muted);">삭제 UI 없어 실질 영향 없음</td>
+        </tr>
+        <tr>
+          <td><code>bio-tool-result</code></td>
+          <td>🧪 Bio-Tools</td>
+          <td><span class="chip chip-blue">localStorage</span></td>
+          <td><span class="badge badge-green">✅</span></td>
+          <td><span class="badge badge-green">✅</span></td>
+          <td><span class="badge badge-green">✅ <code>?tool=&history=</code></span></td>
+          <td></td>
+        </tr>
+        <tr>
+          <td><code>blast-result</code></td>
+          <td>🧬 유전적 분석</td>
+          <td><span class="chip chip-blue">localStorage</span></td>
+          <td><span class="badge badge-green">✅</span></td>
+          <td><span class="badge badge-green">✅</span></td>
+          <td><span class="badge badge-green">✅ <code>?history=</code></span></td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 스텁 목록 -->
+  <div class="sec-header mt24"><span class="sec-label">스텁 — 7종 (탭 레지스트리만 정의)</span><span class="sec-line"></span></div>
+  <div class="card">
+    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+      <span class="chip">💬 chat-session</span>
+      <span class="chip">📄 draft</span>
+      <span class="chip">📝 species-validation</span>
+      <span class="chip">⚖️ legal-status</span>
+      <span class="chip">📋 review-report</span>
+      <span class="chip">📁 data-asset</span>
+      <span class="chip">🧪 sequence-data</span>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-top:10px;">
+      탭 UI만 정의됨 (defaultVisible: false). 저장/로더/리졸버/deep-link 모두 미구현.
+      <br>해당 기능 개발 시 CLAUDE.md "프로젝트 Entity 확장 체크리스트" 참조.
+    </div>
+  </div>
+
+  <!-- 아키텍처 -->
+  <div class="sec-header mt24"><span class="sec-label">아키텍처</span><span class="sec-line"></span></div>
+  <div class="grid grid-2">
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:12px;">데이터 흐름</div>
+      <div style="font-family:monospace;font-size:12px;line-height:2;color:var(--cyan);">
+        <div>① <span style="color:var(--text);">도메인 저장 함수</span> → upsertProjectEntityRef()</div>
+        <div style="padding-left:20px;color:var(--muted);">↓ localStorage (entity refs)</div>
+        <div>② <span style="color:var(--text);">entity-loader.ts</span> → ENTITY_LOADERS 레지스트리</div>
+        <div style="padding-left:20px;color:var(--muted);">↓ kind별 조건부 배치 로드 (Promise.all)</div>
+        <div>③ <span style="color:var(--text);">entity-resolver.ts</span> → Map 캐싱 + switch resolve</div>
+        <div style="padding-left:20px;color:var(--muted);">↓ ResolvedEntity[] (UI-ready)</div>
+        <div>④ <span style="color:var(--text);">ProjectDetailContent</span> → EntityBrowser 렌더링</div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-weight:700;margin-bottom:12px;">새 entityKind 추가 시 (3곳)</div>
+      <div style="font-size:13px;display:flex;flex-direction:column;gap:10px;">
+        <div>
+          <span class="badge badge-blue">1</span>
+          <span style="font-weight:600;margin-left:6px;">타입 + 탭</span>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">
+            <code>packages/types/src/project.ts</code> (유니온)<br>
+            <code>lib/research/entity-tab-registry.ts</code> (탭 메타)
+          </div>
+        </div>
+        <div>
+          <span class="badge badge-blue">2</span>
+          <span style="font-weight:600;margin-left:6px;">Resolver + Loader</span>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">
+            <code>entity-resolver.ts</code> — *Like 타입 + ResolveOptions + switch<br>
+            <code>entity-loader.ts</code> — ENTITY_LOADERS 배열에 1줄
+          </div>
+        </div>
+        <div>
+          <span class="badge badge-blue">3</span>
+          <span style="font-weight:600;margin-left:6px;">도메인 저장 함수</span>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">
+            저장 시 <code>upsertProjectEntityRef()</code><br>
+            삭제 시 <code>removeProjectEntityRefs()</code>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--green);margin-top:12px;font-weight:600;">
+        소비자(ProjectDetailContent 등)는 변경 불필요
+      </div>
+    </div>
+  </div>
+
+  <!-- 알려진 갭 -->
+  <div class="sec-header mt24"><span class="sec-label">알려진 갭</span><span class="sec-line"></span></div>
+  <div class="card" style="padding:0;overflow:hidden;">
+    <table class="tbl">
+      <thead>
+        <tr><th>Kind</th><th>문제</th><th>영향</th><th>조치 시점</th></tr>
+      </thead>
+      <tbody>
+        <tr class="row-warn">
+          <td><code>figure</code></td>
+          <td>삭제 시 <code>removeProjectEntityRef()</code> 호출 누락</td>
+          <td style="font-size:12px;color:var(--muted);">dangling ref 가능 — /projects에서 "삭제된 항목" 표시</td>
+          <td><span class="badge badge-gray">삭제 UI 추가 시</span></td>
+        </tr>
+        <tr class="row-warn">
+          <td><code>analysis</code></td>
+          <td>deep-link 미지원 — 프로젝트 상세→결과 직접 이동 불가</td>
+          <td style="font-size:12px;color:var(--muted);">SmartFlow 히스토리 사이드바 경유로만 복원</td>
+          <td><span class="badge badge-gray">UX 개선 시</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="font-size:11px;color:var(--muted);margin-top:16px;text-align:right;">Updated: 2026-03-26</div>
 </div>
 
 </main><!-- /main -->
