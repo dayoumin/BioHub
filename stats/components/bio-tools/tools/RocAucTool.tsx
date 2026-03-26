@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
+import { useTheme } from 'next-themes'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
 import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
@@ -17,6 +18,9 @@ import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildRocCurveColumns } from '@/lib/graph-studio/analysis-adapter'
+import { LazyReactECharts } from '@/lib/charts/LazyECharts'
+import { statBaseOption, statValueAxis, statTooltip } from '@/lib/charts/echarts-stat-utils'
+import { resolveAxisColors, resolveChartPalette } from '@/lib/charts/chart-color-resolver'
 import type { RocAucResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
@@ -28,6 +32,7 @@ function getAucInterpretation(auc: number): { label: string; style: React.CSSPro
 }
 
 export default function RocAucTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+  const { resolvedTheme } = useTheme()
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<RocAucResult>({ worker: PyodideWorker.Survival, initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
@@ -72,39 +77,66 @@ export default function RocAucTool({ tool, meta, initialEntry }: ToolComponentPr
     })
   }, [saveToHistory, tool, actualCol, predCol])
 
-  // ROC SVG 데이터: 1회 패스로 polygon, polyline, optimal point 계산
-  const rocSvg = useMemo(() => {
+  const chartOption = useMemo(() => {
     if (!results) return null
+    const palette = resolveChartPalette()
     const pts = results.rocPoints
-    const polygonParts: string[] = ['40,270']
-    const polylineParts: string[] = []
-    let bestJ = -1
-    let optX = 0
-    let optY = 0
-
-    for (let i = 0; i < pts.length; i++) {
-      const x = 40 + pts[i].fpr * 260
-      const y = 270 - pts[i].tpr * 260
-      const coord = `${x},${y}`
-      polygonParts.push(coord)
-      polylineParts.push(coord)
-
-      const j = pts[i].tpr - pts[i].fpr
-      if (j > bestJ) {
-        bestJ = j
-        optX = x
-        optY = y
-      }
+    let bestJ = -1, optFpr = 0, optTpr = 0
+    for (const p of pts) {
+      const j = p.tpr - p.fpr
+      if (j > bestJ) { bestJ = j; optFpr = p.fpr; optTpr = p.tpr }
     }
-    polygonParts.push('300,270')
-
+    const rocData = pts.map(p => [p.fpr, p.tpr])
+    const ax = resolveAxisColors()
     return {
-      polygon: polygonParts.join(' '),
-      polyline: polylineParts.join(' '),
-      optX,
-      optY,
-    }
-  }, [results])
+      ...statBaseOption(),
+      grid: { left: 60, right: 30, top: 30, bottom: 60, containLabel: true },
+      tooltip: statTooltip({
+        formatter: (p: unknown) => {
+          const params = p as { data: number[] }
+          return `FPR: ${params.data[0].toFixed(3)}<br/>TPR: ${params.data[1].toFixed(3)}`
+        },
+      }),
+      xAxis: { ...statValueAxis('False Positive Rate'), min: 0, max: 1 },
+      yAxis: { ...statValueAxis('True Positive Rate'), min: 0, max: 1 },
+      series: [
+        {
+          type: 'line',
+          data: [[0, 0], [1, 1]],
+          showSymbol: false,
+          lineStyle: { type: 'dashed', color: ax.splitLine, width: 1 },
+          silent: true,
+        },
+        {
+          type: 'line',
+          data: rocData,
+          showSymbol: false,
+          lineStyle: { width: 0 },
+          areaStyle: { color: palette[0], opacity: 0.06 },
+          silent: true,
+        },
+        {
+          type: 'line',
+          data: rocData,
+          showSymbol: false,
+          lineStyle: { color: palette[0], width: 2 },
+          itemStyle: { color: palette[0] },
+        },
+        {
+          type: 'scatter',
+          data: [[optFpr, optTpr]],
+          symbolSize: 8,
+          itemStyle: { color: palette[0], borderColor: ax.tooltipBg, borderWidth: 1.5 },
+        },
+      ],
+      graphic: [{
+        type: 'text',
+        right: 50,
+        bottom: 70,
+        style: { text: `AUC = ${formatNumber(results.auc)}`, fill: palette[0], fontSize: 14, fontWeight: 600 },
+      }],
+    } as Record<string, unknown>
+  }, [results, resolvedTheme])
 
   const aucInterp = results ? getAucInterpretation(results.auc) : null
 
@@ -183,72 +215,15 @@ export default function RocAucTool({ tool, meta, initialEntry }: ToolComponentPr
             </div>
           </div>
 
-          {/* ROC 곡선 (SVG) */}
-          <div>
-            <h3 className="text-sm font-semibold mb-2">ROC 곡선</h3>
-            <div className="border rounded-lg p-4 bg-card">
-              <svg viewBox="0 0 320 320" className="w-full max-w-md mx-auto">
-                {/* 배경 */}
-                <rect x="40" y="10" width="260" height="260" fill="none" stroke="currentColor" strokeOpacity="0.2" />
-
-                {/* 그리드 */}
-                {[0.2, 0.4, 0.6, 0.8].map(v => (
-                  <g key={v}>
-                    <line
-                      x1={40 + v * 260} y1={10} x2={40 + v * 260} y2={270}
-                      stroke="currentColor" strokeOpacity="0.08"
-                    />
-                    <line
-                      x1={40} y1={270 - v * 260} x2={300} y2={270 - v * 260}
-                      stroke="currentColor" strokeOpacity="0.08"
-                    />
-                  </g>
-                ))}
-
-                {/* 대각선 (chance line) */}
-                <line x1="40" y1="270" x2="300" y2="10" stroke="currentColor" strokeOpacity="0.2" strokeDasharray="4 4" />
-
-                {rocSvg && (
-                  <>
-                    {/* AUC 영역 */}
-                    <polygon points={rocSvg.polygon} fill="currentColor" fillOpacity="0.06" />
-
-                    {/* ROC 곡선 */}
-                    <polyline points={rocSvg.polyline} fill="none" stroke="var(--section-accent-bio)" strokeWidth="2" />
-
-                    {/* 최적 임계값 점 */}
-                    <circle cx={rocSvg.optX} cy={rocSvg.optY} r="4" fill="var(--section-accent-bio)" stroke="white" strokeWidth="1.5" />
-                  </>
-                )}
-
-                {/* 축 라벨 */}
-                {[0, 0.2, 0.4, 0.6, 0.8, 1.0].map(v => (
-                  <g key={v}>
-                    <text x={40 + v * 260} y="285" textAnchor="middle" fontSize="9" fill="currentColor" fillOpacity="0.5">
-                      {v.toFixed(1)}
-                    </text>
-                    <text x="35" y={274 - v * 260} textAnchor="end" fontSize="9" fill="currentColor" fillOpacity="0.5">
-                      {v.toFixed(1)}
-                    </text>
-                  </g>
-                ))}
-                <text x="170" y="302" textAnchor="middle" fontSize="10" fill="currentColor" fillOpacity="0.6">
-                  False Positive Rate (1 - Specificity)
-                </text>
-                <text
-                  x="12" y="140" textAnchor="middle" fontSize="10" fill="currentColor" fillOpacity="0.6"
-                  transform="rotate(-90, 12, 140)"
-                >
-                  True Positive Rate (Sensitivity)
-                </text>
-
-                {/* AUC 텍스트 */}
-                <text x="220" y="240" fontSize="12" fill="currentColor" fontWeight="600">
-                  AUC = {formatNumber(results.auc)}
-                </text>
-              </svg>
+          {/* ROC 곡선 */}
+          {chartOption && (
+            <div>
+              <h3 className="text-sm font-semibold mb-2">ROC 곡선</h3>
+              <div className="border rounded-lg bg-card max-w-md mx-auto">
+                <LazyReactECharts option={chartOption} style={{ height: 320 }} opts={{ renderer: 'svg' }} />
+              </div>
             </div>
-          </div>
+          )}
           <Button variant="outline" size="sm" onClick={handleOpenInGraphStudio}>
             <BarChart3 className="h-4 w-4 mr-1.5" />
             Graph Studio에서 열기

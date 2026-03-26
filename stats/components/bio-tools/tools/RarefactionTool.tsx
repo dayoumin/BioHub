@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useMemo } from 'react'
+import { useTheme } from 'next-themes'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
 import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
@@ -10,14 +11,17 @@ import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
-import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
+import { resolveAxisColors, resolveChartPalette } from '@/lib/charts/chart-color-resolver'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildRarefactionColumns } from '@/lib/graph-studio/analysis-adapter'
+import { LazyReactECharts } from '@/lib/charts/LazyECharts'
+import { statBaseOption, statValueAxis, statTooltip } from '@/lib/charts/echarts-stat-utils'
 import type { RarefactionResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
 export default function RarefactionTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+  const { resolvedTheme } = useTheme()
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<RarefactionResult>({ initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
@@ -46,13 +50,30 @@ export default function RarefactionTool({ tool, meta, initialEntry }: ToolCompon
     })
   }, [saveToHistory, tool, siteCol])
 
-  const { maxX, maxY } = useMemo(() => {
-    if (!results || results.curves.length === 0) return { maxX: 0, maxY: 0 }
+  const chartOption = useMemo(() => {
+    if (!results || results.curves.length === 0) return null
+    const palette = resolveChartPalette()
+    const ax = resolveAxisColors()
     return {
-      maxX: Math.max(...results.curves.flatMap((c) => c.steps)),
-      maxY: Math.max(...results.curves.flatMap((c) => c.expectedSpecies)),
-    }
-  }, [results])
+      ...statBaseOption(),
+      tooltip: statTooltip({ trigger: 'axis' }),
+      xAxis: statValueAxis('개체 수'),
+      yAxis: statValueAxis('기대 종 수'),
+      legend: {
+        show: results.curves.length > 1,
+        top: 0,
+        textStyle: { fontSize: 11, color: ax.axisLabel },
+      },
+      series: results.curves.map((curve, i) => ({
+        type: 'line',
+        name: curve.siteName,
+        data: curve.steps.map((s, j) => [s, curve.expectedSpecies[j]]),
+        showSymbol: false,
+        lineStyle: { width: 2 },
+        itemStyle: { color: palette[i % palette.length] },
+      })),
+    } as Record<string, unknown>
+  }, [results, resolvedTheme])
 
   return (
     <div className="space-y-6">
@@ -75,46 +96,13 @@ export default function RarefactionTool({ tool, meta, initialEntry }: ToolCompon
 
       <BioErrorBanner error={error} />
 
-      {results && results.curves.length > 0 && (
+      {results && chartOption && (
         <div ref={resultsRef} className="space-y-4">
           <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
           <h3 className="text-sm font-semibold">종 희박화 곡선</h3>
 
-          <div className="border rounded-lg p-4 bg-card">
-            <svg viewBox="0 0 500 300" className="w-full max-w-2xl">
-              <line x1="50" y1="250" x2="480" y2="250" stroke="currentColor" strokeOpacity={0.2} />
-              <line x1="50" y1="250" x2="50" y2="20" stroke="currentColor" strokeOpacity={0.2} />
-              <text x="265" y="290" textAnchor="middle" className="text-xs fill-muted-foreground" fontSize={11}>
-                개체 수
-              </text>
-              <text x="15" y="135" textAnchor="middle" className="text-xs fill-muted-foreground" fontSize={11}
-                transform="rotate(-90 15 135)">
-                기대 종 수
-              </text>
-
-              {results.curves.map((curve, ci) => {
-                if (curve.steps.length === 0) return null
-                const color = BIO_CHART_COLORS[ci % BIO_CHART_COLORS.length]
-                const points = curve.steps.map((s, i) => {
-                  const x = 50 + (s / maxX) * 430
-                  const y = 250 - (curve.expectedSpecies[i] / maxY) * 230
-                  return `${x},${y}`
-                }).join(' ')
-
-                return (
-                  <g key={curve.siteName}>
-                    <polyline points={points} fill="none" stroke={color} strokeWidth={2} />
-                    <text
-                      x={50 + (curve.steps[curve.steps.length - 1] / maxX) * 430 + 4}
-                      y={250 - (curve.expectedSpecies[curve.expectedSpecies.length - 1] / maxY) * 230}
-                      fontSize={9} fill={color}
-                    >
-                      {curve.siteName}
-                    </text>
-                  </g>
-                )
-              })}
-            </svg>
+          <div className="border rounded-lg bg-card max-w-2xl">
+            <LazyReactECharts option={chartOption} style={{ height: 300 }} opts={{ renderer: 'svg' }} />
           </div>
 
           <Button variant="outline" size="sm" onClick={handleOpenInGraphStudio}>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
+import { useTheme } from 'next-themes'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
 import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
@@ -11,12 +12,14 @@ import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { BIO_BADGE_CLASS, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
-import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
+import { resolveAxisColors, resolveChartPalette } from '@/lib/charts/chart-color-resolver'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildNmdsColumns } from '@/lib/graph-studio/analysis-adapter'
+import { LazyReactECharts } from '@/lib/charts/LazyECharts'
+import { statBaseOption, statValueAxis, statTooltip } from '@/lib/charts/echarts-stat-utils'
 import type { NmdsResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
@@ -35,6 +38,7 @@ const STRESS_LABELS: Record<string, string> = {
 }
 
 export default function NmdsTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+  const { resolvedTheme } = useTheme()
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runWithPreStep, saveToHistory, isSaved } =
     useBioToolAnalysis<NmdsResult>({ initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
@@ -87,19 +91,50 @@ export default function NmdsTool({ tool, meta, initialEntry }: ToolComponentProp
 
   const coords = results?.coordinates ?? []
 
-  const bounds = useMemo(() => {
-    if (coords.length === 0) return { minX: 0, maxX: 1, minY: 0, maxY: 1, rangeX: 1, rangeY: 1 }
-    const xs = coords.map((c) => c[0])
-    const ys = coords.map((c) => c[1])
-    const minX = Math.min(...xs), maxX = Math.max(...xs)
-    const minY = Math.min(...ys), maxY = Math.max(...ys)
-    return { minX, maxX, minY, maxY, rangeX: maxX - minX || 1, rangeY: maxY - minY || 1 }
-  }, [coords])
-
   const uniqueGroups = useMemo(
     () => (results?.groups ? [...new Set(results.groups)] : []),
     [results?.groups],
   )
+
+  const chartOption = useMemo(() => {
+    if (!results || coords.length === 0) return null
+    const palette = resolveChartPalette()
+    const ax = resolveAxisColors()
+    const groups = uniqueGroups.length > 0 ? uniqueGroups : ['all']
+    return {
+      ...statBaseOption(),
+      tooltip: statTooltip({
+        formatter: (p: unknown) => {
+          const params = p as { data: [number, number, string] }
+          return `${params.data[2]}<br/>NMDS1: ${params.data[0].toFixed(3)}<br/>NMDS2: ${params.data[1].toFixed(3)}`
+        },
+      }),
+      xAxis: statValueAxis('NMDS1'),
+      yAxis: statValueAxis('NMDS2'),
+      legend: {
+        show: groups.length > 1 && groups[0] !== 'all',
+        top: 0,
+        textStyle: { fontSize: 11, color: ax.axisLabel },
+      },
+      series: groups.map((groupName, gi) => ({
+        type: 'scatter',
+        name: groupName === 'all' ? undefined : groupName,
+        data: coords
+          .map((c, i) => ({ coord: c, idx: i }))
+          .filter(({ idx }) => !results.groups || results.groups[idx] === groupName)
+          .map(({ coord, idx }) => [coord[0], coord[1], results.siteLabels[idx]]),
+        symbolSize: 10,
+        itemStyle: { color: palette[gi % palette.length] },
+        label: {
+          show: true,
+          formatter: (p: unknown) => (p as { data: [number, number, string] }).data[2],
+          position: 'right',
+          fontSize: 9,
+          color: 'inherit',
+        },
+      })),
+    } as Record<string, unknown>
+  }, [results, coords, uniqueGroups, resolvedTheme])
 
   return (
     <div className="space-y-6">
@@ -137,52 +172,16 @@ export default function NmdsTool({ tool, meta, initialEntry }: ToolComponentProp
             </span>
           </div>
 
-          <div className="border rounded-lg p-4 bg-card">
-            <svg viewBox="0 0 500 400" className="w-full max-w-2xl">
-              <line x1="50" y1="350" x2="480" y2="350" stroke="currentColor" strokeOpacity={0.15} />
-              <line x1="50" y1="350" x2="50" y2="20" stroke="currentColor" strokeOpacity={0.15} />
-              <text x="265" y="385" textAnchor="middle" fontSize={11} className="fill-muted-foreground">NMDS1</text>
-              <text x="15" y="185" textAnchor="middle" fontSize={11} className="fill-muted-foreground"
-                transform="rotate(-90 15 185)">NMDS2</text>
-
-              {coords.map((c, i) => {
-                const sx = 60 + ((c[0] - bounds.minX) / bounds.rangeX) * 400
-                const sy = 340 - ((c[1] - bounds.minY) / bounds.rangeY) * 310
-                const groupIdx = results.groups
-                  ? uniqueGroups.indexOf(results.groups[i])
-                  : 0
-                const color = BIO_CHART_COLORS[groupIdx % BIO_CHART_COLORS.length]
-
-                return (
-                  <g key={i}>
-                    <circle cx={sx} cy={sy} r={5} fill={color} opacity={0.8} />
-                    <text x={sx + 7} y={sy + 3} fontSize={8} fill={color}>
-                      {results.siteLabels[i]}
-                    </text>
-                  </g>
-                )
-              })}
-            </svg>
-          </div>
+          {chartOption && (
+            <div className="border rounded-lg bg-card max-w-2xl">
+              <LazyReactECharts option={chartOption} style={{ height: 400 }} opts={{ renderer: 'svg' }} />
+            </div>
+          )}
 
           <Button variant="outline" size="sm" onClick={handleOpenInGraphStudio}>
             <BarChart3 className="h-4 w-4 mr-1.5" />
             Graph Studio에서 열기
           </Button>
-
-          {uniqueGroups.length > 0 && (
-            <div className="flex gap-4">
-              {uniqueGroups.map((g, i) => (
-                <div key={g} className="flex items-center gap-1.5 text-xs">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: BIO_CHART_COLORS[i % BIO_CHART_COLORS.length] }}
-                  />
-                  {g}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
     </div>

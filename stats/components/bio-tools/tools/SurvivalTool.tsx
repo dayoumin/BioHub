@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
+import { useTheme } from 'next-themes'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
 import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
@@ -9,7 +10,7 @@ import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { formatNumber, formatPValue } from '@/lib/statistics/formatters'
-import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
+import { resolveAxisColors, resolveChartPalette } from '@/lib/charts/chart-color-resolver'
 import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
@@ -18,10 +19,13 @@ import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildKmCurveColumns } from '@/lib/graph-studio/analysis-adapter'
+import { LazyReactECharts } from '@/lib/charts/LazyECharts'
+import { statBaseOption, statValueAxis, statTooltip } from '@/lib/charts/echarts-stat-utils'
 import type { SurvivalResult, KmCurve } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
 export default function SurvivalTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+  const { resolvedTheme } = useTheme()
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<SurvivalResult>({ worker: PyodideWorker.Survival, initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
@@ -70,17 +74,76 @@ export default function SurvivalTool({ tool, meta, initialEntry }: ToolComponent
     })
   }, [results, openInGraphStudio])
 
-  const { curveEntries, maxTime } = useMemo(() => {
-    if (!results) return { curveEntries: [] as [string, KmCurve][], maxTime: 0 }
-    const entries = Object.entries(results.curves)
-    let max = 0
-    for (const [, c] of entries) {
-      for (const t of c.time) {
-        if (t > max) max = t
+  const curveEntries = useMemo(
+    () => (results ? Object.entries(results.curves) : []) as [string, KmCurve][],
+    [results],
+  )
+
+  const chartOption = useMemo(() => {
+    if (!results || curveEntries.length === 0) return null
+    const palette = resolveChartPalette()
+    const ax = resolveAxisColors()
+
+    const series: Record<string, unknown>[] = []
+
+    for (let gi = 0; gi < curveEntries.length; gi++) {
+      const [groupName, curve] = curveEntries[gi]
+      const color = palette[gi % palette.length]
+
+      // CI lower bound (invisible stack base)
+      series.push({
+        type: 'line', step: 'end',
+        data: curve.time.map((t, i) => [t, curve.ciLo[i]]),
+        lineStyle: { opacity: 0 }, areaStyle: { opacity: 0 },
+        stack: `ci-${gi}`, symbol: 'none', silent: true,
+        tooltip: { show: false },
+      })
+      // CI band (upper - lower)
+      series.push({
+        type: 'line', step: 'end',
+        data: curve.time.map((t, i) => [t, curve.ciHi[i] - curve.ciLo[i]]),
+        lineStyle: { opacity: 0 }, areaStyle: { color, opacity: 0.1 },
+        stack: `ci-${gi}`, symbol: 'none', silent: true,
+        tooltip: { show: false },
+      })
+      // KM curve
+      series.push({
+        type: 'line', step: 'end', name: groupName,
+        data: curve.time.map((t, i) => [t, curve.survival[i]]),
+        showSymbol: false,
+        lineStyle: { color, width: 2 }, itemStyle: { color },
+      })
+      // Censoring markers
+      if (curve.censored.length > 0) {
+        const censorData = curve.censored.map(ct => {
+          let surv = 1.0
+          for (let i = 0; i < curve.time.length; i++) {
+            if (curve.time[i] <= ct) surv = curve.survival[i]
+            else break
+          }
+          return [ct, surv]
+        })
+        series.push({
+          type: 'scatter', data: censorData,
+          symbol: 'path://M-3,0L3,0M0,-3L0,3', symbolSize: 8,
+          itemStyle: { color }, silent: true,
+        })
       }
     }
-    return { curveEntries: entries, maxTime: max }
-  }, [results])
+
+    return {
+      ...statBaseOption(),
+      tooltip: statTooltip({ trigger: 'axis' }),
+      xAxis: statValueAxis('Time'),
+      yAxis: { ...statValueAxis('Survival Probability'), min: 0, max: 1 },
+      legend: {
+        show: curveEntries.length > 1,
+        top: 0,
+        textStyle: { fontSize: 11, color: ax.axisLabel },
+      },
+      series,
+    } as Record<string, unknown>
+  }, [results, curveEntries, resolvedTheme])
 
   return (
     <div className="space-y-6">
@@ -124,136 +187,15 @@ export default function SurvivalTool({ tool, meta, initialEntry }: ToolComponent
             </div>
           )}
 
-          {/* Kaplan-Meier 곡선 (SVG) */}
-          <div>
-            <h3 className="text-sm font-semibold mb-2">Kaplan-Meier 생존 곡선</h3>
-            <div className="border rounded-lg p-4 bg-card">
-              <svg viewBox="0 0 400 300" className="w-full max-w-lg mx-auto">
-                {/* 배경 */}
-                <rect x="50" y="10" width="320" height="240" fill="none" stroke="currentColor" strokeOpacity="0.2" />
-
-                {/* 그리드 */}
-                {[0.2, 0.4, 0.6, 0.8].map(v => (
-                  <g key={v}>
-                    <line
-                      x1={50} y1={250 - v * 240} x2={370} y2={250 - v * 240}
-                      stroke="currentColor" strokeOpacity="0.08"
-                    />
-                    <text x="45" y={254 - v * 240} textAnchor="end" fontSize="9" fill="currentColor" fillOpacity="0.5">
-                      {v.toFixed(1)}
-                    </text>
-                  </g>
-                ))}
-                <text x="45" y="14" textAnchor="end" fontSize="9" fill="currentColor" fillOpacity="0.5">1.0</text>
-                <text x="45" y="254" textAnchor="end" fontSize="9" fill="currentColor" fillOpacity="0.5">0.0</text>
-
-                {/* X축 눈금 */}
-                {maxTime > 0 && [0, 0.25, 0.5, 0.75, 1].map(frac => {
-                  const timeVal = Math.round(frac * maxTime)
-                  return (
-                    <text key={frac} x={50 + frac * 320} y="268" textAnchor="middle" fontSize="9" fill="currentColor" fillOpacity="0.5">
-                      {timeVal}
-                    </text>
-                  )
-                })}
-
-                {/* 곡선 */}
-                {curveEntries.map(([groupName, curve], gi) => {
-                  const color = BIO_CHART_COLORS[gi % BIO_CHART_COLORS.length]
-                  const toX = (t: number): number => 50 + (t / maxTime) * 320
-                  const toY = (s: number): number => 250 - s * 240
-
-                  // 계단 함수 포인트 생성
-                  const stepPoints: string[] = []
-                  for (let i = 0; i < curve.time.length; i++) {
-                    if (i === 0) {
-                      stepPoints.push(`${toX(curve.time[i])},${toY(curve.survival[i])}`)
-                    } else {
-                      // 수평선 → 수직선 (계단)
-                      stepPoints.push(`${toX(curve.time[i])},${toY(curve.survival[i - 1])}`)
-                      stepPoints.push(`${toX(curve.time[i])},${toY(curve.survival[i])}`)
-                    }
-                  }
-
-                  // CI 영역 (위쪽 + 아래쪽)
-                  const ciUpperPoints: string[] = []
-                  const ciLowerPoints: string[] = []
-                  for (let i = 0; i < curve.time.length; i++) {
-                    if (i > 0) {
-                      ciUpperPoints.push(`${toX(curve.time[i])},${toY(curve.ciHi[i - 1])}`)
-                      ciLowerPoints.push(`${toX(curve.time[i])},${toY(curve.ciLo[i - 1])}`)
-                    }
-                    ciUpperPoints.push(`${toX(curve.time[i])},${toY(curve.ciHi[i])}`)
-                    ciLowerPoints.push(`${toX(curve.time[i])},${toY(curve.ciLo[i])}`)
-                  }
-                  const ciPath = [...ciUpperPoints, ...ciLowerPoints.reverse()].join(' ')
-
-                  return (
-                    <g key={groupName}>
-                      {/* CI 밴드 */}
-                      <polygon points={ciPath} fill={color} fillOpacity="0.1" />
-                      {/* KM 곡선 */}
-                      <polyline
-                        points={stepPoints.join(' ')}
-                        fill="none"
-                        stroke={color}
-                        strokeWidth="2"
-                      />
-                      {/* 중도절단 마커 (+) */}
-                      {curve.censored.map((ct, ci) => {
-                        // 중도절단 시점의 생존율 찾기
-                        let survAtCensor = 1.0
-                        for (let i = 0; i < curve.time.length; i++) {
-                          if (curve.time[i] <= ct) survAtCensor = curve.survival[i]
-                          else break
-                        }
-                        return (
-                          <g key={`${groupName}-c-${ci}`}>
-                            <line
-                              x1={toX(ct) - 3} y1={toY(survAtCensor)}
-                              x2={toX(ct) + 3} y2={toY(survAtCensor)}
-                              stroke={color} strokeWidth="1.5"
-                            />
-                            <line
-                              x1={toX(ct)} y1={toY(survAtCensor) - 3}
-                              x2={toX(ct)} y2={toY(survAtCensor) + 3}
-                              stroke={color} strokeWidth="1.5"
-                            />
-                          </g>
-                        )
-                      })}
-                    </g>
-                  )
-                })}
-
-                {/* 범례 */}
-                {curveEntries.length > 1 && curveEntries.map(([groupName], gi) => (
-                  <g key={`legend-${groupName}`}>
-                    <line
-                      x1={60} y1={22 + gi * 16}
-                      x2={78} y2={22 + gi * 16}
-                      stroke={BIO_CHART_COLORS[gi % BIO_CHART_COLORS.length]}
-                      strokeWidth="2"
-                    />
-                    <text x={82} y={26 + gi * 16} fontSize="10" fill="currentColor">
-                      {groupName}
-                    </text>
-                  </g>
-                ))}
-
-                {/* 축 라벨 */}
-                <text x="210" y="290" textAnchor="middle" fontSize="10" fill="currentColor" fillOpacity="0.6">
-                  Time
-                </text>
-                <text
-                  x="15" y="130" textAnchor="middle" fontSize="10" fill="currentColor" fillOpacity="0.6"
-                  transform="rotate(-90, 15, 130)"
-                >
-                  Survival Probability
-                </text>
-              </svg>
+          {/* Kaplan-Meier 곡선 */}
+          {chartOption && (
+            <div>
+              <h3 className="text-sm font-semibold mb-2">Kaplan-Meier 생존 곡선</h3>
+              <div className="border rounded-lg bg-card max-w-lg mx-auto">
+                <LazyReactECharts option={chartOption} style={{ height: 300 }} opts={{ renderer: 'svg' }} />
+              </div>
             </div>
-          </div>
+          )}
 
           <Button variant="outline" size="sm" onClick={handleOpenInGraphStudio}>
             <BarChart3 className="h-4 w-4 mr-1.5" />

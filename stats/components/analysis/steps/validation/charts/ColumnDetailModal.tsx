@@ -1,6 +1,7 @@
 'use client'
 
 import { memo, useState, useMemo } from 'react'
+import { useTheme } from 'next-themes'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { FilterToggle } from '@/components/ui/filter-toggle'
 import { ColumnStatistics } from '@/types/analysis'
@@ -25,6 +26,7 @@ export const ColumnDetailModal = memo(function ColumnDetailModal({
   onOpenChange,
   data
 }: ColumnDetailModalProps) {
+  const { resolvedTheme } = useTheme()
   const t = useTerminology()
   const vs = t.validationSummary
   const [chartType, setChartType] = useState<'histogram' | 'boxplot'>('histogram')
@@ -72,7 +74,7 @@ export const ColumnDetailModal = memo(function ColumnDetailModal({
       series: [{ type: 'bar', data: bins, itemStyle: { color: STAT_COLORS[1], borderColor: STAT_COLORS[1], borderWidth: 1 }, barWidth: '90%' }],
       tooltip: statTooltip({ trigger: 'axis', axisPointer: { type: 'shadow' } }),
     }
-  }, [column, numericData, vs])
+  }, [column, numericData, vs, resolvedTheme])
 
   const boxplotOption = useMemo((): EChartsOption | null => {
     if (!column || numericData.length === 0) return null
@@ -107,7 +109,7 @@ export const ColumnDetailModal = memo(function ColumnDetailModal({
       ],
       tooltip: statTooltip(),
     }
-  }, [column, numericData])
+  }, [column, numericData, resolvedTheme])
 
   const barOption = useMemo((): EChartsOption | null => {
     if (!column || column.type !== 'categorical' || !column.topCategories) return null
@@ -129,7 +131,7 @@ export const ColumnDetailModal = memo(function ColumnDetailModal({
       }],
       tooltip: statTooltip({ trigger: 'axis', axisPointer: { type: 'shadow' } }),
     }
-  }, [column])
+  }, [column, resolvedTheme])
 
   if (!column) return null
 

@@ -169,6 +169,8 @@ These items should be the current focus.
 - `[quality]` `isQuotaExceededError()` 유틸 추출 — 현재 프로덕션 1곳만 사용. 2번째 저장소 구현 시 추출 (조사 완료 2026-03-25)
 - ~~`[perf]` `ensureUser` INSERT OR IGNORE 매 요청 실행~~ — 조사 완료: 이미 INSERT OR IGNORE로 최적화됨, 쓰기 요청만 호출 (2곳). 추가 최적화 불필요.
 - `[a11y]` 접근성 일괄 패스 — AiInterpretationCard expand 버튼 `aria-expanded` 누락, 서브컴포넌트 `prefersReducedMotion` 미적용. 이 컴포넌트만 수정하면 전체 수준과 불일치 → 전체 감사 후 일괄 적용
+- ~~`[perf]` ECharts 테마 전환 시 차트 색 미갱신~~ — 완료. 12개 파일에 `useTheme()` + `resolvedTheme` useMemo 의존성 일괄 적용 (Bio-Tools 7 + 분석 차트 5)
+- ~~`[quality]` Bio-Tools 차트 팔레트 CSS 토큰화~~ — 완료. 7개 Bio-Tools에서 `BIO_CHART_COLORS` → `resolveChartPalette()` 런타임 해석으로 전환 (ConditionFactorTool의 Graph Studio 내보내기용 useCallback만 static 유지)
 - `[analysis]` intent-router 0.6 임계값 검증 — "추천" 단독 입력(0.65)이 LLM을 생략. 사용 로그 수집 후 데이터 기반 재검토 필요. 현재는 latency 우선으로 유지
 
 ### 3-E. Bio-Tools 확장
@@ -196,8 +198,7 @@ These items should be the current focus.
 - ~~`[bio]` Worker 9 계산 정확성 골든 테스트~~ — 완료 (HW 8케이스 + Fst 7케이스, JSON + Vitest 스키마 + Pyodide 러너 확장)
 - ~~`[bio]` Worker 9 골든 테스트 확장~~ — 완료 (HW exactPValue 4케이스 + Fst v2 genotype 4케이스 + v2 에러 2케이스, 65 passed)
 - ~~`[bio]` v1/v2 global Fst 계산 차이 문서화~~ — 완료 (PLAN-GENETICS-V2.md에 비교 섹션 추가: 공식 차이, 수치 예시, UI 표시, 향후 고려)
-- `[bio]` SVG 차트 보일러플레이트 공통 추출 — 7개 Bio-Tools 차트가 동일 레이아웃 상수(viewBox 400x300, margin 50/20, plot 320x230) 반복. `BioSvgChartFrame` 컴포넌트 또는 상수 추출
-- `[bio]` 대용량 scatter 포인트 제한 — VBGF/Length-Weight에서 10K+ 행 시 SVG circle 과다. 샘플링 또는 Canvas 전환
+- `[bio]` 대용량 scatter 포인트 제한 — VBGF/Length-Weight에서 10K+ 행 시 성능 저하 가능. ECharts `large: true` + `largeThreshold` 설정 검토 (ECharts 전환 완료됨)
 
 ### 3-F. 기타 (genetics, infra, domain, paper)
 
@@ -232,7 +233,8 @@ These are valid directions, but not current execution priorities.
 - `[ux]` Bio-Tools 컬럼 Combobox — `pnpm add cmdk` + `command.tsx` 생성 → 컬럼 select를 검색 가능 Combobox로 업그레이드 (Phase 3에서 Select로 통일 후 후속)
 - `[ux]` Command Palette (Cmd+K) — 43개 분석 메서드 + 16개 Bio 도구 + Graph Studio 빠른 접근. 검색·탐색 UX 대폭 향상.
 - `[ux]` 키보드 단축키 — `Ctrl+Enter` 분석 실행, `Escape` 뒤로, `Ctrl+S` 저장/내보내기
-- `[ux]` Bio-Tools 결과 내보내기 — 현재 0개. 최소 "테이블 복사" / "CSV 다운로드" 버튼
+- ~~`[ux]` Bio-Tools 결과 내보내기~~ — 완료 (Phase 3-0에서 테이블 복사/CSV 다운로드 구현)
+- ~~`[bio]` Bio-Tools 차트 ECharts 전환~~ — 완료 (7개 SVG → ECharts 통일. MetaAnalysis forest plot은 CSS div 기반이라 제외. 대용량 scatter는 별도 `large: true` 검토 필요)
 - `[ux]` Bio-Tools 샘플 데이터 — Graph Studio처럼 "샘플로 시작" 옵션 (신규 사용자 마찰 감소)
 - `[ux]` Bio-Tools data-testid + aria-label 추가 — E2E 테스트 + 접근성 보강
 - `[ux]` 콘텐츠 밀도 검토 — `py-8 space-y-6`이 전문 도구에 느슨할 수 있음. `py-6 space-y-4` 비교 테스트

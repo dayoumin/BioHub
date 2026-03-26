@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, memo } from "react"
+import { useTheme } from "next-themes"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { LazyReactECharts } from "@/lib/charts/LazyECharts"
@@ -65,6 +66,7 @@ export const Scatterplot = memo(function Scatterplot({
   correlationCoefficient,
   pValue
 }: ScatterplotProps) {
+  const { resolvedTheme } = useTheme()
   const dotColor = color ?? STAT_COLORS[0]
 
   const { trendLine, xExtent, meanX, meanY } = useMemo(() => {
@@ -140,7 +142,7 @@ export const Scatterplot = memo(function Scatterplot({
         feature: { saveAsImage: { title: 'PNG 저장', pixelRatio: 2 } },
       },
     }
-  }, [data, dotColor, showTrendLine, trendLine, xExtent, xAxisLabel, yAxisLabel])
+  }, [data, dotColor, showTrendLine, trendLine, xExtent, xAxisLabel, yAxisLabel, resolvedTheme])
 
   if (data.length === 0) {
     return (

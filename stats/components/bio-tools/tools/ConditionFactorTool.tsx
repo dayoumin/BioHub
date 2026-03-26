@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
+import { useTheme } from 'next-themes'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
 import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
@@ -19,11 +20,15 @@ import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildConditionFactorColumns } from '@/lib/graph-studio/analysis-adapter'
+import { LazyReactECharts } from '@/lib/charts/LazyECharts'
+import { statBaseOption, statCategoryAxis, statValueAxis, statTooltip } from '@/lib/charts/echarts-stat-utils'
+import { resolveChartPalette } from '@/lib/charts/chart-color-resolver'
 import type { VLineAnnotation } from '@/types/graph-studio'
 import type { ToolComponentProps } from './types'
 import type { ConditionFactorResult } from '@/types/bio-tools-results'
 
 export default function ConditionFactorTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+  const { resolvedTheme } = useTheme()
   const [lengthCol, setLengthCol] = useState<string>('')
   const [weightCol, setWeightCol] = useState<string>('')
   const [groupCol, setGroupCol] = useState<string>('')
@@ -91,12 +96,47 @@ export default function ConditionFactorTool({ tool, meta, initialEntry }: ToolCo
       bins[idx]++
     }
     const maxCount = Math.max(...bins)
-    // 참조선 SVG X좌표 (IIFE 제거)
-    const range = kMax - kMin || 1
-    const meanX = 50 + ((results.mean - kMin) / range) * 320
-    const medianX = 50 + ((results.median - kMin) / range) * 320
-    return { kMin, kMax, nBins, binWidth, bins, maxCount, meanX, medianX }
+    return { kMin, kMax, nBins, binWidth, bins, maxCount }
   }, [results])
+
+  const chartOption = useMemo(() => {
+    if (!histData || !results) return null
+    const palette = resolveChartPalette()
+    const binLabels = histData.bins.map((_, i) => {
+      const lo = histData.kMin + i * histData.binWidth
+      return lo.toFixed(2)
+    })
+    const meanIdx = (results.mean - histData.kMin) / histData.binWidth - 0.5
+    const medianIdx = (results.median - histData.kMin) / histData.binWidth - 0.5
+    return {
+      ...statBaseOption(),
+      tooltip: statTooltip({
+        trigger: 'axis',
+        formatter: (params: unknown) => {
+          const p = (params as Array<{ dataIndex: number; value: number }>)[0]
+          const lo = histData.kMin + p.dataIndex * histData.binWidth
+          const hi = lo + histData.binWidth
+          return `${lo.toFixed(3)} – ${hi.toFixed(3)}<br/>빈도: ${p.value}`
+        },
+      }),
+      xAxis: { ...statCategoryAxis(binLabels, 'Condition Factor (K)'), nameGap: 35 },
+      yAxis: statValueAxis('Frequency'),
+      series: [{
+        type: 'bar',
+        data: histData.bins,
+        itemStyle: { color: palette[0], opacity: 0.6, borderColor: palette[0], borderWidth: 0.5 },
+        barCategoryGap: '5%',
+        markLine: {
+          symbol: 'none',
+          label: { position: 'end', fontSize: 10 },
+          data: [
+            { name: 'Mean', xAxis: meanIdx, lineStyle: { color: palette[5], width: 1.5 }, label: { formatter: 'Mean' } },
+            { name: 'Median', xAxis: medianIdx, lineStyle: { color: palette[4], width: 1.5, type: 'dashed' }, label: { formatter: 'Median' } },
+          ],
+        },
+      }],
+    } as Record<string, unknown>
+  }, [histData, results, resolvedTheme])
 
   const handleSave = useCallback(() => {
     saveToHistory({
@@ -159,62 +199,11 @@ export default function ConditionFactorTool({ tool, meta, initialEntry }: ToolCo
             </div>
           </div>
 
-          {histData && (
+          {chartOption && (
             <div>
               <h3 className="text-sm font-semibold mb-2">K 분포</h3>
-              <div className="border rounded-lg p-4 bg-card">
-                <svg viewBox="0 0 400 300" className="w-full max-w-lg mx-auto">
-                  {/* 배경 */}
-                  <rect x="50" y="20" width="320" height="230" fill="none" stroke="currentColor" strokeOpacity="0.2" />
-                  {/* Y축 눈금 */}
-                  {[0.25, 0.5, 0.75, 1].map(frac => (
-                    <g key={frac}>
-                      <line x1={50} y1={250 - frac * 230} x2={370} y2={250 - frac * 230} stroke="currentColor" strokeOpacity="0.08" />
-                      <text x="45" y={254 - frac * 230} textAnchor="end" fontSize="9" fill="currentColor" fillOpacity="0.5">
-                        {Math.round(histData.maxCount * frac)}
-                      </text>
-                    </g>
-                  ))}
-                  <text x="45" y="254" textAnchor="end" fontSize="9" fill="currentColor" fillOpacity="0.5">0</text>
-                  {/* X축 눈금 */}
-                  {[0, 0.25, 0.5, 0.75, 1].map(frac => {
-                    const val = histData.kMin + (histData.kMax - histData.kMin) * frac
-                    return (
-                      <text key={frac} x={50 + frac * 320} y="268" textAnchor="middle" fontSize="9" fill="currentColor" fillOpacity="0.5">
-                        {val.toFixed(2)}
-                      </text>
-                    )
-                  })}
-                  {/* 히스토그램 막대 */}
-                  {histData.bins.map((count, i) => {
-                    const barW = 320 / histData.nBins
-                    const barH = histData.maxCount > 0 ? (count / histData.maxCount) * 230 : 0
-                    return (
-                      <rect
-                        key={i}
-                        x={50 + i * barW + 1}
-                        y={250 - barH}
-                        width={Math.max(barW - 2, 1)}
-                        height={barH}
-                        fill={BIO_CHART_COLORS[0]}
-                        fillOpacity="0.6"
-                        stroke={BIO_CHART_COLORS[0]}
-                        strokeWidth="0.5"
-                      />
-                    )
-                  })}
-                  {/* Mean/Median 참조선 */}
-                  <line x1={histData.meanX} y1={20} x2={histData.meanX} y2={250} stroke={BIO_CHART_COLORS[5]} strokeWidth="1.5" />
-                  <line x1={histData.medianX} y1={20} x2={histData.medianX} y2={250} stroke={BIO_CHART_COLORS[4]} strokeWidth="1.5" strokeDasharray="4 3" />
-                  {/* 범례 */}
-                  <line x1={60} y1={32} x2={78} y2={32} stroke={BIO_CHART_COLORS[5]} strokeWidth="1.5" />
-                  <text x={82} y={36} fontSize="9" fill="currentColor">Mean</text>
-                  <line x1={120} y1={32} x2={138} y2={32} stroke={BIO_CHART_COLORS[4]} strokeWidth="1.5" strokeDasharray="4 3" />
-                  <text x={142} y={36} fontSize="9" fill="currentColor">Median</text>
-                  {/* 축 라벨 */}
-                  <text x="210" y="290" textAnchor="middle" fontSize="10" fill="currentColor" fillOpacity="0.6">Condition Factor (K)</text>
-                  <text x="15" y="135" textAnchor="middle" fontSize="10" fill="currentColor" fillOpacity="0.6" transform="rotate(-90, 15, 135)">Frequency</text>
-                </svg>
+              <div className="border rounded-lg bg-card max-w-lg mx-auto">
+                <LazyReactECharts option={chartOption} style={{ height: 300 }} opts={{ renderer: 'svg' }} />
               </div>
             </div>
           )}

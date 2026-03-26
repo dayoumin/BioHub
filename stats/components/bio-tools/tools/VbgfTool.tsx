@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
+import { useTheme } from 'next-themes'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
 import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
@@ -9,7 +10,7 @@ import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
-import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
+import { resolveChartPalette } from '@/lib/charts/chart-color-resolver'
 import { detectAgeColumn, detectLengthColumn } from '@/lib/bio-tools/fisheries-columns'
 import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
@@ -18,11 +19,14 @@ import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildVbgfColumns } from '@/lib/graph-studio/analysis-adapter'
+import { LazyReactECharts } from '@/lib/charts/LazyECharts'
+import { statBaseOption, statValueAxis, statTooltip } from '@/lib/charts/echarts-stat-utils'
 import type { ToolComponentProps } from './types'
 
 import type { VbgfResult } from '@/types/bio-tools-results'
 
 export default function VbgfTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+  const { resolvedTheme } = useTheme()
   const [ageCol, setAgeCol] = useState<string>('')
   const [lengthCol, setLengthCol] = useState<string>('')
   // 분석 시점의 컬럼 스냅샷 (stale scatter 방지)
@@ -86,6 +90,33 @@ export default function VbgfTool({ tool, meta, initialEntry }: ToolComponentProp
     const yMax = Math.max(lengthMax, curveMax, 0.1) * 1.1
     return { points, ageMin, ageMax, yMax, curvePoints }
   }, [results, csvData, analyzedCols])
+
+  const chartOption = useMemo(() => {
+    if (!chartData) return null
+    const palette = resolveChartPalette()
+    return {
+      ...statBaseOption(),
+      tooltip: statTooltip(),
+      xAxis: { ...statValueAxis('Age'), min: chartData.ageMin, max: chartData.ageMax },
+      yAxis: { ...statValueAxis('Length'), max: chartData.yMax },
+      series: [
+        {
+          type: 'scatter',
+          data: chartData.points.map(p => [p.age, p.length]),
+          symbolSize: 6,
+          itemStyle: { color: palette[0], opacity: 0.3 },
+        },
+        {
+          type: 'line',
+          data: chartData.curvePoints.map(p => [p.t, p.l]),
+          smooth: true,
+          showSymbol: false,
+          lineStyle: { color: palette[0], width: 2 },
+          itemStyle: { color: palette[0] },
+        },
+      ],
+    } as Record<string, unknown>
+  }, [chartData, resolvedTheme])
 
   const handleOpenInGraphStudio = useCallback(() => {
     if (!results || !chartData) return
@@ -164,56 +195,11 @@ export default function VbgfTool({ tool, meta, initialEntry }: ToolComponentProp
             </div>
           </div>
 
-          {chartData && (
+          {chartOption && (
             <div>
               <h3 className="text-sm font-semibold mb-2">성장곡선</h3>
-              <div className="border rounded-lg p-4 bg-card">
-                <svg viewBox="0 0 400 300" className="w-full max-w-lg mx-auto">
-                  {/* 배경 */}
-                  <rect x="50" y="20" width="320" height="230" fill="none" stroke="currentColor" strokeOpacity="0.2" />
-                  {/* Y축 그리드 */}
-                  {[0.2, 0.4, 0.6, 0.8].map(frac => (
-                    <g key={frac}>
-                      <line x1={50} y1={250 - frac * 230} x2={370} y2={250 - frac * 230} stroke="currentColor" strokeOpacity="0.08" />
-                      <text x="45" y={254 - frac * 230} textAnchor="end" fontSize="9" fill="currentColor" fillOpacity="0.5">
-                        {(chartData.yMax * frac).toFixed(0)}
-                      </text>
-                    </g>
-                  ))}
-                  <text x="45" y="24" textAnchor="end" fontSize="9" fill="currentColor" fillOpacity="0.5">
-                    {chartData.yMax.toFixed(0)}
-                  </text>
-                  <text x="45" y="254" textAnchor="end" fontSize="9" fill="currentColor" fillOpacity="0.5">0</text>
-                  {/* X축 눈금 */}
-                  {[0, 0.25, 0.5, 0.75, 1].map(frac => {
-                    const val = chartData.ageMin + (chartData.ageMax - chartData.ageMin) * frac
-                    return (
-                      <text key={frac} x={50 + frac * 320} y="268" textAnchor="middle" fontSize="9" fill="currentColor" fillOpacity="0.5">
-                        {val.toFixed(1)}
-                      </text>
-                    )
-                  })}
-                  {/* 산점도 (관측값) */}
-                  {chartData.points.map((p, i) => {
-                    const x = 50 + ((p.age - chartData.ageMin) / (chartData.ageMax - chartData.ageMin || 1)) * 320
-                    const y = 250 - (p.length / chartData.yMax) * 230
-                    return <circle key={i} cx={x} cy={y} r="3" fill="currentColor" fillOpacity="0.3" />
-                  })}
-                  {/* 적합곡선 */}
-                  <polyline
-                    points={chartData.curvePoints.map(p => {
-                      const x = 50 + ((p.t - chartData.ageMin) / (chartData.ageMax - chartData.ageMin || 1)) * 320
-                      const y = 250 - (p.l / chartData.yMax) * 230
-                      return `${x},${y}`
-                    }).join(' ')}
-                    fill="none"
-                    stroke={BIO_CHART_COLORS[0]}
-                    strokeWidth="2"
-                  />
-                  {/* 축 라벨 */}
-                  <text x="210" y="290" textAnchor="middle" fontSize="10" fill="currentColor" fillOpacity="0.6">Age</text>
-                  <text x="15" y="135" textAnchor="middle" fontSize="10" fill="currentColor" fillOpacity="0.6" transform="rotate(-90, 15, 135)">Length</text>
-                </svg>
+              <div className="border rounded-lg bg-card max-w-lg mx-auto">
+                <LazyReactECharts option={chartOption} style={{ height: 300 }} opts={{ renderer: 'svg' }} />
               </div>
             </div>
           )}

@@ -1,6 +1,7 @@
 'use client'
 
 import { memo, useMemo } from 'react'
+import { useTheme } from 'next-themes'
 import { useTerminology } from '@/hooks/use-terminology'
 import { LazyReactECharts } from '@/lib/charts/LazyECharts'
 import { statBaseOption, statTooltip } from '@/lib/charts/echarts-stat-utils'
@@ -18,6 +19,7 @@ export const CorrelationHeatmap = memo(function CorrelationHeatmap({
   labels,
   height = 400
 }: CorrelationHeatmapProps) {
+  const { resolvedTheme } = useTheme()
   const t = useTerminology()
   const vs = t.validationSummary
 
@@ -85,7 +87,7 @@ export const CorrelationHeatmap = memo(function CorrelationHeatmap({
         },
       }),
     }
-  }, [matrix, labels])
+  }, [matrix, labels, resolvedTheme])
 
   return (
     <LazyReactECharts option={option} style={{ height }} opts={{ renderer: 'svg' }} />

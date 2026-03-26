@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
+import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
@@ -11,7 +12,7 @@ import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
-import { BIO_CHART_COLORS } from '@/lib/bio-tools/bio-chart-colors'
+import { resolveChartPalette } from '@/lib/charts/chart-color-resolver'
 import { detectLengthColumn, detectWeightColumn } from '@/lib/bio-tools/fisheries-columns'
 import { cn } from '@/lib/utils'
 import { ArrowRight, BarChart3, Loader2 } from 'lucide-react'
@@ -20,6 +21,8 @@ import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildLengthWeightColumns } from '@/lib/graph-studio/analysis-adapter'
+import { LazyReactECharts } from '@/lib/charts/LazyECharts'
+import { statBaseOption, statValueAxis, statTooltip } from '@/lib/charts/echarts-stat-utils'
 import type { ToolComponentProps } from './types'
 import type { LengthWeightResult } from '@/types/bio-tools-results'
 
@@ -30,6 +33,7 @@ const GROWTH_TYPE_LABELS: Record<string, { ko: string; en: string }> = {
 }
 
 export default function LengthWeightTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+  const { resolvedTheme } = useTheme()
   const [lengthCol, setLengthCol] = useState<string>('')
   const [weightCol, setWeightCol] = useState<string>('')
 
@@ -89,12 +93,44 @@ export default function LengthWeightTool({ tool, meta, initialEntry }: ToolCompo
     const regY2 = results.logA + results.b * xMax
     const yMin = Math.min(logWMin, regY1, regY2) - yRange * pad
     const yMax = Math.max(logWMax, regY1, regY2) + yRange * pad
-    // 회귀선 SVG 좌표 (IIFE 제거)
-    const totalYRange = yMax - yMin || 1
-    const regLineY1 = 250 - ((regY1 - yMin) / totalYRange) * 230
-    const regLineY2 = 250 - ((regY2 - yMin) / totalYRange) * 230
-    return { pts, xMin, xMax, yMin, yMax, regLineY1, regLineY2 }
+    return { pts, xMin, xMax, yMin, yMax, regY1, regY2 }
   }, [results])
+
+  const chartOption = useMemo(() => {
+    if (!chartData || !results) return null
+    const palette = resolveChartPalette()
+    return {
+      ...statBaseOption(),
+      tooltip: statTooltip(),
+      xAxis: { ...statValueAxis('log₁₀(Length)'), min: chartData.xMin, max: chartData.xMax },
+      yAxis: { ...statValueAxis('log₁₀(Weight)'), min: chartData.yMin, max: chartData.yMax },
+      graphic: [{
+        type: 'text',
+        left: 70,
+        top: 10,
+        style: {
+          text: `log(W) = ${results.logA.toFixed(3)} + ${results.b.toFixed(3)} × log(L)`,
+          fill: palette[0],
+          fontSize: 12,
+        },
+      }],
+      series: [
+        {
+          type: 'scatter',
+          data: chartData.pts.map(p => [p.logL, p.logW]),
+          symbolSize: 6,
+          itemStyle: { color: palette[0], opacity: 0.3 },
+        },
+        {
+          type: 'line',
+          data: [[chartData.xMin, chartData.regY1], [chartData.xMax, chartData.regY2]],
+          showSymbol: false,
+          lineStyle: { color: palette[0], width: 2 },
+          itemStyle: { color: palette[0] },
+        },
+      ],
+    } as Record<string, unknown>
+  }, [chartData, results, resolvedTheme])
 
   const handleSave = useCallback(() => {
     saveToHistory({
@@ -192,54 +228,11 @@ export default function LengthWeightTool({ tool, meta, initialEntry }: ToolCompo
             </div>
           </div>
 
-          {chartData && (
+          {chartOption && (
             <div>
               <h3 className="text-sm font-semibold mb-2">Log-Log 산점도</h3>
-              <div className="border rounded-lg p-4 bg-card">
-                <svg viewBox="0 0 400 300" className="w-full max-w-lg mx-auto">
-                  {/* 배경 */}
-                  <rect x="50" y="20" width="320" height="230" fill="none" stroke="currentColor" strokeOpacity="0.2" />
-                  {/* Y축 눈금 */}
-                  {[0, 0.25, 0.5, 0.75, 1].map(frac => {
-                    const val = chartData.yMin + (chartData.yMax - chartData.yMin) * frac
-                    return (
-                      <g key={frac}>
-                        {frac > 0 && frac < 1 && (
-                          <line x1={50} y1={250 - frac * 230} x2={370} y2={250 - frac * 230} stroke="currentColor" strokeOpacity="0.08" />
-                        )}
-                        <text x="45" y={254 - frac * 230} textAnchor="end" fontSize="9" fill="currentColor" fillOpacity="0.5">
-                          {val.toFixed(2)}
-                        </text>
-                      </g>
-                    )
-                  })}
-                  {/* X축 눈금 */}
-                  {[0, 0.25, 0.5, 0.75, 1].map(frac => {
-                    const val = chartData.xMin + (chartData.xMax - chartData.xMin) * frac
-                    return (
-                      <text key={frac} x={50 + frac * 320} y="268" textAnchor="middle" fontSize="9" fill="currentColor" fillOpacity="0.5">
-                        {val.toFixed(2)}
-                      </text>
-                    )
-                  })}
-                  {/* 산점도 */}
-                  {chartData.pts.map((p, i) => {
-                    const xRange = chartData.xMax - chartData.xMin || 1
-                    const yRange = chartData.yMax - chartData.yMin || 1
-                    const x = 50 + ((p.logL - chartData.xMin) / xRange) * 320
-                    const y = 250 - ((p.logW - chartData.yMin) / yRange) * 230
-                    return <circle key={i} cx={x} cy={y} r="3" fill="currentColor" fillOpacity="0.3" />
-                  })}
-                  {/* 회귀선 */}
-                  <line x1={50} y1={chartData.regLineY1} x2={370} y2={chartData.regLineY2} stroke={BIO_CHART_COLORS[0]} strokeWidth="2" />
-                  {/* 수식 */}
-                  <text x="60" y="38" fontSize="9" fill={BIO_CHART_COLORS[0]}>
-                    log(W) = {results.logA.toFixed(3)} + {results.b.toFixed(3)} × log(L)
-                  </text>
-                  {/* 축 라벨 */}
-                  <text x="210" y="290" textAnchor="middle" fontSize="10" fill="currentColor" fillOpacity="0.6">log₁₀(Length)</text>
-                  <text x="15" y="135" textAnchor="middle" fontSize="10" fill="currentColor" fillOpacity="0.6" transform="rotate(-90, 15, 135)">log₁₀(Weight)</text>
-                </svg>
+              <div className="border rounded-lg bg-card max-w-lg mx-auto">
+                <LazyReactECharts option={chartOption} style={{ height: 300 }} opts={{ renderer: 'svg' }} />
               </div>
             </div>
           )}

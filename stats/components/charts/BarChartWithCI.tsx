@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useMemo, useState, useCallback, memo } from 'react'
+import { useTheme } from 'next-themes'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -87,6 +88,7 @@ export const BarChartWithCI = memo(function BarChartWithCI({
   error = null,
   onBarClick
 }: BarChartWithCIProps) {
+  const { resolvedTheme } = useTheme()
   const [selectedBar, setSelectedBar] = useState<number | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart')
@@ -164,7 +166,7 @@ export const BarChartWithCI = memo(function BarChartWithCI({
         feature: { saveAsImage: { title: 'PNG 저장', pixelRatio: 2 } },
       },
     }
-  }, [data, showCI, showValues, showBaseline, baseline, unit, ciLevel])
+  }, [data, showCI, showValues, showBaseline, baseline, unit, ciLevel, resolvedTheme])
 
   // 기준선 markLine을 series에 추가
   const finalOption = useMemo((): EChartsOption => {
@@ -185,7 +187,7 @@ export const BarChartWithCI = memo(function BarChartWithCI({
       ...chartOption,
       series: [firstSeries, ...seriesArr.slice(1)] as NonNullable<EChartsOption['series']>,
     }
-  }, [chartOption, showBaseline, baseline])
+  }, [chartOption, showBaseline, baseline, resolvedTheme])
 
   // CSV 다운로드
   const downloadCSV = useCallback(() => {

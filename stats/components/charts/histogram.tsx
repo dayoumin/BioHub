@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState, useCallback, memo } from "react"
+import { useTheme } from "next-themes"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -46,6 +47,7 @@ export const Histogram = memo(function Histogram({
   className,
   showCard = true
 }: HistogramProps) {
+  const { resolvedTheme } = useTheme()
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart')
   const [isFullscreen, setIsFullscreen] = useState(false)
 
@@ -194,7 +196,7 @@ export const Histogram = memo(function Histogram({
         feature: { saveAsImage: { title: 'PNG 저장', pixelRatio: 2 } },
       },
     }
-  }, [histogramData, xAxisLabel, yAxisLabel, barColor, statistics])
+  }, [histogramData, xAxisLabel, yAxisLabel, barColor, statistics, resolvedTheme])
 
   // CSV download function
   const downloadCSV = useCallback(() => {
