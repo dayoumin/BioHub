@@ -76,4 +76,6 @@ export const BIO_LAYOUT = {
   sectionGap: STEP_STYLES.sectionGap,
   contentPaddingX: STEP_STYLES.mainContentPaddingX,
   contentPaddingY: STEP_STYLES.mainContentPaddingY,
+  /** 도구 콘텐츠 영역 max-width (허브는 LAYOUT.maxWidth 사용) */
+  toolContentMaxWidth: 'mx-auto max-w-4xl',
 } as const

@@ -1,17 +1,16 @@
 'use client'
 
-import { Suspense, useCallback } from 'react'
+import { Suspense, useCallback, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { LAYOUT } from '@/components/common/card-styles'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
 import { getBioToolMeta } from '@/lib/bio-tools/bio-tool-metadata'
 import { getBioToolEntry, type BioToolHistoryEntry } from '@/lib/bio-tools/bio-tool-history'
 import { TOOL_COMPONENTS } from './tools'
-import { BioToolSidebar } from './BioToolSidebar'
 import { BioToolsHub } from './BioToolsHub'
-import { BioToolHistorySidebar } from './BioToolHistorySidebar'
+import { BioToolHistoryPopover } from './BioToolHistoryPopover'
 import {
   BIO_BG_TINT,
   BIO_HEADER_BORDER,
@@ -38,12 +37,19 @@ export function BioToolWorkspace(): React.ReactElement {
   const tool = toolId ? getBioToolById(toolId) : null
   const meta = toolId ? getBioToolMeta(toolId) : null
   const ToolComponent = toolId ? TOOL_COMPONENTS[toolId] : null
-  const initialEntry = historyId
-    ? getBioToolEntry(historyId, toolId ?? undefined) ?? undefined
-    : undefined
+  const initialEntry = useMemo(
+    () => historyId
+      ? getBioToolEntry(historyId, toolId ?? undefined) ?? undefined
+      : undefined,
+    [historyId, toolId],
+  )
 
   const handleSelectTool = useCallback((id: string) => {
     router.push(`/bio-tools?tool=${id}`, { scroll: false })
+  }, [router])
+
+  const handleBack = useCallback(() => {
+    router.push('/bio-tools', { scroll: false })
   }, [router])
 
   const handleLoadHistory = useCallback((entry: BioToolHistoryEntry) => {
@@ -54,63 +60,52 @@ export function BioToolWorkspace(): React.ReactElement {
   const isToolActive = !!(tool && Icon && ToolComponent)
 
   return (
-    <div className="flex h-full min-h-0" style={BIO_BG_TINT}>
-      {/* 도구 사이드바 (왼쪽) */}
-      <BioToolSidebar
-        selectedToolId={ToolComponent ? toolId : null}
-        onSelectTool={handleSelectTool}
-      />
-
-      {/* 메인 영역 */}
-      <div className="flex-1 flex min-h-0 min-w-0">
-        <div className="flex-1 flex flex-col min-h-0 min-w-0">
-          {/* 도구 헤더 */}
-          {isToolActive && (
-            <header
-              className={cn(LAYOUT.stickyHeader, 'border-b border-border')}
-              style={BIO_HEADER_BORDER}
+    <div className="flex flex-col h-full min-h-0" style={BIO_BG_TINT}>
+      {/* 도구 헤더 — 뒤로가기 + 도구명 + 히스토리 */}
+      {isToolActive && (
+        <header
+          className={cn(LAYOUT.stickyHeader, 'border-b border-border')}
+          style={BIO_HEADER_BORDER}
+        >
+          <div className={cn('h-12 flex items-center gap-3', BIO_LAYOUT.contentPaddingX)}>
+            <button
+              type="button"
+              onClick={handleBack}
+              className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground"
+              aria-label="Bio-Tools 허브로 돌아가기"
             >
-              <div className={cn('h-12 flex items-center gap-3', BIO_LAYOUT.contentPaddingX)}>
-                <div className="p-1.5 rounded-md" style={BIO_ICON_BG}>
-                  <Icon className="w-4 h-4" style={BIO_ICON_COLOR} />
-                </div>
-                <div className="min-w-0">
-                  <h1 className="text-base font-semibold leading-tight truncate">{tool.nameEn}</h1>
-                  <p className="text-xs text-muted-foreground truncate">{tool.nameKo}</p>
-                </div>
-              </div>
-            </header>
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div className="p-1.5 rounded-md" style={BIO_ICON_BG}>
+              <Icon className="w-4 h-4" style={BIO_ICON_COLOR} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-base font-semibold leading-tight truncate">{tool.nameEn}</h1>
+              <p className="text-xs text-muted-foreground truncate">{tool.nameKo}</p>
+            </div>
+            {toolId && <BioToolHistoryPopover toolId={toolId} onLoadHistory={handleLoadHistory} />}
+          </div>
+        </header>
+      )}
+
+      {/* 본문 */}
+      <div className="flex-1 overflow-y-auto">
+        <div className={cn(
+          BIO_LAYOUT.contentPaddingX,
+          BIO_LAYOUT.contentPaddingY,
+        )}>
+          {!toolId || !tool || !meta || !ToolComponent ? (
+            <div className={LAYOUT.maxWidth}>
+              <BioToolsHub onSelectTool={handleSelectTool} />
+            </div>
+          ) : (
+            <div className={BIO_LAYOUT.toolContentMaxWidth}>
+              <Suspense fallback={<ToolLoadingSkeleton />}>
+                <ToolComponent key={`${toolId}-${historyId ?? ''}`} tool={tool} meta={meta} initialEntry={initialEntry} />
+              </Suspense>
+            </div>
           )}
-
-          {/* 워크스페이스 본문 */}
-          <div className="flex-1 overflow-y-auto">
-            <div className={cn(
-              BIO_LAYOUT.contentPaddingX,
-              BIO_LAYOUT.contentPaddingY,
-            )}>
-              {!toolId || !tool || !meta || !ToolComponent ? (
-                <div className={LAYOUT.maxWidth}>
-                  <BioToolsHub onSelectTool={handleSelectTool} />
-                </div>
-              ) : (
-                <div className="mx-auto max-w-4xl">
-                  <Suspense fallback={<ToolLoadingSkeleton />}>
-                    <ToolComponent key={`${toolId}-${historyId ?? ''}`} tool={tool} meta={meta} initialEntry={initialEntry} />
-                  </Suspense>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
-
-        {/* 히스토리 사이드바 (오른쪽) — 도구 선택 시만 표시 */}
-        {isToolActive && (
-          <div className="hidden w-56 shrink-0 border-l border-border/40 px-4 pt-8 lg:block">
-            <div className="sticky top-24">
-              <BioToolHistorySidebar onLoadHistory={handleLoadHistory} />
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )
