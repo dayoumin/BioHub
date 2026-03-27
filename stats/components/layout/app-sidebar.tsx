@@ -9,6 +9,7 @@ import {
   Dna,
   FlaskConical,
   BookOpen,
+  FileSearch,
   Microscope,
   Settings,
   PanelLeft,
@@ -58,7 +59,8 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/bio-tools', label: 'Bio-Tools', icon: Dna, prefix: '/bio-tools' },
   { href: '/genetics', label: '유전적 분석', icon: FlaskConical, prefix: '/genetics' },
   { href: '/graph-studio', label: 'Graph Studio', icon: AreaChart, prefix: '/graph-studio' },
-  { href: '/papers', label: '논문 지원', icon: BookOpen, disabled: true, badge: '예정' },
+  { href: '/literature', label: '문헌·동향', icon: FileSearch, prefix: '/literature' },
+  { href: '/papers', label: '논문 작성', icon: BookOpen, disabled: true, badge: '예정' },
   {
     href: '/species-validation',
     label: '학명 유효성 검증',

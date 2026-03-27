@@ -1,8 +1,10 @@
+import { handleLiteratureApi } from './handlers/literature'
+
 /**
- * BioHub Cloudflare Worker — OpenRouter API 프록시
+ * BioHub Cloudflare Worker — API 프록시 + Static Assets
  *
  * 클라이언트 번들에서 API 키를 제거하고, Worker secrets로 서버에만 보관.
- * /api/ai/* 요청을 OpenRouter에 중계하며, 나머지는 Static Assets 서빙.
+ * /api/ai/* 요청을 OpenRouter에, /api/literature/* 요청을 외부 학술 DB에 중계.
  *
  * 보안:
  * - Origin 검증: 같은 도메인에서만 프록시 허용
@@ -15,6 +17,7 @@ interface Env {
   DB: D1Database
   OPENROUTER_API_KEY: string
   NCBI_API_KEY?: string
+  NANET_API_KEY?: string
 }
 
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1'
@@ -116,6 +119,11 @@ export default {
     // /api/entities/* → 엔티티 연결 (분석 결과를 프로젝트에 연결)
     if (url.pathname.startsWith('/api/entities')) {
       return handleEntitiesApi(request, env, url)
+    }
+
+    // /api/literature/* → 문헌 통합검색 프록시
+    if (url.pathname.startsWith('/api/literature')) {
+      return handleLiteratureApi(request, env, url)
     }
 
     // RSC payload(.txt)에 브라우저가 직접 접근하면 HTML 페이지로 리다이렉트
@@ -280,24 +288,41 @@ async function handleBlastProxy(
   const resultMatch = subPath.match(/^\/result\/([A-Z0-9]+)$/)
   if (resultMatch && request.method === 'GET') {
     const seqHash = url.searchParams.get('hash') || undefined
-    const marker = url.searchParams.get('marker') || undefined
-    return handleBlastResult(resultMatch[1], env, seqHash, marker)
+    const cacheKey = url.searchParams.get('cacheKey') || url.searchParams.get('marker') || undefined
+    return handleBlastResult(resultMatch[1], env, seqHash, cacheKey)
   }
 
   return jsonResponse({ error: 'Not found' }, 404)
 }
 
+/** 허용된 BLAST 프로그램 */
+const ALLOWED_PROGRAMS = new Set(['blastn', 'blastp', 'blastx', 'tblastn', 'tblastx'])
+
+/** 허용된 BLAST 데이터베이스 */
+const ALLOWED_DATABASES = new Set(['nt', 'nr', 'refseq_select', 'refseq_rna', 'swissprot', 'pdb', 'core_nt'])
+
 /**
  * POST /api/blast/submit
- * Body: { sequence: string, marker?: string, apiKey?: string }
+ * Body: { sequence, marker?, program?, database?, expect?, hitlistSize?, megablast?, apiKey? }
  *
  * NCBI BLAST에 서열 제출 → RID 반환
+ * - marker만 있으면 바코딩 모드 (blastn + nt + 10 hits)
+ * - program이 있으면 범용 모드
  */
 async function handleBlastSubmit(
   request: Request,
   env: Env
 ): Promise<Response> {
-  let body: { sequence?: string; marker?: string; apiKey?: string }
+  let body: {
+    sequence?: string
+    marker?: string
+    program?: string
+    database?: string
+    expect?: number
+    hitlistSize?: number
+    megablast?: boolean
+    apiKey?: string
+  }
   try {
     body = await request.json() as typeof body
   } catch {
@@ -305,21 +330,54 @@ async function handleBlastSubmit(
   }
 
   const sequence = body.sequence?.trim()
-  if (!sequence || sequence.length < 100) {
-    return jsonResponse({ error: '서열은 최소 100 bp 이상이어야 합니다.' }, 400)
-  }
-  if (sequence.length > 10_000) {
-    return jsonResponse({ error: '서열은 최대 10,000 bp까지 허용됩니다.' }, 400)
+  if (!sequence) {
+    return jsonResponse({ error: '서열을 입력하세요.' }, 400)
   }
 
-  const marker = body.marker || 'COI'
+  // 프로그램 결정: 명시적 program > 바코딩 기본값(blastn)
+  const program = body.program && ALLOWED_PROGRAMS.has(body.program)
+    ? body.program
+    : 'blastn'
+
+  // 단백질 프로그램(blastp, tblastn)은 최소 10 aa, DNA 프로그램은 최소 100 bp
+  const isProteinInput = program === 'blastp' || program === 'tblastn'
+  const minLength = isProteinInput ? 10 : 100
+  if (sequence.length < minLength) {
+    return jsonResponse({
+      error: isProteinInput
+        ? `서열은 최소 ${minLength} aa 이상이어야 합니다.`
+        : `서열은 최소 ${minLength} bp 이상이어야 합니다.`,
+    }, 400)
+  }
+  if (sequence.length > 10_000) {
+    return jsonResponse({ error: '서열은 최대 10,000자까지 허용됩니다.' }, 400)
+  }
+
+  // DB 결정: 명시적 database > 바코딩 기본값(nt)
+  const database = body.database && ALLOWED_DATABASES.has(body.database)
+    ? body.database
+    : (program === 'blastp' || program === 'blastx' ? 'nr' : 'nt')
+
+  // 히트 수: 범용은 기본 50, 바코딩은 10
+  const hitlistSize = Math.min(Math.max(body.hitlistSize ?? (body.marker ? 10 : 50), 1), 500)
+
+  // E-value: 기본 10, 범위 제한
+  const rawExpect = body.expect ?? 10
+  const expect = (typeof rawExpect === 'number' && isFinite(rawExpect) && rawExpect > 0)
+    ? Math.min(rawExpect, 100_000) : 10
+
+  // MEGABLAST: blastn 전용, 기본 on
+  const useMegablast = program === 'blastn' && (body.megablast !== false)
+
   const seqHash = await hashSequence(sequence)
+  // 바코딩 모드: marker 값을 캐시 키에 포함 (COI, 16S 등 구분)
+  const cacheKey = body.marker ? body.marker : `${program}_${database}`
 
   // D1 캐시 확인
   try {
     const cached = await env.DB.prepare(
       'SELECT result_json FROM blast_cache WHERE sequence_hash = ? AND marker = ? AND expires_at > ?'
-    ).bind(seqHash, marker, Date.now()).first<{ result_json: string }>()
+    ).bind(seqHash, cacheKey, Date.now()).first<{ result_json: string }>()
 
     if (cached) {
       const hits = JSON.parse(cached.result_json) as Array<Record<string, unknown>>
@@ -336,7 +394,7 @@ async function handleBlastSubmit(
     const waitSec = Math.ceil((BLAST_MIN_INTERVAL_MS - elapsed) / 1000)
     return jsonResponse({
       error: 'throttled',
-      message: `NCBI rate limit. ${waitSec}초 후 다시 시도하세요.`,
+      message: `NCBI 요청 제한. ${waitSec}초 후 다시 시도하세요.`,
       retryAfter: waitSec,
     }, 429)
   }
@@ -346,12 +404,15 @@ async function handleBlastSubmit(
 
   const params = new URLSearchParams({
     CMD: 'Put',
-    PROGRAM: 'blastn',
-    MEGABLAST: 'on',
-    DATABASE: 'nt',
+    PROGRAM: program,
+    DATABASE: database,
     QUERY: sequence,
-    HITLIST_SIZE: '10',
+    HITLIST_SIZE: String(hitlistSize),
+    EXPECT: String(expect),
   })
+  if (useMegablast) {
+    params.set('MEGABLAST', 'on')
+  }
   if (apiKey) {
     params.set('api_key', apiKey)
   }
@@ -365,13 +426,14 @@ async function handleBlastSubmit(
   const rtoeMatch = text.match(/RTOE\s*=\s*(\d+)/)
 
   if (!ridMatch) {
-    return jsonResponse({ error: 'NCBI BLAST 제출 실패', detail: text.slice(0, 500) }, 502)
+    return jsonResponse({ error: 'NCBI BLAST 제출에 실패했습니다.', detail: text.slice(0, 500) }, 502)
   }
 
   return jsonResponse({
     rid: ridMatch[1],
     rtoe: rtoeMatch ? Number(rtoeMatch[1]) : 30,
     sequenceHash: seqHash,
+    cacheKey,
   }, 200)
 }
 
@@ -408,7 +470,7 @@ async function handleBlastResult(
   rid: string,
   env: Env,
   sequenceHash?: string,
-  marker?: string
+  cacheKey?: string
 ): Promise<Response> {
   // Tabular 포맷으로 요청 — JSON2는 항상 ZIP으로 반환됨 (NCBI 표준), Workers에서 ZIP 파싱 불가
   const params = new URLSearchParams({
@@ -451,21 +513,21 @@ async function handleBlastResult(
     })
   }
 
-  // 캐시 저장 (hash + marker가 있고, 결과가 있을 때)
-  if (sequenceHash && marker && hits.length > 0) {
+  // 캐시 저장 (hash + cacheKey가 있고, 결과가 있을 때)
+  if (sequenceHash && cacheKey && hits.length > 0) {
     const now = Date.now()
     try {
       await env.DB.prepare(
         `INSERT OR REPLACE INTO blast_cache (sequence_hash, marker, api_source, result_json, cached_at, expires_at)
          VALUES (?, ?, 'ncbi', ?, ?, ?)`
-      ).bind(sequenceHash, marker, JSON.stringify(hits), now, now + BLAST_CACHE_TTL_MS).run()
+      ).bind(sequenceHash, cacheKey, JSON.stringify(hits), now, now + BLAST_CACHE_TTL_MS).run()
     } catch {
       // 캐시 저장 실패는 무시
     }
   }
 
   if (hits.length === 0) {
-    return jsonResponse({ rid, hits: [], message: '매칭 결과 없음' }, 200)
+    return jsonResponse({ rid, hits: [], message: '매칭 결과가 없습니다.' }, 200)
   }
 
   return jsonResponse({ rid, hits }, 200)
@@ -501,21 +563,143 @@ async function handleNcbiProxy(
     return handleSpeciesLookup(request, env)
   }
 
+  if (subPath === '/search' && request.method === 'GET') {
+    return handleNcbiSearch(env, url)
+  }
+
+  if (subPath === '/fetch' && request.method === 'GET') {
+    return handleNcbiFetch(env, url)
+  }
+
   return jsonResponse({ error: 'Not found' }, 404)
+}
+
+/** 허용된 NCBI 데이터베이스 (search/fetch 공용) */
+const ALLOWED_NCBI_DBS = new Set(['nuccore', 'protein'])
+/** 허용된 EFetch 반환 형식 */
+const ALLOWED_RETTYPES = new Set(['fasta', 'gb', 'genbank', 'docsum'])
+const ALLOWED_RETMODES = new Set(['text', 'json', 'xml'])
+/** accession/UID 형식 검증 */
+const NCBI_ID_PATTERN = /^[A-Za-z0-9_.,]+$/
+
+/**
+ * GET /api/ncbi/search?term=...&db=nuccore&retmax=20
+ *
+ * NCBI ESearch → ESummary 파이프라인으로 서열 검색
+ */
+async function handleNcbiSearch(env: Env, url: URL): Promise<Response> {
+  const term = url.searchParams.get('term')?.trim()
+  if (!term) return jsonResponse({ error: 'term 파라미터가 필요합니다.' }, 400)
+
+  const rawDb = url.searchParams.get('db') || 'nuccore'
+  const db = ALLOWED_NCBI_DBS.has(rawDb) ? rawDb : 'nuccore'
+  const retmax = Math.min(Number(url.searchParams.get('retmax') || 20), 100)
+
+  const apiKey = env.NCBI_API_KEY || ''
+  const searchParams = new URLSearchParams({
+    db, term, retmax: String(retmax), retmode: 'json', sort: 'relevance',
+  })
+  if (apiKey) searchParams.set('api_key', apiKey)
+
+  try {
+    const searchRes = await fetch(`${NCBI_EFETCH_BASE}/esearch.fcgi?${searchParams.toString()}`)
+    if (!searchRes.ok) return jsonResponse({ error: `NCBI 검색 오류 (${searchRes.status})` }, 502)
+
+    const searchData = await searchRes.json() as { esearchresult?: { idlist?: string[]; count?: string } }
+    const ids = searchData.esearchresult?.idlist ?? []
+    const totalCount = Number(searchData.esearchresult?.count ?? 0)
+
+    if (ids.length === 0) return jsonResponse({ results: [], totalCount: 0 }, 200)
+
+    // ESummary로 상세 정보 가져오기
+    const summaryParams = new URLSearchParams({
+      db, id: ids.join(','), retmode: 'json',
+    })
+    if (apiKey) summaryParams.set('api_key', apiKey)
+
+    const summaryRes = await fetch(`${NCBI_EFETCH_BASE}/esummary.fcgi?${summaryParams.toString()}`)
+    if (!summaryRes.ok) return jsonResponse({ error: `NCBI 요약 오류 (${summaryRes.status})` }, 502)
+
+    const summaryData = await summaryRes.json() as Record<string, unknown>
+    const result = summaryData['result'] as Record<string, unknown> | undefined
+    const uids = (result?.['uids'] as string[]) ?? []
+
+    const results: Array<{
+      uid: string; accession: string; title: string;
+      organism: string; length: number; updateDate: string
+    }> = []
+
+    for (const uid of uids) {
+      const entry = result?.[uid] as Record<string, unknown> | undefined
+      if (!entry) continue
+      results.push({
+        uid,
+        accession: (entry['accessionversion'] as string) || (entry['caption'] as string) || uid,
+        title: (entry['title'] as string) || '',
+        organism: (entry['organism'] as string) || '',
+        length: Number(entry['slen'] || entry['length'] || 0),
+        updateDate: (entry['updatedate'] as string) || '',
+      })
+    }
+
+    return jsonResponse({ results, totalCount }, 200)
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    return jsonResponse({ error: `NCBI 검색 실패: ${msg}` }, 502)
+  }
+}
+
+/**
+ * GET /api/ncbi/fetch?id=...&db=nuccore&rettype=fasta
+ *
+ * NCBI EFetch로 서열 다운로드
+ */
+async function handleNcbiFetch(env: Env, url: URL): Promise<Response> {
+  const id = url.searchParams.get('id')?.trim()
+  if (!id) return jsonResponse({ error: 'id 파라미터가 필요합니다.' }, 400)
+  if (!NCBI_ID_PATTERN.test(id) || id.length > 200) {
+    return jsonResponse({ error: '잘못된 ID 형식입니다.' }, 400)
+  }
+
+  const rawDb = url.searchParams.get('db') || 'nuccore'
+  const db = ALLOWED_NCBI_DBS.has(rawDb) ? rawDb : 'nuccore'
+  const rawRettype = url.searchParams.get('rettype') || 'fasta'
+  const rettype = ALLOWED_RETTYPES.has(rawRettype) ? rawRettype : 'fasta'
+  const rawRetmode = url.searchParams.get('retmode') || 'text'
+  const retmode = ALLOWED_RETMODES.has(rawRetmode) ? rawRetmode : 'text'
+
+  const apiKey = env.NCBI_API_KEY || ''
+  const params = new URLSearchParams({ db, id, rettype, retmode })
+  if (apiKey) params.set('api_key', apiKey)
+
+  try {
+    const res = await fetch(`${NCBI_EFETCH_BASE}/efetch.fcgi?${params.toString()}`)
+    if (!res.ok) return jsonResponse({ error: `NCBI 다운로드 오류 (${res.status})` }, 502)
+
+    const text = await res.text()
+    return new Response(text, {
+      headers: {
+        'Content-Type': retmode === 'json' ? 'application/json' : 'text/plain',
+      },
+    })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    return jsonResponse({ error: `NCBI 다운로드 실패: ${msg}` }, 502)
+  }
 }
 
 /**
  * POST /api/ncbi/species
- * Body: { accessions: string[] }
+ * Body: { accessions: string[], db?: 'nuccore' | 'protein' }
  *
  * NCBI efetch로 accession → organism(종명) 일괄 조회
- * 최대 10개 (BLAST top hits 수와 동일)
+ * 최대 50개 (범용 BLAST 결과 enrichment 지원)
  */
 async function handleSpeciesLookup(
   request: Request,
   env: Env
 ): Promise<Response> {
-  let body: { accessions?: string[] }
+  let body: { accessions?: string[]; db?: string }
   try {
     body = await request.json() as typeof body
   } catch {
@@ -527,8 +711,11 @@ async function handleSpeciesLookup(
     return jsonResponse({ error: 'accessions 배열이 필요합니다.' }, 400)
   }
 
-  // 최대 10개 제한 (BLAST top hits 수)
-  const limited = accessions.slice(0, 10)
+  // 최대 50개 제한 (범용 BLAST 결과 enrichment 지원)
+  const limited = accessions.slice(0, 50)
+
+  // 클라이언트가 protein DB 결과를 조회할 수 있도록 db 파라미터 지원
+  const lookupDb = body.db === 'protein' ? 'protein' : 'nuccore'
 
   // accession 형식 검증 (영숫자 + 밑줄 + 점)
   const validPattern = /^[A-Za-z0-9_.]+$/
@@ -540,7 +727,7 @@ async function handleSpeciesLookup(
 
   const apiKey = env.NCBI_API_KEY || ''
   const params = new URLSearchParams({
-    db: 'nuccore',
+    db: lookupDb,
     id: limited.join(','),
     rettype: 'docsum',
     retmode: 'json',
@@ -558,7 +745,7 @@ async function handleSpeciesLookup(
     const data = await res.json() as Record<string, unknown>
     const result = data['result'] as Record<string, unknown> | undefined
     if (!result) {
-      return jsonResponse({ error: 'NCBI 응답 파싱 실패' }, 502)
+      return jsonResponse({ error: 'NCBI 응답 파싱에 실패했습니다.' }, 502)
     }
 
     // NCBI esummary는 UID를 키로 반환 → accession 매핑이 필요
