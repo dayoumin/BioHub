@@ -1,10 +1,12 @@
 "use client"
 
-import { useState, useCallback } from "react"
-import { Upload, X, CheckCircle2, AlertCircle } from "lucide-react"
+import { useState, useCallback, useRef } from "react"
+import { X, CheckCircle2, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+import { uploadZoneClassName, UploadDropZoneContent } from "@/components/common/UploadDropZone"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Progress } from "@/components/ui/progress"
+
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useRouter } from "next/navigation"
 
@@ -22,12 +24,12 @@ export function SimpleUploadDialog({ open, onOpenChange }: SimpleUploadDialogPro
     success: false
   })
   const router = useRouter()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // 파일 검증
     if (!file.name.match(/\.(csv|xlsx?|tsv)$/i)) {
       setUploadState(prev => ({ ...prev, error: "CSV, Excel, TSV 파일만 지원됩니다" }))
       return
@@ -38,52 +40,37 @@ export function SimpleUploadDialog({ open, onOpenChange }: SimpleUploadDialogPro
       return
     }
 
-    // 업로드 시작
     setUploadState({
-      isUploading: true,
-      progress: 0,
+      isUploading: false,
+      progress: 100,
       fileName: file.name,
       error: "",
-      success: false
+      success: true
     })
 
-    // 업로드 시뮬레이션 (실제로는 파일 처리 로직)
-    const steps = [10, 25, 40, 60, 75, 90, 100]
-    for (const step of steps) {
-      await new Promise(resolve => setTimeout(resolve, 500))
-      setUploadState(prev => ({ ...prev, progress: step }))
-    }
-
-    // 완료
-    setUploadState(prev => ({
-      ...prev,
-      isUploading: false,
-      success: true
-    }))
-
-    // 3초 후 자동으로 데이터 페이지로 이동
+    // 검증 통과 → /data 페이지로 이동 (실제 업로드는 해당 페이지에서 수행)
     setTimeout(() => {
       router.push("/data")
       onOpenChange(false)
-    }, 3000)
+    }, 1200)
   }, [router, onOpenChange])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     const file = e.dataTransfer.files[0]
     if (file) {
-      const input = document.getElementById('file-input') as HTMLInputElement
       const dt = new DataTransfer()
       dt.items.add(file)
-      input.files = dt.files
-      const event = new Event('change', { bubbles: true })
-      input.dispatchEvent(event)
+      if (fileInputRef.current) {
+        fileInputRef.current.files = dt.files
+        fileInputRef.current.dispatchEvent(new Event('change', { bubbles: true }))
+      }
     }
   }, [])
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
-  }
+  }, [])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -114,54 +101,38 @@ export function SimpleUploadDialog({ open, onOpenChange }: SimpleUploadDialogPro
           )}
 
           {uploadState.success ? (
-            <div className="text-center py-12 space-y-4">
-              <CheckCircle2 className="h-16 w-16 text-success mx-auto" />
-              <div>
-                <p className="text-xl font-semibold">업로드 완료!</p>
-                <p className="text-muted-foreground">{uploadState.fileName}</p>
+            <div className="flex items-center gap-3 py-4">
+              <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">파일 확인 완료</p>
+                <p className="text-xs text-muted-foreground truncate">{uploadState.fileName}</p>
               </div>
-              <p className="text-sm text-muted-foreground">
-                데이터 분석 페이지로 이동합니다...
-              </p>
-            </div>
-          ) : uploadState.isUploading ? (
-            <div className="text-center py-12 space-y-4">
-              <div className="animate-spin mx-auto">
-                <Upload className="h-16 w-16 text-primary" />
-              </div>
-              <div>
-                <p className="text-xl font-semibold">데이터 분석 중...</p>
-                <p className="text-muted-foreground">{uploadState.fileName}</p>
-              </div>
-              <Progress value={uploadState.progress} className="max-w-xs mx-auto" />
-              <p className="text-sm text-muted-foreground">
-                {uploadState.progress}% 완료
+              <p className="text-xs text-muted-foreground flex-shrink-0">
+                업로드 페이지로 이동 중...
               </p>
             </div>
           ) : (
             <div
-              className="border-2 border-dashed rounded-lg p-12 text-center hover:bg-muted/50 transition-colors"
+              className={cn(uploadZoneClassName(false, { clickable: true }), 'group')}
               onDrop={handleDrop}
               onDragOver={handleDragOver}
+              onClick={() => fileInputRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click() } }}
             >
-              <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-lg font-medium mb-2">
-                파일을 드래그하거나 클릭하여 선택하세요
-              </p>
-              <p className="text-sm text-muted-foreground mb-4">
-                CSV, Excel (xlsx, xls), TSV 지원 • 최대 50MB
-              </p>
-              <Button variant="outline" asChild>
-                <label htmlFor="file-input" className="cursor-pointer">
-                  파일 선택
-                </label>
-              </Button>
               <input
-                id="file-input"
+                ref={fileInputRef}
                 type="file"
                 className="hidden"
                 accept=".csv,.xlsx,.xls,.tsv"
                 onChange={handleFileSelect}
+              />
+              <UploadDropZoneContent
+                label="파일을 드래그하거나 클릭하여 선택"
+                subtitle="CSV, Excel, TSV · 최대 50MB"
+                buttonLabel="파일 선택"
+                showIcon={true}
               />
             </div>
           )}

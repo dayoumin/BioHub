@@ -1,25 +1,22 @@
 "use client"
 
 import React, { useCallback, useState, useRef } from "react"
-import { Upload, FileText, AlertCircle, CheckCircle2, X, BarChart3, Eye, HelpCircle } from "lucide-react"
+import { Upload, AlertCircle, CheckCircle2, X, Eye, HelpCircle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { validateFile, parseCSVFile, validateData, createDatasetFromValidation } from "@/lib/data-processing"
-import { performSmartAnalysis, SmartAnalysisResult } from "@/lib/smart-analysis"
 import { useAppStore } from "@/lib/store"
 import { toast } from "sonner"
 import { DataFormatGuide } from "@/components/data/data-format-guide"
-// import { SmartAnalysisRecommendations } from "@/components/analysis/smart-analysis-recommendations"
+import { uploadZoneClassName, UploadDropZoneContent } from "@/components/common/UploadDropZone"
 
 interface FileUploadProps {
   onUploadComplete?: (datasetId: string) => void
   className?: string
-  enableSmartAnalysis?: boolean // 스마트 분석 모드 활성화
 }
 
 interface UploadState {
@@ -31,11 +28,9 @@ interface UploadState {
     id: string
     name: string
   }
-  smartAnalysis?: SmartAnalysisResult
-  showSmartAnalysis?: boolean
 }
 
-export function FileUpload({ onUploadComplete, className, enableSmartAnalysis = false }: FileUploadProps) {
+export function FileUpload({ onUploadComplete, className }: FileUploadProps): React.ReactElement {
   const { addDataset } = useAppStore()
   const [uploadState, setUploadState] = useState<UploadState>({
     isDragOver: false,
@@ -57,110 +52,47 @@ export function FileUpload({ onUploadComplete, className, enableSmartAnalysis = 
   const processFile = useCallback(async (file: File) => {
     try {
       setUploadState(prev => ({ ...prev, isUploading: true, progress: 10 }))
-      
-      // Track timing for optimal user experience
-      const startTime = Date.now()
-      
-      // Quick file validation with immediate feedback
-      setTimeout(() => {
-        setUploadState(prev => ({ ...prev, progress: 25 }))
-      }, 300)
-      
-      // Parse CSV file with progressive feedback
+
       const parsedData = await parseCSVFile(file)
-      setUploadState(prev => ({ ...prev, progress: 45 }))
-      
-      // Show quick preview within 1 second
-      setTimeout(() => {
-        setUploadState(prev => ({ ...prev, progress: 60 }))
-      }, Math.max(0, 1000 - (Date.now() - startTime)))
-      
-      // Validate data
+      setUploadState(prev => ({ ...prev, progress: 50 }))
+
       const validation = validateData(parsedData.headers, parsedData.rows)
       setUploadState(prev => ({ ...prev, progress: 75 }))
-      
-      // Fast smart analysis with preliminary results in 2 seconds
-      let smartAnalysisResult: SmartAnalysisResult | undefined
-      if (enableSmartAnalysis && validation.isValid) {
-        // Show preliminary analysis within 2 seconds
-        setTimeout(() => {
-          setUploadState(prev => ({ ...prev, progress: 85 }))
-        }, Math.max(0, 2000 - (Date.now() - startTime)))
-        
-        smartAnalysisResult = performSmartAnalysis(
-          validation.columns, 
-          parsedData.rows, 
-          validation.rowCount
-        )
-        setUploadState(prev => ({ ...prev, progress: 90 }))
-      } else {
-        setUploadState(prev => ({ ...prev, progress: 85 }))
-      }
-      
-      // Create dataset
+
       const datasetData = createDatasetFromValidation(
         file.name.replace(/\.[^/.]+$/, ''),
         file,
         parsedData,
         validation
       )
-      
-      // Add to store
+
       const dataset = addDataset(datasetData)
-      
-      // Ensure minimum 3-second experience for perceived quality
-      const elapsedTime = Date.now() - startTime
-      const minDisplayTime = 3000
-      
-      if (elapsedTime < minDisplayTime) {
-        setTimeout(() => {
-          setUploadState(prev => ({ ...prev, progress: 100 }))
-        }, minDisplayTime - elapsedTime)
-      } else {
-        setUploadState(prev => ({ ...prev, progress: 100 }))
-      }
-      
-      // Show results
+
       if (validation.errors.length > 0) {
-        const errorMessage = validation.errors[0]
-        toast.error(errorMessage, {
-          description: "데이터 형식을 확인하세요. 가이드를 참고하여 올바른 형식으로 업로드해주세요.",
-          action: {
-            label: "가이드 보기",
-            onClick: () => {
-              // 가이드 다이얼로그 열기를 위한 이벤트 트리거
-              document.dispatchEvent(new CustomEvent('open-data-guide'))
-            }
-          }
+        toast.error(validation.errors[0], {
+          description: "데이터 형식을 확인하세요."
         })
       } else if (validation.warnings.length > 0) {
-        const warningMessage = validation.warnings[0]
-        toast.warning(warningMessage, {
-          description: validation.warnings.length > 1 
-            ? `추가로 ${validation.warnings.length - 1}개의 경고가 있습니다. 데이터를 검토해보세요.`
+        toast.warning(validation.warnings[0], {
+          description: validation.warnings.length > 1
+            ? `추가로 ${validation.warnings.length - 1}개의 경고가 있습니다.`
             : "데이터가 업로드되었지만 주의가 필요합니다."
         })
       } else {
-        toast.success(`✅ Dataset "${datasetData.name}" uploaded successfully! Ready for analysis.`)
+        toast.success(`"${datasetData.name}" 업로드 완료`)
       }
-      
-      // Show success state with action buttons (and smart analysis if enabled)
-      setUploadState(prev => ({ 
-        ...prev, 
+
+      setUploadState(prev => ({
+        ...prev,
+        isUploading: false,
         progress: 100,
-        uploadedDataset: {
-          id: dataset.id,
-          name: datasetData.name
-        },
-        smartAnalysis: smartAnalysisResult,
-        showSmartAnalysis: enableSmartAnalysis && !!smartAnalysisResult
+        uploadedDataset: { id: dataset.id, name: datasetData.name },
       }))
-      
-      // 콜백 호출하지만 UI는 유지 (사용자 액션 대기)
+
       onUploadComplete?.(dataset.id)
-      
+
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Upload failed'
+      const errorMessage = error instanceof Error ? error.message : '업로드 실패'
       setUploadState(prev => ({ ...prev, error: errorMessage, isUploading: false, progress: 0 }))
       toast.error(errorMessage)
     }
@@ -212,9 +144,9 @@ export function FileUpload({ onUploadComplete, className, enableSmartAnalysis = 
   return (
     <div className={className}>
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="p-4">
           {uploadState.error && (
-            <Alert variant="destructive" className="mb-4">
+            <Alert variant="destructive" className="mb-3">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="flex items-center justify-between">
                 {uploadState.error}
@@ -224,219 +156,115 @@ export function FileUpload({ onUploadComplete, className, enableSmartAnalysis = 
               </AlertDescription>
             </Alert>
           )}
-          
-          <div
-            className={cn(
-              "border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300",
-              uploadState.isDragOver 
-                ? "border-primary bg-primary/10 scale-[1.02] shadow-lg ring-2 ring-primary/20" 
-                : "border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/20",
-              uploadState.isUploading && "pointer-events-none opacity-60"
-            )}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-          >
-            {uploadState.isUploading ? (
-              <div className="space-y-6">
-                <div className="flex items-center justify-center">
-                  <div className="relative">
-                    <div className="animate-spin">
-                      <BarChart3 className="h-16 w-16 text-primary" />
-                    </div>
-                    <div className="absolute inset-0 animate-pulse">
-                      <div className="w-16 h-16 rounded-full border-2 border-primary/20" />
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="text-center">
-                    <p className="text-xl font-semibold text-primary">🎯 AI Magic in Progress</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {uploadState.progress < 40 ? "Parsing your data..." : 
-                       uploadState.progress < 70 ? "Detecting data types and quality..." :
-                       uploadState.progress < 90 ? "Running statistical analysis..." :
-                       "Preparing results..."}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Progress value={uploadState.progress} className="w-full max-w-sm mx-auto h-2" />
-                    <p className="text-xs text-center text-muted-foreground">
-                      {uploadState.progress}% complete • Usually done in 3 seconds
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : uploadState.progress === 100 && uploadState.uploadedDataset ? (
-              <div className="space-y-6">
-                <div className="flex items-center justify-center">
-                  <div className="relative">
-                    <CheckCircle2 className="h-20 w-20 text-success animate-pulse" />
-                    <div className="absolute -top-2 -right-2">
-                      <div className="text-2xl animate-bounce">✨</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-center space-y-2">
-                  <p className="text-2xl font-bold text-success">🎉 Magic Complete!</p>
-                  <p className="text-lg font-medium">
-                    Dataset "{uploadState.uploadedDataset.name}" analyzed successfully
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Ready for statistical analysis • Processing took just a few seconds
+
+          {uploadState.isUploading ? (
+            <div className="space-y-3 py-2">
+              <div className="flex items-center gap-3">
+                <Loader2 className="h-5 w-5 animate-spin text-primary flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">데이터 처리 중...</p>
+                  <p className="text-xs text-muted-foreground">
+                    {uploadState.progress < 50 ? "파일 파싱 중..." :
+                     uploadState.progress < 80 ? "데이터 검증 중..." :
+                     "결과 준비 중..."}
                   </p>
                 </div>
-                
-                {/* 스마트 분석 결과 표시 */}
-                {uploadState.showSmartAnalysis && uploadState.smartAnalysis && (
-                  <div className="max-h-96 overflow-y-auto">
-                    {/* <SmartAnalysisRecommendations
-                      analysisResult={uploadState.smartAnalysis}
-                      columns={[]} // 실제로는 데이터셋에서 가져와야 함
-                      onRunTest={(testName, variables) => {
-                        // 분석 시작
-                        window.location.href = `/statistics?dataset=${uploadState.uploadedDataset?.id}&test=${encodeURIComponent(testName)}`
-                      }}
-                      onViewDataDetails={() => {
-                        window.location.href = `/data?view=${uploadState.uploadedDataset?.id}`
-                      }}
-                    */ }
-                  </div>
-                )}
-                
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Button
-                    onClick={() => {
-                      // Navigate to Smart Flow (main analysis entry point)
-                      window.location.href = '/'
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <BarChart3 className="h-4 w-4" />
-                    스마트 분석 시작
-                  </Button>
-                  
-                  <Button 
-                    variant="outline"
-                    onClick={() => {
-                      // Navigate to data view page
-                      window.location.href = `/data?view=${uploadState.uploadedDataset?.id}`
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <Eye className="h-4 w-4" />
-                    View Data
-                  </Button>
-                  
-                  <Button 
-                    variant="ghost"
-                    onClick={() => {
-                      // Reset upload state for new upload
-                      setUploadState({
-                        isDragOver: false,
-                        isUploading: false,
-                        progress: 0
-                      })
-                    }}
-                    className="flex items-center gap-2"
-                  >
-                    <Upload className="h-4 w-4" />
-                    Upload Another
-                  </Button>
+                <span className="text-xs text-muted-foreground">{uploadState.progress}%</span>
+              </div>
+              <Progress value={uploadState.progress} className="h-1.5" />
+            </div>
+          ) : uploadState.progress === 100 && uploadState.uploadedDataset ? (
+            <div className="space-y-3 py-2">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">업로드 완료</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {uploadState.uploadedDataset.name}
+                  </p>
                 </div>
               </div>
-            ) : (
-              <div className="space-y-6">
-                <div className="flex items-center justify-center">
-                  <div className={cn(
-                    "transition-all duration-300",
-                    uploadState.isDragOver 
-                      ? "scale-110 text-primary" 
-                      : "text-muted-foreground hover:text-foreground"
-                  )}>
-                    <Upload className="h-16 w-16" />
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <p className={cn(
-                      "text-xl font-semibold transition-colors",
-                      uploadState.isDragOver ? "text-primary" : "text-foreground"
-                    )}>
-                      {uploadState.isDragOver ? "Release to start magic analysis!" : "Drop your data here"}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      AI will automatically analyze your data in 3 seconds
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    <Badge variant="outline" className="text-xs">CSV</Badge>
-                    <Badge variant="outline" className="text-xs">Excel</Badge>
-                    <Badge variant="outline" className="text-xs">TSV</Badge>
-                    <Badge variant="outline" className="text-xs">Max 50MB</Badge>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-center">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <div className="h-px w-12 bg-border" />
-                    <span>or</span>
-                    <div className="h-px w-12 bg-border" />
-                  </div>
-                </div>
-                
-                <div>
-                  <Button
-                    variant="outline"
-                    className="cursor-pointer"
-                    onClick={() => inputRef.current?.click()}
-                    disabled={uploadState.isUploading}
-                    aria-label="Browse files"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Browse Files
-                  </Button>
-                  <input
-                    id="file-upload"
-                    type="file"
-                    className="hidden"
-                    accept=".csv,.tsv,.txt,.xls,.xlsx"
-                    onChange={handleFileSelect}
-                    disabled={uploadState.isUploading}
-                    ref={inputRef}
-                  />
-                </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => { window.location.href = '/' }}
+                >
+                  분석 시작
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    window.location.href = `/data?view=${uploadState.uploadedDataset?.id}`
+                  }}
+                >
+                  <Eye className="h-3.5 w-3.5 mr-1.5" />
+                  데이터 보기
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setUploadState({ isDragOver: false, isUploading: false, progress: 0 })
+                  }}
+                >
+                  다른 파일
+                </Button>
               </div>
-            )}
-          </div>
-          
-          <div className="mt-4 space-y-3">
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p><strong>지원 형식:</strong> CSV, TSV, Excel (.xls, .xlsx)</p>
-              <p><strong>최대 파일 크기:</strong> 50MB</p>
-              <p><strong>요구사항:</strong> 첫 번째 행에 열 이름 포함</p>
             </div>
-            
-            <div className="flex justify-center">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <HelpCircle className="h-4 w-4 mr-2" />
-                    데이터 형식 가이드
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>데이터 형식 가이드</DialogTitle>
-                    <DialogDescription>
-                      올바른 데이터 업로드를 위한 상세 가이드
-                    </DialogDescription>
-                  </DialogHeader>
-                  <DataFormatGuide />
-                </DialogContent>
-              </Dialog>
+          ) : (
+            <div
+              className={cn(
+                uploadZoneClassName(uploadState.isDragOver, { clickable: true }),
+                'group'
+              )}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onClick={() => inputRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inputRef.current?.click() } }}
+            >
+              <input
+                type="file"
+                className="hidden"
+                accept=".csv,.tsv,.txt,.xls,.xlsx"
+                onChange={handleFileSelect}
+                disabled={uploadState.isUploading}
+                ref={inputRef}
+              />
+              <UploadDropZoneContent
+                isDragActive={uploadState.isDragOver}
+                label="데이터 파일을 드래그하거나 클릭하여 선택"
+                subtitle="CSV, Excel, TSV 지원 · 최대 50MB"
+                buttonLabel="파일 선택"
+                showIcon={true}
+              />
             </div>
+          )}
+
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/30">
+            <p className="text-xs text-muted-foreground">
+              첫 행에 열 이름 포함 필수
+            </p>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground">
+                  <HelpCircle className="h-3 w-3" />
+                  형식 가이드
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>데이터 형식 가이드</DialogTitle>
+                  <DialogDescription>
+                    올바른 데이터 업로드를 위한 상세 가이드
+                  </DialogDescription>
+                </DialogHeader>
+                <DataFormatGuide />
+              </DialogContent>
+            </Dialog>
           </div>
         </CardContent>
       </Card>
@@ -450,7 +278,7 @@ interface InlineFileUploadProps {
   className?: string
 }
 
-export function InlineFileUpload({ onUploadComplete, className }: InlineFileUploadProps) {
+export function InlineFileUpload({ onUploadComplete, className }: InlineFileUploadProps): React.ReactElement {
   const { addDataset } = useAppStore()
   const [isUploading, setIsUploading] = useState(false)
 
@@ -481,14 +309,14 @@ export function InlineFileUpload({ onUploadComplete, className }: InlineFileUplo
       const dataset = addDataset(datasetData)
       
       if (dataValidation.errors.length > 0) {
-        toast.error(`Upload failed: ${dataValidation.errors[0]}`)
+        toast.error(`업로드 실패: ${dataValidation.errors[0]}`)
       } else {
-        toast.success(`✅ Dataset uploaded successfully! Ready for analysis.`)
+        toast.success(`"${datasetData.name}" 업로드 완료`)
         onUploadComplete?.(dataset.id)
       }
       
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Upload failed'
+      const errorMessage = error instanceof Error ? error.message : '업로드 실패'
       toast.error(errorMessage)
     } finally {
       setIsUploading(false)
@@ -503,15 +331,13 @@ export function InlineFileUpload({ onUploadComplete, className }: InlineFileUplo
           <span>
             {isUploading ? (
               <>
-                <div className="animate-spin w-4 h-4 mr-2">
-                  <Upload className="h-4 w-4" />
-                </div>
-                Uploading...
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                업로드 중...
               </>
             ) : (
               <>
                 <Upload className="h-4 w-4 mr-2" />
-                Upload Dataset
+                파일 업로드
               </>
             )}
           </span>

@@ -15,7 +15,7 @@ export function uploadZoneClassName(
 ): string {
   return cn(
     'border-2 border-dashed rounded-xl px-6 text-center transition-all duration-200',
-    opts?.compact ? 'py-4' : 'py-6',
+    opts?.compact ? 'py-3' : 'py-4',
     isDragActive
       ? 'border-primary bg-primary/5 shadow-[0_0_0_4px_rgba(var(--primary-rgb,0,0,0),0.05)]'
       : 'border-border/60 hover:border-primary/40 hover:bg-muted/20',
@@ -77,7 +77,7 @@ export function UploadDropZoneContent({
   return (
     <>
       {showIcon && (
-        <div className="w-10 h-10 mx-auto mb-3 rounded-xl bg-muted/50 border border-border/40 flex items-center justify-center group-hover:bg-primary/5 group-hover:border-primary/20 transition-colors duration-200">
+        <div className="w-8 h-8 mx-auto mb-2 rounded-lg bg-muted/50 border border-border/40 flex items-center justify-center group-hover:bg-primary/5 group-hover:border-primary/20 transition-colors duration-200">
           <Upload className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
         </div>
       )}
