@@ -193,11 +193,6 @@ export function DataPrepGuide({
               ) : (
                 <div />
               )}
-              {guide.spssMenu && (
-                <span className="text-[10px] text-blue-400 dark:text-blue-500">
-                  SPSS: {guide.spssMenu}
-                </span>
-              )}
             </div>
           </div>
         )}

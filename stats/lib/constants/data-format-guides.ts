@@ -25,8 +25,6 @@ export interface DataFormatGuideInfo {
   example: DataFormatExample
   /** 예시 CSV 파일명 (public/example-data/) */
   exampleFile?: string
-  /** SPSS 메뉴 경로 (참고용) */
-  spssMenu?: string
   /** 주의사항 */
   warnings?: string[]
 }
@@ -77,7 +75,6 @@ const ONE_SAMPLE_T: DataFormatGuideInfo = {
     ],
   },
   exampleFile: 'one-sample-t.csv',
-  spssMenu: '분석 > 평균비교 > 일표본 T검정',
 }
 
 const INDEPENDENT_T: DataFormatGuideInfo = {
@@ -98,7 +95,6 @@ const INDEPENDENT_T: DataFormatGuideInfo = {
     ],
   },
   exampleFile: 'independent-t-test.csv',
-  spssMenu: '분석 > 평균비교 > 독립표본 T검정',
 }
 
 const PAIRED_T: DataFormatGuideInfo = {
@@ -119,14 +115,12 @@ const PAIRED_T: DataFormatGuideInfo = {
     ],
   },
   exampleFile: 'paired-t-test.csv',
-  spssMenu: '분석 > 평균비교 > 대응표본 T검정',
   warnings: ['두 열의 행 수가 동일해야 합니다 (짝이 맞아야 함)'],
 }
 
 const WELCH_T: DataFormatGuideInfo = {
   ...INDEPENDENT_T,
   methodId: 'welch-t',
-  spssMenu: '분석 > 평균비교 > 독립표본 T검정 (등분산 가정 안 함)',
 }
 
 // ============================================================================
@@ -152,7 +146,6 @@ const ONE_WAY_ANOVA: DataFormatGuideInfo = {
     ],
   },
   exampleFile: 'one-way-anova.csv',
-  spssMenu: '분석 > 평균비교 > 일원배치 분산분석',
 }
 
 const TWO_WAY_ANOVA: DataFormatGuideInfo = {
@@ -172,7 +165,6 @@ const TWO_WAY_ANOVA: DataFormatGuideInfo = {
       ['여', '방법B', 95],
     ],
   },
-  spssMenu: '분석 > 일반선형모형 > 일변량',
 }
 
 const REPEATED_MEASURES_ANOVA: DataFormatGuideInfo = {
@@ -193,7 +185,6 @@ const REPEATED_MEASURES_ANOVA: DataFormatGuideInfo = {
     ],
   },
   exampleFile: 'repeated-measures-anova.csv',
-  spssMenu: '분석 > 일반선형모형 > 반복측정',
   warnings: ['모든 시점의 데이터가 있어야 합니다 (빈 칸 불가)'],
 }
 
@@ -214,7 +205,6 @@ const ANCOVA: DataFormatGuideInfo = {
       ['대조군', 68, 70],
     ],
   },
-  spssMenu: '분석 > 일반선형모형 > 일변량 (공변량 지정)',
 }
 
 const MANOVA: DataFormatGuideInfo = {
@@ -233,7 +223,6 @@ const MANOVA: DataFormatGuideInfo = {
       ['2반', 88, 82, 90],
     ],
   },
-  spssMenu: '분석 > 일반선형모형 > 다변량',
 }
 
 // ============================================================================
@@ -258,7 +247,6 @@ const MANN_WHITNEY: DataFormatGuideInfo = {
     ],
   },
   exampleFile: 'mann-whitney.csv',
-  spssMenu: '분석 > 비모수검정 > 독립 2표본',
 }
 
 const WILCOXON: DataFormatGuideInfo = {
@@ -279,7 +267,6 @@ const WILCOXON: DataFormatGuideInfo = {
     ],
   },
   exampleFile: 'wilcoxon.csv',
-  spssMenu: '분석 > 비모수검정 > 대응 2표본',
 }
 
 const KRUSKAL_WALLIS: DataFormatGuideInfo = {
@@ -299,7 +286,6 @@ const KRUSKAL_WALLIS: DataFormatGuideInfo = {
       ['동해', 135],
     ],
   },
-  spssMenu: '분석 > 비모수검정 > 독립 K표본',
 }
 
 const FRIEDMAN: DataFormatGuideInfo = {
@@ -318,7 +304,6 @@ const FRIEDMAN: DataFormatGuideInfo = {
       ['심사위원3', 9, 5, 8],
     ],
   },
-  spssMenu: '분석 > 비모수검정 > 대응 K표본',
 }
 
 const SIGN_TEST: DataFormatGuideInfo = {
@@ -330,7 +315,6 @@ const SIGN_TEST: DataFormatGuideInfo = {
     '전 측정값, 후 측정값을 각각 다른 열에',
     '가장 단순한 대응표본 비모수 검정',
   ],
-  spssMenu: '분석 > 비모수검정 > 대응 2표본 > 부호검정',
 }
 
 const MCNEMAR: DataFormatGuideInfo = {
@@ -350,7 +334,6 @@ const MCNEMAR: DataFormatGuideInfo = {
       ['학생4', '불합격', '합격'],
     ],
   },
-  spssMenu: '분석 > 비모수검정 > 대응 2표본 > McNemar',
 }
 
 const COCHRAN_Q: DataFormatGuideInfo = {
@@ -369,7 +352,6 @@ const COCHRAN_Q: DataFormatGuideInfo = {
       ['환자3', 0, 0, 1],
     ],
   },
-  spssMenu: '분석 > 비모수검정 > 대응 K표본 > Cochran Q',
 }
 
 const BINOMIAL_TEST: DataFormatGuideInfo = {
@@ -385,7 +367,6 @@ const BINOMIAL_TEST: DataFormatGuideInfo = {
       ['성공'], ['성공'], ['실패'], ['성공'], ['실패'],
     ],
   },
-  spssMenu: '분석 > 비모수검정 > 이항검정',
 }
 
 const RUNS_TEST: DataFormatGuideInfo = {
@@ -402,7 +383,6 @@ const RUNS_TEST: DataFormatGuideInfo = {
       [12], [15], [11], [18], [14],
     ],
   },
-  spssMenu: '분석 > 비모수검정 > 런 검정',
 }
 
 const KS_TEST: DataFormatGuideInfo = {
@@ -419,7 +399,6 @@ const KS_TEST: DataFormatGuideInfo = {
       [85], [90], [78], [92], [88],
     ],
   },
-  spssMenu: '분석 > 비모수검정 > 1표본 K-S',
 }
 
 const MOOD_MEDIAN: DataFormatGuideInfo = {
@@ -438,7 +417,6 @@ const MOOD_MEDIAN: DataFormatGuideInfo = {
       ['품종C', 110],
     ],
   },
-  spssMenu: '분석 > 비모수검정 > 독립 K표본 > 중앙값',
 }
 
 // ============================================================================
@@ -463,7 +441,6 @@ const CORRELATION: DataFormatGuideInfo = {
     ],
   },
   exampleFile: 'correlation.csv',
-  spssMenu: '분석 > 상관분석 > 이변량',
 }
 
 const PARTIAL_CORRELATION: DataFormatGuideInfo = {
@@ -483,7 +460,6 @@ const PARTIAL_CORRELATION: DataFormatGuideInfo = {
       [60, 65, 2],
     ],
   },
-  spssMenu: '분석 > 상관분석 > 편상관',
 }
 
 // ============================================================================
@@ -509,7 +485,6 @@ const REGRESSION: DataFormatGuideInfo = {
     ],
   },
   exampleFile: 'linear-regression.csv',
-  spssMenu: '분석 > 회귀분석 > 선형',
 }
 
 const STEPWISE: DataFormatGuideInfo = {
@@ -529,7 +504,6 @@ const STEPWISE: DataFormatGuideInfo = {
       [4, 9, 2, 75],
     ],
   },
-  spssMenu: '분석 > 회귀분석 > 선형 > 방법: 단계선택',
 }
 
 // ============================================================================
@@ -556,7 +530,6 @@ const CHI_SQUARE: DataFormatGuideInfo = {
     ],
   },
   exampleFile: 'chi-square.csv',
-  spssMenu: '분석 > 기술통계 > 교차분석 > 카이제곱',
 }
 
 const CHI_SQUARE_GOODNESS: DataFormatGuideInfo = {
@@ -573,7 +546,6 @@ const CHI_SQUARE_GOODNESS: DataFormatGuideInfo = {
       ['A'], ['B'], ['O'], ['A'], ['AB'], ['O'], ['A'],
     ],
   },
-  spssMenu: '분석 > 비모수검정 > 카이제곱',
 }
 
 // ============================================================================
@@ -596,7 +568,6 @@ const DESCRIPTIVE: DataFormatGuideInfo = {
       ['박철수', 180, 85, 'O'],
     ],
   },
-  spssMenu: '분석 > 기술통계 > 기술통계량',
 }
 
 // ============================================================================
@@ -617,7 +588,6 @@ const NORMALITY_TEST: DataFormatGuideInfo = {
       [68], [72], [65], [70], [75], [69],
     ],
   },
-  spssMenu: '분석 > 기술통계 > 데이터 탐색 > 정규성 도표',
 }
 
 // ============================================================================
@@ -641,7 +611,6 @@ const ARIMA: DataFormatGuideInfo = {
       ['2024-04', 1500],
     ],
   },
-  spssMenu: '분석 > 시계열 > ARIMA',
 }
 
 const SEASONAL_DECOMPOSE: DataFormatGuideInfo = {
@@ -661,7 +630,6 @@ const SEASONAL_DECOMPOSE: DataFormatGuideInfo = {
       ['2023-04', 1350],
     ],
   },
-  spssMenu: '분석 > 시계열 > 계절분해',
   warnings: ['계절 주기를 알아야 합니다 (월별=12, 분기별=4)'],
 }
 
@@ -682,7 +650,6 @@ const MANN_KENDALL: DataFormatGuideInfo = {
       [2018, 15.1],
     ],
   },
-  spssMenu: '분석 > 비모수검정 (추세 검정)',
 }
 
 const STATIONARITY_TEST: DataFormatGuideInfo = {
@@ -726,7 +693,6 @@ const KAPLAN_MEIER: DataFormatGuideInfo = {
       [36, 0, '약물B'],
     ],
   },
-  spssMenu: '분석 > 생존분석 > Kaplan-Meier',
 }
 
 const COX_REGRESSION: DataFormatGuideInfo = {
@@ -746,7 +712,6 @@ const COX_REGRESSION: DataFormatGuideInfo = {
       [36, 0, 48, 'B'],
     ],
   },
-  spssMenu: '분석 > 생존분석 > Cox 회귀',
   warnings: ['비례위험 가정을 확인해야 합니다'],
 }
 
@@ -770,7 +735,6 @@ const PCA: DataFormatGuideInfo = {
       [95, 88, 92, 90],
     ],
   },
-  spssMenu: '분석 > 차원축소 > 요인분석',
 }
 
 const FACTOR_ANALYSIS: DataFormatGuideInfo = {
@@ -782,7 +746,6 @@ const FACTOR_ANALYSIS: DataFormatGuideInfo = {
     '한 행에 한 응답자',
     '리커트 척도 등 수치형 데이터',
   ],
-  spssMenu: '분석 > 차원축소 > 요인분석',
 }
 
 const CLUSTER: DataFormatGuideInfo = {
@@ -801,7 +764,6 @@ const CLUSTER: DataFormatGuideInfo = {
       [8000, 4500, 44],
     ],
   },
-  spssMenu: '분석 > 분류분석 > K-평균 군집',
 }
 
 const DISCRIMINANT: DataFormatGuideInfo = {
@@ -821,7 +783,6 @@ const DISCRIMINANT: DataFormatGuideInfo = {
       ['돔', 22, 11, 300],
     ],
   },
-  spssMenu: '분석 > 분류분석 > 판별분석',
 }
 
 const RELIABILITY: DataFormatGuideInfo = {
@@ -840,7 +801,6 @@ const RELIABILITY: DataFormatGuideInfo = {
       [5, 5, 4, 5],
     ],
   },
-  spssMenu: '분석 > 척도 > 신뢰도분석',
 }
 
 // ============================================================================

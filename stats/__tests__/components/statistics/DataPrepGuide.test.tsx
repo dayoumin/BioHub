@@ -24,7 +24,6 @@ const CUSTOM_GUIDE: DataFormatGuideInfo = {
     ],
   },
   exampleFile: 'test.csv',
-  spssMenu: 'Test > Menu',
   warnings: ['Warning message'],
 }
 
