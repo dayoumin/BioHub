@@ -10,7 +10,8 @@
  * handlers prop 제거 → isHubVisible + onBackToHub만 수신.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { DataExplorationStep } from '@/components/analysis/steps/DataExplorationStep'
 import { PurposeInputStep } from '@/components/analysis/steps/PurposeInputStep'
@@ -22,9 +23,31 @@ import { ReanalysisBanner, QuickAnalysisBanner } from '@/components/analysis/ste
 import { InlineError } from '@/components/common/InlineError'
 import { useTerminology } from '@/hooks/use-terminology'
 import { useDataUpload } from '@/hooks/use-data-upload'
+import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
 import type { StatisticalMethod, AnalysisResult } from '@/types/analysis'
+
+/** Step 전환 애니메이션 variants */
+const stepVariants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? 20 : -20,
+    opacity: 0,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+  },
+  exit: (direction: number) => ({
+    x: direction > 0 ? -20 : 20,
+    opacity: 0,
+  }),
+}
+
+const stepTransition = {
+  x: { type: 'tween' as const, duration: 0.25, ease: 'easeOut' as const },
+  opacity: { duration: 0.2 },
+}
 
 interface AnalysisStepsProps {
   /** Hub가 표시 중이면 스텝 렌더링 생략 */
@@ -35,6 +58,7 @@ interface AnalysisStepsProps {
 
 export function AnalysisSteps({ isHubVisible, onBackToHub }: AnalysisStepsProps): React.ReactElement | null {
   const t = useTerminology()
+  const prefersReducedMotion = useReducedMotion()
 
   // ─── Store 직접 구독 ───
   const {
@@ -68,18 +92,26 @@ export function AnalysisSteps({ isHubVisible, onBackToHub }: AnalysisStepsProps)
 
   // ─── 애니메이션 방향 추적 ───
   const prevStepRef = useRef(currentStep)
-  const [direction, setDirection] = useState<'forward' | 'backward'>('forward')
+  const [direction, setDirection] = useState(0)
+  const isFirstMount = direction === 0
 
   useEffect(() => {
-    if (currentStep > prevStepRef.current) setDirection('forward')
-    else if (currentStep < prevStepRef.current) setDirection('backward')
+    if (currentStep > prevStepRef.current) setDirection(1)
+    else if (currentStep < prevStepRef.current) setDirection(-1)
     prevStepRef.current = currentStep
   }, [currentStep])
 
-  const animationClass = useMemo(() => {
-    if (isHubVisible) return 'animate-fade-in'
-    return direction === 'forward' ? 'animate-slide-left' : 'animate-slide-right'
-  }, [direction, isHubVisible])
+  // 공통 motion props — 4개 Step에서 재사용
+  const motionProps = prefersReducedMotion || isFirstMount
+    ? { animate: 'center' as const, transition: { duration: 0 } }
+    : {
+        custom: direction,
+        variants: stepVariants,
+        initial: 'enter' as const,
+        animate: 'center' as const,
+        exit: 'exit' as const,
+        transition: stepTransition,
+      }
 
   // ─── 인라인 핸들러 (이전 useAnalysisHandlers에서 이동) ───
 
@@ -120,88 +152,90 @@ export function AnalysisSteps({ isHubVisible, onBackToHub }: AnalysisStepsProps)
 
   return (
     <>
-      {/* ===== Step 1: Data Exploration ===== */}
-      {currentStep === 1 && (
-        <div className={animationClass} key="step1">
-          {stepTrack === 'reanalysis' && selectedMethod && !uploadedData && (
-            <ReanalysisBanner
-              method={selectedMethod}
-              t={{ title: t.reanalysis.title, description: t.analysis.modeBanners.reanalysis.description }}
-            />
-          )}
-
-          {stepTrack === 'quick' && selectedMethod && (
-            <QuickAnalysisBanner
-              method={selectedMethod}
-              onNormalMode={() => setStepTrack('normal')}
-              onChangeMethod={() => {
-                setStepTrack('normal')
-                onBackToHub ? onBackToHub() : navigateToStep(2)
-              }}
-              t={t.analysis.modeBanners.quickAnalysis}
-            />
-          )}
-
-          <ErrorBoundary>
-            <DataExplorationStep
-              validationResults={validationResults}
-              data={uploadedData ?? []}
-              onUploadComplete={handleUploadComplete}
-              existingFileName={uploadedFileName ?? undefined}
-            />
-          </ErrorBoundary>
-
-          {stepTrack === 'reanalysis' && uploadedData && uploadedData.length > 0 && (
-            <div className="mt-6">
-              <ReanalysisPanel
+      <AnimatePresence mode="wait" custom={direction}>
+        {/* ===== Step 1: Data Exploration ===== */}
+        {currentStep === 1 && (
+          <motion.div key="step1" {...motionProps}>
+            {stepTrack === 'reanalysis' && selectedMethod && !uploadedData && (
+              <ReanalysisBanner
                 method={selectedMethod}
-                variableMapping={variableMapping}
-                compatibility={reanalysisCompatibility}
-                onRunAnalysis={handleReanalysisRun}
-                onEditVariables={handleReanalysisEditVariables}
-                isAnalyzing={isLoading}
+                t={{ title: t.reanalysis.title, description: t.analysis.modeBanners.reanalysis.description }}
               />
-            </div>
-          )}
-        </div>
-      )}
+            )}
 
-      {/* ===== Step 2: Purpose Input ===== */}
-      {currentStep === 2 && (
-        <div className={animationClass} key="step2">
-          <PurposeInputStep
-            onPurposeSubmit={handlePurposeSubmit}
-            validationResults={validationResults}
-            data={uploadedData}
-          />
-        </div>
-      )}
+            {stepTrack === 'quick' && selectedMethod && (
+              <QuickAnalysisBanner
+                method={selectedMethod}
+                onNormalMode={() => setStepTrack('normal')}
+                onChangeMethod={() => {
+                  setStepTrack('normal')
+                  onBackToHub ? onBackToHub() : navigateToStep(2)
+                }}
+                t={t.analysis.modeBanners.quickAnalysis}
+              />
+            )}
 
-      {/* ===== Step 3: Variable Selection ===== */}
-      {currentStep === 3 && (
-        <div className={animationClass} key="step3">
-          <VariableSelectionStep onBack={goToPreviousStep} />
-        </div>
-      )}
+            <ErrorBoundary>
+              <DataExplorationStep
+                validationResults={validationResults}
+                data={uploadedData ?? []}
+                onUploadComplete={handleUploadComplete}
+                existingFileName={uploadedFileName ?? undefined}
+              />
+            </ErrorBoundary>
 
-      {/* ===== Step 4: Analysis & Results ===== */}
-      {currentStep === 4 && (
-        <div className={animationClass} key="step4">
-          {!results ? (
-            <AnalysisExecutionStep
-              selectedMethod={selectedMethod}
-              variableMapping={variableMapping ?? {}}
-              onAnalysisComplete={handleAnalysisComplete}
-              onNext={goToNextStep}
-              onPrevious={goToPreviousStep}
-              canGoNext={canProceedToNext()}
-              canGoPrevious={currentStep > 1}
+            {stepTrack === 'reanalysis' && uploadedData && uploadedData.length > 0 && (
+              <div className="mt-6">
+                <ReanalysisPanel
+                  method={selectedMethod}
+                  variableMapping={variableMapping}
+                  compatibility={reanalysisCompatibility}
+                  onRunAnalysis={handleReanalysisRun}
+                  onEditVariables={handleReanalysisEditVariables}
+                  isAnalyzing={isLoading}
+                />
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* ===== Step 2: Purpose Input ===== */}
+        {currentStep === 2 && (
+          <motion.div key="step2" {...motionProps}>
+            <PurposeInputStep
+              onPurposeSubmit={handlePurposeSubmit}
+              validationResults={validationResults}
+              data={uploadedData}
             />
-          ) : (
-            <ResultsActionStep results={results} />
-          )}
-        </div>
-      )}
+          </motion.div>
+        )}
+
+        {/* ===== Step 3: Variable Selection ===== */}
+        {currentStep === 3 && (
+          <motion.div key="step3" {...motionProps}>
+            <VariableSelectionStep onBack={goToPreviousStep} />
+          </motion.div>
+        )}
+
+        {/* ===== Step 4: Analysis & Results ===== */}
+        {currentStep === 4 && (
+          <motion.div key="step4" {...motionProps}>
+            {!results ? (
+              <AnalysisExecutionStep
+                selectedMethod={selectedMethod}
+                variableMapping={variableMapping ?? {}}
+                onAnalysisComplete={handleAnalysisComplete}
+                onNext={goToNextStep}
+                onPrevious={goToPreviousStep}
+                canGoNext={canProceedToNext()}
+                canGoPrevious={currentStep > 1}
+              />
+            ) : (
+              <ResultsActionStep results={results} />
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Error Message */}
       {error && (

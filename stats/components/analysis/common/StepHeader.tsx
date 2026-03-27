@@ -42,15 +42,12 @@ export function StepHeader({
       <Icon className="h-5 w-5 text-primary" />
       <h2 className="text-xl font-semibold">{title}</h2>
       {badge && (
-        <Badge variant={badge.variant || 'secondary'} className="ml-auto">
+        <Badge variant={badge.variant || 'secondary'}>
           {badge.label}
         </Badge>
       )}
-      {action && !badge && (
-        <div className="ml-auto">{action}</div>
-      )}
-      {action && badge && (
-        <div className="ml-2">{action}</div>
+      {action && (
+        <div className="ml-auto flex-shrink-0">{action}</div>
       )}
     </div>
   )

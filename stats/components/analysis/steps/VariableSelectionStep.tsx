@@ -311,7 +311,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
       {/* AI Detected Variables Info */}
       {detectedVariables && (
-        <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/20 border border-border/30">
+        <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/30 border border-border/40">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
             <Sparkles className="h-4 w-4 text-primary" />
           </div>

@@ -3,6 +3,7 @@
 import { useMemo, useCallback, useRef } from 'react'
 import { useState } from 'react'
 import { Upload, X, Copy, Check } from 'lucide-react'
+import { toast } from 'sonner'
 import type { BlastMarker, SequenceValidation } from '@biohub/types'
 import { validateSequence } from '@/lib/genetics/validate-sequence'
 import { EXAMPLE_SEQUENCES } from '@/lib/genetics/example-sequences'
@@ -57,7 +58,7 @@ export function SequenceInput({
     const file = e.target.files?.[0]
     if (!file) return
     if (file.size > 1_000_000) {
-      alert('파일 크기가 1MB를 초과합니다. 더 작은 파일을 사용하세요.')
+      toast.error('파일 크기가 1MB를 초과합니다. 더 작은 파일을 사용하세요.')
       return
     }
 
@@ -132,19 +133,24 @@ export function SequenceInput({
             DNA 서열 (FASTA)
           </label>
           <div className="flex items-center gap-1">
-            {!sequence.trim() && (
-              <Button
-                type="button"
-                variant="link"
-                size="sm"
-                className="h-auto p-0 text-xs text-green-600 hover:text-green-800"
-                onClick={() => {
-                  onSequenceChange(EXAMPLE_SEQUENCES[0].sequence)
-                  onUploadedFileNameChange(null)
-                }}
-              >
-                예제 서열 넣기
-              </Button>
+            {!sequence.trim() && (() => {
+              const example = EXAMPLE_SEQUENCES.find(ex => ex.marker === marker) ?? EXAMPLE_SEQUENCES[0]
+              const latinName = example.species.split(' (')[0]
+              return (
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 text-xs text-green-600 hover:text-green-800"
+                  onClick={() => {
+                    onSequenceChange(example.sequence)
+                    onUploadedFileNameChange(null)
+                  }}
+                >
+                  예제 서열 넣기 ({latinName})
+                </Button>
+              )
+            })()
             )}
             <Button
               type="button"

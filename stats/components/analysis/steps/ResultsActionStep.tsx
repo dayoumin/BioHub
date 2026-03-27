@@ -797,43 +797,46 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           title={t.analysis.stepTitles.results}
           badge={selectedMethod ? { label: selectedMethod.name } : undefined}
           action={
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1 sm:gap-1.5">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleCopyResults}
-                className={cn("h-8 px-2.5", isCopied && "text-primary")}
+                aria-label={isCopied ? t.results.buttons.copied : t.results.buttons.copy}
+                className={cn("h-8 px-1.5 sm:px-2.5", isCopied && "text-primary")}
               >
-                {isCopied ? <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> : <Copy className="w-3.5 h-3.5 mr-1" />}
-                {isCopied ? t.results.buttons.copied : t.results.buttons.copy}
+                {isCopied ? <CheckCircle2 className="w-3.5 h-3.5 sm:mr-1" /> : <Copy className="w-3.5 h-3.5 sm:mr-1" />}
+                <span className="hidden sm:inline">{isCopied ? t.results.buttons.copied : t.results.buttons.copy}</span>
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleSaveButtonClick}
                 disabled={isSaved || isSavingToHistory}
-                className={cn("h-8 px-2.5", isSaved && "text-emerald-600")}
+                aria-label={isSaved ? t.results.buttons.saved : t.results.buttons.save}
+                className={cn("h-8 px-1.5 sm:px-2.5", isSaved && "text-success")}
                 data-testid="save-history-btn"
               >
-                {isSaved ? <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> : <Save className="w-3.5 h-3.5 mr-1" />}
-                {isSaved ? t.results.buttons.saved : t.results.buttons.save}
+                {isSaved ? <CheckCircle2 className="w-3.5 h-3.5 sm:mr-1" /> : <Save className="w-3.5 h-3.5 sm:mr-1" />}
+                <span className="hidden sm:inline">{isSaved ? t.results.buttons.saved : t.results.buttons.save}</span>
               </Button>
               <Button
                 variant={paperDraft ? 'secondary' : 'outline'}
                 size="sm"
                 onClick={handlePaperDraftToggle}
-                className={cn("h-8 px-2.5 shadow-sm", paperDraft && "text-primary")}
+                aria-label={t.results.buttons.resultsSummary}
+                className={cn("h-8 px-1.5 sm:px-2.5 shadow-sm", paperDraft && "text-primary")}
                 data-testid="paper-draft-btn"
               >
-                <BookOpen className="w-3.5 h-3.5 mr-1" />
-                {paperDraft ? '정리 보기' : '결과 정리'}
+                <BookOpen className="w-3.5 h-3.5 sm:mr-1" />
+                <span className="hidden sm:inline">{paperDraft ? t.results.buttons.viewSummary : t.results.buttons.resultsSummary}</span>
               </Button>
-              <div className="w-px h-4 bg-border/50" />
+              <div className="w-px h-4 bg-border/50 hidden sm:block" />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" disabled={isExporting} className="h-8 px-2.5 shadow-sm" data-testid="export-dropdown">
-                    <Download className="w-3.5 h-3.5 mr-1" />
-                    {isExporting ? t.results.buttons.exporting : t.results.buttons.export}
+                  <Button variant="outline" size="sm" disabled={isExporting} aria-label={t.results.buttons.export} className="h-8 px-1.5 sm:px-2.5 shadow-sm" data-testid="export-dropdown">
+                    <Download className="w-3.5 h-3.5 sm:mr-1" />
+                    <span className="hidden sm:inline">{isExporting ? t.results.buttons.exporting : t.results.buttons.export}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -986,7 +989,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         <Sheet open={paperDraftOpen} onOpenChange={setPaperDraftOpen}>
           <SheetContent side="right" className="w-[560px] max-w-[90vw] p-0 flex flex-col gap-0">
             <SheetHeader className="px-4 py-3 border-b shrink-0">
-              <SheetTitle className="text-sm font-semibold">결과 정리</SheetTitle>
+              <SheetTitle className="text-sm font-semibold">{t.results.buttons.resultsSummary}</SheetTitle>
             </SheetHeader>
             {paperDraft && (
               <div className="flex-1 min-h-0 overflow-hidden">

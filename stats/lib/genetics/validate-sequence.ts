@@ -1,8 +1,29 @@
 import { MIN_SEQUENCE_LENGTH } from '@biohub/types'
-import type { SequenceValidation } from '@biohub/types'
+import type { BlastProgram, SequenceValidation } from '@biohub/types'
 
 const DNA_CHARS = new Set('ATGCN')
+const PROTEIN_CHARS = new Set('ACDEFGHIKLMNPQRSTVWYBXZJUO*')
+
+/** BLAST 프로그램이 DNA 입력을 받는지 여부 */
+export function isDnaProgram(program: BlastProgram): boolean {
+  return program === 'blastn' || program === 'blastx' || program === 'tblastx'
+}
 const AMBIGUOUS_WARN_RATIO = 0.05
+
+/** 다중 FASTA 헤더(>)가 2개 이상인지 검사 */
+function isMultiFasta(raw: string): boolean {
+  let count = 0
+  let idx = -1
+  while ((idx = raw.indexOf('>', idx + 1)) !== -1) {
+    if (idx === 0 || raw[idx - 1] === '\n' || raw[idx - 1] === '\r') {
+      if (++count > 1) return true
+    }
+  }
+  return false
+}
+
+const MULTI_FASTA_ERROR = '다중 서열이 감지되었습니다. 한 번에 하나의 서열만 입력하세요.'
+const EMPTY_RESULT: SequenceValidation = { valid: false, length: 0, gcContent: 0, ambiguousCount: 0, ambiguousRatio: 0, errors: [], warnings: [] }
 
 /** FASTA에서 순수 서열만 추출 (헤더, 공백, 숫자 제거) */
 export function cleanSequence(raw: string): string {
@@ -26,18 +47,8 @@ export function validateSequence(raw: string): SequenceValidation {
   const errors: string[] = []
   const warnings: string[] = []
 
-  // 다중 FASTA 시퀀스 감지: >로 시작하는 헤더가 2개 이상이면 에러 (early exit)
-  let headerCount = 0
-  let idx = -1
-  while ((idx = raw.indexOf('>', idx + 1)) !== -1) {
-    if (idx === 0 || raw[idx - 1] === '\n' || raw[idx - 1] === '\r') {
-      headerCount++
-      if (headerCount > 1) break
-    }
-  }
-  if (headerCount > 1) {
-    errors.push('다중 서열이 감지되었습니다. 한 번에 하나의 서열만 입력하세요.')
-    return { valid: false, length: 0, gcContent: 0, ambiguousCount: 0, ambiguousRatio: 0, errors, warnings }
+  if (isMultiFasta(raw)) {
+    return { ...EMPTY_RESULT, errors: [MULTI_FASTA_ERROR] }
   }
 
   const cleaned = cleanSequence(raw)
@@ -83,4 +94,59 @@ export function validateSequence(raw: string): SequenceValidation {
     errors,
     warnings,
   }
+}
+
+/** FASTA에서 순수 단백질 서열만 추출 (DNA와 동일 로직) */
+export const cleanProteinSequence = cleanSequence
+
+/** 단백질 서열 유효성 검사 */
+export function validateProteinSequence(raw: string): SequenceValidation {
+  const errors: string[] = []
+  const warnings: string[] = []
+
+  if (isMultiFasta(raw)) {
+    return { ...EMPTY_RESULT, errors: [MULTI_FASTA_ERROR] }
+  }
+
+  const cleaned = cleanProteinSequence(raw)
+
+  if (cleaned.length === 0) {
+    errors.push('서열을 입력하세요.')
+    return { valid: false, length: 0, gcContent: 0, ambiguousCount: 0, ambiguousRatio: 0, errors, warnings }
+  }
+
+  if (cleaned.length < 10) {
+    errors.push(`최소 10 aa 이상 필요합니다. (현재: ${cleaned.length} aa)`)
+  }
+
+  const invalidChars = new Set<string>()
+  let xCount = 0
+  for (const ch of cleaned) {
+    if (!PROTEIN_CHARS.has(ch)) invalidChars.add(ch)
+    if (ch === 'X') xCount++
+  }
+
+  if (invalidChars.size > 0) {
+    errors.push(`허용되지 않는 문자: ${[...invalidChars].join(', ')}.`)
+  }
+
+  const xRatio = xCount / cleaned.length
+  if (xRatio > 0.05) {
+    warnings.push(`미지 잔기(X)가 ${(xRatio * 100).toFixed(1)}%입니다.`)
+  }
+
+  return {
+    valid: errors.length === 0,
+    length: cleaned.length,
+    gcContent: 0,
+    ambiguousCount: xCount,
+    ambiguousRatio: xRatio,
+    errors,
+    warnings,
+  }
+}
+
+/** BLAST 프로그램에 맞는 서열 검증 함수 선택 */
+export function validateBlastSequence(raw: string, program: BlastProgram): SequenceValidation {
+  return isDnaProgram(program) ? validateSequence(raw) : validateProteinSequence(raw)
 }

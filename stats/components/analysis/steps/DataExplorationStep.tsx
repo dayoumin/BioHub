@@ -315,26 +315,26 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
         {/* 지원 기능 안내 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="p-4 bg-muted/20 border border-border/20 rounded-xl hover:bg-muted/30 transition-colors duration-200">
+          <div className="p-4 bg-primary/5 border border-primary/15 rounded-xl hover:bg-primary/8 transition-colors duration-200">
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
               <ListOrdered className="h-4 w-4 text-primary" />
             </div>
             <h4 className="font-semibold text-sm tracking-tight">{t.dataExploration.features.descriptiveTitle}</h4>
-            <p className="text-xs text-muted-foreground/80 mt-1.5 leading-relaxed">{t.dataExploration.features.descriptiveDesc}</p>
+            <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t.dataExploration.features.descriptiveDesc}</p>
           </div>
-          <div className="p-4 bg-muted/20 border border-border/20 rounded-xl hover:bg-muted/30 transition-colors duration-200">
+          <div className="p-4 bg-primary/5 border border-primary/15 rounded-xl hover:bg-primary/8 transition-colors duration-200">
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
               <BarChart3 className="h-4 w-4 text-primary" />
             </div>
             <h4 className="font-semibold text-sm tracking-tight">{t.dataExploration.features.distributionTitle}</h4>
-            <p className="text-xs text-muted-foreground/80 mt-1.5 leading-relaxed">{t.dataExploration.features.distributionDesc}</p>
+            <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t.dataExploration.features.distributionDesc}</p>
           </div>
-          <div className="p-4 bg-muted/20 border border-border/20 rounded-xl hover:bg-muted/30 transition-colors duration-200">
+          <div className="p-4 bg-primary/5 border border-primary/15 rounded-xl hover:bg-primary/8 transition-colors duration-200">
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
               <Flame className="h-4 w-4 text-primary" />
             </div>
             <h4 className="font-semibold text-sm tracking-tight">{t.dataExploration.features.correlationTitle}</h4>
-            <p className="text-xs text-muted-foreground/80 mt-1.5 leading-relaxed">{t.dataExploration.features.correlationDesc}</p>
+            <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t.dataExploration.features.correlationDesc}</p>
           </div>
         </div>
       </div>

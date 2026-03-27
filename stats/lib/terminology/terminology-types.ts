@@ -348,6 +348,8 @@ export interface PurposeInputText {
     selectionPrefix: string
     directBadge: string
     purposeHeading: string
+    categoryHeading: string
+    categoryDescription: string
   }
   /** 안내 메시지 */
   messages: {
@@ -945,6 +947,8 @@ export interface ResultsText {
     exportWithOptions: string
     backToVariables: string
     changeMethod: string
+    resultsSummary: string
+    viewSummary: string
   }
   /** 저장 관련 */
   save: {

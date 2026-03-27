@@ -114,7 +114,7 @@ export function ResultsActionButtons({
   return (
     <>
       {/* ===== 액션 버튼 ===== */}
-      <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-border/20" data-testid="action-buttons">
+      <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-border/40" data-testid="action-buttons">
         <Button
           variant="ghost"
           size="sm"

@@ -330,7 +330,9 @@ export const aquaculture: TerminologyDictionary = {
     labels: {
       selectionPrefix: '선택:',
       directBadge: '직접 선택',
-      purposeHeading: '어떤 분석을 하고 싶으신가요?'
+      purposeHeading: '어떤 분석을 하고 싶으신가요?',
+      categoryHeading: '무엇을 알고 싶으신가요?',
+      categoryDescription: '분석 목적에 맞는 카테고리를 선택해주세요',
     },
     messages: {
       purposeHelp: '8개 중 하나의 분석 목적을 선택하세요. 선택하면 단계별 질문을 통해 최적의 통계 방법을 추천합니다.',
@@ -891,6 +893,8 @@ export const aquaculture: TerminologyDictionary = {
       exportWithOptions: '세부 옵션으로 내보내기',
       backToVariables: '변수 선택으로',
       changeMethod: '방법 변경',
+      resultsSummary: '결과 정리',
+      viewSummary: '정리 보기',
     },
     save: {
       defaultName: (date: string) => `분석 ${date}`,

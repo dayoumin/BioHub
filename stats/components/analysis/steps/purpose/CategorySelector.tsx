@@ -101,10 +101,10 @@ export const CategorySelector = memo(function CategorySelector({
         className="text-center"
       >
         <h2 className="text-2xl font-bold text-foreground">
-          무엇을 알고 싶으신가요?
+          {t.purposeInput.labels.categoryHeading}
         </h2>
         <p className="text-muted-foreground mt-2">
-          분석 목적에 맞는 카테고리를 선택해주세요
+          {t.purposeInput.labels.categoryDescription}
         </p>
       </motion.div>
 

@@ -6,6 +6,16 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { StatisticalExecutor } from '@/lib/services/executors'
 import type { StatisticalExecutorResult as ExecutorResult } from '@/lib/services/executors'
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
@@ -65,6 +75,7 @@ export function AnalysisExecutionStep({
   const [showDetailedLog, setShowDetailedLog] = useState(false)
   const [estimatedTime, setEstimatedTime] = useState(5) // 초 단위
   const [analysisResult, setAnalysisResult] = useState<ExecutorResult | null>(null)
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
 
   // Store에서 필요한 데이터만 개별 selector로 구독 (불필요한 리렌더링 방지)
   const uploadedData = useAnalysisStore(state => state.uploadedData)
@@ -265,14 +276,13 @@ export function AnalysisExecutionStep({
   /**
    * 취소 처리
    */
-  const handleCancel = useCallback(() => {
-    if (window.confirm(t.analysis.execution.cancelConfirm)) {
-      cancelledRef.current = true
-      setIsCancelled(true)
-      addLog(logs.userCancelled)
-      if (onPrevious) onPrevious()
-    }
-  }, [addLog, logs, onPrevious, t])
+  const handleCancelConfirm = useCallback(() => {
+    setShowCancelDialog(false)
+    cancelledRef.current = true
+    setIsCancelled(true)
+    addLog(logs.userCancelled)
+    if (onPrevious) onPrevious()
+  }, [addLog, logs, onPrevious])
 
   // variableMapping 유효성: 어떤 키든 값이 있으면 유효
   const hasValidMapping = Boolean(
@@ -357,8 +367,8 @@ export function AnalysisExecutionStep({
           <CardContent className="pt-8 pb-6">
             <div className="text-center">
               <div className="mb-6">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-4">
-                  <BarChart3 className="w-10 h-10 text-primary animate-pulse" />
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-4">
+                  <BarChart3 className="w-7 h-7 text-primary" />
                 </div>
 
                 <h3 className="text-xl font-semibold mb-2">{t.analysis.execution.runningTitle}</h3>
@@ -383,7 +393,7 @@ export function AnalysisExecutionStep({
                   return (
                     <div key={stage.id} className="flex items-center gap-3">
                       {isCompleted ? (
-                        <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                        <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
                       ) : isCurrent ? (
                         <Loader2 className="w-5 h-5 text-primary animate-spin flex-shrink-0" />
                       ) : (
@@ -407,7 +417,7 @@ export function AnalysisExecutionStep({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleCancel}
+                    onClick={() => setShowCancelDialog(true)}
                   >
                     <X className="w-4 h-4 mr-2" />
                     {t.analysis.execution.cancelButton}
@@ -440,6 +450,24 @@ export function AnalysisExecutionStep({
           )}
         </div>
       </CollapsibleSection>
+
+      {/* 취소 확인 다이얼로그 */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t.analysis.execution.cancelButton}</AlertDialogTitle>
+            <AlertDialogDescription className="whitespace-pre-line">
+              {t.analysis.execution.cancelConfirm}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t.analysis.execution.resumeButton}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCancelConfirm}>
+              {t.analysis.execution.cancelButton}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -49,6 +49,23 @@
  * results 설정으로 자동 전환. navigateToStep(3) 시 results 유지.
  */
 
+/**
+ * === Surface/Border opacity 표준 (2단계) ===
+ * light  = bg-muted/30, border-border/40  (배지 바, 정보 패널)
+ * subtle = bg-muted/50, border-border/50  (코드 블록, 로그 영역)
+ *
+ * 사용하지 않는 중간 값 (bg-muted/20, border-border/20, border-border/30) 금지
+ *
+ * TODO: 기존 하드코딩된 opacity 값을 이 토큰으로 점진적 교체
+ * 현재는 문서 역할 — Tailwind 클래스 문자열이므로 직접 import보다 규칙 참조용
+ */
+export const SURFACE = {
+  /** 배지 바, 정보 카드, AI 감지 변수 */
+  light: { bg: 'bg-muted/30', border: 'border-border/40' },
+  /** 코드 블록, 실행 로그, 비활성 영역 */
+  subtle: { bg: 'bg-muted/50', border: 'border-border/50' },
+} as const
+
 export const STEP_STYLES = {
   cardHeaderBg: 'bg-muted/10',
   spaciousPadding: 'p-4',

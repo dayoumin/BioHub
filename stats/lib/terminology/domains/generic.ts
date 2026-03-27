@@ -329,7 +329,9 @@ export const generic: TerminologyDictionary = {
     labels: {
       selectionPrefix: 'Selected:',
       directBadge: 'Manual',
-      purposeHeading: 'What analysis would you like to perform?'
+      purposeHeading: 'What analysis would you like to perform?',
+      categoryHeading: 'What would you like to find out?',
+      categoryDescription: 'Select a category that matches your analysis goal',
     },
     messages: {
       purposeHelp: 'Select one of the 8 analysis purposes. Guided questions will help recommend the best statistical method.',
@@ -885,6 +887,8 @@ export const generic: TerminologyDictionary = {
       exportWithOptions: 'Export with options',
       backToVariables: 'Back to Variables',
       changeMethod: 'Change Method',
+      resultsSummary: 'Results Summary',
+      viewSummary: 'View Summary',
     },
     save: {
       defaultName: (date: string) => `Analysis ${date}`,
