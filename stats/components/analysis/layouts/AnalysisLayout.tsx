@@ -2,7 +2,6 @@
 
 import React, { ReactNode, useMemo } from 'react'
 import {
-  Clock,
   HelpCircle,
   X,
   BarChart3,
@@ -17,12 +16,6 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
 import { FloatingStepIndicator, type StepItem } from '@/components/common/FloatingStepIndicator'
 import { cn } from '@/lib/utils'
 import { useUI } from '@/contexts/ui-context'
@@ -44,14 +37,12 @@ export interface AnalysisLayoutProps {
   onStepChange?: (step: number) => void
   children: ReactNode
 
-  // 히스토리/도움말 (Analysis 전용)
-  showHistory?: boolean
+  // 도움말 (Analysis 전용)
   showHelp?: boolean
-  onHistoryToggle?: () => void
   onHelpToggle?: () => void
   systemMemory?: number | null
-  historyPanel?: ReactNode
-  historyCount?: number // 히스토리 개수 (0이면 아이콘 숨김)
+  /** 우측 히스토리 사이드바 (UnifiedHistorySidebar 래퍼) */
+  historySidebar?: ReactNode
 
   // 분석 상태
   isAnalyzing?: boolean
@@ -91,13 +82,10 @@ export function AnalysisLayout({
   steps,
   onStepChange,
   children,
-  showHistory = false,
   showHelp = false,
-  onHistoryToggle,
   onHelpToggle,
   systemMemory,
-  historyPanel,
-  historyCount = 0,
+  historySidebar,
   isAnalyzing = false,
   analyzingMessage,
   showStepper = true,
@@ -212,67 +200,61 @@ export function AnalysisLayout({
         />
       )}
 
-      {/* ===== 메인 콘텐츠 영역 ===== */}
-      <main className={LAYOUT.maxWidth}>
-        <div className={cn(STEP_STYLES.mainContentPaddingX, STEP_STYLES.mainContentPaddingY, STEP_STYLES.sectionGap, showFloatingNav && !showHub && onNext && 'pb-20')}>
-          {/* Analysis 전용 도움말 패널 */}
-          {showHelp && onHelpToggle && (
-            <Card className="border-info-border bg-info-bg">
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-lg">{t.analysis.layout.dataSizeGuide}</CardTitle>
-                  <Button variant="ghost" size="sm" onClick={onHelpToggle}>
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="font-medium mb-2">{t.analysis.layout.currentLimits}</h4>
-                    <ul className="text-sm space-y-1 text-muted-foreground">
-                      <li>• {t.analysis.layout.limitFileSize}</li>
-                      <li>• {t.analysis.layout.limitDataSize}</li>
-                      <li>• {t.analysis.layout.limitRecommended}</li>
-                    </ul>
+      {/* ===== 메인 콘텐츠 + 히스토리 사이드바 ===== */}
+      <div className={cn(LAYOUT.maxWidth, 'flex gap-6')}>
+        <main className="min-w-0 flex-1">
+          <div className={cn(STEP_STYLES.mainContentPaddingX, STEP_STYLES.mainContentPaddingY, STEP_STYLES.sectionGap, showFloatingNav && !showHub && onNext && 'pb-20')}>
+            {/* Analysis 전용 도움말 패널 */}
+            {showHelp && onHelpToggle && (
+              <Card className="border-info-border bg-info-bg">
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-lg">{t.analysis.layout.dataSizeGuide}</CardTitle>
+                    <Button variant="ghost" size="sm" onClick={onHelpToggle}>
+                      <X className="w-4 h-4" />
+                    </Button>
                   </div>
-                  <div>
-                    <h4 className="font-medium mb-2">{t.analysis.layout.memoryRecommendation}</h4>
-                    <ul className="text-sm space-y-1 text-muted-foreground">
-                      <li>• {t.analysis.layout.memoryTier4GB}</li>
-                      <li>• {t.analysis.layout.memoryTier8GB}</li>
-                      <li>• {t.analysis.layout.memoryTier16GB}</li>
-                      {systemMemory && (
-                        <li className="font-medium text-info-muted">
-                          {t.analysis.layout.detectedMemory(systemMemory)}
-                        </li>
-                      )}
-                    </ul>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-medium mb-2">{t.analysis.layout.currentLimits}</h4>
+                      <ul className="text-sm space-y-1 text-muted-foreground">
+                        <li>• {t.analysis.layout.limitFileSize}</li>
+                        <li>• {t.analysis.layout.limitDataSize}</li>
+                        <li>• {t.analysis.layout.limitRecommended}</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-medium mb-2">{t.analysis.layout.memoryRecommendation}</h4>
+                      <ul className="text-sm space-y-1 text-muted-foreground">
+                        <li>• {t.analysis.layout.memoryTier4GB}</li>
+                        <li>• {t.analysis.layout.memoryTier8GB}</li>
+                        <li>• {t.analysis.layout.memoryTier16GB}</li>
+                        {systemMemory && (
+                          <li className="font-medium text-info-muted">
+                            {t.analysis.layout.detectedMemory(systemMemory)}
+                          </li>
+                        )}
+                      </ul>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                </CardContent>
+              </Card>
+            )}
 
-          {/* 메인 콘텐츠 */}
-          {children}
-        </div>
-      </main>
-
-      {/* ===== 플로팅 히스토리 패널 (Sheet) ===== */}
-      <Sheet open={showHistory} onOpenChange={(open) => !open && onHistoryToggle?.()}>
-        <SheetContent side="right" className="w-96 sm:w-[400px] overflow-y-auto">
-          <SheetHeader className="pb-4 border-b">
-            <SheetTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              {t.analysis.layout.historyTitle}
-            </SheetTitle>
-          </SheetHeader>
-          <div className="py-4">
-            {historyPanel}
+            {/* 메인 콘텐츠 */}
+            {children}
           </div>
-        </SheetContent>
-      </Sheet>
+        </main>
+
+        {/* 우측 히스토리 사이드바 (분석 플로우 진입 시만 표시) */}
+        {isAnalysisFlow && historySidebar && (
+          <div className={STEP_STYLES.mainContentPaddingY}>
+            {historySidebar}
+          </div>
+        )}
+      </div>
 
       {/* 분석 중 오버레이 */}
       {isAnalyzing && (

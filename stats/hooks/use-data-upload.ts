@@ -83,8 +83,7 @@ export function useDataUpload(): UseDataUploadReturn {
           .catch(() => { /* graceful degradation */ })
       }
 
-      // 빠른 분석 모드: 업로드 후 Step 1에 머물러 데이터 탐색 확인
-      // 사용자가 데이터를 확인하고 "다음" 버튼으로 진행
+      // 빠른 분석 모드: 업로드 후 자동으로 변수 선택(Step 3)으로 전진
       if (currentMode.stepTrack === 'quick' && currentAnalysis.selectedMethod) {
         const detectedVars = extractDetectedVariables(
           currentAnalysis.selectedMethod.id,
@@ -92,12 +91,13 @@ export function useDataUpload(): UseDataUploadReturn {
           null,
         )
         setDetectedVariables(detectedVars)
-        const hasMapping = Object.values(detectedVars).some(v => v !== undefined && v !== null && (Array.isArray(v) ? v.length > 0 : true))
-        if (hasMapping) {
-          toast.success(TOAST.data.uploadSuccess(file.name))
-        } else {
-          toast.info(TOAST.data.variableDetectionEmpty)
-        }
+        toast.success(TOAST.data.uploadSuccess(file.name))
+
+        // Step 1,2 완료 처리 + Step 3 이동을 단일 set으로 배치 (리렌더 1회)
+        useAnalysisStore.setState((state) => ({
+          completedSteps: [...new Set([...state.completedSteps, 1, 2])],
+          currentStep: 3,
+        }))
       }
     } catch (err) {
       setError(t.analysis.errors.uploadFailed((err as Error).message))

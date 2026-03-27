@@ -121,21 +121,7 @@ vi.mock('@/components/layout/help-modal', () => ({
   HelpModal: () => null,
 }))
 
-// Mock Radix Sheet (JSDOM Portal 한계 해결)
-vi.mock('@/components/ui/sheet', () => ({
-  Sheet: ({ children, open }: { children: React.ReactNode; open?: boolean }) => (
-    open ? <div data-testid="sheet-container">{children}</div> : null
-  ),
-  SheetContent: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="sheet-content">{children}</div>
-  ),
-  SheetHeader: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
-  SheetTitle: ({ children }: { children: React.ReactNode }) => (
-    <h3>{children}</h3>
-  ),
-}))
+// Sheet mock 제거 — 히스토리가 사이드바(UnifiedHistorySidebar)로 전환됨
 
 describe('AnalysisLayout', () => {
   const defaultProps = {
@@ -169,48 +155,38 @@ describe('AnalysisLayout', () => {
     })
   })
 
-  describe('히스토리 패널', () => {
-    it('showHistory=false일 때 히스토리 Sheet가 렌더링되지 않아야 함', () => {
+  describe('히스토리 사이드바', () => {
+    it('historySidebar가 없으면 사이드바가 렌더링되지 않아야 함', () => {
       render(
-        <AnalysisLayout
-          {...defaultProps}
-          showHistory={false}
-          historyPanel={<div data-testid="history-panel">History</div>}
-          onHistoryToggle={vi.fn()}
-          historyCount={5}
-        />
+        <AnalysisLayout {...defaultProps} />
       )
 
-      expect(screen.queryByTestId('sheet-container')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('history-sidebar')).not.toBeInTheDocument()
     })
 
-    it('showHistory=true일 때 히스토리 Sheet가 렌더링되어야 함', () => {
+    it('historySidebar가 전달되고 분석 플로우 중이면 사이드바가 렌더링되어야 함', () => {
       render(
         <AnalysisLayout
           {...defaultProps}
-          showHistory={true}
-          historyPanel={<div data-testid="history-panel">History</div>}
-          onHistoryToggle={vi.fn()}
-          historyCount={5}
+          showStepper={true}
+          showHub={false}
+          historySidebar={<div data-testid="history-sidebar">History</div>}
         />
       )
 
-      expect(screen.getByTestId('sheet-container')).toBeInTheDocument()
-      expect(screen.getByTestId('history-panel')).toBeInTheDocument()
+      expect(screen.getByTestId('history-sidebar')).toBeInTheDocument()
     })
 
-    it('historyCount prop이 전달되어도 컴포넌트가 정상 렌더링되어야 함', () => {
+    it('Hub 모드에서는 사이드바가 렌더링되지 않아야 함', () => {
       render(
         <AnalysisLayout
           {...defaultProps}
-          onHistoryToggle={vi.fn()}
-          historyCount={3}
+          showHub={true}
+          historySidebar={<div data-testid="history-sidebar">History</div>}
         />
       )
 
-      // 히스토리 토글 버튼은 상위 컴포넌트(AppSidebar)로 이전됨
-      // AnalysisLayout은 Sheet만 관리
-      expect(screen.getByTestId('test-content')).toBeInTheDocument()
+      expect(screen.queryByTestId('history-sidebar')).not.toBeInTheDocument()
     })
   })
 
@@ -296,15 +272,10 @@ describe('AnalysisLayout', () => {
   describe('접근성', () => {
     it('헤더 아이콘 버튼들이 title 속성을 가져야 함', () => {
       render(
-        <AnalysisLayout
-          {...defaultProps}
-          onHistoryToggle={vi.fn()}
-          historyCount={1}
-        />
+        <AnalysisLayout {...defaultProps} />
       )
 
       expect(screen.getByTitle('도움말')).toBeInTheDocument()
-      // AI 챗봇 버튼은 레이아웃에서 제거됨. 히스토리 토글 + 설정 버튼은 AppSidebar로 이전됨
     })
   })
 

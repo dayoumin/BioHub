@@ -12,7 +12,7 @@ import { TOAST } from '@/lib/constants/toast-messages'
 import type { ResolvedIntent } from '@/types/analysis'
 
 import { AnalysisLayout } from '@/components/analysis/layouts/AnalysisLayout'
-import { AnalysisHistoryPanel } from '@/components/analysis/AnalysisHistoryPanel'
+import { AnalysisHistorySidebar } from '@/components/analysis/AnalysisHistorySidebar'
 import { ChatCentricHub } from '@/components/analysis/ChatCentricHub'
 import { AnalysisSteps } from '@/components/analysis/AnalysisSteps'
 
@@ -22,7 +22,6 @@ export default function HomePage() {
   const router = useRouter()
   const t = useTerminology()
   const [showHelp, setShowHelp] = useState(false)
-  const [showHistory, setShowHistory] = useState(false)
   const [systemMemory, setSystemMemory] = useState<number | null>(null)
 
   const {
@@ -132,10 +131,6 @@ export default function HomePage() {
     navigateToStep(1)
   }, [setShowHub, navigateToStep])
 
-  const handleHistoryToggle = useCallback(() => {
-    setShowHistory(prev => !prev)
-  }, [])
-
   const handleHelpToggle = useCallback(() => {
     setShowHelp(prev => !prev)
   }, [])
@@ -150,13 +145,10 @@ export default function HomePage() {
       steps={handlers.steps}
       onStepChange={handlers.handleStepClick}
       isAnalyzing={handlers.isLoading}
-      showHistory={showHistory}
       showHelp={showHelp}
-      onHistoryToggle={handleHistoryToggle}
       onHelpToggle={handleHelpToggle}
       systemMemory={systemMemory}
-      historyPanel={<AnalysisHistoryPanel />}
-      historyCount={handlers.analysisHistory.length}
+      historySidebar={<AnalysisHistorySidebar />}
       showStepper={!showHub}
       showHub={showHub}
       onBackToHub={handleBackToHub}
@@ -173,7 +165,6 @@ export default function HomePage() {
           onHistorySelect={handleHistorySelect}
           onHistoryDelete={handleHistoryDelete}
           onUploadClick={handleHubUploadClick}
-          onHistoryShowMore={handleHistoryToggle}
         />
       )}
 

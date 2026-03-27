@@ -9,7 +9,7 @@ import { getBioToolWithMeta } from '@/lib/bio-tools/bio-tool-metadata'
 import { getBioToolEntry, type BioToolHistoryEntry } from '@/lib/bio-tools/bio-tool-history'
 import { TOOL_COMPONENTS } from './tools'
 import { BioToolsHub } from './BioToolsHub'
-import { BioToolHistoryPopover } from './BioToolHistoryPopover'
+import { BioToolSidebar } from './BioToolSidebar'
 import {
   BIO_BG_TINT,
   BIO_HEADER_BORDER,
@@ -83,14 +83,15 @@ export function BioToolWorkspace(): React.ReactElement {
               <h1 className="text-base font-semibold leading-tight truncate">{tool.nameEn}</h1>
               <p className="text-xs text-muted-foreground truncate">{tool.nameKo}</p>
             </div>
-            {toolId && <BioToolHistoryPopover toolId={toolId} onLoadHistory={handleLoadHistory} />}
+            {/* 히스토리 팝오버 → 사이드바로 이동 (아래 flex 레이아웃) */}
           </div>
         </header>
       )}
 
-      {/* 본문 */}
-      <div className="flex-1 overflow-y-auto">
+      {/* 본문 + 히스토리 사이드바 */}
+      <div className="flex flex-1 gap-6 overflow-y-auto">
         <div className={cn(
+          'min-w-0 flex-1',
           BIO_LAYOUT.contentPaddingX,
           BIO_LAYOUT.contentPaddingY,
         )}>
@@ -106,6 +107,12 @@ export function BioToolWorkspace(): React.ReactElement {
             </div>
           )}
         </div>
+        {/* 도구 활성 시 우측 히스토리 사이드바 */}
+        {isToolActive && (
+          <div className={BIO_LAYOUT.contentPaddingY}>
+            <BioToolSidebar toolId={toolId} onLoadHistory={handleLoadHistory} />
+          </div>
+        )}
       </div>
     </div>
   )

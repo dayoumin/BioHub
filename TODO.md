@@ -246,6 +246,11 @@ These are valid directions, but not current execution priorities.
 - ~~`[quality]` `report-export.ts` blob→download 패턴 추출 검토~~ — 조사 완료: 3곳 사용이나 각 2~3줄, 추출 가치 낮음. 4번째 사용처 등장 시 재검토
 - ~~`[quality]` `markdownToSimpleHtml()` 공통 유틸 추출 검토~~ — 조사 완료: 1곳만 사용, 추출 불필요
 - `[quality]` `entity-tab-registry.ts` raw localStorage 패턴 → Zustand persist 전환 검토 — 현재 동작에 문제 없으나 코드베이스 일관성 차원
+- `[quality]` 통합 히스토리 사이드바 후속 정리:
+  - localStorage+CustomEvent 리스너 패턴 → 공용 훅 `useLocalStorageSync(key, event, loader)` 추출 (GeneticsHistorySidebar, BioToolSidebar, pinned-history-storage에서 동일 패턴 3회 반복)
+  - 히스토리 사이드바 한글 하드코딩 → terminology 시스템 등록 ('최근 분석', '분석 기록', '분석 히스토리', '전체 선택', '고정 해제' 등 ~15건)
+  - `onHistoryShowMore` 데드 prop 정리 — ChatCentricHub → QuickAccessBar 체인에서 제거 (Sheet 제거 후 불필요해짐)
+  - pin 토글 로직 공통화 — `togglePinId(prev, id, max, onMax)` 순수 함수를 `pinned-history-storage.ts`에 추출 (AnalysisHistorySidebar, AnalysisHistoryPanel, QuickAccessBar에서 3회 반복)
 - `[ux]` 프로젝트 카드 클릭 동작 재검토 — 현재 활성화 토글, UX 관례는 상세 진입. 사용자 피드백 후 결정.
 - `[quality]` dangling ref 정리 방안 — 현재 영구 누적. 수동 "정리" 버튼 또는 주기적 GC 검토.
 - `[domain]` Add stronger citation and traceability support for domain records in downstream outputs.

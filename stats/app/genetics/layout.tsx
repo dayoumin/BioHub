@@ -1,4 +1,4 @@
-import { HistorySidebar } from '@/components/genetics/HistorySidebar'
+import { GeneticsHistorySidebar } from '@/components/genetics/GeneticsHistorySidebar'
 
 export default function GeneticsLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -6,7 +6,7 @@ export default function GeneticsLayout({ children }: { children: React.ReactNode
       <div className="min-w-0 flex-1">
         {children}
       </div>
-      <HistorySidebar />
+      <GeneticsHistorySidebar />
     </div>
   )
 }
