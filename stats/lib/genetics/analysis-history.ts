@@ -1,4 +1,5 @@
-import type { BlastMarker, BlastResultStatus } from '@biohub/types'
+import type { BlastMarker, BlastResultStatus, BlastProgram, BlastDatabase } from '@biohub/types'
+import type { ProjectEntityKind } from '@biohub/types'
 import type { DecisionResult } from '@/lib/genetics/decision-engine'
 import {
   upsertProjectEntityRef,
@@ -6,8 +7,16 @@ import {
 } from '@/lib/research/project-storage'
 import { createLocalStorageIO } from '@/lib/utils/local-storage-factory'
 
-export interface AnalysisHistoryEntry {
+// ═══════════════════════════════════════════════════════════════
+// 타입 정의
+// ═══════════════════════════════════════════════════════════════
+
+export type GeneticsToolType = 'barcoding' | 'blast' | 'genbank'
+
+/** 바코딩 히스토리 (기존 필드 유지) */
+export interface BarcodingHistoryEntry {
   id: string
+  type: 'barcoding'
   sampleName: string
   marker: BlastMarker
   sequencePreview: string
@@ -20,24 +29,148 @@ export interface AnalysisHistoryEntry {
   createdAt: number
 }
 
+/** BLAST 검색 히스토리 (요약만, hits 미저장) */
+export interface BlastSearchHistoryEntry {
+  id: string
+  type: 'blast'
+  program: BlastProgram
+  database: BlastDatabase
+  sequencePreview: string
+  hitCount: number
+  topHitAccession: string | null
+  topHitSpecies: string | null
+  topHitIdentity: number | null
+  elapsed: number
+  pinned?: boolean
+  projectId?: string
+  createdAt: number
+}
+
+/** GenBank 서열 다운로드 히스토리 */
+export interface GenBankHistoryEntry {
+  id: string
+  type: 'genbank'
+  query: string
+  db: 'nuccore' | 'protein'
+  accession: string
+  organism: string | null
+  sequenceLength: number
+  pinned?: boolean
+  projectId?: string
+  createdAt: number
+}
+
+export type GeneticsHistoryEntry =
+  | BarcodingHistoryEntry
+  | BlastSearchHistoryEntry
+  | GenBankHistoryEntry
+
+/** @deprecated GeneticsHistoryEntry 사용 */
+export type AnalysisHistoryEntry = BarcodingHistoryEntry
+
+// ═══════════════════════════════════════════════════════════════
+// 상수 + 유틸
+// ═══════════════════════════════════════════════════════════════
+
 export const HISTORY_KEY = 'biohub:genetics:history'
 export const HISTORY_CHANGE_EVENT = 'genetics-history-changed'
-const MAX_HISTORY = 20
+
+const MAX_PER_TYPE: Record<GeneticsToolType, number> = {
+  barcoding: 20,
+  blast: 15,
+  genbank: 15,
+}
 
 const { readJson, writeJson } = createLocalStorageIO('[analysis-history]')
 
-function isValidEntry(item: unknown): item is AnalysisHistoryEntry {
-  if (typeof item !== 'object' || item === null) return false
-  const obj = item as Record<string, unknown>
-  return (
-    typeof obj.id === 'string' &&
-    typeof obj.marker === 'string' &&
-    typeof obj.sequencePreview === 'string' &&
-    typeof obj.createdAt === 'number'
-  )
+function entityKindForType(type: GeneticsToolType): ProjectEntityKind {
+  return type === 'genbank' ? 'sequence-data' : 'blast-result'
 }
 
-function sortEntries(entries: AnalysisHistoryEntry[]): AnalysisHistoryEntry[] {
+// ═══════════════════════════════════════════════════════════════
+// 정규화 (하위 호환)
+// ═══════════════════════════════════════════════════════════════
+
+/** localStorage에서 읽은 raw 객체를 GeneticsHistoryEntry로 정규화 */
+function normalizeEntry(item: unknown): GeneticsHistoryEntry | null {
+  if (typeof item !== 'object' || item === null) return null
+  const obj = item as Record<string, unknown>
+  if (typeof obj.id !== 'string' || typeof obj.createdAt !== 'number') return null
+
+  const type = (obj.type as string) || 'barcoding'
+
+  switch (type) {
+    case 'barcoding':
+      if (typeof obj.marker !== 'string') return null
+      return {
+        id: obj.id as string,
+        type: 'barcoding',
+        sampleName: (obj.sampleName ?? '') as string,
+        marker: obj.marker as BlastMarker,
+        sequencePreview: (obj.sequencePreview ?? '') as string,
+        topSpecies: (obj.topSpecies ?? null) as string | null,
+        topIdentity: (obj.topIdentity ?? null) as number | null,
+        status: (obj.status ?? null) as BlastResultStatus | null,
+        resultData: obj.resultData as DecisionResult | undefined,
+        pinned: obj.pinned as boolean | undefined,
+        projectId: obj.projectId as string | undefined,
+        createdAt: obj.createdAt as number,
+      }
+
+    case 'blast':
+      if (typeof obj.program !== 'string') return null
+      return {
+        id: obj.id as string,
+        type: 'blast',
+        program: obj.program as BlastProgram,
+        database: (obj.database ?? 'nt') as BlastDatabase,
+        sequencePreview: (obj.sequencePreview ?? '') as string,
+        hitCount: (obj.hitCount ?? 0) as number,
+        topHitAccession: (obj.topHitAccession ?? null) as string | null,
+        topHitSpecies: (obj.topHitSpecies ?? null) as string | null,
+        topHitIdentity: (obj.topHitIdentity ?? null) as number | null,
+        elapsed: (obj.elapsed ?? 0) as number,
+        pinned: obj.pinned as boolean | undefined,
+        projectId: obj.projectId as string | undefined,
+        createdAt: obj.createdAt as number,
+      }
+
+    case 'genbank':
+      if (typeof obj.accession !== 'string') return null
+      return {
+        id: obj.id as string,
+        type: 'genbank',
+        query: (obj.query ?? '') as string,
+        db: (obj.db === 'protein' ? 'protein' : 'nuccore') as 'nuccore' | 'protein',
+        accession: obj.accession as string,
+        organism: (obj.organism ?? null) as string | null,
+        sequenceLength: (obj.sequenceLength ?? 0) as number,
+        pinned: obj.pinned as boolean | undefined,
+        projectId: obj.projectId as string | undefined,
+        createdAt: obj.createdAt as number,
+      }
+
+    default:
+      return null
+  }
+}
+
+function parseAll(raw?: string | null): GeneticsHistoryEntry[] {
+  try {
+    if (raw !== undefined) {
+      if (!raw) return []
+      const parsed: unknown = JSON.parse(raw)
+      if (!Array.isArray(parsed)) return []
+      return parsed.map(normalizeEntry).filter((e): e is GeneticsHistoryEntry => e !== null)
+    }
+    const all = readJson<unknown[]>(HISTORY_KEY, [])
+    return all.map(normalizeEntry).filter((e): e is GeneticsHistoryEntry => e !== null)
+  } catch {
+    return []
+  }
+}
+
+function sortEntries<T extends { pinned?: boolean; createdAt: number }>(entries: T[]): T[] {
   return [...entries].sort((a, b) => {
     if (a.pinned && !b.pinned) return -1
     if (!a.pinned && b.pinned) return 1
@@ -45,27 +178,19 @@ function sortEntries(entries: AnalysisHistoryEntry[]): AnalysisHistoryEntry[] {
   })
 }
 
-function saveToStorage(entries: AnalysisHistoryEntry[]): void {
+function saveToStorage(entries: GeneticsHistoryEntry[]): void {
   writeJson(HISTORY_KEY, entries)
-}
-
-/** raw JSON 문자열에서 유효한 엔트리만 추출 (정렬 없음) */
-function parseValidEntries(raw: string | null): AnalysisHistoryEntry[] {
-  if (!raw) return []
-  const parsed: unknown = JSON.parse(raw)
-  if (!Array.isArray(parsed)) return []
-  return parsed.filter(isValidEntry)
 }
 
 function notifyChange(): void {
   window.dispatchEvent(new Event(HISTORY_CHANGE_EVENT))
 }
 
-/** 프로젝트에 연결된 entry의 ref를 일괄 정리 (1회 localStorage 읽기-쓰기) */
-function removeRefsForEntries(entries: AnalysisHistoryEntry[]): void {
+/** 프로젝트에 연결된 entry의 ref를 일괄 정리 — type별 올바른 entityKind 사용 */
+function removeRefsForEntries(entries: GeneticsHistoryEntry[]): void {
   const targets = entries
     .filter(e => e.projectId)
-    .map(e => ({ projectId: e.projectId!, entityKind: 'blast-result' as const, entityId: e.id }))
+    .map(e => ({ projectId: e.projectId!, entityKind: entityKindForType(e.type), entityId: e.id }))
   if (targets.length === 0) return
   try {
     removeProjectEntityRefs(targets)
@@ -74,98 +199,128 @@ function removeRefsForEntries(entries: AnalysisHistoryEntry[]): void {
   }
 }
 
-/** preloadedRaw를 전달하면 localStorage 재읽기 생략 */
-export function loadAnalysisHistory(preloadedRaw?: string | null): AnalysisHistoryEntry[] {
-  try {
-    if (preloadedRaw !== undefined) {
-      return sortEntries(parseValidEntries(preloadedRaw).slice(0, MAX_HISTORY))
-    }
-    const all = readJson<unknown[]>(HISTORY_KEY, [])
-    return sortEntries(all.filter(isValidEntry).slice(0, MAX_HISTORY))
-  } catch {
-    return []
-  }
+// ═══════════════════════════════════════════════════════════════
+// 공개 API — 신규 (GeneticsHistoryEntry)
+// ═══════════════════════════════════════════════════════════════
+
+/** 전체 히스토리 로드. filter로 특정 도구만 조회 가능. */
+export function loadGeneticsHistory(filter?: GeneticsToolType, preloadedRaw?: string | null): GeneticsHistoryEntry[] {
+  const all = parseAll(preloadedRaw)
+  const filtered = filter ? all.filter(e => e.type === filter) : all
+  return sortEntries(filtered)
 }
 
-export function saveAnalysisHistory(entry: Omit<AnalysisHistoryEntry, 'id' | 'createdAt'>): void {
+/** 히스토리 저장 입력 타입 — discriminated union의 각 멤버에서 id/createdAt 제외 */
+export type SaveGeneticsHistoryInput =
+  | Omit<BarcodingHistoryEntry, 'id' | 'createdAt'>
+  | Omit<BlastSearchHistoryEntry, 'id' | 'createdAt'>
+  | Omit<GenBankHistoryEntry, 'id' | 'createdAt'>
 
-  const newEntry: AnalysisHistoryEntry = {
+/** 범용 히스토리 저장 — type별 MAX 적용 */
+export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): void {
+  const newEntry: GeneticsHistoryEntry = {
     ...entry,
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: `${entry.type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     createdAt: Date.now(),
-  }
+  } as GeneticsHistoryEntry
 
-  let overflow: AnalysisHistoryEntry[] = []
+  let overflow: GeneticsHistoryEntry[] = []
   try {
-    const history = loadAnalysisHistory()
-    const sorted = sortEntries([newEntry, ...history])
-    const kept = sorted.slice(0, MAX_HISTORY)
-    overflow = sorted.slice(MAX_HISTORY)
+    const all = parseAll()
+    const sameType = all.filter(e => e.type === newEntry.type)
+    const otherType = all.filter(e => e.type !== newEntry.type)
 
-    saveToStorage(kept)
+    const limit = MAX_PER_TYPE[newEntry.type]
+    const sorted = sortEntries([newEntry, ...sameType])
+    const kept = sorted.slice(0, limit)
+    overflow = sorted.slice(limit)
+
+    saveToStorage(sortEntries([...kept, ...otherType]))
   } catch {
-    // localStorage full — 기존 히스토리 불변, ref 건드리지 않음
     return
   }
 
-  // saveToStorage 성공 후: overflow ref 정리 (독립 try-catch)
   removeRefsForEntries(overflow)
 
-  // ref 생성 — entry 저장과 독립적으로 처리
   if (newEntry.projectId) {
+    const label = newEntry.type === 'barcoding' ? newEntry.sampleName
+      : newEntry.type === 'blast' ? `${newEntry.program} · ${newEntry.database}`
+      : newEntry.accession
     try {
       upsertProjectEntityRef({
         projectId: newEntry.projectId,
-        entityKind: 'blast-result',
+        entityKind: entityKindForType(newEntry.type),
         entityId: newEntry.id,
-        label: newEntry.sampleName,
+        label,
       })
     } catch {
-      // ref 생성 실패 — entry는 저장됨, 프로젝트 연결만 누락
+      // ref 생성 실패는 무시
     }
   }
 
   notifyChange()
 }
 
-export function deleteMultipleEntries(ids: Set<string>): AnalysisHistoryEntry[] {
+/** 전체 히스토리에서 다중 삭제 */
+export function deleteGeneticsEntries(ids: Set<string>): GeneticsHistoryEntry[] {
   if (typeof window === 'undefined') return []
-  const all = loadAnalysisHistory()
+  const all = parseAll()
   const toDelete = all.filter(e => ids.has(e.id))
   const remaining = all.filter(e => !ids.has(e.id))
 
   removeRefsForEntries(toDelete)
-
   saveToStorage(remaining)
   notifyChange()
-  return remaining
+  return sortEntries(remaining)
 }
 
-export function deleteAnalysisEntry(id: string): AnalysisHistoryEntry[] {
-  return deleteMultipleEntries(new Set([id]))
-}
-
-export function togglePinEntry(id: string): AnalysisHistoryEntry[] {
+/** 핀 토글 */
+export function toggleGeneticsPin(id: string): GeneticsHistoryEntry[] {
   try {
-    const entries = readJson<unknown[]>(HISTORY_KEY, []).filter(isValidEntry)
-    const sorted = sortEntries(
-      entries.map(e => e.id === id ? { ...e, pinned: !e.pinned } : e)
-    ).slice(0, MAX_HISTORY)
-    saveToStorage(sorted)
+    const entries = parseAll()
+    const toggled = entries.map(e => e.id === id ? { ...e, pinned: !e.pinned } : e)
+    saveToStorage(toggled)
     notifyChange()
-    return sorted
+    return sortEntries(toggled)
   } catch {
     return []
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// 하위 호환 API — 바코딩 전용 (entity-loader, BarcodingContent)
+// ═══════════════════════════════════════════════════════════════
+
+/** @deprecated loadGeneticsHistory('barcoding') 사용 */
+export function loadAnalysisHistory(preloadedRaw?: string | null): BarcodingHistoryEntry[] {
+  return loadGeneticsHistory('barcoding', preloadedRaw) as BarcodingHistoryEntry[]
+}
+
+/** @deprecated saveGeneticsHistory 사용 */
+export function saveAnalysisHistory(entry: Omit<BarcodingHistoryEntry, 'id' | 'createdAt' | 'type'>): void {
+  saveGeneticsHistory({ ...entry, type: 'barcoding' })
+}
+
+/** @deprecated deleteGeneticsEntries 사용 */
+export function deleteMultipleEntries(ids: Set<string>): BarcodingHistoryEntry[] {
+  return deleteGeneticsEntries(ids) as BarcodingHistoryEntry[]
+}
+
+/** @deprecated deleteGeneticsEntries 사용 */
+export function deleteAnalysisEntry(id: string): BarcodingHistoryEntry[] {
+  return deleteGeneticsEntries(new Set([id])) as BarcodingHistoryEntry[]
+}
+
+/** @deprecated toggleGeneticsPin 사용 */
+export function togglePinEntry(id: string): BarcodingHistoryEntry[] {
+  return toggleGeneticsPin(id) as BarcodingHistoryEntry[]
+}
+
+/** @deprecated */
 export function clearAnalysisHistory(): void {
   if (typeof window === 'undefined') return
-
-  // 전체 삭제 시 모든 ref 정리
-  const all = loadAnalysisHistory()
+  const all = parseAll()
   removeRefsForEntries(all)
-
   writeJson(HISTORY_KEY, [])
   notifyChange()
 }

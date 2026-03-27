@@ -7,6 +7,8 @@
 
 import type { HistoryItem, HistoryBadge } from '@/types/history'
 import type { AnalysisHistory } from '@/lib/stores/history-store'
+import type { GeneticsHistoryEntry, BarcodingHistoryEntry, BlastSearchHistoryEntry, GenBankHistoryEntry } from '@/lib/genetics/analysis-history'
+/** @deprecated */
 import type { AnalysisHistoryEntry } from '@/lib/genetics/analysis-history'
 import type { BioToolHistoryEntry } from '@/lib/bio-tools/bio-tool-history'
 
@@ -54,29 +56,20 @@ export function toAnalysisHistoryItems(
   return items.map((item) => toAnalysisHistoryItem(item, pinnedIds))
 }
 
-// ── 유전학 어댑터 ──
+// ── 유전학 어댑터 (GeneticsHistoryEntry union 지원) ──
 
-export function toGeneticsHistoryItem(
-  entry: AnalysisHistoryEntry,
-): HistoryItem<AnalysisHistoryEntry> {
+function toBarcodingItem(entry: BarcodingHistoryEntry): HistoryItem<GeneticsHistoryEntry> {
   const badges: HistoryBadge[] = []
-
   if (entry.topSpecies && entry.topSpecies !== entry.sampleName) {
     badges.push({ label: '', value: entry.topSpecies, variant: 'default' })
   }
   badges.push({ label: '', value: entry.marker, variant: 'muted' })
   if (entry.topIdentity != null) {
-    badges.push({
-      label: '',
-      value: `${(entry.topIdentity * 100).toFixed(1)}%`,
-      variant: 'mono',
-    })
+    badges.push({ label: '', value: `${(entry.topIdentity * 100).toFixed(1)}%`, variant: 'mono' })
   }
-
   return {
     id: entry.id,
     title: entry.sampleName || entry.sequencePreview,
-    subtitle: undefined,
     badges,
     pinned: entry.pinned ?? false,
     createdAt: entry.createdAt,
@@ -85,9 +78,58 @@ export function toGeneticsHistoryItem(
   }
 }
 
+function toBlastSearchItem(entry: BlastSearchHistoryEntry): HistoryItem<GeneticsHistoryEntry> {
+  const badges: HistoryBadge[] = [
+    { label: '', value: entry.program, variant: 'mono' },
+    { label: '', value: `${entry.hitCount} hits`, variant: 'default' },
+  ]
+  if (entry.topHitIdentity != null) {
+    badges.push({ label: '', value: `${(entry.topHitIdentity * 100).toFixed(1)}%`, variant: 'mono' })
+  }
+  return {
+    id: entry.id,
+    title: entry.topHitSpecies ?? `${entry.program} · ${entry.database}`,
+    subtitle: entry.topHitSpecies ? `${entry.program} · ${entry.database}` : undefined,
+    badges,
+    pinned: entry.pinned ?? false,
+    createdAt: entry.createdAt,
+    hasResult: true,
+    data: entry,
+  }
+}
+
+function toGenBankItem(entry: GenBankHistoryEntry): HistoryItem<GeneticsHistoryEntry> {
+  const badges: HistoryBadge[] = [
+    { label: '', value: entry.db === 'protein' ? 'Protein' : 'Nucleotide', variant: 'muted' },
+  ]
+  if (entry.organism) {
+    badges.push({ label: '', value: entry.organism, variant: 'default' })
+  }
+  return {
+    id: entry.id,
+    title: entry.accession,
+    subtitle: entry.query,
+    badges,
+    pinned: entry.pinned ?? false,
+    createdAt: entry.createdAt,
+    hasResult: true,
+    data: entry,
+  }
+}
+
+export function toGeneticsHistoryItem(
+  entry: GeneticsHistoryEntry,
+): HistoryItem<GeneticsHistoryEntry> {
+  switch (entry.type) {
+    case 'barcoding': return toBarcodingItem(entry)
+    case 'blast': return toBlastSearchItem(entry)
+    case 'genbank': return toGenBankItem(entry)
+  }
+}
+
 export function toGeneticsHistoryItems(
-  entries: AnalysisHistoryEntry[],
-): HistoryItem<AnalysisHistoryEntry>[] {
+  entries: GeneticsHistoryEntry[],
+): HistoryItem<GeneticsHistoryEntry>[] {
   return entries.map(toGeneticsHistoryItem)
 }
 

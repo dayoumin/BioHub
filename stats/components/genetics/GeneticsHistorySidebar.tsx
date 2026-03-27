@@ -1,10 +1,10 @@
 'use client'
 
 /**
- * 유전학 히스토리 사이드바 — UnifiedHistorySidebar 래퍼
+ * 유전학 히스토리 사이드바 — 도구별 필터 + UnifiedHistorySidebar 래퍼
  *
- * 기존 HistorySidebar의 데이터 로직을 유지하면서
- * UI를 공통 UnifiedHistorySidebar로 위임.
+ * 바코딩 / BLAST / GenBank 3종 히스토리를 통합 표시.
+ * 필터 행으로 도구별 필터링 지원.
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react'
@@ -12,19 +12,42 @@ import { useRouter } from 'next/navigation'
 import { UnifiedHistorySidebar } from '@/components/common/UnifiedHistorySidebar'
 import { toGeneticsHistoryItems } from '@/lib/utils/history-adapters'
 import type { HistoryItem } from '@/types/history'
-import type { AnalysisHistoryEntry } from '@/lib/genetics/analysis-history'
+import type {
+  GeneticsHistoryEntry,
+  GeneticsToolType,
+} from '@/lib/genetics/analysis-history'
 import {
-  loadAnalysisHistory,
-  deleteMultipleEntries,
-  togglePinEntry,
+  loadGeneticsHistory,
+  deleteGeneticsEntries,
+  toggleGeneticsPin,
   HISTORY_KEY,
   HISTORY_CHANGE_EVENT,
 } from '@/lib/genetics/analysis-history'
 
+// ── 필터 ──
+
+type ToolFilter = 'all' | GeneticsToolType
+
+const FILTER_OPTIONS: { value: ToolFilter; label: string }[] = [
+  { value: 'all', label: '전체' },
+  { value: 'barcoding', label: '종동정' },
+  { value: 'blast', label: 'BLAST' },
+  { value: 'genbank', label: 'GenBank' },
+]
+
+const TYPE_DOT_COLOR: Record<GeneticsToolType, string> = {
+  barcoding: 'bg-green-500',
+  blast: 'bg-blue-500',
+  genbank: 'bg-amber-500',
+}
+
+// ── 컴포넌트 ──
+
 export function GeneticsHistorySidebar(): ReactNode {
   const router = useRouter()
   const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null)
-  const [history, setHistory] = useState<AnalysisHistoryEntry[]>([])
+  const [history, setHistory] = useState<GeneticsHistoryEntry[]>([])
+  const [filter, setFilter] = useState<ToolFilter>('all')
   const lastRawRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -35,12 +58,10 @@ export function GeneticsHistorySidebar(): ReactNode {
     const raw = localStorage.getItem(HISTORY_KEY)
     if (raw === lastRawRef.current) return
     lastRawRef.current = raw
-    setHistory(loadAnalysisHistory(raw))
+    setHistory(loadGeneticsHistory(undefined, raw))
   }, [])
 
-  useEffect(() => {
-    refreshHistory()
-  }, [refreshHistory])
+  useEffect(() => { refreshHistory() }, [refreshHistory])
 
   useEffect(() => {
     const onHistoryChange = (): void => { refreshHistory() }
@@ -55,49 +76,76 @@ export function GeneticsHistorySidebar(): ReactNode {
     }
   }, [refreshHistory])
 
+  // 필터링
+  const filteredHistory = useMemo(() => {
+    if (filter === 'all') return history
+    return history.filter(e => e.type === filter)
+  }, [history, filter])
+
+  const items = useMemo(() => toGeneticsHistoryItems(filteredHistory), [filteredHistory])
+
+  // 2종류 이상일 때만 필터 표시
+  const typeSet = useMemo(() => new Set(history.map(e => e.type)), [history])
+  const showFilter = typeSet.size > 1
+
+  // 핸들러
   const handleSelect = useCallback(
-    (item: HistoryItem<AnalysisHistoryEntry>) => {
+    (item: HistoryItem<GeneticsHistoryEntry>) => {
       setActiveHistoryId(item.id)
-      router.push(`/genetics/barcoding?history=${item.id}`)
+      const entry = item.data
+      switch (entry.type) {
+        case 'barcoding':
+          router.push(`/genetics/barcoding?history=${item.id}`)
+          break
+        case 'blast':
+          router.push(`/genetics/blast?history=${item.id}`)
+          break
+        case 'genbank':
+          router.push(`/genetics/genbank?history=${item.id}`)
+          break
+      }
     },
     [router],
   )
 
   const handlePin = useCallback((id: string) => {
-    setHistory(togglePinEntry(id))
+    setHistory(toggleGeneticsPin(id))
   }, [])
 
   const handleDeleteMultiple = useCallback((ids: Set<string>) => {
-    setHistory(deleteMultipleEntries(ids))
+    setHistory(deleteGeneticsEntries(ids))
   }, [])
 
-  const items = useMemo(() => toGeneticsHistoryItems(history), [history])
-
-  // 커스텀 렌더: 종명 이탤릭 + 마커 + 일치도 인라인
+  // renderItem — type별 색상 도트 + 도구별 정보
   const renderItem = useCallback(
-    (item: HistoryItem<AnalysisHistoryEntry>): ReactNode => {
+    (item: HistoryItem<GeneticsHistoryEntry>): ReactNode => {
       const entry = item.data
-      const identityText =
-        entry.topIdentity != null ? `${(entry.topIdentity * 100).toFixed(1)}%` : null
 
       return (
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-xs leading-tight">
-            {entry.sampleName || entry.sequencePreview}
-          </div>
-          <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
-            {entry.topSpecies && entry.topSpecies !== entry.sampleName && (
-              <>
-                <span className="truncate italic">{entry.topSpecies}</span>
-                <span className="text-border">·</span>
-              </>
+        <div className="flex min-w-0 flex-1 items-start gap-2">
+          <div className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${TYPE_DOT_COLOR[entry.type]}`} />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-xs leading-tight">{item.title}</div>
+            {item.subtitle && (
+              <div className="mt-0.5 truncate text-[11px] text-muted-foreground/70">
+                {item.subtitle}
+              </div>
             )}
-            <span>{entry.marker}</span>
-            {identityText && (
-              <>
-                <span className="text-border">·</span>
-                <span className="font-mono">{identityText}</span>
-              </>
+            {item.badges && item.badges.length > 0 && (
+              <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                {item.badges.map((badge, i) => (
+                  <span
+                    key={i}
+                    className={`text-[10px] ${
+                      badge.variant === 'mono' ? 'font-mono text-muted-foreground'
+                      : badge.variant === 'primary' ? 'font-medium text-primary'
+                      : 'text-muted-foreground/70'
+                    }`}
+                  >
+                    {badge.label && `${badge.label} `}{badge.value}
+                  </span>
+                ))}
+              </div>
             )}
           </div>
         </div>
@@ -106,14 +154,37 @@ export function GeneticsHistorySidebar(): ReactNode {
     [],
   )
 
+  // 필터 행
+  const filterRow = showFilter ? (
+    <div className="mb-2 flex gap-0.5 rounded-md bg-muted/30 p-0.5">
+      {FILTER_OPTIONS.map(({ value, label }) => (
+        <button
+          key={value}
+          type="button"
+          onClick={() => setFilter(value)}
+          className={`flex-1 rounded px-1 py-0.5 text-[10px] font-medium transition ${
+            filter === value
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground/60 hover:text-muted-foreground'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  ) : null
+
   return (
-    <UnifiedHistorySidebar<AnalysisHistoryEntry>
-      items={items}
-      onSelect={handleSelect}
-      onPin={handlePin}
-      onDeleteMultiple={handleDeleteMultiple}
-      activeId={activeHistoryId}
-      renderItem={renderItem}
-    />
+    <div>
+      <UnifiedHistorySidebar<GeneticsHistoryEntry>
+        items={items}
+        onSelect={handleSelect}
+        onPin={handlePin}
+        onDeleteMultiple={handleDeleteMultiple}
+        activeId={activeHistoryId}
+        renderItem={renderItem}
+        actionSlot={filterRow}
+      />
+    </div>
   )
 }

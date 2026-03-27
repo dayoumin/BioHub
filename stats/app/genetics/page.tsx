@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Dna, BarChart3, Grid3X3, GitFork, ArrowRight, HelpCircle, FileText, FlaskConical, Play } from 'lucide-react'
+import { Dna, BarChart3, Grid3X3, GitFork, ArrowRight, HelpCircle, FileText, FlaskConical, Search, Database } from 'lucide-react'
 import type { ComponentType } from 'react'
-import { EXAMPLE_SEQUENCES } from '@/lib/genetics/example-sequences'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
 import { Button } from '@/components/ui/button'
 
@@ -33,6 +32,26 @@ const TOOLS: Tool[] = [
     ready: true,
     badge: '사용 가능',
     icon: Dna,
+  },
+  {
+    id: 'blast-search',
+    title: 'BLAST 서열 검색',
+    description: 'blastn · blastp · blastx — 범용 서열 유사성 검색',
+    input: 'DNA 또는 단백질 서열',
+    href: '/genetics/blast',
+    ready: true,
+    badge: '사용 가능',
+    icon: Search,
+  },
+  {
+    id: 'genbank-search',
+    title: 'GenBank 서열 검색',
+    description: 'NCBI GenBank에서 서열 검색 + FASTA 다운로드',
+    input: '종명, accession, 키워드',
+    href: '/genetics/genbank',
+    ready: true,
+    badge: '사용 가능',
+    icon: Database,
   },
   {
     id: 'seq-stats',
@@ -131,7 +150,8 @@ export default function GeneticsHome() {
                   <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">상황별 도구 선택</h3>
                   <div className="space-y-3">
                     <GuideRow icon={Dna} question="이 시료가 어떤 종인지 모르겠어요" answer="DNA 바코딩 종 판별" />
-                    <GuideRow icon={BarChart3} question="서열의 품질을 확인하고 싶어요" answer="서열 기본 통계" />
+                    <GuideRow icon={Search} question="비슷한 서열을 데이터베이스에서 찾고 싶어요" answer="BLAST 서열 검색" />
+                    <GuideRow icon={Database} question="GenBank에서 참조 서열을 다운로드하고 싶어요" answer="GenBank 서열 검색" />
                     <GuideRow icon={Grid3X3} question="종 간 유전적 거리를 비교하고 싶어요" answer="다종 유사도 행렬" />
                     <GuideRow icon={GitFork} question="진화적 관계를 시각화하고 싶어요" answer="계통수 시각화" />
                     <GuideRow icon={Dna} question="집단 간 유전적 차이를 분석하고 싶어요" answer="Bio-Tools → HW 검정 / Fst" />
@@ -171,34 +191,18 @@ export default function GeneticsHome() {
         </div>
       </div>
 
-      {/* 활성 도구 */}
-      <div className="mb-6 space-y-4">
+      {/* 활성 도구 — 그리드 */}
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {READY_TOOLS.map((tool) => (
           <ReadyCard key={tool.id} tool={tool} />
         ))}
       </div>
 
-      {/* 예제 서열 */}
-      <div className="mb-10">
-        <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          예제 서열로 체험하기
-        </h2>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {EXAMPLE_SEQUENCES.map((ex) => (
-            <Link key={ex.id} href={`/genetics/barcoding?example=${ex.id}`}>
-              <div className="group rounded-lg border border-border bg-card p-3 transition hover:border-primary/30 hover:shadow-sm">
-                <div className="mb-1.5 flex items-center gap-2">
-                  <Play className="h-3 w-3 text-primary" />
-                  <span className="text-xs font-medium">{ex.species}</span>
-                </div>
-                <p className="mb-2 text-xs leading-relaxed text-muted-foreground">{ex.description}</p>
-                <div className="flex items-center gap-2 text-[10px] text-muted-foreground/60">
-                  <span>{ex.marker}</span>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+      {/* 처음 사용자 안내 */}
+      <div className="mb-10 rounded-lg border border-border/60 bg-muted/20 p-4">
+        <p className="text-xs text-muted-foreground">
+          처음이라면 각 도구 페이지에서 <span className="font-medium text-foreground">예제 서열/검색어</span>로 바로 체험할 수 있습니다.
+        </p>
       </div>
 
       {/* 준비 중 도구 */}
@@ -228,17 +232,17 @@ function ReadyCard({ tool }: { tool: Tool }) {
 
   return (
     <Link href={tool.href}>
-      <div className="group rounded-xl border border-primary/20 bg-primary/5 p-6 transition hover:border-primary/40 hover:shadow-md">
-        <div className="flex items-start gap-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <Icon className="h-5 w-5" />
+      <div className="group flex h-full flex-col rounded-xl border border-primary/20 bg-primary/5 p-5 transition hover:border-primary/40 hover:shadow-md">
+        <div className="mb-3 flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Icon className="h-4.5 w-4.5" />
           </div>
-          <div className="flex-1">
-            <h2 className="mb-1 text-lg font-semibold">{tool.title}</h2>
-            <p className="mb-2 text-sm text-muted-foreground">{tool.description}</p>
-            <p className="text-xs text-muted-foreground/70">입력: {tool.input}</p>
-          </div>
-          <ArrowRight className="mt-1 h-5 w-5 shrink-0 text-primary/40 transition group-hover:translate-x-1 group-hover:text-primary" />
+          <h2 className="text-base font-semibold">{tool.title}</h2>
+        </div>
+        <p className="mb-3 flex-1 text-sm leading-relaxed text-muted-foreground">{tool.description}</p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground/70">{tool.input}</p>
+          <ArrowRight className="h-4 w-4 text-primary/40 transition group-hover:translate-x-1 group-hover:text-primary" />
         </div>
       </div>
     </Link>
