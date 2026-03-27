@@ -204,12 +204,18 @@ These items should be the current focus.
 
 - ~~`[genetics]` 다중 FASTA 시퀀스 혼합 미감지~~ — 완료 (early-exit 헤더 스캔 + 테스트 17개)
 - ~~`[genetics]` deep-link 복원 실패 시 UI 피드백 없음~~ — 완료 (에러 배너 + URL 정리 + "새 분석 시작" 버튼)
+- ~~`[genetics]` BlastRunner/GenericBlastRunner 통합 리팩토링~~ — 완료. `useBlastExecution<T>` 훅 + `BlastProgressUI` 컴포넌트 추출. `blast-utils.ts`에 공유 유틸 통합. 테스트 32건.
+- ~~`[genetics]` 히스토리 도구별 분리~~ — 완료. discriminated union (barcoding/blast/genbank), 도구별 필터 UI, type별 renderItem + 라우팅, entityKind 분기. 기존 바코딩 하위호환 유지.
+- ~~`[genetics]` 허브 예제 서열 도구별 분리~~ — 완료. BLAST: blastn/blastp/blastx 예제 3개. GenBank: 검색어 태그 4개. 바코딩: 기존 유지. 허브에서 제거 후 각 도구 내 배치.
+- `[genetics]` BLAST 히스토리 서열 복원 버그 — 저장 시 `sequence.slice(0, 50)`만 남기고, 복원 시 preview를 전체 서열로 사용. 50자는 최소 길이(100bp) 미달이라 재검색 불가. 전체 서열 저장 또는 "설정만 복원" 명시 필요.
+- `[genetics]` 초보자 가이드 콘텐츠 — 각 도구 페이지에 "이 도구로 할 수 있는 것" 설명 추가. BLAST 프로그램별 사용 사례(blastn vs blastp vs blastx 언제 쓰는지), GenBank 검색 팁, 바코딩 마커 선택 가이드. 초보 사용자가 예제만으로 워크플로우를 이해할 수 있도록.
 - `[infra]` D1 스키마 갭 해소 — 상세: [D1-SCHEMA-GAP.md](docs/D1-SCHEMA-GAP.md). 현재 프론트엔드는 localStorage/IndexedDB 기반이라 급하지 않음. 인증/멀티디바이스 동기화 시 필수.
 - `[infra]` Turso → D1 통합 — `turso-adapter.ts`, `hybrid-adapter.ts`, `NEXT_PUBLIC_TURSO_*` 환경변수 제거. D1 마이그레이션 완료 후 진행.
 - `[domain]` species-validation 레코드 스키마 정의
 - `[domain]` legal-status 레코드 스키마 정의 (source metadata + checked date)
 - `[domain]` Connect species and legal status outputs into manuscript and review flows.
-- `[paper]` 프로젝트 레벨 문서 조립 (DocumentBlueprint) — 설계 완료, 구현 대기. 4개 프리셋(논문/보고서/현장보고/커스텀) + 자동 병합 + LLM 보강. 상세: [PLAN-DOCUMENT-ASSEMBLY.md](stats/docs/PLAN-DOCUMENT-ASSEMBLY.md)
+- `[domain]` FisheryON 기능 이전 — 문헌 통합검색 (Phase A) + 연구동향 모니터링 (Phase B) + 이메일 구독/Cron (Phase C). 상세: [PLAN-FISHERY-MIGRATION.md](docs/PLAN-FISHERY-MIGRATION.md)
+- `[paper]` 프로젝트 레벨 문서 조립 (DocumentBlueprint) — 설계 완료, 구현 대기. 4개 프리셋(논문/보고서/현장보고/커스텀) + 자동 병합 + LLM 보강. 상세: [PLAN-DOCUMENT-ASSEMBLY.md](stats/docs/papers/PLAN-DOCUMENT-ASSEMBLY.md)
 - `[paper]` Build project-level manuscript assembly UI across multiple analyses.
 - `[paper]` Add figure and table references that can be inserted into draft sections.
 - `[review]` Define a project-level methods and reporting completeness checklist.

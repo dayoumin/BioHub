@@ -1,18 +1,16 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import type { BlastMarker } from '@biohub/types'
 import { cleanSequence } from '@/lib/genetics/validate-sequence'
-import { Button } from '@/components/ui/button'
+import { enrichBarcodeHits, BLAST_STEP_LABELS } from '@/lib/genetics/blast-utils'
+import { useBlastExecution } from '@/hooks/use-blast-execution'
+import { BlastProgressUI } from '@/components/genetics/BlastProgressUI'
 
-export type BlastErrorCode = 'network' | 'timeout' | 'blast-failed' | 'unknown'
+export type { BlastErrorCode } from '@/lib/genetics/blast-utils'
+import type { BlastErrorCode } from '@/lib/genetics/blast-utils'
 
-class BlastError extends Error {
-  constructor(message: string, public readonly code: BlastErrorCode) {
-    super(message)
-    this.name = 'BlastError'
-  }
-}
+type BarcodeResult = { hits: Array<Record<string, unknown>> }
 
 interface BlastRunnerProps {
   sequence: string
@@ -22,406 +20,38 @@ interface BlastRunnerProps {
   onCancel: () => void
 }
 
-type BlastPhase =
-  | 'submitting'
-  | 'polling'
-  | 'fetching'
-  | 'done'
-  | 'error'
+export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: BlastRunnerProps): React.ReactElement {
+  const payload = useMemo(() => ({
+    sequence: cleanSequence(sequence),
+    marker,
+  }), [sequence, marker])
 
-const POLL_INTERVAL_MS = 15_000
-const MAX_POLLS = 40 // 최대 10분
-const RESULT_RETRY_MS = 3_000
-const MAX_RESULT_RETRIES = 5
-const MAX_SUBMIT_RETRIES = 3
+  const transform = useCallback(async (
+    rawHits: Array<Record<string, unknown>>,
+    signal: AbortSignal,
+  ): Promise<BarcodeResult> => {
+    await enrichBarcodeHits(rawHits, signal)
+    return { hits: rawHits }
+  }, [])
 
-const STEP_LABELS = [
-  '입력 서열을 NCBI BLAST 서버에 전송',
-  'NCBI 유전자 데이터베이스에서 유사 서열 검색',
-  '유사도 정렬 및 통계적 유의성 계산',
-  '결과 수신 및 종 판별',
-] as const
-
-/**
- * BLAST 분석 실행 컴포넌트
- *
- * 마운트 시 자동 실행:
- * 1. /api/blast/submit → RID
- * 2. /api/blast/status/:rid 폴링 (15초 간격)
- * 3. READY → /api/blast/result/:rid
- * 4. onResult 콜백
- */
-export function BlastRunner({ sequence, marker, onResult, onError, onCancel }: BlastRunnerProps) {
-  const [phase, setPhase] = useState<BlastPhase>('submitting')
-  const [estimatedTime, setEstimatedTime] = useState(30)
-  const [elapsed, setElapsed] = useState(0)
-  const [errorMessage, setErrorMessage] = useState('')
-  const abortCtrlRef = useRef<AbortController | null>(null)
-  const startTimeRef = useRef(Date.now())
-  const onResultRef = useRef(onResult)
-  const onErrorRef = useRef(onError)
-  onResultRef.current = onResult
-  onErrorRef.current = onError
-
-  // 경과 시간 타이머
-  useEffect(() => {
-    if (phase === 'done' || phase === 'error') return
-
-    const timer = setInterval(() => {
-      setElapsed(prev => {
-        const next = Math.floor((Date.now() - startTimeRef.current) / 1000)
-        return next === prev ? prev : next
-      })
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [phase])
-
-  // 메인 실행 로직
-  useEffect(() => {
-    const ctrl = new AbortController()
-    abortCtrlRef.current = ctrl
-    const { signal } = ctrl
-
-    async function run(): Promise<void> {
-      try {
-        setPhase('submitting')
-        const cleaned = cleanSequence(sequence)
-
-        let submitRes: Response | undefined
-        for (let submitAttempt = 0; submitAttempt < MAX_SUBMIT_RETRIES; submitAttempt++) {
-          submitRes = await fetch('/api/blast/submit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sequence: cleaned, marker }),
-            signal,
-          })
-
-          if (submitRes.status === 429) {
-            let waitSec = 10
-            try {
-              const body429 = await submitRes.json() as { retryAfter?: number }
-              if (typeof body429.retryAfter === 'number') waitSec = body429.retryAfter
-            } catch { /* non-JSON 429 (Cloudflare edge 등) — 기본값 사용 */ }
-            const waitMs = Math.min((waitSec + 1) * 1000, 60_000)
-            await sleep(waitMs, signal)
-            if (signal.aborted) return
-            continue
-          }
-          break
-        }
-
-        if (!submitRes || submitRes.status === 429) {
-          throw new BlastError('요청이 너무 많습니다. 잠시 후 다시 시도하세요.', 'network')
-        }
-        if (!submitRes.ok) {
-          const contentType = submitRes.headers.get('Content-Type') || ''
-          if (!contentType.includes('application/json')) {
-            throw new BlastError(
-              '분석 서버에 연결할 수 없습니다. ' +
-              (process.env.NODE_ENV === 'development'
-                ? '개발 환경에서는 wrangler dev로 Worker를 실행해야 합니다.'
-                : '잠시 후 다시 시도하세요.'),
-              'network'
-            )
-          }
-          const err = await submitRes.json() as { error?: string; message?: string }
-          throw new BlastError(err.message || err.error || `제출 실패 (${submitRes.status})`, 'network')
-        }
-
-        const submitData = await submitRes.json() as {
-          rid?: string; rtoe?: number; sequenceHash?: string
-          cached?: boolean; hits?: Array<Record<string, unknown>>
-        }
-        if (signal.aborted) return
-
-        let resultData: { hits?: Array<Record<string, unknown>> }
-
-        if (submitData.cached && submitData.hits) {
-          // 캐시 히트: NCBI 호출 스킵, UX 흐름은 동일하게 유지
-          resultData = { hits: submitData.hits }
-
-          // efetch를 UX 딜레이와 병렬 실행 (abort 시 catch 내부에서 해소)
-          const speciesPromise = enrichHitsWithSpecies(resultData.hits, signal)
-            .catch((err: unknown) => {
-              if (!(err instanceof DOMException && err.name === 'AbortError')) {
-                console.warn('enrichHitsWithSpecies failed:', err)
-              }
-            })
-
-          setPhase('polling')
-          setEstimatedTime(2)
-          // step 1(검색) ~800ms → step 2(분석) ~800ms (임계값 2*0.6=1.2s)
-          await sleep(800, signal)
-          if (signal.aborted) { await speciesPromise; return }
-          await sleep(800, signal)
-          if (signal.aborted) { await speciesPromise; return }
-
-          setPhase('fetching')
-          await speciesPromise
-          if (signal.aborted) return
-        } else {
-          // NCBI BLAST 폴링
-          setEstimatedTime(submitData.rtoe ?? 30)
-          setPhase('polling')
-
-          let polls = 0
-          while (polls < MAX_POLLS) {
-            if (signal.aborted) return
-
-            await sleep(POLL_INTERVAL_MS, signal)
-            if (signal.aborted) return
-
-            const statusRes = await fetch(`/api/blast/status/${submitData.rid}`, { signal })
-            if (!statusRes.ok) continue
-
-            polls++
-
-            const statusData = await statusRes.json() as { status: string }
-
-            if (statusData.status === 'READY') {
-              break
-            }
-            if (statusData.status === 'FAILED' || statusData.status === 'UNKNOWN') {
-              throw new BlastError(`NCBI BLAST 실패: ${statusData.status}`, 'blast-failed')
-            }
-          }
-
-          if (polls >= MAX_POLLS) {
-            throw new BlastError('분석 시간 초과 (10분). 나중에 다시 시도하세요.', 'timeout')
-          }
-
-          if (signal.aborted) return
-          setPhase('fetching')
-
-          const resultUrl = submitData.sequenceHash
-            ? `/api/blast/result/${submitData.rid}?hash=${submitData.sequenceHash}&marker=${marker}`
-            : `/api/blast/result/${submitData.rid}`
-          resultData = await fetchBlastResult(resultUrl, signal)
-          if (signal.aborted) return
-        }
-
-        // 종명 조회 — 캐시 히트는 위에서 병렬 처리, 여기는 일반 경로만
-        if (!submitData.cached) {
-          await enrichHitsWithSpecies(resultData.hits, signal)
-          if (signal.aborted) return
-        }
-
-        setPhase('done')
-        onResultRef.current(resultData)
-      } catch (err) {
-        if (signal.aborted) return
-        const msg = err instanceof Error ? err.message : '알 수 없는 오류'
-        const code: BlastErrorCode =
-          err instanceof BlastError ? err.code
-          : err instanceof TypeError ? 'network'
-          : 'unknown'
-        setErrorMessage(msg)
-        setPhase('error')
-        onErrorRef.current(msg, code)
-      }
-    }
-
-    run()
-
-    return () => {
-      ctrl.abort()
-    }
-  }, [sequence, marker])
-
-  // 현재 활성 단계 (0-indexed): phase + 경과 시간 기반
-  const currentStep =
-    phase === 'submitting' ? 0
-    : phase === 'polling' ? (elapsed < estimatedTime * 0.6 ? 1 : 2)
-    : phase === 'fetching' ? 3
-    : 3
-
-  const phaseHeader =
-    phase === 'submitting' ? '서열 제출 중...'
-    : phase === 'polling' && currentStep === 1 ? '데이터베이스 검색 중...'
-    : phase === 'polling' ? '유사도 분석 중...'
-    : phase === 'fetching' ? '결과 수신 중...'
-    : phase === 'error' ? '오류 발생' : ''
+  const { phase, currentStep, elapsed, estimatedTime, errorMessage, cancel } =
+    useBlastExecution<BarcodeResult>({
+      payload,
+      transform,
+      onComplete: onResult,
+      onError,
+      onCancel,
+    })
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-8">
-      <div className="mb-6">
-        <div className="mb-2 flex items-center justify-between text-sm">
-          <span className="font-medium text-gray-700">{phaseHeader}</span>
-          <span className="text-gray-500">{elapsed}초 경과</span>
-        </div>
-
-        {/* 4-segment progress bar */}
-        <div className="flex gap-1">
-          {[0, 1, 2, 3].map(i => (
-            <div
-              key={i}
-              className={`h-2 flex-1 transition-colors${
-                i === 0 ? ' rounded-l-full' : i === 3 ? ' rounded-r-full' : ''
-              } ${
-                phase === 'error' ? 'bg-red-300'
-                : i < currentStep ? 'bg-blue-600'
-                : i === currentStep ? 'animate-pulse bg-blue-400'
-                : 'bg-gray-200'
-              }`}
-            />
-          ))}
-        </div>
-
-        <div className="mt-2 flex justify-between text-xs text-gray-400">
-          <span>제출</span>
-          <span>검색</span>
-          <span>분석</span>
-          <span>결과</span>
-        </div>
-      </div>
-
-      {/* 분석 과정 — 모든 활성 단계에서 표시 */}
-      {phase !== 'done' && phase !== 'error' && (
-        <div className="space-y-3" role="status" aria-live="polite">
-          <div className="rounded-lg bg-gray-50 p-4">
-            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">분석 과정</h4>
-            <ol className="space-y-1.5 text-xs">
-              {STEP_LABELS.map((label, i) => (
-                <li
-                  key={i}
-                  className={
-                    i < currentStep ? 'text-emerald-600'
-                    : i === currentStep ? 'font-medium text-blue-700'
-                    : 'text-gray-400'
-                  }
-                >
-                  <span className="mr-1.5 inline-block w-4 text-center">
-                    {i < currentStep ? '\u2713' : `${i + 1}.`}
-                  </span>
-                  {label}
-                </li>
-              ))}
-            </ol>
-          </div>
-
-          {phase === 'polling' && (
-            <div className="text-sm text-gray-600">
-              <p>
-                예상 시간: 약 {estimatedTime}초
-                {estimatedTime > 0 && elapsed < estimatedTime
-                  ? ` · 남은 시간 약 ${Math.max(estimatedTime - elapsed, 1)}초`
-                  : ''}
-              </p>
-            </div>
-          )}
-
-          {phase === 'fetching' && (
-            <p className="text-sm text-gray-600">거의 완료되었습니다...</p>
-          )}
-
-          <p className="text-xs text-amber-600/80">
-            분석이 완료될 때까지 이 페이지를 유지해주세요.
-          </p>
-          {elapsed > 120 && (
-            <p className="text-xs text-amber-600">
-              평소보다 오래 걸리고 있습니다. NCBI 서버 상태에 따라 지연될 수 있습니다.
-            </p>
-          )}
-        </div>
-      )}
-
-      {phase === 'error' && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <p className="text-sm text-red-700">{errorMessage}</p>
-        </div>
-      )}
-
-      {phase !== 'done' && phase !== 'error' && (
-        <Button
-          variant="outline"
-          className="mt-4 w-full"
-          onClick={() => {
-            abortCtrlRef.current?.abort()
-            onCancel()
-          }}
-        >
-          분석 취소
-        </Button>
-      )}
-    </div>
+    <BlastProgressUI
+      phase={phase}
+      currentStep={currentStep}
+      elapsed={elapsed}
+      estimatedTime={estimatedTime}
+      stepLabels={BLAST_STEP_LABELS}
+      errorMessage={errorMessage}
+      onCancel={cancel}
+    />
   )
-}
-
-/** accession → 종명 일괄 조회 (실패 시 무시) */
-async function enrichHitsWithSpecies(
-  hits: Array<Record<string, unknown>> | undefined,
-  signal: AbortSignal
-): Promise<void> {
-  if (!hits || hits.length === 0) return
-  try {
-    const accessions = hits.map(h => h['accession'] as string).filter(Boolean)
-    if (accessions.length === 0) return
-
-    const res = await fetch('/api/ncbi/species', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accessions }),
-      signal,
-    })
-    if (res.ok) {
-      const { species, meta } = await res.json() as {
-        species: Record<string, string>
-        meta?: Record<string, { title?: string; taxid?: number; country?: string; isBarcode?: boolean }>
-      }
-      for (const hit of hits) {
-        const acc = hit['accession'] as string
-        if (!acc) continue
-        if (species[acc]) hit['species'] = species[acc]
-        if (meta?.[acc]) {
-          const m = meta[acc]
-          if (m.taxid) hit['taxid'] = m.taxid
-          if (m.country) hit['country'] = m.country
-          if (m.isBarcode) hit['isBarcode'] = true
-        }
-      }
-    }
-  } catch {
-    // 종명 조회 실패 시 accession으로 표시
-  }
-}
-
-function sleep(ms: number, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (signal?.aborted) {
-      reject(new DOMException('Aborted', 'AbortError'))
-      return
-    }
-    const onAbort = (): void => {
-      clearTimeout(id)
-      reject(new DOMException('Aborted', 'AbortError'))
-    }
-    const id = setTimeout(() => {
-      signal?.removeEventListener('abort', onAbort)
-      resolve()
-    }, ms)
-    signal?.addEventListener('abort', onAbort, { once: true })
-  })
-}
-
-async function fetchBlastResult(
-  resultUrl: string,
-  signal: AbortSignal
-): Promise<{ hits?: Array<Record<string, unknown>> }> {
-  for (let attempt = 0; attempt < MAX_RESULT_RETRIES; attempt++) {
-    const resultRes = await fetch(resultUrl, { signal })
-
-    if (resultRes.status === 202) {
-      await sleep(RESULT_RETRY_MS, signal)
-      continue
-    }
-
-    if (!resultRes.ok) {
-      throw new BlastError(`결과 조회 실패 (${resultRes.status})`, 'network')
-    }
-
-    return await resultRes.json() as { hits?: Array<Record<string, unknown>> }
-  }
-
-  throw new BlastError('결과가 아직 준비되지 않았습니다. 잠시 후 다시 시도하세요.', 'timeout')
 }
