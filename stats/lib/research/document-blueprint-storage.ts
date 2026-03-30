@@ -47,6 +47,17 @@ function txGetAll<T>(db: IDBDatabase, storeName: string): Promise<T[]> {
   })
 }
 
+function txGetByIndex<T>(db: IDBDatabase, storeName: string, indexName: string, key: IDBValidKey): Promise<T[]> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly')
+    const store = tx.objectStore(storeName)
+    const index = store.index(indexName)
+    const req = index.getAll(key)
+    req.onsuccess = () => resolve(req.result as T[])
+    req.onerror = () => reject(req.error)
+  })
+}
+
 function txPut<T>(db: IDBDatabase, storeName: string, value: T): Promise<void> {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(storeName, 'readwrite')
@@ -107,16 +118,14 @@ export async function deleteDocumentBlueprint(
 }
 
 /**
- * 프로젝트별 문서 조회
+ * 프로젝트별 문서 조회 (projectId 인덱스 사용)
  */
 export async function loadDocumentBlueprints(
   projectId: string,
 ): Promise<DocumentBlueprint[]> {
   const db = await openDB()
-  const all = await txGetAll<DocumentBlueprint>(db, STORE_NAME)
-  return all
-    .filter(doc => doc.projectId === projectId)
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+  const docs = await txGetByIndex<DocumentBlueprint>(db, STORE_NAME, 'projectId', projectId)
+  return docs.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
 }
 
 /**

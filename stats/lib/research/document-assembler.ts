@@ -78,10 +78,7 @@ function mergeMethods(records: HistoryRecord[], language: 'ko' | 'en'): string {
     if (!draft?.methods) continue
 
     const methodName = record.method?.name ?? record.name
-    const header = language === 'ko'
-      ? `### ${methodName}`
-      : `### ${methodName}`
-    parts.push(`${header}\n\n${draft.methods}`)
+    parts.push(`### ${methodName}\n\n${draft.methods}`)
   }
 
   return parts.join('\n\n')
@@ -101,12 +98,9 @@ function mergeResults(
     if (!draft) continue
 
     const methodName = record.method?.name ?? record.name
-    const header = language === 'ko'
-      ? `### ${methodName}`
-      : `### ${methodName}`
 
     if (draft.results) {
-      parts.push(`${header}\n\n${draft.results}`)
+      parts.push(`### ${methodName}\n\n${draft.results}`)
     }
 
     if (draft.tables) {
@@ -127,11 +121,19 @@ function mergeResults(
   return { content: parts.join('\n\n'), tables, figureRefs }
 }
 
-/** BLAST 결과 병합 (analysis kind가 blast-result인 것들) */
+interface BlastHit {
+  species: string
+  identity: number
+  accession: string
+}
+
+function isBlastResult(data: unknown): data is { description?: string; topHits?: BlastHit[] } {
+  return data !== null && typeof data === 'object' && ('description' in data || 'topHits' in data)
+}
+
 function mergeBlastResults(
   entityRefs: ProjectEntityRef[],
   allHistory: HistoryRecord[],
-  language: 'ko' | 'en',
 ): string {
   const blastIds = new Set(
     entityRefs
@@ -144,21 +146,12 @@ function mergeBlastResults(
   const parts: string[] = []
 
   for (const record of blastRecords) {
-    const results = record.results as Record<string, unknown> | null
-    if (!results) continue
+    if (!isBlastResult(record.results)) continue
 
-    const description = (results['description'] as string) ?? ''
-    const topHits = (results['topHits'] as Array<{
-      species: string
-      identity: number
-      accession: string
-    }>) ?? []
+    const description = record.results.description ?? ''
+    const topHits = record.results.topHits ?? []
 
-    const header = language === 'ko'
-      ? `### BLAST: ${record.name}`
-      : `### BLAST: ${record.name}`
-
-    const lines = [header, '', description]
+    const lines = [`### BLAST: ${record.name}`, '', description]
 
     if (topHits.length > 0) {
       lines.push('')
@@ -230,7 +223,7 @@ export function assembleDocument(
     const { content, tables, figureRefs } = mergeResults(projectHistory, projectFigures, language)
 
     // BLAST 결과 추가
-    const blastContent = mergeBlastResults(sources.entityRefs, sources.allHistory, language)
+    const blastContent = mergeBlastResults(sources.entityRefs, sources.allHistory)
     const fullContent = [content, blastContent].filter(Boolean).join('\n\n')
 
     if (fullContent) {
