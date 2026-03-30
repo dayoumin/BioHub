@@ -14,7 +14,7 @@ import type {
 } from '../storage-types'
 
 const DB_NAME = 'analysis-history'
-const DB_VERSION = 2  // 버전 업그레이드 (sync_queue 추가)
+const DB_VERSION = 3  // v3: document-blueprints store 추가
 const HISTORY_STORE = 'analyses'
 const SYNC_QUEUE_STORE = 'sync_queue'
 const FAVORITES_STORE = 'favorites'
@@ -64,6 +64,12 @@ function openDB(): Promise<IDBDatabase> {
       // Favorites 스토어 생성 (v2)
       if (!db.objectStoreNames.contains(FAVORITES_STORE)) {
         db.createObjectStore(FAVORITES_STORE, { keyPath: 'id' })
+      }
+
+      // DocumentBlueprint 스토어 생성 (v3)
+      if (!db.objectStoreNames.contains('document-blueprints')) {
+        const docStore = db.createObjectStore('document-blueprints', { keyPath: 'id' })
+        docStore.createIndex('projectId', 'projectId', { unique: false })
       }
     }
   })

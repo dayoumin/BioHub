@@ -1,0 +1,144 @@
+/**
+ * DocumentBlueprint IndexedDB 저장소
+ *
+ * 설계서: stats/docs/papers/PLAN-DOCUMENT-ASSEMBLY.md §6
+ * 구현 계획: Phase 1
+ *
+ * Local-only: storage.ts facade 비경유, project-storage.ts 패턴
+ * EntityRef 동기화: 저장/삭제 시 upsertProjectEntityRef/removeProjectEntityRef 호출
+ */
+
+import type { DocumentBlueprint } from './document-blueprint-types'
+import {
+  upsertProjectEntityRef,
+  removeProjectEntityRef,
+} from './project-storage'
+
+const DB_NAME = 'analysis-history'
+const STORE_NAME = 'document-blueprints'
+
+// ── IndexedDB 헬퍼 ──
+
+function openDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME)
+    request.onerror = () => reject(request.error)
+    request.onsuccess = () => resolve(request.result)
+  })
+}
+
+function txGet<T>(db: IDBDatabase, storeName: string, key: string): Promise<T | undefined> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly')
+    const store = tx.objectStore(storeName)
+    const req = store.get(key)
+    req.onsuccess = () => resolve(req.result as T | undefined)
+    req.onerror = () => reject(req.error)
+  })
+}
+
+function txGetAll<T>(db: IDBDatabase, storeName: string): Promise<T[]> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly')
+    const store = tx.objectStore(storeName)
+    const req = store.getAll()
+    req.onsuccess = () => resolve(req.result as T[])
+    req.onerror = () => reject(req.error)
+  })
+}
+
+function txPut<T>(db: IDBDatabase, storeName: string, value: T): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite')
+    const store = tx.objectStore(storeName)
+    const req = store.put(value)
+    req.onsuccess = () => resolve()
+    req.onerror = () => reject(req.error)
+  })
+}
+
+function txDelete(db: IDBDatabase, storeName: string, key: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite')
+    const store = tx.objectStore(storeName)
+    const req = store.delete(key)
+    req.onsuccess = () => resolve()
+    req.onerror = () => reject(req.error)
+  })
+}
+
+// ── 공개 API ──
+
+/**
+ * 문서 저장 + EntityRef 동기화
+ *
+ * IndexedDB 저장 성공 후 EntityRef 생성. 순차 실행.
+ */
+export async function saveDocumentBlueprint(
+  blueprint: DocumentBlueprint,
+): Promise<void> {
+  const db = await openDB()
+  const updated: DocumentBlueprint = {
+    ...blueprint,
+    updatedAt: new Date().toISOString(),
+  }
+
+  await txPut(db, STORE_NAME, updated)
+
+  upsertProjectEntityRef({
+    projectId: blueprint.projectId,
+    entityKind: 'draft',
+    entityId: blueprint.id,
+    label: blueprint.title,
+  })
+}
+
+/**
+ * 문서 삭제 + EntityRef 동기화
+ */
+export async function deleteDocumentBlueprint(
+  id: string,
+  projectId: string,
+): Promise<void> {
+  const db = await openDB()
+  await txDelete(db, STORE_NAME, id)
+
+  removeProjectEntityRef(projectId, 'draft', id)
+}
+
+/**
+ * 프로젝트별 문서 조회
+ */
+export async function loadDocumentBlueprints(
+  projectId: string,
+): Promise<DocumentBlueprint[]> {
+  const db = await openDB()
+  const all = await txGetAll<DocumentBlueprint>(db, STORE_NAME)
+  return all
+    .filter(doc => doc.projectId === projectId)
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+}
+
+/**
+ * 단건 조회
+ */
+export async function loadDocumentBlueprint(
+  id: string,
+): Promise<DocumentBlueprint | undefined> {
+  const db = await openDB()
+  return txGet<DocumentBlueprint>(db, STORE_NAME, id)
+}
+
+/**
+ * 전체 문서 수 조회 (진단용)
+ */
+export async function getDocumentBlueprintCount(): Promise<number> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly')
+    const store = tx.objectStore(STORE_NAME)
+    const req = store.count()
+    req.onsuccess = () => resolve(req.result)
+    req.onerror = () => reject(req.error)
+  })
+}
