@@ -2,7 +2,7 @@
 
 **작성일**: 2026-03-21
 **목적**: Phase 15-5 구현 전, Module E 기능의 최신 사용 현황 검증 + 구현 가능성 확인
-**기반 문서**: [PLAN-BIORESEARCH-PLATFORM.md](PLAN-BIORESEARCH-PLATFORM.md) Module E
+**기반**: ROADMAP.md Phase 15-5 (NCBI + 개체군 유전학)
 
 ---
 

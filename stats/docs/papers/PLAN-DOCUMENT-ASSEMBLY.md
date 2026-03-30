@@ -1,7 +1,8 @@
 # 프로젝트 레벨 문서 조립 (Draft Assembly) 계획
 
 **작성일**: 2026-03-23
-**상태**: 설계 완료, 구현 대기
+**상태**: 설계 완료, **구현 계획 승인 (2026-03-30)**
+**구현 계획**: Claude Code plans (`indexed-stirring-wirth.md`, 로컬 전용 — 버전 관리 대상 아님)
 **관련 문서**: [PLAN-PROJECT-DETAIL-PAGE.md](../PLAN-PROJECT-DETAIL-PAGE.md) · [TODO.md](../../../TODO.md) · [PLAN-PAPER-DRAFT-GENERATION.md](PLAN-PAPER-DRAFT-GENERATION.md)
 
 ---
@@ -29,7 +30,7 @@ ProjectReport (취합 나열)    ← 완성됨 (ReportComposer + 마크다운/HT
 |---|---|---|
 | **학술 논문** (`paper`) | Introduction → Methods → Results → Discussion → References | 학술지 투고 |
 | **연구 보고서** (`report`) | 요약 → 연구배경 → 방법 → 결과 → 결론 → 부록 | 기관 보고, 내부 문서 |
-| **현장 보고** (`field-report`) | 조사개요 → 분석결과 → 판정 → 권장사항 | 현장 실무 — Phase F (§7.6) |
+| **현장 보고** (`field-report`) | 조사개요 → 분석결과 → 판정 → 권장사항 | 현장 실무 — Phase 6f |
 | **커스텀** (`custom`) | 사용자 정의 섹션 | 자유 형식 |
 
 ### 2.2 타입 설계
@@ -61,7 +62,7 @@ interface DocumentSection {
 interface FigureRef {
   entityId: string                  // GraphProject.id
   label: string                     // "Figure 1" (자동 번호 매김)
-  caption: string                   // GraphProject.name + chartSpec.chartType (§4.3 참조)
+  caption: string                   // GraphProject.name + chartSpec.chartType (§3.4 참조)
 }
 
 // 메타데이터 — 프리셋별 고유 필드
@@ -77,7 +78,7 @@ interface FieldReportMetadata {
 }
 type DocumentMetadata = PaperMetadata | ReportMetadata | FieldReportMetadata | Record<string, unknown>
 
-// 문서 전체 — 메타데이터 소유권: 스냅샷 방식 (§8.1)
+// 문서 전체 — 메타데이터 소유권: 스냅샷 방식 (§10.1)
 interface DocumentBlueprint {
   id: string                        // `doc_${Date.now()}_${random}`
   projectId: string
@@ -281,68 +282,81 @@ DocumentBlueprint 생성 시:
 ```
 
 → 프로젝트 상세 페이지의 "초안" 탭에 자동 표시.
-→ entity-resolver에 `case 'draft'` 추가 필요 (Phase B).
+→ entity-resolver에 `case 'draft'` 추가 필요 (Phase 2).
 
 ---
 
-## 7. 구현 범위 (Phase 분리)
+## 7. 구현 범위 (Phase 분리) — 2026-03-30 승인
 
-### 7.1 Phase A: 타입 + 프리셋 레지스트리
+> 이하 Phase 번호는 구현 계획서와 통일 (기존 A~F → 1~6)
+
+### Phase 1: 타입 + 조립 엔진 + 저장 (구 Phase A+B)
 - `DocumentBlueprint`, `DocumentSection`, `DocumentTable` 타입 정의
-- 프리셋 레지스트리: `paper`, `report`, `custom` (3개만)
-- 프리셋별 빈 섹션 구조 생성 함수
-- `convertPaperTable()`, `buildFigureRef()` 변환 함수
-- 단위 테스트: convertPaperTable 파싱 정확성
-- **UI 없음** — 타입/모델만
-
-### 7.2 Phase B: 자동 조립 엔진 + 마크다운/HTML 내보내기
+- 프리셋 레지스트리: `paper`, `report`, `custom` (3개, field-report는 Phase 6 이후)
 - `document-assembler.ts`: HistoryRecord 직접 읽기 → paperDraft 병합
-- Figure/BLAST 참조 삽입
-- entity-resolver에 `case 'draft'` 추가 (DocumentBlueprint 표시)
-- IndexedDB store 추가 (DB_VERSION 2→3, `document-blueprints` store)
-- 마크다운/HTML 내보내기 (`report-export.ts` 패턴 확장)
-- **DOCX 미포함** — Phase E
+- `document-blueprint-storage.ts`: IndexedDB local-only (**storage.ts facade 비경유**)
+- **CRUD + EntityRef 동기화**: save → `upsertProjectEntityRef()`, delete → `removeProjectEntityRef()`
+- DB_VERSION 2→3, `document-blueprints` store
+- 단위 테스트
 
-### 7.3 Phase C: 조립 UI
-- 프로젝트 상세 페이지 "초안" 탭에서 진입 (또는 프로젝트 헤더에 "문서 만들기" 버튼)
-- 프리셋 선택 → 자동 조립 → 섹션 편집기 (마크다운)
-- 섹션 드래그 순서 변경 + 추가/삭제
-- 미리보기 + 마크다운/HTML 내보내기
-- "재조립" 버튼 (새 분석 추가 시)
+### Phase 2: 조립 UI + 마크다운 에디터 (구 Phase C)
+- `/papers` 문서 허브 + 에디터 (기존 결과 정리 기능 **공존**)
+- **라우팅**: `dynamic(PapersContent, { ssr: false })` + `window.location.search` (`useSearchParams` 금지)
+- 프리셋 선택 → 자동 조립 → 섹션 편집 (마크다운 textarea + react-markdown)
+- MaterialPalette: **분석+그래프만** (문헌 인용은 Phase 6a, citation store 부재)
+- entity-resolver `case 'draft'` 추가
 
-### 7.4 Phase D: LLM 보강
-- Introduction/Discussion 자동 생성 (OpenRouter)
-- 입력: assembler가 생성한 Methods/Results + project.paperConfig.researchContext
-- 요약 자동 생성
-- 사용자 피드백 기반 재생성
+### Phase 3: Plate 리치 텍스트 에디터
+- `@platejs/*` v52 (shadcn/ui 네이티브)
+- 마크다운 textarea → PlateEditor 교체
+- 저장: `content`(마크다운) + `plateValue?`(Slate JSON) 양방향
 
-### 7.5 Phase E: DOCX 내보내기 (별도)
-- 섹션형 문서 → DOCX 변환기 (기존 단일분석용 `docx-export.ts`와 **별도 모듈**)
-- Heading 계층, 표, Figure placeholder 포함
-- **난이도 높음** — 기존 ExportContext → NormalizedExportData 경로와 다른 새 adapter 필요
+### Phase 4: DOCX 내보내기 (구 Phase E)
+- `document-docx-export.ts` (기존 `docx-export.ts`와 별도)
+- 저널 스타일 프리셋 (`docx-journal-styles.ts`)
+- 차트 이미지 삽입 (`docx-image-utils.ts`)
 
-### 7.6 Phase F: field-report 프리셋 (별도)
-- 선행 조건:
-  1. entity-resolver에 `species-validation` / `legal-status` case 추가
-  2. 각 kind의 데이터 로더 타입 정의 (BlastEntryLike처럼)
-  3. 저장소에서 로드 로직
-- 이 resolver가 완성된 후에만 field-report 프리셋 추가 가능
+### Phase 5: LLM 보강 (구 Phase D)
+- Introduction/Discussion/Abstract 자동 생성 (OpenRouter 스트리밍)
+
+### Phase 6: 폴리싱
+- 6a: 인용 관리 (citation store 신규 설계 필요)
+- 6b: Figure 오프스크린 렌더링 + 캐시
+- 6c: 영문 템플릿 완성
+- 6d: 표/그림 자동 번호 매기기
+- 6e: HWP 내보내기
+- 6f: field-report 프리셋 (species-validation/legal-status resolver 선행)
 
 ---
 
-## 8. 파일 구조 (예상)
+## 8. 파일 구조
 
 ```
 stats/lib/research/
-  document-blueprint-types.ts    ← Phase A: 타입 정의
-  document-preset-registry.ts    ← Phase A: 프리셋 레지스트리
-  document-assembler.ts          ← Phase B: 자동 조립 엔진
-  document-export.ts             ← Phase B: 내보내기 확장
+  document-blueprint-types.ts    ← Phase 1: 타입 정의
+  document-preset-registry.ts    ← Phase 1: 프리셋 레지스트리
+  document-assembler.ts          ← Phase 1: 자동 조립 엔진
+  document-blueprint-storage.ts  ← Phase 1: IndexedDB CRUD + EntityRef 동기화
 
-stats/components/projects/
-  DocumentAssemblyDialog.tsx     ← Phase C: 조립 UI (프리셋 선택 + 편집)
-  DocumentSectionEditor.tsx      ← Phase C: 섹션 편집기
-  DocumentPreview.tsx            ← Phase C: 미리보기
+stats/app/papers/
+  page.tsx                       ← Phase 2: dynamic(PapersContent, { ssr: false }) 래퍼
+  PapersContent.tsx              ← Phase 2: doc 파라미터 분기 (허브/에디터)
+
+stats/components/papers/
+  PapersHub.tsx                  ← Phase 2: 문서 목록 + 기존 결과 정리 공존
+  DocumentEditor.tsx             ← Phase 2: 메인 에디터 (2단 레이아웃)
+  DocumentSectionList.tsx        ← Phase 2: @dnd-kit 섹션 목록
+  DocumentAssemblyDialog.tsx     ← Phase 2: 프리셋 선택
+  MaterialPalette.tsx            ← Phase 2: 분석/그래프 팔레트
+  DocumentExportBar.tsx          ← Phase 2: 내보내기 액션 바
+  PlateEditor.tsx                ← Phase 3: Plate WYSIWYG
+  plate-plugins.ts               ← Phase 3: 플러그인 설정
+  LLMSectionGenerator.tsx        ← Phase 5: AI 섹션 생성
+
+stats/lib/services/export/
+  document-docx-export.ts        ← Phase 4: 섹션 기반 DOCX 내보내기
+  docx-journal-styles.ts         ← Phase 4: 저널 스타일 프리셋
+  docx-image-utils.ts            ← Phase 4: 차트 이미지 변환
 ```
 
 ---
@@ -379,12 +393,36 @@ blueprint 생성 시:
   // 이후 blueprint의 필드는 문서 자체에서만 편집
 ```
 
-### 10.2 저장 위치: IndexedDB
+### 10.2 저장 위치: IndexedDB (local-only)
 
-**결정**: IndexedDB `document-blueprints` store (localStorage 아님)
+**결정**: IndexedDB `document-blueprints` store, **storage.ts facade 비경유**
+
+**이유**: `project-storage.ts`(localStorage 직접 사용)와 동일 패턴. 현재 `StorageAdapter`는 History+Favorites 전용이므로 인터페이스 변경 불필요.
 
 **구현**:
 - DB_VERSION 2 → 3 (onupgradeneeded에서 조건부 store 생성)
 - Index: `projectId` (프로젝트별 문서 목록 쿼리)
-- `storage.ts`에 `saveDocumentBlueprint()` / `loadDocumentBlueprints(projectId)` / `deleteDocumentBlueprint(id)` 추가
-- Turso 동기화는 D1 마이그레이션 시 함께 진행 (현재는 로컬 only)
+- `document-blueprint-storage.ts`에 CRUD 함수 (IndexedDB 직접 접근)
+- **CRUD + EntityRef 동기화**: save → `upsertProjectEntityRef()`, delete → `removeProjectEntityRef()` (§6 참조)
+- Turso/D1 동기화는 마이그레이션 시 별도 검토
+
+### 10.3 라우팅: 정적 빌드 대응
+
+**결정**: `/papers?doc=<id>` 쿼리 파라미터 (동적 라우트 `/papers/[id]` **사용 불가**)
+
+**이유**: `output: 'export'` 정적 빌드에서 동적 세그먼트 불가. Graph Studio 패턴 따름.
+
+**구현**:
+- `page.tsx`: `dynamic(() => import('./PapersContent'), { ssr: false })` 래퍼
+- `PapersContent.tsx`: `window.location.search`에서 `doc` 파라미터 추출
+- `useSearchParams()` 직접 사용 **금지** (Suspense 없이 static export에서 prerender 에러)
+
+### 10.4 기존 `/papers` 기능 보존
+
+**결정**: 문서 허브와 기존 결과 정리 기능 **같은 경로 내 공존**
+
+**이유**: `/papers`에 이미 DraftHistoryCard 6개 + FEATURES 카드 3개 + 결과 정리 진입 UI 구현됨. 단순 교체하면 기존 흐름 손실.
+
+**구현**:
+- `PapersHub.tsx` 상단: "내 문서" 목록 + "새 문서 만들기" 버튼
+- `PapersHub.tsx` 하단: 기존 FEATURES 카드 + DraftHistoryCard (기존 page.tsx에서 이관)

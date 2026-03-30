@@ -16,7 +16,7 @@
 > 3. cf-deploy 글로벌 스킬 복사: `~/.claude/skills/cf-deploy/SKILL.md` (두 모드 자동 감지 통합본)
 > 4. Kemi / Clean_Style도 Node 22 업그레이드 필요 (`.nvmrc`, `deploy.yml`, `@types/node`)
 
-**Last updated**: 2026-03-26
+**Last updated**: 2026-03-30
 **References**: [Product Strategy](docs/PRODUCT_STRATEGY.md), [Roadmap](ROADMAP.md), [Research Project Status](docs/RESEARCH_PROJECT_STATUS.md)
 
 ---
@@ -215,9 +215,14 @@ These items should be the current focus.
 - `[domain]` legal-status 레코드 스키마 정의 (source metadata + checked date)
 - `[domain]` Connect species and legal status outputs into manuscript and review flows.
 - `[domain]` FisheryON 기능 이전 — 문헌 통합검색 (Phase A) + 연구동향 모니터링 (Phase B) + 이메일 구독/Cron (Phase C). 상세: [PLAN-FISHERY-MIGRATION.md](docs/PLAN-FISHERY-MIGRATION.md)
-- `[paper]` 프로젝트 레벨 문서 조립 (DocumentBlueprint) — 설계 완료, 구현 대기. 4개 프리셋(논문/보고서/현장보고/커스텀) + 자동 병합 + LLM 보강. 상세: [PLAN-DOCUMENT-ASSEMBLY.md](stats/docs/papers/PLAN-DOCUMENT-ASSEMBLY.md)
-- `[paper]` Build project-level manuscript assembly UI across multiple analyses.
-- `[paper]` Add figure and table references that can be inserted into draft sections.
+- `[paper]` **논문 작성 지원 기능 — 6단계 구현 계획 승인 (2026-03-30)**
+  - Phase 1: DocumentBlueprint 타입 + 조립 엔진 + 저장 (IndexedDB local-only, EntityRef 동기화 포함)
+  - Phase 2: `/papers` 문서 허브 + 마크다운 에디터 (기존 결과 정리 기능 보존, `dynamic(ssr: false)` 패턴)
+  - Phase 3: Plate 리치 텍스트 에디터 (`@platejs/*` v52, shadcn/ui 네이티브)
+  - Phase 4: DOCX 내보내기 (기존 `docx` v9.5.1, 저널 스타일 프리셋)
+  - Phase 5: LLM Introduction/Discussion 자동 생성 (OpenRouter)
+  - Phase 6: 인용 관리 (citation store 신규), Figure 통합, 영문 템플릿, 번호 매기기
+  - 상세: [PLAN-DOCUMENT-ASSEMBLY.md](stats/docs/papers/PLAN-DOCUMENT-ASSEMBLY.md) · [PLAN-USER-JOURNEY-LITERATURE-PAPERS.md](stats/docs/papers/PLAN-USER-JOURNEY-LITERATURE-PAPERS.md)
 - `[review]` Define a project-level methods and reporting completeness checklist.
 - `[review]` Define reviewer-ready export bundle structure.
 - `[review]` Add journal format review and fit review workflow.
@@ -232,7 +237,7 @@ These are valid directions, but not current execution priorities.
 
 - `[review]` Implement reviewer simulator after checklist and reviewer package foundations are stable.
 - `[domain]` Expand external domain integrations beyond baseline validation flows.
-- `[paper]` Add stronger project-wide draft synthesis and section merge assistance.
+- ~~`[paper]` Add stronger project-wide draft synthesis and section merge assistance.~~ — Phase 1-2에 포함 (DocumentBlueprint 조립 엔진)
 - `[trust]` Expand reproducible code export to more advanced analysis paths.
 - `[workflow]` Add richer project dashboard and project health summary.
 - `[ux]` 사이드바 IA 재구성 — "홈"에 Analysis가 숨겨져 있어 발견성 낮음, "유전적 분석"이 Bio-Tools 밖에 독립 메뉴, 섹션/기능/예정 레벨 혼재. 네비게이션 계층 재설계 필요.
@@ -277,7 +282,7 @@ These are valid directions, but not current execution priorities.
 - `[chatbot]` 챗봇 주제 폴더 인라인 이름 수정 — 현재 생성만 가능, 수정 불가. 챗봇 역할 확정 후 구현.
 - `[review]` Do not implement acceptance probability prediction.
 - `[workflow]` Do not expand disconnected AI features before the shared project model exists.
-- `[paper]` Do not overbuild manuscript automation before analysis, figure, and provenance linkage is stable.
+- ~~`[paper]` Do not overbuild manuscript automation before analysis, figure, and provenance linkage is stable.~~ — 분석/Figure/provenance 연결 안정화됨. 논문 작성 6단계 계획 승인 (2026-03-30)
 - `[domain]` Do not expose legal-status outputs without source metadata and checked-date support.
 
 ---
@@ -291,7 +296,7 @@ These are valid directions, but not current execution priorities.
 5. ~~프로젝트 상세/개요 페이지 (Phase 4) + 타임스탬프 타입 통일~~ — 완료
 6. ~~Evidence/provenance 저장 구현~~ — Phase 1 완료 (evidence-factory + saveToHistory 연동) + 재현 코드 내보내기 완료
 7. Species/legal source-aware records
-8. Project-level draft assembly model
+8. ~~Project-level draft assembly model~~ → **논문 작성 Phase 1-6** (계획 승인 2026-03-30)
 9. Reviewer checklist and export bundle
 10. Reviewer simulator
 
