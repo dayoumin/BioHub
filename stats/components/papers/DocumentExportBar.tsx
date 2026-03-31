@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react'
 import { Copy, Download, FileDown, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { DocumentBlueprint } from '@/lib/research/document-blueprint-types'
+import type { DocumentBlueprint, DocumentTable } from '@/lib/research/document-blueprint-types'
 
 interface DocumentExportBarProps {
   document: DocumentBlueprint
@@ -49,7 +49,7 @@ function documentToMarkdown(doc: DocumentBlueprint): string {
   return lines.join('\n')
 }
 
-function renderTableHtml(table: { caption: string; headers: string[]; rows: string[][]; htmlContent?: string }): string {
+function renderTableHtml(table: DocumentTable): string {
   if (table.htmlContent) return `<p><strong>${table.caption}</strong></p>${table.htmlContent}`
   if (table.headers.length === 0) return ''
   const thead = `<thead><tr>${table.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`
@@ -63,6 +63,8 @@ function documentToHtml(doc: DocumentBlueprint): string {
   if (doc.authors?.length) parts.push(`<p>${doc.authors.join(', ')}</p>`)
 
   for (const section of doc.sections) {
+    const hasContent = section.content || section.tables?.length || section.figures?.length
+    if (!hasContent) continue
     parts.push(`<h2>${section.title}</h2>`)
     if (section.content) {
       const contentHtml = section.content
