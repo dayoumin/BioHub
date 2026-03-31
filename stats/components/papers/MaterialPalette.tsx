@@ -35,7 +35,7 @@ export default function MaterialPalette({
       refs.filter(r => r.entityKind === 'figure').map(r => r.entityId),
     )
 
-    setProjectAnalyses(analysisHistory.filter(h => analysisIds.has(h.id)))
+    setProjectAnalyses(analysisHistory.filter(h => analysisIds.has(h.id)) as unknown as HistoryRecord[])
     setProjectGraphs(listGraphProjects().filter(g => figureIds.has(g.id)))
   }, [projectId, analysisHistory])
 

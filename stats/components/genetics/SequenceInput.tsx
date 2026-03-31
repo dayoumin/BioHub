@@ -153,8 +153,7 @@ export function SequenceInput({
                   예제 서열 넣기 ({latinName})
                 </Button>
               )
-            })()
-            )}
+            })()}
             <Button
               type="button"
               variant="ghost"

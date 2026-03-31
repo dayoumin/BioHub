@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react'
-import { ArrowLeft, Eye, PenLine, RefreshCw, Save } from 'lucide-react'
+import { useState, useEffect, useCallback, useRef, useMemo, lazy, Suspense } from 'react'
+import { ArrowLeft, Eye, PenLine, RefreshCw } from 'lucide-react'
+import { usePlateEditor } from 'platejs/react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import {
   loadDocumentBlueprint,
@@ -20,6 +20,8 @@ import type { DocumentBlueprint, DocumentSection } from '@/lib/research/document
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { GraphProject } from '@/types/graph-studio'
 import { MARKDOWN_CONFIG } from '@/lib/rag/config/markdown-config'
+import { paperPlugins } from './plate-plugins'
+import PlateEditor from './PlateEditor'
 import DocumentSectionList from './DocumentSectionList'
 import MaterialPalette from './MaterialPalette'
 import DocumentExportBar from './DocumentExportBar'
@@ -46,6 +48,9 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
   const [loading, setLoading] = useState(true)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { analysisHistory } = useHistoryStore()
+
+  // Plate 에디터 인스턴스 — DocumentEditor가 소유
+  const editor = usePlateEditor({ plugins: paperPlugins })
 
   // 언마운트 시 미저장 변경 즉시 flush + 타이머 정리
   const pendingDocRef = useRef<DocumentBlueprint | null>(null)
@@ -96,10 +101,42 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     })
   }, [scheduleSave])
 
-  const handleContentChange = useCallback((value: string) => {
+  // Plate 에디터 값 → 마크다운 동기화 + 저장
+  const handlePlateChange = useCallback(() => {
     if (!activeSectionId) return
-    updateSection(activeSectionId, { content: value, generatedBy: 'user' })
-  }, [activeSectionId, updateSection])
+    try {
+      const markdown = editor.api.markdown.serialize()
+      const plateValue = editor.children
+      updateSection(activeSectionId, { content: markdown, plateValue, generatedBy: 'user' })
+    } catch {
+      // serialize 실패 시 무시 (에디터 초기화 중 발생 가능)
+    }
+  }, [activeSectionId, editor, updateSection])
+
+  // 섹션 전환 시 Plate 에디터에 content 로드
+  const loadedSectionRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!activeSectionId || !doc) return
+    if (loadedSectionRef.current === activeSectionId) return
+    loadedSectionRef.current = activeSectionId
+
+    const section = doc.sections.find(s => s.id === activeSectionId)
+    if (!section) return
+
+    try {
+      // plateValue가 있으면 그대로 사용, 없으면 마크다운에서 역직렬화
+      if (section.plateValue && Array.isArray(section.plateValue) && section.plateValue.length > 0) {
+        editor.tf.setValue(section.plateValue as typeof editor.children)
+      } else if (section.content) {
+        const nodes = editor.api.markdown.deserialize(section.content)
+        editor.tf.setValue(nodes)
+      } else {
+        editor.tf.setValue([{ type: 'p', children: [{ text: '' }] }])
+      }
+    } catch {
+      editor.tf.setValue([{ type: 'p', children: [{ text: '' }] }])
+    }
+  }, [activeSectionId, doc, editor])
 
   // 섹션 순서 변경
   const handleReorder = useCallback((newSections: DocumentSection[]) => {
@@ -158,7 +195,7 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
 
     const reassembled = reassembleDocument(doc, {
       entityRefs,
-      allHistory: analysisHistory,
+      allHistory: analysisHistory as unknown as HistoryRecord[],
       allGraphProjects,
       blastHistory,
     })
@@ -188,10 +225,10 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
           content: s.content + insertion,
           tables: newTables.length > 0 ? newTables : undefined,
           sourceRefs: [...s.sourceRefs, record.id],
-          generatedBy: 'user',
+          generatedBy: 'user' as const,
         }
       })
-      const updated = { ...prev, sections: newSections, updatedAt: new Date().toISOString() }
+      const updated: DocumentBlueprint = { ...prev, sections: newSections, updatedAt: new Date().toISOString() }
       scheduleSave(updated)
       return updated
     })
@@ -216,10 +253,10 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
           content: s.content + insertion,
           figures: [...(s.figures ?? []), figRef],
           sourceRefs: [...s.sourceRefs, graph.id],
-          generatedBy: 'user',
+          generatedBy: 'user' as const,
         }
       })
-      const updated = { ...prev, sections: newSections, updatedAt: new Date().toISOString() }
+      const updated: DocumentBlueprint = { ...prev, sections: newSections, updatedAt: new Date().toISOString() }
       scheduleSave(updated)
       return updated
     })
@@ -319,12 +356,7 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
                   </Suspense>
                 </div>
               ) : (
-                <Textarea
-                  value={activeSection.content}
-                  onChange={e => handleContentChange(e.target.value)}
-                  placeholder="마크다운으로 작성하세요..."
-                  className="min-h-[400px] font-mono text-sm resize-none"
-                />
+                <PlateEditor editor={editor} onChange={handlePlateChange} />
               )}
 
               {/* 표 목록 */}

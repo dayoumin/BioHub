@@ -18,6 +18,7 @@ import { useHistoryStore } from '@/lib/stores/history-store'
 import { listProjects as listGraphProjects } from '@/lib/graph-studio/project-storage'
 import { loadAnalysisHistory } from '@/lib/genetics/analysis-history'
 import type { DocumentBlueprint, DocumentPreset } from '@/lib/research/document-blueprint-types'
+import type { HistoryRecord } from '@/lib/utils/storage-types'
 
 // ── 프리셋 아이콘 ──
 
@@ -64,7 +65,7 @@ export default function DocumentAssemblyDialog({
         },
         {
           entityRefs,
-          allHistory: analysisHistory,
+          allHistory: analysisHistory as unknown as HistoryRecord[],
           allGraphProjects,
           blastHistory,
         },

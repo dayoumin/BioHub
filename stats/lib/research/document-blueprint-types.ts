@@ -38,6 +38,8 @@ export interface DocumentSection {
   id: string
   title: string
   content: string
+  /** Plate 에디터 Slate JSON (WYSIWYG 편집 시 생성, 없으면 content에서 역직렬화) */
+  plateValue?: unknown
   sourceRefs: string[]
   tables?: DocumentTable[]
   figures?: FigureRef[]
