@@ -22,7 +22,7 @@ import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildLengthWeightColumns } from '@/lib/graph-studio/analysis-adapter'
 import { LazyReactECharts } from '@/lib/charts/LazyECharts'
-import { statBaseOption, statValueAxis, statTooltip } from '@/lib/charts/echarts-stat-utils'
+import { statBaseOption, statValueAxis, statTooltip, SCATTER_LARGE_THRESHOLD, selectScatterRenderer } from '@/lib/charts/echarts-stat-utils'
 import type { ToolComponentProps } from './types'
 import type { LengthWeightResult } from '@/types/bio-tools-results'
 
@@ -121,7 +121,7 @@ export default function LengthWeightTool({ tool, meta, initialEntry }: ToolCompo
           symbolSize: 6,
           itemStyle: { color: palette[0], opacity: 0.3 },
           large: true,
-          largeThreshold: 2000,
+          largeThreshold: SCATTER_LARGE_THRESHOLD,
         },
         {
           type: 'line',
@@ -234,7 +234,7 @@ export default function LengthWeightTool({ tool, meta, initialEntry }: ToolCompo
             <div>
               <h3 className="text-sm font-semibold mb-2">Log-Log 산점도</h3>
               <div className="border rounded-lg bg-card max-w-lg mx-auto">
-                <LazyReactECharts option={chartOption} style={{ height: 300 }} opts={{ renderer: (chartData?.pts.length ?? 0) >= 2000 ? 'canvas' : 'svg' }} />
+                <LazyReactECharts option={chartOption} style={{ height: 300 }} opts={{ renderer: selectScatterRenderer(chartData?.pts.length ?? 0) }} />
               </div>
             </div>
           )}

@@ -225,13 +225,12 @@ export type SaveGeneticsHistoryInput =
 
 /** 범용 히스토리 저장 — type별 MAX 적용 */
 export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): void {
-  // BLAST 서열 길이 cap — localStorage quota 보호
-  const capped = entry.type === 'blast' && entry.sequence.length > MAX_STORED_SEQUENCE_LENGTH
-    ? { ...entry, sequence: entry.sequence.slice(0, MAX_STORED_SEQUENCE_LENGTH) }
-    : entry
-
   const newEntry: GeneticsHistoryEntry = {
-    ...capped,
+    ...entry,
+    // BLAST 서열 길이 cap — localStorage quota 보호 (15개 × 2KB = 30KB)
+    ...(entry.type === 'blast' && entry.sequence.length > MAX_STORED_SEQUENCE_LENGTH
+      ? { sequence: entry.sequence.slice(0, MAX_STORED_SEQUENCE_LENGTH) }
+      : {}),
     id: `${entry.type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     createdAt: Date.now(),
   } as GeneticsHistoryEntry

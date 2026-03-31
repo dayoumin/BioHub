@@ -12,6 +12,14 @@ import { resolveAxisColors } from './chart-color-resolver';
 /** 분석 차트 공통 색상 (OkabeIto — 색맹 안전) */
 export const STAT_COLORS: string[] = JOURNAL_PALETTES.OkabeIto;
 
+/** scatter large 모드 활성화 임계값 — 이 이상이면 Canvas 렌더러 + large 모드 사용 */
+export const SCATTER_LARGE_THRESHOLD = 2000;
+
+/** 데이터 포인트 수에 따라 SVG/Canvas 렌더러 선택 */
+export function selectScatterRenderer(dataLength: number): 'canvas' | 'svg' {
+  return dataLength >= SCATTER_LARGE_THRESHOLD ? 'canvas' : 'svg';
+}
+
 /** 분석 차트 공통 기본 옵션 */
 export function statBaseOption(): Partial<EChartsOption> {
   return {

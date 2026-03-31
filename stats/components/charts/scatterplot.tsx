@@ -5,7 +5,7 @@ import { useTheme } from "next-themes"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { LazyReactECharts } from "@/lib/charts/LazyECharts"
-import { statBaseOption, statValueAxis, statTooltip, STAT_COLORS } from "@/lib/charts/echarts-stat-utils"
+import { statBaseOption, statValueAxis, statTooltip, STAT_COLORS, SCATTER_LARGE_THRESHOLD, selectScatterRenderer } from "@/lib/charts/echarts-stat-utils"
 import { resolveChartPalette } from "@/lib/charts/chart-color-resolver"
 import type { EChartsOption } from "echarts"
 
@@ -105,7 +105,7 @@ export const Scatterplot = memo(function Scatterplot({
           itemStyle: { shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.2)', opacity: 1 },
         },
         large: true,
-        largeThreshold: 2000,
+        largeThreshold: SCATTER_LARGE_THRESHOLD,
       } as Record<string, unknown>,
     ]
 
@@ -189,7 +189,7 @@ export const Scatterplot = memo(function Scatterplot({
         <LazyReactECharts
           option={chartOption}
           style={{ height: 320 }}
-          opts={{ renderer: data.length >= 2000 ? 'canvas' : 'svg' }}
+          opts={{ renderer: selectScatterRenderer(data.length) }}
         />
 
         <div className="mt-4 grid grid-cols-2 gap-4">

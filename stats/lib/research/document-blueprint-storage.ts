@@ -81,8 +81,11 @@ export async function saveDocumentBlueprint(
   blueprint: DocumentBlueprint,
 ): Promise<void> {
   const db = await openDB()
-  // updatedAt는 호출자(DocumentEditor 등)가 설정 — 여기서 덮어쓰지 않음
-  await txPut(db, STORE_NAME, blueprint)
+  // updatedAt는 호출자가 설정하되, 누락 시 현재 시각으로 fallback
+  const toSave = blueprint.updatedAt
+    ? blueprint
+    : { ...blueprint, updatedAt: new Date().toISOString() }
+  await txPut(db, STORE_NAME, toSave)
 
   upsertProjectEntityRef({
     projectId: blueprint.projectId,
