@@ -7,14 +7,14 @@
 
 /** 프롬프트 인젝션 패턴 (대소문자 무시) */
 const INJECTION_PATTERNS = [
-  /system\s*:/gi,
-  /IGNORE\s+(ALL\s+)?PREVIOUS\s+INSTRUCTIONS/gi,
-  /DO\s+NOT\s+FOLLOW/gi,
-  /YOU\s+ARE\s+NOW/gi,
-  /FORGET\s+(ALL\s+)?PREVIOUS/gi,
-  /새로운\s+역할/gi,
-  /지시를?\s+무시/gi,
-  /이전\s+지시/gi,
+  /system\s*:/i,
+  /IGNORE\s+(ALL\s+)?PREVIOUS\s+INSTRUCTIONS/i,
+  /DO\s+NOT\s+FOLLOW/i,
+  /YOU\s+ARE\s+NOW/i,
+  /FORGET\s+(ALL\s+)?PREVIOUS/i,
+  /새로운\s+역할/i,
+  /지시를?\s+무시/i,
+  /이전\s+지시/i,
 ]
 
 /**
