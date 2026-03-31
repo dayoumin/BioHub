@@ -60,7 +60,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/genetics', label: '유전적 분석', icon: FlaskConical, prefix: '/genetics' },
   { href: '/graph-studio', label: 'Graph Studio', icon: AreaChart, prefix: '/graph-studio' },
   { href: '/literature', label: '문헌·동향', icon: FileSearch, prefix: '/literature' },
-  { href: '/papers', label: '논문 작성', icon: BookOpen, disabled: true, badge: '예정' },
+  { href: '/papers', label: '논문 작성', icon: BookOpen },
   {
     href: '/species-validation',
     label: '학명 유효성 검증',

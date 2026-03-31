@@ -278,6 +278,24 @@ function resolveBioTool(ref: ProjectEntityRef, map: Map<string, BioToolEntryLike
   }
 }
 
+function resolveDraft(ref: ProjectEntityRef, map: Map<string, DraftEntryLike>): ResolvedEntity {
+  const doc = map.get(ref.entityId)
+  if (!doc) return makeGeneric(ref)
+  const ts = normalizeTimestamp(doc.updatedAt)
+  return {
+    ref,
+    loaded: true,
+    summary: {
+      title: doc.title,
+      subtitle: doc.preset,
+      date: fmtDate(ts),
+      timestamp: ts,
+      navigateTo: `/papers?doc=${doc.id}`,
+      ...kindMeta(ref.entityKind),
+    },
+  }
+}
+
 function makeGeneric(ref: ProjectEntityRef): ResolvedEntity {
   const ts = normalizeTimestamp(ref.createdAt)
   return {
@@ -302,6 +320,14 @@ export interface BioToolEntryLike {
   createdAt: number
 }
 
+export interface DraftEntryLike {
+  id: string
+  title: string
+  preset: string
+  language: string
+  updatedAt: string
+}
+
 // ── Kind 분류 (컴파일 타임 안전망) ──
 
 /**
@@ -313,6 +339,7 @@ interface EntityKindDescriptors {
   figure: { optionKey: 'graphProjects'; data: GraphProjectLike }
   'blast-result': { optionKey: 'blastHistory'; data: BlastEntryLike }
   'bio-tool-result': { optionKey: 'bioToolHistory'; data: BioToolEntryLike }
+  draft: { optionKey: 'draftDocuments'; data: DraftEntryLike }
 }
 
 export type SupportedEntityKind = keyof EntityKindDescriptors
@@ -326,7 +353,6 @@ type GenericOnlyEntityKind = Exclude<ProjectEntityKind, SupportedEntityKind>
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- compile-time exhaustiveness check
 const _GENERIC_ONLY_KINDS: Record<GenericOnlyEntityKind, true> = {
-  draft: true,
   'chat-session': true,
   'species-validation': true,
   'legal-status': true,
@@ -370,6 +396,9 @@ export function resolveEntities(
   const bioToolMap = new Map(
     (options.bioToolHistory ?? []).map(e => [e.id, e])
   )
+  const draftMap = new Map(
+    (options.draftDocuments ?? []).map(d => [d.id, d])
+  )
 
   return refs.map(ref => {
     switch (ref.entityKind) {
@@ -381,6 +410,8 @@ export function resolveEntities(
         return resolveBlast(ref, blastMap)
       case 'bio-tool-result':
         return resolveBioTool(ref, bioToolMap)
+      case 'draft':
+        return resolveDraft(ref, draftMap)
       default: {
         // exhaustive check: SupportedEntityKind 누락 시 컴파일 에러
         const _kind: GenericOnlyEntityKind = ref.entityKind

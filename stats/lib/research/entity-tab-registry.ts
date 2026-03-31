@@ -87,10 +87,12 @@ export const ENTITY_TAB_REGISTRY: readonly EntityTabEntry[] = [
   },
   {
     id: 'draft',
-    label: '초안',
+    label: '문서',
     icon: '📄',
-    defaultVisible: false,
-    emptyMessage: '아직 초안이 없습니다.',
+    defaultVisible: true,
+    emptyMessage: '아직 문서가 없습니다.',
+    emptyActionPath: '/papers',
+    emptyActionLabel: '문서 만들기',
   },
   {
     id: 'review-report',

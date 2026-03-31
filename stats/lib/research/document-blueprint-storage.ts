@@ -139,6 +139,14 @@ export async function loadDocumentBlueprint(
 }
 
 /**
+ * 전체 문서 조회 (entity-loader용, 프로젝트 필터 없음)
+ */
+export async function loadAllDocumentBlueprints(): Promise<DocumentBlueprint[]> {
+  const db = await openDB()
+  return txGetAll<DocumentBlueprint>(db, STORE_NAME)
+}
+
+/**
  * 전체 문서 수 조회 (진단용)
  */
 export async function getDocumentBlueprintCount(): Promise<number> {

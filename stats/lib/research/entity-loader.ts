@@ -19,6 +19,7 @@ import { getAllHistory } from '@/lib/utils/storage'
 import { listProjects as listGraphProjects } from '@/lib/graph-studio/project-storage'
 import { loadAnalysisHistory } from '@/lib/genetics/analysis-history'
 import { loadBioToolHistory } from '@/lib/bio-tools/bio-tool-history'
+import { loadAllDocumentBlueprints } from '@/lib/research/document-blueprint-storage'
 
 // ── 로더 레지스트리 ──
 
@@ -31,6 +32,7 @@ const ENTITY_LOADERS: readonly EntityLoaderEntry[] = [
   { kind: 'figure', optionKey: 'graphProjects', load: listGraphProjects },
   { kind: 'blast-result', optionKey: 'blastHistory', load: loadAnalysisHistory },
   { kind: 'bio-tool-result', optionKey: 'bioToolHistory', load: loadBioToolHistory },
+  { kind: 'draft', optionKey: 'draftDocuments', load: loadAllDocumentBlueprints },
 ]
 
 // ── 공개 API ──
