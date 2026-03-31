@@ -326,6 +326,157 @@ describe('assembleDocument', () => {
   })
 })
 
+// ── Bug simulation: 수정 전 동작 재현 ──
+
+describe('Finding 2: BLAST 데이터 소스 불일치 시뮬레이션', () => {
+  it('allHistory에 BLAST 데이터를 넣으면 결과 섹션에 반영되지 않음 (구 계약 실패)', () => {
+    // 수정 전 코드는 allHistory에서 record.results.description/topHits를 읽었음
+    // 수정 후 코드는 blastHistory에서 entry.resultData를 읽으므로,
+    // allHistory에 BLAST 데이터를 넣어도 무시됨 = 구 계약이 동작하지 않음을 증명
+    const sources: AssemblerDataSources = {
+      entityRefs: [
+        makeEntityRef({ entityId: 'blast_fake', entityKind: 'blast-result' }),
+      ],
+      allHistory: [
+        makeHistoryRecord({
+          id: 'blast_fake',
+          name: 'BLAST 검색',
+          paperDraft: undefined,
+          results: {
+            description: 'This should NOT appear',
+            topHits: [
+              { species: 'FakeSpecies', identity: 99.0, accession: 'FAKE001' },
+            ],
+          },
+        }),
+      ],
+      allGraphProjects: [],
+      // blastHistory 미제공 → BLAST 내용 없어야 함
+    }
+
+    const doc = assembleDocument(BASE_OPTIONS, sources)
+    const results = doc.sections.find(s => s.id === 'results')
+
+    // 구 계약(allHistory.results.description)은 더 이상 참조되지 않음
+    expect(results?.content).not.toContain('FakeSpecies')
+    expect(results?.content).not.toContain('This should NOT appear')
+  })
+
+  it('blastHistory에 실제 BarcodingHistoryEntry 형태 데이터를 넣으면 정상 조립', () => {
+    // 실제 genetics history에서 나오는 BarcodingHistoryEntry 구조:
+    // { id, sampleName, marker, topSpecies, topIdentity, status, resultData: { description, topHits } }
+    const realBarcodingEntry: BlastEntryLike = {
+      id: 'barcoding-1710000000-abc123',
+      sampleName: '제주넙치_COI_01',
+      marker: 'COI',
+      topSpecies: 'Paralichthys olivaceus',
+      topIdentity: 0.998,
+      status: 'confirmed',
+      createdAt: 1710000000000,
+      resultData: {
+        status: 'confirmed',
+        description: 'COI 바코드 분석 결과, 넙치(Paralichthys olivaceus)로 확인됨',
+        topHits: [
+          { species: 'Paralichthys olivaceus', identity: 0.998, accession: 'MN123456' },
+          { species: 'Paralichthys dentatus', identity: 0.921, accession: 'KX789012' },
+        ],
+      },
+    }
+
+    const sources: AssemblerDataSources = {
+      entityRefs: [
+        makeEntityRef({
+          entityId: 'barcoding-1710000000-abc123',
+          entityKind: 'blast-result',
+        }),
+      ],
+      allHistory: [],
+      allGraphProjects: [],
+      blastHistory: [realBarcodingEntry],
+    }
+
+    const doc = assembleDocument(BASE_OPTIONS, sources)
+    const results = doc.sections.find(s => s.id === 'results')
+
+    // 실제 데이터 구조에서 정상 추출 확인
+    expect(results?.content).toContain('제주넙치_COI_01')
+    expect(results?.content).toContain('Paralichthys olivaceus')
+    expect(results?.content).toContain('99.8%')  // 0.998 → identity > 1 false → × 100
+    expect(results?.content).toContain('MN123456')
+    expect(results?.content).toContain('COI 바코드 분석 결과')
+    // 두 번째 hit도 포함
+    expect(results?.content).toContain('Paralichthys dentatus')
+    expect(results?.content).toContain('92.1%')
+  })
+
+  it('resultData 없는 BlastEntryLike는 건너뜀', () => {
+    const entryWithoutResult: BlastEntryLike = {
+      id: 'blast_no_result',
+      sampleName: 'Sample-X',
+      marker: 'COI',
+      topSpecies: null,
+      topIdentity: null,
+      status: null,
+      createdAt: Date.now(),
+      // resultData 없음 → 분석 미완료 상태
+    }
+
+    const sources: AssemblerDataSources = {
+      entityRefs: [
+        makeEntityRef({ entityId: 'blast_no_result', entityKind: 'blast-result' }),
+      ],
+      allHistory: [],
+      allGraphProjects: [],
+      blastHistory: [entryWithoutResult],
+    }
+
+    const doc = assembleDocument(BASE_OPTIONS, sources)
+    const results = doc.sections.find(s => s.id === 'results')
+
+    expect(results?.content).not.toContain('Sample-X')
+    expect(results?.content).not.toContain('BLAST')
+  })
+})
+
+describe('Finding 3: reassembleDocument timestamp 보장 시뮬레이션', () => {
+  it('동일 밀리초 실행에서도 updatedAt이 반드시 전진', () => {
+    const sources: AssemblerDataSources = {
+      entityRefs: [makeEntityRef({ entityId: 'hist_1', entityKind: 'analysis' })],
+      allHistory: [makeHistoryRecord()],
+      allGraphProjects: [],
+    }
+
+    const original = assembleDocument(BASE_OPTIONS, sources)
+    // 즉시 재조립 — 같은 밀리초 가능
+    const reassembled = reassembleDocument(original, sources)
+
+    const originalMs = new Date(original.updatedAt).getTime()
+    const reassembledMs = new Date(reassembled.updatedAt).getTime()
+
+    // 최소 1ms 전진 보장
+    expect(reassembledMs).toBeGreaterThan(originalMs)
+  })
+
+  it('연속 3회 재조립에서 updatedAt 단조 증가', () => {
+    const sources: AssemblerDataSources = {
+      entityRefs: [makeEntityRef({ entityId: 'hist_1', entityKind: 'analysis' })],
+      allHistory: [makeHistoryRecord()],
+      allGraphProjects: [],
+    }
+
+    const v1 = assembleDocument(BASE_OPTIONS, sources)
+    const v2 = reassembleDocument(v1, sources)
+    const v3 = reassembleDocument(v2, sources)
+
+    const t1 = new Date(v1.updatedAt).getTime()
+    const t2 = new Date(v2.updatedAt).getTime()
+    const t3 = new Date(v3.updatedAt).getTime()
+
+    expect(t2).toBeGreaterThan(t1)
+    expect(t3).toBeGreaterThan(t2)
+  })
+})
+
 describe('reassembleDocument', () => {
   it('should preserve user-edited sections and refresh template sections', () => {
     const sources: AssemblerDataSources = {

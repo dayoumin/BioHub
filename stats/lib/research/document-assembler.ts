@@ -286,10 +286,9 @@ export function reassembleDocument(
     return fresh ?? existingSection
   })
 
-  const now = new Date().toISOString()
-  const updatedAt = now > existing.updatedAt
-    ? now
-    : new Date(new Date(existing.updatedAt).getTime() + 1).toISOString()
+  const nowMs = Date.now()
+  const existingMs = new Date(existing.updatedAt).getTime()
+  const updatedAt = new Date(Math.max(nowMs, existingMs + 1)).toISOString()
 
   return {
     ...existing,
