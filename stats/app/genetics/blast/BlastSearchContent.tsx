@@ -166,7 +166,7 @@ export default function BlastSearchContent(): React.ReactElement {
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 {restoredEntry.sequence
-                  ? '이전 검색 설정이 복원되었습니다. 바로 검색하거나 서열을 수정하세요.'
+                  ? '이전 검색 설정이 복원되었습니다. 서열이 길면 일부만 복원될 수 있습니다.'
                   : '프로그램과 데이터베이스가 설정되었습니다. 서열을 입력하고 검색하세요.'}
               </p>
             </div>

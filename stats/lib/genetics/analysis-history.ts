@@ -84,6 +84,9 @@ const MAX_PER_TYPE: Record<GeneticsToolType, number> = {
   genbank: 15,
 }
 
+/** 히스토리에 저장할 서열 최대 길이 — localStorage quota 보호 (15개 × 2000 = 30KB) */
+const MAX_STORED_SEQUENCE_LENGTH = 2000
+
 const { readJson, writeJson } = createLocalStorageIO('[analysis-history]')
 
 function entityKindForType(type: GeneticsToolType): ProjectEntityKind {
@@ -222,8 +225,13 @@ export type SaveGeneticsHistoryInput =
 
 /** 범용 히스토리 저장 — type별 MAX 적용 */
 export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): void {
+  // BLAST 서열 길이 cap — localStorage quota 보호
+  const capped = entry.type === 'blast' && entry.sequence.length > MAX_STORED_SEQUENCE_LENGTH
+    ? { ...entry, sequence: entry.sequence.slice(0, MAX_STORED_SEQUENCE_LENGTH) }
+    : entry
+
   const newEntry: GeneticsHistoryEntry = {
-    ...entry,
+    ...capped,
     id: `${entry.type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     createdAt: Date.now(),
   } as GeneticsHistoryEntry
@@ -240,7 +248,8 @@ export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): void {
     overflow = sorted.slice(limit)
 
     saveToStorage(sortEntries([...kept, ...otherType]))
-  } catch {
+  } catch (err) {
+    console.warn('[genetics-history] localStorage save failed — quota may be exceeded:', err)
     return
   }
 

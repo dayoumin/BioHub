@@ -234,7 +234,7 @@ export default function LengthWeightTool({ tool, meta, initialEntry }: ToolCompo
             <div>
               <h3 className="text-sm font-semibold mb-2">Log-Log 산점도</h3>
               <div className="border rounded-lg bg-card max-w-lg mx-auto">
-                <LazyReactECharts option={chartOption} style={{ height: 300 }} opts={{ renderer: 'svg' }} />
+                <LazyReactECharts option={chartOption} style={{ height: 300 }} opts={{ renderer: (chartData?.pts.length ?? 0) >= 2000 ? 'canvas' : 'svg' }} />
               </div>
             </div>
           )}

@@ -189,7 +189,7 @@ export const Scatterplot = memo(function Scatterplot({
         <LazyReactECharts
           option={chartOption}
           style={{ height: 320 }}
-          opts={{ renderer: 'svg' }}
+          opts={{ renderer: data.length >= 2000 ? 'canvas' : 'svg' }}
         />
 
         <div className="mt-4 grid grid-cols-2 gap-4">

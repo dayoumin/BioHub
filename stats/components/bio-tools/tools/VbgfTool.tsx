@@ -201,7 +201,7 @@ export default function VbgfTool({ tool, meta, initialEntry }: ToolComponentProp
             <div>
               <h3 className="text-sm font-semibold mb-2">성장곡선</h3>
               <div className="border rounded-lg bg-card max-w-lg mx-auto">
-                <LazyReactECharts option={chartOption} style={{ height: 300 }} opts={{ renderer: 'svg' }} />
+                <LazyReactECharts option={chartOption} style={{ height: 300 }} opts={{ renderer: (chartData?.points.length ?? 0) >= 2000 ? 'canvas' : 'svg' }} />
               </div>
             </div>
           )}
