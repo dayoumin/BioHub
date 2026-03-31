@@ -25,6 +25,8 @@ import {
 import { logger } from '@/lib/utils/logger'
 import { getSystemPromptConsultant } from './ai/prompts'
 import { buildDataContextMarkdown, buildAssumptionContextMarkdown } from './ai/data-context-builder'
+import { compressChatHistory } from './ai/chat-history-compressor'
+import { sanitizeUserInput } from './ai/sanitize-input'
 
 /**
  * 모델 설정:
@@ -288,11 +290,21 @@ export class OpenRouterRecommender {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeout)
 
-    // 최근 2턴(4메시지)만 컨텍스트로 사용 (에러 버블 제외)
-    const historyMessages: OpenRouterMessage[] = (options?.chatHistory ?? [])
-      .filter(m => !m.isError)
-      .slice(-4)
-      .map(m => ({ role: m.role, content: m.content }))
+    // 채팅 히스토리 압축: 최근 4메시지 원본 유지 + 이전 메시지 축약
+    const { messages: compressedMessages, wasCompressed } = compressChatHistory(
+      (options?.chatHistory ?? []).map(m => ({
+        role: m.role,
+        content: m.content,
+        isError: m.isError,
+      }))
+    )
+    if (wasCompressed) {
+      logger.info('[OpenRouter] Chat history compressed', {
+        original: options?.chatHistory?.length,
+        compressed: compressedMessages.length,
+      })
+    }
+    const historyMessages: OpenRouterMessage[] = compressedMessages
 
     // Fix 2-C: try/finally로 clearTimeout 보장 (fetch throw 시에도 정리)
     let response: Response
@@ -305,7 +317,7 @@ export class OpenRouterRecommender {
           messages: [
             { role: 'system', content: systemPrompt },
             ...historyMessages,
-            { role: 'user', content: userPrompt }
+            { role: 'user', content: sanitizeUserInput(userPrompt) }
           ] satisfies OpenRouterMessage[],
           temperature: options?.temperature ?? this.config.temperature,
           max_tokens: options?.maxTokens ?? this.config.maxTokens

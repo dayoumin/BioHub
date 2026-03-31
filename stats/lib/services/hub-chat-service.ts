@@ -12,6 +12,7 @@ import { openRouterRecommender } from './openrouter-recommender'
 import { getSystemPromptConsultant, getSystemPromptDiagnostic } from './ai/prompts'
 import { buildContextForIntent } from './ai/data-context-builder'
 import { logger } from '@/lib/utils/logger'
+import { compressChatHistory } from './ai/chat-history-compressor'
 import type { HubChatMessage, HubDataContext } from '@/lib/stores/hub-chat-store'
 import type { AIRecommendation, ResolvedIntent, FlowChatMessage } from '@/types/analysis'
 
@@ -42,15 +43,22 @@ export interface HubChatResponse {
 export async function getHubAiResponse(request: HubChatRequest): Promise<HubChatResponse> {
   const { userMessage, intent, dataContext, chatHistory } = request
 
-  // 대화 히스토리 → FlowChatMessage 변환 (openRouterRecommender 호환)
-  const flowHistory: FlowChatMessage[] = chatHistory
-    .filter((m) => m.role !== 'system' && !m.isError)
-    .slice(-4)
-    .map((m) => ({
-      id: m.id,
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
-    }))
+  // 대화 히스토리 압축 후 FlowChatMessage 변환 (openRouterRecommender 호환)
+  const filtered = chatHistory.filter((m) => m.role !== 'system')
+  const { messages: compressed, wasCompressed } = compressChatHistory(
+    filtered.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content, isError: m.isError }))
+  )
+  if (wasCompressed) {
+    logger.info('[HubChat] Chat history compressed', {
+      original: filtered.length,
+      compressed: compressed.length,
+    })
+  }
+  const flowHistory: FlowChatMessage[] = compressed.map((m, i) => ({
+    id: `compressed-${i}`,
+    role: m.role,
+    content: m.content,
+  }))
 
   const hasData = dataContext !== null
 

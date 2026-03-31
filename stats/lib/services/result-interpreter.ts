@@ -10,6 +10,7 @@ import type { AnalysisResult, EffectSizeInfo } from '@/types/analysis'
 import { llmRecommender, type LlmStreamResult, type LlmProvider } from './llm-recommender'
 import { logger } from '@/lib/utils/logger'
 import { SYSTEM_PROMPT_INTERPRETER } from './ai/prompts'
+import { compressChatHistory } from './ai/chat-history-compressor'
 
 export interface FollowUpMessage {
   role: 'user' | 'assistant'
@@ -227,12 +228,14 @@ export async function streamFollowUp(
 ): Promise<{ model: string; provider: LlmProvider }> {
   const analysisPrompt = buildInterpretationPrompt(ctx)
 
+  // 채팅 히스토리 압축: 최근 4메시지 원본 + 이전 메시지 축약
+  const { messages: compressedHistory } = compressChatHistory(chatHistory)
+
   const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
     { role: 'system', content: SYSTEM_PROMPT_INTERPRETER },
     { role: 'user', content: analysisPrompt },
     { role: 'assistant', content: initialInterpretation },
-    // 최근 2턴(4메시지)만 컨텍스트 포함
-    ...chatHistory.slice(-4).map(m => ({ role: m.role, content: m.content })),
+    ...compressedHistory,
     { role: 'user', content: question },
   ]
 
