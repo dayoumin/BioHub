@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { Search, Download, Copy, Check, ExternalLink, Loader2 } from 'lucide-react'
+import { Search, Download, Copy, Check, ExternalLink, Loader2, HelpCircle, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { focusRing } from '@/components/common/card-styles'
 import { saveGeneticsHistory, loadGeneticsHistory } from '@/lib/genetics/analysis-history'
@@ -26,6 +26,13 @@ const DB_LABELS: Record<DbOption, string> = {
   protein: 'Protein',
 }
 
+const SEARCH_TIPS = [
+  { tip: '종명으로 검색', example: 'Gadus morhua COI', desc: '종명 + 마커 조합이 가장 정확' },
+  { tip: 'Accession 번호 직접 입력', example: 'KF601412', desc: '알고 있는 서열을 바로 찾을 때' },
+  { tip: '분류군 + 유전자', example: 'Salmonidae 16S rRNA', desc: '과(Family) 수준 검색' },
+  { tip: '환경 DNA', example: 'environmental sample fish 12S', desc: 'eDNA 참조 서열 탐색' },
+] as const
+
 // ── 메인 컴포넌트 ──
 
 export default function GenBankContent(): React.ReactElement {
@@ -39,6 +46,7 @@ export default function GenBankContent(): React.ReactElement {
   const [fetchingId, setFetchingId] = useState<string | null>(null)
   const [fastaContent, setFastaContent] = useState<string | null>(null)
   const [fastaAccession, setFastaAccession] = useState<string | null>(null)
+  const [showTips, setShowTips] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   const fastaAbortRef = useRef<AbortController | null>(null)
   const activeResearchProjectId = useResearchProjectStore(s => s.activeResearchProjectId)
@@ -182,23 +190,54 @@ export default function GenBankContent(): React.ReactElement {
           </Button>
         </div>
         {!query.trim() && !hasSearched && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-muted-foreground/50">예제:</span>
-            {[
-              { q: 'Thunnus albacares COI', label: '참치 COI' },
-              { q: 'KF601412', label: 'accession' },
-              { q: 'salmon 16S rRNA', label: '연어 16S' },
-              { q: 'human insulin', label: '인슐린' },
-            ].map(({ q, label }) => (
-              <button
-                key={q}
-                type="button"
-                onClick={() => setQuery(q)}
-                className="rounded-md border border-border px-2 py-0.5 text-[11px] text-muted-foreground transition hover:border-primary/30 hover:text-primary"
-              >
-                {label}
-              </button>
-            ))}
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs text-muted-foreground/50">예제:</span>
+              {[
+                { q: 'Thunnus albacares COI', label: '참치 COI' },
+                { q: 'KF601412', label: 'accession' },
+                { q: 'salmon 16S rRNA', label: '연어 16S' },
+                { q: 'human insulin', label: '인슐린' },
+              ].map(({ q, label }) => (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => setQuery(q)}
+                  className="rounded-md border border-border px-2 py-0.5 text-[11px] text-muted-foreground transition hover:border-primary/30 hover:text-primary"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowTips(prev => !prev)}
+              aria-expanded={showTips}
+              className="flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+            >
+              <HelpCircle className="h-3 w-3" />
+              검색 팁
+              <ChevronDown className={`h-3 w-3 transition-transform ${showTips ? 'rotate-180' : ''}`} />
+            </button>
+            {showTips && (
+              <div className="rounded-lg border border-border bg-muted/20 p-3">
+                <ul className="space-y-1.5">
+                  {SEARCH_TIPS.map(({ tip, example, desc }) => (
+                    <li key={tip} className="flex items-start gap-2 text-xs">
+                      <span className="font-medium text-foreground whitespace-nowrap">{tip}:</span>
+                      <button
+                        type="button"
+                        onClick={() => { setQuery(example); setShowTips(false) }}
+                        className="font-mono text-primary hover:underline"
+                      >
+                        {example}
+                      </button>
+                      <span className="text-muted-foreground/60">— {desc}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
       </form>

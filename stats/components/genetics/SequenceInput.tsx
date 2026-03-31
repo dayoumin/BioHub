@@ -125,6 +125,9 @@ export function SequenceInput({
             {MARKERS.find(m => m.value === marker)?.help}
           </p>
         )}
+        <p className="mt-1 text-[11px] text-muted-foreground/50">
+          어떤 마커를 선택할지 모르겠다면 동물은 COI, 진균은 ITS, 양서류는 16S로 시작하세요.
+        </p>
       </div>
 
       <div>

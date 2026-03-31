@@ -72,19 +72,21 @@ function SectionPill({
   section,
   isActive,
   onSelect,
+  prefersReducedMotion,
 }: {
   section: InterpretationSection
   isActive: boolean
   onSelect: (key: string) => void
+  prefersReducedMotion: boolean
 }): React.ReactElement {
   const Icon = getSectionIcon(section.key)
   const handleClick = useCallback(() => onSelect(section.key), [onSelect, section.key])
 
   return (
     <motion.button
-      initial={{ opacity: 0, scale: 0.9 }}
+      initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.2 }}
+      transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
       onClick={handleClick}
       className={cn(
         'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
@@ -135,17 +137,19 @@ function SectionContent({
 
 function WarningCallout({
   section,
+  prefersReducedMotion,
 }: {
   section: InterpretationSection
+  prefersReducedMotion: boolean
 }): React.ReactElement {
   const [expanded, setExpanded] = useState(false)
   const isLong = section.content.length > 120
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 4 }}
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
+      transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
       className="rounded-lg border border-warning-border bg-warning-bg/50 p-3"
     >
       <div className="flex items-start gap-2">
@@ -165,6 +169,7 @@ function WarningCallout({
           {isLong && (
             <button
               onClick={() => setExpanded(!expanded)}
+              aria-expanded={expanded}
               className="text-xs text-warning/80 hover:text-warning mt-1 flex items-center gap-0.5"
             >
               <ChevronDown className={cn('w-3 h-3 transition-transform', expanded && 'rotate-180')} />
@@ -183,14 +188,16 @@ function WarningCallout({
 
 function ActionCallout({
   section,
+  prefersReducedMotion,
 }: {
   section: InterpretationSection
+  prefersReducedMotion: boolean
 }): React.ReactElement {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 4 }}
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
+      transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
       className="rounded-lg border border-violet-200 dark:border-violet-800/50 bg-violet-50/30 dark:bg-violet-950/20 p-3"
     >
       <div className="flex items-start gap-2">
@@ -357,12 +364,14 @@ export function AiInterpretationCard({
                         section={section}
                         isActive={activeSection === section.key}
                         onSelect={handlePillClick}
+                        prefersReducedMotion={prefersReducedMotion}
                       />
                     ))}
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={handleShowAll}
+                      aria-expanded={showAll}
                       className={cn(
                         'text-xs h-6 px-2 gap-1 ml-auto',
                         showAll && 'text-violet-600 dark:text-violet-400',
@@ -415,12 +424,12 @@ export function AiInterpretationCard({
 
                 {/* --- 4. 주의사항 (Warning) --- */}
                 {warningSections.map(section => (
-                  <WarningCallout key={section.key} section={section} />
+                  <WarningCallout key={section.key} section={section} prefersReducedMotion={prefersReducedMotion} />
                 ))}
 
                 {/* --- 5. 추가 분석 제안 (CTA) --- */}
                 {actionSections.map(section => (
-                  <ActionCallout key={section.key} section={section} />
+                  <ActionCallout key={section.key} section={section} prefersReducedMotion={prefersReducedMotion} />
                 ))}
               </CardContent>
             </Card>

@@ -35,6 +35,9 @@ export interface BlastSearchHistoryEntry {
   type: 'blast'
   program: BlastProgram
   database: BlastDatabase
+  /** 전체 서열 (복원 시 재검색 가능). 기존 엔트리에 없으면 빈 문자열. */
+  sequence: string
+  /** 표시용 미리보기 (50자) */
   sequencePreview: string
   hitCount: number
   topHitAccession: string | null
@@ -124,6 +127,7 @@ function normalizeEntry(item: unknown): GeneticsHistoryEntry | null {
         type: 'blast',
         program: obj.program as BlastProgram,
         database: (obj.database ?? 'nt') as BlastDatabase,
+        sequence: (obj.sequence ?? '') as string,
         sequencePreview: (obj.sequencePreview ?? '') as string,
         hitCount: (obj.hitCount ?? 0) as number,
         topHitAccession: (obj.topHitAccession ?? null) as string | null,

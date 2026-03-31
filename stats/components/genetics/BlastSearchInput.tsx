@@ -180,6 +180,8 @@ export function BlastSearchInput({ onSubmit, initialValues }: BlastSearchInputPr
         </div>
         <p className="mt-1.5 text-xs text-muted-foreground">
           입력: {BLAST_PROGRAM_LABELS[program].input} → 검색: {BLAST_PROGRAM_LABELS[program].search}
+          <span className="mx-1.5 text-border">|</span>
+          {BLAST_PROGRAM_LABELS[program].useCase}
         </p>
       </div>
 

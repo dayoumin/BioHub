@@ -168,7 +168,7 @@ These items should be the current focus.
 - ~~`[quality]` 공통 `WarningBanner` 컴포넌트 추출~~ — 완료 (Alert warning variant + WarningBanner 래퍼, 3곳 마이그레이션 + 경량 컨텍스트 컬럼 제한 추가)
 - `[quality]` `isQuotaExceededError()` 유틸 추출 — 현재 프로덕션 1곳만 사용. 2번째 저장소 구현 시 추출 (조사 완료 2026-03-25)
 - ~~`[perf]` `ensureUser` INSERT OR IGNORE 매 요청 실행~~ — 조사 완료: 이미 INSERT OR IGNORE로 최적화됨, 쓰기 요청만 호출 (2곳). 추가 최적화 불필요.
-- `[a11y]` 접근성 일괄 패스 — AiInterpretationCard expand 버튼 `aria-expanded` 누락, 서브컴포넌트 `prefersReducedMotion` 미적용. 이 컴포넌트만 수정하면 전체 수준과 불일치 → 전체 감사 후 일괄 적용
+- ~~`[a11y]` 접근성 일괄 패스~~ — AiInterpretationCard 수정 완료 (aria-expanded 2곳 + prefersReducedMotion SectionPill/WarningCallout/ActionCallout 전달). 프로젝트 전체 감사는 별도 (178개 애니메이션 파일 중 21개만 적용)
 - ~~`[perf]` ECharts 테마 전환 시 차트 색 미갱신~~ — 완료. 12개 파일에 `useTheme()` + `resolvedTheme` useMemo 의존성 일괄 적용 (Bio-Tools 7 + 분석 차트 5)
 - ~~`[quality]` Bio-Tools 차트 팔레트 CSS 토큰화~~ — 완료. 7개 Bio-Tools에서 `BIO_CHART_COLORS` → `resolveChartPalette()` 런타임 해석으로 전환 (ConditionFactorTool의 Graph Studio 내보내기용 useCallback만 static 유지)
 - `[analysis]` intent-router 0.6 임계값 검증 — "추천" 단독 입력(0.65)이 LLM을 생략. 사용 로그 수집 후 데이터 기반 재검토 필요. 현재는 latency 우선으로 유지
@@ -198,7 +198,7 @@ These items should be the current focus.
 - ~~`[bio]` Worker 9 계산 정확성 골든 테스트~~ — 완료 (HW 8케이스 + Fst 7케이스, JSON + Vitest 스키마 + Pyodide 러너 확장)
 - ~~`[bio]` Worker 9 골든 테스트 확장~~ — 완료 (HW exactPValue 4케이스 + Fst v2 genotype 4케이스 + v2 에러 2케이스, 65 passed)
 - ~~`[bio]` v1/v2 global Fst 계산 차이 문서화~~ — 완료 (PLAN-GENETICS-V2.md에 비교 섹션 추가: 공식 차이, 수치 예시, UI 표시, 향후 고려)
-- `[bio]` 대용량 scatter 포인트 제한 — VBGF/Length-Weight에서 10K+ 행 시 성능 저하 가능. ECharts `large: true` + `largeThreshold` 설정 검토 (ECharts 전환 완료됨)
+- ~~`[bio]` 대용량 scatter 포인트 제한~~ — 완료 (VBGF, Length-Weight, Scatterplot 3곳에 `large: true` + `largeThreshold: 2000` 적용)
 
 ### 3-F. 기타 (genetics, infra, domain, paper)
 
@@ -207,8 +207,8 @@ These items should be the current focus.
 - ~~`[genetics]` BlastRunner/GenericBlastRunner 통합 리팩토링~~ — 완료. `useBlastExecution<T>` 훅 + `BlastProgressUI` 컴포넌트 추출. `blast-utils.ts`에 공유 유틸 통합. 테스트 32건.
 - ~~`[genetics]` 히스토리 도구별 분리~~ — 완료. discriminated union (barcoding/blast/genbank), 도구별 필터 UI, type별 renderItem + 라우팅, entityKind 분기. 기존 바코딩 하위호환 유지.
 - ~~`[genetics]` 허브 예제 서열 도구별 분리~~ — 완료. BLAST: blastn/blastp/blastx 예제 3개. GenBank: 검색어 태그 4개. 바코딩: 기존 유지. 허브에서 제거 후 각 도구 내 배치.
-- `[genetics]` BLAST 히스토리 서열 복원 버그 — 저장 시 `sequence.slice(0, 50)`만 남기고, 복원 시 preview를 전체 서열로 사용. 50자는 최소 길이(100bp) 미달이라 재검색 불가. 전체 서열 저장 또는 "설정만 복원" 명시 필요.
-- `[genetics]` 초보자 가이드 콘텐츠 — 각 도구 페이지에 "이 도구로 할 수 있는 것" 설명 추가. BLAST 프로그램별 사용 사례(blastn vs blastp vs blastx 언제 쓰는지), GenBank 검색 팁, 바코딩 마커 선택 가이드. 초보 사용자가 예제만으로 워크플로우를 이해할 수 있도록.
+- ~~`[genetics]` BLAST 히스토리 서열 복원 버그~~ — 완료. `BlastSearchHistoryEntry`에 `sequence` 필드 추가 (전체 서열 저장), 복원 시 프로그램/DB/서열 모두 프리필. `sequencePreview`는 표시용으로 유지 (하위호환).
+- ~~`[genetics]` 초보자 가이드 콘텐츠~~ — 완료. BLAST: `useCase` 필드 + 프로그램별 사용 사례 표시. GenBank: 검색 팁 collapsible 섹션 (4개 팁 + 클릭 시 검색어 자동입력). 바코딩: 페이지 설명 + 마커 선택 가이드 텍스트.
 - `[infra]` D1 스키마 갭 해소 — 상세: [D1-SCHEMA-GAP.md](docs/D1-SCHEMA-GAP.md). 현재 프론트엔드는 localStorage/IndexedDB 기반이라 급하지 않음. 인증/멀티디바이스 동기화 시 필수.
 - `[infra]` Turso → D1 통합 — `turso-adapter.ts`, `hybrid-adapter.ts`, `NEXT_PUBLIC_TURSO_*` 환경변수 제거. D1 마이그레이션 완료 후 진행.
 - `[domain]` species-validation 레코드 스키마 정의

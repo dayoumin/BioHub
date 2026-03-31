@@ -94,12 +94,13 @@ export default function BlastSearchContent(): React.ReactElement {
     window.history.replaceState({}, '', window.location.pathname)
   }, [])
 
-  // 히스토리에서 복원 시 프로그램/DB만 프리필 (서열은 50자 preview뿐이라 프리필하지 않음)
+  // 히스토리에서 복원 시 프로그램/DB/서열 프리필
   const initialValues = useMemo<BlastInitialValues | undefined>(() => {
     if (!restoredEntry) return undefined
     return {
       program: restoredEntry.program,
       database: restoredEntry.database,
+      sequence: restoredEntry.sequence || undefined,
     }
   }, [restoredEntry])
 
@@ -116,6 +117,7 @@ export default function BlastSearchContent(): React.ReactElement {
         type: 'blast',
         program: prev.params.program,
         database: prev.params.database,
+        sequence: prev.params.sequence,
         sequencePreview: prev.params.sequence.slice(0, 50),
         hitCount: hits.length,
         topHitAccession: hits[0]?.accession ?? null,
@@ -145,7 +147,7 @@ export default function BlastSearchContent(): React.ReactElement {
         </Link>
         <h1 className="text-2xl font-bold">BLAST 서열 검색</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          NCBI BLAST를 이용한 범용 서열 유사성 검색
+          NCBI BLAST를 이용한 범용 서열 유사성 검색. 프로그램을 선택하고 서열을 입력하면 데이터베이스에서 가장 유사한 서열을 찾아줍니다.
         </p>
       </div>
 
@@ -162,7 +164,11 @@ export default function BlastSearchContent(): React.ReactElement {
                   {restoredEntry.topHitIdentity != null && ` ${(restoredEntry.topHitIdentity * 100).toFixed(1)}%`})</>
                 )}
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">프로그램과 데이터베이스가 설정되었습니다. 서열을 입력하고 검색하세요.</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {restoredEntry.sequence
+                  ? '이전 검색 설정이 복원되었습니다. 바로 검색하거나 서열을 수정하세요.'
+                  : '프로그램과 데이터베이스가 설정되었습니다. 서열을 입력하고 검색하세요.'}
+              </p>
             </div>
           )}
           <BlastSearchInput onSubmit={handleSubmit} initialValues={initialValues} />

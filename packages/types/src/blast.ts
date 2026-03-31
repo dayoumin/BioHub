@@ -41,12 +41,12 @@ export const BLAST_DEFAULT_DB: Record<BlastProgram, BlastDatabase> = {
   tblastx: 'nt',
 }
 
-export const BLAST_PROGRAM_LABELS: Record<BlastProgram, { name: string; input: string; search: string }> = {
-  blastn:  { name: 'blastn',  input: 'DNA', search: 'DNA DB' },
-  blastp:  { name: 'blastp',  input: '단백질', search: '단백질 DB' },
-  blastx:  { name: 'blastx',  input: 'DNA (번역)', search: '단백질 DB' },
-  tblastn: { name: 'tblastn', input: '단백질', search: 'DNA DB (번역)' },
-  tblastx: { name: 'tblastx', input: 'DNA (번역)', search: 'DNA DB (번역)' },
+export const BLAST_PROGRAM_LABELS: Record<BlastProgram, { name: string; input: string; search: string; useCase: string }> = {
+  blastn:  { name: 'blastn',  input: 'DNA', search: 'DNA DB', useCase: '종 동정, 게놈 비교, 프라이머 검색' },
+  blastp:  { name: 'blastp',  input: '단백질', search: '단백질 DB', useCase: '단백질 기능 예측, 상동 유전자 탐색' },
+  blastx:  { name: 'blastx',  input: 'DNA (번역)', search: '단백질 DB', useCase: '미주석 DNA의 단백질 코딩 여부 확인' },
+  tblastn: { name: 'tblastn', input: '단백질', search: 'DNA DB (번역)', useCase: '알려진 단백질의 게놈 위치 탐색' },
+  tblastx: { name: 'tblastx', input: 'DNA (번역)', search: 'DNA DB (번역)', useCase: '원거리 상동성 탐색 (느림)' },
 }
 
 export const BLAST_DB_LABELS: Record<BlastDatabase, string> = {

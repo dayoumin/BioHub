@@ -104,6 +104,8 @@ export const Scatterplot = memo(function Scatterplot({
         emphasis: {
           itemStyle: { shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.2)', opacity: 1 },
         },
+        large: true,
+        largeThreshold: 2000,
       } as Record<string, unknown>,
     ]
 

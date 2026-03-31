@@ -120,6 +120,8 @@ export default function LengthWeightTool({ tool, meta, initialEntry }: ToolCompo
           data: chartData.pts.map(p => [p.logL, p.logW]),
           symbolSize: 6,
           itemStyle: { color: palette[0], opacity: 0.3 },
+          large: true,
+          largeThreshold: 2000,
         },
         {
           type: 'line',

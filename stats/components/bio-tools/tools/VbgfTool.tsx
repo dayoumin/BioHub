@@ -105,6 +105,8 @@ export default function VbgfTool({ tool, meta, initialEntry }: ToolComponentProp
           data: chartData.points.map(p => [p.age, p.length]),
           symbolSize: 6,
           itemStyle: { color: palette[0], opacity: 0.3 },
+          large: true,
+          largeThreshold: 2000,
         },
         {
           type: 'line',

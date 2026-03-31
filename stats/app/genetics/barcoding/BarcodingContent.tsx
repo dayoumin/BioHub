@@ -118,6 +118,9 @@ export default function BarcodingContent(): React.ReactElement {
           &larr; 유전적 분석
         </Link>
         <h1 className="text-2xl font-bold">DNA 바코딩 종 판별</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          DNA 서열 하나로 종을 판별합니다. 마커를 선택하고 서열을 입력하면 NCBI BLAST 기반으로 가장 유사한 종을 찾아 신뢰도와 함께 안내합니다.
+        </p>
       </div>
 
       {deepLinkError && (
