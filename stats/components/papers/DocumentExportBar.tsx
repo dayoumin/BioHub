@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react'
 import { Copy, Download, FileDown, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { downloadBlob } from '@/lib/services/export/export-data-builder'
 import type { DocumentBlueprint, DocumentTable } from '@/lib/research/document-blueprint-types'
 
 interface DocumentExportBarProps {
@@ -121,12 +122,7 @@ export default function DocumentExportBar({ document: doc }: DocumentExportBarPr
   const handleDownloadHtml = useCallback(() => {
     const html = documentToHtml(doc)
     const blob = new Blob([html], { type: 'text/html' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${doc.title}.html`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadBlob(blob, `${doc.title}.html`)
   }, [doc])
 
   return (

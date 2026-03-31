@@ -81,12 +81,8 @@ export async function saveDocumentBlueprint(
   blueprint: DocumentBlueprint,
 ): Promise<void> {
   const db = await openDB()
-  const updated: DocumentBlueprint = {
-    ...blueprint,
-    updatedAt: new Date().toISOString(),
-  }
-
-  await txPut(db, STORE_NAME, updated)
+  // updatedAt는 호출자(DocumentEditor 등)가 설정 — 여기서 덮어쓰지 않음
+  await txPut(db, STORE_NAME, blueprint)
 
   upsertProjectEntityRef({
     projectId: blueprint.projectId,
@@ -117,7 +113,7 @@ export async function loadDocumentBlueprints(
 ): Promise<DocumentBlueprint[]> {
   const db = await openDB()
   const docs = await txGetByIndex<DocumentBlueprint>(db, STORE_NAME, 'projectId', projectId)
-  return docs.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+  return docs.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
 }
 
 /**

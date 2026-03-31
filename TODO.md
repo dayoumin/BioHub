@@ -215,9 +215,9 @@ These items should be the current focus.
 - `[domain]` legal-status 레코드 스키마 정의 (source metadata + checked date)
 - `[domain]` Connect species and legal status outputs into manuscript and review flows.
 - `[domain]` FisheryON 기능 이전 — 문헌 통합검색 (Phase A) + 연구동향 모니터링 (Phase B) + 이메일 구독/Cron (Phase C). 상세: [PLAN-FISHERY-MIGRATION.md](docs/PLAN-FISHERY-MIGRATION.md)
-- `[paper]` **논문 작성 지원 기능 — 6단계 구현 계획 승인 (2026-03-30)**
-  - Phase 1: DocumentBlueprint 타입 + 조립 엔진 + 저장 (IndexedDB local-only, EntityRef 동기화 포함)
-  - Phase 2: `/papers` 문서 허브 + 마크다운 에디터 (기존 결과 정리 기능 보존, `dynamic(ssr: false)` 패턴)
+- `[paper]` **논문 작성 지원 기능 — 6단계 구현**
+  - ~~Phase 1: DocumentBlueprint 타입 + 조립 엔진 + 저장~~ — 완료 (타입 122줄, 조립 엔진 299줄, IndexedDB CRUD, EntityRef 동기화, 테스트 808줄)
+  - ~~Phase 2: `/papers` 문서 허브 + 마크다운 에디터~~ — 완료 (PapersHub, DocumentEditor 406줄, DnD 섹션 정렬, MaterialPalette, 내보내기 바)
   - Phase 3: Plate 리치 텍스트 에디터 (`@platejs/*` v52, shadcn/ui 네이티브)
   - Phase 4: DOCX 내보내기 (기존 `docx` v9.5.1, 저널 스타일 프리셋)
   - Phase 5: LLM Introduction/Discussion 자동 생성 (OpenRouter)

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { toast } from 'sonner'
 import { BookOpen, FileText, Layers } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -71,6 +72,9 @@ export default function DocumentAssemblyDialog({
 
       await saveDocumentBlueprint(doc)
       onCreated(doc)
+    } catch (err) {
+      toast.error('문서 생성에 실패했습니다.')
+      console.error('[DocumentAssemblyDialog] create failed:', err)
     } finally {
       setIsCreating(false)
     }
