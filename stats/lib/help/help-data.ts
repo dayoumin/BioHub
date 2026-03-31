@@ -112,13 +112,6 @@ export const HELP_DATA: HelpData = {
           keywords: ['저장', '결과', '내보내기', 'PDF', 'Excel', '이미지'],
         },
         {
-          id: 'faq-chatbot',
-          category: 'faq',
-          title: 'AI 챗봇은 어떻게 사용하나요?',
-          content: '상단 헤더의 챗봇 아이콘을 클릭하면 우측에 챗봇 패널이 열립니다. 통계 분석 관련 질문을 자유롭게 입력하세요.',
-          keywords: ['AI', '챗봇', '질문', '도움', '헤더', '아이콘'],
-        },
-        {
           id: 'faq-missing-values',
           category: 'faq',
           title: '결측값은 어떻게 처리하나요?',
@@ -147,13 +140,6 @@ export const HELP_DATA: HelpData = {
           title: '설정 열기',
           content: 'Ctrl + ,',
           keywords: ['설정', 'Ctrl', '단축키'],
-        },
-        {
-          id: 'shortcut-chatbot',
-          category: 'shortcuts',
-          title: 'AI 챗봇 열기',
-          content: 'Ctrl + K',
-          keywords: ['챗봇', 'AI', 'Ctrl', 'K', '단축키'],
         },
       ],
     },

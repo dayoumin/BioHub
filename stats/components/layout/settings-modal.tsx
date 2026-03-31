@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
-import { Moon, Sun, Monitor, ExternalLink, Settings2 } from 'lucide-react'
+import { Moon, Sun, Monitor, Settings2 } from 'lucide-react'
 import { StorageService } from '@/lib/services/storage-service'
 
 interface SettingsModalProps {
@@ -158,16 +158,8 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
               <Settings2 className="mr-2 h-4 w-4" />
               상세 설정 보기
             </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start"
-              onClick={() => window.open('/chatbot', '_blank', 'noopener,noreferrer')}
-            >
-              <ExternalLink className="mr-2 h-4 w-4" />
-              전용 챗봇 페이지 열기 (새 창)
-            </Button>
             <p className="text-xs text-muted-foreground">
-              상세 설정에서 RAG 모델, Vector DB 등 고급 기능을 설정할 수 있습니다.
+              상세 설정에서 고급 기능을 설정할 수 있습니다.
             </p>
           </div>
         </div>

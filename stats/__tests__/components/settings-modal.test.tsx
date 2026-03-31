@@ -58,7 +58,6 @@ describe('SettingsModal', () => {
       expect(screen.queryByText('플로팅 챗봇 버튼')).not.toBeInTheDocument()
       expect(screen.getByText('알림')).toBeInTheDocument()
       expect(screen.getByText('상세 설정 보기')).toBeInTheDocument()
-      expect(screen.getByText('전용 챗봇 페이지 열기 (새 창)')).toBeInTheDocument()
     })
 
     it('모달이 닫히면 표시되지 않아야 함', () => {
@@ -117,12 +116,5 @@ describe('SettingsModal', () => {
       expect(onOpenChange).toHaveBeenCalledWith(false)
     })
 
-    it('전용 챗봇 페이지 버튼을 클릭하면 새 창이 열려야 함', () => {
-      render(<SettingsModal open={true} onOpenChange={vi.fn()} />)
-
-      fireEvent.click(screen.getByText('전용 챗봇 페이지 열기 (새 창)'))
-
-      expect(window.open).toHaveBeenCalledWith('/chatbot', '_blank', 'noopener,noreferrer')
-    })
-  })
+})
 })

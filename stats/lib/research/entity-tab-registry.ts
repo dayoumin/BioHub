@@ -63,15 +63,6 @@ export const ENTITY_TAB_REGISTRY: readonly EntityTabEntry[] = [
     emptyActionLabel: '종 동정 시작하기',
   },
   {
-    id: 'chat-session',
-    label: '채팅 세션',
-    icon: '💬',
-    defaultVisible: false,
-    emptyMessage: '아직 채팅 세션이 없습니다.',
-    emptyActionPath: '/chatbot',
-    emptyActionLabel: '채팅 시작하기',
-  },
-  {
     id: 'species-validation',
     label: '종 검증',
     icon: '📝',
