@@ -15,6 +15,7 @@ import { saveDocumentBlueprint } from '@/lib/research/document-blueprint-storage
 import { listProjectEntityRefs } from '@/lib/research/project-storage'
 import { useHistoryStore } from '@/lib/stores/history-store'
 import { listProjects as listGraphProjects } from '@/lib/graph-studio/project-storage'
+import { loadAnalysisHistory } from '@/lib/genetics/analysis-history'
 import type { DocumentBlueprint, DocumentPreset } from '@/lib/research/document-blueprint-types'
 
 // ── 프리셋 아이콘 ──
@@ -51,6 +52,7 @@ export default function DocumentAssemblyDialog({
     try {
       const entityRefs = listProjectEntityRefs(projectId)
       const allGraphProjects = listGraphProjects()
+      const blastHistory = loadAnalysisHistory()
 
       const doc = assembleDocument(
         {
@@ -63,6 +65,7 @@ export default function DocumentAssemblyDialog({
           entityRefs,
           allHistory: analysisHistory,
           allGraphProjects,
+          blastHistory,
         },
       )
 

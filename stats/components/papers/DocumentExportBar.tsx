@@ -49,21 +49,42 @@ function documentToMarkdown(doc: DocumentBlueprint): string {
   return lines.join('\n')
 }
 
+function renderTableHtml(table: { caption: string; headers: string[]; rows: string[][]; htmlContent?: string }): string {
+  if (table.htmlContent) return `<p><strong>${table.caption}</strong></p>${table.htmlContent}`
+  if (table.headers.length === 0) return ''
+  const thead = `<thead><tr>${table.headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`
+  const tbody = `<tbody>${table.rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>`
+  return `<p><strong>${table.caption}</strong></p><table>${thead}${tbody}</table>`
+}
+
 function documentToHtml(doc: DocumentBlueprint): string {
-  const md = documentToMarkdown(doc)
-  // 간단한 마크다운 → HTML 변환 (h1, h2, h3, bold, italic, table, p)
-  const html = md
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/^\| (.+) \|$/gm, (_, row: string) => {
-      const cells = row.split(' | ')
-      return `<tr>${cells.map((c: string) => `<td>${c}</td>`).join('')}</tr>`
-    })
-    .replace(/^\| [-| ]+\|$/gm, '')
+  const parts: string[] = []
+  parts.push(`<h1>${doc.title}</h1>`)
+  if (doc.authors?.length) parts.push(`<p>${doc.authors.join(', ')}</p>`)
+
+  for (const section of doc.sections) {
+    parts.push(`<h2>${section.title}</h2>`)
+    if (section.content) {
+      const contentHtml = section.content
+        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .split('\n\n')
+        .map(p => p.startsWith('<h') ? p : `<p>${p}</p>`)
+        .join('\n')
+      parts.push(contentHtml)
+    }
+    if (section.tables?.length) {
+      for (const table of section.tables) {
+        parts.push(renderTableHtml(table))
+      }
+    }
+    if (section.figures?.length) {
+      for (const fig of section.figures) {
+        parts.push(`<p><em>${fig.label}: ${fig.caption}</em></p>`)
+      }
+    }
+  }
 
   return `<!DOCTYPE html>
 <html lang="${doc.language}">
@@ -75,10 +96,13 @@ function documentToHtml(doc: DocumentBlueprint): string {
     h1 { text-align: center; }
     h2 { margin-top: 2em; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
     table { border-collapse: collapse; width: 100%; margin: 1em 0; }
-    td, th { border: 1px solid #ccc; padding: 6px 10px; }
+    td, th { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
+    th { background: #f5f5f5; }
   </style>
 </head>
-<body><p>${html}</p></body>
+<body>
+${parts.join('\n')}
+</body>
 </html>`
 }
 

@@ -17,10 +17,18 @@ export default function PapersContent(): React.ReactElement {
   const initializedRef = useRef(false)
 
   useEffect(() => {
-    if (initializedRef.current) return
-    initializedRef.current = true
-    const params = new URLSearchParams(window.location.search)
-    setDocId(params.get('doc'))
+    if (!initializedRef.current) {
+      initializedRef.current = true
+      const params = new URLSearchParams(window.location.search)
+      setDocId(params.get('doc'))
+    }
+
+    const handlePopState = (): void => {
+      const params = new URLSearchParams(window.location.search)
+      setDocId(params.get('doc'))
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
   const handleOpenDocument = useCallback((id: string) => {

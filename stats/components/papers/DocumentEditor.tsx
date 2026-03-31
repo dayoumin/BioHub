@@ -14,6 +14,7 @@ import { reassembleDocument } from '@/lib/research/document-assembler'
 import { listProjectEntityRefs } from '@/lib/research/project-storage'
 import { useHistoryStore } from '@/lib/stores/history-store'
 import { listProjects as listGraphProjects } from '@/lib/graph-studio/project-storage'
+import { loadAnalysisHistory } from '@/lib/genetics/analysis-history'
 import { convertPaperTable, buildFigureRef } from '@/lib/research/document-blueprint-types'
 import type { DocumentBlueprint, DocumentSection } from '@/lib/research/document-blueprint-types'
 import type { HistoryRecord } from '@/lib/utils/storage-types'
@@ -46,10 +47,16 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { analysisHistory } = useHistoryStore()
 
-  // 언마운트 시 자동저장 타이머 정리
+  // 언마운트 시 미저장 변경 즉시 flush + 타이머 정리
+  const pendingDocRef = useRef<DocumentBlueprint | null>(null)
   useEffect(() => {
     return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current)
+        if (pendingDocRef.current) {
+          saveDocumentBlueprint(pendingDocRef.current)
+        }
+      }
     }
   }, [])
 
@@ -66,11 +73,13 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
   }, [documentId])
 
   const scheduleSave = useCallback((updated: DocumentBlueprint) => {
+    pendingDocRef.current = updated
     setSaveStatus('unsaved')
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
     saveTimerRef.current = setTimeout(async () => {
       setSaveStatus('saving')
       await saveDocumentBlueprint(updated)
+      pendingDocRef.current = null
       setSaveStatus('saved')
     }, AUTOSAVE_DELAY)
   }, [])
@@ -145,11 +154,13 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     if (!doc) return
     const entityRefs = listProjectEntityRefs(doc.projectId)
     const allGraphProjects = listGraphProjects()
+    const blastHistory = loadAnalysisHistory()
 
     const reassembled = reassembleDocument(doc, {
       entityRefs,
       allHistory: analysisHistory,
       allGraphProjects,
+      blastHistory,
     })
     setDoc(reassembled)
     scheduleSave(reassembled)
@@ -177,6 +188,7 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
           content: s.content + insertion,
           tables: newTables.length > 0 ? newTables : undefined,
           sourceRefs: [...s.sourceRefs, record.id],
+          generatedBy: 'user',
         }
       })
       const updated = { ...prev, sections: newSections, updatedAt: new Date().toISOString() }
@@ -204,6 +216,7 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
           content: s.content + insertion,
           figures: [...(s.figures ?? []), figRef],
           sourceRefs: [...s.sourceRefs, graph.id],
+          generatedBy: 'user',
         }
       })
       const updated = { ...prev, sections: newSections, updatedAt: new Date().toISOString() }
