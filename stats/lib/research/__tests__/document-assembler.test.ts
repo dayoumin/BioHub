@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest'
 import { assembleDocument, reassembleDocument } from '../document-assembler'
 import type { AssemblerDataSources, AssembleOptions } from '../document-assembler'
+import type { BlastEntryLike } from '../entity-resolver'
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { ProjectEntityRef } from '@biohub/types'
 import type { GraphProject } from '@/types/graph-studio'
@@ -274,31 +275,38 @@ describe('assembleDocument', () => {
   })
 
   it('should include BLAST results', () => {
+    const blastEntry: BlastEntryLike = {
+      id: 'blast_1',
+      sampleName: 'Sample-A',
+      topSpecies: 'Paralichthys olivaceus',
+      marker: 'COI',
+      topIdentity: 0.995,
+      status: 'confirmed',
+      createdAt: Date.now(),
+      resultData: {
+        status: 'confirmed',
+        description: 'Sequence similarity found',
+        topHits: [
+          { species: 'Paralichthys olivaceus', identity: 99.5, accession: 'AB123456' },
+          { species: 'Platichthys stellatus', identity: 95.2, accession: 'CD789012' },
+        ],
+      },
+    }
+
     const sources: AssemblerDataSources = {
       entityRefs: [
         makeEntityRef({ entityId: 'blast_1', entityKind: 'blast-result' }),
       ],
-      allHistory: [
-        makeHistoryRecord({
-          id: 'blast_1',
-          name: 'BLAST 검색',
-          paperDraft: undefined,
-          results: {
-            description: 'Sequence similarity found',
-            topHits: [
-              { species: 'Paralichthys olivaceus', identity: 99.5, accession: 'AB123456' },
-              { species: 'Platichthys stellatus', identity: 95.2, accession: 'CD789012' },
-            ],
-          },
-        }),
-      ],
+      allHistory: [],
       allGraphProjects: [],
+      blastHistory: [blastEntry],
     }
 
     const doc = assembleDocument(BASE_OPTIONS, sources)
     const results = doc.sections.find(s => s.id === 'results')
 
     expect(results?.content).toContain('BLAST')
+    expect(results?.content).toContain('Sample-A')
     expect(results?.content).toContain('Paralichthys olivaceus')
     expect(results?.content).toContain('99.5%')
   })

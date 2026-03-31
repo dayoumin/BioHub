@@ -34,7 +34,7 @@ export function isIndexedDBAvailable(): boolean {
 /**
  * IndexedDB 연결 초기화
  */
-function openDB(): Promise<IDBDatabase> {
+export function openDB(): Promise<IDBDatabase> {
   if (!isIndexedDBAvailable()) {
     return Promise.reject(new Error('IndexedDB is not available'))
   }

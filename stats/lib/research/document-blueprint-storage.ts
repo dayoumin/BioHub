@@ -13,19 +13,11 @@ import {
   upsertProjectEntityRef,
   removeProjectEntityRef,
 } from './project-storage'
+import { openDB } from '@/lib/utils/adapters/indexeddb-adapter'
 
-const DB_NAME = 'analysis-history'
 const STORE_NAME = 'document-blueprints'
 
 // ── IndexedDB 헬퍼 ──
-
-function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME)
-    request.onerror = () => reject(request.error)
-    request.onsuccess = () => resolve(request.result)
-  })
-}
 
 function txGet<T>(db: IDBDatabase, storeName: string, key: string): Promise<T | undefined> {
   return new Promise((resolve, reject) => {

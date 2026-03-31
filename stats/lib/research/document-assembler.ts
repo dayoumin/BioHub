@@ -10,6 +10,7 @@
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { ProjectEntityRef } from '@biohub/types'
 import type { GraphProject } from '@/types/graph-studio'
+import type { BlastEntryLike } from './entity-resolver'
 import type {
   DocumentBlueprint,
   DocumentPreset,
@@ -30,6 +31,8 @@ export interface AssemblerDataSources {
   allHistory: HistoryRecord[]
   /** 전체 Graph Studio 프로젝트 */
   allGraphProjects: GraphProject[]
+  /** genetics 히스토리 (BLAST 결과 조립용, entity-loader blastHistory) */
+  blastHistory?: BlastEntryLike[]
 }
 
 export interface AssembleOptions {
@@ -121,19 +124,9 @@ function mergeResults(
   return { content: parts.join('\n\n'), tables, figureRefs }
 }
 
-interface BlastHit {
-  species: string
-  identity: number
-  accession: string
-}
-
-function isBlastResult(data: unknown): data is { description?: string; topHits?: BlastHit[] } {
-  return data !== null && typeof data === 'object' && ('description' in data || 'topHits' in data)
-}
-
 function mergeBlastResults(
   entityRefs: ProjectEntityRef[],
-  allHistory: HistoryRecord[],
+  blastHistory: BlastEntryLike[],
 ): string {
   const blastIds = new Set(
     entityRefs
@@ -142,16 +135,17 @@ function mergeBlastResults(
   )
   if (blastIds.size === 0) return ''
 
-  const blastRecords = allHistory.filter(h => blastIds.has(h.id))
+  const blastRecords = blastHistory.filter(h => blastIds.has(h.id))
   const parts: string[] = []
 
-  for (const record of blastRecords) {
-    if (!isBlastResult(record.results)) continue
+  for (const entry of blastRecords) {
+    const rd = entry.resultData
+    if (!rd) continue
 
-    const description = record.results.description ?? ''
-    const topHits = record.results.topHits ?? []
+    const description = rd.description ?? ''
+    const topHits = rd.topHits ?? []
 
-    const lines = [`### BLAST: ${record.name}`, '', description]
+    const lines = [`### BLAST: ${entry.sampleName}`, '', description]
 
     if (topHits.length > 0) {
       lines.push('')
@@ -223,7 +217,7 @@ export function assembleDocument(
     const { content, tables, figureRefs } = mergeResults(projectHistory, projectFigures, language)
 
     // BLAST 결과 추가
-    const blastContent = mergeBlastResults(sources.entityRefs, sources.allHistory)
+    const blastContent = mergeBlastResults(sources.entityRefs, sources.blastHistory ?? [])
     const fullContent = [content, blastContent].filter(Boolean).join('\n\n')
 
     if (fullContent) {
@@ -292,9 +286,14 @@ export function reassembleDocument(
     return fresh ?? existingSection
   })
 
+  const now = new Date().toISOString()
+  const updatedAt = now > existing.updatedAt
+    ? now
+    : new Date(new Date(existing.updatedAt).getTime() + 1).toISOString()
+
   return {
     ...existing,
     sections: merged,
-    updatedAt: new Date().toISOString(),
+    updatedAt,
   }
 }

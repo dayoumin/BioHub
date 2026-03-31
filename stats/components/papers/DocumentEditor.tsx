@@ -46,7 +46,13 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { analysisHistory } = useHistoryStore()
 
-  // 문서 로드
+  // 언마운트 시 자동저장 타이머 정리
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    }
+  }, [])
+
   useEffect(() => {
     loadDocumentBlueprint(documentId).then(loaded => {
       if (loaded) {
@@ -59,7 +65,6 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     })
   }, [documentId])
 
-  // 자동 저장
   const scheduleSave = useCallback((updated: DocumentBlueprint) => {
     setSaveStatus('unsaved')
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
@@ -70,7 +75,6 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     }, AUTOSAVE_DELAY)
   }, [])
 
-  // 섹션 업데이트 헬퍼
   const updateSection = useCallback((sectionId: string, updates: Partial<DocumentSection>) => {
     setDoc(prev => {
       if (!prev) return prev
@@ -83,7 +87,6 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     })
   }, [scheduleSave])
 
-  // 섹션 내용 변경
   const handleContentChange = useCallback((value: string) => {
     if (!activeSectionId) return
     updateSection(activeSectionId, { content: value, generatedBy: 'user' })

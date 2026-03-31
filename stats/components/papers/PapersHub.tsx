@@ -17,6 +17,7 @@ import { loadDocumentBlueprints } from '@/lib/research/document-blueprint-storag
 import { PRESET_REGISTRY } from '@/lib/research/document-preset-registry'
 import type { DocumentBlueprint } from '@/lib/research/document-blueprint-types'
 import DocumentAssemblyDialog from './DocumentAssemblyDialog'
+import { formatTimeAgo } from '@/lib/utils/format-time'
 import { cn } from '@/lib/utils'
 
 // ── 프리셋 라벨 매핑 ──
@@ -61,7 +62,7 @@ function DocumentCard({ doc, onClick }: DocumentCardProps): React.ReactElement {
       </div>
       <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
         <Clock className="w-3 h-3" />
-        {getTimeAgo(new Date(doc.updatedAt))}
+        {formatTimeAgo(new Date(doc.updatedAt))}
       </div>
     </button>
   )
@@ -96,22 +97,10 @@ function DraftHistoryCard({ name, method, timestamp, onClick }: DraftHistoryCard
       </div>
       <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
         <Clock className="w-3 h-3" />
-        {getTimeAgo(timestamp)}
+        {formatTimeAgo(timestamp)}
       </div>
     </button>
   )
-}
-
-function getTimeAgo(date: Date): string {
-  const now = new Date()
-  const diff = Math.floor((now.getTime() - date.getTime()) / 1000)
-  if (diff < 60) return '방금'
-  const mins = Math.floor(diff / 60)
-  if (mins < 60) return `${mins}분 전`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}시간 전`
-  const days = Math.floor(hours / 24)
-  return `${days}일 전`
 }
 
 // ── 기능 소개 ──
