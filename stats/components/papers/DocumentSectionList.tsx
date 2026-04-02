@@ -56,7 +56,7 @@ function SortableSectionItem({ section, isActive, onSelect, onDelete }: Sortable
 
   const meta = GENERATED_BY_META[section.generatedBy]
   const MetaIcon = meta.icon
-  const hasContent = section.content.length > 0
+  const hasContent = section.content.length > 0 || (Array.isArray(section.plateValue) && section.plateValue.length > 0)
 
   return (
     <div
