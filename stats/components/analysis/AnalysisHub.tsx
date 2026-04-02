@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { memo, useMemo, useState, useEffect } from 'react'
 import {
   Upload,
   MessageSquare,
@@ -122,7 +122,7 @@ function saveQuickMethods(methods: string[]): void {
  *
  * 4가지 진입점 + 커스터마이징 가능한 빠른 분석 제공
  */
-export function AnalysisHub({
+export const AnalysisHub = memo(function AnalysisHub({
   onStartWithData,
   onStartWithAI,
   onStartWithMethod,
@@ -338,7 +338,7 @@ export function AnalysisHub({
           <DialogHeader>
             <DialogTitle>{hub.editDialog.title}</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-2 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 py-4">
             {allQuickMethods.map((method) => (
               <label
                 key={method.id}
@@ -366,4 +366,4 @@ export function AnalysisHub({
       </Dialog>
     </div>
   )
-}
+})

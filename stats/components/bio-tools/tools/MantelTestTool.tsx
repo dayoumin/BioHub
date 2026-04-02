@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { memo, useCallback, useState } from 'react'
 import { BioCsvUpload, type CsvData } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
 import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
@@ -18,7 +18,7 @@ import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import type { MantelResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
-export default function MantelTestTool({ tool, meta }: ToolComponentProps): React.ReactElement {
+const MantelTestTool = memo(function MantelTestTool({ tool, meta }: ToolComponentProps): React.ReactElement {
   const [csvDataX, setCsvDataX] = useState<CsvData | null>(null)
   const [csvDataY, setCsvDataY] = useState<CsvData | null>(null)
   const [siteColX, setSiteColX] = useState<string>('')
@@ -189,4 +189,6 @@ export default function MantelTestTool({ tool, meta }: ToolComponentProps): Reac
       )}
     </div>
   )
-}
+})
+
+export default MantelTestTool

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
@@ -37,7 +37,7 @@ const STRESS_LABELS: Record<string, string> = {
   poor: '불량 (≥ 0.2)',
 }
 
-export default function NmdsTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+const NmdsTool = memo(function NmdsTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { resolvedTheme } = useTheme()
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runWithPreStep, saveToHistory, isSaved } =
     useBioToolAnalysis<NmdsResult>({ initialResults: initialEntry?.results })
@@ -186,4 +186,6 @@ export default function NmdsTool({ tool, meta, initialEntry }: ToolComponentProp
       )}
     </div>
   )
-}
+})
+
+export default NmdsTool

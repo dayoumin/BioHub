@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
 import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
@@ -22,7 +22,7 @@ import { buildMetaAnalysisColumns } from '@/lib/graph-studio/analysis-adapter'
 import type { MetaAnalysisResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
-export default function MetaAnalysisTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+const MetaAnalysisTool = memo(function MetaAnalysisTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<MetaAnalysisResult>({ worker: PyodideWorker.Survival, initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
@@ -317,4 +317,6 @@ export default function MetaAnalysisTool({ tool, meta, initialEntry }: ToolCompo
       )}
     </div>
   )
-}
+})
+
+export default MetaAnalysisTool

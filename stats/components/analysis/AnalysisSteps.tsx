@@ -11,16 +11,34 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { AnimatePresence, motion } from 'framer-motion'
+import { Loader2 } from 'lucide-react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { DataExplorationStep } from '@/components/analysis/steps/DataExplorationStep'
-import { PurposeInputStep } from '@/components/analysis/steps/PurposeInputStep'
 import { VariableSelectionStep } from '@/components/analysis/steps/VariableSelectionStep'
 import { AnalysisExecutionStep } from '@/components/analysis/steps/AnalysisExecutionStep'
-import { ResultsActionStep } from '@/components/analysis/steps/ResultsActionStep'
 import { ReanalysisPanel } from '@/components/analysis/ReanalysisPanel'
 import { ReanalysisBanner, QuickAnalysisBanner } from '@/components/analysis/steps/Step1ModeBanners'
 import { InlineError } from '@/components/common/InlineError'
+
+function StepLoadingFallback(): React.ReactElement {
+  return (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    </div>
+  )
+}
+
+const PurposeInputStep = dynamic(
+  () => import('@/components/analysis/steps/PurposeInputStep').then(m => ({ default: m.PurposeInputStep })),
+  { ssr: false, loading: StepLoadingFallback }
+)
+
+const ResultsActionStep = dynamic(
+  () => import('@/components/analysis/steps/ResultsActionStep').then(m => ({ default: m.ResultsActionStep })),
+  { ssr: false, loading: StepLoadingFallback }
+)
 import { useTerminology } from '@/hooks/use-terminology'
 import { useDataUpload } from '@/hooks/use-data-upload'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'

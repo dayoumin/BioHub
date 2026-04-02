@@ -602,7 +602,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
             </CardHeader>
             <CardContent className="space-y-3">
               {/* 변수 타입 카운트 */}
-              <div className="grid grid-cols-2 gap-2 text-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-center">
                 <div className="p-2 rounded-lg bg-muted/40">
                   <p className="text-[11px] text-muted-foreground">{t.dataExploration.columnPanel.numeric}</p>
                   <p className="text-lg font-semibold font-mono tabular-nums">{numericVariables.length}</p>

@@ -323,8 +323,12 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
 
       {/* 검색 바 */}
       <div className="relative mb-4">
+        <Label htmlFor="analysis-history-search" className="sr-only">
+          {t.history.labels.searchPlaceholder}
+        </Label>
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
         <Input
+          id="analysis-history-search"
           placeholder={t.history.labels.searchPlaceholder}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -345,7 +349,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
             )}
           >
             <div className="flex items-start justify-between">
-              <div className="flex-1" onClick={() => handleLoad(item.id)}>
+              <button type="button" className="flex-1 text-left" onClick={() => handleLoad(item.id)}>
                 <div className="flex items-center gap-2 mb-1">
                   {pinnedIds.includes(item.id) && (
                     <Pin className="w-3 h-3 text-primary shrink-0" />
@@ -443,7 +447,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
                     locale: ko
                   })}
                 </div>
-              </div>
+              </button>
 
               <div className="flex items-center gap-1 ml-2">
                 {/* 상단 고정 토글 */}

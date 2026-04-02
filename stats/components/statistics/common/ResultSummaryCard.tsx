@@ -177,7 +177,7 @@ export function ResultSummaryCard({
 
       <CardContent className="space-y-4">
         {/* 3-column grid */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Column 1: Statistic */}
           <div className="text-center p-3 bg-background rounded-lg border">
             <div className="text-xs text-muted-foreground mb-1">Statistic</div>

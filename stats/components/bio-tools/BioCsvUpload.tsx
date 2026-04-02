@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { memo, useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import Papa from 'papaparse'
 import { FileSpreadsheet, X, Loader2, FileDown } from 'lucide-react'
@@ -26,7 +26,7 @@ interface BioCsvUploadProps {
   exampleLabel?: string
 }
 
-export function BioCsvUpload({
+export const BioCsvUpload = memo(function BioCsvUpload({
   onDataLoaded,
   onClear,
   description = 'CSV 파일을 드래그하거나 클릭하여 업로드',
@@ -193,4 +193,4 @@ export function BioCsvUpload({
       {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
     </div>
   )
-}
+})

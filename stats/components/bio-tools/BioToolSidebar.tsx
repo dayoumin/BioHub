@@ -7,7 +7,7 @@
  * UI를 공통 UnifiedHistorySidebar로 위임.
  */
 
-import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react'
+import { memo, useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react'
 import { UnifiedHistorySidebar } from '@/components/common/UnifiedHistorySidebar'
 import { toBioToolHistoryItems } from '@/lib/utils/history-adapters'
 import type { HistoryItem } from '@/types/history'
@@ -27,7 +27,7 @@ interface BioToolSidebarProps {
   onLoadHistory: (entry: BioToolHistoryEntry) => void
 }
 
-export function BioToolSidebar({ toolId, onLoadHistory }: BioToolSidebarProps): ReactNode {
+export const BioToolSidebar = memo(function BioToolSidebar({ toolId, onLoadHistory }: BioToolSidebarProps): ReactNode {
   const [history, setHistory] = useState<BioToolHistoryEntry[]>([])
   const lastRawRef = useRef<string | null>(null)
   const lastToolIdRef = useRef<string | null>(toolId)
@@ -105,4 +105,4 @@ export function BioToolSidebar({ toolId, onLoadHistory }: BioToolSidebarProps): 
       emptyMessage={'분석을 실행하면\n여기에 기록됩니다'}
     />
   )
-}
+})

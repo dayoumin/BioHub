@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { memo, useCallback, useState } from 'react'
 import { parseNumericCell } from '@/lib/bio-tools/parse-numeric-cell'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
@@ -21,7 +21,7 @@ import { Loader2 } from 'lucide-react'
 import type { ToolComponentProps } from './types'
 import type { HardyWeinbergResult } from '@/types/bio-tools-results'
 
-export default function HardyWeinbergTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+const HardyWeinbergTool = memo(function HardyWeinbergTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const [inputMode, setInputMode] = useState<'direct' | 'csv'>('direct')
 
   // 직접 입력
@@ -271,4 +271,6 @@ export default function HardyWeinbergTool({ tool, meta, initialEntry }: ToolComp
       )}
     </div>
   )
-}
+})
+
+export default HardyWeinbergTool

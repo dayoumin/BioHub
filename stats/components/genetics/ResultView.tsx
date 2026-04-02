@@ -12,19 +12,22 @@ interface ResultViewProps {
   onReset: (clearSequence?: boolean) => void
 }
 
-const STATUS_STYLES: Record<BlastResultStatus, { bg: string; border: string; text: string; badge: string }> = {
-  high:      { bg: 'bg-success-bg',  border: 'border-success-border',  text: 'text-success',  badge: 'bg-success-bg text-success' },
-  ambiguous: { bg: 'bg-warning-bg',  border: 'border-warning-border',  text: 'text-warning',  badge: 'bg-warning-bg text-warning' },
-  low:       { bg: 'bg-warning-bg',  border: 'border-warning-border',  text: 'text-warning',  badge: 'bg-warning-bg text-warning' },
-  failed:    { bg: 'bg-error-bg',    border: 'border-error-border',    text: 'text-error',    badge: 'bg-error-bg text-error' },
-  no_hit:    { bg: 'bg-error-bg',    border: 'border-error-border',    text: 'text-error',    badge: 'bg-error-bg text-error' },
+const BLAST_WARNING = { bg: 'bg-warning-bg', border: 'border-warning-border', text: 'text-warning', badge: 'bg-warning-bg text-warning' } as const
+const BLAST_ERROR   = { bg: 'bg-error-bg',   border: 'border-error-border',   text: 'text-error',   badge: 'bg-error-bg text-error' } as const
+
+const BLAST_STATUS_STYLES: Record<BlastResultStatus, { bg: string; border: string; text: string; badge: string }> = {
+  high:      { bg: 'bg-success-bg', border: 'border-success-border', text: 'text-success', badge: 'bg-success-bg text-success' },
+  ambiguous: BLAST_WARNING,
+  low:       BLAST_WARNING,
+  failed:    BLAST_ERROR,
+  no_hit:    BLAST_ERROR,
 }
 
 const needsAlternative = (status: BlastResultStatus): boolean =>
   status !== 'high'
 
 export function ResultView({ decision, marker, sequence, onReset }: ResultViewProps) {
-  const style = STATUS_STYLES[decision.status]
+  const style = BLAST_STATUS_STYLES[decision.status]
   const showAltTop = needsAlternative(decision.status) && decision.recommendedMarkers.length > 0
 
   return (

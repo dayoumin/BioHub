@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { memo, useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Star, Clock, ChevronDown, Leaf } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -24,7 +24,7 @@ interface BioToolsHubProps {
   onSelectTool?: (toolId: string) => void
 }
 
-export function BioToolsHub({ onSelectTool }: BioToolsHubProps): React.ReactElement {
+export const BioToolsHub = memo(function BioToolsHub({ onSelectTool }: BioToolsHubProps): React.ReactElement {
   const pinnedIds = usePinnedToolsStore((s) => s.pinnedIds)
   const pinnedTools = useMemo(
     () => pinnedIds
@@ -194,4 +194,4 @@ export function BioToolsHub({ onSelectTool }: BioToolsHubProps): React.ReactElem
       </section>
     </div>
   )
-}
+})

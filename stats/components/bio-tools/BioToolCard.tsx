@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import Link from 'next/link'
 import { Star } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -13,7 +14,7 @@ interface BioToolCardProps {
   onSelect?: (toolId: string) => void
 }
 
-export function BioToolCard({ tool, onSelect }: BioToolCardProps): React.ReactElement {
+export const BioToolCard = memo(function BioToolCard({ tool, onSelect }: BioToolCardProps): React.ReactElement {
   const isPinned = usePinnedToolsStore((s) => s.pinnedIds.includes(tool.id))
   const togglePin = usePinnedToolsStore((s) => s.togglePin)
 
@@ -90,4 +91,4 @@ export function BioToolCard({ tool, onSelect }: BioToolCardProps): React.ReactEl
       {card}
     </Link>
   )
-}
+})

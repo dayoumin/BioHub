@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback } from 'react'
+import { memo, useCallback } from 'react'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
 import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
@@ -18,7 +18,7 @@ import type { ToolComponentProps } from './types'
 
 const INDEX_LABELS = ALPHA_INDEX_LABELS
 
-export default function AlphaDiversityTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+const AlphaDiversityTool = memo(function AlphaDiversityTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<AlphaDiversityResult>({ initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
@@ -126,4 +126,6 @@ export default function AlphaDiversityTool({ tool, meta, initialEntry }: ToolCom
       )}
     </div>
   )
-}
+})
+
+export default AlphaDiversityTool

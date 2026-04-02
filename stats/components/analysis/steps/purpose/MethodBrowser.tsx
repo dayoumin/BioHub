@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { memo, useState, useMemo, useCallback, useEffect } from 'react'
 import { Search, Check, Sparkles, ChevronDown, ChevronRight, AlertCircle, AlertTriangle, Info, BookOpen, BarChart3, Database } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -100,7 +100,7 @@ const CATEGORY_LABELS: Record<string, string> = {
  * - Category collapsibles
  * - Hover/select detail preview
  */
-export function MethodBrowser({
+export const MethodBrowser = memo(function MethodBrowser({
   methodGroups,
   selectedMethod,
   recommendedMethodId,
@@ -503,7 +503,7 @@ export function MethodBrowser({
       </div>
     </div>
   )
-}
+})
 
 /** Method Detail Panel - Shows on hover/select */
 function MethodDetailPanel({
@@ -604,7 +604,7 @@ function MethodDetailPanel({
             <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               현재 데이터
             </h5>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <div className="text-center p-2 rounded-lg bg-muted/40">
                 <div className="text-lg font-semibold">{dataProfile.totalRows}</div>
                 <div className="text-[10px] text-muted-foreground">표본</div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { memo, useCallback, useState } from 'react'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
 import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
@@ -32,7 +32,7 @@ const INTERPRETATION_STYLES: Record<string, { label: string; style: React.CSSPro
   excellent: { label: '우수 (Excellent, ≥ 0.75)', style: SIGNIFICANCE_BADGE.significant },
 }
 
-export default function IccTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+const IccTool = memo(function IccTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<IccResult>({ worker: PyodideWorker.Survival, initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
@@ -237,4 +237,6 @@ export default function IccTool({ tool, meta, initialEntry }: ToolComponentProps
       )}
     </div>
   )
-}
+})
+
+export default IccTool

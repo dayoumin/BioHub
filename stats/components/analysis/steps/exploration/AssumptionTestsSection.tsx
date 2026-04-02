@@ -98,7 +98,7 @@ export const AssumptionTestsSection = memo(function AssumptionTestsSection({
                   {assumptionResults.normality.shapiroWilk.isNormal ? t.dataExploration.normality.normal : t.dataExploration.normality.nonNormal}
                 </Badge>
               </div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <div className="bg-muted/30 rounded-lg px-3 py-2">
                   <span className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">{t.dataExploration.normality.statLabel}</span>
                   <div className="font-mono text-sm font-medium tabular-nums mt-0.5">{(assumptionResults.normality.shapiroWilk.statistic ?? 0).toFixed(4)}</div>
@@ -128,7 +128,7 @@ export const AssumptionTestsSection = memo(function AssumptionTestsSection({
                   {assumptionResults.homogeneity.levene.equalVariance ? t.dataExploration.homogeneity.equal : t.dataExploration.homogeneity.unequal}
                 </Badge>
               </div>
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 <div className="bg-muted/30 rounded-lg px-3 py-2">
                   <span className="text-[11px] text-muted-foreground/70 uppercase tracking-wider">{t.dataExploration.homogeneity.statLabel}</span>
                   <div className="font-mono text-sm font-medium tabular-nums mt-0.5">{(assumptionResults.homogeneity.levene.statistic ?? 0).toFixed(4)}</div>

@@ -192,7 +192,7 @@ export const Scatterplot = memo(function Scatterplot({
           opts={{ renderer: selectScatterRenderer(data.length) }}
         />
 
-        <div className="mt-4 grid grid-cols-2 gap-4">
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <h4 className="font-medium mb-2">데이터 요약</h4>
             <div className="text-sm space-y-1">

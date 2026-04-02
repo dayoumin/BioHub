@@ -53,7 +53,7 @@ export function AnalysisOptionsSection({
 
   return (
     <div className={className} data-testid="analysis-options">
-      <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
         {/* Alpha (significance level) */}
         <div className="flex items-center justify-between">
           <Label htmlFor="alpha-select" className="text-xs text-muted-foreground">

@@ -127,7 +127,7 @@ export const ScatterHeatmapSection = memo(function ScatterHeatmapSection({
             const { r, r2 } = calculateCorrelation(xData, yData)
 
             return (
-              <Card key={config.id} className="overflow-hidden border border-border/40 shadow-sm bg-card rounded-xl">
+              <Card key={config.id} className="overflow-hidden border border-border/40 shadow-sm bg-card rounded-xl" aria-label={`${config.xVariable} vs ${config.yVariable} scatter plot`}>
                 {/* 헤더 - 변수 선택 */}
                 <div className="px-4 py-4 border-b border-border/30 bg-muted/10">
                   <div className="flex items-center justify-between mb-3">
@@ -259,13 +259,14 @@ export const ScatterHeatmapSection = memo(function ScatterHeatmapSection({
                 matrix={heatmapMatrix}
                 labels={numericVariables}
                 height={Math.max(350, numericVariables.length * 40)}
+                aria-label={t.dataExploration.heatmap.title}
               />
             )}
 
             {/* 해석 가이드 */}
             <div className="mt-4 text-sm text-muted-foreground bg-info-bg p-3 rounded-lg border border-info-border">
               <p className="font-medium mb-1">{t.dataExploration.heatmapGuide.title}</p>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1">
                 <div><span className="inline-block w-3 h-3 rounded bg-red-500 mr-1"></span> <strong>r = +1</strong>: {t.dataExploration.heatmapGuide.strongPositive}</div>
                 <div><span className="inline-block w-3 h-3 rounded bg-blue-500 mr-1"></span> <strong>r = -1</strong>: {t.dataExploration.heatmapGuide.strongNegative}</div>
                 <div><span className="inline-block w-3 h-3 rounded bg-gray-200 mr-1"></span> <strong>r = 0</strong>: {t.dataExploration.heatmapGuide.noCorrelation}</div>

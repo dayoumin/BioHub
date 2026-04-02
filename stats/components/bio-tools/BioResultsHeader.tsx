@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback } from 'react'
+import { memo, useCallback } from 'react'
 import { Save, Check, Download, Copy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -18,7 +18,7 @@ interface BioResultsHeaderProps {
 }
 
 /** 결과 섹션 상단 액션 바 — 저장 + 내보내기 */
-export function BioResultsHeader({ onSave, isSaved, exportData, toolName }: BioResultsHeaderProps): React.ReactElement {
+export const BioResultsHeader = memo(function BioResultsHeader({ onSave, isSaved, exportData, toolName }: BioResultsHeaderProps): React.ReactElement {
   const handleDownload = useCallback(() => {
     if (!exportData?.length) return
     const csv = tablesToCsvString(exportData)
@@ -68,4 +68,4 @@ export function BioResultsHeader({ onSave, isSaved, exportData, toolName }: BioR
       </div>
     </div>
   )
-}
+})

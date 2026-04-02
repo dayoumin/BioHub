@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
@@ -25,7 +25,7 @@ import type { ToolComponentProps } from './types'
 
 import type { VbgfResult } from '@/types/bio-tools-results'
 
-export default function VbgfTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+const VbgfTool = memo(function VbgfTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { resolvedTheme } = useTheme()
   const [ageCol, setAgeCol] = useState<string>('')
   const [lengthCol, setLengthCol] = useState<string>('')
@@ -213,7 +213,7 @@ export default function VbgfTool({ tool, meta, initialEntry }: ToolComponentProp
 
           <div>
             <h3 className="text-sm font-semibold mb-2">적합도</h3>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-3 border rounded-lg">
                 <div className="text-xs text-muted-foreground">R²</div>
                 <div className="text-lg font-semibold font-mono">{results.rSquared.toFixed(4)}</div>
@@ -234,4 +234,6 @@ export default function VbgfTool({ tool, meta, initialEntry }: ToolComponentProp
       )}
     </div>
   )
-}
+})
+
+export default VbgfTool

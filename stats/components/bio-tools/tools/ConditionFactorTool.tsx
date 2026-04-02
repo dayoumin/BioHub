@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
@@ -27,7 +27,7 @@ import type { VLineAnnotation } from '@/types/graph-studio'
 import type { ToolComponentProps } from './types'
 import type { ConditionFactorResult } from '@/types/bio-tools-results'
 
-export default function ConditionFactorTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+const ConditionFactorTool = memo(function ConditionFactorTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { resolvedTheme } = useTheme()
   const [lengthCol, setLengthCol] = useState<string>('')
   const [weightCol, setWeightCol] = useState<string>('')
@@ -275,4 +275,6 @@ export default function ConditionFactorTool({ tool, meta, initialEntry }: ToolCo
       )}
     </div>
   )
-}
+})
+
+export default ConditionFactorTool

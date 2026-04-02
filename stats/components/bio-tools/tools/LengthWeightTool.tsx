@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
@@ -32,7 +32,7 @@ const GROWTH_TYPE_LABELS: Record<string, { ko: string; en: string }> = {
   negative_allometric: { ko: '음의 이성장', en: 'Negative allometric (b < 3)' },
 }
 
-export default function LengthWeightTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+const LengthWeightTool = memo(function LengthWeightTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { resolvedTheme } = useTheme()
   const [lengthCol, setLengthCol] = useState<string>('')
   const [weightCol, setWeightCol] = useState<string>('')
@@ -262,4 +262,6 @@ export default function LengthWeightTool({ tool, meta, initialEntry }: ToolCompo
       )}
     </div>
   )
-}
+})
+
+export default LengthWeightTool

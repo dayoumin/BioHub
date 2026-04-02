@@ -336,7 +336,7 @@ export const OutlierDetailPanel = memo(function OutlierDetailPanel({
               </div>
 
               {/* 통계 요약 */}
-              <div className="grid grid-cols-4 gap-2 text-sm bg-muted/50 p-3 rounded-lg">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm bg-muted/50 p-3 rounded-lg">
                 <div>
                   <div className="text-muted-foreground text-xs">Q1</div>
                   <div className="font-mono">{statistics.q1.toFixed(2)}</div>

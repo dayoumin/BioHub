@@ -68,7 +68,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
           {/* 테마 설정 */}
           <div className="space-y-3">
             <Label className="text-base font-semibold">테마</Label>
-            <RadioGroup value={theme} onValueChange={setTheme} className="grid grid-cols-3 gap-4">
+            <RadioGroup value={theme} onValueChange={setTheme} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <RadioGroupItem
                   value="light"

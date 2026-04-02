@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { ChevronRight } from 'lucide-react'
 import type { BioToolExtendedMeta } from '@/lib/bio-tools/bio-tool-registry'
@@ -16,7 +16,7 @@ interface BioToolIntroProps {
  * 도구 소개 섹션 — 접이식 1줄 요약 + 클릭 시 상세 가이드 펼침.
  * collapsed=true (결과 표시 중)이면 항상 접힌 상태.
  */
-export function BioToolIntro({
+export const BioToolIntro = memo(function BioToolIntro({
   meta,
   collapsed = false,
   className,
@@ -119,4 +119,4 @@ export function BioToolIntro({
       )}
     </div>
   )
-}
+})

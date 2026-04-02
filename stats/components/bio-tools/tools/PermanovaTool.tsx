@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { memo, useCallback, useState } from 'react'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
 import { BioColumnSelect } from '@/components/bio-tools/BioColumnSelect'
@@ -18,7 +18,7 @@ import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import type { PermanovaResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
-export default function PermanovaTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+const PermanovaTool = memo(function PermanovaTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runWithPreStep, saveToHistory, isSaved } =
     useBioToolAnalysis<PermanovaResult>({ initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
@@ -117,4 +117,6 @@ export default function PermanovaTool({ tool, meta, initialEntry }: ToolComponen
       )}
     </div>
   )
-}
+})
+
+export default PermanovaTool

@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { NONE_VALUE } from './bio-styles'
 
@@ -13,7 +14,7 @@ interface BioColumnSelectProps {
   layout?: 'inline' | 'stacked'
 }
 
-export function BioColumnSelect({
+export const BioColumnSelect = memo(function BioColumnSelect({
   label,
   headers,
   value,
@@ -48,4 +49,4 @@ export function BioColumnSelect({
       </Select>
     </div>
   )
-}
+})

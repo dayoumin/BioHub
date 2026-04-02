@@ -107,7 +107,7 @@ export function DataFormatGuide() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="requirements" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
               <TabsTrigger value="requirements">분석별 요구사항</TabsTrigger>
               <TabsTrigger value="data-types">데이터 유형</TabsTrigger>
               <TabsTrigger value="common-issues">일반적 문제</TabsTrigger>

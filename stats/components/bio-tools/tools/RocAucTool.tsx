@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
@@ -31,7 +31,7 @@ function getAucInterpretation(auc: number): { label: string; style: React.CSSPro
   return { label: '불량 (Poor)', style: SIGNIFICANCE_BADGE.nonSignificant }
 }
 
-export default function RocAucTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+const RocAucTool = memo(function RocAucTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { resolvedTheme } = useTheme()
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<RocAucResult>({ worker: PyodideWorker.Survival, initialResults: initialEntry?.results })
@@ -232,4 +232,6 @@ export default function RocAucTool({ tool, meta, initialEntry }: ToolComponentPr
       )}
     </div>
   )
-}
+})
+
+export default RocAucTool

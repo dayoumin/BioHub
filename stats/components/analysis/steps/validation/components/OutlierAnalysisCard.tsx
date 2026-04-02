@@ -56,7 +56,7 @@ export const OutlierAnalysisCard = memo(function OutlierAnalysisCard({
 
                   {outlierCount > 0 && (
                     <>
-                      <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-3">
                         <div>
                           <span className="text-muted-foreground">{vd.detectionMethod}:</span>
                           <span className="ml-2">IQR × 1.5</span>

@@ -12,10 +12,43 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
+type EffectSeverity = 'negligible' | 'small' | 'medium' | 'large'
+
+type EffectType = 'cohensD' | 'hedgesG' | 'glassDelta' | 'etaSquared' | 'partialEtaSquared' | 'omegaSquared' | 'epsilonSquared' | 'r' | 'rSquared' | 'phi' | 'cramersV' | 'w'
+
+/** Thresholds: [negligible→small, small→medium, medium→large] */
+const COHEN_THRESHOLDS = [0.2, 0.5, 0.8] as const
+const ETA_THRESHOLDS = [0.01, 0.06, 0.14] as const
+const CORRELATION_THRESHOLDS = [0.1, 0.3, 0.5] as const
+
+const TYPE_THRESHOLDS: Record<EffectType, readonly [number, number, number]> = {
+  cohensD: COHEN_THRESHOLDS, hedgesG: COHEN_THRESHOLDS, glassDelta: COHEN_THRESHOLDS,
+  etaSquared: ETA_THRESHOLDS, partialEtaSquared: ETA_THRESHOLDS,
+  omegaSquared: ETA_THRESHOLDS, epsilonSquared: ETA_THRESHOLDS,
+  r: CORRELATION_THRESHOLDS, phi: CORRELATION_THRESHOLDS,
+  cramersV: CORRELATION_THRESHOLDS, rSquared: CORRELATION_THRESHOLDS,
+  w: CORRELATION_THRESHOLDS,
+}
+
+function getEffectSizeSeverity(absValue: number, type: EffectType = 'cohensD'): EffectSeverity {
+  const [s, m, l] = TYPE_THRESHOLDS[type]
+  if (absValue < s) return 'negligible'
+  if (absValue < m) return 'small'
+  if (absValue < l) return 'medium'
+  return 'large'
+}
+
+const SEVERITY_STYLES: Record<EffectSeverity, { text: string; bg: string; progress: string }> = {
+  negligible: { text: 'text-muted-foreground', bg: 'text-muted-foreground bg-muted', progress: 'bg-muted-foreground' },
+  small: { text: 'text-warning', bg: 'text-warning bg-warning-bg', progress: 'bg-warning' },
+  medium: { text: 'text-orange-600 dark:text-orange-400', bg: 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30', progress: 'bg-orange-500 dark:bg-orange-400' },
+  large: { text: 'text-error', bg: 'text-error bg-error-bg', progress: 'bg-error' },
+}
+
 interface EffectSizeCardProps {
   title: string
   value: number | null | undefined
-  type?: 'cohensD' | 'hedgesG' | 'glassDelta' | 'etaSquared' | 'partialEtaSquared' | 'omegaSquared' | 'epsilonSquared' | 'r' | 'rSquared' | 'phi' | 'cramersV' | 'w'
+  type?: EffectType
   description?: string
   showInterpretation?: boolean
   showVisualScale?: boolean
@@ -73,25 +106,10 @@ export function EffectSizeCard({
     }
   }
 
-  // 효과크기에 따른 색상
-  const getColorClass = () => {
-    if (absValue < 0.2) return 'text-muted-foreground bg-muted'
-    if (absValue < 0.5) return 'text-warning bg-warning-bg'
-    if (absValue < 0.8) return 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30'
-    return 'text-error bg-error-bg'
-  }
+  const severity = getEffectSizeSeverity(absValue, type)
 
-  const getProgressColor = () => {
-    if (absValue < 0.2) return 'bg-muted-foreground'
-    if (absValue < 0.5) return 'bg-warning'
-    if (absValue < 0.8) return 'bg-orange-500 dark:bg-orange-400'
-    return 'bg-error'
-  }
-
-  // 방향 아이콘
   const DirectionIcon = value > 0 ? TrendingUp : value < 0 ? TrendingDown : Minus
 
-  // 효과크기 타입별 설명
   const typeDescriptions: Record<string, string> = {
     cohensD: "Cohen's d - 표준화된 평균 차이",
     hedgesG: "Hedges' g - 소표본 보정 효과크기",
@@ -134,13 +152,12 @@ export function EffectSizeCard({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* 주요 값 표시 */}
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-3">
             <span className="text-3xl font-bold tracking-tight">
               {formattedValue}
             </span>
-            <DirectionIcon className={cn('w-5 h-5', getColorClass().split(' ')[0])} />
+            <DirectionIcon className={cn('w-5 h-5', SEVERITY_STYLES[severity].text)} />
           </div>
 
           {compareValue !== undefined && (
@@ -151,16 +168,14 @@ export function EffectSizeCard({
           )}
         </div>
 
-        {/* 해석 */}
         {showInterpretation && (
-          <div className={cn('px-3 py-2 rounded-lg transition-colors duration-200', getColorClass())}>
+          <div className={cn('px-3 py-2 rounded-lg transition-colors duration-200', SEVERITY_STYLES[severity].bg)}>
             <p className="text-sm font-medium">
               {interpretation}
             </p>
           </div>
         )}
 
-        {/* 시각적 스케일 */}
         {showVisualScale && (
           <div className="space-y-2">
             <div className="flex justify-between text-xs text-muted-foreground">
@@ -225,9 +240,7 @@ export function EffectSizeComparison({ items, className }: EffectSizeComparisonP
                 <div
                   className={cn(
                     'h-full transition-all duration-500',
-                    absValue < 0.2 ? 'bg-muted-foreground' :
-                    absValue < 0.5 ? 'bg-warning' :
-                    absValue < 0.8 ? 'bg-warning' : 'bg-error'
+                    SEVERITY_STYLES[getEffectSizeSeverity(absValue, item.type || 'cohensD')].progress
                   )}
                   style={{ width: `${percentage}%` }}
                 />
@@ -249,75 +262,46 @@ interface EffectSizeGuidelinesProps {
   className?: string
 }
 
-export function EffectSizeGuidelines({ type = 'cohensD', className }: EffectSizeGuidelinesProps) {
-  const guidelines = {
-    cohensD: [
-      { label: '무시할 만함', range: '< 0.2', color: 'bg-muted' },
-      { label: '작음', range: '0.2 - 0.5', color: 'bg-warning-bg' },
-      { label: '중간', range: '0.5 - 0.8', color: 'bg-warning-bg' },
-      { label: '큼', range: '> 0.8', color: 'bg-error-bg' }
-    ],
-    hedgesG: [
-      { label: '무시할 만함', range: '< 0.2', color: 'bg-muted' },
-      { label: '작음', range: '0.2 - 0.5', color: 'bg-warning-bg' },
-      { label: '중간', range: '0.5 - 0.8', color: 'bg-warning-bg' },
-      { label: '큼', range: '> 0.8', color: 'bg-error-bg' }
-    ],
-    glassDelta: [
-      { label: '무시할 만함', range: '< 0.2', color: 'bg-muted' },
-      { label: '작음', range: '0.2 - 0.5', color: 'bg-warning-bg' },
-      { label: '중간', range: '0.5 - 0.8', color: 'bg-warning-bg' },
-      { label: '큼', range: '> 0.8', color: 'bg-error-bg' }
-    ],
-    etaSquared: [
-      { label: '작음', range: '< 0.01', color: 'bg-muted' },
-      { label: '중간', range: '0.01 - 0.06', color: 'bg-warning-bg' },
-      { label: '큼', range: '> 0.14', color: 'bg-warning-bg' }
-    ],
-    partialEtaSquared: [
-      { label: '작음', range: '< 0.01', color: 'bg-muted' },
-      { label: '중간', range: '0.01 - 0.06', color: 'bg-warning-bg' },
-      { label: '큼', range: '> 0.14', color: 'bg-warning-bg' }
-    ],
-    omegaSquared: [
-      { label: '작음', range: '< 0.01', color: 'bg-muted' },
-      { label: '중간', range: '0.01 - 0.06', color: 'bg-warning-bg' },
-      { label: '큼', range: '> 0.14', color: 'bg-warning-bg' }
-    ],
-    epsilonSquared: [
-      { label: '작음', range: '< 0.01', color: 'bg-muted' },
-      { label: '중간', range: '0.01 - 0.06', color: 'bg-warning-bg' },
-      { label: '큼', range: '> 0.14', color: 'bg-warning-bg' }
-    ],
-    r: [
-      { label: '약함', range: '< 0.3', color: 'bg-muted' },
-      { label: '중간', range: '0.3 - 0.5', color: 'bg-warning-bg' },
-      { label: '강함', range: '> 0.5', color: 'bg-warning-bg' }
-    ],
-    rSquared: [
-      { label: '작음', range: '< 0.09', color: 'bg-muted' },
-      { label: '중간', range: '0.09 - 0.25', color: 'bg-warning-bg' },
-      { label: '큼', range: '> 0.25', color: 'bg-warning-bg' }
-    ],
-    phi: [
-      { label: '약함', range: '< 0.3', color: 'bg-muted' },
-      { label: '중간', range: '0.3 - 0.5', color: 'bg-warning-bg' },
-      { label: '강함', range: '> 0.5', color: 'bg-warning-bg' }
-    ],
-    cramersV: [
-      { label: '약함', range: '< 0.3', color: 'bg-muted' },
-      { label: '중간', range: '0.3 - 0.5', color: 'bg-warning-bg' },
-      { label: '강함', range: '> 0.5', color: 'bg-warning-bg' }
-    ],
-    w: [
-      { label: '약한 일치', range: '< 0.3', color: 'bg-muted' },
-      { label: '보통 일치', range: '0.3 - 0.5', color: 'bg-warning-bg' },
-      { label: '강한 일치', range: '0.5 - 0.7', color: 'bg-warning-bg' },
-      { label: '매우 강한 일치', range: '> 0.7', color: 'bg-error-bg' }
-    ]
-  }
+const GUIDE_COHEN = [
+  { label: '무시할 만함', range: '< 0.2', color: 'bg-muted' },
+  { label: '작음', range: '0.2 - 0.5', color: 'bg-warning-bg' },
+  { label: '중간', range: '0.5 - 0.8', color: 'bg-warning-bg' },
+  { label: '큼', range: '> 0.8', color: 'bg-error-bg' },
+] as const
+const GUIDE_ETA = [
+  { label: '작음', range: '< 0.01', color: 'bg-muted' },
+  { label: '중간', range: '0.01 - 0.06', color: 'bg-warning-bg' },
+  { label: '큼', range: '> 0.14', color: 'bg-warning-bg' },
+] as const
+const GUIDE_CORRELATION = [
+  { label: '약함', range: '< 0.3', color: 'bg-muted' },
+  { label: '중간', range: '0.3 - 0.5', color: 'bg-warning-bg' },
+  { label: '강함', range: '> 0.5', color: 'bg-warning-bg' },
+] as const
+const GUIDE_R_SQUARED = [
+  { label: '작음', range: '< 0.09', color: 'bg-muted' },
+  { label: '중간', range: '0.09 - 0.25', color: 'bg-warning-bg' },
+  { label: '큼', range: '> 0.25', color: 'bg-warning-bg' },
+] as const
+const GUIDE_W = [
+  { label: '약한 일치', range: '< 0.3', color: 'bg-muted' },
+  { label: '보통 일치', range: '0.3 - 0.5', color: 'bg-warning-bg' },
+  { label: '강한 일치', range: '0.5 - 0.7', color: 'bg-warning-bg' },
+  { label: '매우 강한 일치', range: '> 0.7', color: 'bg-error-bg' },
+] as const
 
-  const currentGuidelines = guidelines[type as keyof typeof guidelines] || guidelines.cohensD
+type GuidelineEntry = readonly { readonly label: string; readonly range: string; readonly color: string }[]
+
+const GUIDELINES_BY_TYPE: Record<string, GuidelineEntry> = {
+  cohensD: GUIDE_COHEN, hedgesG: GUIDE_COHEN, glassDelta: GUIDE_COHEN,
+  etaSquared: GUIDE_ETA, partialEtaSquared: GUIDE_ETA, omegaSquared: GUIDE_ETA, epsilonSquared: GUIDE_ETA,
+  r: GUIDE_CORRELATION, phi: GUIDE_CORRELATION, cramersV: GUIDE_CORRELATION,
+  rSquared: GUIDE_R_SQUARED,
+  w: GUIDE_W,
+}
+
+export function EffectSizeGuidelines({ type = 'cohensD', className }: EffectSizeGuidelinesProps) {
+  const currentGuidelines = GUIDELINES_BY_TYPE[type] ?? GUIDE_COHEN
 
   return (
     <Card className={cn('bg-muted', className)}>

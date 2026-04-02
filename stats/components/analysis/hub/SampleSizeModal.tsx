@@ -192,7 +192,7 @@ interface CommonInputsProps {
 
 function CommonInputs({ alpha, power, onAlpha, onPower }: CommonInputsProps) {
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <FieldLabel
           label="유의수준 α"
@@ -612,7 +612,7 @@ export function SampleSizeModal({ open, onClose, onStartAnalysis }: SampleSizeMo
               <p className="text-xs text-muted-foreground">
                 두 그룹의 반응 비율 비교. 예: 대조군 생존율 30% vs. 처리군 50%.
               </p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <FieldLabel
                     label="비율 1 (p₁)"

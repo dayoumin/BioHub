@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { memo, useCallback, useState } from 'react'
 import Link from 'next/link'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
@@ -26,7 +26,7 @@ const METRIC_LABELS: Record<MetricOption, string> = {
   sorensen: 'Sorensen',
 }
 
-export default function BetaDiversityTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+const BetaDiversityTool = memo(function BetaDiversityTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<BetaDiversityResult>({ initialResults: initialEntry?.results })
   const resultsRef = useScrollToResults(results)
@@ -132,4 +132,6 @@ export default function BetaDiversityTool({ tool, meta, initialEntry }: ToolComp
       )}
     </div>
   )
-}
+})
+
+export default BetaDiversityTool

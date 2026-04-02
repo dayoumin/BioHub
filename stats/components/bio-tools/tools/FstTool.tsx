@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { memo, useCallback, useState } from 'react'
 import { parseNumericCell } from '@/lib/bio-tools/parse-numeric-cell'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
@@ -27,7 +27,7 @@ const FST_THRESHOLDS = [
   { max: Infinity, label: '매우 큰 분화', level: 'very_great' },
 ] as const
 
-export default function FstTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+const FstTool = memo(function FstTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const [inputMode, setInputMode] = useState<'simple' | 'genotype'>('simple')
 
   // v1 간편 분석
@@ -246,4 +246,6 @@ export default function FstTool({ tool, meta, initialEntry }: ToolComponentProps
       )}
     </div>
   )
-}
+})
+
+export default FstTool

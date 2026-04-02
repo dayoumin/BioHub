@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo } from 'react'
+import { memo, useCallback, useMemo } from 'react'
 import { useTheme } from 'next-themes'
 import { BioCsvUpload } from '@/components/bio-tools/BioCsvUpload'
 import { BioErrorBanner } from '@/components/bio-tools/BioErrorBanner'
@@ -20,7 +20,7 @@ import { statBaseOption, statValueAxis, statTooltip } from '@/lib/charts/echarts
 import type { RarefactionResult } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
 
-export default function RarefactionTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
+const RarefactionTool = memo(function RarefactionTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
   const { resolvedTheme } = useTheme()
   const { csvData, siteCol, setSiteCol, isAnalyzing, results, error, handleDataLoaded, handleClear, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<RarefactionResult>({ initialResults: initialEntry?.results })
@@ -117,4 +117,6 @@ export default function RarefactionTool({ tool, meta, initialEntry }: ToolCompon
       )}
     </div>
   )
-}
+})
+
+export default RarefactionTool

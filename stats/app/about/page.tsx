@@ -310,7 +310,7 @@ export default function AboutPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card className="bg-primary/5 border-primary/20">
                 <CardContent className="pt-6">
                   <Database className="h-8 w-8 text-primary mb-2" />

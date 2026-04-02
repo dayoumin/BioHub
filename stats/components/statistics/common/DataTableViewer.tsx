@@ -324,7 +324,7 @@ export function DataTableViewer({
             <Table>
               <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
-                  <TableHead className="w-12 text-center">#</TableHead>
+                  <TableHead className="w-12 text-center sticky left-0 bg-background z-20">#</TableHead>
                   {columns.map(col => (
                     <TableHead
                       key={col}
@@ -364,7 +364,7 @@ export function DataTableViewer({
                 ) : (
                   paginatedData.map((row, idx) => (
                     <TableRow key={idx} className="hover:bg-muted/50">
-                      <TableCell className="text-center text-muted-foreground text-xs">
+                      <TableCell className="text-center text-muted-foreground text-xs sticky left-0 bg-background z-10">
                         {(currentPage - 1) * pageSize + idx + 1}
                       </TableCell>
                       {columns.map(col => (

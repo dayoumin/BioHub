@@ -12,12 +12,14 @@ interface CorrelationHeatmapProps {
   matrix: number[][]
   labels: string[]
   height?: number
+  'aria-label'?: string
 }
 
 export const CorrelationHeatmap = memo(function CorrelationHeatmap({
   matrix,
   labels,
-  height = 400
+  height = 400,
+  'aria-label': ariaLabel,
 }: CorrelationHeatmapProps) {
   const { resolvedTheme } = useTheme()
   const t = useTerminology()
@@ -90,6 +92,8 @@ export const CorrelationHeatmap = memo(function CorrelationHeatmap({
   }, [matrix, labels, resolvedTheme])
 
   return (
-    <LazyReactECharts option={option} style={{ height }} opts={{ renderer: 'svg' }} />
+    <div role="img" aria-label={ariaLabel ?? '상관관계 히트맵'}>
+      <LazyReactECharts option={option} style={{ height }} opts={{ renderer: 'svg' }} />
+    </div>
   )
 })
