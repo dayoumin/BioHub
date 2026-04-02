@@ -474,6 +474,7 @@ def fst(
     genotypes: Optional[List[List[str]]] = None,
     individualPopulations: Optional[List[str]] = None,
     locusNames: Optional[List[str]] = None,
+    locusCountData: Optional[List[Dict]] = None,
     nPermutations: int = 999,
     nBootstrap: int = 1000,
 ) -> Dict:
@@ -482,6 +483,7 @@ def fst(
 
     v1: populations (allele count matrix) → 단일 locus 점추정
     v2: genotypes (개체별 유전자형) → multilocus ratio-of-sums Fst + permutation + bootstrap
+    v3: locusCountData (집계된 allele count) → multilocus Fst + bootstrap (permutation 불가)
 
     Parameters
     ----------
@@ -490,9 +492,85 @@ def fst(
     genotypes             : v2 — [['A/A', 'A/B', ...], ...] 개체 × 유전자좌
     individualPopulations : v2 — 개체별 집단 라벨
     locusNames            : v2 — 유전자좌 이름 목록
+    locusCountData        : v3 — [{locus, alleles, counts: {pop: [...]}, sampleSizes: {pop: int}}, ...]
     nPermutations         : v2 — permutation 횟수 (0이면 미실행, 기본 999)
     nBootstrap            : v2 — bootstrap 횟수 (0이면 미실행, 기본 1000)
     """
+    # ── v3 경로: 집계된 allele count (long-format) ──
+    if locusCountData is not None:
+        pop_labels_all = set()
+        for entry in locusCountData:
+            pop_labels_all.update(entry.get('counts', {}).keys())
+        pop_labels_unique = sorted(pop_labels_all)
+        n_pops = len(pop_labels_unique)
+        if n_pops < 2:
+            raise ValueError("최소 2개 집단이 필요합니다")
+
+        locus_data = []
+        for entry in locusCountData:
+            alleles = entry.get('alleles', [])
+            counts = entry.get('counts', {})
+            sample_sizes = entry.get('sampleSizes', {})
+            locus_data.append({
+                'alleles': alleles,
+                'counts': {p: counts.get(p, [0] * len(alleles)) for p in pop_labels_unique},
+                'sample_sizes': {p: sample_sizes.get(p, 0) for p in pop_labels_unique},
+            })
+
+        locus_list = [e.get('locus', f"Locus {i+1}") for i, e in enumerate(locusCountData)]
+
+        global_fst, pairwise_mat, per_locus_components = _multilocus_hudson_fst(
+            locus_data, pop_labels_unique,
+        )
+
+        result: Dict = {
+            'globalFst': round(global_fst, 6),
+            'pairwiseFst': [[round(float(pairwise_mat[i][j]), 6) for j in range(n_pops)] for i in range(n_pops)],
+            'populationLabels': pop_labels_unique,
+            'nPopulations': n_pops,
+            'interpretation': _interpret_wright_fst(global_fst),
+            'nLoci': len(locus_list),
+            'locusNames': locus_list,
+            'permutationPValue': None,
+            'nPermutations': 0,
+        }
+
+        # Bootstrap CI (permutation은 개체 데이터 없어 불가)
+        if nBootstrap > 0 and len(locus_list) >= 2:
+            n_pairs = n_pops * (n_pops - 1) // 2
+            actual_boot = nBootstrap
+            boot_budget = nBootstrap * len(locus_list) * n_pairs
+            if boot_budget > 5e7:
+                actual_boot = max(100, int(5e7 / (len(locus_list) * n_pairs)))
+
+            boot_fsts = []
+            n_loci_count = len(per_locus_components)
+            for _ in range(actual_boot):
+                indices = np.random.choice(n_loci_count, size=n_loci_count, replace=True)
+                total_num = 0.0
+                total_den = 0.0
+                for idx in indices:
+                    for (_, _), (num, den) in per_locus_components[idx].items():
+                        total_num += num
+                        total_den += den
+                boot_fst = max(0.0, total_num / total_den) if total_den > 0 else 0.0
+                boot_fsts.append(boot_fst)
+            ci_lower = float(np.percentile(boot_fsts, 2.5))
+            ci_upper = float(np.percentile(boot_fsts, 97.5))
+            result['bootstrapCi'] = [round(ci_lower, 6), round(ci_upper, 6)]
+            result['nBootstrap'] = actual_boot
+            result['bootstrapWarning'] = None
+        elif nBootstrap > 0 and len(locus_list) < 2:
+            result['bootstrapCi'] = None
+            result['nBootstrap'] = nBootstrap
+            result['bootstrapWarning'] = "유전자좌 1개 — bootstrap CI 불가"
+        else:
+            result['bootstrapCi'] = None
+            result['nBootstrap'] = 0
+            result['bootstrapWarning'] = None
+
+        return result
+
     # ── v2 경로: 개체별 유전자형 ──
     if genotypes is not None:
         if not individualPopulations:

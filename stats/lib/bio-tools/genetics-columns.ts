@@ -25,3 +25,17 @@ const IND_HINTS = ['individual', 'sample', 'id', 'ind', 'specimen', '개체', '�
 export function detectIndividualColumn(headers: string[]): string {
   return detectColumn(headers, IND_HINTS, 0)
 }
+
+/** 대립유전자 컬럼 후보 */
+const ALLELE_HINTS = ['allele', '대립유전자', 'variant'] as const
+
+export function detectAlleleColumn(headers: string[]): string {
+  return detectColumn(headers, ALLELE_HINTS, 0)
+}
+
+/** 개수/빈도 컬럼 후보 */
+const COUNT_HINTS = ['count', 'frequency', 'freq', 'n', '개수', '빈도'] as const
+
+export function detectCountColumn(headers: string[]): string {
+  return detectColumn(headers, COUNT_HINTS, 0)
+}

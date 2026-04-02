@@ -11,7 +11,8 @@ import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
-import { detectPopulationColumn, detectIndividualColumn } from '@/lib/bio-tools/genetics-columns'
+import { detectPopulationColumn, detectIndividualColumn, detectLocusColumn, detectAlleleColumn, detectCountColumn } from '@/lib/bio-tools/genetics-columns'
+import { convertLongFormatToLocusData } from '@/lib/bio-tools/fst-long-format'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
 import { BioResultSummary, type MetricItem } from '@/components/common/results'
@@ -29,7 +30,7 @@ const FST_THRESHOLDS = [
 ] as const
 
 const FstTool = memo(function FstTool({ tool, meta, initialEntry }: ToolComponentProps): React.ReactElement {
-  const [inputMode, setInputMode] = useState<'simple' | 'genotype'>('simple')
+  const [inputMode, setInputMode] = useState<'simple' | 'genotype' | 'longformat'>('simple')
 
   // v1 간편 분석
   const [popCol, setPopCol] = useState('')
@@ -37,6 +38,12 @@ const FstTool = memo(function FstTool({ tool, meta, initialEntry }: ToolComponen
   // v2 상세 분석
   const [indCol, setIndCol] = useState('')
   const [popColV2, setPopColV2] = useState('')
+
+  // v3 long-format
+  const [lfPopCol, setLfPopCol] = useState('')
+  const [lfLocusCol, setLfLocusCol] = useState('')
+  const [lfAlleleCol, setLfAlleleCol] = useState('')
+  const [lfCountCol, setLfCountCol] = useState('')
 
   const { csvData, isAnalyzing, results, error, handleDataLoaded, handleClear, setError, runAnalysis, saveToHistory, isSaved } =
     useBioToolAnalysis<FstResult>({ worker: PyodideWorker.Genetics, initialResults: initialEntry?.results })
@@ -51,6 +58,14 @@ const FstTool = memo(function FstTool({ tool, meta, initialEntry }: ToolComponen
     handleDataLoaded(data)
     setIndCol(detectIndividualColumn(data.headers))
     setPopColV2(detectPopulationColumn(data.headers))
+  }, [handleDataLoaded])
+
+  const onDataLoadedV3 = useCallback((data: Parameters<typeof handleDataLoaded>[0]) => {
+    handleDataLoaded(data)
+    setLfPopCol(detectPopulationColumn(data.headers))
+    setLfLocusCol(detectLocusColumn(data.headers))
+    setLfAlleleCol(detectAlleleColumn(data.headers))
+    setLfCountCol(detectCountColumn(data.headers))
   }, [handleDataLoaded])
 
   // v1: allele count matrix
@@ -96,12 +111,24 @@ const FstTool = memo(function FstTool({ tool, meta, initialEntry }: ToolComponen
     runAnalysis('fst', { genotypes, individualPopulations, locusNames: locusCols })
   }, [csvData, indCol, popColV2, runAnalysis, setError])
 
+  // v3: long-format allele count
+  const handleAnalyzeV3 = useCallback(() => {
+    if (!csvData) return
+    try {
+      const { locusCountData, populationLabels, locusNames } =
+        convertLongFormatToLocusData(csvData, lfPopCol, lfLocusCol, lfAlleleCol, lfCountCol)
+      runAnalysis('fst', { locusCountData, populationLabels, locusNames, nPermutations: 0 })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '변환 중 오류가 발생했습니다')
+    }
+  }, [csvData, lfPopCol, lfLocusCol, lfAlleleCol, lfCountCol, runAnalysis, setError])
+
   const handleSave = useCallback(() => {
     saveToHistory({
       toolId: tool.id,
       toolNameEn: tool.nameEn,
       toolNameKo: tool.nameKo,
-      columnConfig: { inputMode, popCol, indCol, popColV2 },
+      columnConfig: { inputMode, popCol, indCol, popColV2, lfPopCol, lfLocusCol, lfAlleleCol, lfCountCol },
     })
   }, [saveToHistory, tool, inputMode, popCol, indCol, popColV2])
 
@@ -113,10 +140,11 @@ const FstTool = memo(function FstTool({ tool, meta, initialEntry }: ToolComponen
   return (
     <div className="space-y-6">
       <BioToolIntro meta={meta} collapsed={!!results} />
-      <Tabs value={inputMode} onValueChange={(v) => { setInputMode(v as 'simple' | 'genotype'); handleClear(); setPopCol(''); setIndCol(''); setPopColV2('') }}>
+      <Tabs value={inputMode} onValueChange={(v) => { setInputMode(v as typeof inputMode); handleClear(); setPopCol(''); setIndCol(''); setPopColV2(''); setLfPopCol(''); setLfLocusCol(''); setLfAlleleCol(''); setLfCountCol('') }}>
         <TabsList>
           <TabsTrigger value="simple">간편 분석</TabsTrigger>
           <TabsTrigger value="genotype">상세 분석</TabsTrigger>
+          <TabsTrigger value="longformat">빈도 데이터</TabsTrigger>
         </TabsList>
 
         <TabsContent value="simple" className="space-y-4 mt-4">
@@ -149,6 +177,30 @@ const FstTool = memo(function FstTool({ tool, meta, initialEntry }: ToolComponen
               <Button onClick={handleAnalyzeV2} disabled={isAnalyzing || !indCol || !popColV2} size="sm">
                 {isAnalyzing ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" />분석 중...</> : '분석 실행'}
               </Button>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="longformat" className="space-y-4 mt-4">
+          <BioCsvUpload
+            onDataLoaded={onDataLoadedV3}
+            onClear={handleClear}
+            description="Long-format CSV (population/locus/allele/count 4컬럼). 논문 발표용 allele frequency 데이터."
+          />
+          {csvData && (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-4">
+                <BioColumnSelect label="집단 열" headers={csvData.headers} value={lfPopCol} onChange={setLfPopCol} />
+                <BioColumnSelect label="유전자좌 열" headers={csvData.headers} value={lfLocusCol} onChange={setLfLocusCol} />
+                <BioColumnSelect label="대립유전자 열" headers={csvData.headers} value={lfAlleleCol} onChange={setLfAlleleCol} />
+                <BioColumnSelect label="개수 열" headers={csvData.headers} value={lfCountCol} onChange={setLfCountCol} />
+              </div>
+              <div className="flex items-center gap-3">
+                <Button onClick={handleAnalyzeV3} disabled={isAnalyzing || !lfPopCol || !lfLocusCol || !lfAlleleCol || !lfCountCol} size="sm">
+                  {isAnalyzing ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" />분석 중...</> : '분석 실행'}
+                </Button>
+                <span className="text-xs text-muted-foreground">* 집계 데이터이므로 permutation 검정은 제공되지 않습니다</span>
+              </div>
             </div>
           )}
         </TabsContent>
