@@ -19,6 +19,21 @@ import {
 // KaTeX CSS — papers 페이지 전용 (dynamic() 경계 뒤라 초기 번들에 미포함)
 import 'katex/dist/katex.min.css'
 
+/** 빈 수식 삽입 시 자동으로 Popover 열기 (최초 1회) */
+function useAutoOpenPopover(tex: string): { open: boolean; setOpen: (v: boolean) => void } {
+  const [open, setOpen] = useState(false)
+  const autoOpenedRef = useRef(false)
+
+  useEffect(() => {
+    if (!tex && !autoOpenedRef.current) {
+      autoOpenedRef.current = true
+      setOpen(true)
+    }
+  }, [tex])
+
+  return { open, setOpen }
+}
+
 // ── 수식 입력 Popover (useEquationInput 래퍼) ──
 
 interface EquationInputProps {
@@ -71,18 +86,9 @@ export function EquationElement(props: PlateElementProps<TEquationElement>): Rea
   const { element, children } = props
   const tex = element.texExpression || ''
   const katexRef = useRef<HTMLDivElement>(null)
-  const [open, setOpen] = useState(false)
-  const autoOpenedRef = useRef(false)
+  const { open, setOpen } = useAutoOpenPopover(tex)
 
   useEquationElement({ element, katexRef, options: { displayMode: true, throwOnError: false } })
-
-  // 빈 수식 삽입 시 자동으로 편집 Popover 열기
-  useEffect(() => {
-    if (!tex && !autoOpenedRef.current) {
-      autoOpenedRef.current = true
-      setOpen(true)
-    }
-  }, [tex])
 
   return (
     <PlateElement {...props}>
@@ -114,17 +120,9 @@ export function InlineEquationElement(props: PlateElementProps<TEquationElement>
   const { element, children } = props
   const tex = element.texExpression || ''
   const katexRef = useRef<HTMLDivElement>(null)
-  const [open, setOpen] = useState(false)
-  const autoOpenedRef = useRef(false)
+  const { open, setOpen } = useAutoOpenPopover(tex)
 
   useEquationElement({ element, katexRef, options: { displayMode: false, throwOnError: false } })
-
-  useEffect(() => {
-    if (!tex && !autoOpenedRef.current) {
-      autoOpenedRef.current = true
-      setOpen(true)
-    }
-  }, [tex])
 
   return (
     <PlateElement {...props} asChild>

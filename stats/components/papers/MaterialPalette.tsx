@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { BarChart3, FileText, Plus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -52,7 +53,7 @@ export default function MaterialPalette({
         {projectAnalyses.length === 0 && (
           <p className="text-xs text-muted-foreground/60 py-2">
             프로젝트에 연결된 분석이 없습니다.{' '}
-            <a href="/" className="text-primary hover:underline">분석 실행하기</a>
+            <Link href="/" className="text-primary hover:underline">분석 실행하기</Link>
           </p>
         )}
         {projectAnalyses.map(record => (
