@@ -251,5 +251,17 @@ export async function documentToDocx(doc: DocumentBlueprint): Promise<void> {
 
 ## 8. 후순위 (Phase 6b)
 
-- HWPX 내보내기 — JSZip 직접 구현 필요 (MIT 라이브러리에 이미지 쓰기 미지원 확인됨)
-- Bio-Tools 차트 이미지 — ECharts ref 노출 구조 변경 선행
+### HWPX 내보내기
+
+검증 순서:
+1. `@handoc/hwpx-writer` (MIT, TS) — `HwpxBuilder.addImage()` 동작 확인. GitHub README에 이미지 지원 명시됨 ([muin-company/handoc](https://github.com/muin-company/handoc)). npm 설치 가능 여부 + addImage API 실재 검증 필요.
+2. `@ssabrojs/hwpxjs` (MIT, TS) — HwpxWriter로 텍스트 생성 후 JSZip으로 BinData에 이미지 수동 추가하는 하이브리드 접근.
+3. JSZip 완전 직접 구현 — OWPML 스펙 기반 ([한컴테크](https://tech.hancom.com/hwpxformat/)), kordoc 파싱 코드 역참조.
+
+참고 자료:
+- `pypandoc-hwpx` (MIT, Python) — Pandoc 기반 Markdown → HWPX 변환, 이미지 포함 지원. Pandoc 의존성 무거움.
+- `python-hwpx` — 기능 완전하나 비상업적 라이선스 (사용 불가).
+
+### Bio-Tools 차트 이미지
+
+ECharts ref 노출 구조 변경 선행 (`LazyReactECharts`에 ref forwarding 추가).
