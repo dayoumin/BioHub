@@ -336,6 +336,45 @@ def _multilocus_hudson_fst(locus_data, pop_labels_unique):
     return global_fst, pairwise, per_locus_components
 
 
+def _bootstrap_fst_ci(
+    per_locus_components: List[Dict],
+    n_pops: int,
+    n_bootstrap: int,
+) -> Optional[Dict]:
+    """Locus 복원추출 bootstrap — 95% CI 계산. 유전자좌 1개면 None 반환."""
+    n_loci = len(per_locus_components)
+    if n_loci < 2 or n_bootstrap <= 0:
+        if n_bootstrap > 0 and n_loci < 2:
+            return {'bootstrapCi': None, 'nBootstrap': n_bootstrap, 'bootstrapWarning': "유전자좌 1개 — bootstrap CI 불가"}
+        return {'bootstrapCi': None, 'nBootstrap': 0, 'bootstrapWarning': None}
+
+    n_pairs = n_pops * (n_pops - 1) // 2
+    actual_boot = n_bootstrap
+    boot_budget = n_bootstrap * n_loci * n_pairs
+    if boot_budget > 5e7:
+        actual_boot = max(100, int(5e7 / (n_loci * n_pairs)))
+
+    boot_fsts = []
+    for _ in range(actual_boot):
+        indices = np.random.choice(n_loci, size=n_loci, replace=True)
+        total_num = 0.0
+        total_den = 0.0
+        for idx in indices:
+            for (_, _), (num, den) in per_locus_components[idx].items():
+                total_num += num
+                total_den += den
+        boot_fst = max(0.0, total_num / total_den) if total_den > 0 else 0.0
+        boot_fsts.append(boot_fst)
+
+    ci_lower = float(np.percentile(boot_fsts, 2.5))
+    ci_upper = float(np.percentile(boot_fsts, 97.5))
+    return {
+        'bootstrapCi': [round(ci_lower, 6), round(ci_upper, 6)],
+        'nBootstrap': actual_boot,
+        'bootstrapWarning': None,
+    }
+
+
 def _interpret_wright_fst(global_fst: float) -> str:
     """Wright (1978) Fst 해석."""
     if global_fst < 0.05:
@@ -498,10 +537,10 @@ def fst(
     """
     # ── v3 경로: 집계된 allele count (long-format) ──
     if locusCountData is not None:
-        pop_labels_all = set()
-        for entry in locusCountData:
-            pop_labels_all.update(entry.get('counts', {}).keys())
-        pop_labels_unique = sorted(pop_labels_all)
+        # TS에서 전달한 populationLabels 사용 (중복 순회 제거)
+        pop_labels_unique = sorted(populationLabels) if populationLabels else sorted({
+            p for entry in locusCountData for p in entry.get('counts', {}).keys()
+        })
         n_pops = len(pop_labels_unique)
         if n_pops < 2:
             raise ValueError("최소 2개 집단이 필요합니다")
@@ -535,39 +574,9 @@ def fst(
             'nPermutations': 0,
         }
 
-        # Bootstrap CI (permutation은 개체 데이터 없어 불가)
-        if nBootstrap > 0 and len(locus_list) >= 2:
-            n_pairs = n_pops * (n_pops - 1) // 2
-            actual_boot = nBootstrap
-            boot_budget = nBootstrap * len(locus_list) * n_pairs
-            if boot_budget > 5e7:
-                actual_boot = max(100, int(5e7 / (len(locus_list) * n_pairs)))
-
-            boot_fsts = []
-            n_loci_count = len(per_locus_components)
-            for _ in range(actual_boot):
-                indices = np.random.choice(n_loci_count, size=n_loci_count, replace=True)
-                total_num = 0.0
-                total_den = 0.0
-                for idx in indices:
-                    for (_, _), (num, den) in per_locus_components[idx].items():
-                        total_num += num
-                        total_den += den
-                boot_fst = max(0.0, total_num / total_den) if total_den > 0 else 0.0
-                boot_fsts.append(boot_fst)
-            ci_lower = float(np.percentile(boot_fsts, 2.5))
-            ci_upper = float(np.percentile(boot_fsts, 97.5))
-            result['bootstrapCi'] = [round(ci_lower, 6), round(ci_upper, 6)]
-            result['nBootstrap'] = actual_boot
-            result['bootstrapWarning'] = None
-        elif nBootstrap > 0 and len(locus_list) < 2:
-            result['bootstrapCi'] = None
-            result['nBootstrap'] = nBootstrap
-            result['bootstrapWarning'] = "유전자좌 1개 — bootstrap CI 불가"
-        else:
-            result['bootstrapCi'] = None
-            result['nBootstrap'] = 0
-            result['bootstrapWarning'] = None
+        boot_result = _bootstrap_fst_ci(per_locus_components, n_pops, nBootstrap)
+        if boot_result:
+            result.update(boot_result)
 
         return result
 
@@ -635,40 +644,10 @@ def fst(
             result['permutationPValue'] = None
             result['nPermutations'] = 0
 
-        # ── Bootstrap CI (locus 복원추출 — 1개면 리샘플 무의미) ──
-        if nBootstrap > 0 and len(locus_list) >= 2:
-            # bootstrap 비용 ∝ n_boot × n_loci × n_pairs
-            n_pairs = n_pops * (n_pops - 1) // 2
-            actual_boot = nBootstrap
-            boot_budget = nBootstrap * len(locus_list) * n_pairs
-            if boot_budget > 5e7:
-                actual_boot = max(100, int(5e7 / (len(locus_list) * n_pairs)))
-
-            boot_fsts = []
-            n_loci_count = len(per_locus_components)
-            for _ in range(actual_boot):
-                indices = np.random.choice(n_loci_count, size=n_loci_count, replace=True)
-                total_num = 0.0
-                total_den = 0.0
-                for idx in indices:
-                    for (_, _), (num, den) in per_locus_components[idx].items():
-                        total_num += num
-                        total_den += den
-                boot_fst = max(0.0, total_num / total_den) if total_den > 0 else 0.0
-                boot_fsts.append(boot_fst)
-            ci_lower = float(np.percentile(boot_fsts, 2.5))
-            ci_upper = float(np.percentile(boot_fsts, 97.5))
-            result['bootstrapCi'] = [round(ci_lower, 6), round(ci_upper, 6)]
-            result['nBootstrap'] = actual_boot
-            result['bootstrapWarning'] = None
-        elif nBootstrap > 0 and len(locus_list) < 2:
-            result['bootstrapCi'] = None
-            result['nBootstrap'] = nBootstrap
-            result['bootstrapWarning'] = "유전자좌 1개 — bootstrap CI 불가"
-        else:
-            result['bootstrapCi'] = None
-            result['nBootstrap'] = 0
-            result['bootstrapWarning'] = None
+        # ── Bootstrap CI ──
+        boot_result = _bootstrap_fst_ci(per_locus_components, n_pops, nBootstrap)
+        if boot_result:
+            result.update(boot_result)
 
         return result
 

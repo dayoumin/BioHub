@@ -130,7 +130,7 @@ const FstTool = memo(function FstTool({ tool, meta, initialEntry }: ToolComponen
       toolNameKo: tool.nameKo,
       columnConfig: { inputMode, popCol, indCol, popColV2, lfPopCol, lfLocusCol, lfAlleleCol, lfCountCol },
     })
-  }, [saveToHistory, tool, inputMode, popCol, indCol, popColV2])
+  }, [saveToHistory, tool, inputMode, popCol, indCol, popColV2, lfPopCol, lfLocusCol, lfAlleleCol, lfCountCol])
 
   const fstLevel = results
     ? FST_THRESHOLDS.find((t) => results.globalFst < t.max)
