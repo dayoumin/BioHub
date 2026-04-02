@@ -14,9 +14,11 @@
 - DOCX 내보내기 시 스냅샷 조회 → `ImageRun`으로 실제 이미지 삽입
 - Graph Studio 저장 버튼 (현재 미구현 → 신규)
 
-### 제외 (후순위)
+### 포함 (검증 완료)
 
-- HWPX 내보내기 — JSZip 직접 구현 필요, Phase 6b로 분리
+- HWPX 내보내기 — JSZip 템플릿 방식 검증 완료 (2026-04-02). 한컴오피스 정상 열림 + 이미지 삽입 확인.
+
+### 제외 (후순위)
 - Bio-Tools 차트 이미지 — ECharts ref 미노출 구조, 별도 작업
 - 자동 번호 매기기 — 사용자가 Word/한글에서 최종 편집
 
@@ -249,7 +251,95 @@ export async function documentToDocx(doc: DocumentBlueprint): Promise<void> {
 
 ---
 
-## 8. 후순위 (Phase 6b)
+## 8. HWPX 내보내기 (검증 완료)
+
+### 핵심 전략: 템플릿 방식
+
+한컴오피스는 HWPX의 `header.xml`(38KB, 폰트/스타일/속성 선언)이 완전해야 파일을 인식한다.
+코드로 header.xml을 밑바닥부터 생성하는 것은 비현실적 → **한컴오피스에서 만든 빈 문서를 템플릿으로 번들하여 section0.xml만 교체**.
+
+### 검증된 구조 (2026-04-02 한컴오피스 2024 테스트 통과)
+
+```
+template.hwpx (프로젝트에 번들)
+├── mimetype                    ← "application/hwp+zip" (STORE, 첫 번째)
+├── version.xml                 ← 한컴 버전 정보 (템플릿 그대로)
+├── settings.xml                ← 앱 설정 (템플릿 그대로)
+├── META-INF/
+│   ├── container.xml           ← rootfile → Contents/content.hpf
+│   ├── container.rdf           ← (템플릿 그대로)
+│   └── manifest.xml            ← (템플릿 그대로)
+├── Contents/
+│   ├── content.hpf             ← manifest (이미지 항목 동적 추가)
+│   ├── header.xml              ← 38KB 스타일 (템플릿 그대로, 수정 안 함)
+│   └── section0.xml            ← 본문 (동적 생성)
+└── BinData/
+    └── chart1.png              ← 차트 이미지 (동적 추가)
+```
+
+### Namespace (필수 정확 일치)
+
+```
+hs: http://www.hancom.co.kr/hwpml/2011/section
+hp: http://www.hancom.co.kr/hwpml/2011/paragraph
+hc: http://www.hancom.co.kr/hwpml/2011/core
+hh: http://www.hancom.co.kr/hwpml/2011/head
+```
+
+### 텍스트 단락 구조
+
+```xml
+<hp:p id="N" paraPrIDRef="0" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">
+  <hp:run charPrIDRef="0"><hp:t>텍스트</hp:t></hp:run>
+</hp:p>
+```
+
+- `paraPrIDRef="0"`, `styleIDRef="0"`, `charPrIDRef="0"` → header.xml의 id=0 기본 스타일 참조
+- 첫 번째 `<hp:p>`는 반드시 `<hp:secPr>` + `<hp:ctrl><hp:colPr>` 포함 (페이지 설정)
+- 이 첫 단락은 템플릿 원본에서 추출하여 그대로 사용
+
+### 이미지 삽입 구조
+
+```xml
+<!-- section0.xml 내 -->
+<hp:p id="N" ...>
+  <hp:run charPrIDRef="0">
+    <hp:pic id="ID" numberingType="PICTURE" textWrap="TOP_AND_BOTTOM" ...>
+      <hp:orgSz width="W" height="H"/>     <!-- HWPML unit: px * 75 -->
+      <hp:curSz width="W" height="H"/>
+      <hc:img binaryItemIDRef="chart1"/>    <!-- BinData 파일명 참조 -->
+      <hp:sz width="W" height="H" widthRelTo="ABSOLUTE" heightRelTo="ABSOLUTE"/>
+      <hp:pos treatAsChar="1" vertRelTo="PARA" horzRelTo="PARA"/>
+    </hp:pic>
+  </hp:run>
+</hp:p>
+
+<!-- content.hpf manifest에 추가 -->
+<opf:item id="chart1" href="BinData/chart1.png" media-type="image/png" isEmbeded="1"/>
+```
+
+### 크기 단위 변환
+
+- HWPML unit = 1/7200 inch
+- CSS px → HWPML: `px * (7200 / 96) = px * 75`
+
+### 파일
+
+```
+stats/lib/services/export/document-hwpx-export.ts   ← 신규
+stats/public/templates/blank.hwpx                     ← 한컴오피스 빈 문서 템플릿 (번들)
+```
+
+### 실패한 접근법 (참고)
+
+| 시도 | 실패 원인 |
+|------|----------|
+| 최소 XML만 생성 (mimetype + content.hpf + section0.xml) | header.xml 없으면 "파일 손상" |
+| header.xml 빈 태그 | 폰트/스타일 id=0 참조 불가 → 크래시 |
+| kordoc markdownToHwpx | 동일하게 header.xml 미생성 |
+| namespace `2016/HwpMl` 사용 | 한컴오피스가 `2011/*` 만 인식 |
+
+## 9. 후순위
 
 ### HWPX 내보내기
 
