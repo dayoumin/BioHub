@@ -66,6 +66,9 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - `[bio]` Fst long-format CSV 지원 — population/locus/allele/count 4컬럼. 우선순위 낮음
 - `[analysis]` intent-router 0.6 임계값 검증 — 사용 로그 수집 후 데이터 기반 재검토
 - `[ux]` Bio-Tools data-testid + aria-label — E2E 테스트 + 접근성
+- `[quality]` paper-templates 영문 리팩토링:
+  - `depVarName(ctx, lang)` 헬퍼 추출 (19곳 반복 인라인 fallback)
+  - `buildNormalityText` embedded 파라미터 추가 (`.replace(/^N/, 'n')` 3곳 제거)
 
 ### 3-D. 인프라
 
