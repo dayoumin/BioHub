@@ -1,13 +1,16 @@
 'use client'
 
-import { useCallback, useState } from 'react'
-import { Copy, Download, FileDown, Check } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
+import { Copy, Download, FileDown, Check, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { downloadBlob } from '@/lib/services/export/export-data-builder'
+import { documentToDocx, hasVisibleContent } from '@/lib/services/export/document-docx-export'
 import type { DocumentBlueprint, DocumentTable } from '@/lib/research/document-blueprint-types'
 
 interface DocumentExportBarProps {
   document: DocumentBlueprint
+  onBeforeExport?: () => void
 }
 
 function documentToMarkdown(doc: DocumentBlueprint): string {
@@ -109,21 +112,42 @@ ${parts.join('\n')}
 </html>`
 }
 
-export default function DocumentExportBar({ document: doc }: DocumentExportBarProps): React.ReactElement {
+export default function DocumentExportBar({ document: doc, onBeforeExport }: DocumentExportBarProps): React.ReactElement {
   const [copied, setCopied] = useState(false)
+  const [docxLoading, setDocxLoading] = useState(false)
+
+  const hasContent = useMemo(
+    () => doc.sections.some(s => hasVisibleContent(s)),
+    [doc.sections],
+  )
 
   const handleCopyMarkdown = useCallback(async () => {
+    onBeforeExport?.()
     const md = documentToMarkdown(doc)
     await navigator.clipboard.writeText(md)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
-  }, [doc])
+  }, [doc, onBeforeExport])
 
   const handleDownloadHtml = useCallback(() => {
+    onBeforeExport?.()
     const html = documentToHtml(doc)
     const blob = new Blob([html], { type: 'text/html' })
     downloadBlob(blob, `${doc.title}.html`)
-  }, [doc])
+  }, [doc, onBeforeExport])
+
+  const handleDownloadDocx = useCallback(async () => {
+    onBeforeExport?.()
+    setDocxLoading(true)
+    try {
+      await documentToDocx(doc)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'DOCX 생성에 실패했습니다'
+      toast.error(message)
+    } finally {
+      setDocxLoading(false)
+    }
+  }, [doc, onBeforeExport])
 
   return (
     <div className="flex items-center gap-2 border-t pt-3">
@@ -135,9 +159,15 @@ export default function DocumentExportBar({ document: doc }: DocumentExportBarPr
         <Download className="w-4 h-4" />
         HTML 다운로드
       </Button>
-      <Button variant="outline" size="sm" disabled className="gap-1.5">
-        <FileDown className="w-4 h-4" />
-        DOCX (Phase 4)
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={!hasContent || docxLoading}
+        onClick={handleDownloadDocx}
+        className="gap-1.5"
+      >
+        {docxLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+        {docxLoading ? '생성 중...' : 'DOCX 다운로드'}
       </Button>
     </div>
   )

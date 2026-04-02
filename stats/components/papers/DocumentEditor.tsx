@@ -489,7 +489,7 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
 
       {/* 하단: 내보내기 */}
       <div className="shrink-0 px-4 pb-3">
-        <DocumentExportBar document={doc} />
+        <DocumentExportBar document={doc} onBeforeExport={flushSerialize} />
       </div>
     </div>
   )
