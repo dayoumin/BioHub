@@ -339,7 +339,7 @@ export function MethodBrowser({
       </div>
 
       {/* Two-Column Layout: Method List + Detail Panel */}
-      <div className="flex gap-5">
+      <div className="flex flex-col lg:flex-row gap-5">
         {/* Left: Method List */}
         <ScrollArea className="h-[460px] flex-1 min-w-0">
           <div className="space-y-3 pr-4">
@@ -477,7 +477,7 @@ export function MethodBrowser({
         </ScrollArea>
 
         {/* Right: Detail Panel */}
-        <div className="w-[320px] shrink-0 hidden lg:block">
+        <div className="w-full lg:w-[320px] shrink-0 hidden lg:block">
           <div className="sticky top-0">
             {detailMethod ? (
               <MethodDetailPanel

@@ -143,7 +143,7 @@ export function BioCsvUpload({
           <p className="text-sm font-medium truncate">{fileName}</p>
           <p className="text-xs text-muted-foreground">데이터 로드 완료</p>
         </div>
-        <Button variant="ghost" size="icon" onClick={handleClear} className="flex-shrink-0">
+        <Button variant="ghost" size="icon" onClick={handleClear} className="flex-shrink-0" aria-label="초기화">
           <X className="w-4 h-4" />
         </Button>
       </div>

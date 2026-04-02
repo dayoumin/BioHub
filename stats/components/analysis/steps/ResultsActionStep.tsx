@@ -987,7 +987,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
         {/* 논문 초안 패널 */}
         <Sheet open={paperDraftOpen} onOpenChange={setPaperDraftOpen}>
-          <SheetContent side="right" className="w-[560px] max-w-[90vw] p-0 flex flex-col gap-0">
+          <SheetContent side="right" className="w-full md:w-[560px] max-w-[90vw] p-0 flex flex-col gap-0">
             <SheetHeader className="px-4 py-3 border-b shrink-0">
               <SheetTitle className="text-sm font-semibold">{t.results.buttons.resultsSummary}</SheetTitle>
             </SheetHeader>

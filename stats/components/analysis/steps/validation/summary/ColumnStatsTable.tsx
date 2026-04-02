@@ -31,12 +31,12 @@ export const ColumnStatsTable = memo(function ColumnStatsTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b">
-            <th className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vs.tableHeaders.variableName}</th>
-            <th className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vs.tableHeaders.type}</th>
-            <th className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vs.tableHeaders.missingValues}</th>
-            <th className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vs.tableHeaders.uniqueValues}</th>
-            <th className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vs.tableHeaders.statistics}</th>
-            <th className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vs.tableHeaders.actions}</th>
+            <th scope="col" className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vs.tableHeaders.variableName}</th>
+            <th scope="col" className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vs.tableHeaders.type}</th>
+            <th scope="col" className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vs.tableHeaders.missingValues}</th>
+            <th scope="col" className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vs.tableHeaders.uniqueValues}</th>
+            <th scope="col" className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vs.tableHeaders.statistics}</th>
+            <th scope="col" className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vs.tableHeaders.actions}</th>
           </tr>
         </thead>
         <tbody>

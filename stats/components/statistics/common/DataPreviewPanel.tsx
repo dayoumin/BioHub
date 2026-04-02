@@ -129,7 +129,7 @@ export function DataPreviewPanel({
       <CardHeader className="relative">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10 backdrop-blur-sm">
+            <div className="p-2 rounded-lg bg-primary/10">
               <Database className="h-5 w-5 text-primary" />
             </div>
             <div>
@@ -188,7 +188,7 @@ export function DataPreviewPanel({
       {isExpanded && (
         <CardContent className="relative space-y-4 animate-in fade-in-50 duration-300">
           <Tabs defaultValue="preview" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-muted/50 backdrop-blur-sm">
+            <TabsList className="grid w-full grid-cols-2 bg-muted/50">
               <TabsTrigger
                 value="preview"
                 className="data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
@@ -208,7 +208,7 @@ export function DataPreviewPanel({
             {/* 데이터 미리보기 탭 */}
             <TabsContent value="preview" className="mt-4 space-y-2">
               {totalRows > maxPreviewRows && (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 backdrop-blur-sm">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
                   <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
                   <p className="text-sm text-amber-900 dark:text-amber-100">
                     처음 <strong>{maxPreviewRows.toLocaleString()}개 행</strong>만 표시됩니다.
@@ -217,7 +217,7 @@ export function DataPreviewPanel({
                 </div>
               )}
 
-              <ScrollArea className="h-[600px] w-full rounded-lg border border-border/50 bg-background/50 backdrop-blur-sm">
+              <ScrollArea className="h-[600px] w-full rounded-lg border border-border/50 bg-background/50">
                 <Table>
                   <TableHeader className="sticky top-0 bg-muted/95 backdrop-blur-md z-10">
                     <TableRow className="hover:bg-muted/80">
@@ -272,7 +272,7 @@ export function DataPreviewPanel({
                   {columnStats.map((stat) => (
                     <Card
                       key={stat.name}
-                      className="hover:shadow-md hover:shadow-primary/5 transition-all duration-200 border-border/50 bg-card/50 backdrop-blur-sm"
+                      className="hover:shadow-md hover:shadow-primary/5 transition-all duration-200 border-border/50 bg-card/50"
                     >
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">

@@ -387,7 +387,7 @@ export function DataUploadStep({
           />
         </div>
       ) : (
-        <div className="border border-border/40 rounded-xl p-4 flex items-center justify-between bg-muted/20 backdrop-blur-sm">
+        <div className="border border-border/40 rounded-xl p-4 flex items-center justify-between bg-muted/20">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
               <FileSpreadsheet className="h-4 w-4 text-primary" />

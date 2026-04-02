@@ -74,7 +74,7 @@ export function ChatThread({
             variant="ghost"
             size="sm"
             onClick={handleClear}
-            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+            className="h-9 px-3 text-xs text-muted-foreground hover:text-foreground gap-1"
           >
             <Trash2 className="w-3 h-3" />
             새 대화

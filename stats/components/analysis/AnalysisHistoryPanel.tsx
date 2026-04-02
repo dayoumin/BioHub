@@ -47,6 +47,7 @@ import type { AnalysisResult } from '@/types/analysis'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { useTerminology } from '@/hooks/use-terminology'
+import { focusRing } from '@/lib/design-tokens/common'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -391,8 +392,10 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
                       )}
                       {item.aiRecommendation.reasoning.length > 0 && (
                         <button
-                          className="ml-auto hover:text-foreground transition-colors"
+                          className={`ml-auto hover:text-foreground transition-colors ${focusRing} rounded`}
                           onClick={(e) => { e.stopPropagation(); toggleExpand(item.id) }}
+                          aria-label={expandedItems.has(item.id) ? '접기' : '펼치기'}
+                          aria-expanded={expandedItems.has(item.id)}
                         >
                           {expandedItems.has(item.id)
                             ? <ChevronUp className="w-3 h-3" />

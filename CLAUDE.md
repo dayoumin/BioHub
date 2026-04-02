@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**현황/로드맵**: [TODO.md](TODO.md) · [ROADMAP.md](ROADMAP.md)
+**현황/로드맵**: [TODO.md](TODO.md) · [ROADMAP.md](ROADMAP.md) · **디자인**: [.impeccable.md](.impeccable.md)
 
 ## 프로젝트 개요
 

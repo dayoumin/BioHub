@@ -292,7 +292,7 @@ function CohenDInput({
           <p className="text-xs text-muted-foreground">
             선행 연구나 예비 데이터의 평균/SD 입력 → Cohen's d 자동 계산
           </p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div>
               <Label className="text-xs mb-1 block">평균 1 (μ₁)</Label>
               <Input
@@ -485,7 +485,7 @@ export function SampleSizeModal({ open, onClose, onStartAnalysis }: SampleSizeMo
           >
             {/* 검정 유형 선택 — 3×2 그리드 + 초기화 */}
             <div className="flex items-start gap-2">
-            <TabsList className="grid grid-cols-3 h-auto gap-1 p-1 flex-1">
+            <TabsList className="grid grid-cols-2 sm:grid-cols-3 h-auto gap-1 p-1 flex-1">
               <TabsTrigger value="two-sample" className="text-xs py-1.5">
                 독립 t-검정
               </TabsTrigger>

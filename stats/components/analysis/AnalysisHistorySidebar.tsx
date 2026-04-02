@@ -143,6 +143,7 @@ export function AnalysisHistorySidebar(): ReactNode {
                   type="button"
                   onClick={(e) => e.stopPropagation()}
                   className="shrink-0 rounded p-0.5 text-muted-foreground/30 opacity-0 transition-all hover:bg-muted hover:text-foreground group-hover:opacity-100"
+                  aria-label="더보기"
                 >
                   <MoreHorizontal className="h-3 w-3" />
                 </button>

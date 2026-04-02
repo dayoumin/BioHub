@@ -50,7 +50,7 @@ export function ResultsStatsCards({
 }: ResultsStatsCardsProps): React.ReactElement {
   return (
     <motion.div
-      className="grid grid-cols-2 lg:grid-cols-4 gap-3"
+      className="grid grid-cols-2 lg:grid-cols-4 gap-3 will-change-transform"
       variants={prefersReducedMotion ? undefined : statsContainerVariants}
       initial="hidden"
       animate={phase >= 1 || prefersReducedMotion ? 'visible' : 'hidden'}

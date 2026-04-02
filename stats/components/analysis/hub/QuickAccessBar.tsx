@@ -326,7 +326,7 @@ function ActivityCardItem({ card, t, onClick, onTogglePin, onDelete }: ActivityC
       onClick={onClick}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter') onClick() }}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }}
     >
       <div className="flex items-center gap-3 min-w-0">
         {/* 상태 아이콘 — 통계 vs 시각화 */}
@@ -381,6 +381,7 @@ function ActivityCardItem({ card, t, onClick, onTogglePin, onDelete }: ActivityC
               'opacity-0 group-hover:opacity-100 transition-all',
               `focus-visible:opacity-100 ${focusRing}`,
             )}
+            aria-label="더보기"
           >
             <MoreVertical className="w-4 h-4" />
           </button>

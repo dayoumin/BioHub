@@ -255,8 +255,8 @@ function ChartImageSection({ imageUrl }: { imageUrl: string }) {
     <div className="space-y-2">
       <img
         src={imageUrl}
-        alt="Analysis chart"
-        className="w-full rounded border bg-white"
+        alt="분석 차트 이미지"
+        className="w-full rounded border bg-card"
       />
       <div className="flex gap-2">
         <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={handleSave}>
@@ -369,7 +369,7 @@ export function PaperDraftPanel({
         <div
           className={cn(
             'px-6 py-6 space-y-8 transition-opacity duration-150',
-            'bg-white dark:bg-card',
+            'bg-card',
             'mx-auto',
             isLangLoading && 'opacity-40 pointer-events-none',
           )}

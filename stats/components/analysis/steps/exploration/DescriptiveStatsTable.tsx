@@ -59,7 +59,7 @@ export const DescriptiveStatsTable = memo(function DescriptiveStatsTable({
         <table className="w-full text-sm border-collapse">
           <thead className="sticky top-0 bg-muted/60 backdrop-blur-md z-10">
             <tr className="border-b border-border/40">
-              <th scope="col" className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.variableName}</th>
+              <th scope="col" className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap sticky left-0 z-20 bg-muted/95 backdrop-blur-md">{t.dataExploration.headers.variableName}</th>
               <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.count}</th>
               <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.mean}</th>
               <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.stdDev}</th>
@@ -107,7 +107,7 @@ export const DescriptiveStatsTable = memo(function DescriptiveStatsTable({
               const kurtWarning = col.kurtosis !== undefined && Math.abs(col.kurtosis) > 7
               return (
                 <tr key={col.name} className="hover:bg-muted/30 transition-colors duration-150">
-                  <td className="px-3 py-2.5 font-medium whitespace-nowrap tracking-tight">{col.name}</td>
+                  <td className="px-3 py-2.5 font-medium whitespace-nowrap tracking-tight sticky left-0 z-10 bg-background">{col.name}</td>
                   <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{col.n}</td>
                   <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{formatStat(col.mean)}</td>
                   <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{formatStat(col.std)}</td>
@@ -170,7 +170,7 @@ export const DescriptiveStatsTable = memo(function DescriptiveStatsTable({
       {/* 해석 가이드 */}
       <div className="text-xs text-muted-foreground bg-info-bg p-3 rounded-lg border border-info-border">
         <p className="font-medium mb-1 flex items-center gap-1"><Lightbulb className="h-3.5 w-3.5" />{t.dataExploration.interpretGuide.title}</p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
           <div>{t.dataExploration.interpretGuide.skewness}</div>
           <div>{t.dataExploration.interpretGuide.kurtosis}</div>
           <div>{t.dataExploration.interpretGuide.outlierDef}</div>

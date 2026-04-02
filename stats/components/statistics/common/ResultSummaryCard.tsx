@@ -125,7 +125,7 @@ export function ResultSummaryCard({
                 </span>
               )}
               {showCopyButton && (
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopy}>
+                <Button variant="ghost" size="icon" className="h-9 w-9 p-2" onClick={handleCopy}>
                   {copied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3" />}
                 </Button>
               )}

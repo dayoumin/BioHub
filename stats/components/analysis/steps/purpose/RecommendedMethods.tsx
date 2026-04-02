@@ -258,7 +258,7 @@ export function RecommendedMethods({
 
       {/* 스마트 추천 방법 표시 */}
       {showRecommendations && methods.length > 0 && (
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-lg p-4 space-y-3">
+        <div className="bg-muted/40 dark:bg-muted/20 rounded-lg p-4 space-y-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-amber-500" />
             <h4 className="font-medium text-sm">{text.aiRecommendTitle}</h4>

@@ -338,11 +338,11 @@ export const DataValidationStep = memo(function DataValidationStep({
               <table className="w-full text-sm border-collapse">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="text-left p-2 font-medium">{t.dataValidation.table.variableName}</th>
-                    <th className="text-center p-2 font-medium">{t.dataValidation.table.type}</th>
-                    <th className="text-center p-2 font-medium">{t.dataValidation.table.uniqueValues}</th>
-                    <th className="text-center p-2 font-medium">{t.dataValidation.table.missing}</th>
-                    <th className="text-center p-2 font-medium">{t.dataValidation.table.excluded}</th>
+                    <th scope="col" className="text-left p-2 font-medium">{t.dataValidation.table.variableName}</th>
+                    <th scope="col" className="text-center p-2 font-medium">{t.dataValidation.table.type}</th>
+                    <th scope="col" className="text-center p-2 font-medium">{t.dataValidation.table.uniqueValues}</th>
+                    <th scope="col" className="text-center p-2 font-medium">{t.dataValidation.table.missing}</th>
+                    <th scope="col" className="text-center p-2 font-medium">{t.dataValidation.table.excluded}</th>
                   </tr>
                 </thead>
                 <tbody>

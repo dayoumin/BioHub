@@ -18,7 +18,7 @@ export function GuidanceCardDemo() {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* 디자인 특징 */}
-          <div className="space-y-3 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="space-y-3 p-4 bg-muted/50 dark:bg-muted/30 rounded-lg border border-border">
             <h4 className="font-medium text-sm">🎨 디자인 특징</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <ul className="text-xs space-y-1.5">

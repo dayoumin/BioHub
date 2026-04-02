@@ -19,26 +19,30 @@ const processSteps = [
   {
     title: "데이터 업로드",
     description: "CSV, Excel 파일 드래그 또는 선택",
-    color: "text-gray-700 dark:text-gray-300",
-    bgColor: "bg-gray-50 dark:bg-gray-900"
+    color: "text-muted-foreground",
+    bgColor: "bg-muted",
+    highlight: false,
   },
   {
     title: "자동 검증",
     description: "데이터 구조, 타입, 품질 분석",
-    color: "text-gray-800 dark:text-gray-200",
-    bgColor: "bg-gray-100 dark:bg-gray-850"
+    color: "text-muted-foreground",
+    bgColor: "bg-muted",
+    highlight: false,
   },
   {
     title: "AI 추천",
     description: "최적의 통계 분석 방법 제안",
-    color: "text-gray-900 dark:text-gray-100",
-    bgColor: "bg-white dark:bg-gray-800"
+    color: "text-primary",
+    bgColor: "bg-primary/10",
+    highlight: true,
   },
   {
     title: "결과 확인",
     description: "전문가 수준의 분석을 쉬운 언어로",
-    color: "text-gray-600 dark:text-gray-400",
-    bgColor: "bg-gray-50 dark:bg-gray-850"
+    color: "text-muted-foreground",
+    bgColor: "bg-muted",
+    highlight: false,
   }
 ]
 
@@ -57,7 +61,7 @@ export function SmartAnalysisHero() {
         <h1 className="text-5xl sm:text-6xl font-bold">
           통계 지식이 없어도
           <br />
-          <span className="bg-gradient-to-r from-primary via-purple-500 to-indigo-500 bg-clip-text text-transparent">
+          <span className="text-primary">
             전문가 수준의 분석
           </span>
         </h1>
@@ -92,7 +96,7 @@ export function SmartAnalysisHero() {
       <div className="flex flex-wrap gap-4 justify-center">
         {benefits.map((benefit, i) => (
           <div key={i} className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+            <CheckCircle2 className="h-5 w-5 text-muted-foreground" />
             <span className="text-sm font-medium">{benefit}</span>
           </div>
         ))}
@@ -101,13 +105,20 @@ export function SmartAnalysisHero() {
       {/* 프로세스 카드 */}
       <div className="grid md:grid-cols-4 gap-4">
         {processSteps.map((step, i) => (
-          <Card key={i} className="relative overflow-hidden">
-            <div className={`absolute top-0 left-0 right-0 h-1 ${step.bgColor}`} />
+          <Card key={i} className={`relative overflow-hidden transition-shadow ${
+            step.highlight ? 'border-primary/40 shadow-md ring-1 ring-primary/20' : ''
+          }`}>
+            <div className={`absolute top-0 left-0 right-0 h-1 ${step.highlight ? 'bg-primary' : 'bg-border'}`} />
             <CardHeader className="pb-3">
               <div className={`inline-flex items-center justify-center w-12 h-12 rounded-lg ${step.bgColor} mb-3`}>
                 <span className={`text-xl font-bold ${step.color}`}>{i + 1}</span>
               </div>
               <CardTitle className="text-lg">{step.title}</CardTitle>
+              {step.highlight && (
+                <Badge variant="secondary" className="w-fit text-xs bg-primary/10 text-primary border-0">
+                  핵심 기능
+                </Badge>
+              )}
             </CardHeader>
             <CardContent>
               <CardDescription>{step.description}</CardDescription>

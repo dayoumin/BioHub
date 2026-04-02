@@ -147,6 +147,7 @@ export function BioToolsHub({ onSelectTool }: BioToolsHubProps): React.ReactElem
                   categoryCardBase,
                   isExpanded && 'border-primary/40 bg-primary/5 shadow-sm',
                 )}
+                aria-expanded={expandedCategory === cat.id}
               >
                 <div className="p-2 rounded-lg" style={BIO_ICON_BG}>
                   {FirstIcon && <FirstIcon className="w-4 h-4" style={BIO_ICON_COLOR} />}

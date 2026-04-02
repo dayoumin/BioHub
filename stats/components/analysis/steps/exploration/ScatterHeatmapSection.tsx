@@ -143,6 +143,7 @@ export const ScatterHeatmapSection = memo(function ScatterHeatmapSection({
                         size="sm"
                         onClick={() => removeScatterplot(config.id)}
                         className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                        aria-label="산점도 제거"
                       >
                         <X className="h-4 w-4" />
                       </Button>

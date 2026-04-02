@@ -49,7 +49,7 @@ export const AssumptionResultsPanel = memo(function AssumptionResultsPanel({
   const violations = summary.violations ?? []
 
   return (
-    <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-info-border">
+    <div className="mt-4 p-4 bg-muted/40 dark:bg-muted/20 rounded-lg border border-info-border">
       <div className="flex items-start gap-3">
         {/* Icon */}
         <div className={`mt-1 p-2 rounded-full ${

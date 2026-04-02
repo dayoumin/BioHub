@@ -174,7 +174,7 @@ export function ConfidenceIntervalDisplay({
         {showVisualization && (
           <div className="space-y-2">
 
-            <div className="relative h-12 bg-gray-100 rounded-lg overflow-hidden">
+            <div className="relative h-12 bg-muted rounded-lg overflow-hidden">
               {/* 기준선 (있는 경우) */}
               {referenceValue !== undefined &&
                 referenceValue >= visualMin &&
@@ -234,11 +234,11 @@ export function ConfidenceIntervalDisplay({
 
               {/* 구간 끝점 표시 */}
               <div
-                className="absolute top-4 w-1 h-4 bg-white rounded"
+                className="absolute top-4 w-1 h-4 bg-card rounded"
                 style={{ left: `${getPosition(lower)}%` }}
               />
               <div
-                className="absolute top-4 w-1 h-4 bg-white rounded"
+                className="absolute top-4 w-1 h-4 bg-card rounded"
                 style={{ left: `calc(${getPosition(upper)}% - 4px)` }}
               />
             </div>
@@ -336,7 +336,7 @@ export function MultipleConfidenceIntervals({
                 </span>
               </div>
 
-              <div className="relative h-8 bg-gray-100 rounded">
+              <div className="relative h-8 bg-muted rounded">
                 {/* 기준선 */}
                 {referenceValue !== undefined &&
                   referenceValue >= visualMin &&

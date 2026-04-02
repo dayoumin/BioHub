@@ -93,7 +93,7 @@ export function SequenceInput({
           onChange={(e) => onSampleNameChange(e.target.value)}
           placeholder="예: 제주 채집 시료 #3, 시장 구매 참치"
           maxLength={100}
-          className={`w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm ${focusRing} focus-visible:border-primary`}
+          className={`w-full rounded-lg border border-input bg-card px-3 py-2 text-sm ${focusRing} focus-visible:border-primary`}
         />
       </div>
 
@@ -205,7 +205,7 @@ export function SequenceInput({
           }}
           placeholder={">sample_sequence\nATGCGTACGTACGTACG..."}
           rows={8}
-          className={`w-full rounded-lg border border-gray-300 bg-white px-3 py-2 font-mono text-sm ${focusRing}`}
+          className={`w-full rounded-lg border border-input bg-card px-3 py-2 font-mono text-sm ${focusRing}`}
         />
 
         {validation && (

@@ -223,9 +223,10 @@ export function StepIndicator({
         {showProgress && steps.length > 1 && (
           <div className="absolute top-9 left-[calc(10%+0.5rem)] right-[calc(10%+0.5rem)] h-0.5 bg-gray-200 dark:bg-gray-700">
             <motion.div
-              className={cn(colors.progressBar, 'h-full transition-all')}
-              initial={{ width: 0 }}
-              animate={{ width: `${Math.max(0, progressPercentage)}%` }}
+              className={cn(colors.progressBar, 'h-full w-full')}
+              style={{ transformOrigin: 'left' }}
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: Math.max(0, progressPercentage) / 100 }}
               transition={{ duration: ANIMATION_TOKENS.duration.slow / 1000 }}
             />
           </div>

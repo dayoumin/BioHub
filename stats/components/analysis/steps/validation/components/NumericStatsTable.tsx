@@ -51,16 +51,16 @@ export const NumericStatsTable = memo(function NumericStatsTable({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b">
-                <th className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.variableName}</th>
-                <th className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.mean}</th>
-                <th className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.median}</th>
-                <th className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.stdDev}</th>
-                <th className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.cv}</th>
-                <th className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.skewness}</th>
-                <th className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.kurtosis}</th>
-                <th className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.min}</th>
-                <th className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.max}</th>
-                <th className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.outliers}</th>
+                <th scope="col" className={`text-left ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.variableName}</th>
+                <th scope="col" className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.mean}</th>
+                <th scope="col" className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.median}</th>
+                <th scope="col" className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.stdDev}</th>
+                <th scope="col" className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.cv}</th>
+                <th scope="col" className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.skewness}</th>
+                <th scope="col" className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.kurtosis}</th>
+                <th scope="col" className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.min}</th>
+                <th scope="col" className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.max}</th>
+                <th scope="col" className={`text-right ${STEP_STYLES.tableHeaderCell}`}>{vd.headers.outliers}</th>
               </tr>
             </thead>
             <tbody>

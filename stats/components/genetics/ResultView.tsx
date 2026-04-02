@@ -13,11 +13,11 @@ interface ResultViewProps {
 }
 
 const STATUS_STYLES: Record<BlastResultStatus, { bg: string; border: string; text: string; badge: string }> = {
-  high:      { bg: 'bg-green-50',  border: 'border-green-200',  text: 'text-green-800',  badge: 'bg-green-100 text-green-700' },
-  ambiguous: { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-800', badge: 'bg-yellow-100 text-yellow-700' },
-  low:       { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-800', badge: 'bg-orange-100 text-orange-700' },
-  failed:    { bg: 'bg-red-50',    border: 'border-red-200',    text: 'text-red-800',    badge: 'bg-red-100 text-red-700' },
-  no_hit:    { bg: 'bg-red-50',    border: 'border-red-200',    text: 'text-red-800',    badge: 'bg-red-100 text-red-700' },
+  high:      { bg: 'bg-success-bg',  border: 'border-success-border',  text: 'text-success',  badge: 'bg-success-bg text-success' },
+  ambiguous: { bg: 'bg-warning-bg',  border: 'border-warning-border',  text: 'text-warning',  badge: 'bg-warning-bg text-warning' },
+  low:       { bg: 'bg-warning-bg',  border: 'border-warning-border',  text: 'text-warning',  badge: 'bg-warning-bg text-warning' },
+  failed:    { bg: 'bg-error-bg',    border: 'border-error-border',    text: 'text-error',    badge: 'bg-error-bg text-error' },
+  no_hit:    { bg: 'bg-error-bg',    border: 'border-error-border',    text: 'text-error',    badge: 'bg-error-bg text-error' },
 }
 
 const needsAlternative = (status: BlastResultStatus): boolean =>
@@ -48,22 +48,22 @@ export function ResultView({ decision, marker, sequence, onReset }: ResultViewPr
       )}
 
       {decision.taxonAlert && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
-          <h3 className="mb-2 text-sm font-semibold text-amber-900">
+        <div className="rounded-xl border border-warning-border bg-warning-bg p-5">
+          <h3 className="mb-2 text-sm font-semibold text-warning">
             {decision.taxonAlert.title}
           </h3>
-          <p className="mb-3 text-sm text-amber-800">
+          <p className="mb-3 text-sm text-warning-muted">
             {decision.taxonAlert.description}
           </p>
-          <div className="rounded-lg bg-white/60 p-3">
-            <p className="text-sm font-medium text-amber-900">권장 조치</p>
-            <p className="text-sm text-amber-800">{decision.taxonAlert.recommendation}</p>
+          <div className="rounded-lg bg-card/60 p-3">
+            <p className="text-sm font-medium text-warning">권장 조치</p>
+            <p className="text-sm text-warning-muted">{decision.taxonAlert.recommendation}</p>
           </div>
         </div>
       )}
 
       {decision.topHits.length > 0 && (
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
+        <div className="rounded-xl border border-border bg-card p-5">
           <h3 className="mb-3 text-sm font-semibold text-gray-700">매칭 결과</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -190,7 +190,7 @@ function AlternativeMarkersCard({ marker, markers }: { marker: BlastMarker; mark
       </div>
 
       {selectedInfo && (
-        <div className="rounded-lg border border-blue-200 bg-white p-4">
+        <div className="rounded-lg border border-blue-200 bg-card p-4">
           <div className="mb-1 flex items-center gap-2">
             <span className="text-sm font-bold text-blue-900">{selectedInfo.displayName}</span>
             <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-600">

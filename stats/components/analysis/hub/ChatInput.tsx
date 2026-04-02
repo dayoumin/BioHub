@@ -132,7 +132,7 @@ export function ChatInput({
               variant="ghost"
               onClick={handleUploadClick}
               disabled={isProcessing}
-              className="h-9 w-9 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-accent"
+              className="h-10 w-10 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-accent"
               aria-label={t.hub.chatInput.uploadAriaLabel}
               title={t.hub.chatInput.uploadTitle}
             >
@@ -145,7 +145,7 @@ export function ChatInput({
             size="icon"
             onClick={handleSubmit}
             disabled={!value.trim() || isProcessing}
-            className="h-9 w-9 rounded-lg"
+            className="h-10 w-10 rounded-lg"
             aria-label={t.hub.chatInput.sendAriaLabel}
           >
             {isProcessing ? (

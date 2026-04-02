@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { Star } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { actionCardBase, iconContainerMuted } from '@/components/common/card-styles'
+import { actionCardBase, iconContainerMuted, focusRing } from '@/components/common/card-styles'
 import type { BioTool } from '@/lib/bio-tools/bio-tool-registry'
 import { usePinnedToolsStore } from '@/lib/bio-tools/pinned-tools-store'
 
@@ -39,7 +39,7 @@ export function BioToolCard({ tool, onSelect }: BioToolCardProps): React.ReactEl
       {!disabled && (
         <button
           onClick={handlePinClick}
-          className="absolute top-2 left-2 p-1 rounded-md hover:bg-muted transition-colors"
+          className={`absolute top-2 left-2 p-1 rounded-md hover:bg-muted transition-colors ${focusRing}`}
           aria-label={isPinned ? '핀 해제' : '핀 고정'}
         >
           <Star

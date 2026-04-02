@@ -40,7 +40,7 @@ export interface GuidanceCardProps {
  * - Step 3 (PurposeInputStep): 분석 방법 결정
  *
  * 디자인 특징:
- * - 🎨 그라데이션 배경 (blue → indigo → purple)
+ * - 🎨 테마 기반 muted 배경
  * - 🗑️ 최소주의: 핵심 메시지 + CTA만 표시
  * - ✨ 부드러운 음영 + hover 효과
  * - 📐 반응형: 모바일(수직) / 데스크탑(수평)
@@ -62,9 +62,8 @@ export function GuidanceCard({
   return (
     <Card
       className={`
-        border border-blue-200 dark:border-blue-800
-        bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50
-        dark:from-blue-950/30 dark:via-indigo-950/30 dark:to-purple-950/30
+        border border-border
+        bg-muted/50 dark:bg-muted/30
         shadow-sm hover:shadow-md transition-shadow duration-200
         ${prefersReducedMotion ? '' : 'animate-in fade-in slide-in-from-bottom-4'}
       `}

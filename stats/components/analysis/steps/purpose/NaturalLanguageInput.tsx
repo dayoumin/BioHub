@@ -463,7 +463,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="mt-2 space-y-1"
+                          className="mt-2 space-y-1 overflow-hidden"
                         >
                           {recommendation.dataPreprocessing.map((item, index) => (
                             <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -528,7 +528,7 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="grid grid-cols-1 md:grid-cols-2 gap-2"
+                      className="grid grid-cols-1 md:grid-cols-2 gap-2 overflow-hidden"
                     >
                       {recommendation.alternatives.map((alt, index) => (
                         <Card

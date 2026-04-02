@@ -75,18 +75,17 @@ export function EffectSizeCard({
 
   // 효과크기에 따른 색상
   const getColorClass = () => {
-    if (absValue < 0.2) return 'text-gray-500 bg-gray-50'
-    if (absValue < 0.5) return 'text-yellow-600 bg-yellow-50'
-    if (absValue < 0.8) return 'text-orange-600 bg-orange-50'
-    return 'text-red-600 bg-red-50'
+    if (absValue < 0.2) return 'text-muted-foreground bg-muted'
+    if (absValue < 0.5) return 'text-warning bg-warning-bg'
+    if (absValue < 0.8) return 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30'
+    return 'text-error bg-error-bg'
   }
 
-  // 진행바 색상
   const getProgressColor = () => {
-    if (absValue < 0.2) return 'bg-gray-400'
-    if (absValue < 0.5) return 'bg-yellow-500'
-    if (absValue < 0.8) return 'bg-orange-500'
-    return 'bg-red-500'
+    if (absValue < 0.2) return 'bg-muted-foreground'
+    if (absValue < 0.5) return 'bg-warning'
+    if (absValue < 0.8) return 'bg-orange-500 dark:bg-orange-400'
+    return 'bg-error'
   }
 
   // 방향 아이콘
@@ -222,13 +221,13 @@ export function EffectSizeComparison({ items, className }: EffectSizeComparisonP
               </span>
             </div>
             <div className="relative">
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
                 <div
                   className={cn(
                     'h-full transition-all duration-500',
-                    absValue < 0.2 ? 'bg-gray-400' :
-                    absValue < 0.5 ? 'bg-yellow-500' :
-                    absValue < 0.8 ? 'bg-orange-500' : 'bg-red-500'
+                    absValue < 0.2 ? 'bg-muted-foreground' :
+                    absValue < 0.5 ? 'bg-warning' :
+                    absValue < 0.8 ? 'bg-warning' : 'bg-error'
                   )}
                   style={{ width: `${percentage}%` }}
                 />
@@ -253,75 +252,75 @@ interface EffectSizeGuidelinesProps {
 export function EffectSizeGuidelines({ type = 'cohensD', className }: EffectSizeGuidelinesProps) {
   const guidelines = {
     cohensD: [
-      { label: '무시할 만함', range: '< 0.2', color: 'bg-gray-100' },
-      { label: '작음', range: '0.2 - 0.5', color: 'bg-yellow-100' },
-      { label: '중간', range: '0.5 - 0.8', color: 'bg-orange-100' },
-      { label: '큼', range: '> 0.8', color: 'bg-red-100' }
+      { label: '무시할 만함', range: '< 0.2', color: 'bg-muted' },
+      { label: '작음', range: '0.2 - 0.5', color: 'bg-warning-bg' },
+      { label: '중간', range: '0.5 - 0.8', color: 'bg-warning-bg' },
+      { label: '큼', range: '> 0.8', color: 'bg-error-bg' }
     ],
     hedgesG: [
-      { label: '무시할 만함', range: '< 0.2', color: 'bg-gray-100' },
-      { label: '작음', range: '0.2 - 0.5', color: 'bg-yellow-100' },
-      { label: '중간', range: '0.5 - 0.8', color: 'bg-orange-100' },
-      { label: '큼', range: '> 0.8', color: 'bg-red-100' }
+      { label: '무시할 만함', range: '< 0.2', color: 'bg-muted' },
+      { label: '작음', range: '0.2 - 0.5', color: 'bg-warning-bg' },
+      { label: '중간', range: '0.5 - 0.8', color: 'bg-warning-bg' },
+      { label: '큼', range: '> 0.8', color: 'bg-error-bg' }
     ],
     glassDelta: [
-      { label: '무시할 만함', range: '< 0.2', color: 'bg-gray-100' },
-      { label: '작음', range: '0.2 - 0.5', color: 'bg-yellow-100' },
-      { label: '중간', range: '0.5 - 0.8', color: 'bg-orange-100' },
-      { label: '큼', range: '> 0.8', color: 'bg-red-100' }
+      { label: '무시할 만함', range: '< 0.2', color: 'bg-muted' },
+      { label: '작음', range: '0.2 - 0.5', color: 'bg-warning-bg' },
+      { label: '중간', range: '0.5 - 0.8', color: 'bg-warning-bg' },
+      { label: '큼', range: '> 0.8', color: 'bg-error-bg' }
     ],
     etaSquared: [
-      { label: '작음', range: '< 0.01', color: 'bg-gray-100' },
-      { label: '중간', range: '0.01 - 0.06', color: 'bg-yellow-100' },
-      { label: '큼', range: '> 0.14', color: 'bg-orange-100' }
+      { label: '작음', range: '< 0.01', color: 'bg-muted' },
+      { label: '중간', range: '0.01 - 0.06', color: 'bg-warning-bg' },
+      { label: '큼', range: '> 0.14', color: 'bg-warning-bg' }
     ],
     partialEtaSquared: [
-      { label: '작음', range: '< 0.01', color: 'bg-gray-100' },
-      { label: '중간', range: '0.01 - 0.06', color: 'bg-yellow-100' },
-      { label: '큼', range: '> 0.14', color: 'bg-orange-100' }
+      { label: '작음', range: '< 0.01', color: 'bg-muted' },
+      { label: '중간', range: '0.01 - 0.06', color: 'bg-warning-bg' },
+      { label: '큼', range: '> 0.14', color: 'bg-warning-bg' }
     ],
     omegaSquared: [
-      { label: '작음', range: '< 0.01', color: 'bg-gray-100' },
-      { label: '중간', range: '0.01 - 0.06', color: 'bg-yellow-100' },
-      { label: '큼', range: '> 0.14', color: 'bg-orange-100' }
+      { label: '작음', range: '< 0.01', color: 'bg-muted' },
+      { label: '중간', range: '0.01 - 0.06', color: 'bg-warning-bg' },
+      { label: '큼', range: '> 0.14', color: 'bg-warning-bg' }
     ],
     epsilonSquared: [
-      { label: '작음', range: '< 0.01', color: 'bg-gray-100' },
-      { label: '중간', range: '0.01 - 0.06', color: 'bg-yellow-100' },
-      { label: '큼', range: '> 0.14', color: 'bg-orange-100' }
+      { label: '작음', range: '< 0.01', color: 'bg-muted' },
+      { label: '중간', range: '0.01 - 0.06', color: 'bg-warning-bg' },
+      { label: '큼', range: '> 0.14', color: 'bg-warning-bg' }
     ],
     r: [
-      { label: '약함', range: '< 0.3', color: 'bg-gray-100' },
-      { label: '중간', range: '0.3 - 0.5', color: 'bg-yellow-100' },
-      { label: '강함', range: '> 0.5', color: 'bg-orange-100' }
+      { label: '약함', range: '< 0.3', color: 'bg-muted' },
+      { label: '중간', range: '0.3 - 0.5', color: 'bg-warning-bg' },
+      { label: '강함', range: '> 0.5', color: 'bg-warning-bg' }
     ],
     rSquared: [
-      { label: '작음', range: '< 0.09', color: 'bg-gray-100' },
-      { label: '중간', range: '0.09 - 0.25', color: 'bg-yellow-100' },
-      { label: '큼', range: '> 0.25', color: 'bg-orange-100' }
+      { label: '작음', range: '< 0.09', color: 'bg-muted' },
+      { label: '중간', range: '0.09 - 0.25', color: 'bg-warning-bg' },
+      { label: '큼', range: '> 0.25', color: 'bg-warning-bg' }
     ],
     phi: [
-      { label: '약함', range: '< 0.3', color: 'bg-gray-100' },
-      { label: '중간', range: '0.3 - 0.5', color: 'bg-yellow-100' },
-      { label: '강함', range: '> 0.5', color: 'bg-orange-100' }
+      { label: '약함', range: '< 0.3', color: 'bg-muted' },
+      { label: '중간', range: '0.3 - 0.5', color: 'bg-warning-bg' },
+      { label: '강함', range: '> 0.5', color: 'bg-warning-bg' }
     ],
     cramersV: [
-      { label: '약함', range: '< 0.3', color: 'bg-gray-100' },
-      { label: '중간', range: '0.3 - 0.5', color: 'bg-yellow-100' },
-      { label: '강함', range: '> 0.5', color: 'bg-orange-100' }
+      { label: '약함', range: '< 0.3', color: 'bg-muted' },
+      { label: '중간', range: '0.3 - 0.5', color: 'bg-warning-bg' },
+      { label: '강함', range: '> 0.5', color: 'bg-warning-bg' }
     ],
     w: [
-      { label: '약한 일치', range: '< 0.3', color: 'bg-gray-100' },
-      { label: '보통 일치', range: '0.3 - 0.5', color: 'bg-yellow-100' },
-      { label: '강한 일치', range: '0.5 - 0.7', color: 'bg-orange-100' },
-      { label: '매우 강한 일치', range: '> 0.7', color: 'bg-red-100' }
+      { label: '약한 일치', range: '< 0.3', color: 'bg-muted' },
+      { label: '보통 일치', range: '0.3 - 0.5', color: 'bg-warning-bg' },
+      { label: '강한 일치', range: '0.5 - 0.7', color: 'bg-warning-bg' },
+      { label: '매우 강한 일치', range: '> 0.7', color: 'bg-error-bg' }
     ]
   }
 
   const currentGuidelines = guidelines[type as keyof typeof guidelines] || guidelines.cohensD
 
   return (
-    <Card className={cn('bg-gray-50', className)}>
+    <Card className={cn('bg-muted', className)}>
       <CardHeader className="pb-3">
         <CardTitle className="text-sm">효과크기 해석 가이드</CardTitle>
       </CardHeader>

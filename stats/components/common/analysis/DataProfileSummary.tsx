@@ -74,23 +74,23 @@ export function DataProfileSummary({
     success: {
       icon: CheckCircle2,
       title: title || '검토 완료',
-      iconColor: 'text-green-600 dark:text-green-400',
-      bgColor: 'bg-green-50 dark:bg-green-950/30',
-      borderColor: 'border-green-200 dark:border-green-800'
+      iconColor: 'text-success',
+      bgColor: 'bg-success-bg',
+      borderColor: 'border-success-border'
     },
     warning: {
       icon: AlertTriangle,
       title: title || `검토 완료 (경고 ${warnings.length}개)`,
-      iconColor: 'text-yellow-600 dark:text-yellow-400',
-      bgColor: 'bg-yellow-50 dark:bg-yellow-950/30',
-      borderColor: 'border-yellow-200 dark:border-yellow-800'
+      iconColor: 'text-warning',
+      bgColor: 'bg-warning-bg',
+      borderColor: 'border-warning-border'
     },
     error: {
       icon: XCircle,
       title: title || '검토 실패',
-      iconColor: 'text-red-600 dark:text-red-400',
-      bgColor: 'bg-red-50 dark:bg-red-950/30',
-      borderColor: 'border-red-200 dark:border-red-800'
+      iconColor: 'text-error',
+      bgColor: 'bg-error-bg',
+      borderColor: 'border-error-border'
     }
   }
 
@@ -114,11 +114,11 @@ export function DataProfileSummary({
           <span className="flex items-center gap-1 cursor-help">
             <span className="text-muted-foreground text-xs">{label}:</span>
             {value ? (
-              <Badge variant="outline" className="text-xs px-1 py-0 bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800">
+              <Badge variant="outline" className="text-xs px-1 py-0 bg-success-bg text-success border-success-border">
                 충족
               </Badge>
             ) : (
-              <Badge variant="outline" className="text-xs px-1 py-0 bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300 dark:border-red-800">
+              <Badge variant="outline" className="text-xs px-1 py-0 bg-error-bg text-error border-error-border">
                 불충족
               </Badge>
             )}
@@ -189,11 +189,11 @@ export function DataProfileSummary({
                 <div className="flex items-center gap-1.5 text-sm flex-shrink-0 cursor-help">
                   <span className="text-muted-foreground">결측치:</span>
                   {missingValues === 0 ? (
-                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800">
+                    <Badge variant="outline" className="text-xs bg-success-bg text-success border-success-border">
                       없음
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-800 border-yellow-200 dark:bg-yellow-950 dark:text-yellow-300 dark:border-yellow-800">
+                    <Badge variant="outline" className="text-xs bg-warning-bg text-warning border-warning-border">
                       {missingValues}개{totalCells ? ` (${missingRate.toFixed(1)}%)` : ''}
                     </Badge>
                   )}
@@ -276,7 +276,7 @@ export function DataProfileSummary({
               {errors.length > 0 && (
                 <div className="space-y-1">
                   {errors.map((error, idx) => (
-                    <div key={`error-${idx}`} className="flex items-start gap-2 text-sm text-red-700 dark:text-red-400">
+                    <div key={`error-${idx}`} className="flex items-start gap-2 text-sm text-error">
                       <XCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                       <span>{error}</span>
                     </div>
@@ -286,7 +286,7 @@ export function DataProfileSummary({
               {warnings.length > 0 && (
                 <div className="space-y-1">
                   {warnings.map((warning, idx) => (
-                    <div key={`warning-${idx}`} className="flex items-start gap-2 text-sm text-yellow-700 dark:text-yellow-400">
+                    <div key={`warning-${idx}`} className="flex items-start gap-2 text-sm text-warning">
                       <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                       <span>{warning}</span>
                     </div>

@@ -70,7 +70,7 @@ export function EasyExplanation({
 
                 {/* Effect Size Explanation if available */}
                 {effectSize && isSignificant && (
-                    <div className="mt-2 text-sm bg-white/50 p-2 rounded border border-blue-100">
+                    <div className="mt-2 text-sm bg-card/50 p-2 rounded border border-blue-100">
                         <span className="font-semibold">💡 효과 크기: </span>
                         {effectSize.value < 0.2 ? "차이가 있지만 실질적으로는 미미합니다." :
                             effectSize.value < 0.5 ? "중간 정도의 의미있는 차이입니다." :
