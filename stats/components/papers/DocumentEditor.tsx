@@ -57,10 +57,10 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
   const serializeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     return () => {
-      // serialize 타이머가 있으면 flush하여 content 확정
       if (serializeTimerRef.current) {
         clearTimeout(serializeTimerRef.current)
-        // 언마운트 시에는 flushSerialize 호출 불가 (ref 의존) — pendingDoc에 반영됨
+        // 언마운트 시 serialize 호출 불가 — 에디터 인스턴스가 해체 중이라 실패 위험
+        // pendingDocRef의 plateValue에 최신 편집이 남아있으므로 데이터 손실 없음
       }
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current)
@@ -135,15 +135,18 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     if (serializeTimerRef.current) clearTimeout(serializeTimerRef.current)
     serializeTimerRef.current = setTimeout(() => {
       serializeTimerRef.current = null
+      // ref에서 섹션 ID를 읽음 — closure의 activeSectionId는 stale할 수 있음
+      const targetSection = pendingSerializeSectionRef.current
       pendingSerializeSectionRef.current = null
+      if (!targetSection) return
       try {
         const markdown = editor.api.markdown.serialize()
-        updateSection(activeSectionId, { content: markdown })
+        updateSection(targetSection, { content: markdown })
       } catch {
         // serialize 실패 시 무시
       }
     }, 500)
-  }, [activeSectionId, editor, updateSection])
+  }, [editor, updateSection])
 
   // 섹션 전환 시 Plate 에디터에 content 로드
   const loadedSectionRef = useRef<string | null>(null)
