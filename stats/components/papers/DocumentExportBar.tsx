@@ -67,8 +67,7 @@ function documentToHtml(doc: DocumentBlueprint): string {
   if (doc.authors?.length) parts.push(`<p>${doc.authors.join(', ')}</p>`)
 
   for (const section of doc.sections) {
-    const hasContent = section.content || section.tables?.length || section.figures?.length
-    if (!hasContent) continue
+    if (!hasVisibleContent(section)) continue
     parts.push(`<h2>${section.title}</h2>`)
     if (section.content) {
       const contentHtml = section.content
