@@ -212,15 +212,22 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     scheduleSave(reassembled)
   }, [doc, analysisHistory, scheduleSave])
 
-  // 분석 삽입
+  // 분석 삽입 — Plate API로 노드 삽입 + sidecar 테이블 유지
   const handleInsertAnalysis = useCallback((record: HistoryRecord) => {
     if (!activeSectionId) return
     const draft = record.paperDraft
     if (!draft) return
 
     const methodName = record.method?.name ?? record.name
-    const insertion = `\n\n### ${methodName}\n\n${draft.results ?? draft.methods ?? ''}`
+    const text = draft.results ?? draft.methods ?? ''
 
+    // Plate 에디터에 노드 삽입
+    editor.tf.insertNodes([
+      { type: 'h3', children: [{ text: methodName }] },
+      ...text.split('\n\n').filter(Boolean).map(p => ({ type: 'p' as const, children: [{ text: p }] })),
+    ])
+
+    // sidecar 배열 + sourceRef 업데이트 (Plate 외부 상태)
     setDoc(prev => {
       if (!prev) return prev
       const newSections = prev.sections.map(s => {
@@ -231,7 +238,6 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
         ]
         return {
           ...s,
-          content: s.content + insertion,
           tables: newTables.length > 0 ? newTables : undefined,
           sourceRefs: [...s.sourceRefs, record.id],
           generatedBy: 'user' as const,
@@ -241,9 +247,9 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
       scheduleSave(updated)
       return updated
     })
-  }, [activeSectionId, scheduleSave])
+  }, [activeSectionId, editor, scheduleSave])
 
-  // 그래프 삽입
+  // 그래프 삽입 — Plate API로 노드 삽입 + sidecar figure 유지
   const handleInsertFigure = useCallback((graph: GraphProject) => {
     if (!activeSectionId || !doc) return
 
@@ -251,15 +257,19 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
       (acc, s) => acc + (s.figures?.length ?? 0), 0,
     )
     const figRef = buildFigureRef(graph, existingFigureCount)
-    const insertion = `\n\n*${figRef.label}: ${figRef.caption}*`
 
+    // Plate 에디터에 Figure 참조 삽입
+    editor.tf.insertNodes([
+      { type: 'p', children: [{ text: `${figRef.label}: ${figRef.caption}`, italic: true }] },
+    ])
+
+    // sidecar figure 배열 + sourceRef 업데이트
     setDoc(prev => {
       if (!prev) return prev
       const newSections = prev.sections.map(s => {
         if (s.id !== activeSectionId) return s
         return {
           ...s,
-          content: s.content + insertion,
           figures: [...(s.figures ?? []), figRef],
           sourceRefs: [...s.sourceRefs, graph.id],
           generatedBy: 'user' as const,
