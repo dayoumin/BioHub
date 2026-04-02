@@ -54,8 +54,10 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
 
   // 언마운트 시 미저장 변경 즉시 flush + 타이머 정리
   const pendingDocRef = useRef<DocumentBlueprint | null>(null)
+  const serializeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     return () => {
+      if (serializeTimerRef.current) clearTimeout(serializeTimerRef.current)
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current)
         if (pendingDocRef.current) {
@@ -101,16 +103,23 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     })
   }, [scheduleSave])
 
-  // Plate 에디터 값 → 마크다운 동기화 + 저장
+  // Plate 에디터 변경 → plateValue 즉시 저장, serialize는 디바운스 (입력 성능 보호)
   const handlePlateChange = useCallback(() => {
     if (!activeSectionId) return
-    try {
-      const markdown = editor.api.markdown.serialize()
-      const plateValue = editor.children
-      updateSection(activeSectionId, { content: markdown, plateValue, generatedBy: 'user' })
-    } catch {
-      // serialize 실패 시 무시 (에디터 초기화 중 발생 가능)
-    }
+    // plateValue는 즉시 반영 (참조만 저장, 비용 무시)
+    const plateValue = editor.children
+    updateSection(activeSectionId, { plateValue, generatedBy: 'user' })
+
+    // serialize는 디바운스 — 마크다운 변환 비용 보호
+    if (serializeTimerRef.current) clearTimeout(serializeTimerRef.current)
+    serializeTimerRef.current = setTimeout(() => {
+      try {
+        const markdown = editor.api.markdown.serialize()
+        updateSection(activeSectionId, { content: markdown })
+      } catch {
+        // serialize 실패 시 무시
+      }
+    }, 500)
   }, [activeSectionId, editor, updateSection])
 
   // 섹션 전환 시 Plate 에디터에 content 로드
