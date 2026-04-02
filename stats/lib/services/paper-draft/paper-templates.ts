@@ -1,5 +1,5 @@
 /**
- * 논문 초안 템플릿 엔진 (한글 / 영문 stub)
+ * 논문 초안 템플릿 엔진 (한글 + 영문 APA 7th)
  *
  * 카테고리별 기본 + 메서드별 override 구조:
  *   METHOD_OVERRIDES[methodId] ?? CATEGORY_TEMPLATES[category] ?? GENERIC_TEMPLATE
@@ -310,11 +310,21 @@ function buildCaptions(input: TemplateInput, tableText = ''): CaptionItem[] {
 
 const GENERIC_TEMPLATE: CategoryTemplate = {
   methods({ r, grouped, ctx, lang, methodId }) {
-    if (lang === 'en') return 'English template coming soon.'
-    const methodName = getMethodDisplayName(methodId, 'ko')
+    const methodName = getMethodDisplayName(methodId, lang)
     const alpha = r.additional?.alpha ?? 0.05
     const normTests = grouped.normality ?? []
     const homoTests = grouped.homogeneity ?? []
+
+    if (lang === 'en') {
+      const intro = ctx.researchContext
+        ? `A ${methodName} was conducted to ${ctx.researchContext}.`
+        : `A ${methodName} was conducted to analyze ${ctx.dependentVariable ?? 'the dependent variable'}.`
+      const parts = [intro]
+      if (normTests.length) parts.push(buildNormalityText(normTests, lang))
+      if (homoTests.length) parts.push(buildHomogeneityText(homoTests, lang))
+      parts.push(buildAlphaSoftware(alpha, lang))
+      return parts.filter(Boolean).join(' ')
+    }
 
     const intro = ctx.researchContext
       ? `${ctx.researchContext}를 위해 ${methodName}을(를) 실시하였다.`
@@ -328,12 +338,17 @@ const GENERIC_TEMPLATE: CategoryTemplate = {
   },
 
   results({ r, ctx, lang, methodId }) {
-    if (lang === 'en') return 'English template coming soon.'
-    const methodName = getMethodDisplayName(methodId, 'ko')
+    const methodName = getMethodDisplayName(methodId, lang)
     const alpha = r.additional?.alpha ?? 0.05
     const significant = r.pValue < alpha
     const df = fmtDf(r.df)
     const dfStr = df ? `(${df})` : ''
+
+    if (lang === 'en') {
+      let text = `The ${methodName} revealed a statistically ${significant ? 'significant' : 'non-significant'} result `
+      text += `(statistic${dfStr} = ${fmt(r.statistic)}, *p* ${fmtP(r.pValue)}).`
+      return text
+    }
 
     let text = `${methodName} 결과, 통계적으로 유의한 차이가 ${significant ? '있었다' : '없었다'} `
     text += `(통계량${dfStr} = ${fmt(r.statistic)}, *p* ${fmtP(r.pValue)}).`
@@ -349,13 +364,28 @@ const GENERIC_TEMPLATE: CategoryTemplate = {
 
 const T_TEST_TEMPLATE: CategoryTemplate = {
   methods({ r, grouped, ctx, lang, methodId }) {
-    if (lang === 'en') return 'English template coming soon.'
-    const methodName = getMethodDisplayName(methodId, 'ko')
+    const methodName = getMethodDisplayName(methodId, lang)
     const alpha = r.additional?.alpha ?? 0.05
     const normTests = grouped.normality ?? []
     const homoTests = grouped.homogeneity ?? []
+    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the dependent variable' : '종속변수')
 
-    const depVar = ctx.dependentVariable ?? '종속변수'
+    if (lang === 'en') {
+      const intro = ctx.researchContext
+        ? `An independent samples t-test was conducted to ${ctx.researchContext}.`
+        : `An independent samples t-test was conducted to examine differences in ${depVar} between two groups.`
+      const parts = ['Prior to analysis,']
+      if (normTests.length) parts.push(buildNormalityText(normTests, lang))
+      if (homoTests.length) parts.push(buildHomogeneityText(homoTests, lang))
+      if (normTests.length || homoTests.length) {
+        const allPassed = [...normTests, ...homoTests].every(a => a.passed)
+        parts.push(allPassed
+          ? 'All assumptions were satisfied.'
+          : 'Some assumptions were not met; however, the analysis proceeded.')
+      }
+      return [intro, parts.join(' '), buildAlphaSoftware(alpha, lang)].join(' ')
+    }
+
     const intro = ctx.researchContext
       ? `${ctx.researchContext}를 위해 ${methodName}을 실시하였다.`
       : `두 집단 간 ${depVar} 차이를 검증하기 위해 ${methodName}을 실시하였다.`
@@ -373,20 +403,31 @@ const T_TEST_TEMPLATE: CategoryTemplate = {
     return [intro, parts.join(' '), buildAlphaSoftware(alpha, lang)].join(' ')
   },
 
-  results({ r, ctx, lang, options }) {
-    if (lang === 'en') return 'English template coming soon.'
+  results({ r, ctx, lang }) {
     const alpha = r.additional?.alpha ?? 0.05
     const significant = r.pValue < alpha
     const df = fmtDf(r.df)
     const es = esValue(r.effectSize)
     const esLbl = esLabel(r.effectSize, "Cohen's *d*")
-
-    const depVar = ctx.dependentVariable ?? '종속변수'
+    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the dependent variable' : '종속변수')
     const gs = r.groupStats ?? []
     const g1 = gs[0]
     const g2 = gs[1]
-    const g1Name = label(g1?.name, ctx) || '집단 1'
-    const g2Name = label(g2?.name, ctx) || '집단 2'
+    const g1Name = label(g1?.name, ctx) || (lang === 'en' ? 'Group 1' : '집단 1')
+    const g2Name = label(g2?.name, ctx) || (lang === 'en' ? 'Group 2' : '집단 2')
+
+    if (lang === 'en') {
+      let text = `The independent samples t-test revealed a statistically ${significant ? 'significant' : 'non-significant'} difference `
+      text += `in ${depVar} between ${g1Name} and ${g2Name} `
+      text += `(*t*(${df}) = ${fmt(r.statistic)}, *p* ${fmtP(r.pValue)}`
+      if (es !== undefined) text += `, ${esLbl} = ${fmt(es)}`
+      text += ').'
+      if (gs.length >= 2 && g1 && g2) {
+        text += ` ${buildGroupStatsText(r, ctx, lang)}.`
+      }
+      text += buildCIText(r, lang)
+      return text
+    }
 
     let text = `독립표본 t-검정 결과, ${g1Name}과 ${g2Name} 간 ${depVar}에 `
     text += `통계적으로 유의한 차이가 ${significant ? '있었다' : '없었다'} `
@@ -415,11 +456,18 @@ const T_TEST_TEMPLATE: CategoryTemplate = {
 
 const ONE_SAMPLE_T_TEMPLATE: CategoryTemplate = {
   methods({ r, grouped, ctx, lang }) {
-    if (lang === 'en') return 'English template coming soon.'
     const alpha = r.additional?.alpha ?? 0.05
     const normTests = grouped.normality ?? []
-    const depVar = ctx.dependentVariable ?? '변수'
+    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the variable' : '변수')
     const testValue = r.additional?.testValue ?? r.additional?.mu ?? 0
+
+    if (lang === 'en') {
+      const intro = `A one-sample t-test was conducted to determine whether the mean of ${depVar} differed from ${testValue}.`
+      const parts = [intro]
+      if (normTests.length) parts.push(`Prior to analysis, ${buildNormalityText(normTests, lang).replace(/^N/, 'n')}`)
+      parts.push(buildAlphaSoftware(alpha, lang))
+      return parts.filter(Boolean).join(' ')
+    }
 
     const intro = `단일표본 t-검정을 실시하여 ${depVar}의 평균이 ${testValue}과 차이가 있는지 검증하였다.`
     const parts = [intro]
@@ -429,12 +477,21 @@ const ONE_SAMPLE_T_TEMPLATE: CategoryTemplate = {
   },
 
   results({ r, ctx, lang }) {
-    if (lang === 'en') return 'English template coming soon.'
     const alpha = r.additional?.alpha ?? 0.05
     const significant = r.pValue < alpha
     const testValue = r.additional?.testValue ?? r.additional?.mu ?? 0
-    const depVar = ctx.dependentVariable ?? '변수'
+    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the variable' : '변수')
     const es = esValue(r.effectSize)
+
+    if (lang === 'en') {
+      let text = `The one-sample t-test indicated that the mean of ${depVar} was statistically `
+      text += `${significant ? 'significantly different from' : 'not significantly different from'} the test value (${testValue}) `
+      text += `(*t*(${fmtDf(r.df)}) = ${fmt(r.statistic)}, *p* ${fmtP(r.pValue)}`
+      if (es !== undefined) text += `, Cohen's *d* = ${fmt(es)}`
+      text += ').'
+      text += buildCIText(r, lang)
+      return text
+    }
 
     let text = `단일표본 t-검정 결과, ${depVar}의 평균은 기준값(${testValue})과 `
     text += `통계적으로 유의한 차이가 ${significant ? '있었다' : '없었다'} `
@@ -454,10 +511,17 @@ const ONE_SAMPLE_T_TEMPLATE: CategoryTemplate = {
 
 const PAIRED_T_TEMPLATE: CategoryTemplate = {
   methods({ r, grouped, ctx, lang }) {
-    if (lang === 'en') return 'English template coming soon.'
     const alpha = r.additional?.alpha ?? 0.05
     const normTests = grouped.normality ?? []
-    const depVar = ctx.dependentVariable ?? '변수'
+    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the variable' : '변수')
+
+    if (lang === 'en') {
+      const intro = `A paired samples t-test was conducted to examine the difference in ${depVar} between pre- and post-treatment.`
+      const parts = [intro]
+      if (normTests.length) parts.push(`Normality of the difference scores was verified: ${buildNormalityText(normTests, lang).replace(/^N/, 'n')}`)
+      parts.push(buildAlphaSoftware(alpha, lang))
+      return parts.filter(Boolean).join(' ')
+    }
 
     const intro = `반복 측정 전후 ${depVar}의 차이를 검증하기 위해 대응표본 t-검정을 실시하였다.`
     const parts = [intro]
@@ -467,12 +531,28 @@ const PAIRED_T_TEMPLATE: CategoryTemplate = {
   },
 
   results({ r, ctx, lang }) {
-    if (lang === 'en') return 'English template coming soon.'
     const alpha = r.additional?.alpha ?? 0.05
     const significant = r.pValue < alpha
-    const depVar = ctx.dependentVariable ?? '변수'
+    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the variable' : '변수')
     const es = esValue(r.effectSize)
     const gs = r.groupStats ?? []
+
+    if (lang === 'en') {
+      let text = `The paired samples t-test indicated that the difference in ${depVar} between pre- and post-treatment was `
+      text += `statistically ${significant ? 'significant' : 'non-significant'} `
+      text += `(*t*(${fmtDf(r.df)}) = ${fmt(r.statistic)}, *p* ${fmtP(r.pValue)}`
+      if (es !== undefined) text += `, Cohen's *d* = ${fmt(es)}`
+      text += ').'
+      if (gs.length >= 2) {
+        const unit = depUnit(ctx)
+        const g1 = gs[0]
+        const g2 = gs[1]
+        text += ` Pre-treatment (*M* = ${fmt(g1.mean)}${unit}, *SD* = ${fmt(g1.std)})`
+        text += ` and post-treatment (*M* = ${fmt(g2.mean)}${unit}, *SD* = ${fmt(g2.std)}).`
+      }
+      text += buildCIText(r, lang)
+      return text
+    }
 
     let text = `대응표본 t-검정 결과, ${depVar}의 처치 전후 차이는 `
     text += `통계적으로 유의${significant ? '하였다' : '하지 않았다'} `
@@ -501,13 +581,27 @@ const PAIRED_T_TEMPLATE: CategoryTemplate = {
 
 const ANOVA_TEMPLATE: CategoryTemplate = {
   methods({ r, grouped, ctx, lang, methodId }) {
-    if (lang === 'en') return 'English template coming soon.'
-    const methodName = getMethodDisplayName(methodId, 'ko')
+    const methodName = getMethodDisplayName(methodId, lang)
     const alpha = r.additional?.alpha ?? 0.05
     const normTests = grouped.normality ?? []
     const homoTests = grouped.homogeneity ?? []
     const spherTests = grouped.sphericity ?? []
-    const depVar = ctx.dependentVariable ?? '종속변수'
+    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the dependent variable' : '종속변수')
+
+    if (lang === 'en') {
+      const intro = ctx.researchContext
+        ? `A ${methodName} was conducted to ${ctx.researchContext}.`
+        : `A ${methodName} was conducted to examine group differences in ${depVar}.`
+      const parts = ['Prior to analysis,']
+      if (normTests.length) parts.push(buildNormalityText(normTests, lang))
+      if (homoTests.length) parts.push(buildHomogeneityText(homoTests, lang))
+      if (spherTests.length) parts.push(buildSphericityText(spherTests, lang))
+      if (r.postHocMethod) {
+        parts.push(`Post hoc comparisons were performed using the ${r.postHocMethod} method for significant main effects.`)
+      }
+      parts.push(buildAlphaSoftware(alpha, lang))
+      return [intro, parts.join(' ')].join(' ')
+    }
 
     const intro = ctx.researchContext
       ? `${ctx.researchContext}를 위해 ${methodName}을 실시하였다.`
@@ -526,29 +620,33 @@ const ANOVA_TEMPLATE: CategoryTemplate = {
   },
 
   results({ r, ctx, lang, options }) {
-    if (lang === 'en') return 'English template coming soon.'
     const alpha = r.additional?.alpha ?? 0.05
     const significant = r.pValue < alpha
     const df = fmtDf(r.df)
-    const depVar = ctx.dependentVariable ?? '종속변수'
-
-    // 효과크기 — ANOVA는 η² 또는 ω² (r.effectSize 우선)
+    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the dependent variable' : '종속변수')
     const esInput = r.effectSize ?? r.omegaSquared
     const es = esValue(esInput)
     const esLbl = esLabel(esInput, 'η²')
+    const phMode = options.postHocDisplay ?? 'significant-only'
+
+    if (lang === 'en') {
+      let text = `The ANOVA revealed a statistically ${significant ? 'significant' : 'non-significant'} effect of group on ${depVar} `
+      text += `(*F*(${df}) = ${fmt(r.statistic)}, *p* ${fmtP(r.pValue)}`
+      if (es !== undefined) text += `, ${esLbl} = ${fmt(es)}`
+      text += ').'
+      const gsText = buildGroupStatsText(r, ctx, lang)
+      if (gsText) text += ` ${gsText}.`
+      text += buildPostHocText(r, ctx, lang, phMode)
+      return text
+    }
 
     let text = `분산분석 결과, ${depVar}에 대한 집단 간 차이가 `
     text += `통계적으로 유의${significant ? '하였다' : '하지 않았다'} `
     text += `(*F*(${df}) = ${fmt(r.statistic)}, *p* ${fmtP(r.pValue)}`
     if (es !== undefined) text += `, ${esLbl} = ${fmt(es)}`
     text += ').'
-
-    // 집단별 기술통계
     const gsText = buildGroupStatsText(r, ctx, lang)
     if (gsText) text += ` ${gsText}.`
-
-    // 사후검정
-    const phMode = options.postHocDisplay ?? 'significant-only'
     text += buildPostHocText(r, ctx, lang, phMode)
 
     return text
@@ -563,11 +661,24 @@ const ANOVA_TEMPLATE: CategoryTemplate = {
 
 const NONPARAMETRIC_TEMPLATE: CategoryTemplate = {
   methods({ r, grouped, ctx, lang, methodId }) {
-    if (lang === 'en') return 'English template coming soon.'
-    const methodName = getMethodDisplayName(methodId, 'ko')
+    const methodName = getMethodDisplayName(methodId, lang)
     const alpha = r.additional?.alpha ?? 0.05
     const normTests = grouped.normality ?? []
-    const depVar = ctx.dependentVariable ?? '종속변수'
+    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the dependent variable' : '종속변수')
+
+    if (lang === 'en') {
+      const intro = ctx.researchContext
+        ? `A ${methodName} was conducted to ${ctx.researchContext}.`
+        : `A ${methodName} was conducted to examine group differences in ${depVar}.`
+      const reason = normTests.some(a => !a.passed)
+        ? 'A nonparametric test was employed because the data did not meet the normality assumption.'
+        : 'A nonparametric approach was used to examine group differences.'
+      const parts = [intro, reason]
+      if (normTests.length) parts.push(buildNormalityText(normTests, lang))
+      parts.push('Group differences were described using medians (Mdn) and interquartile ranges (IQR).')
+      parts.push(buildAlphaSoftware(alpha, lang))
+      return parts.filter(Boolean).join(' ')
+    }
 
     const intro = ctx.researchContext
       ? `${ctx.researchContext}를 위해 ${methodName}을 실시하였다.`
@@ -585,31 +696,37 @@ const NONPARAMETRIC_TEMPLATE: CategoryTemplate = {
   },
 
   results({ r, ctx, lang }) {
-    if (lang === 'en') return 'English template coming soon.'
     const alpha = r.additional?.alpha ?? 0.05
     const significant = r.pValue < alpha
     const df = fmtDf(r.df)
     const dfStr = df ? `(${df})` : ''
-    const depVar = ctx.dependentVariable ?? '종속변수'
+    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the dependent variable' : '종속변수')
     const es = esValue(r.effectSize)
 
-    // 비모수 통계량 기호 추정 (U, H, W, Z 등 statistic 크기로 구분 불가 → method 이름 활용)
     const method = r.method?.toLowerCase() ?? ''
     const statSymbol = method.includes('mann') || method.includes('whitney') ? '*U*'
       : method.includes('kruskal') ? '*H*'
       : method.includes('wilcoxon') ? '*W*'
-      : '통계량'
+      : (lang === 'en' ? 'statistic' : '통계량')
+
+    if (lang === 'en') {
+      let text = `The analysis revealed a statistically ${significant ? 'significant' : 'non-significant'} difference in ${depVar} `
+      text += `(${statSymbol}${dfStr} = ${fmt(r.statistic)}, *p* ${fmtP(r.pValue)}`
+      if (es !== undefined) text += `, *r* = ${fmt(es)}`
+      text += ').'
+      const gsText = buildGroupStatsText(r, ctx, lang, true)
+      if (gsText) text += ` Group medians: ${gsText}.`
+      text += buildPostHocText(r, ctx, lang)
+      return text
+    }
 
     let text = `${depVar}에 대한 집단 간 차이가 `
     text += `통계적으로 유의${significant ? '하였다' : '하지 않았다'} `
     text += `(${statSymbol}${dfStr} = ${fmt(r.statistic)}, *p* ${fmtP(r.pValue)}`
     if (es !== undefined) text += `, *r* = ${fmt(es)}`
     text += ').'
-
-    // 중앙값 기반 기술통계
     const gsText = buildGroupStatsText(r, ctx, lang, true)
     if (gsText) text += ` 집단별 중앙값: ${gsText}.`
-
     text += buildPostHocText(r, ctx, lang)
     return text
   },
@@ -623,15 +740,26 @@ const NONPARAMETRIC_TEMPLATE: CategoryTemplate = {
 
 const CORRELATION_TEMPLATE: CategoryTemplate = {
   methods({ r, grouped, ctx, lang, methodId }) {
-    if (lang === 'en') return 'English template coming soon.'
-    const methodName = getMethodDisplayName(methodId, 'ko')
+    const methodName = getMethodDisplayName(methodId, lang)
     const alpha = r.additional?.alpha ?? 0.05
     const normTests = grouped.normality ?? []
+    const varNames = Object.values(ctx.variableLabels)
 
-    const varNames = Object.values(ctx.variableLabels).join('와 ')
+    if (lang === 'en') {
+      const varStr = varNames.join(' and ')
+      const intro = ctx.researchContext
+        ? `A ${methodName} was conducted to ${ctx.researchContext}.`
+        : `A ${methodName} was conducted to examine the relationship between ${varStr}.`
+      const parts = [intro]
+      if (normTests.length) parts.push(`Prior to analysis, ${buildNormalityText(normTests, lang).replace(/^N/, 'n')}`)
+      parts.push(buildAlphaSoftware(alpha, lang))
+      return parts.filter(Boolean).join(' ')
+    }
+
+    const varStr = varNames.join('와 ')
     const intro = ctx.researchContext
       ? `${ctx.researchContext}를 위해 ${methodName}을 실시하였다.`
-      : `${varNames} 간의 상관관계를 분석하기 위해 ${methodName}을 실시하였다.`
+      : `${varStr} 간의 상관관계를 분석하기 위해 ${methodName}을 실시하였다.`
 
     const parts = [intro]
     if (normTests.length) parts.push(`분석에 앞서 ${buildNormalityText(normTests, lang)}`)
@@ -640,10 +768,19 @@ const CORRELATION_TEMPLATE: CategoryTemplate = {
   },
 
   results({ r, ctx, lang }) {
-    if (lang === 'en') return 'English template coming soon.'
     const alpha = r.additional?.alpha ?? 0.05
     const significant = r.pValue < alpha
-    const es = esValue(r.effectSize) ?? r.statistic  // r 값이 statistic일 수 있음
+    const es = esValue(r.effectSize) ?? r.statistic
+
+    if (lang === 'en') {
+      const strength = Math.abs(es) >= 0.7 ? 'strong' : Math.abs(es) >= 0.4 ? 'moderate' : 'weak'
+      const direction = es >= 0 ? 'positive' : 'negative'
+      let text = `The correlation analysis revealed a ${significant ? '' : 'non-significant '}`
+      text += `${strength} ${direction} correlation between the variables `
+      text += `(*r* = ${fmt(es)}, *p* ${fmtP(r.pValue)}).`
+      text += buildCIText(r, lang)
+      return text
+    }
 
     const strength = Math.abs(es) >= 0.7 ? '강한' : Math.abs(es) >= 0.4 ? '중간 수준의' : '약한'
     const direction = es >= 0 ? '정적' : '부적'
@@ -669,13 +806,27 @@ const CORRELATION_TEMPLATE: CategoryTemplate = {
 
 const REGRESSION_TEMPLATE: CategoryTemplate = {
   methods({ r, grouped, ctx, lang, methodId }) {
-    if (lang === 'en') return 'English template coming soon.'
-    const methodName = getMethodDisplayName(methodId, 'ko')
+    const methodName = getMethodDisplayName(methodId, lang)
     const alpha = r.additional?.alpha ?? 0.05
     const normTests = grouped.normality ?? []
     const homoTests = grouped.homogeneity ?? []
     const indepTests = grouped.independence ?? []
-    const depVar = ctx.dependentVariable ?? '종속변수'
+    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the dependent variable' : '종속변수')
+
+    if (lang === 'en') {
+      const intro = ctx.researchContext
+        ? `A ${methodName} was conducted to ${ctx.researchContext}.`
+        : `A ${methodName} was conducted to build a predictive model for ${depVar}.`
+      const parts = ['Assumptions of linearity, normality and homoscedasticity of residuals, and independence were examined prior to analysis.']
+      if (normTests.length) parts.push(buildNormalityText(normTests, lang))
+      if (homoTests.length) parts.push(buildHomogeneityText(homoTests, lang))
+      if (indepTests.length) {
+        const d = indepTests[0]
+        parts.push(`Independence was assessed using the Durbin-Watson test (*DW* = ${fmt(d.statistic)}).`)
+      }
+      parts.push(buildAlphaSoftware(alpha, lang))
+      return [intro, parts.join(' ')].join(' ')
+    }
 
     const intro = ctx.researchContext
       ? `${ctx.researchContext}를 위해 ${methodName}을 실시하였다.`
@@ -693,13 +844,31 @@ const REGRESSION_TEMPLATE: CategoryTemplate = {
   },
 
   results({ r, ctx, lang }) {
-    if (lang === 'en') return 'English template coming soon.'
     const alpha = r.additional?.alpha ?? 0.05
     const significant = r.pValue < alpha
     const df = fmtDf(r.df)
     const rSq = r.additional?.rSquared
     const adjRSq = r.additional?.adjustedRSquared ?? r.additional?.adjRSquared
-    const depVar = ctx.dependentVariable ?? '종속변수'
+    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the dependent variable' : '종속변수')
+
+    if (lang === 'en') {
+      let text = `The regression model was statistically ${significant ? 'significant' : 'non-significant'} `
+      text += `(*F*(${df}) = ${fmt(r.statistic)}, *p* ${fmtP(r.pValue)}`
+      if (rSq !== undefined) text += `, *R*² = ${fmt(rSq)}`
+      if (adjRSq !== undefined) text += `, adjusted *R*² = ${fmt(adjRSq)}`
+      text += ').'
+      text += ` The model explained ${rSq !== undefined ? fmt(rSq * 100) : '—'}% of the variance in ${depVar}.`
+      if (r.coefficients?.length) {
+        const sigCoefs = r.coefficients.filter(c => c.pvalue < alpha)
+        if (sigCoefs.length) {
+          const coefTexts = sigCoefs.map(c =>
+            `${c.name} (β = ${fmt(c.value)}, *p* ${fmtP(c.pvalue)})`
+          )
+          text += ` Significant predictors: ${coefTexts.join(', ')}.`
+        }
+      }
+      return text
+    }
 
     let text = `회귀분석 결과, 회귀모형은 통계적으로 유의${significant ? '하였다' : '하지 않았다'} `
     text += `(*F*(${df}) = ${fmt(r.statistic)}, *p* ${fmtP(r.pValue)}`
@@ -708,7 +877,6 @@ const REGRESSION_TEMPLATE: CategoryTemplate = {
     text += ').'
     text += ` 모형은 ${depVar} 분산의 ${rSq !== undefined ? fmt(rSq * 100) : '—'}%를 설명하였다.`
 
-    // 회귀계수
     if (r.coefficients?.length) {
       const sigCoefs = r.coefficients.filter(c => c.pvalue < alpha)
       if (sigCoefs.length) {
@@ -724,7 +892,7 @@ const REGRESSION_TEMPLATE: CategoryTemplate = {
 
   captions(input) {
     const { ctx, lang } = input
-    const depVar = ctx.dependentVariable ?? '종속변수'
+    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the dependent variable' : '종속변수')
     const tableText = lang === 'ko'
       ? `${depVar}에 대한 회귀분석 결과. B = 비표준화 계수, SE = 표준오차, β = 표준화 계수.`
       : `Regression analysis for ${depVar}. B = unstandardized coefficient, SE = standard error, β = standardized coefficient.`
@@ -736,9 +904,20 @@ const REGRESSION_TEMPLATE: CategoryTemplate = {
 
 const CHI_SQUARE_TEMPLATE: CategoryTemplate = {
   methods({ r, ctx, lang, methodId }) {
-    if (lang === 'en') return 'English template coming soon.'
-    const methodName = getMethodDisplayName(methodId, 'ko')
+    const methodName = getMethodDisplayName(methodId, lang)
     const alpha = r.additional?.alpha ?? 0.05
+
+    if (lang === 'en') {
+      const intro = ctx.researchContext
+        ? `A ${methodName} was conducted to ${ctx.researchContext}.`
+        : `A ${methodName} was conducted to test the independence between categorical variables.`
+      const parts = [
+        intro,
+        'Prior to analysis, all cells were confirmed to have expected frequencies of 5 or greater.',
+        buildAlphaSoftware(alpha, lang),
+      ]
+      return parts.join(' ')
+    }
 
     const intro = ctx.researchContext
       ? `${ctx.researchContext}를 위해 ${methodName}을 실시하였다.`
@@ -752,13 +931,20 @@ const CHI_SQUARE_TEMPLATE: CategoryTemplate = {
     return parts.join(' ')
   },
 
-  results({ r, ctx, lang }) {
-    if (lang === 'en') return 'English template coming soon.'
+  results({ r, lang }) {
     const alpha = r.additional?.alpha ?? 0.05
     const significant = r.pValue < alpha
     const df = fmtDf(r.df)
     const es = esValue(r.effectSize)
     const esLbl = esLabel(r.effectSize, "Cramér's *V*")
+
+    if (lang === 'en') {
+      let text = `The chi-square test indicated a statistically ${significant ? 'significant' : 'non-significant'} association between the variables `
+      text += `(χ²(${df}) = ${fmt(r.statistic)}, *p* ${fmtP(r.pValue)}`
+      if (es !== undefined) text += `, ${esLbl} = ${fmt(es)}`
+      text += ').'
+      return text
+    }
 
     let text = `카이제곱 검정 결과, 변수 간의 관계가 `
     text += `통계적으로 유의${significant ? '하였다' : '하지 않았다'} `
@@ -781,10 +967,19 @@ const CHI_SQUARE_TEMPLATE: CategoryTemplate = {
 
 const DESCRIPTIVE_TEMPLATE: CategoryTemplate = {
   methods({ r, grouped, ctx, lang }) {
-    if (lang === 'en') return 'English template coming soon.'
     const alpha = r.additional?.alpha ?? 0.05
     const normTests = grouped.normality ?? []
-    const depVar = ctx.dependentVariable ?? '변수'
+    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the variable' : '변수')
+
+    if (lang === 'en') {
+      const intro = ctx.researchContext
+        ? `Descriptive statistics for ${depVar} were computed to ${ctx.researchContext}.`
+        : `Descriptive statistics were computed to characterize the distribution of ${depVar}.`
+      const parts = [intro]
+      if (normTests.length) parts.push(buildNormalityText(normTests, lang))
+      parts.push(buildAlphaSoftware(alpha, lang))
+      return parts.filter(Boolean).join(' ')
+    }
 
     const intro = ctx.researchContext
       ? `${ctx.researchContext}를 위해 ${depVar}의 기술통계를 산출하였다.`
@@ -797,10 +992,25 @@ const DESCRIPTIVE_TEMPLATE: CategoryTemplate = {
   },
 
   results({ r, ctx, lang }) {
-    if (lang === 'en') return 'English template coming soon.'
     const alpha = r.additional?.alpha ?? 0.05
-    const depVar = ctx.dependentVariable ?? '변수'
+    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the variable' : '변수')
     const add = r.additional ?? {}
+
+    if (lang === 'en') {
+      const parts: string[] = [`Descriptive statistics for ${depVar} are as follows.`]
+      if (add.mean !== undefined) {
+        parts.push(`Mean (*M*) = ${fmt(add.mean)}, standard deviation (*SD*) = ${fmt(add.std)}.`)
+      }
+      if (add.median !== undefined) {
+        parts.push(`Median (*Mdn*) = ${fmt(add.median)}, interquartile range (IQR) = ${fmt(add.iqr)}.`)
+      }
+      if (add.skewness !== undefined) {
+        const normalJudge = r.pValue > alpha ? 'approximately normally distributed' : 'not normally distributed'
+        parts.push(`Skewness = ${fmt(add.skewness)}, kurtosis = ${fmt(add.kurtosis)}.`)
+        parts.push(`The Shapiro-Wilk test indicated that the data were ${normalJudge} (*p* ${fmtP(r.pValue)}).`)
+      }
+      return parts.join(' ')
+    }
 
     const parts: string[] = [`${depVar}의 기술통계 결과는 다음과 같다.`]
 
@@ -821,7 +1031,7 @@ const DESCRIPTIVE_TEMPLATE: CategoryTemplate = {
 
   captions(input) {
     const { ctx, lang } = input
-    const depVar = ctx.dependentVariable ?? '변수'
+    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the variable' : '변수')
     const tableText = lang === 'ko'
       ? `${depVar}의 기술통계량 요약. *M* = 평균, *SD* = 표준편차, *Mdn* = 중앙값, IQR = 사분위 범위.`
       : `Descriptive statistics summary for ${depVar}. *M* = mean, *SD* = standard deviation, *Mdn* = median, IQR = interquartile range.`
@@ -833,10 +1043,24 @@ const DESCRIPTIVE_TEMPLATE: CategoryTemplate = {
 
 const TIMESERIES_TEMPLATE: CategoryTemplate = {
   methods({ r, grouped, ctx, lang, methodId }) {
-    if (lang === 'en') return 'English template coming soon.'
-    const methodName = getMethodDisplayName(methodId, 'ko')
+    const methodName = getMethodDisplayName(methodId, lang)
     const alpha = r.additional?.alpha ?? 0.05
     const statTests = grouped.stationarity ?? []
+
+    if (lang === 'en') {
+      const intro = ctx.researchContext
+        ? `A ${methodName} was conducted to ${ctx.researchContext}.`
+        : `A ${methodName} was conducted for time series analysis.`
+      const parts = [intro]
+      if (statTests.length) {
+        const adf = statTests.find(a => a.testName === 'ADF')
+        if (adf) {
+          parts.push(`Stationarity was assessed using the Augmented Dickey-Fuller (ADF) test (*ADF* = ${fmt(adf.statistic)}, *p* ${adf.pValue !== undefined ? fmtP(adf.pValue) : '—'}).`)
+        }
+      }
+      parts.push(buildAlphaSoftware(alpha, lang))
+      return parts.filter(Boolean).join(' ')
+    }
 
     const intro = ctx.researchContext
       ? `${ctx.researchContext}를 위해 ${methodName}을 실시하였다.`
@@ -853,11 +1077,20 @@ const TIMESERIES_TEMPLATE: CategoryTemplate = {
     return parts.filter(Boolean).join(' ')
   },
 
-  results({ r, ctx, lang }) {
-    if (lang === 'en') return 'English template coming soon.'
+  results({ r, lang }) {
     const aic = r.additional?.aic
     const bic = r.additional?.bic
     const model = r.additional?.model ?? r.additional?.modelType ?? ''
+
+    if (lang === 'en') {
+      let text = 'The time series analysis'
+      if (model) text += ` selected a ${model} model`
+      text += '.'
+      if (aic !== undefined) text += ` Model fit indices: AIC = ${fmt(aic)}`
+      if (bic !== undefined) text += `, BIC = ${fmt(bic)}`
+      if (aic !== undefined || bic !== undefined) text += '.'
+      return text
+    }
 
     let text = `시계열 분석 결과`
     if (model) text += `, ${model} 모형을 선정하였다`
@@ -878,10 +1111,21 @@ const TIMESERIES_TEMPLATE: CategoryTemplate = {
 
 const SURVIVAL_TEMPLATE: CategoryTemplate = {
   methods({ r, grouped, ctx, lang, methodId }) {
-    if (lang === 'en') return 'English template coming soon.'
-    const methodName = getMethodDisplayName(methodId, 'ko')
+    const methodName = getMethodDisplayName(methodId, lang)
     const alpha = r.additional?.alpha ?? 0.05
     const hazardTests = grouped.proportionalHazards ?? []
+
+    if (lang === 'en') {
+      const intro = ctx.researchContext
+        ? `A ${methodName} was conducted to ${ctx.researchContext}.`
+        : `A ${methodName} was conducted for survival analysis.`
+      const parts = [intro]
+      if (hazardTests.length) {
+        parts.push('The proportional hazards assumption was tested using the Schoenfeld residuals test.')
+      }
+      parts.push(buildAlphaSoftware(alpha, lang))
+      return parts.filter(Boolean).join(' ')
+    }
 
     const intro = ctx.researchContext
       ? `${ctx.researchContext}를 위해 ${methodName}을 실시하였다.`
@@ -895,11 +1139,19 @@ const SURVIVAL_TEMPLATE: CategoryTemplate = {
     return parts.filter(Boolean).join(' ')
   },
 
-  results({ r, ctx, lang }) {
-    if (lang === 'en') return 'English template coming soon.'
+  results({ r, lang }) {
     const alpha = r.additional?.alpha ?? 0.05
     const significant = r.pValue < alpha
     const es = esValue(r.effectSize)
+
+    if (lang === 'en') {
+      let text = `The survival analysis revealed a statistically ${significant ? 'significant' : 'non-significant'} difference in survival between groups `
+      text += `(*p* ${fmtP(r.pValue)}`
+      if (es !== undefined) text += `, HR = ${fmt(es)}`
+      text += ').'
+      text += buildCIText(r, lang)
+      return text
+    }
 
     let text = `생존 분석 결과, 집단 간 생존율의 차이가 `
     text += `통계적으로 유의${significant ? '하였다' : '하지 않았다'} `
@@ -923,9 +1175,15 @@ const SURVIVAL_TEMPLATE: CategoryTemplate = {
 
 const MULTIVARIATE_TEMPLATE: CategoryTemplate = {
   methods({ r, ctx, lang, methodId }) {
-    if (lang === 'en') return 'English template coming soon.'
-    const methodName = getMethodDisplayName(methodId, 'ko')
+    const methodName = getMethodDisplayName(methodId, lang)
     const alpha = r.additional?.alpha ?? 0.05
+
+    if (lang === 'en') {
+      const intro = ctx.researchContext
+        ? `A ${methodName} was conducted to ${ctx.researchContext}.`
+        : `A ${methodName} was conducted for multivariate analysis.`
+      return [intro, buildAlphaSoftware(alpha, lang)].join(' ')
+    }
 
     const intro = ctx.researchContext
       ? `${ctx.researchContext}를 위해 ${methodName}을 실시하였다.`
@@ -934,19 +1192,29 @@ const MULTIVARIATE_TEMPLATE: CategoryTemplate = {
     return [intro, buildAlphaSoftware(alpha, lang)].join(' ')
   },
 
-  results({ r, ctx, lang }) {
-    if (lang === 'en') return 'English template coming soon.'
+  results({ r, lang }) {
     const add = r.additional ?? {}
     const expVar = add.explainedVarianceRatio
 
-    let text = `다변량 분석 결과`
+    if (lang === 'en') {
+      let text = 'The multivariate analysis'
+      if (expVar?.length) {
+        const cumVar = expVar.reduce((a: number, b: number) => a + b, 0)
+        text += ` revealed that the extracted components/factors explained ${fmt(cumVar * 100)}% of the total variance`
+      }
+      text += '.'
+      if (add.silhouetteScore !== undefined) {
+        text += ` The silhouette score for clustering was ${fmt(add.silhouetteScore)}.`
+      }
+      return text
+    }
 
+    let text = `다변량 분석 결과`
     if (expVar?.length) {
       const cumVar = expVar.reduce((a: number, b: number) => a + b, 0)
       text += `, 추출된 성분/요인이 전체 분산의 ${fmt(cumVar * 100)}%를 설명하였다`
     }
     text += '.'
-
     if (add.silhouetteScore !== undefined) {
       text += ` 군집 분석의 실루엣 점수는 ${fmt(add.silhouetteScore)}이었다.`
     }
@@ -967,9 +1235,16 @@ const MULTIVARIATE_TEMPLATE: CategoryTemplate = {
 
 const RELIABILITY_TEMPLATE: CategoryTemplate = {
   methods({ r, ctx, lang }) {
-    if (lang === 'en') return 'English template coming soon.'
     const alpha = r.additional?.alpha ?? 0.05
     const n = r.additional?.n
+
+    if (lang === 'en') {
+      const intro = ctx.researchContext
+        ? `Cronbach's α was calculated to assess reliability for ${ctx.researchContext}.`
+        : "Cronbach's α was calculated to assess the internal consistency of the scale."
+      const nStr = n ? ` The scale consisted of ${n} items.` : ''
+      return [intro + nStr, buildAlphaSoftware(alpha, lang)].join(' ')
+    }
 
     const intro = ctx.researchContext
       ? `${ctx.researchContext}를 위해 Cronbach α를 산출하여 신뢰도를 분석하였다.`
@@ -979,12 +1254,22 @@ const RELIABILITY_TEMPLATE: CategoryTemplate = {
     return [intro + nStr, buildAlphaSoftware(alpha, lang)].join(' ')
   },
 
-  results({ r, ctx, lang }) {
-    if (lang === 'en') return 'English template coming soon.'
-    // Cronbach alpha 값이 statistic에 있음
+  results({ r, lang }) {
     const cronbachAlpha = r.statistic
-    const interp = cronbachAlpha >= 0.9 ? '우수' : cronbachAlpha >= 0.8 ? '양호' : cronbachAlpha >= 0.7 ? '수용 가능' : '불충분'
 
+    if (lang === 'en') {
+      const interp = cronbachAlpha >= 0.9 ? 'excellent' : cronbachAlpha >= 0.8 ? 'good' : cronbachAlpha >= 0.7 ? 'acceptable' : 'poor'
+      let text = `The reliability analysis yielded Cronbach's α = ${fmt(cronbachAlpha)}, indicating ${interp} internal consistency.`
+      const itc = r.additional?.itemTotalCorrelations
+      if (itc?.length) {
+        const minItc = Math.min(...itc)
+        const maxItc = Math.max(...itc)
+        text += ` Item-total correlations ranged from ${fmt(minItc)} to ${fmt(maxItc)}.`
+      }
+      return text
+    }
+
+    const interp = cronbachAlpha >= 0.9 ? '우수' : cronbachAlpha >= 0.8 ? '양호' : cronbachAlpha >= 0.7 ? '수용 가능' : '불충분'
     let text = `신뢰도 분석 결과, Cronbach α = ${fmt(cronbachAlpha)}으로 내적 일관성이 ${interp}한 것으로 나타났다.`
 
     const itc = r.additional?.itemTotalCorrelations
@@ -1010,10 +1295,17 @@ const RELIABILITY_TEMPLATE: CategoryTemplate = {
 
 const POWER_ANALYSIS_TEMPLATE: CategoryTemplate = {
   methods({ r, ctx, lang }) {
-    if (lang === 'en') return 'English template coming soon.'
     const add = r.additional ?? {}
-    const analysisType = add.analysisType === 'post-hoc' ? '사후' : '사전'
 
+    if (lang === 'en') {
+      const analysisType = add.analysisType === 'post-hoc' ? 'post hoc' : 'a priori'
+      const intro = ctx.researchContext
+        ? `An ${analysisType} power analysis was conducted for ${ctx.researchContext}.`
+        : `An ${analysisType} power analysis was conducted to determine the appropriate sample size.`
+      return intro
+    }
+
+    const analysisType = add.analysisType === 'post-hoc' ? '사후' : '사전'
     const intro = ctx.researchContext
       ? `${ctx.researchContext}를 위해 ${analysisType} 검정력 분석을 실시하였다.`
       : `적절한 표본 크기를 결정하기 위해 ${analysisType} 검정력 분석을 실시하였다.`
@@ -1021,13 +1313,21 @@ const POWER_ANALYSIS_TEMPLATE: CategoryTemplate = {
     return intro
   },
 
-  results({ r, ctx, lang }) {
-    if (lang === 'en') return 'English template coming soon.'
+  results({ r, lang }) {
     const add = r.additional ?? {}
     const requiredN = add.requiredSampleSize ?? add.sampleSize
     const power = add.power
     const es = esValue(r.effectSize)
     const alpha = add.alpha ?? 0.05
+
+    if (lang === 'en') {
+      const parts: string[] = ['The power analysis yielded the following:']
+      if (es !== undefined) parts.push(`effect size = ${fmt(es)}`)
+      if (alpha !== undefined) parts.push(`α = ${alpha}`)
+      if (power !== undefined) parts.push(`power (1-β) = ${fmt(power)}`)
+      if (requiredN !== undefined) parts.push(`required sample size *n* = ${requiredN}`)
+      return parts.join(', ') + '.'
+    }
 
     const parts: string[] = ['검정력 분석 결과:']
     if (es !== undefined) parts.push(`효과크기 = ${fmt(es)}`)

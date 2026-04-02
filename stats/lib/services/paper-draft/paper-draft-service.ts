@@ -1,8 +1,8 @@
 /**
- * 논문 초안 생성 서비스 (Phase A — 템플릿 기반 즉시 생성)
+ * 논문 초안 생성 서비스 (템플릿 기반 즉시 생성)
  *
- * Discussion은 Phase B에서 LLM으로 별도 생성 (현재 null 반환).
- * 영문 템플릿은 stub 상태 ("English template coming soon").
+ * Methods/Results/Captions: 한글 + 영문 템플릿 (APA 7th 형식)
+ * Discussion: null (외부 AI 영역 — BioHub에서 생성하지 않음)
  */
 
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
@@ -41,22 +41,6 @@ export function generatePaperDraft(
     lang,
     options.postHocDisplay ?? 'significant-only',
   )
-
-  // 영문 전용 stub (Phase A는 한글 완성도에 집중)
-  if (lang === 'en') {
-    return {
-      methods: 'English template coming soon.',
-      results: 'English template coming soon.',
-      captions: null,
-      discussion: null,
-      tables,
-      language: lang,
-      postHocDisplay: options.postHocDisplay ?? 'significant-only',
-      generatedAt,
-      model: null,
-      context: draftCtx,
-    }
-  }
 
   // 카테고리 조회
   const category = STATISTICAL_METHODS[methodId]?.category ?? 'other'

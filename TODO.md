@@ -1,313 +1,121 @@
 # BioHub TODO
 
-> **집 PC 동기화 (2026-03-26):**
-> 0. **Claude Code 글로벌 설정 — 읽기 도구 자동 승인 (모든 프로젝트 공통)**
->    `C:\Users\User\.claude\settings.json`의 `permissions.allow` 배열에 아래 4개 추가:
->    ```json
->    "Bash(rg *)",
->    "Read",
->    "Glob",
->    "Grep",
->    ```
->    → 파일 읽기/검색이 매번 승인 요구 없이 자동 실행됨
->    → 글로벌 설정이므로 BioHub, Kemi, Clean_Style 등 모든 프로젝트에 적용
-> 1. `git pull` → `pnpm install` (BioHub, Kemi, Clean_Style 모두)
-> 2. Node.js 22 설치: `nvm install 22 && nvm use 22`
-> 3. cf-deploy 글로벌 스킬 복사: `~/.claude/skills/cf-deploy/SKILL.md` (두 모드 자동 감지 통합본)
-> 4. Kemi / Clean_Style도 Node 22 업그레이드 필요 (`.nvmrc`, `deploy.yml`, `@types/node`)
-
-**Last updated**: 2026-03-30
+**Last updated**: 2026-04-02
 **References**: [Product Strategy](docs/PRODUCT_STRATEGY.md), [Roadmap](ROADMAP.md), [Research Project Status](docs/RESEARCH_PROJECT_STATUS.md)
 
 ---
 
 ## 1. How to use this file
 
-This file is the short-horizon execution backlog.
+Short-horizon execution backlog. 완료 항목은 git history 참조.
 
-It should contain:
-
-- actionable product and engineering tasks
-- current priorities
-- items that can move in or out of active work
-
-It should not contain:
-
-- long-term strategy
-- historical release notes
-- broad future ideation without execution value
-
-Recommended tags:
-
-- `[trust]`
-- `[workflow]`
-- `[domain]`
-- `[review]`
-- `[graph]`
-- `[paper]`
-- `[docs]`
+Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 
 ---
 
 ## 2. Now
 
-These items should be the current focus.
+### 논문 작성 (Phase 5-6)
 
-### 🔥 집 PC 우선 작업
-- `[infra]` 집 PC 환경 동기화 — Node 22 설치 + cf-deploy 스킬 복사 + git pull (상단 Setup 참조)
-- `[infra]` Kemi(T4U) Node 22 업그레이드 — `.nvmrc`, `deploy.yml` node-version, `@types/node ^22`
-- `[infra]` Clean_Style Node 22 업그레이드 — 동일
-
-- ~~`[workflow]` Finalize the user-facing definition of `ResearchProject` as one research unit above individual pages and tools.~~ — 확정 ([RESEARCH_PROJECT_STATUS.md](docs/RESEARCH_PROJECT_STATUS.md) §5 Decision D–H)
-- ~~`[workflow]` Define the UX rule for project context vs standalone mode before adding more save-time prompts.~~ — 확정 (Decision F: 자동 연결 + override, Decision G: 기본 도구 standalone / 조립 기능 프로젝트 필수)
-- ~~`[workflow]` Add visible project entry points such as project list, project switcher, or project overview so the concept is explicit in the app.~~ — 확정 (Decision D: 사이드바 전환기 + `/projects` 페이지)
-- ~~`[workflow]` Define a single `ResearchProject` model shared by chat, analysis history, Graph Studio, and paper draft flows.~~ — 확정 (Decision E: `activeResearchProjectId` zustand store)
-- ~~`[workflow]` Define canonical ids and relationships for `projectId`, `analysisId`, `figureId`, and draft section references.~~ — 확정 (Decision E: `activeResearchProjectId`로 통일, Graph Studio의 `currentProjectId`는 `GraphProject`로 유지)
-- ~~`[workflow]` Decide the source of truth for project-linked records across local storage, IndexedDB, and adapter-based persistence.~~ — 확정 (zustand + localStorage persist → 추후 D1 마이그레이션)
-- ~~`[workflow]` `ProjectEntityKind` 타입 정렬~~ — 완료 (`stats/lib/types/research.ts` → `@biohub/types` re-export)
-- ~~`[workflow]` 채팅 프로젝트 저장소 분기 해소~~ — 완료 (연구 프로젝트와 분리, `toResearchProject()` 동기화 제거)
-- ~~`[workflow]` `useResearchProjectStore` 생성~~ — 완료 (`research-project-store.ts`, zustand + localStorage persist)
-- ~~`[workflow]` `/projects` 페이지 구현~~ — 완료 (목록, 생성, 이름수정, 보관, 삭제)
-- ~~`[workflow]` 사이드바 프로젝트 전환기 추가~~ — 완료 (드롭다운 + 활성 프로젝트 표시)
-- ~~`[workflow]` `/chatbot` `ProjectsSection` IA 정리~~ — 완료 (편집 제거, 다이얼로그 props 기반, 생성 전용). 용어("주제" vs "프로젝트") 통일은 보류 — 챗봇 역할 확정 후 진행
-- ~~`[workflow]` 각 모듈 저장 시 활성 프로젝트 auto-link~~ — 완료 (통계: activeProject 자동, 그래프: DataPackage → activeResearchProjectId fallback, 유전적: 이전 완료)
-- ~~`[workflow]` 토스트 기반 저장 피드백~~ — 완료 (통계: 프로젝트명 표시. 유전적: 자동 저장이라 불필요. 그래프: 저장 UI 미구현 — UI 추가 시 토스트 함께)
-- ~~`[workflow]` `ResultsActionStep` 프로젝트 선택 팝업 → 컨텍스트 기반 동작으로 교체~~ — 완료 (다이얼로그 제거, activeProject 자동 연결)
-- ~~`[workflow]` 프로젝트 상세/개요 페이지 — linked outputs 브라우저~~ — 완료 (1단계: EntityBrowser + 탭/검색/필터 + ReportComposer stub. [PLAN-PROJECT-DETAIL-PAGE.md](stats/docs/PLAN-PROJECT-DETAIL-PAGE.md))
-- ~~`[quality]` `@biohub/types` `Project.createdAt: number` vs `research.ts` `ResearchProject.createdAt: string` 타임스탬프 타입 통일~~ — 조사 완료: 프로젝트 레이어는 이미 string(ISO)으로 통일됨. 유일한 불일치 `BlastResult.createdAt: number` → `string` 수정 + worker.ts Date.now() → toISOString() 수정
-- ~~`[trust]` `EvidenceRecord` 스키마 정의~~ — 완료 (타입 존재: `research.ts`). 다음: 저장/조회 구현
-- ~~`[trust]` `EvidenceRecord` 저장 구현~~ — Phase 1 완료 (evidence-factory + saveToHistory 인라인 연동. Phase 2: Graph Studio/유전 분석은 별도. [PLAN-EVIDENCE-RECORD.md](stats/docs/PLAN-EVIDENCE-RECORD.md))
-- ~~`[trust]` 재현 가능 코드 페이로드 (R/Python) 설계~~ — 완료 (12개 메서드 R/Python 템플릿, sanitization, ExportDropdown 통합. `code-export.ts` + `code-templates/`)
-- ~~`[graph]` Graph Studio → projectId/analysisId 연결~~ — 완료 (`graph-studio-store.ts` activeResearchProjectId fallback + upsertRef)
-- ~~`[graph]` result→graph handoff 메타데이터 보존~~ — 완료
-- ~~`[analysis]` 통계 분석 모듈 점검~~ — 완료 (2026-03-23). 발견 항목 아래 등록.
-- ~~`[graph]` Graph Studio 점검~~ — 완료. 발견 항목 아래 등록.
-- ~~`[genetics]` 유전적 분석 점검~~ — 완료. 발견 항목 아래 등록.
-### 점검 결과 — Critical
-
-- ~~`[genetics]` Worker rate limit 동기화 실패~~ — 수정 완료. 클라이언트(BlastRunner) 429 재시도 로직 추가 (최대 3회, retryAfter 기반, 상한 60초). Worker 주석에 클라이언트 보완 전략 문서화. 장기: Durable Objects/KV 전환 시 제거.
-- ~~`[genetics]` 히스토리 저장 실패 시 ref 불일치~~ — 수정 완료. try-catch 분리: saveToStorage 실패 시 early return (ref 미정리 = 정상), 성공 후 overflow ref 정리와 new entry ref 생성을 독립 실행.
-- ~~`[genetics]` NCBI E-utilities accession 매핑 불완전~~ — 수정 완료. base accession → 입력 accession 역매핑 Map 사전 구축 (대소문자 무시). 원본 케이스 fallback 키 보존.
-- ~~`[graph]` localStorage QuotaExceededError 처리 없음~~ — 수정 완료. `style-template-storage.ts` try-catch 추가, `use-ai-chat.ts` logger.warn 추가. `project-storage.ts`는 이미 처리됨.
-- ~~`[graph]` AI 패치 적용 후 스키마 검증 없음~~ — 수정 완료. `applyAndValidatePatches`에 검증 실패 시 console.warn 추가 + `applyPatches` JSDoc에 내부 전용 명시. 모든 프로덕션 호출은 이미 `applyAndValidatePatches` 사용.
-- ~~`[analysis]` intent-router 신뢰도 임계값 0.7~~ — 수정 완료. 임계값 0.7→0.6 조정 + DIRECT_INTENT_PATTERNS에 한국어 의도 패턴 추가 (`하겠/할게/해주/해볼/해봐/하자`).
-- ~~`[analysis]` AnalysisExecutionStep 가정 검정 실패 시 로그 없음~~ — 수정 완료. `executeAssumptionTests` 호출에 try-catch + logger.error 추가.
-
-### 점검 결과 — High
-
-- ~~`[genetics]` BlastMarker/MARKER_INFO 스펠 불일치~~ — 수정 완료. MARKER_INFO에 'CytB'/'16S' 키 추가 (공유 참조), 추천 배열을 BlastMarker 값으로 통일.
-- ~~`[genetics]` 캐시 히트 abort signal cleanup 누락~~ — 수정 완료. speciesPromise에 .catch() 가드 추가, abort 경로에서 await 후 return (floating promise 방지).
-- ~~`[graph]` echarts-converter 필드 미존재 시 silent NaN~~ — 수정 완료. `aggregateRows`에 yField 존재 확인 + console.warn 추가.
-- ~~`[graph]` 프로젝트 복원 시 인코딩 불일치 무경고 해제~~ — 수정 완료. 인코딩 불일치 시 console.warn (프로젝트명 + 누락 필드) 추가.
-- ~~`[analysis]` chi-square-goodness 1변수 전용 selector 없음~~ — 이미 구현됨. `ChiSquareSelector`가 `GOODNESS_IDS`로 1변수 모드 자동 전환.
-- ~~`[analysis]` proportion-test testValue 입력 UI 없음~~ — 이미 구현됨. `ChiSquareSelector`에 `nullProportion` 입력 UI + 검증 포함.
-- ~~`[deploy]` CF 빌드 실패 — `useSearchParams()` prerender 에러~~ — 수정 완료. `useSearchParams` 완전 제거 → `window.location.search`로 전환 (barcoding, graph-studio, HistorySidebar). page.tsx는 `dynamic(() => import('./Content'), { ssr: false })` 분리. **주의**: 향후 `useSearchParams` 사용 시 같은 패턴 적용 필수.
+- `[paper]` **Phase 5: 영문 템플릿 완성**
+  - 영문 Methods/Results/Captions 템플릿 15개 (현재 전부 stub → 실제 영문 텍스트)
+  - ~~Discussion LLM 생성~~ → 안 함 (외부 AI 영역)
+  - ~~외부 AI 프롬프트 클립보드 복사~~ → 보류
+- `[paper]` Phase 6: 인용 관리 (citation store 신규), Figure 통합, 영문 템플릿, 번호 매기기
+- 상세: [PLAN-DOCUMENT-ASSEMBLY.md](stats/docs/papers/PLAN-DOCUMENT-ASSEMBLY.md)
 
 ---
 
 ## 3. Next
 
-우선순위: **구조 정리 (선행) → 통계 분석 → 공통 품질 → 기타**
+우선순위: **도메인 확장 → UX → 품질 → 인프라**
 
-### 3-0. 구조 정리 (개별 기능 개발 선행 조건)
+### 3-A. 도메인 확장
 
-**먼저 해야 할 것 (기능 개발 전):**
-- ~~`[structure]` genetics/ vs bio-tools/ 이중 구조 해소~~ — 완료 (HW/Fst는 Bio-Tools 소속 확정, genetics hub에서 집단유전학 제거 + cross-link 추가, 사이드바 순서 조정, CLAUDE.md 문서화)
-- ~~`[structure]` Bio-Tools 결과 타입 중앙화~~ — 완료 (15개 페이지 전부 `types/bio-tools-results.ts`에서 import 확인, 로컬 타입 0개)
-- ~~`[structure]` Worker Genetics enum 정리~~ — 완료 (Worker 9 = Genetics enum + stub, 계획서 번호 교정, Worker 3 PACKAGES 동기화)
-
-**기능 개발과 병행 가능:**
-- ~~`[structure]` `ProjectEntityKind`에 `'bio-tool-result'` 추가 + `ENTITY_TAB_REGISTRY` Bio-Tools 탭~~ — 이미 구현됨 (타입, 탭 레지스트리, entity-resolver 모두 완성 상태)
-- ~~`[structure]` Bio-Tools 결과 내보내기~~ — 완료 (`BioResultsHeader`에 CSV 다운로드 + 클립보드 복사 버튼 추가, `bio-export-csv.ts` + `bio-export-tables.ts` 유틸리티, 15개 도구 전체 연결)
-- ~~`[structure]` `useBioToolAnalysis` 훅에 `projectId` opt-in~~ — 이미 구��됨 (activeProject 자동 연결, saveBioToolEntry에서 upsertProjectEntityRef 호출)
-- ~~`[structure]` Bio-Tools 테스트 인프라 + 패턴 가이드~~ — 완료 (기존 `parse-numeric-cell` + `fisheries-columns` + 신규 `bio-export-csv` 테스트 13개)
-
-### 3-A. 통계 분석 (Analysis)
-
-**병렬 처리 가능 (독립적, 소규모):**
-- ~~`[analysis]` NMDS/PERMANOVA `beta_diversity` pre-step에 `isAnalyzing` 미설정~~ — 완료 (hook에 `setIsAnalyzing` 노출 + 페이지에서 pre-step 감싸기)
-- ~~`[analysis]` Worker 번호 하드코딩~~ — 완료 (`use-levene-test.ts:133` `3` → `PyodideWorker.NonparametricAnova`. 나머지는 이미 enum 사용)
-- ~~`[ux]` SummaryCard focusRing 누락~~ — 완료 (`focusRing` import + className 추가)
-- ~~`[ux]` Step 1 카드 대시보드: 하드코딩 한글 → terminology 시스템 등록~~ — 완료 (`badgeBar` + `summaryCards` 섹션 추가, aquaculture/generic 양쪽 등록)
-
-**순차 처리 (설계 필요):**
-- ~~`[analysis]` Hub Chat 데이터 컨텍스트 token 낭비~~ — 완료 (`buildContextForIntent` 연결: visualization ~60%, experiment-design ~90% 절감)
-- ~~`[analysis]` intent-router 테스트 부재~~ — 완료 (52개 테스트, 임계값 0.7→0.6 반영)
-- ~~`[analysis]` `runAnalysis(methodName: string)` stringly-typed~~ — 완료 (`AllMethodNames` union 타입 적용 + Worker 9 registry 동기화)
-- ~~`[analysis]` `useBioToolAnalysis` hook `setError` 직접 노출~~ — 검토 완료. 14개 중 2개만 사용 (fst, hardy-weinberg pre-validation). 2 caller 위한 캡슐화는 과잉, 현 상태 유지.
-- ~~`[ux]` AI 해석 실패 graceful degradation~~ — 이미 구현됨 (`useErrorRecovery` + `AiInterpretationCard` 2회 재시도 → 소진 시 안내 메시지)
-
-### 3-B. 그래프 (Graph Studio)
-
-**병렬 처리 가능:**
-- ~~`[graph]` CSV BOM/인코딩 자동 감지 없음~~ — 완료 (`stripBom` + `transformHeader` + `encoding: UTF-8` 적용: file-parser 2곳, data-processing 1곳)
-- ~~`[graph]` matplotlib export 에러 시 ECharts 대체 안내 없음~~ — 완료 (ExportDialog 에러 시 일반 내보내기 안내 표시)
-
-**순차 처리:**
-- ~~`[graph]` localStorage quota 정책~~ — 완료 (MAX_GRAPH_PROJECTS=50, 자동 eviction + QuotaExceededError 재시도)
-
-### 3-C. UI 일관성 통일 (완료)
-
-**Phase 1~3 순차:**
-- ~~`[ux]` Phase 1: Shell 통일~~ — 완료 (헤더 sticky + max-w-7xl + 배경 틴트 + LAYOUT 토큰 추출)
-- ~~`[ux]` Phase 2: Upload 통일~~ — 완료 (BioCsvUpload → UploadDropZone 시각 채택)
-- ~~`[ux]` Phase 3: Bio 페이지 일괄~~ — 완료 (Select 통일 + 에러 박스 + Loader2 + scrollIntoView. smoke 테스트 미진행)
-- ~~`[ux]` BioColumnSelect `layout`/`noneLabel` prop 추가~~ — 완료 (stacked 레이아웃 meta-analysis/icc 지원, nmds "없음 (단일 그룹)" 커스텀 라벨)
-
-### 3-D. 공통 품질/UX
-
-**병렬 처리 가능:**
-- ~~`[quality]` `escapeHtml` 중복 3곳 → 공유 `@/lib/utils/html-escape` 통합~~ — 완료 (open-data-window, help-search, html-export → 공유 모듈 import)
-- ~~`[quality]` `markdownToSimpleHtml` negative lookbehind~~ — 확인 결과 lookbehind 패턴 없음 (이미 해결 또는 오기재)
-- ~~`[ux]` ProjectHeader onBlur+Enter 이중 save → 이중 토스트~~ — 완료 (Enter→`e.currentTarget.blur()` 패턴으로 단일 이벤트 보장)
-
-**순차 처리:**
-- ~~`[quality]` `createLocalStorageIO` 추가 적용~~ — 완료 (5곳: pinned-history, recent-statistics, style-template, analysis-history, entity-tab-registry)
-- ~~`[ux]` 토스트 메시지 기존 19곳 점진적 `TOAST.*` 마이그레이션~~ — 완료 (12파일, ~35곳)
-- `[ux]` ChatBubble 공통 컴포넌트 추출 — chatbot 페이지 미완성, 역할 확정 후 진행. Hub/GraphStudio/FollowUp 3곳 독립 구현 중.
-- ~~`[quality]` 공통 `WarningBanner` 컴포넌트 추출~~ — 완료 (Alert warning variant + WarningBanner 래퍼, 3곳 마이그레이션 + 경량 컨텍스트 컬럼 제한 추가)
-- `[quality]` `isQuotaExceededError()` 유틸 추출 — 현재 프로덕션 1곳만 사용. 2번째 저장소 구현 시 추출 (조사 완료 2026-03-25)
-- ~~`[perf]` `ensureUser` INSERT OR IGNORE 매 요청 실행~~ — 조사 완료: 이미 INSERT OR IGNORE로 최적화됨, 쓰기 요청만 호출 (2곳). 추가 최적화 불필요.
-- ~~`[a11y]` 접근성 일괄 패스~~ — AiInterpretationCard 수정 완료 (aria-expanded 2곳 + prefersReducedMotion SectionPill/WarningCallout/ActionCallout 전달). 프로젝트 전체 감사는 별도 (178개 애니메이션 파일 중 21개만 적용)
-- ~~`[perf]` ECharts 테마 전환 시 차트 색 미갱신~~ — 완료. 12개 파일에 `useTheme()` + `resolvedTheme` useMemo 의존성 일괄 적용 (Bio-Tools 7 + 분석 차트 5)
-- ~~`[quality]` Bio-Tools 차트 팔레트 CSS 토큰화~~ — 완료. 7개 Bio-Tools에서 `BIO_CHART_COLORS` → `resolveChartPalette()` 런타임 해석으로 전환 (ConditionFactorTool의 Graph Studio 내보내기용 useCallback만 static 유지)
-- `[analysis]` intent-router 0.6 임계값 검증 — "추천" 단독 입력(0.65)이 LLM을 생략. 사용 로그 수집 후 데이터 기반 재검토 필요. 현재는 latency 우선으로 유지
-
-### 3-E. Bio-Tools 확장
-
-**Fisheries 2차 (차트):**
-- ~~`[bio]` VBGF 성장곡선 차트~~ — 완료 (산점도 + 적합곡선, analyzedCols 스냅샷 패턴)
-- ~~`[bio]` Length-Weight log-log 산점도~~ — 완료 (회귀선 + 관측값 + 수식 표시)
-- ~~`[bio]` Condition Factor 히스토그램~~ — 완료 (√n bins + mean/median 참조선)
-
-**HW/Fst 2차:**
-- ~~`[bio]` HW Exact Test (소표본, N<25)~~ — 완료 (Wigginton 2005 재귀 구현, worker9-genetics.py)
-- ~~`[bio]` Fst permutation p-value~~ — 완료 (v2 genotype 입력 + Phipson-Smyth 보정)
-- ~~`[bio]` Fst bootstrap 95% CI~~ — 완료 (locus 복원추출 + ratio-of-sums)
-- `[bio]` Fst long-format CSV 지원 — population/locus/allele/count 4컬럼. 논문 발표 allele frequency 분석용. v2 인프라 위에 ~150줄 pre-processing. 우선순위 낮음.
-- ~~`[bio]` HW `inEquilibrium` 단형성 시 의미 명확화~~ — 검토 완료: 변경 불필요. vacuously true (수학적 정당), 모든 소비자가 isMonomorphic guard 사용, null 전환 시 4곳 breaking change + 이득 0.
-
-**Bio-Tools 코드 품질:**
-- ~~`[bio]` `BioToolId` union 타입 도입~~ — 완료. 16개 ID 유니온 + `BioTool.id: BioToolId` + `META: Record<BioToolId, ...>` + `relatedTools?: BioToolId[]`. 레지스트리/메타데이터 누락 컴파일 타임 감지.
-- ~~`[bio]` `getBioToolWithMeta` 편의 함수~~ — 완료. `bio-tool-metadata.ts`에 추가, `BioToolWorkspace` 이중 호출 해소.
-- ~~`[bio]` `relatedTools` 소비처 구현 또는 제거~~ — 유지 결정. `BioToolId[]` 타입 적용으로 오타 방지. UI 소비처("관련 도구" 추천)는 UX 기능으로 후속 진행.
-
-**Bio-Tools 공통 개선:**
-- ~~`[bio]` Bio-Tools 배지 클래스 토큰화~~ — 완료 (`BIO_BADGE_CLASS` 추출, 8페이지 9곳 마이그레이션)
-- ~~`[bio]` Bio-Tools 결과 프로젝트 연결~~ — 완료 (저장 시 upsertProjectEntityRef 호출 + ProjectDetailContent에서 bioToolHistory 로드/표시 연결)
-- ~~`[bio]` Worker 9 계산 정확성 골든 테스트~~ — 완료 (HW 8케이스 + Fst 7케이스, JSON + Vitest 스키마 + Pyodide 러너 확장)
-- ~~`[bio]` Worker 9 골든 테스트 확장~~ — 완료 (HW exactPValue 4케이스 + Fst v2 genotype 4케이스 + v2 에러 2케이스, 65 passed)
-- ~~`[bio]` v1/v2 global Fst 계산 차이 문서화~~ — 완료 (PLAN-GENETICS-V2.md에 비교 섹션 추가: 공식 차이, 수치 예시, UI 표시, 향후 고려)
-- ~~`[bio]` 대용량 scatter 포인트 제한~~ — 완료 (VBGF, Length-Weight, Scatterplot 3곳에 `large: true` + `largeThreshold: 2000` 적용)
-
-### 3-F. 기타 (genetics, infra, domain, paper)
-
-- ~~`[genetics]` 다중 FASTA 시퀀스 혼합 미감지~~ — 완료 (early-exit 헤더 스캔 + 테스트 17개)
-- ~~`[genetics]` deep-link 복원 실패 시 UI 피드백 없음~~ — 완료 (에러 배너 + URL 정리 + "새 분석 시작" 버튼)
-- ~~`[genetics]` BlastRunner/GenericBlastRunner 통합 리팩토링~~ — 완료. `useBlastExecution<T>` 훅 + `BlastProgressUI` 컴포넌트 추출. `blast-utils.ts`에 공유 유틸 통합. 테스트 32건.
-- ~~`[genetics]` 히스토리 도구별 분리~~ — 완료. discriminated union (barcoding/blast/genbank), 도구별 필터 UI, type별 renderItem + 라우팅, entityKind 분기. 기존 바코딩 하위호환 유지.
-- ~~`[genetics]` 허브 예제 서열 도구별 분리~~ — 완료. BLAST: blastn/blastp/blastx 예제 3개. GenBank: 검색어 태그 4개. 바코딩: 기존 유지. 허브에서 제거 후 각 도구 내 배치.
-- ~~`[genetics]` BLAST 히스토리 서열 복원 버그~~ — 완료. `BlastSearchHistoryEntry`에 `sequence` 필드 추가 (전체 서열 저장), 복원 시 프로그램/DB/서열 모두 프리필. `sequencePreview`는 표시용으로 유지 (하위호환).
-- ~~`[genetics]` 초보자 가이드 콘텐츠~~ — 완료. BLAST: `useCase` 필드 + 프로그램별 사용 사례 표시. GenBank: 검색 팁 collapsible 섹션 (4개 팁 + 클릭 시 검색어 자동입력). 바코딩: 페이지 설명 + 마커 선택 가이드 텍스트.
-- `[infra]` D1 스키마 갭 해소 — 상세: [D1-SCHEMA-GAP.md](docs/D1-SCHEMA-GAP.md). 현재 프론트엔드는 localStorage/IndexedDB 기반이라 급하지 않음. 인증/멀티디바이스 동기화 시 필수.
-- `[infra]` Turso → D1 통합 — `turso-adapter.ts`, `hybrid-adapter.ts`, `NEXT_PUBLIC_TURSO_*` 환경변수 제거. D1 마이그레이션 완료 후 진행.
-- `[domain]` species-validation 레코드 스키마 정의
-- `[domain]` legal-status 레코드 스키마 정의 (source metadata + checked date)
-- `[domain]` Connect species and legal status outputs into manuscript and review flows.
 - `[domain]` FisheryON 기능 이전 — 문헌 통합검색 (Phase A) + 연구동향 모니터링 (Phase B) + 이메일 구독/Cron (Phase C). 상세: [PLAN-FISHERY-MIGRATION.md](docs/PLAN-FISHERY-MIGRATION.md)
-- `[paper]` **논문 작성 지원 기능 — 6단계 구현**
-  - ~~Phase 1: DocumentBlueprint 타입 + 조립 엔진 + 저장~~ — 완료 (타입 122줄, 조립 엔진 299줄, IndexedDB CRUD, EntityRef 동기화, 테스트 808줄)
-  - ~~Phase 2: `/papers` 문서 허브 + 마크다운 에디터~~ — 완료 (PapersHub, DocumentEditor 406줄, DnD 섹션 정렬, MaterialPalette, 내보내기 바)
-  - ~~Phase 3: Plate 리치 텍스트 에디터~~ — 완료 (PlateEditor + 툴바, 양방향 저장, serialize 디바운스, 삽입 API 전환, MathPlugin 등록 + 테이블/수식 삽입 버튼 + 테스트 8개. 계획서 [PLAN-PLATE-EDITOR.md](stats/docs/papers/PLAN-PLATE-EDITOR.md))
-  - ~~Phase 4: DOCX 내보내기~~ — 완료 (학술 3-line table, Times New Roman 12pt, serialize flush, 로딩/에러 UX. 계획서 [PLAN-DOCX-EXPORT.md](stats/docs/papers/PLAN-DOCX-EXPORT.md))
-  - Phase 5: LLM Introduction/Discussion 자동 생성 (OpenRouter)
-  - Phase 6: 인용 관리 (citation store 신규), Figure 통합, 영문 템플릿, 번호 매기기
-  - 상세: [PLAN-DOCUMENT-ASSEMBLY.md](stats/docs/papers/PLAN-DOCUMENT-ASSEMBLY.md) · [PLAN-USER-JOURNEY-LITERATURE-PAPERS.md](stats/docs/papers/PLAN-USER-JOURNEY-LITERATURE-PAPERS.md)
-- `[review]` Define a project-level methods and reporting completeness checklist.
-- `[review]` Define reviewer-ready export bundle structure.
-- `[review]` Add journal format review and fit review workflow.
-- `[review]` Design reviewer simulator inputs and output schema.
-- `[trust]` Add user-facing evidence cards to major AI-assisted outputs.
-
----
-
-## 4. Later
-
-These are valid directions, but not current execution priorities.
-
-- `[review]` Implement reviewer simulator after checklist and reviewer package foundations are stable.
-- `[domain]` Expand external domain integrations beyond baseline validation flows.
-- ~~`[paper]` Add stronger project-wide draft synthesis and section merge assistance.~~ — Phase 1-2에 포함 (DocumentBlueprint 조립 엔진)
-- `[trust]` Expand reproducible code export to more advanced analysis paths.
-- `[workflow]` Add richer project dashboard and project health summary.
-- `[ux]` 사이드바 IA 재구성 — "홈"에 Analysis가 숨겨져 있어 발견성 낮음, "유전적 분석"이 Bio-Tools 밖에 독립 메뉴, 섹션/기능/예정 레벨 혼재. 네비게이션 계층 재설계 필요.
-- `[ux]` Bio-Tools 컬럼 Combobox — `pnpm add cmdk` + `command.tsx` 생성 → 컬럼 select를 검색 가능 Combobox로 업그레이드 (Phase 3에서 Select로 통일 후 후속)
-- `[ux]` Command Palette (Cmd+K) — 43개 분석 메서드 + 16개 Bio 도구 + Graph Studio 빠른 접근. 검색·탐색 UX 대폭 향상.
-- `[ux]` 키보드 단축키 — `Ctrl+Enter` 분석 실행, `Escape` 뒤로, `Ctrl+S` 저장/내보내기
-- ~~`[ux]` Bio-Tools 결과 내보내기~~ — 완료 (Phase 3-0에서 테이블 복사/CSV 다운로드 구현)
-- ~~`[bio]` Bio-Tools 차트 ECharts 전환~~ — 완료 (7개 SVG → ECharts 통일. MetaAnalysis forest plot은 CSS div 기반이라 제외. 대용량 scatter는 별도 `large: true` 검토 필요)
-- `[ux]` Bio-Tools 샘플 데이터 — Graph Studio처럼 "샘플로 시작" 옵션 (신규 사용자 마찰 감소)
-- `[ux]` Bio-Tools data-testid + aria-label 추가 — E2E 테스트 + 접근성 보강
-- `[ux]` 콘텐츠 밀도 검토 — `py-8 space-y-6`이 전문 도구에 느슨할 수 있음. `py-6 space-y-4` 비교 테스트
-- `[ux]` Bio-Tools 데이터 프리뷰 — 업로드 후 분석 전 5행 미리보기 (Analysis Step 1과 일관)
-- `[ux]` 사이드바 My Menu — 메뉴 항목 순서 이동(드래그) 및 즐겨찾기 고정 기능. 현재 "My Menu (예정)" 플레이스홀더 존재 (`app-sidebar.tsx`).
-- `[architecture]` 모노레포 전환 트리거 모니터링 — `domains/` 분리: 빌드 5분 초과 또는 팀 분할 시. `packages/` 승격: 2번째 앱 등장 시. 상세: [REVIEW-MONOREPO-ARCHITECTURE.md](docs/REVIEW-MONOREPO-ARCHITECTURE.md)
-- `[architecture]` 프로젝트 연결 DB 동기화 강화 — Phase 16 (Workers 동적 배포) 시 D1 연동. 현재 localStorage `ProjectEntityRef` 레이어는 동작 중
-- `[quality]` entity-resolver `*Like` 인터페이스 → `Pick<OriginalType, ...>` 전환 — import 순환 해결 후. 현재 수동 동기화 필요.
-- ~~`[quality]` `report-export.ts` blob→download 패턴 추출 검토~~ — 조사 완료: 3곳 사용이나 각 2~3줄, 추출 가치 낮음. 4번째 사용처 등장 시 재검토
-- ~~`[quality]` `markdownToSimpleHtml()` 공통 유틸 추출 검토~~ — 조사 완료: 1곳만 사용, 추출 불필요
-- `[quality]` `entity-tab-registry.ts` raw localStorage 패턴 → Zustand persist 전환 검토 — 현재 동작에 문제 없으나 코드베이스 일관성 차원
-- `[quality]` 통합 히스토리 사이드바 후속 정리:
-  - localStorage+CustomEvent 리스너 패턴 → 공용 훅 `useLocalStorageSync(key, event, loader)` 추출 (GeneticsHistorySidebar, BioToolSidebar, pinned-history-storage에서 동일 패턴 3회 반복)
-  - 히스토리 사이드바 한글 하드코딩 → terminology 시스템 등록 ('최근 분석', '분석 기록', '분석 히스토리', '전체 선택', '고정 해제' 등 ~15건)
-  - `onHistoryShowMore` 데드 prop 정리 — ChatCentricHub → QuickAccessBar 체인에서 제거 (Sheet 제거 후 불필요해짐)
-  - pin 토글 로직 공통화 — `togglePinId(prev, id, max, onMax)` 순수 함수를 `pinned-history-storage.ts`에 추출 (AnalysisHistorySidebar, AnalysisHistoryPanel, QuickAccessBar에서 3회 반복)
-- `[ux]` 프로젝트 카드 클릭 동작 재검토 — 현재 활성화 토글, UX 관례는 상세 진입. 사용자 피드백 후 결정.
-- `[quality]` dangling ref 정리 방안 — 현재 영구 누적. 수동 "정리" 버튼 또는 주기적 GC 검토.
-- `[domain]` Add stronger citation and traceability support for domain records in downstream outputs.
-- `[review]` Add figure and table compliance review against journal expectations.
-- `[workflow]` Add project-level collaboration or sharing concepts if storage architecture supports it.
-- `[domain]` 학명검증(species_checker) 통합 + 알림 시스템 통합 — 상세: [PLAN-SPECIES-INTEGRATION.md](docs/PLAN-SPECIES-INTEGRATION.md). WoRMS 연동은 `D:\Projects\scientific-name-validator`에 별도 프로젝트 존재, 내재화 대기.
 - `[domain]` 외부 DB 연동 우선순위 — 레퍼런스: [docs/databases/](docs/databases/)
   - **1순위**: BOLD ID Engine (종 동정 1차 검색, CORS 미지원→프록시 필요)
   - **2순위**: GBIF (분포/출현 기록, CORS 지원→브라우저 직접 호출 가능)
   - **3순위**: UniProt ID Mapping (BLAST→단백질 기능 연결, CORS 지원)
   - **안함**: GO/KEGG/Ensembl 유전자 기능 심화 — Galaxy/Bioconductor 영역, BioHub 차별점 아님
+- `[domain]` species-validation 레코드 스키마 정의
+- `[domain]` legal-status 레코드 스키마 정의 (source metadata + checked date)
+- `[domain]` 학명검증(species_checker) 통합 + 알림 시스템 통합 — 상세: [PLAN-SPECIES-INTEGRATION.md](docs/PLAN-SPECIES-INTEGRATION.md)
+
+### 3-B. UX 개선
+
+- `[ux]` Command Palette (Cmd+K) — 43개 분석 메서드 + 16개 Bio 도구 + Graph Studio 빠른 접근
+- `[ux]` 사이드바 IA 재구성 — 네비게이션 계층 재설계
+- `[ux]` 키보드 단축키 — `Ctrl+Enter` 분석 실행, `Escape` 뒤로, `Ctrl+S` 저장/내보내기
+- `[ux]` Bio-Tools 샘플 데이터 — "샘플로 시작" 옵션 (신규 사용자 마찰 감소)
+- `[ux]` Bio-Tools 데이터 프리뷰 — 업로드 후 분석 전 5행 미리보기
+- `[ux]` Bio-Tools 컬럼 Combobox — cmdk 검색 가능 select
+- `[ux]` 사이드바 My Menu — 드래그 정렬 + 즐겨찾기 고정
+- `[ux]` 콘텐츠 밀도 검토 — `py-8 space-y-6` vs `py-6 space-y-4`
+
+### 3-C. 품질/기술 부채
+
+- `[quality]` 통합 히스토리 사이드바 정리:
+  - `useLocalStorageSync(key, event, loader)` 공용 훅 추출 (3곳 반복)
+  - 히스토리 사이드바 한글 하드코딩 → terminology (~15건)
+  - `onHistoryShowMore` 데드 prop 정리
+  - pin 토글 로직 `togglePinId()` 순수 함수 추출 (3곳 반복)
+- `[quality]` dangling ref 정리 — 수동 "정리" 버튼 또는 주기적 GC
+- `[quality]` entity-resolver `*Like` 인터페이스 → `Pick<OriginalType, ...>` 전환
+- `[quality]` `entity-tab-registry.ts` raw localStorage → Zustand persist 전환
+- `[bio]` Fst long-format CSV 지원 — population/locus/allele/count 4컬럼. 우선순위 낮음
+- `[analysis]` intent-router 0.6 임계값 검증 — 사용 로그 수집 후 데이터 기반 재검토
+- `[ux]` Bio-Tools data-testid + aria-label — E2E 테스트 + 접근성
+
+### 3-D. 인프라
+
+- `[infra]` D1 스키마 갭 해소 — 상세: [D1-SCHEMA-GAP.md](docs/D1-SCHEMA-GAP.md). 인증/멀티디바이스 시 필수
+- `[infra]` Turso → D1 통합 — `turso-adapter.ts`, `hybrid-adapter.ts`, `NEXT_PUBLIC_TURSO_*` 제거
+- `[infra]` 집 PC 환경 동기화 — Node 22 + cf-deploy 스킬 복사 + git pull
+
+### 3-E. 리뷰/신뢰
+
+- `[review]` 프로젝트 레벨 methods/reporting 완성도 체크리스트
+- `[review]` reviewer-ready export 번들 구조 정의
+- `[review]` 저널 포맷 리뷰 워크플로
+- `[trust]` AI 출력에 evidence cards 추가
 
 ---
 
-## 5. Blocked or deferred
+## 4. Later
 
-- `[chatbot]` `/chatbot` 역할 정의 필요 — 현재 범용 AI 채팅이지만, 통계 해석·그래프 편집 등 AI가 각 모듈에 이미 내장됨. 챗봇 고유 역할(논문 작성 도우미? 크로스모듈 Q&A? 연구 노트?)이 확정되어야 UI/용어/연구 프로젝트 연결 방향을 정할 수 있음. 확정 전까지: 현재 코드 유지(dumb dialog, IndexedDB 일원화 완료), 추가 기능 개발 보류.
-- `[chatbot]` 챗봇 주제 폴더 인라인 이름 수정 — 현재 생성만 가능, 수정 불가. 챗봇 역할 확정 후 구현.
-- `[review]` Do not implement acceptance probability prediction.
-- `[workflow]` Do not expand disconnected AI features before the shared project model exists.
-- ~~`[paper]` Do not overbuild manuscript automation before analysis, figure, and provenance linkage is stable.~~ — 분석/Figure/provenance 연결 안정화됨. 논문 작성 6단계 계획 승인 (2026-03-30)
-- `[domain]` Do not expose legal-status outputs without source metadata and checked-date support.
+장기 방향. 현재 실행 우선순위 아님.
 
----
-
-## 6. Suggested execution order
-
-1. ~~Project UX rule and visible project structure~~ — 확정 (2026-03-22)
-2. ~~Prerequisites: `ProjectEntityKind` 정렬, 저장소 분기 해소, `activeResearchProjectId` 명명 확보~~ — 완료
-3. ~~`useResearchProjectStore` + `/projects` 페이지 + 사이드바 전환기~~ — 완료
-4. ~~컨텍스트 기반 자동 저장 (토스트 + override)~~ — 완료 (통계·그래프·유전적 분석)
-5. ~~프로젝트 상세/개요 페이지 (Phase 4) + 타임스탬프 타입 통일~~ — 완료
-6. ~~Evidence/provenance 저장 구현~~ — Phase 1 완료 (evidence-factory + saveToHistory 연동) + 재현 코드 내보내기 완료
-7. Species/legal source-aware records
-8. ~~Project-level draft assembly model~~ → **논문 작성 Phase 1-6** (계획 승인 2026-03-30)
-9. Reviewer checklist and export bundle
-10. Reviewer simulator
+- `[review]` reviewer simulator — 체크리스트/패키지 안정화 후
+- `[workflow]` 프로젝트 대시보드 강화
+- `[architecture]` 모노레포 전환 — 빌드 5분 초과 또는 팀 분할 시. 상세: [REVIEW-MONOREPO-ARCHITECTURE.md](docs/REVIEW-MONOREPO-ARCHITECTURE.md)
+- `[architecture]` 프로젝트 연결 DB 동기화 — D1 연동 시
+- `[workflow]` 프로젝트 협업/공유 — 스토리지 아키텍처 지원 시
+- `[domain]` citation/traceability 강화
+- `[review]` figure/table 저널 적합성 리뷰
+- `[ux]` 프로젝트 카드 클릭 동작 — 사용자 피드백 후 결정
+- `[trust]` 재현 코드 내보내기 확장 (고급 분석)
 
 ---
 
-## 7. Definition of done for the current cycle
+## 5. Blocked
 
-The current cycle should be considered successful when:
+- `[chatbot]` `/chatbot` 역할 정의 필요 — 확정 전까지 추가 개발 보류
+- `[chatbot]` 챗봇 주제 폴더 이름 수정 — 역할 확정 후
+- `[review]` acceptance probability prediction 구현 안 함
+- `[domain]` legal-status 노출은 source metadata + checked-date 선행
 
-- project-linked analysis, figure, and draft records are defined consistently
-- provenance can be stored with important AI outputs
-- species/legal outputs have source-aware metadata
-- graph outputs can be traced back to project and analysis context
-- the paper workflow can be designed on top of shared project records instead of isolated module state
+---
+
+## 6. 완료 이력 요약
+
+상세는 git history 참조. 주요 완성 항목:
+
+- **프로젝트 시스템**: ResearchProject 모델 + 저장소 + /projects 페이지 + 사이드바 전환기 + 자동 연결 + 상세 페이지
+- **통계 분석**: 43개 메서드 점검 완료, intent-router 개선, Worker 번호 정리, 가정 검정 로깅
+- **Graph Studio**: localStorage quota, AI 패치 검증, BOM 감지, quota 정책
+- **유전적 분석**: BLAST 통합 리팩토링, 히스토리 분리, 초보자 가이드, rate limit 재시도
+- **Bio-Tools**: BioToolId 타입, 차트 ECharts 전환, 결과 내보내기, 프로젝트 연결, Worker 9 골든 테스트
+- **논문 작성**: Phase 1 (타입+조립엔진) → Phase 2 (에디터) → Phase 3 (Plate WYSIWYG) → Phase 4 (DOCX 내보내기)
+- **UI 통합**: Shell/Upload/Bio 페이지 일관성, 토스트 마이그레이션, 디자인 토큰, 차트 팔레트 토큰화
+- **인프라**: Evidence 저장, 재현 코드 내보내기, CF 빌드 수정, genetics/bio-tools 구조 정리

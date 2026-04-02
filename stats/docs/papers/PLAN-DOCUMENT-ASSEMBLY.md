@@ -316,13 +316,16 @@ DocumentBlueprint 생성 시:
 - 저널 스타일 프리셋 (`docx-journal-styles.ts`)
 - 차트 이미지 삽입 (`docx-image-utils.ts`)
 
-### Phase 5: LLM 보강 (구 Phase D)
-- Introduction/Discussion/Abstract 자동 생성 (OpenRouter 스트리밍)
+### Phase 5: 영문 템플릿 완성 (방향 변경 2026-04-02)
+- 영문 Methods/Results/Captions 템플릿 15개 완성 (현재 전부 stub)
+- 헬퍼 함수 영문 분기 이미 부분 구현 → 템플릿 본문만 추가
+- ~~Introduction/Discussion/Abstract LLM 자동 생성~~ → **안 함** (외부 AI가 더 잘함, 별도 요청 시 재검토)
+- ~~외부 AI용 구조화된 프롬프트 클립보드 복사~~ → **보류** (필요 시 재검토)
 
 ### Phase 6: 폴리싱
 - 6a: 인용 관리 (citation store 신규 설계 필요)
 - 6b: Figure 오프스크린 렌더링 + 캐시
-- 6c: 영문 템플릿 완성
+- ~~6c: 영문 템플릿 완성~~ → Phase 5로 승격
 - 6d: 표/그림 자동 번호 매기기
 - 6e: HWP 내보내기
 - 6f: field-report 프리셋 (species-validation/legal-status resolver 선행)

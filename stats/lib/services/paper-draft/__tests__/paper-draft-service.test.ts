@@ -94,7 +94,7 @@ describe('generatePaperDraft — postHocDisplay 보존', () => {
     expect(draft.postHocDisplay).toBe('significant-only')
   })
 
-  it('영문 stub도 postHocDisplay를 포함한다', () => {
+  it('영문 템플릿도 postHocDisplay를 포함한다', () => {
     const draft = generatePaperDraft(
       makeExportCtx(),
       draftCtx,
@@ -104,7 +104,7 @@ describe('generatePaperDraft — postHocDisplay 보존', () => {
 
     expect(draft.language).toBe('en')
     expect(draft.postHocDisplay).toBe('all')
-    expect(draft.methods).toContain('coming soon')
+    expect(draft.methods).toContain('t-test')
   })
 
   it('영문 stub: postHocDisplay 미전달 → 기본값 "significant-only"', () => {

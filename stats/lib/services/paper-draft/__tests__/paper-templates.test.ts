@@ -532,16 +532,51 @@ describe('불완전 데이터 처리 (null guard)', () => {
   })
 })
 
-// ─── 17. 영문 stub ─────────────────────────────────────────────────────────────
+// ─── 17. 영문 템플릿 ─────────────────────────────────────────────────────────────
 
-describe('영문 stub', () => {
-  it('모든 카테고리에서 en → stub 문자열 반환', () => {
+describe('영문 템플릿', () => {
+  it('모든 카테고리에서 en → 실제 영문 텍스트 반환', () => {
     const categories = ['t-test', 'anova', 'nonparametric', 'correlation', 'regression', 'chi-square']
     for (const cat of categories) {
       const input: TemplateInput = { ...makeInput(cat), lang: 'en' }
       const tmpl = getTemplate(cat, cat)
-      expect(tmpl.methods(input)).toBe('English template coming soon.')
-      expect(tmpl.results(input)).toBe('English template coming soon.')
+      const methods = tmpl.methods(input)
+      const results = tmpl.results(input)
+      expect(methods).not.toContain('coming soon')
+      expect(results).not.toContain('coming soon')
+      expect(methods.length).toBeGreaterThan(20)
+      expect(results.length).toBeGreaterThan(20)
     }
+  })
+
+  it('영문 methods에 APA 통계 기호가 포함된다', () => {
+    const input: TemplateInput = { ...makeInput('t-test'), lang: 'en' }
+    const tmpl = getTemplate('t-test', 't-test')
+    const methods = tmpl.methods(input)
+    expect(methods).toContain('α =')
+    expect(methods).toContain('BioHub')
+  })
+
+  it('영문 results에 통계량과 p값이 포함된다', () => {
+    const input: TemplateInput = { ...makeInput('t-test'), lang: 'en' }
+    const tmpl = getTemplate('t-test', 't-test')
+    const results = tmpl.results(input)
+    expect(results).toContain('*t*')
+    expect(results).toContain('*p*')
+  })
+
+  it('영문 descriptive에 Descriptive statistics 문구가 포함된다', () => {
+    const input: TemplateInput = { ...makeInput('descriptive'), lang: 'en' }
+    const tmpl = getTemplate('descriptive', 'descriptive')
+    const results = tmpl.results(input)
+    expect(results).toContain('Descriptive statistics')
+  })
+
+  it('영문 correlation에 방향/강도가 포함된다', () => {
+    const input: TemplateInput = { ...makeInput('correlation'), lang: 'en' }
+    const tmpl = getTemplate('correlation', 'correlation')
+    const results = tmpl.results(input)
+    expect(results).toMatch(/positive|negative/)
+    expect(results).toMatch(/strong|moderate|weak/)
   })
 })
