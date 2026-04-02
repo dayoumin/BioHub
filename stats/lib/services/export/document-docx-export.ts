@@ -361,10 +361,9 @@ export async function buildDocxDocument(
  * buildDocxDocument로 문서 생성 후 Packer.toBlob → downloadBlob.
  */
 export async function documentToDocx(doc: DocumentBlueprint): Promise<void> {
-  const docx = await getDocx()
-  const document = await buildDocxDocument(doc)
-  const { Packer } = docx
-  const blob = await Packer.toBlob(document)
+  const { Packer } = await getDocx()
+  const docxDoc = await buildDocxDocument(doc)
+  const blob = await Packer.toBlob(docxDoc)
   const safeName = doc.title.replace(/[/\\?%*:|"<>]/g, '_')
   downloadBlob(blob, `${safeName}.docx`)
 }
