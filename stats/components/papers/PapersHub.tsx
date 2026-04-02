@@ -7,6 +7,7 @@ import {
   BookOpen, FileOutput, PenTool,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useHistoryStore } from '@/lib/stores/history-store'
@@ -181,14 +182,25 @@ export default function PapersHub({ onOpenDocument }: PapersHubProps): React.Rea
               : '프로젝트를 선택하면 문서를 만들 수 있습니다'}
           </p>
         </div>
-        <Button
-          onClick={() => setAssemblyOpen(true)}
-          disabled={!activeProject}
-          className="gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          새 문서
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={!activeProject ? 0 : undefined}>
+                <Button
+                  onClick={() => setAssemblyOpen(true)}
+                  disabled={!activeProject}
+                  className="gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  새 문서
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {!activeProject && (
+              <TooltipContent>프로젝트를 먼저 선택하세요</TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       {/* 문서 목록 */}
@@ -208,6 +220,22 @@ export default function PapersHub({ onOpenDocument }: PapersHubProps): React.Rea
             ))}
           </div>
         </section>
+      )}
+
+      {/* 빈 문서 목록 — 프로젝트 선택 + 문서 0개 */}
+      {activeProject && documents.length === 0 && (
+        <EmptyState
+          icon={PenTool}
+          title="아직 작성한 문서가 없습니다"
+          description="분석 결과를 조립하여 논문 초안을 만들어 보세요"
+          variant="inline"
+          action={
+            <Button onClick={() => setAssemblyOpen(true)} className="gap-2">
+              <Plus className="w-4 h-4" />
+              첫 문서 만들기
+            </Button>
+          }
+        />
       )}
 
       {/* 프로젝트 미선택 가드 */}

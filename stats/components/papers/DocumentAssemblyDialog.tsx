@@ -43,12 +43,27 @@ export default function DocumentAssemblyDialog({
 }: DocumentAssemblyDialogProps): React.ReactElement {
   const [selectedPreset, setSelectedPreset] = useState<DocumentPreset>('paper')
   const [title, setTitle] = useState('')
+  const [titleError, setTitleError] = useState(false)
   const [language, setLanguage] = useState<'ko' | 'en'>('ko')
   const [isCreating, setIsCreating] = useState(false)
   const { analysisHistory } = useHistoryStore()
 
+  // A2: 다이얼로그 닫힐 때 폼 리셋
+  const handleOpenChange = useCallback((nextOpen: boolean) => {
+    if (!nextOpen) {
+      setTitle('')
+      setTitleError(false)
+      setSelectedPreset('paper')
+      setLanguage('ko')
+    }
+    onOpenChange(nextOpen)
+  }, [onOpenChange])
+
   const handleCreate = useCallback(async () => {
-    if (!title.trim()) return
+    if (!title.trim()) {
+      setTitleError(true)
+      return
+    }
     setIsCreating(true)
 
     try {
@@ -82,7 +97,7 @@ export default function DocumentAssemblyDialog({
   }, [title, selectedPreset, language, projectId, analysisHistory, onCreated])
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>새 문서 만들기</DialogTitle>
@@ -130,10 +145,14 @@ export default function DocumentAssemblyDialog({
             <Input
               id="doc-title"
               value={title}
-              onChange={e => setTitle(e.target.value)}
+              onChange={e => { setTitle(e.target.value); setTitleError(false) }}
               placeholder="연구 논문 제목을 입력하세요"
               onKeyDown={e => e.key === 'Enter' && handleCreate()}
+              className={titleError ? 'border-destructive' : ''}
             />
+            {titleError && (
+              <p className="text-xs text-destructive">제목을 입력해주세요</p>
+            )}
           </div>
 
           {/* 언어 */}
@@ -155,7 +174,7 @@ export default function DocumentAssemblyDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>
             취소
           </Button>
           <Button

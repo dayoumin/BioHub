@@ -50,7 +50,10 @@ export default function MaterialPalette({
           분석 ({projectAnalyses.length})
         </p>
         {projectAnalyses.length === 0 && (
-          <p className="text-xs text-muted-foreground/60 py-2">프로젝트에 연결된 분석이 없습니다</p>
+          <p className="text-xs text-muted-foreground/60 py-2">
+            프로젝트에 연결된 분석이 없습니다.{' '}
+            <a href="/" className="text-primary hover:underline">분석 실행하기</a>
+          </p>
         )}
         {projectAnalyses.map(record => (
           <button

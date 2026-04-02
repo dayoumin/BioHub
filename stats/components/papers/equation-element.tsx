@@ -7,7 +7,7 @@
  * 표시 → KaTeX 라이브 렌더링 (useEquationElement)
  */
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { TEquationElement } from 'platejs'
 import type { PlateElementProps } from 'platejs/react'
 import { PlateElement } from 'platejs/react'
@@ -72,8 +72,17 @@ export function EquationElement(props: PlateElementProps<TEquationElement>): Rea
   const tex = element.texExpression || ''
   const katexRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
+  const autoOpenedRef = useRef(false)
 
   useEquationElement({ element, katexRef, options: { displayMode: true, throwOnError: false } })
+
+  // 빈 수식 삽입 시 자동으로 편집 Popover 열기
+  useEffect(() => {
+    if (!tex && !autoOpenedRef.current) {
+      autoOpenedRef.current = true
+      setOpen(true)
+    }
+  }, [tex])
 
   return (
     <PlateElement {...props}>
@@ -106,8 +115,16 @@ export function InlineEquationElement(props: PlateElementProps<TEquationElement>
   const tex = element.texExpression || ''
   const katexRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
+  const autoOpenedRef = useRef(false)
 
   useEquationElement({ element, katexRef, options: { displayMode: false, throwOnError: false } })
+
+  useEffect(() => {
+    if (!tex && !autoOpenedRef.current) {
+      autoOpenedRef.current = true
+      setOpen(true)
+    }
+  }, [tex])
 
   return (
     <PlateElement {...props} asChild>

@@ -209,6 +209,11 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     })
   }, [activeSectionId, scheduleSave])
 
+  // 섹션 제목 변경
+  const handleRenameSection = useCallback((sectionId: string, newTitle: string) => {
+    updateSection(sectionId, { title: newTitle })
+  }, [updateSection])
+
   // 섹션 추가
   const handleAddSection = useCallback(() => {
     setDoc(prev => {
@@ -374,7 +379,7 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
           <Button
             variant={previewMode ? 'secondary' : 'ghost'}
             size="sm"
-            onClick={() => setPreviewMode(true)}
+            onClick={() => { flushSerialize(); setPreviewMode(true) }}
             className="gap-1 rounded-l-none"
           >
             <Eye className="w-3.5 h-3.5" />
@@ -393,6 +398,7 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
             onSelectSection={setActiveSectionId}
             onReorder={handleReorder}
             onDeleteSection={handleDeleteSection}
+            onRenameSection={handleRenameSection}
             onAddSection={handleAddSection}
           />
         </div>

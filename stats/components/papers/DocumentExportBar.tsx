@@ -123,9 +123,13 @@ export default function DocumentExportBar({ document: doc, onBeforeExport }: Doc
   const handleCopyMarkdown = useCallback(async () => {
     onBeforeExport?.()
     const md = documentToMarkdown(doc)
-    await navigator.clipboard.writeText(md)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    try {
+      await navigator.clipboard.writeText(md)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast.error('클립보드에 복사할 수 없습니다')
+    }
   }, [doc, onBeforeExport])
 
   const handleDownloadHtml = useCallback(() => {
@@ -150,11 +154,11 @@ export default function DocumentExportBar({ document: doc, onBeforeExport }: Doc
 
   return (
     <div className="flex items-center gap-2 border-t pt-3">
-      <Button variant="outline" size="sm" onClick={handleCopyMarkdown} className="gap-1.5">
+      <Button variant="outline" size="sm" onClick={handleCopyMarkdown} disabled={!hasContent} className="gap-1.5">
         {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
         {copied ? '복사됨' : '마크다운 복사'}
       </Button>
-      <Button variant="outline" size="sm" onClick={handleDownloadHtml} className="gap-1.5">
+      <Button variant="outline" size="sm" onClick={handleDownloadHtml} disabled={!hasContent} className="gap-1.5">
         <Download className="w-4 h-4" />
         HTML 다운로드
       </Button>
