@@ -10,6 +10,7 @@ import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { BioResultSummary } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { resolveAxisColors, resolveChartPalette } from '@/lib/charts/chart-color-resolver'
 import { BarChart3, Loader2 } from 'lucide-react'
@@ -99,6 +100,7 @@ const RarefactionTool = memo(function RarefactionTool({ tool, meta, initialEntry
       {results && chartOption && (
         <div ref={resultsRef} className="space-y-4">
           <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
+          <BioResultSummary>
           <h3 className="text-sm font-semibold">종 희박화 곡선</h3>
 
           <div className="border rounded-lg bg-card max-w-2xl">
@@ -113,6 +115,7 @@ const RarefactionTool = memo(function RarefactionTool({ tool, meta, initialEntry
           <p className="text-xs text-muted-foreground">
             곡선이 평탄해지면 샘플링이 충분함을 의미합니다.
           </p>
+          </BioResultSummary>
         </div>
       )}
     </div>

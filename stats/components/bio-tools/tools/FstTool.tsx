@@ -14,6 +14,7 @@ import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio
 import { detectPopulationColumn, detectIndividualColumn } from '@/lib/bio-tools/genetics-columns'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
@@ -158,6 +159,15 @@ const FstTool = memo(function FstTool({ tool, meta, initialEntry }: ToolComponen
       {results && (
         <div ref={resultsRef} className="space-y-6">
           <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
+          <BioResultSummary
+            metrics={[
+              { label: 'Global Fst', value: results.globalFst.toFixed(6), tooltip: fstLevel?.label },
+              ...(results.permutationPValue != null ? [{ label: 'p-value', value: results.permutationPValue.toFixed(4), tooltip: `${results.nPermutations ?? 0} 순열 검정` }] : []),
+              { label: '집단 수', value: String(results.nPopulations) },
+              ...(results.nLoci != null ? [{ label: '유전자좌', value: String(results.nLoci) }] : []),
+            ] satisfies MetricItem[]}
+            columns={4}
+          >
           <div className="p-4 border rounded-lg space-y-3">
             <div className="text-sm text-muted-foreground">Global Fst</div>
             <div className="text-2xl font-bold font-mono">
@@ -242,6 +252,7 @@ const FstTool = memo(function FstTool({ tool, meta, initialEntry }: ToolComponen
                 : ' 입력은 allele count (빈도 아님).'}
             </p>
           </div>
+          </BioResultSummary>
         </div>
       )}
     </div>

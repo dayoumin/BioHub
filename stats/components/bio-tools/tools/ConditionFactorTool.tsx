@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildConditionFactorColumns } from '@/lib/graph-studio/analysis-adapter'
@@ -180,6 +181,15 @@ const ConditionFactorTool = memo(function ConditionFactorTool({ tool, meta, init
       {results && (
         <div ref={resultsRef} className="space-y-6">
           <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
+          <BioResultSummary
+            metrics={[
+              { label: '평균 K', value: results.mean.toFixed(4), tooltip: `Fulton's K 평균 (SD: ${results.std.toFixed(4)})` },
+              { label: '중앙값', value: results.median.toFixed(4) },
+              { label: 'N', value: String(results.n) },
+              { label: '범위', value: `${results.min.toFixed(4)} – ${results.max.toFixed(4)}` },
+            ] satisfies MetricItem[]}
+            columns={4}
+          >
           <div>
             <h3 className="text-sm font-semibold mb-2">Fulton&apos;s K 요약</h3>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
@@ -271,6 +281,7 @@ const ConditionFactorTool = memo(function ConditionFactorTool({ tool, meta, init
               <li>대안: relative condition factor (Kn = W / W<sub>expected</sub>)</li>
             </ul>
           </div>
+          </BioResultSummary>
         </div>
       )}
     </div>

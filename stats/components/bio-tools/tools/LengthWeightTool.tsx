@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils'
 import { ArrowRight, BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildLengthWeightColumns } from '@/lib/graph-studio/analysis-adapter'
@@ -175,6 +176,15 @@ const LengthWeightTool = memo(function LengthWeightTool({ tool, meta, initialEnt
       {results && (
         <div ref={resultsRef} className="space-y-6">
           <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
+          <BioResultSummary
+            metrics={[
+              { label: 'b (기울기)', value: results.b.toFixed(4), tooltip: `SE: ${results.bStdError.toFixed(4)}` },
+              { label: 'R\u00B2', value: results.rSquared.toFixed(4) },
+              { label: '성장 유형', value: growthLabel?.ko ?? results.growthType },
+              { label: 'N', value: String(results.nObservations) },
+            ] satisfies MetricItem[]}
+            columns={4}
+          >
           <div className="p-4 border rounded-lg space-y-3">
             <div className="text-sm text-muted-foreground">추정된 관계식</div>
             <div className="text-lg font-semibold font-mono">
@@ -258,6 +268,7 @@ const LengthWeightTool = memo(function LengthWeightTool({ tool, meta, initialEnt
               </p>
             )}
           </div>
+          </BioResultSummary>
         </div>
       )}
     </div>

@@ -15,6 +15,7 @@ import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio
 import { detectLocusColumn } from '@/lib/bio-tools/genetics-columns'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
@@ -155,6 +156,15 @@ const HardyWeinbergTool = memo(function HardyWeinbergTool({ tool, meta, initialE
       {results && (
         <div ref={resultsRef} className="space-y-6">
           <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
+          <BioResultSummary
+            metrics={[
+              { label: 'p (빈도)', value: results.alleleFreqP.toFixed(4) },
+              { label: 'q (빈도)', value: results.alleleFreqQ.toFixed(4) },
+              { label: '\u03C7\u00B2', value: results.chiSquare, tooltip: 'Chi-square 검정 통계량' },
+              { label: '판정', value: results.isMonomorphic ? '단형성' : (results.inEquilibrium ? 'HW 평형' : 'HW 이탈') },
+            ] satisfies MetricItem[]}
+            columns={4}
+          >
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-3 border rounded-lg text-center">
               <div className="text-xs text-muted-foreground">p (빈도)</div>
@@ -267,6 +277,7 @@ const HardyWeinbergTool = memo(function HardyWeinbergTool({ tool, meta, initialE
               </div>
             </div>
           )}
+          </BioResultSummary>
         </div>
       )}
     </div>

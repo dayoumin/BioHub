@@ -11,6 +11,7 @@ import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { BioResultSummary } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
@@ -83,6 +84,7 @@ const BetaDiversityTool = memo(function BetaDiversityTool({ tool, meta, initialE
       {results && (
         <div ref={resultsRef} className="space-y-4">
           <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
+          <BioResultSummary>
           <h3 className="text-sm font-semibold">
             거리행렬 ({METRIC_LABELS[results.metric as MetricOption] ?? results.metric})
           </h3>
@@ -128,6 +130,7 @@ const BetaDiversityTool = memo(function BetaDiversityTool({ tool, meta, initialE
               PERMANOVA 검정 →
             </Link>
           </div>
+          </BioResultSummary>
         </div>
       )}
     </div>

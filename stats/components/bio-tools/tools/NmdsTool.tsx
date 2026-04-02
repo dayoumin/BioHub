@@ -10,6 +10,7 @@ import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { BIO_BADGE_CLASS, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { resolveAxisColors, resolveChartPalette } from '@/lib/charts/chart-color-resolver'
@@ -162,6 +163,14 @@ const NmdsTool = memo(function NmdsTool({ tool, meta, initialEntry }: ToolCompon
       {results && (
         <div ref={resultsRef} className="space-y-4">
           <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
+          <BioResultSummary
+            metrics={[
+              { label: 'Stress', value: results.stress, tooltip: STRESS_LABELS[results.stressInterpretation] ?? results.stressInterpretation },
+              { label: '차원 수', value: coords.length > 0 ? coords[0].length : 2 },
+              { label: '지점 수', value: results.siteLabels.length },
+            ] satisfies MetricItem[]}
+            columns={3}
+          >
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">Stress:</span>
             <span
@@ -182,6 +191,7 @@ const NmdsTool = memo(function NmdsTool({ tool, meta, initialEntry }: ToolCompon
             <BarChart3 className="h-4 w-4 mr-1.5" />
             Graph Studio에서 열기
           </Button>
+          </BioResultSummary>
         </div>
       )}
     </div>

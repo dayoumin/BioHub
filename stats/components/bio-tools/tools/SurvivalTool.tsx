@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildKmCurveColumns } from '@/lib/graph-studio/analysis-adapter'
@@ -171,6 +172,17 @@ const SurvivalTool = memo(function SurvivalTool({ tool, meta, initialEntry }: To
       {results && (
         <div ref={resultsRef} className="space-y-6">
           <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
+          <BioResultSummary
+            metrics={[
+              ...(results.logRankP !== null ? [{ label: 'Log-rank p', value: formatPValue(results.logRankP), tooltip: results.logRankP < 0.05 ? '그룹 간 유의한 차이' : '그룹 간 유의한 차이 없음' }] : []),
+              { label: '그룹 수', value: curveEntries.length },
+              ...(curveEntries.length === 1 && curveEntries[0][1].medianSurvival !== null
+                ? [{ label: '중앙 생존 시간', value: formatNumber(curveEntries[0][1].medianSurvival) }]
+                : []),
+              { label: '총 관측 수', value: curveEntries.reduce((sum, [, c]) => sum + c.atRisk[0], 0) },
+            ] satisfies MetricItem[]}
+            columns={curveEntries.length === 1 && curveEntries[0][1].medianSurvival !== null ? 4 : 3}
+          >
           {/* Log-rank 결과 */}
           {results.logRankP !== null && (
             <div className="flex items-center gap-4 p-3 rounded-lg border bg-card">
@@ -236,6 +248,7 @@ const SurvivalTool = memo(function SurvivalTool({ tool, meta, initialEntry }: To
               </table>
             </div>
           </div>
+          </BioResultSummary>
         </div>
       )}
     </div>

@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildRocCurveColumns } from '@/lib/graph-studio/analysis-adapter'
@@ -165,6 +166,15 @@ const RocAucTool = memo(function RocAucTool({ tool, meta, initialEntry }: ToolCo
       {results && (
         <div ref={resultsRef} className="space-y-6">
           <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
+          <BioResultSummary
+            metrics={[
+              { label: 'AUC', value: formatNumber(results.auc), tooltip: `95% CI: [${formatNumber(results.aucCI.lower)}, ${formatNumber(results.aucCI.upper)}]` },
+              { label: '최적 임계값', value: formatNumber(results.optimalThreshold), tooltip: "Youden's J 기준" },
+              { label: '민감도', value: formatNumber(results.sensitivity) },
+              { label: '특이도', value: formatNumber(results.specificity) },
+            ] satisfies MetricItem[]}
+            columns={4}
+          >
           {/* 결과 요약 */}
           <div>
             <h3 className="text-sm font-semibold mb-2">분석 결과</h3>
@@ -228,6 +238,7 @@ const RocAucTool = memo(function RocAucTool({ tool, meta, initialEntry }: ToolCo
             <BarChart3 className="h-4 w-4 mr-1.5" />
             Graph Studio에서 열기
           </Button>
+          </BioResultSummary>
         </div>
       )}
     </div>

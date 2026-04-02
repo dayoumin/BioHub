@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildVbgfColumns } from '@/lib/graph-studio/analysis-adapter'
@@ -167,6 +168,15 @@ const VbgfTool = memo(function VbgfTool({ tool, meta, initialEntry }: ToolCompon
       {results && (
         <div ref={resultsRef} className="space-y-6">
           <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
+          <BioResultSummary
+            metrics={[
+              { label: 'L\u221E', value: results.lInf.toFixed(2), tooltip: '극한 체장 (asymptotic length)' },
+              { label: 'K', value: results.k.toFixed(4), tooltip: '성장 계수 (growth coefficient)' },
+              { label: 't\u2080', value: results.t0.toFixed(4), tooltip: '이론적 체장 0 시점' },
+              { label: 'R\u00B2', value: results.rSquared.toFixed(4), tooltip: '적합도 (결정계수)' },
+            ] satisfies MetricItem[]}
+            columns={4}
+          >
           <div>
             <h3 className="text-sm font-semibold mb-2">파라미터 추정</h3>
             <div className="overflow-auto border rounded-lg">
@@ -230,6 +240,7 @@ const VbgfTool = memo(function VbgfTool({ tool, meta, initialEntry }: ToolCompon
               </div>
             </div>
           </div>
+          </BioResultSummary>
         </div>
       )}
     </div>

@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import type { IccResult, IccType } from '@/types/bio-tools-results'
 import type { ToolComponentProps } from './types'
@@ -112,6 +113,15 @@ const IccTool = memo(function IccTool({ tool, meta, initialEntry }: ToolComponen
       {results && (
         <div ref={resultsRef} className="space-y-6">
           <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
+          <BioResultSummary
+            metrics={[
+              { label: 'ICC', value: formatNumber(results.icc), tooltip: ICC_TYPE_LABELS[results.iccType] ?? results.iccType },
+              { label: '95% CI', value: `[${formatNumber(results.ci[0])}, ${formatNumber(results.ci[1])}]` },
+              { label: 'F', value: formatNumber(results.fValue, 2), tooltip: `df = (${results.df1}, ${results.df2})` },
+              { label: 'p-value', value: formatPValue(results.pValue) },
+            ] satisfies MetricItem[]}
+            columns={4}
+          >
           {/* ICC 결과 */}
           <div>
             <h3 className="text-sm font-semibold mb-2">ICC 분석 결과</h3>
@@ -233,6 +243,7 @@ const IccTool = memo(function IccTool({ tool, meta, initialEntry }: ToolComponen
               </div>
             </div>
           </div>
+          </BioResultSummary>
         </div>
       )}
     </div>

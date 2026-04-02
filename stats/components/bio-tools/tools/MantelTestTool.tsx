@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { cn } from '@/lib/utils'
@@ -160,6 +161,14 @@ const MantelTestTool = memo(function MantelTestTool({ tool, meta }: ToolComponen
       {results && (
         <div ref={resultsRef} className="space-y-4">
           <BioResultsHeader exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
+          <BioResultSummary
+            metrics={[
+              { label: 'Mantel r', value: results.r, tooltip: `${results.method === 'pearson' ? 'Pearson' : 'Spearman'} 상관` },
+              { label: 'p-value', value: results.pValue, tooltip: `${results.permutations} 순열 검정` },
+              { label: '순열 수', value: String(results.permutations) },
+            ] satisfies MetricItem[]}
+            columns={3}
+          >
           <div className="flex items-center gap-2">
             <span
               className={BIO_BADGE_CLASS}
@@ -185,6 +194,7 @@ const MantelTestTool = memo(function MantelTestTool({ tool, meta }: ToolComponen
               </tbody>
             </table>
           </div>
+          </BioResultSummary>
         </div>
       )}
     </div>

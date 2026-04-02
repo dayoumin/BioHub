@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 import { BarChart3, Loader2 } from 'lucide-react'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { useOpenInGraphStudio } from '@/hooks/use-open-in-graph-studio'
 import { buildMetaAnalysisColumns } from '@/lib/graph-studio/analysis-adapter'
@@ -132,6 +133,15 @@ const MetaAnalysisTool = memo(function MetaAnalysisTool({ tool, meta, initialEnt
       {results && forestData && (
         <div ref={resultsRef} className="space-y-6">
           <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
+          <BioResultSummary
+            metrics={[
+              { label: '통합 효과크기', value: formatNumber(results.pooledEffect), tooltip: `95% CI: [${formatNumber(results.ci[0])}, ${formatNumber(results.ci[1])}]` },
+              { label: 'p-value', value: formatPValue(results.pValue) },
+              { label: 'I\u00B2', value: `${formatNumber(results.iSquared, 1)}%`, tooltip: '이질성 지표' },
+              { label: 'Q 통계량', value: formatNumber(results.Q, 2), tooltip: `Q p = ${formatPValue(results.QpValue)}` },
+            ] satisfies MetricItem[]}
+            columns={4}
+          >
           {/* 통합 결과 테이블 */}
           <div>
             <h3 className="text-sm font-semibold mb-2">통합 결과</h3>
@@ -313,6 +323,7 @@ const MetaAnalysisTool = memo(function MetaAnalysisTool({ tool, meta, initialEnt
               </table>
             </div>
           </div>
+          </BioResultSummary>
         </div>
       )}
     </div>

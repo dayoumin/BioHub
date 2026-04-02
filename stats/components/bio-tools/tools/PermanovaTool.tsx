@@ -9,6 +9,7 @@ import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables } from '@/lib/bio-tools/bio-export-tables'
 import { BIO_BADGE_CLASS, BIO_TABLE, SIGNIFICANCE_BADGE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
@@ -81,6 +82,14 @@ const PermanovaTool = memo(function PermanovaTool({ tool, meta, initialEntry }: 
       {results && (
         <div ref={resultsRef} className="space-y-4">
           <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
+          <BioResultSummary
+            metrics={[
+              { label: 'Pseudo-F', value: results.pseudoF },
+              { label: 'R\u00B2', value: results.rSquared },
+              { label: 'p-value', value: results.pValue, tooltip: significant ? '유의함 (p < 0.05)' : '유의하지 않음' },
+            ] satisfies MetricItem[]}
+            columns={3}
+          >
           <div className="flex items-center gap-2">
             <span
               className={BIO_BADGE_CLASS}
@@ -113,6 +122,7 @@ const PermanovaTool = memo(function PermanovaTool({ tool, meta, initialEntry }: 
           <p className="text-xs text-muted-foreground">
             Anderson, M.J. (2001) Austral Ecology, 26, 32-46. Bray-Curtis 거리 기반.
           </p>
+          </BioResultSummary>
         </div>
       )}
     </div>
