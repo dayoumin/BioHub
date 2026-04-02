@@ -65,6 +65,13 @@ function unitStr(col: string, ctx: DraftContext): string {
   return u ? ` (${u})` : ''
 }
 
+/** 종속변수명 조회 (lang별 fallback) */
+function depVarName(ctx: DraftContext, lang: 'ko' | 'en', variant: 'dep' | 'var' = 'dep'): string {
+  if (ctx.dependentVariable) return ctx.dependentVariable
+  if (variant === 'var') return lang === 'en' ? 'the variable' : '변수'
+  return lang === 'en' ? 'the dependent variable' : '종속변수'
+}
+
 /** 종속변수 컬럼키 → 단위 역조회 (variableLabels 역방향) */
 function depUnit(ctx: DraftContext): string {
   if (!ctx.dependentVariable) return ''
@@ -74,8 +81,8 @@ function depUnit(ctx: DraftContext): string {
   return col ? unitStr(col, ctx) : ''
 }
 
-/** 정규성 가정 텍스트 생성 (Methods용) */
-function buildNormalityText(normTests: FlatAssumption[], lang: 'ko' | 'en'): string {
+/** 정규성 가정 텍스트 생성 (Methods용). embedded=true면 영문 첫 글자 소문자 */
+function buildNormalityText(normTests: FlatAssumption[], lang: 'ko' | 'en', embedded = false): string {
   if (!normTests.length) return ''
   const testName = normTests[0].testName  // 'Shapiro-Wilk' 등
 
@@ -86,7 +93,8 @@ function buildNormalityText(normTests: FlatAssumption[], lang: 'ko' | 'en'): str
       const grp = a.group ? ` [${a.group}]` : ''
       return `${base}${p}${grp}`.trim()
     })
-    return `Normality was assessed using the ${testName} test (${parts.join('; ')}).`
+    const sentence = `Normality was assessed using the ${testName} test (${parts.join('; ')}).`
+    return embedded ? sentence.replace(/^N/, 'n') : sentence
   }
 
   const parts = normTests.map(a => {
@@ -368,7 +376,7 @@ const T_TEST_TEMPLATE: CategoryTemplate = {
     const alpha = r.additional?.alpha ?? 0.05
     const normTests = grouped.normality ?? []
     const homoTests = grouped.homogeneity ?? []
-    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the dependent variable' : '종속변수')
+    const depVar = depVarName(ctx, lang)
 
     if (lang === 'en') {
       const intro = ctx.researchContext
@@ -409,7 +417,7 @@ const T_TEST_TEMPLATE: CategoryTemplate = {
     const df = fmtDf(r.df)
     const es = esValue(r.effectSize)
     const esLbl = esLabel(r.effectSize, "Cohen's *d*")
-    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the dependent variable' : '종속변수')
+    const depVar = depVarName(ctx, lang)
     const gs = r.groupStats ?? []
     const g1 = gs[0]
     const g2 = gs[1]
@@ -458,13 +466,13 @@ const ONE_SAMPLE_T_TEMPLATE: CategoryTemplate = {
   methods({ r, grouped, ctx, lang }) {
     const alpha = r.additional?.alpha ?? 0.05
     const normTests = grouped.normality ?? []
-    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the variable' : '변수')
+    const depVar = depVarName(ctx, lang, 'var')
     const testValue = r.additional?.testValue ?? r.additional?.mu ?? 0
 
     if (lang === 'en') {
       const intro = `A one-sample t-test was conducted to determine whether the mean of ${depVar} differed from ${testValue}.`
       const parts = [intro]
-      if (normTests.length) parts.push(`Prior to analysis, ${buildNormalityText(normTests, lang).replace(/^N/, 'n')}`)
+      if (normTests.length) parts.push(`Prior to analysis, ${buildNormalityText(normTests, lang, true)}`)
       parts.push(buildAlphaSoftware(alpha, lang))
       return parts.filter(Boolean).join(' ')
     }
@@ -480,7 +488,7 @@ const ONE_SAMPLE_T_TEMPLATE: CategoryTemplate = {
     const alpha = r.additional?.alpha ?? 0.05
     const significant = r.pValue < alpha
     const testValue = r.additional?.testValue ?? r.additional?.mu ?? 0
-    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the variable' : '변수')
+    const depVar = depVarName(ctx, lang, 'var')
     const es = esValue(r.effectSize)
 
     if (lang === 'en') {
@@ -513,12 +521,12 @@ const PAIRED_T_TEMPLATE: CategoryTemplate = {
   methods({ r, grouped, ctx, lang }) {
     const alpha = r.additional?.alpha ?? 0.05
     const normTests = grouped.normality ?? []
-    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the variable' : '변수')
+    const depVar = depVarName(ctx, lang, 'var')
 
     if (lang === 'en') {
       const intro = `A paired samples t-test was conducted to examine the difference in ${depVar} between pre- and post-treatment.`
       const parts = [intro]
-      if (normTests.length) parts.push(`Normality of the difference scores was verified: ${buildNormalityText(normTests, lang).replace(/^N/, 'n')}`)
+      if (normTests.length) parts.push(`Normality of the difference scores was verified: ${buildNormalityText(normTests, lang, true)}`)
       parts.push(buildAlphaSoftware(alpha, lang))
       return parts.filter(Boolean).join(' ')
     }
@@ -533,7 +541,7 @@ const PAIRED_T_TEMPLATE: CategoryTemplate = {
   results({ r, ctx, lang }) {
     const alpha = r.additional?.alpha ?? 0.05
     const significant = r.pValue < alpha
-    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the variable' : '변수')
+    const depVar = depVarName(ctx, lang, 'var')
     const es = esValue(r.effectSize)
     const gs = r.groupStats ?? []
 
@@ -586,7 +594,7 @@ const ANOVA_TEMPLATE: CategoryTemplate = {
     const normTests = grouped.normality ?? []
     const homoTests = grouped.homogeneity ?? []
     const spherTests = grouped.sphericity ?? []
-    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the dependent variable' : '종속변수')
+    const depVar = depVarName(ctx, lang)
 
     if (lang === 'en') {
       const intro = ctx.researchContext
@@ -623,7 +631,7 @@ const ANOVA_TEMPLATE: CategoryTemplate = {
     const alpha = r.additional?.alpha ?? 0.05
     const significant = r.pValue < alpha
     const df = fmtDf(r.df)
-    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the dependent variable' : '종속변수')
+    const depVar = depVarName(ctx, lang)
     const esInput = r.effectSize ?? r.omegaSquared
     const es = esValue(esInput)
     const esLbl = esLabel(esInput, 'η²')
@@ -664,7 +672,7 @@ const NONPARAMETRIC_TEMPLATE: CategoryTemplate = {
     const methodName = getMethodDisplayName(methodId, lang)
     const alpha = r.additional?.alpha ?? 0.05
     const normTests = grouped.normality ?? []
-    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the dependent variable' : '종속변수')
+    const depVar = depVarName(ctx, lang)
 
     if (lang === 'en') {
       const intro = ctx.researchContext
@@ -700,7 +708,7 @@ const NONPARAMETRIC_TEMPLATE: CategoryTemplate = {
     const significant = r.pValue < alpha
     const df = fmtDf(r.df)
     const dfStr = df ? `(${df})` : ''
-    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the dependent variable' : '종속변수')
+    const depVar = depVarName(ctx, lang)
     const es = esValue(r.effectSize)
 
     const method = r.method?.toLowerCase() ?? ''
@@ -751,7 +759,7 @@ const CORRELATION_TEMPLATE: CategoryTemplate = {
         ? `A ${methodName} was conducted to ${ctx.researchContext}.`
         : `A ${methodName} was conducted to examine the relationship between ${varStr}.`
       const parts = [intro]
-      if (normTests.length) parts.push(`Prior to analysis, ${buildNormalityText(normTests, lang).replace(/^N/, 'n')}`)
+      if (normTests.length) parts.push(`Prior to analysis, ${buildNormalityText(normTests, lang, true)}`)
       parts.push(buildAlphaSoftware(alpha, lang))
       return parts.filter(Boolean).join(' ')
     }
@@ -811,7 +819,7 @@ const REGRESSION_TEMPLATE: CategoryTemplate = {
     const normTests = grouped.normality ?? []
     const homoTests = grouped.homogeneity ?? []
     const indepTests = grouped.independence ?? []
-    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the dependent variable' : '종속변수')
+    const depVar = depVarName(ctx, lang)
 
     if (lang === 'en') {
       const intro = ctx.researchContext
@@ -849,7 +857,7 @@ const REGRESSION_TEMPLATE: CategoryTemplate = {
     const df = fmtDf(r.df)
     const rSq = r.additional?.rSquared
     const adjRSq = r.additional?.adjustedRSquared ?? r.additional?.adjRSquared
-    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the dependent variable' : '종속변수')
+    const depVar = depVarName(ctx, lang)
 
     if (lang === 'en') {
       let text = `The regression model was statistically ${significant ? 'significant' : 'non-significant'} `
@@ -892,7 +900,7 @@ const REGRESSION_TEMPLATE: CategoryTemplate = {
 
   captions(input) {
     const { ctx, lang } = input
-    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the dependent variable' : '종속변수')
+    const depVar = depVarName(ctx, lang)
     const tableText = lang === 'ko'
       ? `${depVar}에 대한 회귀분석 결과. B = 비표준화 계수, SE = 표준오차, β = 표준화 계수.`
       : `Regression analysis for ${depVar}. B = unstandardized coefficient, SE = standard error, β = standardized coefficient.`
@@ -969,7 +977,7 @@ const DESCRIPTIVE_TEMPLATE: CategoryTemplate = {
   methods({ r, grouped, ctx, lang }) {
     const alpha = r.additional?.alpha ?? 0.05
     const normTests = grouped.normality ?? []
-    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the variable' : '변수')
+    const depVar = depVarName(ctx, lang, 'var')
 
     if (lang === 'en') {
       const intro = ctx.researchContext
@@ -993,7 +1001,7 @@ const DESCRIPTIVE_TEMPLATE: CategoryTemplate = {
 
   results({ r, ctx, lang }) {
     const alpha = r.additional?.alpha ?? 0.05
-    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the variable' : '변수')
+    const depVar = depVarName(ctx, lang, 'var')
     const add = r.additional ?? {}
 
     if (lang === 'en') {
@@ -1031,7 +1039,7 @@ const DESCRIPTIVE_TEMPLATE: CategoryTemplate = {
 
   captions(input) {
     const { ctx, lang } = input
-    const depVar = ctx.dependentVariable ?? (lang === 'en' ? 'the variable' : '변수')
+    const depVar = depVarName(ctx, lang, 'var')
     const tableText = lang === 'ko'
       ? `${depVar}의 기술통계량 요약. *M* = 평균, *SD* = 표준편차, *Mdn* = 중앙값, IQR = 사분위 범위.`
       : `Descriptive statistics summary for ${depVar}. *M* = mean, *SD* = standard deviation, *Mdn* = median, IQR = interquartile range.`
