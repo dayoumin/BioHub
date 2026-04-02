@@ -11,6 +11,7 @@ import { BlockquotePlugin } from '@platejs/basic-nodes/react'
 import { ListPlugin } from '@platejs/list/react'
 import { IndentPlugin } from '@platejs/indent/react'
 import { TablePlugin } from '@platejs/table/react'
+import { EquationPlugin, InlineEquationPlugin } from '@platejs/math/react'
 import { MarkdownPlugin } from '@platejs/markdown'
 
 /** Papers 에디터 플러그인 배열 */
@@ -32,6 +33,10 @@ export const paperPlugins = [
 
   // 표
   TablePlugin,
+
+  // 수식
+  EquationPlugin,
+  InlineEquationPlugin,
 
   // 마크다운 직렬화/역직렬화
   MarkdownPlugin,

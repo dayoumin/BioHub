@@ -21,6 +21,7 @@ import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { GraphProject } from '@/types/graph-studio'
 import { MARKDOWN_CONFIG } from '@/lib/rag/config/markdown-config'
 import { paperPlugins } from './plate-plugins'
+import { EquationElement, InlineEquationElement } from './equation-element'
 import PlateEditor from './PlateEditor'
 import DocumentSectionList from './DocumentSectionList'
 import MaterialPalette from './MaterialPalette'
@@ -50,7 +51,15 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
   const { analysisHistory } = useHistoryStore()
 
   // Plate 에디터 인스턴스 — DocumentEditor가 소유
-  const editor = usePlateEditor({ plugins: paperPlugins })
+  const editor = usePlateEditor({
+    plugins: paperPlugins,
+    override: {
+      components: {
+        equation: EquationElement,
+        inline_equation: InlineEquationElement,
+      },
+    },
+  })
 
   // 언마운트 시 미저장 변경 즉시 flush + 타이머 정리
   const pendingDocRef = useRef<DocumentBlueprint | null>(null)

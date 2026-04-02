@@ -10,6 +10,7 @@
 import {
   Bold, Italic, Underline, Strikethrough, Code,
   Heading1, Heading2, Heading3, List, ListOrdered, Quote,
+  Table, Sigma,
 } from 'lucide-react'
 import type { PlateEditor as PlateEditorType } from 'platejs/react'
 import { Plate } from 'platejs/react'
@@ -86,6 +87,21 @@ export default function PlateEditor({ editor, onChange }: PlateEditorProps): Rea
           onClick={() => editor.tf.toggleBlock({ type: 'blockquote' })}
         >
           <Quote className="w-4 h-4" />
+        </ToolbarButton>
+
+        <ToolbarSeparator />
+
+        <ToolbarButton
+          tooltip="표 삽입"
+          onClick={() => editor.tf.insert.table({})  }
+        >
+          <Table className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          tooltip="인라인 수식 ($...$)"
+          onClick={() => editor.tf.insert.inlineEquation()}
+        >
+          <Sigma className="w-4 h-4" />
         </ToolbarButton>
       </FixedToolbar>
 
