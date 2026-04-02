@@ -9,6 +9,7 @@ import { useBioToolAnalysis } from '@/hooks/use-bio-tool-analysis'
 import { useScrollToResults } from '@/hooks/use-scroll-to-results'
 import { BioToolIntro } from '@/components/bio-tools/BioToolIntro'
 import { BioResultsHeader } from '@/components/bio-tools/BioResultsHeader'
+import { BioResultSummary, type MetricItem } from '@/components/common/results'
 import { getBioExportTables, ALPHA_INDEX_LABELS } from '@/lib/bio-tools/bio-export-tables'
 import { BIO_TABLE } from '@/components/bio-tools/bio-styles'
 import { cn } from '@/lib/utils'
@@ -61,6 +62,14 @@ const AlphaDiversityTool = memo(function AlphaDiversityTool({ tool, meta, initia
       {results && (
         <div ref={resultsRef} className="space-y-6">
           <BioResultsHeader onSave={handleSave} isSaved={isSaved} exportData={getBioExportTables(tool.id, results)} toolName={tool.nameEn} />
+          <BioResultSummary
+            metrics={results.summaryTable.slice(0, 4).map((s): MetricItem => ({
+              label: INDEX_LABELS[s.index] ?? s.index,
+              value: s.mean,
+              tooltip: `평균 ${INDEX_LABELS[s.index] ?? s.index} (SD: ${s.sd})`,
+            }))}
+            columns={4}
+          >
           <div>
             <h3 className="text-sm font-semibold mb-2">지점별 다양성 지수</h3>
             <div className="overflow-auto border rounded-lg">
@@ -122,10 +131,11 @@ const AlphaDiversityTool = memo(function AlphaDiversityTool({ tool, meta, initia
               </div>
             </div>
           )}
+          </BioResultSummary>
         </div>
       )}
     </div>
   )
-})
+}
 
 export default AlphaDiversityTool
