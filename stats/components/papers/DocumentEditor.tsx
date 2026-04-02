@@ -57,7 +57,11 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
   const serializeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     return () => {
-      if (serializeTimerRef.current) clearTimeout(serializeTimerRef.current)
+      // serialize 타이머가 있으면 flush하여 content 확정
+      if (serializeTimerRef.current) {
+        clearTimeout(serializeTimerRef.current)
+        // 언마운트 시에는 flushSerialize 호출 불가 (ref 의존) — pendingDoc에 반영됨
+      }
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current)
         if (pendingDocRef.current) {
@@ -103,16 +107,35 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     })
   }, [scheduleSave])
 
+  // serialize 타이머 flush — 섹션 전환/언마운트 전에 현재 content 확정
+  const pendingSerializeSectionRef = useRef<string | null>(null)
+  const flushSerialize = useCallback(() => {
+    if (serializeTimerRef.current) {
+      clearTimeout(serializeTimerRef.current)
+      serializeTimerRef.current = null
+    }
+    const sectionId = pendingSerializeSectionRef.current
+    if (!sectionId) return
+    pendingSerializeSectionRef.current = null
+    try {
+      const markdown = editor.api.markdown.serialize()
+      updateSection(sectionId, { content: markdown })
+    } catch {
+      // serialize 실패 시 무시
+    }
+  }, [editor, updateSection])
+
   // Plate 에디터 변경 → plateValue 즉시 저장, serialize는 디바운스 (입력 성능 보호)
   const handlePlateChange = useCallback(() => {
     if (!activeSectionId) return
-    // plateValue는 즉시 반영 (참조만 저장, 비용 무시)
     const plateValue = editor.children
     updateSection(activeSectionId, { plateValue, generatedBy: 'user' })
 
-    // serialize는 디바운스 — 마크다운 변환 비용 보호
+    pendingSerializeSectionRef.current = activeSectionId
     if (serializeTimerRef.current) clearTimeout(serializeTimerRef.current)
     serializeTimerRef.current = setTimeout(() => {
+      serializeTimerRef.current = null
+      pendingSerializeSectionRef.current = null
       try {
         const markdown = editor.api.markdown.serialize()
         updateSection(activeSectionId, { content: markdown })
@@ -127,6 +150,9 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
   useEffect(() => {
     if (!activeSectionId || !doc) return
     if (loadedSectionRef.current === activeSectionId) return
+
+    // 이전 섹션의 serialize 타이머가 있으면 즉시 flush (내용 오염 방지)
+    flushSerialize()
     loadedSectionRef.current = activeSectionId
 
     const section = doc.sections.find(s => s.id === activeSectionId)
@@ -210,6 +236,8 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     })
     setDoc(reassembled)
     scheduleSave(reassembled)
+    // 활성 섹션 에디터 값 새로고침 강제
+    loadedSectionRef.current = null
   }, [doc, analysisHistory, scheduleSave])
 
   // 분석 삽입 — Plate API로 노드 삽입 + sidecar 테이블 유지

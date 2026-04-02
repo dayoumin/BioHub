@@ -116,7 +116,7 @@ export async function loadDocumentBlueprints(
 ): Promise<DocumentBlueprint[]> {
   const db = await openDB()
   const docs = await txGetByIndex<DocumentBlueprint>(db, STORE_NAME, 'projectId', projectId)
-  return docs.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+  return docs.sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''))
 }
 
 /**
