@@ -93,7 +93,7 @@ export default function PlateEditor({ editor, onChange }: PlateEditorProps): Rea
 
         <ToolbarButton
           tooltip="표 삽입"
-          onClick={() => editor.tf.insert.table({})  }
+          onClick={() => editor.tf.insert.table({})}
         >
           <Table className="w-4 h-4" />
         </ToolbarButton>

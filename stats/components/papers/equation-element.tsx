@@ -7,17 +7,14 @@
  * 전체 KaTeX 렌더링은 미리보기 모드(ReactMarkdown + rehype-katex)에서 제공.
  */
 
+import type { TEquationElement } from 'platejs'
 import type { PlateElementProps } from 'platejs/react'
 import { PlateElement } from 'platejs/react'
 
-interface EquationNode {
-  texExpression?: string
-}
-
 /** 블록 수식 ($$...$$) */
-export function EquationElement(props: PlateElementProps): React.ReactElement {
+export function EquationElement(props: PlateElementProps<TEquationElement>): React.ReactElement {
   const { element, children } = props
-  const tex = (element as unknown as EquationNode).texExpression || ''
+  const tex = element.texExpression || ''
 
   return (
     <PlateElement {...props}>
@@ -34,9 +31,9 @@ export function EquationElement(props: PlateElementProps): React.ReactElement {
 }
 
 /** 인라인 수식 ($...$) */
-export function InlineEquationElement(props: PlateElementProps): React.ReactElement {
+export function InlineEquationElement(props: PlateElementProps<TEquationElement>): React.ReactElement {
   const { element, children } = props
-  const tex = (element as unknown as EquationNode).texExpression || ''
+  const tex = element.texExpression || ''
 
   return (
     <PlateElement {...props} asChild>

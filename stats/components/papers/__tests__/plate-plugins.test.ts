@@ -14,7 +14,7 @@ vi.mock('@platejs/math/react', () => ({
 }))
 
 // mock 등록 후 import (hoisting에 의해 mock이 먼저 적용됨)
-const { paperPlugins } = await import('../plate-plugins')
+const { paperPlugins, EQUATION_KEY, INLINE_EQUATION_KEY } = await import('../plate-plugins')
 
 describe('paperPlugins', () => {
   it('should contain all required plugin keys', () => {
@@ -53,5 +53,10 @@ describe('paperPlugins', () => {
   it('should place MarkdownPlugin last for correct serialization order', () => {
     const last = paperPlugins[paperPlugins.length - 1]
     expect(last.key).toBe('markdown')
+  })
+
+  it('should export equation plugin keys for component mapping', () => {
+    expect(EQUATION_KEY).toBe('equation')
+    expect(INLINE_EQUATION_KEY).toBe('inline_equation')
   })
 })

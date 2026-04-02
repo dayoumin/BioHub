@@ -20,7 +20,7 @@ import type { DocumentBlueprint, DocumentSection } from '@/lib/research/document
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { GraphProject } from '@/types/graph-studio'
 import { MARKDOWN_CONFIG } from '@/lib/rag/config/markdown-config'
-import { paperPlugins } from './plate-plugins'
+import { paperPlugins, EQUATION_KEY, INLINE_EQUATION_KEY } from './plate-plugins'
 import { EquationElement, InlineEquationElement } from './equation-element'
 import PlateEditor from './PlateEditor'
 import DocumentSectionList from './DocumentSectionList'
@@ -55,8 +55,8 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     plugins: paperPlugins,
     override: {
       components: {
-        equation: EquationElement,
-        inline_equation: InlineEquationElement,
+        [EQUATION_KEY]: EquationElement,
+        [INLINE_EQUATION_KEY]: InlineEquationElement,
       },
     },
   })

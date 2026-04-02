@@ -14,6 +14,10 @@ import { TablePlugin } from '@platejs/table/react'
 import { EquationPlugin, InlineEquationPlugin } from '@platejs/math/react'
 import { MarkdownPlugin } from '@platejs/markdown'
 
+/** 수식 플러그인 키 (override.components에서 사용) */
+export const EQUATION_KEY = EquationPlugin.key
+export const INLINE_EQUATION_KEY = InlineEquationPlugin.key
+
 /** Papers 에디터 플러그인 배열 */
 export const paperPlugins = [
   // 기본 마크 (인라인 서식)
