@@ -223,7 +223,7 @@ export const OutlierDetailPanel = memo(function OutlierDetailPanel({
                   {/* 평균 점 */}
                   {statistics.mean !== undefined && (
                     <div
-                      className="absolute left-1/2 -translate-x-1/2 w-3 h-3 bg-card border-2 border-blue-500 rounded-full"
+                      className="absolute left-1/2 -translate-x-1/2 w-3 h-3 bg-card border-2 border-primary rounded-full"
                       style={{ top: `${100 - scale(statistics.mean)}%`, marginTop: '-6px' }}
                       title={`평균: ${statistics.mean.toFixed(2)}`}
                     />
@@ -330,7 +330,7 @@ export const OutlierDetailPanel = memo(function OutlierDetailPanel({
                   <span>극단 이상치 (3.0×IQR)</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 bg-card border-2 border-blue-500 rounded-full" />
+                  <div className="w-3 h-3 bg-card border-2 border-primary rounded-full" />
                   <span>평균</span>
                 </div>
               </div>

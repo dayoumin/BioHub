@@ -497,7 +497,7 @@ export const BoxPlot = memo(function BoxPlot({
                 {data[selectedBox].mean != null && (
                   <div className="space-y-1">
                     <div className="text-xs text-muted-foreground">평균</div>
-                    <div className="font-medium text-blue-600">{data[selectedBox].mean.toFixed(2)}{unit}</div>
+                    <div className="font-medium text-primary">{data[selectedBox].mean.toFixed(2)}{unit}</div>
                   </div>
                 )}
                 {data[selectedBox].std != null && (
@@ -520,7 +520,7 @@ export const BoxPlot = memo(function BoxPlot({
                   <div className="flex items-center gap-2 text-sm">
                     {data[selectedBox].median > data[selectedBox].mean! ? (
                       <>
-                        <TrendingDown className="h-4 w-4 text-blue-600" />
+                        <TrendingDown className="h-4 w-4 text-primary" />
                         <span>왼쪽 꼬리 분포 (negative skew) - 중앙값이 평균보다 큼</span>
                       </>
                     ) : data[selectedBox].median < data[selectedBox].mean! ? (
@@ -572,9 +572,9 @@ export const BoxPlot = memo(function BoxPlot({
       )}
 
       {/* Info tooltip */}
-      <div className="flex items-start gap-2 mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-        <Info className="h-4 w-4 mt-0.5 text-blue-600 dark:text-blue-400" />
-        <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1.5">
+      <div className="flex items-start gap-2 mt-4 p-3 bg-info-bg rounded-lg border border-info-border">
+        <Info className="h-4 w-4 mt-0.5 text-info" />
+        <div className="text-sm text-foreground space-y-1.5">
           <p className="font-medium">박스플롯 해석 가이드</p>
           <p>• 박스: 데이터의 50%가 포함된 범위 (Q1~Q3, IQR)</p>
           <p>• 중앙선: 데이터를 반으로 나누는 중앙값</p>

@@ -221,7 +221,7 @@ export function StepIndicator({
       <div className={cn('relative py-4', className)}>
         {/* Progress Bar */}
         {showProgress && steps.length > 1 && (
-          <div className="absolute top-9 left-[calc(10%+0.5rem)] right-[calc(10%+0.5rem)] h-0.5 bg-gray-200 dark:bg-gray-700">
+          <div className="absolute top-9 left-[calc(10%+0.5rem)] right-[calc(10%+0.5rem)] h-0.5 bg-border">
             <motion.div
               className={cn(colors.progressBar, 'h-full w-full')}
               style={{ transformOrigin: 'left' }}
@@ -283,7 +283,7 @@ export function StepIndicator({
                         {showStepNumber && status === 'pending' && (
                           <div className={cn(
                             'absolute -top-1 -right-1 z-20 rounded-full',
-                            'bg-gray-200 dark:bg-gray-700 flex items-center justify-center',
+                            'bg-muted flex items-center justify-center',
                             sizeTokens.badge
                           )}>
                             <span className={cn(TYPOGRAPHY_TOKENS.stepNumber, 'text-gray-600 dark:text-gray-400')}>

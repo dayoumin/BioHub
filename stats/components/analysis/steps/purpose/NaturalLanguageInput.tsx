@@ -343,9 +343,9 @@ export const NaturalLanguageInput = memo(function NaturalLanguageInput({
                             variant="outline"
                             className={cn(
                               "text-xs",
-                              recommendation.confidence >= 0.8 && "border-green-500 text-green-600",
-                              recommendation.confidence >= 0.5 && recommendation.confidence < 0.8 && "border-yellow-500 text-yellow-600",
-                              recommendation.confidence < 0.5 && "border-red-500 text-red-600"
+                              recommendation.confidence >= 0.8 && "border-success-border text-success",
+                              recommendation.confidence >= 0.5 && recommendation.confidence < 0.8 && "border-warning-border text-warning",
+                              recommendation.confidence < 0.5 && "border-error-border text-error"
                             )}
                           >
                             {Math.round(recommendation.confidence * 100)}{t.naturalLanguageInput.recommendation.confidenceUnit}

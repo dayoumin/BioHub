@@ -380,16 +380,16 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         <div className="h-4 w-px bg-border/60" />
 
         {/* 변수 타입 배지 */}
-        <Badge variant="outline" className="text-xs gap-1 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/30">
+        <Badge variant="outline" className="text-xs gap-1 border-info-border text-info bg-info-bg">
           <span className="font-mono">{numericVariables.length}</span> {t.dataExploration.badgeBar.numeric}
         </Badge>
-        <Badge variant="outline" className="text-xs gap-1 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/30">
+        <Badge variant="outline" className="text-xs gap-1 border-success-border text-success bg-success-bg">
           <span className="font-mono">{categoricalVariables.length}</span> {t.dataExploration.badgeBar.categorical}
         </Badge>
 
         {/* 결측치 (있을 때만) */}
         {missingCount > 0 && (
-          <Badge variant="outline" className="text-xs gap-1 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30">
+          <Badge variant="outline" className="text-xs gap-1 border-warning-border text-warning bg-warning-bg">
             {t.dataExploration.badgeBar.missing} <span className="font-mono">{missingCount}</span>
           </Badge>
         )}
@@ -400,7 +400,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
             variant="outline"
             role="button"
             tabIndex={0}
-            className="text-xs gap-1 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/30 cursor-pointer hover:bg-red-100 dark:hover:bg-red-950/50 transition-colors"
+            className="text-xs gap-1 border-error-border text-error bg-error-bg cursor-pointer hover:bg-error-bg/80 transition-colors"
             onClick={() => setSelectedCard('descriptive')}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedCard('descriptive') } }}
           >

@@ -423,9 +423,9 @@ export const Histogram = memo(function Histogram({
       )}
 
       {/* Info tooltip - same style as BoxPlot */}
-      <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-        <Info className="h-4 w-4 mt-0.5 text-blue-600 dark:text-blue-400" />
-        <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+      <div className="flex items-start gap-2 p-3 bg-info-bg rounded-lg border border-info-border">
+        <Info className="h-4 w-4 mt-0.5 text-info" />
+        <div className="text-sm text-foreground space-y-1">
           <p className="font-medium">히스토그램 해석 가이드</p>
           <p>• 각 막대는 해당 구간에 속하는 데이터의 빈도를 나타냅니다</p>
           <p>• 막대가 높을수록 해당 구간에 데이터가 많이 분포합니다</p>

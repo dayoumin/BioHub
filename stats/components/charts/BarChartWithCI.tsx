@@ -482,9 +482,9 @@ export const BarChartWithCI = memo(function BarChartWithCI({
           )}
 
           {/* 정보 패널 */}
-          <div className="flex items-start gap-2 mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-            <Info className="h-4 w-4 mt-0.5 text-blue-600 dark:text-blue-400" />
-            <div className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+          <div className="flex items-start gap-2 mt-4 p-3 bg-info-bg rounded-lg border border-info-border">
+            <Info className="h-4 w-4 mt-0.5 text-info" />
+            <div className="text-xs text-foreground space-y-1">
               <p className="font-medium">신뢰구간이 있는 막대차트 해석 가이드</p>
               <p>• 막대: 측정된 평균값 또는 추정값</p>
               <p>• 오차 막대: {ciLevel}% 신뢰구간 (실제 값이 있을 것으로 예상되는 범위)</p>
