@@ -94,7 +94,7 @@ function buildNormalityText(normTests: FlatAssumption[], lang: 'ko' | 'en', embe
       return `${base}${p}${grp}`.trim()
     })
     const sentence = `Normality was assessed using the ${testName} test (${parts.join('; ')}).`
-    return embedded ? sentence.replace(/^N/, 'n') : sentence
+    return embedded ? sentence.charAt(0).toLowerCase() + sentence.slice(1) : sentence
   }
 
   const parts = normTests.map(a => {
