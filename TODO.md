@@ -219,7 +219,7 @@ These items should be the current focus.
   - ~~Phase 1: DocumentBlueprint 타입 + 조립 엔진 + 저장~~ — 완료 (타입 122줄, 조립 엔진 299줄, IndexedDB CRUD, EntityRef 동기화, 테스트 808줄)
   - ~~Phase 2: `/papers` 문서 허브 + 마크다운 에디터~~ — 완료 (PapersHub, DocumentEditor 406줄, DnD 섹션 정렬, MaterialPalette, 내보내기 바)
   - ~~Phase 3: Plate 리치 텍스트 에디터~~ — 완료 (PlateEditor + 툴바, 양방향 저장, serialize 디바운스, 삽입 API 전환, MathPlugin 등록 + 테이블/수식 삽입 버튼 + 테스트 8개. 계획서 [PLAN-PLATE-EDITOR.md](stats/docs/papers/PLAN-PLATE-EDITOR.md))
-  - Phase 4: DOCX 내보내기 (기존 `docx` v9.5.1, 저널 스타일 프리셋)
+  - ~~Phase 4: DOCX 내보내기~~ — 완료 (학술 3-line table, Times New Roman 12pt, serialize flush, 로딩/에러 UX. 계획서 [PLAN-DOCX-EXPORT.md](stats/docs/papers/PLAN-DOCX-EXPORT.md))
   - Phase 5: LLM Introduction/Discussion 자동 생성 (OpenRouter)
   - Phase 6: 인용 관리 (citation store 신규), Figure 통합, 영문 템플릿, 번호 매기기
   - 상세: [PLAN-DOCUMENT-ASSEMBLY.md](stats/docs/papers/PLAN-DOCUMENT-ASSEMBLY.md) · [PLAN-USER-JOURNEY-LITERATURE-PAPERS.md](stats/docs/papers/PLAN-USER-JOURNEY-LITERATURE-PAPERS.md)
