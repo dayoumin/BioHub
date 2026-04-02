@@ -51,6 +51,7 @@ import {
   MAX_VISIBLE_PILLS,
 } from '@/lib/utils/pinned-history-storage'
 import { listProjects, deleteProject } from '@/lib/graph-studio/project-storage'
+import { EmptyState } from '@/components/common/EmptyState'
 import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults'
 import type { ChartType } from '@/types/graph-studio'
 import { toast } from 'sonner'
@@ -257,11 +258,13 @@ export function QuickAccessBar({ onHistoryClick, onHistoryDelete, onShowMore }: 
       </div>
 
       {visibleItems.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-10 text-center rounded-xl border border-dashed border-border">
-          <Clock className="w-8 h-8 text-muted-foreground/30 mb-2" />
-          <p className="text-sm text-muted-foreground/60">{t.hub.cards.emptyTitle}</p>
-          <p className="text-xs text-muted-foreground/40 mt-1">{t.hub.cards.emptyDescription}</p>
-        </div>
+        <EmptyState
+          icon={Clock}
+          title={t.hub.cards.emptyTitle}
+          description={t.hub.cards.emptyDescription}
+          variant="inline"
+          className="py-10"
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           {visibleItems.map(card => (

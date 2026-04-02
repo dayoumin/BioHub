@@ -19,6 +19,7 @@ import type { DocumentBlueprint } from '@/lib/research/document-blueprint-types'
 import DocumentAssemblyDialog from './DocumentAssemblyDialog'
 import { formatTimeAgo } from '@/lib/utils/format-time'
 import { cn } from '@/lib/utils'
+import { EmptyState } from '@/components/common/EmptyState'
 
 // ── 프리셋 라벨 매핑 ──
 
@@ -264,16 +265,17 @@ export default function PapersHub({ onOpenDocument }: PapersHubProps): React.Rea
           </div>
         </section>
       ) : (
-        <div className="text-center py-8 rounded-xl border border-dashed">
-          <FileText className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-muted-foreground text-sm mb-1">아직 분석 결과가 없습니다</p>
-          <p className="text-xs text-muted-foreground/60 mb-4">
-            통계 분석을 먼저 실행하면 여기서 결과를 정리할 수 있습니다
-          </p>
-          <Button onClick={handleStartAnalysis} className="gap-2">
-            분석 시작하기
-            <ArrowRight className="w-4 h-4" />
-          </Button>
+        <EmptyState
+          icon={FileText}
+          title="아직 분석 결과가 없습니다"
+          description="통계 분석을 먼저 실행하면 여기서 결과를 정리할 수 있습니다"
+          variant="inline"
+          action={
+            <Button onClick={handleStartAnalysis} className="gap-2">
+              분석 시작하기
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          }
         </div>
       )}
 

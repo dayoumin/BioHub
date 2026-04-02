@@ -15,6 +15,7 @@ import { useTerminology } from '@/hooks/use-terminology'
 import { useMethodCompatibility } from '@/hooks/use-method-compatibility'
 import type { CompatibilityResult, CompatibilityStatus } from '@/lib/statistics/data-method-compatibility'
 import { getCompatibilityForMethod } from '@/lib/statistics/data-method-compatibility'
+import { EmptyState } from '@/components/common/EmptyState'
 
 interface MethodGroup {
   category: string
@@ -490,12 +491,12 @@ export function MethodBrowser({
                 onSelect={() => onMethodSelect(detailMethod)}
               />
             ) : (
-              <div className="h-[460px] border border-dashed rounded-xl flex flex-col items-center justify-center text-muted-foreground/60 gap-3 p-6">
-                <BookOpen className="w-10 h-10" />
-                <p className="text-sm text-center leading-relaxed">
-                  분석 방법 위에 마우스를 올리면<br />상세 정보를 확인할 수 있습니다
-                </p>
-              </div>
+              <EmptyState
+                icon={BookOpen}
+                title="분석 방법을 선택해 보세요"
+                description="목록에서 마우스를 올리면 상세 정보를 확인할 수 있습니다"
+                className="h-[460px]"
+              />
             )}
           </div>
         </div>

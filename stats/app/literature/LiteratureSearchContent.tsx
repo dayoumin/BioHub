@@ -29,6 +29,7 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from '@/components/ui/collapsible'
+import { EmptyState } from '@/components/common/EmptyState'
 
 // ── 상수 ──
 
@@ -561,13 +562,12 @@ function ResultsList({ items, sortKey, onSortChange }: ResultsListProps): React.
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-12 text-center">
-        <FileText className="mb-3 h-10 w-10 text-muted-foreground/30" />
-        <p className="text-sm text-muted-foreground">검색 결과가 없습니다</p>
-        <p className="mt-1 text-xs text-muted-foreground/60">
-          다른 키워드나 소스를 선택해 보세요
-        </p>
-      </div>
+      <EmptyState
+        icon={FileText}
+        title="검색 결과가 없습니다"
+        description="다른 키워드나 소스를 선택해 보세요"
+        variant="inline"
+      />
     )
   }
 
