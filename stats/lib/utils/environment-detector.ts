@@ -60,7 +60,7 @@ async function fetchWithRetry(
       if (response.ok) {
         return true
       }
-    } catch (error) {
+    } catch (_error) {
       // 마지막 시도가 아니면 재시도
       if (attempt < retries - 1) {
         // 짧은 대기 후 재시도 (100ms)

@@ -8,8 +8,6 @@
 import type { HistoryItem, HistoryBadge } from '@/types/history'
 import type { AnalysisHistory } from '@/lib/stores/history-store'
 import type { GeneticsHistoryEntry, BarcodingHistoryEntry, BlastSearchHistoryEntry, GenBankHistoryEntry } from '@/lib/genetics/analysis-history'
-/** @deprecated */
-import type { AnalysisHistoryEntry } from '@/lib/genetics/analysis-history'
 import type { BioToolHistoryEntry } from '@/lib/bio-tools/bio-tool-history'
 
 // ── 통계 분석 어댑터 ──

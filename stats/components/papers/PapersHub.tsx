@@ -276,7 +276,7 @@ export default function PapersHub({ onOpenDocument }: PapersHubProps): React.Rea
               <ArrowRight className="w-4 h-4" />
             </Button>
           }
-        </div>
+        />
       )}
 
       {/* 조립 다이얼로그 */}
