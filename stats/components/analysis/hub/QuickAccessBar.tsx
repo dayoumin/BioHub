@@ -50,7 +50,7 @@ import {
   MAX_PINNED,
   MAX_VISIBLE_PILLS,
 } from '@/lib/utils/pinned-history-storage'
-import { listProjects, deleteProject } from '@/lib/graph-studio/project-storage'
+import { listProjects, deleteProjectCascade } from '@/lib/graph-studio/project-storage'
 import { EmptyState } from '@/components/common/EmptyState'
 import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults'
 import type { ChartType } from '@/types/graph-studio'
@@ -206,7 +206,7 @@ export function QuickAccessBar({ onHistoryClick, onHistoryDelete, onShowMore }: 
     if (deleteConfirmType === 'statistics') {
       await onHistoryDelete(deleteConfirmId)
     } else {
-      deleteProject(deleteConfirmId)
+      await deleteProjectCascade(deleteConfirmId)
       setVizRefreshKey(k => k + 1)
     }
     setPinnedIds(prev => {

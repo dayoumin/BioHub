@@ -16,6 +16,7 @@
 
 import type { GraphProject } from '@/types/graph-studio';
 import { createLocalStorageIO } from '@/lib/utils/local-storage-factory';
+import { deleteSnapshot } from './chart-snapshot-storage';
 
 const STORAGE_KEY = 'graph_studio_projects';
 const { readJson, writeJson } = createLocalStorageIO('[project-storage]');
@@ -55,33 +56,35 @@ function getEvictionCandidates(
  * 프로젝트 수가 maxCount를 초과하면 가장 오래된 것부터 삭제하여 maxCount 이하로 맞춘다.
  * 현재 저장 중인 프로젝트(excludeId)는 삭제하지 않는다.
  *
- * @returns 정리된 프로젝트 목록
+ * @returns 정리된 프로젝트 목록과 삭제된 프로젝트 ID 목록
  */
 function enforceMaxCount(
   list: GraphProject[],
   maxCount: number,
   excludeId: string,
-): GraphProject[] {
-  if (list.length <= maxCount) return list;
+): { list: GraphProject[]; evictedIds: string[] } {
+  if (list.length <= maxCount) return { list, evictedIds: [] };
 
   const candidates = getEvictionCandidates(list, excludeId);
   const evictCount = list.length - maxCount;
-  const evictIds = new Set(
-    candidates.slice(0, evictCount).map(p => p.id),
-  );
+  const evictedIds = candidates.slice(0, evictCount).map(p => p.id);
+  const evictSet = new Set(evictedIds);
 
-  return list.filter(p => !evictIds.has(p.id));
+  return { list: list.filter(p => !evictSet.has(p.id)), evictedIds };
 }
 
 /**
  * writeJson 래퍼: QuotaExceededError 발생 시 가장 오래된 프로젝트를 삭제 후 재시도.
  * 최대 MAX_EVICTION_RETRIES회까지 시도한 뒤 여전히 실패하면 throw.
+ *
+ * @returns 재시도 중 evict된 프로젝트 ID 목록
  */
-function writeWithQuotaRetry(list: GraphProject[], excludeId: string): void {
+function writeWithQuotaRetry(list: GraphProject[], excludeId: string): string[] {
+  const evictedIds: string[] = [];
   for (let attempt = 0; attempt <= MAX_EVICTION_RETRIES; attempt++) {
     try {
       writeJson(STORAGE_KEY, list);
-      return;
+      return evictedIds;
     } catch (error: unknown) {
       // QuotaExceededError인지 확인
       const isQuota =
@@ -103,17 +106,23 @@ function writeWithQuotaRetry(list: GraphProject[], excludeId: string): void {
 
       // 가장 오래된 프로젝트 1개 삭제 후 재시도
       const evictId = candidates[0].id;
+      evictedIds.push(evictId);
       list = list.filter(p => p.id !== evictId);
       console.warn(
         `[project-storage] QuotaExceededError — 프로젝트 "${evictId}" 자동 삭제 후 재시도 (${attempt + 1}/${MAX_EVICTION_RETRIES})`,
       );
     }
   }
+  return evictedIds;
 }
 
 // ─── 쓰기 ───────────────────────────────────────────────────
 
-export function saveProject(project: GraphProject): void {
+/**
+ * 프로젝트 저장. eviction이 발생한 경우 삭제된 프로젝트 ID 목록을 반환한다.
+ * 호출자는 반환값으로 스냅샷 등 연관 데이터를 정리할 수 있다.
+ */
+export function saveProject(project: GraphProject): string[] {
   let list = listProjects();
   const idx = list.findIndex(p => p.id === project.id);
   if (idx >= 0) {
@@ -123,14 +132,23 @@ export function saveProject(project: GraphProject): void {
   }
 
   // 프로젝트 수 상한 적용
-  list = enforceMaxCount(list, MAX_GRAPH_PROJECTS, project.id);
-
-  writeWithQuotaRetry(list, project.id);
+  const { list: enforced, evictedIds } = enforceMaxCount(list, MAX_GRAPH_PROJECTS, project.id);
+  const retryEvicted = writeWithQuotaRetry(enforced, project.id);
+  return [...evictedIds, ...retryEvicted];
 }
 
 export function deleteProject(projectId: string): void {
   const list = listProjects().filter(p => p.id !== projectId);
   writeJson(STORAGE_KEY, list);
+}
+
+/**
+ * 프로젝트와 연관 스냅샷을 함께 삭제 (cascade).
+ * 스냅샷 삭제는 best-effort — IndexedDB 오류가 발생해도 localStorage 삭제는 완료된다.
+ */
+export async function deleteProjectCascade(projectId: string): Promise<void> {
+  deleteProject(projectId);
+  await deleteSnapshot(projectId).catch(() => {});
 }
 
 // ─── ID 생성 ─────────────────────────────────────────────────

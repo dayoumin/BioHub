@@ -16,9 +16,11 @@ import type {
 import { createChartSpecFromDataPackage } from '@/lib/graph-studio/chart-spec-utils';
 import {
   deleteProject as deleteStoredProject,
+  deleteProjectCascade,
   saveProject,
   generateProjectId,
 } from '@/lib/graph-studio/project-storage';
+import { deleteSnapshots } from '@/lib/graph-studio/chart-snapshot-storage';
 import { upsertProjectEntityRef } from '@/lib/research/project-storage';
 import { useResearchProjectStore } from '@/lib/stores/research-project-store';
 
@@ -321,7 +323,11 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       };
 
       try {
-        saveProject(project);
+        const evictedIds = saveProject(project);
+        if (evictedIds.length > 0) {
+          // fire-and-forget: evict된 프로젝트의 스냅샷 정리 (best-effort)
+          deleteSnapshots(evictedIds).catch(console.error);
+        }
         if (project.projectId) {
           upsertProjectEntityRef({
             projectId: project.projectId,
@@ -336,7 +342,7 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
           if (currentProject) {
             saveProject(currentProject);
           } else {
-            deleteStoredProject(project.id);
+            deleteProjectCascade(project.id).catch(console.error);
           }
         } catch (rollbackError) {
           console.error('[GraphStudioStore] Failed to rollback linked project save:', rollbackError);
