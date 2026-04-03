@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import type { GenericBlastParams, GenericBlastHit } from '@biohub/types'
 import { BlastSearchInput } from '@/components/genetics/BlastSearchInput'
@@ -21,6 +21,7 @@ import {
 import type { BlastSearchHistoryEntry } from '@/lib/genetics/analysis-history'
 import { useResearchProjectStore } from '@/lib/stores/research-project-store'
 import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 
 // ── 타입 ──
 
@@ -85,6 +86,7 @@ function GenericBlastRunner({ params, onResult, onError, onCancel }: RunnerProps
 export default function BlastSearchContent(): React.ReactElement {
   const searchParams = useSearchParams()
   const [state, setState] = useState<AppState>({ step: 'input' })
+  const runningParamsRef = useRef<GenericBlastParams | null>(null)
   const [restoredEntry, setRestoredEntry] = useState<BlastSearchHistoryEntry | null>(null)
   const activeResearchProjectId = useResearchProjectStore(s => s.activeResearchProjectId)
 
@@ -121,19 +123,23 @@ export default function BlastSearchContent(): React.ReactElement {
 
   const handleSubmit = useCallback((params: GenericBlastParams) => {
     setRestoredEntry(null)
+    runningParamsRef.current = params
     setState({ step: 'running', params })
   }, [])
 
   const handleResult = useCallback((hits: GenericBlastHit[], elapsed: number) => {
+    const params = runningParamsRef.current
     setState(prev => {
       if (prev.step !== 'running') return prev
-
-      saveGeneticsHistory({
+      return { step: 'result', params: prev.params, hits, elapsed }
+    })
+    if (params) {
+      const saved = saveGeneticsHistory({
         type: 'blast',
-        program: prev.params.program,
-        database: prev.params.database,
-        sequence: prev.params.sequence,
-        sequencePreview: prev.params.sequence.slice(0, 50),
+        program: params.program,
+        database: params.database,
+        sequence: params.sequence,
+        sequencePreview: params.sequence.slice(0, 50),
         hitCount: hits.length,
         topHitAccession: hits[0]?.accession ?? null,
         topHitSpecies: hits[0]?.species ?? null,
@@ -141,9 +147,8 @@ export default function BlastSearchContent(): React.ReactElement {
         elapsed,
         projectId: activeResearchProjectId ?? undefined,
       })
-
-      return { step: 'result', params: prev.params, hits, elapsed }
-    })
+      if (!saved) toast.warning('저장 공간 부족으로 히스토리에 저장되지 않았습니다.')
+    }
   }, [activeResearchProjectId])
 
   const handleError = useCallback((message: string) => {

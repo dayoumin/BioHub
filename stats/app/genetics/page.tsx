@@ -57,10 +57,10 @@ const TOOLS: Tool[] = [
     id: 'seq-stats',
     title: '서열 기본 통계',
     description: 'GC 함량, 길이 분포, 염기 조성 분석',
-    input: '서열 1개 이상',
+    input: '서열 2개 이상 (Multi-FASTA)',
     href: '/genetics/seq-stats',
-    ready: false,
-    badge: '준비 중',
+    ready: true,
+    badge: '사용 가능',
     icon: BarChart3,
   },
   {

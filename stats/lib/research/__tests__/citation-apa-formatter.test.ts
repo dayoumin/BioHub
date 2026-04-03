@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { buildCitationString, formatAuthors } from '../citation-apa-formatter'
+import { citationKey } from '../citation-types'
 import type { LiteratureItem } from '@/lib/types/literature'
 
 function makeItem(overrides: Partial<LiteratureItem> = {}): LiteratureItem {
@@ -70,5 +71,22 @@ describe('buildCitationString', () => {
       doi: '10.0000/test',
     }))
     expect(result).toBe('Kim J. (2023). Test Title. Test Journal. https://doi.org/10.0000/test.')
+  })
+})
+
+describe('citationKey', () => {
+  it('DOI 대소문자를 정규화한다', () => {
+    const upper = makeItem({ doi: '10.1234/AB.2023' })
+    const lower = makeItem({ doi: '10.1234/ab.2023' })
+    expect(citationKey(upper)).toBe(citationKey(lower))
+  })
+
+  it('DOI가 있으면 doi: prefix를 붙인다', () => {
+    expect(citationKey(makeItem({ doi: '10.1234/test' }))).toBe('doi:10.1234/test')
+  })
+
+  it('DOI가 없으면 url을 그대로 사용한다', () => {
+    expect(citationKey(makeItem({ doi: undefined, url: 'https://example.com/paper' })))
+      .toBe('https://example.com/paper')
   })
 })

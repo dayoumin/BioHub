@@ -1,6 +1,9 @@
 import { MIN_SEQUENCE_LENGTH } from '@biohub/types'
 import type { BlastProgram, SequenceValidation } from '@biohub/types'
 
+// @biohub/types의 MAX_SEQUENCE_LENGTH(10,000)는 BLAST 서버 제한 — 이것은 브라우저 안전 상한
+const MAX_INPUT_SEQUENCE_LENGTH = 100_000
+
 const DNA_CHARS = new Set('ATGCN')
 const PROTEIN_CHARS = new Set('ACDEFGHIKLMNPQRSTVWYBXZJUO*')
 
@@ -60,6 +63,11 @@ export function validateSequence(raw: string): SequenceValidation {
 
   if (cleaned.length < MIN_SEQUENCE_LENGTH) {
     errors.push(`최소 ${MIN_SEQUENCE_LENGTH} bp 이상 필요합니다. (현재: ${cleaned.length} bp)`)
+  }
+
+  if (cleaned.length > MAX_INPUT_SEQUENCE_LENGTH) {
+    errors.push(`최대 ${MAX_INPUT_SEQUENCE_LENGTH.toLocaleString()} bp까지 허용됩니다. (현재: ${cleaned.length.toLocaleString()} bp)`)
+    return { valid: false, length: cleaned.length, gcContent: 0, ambiguousCount: 0, ambiguousRatio: 0, errors, warnings }
   }
 
   // 단일 패스: 문자 검증 + GC 함량 + N 카운트

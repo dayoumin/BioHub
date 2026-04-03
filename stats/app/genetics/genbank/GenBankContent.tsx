@@ -12,6 +12,7 @@ import {
   hydrateGeneticsHistoryFromCloud,
 } from '@/lib/genetics/analysis-history'
 import { useResearchProjectStore } from '@/lib/stores/research-project-store'
+import { toast } from 'sonner'
 
 // ── 타입 ──
 
@@ -149,7 +150,7 @@ export default function GenBankContent(): React.ReactElement {
       // 히스토리 저장
       const matchedResult = results.find(r => r.accession === accession)
       const seqLines = text.split('\n').filter(l => !l.startsWith('>'))
-      saveGeneticsHistory({
+      const saved = saveGeneticsHistory({
         type: 'genbank',
         query: query.trim(),
         db: db as 'nuccore' | 'protein',
@@ -158,6 +159,7 @@ export default function GenBankContent(): React.ReactElement {
         sequenceLength: seqLines.join('').replace(/\s/g, '').length,
         projectId: activeResearchProjectId ?? undefined,
       })
+      if (!saved) toast.warning('저장 공간 부족으로 히스토리에 저장되지 않았습니다.')
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return
       setError('서열 다운로드에 실패했습니다.')

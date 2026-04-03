@@ -12,6 +12,7 @@ import type { ProjectEntityRef } from '@biohub/types'
 import type { GraphProject } from '@/types/graph-studio'
 import type { BlastEntryLike } from './entity-resolver'
 import type { CitationRecord } from './citation-types'
+import { citationKey } from './citation-types'
 import { buildCitationString } from './citation-apa-formatter'
 import type {
   DocumentBlueprint,
@@ -189,8 +190,17 @@ function buildReferencesContent(
 
   if (citations.length === 0) return software
 
+  // defense-in-depth: citationKey 기준 중복 제거
+  const seen = new Set<string>()
+  const unique = citations.filter(c => {
+    const key = citationKey(c.item)
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+
   const header = language === 'ko' ? '### 참고문헌' : '### References'
-  const cited = citations
+  const cited = unique
     .map((c, i) => `${i + 1}. ${buildCitationString(c.item)}`)
     .join('\n')
 

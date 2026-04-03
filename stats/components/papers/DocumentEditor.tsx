@@ -20,7 +20,6 @@ import type { DocumentBlueprint, DocumentSection } from '@/lib/research/document
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { GraphProject } from '@/types/graph-studio'
 import type { CitationRecord } from '@/lib/research/citation-types'
-import { citationKey } from '@/lib/research/citation-types'
 import { listCitationsByProject, deleteCitation } from '@/lib/research/citation-storage'
 import { MARKDOWN_CONFIG } from '@/lib/rag/config/markdown-config'
 import { paperPlugins, EQUATION_KEY, INLINE_EQUATION_KEY } from './plate-plugins'
@@ -338,14 +337,6 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     })
   }, [activeSectionId, doc, scheduleSave])
 
-  const handleInsertCitation = useCallback((record: CitationRecord) => {
-    const key = citationKey(record.item)
-    setCitations(prev => {
-      if (prev.some(c => citationKey(c.item) === key)) return prev
-      return [...prev, record]
-    })
-  }, [])
-
   const handleDeleteCitation = useCallback(async (id: string) => {
     await deleteCitation(id)
     setCitations(prev => prev.filter(c => c.id !== id))
@@ -515,7 +506,6 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
             onInsertAnalysis={handleInsertAnalysis}
             onInsertFigure={handleInsertFigure}
             citations={citations}
-            onInsertCitation={handleInsertCitation}
             onDeleteCitation={handleDeleteCitation}
           />
         </div>

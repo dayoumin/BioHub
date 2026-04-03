@@ -11,6 +11,7 @@
  */
 
 import type { LiteratureItem, LiteratureSource, SearchOptions } from '../lib/types/literature';
+import { jsonResponse } from '../lib/worker-utils';
 import {
   applyKeywordFilters,
   openAlexTextExtractor,
@@ -39,14 +40,6 @@ const KOREA_WATERS_WKT = 'POLYGON((124 33, 124 43, 132 43, 132 33, 124 33))';
 
 /** 한국 국가 코드 */
 const KOREA_COUNTRY_CODE = 'KR';
-
-// ─── JSON 응답 헬퍼 ─────────────────────────────────────────────
-function jsonResponse(body: Record<string, unknown>, status: number): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
 
 // ─── 타임아웃 fetch ─────────────────────────────────────────────
 function fetchWithTimeout(

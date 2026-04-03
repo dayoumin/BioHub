@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   FileText, Plus, BarChart3, Table2, ArrowRight, Clock,
-  BookOpen, FileOutput, PenTool,
+  BookOpen, FileOutput, PenTool, Package,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -132,9 +132,10 @@ const FEATURES = [
 
 interface PapersHubProps {
   onOpenDocument: (id: string) => void
+  onOpenPackage?: (id: string, projectId?: string) => void
 }
 
-export default function PapersHub({ onOpenDocument }: PapersHubProps): React.ReactElement {
+export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubProps): React.ReactElement {
   const router = useRouter()
   const { analysisHistory } = useHistoryStore()
   const setShowHub = useModeStore(s => s.setShowHub)
@@ -182,25 +183,37 @@ export default function PapersHub({ onOpenDocument }: PapersHubProps): React.Rea
               : '프로젝트를 선택하면 문서를 만들 수 있습니다'}
           </p>
         </div>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span tabIndex={!activeProject ? 0 : undefined}>
-                <Button
-                  onClick={() => setAssemblyOpen(true)}
-                  disabled={!activeProject}
-                  className="gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  새 문서
-                </Button>
-              </span>
-            </TooltipTrigger>
-            {!activeProject && (
-              <TooltipContent>프로젝트를 먼저 선택하세요</TooltipContent>
-            )}
-          </Tooltip>
-        </TooltipProvider>
+        <div className="flex items-center gap-2">
+          {activeProject && onOpenPackage && (
+            <Button
+              variant="outline"
+              onClick={() => onOpenPackage('new', activeProject.id)}
+              className="gap-2"
+            >
+              <Package className="w-4 h-4" />
+              AI 패키지 조립
+            </Button>
+          )}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span tabIndex={!activeProject ? 0 : undefined}>
+                  <Button
+                    onClick={() => setAssemblyOpen(true)}
+                    disabled={!activeProject}
+                    className="gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    새 문서
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {!activeProject && (
+                <TooltipContent>프로젝트를 먼저 선택하세요</TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
       {/* 문서 목록 */}

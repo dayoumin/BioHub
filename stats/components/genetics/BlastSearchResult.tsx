@@ -140,11 +140,9 @@ export function BlastSearchResult({ hits, program, database, elapsed, onReset }:
                       </a>
                     </td>
                     <td className="px-3 py-2">
-                      {hit.species ? (
-                        <span className="italic text-foreground">{hit.species}</span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
+                      <span className={hit.species ? 'italic text-foreground' : 'text-muted-foreground'}>
+                        {hit.species || '(미확인)'}
+                      </span>
                       {hit.description && (
                         <p className="mt-0.5 truncate text-[11px] text-muted-foreground/70" title={hit.description}>
                           {hit.description}

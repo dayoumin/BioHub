@@ -56,10 +56,37 @@ describe('citation-storage', () => {
   })
 
   it('listCitationsByProject: 추가순 정렬', async () => {
-    await saveCitation(makeCitation({ id: 'cit_b', addedAt: '2026-01-02T00:00:00Z' }))
-    await saveCitation(makeCitation({ id: 'cit_a', addedAt: '2026-01-01T00:00:00Z' }))
+    const rb = makeCitation({ id: 'cit_b', addedAt: '2026-01-02T00:00:00Z' })
+    rb.item = { ...rb.item, url: 'https://example.com/b' }
+    const ra = makeCitation({ id: 'cit_a', addedAt: '2026-01-01T00:00:00Z' })
+    ra.item = { ...ra.item, url: 'https://example.com/a' }
+    await saveCitation(rb)
+    await saveCitation(ra)
     const result = await listCitationsByProject('proj_1')
     expect(result[0].id).toBe('cit_a')
     expect(result[1].id).toBe('cit_b')
+  })
+
+  it('saveCitation: 동일 citationKey(doi)면 중복 저장 안 됨', async () => {
+    const r1 = makeCitation({ id: 'cit_first' })
+    r1.item = { ...r1.item, doi: '10.1234/TEST' }
+    const r2 = makeCitation({ id: 'cit_second' })
+    r2.item = { ...r2.item, doi: '10.1234/test' } // 대소문자만 다름
+    await saveCitation(r1)
+    await saveCitation(r2)
+    const result = await listCitationsByProject('proj_1')
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe('cit_first')
+  })
+
+  it('saveCitation: 동일 citationKey(url)면 중복 저장 안 됨', async () => {
+    const r1 = makeCitation({ id: 'cit_url_1' })
+    r1.item = { ...r1.item, doi: undefined, url: 'https://example.com/paper' }
+    const r2 = makeCitation({ id: 'cit_url_2' })
+    r2.item = { ...r2.item, doi: undefined, url: 'https://example.com/paper' }
+    await saveCitation(r1)
+    await saveCitation(r2)
+    const result = await listCitationsByProject('proj_1')
+    expect(result).toHaveLength(1)
   })
 })

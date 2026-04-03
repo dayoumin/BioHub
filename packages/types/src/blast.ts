@@ -101,7 +101,7 @@ export interface BlastTopHit {
   accession: string
   evalue?: number
   bitScore?: number
-  queryCoverage?: number
+  alignCoverage?: number
   description?: string
   taxid?: number
   country?: string
