@@ -9,7 +9,6 @@ import {
   Dna,
   FlaskConical,
   BookOpen,
-  FileSearch,
   Microscope,
   Settings,
   PanelLeft,
@@ -59,8 +58,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/bio-tools', label: 'Bio-Tools', icon: Dna, prefix: '/bio-tools' },
   { href: '/genetics', label: '유전적 분석', icon: FlaskConical, prefix: '/genetics' },
   { href: '/graph-studio', label: 'Graph Studio', icon: AreaChart, prefix: '/graph-studio' },
-  { href: '/literature', label: '문헌·동향', icon: FileSearch, prefix: '/literature' },
-  { href: '/papers', label: '논문 작성', icon: BookOpen },
+  { href: '/papers', label: '논문 작성', icon: BookOpen, prefix: '/papers' },
   {
     href: '/species-validation',
     label: '학명 유효성 검증',
@@ -173,9 +171,13 @@ export function AppSidebar() {
         >
           <PanelLeft className="w-4 h-4" />
         </button>
-        <span className={cn("ml-3 text-sm font-semibold tracking-tight text-sidebar-foreground whitespace-nowrap", textClass(expanded))}>
+        <Link
+          href="/"
+          onClick={() => setShowHub(true)}
+          className={cn("ml-3 text-sm font-semibold tracking-tight text-sidebar-foreground whitespace-nowrap hover:text-sidebar-primary transition-colors", textClass(expanded))}
+        >
           {APP_TITLE}
-        </span>
+        </Link>
       </div>
 
       {/* 연구과제 전환기 — 배경색 + 라벨로 메뉴와 시각 구분 */}
