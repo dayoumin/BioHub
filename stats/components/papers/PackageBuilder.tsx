@@ -583,6 +583,7 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
         const historyById = new Map(historyRecords.map(h => [h.id, h]))
         const graphById = new Map(graphProjects.map(g => [g.id, g]))
         const newItems: PackageItem[] = []
+        let figureCount = 0
 
         for (const ref of entityRefs) {
           if (ref.entityKind === 'analysis') {
@@ -602,6 +603,7 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
           } else if (ref.entityKind === 'figure') {
             const graph = graphById.get(ref.entityId)
             if (graph) {
+              figureCount++
               const linkedRecord = graph.analysisId ? historyById.get(graph.analysisId) : undefined
               const patternSummary = generateFigurePatternSummary(graph, linkedRecord)
               newItems.push({
@@ -609,7 +611,7 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
                 type: 'figure',
                 sourceId: graph.id,
                 analysisIds: graph.analysisId ? [graph.analysisId] : [],
-                label: `Figure ${newItems.filter(i => i.type === 'figure').length + 1}`,
+                label: `Figure ${figureCount}`,
                 section: 'results',
                 order: newItems.length,
                 included: true,

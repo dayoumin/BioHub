@@ -72,7 +72,7 @@ export function generateFigurePatternSummary(
 
 // ── 포맷 헬퍼 ────────────────────────────────────────────
 
-function formatReference(ref: PackageReference, index: number): string {
+function formatReference(ref: PackageReference, index: number, isKo: boolean): string {
   const entry = ref.manualEntry
   if (!entry) return `[${index + 1}] (Citation Store 연결 필요)`
 
@@ -94,7 +94,9 @@ function formatReference(ref: PackageReference, index: number): string {
   if (ref.summary) {
     lines.push(`  - 요약: ${ref.summary}`)
   } else if (ref.summaryStatus !== 'ready') {
-    lines.push(`  - ⚠ 요약 없음 — 이 문헌에 대한 서론 서술은 최소화하십시오.`)
+    lines.push(isKo
+      ? `  - ⚠ 요약 없음 — 이 문헌에 대한 서론 서술은 최소화하십시오.`
+      : `  - ⚠ Summary missing — Minimize introduction text for this reference.`)
   }
   return lines.join('\n')
 }
@@ -273,7 +275,7 @@ Write a complete manuscript draft based on the statistical analysis results and 
   }
   if (includedRefs.length > 0) {
     const refParts = [isKo ? '## 4. 참고문헌 목록' : '## 4. References']
-    includedRefs.forEach((ref, i) => refParts.push(formatReference(ref, i)))
+    includedRefs.forEach((ref, i) => refParts.push(formatReference(ref, i, isKo)))
     sections.push(refParts.join('\n'))
   }
 
