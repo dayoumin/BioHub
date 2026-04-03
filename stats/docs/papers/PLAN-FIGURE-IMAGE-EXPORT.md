@@ -330,6 +330,24 @@ stats/lib/services/export/document-hwpx-export.ts   ← 신규
 stats/public/templates/blank.hwpx                     ← 한컴오피스 빈 문서 템플릿 (번들)
 ```
 
+### 지원 서식 (검증 완료 2026-04-03)
+
+| 서식 | OWPML 요소 | 구현 |
+|------|-----------|------|
+| 볼드 | `<hh:bold/>` charPr 자식 | header.xml에 charPr 동적 주입 |
+| 이탤릭 | `<hh:italic/>` charPr 자식 | 학명, 캡션용 |
+| 위첨자 | `<hh:supscript/>` charPr 자식 | 유의성 마커 `*`, `**` |
+| 가운데 정렬 | paraPr `horizontal="CENTER"` | 제목, 표 헤더 |
+
+인라인 마크 문법: `**볼드**`, `*이탤릭*`, `^위첨자^`
+
+### playbook 모듈
+
+재사용 가능한 HWPX 빌더: `d:/Projects/playbook/recipes/hwpx-builder/`
+- `hwpx-builder.js` — 모듈 (MIT)
+- `HWPX-REFERENCE.md` — OWPML 기술 참고 + 프로젝트 13개 링크
+- `template.hwpx` — 한컴오피스 빈 문서 템플릿
+
 ### 실패한 접근법 (참고)
 
 | 시도 | 실패 원인 |
