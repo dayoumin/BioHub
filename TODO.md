@@ -1,6 +1,6 @@
 # BioHub TODO
 
-**Last updated**: 2026-04-04 (Paper Package Assembly MVP 완료)
+**Last updated**: 2026-04-04 (Genetics Phase A/B 완료 — 6개 도구 전체 사용 가능)
 **References**: [Product Strategy](docs/PRODUCT_STRATEGY.md), [Roadmap](ROADMAP.md), [Research Project Status](docs/RESEARCH_PROJECT_STATUS.md)
 
 ---
@@ -25,6 +25,19 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - `[paper]` ~~Paper Package Assembly MVP~~ ✅ — AI 프롬프트 빌더 5단계 wizard + 조립 엔진 (ko/en 분기) + 20 tests
 - `[paper]` Phase 6f: field-report 프리셋 — species-validation/legal-status resolver 선행 필요 (Blocked)
 - 상세: [PLAN-DOCUMENT-ASSEMBLY.md](stats/docs/papers/PLAN-DOCUMENT-ASSEMBLY.md) · [PLAN-PAPER-PACKAGE-ASSEMBLY.md](docs/PLAN-PAPER-PACKAGE-ASSEMBLY.md)
+
+### 유전적 분석 (Genetics Phase A/B)
+
+- `[domain]` ~~Phase 0: 버그 4건~~ ✅ — alignCoverage 리네임, quota toast, 서열 상한, 빈 종명
+- `[domain]` ~~Phase A1: seq-stats~~ ✅ — MultiSequenceInput + 서열 기본 통계 (순수 TS)
+- `[domain]` ~~Phase A2: similarity~~ ✅ — K2P/JC/p-distance 거리 행렬 + UPGMA 덴드로그램
+- `[domain]` ~~Phase A3: phylogeny~~ ✅ — NJ/UPGMA 계통수 + Newick 내보내기
+- `[domain]` ~~Phase B1: 바코딩 CSV 내보내기~~ ✅
+- `[domain]` ~~Phase B2: 도구 간 서열 전달~~ ✅ — sessionStorage 1회성
+- `[domain]` ~~Phase B3: 히스토리 텍스트 검색~~ ✅
+- `[infra]` ~~worker.ts 분리~~ ✅ — 1,425줄 → 65줄 라우터 + 7 핸들러
+- `[quality]` ~~docs 구조 정리~~ ✅ — stats/docs/ 89개 flat → 13개 서브폴더
+- 상세: [PLAN-GENETICS-IMPROVEMENT.md](docs/PLAN-GENETICS-IMPROVEMENT.md)
 
 ---
 
@@ -65,18 +78,18 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
   - `onHistoryShowMore` 데드 prop 정리
   - pin 토글 로직 `togglePinId()` 순수 함수 추출 (3곳 반복)
 - `[quality]` IndexedDB 트랜잭션 헬퍼 중복 — `txPut/txGetByIndex/txDelete`가 `citation-storage.ts` + `document-blueprint-storage.ts` + `chart-snapshot-storage.ts` 3곳에 반복 → `lib/utils/indexeddb-helpers.ts` 공유 모듈로 추출
-- `[quality]` ID 생성 함수 통합 — `generateProjectId/generateDocumentId/generatePackageId` 등 7곳이 동일 패턴 → `generateId(prefix)` 유틸 추출 (`lib/utils/generate-id.ts`)
-- `[quality]` `downloadTextFile(content, filename, mimeType)` 유틸 추출 — `PackagePreview/PaperDraftPanel/DocumentExportBar` 등 10+곳 인라인 Blob 다운로드 반복
-- `[quality]` `JournalPreset.style` 타입 강화 — `string` → `'kjfs' | 'kso' | 'apa7' | 'imrad' | 'custom'` union
-- `[quality]` worker.ts 남은 기술부채:
-  - `jsonResponse` 중복 (`worker.ts` + `handlers/literature.ts`) → 공유 모듈 추출
-  - `parseInlineMarks` DOCX/HWPX 90% 중복 (P1-7) → 3번째 파서 등장 시 통합
+- `[quality]` ~~ID 생성 함수 통합~~ ✅ — `generateId(prefix)` 유틸 추출, 8개 파일 교체
+- `[quality]` ~~`downloadTextFile` 유틸 추출~~ ✅ — `downloadTextFile/downloadCsvFile/downloadBlob` 3함수, 15개 파일 인라인 패턴 교체
+- `[quality]` ~~`JournalPreset.style` 타입 강화~~ ✅ — `JournalStyle` union 타입 도입
+- `[quality]` ~~worker.ts `jsonResponse` 중복~~ ✅ — `lib/worker-utils.ts`로 통합
+- `[quality]` `parseInlineMarks` DOCX/HWPX 90% 중복 (P1-7) → 3번째 파서 등장 시 통합
 - `[quality]` dangling ref 정리 — 수동 "정리" 버튼 또는 주기적 GC
 - `[quality]` entity-resolver `*Like` 인터페이스 → `Pick<OriginalType, ...>` 전환
 - `[quality]` `entity-tab-registry.ts` raw localStorage → Zustand persist 전환
 - `[bio]` Fst long-format CSV 지원 — population/locus/allele/count 4컬럼. 우선순위 낮음
 - `[analysis]` intent-router 0.6 임계값 검증 — 사용 로그 수집 후 데이터 기반 재검토
 - `[ux]` Bio-Tools data-testid + aria-label — E2E 테스트 + 접근성
+- `[quality]` 기존 테스트 실패 10건 수정 — StatisticCard 등 CSS 클래스 변경 미반영 (7 files, 10 tests)
 
 ### 3-D. 인프라
 
