@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Plus, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,8 +21,10 @@ import type {
   PackageReference,
   JournalPreset,
   AssemblyResult,
+  SummaryStatus,
 } from '@/lib/research/paper-package-types'
 import type { PackageDataSources } from '@/lib/research/paper-package-assembler'
+import type { HistoryRecord } from '@/lib/utils/storage-types'
 import { listProjectEntityRefs, loadResearchProject } from '@/lib/research/project-storage'
 import { listProjects } from '@/lib/graph-studio/project-storage'
 import { getAllHistory } from '@/lib/utils/storage'
@@ -286,11 +288,11 @@ function Step3({ references, onChange }: Step3Props): React.ReactElement {
         return {
           ...r,
           manualEntry: {
+            authors: '',
+            year: new Date().getFullYear(),
+            title: '',
+            journal: '',
             ...r.manualEntry,
-            authors: r.manualEntry?.authors ?? '',
-            year: r.manualEntry?.year ?? new Date().getFullYear(),
-            title: r.manualEntry?.title ?? '',
-            journal: r.manualEntry?.journal ?? '',
             [field]: value,
           },
         }
@@ -310,13 +312,13 @@ function Step3({ references, onChange }: Step3Props): React.ReactElement {
     }))
   }, [references, onChange])
 
-  const statusBadgeClass: Record<string, string> = {
+  const statusBadgeClass: Record<SummaryStatus, string> = {
     missing: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
     draft: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
     ready: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   }
 
-  const statusLabel: Record<string, string> = {
+  const statusLabel: Record<SummaryStatus, string> = {
     missing: '요약 없음',
     draft: '미확인',
     ready: '완료',
@@ -489,7 +491,7 @@ function Step4({ journal, context, onJournalChange, onContextChange }: Step4Prop
 interface Step5Props {
   pkg: PaperPackage
   result: AssemblyResult | null
-  onAssemble: () => void
+  onAssemble: () => Promise<void>
 }
 
 function Step5({ pkg, result, onAssemble }: Step5Props): React.ReactElement {
@@ -520,11 +522,14 @@ function Step5({ pkg, result, onAssemble }: Step5Props): React.ReactElement {
 
 // ── PackageBuilder 메인 ───────────────────────────────────
 
+const STEPS: Step[] = [1, 2, 3, 4, 5]
+
 export default function PackageBuilder({ packageId, projectId, onBack }: PackageBuilderProps): React.ReactElement {
   const [step, setStep] = useState<Step>(1)
   const [pkg, setPkg] = useState<PaperPackage | null>(null)
   const [assemblyResult, setAssemblyResult] = useState<AssemblyResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const historyCacheRef = useRef<HistoryRecord[] | null>(null)
 
   // 초기 로드
   useEffect(() => {
@@ -562,21 +567,26 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
   }, [packageId, projectId])
 
   // Step 2 진입 시 항목 자동 수집
+  const currentProjectId = pkg?.projectId
+  const hasItems = (pkg?.items.length ?? 0) > 0
+
   useEffect(() => {
-    if (step !== 2 || !pkg || pkg.items.length > 0) return
+    if (step !== 2 || !currentProjectId || hasItems) return
 
     const collectItems = async (): Promise<void> => {
       try {
-        const historyRecords = await getAllHistory()
+        const historyRecords = historyCacheRef.current ?? await getAllHistory()
+        historyCacheRef.current = historyRecords
         const graphProjects = listProjects()
-        const entityRefs = listProjectEntityRefs(pkg.projectId)
+        const entityRefs = listProjectEntityRefs(currentProjectId)
 
+        const historyById = new Map(historyRecords.map(h => [h.id, h]))
+        const graphById = new Map(graphProjects.map(g => [g.id, g]))
         const newItems: PackageItem[] = []
 
-        // 엔티티 레프 기반 수집
         for (const ref of entityRefs) {
           if (ref.entityKind === 'analysis') {
-            const record = historyRecords.find(h => h.id === ref.entityId)
+            const record = historyById.get(ref.entityId)
             if (record) {
               newItems.push({
                 id: generatePackageItemId(),
@@ -590,7 +600,7 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
               })
             }
           } else if (ref.entityKind === 'figure') {
-            const graph = graphProjects.find(g => g.id === ref.entityId)
+            const graph = graphById.get(ref.entityId)
             if (graph) {
               newItems.push({
                 id: generatePackageItemId(),
@@ -615,7 +625,7 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
     }
 
     void collectItems()
-  }, [step, pkg])
+  }, [step, currentProjectId, hasItems])
 
   const updateOverview = useCallback((updated: Partial<PaperPackage['overview']>) => {
     setPkg(prev => prev ? { ...prev, overview: { ...prev.overview, ...updated } } : prev)
@@ -660,7 +670,8 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
   const handleAssemble = useCallback(async (): Promise<void> => {
     if (!pkg) return
     try {
-      const historyRecords = await getAllHistory()
+      const historyRecords = historyCacheRef.current ?? await getAllHistory()
+      historyCacheRef.current = historyRecords
       const graphProjects = listProjects()
       const sources: PackageDataSources = { historyRecords, graphProjects }
       const result = assemblePaperPackage(pkg, sources)
@@ -679,7 +690,7 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
     )
   }
 
-  const steps: Step[] = [1, 2, 3, 4, 5]
+  const steps = STEPS
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
@@ -734,7 +745,7 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
           <Step5
             pkg={pkg}
             result={assemblyResult}
-            onAssemble={() => { void handleAssemble() }}
+            onAssemble={handleAssemble}
           />
         )}
       </div>

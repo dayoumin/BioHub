@@ -10,6 +10,7 @@ import type {
   PackageItem,
   PackageReference,
   AssemblyResult,
+  ReferenceRole,
 } from './paper-package-types'
 
 export interface PackageDataSources {
@@ -65,7 +66,8 @@ export function generateFigurePatternSummary(
     return val !== undefined ? `${s.group}(${label} ${val})` : s.group
   })
 
-  return `그룹별 ${parts[0].split('(')[1] ? '평균' : ''}: ${parts.join(' > ')}.`
+  const hasMean = stats.some(s => s.mean !== undefined)
+  return `그룹별 ${hasMean ? '평균' : '중앙값'}: ${parts.join(' > ')}.`
 }
 
 // ── 포맷 헬퍼 ────────────────────────────────────────────
@@ -80,7 +82,7 @@ function formatReference(ref: PackageReference, index: number): string {
   const pages = entry.pages ? `, ${entry.pages}` : ''
   const doi = entry.doi ? `. ${entry.doi}` : ''
 
-  const roleLabel: Record<string, string> = {
+  const roleLabel: Record<ReferenceRole, string> = {
     methodology: '방법론 근거',
     comparison: '비교 데이터',
     background: '배경 이론',
