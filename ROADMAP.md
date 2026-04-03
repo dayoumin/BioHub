@@ -1,7 +1,7 @@
 # BioHub Roadmap
 
 **Last updated**: 2026-03-21
-**References**: [Platform Vision](docs/PLATFORM_VISION.md), [Product Strategy](docs/PRODUCT_STRATEGY.md), [Research Project Status](docs/RESEARCH_PROJECT_STATUS.md), [Deployment Strategy](docs/DEPLOYMENT-STRATEGY.md)
+**References**: [Platform Vision](docs/PLATFORM_VISION.md), [Product Strategy](docs/PRODUCT_STRATEGY.md), [AI Export Strategy](docs/AI-EXPORT-STRATEGY.md), [Research Project Status](docs/RESEARCH_PROJECT_STATUS.md), [Deployment Strategy](docs/DEPLOYMENT-STRATEGY.md)
 
 ---
 
@@ -33,7 +33,9 @@ BioHub is becoming a:
 
 The product chain to optimize is:
 
-**data -> validated analysis -> explainable interpretation -> domain verification -> reviewer-ready output**
+**data -> validated analysis -> explainable interpretation -> domain verification -> AI-ready package -> SOTA AI 논문 생성 -> 사람 최종 편집(DOCX/HWPX)**
+
+BioHub은 논문을 직접 쓰는 도구가 아니라, **논문을 쓸 수 있게 만드는 도구**다. 상세: [AI Export Strategy](docs/AI-EXPORT-STRATEGY.md)
 
 ### 경쟁 포지셔닝 및 해자(Moat) 전략
 
@@ -139,7 +141,23 @@ Includes:
 - reviewer checklist and simulation
 - journal format adaptation and fit review
 
-### Stream 5. Research Copilot
+### Stream 5. AI Export Pipeline
+
+Goal:
+
+BioHub의 분석 결과를 외부 SOTA AI(Claude/GPT/Gemini Pro)가 소비할 수 있는 구조화된 패키지로 내보내기. 사용자는 이 패키지로 논문 초고를 생성하고, 최종적으로 DOCX/HWPX로 편집·제출한다.
+
+Includes:
+
+- 프로젝트 전체 결과를 Markdown/JSON으로 export (통계+그래프+문헌+계산)
+- 결과 ↔ 논문 섹션 매핑 (Table 2, Figure 3, Results 3.1 태깅)
+- 분야별 프롬프트 템플릿 (생태학/유전학/수산학 + 저널 스타일)
+- Publication-ready 그래프 export (TIFF 300dpi, SVG, APA 스타일)
+- 분석 버전/히스토리 비교 (Reviewer 대응)
+
+상세: [AI Export Strategy](docs/AI-EXPORT-STRATEGY.md)
+
+### Stream 6. Research Copilot
 
 Goal:
 
@@ -271,7 +289,28 @@ Exit criteria:
 - species and legal information are first-class project records
 - domain outputs can be cited or reviewed in downstream flows
 
-### Phase E. Research Copilot
+### Phase E. AI Export Pipeline
+
+Scope:
+
+- AI-ready 패키지 export (프로젝트 전체 결과를 구조화된 Markdown/JSON으로)
+- 결과 ↔ 논문 섹션 매핑 + 태깅 시스템
+- 분야별 프롬프트 템플릿 생성기
+- Publication-ready 그래프 export (TIFF 300dpi, SVG)
+- 분석 버전 비교 (Reviewer 코멘트 대응)
+
+Exit criteria:
+
+- 사용자가 프로젝트의 모든 결과를 한 번에 AI-ready 패키지로 export 가능
+- export에 논문 섹션 맥락이 포함되어 SOTA AI가 바로 초고 생성 가능
+- 그래프가 저널 투고 품질로 export 가능
+
+Dependencies:
+
+- Phase A (Unified Research Project) — 프로젝트 모델 필요
+- Phase C (Reviewer-Ready Workflow) — 섹션 매핑 기반
+
+### Phase F. Research Copilot
 
 Scope:
 
@@ -299,7 +338,8 @@ Build in this order:
 6. Reviewer-ready checklist and package
 7. Reviewer simulator
 8. Journal fit and formatting review
-9. Research copilot
+9. **AI Export pipeline (AI-ready 패키지 export)**
+10. Research copilot
 
 ---
 
@@ -369,6 +409,14 @@ Update this file when:
 - product priorities shift
 - a roadmap phase is completed
 - a new stream becomes strategically important
+
+### 전략 문서 정기 점검 (분기별)
+
+| 문서 | 점검 내용 | 다음 점검 |
+|------|----------|----------|
+| [AI Export Strategy](docs/AI-EXPORT-STRATEGY.md) | 경쟁 환경, AI 모델 동향, 포지셔닝 유효성 | 2026-07 |
+| [Product Strategy](docs/PRODUCT_STRATEGY.md) | 전략 기둥 유효성, Horizon 진행도 | 2026-07 |
+| [Platform Vision](docs/PLATFORM_VISION.md) | 장기 비전 변경 필요 여부 (연 1회) | 2027-02 |
 
 Do not use this file for:
 

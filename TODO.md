@@ -102,6 +102,16 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - `[ux]` 프로젝트 카드 클릭 동작 — 사용자 피드백 후 결정
 - `[trust]` 재현 코드 내보내기 확장 (고급 분석)
 
+### AI Export Pipeline
+
+3단계 논문 완성 모델: **1차 BioHub → 2차 SOTA AI → 3차 사람(DOCX/HWPX)**. 상세: [AI-EXPORT-STRATEGY.md](docs/AI-EXPORT-STRATEGY.md)
+
+- `[export]` AI-ready 패키지 export — 프로젝트 전체 결과(통계+그래프+문헌+계산)를 Markdown/JSON으로 내보내기
+- `[export]` 결과 ↔ 논문 섹션 매핑 — Table/Figure/Results 태깅
+- `[export]` 분야별 프롬프트 템플릿 — 생태학/유전학/수산학 + 저널 스타일
+- `[export]` Publication-ready 그래프 export — TIFF 300dpi, SVG, APA 스타일
+- `[export]` 분석 버전/히스토리 비교 — Reviewer 코멘트 대응
+
 ---
 
 ## 5. Blocked
