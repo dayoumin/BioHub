@@ -1,6 +1,6 @@
 # BioHub TODO
 
-**Last updated**: 2026-04-03 (머지 후 논문 작성 Phase 현황 반영)
+**Last updated**: 2026-04-04 (Phase 6a 인용 관리 완료)
 **References**: [Product Strategy](docs/PRODUCT_STRATEGY.md), [Roadmap](ROADMAP.md), [Research Project Status](docs/RESEARCH_PROJECT_STATUS.md)
 
 ---
@@ -21,7 +21,7 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - `[paper]` ~~Phase 6b: Figure 오프스크린 렌더링+캐시~~ ✅
 - `[paper]` ~~Phase 6d: 표/그림 자동 번호 매기기~~ ✅
 - `[paper]` ~~Phase 6e: HWPX 내보내기~~ ✅
-- `[paper]` **Phase 6a: 인용 관리** — citation store + MaterialPalette 문헌 탭 + APA formatter + References 자동 동기화 (진행 예정)
+- `[paper]` ~~Phase 6a: 인용 관리~~ ✅ — citation store + MaterialPalette 문헌 탭 + APA formatter + References 자동 동기화
 - `[paper]` Phase 6f: field-report 프리셋 — species-validation/legal-status resolver 선행 필요 (Blocked)
 - 상세: [PLAN-DOCUMENT-ASSEMBLY.md](stats/docs/papers/PLAN-DOCUMENT-ASSEMBLY.md)
 
@@ -144,7 +144,7 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - **Graph Studio**: localStorage quota, AI 패치 검증, BOM 감지, quota 정책
 - **유전적 분석**: BLAST 통합 리팩토링, 히스토리 분리, 초보자 가이드, rate limit 재시도
 - **Bio-Tools**: BioToolId 타입, 차트 ECharts 전환, 결과 내보내기, 프로젝트 연결, Worker 9 골든 테스트
-- **논문 작성**: Phase 1~5 완료 + Phase 6b/6d/6e 완료 — 조립엔진·Plate WYSIWYG·DOCX/HWPX 내보내기·영문 템플릿·Figure 렌더링·자동 번호 매기기
+- **논문 작성**: Phase 1~5 + 6a/6b/6d/6e 완료 — 조립엔진·Plate WYSIWYG·DOCX/HWPX 내보내기·영문 템플릿·Figure 렌더링·자동 번호 매기기·인용 관리(APA+IndexedDB+References 자동 병합)
 - **UI 통합**: Shell/Upload/Bio 페이지 일관성, 토스트 마이그레이션, 디자인 토큰, 차트 팔레트 토큰화, **전역 토큰 일관성 통일** (26건 18파일)
 - **유전적 분석 Cloud Sync**: D1 genetics history API + 30s TTL hydration + entity ref 중복 수정
 - **worker.ts 기술부채**: `parseJsonBody`(9건) + `authenticateRequest`(3건) + `verifyProjectOwnership`(4건) 헬퍼 추출

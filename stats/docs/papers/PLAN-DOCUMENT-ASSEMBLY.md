@@ -1,7 +1,7 @@
 # 프로젝트 레벨 문서 조립 (Draft Assembly) 계획
 
 **작성일**: 2026-03-23
-**상태**: Phase 1~5 완료, Phase 6b/6d/6e 완료 — **Phase 6a (인용 관리) 진행 예정** (2026-04-03 현황)
+**상태**: Phase 1~5 완료, Phase 6a/6b/6d/6e 완료 — **Phase 6f (field-report) Blocked** (2026-04-04 현황)
 **구현 계획**: Claude Code plans (`indexed-stirring-wirth.md`, 로컬 전용 — 버전 관리 대상 아님)
 **관련 문서**: [PLAN-PROJECT-DETAIL-PAGE.md](../PLAN-PROJECT-DETAIL-PAGE.md) · [TODO.md](../../../TODO.md) · [PLAN-PAPER-DRAFT-GENERATION.md](PLAN-PAPER-DRAFT-GENERATION.md)
 
@@ -303,7 +303,7 @@ DocumentBlueprint 생성 시:
 - `/papers` 문서 허브 + 에디터 (기존 결과 정리 기능 **공존**)
 - **라우팅**: `dynamic(PapersContent, { ssr: false })` + `window.location.search` (`useSearchParams` 금지)
 - 프리셋 선택 → 자동 조립 → 섹션 편집 (마크다운 textarea + react-markdown)
-- MaterialPalette: **분석+그래프만** (문헌 인용은 Phase 6a, citation store 부재)
+- MaterialPalette: 분석+그래프+문헌 인용 (Phase 6a 완료)
 - entity-resolver `case 'draft'` 추가
 
 ### Phase 3: Plate 리치 텍스트 에디터 ✅
@@ -323,7 +323,7 @@ DocumentBlueprint 생성 시:
 - ~~외부 AI용 구조화된 프롬프트 클립보드 복사~~ → **보류** (필요 시 재검토)
 
 ### Phase 6: 폴리싱
-- **6a: 인용 관리** — citation store 신규 설계 필요 (진행 예정)
+- ~~6a: 인용 관리~~ ✅ — IndexedDB citations 스토어, APA 포맷터, MaterialPalette 문헌 탭, References 자동 병합. 상세: [PLAN-CITATION-MANAGEMENT.md](PLAN-CITATION-MANAGEMENT.md)
 - ~~6b: Figure 오프스크린 렌더링 + 캐시~~ ✅ (`loadSnapshots` 구현)
 - ~~6c: 영문 템플릿 완성~~ → Phase 5로 승격 ✅
 - ~~6d: 표/그림 자동 번호 매기기~~ ✅ (assembler `Figure N` 자동 생성)
