@@ -1,6 +1,14 @@
 # CLAUDE.md
 
-**현황/로드맵**: [TODO.md](TODO.md) · [ROADMAP.md](ROADMAP.md) · **디자인**: [.impeccable.md](.impeccable.md)
+**현황/로드맵**: [TODO.md](TODO.md) · [ROADMAP.md](ROADMAP.md) · **디자인**: [.impeccable.md](.impeccable.md) · [DESIGN.md](stats/DESIGN.md)
+
+## 디자인 시스템 참조 (Axiom Slate)
+
+- UI 작업 시 `stats/DESIGN.md` (Precision Editorial 디자인 시스템) 참조 필수
+- **No-Line Rule**: border 대신 배경색 톤 변화로 구역 구분
+- **Surface Hierarchy**: L1(canvas) → L2(section) → L3(focus) 톤 단계
+- **색상 토큰**: Stitch Axiom Slate 기반 (stats/DESIGN.md 참조)
+- **Stitch 디자인 원본**: `.stitch/designs/` 폴더 (Step 1~4 HTML/PNG)
 
 ## 프로젝트 개요
 

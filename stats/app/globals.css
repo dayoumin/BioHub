@@ -27,6 +27,19 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+
+  /* Axiom Slate Surface Hierarchy */
+  --color-surface: var(--surface);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container-highest: var(--surface-container-highest);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-accent-tertiary: var(--accent-tertiary);
+  --color-secondary-container: var(--secondary-container);
+  --color-on-secondary-container: var(--on-secondary-container);
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -39,10 +52,11 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  /* Axiom Slate Roundness: crisp & professional */
+  --radius-sm: var(--radius);                     /* 0.25rem (4px) — buttons, inputs */
+  --radius-md: calc(var(--radius) + 2px);         /* 6px */
+  --radius-lg: calc(var(--radius) * 2);           /* 0.5rem (8px) — cards, modals */
+  --radius-xl: calc(var(--radius) * 3);           /* 0.75rem (12px) — large containers */
 
   /* Semantic Colors - Muted Palette */
   --color-success: var(--success);
@@ -114,6 +128,10 @@
 
 /* Safelist — 동적으로 생성되는 클래스 (스캐너가 감지 못함) */
 @source inline("
+  bg-surface bg-surface-container-low bg-surface-container bg-surface-container-high
+  bg-surface-container-highest bg-surface-container-lowest
+  text-accent-tertiary bg-secondary-container text-on-secondary-container
+  border-outline-variant
   bg-highlight-bg border-highlight-border text-highlight
   bg-correlation-strong-pos bg-correlation-medium-pos bg-correlation-weak
   bg-correlation-medium-neg bg-correlation-strong-neg
@@ -129,40 +147,54 @@
 ");
 
 :root {
-  --radius: 0.5rem;
-  /* Base - 미세 쿨톤 (순백보다 전문적) */
-  --background: oklch(0.985 0.003 250);
-  --foreground: oklch(0.2 0.02 260);
-  /* Deep Navy Grey */
+  --radius: 0.25rem;
+
+  /* ═══ Axiom Slate Surface Hierarchy ═══
+     No-Line Rule: border 대신 배경색 톤 변화로 구역 구분
+     L1(Canvas) → L2(Section) → L3(Focus) */
+  --background: oklch(0.98 0.003 250);           /* L1 Canvas (#f7f9fb) */
+  --foreground: oklch(0.17 0.01 250);             /* on_surface (#191c1e) — NOT pure black */
+
+  /* Surface Container Scale */
+  --surface: oklch(0.98 0.003 250);               /* #f7f9fb — global canvas */
+  --surface-container-low: oklch(0.965 0.003 250); /* #f2f4f6 — sidebar, secondary */
+  --surface-container: oklch(0.95 0.003 250);      /* #eceef0 — L2 section bg */
+  --surface-container-high: oklch(0.93 0.005 250); /* #e6e8ea — info panels */
+  --surface-container-highest: oklch(0.91 0.005 250); /* #e0e3e5 — L3 focus */
+  --surface-container-lowest: oklch(1 0 0);        /* #ffffff — primary cards "pop" */
 
   /* Surface */
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.02 260);
+  --card: oklch(1 0 0);                           /* surface_container_lowest */
+  --card-foreground: oklch(0.17 0.01 250);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.02 260);
+  --popover-foreground: oklch(0.17 0.01 250);
 
-  /* Brand - Vivid Science Blue */
-  --primary: oklch(0.52 0.20 260);
+  /* Brand — Slate Primary + Blue Accent (Axiom Slate) */
+  --primary: oklch(0.15 0.02 250);                /* #0F172A — slate-900, editorial authority */
   --primary-foreground: oklch(1 0 0);
 
   /* Secondary/Muted */
-  --secondary: oklch(0.96 0.01 260);
-  /* Very light blue-grey */
-  --secondary-foreground: oklch(0.3 0.05 260);
+  --secondary: oklch(0.965 0.003 250);            /* surface_container_low */
+  --secondary-foreground: oklch(0.38 0.01 260);   /* on_surface_variant (#45464d) */
   --muted: oklch(0.97 0 0);
-  /* Almost white */
-  --muted-foreground: oklch(0.55 0.02 260);
+  --muted-foreground: oklch(0.48 0.02 260);       /* secondary (#515f74) */
 
   /* Accents */
-  --accent: oklch(0.95 0.02 260);
-  --accent-foreground: oklch(0.2 0.05 260);
-  --destructive: oklch(0.6 0.15 25);
-  /* Professional Alert Red */
+  --accent: oklch(0.95 0.003 250);                /* surface_container */
+  --accent-foreground: oklch(0.17 0.01 250);
+  --accent-tertiary: oklch(0.58 0.15 240);        /* #188ace — success, active, trends */
+  --destructive: oklch(0.55 0.15 25);             /* error (#ba1a1a) */
 
-  /* Borders - Crisp Cool */
-  --border: oklch(0.91 0.008 260);
-  --input: oklch(0.91 0.008 260);
-  --ring: oklch(0.7 0.1 260);
+  /* Secondary Container — chip/badge 배경 */
+  --secondary-container: oklch(0.91 0.04 260);    /* #d5e3fc */
+  --on-secondary-container: oklch(0.42 0.03 250); /* #57657a */
+
+  /* Borders — Ghost borders only (No-Line Rule) */
+  --border: oklch(0.91 0.005 250);                /* outline_variant at 15% opacity concept */
+  --input: oklch(0.91 0.005 250);
+  --ring: oklch(0.58 0.15 240);                   /* accent-tertiary for focus ring */
+  --outline: oklch(0.55 0.01 250);                /* #76777d — subtle when needed */
+  --outline-variant: oklch(0.82 0.005 250);       /* #c6c6cd — ghost borders */
 
   /* Charts - Adjusted for White BG */
   --chart-1: oklch(0.45 0.15 260);
@@ -186,20 +218,15 @@
   --chart-10: oklch(0.5 0.22 290);
   /* Violet */
 
-  /* Sidebar - Light mode: soft neutral surface */
-  --sidebar: oklch(0.97 0.003 260);
-  --sidebar-foreground: oklch(0.15 0.02 260);
-  /* Near black for readability */
-  --sidebar-primary: oklch(0.52 0.20 260);
-  /* Brand blue */
+  /* Sidebar — Axiom Slate: surface_container_low, no border */
+  --sidebar: oklch(0.965 0.003 250);              /* surface_container_low (#f2f4f6) */
+  --sidebar-foreground: oklch(0.17 0.01 250);     /* on_surface */
+  --sidebar-primary: oklch(0.15 0.02 250);        /* primary (slate) */
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.93 0.005 260);
-  /* Hover - subtle light gray */
-  --sidebar-accent-foreground: oklch(0.1 0.02 260);
-  --sidebar-border: oklch(0.91 0.008 260);
-  /* Matches main border */
-  --sidebar-ring: oklch(0.52 0.20 260);
-  /* Brand blue focus ring */
+  --sidebar-accent: oklch(0.95 0.003 250);        /* surface_container hover */
+  --sidebar-accent-foreground: oklch(0.17 0.01 250);
+  --sidebar-border: oklch(0.91 0.005 250);        /* ghost border */
+  --sidebar-ring: oklch(0.58 0.15 240);           /* accent-tertiary */
 
   /* Monochrome Design System */
   --hover-bg: oklch(0.95 0 0);

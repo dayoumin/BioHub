@@ -55,7 +55,7 @@ const SummaryBlock = memo(function SummaryBlock({
   showCursor: boolean
 }): React.ReactElement {
   return (
-    <div className="border-l-4 border-l-violet-400 dark:border-l-violet-600 bg-violet-50/50 dark:bg-violet-950/20 rounded-r-lg p-3">
+    <div className="bg-violet-50/60 dark:bg-violet-950/20 rounded-lg p-4">
       <div className={cn(proseBase, 'text-sm leading-relaxed')}>
         <ReactMarkdown>{summary}</ReactMarkdown>
         {showCursor && <StreamingCursor />}
@@ -90,10 +90,10 @@ function SectionPill({
       onClick={handleClick}
       className={cn(
         'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
-        'border transition-all duration-150',
+        'transition-all duration-150',
         isActive
-          ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 border-violet-300 dark:border-violet-700'
-          : 'bg-muted/50 text-muted-foreground border-border/60 hover:bg-muted hover:border-border',
+          ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 shadow-[0_1px_2px_0_rgba(0,0,0,0.05)]'
+          : 'bg-surface-container/60 text-muted-foreground hover:bg-surface-container-high/60',
       )}
     >
       <Icon className="w-3 h-3" />
@@ -150,7 +150,7 @@ function WarningCallout({
       initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
-      className="rounded-lg border border-warning-border bg-warning-bg/50 p-3"
+      className="rounded-lg border-0 bg-warning-bg/40 p-4"
     >
       <div className="flex items-start gap-2">
         <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
@@ -198,7 +198,7 @@ function ActionCallout({
       initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
-      className="rounded-lg border border-violet-200 dark:border-violet-800/50 bg-violet-50/30 dark:bg-violet-950/20 p-3"
+      className="rounded-lg border-0 bg-violet-50/40 dark:bg-violet-950/20 p-4"
     >
       <div className="flex items-start gap-2">
         <ArrowRight className="w-4 h-4 text-violet-500 flex-shrink-0 mt-0.5" />
@@ -307,9 +307,9 @@ export function AiInterpretationCard({
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.2 }}
           >
-            <Card className="border-violet-200 dark:border-violet-800/50">
-              <CardContent className="py-4 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
+            <Card className="border-0 bg-surface-container-lowest shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+              <CardContent className="py-5 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-violet-50 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
                   <Sparkles className="w-4 h-4 text-violet-500 animate-pulse" />
                 </div>
                 <span className="text-sm text-violet-700 dark:text-violet-300 font-medium">{t.results.ai.loading}</span>
@@ -326,12 +326,12 @@ export function AiInterpretationCard({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
           >
-            <Card className="border-violet-200 dark:border-violet-800/50">
+            <Card className="border-0 bg-surface-container-lowest shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
               {/* --- Header --- */}
-              <CardHeader className="pb-2 pt-4 px-4">
+              <CardHeader className="pb-2 pt-5 px-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-md bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-md bg-violet-50 dark:bg-violet-900/40 flex items-center justify-center">
                       <Sparkles className="w-3.5 h-3.5 text-violet-500" />
                     </div>
                     <span className="text-sm font-semibold text-violet-700 dark:text-violet-300">{t.results.ai.label}</span>
@@ -348,7 +348,7 @@ export function AiInterpretationCard({
                 </div>
               </CardHeader>
 
-              <CardContent className="pt-2 pb-4 px-4 space-y-3">
+              <CardContent className="pt-2 pb-5 px-5 space-y-4">
                 {/* --- 1. Summary Hero --- */}
                 <SummaryBlock
                   summary={parsedInterpretation.summary}
@@ -392,7 +392,7 @@ export function AiInterpretationCard({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
                       transition={{ duration: 0.2, ease: 'easeOut' }}
-                      className="border border-border/40 rounded-lg px-3"
+                      className="bg-surface-container/40 rounded-lg px-4"
                     >
                       <SectionContent section={selectedSection} />
                     </motion.div>
@@ -405,7 +405,7 @@ export function AiInterpretationCard({
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.2 }}
-                      className="border border-border/40 rounded-lg px-3 divide-y divide-border/30"
+                      className="bg-surface-container/40 rounded-lg px-4 divide-y divide-surface-container-high/60"
                     >
                       {detailSections.map(section => (
                         <SectionContent key={section.key} section={section} />
@@ -416,7 +416,7 @@ export function AiInterpretationCard({
 
                 {/* --- Fallback: 볼드 소제목 없는 상세 텍스트 --- */}
                 {hasDetail && !hasSections && (
-                  <div className={cn(proseBase, 'text-sm leading-relaxed border-t border-border/10 pt-3')}>
+                  <div className={cn(proseBase, 'text-sm leading-relaxed bg-surface-container/30 rounded-lg p-4')}>
                     <ReactMarkdown>{parsedInterpretation.detail}</ReactMarkdown>
                     {isInterpreting && <StreamingCursor />}
                   </div>

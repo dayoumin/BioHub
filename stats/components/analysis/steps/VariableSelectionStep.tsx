@@ -294,7 +294,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   }
 
   return (
-    <div className="space-y-6" data-testid="variable-selection-step" data-method-id={selectedMethod?.id ?? ''} data-selector-type={selectorType}>
+    <div className="space-y-8" data-testid="variable-selection-step" data-method-id={selectedMethod?.id ?? ''} data-selector-type={selectorType}>
       <StepHeader
         icon={Settings2}
         title={t.analysis.stepTitles.variableSelection}
@@ -309,37 +309,37 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         </Alert>
       )}
 
-      {/* AI Detected Variables Info */}
+      {/* AI Detected Variables Info — Axiom Slate: tonal surface shift, no border */}
       {detectedVariables && (
-        <div className="flex items-start gap-3 p-4 rounded-xl bg-muted/30 border border-border/40">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <Sparkles className="h-4 w-4 text-primary" />
+        <div className="flex items-start gap-4 p-5 rounded-2xl bg-surface-container-low">
+          <div className="w-8 h-8 rounded-lg bg-secondary-container flex items-center justify-center flex-shrink-0 mt-0.5">
+            <Sparkles className="h-4 w-4 text-on-secondary-container" />
           </div>
-          <div className="text-sm space-y-1.5">
-            <span className="font-semibold tracking-tight text-foreground/90">{t.analysis.aiVariables.title}</span>
-            <div className="flex flex-wrap gap-1.5">
+          <div className="text-sm space-y-2">
+            <span className="font-semibold tracking-tight text-foreground">{t.analysis.aiVariables.title}</span>
+            <div className="flex flex-wrap gap-2">
               {detectedVariables.dependentCandidate && (
-                <Badge variant="outline" className="text-[10px] bg-info-bg border-info-border text-info font-medium">
+                <Badge variant="outline" className="text-[10px] bg-info-bg border-transparent text-info font-medium">
                   {t.analysis.aiVariables.roles.dependent} {detectedVariables.dependentCandidate}
                 </Badge>
               )}
               {detectedVariables.groupVariable && (
-                <Badge variant="outline" className="text-[10px] bg-success-bg border-success-border text-success font-medium">
+                <Badge variant="outline" className="text-[10px] bg-success-bg border-transparent text-success font-medium">
                   {t.analysis.aiVariables.roles.group} {detectedVariables.groupVariable}
                 </Badge>
               )}
               {detectedVariables.factors && detectedVariables.factors.length > 0 && (
-                <Badge variant="outline" className="text-[10px] bg-success-bg border-success-border text-success font-medium">
+                <Badge variant="outline" className="text-[10px] bg-success-bg border-transparent text-success font-medium">
                   {t.analysis.aiVariables.roles.factors} {detectedVariables.factors.join(', ')}
                 </Badge>
               )}
               {detectedVariables.independentVars && detectedVariables.independentVars.length > 0 && (
-                <Badge variant="outline" className="text-[10px] bg-highlight-bg border-highlight-border text-highlight font-medium">
+                <Badge variant="outline" className="text-[10px] bg-highlight-bg border-transparent text-highlight font-medium">
                   {t.analysis.aiVariables.roles.independent} {detectedVariables.independentVars.join(', ')}
                 </Badge>
               )}
               {detectedVariables.covariates && detectedVariables.covariates.length > 0 && (
-                <Badge variant="outline" className="text-[10px] bg-muted border-border/50 font-medium">
+                <Badge variant="outline" className="text-[10px] bg-surface-container border-transparent text-muted-foreground font-medium">
                   {t.analysis.aiVariables.roles.covariate} {detectedVariables.covariates.join(', ')}
                 </Badge>
               )}
@@ -351,19 +351,21 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
       {/* Dynamic Selector */}
       {renderSelector()}
 
-      {/* Analysis Options */}
-      <CollapsibleSection
-        label={t.selectorUI.labels.analysisOptions}
-        open={optionsOpen}
-        onOpenChange={setOptionsOpen}
-        icon={<SlidersHorizontal className="h-3.5 w-3.5" />}
-        data-testid="analysis-options-section"
-      >
-        <AnalysisOptionsSection
-          showTestValue={selectorType === 'one-sample'}
-          className="px-2 py-3"
-        />
-      </CollapsibleSection>
+      {/* Analysis Options — Axiom Slate: tonal bg, no border */}
+      <div className="rounded-2xl bg-surface-container-low px-2 py-1">
+        <CollapsibleSection
+          label={t.selectorUI.labels.analysisOptions}
+          open={optionsOpen}
+          onOpenChange={setOptionsOpen}
+          icon={<SlidersHorizontal className="h-3.5 w-3.5" />}
+          data-testid="analysis-options-section"
+        >
+          <AnalysisOptionsSection
+            showTestValue={selectorType === 'one-sample'}
+            className="px-3 py-3"
+          />
+        </CollapsibleSection>
+      </div>
     </div>
   )
 }

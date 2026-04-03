@@ -790,7 +790,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
   return (
     <TooltipProvider>
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* ===== 스텝 헤더 (P0-1: Copy + Save 상단 배치) ===== */}
         <StepHeader
           icon={BarChart3}
@@ -831,7 +831,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 <BookOpen className="w-3.5 h-3.5 sm:mr-1" />
                 <span className="hidden sm:inline">{paperDraft ? t.results.buttons.viewSummary : t.results.buttons.resultsSummary}</span>
               </Button>
-              <div className="w-px h-4 bg-border/50 hidden sm:block" />
+              <div className="w-px h-4 bg-surface-container-highest/40 hidden sm:block" />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" disabled={isExporting} aria-label={t.results.buttons.export} className="h-8 px-1.5 sm:px-2.5 shadow-sm" data-testid="export-dropdown">

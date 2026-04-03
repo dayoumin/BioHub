@@ -114,7 +114,7 @@ export function ResultsActionButtons({
   return (
     <>
       {/* ===== 액션 버튼 ===== */}
-      <div className="flex items-center gap-2 flex-wrap pt-1 border-t border-border/40" data-testid="action-buttons">
+      <div className="flex items-center gap-2 flex-wrap pt-4 mt-2 bg-surface-container/20 -mx-1 px-1 rounded-xl" data-testid="action-buttons">
         <Button
           variant="ghost"
           size="sm"
@@ -157,7 +157,7 @@ export function ResultsActionButtons({
           Graph Studio
         </Button>
 
-        <div className="w-px h-4 bg-border/30" />
+        <div className="w-px h-4 bg-surface-container-highest/50" />
 
         <Button
           variant="ghost"

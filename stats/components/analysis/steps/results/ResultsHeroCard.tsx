@@ -52,11 +52,14 @@ export function ResultsHeroCard({
       animate={prefersReducedMotion ? undefined : 'visible'}
     >
       <Card className={cn(
-        "overflow-hidden rounded-xl shadow-sm",
-        !assumptionsPassed ? "border-warning-border" :
-          isSignificant ? "border-success-border/60" : "border-border/50"
+        "overflow-hidden rounded-xl border-0",
+        !assumptionsPassed
+          ? "bg-warning-bg/30 shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]"
+          : isSignificant
+            ? "bg-surface-container-lowest shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]"
+            : "bg-surface-container-low shadow-[0_1px_2px_0_rgba(0,0,0,0.03)]"
       )}>
-        <CardContent className="py-3.5 px-4">
+        <CardContent className="py-4 px-5">
           {/* 1행: 아이콘 + 메서드명 + 경고 배지 + 타임스탬프 */}
           <div className="flex items-center gap-3 flex-wrap">
             <div className={cn(
@@ -79,7 +82,7 @@ export function ResultsHeroCard({
             {!assumptionsPassed && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge variant="outline" className="text-xs border-warning bg-warning-bg text-warning cursor-help">
+                  <Badge variant="outline" className="text-xs border-0 bg-warning-bg text-warning cursor-help">
                     <AlertCircle className="w-3 h-3 mr-1" />
                     {t.results.sections.caution}
                   </Badge>
@@ -105,7 +108,7 @@ export function ResultsHeroCard({
 
           {/* 2행: APA + 메타데이터 (간결) */}
           {(apaFormat || uploadedFileName || uploadedData || statisticalResult.variables) && (
-            <div className="mt-2 pt-2 border-t border-border/10 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+            <div className="mt-3 pt-3 pb-1 bg-surface-container/30 -mx-5 px-5 rounded-b-xl flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
               {apaFormat && (
                 <>
                   <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/40 flex-shrink-0">APA</span>

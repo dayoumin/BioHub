@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { AlertCircle, Loader2, Clock, FileSpreadsheet, X, Lightbulb } from 'lucide-react'
+import { AlertCircle, Loader2, Clock, FileSpreadsheet, X, Lightbulb, CloudUpload } from 'lucide-react'
 import { toast } from 'sonner'
 import { getUserFriendlyErrorMessage } from '@/lib/constants/error-messages'
 import { findCriticalParseError, parseWarningMessage } from '@/lib/utils/csv-parse-errors'
@@ -12,7 +12,6 @@ import { useDropzone } from 'react-dropzone'
 import Papa from 'papaparse'
 import { cn } from '@/lib/utils'
 import { focusRing } from '@/components/common/card-styles'
-import { UploadDropZoneContent, uploadZoneClassName } from '@/components/common/UploadDropZone'
 import { formatTimeAgo } from '@/lib/utils/format-time'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { DataValidationService, DATA_LIMITS } from '@/lib/services/data-validation-service'
@@ -349,7 +348,7 @@ export function DataUploadStep({
           )}
         </Button>
         {error && (
-          <div className="absolute top-full mt-1 right-0 bg-destructive/10 border border-destructive/20 rounded-lg p-2 text-xs text-destructive whitespace-nowrap z-50">
+          <div className="absolute top-full mt-1.5 right-0 bg-destructive/8 rounded-lg p-2 text-xs text-destructive whitespace-nowrap z-50 shadow-[0px_4px_16px_rgba(25,28,30,0.06)]">
             {error}
           </div>
         )}
@@ -368,69 +367,96 @@ export function DataUploadStep({
     formatTimeAgo(timestamp, t.hub.timeAgo, 7)
 
   return (
-    <div className="space-y-4">
-      {/* 업로드 영역 */}
+    <div className="space-y-8">
+      {/* 업로드 영역 — Axiom Slate: surface hierarchy + ghost border */}
       {!uploadedFileName ? (
         <div
           {...getRootProps()}
-          className={cn(uploadZoneClassName(isDragActive, { isLoading: isUploading, clickable: true }), 'group relative')}
+          className={cn(
+            'group relative rounded-2xl px-8 py-10 text-center transition-all duration-200',
+            'bg-surface-container-low',
+            'border-2 border-dashed',
+            isDragActive
+              ? 'border-primary/60 bg-primary/5 shadow-[0_0_0_4px_rgba(var(--primary-rgb,0,0,0),0.05)]'
+              : 'border-outline-variant/40 hover:border-primary/30',
+            isUploading && 'pointer-events-none opacity-50',
+            'cursor-pointer',
+          )}
         >
           <input {...getInputProps()} />
-          <UploadDropZoneContent
-            isDragActive={isDragActive}
-            isLoading={isUploading}
-            label={t.dataUpload.labels.dragOrClick}
-            dragActiveLabel={t.dataUpload.labels.dropHere}
-            subtitle={t.dataUpload.labels.fileSpecifications}
-            buttonLabel={t.dataUpload.buttons.selectFile}
-            loadingLabel={t.dataUpload.buttons.uploading}
-          />
+          {/* Cloud upload icon in white circle with ambient shadow */}
+          <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-[0px_4px_16px_rgba(25,28,30,0.06)] group-hover:shadow-[0px_6px_20px_rgba(25,28,30,0.08)] transition-shadow duration-200">
+            <CloudUpload className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
+          </div>
+          <h3 className="text-base font-semibold tracking-tight text-foreground mb-1.5" aria-live="polite">
+            {isDragActive ? t.dataUpload.labels.dropHere : t.dataUpload.labels.dragOrClick}
+          </h3>
+          <p className="text-sm text-muted-foreground mb-5">{t.dataUpload.labels.fileSpecifications}</p>
+          <Button
+            size="sm"
+            className="shadow-sm"
+            disabled={isUploading}
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                {t.dataUpload.buttons.uploading}
+              </>
+            ) : (
+              t.dataUpload.buttons.selectFile
+            )}
+          </Button>
         </div>
       ) : (
-        <div className="border border-border/40 rounded-xl p-4 flex items-center justify-between bg-muted/20">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <FileSpreadsheet className="h-4 w-4 text-primary" />
+        <div className="rounded-xl p-4 flex items-center justify-between bg-surface-container-lowest shadow-[0px_4px_16px_rgba(25,28,30,0.04)] border border-outline-variant/15">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-primary/8 flex items-center justify-center">
+              <FileSpreadsheet className="h-4.5 w-4.5 text-primary" />
             </div>
-            <span className="text-sm font-medium tracking-tight">{uploadedFileName}</span>
+            <span className="text-sm font-medium tracking-tight text-foreground">{uploadedFileName}</span>
           </div>
           <div {...getRootProps()}>
             <input {...getInputProps()} />
-            <Button variant="outline" size="sm" disabled={isUploading} className="shadow-sm">
+            <Button variant="outline" size="sm" disabled={isUploading} className="border-outline-variant/20 shadow-none hover:bg-surface-container-low">
               {t.dataUpload.buttons.changeFile}
             </Button>
           </div>
         </div>
       )}
 
-      {/* 최근 업로드 파일 (업로드 전에만 표시) */}
+      {/* 최근 업로드 파일 (업로드 전에만 표시) — Axiom Slate: no dividers, alternating bg */}
       {!uploadedFileName && recentFiles.length > 0 && (
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground/70 uppercase tracking-wider">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
               <Clock className="h-3 w-3" />
               <span>{t.dataUpload.labels.recentFiles}</span>
             </div>
             <span className="text-xs text-muted-foreground/60">{t.dataUpload.labels.recentFilesClickHint}</span>
           </div>
-          <div className="grid gap-1">
-            {recentFiles.map((file) => (
+          <div className="rounded-xl overflow-hidden bg-surface-container-lowest shadow-[0px_4px_16px_rgba(25,28,30,0.04)]">
+            {recentFiles.map((file, idx) => (
               <div
                 key={file.name}
                 role="button"
                 tabIndex={0}
-                className={cn("group flex items-center justify-between p-2.5 rounded-lg border border-transparent bg-muted/20 hover:bg-muted/40 hover:border-border/30 transition-all duration-200 cursor-pointer", focusRing)}
+                className={cn(
+                  'group flex items-center justify-between px-4 py-3 transition-colors duration-150 cursor-pointer',
+                  idx % 2 === 0 ? 'bg-surface-container-lowest' : 'bg-surface-container-low/50',
+                  'hover:bg-surface-container-low',
+                  focusRing,
+                )}
                 onClick={() => open()}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open() } }}
                 title={t.dataUpload.labels.recentFileClickTitle}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-7 h-7 rounded-md bg-muted/50 flex items-center justify-center flex-shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center flex-shrink-0">
                     <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate tracking-tight">{file.name}</p>
-                    <p className="text-[11px] text-muted-foreground/70">
+                    <p className="text-sm font-medium truncate tracking-tight text-foreground">{file.name}</p>
+                    <p className="text-xs text-muted-foreground tabular-nums">
                       {t.dataUpload.labels.fileMetadata(file.rows.toLocaleString(), formatFileSize(file.size), formatRelativeTime(file.uploadedAt))}
                     </p>
                   </div>
@@ -438,7 +464,7 @@ export function DataUploadStep({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={(e) => {
                     e.stopPropagation()
                     removeRecentFile(file.name)
@@ -453,34 +479,35 @@ export function DataUploadStep({
         </div>
       )}
 
-      {/* Excel 시트 선택 UI */}
+      {/* Excel 시트 선택 UI — Axiom Slate: elevated card, no hard border */}
       {excelSheets && excelSheets.length > 1 && (
-        <Card>
+        <Card className="border-0 bg-surface-container-lowest shadow-[0px_12px_32px_rgba(25,28,30,0.04)]">
           <CardHeader>
-            <CardTitle className="text-base">{t.dataUpload.labels.selectSheet}</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-base font-semibold tracking-tight text-foreground">{t.dataUpload.labels.selectSheet}</CardTitle>
+            <CardDescription className="text-muted-foreground">
               {t.dataUpload.labels.sheetsFound(excelSheets.length)}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-5">
             <Select
               value={selectedSheet.toString()}
               onValueChange={(value) => setSelectedSheet(parseInt(value))}
             >
-              <SelectTrigger>
+              <SelectTrigger className="border-outline-variant/20 bg-surface-container-low/50">
                 <SelectValue placeholder={t.dataUpload.labels.selectSheetPlaceholder} />
               </SelectTrigger>
               <SelectContent>
                 {excelSheets.map((sheet) => (
                   <SelectItem key={sheet.index} value={sheet.index.toString()}>
-                    {t.dataUpload.labels.sheetInfo(sheet.name, sheet.rows.toLocaleString(), sheet.cols)}
+                    <span className="tabular-nums">{t.dataUpload.labels.sheetInfo(sheet.name, sheet.rows.toLocaleString(), sheet.cols)}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2.5">
               <Button
                 variant="outline"
+                className="border-outline-variant/20 shadow-none"
                 onClick={() => {
                   setExcelSheets(null)
                   setPendingExcelFile(null)
@@ -497,50 +524,50 @@ export function DataUploadStep({
         </Card>
       )}
 
-      {/* 진행률 표시 */}
+      {/* 진행률 표시 — Axiom Slate: surface card, tabular nums */}
       {progress && isUploading && (
-        <div className="space-y-2">
+        <div className="rounded-xl bg-surface-container-lowest p-5 shadow-[0px_4px_16px_rgba(25,28,30,0.04)] space-y-3">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">
+            <span className="text-muted-foreground tabular-nums">
               {t.dataUpload.labels.processing(progress.processedRows.toLocaleString(), progress.totalRows.toLocaleString())}
             </span>
-            <span className="font-medium">{Math.round(progress.percentage)}%</span>
+            <span className="font-semibold text-foreground tabular-nums">{Math.round(progress.percentage)}%</span>
           </div>
-          <Progress value={progress.percentage} className="h-2" />
+          <Progress value={progress.percentage} className="h-1.5" />
           {progress.estimatedTimeRemaining && progress.estimatedTimeRemaining > 0 && (
-            <p className="text-xs text-muted-foreground text-right">
+            <p className="text-xs text-muted-foreground text-right tabular-nums">
               {t.dataUpload.labels.estimatedTime(progress.estimatedTimeRemaining)}
             </p>
           )}
         </div>
       )}
 
-      {/* 메모리 경고 */}
+      {/* 메모리 경고 — Axiom Slate: tonal bg shift, no hard border */}
       {memoryWarning && (
-        <div className="bg-warning-bg border border-warning-border rounded-lg p-4 flex items-start space-x-2">
+        <div className="bg-warning-bg rounded-xl p-4 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
           <div className="space-y-1">
             <p className="text-sm font-medium text-warning-muted">
               {t.dataUpload.warnings.highMemoryTitle}
             </p>
-            <p className="text-xs text-warning-muted">
+            <p className="text-xs text-warning-muted leading-relaxed">
               {t.dataUpload.warnings.highMemoryDescription}
             </p>
           </div>
         </div>
       )}
 
-      {/* 에러 메시지 */}
+      {/* 에러 메시지 — Axiom Slate: tonal bg, no hard border */}
       {error && (
-        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+        <div className="bg-destructive/8 rounded-xl p-4">
           <p className="text-sm text-destructive">{error}</p>
         </div>
       )}
 
-      {/* 대용량 파일 처리 중 메시지 */}
+      {/* 대용량 파일 처리 중 메시지 — Axiom Slate: tonal bg, no hard border */}
       {isUploading && !progress && (
-        <div className="bg-info-bg border border-info-border rounded-lg p-4">
-          <div className="flex items-center space-x-2">
+        <div className="bg-info-bg rounded-xl p-4">
+          <div className="flex items-center gap-2.5">
             <Loader2 className="w-4 h-4 animate-spin text-info" />
             <p className="text-sm text-info-muted">
               {t.dataUpload.labels.analyzing}
@@ -549,11 +576,11 @@ export function DataUploadStep({
         </div>
       )}
 
-      {/* 도움말 (업로드 전에만 표시) */}
+      {/* 도움말 (업로드 전에만 표시) — Axiom Slate: tonal bg, no border */}
       {!uploadedFileName && (
-        <div className="bg-muted/30 border border-border/20 rounded-xl p-4">
-          <p className="text-xs text-muted-foreground/80 flex items-start gap-2 leading-relaxed">
-            <Lightbulb className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-muted-foreground/50" />
+        <div className="bg-surface-container-low rounded-xl p-4">
+          <p className="text-xs text-muted-foreground flex items-start gap-2.5 leading-relaxed">
+            <Lightbulb className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-muted-foreground/60" />
             <span>{t.dataUpload.labels.helpText}</span>
           </p>
         </div>

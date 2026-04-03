@@ -3,7 +3,7 @@
 import { memo } from 'react'
 import { cn } from '@/lib/utils'
 import { LAYOUT } from '@/components/common/card-styles'
-import { Check, Zap, LucideIcon } from 'lucide-react'
+import { Check, LucideIcon } from 'lucide-react'
 
 export interface StepItem {
   id: number
@@ -26,13 +26,12 @@ export interface FloatingStepIndicatorProps {
 }
 
 /**
- * StepIndicator — STITCH 시안 스타일
+ * StepIndicator — Axiom Slate "Progress Bar" 스타일
  *
- * 원형 번호 + 수평 연결선 + 하단 라벨
- * - 완료: 파란 원 + ✓ 체크
- * - 현재: 파란 테두리 + 번호
- * - 미래: 회색 테두리 + 번호
- * - 스킵: 회색 원 + ✓ (quickAnalysis)
+ * 상단 얇은 라인 (전체 너비) + 완료/현재 스텝에 두꺼운 accent 바
+ * - 완료: accent bar + 진한 텍스트 + 체크 아이콘
+ * - 현재: accent bar + 진한 텍스트
+ * - 미래: 바 없음 + 연한 텍스트
  */
 export const FloatingStepIndicator = memo(function FloatingStepIndicator({
   steps,
@@ -56,95 +55,96 @@ export const FloatingStepIndicator = memo(function FloatingStepIndicator({
       )}
       style={{ top: topOffset }}
     >
-      <div className={cn(LAYOUT.maxWidth, 'px-6 py-4')}>
-        <div className="flex items-start justify-between">
-          {/* Step indicators */}
+      <div className={cn(LAYOUT.maxWidth, 'px-6 pb-4 pt-0')}>
+        {/* Progress bar container */}
+        <div className="relative w-full">
+          {/* Background track — thin 2px line across full width */}
+          <div className="h-0.5 w-full bg-outline-variant/30 absolute top-0 left-0" />
+
+          {/* Step grid */}
           <nav
-            className="flex items-start"
+            className="relative grid w-full"
+            style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
             role="navigation"
             aria-label="Progress steps"
           >
-            {steps.map((step, idx) => {
+            {steps.map((step) => {
               const isActive = step.id === currentStep
               const isCompleted = completedSteps.includes(step.id) || step.completed
               const isSkipped = !isActive && step.skipped
               const canClick = onStepChange && (isCompleted || step.id <= maxAccessibleStep)
-              const isLast = idx === steps.length - 1
+              const hasBar = isActive || isCompleted || isSkipped
 
               return (
-                <div key={step.id} className="flex items-start">
-                  {/* Step: circle + label */}
-                  <button
-                    onClick={() => canClick && onStepChange?.(step.id)}
-                    disabled={!canClick}
-                    aria-current={isActive ? 'step' : undefined}
-                    aria-label={`${step.label} (Step ${step.id}${isSkipped ? ', auto-skipped' : isCompleted ? ', completed' : ''})`}
-                    data-testid={`stepper-step-${step.id}`}
+                <button
+                  key={step.id}
+                  onClick={() => canClick && onStepChange?.(step.id)}
+                  disabled={!canClick}
+                  aria-current={isActive ? 'step' : undefined}
+                  aria-label={`${step.label} (Step ${step.id}${isSkipped ? ', auto-skipped' : isCompleted ? ', completed' : ''})`}
+                  data-testid={`stepper-step-${step.id}`}
+                  className={cn(
+                    "relative pt-4 text-left transition-all",
+                    canClick && "cursor-pointer",
+                    !canClick && "cursor-default",
+                  )}
+                >
+                  {/* Active/completed accent bar — thicker, overlays the track */}
+                  {hasBar && (
+                    <div
+                      className={cn(
+                        "h-1 w-full absolute top-[-1px] left-0 transition-colors",
+                        isSkipped
+                          ? "bg-muted-foreground/40"
+                          : "bg-accent-tertiary",
+                      )}
+                    />
+                  )}
+
+                  {/* Step number label */}
+                  <span
                     className={cn(
-                      "flex flex-col items-center gap-2 transition-all",
-                      canClick && "cursor-pointer",
-                      !canClick && "cursor-default",
+                      "text-[10px] font-bold block mb-1 tracking-wide",
+                      isActive || isCompleted
+                        ? "text-foreground"
+                        : "text-muted-foreground/50",
+                      isSkipped && "text-muted-foreground/50",
                     )}
                   >
-                    {/* Circle */}
-                    <div className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all border-2",
-                      // 완료: 파란 배경 + 흰 체크
-                      isCompleted && !isActive && !isSkipped && "bg-primary border-primary text-primary-foreground",
-                      // 스킵(완료): 회색 배경 + 체크
-                      isSkipped && "bg-muted border-muted-foreground/30 text-muted-foreground",
-                      // 현재: 파란 테두리 + 파란 번호
-                      isActive && "border-primary bg-primary text-primary-foreground",
-                      // 미래: 회색 테두리 + 회색 번호
-                      !isActive && !isCompleted && !isSkipped && "border-muted-foreground/30 bg-background text-muted-foreground",
-                    )}>
-                      {isSkipped ? (
-                        <Check className="w-4 h-4" />
-                      ) : isCompleted && !isActive ? (
-                        <Check className="w-4 h-4" />
-                      ) : (
-                        <span>{step.id}</span>
-                      )}
-                    </div>
+                    {isCompleted && !isActive ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Check className="w-3 h-3 text-accent-tertiary" />
+                        Step {String(step.id).padStart(2, '0')}
+                      </span>
+                    ) : (
+                      `Step ${String(step.id).padStart(2, '0')}`
+                    )}
+                  </span>
 
-                    {/* Label */}
-                    <span className={cn(
-                      "text-xs font-medium whitespace-nowrap",
-                      isActive && "text-primary",
-                      isCompleted && !isActive && "text-primary",
+                  {/* Step name */}
+                  <span
+                    className={cn(
+                      "text-xs font-medium block",
+                      isActive && "text-foreground",
+                      isCompleted && !isActive && "text-foreground",
                       isSkipped && "text-muted-foreground",
-                      !isActive && !isCompleted && !isSkipped && "text-muted-foreground",
-                    )}>
-                      {step.label}
-                    </span>
-                  </button>
-
-                  {/* Connector line */}
-                  {!isLast && (
-                    <div className="flex items-center pt-4 px-1">
-                      <div className={cn(
-                        "w-16 sm:w-24 h-0.5 transition-colors",
-                        // 이 연결선 다음 스텝이 완료됐거나 현재면 파란색
-                        (isCompleted || isActive) && (steps[idx + 1]?.completed || steps[idx + 1]?.id === currentStep)
-                          ? "bg-primary"
-                          : isCompleted || isActive
-                            ? "bg-primary/40"
-                            : "bg-muted-foreground/20",
-                      )} />
-                    </div>
-                  )}
-                </div>
+                      !isActive && !isCompleted && !isSkipped && "text-muted-foreground/60",
+                    )}
+                  >
+                    {step.label}
+                  </span>
+                </button>
               )
             })}
           </nav>
-
-          {/* Right slot */}
-          {rightSlot && (
-            <div className="flex-shrink-0 ml-4">
-              {rightSlot}
-            </div>
-          )}
         </div>
+
+        {/* Right slot — positioned below the progress bar */}
+        {rightSlot && (
+          <div className="flex justify-end mt-3">
+            {rightSlot}
+          </div>
+        )}
       </div>
     </div>
   )

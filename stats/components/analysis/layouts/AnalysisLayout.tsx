@@ -21,7 +21,6 @@ import { cn } from '@/lib/utils'
 import { useUI } from '@/contexts/ui-context'
 import { SettingsModal } from '@/components/layout/settings-modal'
 import { HelpModal } from '@/components/layout/help-modal'
-import { STEP_STYLES } from '@/components/analysis/common/style-constants'
 import { LAYOUT } from '@/components/common/card-styles'
 import { useTerminology } from '@/hooks/use-terminology'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -63,19 +62,15 @@ export interface AnalysisLayoutProps {
 }
 
 /**
- * 스마트 통계 분석 레이아웃 (v7 - Clean Stepper)
+ * 스마트 통계 분석 레이아웃 (v8 - Axiom Slate / Precision Editorial)
  *
- * 변경사항 (2025-11-26):
- * - h-screen 제거 → 부모 레이아웃 스크롤 사용
- * - 이중 스크롤 제거 → Single Page
- * - 헤더(sticky) + 스테퍼(sticky) + 콘텐츠
- * - 좌우 버튼 제거 → 스텝 클릭으로 이동
+ * 디자인 시스템:
+ * - No-Line Rule: 1px border 대신 tonal bg shift (surface hierarchy)
+ * - Surface hierarchy: bg-surface (canvas) → bg-surface-container-low (header/footer)
+ * - Typography: text-foreground (NOT pure black), tracking-tight headers
+ * - Whitespace: 48px+ (px-8, py-10) between major blocks
+ * - Ghost borders only when absolutely needed (outline-variant at 15%)
  */
-
-// S3: 분석 플로우 배경 틴트 (렌더마다 객체 재생성 방지)
-const ANALYSIS_FLOW_BG_STYLE = {
-  backgroundColor: 'color-mix(in oklch, var(--section-accent-analysis) 4%, var(--background))',
-} as const
 
 export function AnalysisLayout({
   currentStep,
@@ -133,28 +128,24 @@ export function AnalysisLayout({
 
   const resolvedNextLabel = nextLabel ?? t.analysis.layout.nextStep
 
-  // S3: 분석 플로우 진입 시 미세한 틸 틴트 (Hub/브라우저는 제외)
   const isAnalysisFlow = showStepper && !showHub
 
   return (
     <div
-      className={cn("min-h-screen bg-background", className)}
-      style={isAnalysisFlow ? ANALYSIS_FLOW_BG_STYLE : undefined}
+      className={cn("min-h-screen bg-surface", className)}
     >
 
 
-      {/* ===== 헤더 (Sticky, 섹션 아이덴티티 + accent bar) ===== */}
-      <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/80"
-        style={{ borderTop: `2px solid var(${showHub ? '--section-accent-hub' : '--section-accent-analysis'})` }}
-      >
-        <div className={cn(LAYOUT.maxWidth, 'px-6')}>
-          <div className="flex items-center justify-between h-10">
+      {/* ===== 헤더 (Sticky, Axiom Slate — tonal bg shift, no border) ===== */}
+      <header className="sticky top-0 z-50 w-full bg-surface-container-low/95 backdrop-blur-sm supports-[backdrop-filter]:bg-surface-container-low/80">
+        <div className={cn(LAYOUT.maxWidth, 'px-8')}>
+          <div className="flex items-center justify-between h-12">
             {/* 좌: 섹션명 + 아이콘 */}
-            <div className="flex items-center gap-1.5 text-muted-foreground">
+            <div className="flex items-center gap-2 text-foreground">
               {showHub ? (
                 <>
-                  <Home className="h-4 w-4" style={{ color: 'var(--section-accent-hub)' }} />
-                  <span className="text-sm font-medium">Hub</span>
+                  <Home className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-semibold tracking-tight">Hub</span>
                 </>
               ) : (
                 <>
@@ -169,13 +160,13 @@ export function AnalysisLayout({
                       <span className="text-xs">{t.analysis.buttons.backToHub}</span>
                     </Button>
                   )}
-                  <FlaskConical className="h-4 w-4" style={{ color: 'var(--section-accent-analysis)' }} />
-                  <span className="text-sm font-medium">Analysis</span>
+                  <FlaskConical className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-semibold tracking-tight">Analysis</span>
                 </>
               )}
             </div>
             {/* 우: 액션 아이콘 */}
-            <div className="flex items-center gap-0.5">
+            <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="icon"
@@ -196,14 +187,14 @@ export function AnalysisLayout({
           steps={stepsWithCompleted}
           currentStep={currentStep}
           onStepChange={onStepChange}
-          topOffset="3rem"
+          topOffset="3.5rem"
         />
       )}
 
       {/* ===== 메인 콘텐츠 + 히스토리 사이드바 ===== */}
-      <div className={cn(LAYOUT.maxWidth, 'flex gap-6')}>
+      <div className={cn(LAYOUT.maxWidth, 'flex gap-8')}>
         <main className="min-w-0 flex-1">
-          <div className={cn(STEP_STYLES.mainContentPaddingX, STEP_STYLES.mainContentPaddingY, STEP_STYLES.sectionGap, showFloatingNav && !showHub && onNext && 'pb-20')}>
+          <div className={cn('px-8 py-10 space-y-8', showFloatingNav && !showHub && onNext && 'pb-24')}>
             {/* Analysis 전용 도움말 패널 */}
             {showHelp && onHelpToggle && (
               <Card className="border-info-border bg-info-bg">
@@ -250,7 +241,7 @@ export function AnalysisLayout({
 
         {/* 우측 히스토리 사이드바 (분석 플로우 진입 시만 표시) */}
         {isAnalysisFlow && historySidebar && (
-          <div className={STEP_STYLES.mainContentPaddingY}>
+          <div className="py-10">
             {historySidebar}
           </div>
         )}
@@ -258,8 +249,8 @@ export function AnalysisLayout({
 
       {/* 분석 중 오버레이 */}
       {isAnalyzing && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <Card className="w-80">
+        <div className="fixed inset-0 bg-surface/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <Card className="w-80 border-0 bg-surface-container-lowest shadow-sm">
             <CardContent className="pt-6 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
               <p className="text-sm text-muted-foreground">
@@ -273,10 +264,10 @@ export function AnalysisLayout({
       {/* 전역 모달들 */}
       <SettingsModal open={isSettingsOpen} onOpenChange={closeSettings} />
       <HelpModal open={isHelpOpen} onOpenChange={closeGlobalHelp} />
-      {/* ===== 하단 네비게이션 바 ===== */}
+      {/* ===== 하단 네비게이션 바 (Axiom Slate — tonal bg, no border) ===== */}
       {showFloatingNav && !showHub && onNext && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-background/80 backdrop-blur-md">
-          <div className={cn(LAYOUT.maxWidth, 'px-6 py-3 flex items-center justify-end')}>
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-surface-container-low/90 backdrop-blur-md">
+          <div className={cn(LAYOUT.maxWidth, 'px-8 py-3 flex items-center justify-end')}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <span>

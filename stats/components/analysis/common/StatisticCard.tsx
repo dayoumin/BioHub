@@ -21,13 +21,18 @@ export interface StatisticCardProps {
  */
 export function StatisticCard({ label, tooltip, children, className }: StatisticCardProps) {
   return (
-    <div className={cn("text-center p-3 bg-muted/50 rounded-lg", className)}>
+    <div className={cn(
+      "text-center p-4 rounded-xl",
+      "bg-surface-container-lowest",
+      "shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]",
+      className
+    )}>
       <Tooltip>
         <TooltipTrigger asChild>
           <div className="cursor-help">
-            <p className="text-xs text-muted-foreground mb-1 flex items-center justify-center gap-1">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/60 mb-2 flex items-center justify-center gap-1">
               {label}
-              <HelpCircle className="w-3 h-3" />
+              <HelpCircle className="w-2.5 h-2.5" />
             </p>
             {children}
           </div>

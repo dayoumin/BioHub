@@ -53,12 +53,12 @@ export function ResultsChartsSection({
       initial={prefersReducedMotion ? undefined : 'hidden'}
       animate={prefersReducedMotion ? undefined : 'visible'}
     >
-      <Card className="overflow-hidden" data-testid="detailed-results-section">
+      <Card className="overflow-hidden border-0 bg-surface-container-lowest shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]" data-testid="detailed-results-section">
         <CollapsibleSection
           label={t.results.sections.detailedResults}
           open={detailedResultsOpen}
           onOpenChange={onDetailedResultsOpenChange}
-          contentClassName="pt-0 border-t border-border/10"
+          contentClassName="pt-0 bg-surface-container/20"
           icon={<BarChart3 className="h-3.5 w-3.5" />}
         >
           <div className="px-4 py-4 space-y-4">

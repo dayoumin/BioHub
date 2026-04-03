@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+
+<html lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Precision Editorial - 결과 리포트</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-background": "#191c1e",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-container-low": "#f2f4f6",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-container": "#7c839b",
+                        "on-tertiary": "#ffffff",
+                        "surface-variant": "#e0e3e5",
+                        "surface-bright": "#f7f9fb",
+                        "surface-container-highest": "#e0e3e5",
+                        "secondary-fixed-dim": "#b9c7df",
+                        "outline": "#76777d",
+                        "surface-dim": "#d8dadc",
+                        "on-surface": "#191c1e",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#000000",
+                        "surface": "#f7f9fb",
+                        "primary-container": "#131b2e",
+                        "on-secondary-container": "#57657a",
+                        "tertiary-fixed-dim": "#93ccff",
+                        "surface-container": "#eceef0",
+                        "inverse-surface": "#2d3133",
+                        "primary": "#000000",
+                        "secondary": "#515f74",
+                        "tertiary-container": "#001d31",
+                        "primary-fixed-dim": "#bec6e0",
+                        "surface-tint": "#565e74",
+                        "on-secondary-fixed": "#0d1c2e",
+                        "tertiary-fixed": "#cce5ff",
+                        "outline-variant": "#c6c6cd",
+                        "on-tertiary-container": "#188ace",
+                        "secondary-fixed": "#d5e3fc",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-secondary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#dae2fd",
+                        "on-secondary-fixed-variant": "#3a485b",
+                        "secondary-container": "#d5e3fc",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#004b73",
+                        "on-surface-variant": "#45464d",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "background": "#f7f9fb",
+                        "on-primary-fixed": "#131b2e",
+                        "on-tertiary-fixed": "#001d31",
+                        "inverse-primary": "#bec6e0"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .tabular-nums { font-variant-numeric: tabular-nums; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface flex min-h-screen">
+<!-- SideNavBar (Shared Component) -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-slate-100 flex flex-col py-6 pl-4 border-r border-slate-200/20">
+<div class="mb-10 px-4">
+<div class="flex items-center gap-3 mb-2">
+<div class="w-8 h-8 bg-primary rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-sm" style="font-variation-settings: 'FILL' 1;">analytics</span>
+</div>
+<h1 class="text-md font-bold text-slate-900">독립표본 t-검정</h1>
+</div>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant font-semibold">Precision Analysis v2.4</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-slate-200/50 transition-all duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span class="text-sm font-medium">분석 설정</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-slate-200/50 transition-all duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px]">tune</span>
+<span class="text-sm font-medium">데이터 전처리</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-slate-200/50 transition-all duration-200 group" href="#">
+<span class="material-symbols-outlined text-[20px]">analytics</span>
+<span class="text-sm font-medium">가설 검정</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-white text-slate-900 font-bold rounded-l-lg shadow-sm" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">description</span>
+<span class="text-sm">결과 리포트</span>
+</a>
+</nav>
+<div class="mt-auto px-4 space-y-2">
+<button class="w-full bg-primary text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors">
+                보고서 내보내기
+            </button>
+<div class="pt-4 border-t border-slate-200">
+<a class="flex items-center gap-3 py-2 text-slate-500 text-sm hover:text-slate-900" href="#">
+<span class="material-symbols-outlined text-[18px]">support</span> 도움말
+                </a>
+<a class="flex items-center gap-3 py-2 text-slate-500 text-sm hover:text-slate-900" href="#">
+<span class="material-symbols-outlined text-[18px]">logout</span> 로그아웃
+                </a>
+</div>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="ml-64 flex-1 flex flex-col min-h-screen">
+<!-- TopAppBar (Shared Component) -->
+<header class="w-full top-0 sticky z-10 bg-slate-50/80 backdrop-blur-md flex justify-between items-center px-8 py-4">
+<div class="flex items-center gap-8">
+<span class="text-lg font-bold tracking-tighter text-slate-900">Precision Editorial</span>
+<nav class="hidden md:flex gap-6">
+<a class="text-slate-500 text-sm font-medium hover:text-slate-700" href="#">데이터</a>
+<a class="text-slate-500 text-sm font-medium hover:text-slate-700" href="#">통계분석</a>
+<a class="text-slate-500 text-sm font-medium hover:text-slate-700" href="#">시각화</a>
+<a class="text-slate-500 text-sm font-medium hover:text-slate-700" href="#">설정</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-slate-100 rounded-full transition-colors">
+<span class="material-symbols-outlined text-slate-600">notifications</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden bg-slate-200">
+<img class="w-full h-full object-cover" data-alt="professional corporate headshot of a data analyst in a minimalist office setting with soft natural light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxknyQuf68euC1N5dQZjJkCm5JGW6jj9lokcylVfWMXGPpKfl120YDii-D7i3IwsJPC025iJRmdKOVCdRHOQ6VJRR2h0hh1jOtFSrKdObvVGovJWNLO5hc3ATpLVa1A84kND8LHyl2sLVER35XAcIzvYiht0-vtitDp7hP3fsH6x2oC3RrfyX79o5PTXckTh21egSq7Awh7C9P1VJKH00G675gvHJnhNQb52d1pZ6kjEyw8oBSbmLoGXzo0PtLAws6GBlX8o4fCogm"/>
+</div>
+</div>
+</header>
+<!-- Content Area -->
+<div class="p-8 space-y-8 max-w-7xl mx-auto w-full">
+<!-- Horizontal Stepper -->
+<div class="w-full flex items-center mb-12">
+<div class="flex-1 relative">
+<div class="flex items-center justify-between relative z-10">
+<div class="flex flex-col items-center group">
+<div class="w-8 h-8 bg-on-tertiary-container text-white rounded-full flex items-center justify-center text-xs font-bold mb-2 shadow-sm">1</div>
+<span class="text-[11px] font-semibold text-on-surface-variant">데이터 업로드</span>
+</div>
+<div class="flex flex-col items-center">
+<div class="w-8 h-8 bg-on-tertiary-container text-white rounded-full flex items-center justify-center text-xs font-bold mb-2 shadow-sm">2</div>
+<span class="text-[11px] font-semibold text-on-surface-variant">분석 기법 선택</span>
+</div>
+<div class="flex flex-col items-center">
+<div class="w-8 h-8 bg-on-tertiary-container text-white rounded-full flex items-center justify-center text-xs font-bold mb-2 shadow-sm">3</div>
+<span class="text-[11px] font-semibold text-on-surface-variant">파라미터 설정</span>
+</div>
+<div class="flex flex-col items-center">
+<div class="w-10 h-10 ring-4 ring-tertiary-fixed bg-on-tertiary-container text-white rounded-full flex items-center justify-center text-sm font-black mb-2 shadow-md">4</div>
+<span class="text-[11px] font-bold text-on-surface">결과 리포트</span>
+</div>
+</div>
+<!-- Connector Line -->
+<div class="absolute top-4 left-0 w-full h-[2px] bg-outline-variant/30 -z-0">
+<div class="w-full h-full bg-on-tertiary-container"></div>
+</div>
+</div>
+</div>
+<!-- Hero Section -->
+<section class="space-y-6">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div class="space-y-2">
+<h2 class="text-3xl font-extrabold tracking-tight text-on-surface">독립표본 t-검정 결과 <span class="text-on-surface-variant font-normal text-xl ml-2">(Independent Samples t-test)</span></h2>
+<div class="flex items-center gap-3">
+<span class="bg-on-tertiary-container/10 text-on-tertiary-container px-3 py-1 rounded-full text-xs font-bold tracking-tight">p-value = 0.003</span>
+<span class="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-xs font-bold tracking-tight">Effect Size (Cohen's d) = 0.82</span>
+</div>
+</div>
+<div class="flex items-center gap-2 text-on-tertiary-container font-medium text-sm bg-tertiary-fixed px-4 py-2 rounded-lg">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+                        통계적으로 유의미한 차이가 발견되었습니다. (p &lt; .05)
+                    </div>
+</div>
+</section>
+<!-- Statistics Grid -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/10 shadow-sm">
+<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">t-통계량</p>
+<p class="text-3xl font-light tracking-tighter tabular-nums">-3.142</p>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/10 shadow-sm">
+<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">자유도 (df)</p>
+<p class="text-3xl font-light tracking-tighter tabular-nums">48</p>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/10 shadow-sm">
+<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">평균 차이</p>
+<p class="text-3xl font-light tracking-tighter tabular-nums">-2.35</p>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/10 shadow-sm">
+<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">95% 신뢰구간</p>
+<p class="text-lg font-medium tracking-tight tabular-nums mt-3">[-3.87, -0.83]</p>
+</div>
+</div>
+<!-- AI Interpretation Section -->
+<div class="grid grid-cols-12 gap-8">
+<div class="col-span-12 lg:col-span-8">
+<div class="bg-primary-container text-white p-8 rounded-xl relative overflow-hidden group">
+<div class="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-8xl">auto_awesome</span>
+</div>
+<h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-on-tertiary-container">psychology</span>
+                            AI 분석 결과 해석
+                        </h3>
+<p class="text-surface-variant leading-relaxed text-lg font-light">
+                            본 분석 결과, 성별에 따른 만족도 점수에서 <span class="text-white font-bold underline decoration-on-tertiary-container">남성 집단보다 여성 집단의 평균이 약 2.35점 높게</span> 나타났으며, 이는 통계적으로 매우 유의미한 수치입니다. (t(48) = -3.14, p = 0.003) Cohen's d 값이 0.82로 산출되어 두 집단 간의 효과 크기는 매우 큰 것으로 해석됩니다. 이는 단순히 우연에 의한 차이가 아니라, 실질적인 변수 간의 관계가 존재함을 시사합니다.
+                        </p>
+</div>
+</div>
+<div class="col-span-12 lg:col-span-4 space-y-6">
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/10 shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<h4 class="text-sm font-bold text-on-surface">가정 검정 결과</h4>
+<span class="bg-tertiary-fixed text-on-tertiary-container text-[10px] font-bold px-2 py-0.5 rounded uppercase">Passed</span>
+</div>
+<div class="space-y-3">
+<div class="flex justify-between items-center text-xs">
+<span class="text-on-surface-variant">정규성 (Shapiro-Wilk)</span>
+<span class="font-bold tabular-nums">p = 0.234</span>
+</div>
+<div class="flex justify-between items-center text-xs">
+<span class="text-on-surface-variant">등분산성 (Levene)</span>
+<span class="font-bold tabular-nums">p = 0.567</span>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-outline-variant/10 flex items-center gap-2 text-on-tertiary-container text-xs font-semibold">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                            모든 통계적 가정을 충족함
+                        </div>
+</div>
+</div>
+</div>
+<!-- Charts & Tables Section -->
+<div class="grid grid-cols-12 gap-8">
+<!-- Box Plot Chart -->
+<div class="col-span-12 lg:col-span-6 bg-surface-container-lowest p-8 rounded-xl border border-outline-variant/10 shadow-sm">
+<h4 class="text-sm font-bold mb-8 text-on-surface">집단별 분포 비교 (Box Plot)</h4>
+<div class="h-64 w-full flex items-end justify-around pb-8 relative">
+<!-- Y-Axis -->
+<div class="absolute left-0 top-0 bottom-8 border-l border-outline-variant/30 flex flex-col justify-between text-[10px] text-on-surface-variant pr-4">
+<span>100</span><span>75</span><span>50</span><span>25</span><span>0</span>
+</div>
+<!-- Group A -->
+<div class="flex flex-col items-center w-24 gap-4">
+<div class="w-full bg-surface-container-high rounded-sm h-32 relative flex flex-col justify-center">
+<div class="absolute w-full h-[2px] bg-primary top-1/2"></div>
+<div class="absolute w-[2px] h-40 bg-outline-variant left-1/2 -translate-x-1/2 -z-10"></div>
+</div>
+<span class="text-xs font-bold text-on-surface">Group A (Male)</span>
+</div>
+<!-- Group B -->
+<div class="flex flex-col items-center w-24 gap-4">
+<div class="w-full bg-on-tertiary-container/20 rounded-sm h-40 relative flex flex-col justify-center -translate-y-8">
+<div class="absolute w-full h-[2px] bg-on-tertiary-container top-1/2"></div>
+<div class="absolute w-[2px] h-48 bg-on-tertiary-container/30 left-1/2 -translate-x-1/2 -z-10"></div>
+</div>
+<span class="text-xs font-bold text-on-surface">Group B (Female)</span>
+</div>
+</div>
+</div>
+<!-- Descriptive Stats Table -->
+<div class="col-span-12 lg:col-span-6 bg-surface-container-lowest p-8 rounded-xl border border-outline-variant/10 shadow-sm overflow-hidden">
+<h4 class="text-sm font-bold mb-6 text-on-surface">기술 통계표</h4>
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm">
+<thead>
+<tr class="text-[10px] uppercase tracking-widest text-on-surface-variant">
+<th class="pb-4 font-bold">Group</th>
+<th class="pb-4 font-bold text-right">N</th>
+<th class="pb-4 font-bold text-right">Mean</th>
+<th class="pb-4 font-bold text-right">SD</th>
+<th class="pb-4 font-bold text-right">SE</th>
+</tr>
+</thead>
+<tbody class="text-on-surface divide-y divide-outline-variant/5">
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-4 font-medium">Male (A)</td>
+<td class="py-4 text-right tabular-nums">25</td>
+<td class="py-4 text-right tabular-nums">72.40</td>
+<td class="py-4 text-right tabular-nums">5.12</td>
+<td class="py-4 text-right tabular-nums">1.02</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-4 font-medium">Female (B)</td>
+<td class="py-4 text-right tabular-nums">25</td>
+<td class="py-4 text-right tabular-nums">74.75</td>
+<td class="py-4 text-right tabular-nums">4.88</td>
+<td class="py-4 text-right tabular-nums">0.98</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="mt-8 bg-surface-container p-4 rounded-lg">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant">info</span>
+<p class="text-xs text-on-surface-variant leading-tight">SD: 표준편차, SE: 표준오차. 모든 데이터는 이상치 제거 전처리가 완료된 상태입니다.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Action Bar -->
+<footer class="mt-auto bg-white/80 backdrop-blur-md px-8 py-4 border-t border-outline-variant/10 flex justify-between items-center">
+<button class="flex items-center gap-2 text-on-surface-variant hover:text-on-surface text-sm font-semibold transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+                허브로 돌아가기
+            </button>
+<div class="flex items-center gap-3">
+<div class="relative group">
+<button class="flex items-center gap-2 px-4 py-2 bg-surface-container border border-outline-variant/20 rounded-lg text-sm font-semibold hover:bg-surface-container-high transition-colors">
+                        보고서 내보내기
+                        <span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+</div>
+<button class="px-4 py-2 bg-surface-container border border-outline-variant/20 rounded-lg text-sm font-semibold hover:bg-surface-container-high transition-colors">
+                    템플릿 저장
+                </button>
+<button class="px-6 py-2 bg-primary text-white rounded-lg text-sm font-bold shadow-sm hover:bg-slate-800 transition-colors">
+                    새 분석 시작
+                </button>
+</div>
+</footer>
+</main>
+</body></html>

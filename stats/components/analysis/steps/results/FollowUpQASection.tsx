@@ -54,14 +54,14 @@ export function FollowUpQASection({
       initial={prefersReducedMotion ? undefined : 'hidden'}
       animate={prefersReducedMotion ? undefined : 'visible'}
     >
-      <Card data-testid="follow-up-section">
-        <CardHeader className="pb-3 pt-4 px-4">
+      <Card className="border-0 bg-surface-container-lowest shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]" data-testid="follow-up-section">
+        <CardHeader className="pb-3 pt-5 px-5">
           <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
             <MessageCircle className="w-4 h-4" />
             {t.results.followUp.title}
           </div>
         </CardHeader>
-        <CardContent className="pt-0 pb-4 px-4 space-y-3">
+        <CardContent className="pt-0 pb-5 px-5 space-y-4">
           {/* 이전 Q&A 스레드 */}
           {followUpMessages.length > 0 && (
             <div className="space-y-2">
@@ -71,8 +71,8 @@ export function FollowUpQASection({
                   className={cn(
                     'px-3 py-2.5 rounded-lg text-sm',
                     msg.role === 'user'
-                      ? 'bg-muted/60 ml-6'
-                      : 'bg-violet-50 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/30'
+                      ? 'bg-surface-container/60 ml-6'
+                      : 'bg-violet-50/50 dark:bg-violet-950/20'
                   )}
                 >
                   {msg.role === 'user' ? (
@@ -105,7 +105,7 @@ export function FollowUpQASection({
                 }}
                 disabled={isFollowUpStreaming}
                 className={cn(
-                  'text-xs px-2.5 py-1 rounded-full border border-border/60 text-muted-foreground hover:bg-muted/50 hover:border-border disabled:opacity-40 transition-colors',
+                  'text-xs px-2.5 py-1 rounded-full bg-surface-container/50 text-muted-foreground hover:bg-surface-container-high/60 disabled:opacity-40 transition-colors',
                   usedChips.has(chip.label) && 'opacity-50 line-through'
                 )}
               >

@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Precision Editorial | Data Architect Workspace</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "background": "#f7f9fb",
+                        "surface-container-highest": "#e0e3e5",
+                        "tertiary": "#000000",
+                        "tertiary-fixed": "#cce5ff",
+                        "primary-fixed": "#dae2fd",
+                        "surface-tint": "#565e74",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-container": "#188ace",
+                        "tertiary-container": "#001d31",
+                        "on-background": "#191c1e",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed": "#001d31",
+                        "on-surface": "#191c1e",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "inverse-on-surface": "#eff1f3",
+                        "secondary-container": "#d5e3fc",
+                        "on-primary-container": "#7c839b",
+                        "outline": "#76777d",
+                        "surface-container-low": "#f2f4f6",
+                        "on-secondary": "#ffffff",
+                        "primary-fixed-dim": "#bec6e0",
+                        "on-surface-variant": "#45464d",
+                        "surface-container": "#eceef0",
+                        "primary-container": "#131b2e",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-variant": "#e0e3e5",
+                        "on-error": "#ffffff",
+                        "secondary-fixed-dim": "#b9c7df",
+                        "on-secondary-fixed-variant": "#3a485b",
+                        "on-tertiary-fixed-variant": "#004b73",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-primary": "#bec6e0",
+                        "secondary": "#515f74",
+                        "on-primary-fixed": "#131b2e",
+                        "on-secondary-fixed": "#0d1c2e",
+                        "on-secondary-container": "#57657a",
+                        "outline-variant": "#c6c6cd",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed-dim": "#93ccff",
+                        "secondary-fixed": "#d5e3fc",
+                        "error": "#ba1a1a",
+                        "surface-dim": "#d8dadc",
+                        "primary": "#000000",
+                        "on-primary": "#ffffff",
+                        "inverse-surface": "#2d3133",
+                        "surface-bright": "#f7f9fb",
+                        "surface": "#f7f9fb"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .tabular-nums { font-variant-numeric: tabular-nums; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- SideNavBar (Authority: JSON) -->
+<aside class="fixed left-0 top-0 h-full flex flex-col py-6 bg-slate-100 dark:bg-slate-900 h-screen w-64 border-none z-40 transition-all duration-300">
+<div class="px-6 mb-8">
+<span class="text-sm font-black uppercase tracking-widest text-slate-400">Project Alpha</span>
+<div class="flex items-center mt-4">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden mr-3">
+<img alt="Data Architect Workspace" data-alt="Close-up of a professional modern workspace with minimalist equipment and clean aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkm0G0Iea-gkgghNZFxSOFXQ7gNy6YfG0PRurJAbCf-WfbZhmrrqePtt2u8dlz6CjB6KfT3pmFCgf0B-SznorhTzdmCH0LSBxDWlQxYux47QEWUWf1WnR3IawY5AAud5604VZCGga7CGYra5kgAne59xzL6GdoZQGqyExBGI4aAZUycyBFIIomROFvgenYsoBNvv8r-X-7tury4XluRU-VUMr97bcDaTQ5R2_MVahzqp29OHWu7XFjTDwe5uxDpWNovkHDLwqgv7kJ"/>
+</div>
+<div>
+<p class="text-xs font-bold text-slate-900">Project Alpha</p>
+<p class="text-[10px] text-slate-500">Active Session</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<!-- Active Tab: Datasets -->
+<a class="flex items-center px-6 py-3 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-50 rounded-l-lg ml-2 shadow-sm transition-all duration-300" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="database">database</span>
+<span class="font-medium text-xs">Datasets</span>
+</a>
+<a class="flex items-center px-6 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800/50 hover:translate-x-1 transition-transform" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="analytics">analytics</span>
+<span class="font-medium text-xs">Variables</span>
+</a>
+<a class="flex items-center px-6 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800/50 hover:translate-x-1 transition-transform" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="auto_fix_high">auto_fix_high</span>
+<span class="font-medium text-xs">Transformations</span>
+</a>
+<a class="flex items-center px-6 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800/50 hover:translate-x-1 transition-transform" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="query_stats">query_stats</span>
+<span class="font-medium text-xs">Models</span>
+</a>
+<a class="flex items-center px-6 py-3 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800/50 hover:translate-x-1 transition-transform" href="#">
+<span class="material-symbols-outlined mr-3" data-icon="ios_share">ios_share</span>
+<span class="font-medium text-xs">Export</span>
+</a>
+</nav>
+<div class="px-6 mt-auto space-y-4">
+<button class="w-full bg-primary text-on-primary py-2.5 rounded-lg text-xs font-bold tracking-tight">New Analysis</button>
+<div class="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+<a class="flex items-center text-slate-500 hover:text-slate-900 transition-colors" href="#">
+<span class="material-symbols-outlined text-sm mr-2" data-icon="menu_book">menu_book</span>
+<span class="text-[10px] font-medium">Documentation</span>
+</a>
+<a class="flex items-center text-slate-500 hover:text-slate-900 transition-colors" href="#">
+<span class="material-symbols-outlined text-sm mr-2" data-icon="contact_support">contact_support</span>
+<span class="text-[10px] font-medium">Support</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="ml-64 min-h-screen">
+<!-- TopNavBar (Authority: JSON) -->
+<header class="flex justify-between items-center h-16 px-8 w-full bg-slate-50 dark:bg-slate-950 w-full top-0 z-30 sticky">
+<div class="flex items-center gap-8">
+<span class="text-lg font-bold tracking-tighter text-slate-900 dark:text-slate-50">Precision Editorial</span>
+<nav class="hidden md:flex gap-6 font-sans tracking-tight text-sm">
+<a class="text-slate-900 dark:text-slate-50 font-semibold border-b-2 border-slate-900 dark:border-slate-50 pb-1" href="#">Overview</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors" href="#">Analysis</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors" href="#">Reports</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors" href="#">History</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative">
+<button class="p-2 text-slate-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<span class="absolute top-2 right-2 w-2 h-2 bg-on-tertiary-container rounded-full"></span>
+</div>
+<button class="p-2 text-slate-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+<img alt="User profile" data-alt="Portrait of a professional data scientist in a bright office environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBCzV9MzI0G-qupbqIxFtNN9_ZunE5sHYLXxyf1_vTcVva6ZzS-sfY-rfedGqVUkYYda0xaTufBsFjUMKLFZsDK86US7KRFJlmonlx3S1-knOdJc6hNm8FKXNbOxrg8UcmWiqDX9Mmxu3zGRTuEGUF1na-tMOJtytLvwvyvz0L8q3j4djcAi1oIirrSwCcUFM4E9lKrzwQADQvSvA5lzaV4bSvexkpeTOMZ9TBUlw5KH7h6vAqTNyPftIkiSCbeyPG_y54b_J3H_Jh"/>
+</div>
+</div>
+</header>
+<!-- Page Content -->
+<div class="p-12 max-w-7xl mx-auto space-y-12">
+<!-- Header & Stepper -->
+<div class="space-y-8">
+<div class="flex justify-between items-end">
+<div>
+<h1 class="text-2xl font-bold tracking-tight text-on-surface">Data Ingestion</h1>
+<p class="text-on-surface-variant text-sm mt-1">Initialize your analytical workspace by uploading and refining your dataset.</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Workflow Progress</span>
+</div>
+</div>
+<!-- Horizontal Stepper (Progess Bar Style per Design System) -->
+<div class="relative w-full">
+<div class="h-0.5 w-full bg-outline-variant/30 absolute top-0 left-0"></div>
+<div class="grid grid-cols-4 w-full">
+<div class="relative pt-4">
+<div class="h-1 w-full bg-on-tertiary-container absolute top-[-1px] left-0"></div>
+<span class="text-[10px] font-bold text-on-surface block mb-1">Step 01</span>
+<span class="text-xs text-on-surface font-medium">Upload &amp; Pre-process</span>
+</div>
+<div class="relative pt-4">
+<span class="text-[10px] font-bold text-on-surface-variant/50 block mb-1">Step 02</span>
+<span class="text-xs text-on-surface-variant">Feature Engineering</span>
+</div>
+<div class="relative pt-4">
+<span class="text-[10px] font-bold text-on-surface-variant/50 block mb-1">Step 03</span>
+<span class="text-xs text-on-surface-variant">Model Training</span>
+</div>
+<div class="relative pt-4">
+<span class="text-[10px] font-bold text-on-surface-variant/50 block mb-1">Step 04</span>
+<span class="text-xs text-on-surface-variant">Evaluation</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-12 gap-8">
+<!-- Central File Upload Area (Asymmetric Span) -->
+<div class="col-span-12 lg:col-span-8 space-y-8">
+<div class="bg-surface-container-low rounded-xl p-12 border-2 border-dashed border-outline/20 flex flex-col items-center justify-center text-center transition-colors hover:bg-surface-container/80 group">
+<div class="w-16 h-16 bg-surface-container-lowest rounded-full flex items-center justify-center shadow-sm mb-6 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-primary text-4xl" data-icon="cloud_upload">cloud_upload</span>
+</div>
+<h2 class="text-lg font-bold text-on-surface">Drag and drop your dataset</h2>
+<p class="text-on-surface-variant text-sm mt-2 max-w-xs">Supported formats: .CSV, .XLSX, .JSON. Maximum file size: 500MB.</p>
+<button class="mt-8 bg-primary text-on-primary px-8 py-3 rounded-lg font-bold text-xs uppercase tracking-widest hover:opacity-90 transition-opacity">Select Files</button>
+</div>
+<!-- Data Preview Table (Authority: Design System - No Borders) -->
+<div class="bg-surface-container-lowest rounded-xl shadow-[0px_12px_32px_rgba(25,28,30,0.04)] overflow-hidden">
+<div class="p-6 flex justify-between items-center bg-surface-container-low/30">
+<h3 class="text-sm font-bold text-on-surface">Sample Preview (Last Upload: census_data_2023.csv)</h3>
+<div class="flex gap-2">
+<span class="bg-secondary-container text-on-secondary-container text-[10px] px-2 py-1 rounded-full font-bold">RAW DATA</span>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-surface-container-low text-on-surface-variant text-[10px] font-bold uppercase tracking-widest">
+<tr>
+<th class="px-6 py-4">ID</th>
+<th class="px-6 py-4">Participant Name</th>
+<th class="px-6 py-4">Region</th>
+<th class="px-6 py-4 text-right">Income (USD)</th>
+<th class="px-6 py-4 text-right">Status</th>
+</tr>
+</thead>
+<tbody class="text-xs font-medium text-on-surface">
+<tr class="bg-surface-container-lowest">
+<td class="px-6 py-4 tabular-nums">#00142</td>
+<td class="px-6 py-4">Alexandrov, Victor</td>
+<td class="px-6 py-4">Northwest</td>
+<td class="px-6 py-4 text-right tabular-nums">92,450</td>
+<td class="px-6 py-4 text-right">
+<span class="inline-block w-2 h-2 rounded-full bg-on-tertiary-container mr-2"></span>Active
+                                        </td>
+</tr>
+<tr class="bg-surface-container-low/30">
+<td class="px-6 py-4 tabular-nums">#00143</td>
+<td class="px-6 py-4">Chen, Wei</td>
+<td class="px-6 py-4">Southeast</td>
+<td class="px-6 py-4 text-right tabular-nums">114,200</td>
+<td class="px-6 py-4 text-right">
+<span class="inline-block w-2 h-2 rounded-full bg-on-tertiary-container mr-2"></span>Active
+                                        </td>
+</tr>
+<tr class="bg-surface-container-lowest">
+<td class="px-6 py-4 tabular-nums">#00144</td>
+<td class="px-6 py-4">Gomez, Lucia</td>
+<td class="px-6 py-4">Central</td>
+<td class="px-6 py-4 text-right tabular-nums">78,900</td>
+<td class="px-6 py-4 text-right">
+<span class="inline-block w-2 h-2 rounded-full bg-on-tertiary-container mr-2"></span>Active
+                                        </td>
+</tr>
+<tr class="bg-surface-container-low/30">
+<td class="px-6 py-4 tabular-nums">#00145</td>
+<td class="px-6 py-4">Nkosi, Amara</td>
+<td class="px-6 py-4">Northwest</td>
+<td class="px-6 py-4 text-right tabular-nums">126,000</td>
+<td class="px-6 py-4 text-right">
+<span class="inline-block w-2 h-2 rounded-full bg-on-tertiary-container mr-2"></span>Active
+                                        </td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Sidebar: Pre-processing & Summary (20% Split Concept) -->
+<div class="col-span-12 lg:col-span-4 space-y-8">
+<!-- Pre-processing Options -->
+<div class="bg-surface-container-high rounded-xl p-8 space-y-6">
+<h3 class="text-sm font-bold text-on-surface uppercase tracking-widest">Configuration</h3>
+<div class="space-y-4">
+<label class="flex items-center group cursor-pointer">
+<div class="relative flex items-center justify-center">
+<input checked="" class="peer h-5 w-5 appearance-none rounded border border-outline/30 bg-surface-container-lowest checked:bg-primary transition-all" type="checkbox"/>
+<span class="material-symbols-outlined absolute text-white opacity-0 peer-checked:opacity-100 text-sm" data-icon="check">check</span>
+</div>
+<div class="ml-4">
+<span class="text-xs font-bold text-on-surface block">Handle Missing Values</span>
+<span class="text-[10px] text-on-surface-variant">Auto-imputation via mean/median</span>
+</div>
+</label>
+<label class="flex items-center group cursor-pointer">
+<div class="relative flex items-center justify-center">
+<input checked="" class="peer h-5 w-5 appearance-none rounded border border-outline/30 bg-surface-container-lowest checked:bg-primary transition-all" type="checkbox"/>
+<span class="material-symbols-outlined absolute text-white opacity-0 peer-checked:opacity-100 text-sm" data-icon="check">check</span>
+</div>
+<div class="ml-4">
+<span class="text-xs font-bold text-on-surface block">Remove Duplicates</span>
+<span class="text-[10px] text-on-surface-variant">Exact matching for unique rows</span>
+</div>
+</label>
+<label class="flex items-center group cursor-pointer">
+<div class="relative flex items-center justify-center">
+<input class="peer h-5 w-5 appearance-none rounded border border-outline/30 bg-surface-container-lowest checked:bg-primary transition-all" type="checkbox"/>
+<span class="material-symbols-outlined absolute text-white opacity-0 peer-checked:opacity-100 text-sm" data-icon="check">check</span>
+</div>
+<div class="ml-4">
+<span class="text-xs font-bold text-on-surface block">Data Type Inference</span>
+<span class="text-[10px] text-on-surface-variant">Smart detection of schema</span>
+</div>
+</label>
+</div>
+<div class="pt-4">
+<button class="w-full bg-tertiary-container text-on-tertiary-container py-3 rounded-lg font-bold text-[10px] uppercase tracking-widest border border-on-tertiary-container/20">Initialize Pre-processing</button>
+</div>
+</div>
+<!-- Summary Statistics -->
+<div class="bg-surface-container-lowest rounded-xl p-8 shadow-[0px_12px_32px_rgba(25,28,30,0.04)] space-y-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="insert_chart">insert_chart</span>
+<h3 class="text-sm font-bold text-on-surface">Dataset Summary</h3>
+</div>
+<div class="grid grid-cols-1 gap-6">
+<div class="space-y-1">
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Total Observations</span>
+<p class="text-2xl font-bold tracking-tight tabular-nums">42,850</p>
+</div>
+<div class="space-y-1">
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Features (Columns)</span>
+<p class="text-2xl font-bold tracking-tight tabular-nums">24</p>
+</div>
+<div class="space-y-1">
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Memory Allocation</span>
+<p class="text-2xl font-bold tracking-tight tabular-nums">128.4 <span class="text-sm font-medium">MB</span></p>
+</div>
+<div class="pt-2">
+<div class="w-full bg-surface-container-highest h-1 rounded-full overflow-hidden">
+<div class="bg-on-tertiary-container h-full w-3/4"></div>
+</div>
+<div class="flex justify-between mt-2">
+<span class="text-[9px] font-bold text-on-surface-variant uppercase">Storage Used</span>
+<span class="text-[9px] font-bold text-on-surface uppercase tabular-nums">75%</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer Action -->
+<div class="flex justify-end pt-8">
+<button class="flex items-center gap-2 bg-primary text-on-primary px-10 py-4 rounded-lg font-bold text-sm tracking-tight transition-all hover:gap-4 group">
+<span>Proceed to Feature Engineering</span>
+<span class="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</main>
+</body></html>

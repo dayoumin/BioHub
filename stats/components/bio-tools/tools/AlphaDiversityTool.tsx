@@ -136,6 +136,6 @@ const AlphaDiversityTool = memo(function AlphaDiversityTool({ tool, meta, initia
       )}
     </div>
   )
-}
+})
 
 export default AlphaDiversityTool
