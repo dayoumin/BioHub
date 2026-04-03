@@ -12,6 +12,7 @@ import {
   Loader2,
   ArrowUpDown,
   BookOpen,
+  BookmarkPlus,
   FileText,
 } from 'lucide-react'
 import type {
@@ -19,6 +20,9 @@ import type {
   LiteratureItem,
   SourceSearchResult,
 } from '@/lib/types/literature'
+import type { CitationRecord } from '@/lib/research/citation-types'
+import { createCitationRecord } from '@/lib/research/citation-types'
+import { saveCitation, listCitationsByProject } from '@/lib/research/citation-storage'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -433,9 +437,11 @@ const SourceProgress = memo(function SourceProgress({ sourceStates, activeSource
 
 interface LiteratureCardProps {
   item: LiteratureItem
+  onSave?: (item: LiteratureItem) => void
+  isSaved?: boolean
 }
 
-const LiteratureCard = memo(function LiteratureCard({ item }: LiteratureCardProps): React.ReactElement {
+const LiteratureCard = memo(function LiteratureCard({ item, onSave, isSaved }: LiteratureCardProps): React.ReactElement {
   const [showAbstract, setShowAbstract] = useState(false)
 
   const authorsDisplay = useMemo(() => {
@@ -520,6 +526,20 @@ const LiteratureCard = memo(function LiteratureCard({ item }: LiteratureCardProp
             {item.basisOfRecord}
           </span>
         )}
+        {onSave && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto h-7 px-2 text-xs"
+            onClick={() => onSave(item)}
+            disabled={isSaved}
+          >
+            {isSaved
+              ? <><Check className="w-3 h-3 mr-1" />저장됨</>
+              : <><BookmarkPlus className="w-3 h-3 mr-1" />저장</>
+            }
+          </Button>
+        )}
       </div>
 
       {/* 초록 (접기/펼치기) */}
@@ -545,10 +565,17 @@ const LiteratureCard = memo(function LiteratureCard({ item }: LiteratureCardProp
 
 // ── 결과 목록 ──
 
+/** 인용 저장 키 — doi 우선, 없으면 url */
+function citationKey(item: LiteratureItem): string {
+  return item.doi ? `doi:${item.doi}` : item.url
+}
+
 interface ResultsListProps {
   items: LiteratureItem[]
   sortKey: SortKey
   onSortChange: (key: SortKey) => void
+  onSave?: (item: LiteratureItem) => void
+  savedIds?: Set<string>
 }
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
@@ -557,7 +584,7 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'source', label: '소스순' },
 ]
 
-function ResultsList({ items, sortKey, onSortChange }: ResultsListProps): React.ReactElement {
+function ResultsList({ items, sortKey, onSortChange, onSave, savedIds }: ResultsListProps): React.ReactElement {
   const sortedItems = useMemo(() => sortItems(items, sortKey), [items, sortKey])
 
   if (items.length === 0) {
@@ -601,7 +628,12 @@ function ResultsList({ items, sortKey, onSortChange }: ResultsListProps): React.
       {/* 문헌 카드 목록 */}
       <div className="space-y-2">
         {sortedItems.map(item => (
-          <LiteratureCard key={item.id} item={item} />
+          <LiteratureCard
+            key={item.id}
+            item={item}
+            onSave={onSave}
+            isSaved={savedIds?.has(citationKey(item))}
+          />
         ))}
       </div>
     </div>
@@ -700,7 +732,29 @@ export default function LiteratureSearchContent(): React.ReactElement {
   const [isSearching, setIsSearching] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey>('year')
+  const [projectId, setProjectId] = useState<string | null>(null)
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const abortControllerRef = useRef<AbortController | null>(null)
+
+  // URL에서 project 파라미터 읽기 + 기존 저장 목록 로드
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const pid = params.get('project')
+    if (!pid) return
+    setProjectId(pid)
+    listCitationsByProject(pid)
+      .then(records => {
+        setSavedIds(new Set(records.map(r => citationKey(r.item))))
+      })
+      .catch(() => {})
+  }, [])
+
+  const handleSaveCitation = useCallback(async (item: LiteratureItem) => {
+    if (!projectId) return
+    const record: CitationRecord = createCitationRecord(projectId, item)
+    await saveCitation(record)
+    setSavedIds(prev => new Set([...prev, citationKey(item)]))
+  }, [projectId])
 
   // unmount 시 진행 중인 검색 취소
   useEffect(() => {
@@ -830,12 +884,22 @@ export default function LiteratureSearchContent(): React.ReactElement {
         </div>
       )}
 
+      {/* 프로젝트 인용 추가 모드 배너 */}
+      {projectId && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-lg text-sm mb-4">
+          <BookmarkPlus className="w-4 h-4 text-primary" />
+          <span>프로젝트 문서에 인용 추가 모드 — 검색 결과에서 <strong>저장</strong>을 클릭하세요.</span>
+        </div>
+      )}
+
       {/* 결과 목록 */}
       {hasSearched && (
         <ResultsList
           items={allItems}
           sortKey={sortKey}
           onSortChange={setSortKey}
+          onSave={projectId ? handleSaveCitation : undefined}
+          savedIds={savedIds}
         />
       )}
     </main>
