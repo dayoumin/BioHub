@@ -1,8 +1,8 @@
 # Paper Package Assembly — 리뷰 요청
 
-**브랜치**: `feat/paper-package-assembly`
+**브랜치**: `main` (머지 완료)
 **설계서**: [PLAN-PAPER-PACKAGE-ASSEMBLY.md](PLAN-PAPER-PACKAGE-ASSEMBLY.md)
-**변경 파일**: 9개 (신규 7, 수정 2), +1,678 / -27 lines
+**변경 파일**: 9개 (신규 7, 수정 2), +1,678 / -27 lines + 리뷰 반영 추가분
 
 ---
 
@@ -129,14 +129,15 @@ interface PackageReference {
 
 ---
 
-## 7. 테스트 (15개 통과)
+## 7. 테스트 (20개 통과)
 
 **paper-package-storage** (7개):
 - 빈 스토리지, 저장/조회, projectId 필터, 덮어쓰기, 삭제
 
-**paper-package-assembler** (8개):
+**paper-package-assembler** (13개):
 - `generateFigurePatternSummary`: HistoryRecord 없음 → undefined, groupStats 있음 → 요약 생성, groupStats 없음 → undefined
 - `assemblePaperPackage`: 기본 구조, excluded 아이템 필터, included 아이템 포함, summaryStatus missing 경고, tokenEstimate 양수
+- **리뷰 반영 검증**: variableMapping dependentVar/independentVar 추출, 영어 프리셋(APA 7th) 영어 헤더, missing 문헌 "요약 없음" 텍스트, 영어 missing 경고, figure patternSummary+analysisIds 반영
 
 ---
 

@@ -1,9 +1,10 @@
 # 논문 패키지 조립 (Paper Package Assembly) 설계
 
-**Last updated**: 2026-04-03
+**Last updated**: 2026-04-04
+**Status**: MVP 구현 완료 (20 tests passing) — 리뷰 반영 완료
 **References**: [AI Export Strategy](AI-EXPORT-STRATEGY.md), [Product Strategy](PRODUCT_STRATEGY.md)
 **상위 전략**: BioHub → SOTA AI → 사람(DOCX/HWPX) 3단계 모델의 **1차→2차 전달 구간**
-**검토 이력**: 2026-04-03 — UX/기술/AI포맷 3개 관점 병렬 검토 반영
+**검토 이력**: 2026-04-03 설계 검토 → 2026-04-04 MVP 구현 + 외부 리뷰 4건 + /simplify 2회 반영
 
 ---
 

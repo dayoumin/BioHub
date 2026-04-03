@@ -1,6 +1,6 @@
 # BioHub TODO
 
-**Last updated**: 2026-04-04 (Phase 6a 인용 관리 완료)
+**Last updated**: 2026-04-04 (Paper Package Assembly MVP 완료)
 **References**: [Product Strategy](docs/PRODUCT_STRATEGY.md), [Roadmap](ROADMAP.md), [Research Project Status](docs/RESEARCH_PROJECT_STATUS.md)
 
 ---
@@ -22,8 +22,9 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - `[paper]` ~~Phase 6d: 표/그림 자동 번호 매기기~~ ✅
 - `[paper]` ~~Phase 6e: HWPX 내보내기~~ ✅
 - `[paper]` ~~Phase 6a: 인용 관리~~ ✅ — citation store + MaterialPalette 문헌 탭 + APA formatter + References 자동 동기화
+- `[paper]` ~~Paper Package Assembly MVP~~ ✅ — AI 프롬프트 빌더 5단계 wizard + 조립 엔진 (ko/en 분기) + 20 tests
 - `[paper]` Phase 6f: field-report 프리셋 — species-validation/legal-status resolver 선행 필요 (Blocked)
-- 상세: [PLAN-DOCUMENT-ASSEMBLY.md](stats/docs/papers/PLAN-DOCUMENT-ASSEMBLY.md)
+- 상세: [PLAN-DOCUMENT-ASSEMBLY.md](stats/docs/papers/PLAN-DOCUMENT-ASSEMBLY.md) · [PLAN-PAPER-PACKAGE-ASSEMBLY.md](docs/PLAN-PAPER-PACKAGE-ASSEMBLY.md)
 
 ---
 
