@@ -7,7 +7,7 @@
 
 import type { HistoryItem, HistoryBadge } from '@/types/history'
 import type { AnalysisHistory } from '@/lib/stores/history-store'
-import type { GeneticsHistoryEntry, BarcodingHistoryEntry, BlastSearchHistoryEntry, GenBankHistoryEntry } from '@/lib/genetics/analysis-history'
+import type { GeneticsHistoryEntry, BarcodingHistoryEntry, BlastSearchHistoryEntry, GenBankHistoryEntry, SeqStatsHistoryEntry } from '@/lib/genetics/analysis-history'
 import type { BioToolHistoryEntry } from '@/lib/bio-tools/bio-tool-history'
 
 // ── 통계 분석 어댑터 ──
@@ -115,6 +115,23 @@ function toGenBankItem(entry: GenBankHistoryEntry): HistoryItem<GeneticsHistoryE
   }
 }
 
+function toSeqStatsItem(entry: SeqStatsHistoryEntry): HistoryItem<GeneticsHistoryEntry> {
+  const badges: HistoryBadge[] = [
+    { label: '', value: `${entry.sequenceCount}개 서열`, variant: 'default' },
+    { label: 'GC', value: `${(entry.overallGcContent * 100).toFixed(1)}%`, variant: 'mono' },
+  ]
+  return {
+    id: entry.id,
+    title: entry.analysisName,
+    subtitle: `평균 ${entry.meanLength} bp`,
+    badges,
+    pinned: entry.pinned ?? false,
+    createdAt: entry.createdAt,
+    hasResult: true,
+    data: entry,
+  }
+}
+
 export function toGeneticsHistoryItem(
   entry: GeneticsHistoryEntry,
 ): HistoryItem<GeneticsHistoryEntry> {
@@ -122,6 +139,7 @@ export function toGeneticsHistoryItem(
     case 'barcoding': return toBarcodingItem(entry)
     case 'blast': return toBlastSearchItem(entry)
     case 'genbank': return toGenBankItem(entry)
+    case 'seq-stats': return toSeqStatsItem(entry)
   }
 }
 

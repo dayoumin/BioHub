@@ -17,7 +17,7 @@ import { createLocalStorageIO } from '@/lib/utils/local-storage-factory'
 // 타입 정의
 // ═══════════════════════════════════════════════════════════════
 
-export type GeneticsToolType = 'barcoding' | 'blast' | 'genbank'
+export type GeneticsToolType = 'barcoding' | 'blast' | 'genbank' | 'seq-stats'
 
 /** 바코딩 히스토리 (기존 필드 유지) */
 export interface BarcodingHistoryEntry {
@@ -69,10 +69,25 @@ export interface GenBankHistoryEntry {
   createdAt: number
 }
 
+/** 서열 기본 통계 히스토리 */
+export interface SeqStatsHistoryEntry {
+  id: string
+  type: 'seq-stats'
+  /** 사용자 지정 분석명 */
+  analysisName: string
+  sequenceCount: number
+  meanLength: number
+  overallGcContent: number
+  pinned?: boolean
+  projectId?: string
+  createdAt: number
+}
+
 export type GeneticsHistoryEntry =
   | BarcodingHistoryEntry
   | BlastSearchHistoryEntry
   | GenBankHistoryEntry
+  | SeqStatsHistoryEntry
 
 /** @deprecated GeneticsHistoryEntry 사용 */
 export type AnalysisHistoryEntry = BarcodingHistoryEntry
@@ -88,6 +103,7 @@ const MAX_PER_TYPE: Record<GeneticsToolType, number> = {
   barcoding: 20,
   blast: 15,
   genbank: 15,
+  'seq-stats': 15,
 }
 
 /** 히스토리에 저장할 서열 최대 길이 — localStorage quota 보호 (15개 × 2000 = 30KB) */
@@ -97,7 +113,9 @@ const { readJson, writeJson } = createLocalStorageIO('[analysis-history]')
 let hydratePromise: Promise<GeneticsHistoryEntry[]> | null = null
 
 function entityKindForType(type: GeneticsToolType): ProjectEntityKind {
-  return type === 'genbank' ? 'sequence-data' : 'blast-result'
+  if (type === 'genbank') return 'sequence-data'
+  if (type === 'seq-stats') return 'blast-result'
+  return 'blast-result'
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -159,6 +177,19 @@ function normalizeEntry(item: unknown): GeneticsHistoryEntry | null {
         accession: obj.accession as string,
         organism: (obj.organism ?? null) as string | null,
         sequenceLength: (obj.sequenceLength ?? 0) as number,
+        pinned: obj.pinned as boolean | undefined,
+        projectId: obj.projectId as string | undefined,
+        createdAt: obj.createdAt as number,
+      }
+
+    case 'seq-stats':
+      return {
+        id: obj.id as string,
+        type: 'seq-stats',
+        analysisName: (obj.analysisName ?? '') as string,
+        sequenceCount: (obj.sequenceCount ?? 0) as number,
+        meanLength: (obj.meanLength ?? 0) as number,
+        overallGcContent: (obj.overallGcContent ?? 0) as number,
         pinned: obj.pinned as boolean | undefined,
         projectId: obj.projectId as string | undefined,
         createdAt: obj.createdAt as number,
@@ -330,6 +361,7 @@ export type SaveGeneticsHistoryInput =
   | Omit<BarcodingHistoryEntry, 'id' | 'createdAt'>
   | Omit<BlastSearchHistoryEntry, 'id' | 'createdAt'>
   | Omit<GenBankHistoryEntry, 'id' | 'createdAt'>
+  | Omit<SeqStatsHistoryEntry, 'id' | 'createdAt'>
 
 /** 범용 히스토리 저장 — type별 MAX 적용 */
 export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): boolean {
@@ -370,6 +402,7 @@ export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): boolean {
   if (newEntry.projectId) {
     const label = newEntry.type === 'barcoding' ? newEntry.sampleName
       : newEntry.type === 'blast' ? `${newEntry.program} · ${newEntry.database}`
+      : newEntry.type === 'seq-stats' ? newEntry.analysisName
       : newEntry.accession
     try {
       upsertProjectEntityRef({
