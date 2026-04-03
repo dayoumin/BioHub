@@ -128,11 +128,11 @@ export const CategorySelector = memo(function CategorySelector({
               onClick={() => !disabled && onSelect(category.id)}
               disabled={disabled}
               className={cn(
-                'relative p-6 rounded-xl border-2 text-left transition-colors',
+                'relative p-6 rounded-2xl border-2 text-left transition-all duration-200',
                 focusRing, 'focus-visible:ring-offset-2',
                 disabled
                   ? 'opacity-50 cursor-not-allowed'
-                  : 'cursor-pointer hover:border-primary/50 hover:shadow-lg',
+                  : 'cursor-pointer hover:border-primary/50 hover:shadow-sm',
                 isRecommended
                   ? 'border-primary bg-primary/5'
                   : 'border-border bg-card'

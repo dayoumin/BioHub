@@ -62,12 +62,12 @@ export function CollapsibleButton({
   const baseStyles = {
     absolute: cn(
       "absolute z-10",
-      "bg-background border border-border rounded-full p-1 shadow-md",
+      "bg-background border border-border rounded-full p-1 shadow-sm",
       "hover:bg-muted transition-colors",
       "flex items-center justify-center"
     ),
     relative: cn(
-      "bg-background border border-border rounded-full p-1 shadow-md",
+      "bg-background border border-border rounded-full p-1 shadow-sm",
       "hover:bg-muted transition-colors",
       "flex items-center justify-center"
     ),

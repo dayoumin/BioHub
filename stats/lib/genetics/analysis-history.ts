@@ -5,6 +5,12 @@ import {
   upsertProjectEntityRef,
   removeProjectEntityRefs,
 } from '@/lib/research/project-storage'
+import {
+  loadCloudGeneticsHistoryRaw,
+  upsertCloudGeneticsHistory,
+  deleteCloudGeneticsHistory,
+  setCloudGeneticsHistoryPin,
+} from '@/lib/genetics/genetics-history-cloud'
 import { createLocalStorageIO } from '@/lib/utils/local-storage-factory'
 
 // ═══════════════════════════════════════════════════════════════
@@ -88,6 +94,7 @@ const MAX_PER_TYPE: Record<GeneticsToolType, number> = {
 const MAX_STORED_SEQUENCE_LENGTH = 2000
 
 const { readJson, writeJson } = createLocalStorageIO('[analysis-history]')
+let hydratePromise: Promise<GeneticsHistoryEntry[]> | null = null
 
 function entityKindForType(type: GeneticsToolType): ProjectEntityKind {
   return type === 'genbank' ? 'sequence-data' : 'blast-result'
@@ -185,8 +192,34 @@ function sortEntries<T extends { pinned?: boolean; createdAt: number }>(entries:
   })
 }
 
+/** 타입별 MAX_PER_TYPE cap 적용 — pinned 우선, 최신 순 유지 */
+function applyCaps(entries: GeneticsHistoryEntry[]): GeneticsHistoryEntry[] {
+  const byType = new Map<GeneticsToolType, GeneticsHistoryEntry[]>()
+  for (const e of entries) {
+    const arr = byType.get(e.type) ?? []
+    arr.push(e)
+    byType.set(e.type, arr)
+  }
+
+  const result: GeneticsHistoryEntry[] = []
+  for (const [type, items] of byType) {
+    const sorted = sortEntries(items)
+    result.push(...sorted.slice(0, MAX_PER_TYPE[type]))
+  }
+  return sortEntries(result)
+}
+
 function saveToStorage(entries: GeneticsHistoryEntry[]): void {
   writeJson(HISTORY_KEY, entries)
+}
+
+function saveToStorageIfChanged(entries: GeneticsHistoryEntry[]): boolean {
+  if (typeof window === 'undefined') return false
+
+  const nextJson = JSON.stringify(entries)
+  if (localStorage.getItem(HISTORY_KEY) === nextJson) return false
+  localStorage.setItem(HISTORY_KEY, nextJson)
+  return true
 }
 
 function notifyChange(): void {
@@ -206,6 +239,37 @@ function removeRefsForEntries(entries: GeneticsHistoryEntry[]): void {
   }
 }
 
+function syncSaveToCloud(entry: GeneticsHistoryEntry): void {
+  // Fix: projectId는 로컬 ref 전용 — D1 projects 테이블에 없으므로 cloud에는 null로 전송
+  const cloudEntry = entry.projectId
+    ? { ...entry, projectId: undefined }
+    : entry
+  void upsertCloudGeneticsHistory(cloudEntry).catch((error) => {
+    console.warn('[genetics-history] cloud save failed:', error)
+  })
+}
+
+function syncDeleteToCloud(ids: Iterable<string>): void {
+  void Promise.all([...ids].map((id) => deleteCloudGeneticsHistory(id))).catch((error) => {
+    console.warn('[genetics-history] cloud delete failed:', error)
+  })
+}
+
+function syncPinToCloud(id: string, pinned: boolean): void {
+  void setCloudGeneticsHistoryPin(id, pinned).catch((error) => {
+    console.warn('[genetics-history] cloud pin sync failed:', error)
+  })
+}
+
+function mergeEntries(local: GeneticsHistoryEntry[], remote: GeneticsHistoryEntry[]): GeneticsHistoryEntry[] {
+  const merged = new Map<string, GeneticsHistoryEntry>()
+
+  for (const entry of remote) merged.set(entry.id, entry)
+  for (const entry of local) merged.set(entry.id, entry)
+
+  return sortEntries([...merged.values()])
+}
+
 // ═══════════════════════════════════════════════════════════════
 // 공개 API — 신규 (GeneticsHistoryEntry)
 // ═══════════════════════════════════════════════════════════════
@@ -215,6 +279,50 @@ export function loadGeneticsHistory(filter?: GeneticsToolType, preloadedRaw?: st
   const all = parseAll(preloadedRaw)
   const filtered = filter ? all.filter(e => e.type === filter) : all
   return sortEntries(filtered)
+}
+
+let lastHydrateTime = 0
+const HYDRATE_TTL_MS = 30_000
+
+/** D1 genetics history를 읽어 로컬 캐시에 병합한다. 로컬 엔트리가 우선한다. */
+export async function hydrateGeneticsHistoryFromCloud(): Promise<GeneticsHistoryEntry[]> {
+  if (typeof window === 'undefined') return []
+
+  if (hydratePromise) return hydratePromise
+
+  // TTL 내 재호출 시 네트워크 스킵
+  if (Date.now() - lastHydrateTime < HYDRATE_TTL_MS) {
+    return loadGeneticsHistory()
+  }
+
+  hydratePromise = (async () => {
+    try {
+      const remoteRaw = await loadCloudGeneticsHistoryRaw()
+      const remote = remoteRaw
+        .map(normalizeEntry)
+        .filter((entry): entry is GeneticsHistoryEntry => entry !== null)
+
+      const local = parseAll()
+      const merged = mergeEntries(local, remote)
+
+      // Fix: hydration 결과에도 타입별 cap 적용 — D1에 200개까지 내려올 수 있음
+      const capped = applyCaps(merged)
+
+      if (saveToStorageIfChanged(capped)) {
+        notifyChange()
+      }
+
+      lastHydrateTime = Date.now()
+      return merged
+    } catch (error) {
+      console.warn('[genetics-history] cloud hydration failed:', error)
+      return loadGeneticsHistory()
+    } finally {
+      hydratePromise = null
+    }
+  })()
+
+  return hydratePromise
 }
 
 /** 히스토리 저장 입력 타입 — discriminated union의 각 멤버에서 id/createdAt 제외 */
@@ -254,6 +362,11 @@ export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): void {
 
   removeRefsForEntries(overflow)
 
+  // Fix: overflow 엔트리를 D1에서도 삭제 — 안 하면 hydration 시 좀비 부활
+  if (overflow.length > 0) {
+    syncDeleteToCloud(overflow.map(e => e.id))
+  }
+
   if (newEntry.projectId) {
     const label = newEntry.type === 'barcoding' ? newEntry.sampleName
       : newEntry.type === 'blast' ? `${newEntry.program} · ${newEntry.database}`
@@ -271,6 +384,7 @@ export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): void {
   }
 
   notifyChange()
+  syncSaveToCloud(newEntry)
 }
 
 /** 전체 히스토리에서 다중 삭제 */
@@ -283,6 +397,7 @@ export function deleteGeneticsEntries(ids: Set<string>): GeneticsHistoryEntry[] 
   removeRefsForEntries(toDelete)
   saveToStorage(remaining)
   notifyChange()
+  syncDeleteToCloud(ids)
   return sortEntries(remaining)
 }
 
@@ -293,6 +408,10 @@ export function toggleGeneticsPin(id: string): GeneticsHistoryEntry[] {
     const toggled = entries.map(e => e.id === id ? { ...e, pinned: !e.pinned } : e)
     saveToStorage(toggled)
     notifyChange()
+    const updated = toggled.find(e => e.id === id)
+    if (updated) {
+      syncPinToCloud(id, Boolean(updated.pinned))
+    }
     return sortEntries(toggled)
   } catch {
     return []

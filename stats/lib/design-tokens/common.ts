@@ -16,31 +16,31 @@ export const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-
 
 /** 클릭 가능한 액션 카드 (아이콘 + 라벨 그리드용) */
 export const actionCardBase = cn(
-  'relative flex flex-col items-center justify-center gap-2 p-4 rounded-xl',
-  'border border-border bg-card',
-  'transition-all duration-200',
+  'relative flex flex-col items-center justify-center gap-2 p-4 rounded-2xl',
+  'border border-transparent bg-muted/20',
+  'transition-all duration-300',
   focusRing,
-  'hover:border-primary/50 hover:shadow-md',
-  'group',
+  'hover:bg-card hover:border-border hover:shadow-sm hover:-translate-y-0.5',
+  'cursor-pointer group',
 )
 
 /** 추천 카드 (왼쪽 컬러 보더 + 호버 강조) */
 export const recommendationCardBase = cn(
-  'flex flex-col gap-2 p-4 rounded-xl',
-  'border border-border bg-card',
-  'border-l-4 border-l-primary/30',
-  'transition-all duration-200',
-  'hover:border-l-primary hover:shadow-sm',
+  'flex flex-col gap-2 p-4 rounded-2xl',
+  'border border-border/60 bg-card',
+  'border-l-4 border-l-primary/40',
+  'transition-all duration-300',
+  'hover:border-l-primary hover:border-border hover:shadow-sm hover:-translate-y-0.5',
   'group',
 )
 
 /** 카테고리 브라우저 카드 (아이콘 + 라벨 + 메서드 수) */
 export const categoryCardBase = cn(
-  'flex items-center gap-3 p-4 rounded-xl',
-  'border border-border bg-card',
-  'transition-all duration-200',
+  'flex items-center gap-3 p-4 rounded-2xl',
+  'border border-transparent bg-muted/20',
+  'transition-all duration-300',
   focusRing,
-  'hover:border-primary/50 hover:shadow-sm',
+  'hover:bg-card hover:border-border hover:shadow-sm hover:-translate-y-0.5',
   'cursor-pointer group',
 )
 
@@ -53,9 +53,9 @@ export const selectableItemBase = cn(
 
 /** 호버 가능한 리스트 카드 (템플릿/히스토리 목록용) */
 export const listItemBase = cn(
-  'p-3 rounded-lg border border-border',
-  'transition-colors duration-200',
-  'hover:border-primary/50 hover:bg-muted/30',
+  'p-3 rounded-2xl border border-border/60 bg-card',
+  'transition-all duration-200',
+  'hover:border-border hover:shadow-sm active:scale-[0.98]',
   'cursor-pointer group',
 )
 

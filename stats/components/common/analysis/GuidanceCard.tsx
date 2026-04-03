@@ -64,7 +64,7 @@ export function GuidanceCard({
       className={`
         border border-border
         bg-muted/50 dark:bg-muted/30
-        shadow-sm hover:shadow-md transition-shadow duration-200
+        shadow-sm hover:shadow-sm transition-shadow duration-200
         ${prefersReducedMotion ? '' : 'animate-in fade-in slide-in-from-bottom-4'}
       `}
       style={prefersReducedMotion ? undefined : {

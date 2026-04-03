@@ -4,6 +4,7 @@ import {
   saveGeneticsHistory,
   loadGeneticsHistory,
   loadAnalysisHistory,
+  hydrateGeneticsHistoryFromCloud,
   deleteGeneticsEntries,
   toggleGeneticsPin,
   HISTORY_KEY,
@@ -128,6 +129,25 @@ describe('analysis-history', () => {
     })
   })
 
+  describe('cloud hydration', () => {
+    it('D1 원격 히스토리를 로컬과 병합한다', async () => {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify([makeBarcodingEntry(1)]))
+
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+        entries: [makeBlastEntry(2)],
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+
+      const merged = await hydrateGeneticsHistoryFromCloud()
+
+      expect(merged).toHaveLength(2)
+      expect(merged.map(entry => entry.id)).toEqual(['blast-2', 'barcoding-1'])
+      expect(loadGeneticsHistory().map(entry => entry.id)).toEqual(['blast-2', 'barcoding-1'])
+    })
+  })
+
   describe('타입별 MAX', () => {
     it('BLAST 저장 시 barcoding 엔트리에 영향 없음', () => {
       // barcoding 20개 + blast 15개 채움
@@ -219,6 +239,85 @@ describe('analysis-history', () => {
 
       const result2 = toggleGeneticsPin('blast-1')
       expect(result2[0].pinned).toBe(false)
+    })
+  })
+
+  describe('cloud sync 버그 수정', () => {
+    it('Fix #1: syncSaveToCloud는 projectId를 제거하여 전송', () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }))
+
+      saveGeneticsHistory({
+        type: 'barcoding',
+        sampleName: 'Sample Cloud',
+        marker: 'COI',
+        sequencePreview: 'ATGC',
+        topSpecies: null,
+        topIdentity: null,
+        status: null,
+        projectId: 'local-project-1',
+      })
+
+      // fetch POST 호출 확인 (upsert)
+      const postCall = fetchSpy.mock.calls.find(c => {
+        const opts = c[1] as RequestInit | undefined
+        return opts?.method === 'POST'
+      })
+      expect(postCall).toBeDefined()
+
+      // body에 projectId가 없어야 함
+      const body = JSON.parse(postCall![1]!.body as string)
+      expect(body.entry.projectId).toBeUndefined()
+    })
+
+    it('Fix #2: overflow 엔트리는 cloud에서도 삭제', () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }))
+
+      // barcoding 20개 채움
+      const existing = Array.from({ length: 20 }, (_, i) => makeBarcodingEntry(i + 1))
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(existing))
+
+      // 1개 더 추가 → 가장 오래된 것이 overflow
+      saveGeneticsHistory({
+        type: 'barcoding',
+        sampleName: 'Newest',
+        marker: 'COI',
+        sequencePreview: 'ATGC',
+        topSpecies: null,
+        topIdentity: null,
+        status: null,
+      })
+
+      // DELETE 호출이 있어야 함 (overflow 엔트리 삭제)
+      const deleteCalls = fetchSpy.mock.calls.filter(c => {
+        const opts = c[1] as RequestInit | undefined
+        return opts?.method === 'DELETE'
+      })
+      expect(deleteCalls.length).toBe(1)
+
+      // 삭제된 ID가 가장 오래된 엔트리(createdAt=1)
+      expect(String(deleteCalls[0][0])).toContain('barcoding-1')
+    })
+
+    it('Fix #3: hydration 후 타입별 cap이 적용된다', async () => {
+      // 로컬에 barcoding 5개
+      const local = Array.from({ length: 5 }, (_, i) => makeBarcodingEntry(i + 1))
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(local))
+
+      // 원격에서 barcoding 25개 (cap=20 초과)
+      const remote = Array.from({ length: 25 }, (_, i) => makeBarcodingEntry(i + 100))
+
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+        entries: remote,
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }))
+
+      const result = await hydrateGeneticsHistoryFromCloud()
+
+      // cap=20이 적용되어 최대 20개만
+      expect(result.length).toBeLessThanOrEqual(20)
+      expect(loadGeneticsHistory('barcoding').length).toBeLessThanOrEqual(20)
     })
   })
 

@@ -205,7 +205,7 @@ export function SequenceInput({
           }}
           placeholder={">sample_sequence\nATGCGTACGTACGTACG..."}
           rows={8}
-          className={`w-full rounded-lg border border-input bg-card px-3 py-2 font-mono text-sm ${focusRing}`}
+          className={`max-h-[300px] min-h-[150px] w-full resize-y overflow-y-auto rounded-lg border border-input bg-card px-3 py-2 font-mono text-sm ${focusRing}`}
         />
 
         {validation && (

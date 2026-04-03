@@ -144,7 +144,7 @@ export default function GeneticsHome() {
             도움말
           </Button>
           {guideOpen && (
-            <div className="absolute right-0 top-full z-10 mt-2 w-[min(480px,calc(100vw-2rem))] rounded-xl border border-border bg-card p-5 shadow-lg">
+            <div className="absolute right-0 top-full z-10 mt-2 w-[min(480px,calc(100vw-2rem))] rounded-2xl border border-border bg-card p-5 shadow-lg">
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>
                   <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">상황별 도구 선택</h3>
@@ -199,9 +199,12 @@ export default function GeneticsHome() {
       </div>
 
       {/* 처음 사용자 안내 */}
-      <div className="mb-10 rounded-lg border border-border/60 bg-muted/20 p-4">
-        <p className="text-xs text-muted-foreground">
-          처음이라면 각 도구 페이지에서 <span className="font-medium text-foreground">예제 서열/검색어</span>로 바로 체험할 수 있습니다.
+      <div className="mb-10 rounded-2xl border border-primary/20 bg-primary/5 p-5 flex items-start gap-3">
+        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary">
+          <HelpCircle className="h-3 w-3" />
+        </div>
+        <p className="text-sm text-foreground/80 leading-relaxed">
+          어떻게 시작할지 막막하시다면, 각 도구 페이지에서 제공하는 <span className="font-semibold text-primary">예제 서열/검색어 테스트 기능</span>을 통해 즉시 체험해 볼 수 있습니다.
         </p>
       </div>
 
@@ -232,17 +235,17 @@ function ReadyCard({ tool }: { tool: Tool }) {
 
   return (
     <Link href={tool.href}>
-      <div className="group flex h-full flex-col rounded-xl border border-primary/20 bg-primary/5 p-5 transition hover:border-primary/40 hover:shadow-md">
-        <div className="mb-3 flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <Icon className="h-4.5 w-4.5" />
+      <div className="group flex h-full flex-col rounded-2xl border border-border/50 bg-card p-6 shadow-sm transition-all hover:border-primary/30 hover:shadow-sm">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+            <Icon className="h-5 w-5" />
           </div>
-          <h2 className="text-base font-semibold">{tool.title}</h2>
+          <h2 className="text-base font-semibold text-foreground/90">{tool.title}</h2>
         </div>
-        <p className="mb-3 flex-1 text-sm leading-relaxed text-muted-foreground">{tool.description}</p>
+        <p className="mb-5 flex-1 text-sm leading-relaxed text-muted-foreground">{tool.description}</p>
         <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground/70">{tool.input}</p>
-          <ArrowRight className="h-4 w-4 text-primary/40 transition group-hover:translate-x-1 group-hover:text-primary" />
+          <p className="text-xs font-medium text-muted-foreground/70">{tool.input}</p>
+          <ArrowRight className="h-4.5 w-4.5 text-primary/40 transition-all group-hover:translate-x-1.5 group-hover:text-primary" />
         </div>
       </div>
     </Link>
@@ -253,19 +256,19 @@ function PendingCard({ tool }: { tool: Tool }) {
   const Icon = tool.icon
 
   return (
-    <div className="rounded-xl border border-border/50 bg-muted/20 p-4 cursor-not-allowed">
+    <div className="rounded-2xl border border-border/40 bg-muted/10 p-5 cursor-not-allowed">
       <div className="flex items-start gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-          <Icon className="h-4 w-4" />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted/60 text-muted-foreground">
+          <Icon className="h-4.5 w-4.5" />
         </div>
         <div className="flex-1">
-          <div className="mb-0.5 flex items-center gap-2">
+          <div className="mb-1 flex items-center gap-2">
             <h3 className="text-sm font-medium text-muted-foreground">{tool.title}</h3>
-            <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+            <span className="rounded-full bg-muted/80 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
               {tool.badge}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground/70">{tool.description}</p>
+          <p className="text-xs leading-relaxed text-muted-foreground/70">{tool.description}</p>
         </div>
       </div>
     </div>
@@ -275,7 +278,7 @@ function PendingCard({ tool }: { tool: Tool }) {
 const CROSS_LINK_TOOL_IDS = ['hardy-weinberg', 'fst'] as const
 
 const crossLinkClass =
-  'inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium transition hover:border-primary/30 hover:text-primary'
+  'inline-flex items-center gap-1.5 rounded-xl border border-border/50 bg-card px-4 py-2 text-sm font-medium shadow-sm transition-all hover:border-primary/30 hover:shadow-sm hover:text-primary'
 
 function PopulationGeneticsLinks(): React.ReactElement | null {
   const tools = CROSS_LINK_TOOL_IDS.map(getBioToolById).filter(
@@ -284,18 +287,18 @@ function PopulationGeneticsLinks(): React.ReactElement | null {
   if (tools.length === 0) return null
 
   return (
-    <div className="rounded-lg border border-border/60 bg-muted/20 p-4">
-      <h2 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        집단 유전학
+    <div className="rounded-2xl border border-border/40 bg-muted/10 p-6">
+      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        집단 유전학 (Population Genetics)
       </h2>
-      <p className="mb-3 text-xs text-muted-foreground">
-        대립유전자 빈도 기반 집단 분석은 Bio-Tools에서 제공합니다.
+      <p className="mb-4 text-sm text-muted-foreground/80">
+        대립유전자 빈도 기반 집단 유전 분석은 통합 Bio-Tools 섹션에서 제공합니다.
       </p>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2.5">
         {tools.map((tool) => (
           <Link key={tool.id} href={`/bio-tools?tool=${tool.id}`} className={crossLinkClass}>
             {tool.nameKo}
-            <ArrowRight className="h-3 w-3" />
+            <ArrowRight className="h-4 w-4" />
           </Link>
         ))}
       </div>
@@ -305,7 +308,7 @@ function PopulationGeneticsLinks(): React.ReactElement | null {
 
 function GuideRow({ icon: Icon, question, answer }: { icon: ComponentType<{ className?: string }>; question: string; answer: string }) {
   return (
-    <div className="rounded-lg p-2 transition hover:bg-muted/30">
+    <div className="rounded-lg p-2 transition-colors duration-200 hover:bg-muted/30">
       <p className="mb-1 text-xs text-muted-foreground">&ldquo;{question}&rdquo;</p>
       <div className="flex items-center gap-2">
         <Icon className="h-3.5 w-3.5 shrink-0 text-primary" />

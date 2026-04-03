@@ -260,7 +260,7 @@ export function BlastSearchInput({ onSubmit, initialValues }: BlastSearchInputPr
           onChange={(e) => { setSequence(e.target.value); if (uploadedFileName) setUploadedFileName(null) }}
           placeholder={placeholder}
           rows={6}
-          className={`w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm ${focusRing}`}
+          className={`max-h-[300px] min-h-[120px] w-full resize-y overflow-y-auto rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm ${focusRing}`}
         />
         {displayValidation && (
           <div className="mt-1.5 space-y-0.5">
@@ -293,7 +293,7 @@ export function BlastSearchInput({ onSubmit, initialValues }: BlastSearchInputPr
                   handleProgramChange(ex.program)
                   setDatabase(ex.db)
                 }}
-                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs text-muted-foreground transition hover:border-primary/30 hover:text-primary"
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs text-muted-foreground transition-all duration-200 hover:border-primary/30 hover:text-primary"
               >
                 <Play className="h-3 w-3" />
                 <span className="font-medium">{ex.label}</span>

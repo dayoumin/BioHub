@@ -52,7 +52,7 @@ export function OptionCard({
     <Card
       className={cn(
         'cursor-pointer transition-all duration-200',
-        'hover:shadow-md hover:-translate-y-0.5',
+        'hover:shadow-sm hover:-translate-y-0.5',
         isSelected && 'ring-2 ring-primary shadow-lg',
         disabled && 'opacity-50 cursor-not-allowed',
         className

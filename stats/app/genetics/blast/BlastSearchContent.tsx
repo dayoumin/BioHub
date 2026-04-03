@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo, useEffect } from 'react'
-import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import type { GenericBlastParams, GenericBlastHit } from '@biohub/types'
 import { BlastSearchInput } from '@/components/genetics/BlastSearchInput'
 import type { BlastInitialValues } from '@/components/genetics/BlastSearchInput'
@@ -13,7 +13,11 @@ import {
   BLAST_STEP_LABELS,
 } from '@/lib/genetics/blast-utils'
 import { useBlastExecution } from '@/hooks/use-blast-execution'
-import { saveGeneticsHistory, loadGeneticsHistory } from '@/lib/genetics/analysis-history'
+import {
+  saveGeneticsHistory,
+  loadGeneticsHistory,
+  hydrateGeneticsHistoryFromCloud,
+} from '@/lib/genetics/analysis-history'
 import type { BlastSearchHistoryEntry } from '@/lib/genetics/analysis-history'
 import { useResearchProjectStore } from '@/lib/stores/research-project-store'
 import { Button } from '@/components/ui/button'
@@ -79,20 +83,31 @@ function GenericBlastRunner({ params, onResult, onError, onCancel }: RunnerProps
 // ── 메인 페이지 ──
 
 export default function BlastSearchContent(): React.ReactElement {
+  const searchParams = useSearchParams()
   const [state, setState] = useState<AppState>({ step: 'input' })
   const [restoredEntry, setRestoredEntry] = useState<BlastSearchHistoryEntry | null>(null)
   const activeResearchProjectId = useResearchProjectStore(s => s.activeResearchProjectId)
 
   // 히스토리 복원
   useEffect(() => {
-    const historyId = new URLSearchParams(window.location.search).get('history')
+    let cancelled = false
+    const historyId = searchParams.get('history')
     if (!historyId) return
-    const entry = loadGeneticsHistory('blast').find(e => e.id === historyId)
-    if (entry?.type === 'blast') {
-      setRestoredEntry(entry)
+
+    void hydrateGeneticsHistoryFromCloud().then(() => {
+      if (cancelled) return
+
+      const entry = loadGeneticsHistory('blast').find(e => e.id === historyId)
+      if (entry?.type === 'blast') {
+        setState({ step: 'input' })
+        setRestoredEntry(entry)
+      }
+    })
+
+    return () => {
+      cancelled = true
     }
-    window.history.replaceState({}, '', window.location.pathname)
-  }, [])
+  }, [searchParams])
 
   // 히스토리에서 복원 시 프로그램/DB/서열 프리필
   const initialValues = useMemo<BlastInitialValues | undefined>(() => {
@@ -142,9 +157,7 @@ export default function BlastSearchContent(): React.ReactElement {
   return (
     <main>
       <div className="mb-6">
-        <Link href="/genetics" className="mb-3 inline-block text-sm text-primary hover:underline">
-          &larr; 유전적 분석
-        </Link>
+
         <h1 className="text-2xl font-bold">BLAST 서열 검색</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           NCBI BLAST를 이용한 범용 서열 유사성 검색. 프로그램을 선택하고 서열을 입력하면 데이터베이스에서 가장 유사한 서열을 찾아줍니다.

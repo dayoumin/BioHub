@@ -118,7 +118,7 @@ export function ChatInput({
           className={cn(
             'min-h-[64px] max-h-[160px] resize-none pl-5 pr-24',
             'rounded-2xl border-border bg-background text-base',
-            'shadow-md',
+            'shadow-sm',
             focusRing, 'focus-visible:border-primary',
             'transition-all duration-200'
           )}

@@ -44,8 +44,8 @@ function DocumentCard({ doc, onClick }: DocumentCardProps): React.ReactElement {
       type="button"
       onClick={onClick}
       className={cn(
-        'flex items-start gap-3 p-4 rounded-xl border bg-card w-full text-left',
-        'hover:shadow-sm hover:border-primary/30 transition-all',
+        'flex items-start gap-3 p-4 rounded-2xl border bg-card w-full text-left',
+        'hover:shadow-sm hover:border-primary/30 active:scale-[0.98] transition-all duration-200',
       )}
     >
       <div className="shrink-0 bg-primary/10 text-primary p-2 rounded-lg">
@@ -86,8 +86,8 @@ function DraftHistoryCard({ name, method, timestamp, onClick }: DraftHistoryCard
       type="button"
       onClick={onClick}
       className={cn(
-        'flex items-center gap-3 p-4 rounded-xl border bg-card w-full text-left',
-        'hover:shadow-sm hover:border-primary/30 transition-all',
+        'flex items-center gap-3 p-4 rounded-2xl border bg-card w-full text-left',
+        'hover:shadow-sm hover:border-primary/30 active:scale-[0.98] transition-all duration-200',
       )}
     >
       <div className="shrink-0 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 p-2 rounded-lg">
@@ -261,7 +261,7 @@ export default function PapersHub({ onOpenDocument }: PapersHubProps): React.Rea
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {FEATURES.map(f => (
-            <div key={f.title} className="flex flex-col items-center text-center p-5 rounded-xl border bg-card">
+            <div key={f.title} className="flex flex-col items-center text-center p-5 rounded-2xl border bg-card">
               <div className={cn('p-3 rounded-xl mb-3', f.color)}>
                 <f.icon className="w-6 h-6" />
               </div>

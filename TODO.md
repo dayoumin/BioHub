@@ -70,6 +70,9 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 ### 3-D. 인프라
 
 - `[infra]` D1 스키마 갭 해소 — 상세: [D1-SCHEMA-GAP.md](docs/D1-SCHEMA-GAP.md). 인증/멀티디바이스 시 필수
+- `[infra]` 회원가입/OAuth 도입 후 `deviceId` 기반 `X-User-Id`를 실제 `userId`/세션 기반 인증으로 전환
+  - genetics history D1 동기화 레이어의 식별자 교체
+  - 기존 `deviceId` 레코드 → 최초 로그인 `userId` 이관 전략 필요
 - `[infra]` Turso → D1 통합 — `turso-adapter.ts`, `hybrid-adapter.ts`, `NEXT_PUBLIC_TURSO_*` 제거
 - `[infra]` 집 PC 환경 동기화 — Node 22 + cf-deploy 스킬 복사 + git pull
 

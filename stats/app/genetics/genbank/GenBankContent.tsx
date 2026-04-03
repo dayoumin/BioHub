@@ -2,10 +2,15 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { Search, Download, Copy, Check, ExternalLink, Loader2, HelpCircle, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { focusRing } from '@/components/common/card-styles'
-import { saveGeneticsHistory, loadGeneticsHistory } from '@/lib/genetics/analysis-history'
+import {
+  saveGeneticsHistory,
+  loadGeneticsHistory,
+  hydrateGeneticsHistoryFromCloud,
+} from '@/lib/genetics/analysis-history'
 import { useResearchProjectStore } from '@/lib/stores/research-project-store'
 
 // ── 타입 ──
@@ -36,6 +41,7 @@ const SEARCH_TIPS = [
 // ── 메인 컴포넌트 ──
 
 export default function GenBankContent(): React.ReactElement {
+  const searchParams = useSearchParams()
   const [query, setQuery] = useState('')
   const [db, setDb] = useState<DbOption>('nuccore')
   const [results, setResults] = useState<SearchResult[]>([])
@@ -53,15 +59,31 @@ export default function GenBankContent(): React.ReactElement {
 
   // 히스토리 복원
   useEffect(() => {
-    const historyId = new URLSearchParams(window.location.search).get('history')
+    let cancelled = false
+    const historyId = searchParams.get('history')
     if (!historyId) return
-    const entry = loadGeneticsHistory('genbank').find(e => e.id === historyId)
-    if (entry?.type === 'genbank') {
-      setQuery(entry.query)
-      setDb(entry.db as DbOption)
+
+    void hydrateGeneticsHistoryFromCloud().then(() => {
+      if (cancelled) return
+
+      const entry = loadGeneticsHistory('genbank').find(e => e.id === historyId)
+      if (entry?.type === 'genbank') {
+        setQuery(entry.query)
+        setDb(entry.db as DbOption)
+        setResults([])
+        setTotalCount(0)
+        setError(null)
+        setHasSearched(false)
+        setFetchingId(null)
+        setFastaContent(null)
+        setFastaAccession(null)
+      }
+    })
+
+    return () => {
+      cancelled = true
     }
-    window.history.replaceState({}, '', window.location.pathname)
-  }, [])
+  }, [searchParams])
 
   // 언마운트 시 진행 중인 요청 취소
   useEffect(() => {
@@ -147,9 +169,7 @@ export default function GenBankContent(): React.ReactElement {
   return (
     <main>
       <div className="mb-6">
-        <Link href="/genetics" className="mb-3 inline-block text-sm text-primary hover:underline">
-          &larr; 유전적 분석
-        </Link>
+
         <h1 className="text-2xl font-bold">GenBank 서열 검색</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           NCBI GenBank에서 서열을 검색하고 FASTA로 다운로드
@@ -250,8 +270,14 @@ export default function GenBankContent(): React.ReactElement {
 
       {/* 결과 */}
       {hasSearched && !isSearching && results.length === 0 && !error && (
-        <div className="rounded-lg border border-border bg-muted/30 p-8 text-center">
-          <p className="text-sm text-muted-foreground">검색 결과가 없습니다.</p>
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-border/40 bg-muted/20 px-4 py-12 text-center">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted/50 text-muted-foreground">
+            <Search className="h-6 w-6" />
+          </div>
+          <p className="mb-2 text-sm font-medium text-foreground">검색 결과가 없습니다</p>
+          <p className="text-xs text-muted-foreground/80 max-w-sm">
+            철자가 정확한지 확인하시거나, Accession Number를 띄어쓰기 없이 단독으로 입력해 보세요.
+          </p>
         </div>
       )}
 

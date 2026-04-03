@@ -115,7 +115,7 @@ export const BioToolsHub = memo(function BioToolsHub({ onSelectTool }: BioToolsH
 
       {/* 빈 상태 온보딩 (핀도 최근도 없을 때) */}
       {!hasPinned && !hasRecent && (
-        <div className="rounded-xl border border-dashed border-border/60 px-6 py-8 text-center">
+        <div className="rounded-2xl border border-dashed border-border/60 px-6 py-8 text-center">
           <Leaf className="w-8 h-8 mx-auto mb-3 text-muted-foreground/30" />
           <p className="text-sm text-muted-foreground">
             자주 쓰는 도구를{' '}

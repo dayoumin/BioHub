@@ -115,7 +115,24 @@ export const graphProjects = sqliteTable('graph_projects', {
   index('idx_gp_project').on(table.projectId),
 ])
 
-// ─── 3-7. BLAST 캐시 (전역) ───
+// ─── 3-7. Genetics history sync ───
+
+export const geneticsHistory = sqliteTable('genetics_history', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id),
+  entryType: text('entry_type').notNull(),
+  projectId: text('project_id').references(() => projects.id, { onDelete: 'set null' }),
+  pinned: integer('pinned', { mode: 'boolean' }).notNull().default(false),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+  payloadJson: text('payload_json').notNull(),
+}, (table) => [
+  index('idx_gh_user_created').on(table.userId, table.createdAt),
+  index('idx_gh_user_type_created').on(table.userId, table.entryType, table.createdAt),
+  index('idx_gh_project').on(table.projectId),
+])
+
+// ─── 3-8. BLAST 캐시 (전역) ───
 
 export const blastCache = sqliteTable('blast_cache', {
   sequenceHash: text('sequence_hash').notNull(),

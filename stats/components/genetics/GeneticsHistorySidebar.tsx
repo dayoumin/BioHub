@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { UnifiedHistorySidebar } from '@/components/common/UnifiedHistorySidebar'
 import { toGeneticsHistoryItems } from '@/lib/utils/history-adapters'
 import type { HistoryItem } from '@/types/history'
@@ -18,6 +18,7 @@ import type {
 } from '@/lib/genetics/analysis-history'
 import {
   loadGeneticsHistory,
+  hydrateGeneticsHistoryFromCloud,
   deleteGeneticsEntries,
   toggleGeneticsPin,
   HISTORY_KEY,
@@ -45,14 +46,12 @@ const TYPE_DOT_COLOR: Record<GeneticsToolType, string> = {
 
 export function GeneticsHistorySidebar(): ReactNode {
   const router = useRouter()
-  const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null)
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [history, setHistory] = useState<GeneticsHistoryEntry[]>([])
   const [filter, setFilter] = useState<ToolFilter>('all')
   const lastRawRef = useRef<string | null>(null)
-
-  useEffect(() => {
-    setActiveHistoryId(new URLSearchParams(window.location.search).get('history'))
-  }, [])
+  const activeHistoryId = searchParams.get('history')
 
   const refreshHistory = useCallback((): void => {
     const raw = localStorage.getItem(HISTORY_KEY)
@@ -62,6 +61,10 @@ export function GeneticsHistorySidebar(): ReactNode {
   }, [])
 
   useEffect(() => { refreshHistory() }, [refreshHistory])
+
+  useEffect(() => {
+    void hydrateGeneticsHistoryFromCloud()
+  }, [])
 
   useEffect(() => {
     const onHistoryChange = (): void => { refreshHistory() }
@@ -91,21 +94,22 @@ export function GeneticsHistorySidebar(): ReactNode {
   // 핸들러
   const handleSelect = useCallback(
     (item: HistoryItem<GeneticsHistoryEntry>) => {
-      setActiveHistoryId(item.id)
-      const entry = item.data
-      switch (entry.type) {
-        case 'barcoding':
-          router.push(`/genetics/barcoding?history=${item.id}`)
-          break
-        case 'blast':
-          router.push(`/genetics/blast?history=${item.id}`)
-          break
-        case 'genbank':
-          router.push(`/genetics/genbank?history=${item.id}`)
-          break
+      const encodedId = encodeURIComponent(item.id)
+      const typePath: Record<GeneticsToolType, string> = {
+        barcoding: '/genetics/barcoding',
+        blast: '/genetics/blast',
+        genbank: '/genetics/genbank',
+      }
+      const base = typePath[item.data.type]
+      const href = `${base}?history=${encodedId}`
+
+      if (pathname === base) {
+        window.history.pushState({}, '', href)
+      } else {
+        router.push(href)
       }
     },
-    [router],
+    [pathname, router],
   )
 
   const handlePin = useCallback((id: string) => {
@@ -162,7 +166,7 @@ export function GeneticsHistorySidebar(): ReactNode {
           key={value}
           type="button"
           onClick={() => setFilter(value)}
-          className={`flex-1 rounded px-1 py-0.5 text-[10px] font-medium transition ${
+          className={`flex-1 rounded px-1 py-0.5 text-[10px] font-medium transition-colors duration-200 ${
             filter === value
               ? 'bg-background text-foreground shadow-sm'
               : 'text-muted-foreground/60 hover:text-muted-foreground'

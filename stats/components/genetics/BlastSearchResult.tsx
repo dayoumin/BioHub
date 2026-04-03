@@ -66,7 +66,7 @@ export function BlastSearchResult({ hits, program, database, elapsed, onReset }:
 
   const SortHeader = ({ label, field, className }: { label: string; field: SortKey; className?: string }) => (
     <th
-      className={`cursor-pointer select-none pb-2 transition hover:text-foreground ${className ?? ''}`}
+      className={`cursor-pointer select-none pb-2 transition-colors duration-200 hover:text-foreground ${className ?? ''}`}
       onClick={() => toggleSort(field)}
     >
       <span className="inline-flex items-center gap-0.5">
@@ -127,7 +127,7 @@ export function BlastSearchResult({ hits, program, database, elapsed, onReset }:
               </thead>
               <tbody>
                 {sorted.map((hit, i) => (
-                  <tr key={`${hit.accession}-${i}`} className="border-b border-border/50 transition hover:bg-muted/30">
+                  <tr key={`${hit.accession}-${i}`} className="border-b border-border/50 transition-colors duration-200 hover:bg-muted/30">
                     <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
                     <td className="px-3 py-2">
                       <a

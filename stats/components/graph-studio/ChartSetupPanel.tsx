@@ -248,7 +248,7 @@ export function ChartSetupPanel(): React.ReactElement {
 
       {/* 데이터 요약 카드 */}
       {dataPackage && (
-        <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30">
+        <div className="flex items-center gap-3 p-3 rounded-2xl border border-border bg-muted/30">
           <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
             <Database className="h-4 w-4 text-primary" />
           </div>

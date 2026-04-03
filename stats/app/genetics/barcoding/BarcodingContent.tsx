@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import type { BlastMarker, SequenceValidation } from '@biohub/types'
 import { SequenceInput } from '@/components/genetics/SequenceInput'
 import { BlastRunner } from '@/components/genetics/BlastRunner'
@@ -10,7 +10,11 @@ import { ResultView } from '@/components/genetics/ResultView'
 import { parseBlastHits, analyzeBlastResult } from '@/lib/genetics/decision-engine'
 import type { DecisionResult } from '@/lib/genetics/decision-engine'
 import { getExampleById } from '@/lib/genetics/example-sequences'
-import { saveAnalysisHistory, loadAnalysisHistory } from '@/lib/genetics/analysis-history'
+import {
+  saveAnalysisHistory,
+  loadAnalysisHistory,
+  hydrateGeneticsHistoryFromCloud,
+} from '@/lib/genetics/analysis-history'
 import { useResearchProjectStore } from '@/lib/stores/research-project-store'
 import { Button } from '@/components/ui/button'
 
@@ -21,6 +25,7 @@ type AppState =
   | { step: 'error'; message: string; code: BlastErrorCode }
 
 export default function BarcodingContent(): React.ReactElement {
+  const searchParams = useSearchParams()
   const [marker, setMarker] = useState<BlastMarker>('COI')
   const [sequence, setSequence] = useState('')
   const [sampleName, setSampleName] = useState('')
@@ -30,41 +35,53 @@ export default function BarcodingContent(): React.ReactElement {
   const activeResearchProjectId = useResearchProjectStore(s => s.activeResearchProjectId)
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
+    let cancelled = false
 
-    // 히스토리 결과 복원
-    const historyId = params.get('history')
+    const historyId = searchParams.get('history')
     if (historyId) {
-      const entry = loadAnalysisHistory().find(e => e.id === historyId)
-      if (entry?.resultData) {
-        setMarker(entry.marker)
-        setState({ step: 'result', marker: entry.marker, decision: entry.resultData, analyzedSequence: '' })
-        return
+      void hydrateGeneticsHistoryFromCloud().then(() => {
+        if (cancelled) return
+
+        const entry = loadAnalysisHistory().find(e => e.id === historyId)
+        if (entry?.resultData) {
+          setDeepLinkError(null)
+          setMarker(entry.marker)
+          setSampleName(entry.sampleName)
+          setUploadedFileName(null)
+          setState({ step: 'result', marker: entry.marker, decision: entry.resultData, analyzedSequence: '' })
+          return
+        }
+
+        setState({ step: 'input' })
+        setDeepLinkError(
+          entry
+            ? '이 분석 기록의 결과 데이터가 손실되었습니다. 새로 분석을 실행해 주세요.'
+            : '요청한 분석 기록을 찾을 수 없습니다. 삭제되었거나 다른 브라우저의 기록일 수 있습니다.'
+        )
+      })
+
+      return () => {
+        cancelled = true
       }
-      // entry가 없거나 resultData가 없는 경우 — 사용자에게 피드백
-      setDeepLinkError(
-        entry
-          ? '이 분석 기록의 결과 데이터가 손실되었습니다. 새로 분석을 실행해 주세요.'
-          : '요청한 분석 기록을 찾을 수 없습니다. 삭제되었거나 다른 브라우저의 기록일 수 있습니다.'
-      )
-      // URL에서 history 파라미터 제거 (뒤로가기 시 재트리거 방지)
-      const cleaned = new URLSearchParams(params)
-      cleaned.delete('history')
-      const qs = cleaned.toString()
-      window.history.replaceState({}, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`)
-      return
     }
 
-    // 예제 쿼리 파라미터 처리
-    const exampleId = params.get('example')
+    const exampleId = searchParams.get('example')
     if (exampleId) {
       const example = getExampleById(exampleId)
       if (example) {
+        setDeepLinkError(null)
+        setState({ step: 'input' })
         setSequence(example.sequence)
         setMarker(example.marker)
+        setSampleName('')
+        setUploadedFileName(null)
       }
     }
-  }, [])
+
+    return () => {
+      cancelled = true
+    }
+  }, [searchParams])
 
   const handleAnalyze = useCallback((_validation: SequenceValidation) => {
     setState({ step: 'analyzing', sequence, marker })
@@ -114,9 +131,7 @@ export default function BarcodingContent(): React.ReactElement {
   return (
     <main>
       <div className="mb-6">
-        <Link href="/genetics" className="mb-3 inline-block text-sm text-primary hover:underline">
-          &larr; 유전적 분석
-        </Link>
+
         <h1 className="text-2xl font-bold">DNA 바코딩 종 판별</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           DNA 서열 하나로 종을 판별합니다. 마커를 선택하고 서열을 입력하면 NCBI BLAST 기반으로 가장 유사한 종을 찾아 신뢰도와 함께 안내합니다.
@@ -129,7 +144,14 @@ export default function BarcodingContent(): React.ReactElement {
           <p className="mb-4 text-sm text-amber-700 dark:text-amber-400">{deepLinkError}</p>
           <Button
             variant="outline"
-            onClick={() => setDeepLinkError(null)}
+            onClick={() => {
+              setDeepLinkError(null)
+              setState({ step: 'input' })
+              const params = new URLSearchParams(window.location.search)
+              params.delete('history')
+              const qs = params.toString()
+              window.history.replaceState({}, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`)
+            }}
           >
             새 분석 시작
           </Button>

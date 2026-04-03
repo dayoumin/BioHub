@@ -291,7 +291,7 @@ function VariableToggleButton({
         disabled && 'opacity-40 cursor-not-allowed hover:border-border hover:shadow-none',
 
         // 호버 애니메이션
-        !disabled && 'hover:scale-[1.01]'
+        !disabled && 'hover:-translate-y-0.5'
       )}
     >
       <div className="flex-1 min-w-0">

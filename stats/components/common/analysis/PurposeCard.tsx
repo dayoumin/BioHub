@@ -69,9 +69,9 @@ export function PurposeCard({
       className={cn(
         'group cursor-pointer transition-all duration-300 relative overflow-hidden',
         'border-2',
-        !disabled && 'hover:shadow-xl hover:scale-[1.02] hover:border-primary/50',
+        !disabled && 'hover:shadow-sm hover:-translate-y-0.5 hover:border-primary/50',
         selected
-          ? 'border-primary bg-primary/5 shadow-md ring-1 ring-primary/20'
+          ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20'
           : 'border-border',
         disabled && 'opacity-50 cursor-not-allowed',
         className

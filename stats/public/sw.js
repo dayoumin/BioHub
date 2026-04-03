@@ -6,10 +6,10 @@
  * - NumPy, SciPy, statsmodels 등 패키지 캐싱
  * - 두 번째 방문부터 즉시 로드 (2~3초 → 0.3초)
  *
- * @version 1.1.0
+ * @version 1.1.1
  */
 
-const CACHE_VERSION = 'v1.1.0'
+const CACHE_VERSION = 'v1.1.1'
 const PYODIDE_CACHE = `pyodide-cache-${CACHE_VERSION}`
 const APP_CACHE = `app-cache-${CACHE_VERSION}`
 
@@ -77,8 +77,8 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // 일반 요청은 네트워크 우선
-  event.respondWith(fetch(request))
+  // 일반 요청은 Service Worker가 개입하지 않음 (브라우저 기본 동작)
+  return
 })
 
 /**

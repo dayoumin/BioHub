@@ -382,7 +382,7 @@ export function DataUploadPanel(): React.ReactElement {
                   type="button"
                   onClick={() => handleProjectClick(project.id)}
                   className={cn(
-                    'flex flex-col items-start gap-1 p-3 rounded-lg text-left',
+                    'flex flex-col items-start gap-1 p-3 rounded-2xl text-left',
                     'border border-border bg-card',
                     'hover:border-primary/50 hover:shadow-sm transition-all duration-200',
                     'text-xs',

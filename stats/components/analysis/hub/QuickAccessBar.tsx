@@ -318,9 +318,9 @@ function ActivityCardItem({ card, t, onClick, onTogglePin, onDelete }: ActivityC
   return (
     <div
       className={cn(
-        'group flex items-center justify-between p-4 rounded-xl',
+        'group flex items-center justify-between p-4 rounded-2xl',
         'border bg-card',
-        'hover:shadow-sm transition-shadow cursor-pointer',
+        'hover:shadow-sm active:scale-[0.98] transition-all duration-200 cursor-pointer',
         card.isPinned && 'border-primary/20 bg-primary/[0.02]',
         // 시각화 카드: 좌측 보라 악센트 라인
         isViz ? 'border-l-[3px] border-l-violet-400/60 border-t-border border-r-border border-b-border'
