@@ -21,7 +21,7 @@ import type {
   SourceSearchResult,
 } from '@/lib/types/literature'
 import type { CitationRecord } from '@/lib/research/citation-types'
-import { createCitationRecord } from '@/lib/research/citation-types'
+import { createCitationRecord, citationKey } from '@/lib/research/citation-types'
 import { saveCitation, listCitationsByProject } from '@/lib/research/citation-storage'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -564,11 +564,6 @@ const LiteratureCard = memo(function LiteratureCard({ item, onSave, isSaved }: L
 })
 
 // ── 결과 목록 ──
-
-/** 인용 저장 키 — doi 우선, 없으면 url */
-function citationKey(item: LiteratureItem): string {
-  return item.doi ? `doi:${item.doi}` : item.url
-}
 
 interface ResultsListProps {
   items: LiteratureItem[]

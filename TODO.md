@@ -1,6 +1,6 @@
 # BioHub TODO
 
-**Last updated**: 2026-04-03
+**Last updated**: 2026-04-03 (머지 후 논문 작성 Phase 현황 반영)
 **References**: [Product Strategy](docs/PRODUCT_STRATEGY.md), [Roadmap](ROADMAP.md), [Research Project Status](docs/RESEARCH_PROJECT_STATUS.md)
 
 ---
@@ -15,10 +15,14 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 
 ## 2. Now
 
-### 논문 작성 (Phase 6)
+### 논문 작성 (Phase 6a)
 
-- `[paper]` ~~Phase 5: 영문 템플릿 완성~~ ✅ (15개 완성 + 품질 패치 7건 + 테스트 55개)
-- `[paper]` Phase 6: 인용 관리 (citation store 신규), Figure 통합, 번호 매기기
+- `[paper]` ~~Phase 1~5 완료~~ ✅ — 타입+조립엔진, 에디터, Plate WYSIWYG, DOCX/HWPX 내보내기, 영문 템플릿 15개
+- `[paper]` ~~Phase 6b: Figure 오프스크린 렌더링+캐시~~ ✅
+- `[paper]` ~~Phase 6d: 표/그림 자동 번호 매기기~~ ✅
+- `[paper]` ~~Phase 6e: HWPX 내보내기~~ ✅
+- `[paper]` **Phase 6a: 인용 관리** — citation store + MaterialPalette 문헌 탭 + APA formatter + References 자동 동기화 (진행 예정)
+- `[paper]` Phase 6f: field-report 프리셋 — species-validation/legal-status resolver 선행 필요 (Blocked)
 - 상세: [PLAN-DOCUMENT-ASSEMBLY.md](stats/docs/papers/PLAN-DOCUMENT-ASSEMBLY.md)
 
 ---
@@ -59,6 +63,7 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
   - 히스토리 사이드바 한글 하드코딩 → terminology (~15건)
   - `onHistoryShowMore` 데드 prop 정리
   - pin 토글 로직 `togglePinId()` 순수 함수 추출 (3곳 반복)
+- `[quality]` IndexedDB 트랜잭션 헬퍼 중복 — `txPut/txGetByIndex/txDelete`가 `citation-storage.ts` + `document-blueprint-storage.ts` + `chart-snapshot-storage.ts` 3곳에 반복 → `lib/utils/indexeddb-helpers.ts` 공유 모듈로 추출
 - `[quality]` worker.ts 남은 기술부채:
   - `jsonResponse` 중복 (`worker.ts` + `handlers/literature.ts`) → 공유 모듈 추출
   - `parseInlineMarks` DOCX/HWPX 90% 중복 (P1-7) → 3번째 파서 등장 시 통합
@@ -91,6 +96,13 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 ## 4. Later
 
 장기 방향. 현재 실행 우선순위 아님.
+
+### 4-A. 논문 작성 — 인용 고도화 (Phase 6a 이후)
+
+- `[paper]` BibTeX 내보내기 — citation store에서 `.bib` 파일 생성
+- `[paper]` Plate 에디터 인라인 인용 노드 — `(Kim et al., 2025)` 클릭 시 문헌 팝업
+- `[paper]` Citation Verification — CrossRef/Semantic Scholar API로 인용 정보 검증
+- `[paper]` Software Citation 자동 생성 — 사용한 통계 패키지(SciPy, statsmodels 등) BibTeX 자동 추가
 
 - `[review]` reviewer simulator — 체크리스트/패키지 안정화 후
 - `[workflow]` 프로젝트 대시보드 강화
@@ -132,7 +144,7 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - **Graph Studio**: localStorage quota, AI 패치 검증, BOM 감지, quota 정책
 - **유전적 분석**: BLAST 통합 리팩토링, 히스토리 분리, 초보자 가이드, rate limit 재시도
 - **Bio-Tools**: BioToolId 타입, 차트 ECharts 전환, 결과 내보내기, 프로젝트 연결, Worker 9 골든 테스트
-- **논문 작성**: Phase 1 (타입+조립엔진) → Phase 2 (에디터) → Phase 3 (Plate WYSIWYG) → Phase 4 (DOCX 내보내기)
+- **논문 작성**: Phase 1~5 완료 + Phase 6b/6d/6e 완료 — 조립엔진·Plate WYSIWYG·DOCX/HWPX 내보내기·영문 템플릿·Figure 렌더링·자동 번호 매기기
 - **UI 통합**: Shell/Upload/Bio 페이지 일관성, 토스트 마이그레이션, 디자인 토큰, 차트 팔레트 토큰화, **전역 토큰 일관성 통일** (26건 18파일)
 - **유전적 분석 Cloud Sync**: D1 genetics history API + 30s TTL hydration + entity ref 중복 수정
 - **worker.ts 기술부채**: `parseJsonBody`(9건) + `authenticateRequest`(3건) + `verifyProjectOwnership`(4건) 헬퍼 추출

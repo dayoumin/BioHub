@@ -12,6 +12,15 @@ export interface CitationRecord {
   addedAt: string       // ISO string
 }
 
+/**
+ * 인용 중복 판정 키 — doi 우선, 없으면 url
+ *
+ * doi는 `doi:` prefix를 붙여 url과 충돌 방지.
+ */
+export function citationKey(item: LiteratureItem): string {
+  return item.doi ? `doi:${item.doi}` : item.url
+}
+
 /** CitationRecord 생성 헬퍼 */
 export function createCitationRecord(projectId: string, item: LiteratureItem): CitationRecord {
   const random = Math.random().toString(36).slice(2, 7)

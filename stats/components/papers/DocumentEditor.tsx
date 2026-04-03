@@ -20,6 +20,7 @@ import type { DocumentBlueprint, DocumentSection } from '@/lib/research/document
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { GraphProject } from '@/types/graph-studio'
 import type { CitationRecord } from '@/lib/research/citation-types'
+import { citationKey } from '@/lib/research/citation-types'
 import { listCitationsByProject, deleteCitation } from '@/lib/research/citation-storage'
 import { MARKDOWN_CONFIG } from '@/lib/rag/config/markdown-config'
 import { paperPlugins, EQUATION_KEY, INLINE_EQUATION_KEY } from './plate-plugins'
@@ -337,16 +338,14 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
     })
   }, [activeSectionId, doc, scheduleSave])
 
-  // 인용 삽입 — citations state에 추가 (doi/url 중복 방지)
   const handleInsertCitation = useCallback((record: CitationRecord) => {
-    const key = record.item.doi ?? record.item.url
+    const key = citationKey(record.item)
     setCitations(prev => {
-      if (prev.some(c => (c.item.doi ?? c.item.url) === key)) return prev
+      if (prev.some(c => citationKey(c.item) === key)) return prev
       return [...prev, record]
     })
   }, [])
 
-  // 인용 삭제 — IndexedDB + state 동기
   const handleDeleteCitation = useCallback(async (id: string) => {
     await deleteCitation(id)
     setCitations(prev => prev.filter(c => c.id !== id))
