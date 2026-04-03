@@ -15,7 +15,7 @@ import type {
 } from '../storage-types'
 
 const DB_NAME = 'analysis-history'
-const DB_VERSION = 4  // v4: chart-snapshots store 추가
+const DB_VERSION = 5  // v5: citations store 추가
 const HISTORY_STORE = 'analyses'
 const SYNC_QUEUE_STORE = 'sync_queue'
 const FAVORITES_STORE = 'favorites'
@@ -76,6 +76,12 @@ export function openDB(): Promise<IDBDatabase> {
       // Chart snapshots 스토어 생성 (v4)
       if (!db.objectStoreNames.contains('chart-snapshots')) {
         db.createObjectStore('chart-snapshots', { keyPath: 'id' })
+      }
+
+      // Citations 스토어 생성 (v5)
+      if (!db.objectStoreNames.contains('citations')) {
+        const citationStore = db.createObjectStore('citations', { keyPath: 'id' })
+        citationStore.createIndex('projectId', 'projectId', { unique: false })
       }
     }
   })
