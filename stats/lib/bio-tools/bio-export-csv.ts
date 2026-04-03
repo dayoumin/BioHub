@@ -38,18 +38,11 @@ function escapeCsvCell(value: string | number | null): string {
   return str
 }
 
+import { downloadCsvFile } from '@/lib/utils/download-file'
+
 /** CSV 문자열을 파일로 다운로드 (BOM 포함 UTF-8) */
 export function downloadAsCsv(content: string, filename: string): void {
-  const bom = '\uFEFF'
-  const blob = new Blob([bom + content], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+  downloadCsvFile(content, filename)
 }
 
 /** CSV 문자열을 클립보드에 복사 */

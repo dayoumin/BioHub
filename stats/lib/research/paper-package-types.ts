@@ -53,10 +53,12 @@ export interface PackageReference {
 
 // ── JournalPreset ─────────────────────────────────────────
 
+export type JournalStyle = 'kjfs' | 'kso' | 'apa7' | 'imrad' | 'custom'
+
 export interface JournalPreset {
   id: string
   name: string
-  style: string             // 'kjfs' | 'kso' | 'apa7' | 'imrad' | 'custom'
+  style: JournalStyle
   sections: string[]        // 섹션 순서 — assemblePaperPackage가 이 배열을 따름
   language: 'ko' | 'en'
   referenceFormat: string   // 형식 규칙 설명
@@ -159,14 +161,8 @@ export const JOURNAL_PRESETS: JournalPreset[] = [
 
 // ── ID 생성 ───────────────────────────────────────────────
 
-export function generatePackageId(): string {
-  return `pkg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
-}
+import { generateId } from '@/lib/utils/generate-id'
 
-export function generatePackageItemId(): string {
-  return `pitem_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
-}
-
-export function generatePackageRefId(): string {
-  return `pref_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
-}
+export const generatePackageId = (): string => generateId('pkg')
+export const generatePackageItemId = (): string => generateId('pitem')
+export const generatePackageRefId = (): string => generateId('pref')

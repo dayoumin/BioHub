@@ -7,6 +7,7 @@
  * 기존 paper-templates.ts의 fmtP(), fmt()를 재활용.
  */
 
+import { downloadTextFile } from '@/lib/utils/download-file'
 import type { ResolvedEntity } from './entity-resolver'
 import { escapeHtml } from '@/lib/utils/html-escape'
 import type { ProjectReport, ReportSection, RenderedContent } from './report-types'
@@ -179,16 +180,8 @@ ${html}
 </body>
 </html>`
 
-  const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
   const safeName = report.title.replace(/[^a-zA-Z0-9가-힣 ]/g, '').trim() || 'report'
-  a.download = `${safeName}.html`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  downloadTextFile(fullHtml, `${safeName}.html`, 'text/html;charset=utf-8')
 }
 
 /** 간단한 마크다운→HTML 변환 (라이브러리 없이, 파일 다운로드 전용) */

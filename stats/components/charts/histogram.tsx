@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useCallback, memo } from "react"
 import { useTheme } from "next-themes"
+import { downloadCsvFile } from "@/lib/utils/download-file"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -224,13 +225,7 @@ export const Histogram = memo(function Histogram({
       }
 
       const csv = [headers.join(','), ...rows].join('\n')
-      const blob = new Blob([csv], { type: 'text/csv' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `histogram_${Date.now()}.csv`
-      a.click()
-      URL.revokeObjectURL(url)
+      downloadCsvFile(csv, `histogram_${Date.now()}.csv`)
     } catch (err) {
       console.error('CSV download failed:', err)
     }

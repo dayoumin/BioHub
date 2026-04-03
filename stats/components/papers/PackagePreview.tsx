@@ -4,6 +4,7 @@ import { useCallback } from 'react'
 import { Copy, Download, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { downloadTextFile } from '@/lib/utils/download-file'
 import type { AssemblyResult } from '@/lib/research/paper-package-types'
 
 interface PackagePreviewProps {
@@ -19,14 +20,8 @@ export default function PackagePreview({ result, packageTitle }: PackagePreviewP
   }, [result.markdown])
 
   const handleDownload = useCallback(() => {
-    const blob = new Blob([result.markdown], { type: 'text/markdown;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
     const safeName = packageTitle.replace(/[^a-zA-Z0-9가-힣_-]/g, '_').slice(0, 60)
-    a.download = `${safeName || 'paper-package'}.md`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadTextFile(result.markdown, `${safeName || 'paper-package'}.md`, 'text/markdown;charset=utf-8')
   }, [result.markdown, packageTitle])
 
   return (

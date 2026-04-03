@@ -47,9 +47,9 @@ interface ChatCentricHubProps {
 
 // ===== Helpers =====
 
-function createMessageId(): string {
-  return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-}
+import { generateId } from '@/lib/utils/generate-id'
+
+const createMessageId = (): string => generateId('msg')
 
 /** 추천 없음 시 "이동합니다" 메시지를 사용자가 읽을 시간 (ms) */
 const NAVIGATE_DELAY_MS = 1000

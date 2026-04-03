@@ -159,6 +159,6 @@ export async function deleteProjectCascade(projectId: string): Promise<void> {
 
 // ─── ID 생성 ─────────────────────────────────────────────────
 
-export function generateProjectId(): string {
-  return `proj_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-}
+import { generateId } from '@/lib/utils/generate-id'
+
+export const generateProjectId = (): string => generateId('proj')

@@ -1,4 +1,5 @@
 import type { ProjectEntityKind, ProjectEntityRef, ResearchProject } from '@/lib/types/research'
+import { generateId } from '@/lib/utils/generate-id'
 import { createLocalStorageIO } from '@/lib/utils/local-storage-factory'
 
 const PROJECTS_KEY = 'research_projects'
@@ -48,9 +49,7 @@ export function deleteResearchProject(projectId: string): void {
   }
 }
 
-export function generateResearchProjectId(): string {
-  return `research_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-}
+export const generateResearchProjectId = (): string => generateId('research')
 
 export function listProjectEntityRefs(projectId?: string): ProjectEntityRef[] {
   const refs = readJson<ProjectEntityRef[]>(PROJECT_REFS_KEY, [])
@@ -82,7 +81,7 @@ export function upsertProjectEntityRef(
   }
 
   const created: ProjectEntityRef = {
-    id: `pref_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    id: generateId('pref'),
     ...input,
     createdAt: now,
     updatedAt: now,

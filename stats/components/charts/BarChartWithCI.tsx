@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState, useCallback, memo } from 'react'
 import { useTheme } from 'next-themes'
+import { downloadCsvFile } from '@/lib/utils/download-file'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -203,13 +204,7 @@ export const BarChartWithCI = memo(function BarChartWithCI({
       ].join(','))
 
       const csv = [headers.join(','), ...rows].join('\n')
-      const blob = new Blob([csv], { type: 'text/csv' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `barchart_ci_${Date.now()}.csv`
-      a.click()
-      URL.revokeObjectURL(url)
+      downloadCsvFile(csv, `barchart_ci_${Date.now()}.csv`)
     } catch (err) {
       console.error('CSV 다운로드 실패:', err)
     }

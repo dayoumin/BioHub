@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useCallback } from 'react'
+import { downloadCsvFile } from '@/lib/utils/download-file'
 import {
   Sheet,
   SheetContent,
@@ -232,13 +233,7 @@ export function DataTableViewer({
     ).join('\n')
 
     const csv = `${headers}\n${rows}`
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = fileName ? `${fileName.replace(/\.[^/.]+$/, '')}_export.csv` : 'data_export.csv'
-    link.click()
-    URL.revokeObjectURL(url)
+    downloadCsvFile(csv, fileName ? `${fileName.replace(/\.[^/.]+$/, '')}_export.csv` : 'data_export.csv')
   }, [columns, sortedData, fileName])
 
   // 타입 아이콘

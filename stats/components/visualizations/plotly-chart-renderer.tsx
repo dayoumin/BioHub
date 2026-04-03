@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef } from 'react'
+import { downloadTextFile } from '@/lib/utils/download-file'
 import type { Data, Layout, Config, ModeBarDefaultButtons } from 'plotly.js'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -155,13 +156,7 @@ export function PlotlyChartRenderer({
 </body>
 </html>`
     
-    const blob = new Blob([htmlContent], { type: 'text/html' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `interactive-chart.html`
-    link.click()
-    URL.revokeObjectURL(url)
+    downloadTextFile(htmlContent, 'interactive-chart.html', 'text/html')
   }
 
   const openFullscreen = () => {

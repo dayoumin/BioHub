@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useMemo, useState, useCallback, memo } from 'react'
+import { downloadCsvFile } from '@/lib/utils/download-file'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -258,13 +259,7 @@ export const BoxPlot = memo(function BoxPlot({
     })
 
     const csv = [headers.join(','), ...rows].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `boxplot_${Date.now()}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadCsvFile(csv, `boxplot_${Date.now()}.csv`)
     } catch (err) {
       console.error('CSV 다운로드 실패:', err)
     }

@@ -21,11 +21,12 @@ export function citationKey(item: LiteratureItem): string {
   return item.doi ? `doi:${item.doi.toLowerCase()}` : item.url
 }
 
+import { generateId } from '@/lib/utils/generate-id'
+
 /** CitationRecord 생성 헬퍼 */
 export function createCitationRecord(projectId: string, item: LiteratureItem): CitationRecord {
-  const random = Math.random().toString(36).slice(2, 7)
   return {
-    id: `cit_${Date.now()}_${random}`,
+    id: generateId('cit'),
     projectId,
     item,
     addedAt: new Date().toISOString(),

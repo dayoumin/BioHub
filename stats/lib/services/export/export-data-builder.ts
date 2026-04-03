@@ -376,19 +376,7 @@ export function buildFileName(method: string, ext: string): string {
   return `${safeName}_분석결과_${dateStr}.${ext}`
 }
 
-/**
- * Blob → 다운로드
- */
-export function downloadBlob(blob: Blob, fileName: string): void {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = fileName
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-}
+export { downloadBlob } from '@/lib/utils/download-file'
 
 /**
  * 클립보드 복사용 plain text 요약 생성

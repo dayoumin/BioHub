@@ -1,4 +1,5 @@
 import React from 'react'
+import { downloadCsvFile } from '@/lib/utils/download-file'
 import {
   Table,
   TableBody,
@@ -271,15 +272,7 @@ export function StatisticsTable({
       }).join(',')
     ).join('\n')
 
-    const blob = new Blob([`${headers}\n${rows}`], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'statistics-table.csv'
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    downloadCsvFile(`${headers}\n${rows}`, 'statistics-table.csv')
   }
 
   // APA 서식 복사 (Word/Google Docs에 붙여넣기용)

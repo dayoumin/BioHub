@@ -14,11 +14,9 @@ import type {
 } from '@/lib/types/research'
 import type { AiRecommendationContext } from '@/lib/utils/storage-types'
 
-// ── ID 생성 ──
+import { generateId } from '@/lib/utils/generate-id'
 
-function generateEvidenceId(): string {
-  return `ev_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-}
+const generateEvidenceId = (): string => generateId('ev')
 
 // ── 팩토리 함수 ──
 

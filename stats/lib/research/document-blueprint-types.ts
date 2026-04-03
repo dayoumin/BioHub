@@ -116,8 +116,7 @@ export function buildFigureRef(gp: GraphProject, index: number): FigureRef {
   }
 }
 
+import { generateId } from '@/lib/utils/generate-id'
+
 /** 고유 문서 ID 생성 */
-export function generateDocumentId(): string {
-  const random = Math.random().toString(36).slice(2, 8)
-  return `doc_${Date.now()}_${random}`
-}
+export const generateDocumentId = (): string => generateId('doc')

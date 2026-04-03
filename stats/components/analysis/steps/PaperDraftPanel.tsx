@@ -73,17 +73,7 @@ async function copyHtmlDirect(html: string, plain: string): Promise<void> {
   }
 }
 
-// ── 파일 다운로드 헬퍼 ────────────────────────────────────────
-
-function downloadTextFile(content: string, filename: string): void {
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
-}
+import { downloadTextFile } from '@/lib/utils/download-file'
 
 // ── 복사 버튼 훅 ──────────────────────────────────────────────
 
