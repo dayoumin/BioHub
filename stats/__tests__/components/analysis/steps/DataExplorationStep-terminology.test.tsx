@@ -61,6 +61,35 @@ vi.mock('@/hooks/use-terminology', () => ({
         title: 'TEST_EMPTY_TITLE',
         description: 'TEST_EMPTY_DESC',
       },
+      badgeBar: {
+        rows: 'TEST_ROWS',
+        cols: 'TEST_COLS',
+        numeric: 'TEST_BADGE_NUMERIC',
+        categorical: 'TEST_BADGE_CATEGORICAL',
+        missing: 'TEST_BADGE_MISSING',
+        outlier: 'TEST_BADGE_OUTLIER',
+      },
+      summaryCards: {
+        ariaLabel: 'TEST_SUMMARY_ARIA',
+        overview: 'TEST_OVERVIEW',
+        descriptive: 'TEST_DESCRIPTIVE_CARD',
+        distribution: 'TEST_DISTRIBUTION_CARD',
+        correlation: 'TEST_CORRELATION_CARD',
+        rowsCols: (r: number, c: number) => `${r}×${c}`,
+        numericCategorical: (n: number, c: number) => `수치${n}/범주${c}`,
+        missingCount: (n: number) => `결측${n}`,
+        variables: (n: number) => `변수${n}`,
+        outlierCount: (n: number) => `이상치${n}`,
+        noOutliers: 'TEST_NO_OUTLIERS',
+        normalitySummary: (p: number, f: number) => `정규${p}/비정규${f}`,
+        normalityTesting: 'TEST_NORMALITY_TESTING',
+        homogeneityTesting: 'TEST_HOMOGENEITY_TESTING',
+        homogeneityPass: 'TEST_HOMO_PASS',
+        homogeneityFail: 'TEST_HOMO_FAIL',
+        maxCorrelation: (r: string) => `최대${r}`,
+        strongPairs: (n: number) => `강한쌍${n}`,
+        needsTwoNumeric: 'TEST_NEEDS_TWO',
+      },
       features: {
         descriptiveTitle: 'TEST_DESCRIPTIVE',
         descriptiveDesc: 'desc',
@@ -260,8 +289,9 @@ describe('DataExplorationStep - Terminology 통합', () => {
   it('빈 데이터 → empty state terminology 텍스트 렌더링', () => {
     render(<DataExplorationStep {...defaultProps} />)
 
-    // Terminology system에서 가져온 텍스트가 렌더링되는지 확인
-    expect(screen.getByText('TEST_EMPTY_TITLE')).toBeInTheDocument()
+    // 제목은 analysis.stepTitles.dataExploration에서 가져옴
+    expect(screen.getByText('데이터 탐색')).toBeInTheDocument()
+    // 설명은 dataExploration.empty.description에서 가져옴
     expect(screen.getByText('TEST_EMPTY_DESC')).toBeInTheDocument()
   })
 
@@ -390,9 +420,9 @@ describe('DataExplorationStep - Terminology 통합', () => {
       expect(screen.getAllByText('TEST_CAT')).toHaveLength(1)
     })
 
-    it('행×열 카운트 = columnPanel.rowColCount', () => {
+    it('행×열 카운트 = summaryCards.rowsCols', () => {
       render(<DataExplorationStep {...defaultProps} data={multiNumericData} validationResults={multiNumericValidation} />)
-      expect(screen.getByText('4행 × 4열')).toBeInTheDocument()
+      expect(screen.getByText('4×4')).toBeInTheDocument()
     })
 
     it('행 배지 = columnPanel.rowCount', () => {
