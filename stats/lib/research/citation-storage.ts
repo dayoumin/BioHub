@@ -43,13 +43,26 @@ function txDelete(db: IDBDatabase, storeName: string, key: string): Promise<void
   })
 }
 
-/** 인용 저장 — 동일 프로젝트 내 citationKey 중복 시 무시 (idempotent) */
+/** 인용 저장 — 동일 프로젝트 내 citationKey 중복 시 무시 (idempotent, 단일 트랜잭션) */
 export async function saveCitation(record: CitationRecord): Promise<void> {
   const db = await openDB()
-  const existing = await txGetByIndex<CitationRecord>(db, STORE_NAME, 'projectId', record.projectId)
-  const key = citationKey(record.item)
-  if (existing.some(r => citationKey(r.item) === key)) return
-  await txPut(db, STORE_NAME, record)
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    const store = tx.objectStore(STORE_NAME)
+    const req = store.index('projectId').getAll(record.projectId)
+    req.onsuccess = () => {
+      const existing = req.result as CitationRecord[]
+      const key = citationKey(record.item)
+      if (existing.some(r => citationKey(r.item) === key)) {
+        resolve()
+        return
+      }
+      const putReq = store.put(record)
+      putReq.onsuccess = () => resolve()
+      putReq.onerror = () => reject(putReq.error)
+    }
+    req.onerror = () => reject(req.error)
+  })
 }
 
 /** 프로젝트별 인용 목록 (추가순) */
