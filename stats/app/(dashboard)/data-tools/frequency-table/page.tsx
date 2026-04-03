@@ -6,7 +6,6 @@ import type { FrequencyTableVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import {
@@ -31,7 +30,6 @@ import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
-import type { UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 interface FrequencyData {
@@ -66,7 +64,7 @@ export default function FrequencyTablePage() {
   const [showPercentages, setShowPercentages] = useState(true)
   const [showCumulative, setShowCumulative] = useState(true)
   const [sortBy, setSortBy] = useState('frequency')
-  const { pyodideService } = usePyodideService()
+  usePyodideService()
 
   // 단계 정의
   const steps: StatisticsStep[] = [

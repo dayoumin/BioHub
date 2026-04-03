@@ -467,7 +467,9 @@ export class StatisticalGuideSystem {
 // 내보내기
 // ================================================================================
 
-export default {
+const defaultExports = {
   FileNamingSystem,
   StatisticalGuideSystem
 }
+
+export default defaultExports

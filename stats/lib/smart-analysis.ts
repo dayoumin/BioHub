@@ -288,7 +288,7 @@ function checkVarianceHomogeneity(
   categoricalColumns: DataColumn[],
   data: Record<string, unknown>[],
   issues: AnalysisIssue[],
-  recommendations: AnalysisRecommendation[]
+  _recommendations: AnalysisRecommendation[]
 ): Record<string, boolean> {
   const varianceResults: Record<string, boolean> = {}
   

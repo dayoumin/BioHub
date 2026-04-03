@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * 통계 분석 방법 선택 시나리오
  * 데이터 특성과 분석 목적에 따른 최적 통계 방법 추천

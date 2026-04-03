@@ -54,10 +54,10 @@ const nextConfig: NextConfig = {
     ]
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   webpack: (config, { isServer, webpack }) => {
     // node:async_hooks Polyfill (클라이언트 빌드에서만 적용)

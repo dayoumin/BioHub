@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * IndexedDB 관리자 - 저수준 데이터베이스 작업
  *

@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import Link from 'next/link'
+// [REMOVED unused Link import]
 import {
   Brain,
   Target,
@@ -15,8 +15,7 @@ import {
   Lightbulb,
   MessageSquare,
   TrendingUp,
-  BarChart3,
-  Home
+  BarChart3
 } from "lucide-react"
 // import { StatisticalGuidanceComponent } from "@/components/analysis/statistical-guidance"
 // import { StatisticalGuideSystem, FileNamingSystem } from "@/lib/statistical-guide"
@@ -75,12 +74,12 @@ export default function HelpPage() {
     }
   }
 
-  const handleNextAnalysis = (analysisType: string) => {
-    console.log('다음 분석:', analysisType)
+  const _handleNextAnalysis = (_analysisType: string) => {
+    console.log('다음 분석:', _analysisType)
   }
 
-  const handleDownloadResult = (filename: string) => {
-    console.log('파일 다운로드:', filename)
+  const _handleDownloadResult = (_filename: string) => {
+    console.log('파일 다운로드:', _filename)
   }
 
   const features = [

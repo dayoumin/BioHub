@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 /**
  * Web Worker Manager Service
  * Worker 생성, 관리, 통신을 담당하는 중앙 서비스
