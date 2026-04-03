@@ -95,10 +95,10 @@ export function ResultView({ decision, marker, sequence, onReset }: ResultViewPr
                             rel="noopener noreferrer"
                             className="italic text-gray-900 hover:text-blue-600 hover:underline"
                           >
-                            {hit.species}
+                            {hit.species || '(미확인)'}
                           </a>
                         ) : (
-                          <span className="italic">{hit.species}</span>
+                          <span className="italic">{hit.species || '(미확인)'}</span>
                         )}
                         {(hit.country || hit.isBarcode) && (
                           <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-gray-400">
@@ -111,8 +111,8 @@ export function ResultView({ decision, marker, sequence, onReset }: ResultViewPr
                         {(hit.identity * 100).toFixed(1)}%
                       </td>
                       <td className="py-2 text-right font-mono text-gray-500">
-                        {hit.queryCoverage != null
-                          ? `${(hit.queryCoverage * 100).toFixed(0)}%`
+                        {hit.alignCoverage != null
+                          ? `${(hit.alignCoverage * 100).toFixed(0)}%`
                           : '-'}
                       </td>
                       <td className="py-2 text-right font-mono text-gray-500">

@@ -332,7 +332,7 @@ export type SaveGeneticsHistoryInput =
   | Omit<GenBankHistoryEntry, 'id' | 'createdAt'>
 
 /** 범용 히스토리 저장 — type별 MAX 적용 */
-export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): void {
+export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): boolean {
   const newEntry: GeneticsHistoryEntry = {
     ...entry,
     // BLAST 서열 길이 cap — localStorage quota 보호 (15개 × 2KB = 30KB)
@@ -357,7 +357,7 @@ export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): void {
     saveToStorage(sortEntries([...kept, ...otherType]))
   } catch (err) {
     console.warn('[genetics-history] localStorage save failed — quota may be exceeded:', err)
-    return
+    return false
   }
 
   removeRefsForEntries(overflow)
@@ -385,6 +385,7 @@ export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): void {
 
   notifyChange()
   syncSaveToCloud(newEntry)
+  return true
 }
 
 /** 전체 히스토리에서 다중 삭제 */
@@ -428,8 +429,8 @@ export function loadAnalysisHistory(preloadedRaw?: string | null): BarcodingHist
 }
 
 /** @deprecated saveGeneticsHistory 사용 */
-export function saveAnalysisHistory(entry: Omit<BarcodingHistoryEntry, 'id' | 'createdAt' | 'type'>): void {
-  saveGeneticsHistory({ ...entry, type: 'barcoding' })
+export function saveAnalysisHistory(entry: Omit<BarcodingHistoryEntry, 'id' | 'createdAt' | 'type'>): boolean {
+  return saveGeneticsHistory({ ...entry, type: 'barcoding' })
 }
 
 /** @deprecated deleteGeneticsEntries 사용 */

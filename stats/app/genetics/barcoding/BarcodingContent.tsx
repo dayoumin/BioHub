@@ -17,6 +17,7 @@ import {
 } from '@/lib/genetics/analysis-history'
 import { useResearchProjectStore } from '@/lib/stores/research-project-store'
 import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 
 type AppState =
   | { step: 'input' }
@@ -104,7 +105,7 @@ export default function BarcodingContent(): React.ReactElement {
         ? `${marker} · ${uploadedFileName} · ${dateStr}`
         : `${marker} 바코딩 · ${dateStr}`)
 
-    saveAnalysisHistory({
+    const saved = saveAnalysisHistory({
       sampleName: autoName,
       marker,
       sequencePreview: sequence.slice(0, 50),
@@ -114,6 +115,7 @@ export default function BarcodingContent(): React.ReactElement {
       resultData: decision,
       projectId: activeResearchProjectId ?? undefined,
     })
+    if (!saved) toast.warning('저장 공간 부족으로 히스토리에 저장되지 않았습니다.')
   }, [marker, sequence, sampleName, uploadedFileName, activeResearchProjectId])
 
   const handleError = useCallback((msg: string, code: BlastErrorCode) => {
