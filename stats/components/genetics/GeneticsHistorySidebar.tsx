@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { Search, X } from 'lucide-react'
 import { UnifiedHistorySidebar } from '@/components/common/UnifiedHistorySidebar'
 import { toGeneticsHistoryItems } from '@/lib/utils/history-adapters'
 import type { HistoryItem } from '@/types/history'
@@ -35,6 +36,8 @@ const FILTER_OPTIONS: { value: ToolFilter; label: string }[] = [
   { value: 'blast', label: 'BLAST' },
   { value: 'genbank', label: 'GenBank' },
   { value: 'seq-stats', label: '서열통계' },
+  { value: 'similarity', label: '유사도행렬' },
+  { value: 'phylogeny', label: '계통수' },
 ]
 
 const TYPE_DOT_COLOR: Record<GeneticsToolType, string> = {
@@ -42,6 +45,34 @@ const TYPE_DOT_COLOR: Record<GeneticsToolType, string> = {
   blast: 'bg-blue-500',
   genbank: 'bg-amber-500',
   'seq-stats': 'bg-violet-500',
+  similarity: 'bg-cyan-500',
+  phylogeny: 'bg-teal-500',
+}
+
+// ── 텍스트 검색 ──
+
+function getSearchableTexts(entry: GeneticsHistoryEntry): string[] {
+  const common = [entry.id]
+  switch (entry.type) {
+    case 'barcoding':
+      return [...common, entry.sampleName, entry.marker, entry.sequencePreview, entry.topSpecies ?? '']
+    case 'blast':
+      return [...common, entry.program, entry.database, entry.sequencePreview, entry.topHitAccession ?? '', entry.topHitSpecies ?? '']
+    case 'genbank':
+      return [...common, entry.query, entry.accession, entry.organism ?? '', entry.db]
+    case 'seq-stats':
+      return [...common, entry.analysisName]
+    case 'similarity':
+      return [...common, entry.analysisName, entry.distanceModel]
+    case 'phylogeny':
+      return [...common, entry.analysisName, entry.treeMethod, entry.distanceModel]
+  }
+}
+
+function matchesSearch(entry: GeneticsHistoryEntry, query: string): boolean {
+  if (!query) return true
+  const lower = query.toLowerCase()
+  return getSearchableTexts(entry).some(t => t.toLowerCase().includes(lower))
 }
 
 // ── 컴포넌트 ──
@@ -52,7 +83,9 @@ export function GeneticsHistorySidebar(): ReactNode {
   const searchParams = useSearchParams()
   const [history, setHistory] = useState<GeneticsHistoryEntry[]>([])
   const [filter, setFilter] = useState<ToolFilter>('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const lastRawRef = useRef<string | null>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const activeHistoryId = searchParams.get('history')
 
   const refreshHistory = useCallback((): void => {
@@ -81,11 +114,17 @@ export function GeneticsHistorySidebar(): ReactNode {
     }
   }, [refreshHistory])
 
-  // 필터링
+  // 필터링 (type + 텍스트 검색)
   const filteredHistory = useMemo(() => {
-    if (filter === 'all') return history
-    return history.filter(e => e.type === filter)
-  }, [history, filter])
+    let result = history
+    if (filter !== 'all') {
+      result = result.filter(e => e.type === filter)
+    }
+    if (searchQuery.trim()) {
+      result = result.filter(e => matchesSearch(e, searchQuery.trim()))
+    }
+    return result
+  }, [history, filter, searchQuery])
 
   const items = useMemo(() => toGeneticsHistoryItems(filteredHistory), [filteredHistory])
 
@@ -102,6 +141,8 @@ export function GeneticsHistorySidebar(): ReactNode {
         blast: '/genetics/blast',
         genbank: '/genetics/genbank',
         'seq-stats': '/genetics/seq-stats',
+        similarity: '/genetics/similarity',
+        phylogeny: '/genetics/phylogeny',
       }
       const base = typePath[item.data.type]
       const href = `${base}?history=${encodedId}`
@@ -161,25 +202,62 @@ export function GeneticsHistorySidebar(): ReactNode {
     [],
   )
 
-  // 필터 행
-  const filterRow = showFilter ? (
-    <div className="mb-2 flex gap-0.5 rounded-md bg-muted/30 p-0.5">
-      {FILTER_OPTIONS.map(({ value, label }) => (
-        <button
-          key={value}
-          type="button"
-          onClick={() => setFilter(value)}
-          className={`flex-1 rounded px-1 py-0.5 text-[10px] font-medium transition-colors duration-200 ${
-            filter === value
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground/60 hover:text-muted-foreground'
-          }`}
-        >
-          {label}
-        </button>
-      ))}
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('')
+    searchInputRef.current?.focus()
+  }, [])
+
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => { setSearchQuery(e.target.value) },
+    [],
+  )
+
+  // 검색 + 필터 행
+  const toolbarSlot = (
+    <div className="space-y-1.5">
+      {/* 검색 입력 */}
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground/50" />
+        <input
+          ref={searchInputRef}
+          type="text"
+          value={searchQuery}
+          onChange={handleSearchChange}
+          placeholder="종명, accession, 샘플명..."
+          className="h-6 w-full rounded-md border border-border/40 bg-muted/20 pl-6 pr-6 text-[11px] text-foreground placeholder:text-muted-foreground/40 focus:border-border focus:outline-none"
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={handleClearSearch}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground/40 hover:text-muted-foreground"
+          >
+            <X className="h-2.5 w-2.5" />
+          </button>
+        )}
+      </div>
+
+      {/* 도구 필터 */}
+      {showFilter && (
+        <div className="flex gap-0.5 rounded-md bg-muted/30 p-0.5">
+          {FILTER_OPTIONS.map(({ value, label }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setFilter(value)}
+              className={`flex-1 rounded px-1 py-0.5 text-[10px] font-medium transition-colors duration-200 ${
+                filter === value
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground/60 hover:text-muted-foreground'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
-  ) : null
+  )
 
   return (
     <div>
@@ -190,7 +268,7 @@ export function GeneticsHistorySidebar(): ReactNode {
         onDeleteMultiple={handleDeleteMultiple}
         activeId={activeHistoryId}
         renderItem={renderItem}
-        actionSlot={filterRow}
+        toolbarSlot={toolbarSlot}
       />
     </div>
   )

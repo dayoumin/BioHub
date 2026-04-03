@@ -1,9 +1,12 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Download } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { downloadCsvFile } from '@/lib/utils/download-file'
+import { Download, ArrowRight } from 'lucide-react'
 import type { BlastMarker, BlastResultStatus } from '@biohub/types'
 import type { DecisionResult, MarkerRecommendation } from '@/lib/genetics/decision-engine'
+import { storeSequenceForTransfer } from '@/lib/genetics/sequence-transfer'
 import { Button } from '@/components/ui/button'
 
 interface ResultViewProps {
@@ -28,6 +31,7 @@ const needsAlternative = (status: BlastResultStatus): boolean =>
   status !== 'high'
 
 export function ResultView({ decision, marker, sequence, onReset }: ResultViewProps) {
+  const router = useRouter()
   const style = BLAST_STATUS_STYLES[decision.status]
   const showAltTop = needsAlternative(decision.status) && decision.recommendedMarkers.length > 0
 
@@ -40,13 +44,7 @@ export function ResultView({ decision, marker, sequence, onReset }: ResultViewPr
       `${i + 1},${csvEscape(hit.species || '(미확인)')},${(hit.identity * 100).toFixed(1)},${hit.alignCoverage != null ? (hit.alignCoverage * 100).toFixed(0) : ''},${hit.bitScore != null ? Math.round(hit.bitScore) : ''},${hit.evalue != null ? hit.evalue : ''},${hit.accession}`
     )
     const csv = [header, ...rows].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `barcoding_${marker}_${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadCsvFile(csv, `barcoding_${marker}_${new Date().toISOString().slice(0, 10)}.csv`)
   }, [decision.topHits, marker])
 
   return (
@@ -162,6 +160,20 @@ export function ResultView({ decision, marker, sequence, onReset }: ResultViewPr
 
       <div className="flex flex-wrap items-center gap-2">
         <NextActionButtons decision={decision} marker={marker} sequence={sequence} />
+        {sequence && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1"
+            onClick={() => {
+              storeSequenceForTransfer(sequence, 'barcoding')
+              router.push('/genetics/blast')
+            }}
+          >
+            <ArrowRight className="h-3.5 w-3.5" />
+            BLAST로 재검색
+          </Button>
+        )}
         <div className="ml-auto flex gap-2">
           {decision.topHits.length > 0 && (
             <Button variant="outline" size="sm" onClick={handleExportCsv} className="gap-1.5">

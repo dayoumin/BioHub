@@ -54,6 +54,8 @@ export interface UnifiedHistorySidebarProps<T = unknown> {
   renderItem?: (item: HistoryItem<T>) => ReactNode
   /** 헤더 우측 추가 액션 슬롯 (예: 내보내기 버튼) */
   actionSlot?: ReactNode
+  /** 헤더 아래, 목록 위에 표시되는 툴바 슬롯 (예: 검색, 필터) */
+  toolbarSlot?: ReactNode
   /** 현재 활성 항목 ID */
   activeId?: string | null
   /** 접기/펼치기 초기 상태 */

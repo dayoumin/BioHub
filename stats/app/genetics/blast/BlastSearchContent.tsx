@@ -19,6 +19,7 @@ import {
   hydrateGeneticsHistoryFromCloud,
 } from '@/lib/genetics/analysis-history'
 import type { BlastSearchHistoryEntry } from '@/lib/genetics/analysis-history'
+import { consumeTransferredSequence, formatTransferSource } from '@/lib/genetics/sequence-transfer'
 import { useResearchProjectStore } from '@/lib/stores/research-project-store'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -111,15 +112,29 @@ export default function BlastSearchContent(): React.ReactElement {
     }
   }, [searchParams])
 
+  // 서열 전달 수신 (GenBank, 바코딩 등에서 전달된 서열 자동 적용)
+  const [transferredSequence, setTransferredSequence] = useState<string | undefined>(undefined)
+  useEffect(() => {
+    const transferred = consumeTransferredSequence()
+    if (transferred) {
+      setTransferredSequence(transferred.sequence)
+      setState({ step: 'input' })
+      toast.info(`${formatTransferSource(transferred.source)}에서 서열이 전달되었습니다.`)
+    }
+  }, [])
+
   // 히스토리에서 복원 시 프로그램/DB/서열 프리필
   const initialValues = useMemo<BlastInitialValues | undefined>(() => {
+    if (transferredSequence) {
+      return { sequence: transferredSequence }
+    }
     if (!restoredEntry) return undefined
     return {
       program: restoredEntry.program,
       database: restoredEntry.database,
       sequence: restoredEntry.sequence || undefined,
     }
-  }, [restoredEntry])
+  }, [restoredEntry, transferredSequence])
 
   const handleSubmit = useCallback((params: GenericBlastParams) => {
     setRestoredEntry(null)

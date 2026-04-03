@@ -15,6 +15,7 @@ import {
   loadAnalysisHistory,
   hydrateGeneticsHistoryFromCloud,
 } from '@/lib/genetics/analysis-history'
+import { consumeTransferredSequence, formatTransferSource } from '@/lib/genetics/sequence-transfer'
 import { useResearchProjectStore } from '@/lib/stores/research-project-store'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -83,6 +84,16 @@ export default function BarcodingContent(): React.ReactElement {
       cancelled = true
     }
   }, [searchParams])
+
+  // 서열 전달 수신 (GenBank 등에서 전달된 서열 자동 적용)
+  useEffect(() => {
+    const transferred = consumeTransferredSequence()
+    if (transferred) {
+      setSequence(transferred.sequence)
+      setState({ step: 'input' })
+      toast.info(`${formatTransferSource(transferred.source)}에서 서열이 전달되었습니다.`)
+    }
+  }, [])
 
   const handleAnalyze = useCallback((_validation: SequenceValidation) => {
     setState({ step: 'analyzing', sequence, marker })

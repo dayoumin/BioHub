@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
+import { downloadCsvFile } from '@/lib/utils/download-file'
 import { Download, ArrowUpDown } from 'lucide-react'
 import type { BlastProgram, GenericBlastHit } from '@biohub/types'
 import { Button } from '@/components/ui/button'
@@ -55,13 +56,7 @@ export function BlastSearchResult({ hits, program, database, elapsed, onReset }:
       `${h.accession},${csvEscape(h.species ?? '')},${(h.identity * 100).toFixed(1)},${h.evalue},${h.bitScore},${h.alignLength},${h.mismatches},${h.gapOpens}`
     )
     const csv = [header, ...rows].join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `blast_${program}_${database}_${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadCsvFile(csv, `blast_${program}_${database}_${new Date().toISOString().slice(0, 10)}.csv`)
   }, [sorted, program, database])
 
   const SortHeader = ({ label, field, className }: { label: string; field: SortKey; className?: string }) => (

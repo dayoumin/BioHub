@@ -10,14 +10,21 @@
 import type { WorkerEnv } from '../lib/worker-utils'
 import { jsonResponse, parseJsonBody, authenticateRequest, verifyProjectOwnership } from '../lib/worker-utils'
 
-type GeneticsHistoryType = 'barcoding' | 'blast' | 'genbank'
+type GeneticsHistoryType = 'barcoding' | 'blast' | 'genbank' | 'seq-stats' | 'similarity' | 'phylogeny'
 
 function isGeneticsHistoryType(value: unknown): value is GeneticsHistoryType {
   return value === 'barcoding' || value === 'blast' || value === 'genbank'
+    || value === 'seq-stats' || value === 'similarity' || value === 'phylogeny'
 }
 
-function entityKindForGeneticsType(type: GeneticsHistoryType): 'blast-result' | 'sequence-data' {
-  return type === 'genbank' ? 'sequence-data' : 'blast-result'
+function entityKindForGeneticsType(type: GeneticsHistoryType): string {
+  switch (type) {
+    case 'genbank': return 'sequence-data'
+    case 'seq-stats': return 'seq-stats-result'
+    case 'similarity': return 'similarity-result'
+    case 'phylogeny': return 'phylogeny-result'
+    default: return 'blast-result'
+  }
 }
 
 function labelForGeneticsEntry(entry: Record<string, unknown>, type: GeneticsHistoryType): string | null {

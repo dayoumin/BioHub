@@ -17,7 +17,7 @@ import { createLocalStorageIO } from '@/lib/utils/local-storage-factory'
 // 타입 정의
 // ═══════════════════════════════════════════════════════════════
 
-export type GeneticsToolType = 'barcoding' | 'blast' | 'genbank' | 'seq-stats'
+export type GeneticsToolType = 'barcoding' | 'blast' | 'genbank' | 'seq-stats' | 'similarity' | 'phylogeny'
 
 /** 바코딩 히스토리 (기존 필드 유지) */
 export interface BarcodingHistoryEntry {
@@ -83,11 +83,41 @@ export interface SeqStatsHistoryEntry {
   createdAt: number
 }
 
+/** 다종 유사도 행렬 히스토리 */
+export interface SimilarityHistoryEntry {
+  id: string
+  type: 'similarity'
+  analysisName: string
+  sequenceCount: number
+  distanceModel: 'K2P' | 'p-distance' | 'Jukes-Cantor'
+  alignmentLength: number
+  meanDistance: number
+  pinned?: boolean
+  projectId?: string
+  createdAt: number
+}
+
+/** 계통수 히스토리 */
+export interface PhylogenyHistoryEntry {
+  id: string
+  type: 'phylogeny'
+  analysisName: string
+  sequenceCount: number
+  treeMethod: 'NJ' | 'UPGMA'
+  distanceModel: 'K2P' | 'p-distance' | 'Jukes-Cantor'
+  alignmentLength: number
+  pinned?: boolean
+  projectId?: string
+  createdAt: number
+}
+
 export type GeneticsHistoryEntry =
   | BarcodingHistoryEntry
   | BlastSearchHistoryEntry
   | GenBankHistoryEntry
   | SeqStatsHistoryEntry
+  | SimilarityHistoryEntry
+  | PhylogenyHistoryEntry
 
 /** @deprecated GeneticsHistoryEntry 사용 */
 export type AnalysisHistoryEntry = BarcodingHistoryEntry
@@ -104,6 +134,8 @@ const MAX_PER_TYPE: Record<GeneticsToolType, number> = {
   blast: 15,
   genbank: 15,
   'seq-stats': 15,
+  similarity: 15,
+  phylogeny: 15,
 }
 
 /** 히스토리에 저장할 서열 최대 길이 — localStorage quota 보호 (15개 × 2000 = 30KB) */
@@ -113,9 +145,13 @@ const { readJson, writeJson } = createLocalStorageIO('[analysis-history]')
 let hydratePromise: Promise<GeneticsHistoryEntry[]> | null = null
 
 function entityKindForType(type: GeneticsToolType): ProjectEntityKind {
-  if (type === 'genbank') return 'sequence-data'
-  if (type === 'seq-stats') return 'blast-result'
-  return 'blast-result'
+  switch (type) {
+    case 'genbank': return 'sequence-data'
+    case 'seq-stats': return 'seq-stats-result'
+    case 'similarity': return 'similarity-result'
+    case 'phylogeny': return 'phylogeny-result'
+    default: return 'blast-result' // barcoding, blast
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -190,6 +226,34 @@ function normalizeEntry(item: unknown): GeneticsHistoryEntry | null {
         sequenceCount: (obj.sequenceCount ?? 0) as number,
         meanLength: (obj.meanLength ?? 0) as number,
         overallGcContent: (obj.overallGcContent ?? 0) as number,
+        pinned: obj.pinned as boolean | undefined,
+        projectId: obj.projectId as string | undefined,
+        createdAt: obj.createdAt as number,
+      }
+
+    case 'similarity':
+      return {
+        id: obj.id as string,
+        type: 'similarity',
+        analysisName: (obj.analysisName ?? '') as string,
+        sequenceCount: (obj.sequenceCount ?? 0) as number,
+        distanceModel: (obj.distanceModel ?? 'K2P') as 'K2P' | 'p-distance' | 'Jukes-Cantor',
+        alignmentLength: (obj.alignmentLength ?? 0) as number,
+        meanDistance: (obj.meanDistance ?? 0) as number,
+        pinned: obj.pinned as boolean | undefined,
+        projectId: obj.projectId as string | undefined,
+        createdAt: obj.createdAt as number,
+      }
+
+    case 'phylogeny':
+      return {
+        id: obj.id as string,
+        type: 'phylogeny',
+        analysisName: (obj.analysisName ?? '') as string,
+        sequenceCount: (obj.sequenceCount ?? 0) as number,
+        treeMethod: (obj.treeMethod ?? 'NJ') as 'NJ' | 'UPGMA',
+        distanceModel: (obj.distanceModel ?? 'K2P') as 'K2P' | 'p-distance' | 'Jukes-Cantor',
+        alignmentLength: (obj.alignmentLength ?? 0) as number,
         pinned: obj.pinned as boolean | undefined,
         projectId: obj.projectId as string | undefined,
         createdAt: obj.createdAt as number,
@@ -362,6 +426,8 @@ export type SaveGeneticsHistoryInput =
   | Omit<BlastSearchHistoryEntry, 'id' | 'createdAt'>
   | Omit<GenBankHistoryEntry, 'id' | 'createdAt'>
   | Omit<SeqStatsHistoryEntry, 'id' | 'createdAt'>
+  | Omit<SimilarityHistoryEntry, 'id' | 'createdAt'>
+  | Omit<PhylogenyHistoryEntry, 'id' | 'createdAt'>
 
 /** 범용 히스토리 저장 — type별 MAX 적용 */
 export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): boolean {
@@ -403,6 +469,8 @@ export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): boolean {
     const label = newEntry.type === 'barcoding' ? newEntry.sampleName
       : newEntry.type === 'blast' ? `${newEntry.program} · ${newEntry.database}`
       : newEntry.type === 'seq-stats' ? newEntry.analysisName
+      : newEntry.type === 'similarity' ? newEntry.analysisName
+      : newEntry.type === 'phylogeny' ? newEntry.analysisName
       : newEntry.accession
     try {
       upsertProjectEntityRef({

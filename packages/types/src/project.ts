@@ -26,6 +26,9 @@ export type ProjectEntityKind =
   | 'data-asset'
   | 'blast-result'
   | 'sequence-data'
+  | 'seq-stats-result'
+  | 'similarity-result'
+  | 'phylogeny-result'
 
 export interface ProjectPaperConfig {
   title?: string

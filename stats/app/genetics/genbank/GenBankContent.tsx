@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
-import { Search, Download, Copy, Check, ExternalLink, Loader2, HelpCircle, ChevronDown } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { downloadTextFile } from '@/lib/utils/download-file'
+import { Search, Download, Copy, Check, Loader2, HelpCircle, ChevronDown, ArrowRight } from 'lucide-react'
+import { storeSequenceForTransfer } from '@/lib/genetics/sequence-transfer'
 import { Button } from '@/components/ui/button'
 import { focusRing } from '@/components/common/card-styles'
 import {
@@ -42,6 +43,7 @@ const SEARCH_TIPS = [
 // ── 메인 컴포넌트 ──
 
 export default function GenBankContent(): React.ReactElement {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const [query, setQuery] = useState('')
   const [db, setDb] = useState<DbOption>('nuccore')
@@ -167,6 +169,12 @@ export default function GenBankContent(): React.ReactElement {
       if (!ctrl.signal.aborted) setFetchingId(null)
     }
   }, [db, query, results, activeResearchProjectId])
+
+  const handleTransfer = useCallback((target: 'barcoding' | 'blast') => {
+    if (!fastaContent) return
+    storeSequenceForTransfer(fastaContent, 'genbank')
+    router.push(`/genetics/${target}`)
+  }, [fastaContent, router])
 
   return (
     <main>
@@ -336,7 +344,7 @@ export default function GenBankContent(): React.ReactElement {
 
       {/* FASTA 뷰어 */}
       {fastaContent && fastaAccession && (
-        <FastaViewer accession={fastaAccession} content={fastaContent} onClose={() => setFastaContent(null)} />
+        <FastaViewer accession={fastaAccession} content={fastaContent} onClose={() => setFastaContent(null)} onTransfer={handleTransfer} />
       )}
     </main>
   )
@@ -344,10 +352,11 @@ export default function GenBankContent(): React.ReactElement {
 
 // ── FASTA 뷰어 ──
 
-function FastaViewer({ accession, content, onClose }: {
+function FastaViewer({ accession, content, onClose, onTransfer }: {
   accession: string
   content: string
   onClose: () => void
+  onTransfer: (target: 'barcoding' | 'blast') => void
 }): React.ReactElement {
   const [copied, setCopied] = useState(false)
 
@@ -360,13 +369,7 @@ function FastaViewer({ accession, content, onClose }: {
   }, [content])
 
   const handleDownload = useCallback(() => {
-    const blob = new Blob([content], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${accession}.fasta`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadTextFile(content, `${accession}.fasta`)
   }, [accession, content])
 
   return (
@@ -392,14 +395,27 @@ function FastaViewer({ accession, content, onClose }: {
       <pre className="max-h-64 overflow-auto rounded-md bg-background p-3 font-mono text-xs leading-relaxed text-foreground">
         {content}
       </pre>
-      <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-        <ExternalLink className="h-3 w-3" />
-        <span>이 서열을</span>
-        <Link href="/genetics/barcoding" className="text-primary hover:underline">종 판별</Link>
-        <span>또는</span>
-        <Link href="/genetics/blast" className="text-primary hover:underline">BLAST 검색</Link>
-        <span>에 사용할 수 있습니다.</span>
-      </p>
+      <div className="mt-3 flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">이 서열로:</span>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 gap-1 text-xs"
+          onClick={() => onTransfer('barcoding')}
+        >
+          <ArrowRight className="h-3 w-3" />
+          종 판별하기
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 gap-1 text-xs"
+          onClick={() => onTransfer('blast')}
+        >
+          <ArrowRight className="h-3 w-3" />
+          BLAST로 검색
+        </Button>
+      </div>
     </div>
   )
 }

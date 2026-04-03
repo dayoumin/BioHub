@@ -359,6 +359,9 @@ const _GENERIC_ONLY_KINDS: Record<GenericOnlyEntityKind, true> = {
   'review-report': true,
   'data-asset': true,
   'sequence-data': true,
+  'seq-stats-result': true,
+  'similarity-result': true,
+  'phylogeny-result': true,
 }
 
 /** entity-loader.ts 전용. kind·optionKey·load 반환 타입을 묶는 discriminated union. */

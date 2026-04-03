@@ -7,7 +7,7 @@
 
 import type { HistoryItem, HistoryBadge } from '@/types/history'
 import type { AnalysisHistory } from '@/lib/stores/history-store'
-import type { GeneticsHistoryEntry, BarcodingHistoryEntry, BlastSearchHistoryEntry, GenBankHistoryEntry, SeqStatsHistoryEntry } from '@/lib/genetics/analysis-history'
+import type { GeneticsHistoryEntry, BarcodingHistoryEntry, BlastSearchHistoryEntry, GenBankHistoryEntry, SeqStatsHistoryEntry, SimilarityHistoryEntry, PhylogenyHistoryEntry } from '@/lib/genetics/analysis-history'
 import type { BioToolHistoryEntry } from '@/lib/bio-tools/bio-tool-history'
 
 // ── 통계 분석 어댑터 ──
@@ -140,6 +140,42 @@ export function toGeneticsHistoryItem(
     case 'blast': return toBlastSearchItem(entry)
     case 'genbank': return toGenBankItem(entry)
     case 'seq-stats': return toSeqStatsItem(entry)
+    case 'similarity': return toSimilarityItem(entry)
+    case 'phylogeny': return toPhylogenyItem(entry)
+  }
+}
+
+function toSimilarityItem(entry: SimilarityHistoryEntry): HistoryItem<GeneticsHistoryEntry> {
+  const badges: HistoryBadge[] = [
+    { label: '', value: `${entry.sequenceCount}개 서열`, variant: 'default' },
+    { label: entry.distanceModel, value: `d̄=${entry.meanDistance.toFixed(4)}`, variant: 'mono' },
+  ]
+  return {
+    id: entry.id,
+    title: entry.analysisName,
+    subtitle: `${entry.alignmentLength} bp 정렬`,
+    badges,
+    pinned: entry.pinned ?? false,
+    createdAt: entry.createdAt,
+    hasResult: true,
+    data: entry,
+  }
+}
+
+function toPhylogenyItem(entry: PhylogenyHistoryEntry): HistoryItem<GeneticsHistoryEntry> {
+  const badges: HistoryBadge[] = [
+    { label: '', value: `${entry.sequenceCount}개 서열`, variant: 'default' },
+    { label: entry.treeMethod, value: entry.distanceModel, variant: 'mono' },
+  ]
+  return {
+    id: entry.id,
+    title: entry.analysisName,
+    subtitle: `${entry.alignmentLength} bp 정렬`,
+    badges,
+    pinned: entry.pinned ?? false,
+    createdAt: entry.createdAt,
+    hasResult: true,
+    data: entry,
   }
 }
 

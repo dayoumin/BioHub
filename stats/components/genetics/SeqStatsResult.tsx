@@ -2,6 +2,7 @@
 'use client'
 
 import { useCallback, useMemo, useRef, useEffect } from 'react'
+import { downloadCsvFile } from '@/lib/utils/download-file'
 import { Download } from 'lucide-react'
 import type { SeqStatsResult } from '@/lib/genetics/seq-stats-engine'
 import { Button } from '@/components/ui/button'
@@ -154,13 +155,7 @@ function LengthDistributionChart({ result }: { result: SeqStatsResult }): React.
 export function SeqStatsResultView({ result, analysisName, onReset }: SeqStatsResultProps): React.ReactElement {
   const handleExportCsv = useCallback(() => {
     const csv = buildCsv(result)
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `seq-stats_${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadCsvFile(csv, `seq-stats_${new Date().toISOString().slice(0, 10)}.csv`)
   }, [result])
 
   const gcPercent = (result.overallGcContent * 100).toFixed(1)

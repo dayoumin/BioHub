@@ -2,13 +2,15 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Dna, Search, Database, BarChart3, ChevronLeft } from 'lucide-react'
+import { Dna, Search, Database, BarChart3, Grid3X3, GitFork, ChevronLeft } from 'lucide-react'
 
 const TOOLS = [
   { id: 'barcoding', title: 'DNA 바코딩 종 판별', href: '/genetics/barcoding', icon: Dna },
   { id: 'blast', title: 'BLAST 서열 검색', href: '/genetics/blast', icon: Search },
   { id: 'genbank', title: 'GenBank 서열 검색', href: '/genetics/genbank', icon: Database },
   { id: 'seq-stats', title: '서열 기본 통계', href: '/genetics/seq-stats', icon: BarChart3 },
+  { id: 'similarity', title: '다종 유사도 행렬', href: '/genetics/similarity', icon: Grid3X3 },
+  { id: 'phylogeny', title: '계통수 시각화', href: '/genetics/phylogeny', icon: GitFork },
 ]
 
 export function GeneticsSubNav() {

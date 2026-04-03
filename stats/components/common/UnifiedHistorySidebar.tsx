@@ -132,6 +132,7 @@ export function UnifiedHistorySidebar<T>({
   emptyMessage = '분석을 실행하면\n여기에 기록됩니다',
   renderItem,
   actionSlot,
+  toolbarSlot,
   activeId = null,
   defaultOpen = true,
 }: UnifiedHistorySidebarProps<T>): ReactNode {
@@ -244,6 +245,9 @@ export function UnifiedHistorySidebar<T>({
             </button>
           </div>
         </div>
+
+        {/* 툴바 슬롯 (검색, 필터 등) */}
+        {toolbarSlot && <div className="mb-2">{toolbarSlot}</div>}
 
         {/* 전체 선택 */}
         {items.length > 1 && (onDelete || onDeleteMultiple) && (

@@ -5,6 +5,7 @@
 # - Estimated memory: ~50MB
 
 from typing import List, Dict, Optional, Union
+import math
 import numpy as np
 from scipy import stats
 
@@ -387,6 +388,102 @@ def _interpret_wright_fst(global_fst: float) -> str:
         return "매우 큰 분화 (Fst ≥ 0.25, Wright 1978)"
 
 
+# ─── 거리 행렬 내부 함수 ──────────────────────────────────
+
+
+_NEWICK_META = set(':,();')
+
+
+def _newick_safe_label(label: str) -> str:
+    """Newick 메타문자를 포함하는 라벨을 single-quote로 감싼다."""
+    if any(c in _NEWICK_META for c in label) or "'" in label:
+        return "'" + label.replace("'", "''") + "'"
+    return label
+
+
+def _p_distance(seq1: str, seq2: str) -> float:
+    """p-distance: 차이 비율."""
+    compared = 0
+    diffs = 0
+    for a, b in zip(seq1, seq2):
+        if a == '-' or b == '-':
+            continue
+        compared += 1
+        if a != b:
+            diffs += 1
+    if compared == 0:
+        return 0.0
+    return diffs / compared
+
+
+_TRANSITIONS = frozenset([('A', 'G'), ('G', 'A'), ('C', 'T'), ('T', 'C')])
+
+
+def _k2p_distance(seq1: str, seq2: str) -> float:
+    """Kimura 2-Parameter distance."""
+    compared = 0
+    transitions = 0
+    transversions = 0
+    for a, b in zip(seq1, seq2):
+        if a == '-' or b == '-':
+            continue
+        compared += 1
+        if a == b:
+            continue
+        if (a, b) in _TRANSITIONS:
+            transitions += 1
+        else:
+            transversions += 1
+    if compared == 0:
+        return 0.0
+    P = transitions / compared
+    Q = transversions / compared
+    inner1 = 1.0 - 2.0 * P - Q
+    inner2 = 1.0 - 2.0 * Q
+    if inner1 <= 0 or inner2 <= 0:
+        return float('inf')
+    return -0.5 * math.log(inner1) - 0.25 * math.log(inner2)
+
+
+def _jukes_cantor_distance(seq1: str, seq2: str) -> float:
+    """Jukes-Cantor distance."""
+    p = _p_distance(seq1, seq2)
+    inner = 1.0 - (4.0 / 3.0) * p
+    if inner <= 0:
+        return float('inf')
+    return -0.75 * math.log(inner)
+
+
+_DISTANCE_FUNCTIONS = {
+    'K2P': _k2p_distance,
+    'p-distance': _p_distance,
+    'Jukes-Cantor': _jukes_cantor_distance,
+}
+
+
+def _build_distance_matrix(
+    sequences: List[str],
+    model: str = 'K2P',
+    round_decimals: Optional[int] = None,
+) -> tuple:
+    """공통 거리 행렬 구축. (matrix, condensed) 반환."""
+    dist_fn = _DISTANCE_FUNCTIONS.get(model, _k2p_distance)
+    n = len(sequences)
+    matrix = [[0.0] * n for _ in range(n)]
+    condensed: List[float] = []
+    for i in range(n):
+        for j in range(i + 1, n):
+            d = dist_fn(sequences[i], sequences[j])
+            if d == float('inf'):
+                d = 9.999
+            if round_decimals is not None:
+                d = round(d, round_decimals)
+            matrix[i][j] = d
+            matrix[j][i] = d
+            condensed.append(d)
+    return matrix, condensed
+
+
 # ─── 공개 함수 ────────────────────────────────────────────
 
 
@@ -699,4 +796,224 @@ def fst(
         'populationLabels': labels,
         'nPopulations': n_pops,
         'interpretation': _interpret_wright_fst(global_fst),
+    }
+
+
+def seq_similarity(
+    sequences: List[str],
+    labels: List[str],
+    model: str = "K2P",
+) -> Dict:
+    """
+    다종 유사도/거리 행렬 + UPGMA 덴드로그램.
+
+    Parameters
+    ----------
+    sequences : 정렬된 서열 목록 (같은 길이)
+    labels    : 서열 라벨
+    model     : 'K2P' | 'p-distance' | 'Jukes-Cantor'
+
+    Returns
+    -------
+    {
+        distanceMatrix, labels, model, sequenceCount, alignmentLength,
+        minDistance, maxDistance, meanDistance,
+        dendrogram: { labels, mergeMatrix, distances }
+    }
+    """
+    from scipy.cluster.hierarchy import linkage
+
+    n = len(sequences)
+    if n < 3:
+        raise ValueError("최소 3개 서열이 필요합니다")
+    if len(labels) != n:
+        raise ValueError("서열 수와 라벨 수가 다릅니다")
+
+    align_len = len(sequences[0])
+    for i, seq in enumerate(sequences):
+        if len(seq) != align_len:
+            raise ValueError(f"서열 길이 불일치: {labels[0]}={align_len}, {labels[i]}={len(seq)}")
+
+    matrix, condensed = _build_distance_matrix(sequences, model, round_decimals=6)
+
+    finite = [d for d in condensed if d < 9.999]
+    saturated_count = len(condensed) - len(finite)
+    min_d = round(min(finite), 6) if finite else 0.0
+    max_d = round(max(finite), 6) if finite else 0.0
+    mean_d = round(sum(finite) / len(finite), 6) if finite else 0.0
+
+    # UPGMA 덴드로그램
+    condensed_arr = np.array(condensed, dtype=float)
+    condensed_arr[condensed_arr == float('inf')] = 9.999
+    Z = linkage(condensed_arr, method='average')
+
+    dendro = {
+        'labels': labels,
+        'mergeMatrix': [[int(row[0]), int(row[1]), round(float(row[2]), 6), int(row[3])] for row in Z],
+    }
+
+    return {
+        'distanceMatrix': matrix,
+        'labels': labels,
+        'model': model,
+        'sequenceCount': n,
+        'alignmentLength': align_len,
+        'minDistance': min_d,
+        'maxDistance': max_d,
+        'meanDistance': mean_d,
+        'saturatedPairCount': saturated_count,
+        'dendrogram': dendro,
+    }
+
+
+def _neighbor_joining(dist_matrix: List[List[float]], labels: List[str]) -> str:
+    """
+    Neighbor-Joining (Saitou & Nei, 1987) → Newick string.
+
+    Pure Python implementation — BioPython's NJ requires Bio.Phylo which is
+    not available in Pyodide.
+    """
+    n = len(labels)
+    if n < 3:
+        raise ValueError("NJ requires at least 3 taxa")
+
+    # Working copy of distance matrix (will be reduced)
+    D = [row[:] for row in dist_matrix]
+    # Node representations as Newick substrings (sanitized for metacharacters)
+    nodes = [_newick_safe_label(l) for l in labels]
+    active = list(range(n))  # indices of active nodes
+
+    while len(active) > 2:
+        k = len(active)
+        # Row sums for active nodes
+        r = [0.0] * k
+        for i in range(k):
+            for j in range(k):
+                r[i] += D[active[i]][active[j]]
+
+        # Find pair (i,j) minimizing Q
+        best_q = float('inf')
+        best_i, best_j = 0, 1
+        for i in range(k):
+            for j in range(i + 1, k):
+                q = (k - 2) * D[active[i]][active[j]] - r[i] - r[j]
+                if q < best_q:
+                    best_q = q
+                    best_i, best_j = i, j
+
+        ai, aj = active[best_i], active[best_j]
+
+        # Branch lengths to new node
+        d_ij = D[ai][aj]
+        if k > 2:
+            li = 0.5 * d_ij + (r[best_i] - r[best_j]) / (2.0 * (k - 2))
+            lj = d_ij - li
+        else:
+            li = lj = d_ij / 2.0
+        li = max(0.0, li)
+        lj = max(0.0, lj)
+
+        # New node Newick substring
+        new_node = f"({nodes[ai]}:{li:.6f},{nodes[aj]}:{lj:.6f})"
+
+        # Expand distance matrix for new node
+        new_size = len(D) + 1
+        for row in D:
+            row.append(0.0)
+        D.append([0.0] * new_size)
+
+        new_idx = new_size - 1
+        for m in active:
+            if m == ai or m == aj:
+                continue
+            d_new = 0.5 * (D[ai][m] + D[aj][m] - d_ij)
+            D[new_idx][m] = max(0.0, d_new)
+            D[m][new_idx] = max(0.0, d_new)
+
+        # Update tracking
+        nodes.append(new_node)
+        active = [x for x in active if x != ai and x != aj]
+        active.append(new_idx)
+
+    # Final two nodes
+    a0, a1 = active
+    d_final = D[a0][a1]
+    newick = f"({nodes[a0]}:{d_final / 2:.6f},{nodes[a1]}:{d_final / 2:.6f});"
+    return newick
+
+
+def _upgma_newick(dist_matrix: List[List[float]], labels: List[str]) -> str:
+    """UPGMA → Newick string via scipy linkage."""
+    from scipy.cluster.hierarchy import linkage
+
+    n = len(labels)
+    condensed = []
+    for i in range(n):
+        for j in range(i + 1, n):
+            d = dist_matrix[i][j]
+            condensed.append(d if d != float('inf') else 9.999)
+
+    Z = linkage(np.array(condensed, dtype=float), method='average')
+
+    # Build Newick from linkage matrix
+    node_labels = [_newick_safe_label(l) for l in labels]
+    node_heights = [0.0] * n
+
+    for row in Z:
+        left, right, dist = int(row[0]), int(row[1]), float(row[2])
+        # UPGMA: node height = inter-cluster distance / 2
+        merge_height = dist / 2.0
+        bl = merge_height - node_heights[left]
+        br = merge_height - node_heights[right]
+        new_label = f"({node_labels[left]}:{bl:.6f},{node_labels[right]}:{br:.6f})"
+        node_labels.append(new_label)
+        node_heights.append(merge_height)
+
+    return node_labels[-1] + ";"
+
+
+def build_phylogeny(
+    sequences: List[str],
+    labels: List[str],
+    method: str = "NJ",
+    distanceModel: str = "K2P",
+) -> Dict:
+    """
+    계통수 생성: multi-FASTA → 거리 행렬 → NJ/UPGMA → Newick.
+
+    Parameters
+    ----------
+    sequences     : 정렬된 서열 목록
+    labels        : 서열 라벨
+    method        : 'NJ' | 'UPGMA'
+    distanceModel : 'K2P' | 'p-distance' | 'Jukes-Cantor'
+
+    Returns
+    -------
+    { newick, method, distanceModel, sequenceCount, alignmentLength }
+    """
+    n = len(sequences)
+    if n < 3:
+        raise ValueError("최소 3개 서열이 필요합니다")
+    if len(labels) != n:
+        raise ValueError("서열 수와 라벨 수가 다릅니다")
+
+    align_len = len(sequences[0])
+    for i, seq in enumerate(sequences):
+        if len(seq) != align_len:
+            raise ValueError(f"서열 길이 불일치: {labels[0]}={align_len}, {labels[i]}={len(seq)}")
+
+    matrix, _ = _build_distance_matrix(sequences, distanceModel)
+
+    if method == 'UPGMA':
+        newick = _upgma_newick(matrix, labels)
+    else:
+        newick = _neighbor_joining(matrix, labels)
+
+    return {
+        'newick': newick,
+        'method': method,
+        'distanceModel': distanceModel,
+        'sequenceCount': n,
+        'alignmentLength': align_len,
     }
