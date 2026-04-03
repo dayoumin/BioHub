@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Pyodide 초기화 로직 (Worker 독립적)
  *

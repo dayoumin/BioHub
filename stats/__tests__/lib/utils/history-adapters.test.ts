@@ -123,12 +123,14 @@ describe('toAnalysisHistoryItems', () => {
 describe('toGeneticsHistoryItem', () => {
   const baseEntry: AnalysisHistoryEntry = {
     id: 'g1',
+    type: 'barcoding',
     sampleName: 'Sample-01',
     marker: 'COI',
     sequencePreview: 'ATCG...',
     topSpecies: 'Gadus morhua',
     topIdentity: 0.987,
-    status: 'success',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    status: 'confirmed' as any,
     pinned: true,
     createdAt: 1711500000000,
   }

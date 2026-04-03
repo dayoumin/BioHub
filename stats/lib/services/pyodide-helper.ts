@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Pyodide 헬퍼 유틸리티
  * 메모리 관리와 동시성 문제를 해결하기 위한 헬퍼 함수들

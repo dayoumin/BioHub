@@ -68,7 +68,7 @@ function makeGraphProject(overrides: Partial<GraphProject> = {}): GraphProject {
   return {
     id: 'gp_1',
     name: 'Box Plot',
-    chartSpec: { chartType: 'box' } as GraphProject['chartSpec'],
+    chartSpec: { chartType: 'box' } as unknown as GraphProject['chartSpec'],
     dataPackageId: 'dp_1',
     editHistory: [],
     createdAt: '2026-01-01',

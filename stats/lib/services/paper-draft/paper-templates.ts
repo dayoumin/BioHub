@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * 논문 초안 템플릿 엔진 (한글 + 영문 APA 7th)
  *

@@ -26,6 +26,9 @@ interface PlateEditorProps {
 }
 
 export default function PlateEditor({ editor, onChange }: PlateEditorProps): React.ReactElement {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tf = (editor as any).tf
+
   return (
     <Plate editor={editor} onChange={onChange}>
       <FixedToolbar className="rounded-t-lg">
@@ -51,19 +54,19 @@ export default function PlateEditor({ editor, onChange }: PlateEditorProps): Rea
         {/* 블록 타입 — Plate의 턴키 방식은 별도 플러그인 UI이므로 우선 아이콘만 표시 */}
         <ToolbarButton
           tooltip="제목 1"
-          onClick={() => editor.tf.toggleBlock({ type: 'h1' })}
+          onClick={() => tf.toggleBlock({ type: 'h1' })}
         >
           <Heading1 className="w-4 h-4" />
         </ToolbarButton>
         <ToolbarButton
           tooltip="제목 2"
-          onClick={() => editor.tf.toggleBlock({ type: 'h2' })}
+          onClick={() => tf.toggleBlock({ type: 'h2' })}
         >
           <Heading2 className="w-4 h-4" />
         </ToolbarButton>
         <ToolbarButton
           tooltip="제목 3"
-          onClick={() => editor.tf.toggleBlock({ type: 'h3' })}
+          onClick={() => tf.toggleBlock({ type: 'h3' })}
         >
           <Heading3 className="w-4 h-4" />
         </ToolbarButton>
@@ -72,19 +75,19 @@ export default function PlateEditor({ editor, onChange }: PlateEditorProps): Rea
 
         <ToolbarButton
           tooltip="글머리 기호"
-          onClick={() => editor.tf.toggleBlock({ type: 'ul' })}
+          onClick={() => tf.toggleBlock({ type: 'ul' })}
         >
           <List className="w-4 h-4" />
         </ToolbarButton>
         <ToolbarButton
           tooltip="번호 매기기"
-          onClick={() => editor.tf.toggleBlock({ type: 'ol' })}
+          onClick={() => tf.toggleBlock({ type: 'ol' })}
         >
           <ListOrdered className="w-4 h-4" />
         </ToolbarButton>
         <ToolbarButton
           tooltip="인용"
-          onClick={() => editor.tf.toggleBlock({ type: 'blockquote' })}
+          onClick={() => tf.toggleBlock({ type: 'blockquote' })}
         >
           <Quote className="w-4 h-4" />
         </ToolbarButton>
@@ -93,13 +96,13 @@ export default function PlateEditor({ editor, onChange }: PlateEditorProps): Rea
 
         <ToolbarButton
           tooltip="표 삽입"
-          onClick={() => editor.tf.insert.table({})}
+          onClick={() => tf.insert.table({})}
         >
           <Table className="w-4 h-4" />
         </ToolbarButton>
         <ToolbarButton
           tooltip="인라인 수식 ($...$)"
-          onClick={() => editor.tf.insert.inlineEquation()}
+          onClick={() => tf.insert.inlineEquation()}
         >
           <Sigma className="w-4 h-4" />
         </ToolbarButton>

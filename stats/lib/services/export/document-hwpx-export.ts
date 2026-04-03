@@ -587,7 +587,8 @@ export async function documentToHwpx(doc: DocumentBlueprint): Promise<void> {
     : new Map<string, ChartSnapshot>()
 
   const data = await buildHwpxDocument(doc, snapshots)
-  const blob = new Blob([data], { type: 'application/octet-stream' })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const blob = new Blob([data as any], { type: 'application/octet-stream' })
   const safeName = doc.title.replace(/[/\\?%*:|"<>]/g, '_')
   downloadBlob(blob, `${safeName}.hwpx`)
 }

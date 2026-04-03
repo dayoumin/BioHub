@@ -10,7 +10,8 @@ import { EquationElement, InlineEquationElement } from '../equation-element'
 
 // PlateElement → passthrough 래퍼
 vi.mock('platejs/react', () => ({
-  PlateElement: ({ children, asChild, ...props }: Record<string, unknown>) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  PlateElement: ({ children, asChild, ...props }: Record<string, any>) => {
     const Tag = asChild ? 'span' : 'div'
     return <Tag data-testid="plate-element" {...props}>{children}</Tag>
   },
@@ -61,7 +62,8 @@ describe('EquationElement (block)', () => {
   }
 
   it('should render KaTeX output for non-empty expression', () => {
-    render(<EquationElement {...baseProps as never} />)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    render(<EquationElement {...baseProps as any} />)
     // useEquationElement mock이 katexRef에 texExpression 텍스트를 삽입
     expect(screen.getByText('E=mc^2')).toBeDefined()
   })
@@ -71,18 +73,21 @@ describe('EquationElement (block)', () => {
       ...baseProps,
       element: { type: 'equation', texExpression: '', children: [{ text: '' }] },
     }
-    render(<EquationElement {...props as never} />)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    render(<EquationElement {...props as any} />)
     expect(screen.getByText('클릭하여 수식 입력')).toBeDefined()
   })
 
   it('should contain Popover for editing', () => {
-    render(<EquationElement {...baseProps as never} />)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    render(<EquationElement {...baseProps as any} />)
     expect(screen.getByTestId('popover')).toBeDefined()
     expect(screen.getByTestId('popover-content')).toBeDefined()
   })
 
   it('should contain LaTeX input textarea inside popover', () => {
-    render(<EquationElement {...baseProps as never} />)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    render(<EquationElement {...baseProps as any} />)
     const content = screen.getByTestId('popover-content')
     expect(content.querySelector('textarea')).toBeDefined()
   })
@@ -97,7 +102,8 @@ describe('InlineEquationElement (inline)', () => {
   }
 
   it('should render KaTeX output for non-empty expression', () => {
-    render(<InlineEquationElement {...baseProps as never} />)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    render(<InlineEquationElement {...baseProps as any} />)
     expect(screen.getByText('x^2')).toBeDefined()
   })
 
@@ -106,18 +112,21 @@ describe('InlineEquationElement (inline)', () => {
       ...baseProps,
       element: { type: 'inline_equation', texExpression: '', children: [{ text: '' }] },
     }
-    render(<InlineEquationElement {...props as never} />)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    render(<InlineEquationElement {...props as any} />)
     expect(screen.getByText('수식')).toBeDefined()
   })
 
   it('should render as inline element (asChild=span)', () => {
-    render(<InlineEquationElement {...baseProps as never} />)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    render(<InlineEquationElement {...baseProps as any} />)
     const el = screen.getByTestId('plate-element')
     expect(el.tagName).toBe('SPAN')
   })
 
   it('should contain editing popover', () => {
-    render(<InlineEquationElement {...baseProps as never} />)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    render(<InlineEquationElement {...baseProps as any} />)
     expect(screen.getByTestId('popover')).toBeDefined()
   })
 })

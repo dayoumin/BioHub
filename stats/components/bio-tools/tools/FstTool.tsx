@@ -117,7 +117,8 @@ const FstTool = memo(function FstTool({ tool, meta, initialEntry }: ToolComponen
     try {
       const { locusCountData, populationLabels, locusNames } =
         convertLongFormatToLocusData(csvData, lfPopCol, lfLocusCol, lfAlleleCol, lfCountCol)
-      runAnalysis('fst', { locusCountData, populationLabels, locusNames, nPermutations: 0 })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      runAnalysis('fst', { locusCountData: locusCountData as any, populationLabels, locusNames, nPermutations: 0 })
     } catch (err) {
       setError(err instanceof Error ? err.message : '변환 중 오류가 발생했습니다')
     }

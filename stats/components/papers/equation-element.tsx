@@ -125,6 +125,7 @@ export function InlineEquationElement(props: PlateElementProps<TEquationElement>
   useEquationElement({ element, katexRef, options: { displayMode: false, throwOnError: false } })
 
   return (
+    // @ts-expect-error platejs version mismatch for asChild
     <PlateElement {...props} asChild>
       <span className="inline-flex items-center">
         <Popover open={open} onOpenChange={setOpen}>
