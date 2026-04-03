@@ -42,8 +42,8 @@ export interface PackageReference {
   role: ReferenceRole
   summary?: string          // 1-2문장 핵심 내용 (서론 hallucination 방지 필수)
   /**
-   * included=true인 ref는 export 전 'ready'여야 함.
-   * - 'missing': 요약 없음 (UI 경고)
+   * 요약 작성 상태. 'ready'가 아닌 문헌은 export 시 경고 + "요약 없음" 안내 포함.
+   * - 'missing': 요약 없음 (UI 경고, export 시 AI에 서술 최소화 지시)
    * - 'draft': AI 자동 제안 (사용자 확인 필요)
    * - 'ready': 사용자 확인 완료
    */

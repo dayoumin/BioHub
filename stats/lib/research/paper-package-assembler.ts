@@ -90,9 +90,11 @@ function formatReference(ref: PackageReference, index: number): string {
     other: '기타',
   }
 
-  const lines = [`- ${base}${vol}${iss}${pages}${doi} — [${roleLabel[ref.role] ?? ref.role}]`]
+  const lines = [`- ${base}${vol}${iss}${pages}${doi} — [${roleLabel[ref.role]}]`]
   if (ref.summary) {
     lines.push(`  - 요약: ${ref.summary}`)
+  } else if (ref.summaryStatus !== 'ready') {
+    lines.push(`  - ⚠ 요약 없음 — 이 문헌에 대한 서론 서술은 최소화하십시오.`)
   }
   return lines.join('\n')
 }
@@ -103,9 +105,9 @@ function serializeAnalysisItem(item: PackageItem, record: HistoryRecord): string
   const r = (record.results ?? {}) as Record<string, unknown>
   const vm = record.variableMapping as Record<string, unknown> | null | undefined
 
-  // 변수 정보 추출
-  const dependent = vm?.['dependent'] ?? vm?.['response']
-  const independent = vm?.['independent'] ?? vm?.['factor'] ?? vm?.['group']
+  // 변수 정보 추출 (VariableMapping 실제 필드: dependentVar, independentVar, groupVar 등)
+  const dependent = vm?.['dependentVar']
+  const independent = vm?.['independentVar'] ?? vm?.['groupVar']
   const groups = r['groups'] ?? r['groupNames']
 
   // 가정 검정 추출
@@ -179,8 +181,12 @@ export function assemblePaperPackage(
 
   const includedRefs = pkg.references.filter(r => r.included)
 
-  // 1. 역할 + 핵심 규칙
-  sections.push(`# 연구 논문 작성 요청
+  // 1. 역할 + 핵심 규칙 (언어별 분기)
+  const lang = pkg.journal.language
+  const isKo = lang === 'ko'
+
+  sections.push(isKo
+    ? `# 연구 논문 작성 요청
 
 ## 역할
 당신은 ${pkg.overview.purpose ? `"${pkg.overview.purpose}" 연구의` : ''} 학술 논문 작성 전문가입니다.
@@ -192,36 +198,49 @@ export function assemblePaperPackage(
 3. 참고문헌은 아래 "참고문헌 목록"에 있는 것만 사용하십시오.
 4. 모든 Table/Figure 번호는 지정된 번호를 그대로 따르십시오.
 5. 상관관계를 인과관계로 서술하지 마십시오.
-6. 유의하지 않은 결과(p >= α)도 반드시 보고하십시오.`)
+6. 유의하지 않은 결과(p >= α)도 반드시 보고하십시오.`
+    : `# Research Paper Writing Request
+
+## Role
+You are an expert academic writer${pkg.overview.purpose ? ` for "${pkg.overview.purpose}" research` : ''}.
+Write a complete manuscript draft based on the statistical analysis results and references provided below.
+
+## Critical Rules
+1. Cite all statistical values **exactly as presented**. Do not round or modify.
+2. Do **not hallucinate** any data, analyses, or references not provided below.
+3. Use only references listed in the "References" section below.
+4. Follow Table/Figure numbering exactly as specified.
+5. Do not imply causation from correlational findings.
+6. Report non-significant results (p >= α) as well.`)
 
   // 2. 저널 설정 + 언어 규칙
-  const lang = pkg.journal.language
-  const journalSection = [`## 저널 설정
-- 저널: ${pkg.journal.name}
-- 스타일: ${pkg.journal.style}
-- 언어: ${lang === 'ko' ? '한국어' : 'English'}
-- 구조: ${pkg.journal.sections.join(' → ')}`]
-
-  if (lang === 'ko' && pkg.journal.writingStyle) {
-    journalSection.push(`\n## 한국어 작성 규칙\n- 문체: ${pkg.journal.writingStyle}\n- 통계 기호는 영문 이탤릭 유지 (*F*, *p*, *t*)`)
+  const journalLines = [
+    isKo ? `## 저널 설정` : `## Journal Settings`,
+    `- ${isKo ? '저널' : 'Journal'}: ${pkg.journal.name}`,
+    `- ${isKo ? '스타일' : 'Style'}: ${pkg.journal.style}`,
+    `- ${isKo ? '언어' : 'Language'}: ${isKo ? '한국어' : 'English'}`,
+    `- ${isKo ? '구조' : 'Structure'}: ${pkg.journal.sections.join(' → ')}`,
+  ]
+  if (isKo && pkg.journal.writingStyle) {
+    journalLines.push('', `## 한국어 작성 규칙`, `- 문체: ${pkg.journal.writingStyle}`, `- 통계 기호는 영문 이탤릭 유지 (*F*, *p*, *t*)`)
   }
-  sections.push(journalSection.join('\n'))
+  sections.push(journalLines.join('\n'))
 
   // 3. 연구 개요
   const overviewLines = [
-    `## 1. 연구 개요`,
-    `- 제목: ${pkg.overview.title}`,
-    `- 목적: ${pkg.overview.purpose}`,
+    isKo ? `## 1. 연구 개요` : `## 1. Study Overview`,
+    `- ${isKo ? '제목' : 'Title'}: ${pkg.overview.title}`,
+    `- ${isKo ? '목적' : 'Objective'}: ${pkg.overview.purpose}`,
   ]
-  if (pkg.overview.researchQuestion) overviewLines.push(`- 연구 질문: ${pkg.overview.researchQuestion}`)
-  if (pkg.overview.hypothesis) overviewLines.push(`- 가설: ${pkg.overview.hypothesis}`)
-  overviewLines.push(`- 데이터: ${pkg.overview.dataDescription}`)
+  if (pkg.overview.researchQuestion) overviewLines.push(`- ${isKo ? '연구 질문' : 'Research Question'}: ${pkg.overview.researchQuestion}`)
+  if (pkg.overview.hypothesis) overviewLines.push(`- ${isKo ? '가설' : 'Hypothesis'}: ${pkg.overview.hypothesis}`)
+  overviewLines.push(`- ${isKo ? '데이터' : 'Data'}: ${pkg.overview.dataDescription}`)
   sections.push(overviewLines.join('\n'))
 
   // 4. 분석 결과 (analysis 타입 아이템)
   const analysisItems = includedItems.filter(i => i.type === 'analysis')
   if (analysisItems.length > 0) {
-    const analysisParts = ['## 2. 분석 결과 (구조화 데이터)']
+    const analysisParts = [isKo ? '## 2. 분석 결과 (구조화 데이터)' : '## 2. Analysis Results (Structured Data)']
     for (const item of analysisItems) {
       const record = historyMap.get(item.sourceId)
       if (!record) {
@@ -236,7 +255,7 @@ export function assemblePaperPackage(
   // 5. 그래프 (figure 타입 아이템)
   const figureItems = includedItems.filter(i => i.type === 'figure')
   if (figureItems.length > 0) {
-    const figureParts = ['## 3. 그래프']
+    const figureParts = [isKo ? '## 3. 그래프' : '## 3. Figures']
     for (const item of figureItems) {
       const graph = graphMap.get(item.sourceId)
       if (!graph) {
@@ -253,7 +272,7 @@ export function assemblePaperPackage(
     warnings.push(`[경고] ${missingRefs.length}개 문헌의 요약이 없거나 미확인 상태입니다 (summaryStatus: missing/draft). 서론 hallucination 위험 있음.`)
   }
   if (includedRefs.length > 0) {
-    const refParts = ['## 4. 참고문헌 목록']
+    const refParts = [isKo ? '## 4. 참고문헌 목록' : '## 4. References']
     includedRefs.forEach((ref, i) => refParts.push(formatReference(ref, i)))
     sections.push(refParts.join('\n'))
   }
@@ -270,12 +289,16 @@ export function assemblePaperPackage(
   ].filter(Boolean)
 
   if (ctxFields.length > 0) {
-    sections.push(`## 5. 추가 맥락\n${ctxFields.join('\n')}`)
+    sections.push(`${isKo ? '## 5. 추가 맥락' : '## 5. Additional Context'}\n${ctxFields.join('\n')}`)
   }
 
   // 검증 체크리스트
   if (analysisItems.length > 0) {
-    const checklist = ['## 검증 체크리스트 (논문 완성 후 대조용)', '| 분석 | ID | 확인 |', '|------|-----|------|']
+    const checklist = [
+      isKo ? '## 검증 체크리스트 (논문 완성 후 대조용)' : '## Verification Checklist',
+      isKo ? '| 분석 | ID | 확인 |' : '| Analysis | ID | Check |',
+      '|------|-----|------|',
+    ]
     for (const item of analysisItems) {
       checklist.push(`| ${item.label} | ${item.analysisIds.join(', ')} | [ ] |`)
     }

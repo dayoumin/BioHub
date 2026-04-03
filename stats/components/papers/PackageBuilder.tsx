@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { loadPackage, savePackage } from '@/lib/research/paper-package-storage'
-import { assemblePaperPackage } from '@/lib/research/paper-package-assembler'
+import { assemblePaperPackage, generateFigurePatternSummary } from '@/lib/research/paper-package-assembler'
 import {
   JOURNAL_PRESETS,
   generatePackageId,
@@ -602,15 +602,18 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
           } else if (ref.entityKind === 'figure') {
             const graph = graphById.get(ref.entityId)
             if (graph) {
+              const linkedRecord = graph.analysisId ? historyById.get(graph.analysisId) : undefined
+              const patternSummary = generateFigurePatternSummary(graph, linkedRecord)
               newItems.push({
                 id: generatePackageItemId(),
                 type: 'figure',
                 sourceId: graph.id,
-                analysisIds: [],
-                label: `Figure ${newItems.length + 1}`,
+                analysisIds: graph.analysisId ? [graph.analysisId] : [],
+                label: `Figure ${newItems.filter(i => i.type === 'figure').length + 1}`,
                 section: 'results',
                 order: newItems.length,
                 included: true,
+                patternSummary,
               })
             }
           }
