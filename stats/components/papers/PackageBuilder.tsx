@@ -583,18 +583,20 @@ export default function PackageBuilder({ packageId, projectId, onBack }: Package
         const historyById = new Map(historyRecords.map(h => [h.id, h]))
         const graphById = new Map(graphProjects.map(g => [g.id, g]))
         const newItems: PackageItem[] = []
+        let tableCount = 0
         let figureCount = 0
 
         for (const ref of entityRefs) {
           if (ref.entityKind === 'analysis') {
             const record = historyById.get(ref.entityId)
             if (record) {
+              tableCount++
               newItems.push({
                 id: generatePackageItemId(),
                 type: 'analysis',
                 sourceId: record.id,
-                analysisIds: [`ANAL-${String(newItems.length + 1).padStart(2, '0')}`],
-                label: `Table ${newItems.length + 1}`,
+                analysisIds: [`ANAL-${String(tableCount).padStart(2, '0')}`],
+                label: `Table ${tableCount}`,
                 section: 'results',
                 order: newItems.length,
                 included: true,

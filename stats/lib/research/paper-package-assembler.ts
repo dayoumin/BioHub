@@ -282,12 +282,12 @@ Write a complete manuscript draft based on the statistical analysis results and 
   // 7. 추가 맥락
   const ctx = pkg.context
   const ctxFields = [
-    ctx.priorWorkDiff && `- 선행연구와 차이점: ${ctx.priorWorkDiff}`,
-    ctx.limitations && `- 연구의 한계: ${ctx.limitations}`,
-    ctx.highlights && `- 강조할 발견: ${ctx.highlights}`,
-    ctx.theoreticalImplications && `- 이론적 시사점: ${ctx.theoreticalImplications}`,
-    ctx.practicalImplications && `- 실무적 시사점: ${ctx.practicalImplications}`,
-    ctx.futureResearch && `- 후속 연구 제안: ${ctx.futureResearch}`,
+    ctx.priorWorkDiff && `- ${isKo ? '선행연구와 차이점' : 'Differences from prior work'}: ${ctx.priorWorkDiff}`,
+    ctx.limitations && `- ${isKo ? '연구의 한계' : 'Limitations'}: ${ctx.limitations}`,
+    ctx.highlights && `- ${isKo ? '강조할 발견' : 'Key findings to highlight'}: ${ctx.highlights}`,
+    ctx.theoreticalImplications && `- ${isKo ? '이론적 시사점' : 'Theoretical implications'}: ${ctx.theoreticalImplications}`,
+    ctx.practicalImplications && `- ${isKo ? '실무적 시사점' : 'Practical implications'}: ${ctx.practicalImplications}`,
+    ctx.futureResearch && `- ${isKo ? '후속 연구 제안' : 'Future research directions'}: ${ctx.futureResearch}`,
   ].filter(Boolean)
 
   if (ctxFields.length > 0) {
