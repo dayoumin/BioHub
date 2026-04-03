@@ -126,5 +126,25 @@
 
 ---
 
-**작성**: Claude Code
-**버전**: v1.0
+## 남은 파일별 하드코딩 텍스트 (~150개)
+
+> 작업 방법: terminology-types.ts에 섹션 키 추가 → aquaculture.ts + generic.ts 번역 추가 → `useTerminology()` → `t.섹션.키` 교체 → `pnpm tsc --noEmit` 확인
+
+| 파일 | 하드코딩 수 | 주요 내용 |
+|------|------------|---------|
+| ChatCentricHub.tsx | ~40개 | 허브 제목, 카드 텍스트, 빠른 시작 가이드 |
+| PurposeInputStep.tsx | ~25개 | ANALYSIS_PURPOSES 배열 (7개 × title/desc/example) |
+| SmartFlowLayout.tsx | ~15개 | STEPS 배열 라벨, 도움말 패널 |
+| FitScoreIndicator.tsx | ~15개 | 적합도 점수 라벨, 해석 텍스트 |
+| AnalysisInfoCard.tsx | ~15개 | 분석 정보 라벨 |
+| AnalysisHistoryPanel.tsx | ~15개 | 히스토리 제목, 상태 라벨 |
+| GuidedQuestions.tsx | ~15개 | 질문 텍스트, 선택지 |
+| AnalysisExecutionStep.tsx | ~12개 | EXECUTION_STAGES 배열 |
+| ResultsActionStep.tsx | ~10개 | 효과크기 해석 라벨 |
+| DataExplorationStep.tsx | ~7개 | 탭 라벨, 차트 타입 라벨 |
+
+> **주의**: DomainSwitcher는 모든 텍스트 연결 완료 전까지 개발자 전용. 부분 연결 상태에서 도메인 전환 시 혼재 UI 발생.
+
+---
+
+**최초 작성**: 2026-02-09 / **남은 작업 추가**: 2026-02-10

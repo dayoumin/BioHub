@@ -47,11 +47,11 @@
 5. **pyodideStats 하이브리드**: 단순=Generated 래퍼, 복잡=callWorkerMethod 직접 호출
 6. **`ollama-*` 파일 삭제 금지**: Tauri 데스크탑 로컬 LLM 예정 (`lib/services/ollama-*.ts`, `lib/rag/*/ollama-*.ts`). 웹에서는 `useOllamaForRecommendation: false`로 비활성화.
 
-상세: [STATISTICS_CODING_STANDARDS.md](stats/docs/STATISTICS_CODING_STANDARDS.md)
+상세: [STATISTICS_CODING_STANDARDS.md](stats/docs/guides/STATISTICS_CODING_STANDARDS.md)
 
 ## Bio-Tools 코딩 규칙
 
-- **아키텍처**: [PLAN-BIO-TOOLS-ARCHITECTURE.md](stats/docs/PLAN-BIO-TOOLS-ARCHITECTURE.md) 참조
+- **아키텍처**: [PLAN-BIO-TOOLS-ARCHITECTURE.md](stats/docs/bio-tools/PLAN-BIO-TOOLS-ARCHITECTURE.md) 참조
 - **레지스트리 필수**: 도구 추가/수정 시 `lib/bio-tools/bio-tool-registry.ts`만 수정
 - **공통 훅**: `useBioToolAnalysis<T>()` 사용 (CSV 업로드 → Pyodide 분석 → 결과 상태)
 - **디자인 토큰 필수** (`components/bio-tools/bio-styles.ts`):
@@ -85,7 +85,7 @@
 - **await 패턴** (setTimeout 금지)
 - `any` 금지 (unknown + 타입 가드)
 - **PyodideCore** 사용: 모든 통계 계산은 검증된 라이브러리
-- [TROUBLESHOOTING_ISANALYZING_BUG.md](stats/docs/TROUBLESHOOTING_ISANALYZING_BUG.md) 참조
+- [TROUBLESHOOTING_ISANALYZING_BUG.md](stats/docs/technical/TROUBLESHOOTING_ISANALYZING_BUG.md) 참조
 
 ## 테스트
 

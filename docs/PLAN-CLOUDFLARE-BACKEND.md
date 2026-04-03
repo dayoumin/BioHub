@@ -146,7 +146,7 @@ DELETE /api/datasets/:id         → 삭제
 현재 `src/worker.ts`가 ~960줄. 기능 추가 시:
 
 - **1,500줄 이하**: 단일 파일 유지 (현재 패턴)
-- **1,500줄 초과**: `src/routes/` 분리 + Hono 도입 고려
+- **1,500줄 초과**: `src/handlers/` 분리 (패턴: [PLAN-FISHERY-MIGRATION.md §4](PLAN-FISHERY-MIGRATION.md)) + 필요 시 Hono 도입 고려
 
 ### D1 스키마 관리
 
