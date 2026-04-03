@@ -334,7 +334,7 @@ class HwpxDocumentBuilder {
     const id = this.nextId++
     return (
       `<hp:p id="${id}" paraPrIDRef="0" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">` +
-      `<hp:run charPrIDRef="${DEFAULT_CHAR_PR_ID}"><hp:t>${textContent}</hp:t></hp:run></hp:p>`
+      `<hp:run charPrIDRef="${DEFAULT_CHAR_PR_ID}"><hp:t>${escapeXml(textContent)}</hp:t></hp:run></hp:p>`
     )
   }
 }
@@ -551,7 +551,7 @@ export async function buildHwpxDocument(
     if (section.figures) {
       for (const fig of section.figures) {
         const snapshot = snapshots?.get(fig.entityId)
-        if (snapshot) {
+        if (snapshot && snapshot.cssWidth > 0 && snapshot.cssHeight > 0) {
           const CONTENT_WIDTH_PX = Math.floor(CONTENT_WIDTH / 75)
           const scale = Math.min(1, CONTENT_WIDTH_PX / snapshot.cssWidth)
           const width = Math.round(snapshot.cssWidth * scale)
@@ -592,8 +592,7 @@ export async function documentToHwpx(doc: DocumentBlueprint): Promise<void> {
     : new Map<string, ChartSnapshot>()
 
   const data = await buildHwpxDocument(doc, snapshots)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const blob = new Blob([data as any], { type: 'application/octet-stream' })
+  const blob = new Blob([data as BlobPart], { type: 'application/octet-stream' })
   const safeName = doc.title.replace(/[/\\?%*:|"<>]/g, '_')
   downloadBlob(blob, `${safeName}.hwpx`)
 }

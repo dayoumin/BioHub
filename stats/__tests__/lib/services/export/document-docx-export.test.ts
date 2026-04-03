@@ -14,7 +14,7 @@ vi.mock('@/lib/services/export/export-data-builder', async (importOriginal) => {
   return { ...orig, downloadBlob: vi.fn() }
 })
 
-import { hasVisibleContent, parseInlineMarks, buildDocxDocument } from '@/lib/services/export/document-docx-export'
+import { hasVisibleContent, parseInlineMarks, buildDocxDocument, computeImageScale } from '@/lib/services/export/document-docx-export'
 
 // ─── 픽스처 ───
 
@@ -253,5 +253,39 @@ describe('buildDocxDocument with snapshots', () => {
       })],
     }))
     expect(doc).toBeDefined()
+  })
+})
+
+// ─── computeImageScale ───
+
+describe('computeImageScale', () => {
+  it('oversized → 페이지 폭에 비례 축소', () => {
+    const result = computeImageScale(1200, 800, 624)
+    expect(result.width).toBe(624)
+    expect(result.height).toBe(416)  // 800 * (624/1200) = 416
+  })
+
+  it('undersized → 확대 안 함', () => {
+    const result = computeImageScale(400, 300, 624)
+    expect(result.width).toBe(400)
+    expect(result.height).toBe(300)
+  })
+
+  it('정확히 페이지 폭 → 그대로', () => {
+    const result = computeImageScale(624, 400, 624)
+    expect(result.width).toBe(624)
+    expect(result.height).toBe(400)
+  })
+
+  it('cssWidth=0 → {0, 0}', () => {
+    expect(computeImageScale(0, 100, 624)).toEqual({ width: 0, height: 0 })
+  })
+
+  it('cssHeight=0 → {0, 0}', () => {
+    expect(computeImageScale(100, 0, 624)).toEqual({ width: 0, height: 0 })
+  })
+
+  it('음수 → {0, 0}', () => {
+    expect(computeImageScale(-1, 100, 624)).toEqual({ width: 0, height: 0 })
   })
 })

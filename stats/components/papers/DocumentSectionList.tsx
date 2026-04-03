@@ -48,14 +48,18 @@ interface SortableSectionItemProps {
 function SortableSectionItem({ section, isActive, onSelect, onDelete, onRename }: SortableSectionItemProps): React.ReactElement {
   const [editing, setEditing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const committedRef = useRef(false)
 
   const handleStartEdit = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
+    committedRef.current = false
     setEditing(true)
     setTimeout(() => inputRef.current?.select(), 0)
   }, [])
 
   const handleFinishEdit = useCallback(() => {
+    if (committedRef.current) return
+    committedRef.current = true
     const val = inputRef.current?.value.trim()
     if (val && val !== section.title) onRename(val)
     setEditing(false)

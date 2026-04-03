@@ -98,15 +98,22 @@ export default function GraphStudioContent(): React.ReactElement {
     // Note: chartSpec은 Zustand store 참조로 spec 변경 시에만 갱신 → deps 안정적
   }, [chartSpec?.exportConfig, chartSpec?.title]);
 
+  const savingRef = useRef(false);
   const handleSave = useCallback(() => {
+    if (savingRef.current) return;
+    savingRef.current = true;
+
     const store = useGraphStudioStore.getState();
     const name = store.currentProject?.name ?? 'Untitled Chart';
 
     // 1. 프로젝트 저장 (동기, localStorage)
     const projectId = store.saveCurrentProject(name);
-    if (!projectId) return;
+    if (!projectId) {
+      savingRef.current = false;
+      return;
+    }
 
-    // 2. 스냅샷 캡처 (fire-and-forget — 실패해도 저장은 완료된 것으로 처리)
+    // 2. 스냅샷 캡처 — 완료까지 락 유지 (race 방지)
     const instance = echartsRef.current?.getEchartsInstance();
     if (instance) {
       try {
@@ -119,12 +126,15 @@ export default function GraphStudioContent(): React.ReactElement {
           pixelRatio: 2,
           updatedAt: new Date().toISOString(),
         };
-        saveSnapshot(snapshot).catch((err: unknown) => {
-          console.warn('[GraphStudio] Snapshot save failed:', err);
-        });
+        saveSnapshot(snapshot)
+          .catch((err: unknown) => console.warn('[GraphStudio] Snapshot save failed:', err))
+          .finally(() => { savingRef.current = false; });
       } catch (err) {
         console.warn('[GraphStudio] Snapshot capture failed:', err);
+        savingRef.current = false;
       }
+    } else {
+      savingRef.current = false;
     }
   }, []);
 

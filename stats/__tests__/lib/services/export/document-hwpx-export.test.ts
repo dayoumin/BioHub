@@ -283,6 +283,36 @@ describe('buildHwpxDocument', () => {
     expect(section0).toContain('체장-체중 산점도')
   })
 
+  it('스냅샷 cssWidth=0 → 이미지 제외, 캡션만 출력', async () => {
+    const template = loadTemplate()
+    const zeroDimSnapshot: ChartSnapshot = {
+      id: 'g-zero', data: makePngSnapshot('g-zero').data,
+      cssWidth: 0, cssHeight: 320, pixelRatio: 2,
+      updatedAt: '2026-04-01T00:00:00.000Z',
+    }
+    const snapshots = new Map<string, ChartSnapshot>([['g-zero', zeroDimSnapshot]])
+
+    const doc = makeDoc({
+      sections: [
+        makeSection({
+          id: 'results', title: '결과', content: '',
+          figures: [{ entityId: 'g-zero', label: 'Figure 1', caption: '0-width 차트' }],
+        }),
+      ],
+    })
+
+    const result = await buildHwpxDocument(doc, snapshots, template)
+    const zip = await JSZip.loadAsync(result)
+
+    // 이미지 제외 (BinData 없음)
+    const binDataFiles = Object.keys(zip.files).filter(f => f.startsWith('BinData/'))
+    expect(binDataFiles).toHaveLength(0)
+
+    // 캡션은 존재
+    const section0 = await zip.file('Contents/section0.xml')!.async('string')
+    expect(section0).toContain('0-width 차트')
+  })
+
   it('빈 섹션은 스킵 (content/tables/figures 없음)', async () => {
     const template = loadTemplate()
     const doc = makeDoc({
@@ -357,5 +387,34 @@ describe('buildHwpxDocument', () => {
 
     expect(zip.file('BinData/chart1.png')).not.toBeNull()
     expect(zip.file('BinData/chart2.png')).not.toBeNull()
+  })
+
+  it('XML 특수문자 (&, <, >) → 이스케이프 처리', async () => {
+    const template = loadTemplate()
+    const doc = makeDoc({
+      sections: [
+        makeSection({
+          id: 'results',
+          title: '결과 & 논의',
+          content: 'p < 0.05 이면 유의하고, F > 4.0 인 경우를 확인하였다.',
+          tables: [{
+            caption: 'A & B 비교',
+            headers: ['그룹', 'p값'],
+            rows: [['A < B', '0.03']],
+          }],
+        }),
+      ],
+    })
+
+    const result = await buildHwpxDocument(doc, undefined, template)
+    const zip = await JSZip.loadAsync(result)
+    const section0 = await zip.file('Contents/section0.xml')!.async('string')
+
+    // 원본 특수문자는 그대로 있으면 안 됨 (태그 문맥에서)
+    expect(section0).toContain('&amp;')
+    expect(section0).toContain('&lt;')
+    expect(section0).toContain('&gt;')
+    // 이스케이프된 텍스트가 포함되어 있어야 함
+    expect(section0).toContain('결과 &amp; 논의')
   })
 })

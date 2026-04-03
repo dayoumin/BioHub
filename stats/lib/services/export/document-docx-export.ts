@@ -24,6 +24,15 @@ const LINE_SPACING = 480 // 2.0 double-space in twips
 const MARGIN = 1440      // 1 inch in twips
 const PAGE_WIDTH_TWIPS = 12240    // Letter 8.5인치
 const CONTENT_WIDTH_PX = (PAGE_WIDTH_TWIPS - MARGIN * 2) / 15  // 624 CSS px
+/** 이미지 크기를 페이지 폭에 맞춰 비례 축소 (확대 안 함). 0 이하 → {0,0}. */
+export function computeImageScale(
+  cssWidth: number, cssHeight: number, maxWidth: number,
+): { width: number; height: number } {
+  if (cssWidth <= 0 || cssHeight <= 0) return { width: 0, height: 0 }
+  const scale = Math.min(1, maxWidth / cssWidth)
+  return { width: Math.round(cssWidth * scale), height: Math.round(cssHeight * scale) }
+}
+
 const COLOR_MUTED = '666666'
 const BORDER_COLOR = '000000'
 
@@ -314,11 +323,9 @@ export async function buildDocxDocument(
       for (const fig of section.figures) {
         const snapshot = snapshots?.get(fig.entityId)
 
-        if (snapshot) {
+        if (snapshot && snapshot.cssWidth > 0 && snapshot.cssHeight > 0) {
           const { ImageRun } = docx
-          const scale = Math.min(1, CONTENT_WIDTH_PX / snapshot.cssWidth)
-          const width = Math.round(snapshot.cssWidth * scale)
-          const height = Math.round(snapshot.cssHeight * scale)
+          const { width, height } = computeImageScale(snapshot.cssWidth, snapshot.cssHeight, CONTENT_WIDTH_PX)
 
           children.push(new Paragraph({
             children: [new ImageRun({

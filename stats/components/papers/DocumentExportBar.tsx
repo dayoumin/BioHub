@@ -23,6 +23,7 @@ function documentToMarkdown(doc: DocumentBlueprint): string {
   lines.push('')
 
   for (const section of doc.sections) {
+    if (!hasVisibleContent(section)) continue
     lines.push(`## ${section.title}`)
     lines.push('')
     if (section.content) {
@@ -136,9 +137,14 @@ export default function DocumentExportBar({ document: doc, onBeforeExport }: Doc
 
   const handleDownloadHtml = useCallback(() => {
     onBeforeExport?.()
-    const html = documentToHtml(doc)
-    const blob = new Blob([html], { type: 'text/html' })
-    downloadBlob(blob, `${doc.title}.html`)
+    try {
+      const html = documentToHtml(doc)
+      const blob = new Blob([html], { type: 'text/html' })
+      const safeName = doc.title.replace(/[/\\?%*:|"<>]/g, '_')
+      downloadBlob(blob, `${safeName}.html`)
+    } catch {
+      toast.error('HTML 생성에 실패했습니다')
+    }
   }, [doc, onBeforeExport])
 
   const handleDownloadDocx = useCallback(async () => {
