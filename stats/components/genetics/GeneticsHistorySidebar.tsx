@@ -34,12 +34,14 @@ const FILTER_OPTIONS: { value: ToolFilter; label: string }[] = [
   { value: 'barcoding', label: '종동정' },
   { value: 'blast', label: 'BLAST' },
   { value: 'genbank', label: 'GenBank' },
+  { value: 'seq-stats', label: '서열통계' },
 ]
 
 const TYPE_DOT_COLOR: Record<GeneticsToolType, string> = {
   barcoding: 'bg-green-500',
   blast: 'bg-blue-500',
   genbank: 'bg-amber-500',
+  'seq-stats': 'bg-violet-500',
 }
 
 // ── 컴포넌트 ──
@@ -99,6 +101,7 @@ export function GeneticsHistorySidebar(): ReactNode {
         barcoding: '/genetics/barcoding',
         blast: '/genetics/blast',
         genbank: '/genetics/genbank',
+        'seq-stats': '/genetics/seq-stats',
       }
       const base = typePath[item.data.type]
       const href = `${base}?history=${encodedId}`
