@@ -1,0 +1,24 @@
+import type { LiteratureItem } from '@/lib/types/literature'
+
+/**
+ * 프로젝트에 저장된 인용 레코드
+ *
+ * LiteratureItem의 스냅샷을 보관. 원본 검색 결과가 사라져도 인용 유지.
+ */
+export interface CitationRecord {
+  id: string          // `cit_${Date.now()}_${random}`
+  projectId: string
+  item: LiteratureItem  // 저장 시점 스냅샷
+  addedAt: string       // ISO string
+}
+
+/** CitationRecord 생성 헬퍼 */
+export function createCitationRecord(projectId: string, item: LiteratureItem): CitationRecord {
+  const random = Math.random().toString(36).slice(2, 7)
+  return {
+    id: `cit_${Date.now()}_${random}`,
+    projectId,
+    item,
+    addedAt: new Date().toISOString(),
+  }
+}
