@@ -151,4 +151,95 @@ describe('assemblePaperPackage', () => {
     const result = assemblePaperPackage(makeMinimalPackage(), emptySources)
     expect(result.tokenEstimate).toBeGreaterThan(0)
   })
+
+  it('variableMapping의 dependentVar/independentVar가 JSON에 포함', () => {
+    const pkg = makeMinimalPackage()
+    pkg.items = [{
+      id: generatePackageItemId(),
+      type: 'analysis',
+      sourceId: 'h_var',
+      analysisIds: ['ANAL-01'],
+      label: 'Table 1',
+      section: 'results',
+      order: 0,
+      included: true,
+    }]
+    const sources: PackageDataSources = {
+      historyRecords: [{
+        id: 'h_var',
+        method: { id: 'anova', name: 'One-way ANOVA', category: 'parametric' },
+        variableMapping: {
+          dependentVar: 'Shannon_H',
+          independentVar: 'Region',
+          groupVar: 'Site',
+        },
+        results: { F: 4.23, p: 0.017, df: [2, 117] },
+      } as unknown as HistoryRecord],
+      graphProjects: [],
+    }
+    const result = assemblePaperPackage(pkg, sources)
+    expect(result.markdown).toContain('"dependent": "Shannon_H"')
+    expect(result.markdown).toContain('"independent": "Region"')
+  })
+
+  it('영어 프리셋(APA 7th) 선택 시 영어 헤더 출력', () => {
+    const pkg = makeMinimalPackage()
+    pkg.journal = JOURNAL_PRESETS.find(p => p.id === 'apa7')!
+    const result = assemblePaperPackage(pkg, emptySources)
+    expect(result.markdown).toContain('Research Paper Writing Request')
+    expect(result.markdown).toContain('Critical Rules')
+    expect(result.markdown).toContain('Study Overview')
+    expect(result.markdown).not.toContain('연구 논문 작성 요청')
+  })
+
+  it('summaryStatus missing 문헌은 markdown에 "요약 없음" 경고 텍스트 포함', () => {
+    const pkg = makeMinimalPackage()
+    pkg.references = [{
+      id: generatePackageRefId(),
+      manualEntry: { authors: 'Kim J', year: 2024, title: 'Test', journal: 'JMS' },
+      role: 'methodology',
+      summaryStatus: 'missing',
+      included: true,
+    }]
+    const result = assemblePaperPackage(pkg, emptySources)
+    expect(result.markdown).toContain('⚠ 요약 없음')
+    expect(result.markdown).toContain('서술은 최소화')
+  })
+
+  it('영어 프리셋에서 missing 문헌은 영문 경고 출력', () => {
+    const pkg = makeMinimalPackage()
+    pkg.journal = JOURNAL_PRESETS.find(p => p.id === 'apa7')!
+    pkg.references = [{
+      id: generatePackageRefId(),
+      manualEntry: { authors: 'Kim J', year: 2024, title: 'Test', journal: 'JMS' },
+      role: 'background',
+      summaryStatus: 'missing',
+      included: true,
+    }]
+    const result = assemblePaperPackage(pkg, emptySources)
+    expect(result.markdown).toContain('Summary missing')
+    expect(result.markdown).toContain('Minimize introduction')
+  })
+
+  it('figure 아이템에 patternSummary와 analysisIds가 markdown에 반영', () => {
+    const pkg = makeMinimalPackage()
+    pkg.items = [{
+      id: generatePackageItemId(),
+      type: 'figure',
+      sourceId: 'g1',
+      analysisIds: ['ANAL-01', 'ANAL-02'],
+      label: 'Figure 1',
+      section: 'results',
+      order: 0,
+      included: true,
+      patternSummary: '해역 B의 평균(2.8)이 A(2.1)보다 높음',
+    }]
+    const sources: PackageDataSources = {
+      historyRecords: [],
+      graphProjects: [{ id: 'g1', name: '박스플롯' } as unknown as GraphProject],
+    }
+    const result = assemblePaperPackage(pkg, sources)
+    expect(result.markdown).toContain('해역 B의 평균(2.8)이 A(2.1)보다 높음')
+    expect(result.markdown).toContain('ANAL-01, ANAL-02')
+  })
 })
