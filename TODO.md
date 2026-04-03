@@ -1,6 +1,6 @@
 # BioHub TODO
 
-**Last updated**: 2026-04-02
+**Last updated**: 2026-04-03
 **References**: [Product Strategy](docs/PRODUCT_STRATEGY.md), [Roadmap](ROADMAP.md), [Research Project Status](docs/RESEARCH_PROJECT_STATUS.md)
 
 ---
@@ -15,13 +15,10 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 
 ## 2. Now
 
-### 논문 작성 (Phase 5-6)
+### 논문 작성 (Phase 6)
 
-- `[paper]` **Phase 5: 영문 템플릿 완성**
-  - 영문 Methods/Results/Captions 템플릿 15개 (현재 전부 stub → 실제 영문 텍스트)
-  - ~~Discussion LLM 생성~~ → 안 함 (외부 AI 영역)
-  - ~~외부 AI 프롬프트 클립보드 복사~~ → 보류
-- `[paper]` Phase 6: 인용 관리 (citation store 신규), Figure 통합, 영문 템플릿, 번호 매기기
+- `[paper]` ~~Phase 5: 영문 템플릿 완성~~ ✅ (15개 완성 + 품질 패치 7건 + 테스트 55개)
+- `[paper]` Phase 6: 인용 관리 (citation store 신규), Figure 통합, 번호 매기기
 - 상세: [PLAN-DOCUMENT-ASSEMBLY.md](stats/docs/papers/PLAN-DOCUMENT-ASSEMBLY.md)
 
 ---
@@ -44,8 +41,10 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 
 ### 3-B. UX 개선
 
+- `[ux]` ~~사이드바 BioHub 로고 홈 링크~~ ✅ + ~~문헌·동향 → 논문 작성 하위로 이동~~ ✅
+- `[ux]` Stitch Axiom Slate 디자인 시스템 적용 ✅ — `stats/DESIGN.md` 기반, Surface Hierarchy + No-Line Rule
+- `[ux]` 문헌·동향을 논문 작성 페이지 내 서브탭으로 통합 (사이드바 제거 완료, 페이지 통합 대기)
 - `[ux]` Command Palette (Cmd+K) — 43개 분석 메서드 + 16개 Bio 도구 + Graph Studio 빠른 접근
-- `[ux]` 사이드바 IA 재구성 — 네비게이션 계층 재설계
 - `[ux]` 키보드 단축키 — `Ctrl+Enter` 분석 실행, `Escape` 뒤로, `Ctrl+S` 저장/내보내기
 - `[ux]` Bio-Tools 샘플 데이터 — "샘플로 시작" 옵션 (신규 사용자 마찰 감소)
 - `[ux]` Bio-Tools 데이터 프리뷰 — 업로드 후 분석 전 5행 미리보기
@@ -60,6 +59,9 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
   - 히스토리 사이드바 한글 하드코딩 → terminology (~15건)
   - `onHistoryShowMore` 데드 prop 정리
   - pin 토글 로직 `togglePinId()` 순수 함수 추출 (3곳 반복)
+- `[quality]` worker.ts 남은 기술부채:
+  - `jsonResponse` 중복 (`worker.ts` + `handlers/literature.ts`) → 공유 모듈 추출
+  - `parseInlineMarks` DOCX/HWPX 90% 중복 (P1-7) → 3번째 파서 등장 시 통합
 - `[quality]` dangling ref 정리 — 수동 "정리" 버튼 또는 주기적 GC
 - `[quality]` entity-resolver `*Like` 인터페이스 → `Pick<OriginalType, ...>` 전환
 - `[quality]` `entity-tab-registry.ts` raw localStorage → Zustand persist 전환
@@ -70,6 +72,7 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 ### 3-D. 인프라
 
 - `[infra]` D1 스키마 갭 해소 — 상세: [D1-SCHEMA-GAP.md](docs/D1-SCHEMA-GAP.md). 인증/멀티디바이스 시 필수
+- `[infra]` genetics history cloud sync 버그 수정 ✅ — projectId 제거, overflow D1 삭제, hydration cap 적용
 - `[infra]` 회원가입/OAuth 도입 후 `deviceId` 기반 `X-User-Id`를 실제 `userId`/세션 기반 인증으로 전환
   - genetics history D1 동기화 레이어의 식별자 교체
   - 기존 `deviceId` 레코드 → 최초 로그인 `userId` 이관 전략 필요
@@ -120,5 +123,8 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - **유전적 분석**: BLAST 통합 리팩토링, 히스토리 분리, 초보자 가이드, rate limit 재시도
 - **Bio-Tools**: BioToolId 타입, 차트 ECharts 전환, 결과 내보내기, 프로젝트 연결, Worker 9 골든 테스트
 - **논문 작성**: Phase 1 (타입+조립엔진) → Phase 2 (에디터) → Phase 3 (Plate WYSIWYG) → Phase 4 (DOCX 내보내기)
-- **UI 통합**: Shell/Upload/Bio 페이지 일관성, 토스트 마이그레이션, 디자인 토큰, 차트 팔레트 토큰화
+- **UI 통합**: Shell/Upload/Bio 페이지 일관성, 토스트 마이그레이션, 디자인 토큰, 차트 팔레트 토큰화, **전역 토큰 일관성 통일** (26건 18파일)
+- **유전적 분석 Cloud Sync**: D1 genetics history API + 30s TTL hydration + entity ref 중복 수정
+- **worker.ts 기술부채**: `parseJsonBody`(9건) + `authenticateRequest`(3건) + `verifyProjectOwnership`(4건) 헬퍼 추출
+- **논문 내보내기**: Phase 6a DOCX/HWPX 차트 이미지 삽입 + 리뷰 수정 9건
 - **인프라**: Evidence 저장, 재현 코드 내보내기, CF 빌드 수정, genetics/bio-tools 구조 정리
