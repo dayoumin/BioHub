@@ -64,6 +64,9 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
   - `onHistoryShowMore` 데드 prop 정리
   - pin 토글 로직 `togglePinId()` 순수 함수 추출 (3곳 반복)
 - `[quality]` IndexedDB 트랜잭션 헬퍼 중복 — `txPut/txGetByIndex/txDelete`가 `citation-storage.ts` + `document-blueprint-storage.ts` + `chart-snapshot-storage.ts` 3곳에 반복 → `lib/utils/indexeddb-helpers.ts` 공유 모듈로 추출
+- `[quality]` ID 생성 함수 통합 — `generateProjectId/generateDocumentId/generatePackageId` 등 7곳이 동일 패턴 → `generateId(prefix)` 유틸 추출 (`lib/utils/generate-id.ts`)
+- `[quality]` `downloadTextFile(content, filename, mimeType)` 유틸 추출 — `PackagePreview/PaperDraftPanel/DocumentExportBar` 등 10+곳 인라인 Blob 다운로드 반복
+- `[quality]` `JournalPreset.style` 타입 강화 — `string` → `'kjfs' | 'kso' | 'apa7' | 'imrad' | 'custom'` union
 - `[quality]` worker.ts 남은 기술부채:
   - `jsonResponse` 중복 (`worker.ts` + `handlers/literature.ts`) → 공유 모듈 추출
   - `parseInlineMarks` DOCX/HWPX 90% 중복 (P1-7) → 3번째 파서 등장 시 통합
