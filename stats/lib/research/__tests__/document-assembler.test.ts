@@ -535,3 +535,79 @@ describe('reassembleDocument', () => {
     expect(reassembled.updatedAt).not.toBe(original.updatedAt)
   })
 })
+
+// ── citations 병합 테스트 ──
+
+import type { CitationRecord } from '../citation-types'
+import type { LiteratureItem } from '@/lib/types/literature'
+
+describe('assembleDocument - citations 병합', () => {
+  function makeCitationRecord(overrides: Partial<CitationRecord> = {}): CitationRecord {
+    const item: LiteratureItem = {
+      id: 'lit_1',
+      source: 'openalex',
+      title: 'Fisheries Population Dynamics',
+      authors: ['Smith A', 'Jones B'],
+      year: 2021,
+      journal: 'Fisheries Research',
+      url: 'https://example.com',
+      doi: '10.0000/fr.2021',
+      searchedName: 'test',
+    }
+    return {
+      id: 'cit_1',
+      projectId: 'proj_test',
+      item,
+      addedAt: '2026-01-01T00:00:00Z',
+      ...overrides,
+    }
+  }
+
+  it('citations가 있으면 References 섹션에 APA 문자열 포함', () => {
+    const citations = [makeCitationRecord()]
+    const sources: AssemblerDataSources = {
+      entityRefs: [],
+      allHistory: [],
+      allGraphProjects: [],
+      citations,
+    }
+    const blueprint = assembleDocument(
+      { projectId: 'proj_test', preset: 'paper', language: 'en', title: 'Test' },
+      sources,
+    )
+    const refsSection = blueprint.sections.find(s => s.id === 'references')
+    expect(refsSection?.content).toContain('Smith A, & Jones B')
+    expect(refsSection?.content).toContain('2021')
+    expect(refsSection?.content).toContain('https://doi.org/10.0000/fr.2021')
+  })
+
+  it('citations가 없으면 소프트웨어 기본 인용만 표시', () => {
+    const sources: AssemblerDataSources = {
+      entityRefs: [],
+      allHistory: [],
+      allGraphProjects: [],
+      citations: [],
+    }
+    const blueprint = assembleDocument(
+      { projectId: 'proj_test', preset: 'paper', language: 'en', title: 'Test' },
+      sources,
+    )
+    const refsSection = blueprint.sections.find(s => s.id === 'references')
+    expect(refsSection?.content).toContain('BioHub')
+    expect(refsSection?.content).toContain('SciPy')
+  })
+
+  it('citations가 undefined이면 기존 동작과 동일', () => {
+    const sources: AssemblerDataSources = {
+      entityRefs: [],
+      allHistory: [],
+      allGraphProjects: [],
+    }
+    const blueprint = assembleDocument(
+      { projectId: 'proj_test', preset: 'paper', language: 'en', title: 'Test' },
+      sources,
+    )
+    const refsSection = blueprint.sections.find(s => s.id === 'references')
+    expect(refsSection?.content).toContain('BioHub')
+  })
+})

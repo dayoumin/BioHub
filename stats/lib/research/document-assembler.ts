@@ -11,6 +11,8 @@ import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { ProjectEntityRef } from '@biohub/types'
 import type { GraphProject } from '@/types/graph-studio'
 import type { BlastEntryLike } from './entity-resolver'
+import type { CitationRecord } from './citation-types'
+import { buildCitationString } from './citation-apa-formatter'
 import type {
   DocumentBlueprint,
   DocumentPreset,
@@ -33,6 +35,8 @@ export interface AssemblerDataSources {
   allGraphProjects: GraphProject[]
   /** genetics 히스토리 (BLAST 결과 조립용, entity-loader blastHistory) */
   blastHistory?: BlastEntryLike[]
+  /** 프로젝트에 저장된 인용 목록 */
+  citations?: CitationRecord[]
 }
 
 export interface AssembleOptions {
@@ -163,22 +167,34 @@ function mergeBlastResults(
   return parts.join('\n\n')
 }
 
-/** References 섹션 기본 텍스트 (소프트웨어 인용) */
-function buildDefaultReferences(language: 'ko' | 'en'): string {
-  if (language === 'ko') {
-    return [
-      '### 소프트웨어',
-      '',
-      '- BioHub (https://biohub.ecomarin.workers.dev/) — 통계 분석 및 논문 초안 생성',
-      '- SciPy (Virtanen et al., 2020) — 통계 검정 라이브러리',
-    ].join('\n')
-  }
-  return [
-    '### Software',
-    '',
-    '- BioHub (https://biohub.ecomarin.workers.dev/) — Statistical analysis and paper draft generation',
-    '- SciPy (Virtanen et al., 2020) — Statistical testing library',
-  ].join('\n')
+/** References 섹션 텍스트 = 사용자 인용 + 소프트웨어 인용 */
+function buildReferencesContent(
+  citations: CitationRecord[],
+  language: 'ko' | 'en',
+): string {
+  const software =
+    language === 'ko'
+      ? [
+          '### 소프트웨어',
+          '',
+          '- BioHub (https://biohub.ecomarin.workers.dev/) — 통계 분석 및 논문 초안 생성',
+          '- SciPy (Virtanen et al., 2020) — 통계 검정 라이브러리',
+        ].join('\n')
+      : [
+          '### Software',
+          '',
+          '- BioHub (https://biohub.ecomarin.workers.dev/) — Statistical analysis and paper draft generation',
+          '- SciPy (Virtanen et al., 2020) — Statistical testing library',
+        ].join('\n')
+
+  if (citations.length === 0) return software
+
+  const header = language === 'ko' ? '### 참고문헌' : '### References'
+  const cited = citations
+    .map((c, i) => `${i + 1}. ${buildCitationString(c.item)}`)
+    .join('\n')
+
+  return `${header}\n\n${cited}\n\n${software}`
 }
 
 // ── 공개 API ──
@@ -235,7 +251,7 @@ export function assembleDocument(
   // References 섹션 기본값
   const refsSection = sections.find(s => s.id === 'references')
   if (refsSection && !refsSection.content) {
-    refsSection.content = buildDefaultReferences(language)
+    refsSection.content = buildReferencesContent(sources.citations ?? [], language)
     refsSection.generatedBy = 'template'
   }
 
