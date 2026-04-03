@@ -536,7 +536,10 @@ describe('불완전 데이터 처리 (null guard)', () => {
 
 describe('영문 템플릿', () => {
   it('모든 카테고리에서 en → 실제 영문 텍스트 반환', () => {
-    const categories = ['t-test', 'anova', 'nonparametric', 'correlation', 'regression', 'chi-square']
+    const categories = [
+      't-test', 'anova', 'nonparametric', 'correlation', 'regression', 'chi-square',
+      'descriptive', 'timeseries', 'survival', 'multivariate', 'psychometrics', 'design',
+    ]
     for (const cat of categories) {
       const input: TemplateInput = { ...makeInput(cat), lang: 'en' }
       const tmpl = getTemplate(cat, cat)
@@ -565,18 +568,134 @@ describe('영문 템플릿', () => {
     expect(results).toContain('*p*')
   })
 
-  it('영문 descriptive에 Descriptive statistics 문구가 포함된다', () => {
-    const input: TemplateInput = { ...makeInput('descriptive'), lang: 'en' }
+  it('영문 descriptive — mean/SD/skewness 포함', () => {
+    const input: TemplateInput = {
+      ...makeInput('descriptive', {
+        method: 'descriptive', statistic: 0.97, pValue: 0.823,
+        additional: { mean: 14.2, std: 2.5, median: 14.0, iqr: 3.2, skewness: 0.12, kurtosis: -0.3 },
+      }, []),
+      lang: 'en',
+    }
     const tmpl = getTemplate('descriptive', 'descriptive')
     const results = tmpl.results(input)
     expect(results).toContain('Descriptive statistics')
+    expect(results).toContain('*M*) = 14.20')
+    expect(results).toContain('*SD*) = 2.50')
+    expect(results).toContain('approximately normally distributed')
   })
 
-  it('영문 correlation에 방향/강도가 포함된다', () => {
+  it('영문 correlation — 방향/강도 포함', () => {
     const input: TemplateInput = { ...makeInput('correlation'), lang: 'en' }
     const tmpl = getTemplate('correlation', 'correlation')
     const results = tmpl.results(input)
     expect(results).toMatch(/positive|negative/)
     expect(results).toMatch(/strong|moderate|weak/)
+  })
+
+  it('영문 timeseries — ADF/AIC/BIC 포함', () => {
+    const input: TemplateInput = {
+      ...makeInput('arima', {
+        method: 'ARIMA', statistic: -4.32, pValue: 0.001,
+        additional: { aic: 123.4, bic: 131.2, model: 'ARIMA(1,1,1)' },
+      }, [
+        { category: 'stationarity', testName: 'ADF', statistic: -4.32, pValue: 0.001, passed: true },
+      ]),
+      lang: 'en',
+    }
+    const tmpl = getTemplate('arima', 'timeseries')
+    expect(tmpl.methods(input)).toContain('Augmented Dickey-Fuller')
+    const results = tmpl.results(input)
+    expect(results).toContain('ARIMA(1,1,1)')
+    expect(results).toContain('AIC = 123.40')
+  })
+
+  it('영문 survival — HR/CI 포함', () => {
+    const input: TemplateInput = {
+      ...makeInput('kaplan-meier', {
+        method: 'Kaplan-Meier', statistic: 5.43, pValue: 0.02,
+        effectSize: 1.85, confidence: { lower: 1.12, upper: 3.06, level: 0.95 },
+      }, []),
+      lang: 'en',
+    }
+    const tmpl = getTemplate('kaplan-meier', 'survival')
+    expect(tmpl.results(input)).toContain('HR = 1.85')
+    expect(tmpl.results(input)).toContain('[1.12, 3.06]')
+  })
+
+  it('영문 multivariate — explained variance 포함', () => {
+    const input: TemplateInput = {
+      ...makeInput('pca', {
+        method: 'PCA', statistic: 0, pValue: 1,
+        additional: { explainedVarianceRatio: [0.45, 0.22, 0.13] },
+      }, []),
+      lang: 'en',
+    }
+    const tmpl = getTemplate('pca', 'multivariate')
+    expect(tmpl.results(input)).toContain('80.00%')
+  })
+
+  it('영문 reliability — Cronbach α/해석 포함', () => {
+    const input: TemplateInput = {
+      ...makeInput('reliability', {
+        method: 'reliability', statistic: 0.87, pValue: 1,
+        additional: { n: 10, itemTotalCorrelations: [0.62, 0.71, 0.58] },
+      }, []),
+      lang: 'en',
+    }
+    const tmpl = getTemplate('reliability', 'psychometrics')
+    expect(tmpl.methods(input)).toContain("Cronbach's α")
+    expect(tmpl.methods(input)).toContain('10 items')
+    const results = tmpl.results(input)
+    expect(results).toContain('α = 0.87')
+    expect(results).toContain('good')
+  })
+
+  it('영문 power-analysis — sample size/power 포함', () => {
+    const input: TemplateInput = {
+      ...makeInput('power-analysis', {
+        method: 'power-analysis', statistic: 0.5, pValue: 1, effectSize: 0.5,
+        additional: { analysisType: 'a-priori', requiredSampleSize: 52, power: 0.8, alpha: 0.05 },
+      }, []),
+      lang: 'en',
+    }
+    const tmpl = getTemplate('power-analysis', 'design')
+    expect(tmpl.methods(input)).toContain('a priori power analysis')
+    expect(tmpl.results(input)).toContain('*n* = 52')
+  })
+
+  it('영문 t-test methods — "Prior to analysis," 뒤 소문자', () => {
+    const input: TemplateInput = { ...makeInput('t-test'), lang: 'en' }
+    const tmpl = getTemplate('t-test', 't-test')
+    const methods = tmpl.methods(input)
+    expect(methods).toContain('Prior to analysis, normality')
+    expect(methods).not.toContain('Prior to analysis, Normality')
+  })
+
+  it('영문 anova methods — "Prior to analysis," 뒤 소문자', () => {
+    const input: TemplateInput = { ...makeInput('anova'), lang: 'en' }
+    const tmpl = getTemplate('anova', 'anova')
+    const methods = tmpl.methods(input)
+    expect(methods).toContain('Prior to analysis, normality')
+    expect(methods).not.toContain('Prior to analysis, Normality')
+  })
+
+  it('영문 anova methods — "A One-Way ANOVA" (An 아님)', () => {
+    const input: TemplateInput = { ...makeInput('anova'), lang: 'en' }
+    const tmpl = getTemplate('anova', 'anova')
+    const methods = tmpl.methods(input)
+    expect(methods).toContain('A One-Way ANOVA was conducted')
+    expect(methods).not.toContain('An One-Way')
+  })
+
+  it('boxplot 캡션 한글 — "집단별" 사용 ("성별" 아님)', () => {
+    const input: TemplateInput = {
+      ...makeInput('t-test', { visualizationData: { type: 'boxplot', data: {} } }),
+      lang: 'ko',
+    }
+    const tmpl = getTemplate('t-test', 't-test')
+    const caps = tmpl.captions(input)
+    const fig = caps.find(c => c.kind === 'figure')
+    expect(fig?.text).toContain('집단별')
+    expect(fig?.text).not.toContain('성별')
   })
 })

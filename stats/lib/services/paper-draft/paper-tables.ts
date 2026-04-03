@@ -20,7 +20,7 @@ function fmt(n: number | undefined | null, digits = 2): string {
 
 function fmtP(p: number): string {
   if (p < 0.001) return '< .001'
-  return p.toFixed(3)
+  return p.toFixed(3).replace(/^0\./, '.')
 }
 
 function fmtDf(df: number | [number, number] | undefined): string {

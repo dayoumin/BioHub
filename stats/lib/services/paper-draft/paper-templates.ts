@@ -54,6 +54,13 @@ function esLabel(
   return defaultLabel
 }
 
+/** 영문 부정관사 선택 (모음 앞 "An", 자음 앞 "A") */
+function articleA(word: string): 'A' | 'An' {
+  // "One-Way" 등 모음 글자지만 자음 발음(/w/)인 경우
+  if (/^one[-\s]/i.test(word)) return 'A'
+  return /^[aeiouAEIOU]/.test(word) ? 'An' : 'A'
+}
+
 /** DraftContext에서 그룹/변수 표시명 조회 */
 function label(name: string | undefined, ctx: DraftContext): string {
   if (!name) return ''
@@ -222,7 +229,7 @@ function buildFigureCaption(
 
   const descriptions: Record<string, { ko: string; en: string }> = {
     boxplot: {
-      ko: `성별에 따른 ${depVar}${unit} 분포. 상자는 사분위 범위, 가운데 선은 중앙값, 수염은 1.5×IQR 범위를 나타낸다.`,
+      ko: `집단별 ${depVar}${unit} 분포. 상자는 사분위 범위, 가운데 선은 중앙값, 수염은 1.5×IQR 범위를 나타낸다.`,
       en: `Distribution of ${depVar}${unit} by group. Box represents IQR, center line is median, whiskers extend to 1.5×IQR.`,
     },
     scatter: {
@@ -326,8 +333,8 @@ const GENERIC_TEMPLATE: CategoryTemplate = {
 
     if (lang === 'en') {
       const intro = ctx.researchContext
-        ? `A ${methodName} was conducted to ${ctx.researchContext}.`
-        : `A ${methodName} was conducted to analyze ${ctx.dependentVariable ?? 'the dependent variable'}.`
+        ? `${articleA(methodName)} ${methodName} was conducted to ${ctx.researchContext}.`
+        : `${articleA(methodName)} ${methodName} was conducted to analyze ${ctx.dependentVariable ?? 'the dependent variable'}.`
       const parts = [intro]
       if (normTests.length) parts.push(buildNormalityText(normTests, lang))
       if (homoTests.length) parts.push(buildHomogeneityText(homoTests, lang))
@@ -384,7 +391,7 @@ const T_TEST_TEMPLATE: CategoryTemplate = {
         ? `An independent samples t-test was conducted to ${ctx.researchContext}.`
         : `An independent samples t-test was conducted to examine differences in ${depVar} between two groups.`
       const parts = ['Prior to analysis,']
-      if (normTests.length) parts.push(buildNormalityText(normTests, lang))
+      if (normTests.length) parts.push(buildNormalityText(normTests, lang, true))
       if (homoTests.length) parts.push(buildHomogeneityText(homoTests, lang))
       if (normTests.length || homoTests.length) {
         const allPassed = [...normTests, ...homoTests].every(a => a.passed)
@@ -599,10 +606,10 @@ const ANOVA_TEMPLATE: CategoryTemplate = {
 
     if (lang === 'en') {
       const intro = ctx.researchContext
-        ? `A ${methodName} was conducted to ${ctx.researchContext}.`
-        : `A ${methodName} was conducted to examine group differences in ${depVar}.`
+        ? `${articleA(methodName)} ${methodName} was conducted to ${ctx.researchContext}.`
+        : `${articleA(methodName)} ${methodName} was conducted to examine group differences in ${depVar}.`
       const parts = ['Prior to analysis,']
-      if (normTests.length) parts.push(buildNormalityText(normTests, lang))
+      if (normTests.length) parts.push(buildNormalityText(normTests, lang, true))
       if (homoTests.length) parts.push(buildHomogeneityText(homoTests, lang))
       if (spherTests.length) parts.push(buildSphericityText(spherTests, lang))
       if (r.postHocMethod) {
@@ -677,8 +684,8 @@ const NONPARAMETRIC_TEMPLATE: CategoryTemplate = {
 
     if (lang === 'en') {
       const intro = ctx.researchContext
-        ? `A ${methodName} was conducted to ${ctx.researchContext}.`
-        : `A ${methodName} was conducted to examine group differences in ${depVar}.`
+        ? `${articleA(methodName)} ${methodName} was conducted to ${ctx.researchContext}.`
+        : `${articleA(methodName)} ${methodName} was conducted to examine group differences in ${depVar}.`
       const reason = normTests.some(a => !a.passed)
         ? 'A nonparametric test was employed because the data did not meet the normality assumption.'
         : 'A nonparametric approach was used to examine group differences.'
@@ -757,8 +764,8 @@ const CORRELATION_TEMPLATE: CategoryTemplate = {
     if (lang === 'en') {
       const varStr = varNames.join(' and ')
       const intro = ctx.researchContext
-        ? `A ${methodName} was conducted to ${ctx.researchContext}.`
-        : `A ${methodName} was conducted to examine the relationship between ${varStr}.`
+        ? `${articleA(methodName)} ${methodName} was conducted to ${ctx.researchContext}.`
+        : `${articleA(methodName)} ${methodName} was conducted to examine the relationship between ${varStr}.`
       const parts = [intro]
       if (normTests.length) parts.push(`Prior to analysis, ${buildNormalityText(normTests, lang, true)}`)
       parts.push(buildAlphaSoftware(alpha, lang))
@@ -824,8 +831,8 @@ const REGRESSION_TEMPLATE: CategoryTemplate = {
 
     if (lang === 'en') {
       const intro = ctx.researchContext
-        ? `A ${methodName} was conducted to ${ctx.researchContext}.`
-        : `A ${methodName} was conducted to build a predictive model for ${depVar}.`
+        ? `${articleA(methodName)} ${methodName} was conducted to ${ctx.researchContext}.`
+        : `${articleA(methodName)} ${methodName} was conducted to build a predictive model for ${depVar}.`
       const parts = ['Assumptions of linearity, normality and homoscedasticity of residuals, and independence were examined prior to analysis.']
       if (normTests.length) parts.push(buildNormalityText(normTests, lang))
       if (homoTests.length) parts.push(buildHomogeneityText(homoTests, lang))
@@ -918,8 +925,8 @@ const CHI_SQUARE_TEMPLATE: CategoryTemplate = {
 
     if (lang === 'en') {
       const intro = ctx.researchContext
-        ? `A ${methodName} was conducted to ${ctx.researchContext}.`
-        : `A ${methodName} was conducted to test the independence between categorical variables.`
+        ? `${articleA(methodName)} ${methodName} was conducted to ${ctx.researchContext}.`
+        : `${articleA(methodName)} ${methodName} was conducted to test the independence between categorical variables.`
       const parts = [
         intro,
         'Prior to analysis, all cells were confirmed to have expected frequencies of 5 or greater.',
@@ -1058,8 +1065,8 @@ const TIMESERIES_TEMPLATE: CategoryTemplate = {
 
     if (lang === 'en') {
       const intro = ctx.researchContext
-        ? `A ${methodName} was conducted to ${ctx.researchContext}.`
-        : `A ${methodName} was conducted for time series analysis.`
+        ? `${articleA(methodName)} ${methodName} was conducted to ${ctx.researchContext}.`
+        : `${articleA(methodName)} ${methodName} was conducted for time series analysis.`
       const parts = [intro]
       if (statTests.length) {
         const adf = statTests.find(a => a.testName === 'ADF')
@@ -1126,8 +1133,8 @@ const SURVIVAL_TEMPLATE: CategoryTemplate = {
 
     if (lang === 'en') {
       const intro = ctx.researchContext
-        ? `A ${methodName} was conducted to ${ctx.researchContext}.`
-        : `A ${methodName} was conducted for survival analysis.`
+        ? `${articleA(methodName)} ${methodName} was conducted to ${ctx.researchContext}.`
+        : `${articleA(methodName)} ${methodName} was conducted for survival analysis.`
       const parts = [intro]
       if (hazardTests.length) {
         parts.push('The proportional hazards assumption was tested using the Schoenfeld residuals test.')
@@ -1189,8 +1196,8 @@ const MULTIVARIATE_TEMPLATE: CategoryTemplate = {
 
     if (lang === 'en') {
       const intro = ctx.researchContext
-        ? `A ${methodName} was conducted to ${ctx.researchContext}.`
-        : `A ${methodName} was conducted for multivariate analysis.`
+        ? `${articleA(methodName)} ${methodName} was conducted to ${ctx.researchContext}.`
+        : `${articleA(methodName)} ${methodName} was conducted for multivariate analysis.`
       return [intro, buildAlphaSoftware(alpha, lang)].join(' ')
     }
 
@@ -1249,7 +1256,7 @@ const RELIABILITY_TEMPLATE: CategoryTemplate = {
 
     if (lang === 'en') {
       const intro = ctx.researchContext
-        ? `Cronbach's α was calculated to assess reliability for ${ctx.researchContext}.`
+        ? `Cronbach's α was calculated to assess reliability to ${ctx.researchContext}.`
         : "Cronbach's α was calculated to assess the internal consistency of the scale."
       const nStr = n ? ` The scale consisted of ${n} items.` : ''
       return [intro + nStr, buildAlphaSoftware(alpha, lang)].join(' ')
@@ -1309,7 +1316,7 @@ const POWER_ANALYSIS_TEMPLATE: CategoryTemplate = {
     if (lang === 'en') {
       const analysisType = add.analysisType === 'post-hoc' ? 'post hoc' : 'a priori'
       const intro = ctx.researchContext
-        ? `An ${analysisType} power analysis was conducted for ${ctx.researchContext}.`
+        ? `An ${analysisType} power analysis was conducted to ${ctx.researchContext}.`
         : `An ${analysisType} power analysis was conducted to determine the appropriate sample size.`
       return intro
     }
@@ -1330,21 +1337,21 @@ const POWER_ANALYSIS_TEMPLATE: CategoryTemplate = {
     const alpha = add.alpha ?? 0.05
 
     if (lang === 'en') {
-      const parts: string[] = ['The power analysis yielded the following:']
-      if (es !== undefined) parts.push(`effect size = ${fmt(es)}`)
-      if (alpha !== undefined) parts.push(`α = ${alpha}`)
-      if (power !== undefined) parts.push(`power (1-β) = ${fmt(power)}`)
-      if (requiredN !== undefined) parts.push(`required sample size *n* = ${requiredN}`)
-      return parts.join(', ') + '.'
+      const items: string[] = []
+      if (es !== undefined) items.push(`effect size = ${fmt(es)}`)
+      if (alpha !== undefined) items.push(`α = ${alpha}`)
+      if (power !== undefined) items.push(`power (1-β) = ${fmt(power)}`)
+      if (requiredN !== undefined) items.push(`required sample size *n* = ${requiredN}`)
+      return `The power analysis yielded the following: ${items.join(', ')}.`
     }
 
-    const parts: string[] = ['검정력 분석 결과:']
-    if (es !== undefined) parts.push(`효과크기 = ${fmt(es)}`)
-    if (alpha !== undefined) parts.push(`유의수준 α = ${alpha}`)
-    if (power !== undefined) parts.push(`검정력(1-β) = ${fmt(power)}`)
-    if (requiredN !== undefined) parts.push(`필요 표본 수 *n* = ${requiredN}`)
+    const items: string[] = []
+    if (es !== undefined) items.push(`효과크기 = ${fmt(es)}`)
+    if (alpha !== undefined) items.push(`유의수준 α = ${alpha}`)
+    if (power !== undefined) items.push(`검정력(1-β) = ${fmt(power)}`)
+    if (requiredN !== undefined) items.push(`필요 표본 수 *n* = ${requiredN}`)
 
-    return parts.join(', ') + '.'
+    return `검정력 분석 결과: ${items.join(', ')}.`
   },
 
   captions(input) {
