@@ -19,6 +19,8 @@ import { convertPaperTable, buildFigureRef } from '@/lib/research/document-bluep
 import type { DocumentBlueprint, DocumentSection } from '@/lib/research/document-blueprint-types'
 import type { HistoryRecord } from '@/lib/utils/storage-types'
 import type { GraphProject } from '@/types/graph-studio'
+import type { CitationRecord } from '@/lib/research/citation-types'
+import { listCitationsByProject, deleteCitation } from '@/lib/research/citation-storage'
 import { MARKDOWN_CONFIG } from '@/lib/rag/config/markdown-config'
 import { paperPlugins, EQUATION_KEY, INLINE_EQUATION_KEY } from './plate-plugins'
 import { EquationElement, InlineEquationElement } from './equation-element'
@@ -47,6 +49,7 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
   const [previewMode, setPreviewMode] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [loading, setLoading] = useState(true)
+  const [citations, setCitations] = useState<CitationRecord[]>([])
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { analysisHistory } = useHistoryStore()
 
@@ -91,6 +94,13 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
       setLoading(false)
     })
   }, [documentId])
+
+  useEffect(() => {
+    if (!doc?.projectId) return
+    listCitationsByProject(doc.projectId)
+      .then(setCitations)
+      .catch(() => setCitations([]))
+  }, [doc?.projectId])
 
   const scheduleSave = useCallback((updated: DocumentBlueprint) => {
     pendingDocRef.current = updated
@@ -250,12 +260,13 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
       allHistory: analysisHistory as unknown as HistoryRecord[],
       allGraphProjects,
       blastHistory,
+      citations,
     })
     setDoc(reassembled)
     scheduleSave(reassembled)
     // 활성 섹션 에디터 값 새로고침 강제
     loadedSectionRef.current = null
-  }, [doc, analysisHistory, scheduleSave])
+  }, [doc, analysisHistory, scheduleSave, citations])
 
   // 분석 삽입 — Plate API로 노드 삽입 + sidecar 테이블 유지
   const handleInsertAnalysis = useCallback((record: HistoryRecord) => {
@@ -325,6 +336,21 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
       return updated
     })
   }, [activeSectionId, doc, scheduleSave])
+
+  // 인용 삽입 — citations state에 추가 (doi/url 중복 방지)
+  const handleInsertCitation = useCallback((record: CitationRecord) => {
+    const key = record.item.doi ?? record.item.url
+    setCitations(prev => {
+      if (prev.some(c => (c.item.doi ?? c.item.url) === key)) return prev
+      return [...prev, record]
+    })
+  }, [])
+
+  // 인용 삭제 — IndexedDB + state 동기
+  const handleDeleteCitation = useCallback(async (id: string) => {
+    await deleteCitation(id)
+    setCitations(prev => prev.filter(c => c.id !== id))
+  }, [])
 
   // ── 렌더링 ──
 
@@ -489,6 +515,9 @@ export default function DocumentEditor({ documentId, onBack }: DocumentEditorPro
             projectId={doc.projectId}
             onInsertAnalysis={handleInsertAnalysis}
             onInsertFigure={handleInsertFigure}
+            citations={citations}
+            onInsertCitation={handleInsertCitation}
+            onDeleteCitation={handleDeleteCitation}
           />
         </div>
       </div>
