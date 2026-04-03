@@ -272,7 +272,7 @@ export function useBlastExecution<T>({
       ctrl.abort()
     }
     // payload가 변경되면 재실행 — 소비자는 useMemo로 payload 안정화 필수
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [payload])
 
   // currentStep 계산

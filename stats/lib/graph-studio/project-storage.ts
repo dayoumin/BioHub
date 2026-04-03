@@ -123,7 +123,7 @@ function writeWithQuotaRetry(list: GraphProject[], excludeId: string): string[] 
  * 호출자는 반환값으로 스냅샷 등 연관 데이터를 정리할 수 있다.
  */
 export function saveProject(project: GraphProject): string[] {
-  let list = listProjects();
+  const list = listProjects();
   const idx = list.findIndex(p => p.id === project.id);
   if (idx >= 0) {
     list[idx] = project;

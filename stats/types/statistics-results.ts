@@ -498,7 +498,7 @@ export interface StatisticalResult {
   }>
 
   // 추가 결과 테이블 (배열 지원 - 여러 테이블 표시)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 레거시 호환: 다양한 테이블 구조 수용
+   
   additionalResults?: Array<{
     title: string
     columns: any[]  // eslint-disable-line @typescript-eslint/no-explicit-any

@@ -351,7 +351,7 @@ export type SupportedEntityKind = keyof EntityKindDescriptors
  */
 type GenericOnlyEntityKind = Exclude<ProjectEntityKind, SupportedEntityKind>
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- compile-time exhaustiveness check
+ 
 const _GENERIC_ONLY_KINDS: Record<GenericOnlyEntityKind, true> = {
   'chat-session': true,
   'species-validation': true,

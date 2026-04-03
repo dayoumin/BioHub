@@ -320,7 +320,7 @@ export function PaperDraftPanel({
       captionsFullText ? `## Captions\n\n${captionsFullText}` : '',
       discussionDoneText ? `## Discussion\n\n${discussionDoneText}` : '',
     ].filter(Boolean).join('\n\n'),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     [tablesFullText, draft.methods, draft.results, captionsFullText, discussionDoneText]
   )
 
