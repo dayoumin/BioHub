@@ -22,6 +22,8 @@ import { LeftDataPanel } from '@/components/graph-studio/LeftDataPanel';
 import { RightPropertyPanel } from '@/components/graph-studio/RightPropertyPanel';
 import { AiPanel } from '@/components/graph-studio/AiPanel';
 import { downloadChart } from '@/lib/graph-studio/export-utils';
+import { saveSnapshot, dataUrlToUint8Array } from '@/lib/graph-studio/chart-snapshot-storage';
+import type { ChartSnapshot } from '@/lib/graph-studio/chart-snapshot-storage';
 
 type LayoutMode = 'upload' | 'setup' | 'editor';
 
@@ -96,10 +98,40 @@ export default function GraphStudioContent(): React.ReactElement {
     // Note: chartSpec은 Zustand store 참조로 spec 변경 시에만 갱신 → deps 안정적
   }, [chartSpec?.exportConfig, chartSpec?.title]);
 
+  const handleSave = useCallback(() => {
+    const store = useGraphStudioStore.getState();
+    const name = store.currentProject?.name ?? 'Untitled Chart';
+
+    // 1. 프로젝트 저장 (동기, localStorage)
+    const projectId = store.saveCurrentProject(name);
+    if (!projectId) return;
+
+    // 2. 스냅샷 캡처 (fire-and-forget — 실패해도 저장은 완료된 것으로 처리)
+    const instance = echartsRef.current?.getEchartsInstance();
+    if (instance) {
+      try {
+        const dataUrl = instance.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#ffffff' });
+        const snapshot: ChartSnapshot = {
+          id: projectId,
+          data: dataUrlToUint8Array(dataUrl),
+          cssWidth: instance.getWidth(),
+          cssHeight: instance.getHeight(),
+          pixelRatio: 2,
+          updatedAt: new Date().toISOString(),
+        };
+        saveSnapshot(snapshot).catch((err: unknown) => {
+          console.warn('[GraphStudio] Snapshot save failed:', err);
+        });
+      } catch (err) {
+        console.warn('[GraphStudio] Snapshot capture failed:', err);
+      }
+    }
+  }, []);
+
   if (layoutMode === 'upload') {
     return (
       <div className="flex flex-col h-full" data-testid="graph-studio-page" style={GRAPH_BG_TINT}>
-        <GraphStudioHeader />
+        <GraphStudioHeader onSave={handleSave} />
         <div className="flex-1 flex items-center justify-center p-8">
           <DataUploadPanel />
         </div>
@@ -110,7 +142,7 @@ export default function GraphStudioContent(): React.ReactElement {
   if (layoutMode === 'setup') {
     return (
       <div className="flex flex-col h-full" data-testid="graph-studio-page" style={GRAPH_BG_TINT}>
-        <GraphStudioHeader />
+        <GraphStudioHeader onSave={handleSave} />
         <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
           <ChartSetupPanel />
         </div>
@@ -124,6 +156,7 @@ export default function GraphStudioContent(): React.ReactElement {
         onToggleLeftPanel={handleToggleLeftPanel}
         onToggleRightPanel={handleToggleRightPanel}
         onExport={handleExport}
+        onSave={handleSave}
       />
 
       {/* 3패널 + 하단 AI 레이아웃 */}

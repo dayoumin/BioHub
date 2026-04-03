@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Undo2, Redo2, PanelLeft, PanelRight, Sparkles, Plus, Settings2, BarChart3 } from 'lucide-react';
+import { Undo2, Redo2, PanelLeft, PanelRight, Sparkles, Plus, Settings2, BarChart3, Save } from 'lucide-react';
 import { ExportDialog } from './panels/ExportDialog';
 
 interface GraphStudioHeaderProps {
@@ -28,12 +28,15 @@ interface GraphStudioHeaderProps {
   onToggleRightPanel?: () => void;
   /** Stage 3: Export 버튼 클릭 핸들러 (GraphStudioPage에서 주입) */
   onExport?: () => void;
+  /** Phase 6a Step 3: 프로젝트 저장 + 스냅샷 캡처 핸들러 */
+  onSave?: () => void;
 }
 
 export function GraphStudioHeader({
   onToggleLeftPanel,
   onToggleRightPanel,
   onExport,
+  onSave,
 }: GraphStudioHeaderProps): React.ReactElement {
   const { chartSpec, historyIndex, specHistory, undo, redo, aiPanelOpen, toggleAiPanel, clearData, goToSetup } = useGraphStudioStore();
   const [showNewChartDialog, setShowNewChartDialog] = useState(false);
@@ -148,6 +151,19 @@ export function GraphStudioHeader({
           >
             <Sparkles className="h-4 w-4 mr-1" />
             AI
+          </Button>
+        )}
+        {chartSpec && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onSave}
+            disabled={!onSave}
+            className="gap-1"
+            data-testid="graph-studio-save"
+          >
+            <Save className="w-4 h-4" />
+            저장
           </Button>
         )}
         <ExportDialog onExport={onExport} />
