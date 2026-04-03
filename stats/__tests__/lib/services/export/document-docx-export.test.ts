@@ -206,3 +206,52 @@ describe('buildDocxDocument', () => {
     expect(blob.size).toBeGreaterThan(100)
   })
 })
+
+// ─── buildDocxDocument with snapshots ───
+
+describe('buildDocxDocument with snapshots', () => {
+  // Create a minimal valid PNG for testing
+  const minimalPng = new Uint8Array([
+    137, 80, 78, 71, 13, 10, 26, 10,
+    0, 0, 0, 13, 73, 72, 68, 82,
+    0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0,
+    144, 119, 83, 222,
+    0, 0, 0, 12, 73, 68, 65, 84,
+    8, 215, 99, 248, 207, 192, 0, 0, 0, 3, 0, 1,
+    24, 216, 110, 175,
+    0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130,
+  ])
+
+  const mockSnapshots = new Map([
+    ['g1', {
+      id: 'g1', data: minimalPng,
+      cssWidth: 480, cssHeight: 320, pixelRatio: 2,
+      updatedAt: '2026-04-03T00:00:00.000Z',
+    }],
+  ])
+
+  it('스냅샷 있는 Figure → Blob 크기가 플레이스홀더보다 큼', async () => {
+    const { Packer } = await import('docx')
+    const docWithFig = makeDoc({
+      sections: [makeSection({
+        id: 'r', title: '결과', content: '결과.',
+        figures: [{ entityId: 'g1', label: 'Figure 1', caption: '차트' }],
+      })],
+    })
+    const withImg = await buildDocxDocument(docWithFig, mockSnapshots)
+    const withoutImg = await buildDocxDocument(docWithFig)
+    const blobWith = await Packer.toBlob(withImg)
+    const blobWithout = await Packer.toBlob(withoutImg)
+    expect(blobWith.size).toBeGreaterThan(blobWithout.size)
+  })
+
+  it('스냅샷 없는 Figure → 캡션 플레이스홀더 fallback', async () => {
+    const doc = await buildDocxDocument(makeDoc({
+      sections: [makeSection({
+        id: 'r', title: '결과', content: '',
+        figures: [{ entityId: 'missing', label: 'Figure 1', caption: '차트' }],
+      })],
+    }))
+    expect(doc).toBeDefined()
+  })
+})

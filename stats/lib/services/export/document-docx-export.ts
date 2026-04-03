@@ -10,6 +10,8 @@ import type {
   DocumentTable,
   DocumentSection,
 } from '@/lib/research/document-blueprint-types'
+import type { ChartSnapshot } from '@/lib/graph-studio/chart-snapshot-storage'
+import { loadSnapshots } from '@/lib/graph-studio/chart-snapshot-storage'
 import { downloadBlob } from './export-data-builder'
 
 // ─── 스타일 상수 ───
@@ -20,6 +22,8 @@ const SIZE_TITLE = 28    // 14pt
 const SIZE_HEADING = 24  // 12pt
 const LINE_SPACING = 480 // 2.0 double-space in twips
 const MARGIN = 1440      // 1 inch in twips
+const PAGE_WIDTH_TWIPS = 12240    // Letter 8.5인치
+const CONTENT_WIDTH_PX = (PAGE_WIDTH_TWIPS - MARGIN * 2) / 15  // 624 CSS px
 const COLOR_MUTED = '666666'
 const BORDER_COLOR = '000000'
 
@@ -232,6 +236,7 @@ function formatDate(isoString: string): string {
  */
 export async function buildDocxDocument(
   doc: DocumentBlueprint,
+  snapshots?: Map<string, ChartSnapshot>,
 ): Promise<InstanceType<typeof import('docx')['Document']>> {
   const docx = await getDocx()
   const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, PageNumber, Footer } = docx
@@ -304,9 +309,29 @@ export async function buildDocxDocument(
       }
     }
 
-    // 그림 참조 (이미지 삽입 없이 캡션 플레이스홀더)
+    // 그림 (스냅샷 있으면 이미지, 없으면 캡션 플레이스홀더)
     if (section.figures) {
       for (const fig of section.figures) {
+        const snapshot = snapshots?.get(fig.entityId)
+
+        if (snapshot) {
+          const { ImageRun } = docx
+          const scale = Math.min(1, CONTENT_WIDTH_PX / snapshot.cssWidth)
+          const width = Math.round(snapshot.cssWidth * scale)
+          const height = Math.round(snapshot.cssHeight * scale)
+
+          children.push(new Paragraph({
+            children: [new ImageRun({
+              type: 'png',
+              data: snapshot.data,
+              transformation: { width, height },
+            })],
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 240, after: 80, line: LINE_SPACING },
+          }))
+        }
+
+        // 캡션은 항상 출력 (이미지 유무와 무관)
         children.push(new Paragraph({
           children: [new TextRun({
             text: `${fig.label}: ${fig.caption}`,
@@ -314,7 +339,7 @@ export async function buildDocxDocument(
             size: SIZE_BODY,
             italics: true,
           })],
-          spacing: { before: 240, after: 120, line: LINE_SPACING },
+          spacing: { before: snapshot ? 80 : 240, after: 120, line: LINE_SPACING },
         }))
       }
     }
@@ -361,9 +386,13 @@ export async function buildDocxDocument(
  * buildDocxDocument로 문서 생성 후 Packer.toBlob → downloadBlob.
  */
 export async function documentToDocx(doc: DocumentBlueprint): Promise<void> {
-  const { Packer } = await getDocx()
-  const docxDoc = await buildDocxDocument(doc)
-  const blob = await Packer.toBlob(docxDoc)
+  const figureIds = doc.sections.flatMap(s => s.figures?.map(f => f.entityId) ?? [])
+  const snapshots = figureIds.length > 0 ? await loadSnapshots(figureIds) : undefined
+
+  const docx = await getDocx()
+  const document = await buildDocxDocument(doc, snapshots)
+  const { Packer } = docx
+  const blob = await Packer.toBlob(document)
   const safeName = doc.title.replace(/[/\\?%*:|"<>]/g, '_')
   downloadBlob(blob, `${safeName}.docx`)
 }
