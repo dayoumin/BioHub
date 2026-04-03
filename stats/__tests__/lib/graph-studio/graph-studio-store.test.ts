@@ -12,6 +12,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { act } from '@testing-library/react'
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
 import * as researchProjectStorage from '@/lib/research/project-storage'
+import * as projectStorage from '@/lib/graph-studio/project-storage'
 import type { ChartSpec, DataPackage, GraphProject } from '@/types/graph-studio'
 
 // ─── 최소 ChartSpec 픽스처 ────────────────────────────────
@@ -539,6 +540,44 @@ describe('saveCurrentProject', () => {
     expect(localStorage.getItem('graph_studio_projects')).toContain('"id":"proj-1"')
 
     refSpy.mockRestore()
+    consoleErrorSpy.mockRestore()
+  })
+
+  it('saveProject가 실패하면 미리 생성된 메타데이터(entity ref)를 구 버전으로 롤백한다', () => {
+    // 초기 상태 세팅
+    const initialProject = makeProject({
+      id: 'proj-rollback',
+      name: 'Old Name',
+      projectId: 'res-proj-999',
+      chartSpec: makeSpec('Chart Spec'),
+    })
+    act(() => {
+      useGraphStudioStore.getState().setProject(initialProject)
+    })
+
+    // upsert는 원래 동작하도록 두거나 모의 처리. 호출 내역 확인을 위해 spyOn 사용.
+    const refSpy = vi.spyOn(researchProjectStorage, 'upsertProjectEntityRef').mockReturnValue({} as any)
+    
+    // saveProject에서 새로운 label을 쓰려고 할 때 에러를 발생시킴
+    const saveSpy = vi.spyOn(projectStorage, 'saveProject').mockImplementation((proj: any) => {
+      if (proj.name === 'New Name') throw new Error('IDB full')
+      return [] // 롤백 처리를 위한 기존 currentProject 백업 save 시에는 통과
+    })
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    let result: string | null = null
+    act(() => {
+      result = useGraphStudioStore.getState().saveCurrentProject('New Name')
+    })
+
+    expect(result).toBeNull()
+    // 첫 호출은 New Name
+    expect(refSpy).toHaveBeenCalledWith(expect.objectContaining({ label: 'New Name' }))
+    // 에러 발생으로 롤백 시 Old Name 복구 호출
+    expect(refSpy).toHaveBeenCalledWith(expect.objectContaining({ label: 'Old Name' }))
+
+    refSpy.mockRestore()
+    saveSpy.mockRestore()
     consoleErrorSpy.mockRestore()
   })
 })

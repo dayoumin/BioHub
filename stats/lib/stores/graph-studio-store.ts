@@ -346,10 +346,22 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
         }
       } catch (error) {
         console.error('[GraphStudioStore] Failed to save linked project:', error);
-        if (project.projectId && !currentProject) {
-          try {
-            removeProjectEntityRefsByEntityIds('figure', [project.id]);
-          } catch (err) {}
+        if (project.projectId) {
+          if (!currentProject) {
+            try {
+              removeProjectEntityRefsByEntityIds('figure', [project.id]);
+            } catch (err) {}
+          } else {
+            // 메타데이터 롤백: 기존 프로젝트 이름(label) 복구
+            try {
+              upsertProjectEntityRef({
+                projectId: currentProject.projectId ?? project.projectId,
+                entityKind: 'figure',
+                entityId: currentProject.id,
+                label: currentProject.name,
+              });
+            } catch (err) {}
+          }
         }
         try {
           if (currentProject) {
