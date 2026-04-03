@@ -15,7 +15,7 @@ import type {
 } from '@/lib/research/document-blueprint-types'
 import type { ChartSnapshot } from '@/lib/graph-studio/chart-snapshot-storage'
 import { loadSnapshots } from '@/lib/graph-studio/chart-snapshot-storage'
-import { hasVisibleContent, parseInlineMarks } from './document-docx-export'
+import { hasVisibleContent } from './document-docx-export'
 import { downloadBlob } from './export-data-builder'
 
 // ─── XML 유틸 ───
@@ -552,9 +552,14 @@ export async function buildHwpxDocument(
       for (const fig of section.figures) {
         const snapshot = snapshots?.get(fig.entityId)
         if (snapshot) {
+          const CONTENT_WIDTH_PX = Math.floor(CONTENT_WIDTH / 75)
+          const scale = Math.min(1, CONTENT_WIDTH_PX / snapshot.cssWidth)
+          const width = Math.round(snapshot.cssWidth * scale)
+          const height = Math.round(snapshot.cssHeight * scale)
+          
           builder.addImage(snapshot.data, {
-            width: snapshot.cssWidth,
-            height: snapshot.cssHeight,
+            width,
+            height,
             caption: `${fig.label}: ${fig.caption}`,
           })
         } else {

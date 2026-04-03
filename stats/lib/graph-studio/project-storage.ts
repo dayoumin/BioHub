@@ -17,6 +17,7 @@
 import type { GraphProject } from '@/types/graph-studio';
 import { createLocalStorageIO } from '@/lib/utils/local-storage-factory';
 import { deleteSnapshot } from './chart-snapshot-storage';
+import { removeProjectEntityRefsByEntityIds } from '@/lib/research/project-storage';
 
 const STORAGE_KEY = 'graph_studio_projects';
 const { readJson, writeJson } = createLocalStorageIO('[project-storage]');
@@ -148,6 +149,11 @@ export function deleteProject(projectId: string): void {
  */
 export async function deleteProjectCascade(projectId: string): Promise<void> {
   deleteProject(projectId);
+  try {
+    removeProjectEntityRefsByEntityIds('figure', [projectId]);
+  } catch (err) {
+    console.error('[project-storage] Failed to remove entity ref for deleted project:', err);
+  }
   await deleteSnapshot(projectId).catch(() => {});
 }
 

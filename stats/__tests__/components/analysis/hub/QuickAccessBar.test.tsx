@@ -127,7 +127,7 @@ let mockProjects: Array<{
 
 vi.mock('@/lib/graph-studio/project-storage', () => ({
   listProjects: () => mockProjects,
-  deleteProject: vi.fn((id: string) => {
+  deleteProjectCascade: vi.fn((id: string) => {
     mockProjects = mockProjects.filter(p => p.id !== id)
   }),
 }))
@@ -380,9 +380,9 @@ describe('QuickAccessBar — 통합 최근 활동', () => {
 
   // ─── 시각화 카드 삭제 ───
 
-  it('시각화 카드 삭제 시 deleteProject 호출 + UI에서 사라짐', async () => {
+  it('시각화 카드 삭제 시 deleteProjectCascade 호출 + UI에서 사라짐', async () => {
     const user = userEvent.setup()
-    const { deleteProject } = await import('@/lib/graph-studio/project-storage')
+    const { deleteProjectCascade } = await import('@/lib/graph-studio/project-storage')
 
     mockProjects = [
       makeVizProject({ id: 'proj-del', name: '삭제할 차트' }),
@@ -410,8 +410,8 @@ describe('QuickAccessBar — 통합 최근 활동', () => {
     const confirmButton = within(dialog).getByRole('button', { name: '삭제' })
     await user.click(confirmButton)
 
-    // deleteProject 호출 확인
-    expect(deleteProject).toHaveBeenCalledWith('proj-del')
+    // deleteProjectCascade 호출 확인
+    expect(deleteProjectCascade).toHaveBeenCalledWith('proj-del')
     // onHistoryDelete는 호출 안 됨 (시각화이므로)
     expect(defaultProps.onHistoryDelete).not.toHaveBeenCalled()
 

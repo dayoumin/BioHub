@@ -22,7 +22,7 @@ import {
   generateProjectId,
 } from '@/lib/graph-studio/project-storage';
 import { deleteSnapshots } from '@/lib/graph-studio/chart-snapshot-storage';
-import { upsertProjectEntityRef } from '@/lib/research/project-storage';
+import { upsertProjectEntityRef, removeProjectEntityRefsByEntityIds } from '@/lib/research/project-storage';
 import { useResearchProjectStore } from '@/lib/stores/research-project-store';
 
 /** AI 채팅 localStorage 키 (use-ai-chat.ts의 CHAT_STORAGE_KEY와 동일) */
@@ -324,11 +324,6 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
       };
 
       try {
-        const evictedIds = saveProject(project);
-        if (evictedIds.length > 0) {
-          // fire-and-forget: evict된 프로젝트의 스냅샷 정리 (best-effort)
-          deleteSnapshots(evictedIds).catch(console.error);
-        }
         if (project.projectId) {
           upsertProjectEntityRef({
             projectId: project.projectId,
@@ -337,8 +332,25 @@ export const useGraphStudioStore = create<GraphStudioState & GraphStudioActions>
             label: project.name,
           });
         }
+
+        const evictedIds = saveProject(project);
+
+        if (evictedIds.length > 0) {
+          // fire-and-forget: evict된 프로젝트의 스냅샷 및 엔티티참조 정리 (best-effort)
+          deleteSnapshots(evictedIds).catch(console.error);
+          try {
+            removeProjectEntityRefsByEntityIds('figure', evictedIds);
+          } catch (err) {
+            console.error('[GraphStudioStore] Failed to remove evicted entity refs:', err);
+          }
+        }
       } catch (error) {
         console.error('[GraphStudioStore] Failed to save linked project:', error);
+        if (project.projectId && !currentProject) {
+          try {
+            removeProjectEntityRefsByEntityIds('figure', [project.id]);
+          } catch (err) {}
+        }
         try {
           if (currentProject) {
             saveProject(currentProject);

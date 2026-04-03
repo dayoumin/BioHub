@@ -113,3 +113,15 @@ export function removeProjectEntityRefs(
   )
   writeJson(PROJECT_REFS_KEY, nextRefs)
 }
+
+export function removeProjectEntityRefsByEntityIds(
+  entityKind: ProjectEntityKind,
+  entityIds: string[]
+): void {
+  if (entityIds.length === 0) return
+  const idSet = new Set(entityIds)
+  const nextRefs = listProjectEntityRefs().filter(
+    ref => !(ref.entityKind === entityKind && idSet.has(ref.entityId))
+  )
+  writeJson(PROJECT_REFS_KEY, nextRefs)
+}

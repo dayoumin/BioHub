@@ -189,6 +189,7 @@ export function QuickAccessBar({ onHistoryClick, onHistoryDelete, onShowMore }: 
       visibleItems: [...pinned, ...unpinned.slice(0, remaining)],
       totalCount: all.length,
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analysisHistory, pinnedIds, t, vizRefreshKey])
 
   // Card click handler
