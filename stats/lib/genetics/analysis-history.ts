@@ -468,9 +468,7 @@ export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): boolean {
   if (newEntry.projectId) {
     const label = newEntry.type === 'barcoding' ? newEntry.sampleName
       : newEntry.type === 'blast' ? `${newEntry.program} · ${newEntry.database}`
-      : newEntry.type === 'seq-stats' ? newEntry.analysisName
-      : newEntry.type === 'similarity' ? newEntry.analysisName
-      : newEntry.type === 'phylogeny' ? newEntry.analysisName
+      : 'analysisName' in newEntry ? newEntry.analysisName
       : newEntry.accession
     try {
       upsertProjectEntityRef({

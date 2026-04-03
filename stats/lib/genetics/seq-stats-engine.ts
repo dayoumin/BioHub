@@ -70,11 +70,8 @@ function countDinucleotides(sequences: ParsedSequence[]): Record<string, number>
   return freq
 }
 
-function buildLengthDistribution(lengths: number[]): LengthBin[] {
+function buildLengthDistribution(lengths: number[], min: number, max: number): LengthBin[] {
   if (lengths.length === 0) return []
-
-  const min = Math.min(...lengths)
-  const max = Math.max(...lengths)
 
   if (min === max) {
     return [{ binStart: min, binEnd: max, count: lengths.length }]
@@ -169,7 +166,7 @@ export function computeSeqStats(sequences: ParsedSequence[]): SeqStatsResult {
     overallGcContent: gcContent(overallComp, totalLength),
     baseComposition: overallComp,
     dinucleotideFrequency: countDinucleotides(sequences),
-    lengthDistribution: buildLengthDistribution(lengths),
+    lengthDistribution: buildLengthDistribution(lengths, sortedLengths[0], sortedLengths[sortedLengths.length - 1]),
     perSequence,
   }
 }

@@ -1,9 +1,11 @@
 // stats/components/genetics/SeqStatsResult.tsx
 'use client'
 
-import { useCallback, useMemo, useRef, useEffect } from 'react'
+import { useCallback, useMemo } from 'react'
 import { downloadCsvFile } from '@/lib/utils/download-file'
 import { Download } from 'lucide-react'
+import { LazyReactECharts } from '@/lib/charts/LazyECharts'
+import type { EChartsOption } from 'echarts'
 import type { SeqStatsResult } from '@/lib/genetics/seq-stats-engine'
 import { Button } from '@/components/ui/button'
 
@@ -51,79 +53,38 @@ function buildCsv(result: SeqStatsResult): string {
   return lines.join('\n')
 }
 
-// ── Charts (ECharts lazy) ──
-
-function useECharts(
-  containerRef: React.RefObject<HTMLDivElement | null>,
-  optionFn: () => Record<string, unknown>,
-  deps: unknown[],
-): void {
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-
-    let chart: { setOption: (opt: Record<string, unknown>) => void; resize: () => void; dispose: () => void } | null = null
-
-    void import('echarts/core').then(async (ec) => {
-      const [{ BarChart }, { GridComponent, TooltipComponent, LegendComponent }, { CanvasRenderer }] = await Promise.all([
-        import('echarts/charts'),
-        import('echarts/components'),
-        import('echarts/renderers'),
-      ])
-      ec.use([BarChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer])
-      if (!el.isConnected) return
-
-      chart = ec.init(el)
-      chart.setOption(optionFn())
-    })
-
-    const onResize = (): void => { chart?.resize() }
-    window.addEventListener('resize', onResize)
-
-    return () => {
-      window.removeEventListener('resize', onResize)
-      chart?.dispose()
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps)
-}
-
 function BaseCompositionChart({ result }: { result: SeqStatsResult }): React.ReactElement {
-  const ref = useRef<HTMLDivElement>(null)
+  const bases = ['A', 'T', 'G', 'C', 'N'] as const
+  const colors = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#94a3b8']
+  const total = result.totalLength
 
-  useECharts(ref, () => {
-    const bases = ['A', 'T', 'G', 'C', 'N'] as const
-    const colors = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#94a3b8']
-    const total = result.totalLength
-    return {
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      grid: { left: 40, right: 16, top: 16, bottom: 28 },
-      xAxis: { type: 'category', data: bases },
-      yAxis: { type: 'value', name: '%', axisLabel: { formatter: '{value}%' } },
-      series: [{
-        type: 'bar',
-        data: bases.map((b, i) => ({
-          value: total > 0 ? Number(((result.baseComposition[b] / total) * 100).toFixed(2)) : 0,
-          itemStyle: { color: colors[i] },
-        })),
-        barMaxWidth: 40,
-      }],
-    }
-  }, [result])
+  const option = useMemo<EChartsOption>(() => ({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: 40, right: 16, top: 16, bottom: 28 },
+    xAxis: { type: 'category', data: [...bases] },
+    yAxis: { type: 'value', name: '%', axisLabel: { formatter: '{value}%' } },
+    series: [{
+      type: 'bar',
+      data: bases.map((b, i) => ({
+        value: total > 0 ? Number(((result.baseComposition[b] / total) * 100).toFixed(2)) : 0,
+        itemStyle: { color: colors[i] },
+      })),
+      barMaxWidth: 40,
+    }],
+  }), [result.baseComposition, total])
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <h3 className="mb-3 text-sm font-semibold text-gray-700">염기 조성</h3>
-      <div ref={ref} className="h-[220px] w-full" />
+      <LazyReactECharts option={option} style={{ height: 220 }} opts={{ renderer: 'svg' }} />
     </div>
   )
 }
 
 function LengthDistributionChart({ result }: { result: SeqStatsResult }): React.ReactElement | null {
-  const ref = useRef<HTMLDivElement>(null)
   const bins = result.lengthDistribution
 
-  useECharts(ref, () => ({
+  const option = useMemo<EChartsOption>(() => ({
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 50, right: 16, top: 16, bottom: 28 },
     xAxis: {
@@ -145,7 +106,7 @@ function LengthDistributionChart({ result }: { result: SeqStatsResult }): React.
   return (
     <div className="rounded-xl border border-border bg-card p-5">
       <h3 className="mb-3 text-sm font-semibold text-gray-700">길이 분포</h3>
-      <div ref={ref} className="h-[220px] w-full" />
+      <LazyReactECharts option={option} style={{ height: 220 }} opts={{ renderer: 'svg' }} />
     </div>
   )
 }

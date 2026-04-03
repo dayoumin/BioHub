@@ -76,6 +76,8 @@ export default function SeqStatsContent(): React.ReactElement {
     if (!saved) toast.warning('저장 공간 부족으로 히스토리에 저장되지 않았습니다.')
   }, [analysisName, uploadedFileName, activeResearchProjectId])
 
+  const handleDismissError = useCallback(() => { setDeepLinkError(null) }, [])
+
   const handleReset = useCallback(() => {
     setState({ step: 'input' })
     setRawText('')
@@ -96,7 +98,7 @@ export default function SeqStatsContent(): React.ReactElement {
         <div className="mb-6 rounded-lg border border-amber-500/30 bg-amber-50/50 p-6 dark:bg-amber-950/20" role="alert">
           <h2 className="mb-2 font-semibold text-amber-800 dark:text-amber-300">기록 복원 실패</h2>
           <p className="mb-4 text-sm text-amber-700 dark:text-amber-400">{deepLinkError}</p>
-          <Button variant="outline" onClick={() => { setDeepLinkError(null) }}>
+          <Button variant="outline" onClick={handleDismissError}>
             새 분석 시작
           </Button>
         </div>
