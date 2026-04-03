@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { downloadBlob } from '@/lib/services/export/export-data-builder'
 import { documentToDocx, hasVisibleContent } from '@/lib/services/export/document-docx-export'
+import { documentToHwpx } from '@/lib/services/export/document-hwpx-export'
 import type { DocumentBlueprint, DocumentTable } from '@/lib/research/document-blueprint-types'
 
 interface DocumentExportBarProps {
@@ -114,6 +115,7 @@ ${parts.join('\n')}
 export default function DocumentExportBar({ document: doc, onBeforeExport }: DocumentExportBarProps): React.ReactElement {
   const [copied, setCopied] = useState(false)
   const [docxLoading, setDocxLoading] = useState(false)
+  const [hwpxLoading, setHwpxLoading] = useState(false)
 
   const hasContent = useMemo(
     () => doc.sections.some(s => hasVisibleContent(s)),
@@ -152,6 +154,19 @@ export default function DocumentExportBar({ document: doc, onBeforeExport }: Doc
     }
   }, [doc, onBeforeExport])
 
+  const handleDownloadHwpx = useCallback(async () => {
+    onBeforeExport?.()
+    setHwpxLoading(true)
+    try {
+      await documentToHwpx(doc)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'HWPX 생성에 실패했습니다'
+      toast.error(message)
+    } finally {
+      setHwpxLoading(false)
+    }
+  }, [doc, onBeforeExport])
+
   return (
     <div className="flex items-center gap-2 border-t pt-3">
       <Button variant="outline" size="sm" onClick={handleCopyMarkdown} disabled={!hasContent} className="gap-1.5">
@@ -171,6 +186,16 @@ export default function DocumentExportBar({ document: doc, onBeforeExport }: Doc
       >
         {docxLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
         {docxLoading ? '생성 중...' : 'DOCX 다운로드'}
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={!hasContent || hwpxLoading}
+        onClick={handleDownloadHwpx}
+        className="gap-1.5"
+      >
+        {hwpxLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+        {hwpxLoading ? '생성 중...' : 'HWPX 다운로드'}
       </Button>
     </div>
   )
