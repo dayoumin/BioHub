@@ -19,7 +19,6 @@ interface MaterialPaletteProps {
   onInsertAnalysis: (record: HistoryRecord) => void
   onInsertFigure: (graph: GraphProject) => void
   citations: CitationRecord[]
-  onInsertCitation: (record: CitationRecord) => void
   onDeleteCitation: (id: string) => void
 }
 
@@ -28,7 +27,6 @@ export default function MaterialPalette({
   onInsertAnalysis,
   onInsertFigure,
   citations,
-  onInsertCitation,
   onDeleteCitation,
 }: MaterialPaletteProps): React.ReactElement {
   const { analysisHistory } = useHistoryStore()
@@ -129,10 +127,8 @@ export default function MaterialPalette({
         )}
         {citations.map(record => (
           <div key={record.id} className="flex items-start gap-1 group">
-            <button
-              type="button"
-              onClick={() => onInsertCitation(record)}
-              className="flex-1 text-left text-xs px-2 py-1.5 rounded hover:bg-accent truncate"
+            <div
+              className="flex-1 text-xs px-2 py-1.5 truncate"
               title={buildCitationString(record.item)}
             >
               <span className="font-medium">
@@ -142,7 +138,7 @@ export default function MaterialPalette({
               <span className="text-muted-foreground ml-1 truncate">
                 {record.item.title}
               </span>
-            </button>
+            </div>
             <button
               type="button"
               onClick={() => onDeleteCitation(record.id)}

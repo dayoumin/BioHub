@@ -610,4 +610,25 @@ describe('assembleDocument - citations 병합', () => {
     const refsSection = blueprint.sections.find(s => s.id === 'references')
     expect(refsSection?.content).toContain('BioHub')
   })
+
+  it('동일 DOI citations가 중복이면 References에 한 번만 표시', () => {
+    const c1 = makeCitationRecord({ id: 'cit_1' })
+    c1.item = { ...c1.item, doi: '10.0000/fr.2021' }
+    const c2 = makeCitationRecord({ id: 'cit_2' })
+    c2.item = { ...c2.item, doi: '10.0000/FR.2021' } // 대소문자만 다름
+    const sources: AssemblerDataSources = {
+      entityRefs: [],
+      allHistory: [],
+      allGraphProjects: [],
+      citations: [c1, c2],
+    }
+    const blueprint = assembleDocument(
+      { projectId: 'proj_test', preset: 'paper', language: 'en', title: 'Test' },
+      sources,
+    )
+    const refsSection = blueprint.sections.find(s => s.id === 'references')
+    // "1." 은 있고 "2." 은 없어야 함 (중복 제거)
+    expect(refsSection?.content).toContain('1.')
+    expect(refsSection?.content).not.toContain('2.')
+  })
 })
