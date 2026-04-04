@@ -12,14 +12,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // OpenRouter 테스트
 describe('OpenRouter LLM 추천 시뮬레이션', () => {
-  let openRouterRecommender: typeof import('@/lib/services/openrouter-recommender').openRouterRecommender
+  let openRouterRecommender: typeof import('@/lib/services/recommenders/openrouter-recommender').openRouterRecommender
 
   beforeEach(async () => {
     vi.stubEnv('NEXT_PUBLIC_OPENROUTER_API_KEY', 'test-key-123')
     vi.stubEnv('NEXT_PUBLIC_OPENROUTER_MODEL', 'openai/gpt-4o:free')
     // 매번 fresh import (env 반영)
     vi.resetModules()
-    const mod = await import('@/lib/services/openrouter-recommender')
+    const mod = await import('@/lib/services/recommenders/openrouter-recommender')
     openRouterRecommender = mod.openRouterRecommender
   })
 
@@ -263,11 +263,11 @@ describe('OpenRouter LLM 추천 시뮬레이션', () => {
 
 // Ollama 테스트 (경고 추가 검증)
 describe('Ollama 로컬 모델 경고', () => {
-  let ollamaRecommender: typeof import('@/lib/services/ollama-recommender').ollamaRecommender
+  let ollamaRecommender: typeof import('@/lib/services/recommenders/ollama-recommender').ollamaRecommender
 
   beforeEach(async () => {
     vi.resetModules()
-    const mod = await import('@/lib/services/ollama-recommender')
+    const mod = await import('@/lib/services/recommenders/ollama-recommender')
     ollamaRecommender = mod.ollamaRecommender
   })
 
@@ -325,13 +325,13 @@ describe('Ollama 로컬 모델 경고', () => {
 // ============================================================
 
 describe('[패치 검증] AggregateError 에러 전파', () => {
-  let openRouterRecommender: typeof import('@/lib/services/openrouter-recommender').openRouterRecommender
+  let openRouterRecommender: typeof import('@/lib/services/recommenders/openrouter-recommender').openRouterRecommender
 
   beforeEach(async () => {
     vi.stubEnv('NEXT_PUBLIC_OPENROUTER_API_KEY', 'test-key-123')
     vi.stubEnv('NEXT_PUBLIC_OPENROUTER_MODEL', 'openai/gpt-4o:free,anthropic/claude-3-haiku')
     vi.resetModules()
-    const mod = await import('@/lib/services/openrouter-recommender')
+    const mod = await import('@/lib/services/recommenders/openrouter-recommender')
     openRouterRecommender = mod.openRouterRecommender
   })
 
@@ -509,13 +509,13 @@ describe('[패치 검증] createAsyncQueue 동작', () => {
 
 // 프롬프트 형식 시뮬레이션
 describe('Markdown-KV 프롬프트 형식 검증', () => {
-  let openRouterRecommender: typeof import('@/lib/services/openrouter-recommender').openRouterRecommender
+  let openRouterRecommender: typeof import('@/lib/services/recommenders/openrouter-recommender').openRouterRecommender
 
   beforeEach(async () => {
     vi.stubEnv('NEXT_PUBLIC_OPENROUTER_API_KEY', 'test-key-123')
     vi.stubEnv('NEXT_PUBLIC_OPENROUTER_MODEL', 'openai/gpt-4o:free')
     vi.resetModules()
-    const mod = await import('@/lib/services/openrouter-recommender')
+    const mod = await import('@/lib/services/recommenders/openrouter-recommender')
     openRouterRecommender = mod.openRouterRecommender
   })
 

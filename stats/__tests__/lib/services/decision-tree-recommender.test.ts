@@ -10,7 +10,7 @@
  * Total: 24 tests
  */
 
-import { DecisionTreeRecommender } from '@/lib/services/decision-tree-recommender'
+import { DecisionTreeRecommender } from '@/lib/services/recommenders/decision-tree-recommender'
 import type {
   StatisticalAssumptions,
   ValidationResults,

@@ -8,7 +8,7 @@
  * 대화 히스토리(최근 4개)를 LLM 컨텍스트에 포함.
  */
 
-import { openRouterRecommender } from './openrouter-recommender'
+import { openRouterRecommender } from './recommenders/openrouter-recommender'
 import { getSystemPromptConsultant, getSystemPromptDiagnostic } from './ai/prompts'
 import { buildContextForIntent } from './ai/data-context-builder'
 import { logger } from '@/lib/utils/logger'

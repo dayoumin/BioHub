@@ -45,7 +45,7 @@ function makeHistory(count: number, startRole: 'user' | 'assistant' = 'user'): H
 // ===== Mocks =====
 
 // openRouterRecommender를 vi.mock으로 모킹
-vi.mock('@/lib/services/openrouter-recommender', () => ({
+vi.mock('@/lib/services/recommenders/openrouter-recommender', () => ({
   openRouterRecommender: {
     recommendWithSystemPrompt: vi.fn(),
   },
@@ -68,7 +68,7 @@ describe('hub-chat-service — getHubAiResponse', () => {
     vi.clearAllMocks()
 
     // 동적 import로 mock이 적용된 모듈을 가져옴
-    const recommenderMod = await import('@/lib/services/openrouter-recommender')
+    const recommenderMod = await import('@/lib/services/recommenders/openrouter-recommender')
     openRouterRecommender = recommenderMod.openRouterRecommender as unknown as {
       recommendWithSystemPrompt: ReturnType<typeof vi.fn>
     }

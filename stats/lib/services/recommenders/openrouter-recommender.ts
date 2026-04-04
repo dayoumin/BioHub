@@ -23,10 +23,10 @@ import {
   getKoreanName
 } from '@/lib/constants/statistical-methods'
 import { logger } from '@/lib/utils/logger'
-import { getSystemPromptConsultant } from './ai/prompts'
-import { buildDataContextMarkdown, buildAssumptionContextMarkdown } from './ai/data-context-builder'
-import { compressChatHistory } from './ai/chat-history-compressor'
-import { sanitizeUserInput } from './ai/sanitize-input'
+import { getSystemPromptConsultant } from '../ai/prompts'
+import { buildDataContextMarkdown, buildAssumptionContextMarkdown } from '../ai/data-context-builder'
+import { compressChatHistory } from '../ai/chat-history-compressor'
+import { sanitizeUserInput } from '../ai/sanitize-input'
 
 /**
  * 모델 설정:

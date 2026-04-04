@@ -7,7 +7,7 @@
  */
 
 import type { AnalysisResult, EffectSizeInfo } from '@/types/analysis'
-import { llmRecommender, type LlmStreamResult, type LlmProvider } from './llm-recommender'
+import { llmRecommender, type LlmStreamResult, type LlmProvider } from './recommenders/llm-recommender'
 import { logger } from '@/lib/utils/logger'
 import { SYSTEM_PROMPT_INTERPRETER } from './ai/prompts'
 import { compressChatHistory } from './ai/chat-history-compressor'

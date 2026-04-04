@@ -8,7 +8,7 @@
  * 실행: npx tsx scripts/validate-reasoning-keywords.ts
  */
 
-import { DecisionTreeRecommender } from '../lib/services/decision-tree-recommender'
+import { DecisionTreeRecommender } from '../lib/services/recommenders/decision-tree-recommender'
 import type { AnalysisPurpose, AIRecommendation } from '../types/analysis'
 
 /**

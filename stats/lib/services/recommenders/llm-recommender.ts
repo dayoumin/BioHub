@@ -51,7 +51,7 @@ import {
   getSystemPromptConsultant,
   getSystemPromptDiagnostic,
   getSystemPromptIntentRouter
-} from './ai/prompts'
+} from '../ai/prompts'
 import type { LlmProvider } from '@/lib/utils/storage-types'
 
 export type { LlmProvider }

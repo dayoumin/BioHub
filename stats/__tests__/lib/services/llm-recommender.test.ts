@@ -17,11 +17,11 @@ const { openRouterRecommenderMock, ollamaRecommenderMock, getSettingsStateMock }
   getSettingsStateMock: vi.fn(),
 }))
 
-vi.mock('@/lib/services/openrouter-recommender', () => ({
+vi.mock('@/lib/services/recommenders/openrouter-recommender', () => ({
   openRouterRecommender: openRouterRecommenderMock,
 }))
 
-vi.mock('@/lib/services/ollama-recommender', () => ({
+vi.mock('@/lib/services/recommenders/ollama-recommender', () => ({
   ollamaRecommender: ollamaRecommenderMock,
 }))
 
@@ -37,7 +37,7 @@ vi.mock('@/lib/services/ai/prompts', () => ({
   getSystemPromptIntentRouter: () => 'intent router prompt',
 }))
 
-import { llmRecommender } from '@/lib/services/llm-recommender'
+import { llmRecommender } from '@/lib/services/recommenders/llm-recommender'
 
 function makeRecommendation(id = 't-test') {
   return {

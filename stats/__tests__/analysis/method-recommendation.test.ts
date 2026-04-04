@@ -16,7 +16,7 @@ import {
   recommendMethods,
   checkMethodRequirements
 } from '@/lib/statistics/method-mapping'
-import { SmartRecommender } from '@/lib/services/smart-recommender'
+import { SmartRecommender } from '@/lib/services/recommenders/smart-recommender'
 
 // 43개 통계 페이지 목록
 const STATISTICS_PAGES = [

@@ -36,7 +36,7 @@ import { focusRing } from '@/components/common/card-styles'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { useTerminology } from '@/hooks/use-terminology'
 import type { AIRecommendation, StatisticalMethod, FlowChatMessage } from '@/types/analysis'
-import type { LlmProvider } from '@/lib/services/llm-recommender'
+import type { LlmProvider } from '@/lib/services/recommenders/llm-recommender'
 import { SecondaryLink } from './CategorySelector'
 
 interface NaturalLanguageInputProps {

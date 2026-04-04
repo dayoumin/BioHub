@@ -7,7 +7,7 @@
  * ChartSpec에는 열 메타데이터(이름·타입·유니크값 수·샘플 카테고리)만 포함.
  */
 
-import { openRouterRecommender } from '@/lib/services/openrouter-recommender';
+import { openRouterRecommender } from '@/lib/services/recommenders/openrouter-recommender';
 import { aiEditResponseSchema } from './chart-spec-schema';
 import type { AiEditRequest, AiEditResponse } from '@/types/graph-studio';
 

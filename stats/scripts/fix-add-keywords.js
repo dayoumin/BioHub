@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const filePath = path.join(__dirname, '../lib/services/decision-tree-recommender.ts');
+const filePath = path.join(__dirname, '../lib/services/recommenders/decision-tree-recommender.ts');
 let content = fs.readFileSync(filePath, 'utf8');
 
 // 패턴: "return {" 로 시작하고 "this.addExpectedKeywords({" 가 아닌 경우

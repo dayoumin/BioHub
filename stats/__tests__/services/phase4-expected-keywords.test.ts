@@ -7,8 +7,8 @@
  * 3. KeywordBasedRecommender 매핑 정확성
  */
 
-import { DecisionTreeRecommender } from '@/lib/services/decision-tree-recommender'
-import { KeywordBasedRecommender } from '@/lib/services/keyword-based-recommender'
+import { DecisionTreeRecommender } from '@/lib/services/recommenders/decision-tree-recommender'
+import { KeywordBasedRecommender } from '@/lib/services/recommenders/keyword-based-recommender'
 import type { StatisticalAssumptions, ValidationResults, DataRow } from '@/types/analysis'
 
 describe('Phase 4 - expectedReasoningKeywords 기능', () => {

@@ -31,7 +31,7 @@ import { cn } from '@/lib/utils'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { useTerminology } from '@/hooks/use-terminology'
 import type { AIRecommendation, StatisticalMethod } from '@/types/analysis'
-import type { LlmProvider } from '@/lib/services/llm-recommender'
+import type { LlmProvider } from '@/lib/services/recommenders/llm-recommender'
 
 interface AutoRecommendationConfirmProps {
   recommendation: AIRecommendation

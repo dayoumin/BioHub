@@ -24,13 +24,13 @@ import type { ChartSpec } from '@/types/graph-studio';
 
 // ─── OpenRouter 모킹 ──────────────────────────────────────
 
-vi.mock('@/lib/services/openrouter-recommender', () => ({
+vi.mock('@/lib/services/recommenders/openrouter-recommender', () => ({
   openRouterRecommender: {
     generateRawText: vi.fn(),
   },
 }));
 
-import { openRouterRecommender } from '@/lib/services/openrouter-recommender';
+import { openRouterRecommender } from '@/lib/services/recommenders/openrouter-recommender';
 
 const mockRaw = vi.mocked(openRouterRecommender.generateRawText);
 

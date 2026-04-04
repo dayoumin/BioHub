@@ -10,7 +10,7 @@
 
 import { STATISTICAL_METHODS, getKoreanName } from '@/lib/constants/statistical-methods'
 import { escapeRegex } from '@/lib/escape-regex'
-import { llmRecommender } from '@/lib/services/llm-recommender'
+import { llmRecommender } from '@/lib/services/recommenders/llm-recommender'
 import { logger } from '@/lib/utils/logger'
 import type { AnalysisTrack, ResolvedIntent, StatisticalMethod } from '@/types/analysis'
 

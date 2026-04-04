@@ -15,7 +15,7 @@ import { vi, Mock } from 'vitest'
 import { PurposeInputStep } from '@/components/analysis/steps/PurposeInputStep'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
-import { llmRecommender } from '@/lib/services/llm-recommender'
+import { llmRecommender } from '@/lib/services/recommenders/llm-recommender'
 
 // Mock Terminology hooks (TerminologyProvider 없이 테스트)
 const mockPurpose = { title: 'Mock', description: 'Mock desc', examples: 'Mock ex' }
@@ -114,7 +114,7 @@ vi.mock('@/lib/stores/mode-store', () => ({
     useModeStore: vi.fn()
 }))
 
-vi.mock('@/lib/services/decision-tree-recommender', () => ({
+vi.mock('@/lib/services/recommenders/decision-tree-recommender', () => ({
     DecisionTreeRecommender: {
         recommend: vi.fn(),
         recommendWithoutAssumptions: vi.fn().mockReturnValue({
@@ -126,7 +126,7 @@ vi.mock('@/lib/services/decision-tree-recommender', () => ({
     }
 }))
 
-vi.mock('@/lib/services/llm-recommender', () => ({
+vi.mock('@/lib/services/recommenders/llm-recommender', () => ({
     llmRecommender: {
         recommendFromNaturalLanguage: vi.fn().mockResolvedValue({
             recommendation: null,

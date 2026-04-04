@@ -175,13 +175,13 @@ describe('FlowStateMachine — chatMessages', () => {
 // ============================================================
 
 describe('isError 필터링 — openrouter-recommender', () => {
-  let recommender: import('@/lib/services/openrouter-recommender').OpenRouterRecommender
+  let recommender: import('@/lib/services/recommenders/openrouter-recommender').OpenRouterRecommender
 
   beforeEach(async () => {
     vi.stubEnv('NEXT_PUBLIC_OPENROUTER_API_KEY', 'test-key')
     vi.stubEnv('NEXT_PUBLIC_OPENROUTER_MODEL', 'openai/gpt-4o-mini')
     vi.resetModules()
-    const mod = await import('@/lib/services/openrouter-recommender')
+    const mod = await import('@/lib/services/recommenders/openrouter-recommender')
     recommender = new mod.OpenRouterRecommender()
   })
 

@@ -11,7 +11,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // llmRecommender를 mock하여 LLM 호출 없이 테스트
-vi.mock('@/lib/services/llm-recommender', () => ({
+vi.mock('@/lib/services/recommenders/llm-recommender', () => ({
   llmRecommender: {
     classifyIntent: vi.fn(),
   },
@@ -28,7 +28,7 @@ vi.mock('@/lib/utils/logger', () => ({
 }))
 
 import { intentRouter } from '@/lib/services/intent-router'
-import { llmRecommender } from '@/lib/services/llm-recommender'
+import { llmRecommender } from '@/lib/services/recommenders/llm-recommender'
 import type { IntentClassification } from '@/types/analysis'
 
 const mockClassifyIntent = vi.mocked(llmRecommender.classifyIntent)

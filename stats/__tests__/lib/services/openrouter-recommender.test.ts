@@ -8,7 +8,7 @@
  * - buildAssumptionContext: 가정 검정 컨텍스트 포맷팅
  */
 
-import { OpenRouterRecommender } from '@/lib/services/openrouter-recommender'
+import { OpenRouterRecommender } from '@/lib/services/recommenders/openrouter-recommender'
 import type { ValidationResults, ColumnStatistics } from '@/types/analysis'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- private 메서드 접근 (TypeScript private은 compile-time only)

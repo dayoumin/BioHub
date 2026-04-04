@@ -20,7 +20,7 @@ const { streamMessagesMock } = vi.hoisted(() => ({
   streamMessagesMock: vi.fn(),
 }))
 
-vi.mock('@/lib/services/llm-recommender', () => ({
+vi.mock('@/lib/services/recommenders/llm-recommender', () => ({
   llmRecommender: {
     streamMessages: streamMessagesMock,
   },
@@ -32,7 +32,7 @@ vi.mock('@/lib/services/ai/prompts', () => ({
 
 import { streamFollowUp, type FollowUpMessage } from '@/lib/services/result-interpreter'
 import type { AnalysisResult } from '@/types/analysis'
-import { OpenRouterRecommender } from '@/lib/services/openrouter-recommender'
+import { OpenRouterRecommender } from '@/lib/services/recommenders/openrouter-recommender'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- private 메서드 테스트
 type AnyRecommender = Record<string, any>
