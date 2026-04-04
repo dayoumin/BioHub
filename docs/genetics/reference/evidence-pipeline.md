@@ -1,13 +1,13 @@
 # Marker Recommendation Engine — 근거 수집 & 점수화 파이프라인
 
-> **상위 문서**: [PLAN-MODULE-E-NCBI-GENETICS.md](../PLAN-MODULE-E-NCBI-GENETICS.md) → E-0 Marker Recommendation Engine
+> **상위 문서**: [../README.md](../README.md) — Genetics 로드맵
 > **출처**: 외부 AI 리서치 (2026-03-21) — 검증 필요 항목 포함
 > **용도**: SpeciesMarkerRecord 시드 데이터를 논문 근거 기반으로 생성하고 갱신하는 파이프라인 설계
 >
 > **관련 문서**:
-> - [02-taxa-guide.md](02-taxa-guide.md) — 분류군별 마커 정성 데이터 (파이프라인 입력의 시드)
-> - [03-databases.md](03-databases.md) — API 기술 가이드 (OpenAlex, NCBI E-utils)
-> - [REFERENCE-E0-BARCODING-SERVICE.md](REFERENCE-E0-BARCODING-SERVICE.md) — 서비스 비전 & COI 실패 대응 엔진
+> - [taxa-guide.md](taxa-guide.md) — 분류군별 마커 정성 데이터 (파이프라인 입력의 시드)
+> - [databases.md](databases.md) — API 기술 가이드 (OpenAlex, NCBI E-utils)
+> - [barcoding-service.md](barcoding-service.md) — 서비스 비전 & COI 실패 대응 엔진
 
 ---
 

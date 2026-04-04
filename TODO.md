@@ -38,7 +38,7 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - `[infra]` ~~worker.ts 분리~~ ✅ — 1,425줄 → 65줄 라우터 + 7 핸들러
 - `[quality]` ~~docs 구조 정리~~ ✅ — stats/docs/ 89개 flat → 13개 서브폴더
 - `[domain]` ~~Phase C1: BOLD ID Engine~~ ✅ — BOLD v5 프록시 + 종 동정 + BIN 매핑 + CSV + 히스토리
-- 상세: [PLAN-GENETICS-IMPROVEMENT.md](docs/PLAN-GENETICS-IMPROVEMENT.md) · [REVIEW-BOLD-ID-ENGINE.md](docs/REVIEW-BOLD-ID-ENGINE.md)
+- 상세: [docs/genetics/README.md](docs/genetics/README.md)
 
 ---
 
@@ -63,9 +63,8 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - `[ux]` ~~사이드바 BioHub 로고 홈 링크~~ ✅ + ~~문헌·동향 → 자료 작성 하위로 이동~~ ✅
 - `[ux]` Stitch Axiom Slate 디자인 시스템 적용 ✅ — `stats/DESIGN.md` 기반, Surface Hierarchy + No-Line Rule
 - `[ux]` 문헌 검색을 자료 작성 페이지 내 서브탭으로 통합 (사이드바 제거 완료, 페이지 통합 대기)
-- `[ux]` Command Palette (Cmd+K) — 43개 분석 메서드 + 16개 Bio 도구 + Graph Studio 빠른 접근
 - `[ux]` 키보드 단축키 — `Ctrl+Enter` 분석 실행, `Escape` 뒤로, `Ctrl+S` 저장/내보내기
-- `[ux]` Bio-Tools 샘플 데이터 — "샘플로 시작" 옵션 (신규 사용자 마찰 감소)
+- `[ux]` ~~Bio-Tools 샘플 데이터~~ ✅ — BioCsvUpload `exampleDataPath` prop + 15개 도구 CSV 연결 완료
 - `[ux]` Bio-Tools 데이터 프리뷰 — 업로드 후 분석 전 5행 미리보기
 - `[ux]` Bio-Tools 컬럼 Combobox — cmdk 검색 가능 select
 - `[ux]` 사이드바 My Menu — 드래그 정렬 + 즐겨찾기 고정
@@ -74,10 +73,10 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 ### 3-C. 품질/기술 부채
 
 - `[quality]` 통합 히스토리 사이드바 정리:
-  - `useLocalStorageSync(key, event, loader)` 공용 훅 추출 (3곳 반복)
+  - ~~`useLocalStorageSync(key, event, loader)` 공용 훅 추출~~ ✅ — `lib/hooks/use-local-storage-sync.ts`
   - 히스토리 사이드바 한글 하드코딩 → terminology (~15건)
-  - `onHistoryShowMore` 데드 prop 정리
-  - pin 토글 로직 `togglePinId()` 순수 함수 추출 (3곳 반복)
+  - `onHistoryShowMore` 데드 prop 정리 — `ChatCentricHub.tsx`에 잔존
+  - ~~pin 토글 로직 `togglePinId()` 순수 함수 추출~~ ✅ — `lib/utils/pinned-history-storage.ts`
 - `[quality]` IndexedDB 트랜잭션 헬퍼 중복 — `txPut/txGetByIndex/txDelete`가 `citation-storage.ts` + `document-blueprint-storage.ts` + `chart-snapshot-storage.ts` 3곳에 반복 → `lib/utils/indexeddb-helpers.ts` 공유 모듈로 추출
 - `[quality]` ~~ID 생성 함수 통합~~ ✅ — `generateId(prefix)` 유틸 추출, 8개 파일 교체
 - `[quality]` ~~`downloadTextFile` 유틸 추출~~ ✅ — `downloadTextFile/downloadCsvFile/downloadBlob` 3함수, 15개 파일 인라인 패턴 교체
@@ -92,13 +91,38 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - `[bio]` Fst long-format CSV 지원 — population/locus/allele/count 4컬럼. 우선순위 낮음
 - `[analysis]` intent-router 0.6 임계값 검증 — 사용 로그 수집 후 데이터 기반 재검토
 - `[ux]` Bio-Tools data-testid + aria-label — E2E 테스트 + 접근성
-- `[quality]` 기존 테스트 실패 10건 수정 — StatisticCard 등 CSS 클래스 변경 미반영 (7 files, 10 tests)
+- `[quality]` ~~기존 테스트 실패 10건 수정~~ ✅ — `fe391de9`에서 CSS 클래스 + mock 갱신 완료 (7 files)
 - `[quality]` ~~method-mapping.ts / statistical-methods.ts 통합~~ ✅ — method-mapping.ts 삭제 (811줄), canonical SSOT로 완전 전환. import 14곳 리다이렉트, two-way-anova canonical 등록, dead code 제거
-- `[ux]` method-catalog categoryOrder에 `'descriptive'` 누락 — `getAllMethodsGrouped()` Browse All에서 normality-test, descriptive, explore-data, means-plot 4개가 안 보임. categoryOrder 배열에 `'descriptive'` 추가 필요
+- `[ux]` ~~method-catalog categoryOrder에 `'descriptive'` 누락~~ ✅ — categoryOrder에 descriptive 추가, Browse All에서 4개 메서드 정상 노출
 - `[quality]` games-howell recommender 리팩터링 — `smart-recommender.ts:251`에서 하드코딩된 inline method object 대신, ANOVA 추천 시 post-hoc 옵션을 별도 로직으로 제안하도록 개선. Post-hoc는 독립 메서드가 아닌 ANOVA 내부 옵션 아키텍처 반영
-- `[quality]` Worker 타입 계약 정비 (Session C) — Python↔Registry↔Generated 동기화 + 레거시 삭제 + 출력 검증 + type-guards 확장. 상세: [PLAN-SESSION-C-WORKER-TYPE-CONTRACT.md](docs/PLAN-SESSION-C-WORKER-TYPE-CONTRACT.md)
+- `[quality]` ~~Worker 타입 계약 정비 (Session C)~~ ✅ — Worker 1-2 타입 계약 + pyodide-results.ts 삭제 (520줄) + generated 타입 전환 + type-guards 확장. 상세: [PLAN-SESSION-C-WORKER-TYPE-CONTRACT.md](docs/PLAN-SESSION-C-WORKER-TYPE-CONTRACT.md)
 - `[quality]` ~~Regression handler–worker 계약 불일치 4건~~ ✅ (Session D) — worker4 + handler + test 커밋 완료. registry/codegen/generated 3파일은 Session C 커밋에 포함 예정
 - `[quality]` Handler runtime contract 명시화 — 12개 핸들러 전체 `WorkerRaw*` 타입 정의 + runtime assertion + 필드명 표준화. 상세: [PLAN-HANDLER-RUNTIME-CONTRACTS.md](docs/PLAN-HANDLER-RUNTIME-CONTRACTS.md)
+
+### 3-C-1. 2026-04-04 대규모 리팩터링 사후 점검 (82파일, -4120/+2896)
+
+> 5개 커밋: method-mapping 삭제, Session C 타입 계약, storage-keys 중앙화, categoryOrder 수정, handler 타입 전환
+
+**빌드 검증:**
+- [ ] `pnpm build` 성공 (dead import → 빌드 실패로 잡힘)
+
+**수동 E2E 핵심 경로 (handler 변경이 큰 3개):**
+- [ ] Linear Regression 실행 → 결과 테이블 + 계수/R² 정상
+- [ ] Time Series (ARIMA) 실행 → 예측 결과 정상
+- [ ] Independent t-test 실행 → p-value + 효과 크기 정상
+
+**카탈로그 확인:**
+- [ ] Analysis 허브 → Browse All → descriptive 카테고리 4개 메서드 노출 확인
+
+**Storage 마이그레이션:**
+- [ ] 기존 브라우저 세션에서 설정/테마/히스토리 유지되는지 확인
+- [ ] 새 브라우저/시크릿 모드에서 정상 동작
+
+**추가 안정성 (시간 여유 시):**
+- [ ] Chi-square 실행 정상
+- [ ] Correlation 실행 정상
+- [ ] One-way ANOVA + post-hoc 실행 정상
+- [ ] Descriptive Statistics 실행 정상
 
 ### 3-D. 인프라
 
@@ -108,7 +132,11 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
   - genetics history D1 동기화 레이어의 식별자 교체
   - 기존 `deviceId` 레코드 → 최초 로그인 `userId` 이관 전략 필요
 - `[infra]` Turso → D1 통합 — `turso-adapter.ts`, `hybrid-adapter.ts`, `NEXT_PUBLIC_TURSO_*` 제거
-- `[infra]` 집 PC 환경 동기화 — Node 22 + cf-deploy 스킬 복사 + git pull
+- `[infra]` 회사 PC 환경 동기화 — Node 22 + cf-deploy 스킬 복사 + git pull
+  - `~/.claude/skills/context7/SKILL.md` 복사 (Context7 서브에이전트 스킬)
+  - `claude mcp add -s user context7 -- npx -y @upstash/context7-mcp@latest`
+  - `.mcp.json` playwright → `@playwright/mcp@latest` (이미 커밋됨, pull로 반영)
+  - agent-browser 0.24.0 + Playwright 1.59.1 업데이트
 
 ### 3-E. 리뷰/신뢰
 
@@ -139,7 +167,7 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 
 ### 4-B. 유전적 분석 — 리팩토링
 
-- `[quality]` 제네릭 `useApiExecution` 훅 추출 — `useBoldExecution`과 `useBlastExecution`이 ~80% 동일 (submit→poll→fetch 폴링 라이프사이클). 세 번째 폴링 API 추가 시 통합. 상세: [REVIEW-BOLD-ID-ENGINE.md](docs/REVIEW-BOLD-ID-ENGINE.md) §2
+- `[quality]` 제네릭 `useApiExecution` 훅 추출 — `useBoldExecution`과 `useBlastExecution`이 ~80% 동일 (submit→poll→fetch 폴링 라이프사이클). 세 번째 폴링 API 추가 시 통합
 - `[quality]` BoldResultView similarity 색상 dark mode — `similarityColorClass`/`similarityTextClass`가 light-only (`text-green-700` 등). progress bar 특성상 양 테마 동일 색상이 나을 수도 있어 디자인 판단 필요
 - `[review]` figure/table 저널 적합성 리뷰
 - `[ux]` 프로젝트 카드 클릭 동작 — 사용자 피드백 후 결정

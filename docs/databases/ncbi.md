@@ -5,8 +5,8 @@
 **비용**: 무료
 **인증**: API key (무료, NCBI 계정에서 발급) — 없어도 사용 가능, 있으면 rate limit 완화
 
-> 종 동정 워크플로우 관점: [genetic-identification/03-databases.md](../genetic-identification/03-databases.md)
-> BLAST Worker 구현 상세: [genetic-identification/05-blast-api-technical.md](../genetic-identification/05-blast-api-technical.md)
+> 종 동정 워크플로우 관점: [genetics/reference/databases.md](../genetics/reference/databases.md)
+> BLAST Worker 구현 상세: [genetics/reference/blast-api.md](../genetics/reference/blast-api.md)
 
 ---
 

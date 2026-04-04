@@ -74,5 +74,5 @@
 
 - **진행 상황**: [TODO.md](TODO.md) · [ROADMAP.md](ROADMAP.md)
 - **Executor 계획**: [2026-04-04-executor-varreqs-alignment.md](docs/superpowers/plans/2026-04-04-executor-varreqs-alignment.md)
-- **유전 계획**: [PLAN-GENETICS-IMPROVEMENT.md](docs/PLAN-GENETICS-IMPROVEMENT.md)
+- **유전 로드맵**: [docs/genetics/README.md](docs/genetics/README.md)
 - **도메인 다음 단계**: [docs/databases/](docs/databases/)

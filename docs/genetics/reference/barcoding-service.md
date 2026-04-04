@@ -1,6 +1,6 @@
 # E-0 DNA 바코딩 종 동정 — 외부 리서치 참고 자료
 
-> **상위 문서**: [PLAN-MODULE-E-NCBI-GENETICS.md](../PLAN-MODULE-E-NCBI-GENETICS.md) → E-0 섹션
+> **상위 문서**: [../README.md](../README.md) — Genetics 로드맵
 > **출처**: 외부 AI 리서치 (2026-03-21) — 검증 필요 항목 포함
 > **용도**: E-0 구현 시 참고할 시장 분석, 기술 옵션, 아키텍처 아이디어
 >

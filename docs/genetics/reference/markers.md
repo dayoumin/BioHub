@@ -5,10 +5,9 @@
 **원칙**: 분석 실패 시 → 다음 단계 안내 → 보고서 자동 생성
 
 **관련 문서**:
-- [02-taxa-guide.md](02-taxa-guide.md) — 분류군별 마커 선택 가이드
-- [03-databases.md](03-databases.md) — 종 판별 DB & API 기술 가이드
-- [PLAN-MODULE-E-NCBI-GENETICS.md](../PLAN-MODULE-E-NCBI-GENETICS.md) — NCBI 연결 + 유전학 분석 구현 계획
-- [REFERENCE-E0-BARCODING-SERVICE.md](REFERENCE-E0-BARCODING-SERVICE.md) — E-0 바코딩 서비스 시장 분석 + 아키텍처
+- [taxa-guide.md](taxa-guide.md) — 분류군별 마커 선택 가이드
+- [databases.md](databases.md) — 종 판별 DB & API 기술 가이드
+- [barcoding-service.md](barcoding-service.md) — E-0 바코딩 서비스 시장 분석 + 아키텍처
 
 ---
 

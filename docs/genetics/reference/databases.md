@@ -5,10 +5,9 @@
 **원칙**: 서열 입력 → DB 자동 검색 → 결과 보고서 생성 파이프라인
 
 **관련 문서**:
-- [01-markers.md](01-markers.md) — DNA 바코딩 마커 총정리
-- [02-taxa-guide.md](02-taxa-guide.md) — 분류군별 마커 선택 가이드
-- [PLAN-MODULE-E-NCBI-GENETICS.md](../PLAN-MODULE-E-NCBI-GENETICS.md) — NCBI 연결 + 유전학 분석 구현 계획
-- [REFERENCE-E0-BARCODING-SERVICE.md](REFERENCE-E0-BARCODING-SERVICE.md) — E-0 바코딩 서비스 시장 분석 + 아키텍처
+- [markers.md](markers.md) — DNA 바코딩 마커 총정리
+- [taxa-guide.md](taxa-guide.md) — 분류군별 마커 선택 가이드
+- [barcoding-service.md](barcoding-service.md) — E-0 바코딩 서비스 시장 분석 + 아키텍처
 
 ---
 

@@ -118,6 +118,7 @@ Includes:
 - project-level organization and export
 - **sample research project**: 내장 데모 연구과제 1개 (통계 분석 + Graph Studio 그래프 + 유전적 분석 + 결과 정리가 모두 포함된 완성된 예시). 신규 사용자가 "연구과제가 뭔지" 바로 이해할 수 있도록 함
 - UI 용어: "프로젝트" → "연구과제" (PLAN-PROJECT-UX-IMPROVEMENT.md 참조)
+- **Command Palette (Cmd+K)**: 43개 분석 메서드 + 16개 Bio 도구 + Graph Studio 빠른 접근. 키보드 중심 워크플로 지원
 
 ### Stream 3. Domain Intelligence
 
@@ -1720,7 +1721,7 @@ Knowledge Graph가 필요한 경우는: 엔티티 5개+ 쿼리, 멀티홉 추론
 
 #### Phase 15-5: NCBI 연결 + 개체군 유전학 — 2.5주
 
-**상세 계획서**: [PLAN-MODULE-E-NCBI-GENETICS.md](docs/PLAN-MODULE-E-NCBI-GENETICS.md)
+**상세 계획서**: [docs/genetics/README.md](docs/genetics/README.md)
 
 | 기능 | 시간 | 기술 |
 |------|------|------|

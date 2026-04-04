@@ -3,7 +3,7 @@
 **목적**: BioHub에서 연동하거나 참조하는 주요 생물학 DB의 API 사양 정리
 **원칙**: DB별 1파일, API 호출에 필요한 실용 정보 중심
 
-> 종 동정 파이프라인 관점의 DB 가이드는 [genetic-identification/03-databases.md](../genetic-identification/03-databases.md) 참조
+> 종 동정 파이프라인 관점의 DB 가이드는 [genetics/reference/databases.md](../genetics/reference/databases.md) 참조
 
 ---
 
