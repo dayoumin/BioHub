@@ -1,5 +1,5 @@
 import { pyodideStats } from '../pyodide/pyodide-statistics'
-import type { StatisticalMethod } from '../../statistics/method-mapping'
+import type { StatisticalMethod } from '@/types/analysis'
 import type { PreparedData, StatisticalExecutorResult } from '../statistical-executor'
 
 export async function handleTimeSeries(method: StatisticalMethod, data: PreparedData): Promise<StatisticalExecutorResult> {

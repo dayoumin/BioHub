@@ -3,7 +3,7 @@
  * 29개 통계 메서드를 실제 Pyodide 함수와 연결
  */
 
-import { StatisticalMethod } from '../statistics/method-mapping'
+import type { StatisticalMethod } from '@/types/analysis'
 import type { SuggestedSettings } from '@/types/analysis'
 import { logger } from '../utils/logger'
 import {

@@ -7,7 +7,7 @@
  */
 
 import { pyodideStats } from '../pyodide/pyodide-statistics'
-import type { StatisticalMethod } from '../../statistics/method-mapping'
+import type { StatisticalMethod } from '@/types/analysis'
 import type { PreparedData, StatisticalExecutorResult } from '../statistical-executor'
 import { interpretRSquared } from './shared-helpers'
 
