@@ -32,11 +32,6 @@ export interface DataUploadStepProps extends StepNavigationProps {
   onUploadComplete: (file: File, data: DataRow[]) => void
 }
 
-export interface DataValidationStepProps extends StepNavigationProps {
-  validationResults: ValidationResults | null
-  data: DataRow[] | null
-}
-
 export interface PurposeInputStepProps extends StepNavigationProps {
   onPurposeSubmit: (purpose: string, method: StatisticalMethod) => void
   validationResults?: ValidationResults | null

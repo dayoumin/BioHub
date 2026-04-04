@@ -16,7 +16,6 @@ import type {
 } from '@/types/graph-studio';
 import { createChartSpecFromDataPackage } from '@/lib/graph-studio/chart-spec-utils';
 import {
-  deleteProject as deleteStoredProject,
   deleteProjectCascade,
   saveProject,
   generateProjectId,

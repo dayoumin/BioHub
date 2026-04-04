@@ -1,10 +1,5 @@
 import { ValidationResults, ColumnStatistics } from '@/types/analysis'
 
-export interface DataValidationStepProps {
-  validationResults: ValidationResults | null
-  data: any[] | null
-}
-
 export interface CorrelationMatrixData {
   matrix: number[][]
   labels: string[]
