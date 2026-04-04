@@ -146,7 +146,7 @@ describe('Methods Registry', () => {
 
       // 합계 검증
       let sum = 0
-      for (const num of [1, 2, 3, 4, 5, 6, 7, 8] as const) {
+      for (const num of [1, 2, 3, 4, 5, 6, 7, 8, 9] as const) {
         sum += stats.methodsByWorker[num] ?? 0
       }
       expect(sum).toBe(stats.totalMethods)

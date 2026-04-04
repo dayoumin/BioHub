@@ -156,36 +156,44 @@ describe('streamFollowUp: 메시지 배열 구성', () => {
     expect(messages).toHaveLength(8)
   })
 
-  it('히스토리 6개이면 slice(-4)로 마지막 4개만 포함 — 총 8개', async () => {
+  it('히스토리 6개이면 compressChatHistory로 축약 1개 + 최근 4개 포함 — 총 9개', async () => {
     streamMessagesMock.mockReturnValue(makeStreamGen([]))
 
     const history = makeHistory(6) // message-0 ~ message-5
     await streamFollowUp('질문', history, makeCtx(), '초기', vi.fn())
 
     const messages: Array<{ role: string; content: string }> = streamMessagesMock.mock.calls[0][0]
-    // system + analysis + initial + 4(slice) + question = 8
-    expect(messages).toHaveLength(8)
+    // system + analysis + initial + 1(축약) + 4(최근) + question = 9
+    expect(messages).toHaveLength(9)
 
-    // 포함된 히스토리는 마지막 4개 (message-2 ~ message-5)
-    const historySlice = messages.slice(3, -1)
-    expect(historySlice[0].content).toBe('message-2')
-    expect(historySlice[1].content).toBe('message-3')
-    expect(historySlice[2].content).toBe('message-4')
-    expect(historySlice[3].content).toBe('message-5')
+    // 첫 번째 히스토리 메시지는 축약 요약
+    expect(messages[3].content).toContain('[이전 대화 맥락')
+
+    // 최근 4개는 원본 유지 (message-2 ~ message-5)
+    const recentSlice = messages.slice(4, -1)
+    expect(recentSlice[0].content).toBe('message-2')
+    expect(recentSlice[1].content).toBe('message-3')
+    expect(recentSlice[2].content).toBe('message-4')
+    expect(recentSlice[3].content).toBe('message-5')
   })
 
-  it('히스토리 5개이면 slice(-4)로 마지막 4개 — 총 8개', async () => {
+  it('히스토리 5개이면 compressChatHistory로 축약 1개 + 최근 4개 — 총 9개', async () => {
     streamMessagesMock.mockReturnValue(makeStreamGen([]))
 
     const history = makeHistory(5) // message-0 ~ message-4
     await streamFollowUp('질문', history, makeCtx(), '초기', vi.fn())
 
     const messages: Array<{ role: string; content: string }> = streamMessagesMock.mock.calls[0][0]
-    expect(messages).toHaveLength(8)
+    // system + analysis + initial + 1(축약) + 4(최근) + question = 9
+    expect(messages).toHaveLength(9)
 
-    const historySlice = messages.slice(3, -1)
-    expect(historySlice[0].content).toBe('message-1') // slice(-4) from 5 = index 1
-    expect(historySlice[3].content).toBe('message-4')
+    // 첫 번째 히스토리 메시지는 축약 요약
+    expect(messages[3].content).toContain('[이전 대화 맥락')
+
+    // 최근 4개 원본 (message-1 ~ message-4)
+    const recentSlice = messages.slice(4, -1)
+    expect(recentSlice[0].content).toBe('message-1')
+    expect(recentSlice[3].content).toBe('message-4')
   })
 
   it('히스토리 1개이면 그대로 포함 — 총 5개', async () => {

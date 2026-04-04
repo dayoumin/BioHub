@@ -153,10 +153,10 @@ describe('PurposeCard - Accessibility (ARIA Radio)', () => {
 
       const card = screen.getByRole('radio')
 
-      // ✅ 선택 스타일 (border-primary, bg-primary/5, shadow-md)
+      // ✅ 선택 스타일 (border-primary, bg-primary/5, shadow-sm)
       expect(card.className).toContain('border-primary')
       expect(card.className).toContain('bg-primary/5')
-      expect(card.className).toContain('shadow-md')
+      expect(card.className).toContain('shadow-sm')
     })
 
     it('should show check icon when selected', () => {

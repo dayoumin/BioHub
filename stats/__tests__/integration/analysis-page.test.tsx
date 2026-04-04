@@ -159,6 +159,37 @@ vi.mock('@/components/ErrorBoundary', () => ({
   ErrorBoundary: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
 }))
 
+// ===== Mock: AnalysisSteps (next/dynamic의 비동기 로딩 문제 방지) =====
+// 실제 AnalysisSteps는 PurposeInputStep/ResultsActionStep을 next/dynamic으로 로드하여
+// 테스트에서 loading fallback만 표시됨. Store 상태 기반 stub으로 대체.
+
+vi.mock('@/components/analysis/AnalysisSteps', async () => {
+  const { useAnalysisStore: storeRef } = await vi.importActual<typeof import('@/lib/stores/analysis-store')>('@/lib/stores/analysis-store')
+
+  return {
+    AnalysisSteps: ({ isHubVisible }: { isHubVisible: boolean }) => {
+      if (isHubVisible) return null
+      const { currentStep, results, error } = storeRef()
+
+      return (
+        <>
+          {currentStep === 1 && <div data-testid="data-exploration-step">Exploration</div>}
+          {currentStep === 2 && <div data-testid="purpose-input-step">Purpose</div>}
+          {currentStep === 3 && <div data-testid="variable-selection-step">Variable</div>}
+          {currentStep === 4 && !results && <div data-testid="analysis-execution-step">Analysis</div>}
+          {currentStep === 4 && results && <div data-testid="results-action-step">Results</div>}
+          {error && (
+            <div className="mt-6 px-6">
+              <span>{error}</span>
+              <button onClick={() => storeRef.getState().setError(null)}>다시 시도</button>
+            </div>
+          )}
+        </>
+      )
+    }
+  }
+})
+
 // ===== Mock: 서비스/유틸리티 =====
 
 vi.mock('@/lib/services/data-validation-service', () => ({

@@ -50,7 +50,7 @@ describe('StatisticCard', () => {
         </StatisticCard>
       )
       const wrapper = container.firstChild as HTMLElement
-      expect(wrapper).toHaveClass('text-center', 'p-3', 'rounded-lg')
+      expect(wrapper).toHaveClass('text-center', 'p-4', 'rounded-xl')
     })
 
     it('cursor-help 스타일이 적용된다', () => {

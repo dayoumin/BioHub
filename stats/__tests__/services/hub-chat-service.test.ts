@@ -221,14 +221,14 @@ describe('hub-chat-service — getHubAiResponse', () => {
 
   // ===== 시나리오 4: 히스토리 슬라이싱 =====
 
-  describe('시나리오 4: 히스토리 슬라이싱 — slice(-4)로 최근 4개만 전달', () => {
-    it('이전 5턴 + 현재 메시지일 때, flowHistory는 최근 4턴만 포함하고 첫 번째(가장 오래된) 메시지만 밀려난다', async () => {
+  describe('시나리오 4: 히스토리 슬라이싱 — compressChatHistory로 최근 4개 원본 + 이전 축약', () => {
+    it('이전 5턴 + 현재 메시지일 때, flowHistory는 축약 1개 + 최근 4개 = 5개를 포함한다', async () => {
       const currentMessage = '결과를 어떻게 해석하나요?'
 
       // 5개의 이전 메시지 (현재 메시지 제외)
-      // slice(-4) 적용: index 0만 제거, index 1~4 포함
+      // compressChatHistory: index 0은 축약 요약으로 변환, index 1~4는 원본 유지
       const priorMessages: HubChatMessage[] = [
-        makeHubMsg({ role: 'user', content: '가장 오래된 질문' }),          // index 0 → 밀려남
+        makeHubMsg({ role: 'user', content: '가장 오래된 질문' }),          // index 0 → 축약 요약
         makeHubMsg({ role: 'assistant', content: '오래된 답변' }),           // index 1 → 포함
         makeHubMsg({ role: 'user', content: '중간 질문' }),                 // index 2 → 포함
         makeHubMsg({ role: 'assistant', content: '중간 답변' }),             // index 3 → 포함
@@ -247,18 +247,21 @@ describe('hub-chat-service — getHubAiResponse', () => {
       const options = callArgs[5] as { chatHistory: FlowChatMessage[] }
       const flowHistory = options.chatHistory
 
-      // slice(-4) → 최근 4개만 (5개 중 첫 1개 제외)
-      expect(flowHistory).toHaveLength(4)
+      // compressChatHistory → 축약 요약 1개 + 최근 4개 = 5개
+      expect(flowHistory).toHaveLength(5)
 
-      // 가장 오래된 메시지(index 0)만 밀려남
-      const containsOldest = flowHistory.some((m) => m.content === '가장 오래된 질문')
-      expect(containsOldest).toBe(false)  // 밀려남
+      // 가장 오래된 메시지(index 0)는 원본이 아닌 축약 요약에 포함
+      const containsOldestOriginal = flowHistory.some((m) => m.content === '가장 오래된 질문')
+      expect(containsOldestOriginal).toBe(false)  // 원본은 없음
+
+      // 첫 번째는 축약 요약 메시지
+      expect(flowHistory[0].content).toContain('[이전 대화 맥락')
 
       // 나머지 4개는 순서대로 포함
-      expect(flowHistory[0].content).toBe('오래된 답변')
-      expect(flowHistory[1].content).toBe('중간 질문')
-      expect(flowHistory[2].content).toBe('중간 답변')
-      expect(flowHistory[3].content).toBe('최근 질문')
+      expect(flowHistory[1].content).toBe('오래된 답변')
+      expect(flowHistory[2].content).toBe('중간 질문')
+      expect(flowHistory[3].content).toBe('중간 답변')
+      expect(flowHistory[4].content).toBe('최근 질문')
     })
 
     it('이전 4턴 정확히 = slice(-4) 경계 — 모두 포함됨', async () => {
@@ -280,7 +283,7 @@ describe('hub-chat-service — getHubAiResponse', () => {
       expect(flowHistory).toHaveLength(4)
     })
 
-    it('이전 10턴이 있어도 flowHistory는 최대 4개로 제한된다', async () => {
+    it('이전 10턴이 있어도 flowHistory는 축약 1개 + 최근 4개 = 최대 5개로 제한된다', async () => {
       const priorMessages: HubChatMessage[] = makeHistory(10)
 
       await getHubAiResponse({
@@ -294,8 +297,8 @@ describe('hub-chat-service — getHubAiResponse', () => {
       const options = callArgs[5] as { chatHistory: FlowChatMessage[] }
       const flowHistory = options.chatHistory
 
-      expect(flowHistory).toHaveLength(4)  // 항상 최대 4개
-      expect(flowHistory.length).toBeLessThanOrEqual(4)
+      expect(flowHistory).toHaveLength(5)  // 축약 1개 + 최근 4개
+      expect(flowHistory.length).toBeLessThanOrEqual(5)
     })
   })
 
