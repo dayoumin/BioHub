@@ -176,7 +176,7 @@ export default function PapersHub({ onOpenDocument, onOpenPackage }: PapersHubPr
       {/* Hero */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">논문 작성</h1>
+          <h1 className="text-3xl font-bold tracking-tight">자료 작성</h1>
           <p className="text-muted-foreground mt-1">
             {activeProject
               ? `${activeProject.presentation?.emoji ?? ''} ${activeProject.name}`

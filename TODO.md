@@ -1,6 +1,6 @@
 # BioHub TODO
 
-**Last updated**: 2026-04-04 (Genetics Phase A/B 완료 — 6개 도구 전체 사용 가능)
+**Last updated**: 2026-04-04 (BOLD ID Engine 완료 — 7개 유전 도구 사용 가능)
 **References**: [Product Strategy](docs/PRODUCT_STRATEGY.md), [Roadmap](ROADMAP.md), [Research Project Status](docs/RESEARCH_PROJECT_STATUS.md)
 
 ---
@@ -15,7 +15,7 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 
 ## 2. Now
 
-### 논문 작성 (Phase 6a)
+### 자료 작성 (Phase 6a)
 
 - `[paper]` ~~Phase 1~5 완료~~ ✅ — 타입+조립엔진, 에디터, Plate WYSIWYG, DOCX/HWPX 내보내기, 영문 템플릿 15개
 - `[paper]` ~~Phase 6b: Figure 오프스크린 렌더링+캐시~~ ✅
@@ -37,7 +37,8 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - `[domain]` ~~Phase B3: 히스토리 텍스트 검색~~ ✅
 - `[infra]` ~~worker.ts 분리~~ ✅ — 1,425줄 → 65줄 라우터 + 7 핸들러
 - `[quality]` ~~docs 구조 정리~~ ✅ — stats/docs/ 89개 flat → 13개 서브폴더
-- 상세: [PLAN-GENETICS-IMPROVEMENT.md](docs/PLAN-GENETICS-IMPROVEMENT.md)
+- `[domain]` ~~Phase C1: BOLD ID Engine~~ ✅ — BOLD v5 프록시 + 종 동정 + BIN 매핑 + CSV + 히스토리
+- 상세: [PLAN-GENETICS-IMPROVEMENT.md](docs/PLAN-GENETICS-IMPROVEMENT.md) · [REVIEW-BOLD-ID-ENGINE.md](docs/REVIEW-BOLD-ID-ENGINE.md)
 
 ---
 
@@ -47,9 +48,9 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 
 ### 3-A. 도메인 확장
 
-- `[domain]` FisheryON 기능 이전 — 문헌 통합검색 (Phase A) + 연구동향 모니터링 (Phase B) + 이메일 구독/Cron (Phase C). 상세: [PLAN-FISHERY-MIGRATION.md](docs/PLAN-FISHERY-MIGRATION.md)
+- `[domain]` FisheryON 기능 이전 — 문헌 통합검색 (Phase A) ✅ 구현 완료, 자료 작성 하위 탭 통합 대기. 연구동향 모니터링 (Phase B) + 이메일 구독/Cron (Phase C) → **ROADMAP Stream 5 (Research Copilot)으로 이관**. 상세: [PLAN-FISHERY-MIGRATION.md](docs/PLAN-FISHERY-MIGRATION.md)
 - `[domain]` 외부 DB 연동 우선순위 — 레퍼런스: [docs/databases/](docs/databases/)
-  - **1순위**: BOLD ID Engine (종 동정 1차 검색, CORS 미지원→프록시 필요)
+  - ~~**1순위**: BOLD ID Engine~~ ✅ — Worker 프록시 + useBoldExecution 훅 + BoldResultView + 20 tests
   - **2순위**: GBIF (분포/출현 기록, CORS 지원→브라우저 직접 호출 가능)
   - **3순위**: UniProt ID Mapping (BLAST→단백질 기능 연결, CORS 지원)
   - **안함**: GO/KEGG/Ensembl 유전자 기능 심화 — Galaxy/Bioconductor 영역, BioHub 차별점 아님
@@ -127,6 +128,11 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - `[architecture]` 프로젝트 연결 DB 동기화 — D1 연동 시
 - `[workflow]` 프로젝트 협업/공유 — 스토리지 아키텍처 지원 시
 - `[domain]` citation/traceability 강화
+
+### 4-B. 유전적 분석 — 리팩토링
+
+- `[quality]` 제네릭 `useApiExecution` 훅 추출 — `useBoldExecution`과 `useBlastExecution`이 ~80% 동일 (submit→poll→fetch 폴링 라이프사이클). 세 번째 폴링 API 추가 시 통합. 상세: [REVIEW-BOLD-ID-ENGINE.md](docs/REVIEW-BOLD-ID-ENGINE.md) §2
+- `[quality]` BoldResultView similarity 색상 dark mode — `similarityColorClass`/`similarityTextClass`가 light-only (`text-green-700` 등). progress bar 특성상 양 테마 동일 색상이 나을 수도 있어 디자인 판단 필요
 - `[review]` figure/table 저널 적합성 리뷰
 - `[ux]` 프로젝트 카드 클릭 동작 — 사용자 피드백 후 결정
 - `[trust]` 재현 코드 내보내기 확장 (고급 분석)
@@ -161,7 +167,7 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - **Graph Studio**: localStorage quota, AI 패치 검증, BOM 감지, quota 정책
 - **유전적 분석**: BLAST 통합 리팩토링, 히스토리 분리, 초보자 가이드, rate limit 재시도
 - **Bio-Tools**: BioToolId 타입, 차트 ECharts 전환, 결과 내보내기, 프로젝트 연결, Worker 9 골든 테스트
-- **논문 작성**: Phase 1~5 + 6a/6b/6d/6e 완료 — 조립엔진·Plate WYSIWYG·DOCX/HWPX 내보내기·영문 템플릿·Figure 렌더링·자동 번호 매기기·인용 관리(APA+IndexedDB+References 자동 병합)
+- **자료 작성**: Phase 1~5 + 6a/6b/6d/6e 완료 — 조립엔진·Plate WYSIWYG·DOCX/HWPX 내보내기·영문 템플릿·Figure 렌더링·자동 번호 매기기·인용 관리(APA+IndexedDB+References 자동 병합)
 - **UI 통합**: Shell/Upload/Bio 페이지 일관성, 토스트 마이그레이션, 디자인 토큰, 차트 팔레트 토큰화, **전역 토큰 일관성 통일** (26건 18파일)
 - **유전적 분석 Cloud Sync**: D1 genetics history API + 30s TTL hydration + entity ref 중복 수정
 - **worker.ts 기술부채**: `parseJsonBody`(9건) + `authenticateRequest`(3건) + `verifyProjectOwnership`(4건) 헬퍼 추출

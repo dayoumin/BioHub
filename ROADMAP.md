@@ -1,6 +1,6 @@
 # BioHub Roadmap
 
-**Last updated**: 2026-03-21
+**Last updated**: 2026-04-04
 **References**: [Platform Vision](docs/PLATFORM_VISION.md), [Product Strategy](docs/PRODUCT_STRATEGY.md), [AI Export Strategy](docs/AI-EXPORT-STRATEGY.md), [Research Project Status](docs/RESEARCH_PROJECT_STATUS.md), [Deployment Strategy](docs/DEPLOYMENT-STRATEGY.md)
 
 ---
@@ -127,37 +127,33 @@ Includes:
 - source-aware domain outputs
 - future WoRMS / GBIF / OBIS / CITES / CMS integrations
 
-### Stream 4. Reviewer-Ready Manuscript Workflow
+### Stream 4. 자료 작성 (Research Materials Assembly)
 
 Goal:
 
-Help researchers move from analysis to defensible submission materials.
+분석 결과를 모아서 **외부 SOTA AI가 바로 논문을 생성할 수 있는 패키지**로 내보내기.
+BioHub은 논문을 직접 쓰는 도구가 아니라, **논문을 쓸 수 있게 만드는 도구**.
+향후 자체 AI API 연동으로 내부 논문 생성도 지원 예정.
 
-Includes:
-
-- multi-analysis draft assembly
-- figure and table linkage
-- methods and reporting checklist
-- reviewer checklist and simulation
-- journal format adaptation and fit review
-
-### Stream 5. AI Export Pipeline
-
-Goal:
-
-BioHub의 분석 결과를 외부 SOTA AI(Claude/GPT/Gemini Pro)가 소비할 수 있는 구조화된 패키지로 내보내기. 사용자는 이 패키지로 논문 초고를 생성하고, 최종적으로 DOCX/HWPX로 편집·제출한다.
-
-Includes:
+**Phase 1 (현재): AI Export — 외부 AI용 패키지 내보내기**
 
 - 프로젝트 전체 결과를 Markdown/JSON으로 export (통계+그래프+문헌+계산)
 - 결과 ↔ 논문 섹션 매핑 (Table 2, Figure 3, Results 3.1 태깅)
 - 분야별 프롬프트 템플릿 (생태학/유전학/수산학 + 저널 스타일)
 - Publication-ready 그래프 export (TIFF 300dpi, SVG, APA 스타일)
 - 분석 버전/히스토리 비교 (Reviewer 대응)
+- 인용 관리 + APA References 자동 생성 ✅
+- 문헌 통합검색 (OpenAlex/PubMed/GBIF/OBIS/국회도서관) ✅
+
+**Phase 2 (향후): 자체 AI 논문 생성**
+
+- Claude/GPT API 연동 → 패키지 기반 논문 초안 자동 생성
+- 사용자 편집 → DOCX/HWPX 최종 내보내기
+- 리뷰어 체크리스트 + 저널 포맷 적합성 검토
 
 상세: [AI Export Strategy](docs/AI-EXPORT-STRATEGY.md)
 
-### Stream 6. Research Copilot
+### Stream 5. Research Copilot
 
 Goal:
 
@@ -168,6 +164,7 @@ Includes:
 - cross-analysis synthesis
 - next analysis suggestions
 - hypothesis and experiment suggestions
+- 연구동향 모니터링 (키워드 기반 트렌드 수집 + 알림)
 - broader literature automation
 
 ---
@@ -192,22 +189,22 @@ Must deliver:
 - analysis-to-figure links
 - source-aware domain records
 
-### Horizon 2. Review Readiness
+### Horizon 2. 자료 작성 + Domain Expansion
 
 Build after Horizon 1 is stable.
 
 Priority streams:
 
-- Stream 4. Reviewer-Ready Manuscript Workflow
+- Stream 4. 자료 작성 (AI Export → 자체 AI)
 - Stream 3. Domain Intelligence expansion
 
 Must deliver:
 
-- project-level manuscript assembly
-- methods/reporting checklist
-- reviewer-facing review package
-- reviewer simulator
-- journal formatting and fit review
+- AI-ready 패키지 export (프로젝트 전체 결과 구조화)
+- 문헌 통합검색 통합 (자료 작성 하위)
+- 인용 관리 + References 자동 생성
+- Publication-ready 그래프 export
+- 향후: 자체 AI 논문 생성, 리뷰어 체크리스트
 
 ### Horizon 3. Research Copilot
 
@@ -289,26 +286,30 @@ Exit criteria:
 - species and legal information are first-class project records
 - domain outputs can be cited or reviewed in downstream flows
 
-### Phase E. AI Export Pipeline
+### Phase E. 자료 작성 (AI Export → 자체 AI)
 
 Scope:
 
+**E-1. AI Export (현재):**
 - AI-ready 패키지 export (프로젝트 전체 결과를 구조화된 Markdown/JSON으로)
 - 결과 ↔ 논문 섹션 매핑 + 태깅 시스템
 - 분야별 프롬프트 템플릿 생성기
 - Publication-ready 그래프 export (TIFF 300dpi, SVG)
+- 문헌 통합검색 + 인용 관리 (자료 작성 하위 탭)
+
+**E-2. 자체 AI 논문 생성 (향후):**
+- Claude/GPT API 연동 → 패키지 기반 논문 초안 자동 생성
+- 리뷰어 체크리스트 + 저널 포맷 적합성 검토
 - 분석 버전 비교 (Reviewer 코멘트 대응)
 
 Exit criteria:
 
-- 사용자가 프로젝트의 모든 결과를 한 번에 AI-ready 패키지로 export 가능
-- export에 논문 섹션 맥락이 포함되어 SOTA AI가 바로 초고 생성 가능
-- 그래프가 저널 투고 품질로 export 가능
+- E-1: 사용자가 프로젝트의 모든 결과를 한 번에 AI-ready 패키지로 export 가능, SOTA AI가 바로 초고 생성 가능
+- E-2: 내부 API 연동으로 export 없이 바로 초안 생성 가능
 
 Dependencies:
 
 - Phase A (Unified Research Project) — 프로젝트 모델 필요
-- Phase C (Reviewer-Ready Workflow) — 섹션 매핑 기반
 
 ### Phase F. Research Copilot
 
@@ -335,11 +336,9 @@ Build in this order:
 3. Reproducible code generation
 4. Analysis-figure-draft linkage
 5. Source-aware domain records
-6. Reviewer-ready checklist and package
-7. Reviewer simulator
-8. Journal fit and formatting review
-9. **AI Export pipeline (AI-ready 패키지 export)**
-10. Research copilot
+6. **자료 작성 E-1: AI Export pipeline (AI-ready 패키지 export)**
+7. **자료 작성 E-2: 자체 AI 논문 생성 (Claude/GPT API 연동)**
+8. Research copilot (연구동향 모니터링 포함)
 
 ---
 

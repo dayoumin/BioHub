@@ -58,7 +58,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/bio-tools', label: 'Bio-Tools', icon: Dna, prefix: '/bio-tools' },
   { href: '/genetics', label: '유전적 분석', icon: FlaskConical, prefix: '/genetics' },
   { href: '/graph-studio', label: 'Graph Studio', icon: AreaChart, prefix: '/graph-studio' },
-  { href: '/papers', label: '논문 작성', icon: BookOpen, prefix: '/papers' },
+  { href: '/papers', label: '자료 작성', icon: BookOpen, prefix: '/papers' },
   {
     href: '/species-validation',
     label: '학명 유효성 검증',
