@@ -36,11 +36,12 @@ export async function handleRegression(
     : []
 
   // GLM 계열 공통 결과 구성 (logistic, poisson, ordinal)
-  const buildGlmResult = (
-    raw: Record<string, unknown>,
+  // NOTE: logistic은 llrStatistic 미반환 → statistic=0 (worker 수정 필요, P0 별도)
+  const buildGlmResult = <T extends { llrPValue: number; llrStatistic?: number }>(
+    raw: T,
     vizType: string,
   ): StatisticalExecutorResult => {
-    const pvalue = Number(raw.llrPValue ?? 1)
+    const pvalue = raw.llrPValue
     return {
       metadata: {
         method: method.id, methodName: method.name,
@@ -48,7 +49,7 @@ export async function handleRegression(
         dataInfo: { totalN: dependent.length, missingRemoved: 0 }
       },
       mainResults: {
-        statistic: Number(raw.chiSquare ?? raw.llrStatistic ?? 0),
+        statistic: Number(raw.llrStatistic ?? 0),
         pvalue,
         significant: pvalue < 0.05,
         interpretation: `${method.name} 완료 (n=${dependent.length})`
@@ -65,7 +66,7 @@ export async function handleRegression(
         throw new Error('로지스틱 회귀분석을 위한 독립변수가 필요합니다')
       }
       const result = await pyodideStats.logisticRegression(transposeToRows(), dependent)
-      return buildGlmResult(result as unknown as Record<string, unknown>, 'logistic-regression')
+      return buildGlmResult(result, 'logistic-regression')
     }
 
     case 'poisson': { // statistical-methods.ts 정규 ID. 레거시 'poisson-regression'은 미지원 (레거시 경로 신규 개발 안 함)
@@ -73,7 +74,7 @@ export async function handleRegression(
         throw new Error('포아송 회귀분석을 위한 독립변수가 필요합니다')
       }
       const result = await pyodideStats.poissonRegression(transposeToRows(), dependent)
-      return buildGlmResult(result as unknown as Record<string, unknown>, 'poisson-regression')
+      return buildGlmResult(result, 'poisson-regression')
     }
 
     case 'ordinal-regression': {
@@ -81,7 +82,7 @@ export async function handleRegression(
         throw new Error('순서형 로지스틱 회귀분석을 위한 독립변수가 필요합니다')
       }
       const result = await pyodideStats.ordinalLogistic(transposeToRows(), dependent)
-      return buildGlmResult(result as unknown as Record<string, unknown>, 'ordinal-regression')
+      return buildGlmResult(result, 'ordinal-regression')
     }
 
     case 'stepwise': {
@@ -89,10 +90,9 @@ export async function handleRegression(
         throw new Error('단계적 회귀분석을 위한 독립변수가 필요합니다')
       }
       const varNames = predictorVarNames.length > 0 ? predictorVarNames : null
-      const stepResult = await pyodideStats.stepwiseRegression(
+      const result = await pyodideStats.stepwiseRegression(
         dependent, transposeToRows(), varNames
       )
-      const stepRaw = stepResult as unknown as Record<string, unknown>
       return {
         metadata: {
           method: method.id,
@@ -102,20 +102,20 @@ export async function handleRegression(
           dataInfo: { totalN: dependent.length, missingRemoved: 0 }
         },
         mainResults: {
-          statistic: Number(stepRaw.fStatistic ?? 0),
-          pvalue: Number(stepRaw.pValue ?? 1),
-          significant: Number(stepRaw.pValue ?? 1) < 0.05,
-          interpretation: `단계적 회귀 분석 완료 — 선택된 변수 ${String(stepRaw.selectedVariableCount ?? '?')}개`
+          statistic: result.fStatistic,
+          pvalue: result.fPValue,
+          significant: result.fPValue < 0.05,
+          interpretation: `단계적 회귀 분석 완료 — 선택된 변수 ${result.selectedVariables.length}개`
         },
         additionalInfo: {
-          effectSize: stepRaw.rSquared != null ? {
+          effectSize: {
             type: 'R-squared',
-            value: Number(stepRaw.rSquared),
-            interpretation: interpretRSquared(Number(stepRaw.rSquared))
-          } : undefined
+            value: result.rSquared,
+            interpretation: interpretRSquared(result.rSquared)
+          }
         },
-        visualizationData: { type: 'stepwise-regression', data: stepRaw },
-        rawResults: stepResult
+        visualizationData: { type: 'stepwise-regression', data: result },
+        rawResults: result
       }
     }
 

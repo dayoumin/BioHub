@@ -93,12 +93,12 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - `[quality]` 기존 테스트 실패 10건 수정 — StatisticCard 등 CSS 클래스 변경 미반영 (7 files, 10 tests)
 - `[quality]` method-mapping.ts / statistical-methods.ts 통합 — 두 파일이 method 정의를 중복 보유 (50 vs 43). method-mapping.ts는 레거시 파일이지만 Smart Flow·handler·테스트 25곳이 import. ID 불일치 있음 (예: `poisson` vs `poisson-regression`). 한 파일로 통합 + re-export 정리 필요
 - `[quality]` Worker 타입 계약 정비 (Session C) — Python↔Registry↔Generated 동기화 + 레거시 삭제 + 출력 검증 + type-guards 확장. 상세: [PLAN-SESSION-C-WORKER-TYPE-CONTRACT.md](docs/PLAN-SESSION-C-WORKER-TYPE-CONTRACT.md)
-- `[quality]` Regression handler–worker 계약 불일치 4건 (Session B 리팩터링에서 발견):
-  - stepwise: handler가 `fStatistic`/`pValue`/`selectedVariableCount` 읽지만 worker는 `selectedVariables`/`pValues`/`rSquared` 반환 → statistic=0, pvalue=1
-  - poisson/ordinal: `llrPValue` 없어 model-level p=1 고정 (logistic만 정상)
-  - generated types: `OrdinalLogisticResult`/`PoissonRegressionResult` 필드 과소정의
-  - chi-square independence: routing test mock shape (`statistic`/`df`) ≠ handler 기대 shape (`chiSquare`/`degreesOfFreedom`)
-  - 시뮬레이션 테스트: `__tests__/services/handlers/handler-contract-gaps.test.ts` (6 tests, 버그 증명용)
+- `[quality]` Regression handler–worker 계약 불일치 4건 — 🔧 수정 중 (Session D):
+  - stepwise: `fStatistic`/`fPValue`/`selectedVariables.length` 반환 추가
+  - poisson/ordinal: `llrPValue` 반환 추가
+  - codegen: `?` suffix 파싱 + override 추가 → 재생성
+  - chi-square: routing test mock shape 정합성 수정
+- `[quality]` Handler runtime contract 명시화 — 12개 핸들러 전체 `WorkerRaw*` 타입 정의 + runtime assertion + 필드명 표준화. 상세: [PLAN-HANDLER-RUNTIME-CONTRACTS.md](docs/PLAN-HANDLER-RUNTIME-CONTRACTS.md)
 
 ### 3-D. 인프라
 

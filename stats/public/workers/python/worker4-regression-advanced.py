@@ -659,10 +659,12 @@ def stepwise_regression(yValues, xMatrix, variableNames=None,
             'tValues': [float(t) for t in final_model.tvalues],
             'pValues': [float(p) for p in final_model.pvalues],
             'rSquared': float(final_model.rsquared),
-            'adjustedRSquared': float(final_model.rsquared_adj)
+            'adjustedRSquared': float(final_model.rsquared_adj),
+            'fStatistic': float(final_model.fvalue),
+            'fPValue': float(final_model.f_pvalue)
         }
     else:
-        return {'selectedVariables': [], 'rSquared': 0.0}
+        return {'selectedVariables': [], 'rSquared': 0.0, 'fStatistic': 0.0, 'fPValue': 1.0}
 
 
 def binary_logistic(xMatrix, yValues):
@@ -720,13 +722,24 @@ def ordinal_logistic(xMatrix, yValues):
 
     model = OrderedModel(y, X, distr='logit').fit(disp=0)
 
+    try:
+        llr_pvalue = float(model.llr_pvalue)
+        llr_stat = float(model.llr)
+    except AttributeError:
+        null_model = OrderedModel(y, np.ones((len(y), 1)), distr='logit').fit(disp=0)
+        llr_stat = float(2 * (model.llf - null_model.llf))
+        from scipy.stats import chi2
+        llr_pvalue = float(chi2.sf(llr_stat, len(model.params)))
+
     return {
         'coefficients': [float(c) for c in model.params],
         'stdErrors': [float(e) for e in model.bse],
         'zValues': [float(z) for z in model.tvalues],
         'pValues': [float(p) for p in model.pvalues],
         'aic': float(model.aic),
-        'bic': float(model.bic)
+        'bic': float(model.bic),
+        'llrPValue': llr_pvalue,
+        'llrStatistic': llr_stat,
     }
 
 
@@ -762,6 +775,10 @@ def poisson_regression(xMatrix, yValues):
 
     model = sm.GLM(y, X, family=sm.families.Poisson()).fit()
 
+    from scipy.stats import chi2
+    llr_stat = float(model.null_deviance - model.deviance)
+    llr_pvalue = float(chi2.sf(llr_stat, model.df_model))
+
     return {
         'coefficients': [float(c) for c in model.params],
         'stdErrors': [float(e) for e in model.bse],
@@ -770,7 +787,9 @@ def poisson_regression(xMatrix, yValues):
         'deviance': float(model.deviance),
         'pearsonChi2': float(model.pearson_chi2),
         'aic': float(model.aic),
-        'bic': float(model.bic)
+        'bic': float(model.bic),
+        'llrPValue': llr_pvalue,
+        'llrStatistic': llr_stat,
     }
 
 
