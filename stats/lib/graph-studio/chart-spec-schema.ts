@@ -89,6 +89,7 @@ const colorSchema = z.object({
   legend: legendSchema.optional(),
 }).strict();
 
+// NOTE: shape/size는 스키마에 정의되어 있으나 echarts-converter에서 미렌더링 (ai-service.ts에서 AI에 안내)
 const shapeSchema = z.object({
   field: z.string().min(1),
   type: dataTypeSchema,
@@ -178,6 +179,7 @@ const styleSchema = z.object({
   }).strict().optional(),
   colors: z.array(z.string()).optional(),
   background: z.string().optional(),
+  // NOTE: padding/overrides는 스키마에 정의되어 있으나 echarts-converter에서 미렌더링
   padding: z.number().nonnegative().optional(),
   overrides: z.record(z.string(), z.unknown()).optional(),
 }).strict();

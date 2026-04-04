@@ -49,6 +49,7 @@ export {
   loadProject,
   saveProject,
   deleteProject,
+  deleteProjectCascade,
   generateProjectId,
 } from './project-storage';
 
