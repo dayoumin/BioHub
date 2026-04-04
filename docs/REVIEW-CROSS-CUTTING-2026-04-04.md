@@ -14,9 +14,9 @@
 **기존 분석:** `stats/docs/technical/RESULT_TYPE_ANALYSIS_REVIEW.md` — core common 필드 80%+ 후보 도출 완료 (pValue, statistic, df 등). 그러나 실행 안 됨.
 
 **조치 방향:**
-- [ ] 주요 10개 worker 함수에 대해 TS 결과 타입 정의 (arima, mannKendall, logistic, poisson, ordinal, stepwise, doseResponse, responseSurface, manova, mixedModel)
-- [ ] `callWorkerMethod<T>` 제네릭 반환으로 typeof 가드 제거
-- [ ] 기존 `Generated.*Result` 패턴 따르기
+- [ ] 주요 10개 wrapper에 대해 `Generated.*Result` 타입 정의 추가 (arima, mannKendall, logistic, poisson, ordinal, stepwise, doseResponse, responseSurface, manova, mixedModel)
+- [ ] `callWorkerMethod<T>`는 이미 제네릭 (`pyodide-core.service.ts:602`). 문제는 wrapper 레벨에서 `Promise<Record<string, unknown>>`을 선택한 것 — 기존 `Generated.*Result` 패턴으로 교체
+- [ ] 기존 타입 있는 wrapper (`descriptiveStats`, `shapiroWilkTest`, `binomialTest` 등)와 동일 패턴 적용
 
 **예상:** 2시간 (타입 정의 + executor 리팩터)
 
@@ -25,21 +25,21 @@
 ## 2. Sub-executor 아키텍처 결정 (높음)
 
 **현상:** 두 가지 executor 아키텍처가 공존:
-- `StatisticalExecutor` (2700줄, inline 분기, **실제 사용**)
-- `executors/AnovaExecutor`, `RegressionExecutor`, `NonparametricExecutor` 등 (**미사용**)
+- `StatisticalExecutor` (2700줄, inline 분기, 대부분의 카테고리 처리)
+- `executors/AnovaExecutor`, `RegressionExecutor`, `NonparametricExecutor` 등 (부분 사용)
 
-Sub-executor 파일들이 `AnalysisResult` 타입(deprecated alias)에 의존하며, `StatisticalExecutor`는 이들을 import하지 않음.
+**정정:** `StatisticalExecutor`가 sub-executor를 완전히 무시하는 것은 아님. `CorrelationExecutor`는 활성 사용 중 (`statistical-executor.ts:1737`). 나머지 sub-executor는 `executors/index.ts`에서 export되며 테스트에서 직접 import됨 (`executor-data-extraction.test.ts:36`). "미사용"이 아닌 "부분 채택" 상태.
 
 **기존 분석:** `REVIEW_IMPROVEMENTS_TODO.md` §2.2 handleAnalysis 비대화와 관련.
 
 **조치 방향 (택 1):**
-- **A) Sub-executor 활성화:** StatisticalExecutor를 thin dispatcher로 축소, 각 카테고리를 sub-executor에 위임. 2700줄 → ~300줄 + 카테고리별 ~200줄.
-- **B) Sub-executor 제거:** 미사용 코드 삭제, StatisticalExecutor를 카테고리별 파일로 분할 (executor 인터페이스 없이).
+- **A) Sub-executor 전면 활성화:** StatisticalExecutor를 thin dispatcher로 축소, 모든 카테고리를 sub-executor에 위임. CorrelationExecutor 패턴을 나머지에도 적용. 2700줄 → ~300줄 + 카테고리별 ~200줄.
+- **B) Sub-executor 정리 + 분할:** 미사용 sub-executor 제거, StatisticalExecutor를 카테고리별 파일로 분할. 단, CorrelationExecutor는 유지하고, 기존 테스트 영향 범위 확인 필요.
 - **C) 현상 유지:** 작동하므로 건드리지 않음.
 
-**권장:** B (제거 후 분할). Sub-executor 인터페이스가 현재 executor 패턴과 맞지 않음.
+**권장:** A (전면 활성화). CorrelationExecutor가 이미 패턴을 증명함. B는 부분 채택을 제거하는 것이라 오히려 후퇴.
 
-**예상:** A=4시간, B=2시간, C=0
+**예상:** A=4시간, B=3시간 (테스트 영향 포함), C=0
 
 ---
 
@@ -52,11 +52,12 @@ Sub-executor 파일들이 `AnalysisResult` 타입(deprecated alias)에 의존하
 | 통계 분석 | localStorage + IndexedDB | `analysis-history` | CustomEvent + StorageEvent |
 | 유전 분석 | localStorage | `genetics-history` (discriminated union) | CustomEvent + StorageEvent |
 | Bio-Tools | localStorage | `bio-tool-history` | CustomEvent + StorageEvent |
-| Graph Studio | IndexedDB | `chart-snapshots`, `graph-projects` | 없음 (단일 탭) |
+| Graph Studio 프로젝트 | localStorage | `graph_studio_projects` | 없음 (단일 탭) |
+| Graph Studio 스냅샷 | IndexedDB | `chart-snapshots` | 없음 |
 
 `entity-resolver.ts`가 이들을 프로젝트 entity ref로 연결하지만, CRUD는 각각 독립.
 
-**리스크:** 프로젝트 삭제 시 다른 영역의 entity ref가 orphan 될 수 있음. `deleteProjectCascade`가 Graph Studio만 커버.
+**리스크:** 프로젝트 삭제는 `removeProjectEntityRefsByEntityIds`로 entity ref를 정리하므로 orphan이 발생하지 않음 (`research/project-storage.ts:31-35`). **실제 orphan 위험은 소스 엔트리 삭제/eviction 시** — genetics history에서 오래된 엔트리가 MAX_PER_TYPE 초과로 밀려날 때, 해당 entity ref가 남을 수 있음.
 
 **조치 방향:**
 - [ ] entity ref 정합성 검증 유틸 추가 (orphan 감지)
@@ -72,9 +73,9 @@ Sub-executor 파일들이 `AnalysisResult` 타입(deprecated alias)에 의존하
 |---|---|---|---|
 | 통계 | 7090개 | 있음 | 풍부 |
 | 유전 | 88개 | 0개 | 로직은 충분, UI 없음 |
-| Graph Studio | ~250개 (23파일) | **0개** | 가장 복잡한 UI인데 컴포넌트 테스트 없음 |
+| Graph Studio | ~250개 (23파일) | **0개 (단위)** | E2E는 있음 (`graph-studio-e2e.spec.ts`, `graph-studio-phase3.spec.ts`) |
 
-**리스크:** Graph Studio UI 회귀를 자동으로 감지할 수 없음.
+**리스크:** Graph Studio는 Playwright E2E로 업로드→설정→편집→패널 토글 등 주요 흐름을 커버하고 있어 "자동 감지 불가"는 아님. 다만 **컴포넌트 단위 격리 테스트가 없어** 개별 패널의 상태 변화나 엣지 케이스 검증이 어려움.
 
 **조치 방향:**
 - [ ] Graph Studio 핵심 3개 컴포넌트 (ChartPreview, ExportDialog, DataTab) L2 테스트
@@ -84,7 +85,21 @@ Sub-executor 파일들이 `AnalysisResult` 타입(deprecated alias)에 의존하
 
 ---
 
-## 5. common/ 카탈로그 감사 (낮음)
+## 5. Genetics Entity Resolver generic-only 처리 (중간)
+
+**현상:** genetics history가 `seq-stats-result`, `similarity-result`, `phylogeny-result`, `bold-result` entity ref를 실제로 저장하지만 (`analysis-history.ts:176, :525`), entity-resolver에서는 이들이 `_GENERIC_ONLY_KINDS` 처리 (`entity-resolver.ts:362-365`).
+
+**영향:** 프로젝트 상세 화면에서 이 entity들이 제네릭 표시됨. 각 도구의 결과를 풍부하게 표시하려면 full support (EntityKindDescriptors + *Like 인터페이스 + entity-loader) 로 승격 필요. 현재는 기능 문제가 아닌 **UX 품질 문제**.
+
+**조치:**
+- [ ] 사용 빈도 높은 `blast-result`, `bold-result`부터 full support 승격 검토
+- [ ] 나머지는 generic-only 유지 (충분한 메타데이터가 없으면 승격 불필요)
+
+**예상:** entity당 1시간
+
+---
+
+## 6. common/ 카탈로그 감사 (낮음)
 
 이번 정비에서 `CollapsibleButton`, `StepIndicator` 2개가 미사용으로 삭제됨. **common/ 카탈로그에 export되지만 실제로 import되지 않는 컴포넌트**가 더 있을 수 있음.
 
