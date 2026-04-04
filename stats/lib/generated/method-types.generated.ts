@@ -2,7 +2,7 @@
  * Auto-generated from methods-registry.json
  * DO NOT EDIT MANUALLY
  *
- * Generated: 2026-04-04T10:27:31.453Z
+ * Generated: 2026-04-04T11:50:29.826Z
  */
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -609,7 +609,7 @@ export async function powerAnalysis(testType: string, analysisType: string, alph
  * 반응표면 분석
  * @worker Worker 2
  */
-export async function responseSurfaceAnalysis(data: number[] | number[][], dependentVar: string, predictorVars: string[], modelType?: string, includeInteraction?: boolean, includeQuadratic?: boolean): Promise<ResponseSurfaceAnalysisResult> {
+export async function responseSurfaceAnalysis(data: Array<Record<string, unknown>>, dependentVar: string, predictorVars: string[], modelType?: string, includeInteraction?: boolean, includeQuadratic?: boolean): Promise<ResponseSurfaceAnalysisResult> {
   return callWorkerMethod<ResponseSurfaceAnalysisResult>(2, 'response_surface_analysis', { data, dependentVar, predictorVars, modelType, includeInteraction, includeQuadratic })
 }
 
@@ -1126,14 +1126,14 @@ export interface DoseResponseAnalysisResult {
   pValue: number
   aic: number
   bic: number
-  confidenceIntervals: Record<string, { lower: number; upper: number }>
+  confidenceIntervals: Record<string, [number, number]>
   goodnessOfFit: { chiSquare: number; pValue: number; degreesFreedom: number }
-  ec50: number | undefined
-  ed50: number | undefined
-  hillSlope: number | undefined
-  top: number | undefined
-  bottom: number | undefined
-  ic50: number | undefined
+  ec50?: number | undefined
+  ed50?: number | undefined
+  hillSlope?: number | undefined
+  top?: number | undefined
+  bottom?: number | undefined
+  ic50?: number | undefined
 }
 
 

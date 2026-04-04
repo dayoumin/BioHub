@@ -6,6 +6,8 @@ const {
   mockOneWayAnova,
   mockPartialCorrelation,
   mockClusterAnalysis,
+  mockDoseResponseAnalysis,
+  mockResponseSurfaceAnalysis,
 } = vi.hoisted(() => ({
   mockCore: {
     initialize: vi.fn().mockResolvedValue(undefined),
@@ -19,6 +21,8 @@ const {
   mockOneWayAnova: vi.fn(),
   mockPartialCorrelation: vi.fn(),
   mockClusterAnalysis: vi.fn(),
+  mockDoseResponseAnalysis: vi.fn(),
+  mockResponseSurfaceAnalysis: vi.fn(),
 }))
 
 vi.mock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
@@ -33,12 +37,15 @@ vi.mock('@/lib/generated/method-types.generated', () => ({
   oneWayAnova: mockOneWayAnova,
   partialCorrelation: mockPartialCorrelation,
   clusterAnalysis: mockClusterAnalysis,
+  doseResponseAnalysis: mockDoseResponseAnalysis,
+  responseSurfaceAnalysis: mockResponseSurfaceAnalysis,
 }))
+
+vi.unmock('@/lib/services/pyodide/pyodide-statistics')
 
 describe('pyodide-statistics regression fixes', () => {
   beforeEach(() => {
     vi.resetModules()
-    vi.unmock('@/lib/services/pyodide/pyodide-statistics')
     vi.clearAllMocks()
   })
 
@@ -167,5 +174,64 @@ describe('pyodide-statistics regression fixes', () => {
     expect(result.centroids).toEqual([[1, 2], [3, 4]])
     expect(result.clusters).toEqual([0, 1, 0, 1])
     expect(result.centers).toEqual([[1, 2], [3, 4]])
+  })
+
+  it('doseResponseAnalysis() forwards optional constraints to generated wrapper', async () => {
+    mockDoseResponseAnalysis.mockResolvedValue({
+      model: 'logistic4',
+      parameters: { ec50: 1.2 },
+      fittedValues: [10, 20],
+      residuals: [0.1, -0.1],
+      rSquared: 0.9,
+      pValue: 0.01,
+      aic: 12,
+      bic: 14,
+      confidenceIntervals: { ec50: [1.0, 1.4] },
+      goodnessOfFit: { chiSquare: 4.2, pValue: 0.01, degreesFreedom: 1 },
+      ec50: 1.2,
+    })
+
+    const service = await getServiceInstance()
+    const constraints = { bottom: 0, top: 100 }
+
+    await service.doseResponseAnalysis([1, 2], [10, 20], 'logistic4', constraints)
+
+    expect(mockDoseResponseAnalysis).toHaveBeenCalledWith(
+      [1, 2],
+      [10, 20],
+      'logistic4',
+      constraints,
+    )
+  })
+
+  it('responseSurfaceAnalysis() preserves row-object data and optional flags', async () => {
+    mockResponseSurfaceAnalysis.mockResolvedValue({
+      modelType: 'custom',
+      coefficients: { intercept: 1 },
+      fittedValues: [1],
+      residuals: [0],
+      rSquared: 0.8,
+      adjustedRSquared: 0.7,
+      fStatistic: 4.5,
+      fPvalue: 0.02,
+      pValue: 0.02,
+      anovaTable: {},
+      optimization: {},
+      designAdequacy: {},
+    })
+
+    const service = await getServiceInstance()
+    const rows = [{ y: 10, x1: 1, x2: 2 }]
+
+    await service.responseSurfaceAnalysis(rows, 'y', ['x1', 'x2'], 'custom', false, true)
+
+    expect(mockResponseSurfaceAnalysis).toHaveBeenCalledWith(
+      rows,
+      'y',
+      ['x1', 'x2'],
+      'custom',
+      false,
+      true,
+    )
   })
 })

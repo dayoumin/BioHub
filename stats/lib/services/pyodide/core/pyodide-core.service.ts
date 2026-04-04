@@ -48,6 +48,7 @@ export type WorkerMethodParam =
   | number[][]
   | (number | string)[]
   | null
+  | Record<string, unknown>
   | { [key: string]: WorkerMethodParam }
   | WorkerMethodParam[]
 

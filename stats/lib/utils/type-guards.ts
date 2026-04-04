@@ -318,6 +318,90 @@ export function hasValue(value: unknown): boolean {
 }
 
 // ==========================================
+// Worker/통계 결과 타입 가드 (2026-04-04 추가)
+// ==========================================
+
+/**
+ * 안전한 숫자 추출 (기본값 포함)
+ *
+ * Record<string, unknown> 객체에서 숫자 필드를 안전하게 추출합니다.
+ * PyodideCoreService.getStatisticValue 의 독립 버전.
+ *
+ * @param obj - 대상 객체
+ * @param key - 키
+ * @param defaultValue - 기본값 (기본: 0)
+ * @returns 숫자 또는 기본값
+ */
+export function getNumberOrDefault(
+  obj: Record<string, unknown>,
+  key: string,
+  defaultValue: number = 0
+): number {
+  const value = obj[key]
+  return typeof value === 'number' && !isNaN(value) && isFinite(value)
+    ? value
+    : defaultValue
+}
+
+/**
+ * 객체가 지정된 키를 모두 가지고 있고 모두 number 타입인지 확인
+ *
+ * PyodideCoreService.hasStatisticFields 의 독립 버전.
+ *
+ * @param obj - 대상 객체
+ * @param fields - 확인할 필드명들
+ * @returns 모든 필드가 존재하고 number인지 여부
+ */
+export function hasOwnNumberFields(
+  obj: Record<string, unknown>,
+  fields: string[]
+): boolean {
+  return fields.every(
+    (field) => field in obj && typeof obj[field] === 'number'
+  )
+}
+
+/**
+ * Python Worker 에러 응답 타입 가드 ({ error: string })
+ *
+ * PyodideCoreService.isPythonError 의 독립 버전.
+ *
+ * @param obj - 검사할 값
+ * @returns Python 에러 응답 여부
+ */
+export function isPythonErrorShape(
+  obj: unknown
+): obj is { error: string } {
+  return isRecord(obj) && typeof obj.error === 'string'
+}
+
+/**
+ * Worker 결과에서 필수 필드 존재를 assert
+ *
+ * 런타임에서 Python Worker 반환값의 핵심 필드가 있는지 검증합니다.
+ * 누락 시 메서드명 + 누락 필드를 포함한 에러를 던집니다.
+ *
+ * @param result - Worker 반환 결과
+ * @param requiredFields - 필수 필드명 배열
+ * @param methodName - 메서드명 (에러 메시지용)
+ * @throws {Error} 필수 필드 누락 시
+ */
+export function assertWorkerResultFields(
+  result: unknown,
+  requiredFields: string[],
+  methodName: string
+): void {
+  if (!isRecord(result)) {
+    throw new Error(`[${methodName}] Worker 결과가 객체가 아닙니다: ${typeof result}`)
+  }
+  for (const f of requiredFields) {
+    if (!(f in result) || result[f] === undefined) {
+      throw new Error(`[${methodName}] 필수 필드 누락 또는 undefined: ${f}`)
+    }
+  }
+}
+
+// ==========================================
 // AnalysisResult 타입 가드 (2025-11-24 추가)
 // ==========================================
 

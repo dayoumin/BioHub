@@ -42,7 +42,7 @@ import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
-import type { FisherExactTestResult } from '@/types/pyodide-results'
+import type { FisherExactTestResult } from '@/lib/generated/method-types.generated'
 
 function computeOddsRatioCI95(table2x2: number[][]) {
   const a0 = table2x2[0]?.[0] ?? 0

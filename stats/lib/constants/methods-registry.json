@@ -1184,12 +1184,12 @@
           "bic",
           "confidenceIntervals",
           "goodnessOfFit",
-          "ec50",
-          "ed50",
-          "hillSlope",
-          "top",
-          "bottom",
-          "ic50"
+          "ec50?",
+          "ed50?",
+          "hillSlope?",
+          "top?",
+          "bottom?",
+          "ic50?"
         ],
         "description": "용량-반응 분석"
       }

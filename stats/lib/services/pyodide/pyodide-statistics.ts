@@ -1273,8 +1273,9 @@ export class PyodideStatisticsService {
     doseData: number[],
     responseData: number[],
     modelType: string = 'logistic4',
+    constraints: Record<string, number> | null = null,
   ): Promise<Generated.DoseResponseAnalysisResult> {
-    return Generated.doseResponseAnalysis(doseData, responseData, modelType)
+    return Generated.doseResponseAnalysis(doseData, responseData, modelType, constraints)
   }
 
   /**
@@ -1294,10 +1295,16 @@ export class PyodideStatisticsService {
     dependentVar: string,
     predictorVars: string[],
     modelType: string = 'secondOrder',
+    includeInteraction?: boolean,
+    includeQuadratic?: boolean,
   ): Promise<Generated.ResponseSurfaceAnalysisResult> {
     return Generated.responseSurfaceAnalysis(
-      data as unknown as (number[] | number[][]),
-      dependentVar, predictorVars, modelType
+      data,
+      dependentVar,
+      predictorVars,
+      modelType,
+      includeInteraction,
+      includeQuadratic,
     )
   }
 

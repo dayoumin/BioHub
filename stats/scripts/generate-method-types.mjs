@@ -243,7 +243,7 @@ const METHOD_TYPE_OVERRIDES = {
   'dose_response_analysis': {
     'model': 'string',
     'parameters': 'Record<string, number>',
-    'confidenceIntervals': 'Record<string, { lower: number; upper: number }>',
+    'confidenceIntervals': 'Record<string, [number, number]>',
     'goodnessOfFit': '{ chiSquare: number; pValue: number; degreesFreedom: number }',
     'ec50': 'number | undefined',
     'ed50': 'number | undefined',
@@ -758,6 +758,9 @@ const METHOD_PARAM_OVERRIDES = {
   },
   'discriminant_analysis': {
     'groups': '(string | number)[]',
+  },
+  'response_surface_analysis': {
+    'data': 'Array<Record<string, unknown>>',
   },
   'partial_correlation': {
     'controlIndices': 'number[]',
