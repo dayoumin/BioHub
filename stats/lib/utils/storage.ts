@@ -220,29 +220,6 @@ export function _resetStorageForTesting(): void {
   initPromise = null
 }
 
-// ========================================
-// 레거시 호환 (기존 indexeddb.ts 함수들)
-// ========================================
-
-/**
- * @deprecated Use saveHistory instead
- */
-export const saveAnalysisHistory = saveHistory
-
-/**
- * @deprecated Use getAllHistory instead
- */
-export const getAnalysisHistory = getAllHistory
-
-/**
- * @deprecated Use deleteHistory instead
- */
-export const deleteAnalysisHistory = deleteHistory
-
-/**
- * @deprecated Use clearAllHistory instead
- */
-export const clearAnalysisHistory = clearAllHistory
 
 // 기본 내보내기
 export const storage = {

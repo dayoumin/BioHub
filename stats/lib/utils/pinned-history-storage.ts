@@ -21,6 +21,20 @@ export const MAX_PINNED = 3
 /** QuickAccessBar에 표시할 최대 pill 수 (pinned + recent) */
 export const MAX_VISIBLE_PILLS = 5
 
+/**
+ * Pin 토글 순수 함수 — 이미 고정이면 해제, 아니면 추가.
+ * max 초과 시 null 반환 (호출부에서 toast 등 처리).
+ */
+export function togglePinId(prev: string[], id: string, max: number): string[] | null {
+  if (prev.includes(id)) {
+    return prev.filter(pid => pid !== id)
+  }
+  if (prev.length >= max) {
+    return null
+  }
+  return [...prev, id]
+}
+
 export function loadPinnedHistoryIds(): string[] {
   const parsed = readJson<unknown[]>(PINNED_HISTORY_KEY, [])
   return parsed.filter((x): x is string => typeof x === 'string')

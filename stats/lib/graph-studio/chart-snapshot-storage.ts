@@ -6,6 +6,7 @@
  */
 
 import { openDB } from '@/lib/utils/adapters/indexeddb-adapter'
+import { txGet, txPut, txDelete } from '@/lib/utils/indexeddb-helpers'
 
 const STORE_NAME = 'chart-snapshots'
 
@@ -16,38 +17,6 @@ export interface ChartSnapshot {
   cssHeight: number
   pixelRatio: number   // 캡처 시 배율 (기본 2)
   updatedAt: string    // ISO 8601
-}
-
-// ── IndexedDB 헬퍼 ──
-
-function txGet<T>(db: IDBDatabase, storeName: string, key: string): Promise<T | undefined> {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readonly')
-    const store = tx.objectStore(storeName)
-    const req = store.get(key)
-    req.onsuccess = () => resolve(req.result as T | undefined)
-    req.onerror = () => reject(req.error)
-  })
-}
-
-function txPut<T>(db: IDBDatabase, storeName: string, value: T): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readwrite')
-    const store = tx.objectStore(storeName)
-    const req = store.put(value)
-    req.onsuccess = () => resolve()
-    req.onerror = () => reject(req.error)
-  })
-}
-
-function txDelete(db: IDBDatabase, storeName: string, key: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readwrite')
-    const store = tx.objectStore(storeName)
-    const req = store.delete(key)
-    req.onsuccess = () => resolve()
-    req.onerror = () => reject(req.error)
-  })
 }
 
 // ── 공개 API ──

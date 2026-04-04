@@ -7,9 +7,10 @@
  * UI를 공통 UnifiedHistorySidebar로 위임.
  */
 
-import { memo, useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react'
+import { memo, useCallback, useMemo, type ReactNode } from 'react'
 import { UnifiedHistorySidebar } from '@/components/common/UnifiedHistorySidebar'
 import { toBioToolHistoryItems } from '@/lib/utils/history-adapters'
+import { useLocalStorageSync } from '@/lib/hooks/use-local-storage-sync'
 import type { HistoryItem } from '@/types/history'
 import {
   loadBioToolHistory,
@@ -28,41 +29,19 @@ interface BioToolSidebarProps {
 }
 
 export const BioToolSidebar = memo(function BioToolSidebar({ toolId, onLoadHistory }: BioToolSidebarProps): ReactNode {
-  const [history, setHistory] = useState<BioToolHistoryEntry[]>([])
-  const lastRawRef = useRef<string | null>(null)
-  const lastToolIdRef = useRef<string | null>(toolId)
+  const parser = useCallback(
+    (raw: string | null): BioToolHistoryEntry[] => {
+      const all = loadBioToolHistory(raw)
+      return toolId ? all.filter((e) => e.toolId === toolId) : all
+    },
+    [toolId],
+  )
 
-  const refreshHistory = useCallback((): void => {
-    const raw = localStorage.getItem(BIO_HISTORY_KEY)
-    const toolChanged = toolId !== lastToolIdRef.current
-    // toolId가 바뀌면 같은 raw여도 필터 결과가 달라지므로 재실행
-    if (raw === lastRawRef.current && !toolChanged) return
-    lastRawRef.current = raw
-    lastToolIdRef.current = toolId
-    const all = loadBioToolHistory(raw)
-    const filtered = toolId ? all.filter((e) => e.toolId === toolId) : all
-    setHistory(filtered)
-  }, [toolId])
-
-  useEffect(() => {
-    refreshHistory()
-    const onChange = (): void => {
-      if (skipNextEventRef.current) {
-        skipNextEventRef.current = false
-        return
-      }
-      refreshHistory()
-    }
-    window.addEventListener(BIO_HISTORY_CHANGE_EVENT, onChange)
-    const onStorage = (e: StorageEvent): void => {
-      if (e.key === BIO_HISTORY_KEY) refreshHistory()
-    }
-    window.addEventListener('storage', onStorage)
-    return () => {
-      window.removeEventListener(BIO_HISTORY_CHANGE_EVENT, onChange)
-      window.removeEventListener('storage', onStorage)
-    }
-  }, [refreshHistory])
+  const { value: history } = useLocalStorageSync<BioToolHistoryEntry[]>(
+    BIO_HISTORY_KEY,
+    BIO_HISTORY_CHANGE_EVENT,
+    parser,
+  )
 
   const handleSelect = useCallback(
     (item: HistoryItem<BioToolHistoryEntry>) => {
@@ -71,26 +50,15 @@ export const BioToolSidebar = memo(function BioToolSidebar({ toolId, onLoadHisto
     [onLoadHistory],
   )
 
-  // pin/delete 후 이벤트 리스너의 중복 갱신을 방지
-  const skipNextEventRef = useRef(false)
-
   const handlePin = useCallback((id: string) => {
-    skipNextEventRef.current = true
-    const updated = togglePinBioToolEntry(id)
-    const toolFiltered = toolId ? updated.filter((e) => e.toolId === toolId) : updated
-    lastRawRef.current = localStorage.getItem(BIO_HISTORY_KEY)
-    setHistory(toolFiltered)
-  }, [toolId])
+    togglePinBioToolEntry(id)
+  }, [])
 
   const handleDeleteMultiple = useCallback(
     (ids: Set<string>) => {
-      skipNextEventRef.current = true
-      const remaining = deleteBioToolEntries(ids)
-      const toolFiltered = toolId ? remaining.filter((e) => e.toolId === toolId) : remaining
-      lastRawRef.current = localStorage.getItem(BIO_HISTORY_KEY)
-      setHistory(toolFiltered)
+      deleteBioToolEntries(ids)
     },
-    [toolId],
+    [],
   )
 
   const items = useMemo(() => toBioToolHistoryItems(history), [history])

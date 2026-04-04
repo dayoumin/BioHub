@@ -9,6 +9,8 @@
  * 를 정확하게 정의합니다.
  */
 
+import { getMethodByIdOrAlias } from '@/lib/constants/statistical-methods'
+
 export type VariableType =
   | 'continuous'   // 연속형 (실수값)
   | 'categorical'  // 범주형 (문자열, 제한된 값)
@@ -4894,7 +4896,25 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
  * 메서드 ID로 요구사항 조회
  */
 export function getMethodRequirements(methodId: string): StatisticalMethodRequirements | undefined {
-  return STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === methodId)
+  // Direct match
+  const direct = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === methodId)
+  if (direct) return direct
+
+  // Resolve via aliases from the registry
+  const resolved = getMethodByIdOrAlias(methodId)
+  if (!resolved) return undefined
+
+  // Search by resolved canonical ID
+  const byId = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === resolved.id)
+  if (byId) return byId
+
+  // Search by resolved method's aliases
+  const aliases = resolved.aliases ?? []
+  for (const alias of aliases) {
+    const byAlias = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === alias)
+    if (byAlias) return byAlias
+  }
+  return undefined
 }
 
 /**

@@ -7,11 +7,12 @@
  * 필터 행으로 도구별 필터링 지원.
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Search, X } from 'lucide-react'
 import { UnifiedHistorySidebar } from '@/components/common/UnifiedHistorySidebar'
 import { toGeneticsHistoryItems } from '@/lib/utils/history-adapters'
+import { useLocalStorageSync } from '@/lib/hooks/use-local-storage-sync'
 import type { HistoryItem } from '@/types/history'
 import type {
   GeneticsHistoryEntry,
@@ -85,38 +86,25 @@ export function GeneticsHistorySidebar(): ReactNode {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const [history, setHistory] = useState<GeneticsHistoryEntry[]>([])
   const [filter, setFilter] = useState<ToolFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
-  const lastRawRef = useRef<string | null>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const activeHistoryId = searchParams.get('history')
 
-  const refreshHistory = useCallback((): void => {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    if (raw === lastRawRef.current) return
-    lastRawRef.current = raw
-    setHistory(loadGeneticsHistory(undefined, raw))
-  }, [])
+  const parser = useCallback(
+    (raw: string | null): GeneticsHistoryEntry[] => loadGeneticsHistory(undefined, raw),
+    [],
+  )
 
-  useEffect(() => { refreshHistory() }, [refreshHistory])
+  const { value: history } = useLocalStorageSync<GeneticsHistoryEntry[]>(
+    HISTORY_KEY,
+    HISTORY_CHANGE_EVENT,
+    parser,
+  )
 
   useEffect(() => {
     void hydrateGeneticsHistoryFromCloud()
   }, [])
-
-  useEffect(() => {
-    const onHistoryChange = (): void => { refreshHistory() }
-    window.addEventListener(HISTORY_CHANGE_EVENT, onHistoryChange)
-    const onStorage = (e: StorageEvent): void => {
-      if (e.key === HISTORY_KEY) refreshHistory()
-    }
-    window.addEventListener('storage', onStorage)
-    return () => {
-      window.removeEventListener(HISTORY_CHANGE_EVENT, onHistoryChange)
-      window.removeEventListener('storage', onStorage)
-    }
-  }, [refreshHistory])
 
   // 필터링 (type + 텍스트 검색)
   const filteredHistory = useMemo(() => {
@@ -162,11 +150,11 @@ export function GeneticsHistorySidebar(): ReactNode {
   )
 
   const handlePin = useCallback((id: string) => {
-    setHistory(toggleGeneticsPin(id))
+    toggleGeneticsPin(id)
   }, [])
 
   const handleDeleteMultiple = useCallback((ids: Set<string>) => {
-    setHistory(deleteGeneticsEntries(ids))
+    deleteGeneticsEntries(ids)
   }, [])
 
   // renderItem — type별 색상 도트 + 도구별 정보

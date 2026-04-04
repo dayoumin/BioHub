@@ -1025,7 +1025,7 @@ npx wrangler pages deploy out --project-name=stats
 - WebMCP Chrome stable 릴리스 (현재 v146 early preview)
 - CopilotKit 도입 결정
 
-**참고**: `OPERATION.md` 2026-03-04 AI 채팅→페이지 이동 패턴 조사
+**참고**: `docs/OPERATION.md` 2026-03-04 AI 채팅→페이지 이동 패턴 조사
 
 ---
 

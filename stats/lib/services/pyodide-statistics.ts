@@ -835,81 +835,6 @@ export class PyodideStatisticsService {
   }
 
 
-  /**
-   * 독립표본 t-검정 (레거시 API)
-   * @deprecated tTestTwoSample 사용 권장
-   */
-  async twoSampleTTest(group1: number[], group2: number[], equalVar: boolean = true): Promise<{ statistic: number; pValue: number; df: number; mean1: number; mean2: number; meanDiff: number }> {
-    const result = await this.tTestTwoSample(group1, group2, equalVar)
-    return {
-      statistic: result.statistic,
-      pValue: result.pValue,
-      df: result.df,
-      mean1: result.mean1,
-      mean2: result.mean2,
-      meanDiff: result.meanDiff
-    }
-  }
-
-
-  /**
-   * 대응표본 t-검정 (레거시 API)
-   * @deprecated tTestPaired 사용 권장
-   */
-  async pairedTTest(values1: number[], values2: number[], _alternative: string = 'two-sided'): Promise<{ statistic: number; pValue: number; df: number; meanDiff: number }> {
-    const result = await this.tTestPaired(values1, values2)
-    return {
-      statistic: result.statistic,
-      pValue: result.pValue,
-      df: result.df,
-      meanDiff: result.meanDiff
-    }
-  }
-
-
-  /**
-   * 일원분산분석 (레거시 API)
-   * @deprecated oneWayAnovaWorker 사용 권장
-   */
-  async oneWayANOVA(groups: number[][]): Promise<{ fStatistic: number; pValue: number; dfBetween: number; dfWithin: number }> {
-    const result = await this.oneWayAnovaWorker(groups)
-    return {
-      fStatistic: result.fStatistic,
-      pValue: result.pValue,
-      dfBetween: result.dfBetween,
-      dfWithin: result.dfWithin
-    }
-  }
-
-
-  /**
-   * 단순선형회귀 (레거시 API)
-   * @deprecated linearRegression 사용 권장
-   */
-  async simpleLinearRegression(xValues: number[], yValues: number[]): Promise<{ slope: number; intercept: number; rSquared: number; fStatistic: number; pvalue: number }> {
-    const result = await this.linearRegression(xValues, yValues)
-    return {
-      slope: result.slope ?? 0,
-      intercept: result.intercept ?? 0,
-      rSquared: result.rSquared,
-      fStatistic: result.slopeTValue ** 2,  // 단순회귀: F = t²(기울기)
-      pvalue: result.pValue
-    }
-  }
-
-
-  /**
-   * 카이제곱 검정 (레거시 API)
-   * @deprecated chiSquareTestWorker 사용 권장
-   */
-  async chiSquareTest(observedMatrix: number[][], correction: boolean = false): Promise<{ statistic: number; pValue: number; df: number }> {
-    const result = await this.chiSquareTestWorker(observedMatrix, correction)
-    return {
-      statistic: result.chiSquare,
-      pValue: result.pValue,
-      df: result.df
-    }
-  }
 
 
   /**
@@ -1253,10 +1178,6 @@ export class PyodideStatisticsService {
     return Generated.repeatedMeasuresAnova(dataMatrix, subjectIds, timeLabels)
   }
 
-  /** @deprecated Worker3 ancova()는 postHoc 미지원. ancovaAnalysisWorker() 사용 권장 */
-  async ancovaWorker(yValues: number[], groupValues: (string | number)[], covariates: number[][]): Promise<Generated.AncovaResult> {
-    return Generated.ancova(yValues, groupValues, covariates)
-  }
 
   /**
    * Worker2 ANCOVA (postHoc 포함)
@@ -1289,6 +1210,31 @@ export class PyodideStatisticsService {
 
   async scheffeTestWorker(groups: number[][]): Promise<Generated.ScheffeTestResult> {
     return Generated.scheffeTest(groups)
+  }
+
+  /**
+   * 혼합 모형 (Mixed Model) — Worker2 mixed_model
+   *
+   * @param dependentVar 종속변수명
+   * @param fixedEffects 고정 효과 변수명 목록
+   * @param randomEffects 랜덤 효과 변수명 목록
+   * @param data 행 단위 딕셔너리 배열
+   */
+  async mixedModelAnalysis(
+    dependentVar: string,
+    fixedEffects: string[],
+    randomEffects: string[],
+    data: Array<Record<string, unknown>>,
+  ): Promise<Record<string, unknown>> {
+    return this.core.callWorkerMethod<Record<string, unknown>>(
+      2, 'mixed_model',
+      {
+        dependent_var: dependentVar,
+        fixed_effects: fixedEffects,
+        random_effects: randomEffects,
+        data: data as WorkerMethodParam,
+      }
+    )
   }
 
   // ========================================
@@ -1477,6 +1423,52 @@ export class PyodideStatisticsService {
     yValues: number[]
   ): Promise<Generated.NegativeBinomialRegressionResult> {
     return Generated.negativeBinomialRegression(xMatrix, yValues)
+  }
+
+  /**
+   * 용량-반응 분석 (Dose-Response Analysis)
+   *
+   * 용량(농도)에 따른 반응 곡선 피팅
+   * 4-parameter logistic (4PL) 등 비선형 모델 사용
+   *
+   * @param doseData 용량(농도) 값 배열
+   * @param responseData 반응 값 배열
+   * @param modelType 모델 유형 ('logistic4' 기본)
+   * @returns 용량-반응 분석 결과
+   */
+  async doseResponseAnalysis(
+    doseData: number[],
+    responseData: number[],
+    modelType: string = 'logistic4',
+  ): Promise<Record<string, unknown>> {
+    return this.core.callWorkerMethod<Record<string, unknown>>(
+      4, 'dose_response_analysis',
+      { doseData, responseData, modelType }
+    )
+  }
+
+  /**
+   * 반응표면 분석 (Response Surface Analysis)
+   *
+   * 다수 예측변수와 반응변수 간 2차 모델 피팅
+   * 최적 조건 탐색에 사용
+   *
+   * @param data 원시 데이터 행 배열
+   * @param dependentVar 종속변수 컬럼명
+   * @param predictorVars 예측변수 컬럼명 배열
+   * @param modelType 모델 유형 ('secondOrder' 기본)
+   * @returns 반응표면 분석 결과
+   */
+  async responseSurfaceAnalysis(
+    data: Array<Record<string, unknown>>,
+    dependentVar: string,
+    predictorVars: string[],
+    modelType: string = 'secondOrder',
+  ): Promise<Record<string, unknown>> {
+    return this.core.callWorkerMethod<Record<string, unknown>>(
+      2, 'response_surface_analysis',
+      { data: data as unknown as WorkerMethodParam, dependentVar, predictorVars, modelType }
+    )
   }
 
   // ========================================

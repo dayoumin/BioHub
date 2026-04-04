@@ -70,3 +70,9 @@ test-results/test-status.json
 e2e/results/
 test-results/
 playwright-report/
+
+# Debug/temp artifacts
+test-pyodide-init-debug.png
+test_output.txt
+typescript-errors-current.txt
+VALIDATION_REPORT.txt

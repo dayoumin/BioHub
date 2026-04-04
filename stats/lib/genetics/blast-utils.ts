@@ -18,8 +18,6 @@ export const BLAST_CACHED_DELAY_MS = 800
 
 export type BlastErrorCode = 'network' | 'timeout' | 'blast-failed' | 'unknown'
 
-/** @deprecated AnalysisPhase 사용 */
-export type BlastPhase = import('@/lib/genetics/abortable-sleep').AnalysisPhase
 
 export const BLAST_STEP_LABELS = [
   'NCBI BLAST 서버에 서열 전송',
@@ -39,8 +37,6 @@ export class BlastError extends Error {
 
 // ── 유틸 함수 ──
 
-/** @deprecated abortableSleep 사용 */
-export const blastSleep = abortableSleep
 
 /** BLAST 결과 fetch + 202 retry */
 export async function fetchBlastResult(
@@ -51,7 +47,7 @@ export async function fetchBlastResult(
     const res = await fetch(resultUrl, { signal })
 
     if (res.status === 202) {
-      await blastSleep(BLAST_RESULT_RETRY_MS, signal)
+      await abortableSleep(BLAST_RESULT_RETRY_MS, signal)
       continue
     }
 

@@ -8,40 +8,9 @@
 import type { CitationRecord } from './citation-types'
 import { citationKey } from './citation-types'
 import { openDB } from '@/lib/utils/adapters/indexeddb-adapter'
+import { txPut, txGetByIndex, txDelete } from '@/lib/utils/indexeddb-helpers'
 
 const STORE_NAME = 'citations'
-
-function txPut<T>(db: IDBDatabase, storeName: string, value: T): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readwrite')
-    const req = tx.objectStore(storeName).put(value)
-    req.onsuccess = () => resolve()
-    req.onerror = () => reject(req.error)
-  })
-}
-
-function txGetByIndex<T>(
-  db: IDBDatabase,
-  storeName: string,
-  indexName: string,
-  key: IDBValidKey,
-): Promise<T[]> {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readonly')
-    const req = tx.objectStore(storeName).index(indexName).getAll(key)
-    req.onsuccess = () => resolve(req.result as T[])
-    req.onerror = () => reject(req.error)
-  })
-}
-
-function txDelete(db: IDBDatabase, storeName: string, key: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readwrite')
-    const req = tx.objectStore(storeName).delete(key)
-    req.onsuccess = () => resolve()
-    req.onerror = () => reject(req.error)
-  })
-}
 
 /** 인용 저장 — 동일 프로젝트 내 citationKey 중복 시 무시 (idempotent, 단일 트랜잭션) */
 export async function saveCitation(record: CitationRecord): Promise<void> {

@@ -49,6 +49,7 @@ import {
   usePinnedHistoryIds,
   MAX_PINNED,
   MAX_VISIBLE_PILLS,
+  togglePinId,
 } from '@/lib/utils/pinned-history-storage'
 import { listProjects, deleteProjectCascade } from '@/lib/graph-studio/project-storage'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -220,14 +221,12 @@ export function QuickAccessBar({ onHistoryClick, onHistoryDelete, onShowMore }: 
   // Pin toggle handler
   const handleTogglePin = useCallback((historyId: string) => {
     setPinnedIds(prev => {
-      if (prev.includes(historyId)) {
-        return prev.filter(id => id !== historyId)
-      }
-      if (prev.length >= MAX_PINNED) {
+      const result = togglePinId(prev, historyId, MAX_PINNED)
+      if (result === null) {
         toast.info(t.history.tooltips.maxPinned(MAX_PINNED))
         return prev
       }
-      return [...prev, historyId]
+      return result
     })
   }, [setPinnedIds, t])
 

@@ -63,9 +63,6 @@ interface NormalizedPostHocComparison {
 
 /**
  * StatisticalExecutor 전용 분석 결과 인터페이스
- * (레거시 - 향후 ExecutorAnalysisResult로 통합 예정)
- *
- * 주의: types/analysis.ts의 AnalysisResult와는 다른 구조
  */
 export interface StatisticalExecutorResult {
   // 메타 정보
@@ -142,11 +139,6 @@ export interface StatisticalExecutorResult {
   rawResults?: Record<string, unknown> | object
 }
 
-/**
- * 호환성 별칭 (기존 코드 호환)
- * @deprecated StatisticalExecutorResult 사용 권장
- */
-export type AnalysisResult = StatisticalExecutorResult
 
 export class StatisticalExecutor {
   private static instance: StatisticalExecutor
@@ -179,7 +171,7 @@ export class StatisticalExecutor {
     data: unknown[],
     variables: Record<string, unknown> = {},
     settings?: SuggestedSettings | null
-  ): Promise<AnalysisResult> {
+  ): Promise<StatisticalExecutorResult> {
     this.startTime = Date.now()
     const alpha = settings?.alpha ?? 0.05
     logger.info(`통계 분석 시작: ${method.name}`, { methodId: method.id, alpha, settings: settings ? Object.keys(settings) : [] })
@@ -193,7 +185,7 @@ export class StatisticalExecutor {
       )
 
       // 메서드별 실행
-      let result: AnalysisResult
+      let result: StatisticalExecutorResult
 
       // 레거시 카테고리명 마이그레이션 (sessionStorage에 잔존 가능)
       const rawCategory = method.category as string
@@ -591,7 +583,7 @@ export class StatisticalExecutor {
   private async executeDescriptive(
     method: StatisticalMethod,
     data: PreparedData
-  ): Promise<AnalysisResult> {
+  ): Promise<StatisticalExecutorResult> {
     const values = data.arrays.dependent || data.arrays.independent?.[0] || []
 
     // 정규성 검정: Shapiro-Wilk 실행
@@ -668,7 +660,7 @@ export class StatisticalExecutor {
   private async executeTTest(
     method: StatisticalMethod,
     data: PreparedData
-  ): Promise<AnalysisResult> {
+  ): Promise<StatisticalExecutorResult> {
     // 일표본 t-검정 분기
     if (method.id === 'one-sample-t' || method.id === 'one-sample-t-test') {
       const values = data.arrays.dependent || data.arrays.independent?.[0] || []
@@ -824,7 +816,7 @@ export class StatisticalExecutor {
   private async executeANOVA(
     method: StatisticalMethod,
     data: PreparedData
-  ): Promise<AnalysisResult> {
+  ): Promise<StatisticalExecutorResult> {
     // Two-way ANOVA는 별도 처리
     if (method.id === 'two-way-anova') {
       const groupVar = data.variables.group as string | undefined
@@ -1225,6 +1217,118 @@ export class StatisticalExecutor {
       }
     }
 
+    // MANOVA: 다변량 분산분석
+    if (method.id === 'manova') {
+      const depVarNames = (data.variables.dependent as string[]) ?? []
+      const groupVarName = (data.variables.group as string) ?? (data.variables.independent as string)
+      const rawRows = data.data as Array<Record<string, unknown>>
+
+      if (depVarNames.length < 2) {
+        throw new Error('MANOVA를 위해 최소 2개의 종속변수가 필요합니다')
+      }
+      if (!groupVarName) {
+        throw new Error('MANOVA를 위해 그룹(독립) 변수가 필요합니다')
+      }
+
+      const dataMatrix = depVarNames.map(varName =>
+        rawRows.map(row => Number(row[varName]) || 0)
+      )
+      const groupValues = rawRows.map(row => row[groupVarName] as string | number)
+
+      const manovaResult = await pyodideStats.manovaWorker(dataMatrix, groupValues, depVarNames)
+
+      return {
+        metadata: {
+          method: method.id,
+          methodName: method.name,
+          timestamp: '',
+          duration: 0,
+          dataInfo: {
+            totalN: rawRows.length,
+            missingRemoved: 0,
+            groups: new Set(groupValues).size
+          }
+        },
+        mainResults: {
+          statistic: manovaResult.fStatistic,
+          pvalue: manovaResult.pValue,
+          df: 0,
+          significant: manovaResult.pValue < 0.05,
+          interpretation: manovaResult.pValue < 0.05
+            ? `그룹 간 다변량 차이가 유의합니다 (Wilks' λ=${manovaResult.wilksLambda.toFixed(4)}, F=${manovaResult.fStatistic.toFixed(2)})`
+            : '그룹 간 다변량 차이가 유의하지 않습니다'
+        },
+        additionalInfo: {
+          wilksLambda: manovaResult.wilksLambda,
+          dependentVariables: depVarNames,
+        },
+        visualizationData: {
+          type: 'boxplot-multiple',
+          data: depVarNames.map(varName => ({
+            values: rawRows.map(row => Number(row[varName]) || 0),
+            label: varName
+          }))
+        },
+        rawResults: manovaResult
+      }
+    }
+
+    // Mixed Model: 혼합 모형
+    if (method.id === 'mixed-model') {
+      const depVarName = ((data.variables.dependent as string[]) ?? [])[0] ?? ''
+      const fixedFactors = Array.isArray(data.variables.independent)
+        ? (data.variables.independent as string[])
+        : [(data.variables.group as string) ?? '']
+      const randomFactors = (data.variables.blocking as string[] | undefined) ?? []
+      const rawRows = data.data as Array<Record<string, unknown>>
+
+      if (!depVarName) {
+        throw new Error('혼합 모형을 위해 종속변수가 필요합니다')
+      }
+      if (fixedFactors.length === 0 || !fixedFactors[0]) {
+        throw new Error('혼합 모형을 위해 최소 1개의 고정 효과 변수가 필요합니다')
+      }
+
+      const mixedResult = await pyodideStats.mixedModelAnalysis(
+        depVarName, fixedFactors, randomFactors, rawRows
+      )
+
+      const mixedPValue = typeof mixedResult.pValue === 'number' ? mixedResult.pValue : 1
+      const mixedFStat = typeof mixedResult.fStatistic === 'number' ? mixedResult.fStatistic : 0
+
+      return {
+        metadata: {
+          method: method.id,
+          methodName: method.name,
+          timestamp: '',
+          duration: 0,
+          dataInfo: {
+            totalN: data.totalN,
+            missingRemoved: 0,
+          }
+        },
+        mainResults: {
+          statistic: mixedFStat,
+          pvalue: mixedPValue,
+          df: 0,
+          significant: mixedPValue < 0.05,
+          interpretation: mixedPValue < 0.05
+            ? `고정 효과가 유의합니다 (F=${mixedFStat.toFixed(2)})`
+            : '고정 효과가 유의하지 않습니다'
+        },
+        additionalInfo: {
+          fixedEffects: fixedFactors,
+          randomEffects: randomFactors,
+          ...mixedResult,
+        },
+        visualizationData: {
+          type: 'boxplot-multiple',
+          data: rawRows
+        },
+        rawResults: mixedResult
+      }
+    }
+
     const result = await pyodideStats.anova(groups, {
       type: method.id === 'two-way-anova' ? 'two-way' : 'one-way'
     })
@@ -1308,52 +1412,216 @@ export class StatisticalExecutor {
   private async executeRegression(
     method: StatisticalMethod,
     data: PreparedData
-  ): Promise<AnalysisResult> {
+  ): Promise<StatisticalExecutorResult> {
     const dependent = data.arrays.dependent
-    const independent = data.arrays.independent?.[0]
+    const independent = data.arrays.independent
 
-    if (!dependent || !independent) {
-      throw new Error('회귀분석을 위한 종속변수와 독립변수가 필요합니다')
+    if (!dependent) {
+      throw new Error('회귀분석을 위한 종속변수가 필요합니다')
     }
 
-    const result = await pyodideStats.regression(independent, dependent, {
-      type: method.id === 'multiple-regression' ? 'multiple' : 'simple'
-    })
+    // 열-기반(column-major) independent를 행-기반(row-major) 행렬로 전환
+    const transposeToRows = (): number[][] =>
+      dependent.map((_, rowIdx) => (independent ?? []).map(col => col[rowIdx]))
 
-    return {
-      metadata: {
-        method: method.id,
-        methodName: method.name,
-        timestamp: '',
-        duration: 0,
-        dataInfo: {
-          totalN: dependent.length,
-          missingRemoved: 0
+    // 변수명 추출 (stepwise 등에서 사용)
+    const vars = data.variables as Record<string, unknown>
+    const depVarName = (
+      Array.isArray(vars.dependent) ? (vars.dependent as string[])[0] : vars.dependent as string
+    ) ?? 'y'
+    const predictorVarNames: string[] = Array.isArray(vars.independent)
+      ? (vars.independent as string[])
+      : []
+
+    // GLM 계열 공통 결과 구성 (logistic, poisson, ordinal)
+    const buildGlmResult = (
+      raw: Record<string, unknown>,
+      vizType: string,
+    ): StatisticalExecutorResult => {
+      const pvalue = Number(raw.pValue ?? raw.llrPvalue ?? 1)
+      return {
+        metadata: {
+          method: method.id, methodName: method.name,
+          timestamp: '', duration: 0,
+          dataInfo: { totalN: dependent.length, missingRemoved: 0 }
+        },
+        mainResults: {
+          statistic: Number(raw.chiSquare ?? raw.llrStatistic ?? 0),
+          pvalue,
+          significant: pvalue < 0.05,
+          interpretation: `${method.name} 완료 (n=${dependent.length})`
+        },
+        additionalInfo: {},
+        visualizationData: { type: vizType, data: raw },
+        rawResults: raw
+      }
+    }
+
+    switch (method.id) {
+      case 'logistic-regression': {
+        if (!independent || independent.length === 0) {
+          throw new Error('로지스틱 회귀분석을 위한 독립변수가 필요합니다')
         }
-      },
-      mainResults: {
-        statistic: result.fStatistic ?? result.tStatistic ?? 0,
-        pvalue: result.pvalue,
-        df: result.df,
-        significant: result.pvalue < 0.05,
-        interpretation: `R² = ${result.rSquared.toFixed(3)}, 회귀식이 ${result.pvalue < 0.05 ? '유의합니다' : '유의하지 않습니다'}`
-      },
-      additionalInfo: {
-        effectSize: {
-          type: 'R-squared',
-          value: result.rSquared,
-          interpretation: this.interpretRSquared(result.rSquared)
+        const result = await pyodideStats.logisticRegression(transposeToRows(), dependent)
+        return buildGlmResult(result as unknown as Record<string, unknown>, 'logistic-regression')
+      }
+
+      case 'poisson': {
+        if (!independent || independent.length === 0) {
+          throw new Error('포아송 회귀분석을 위한 독립변수가 필요합니다')
         }
-      },
-      visualizationData: {
-        type: 'scatter-regression',
-        data: {
-          x: independent,
-          y: dependent,
-          regression: result.predictions
+        const result = await pyodideStats.poissonRegression(transposeToRows(), dependent)
+        return buildGlmResult(result as unknown as Record<string, unknown>, 'poisson-regression')
+      }
+
+      case 'ordinal-regression': {
+        if (!independent || independent.length === 0) {
+          throw new Error('순서형 로지스틱 회귀분석을 위한 독립변수가 필요합니다')
         }
-      },
-      rawResults: result
+        const result = await pyodideStats.ordinalLogistic(transposeToRows(), dependent)
+        return buildGlmResult(result as unknown as Record<string, unknown>, 'ordinal-regression')
+      }
+
+      case 'stepwise': {
+        if (!independent || independent.length === 0) {
+          throw new Error('단계적 회귀분석을 위한 독립변수가 필요합니다')
+        }
+        const varNames = predictorVarNames.length > 0 ? predictorVarNames : null
+        const stepResult = await pyodideStats.stepwiseRegression(
+          dependent, transposeToRows(), varNames
+        )
+        const stepRaw = stepResult as unknown as Record<string, unknown>
+        return {
+          metadata: {
+            method: method.id,
+            methodName: method.name,
+            timestamp: '',
+            duration: 0,
+            dataInfo: { totalN: dependent.length, missingRemoved: 0 }
+          },
+          mainResults: {
+            statistic: Number(stepRaw.fStatistic ?? 0),
+            pvalue: Number(stepRaw.pValue ?? 0),
+            significant: Number(stepRaw.pValue ?? 1) < 0.05,
+            interpretation: `단계적 회귀 분석 완료 — 선택된 변수 ${String(stepRaw.selectedVariableCount ?? '?')}개`
+          },
+          additionalInfo: {
+            effectSize: stepRaw.rSquared != null ? {
+              type: 'R-squared',
+              value: Number(stepRaw.rSquared),
+              interpretation: this.interpretRSquared(Number(stepRaw.rSquared))
+            } : undefined
+          },
+          visualizationData: { type: 'stepwise-regression', data: stepRaw },
+          rawResults: stepResult
+        }
+      }
+
+      case 'dose-response': {
+        if (!independent || independent.length === 0) {
+          throw new Error('용량-반응 분석을 위한 독립변수(용량)가 필요합니다')
+        }
+        const doseRaw = await pyodideStats.doseResponseAnalysis(
+          independent[0], dependent
+        ) as Record<string, unknown>
+        const dosePvalue = Number(doseRaw.pValue ?? 1)
+        return {
+          metadata: {
+            method: method.id, methodName: method.name,
+            timestamp: '', duration: 0,
+            dataInfo: { totalN: dependent.length, missingRemoved: 0 }
+          },
+          mainResults: {
+            statistic: Number(doseRaw.rSquared ?? 0),
+            pvalue: dosePvalue,
+            significant: dosePvalue < 0.05,
+            interpretation: `용량-반응 분석 완료 (n=${dependent.length})`
+          },
+          additionalInfo: {},
+          visualizationData: { type: 'dose-response', data: doseRaw },
+          rawResults: doseRaw
+        }
+      }
+
+      case 'response-surface': {
+        if (predictorVarNames.length === 0) {
+          throw new Error('반응표면 분석을 위한 예측변수명이 필요합니다')
+        }
+        const rsRaw = await pyodideStats.responseSurfaceAnalysis(
+          data.data, depVarName, predictorVarNames
+        ) as Record<string, unknown>
+        const rsPvalue = Number(rsRaw.pValue ?? 1)
+        const rsR2 = rsRaw.rSquared != null ? Number(rsRaw.rSquared) : undefined
+        return {
+          metadata: {
+            method: method.id, methodName: method.name,
+            timestamp: '', duration: 0,
+            dataInfo: { totalN: data.data.length, missingRemoved: 0 }
+          },
+          mainResults: {
+            statistic: Number(rsRaw.fStatistic ?? 0),
+            pvalue: rsPvalue,
+            significant: rsPvalue < 0.05,
+            interpretation: `반응표면 분석 완료 — ${predictorVarNames.length}개 예측변수`
+          },
+          additionalInfo: {
+            effectSize: rsR2 != null ? {
+              type: 'R-squared', value: rsR2,
+              interpretation: this.interpretRSquared(rsR2)
+            } : undefined
+          },
+          visualizationData: { type: 'response-surface', data: rsRaw },
+          rawResults: rsRaw
+        }
+      }
+
+      // ── 기본: 선형 회귀 (기존 동작) ──
+      default: {
+        const firstIndependent = independent?.[0]
+        if (!firstIndependent) {
+          throw new Error('회귀분석을 위한 독립변수가 필요합니다')
+        }
+
+        const result = await pyodideStats.regression(firstIndependent, dependent, {
+          type: method.id === 'multiple-regression' ? 'multiple' : 'simple'
+        })
+
+        return {
+          metadata: {
+            method: method.id,
+            methodName: method.name,
+            timestamp: '',
+            duration: 0,
+            dataInfo: {
+              totalN: dependent.length,
+              missingRemoved: 0
+            }
+          },
+          mainResults: {
+            statistic: result.fStatistic ?? result.tStatistic ?? 0,
+            pvalue: result.pvalue,
+            df: result.df,
+            significant: result.pvalue < 0.05,
+            interpretation: `R² = ${result.rSquared.toFixed(3)}, 회귀식이 ${result.pvalue < 0.05 ? '유의합니다' : '유의하지 않습니다'}`
+          },
+          additionalInfo: {
+            effectSize: {
+              type: 'R-squared',
+              value: result.rSquared,
+              interpretation: this.interpretRSquared(result.rSquared)
+            }
+          },
+          visualizationData: {
+            type: 'scatter-regression',
+            data: {
+              x: firstIndependent,
+              y: dependent,
+              regression: result.predictions
+            }
+          },
+          rawResults: result
+        }
+      }
     }
   }
 
@@ -1370,7 +1638,7 @@ export class StatisticalExecutor {
   private async executeCorrelation(
     method: StatisticalMethod,
     data: PreparedData
-  ): Promise<AnalysisResult> {
+  ): Promise<StatisticalExecutorResult> {
     const var1 = data.arrays.dependent || data.arrays.independent?.[0]
     const var2 = data.arrays.independent?.[1] || data.arrays.independent?.[0]
 
@@ -1443,7 +1711,7 @@ export class StatisticalExecutor {
   private async executeNonparametric(
     method: StatisticalMethod,
     data: PreparedData
-  ): Promise<AnalysisResult> {
+  ): Promise<StatisticalExecutorResult> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any
     // proportion-test 전용 메타 (additionalInfo + visualizationData 빌드에 사용)
@@ -1753,7 +2021,7 @@ export class StatisticalExecutor {
   private async executeMultivariate(
     method: StatisticalMethod,
     data: PreparedData
-  ): Promise<AnalysisResult> {
+  ): Promise<StatisticalExecutorResult> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any
     const normalizeVarianceToRatio = (value: unknown): number => {
@@ -2002,7 +2270,7 @@ export class StatisticalExecutor {
   private async executeTimeSeries(
     method: StatisticalMethod,
     data: PreparedData
-  ): Promise<AnalysisResult> {
+  ): Promise<StatisticalExecutorResult> {
     const timeData = data.arrays.dependent || []
     // time_series_analysis는 seasonalPeriods만 받음 (method 파라미터 없음)
     const result = await pyodideStats.timeSeriesAnalysis(timeData, {
@@ -2107,7 +2375,7 @@ export class StatisticalExecutor {
   private async executeReliability(
     method: StatisticalMethod,
     data: PreparedData
-  ): Promise<AnalysisResult> {
+  ): Promise<StatisticalExecutorResult> {
     const items = data.arrays.independent || []
     const result = await pyodideStats.cronbachAlpha(items)
 
@@ -2143,7 +2411,7 @@ export class StatisticalExecutor {
   private async executeSurvival(
     method: StatisticalMethod,
     data: PreparedData
-  ): Promise<AnalysisResult> {
+  ): Promise<StatisticalExecutorResult> {
     switch (method.id) {
       case 'kaplan-meier': {
         // Validate event variable is provided (early check before row-level alignment)
@@ -2404,7 +2672,7 @@ export class StatisticalExecutor {
   private async executeDesign(
     method: StatisticalMethod,
     data: PreparedData
-  ): Promise<AnalysisResult> {
+  ): Promise<StatisticalExecutorResult> {
     switch (method.id) {
       case 'power-analysis': {
         // pyodideStats 래퍼 사용
@@ -2461,7 +2729,7 @@ export class StatisticalExecutor {
   private async executeChiSquare(
     method: StatisticalMethod,
     data: PreparedData
-  ): Promise<AnalysisResult> {
+  ): Promise<StatisticalExecutorResult> {
     if (method.id === 'chi-square-goodness') {
       return this.executeChiSquareGoodness(method, data)
     }
@@ -2471,7 +2739,7 @@ export class StatisticalExecutor {
   private async executeChiSquareGoodness(
     method: StatisticalMethod,
     data: PreparedData
-  ): Promise<AnalysisResult> {
+  ): Promise<StatisticalExecutorResult> {
     const rawDependent = data.variables.dependentVar || data.variables.dependent
     const dependentVar = rawDependent
       ? (Array.isArray(rawDependent) ? (rawDependent as string[])[0] : rawDependent as string)
@@ -2542,7 +2810,7 @@ export class StatisticalExecutor {
   private async executeChiSquareIndependence(
     method: StatisticalMethod,
     data: PreparedData
-  ): Promise<AnalysisResult> {
+  ): Promise<StatisticalExecutorResult> {
     // 독립변수(행)와 종속변수(열) 추출 - VariableMapping 호환 (independentVar/independent 모두 지원)
     const rawIndependent = data.variables.independentVar || data.variables.independent || data.variables.groupVar || data.variables.group
     const independentVar = rawIndependent

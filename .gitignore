@@ -70,3 +70,6 @@ monetization/
 # HWPX generated test output files
 *.hwpx
 !stats/public/templates/*.hwpx
+
+# Legacy genetics standalone app (merged into stats/)
+/genetics/

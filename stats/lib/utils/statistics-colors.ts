@@ -135,19 +135,3 @@ export function getTableRowHighlightClass(): string {
   return STATISTICS_COLORS.tableRow.highlight
 }
 
-/**
- * 레거시 호환성: 기존 함수 시그니처 유지
- * @deprecated 대신 getEffectSizeInterpretation 사용 권장
- */
-export function getCramersVInterpretation(v: number) {
-  return getEffectSizeInterpretation(v, 'cramersV')
-}
-
-/**
- * 레거시 호환성: 기존 함수 시그니처 유지
- * @deprecated 대신 getEffectSizeInterpretation 사용 권장
- */
-export function getCohensInterpretation(d: number) {
-  const result = getEffectSizeInterpretation(d, 'cohensD')
-  return result.level
-}

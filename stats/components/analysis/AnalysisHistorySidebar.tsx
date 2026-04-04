@@ -27,6 +27,7 @@ import { useModeStore } from '@/lib/stores/mode-store'
 import {
   usePinnedHistoryIds,
   MAX_PINNED,
+  togglePinId,
 } from '@/lib/utils/pinned-history-storage'
 import { useTerminology } from '@/hooks/use-terminology'
 import { toast } from 'sonner'
@@ -84,14 +85,12 @@ export function AnalysisHistorySidebar(): ReactNode {
   const handlePin = useCallback(
     (id: string) => {
       setPinnedIds((prev) => {
-        if (prev.includes(id)) {
-          return prev.filter((pid) => pid !== id)
-        }
-        if (prev.length >= MAX_PINNED) {
+        const result = togglePinId(prev, id, MAX_PINNED)
+        if (result === null) {
           toast.info(t.history.tooltips.maxPinned(MAX_PINNED))
           return prev
         }
-        return [...prev, id]
+        return result
       })
     },
     [setPinnedIds, t],

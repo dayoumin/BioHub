@@ -583,26 +583,3 @@ export function saveAnalysisHistory(entry: Omit<BarcodingHistoryEntry, 'id' | 'c
   return saveGeneticsHistory({ ...entry, type: 'barcoding' })
 }
 
-/** @deprecated deleteGeneticsEntries 사용 */
-export function deleteMultipleEntries(ids: Set<string>): BarcodingHistoryEntry[] {
-  return deleteGeneticsEntries(ids) as BarcodingHistoryEntry[]
-}
-
-/** @deprecated deleteGeneticsEntries 사용 */
-export function deleteAnalysisEntry(id: string): BarcodingHistoryEntry[] {
-  return deleteGeneticsEntries(new Set([id])) as BarcodingHistoryEntry[]
-}
-
-/** @deprecated toggleGeneticsPin 사용 */
-export function togglePinEntry(id: string): BarcodingHistoryEntry[] {
-  return toggleGeneticsPin(id) as BarcodingHistoryEntry[]
-}
-
-/** @deprecated */
-export function clearAnalysisHistory(): void {
-  if (typeof window === 'undefined') return
-  const all = parseAll()
-  removeRefsForEntries(all)
-  writeJson(HISTORY_KEY, [])
-  notifyChange()
-}

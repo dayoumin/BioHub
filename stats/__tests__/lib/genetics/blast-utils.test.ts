@@ -1,7 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import {
   BlastError,
-  blastSleep,
   fetchBlastResult,
   buildResultUrl,
   enrichBarcodeHits,
@@ -9,16 +8,17 @@ import {
   mapToGenericHits,
   BLAST_MAX_RESULT_RETRIES,
 } from '@/lib/genetics/blast-utils'
+import { abortableSleep } from '@/lib/genetics/abortable-sleep'
 
-// ── blastSleep ──
+// ── abortableSleep ──
 
-describe('blastSleep', () => {
+describe('abortableSleep', () => {
   beforeEach(() => {
     vi.useFakeTimers()
   })
 
   it('지정 시간 후 resolve', async () => {
-    const p = blastSleep(100)
+    const p = abortableSleep(100)
     vi.advanceTimersByTime(100)
     await expect(p).resolves.toBeUndefined()
   })
@@ -26,12 +26,12 @@ describe('blastSleep', () => {
   it('이미 abort된 signal이면 즉시 reject', async () => {
     const ctrl = new AbortController()
     ctrl.abort()
-    await expect(blastSleep(100, ctrl.signal)).rejects.toThrow('Aborted')
+    await expect(abortableSleep(100, ctrl.signal)).rejects.toThrow('Aborted')
   })
 
   it('sleep 중 abort되면 reject', async () => {
     const ctrl = new AbortController()
-    const p = blastSleep(1000, ctrl.signal)
+    const p = abortableSleep(1000, ctrl.signal)
     vi.advanceTimersByTime(100)
     ctrl.abort()
     await expect(p).rejects.toThrow('Aborted')

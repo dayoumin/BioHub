@@ -1,7 +1,6 @@
 /** BOLD ID Engine 실행 공통 유틸리티 — useBoldExecution + BoldSearchContent 공유 */
 
 import type { BoldHit, BoldClassification } from '@biohub/types'
-import { abortableSleep } from '@/lib/genetics/abortable-sleep'
 export type { AnalysisPhase } from '@/lib/genetics/abortable-sleep'
 
 // ── 상수 ──
@@ -15,8 +14,6 @@ export const BOLD_CACHED_DELAY_MS = 800
 
 export type BoldErrorCode = 'network' | 'timeout' | 'bold-failed' | 'unknown'
 
-/** @deprecated AnalysisPhase 사용 */
-export type BoldPhase = import('@/lib/genetics/abortable-sleep').AnalysisPhase
 
 export const BOLD_STEP_LABELS = [
   'BOLD 서버에 서열 전송',
@@ -34,8 +31,6 @@ export class BoldError extends Error {
   }
 }
 
-/** @deprecated abortableSleep 사용 */
-export const boldSleep = abortableSleep
 
 // ── 결과 파싱 ──
 
