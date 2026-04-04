@@ -621,8 +621,10 @@ export class StatisticalExecutor {
 
     // 데이터 탐색: 기술통계 + 정규성 결합
     if (method.id === 'explore-data') {
-      const descriptive = await pyodideStats.descriptiveStats(values)
-      const normality = values.length >= 3 ? await pyodideStats.shapiroWilkTest(values) : null
+      const [descriptive, normality] = await Promise.all([
+        pyodideStats.descriptiveStats(values),
+        values.length >= 3 ? pyodideStats.shapiroWilkTest(values) : Promise.resolve(null),
+      ])
 
       const normalityText = normality
         ? `Shapiro-Wilk W = ${normality.statistic.toFixed(4)}, p = ${normality.pValue.toFixed(4)} → ${normality.isNormal ? '정규성 가정 유지' : '정규성 가정 기각'}`

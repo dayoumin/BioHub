@@ -546,7 +546,7 @@ Respond ONLY in valid JSON format (no extra text).
 - 기술통계: descriptive-stats
 - 시계열: arima, time-series-decomposition
 - 생존분석: kaplan-meier, cox-regression
-- 다변량: pca, factor-analysis, cluster
+- 다변량: pca, factor-analysis, cluster-analysis
 
 중요: 반드시 한국어로 응답하세요.`
 
