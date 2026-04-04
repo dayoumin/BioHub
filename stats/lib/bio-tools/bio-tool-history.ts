@@ -10,6 +10,7 @@ import {
   removeProjectEntityRefs,
 } from '@/lib/research/project-storage'
 import { createLocalStorageIO } from '@/lib/utils/local-storage-factory'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
 // ─── 타입 ─────────────────────────────────────────
 
@@ -28,7 +29,7 @@ export interface BioToolHistoryEntry {
 
 // ─── 상수 ─────────────────────────────────────────
 
-export const BIO_HISTORY_KEY = 'biohub:bio-tools:history'
+export const BIO_HISTORY_KEY = STORAGE_KEYS.bioTools.history
 export const BIO_HISTORY_CHANGE_EVENT = 'bio-tools-history-changed'
 const MAX_HISTORY = 30
 

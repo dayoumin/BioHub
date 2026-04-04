@@ -1,5 +1,6 @@
 'use client'
 
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 import { memo, useMemo, useState, useEffect } from 'react'
 import {
   Upload,
@@ -88,7 +89,7 @@ const ALL_QUICK_METHOD_IDS = [
 const DEFAULT_QUICK_METHODS = ['t-test', 'anova', 'correlation', 'regression', 'chi-square']
 
 // LocalStorage 키
-const QUICK_METHODS_STORAGE_KEY = 'analysis-quick-methods'
+const QUICK_METHODS_STORAGE_KEY = STORAGE_KEYS.analysis.quickMethods
 
 // LocalStorage에서 빠른 분석 방법 불러오기
 function loadQuickMethods(): string[] {

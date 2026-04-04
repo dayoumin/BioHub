@@ -23,11 +23,12 @@ import { editChart, buildAiEditRequest, AiServiceError } from '@/lib/graph-studi
 import { summarizePatches } from '@/lib/graph-studio/ai-patch-summary';
 import type { PatchSummaryItem } from '@/lib/graph-studio/ai-patch-summary';
 import { logger } from '@/lib/utils/logger';
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
 // ─── 타입 ──────────────────────────────────────────────────
 
 const MAX_MESSAGES = 30;
-const CHAT_STORAGE_KEY = 'graph_studio_ai_chat';
+const CHAT_STORAGE_KEY = STORAGE_KEYS.graphStudio.aiChat;
 
 export type ChatRole = 'user' | 'assistant' | 'error';
 

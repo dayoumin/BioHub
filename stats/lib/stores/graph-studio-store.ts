@@ -24,8 +24,10 @@ import { deleteSnapshots } from '@/lib/graph-studio/chart-snapshot-storage';
 import { upsertProjectEntityRef, removeProjectEntityRefsByEntityIds } from '@/lib/research/project-storage';
 import { useResearchProjectStore } from '@/lib/stores/research-project-store';
 
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
+
 /** AI 채팅 localStorage 키 (use-ai-chat.ts의 CHAT_STORAGE_KEY와 동일) */
-const AI_CHAT_STORAGE_KEY = 'graph_studio_ai_chat';
+const AI_CHAT_STORAGE_KEY = STORAGE_KEYS.graphStudio.aiChat;
 
 /** 데이터 변경 시 AI 채팅 이력 초기화 */
 function clearAiChatHistory(): void {

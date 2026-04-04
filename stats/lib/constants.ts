@@ -179,14 +179,6 @@ export const CHART = {
   }
 } as const
 
-// 로컬 스토리지 키
-export const STORAGE_KEYS = {
-  THEME: 'stats-theme',
-  USER_PREFERENCES: 'stats-preferences',
-  DATASETS: 'stats-datasets',
-  ANALYSIS_HISTORY: 'stats-analysis-history'
-} as const
-
 // 에러 메시지
 export const ERROR_MESSAGES = {
   PYODIDE_NOT_READY: '통계 엔진이 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.',

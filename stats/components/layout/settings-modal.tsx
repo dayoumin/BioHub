@@ -16,6 +16,7 @@ import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import { Moon, Sun, Monitor, Settings2 } from 'lucide-react'
 import { StorageService } from '@/lib/services/storage-service'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
 interface SettingsModalProps {
   open: boolean
@@ -32,12 +33,12 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   // 설정 로드
   useEffect(() => {
     // 알림 설정
-    const savedNotifyComplete = StorageService.getItem('statPlatform_notifyAnalysisComplete')
+    const savedNotifyComplete = StorageService.getItem(STORAGE_KEYS.settings.notifyAnalysisComplete)
     if (savedNotifyComplete !== null) {
       setNotifyAnalysisComplete(savedNotifyComplete === 'true')
     }
 
-    const savedNotifyError = StorageService.getItem('statPlatform_notifyError')
+    const savedNotifyError = StorageService.getItem(STORAGE_KEYS.settings.notifyError)
     if (savedNotifyError !== null) {
       setNotifyError(savedNotifyError === 'true')
     }
@@ -46,12 +47,12 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   // 알림 설정 변경
   const handleNotifyAnalysisComplete = (checked: boolean) => {
     setNotifyAnalysisComplete(checked)
-    StorageService.setItem('statPlatform_notifyAnalysisComplete', String(checked))
+    StorageService.setItem(STORAGE_KEYS.settings.notifyAnalysisComplete, String(checked))
   }
 
   const handleNotifyError = (checked: boolean) => {
     setNotifyError(checked)
-    StorageService.setItem('statPlatform_notifyError', String(checked))
+    StorageService.setItem(STORAGE_KEYS.settings.notifyError, String(checked))
   }
 
   return (

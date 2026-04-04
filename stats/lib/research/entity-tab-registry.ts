@@ -9,6 +9,7 @@
 
 import type { ProjectEntityKind } from '@/lib/types/research'
 import { createLocalStorageIO } from '@/lib/utils/local-storage-factory'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
 // ── 탭 정의 ──
 
@@ -146,7 +147,7 @@ export const ENTITY_TAB_REGISTRY: readonly EntityTabEntry[] = [
 
 // ── 탭 설정 (표시/숨김) ──
 
-const TAB_SETTINGS_KEY = 'biohub:project-tab-settings'
+const TAB_SETTINGS_KEY = STORAGE_KEYS.research.tabSettings
 const { readJson, writeJson } = createLocalStorageIO('[entity-tab-registry]')
 
 export type TabVisibilityMap = Partial<Record<ProjectEntityKind, boolean>>

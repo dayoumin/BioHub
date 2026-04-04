@@ -7,6 +7,8 @@
  * - Ollama 서버 가용성 체크
  */
 
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
+
 export type Environment = 'web' | 'local'
 
 export interface EnvironmentInfo {
@@ -152,7 +154,7 @@ export async function getEnvironmentInfo(): Promise<EnvironmentInfo> {
 /**
  * 환경 정보를 로컬 스토리지에 캐시 (1분 TTL)
  */
-const ENV_INFO_KEY = 'environment-info-cache'
+const ENV_INFO_KEY = STORAGE_KEYS.ui.environmentCache
 const CACHE_TTL = 60 * 1000 // 1분
 
 interface CachedEnvInfo {

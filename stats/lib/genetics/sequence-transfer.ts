@@ -5,7 +5,9 @@
  * consumeTransferredSequence()는 읽으면서 삭제하므로 자동으로 cleanup 된다.
  */
 
-const STORAGE_KEY = 'biohub:sequence-transfer'
+import { SESSION_STORAGE_KEYS } from '@/lib/constants/storage-keys'
+
+const STORAGE_KEY = SESSION_STORAGE_KEYS.genetics.sequenceTransfer
 
 interface TransferPayload {
   sequence: string

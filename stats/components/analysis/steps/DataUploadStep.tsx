@@ -28,6 +28,7 @@ import {
 
 import type { DataUploadStepProps } from '@/types/analysis-navigation'
 import { RefreshCw } from 'lucide-react'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
 // 최근 파일 타입
 interface RecentFile {
@@ -38,7 +39,7 @@ interface RecentFile {
 }
 
 // localStorage 키
-const RECENT_FILES_KEY = 'statPlatform_recentFiles'
+const RECENT_FILES_KEY = STORAGE_KEYS.analysis.recentFiles
 const MAX_RECENT_FILES = 5
 
 export function DataUploadStep({

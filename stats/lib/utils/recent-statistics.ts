@@ -5,7 +5,9 @@
 
 import { createLocalStorageIO } from '@/lib/utils/local-storage-factory'
 
-const STORAGE_KEY = 'statPlatform_recent'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
+
+const STORAGE_KEY = STORAGE_KEYS.analysis.recentStatistics
 const MAX_RECENT_ITEMS = 5
 
 const { readJson, writeJson } = createLocalStorageIO('[recent-statistics]')

@@ -10,7 +10,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { createLocalStorageIO } from '@/lib/utils/local-storage-factory'
 
-const PINNED_HISTORY_KEY = 'analysis-history-pinned'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
+
+const PINNED_HISTORY_KEY = STORAGE_KEYS.analysis.pinnedHistory
 const PINNED_CHANGE_EVENT = 'pinned-history-change'
 
 const { readJson, writeJson } = createLocalStorageIO('[pinned-history-storage]')

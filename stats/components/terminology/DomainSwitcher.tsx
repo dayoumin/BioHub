@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Globe } from 'lucide-react'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
 /**
  * 도메인 표시명 매핑
@@ -57,7 +58,7 @@ export function DomainSwitcher({ compact = false, className }: DomainSwitcherPro
     setDomain(value)
     // 선택적: localStorage에 저장하여 다음 방문 시에도 유지
     if (typeof window !== 'undefined') {
-      localStorage.setItem('terminology-domain', value)
+      localStorage.setItem(STORAGE_KEYS.ui.terminologyDomain, value)
     }
   }
 
@@ -123,5 +124,5 @@ export function DomainSwitcher({ compact = false, className }: DomainSwitcherPro
  */
 export function getSavedDomain(): string | null {
   if (typeof window === 'undefined') return null
-  return localStorage.getItem('terminology-domain')
+  return localStorage.getItem(STORAGE_KEYS.ui.terminologyDomain)
 }

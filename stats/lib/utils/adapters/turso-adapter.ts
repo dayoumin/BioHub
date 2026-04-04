@@ -9,6 +9,7 @@
  * - NEXT_PUBLIC_TURSO_AUTH_TOKEN: 인증 토큰 (NEXT_PUBLIC_ 필수 — static export에서 브라우저 접근)
  */
 
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 import type { StorageAdapter } from './storage-adapter'
 import type {
   HistoryRecord,
@@ -311,10 +312,10 @@ export class TursoAdapter implements StorageAdapter {
   private getDeviceId(): string {
     if (typeof localStorage === 'undefined') return 'unknown'
 
-    let deviceId = localStorage.getItem('statPlatform_deviceId')
+    let deviceId = localStorage.getItem(STORAGE_KEYS.device.legacyId)
     if (!deviceId) {
       deviceId = `device-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-      localStorage.setItem('statPlatform_deviceId', deviceId)
+      localStorage.setItem(STORAGE_KEYS.device.legacyId, deviceId)
     }
     return deviceId
   }

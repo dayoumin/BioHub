@@ -37,12 +37,13 @@ import {
   selectActiveProject,
 } from '@/lib/stores/research-project-store'
 import { listProjectEntityRefs } from '@/lib/research/project-storage'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
 /** 사이드바 접힐 때 텍스트가 즉시 사라지도록 (width 애니메이션 도중 잔상 방지) */
 const textClass = (expanded: boolean) =>
   expanded ? 'opacity-100' : 'opacity-0 invisible'
 
-const STORAGE_KEY = 'biohub-sidebar'
+const STORAGE_KEY = STORAGE_KEYS.ui.sidebar
 
 type NavItem = {
   href: string

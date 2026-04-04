@@ -1,3 +1,4 @@
+import { SESSION_STORAGE_KEYS } from '@/lib/constants/storage-keys'
 import { create } from 'zustand'
 import {
   StatisticalMethod,
@@ -401,7 +402,7 @@ export const useHistoryStore = create<HistoryState>()((set) => ({
 
     // === 마이그레이션 (sessionStorage → IndexedDB, 병합) ===
     try {
-      const sessionData = sessionStorage.getItem('analysis-storage')
+      const sessionData = sessionStorage.getItem(SESSION_STORAGE_KEYS.analysis.cache)
       if (sessionData) {
         const parsed = JSON.parse(sessionData)
         const oldHistory = parsed?.state?.analysisHistory
@@ -417,7 +418,7 @@ export const useHistoryStore = create<HistoryState>()((set) => ({
           }
           if (idsAssigned) {
             parsed.state.analysisHistory = oldHistory
-            sessionStorage.setItem('analysis-storage', JSON.stringify(parsed))
+            sessionStorage.setItem(SESSION_STORAGE_KEYS.analysis.cache, JSON.stringify(parsed))
           }
 
           const existingHistory = await getAllHistory()
@@ -459,7 +460,7 @@ export const useHistoryStore = create<HistoryState>()((set) => ({
           }
 
           delete parsed.state.analysisHistory
-          sessionStorage.setItem('analysis-storage', JSON.stringify(parsed))
+          sessionStorage.setItem(SESSION_STORAGE_KEYS.analysis.cache, JSON.stringify(parsed))
         }
       }
     } catch (error) {
