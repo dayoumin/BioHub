@@ -129,7 +129,7 @@ describe('indexeddb-helpers — module exports', () => {
 // 4. Regression executor branches
 // ---------------------------------------------------------------------------
 describe('statistical-executor — regression branch coverage', () => {
-  const executorPath = path.resolve(__dirname, '../../lib/services/statistical-executor.ts')
+  const executorPath = path.resolve(__dirname, '../../lib/services/handlers/handle-regression.ts')
   let source: string
 
   beforeAll(() => {

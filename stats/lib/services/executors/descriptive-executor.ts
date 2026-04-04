@@ -132,15 +132,15 @@ export class DescriptiveExecutor extends BaseExecutor {
         contingencyTable.push(row)
       })
 
-      const chiSquare = await pyodideStats.chiSquare(contingencyTable)
+      const chiSquareResult = await pyodideStats.chiSquareTestWorker(contingencyTable)
 
       return {
         metadata: this.createMetadata('교차분석', data.length, startTime),
         mainResults: {
-          statistic: chiSquare.statistic,
-          pvalue: chiSquare.pvalue,
-          df: chiSquare.df,
-          interpretation: this.interpretPValue(chiSquare.pvalue)
+          statistic: chiSquareResult.chiSquare,
+          pvalue: chiSquareResult.pValue,
+          df: chiSquareResult.df,
+          interpretation: this.interpretPValue(chiSquareResult.pValue)
         },
         additionalInfo: {
           crosstab: Object.fromEntries(

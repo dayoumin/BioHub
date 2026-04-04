@@ -91,6 +91,13 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - `[analysis]` intent-router 0.6 임계값 검증 — 사용 로그 수집 후 데이터 기반 재검토
 - `[ux]` Bio-Tools data-testid + aria-label — E2E 테스트 + 접근성
 - `[quality]` 기존 테스트 실패 10건 수정 — StatisticCard 등 CSS 클래스 변경 미반영 (7 files, 10 tests)
+- `[quality]` Worker 타입 계약 정비 (Session C) — Python↔Registry↔Generated 동기화 + 레거시 삭제 + 출력 검증 + type-guards 확장. 상세: [PLAN-SESSION-C-WORKER-TYPE-CONTRACT.md](docs/PLAN-SESSION-C-WORKER-TYPE-CONTRACT.md)
+- `[quality]` Regression handler–worker 계약 불일치 4건 (Session B 리팩터링에서 발견):
+  - stepwise: handler가 `fStatistic`/`pValue`/`selectedVariableCount` 읽지만 worker는 `selectedVariables`/`pValues`/`rSquared` 반환 → statistic=0, pvalue=1
+  - poisson/ordinal: `llrPValue` 없어 model-level p=1 고정 (logistic만 정상)
+  - generated types: `OrdinalLogisticResult`/`PoissonRegressionResult` 필드 과소정의
+  - chi-square independence: routing test mock shape (`statistic`/`df`) ≠ handler 기대 shape (`chiSquare`/`degreesOfFreedom`)
+  - 시뮬레이션 테스트: `__tests__/services/handlers/handler-contract-gaps.test.ts` (6 tests, 버그 증명용)
 
 ### 3-D. 인프라
 

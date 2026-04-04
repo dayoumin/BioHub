@@ -37,6 +37,7 @@ import {
   type ClusterAnalysisAdapterResult,
   type ClusterAnalysisOptions
 } from './pyodide-statistics.adapters'
+import { assertWorkerResultFields } from '@/lib/utils/type-guards'
 
 interface BonferroniComparison {
   group1: string
@@ -342,9 +343,10 @@ export class PyodideStatisticsService {
   /**
    * 정규성 검정 (Normality Test - Shapiro-Wilk)
    */
-  async normalityTest(data: number[], alpha: number = 0.05): Promise<Generated.NormalityTestResult & { alpha: number }> {
+  async normalityTest(data: number[], alpha: number = 0.05): Promise<Generated.NormalityTestResult> {
     const result = await Generated.normalityTest(data, alpha)
-    return { ...result, alpha }
+    assertWorkerResultFields(result, ['statistic', 'pValue', 'isNormal'], 'normality_test')
+    return result
   }
 
   /**
@@ -356,9 +358,10 @@ export class PyodideStatisticsService {
     method: string
   }> {
     const result = await Generated.outlierDetection(data, method)
+    assertWorkerResultFields(result, ['outlierIndices', 'outlierCount', 'method'], 'outlier_detection')
     return {
       outlierIndices: result.outlierIndices,
-      outlierCount: result.outlierValues?.length ?? 0,
+      outlierCount: result.outlierCount,
       method: result.method
     }
   }
@@ -402,6 +405,7 @@ export class PyodideStatisticsService {
    */
   async correlationTest(x: number[], y: number[], method: 'pearson' | 'spearman' | 'kendall' = 'pearson'): Promise<Generated.CorrelationTestResult & { method: string }> {
     const result = await Generated.correlationTest(x, y, method)
+    assertWorkerResultFields(result, ['correlation', 'pValue'], 'correlation_test')
     return { ...result, method }
   }
 
@@ -446,6 +450,7 @@ export class PyodideStatisticsService {
    */
   async tTestTwoSample(group1: number[], group2: number[], equalVar: boolean = true): Promise<Generated.TTestTwoSampleResult & { df: number; meanDiff: number }> {
     const result = await Generated.tTestTwoSample(group1, group2, equalVar)
+    assertWorkerResultFields(result, ['statistic', 'pValue', 'n1', 'n2', 'mean1', 'mean2'], 't_test_two_sample')
     return {
       ...result,
       df: result.n1 + result.n2 - 2,
@@ -458,6 +463,7 @@ export class PyodideStatisticsService {
    */
   async tTestPaired(values1: number[], values2: number[]): Promise<Generated.TTestPairedResult & { df: number }> {
     const result = await Generated.tTestPaired(values1, values2)
+    assertWorkerResultFields(result, ['statistic', 'pValue', 'nPairs'], 't_test_paired')
     return {
       ...result,
       df: result.nPairs - 1
@@ -477,6 +483,7 @@ export class PyodideStatisticsService {
    */
   async tTestOneSample(data: number[], popmean: number = 0): Promise<Generated.TTestOneSampleResult & { df: number }> {
     const result = await Generated.tTestOneSample(data, popmean)
+    assertWorkerResultFields(result, ['statistic', 'pValue', 'sampleMean', 'n'], 't_test_one_sample')
     return {
       ...result,
       df: result.n - 1
@@ -488,6 +495,7 @@ export class PyodideStatisticsService {
    */
   async zTestWorker(data: number[], popmean: number, popstd: number): Promise<Generated.ZTestResult & { zStatistic: number }> {
     const result = await Generated.zTest(data, popmean, popstd)
+    assertWorkerResultFields(result, ['statistic', 'pValue'], 'z_test')
     return {
       ...result,
       zStatistic: result.statistic,
@@ -499,6 +507,7 @@ export class PyodideStatisticsService {
    */
   async chiSquareTestWorker(observedMatrix: number[][], yatesCorrection: boolean = false): Promise<Generated.ChiSquareTestResult & { chiSquare: number }> {
     const result = await Generated.chiSquareTest(observedMatrix, yatesCorrection)
+    assertWorkerResultFields(result, ['statistic', 'pValue', 'df'], 'chi_square_test')
     return {
       ...result,
       chiSquare: result.statistic
@@ -608,152 +617,6 @@ export class PyodideStatisticsService {
 
 
   /**
-   * 단순선형회귀분석 (레거시 API)
-   * @deprecated linearRegression 사용 권장
-   */
-  async regression(
-    x: number[],
-    y: number[],
-    _options: { type?: 'simple' | 'multiple' } = {}
-  ): Promise<{
-    slope?: number
-    intercept?: number
-    rSquared: number
-    pvalue: number
-    fStatistic?: number
-    tStatistic?: number
-    predictions?: number[]
-    df?: number
-  }> {
-    const result = await this.linearRegression(x, y)
-    return {
-      slope: result.slope,
-      intercept: result.intercept,
-      rSquared: result.rSquared,
-      pvalue: result.pValue,
-      fStatistic: undefined,
-      tStatistic: undefined,
-      predictions: undefined,
-      df: result.nPairs - 2
-    }
-  }
-
-  /**
-   * Mann-Whitney U 검정 (레거시 API)
-   * @deprecated mannWhitneyTestWorker 사용 권장
-   */
-  async mannWhitneyU(
-    group1: number[],
-    group2: number[]
-  ): Promise<{
-    statistic: number
-    pvalue: number
-  }> {
-    const result = await this.mannWhitneyTestWorker(group1, group2)
-    return {
-      statistic: result.statistic,
-      pvalue: result.pValue
-    }
-  }
-
-
-  /**
-   * Wilcoxon 부호순위 검정 (레거시 API)
-   * @deprecated wilcoxonTestWorker 사용 권장
-   */
-  async wilcoxon(
-    group1: number[],
-    group2: number[]
-  ): Promise<{
-    statistic: number
-    pvalue: number
-  }> {
-    const result = await this.wilcoxonTestWorker(group1, group2)
-    return {
-      statistic: result.statistic,
-      pvalue: result.pValue
-    }
-  }
-
-
-  /**
-   * Kruskal-Wallis H 검정 (레거시 API)
-   * @deprecated kruskalWallisTestWorker 사용 권장
-   */
-  async kruskalWallis(groups: number[][]): Promise<{
-    statistic: number
-    pvalue: number
-    df: number
-  }> {
-    const result = await this.kruskalWallisTestWorker(groups)
-    return {
-      statistic: result.statistic,
-      pvalue: result.pValue,
-      df: result.df
-    }
-  }
-
-
-  /**
-   * Tukey HSD 사후검정 (레거시 API)
-   * @deprecated tukeyHSDWorker 사용 권장
-   */
-  async tukeyHSD(groups: number[][]): Promise<Generated.TukeyHsdResult> {
-    return this.tukeyHSDWorker(groups)
-  }
-
-
-  /**
-   * Chi-square 검정 (레거시 API)
-   * @deprecated chiSquareTestWorker 사용 권장
-   */
-  async chiSquare(contingencyTable: number[][]): Promise<{
-    statistic: number
-    pvalue: number
-    df: number
-  }> {
-    const result = await this.chiSquareTestWorker(contingencyTable)
-    return {
-      statistic: result.chiSquare,
-      pvalue: result.pValue,
-      df: result.df
-    }
-  }
-
-
-  /**
-   * PCA (주성분분석) - 레거시 API
-   * @deprecated pcaAnalysis 사용 권장
-   */
-  async pca(data: number[][]): Promise<{
-    explainedVariance: number[]
-    totalExplainedVariance: number
-    components: number[][]
-  }> {
-    const result = await this.pcaAnalysis(data, 2)
-
-    const explainedVariance = (result.screeData ?? []).map((point) => {
-      if (typeof point === 'number') {
-        return point
-      }
-
-      if (point && typeof point === 'object' && 'varianceExplained' in point) {
-        const varianceExplained = point.varianceExplained
-        return typeof varianceExplained === 'number' ? varianceExplained : 0
-      }
-
-      return 0
-    })
-    const totalExplainedVariance = explainedVariance.reduce((sum, value) => sum + value, 0)
-
-    return {
-      components: result.rotationMatrix ?? [],
-      explainedVariance,
-      totalExplainedVariance
-    }
-  }
-
-  /**
    * Cronbach's Alpha (신뢰도 계수) - Worker 1 사용
    */
   async cronbachAlpha(items: number[][]): Promise<{
@@ -765,24 +628,6 @@ export class PyodideStatisticsService {
     return {
       alpha: result.alpha,
       itemTotalCorrelations: undefined  // Worker 1은 itemTotalCorrelations 미제공
-    }
-  }
-
-
-  /**
-   * Friedman 검정 (레거시 API)
-   * @deprecated friedmanTestWorker 사용 권장
-   */
-  async friedman(data: number[][]): Promise<{
-    statistic: number
-    pvalue: number
-    df: number
-  }> {
-    const result = await this.friedmanTestWorker(data)
-    return {
-      statistic: result.statistic,
-      pvalue: result.pValue,
-      df: result.df
     }
   }
 
@@ -859,70 +704,8 @@ export class PyodideStatisticsService {
   /**
    * 정규성 검정
    */
-  async testNormality(data: number[], alpha: number = 0.05): Promise<Generated.NormalityTestResult & { isNormal: boolean }> {
-    const result = await this.normalityTest(data, alpha)
-    // Worker가 isNormal과 interpretation을 모두 계산해서 반환
-    // — TS 측 재계산/덮어쓰기 없이 그대로 사용
-    return { ...result }
-  }
-
-
-  /**
-   * 일표본 t-검정 (레거시 API)
-   * @deprecated tTestOneSample 사용 권장
-   */
-  async oneSampleTTest(data: number[], popmean: number, _alternative: string = 'two-sided'): Promise<{ statistic: number; pValue: number; df: number }> {
-    const result = await this.tTestOneSample(data, popmean)
-    return {
-      statistic: result.statistic,
-      pValue: result.pValue,
-      df: result.df
-    }
-  }
-
-
-
-
-  /**
-   * 주성분 분석 (레거시 API)
-   * @deprecated pcaAnalysis 사용 권장
-   */
-  async performPCA(dataMatrix: number[][], _columns: string[], nComponents?: number, _standardize: boolean = true): Promise<{
-    components: number[][]
-    explainedVarianceRatio: number[]
-    cumulativeVariance: number[]
-    totalExplainedVariance: number
-  }> {
-    const result = await this.pcaAnalysis(dataMatrix, nComponents ?? 2)
-
-    // screeData를 분산비율로 사용, 누적 분산 계산
-    const explainedVarianceRatio: number[] = (result.screeData ?? []).map((point) => {
-      if (typeof point === 'number') {
-        return point > 1 ? point / 100 : point
-      }
-
-      if (point && typeof point === 'object' && 'varianceExplained' in point) {
-        const varianceExplained = point.varianceExplained
-        if (typeof varianceExplained === 'number') {
-          return varianceExplained > 1 ? varianceExplained / 100 : varianceExplained
-        }
-      }
-
-      return 0
-    })
-    const cumulativeVariance: number[] = []
-    let cumSum = 0
-    for (const ratio of explainedVarianceRatio) {
-      cumSum += ratio
-      cumulativeVariance.push(cumSum)
-    }
-
-    return {
-      components: result.rotationMatrix ?? [],
-      explainedVarianceRatio,
-      cumulativeVariance,
-      totalExplainedVariance: explainedVarianceRatio.reduce((sum, value) => sum + value, 0)
-    }
+  async testNormality(data: number[], alpha: number = 0.05): Promise<Generated.NormalityTestResult> {
+    return this.normalityTest(data, alpha)
   }
 
 
@@ -1158,6 +941,7 @@ export class PyodideStatisticsService {
     uStatistic: number
   }> {
     const result = await Generated.mannWhitneyTest(group1, group2)
+    assertWorkerResultFields(result, ['statistic', 'pValue'], 'mann_whitney_test')
     return {
       statistic: result.statistic,
       pValue: result.pValue,
@@ -1185,6 +969,7 @@ export class PyodideStatisticsService {
     interaction: { fStatistic: number; pValue: number }
   }> {
     const result = await Generated.twoWayAnova(dataValues, factor1Values, factor2Values)
+    assertWorkerResultFields(result, ['factor1', 'factor2', 'interaction'], 'two_way_anova')
     return {
       mainEffect1: { fStatistic: result.factor1.fStatistic, pValue: result.factor1.pValue },
       mainEffect2: { fStatistic: result.factor2.fStatistic, pValue: result.factor2.pValue },
@@ -1574,6 +1359,7 @@ export class PyodideStatisticsService {
     residuals: number[]
   ): Promise<Generated.DurbinWatsonTestResult & { isIndependent: boolean }> {
     const result = await Generated.durbinWatsonTest(residuals)
+    assertWorkerResultFields(result, ['statistic', 'pValue'], 'durbin_watson_test')
     return {
       ...result,
       isIndependent: result.statistic >= 1.5 && result.statistic <= 2.5
@@ -1740,7 +1526,7 @@ export class PyodideStatisticsService {
       params.power,
       params.effectSize,
       params.sampleSize,
-      params.sides === 'one-sided' ? 1 : 2
+      params.sides === 'one-sided' ? 'one-sided' : 'two-sided'
     )
   }
 

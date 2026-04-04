@@ -1,4 +1,4 @@
-import { StatisticalExecutor } from '@/lib/services/statistical-executor'
+import { handleTTest, handleANOVA, handleNonparametric } from '@/lib/services/handlers'
 
 import { vi } from 'vitest'
 vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
@@ -6,17 +6,14 @@ vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
     tTest: vi.fn(),
     anova: vi.fn(),
     gamesHowellTest: vi.fn(),
-    mannWhitneyU: vi.fn(),
-    kruskalWallis: vi.fn(),
+    mannWhitneyTestWorker: vi.fn(),
+    kruskalWallisTestWorker: vi.fn(),
     moodMedianTestWorker: vi.fn(),
   }
 }))
 
 describe('StatisticalExecutor group size validation', () => {
-  let executor: StatisticalExecutor
-
   beforeEach(() => {
-    executor = new StatisticalExecutor()
     vi.clearAllMocks()
   })
 
@@ -32,8 +29,8 @@ describe('StatisticalExecutor group size validation', () => {
       }
     } as any
 
-    await expect((executor as any).executeTTest(method, preparedData)).rejects.toThrow(/정확히 2개 그룹/)
-    await expect((executor as any).executeTTest(method, preparedData)).rejects.toThrow(/현재: 3개/)
+    await expect(handleTTest(method, preparedData)).rejects.toThrow(/정확히 2개 그룹/)
+    await expect(handleTTest(method, preparedData)).rejects.toThrow(/현재: 3개/)
   })
 
   it('executeTTest: rejects when any group has <2 observations', async () => {
@@ -47,9 +44,9 @@ describe('StatisticalExecutor group size validation', () => {
       }
     } as any
 
-    await expect((executor as any).executeTTest(method, preparedData)).rejects.toThrow(/각 그룹에 최소 2개 이상의 관측치/)
-    await expect((executor as any).executeTTest(method, preparedData)).rejects.toThrow(/Treatment A.*1개/)
-    await expect((executor as any).executeTTest(method, preparedData)).rejects.toThrow(/Treatment B.*5개/)
+    await expect(handleTTest(method, preparedData)).rejects.toThrow(/각 그룹에 최소 2개 이상의 관측치/)
+    await expect(handleTTest(method, preparedData)).rejects.toThrow(/Treatment A.*1개/)
+    await expect(handleTTest(method, preparedData)).rejects.toThrow(/Treatment B.*5개/)
   })
 
   it('executeANOVA: rejects when any group has <2 observations', async () => {
@@ -64,8 +61,8 @@ describe('StatisticalExecutor group size validation', () => {
       }
     } as any
 
-    await expect((executor as any).executeANOVA(method, preparedData)).rejects.toThrow(/각 그룹에 최소 2개 이상의 관측치/)
-    await expect((executor as any).executeANOVA(method, preparedData)).rejects.toThrow(/"B": 1개/)
+    await expect(handleANOVA(method, preparedData)).rejects.toThrow(/각 그룹에 최소 2개 이상의 관측치/)
+    await expect(handleANOVA(method, preparedData)).rejects.toThrow(/"B": 1개/)
   })
 
   it('executeNonparametric(mann-whitney): rejects when any group has <2 observations', async () => {
@@ -80,8 +77,8 @@ describe('StatisticalExecutor group size validation', () => {
       totalN: 3
     } as any
 
-    await expect((executor as any).executeNonparametric(method, preparedData)).rejects.toThrow(/각 그룹에 최소 2개 이상의 관측치/)
-    await expect((executor as any).executeNonparametric(method, preparedData)).rejects.toThrow(/"A".*1개/)
+    await expect(handleNonparametric(method, preparedData)).rejects.toThrow(/각 그룹에 최소 2개 이상의 관측치/)
+    await expect(handleNonparametric(method, preparedData)).rejects.toThrow(/"A".*1개/)
   })
 
   it('executeNonparametric(mann-whitney): rejects when group count is not exactly 2', async () => {
@@ -97,8 +94,8 @@ describe('StatisticalExecutor group size validation', () => {
       totalN: 6
     } as any
 
-    await expect((executor as any).executeNonparametric(method, preparedData)).rejects.toThrow(/정확히 2개 그룹/)
-    await expect((executor as any).executeNonparametric(method, preparedData)).rejects.toThrow(/현재: 3개/)
+    await expect(handleNonparametric(method, preparedData)).rejects.toThrow(/정확히 2개 그룹/)
+    await expect(handleNonparametric(method, preparedData)).rejects.toThrow(/현재: 3개/)
   })
 
   it('executeNonparametric(kruskal-wallis): rejects when any group has <2 observations', async () => {
@@ -114,8 +111,8 @@ describe('StatisticalExecutor group size validation', () => {
       totalN: 5
     } as any
 
-    await expect((executor as any).executeNonparametric(method, preparedData)).rejects.toThrow(/각 그룹에 최소 2개 이상의 관측치/)
-    await expect((executor as any).executeNonparametric(method, preparedData)).rejects.toThrow(/"A": 1개/)
+    await expect(handleNonparametric(method, preparedData)).rejects.toThrow(/각 그룹에 최소 2개 이상의 관측치/)
+    await expect(handleNonparametric(method, preparedData)).rejects.toThrow(/"A": 1개/)
   })
 
   it('executeNonparametric(mood-median): rejects when any group has <2 observations', async () => {
@@ -131,7 +128,7 @@ describe('StatisticalExecutor group size validation', () => {
       totalN: 5
     } as any
 
-    await expect((executor as any).executeNonparametric(method, preparedData)).rejects.toThrow(/각 그룹에 최소 2개 이상의 관측치/)
-    await expect((executor as any).executeNonparametric(method, preparedData)).rejects.toThrow(/"B": 1개/)
+    await expect(handleNonparametric(method, preparedData)).rejects.toThrow(/각 그룹에 최소 2개 이상의 관측치/)
+    await expect(handleNonparametric(method, preparedData)).rejects.toThrow(/"B": 1개/)
   })
 })

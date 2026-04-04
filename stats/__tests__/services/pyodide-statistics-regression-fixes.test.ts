@@ -47,8 +47,8 @@ describe('pyodide-statistics regression fixes', () => {
     return PyodideStatisticsService.getInstance()
   }
 
-  it('pca() maps screeData and rotationMatrix safely', async () => {
-    mockPcaAnalysis.mockResolvedValue({
+  it('pcaAnalysis() returns rotationMatrix and screeData correctly', async () => {
+    const mockResult = {
       components: [
         { componentNumber: 1, eigenvalue: 2.0, varianceExplained: 60, cumulativeVariance: 60, loadings: { Var1: 0.8 } },
       ],
@@ -66,18 +66,20 @@ describe('pyodide-statistics regression fixes', () => {
         { component: 2, eigenvalue: 1.0, varianceExplained: 40 },
       ],
       interpretation: 'ok',
-    })
+    }
+    mockPcaAnalysis.mockResolvedValue(mockResult)
 
     const service = await getServiceInstance()
-    const result = await service.pca([[1, 2], [3, 4]])
+    const result = await service.pcaAnalysis([[1, 2], [3, 4]], 2)
 
-    expect(result.components).toEqual([[0.8, 0.2], [0.1, 0.9]])
-    expect(result.explainedVariance).toEqual([60, 40])
-    expect(result.totalExplainedVariance).toBe(100)
+    expect(result.rotationMatrix).toEqual([[0.8, 0.2], [0.1, 0.9]])
+    expect(result.screeData).toHaveLength(2)
+    expect((result.screeData![0] as { varianceExplained: number }).varianceExplained).toBe(60)
+    expect((result.screeData![1] as { varianceExplained: number }).varianceExplained).toBe(40)
   })
 
-  it('performPCA() converts percentage variance to ratio and computes cumulative variance', async () => {
-    mockPcaAnalysis.mockResolvedValue({
+  it('pcaAnalysis() returns selectedComponents and qualityMetrics', async () => {
+    const mockResult = {
       components: [],
       totalVariance: 2.0,
       selectedComponents: 2,
@@ -93,17 +95,16 @@ describe('pyodide-statistics regression fixes', () => {
         { component: 2, eigenvalue: 0.9, varianceExplained: 30 },
       ],
       interpretation: 'ok',
-    })
+    }
+    mockPcaAnalysis.mockResolvedValue(mockResult)
 
     const service = await getServiceInstance()
-    const result = await service.performPCA([[1, 2], [3, 4]], ['A', 'B'], 2)
+    const result = await service.pcaAnalysis([[1, 2], [3, 4]], 2)
 
-    expect(result.components).toEqual([[1, 0], [0, 1]])
-    expect(result.explainedVarianceRatio[0]).toBeCloseTo(0.55, 8)
-    expect(result.explainedVarianceRatio[1]).toBeCloseTo(0.3, 8)
-    expect(result.cumulativeVariance[0]).toBeCloseTo(0.55, 8)
-    expect(result.cumulativeVariance[1]).toBeCloseTo(0.85, 8)
-    expect(result.totalExplainedVariance).toBeCloseTo(0.85, 8)
+    expect(result.rotationMatrix).toEqual([[1, 0], [0, 1]])
+    expect(result.selectedComponents).toBe(2)
+    expect((result.screeData![0] as { varianceExplained: number }).varianceExplained).toBe(55)
+    expect((result.screeData![1] as { varianceExplained: number }).varianceExplained).toBe(30)
   })
 
   it('oneWayAnovaWorker and partialCorrelationWorker call generated wrappers without unsafe cast', async () => {

@@ -15,11 +15,11 @@ export class RegressionExecutor extends BaseExecutor {
     try {
       await this.ensurePyodideInitialized()
 
-      const result = await pyodideStats.regression(x, y)
+      const regResult = await pyodideStats.linearRegression(x, y)
 
       // RMSE 계산을 위한 예측값/잔차 준비
-      const slope = result.slope ?? 0
-      const intercept = result.intercept ?? 0
+      const slope = regResult.slope
+      const intercept = regResult.intercept
 
       // 예측값 및 잔차 계산
       const predictions = x.map(xi => slope * xi + intercept)
@@ -32,9 +32,9 @@ export class RegressionExecutor extends BaseExecutor {
       return {
         metadata: this.createMetadata('단순선형회귀', x.length, startTime),
         mainResults: {
-          statistic: result.rSquared,
-          pvalue: result.pvalue,
-          interpretation: `R² = ${result.rSquared.toFixed(4)}, ${this.interpretPValue(result.pvalue)}`
+          statistic: regResult.rSquared,
+          pvalue: regResult.pValue,
+          interpretation: `R² = ${regResult.rSquared.toFixed(4)}, ${this.interpretPValue(regResult.pValue)}`
         },
         additionalInfo: {
           coefficients: [
@@ -50,17 +50,17 @@ export class RegressionExecutor extends BaseExecutor {
               value: slope,
               stdError: 0,
               tValue: 0,
-              pvalue: result.pvalue
+              pvalue: regResult.pValue
             }
           ],
           effectSize: {
-            value: result.rSquared,
+            value: regResult.rSquared,
             type: 'R-squared',
-            interpretation: result.rSquared >= 0.67 ? '큰 효과' : result.rSquared >= 0.33 ? '중간 효과' : '작은 효과'
+            interpretation: regResult.rSquared >= 0.67 ? '큰 효과' : regResult.rSquared >= 0.33 ? '중간 효과' : '작은 효과'
           },
           intercept,
-          rSquared: result.rSquared,
-          adjustedRSquared: result.rSquared,
+          rSquared: regResult.rSquared,
+          adjustedRSquared: regResult.rSquared,
           rmse,
           residuals,
           predictions
@@ -71,8 +71,8 @@ export class RegressionExecutor extends BaseExecutor {
             x,
             y,
             regression: {
-              slope: result.slope,
-              intercept: result.intercept
+              slope: regResult.slope,
+              intercept: regResult.intercept
             }
           }
         }

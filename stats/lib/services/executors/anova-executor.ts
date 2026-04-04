@@ -216,7 +216,7 @@ export class AnovaExecutor extends BaseExecutor {
     try {
       await this.ensurePyodideInitialized()
 
-      const result = await pyodideStats.tukeyHSD(groups)
+      const result = await pyodideStats.tukeyHSDWorker(groups)
 
       return {
         metadata: this.createMetadata('Tukey HSD 사후검정', groups.flat().length, startTime),

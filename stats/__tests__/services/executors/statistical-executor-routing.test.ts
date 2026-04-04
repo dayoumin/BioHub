@@ -27,15 +27,14 @@ vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
     partialCorrelationWorker: vi.fn().mockResolvedValue({ correlation: 0.65, pValue: 0.01, df: 7 }),
     // T-test methods (actual names)
     tTest: vi.fn().mockResolvedValue({ statistic: 2.8, pvalue: 0.008, df: 58, confidenceInterval: { lower: 0.5, upper: 2.1 } }),
-    oneSampleTTest: vi.fn().mockResolvedValue({ statistic: 2.5, pValue: 0.02, df: 29, confidenceInterval: { lower: 1.2, upper: 3.8 } }),
     tTestTwoSample: vi.fn().mockResolvedValue({ statistic: 2.8, pvalue: 0.008, df: 58 }),
     tTestPaired: vi.fn().mockResolvedValue({ statistic: 3.2, pvalue: 0.003, df: 29 }),
-    tTestOneSample: vi.fn().mockResolvedValue({ statistic: 2.5, pvalue: 0.02, df: 29 }),
+    tTestOneSample: vi.fn().mockResolvedValue({ statistic: 2.5, pValue: 0.02, df: 29, n: 30 }),
     // ANOVA methods (actual names)
     anova: vi.fn().mockResolvedValue({ fStatistic: 4.5, pValue: 0.02, df: [2, 27], etaSquared: 0.25 }),
     oneWayANOVA: vi.fn().mockResolvedValue({ fStatistic: 4.5, pValue: 0.02, df: [2, 27] }),
     gamesHowellTest: vi.fn().mockResolvedValue({ comparisons: [], significant_count: 0 }),
-    tukeyHSD: vi.fn().mockResolvedValue([]),
+    tukeyHSDWorker: vi.fn().mockResolvedValue({ comparisons: [], significant_count: 0 }),
     performBonferroni: vi.fn().mockResolvedValue({
       comparisons: [],
       num_comparisons: 0,
@@ -44,10 +43,10 @@ vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
       significant_count: 0
     }),
     // Nonparametric methods (actual names)
-    mannWhitneyU: vi.fn().mockResolvedValue({ statistic: 45.0, pvalue: 0.023 }),
-    kruskalWallis: vi.fn().mockResolvedValue({ statistic: 8.5, pvalue: 0.014, df: 2 }),
-    wilcoxon: vi.fn().mockResolvedValue({ statistic: 12.0, pvalue: 0.034 }),
-    friedman: vi.fn().mockResolvedValue({ statistic: 10.0, pvalue: 0.02 }),
+    mannWhitneyTestWorker: vi.fn().mockResolvedValue({ statistic: 45.0, pValue: 0.023, uStatistic: 45.0 }),
+    kruskalWallisTestWorker: vi.fn().mockResolvedValue({ statistic: 8.5, pValue: 0.014, df: 2 }),
+    wilcoxonTestWorker: vi.fn().mockResolvedValue({ statistic: 12.0, pValue: 0.034 }),
+    friedmanTestWorker: vi.fn().mockResolvedValue({ statistic: 10.0, pValue: 0.02, df: 2 }),
     signTestWorker: vi.fn().mockResolvedValue({ statistic: 5, pValue: 0.05, nPositive: 8, nNegative: 2 }),
     mcnemarTestWorker: vi.fn().mockResolvedValue({ statistic: 4.5, pValue: 0.03 }),
     cochranQTestWorker: vi.fn().mockResolvedValue({ qStatistic: 8.0, pValue: 0.02, df: 2 }),
@@ -57,18 +56,17 @@ vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
     ksTestTwoSample: vi.fn().mockResolvedValue({ statistic: 0.2, pValue: 0.1, n1: 20, n2: 25, significant: false }),
     moodMedianTestWorker: vi.fn().mockResolvedValue({ statistic: 3.5, pValue: 0.06, grandMedian: 15 }),
     oneSampleProportionTest: vi.fn().mockResolvedValue({ zStatistic: 1.8, pValueExact: 0.07, sampleProportion: 0.6 }),
-    // Chi-square methods (actual name)
-    chiSquare: vi.fn().mockResolvedValue({ statistic: 12.5, pvalue: 0.002, df: 4, cramersV: 0.3 }),
+    // Chi-square methods (actual names)
+    chiSquareTestWorker: vi.fn().mockResolvedValue({ chiSquare: 12.5, pValue: 0.002, df: 4 }),
     chiSquareTest: vi.fn().mockResolvedValue({ statistic: 12.5, pValue: 0.002, df: 4 }),
     chiSquareIndependenceTest: vi.fn().mockResolvedValue({ statistic: 12.5, pValue: 0.002, df: 4, cramersV: 0.3 }),
-    // Regression methods (actual name)
-    regression: vi.fn().mockResolvedValue({ rSquared: 0.85, pvalue: 0.001, fStatistic: 45.2, df: 28, predictions: [] }),
+    // Regression methods (actual names)
+    linearRegression: vi.fn().mockResolvedValue({ slope: 1.5, intercept: 2.0, rSquared: 0.85, pValue: 0.001, stdErr: 0.1, nPairs: 30, slopeCi: { lower: 1.2, upper: 1.8 }, interceptCi: { lower: 1.5, upper: 2.5 }, slopeTValue: 15.0, interceptTValue: 8.0 }),
     simpleLinearRegression: vi.fn().mockResolvedValue({ slope: 1.5, intercept: 2.0, rSquared: 0.85, pValue: 0.001 }),
     // Descriptive methods (actual name)
     descriptiveStats: vi.fn().mockResolvedValue({ mean: 15, std: 5, min: 5, max: 25, median: 15, n: 30 }),
     calculateDescriptiveStatistics: vi.fn().mockResolvedValue({ mean: 15, std: 5, min: 5, max: 25 }),
     // Multivariate methods
-    pca: vi.fn().mockResolvedValue({ explainedVariance: [0.6, 0.3], totalExplainedVariance: 0.9 }),
     pcaAnalysis: vi.fn().mockResolvedValue({
       components: [],
       totalVariance: 1,
@@ -275,7 +273,7 @@ describe('StatisticalExecutor Routing', () => {
     it('should fallback to bonferroni when games-howell and tukey fail', async () => {
       const mockedStats = vi.mocked(pyodideStats)
       mockedStats.gamesHowellTest.mockRejectedValueOnce(new Error('gh failed'))
-      mockedStats.tukeyHSD.mockRejectedValueOnce(new Error('tukey failed'))
+      mockedStats.tukeyHSDWorker.mockRejectedValueOnce(new Error('tukey failed'))
       mockedStats.performBonferroni.mockResolvedValueOnce({
         comparisons: [
           {
@@ -383,7 +381,6 @@ describe('StatisticalExecutor Routing', () => {
         zStatistic: 3.2,
         pValueExact: 0.001,
         pValueApprox: 0.001,
-        pValue: 0.001,
         sampleProportion: 0.8,
         nullProportion: 0.5,
         significant: true,
@@ -636,7 +633,6 @@ describe('StatisticalExecutor Routing', () => {
 
       expect(result).toBeDefined()
       expect(mockedStats.pcaAnalysis).toHaveBeenCalled()
-      expect(mockedStats.pca).not.toHaveBeenCalled()
       expect(result.mainResults.statistic).toBeCloseTo(0.6, 8)
       expect(result.mainResults.interpretation).toContain('60.0%')
       expect(result.additionalInfo.effectSize?.value).toBeCloseTo(0.9, 8)

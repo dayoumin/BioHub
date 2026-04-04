@@ -21,7 +21,7 @@ export class TTestExecutor extends BaseExecutor {
         throw new Error('유효한 수치형 데이터가 없습니다. 변수 선택 및 데이터를 확인해주세요.')
       }
 
-      const result = await pyodideStats.oneSampleTTest(data, populationMean)
+      const result = await pyodideStats.tTestOneSample(data, populationMean)
 
       // 효과크기 계산 (Cohen's d)
       const stats = await pyodideStats.calculateDescriptiveStats(data)

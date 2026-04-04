@@ -16,7 +16,7 @@ export class NonparametricExecutor extends BaseExecutor {
     try {
       await this.ensurePyodideInitialized()
 
-      const result = await pyodideStats.mannWhitneyU(group1, group2)
+      const result = await pyodideStats.mannWhitneyTestWorker(group1, group2)
 
       // 중위수 계산
       const median1 = this.calculateMedian(group1)
@@ -31,8 +31,8 @@ export class NonparametricExecutor extends BaseExecutor {
         metadata: this.createMetadata('Mann-Whitney U 검정', n, startTime),
         mainResults: {
           statistic: result.statistic,
-          pvalue: result.pvalue,
-          interpretation: `${this.interpretPValue(result.pvalue)}. 그룹 1 중위수(${median1.toFixed(2)})와 그룹 2 중위수(${median2.toFixed(2)}) 비교`
+          pvalue: result.pValue,
+          interpretation: `${this.interpretPValue(result.pValue)}. 그룹 1 중위수(${median1.toFixed(2)})와 그룹 2 중위수(${median2.toFixed(2)}) 비교`
         },
         additionalInfo: {
           effectSize: {
@@ -69,7 +69,7 @@ export class NonparametricExecutor extends BaseExecutor {
 
       // y가 없으면 기본값 사용 (모두 0과의 비교)
       const group2 = y || new Array(x.length).fill(0)
-      const result = await pyodideStats.wilcoxon(x, group2)
+      const result = await pyodideStats.wilcoxonTestWorker(x, group2)
 
       const isPaired = y !== undefined
       const description = isPaired
@@ -80,8 +80,8 @@ export class NonparametricExecutor extends BaseExecutor {
         metadata: this.createMetadata('Wilcoxon 부호순위 검정', x.length, startTime),
         mainResults: {
           statistic: result.statistic,
-          pvalue: result.pvalue,
-          interpretation: `${this.interpretPValue(result.pvalue)}. ${description}`
+          pvalue: result.pValue,
+          interpretation: `${this.interpretPValue(result.pValue)}. ${description}`
         },
         additionalInfo: {
           zStatistic: result.statistic,
@@ -107,7 +107,7 @@ export class NonparametricExecutor extends BaseExecutor {
     try {
       await this.ensurePyodideInitialized()
 
-      const result = await pyodideStats.kruskalWallis(groups)
+      const result = await pyodideStats.kruskalWallisTestWorker(groups)
 
       // 그룹별 중위수
       const medians = groups.map(g => this.calculateMedian(g))
@@ -121,9 +121,9 @@ export class NonparametricExecutor extends BaseExecutor {
         metadata: this.createMetadata('Kruskal-Wallis 검정', n, startTime),
         mainResults: {
           statistic: result.statistic,
-          pvalue: result.pvalue,
+          pvalue: result.pValue,
           df: result.df,
-          interpretation: `${this.interpretPValue(result.pvalue)}. ${k}개 그룹 간 중위수 차이 검정`
+          interpretation: `${this.interpretPValue(result.pValue)}. ${k}개 그룹 간 중위수 차이 검정`
         },
         additionalInfo: {
           effectSize: {
@@ -156,7 +156,7 @@ export class NonparametricExecutor extends BaseExecutor {
     try {
       await this.ensurePyodideInitialized()
 
-      const result = await pyodideStats.friedman(data)
+      const result = await pyodideStats.friedmanTestWorker(data)
 
       const k = data[0].length // 처리 수
       const n = data.length // 블록 수
@@ -165,9 +165,9 @@ export class NonparametricExecutor extends BaseExecutor {
         metadata: this.createMetadata('Friedman 검정', n * k, startTime),
         mainResults: {
           statistic: result.statistic,
-          pvalue: result.pvalue,
+          pvalue: result.pValue,
           df: result.df,
-          interpretation: `${this.interpretPValue(result.pvalue)}. ${k}개 반복측정 조건 간 차이 검정`
+          interpretation: `${this.interpretPValue(result.pValue)}. ${k}개 반복측정 조건 간 차이 검정`
         },
         additionalInfo: {
           blocks: n,

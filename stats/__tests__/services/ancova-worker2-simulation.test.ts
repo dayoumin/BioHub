@@ -21,14 +21,14 @@ const {
   mockLeveneTest,
   mockAnova,
   mockCalculateDescriptiveStats,
-  mockTukeyHSD,
+  mockTukeyHSDWorker,
 } = vi.hoisted(() => ({
   mockAncovaAnalysisWorker: vi.fn(),
   mockGamesHowellTest: vi.fn(),
   mockLeveneTest: vi.fn(),
   mockAnova: vi.fn(),
   mockCalculateDescriptiveStats: vi.fn(),
-  mockTukeyHSD: vi.fn(),
+  mockTukeyHSDWorker: vi.fn(),
 }))
 
 vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
@@ -38,7 +38,7 @@ vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
     leveneTest: mockLeveneTest,
     anova: mockAnova,
     calculateDescriptiveStats: mockCalculateDescriptiveStats,
-    tukeyHSD: mockTukeyHSD,
+    tukeyHSDWorker: mockTukeyHSDWorker,
   }
 }))
 

@@ -19,10 +19,10 @@ import { vi } from 'vitest'
 vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
   pyodideStats: {
     initialize: vi.fn().mockResolvedValue(undefined),
-    mannWhitneyU: vi.fn().mockResolvedValue({ statistic: 45.0, pvalue: 0.023 }),
-    wilcoxon: vi.fn().mockResolvedValue({ statistic: 12.0, pvalue: 0.034 }),
-    kruskalWallis: vi.fn().mockResolvedValue({ statistic: 8.5, pvalue: 0.014, df: 2 }),
-    oneSampleTTest: vi.fn().mockResolvedValue({ statistic: 2.5, pValue: 0.02, df: 29, confidenceInterval: { lower: 1.2, upper: 3.8 } }),
+    mannWhitneyTestWorker: vi.fn().mockResolvedValue({ statistic: 45.0, pValue: 0.023, uStatistic: 45.0 }),
+    wilcoxonTestWorker: vi.fn().mockResolvedValue({ statistic: 12.0, pValue: 0.034 }),
+    kruskalWallisTestWorker: vi.fn().mockResolvedValue({ statistic: 8.5, pValue: 0.014, df: 2 }),
+    tTestOneSample: vi.fn().mockResolvedValue({ statistic: 2.5, pValue: 0.02, df: 29, n: 30 }),
     independentTTest: vi.fn().mockResolvedValue({ statistic: 2.8, pValue: 0.008, df: 58, confidenceInterval: { lower: 0.5, upper: 2.1 } }),
     pairedTTest: vi.fn().mockResolvedValue({ statistic: 3.2, pValue: 0.003, df: 29, confidenceInterval: { lower: 0.8, upper: 2.4 } }),
     welchTTest: vi.fn().mockResolvedValue({ statistic: 2.6, pValue: 0.012, df: 45.3, confidenceInterval: { lower: 0.4, upper: 2.0 } }),
