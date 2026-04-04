@@ -5,11 +5,14 @@
  * Used by PurposeInputStep to show all available methods after purpose selection
  */
 
-import { STATISTICAL_METHODS } from './method-mapping'
+import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import type { AnalysisPurpose, StatisticalMethod } from '@/types/analysis'
 
-// Cast STATISTICAL_METHODS to the analysis type
-const METHODS: StatisticalMethod[] = STATISTICAL_METHODS
+// Convert Record to array, filtering out category overviews (hasOwnPage: false without parentPageId)
+// while keeping embedded methods that have a parent page (paired-t, welch-anova, logistic-regression)
+const METHODS: StatisticalMethod[] = Object.values(STATISTICAL_METHODS).filter(
+  m => m.hasOwnPage !== false || !!m.parentPageId
+)
 
 /**
  * Purpose -> Category mapping
@@ -150,11 +153,16 @@ export function searchMethods(query: string): StatisticalMethod[] {
   if (!query.trim()) return []
 
   const q = query.toLowerCase()
-  return METHODS.filter(m =>
-    m.name.toLowerCase().includes(q) ||
-    m.description.toLowerCase().includes(q) ||
-    m.id.toLowerCase().includes(q)
-  )
+  return METHODS.filter(m => {
+    const extended = m as { koreanName?: string; koreanDescription?: string } & StatisticalMethod
+    return (
+      m.name.toLowerCase().includes(q) ||
+      m.description.toLowerCase().includes(q) ||
+      m.id.toLowerCase().includes(q) ||
+      (extended.koreanName?.toLowerCase().includes(q) ?? false) ||
+      (extended.koreanDescription?.toLowerCase().includes(q) ?? false)
+    )
+  })
 }
 
 /**
@@ -162,13 +170,13 @@ export function searchMethods(query: string): StatisticalMethod[] {
  */
 export function getPopularMethods(): StatisticalMethod[] {
   const popularIds = [
-    'descriptive-stats',
-    'two-sample-t',
-    'one-way-anova',
+    'descriptive',
+    't-test',
+    'anova',
     'mann-whitney',
     'correlation',
-    'simple-regression',
-    'chi-square'
+    'regression',
+    'chi-square-independence'
   ]
 
   return popularIds
