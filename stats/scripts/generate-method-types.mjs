@@ -64,7 +64,7 @@ function paramToType(param) {
   }
   // 문자열 배열
   else if (name === 'groupLabels' || name === 'varNames' || name === 'variableNames' || name === 'covariateNames' ||
-    name === 'populationLabels' || name === 'locusNames') {
+    name === 'populationLabels' || name === 'locusNames' || name === 'predictorVars') {
     type = 'string[]'
   }
   // 유전자형 데이터 (개체별 유전자형)
@@ -83,7 +83,7 @@ function paramToType(param) {
   else if (name === 'data') {
     type = 'number[] | number[][]'
   }
-  else if (name === 'x' || name === 'y' || name === 'residuals') {
+  else if (name === 'x' || name === 'y' || name === 'residuals' || name === 'doseData' || name === 'responseData') {
     type = 'number[]'
   }
   else if (name === 'group1' || name === 'group2' || name === 'values1' || name === 'values2') {
@@ -151,8 +151,12 @@ function paramToType(param) {
     type = 'number'
   }
   // 불린
-  else if (name === 'equalVar' || name === 'yatesCorrection') {
+  else if (name === 'equalVar' || name === 'yatesCorrection' || name === 'includeInteraction' || name === 'includeQuadratic') {
     type = 'boolean'
+  }
+  // 제약 조건 (null 허용)
+  else if (name === 'constraints') {
+    type = 'Record<string, number> | null'
   }
   // 문자열
   else if (name === 'method' || name === 'alternative' || name === 'rotation' ||
@@ -204,6 +208,7 @@ const METHOD_TYPE_OVERRIDES = {
   },
   'logistic_regression': {
     'confusionMatrix': '{ tp: number; fp: number; tn: number; fn: number; precision: number; recall: number; f1Score: number }',
+    'llrStatistic': 'number',
   },
   'mcnemar_test': {
     'discordantPairs': '{ b: number; c: number }',
@@ -234,6 +239,26 @@ const METHOD_TYPE_OVERRIDES = {
     'llrStatistic': 'number',
     'deviance': 'number',
     'pearsonChi2': 'number',
+  },
+  'dose_response_analysis': {
+    'model': 'string',
+    'parameters': 'Record<string, number>',
+    'confidenceIntervals': 'Record<string, { lower: number; upper: number }>',
+    'goodnessOfFit': '{ chiSquare: number; pValue: number; degreesFreedom: number }',
+    'ec50': 'number | undefined',
+    'ed50': 'number | undefined',
+    'hillSlope': 'number | undefined',
+    'top': 'number | undefined',
+    'bottom': 'number | undefined',
+    'ic50': 'number | undefined',
+  },
+  'response_surface_analysis': {
+    'modelType': 'string',
+    'coefficients': 'Record<string, number>',
+    'fPvalue': 'number',
+    'anovaTable': 'Record<string, unknown>',
+    'optimization': 'Record<string, unknown>',
+    'designAdequacy': 'Record<string, unknown>',
   },
   // ========================================
   // Phase 5-2: unknown 타입 해소 오버라이드

@@ -497,7 +497,7 @@ describe('StatisticalExecutor Routing', () => {
     })
 
     // ────────────────────────────────────────────────────────────────
-    // method-mapping.ts category 오류 수정 회귀 방지
+    // category 오류 수정 회귀 방지
     // 버그: binomial-test/proportion-test/mcnemar/cochran-q가 'chi-square'로
     //       잘못 분류되어 executeChiSquareIndependence로 라우팅됨
     // 수정: 4개 모두 'nonparametric'으로 변경 → executeNonparametric으로 라우팅

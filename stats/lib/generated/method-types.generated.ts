@@ -2,7 +2,7 @@
  * Auto-generated from methods-registry.json
  * DO NOT EDIT MANUALLY
  *
- * Generated: 2026-04-04T09:43:49.433Z
+ * Generated: 2026-04-04T10:27:31.453Z
  */
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -453,6 +453,21 @@ export interface PowerAnalysisResult {
   interpretation: string
 }
 
+export interface ResponseSurfaceAnalysisResult {
+  modelType: string
+  coefficients: Record<string, number>
+  fittedValues: number[]
+  residuals: number[]
+  rSquared: number
+  adjustedRSquared: number
+  fStatistic: number
+  fPvalue: number
+  pValue: number
+  anovaTable: Record<string, unknown>
+  optimization: Record<string, unknown>
+  designAdequacy: Record<string, unknown>
+}
+
 
 /**
  * 독립표본 t-검정
@@ -588,6 +603,14 @@ export async function fisherExactTest(table: number[][], alternative?: string, a
  */
 export async function powerAnalysis(testType: string, analysisType: string, alpha?: number, power?: number, effectSize?: number, sampleSize?: number, sides?: string): Promise<PowerAnalysisResult> {
   return callWorkerMethod<PowerAnalysisResult>(2, 'power_analysis', { testType, analysisType, alpha, power, effectSize, sampleSize, sides })
+}
+
+/**
+ * 반응표면 분석
+ * @worker Worker 2
+ */
+export async function responseSurfaceAnalysis(data: number[] | number[][], dependentVar: string, predictorVars: string[], modelType?: string, includeInteraction?: boolean, includeQuadratic?: boolean): Promise<ResponseSurfaceAnalysisResult> {
+  return callWorkerMethod<ResponseSurfaceAnalysisResult>(2, 'response_surface_analysis', { data, dependentVar, predictorVars, modelType, includeInteraction, includeQuadratic })
 }
 
 // ========================================
@@ -928,6 +951,7 @@ export interface LogisticRegressionResult {
   bic: number
   pseudoRSquared: number
   llrPValue: number
+  llrStatistic: number
   nObservations: number
   nPredictors: number
 }
@@ -1091,6 +1115,25 @@ export interface CoxRegressionResult {
   pValues: number[]
   confidenceIntervals: { lower: number; upper: number }[]
   concordance: number
+}
+
+export interface DoseResponseAnalysisResult {
+  model: string
+  parameters: Record<string, number>
+  fittedValues: number[]
+  residuals: number[]
+  rSquared: number
+  pValue: number
+  aic: number
+  bic: number
+  confidenceIntervals: Record<string, { lower: number; upper: number }>
+  goodnessOfFit: { chiSquare: number; pValue: number; degreesFreedom: number }
+  ec50: number | undefined
+  ed50: number | undefined
+  hillSlope: number | undefined
+  top: number | undefined
+  bottom: number | undefined
+  ic50: number | undefined
 }
 
 
@@ -1260,6 +1303,14 @@ export async function kaplanMeierSurvival(times: number[], events: number[]): Pr
  */
 export async function coxRegression(times: number[], events: number[], covariateData: number[][], covariateNames: string[]): Promise<CoxRegressionResult> {
   return callWorkerMethod<CoxRegressionResult>(4, 'cox_regression', { times, events, covariateData, covariateNames })
+}
+
+/**
+ * 용량-반응 분석
+ * @worker Worker 4
+ */
+export async function doseResponseAnalysis(doseData: number[], responseData: number[], modelType?: string, constraints?: Record<string, number> | null): Promise<DoseResponseAnalysisResult> {
+  return callWorkerMethod<DoseResponseAnalysisResult>(4, 'dose_response_analysis', { doseData, responseData, modelType, constraints })
 }
 
 // ========================================
@@ -1595,9 +1646,9 @@ export async function fst(populations?: number[][], populationLabels?: string[],
 // ========================================
 
 export type Worker1Method = 'descriptive_stats' | 'normality_test' | 'outlier_detection' | 'frequency_analysis' | 'crosstab_analysis' | 'one_sample_proportion_test' | 'cronbach_alpha' | 'kolmogorov_smirnov_test' | 'ks_test_one_sample' | 'ks_test_two_sample' | 'mann_kendall_test' | 'bonferroni_correction' | 'means_plot_data'
-export type Worker2Method = 't_test_two_sample' | 't_test_paired' | 't_test_one_sample' | 't_test_one_sample_summary' | 't_test_two_sample_summary' | 't_test_paired_summary' | 'z_test' | 'chi_square_test' | 'binomial_test' | 'correlation_test' | 'partial_correlation' | 'levene_test' | 'bartlett_test' | 'chi_square_goodness_test' | 'chi_square_independence_test' | 'fisher_exact_test' | 'power_analysis'
+export type Worker2Method = 't_test_two_sample' | 't_test_paired' | 't_test_one_sample' | 't_test_one_sample_summary' | 't_test_two_sample_summary' | 't_test_paired_summary' | 'z_test' | 'chi_square_test' | 'binomial_test' | 'correlation_test' | 'partial_correlation' | 'levene_test' | 'bartlett_test' | 'chi_square_goodness_test' | 'chi_square_independence_test' | 'fisher_exact_test' | 'power_analysis' | 'response_surface_analysis'
 export type Worker3Method = 'mann_whitney_test' | 'wilcoxon_test' | 'kruskal_wallis_test' | 'friedman_test' | 'one_way_anova' | 'two_way_anova' | 'tukey_hsd' | 'sign_test' | 'runs_test' | 'mcnemar_test' | 'cochran_q_test' | 'mood_median_test' | 'repeated_measures_anova' | 'ancova' | 'manova' | 'scheffe_test' | 'dunn_test' | 'games_howell_test'
-export type Worker4Method = 'linear_regression' | 'multiple_regression' | 'logistic_regression' | 'pca_analysis' | 'curve_estimation' | 'nonlinear_regression' | 'stepwise_regression' | 'binary_logistic' | 'multinomial_logistic' | 'ordinal_logistic' | 'probit_regression' | 'poisson_regression' | 'negative_binomial_regression' | 'factor_analysis' | 'cluster_analysis' | 'time_series_analysis' | 'arima_forecast' | 'durbin_watson_test' | 'discriminant_analysis' | 'kaplan_meier_survival' | 'cox_regression'
+export type Worker4Method = 'linear_regression' | 'multiple_regression' | 'logistic_regression' | 'pca_analysis' | 'curve_estimation' | 'nonlinear_regression' | 'stepwise_regression' | 'binary_logistic' | 'multinomial_logistic' | 'ordinal_logistic' | 'probit_regression' | 'poisson_regression' | 'negative_binomial_regression' | 'factor_analysis' | 'cluster_analysis' | 'time_series_analysis' | 'arima_forecast' | 'durbin_watson_test' | 'discriminant_analysis' | 'kaplan_meier_survival' | 'cox_regression' | 'dose_response_analysis'
 export type Worker5Method = 'kaplan_meier_analysis' | 'roc_curve_analysis' | 'meta_analysis' | 'icc_analysis'
 export type Worker6Method = 'render_chart'
 export type Worker7Method = 'fit_vbgf' | 'length_weight' | 'condition_factor'

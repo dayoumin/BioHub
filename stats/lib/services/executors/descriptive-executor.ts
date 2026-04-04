@@ -179,7 +179,7 @@ export class DescriptiveExecutor extends BaseExecutor {
 
     switch (method) {
       case 'basic':
-      case 'descriptive-stats': // method-mapping.ts에서 사용되는 ID
+      case 'descriptive-stats': // legacy alias (canonical ID: 'descriptive')
         return this.executeBasicStats(this.extractNumericSeries(data, restOptions))
       case 'frequency':
         return this.executeFrequencyAnalysis(data as string[])

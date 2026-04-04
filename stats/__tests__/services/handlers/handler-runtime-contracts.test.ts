@@ -7,6 +7,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest'
+import type { StatisticalMethod } from '@/types/analysis'
 
 // ═══════════════════════════════════════════════════════════════
 // Mock: pyodideStats
@@ -22,6 +23,8 @@ const {
   mockPoissonRegression,
   mockStepwiseRegression,
   mockLinearRegression,
+  mockDoseResponseAnalysis,
+  mockResponseSurfaceAnalysis,
 } = vi.hoisted(() => ({
   mockTTest: vi.fn(),
   mockTTestOneSample: vi.fn(),
@@ -32,6 +35,8 @@ const {
   mockPoissonRegression: vi.fn(),
   mockStepwiseRegression: vi.fn(),
   mockLinearRegression: vi.fn(),
+  mockDoseResponseAnalysis: vi.fn(),
+  mockResponseSurfaceAnalysis: vi.fn(),
 }))
 
 vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
@@ -45,6 +50,8 @@ vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
     poissonRegression: mockPoissonRegression,
     stepwiseRegression: mockStepwiseRegression,
     linearRegression: mockLinearRegression,
+    doseResponseAnalysis: mockDoseResponseAnalysis,
+    responseSurfaceAnalysis: mockResponseSurfaceAnalysis,
   },
 }))
 
@@ -56,7 +63,7 @@ import { handleRegression } from '@/lib/services/handlers/handle-regression'
 // Helpers
 // ═══════════════════════════════════════════════════════════════
 
-const makeMethod = (id: string, name: string, category = 'parametric' as const) => ({
+const makeMethod = (id: string, name: string, category: StatisticalMethod['category'] = 'other') => ({
   id, name, description: '', category,
 })
 
@@ -284,7 +291,7 @@ describe('GLM buildGlmResult typed result (no Record cast)', () => {
     expect(result.mainResults.significant).toBe(true)
   })
 
-  it('logistic: llrPValue만 있고 llrStatistic 없음 → statistic=0', async () => {
+  it('logistic: llrPValue + llrStatistic 모두 반환 → 정상 매핑', async () => {
     mockLogisticRegression.mockResolvedValue({
       coefficients: [0.5, 1.2],
       stdErrors: [0.1, 0.3],
@@ -304,6 +311,7 @@ describe('GLM buildGlmResult typed result (no Record cast)', () => {
       bic: 90.2,
       pseudoRSquared: 0.45,
       llrPValue: 0.0001,
+      llrStatistic: 45.67,
       nObservations: 90,
       nPredictors: 2,
     })
@@ -323,8 +331,7 @@ describe('GLM buildGlmResult typed result (no Record cast)', () => {
     )
 
     expect(result.mainResults.pvalue).toBe(0.0001)
-    // logistic은 llrStatistic 미반환 → 0 (worker P0 수정 대상)
-    expect(result.mainResults.statistic).toBe(0)
+    expect(result.mainResults.statistic).toBe(45.67)
   })
 })
 
@@ -371,5 +378,204 @@ describe('Stepwise typed result (no Record cast)', () => {
     expect(result.mainResults.significant).toBe(true)
     expect(result.mainResults.interpretation).toContain('2개')
     expect(result.additionalInfo.effectSize?.value).toBe(0.72)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════
+// 6. Dose-response: Generated 타입 직접 접근 (Record cast 제거)
+// ═══════════════════════════════════════════════════════════════
+
+describe('Dose-response typed result (no Record cast)', () => {
+  it('pValue + rSquared → pvalue + statistic 정상 매핑', async () => {
+    mockDoseResponseAnalysis.mockResolvedValue({
+      model: 'logistic4',
+      parameters: { ec50: 5.2, hillSlope: 1.3, top: 100, bottom: 0 },
+      fittedValues: [10, 50, 90],
+      residuals: [1, -2, 3],
+      rSquared: 0.95,
+      pValue: 0.003,
+      aic: 42.1,
+      bic: 45.3,
+      confidenceIntervals: {},
+      goodnessOfFit: { chiSquare: 8.5, pValue: 0.003, degreesFreedom: 2 },
+      ec50: 5.2,
+      ed50: 5.2,
+      hillSlope: 1.3,
+      top: 100,
+      bottom: 0,
+      ic50: 5.2,
+    })
+
+    const result = await handleRegression(
+      makeMethod('dose-response', '용량-반응 분석', 'regression'),
+      {
+        data: [],
+        variables: { dependent: ['y'], independent: ['dose'] } as Record<string, unknown>,
+        arrays: {
+          dependent: [10, 50, 90],
+          independent: [[1, 5, 10]],
+        },
+        totalN: 3,
+        missingRemoved: 0,
+      },
+    )
+
+    expect(result.mainResults.pvalue).toBe(0.003)
+    expect(result.mainResults.statistic).toBe(0.95)
+    expect(result.mainResults.significant).toBe(true)
+    expect(result.metadata.dataInfo.totalN).toBe(3)
+  })
+
+  it('pValue >= 0.05 → significant = false', async () => {
+    mockDoseResponseAnalysis.mockResolvedValue({
+      model: 'logistic4',
+      parameters: {},
+      fittedValues: [],
+      residuals: [],
+      rSquared: 0.12,
+      pValue: 0.35,
+      aic: 60,
+      bic: 62,
+      confidenceIntervals: {},
+      goodnessOfFit: { chiSquare: 1.2, pValue: 0.35, degreesFreedom: 2 },
+    })
+
+    const result = await handleRegression(
+      makeMethod('dose-response', '용량-반응 분석', 'regression'),
+      {
+        data: [],
+        variables: { dependent: ['y'], independent: ['dose'] } as Record<string, unknown>,
+        arrays: {
+          dependent: [10, 20],
+          independent: [[1, 2]],
+        },
+        totalN: 2,
+        missingRemoved: 0,
+      },
+    )
+
+    expect(result.mainResults.pvalue).toBe(0.35)
+    expect(result.mainResults.significant).toBe(false)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════
+// 7. Response-surface: Generated 타입 직접 접근 (Record cast 제거)
+// ═══════════════════════════════════════════════════════════════
+
+describe('Response-surface typed result (no Record cast)', () => {
+  it('pValue + fStatistic + rSquared → pvalue + statistic + effectSize 정상 매핑', async () => {
+    mockResponseSurfaceAnalysis.mockResolvedValue({
+      modelType: 'secondOrder',
+      coefficients: { intercept: 10, x1: 2.5, x2: 1.3 },
+      fittedValues: [10, 12, 14],
+      residuals: [0.1, -0.2, 0.3],
+      rSquared: 0.88,
+      adjustedRSquared: 0.85,
+      fStatistic: 32.7,
+      fPvalue: 0.0005,
+      pValue: 0.0005,
+      anovaTable: {},
+      optimization: {},
+      designAdequacy: {},
+    })
+
+    const result = await handleRegression(
+      makeMethod('response-surface', '반응표면 분석', 'regression'),
+      {
+        data: [{ y: 10, x1: 1, x2: 2 }, { y: 12, x1: 2, x2: 3 }, { y: 14, x1: 3, x2: 4 }],
+        variables: { dependent: 'y', independent: ['x1', 'x2'] } as Record<string, unknown>,
+        arrays: { dependent: [10, 12, 14], independent: [[1, 2, 3], [2, 3, 4]] },
+        totalN: 3,
+        missingRemoved: 0,
+      },
+    )
+
+    expect(result.mainResults.pvalue).toBe(0.0005)
+    expect(result.mainResults.statistic).toBe(32.7)
+    expect(result.mainResults.significant).toBe(true)
+    expect(result.additionalInfo.effectSize?.value).toBe(0.88)
+    expect(result.additionalInfo.effectSize?.type).toBe('R-squared')
+    expect(result.mainResults.interpretation).toContain('2개 예측변수')
+  })
+
+  it('pValue >= 0.05 → significant = false', async () => {
+    mockResponseSurfaceAnalysis.mockResolvedValue({
+      modelType: 'secondOrder',
+      coefficients: { intercept: 5 },
+      fittedValues: [],
+      residuals: [],
+      rSquared: 0.15,
+      adjustedRSquared: 0.08,
+      fStatistic: 1.2,
+      fPvalue: 0.42,
+      pValue: 0.42,
+      anovaTable: {},
+      optimization: {},
+      designAdequacy: {},
+    })
+
+    const result = await handleRegression(
+      makeMethod('response-surface', '반응표면 분석', 'regression'),
+      {
+        data: [{ y: 1, x1: 1 }],
+        variables: { dependent: 'y', independent: ['x1'] } as Record<string, unknown>,
+        arrays: { dependent: [1], independent: [[1]] },
+        totalN: 1,
+        missingRemoved: 0,
+      },
+    )
+
+    expect(result.mainResults.pvalue).toBe(0.42)
+    expect(result.mainResults.significant).toBe(false)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════
+// 8. GLM buildGlmResult: llrStatistic undefined → fallback 0
+// ═══════════════════════════════════════════════════════════════
+
+describe('GLM llrStatistic fallback', () => {
+  it('logistic: llrStatistic undefined → statistic = 0', async () => {
+    mockLogisticRegression.mockResolvedValue({
+      coefficients: [0.5],
+      stdErrors: [0.1],
+      zValues: [5.0],
+      pValues: [0.0001],
+      ciLower: [-0.1],
+      ciUpper: [1.1],
+      predictions: [0.8],
+      predictedClass: [1],
+      accuracy: 0.9,
+      confusionMatrix: { tp: 9, fp: 1, tn: 9, fn: 1, precision: 0.9, recall: 0.9, f1Score: 0.9 },
+      sensitivity: 0.9,
+      specificity: 0.9,
+      rocCurve: [],
+      auc: 0.9,
+      aic: 80,
+      bic: 85,
+      pseudoRSquared: 0.4,
+      llrPValue: 0.001,
+      llrStatistic: undefined,
+      nObservations: 20,
+      nPredictors: 1,
+    })
+
+    const result = await handleRegression(
+      makeMethod('logistic-regression', '로지스틱 회귀', 'regression'),
+      {
+        data: [],
+        variables: { dependent: ['y'], independent: ['x'] } as Record<string, unknown>,
+        arrays: {
+          dependent: Array.from({ length: 20 }, (_, i) => i % 2),
+          independent: [Array.from({ length: 20 }, (_, i) => i)],
+        },
+        totalN: 20,
+        missingRemoved: 0,
+      },
+    )
+
+    expect(result.mainResults.statistic).toBe(0)
+    expect(result.mainResults.pvalue).toBe(0.001)
   })
 })

@@ -2,7 +2,7 @@
  * 비모수 메서드 라우팅 시뮬레이션 테스트
  *
  * 검증 항목:
- * 1. method-mapping.ts에서 4개 메서드의 category가 'nonparametric'인지 확인
+ * 1. statistical-methods.ts에서 4개 메서드의 category가 'nonparametric'인지 확인
  * 2. executeMethod() 호출 시 올바른 pyodide 함수가 호출되는지 검증
  * 3. chi-square 함수가 절대 호출되지 않는지 확인 (잘못된 라우팅 방지)
  * 4. chi-square-goodness는 여전히 chiSquareGoodnessTest를 호출하는지 확인
@@ -40,7 +40,7 @@ import { pyodideStats } from '@/lib/services/pyodide/pyodide-statistics'
 
 // ─── 1. 카테고리 정의 단위 테스트 ───────────────────────────────────────────
 
-describe('method-mapping.ts: category 정의 검증', () => {
+describe('statistical-methods.ts: category 정의 검증', () => {
   const TARGET_METHODS = ['binomial-test', 'proportion-test', 'mcnemar', 'cochran-q'] as const
 
   it.each(TARGET_METHODS)('%s의 category가 nonparametric이어야 한다', (id) => {

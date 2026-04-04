@@ -1273,11 +1273,8 @@ export class PyodideStatisticsService {
     doseData: number[],
     responseData: number[],
     modelType: string = 'logistic4',
-  ): Promise<Record<string, unknown>> {
-    return this.core.callWorkerMethod<Record<string, unknown>>(
-      4, 'dose_response_analysis',
-      { doseData, responseData, modelType }
-    )
+  ): Promise<Generated.DoseResponseAnalysisResult> {
+    return Generated.doseResponseAnalysis(doseData, responseData, modelType)
   }
 
   /**
@@ -1297,10 +1294,10 @@ export class PyodideStatisticsService {
     dependentVar: string,
     predictorVars: string[],
     modelType: string = 'secondOrder',
-  ): Promise<Record<string, unknown>> {
-    return this.core.callWorkerMethod<Record<string, unknown>>(
-      2, 'response_surface_analysis',
-      { data: data as unknown as WorkerMethodParam, dependentVar, predictorVars, modelType }
+  ): Promise<Generated.ResponseSurfaceAnalysisResult> {
+    return Generated.responseSurfaceAnalysis(
+      data as unknown as (number[] | number[][]),
+      dependentVar, predictorVars, modelType
     )
   }
 
