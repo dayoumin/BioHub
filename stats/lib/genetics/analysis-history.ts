@@ -12,6 +12,7 @@ import {
   setCloudGeneticsHistoryPin,
 } from '@/lib/genetics/genetics-history-cloud'
 import { createLocalStorageIO } from '@/lib/utils/local-storage-factory'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
 // ═══════════════════════════════════════════════════════════════
 // 타입 정의
@@ -154,7 +155,7 @@ export type AnalysisHistoryEntry = BarcodingHistoryEntry
 // 상수 + 유틸
 // ═══════════════════════════════════════════════════════════════
 
-export const HISTORY_KEY = 'biohub:genetics:history'
+export const HISTORY_KEY = STORAGE_KEYS.genetics.history
 export const HISTORY_CHANGE_EVENT = 'genetics-history-changed'
 
 const MAX_PER_TYPE: Record<GeneticsToolType, number> = {

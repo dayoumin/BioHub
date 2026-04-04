@@ -2,8 +2,10 @@ import type { ProjectEntityKind, ProjectEntityRef, ResearchProject } from '@/lib
 import { generateId } from '@/lib/utils/generate-id'
 import { createLocalStorageIO } from '@/lib/utils/local-storage-factory'
 
-const PROJECTS_KEY = 'research_projects'
-const PROJECT_REFS_KEY = 'research_project_entity_refs'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
+
+const PROJECTS_KEY = STORAGE_KEYS.research.projects
+const PROJECT_REFS_KEY = STORAGE_KEYS.research.projectEntityRefs
 
 const { readJson, writeJson } = createLocalStorageIO('[research-project-storage]')
 

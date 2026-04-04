@@ -6,7 +6,9 @@
 import type { PaperPackage } from './paper-package-types'
 import { createLocalStorageIO } from '@/lib/utils/local-storage-factory'
 
-const STORAGE_KEY = 'paper_packages'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
+
+const STORAGE_KEY = STORAGE_KEYS.research.paperPackages
 const { readJson, writeJson } = createLocalStorageIO('[paper-package-storage]')
 
 export function listPackages(projectId?: string): PaperPackage[] {

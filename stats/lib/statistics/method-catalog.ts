@@ -5,11 +5,13 @@
  * Used by PurposeInputStep to show all available methods after purpose selection
  */
 
-import { STATISTICAL_METHODS } from './method-mapping'
+import { STATISTICAL_METHODS, type StatisticalMethodWithAliases } from '@/lib/constants/statistical-methods'
 import type { AnalysisPurpose, StatisticalMethod } from '@/types/analysis'
 
-// Cast STATISTICAL_METHODS to the analysis type
-const METHODS: StatisticalMethod[] = STATISTICAL_METHODS
+// Filter out category overviews (hasOwnPage: false without parentPageId)
+const METHODS: StatisticalMethodWithAliases[] = Object.values(STATISTICAL_METHODS).filter(
+  m => m.hasOwnPage !== false || !!m.parentPageId
+)
 
 /**
  * Purpose -> Category mapping
@@ -153,7 +155,9 @@ export function searchMethods(query: string): StatisticalMethod[] {
   return METHODS.filter(m =>
     m.name.toLowerCase().includes(q) ||
     m.description.toLowerCase().includes(q) ||
-    m.id.toLowerCase().includes(q)
+    m.id.toLowerCase().includes(q) ||
+    (m.koreanName?.toLowerCase().includes(q) ?? false) ||
+    (m.koreanDescription?.toLowerCase().includes(q) ?? false)
   )
 }
 
@@ -162,16 +166,16 @@ export function searchMethods(query: string): StatisticalMethod[] {
  */
 export function getPopularMethods(): StatisticalMethod[] {
   const popularIds = [
-    'descriptive-stats',
-    'two-sample-t',
-    'one-way-anova',
+    'descriptive',
+    't-test',
+    'anova',
     'mann-whitney',
     'correlation',
-    'simple-regression',
-    'chi-square'
+    'regression',
+    'chi-square-independence'
   ]
 
   return popularIds
-    .map(id => METHODS.find(m => m.id === id))
-    .filter((m): m is StatisticalMethod => m !== undefined)
+    .map(id => STATISTICAL_METHODS[id])
+    .filter((m): m is StatisticalMethodWithAliases => m !== undefined)
 }

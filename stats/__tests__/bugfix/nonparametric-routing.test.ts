@@ -2,14 +2,14 @@
  * 비모수 메서드 라우팅 시뮬레이션 테스트
  *
  * 검증 항목:
- * 1. method-mapping.ts에서 4개 메서드의 category가 'nonparametric'인지 확인
+ * 1. statistical-methods.ts에서 4개 메서드의 category가 'nonparametric'인지 확인
  * 2. executeMethod() 호출 시 올바른 pyodide 함수가 호출되는지 검증
  * 3. chi-square 함수가 절대 호출되지 않는지 확인 (잘못된 라우팅 방지)
  * 4. chi-square-goodness는 여전히 chiSquareGoodnessTest를 호출하는지 확인
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { STATISTICAL_METHODS } from '@/lib/statistics/method-mapping'
+import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import { StatisticalExecutor } from '@/lib/services/statistical-executor'
 
 // pyodide-statistics 전체 mock
@@ -40,23 +40,23 @@ import { pyodideStats } from '@/lib/services/pyodide/pyodide-statistics'
 
 // ─── 1. 카테고리 정의 단위 테스트 ───────────────────────────────────────────
 
-describe('method-mapping.ts: category 정의 검증', () => {
+describe('statistical-methods.ts: category 정의 검증', () => {
   const TARGET_METHODS = ['binomial-test', 'proportion-test', 'mcnemar', 'cochran-q'] as const
 
   it.each(TARGET_METHODS)('%s의 category가 nonparametric이어야 한다', (id) => {
-    const method = STATISTICAL_METHODS.find(m => m.id === id)
+    const method = STATISTICAL_METHODS[id]
     expect(method, `${id}가 STATISTICAL_METHODS에 존재하지 않음`).toBeDefined()
     expect(method?.category).toBe('nonparametric')
   })
 
   it('chi-square-goodness의 category는 chi-square여야 한다', () => {
-    const method = STATISTICAL_METHODS.find(m => m.id === 'chi-square-goodness')
+    const method = STATISTICAL_METHODS['chi-square-goodness']
     expect(method?.category).toBe('chi-square')
   })
 
   it('4개 메서드 모두 chi-square 카테고리가 아니어야 한다', () => {
     TARGET_METHODS.forEach(id => {
-      const method = STATISTICAL_METHODS.find(m => m.id === id)
+      const method = STATISTICAL_METHODS[id]
       expect(method?.category).not.toBe('chi-square')
     })
   })
@@ -91,7 +91,7 @@ describe('StatisticalExecutor: 비모수 라우팅 시뮬레이션', () => {
         { before: 'no', after: 'yes' },
       ]
       const variables = { independentVar: 'before', dependentVar: 'after' }
-      const method = STATISTICAL_METHODS.find(m => m.id === 'mcnemar')!
+      const method = STATISTICAL_METHODS['mcnemar']!
 
       await executor.executeMethod(method, data, variables)
 
@@ -114,7 +114,7 @@ describe('StatisticalExecutor: 비모수 라우팅 시뮬레이션', () => {
       const data: Array<Record<string, unknown>> = []
       // arrays.independent 방식으로 데이터 전달 — prepareData 우회를 위해 executor 내부 경로 사용
       const variables = { independent: [['cond1', 'cond2', 'cond3']] }
-      const method = STATISTICAL_METHODS.find(m => m.id === 'cochran-q')!
+      const method = STATISTICAL_METHODS['cochran-q']!
 
       await executor.executeMethod(method, data, variables)
 
@@ -137,7 +137,7 @@ describe('StatisticalExecutor: 비모수 라우팅 시뮬레이션', () => {
         result: i < 7 ? 'success' : 'fail'
       }))
       const variables = { successCount: 7, probability: 0.5, dependent: ['result'] }
-      const method = STATISTICAL_METHODS.find(m => m.id === 'binomial-test')!
+      const method = STATISTICAL_METHODS['binomial-test']!
 
       await executor.executeMethod(method, data, variables)
 
@@ -163,7 +163,7 @@ describe('StatisticalExecutor: 비모수 라우팅 시뮬레이션', () => {
 
       const data = Array.from({ length: 10 }, (_, i) => ({ result: i < 6 ? 'yes' : 'no' }))
       const variables = { successCount: 6, nullProportion: '0.5', dependent: ['result'] }
-      const method = STATISTICAL_METHODS.find(m => m.id === 'proportion-test')!
+      const method = STATISTICAL_METHODS['proportion-test']!
 
       await executor.executeMethod(method, data, variables)
 
@@ -195,7 +195,7 @@ describe('StatisticalExecutor: 비모수 라우팅 시뮬레이션', () => {
         { color: 'green' }
       ]
       const variables = { dependentVar: 'color' }
-      const method = STATISTICAL_METHODS.find(m => m.id === 'chi-square-goodness')!
+      const method = STATISTICAL_METHODS['chi-square-goodness']!
 
       await executor.executeMethod(method, data, variables)
 

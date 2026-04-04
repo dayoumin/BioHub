@@ -12,6 +12,7 @@ import React, { createContext, useState, useCallback, useMemo, useEffect } from 
 import type { TerminologyContextValue, TerminologyDictionary } from './terminology-types'
 import { aquaculture } from './domains/aquaculture'
 import { generic } from './domains/generic'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
 /**
  * 도메인별 용어 사전 레지스트리
@@ -59,7 +60,7 @@ export function TerminologyProvider({
   // 컴포넌트 마운트 시 localStorage에서 저장된 도메인 불러오기
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedDomain = localStorage.getItem('terminology-domain')
+      const savedDomain = localStorage.getItem(STORAGE_KEYS.ui.terminologyDomain)
       if (savedDomain && TERMINOLOGY_REGISTRY[savedDomain]) {
         setCurrentDomain(savedDomain)
       }

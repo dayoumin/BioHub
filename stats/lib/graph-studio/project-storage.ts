@@ -18,8 +18,9 @@ import type { GraphProject } from '@/types/graph-studio';
 import { createLocalStorageIO } from '@/lib/utils/local-storage-factory';
 import { deleteSnapshot } from './chart-snapshot-storage';
 import { removeProjectEntityRefsByEntityIds } from '@/lib/research/project-storage';
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
-const STORAGE_KEY = 'graph_studio_projects';
+const STORAGE_KEY = STORAGE_KEYS.graphStudio.projects;
 const { readJson, writeJson } = createLocalStorageIO('[project-storage]');
 
 /** 프로젝트 최대 저장 수. 초과 시 가장 오래된 프로젝트부터 자동 삭제. */

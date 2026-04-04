@@ -12,13 +12,15 @@
 import { useEffect, useState } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
+
+const TAB_KEY = STORAGE_KEYS.multiTab.activeTab
+const HEARTBEAT_KEY = STORAGE_KEYS.multiTab.heartbeat
+const HEARTBEAT_INTERVAL = 2000 // 2초마다 갱신
+const HEARTBEAT_TIMEOUT = 5000 // 5초 동안 신호 없으면 정리
 
 export function MultiTabWarning() {
   const [isBlocked, setIsBlocked] = useState(false)
-  const TAB_KEY = 'app-active-tab'
-  const HEARTBEAT_KEY = 'app-tab-heartbeat'
-  const HEARTBEAT_INTERVAL = 2000 // 2초마다 갱신
-  const HEARTBEAT_TIMEOUT = 5000 // 5초 동안 신호 없으면 정리
 
   useEffect(() => {
     const myTabId = `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`

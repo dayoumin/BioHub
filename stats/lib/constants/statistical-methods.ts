@@ -7,15 +7,16 @@
  * ============================================
  * SUMMARY
  * ============================================
- * - Total definitions:    52
+ * - Total definitions:    53
  * - Analysis methods:     43 (가설검정·모델링·분석 기법)
  * - Data tools:            4 (분석 메서드 아님, 메서드 수에 미포함)
  *   - descriptive         : 기술통계 요약
  *   - explore-data        : 데이터 탐색 (EDA)
  *   - means-plot          : 평균 도표 시각화
  *   - power-analysis      : 표본 수 사전 설계
- * - Embedded (hasOwnPage: false): 5
+ * - Embedded (hasOwnPage: false): 6
  *   - paired-t            -> t-test page
+ *   - two-way-anova       -> anova page
  *   - welch-anova         -> anova page
  *   - logistic-regression -> regression page
  *   - non-parametric      -> category overview
@@ -43,7 +44,7 @@ export interface StatisticalMethodWithAliases extends StatisticalMethod {
 }
 
 /**
- * 52 definitions = 43 analysis methods + 4 data tools + 5 embedded
+ * 53 definitions = 43 analysis methods + 4 data tools + 6 embedded
  */
 export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> = {
   // ============================================
@@ -89,7 +90,7 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
   },
 
   // ============================================
-  // 2. ANOVA (7)
+  // 2. ANOVA (8)
   // ============================================
   'anova': {
     id: 'anova',
@@ -99,6 +100,17 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     aliases: ['one-way-anova', 'oneway-anova'],
     koreanName: '일원분산분석 (ANOVA)',
     koreanDescription: '3개 이상 독립 그룹의 평균 차이 검정',
+  },
+  'two-way-anova': {
+    id: 'two-way-anova',
+    name: 'Two-Way ANOVA',
+    description: 'Two factor main effects and interaction analysis',
+    category: 'anova',
+    hasOwnPage: false,
+    parentPageId: 'anova',
+    aliases: ['factorial-anova'],
+    koreanName: '이원분산분석 (Two-Way ANOVA)',
+    koreanDescription: '두 요인의 주효과와 상호작용 효과를 동시에 분석합니다',
   },
   'welch-anova': {
     id: 'welch-anova',
@@ -681,6 +693,7 @@ export const METHOD_CATEGORIES = {
     description: 'Analysis of Variance',
     methods: [
       'anova',
+      'two-way-anova',
       'welch-anova',
       'repeated-measures-anova',
       'ancova',

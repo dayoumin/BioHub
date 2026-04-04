@@ -11,6 +11,7 @@
 
 import { useEffect, useState } from 'react'
 import { PyodideLoadingProgress } from '@/lib/services/pyodide/core/pyodide-core.service'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
 interface PyodideLoadingModalProps {
   progress: PyodideLoadingProgress | null
@@ -22,11 +23,11 @@ export function PyodideLoadingModal({ progress, isVisible }: PyodideLoadingModal
 
   useEffect(() => {
     // 로컬 스토리지에서 첫 방문 여부 확인
-    const hasLoaded = localStorage.getItem('pyodide-loaded')
+    const hasLoaded = localStorage.getItem(STORAGE_KEYS.ui.pyodideLoaded)
     setIsFirstLoad(!hasLoaded)
 
     if (progress?.stage === 'complete') {
-      localStorage.setItem('pyodide-loaded', 'true')
+      localStorage.setItem(STORAGE_KEYS.ui.pyodideLoaded, 'true')
     }
   }, [progress])
 

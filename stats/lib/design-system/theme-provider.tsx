@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { themes, type ThemeName, getComponentStyles, type ComponentName, type ComponentVariant } from './tokens'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
 interface ThemeContextType {
   theme: ThemeName
@@ -24,7 +25,7 @@ interface ThemeProviderProps {
 export function ThemeProvider({
   children,
   defaultTheme = 'perplexity',
-  storageKey = 'stats-theme',
+  storageKey = STORAGE_KEYS.ui.theme,
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<ThemeName>(defaultTheme)
 

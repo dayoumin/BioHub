@@ -11,7 +11,7 @@
  */
 
 import { STATISTICS_MENU, getAllMenuItems, getImplementedMenuItems } from '@/lib/statistics/menu-config'
-import { STATISTICAL_METHODS } from '@/lib/statistics/method-mapping'
+import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import { STATISTICAL_METHOD_REQUIREMENTS } from '@/lib/statistics/variable-requirements'
 
 describe('Survival Analysis Pages', () => {
@@ -26,11 +26,10 @@ describe('Survival Analysis Pages', () => {
       expect(kaplanMeier?.href).toBe('/statistics/kaplan-meier')
     })
 
-    it('should be registered in method-mapping', () => {
-      const method = STATISTICAL_METHODS.find(m => m.id === 'kaplan-meier')
+    it('should be registered in statistical-methods', () => {
+      const method = STATISTICAL_METHODS['kaplan-meier']
       expect(method).toBeDefined()
       expect(method?.category).toBe('survival')
-      expect(method?.requirements?.minSampleSize).toBeGreaterThanOrEqual(10)
     })
 
     it('should have variable requirements defined', () => {
@@ -59,11 +58,10 @@ describe('Survival Analysis Pages', () => {
       expect(coxRegression?.href).toBe('/statistics/cox-regression')
     })
 
-    it('should be registered in method-mapping', () => {
-      const method = STATISTICAL_METHODS.find(m => m.id === 'cox-regression')
+    it('should be registered in statistical-methods', () => {
+      const method = STATISTICAL_METHODS['cox-regression']
       expect(method).toBeDefined()
       expect(method?.category).toBe('survival')
-      expect(method?.requirements?.minSampleSize).toBeGreaterThanOrEqual(30)
     })
 
     it('should have variable requirements defined', () => {
@@ -91,11 +89,10 @@ describe('Time Series Pages', () => {
       expect(arima?.href).toBe('/statistics/arima')
     })
 
-    it('should be registered in method-mapping', () => {
-      const method = STATISTICAL_METHODS.find(m => m.id === 'arima')
+    it('should be registered in statistical-methods', () => {
+      const method = STATISTICAL_METHODS['arima']
       expect(method).toBeDefined()
       expect(method?.category).toBe('timeseries')
-      expect(method?.requirements?.minSampleSize).toBeGreaterThanOrEqual(50)
     })
 
     it('should have variable requirements defined', () => {
@@ -120,11 +117,10 @@ describe('Time Series Pages', () => {
       expect(seasonalDecompose?.href).toBe('/statistics/seasonal-decompose')
     })
 
-    it('should be registered in method-mapping', () => {
-      const method = STATISTICAL_METHODS.find(m => m.id === 'seasonal-decompose')
+    it('should be registered in statistical-methods', () => {
+      const method = STATISTICAL_METHODS['seasonal-decompose']
       expect(method).toBeDefined()
       expect(method?.category).toBe('timeseries')
-      expect(method?.requirements?.minSampleSize).toBeGreaterThanOrEqual(24)
     })
 
     it('should have variable requirements defined', () => {
@@ -145,11 +141,10 @@ describe('Time Series Pages', () => {
       expect(stationarityTest?.href).toBe('/statistics/stationarity-test')
     })
 
-    it('should be registered in method-mapping', () => {
-      const method = STATISTICAL_METHODS.find(m => m.id === 'stationarity-test')
+    it('should be registered in statistical-methods', () => {
+      const method = STATISTICAL_METHODS['stationarity-test']
       expect(method).toBeDefined()
       expect(method?.category).toBe('timeseries')
-      expect(method?.requirements?.minSampleSize).toBeGreaterThanOrEqual(20)
     })
 
     it('should have variable requirements defined', () => {

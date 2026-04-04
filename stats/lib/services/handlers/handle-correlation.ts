@@ -1,4 +1,4 @@
-import type { StatisticalMethod } from '../../statistics/method-mapping'
+import type { StatisticalMethod } from '@/types/analysis'
 import type { PreparedData, StatisticalExecutorResult } from '../statistical-executor'
 import { CorrelationExecutor } from '../executors/correlation-executor'
 

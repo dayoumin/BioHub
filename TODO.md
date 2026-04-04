@@ -87,17 +87,17 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - `[quality]` dangling ref 정리 — 수동 "정리" 버튼 또는 주기적 GC
 - `[quality]` entity-resolver `*Like` 인터페이스 → `Pick<OriginalType, ...>` 전환
 - `[quality]` `entity-tab-registry.ts` raw localStorage → Zustand persist 전환
+- `[quality]` Recommender 단위 테스트 — `decision-tree-recommender.ts` 등 6파일 커버리지 0%. 순수 로직(decision-tree) 우선, LLM 추천기는 mock 비용 대비 보류
+- `[quality]` Bio-Tools E2E 테스트 — data-testid 추가 + Playwright 워크플로 테스트 (CSV 업로드→분석→내보내기). Bio-Tools 안정화 이후 착수
 - `[bio]` Fst long-format CSV 지원 — population/locus/allele/count 4컬럼. 우선순위 낮음
 - `[analysis]` intent-router 0.6 임계값 검증 — 사용 로그 수집 후 데이터 기반 재검토
 - `[ux]` Bio-Tools data-testid + aria-label — E2E 테스트 + 접근성
 - `[quality]` 기존 테스트 실패 10건 수정 — StatisticCard 등 CSS 클래스 변경 미반영 (7 files, 10 tests)
-- `[quality]` method-mapping.ts / statistical-methods.ts 통합 — 두 파일이 method 정의를 중복 보유 (50 vs 43). method-mapping.ts는 레거시 파일이지만 Smart Flow·handler·테스트 25곳이 import. ID 불일치 있음 (예: `poisson` vs `poisson-regression`). 한 파일로 통합 + re-export 정리 필요
+- `[quality]` ~~method-mapping.ts / statistical-methods.ts 통합~~ ✅ — method-mapping.ts 삭제 (811줄), canonical SSOT로 완전 전환. import 14곳 리다이렉트, two-way-anova canonical 등록, dead code 제거
+- `[ux]` method-catalog categoryOrder에 `'descriptive'` 누락 — `getAllMethodsGrouped()` Browse All에서 normality-test, descriptive, explore-data, means-plot 4개가 안 보임. categoryOrder 배열에 `'descriptive'` 추가 필요
+- `[quality]` games-howell recommender 리팩터링 — `smart-recommender.ts:251`에서 하드코딩된 inline method object 대신, ANOVA 추천 시 post-hoc 옵션을 별도 로직으로 제안하도록 개선. Post-hoc는 독립 메서드가 아닌 ANOVA 내부 옵션 아키텍처 반영
 - `[quality]` Worker 타입 계약 정비 (Session C) — Python↔Registry↔Generated 동기화 + 레거시 삭제 + 출력 검증 + type-guards 확장. 상세: [PLAN-SESSION-C-WORKER-TYPE-CONTRACT.md](docs/PLAN-SESSION-C-WORKER-TYPE-CONTRACT.md)
-- `[quality]` Regression handler–worker 계약 불일치 4건 — 🔧 수정 중 (Session D):
-  - stepwise: `fStatistic`/`fPValue`/`selectedVariables.length` 반환 추가
-  - poisson/ordinal: `llrPValue` 반환 추가
-  - codegen: `?` suffix 파싱 + override 추가 → 재생성
-  - chi-square: routing test mock shape 정합성 수정
+- `[quality]` ~~Regression handler–worker 계약 불일치 4건~~ ✅ (Session D) — worker4 + handler + test 커밋 완료. registry/codegen/generated 3파일은 Session C 커밋에 포함 예정
 - `[quality]` Handler runtime contract 명시화 — 12개 핸들러 전체 `WorkerRaw*` 타입 정의 + runtime assertion + 필드명 표준화. 상세: [PLAN-HANDLER-RUNTIME-CONTRACTS.md](docs/PLAN-HANDLER-RUNTIME-CONTRACTS.md)
 
 ### 3-D. 인프라

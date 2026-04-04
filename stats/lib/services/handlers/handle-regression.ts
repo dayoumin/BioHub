@@ -7,7 +7,7 @@
  */
 
 import { pyodideStats } from '../pyodide/pyodide-statistics'
-import type { StatisticalMethod } from '../../statistics/method-mapping'
+import type { StatisticalMethod } from '@/types/analysis'
 import type { PreparedData, StatisticalExecutorResult } from '../statistical-executor'
 import { interpretRSquared } from './shared-helpers'
 
@@ -123,10 +123,10 @@ export async function handleRegression(
       if (!independent || independent.length === 0) {
         throw new Error('용량-반응 분석을 위한 독립변수(용량)가 필요합니다')
       }
-      const doseRaw = await pyodideStats.doseResponseAnalysis(
+      const doseResult = await pyodideStats.doseResponseAnalysis(
         independent[0], dependent
-      ) as Record<string, unknown>
-      const dosePvalue = Number(doseRaw.pValue ?? 1)
+      )
+      const dosePvalue = doseResult.pValue
       return {
         metadata: {
           method: method.id, methodName: method.name,
@@ -134,14 +134,14 @@ export async function handleRegression(
           dataInfo: { totalN: dependent.length, missingRemoved: 0 }
         },
         mainResults: {
-          statistic: Number(doseRaw.rSquared ?? 0),
+          statistic: doseResult.rSquared,
           pvalue: dosePvalue,
           significant: dosePvalue < 0.05,
           interpretation: `용량-반응 분석 완료 (n=${dependent.length})`
         },
         additionalInfo: {},
-        visualizationData: { type: 'dose-response', data: doseRaw },
-        rawResults: doseRaw
+        visualizationData: { type: 'dose-response', data: doseResult },
+        rawResults: doseResult
       }
     }
 
@@ -149,11 +149,10 @@ export async function handleRegression(
       if (predictorVarNames.length === 0) {
         throw new Error('반응표면 분석을 위한 예측변수명이 필요합니다')
       }
-      const rsRaw = await pyodideStats.responseSurfaceAnalysis(
+      const rsResult = await pyodideStats.responseSurfaceAnalysis(
         data.data, depVarName, predictorVarNames
-      ) as Record<string, unknown>
-      const rsPvalue = Number(rsRaw.pValue ?? 1)
-      const rsR2 = rsRaw.rSquared != null ? Number(rsRaw.rSquared) : undefined
+      )
+      const rsPvalue = rsResult.pValue
       return {
         metadata: {
           method: method.id, methodName: method.name,
@@ -161,19 +160,19 @@ export async function handleRegression(
           dataInfo: { totalN: data.data.length, missingRemoved: 0 }
         },
         mainResults: {
-          statistic: Number(rsRaw.fStatistic ?? 0),
+          statistic: rsResult.fStatistic,
           pvalue: rsPvalue,
           significant: rsPvalue < 0.05,
           interpretation: `반응표면 분석 완료 — ${predictorVarNames.length}개 예측변수`
         },
         additionalInfo: {
-          effectSize: rsR2 != null ? {
-            type: 'R-squared', value: rsR2,
-            interpretation: interpretRSquared(rsR2)
-          } : undefined
+          effectSize: {
+            type: 'R-squared', value: rsResult.rSquared,
+            interpretation: interpretRSquared(rsResult.rSquared)
+          }
         },
-        visualizationData: { type: 'response-surface', data: rsRaw },
-        rawResults: rsRaw
+        visualizationData: { type: 'response-surface', data: rsResult },
+        rawResults: rsResult
       }
     }
 

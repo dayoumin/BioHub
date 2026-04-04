@@ -321,6 +321,7 @@ def logistic_regression(X, y):
         'bic': float(model.bic),
         'pseudoRSquared': float(model.prsquared),
         'llrPValue': float(model.llr_pvalue),
+        'llrStatistic': float(model.llr),
         'nObservations': int(len(y_clean)),
         'nPredictors': int(X_clean.shape[1])
     }
@@ -1739,6 +1740,7 @@ def dose_response_analysis(doseData, responseData, modelType='logistic4', constr
         'fittedValues': fitted_values.tolist(),
         'residuals': residuals.tolist(),
         'rSquared': r_squared,
+        'pValue': p_value,  # 핸들러 표준 키 (goodnessOfFit.pValue는 통계적 맥락 보존)
         'aic': aic,
         'bic': bic,
         'confidenceIntervals': confidence_intervals,

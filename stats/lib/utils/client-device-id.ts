@@ -1,5 +1,7 @@
-const PRIMARY_DEVICE_ID_KEY = 'biohub_device_id'
-const LEGACY_DEVICE_ID_KEY = 'statPlatform_deviceId'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
+
+const PRIMARY_DEVICE_ID_KEY = STORAGE_KEYS.device.id
+const LEGACY_DEVICE_ID_KEY = STORAGE_KEYS.device.legacyId
 
 function makeDeviceId(): string {
   return `device-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`

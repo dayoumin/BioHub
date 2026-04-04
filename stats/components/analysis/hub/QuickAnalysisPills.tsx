@@ -24,10 +24,11 @@ import { cn } from '@/lib/utils'
 import { focusRing } from '@/components/common'
 import { useTerminology } from '@/hooks/use-terminology'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
 // ===== Constants =====
 
-const STORAGE_KEY = 'main-hub-quick-analysis'
+const STORAGE_KEY = STORAGE_KEYS.analysis.quickAnalysis
 const DEFAULT_QUICK_METHODS = ['t-test', 'anova', 'correlation', 'regression', 'chi-square']
 
 /** Runtime에 평가하여 registerMethod()로 추가된 메서드도 포함 */

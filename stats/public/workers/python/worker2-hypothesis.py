@@ -103,7 +103,9 @@ def t_test_one_sample(
     return {
         'statistic': _safe_float(statistic),
         'pValue': _safe_float(p_value),
-        'sampleMean': float(np.mean(clean_data))
+        'sampleMean': float(np.mean(clean_data)),
+        'sampleStd': float(np.std(clean_data, ddof=1)),
+        'n': int(len(clean_data))
     }
 
 
@@ -1312,6 +1314,7 @@ def response_surface_analysis(data, dependentVar, predictorVars, modelType='seco
         'adjustedRSquared': float(adjusted_r2),
         'fStatistic': float(f_statistic),
         'fPvalue': float(f_pvalue),
+        'pValue': float(f_pvalue),  # 핸들러 표준 키 (fPvalue는 하위호환용)
         'anovaTable': anova_table,
         'optimization': optimization_result,
         'designAdequacy': lack_of_fit_result

@@ -10,7 +10,7 @@ describe('StatisticalExecutor Method Coverage', () => {
   // 카테고리별로 executeMethod에서 라우팅되는 메서드들
   const EXECUTOR_SUPPORTED_CATEGORIES = {
     't-test': ['t-test', 'welch-t', 'one-sample-t', 'paired-t'],
-    'anova': ['anova', 'welch-anova', 'repeated-measures-anova', 'ancova', 'manova', 'mixed-model'],
+    'anova': ['anova', 'two-way-anova', 'welch-anova', 'repeated-measures-anova', 'ancova', 'manova', 'mixed-model'],
     'nonparametric': [
       'mann-whitney', 'wilcoxon', 'kruskal-wallis', 'friedman', 'chi-square',
       'sign-test', 'mcnemar', 'cochran-q', 'binomial-test', 'runs-test',

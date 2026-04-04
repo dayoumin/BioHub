@@ -7,8 +7,9 @@
 
 import type { ExportConfig, StyleSpec } from '@/types/graph-studio';
 import { createLocalStorageIO } from '@/lib/utils/local-storage-factory';
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
-const STORAGE_KEY = 'graph_studio_style_templates';
+const STORAGE_KEY = STORAGE_KEYS.graphStudio.styleTemplates;
 const { readJson, writeJson } = createLocalStorageIO('[style-template-storage]');
 
 export interface StyleTemplate {

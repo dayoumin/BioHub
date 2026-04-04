@@ -516,6 +516,31 @@
           "interpretation"
         ],
         "description": "검정력 분석"
+      },
+      "response_surface_analysis": {
+        "params": [
+          "data",
+          "dependentVar",
+          "predictorVars",
+          "modelType?",
+          "includeInteraction?",
+          "includeQuadratic?"
+        ],
+        "returns": [
+          "modelType",
+          "coefficients",
+          "fittedValues",
+          "residuals",
+          "rSquared",
+          "adjustedRSquared",
+          "fStatistic",
+          "fPvalue",
+          "pValue",
+          "anovaTable",
+          "optimization",
+          "designAdequacy"
+        ],
+        "description": "반응표면 분석"
       }
     }
   },
@@ -844,6 +869,7 @@
           "bic",
           "pseudoRSquared",
           "llrPValue",
+          "llrStatistic",
           "nObservations",
           "nPredictors"
         ],
@@ -1139,6 +1165,33 @@
           "concordance"
         ],
         "description": "Cox 비례위험모형"
+      },
+      "dose_response_analysis": {
+        "params": [
+          "doseData",
+          "responseData",
+          "modelType?",
+          "constraints?"
+        ],
+        "returns": [
+          "model",
+          "parameters",
+          "fittedValues",
+          "residuals",
+          "rSquared",
+          "pValue",
+          "aic",
+          "bic",
+          "confidenceIntervals",
+          "goodnessOfFit",
+          "ec50",
+          "ed50",
+          "hillSlope",
+          "top",
+          "bottom",
+          "ic50"
+        ],
+        "description": "용량-반응 분석"
       }
     }
   },

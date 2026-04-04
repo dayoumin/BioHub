@@ -5,6 +5,8 @@
  * 사용자가 "로컬 저장 허용"을 끄면 모든 localStorage 작업을 차단
  */
 
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
+
 /**
  * localStorage 사용 가능 여부 확인
  * - statPlatform_localStorageEnabled 키는 항상 허용 (설정 자체를 저장해야 함)
@@ -13,16 +15,16 @@
 function isStorageEnabled(key: string): boolean {
   // 설정 키 자체는 항상 허용 (순환 참조 방지)
   if (
-    key === 'statPlatform_localStorageEnabled' ||
-    key === 'statPlatform_notifyAnalysisComplete' ||
-    key === 'statPlatform_notifyError'
+    key === STORAGE_KEYS.settings.localStorageEnabled ||
+    key === STORAGE_KEYS.settings.notifyAnalysisComplete ||
+    key === STORAGE_KEYS.settings.notifyError
   ) {
     return true
   }
 
   // localStorage 사용 가능 여부 확인
   try {
-    const enabled = localStorage.getItem('statPlatform_localStorageEnabled')
+    const enabled = localStorage.getItem(STORAGE_KEYS.settings.localStorageEnabled)
     // 기본값: true (명시적으로 false일 때만 차단)
     return enabled !== 'false'
   } catch {

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { clearRecentStatistics, getRecentStatistics } from '@/lib/utils/recent-statistics'
 import { StorageService } from '@/lib/services/storage-service'
+import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
@@ -24,7 +25,7 @@ export default function SettingsPage() {
   // localStorage에서 설정 로드
   useEffect(() => {
     // 즐겨찾기 로드
-    const savedFavorites = StorageService.getItem('statPlatform_favorites')
+    const savedFavorites = StorageService.getItem(STORAGE_KEYS.settings.favorites)
     if (savedFavorites) {
       try {
         setFavorites(JSON.parse(savedFavorites))
@@ -34,12 +35,12 @@ export default function SettingsPage() {
     }
 
     // 알림 설정 로드
-    const savedNotifyComplete = StorageService.getItem('statPlatform_notifyAnalysisComplete')
+    const savedNotifyComplete = StorageService.getItem(STORAGE_KEYS.settings.notifyAnalysisComplete)
     if (savedNotifyComplete !== null) {
       setNotifyAnalysisComplete(savedNotifyComplete === 'true')
     }
 
-    const savedNotifyError = StorageService.getItem('statPlatform_notifyError')
+    const savedNotifyError = StorageService.getItem(STORAGE_KEYS.settings.notifyError)
     if (savedNotifyError !== null) {
       setNotifyError(savedNotifyError === 'true')
     }
@@ -63,12 +64,12 @@ export default function SettingsPage() {
   // 알림 설정 변경 핸들러
   const handleNotifyAnalysisComplete = (checked: boolean) => {
     setNotifyAnalysisComplete(checked)
-    StorageService.setItem('statPlatform_notifyAnalysisComplete', String(checked))
+    StorageService.setItem(STORAGE_KEYS.settings.notifyAnalysisComplete, String(checked))
   }
 
   const handleNotifyError = (checked: boolean) => {
     setNotifyError(checked)
-    StorageService.setItem('statPlatform_notifyError', String(checked))
+    StorageService.setItem(STORAGE_KEYS.settings.notifyError, String(checked))
   }
 
   return (
@@ -278,7 +279,7 @@ export default function SettingsPage() {
                   className="w-full justify-start"
                   onClick={() => {
                     setFavorites(allItemIds)
-                    StorageService.setItem('statPlatform_favorites', JSON.stringify(allItemIds))
+                    StorageService.setItem(STORAGE_KEYS.settings.favorites, JSON.stringify(allItemIds))
                   }}
                 >
                   <Star className="h-4 w-4 mr-2" />
@@ -289,7 +290,7 @@ export default function SettingsPage() {
                   className="w-full justify-start"
                   onClick={() => {
                     setFavorites([])
-                    StorageService.setItem('statPlatform_favorites', JSON.stringify([]))
+                    StorageService.setItem(STORAGE_KEYS.settings.favorites, JSON.stringify([]))
                   }}
                   disabled={favorites.length === 0}
                 >

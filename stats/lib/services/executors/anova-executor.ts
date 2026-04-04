@@ -412,29 +412,6 @@ export class AnovaExecutor extends BaseExecutor {
       case 'repeated-measures':
       case 'repeated-measures-anova':
         return this.executeRepeatedMeasures(asNumberArray())
-      case 'tukey':
-      case 'tukey-hsd': {
-        let groups = restOptions.groups as number[][] | undefined
-        if (!groups && typeof restOptions.dependentVar === 'string' && typeof restOptions.groupVar === 'string') {
-          groups = this.prepareGroups(
-            asRecordArray(),
-            restOptions.dependentVar,
-            restOptions.groupVar
-          )
-        }
-        return this.executeTukeyHSD(groups || asNumberArray())
-      }
-      case 'games-howell': {
-        let groups = restOptions.groups as number[][] | undefined
-        if (!groups && typeof restOptions.dependentVar === 'string' && typeof restOptions.groupVar === 'string') {
-          groups = this.prepareGroups(
-            asRecordArray(),
-            restOptions.dependentVar,
-            restOptions.groupVar
-          )
-        }
-        return this.executeGamesHowell(groups || asNumberArray())
-      }
       default:
         throw new Error(`Unknown ANOVA method: ${method}`)
     }

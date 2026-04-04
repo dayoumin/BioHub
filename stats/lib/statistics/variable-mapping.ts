@@ -2,7 +2,7 @@
  * 통계 방법에 따른 변수 자동 매핑
  */
 
-import { StatisticalMethod } from './method-mapping'
+import type { StatisticalMethod } from '@/types/analysis'
 
 export interface VariableMapping {
   // 기본 변수
