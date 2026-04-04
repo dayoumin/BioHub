@@ -117,12 +117,12 @@ export default function MaterialPalette({
         {citations.length === 0 && (
           <p className="text-xs text-muted-foreground/60 py-2">
             저장된 인용이 없습니다.{' '}
-            <Link
-              href={`/literature?project=${projectId}`}
+            <a
+              href={`/papers?tab=literature&project=${projectId}`}
               className="text-primary hover:underline"
             >
               문헌 검색에서 추가
-            </Link>
+            </a>
           </p>
         )}
         {citations.map(record => (
@@ -150,12 +150,12 @@ export default function MaterialPalette({
           </div>
         ))}
         {citations.length > 0 && (
-          <Link
-            href={`/literature?project=${projectId}`}
+          <a
+            href={`/papers?tab=literature&project=${projectId}`}
             className="text-xs text-primary hover:underline flex items-center gap-1 pt-1"
           >
             <Plus className="w-3 h-3" /> 더 추가
-          </Link>
+          </a>
         )}
       </div>
     </div>
