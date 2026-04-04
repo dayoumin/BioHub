@@ -165,8 +165,12 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - `[workflow]` 프로젝트 협업/공유 — 스토리지 아키텍처 지원 시
 - `[domain]` citation/traceability 강화
 
-### 4-B. 유전적 분석 — 리팩토링
+### 4-B. 유전적 분석 — 리팩토링 & 확장
 
+- `[domain]` BioPython 분자생물학 도구 3종 — 상세: [docs/genetics/plans/biopython-tools.md](docs/genetics/plans/biopython-tools.md)
+  - Codon Usage Analysis + DNA→Protein Translation
+  - ORF Finder (Open Reading Frame 탐색)
+  - Protein Properties (ProtParam: MW, pI, GRAVY, 아미노산 조성)
 - `[quality]` 제네릭 `useApiExecution` 훅 추출 — `useBoldExecution`과 `useBlastExecution`이 ~80% 동일 (submit→poll→fetch 폴링 라이프사이클). 세 번째 폴링 API 추가 시 통합
 - `[quality]` BoldResultView similarity 색상 dark mode — `similarityColorClass`/`similarityTextClass`가 light-only (`text-green-700` 등). progress bar 특성상 양 테마 동일 색상이 나을 수도 있어 디자인 판단 필요
 - `[review]` figure/table 저널 적합성 리뷰
