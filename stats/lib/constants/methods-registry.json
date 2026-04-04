@@ -32,7 +32,12 @@
           "iqr",
           "skewness",
           "kurtosis",
-          "n"
+          "n",
+          "se",
+          "sem",
+          "confidenceLevel",
+          "ciLower",
+          "ciUpper"
         ],
         "description": "기술통계량 계산"
       },
@@ -45,7 +50,7 @@
           "statistic",
           "pValue",
           "isNormal",
-          "interpretation"
+          "alpha"
         ],
         "description": "Shapiro-Wilk 정규성 검정",
         "status": "active",
@@ -59,9 +64,7 @@
         ],
         "returns": [
           "outlierIndices",
-          "outlierValues",
-          "lowerBound",
-          "upperBound",
+          "outlierCount",
           "method"
         ],
         "description": "이상치 탐지 (IQR/Z-score)"
@@ -106,7 +109,6 @@
         "returns": [
           "sampleProportion",
           "nullProportion",
-          "pValue",
           "zStatistic",
           "pValueExact",
           "pValueApprox",
@@ -142,11 +144,16 @@
           "values"
         ],
         "returns": [
+          "testType",
           "statistic",
+          "statisticKS",
           "pValue",
           "n",
+          "criticalValue",
           "significant",
-          "interpretation"
+          "interpretation",
+          "sampleSizes",
+          "distributionInfo"
         ],
         "description": "일표본 K-S 검정"
       },
@@ -156,11 +163,16 @@
           "values2"
         ],
         "returns": [
+          "testType",
           "statistic",
+          "statisticKS",
           "pValue",
           "n1",
           "n2",
-          "significant"
+          "criticalValue",
+          "significant",
+          "effectSize",
+          "sampleSizes"
         ],
         "description": "이표본 K-S 검정"
       },
@@ -170,11 +182,12 @@
         ],
         "returns": [
           "trend",
-          "statistic",
-          "pValue",
           "tau",
-          "slope",
-          "intercept"
+          "zScore",
+          "pValue",
+          "senSlope",
+          "intercept",
+          "n"
         ],
         "description": "Mann-Kendall 추세 검정"
       },
@@ -184,10 +197,11 @@
           "alpha?"
         ],
         "returns": [
-          "adjustedPValues",
-          "significantResults",
-          "alpha",
-          "correctedAlpha"
+          "originalPValues",
+          "correctedPValues",
+          "adjustedAlpha",
+          "nComparisons",
+          "significant"
         ],
         "description": "Bonferroni 다중비교 보정"
       },
@@ -471,8 +485,16 @@
           "alpha?"
         ],
         "returns": [
+          "oddsRatio",
           "pValue",
-          "oddsRatio"
+          "reject",
+          "alternative",
+          "oddsRatioInterpretation",
+          "observedMatrix",
+          "expectedMatrix",
+          "rowTotals",
+          "columnTotals",
+          "sampleSize"
         ],
         "description": "Fisher 정확검정"
       },
@@ -888,9 +910,16 @@
         ],
         "returns": [
           "selectedVariables",
+          "selectedIndices",
+          "rSquaredHistory",
           "coefficients",
+          "stdErrors",
+          "tValues",
+          "pValues",
           "rSquared",
-          "steps"
+          "adjustedRSquared",
+          "fStatistic",
+          "fPValue"
         ],
         "description": "단계적 회귀"
       },
@@ -926,6 +955,13 @@
         ],
         "returns": [
           "coefficients",
+          "stdErrors",
+          "zValues",
+          "pValues",
+          "aic",
+          "bic",
+          "llrPValue",
+          "llrStatistic",
           "thresholds"
         ],
         "description": "순서형 로지스틱 회귀"
@@ -949,7 +985,15 @@
         ],
         "returns": [
           "coefficients",
+          "stdErrors",
+          "zValues",
           "pValues",
+          "deviance",
+          "pearsonChi2",
+          "aic",
+          "bic",
+          "llrPValue",
+          "llrStatistic",
           "incidenceRateRatios"
         ],
         "description": "포아송 회귀"
@@ -1023,6 +1067,20 @@
           "isStationary"
         ],
         "description": "시계열 분석"
+      },
+      "arima_forecast": {
+        "params": [
+          "values",
+          "order?",
+          "nForecast?"
+        ],
+        "returns": [
+          "forecast",
+          "confidenceIntervals",
+          "aic",
+          "bic"
+        ],
+        "description": "ARIMA 예측"
       },
       "durbin_watson_test": {
         "params": [

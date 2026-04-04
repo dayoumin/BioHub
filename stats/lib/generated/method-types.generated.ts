@@ -2,10 +2,10 @@
  * Auto-generated from methods-registry.json
  * DO NOT EDIT MANUALLY
  *
- * Generated: 2026-03-25T06:13:02.454Z
+ * Generated: 2026-04-04T09:43:49.433Z
  */
 
- 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { PyodideCoreService, type WorkerMethodParam } from '@/lib/services/pyodide/core/pyodide-core.service'
 
@@ -72,20 +72,23 @@ export interface DescriptiveStatsResult {
   skewness: number
   kurtosis: number
   n: number
+  se: number
+  sem: number
+  confidenceLevel: number
+  ciLower: number
+  ciUpper: number
 }
 
 export interface NormalityTestResult {
   statistic: number
   pValue: number
   isNormal: boolean
-  interpretation: string
+  alpha: number
 }
 
 export interface OutlierDetectionResult {
   outlierIndices: number[]
-  outlierValues: number[]
-  lowerBound: number
-  upperBound: number
+  outlierCount: number
   method: string
 }
 
@@ -110,7 +113,6 @@ export interface CrosstabAnalysisResult {
 export interface OneSampleProportionTestResult {
   sampleProportion: number
   nullProportion: number
-  pValue: number
   zStatistic: number
   pValueExact: number
   pValueApprox: number
@@ -131,35 +133,47 @@ export interface KolmogorovSmirnovTestResult {
 }
 
 export interface KsTestOneSampleResult {
+  testType: string
   statistic: number
+  statisticKS: number
   pValue: number
   n: number
+  criticalValue: number
   significant: boolean
   interpretation: string
+  sampleSizes: { n1: number }
+  distributionInfo: { expectedDistribution: string; observedMean: number; observedStd: number; expectedMean: number; expectedStd: number }
 }
 
 export interface KsTestTwoSampleResult {
+  testType: string
   statistic: number
+  statisticKS: number
   pValue: number
   n1: number
   n2: number
+  criticalValue: number
   significant: boolean
+  effectSize: number
+  sampleSizes: { n1: number; n2: number }
 }
 
 export interface MannKendallTestResult {
   trend: string
-  statistic: number
-  pValue: number
   tau: number
-  slope: number
+  zScore: number
+  pValue: number
+  senSlope: number
   intercept: number
+  n: number
 }
 
 export interface BonferroniCorrectionResult {
-  adjustedPValues: number[]
-  significantResults: Array<{ group1: string; group2: string; meanDiff?: number; pValue: number; significant: boolean }>
-  alpha: number
-  correctedAlpha: number
+  originalPValues: number[]
+  correctedPValues: number[]
+  adjustedAlpha: number
+  nComparisons: number
+  significant: boolean[]
 }
 
 export interface MeansPlotDataResult {
@@ -419,8 +433,16 @@ export interface ChiSquareIndependenceTestResult {
 }
 
 export interface FisherExactTestResult {
-  pValue: number
   oddsRatio: number
+  pValue: number
+  reject: boolean
+  alternative: string
+  oddsRatioInterpretation: string
+  observedMatrix: number[][]
+  expectedMatrix: number[][]
+  rowTotals: number[]
+  columnTotals: number[]
+  sampleSize: number
 }
 
 export interface PowerAnalysisResult {
@@ -564,7 +586,7 @@ export async function fisherExactTest(table: number[][], alternative?: string, a
  * 검정력 분석
  * @worker Worker 2
  */
-export async function powerAnalysis(testType: string, analysisType: string, alpha?: number, power?: number, effectSize?: number, sampleSize?: number, sides?: number): Promise<PowerAnalysisResult> {
+export async function powerAnalysis(testType: string, analysisType: string, alpha?: number, power?: number, effectSize?: number, sampleSize?: number, sides?: string): Promise<PowerAnalysisResult> {
   return callWorkerMethod<PowerAnalysisResult>(2, 'power_analysis', { testType, analysisType, alpha, power, effectSize, sampleSize, sides })
 }
 
@@ -938,9 +960,16 @@ export interface NonlinearRegressionResult {
 
 export interface StepwiseRegressionResult {
   selectedVariables: string[]
+  selectedIndices: number[]
+  rSquaredHistory: number[]
   coefficients: number[]
+  stdErrors: number[]
+  tValues: number[]
+  pValues: number[]
   rSquared: number
-  steps: Array<{ step: number; variable: string; action: string; rSquared: number }> | undefined
+  adjustedRSquared: number
+  fStatistic: number
+  fPValue: number
 }
 
 export interface BinaryLogisticResult {
@@ -958,6 +987,13 @@ export interface MultinomialLogisticResult {
 
 export interface OrdinalLogisticResult {
   coefficients: number[]
+  stdErrors: number[]
+  zValues: number[]
+  pValues: number[]
+  aic: number
+  bic: number
+  llrPValue: number
+  llrStatistic: number
   thresholds: number[]
 }
 
@@ -969,7 +1005,15 @@ export interface ProbitRegressionResult {
 
 export interface PoissonRegressionResult {
   coefficients: number[]
+  stdErrors: number[]
+  zValues: number[]
   pValues: number[]
+  deviance: number
+  pearsonChi2: number
+  aic: number
+  bic: number
+  llrPValue: number
+  llrStatistic: number
   incidenceRateRatios: number[]
 }
 
@@ -1007,6 +1051,13 @@ export interface TimeSeriesAnalysisResult {
   adfStatistic: number
   adfPValue: number
   isStationary: boolean
+}
+
+export interface ArimaForecastResult {
+  forecast: number[]
+  confidenceIntervals: { lower: number[]; upper: number[] }
+  aic: number | null
+  bic: number | null
 }
 
 export interface DurbinWatsonTestResult {
@@ -1169,6 +1220,14 @@ export async function clusterAnalysis(data: number[] | number[][], method?: stri
  */
 export async function timeSeriesAnalysis(dataValues: number[] | number[][], seasonalPeriods?: number): Promise<TimeSeriesAnalysisResult> {
   return callWorkerMethod<TimeSeriesAnalysisResult>(4, 'time_series_analysis', { dataValues, seasonalPeriods })
+}
+
+/**
+ * ARIMA 예측
+ * @worker Worker 4
+ */
+export async function arimaForecast(values: number[], order?: [number, number, number], nForecast?: number): Promise<ArimaForecastResult> {
+  return callWorkerMethod<ArimaForecastResult>(4, 'arima_forecast', { values, order, nForecast })
 }
 
 /**
@@ -1494,7 +1553,7 @@ export interface HardyWeinbergResult {
   isMonomorphic: boolean
   interpretation: string
   nTotal: number
-  locusResults: Array<{ locus: string; observedCounts: number[]; expectedCounts: number[]; alleleFreqP: number; alleleFreqQ: number; chiSquare: number; pValue: number; exactPValue: number; degreesOfFreedom: number; inEquilibrium: boolean; isMonomorphic: boolean; nTotal: number; lowExpectedWarning: boolean }> | null
+  locusResults: Array<{ locus: string; observedCounts: number[]; expectedCounts: number[]; alleleFreqP: number; alleleFreqQ: number; chiSquare: number; pValue: number; degreesOfFreedom: number; inEquilibrium: boolean; isMonomorphic: boolean; nTotal: number; lowExpectedWarning: boolean }> | null
   lowExpectedWarning: boolean
 }
 
@@ -1507,11 +1566,11 @@ export interface FstResult {
   nIndividuals?: number
   nLoci?: number
   locusNames?: string[]
-  permutationPValue?: number | null
+  permutationPValue?: number
   nPermutations?: number
-  bootstrapCi?: [number, number] | null
+  bootstrapCi?: [number, number]
   nBootstrap?: number
-  bootstrapWarning?: string | null
+  bootstrapWarning?: string
 }
 
 
@@ -1527,7 +1586,7 @@ export async function hardyWeinberg(rows: number[][], locusLabels?: string[]): P
  * Fst 집단 분화 지수 — v1: allele count, v2: 개체별 유전자형 (Hudson 1992 + Bhatia 2013)
  * @worker Worker 9
  */
-export async function fst(populations?: number[][], populationLabels?: string[], genotypes?: string[][], individualPopulations?: string[], locusNames?: string[], nPermutations?: number, nBootstrap?: number): Promise<FstResult> {
+export async function fst(populations?: number[][], populationLabels?: string[], genotypes?: Array<Record<string, [string, string]>>, individualPopulations?: string[], locusNames?: string[], nPermutations?: number, nBootstrap?: number): Promise<FstResult> {
   return callWorkerMethod<FstResult>(9, 'fst', { populations, populationLabels, genotypes, individualPopulations, locusNames, nPermutations, nBootstrap })
 }
 
@@ -1538,7 +1597,7 @@ export async function fst(populations?: number[][], populationLabels?: string[],
 export type Worker1Method = 'descriptive_stats' | 'normality_test' | 'outlier_detection' | 'frequency_analysis' | 'crosstab_analysis' | 'one_sample_proportion_test' | 'cronbach_alpha' | 'kolmogorov_smirnov_test' | 'ks_test_one_sample' | 'ks_test_two_sample' | 'mann_kendall_test' | 'bonferroni_correction' | 'means_plot_data'
 export type Worker2Method = 't_test_two_sample' | 't_test_paired' | 't_test_one_sample' | 't_test_one_sample_summary' | 't_test_two_sample_summary' | 't_test_paired_summary' | 'z_test' | 'chi_square_test' | 'binomial_test' | 'correlation_test' | 'partial_correlation' | 'levene_test' | 'bartlett_test' | 'chi_square_goodness_test' | 'chi_square_independence_test' | 'fisher_exact_test' | 'power_analysis'
 export type Worker3Method = 'mann_whitney_test' | 'wilcoxon_test' | 'kruskal_wallis_test' | 'friedman_test' | 'one_way_anova' | 'two_way_anova' | 'tukey_hsd' | 'sign_test' | 'runs_test' | 'mcnemar_test' | 'cochran_q_test' | 'mood_median_test' | 'repeated_measures_anova' | 'ancova' | 'manova' | 'scheffe_test' | 'dunn_test' | 'games_howell_test'
-export type Worker4Method = 'linear_regression' | 'multiple_regression' | 'logistic_regression' | 'pca_analysis' | 'curve_estimation' | 'nonlinear_regression' | 'stepwise_regression' | 'binary_logistic' | 'multinomial_logistic' | 'ordinal_logistic' | 'probit_regression' | 'poisson_regression' | 'negative_binomial_regression' | 'factor_analysis' | 'cluster_analysis' | 'time_series_analysis' | 'durbin_watson_test' | 'discriminant_analysis' | 'kaplan_meier_survival' | 'cox_regression'
+export type Worker4Method = 'linear_regression' | 'multiple_regression' | 'logistic_regression' | 'pca_analysis' | 'curve_estimation' | 'nonlinear_regression' | 'stepwise_regression' | 'binary_logistic' | 'multinomial_logistic' | 'ordinal_logistic' | 'probit_regression' | 'poisson_regression' | 'negative_binomial_regression' | 'factor_analysis' | 'cluster_analysis' | 'time_series_analysis' | 'arima_forecast' | 'durbin_watson_test' | 'discriminant_analysis' | 'kaplan_meier_survival' | 'cox_regression'
 export type Worker5Method = 'kaplan_meier_analysis' | 'roc_curve_analysis' | 'meta_analysis' | 'icc_analysis'
 export type Worker6Method = 'render_chart'
 export type Worker7Method = 'fit_vbgf' | 'length_weight' | 'condition_factor'

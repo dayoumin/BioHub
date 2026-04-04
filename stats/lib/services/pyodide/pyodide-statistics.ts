@@ -550,7 +550,7 @@ export class PyodideStatisticsService {
     options: { paired?: boolean; equalVar?: boolean; type?: 'one-sample' | 'independent' | 'paired'; mu?: number; alternative?: 'two-sided' | 'less' | 'greater' } = {}
   ): Promise<{
     statistic: number
-    pvalue: number
+    pValue: number
     df: number
     confidenceInterval?: { lower: number; upper: number }
   }> {
@@ -559,21 +559,21 @@ export class PyodideStatisticsService {
       const result = await this.tTestOneSample(group1, options.mu ?? 0)
       return {
         statistic: result.statistic,
-        pvalue: result.pValue,
+        pValue: result.pValue,
         df: result.df
       }
     } else if (options.paired) {
       const result = await this.tTestPaired(group1, group2)
       return {
         statistic: result.statistic,
-        pvalue: result.pValue,
+        pValue: result.pValue,
         df: result.df
       }
     } else {
       const result = await this.tTestTwoSample(group1, group2, options.equalVar !== false)
       return {
         statistic: result.statistic,
-        pvalue: result.pValue,
+        pValue: result.pValue,
         df: result.df
       }
     }
@@ -672,11 +672,14 @@ export class PyodideStatisticsService {
     values: number[],
     order?: [number, number, number],
     nForecast?: number,
-  ): Promise<Record<string, unknown>> {
-    return this.core.callWorkerMethod<Record<string, unknown>>(
-      4, 'arima_forecast',
-      { values, order: order ?? [1, 1, 1], nForecast: nForecast ?? 10 }
+  ): Promise<Generated.ArimaForecastResult> {
+    const result = await Generated.arimaForecast(
+      values,
+      order ?? [1, 1, 1],
+      nForecast ?? 10,
     )
+    assertWorkerResultFields(result, ['forecast', 'confidenceIntervals'], 'arima_forecast')
+    return result
   }
 
   /**
@@ -685,11 +688,10 @@ export class PyodideStatisticsService {
    */
   async mannKendallTest(
     data: number[],
-  ): Promise<Record<string, unknown>> {
-    return this.core.callWorkerMethod<Record<string, unknown>>(
-      1, 'mann_kendall_test',
-      { data }
-    )
+  ): Promise<Generated.MannKendallTestResult> {
+    const result = await Generated.mannKendallTest(data)
+    assertWorkerResultFields(result, ['tau', 'pValue', 'trend', 'senSlope'], 'mann_kendall_test')
+    return result
   }
 
   // ========== Wrapper 메서드들 (StatisticalCalculator와의 호환성) ==========

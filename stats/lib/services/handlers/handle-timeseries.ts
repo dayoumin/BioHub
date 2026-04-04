@@ -8,8 +8,8 @@ export async function handleTimeSeries(method: StatisticalMethod, data: Prepared
   // ARIMA 예측 — 전용 Worker 4 함수 사용
   if (method.id === 'arima') {
     const result = await pyodideStats.arimaForecast(timeData)
-    const aic = typeof result.aic === 'number' ? result.aic : 0
-    const bic = typeof result.bic === 'number' ? result.bic : 0
+    const aic = result.aic ?? 0
+    const bic = result.bic ?? 0
     return {
       metadata: {
         method: method.id,
@@ -34,13 +34,9 @@ export async function handleTimeSeries(method: StatisticalMethod, data: Prepared
     }
   }
 
-  // Mann-Kendall 추세 검정 — 전용 Worker 1 함수 사용
+  // Mann-Kendall 추세 검정 — 전용 Worker 1 함수 사용 (Generated.MannKendallTestResult)
   if (method.id === 'mann-kendall') {
     const result = await pyodideStats.mannKendallTest(timeData)
-    const tau = typeof result.tau === 'number' ? result.tau : 0
-    const pValue = typeof result.pValue === 'number' ? result.pValue : 1
-    const trend = typeof result.trend === 'string' ? result.trend : 'unknown'
-    const senSlope = typeof result.senSlope === 'number' ? result.senSlope : 0
     return {
       metadata: {
         method: method.id,
@@ -50,15 +46,15 @@ export async function handleTimeSeries(method: StatisticalMethod, data: Prepared
         dataInfo: { totalN: timeData.length, missingRemoved: 0 }
       },
       mainResults: {
-        statistic: tau,
-        pvalue: pValue,
+        statistic: result.tau,
+        pvalue: result.pValue,
         df: 0,
-        significant: pValue < 0.05,
-        interpretation: pValue < 0.05
-          ? `Mann-Kendall τ = ${tau.toFixed(4)}, p = ${pValue.toFixed(4)} → 유의한 ${trend === 'increasing' ? '증가' : '감소'} 추세 (Sen's slope = ${senSlope.toFixed(4)})`
-          : `Mann-Kendall τ = ${tau.toFixed(4)}, p = ${pValue.toFixed(4)} → 유의한 추세 없음`
+        significant: result.pValue < 0.05,
+        interpretation: result.pValue < 0.05
+          ? `Mann-Kendall τ = ${result.tau.toFixed(4)}, p = ${result.pValue.toFixed(4)} → 유의한 ${result.trend === 'increasing' ? '증가' : '감소'} 추세 (Sen's slope = ${result.senSlope.toFixed(4)})`
+          : `Mann-Kendall τ = ${result.tau.toFixed(4)}, p = ${result.pValue.toFixed(4)} → 유의한 추세 없음`
       },
-      additionalInfo: { tau, senSlope, trend },
+      additionalInfo: { tau: result.tau, senSlope: result.senSlope, trend: result.trend },
       visualizationData: {
         type: 'time-series',
         data: result

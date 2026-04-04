@@ -124,10 +124,10 @@ export async function handleTTest(method: StatisticalMethod, data: PreparedData)
     },
     mainResults: {
       statistic: result.statistic,
-      pvalue: result.pvalue,
+      pvalue: result.pValue,
       df: result.df,
-      significant: result.pvalue < 0.05,
-      interpretation: result.pvalue < 0.05 ?
+      significant: result.pValue < 0.05,
+      interpretation: result.pValue < 0.05 ?
         '두 그룹 간 유의한 차이가 있습니다' :
         '두 그룹 간 유의한 차이가 없습니다'
     },

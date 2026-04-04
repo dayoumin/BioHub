@@ -63,8 +63,21 @@ function paramToType(param) {
     type = '(string | number)[]'
   }
   // 문자열 배열
-  else if (name === 'groupLabels' || name === 'varNames' || name === 'variableNames' || name === 'covariateNames') {
+  else if (name === 'groupLabels' || name === 'varNames' || name === 'variableNames' || name === 'covariateNames' ||
+    name === 'populationLabels' || name === 'locusNames') {
     type = 'string[]'
+  }
+  // 유전자형 데이터 (개체별 유전자형)
+  else if (name === 'genotypes') {
+    type = 'Array<Record<string, [string, string]>>'
+  }
+  // 개체별 집단 소속
+  else if (name === 'individualPopulations') {
+    type = 'string[]'
+  }
+  // 순열/부트스트랩 반복 수
+  else if (name === 'nPermutations' || name === 'nBootstrap') {
+    type = 'number'
   }
   // 숫자 배열 (1D)
   else if (name === 'data') {
@@ -128,8 +141,11 @@ function paramToType(param) {
   else if (name === 'seasonalPeriods' || name === 'forecastPeriods') {
     type = 'number'
   }
-  else if (name === 'power' || name === 'effectSize' || name === 'sampleSize' || name === 'sides') {
+  else if (name === 'power' || name === 'effectSize' || name === 'sampleSize') {
     type = 'number'
+  }
+  else if (name === 'sides') {
+    type = 'string'
   }
   else if (name === 'confidenceLevel') {
     type = 'number'
@@ -206,6 +222,19 @@ const METHOD_TYPE_OVERRIDES = {
     'confidenceInterval': '{ lower: number[]; upper: number[] }',
     'isSignificant': 'boolean',
   },
+  'arima_forecast': {
+    'confidenceIntervals': '{ lower: number[]; upper: number[] }',
+    'aic': 'number | null',
+    'bic': 'number | null',
+  },
+  'ordinal_logistic': {
+    'llrStatistic': 'number',
+  },
+  'poisson_regression': {
+    'llrStatistic': 'number',
+    'deviance': 'number',
+    'pearsonChi2': 'number',
+  },
   // ========================================
   // Phase 5-2: unknown 타입 해소 오버라이드
   // ========================================
@@ -240,7 +269,8 @@ const METHOD_TYPE_OVERRIDES = {
     'parameters': 'number[]',
   },
   'stepwise_regression': {
-    'steps': 'Array<{ step: number; variable: string; action: string; rSquared: number }> | undefined',
+    'selectedIndices': 'number[]',
+    'rSquaredHistory': 'number[]',
   },
   'probit_regression': {
     'marginalEffects': 'number[] | undefined',
@@ -251,6 +281,48 @@ const METHOD_TYPE_OVERRIDES = {
     'classificationResults': 'Array<{ originalGroup: string; predictedGroup: string; probability: number; correct: boolean }>',
     'confusionMatrix': 'Record<string, Record<string, number>>',
     'equalityTests': '{ boxM: { statistic: number; pValue: number; significant: boolean }; wilksLambda: { statistic: number; pValue: number; significant: boolean } }',
+  },
+  'descriptive_stats': {
+    'se': 'number',
+    'sem': 'number',
+    'confidenceLevel': 'number',
+    'ciLower': 'number',
+    'ciUpper': 'number',
+  },
+  'outlier_detection': {
+    'outlierCount': 'number',
+  },
+  'ks_test_one_sample': {
+    'testType': 'string',
+    'statisticKS': 'number',
+    'criticalValue': 'number',
+    'sampleSizes': '{ n1: number }',
+    'distributionInfo': '{ expectedDistribution: string; observedMean: number; observedStd: number; expectedMean: number; expectedStd: number }',
+  },
+  'ks_test_two_sample': {
+    'testType': 'string',
+    'statisticKS': 'number',
+    'criticalValue': 'number',
+    'sampleSizes': '{ n1: number; n2: number }',
+  },
+  'mann_kendall_test': {
+    'zScore': 'number',
+    'senSlope': 'number',
+  },
+  'bonferroni_correction': {
+    'originalPValues': 'number[]',
+    'correctedPValues': 'number[]',
+    'adjustedAlpha': 'number',
+    'nComparisons': 'number',
+    'significant': 'boolean[]',
+  },
+  'fisher_exact_test': {
+    'reject': 'boolean',
+    'alternative': 'string',
+    'oddsRatioInterpretation': 'string',
+    'rowTotals': 'number[]',
+    'columnTotals': 'number[]',
+    'sampleSize': 'number',
   },
   'repeated_measures_anova': {
     'df': '{ numerator: number; denominator: number }',
@@ -372,12 +444,21 @@ const METHOD_TYPE_OVERRIDES = {
     'nTotal': 'number',
     'lowExpectedWarning': 'boolean',
     'locusResults': 'Array<{ locus: string; observedCounts: number[]; expectedCounts: number[]; alleleFreqP: number; alleleFreqQ: number; chiSquare: number; pValue: number; degreesOfFreedom: number; inEquilibrium: boolean; isMonomorphic: boolean; nTotal: number; lowExpectedWarning: boolean }> | null',
+    'exactPValue': 'number',
   },
   'fst': {
     'globalFst': 'number',
     'pairwiseFst': 'number[][] | null',
     'populationLabels': 'string[]',
     'nPopulations': 'number',
+    'nIndividuals': 'number',
+    'nLoci': 'number',
+    'locusNames': 'string[]',
+    'permutationPValue': 'number',
+    'nPermutations': 'number',
+    'bootstrapCi': '[number, number]',
+    'nBootstrap': 'number',
+    'bootstrapWarning': 'string',
   },
 }
 
@@ -388,9 +469,12 @@ function returnsToInterface(methodName, returns) {
   const interfaceName = `${toPascalCase(methodName)}Result`
   const overrides = METHOD_TYPE_OVERRIDES[methodName] || {}
   const fields = returns.map(key => {
-    // 메서드별 오버라이드 우선 적용
-    if (overrides[key]) {
-      return `  ${key}: ${overrides[key]}`
+    const optional = key.endsWith('?')
+    const cleanKey = optional ? key.slice(0, -1) : key
+
+    // 메서드별 오버라이드 우선 적용 (cleanKey로 lookup)
+    if (overrides[cleanKey]) {
+      return `  ${cleanKey}${optional ? '?' : ''}: ${overrides[cleanKey]}`
     }
     let type = 'unknown'
 
@@ -399,215 +483,215 @@ function returnsToInterface(methodName, returns) {
     // ========================================
 
     // 통계량/검정
-    if (key === 'pValue' || key === 'statistic' || key === 'correlation' || key === 'criticalValue') {
+    if (cleanKey === 'pValue' || cleanKey === 'statistic' || cleanKey === 'correlation' || cleanKey === 'criticalValue') {
       type = 'number'
-    } else if (key === 'pValueExact' || key === 'pValueApprox' || key === 'qStatistic') {
+    } else if (cleanKey === 'pValueExact' || cleanKey === 'pValueApprox' || cleanKey === 'qStatistic') {
       type = 'number'
     }
     // 기술통계
-    else if (key === 'mean' || key === 'median' || key === 'std' || key === 'variance') {
+    else if (cleanKey === 'mean' || cleanKey === 'median' || cleanKey === 'std' || cleanKey === 'variance') {
       type = 'number'
-    } else if (key === 'mode' || key === 'min' || key === 'max' || key === 'q1' || key === 'q3' || key === 'iqr') {
+    } else if (cleanKey === 'mode' || cleanKey === 'min' || cleanKey === 'max' || cleanKey === 'q1' || cleanKey === 'q3' || cleanKey === 'iqr') {
       type = 'number'
-    } else if (key === 'skewness' || key === 'kurtosis') {
+    } else if (cleanKey === 'skewness' || cleanKey === 'kurtosis') {
       type = 'number'
-    } else if (key === 'mean1' || key === 'mean2' || key === 'std1' || key === 'std2' || key === 'meanDiff') {
+    } else if (cleanKey === 'mean1' || cleanKey === 'mean2' || cleanKey === 'std1' || cleanKey === 'std2' || cleanKey === 'meanDiff') {
       type = 'number'
-    } else if (key === 'sampleMean' || key === 'sampleStd' || key === 'standardError') {
+    } else if (cleanKey === 'sampleMean' || cleanKey === 'sampleStd' || cleanKey === 'standardError') {
       type = 'number'
     }
     // F/Chi/Z 통계량
-    else if (key === 'fStatistic' || key === 'chiSquare' || key === 'zStatistic') {
+    else if (cleanKey === 'fStatistic' || cleanKey === 'chiSquare' || cleanKey === 'zStatistic') {
       type = 'number'
     }
     // ANCOVA 그룹별 F/p 통계량, 반복측정 구형성 epsilon
-    else if (key === 'fStatisticGroup' || key === 'pValueGroup' || key === 'sphericityEpsilon') {
+    else if (cleanKey === 'fStatisticGroup' || cleanKey === 'pValueGroup' || cleanKey === 'sphericityEpsilon') {
       type = 'number'
     }
     // 자유도
-    else if (key === 'df' || key === 'dfBetween' || key === 'dfWithin' || key === 'degreesOfFreedom') {
+    else if (cleanKey === 'df' || cleanKey === 'dfBetween' || cleanKey === 'dfWithin' || cleanKey === 'degreesOfFreedom') {
       type = 'number'
     }
     // 분석 메타
-    else if (key === 'nFactors' || key === 'selectedFunctions' || key === 'selectedComponents') {
+    else if (cleanKey === 'nFactors' || cleanKey === 'selectedFunctions' || cleanKey === 'selectedComponents') {
       type = 'number'
-    } else if (key === 'totalVarianceExplained') {
+    } else if (cleanKey === 'totalVarianceExplained') {
       type = 'number'
     }
     // 효과 크기
-    else if (key === 'cohensD' || key === 'etaSquared' || key === 'omegaSquared' || key === 'cramersV') {
+    else if (cleanKey === 'cohensD' || cleanKey === 'etaSquared' || cleanKey === 'omegaSquared' || cleanKey === 'cramersV') {
       type = 'number'
-    } else if (key === 'effectSize' || key === 'oddsRatio' || key === 'inertia') {
+    } else if (cleanKey === 'effectSize' || cleanKey === 'oddsRatio' || cleanKey === 'inertia') {
       type = 'number'
     }
     // 회귀 (스칼라)
-    else if (key === 'rSquared' || key === 'adjRSquared' || key === 'adjustedRSquared' || key === 'slope' || key === 'intercept') {
+    else if (cleanKey === 'rSquared' || cleanKey === 'adjRSquared' || cleanKey === 'adjustedRSquared' || cleanKey === 'slope' || cleanKey === 'intercept') {
       type = 'number'
-    } else if (key === 'accuracy' || key === 'auc' || key === 'dispersion') {
+    } else if (cleanKey === 'accuracy' || cleanKey === 'auc' || cleanKey === 'dispersion') {
       type = 'number'
-    } else if (key === 'fPValue' || key === 'llrPValue' || key === 'residualStdError') {
+    } else if (cleanKey === 'fPValue' || cleanKey === 'llrPValue' || cleanKey === 'residualStdError') {
       type = 'number'
-    } else if (key === 'sensitivity' || key === 'specificity' || key === 'pseudoRSquared') {
+    } else if (cleanKey === 'sensitivity' || cleanKey === 'specificity' || cleanKey === 'pseudoRSquared') {
       type = 'number'
-    } else if (key === 'aic' || key === 'bic' || key === 'nObservations' || key === 'nPredictors') {
+    } else if (cleanKey === 'aic' || cleanKey === 'bic' || cleanKey === 'nObservations' || cleanKey === 'nPredictors') {
       type = 'number'
     }
     // 표본 크기
-    else if (key === 'n' || key === 'n1' || key === 'n2' || key === 'nPairs' || key === 'total') {
+    else if (cleanKey === 'n' || cleanKey === 'n1' || cleanKey === 'n2' || cleanKey === 'nPairs' || cleanKey === 'total') {
       type = 'number'
-    } else if (key === 'nItems' || key === 'nRespondents' || key === 'uniqueCount') {
+    } else if (cleanKey === 'nItems' || cleanKey === 'nRespondents' || cleanKey === 'uniqueCount') {
       type = 'number'
-    } else if (key === 'grandTotal' || key === 'grandMedian') {
+    } else if (cleanKey === 'grandTotal' || cleanKey === 'grandMedian') {
       type = 'number'
     }
     // 비율/검정
-    else if (key === 'proportion' || key === 'sampleProportion' || key === 'nullProportion' || key === 'expectedProportion') {
+    else if (cleanKey === 'proportion' || cleanKey === 'sampleProportion' || cleanKey === 'nullProportion' || cleanKey === 'expectedProportion') {
       type = 'number'
-    } else if (key === 'successCount' || key === 'totalCount') {
+    } else if (cleanKey === 'successCount' || cleanKey === 'totalCount') {
       type = 'number'
     }
     // Runs test
-    else if (key === 'nRuns' || key === 'expectedRuns' || key === 'nPositive' || key === 'nNegative' || key === 'nTies') {
+    else if (cleanKey === 'nRuns' || cleanKey === 'expectedRuns' || cleanKey === 'nPositive' || cleanKey === 'nNegative' || cleanKey === 'nTies') {
       type = 'number'
     }
     // Cronbach Alpha
-    else if (key === 'alpha' || key === 'correctedAlpha') {
+    else if (cleanKey === 'alpha' || cleanKey === 'correctedAlpha') {
       type = 'number'
     }
     // Kendall's Tau
-    else if (key === 'tau' || key === 'concordance' || key === 'discordantPairs') {
+    else if (cleanKey === 'tau' || cleanKey === 'concordance' || cleanKey === 'discordantPairs') {
       type = 'number'
     }
     // Power analysis
-    else if (key === 'achievedPower' || key === 'requiredSampleSize') {
+    else if (cleanKey === 'achievedPower' || cleanKey === 'requiredSampleSize') {
       type = 'number'
     }
     // Cluster
-    else if (key === 'silhouetteScore') {
+    else if (cleanKey === 'silhouetteScore') {
       type = 'number'
     }
     // Survival
-    else if (key === 'medianSurvival') {
+    else if (cleanKey === 'medianSurvival') {
       type = 'number'
     }
     // MANOVA/Discriminant
-    else if (key === 'wilksLambda') {
+    else if (cleanKey === 'wilksLambda') {
       type = 'number'
     }
     // Bounds
-    else if (key === 'lowerBound' || key === 'upperBound') {
+    else if (cleanKey === 'lowerBound' || cleanKey === 'upperBound') {
       type = 'number'
     }
 
     // ========================================
     // 2. 불린 (boolean)
     // ========================================
-    else if (key === 'isNormal' || key === 'homogeneous' || key === 'significant' || key === 'reject') {
+    else if (cleanKey === 'isNormal' || cleanKey === 'homogeneous' || cleanKey === 'significant' || cleanKey === 'reject') {
       type = 'boolean'
-    } else if (key === 'equalVariance' || key === 'continuityCorrection') {
+    } else if (cleanKey === 'equalVariance' || cleanKey === 'continuityCorrection') {
       type = 'boolean'
     }
 
     // ========================================
     // 3. 문자열 (string)
     // ========================================
-    else if (key === 'interpretation' || key === 'method' || key === 'trend' || key === 'equation') {
+    else if (cleanKey === 'interpretation' || cleanKey === 'method' || cleanKey === 'trend' || cleanKey === 'equation') {
       type = 'string'
     }
 
     // ========================================
     // 4. 숫자 배열 (number[])
     // ========================================
-    else if (key === 'coefficients' || key === 'eigenvalues') {
+    else if (cleanKey === 'coefficients' || cleanKey === 'eigenvalues') {
       type = 'number[]'
     }
     // 회귀 배열
-    else if (key === 'stdErrors' || key === 'tValues' || key === 'zValues') {
+    else if (cleanKey === 'stdErrors' || cleanKey === 'tValues' || cleanKey === 'zValues') {
       type = 'number[]'
-    } else if (key === 'ciLower' || key === 'ciUpper') {
+    } else if (cleanKey === 'ciLower' || cleanKey === 'ciUpper') {
       type = 'number[]'
-    } else if (key === 'residuals' || key === 'fittedValues' || key === 'vif') {
+    } else if (cleanKey === 'residuals' || cleanKey === 'fittedValues' || cleanKey === 'vif') {
       type = 'number[]'
-    } else if (key === 'predictedClass') {
+    } else if (cleanKey === 'predictedClass') {
       type = 'number[]'
     }
     // 2D 숫자 배열 (명시적)
-    else if (key === 'loadings') {
+    else if (cleanKey === 'loadings') {
       type = 'number[][]'
-    } else if (key === 'clusters' || key === 'predictions' || key === 'scores') {
+    } else if (cleanKey === 'clusters' || cleanKey === 'predictions' || cleanKey === 'scores') {
       type = 'number[]'
-    } else if (key.includes('forecast') || key === 'acf' || key === 'pacf' || key === 'seasonal' || key === 'residual') {
+    } else if (cleanKey.includes('forecast') || cleanKey === 'acf' || cleanKey === 'pacf' || cleanKey === 'seasonal' || cleanKey === 'residual') {
       type = 'number[]'
-    } else if (key === 'frequencies' || key === 'percentages' || key === 'cumulativePercentages') {
+    } else if (cleanKey === 'frequencies' || cleanKey === 'percentages' || cleanKey === 'cumulativePercentages') {
       type = 'number[]'
-    } else if (key === 'rowTotals' || key === 'colTotals') {
+    } else if (cleanKey === 'rowTotals' || cleanKey === 'colTotals') {
       type = 'number[]'
-    } else if (key === 'adjustedPValues' || key === 'pValues') {
+    } else if (cleanKey === 'adjustedPValues' || cleanKey === 'pValues') {
       type = 'number[]'
-    } else if (key === 'observed' || key === 'expected') {
+    } else if (cleanKey === 'observed' || cleanKey === 'expected') {
       type = 'number[]'
-    } else if (key === 'outlierIndices' || key === 'outlierValues') {
+    } else if (cleanKey === 'outlierIndices' || cleanKey === 'outlierValues') {
       type = 'number[]'
-    } else if (key === 'communalities' || key === 'explainedVariance' || key === 'cumulativeVariance') {
+    } else if (cleanKey === 'communalities' || cleanKey === 'explainedVariance' || cleanKey === 'cumulativeVariance') {
       type = 'number[]'
-    } else if (key === 'explainedVarianceRatio') {
+    } else if (cleanKey === 'explainedVarianceRatio') {
       type = 'number[]'
-    } else if (key === 'totalVariance') {
+    } else if (cleanKey === 'totalVariance') {
       type = 'number'
-    } else if (key === 'hazardRatios' || key === 'oddsRatios' || key === 'incidenceRateRatios') {
+    } else if (cleanKey === 'hazardRatios' || cleanKey === 'oddsRatios' || cleanKey === 'incidenceRateRatios') {
       type = 'number[]'
-    } else if (key === 'survivalProbabilities' || key === 'survivalFunction' || key === 'thresholds') {
+    } else if (cleanKey === 'survivalProbabilities' || cleanKey === 'survivalFunction' || cleanKey === 'thresholds') {
       type = 'number[]'
-    } else if (key === 'nRisk' || key === 'events' || key === 'times') {
+    } else if (cleanKey === 'nRisk' || cleanKey === 'events' || cleanKey === 'times') {
       type = 'number[]'
-    } else if (key === 'adjustedMeans') {
+    } else if (cleanKey === 'adjustedMeans') {
       type = 'Array<{ group: string | number; mean: number }>'
-    } else if (key === 'fStatisticCovariate' || key === 'pValueCovariate') {
+    } else if (cleanKey === 'fStatisticCovariate' || cleanKey === 'pValueCovariate') {
       type = 'number[]'
     }
 
     // ========================================
     // 5. 2D 배열 (number[][])
     // ========================================
-    else if (key === 'expectedMatrix' || key === 'observedMatrix' || key === 'confusionMatrix') {
+    else if (cleanKey === 'expectedMatrix' || cleanKey === 'observedMatrix' || cleanKey === 'confusionMatrix') {
       type = 'number[][]'
-    } else if (key === 'centers' || key === 'components') {
+    } else if (cleanKey === 'centers' || cleanKey === 'components') {
       type = 'number[][]'
     }
 
     // ========================================
     // 6. 문자열 배열 (string[])
     // ========================================
-    else if (key === 'categories' || key === 'rowCategories' || key === 'colCategories') {
+    else if (cleanKey === 'categories' || cleanKey === 'rowCategories' || cleanKey === 'colCategories') {
       type = 'string[]'
-    } else if (key === 'selectedVariables') {
+    } else if (cleanKey === 'selectedVariables') {
       type = 'string[]'
     }
 
     // ========================================
     // 7. 객체/복합 타입
     // ========================================
-    else if (key === 'confidenceIntervals') {
+    else if (cleanKey === 'confidenceIntervals') {
       type = '{ lower: number; upper: number }[]'
-    } else if (key === 'confidenceInterval') {
+    } else if (cleanKey === 'confidenceInterval') {
       type = 'unknown' // Can be number[] or Record<string, number[]>
-    } else if (key === 'comparisons' || key === 'significantResults') {
+    } else if (cleanKey === 'comparisons' || cleanKey === 'significantResults') {
       type = 'Array<{ group1: string; group2: string; meanDiff?: number; pValue: number; significant: boolean }>'
-    } else if (key === 'anovaTable' || key === 'descriptives' || key === 'equalityTests' || key === 'assumptions') {
+    } else if (cleanKey === 'anovaTable' || cleanKey === 'descriptives' || cleanKey === 'equalityTests' || cleanKey === 'assumptions') {
       type = 'Record<string, unknown>'
-    } else if (key === 'groupCentroids' || key === 'classificationResults') {
+    } else if (cleanKey === 'groupCentroids' || cleanKey === 'classificationResults') {
       type = 'unknown[]'
-    } else if (key === 'rocCurve') {
+    } else if (cleanKey === 'rocCurve') {
       type = 'Array<{ fpr: number; tpr: number }>'
-    } else if (key === 'factor1' || key === 'factor2' || key === 'interaction') {
+    } else if (cleanKey === 'factor1' || cleanKey === 'factor2' || cleanKey === 'interaction') {
       type = '{ fStatistic: number; pValue: number; df: number }'
-    } else if (key === 'plotData') {
+    } else if (cleanKey === 'plotData') {
       type = '{ x: number[]; y: number[]; labels?: string[] }'
-    } else if (key === 'steps' || key === 'functions' || key === 'marginalEffects' || key === 'parameters') {
+    } else if (cleanKey === 'steps' || cleanKey === 'functions' || cleanKey === 'marginalEffects' || cleanKey === 'parameters') {
       type = 'unknown[]'
     }
 
-    return `  ${key}: ${type}`
+    return `  ${cleanKey}${optional ? '?' : ''}: ${type}`
   }).join('\n')
 
   return `export interface ${interfaceName} {\n${fields}\n}`
@@ -636,6 +720,11 @@ function toCamelCase(str) {
  * key-name 추론이 부정확한 경우 사용
  */
 const METHOD_PARAM_OVERRIDES = {
+  'arima_forecast': {
+    'values': 'number[]',
+    'order': '[number, number, number]',
+    'nForecast': 'number',
+  },
   'frequency_analysis': {
     'values': '(string | number)[]',
   },
