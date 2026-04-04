@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { generateSecureHash } from '@/lib/services/pyodide-helper'
+import { generateSecureHash } from '@/lib/services/pyodide/pyodide-helper'
 
 interface CachedAnalysis {
   methodId: string

@@ -72,7 +72,7 @@ global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
 process.env.NODE_ENV = 'test';
 
 // PyodideStatisticsService mock
-vi.mock('@/lib/services/pyodide-statistics', () => ({
+vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
   pyodideStats: {
     initialize: vi.fn().mockResolvedValue(undefined),
     dispose: vi.fn(),

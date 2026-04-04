@@ -30,7 +30,7 @@
  */
 
 import type { PyodideInterface } from '@/types/pyodide'
-import { PyodideCoreService, type WorkerMethodParam } from './pyodide/core/pyodide-core.service'
+import { PyodideCoreService, type WorkerMethodParam } from './core/pyodide-core.service'
 import * as Generated from '@/lib/generated/method-types.generated'
 import {
   clusterAnalysisAdapter,

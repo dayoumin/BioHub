@@ -1,8 +1,8 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from 'react'
-import { PyodideStatisticsService } from '@/lib/services/pyodide-statistics'
-import { retryPyodideOperation } from '@/lib/services/pyodide-helper'
+import { PyodideStatisticsService } from '@/lib/services/pyodide/pyodide-statistics'
+import { retryPyodideOperation } from '@/lib/services/pyodide/pyodide-helper'
 import { PyodideCoreService, PyodideLoadingProgress } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideLoadingIndicator } from '@/components/pyodide/PyodideLoadingIndicator'
 

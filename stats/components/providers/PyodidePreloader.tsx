@@ -20,7 +20,7 @@
 import { useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
-import { PyodideStatisticsService } from '@/lib/services/pyodide-statistics'
+import { PyodideStatisticsService } from '@/lib/services/pyodide/pyodide-statistics'
 
 /** Pyodide 프리로드가 필요한 라우트 접두사 */
 const PYODIDE_ROUTE_PREFIXES = ['/statistics']

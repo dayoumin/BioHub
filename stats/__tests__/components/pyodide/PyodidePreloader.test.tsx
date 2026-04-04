@@ -34,7 +34,7 @@ vi.mock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
 
 // PyodideStatisticsService mock
 const mockInitialize = vi.fn().mockResolvedValue(undefined)
-vi.mock('@/lib/services/pyodide-statistics', () => ({
+vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
   PyodideStatisticsService: {
     getInstance: () => ({
       initialize: mockInitialize,
@@ -145,7 +145,7 @@ describe('PyodidePreloader', () => {
       }))
 
       const mockInit = vi.fn().mockResolvedValue(undefined)
-      vi.doMock('@/lib/services/pyodide-statistics', () => ({
+      vi.doMock('@/lib/services/pyodide/pyodide-statistics', () => ({
         PyodideStatisticsService: {
           getInstance: () => ({
             initialize: mockInit,
@@ -190,7 +190,7 @@ describe('PyodidePreloader', () => {
       }))
 
       const skipInit = vi.fn()
-      vi.doMock('@/lib/services/pyodide-statistics', () => ({
+      vi.doMock('@/lib/services/pyodide/pyodide-statistics', () => ({
         PyodideStatisticsService: {
           getInstance: () => ({
             initialize: skipInit,
@@ -221,7 +221,7 @@ describe('PyodidePreloader', () => {
         },
       }))
       const skipInit = vi.fn().mockResolvedValue(undefined)
-      vi.doMock('@/lib/services/pyodide-statistics', () => ({
+      vi.doMock('@/lib/services/pyodide/pyodide-statistics', () => ({
         PyodideStatisticsService: {
           getInstance: () => ({
             initialize: skipInit,
@@ -252,7 +252,7 @@ describe('PyodidePreloader', () => {
         },
       }))
       const statsInit = vi.fn().mockResolvedValue(undefined)
-      vi.doMock('@/lib/services/pyodide-statistics', () => ({
+      vi.doMock('@/lib/services/pyodide/pyodide-statistics', () => ({
         PyodideStatisticsService: {
           getInstance: () => ({
             initialize: statsInit,
@@ -288,7 +288,7 @@ describe('PyodidePreloader', () => {
       }))
 
       const failInit = vi.fn().mockRejectedValue(new Error('CDN 접근 불가'))
-      vi.doMock('@/lib/services/pyodide-statistics', () => ({
+      vi.doMock('@/lib/services/pyodide/pyodide-statistics', () => ({
         PyodideStatisticsService: {
           getInstance: () => ({
             initialize: failInit,
@@ -343,7 +343,7 @@ describe('PyodidePreloader', () => {
           }),
         },
       }))
-      vi.doMock('@/lib/services/pyodide-statistics', () => ({
+      vi.doMock('@/lib/services/pyodide/pyodide-statistics', () => ({
         PyodideStatisticsService: {
           getInstance: () => ({
             initialize: vi.fn().mockResolvedValue(undefined),

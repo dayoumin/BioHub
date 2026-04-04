@@ -19,7 +19,7 @@ interface MockPyodideStats {
 }
 
 // Mock pyodide-statistics module
-vi.mock('@/lib/services/pyodide-statistics', () => ({
+vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
   pyodideStats: {
     discriminantAnalysis: vi.fn(),
     kaplanMeierSurvival: vi.fn(),
@@ -31,7 +31,7 @@ vi.mock('@/lib/services/pyodide-statistics', () => ({
 }))
 
 // Import after mock setup
-import { pyodideStats } from '@/lib/services/pyodide-statistics'
+import { pyodideStats } from '@/lib/services/pyodide/pyodide-statistics'
 
 const mockPyodideStats = pyodideStats as unknown as MockPyodideStats
 

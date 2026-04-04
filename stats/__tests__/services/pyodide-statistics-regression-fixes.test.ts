@@ -38,12 +38,12 @@ vi.mock('@/lib/generated/method-types.generated', () => ({
 describe('pyodide-statistics regression fixes', () => {
   beforeEach(() => {
     vi.resetModules()
-    vi.unmock('@/lib/services/pyodide-statistics')
+    vi.unmock('@/lib/services/pyodide/pyodide-statistics')
     vi.clearAllMocks()
   })
 
   async function getServiceInstance() {
-    const { PyodideStatisticsService } = await import('@/lib/services/pyodide-statistics')
+    const { PyodideStatisticsService } = await import('@/lib/services/pyodide/pyodide-statistics')
     return PyodideStatisticsService.getInstance()
   }
 

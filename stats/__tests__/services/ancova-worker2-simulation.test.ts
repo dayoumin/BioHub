@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { Worker2AncovaResult } from '@/lib/services/pyodide-statistics'
+import type { Worker2AncovaResult } from '@/lib/services/pyodide/pyodide-statistics'
 
 // ─── Mock 설정 (vi.hoisted로 호이스팅) ─────────────────────
 
@@ -31,7 +31,7 @@ const {
   mockTukeyHSD: vi.fn(),
 }))
 
-vi.mock('@/lib/services/pyodide-statistics', () => ({
+vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
   pyodideStats: {
     ancovaAnalysisWorker: mockAncovaAnalysisWorker,
     gamesHowellTest: mockGamesHowellTest,

@@ -1,4 +1,4 @@
-import { pyodideStats } from '../pyodide-statistics'
+import { pyodideStats } from '../pyodide/pyodide-statistics'
 import { AnalysisResult } from './types'
 import { logger } from '@/lib/utils/logger'
 

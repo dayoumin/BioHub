@@ -16,7 +16,7 @@ import { describe, it, beforeAll } from 'vitest'
 
 import { vi } from 'vitest'
 // Mock Pyodide for unit testing (avoid actual Python execution)
-vi.mock('@/lib/services/pyodide-statistics', () => ({
+vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
   pyodideStats: {
     initialize: vi.fn().mockResolvedValue(undefined),
     mannWhitneyU: vi.fn().mockResolvedValue({ statistic: 45.0, pvalue: 0.023 }),

@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { StatisticalExecutor } from '@/lib/services/executors'
 import type { StatisticalExecutorResult as ExecutorResult } from '@/lib/services/executors'
-import { pyodideStats } from '@/lib/services/pyodide-statistics'
+import { pyodideStats } from '@/lib/services/pyodide/pyodide-statistics'
 import { transformExecutorResult } from '@/lib/utils/result-transformer'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { awaitPreemptiveAssumptions, executeAssumptionTests } from '@/lib/services/preemptive-assumption-service'

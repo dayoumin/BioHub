@@ -58,7 +58,7 @@ vi.mock('@/lib/services/executors', () => ({
   },
 }))
 
-vi.mock('@/lib/services/pyodide-statistics', () => ({
+vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
   pyodideStats: {
     isInitialized: mockIsInitialized,
     initialize: mockInitialize,

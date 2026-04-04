@@ -1,6 +1,6 @@
 import { BaseExecutor } from './base-executor'
 import { AnalysisResult } from './types'
-import { pyodideStats } from '../pyodide-statistics'
+import { pyodideStats } from '../pyodide/pyodide-statistics'
 import { logger } from '@/lib/utils/logger'
 
 /**

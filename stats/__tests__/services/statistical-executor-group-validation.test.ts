@@ -1,7 +1,7 @@
 import { StatisticalExecutor } from '@/lib/services/statistical-executor'
 
 import { vi } from 'vitest'
-vi.mock('@/lib/services/pyodide-statistics', () => ({
+vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
   pyodideStats: {
     tTest: vi.fn(),
     anova: vi.fn(),

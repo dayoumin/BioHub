@@ -13,7 +13,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { vi } from 'vitest'
 // Mock Pyodide for unit testing
 // Method names must match actual pyodideStats methods in lib/services/pyodide-statistics.ts
-vi.mock('@/lib/services/pyodide-statistics', () => ({
+vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
   pyodideStats: {
     isReady: true,
     initialize: vi.fn().mockResolvedValue(undefined),
@@ -120,7 +120,7 @@ vi.mock('@/lib/services/pyodide-statistics', () => ({
 
 // Import after mock
 import { StatisticalExecutor } from '@/lib/services/statistical-executor'
-import { pyodideStats } from '@/lib/services/pyodide-statistics'
+import { pyodideStats } from '@/lib/services/pyodide/pyodide-statistics'
 import type { StatisticalMethod } from '@/types/analysis'
 
 // Helper to create minimal StatisticalMethod for testing

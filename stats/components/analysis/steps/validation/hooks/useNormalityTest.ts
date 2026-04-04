@@ -10,7 +10,7 @@
  */
 
 import { useState, useCallback } from 'react'
-import { PyodideStatisticsService } from '@/lib/services/pyodide-statistics'
+import { PyodideStatisticsService } from '@/lib/services/pyodide/pyodide-statistics'
 import { DataRow } from '@/types/analysis'
 import { logger } from '@/lib/utils/logger'
 import { useTerminology } from '@/hooks/use-terminology'

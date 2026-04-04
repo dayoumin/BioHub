@@ -70,7 +70,7 @@ global.ResizeObserver = jest.fn().mockImplementation(() => ({
 process.env.NODE_ENV = 'test';
 
 // PyodideStatisticsService mock
-jest.mock('@/lib/services/pyodide-statistics', () => ({
+jest.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
   pyodideStats: {
     initialize: jest.fn().mockResolvedValue(undefined),
     dispose: jest.fn(),

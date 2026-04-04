@@ -12,7 +12,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 
 import { vi } from 'vitest'
 // Mock Pyodide for unit testing
-vi.mock('@/lib/services/pyodide-statistics', () => ({
+vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
   pyodideStats: {
     initialize: vi.fn().mockResolvedValue(undefined),
     isInitialized: vi.fn().mockReturnValue(true),

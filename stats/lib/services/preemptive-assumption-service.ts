@@ -115,7 +115,7 @@ export async function executeAssumptionTests(
   }
 
   try {
-    const { pyodideStats } = await import('@/lib/services/pyodide-statistics')
+    const { pyodideStats } = await import('@/lib/services/pyodide/pyodide-statistics')
 
     const rawResult = await pyodideStats.checkAllAssumptions({ values, groups })
 

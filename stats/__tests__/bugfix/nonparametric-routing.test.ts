@@ -13,7 +13,7 @@ import { STATISTICAL_METHODS } from '@/lib/statistics/method-mapping'
 import { StatisticalExecutor } from '@/lib/services/statistical-executor'
 
 // pyodide-statistics 전체 mock
-vi.mock('@/lib/services/pyodide-statistics', () => ({
+vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
   pyodideStats: {
     // 비모수 전용
     mcnemarTestWorker: vi.fn(),
@@ -36,7 +36,7 @@ vi.mock('@/lib/services/pyodide-statistics', () => ({
   }
 }))
 
-import { pyodideStats } from '@/lib/services/pyodide-statistics'
+import { pyodideStats } from '@/lib/services/pyodide/pyodide-statistics'
 
 // ─── 1. 카테고리 정의 단위 테스트 ───────────────────────────────────────────
 
