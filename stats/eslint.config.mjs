@@ -78,6 +78,53 @@ const eslintConfig = [
           "message": "❌ Use actions.completeAnalysis() instead of actions.setResults() to properly reset isAnalyzing flag. See: docs/TROUBLESHOOTING_ISANALYZING_BUG.md"
         }
       ],
+
+      // 🔒 Domain boundary: 배럴(index.ts) 통해서만 import 허용
+      // 내부 파일 직접 import 금지 — 같은 디렉토리 내 상대 경로는 영향 없음
+      "no-restricted-imports": ["warn", {
+        "patterns": [
+          {
+            "group": ["@/lib/bio-tools/*"],
+            "message": "Use '@/lib/bio-tools' barrel export instead of direct file import."
+          },
+          {
+            "group": ["@/lib/genetics/*"],
+            "message": "Use '@/lib/genetics' barrel export instead of direct file import."
+          },
+          {
+            "group": ["@/lib/research/*"],
+            "message": "Use '@/lib/research' barrel export instead of direct file import."
+          },
+          {
+            "group": ["@/lib/services/*", "@/lib/services/*/*", "@/lib/services/*/*/*"],
+            "message": "Use '@/lib/services' barrel export instead of direct file import."
+          },
+          {
+            "group": ["@/lib/design-system/*"],
+            "message": "Use '@/lib/design-system' barrel export instead of direct file import."
+          },
+          {
+            "group": ["@/lib/design-tokens/*"],
+            "message": "Use '@/lib/design-tokens' barrel export instead of direct file import."
+          },
+          {
+            "group": ["@/lib/graph-studio/*"],
+            "message": "Use '@/lib/graph-studio' barrel export instead of direct file import."
+          },
+          {
+            "group": ["@/lib/help/*"],
+            "message": "Use '@/lib/help' barrel export instead of direct file import."
+          },
+          {
+            "group": ["@/lib/registry/*"],
+            "message": "Use '@/lib/registry' barrel export instead of direct file import."
+          },
+          {
+            "group": ["@/lib/terminology/*"],
+            "message": "Use '@/lib/terminology' barrel export instead of direct file import."
+          }
+        ]
+      }],
     }
   }
 ];

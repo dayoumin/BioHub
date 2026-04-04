@@ -51,6 +51,10 @@ const nextConfig: NextConfig = {
       'date-fns',
       'echarts',
       'docx',
+      '@/lib/bio-tools',
+      '@/lib/genetics',
+      '@/lib/research',
+      '@/lib/services',
     ]
   },
   eslint: {
