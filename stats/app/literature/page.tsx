@@ -1,9 +1,12 @@
 'use client'
 
-import dynamic from 'next/dynamic'
+import { useEffect } from 'react'
 
-const LiteratureSearchContent = dynamic(() => import('./LiteratureSearchContent'), { ssr: false })
-
-export default function LiteraturePage(): React.ReactElement {
-  return <LiteratureSearchContent />
+export default function LiteraturePage(): null {
+  useEffect(() => {
+    const existing = new URLSearchParams(window.location.search)
+    existing.set('tab', 'literature')
+    window.location.replace(`/papers?${existing.toString()}`)
+  }, [])
+  return null
 }
