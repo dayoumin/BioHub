@@ -60,9 +60,9 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 
 ### 3-B. UX 개선
 
-- `[ux]` ~~사이드바 BioHub 로고 홈 링크~~ ✅ + ~~문헌·동향 → 논문 작성 하위로 이동~~ ✅
+- `[ux]` ~~사이드바 BioHub 로고 홈 링크~~ ✅ + ~~문헌·동향 → 자료 작성 하위로 이동~~ ✅
 - `[ux]` Stitch Axiom Slate 디자인 시스템 적용 ✅ — `stats/DESIGN.md` 기반, Surface Hierarchy + No-Line Rule
-- `[ux]` 문헌·동향을 논문 작성 페이지 내 서브탭으로 통합 (사이드바 제거 완료, 페이지 통합 대기)
+- `[ux]` 문헌 검색을 자료 작성 페이지 내 서브탭으로 통합 (사이드바 제거 완료, 페이지 통합 대기)
 - `[ux]` Command Palette (Cmd+K) — 43개 분석 메서드 + 16개 Bio 도구 + Graph Studio 빠른 접근
 - `[ux]` 키보드 단축키 — `Ctrl+Enter` 분석 실행, `Escape` 뒤로, `Ctrl+S` 저장/내보내기
 - `[ux]` Bio-Tools 샘플 데이터 — "샘플로 시작" 옵션 (신규 사용자 마찰 감소)
@@ -115,7 +115,7 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 
 장기 방향. 현재 실행 우선순위 아님.
 
-### 4-A. 논문 작성 — 인용 고도화 (Phase 6a 이후)
+### 4-A. 자료 작성 — 인용 고도화 (Phase 6a 이후)
 
 - `[paper]` BibTeX 내보내기 — citation store에서 `.bib` 파일 생성
 - `[paper]` Plate 에디터 인라인 인용 노드 — `(Kim et al., 2025)` 클릭 시 문헌 팝업
