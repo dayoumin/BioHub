@@ -1,90 +1,78 @@
 # Next Session Checklist
 
 **Last updated**: 2026-04-04
-**Status**: Phase 6a (자료 작성) + Genetics Phase A/B 완료 → Phase 6f/다음 도메인 진입
+**Status**: 통계/유전/Graph Studio 정비 완료 → 다음 도메인 진입 준비
 
 ---
 
-## 1. 작업 범위 요약
+## 1. 이번 세션 완료 사항
 
-자료 작성 페이지 재구조화 3단계:
-1. `/literature` 독립 페이지 → `/papers` 하위 탭으로 통합
-2. Package Assembly MVP 기능 확정
-3. 다음 도메인(GBIF/UniProt) 진입 준비
+### 통계 플랫폼 정비 (2 커밋)
+- deprecated 16개 제거, 중복 3패턴 추출 (useLocalStorageSync, indexeddb-helpers, togglePinId)
+- VarReqs 14개 ID alias 해소 (getMethodByIdOrAlias 재사용)
+- Executor 14개 메서드 배선 완료:
+  - Regression 6개 (logistic, poisson, ordinal, stepwise, dose-response, response-surface)
+  - ANOVA 2개 (manova, mixed-model)
+  - TimeSeries 2개 (arima, mann-kendall)
+  - Descriptive 2개 (explore-data, means-plot)
+  - Cluster ID 정규화 (`cluster-analysis` → `cluster`)
+  - welch-anova: 구현 불필요 확인 (hasOwnPage:false)
+- /simplify 2회 + 검증 테스트 25개
+- 최종: TS 에러 0, 테스트 7090개 전체 통과
 
----
+### 유전적 분석 점검
+- Phase 2 코드 리뷰 15/15 PASS
+- Bug 0-2 (localStorage 에러): 이미 수정됨 (7개 UI 호출처 toast 표시)
+- genetics/ 스테일 디렉토리: 이미 정리됨
 
-## 2. 자료 작성 탭 통합
-
-**✅ 작업 완료** (2026-04-04)
-
-구현 내용:
-- `/literature` 리다이렉트 전용 페이지 변환
-- MaterialPalette 링크 → `/papers?tab=literature`로 변경
-- PapersContent에 tab 상태 추가 + LiteratureSearchContent 동적 로드
-- handleBack → history.back()으로 단순화
-- 라우팅 테스트 3건 추가 (우선순위, 탭 전환, 쿼리 보존)
-
-커밋: `feat(papers): add literature tab integration + fix handleBack history`
-
-참조: [2026-04-04-papers-tab-integration.md](docs/superpowers/plans/2026-04-04-papers-tab-integration.md)
-
----
-
-## 3. Package Assembly 마무리
-
-**이미 커밋됨** (2026-04-02)
-
-진행 상황:
-- AI 프롬프트 빌더 5단계 wizard ✅
-- 조립 엔진 (ko/en 분기) ✅
-- 20개 테스트 ✅
-- DOCX/HWPX 내보내기 통합 ✅
-
-추가 작업 불필요. [PLAN-PAPER-PACKAGE-ASSEMBLY.md](docs/PLAN-PAPER-PACKAGE-ASSEMBLY.md)에서 완료 항목 참조.
+### Graph Studio 점검
+- barrel export 보완 (deleteProjectCascade)
+- 스키마 미렌더 필드 주석 추가
 
 ---
 
-## 4. 기술 부채 처리 우선순위
+## 2. Graph Studio 별도 작업 (다음 세션)
 
-시간이 있을 경우 처리:
+### P1: echarts-converter.ts 분할 (2279줄)
+- 30+ 차트 타입 함수가 단일 파일에 집중
+- 분할 방안: `converters/bar.ts`, `converters/scatter.ts`, `converters/bio-curves.ts` + dispatch layer
+- 예상: 2-3시간
 
-1. **IndexedDB 헬퍼 통합** — `txPut/txGetByIndex/txDelete` 3곳 중복 추출
-   - 파일: `citation-storage.ts`, `document-blueprint-storage.ts`, `chart-snapshot-storage.ts`
-   - 대상: `lib/utils/indexeddb-helpers.ts`
-   - 예상 시간: 30분
+### P2: 스키마-렌더러 정합성
+- 7개 스키마 필드가 echarts-converter에서 무시됨 (shape, size, color.scale, legend.title, x/y.format, style.overrides, style.padding)
+- AI 프롬프트에서만 문서화 — 코드 레벨 tracking 없음
+- 선택: 렌더러에 구현하거나, 스키마에서 제거하거나, 명시적 `_unimplemented` 마커 추가
 
-2. **히스토리 사이드바 한글 하드코딩** — terminology 도입
-   - 파일: `components/shared/HistorySidebar.tsx` (~15건)
-   - 예상 시간: 45분
+### P3: 컴포넌트 렌더링 테스트
+- 로직 테스트 23개 있으나 컴포넌트 렌더링 테스트 0개
+- AiPanel, ChartPreview, ExportDialog 등 대상
 
-3. **기존 테스트 실패 수정** — 10건 (CSS 클래스 변경 미반영)
-   - 파일: 7개 (`StatisticCard` 등)
-   - 예상 시간: 60분
+### P4: docs/graph-studio/README.md 업데이트
+- 18개 문서 중 7개만 목록화
 
 ---
 
-## 5. 권장 작업 순서
+## 3. Executor 배선 계획 (완료 기록)
 
-### 세션 1: 탭 통합 + 커밋 (완료)
-- ✅ Task 1-4 구현
-- ✅ Task 5 NEXT-SESSION.md 업데이트
+계획서: [2026-04-04-executor-varreqs-alignment.md](docs/superpowers/plans/2026-04-04-executor-varreqs-alignment.md)
+- Task 1-7 전체 완료
 
-### 세션 2: 기술 부채 (선택 사항)
-- IndexedDB 헬퍼 추출
-- 히스토리 사이드바 한글화
-- 테스트 실패 수정
+---
 
-### 세션 3: 다음 도메인 진입
-- GBIF 외부 DB 연동 스펙 작성
+## 4. 다음 도메인 진입
+
+### GBIF 외부 DB 연동
 - species-validation 레코드 스키마 정의
 - legal-status 레코드 스키마 정의
 
+### UniProt 연동 (3순위)
+- 단백질 서열 분석 도구
+
 ---
 
-## 6. 참조 문서
+## 5. 참조 문서
 
 - **진행 상황**: [TODO.md](TODO.md) · [ROADMAP.md](ROADMAP.md)
-- **현재 구현**: [2026-04-04-papers-tab-integration.md](docs/superpowers/plans/2026-04-04-papers-tab-integration.md)
-- **이전 완료**: [PLAN-PAPER-PACKAGE-ASSEMBLY.md](docs/PLAN-PAPER-PACKAGE-ASSEMBLY.md) · [PLAN-GENETICS-IMPROVEMENT.md](docs/PLAN-GENETICS-IMPROVEMENT.md)
-- **도메인 다음 단계**: [PLAN-FISHERY-MIGRATION.md](docs/PLAN-FISHERY-MIGRATION.md) · [docs/databases/](docs/databases/)
+- **Executor 계획**: [2026-04-04-executor-varreqs-alignment.md](docs/superpowers/plans/2026-04-04-executor-varreqs-alignment.md)
+- **유전 계획**: [PLAN-GENETICS-IMPROVEMENT.md](docs/PLAN-GENETICS-IMPROVEMENT.md)
+- **도메인 다음 단계**: [docs/databases/](docs/databases/)
