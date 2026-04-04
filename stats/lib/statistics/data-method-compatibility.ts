@@ -97,7 +97,7 @@ export const METHOD_ID_MAPPING: Record<string, string> = {
   // Multivariate
   'pca': 'pca',
   'factor-analysis': 'factor-analysis',
-  'cluster': 'cluster-analysis',
+  'cluster': 'cluster',
   'discriminant': 'discriminant-analysis',
 
   // Other

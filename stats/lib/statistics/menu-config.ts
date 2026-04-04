@@ -422,7 +422,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         implemented: true
       },
       {
-        id: 'cluster-analysis',
+        id: 'cluster',
         href: '/statistics/cluster',
         title: '군집분석',
         subtitle: '유사 개체 그룹화',

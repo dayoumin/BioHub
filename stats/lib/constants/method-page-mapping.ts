@@ -30,7 +30,7 @@ export const METHOD_TO_PAGE: Record<string, string> = {
   'mann-kendall-test': 'mann-kendall',
   'one-sample-proportion': 'proportion-test',
   'reliability-analysis': 'reliability',
-  'cluster-analysis': 'cluster',
+  'cluster': 'cluster',
   'discriminant-analysis': 'discriminant',
   'explore-data': 'explore-data',  // 동일 (명시적)
 

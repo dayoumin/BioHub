@@ -557,7 +557,7 @@ describe('useAnalysisGuide', () => {
       'frequency-table',
       'reliability-analysis',
       'mann-kendall-test',
-      'cluster-analysis',
+      'cluster',
       'discriminant-analysis'
     ]
 
@@ -577,15 +577,15 @@ describe('useAnalysisGuide', () => {
     })
 
     it('고급분석 4개 모두 완료 확인', () => {
-      const advancedMethods = ['factor-analysis', 'pca', 'cluster-analysis', 'discriminant-analysis']
+      const advancedMethods = ['factor-analysis', 'pca', 'cluster', 'discriminant-analysis']
       advancedMethods.forEach(id => {
         const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === id)
         expect(method?.dataFormat).toBeDefined()
       })
     })
 
-    it('cluster-analysis에 method와 nClusters 설정이 있어야 함', () => {
-      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'cluster-analysis')
+    it('cluster에 method와 nClusters 설정이 있어야 함', () => {
+      const method = STATISTICAL_METHOD_REQUIREMENTS.find(m => m.id === 'cluster')
       expect(method?.settings?.method).toBeDefined()
       expect(method?.settings?.nClusters).toBeDefined()
     })

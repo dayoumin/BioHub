@@ -37,10 +37,10 @@ describe('getMethodRequirements — alias resolution', () => {
     expect(req!.id).toBe('one-way-anova')
   })
 
-  it('resolves "cluster" via alias to cluster-analysis requirements', () => {
+  it('resolves "cluster" directly to cluster requirements', () => {
     const req = getMethodRequirements('cluster')
     expect(req).toBeDefined()
-    expect(req!.id).toBe('cluster-analysis')
+    expect(req!.id).toBe('cluster')
   })
 
   it('resolves "descriptive" via alias to descriptive-stats requirements', () => {

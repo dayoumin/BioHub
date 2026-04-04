@@ -426,7 +426,6 @@ export function autoMapVariables(
       break
 
     case 'cluster':
-    case 'cluster-analysis':
       mapping.variables = numericColumns.map(c => c.name)
       break
 

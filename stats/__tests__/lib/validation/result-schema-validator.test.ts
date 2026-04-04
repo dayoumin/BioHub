@@ -24,7 +24,7 @@ describe('Result Schema Validator', () => {
       const majorMethods = [
         't-test', 'anova', 'regression', 'correlation',
         'pearson-correlation', 'spearman-correlation', 'kendall-correlation',
-        'chi-square', 'mann-whitney', 'pca', 'cluster-analysis', 'shapiro-wilk', 'reliability'
+        'chi-square', 'mann-whitney', 'pca', 'cluster', 'shapiro-wilk', 'reliability'
       ]
 
       majorMethods.forEach(method => {
@@ -58,8 +58,8 @@ describe('Result Schema Validator', () => {
       expect(getCategoryForMethod('unknown-method')).toBe('comparison')
     })
 
-    it('should map cluster-analysis and shapiro-wilk correctly', () => {
-      expect(getCategoryForMethod('cluster-analysis')).toBe('dimensionReduction')
+    it('should map cluster and shapiro-wilk correctly', () => {
+      expect(getCategoryForMethod('cluster')).toBe('dimensionReduction')
       expect(getCategoryForMethod('shapiro-wilk')).toBe('goodnessOfFit')
     })
 
@@ -227,7 +227,7 @@ describe('Result Schema Validator', () => {
         expect(validation.valid).toBe(true)
       })
 
-      it('should require cluster-analysis specific fields', () => {
+      it('should require cluster specific fields', () => {
         const result: AnalysisResult = {
           method: 'Cluster Analysis',
           statistic: 0.52,
@@ -238,7 +238,7 @@ describe('Result Schema Validator', () => {
           }
         }
 
-        const validation = validateResultSchema(result, 'cluster-analysis')
+        const validation = validateResultSchema(result, 'cluster')
 
         expect(validation.valid).toBe(false)
         expect(validation.missing).toContain('additional.clusters')
@@ -474,7 +474,7 @@ describe('Result Schema Validator', () => {
       expect(METHOD_REQUIRED_FIELDS['pearson-correlation']).toContain('additional.pearson')
       expect(METHOD_REQUIRED_FIELDS.pca).toContain('additional.explainedVarianceRatio')
       expect(METHOD_REQUIRED_FIELDS['factor-analysis']).toContain('additional.loadings')
-      expect(METHOD_REQUIRED_FIELDS['cluster-analysis']).toContain('additional.clusters')
+      expect(METHOD_REQUIRED_FIELDS['cluster']).toContain('additional.clusters')
       expect(METHOD_REQUIRED_FIELDS['shapiro-wilk']).toContain('additional.isNormal')
     })
   })

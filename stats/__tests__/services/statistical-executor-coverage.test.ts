@@ -22,7 +22,7 @@ describe('StatisticalExecutor Method Coverage', () => {
     'descriptive': ['descriptive', 'normality-test', 'explore-data', 'means-plot'],
     'timeseries': ['arima', 'seasonal-decompose', 'stationarity-test', 'mann-kendall'],
     'survival': ['kaplan-meier', 'cox-regression', 'roc-curve'],
-    'multivariate': ['pca', 'factor-analysis', 'cluster-analysis', 'discriminant', 'cluster'],
+    'multivariate': ['pca', 'factor-analysis', 'cluster', 'discriminant'],
     'design': ['power-analysis'],
     'psychometrics': ['reliability']
   }

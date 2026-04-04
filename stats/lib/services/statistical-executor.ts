@@ -619,6 +619,92 @@ export class StatisticalExecutor {
       }
     }
 
+    // 데이터 탐색: 기술통계 + 정규성 결합
+    if (method.id === 'explore-data') {
+      const descriptive = await pyodideStats.descriptiveStats(values)
+      const normality = values.length >= 3 ? await pyodideStats.shapiroWilkTest(values) : null
+
+      const normalityText = normality
+        ? `Shapiro-Wilk W = ${normality.statistic.toFixed(4)}, p = ${normality.pValue.toFixed(4)} → ${normality.isNormal ? '정규성 가정 유지' : '정규성 가정 기각'}`
+        : '표본 크기가 3 미만이어서 정규성 검정을 수행하지 못했습니다.'
+
+      return {
+        metadata: {
+          method: method.id,
+          methodName: method.name,
+          timestamp: '',
+          duration: 0,
+          dataInfo: {
+            totalN: values.length,
+            missingRemoved: 0
+          }
+        },
+        mainResults: {
+          statistic: descriptive.mean,
+          pvalue: normality?.pValue ?? 1,
+          significant: normality ? !normality.isNormal : false,
+          interpretation: `평균: ${descriptive.mean.toFixed(2)}, 표준편차: ${descriptive.std.toFixed(2)}. ${normalityText}`
+        },
+        additionalInfo: {
+          isNormal: normality?.isNormal,
+          confidenceInterval: {
+            level: 0.95,
+            lower: descriptive.mean - 1.96 * descriptive.std / Math.sqrt(values.length),
+            upper: descriptive.mean + 1.96 * descriptive.std / Math.sqrt(values.length)
+          }
+        },
+        visualizationData: {
+          type: 'histogram',
+          data: { values, stats: descriptive }
+        },
+        rawResults: { descriptive, normality }
+      }
+    }
+
+    // 평균 플롯: Worker 1 means_plot_data 호출
+    if (method.id === 'means-plot') {
+      const depVarName = ((data.variables.dependent as string[]) ?? [])[0] ?? ''
+      const factorVarName =
+        (data.variables.group as string) ??
+        (data.variables.factor as string) ??
+        ((data.variables.independent as string[]) ?? [])[0] ?? ''
+
+      const result = await pyodideStats.meansPlotData(data.data, depVarName, factorVarName)
+
+      const interpretation = result.interpretation as { summary?: string; recommendations?: string[] } | undefined
+      const plotData = result.plotData as Array<Record<string, unknown>> | undefined
+      const descriptives = result.descriptives as Record<string, Record<string, unknown>> | undefined
+      const groupCount = plotData?.length ?? 0
+
+      return {
+        metadata: {
+          method: method.id,
+          methodName: method.name,
+          timestamp: '',
+          duration: 0,
+          dataInfo: {
+            totalN: data.totalN,
+            missingRemoved: data.missingRemoved,
+            groups: groupCount
+          }
+        },
+        mainResults: {
+          statistic: 0,
+          pvalue: 1,
+          significant: false,
+          interpretation: interpretation?.summary ?? `${groupCount}개 집단의 평균을 비교했습니다.`
+        },
+        additionalInfo: {
+          descriptives
+        },
+        visualizationData: {
+          type: 'bar',
+          data: { plotData, descriptives }
+        },
+        rawResults: result
+      }
+    }
+
     // 기본 기술통계
     const stats = await pyodideStats.descriptiveStats(values)
 
@@ -2060,7 +2146,7 @@ export class StatisticalExecutor {
       case 'factor-analysis':
         result = await pyodideStats.factorAnalysis(data.arrays.independent || [])
         break
-      case 'cluster-analysis':
+      case 'cluster':
         result = await pyodideStats.clusterAnalysis(data.arrays.independent || [])
         break
       case 'discriminant': {
@@ -2169,7 +2255,7 @@ export class StatisticalExecutor {
       }
     }
 
-    if (method.id === 'cluster-analysis') {
+    if (method.id === 'cluster') {
       const clusters = (result.clusters || result.clusterAssignments || []) as number[]
       const centers = (result.centers || result.centroids || []) as number[][]
       const silhouetteScore = Number(result.silhouetteScore || 0)
@@ -2272,6 +2358,69 @@ export class StatisticalExecutor {
     data: PreparedData
   ): Promise<StatisticalExecutorResult> {
     const timeData = data.arrays.dependent || []
+
+    // ARIMA 예측 — 전용 Worker 4 함수 사용
+    if (method.id === 'arima') {
+      const result = await pyodideStats.arimaForecast(timeData)
+      const aic = typeof result.aic === 'number' ? result.aic : 0
+      const bic = typeof result.bic === 'number' ? result.bic : 0
+      return {
+        metadata: {
+          method: method.id,
+          methodName: method.name,
+          timestamp: '',
+          duration: 0,
+          dataInfo: { totalN: timeData.length, missingRemoved: 0 }
+        },
+        mainResults: {
+          statistic: aic,
+          pvalue: 1,
+          df: 0,
+          significant: false,
+          interpretation: `ARIMA 모형 적합 완료 — AIC = ${aic.toFixed(2)}, BIC = ${bic.toFixed(2)}`
+        },
+        additionalInfo: { aic, bic },
+        visualizationData: {
+          type: 'time-series',
+          data: result
+        },
+        rawResults: result
+      }
+    }
+
+    // Mann-Kendall 추세 검정 — 전용 Worker 1 함수 사용
+    if (method.id === 'mann-kendall') {
+      const result = await pyodideStats.mannKendallTest(timeData)
+      const tau = typeof result.tau === 'number' ? result.tau : 0
+      const pValue = typeof result.pValue === 'number' ? result.pValue : 1
+      const trend = typeof result.trend === 'string' ? result.trend : 'unknown'
+      const senSlope = typeof result.senSlope === 'number' ? result.senSlope : 0
+      return {
+        metadata: {
+          method: method.id,
+          methodName: method.name,
+          timestamp: '',
+          duration: 0,
+          dataInfo: { totalN: timeData.length, missingRemoved: 0 }
+        },
+        mainResults: {
+          statistic: tau,
+          pvalue: pValue,
+          df: 0,
+          significant: pValue < 0.05,
+          interpretation: pValue < 0.05
+            ? `Mann-Kendall τ = ${tau.toFixed(4)}, p = ${pValue.toFixed(4)} → 유의한 ${trend === 'increasing' ? '증가' : '감소'} 추세 (Sen's slope = ${senSlope.toFixed(4)})`
+            : `Mann-Kendall τ = ${tau.toFixed(4)}, p = ${pValue.toFixed(4)} → 유의한 추세 없음`
+        },
+        additionalInfo: { tau, senSlope, trend },
+        visualizationData: {
+          type: 'time-series',
+          data: result
+        },
+        rawResults: result
+      }
+    }
+
     // time_series_analysis는 seasonalPeriods만 받음 (method 파라미터 없음)
     const result = await pyodideStats.timeSeriesAnalysis(timeData, {
       seasonalPeriods: 12

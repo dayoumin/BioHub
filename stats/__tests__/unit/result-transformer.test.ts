@@ -401,7 +401,7 @@ describe('result-transformer', () => {
     it('should preserve cluster contract fields in additional', () => {
       const executorResult: ExecutorResult = {
         metadata: {
-          method: 'cluster-analysis',
+          method: 'cluster',
           timestamp: new Date().toISOString(),
           duration: 120,
           dataSize: 40

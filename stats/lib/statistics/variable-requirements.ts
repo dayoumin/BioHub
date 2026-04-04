@@ -3715,7 +3715,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
     }
   },
   {
-    id: 'cluster-analysis',
+    id: 'cluster',
     name: '군집분석',
     category: 'multivariate',
     description: '유사한 개체들을 그룹화',

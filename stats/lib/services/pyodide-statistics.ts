@@ -322,6 +322,24 @@ export class PyodideStatisticsService {
   }
 
   /**
+   * 집단별 평균 플롯 데이터 생성 (Worker 1 means_plot_data)
+   * @param data 원시 행 데이터 (List[Dict])
+   * @param dependentVar 종속변수 이름
+   * @param factorVar 요인변수 이름
+   * @returns descriptives, plotData, interpretation
+   */
+  async meansPlotData(
+    data: Array<Record<string, unknown>>,
+    dependentVar: string,
+    factorVar: string,
+  ): Promise<Record<string, unknown>> {
+    return this.core.callWorkerMethod<Record<string, unknown>>(
+      1, 'means_plot_data',
+      { data: data as unknown as WorkerMethodParam, dependentVar, factorVar }
+    )
+  }
+
+  /**
    * 정규성 검정 (Normality Test - Shapiro-Wilk)
    */
   async normalityTest(data: number[], alpha: number = 0.05): Promise<Generated.NormalityTestResult & { alpha: number }> {
@@ -799,6 +817,34 @@ export class PyodideStatisticsService {
   } = {}): Promise<Generated.TimeSeriesAnalysisResult> {
     const { seasonalPeriods = 12 } = options
     return Generated.timeSeriesAnalysis(data, seasonalPeriods)
+  }
+
+  /**
+   * ARIMA 예측 - Worker 4 사용
+   * Python arima_forecast(values, order=(1,1,1), nForecast=10)
+   */
+  async arimaForecast(
+    values: number[],
+    order?: [number, number, number],
+    nForecast?: number,
+  ): Promise<Record<string, unknown>> {
+    return this.core.callWorkerMethod<Record<string, unknown>>(
+      4, 'arima_forecast',
+      { values, order: order ?? [1, 1, 1], nForecast: nForecast ?? 10 }
+    )
+  }
+
+  /**
+   * Mann-Kendall 추세 검정 - Worker 1 사용
+   * Python mann_kendall_test(data)
+   */
+  async mannKendallTest(
+    data: number[],
+  ): Promise<Record<string, unknown>> {
+    return this.core.callWorkerMethod<Record<string, unknown>>(
+      1, 'mann_kendall_test',
+      { data }
+    )
   }
 
   // ========== Wrapper 메서드들 (StatisticalCalculator와의 호환성) ==========

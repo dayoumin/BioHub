@@ -127,7 +127,7 @@ const CONTRACT_GUARDS: ContractGuardSpec[] = [
     }
   },
   {
-    methodId: 'cluster-analysis',
+    methodId: 'cluster',
     expectedCategory: 'dimensionReduction',
     registryMethod: 'cluster_analysis',
     requiredAdditionalFields: [

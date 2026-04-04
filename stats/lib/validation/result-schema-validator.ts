@@ -170,7 +170,7 @@ export const METHOD_TO_CATEGORY: Record<string, StatisticsCategory> = {
   'pca': 'dimensionReduction',
   'factor-analysis': 'dimensionReduction',
   'cluster': 'dimensionReduction',
-  'cluster-analysis': 'dimensionReduction',
+  'cluster-analysis': 'dimensionReduction', // alias kept for backward compatibility
   'discriminant': 'dimensionReduction',
 
   // Goodness of Fit (적합도 검정)
@@ -224,7 +224,7 @@ export const METHOD_REQUIRED_FIELDS: Record<string, string[]> = {
     'additional.loadings',
     'additional.communalities'
   ],
-  'cluster-analysis': [
+  'cluster': [
     'additional.clusters',
     'additional.centers',
     'additional.silhouetteScore'
