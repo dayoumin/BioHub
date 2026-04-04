@@ -1,57 +1,57 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { BlastMarker, BlastProgram, BlastDatabase } from '@biohub/types'
+import type {
+  BoldDatabase,
+  BoldSearchMode,
+  BoldHit,
+  BoldClassification,
+} from '@biohub/types'
+import { BOLD_SEARCH_PRESETS } from '@biohub/types'
 import { abortableSleep as sleep, type AnalysisPhase } from '@/lib/genetics/abortable-sleep'
 import {
-  type BlastErrorCode,
-  BlastError,
-  fetchBlastResult,
-  buildResultUrl,
-  BLAST_POLL_INTERVAL_MS,
-  BLAST_MAX_POLLS,
-  BLAST_MAX_SUBMIT_RETRIES,
-  BLAST_CACHED_DELAY_MS,
-} from '@/lib/genetics/blast-utils'
+  type BoldErrorCode,
+  BoldError,
+  parseBoldHits,
+  parseBoldClassification,
+  BOLD_POLL_INTERVAL_MS,
+  BOLD_MAX_POLLS,
+  BOLD_MAX_SUBMIT_RETRIES,
+  BOLD_CACHED_DELAY_MS,
+} from '@/lib/genetics/bold-utils'
 
 // ── 타입 ──
 
-export interface BlastSubmitPayload {
+export interface BoldSubmitPayload {
   sequence: string
-  marker?: BlastMarker
-  program?: BlastProgram
-  database?: BlastDatabase
-  expect?: number
-  hitlistSize?: number
-  megablast?: boolean
+  db: BoldDatabase
+  searchMode: BoldSearchMode
+  mo?: number
 }
 
-export interface UseBlastExecutionOptions<T> {
-  payload: BlastSubmitPayload
+export interface UseBoldExecutionOptions<T> {
+  payload: BoldSubmitPayload
 
   /**
-   * rawHits → 최종 결과 변환 (enrichment + 타입 매핑).
+   * 파싱된 hits + classification → 최종 결과 변환.
    * 순수 후처리 전용 — 이 안에서 부모 콜백을 호출하면 안 됨.
    * 반환값이 onComplete로 전달됨.
-   *
-   * 캐시 경로: UX 딜레이와 병렬 실행 (먼저 끝나면 딜레이 완료까지 대기)
-   * 일반 경로: fetch 완료 후 순차 실행
    */
   transform: (
-    rawHits: Array<Record<string, unknown>>,
+    hits: BoldHit[],
+    classification: BoldClassification,
     signal: AbortSignal,
   ) => Promise<T>
 
   /**
    * transform 완료 + UX 딜레이 완료 후 훅이 호출.
    * 이 시점에 phase='done'으로 전이됨.
-   * elapsed는 훅이 계산하여 전달 — 소비자가 별도 타이머 불필요.
    */
   onComplete: (result: T, elapsedSec: number) => void
 
-  onError: (message: string, code: BlastErrorCode) => void
+  onError: (message: string, code: BoldErrorCode) => void
   onCancel: () => void
 }
 
-export interface UseBlastExecutionReturn {
+export interface UseBoldExecutionReturn {
   phase: AnalysisPhase
   currentStep: number
   elapsed: number
@@ -62,15 +62,15 @@ export interface UseBlastExecutionReturn {
 
 // ── 훅 ──
 
-export function useBlastExecution<T>({
+export function useBoldExecution<T>({
   payload,
   transform,
   onComplete,
   onError,
   onCancel,
-}: UseBlastExecutionOptions<T>): UseBlastExecutionReturn {
+}: UseBoldExecutionOptions<T>): UseBoldExecutionReturn {
   const [phase, setPhase] = useState<AnalysisPhase>('submitting')
-  const [estimatedTime, setEstimatedTime] = useState(30)
+  const [estimatedTime, setEstimatedTime] = useState(8)
   const [elapsed, setElapsed] = useState(0)
   const [errorMessage, setErrorMessage] = useState('')
   const abortCtrlRef = useRef<AbortController | null>(null)
@@ -108,26 +108,27 @@ export function useBlastExecution<T>({
     startTimeRef.current = Date.now()
     setPhase('submitting')
     setElapsed(0)
-    setEstimatedTime(30)
+    setEstimatedTime(8)
     setErrorMessage('')
 
     async function run(): Promise<void> {
       try {
         if (signal.aborted) return
 
+        // 프리셋에서 mi, maxh 결정
+        const preset = BOLD_SEARCH_PRESETS[payload.searchMode]
         const submitBody: Record<string, unknown> = {
           sequence: payload.sequence,
+          db: payload.db,
+          mi: preset.mi,
+          maxh: preset.maxh,
         }
-        if (payload.marker) submitBody.marker = payload.marker
-        if (payload.program) submitBody.program = payload.program
-        if (payload.database) submitBody.database = payload.database
-        if (payload.expect !== undefined) submitBody.expect = payload.expect
-        if (payload.hitlistSize !== undefined) submitBody.hitlistSize = payload.hitlistSize
-        if (payload.megablast !== undefined) submitBody.megablast = payload.megablast
+        if (payload.mo !== undefined) submitBody.mo = payload.mo
 
+        // ── Submit ──
         let submitRes: Response | undefined
-        for (let attempt = 0; attempt < BLAST_MAX_SUBMIT_RETRIES; attempt++) {
-          submitRes = await fetch('/api/blast/submit', {
+        for (let attempt = 0; attempt < BOLD_MAX_SUBMIT_RETRIES; attempt++) {
+          submitRes = await fetch('/api/bold/submit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(submitBody),
@@ -148,12 +149,12 @@ export function useBlastExecution<T>({
         }
 
         if (!submitRes || submitRes.status === 429) {
-          throw new BlastError('요청이 너무 많습니다. 잠시 후 다시 시도하세요.', 'network')
+          throw new BoldError('요청이 너무 많습니다. 잠시 후 다시 시도하세요.', 'network')
         }
         if (!submitRes.ok) {
           const contentType = submitRes.headers.get('Content-Type') || ''
           if (!contentType.includes('application/json')) {
-            throw new BlastError(
+            throw new BoldError(
               '분석 서버에 연결할 수 없습니다. ' +
               (process.env.NODE_ENV === 'development'
                 ? '개발 환경에서는 wrangler dev로 Worker를 실행해야 합니다.'
@@ -162,36 +163,36 @@ export function useBlastExecution<T>({
             )
           }
           const err = await submitRes.json() as { error?: string; message?: string }
-          throw new BlastError(err.message || err.error || `제출 실패 (${submitRes.status})`, 'network')
+          throw new BoldError(err.message || err.error || `제출 실패 (${submitRes.status})`, 'network')
         }
 
         const submitData = await submitRes.json() as {
-          rid?: string; rtoe?: number; sequenceHash?: string; cacheKey?: string
-          cached?: boolean; hits?: Array<Record<string, unknown>>
+          subId?: string
+          cached?: boolean
+          hits?: unknown[]
+          classifications?: unknown[]
         }
         if (signal.aborted) return
 
-        let rawHits: Array<Record<string, unknown>>
-
+        // ── 캐시 경로 ──
         if (submitData.cached && submitData.hits) {
-          rawHits = submitData.hits
+          const hits = parseBoldHits(submitData.hits)
+          const classification = parseBoldClassification(submitData.classifications ?? [])
 
           setPhase('polling')
           setEstimatedTime(2)
 
-          // transform이 먼저 끝나도 딜레이 완료까지 대기 — 진행 UI 스킵 방지
-          // transform reject 시 delay IIFE가 phase를 덮어쓰지 않도록 failed 플래그로 격리
           let failed = false
           const [transformResult] = await Promise.all([
-            transformRef.current(rawHits, signal).catch((err: unknown) => {
+            transformRef.current(hits, classification, signal).catch((err: unknown) => {
               failed = true
               throw err
             }),
             (async () => {
-              await sleep(BLAST_CACHED_DELAY_MS, signal)
+              await sleep(BOLD_CACHED_DELAY_MS, signal)
               if (signal.aborted || failed) return
               setPhase('fetching')
-              await sleep(BLAST_CACHED_DELAY_MS, signal)
+              await sleep(BOLD_CACHED_DELAY_MS, signal)
             })(),
           ])
           if (signal.aborted) return
@@ -202,51 +203,71 @@ export function useBlastExecution<T>({
           return
         }
 
-        // rid 유효성 검사 — 폴링 전에 확인해야 /api/blast/status/undefined 40회 방지
-        if (!submitData.rid) {
-          throw new BlastError('서버가 요청 ID를 반환하지 않았습니다.', 'network')
+        // ── subId 유효성 검사 ──
+        if (!submitData.subId) {
+          throw new BoldError('서버가 제출 ID를 반환하지 않았습니다.', 'network')
         }
 
-        setEstimatedTime(submitData.rtoe ?? 30)
+        const subId = submitData.subId
+
+        // 검색 모드에 따라 예상 시간 조정
+        if (payload.searchMode === 'exhaustive') setEstimatedTime(15)
+        else if (payload.searchMode === 'genus-species') setEstimatedTime(10)
+        else setEstimatedTime(5)
+
         setPhase('polling')
 
-        let ready = false
-        for (let polls = 0; polls < BLAST_MAX_POLLS; polls++) {
+        // ── Poll ──
+        let completed = false
+        for (let polls = 0; polls < BOLD_MAX_POLLS; polls++) {
           if (signal.aborted) return
 
-          await sleep(BLAST_POLL_INTERVAL_MS, signal)
+          await sleep(BOLD_POLL_INTERVAL_MS, signal)
           if (signal.aborted) return
 
-          const statusRes = await fetch(`/api/blast/status/${submitData.rid}`, { signal })
+          const statusRes = await fetch(`/api/bold/status/${subId}`, { signal })
           if (!statusRes.ok) continue
 
-          const statusData = await statusRes.json() as { status: string }
-
-          if (statusData.status === 'READY') {
-            ready = true
-            break
+          const statusData = await statusRes.json() as {
+            queued: number
+            processing: number
+            completed: number
           }
-          if (statusData.status === 'FAILED' || statusData.status === 'UNKNOWN') {
-            throw new BlastError(`NCBI BLAST 실패: ${statusData.status}`, 'blast-failed')
+
+          if (statusData.completed > 0) {
+            completed = true
+            break
           }
         }
 
-        if (!ready) {
-          throw new BlastError('분석 시간 초과 (10분). 나중에 다시 시도하세요.', 'timeout')
+        if (!completed) {
+          throw new BoldError('분석 시간 초과 (3분). 나중에 다시 시도하세요.', 'timeout')
         }
 
         if (signal.aborted) return
         setPhase('fetching')
 
-        const resultUrl = buildResultUrl(submitData.rid, {
-          sequenceHash: submitData.sequenceHash,
-          marker: payload.marker,
-          cacheKey: submitData.cacheKey,
-        })
-        rawHits = await fetchBlastResult(resultUrl, signal)
+        // ── Fetch results + classifications 병렬 ──
+        const [resultsRes, classifyRes] = await Promise.all([
+          fetch(`/api/bold/results/${subId}`, { signal }),
+          fetch(`/api/bold/classify/${subId}`, { signal }),
+        ])
+
+        if (!resultsRes.ok) {
+          throw new BoldError(`결과 조회 실패 (${resultsRes.status})`, 'network')
+        }
+        if (!classifyRes.ok) {
+          throw new BoldError(`분류 조회 실패 (${classifyRes.status})`, 'network')
+        }
+
+        const resultsData = await resultsRes.json() as { results?: unknown[] }
+        const classifyData = await classifyRes.json() as { classifications?: unknown[] }
         if (signal.aborted) return
 
-        const result = await transformRef.current(rawHits, signal)
+        const hits = parseBoldHits(resultsData.results ?? [])
+        const classification = parseBoldClassification(classifyData.classifications ?? [])
+
+        const result = await transformRef.current(hits, classification, signal)
         if (signal.aborted) return
 
         setPhase('done')
@@ -255,8 +276,8 @@ export function useBlastExecution<T>({
       } catch (err) {
         if (signal.aborted) return
         const msg = err instanceof Error ? err.message : '알 수 없는 오류'
-        const code: BlastErrorCode =
-          err instanceof BlastError ? err.code
+        const code: BoldErrorCode =
+          err instanceof BoldError ? err.code
           : err instanceof TypeError ? 'network'
           : 'unknown'
         setErrorMessage(msg)
@@ -271,7 +292,7 @@ export function useBlastExecution<T>({
       ctrl.abort()
     }
     // payload가 변경되면 재실행 — 소비자는 useMemo로 payload 안정화 필수
-     
+
   }, [payload])
 
   // currentStep 계산

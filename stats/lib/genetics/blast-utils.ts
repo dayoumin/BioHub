@@ -1,6 +1,8 @@
 /** BLAST 실행 공통 유틸리티 — BlastRunner + BlastSearchContent + useBlastExecution 공유 */
 
 import type { GenericBlastHit } from '@biohub/types'
+import { abortableSleep } from '@/lib/genetics/abortable-sleep'
+export type { AnalysisPhase } from '@/lib/genetics/abortable-sleep'
 
 // ── 상수 ──
 
@@ -16,12 +18,8 @@ export const BLAST_CACHED_DELAY_MS = 800
 
 export type BlastErrorCode = 'network' | 'timeout' | 'blast-failed' | 'unknown'
 
-export type BlastPhase =
-  | 'submitting'
-  | 'polling'
-  | 'fetching'
-  | 'done'
-  | 'error'
+/** @deprecated AnalysisPhase 사용 */
+export type BlastPhase = import('@/lib/genetics/abortable-sleep').AnalysisPhase
 
 export const BLAST_STEP_LABELS = [
   'NCBI BLAST 서버에 서열 전송',
@@ -41,24 +39,8 @@ export class BlastError extends Error {
 
 // ── 유틸 함수 ──
 
-/** Abort 가능한 sleep */
-export function blastSleep(ms: number, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (signal?.aborted) {
-      reject(new DOMException('Aborted', 'AbortError'))
-      return
-    }
-    const onAbort = (): void => {
-      clearTimeout(id)
-      reject(new DOMException('Aborted', 'AbortError'))
-    }
-    const id = setTimeout(() => {
-      signal?.removeEventListener('abort', onAbort)
-      resolve()
-    }, ms)
-    signal?.addEventListener('abort', onAbort, { once: true })
-  })
-}
+/** @deprecated abortableSleep 사용 */
+export const blastSleep = abortableSleep
 
 /** BLAST 결과 fetch + 202 retry */
 export async function fetchBlastResult(

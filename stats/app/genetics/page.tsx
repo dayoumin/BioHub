@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Dna, BarChart3, Grid3X3, GitFork, ArrowRight, HelpCircle, FileText, FlaskConical, Search, Database } from 'lucide-react'
+import { Dna, BarChart3, Grid3X3, GitFork, ArrowRight, HelpCircle, FileText, FlaskConical, Search, Database, Fingerprint } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
 import { Button } from '@/components/ui/button'
@@ -83,6 +83,16 @@ const TOOLS: Tool[] = [
     badge: '사용 가능',
     icon: GitFork,
   },
+  {
+    id: 'bold-id',
+    title: 'BOLD ID 종 동정',
+    description: 'BOLD Systems 참조 라이브러리 기반 종 동정 + BIN 매핑',
+    input: 'DNA 바코드 서열 (FASTA)',
+    href: '/genetics/bold-id',
+    ready: true,
+    badge: '사용 가능',
+    icon: Fingerprint,
+  },
 ]
 
 const WORKFLOW_STEPS = [
@@ -154,6 +164,7 @@ export default function GeneticsHome() {
                     <GuideRow icon={Database} question="GenBank에서 참조 서열을 다운로드하고 싶어요" answer="GenBank 서열 검색" />
                     <GuideRow icon={Grid3X3} question="종 간 유전적 거리를 비교하고 싶어요" answer="다종 유사도 행렬" />
                     <GuideRow icon={GitFork} question="진화적 관계를 시각화하고 싶어요" answer="계통수 시각화" />
+                    <GuideRow icon={Fingerprint} question="BOLD 라이브러리로 종을 동정하고 싶어요" answer="BOLD ID 종 동정" />
                     <GuideRow icon={Dna} question="집단 간 유전적 차이를 분석하고 싶어요" answer="Bio-Tools → HW 검정 / Fst" />
                   </div>
                 </div>

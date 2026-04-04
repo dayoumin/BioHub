@@ -1,10 +1,10 @@
 'use client'
 
-import type { BlastPhase } from '@/lib/genetics/blast-utils'
+import type { AnalysisPhase } from '@/lib/genetics/abortable-sleep'
 import { Button } from '@/components/ui/button'
 
 interface BlastProgressUIProps {
-  phase: BlastPhase
+  phase: AnalysisPhase
   currentStep: number
   elapsed: number
   estimatedTime: number

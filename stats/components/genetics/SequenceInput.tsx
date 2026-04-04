@@ -30,6 +30,10 @@ interface SequenceInputProps {
   uploadedFileName: string | null
   onUploadedFileNameChange: (name: string | null) => void
   onSubmit: (validation: SequenceValidation) => void
+  /** 제출 버튼 텍스트 (기본 '분석 시작') */
+  submitLabel?: string
+  /** 마커 선택 UI 숨김 (BOLD 등 마커 불필요 도구) */
+  hideMarkerSelector?: boolean
 }
 
 export function SequenceInput({
@@ -42,6 +46,8 @@ export function SequenceInput({
   uploadedFileName,
   onUploadedFileNameChange,
   onSubmit,
+  submitLabel,
+  hideMarkerSelector,
 }: SequenceInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const debouncedSequence = useDebounce(sequence, 300)
@@ -97,7 +103,7 @@ export function SequenceInput({
         />
       </div>
 
-      <div>
+      {!hideMarkerSelector && <div>
         <label className="mb-2 block text-sm font-medium text-gray-700">
           마커
         </label>
@@ -128,7 +134,7 @@ export function SequenceInput({
         <p className="mt-1 text-[11px] text-muted-foreground/50">
           어떤 마커를 선택할지 모르겠다면 동물은 COI, 진균은 ITS, 양서류는 16S로 시작하세요.
         </p>
-      </div>
+      </div>}
 
       <div>
         <div className="mb-1 flex items-center justify-between">
@@ -232,7 +238,7 @@ export function SequenceInput({
           disabled={!canSubmit}
           className="w-full py-3"
         >
-          분석 시작
+          {submitLabel ?? '분석 시작'}
         </Button>
         {validation && !validation.valid && sequence.trim() && (
           <p className="mt-1 text-center text-xs text-red-500">

@@ -29,6 +29,7 @@ export type ProjectEntityKind =
   | 'seq-stats-result'
   | 'similarity-result'
   | 'phylogeny-result'
+  | 'bold-result'
 
 export interface ProjectPaperConfig {
   title?: string

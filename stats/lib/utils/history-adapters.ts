@@ -7,7 +7,7 @@
 
 import type { HistoryItem, HistoryBadge } from '@/types/history'
 import type { AnalysisHistory } from '@/lib/stores/history-store'
-import type { GeneticsHistoryEntry, BarcodingHistoryEntry, BlastSearchHistoryEntry, GenBankHistoryEntry, SeqStatsHistoryEntry, SimilarityHistoryEntry, PhylogenyHistoryEntry } from '@/lib/genetics/analysis-history'
+import type { GeneticsHistoryEntry, BarcodingHistoryEntry, BlastSearchHistoryEntry, GenBankHistoryEntry, SeqStatsHistoryEntry, SimilarityHistoryEntry, PhylogenyHistoryEntry, BoldHistoryEntry } from '@/lib/genetics/analysis-history'
 import type { BioToolHistoryEntry } from '@/lib/bio-tools/bio-tool-history'
 
 // ── 통계 분석 어댑터 ──
@@ -142,6 +142,7 @@ export function toGeneticsHistoryItem(
     case 'seq-stats': return toSeqStatsItem(entry)
     case 'similarity': return toSimilarityItem(entry)
     case 'phylogeny': return toPhylogenyItem(entry)
+    case 'bold': return toBoldItem(entry)
   }
 }
 
@@ -175,6 +176,29 @@ function toPhylogenyItem(entry: PhylogenyHistoryEntry): HistoryItem<GeneticsHist
     pinned: entry.pinned ?? false,
     createdAt: entry.createdAt,
     hasResult: true,
+    data: entry,
+  }
+}
+
+function toBoldItem(entry: BoldHistoryEntry): HistoryItem<GeneticsHistoryEntry> {
+  const badges: HistoryBadge[] = []
+  if (entry.topSpecies) {
+    badges.push({ label: '', value: entry.topSpecies, variant: 'default' })
+  }
+  if (entry.topSimilarity != null) {
+    badges.push({ label: '', value: `${(entry.topSimilarity * 100).toFixed(1)}%`, variant: 'mono' })
+  }
+  if (entry.topBin) {
+    badges.push({ label: 'BIN', value: entry.topBin, variant: 'muted' })
+  }
+  return {
+    id: entry.id,
+    title: entry.sampleName || entry.sequencePreview,
+    subtitle: entry.db,
+    badges,
+    pinned: entry.pinned ?? false,
+    createdAt: entry.createdAt,
+    hasResult: entry.hitCount > 0,
     data: entry,
   }
 }

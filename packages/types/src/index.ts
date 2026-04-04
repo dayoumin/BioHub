@@ -29,3 +29,17 @@ export type {
   GenericBlastParams,
   GenericBlastHit,
 } from './blast'
+
+export {
+  BOLD_DB_LABELS,
+  BOLD_SEARCH_PRESETS,
+} from './bold'
+
+export type {
+  BoldDatabase,
+  BoldSearchMode,
+  BoldSubmitParams,
+  BoldHit,
+  BoldClassification,
+  BoldIdResult,
+} from './bold'

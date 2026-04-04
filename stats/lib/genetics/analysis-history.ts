@@ -1,4 +1,4 @@
-import type { BlastMarker, BlastResultStatus, BlastProgram, BlastDatabase } from '@biohub/types'
+import type { BlastMarker, BlastResultStatus, BlastProgram, BlastDatabase, BoldDatabase, BoldSearchMode } from '@biohub/types'
 import type { ProjectEntityKind } from '@biohub/types'
 import type { DecisionResult } from '@/lib/genetics/decision-engine'
 import {
@@ -17,7 +17,7 @@ import { createLocalStorageIO } from '@/lib/utils/local-storage-factory'
 // 타입 정의
 // ═══════════════════════════════════════════════════════════════
 
-export type GeneticsToolType = 'barcoding' | 'blast' | 'genbank' | 'seq-stats' | 'similarity' | 'phylogeny'
+export type GeneticsToolType = 'barcoding' | 'blast' | 'genbank' | 'seq-stats' | 'similarity' | 'phylogeny' | 'bold'
 
 /** 바코딩 히스토리 (기존 필드 유지) */
 export interface BarcodingHistoryEntry {
@@ -111,6 +111,33 @@ export interface PhylogenyHistoryEntry {
   createdAt: number
 }
 
+/** BOLD ID Engine 종 동정 히스토리 */
+export interface BoldHistoryEntry {
+  id: string
+  type: 'bold'
+  /** 사용자 지정 시료명 */
+  sampleName: string
+  /** 사용된 DB */
+  db: BoldDatabase
+  /** 검색 모드 */
+  searchMode: BoldSearchMode
+  /** 서열 미리보기 (50자) */
+  sequencePreview: string
+  /** 재실행 가능한 서열 (MAX_STORED_SEQUENCE_LENGTH까지) */
+  sequence: string
+  /** 판정된 종명 (없으면 null) */
+  topSpecies: string | null
+  /** 최고 유사도 (0-1) */
+  topSimilarity: number | null
+  /** BIN (Barcode Index Number) */
+  topBin: string | null
+  /** 히트 수 */
+  hitCount: number
+  pinned?: boolean
+  projectId?: string
+  createdAt: number
+}
+
 export type GeneticsHistoryEntry =
   | BarcodingHistoryEntry
   | BlastSearchHistoryEntry
@@ -118,6 +145,7 @@ export type GeneticsHistoryEntry =
   | SeqStatsHistoryEntry
   | SimilarityHistoryEntry
   | PhylogenyHistoryEntry
+  | BoldHistoryEntry
 
 /** @deprecated GeneticsHistoryEntry 사용 */
 export type AnalysisHistoryEntry = BarcodingHistoryEntry
@@ -136,6 +164,7 @@ const MAX_PER_TYPE: Record<GeneticsToolType, number> = {
   'seq-stats': 15,
   similarity: 15,
   phylogeny: 15,
+  bold: 15,
 }
 
 /** 히스토리에 저장할 서열 최대 길이 — localStorage quota 보호 (15개 × 2000 = 30KB) */
@@ -150,6 +179,7 @@ function entityKindForType(type: GeneticsToolType): ProjectEntityKind {
     case 'seq-stats': return 'seq-stats-result'
     case 'similarity': return 'similarity-result'
     case 'phylogeny': return 'phylogeny-result'
+    case 'bold': return 'bold-result'
     default: return 'blast-result' // barcoding, blast
   }
 }
@@ -254,6 +284,25 @@ function normalizeEntry(item: unknown): GeneticsHistoryEntry | null {
         treeMethod: (obj.treeMethod ?? 'NJ') as 'NJ' | 'UPGMA',
         distanceModel: (obj.distanceModel ?? 'K2P') as 'K2P' | 'p-distance' | 'Jukes-Cantor',
         alignmentLength: (obj.alignmentLength ?? 0) as number,
+        pinned: obj.pinned as boolean | undefined,
+        projectId: obj.projectId as string | undefined,
+        createdAt: obj.createdAt as number,
+      }
+
+    case 'bold':
+      if (typeof obj.db !== 'string') return null
+      return {
+        id: obj.id as string,
+        type: 'bold',
+        sampleName: (obj.sampleName ?? '') as string,
+        db: obj.db as BoldDatabase,
+        searchMode: (obj.searchMode ?? 'rapid') as BoldSearchMode,
+        sequencePreview: (obj.sequencePreview ?? '') as string,
+        sequence: (obj.sequence ?? '') as string,
+        topSpecies: (obj.topSpecies ?? null) as string | null,
+        topSimilarity: (obj.topSimilarity ?? null) as number | null,
+        topBin: (obj.topBin ?? null) as string | null,
+        hitCount: (obj.hitCount ?? 0) as number,
         pinned: obj.pinned as boolean | undefined,
         projectId: obj.projectId as string | undefined,
         createdAt: obj.createdAt as number,
@@ -428,13 +477,14 @@ export type SaveGeneticsHistoryInput =
   | Omit<SeqStatsHistoryEntry, 'id' | 'createdAt'>
   | Omit<SimilarityHistoryEntry, 'id' | 'createdAt'>
   | Omit<PhylogenyHistoryEntry, 'id' | 'createdAt'>
+  | Omit<BoldHistoryEntry, 'id' | 'createdAt'>
 
 /** 범용 히스토리 저장 — type별 MAX 적용 */
 export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): boolean {
   const newEntry: GeneticsHistoryEntry = {
     ...entry,
-    // BLAST 서열 길이 cap — localStorage quota 보호 (15개 × 2KB = 30KB)
-    ...(entry.type === 'blast' && entry.sequence.length > MAX_STORED_SEQUENCE_LENGTH
+    // 서열 길이 cap — localStorage quota 보호 (15개 × 2KB = 30KB)
+    ...((entry.type === 'blast' || entry.type === 'bold') && entry.sequence.length > MAX_STORED_SEQUENCE_LENGTH
       ? { sequence: entry.sequence.slice(0, MAX_STORED_SEQUENCE_LENGTH) }
       : {}),
     id: `${entry.type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -468,6 +518,7 @@ export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): boolean {
   if (newEntry.projectId) {
     const label = newEntry.type === 'barcoding' ? newEntry.sampleName
       : newEntry.type === 'blast' ? `${newEntry.program} · ${newEntry.database}`
+      : newEntry.type === 'bold' ? newEntry.sampleName
       : 'analysisName' in newEntry ? newEntry.analysisName
       : newEntry.accession
     try {

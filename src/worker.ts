@@ -13,6 +13,7 @@ import { handleProjectsApi } from './handlers/projects'
 import { handleEntitiesApi } from './handlers/entities'
 import { handleGeneticsHistoryApi } from './handlers/genetics-history'
 import { handleLiteratureApi } from './handlers/literature'
+import { handleBoldProxy } from './handlers/bold'
 
 export default {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
@@ -21,6 +22,11 @@ export default {
     // /api/ai/* → OpenRouter 프록시
     if (url.pathname.startsWith('/api/ai/') || url.pathname === '/api/ai') {
       return handleAiProxy(request, env, url)
+    }
+
+    // /api/bold/* → BOLD Systems v5 ID Engine 프록시
+    if (url.pathname.startsWith('/api/bold/')) {
+      return handleBoldProxy(request, env, url)
     }
 
     // /api/blast/* → NCBI BLAST 프록시
