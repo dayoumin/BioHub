@@ -20,7 +20,6 @@ export default defineConfig({
       '__tests__/statistics/r-spss-validation.test.ts',
       '__tests__/statistics/nist-validation.test.ts',
       '__tests__/statistics/python-direct-test.test.ts',
-      'lib/statistics/__tests__/method-mapping.test.ts',
       '__tests__/statistics/statistical-validation.test.ts',
       // RAG 테스트 전체 제외 (ESM import 이슈로 인해)
       '__tests__/rag/**',
