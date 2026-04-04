@@ -1,0 +1,1879 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BioHub — 경쟁력 분석</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --sidebar-bg: #111827;
+    --sidebar-text: #9ca3af;
+    --sidebar-active: #3b82f6;
+    --sidebar-hover: rgba(255,255,255,.06);
+    --bg: #ffffff;
+    --bg-page: #f8fafc;
+    --ink: #111827;
+    --ink-secondary: #4b5563;
+    --ink-muted: #9ca3af;
+    --accent: #2563eb;
+    --accent-light: #eff6ff;
+    --accent-border: #bfdbfe;
+    --border: #e5e7eb;
+    --border-light: #f3f4f6;
+    --radius: 8px;
+    --sidebar-w: 230px;
+
+    --green-bg: #f0fdf4; --green: #15803d; --green-border: #bbf7d0;
+    --red-bg: #fef2f2; --red: #b91c1c; --red-border: #fecaca;
+    --yellow-bg: #fffbeb; --yellow: #92400e; --yellow-border: #fde68a;
+    --blue-bg: #eff6ff; --blue: #1d4ed8; --blue-border: #bfdbfe;
+    --gray-bg: #f3f4f6; --gray: #4b5563; --gray-border: #d1d5db;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg-page); color: var(--ink);
+    font-size: 14px; line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ═══════════════ Sidebar ═══════════════ */
+  .sidebar {
+    position: fixed; top: 0; left: 0;
+    width: var(--sidebar-w); height: 100vh;
+    background: var(--sidebar-bg);
+    display: flex; flex-direction: column;
+    overflow-y: auto; z-index: 100;
+  }
+  .sidebar-brand {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .sidebar-brand .logo {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sidebar-brand .logo-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; color: #fff;
+  }
+  .sidebar-brand .logo-text {
+    font-size: 16px; font-weight: 700; color: #f9fafb;
+    letter-spacing: -0.3px;
+  }
+  .sidebar-brand .doc-label {
+    font-size: 11px; color: var(--sidebar-text);
+    margin-top: 8px; padding-left: 42px;
+  }
+
+  .nav-group { padding: 16px 0; }
+  .nav-label {
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1.2px;
+    color: rgba(255,255,255,.25); padding: 8px 20px 6px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 20px; font-size: 13px; color: var(--sidebar-text);
+    text-decoration: none; transition: all 0.12s;
+    border-left: 2px solid transparent; cursor: pointer;
+  }
+  .nav-item:hover { color: #e5e7eb; background: var(--sidebar-hover); }
+  .nav-item.active {
+    color: #fff; background: rgba(59,130,246,.12);
+    border-left-color: var(--sidebar-active);
+  }
+  .nav-num {
+    font-size: 10px; font-weight: 600;
+    color: rgba(255,255,255,.2); min-width: 18px;
+    font-variant-numeric: tabular-nums;
+  }
+  .nav-item.active .nav-num { color: var(--sidebar-active); }
+  .nav-badge {
+    margin-left: auto; font-size: 9px; font-weight: 600;
+    background: var(--accent); color: #fff;
+    padding: 1px 6px; border-radius: 4px; letter-spacing: 0.3px;
+  }
+
+  .sidebar-footer {
+    margin-top: auto; padding: 16px 20px;
+    border-top: 1px solid rgba(255,255,255,.08);
+    font-size: 11px; color: rgba(255,255,255,.2);
+  }
+
+  /* ═══════════════ Main ═══════════════ */
+  .main {
+    margin-left: var(--sidebar-w);
+    padding: 40px 56px 120px;
+    max-width: 1060px;
+  }
+
+  /* ── Page Header ── */
+  .page-header { margin-bottom: 48px; }
+  .breadcrumb {
+    font-size: 12px; color: var(--ink-muted);
+    margin-bottom: 16px; display: flex; align-items: center; gap: 6px;
+  }
+  .breadcrumb .sep { color: var(--border); }
+  .page-header h1 {
+    font-size: 28px; font-weight: 700; color: var(--ink);
+    letter-spacing: -0.5px; line-height: 1.25; margin-bottom: 8px;
+  }
+  .page-sub {
+    font-size: 14px; color: var(--ink-secondary);
+    margin-bottom: 16px;
+  }
+  .header-meta {
+    display: flex; gap: 20px; font-size: 12px; color: var(--ink-muted);
+    padding-top: 16px; border-top: 1px solid var(--border);
+  }
+  .header-meta .dot { color: var(--border); }
+
+  /* ── Sections ── */
+  .section { margin-bottom: 56px; scroll-margin-top: 24px; }
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px; padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    font-size: 11px; font-weight: 700; color: var(--accent);
+    min-width: 24px;
+  }
+  .section-title {
+    font-size: 18px; font-weight: 700; color: var(--ink);
+    letter-spacing: -0.3px;
+  }
+  .section-badge {
+    margin-left: 8px; font-size: 10px; font-weight: 600;
+    background: var(--accent-light); color: var(--accent);
+    padding: 2px 8px; border-radius: 4px;
+  }
+
+  .sub-label {
+    font-size: 12px; font-weight: 600;
+    color: var(--ink-muted); text-transform: uppercase;
+    letter-spacing: 0.6px; margin: 28px 0 12px;
+  }
+
+  p { margin-bottom: 14px; color: var(--ink-secondary); line-height: 1.75; }
+  p strong { color: var(--ink); }
+
+  /* ── Callout ── */
+  .callout {
+    background: var(--accent-light); border: 1px solid var(--accent-border);
+    border-radius: var(--radius); padding: 14px 18px; margin: 16px 0;
+    font-size: 13px; color: var(--blue);
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── Tables ── */
+  .table-wrap {
+    overflow-x: auto; margin: 14px 0;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: auto; }
+  table.wide { min-width: 800px; }
+  th {
+    background: var(--border-light); text-align: left;
+    padding: 10px 14px; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    white-space: nowrap;
+    color: var(--ink-muted); border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 16px; border-bottom: 1px solid var(--border-light);
+    color: var(--ink-secondary);
+  }
+  tr:last-child td { border-bottom: none; }
+  tr.bio { background: var(--accent-light); }
+  tr.bio td { color: var(--accent); font-weight: 600; }
+  tbody tr:hover:not(.bio) { background: #fafbfc; }
+
+  /* ── Badges ── */
+  .b {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 600; white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .b-ok { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
+  .b-no { background: var(--red-bg); color: var(--red); border-color: var(--red-border); }
+  .b-warn { background: var(--yellow-bg); color: var(--yellow); border-color: var(--yellow-border); }
+  .b-wip { background: var(--blue-bg); color: var(--blue); border-color: var(--blue-border); }
+  .b-gray { background: var(--gray-bg); color: var(--gray); border-color: var(--gray-border); }
+
+  /* ── Cards ── */
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0; }
+  .card {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 20px;
+    transition: box-shadow 0.15s;
+  }
+  .card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+  .card-cat {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--accent); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .card-cat-icon { font-size: 15px; }
+  .card ul { list-style: none; }
+  .card ul li {
+    font-size: 13px; color: var(--ink-secondary);
+    padding: 3px 0; display: flex; align-items: baseline; gap: 6px;
+  }
+  .card ul li::before {
+    content: ''; width: 4px; height: 4px; border-radius: 50%;
+    background: var(--accent); flex-shrink: 0; margin-top: 7px;
+  }
+
+  /* ── Position diagram ── */
+  pre.diagram {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+    font-size: 12px; line-height: 1.65;
+    background: var(--bg); border: 1px solid var(--border);
+    padding: 24px 28px; border-radius: var(--radius);
+    overflow-x: auto; margin: 16px 0; color: var(--ink-secondary);
+  }
+  pre.diagram .star { color: var(--accent); font-weight: 700; }
+  pre.diagram .label { color: var(--ink-muted); }
+
+  /* ── Compare columns ── */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0; }
+  .compare-col {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 20px;
+  }
+  .compare-col-hdr {
+    font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+  }
+  .compare-col.them .compare-col-hdr { color: var(--red); }
+  .compare-col.us { border-color: var(--accent-border); background: var(--accent-light); }
+  .compare-col.us .compare-col-hdr { color: var(--accent); }
+  .compare-col ul { list-style: none; }
+  .compare-col ul li {
+    font-size: 13px; padding: 3px 0;
+    display: flex; align-items: baseline; gap: 6px;
+  }
+  .compare-col.them ul li { color: var(--ink-muted); }
+  .compare-col.them ul li::before { content: '×'; color: var(--red); font-weight: 600; font-size: 12px; }
+  .compare-col.us ul li { color: var(--ink); }
+  .compare-col.us ul li::before { content: '✓'; color: var(--accent); font-weight: 700; font-size: 12px; }
+
+  /* ── Moat rows ── */
+  .moat-list { margin: 16px 0; }
+  .moat-row {
+    display: flex; align-items: center; gap: 16px;
+    padding: 12px 16px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: 8px;
+  }
+  .moat-label { font-size: 13px; font-weight: 600; color: var(--ink); min-width: 150px; }
+  .moat-desc { font-size: 13px; color: var(--ink-secondary); flex: 1; }
+
+  /* ── Tags ── */
+  .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+  .tag {
+    font-size: 12px; font-weight: 500;
+    background: var(--accent-light); color: var(--accent);
+    border: 1px solid var(--accent-border);
+    padding: 4px 14px; border-radius: 20px;
+  }
+
+  /* ── Final quote ── */
+  .final-box {
+    background: var(--bg); border: 1px solid var(--accent-border);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 22px 26px; margin: 28px 0;
+  }
+  .final-box p {
+    font-size: 15px; font-weight: 600; line-height: 1.7;
+    color: var(--ink); margin: 0;
+  }
+
+  /* ── User segment cards ── */
+  .segment-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin: 16px 0; }
+  .segment-card {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 20px; text-align: center;
+  }
+  .segment-icon { font-size: 28px; margin-bottom: 8px; }
+  .segment-title { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .segment-desc { font-size: 12px; color: var(--ink-muted); }
+
+  /* ── blockquote / note ── */
+  .note {
+    background: var(--border-light); border-left: 3px solid var(--border);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 12px 18px; margin: 14px 0;
+    font-size: 12px; color: var(--ink-muted); line-height: 1.6;
+  }
+  .note strong { color: var(--ink-secondary); }
+
+  /* ── Roadmap (replaces pre diagrams with emoji) ── */
+  .roadmap { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0; margin: 16px 0; }
+  .roadmap-col {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px 22px;
+  }
+  .roadmap-arrow {
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 16px; font-size: 22px; color: var(--ink-muted);
+  }
+  .roadmap-col-title {
+    font-size: 13px; font-weight: 700; color: var(--ink);
+    margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+  .roadmap-group-label {
+    font-size: 11px; font-weight: 600; color: var(--ink-muted);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin: 14px 0 8px;
+  }
+  .roadmap-group-label:first-of-type { margin-top: 0; }
+  .roadmap-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; padding: 3px 0;
+  }
+  .roadmap-item .b { flex-shrink: 0; }
+
+  /* ── Print ── */
+  @media print {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 24px; max-width: 100%; }
+    .card:hover { box-shadow: none; }
+    tr.bio { background: #e0e7ff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .b { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ Sidebar ═══════════════ -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="logo">
+      <div class="logo-icon">B</div>
+      <div class="logo-text">BioHub</div>
+    </div>
+    <div class="doc-label">경쟁력 분석</div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-label">목차</div>
+    <a class="nav-item active" href="#s1"><span class="nav-num">01</span> 시장 현황</a>
+    <a class="nav-item" href="#s2"><span class="nav-num">02</span> 기존 도구 비교</a>
+    <a class="nav-item" href="#s3"><span class="nav-num">03</span> 핵심 강점</a>
+    <a class="nav-item" href="#s4"><span class="nav-num">04</span> 논문 초안 차별화</a>
+    <a class="nav-item" href="#s5"><span class="nav-num">05</span> 생태계 위치</a>
+    <a class="nav-item" href="#s6"><span class="nav-num">06</span> 타겟 사용자</a>
+    <a class="nav-item" href="#s7"><span class="nav-num">07</span> 추가 우위</a>
+    <a class="nav-item" href="#s8"><span class="nav-num">08</span> GPTs 시대 생존</a>
+    <a class="nav-item" href="#s9"><span class="nav-num">09</span> 국내 서비스 분석 <span class="nav-badge">NEW</span></a>
+    <a class="nav-item" href="#s10"><span class="nav-num">10</span> 핵심 메시지</a>
+  </div>
+  <div class="sidebar-footer">v1.1 · 2026-03-18</div>
+</nav>
+
+<!-- ═══════════════ Main Content ═══════════════ -->
+<main class="main">
+
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="breadcrumb">
+      <span>BioHub</span>
+      <span class="sep">/</span>
+      <span>문서</span>
+      <span class="sep">/</span>
+      <span style="color:var(--ink)">경쟁력 분석</span>
+    </div>
+    <h1>경쟁력 분석 — 논문 초안 생성</h1>
+    <p class="page-sub">구조화된 통계 분석 결과를 코딩 없이 APA 논문 텍스트로 변환하는 유일한 웹 도구의 포지셔닝 분석</p>
+    <div class="header-meta">
+      <span>작성: 2026-03-12</span>
+      <span class="dot">·</span>
+      <span>수정: 2026-03-18 (팩트체크 업데이트)</span>
+      <span class="dot">·</span>
+      <span>용도: 포지셔닝 정리 · 지원/발표 자료</span>
+    </div>
+  </header>
+
+  <!-- ═══ §01 시장 현황 ═══ -->
+  <section class="section" id="s1">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2 class="section-title">시장 현황: "분석 결과 → 논문 텍스트" 도구 부재</h2>
+    </div>
+    <p>통계 분석 후 논문을 쓰는 과정은 여전히 <strong>수동</strong>이다. <strong>2025년 이후 AI 해석 기능을 추가하는 도구가 등장하기 시작했으나</strong>, 기존 도구들은 개별 결과 블록에 대한 단편적 AI 요약 수준에 그친다. 웹에서 코딩 없이 구조화된 분석 결과를 Methods·Results·Captions 수준의 APA 서술 텍스트로 변환하는 도구는 <strong>여전히 존재하지 않는다</strong>.</p>
+
+    <div class="sub-label">시장 변화 (2025~2026)</div>
+    <ul style="list-style:none; margin: 0 0 16px 0;">
+      <li style="padding: 6px 0; color: var(--ink-secondary); display: flex; gap: 8px; align-items: baseline;">
+        <span style="color: var(--accent); font-weight: 700; flex-shrink: 0;">SPSS v31.0.1 (2025-09)</span>
+        watsonx.ai 기반 AI Output Assistant 추가 — 개별 출력 블록에 자연어 요약 제공. 단, 별도 IBM Cloud 계정 필요, 논문 텍스트 생성 없음
+      </li>
+      <li style="padding: 6px 0; color: var(--ink-secondary); display: flex; gap: 8px; align-items: baseline;">
+        <span style="color: var(--accent); font-weight: 700; flex-shrink: 0;">numiqo (구 DataTab, 2025)</span>
+        웹 기반 통계 도구에 프리미엄 AI 해석 추가. 최근접 경쟁자
+      </li>
+      <li style="padding: 6px 0; color: var(--ink-secondary); display: flex; gap: 8px; align-items: baseline;">
+        <span style="color: var(--accent); font-weight: 700; flex-shrink: 0;">Julius AI</span>
+        AI 우선 데이터 분석 서비스 (비즈니스 분석 중심, 학술 통계 깊이 부족)
+      </li>
+    </ul>
+  </section>
+
+  <!-- ═══ §02 기존 도구 상세 비교 ═══ -->
+  <section class="section" id="s2">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2 class="section-title">기존 도구 상세 비교</h2>
+    </div>
+
+    <div class="sub-label">2-1. 통계 소프트웨어의 논문 지원</div>
+    <div class="table-wrap">
+      <table class="wide">
+        <thead>
+          <tr>
+            <th>도구</th>
+            <th>APA 표</th>
+            <th>AI/자동 서술 텍스트</th>
+            <th>논문 초안 생성</th>
+            <th>코딩 필요</th>
+            <th>웹</th>
+            <th>한국어</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>JASP 0.19.3</strong></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌ 설치형</span></td>
+            <td><span class="b b-no">❌</span></td>
+          </tr>
+          <tr>
+            <td><strong>jamovi</strong></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-warn">⚠️ Cloud $5/월</span></td>
+            <td><span class="b b-no">❌</span></td>
+          </tr>
+          <tr>
+            <td><strong>R report()</strong></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-ok">✅ 문단 수준</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-warn">✅ R</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+          </tr>
+          <tr>
+            <td><strong>R papaja</strong></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-ok">✅ 전체 논문</span></td>
+            <td><span class="b b-ok">✅ R+LaTeX</span></td>
+            <td><span class="b b-warn">✅ R+LaTeX</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+          </tr>
+          <tr>
+            <td><strong>GraphPad Prism 10</strong></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-warn">⚠️ Cloud 베타</span></td>
+            <td><span class="b b-no">❌</span></td>
+          </tr>
+          <tr>
+            <td><strong>Stata 18 (estout)</strong></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-warn">✅ Stata</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+          </tr>
+          <tr>
+            <td><strong>statsmodels</strong></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-warn">✅ Python</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+          </tr>
+          <tr>
+            <td><strong>SPSS v31.0.1</strong></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-warn">⚠️ AI Output Asst.</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌ 설치형</span></td>
+            <td><span class="b b-ok">✅ UI</span></td>
+          </tr>
+          <tr>
+            <td><strong>numiqo (DataTab)</strong></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-warn">⚠️ 프리미엄</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-no">❌</span></td>
+          </tr>
+          <tr class="bio">
+            <td><strong>BioHub</strong></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-ok">✅ 한국어</span></td>
+            <td><span class="b b-wip">🔨 4섹션</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-wip">🔨 한/영</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <strong>JASP 0.19.3</strong> (2025-01): 가장 사용자 친화적이지만 APA 표만 제공, AI 기능 없음. 완전 무료/오픈소스. 데스크탑 전용<br>
+      <strong>jamovi</strong>: 비슷한 포지션. Cloud 버전 존재($5/월)하나 데스크탑 무료판이 주력. AI 기능 없음<br>
+      <strong>GraphPad Prism 10</strong>: 생명과학 분야 사실상 표준. Prism Cloud 베타 출시 중. AI 기능 없음. 학생 $142/년~<br>
+      <strong>R papaja</strong>: 가장 완전한 논문 생성이지만 R + LaTeX 전문 지식 필수 → 비전공자 접근 불가<br>
+      <strong>Stata 18</strong>: 사회과학 분야 표준. estout/outreg로 서식화된 표 출력. AI 기능은 커뮤니티 MCP 래퍼만 존재<br>
+      <strong>SPSS v31.0.1 (2025-09)</strong>: AI Output Assistant 추가됨 — 선택한 출력 블록에 watsonx.ai 기반 자연어 요약 제공. 단, 별도 IBM Cloud 계정 필요, 논문 텍스트 생성 없음. 가격 $99~$105/월<br>
+      <strong>numiqo (구 DATAtab)</strong>: 웹 기반 SPSS 대체 도구. 프리미엄 플랜에 AI 해석 텍스트 있음. 기관 라이선스 €3,999/년. 한국어 없음
+    </div>
+
+    <div class="sub-label">2-2. AI 데이터 분석 + 논문 작성 도구</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>도구</th>
+            <th>주요 기능</th>
+            <th>통계 데이터 입력</th>
+            <th>수치 정확도</th>
+            <th>가격</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>ChatGPT/Claude</strong></td>
+            <td>자유 텍스트 → 논문</td>
+            <td><span class="b b-no">❌ 수동 입력</span></td>
+            <td><span class="b b-warn">⚠️ 환각 위험</span></td>
+            <td>무료~$20/월</td>
+          </tr>
+          <tr>
+            <td><strong>Julius AI</strong></td>
+            <td>자연어 데이터 분석 + 요약</td>
+            <td><span class="b b-ok">✅ CSV 업로드</span></td>
+            <td><span class="b b-warn">⚠️ 비즈니스 분석 중심</span></td>
+            <td>무료(15회)~$60/월</td>
+          </tr>
+          <tr>
+            <td><strong>numiqo (DataTab)</strong></td>
+            <td>웹 통계 계산 + AI 해석</td>
+            <td><span class="b b-ok">✅ 직접 입력/업로드</span></td>
+            <td><span class="b b-warn">⚠️ 프리미엄 플랜만</span></td>
+            <td>무료(제한) / 기관 €3,999/년</td>
+          </tr>
+          <tr>
+            <td><strong>Paperpal</strong></td>
+            <td>학술 교정/문법/표현</td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-gray">N/A (생성 아님)</span></td>
+            <td>무료(제한) / $19/월</td>
+          </tr>
+          <tr>
+            <td><strong>Writefull</strong></td>
+            <td>학술 영어 교정</td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-gray">N/A (생성 아님)</span></td>
+            <td>유료</td>
+          </tr>
+          <tr>
+            <td><strong>SciSpace/Elicit</strong></td>
+            <td>문헌 검색/요약</td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-gray">N/A</span></td>
+            <td>유료</td>
+          </tr>
+          <tr>
+            <td><strong>Consensus</strong></td>
+            <td>문헌 기반 답변</td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-gray">N/A</span></td>
+            <td>유료</td>
+          </tr>
+          <tr class="bio">
+            <td><strong>BioHub</strong></td>
+            <td>분석 결과 → 논문</td>
+            <td><span class="b b-ok">✅ 자동 연동</span></td>
+            <td><span class="b b-ok">✅ 템플릿 기반</span></td>
+            <td><strong>오픈소스</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <strong>Julius AI</strong>: CSV 기반 자연어 분석이 가능하나 비즈니스 분석 도구 — 학술 통계 깊이(가정검정, 효과크기, APA 서식) 없음. 월 $35~$60<br>
+      <strong>numiqo</strong>: BioHub와 가장 가까운 경쟁자. 웹 기반 + AI 해석 있음. 단, 한국어 없음, Pyodide 오프라인 없음, 논문 초안 생성 없음. 기관 전용 유료<br>
+      AI 도구들은 구조화된 통계 데이터 없이 텍스트를 생성 → 수치 환각 위험<br>
+      교정 도구(Paperpal, Writefull)는 생성이 아닌 수정 도구 → 초안은 여전히 수동<br>
+      문헌 도구(Elicit, Consensus)는 검색/요약 특화 → 자기 데이터 분석과 무관
+    </div>
+
+    <div class="sub-label">2-3. 인용 할루시네이션 — 시장 현실</div>
+    <div class="callout">
+      <span class="callout-icon">⚠️</span>
+      <span>
+        2024~2025년 학술계에서 AI 생성 허위 인용이 반복적으로 보고됨 (NeurIPS 등 주요 학회).
+        연구에 따르면 LLM 생성 인용의 상당수가 날조된 것으로 확인 (정확한 비율은 모델/설정에 따라 상이).
+        <br><strong>BioHub 대응</strong>: Methods/Results = 템플릿 기반 → 할루시네이션 <strong>구조적 불가능</strong>. Discussion만 LLM 사용하되 실제 통계값에 기반.
+      </span>
+    </div>
+  </section>
+
+  <!-- ═══ §03 핵심 강점 ═══ -->
+  <section class="section" id="s3">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2 class="section-title">BioHub 프로젝트 핵심 강점</h2>
+    </div>
+
+    <div class="sub-label">3-1. 기술 아키텍처</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>강점</th><th>설명</th><th>경쟁자 대비</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>브라우저 내 통계 계산</strong></td>
+            <td>Pyodide(CPython WASM)로 SciPy/statsmodels/pingouin을 브라우저에서 실행. 서버 없이 전문 통계 라이브러리 사용</td>
+            <td>JASP/SPSS: 데스크탑 설치 필요. 웹 도구들: 서버 의존</td>
+          </tr>
+          <tr>
+            <td><strong>데이터 프라이버시</strong></td>
+            <td>모든 연산이 클라이언트에서 수행. 사용자 데이터가 서버로 전송되지 않음</td>
+            <td>클라우드 통계 도구: 데이터 업로드 필수</td>
+          </tr>
+          <tr>
+            <td><strong>오프라인 사용</strong></td>
+            <td>Pyodide 로컬 캐시 + Static Export → 인터넷 없이 분석 가능</td>
+            <td>웹 도구: 오프라인 불가</td>
+          </tr>
+          <tr>
+            <td><strong>설치 불필요</strong></td>
+            <td>웹 브라우저만으로 즉시 사용. URL 접속 = 시작</td>
+            <td>JASP/Prism/SPSS: 다운로드+설치+라이선스</td>
+          </tr>
+          <tr>
+            <td><strong>데스크탑 앱 가능</strong></td>
+            <td>Static Export + Pyodide 아키텍처이므로 Tauri 등 데스크탑 래핑 가능 (옵션, 우선순위 낮음)</td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sub-label">3-2. 통계 분석 기능</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>강점</th><th>설명</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Smart Flow 통합 진입점</strong></td>
+            <td>52개 메서드(11 카테고리: 추론 통계 46 + 탐색/설계 도구 6)를 단일 워크플로우(데이터→변수→분석→결과)로 통합. 사용자가 메서드를 직접 선택하거나 AI가 추천</td>
+          </tr>
+          <tr>
+            <td><strong>AI 메서드 추천</strong></td>
+            <td>데이터 특성 + 연구 목적 기반으로 적합한 통계 방법 추천 (OpenRouter LLM)</td>
+          </tr>
+          <tr>
+            <td><strong>가정검정 자동화</strong></td>
+            <td>정규성(Shapiro-Wilk), 등분산성(Levene), 구형성(Mauchly) 등 자동 검정 + 위반 시 대안 제시</td>
+          </tr>
+          <tr>
+            <td><strong>검증된 라이브러리</strong></td>
+            <td>직접 구현 금지 원칙 — SciPy/statsmodels/pingouin만 사용하여 통계적 정확성 보장</td>
+          </tr>
+          <tr>
+            <td><strong>효과크기 + 신뢰구간</strong></td>
+            <td>Cohen's d, η², ω², Cramér's V 등 효과크기와 95% CI 자동 계산</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sub-label">3-3. 사용성</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>강점</th><th>설명</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>코딩 불필요</strong></td>
+            <td>CSV 업로드 → 변수 선택 → 1클릭 분석. R/Python 지식 없이 전문 통계 분석</td>
+          </tr>
+          <tr>
+            <td><strong>한국어 UI</strong></td>
+            <td>전체 인터페이스 한국어 지원. 한국 연구자의 접근성 극대화</td>
+          </tr>
+          <tr>
+            <td><strong>시각화 통합</strong></td>
+            <td>Graph Studio: ECharts 기반 통계 그래프 (Box Plot, Scatter, Bar 등)</td>
+          </tr>
+          <tr>
+            <td><strong>APA 서식 출력</strong></td>
+            <td>APA 7th Edition 표 복사 (Word/Excel 호환), 이탤릭 통계 기호, p-value 서식</td>
+          </tr>
+          <tr>
+            <td><strong>분석 히스토리</strong></td>
+            <td>IndexedDB + Turso 하이브리드 저장. 로컬 즉시 저장 + 클라우드 동기화</td>
+          </tr>
+          <tr>
+            <td><strong>DOCX/Excel/HTML 내보내기</strong></td>
+            <td>분석 결과를 Word(.docx), Excel, HTML로 내보내기. APA 서식 적용, 한/영 옵션 (✅ 구현 완료, 1,697줄)</td>
+          </tr>
+          <tr>
+            <td><strong>Bio-Tools</strong></td>
+            <td>생물학 특화 분석 도구 (<span class="b b-wip">🔨 12개 계획</span>, 별도 섹션 예정)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sub-label">3-4. 운영/배포</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>강점</th><th>설명</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>무료/오픈소스</strong></td>
+            <td>라이선스 비용 없음. SPSS(연 $1,200+, 약 170만원), Prism(연 $142~$1,040) 대비</td>
+          </tr>
+          <tr>
+            <td><strong>가벼운 인프라</strong></td>
+            <td>Cloudflare Workers + Static Assets. 서버리스 — 운영 비용 최소</td>
+          </tr>
+          <tr>
+            <td><strong>빠른 로딩</strong></td>
+            <td>Next.js Static Export → CDN 전역 배포. 초기 로딩 후 오프라인 가능</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══ §04 논문 초안 차별화 ═══ -->
+  <section class="section" id="s4">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2 class="section-title">논문 초안 생성 — 차별화 포인트</h2>
+    </div>
+
+    <div class="sub-label">4-1. 핵심 차별점 매트릭스</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>BioHub 접근</th><th>가장 가까운 경쟁자</th><th>핵심 차이</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>템플릿 기반 Methods/Results (할루시네이션 0%)</td>
+            <td>R papaja / report 패키지</td>
+            <td>R 코딩 필요 vs 웹 UI</td>
+          </tr>
+          <tr>
+            <td>가정검정 결과를 Methods 문단으로 서술</td>
+            <td>JASP/jamovi (테이블만 표시)</td>
+            <td>"정규성을 Shapiro-Wilk로 검정하였다" 자동 생성</td>
+          </tr>
+          <tr>
+            <td>한/영 이중 언어 학술 글쓰기 (<span class="b b-wip">🔨 구현 예정</span>)</td>
+            <td>없음</td>
+            <td>한국어 학술 글쓰기 도구 전무</td>
+          </tr>
+          <tr>
+            <td>분석 → 시각화 → 논문 통합 파이프라인</td>
+            <td>R ecosystem (RMarkdown + knitr)</td>
+            <td>코딩 없이 웹에서 전 과정</td>
+          </tr>
+          <tr>
+            <td>Discussion = LLM + 실제 통계값 기반</td>
+            <td>범용 AI (ChatGPT 등)</td>
+            <td>실제 수치에 기반 → 할루시네이션 위험 낮음</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sub-label">4-2. BioHub만의 구조적 우위</div>
+
+    <p><strong>1. AnalysisResult 객체 = 논문의 원천 데이터</strong></p>
+    <p>기존 도구들은 사용자가 분석 결과를 <strong>수동으로 복사/입력</strong>해야 한다. BioHub는 <code>AnalysisResult</code> 객체에 이미 모든 데이터가 구조화되어 있다:</p>
+    <pre class="diagram">AnalysisResult {
+  statistic, pValue, df,           → Results 섹션 자동 생성
+  effectSize, effectSizeCI,        → 효과크기 해석 자동 생성
+  groupStats,                      → 기술통계 서술 자동 생성
+  assumptions,                     → Methods 가정검정 서술 자동 생성
+  apaFormat,                       → APA 인라인 보고 형식
+  visualizationData                → Figure 캡션 자동 생성
+}</pre>
+
+    <p><strong>2. 표 + 그래프 + 글쓰기 통합</strong></p>
+    <div class="table-wrap">
+      <table class="wide">
+        <thead>
+          <tr>
+            <th>기능</th>
+            <th>JASP</th>
+            <th>Prism</th>
+            <th>R papaja</th>
+            <th>numiqo</th>
+            <th>Julius AI</th>
+            <th>BioHub</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>APA 표</td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-warn">⚠️ 일반 표</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-ok">✅</span></td>
+          </tr>
+          <tr>
+            <td>통계 그래프</td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-ok">✅</span></td>
+          </tr>
+          <tr>
+            <td>AI 결과 해석</td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-warn">⚠️ 유료</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-ok">✅</span></td>
+          </tr>
+          <tr>
+            <td>APA 서술 텍스트 (논문 초안)</td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-ok">✅ Phase A</span></td>
+          </tr>
+          <tr>
+            <td>코딩 불필요</td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-ok">✅</span></td>
+          </tr>
+          <tr>
+            <td>웹 브라우저</td>
+            <td><span class="b b-no">❌ 설치형</span></td>
+            <td><span class="b b-warn">⚠️ 베타</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-ok">✅</span></td>
+          </tr>
+          <tr>
+            <td>수치 정확도 보장</td>
+            <td><span class="b b-gray">N/A</span></td>
+            <td><span class="b b-gray">N/A</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-warn">⚠️</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-ok">✅</span></td>
+          </tr>
+          <tr>
+            <td>한국어</td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-wip">🔨</span></td>
+          </tr>
+          <tr>
+            <td>무료</td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-ok">✅ R</span></td>
+            <td><span class="b b-warn">⚠️ 제한</span></td>
+            <td><span class="b b-warn">⚠️ 15회</span></td>
+            <td><span class="b b-ok">✅</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><strong>3. 빈 틈(gap) = BioHub의 기회</strong></p>
+    <pre class="diagram">                    코딩 필요
+                    ↑
+                    │  R papaja
+        Stata       │  R report
+        statsmodels │
+        ────────────┼────────────→ APA 텍스트 생성
+        JASP        │
+        jamovi      │  <span class="star">★ BioHub</span>
+        Prism       │
+        SPSS        │
+                    ↓
+                    코딩 불필요</pre>
+
+    <div class="callout">
+      <span class="callout-icon">💡</span>
+      <span>우측 하단 사분면(코딩 불필요 + APA 텍스트 생성)에 <strong>BioHub만 존재</strong> (2026-03 현재).
+      <br><strong>2025년 이후 변화</strong>: numiqo와 Julius AI가 "코딩 불필요 + AI 해석" 영역에 진입했으나, 둘 다 <strong>APA 논문 텍스트 생성</strong>은 없음. SPSS v31은 AI 해석을 추가했으나 웹 기반이 아니며 가격이 매우 높음. 논문 초안 생성 우측 하단 포지션은 여전히 공백.</span>
+    </div>
+  </section>
+
+  <!-- ═══ §05 생태계 위치 ═══ -->
+  <section class="section" id="s5">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2 class="section-title">생태계 내 위치 및 연동</h2>
+    </div>
+    <p>BioHub는 기존 학술 도구를 <strong>대체</strong>하는 것이 아니라, 분석과 글쓰기 사이의 <strong>빈 구간을 채우는</strong> 도구이다.</p>
+
+    <div class="sub-label">보완 관계 (BioHub 출력 → 외부 도구)</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>다음 단계</th><th>외부 도구</th><th>BioHub 역할</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>문서 편집/협업</td>
+            <td>Word, Overleaf, Google Docs</td>
+            <td>APA 서식 .docx 내보내기</td>
+          </tr>
+          <tr>
+            <td>문법/표현 교정</td>
+            <td>Paperpal, Writefull</td>
+            <td>초안 생성 → 교정 도구에서 폴리싱</td>
+          </tr>
+          <tr>
+            <td>참고문헌 관리</td>
+            <td>Zotero, Mendeley</td>
+            <td>.bib (BibTeX) 소프트웨어 인용 생성</td>
+          </tr>
+          <tr>
+            <td>문헌 검색</td>
+            <td>Elicit, Consensus, SciSpace</td>
+            <td>범위 밖 — 사용자가 별도로 사용</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <pre class="diagram"><span class="label">연구자 워크플로우:</span>
+
+<span class="label">[데이터 수집]</span> → <span class="label">[통계 분석]</span> → <span class="star">[BioHub 논문 초안]</span> → <span class="label">[교정/투고]</span>
+                 SPSS, R, jamovi       Methods, Results,
+                 또는 BioHub 자체       Captions, Discussion</pre>
+  </section>
+
+  <!-- ═══ §06 타겟 사용자 ═══ -->
+  <section class="section" id="s6">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2 class="section-title">타겟 사용자</h2>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>사용자 유형</th><th>현재 워크플로우</th><th>BioHub 가치</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>비전공 연구자</strong> (생물학, 의학)</td>
+            <td>SPSS → 수동 논문 작성</td>
+            <td>코딩 없이 APA 텍스트 자동 생성</td>
+          </tr>
+          <tr>
+            <td><strong>대학원생</strong></td>
+            <td>통계 도구 + ChatGPT 조합</td>
+            <td>정확한 수치 기반 초안, 학습 효과</td>
+          </tr>
+          <tr>
+            <td><strong>한국어 연구자</strong></td>
+            <td>영문 도구 → 번역</td>
+            <td>한국어 직접 생성, 영문 전환 가능</td>
+          </tr>
+          <tr>
+            <td><strong>다작 연구자</strong></td>
+            <td>R papaja 사용</td>
+            <td>웹에서 빠르게, R 환경 불필요</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="segment-grid">
+      <div class="segment-card">
+        <div class="segment-icon">🎓</div>
+        <div class="segment-title">바이오/의학 대학원생</div>
+        <div class="segment-desc">SPSS 비용 부담, R 코딩 어려움. 한국어 UI + 무료가 핵심 가치.</div>
+      </div>
+      <div class="segment-card">
+        <div class="segment-icon">🔬</div>
+        <div class="segment-title">수산/환경 연구자</div>
+        <div class="segment-desc">도메인 특화 분석 (Bio-Tools) + 한국 저널 포맷 지원.</div>
+      </div>
+      <div class="segment-card">
+        <div class="segment-icon">🏥</div>
+        <div class="segment-title">임상/보건 연구자</div>
+        <div class="segment-desc">데이터 프라이버시 필수. 서버 미전송 + 로컬 연산이 핵심.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ §07 추가 우위를 위해 필요한 것 ═══ -->
+  <section class="section" id="s7">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <h2 class="section-title">추가 우위를 위해 필요한 것</h2>
+    </div>
+
+    <div class="sub-label">7-1. 단기 (현재 개발 중 또는 즉시 가능)</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>항목</th><th>현재 상태</th><th>필요 이유</th><th>우선순위</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>논문 초안 Phase A</strong></td>
+            <td><span class="b b-ok">✅ 구현 완료</span> (Methods/Results/Captions, 한/영 전환, 히스토리 저장)</td>
+            <td>핵심 차별화 기능 달성</td>
+            <td>완료</td>
+          </tr>
+          <tr>
+            <td><strong>논문 초안 Phase B</strong></td>
+            <td><span class="b b-wip">🔨 개발 예정</span> Discussion (LLM 기반 해석·맥락·한계점)</td>
+            <td>Phase A 완성도 강화. API 없어도 Methods/Results는 즉시 생성 가능</td>
+            <td>높음</td>
+          </tr>
+          <tr>
+            <td><strong>APA 테이블 서식 버그 수정</strong></td>
+            <td>3~4차 검증에서 7건 발견</td>
+            <td>XSS, 이중 이탤릭, 정수 표시 등 품질 이슈</td>
+            <td>높음</td>
+          </tr>
+          <tr>
+            <td><strong>영문 UI 완성</strong></td>
+            <td>내보내기 한/영 옵션 존재, 전체 UI i18n은 미도입</td>
+            <td>글로벌 시장 접근 불가. 최소 영문 논문 출력은 필수</td>
+            <td>높음</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sub-label">7-2. 중기 (경쟁력 확보)</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>항목</th><th>현재 상태</th><th>필요 이유</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>다중 분석 통합 보고서</strong></td>
+            <td>미구현</td>
+            <td>실제 논문은 여러 분석 결과를 하나로 통합. 단일 분석 초안은 시작점일 뿐</td>
+          </tr>
+          <tr>
+            <td><strong>사용자 검증/피드백</strong></td>
+            <td>미수행</td>
+            <td>실제 연구자 테스트 없이는 가정만으로 개발. 타겟 사용자 5~10명 피드백 필수</td>
+          </tr>
+          <tr>
+            <td><strong>템플릿 품질 검증</strong></td>
+            <td>미수행</td>
+            <td>APA 매뉴얼 + 실제 논문 대조 검증. 출력 품질이 신뢰성의 핵심</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sub-label">7-3. 장기 (시장 확대)</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>항목</th><th>현재 상태</th><th>필요 이유</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>저널별 서식 프리셋</strong></td>
+            <td>미구현</td>
+            <td>APA만으로는 부족. 생명과학 저널(Nature, PLOS ONE 등)은 자체 서식 사용</td>
+          </tr>
+          <tr>
+            <td><strong>인용/참고문헌 관리</strong></td>
+            <td>미구현</td>
+            <td>논문 작성의 필수 요소. BibTeX 생성 → Zotero 연동</td>
+          </tr>
+          <tr>
+            <td><strong>협업 기능</strong></td>
+            <td>미구현</td>
+            <td>공동 연구 시 분석 결과 + 초안 공유 필요</td>
+          </tr>
+          <tr>
+            <td><strong>API 공개</strong></td>
+            <td>미구현</td>
+            <td>타 도구(R, Python, Jupyter)에서 BioHub 템플릿 엔진 활용 가능 → 생태계 확장</td>
+          </tr>
+          <tr>
+            <td><strong>모바일 대응</strong></td>
+            <td>PC 웹 전용</td>
+            <td>현장 연구자 접근성. 최소 태블릿 반응형</td>
+          </tr>
+          <tr>
+            <td><strong>대학/기관 도입</strong></td>
+            <td>미시도</td>
+            <td>개인 사용자 → 기관 도입이 지속 가능한 성장 경로</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sub-label">7-4. 위협 요소</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>위협</th><th>설명</th><th>대응</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>numiqo가 논문 초안 기능 추가</strong></td>
+            <td><span class="b b-warn">⚠️ 가장 현실적인 위협.</span> 이미 웹 기반 + AI 해석 보유. 논문 텍스트 생성 추가는 기술적으로 가능</td>
+            <td>속도 + 한국어 + 무료 완전성으로 차별화. 먼저 레퍼런스 확보</td>
+          </tr>
+          <tr>
+            <td><strong>Julius AI가 학술 통계 깊이 추가</strong></td>
+            <td>이미 AI 분석 + 사용자 기반 보유. APA 서식 + 가정검정 추가 가능</td>
+            <td>연구자 특화(IRB 보안, 오프라인, 재현성) + 한국어로 차별화</td>
+          </tr>
+          <tr>
+            <td><strong>SPSS AI Output Assistant 강화</strong></td>
+            <td>v31.0.1에서 watsonx.ai 기반 AI 해석 이미 추가됨. 향후 논문 텍스트 생성 가능</td>
+            <td>BioHub는 무료 + 웹 + 데이터 미전송. SPSS 대체 포지셔닝 강화</td>
+          </tr>
+          <tr>
+            <td><strong>JASP/jamovi가 텍스트 생성 추가</strong></td>
+            <td>이미 APA 표 + 사용자 기반 보유. AI 서술 기능 추가는 기술적으로 어렵지 않음</td>
+            <td>속도. 먼저 출시하여 레퍼런스 확보</td>
+          </tr>
+          <tr>
+            <td><strong>ChatGPT 플러그인/GPTs</strong></td>
+            <td>구조화된 통계 데이터 입력 + 논문 생성 GPT 등장 가능</td>
+            <td>템플릿 기반 정확성 + 오프라인 + 프라이버시로 차별화</td>
+          </tr>
+          <tr>
+            <td><strong>R Shiny 웹 앱</strong></td>
+            <td>papaja를 Shiny 앱으로 래핑하면 "코딩 불필요 + 웹" 가능</td>
+            <td>UX 품질 + 통합 워크플로우로 차별화</td>
+          </tr>
+          <tr>
+            <td><strong>사용자 기반 부족</strong></td>
+            <td>좋은 도구여도 사용자가 없으면 무의미</td>
+            <td>한국어 연구자 커뮤니티 타겟팅, 대학 워크샵</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══ §08 GPTs 시대 생존 ═══ -->
+  <section class="section" id="s8">
+    <div class="section-header">
+      <span class="section-num">08</span>
+      <h2 class="section-title">장기 경쟁력 분석: GPTs 시대에 살아남는가?</h2>
+    </div>
+
+    <div class="sub-label">8-1. 1~2년 후 시나리오</div>
+    <p><strong>이미 진행 중이다.</strong> Julius AI, ChatGPT Advanced Data Analysis는 2025-2026 현재 "CSV 올려줘 → 분석해줘 → 요약 써줘"를 자연어로 처리한다. BioHub의 <strong>범용 통계 기능만으로는</strong> 충분하지 않다.</p>
+
+    <div class="compare-grid">
+      <div class="compare-col them">
+        <div class="compare-col-hdr">GPTs가 이미 할 수 있는 것</div>
+        <ul>
+          <li>자연어 기반 통계 분석 실행 (Code Interpreter, Julius AI 등)</li>
+          <li>분석 결과 요약 텍스트 생성</li>
+          <li>다국어 지원</li>
+        </ul>
+      </div>
+      <div class="compare-col us">
+        <div class="compare-col-hdr">GPTs가 해결하기 어려운 것</div>
+        <ul>
+          <li>데이터 프라이버시 (데이터를 외부 서버에 업로드해야 함)</li>
+          <li>오프라인 사용 (인터넷 필수)</li>
+          <li>수치 정확도 보장 (LLM은 구조적으로 환각 가능)</li>
+          <li>재현성 (동일 프롬프트에 다른 결과)</li>
+          <li>기관 보안 정책 (IRB가 외부 AI에 데이터 전송 허용하지 않을 수 있음)</li>
+          <li>도메인 특화 워크플로우 (전문 분야별 분석 파이프라인은 범용 AI로 대체 어려움)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="sub-label">8-2. 지속 가능한 경쟁 우위 (Moat) 평가</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>방어벽 유형</th><th>BioHub 현재</th><th>솔직한 평가</th><th>강화 방안</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>구조적 우위</strong></td>
+            <td><span class="b b-ok">✅ 강함</span></td>
+            <td>프라이버시(클라이언트 계산) + 오프라인 + 재현성 — GPTs가 대체 불가</td>
+            <td>IRB/기관 보안 요건 적극 마케팅</td>
+          </tr>
+          <tr>
+            <td><strong>도메인 서비스 축적</strong></td>
+            <td><span class="b b-wip">🔨 계획 중</span></td>
+            <td><strong>핵심 해자.</strong> 분야별 전문 분석 워크플로우는 범용 AI가 쉽게 복제 못함</td>
+            <td>아래 8-3 참조</td>
+          </tr>
+          <tr>
+            <td><strong>전환 비용 (Lock-in)</strong></td>
+            <td><span class="b b-gray">⏳ 설계 중</span></td>
+            <td>히스토리 + 프로젝트 + 커스텀 템플릿 축적 → 자연스러운 락인</td>
+            <td>아래 8-4 참조</td>
+          </tr>
+          <tr>
+            <td><strong>기술적 해자</strong></td>
+            <td><span class="b b-warn">⚠️ 단독으론 약함</span></td>
+            <td>Pyodide+WASM 자체는 6개월이면 복제 가능. 그 위의 <strong>도메인 로직 축적량</strong>이 진짜 장벽</td>
+            <td>도메인 서비스를 계속 추가하여 복제 비용 증가</td>
+          </tr>
+          <tr>
+            <td><strong>사용자 유입 채널</strong></td>
+            <td><span class="b b-gray">⏳ 출시 전</span></td>
+            <td>대학 교육 + 학술 인용으로 안정적 유입 경로 확보 예정</td>
+            <td>아래 8-5 참조</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout">
+      <span class="callout-icon">💡</span>
+      <span><strong>결론</strong>: 구조적 우위(프라이버시 + 오프라인 + 재현성)는 GPTs가 대체 불가능하지만, 그것만으로는 부족하다. <strong>도메인 특화 분석 서비스를 지속적으로 축적</strong>하는 것이 가장 강력한 해자다.</span>
+    </div>
+
+    <div class="sub-label">8-3. 핵심 해자: 도메인 특화 분석 서비스 축적</div>
+    <p>범용 통계 기능은 GPTs도 할 수 있다. BioHub의 진짜 경쟁력은 <strong>전문 분야별 분석 워크플로우</strong>를 브라우저에서 제공하는 것이다.</p>
+    <p>scikit-learn, pandas, numpy, scipy가 모두 Pyodide(CPython WASM)에서 실행 가능하므로, <strong>서버 없이</strong> 분류(LDA, QDA, SVM, Random Forest, GBM, KNN), 클러스터링(K-means, DBSCAN, 계층적), 차원 축소(PCA, t-SNE), 회귀/예측 모델이 가능하다.</p>
+
+    <p><strong>Bio-Tools: 생물학 특화 (<span class="b b-wip">🔨 12개 계획</span>)</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>서비스 예시</th><th>분석 유형</th><th>사용 라이브러리</th><th>GPTs 대비 우위</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>종 판별</strong> (형태 측정 기반)</td>
+            <td>다변량 판별분석 (LDA/QDA) + ML 분류</td>
+            <td>scikit-learn</td>
+            <td>전문 워크플로우 + 데이터 프라이버시</td>
+          </tr>
+          <tr>
+            <td><strong>성장 곡선 분석</strong></td>
+            <td>비선형 회귀 (von Bertalanffy 등)</td>
+            <td>scipy.optimize</td>
+            <td>도메인 특화 모델 내장</td>
+          </tr>
+          <tr>
+            <td><strong>다양성 지수</strong></td>
+            <td>Shannon, Simpson, Chao1</td>
+            <td>직접 계산 (검증된 공식)</td>
+            <td>생태학 전용 UI + 해석</td>
+          </tr>
+          <tr>
+            <td><strong>개체군 추정</strong></td>
+            <td>표지-재포획, 거리표집</td>
+            <td>statsmodels</td>
+            <td>현장 연구자 오프라인 사용</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><strong>Psych-Tools: 심리 측정 특화 (검토 중)</strong></p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>서비스 예시</th><th>분석 유형</th><th>사용 라이브러리</th><th>사용자 가치</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>심리 테스트 도구</strong></td>
+            <td>척도 개발 + 신뢰도/타당도 분석</td>
+            <td>pingouin, factor_analyzer</td>
+            <td>테스트 실시 → 즉시 통계 분석 연결</td>
+          </tr>
+          <tr>
+            <td><strong>프로필 비교</strong></td>
+            <td>집단 간 프로필 비교, 유형 분류</td>
+            <td>scikit-learn (클러스터링)</td>
+            <td>자기 결과 vs 집단 비교 — 재방문 동기</td>
+          </tr>
+          <tr>
+            <td><strong>요인 분석 시각화</strong></td>
+            <td>탐색적/확인적 요인분석</td>
+            <td>factor_analyzer</td>
+            <td>Smart Flow 요인분석과 자연스럽게 연결</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">심리 테스트: 사용자 간 비교/집단 프로필 기능은 도메인 서비스이면서 동시에 <strong>사용자 유입 + 재방문</strong>을 자연스럽게 만드는 효과가 있다. 단, BioHub의 "생물학/통계 전문 플랫폼" 정체성과의 관계 정리 필요.</div>
+
+    <p><strong>도메인 서비스가 해자인 이유</strong></p>
+    <div class="roadmap">
+      <div class="roadmap-col">
+        <div class="roadmap-col-title">GPTs / 범용 AI</div>
+        <div class="roadmap-group-label">"전복 4종 판별해줘"</div>
+        <div class="roadmap-item">1. 사용자가 방법 설명</div>
+        <div class="roadmap-item">2. 코드 생성</div>
+        <div class="roadmap-item">3. 실행 → 결과</div>
+        <div class="roadmap-item">4. 매번 처음부터</div>
+        <div class="roadmap-group-label" style="margin-top:16px">한계</div>
+        <div class="roadmap-item"><span class="b b-warn">⚠️</span> 매번 프롬프트 필요</div>
+        <div class="roadmap-item"><span class="b b-warn">⚠️</span> 데이터 외부 전송</div>
+        <div class="roadmap-item"><span class="b b-warn">⚠️</span> 재현성 없음</div>
+      </div>
+      <div class="roadmap-arrow">→</div>
+      <div class="roadmap-col" style="border-color:var(--accent-border);background:var(--accent-light)">
+        <div class="roadmap-col-title" style="color:var(--accent)">BioHub</div>
+        <div class="roadmap-group-label">전복 형태 판별 워크플로우</div>
+        <div class="roadmap-item">1. CSV 업로드</div>
+        <div class="roadmap-item">2. 측정 변수 자동 감지</div>
+        <div class="roadmap-item">3. 6개 분류기 자동 비교</div>
+        <div class="roadmap-item">4. 최적 모델 추천</div>
+        <div class="roadmap-item">5. 논문 Results 자동 생성</div>
+        <div class="roadmap-group-label" style="margin-top:16px">강점</div>
+        <div class="roadmap-item"><span class="b b-ok">✅</span> 1-클릭 전문 분석</div>
+        <div class="roadmap-item"><span class="b b-ok">✅</span> 데이터 로컬 유지</div>
+        <div class="roadmap-item"><span class="b b-ok">✅</span> 동일 결과 보장</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="callout-icon">💡</span>
+      <span><strong>핵심</strong>: 도메인 서비스가 <strong>10개, 20개, 50개</strong> 쌓일수록 복제 비용이 기하급수적으로 증가한다. 각 서비스는 도메인 전문가의 분석 노하우가 코드화된 것이므로, GPTs가 "프롬프트 하나로" 대체하기 어렵다.</span>
+    </div>
+
+    <div class="sub-label">8-4. 전환 비용 (Lock-in) 구축 방안</div>
+    <p>사용자가 자연스럽게 가치를 축적하는 구조:</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>전략</th><th>락인 메커니즘</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>분석 히스토리 축적</strong></td>
+            <td>수십~수백 건의 분석 기록 + 메모 → 다른 도구에서 재현 불가</td>
+          </tr>
+          <tr>
+            <td><strong>논문 초안 연동</strong></td>
+            <td>분석 결과 → 논문 초안 → 재분석 시 자동 업데이트</td>
+          </tr>
+          <tr>
+            <td><strong>커스텀 템플릿</strong></td>
+            <td>연구 분야 맞춤 분석 설정 + 논문 템플릿 저장 → 시간 투자 = 전환 비용</td>
+          </tr>
+          <tr>
+            <td><strong>연구 프로젝트 관리</strong></td>
+            <td>여러 분석을 하나의 프로젝트로 묶음 → 맥락 유지</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note"><strong>원칙</strong>: 인위적 제한이 아닌 <strong>누적 가치</strong>(히스토리, 템플릿, 프로젝트)로 자연스러운 전환 비용.</div>
+
+    <div class="sub-label">8-5. 사용자 확보 전략</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>단계</th><th>활동</th><th>목표</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>0단계</strong> (출시 준비)</td>
+            <td>논문 초안 + Bio-Tools 핵심 2~3개 완성</td>
+            <td>차별화된 제품</td>
+          </tr>
+          <tr>
+            <td><strong>1단계</strong> (출시)</td>
+            <td>GitHub 오픈소스 공개 + 데모 영상</td>
+            <td>검색 노출</td>
+          </tr>
+          <tr>
+            <td><strong>2단계</strong> (초기 확보)</td>
+            <td>한국 생물학/통계 커뮤니티 타겟팅</td>
+            <td>사용자 10~50명</td>
+          </tr>
+          <tr>
+            <td><strong>3단계</strong> (교육 채널)</td>
+            <td>대학 통계 강의 교보재 제안 (무료 + 오프라인 = 교육 적합)</td>
+            <td>반복 사용자</td>
+          </tr>
+          <tr>
+            <td><strong>4단계</strong> (피드백)</td>
+            <td>실제 연구자 피드백 → 도메인 서비스 확장 방향 결정</td>
+            <td>기능 개선 루프</td>
+          </tr>
+          <tr>
+            <td><strong>5단계</strong> (학술 인용)</td>
+            <td>소프트웨어 논문 투고 + BibTeX 인용</td>
+            <td>학술적 정당성</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sub-label">8-6. GPTs 시대의 BioHub 포지셔닝</div>
+    <div class="roadmap">
+      <div class="roadmap-col">
+        <div class="roadmap-col-title">2026 (개발 중)</div>
+        <div class="roadmap-group-label">구조적 강점</div>
+        <div class="roadmap-item"><span class="b b-ok">✅</span> 프라이버시 (IRB)</div>
+        <div class="roadmap-item"><span class="b b-ok">✅</span> 오프라인 / 현장</div>
+        <div class="roadmap-item"><span class="b b-ok">✅</span> 재현성 / 감사가능</div>
+        <div class="roadmap-item"><span class="b b-ok">✅</span> 템플릿 정확도</div>
+        <div class="roadmap-group-label">핵심 해자 구축</div>
+        <div class="roadmap-item"><span class="b b-wip">🔨</span> Bio-Tools 3~5개</div>
+        <div class="roadmap-item"><span class="b b-wip">🔨</span> 논문 초안 생성</div>
+        <div class="roadmap-item"><span class="b b-gray">⏳</span> 교육 기관 접촉</div>
+      </div>
+      <div class="roadmap-arrow">→</div>
+      <div class="roadmap-col" style="border-color:var(--accent-border);background:var(--accent-light)">
+        <div class="roadmap-col-title" style="color:var(--accent)">2027~2028 (출시 후)</div>
+        <div class="roadmap-group-label">구조적 강점 유지</div>
+        <div class="roadmap-item"><span class="b b-ok">✅</span> 프라이버시 (IRB)</div>
+        <div class="roadmap-item"><span class="b b-ok">✅</span> 오프라인 / 현장</div>
+        <div class="roadmap-item"><span class="b b-ok">✅</span> 재현성 / 감사가능</div>
+        <div class="roadmap-item"><span class="b b-ok">✅</span> 누적 데이터 가치</div>
+        <div class="roadmap-group-label">해자 성숙</div>
+        <div class="roadmap-item"><span class="b b-ok">✅</span> 도메인 서비스 20+</div>
+        <div class="roadmap-item"><span class="b b-ok">✅</span> 논문 파이프라인</div>
+        <div class="roadmap-item"><span class="b b-ok">✅</span> 교육 기관 도입</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="callout-icon">💡</span>
+      <span><strong>전략 요약</strong>: 구조적 차별화(프라이버시, 오프라인, 재현성)는 기본. 그 위에 <strong>도메인 특화 분석 서비스를 지속 축적</strong>하여, 서비스 수 자체가 복제 장벽이 되는 구조를 만든다. 범용 통계는 GPTs와 경쟁하지만, 전문 분석 워크플로우 50개가 쌓인 플랫폼은 GPTs가 대체하기 어렵다.</span>
+    </div>
+  </section>
+
+  <!-- ═══ §09 국내 서비스 경쟁 분석 ═══ -->
+  <section class="section" id="s9">
+    <div class="section-header">
+      <span class="section-num">09</span>
+      <h2 class="section-title">국내 서비스 경쟁 분석</h2>
+      <span class="section-badge">2026-03-18 추가</span>
+    </div>
+
+    <div class="callout">
+      <span class="callout-icon">💡</span>
+      <span>
+        <strong>배경</strong>: 뤼튼·NotebookLM 등 AI 서비스가 이미 있는데 논문 초안 기능이 차별점이 될 수 있는지 검토한 결과.<br>
+        <strong>결론</strong>: 통계 분석 + AI 해석 + 논문 초안을 원스톱으로 무료 제공하는 서비스는 국내외 어디에도 없음.
+      </span>
+    </div>
+
+    <div class="sub-label">9-1. 국내 통계 분석 서비스 비교</div>
+    <div class="table-wrap">
+      <table class="wide">
+        <thead>
+          <tr>
+            <th>서비스</th>
+            <th>가격</th>
+            <th>통계 메서드</th>
+            <th>AI 해석</th>
+            <th>논문 초안</th>
+            <th>브라우저 기반</th>
+            <th>데이터 보안</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>IBM SPSS v31.0.1</strong></td>
+            <td>개인 $99~$105/월 / 기관 연 수천만원</td>
+            <td>매우 풍부</td>
+            <td><span class="b b-warn">⚠️ AI Output Asst. (watsonx, 별도 계정)</span></td>
+            <td><span class="b b-no">❌ 없음</span></td>
+            <td><span class="b b-no">❌ 없음 (설치형)</span></td>
+            <td>서버 업로드</td>
+          </tr>
+          <tr>
+            <td><strong>jamovi</strong></td>
+            <td>데스크탑 무료 / Cloud $5/월</td>
+            <td>200개+ (모듈)</td>
+            <td><span class="b b-no">❌ 없음</span></td>
+            <td><span class="b b-no">❌ 없음</span></td>
+            <td><span class="b b-warn">⚠️ Cloud 가능 ($5/월)</span></td>
+            <td>서버 업로드</td>
+          </tr>
+          <tr>
+            <td><strong>JASP 0.19.3</strong></td>
+            <td>완전 무료</td>
+            <td>풍부 (베이지안 강점)</td>
+            <td><span class="b b-no">❌ 없음</span></td>
+            <td><span class="b b-no">❌ 없음</span></td>
+            <td><span class="b b-no">❌ 없음 (설치형)</span></td>
+            <td>로컬</td>
+          </tr>
+          <tr>
+            <td><strong>numiqo (구 DataTab)</strong></td>
+            <td>무료(제한) / 기관 €3,999/년</td>
+            <td>중간 (주요 검정)</td>
+            <td><span class="b b-warn">⚠️ 프리미엄 플랜</span></td>
+            <td><span class="b b-no">❌ 없음</span></td>
+            <td><span class="b b-ok">✅ 완전</span></td>
+            <td>서버 업로드</td>
+          </tr>
+          <tr>
+            <td><strong>데이터인</strong> (datain.co.kr)</td>
+            <td>무료(기본) / B2B 기관</td>
+            <td>단변량~구조방정식</td>
+            <td><span class="b b-warn">⚠️ 자동 리포팅 (규칙 기반)</span></td>
+            <td><span class="b b-warn">⚠️ 자동 리포팅 (HWP/Word)</span></td>
+            <td><span class="b b-warn">⚠️ 가능</span></td>
+            <td>서버 업로드</td>
+          </tr>
+          <tr class="bio">
+            <td><strong>BioHub</strong></td>
+            <td><strong>무료</strong></td>
+            <td><strong>52개 (핵심 집중)</strong></td>
+            <td><span class="b b-ok">✅ 있음 (한국어)</span></td>
+            <td><span class="b b-ok">✅ 있음 (APA 7th, Phase A)</span></td>
+            <td><span class="b b-ok">✅ 완전</span></td>
+            <td><strong>로컬 실행 (Pyodide)</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <strong>SPSS v31.0.1 (2025-09)</strong>: AI Output Assistant가 추가되었으나 별도 IBM Cloud watsonx.ai 계정 필요, 논문 텍스트 생성 없음. 가격 구조는 BioHub 타겟 사용자에게 높은 진입장벽.<br>
+      <strong>jamovi</strong>: 순수 통계 메서드 수는 BioHub보다 많으나 AI 추천·해석·논문 초안 없음. Cloud는 $5/월.<br>
+      <strong>numiqo</strong>: 2025년 가장 부상하는 경쟁자. 웹 기반 + AI 해석 있으나 한국어 없음, 논문 초안 없음.<br>
+      <strong>데이터인</strong>: 국내 웹 기반 자동 리포팅 서비스. R 기반 규칙형 AI 해석 + HWP/Word 자동 리포팅. 기본 무료("평생 무료" 표기), B2B 기관 계약도 가능.
+    </div>
+
+    <div class="sub-label">9-2. 국내 AI 논문 작성 보조 서비스 비교</div>
+    <div class="table-wrap">
+      <table class="wide">
+        <thead>
+          <tr>
+            <th>서비스</th>
+            <th>가격</th>
+            <th>통계 분석</th>
+            <th>통계 결과 연동</th>
+            <th>한국어 논문</th>
+            <th>특징</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>뤼튼 (wrtn.ai)</strong></td>
+            <td>무료 (일부 유료)</td>
+            <td><span class="b b-no">❌ 없음</span></td>
+            <td><span class="b b-no">❌ 없음 (수동)</span></td>
+            <td><span class="b b-warn">⚠️ 가능 (범용)</span></td>
+            <td>한국어 AI 글쓰기 범용</td>
+          </tr>
+          <tr>
+            <td><strong>클로바X</strong></td>
+            <td>무료 (API 과금)</td>
+            <td><span class="b b-no">❌ 없음</span></td>
+            <td><span class="b b-no">❌ 없음 (수동)</span></td>
+            <td><span class="b b-warn">⚠️ 가능 (범용)</span></td>
+            <td>네이버 LLM, 한국어 최적화</td>
+          </tr>
+          <tr>
+            <td><strong>ChatGPT / Claude</strong></td>
+            <td>무료~$20/월</td>
+            <td><span class="b b-no">❌ 없음</span></td>
+            <td><span class="b b-no">❌ 없음 (수동)</span></td>
+            <td><span class="b b-warn">⚠️ 가능</span></td>
+            <td>결과 붙여넣기 후 초안 가능</td>
+          </tr>
+          <tr>
+            <td><strong>NotebookLM</strong></td>
+            <td>무료</td>
+            <td><span class="b b-no">❌ 없음</span></td>
+            <td><span class="b b-no">❌ 없음</span></td>
+            <td><span class="b b-warn">⚠️ 가능</span></td>
+            <td>업로드 문서 기반 Q&amp;A</td>
+          </tr>
+          <tr>
+            <td><strong>DBpia AI</strong></td>
+            <td>DBpia 구독 포함</td>
+            <td><span class="b b-no">❌ 없음</span></td>
+            <td><span class="b b-no">❌ 없음</span></td>
+            <td><span class="b b-warn">⚠️ 가능</span></td>
+            <td>논문 검색·요약 특화</td>
+          </tr>
+          <tr>
+            <td><strong>Paperpal</strong></td>
+            <td>무료(제한) / $19/월</td>
+            <td><span class="b b-no">❌ 없음</span></td>
+            <td><span class="b b-no">❌ 없음</span></td>
+            <td><span class="b b-warn">⚠️ 교정·번역</span></td>
+            <td>영어 논문 교정 특화</td>
+          </tr>
+          <tr class="bio">
+            <td><strong>BioHub</strong></td>
+            <td><strong>무료</strong></td>
+            <td><span class="b b-ok">✅ 52개</span></td>
+            <td><span class="b b-ok">✅ 직접 연동 (수치 자동 삽입)</span></td>
+            <td><span class="b b-ok">✅ 전용 한국어 UI</span></td>
+            <td><strong>분석→초안 원스톱</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sub-label">9-3. "왜 뤼튼·ChatGPT로 대체 불가한가"</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>항목</th><th>뤼튼·ChatGPT 방식</th><th>BioHub 방식</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Methods 작성</strong></td>
+            <td>분석 조건을 사용자가 직접 설명 → LLM 작성 (오류 가능)</td>
+            <td>분석 설정 그대로 → <strong>결정론적 생성</strong> (환각 없음)</td>
+          </tr>
+          <tr>
+            <td><strong>Results 수치</strong></td>
+            <td>결과 복붙 후 "APA로 정리해줘" → LLM이 실수 가능</td>
+            <td>p값·t통계량·CI·효과크기 <strong>자동 정확 삽입</strong></td>
+          </tr>
+          <tr>
+            <td><strong>재생성</strong></td>
+            <td>매번 프롬프트 재입력</td>
+            <td>언어 토글·옵션 변경 → <strong>즉시 재생성</strong></td>
+          </tr>
+          <tr>
+            <td><strong>히스토리</strong></td>
+            <td>대화 사라지면 복원 불가</td>
+            <td>분석 히스토리에 <strong>초안 저장·복원</strong></td>
+          </tr>
+          <tr>
+            <td><strong>데이터 보안</strong></td>
+            <td>데이터를 LLM 서버에 전송</td>
+            <td><strong>데이터 미전송</strong> (Pyodide 로컬 실행)</td>
+          </tr>
+          <tr>
+            <td><strong>APA 7th 준수</strong></td>
+            <td>LLM이 버전 혼동 가능</td>
+            <td><strong>템플릿 기반 100% 준수</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">
+      <strong>요약</strong>: 뤼튼·ChatGPT는 "이미 완성된 결과 텍스트"를 다듬는 도구. BioHub는 <strong>숫자 데이터 → 분석 → 논문 텍스트</strong>를 끊김 없이 연결하는 도구. 목적이 근본적으로 다름.
+    </div>
+
+    <div class="sub-label">9-4. BioHub의 독점 포지션</div>
+    <p>아래 조합을 동시에 제공하는 서비스는 <strong>2026년 3월 기준 국내외 전무</strong>:</p>
+    <div class="tag-row">
+      <span class="tag">무료</span>
+      <span class="tag">웹 기반 (설치 없음)</span>
+      <span class="tag">한국어</span>
+      <span class="tag">52개 통계 분석</span>
+      <span class="tag">AI 방법 추천</span>
+      <span class="tag">AI 결과 해석</span>
+      <span class="tag">논문 Methods·Results·Captions 자동 생성 (APA 7th)</span>
+      <span class="tag">데이터 서버 미전송</span>
+    </div>
+
+    <p><strong>경쟁자 근접도 분석 (2026-03 팩트체크):</strong></p>
+    <div class="table-wrap">
+      <table class="wide">
+        <thead>
+          <tr>
+            <th>경쟁자</th>
+            <th>웹 기반</th>
+            <th>AI 해석</th>
+            <th>무료</th>
+            <th>한국어</th>
+            <th>논문 초안</th>
+            <th>데이터 미전송</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>numiqo</td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-warn">⚠️ 유료</span></td>
+            <td><span class="b b-warn">⚠️ 제한</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+          </tr>
+          <tr>
+            <td>Julius AI</td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-warn">⚠️ 15회</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+          </tr>
+          <tr>
+            <td>SPSS v31</td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-warn">⚠️ 별도 계정</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+          </tr>
+          <tr>
+            <td>jamovi</td>
+            <td><span class="b b-warn">⚠️ 유료</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-warn">⚠️ 데스크탑만</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+            <td><span class="b b-no">❌</span></td>
+          </tr>
+          <tr>
+            <td>ChatGPT</td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-warn">⚠️ 제한</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-warn">⚠️ 수동</span></td>
+            <td><span class="b b-no">❌</span></td>
+          </tr>
+          <tr class="bio">
+            <td><strong>BioHub</strong></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-ok">✅</span></td>
+            <td><span class="b b-wip">🔨</span></td>
+            <td><span class="b b-wip">🔨</span></td>
+            <td><span class="b b-ok">✅</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <strong>가장 가까운 경쟁자 조합 (세 도구를 따로 써야 BioHub 하나를 대체):</strong><br>
+      · 통계: jamovi (무료·강력, AI·논문 없음, 설치형 주력)<br>
+      · 논문 초안: ChatGPT (가능하나 수동·수치 환각·히스토리 없음)<br>
+      · 한국어 AI: 뤼튼/클로바X (통계 분석 없음)<br>
+      <br>
+      → <strong>numiqo가 가장 유사하나 한국어·무료·논문 초안 3가지 모두 없음.</strong>
+    </div>
+  </section>
+
+  <!-- ═══ §10 핵심 메시지 ═══ -->
+  <section class="section" id="s10">
+    <div class="section-header">
+      <span class="section-num">10</span>
+      <h2 class="section-title">핵심 메시지 (한 줄 요약)</h2>
+    </div>
+
+    <div class="final-box">
+      <p>BioHub는 구조화된 통계 분석 결과를 코딩 없이 APA 논문 텍스트로 변환하는, 2026년 3월 현재 유일한 웹 도구이다. numiqo·Julius AI 등 AI 해석 도구가 부상했으나 논문 초안 생성은 여전히 공백 영역이다. 템플릿 기반이므로 수치 환각이 구조적으로 불가능하며, 한국어 + 무료 + 데이터 미전송의 조합은 단기간에 복제하기 어렵다. 도메인 특화 분석 서비스의 축적이 장기 경쟁력의 핵심이다.</p>
+    </div>
+  </section>
+
+  <!-- ═══ 부록: 정보 출처 ═══ -->
+  <section class="section" id="sources" style="margin-top:80px;padding-top:32px;border-top:2px solid var(--border)">
+    <div class="section-header">
+      <h2 class="section-title">부록: 정보 출처</h2>
+      <span class="section-badge">2026-03-20 확인</span>
+    </div>
+    <div class="table-wrap">
+      <table class="wide">
+        <thead>
+          <tr><th>서비스</th><th>공식 사이트</th><th>확인 내용</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>JASP 0.19.3</td><td><a href="https://jasp-stats.org/release-notes/" style="color:var(--accent)">jasp-stats.org/release-notes</a></td><td>AI 기능 없음 (GitHub #2128 feature request closed)</td></tr>
+          <tr><td>jamovi</td><td><a href="https://www.jamovi.org" style="color:var(--accent)">jamovi.org</a></td><td>AI 기능 없음, Cloud $5/월</td></tr>
+          <tr><td>IBM SPSS v31.0.1</td><td><a href="https://www.ibm.com/products/spss-statistics/whats-new" style="color:var(--accent)">ibm.com/spss/whats-new</a></td><td>AI Output Assistant (watsonx.ai), $99+/월</td></tr>
+          <tr><td>numiqo (구 DataTab)</td><td><a href="https://numiqo.com/statistics-software" style="color:var(--accent)">numiqo.com</a></td><td>프리미엄 AI 해석, €59.99/년(개인)</td></tr>
+          <tr><td>데이터인</td><td><a href="https://datain.co.kr" style="color:var(--accent)">datain.co.kr</a></td><td>R 기반 자동 리포팅 + AI 해석, 기본 무료</td></tr>
+          <tr><td>Julius AI</td><td><a href="https://julius.ai" style="color:var(--accent)">julius.ai</a></td><td>AI 네이티브 데이터 분석, 무료 15회 / $35~$45/월</td></tr>
+          <tr><td>GraphPad Prism 10</td><td><a href="https://www.graphpad.com" style="color:var(--accent)">graphpad.com</a></td><td>AI 기능 없음, Prism Cloud 베타</td></tr>
+          <tr><td>R report()</td><td><a href="https://easystats.github.io/report/" style="color:var(--accent)">easystats.github.io/report</a></td><td>APA 문단 자동 생성 (R 코딩 필요)</td></tr>
+          <tr><td>R papaja</td><td><a href="https://github.com/crsh/papaja" style="color:var(--accent)">github.com/crsh/papaja</a></td><td>APA 전체 논문 (R+LaTeX 필요)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<!-- ═══════════════ Scroll Spy ═══════════════ -->
+<script>
+(function() {
+  const sections = document.querySelectorAll('.section');
+  const navItems = document.querySelectorAll('.nav-item');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navItems.forEach(n => n.classList.remove('active'));
+        const id = entry.target.id;
+        const active = document.querySelector('.nav-item[href="#' + id + '"]');
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -60% 0px' });
+  sections.forEach(s => observer.observe(s));
+})();
+</script>
+</body>
+</html>
