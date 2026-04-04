@@ -5,12 +5,11 @@
  * Used by PurposeInputStep to show all available methods after purpose selection
  */
 
-import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
+import { STATISTICAL_METHODS, type StatisticalMethodWithAliases } from '@/lib/constants/statistical-methods'
 import type { AnalysisPurpose, StatisticalMethod } from '@/types/analysis'
 
-// Convert Record to array, filtering out category overviews (hasOwnPage: false without parentPageId)
-// while keeping embedded methods that have a parent page (paired-t, welch-anova, logistic-regression)
-const METHODS: StatisticalMethod[] = Object.values(STATISTICAL_METHODS).filter(
+// Filter out category overviews (hasOwnPage: false without parentPageId)
+const METHODS: StatisticalMethodWithAliases[] = Object.values(STATISTICAL_METHODS).filter(
   m => m.hasOwnPage !== false || !!m.parentPageId
 )
 
@@ -153,16 +152,13 @@ export function searchMethods(query: string): StatisticalMethod[] {
   if (!query.trim()) return []
 
   const q = query.toLowerCase()
-  return METHODS.filter(m => {
-    const extended = m as { koreanName?: string; koreanDescription?: string } & StatisticalMethod
-    return (
-      m.name.toLowerCase().includes(q) ||
-      m.description.toLowerCase().includes(q) ||
-      m.id.toLowerCase().includes(q) ||
-      (extended.koreanName?.toLowerCase().includes(q) ?? false) ||
-      (extended.koreanDescription?.toLowerCase().includes(q) ?? false)
-    )
-  })
+  return METHODS.filter(m =>
+    m.name.toLowerCase().includes(q) ||
+    m.description.toLowerCase().includes(q) ||
+    m.id.toLowerCase().includes(q) ||
+    (m.koreanName?.toLowerCase().includes(q) ?? false) ||
+    (m.koreanDescription?.toLowerCase().includes(q) ?? false)
+  )
 }
 
 /**
@@ -180,6 +176,6 @@ export function getPopularMethods(): StatisticalMethod[] {
   ]
 
   return popularIds
-    .map(id => METHODS.find(m => m.id === id))
-    .filter((m): m is StatisticalMethod => m !== undefined)
+    .map(id => STATISTICAL_METHODS[id])
+    .filter((m): m is StatisticalMethodWithAliases => m !== undefined)
 }

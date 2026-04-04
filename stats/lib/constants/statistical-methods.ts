@@ -108,7 +108,7 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     category: 'anova',
     hasOwnPage: false,
     parentPageId: 'anova',
-    aliases: ['two-way-anova', 'factorial-anova'],
+    aliases: ['factorial-anova'],
     koreanName: '이원분산분석 (Two-Way ANOVA)',
     koreanDescription: '두 요인의 주효과와 상호작용 효과를 동시에 분석합니다',
   },
