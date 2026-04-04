@@ -49,18 +49,42 @@ export function ResultView({ decision, marker, sequence, onReset }: ResultViewPr
 
   return (
     <div className="space-y-4" role="region" aria-label="분석 결과">
-      <div className={`rounded-xl border ${style.border} ${style.bg} p-6`} role="status" aria-live="polite">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className={`text-lg font-bold ${style.text}`}>
-            {decision.title}
-          </h2>
-          {decision.topHits[0] && (
-            <span className="text-sm font-semibold text-gray-700">
-              {(decision.topHits[0].identity * 100).toFixed(1)}%
-            </span>
+      <div className="flex items-start justify-between gap-4">
+        <div className={`flex-1 rounded-xl border ${style.border} ${style.bg} p-6`} role="status" aria-live="polite">
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className={`text-lg font-bold ${style.text}`}>
+              {decision.title}
+            </h2>
+            {decision.topHits[0] && (
+              <span className="text-sm font-semibold text-gray-700">
+                {(decision.topHits[0].identity * 100).toFixed(1)}%
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-gray-600">{decision.description}</p>
+        </div>
+        <div className="flex shrink-0 flex-col gap-2">
+          {decision.topHits.length > 0 && (
+            <Button variant="outline" size="sm" onClick={handleExportCsv} className="gap-1.5">
+              <Download className="h-3.5 w-3.5" />
+              CSV
+            </Button>
+          )}
+          {sequence && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1"
+              onClick={() => {
+                storeSequenceForTransfer(sequence, 'barcoding')
+                router.push('/genetics/blast')
+              }}
+            >
+              <ArrowRight className="h-3.5 w-3.5" />
+              BLAST로 재검색
+            </Button>
           )}
         </div>
-        <p className="text-sm text-gray-600">{decision.description}</p>
       </div>
 
       {showAltTop && (
@@ -160,27 +184,7 @@ export function ResultView({ decision, marker, sequence, onReset }: ResultViewPr
 
       <div className="flex flex-wrap items-center gap-2">
         <NextActionButtons decision={decision} marker={marker} sequence={sequence} />
-        {sequence && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1"
-            onClick={() => {
-              storeSequenceForTransfer(sequence, 'barcoding')
-              router.push('/genetics/blast')
-            }}
-          >
-            <ArrowRight className="h-3.5 w-3.5" />
-            BLAST로 재검색
-          </Button>
-        )}
         <div className="ml-auto flex gap-2">
-          {decision.topHits.length > 0 && (
-            <Button variant="outline" size="sm" onClick={handleExportCsv} className="gap-1.5">
-              <Download className="h-3.5 w-3.5" />
-              CSV
-            </Button>
-          )}
           {sequence && (
             <Button variant="outline" size="sm" onClick={() => onReset(false)}>
               서열 유지하고 재분석

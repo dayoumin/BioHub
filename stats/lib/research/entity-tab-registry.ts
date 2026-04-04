@@ -90,6 +90,15 @@ export const ENTITY_TAB_REGISTRY: readonly EntityTabEntry[] = [
     emptyActionLabel: '계통수 분석 시작하기',
   },
   {
+    id: 'bold-result',
+    label: 'BOLD 종 동정',
+    icon: '🔍',
+    defaultVisible: true,
+    emptyMessage: '아직 BOLD 종 동정이 없습니다.',
+    emptyActionPath: '/genetics/bold-id',
+    emptyActionLabel: 'BOLD 분석 시작하기',
+  },
+  {
     id: 'species-validation',
     label: '종 검증',
     icon: '📝',

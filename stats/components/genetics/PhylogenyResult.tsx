@@ -90,7 +90,7 @@ export function PhylogenyResult({ result, analysisName, onReset }: PhylogenyResu
   const treeHeight = Math.max(400, result.sequenceCount * 30)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" role="region" aria-label="계통수 분석 결과">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold">{analysisName}</h2>

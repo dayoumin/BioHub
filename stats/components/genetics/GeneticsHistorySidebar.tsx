@@ -226,6 +226,7 @@ export function GeneticsHistorySidebar(): ReactNode {
         <input
           ref={searchInputRef}
           type="text"
+          aria-label="히스토리 검색"
           value={searchQuery}
           onChange={handleSearchChange}
           placeholder="종명, accession, 샘플명..."

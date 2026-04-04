@@ -10,11 +10,12 @@
 import type { WorkerEnv } from '../lib/worker-utils'
 import { jsonResponse, parseJsonBody, authenticateRequest, verifyProjectOwnership } from '../lib/worker-utils'
 
-type GeneticsHistoryType = 'barcoding' | 'blast' | 'genbank' | 'seq-stats' | 'similarity' | 'phylogeny'
+type GeneticsHistoryType = 'barcoding' | 'blast' | 'genbank' | 'seq-stats' | 'similarity' | 'phylogeny' | 'bold'
 
 function isGeneticsHistoryType(value: unknown): value is GeneticsHistoryType {
   return value === 'barcoding' || value === 'blast' || value === 'genbank'
     || value === 'seq-stats' || value === 'similarity' || value === 'phylogeny'
+    || value === 'bold'
 }
 
 function entityKindForGeneticsType(type: GeneticsHistoryType): string {
@@ -23,6 +24,7 @@ function entityKindForGeneticsType(type: GeneticsHistoryType): string {
     case 'seq-stats': return 'seq-stats-result'
     case 'similarity': return 'similarity-result'
     case 'phylogeny': return 'phylogeny-result'
+    case 'bold': return 'bold-result'
     default: return 'blast-result'
   }
 }

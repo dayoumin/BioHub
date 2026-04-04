@@ -146,7 +146,7 @@ export function SimilarityResult({ result, analysisName, onReset }: SimilarityRe
   const heatmapHeight = Math.max(350, result.sequenceCount * 30 + 150)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" role="region" aria-label="유사도 분석 결과">
       {/* 요약 */}
       <div className="flex items-center justify-between">
         <div>

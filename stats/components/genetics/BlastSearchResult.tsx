@@ -74,7 +74,7 @@ export function BlastSearchResult({ hits, program, database, elapsed, onReset }:
   )
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" role="region" aria-label="BLAST 검색 결과">
       {/* 요약 */}
       <div className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
         <div>

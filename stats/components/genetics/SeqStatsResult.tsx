@@ -127,8 +127,7 @@ export function SeqStatsResultView({ result, analysisName, onReset }: SeqStatsRe
   )
 
   return (
-    <div className="space-y-4">
-      {/* Summary card */}
+    <div className="space-y-4" role="region" aria-label="서열 통계 결과">
       <div className="flex items-center justify-between rounded-xl border border-border bg-card p-5">
         <div>
           <h2 className="text-lg font-semibold">{analysisName}</h2>

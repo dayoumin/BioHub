@@ -136,8 +136,8 @@ export default function PhylogenyContent(): React.ReactElement {
 
       {state.step === 'input' && (
         <div className="space-y-4">
-          <div className="flex gap-4">
-            <div className="flex-1">
+          <div className="flex flex-wrap gap-4">
+            <div className="min-w-[200px] flex-1">
               <label htmlFor="analysisName" className="mb-1 block text-sm font-medium text-gray-700">
                 분석명 <span className="font-normal text-gray-400">(선택)</span>
               </label>
