@@ -111,12 +111,11 @@ interface ActivityCard {
 interface QuickAccessBarProps {
   onHistoryClick: (historyId: string) => void
   onHistoryDelete: (historyId: string) => Promise<void>
-  onShowMore?: () => void
 }
 
 // ===== Component =====
 
-export function QuickAccessBar({ onHistoryClick, onHistoryDelete, onShowMore }: QuickAccessBarProps) {
+export function QuickAccessBar({ onHistoryClick, onHistoryDelete }: QuickAccessBarProps) {
   const t = useTerminology()
   const router = useRouter()
   const prefersReducedMotion = useReducedMotion()
@@ -244,17 +243,6 @@ export function QuickAccessBar({ onHistoryClick, onHistoryDelete, onShowMore }: 
     >
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg font-bold">{t.hub.cards.recentTitle}</h2>
-        {/* "더보기"는 AnalysisHistoryPanel(통계 전용)을 열므로, 통계 개수만 표시 */}
-        {analysisHistory.length > MAX_VISIBLE_PILLS && onShowMore && (
-          <button
-            type="button"
-            data-testid="history-show-more"
-            onClick={onShowMore}
-            className="text-xs text-muted-foreground hover:text-primary transition-colors"
-          >
-            {t.hub.cards.showMore(analysisHistory.length)}
-          </button>
-        )}
       </div>
 
       {visibleItems.length === 0 ? (
@@ -384,7 +372,7 @@ function ActivityCardItem({ card, t, onClick, onTogglePin, onDelete }: ActivityC
               'opacity-0 group-hover:opacity-100 transition-all',
               `focus-visible:opacity-100 ${focusRing}`,
             )}
-            aria-label="더보기"
+            aria-label={t.history.labels.moreActions}
           >
             <MoreVertical className="w-4 h-4" />
           </button>

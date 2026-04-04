@@ -103,9 +103,9 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
   }
 
   const providerLabel: Record<string, string> = {
-    openrouter: 'AI 추천',
-    ollama: 'AI 추천',
-    keyword: '키워드 매칭',
+    openrouter: t.history.providers.ai,
+    ollama: t.history.providers.ai,
+    keyword: t.history.providers.keyword,
   }
 
   const {
@@ -317,7 +317,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
     <div className="space-y-4">
       {/* 액션 버튼 (헤더는 Sheet에서 표시) */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-lg">분석 기록</h3>
+        <h3 className="font-semibold text-lg">{t.history.sidebar.title}</h3>
       </div>
 
       {/* 검색 바 */}
@@ -391,13 +391,13 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
                         {providerLabel[item.aiRecommendation.provider] ?? item.aiRecommendation.provider}
                       </span>
                       {item.aiRecommendation.provider !== 'keyword' && (
-                        <span>{Math.round(Math.min(item.aiRecommendation.confidence, 1) * 100)}% 확신</span>
+                        <span>{Math.round(Math.min(item.aiRecommendation.confidence, 1) * 100)}{t.history.labels.confidenceSuffix}</span>
                       )}
                       {item.aiRecommendation.reasoning.length > 0 && (
                         <button
                           className={`ml-auto hover:text-foreground transition-colors ${focusRing} rounded`}
                           onClick={(e) => { e.stopPropagation(); toggleExpand(item.id) }}
-                          aria-label={expandedItems.has(item.id) ? '접기' : '펼치기'}
+                          aria-label={expandedItems.has(item.id) ? t.history.labels.collapse : t.history.labels.expand}
                           aria-expanded={expandedItems.has(item.id)}
                         >
                           {expandedItems.has(item.id)
@@ -599,15 +599,15 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
       >
         <DialogContent className="sm:max-w-[560px]">
           <DialogHeader>
-            <DialogTitle>히스토리 내보내기 옵션</DialogTitle>
+            <DialogTitle>{t.history.exportDialog.title}</DialogTitle>
             <DialogDescription>
-              저장된 분석 기록에서 보고서를 생성합니다.
+              {t.history.exportDialog.description}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5 py-2">
             <div className="space-y-2">
-              <Label>파일 형식</Label>
+              <Label>{t.history.exportDialog.fileFormat}</Label>
               <RadioGroup
                 value={exportFormat}
                 onValueChange={(value) => setExportFormat(value as ExportFormat)}
@@ -628,7 +628,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
             </div>
 
             <div className="space-y-2">
-              <Label>포함 내용</Label>
+              <Label>{t.history.exportDialog.includeContent}</Label>
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -636,7 +636,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
                     checked={!!exportOptions.includeInterpretation}
                     onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeInterpretation: !!checked }))}
                   />
-                  <Label htmlFor="history-opt-interpretation">결과 해석</Label>
+                  <Label htmlFor="history-opt-interpretation">{t.history.exportDialog.interpretation}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -644,7 +644,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
                     checked={!!exportOptions.includeMethodology}
                     onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeMethodology: !!checked }))}
                   />
-                  <Label htmlFor="history-opt-methodology">분석 방법론</Label>
+                  <Label htmlFor="history-opt-methodology">{t.history.exportDialog.methodology}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -652,7 +652,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
                     checked={!!exportOptions.includeReferences}
                     onCheckedChange={(checked) => setExportOptions(prev => ({ ...prev, includeReferences: !!checked }))}
                   />
-                  <Label htmlFor="history-opt-references">참고문헌</Label>
+                  <Label htmlFor="history-opt-references">{t.history.exportDialog.references}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -661,7 +661,7 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
                     disabled
                   />
                   <Label htmlFor="history-opt-raw-data" className="text-muted-foreground">
-                    원본 데이터 (히스토리에는 저장되지 않아 미지원)
+                    {t.history.exportDialog.rawData}
                   </Label>
                 </div>
               </div>
@@ -670,10 +670,10 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setExportDialogOpen(false)}>
-              취소
+              {t.history.buttons.cancel}
             </Button>
             <Button onClick={handleExportConfirm}>
-              내보내기
+              {t.history.exportDialog.exportButton}
             </Button>
           </DialogFooter>
         </DialogContent>

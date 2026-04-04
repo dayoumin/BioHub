@@ -8,6 +8,7 @@
  */
 
 import { memo, useCallback, useMemo, type ReactNode } from 'react'
+import { useTerminology } from '@/hooks/use-terminology'
 import { UnifiedHistorySidebar } from '@/components/common/UnifiedHistorySidebar'
 import { toBioToolHistoryItems } from '@/lib/utils/history-adapters'
 import { useLocalStorageSync } from '@/lib/hooks/use-local-storage-sync'
@@ -29,6 +30,7 @@ interface BioToolSidebarProps {
 }
 
 export const BioToolSidebar = memo(function BioToolSidebar({ toolId, onLoadHistory }: BioToolSidebarProps): ReactNode {
+  const t = useTerminology()
   const parser = useCallback(
     (raw: string | null): BioToolHistoryEntry[] => {
       const all = loadBioToolHistory(raw)
@@ -69,8 +71,8 @@ export const BioToolSidebar = memo(function BioToolSidebar({ toolId, onLoadHisto
       onSelect={handleSelect}
       onPin={handlePin}
       onDeleteMultiple={handleDeleteMultiple}
-      title="분석 히스토리"
-      emptyMessage={'분석을 실행하면\n여기에 기록됩니다'}
+      title={t.history.sidebar.bioTitle}
+      emptyMessage={t.history.sidebar.bioEmpty}
     />
   )
 })

@@ -61,6 +61,9 @@ vi.mock('@/hooks/use-terminology', () => ({
       },
     },
     history: {
+      labels: {
+        moreActions: '더보기',
+      },
       tooltips: {
         pin: '고정',
         unpin: '고정 해제',
@@ -185,7 +188,6 @@ function makeVizProject(overrides: Partial<typeof mockProjects[number]> & { id: 
 const defaultProps = {
   onHistoryClick: vi.fn(),
   onHistoryDelete: vi.fn().mockResolvedValue(undefined),
-  onShowMore: vi.fn(),
 }
 
 // ===== Tests =====
@@ -197,7 +199,6 @@ beforeEach(() => {
   mockRouterPush.mockClear()
   defaultProps.onHistoryClick.mockClear()
   defaultProps.onHistoryDelete.mockClear()
-  defaultProps.onShowMore.mockClear()
   mockSetPinnedIds.mockClear()
 })
 
@@ -449,34 +450,6 @@ describe('QuickAccessBar — 통합 최근 활동', () => {
     const cards = screen.getAllByRole('button')
       .filter(el => el.classList.contains('group'))
     expect(cards).toHaveLength(5)
-  })
-
-  // ─── "더보기" 버튼 — 통계 개수만 표시 ───
-
-  it('"더보기" 버튼은 통계 분석 개수만 표시 (시각화 제외)', () => {
-    const now = Date.now()
-
-    // 통계 6개 (MAX_VISIBLE_PILLS 초과)
-    for (let i = 0; i < 6; i++) {
-      mockAnalysisHistory.push(
-        makeStatHistory({
-          id: `stat-${i}`,
-          timestamp: new Date(now - i * 100_000),
-          method: { id: 't-test', name: `통계${i}`, category: 't-test' },
-        })
-      )
-    }
-
-    // 시각화 2개
-    mockProjects = [
-      makeVizProject({ id: 'proj-0', name: '차트A' }),
-      makeVizProject({ id: 'proj-1', name: '차트B' }),
-    ]
-
-    render(<QuickAccessBar {...defaultProps} />)
-
-    // "전체 6개 보기" (통계 6개만, 시각화 2개 미포함)
-    expect(screen.getByText('전체 6개 보기')).toBeInTheDocument()
   })
 
   // ─── 아이콘 색상 구분 ───

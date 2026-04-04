@@ -433,6 +433,15 @@ export interface HistoryText {
     title: string
     description: string
   }
+  sidebar: {
+    title: string
+    bioTitle: string
+    bioEmpty: string
+  }
+  providers: {
+    ai: string
+    keyword: string
+  }
   recordCount: (n: number) => string
   buttons: {
     saveCurrent: string
@@ -451,6 +460,10 @@ export interface HistoryText {
     rows: string
     pValue: string
     effectSize: string
+    moreActions: string
+    confidenceSuffix: string
+    collapse: string
+    expand: string
   }
   tooltips: {
     viewResults: string
@@ -470,6 +483,17 @@ export interface HistoryText {
     saveDescription: string
     analysisName: string
     savePlaceholder: string
+  }
+  exportDialog: {
+    title: string
+    description: string
+    fileFormat: string
+    includeContent: string
+    interpretation: string
+    methodology: string
+    references: string
+    rawData: string
+    exportButton: string
   }
 }
 
@@ -525,6 +549,15 @@ export interface HubText {
   experimentNotReady: string
   /** Intent Router 분류 실패 안내 메시지 */
   intentClassificationFailed: string
+  /** Intent 분류 결과 메시지 */
+  intentMessages: {
+    recommendationFound: string
+    needsData: string
+    startAnalysisSuffix: string
+    graphStudio: string
+    experimentDesign: string
+    classificationError: string
+  }
   cards: {
     methodsTitle: string
     methodsDescription: (categories: number) => string

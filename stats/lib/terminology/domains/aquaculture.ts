@@ -399,6 +399,15 @@ export const aquaculture: TerminologyDictionary = {
       title: '분석 히스토리가 없습니다',
       description: '완료된 분석이 자동으로 저장됩니다',
     },
+    sidebar: {
+      title: '분석 기록',
+      bioTitle: '분석 히스토리',
+      bioEmpty: '분석을 실행하면\n여기에 기록됩니다',
+    },
+    providers: {
+      ai: 'AI 추천',
+      keyword: '키워드 매칭',
+    },
     recordCount: (n: number) => `${n}개 기록`,
     buttons: {
       saveCurrent: '현재 분석 저장',
@@ -417,6 +426,10 @@ export const aquaculture: TerminologyDictionary = {
       rows: '행',
       pValue: 'p-value:',
       effectSize: '효과크기:',
+      moreActions: '더보기',
+      confidenceSuffix: '% 확신',
+      collapse: '접기',
+      expand: '펼치기',
     },
     tooltips: {
       viewResults: '저장된 결과 보기',
@@ -436,6 +449,17 @@ export const aquaculture: TerminologyDictionary = {
       saveDescription: '현재 분석에 이름을 지정하여 저장합니다.',
       analysisName: '분석 이름',
       savePlaceholder: '예: 2024년 실험 데이터 t-검정',
+    },
+    exportDialog: {
+      title: '히스토리 내보내기 옵션',
+      description: '저장된 분석 기록에서 보고서를 생성합니다.',
+      fileFormat: '파일 형식',
+      includeContent: '포함 내용',
+      interpretation: '결과 해석',
+      methodology: '분석 방법론',
+      references: '참고문헌',
+      rawData: '원본 데이터 (히스토리에는 저장되지 않아 미지원)',
+      exportButton: '내보내기',
     },
   },
 
@@ -492,6 +516,14 @@ export const aquaculture: TerminologyDictionary = {
     },
     experimentNotReady: '실험 설계 기능은 준비 중입니다. 데이터 상담으로 안내해 드릴게요.',
     intentClassificationFailed: '요청을 분류하지 못했습니다. 데이터 상담으로 이어서 진행합니다.',
+    intentMessages: {
+      recommendationFound: '추천 분석 방법을 찾았습니다.',
+      needsData: '딱 맞는 방법을 찾으려면 데이터가 필요해요. 분석 단계로 이동합니다.',
+      startAnalysisSuffix: '분석을 시작합니다.',
+      graphStudio: 'Graph Studio로 이동합니다.',
+      experimentDesign: '표본 크기 계산 단계로 이동합니다.',
+      classificationError: '분류 중 오류가 발생했습니다. 다시 시도해 주세요.',
+    },
     cards: {
       methodsTitle: '분석 도구',
       methodsDescription: (categories: number) => `T-검정, ANOVA, 회귀분석 등 ${categories}개 카테고리의 전체 목록을 탐색합니다`,

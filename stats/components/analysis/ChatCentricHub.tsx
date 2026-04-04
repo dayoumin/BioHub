@@ -42,7 +42,6 @@ interface ChatCentricHubProps {
   onHistorySelect: (historyId: string) => void
   onHistoryDelete: (historyId: string) => Promise<void>
   onUploadClick?: () => void
-  onHistoryShowMore?: () => void
 }
 
 // ===== Helpers =====
@@ -81,7 +80,6 @@ export function ChatCentricHub({
   onHistorySelect,
   onHistoryDelete,
   onUploadClick,
-  onHistoryShowMore,
 }: ChatCentricHubProps) {
   const prefersReducedMotion = useReducedMotion()
   const t = useTerminology()
@@ -160,7 +158,7 @@ export function ChatCentricHub({
             addMessage({
               id: createMessageId(),
               role: 'assistant',
-              content: response.summary ?? '추천 분석 방법을 찾았습니다.',
+              content: response.summary ?? t.hub.intentMessages.recommendationFound,
               timestamp: Date.now(),
               intent,
               recommendations: response.recommendations,
@@ -185,7 +183,7 @@ export function ChatCentricHub({
             addMessage({
               id: createMessageId(),
               role: 'assistant',
-              content: '딱 맞는 방법을 찾으려면 데이터가 필요해요. 분석 단계로 이동합니다.',
+              content: t.hub.intentMessages.needsData,
               timestamp: Date.now(),
               intent,
             })
@@ -197,12 +195,12 @@ export function ChatCentricHub({
         // direct-analysis / experiment-design / visualization: 확인 메시지 → 이동
         let confirmMsg: string
         if (intent.track === 'direct-analysis' && intent.method) {
-          confirmMsg = `${getKoreanName(intent.method.id) ?? intent.method.name} 분석을 시작합니다.`
+          confirmMsg = `${getKoreanName(intent.method.id) ?? intent.method.name} ${t.hub.intentMessages.startAnalysisSuffix}`
         } else if (intent.track === 'visualization') {
-          confirmMsg = 'Graph Studio로 이동합니다.'
+          confirmMsg = t.hub.intentMessages.graphStudio
         } else {
           // experiment-design
-          confirmMsg = '표본 크기 계산 단계로 이동합니다.'
+          confirmMsg = t.hub.intentMessages.experimentDesign
         }
         setStreaming(false)
         addMessage({
@@ -221,7 +219,7 @@ export function ChatCentricHub({
       addMessage({
         id: createMessageId(),
         role: 'assistant',
-        content: '분류 중 오류가 발생했습니다. 다시 시도해 주세요.',
+        content: t.hub.intentMessages.classificationError,
         timestamp: Date.now(),
         isError: true,
       })
@@ -320,7 +318,6 @@ export function ChatCentricHub({
       <QuickAccessBar
         onHistoryClick={onHistorySelect}
         onHistoryDelete={onHistoryDelete}
-        onShowMore={onHistoryShowMore}
       />
     </motion.div>
   )

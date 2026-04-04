@@ -398,6 +398,15 @@ export const generic: TerminologyDictionary = {
       title: 'No analysis history',
       description: 'Completed analyses are automatically saved',
     },
+    sidebar: {
+      title: 'Analysis History',
+      bioTitle: 'Analysis History',
+      bioEmpty: 'Run an analysis and\nit will appear here',
+    },
+    providers: {
+      ai: 'AI Recommended',
+      keyword: 'Keyword Match',
+    },
     recordCount: (n: number) => `${n} records`,
     buttons: {
       saveCurrent: 'Save Current Analysis',
@@ -416,6 +425,10 @@ export const generic: TerminologyDictionary = {
       rows: 'rows',
       pValue: 'p-value:',
       effectSize: 'Effect size:',
+      moreActions: 'More',
+      confidenceSuffix: '% confidence',
+      collapse: 'Collapse',
+      expand: 'Expand',
     },
     tooltips: {
       viewResults: 'View saved results',
@@ -435,6 +448,17 @@ export const generic: TerminologyDictionary = {
       saveDescription: 'Name and save the current analysis.',
       analysisName: 'Analysis Name',
       savePlaceholder: 'e.g., 2024 Experiment Data T-test',
+    },
+    exportDialog: {
+      title: 'History Export Options',
+      description: 'Generate a report from saved analysis history.',
+      fileFormat: 'File Format',
+      includeContent: 'Include Content',
+      interpretation: 'Result Interpretation',
+      methodology: 'Analysis Methodology',
+      references: 'References',
+      rawData: 'Raw Data (not stored in history — unavailable)',
+      exportButton: 'Export',
     },
   },
 
@@ -491,6 +515,14 @@ export const generic: TerminologyDictionary = {
     },
     experimentNotReady: 'Experiment design is coming soon. Redirecting to data consultation.',
     intentClassificationFailed: 'Could not classify your request. Continuing with data consultation.',
+    intentMessages: {
+      recommendationFound: 'Found recommended analysis methods.',
+      needsData: 'We need your data to find the best method. Moving to the analysis step.',
+      startAnalysisSuffix: 'analysis is starting.',
+      graphStudio: 'Moving to Graph Studio.',
+      experimentDesign: 'Moving to sample size calculation.',
+      classificationError: 'Classification error occurred. Please try again.',
+    },
     cards: {
       methodsTitle: 'Analysis Tools',
       methodsDescription: (categories: number) => `Browse T-test, ANOVA, Regression and more across ${categories} categories`,

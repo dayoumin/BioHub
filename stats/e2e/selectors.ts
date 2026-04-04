@@ -168,7 +168,6 @@ export const S = {
 
   // ===== Recent Activity =====
   recentActivityCard: (id: string) => `[data-testid="recent-activity-card-${id}"]`,
-  historyShowMore: '[data-testid="history-show-more"]',
 
   // ===== Reanalysis =====
   reanalysisBtn: '[data-testid="reanalysis-btn"]',

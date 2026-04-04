@@ -142,7 +142,7 @@ export function AnalysisHistorySidebar(): ReactNode {
                   type="button"
                   onClick={(e) => e.stopPropagation()}
                   className="shrink-0 rounded p-0.5 text-muted-foreground/30 opacity-0 transition-all hover:bg-muted hover:text-foreground group-hover:opacity-100"
-                  aria-label="더보기"
+                  aria-label={t.history.labels.moreActions}
                 >
                   <MoreHorizontal className="h-3 w-3" />
                 </button>
@@ -150,7 +150,7 @@ export function AnalysisHistorySidebar(): ReactNode {
               <DropdownMenuContent align="end" className="w-36">
                 <DropdownMenuItem onClick={() => handleReanalyze(item.id)}>
                   <RefreshCw className="mr-2 h-3 w-3" />
-                  <span className="text-xs">재분석</span>
+                  <span className="text-xs">{t.history.tooltips.reanalyze}</span>
                 </DropdownMenuItem>
                 {/* 내보내기: AnalysisHistoryPanel의 export 로직 추출 후 연결 예정 */}
               </DropdownMenuContent>
@@ -183,7 +183,7 @@ export function AnalysisHistorySidebar(): ReactNode {
       onPin={handlePin}
       onDelete={handleDelete}
       activeId={currentHistoryId}
-      title="분석 기록"
+      title={t.history.sidebar.title}
       renderItem={renderItem}
     />
   )
