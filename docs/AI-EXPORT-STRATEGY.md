@@ -1,6 +1,6 @@
 # AI Export 전략: 연구 패키지 체계화
 
-**Last updated**: 2026-04-03
+**Last updated**: 2026-04-04
 **References**: [Product Strategy](PRODUCT_STRATEGY.md), [Roadmap](../ROADMAP.md), [Package Assembly Design](PLAN-PAPER-PACKAGE-ASSEMBLY.md)
 **정기 점검**: 분기별 (다음: 2026-07) — 경쟁 환경, AI 모델 동향, 포지셔닝 유효성 확인
 
@@ -65,9 +65,10 @@ SOTA AI가 코드를 짜도 **1%의 오류가 학술에서는 치명적**:
 | 통계 분석 (43개 메서드) | 충분 | Pyodide 기반, 검증된 라이브러리 |
 | Bio-Tools (16개) | 충분 | 4카테고리 생물학 분석 |
 | 유전적 분석 | 진행 중 | 서열 분석 + Bio-Tools cross-link |
-| 문헌/동향 관리 | 기본 구조 | 통합검색 + 모니터링 계획 중 |
+| 문헌 통합검색 | ✅ 완료 | 5소스 (OpenAlex/PubMed/GBIF/OBIS/국회도서관) |
+| 인용 관리 | ✅ 완료 | IndexedDB + APA 포맷터 + References 자동 병합 |
 | 프로젝트 기반 묶기 | 있음 | Entity 시스템 |
-| 논문 작성 | Phase 6 | 영문 템플릿 완성, 인용 관리 진행 중 |
+| 자료 작성 | Phase 6 | 영문 템플릿 완성, 인용 관리 완료, Package Assembly 진행 중 |
 
 ---
 
@@ -225,18 +226,75 @@ AI 작성 도구 (Paperpal 등) → 글은 쓰지만 통계 엔진 없음
 ## 6. 실행 우선순위
 
 ```
-Phase 현재: 통계 엔진 + Bio-Tools + 논문 템플릿 (완료/진행 중)
+Phase 완료: 통계 엔진 + Bio-Tools + 자료 작성 템플릿 + 인용 관리 ✅
      ↓
-Phase A: AI Export 기능 (구조화된 연구 패키지 내보내기)
+Phase A: AI Export 기능 (구조화된 연구 패키지 내보내기) ← 진행 중
      ↓
-Phase B: 결과 ↔ 논문 섹션 매핑 + 태깅
+Phase B: SOTA 모델 검증 (아래 §6-1 참조)
      ↓
-Phase C: 프롬프트 템플릿 (분야별 논문 작성 가이드)
+Phase C: 결과 ↔ 논문 섹션 매핑 + 태깅
      ↓
-Phase D: Publication-ready 그래프 export
+Phase D: 프롬프트 템플릿 (분야별 논문 작성 가이드)
      ↓
-Phase E: 버전/히스토리 비교 (Reviewer 대응)
+Phase E: Publication-ready 그래프 export
+     ↓
+Phase F: 자체 AI 논문 생성 (API 연동, 아래 §6-2 참조)
 ```
+
+### 6-1. SOTA 모델 검증 계획 (Phase B)
+
+Package Assembly로 만든 패키지를 실제 SOTA 모델에 넘겨 **논문 초안 품질을 검증**한다.
+검증 결과가 좋으면 이를 체계화하여 향후 자체 AI 연동(Phase F)의 기반으로 삼는다.
+
+**검증 대상 모델:**
+
+| 모델 | 특징 | 검증 포인트 |
+|------|------|-------------|
+| Claude Opus/Sonnet | 긴 컨텍스트, 정밀한 지시 따르기 | 수치 정확도, 구조 준수 |
+| GPT-4o / o3 | 가장 범용적, 사용자 다수 보유 | 범용성, 스타일 적응 |
+| Gemini 2.5 Pro | 100만 토큰 컨텍스트, Google Scholar 접근 | 대형 패키지 처리, 문헌 보완 |
+
+**검증 프로토콜:**
+
+1. **패키지 준비**: 실제 프로젝트로 Package Assembly 완성 (통계+그래프+문헌+맥락)
+2. **초안 생성**: 각 모델에 동일 패키지 전달 → 논문 초안 요청
+3. **품질 평가 기준:**
+   - 수치 정확도 — 패키지 원본과 초안 내 인용 수치 대조 (F값, p값, 자유도)
+   - 구조 준수 — 패키지 태깅(Table 2, Figure 3)이 초안에 정확히 반영되는지
+   - 학술 문체 — 분야별 관행 준수 (APA, 수산학 용어 등)
+   - Hallucination — 패키지에 없는 데이터/참고문헌 날조 여부
+   - 재현성 — 동일 패키지로 반복 생성 시 결과 일관성
+4. **결과 기록**: `docs/ai-export-tests/` 폴더에 모델별 결과 저장
+5. **개선 반복**: 패키지 구조/프롬프트 템플릿 조정 → 재검증
+
+**검증이 확인해야 할 것:**
+- BioHub 패키지가 "충분히 좋은 입력"인지 (garbage in → garbage out 방지)
+- 어떤 패키지 구조가 최적인지 (Markdown vs JSON, 섹션 순서, 지시사항 배치)
+- 방어적 프롬프트("수치 변경 금지")가 실제로 작동하는지
+
+### 6-2. 자체 AI 논문 생성 로드맵 (Phase F)
+
+SOTA 검증에서 **패키지→초안 파이프라인이 안정화**되면, 외부 모델 없이 BioHub 내부에서 직접 논문을 생성한다.
+
+```
+Phase F-1: API 연동 기초
+  - Claude/GPT API 키 설정 UI
+  - Package → API 호출 → 초안 반환 파이프라인
+  - 비용 추정 표시 (토큰 수 기반)
+
+Phase F-2: 자동 논문 생성
+  - "패키지에서 초안 생성" 원클릭 버튼
+  - 섹션별 생성 (Methods → Results → Discussion 순차)
+  - 생성 중 실시간 프리뷰
+
+Phase F-3: 검증 + 편집 루프
+  - AI 초안 ↔ 패키지 원본 자동 대조 (수치 검증)
+  - 틀린 수치 하이라이트 + 수정 제안
+  - DocumentEditor에서 직접 편집 → DOCX/HWPX 내보내기
+```
+
+**진입 조건:** Phase B(SOTA 검증) 완료 + 패키지 구조 안정화
+**비용 모델:** 사용자 자체 API 키 사용 (BioHub은 중개만) → 운영비 0
 
 ---
 
@@ -287,8 +345,14 @@ BioHub의 방향은 적절하며 타이밍도 맞다.
 
 **BioHub은 논문을 쓰는 도구가 아니라, 논문을 쓸 수 있게 만드는 도구다.**
 
+**현재 (Phase A~E): 외부 AI 활용**
 - 1차(BioHub): 검증된 분석 + 체계화 → 저비용 Flash Lite로 충분
 - 2차(SOTA AI): 사용자의 최고 모델로 초고 생성 → BioHub이 만든 패키지가 품질 결정
 - 3차(사람): 학회 템플릿에 맞춰 최종 제출
 
-핵심은 **AI Export** — 이 기능이 BioHub의 존재 이유가 된다.
+**향후 (Phase F): 자체 AI 논문 생성**
+- SOTA 검증으로 패키지→초안 파이프라인이 안정화되면
+- BioHub 내부에서 API 연동으로 직접 초안 생성
+- 외부 모델 전환 없이 원클릭 논문 생성 가능
+
+핵심은 **AI Export** — 이 기능이 BioHub의 존재 이유가 된다. 그리고 이 export가 잘 작동하는 것이 곧 자체 AI 논문 생성의 기반이 된다.

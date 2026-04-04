@@ -1,7 +1,7 @@
 # FisheryON → BioHub 기능 이전 계획
 
-**Status**: 계획 단계
-**Last updated**: 2026-03-27
+**Status**: Phase A 완료, Phase B/C → ROADMAP Research Copilot로 이관
+**Last updated**: 2026-04-04
 **Source**: `d:\Projects\fisheryON\apps\validator\`
 
 ---
@@ -14,9 +14,9 @@ BioHub를 주 프로젝트로 전환하면서, FisheryON의 고유 기능 중 Bi
 
 | 기능 | FisheryON 상태 | BioHub 현황 |
 |------|---------------|-------------|
-| 연구동향 모니터링 | ✅ 구현 완료 | ❌ 없음 |
-| 문헌 통합검색 (5소스) | ✅ 구현 완료 | ❌ 없음 (GenBank 검색만 있음) |
-| 이메일 구독 (MailerSend) | ✅ 구현 완료 | ❌ 없음 |
+| 연구동향 모니터링 | ✅ 구현 완료 | → ROADMAP Stream 5 (Research Copilot)로 이관 |
+| 문헌 통합검색 (5소스) | ✅ 구현 완료 | ✅ 구현 완료 (자료 작성 하위 탭 통합 대기) |
+| 이메일 구독 (MailerSend) | ✅ 구현 완료 | → ROADMAP Stream 5 (Research Copilot)로 이관 |
 | 법정관리종 수집기 (법제처 API) | ✅ 구현 완료 | ⬜ 스키마만 정의 예정 |
 
 ### 이전하지 않는 것

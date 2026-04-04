@@ -1,6 +1,6 @@
 # BioHub Product Strategy
 
-**Last updated**: 2026-03-21
+**Last updated**: 2026-04-04
 **Scope**: Product-level strategy across Smart Flow, Graph Studio, bio domain tools, species validation, and paper workflow
 
 ---
@@ -127,7 +127,7 @@ Required continuity objects:
 
 BioHub should create value through this chain:
 
-**data -> validated analysis -> explainable interpretation -> domain verification -> reviewer-ready output**
+**data -> validated analysis -> explainable interpretation -> domain verification -> AI-ready package -> SOTA AI 논문 생성 -> 사람 최종 편집**
 
 This is stronger than:
 
@@ -155,14 +155,25 @@ Priority outcomes:
 
 ### Focus next
 
-Once the foundation is stable, expand reviewer and journal support.
+자료 작성(AI Export) — 분석 결과를 구조화된 패키지로 내보내기. 외부 SOTA AI로 논문 초안 생성.
 
 Priority outcomes:
 
-- reviewer simulator
-- journal formatting and fit review
-- manuscript assembly across multiple analyses
-- project-level quality checklist
+- AI-ready 패키지 export (Package Assembly)
+- SOTA 모델 검증 (Claude/GPT/Gemini로 실제 초안 품질 테스트)
+- 결과 ↔ 논문 섹션 매핑 + 태깅
+- 분야별 프롬프트 템플릿
+- 문헌 통합검색을 자료 작성 하위 탭으로 통합
+
+### Focus after
+
+자체 AI 논문 생성 — SOTA 검증으로 파이프라인이 안정화되면, API 연동으로 BioHub 내부에서 직접 초안 생성.
+
+Priority outcomes:
+
+- Claude/GPT API 연동 → 원클릭 초안 생성
+- AI 초안 ↔ 원본 수치 자동 대조
+- 리뷰어 체크리스트 + 저널 포맷 적합성 검토
 
 ### Focus later
 
@@ -171,6 +182,7 @@ Only after trust and workflow are strong enough:
 - research ideation
 - hypothesis suggestions
 - next experiment proposals
+- 연구동향 모니터링 (키워드 기반 트렌드 수집)
 - broader literature automation
 
 ---
