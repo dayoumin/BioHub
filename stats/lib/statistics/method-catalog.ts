@@ -123,6 +123,7 @@ export function getAllMethodsGrouped(): MethodGroup[] {
 
   // Return in logical order (survival 카테고리 포함)
   const categoryOrder = [
+    'descriptive',
     't-test',
     'anova',
     'nonparametric',
