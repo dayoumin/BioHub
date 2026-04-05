@@ -223,3 +223,26 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - **worker.ts 기술부채**: `parseJsonBody`(9건) + `authenticateRequest`(3건) + `verifyProjectOwnership`(4건) 헬퍼 추출
 - **논문 내보내기**: Phase 6a DOCX/HWPX 차트 이미지 삽입 + 리뷰 수정 9건
 - **인프라**: Evidence 저장, 재현 코드 내보내기, CF 빌드 수정, genetics/bio-tools 구조 정리
+
+---
+
+## 6. 통계 정확도 검증 (후속 세션)
+
+2026-04-05 Worker 1-5 공식 문서 대조 + 계약 불일치 31건 수정 완료 (`af988513`).
+다음 세션에서 아래 항목 수행:
+
+### 6-1. 공식 문서 재대조 (Worker 전체)
+- `[trust]` Worker 1-8 전체 함수를 scipy/statsmodels **현재 Pyodide 번들 버전**(scipy 1.14.1, statsmodels 0.14.4) 공식 문서와 재대조
+- 이번 세션에서 검증한 30+개 함수 외에 미검증 함수 목록 확인 후 추가 검증
+- Worker 2 dead code (ordinal_regression, poisson_regression 등) 정리 또는 수정 여부 결정
+
+### 6-2. Golden Value 테스트 작성
+- `[trust]` 통계 방법별 known reference values로 수치 정확도 테스트 작성
+- 데이터 소스: R/SPSS 레퍼런스 값, 교과서 예제, scipy 공식 예제
+- 우선순위: t-test, ANOVA, 회귀, 비모수 검정, 생존분석 순
+- 기존 `stats/__tests__/workers/golden-values/` 디렉토리 활용
+- 검증 항목: 검정통계량, p-value, 효과크기, 신뢰구간 — 소수점 4자리 이상 일치 확인
+
+### 6-3. 외부 도구 교차 검증
+- `[trust]` R, SPSS, 또는 공식 통계 사이트(예: VassarStats, Social Science Statistics)에서 동일 데이터로 결과 비교
+- 특히 이번에 수정한 7개 공식(Mann-Whitney r, Wilcoxon r, intercept SE, ordinal params, conf_int, IRR, NB alpha) 집중 검증
