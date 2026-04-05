@@ -107,8 +107,8 @@ export async function handleTTest(method: StatisticalMethod, data: PreparedData)
     equalVar: !isWelch // Welch t-검정은 등분산 가정하지 않음
   })
 
-  // 효과크기 계산 (Cohen's d)
   const cohensD = calculateCohensD(group1, group2)
+  const effectSizeLabel = isWelch ? "Cohen's d (pooled SD)" : "Cohen's d"
 
   return {
     metadata: {
@@ -133,7 +133,7 @@ export async function handleTTest(method: StatisticalMethod, data: PreparedData)
     },
     additionalInfo: {
       effectSize: {
-        type: "Cohen's d",
+        type: effectSizeLabel,
         value: cohensD,
         interpretation: interpretCohensD(cohensD)
       },

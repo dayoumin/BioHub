@@ -56,10 +56,16 @@ def mann_whitney_test(group1, group2):
         raise ValueError("Each group must have at least 2 observations")
     
     statistic, p_value = stats.mannwhitneyu(group1, group2, alternative='two-sided')
-    
+
+    # rank-biserial correlation for U1 (scipy returns U1 for first sample)
+    # r = 2*U1/(n1*n2) - 1
+    n1, n2 = len(group1), len(group2)
+    effect_size = (2 * statistic) / (n1 * n2) - 1 if (n1 * n2) > 0 else 0.0
+
     return {
         'statistic': float(statistic),
-        'pValue': float(p_value)
+        'pValue': float(p_value),
+        'effectSize': float(effect_size),
     }
 
 
@@ -94,36 +100,27 @@ def wilcoxon_test(values1, values2):
             'q3': float(np.percentile(data, 75))
         }
 
-    # Calculate effect size (rank-biserial correlation)
-    n = len(values1)
-    effect_size = 1 - (2 * statistic) / (n * (n + 1))
+    # rank-biserial |r| = 1 - 4T/(n_nz*(n_nz+1))
+    # T = min(W+, W-) from scipy.wilcoxon (two-sided)
+    # n_nz = nonzero differences (scipy zero_method='wilcox' excludes zeros from ranking)
+    n_total = len(values1)
+    n_nz = int(np.sum(diffs != 0))
+    effect_size = 1 - (4 * statistic) / (n_nz * (n_nz + 1)) if n_nz > 0 else 0.0
 
-    # Effect size interpretation
-    abs_r = abs(effect_size)
-    if abs_r < 0.3:
-        interpretation = "작은 효과크기"
-    elif abs_r < 0.5:
-        interpretation = "중간 효과크기"
-    else:
-        interpretation = "큰 효과크기"
-
-    # Z-score approximation for large samples
+    # Z-score approximation (also uses n_nz)
     z_score = 0.0
-    if n > 10:
-        mu = n * (n + 1) / 4
-        sigma = np.sqrt(n * (n + 1) * (2 * n + 1) / 24)
+    if n_nz > 10:
+        mu = n_nz * (n_nz + 1) / 4
+        sigma = np.sqrt(n_nz * (n_nz + 1) * (2 * n_nz + 1) / 24)
         z_score = float((statistic - mu) / sigma)
 
     return {
         'statistic': float(statistic),
         'pValue': float(p_value),
-        'nobs': int(n),
+        'nobs': int(n_total),
         'zScore': z_score,
         'medianDiff': float(np.median(diffs)),
-        'effectSize': {
-            'value': float(effect_size),
-            'interpretation': interpretation
-        },
+        'effectSize': float(effect_size),
         'descriptives': {
             'before': calc_descriptives(arr1),
             'after': calc_descriptives(arr2),
@@ -177,10 +174,11 @@ def friedman_test(groups):
         raise ValueError(f"Friedman test requires equal group sizes, got: {lengths}")
 
     statistic, p_value = stats.friedmanchisquare(*clean_groups)
-    
+
     return {
         'statistic': float(statistic),
-        'pValue': float(p_value)
+        'pValue': float(p_value),
+        'df': int(len(clean_groups) - 1),
     }
 
 
@@ -382,7 +380,9 @@ def two_way_anova(dataValues, factor1Values, factor2Values):
             'df': float(anova_table.loc['C(factor1):C(factor2)', 'df'])
         },
         'residual': {
-            'df': float(anova_table.loc['Residual', 'df'])
+            'df': float(anova_table.loc['Residual', 'df']),
+            'sumSq': float(anova_table.loc['Residual', 'sum_sq']),
+            'meanSq': float(anova_table.loc['Residual', 'sum_sq'] / anova_table.loc['Residual', 'df']) if anova_table.loc['Residual', 'df'] > 0 else 0.0,
         },
         'anovaTable': _clean_nan_for_json(anova_table.to_dict())
     }

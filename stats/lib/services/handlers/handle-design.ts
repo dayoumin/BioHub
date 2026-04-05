@@ -21,6 +21,10 @@ export async function handleDesign(method: StatisticalMethod, data: PreparedData
         { alpha, power, effectSize, sampleSize, sides: sides as 'two-sided' | 'one-sided' }
       )
 
+      const sampleSizeResult = result.results.sampleSize ?? result.results.criticalEffect ?? 0
+      const powerResult = result.results.power ?? 0
+      const inputEffect = result.inputParameters.effectSize ?? 0
+
       return {
         metadata: {
           method: method.id,
@@ -33,16 +37,16 @@ export async function handleDesign(method: StatisticalMethod, data: PreparedData
           }
         },
         mainResults: {
-          statistic: result.achievedPower || result.requiredSampleSize || 0,
-          pvalue: typeof result.alpha === 'number' ? result.alpha : 0.05,
-          significant: (result.achievedPower || 0) >= 0.8,
-          interpretation: `${analysisType} 분석 완료: ${result.requiredSampleSize ? `필요 표본 크기 ${result.requiredSampleSize}` : `검정력 ${(result.achievedPower || 0).toFixed(3)}`}`
+          statistic: powerResult || sampleSizeResult,
+          pvalue: result.inputParameters.alpha ?? 0.05,
+          significant: powerResult >= 0.8,
+          interpretation: result.interpretation
         },
         additionalInfo: {
-          effectSize: result.effectSize ? {
+          effectSize: inputEffect ? {
             type: "Cohen's d",
-            value: result.effectSize,
-            interpretation: interpretCohensD(result.effectSize)
+            value: inputEffect,
+            interpretation: interpretCohensD(inputEffect)
           } : undefined
         },
         rawResults: result

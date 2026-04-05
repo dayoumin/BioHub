@@ -228,6 +228,7 @@ def t_test_two_sample_summary(
             ci_lower = mean_diff - margin
             ci_upper = mean_diff + margin
 
+        # Welch-compatible d: sqrt(avg(s1², s2²)) denominator (Delacre et al. 2021)
         denom = math.sqrt(((float(std1) ** 2) + (float(std2) ** 2)) / 2) if (std1 > 0 or std2 > 0) else 0.0
         cohens_d = 0.0 if denom == 0.0 else mean_diff / denom
         df_out = float(df_welch)
@@ -300,20 +301,25 @@ def z_test(
     popmean: float,
     popstd: float
 ) -> Dict[str, Union[float, None]]:
-    from statsmodels.stats.weightstats import ztest as sm_ztest
-
     clean_data = clean_array(data)
 
     if len(clean_data) < 30:
         raise ValueError("Z-test typically requires at least 30 observations")
 
-    # Use statsmodels for z-test
-    # Note: statsmodels ztest uses sample std, so we pass population std via ddof parameter
-    z_statistic, p_value = sm_ztest(clean_data, value=popmean, alternative='two-sided')
+    if popstd <= 0:
+        raise ValueError("Population standard deviation must be positive")
+
+    # True z-test: z = (x̄ - μ₀) / (σ / √n) using known population σ
+    n = len(clean_data)
+    sample_mean = float(np.mean(clean_data))
+    z_statistic = (sample_mean - popmean) / (popstd / np.sqrt(n))
+    p_value = float(2 * (1 - stats.norm.cdf(abs(z_statistic))))
 
     return {
         'statistic': float(z_statistic),
-        'pValue': _safe_float(p_value)
+        'pValue': _safe_float(p_value),
+        'sampleMean': _safe_float(sample_mean),
+        'n': int(n),
     }
 
 
@@ -355,7 +361,8 @@ def binomial_test(
         'pValue': _safe_float(p_value),
         'successCount': int(successCount),
         'totalCount': int(totalCount),
-        'proportion': _safe_float(successCount / totalCount) if totalCount > 0 else None
+        'proportion': _safe_float(successCount / totalCount) if totalCount > 0 else None,
+        'expectedProportion': float(probability),
     }
 
 
@@ -381,7 +388,8 @@ def correlation_test(
     return {
         'correlation': float(r),
         'pValue': _safe_float(p_value),
-        'method': method
+        'method': method,
+        'n': int(len(x)),
     }
 
 

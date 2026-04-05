@@ -334,16 +334,14 @@ describe('power_analysis sides parameter', () => {
   })
 
   it('PowerAnalysisResult type should match Python nested structure', () => {
-    // 현재 Generated 타입은 아직 flat (후속 세션 대상)
-    // Python은 nested { results: { sampleSize }, inputParameters: { ... } }
-    // 이 테스트는 현재 flat 타입의 존재를 문서화하는 역할
-    const flatResult: PowerAnalysisResult = {
-      requiredSampleSize: 64,
-      achievedPower: 0.8,
-      effectSize: 0.5,
-      alpha: 0.05,
+    const result: PowerAnalysisResult = {
+      testType: 't-test',
+      analysisType: 'a-priori',
+      inputParameters: { alpha: 0.05, power: 0.8, effectSize: 0.5 },
+      results: { sampleSize: 64 },
       interpretation: 'Need 64 samples',
+      recommendations: ['Collect 10-20% more samples'],
     }
-    expect(flatResult.requiredSampleSize).toBe(64)
+    expect(result.results.sampleSize).toBe(64)
   })
 })

@@ -2,7 +2,7 @@
  * Auto-generated from methods-registry.json
  * DO NOT EDIT MANUALLY
  *
- * Generated: 2026-04-04T11:50:29.826Z
+ * Generated: 2026-04-05T02:24:07.803Z
  */
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -23,6 +23,7 @@ export const WORKER = {
   FISHERIES: 7,
   ECOLOGY: 8,
   GENETICS: 9,
+  MOLBIO: 10,
 } as const
 
 export type WorkerNumber = typeof WORKER[keyof typeof WORKER]
@@ -178,8 +179,8 @@ export interface BonferroniCorrectionResult {
 
 export interface MeansPlotDataResult {
   descriptives: Record<string, unknown>
-  plotData: { x: number[]; y: number[]; labels?: string[] }
-  interpretation: string
+  plotData: Array<{ group: string; mean: number; error: number; count: number }>
+  interpretation: { summary: string; recommendations: string[] }
 }
 
 
@@ -324,8 +325,8 @@ export interface TTestOneSampleSummaryResult {
   pValue: number
   df: number
   meanDiff: number
-  ciLower: number[]
-  ciUpper: number[]
+  ciLower: number
+  ciUpper: number
   cohensD: number
   n: number
   mean: number
@@ -338,8 +339,8 @@ export interface TTestTwoSampleSummaryResult {
   pValue: number
   df: number
   meanDiff: number
-  ciLower: number[]
-  ciUpper: number[]
+  ciLower: number
+  ciUpper: number
   cohensD: number
   mean1: number
   mean2: number
@@ -355,8 +356,8 @@ export interface TTestPairedSummaryResult {
   pValue: number
   df: number
   meanDiff: number
-  ciLower: number[]
-  ciUpper: number[]
+  ciLower: number
+  ciUpper: number
   cohensD: number
   nPairs: number
   stdDiff: number
@@ -446,11 +447,13 @@ export interface FisherExactTestResult {
 }
 
 export interface PowerAnalysisResult {
-  requiredSampleSize: number
-  achievedPower: number
-  effectSize: number
-  alpha: number
+  testType: string
+  analysisType: string
+  inputParameters: Record<string, number>
+  results: Record<string, number>
   interpretation: string
+  recommendations: string[]
+  powerCurve?: Array<{ sampleSize: number; power: number }> | undefined
 }
 
 export interface ResponseSurfaceAnalysisResult {
@@ -662,7 +665,7 @@ export interface TwoWayAnovaResult {
   factor1: { fStatistic: number; pValue: number; df: number }
   factor2: { fStatistic: number; pValue: number; df: number }
   interaction: { fStatistic: number; pValue: number; df: number }
-  residual: { df: number; sumSq: number; meanSq: number; fStatistic: number; pValue: number }
+  residual: { df: number; sumSq: number; meanSq: number }
   anovaTable: Record<string, unknown>
 }
 
@@ -1642,6 +1645,76 @@ export async function fst(populations?: number[][], populationLabels?: string[],
 }
 
 // ========================================
+// Worker 10: molbio
+// Molecular Biology (Translation, ORF, Codon Usage, Protein Properties)
+// ========================================
+
+export interface TranslateResult {
+  frames: Array<{ frame: number; protein: string; strand: string; startPos: number; codons: number }>
+  reverseComplement: string
+}
+
+export interface FindOrfsResult {
+  orfs: Array<{ strand: string; frame: number; start: number; end: number; lengthBp: number; lengthCodons: number; startCodon: string; stopCodon: string; protein: string }>
+  sequenceLength: number
+}
+
+export interface CodonUsageResult {
+  codonCounts: Array<{ codon: string; aminoAcid: string; count: number; frequency: number; rscu: number }>
+  rscu: Record<string, number>
+  totalCodons: number
+  aminoAcidFrequency: Record<string, number>
+}
+
+export interface ProteinPropertiesResult {
+  molecularWeight: number
+  isoelectricPoint: number
+  gravy: number
+  aromaticity: number
+  instabilityIndex: number
+  isStable: boolean
+  extinctionCoeffReduced: number
+  extinctionCoeffOxidized: number
+  aminoAcidComposition: Record<string, number>
+  aminoAcidPercent: Record<string, number>
+  secondaryStructureFraction: { helix: number; turn: number; sheet: number }
+  hydropathyProfile: Array<{ position: number; score: number }>
+}
+
+
+/**
+ * DNA → Protein 6-frame 번역
+ * @worker Worker 10
+ */
+export async function translate(sequence: string, geneticCode?: number): Promise<TranslateResult> {
+  return callWorkerMethod<TranslateResult>(10, 'translate', { sequence, geneticCode })
+}
+
+/**
+ * 6-frame ORF 탐색
+ * @worker Worker 10
+ */
+export async function findOrfs(sequence: string, geneticCode?: number, minLength?: number): Promise<FindOrfsResult> {
+  return callWorkerMethod<FindOrfsResult>(10, 'find_orfs', { sequence, geneticCode, minLength })
+}
+
+/**
+ * 코돈 사용 빈도 + RSCU (Relative Synonymous Codon Usage)
+ * @worker Worker 10
+ */
+export async function codonUsage(sequence: string, geneticCode?: number): Promise<CodonUsageResult> {
+  return callWorkerMethod<CodonUsageResult>(10, 'codon_usage', { sequence, geneticCode })
+}
+
+/**
+ * 단백질 물리화학적 특성 분석 (ProtParam)
+ * @worker Worker 10
+ */
+export async function proteinProperties(proteinSeq: string): Promise<ProteinPropertiesResult> {
+  return callWorkerMethod<ProteinPropertiesResult>(10, 'protein_properties', { proteinSeq })
+}
+
+// ========================================
 // 메서드 이름 유니온 타입
 // ========================================
 
@@ -1654,5 +1727,6 @@ export type Worker6Method = 'render_chart'
 export type Worker7Method = 'fit_vbgf' | 'length_weight' | 'condition_factor'
 export type Worker8Method = 'alpha_diversity' | 'rarefaction' | 'beta_diversity' | 'nmds' | 'permanova' | 'mantel_test'
 export type Worker9Method = 'hardy_weinberg' | 'fst'
+export type Worker10Method = 'translate' | 'find_orfs' | 'codon_usage' | 'protein_properties'
 
-export type AllMethodName = Worker1Method | Worker2Method | Worker3Method | Worker4Method | Worker5Method | Worker6Method | Worker7Method | Worker8Method | Worker9Method
+export type AllMethodName = Worker1Method | Worker2Method | Worker3Method | Worker4Method | Worker5Method | Worker6Method | Worker7Method | Worker8Method | Worker9Method | Worker10Method

@@ -399,12 +399,28 @@ def icc_analysis(
     # p-value
     p_value = float(1.0 - stats.f.cdf(f_value, df1, df2)) if f_value > 0 else 1.0
 
-    # 95% CI (McGraw & Wong, 1996 — F-based)
-    if iccType in ('ICC3_1', 'ICC2_1'):
+    # 95% CI
+    if iccType == 'ICC3_1':
+        # McGraw & Wong (1996) exact F-based CI for ICC(3,1)
         F_L = f_value / stats.f.ppf(0.975, df1, df2) if f_value > 0 else 0.0
         F_U = f_value / stats.f.ppf(0.025, df1, df2) if f_value > 0 else 0.0
         ci_lower = max(-1.0, (F_L - 1) / (F_L + k - 1))
         ci_upper = min(1.0, (F_U - 1) / (F_U + k - 1))
+    elif iccType == 'ICC2_1':
+        # McGraw & Wong (1996) CI for ICC(2,1) — accounts for rater variance
+        Fj = MS_cols / MS_error if MS_error > 0 else 1.0
+        vn = (k - 1) * (n - 1) * ((k * icc_val * Fj + n * (1 + (k - 1) * icc_val) - k * icc_val) ** 2)
+        vd = ((n - 1) * k ** 2 * icc_val ** 2 * Fj ** 2
+              + (n * (1 + (k - 1) * icc_val) - k * icc_val) ** 2)
+        v = vn / vd if vd > 0 else df2
+        F3U = stats.f.ppf(0.975, n - 1, v) if v > 0 else 1.0
+        F3L = stats.f.ppf(0.025, n - 1, v) if v > 0 else 1.0
+        ci_lower_num = n * (MS_rows - F3U * MS_error)
+        ci_lower_den = F3U * (k * MS_cols + (n * k - k - n) * MS_error) + n * MS_rows
+        ci_lower = max(-1.0, ci_lower_num / ci_lower_den) if ci_lower_den != 0 else -1.0
+        ci_upper_num = n * (MS_rows - F3L * MS_error)
+        ci_upper_den = F3L * (k * MS_cols + (n * k - k - n) * MS_error) + n * MS_rows
+        ci_upper = min(1.0, ci_upper_num / ci_upper_den) if ci_upper_den != 0 else 1.0
     else:
         # ICC(1,1) CI — Shrout & Fleiss approximation
         ci_lower = max(-1.0, float(icc_val - 1.96 * np.sqrt(2.0 * (1 - icc_val)**2 * (1 + (k - 1) * icc_val)**2 / (k * (n - 1) * (k - 1)))))

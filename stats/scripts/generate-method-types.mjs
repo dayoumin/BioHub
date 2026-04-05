@@ -204,7 +204,7 @@ const METHOD_TYPE_OVERRIDES = {
     'clusterSizes': 'number[]',
   },
   'two_way_anova': {
-    'residual': '{ df: number; sumSq: number; meanSq: number; fStatistic: number; pValue: number }',
+    'residual': '{ df: number; sumSq: number; meanSq: number }',
   },
   'logistic_regression': {
     'confusionMatrix': '{ tp: number; fp: number; tn: number; fn: number; precision: number; recall: number; f1Score: number }',
@@ -273,8 +273,18 @@ const METHOD_TYPE_OVERRIDES = {
     'zScore': 'number',
     'medianDiff': 'number',
   },
+  't_test_one_sample_summary': {
+    'ciLower': 'number',
+    'ciUpper': 'number',
+  },
+  't_test_two_sample_summary': {
+    'ciLower': 'number',
+    'ciUpper': 'number',
+  },
   't_test_paired_summary': {
     'stdDiff': 'number',
+    'ciLower': 'number',
+    'ciUpper': 'number',
   },
   'partial_correlation': {
     'confidenceInterval': '{ lower: number; upper: number }',
@@ -306,6 +316,18 @@ const METHOD_TYPE_OVERRIDES = {
     'classificationResults': 'Array<{ originalGroup: string; predictedGroup: string; probability: number; correct: boolean }>',
     'confusionMatrix': 'Record<string, Record<string, number>>',
     'equalityTests': '{ boxM: { statistic: number; pValue: number; significant: boolean }; wilksLambda: { statistic: number; pValue: number; significant: boolean } }',
+  },
+  'means_plot_data': {
+    'plotData': 'Array<{ group: string; mean: number; error: number; count: number }>',
+    'interpretation': '{ summary: string; recommendations: string[] }',
+  },
+  'power_analysis': {
+    'testType': 'string',
+    'analysisType': 'string',
+    'inputParameters': 'Record<string, number>',
+    'results': 'Record<string, number>',
+    'recommendations': 'string[]',
+    'powerCurve': 'Array<{ sampleSize: number; power: number }> | undefined',
   },
   'descriptive_stats': {
     'se': 'number',
@@ -484,6 +506,49 @@ const METHOD_TYPE_OVERRIDES = {
     'bootstrapCi': '[number, number]',
     'nBootstrap': 'number',
     'bootstrapWarning': 'string',
+  },
+  // Worker 10 (MolBio) — 복합 반환/입력 타입
+  'translate': {
+    'frames': 'Array<{ frame: number; protein: string; strand: string; startPos: number; codons: number }>',
+    'reverseComplement': 'string',
+    'sequenceLength': 'number',
+    'geneticCodeName': 'string',
+    'startCodons': 'string[]',
+    'stopCodons': 'string[]',
+    'availableTables': 'Array<{ id: number; name: string; startCodons: string[]; stopCodons: string[] }>',
+  },
+  'find_orfs': {
+    'orfs': 'Array<{ strand: string; frame: number; start: number; end: number; lengthBp: number; lengthCodons: number; startCodon: string; stopCodon: string; protein: string }>',
+    'sequenceLength': 'number',
+    'geneticCodeName': 'string',
+    'startCodons': 'string[]',
+    'stopCodons': 'string[]',
+    'minLength': 'number',
+    'totalFound': 'number',
+  },
+  'codon_usage': {
+    'codonCounts': 'Array<{ codon: string; aminoAcid: string; count: number; frequency: number; rscu: number }>',
+    'rscu': 'Record<string, number>',
+    'totalCodons': 'number',
+    'aminoAcidFrequency': 'Record<string, number>',
+    'sequenceLength': 'number',
+    'geneticCodeName': 'string',
+  },
+  'protein_properties': {
+    'molecularWeight': 'number',
+    'isoelectricPoint': 'number',
+    'gravy': 'number',
+    'aromaticity': 'number',
+    'instabilityIndex': 'number',
+    'isStable': 'boolean',
+    'extinctionCoeffReduced': 'number',
+    'extinctionCoeffOxidized': 'number',
+    'aminoAcidComposition': 'Record<string, number>',
+    'aminoAcidPercent': 'Record<string, number>',
+    'secondaryStructureFraction': '{ helix: number; turn: number; sheet: number }',
+    'hydropathyProfile': 'Array<{ position: number; score: number }>',
+    'sequenceLength': 'number',
+    'sequence': 'string',
   },
 }
 
@@ -845,6 +910,23 @@ const METHOD_PARAM_OVERRIDES = {
   'fst': {
     'populations': 'number[][]',
     'populationLabels': 'string[]',
+  },
+  // Worker 10 (MolBio)
+  'translate': {
+    'sequence': 'string',
+    'geneticCode': 'number',
+  },
+  'find_orfs': {
+    'sequence': 'string',
+    'geneticCode': 'number',
+    'minLength': 'number',
+  },
+  'codon_usage': {
+    'sequence': 'string',
+    'geneticCode': 'number',
+  },
+  'protein_properties': {
+    'proteinSeq': 'string',
   },
 }
 

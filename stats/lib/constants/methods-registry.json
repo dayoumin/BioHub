@@ -509,11 +509,13 @@
           "sides?"
         ],
         "returns": [
-          "requiredSampleSize",
-          "achievedPower",
-          "effectSize",
-          "alpha",
-          "interpretation"
+          "testType",
+          "analysisType",
+          "inputParameters",
+          "results",
+          "interpretation",
+          "recommendations",
+          "powerCurve?"
         ],
         "description": "검정력 분석"
       },
@@ -1395,6 +1397,39 @@
           "bootstrapCi?", "nBootstrap?", "bootstrapWarning?"
         ],
         "description": "Fst 집단 분화 지수 — v1: allele count, v2: 개체별 유전자형 (Hudson 1992 + Bhatia 2013)"
+      }
+    }
+  },
+  "worker10": {
+    "name": "molbio",
+    "description": "Molecular Biology (Translation, ORF, Codon Usage, Protein Properties)",
+    "packages": ["biopython"],
+    "methods": {
+      "translate": {
+        "params": ["sequence", "geneticCode?"],
+        "returns": ["frames", "reverseComplement"],
+        "description": "DNA → Protein 6-frame 번역"
+      },
+      "find_orfs": {
+        "params": ["sequence", "geneticCode?", "minLength?"],
+        "returns": ["orfs", "sequenceLength"],
+        "description": "6-frame ORF 탐색"
+      },
+      "codon_usage": {
+        "params": ["sequence", "geneticCode?"],
+        "returns": ["codonCounts", "rscu", "totalCodons", "aminoAcidFrequency"],
+        "description": "코돈 사용 빈도 + RSCU (Relative Synonymous Codon Usage)"
+      },
+      "protein_properties": {
+        "params": ["proteinSeq"],
+        "returns": [
+          "molecularWeight", "isoelectricPoint", "gravy", "aromaticity",
+          "instabilityIndex", "isStable",
+          "extinctionCoeffReduced", "extinctionCoeffOxidized",
+          "aminoAcidComposition", "aminoAcidPercent",
+          "secondaryStructureFraction", "hydropathyProfile"
+        ],
+        "description": "단백질 물리화학적 특성 분석 (ProtParam)"
       }
     }
   }

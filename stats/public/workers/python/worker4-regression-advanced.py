@@ -33,26 +33,22 @@ def linear_regression(x, y):
 
     slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
 
-    # Calculate confidence intervals (95%)
-    df = len(x) - 2
-    t_critical = stats.t.ppf(0.975, df)  # 95% CI
-
-    slope_ci = [
-        float(slope - t_critical * std_err),
-        float(slope + t_critical * std_err)
-    ]
-    intercept_ci = [
-        float(intercept - t_critical * std_err),
-        float(intercept + t_critical * std_err)
-    ]
-
-    # Calculate t-values
-    slope_t = float(slope / std_err) if std_err != 0 else 0
-    intercept_t = float(intercept / std_err) if std_err != 0 else 0
-
-    # Calculate residuals for assumption tests
     x_arr = np.array(x)
     y_arr = np.array(y)
+
+    # std_err from linregress is the slope's SE; intercept SE requires separate calculation
+    se_intercept = std_err * np.sqrt(np.mean(x_arr ** 2)) if std_err != 0 else 0.0
+
+    df = len(x) - 2
+    t_critical = stats.t.ppf(0.975, df)
+
+    slope_ci_lower = float(slope - t_critical * std_err)
+    slope_ci_upper = float(slope + t_critical * std_err)
+    intercept_ci_lower = float(intercept - t_critical * se_intercept)
+    intercept_ci_upper = float(intercept + t_critical * se_intercept)
+
+    slope_t = float(slope / std_err) if std_err != 0 else 0
+    intercept_t = float(intercept / se_intercept) if se_intercept != 0 else 0
     predicted = intercept + slope * x_arr
     residuals = y_arr - predicted
 
@@ -117,16 +113,16 @@ def linear_regression(x, y):
         'pValue': float(p_value),
         'stdErr': float(std_err),
         'nPairs': int(len(x)),
-        'slopeCi': slope_ci,
-        'interceptCi': intercept_ci,
+        'slopeCi': {'lower': slope_ci_lower, 'upper': slope_ci_upper},
+        'interceptCi': {'lower': intercept_ci_lower, 'upper': intercept_ci_upper},
         'slopeTValue': slope_t,
         'interceptTValue': intercept_t,
         'residuals': [float(r) for r in residuals],
         'fittedValues': [float(f) for f in predicted],
         'equation': f"y = {slope:.4f}x + {intercept:.4f}",
         'confidenceInterval': {
-            'slope': [float(slope_ci[0]), float(slope_ci[1])],
-            'intercept': [float(intercept_ci[0]), float(intercept_ci[1])]
+            'lower': [slope_ci_lower, intercept_ci_lower],
+            'upper': [slope_ci_upper, intercept_ci_upper]
         },
         'interpretation': f"The model explains {(r_value**2)*100:.1f}% of variance. Relationship is {'significant' if p_value < 0.05 else 'not significant'} (p = {p_value:.4f})",
         'isSignificant': bool(p_value < 0.05),
@@ -151,19 +147,19 @@ def multiple_regression(X, y):
     X_with_const = sm.add_constant(X_clean)
     model = sm.OLS(y_clean, X_with_const).fit()
 
-    # Calculate confidence intervals (95%)
-    conf_int = model.conf_int(alpha=0.05)  # 95% CI
-    ci_lower = [float(c) for c in conf_int[0]]
-    ci_upper = [float(c) for c in conf_int[1]]
+    # conf_int() returns (n_params, 2): column 0 = lower, column 1 = upper
+    conf_int = model.conf_int(alpha=0.05)
+    ci_lower = [float(c) for c in conf_int[:, 0]]
+    ci_upper = [float(c) for c in conf_int[:, 1]]
 
-    # Calculate VIF (Variance Inflation Factor)
+    # Calculate VIF (skip index 0 = constant column, VIF only for predictors)
     vif_values = []
     try:
-        for i in range(X_with_const.shape[1]):
+        for i in range(1, X_with_const.shape[1]):
             vif = variance_inflation_factor(X_with_const.values, i)
             vif_values.append(float(vif) if not np.isinf(vif) else 999.0)
     except:
-        vif_values = [1.0] * X_with_const.shape[1]  # Fallback
+        vif_values = [1.0] * (X_with_const.shape[1] - 1)  # Fallback
 
     # Get residuals for assumption tests
     residuals = model.resid
@@ -289,10 +285,10 @@ def logistic_regression(X, y):
         ]
         auc = 0.5
 
-    # Confidence Intervals (95%)
+    # conf_int() returns (n_params, 2): column 0 = lower, column 1 = upper
     conf_int = model.conf_int(alpha=0.05)
-    ci_lower = [float(c) for c in conf_int[0]]
-    ci_upper = [float(c) for c in conf_int[1]]
+    ci_lower = [float(c) for c in conf_int[:, 0]]
+    ci_upper = [float(c) for c in conf_int[:, 1]]
 
     return {
         'coefficients': [float(c) for c in model.params],
@@ -501,10 +497,27 @@ def curve_estimation(xValues, yValues, modelType='linear'):
     ss_tot = np.sum((y - np.mean(y)) ** 2)
     r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
 
+    coeff_list = [float(c) for c in coeffs]
+    if modelType == 'linear':
+        equation = f"y = {coeff_list[0]:.4f}x + {coeff_list[1]:.4f}"
+    elif modelType == 'quadratic':
+        equation = f"y = {coeff_list[0]:.4f}x² + {coeff_list[1]:.4f}x + {coeff_list[2]:.4f}"
+    elif modelType == 'cubic':
+        equation = f"y = {coeff_list[0]:.4f}x³ + {coeff_list[1]:.4f}x² + {coeff_list[2]:.4f}x + {coeff_list[3]:.4f}"
+    elif modelType == 'exponential':
+        equation = f"y = {coeff_list[0]:.4f} × e^({coeff_list[1]:.4f}x)"
+    elif modelType == 'logarithmic':
+        equation = f"y = {coeff_list[0]:.4f} × ln(x) + {coeff_list[1]:.4f}"
+    elif modelType == 'power':
+        equation = f"y = {coeff_list[0]:.4f} × x^{coeff_list[1]:.4f}"
+    else:
+        equation = f"{modelType} model"
+
     return {
         'modelType': modelType,
-        'coefficients': [float(c) for c in coeffs],
+        'parameters': coeff_list,
         'rSquared': float(r_squared),
+        'equation': equation,
         'predictions': [float(p) for p in predictions],
         'residuals': [float(r) for r in (y - predictions)],
         'nPairs': int(len(x))
@@ -547,8 +560,9 @@ def nonlinear_regression(xValues, yValues, modelType='exponential', initialGuess
     else:
         raise ValueError(f"Unknown model type: {modelType}")
 
+    p0 = initialGuess if initialGuess is not None else initial_guess
     try:
-        popt, pcov = curve_fit(model_func, x, y, p0=initialGuess)
+        popt, pcov = curve_fit(model_func, x, y, p0=p0)
     except RuntimeError as e:
         raise ValueError(f"Curve fitting failed: {str(e)}")
 
@@ -562,11 +576,26 @@ def nonlinear_regression(xValues, yValues, modelType='exponential', initialGuess
 
     param_errors = np.sqrt(np.diag(pcov))
 
+    params = [float(p) for p in popt]
+    if modelType == 'exponential':
+        equation = f"y = {params[0]:.4f} × e^({params[1]:.4f}x)"
+    elif modelType == 'logistic':
+        equation = f"y = {params[0]:.4f} / (1 + e^(-{params[1]:.4f}(x - {params[2]:.4f})))"
+    elif modelType == 'gompertz':
+        equation = f"y = {params[0]:.4f} × e^(-{params[1]:.4f} × e^(-{params[2]:.4f}x))"
+    elif modelType == 'power':
+        equation = f"y = {params[0]:.4f} × x^{params[1]:.4f}"
+    elif modelType == 'hyperbolic':
+        equation = f"y = ({params[0]:.4f} × x) / ({params[1]:.4f} + x)"
+    else:
+        equation = f"{modelType} model"
+
     return {
         'modelType': modelType,
-        'parameters': [float(p) for p in popt],
+        'parameters': params,
         'parameterErrors': [float(e) for e in param_errors],
         'rSquared': float(r_squared),
+        'equation': equation,
         'predictions': [float(p) for p in predictions],
         'residuals': [float(r) for r in residuals],
         'nPairs': int(len(x))
@@ -665,7 +694,19 @@ def stepwise_regression(yValues, xMatrix, variableNames=None,
             'fPValue': float(final_model.f_pvalue)
         }
     else:
-        return {'selectedVariables': [], 'rSquared': 0.0, 'fStatistic': 0.0, 'fPValue': 1.0}
+        return {
+            'selectedVariables': [],
+            'selectedIndices': [],
+            'rSquaredHistory': [],
+            'coefficients': [],
+            'stdErrors': [],
+            'tValues': [],
+            'pValues': [],
+            'rSquared': 0.0,
+            'adjustedRSquared': 0.0,
+            'fStatistic': 0.0,
+            'fPValue': 1.0,
+        }
 
 
 def binary_logistic(xMatrix, yValues):
@@ -732,15 +773,23 @@ def ordinal_logistic(xMatrix, yValues):
         from scipy.stats import chi2
         llr_pvalue = float(chi2.sf(llr_stat, len(model.params)))
 
+    # OrderedModel params = [regression coefficients..., thresholds...]
+    # (statsmodels convention: coefficients first, thresholds last)
+    # ref: https://www.statsmodels.org/stable/examples/notebooks/generated/ordinal_regression.html
+    n_thresholds = len(np.unique(y)) - 1
+    coefficients = model.params[:-n_thresholds] if n_thresholds > 0 else model.params
+    thresholds = model.params[-n_thresholds:] if n_thresholds > 0 else np.array([])
+
     return {
-        'coefficients': [float(c) for c in model.params],
-        'stdErrors': [float(e) for e in model.bse],
-        'zValues': [float(z) for z in model.tvalues],
-        'pValues': [float(p) for p in model.pvalues],
+        'coefficients': [float(c) for c in coefficients],
+        'stdErrors': [float(e) for e in model.bse[:-n_thresholds]] if n_thresholds > 0 else [float(e) for e in model.bse],
+        'zValues': [float(z) for z in model.tvalues[:-n_thresholds]] if n_thresholds > 0 else [float(z) for z in model.tvalues],
+        'pValues': [float(p) for p in model.pvalues[:-n_thresholds]] if n_thresholds > 0 else [float(p) for p in model.pvalues],
         'aic': float(model.aic),
         'bic': float(model.bic),
         'llrPValue': llr_pvalue,
         'llrStatistic': llr_stat,
+        'thresholds': [float(t) for t in thresholds],
     }
 
 
@@ -791,6 +840,7 @@ def poisson_regression(xMatrix, yValues):
         'bic': float(model.bic),
         'llrPValue': llr_pvalue,
         'llrStatistic': llr_stat,
+        'incidenceRateRatios': [float(v) for v in np.exp(model.params)],
     }
 
 
@@ -800,15 +850,23 @@ def negative_binomial_regression(xMatrix, yValues):
     X = sm.add_constant(np.array(xMatrix))
     y = np.array(yValues)
 
-    model = sm.GLM(y, X, family=sm.families.NegativeBinomial()).fit()
+    # Use discrete NegativeBinomial (estimates alpha via MLE) instead of GLM (fixed alpha=1.0)
+    model = sm.NegativeBinomial(y, X).fit(disp=0)
+
+    # dispersion (alpha): estimated overdispersion parameter from MLE
+    dispersion = float(model.params[-1]) if hasattr(model, 'params') and len(model.params) > X.shape[1] else 1.0
+
+    # Exclude alpha from coefficient arrays (last param is alpha)
+    n_coeff = X.shape[1]
 
     return {
-        'coefficients': [float(c) for c in model.params],
-        'stdErrors': [float(e) for e in model.bse],
-        'zValues': [float(z) for z in model.tvalues],
-        'pValues': [float(p) for p in model.pvalues],
+        'coefficients': [float(c) for c in model.params[:n_coeff]],
+        'stdErrors': [float(e) for e in model.bse[:n_coeff]],
+        'zValues': [float(z) for z in model.tvalues[:n_coeff]],
+        'pValues': [float(p) for p in model.pvalues[:n_coeff]],
         'aic': float(model.aic),
-        'bic': float(model.bic)
+        'bic': float(model.bic),
+        'dispersion': dispersion,
     }
 
 
