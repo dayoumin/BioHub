@@ -18,7 +18,7 @@ import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
 // 타입 정의
 // ═══════════════════════════════════════════════════════════════
 
-export type GeneticsToolType = 'barcoding' | 'blast' | 'genbank' | 'seq-stats' | 'similarity' | 'phylogeny' | 'bold'
+export type GeneticsToolType = 'barcoding' | 'blast' | 'genbank' | 'seq-stats' | 'similarity' | 'phylogeny' | 'bold' | 'translation' | 'protein'
 
 /** 바코딩 히스토리 (기존 필드 유지) */
 export interface BarcodingHistoryEntry {
@@ -139,6 +139,36 @@ export interface BoldHistoryEntry {
   createdAt: number
 }
 
+/** Translation 워크벤치 히스토리 */
+export interface TranslationHistoryEntry {
+  id: string
+  type: 'translation'
+  analysisName: string
+  sequenceLength: number
+  geneticCode: number
+  geneticCodeName: string
+  analysisMode: 'translate' | 'orf' | 'codon'
+  orfCount?: number
+  pinned?: boolean
+  projectId?: string
+  createdAt: number
+}
+
+/** Protein Properties 히스토리 */
+export interface ProteinHistoryEntry {
+  id: string
+  type: 'protein'
+  analysisName: string
+  sequenceLength: number
+  molecularWeight: number
+  isoelectricPoint: number
+  isStable: boolean
+  accession?: string
+  pinned?: boolean
+  projectId?: string
+  createdAt: number
+}
+
 export type GeneticsHistoryEntry =
   | BarcodingHistoryEntry
   | BlastSearchHistoryEntry
@@ -147,6 +177,8 @@ export type GeneticsHistoryEntry =
   | SimilarityHistoryEntry
   | PhylogenyHistoryEntry
   | BoldHistoryEntry
+  | TranslationHistoryEntry
+  | ProteinHistoryEntry
 
 /** @deprecated GeneticsHistoryEntry 사용 */
 export type AnalysisHistoryEntry = BarcodingHistoryEntry
@@ -166,6 +198,8 @@ const MAX_PER_TYPE: Record<GeneticsToolType, number> = {
   similarity: 15,
   phylogeny: 15,
   bold: 15,
+  translation: 15,
+  protein: 15,
 }
 
 /** 히스토리에 저장할 서열 최대 길이 — localStorage quota 보호 (15개 × 2000 = 30KB) */
@@ -181,6 +215,8 @@ function entityKindForType(type: GeneticsToolType): ProjectEntityKind {
     case 'similarity': return 'similarity-result'
     case 'phylogeny': return 'phylogeny-result'
     case 'bold': return 'bold-result'
+    case 'translation': return 'translation-result'
+    case 'protein': return 'protein-result'
     default: return 'blast-result' // barcoding, blast
   }
 }
@@ -304,6 +340,36 @@ function normalizeEntry(item: unknown): GeneticsHistoryEntry | null {
         topSimilarity: (obj.topSimilarity ?? null) as number | null,
         topBin: (obj.topBin ?? null) as string | null,
         hitCount: (obj.hitCount ?? 0) as number,
+        pinned: obj.pinned as boolean | undefined,
+        projectId: obj.projectId as string | undefined,
+        createdAt: obj.createdAt as number,
+      }
+
+    case 'translation':
+      return {
+        id: obj.id as string,
+        type: 'translation',
+        analysisName: (obj.analysisName ?? '') as string,
+        sequenceLength: (obj.sequenceLength ?? 0) as number,
+        geneticCode: (obj.geneticCode ?? 1) as number,
+        geneticCodeName: (obj.geneticCodeName ?? 'Standard') as string,
+        analysisMode: (obj.analysisMode ?? 'translate') as 'translate' | 'orf' | 'codon',
+        orfCount: obj.orfCount as number | undefined,
+        pinned: obj.pinned as boolean | undefined,
+        projectId: obj.projectId as string | undefined,
+        createdAt: obj.createdAt as number,
+      }
+
+    case 'protein':
+      return {
+        id: obj.id as string,
+        type: 'protein',
+        analysisName: (obj.analysisName ?? '') as string,
+        sequenceLength: (obj.sequenceLength ?? 0) as number,
+        molecularWeight: (obj.molecularWeight ?? 0) as number,
+        isoelectricPoint: (obj.isoelectricPoint ?? 0) as number,
+        isStable: (obj.isStable ?? true) as boolean,
+        accession: obj.accession as string | undefined,
         pinned: obj.pinned as boolean | undefined,
         projectId: obj.projectId as string | undefined,
         createdAt: obj.createdAt as number,
@@ -479,6 +545,8 @@ export type SaveGeneticsHistoryInput =
   | Omit<SimilarityHistoryEntry, 'id' | 'createdAt'>
   | Omit<PhylogenyHistoryEntry, 'id' | 'createdAt'>
   | Omit<BoldHistoryEntry, 'id' | 'createdAt'>
+  | Omit<TranslationHistoryEntry, 'id' | 'createdAt'>
+  | Omit<ProteinHistoryEntry, 'id' | 'createdAt'>
 
 /** 범용 히스토리 저장 — type별 MAX 적용 */
 export function saveGeneticsHistory(entry: SaveGeneticsHistoryInput): boolean {

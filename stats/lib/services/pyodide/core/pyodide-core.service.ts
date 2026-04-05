@@ -200,6 +200,7 @@ export const WORKER_EXTRA_PACKAGES = Object.freeze<Record<WorkerNumber, readonly
   7: [],
   8: ['scikit-learn'],
   9: [],
+  10: ['biopython'],
 })
 
 // ========================================
@@ -576,6 +577,13 @@ export class PyodideCoreService {
     return this.ensureWorkerLoaded(4)
   }
 
+  /**
+   * Worker 10 (MolBio) 로드
+   */
+  async ensureWorker10Loaded(): Promise<void> {
+    return this.ensureWorkerLoaded(10)
+  }
+
   // ========================================
   // Public API - Helper 함수
   // ========================================
@@ -767,7 +775,8 @@ json.dumps(result)
       6: 'worker6-matplotlib',
       7: 'worker7-fisheries',
       8: 'worker8-ecology',
-      9: 'worker9-genetics'
+      9: 'worker9-genetics',
+      10: 'worker10-molbio'
     }
     const name = fileNames[workerNumber];
     if (!name) {

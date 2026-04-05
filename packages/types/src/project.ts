@@ -30,6 +30,8 @@ export type ProjectEntityKind =
   | 'similarity-result'
   | 'phylogeny-result'
   | 'bold-result'
+  | 'translation-result'
+  | 'protein-result'
 
 export interface ProjectPaperConfig {
   title?: string

@@ -144,9 +144,12 @@ describe('Methods Registry', () => {
       expect(stats.methodsByWorker[7]).toBe(3)   // fisheries: 3 methods
       expect(stats.methodsByWorker[8]).toBe(6)   // ecology: 6 methods
 
+      // Worker 10 검증
+      expect(stats.methodsByWorker[10]).toBe(4)  // molbio: 4 methods
+
       // 합계 검증
       let sum = 0
-      for (const num of [1, 2, 3, 4, 5, 6, 7, 8, 9] as const) {
+      for (const num of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const) {
         sum += stats.methodsByWorker[num] ?? 0
       }
       expect(sum).toBe(stats.totalMethods)
@@ -155,7 +158,7 @@ describe('Methods Registry', () => {
 
   describe('레지스트리 구조 검증', () => {
     it('모든 Worker가 필수 필드를 가져야 함', () => {
-      for (const workerKey of ['worker1', 'worker2', 'worker3', 'worker4', 'worker5', 'worker6', 'worker7', 'worker8'] as const) {
+      for (const workerKey of ['worker1', 'worker2', 'worker3', 'worker4', 'worker5', 'worker6', 'worker7', 'worker8', 'worker9', 'worker10'] as const) {
         const worker = methodsRegistry[workerKey]
         expect(worker.name).toBeDefined()
         expect(worker.description).toBeDefined()
@@ -221,7 +224,7 @@ describe('Methods Registry', () => {
       expect(methodsRegistry).toHaveProperty('worker8')
 
       // 각 Worker 구조 확인
-      for (const workerKey of ['worker1', 'worker2', 'worker3', 'worker4', 'worker5', 'worker6', 'worker7', 'worker8'] as const) {
+      for (const workerKey of ['worker1', 'worker2', 'worker3', 'worker4', 'worker5', 'worker6', 'worker7', 'worker8', 'worker9', 'worker10'] as const) {
         const worker = methodsRegistry[workerKey]
         expect(worker).toHaveProperty('name')
         expect(worker).toHaveProperty('description')

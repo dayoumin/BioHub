@@ -16,12 +16,12 @@ import methodsRegistry from './methods-registry.json'
 /**
  * Worker 번호 타입
  */
-export type WorkerNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+export type WorkerNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10
 
 /**
  * Worker 키 타입
  */
-export type WorkerKey = 'worker1' | 'worker2' | 'worker3' | 'worker4' | 'worker5' | 'worker6' | 'worker7' | 'worker8' | 'worker9'
+export type WorkerKey = 'worker1' | 'worker2' | 'worker3' | 'worker4' | 'worker5' | 'worker6' | 'worker7' | 'worker8' | 'worker9' | 'worker10'
 
 /**
  * Worker 번호 → 키 매핑
@@ -36,6 +36,7 @@ export const WORKER_NUM_TO_KEY: Record<WorkerNumber, WorkerKey> = {
   7: 'worker7',
   8: 'worker8',
   9: 'worker9',
+  10: 'worker10',
 }
 
 /**
@@ -51,10 +52,11 @@ export const WORKER_KEY_TO_NUM: Record<WorkerKey, WorkerNumber> = {
   worker7: 7,
   worker8: 8,
   worker9: 9,
+  worker10: 10,
 }
 
 /** 모든 Worker 번호 (루프용) */
-const ALL_WORKER_NUMS: readonly WorkerNumber[] = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const
+const ALL_WORKER_NUMS: readonly WorkerNumber[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const
 
 // ========================================
 // 레지스트리 타입 추출
@@ -116,6 +118,7 @@ export type Worker6Method = keyof typeof methodsRegistry.worker6.methods
 export type Worker7Method = keyof typeof methodsRegistry.worker7.methods
 export type Worker8Method = keyof typeof methodsRegistry.worker8.methods
 export type Worker9Method = keyof typeof methodsRegistry.worker9.methods
+export type Worker10Method = keyof typeof methodsRegistry.worker10.methods
 
 /**
  * 모든 메서드 이름 (Union)
@@ -130,6 +133,7 @@ export type AllMethodNames =
   | Worker7Method
   | Worker8Method
   | Worker9Method
+  | Worker10Method
 
 // ========================================
 // 유틸리티 함수

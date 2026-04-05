@@ -110,7 +110,16 @@ export enum PyodideWorker {
    * - hardy_weinberg (Hardy-Weinberg 평형 검정)
    * - fst (집단 간 유전적 분화 지수)
    */
-  Genetics = 9
+  Genetics = 9,
+
+  /**
+   * Worker 10: 분자생물학 (Molecular Biology)
+   * - translate (DNA → Protein 6-frame 번역)
+   * - find_orfs (ORF 탐색)
+   * - codon_usage (코돈 사용 빈도 + RSCU)
+   * - protein_properties (ProtParam 물리화학적 특성)
+   */
+  MolBio = 10
 }
 
 /**
@@ -127,7 +136,8 @@ export const WORKER_PACKAGES = Object.freeze({
   [PyodideWorker.Matplotlib]: ['matplotlib', 'micropip'] as const,
   [PyodideWorker.Fisheries]: [] as const,
   [PyodideWorker.Ecology]: ['scikit-learn'] as const,
-  [PyodideWorker.Genetics]: [] as const
+  [PyodideWorker.Genetics]: [] as const,
+  [PyodideWorker.MolBio]: ['biopython'] as const
 } as const)
 
 /**
@@ -142,5 +152,6 @@ export const WORKER_FILE_PATHS = Object.freeze({
   [PyodideWorker.Matplotlib]: '/workers/python/worker6-matplotlib.py',
   [PyodideWorker.Fisheries]: '/workers/python/worker7-fisheries.py',
   [PyodideWorker.Ecology]: '/workers/python/worker8-ecology.py',
-  [PyodideWorker.Genetics]: '/workers/python/worker9-genetics.py'
+  [PyodideWorker.Genetics]: '/workers/python/worker9-genetics.py',
+  [PyodideWorker.MolBio]: '/workers/python/worker10-molbio.py'
 } as const)

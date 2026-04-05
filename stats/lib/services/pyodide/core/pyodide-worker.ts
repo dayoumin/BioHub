@@ -94,7 +94,8 @@ const WORKER_FILE_NAMES: Record<number, string> = {
   6: 'worker6-matplotlib',
   7: 'worker7-fisheries',
   8: 'worker8-ecology',
-  9: 'worker9-genetics'
+  9: 'worker9-genetics',
+  10: 'worker10-molbio'
 }
 
 // ============================================================================
@@ -171,7 +172,8 @@ function getAdditionalPackages(workerNum: number): string[] {
     6: ['matplotlib', 'micropip'], // worker6-matplotlib.py (논문용 export, SciencePlots)
     7: [], // worker7-fisheries.py (수산학)
     8: ['scikit-learn'], // worker8-ecology.py (군집생태, NMDS용)
-    9: [] // worker9-genetics.py (유전학)
+    9: [], // worker9-genetics.py (유전학)
+    10: ['biopython'] // worker10-molbio.py (분자생물학)
   }
 
   return packageMap[workerNum] || []

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Dna, Search, Database, BarChart3, Grid3X3, GitFork, ChevronLeft, Fingerprint } from 'lucide-react'
+import { Dna, Search, Database, BarChart3, Grid3X3, GitFork, ChevronLeft, Fingerprint, FlaskConical, Atom } from 'lucide-react'
 
 const TOOLS = [
   { id: 'barcoding', title: 'DNA 바코딩 종 판별', href: '/genetics/barcoding', icon: Dna },
@@ -12,6 +12,8 @@ const TOOLS = [
   { id: 'similarity', title: '다종 유사도 행렬', href: '/genetics/similarity', icon: Grid3X3 },
   { id: 'phylogeny', title: '계통수 시각화', href: '/genetics/phylogeny', icon: GitFork },
   { id: 'bold-id', title: 'BOLD 종 동정', href: '/genetics/bold-id', icon: Fingerprint },
+  { id: 'translation', title: 'Translation 워크벤치', href: '/genetics/translation', icon: FlaskConical },
+  { id: 'protein', title: '단백질 특성 분석', href: '/genetics/protein', icon: Atom },
 ]
 
 export function GeneticsSubNav() {

@@ -9,15 +9,26 @@ import { SESSION_STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
 const STORAGE_KEY = SESSION_STORAGE_KEYS.genetics.sequenceTransfer
 
-interface TransferPayload {
+export interface TransferPayload {
   sequence: string
   source: string
+  sequenceType?: 'DNA' | 'protein'
+  accession?: string
 }
 
 /** 서열을 sessionStorage에 저장한다. */
-export function storeSequenceForTransfer(sequence: string, source: string): void {
+export function storeSequenceForTransfer(
+  sequence: string,
+  source: string,
+  options?: { sequenceType?: 'DNA' | 'protein'; accession?: string }
+): void {
   try {
-    const payload: TransferPayload = { sequence, source }
+    const payload: TransferPayload = {
+      sequence,
+      source,
+      ...(options?.sequenceType && { sequenceType: options.sequenceType }),
+      ...(options?.accession && { accession: options.accession }),
+    }
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
   } catch {
     // storage quota 초과 등 — 무시 (전달 실패해도 치명적이지 않음)
@@ -51,6 +62,8 @@ const SOURCE_LABELS: Record<string, string> = {
   genbank: 'GenBank',
   barcoding: '바코딩',
   blast: 'BLAST',
+  translation: 'Translation',
+  protein: 'Protein',
 }
 
 /** 전달 출처명을 한글 표시용으로 변환 */

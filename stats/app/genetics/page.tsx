@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Dna, BarChart3, Grid3X3, GitFork, ArrowRight, HelpCircle, FileText, FlaskConical, Search, Database, Fingerprint } from 'lucide-react'
+import { Dna, BarChart3, Grid3X3, GitFork, ArrowRight, HelpCircle, FileText, FlaskConical, Search, Database, Fingerprint, Atom } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { getBioToolById } from '@/lib/bio-tools/bio-tool-registry'
 import { Button } from '@/components/ui/button'
@@ -95,6 +95,29 @@ const TOOLS: Tool[] = [
   },
 ]
 
+const MOLBIO_TOOLS: Tool[] = [
+  {
+    id: 'translation',
+    title: 'Translation 워크벤치',
+    description: 'DNA → 단백질 번역 + ORF 탐색 + 코돈 사용 빈도 분석',
+    input: 'DNA 서열 (FASTA)',
+    href: '/genetics/translation',
+    ready: true,
+    badge: '사용 가능',
+    icon: FlaskConical,
+  },
+  {
+    id: 'protein',
+    title: '단백질 특성 분석',
+    description: '분자량, 등전점, 소수성, 안정성 등 물리화학적 특성',
+    input: '단백질 서열',
+    href: '/genetics/protein',
+    ready: true,
+    badge: '사용 가능',
+    icon: Atom,
+  },
+]
+
 const WORKFLOW_STEPS = [
   { label: '서열 확보', icon: FileText },
   { label: '품질 확인', icon: BarChart3 },
@@ -103,7 +126,7 @@ const WORKFLOW_STEPS = [
 ]
 
 const READY_TOOLS = TOOLS.filter(t => t.ready)
-const PENDING_TOOLS = TOOLS.filter(t => !t.ready)
+const PENDING_TOOLS = [...TOOLS, ...MOLBIO_TOOLS].filter(t => !t.ready)
 
 // ── 페이지 ──
 
@@ -165,6 +188,8 @@ export default function GeneticsHome() {
                     <GuideRow icon={Grid3X3} question="종 간 유전적 거리를 비교하고 싶어요" answer="다종 유사도 행렬" />
                     <GuideRow icon={GitFork} question="진화적 관계를 시각화하고 싶어요" answer="계통수 시각화" />
                     <GuideRow icon={Fingerprint} question="BOLD 라이브러리로 종을 동정하고 싶어요" answer="BOLD ID 종 동정" />
+                    <GuideRow icon={FlaskConical} question="DNA 서열을 단백질로 번역하고 싶어요" answer="Translation 워크벤치" />
+                    <GuideRow icon={Atom} question="단백질의 물리화학적 특성을 알고 싶어요" answer="단백질 특성 분석" />
                     <GuideRow icon={Dna} question="집단 간 유전적 차이를 분석하고 싶어요" answer="Bio-Tools → HW 검정 / Fst" />
                   </div>
                 </div>
@@ -202,11 +227,24 @@ export default function GeneticsHome() {
         </div>
       </div>
 
-      {/* 활성 도구 — 그리드 */}
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {READY_TOOLS.map((tool) => (
-          <ReadyCard key={tool.id} tool={tool} />
-        ))}
+      {/* 서열 분석 도구 */}
+      <div className="mb-3">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">서열 분석 도구</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {READY_TOOLS.map((tool) => (
+            <ReadyCard key={tool.id} tool={tool} />
+          ))}
+        </div>
+      </div>
+
+      {/* 분자생물학 도구 */}
+      <div className="mb-6">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">분자생물학 도구</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {MOLBIO_TOOLS.map((tool) => (
+            <ReadyCard key={tool.id} tool={tool} />
+          ))}
+        </div>
       </div>
 
       {/* 처음 사용자 안내 */}

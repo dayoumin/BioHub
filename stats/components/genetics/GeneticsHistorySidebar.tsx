@@ -40,6 +40,8 @@ const FILTER_OPTIONS: { value: ToolFilter; label: string }[] = [
   { value: 'similarity', label: '유사도행렬' },
   { value: 'phylogeny', label: '계통수' },
   { value: 'bold', label: 'BOLD' },
+  { value: 'translation', label: 'Translation' },
+  { value: 'protein', label: '단백질' },
 ]
 
 const TYPE_DOT_COLOR: Record<GeneticsToolType, string> = {
@@ -50,6 +52,8 @@ const TYPE_DOT_COLOR: Record<GeneticsToolType, string> = {
   similarity: 'bg-cyan-500',
   phylogeny: 'bg-teal-500',
   bold: 'bg-emerald-500',
+  translation: 'bg-orange-500',
+  protein: 'bg-rose-500',
 }
 
 // ── 텍스트 검색 ──
@@ -71,6 +75,10 @@ function getSearchableTexts(entry: GeneticsHistoryEntry): string[] {
       return [...common, entry.analysisName, entry.treeMethod, entry.distanceModel]
     case 'bold':
       return [...common, entry.sampleName, entry.db, entry.sequencePreview, entry.topSpecies ?? '', entry.topBin ?? '']
+    case 'translation':
+      return [...common, entry.analysisName, entry.geneticCodeName, entry.analysisMode]
+    case 'protein':
+      return [...common, entry.analysisName, entry.accession ?? '']
   }
 }
 
@@ -136,6 +144,8 @@ export function GeneticsHistorySidebar(): ReactNode {
         similarity: '/genetics/similarity',
         phylogeny: '/genetics/phylogeny',
         bold: '/genetics/bold-id',
+        translation: '/genetics/translation',
+        protein: '/genetics/protein',
       }
       const base = typePath[item.data.type]
       const href = `${base}?history=${encodedId}`

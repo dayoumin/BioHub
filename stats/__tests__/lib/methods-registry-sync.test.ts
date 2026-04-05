@@ -32,6 +32,7 @@ const WORKER_FILES: Partial<Record<WorkerNumber, string>> = {
   7: 'worker7-fisheries.py',
   8: 'worker8-ecology.py',
   9: 'worker9-genetics.py',
+  10: 'worker10-molbio.py',
 }
 
 /**
@@ -212,7 +213,7 @@ describe('Methods Registry SSOT 검증', () => {
 
   describe('레지스트리 무결성 검증', () => {
     it('모든 Worker가 최소 1개 이상의 메서드를 가져야 함', () => {
-      for (const workerNum of [1, 2, 3, 4, 5, 6, 7, 8, 9] as WorkerNumber[]) {
+      for (const workerNum of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as WorkerNumber[]) {
         const methods = getWorkerMethods(workerNum)
         expect(methods.length).toBeGreaterThanOrEqual(1)
       }

@@ -7,7 +7,7 @@
 
 import type { HistoryItem, HistoryBadge } from '@/types/history'
 import type { AnalysisHistory } from '@/lib/stores/history-store'
-import type { GeneticsHistoryEntry, BarcodingHistoryEntry, BlastSearchHistoryEntry, GenBankHistoryEntry, SeqStatsHistoryEntry, SimilarityHistoryEntry, PhylogenyHistoryEntry, BoldHistoryEntry } from '@/lib/genetics/analysis-history'
+import type { GeneticsHistoryEntry, BarcodingHistoryEntry, BlastSearchHistoryEntry, GenBankHistoryEntry, SeqStatsHistoryEntry, SimilarityHistoryEntry, PhylogenyHistoryEntry, BoldHistoryEntry, TranslationHistoryEntry, ProteinHistoryEntry } from '@/lib/genetics/analysis-history'
 import type { BioToolHistoryEntry } from '@/lib/bio-tools/bio-tool-history'
 
 // ── 통계 분석 어댑터 ──
@@ -143,6 +143,8 @@ export function toGeneticsHistoryItem(
     case 'similarity': return toSimilarityItem(entry)
     case 'phylogeny': return toPhylogenyItem(entry)
     case 'bold': return toBoldItem(entry)
+    case 'translation': return toTranslationItem(entry)
+    case 'protein': return toProteinItem(entry)
   }
 }
 
@@ -199,6 +201,43 @@ function toBoldItem(entry: BoldHistoryEntry): HistoryItem<GeneticsHistoryEntry> 
     pinned: entry.pinned ?? false,
     createdAt: entry.createdAt,
     hasResult: entry.hitCount > 0,
+    data: entry,
+  }
+}
+
+function toTranslationItem(entry: TranslationHistoryEntry): HistoryItem<GeneticsHistoryEntry> {
+  const modeLabels: Record<string, string> = { translate: '번역', orf: 'ORF', codon: '코돈' }
+  const badges: HistoryBadge[] = [
+    { label: '', value: modeLabels[entry.analysisMode] ?? entry.analysisMode, variant: 'default' },
+    { label: '', value: entry.geneticCodeName, variant: 'muted' },
+  ]
+  if (entry.orfCount != null) {
+    badges.push({ label: 'ORF', value: `${entry.orfCount}`, variant: 'mono' })
+  }
+  return {
+    id: entry.id,
+    title: entry.analysisName || `${entry.sequenceLength} bp`,
+    badges,
+    pinned: entry.pinned ?? false,
+    createdAt: entry.createdAt,
+    hasResult: true,
+    data: entry,
+  }
+}
+
+function toProteinItem(entry: ProteinHistoryEntry): HistoryItem<GeneticsHistoryEntry> {
+  const badges: HistoryBadge[] = [
+    { label: 'MW', value: `${(entry.molecularWeight / 1000).toFixed(1)} kDa`, variant: 'mono' },
+    { label: 'pI', value: `${entry.isoelectricPoint.toFixed(2)}`, variant: 'mono' },
+    { label: '', value: entry.isStable ? '안정' : '불안정', variant: entry.isStable ? 'default' : 'muted' },
+  ]
+  return {
+    id: entry.id,
+    title: entry.analysisName || `${entry.sequenceLength} aa`,
+    badges,
+    pinned: entry.pinned ?? false,
+    createdAt: entry.createdAt,
+    hasResult: true,
     data: entry,
   }
 }
