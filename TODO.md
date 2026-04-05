@@ -59,10 +59,9 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 
 ### 3-A-1. 유전적 분석 확장 (분자생물학 도구 + UniProt)
 
-- `[domain]` BioPython 분자생물학 도구 3종 — 상세: [docs/genetics/plans/biopython-tools.md](docs/genetics/plans/biopython-tools.md)
-  - Codon Usage Analysis + DNA→Protein Translation
-  - ORF Finder (Open Reading Frame 탐색)
-  - Protein Properties (ProtParam: MW, pI, GRAVY, 아미노산 조성)
+- `[domain]` BioPython 분자생물학 도구 2페이지 — 상세: [docs/genetics/plans/biopython-tools.md](docs/genetics/plans/biopython-tools.md)
+  - `/genetics/translation` — DNA→Protein 워크벤치 (번역 + ORF + 코돈 분석 탭)
+  - `/genetics/protein` — 단백질 특성 분석 (ProtParam + 향후 UniProt)
 - `[domain]` UniProt 연동 — 번역된 단백질 → 기능 주석 조회. CORS 지원→브라우저 직접 호출 가능. 상세: [docs/databases/uniprot.md](docs/databases/uniprot.md)
 - `[quality]` 제네릭 `useApiExecution` 훅 추출 — `useBoldExecution`과 `useBlastExecution`이 ~80% 동일. 세 번째 폴링 API 추가 시 통합
 - `[quality]` BoldResultView similarity 색상 dark mode
@@ -189,6 +188,14 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - `[export]` 분야별 프롬프트 템플릿 — 생태학/유전학/수산학 + 저널 스타일
 - `[export]` Publication-ready 그래프 export — TIFF 300dpi, SVG, APA 스타일
 - `[export]` 분석 버전/히스토리 비교 — Reviewer 코멘트 대응
+
+### AI Export Pipeline — IP 보호 (구현 완료 후 착수)
+
+- `[export]` Pipeline 코드 분리 — public repo에서 제외, private repo/package로 관리
+- `[export]` 출력물 메타데이터 sanitize — export 마지막 단계에서 AI/도구 관련 EXIF·문서 속성·주석 제거
+- `[export]` 라이선스 이중화 검토 — BioHub 본체와 Pipeline 부분 라이선스 분리
+- `[export]` 방법론 노트 선출판 — AI-assisted research workflow를 brief communication으로 발표하여 우선권 확보
+- **착수 시점**: AI Export Pipeline 구현 완료 + 실제 논문 1편 적용 후
 
 ---
 
