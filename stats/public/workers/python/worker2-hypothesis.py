@@ -1849,13 +1849,14 @@ def ordinal_regression(
         'iterations': int(result.mle_retvals.get('iterations', 0))
     }
 
-    # Coefficients (excluding thresholds)
+    # Coefficients (first in params) — OrderedModel: [coefficients..., thresholds...]
+    # ref: https://www.statsmodels.org/stable/examples/notebooks/generated/ordinal_regression.html
     n_thresholds = n_categories - 1
-    coef_names = result.params.index[n_thresholds:].tolist()
-    coef_values = result.params.values[n_thresholds:]
-    std_errors = result.bse.values[n_thresholds:]
-    z_values = result.tvalues.values[n_thresholds:]
-    p_values = result.pvalues.values[n_thresholds:]
+    coef_names = result.params.index[:-n_thresholds].tolist() if n_thresholds > 0 else result.params.index.tolist()
+    coef_values = result.params.values[:-n_thresholds] if n_thresholds > 0 else result.params.values
+    std_errors = result.bse.values[:-n_thresholds] if n_thresholds > 0 else result.bse.values
+    z_values = result.tvalues.values[:-n_thresholds] if n_thresholds > 0 else result.tvalues.values
+    p_values = result.pvalues.values[:-n_thresholds] if n_thresholds > 0 else result.pvalues.values
 
     coefficients = []
     for i, var in enumerate(coef_names):
@@ -1865,7 +1866,7 @@ def ordinal_regression(
         p = float(p_values[i])
 
         # Confidence interval
-        ci = result.conf_int().iloc[n_thresholds + i]
+        ci = result.conf_int().iloc[i]
         ci_lower = float(ci[0])
         ci_upper = float(ci[1])
 
@@ -1887,16 +1888,18 @@ def ordinal_regression(
             'orCiUpper': or_ci_upper
         })
 
-    # Thresholds
-    threshold_names = result.params.index[:n_thresholds].tolist()
-    threshold_values = result.params.values[:n_thresholds]
-    threshold_std_errors = result.bse.values[:n_thresholds]
-    threshold_z_values = result.tvalues.values[:n_thresholds]
-    threshold_p_values = result.pvalues.values[:n_thresholds]
+    # Thresholds (last in params)
+    threshold_names = result.params.index[-n_thresholds:].tolist() if n_thresholds > 0 else []
+    threshold_values = result.params.values[-n_thresholds:] if n_thresholds > 0 else np.array([])
+    threshold_std_errors = result.bse.values[-n_thresholds:] if n_thresholds > 0 else np.array([])
+    threshold_z_values = result.tvalues.values[-n_thresholds:] if n_thresholds > 0 else np.array([])
+    threshold_p_values = result.pvalues.values[-n_thresholds:] if n_thresholds > 0 else np.array([])
 
+
+    n_coeff = len(coef_names)
     thresholds = []
     for i in range(n_thresholds):
-        ci = result.conf_int().iloc[i]
+        ci = result.conf_int().iloc[n_coeff + i]
         thresholds.append({
             'threshold': threshold_names[i],
             'coefficient': float(threshold_values[i]),
