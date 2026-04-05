@@ -22,24 +22,50 @@ BioPython 순수 Python 모듈을 활용하여 서열 분석 워크플로우에 
 
 ## Pyodide 호환성
 
-- BioPython은 `py3-none-any` wheel → `micropip.install('biopython')`으로 설치 가능
+- BioPython은 **C 확장 포함** (cpairwise2, codonaligner 등) → PyPI의 `py3-none-any` wheel 없음
+- **Pyodide 사전 빌드 패키지로 존재** (PR #696, 2020년 병합) → `loadPackage('biopython')` 사용
 - 사용 모듈: `Bio.Seq`, `Bio.SeqUtils`, `Bio.SeqUtils.CodonUsage`, `Bio.SeqUtils.ProtParam`
-- 모두 순수 Python (C 확장 없음)
-- **첫 로드 시 다운로드** 필요 → lazy load 패턴 적용
+- 우리가 쓰는 모듈은 순수 Python — C 확장 모듈(cpairwise2 등)은 사용하지 않음
+
+### 로드 방식
+
+기존 Worker 패턴과 동일: `WORKER_PACKAGES`에 선언 → Worker 코드 실행 전 자동 로드.
+
+```typescript
+// pyodide-worker.enum.ts
+[PyodideWorker.MolBio]: ['biopython'] as const
+```
+
+Pyodide 런타임은 **싱글턴** — 모든 Worker가 같은 Python 환경 공유.
+Worker 10 첫 사용 시 BioPython 1회 로드(~3MB), 이후 세션 내 즉시 실행.
+통계 → 유전 전환 시 **언로딩/리로딩 없음** (기존 Worker도 메모리에 유지).
 
 ### 호환성 검증 (구현 Step 1)
 
-구현 착수 시 Pyodide에서 아래 코드가 동작하는지 먼저 확인:
+구현 착수 시 Pyodide에서 **실제 함수 호출**까지 동작 확인:
 
 ```python
-import micropip
-await micropip.install('biopython')
+# 1. import 확인
 from Bio.Seq import Seq
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from Bio.SeqUtils.CodonUsage import CodonAdaptationIndex
+
+# 2. 번역 동작 확인
+seq = Seq("ATGGCCATTGTAATGGGCCGCTGAAAGGGTGCCCGATAG")
+protein = seq.translate()
+assert str(protein) == "MAIVMGR*KGAR*"
+
+# 3. ProtParam 동작 확인
+pa = ProteinAnalysis("MAIVMGRKGAR")
+mw = pa.molecular_weight()
+pi = pa.isoelectric_point()
+assert mw > 0 and pi > 0
 ```
 
-**실패 시 대안**: BioPython 없이 순수 Python 구현. codon table은 정적 dict, 번역/ORF는 단순 문자열 처리, ProtParam 공식은 공개되어 있음 (ExPASy 참조).
+**실패 시 대안**: BioPython 없이 순수 Python 구현.
+- codon table: NCBI genetic code table을 정적 dict로 하드코딩
+- 번역/ORF: 문자열 처리 (triplet → amino acid 매핑)
+- ProtParam: ExPASy 공식 기반 직접 구현 (MW/pI/GRAVY 공식 공개됨)
 
 ---
 
@@ -179,15 +205,15 @@ Worker 10 신설 (`PyodideWorker.MolBio = 10`).
 
 ```
 Worker 10 (MolBio)
-├── packages: [] (런타임에 micropip lazy load)
+├── packages: ['biopython'] (WORKER_PACKAGES 선언, 첫 호출 시 자동 로드 ~3MB)
 ├── translate(sequence, geneticCode)          → 6-frame 번역
 ├── find_orfs(sequence, minLength, table)      → ORF 목록
 ├── codon_usage(sequence, geneticCode)         → 빈도 + RSCU
 └── protein_properties(proteinSeq)             → ProtParam 결과
 ```
 
-**lazy load**: BioPython wheel ~5MB, Worker 10 첫 호출 시 1회만 다운로드.
-기존 Worker 9(distance/HW/Fst)에 영향 없음.
+Pyodide 싱글턴 런타임 — Worker 10 첫 호출 시 BioPython 1회 로드(~3MB).
+이후 세션 내 즉시 실행. 기존 Worker 9(distance/HW/Fst)에 영향 없음.
 
 ### 도구 간 연결
 
@@ -198,7 +224,10 @@ GenBank → 서열 획득
   → similarity / phylogeny (비교 분석)
 ```
 
-기존 `sequence-transfer.ts` 확장 — 단백질 서열 전달 지원 추가.
+기존 `sequence-transfer.ts` 확장:
+- `TransferPayload`에 `sequenceType: 'DNA' | 'protein'` 필드 추가
+- Translation/ORF → Protein 전달 시 단백질 서열 + `sequenceType: 'protein'` 저장
+- Protein 페이지 mount 시 전달된 서열 확인 + 타입에 따라 입력 모드 자동 전환
 
 ### 히스토리
 
@@ -235,7 +264,7 @@ genetics 랜딩(`/genetics/page.tsx`) TOOLS 배열을 2그룹으로 분리:
 
 | 항목 | 변경 |
 |------|------|
-| 신규 Python 패키지 | `biopython` (micropip, ~5MB, lazy load) |
+| 신규 Python 패키지 | `biopython` (Pyodide 사전 빌드, ~3MB, WORKER_PACKAGES 선언) |
 | 신규 JS 라이브러리 | 없음 |
 | Worker | Worker 10 신설 (`PyodideWorker.MolBio = 10`) |
 | 히스토리 | `GeneticsToolType`에 `'translation'`, `'protein'` 추가 |
