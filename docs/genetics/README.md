@@ -73,6 +73,8 @@
 - [ ] Codon Usage Analysis + DNA→Protein Translation — [plans/biopython-tools.md](plans/biopython-tools.md)
 - [ ] ORF Finder (Open Reading Frame 탐색)
 - [ ] Protein Properties (ProtParam: MW, pI, GRAVY, 아미노산 조성)
+- [ ] UniProt 연동 — 번역된 단백질 → 기능 주석 조회 (CORS 지원→브라우저 직접 호출). 상세: [../../docs/databases/uniprot.md](../../docs/databases/uniprot.md)
+- [ ] genetics 랜딩 페이지 "서열 분석 도구" / "분자생물학 도구" 카드 그룹 분리
 
 ### 외부 연동 / 고급 기능
 

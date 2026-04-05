@@ -427,6 +427,7 @@ Do not prioritize now:
 - generic AI writing features without domain leverage
 - isolated chatbot features without project continuity
 - broad research ideation before provenance and workflow are stable
+- 키보드 단축키 (`Ctrl+Enter` 분석 실행, `Escape` 뒤로, `Ctrl+S` 저장/내보내기) — 사용자 확보 후 고려
 
 ---
 

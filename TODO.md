@@ -52,18 +52,27 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - `[domain]` 외부 DB 연동 우선순위 — 레퍼런스: [docs/databases/](docs/databases/)
   - ~~**1순위**: BOLD ID Engine~~ ✅ — Worker 프록시 + useBoldExecution 훅 + BoldResultView + 20 tests
   - **2순위**: GBIF (분포/출현 기록, CORS 지원→브라우저 직접 호출 가능)
-  - **3순위**: UniProt ID Mapping (BLAST→단백질 기능 연결, CORS 지원)
   - **안함**: GO/KEGG/Ensembl 유전자 기능 심화 — Galaxy/Bioconductor 영역, BioHub 차별점 아님
 - `[domain]` species-validation 레코드 스키마 정의
 - `[domain]` legal-status 레코드 스키마 정의 (source metadata + checked date)
 - `[domain]` 학명검증(species_checker) 통합 + 알림 시스템 통합 — 상세: [PLAN-SPECIES-INTEGRATION.md](docs/PLAN-SPECIES-INTEGRATION.md)
+
+### 3-A-1. 유전적 분석 확장 (분자생물학 도구 + UniProt)
+
+- `[domain]` BioPython 분자생물학 도구 3종 — 상세: [docs/genetics/plans/biopython-tools.md](docs/genetics/plans/biopython-tools.md)
+  - Codon Usage Analysis + DNA→Protein Translation
+  - ORF Finder (Open Reading Frame 탐색)
+  - Protein Properties (ProtParam: MW, pI, GRAVY, 아미노산 조성)
+- `[domain]` UniProt 연동 — 번역된 단백질 → 기능 주석 조회. CORS 지원→브라우저 직접 호출 가능. 상세: [docs/databases/uniprot.md](docs/databases/uniprot.md)
+- `[quality]` 제네릭 `useApiExecution` 훅 추출 — `useBoldExecution`과 `useBlastExecution`이 ~80% 동일. 세 번째 폴링 API 추가 시 통합
+- `[quality]` BoldResultView similarity 색상 dark mode
+- `[ux]` genetics 랜딩 페이지 서브그룹 — "서열 분석 도구" / "분자생물학 도구"로 카드 그룹 분리
 
 ### 3-B. UX 개선
 
 - `[ux]` ~~사이드바 BioHub 로고 홈 링크~~ ✅ + ~~문헌·동향 → 자료 작성 하위로 이동~~ ✅
 - `[ux]` Stitch Axiom Slate 디자인 시스템 적용 ✅ — `stats/DESIGN.md` 기반, Surface Hierarchy + No-Line Rule
 - `[ux]` 문헌 검색을 자료 작성 페이지 내 서브탭으로 통합 (사이드바 제거 완료, 페이지 통합 대기)
-- `[ux]` 키보드 단축키 — `Ctrl+Enter` 분석 실행, `Escape` 뒤로, `Ctrl+S` 저장/내보내기
 - `[ux]` ~~Bio-Tools 샘플 데이터~~ ✅ — BioCsvUpload `exampleDataPath` prop + 15개 도구 CSV 연결 완료
 - `[ux]` Bio-Tools 데이터 프리뷰 — 업로드 후 분석 전 5행 미리보기
 - `[ux]` Bio-Tools 컬럼 Combobox — cmdk 검색 가능 select
@@ -165,14 +174,8 @@ Tags: `[paper]` `[domain]` `[ux]` `[quality]` `[infra]` `[review]` `[trust]`
 - `[workflow]` 프로젝트 협업/공유 — 스토리지 아키텍처 지원 시
 - `[domain]` citation/traceability 강화
 
-### 4-B. 유전적 분석 — 리팩토링 & 확장
+### 4-B. 기타
 
-- `[domain]` BioPython 분자생물학 도구 3종 — 상세: [docs/genetics/plans/biopython-tools.md](docs/genetics/plans/biopython-tools.md)
-  - Codon Usage Analysis + DNA→Protein Translation
-  - ORF Finder (Open Reading Frame 탐색)
-  - Protein Properties (ProtParam: MW, pI, GRAVY, 아미노산 조성)
-- `[quality]` 제네릭 `useApiExecution` 훅 추출 — `useBoldExecution`과 `useBlastExecution`이 ~80% 동일 (submit→poll→fetch 폴링 라이프사이클). 세 번째 폴링 API 추가 시 통합
-- `[quality]` BoldResultView similarity 색상 dark mode — `similarityColorClass`/`similarityTextClass`가 light-only (`text-green-700` 등). progress bar 특성상 양 테마 동일 색상이 나을 수도 있어 디자인 판단 필요
 - `[review]` figure/table 저널 적합성 리뷰
 - `[ux]` 프로젝트 카드 클릭 동작 — 사용자 피드백 후 결정
 - `[trust]` 재현 코드 내보내기 확장 (고급 분석)
