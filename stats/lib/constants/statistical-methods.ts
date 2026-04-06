@@ -10,8 +10,8 @@
  * ============================================
  * SUMMARY
  * ============================================
- * - Total definitions:    ~62 canonical entries
- * - Analysis methods:     43+ (가설검정·모델링·분석 기법)
+ * - Total definitions:    50 canonical entries (9개 VR-only 신규 메서드는 페이지/Worker 미구현으로 후속 추가)
+ * - Analysis methods:     46 (가설검정·모델링·분석 기법)
  * - Data tools:            4 (descriptive-stats, explore-data, means-plot, power-analysis)
  * - Embedded (pageId !== id): paired-t, two-way-anova, logistic-regression
  * - Removed as standalone: chi-square (overview), non-parametric (overview), welch-anova (alias of one-way-anova)
@@ -322,8 +322,8 @@ const _METHODS: Record<string, StatisticalMethodEntry> = {
     category: 'correlation',
     koreanName: '상관분석',
     koreanDescription: '두 연속형 변수의 선형 상관관계',
-    aliases: ['correlation', 'pearson', 'spearman', 'spearman-correlation'],
-    searchTerms: ['pearson', 'spearman', 'correlation', 'linear-relationship'],
+    aliases: ['correlation', 'pearson', 'spearman', 'spearman-correlation', 'kendall-correlation', 'kendall'],
+    searchTerms: ['pearson', 'spearman', 'kendall', 'correlation', 'linear-relationship'],
     isDataTool: false,
   },
   'partial-correlation': {
