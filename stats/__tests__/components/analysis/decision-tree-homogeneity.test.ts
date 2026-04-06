@@ -144,7 +144,7 @@ describe('DecisionTree - homogeneity 답변 반영', () => {
       })
 
       expect(result.method.id).toBe('welch-anova')
-      expect(result.method.name).toBe('Welch ANOVA')
+      expect(result.method.name).toBe('일원분산분석 (ANOVA)')
 
       const homogeneityStep = result.reasoning.find(r => r.step === '등분산성')
       expect(homogeneityStep?.description).toContain('등분산 미충족')

@@ -50,7 +50,7 @@ describe('DecisionTree - 확장된 Purpose', () => {
         answers: { goal: 'classification' }
       })
 
-      expect(result.method.id).toBe('discriminant')
+      expect(result.method.id).toBe('discriminant-analysis')
       expect(result.method.name).toContain('판별')
     })
 
@@ -94,7 +94,7 @@ describe('DecisionTree - 확장된 Purpose', () => {
         answers: { goal: 'reliability' }
       })
 
-      expect(result.method.id).toBe('reliability')
+      expect(result.method.id).toBe('reliability-analysis')
       expect(result.method.name).toContain('신뢰도')
     })
 
@@ -134,7 +134,7 @@ describe('DecisionTree - 확장된 Purpose', () => {
         }
       })
 
-      expect(result.method.id).toBe('proportion-test')
+      expect(result.method.id).toBe('one-sample-proportion')
     })
 
     it('단일표본 비교 + 비정규 -> sign-test', () => {
@@ -155,7 +155,7 @@ describe('DecisionTree - 확장된 Purpose', () => {
         answers: { comparison_target: 'proportion' }
       })
 
-      expect(result.method.id).toBe('proportion-test')
+      expect(result.method.id).toBe('one-sample-proportion')
     })
 
     it('2그룹 대응 + 이진형 -> McNemar', () => {
@@ -298,7 +298,7 @@ describe('DecisionTree - 확장된 Purpose', () => {
         answers: { distribution_goal: 'distribution_compare' }
       })
 
-      expect(result.method.id).toBe('ks-test')
+      expect(result.method.id).toBe('kolmogorov-smirnov')
     })
   })
 
@@ -335,7 +335,7 @@ describe('DecisionTree - 확장된 Purpose', () => {
         }
       })
 
-      expect(result.method.id).toBe('stepwise')
+      expect(result.method.id).toBe('stepwise-regression')
       expect(result.method.name).toContain('단계적')
     })
 
@@ -359,7 +359,7 @@ describe('DecisionTree - 확장된 Purpose', () => {
         answers: { goal: 'trend_test' }
       })
 
-      expect(result.method.id).toBe('mann-kendall')
+      expect(result.method.id).toBe('mann-kendall-test')
       expect(result.method.name).toContain('Mann-Kendall')
       expect(result.warnings).toBeDefined()
     })

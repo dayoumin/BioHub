@@ -133,9 +133,9 @@ describe('Phase 4 - expectedReasoningKeywords 기능', () => {
         data
       )
 
-      expect(recommendation.method.id).toBe('t-test')
+      expect(recommendation.method.id).toBe('two-sample-t')
       expect(recommendation.expectedReasoningKeywords).toBeDefined()
-      // t-test는 METHOD_REASONING_KEYWORDS에 정의되지 않아 빈 배열 반환
+      // two-sample-t는 METHOD_REASONING_KEYWORDS에 정의되지 않아 빈 배열 반환
       expect(recommendation.expectedReasoningKeywords).toEqual([])
     })
 
@@ -170,10 +170,10 @@ describe('Phase 4 - expectedReasoningKeywords 기능', () => {
         data
       )
 
-      expect(recommendation.method.id).toBe('anova')
+      expect(recommendation.method.id).toBe('one-way-anova')
       expect(recommendation.expectedReasoningKeywords).toBeDefined()
       expect(recommendation.expectedReasoningKeywords).toEqual([
-        '3개 이상', 'ANOVA', '분산', '그룹'
+        '3개 이상', 'ANOVA', '분산', '정규성', '등분산성'
       ])
     })
 
@@ -224,10 +224,10 @@ describe('Phase 4 - expectedReasoningKeywords 기능', () => {
         data
       )
 
-      expect(recommendation.method.id).toBe('correlation')
+      expect(recommendation.method.id).toBe('pearson-correlation')
       expect(recommendation.expectedReasoningKeywords).toBeDefined()
       expect(recommendation.expectedReasoningKeywords).toEqual([
-        '상관', 'correlation', '선형', '관계'
+        '상관', '선형', '정규성'
       ])
     })
 
@@ -259,10 +259,10 @@ describe('Phase 4 - expectedReasoningKeywords 기능', () => {
         data
       )
 
-      expect(recommendation.method.id).toBe('correlation')
+      expect(recommendation.method.id).toBe('pearson-correlation')
       expect(recommendation.expectedReasoningKeywords).toBeDefined()
       expect(recommendation.expectedReasoningKeywords).toEqual([
-        '상관', 'correlation', '선형', '관계'
+        '상관', '선형', '정규성'
       ])
     })
   })
@@ -321,7 +321,7 @@ describe('Phase 4 - expectedReasoningKeywords 기능', () => {
         data
       )
 
-      expect(recommendation.method.id).toBe('correlation')
+      expect(recommendation.method.id).toBe('pearson-correlation')
       expect(recommendation.expectedReasoningKeywords).toBeDefined()
       expect(recommendation.expectedReasoningKeywords?.length).toBeGreaterThanOrEqual(1)
     })
@@ -338,7 +338,7 @@ describe('Phase 4 - expectedReasoningKeywords 기능', () => {
         data
       )
 
-      expect(recommendation.method.id).toBe('descriptive')
+      expect(recommendation.method.id).toBe('descriptive-stats')
       expect(recommendation.expectedReasoningKeywords).toBeDefined()
     })
 
@@ -365,7 +365,7 @@ describe('Phase 4 - expectedReasoningKeywords 기능', () => {
         data
       )
 
-      expect(recommendation.method.id).toBe('regression')
+      expect(recommendation.method.id).toBe('simple-regression')
       expect(recommendation.expectedReasoningKeywords).toBeDefined()
     })
 

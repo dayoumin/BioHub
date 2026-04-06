@@ -41,7 +41,8 @@ export async function handleNonparametric(method: StatisticalMethod, data: Prepa
       result = { statistic: mwResult.statistic, pvalue: mwResult.pValue }
       break
     }
-    case 'wilcoxon': {
+    case 'wilcoxon':
+    case 'wilcoxon-signed-rank': {
       const wilcoxonGroup1 = data.arrays.dependent || []
       const wilcoxonGroup2 = data.arrays.independent?.[0]
       if (!wilcoxonGroup2 || wilcoxonGroup2.length === 0) {
@@ -166,7 +167,8 @@ export async function handleNonparametric(method: StatisticalMethod, data: Prepa
       }
       break
     }
-    case 'ks-test': {
+    case 'ks-test':
+    case 'kolmogorov-smirnov': {
       // pyodideStats 래퍼 사용
       const values1 = data.arrays.dependent || []
       const values2 = data.arrays.independent?.[0]
@@ -208,7 +210,8 @@ export async function handleNonparametric(method: StatisticalMethod, data: Prepa
       }
       break
     }
-    case 'proportion-test': {
+    case 'proportion-test':
+    case 'one-sample-proportion': {
       // successCount: 명시적 숫자 값 우선, 없으면 dependentVar에서 자동 계산
       const parsedSuccessCount = Number(data.variables?.successCount)
       let successCount = Number.isFinite(parsedSuccessCount) ? parsedSuccessCount : undefined
@@ -284,7 +287,7 @@ export async function handleNonparametric(method: StatisticalMethod, data: Prepa
       df: result.df,
       significant: result.pvalue < 0.05,
       interpretation: (() => {
-        if (method.id === 'proportion-test') {
+        if (method.id === 'proportion-test' || method.id === 'one-sample-proportion') {
           const suffix = result.successLabel ? ` (성공 기준: ${result.successLabel})` : ''
           return result.pvalue < 0.05
             ? `표본 비율이 귀무가설 비율과 유의하게 다릅니다${suffix}`

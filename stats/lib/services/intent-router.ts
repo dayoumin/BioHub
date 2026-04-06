@@ -23,7 +23,7 @@ function buildMethodPatterns(): Map<string, RegExp> {
   const patterns = new Map<string, RegExp>()
 
   for (const [id, method] of Object.entries(STATISTICAL_METHODS)) {
-    if (method.hasOwnPage === false && !method.parentPageId) continue
+    // All canonical entries are real methods (overviews removed)
 
     const terms: string[] = []
 

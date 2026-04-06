@@ -43,13 +43,13 @@ describe('statistical-methods contract', () => {
   // ============================================================================
 
   describe('수량 보호', () => {
-    it('최소 51개 메서드가 등록되어야 함', () => {
-      expect(allIds.length).toBeGreaterThanOrEqual(51)
+    it('최소 45개 메서드가 등록되어야 함', () => {
+      expect(allIds.length).toBeGreaterThanOrEqual(45)
     })
 
-    it('최소 11개 카테고리가 존재해야 함', () => {
+    it('최소 10개 카테고리가 존재해야 함', () => {
       const categories = new Set(allMethods.map((m) => m.category))
-      expect(categories.size).toBeGreaterThanOrEqual(11)
+      expect(categories.size).toBeGreaterThanOrEqual(10)
     })
   })
 
@@ -59,22 +59,22 @@ describe('statistical-methods contract', () => {
 
   describe('핵심 메서드 존재', () => {
     const criticalMethods = [
-      // T-Test
-      't-test', 'welch-t', 'one-sample-t', 'paired-t',
-      // ANOVA
-      'anova', 'repeated-measures-anova', 'ancova', 'manova',
-      // Nonparametric
-      'mann-whitney', 'wilcoxon', 'kruskal-wallis', 'friedman',
-      // Correlation & Regression
-      'correlation', 'regression',
+      // T-Test (canonical)
+      'two-sample-t', 'welch-t', 'one-sample-t', 'paired-t',
+      // ANOVA (canonical)
+      'one-way-anova', 'repeated-measures-anova', 'ancova', 'manova',
+      // Nonparametric (canonical)
+      'mann-whitney', 'wilcoxon-signed-rank', 'kruskal-wallis', 'friedman',
+      // Correlation & Regression (canonical)
+      'pearson-correlation', 'simple-regression',
       // Chi-Square
       'chi-square-goodness', 'chi-square-independence',
-      // Descriptive
-      'descriptive', 'normality-test',
+      // Descriptive (canonical)
+      'descriptive-stats', 'normality-test',
       // Survival
       'kaplan-meier', 'cox-regression', 'roc-curve',
-      // Multivariate
-      'pca', 'factor-analysis', 'cluster', 'discriminant',
+      // Multivariate (canonical)
+      'pca', 'factor-analysis', 'cluster', 'discriminant-analysis',
     ]
 
     it.each(criticalMethods)('%s가 레지스트리에 존재해야 함', (id) => {
@@ -88,17 +88,24 @@ describe('statistical-methods contract', () => {
 
   describe('alias 해석', () => {
     const aliasMap: [string, string][] = [
-      ['independent-t', 't-test'],
-      ['student-t', 't-test'],
-      ['one-way-anova', 'anova'],
+      ['independent-t', 'two-sample-t'],
+      ['student-t', 'two-sample-t'],
+      ['t-test', 'two-sample-t'],
+      ['anova', 'one-way-anova'],
       ['mann-whitney-u', 'mann-whitney'],
-      ['pearson', 'correlation'],
-      ['spearman', 'correlation'],
-      ['linear-regression', 'regression'],
-      ['chi-squared', 'chi-square'],
+      ['pearson', 'pearson-correlation'],
+      ['spearman', 'pearson-correlation'],
+      ['correlation', 'pearson-correlation'],
+      ['linear-regression', 'simple-regression'],
+      ['regression', 'simple-regression'],
+      ['chi-squared', 'chi-square-goodness'],
       ['km-curve', 'kaplan-meier'],
       ['cox-ph', 'cox-regression'],
-      ['cronbach-alpha', 'reliability'],
+      ['cronbach-alpha', 'reliability-analysis'],
+      ['wilcoxon', 'wilcoxon-signed-rank'],
+      ['descriptive', 'descriptive-stats'],
+      ['reliability', 'reliability-analysis'],
+      ['discriminant', 'discriminant-analysis'],
     ]
 
     it.each(aliasMap)('alias "%s" → 메서드 "%s"', (alias, expectedId) => {
@@ -113,11 +120,11 @@ describe('statistical-methods contract', () => {
   })
 
   // ============================================================================
-  // 5. 임베디드 메서드 계약: hasOwnPage=false인 메서드는 parentPageId 필수
+  // 5. 임베디드 메서드 계약: pageId !== id인 메서드는 pageId가 유효해야 함
   // ============================================================================
 
   describe('임베디드 메서드', () => {
-    const embeddedMethods = allMethods.filter((m) => m.hasOwnPage === false)
+    const embeddedMethods = allMethods.filter((m) => m.id !== m.pageId)
 
     it('최소 3개의 임베디드 메서드가 존재해야 함', () => {
       expect(embeddedMethods.length).toBeGreaterThanOrEqual(3)
@@ -125,11 +132,9 @@ describe('statistical-methods contract', () => {
 
     it.each(
       embeddedMethods.map((m) => [m.id, m] as [string, StatisticalMethodWithAliases])
-    )('%s: parentPageId가 유효한 메서드를 가리켜야 함', (_id, method) => {
-      // 카테고리 overview (chi-square, non-parametric)는 parentPageId 없이 hasOwnPage: false 가능
-      if (method.parentPageId) {
-        expect(STATISTICAL_METHODS[method.parentPageId]).toBeDefined()
-      }
+    )('%s: pageId가 유효한 페이지를 가리켜야 함', (_id, method) => {
+      // pageId로 STATISTICAL_METHODS에서 조회 가능해야 함 (alias로라도)
+      expect(STATISTICAL_METHODS[method.pageId]).toBeDefined()
     })
   })
 
@@ -140,7 +145,7 @@ describe('statistical-methods contract', () => {
   describe('카테고리 정합성', () => {
     const categoryEntries = Object.entries(METHOD_CATEGORIES) as [
       string,
-      { methods: readonly string[] },
+      { methods: string[] },
     ][]
 
     it.each(categoryEntries)(

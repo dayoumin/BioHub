@@ -60,13 +60,11 @@ describe('getMethodRequirements — alias resolution', () => {
     expect(req).toBeUndefined()
   })
 
-  it('resolves "t-test" — current behavior returns requirements via alias chain', () => {
-    // t-test in the registry has aliases: ['independent-t', 'independent-t-test', 'student-t']
-    // Requirements array uses 'two-sample-t' — no alias overlap, so this currently returns undefined.
-    // If alias coverage is expanded later, this test should be updated.
+  it('resolves "t-test" via alias to two-sample-t requirements', () => {
+    // t-test is now an alias of two-sample-t (canonical ID)
     const req = getMethodRequirements('t-test')
-    // Document the current gap: t-test registry aliases don't include 'two-sample-t'
-    expect(req).toBeUndefined()
+    expect(req).toBeDefined()
+    expect(req!.id).toBe('two-sample-t')
   })
 })
 

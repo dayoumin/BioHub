@@ -44,7 +44,8 @@ export async function handleMultivariate(method: StatisticalMethod, data: Prepar
     case 'cluster':
       result = await pyodideStats.clusterAnalysis(data.arrays.independent || [])
       break
-    case 'discriminant': {
+    case 'discriminant':
+    case 'discriminant-analysis': {
       // Build row-major matrix from raw data, filtering rows jointly
       // This ensures features and group labels are aligned
       const rawData = data.data as Array<Record<string, unknown>>

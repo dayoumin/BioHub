@@ -38,29 +38,29 @@ import { getCompatibilityForMethod } from '@/lib/statistics/data-method-compatib
 // ============================================
 
 const KOREAN_NAMES: Record<string, { name: string; description: string }> = {
-  // T-Test
-  't-test': { name: '독립표본 t-검정', description: '두 독립 그룹 간 평균 차이를 검정합니다.' },
+  // T-Test (canonical IDs)
+  'two-sample-t': { name: '독립표본 t-검정', description: '두 독립 그룹 간 평균 차이를 검정합니다.' },
   'paired-t': { name: '대응표본 t-검정', description: '같은 피험자의 전후 비교' },
   'welch-t': { name: "Welch's t-검정", description: '등분산 가정 완화' },
 
   // ANOVA
-  'anova': { name: '일원분산분석 (ANOVA)', description: '세 개 이상 그룹 간 평균 비교' },
+  'one-way-anova': { name: '일원분산분석 (ANOVA)', description: '세 개 이상 그룹 간 평균 비교' },
 
   // Nonparametric
   'mann-whitney': { name: 'Mann-Whitney U 검정', description: '두 독립 그룹 간 순위 기반 비교' },
-  'wilcoxon': { name: 'Wilcoxon 부호순위 검정', description: '대응표본 비모수 검정' },
+  'wilcoxon-signed-rank': { name: 'Wilcoxon 부호순위 검정', description: '대응표본 비모수 검정' },
   'kruskal-wallis': { name: 'Kruskal-Wallis 검정', description: '세 개 이상 그룹 간 순위 기반 비교' },
   'friedman': { name: 'Friedman 검정', description: '다요인 비모수 검정' },
 
   // Correlation
-  'correlation': { name: 'Pearson 상관분석', description: '선형 상관관계 분석' },
+  'pearson-correlation': { name: 'Pearson 상관분석', description: '선형 상관관계 분석' },
 
   // Regression
-  'regression': { name: '단순 선형회귀', description: '독립변수로 종속변수를 예측' },
+  'simple-regression': { name: '단순 선형회귀', description: '독립변수로 종속변수를 예측' },
   'logistic-regression': { name: '로지스틱 회귀', description: '범주형 종속변수 예측' },
 
   // Descriptive
-  'descriptive': { name: '기술통계', description: '데이터의 기본 통계량을 계산합니다.' },
+  'descriptive-stats': { name: '기술통계', description: '데이터의 기본 통계량을 계산합니다.' },
 }
 
 /**

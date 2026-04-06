@@ -34,15 +34,13 @@ const DEFAULT_QUICK_METHODS = ['t-test', 'anova', 'correlation', 'regression', '
 /** Runtime에 평가하여 registerMethod()로 추가된 메서드도 포함 */
 function buildMethodsByCategory(): Record<string, Array<{ id: string; name: string; description: string }>> {
   return Object.entries(STATISTICAL_METHODS).reduce((acc, [id, method]) => {
-    if (method.hasOwnPage !== false) {
-      const cat = method.category
-      if (!acc[cat]) acc[cat] = []
-      acc[cat].push({
-        id,
-        name: method.koreanName || method.name,
-        description: method.koreanDescription || method.description
-      })
-    }
+    const cat = method.category
+    if (!acc[cat]) acc[cat] = []
+    acc[cat].push({
+      id,
+      name: method.koreanName || method.name,
+      description: method.koreanDescription || method.description
+    })
     return acc
   }, {} as Record<string, Array<{ id: string; name: string; description: string }>>)
 }

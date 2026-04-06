@@ -13,6 +13,11 @@ import {
   getAllMethodIds,
   getMethodRoute,
   isValidMethodId,
+  getMethod,
+  getMethodByAlias,
+  getMethodsByPage,
+  isIntegratedPage,
+  methodHasOwnPage,
 } from '@/lib/constants/statistical-methods'
 
 describe('statistical-methods.ts', () => {
@@ -20,7 +25,7 @@ describe('statistical-methods.ts', () => {
   // 1. 기본 구조 검증
   // ============================================
   describe('STATISTICAL_METHODS 기본 구조', () => {
-    it('48개 이상의 통계 방법이 정의되어 있어야 함', () => {
+    it('45개 이상의 통계 방법이 정의되어 있어야 함', () => {
       const methodCount = Object.keys(STATISTICAL_METHODS).length
       expect(methodCount).toBeGreaterThanOrEqual(45)
     })
@@ -46,8 +51,8 @@ describe('statistical-methods.ts', () => {
   // ============================================
   // 2. 페이지 경로 일치 검증
   // ============================================
-  describe('ID = 페이지 경로 규칙', () => {
-    const expectedPages = [
+  describe('Legacy SM IDs are accessible via Proxy', () => {
+    const legacySMIds = [
       't-test',
       'welch-t',
       'one-sample-t',
@@ -97,8 +102,8 @@ describe('statistical-methods.ts', () => {
       'proportion-test',
     ]
 
-    it.each(expectedPages)('%s 페이지가 METHODS에 정의되어 있어야 함', (pageId) => {
-      expect(STATISTICAL_METHODS[pageId]).toBeDefined()
+    it.each(legacySMIds)('%s: legacy SM ID가 Proxy를 통해 접근 가능해야 함', (smId) => {
+      expect(STATISTICAL_METHODS[smId]).toBeDefined()
     })
   })
 
@@ -106,24 +111,31 @@ describe('statistical-methods.ts', () => {
   // 3. getMethodByIdOrAlias 함수 테스트
   // ============================================
   describe('getMethodByIdOrAlias', () => {
-    it('정확한 ID로 방법을 찾을 수 있어야 함', () => {
+    it('canonical ID로 방법을 찾을 수 있어야 함', () => {
+      const method = getMethodByIdOrAlias('two-sample-t')
+      expect(method).not.toBeNull()
+      expect(method?.id).toBe('two-sample-t')
+    })
+
+    it('legacy SM ID로 방법을 찾을 수 있어야 함', () => {
+      // 't-test'는 'two-sample-t'의 alias
       const method = getMethodByIdOrAlias('t-test')
       expect(method).not.toBeNull()
-      expect(method?.id).toBe('t-test')
+      expect(method?.id).toBe('two-sample-t')
     })
 
     it('alias로 방법을 찾을 수 있어야 함', () => {
-      // 'independent-t'는 't-test'의 alias
+      // 'independent-t'는 'two-sample-t'의 alias
       const method = getMethodByIdOrAlias('independent-t')
       expect(method).not.toBeNull()
-      expect(method?.id).toBe('t-test')
+      expect(method?.id).toBe('two-sample-t')
     })
 
     it('다른 alias들도 동작해야 함', () => {
-      // 'independent-t-test'도 't-test'의 alias
+      // 'independent-t-test'도 'two-sample-t'의 alias
       const method = getMethodByIdOrAlias('independent-t-test')
       expect(method).not.toBeNull()
-      expect(method?.id).toBe('t-test')
+      expect(method?.id).toBe('two-sample-t')
     })
 
     it('존재하지 않는 ID는 null 반환', () => {
@@ -177,13 +189,13 @@ describe('statistical-methods.ts', () => {
     it('t-test 카테고리에 4개 방법이 있어야 함', () => {
       const methods = getMethodsByCategory('t-test')
       expect(methods.length).toBe(4)
-      expect(methods.map((m) => m.id)).toContain('t-test')
+      expect(methods.map((m) => m.id)).toContain('two-sample-t')
       expect(methods.map((m) => m.id)).toContain('welch-t')
     })
 
-    it('nonparametric 카테고리에 12개 이상 방법이 있어야 함', () => {
+    it('nonparametric 카테고리에 11개 이상 방법이 있어야 함', () => {
       const methods = getMethodsByCategory('nonparametric')
-      expect(methods.length).toBeGreaterThanOrEqual(12)
+      expect(methods.length).toBeGreaterThanOrEqual(11)
     })
 
     it('존재하지 않는 카테고리는 빈 배열 반환', () => {
@@ -205,10 +217,10 @@ describe('statistical-methods.ts', () => {
       expect(getMethodRoute('independent-t')).toBe('/statistics/t-test')
     })
 
-    it('hasOwnPage=false인 방법은 parentPageId로 라우팅', () => {
-      // paired-t는 t-test 페이지로 라우팅
+    it('pageId !== id 인 방법은 pageId로 라우팅', () => {
+      // paired-t의 pageId는 't-test'
       expect(getMethodRoute('paired-t')).toBe('/statistics/t-test')
-      // welch-anova는 anova 페이지로 라우팅
+      // welch-anova는 one-way-anova의 alias → pageId 'anova'
       expect(getMethodRoute('welch-anova')).toBe('/statistics/anova')
     })
 
@@ -225,11 +237,14 @@ describe('statistical-methods.ts', () => {
       expect(getAllMethods().length).toBe(getAllMethodIds().length)
     })
 
-    it('getAllMethodIds는 모든 키를 반환해야 함', () => {
+    it('getAllMethodIds는 canonical 키를 반환해야 함', () => {
       const ids = getAllMethodIds()
-      expect(ids).toContain('t-test')
+      expect(ids).toContain('two-sample-t')
       expect(ids).toContain('mann-whitney')
-      expect(ids).toContain('regression')
+      expect(ids).toContain('simple-regression')
+      // Legacy SM IDs는 canonical 키에 포함되지 않음
+      expect(ids).not.toContain('t-test')
+      expect(ids).not.toContain('regression')
     })
   })
 
@@ -252,8 +267,8 @@ describe('statistical-methods.ts', () => {
   // 8. METHOD_CATEGORIES 구조 테스트
   // ============================================
   describe('METHOD_CATEGORIES', () => {
-    it('11개 카테고리가 정의되어 있어야 함', () => {
-      expect(Object.keys(METHOD_CATEGORIES).length).toBe(11)
+    it('10개 이상 카테고리가 정의되어 있어야 함', () => {
+      expect(Object.keys(METHOD_CATEGORIES).length).toBeGreaterThanOrEqual(10)
     })
 
     it('각 카테고리의 methods가 STATISTICAL_METHODS에 존재해야 함', () => {
@@ -274,13 +289,13 @@ describe('statistical-methods.ts', () => {
   // ============================================
   describe('하위 호환성 - DecisionTree.ts 기존 ID 매핑', () => {
     const legacyMappings = [
-      { legacy: 'independent-t', expected: 't-test' },
+      { legacy: 'independent-t', expected: 'two-sample-t' },
       { legacy: 'paired-t', expected: 'paired-t' },
-      { legacy: 'one-way-anova', expected: 'anova' },
-      { legacy: 'welch-anova', expected: 'welch-anova' },
+      { legacy: 'one-way-anova', expected: 'one-way-anova' },
+      { legacy: 'welch-anova', expected: 'one-way-anova' },
       { legacy: 'repeated-anova', expected: 'repeated-measures-anova' },
       { legacy: 'mann-whitney', expected: 'mann-whitney' },
-      { legacy: 'wilcoxon', expected: 'wilcoxon' },
+      { legacy: 'wilcoxon', expected: 'wilcoxon-signed-rank' },
       { legacy: 'kruskal-wallis', expected: 'kruskal-wallis' },
       { legacy: 'friedman', expected: 'friedman' },
     ]
@@ -300,13 +315,13 @@ describe('statistical-methods.ts', () => {
   // ============================================
   describe('하위 호환성 - decision-tree-recommender.ts 기존 ID 매핑', () => {
     const recommenderMappings = [
-      { legacy: 'independent-t-test', expected: 't-test' },
+      { legacy: 'independent-t-test', expected: 'two-sample-t' },
       { legacy: 'paired-t-test', expected: 'paired-t' },
-      { legacy: 'pearson', expected: 'correlation' },
-      { legacy: 'spearman', expected: 'correlation' },
-      { legacy: 'linear-regression', expected: 'regression' },
-      { legacy: 'multiple-regression', expected: 'regression' },
-      { legacy: 'chi-squared', expected: 'chi-square' },
+      { legacy: 'pearson', expected: 'pearson-correlation' },
+      { legacy: 'spearman', expected: 'pearson-correlation' },
+      { legacy: 'linear-regression', expected: 'simple-regression' },
+      { legacy: 'multiple-regression', expected: 'simple-regression' },
+      { legacy: 'chi-squared', expected: 'chi-square-goodness' },
     ]
 
     it.each(recommenderMappings)(

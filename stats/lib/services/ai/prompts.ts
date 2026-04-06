@@ -26,12 +26,8 @@ let _cachedMethodList: string | null = null
 function getMethodListBlock(): string {
     if (_cachedMethodList) return _cachedMethodList
 
+    // All canonical entries are real methods (overviews removed in SSOT refactoring)
     const methods = Object.entries(STATISTICAL_METHODS)
-        .filter(([id, m]) => {
-            if (m.hasOwnPage === false && !m.parentPageId) return false
-            if (id === 'non-parametric' || id === 'chi-square') return false
-            return true
-        })
 
     const byCategory = new Map<string, string[]>()
     for (const [id, m] of methods) {

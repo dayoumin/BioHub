@@ -69,7 +69,8 @@ export async function handleRegression(
       return buildGlmResult(result, 'logistic-regression')
     }
 
-    case 'poisson': { // statistical-methods.ts 정규 ID. 레거시 'poisson-regression'은 미지원 (레거시 경로 신규 개발 안 함)
+    case 'poisson':
+    case 'poisson-regression': {
       if (!independent || independent.length === 0) {
         throw new Error('포아송 회귀분석을 위한 독립변수가 필요합니다')
       }
@@ -85,7 +86,8 @@ export async function handleRegression(
       return buildGlmResult(result, 'ordinal-regression')
     }
 
-    case 'stepwise': {
+    case 'stepwise':
+    case 'stepwise-regression': {
       if (!independent || independent.length === 0) {
         throw new Error('단계적 회귀분석을 위한 독립변수가 필요합니다')
       }
