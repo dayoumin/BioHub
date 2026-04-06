@@ -1,0 +1,94 @@
+{
+  "method": "pearson-correlation",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::cor.test",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "weight_length_correlation",
+      "source": "synthetic bivariate data",
+      "data": {
+        "x": [10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38],
+        "y": [22.100000000000001, 24.5, 27.199999999999999, 28.800000000000001, 31.399999999999999, 33.899999999999999, 35.600000000000001, 38.200000000000003, 39.5, 42.100000000000001, 44.299999999999997, 46.799999999999997, 48.200000000000003, 50.899999999999999, 53.100000000000001]
+      },
+      "n": {
+        "total": 15
+      },
+      "cases": [
+        {
+          "description": "Pearson correlation",
+          "rCode": "cor.test(x, y, method='pearson')",
+          "expected": {
+            "r": {
+              "value": 0.9994933718472515,
+              "tier": "tier2"
+            },
+            "tStatistic": {
+              "value": 113.22620478336322,
+              "tier": "tier2"
+            },
+            "pValue": {
+              "value": 7.469230250286983e-21,
+              "tier": "tier2"
+            },
+            "ci95Lower": {
+              "value": 0.9984299997151171,
+              "tier": "tier3"
+            },
+            "ci95Upper": {
+              "value": 0.9998365735236143,
+              "tier": "tier3"
+            },
+            "df": {
+              "value": 13,
+              "tier": "exact"
+            }
+          }
+        },
+        {
+          "description": "Spearman correlation",
+          "rCode": "cor.test(x, y, method='spearman', exact=FALSE)",
+          "expected": {
+            "rho": {
+              "value": 0.9999999999999998,
+              "tier": "tier2"
+            },
+            "sStatistic": {
+              "value": 1.243449787580175e-13,
+              "tier": "tier2"
+            },
+            "pValue": {
+              "value": 3.508982358554997e-101,
+              "tier": "tier2"
+            }
+          }
+        },
+        {
+          "description": "Kendall correlation",
+          "rCode": "cor.test(x, y, method='kendall')",
+          "expected": {
+            "tau": {
+              "value": 1,
+              "tier": "tier2"
+            },
+            "zStatistic": {
+              "value": 105,
+              "tier": "tier2"
+            },
+            "pValue": {
+              "value": 1.529443238723616e-12,
+              "tier": "tier2"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

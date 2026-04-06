@@ -1,0 +1,47 @@
+{
+  "method": "repeated-measures-anova",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::aov + Error()",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "repeated_measures_3_timepoints",
+      "source": "synthetic repeated measures",
+      "n": {
+        "subjects": 10,
+        "timepoints": 3
+      },
+      "cases": [
+        {
+          "description": "Repeated measures ANOVA (3 timepoints)",
+          "rCode": "aov(value ~ time + Error(subject/time), data=d)",
+          "expected": {
+            "fStatistic": {
+              "value": 1489.0909090909104,
+              "tier": "tier2"
+            },
+            "pValue": {
+              "value": 1.019386945720427e-20,
+              "tier": "tier2"
+            },
+            "dfTime": {
+              "value": 2,
+              "tier": "exact"
+            },
+            "dfError": {
+              "value": 18,
+              "tier": "exact"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

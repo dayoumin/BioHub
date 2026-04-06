@@ -1,0 +1,59 @@
+{
+  "method": "poisson-regression",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::glm(poisson)",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "warpbreaks",
+      "source": "R datasets::warpbreaks",
+      "data": {
+        "breaks": [26, 30, 54, 25, 70, 52, 51, 26, 67, 18, 21, 29, 17, 12, 18, 35, 30, 36, 36, 21, 24, 18, 10, 43, 28, 15, 26, 27, 14, 29, 19, 29, 31, 41, 20, 44, 42, 26, 19, 16, 39, 28, 21, 39, 29, 20, 21, 24, 17, 13, 15, 15, 16, 28],
+        "wool": ["A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "A", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B"],
+        "tension": ["L", "L", "L", "L", "L", "L", "L", "L", "L", "M", "M", "M", "M", "M", "M", "M", "M", "M", "H", "H", "H", "H", "H", "H", "H", "H", "H", "L", "L", "L", "L", "L", "L", "L", "L", "L", "M", "M", "M", "M", "M", "M", "M", "M", "M", "H", "H", "H", "H", "H", "H", "H", "H", "H"]
+      },
+      "n": {
+        "total": 54
+      },
+      "cases": [
+        {
+          "description": "Poisson regression (breaks ~ wool + tension)",
+          "rCode": "glm(breaks ~ wool + tension, family=poisson, data=warpbreaks)",
+          "expected": {
+            "interceptCoef": {
+              "value": 3.691963144953793,
+              "tier": "tier3"
+            },
+            "woolBCoef": {
+              "value": -0.2059884426488631,
+              "tier": "tier3"
+            },
+            "tensionMCoef": {
+              "value": -0.3213204316001912,
+              "tier": "tier3"
+            },
+            "tensionHCoef": {
+              "value": -0.5184884965173434,
+              "tier": "tier3"
+            },
+            "deviance": {
+              "value": 210.39188876245385,
+              "tier": "tier3"
+            },
+            "aic": {
+              "value": 493.05596641795768,
+              "tier": "tier3"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

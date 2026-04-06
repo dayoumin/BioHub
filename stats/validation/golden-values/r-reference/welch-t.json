@@ -1,0 +1,51 @@
+{
+  "method": "welch-t",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::t.test",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "male_vs_female_weight_welch",
+      "source": "BioHub test-data equivalent",
+      "n": {
+        "group1": 15,
+        "group2": 15
+      },
+      "cases": [
+        {
+          "description": "Welch's t-test (unequal variance)",
+          "rCode": "t.test(male, female)",
+          "expected": {
+            "tStatistic": {
+              "value": 7.694689845787827,
+              "tier": "tier2"
+            },
+            "df": {
+              "value": 23.622505600679457,
+              "tier": "tier2"
+            },
+            "pValue": {
+              "value": 6.942313131511237e-08,
+              "tier": "tier2"
+            },
+            "n1": {
+              "value": 15,
+              "tier": "exact"
+            },
+            "n2": {
+              "value": 15,
+              "tier": "exact"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1008 @@
+{
+  "$schema": "Method-level equivalence contracts for BioHub statistical validation",
+  "generatedAt": "2026-04-06",
+  "version": "1.0",
+  "notes": [
+    "All methodId values are canonical IDs from statistical-methods.ts SSOT",
+    "pythonCall reflects actual BioHub worker code paths (not library defaults)",
+    "rCall is configured to match Python behavior (same options/defaults)",
+    "toleranceTier: exact | tier2 | tier3 | tier4 (see STATISTICAL-VALIDATION-DESIGN.md §2.2)",
+    "dataSource: synthetic = R script inline vectors, r-builtin = R datasets::, nist = NIST StRD, fixture = parameter-based",
+    "dataFile: for synthetic, refers to the R golden-value JSON (data embedded); for r-builtin, the R dataset name"
+  ],
+  "methods": [
+    {
+      "methodId": "two-sample-t",
+      "category": "t-test",
+      "layer": "L2",
+      "worker": "worker2-hypothesis.py",
+      "pythonLib": "scipy 1.14.1",
+      "pythonCall": "stats.ttest_ind(g1, g2, equal_var=True)",
+      "rPackage": "stats",
+      "rCall": "t.test(g1, g2, var.equal=TRUE)",
+      "knownDifferences": "none",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "statistic": "tier2",
+        "pValue": "tier2",
+        "cohensD": "tier2",
+        "mean1": "tier2",
+        "mean2": "tier2",
+        "n1": "exact",
+        "n2": "exact"
+      },
+      "dataSource": "synthetic",
+      "dataFile": "golden-values/r-reference/two-sample-t.json"
+    },
+    {
+      "methodId": "welch-t",
+      "category": "t-test",
+      "layer": "L2",
+      "worker": "worker2-hypothesis.py",
+      "pythonLib": "scipy 1.14.1",
+      "pythonCall": "stats.ttest_ind(g1, g2, equal_var=False)",
+      "rPackage": "stats",
+      "rCall": "t.test(g1, g2)",
+      "knownDifferences": "none — R default is Welch",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "statistic": "tier2",
+        "pValue": "tier2",
+        "n1": "exact",
+        "n2": "exact"
+      },
+      "dataSource": "synthetic",
+      "dataFile": "golden-values/r-reference/welch-t.json"
+    },
+    {
+      "methodId": "one-sample-t",
+      "category": "t-test",
+      "layer": "L2",
+      "worker": "worker2-hypothesis.py",
+      "pythonLib": "scipy 1.14.1",
+      "pythonCall": "stats.ttest_1samp(data, popmean)",
+      "rPackage": "stats",
+      "rCall": "t.test(data, mu=popmean)",
+      "knownDifferences": "none",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "statistic": "tier2",
+        "pValue": "tier2",
+        "sampleMean": "tier2",
+        "n": "exact"
+      },
+      "dataSource": "synthetic",
+      "dataFile": "golden-values/r-reference/one-sample-t.json"
+    },
+    {
+      "methodId": "paired-t",
+      "category": "t-test",
+      "layer": "L2",
+      "worker": "worker2-hypothesis.py",
+      "pythonLib": "scipy 1.14.1",
+      "pythonCall": "stats.ttest_rel(x, y)",
+      "rPackage": "stats",
+      "rCall": "t.test(x, y, paired=TRUE)",
+      "knownDifferences": "none",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "statistic": "tier2",
+        "pValue": "tier2",
+        "meanDiff": "tier2",
+        "nPairs": "exact"
+      },
+      "dataSource": "synthetic",
+      "dataFile": "golden-values/r-reference/paired-t.json"
+    },
+    {
+      "methodId": "one-way-anova",
+      "category": "anova",
+      "layer": "L1+L2",
+      "worker": "worker3-nonparametric-anova.py",
+      "pythonLib": "scipy 1.14.1",
+      "pythonCall": "stats.f_oneway(*groups)",
+      "rPackage": "stats",
+      "rCall": "summary(aov(y ~ factor(group), data=d))",
+      "nistDataset": "AtmWtAg",
+      "knownDifferences": "none — both use standard one-way F-test",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "fStatistic": "tier2",
+        "pValue": "tier2",
+        "dfBetween": "exact",
+        "dfWithin": "exact",
+        "etaSquared": "tier2",
+        "omegaSquared": "tier2",
+        "ssBetween": "tier2",
+        "ssWithin": "tier2",
+        "ssTotal": "tier2"
+      },
+      "dataSource": "synthetic",
+      "dataFile": "golden-values/r-reference/one-way-anova.json"
+    },
+    {
+      "methodId": "two-way-anova",
+      "category": "anova",
+      "layer": "L2",
+      "worker": "worker3-nonparametric-anova.py",
+      "pythonLib": "statsmodels 0.14.1",
+      "pythonCall": "ols('value ~ C(factor1) + C(factor2) + C(factor1):C(factor2)', data).fit(); sm.stats.anova_lm(model, typ=2)",
+      "rPackage": "car",
+      "rCall": "car::Anova(lm(value ~ factor1 * factor2, data=d), type=2)",
+      "knownDifferences": "Must use Type II SS — R default aov() uses Type I",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "factor1.fStatistic": "tier2",
+        "factor1.pValue": "tier2",
+        "factor1.df": "exact",
+        "factor2.fStatistic": "tier2",
+        "factor2.pValue": "tier2",
+        "factor2.df": "exact",
+        "interaction.fStatistic": "tier2",
+        "interaction.pValue": "tier2",
+        "interaction.df": "exact",
+        "residual.df": "exact"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "datasets::ToothGrowth"
+    },
+    {
+      "methodId": "repeated-measures-anova",
+      "category": "anova",
+      "layer": "L2",
+      "worker": "worker3-nonparametric-anova.py",
+      "pythonLib": "statsmodels 0.14.1",
+      "pythonCall": "ols() + anova_lm() with subject blocking",
+      "rPackage": "stats",
+      "rCall": "aov(y ~ time + Error(subject/time), data=d)",
+      "knownDifferences": "Sphericity correction may differ — compare uncorrected F first",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "fStatistic": "tier2",
+        "pValue": "tier2",
+        "df": "exact"
+      },
+      "dataSource": "synthetic",
+      "dataFile": "example-data/repeated-measures-anova.csv"
+    },
+    {
+      "methodId": "ancova",
+      "category": "anova",
+      "layer": "L2",
+      "worker": "worker3-nonparametric-anova.py",
+      "pythonLib": "statsmodels 0.14.1",
+      "pythonCall": "ols('y ~ C(group) + covariate', data).fit(); sm.stats.anova_lm(model, typ=2)",
+      "rPackage": "car",
+      "rCall": "car::Anova(lm(y ~ group + covariate, data=d), type=2)",
+      "knownDifferences": "Type II SS must match",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "fStatistic": "tier2",
+        "pValue": "tier2",
+        "df": "exact"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "datasets::PlantGrowth + covariate"
+    },
+    {
+      "methodId": "manova",
+      "category": "anova",
+      "layer": "L2",
+      "worker": "worker3-nonparametric-anova.py",
+      "pythonLib": "statsmodels 0.14.1",
+      "pythonCall": "sm.OLS() per dependent variable (custom Pillai/Wilks)",
+      "rPackage": "stats",
+      "rCall": "summary(manova(cbind(y1,y2) ~ group, data=d))",
+      "knownDifferences": "Custom implementation vs R native — Pillai's trace comparison",
+      "toleranceTier": "tier3",
+      "outputFields": {
+        "pillaiTrace": "tier3",
+        "wilksLambda": "tier3",
+        "fStatistic": "tier3",
+        "pValue": "tier2"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "datasets::iris"
+    },
+    {
+      "methodId": "mixed-model",
+      "category": "anova",
+      "layer": "L2",
+      "worker": "worker4-regression-advanced.py",
+      "pythonLib": "statsmodels 0.14.1",
+      "pythonCall": "custom mixed-effects implementation",
+      "rPackage": "lme4",
+      "rCall": "lmer(y ~ fixed + (1|random), data=d)",
+      "knownDifferences": "Custom vs lme4 — coefficient comparison only",
+      "toleranceTier": "tier3",
+      "outputFields": {
+        "fixedEffects": "tier3",
+        "pValue": "tier2",
+        "randomVariance": "tier3"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "datasets::sleepstudy (lme4)"
+    },
+    {
+      "methodId": "mann-whitney",
+      "category": "nonparametric",
+      "layer": "L2",
+      "worker": "worker3-nonparametric-anova.py",
+      "pythonLib": "scipy 1.14.1",
+      "pythonCall": "stats.mannwhitneyu(g1, g2, alternative='two-sided')",
+      "rPackage": "stats",
+      "rCall": "wilcox.test(g1, g2, exact=FALSE, correct=FALSE)",
+      "knownDifferences": "scipy mannwhitneyu uses asymptotic by default; R exact=FALSE to match. correct=FALSE to disable continuity correction",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "statistic": "tier2",
+        "pValue": "tier2",
+        "effectSize": "tier2"
+      },
+      "dataSource": "synthetic",
+      "dataFile": "example-data/mann-whitney.csv"
+    },
+    {
+      "methodId": "wilcoxon-signed-rank",
+      "category": "nonparametric",
+      "layer": "L2",
+      "worker": "worker3-nonparametric-anova.py",
+      "pythonLib": "scipy 1.14.1",
+      "pythonCall": "stats.wilcoxon(x, y)",
+      "rPackage": "stats",
+      "rCall": "wilcox.test(x, y, paired=TRUE, exact=FALSE, correct=FALSE)",
+      "knownDifferences": "ties/zeros handling may differ — use ties-free data for tier2, ties data for tier3",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "statistic": "tier2",
+        "pValue": "tier2",
+        "effectSize": "tier2"
+      },
+      "dataSource": "synthetic",
+      "dataFile": "example-data/wilcoxon.csv"
+    },
+    {
+      "methodId": "kruskal-wallis",
+      "category": "nonparametric",
+      "layer": "L2",
+      "worker": "worker3-nonparametric-anova.py",
+      "pythonLib": "scipy 1.14.1",
+      "pythonCall": "stats.kruskal(*groups)",
+      "rPackage": "stats",
+      "rCall": "kruskal.test(y ~ group, data=d)",
+      "knownDifferences": "none",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "statistic": "tier2",
+        "pValue": "tier2",
+        "df": "exact"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "datasets::airquality"
+    },
+    {
+      "methodId": "friedman",
+      "category": "nonparametric",
+      "layer": "L2",
+      "worker": "worker3-nonparametric-anova.py",
+      "pythonLib": "scipy 1.14.1",
+      "pythonCall": "stats.friedmanchisquare(*groups)",
+      "rPackage": "stats",
+      "rCall": "friedman.test(y ~ treatment | block, data=d)",
+      "knownDifferences": "none",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "statistic": "tier2",
+        "pValue": "tier2",
+        "df": "exact"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "custom blocked design"
+    },
+    {
+      "methodId": "sign-test",
+      "category": "nonparametric",
+      "layer": "L2",
+      "worker": "worker3-nonparametric-anova.py",
+      "pythonLib": "custom (binomial)",
+      "pythonCall": "custom: count positives, stats.binom_test()",
+      "rPackage": "stats",
+      "rCall": "binom.test(sum(x>y), n, p=0.5)",
+      "knownDifferences": "both use exact binomial",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "pValue": "tier2",
+        "nPositive": "exact",
+        "nNegative": "exact",
+        "nTies": "exact"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "custom paired data"
+    },
+    {
+      "methodId": "mcnemar",
+      "category": "nonparametric",
+      "layer": "L2",
+      "worker": "worker3-nonparametric-anova.py",
+      "pythonLib": "custom (chi-square)",
+      "pythonCall": "custom: (b-c)^2/(b+c) chi-square",
+      "rPackage": "stats",
+      "rCall": "mcnemar.test(matrix, correct=FALSE)",
+      "knownDifferences": "BioHub does not apply continuity correction — match with correct=FALSE",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "chiSquare": "tier2",
+        "pValue": "tier2",
+        "df": "exact"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "custom 2x2 paired table"
+    },
+    {
+      "methodId": "cochran-q",
+      "category": "nonparametric",
+      "layer": "L2",
+      "worker": "worker3-nonparametric-anova.py",
+      "pythonLib": "custom (chi-square)",
+      "pythonCall": "custom Cochran Q implementation",
+      "rPackage": "RVAideMemoire",
+      "rCall": "cochran.qtest(y ~ treatment | subject, data=d)",
+      "knownDifferences": "custom vs R package — verify Q statistic formula",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "qStatistic": "tier2",
+        "pValue": "tier2",
+        "df": "exact"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "custom binary repeated measures"
+    },
+    {
+      "methodId": "binomial-test",
+      "category": "nonparametric",
+      "layer": "L2",
+      "worker": "worker2-hypothesis.py",
+      "pythonLib": "scipy 1.14.1",
+      "pythonCall": "stats.binomtest(k, n, p)",
+      "rPackage": "stats",
+      "rCall": "binom.test(k, n, p)",
+      "knownDifferences": "none — both use exact binomial",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "pValue": "tier2",
+        "proportion": "tier2",
+        "ci95Lower": "tier3",
+        "ci95Upper": "tier3"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "custom success/trial counts"
+    },
+    {
+      "methodId": "runs-test",
+      "category": "nonparametric",
+      "layer": "L2",
+      "worker": "worker3-nonparametric-anova.py",
+      "pythonLib": "custom",
+      "pythonCall": "custom runs test (z-approximation)",
+      "rPackage": "randtests",
+      "rCall": "randtests::runs.test(x)",
+      "knownDifferences": "custom implementation — verify z-statistic formula matches",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "zStatistic": "tier2",
+        "pValue": "tier2",
+        "nRuns": "exact"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "custom binary/numeric sequence"
+    },
+    {
+      "methodId": "kolmogorov-smirnov",
+      "category": "nonparametric",
+      "layer": "L2",
+      "worker": "worker1-descriptive.py",
+      "pythonLib": "scipy 1.14.1",
+      "pythonCall": "stats.ks_2samp(x, y) / stats.kstest(x, 'norm')",
+      "rPackage": "stats",
+      "rCall": "ks.test(x, y) / ks.test(x, 'pnorm', mean(x), sd(x))",
+      "knownDifferences": "one-sample: Python uses sample mean/sd for norm params; R requires explicit",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "statistic": "tier2",
+        "pValue": "tier2"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "custom two-sample data"
+    },
+    {
+      "methodId": "mood-median",
+      "category": "nonparametric",
+      "layer": "L2",
+      "worker": "worker3-nonparametric-anova.py",
+      "pythonLib": "custom (chi-square on median split)",
+      "pythonCall": "custom: chi2 on above/below median contingency table",
+      "rPackage": "stats",
+      "rCall": "mood.test(x, y) or custom median test",
+      "knownDifferences": "verify median calculation (inclusive vs exclusive)",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "chiSquare": "tier2",
+        "pValue": "tier2",
+        "grandMedian": "tier2"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "custom multi-group data"
+    },
+    {
+      "methodId": "pearson-correlation",
+      "category": "correlation",
+      "layer": "L2",
+      "worker": "worker2-hypothesis.py",
+      "pythonLib": "scipy 1.14.1",
+      "pythonCall": "stats.pearsonr(x, y) / stats.spearmanr(x, y) / stats.kendalltau(x, y)",
+      "rPackage": "stats",
+      "rCall": "cor.test(x, y, method='pearson') / cor.test(x, y, method='spearman') / cor.test(x, y, method='kendall')",
+      "knownDifferences": "none for pearson/spearman; kendall ties handling may differ slightly",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "r": "tier2",
+        "pValue": "tier2",
+        "ci95Lower": "tier3",
+        "ci95Upper": "tier3"
+      },
+      "dataSource": "synthetic",
+      "dataFile": "test-data/상관분석_체중체장.csv"
+    },
+    {
+      "methodId": "partial-correlation",
+      "category": "correlation",
+      "layer": "L2",
+      "worker": "worker2-hypothesis.py",
+      "pythonLib": "statsmodels 0.14.1",
+      "pythonCall": "sm.OLS() residual-based partial correlation",
+      "rPackage": "ppcor",
+      "rCall": "ppcor::pcor(data.frame(x, y, z))",
+      "knownDifferences": "residual-based vs matrix partial correlation — numerically equivalent for linear case",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "partialR": "tier2",
+        "pValue": "tier2",
+        "df": "exact"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "datasets::mtcars"
+    },
+    {
+      "methodId": "simple-regression",
+      "category": "regression",
+      "layer": "L1+L2",
+      "worker": "worker4-regression-advanced.py",
+      "pythonLib": "scipy 1.14.1",
+      "pythonCall": "stats.linregress(x, y)",
+      "rPackage": "stats",
+      "rCall": "summary(lm(y ~ x, data=d))",
+      "nistDataset": "Norris",
+      "knownDifferences": "none",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "slope": "tier2",
+        "intercept": "tier2",
+        "rSquared": "tier2",
+        "pValue": "tier2",
+        "stderr": "tier2"
+      },
+      "dataSource": "synthetic",
+      "dataFile": "test-data/단순선형회귀_사료량생산량.csv"
+    },
+    {
+      "methodId": "logistic-regression",
+      "category": "regression",
+      "layer": "L2",
+      "worker": "worker4-regression-advanced.py",
+      "pythonLib": "statsmodels 0.14.1",
+      "pythonCall": "sm.Logit(y, sm.add_constant(X)).fit()",
+      "rPackage": "stats",
+      "rCall": "glm(y ~ x, family=binomial(link='logit'), data=d)",
+      "knownDifferences": "optimizer convergence may differ slightly",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "coefficients": "tier3",
+        "pValues": "tier2",
+        "oddsRatios": "tier3",
+        "aic": "tier3"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "custom binary outcome data"
+    },
+    {
+      "methodId": "poisson-regression",
+      "category": "regression",
+      "layer": "L2",
+      "worker": "worker4-regression-advanced.py",
+      "pythonLib": "statsmodels 0.14.1",
+      "pythonCall": "sm.GLM(y, X, family=sm.families.Poisson()).fit()",
+      "rPackage": "stats",
+      "rCall": "glm(y ~ x, family=poisson(link='log'), data=d)",
+      "knownDifferences": "none for standard GLM",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "coefficients": "tier3",
+        "pValues": "tier2",
+        "deviance": "tier3",
+        "aic": "tier3"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "datasets::warpbreaks"
+    },
+    {
+      "methodId": "ordinal-regression",
+      "category": "regression",
+      "layer": "L2",
+      "worker": "worker4-regression-advanced.py",
+      "pythonLib": "statsmodels 0.14.1",
+      "pythonCall": "OrderedModel(y, X, distr='logit').fit()",
+      "rPackage": "MASS",
+      "rCall": "MASS::polr(y ~ x, data=d, method='logistic')",
+      "knownDifferences": "threshold parameterization may differ — compare coefficients only",
+      "toleranceTier": "tier3",
+      "outputFields": {
+        "coefficients": "tier3",
+        "pValues": "tier2",
+        "thresholds": "tier3",
+        "aic": "tier3"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "custom ordinal outcome data"
+    },
+    {
+      "methodId": "stepwise-regression",
+      "category": "regression",
+      "layer": "L2",
+      "worker": "worker4-regression-advanced.py",
+      "pythonLib": "statsmodels 0.14.1",
+      "pythonCall": "sm.OLS() with p-value-based forward/backward selection",
+      "rPackage": "stats",
+      "rCall": "step(lm(...), direction='both')",
+      "knownDifferences": "Python uses p-value criterion, R uses AIC — compare final model stats only (R2, AIC), not variable selection order",
+      "toleranceTier": "tier3",
+      "outputFields": {
+        "finalR2": "tier3",
+        "finalAIC": "tier3",
+        "selectedVarCount": "exact"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "datasets::mtcars"
+    },
+    {
+      "methodId": "dose-response",
+      "category": "regression",
+      "layer": "L2",
+      "worker": "worker4-regression-advanced.py",
+      "pythonLib": "scipy 1.14.1",
+      "pythonCall": "scipy.optimize.curve_fit() with 4PL model",
+      "rPackage": "drc",
+      "rCall": "drc::drm(response ~ dose, fct=LL.4())",
+      "knownDifferences": "nonlinear optimizer convergence — Tier 4 for parameters",
+      "toleranceTier": "tier4",
+      "outputFields": {
+        "ec50": "tier4",
+        "hillSlope": "tier4",
+        "top": "tier4",
+        "bottom": "tier4",
+        "rSquared": "tier3"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "drc::ryegrass"
+    },
+    {
+      "methodId": "response-surface",
+      "category": "regression",
+      "layer": "L2",
+      "worker": "worker2-hypothesis.py",
+      "pythonLib": "statsmodels 0.14.1",
+      "pythonCall": "sm.OLS() with polynomial + interaction terms",
+      "rPackage": "rsm",
+      "rCall": "rsm::rsm(y ~ SO(x1, x2), data=d)",
+      "knownDifferences": "polynomial coding may differ — compare R2 and coefficient significance",
+      "toleranceTier": "tier3",
+      "outputFields": {
+        "coefficients": "tier3",
+        "rSquared": "tier3",
+        "fStatistic": "tier2",
+        "pValue": "tier2"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "rsm::ChemReact"
+    },
+    {
+      "methodId": "chi-square-goodness",
+      "category": "chi-square",
+      "layer": "L2",
+      "worker": "worker2-hypothesis.py",
+      "pythonLib": "scipy 1.14.1",
+      "pythonCall": "stats.chi2_contingency() or stats.chisquare(observed, expected)",
+      "rPackage": "stats",
+      "rCall": "chisq.test(observed, p=expected_proportions)",
+      "knownDifferences": "none for standard goodness-of-fit",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "chiSquare": "tier2",
+        "pValue": "tier2",
+        "df": "exact"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "custom frequency data"
+    },
+    {
+      "methodId": "chi-square-independence",
+      "category": "chi-square",
+      "layer": "L2",
+      "worker": "worker2-hypothesis.py",
+      "pythonLib": "scipy 1.14.1",
+      "pythonCall": "stats.chi2_contingency(observed, correction=False)",
+      "rPackage": "stats",
+      "rCall": "chisq.test(matrix, correct=FALSE)",
+      "knownDifferences": "BioHub default yatesCorrection=False — MUST match with correct=FALSE",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "chiSquare": "tier2",
+        "pValue": "tier2",
+        "degreesOfFreedom": "exact",
+        "cramersV": "tier2"
+      },
+      "dataSource": "synthetic",
+      "dataFile": "example-data/chi-square.csv"
+    },
+    {
+      "methodId": "normality-test",
+      "category": "diagnostic",
+      "layer": "L2",
+      "worker": "worker1-descriptive.py",
+      "pythonLib": "scipy 1.14.1",
+      "pythonCall": "stats.shapiro(data)",
+      "rPackage": "stats",
+      "rCall": "shapiro.test(data)",
+      "knownDifferences": "none — both use Shapiro-Wilk",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "statistic": "tier2",
+        "pValue": "tier2"
+      },
+      "dataSource": "synthetic",
+      "dataFile": "test-data/독립표본t검정_암수차이.csv"
+    },
+    {
+      "methodId": "pca",
+      "category": "multivariate",
+      "layer": "L2",
+      "worker": "worker4-regression-advanced.py",
+      "pythonLib": "sklearn 1.4.0",
+      "pythonCall": "sklearn.decomposition.PCA(n_components=k).fit(X)",
+      "rPackage": "stats",
+      "rCall": "prcomp(X, center=TRUE, scale.=TRUE)",
+      "knownDifferences": "sign flips on loadings — compare absolute values or explained variance",
+      "toleranceTier": "tier4",
+      "outputFields": {
+        "explainedVarianceRatio": "tier3",
+        "cumulativeVariance": "tier3",
+        "loadings": "tier4"
+      },
+      "dataSource": "synthetic",
+      "dataFile": "example-data/correlation.csv"
+    },
+    {
+      "methodId": "factor-analysis",
+      "category": "multivariate",
+      "layer": "L2",
+      "worker": "worker4-regression-advanced.py",
+      "pythonLib": "sklearn 1.4.0",
+      "pythonCall": "sklearn.decomposition.FactorAnalysis(n_components=k).fit(X)",
+      "rPackage": "psych",
+      "rCall": "psych::fa(X, nfactors=k, rotate='varimax')",
+      "knownDifferences": "rotation method, sign flips — compare communalities and variance explained",
+      "toleranceTier": "tier4",
+      "outputFields": {
+        "loadings": "tier4",
+        "communalities": "tier3",
+        "varianceExplained": "tier3"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "datasets::ability.cov (psych)"
+    },
+    {
+      "methodId": "cluster",
+      "category": "multivariate",
+      "layer": "L2",
+      "worker": "worker4-regression-advanced.py",
+      "pythonLib": "sklearn 1.4.0",
+      "pythonCall": "sklearn.cluster.KMeans(n_clusters=k, random_state=42).fit(X)",
+      "rPackage": "stats",
+      "rCall": "set.seed(42); kmeans(X, centers=k, nstart=25)",
+      "knownDifferences": "random initialization — seed fixed, compare centroid convergence (Tier 4) and silhouette (Tier 3)",
+      "toleranceTier": "tier4",
+      "outputFields": {
+        "clusterCenters": "tier4",
+        "silhouetteScore": "tier3",
+        "inertia": "tier3"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "datasets::iris (numeric only)"
+    },
+    {
+      "methodId": "discriminant-analysis",
+      "category": "multivariate",
+      "layer": "L2",
+      "worker": "worker4-regression-advanced.py",
+      "pythonLib": "sklearn 1.4.0",
+      "pythonCall": "sklearn.discriminant_analysis.LinearDiscriminantAnalysis().fit(X, y)",
+      "rPackage": "MASS",
+      "rCall": "MASS::lda(group ~ ., data=d)",
+      "knownDifferences": "scaling of discriminant coefficients may differ — compare accuracy and group means",
+      "toleranceTier": "tier3",
+      "outputFields": {
+        "accuracy": "tier3",
+        "priorProbabilities": "tier3",
+        "groupMeans": "tier3"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "datasets::iris"
+    },
+    {
+      "methodId": "kaplan-meier",
+      "category": "survival",
+      "layer": "L2",
+      "worker": "worker5-survival.py",
+      "pythonLib": "scipy 1.14.1 (custom KM)",
+      "pythonCall": "custom kaplan_meier_analysis() — scipy-based, not lifelines",
+      "rPackage": "survival",
+      "rCall": "survival::survfit(Surv(time, status) ~ group, data=d)",
+      "knownDifferences": "custom implementation — verify standard cases first (tier2), edge cases (simultaneous events, all censored) at tier3",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "survivalProbabilities": "tier2",
+        "medianSurvival": "tier2",
+        "logRankStatistic": "tier2",
+        "logRankPValue": "tier2"
+      },
+      "dataSource": "synthetic",
+      "dataFile": "example-data/survival.csv"
+    },
+    {
+      "methodId": "cox-regression",
+      "category": "survival",
+      "layer": "L2",
+      "worker": "worker4-regression-advanced.py",
+      "pythonLib": "statsmodels 0.14.1",
+      "pythonCall": "statsmodels.duration.hazard_regression.PHReg(time, exog, status).fit()",
+      "rPackage": "survival",
+      "rCall": "survival::coxph(Surv(time, status) ~ x, data=d)",
+      "knownDifferences": "statsmodels PHReg vs survival::coxph — standard cases should match; PH violation data at tier3",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "coefficients": "tier3",
+        "hazardRatios": "tier3",
+        "pValues": "tier2",
+        "concordance": "tier3"
+      },
+      "dataSource": "synthetic",
+      "dataFile": "example-data/survival.csv"
+    },
+    {
+      "methodId": "roc-curve",
+      "category": "multivariate",
+      "layer": "L2",
+      "worker": "worker5-survival.py",
+      "pythonLib": "sklearn 1.4.0",
+      "pythonCall": "sklearn.metrics.roc_curve(y, scores); roc_auc_score(y, scores)",
+      "rPackage": "pROC",
+      "rCall": "pROC::roc(response, predictor)",
+      "knownDifferences": "threshold direction — ensure same direction convention",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "auc": "tier2",
+        "optimalThreshold": "tier3",
+        "sensitivity": "tier2",
+        "specificity": "tier2"
+      },
+      "dataSource": "synthetic",
+      "dataFile": "example-data/roc-auc.csv"
+    },
+    {
+      "methodId": "arima",
+      "category": "timeseries",
+      "layer": "L2",
+      "worker": "worker4-regression-advanced.py",
+      "pythonLib": "statsmodels 0.14.1",
+      "pythonCall": "ARIMA(y, order=(p,d,q)).fit()",
+      "rPackage": "stats",
+      "rCall": "arima(y, order=c(p,d,q))",
+      "knownDifferences": "optimizer/initial values differ — coefficients at tier3, p-values at tier2",
+      "toleranceTier": "tier3",
+      "outputFields": {
+        "arCoefficients": "tier3",
+        "maCoefficients": "tier3",
+        "aic": "tier3",
+        "forecast": "tier4"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "datasets::AirPassengers"
+    },
+    {
+      "methodId": "seasonal-decompose",
+      "category": "timeseries",
+      "layer": "L2",
+      "worker": "worker4-regression-advanced.py",
+      "pythonLib": "statsmodels 0.14.1",
+      "pythonCall": "statsmodels.tsa.seasonal.seasonal_decompose(y, period=p, model='additive')",
+      "rPackage": "stats",
+      "rCall": "decompose(ts(y, frequency=p), type='additive')",
+      "knownDifferences": "moving average window handling at edges",
+      "toleranceTier": "tier3",
+      "outputFields": {
+        "trend": "tier3",
+        "seasonal": "tier3",
+        "residual": "tier3"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "datasets::AirPassengers"
+    },
+    {
+      "methodId": "stationarity-test",
+      "category": "timeseries",
+      "layer": "L2",
+      "worker": "worker4-regression-advanced.py",
+      "pythonLib": "statsmodels 0.14.1",
+      "pythonCall": "statsmodels.tsa.stattools.adfuller(y, regression='c')",
+      "rPackage": "tseries",
+      "rCall": "tseries::adf.test(y)",
+      "knownDifferences": "lag selection method may differ — fix lag length for comparison",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "adfStatistic": "tier2",
+        "pValue": "tier2",
+        "usedLag": "exact",
+        "criticalValues": "tier3"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "datasets::Nile"
+    },
+    {
+      "methodId": "mann-kendall-test",
+      "category": "timeseries",
+      "layer": "L2",
+      "worker": "worker1-descriptive.py",
+      "pythonLib": "custom (scipy norm)",
+      "pythonCall": "custom: S statistic + z-approximation + stats.kendalltau()",
+      "rPackage": "trend",
+      "rCall": "trend::mk.test(y)",
+      "knownDifferences": "custom implementation — verify S, z, tau, Sen's slope against R trend package",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "zStatistic": "tier2",
+        "pValue": "tier2",
+        "tau": "tier2",
+        "senSlope": "tier3"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "custom environmental time series"
+    },
+    {
+      "methodId": "one-sample-proportion",
+      "category": "diagnostic",
+      "layer": "L2",
+      "worker": "worker1-descriptive.py",
+      "pythonLib": "scipy 1.14.1",
+      "pythonCall": "stats.binomtest(successes, total, p0)",
+      "rPackage": "stats",
+      "rCall": "binom.test(successes, total, p=p0)",
+      "knownDifferences": "both use exact binomial test",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "pValue": "tier2",
+        "proportion": "tier2",
+        "ci95Lower": "tier3",
+        "ci95Upper": "tier3"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "custom count data"
+    },
+    {
+      "methodId": "reliability-analysis",
+      "category": "diagnostic",
+      "layer": "L2",
+      "worker": "worker1-descriptive.py",
+      "pythonLib": "custom (correlation-based)",
+      "pythonCall": "custom cronbach_alpha() from correlation matrix",
+      "rPackage": "psych",
+      "rCall": "psych::alpha(items)",
+      "knownDifferences": "formula-equivalent but verify item-deleted alpha values",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "cronbachAlpha": "tier2",
+        "nItems": "exact"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "custom Likert-scale data"
+    },
+    {
+      "methodId": "descriptive-stats",
+      "category": "data-tool",
+      "layer": "L2",
+      "worker": "worker1-descriptive.py",
+      "pythonLib": "scipy 1.14.1 + numpy",
+      "pythonCall": "np.mean/std/median, stats.skew, stats.kurtosis, stats.sem, stats.mode",
+      "rPackage": "stats + psych",
+      "rCall": "psych::describe(x) or manual mean/sd/skew/kurtosis",
+      "knownDifferences": "kurtosis: scipy excess=True (Fisher) vs R moments package type; skew: same formula check needed",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "mean": "tier2",
+        "median": "tier2",
+        "sd": "tier2",
+        "skewness": "tier2",
+        "kurtosis": "tier2",
+        "sem": "tier2",
+        "n": "exact"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "datasets::iris$Sepal.Length"
+    },
+    {
+      "methodId": "explore-data",
+      "category": "data-tool",
+      "layer": "L2",
+      "worker": "worker1-descriptive.py",
+      "pythonLib": "scipy 1.14.1 + numpy",
+      "pythonCall": "descriptive_stats + outlier_detection + normality_test",
+      "rPackage": "stats",
+      "rCall": "summary(x); shapiro.test(x); boxplot.stats(x)$out",
+      "knownDifferences": "composite tool — verify individual components",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "descriptives": "tier2",
+        "outlierCount": "exact",
+        "normalityPValue": "tier2"
+      },
+      "dataSource": "r-builtin",
+      "dataFile": "datasets::iris$Sepal.Length"
+    },
+    {
+      "methodId": "means-plot",
+      "category": "data-tool",
+      "layer": "L2",
+      "worker": "worker1-descriptive.py",
+      "pythonLib": "numpy + scipy",
+      "pythonCall": "group means + stats.t.interval() for CI",
+      "rPackage": "stats",
+      "rCall": "tapply(y, group, mean); t.test(y)$conf.int per group",
+      "knownDifferences": "CI calculation method — verify same alpha and formula",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "groupMeans": "tier2",
+        "groupCILower": "tier3",
+        "groupCIUpper": "tier3",
+        "groupN": "exact"
+      },
+      "dataSource": "synthetic",
+      "dataFile": "test-data/일원분산분석_사료종류비교.csv"
+    },
+    {
+      "methodId": "power-analysis",
+      "category": "data-tool",
+      "layer": "L2",
+      "worker": "worker2-hypothesis.py",
+      "pythonLib": "statsmodels 0.14.1",
+      "pythonCall": "statsmodels.stats.power (TTestIndPower, FTestAnovaPower, etc.)",
+      "rPackage": "pwr",
+      "rCall": "pwr::pwr.t.test() / pwr::pwr.anova.test() / pwr::pwr.chisq.test()",
+      "knownDifferences": "noncentrality parameter calculation may differ slightly",
+      "toleranceTier": "tier2",
+      "outputFields": {
+        "power": "tier2",
+        "requiredN": "exact"
+      },
+      "dataSource": "fixture",
+      "dataFile": "parameter fixtures (effectSize=0.5, alpha=0.05, n=30)"
+    }
+  ]
+}

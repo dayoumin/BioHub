@@ -1,0 +1,62 @@
+{
+  "method": "simple-regression",
+  "layer": "L1+L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::lm",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "linear_data",
+      "source": "synthetic linear data",
+      "data": {
+        "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+        "y": [2.3, 4.1, 6.5, 7.9, 10.300000000000001, 12.1, 14.5, 15.9, 18.199999999999999, 20.100000000000001, 22.399999999999999, 24, 26.300000000000001, 28.100000000000001, 30.5]
+      },
+      "n": {
+        "total": 15
+      },
+      "cases": [
+        {
+          "description": "Simple linear regression",
+          "rCode": "summary(lm(y ~ x))",
+          "expected": {
+            "intercept": {
+              "value": 0.1904761904761896,
+              "tier": "tier2"
+            },
+            "slope": {
+              "value": 2.002857142857143,
+              "tier": "tier2"
+            },
+            "rSquared": {
+              "value": 0.9994705027308771,
+              "tier": "tier2"
+            },
+            "adjRSquared": {
+              "value": 0.9994297721717138,
+              "tier": "tier2"
+            },
+            "fStatistic": {
+              "value": 24538.590268886252,
+              "tier": "tier2"
+            },
+            "pValue": {
+              "value": 1.101130086172443e-22,
+              "tier": "tier2"
+            },
+            "residualSE": {
+              "value": 0.2139460066766692,
+              "tier": "tier2"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

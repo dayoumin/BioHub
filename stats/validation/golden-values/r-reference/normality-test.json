@@ -1,0 +1,41 @@
+{
+  "method": "normality-test",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::shapiro.test",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "normal_sample",
+      "source": "synthetic near-normal data",
+      "data": {
+        "values": [4.5, 5.2, 4.8, 5.1, 4.9, 5.3, 5, 4.7, 5.4, 4.6, 5.2, 4.8, 5.1, 4.9, 5.3, 5, 4.7, 5.4, 4.6, 5.1]
+      },
+      "n": {
+        "total": 20
+      },
+      "cases": [
+        {
+          "description": "Shapiro-Wilk normality test",
+          "rCode": "shapiro.test(data)",
+          "expected": {
+            "statistic": {
+              "value": 0.95617130662756,
+              "tier": "tier2"
+            },
+            "pValue": {
+              "value": 0.4704718834936694,
+              "tier": "tier2"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "method": "factor-analysis",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "psych::fa",
+    "packages": [
+      "psych"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "iris_fa",
+      "source": "R datasets::iris (numeric columns)",
+      "n": {
+        "total": 150,
+        "variables": 4
+      },
+      "cases": [
+        {
+          "description": "Factor analysis (2 factors, varimax, principal axis)",
+          "rCode": "psych::fa(iris[,1:4], nfactors=2, rotate='varimax', fm='pa')",
+          "expected": {
+            "communalities": {
+              "value": [0.8803766481704202, 0.5368881221589274, 1.045671630579624, 0.8888195967592081],
+              "tier": "tier3"
+            },
+            "varianceExplained": {
+              "value": [0.6337697556031909, 0.2041692438138537],
+              "tier": "tier3"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import type { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
+import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import {
   heroRevealVariants,
 } from './results-helpers'
@@ -27,7 +28,7 @@ export interface ResultsHeroCardProps {
   t: {
     results: {
       sections: { caution: string }
-      conclusion: { assumptionWarning: string }
+      conclusion: { assumptionWarning: string; significant: string; notSignificant: string }
       metadata: { analysisTime: string; rowsCols: (rows: number, cols: number) => string }
     }
   }
@@ -44,6 +45,16 @@ export function ResultsHeroCard({
   prefersReducedMotion,
   t,
 }: ResultsHeroCardProps): React.ReactElement {
+  const methodEntry = STATISTICAL_METHODS[statisticalResult.testName] || null
+  const showBinaryConclusion = !methodEntry?.isDataTool && 
+    methodEntry?.category !== 'multivariate' && 
+    methodEntry?.category !== 'design' &&
+    methodEntry?.id !== 'arima' && 
+    methodEntry?.id !== 'seasonal-decompose'
+
+  // 비가설 검정의 경우 배경/아이콘 처리를 위한 변수
+  const highlightAsSuccess = showBinaryConclusion ? isSignificant : true
+
   return (
     <motion.div
       data-testid="results-main-card"
@@ -55,21 +66,45 @@ export function ResultsHeroCard({
         "overflow-hidden rounded-xl border-0",
         !assumptionsPassed
           ? "bg-warning-bg/30 shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]"
-          : isSignificant
+          : isSignificant || !showBinaryConclusion
             ? "bg-surface-container-lowest shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]"
             : "bg-surface-container-low shadow-[0_1px_2px_0_rgba(0,0,0,0.03)]"
       )}>
         <CardContent className="py-4 px-5">
+          <div className={cn(
+            'mb-3 px-3 py-2.5 rounded-lg',
+            !assumptionsPassed
+              ? 'bg-warning-bg/60'
+              : highlightAsSuccess
+                ? 'bg-success-bg/50'
+                : 'bg-muted/60'
+          )}>
+            <p className={cn(
+              'text-base font-semibold leading-snug',
+              !assumptionsPassed ? 'text-warning-foreground' :
+                highlightAsSuccess ? 'text-success' : 'text-muted-foreground'
+            )}>
+              {!assumptionsPassed
+                ? t.results.conclusion.assumptionWarning
+                : !showBinaryConclusion
+                  ? (statisticalResult.interpretation?.split('.')[0] || statisticalResult.description || 'Analysis complete')
+                  : isSignificant
+                    ? t.results.conclusion.significant
+                    : t.results.conclusion.notSignificant
+              }
+            </p>
+          </div>
+
           {/* 1행: 아이콘 + 메서드명 + 경고 배지 + 타임스탬프 */}
           <div className="flex items-center gap-3 flex-wrap">
             <div className={cn(
               "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0",
               !assumptionsPassed ? "bg-warning-bg" :
-                isSignificant ? "bg-success-bg" : "bg-muted"
+                highlightAsSuccess ? "bg-success-bg" : "bg-muted"
             )}>
               {!assumptionsPassed ? (
                 <AlertCircle className="w-4 h-4 text-warning" />
-              ) : isSignificant ? (
+              ) : highlightAsSuccess ? (
                 <CheckCircle2 className="w-4 h-4 text-success" />
               ) : (
                 <XCircle className="w-4 h-4 text-muted-foreground" />

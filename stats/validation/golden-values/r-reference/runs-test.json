@@ -1,0 +1,47 @@
+{
+  "method": "runs-test",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "manual runs test (z-approx)",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "binary_sequence",
+      "source": "synthetic binary data",
+      "data": {
+        "sequence": [1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1]
+      },
+      "n": {
+        "total": 20,
+        "ones": 11,
+        "zeros": 9
+      },
+      "cases": [
+        {
+          "description": "Runs test (z-approximation)",
+          "rCode": "Manual z = (R - mu_R) / sqrt(var_R)",
+          "expected": {
+            "nRuns": {
+              "value": 11,
+              "tier": "exact"
+            },
+            "zStatistic": {
+              "value": 0.04643700480029226,
+              "tier": "tier2"
+            },
+            "pValue": {
+              "value": 0.9629619427475328,
+              "tier": "tier2"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

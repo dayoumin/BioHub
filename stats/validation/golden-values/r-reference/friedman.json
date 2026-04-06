@@ -1,0 +1,57 @@
+{
+  "method": "friedman",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::friedman.test",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "blocked_design",
+      "source": "synthetic blocked data",
+      "data": {
+        "matrix": {
+          "V1": [7, 5, 3],
+          "V2": [8, 6, 4],
+          "V3": [6, 4, 2],
+          "V4": [9, 7, 5],
+          "V5": [7, 5, 4],
+          "V6": [8, 6, 3],
+          "V7": [6, 5, 2],
+          "V8": [9, 7, 6],
+          "V9": [7, 4, 3],
+          "V10": [8, 6, 5]
+        }
+      },
+      "n": {
+        "subjects": 10,
+        "treatments": 3
+      },
+      "cases": [
+        {
+          "description": "Friedman test (10 subjects x 3 treatments)",
+          "rCode": "friedman.test(matrix)",
+          "expected": {
+            "statistic": {
+              "value": 20,
+              "tier": "tier2"
+            },
+            "pValue": {
+              "value": 4.539992976248485e-05,
+              "tier": "tier2"
+            },
+            "df": {
+              "value": 2,
+              "tier": "exact"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

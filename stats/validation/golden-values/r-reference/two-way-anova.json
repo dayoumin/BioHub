@@ -1,0 +1,79 @@
+{
+  "method": "two-way-anova",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "car::Anova",
+    "packages": [
+      "car",
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "ToothGrowth",
+      "source": "R datasets::ToothGrowth",
+      "n": {
+        "total": 60
+      },
+      "cases": [
+        {
+          "description": "Two-way ANOVA Type II (supp x dose)",
+          "rCode": "car::Anova(lm(len ~ supp * dose, data=ToothGrowth), type=2)",
+          "expected": {
+            "factor1": {
+              "fStatistic": {
+                "value": 15.571979452497247,
+                "tier": "tier2"
+              },
+              "pValue": {
+                "value": 0.0002311828097734242,
+                "tier": "tier2"
+              },
+              "df": {
+                "value": 1,
+                "tier": "exact"
+              }
+            },
+            "factor2": {
+              "fStatistic": {
+                "value": 91.999964892867155,
+                "tier": "tier2"
+              },
+              "pValue": {
+                "value": 4.046291195992163e-18,
+                "tier": "tier2"
+              },
+              "df": {
+                "value": 2,
+                "tier": "exact"
+              }
+            },
+            "interaction": {
+              "fStatistic": {
+                "value": 4.106991094022526,
+                "tier": "tier2"
+              },
+              "pValue": {
+                "value": 0.02186026896479089,
+                "tier": "tier2"
+              },
+              "df": {
+                "value": 2,
+                "tier": "exact"
+              }
+            },
+            "residual": {
+              "df": {
+                "value": 54,
+                "tier": "exact"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

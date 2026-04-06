@@ -1,0 +1,38 @@
+{
+  "method": "nist-michelson-descriptive",
+  "layer": "L1",
+  "referenceSource": {
+    "software": "NIST StRD",
+    "function": "Certified values",
+    "packages": []
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "Michelson",
+      "source": "NIST StRD Univariate Summary Statistics",
+      "url": "https://www.itl.nist.gov/div898/strd/univ/Michelso.html",
+      "difficulty": "lower",
+      "cases": [
+        {
+          "description": "Descriptive statistics certified values",
+          "expected": {
+            "mean": {
+              "value": 299.85239999999999,
+              "tier": "tier2"
+            },
+            "sd": {
+              "value": 0.0790105478190518,
+              "tier": "tier2"
+            },
+            "n": {
+              "value": 100,
+              "tier": "exact"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

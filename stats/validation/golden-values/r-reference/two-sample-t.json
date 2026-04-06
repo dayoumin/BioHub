@@ -1,0 +1,75 @@
+{
+  "method": "two-sample-t",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::t.test",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "male_vs_female_weight",
+      "source": "BioHub test-data equivalent",
+      "n": {
+        "group1": 15,
+        "group2": 15
+      },
+      "cases": [
+        {
+          "description": "Student's t-test (equal variance assumed)",
+          "rCode": "t.test(male, female, var.equal=TRUE)",
+          "expected": {
+            "tStatistic": {
+              "value": 7.694689845787828,
+              "tier": "tier2"
+            },
+            "df": {
+              "value": 28,
+              "tier": "exact"
+            },
+            "pValue": {
+              "value": 2.209867680082458e-08,
+              "tier": "tier2"
+            },
+            "meanDiff": {
+              "value": 5.439999999999998,
+              "tier": "tier3"
+            },
+            "ci95Lower": {
+              "value": 3.991814943201882,
+              "tier": "tier3"
+            },
+            "ci95Upper": {
+              "value": 6.888185056798113,
+              "tier": "tier3"
+            },
+            "cohensD": {
+              "value": 2.80970346769596,
+              "tier": "tier2"
+            },
+            "mean1": {
+              "value": 45.266666666666666,
+              "tier": "tier2"
+            },
+            "mean2": {
+              "value": 39.826666666666668,
+              "tier": "tier2"
+            },
+            "n1": {
+              "value": 15,
+              "tier": "exact"
+            },
+            "n2": {
+              "value": 15,
+              "tier": "exact"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

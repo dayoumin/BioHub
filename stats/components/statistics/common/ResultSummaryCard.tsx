@@ -89,8 +89,8 @@ export function ResultSummaryCard({
   // Default conclusion based on significance
   const displayConclusion = conclusion || (
     isSignificant
-      ? 'Reject null hypothesis'
-      : 'Fail to reject null hypothesis'
+      ? '귀무가설을 기각합니다 (통계적으로 유의미한 차이가 있습니다)'
+      : '귀무가설을 기각하지 못합니다 (통계적으로 유의미한 차이가 없습니다)'
   )
 
   if (compact) {

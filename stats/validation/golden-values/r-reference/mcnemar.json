@@ -1,0 +1,48 @@
+{
+  "method": "mcnemar",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::mcnemar.test",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "before_after_binary",
+      "source": "synthetic 2x2 paired table",
+      "data": {
+        "table": [
+          [20, 5],
+          [10, 15]
+        ]
+      },
+      "n": {
+        "total": 50
+      },
+      "cases": [
+        {
+          "description": "McNemar test (no continuity correction)",
+          "rCode": "mcnemar.test(matrix(c(20,5,10,15), nrow=2), correct=FALSE)",
+          "expected": {
+            "chiSquare": {
+              "value": 1.666666666666667,
+              "tier": "tier2"
+            },
+            "pValue": {
+              "value": 0.1967056024589469,
+              "tier": "tier2"
+            },
+            "df": {
+              "value": 1,
+              "tier": "exact"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

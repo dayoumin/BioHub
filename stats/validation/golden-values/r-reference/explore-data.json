@@ -1,0 +1,50 @@
+{
+  "method": "explore-data",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "base + stats",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "iris_sepal_length_explore",
+      "source": "R datasets::iris$Sepal.Length",
+      "n": {
+        "total": 150
+      },
+      "cases": [
+        {
+          "description": "Data exploration (descriptives + normality + outliers)",
+          "rCode": "summary + shapiro.test + IQR outlier detection",
+          "expected": {
+            "normalityPValue": {
+              "value": 0.01018116117562927,
+              "tier": "tier2"
+            },
+            "outlierCount": {
+              "value": 0,
+              "tier": "exact"
+            },
+            "iqr": {
+              "value": 1.300000000000001,
+              "tier": "tier2"
+            },
+            "q1": {
+              "value": 5.1,
+              "tier": "tier2"
+            },
+            "q3": {
+              "value": 6.4,
+              "tier": "tier2"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

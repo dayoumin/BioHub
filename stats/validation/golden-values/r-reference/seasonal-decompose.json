@@ -1,0 +1,38 @@
+{
+  "method": "seasonal-decompose",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::decompose",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "AirPassengers_decompose",
+      "source": "R datasets::AirPassengers",
+      "n": {
+        "total": 144
+      },
+      "cases": [
+        {
+          "description": "Additive decomposition (period=12)",
+          "rCode": "decompose(ts(AirPassengers, frequency=12), type='additive')",
+          "expected": {
+            "seasonalPattern": {
+              "value": [-24.748737373737388, -36.188131313131315, -2.241161616161615, -8.036616161616159, -4.506313131313127, 35.402777777777786, 63.83080808080809, 62.823232323232325, 16.520202020202035, -20.642676767676765, -53.593434343434346, -28.619949494949509],
+              "tier": "tier3"
+            },
+            "trendMidpoint": {
+              "value": 257.125,
+              "tier": "tier3"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

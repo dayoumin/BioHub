@@ -1,0 +1,63 @@
+{
+  "method": "power-analysis",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "pwr::pwr.*.test",
+    "packages": [
+      "pwr"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "power_fixtures",
+      "source": "parameter fixtures",
+      "cases": [
+        {
+          "description": "Power for two-sample t-test (d=0.5, alpha=0.05, power=0.8)",
+          "rCode": "pwr::pwr.t.test(d=0.5, sig.level=0.05, power=0.8, type='two.sample')",
+          "expected": {
+            "requiredN": {
+              "value": 64,
+              "tier": "exact"
+            },
+            "exactN": {
+              "value": 63.765610444148322,
+              "tier": "tier2"
+            }
+          }
+        },
+        {
+          "description": "Power for one-way ANOVA (k=3, f=0.25, alpha=0.05, power=0.8)",
+          "rCode": "pwr::pwr.anova.test(k=3, f=0.25, sig.level=0.05, power=0.8)",
+          "expected": {
+            "requiredN": {
+              "value": 53,
+              "tier": "exact"
+            },
+            "exactN": {
+              "value": 52.396601605594526,
+              "tier": "tier2"
+            }
+          }
+        },
+        {
+          "description": "Power for chi-square test (w=0.3, df=2, alpha=0.05, power=0.8)",
+          "rCode": "pwr::pwr.chisq.test(w=0.3, df=2, sig.level=0.05, power=0.8)",
+          "expected": {
+            "requiredN": {
+              "value": 108,
+              "tier": "exact"
+            },
+            "exactN": {
+              "value": 107.05209854476271,
+              "tier": "tier2"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

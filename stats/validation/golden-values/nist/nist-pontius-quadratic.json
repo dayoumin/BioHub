@@ -1,0 +1,54 @@
+{
+  "method": "nist-pontius-quadratic",
+  "layer": "L1",
+  "referenceSource": {
+    "software": "NIST StRD",
+    "function": "Certified values",
+    "packages": []
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "Pontius",
+      "source": "NIST StRD Linear Regression",
+      "url": "https://www.itl.nist.gov/div898/strd/lls/data/Pontius.shtml",
+      "difficulty": "lower",
+      "cases": [
+        {
+          "description": "Quadratic regression certified values",
+          "expected": {
+            "b0": {
+              "value": 0.000673565789473684,
+              "tier": "tier2"
+            },
+            "b1": {
+              "value": 7.32059160401003e-07,
+              "tier": "tier2"
+            },
+            "b2": {
+              "value": -3.16081871345029e-15,
+              "tier": "tier2"
+            },
+            "sdB0": {
+              "value": 0.000107938612033077,
+              "tier": "tier2"
+            },
+            "sdB1": {
+              "value": 1.57817399981659e-10,
+              "tier": "tier2"
+            },
+            "sdB2": {
+              "value": 4.86652849992036e-17,
+              "tier": "tier2"
+            },
+            "residualSD": {
+              "value": 0.000205177424076185,
+              "tier": "tier2"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

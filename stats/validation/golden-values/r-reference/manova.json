@@ -1,0 +1,50 @@
+{
+  "method": "manova",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::manova",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "iris_manova",
+      "source": "R datasets::iris",
+      "n": {
+        "total": 150
+      },
+      "cases": [
+        {
+          "description": "MANOVA (Sepal.Length + Sepal.Width ~ Species)",
+          "rCode": "summary(manova(cbind(Sepal.Length, Sepal.Width) ~ Species, data=iris))",
+          "expected": {
+            "pillaiTrace": {
+              "value": 0.9453140328210501,
+              "tier": "tier3"
+            },
+            "approxF": {
+              "value": 65.877980341572439,
+              "tier": "tier3"
+            },
+            "numDf": {
+              "value": 4,
+              "tier": "exact"
+            },
+            "denDf": {
+              "value": 294,
+              "tier": "exact"
+            },
+            "pValue": {
+              "value": 9.902976824501173e-40,
+              "tier": "tier2"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

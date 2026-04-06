@@ -1,0 +1,50 @@
+{
+  "method": "dose-response",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "drc::drm",
+    "packages": [
+      "drc"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "ryegrass",
+      "source": "drc::ryegrass",
+      "data": {
+        "dose": [0, 0, 0, 0, 0, 0, 0.9399999999999999, 0.9399999999999999, 0.9399999999999999, 1.88, 1.88, 1.88, 3.75, 3.75, 3.75, 7.5, 7.5, 7.5, 15, 15, 15, 30, 30, 30],
+        "response": [7.58, 8, 8.328571429, 7.25, 7.375, 7.9625, 8.355555556000001, 6.914285714, 7.75, 6.871428571, 6.45, 5.922222222, 1.925, 2.885714286, 4.233333333, 1.1875, 0.857142857, 1.057142857, 0.6875, 0.525, 0.825, 0.25, 0.22, 0.44]
+      },
+      "n": {
+        "total": 24
+      },
+      "cases": [
+        {
+          "description": "4-parameter log-logistic dose-response",
+          "rCode": "drc::drm(rootl ~ conc, data=ryegrass, fct=LL.4())",
+          "expected": {
+            "hillSlope": {
+              "value": 2.982219071275082,
+              "tier": "tier4"
+            },
+            "bottom": {
+              "value": 0.4814131884462504,
+              "tier": "tier4"
+            },
+            "top": {
+              "value": 7.792958293699921,
+              "tier": "tier4"
+            },
+            "ec50": {
+              "value": 3.057954966548048,
+              "tier": "tier4"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

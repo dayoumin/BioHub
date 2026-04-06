@@ -1,0 +1,64 @@
+{
+  "method": "cox-regression",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "survival::coxph",
+    "packages": [
+      "survival"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "two_predictor_survival",
+      "source": "synthetic survival data with covariates",
+      "data": {
+        "time": [4, 3, 1, 1, 2, 2, 3, 5, 4, 6, 2, 4, 6, 3, 5, 7, 6, 8, 5, 9],
+        "status": [1, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0],
+        "age": [50, 60, 70, 55, 65, 45, 50, 40, 55, 60, 70, 65, 50, 55, 45, 40, 60, 50, 55, 45],
+        "treatment": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+      },
+      "n": {
+        "total": 20
+      },
+      "cases": [
+        {
+          "description": "Cox proportional hazards (age + treatment)",
+          "rCode": "coxph(Surv(time, status) ~ age + treatment, data=d)",
+          "expected": {
+            "ageCoef": {
+              "value": 0.08684920443562917,
+              "tier": "tier3"
+            },
+            "treatmentCoef": {
+              "value": -0.5806864805055681,
+              "tier": "tier3"
+            },
+            "ageHR": {
+              "value": 1.090732189740281,
+              "tier": "tier3"
+            },
+            "treatmentHR": {
+              "value": 0.55951413914906,
+              "tier": "tier3"
+            },
+            "agePValue": {
+              "value": 0.03683953810442161,
+              "tier": "tier2"
+            },
+            "treatmentPValue": {
+              "value": 0.3216310254435567,
+              "tier": "tier2"
+            },
+            "concordance": {
+              "value": 0.763157894736842,
+              "tier": "tier3"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

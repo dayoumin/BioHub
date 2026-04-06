@@ -1,0 +1,49 @@
+{
+  "method": "mood-median",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "manual median test (chisq)",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "three_groups",
+      "source": "synthetic three-group data",
+      "data": {
+        "g1": [2, 3, 4, 5, 6],
+        "g2": [7, 8, 9, 10, 11],
+        "g3": [4, 5, 6, 7, 8]
+      },
+      "n": {
+        "g1": 5,
+        "g2": 5,
+        "g3": 5
+      },
+      "cases": [
+        {
+          "description": "Mood's median test (3 groups)",
+          "rCode": "chisq.test(contingency of above/below grand median, correct=FALSE)",
+          "expected": {
+            "chiSquare": {
+              "value": 10.178571428571429,
+              "tier": "tier2"
+            },
+            "pValue": {
+              "value": 0.006162420044100124,
+              "tier": "tier2"
+            },
+            "grandMedian": {
+              "value": 6,
+              "tier": "tier2"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

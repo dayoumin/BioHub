@@ -1,0 +1,44 @@
+{
+  "method": "cluster",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::kmeans",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "iris_kmeans",
+      "source": "R datasets::iris (scaled)",
+      "n": {
+        "total": 150,
+        "variables": 4,
+        "clusters": 3
+      },
+      "cases": [
+        {
+          "description": "K-means (k=3, nstart=25, seed=42)",
+          "rCode": "set.seed(42); kmeans(scale(iris[,1:4]), centers=3, nstart=25)",
+          "expected": {
+            "withinSS": {
+              "value": 138.88835971735148,
+              "tier": "tier3"
+            },
+            "betweenSS": {
+              "value": 457.11164028264852,
+              "tier": "tier3"
+            },
+            "clusterSizes": {
+              "value": [50, 53, 47],
+              "tier": "exact"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

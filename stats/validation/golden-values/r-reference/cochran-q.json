@@ -1,0 +1,59 @@
+{
+  "method": "cochran-q",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "manual Cochran Q",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "binary_repeated_measures",
+      "source": "synthetic binary repeated measures",
+      "data": {
+        "matrix": {
+          "V1": [1, 1, 0],
+          "V2": [1, 0, 0],
+          "V3": [1, 1, 1],
+          "V4": [0, 0, 0],
+          "V5": [1, 1, 0],
+          "V6": [1, 0, 1],
+          "V7": [0, 1, 0],
+          "V8": [1, 1, 1],
+          "V9": [1, 0, 0],
+          "V10": [0, 1, 0],
+          "V11": [1, 1, 0],
+          "V12": [1, 0, 1]
+        }
+      },
+      "n": {
+        "subjects": 12,
+        "treatments": 3
+      },
+      "cases": [
+        {
+          "description": "Cochran's Q test (12 subjects x 3 treatments)",
+          "rCode": "Manual Q = (k-1)(k*sum(Tj^2) - (sum(Tj))^2) / (k*sum(Li) - sum(Li^2))",
+          "expected": {
+            "qStatistic": {
+              "value": 4.222222222222222,
+              "tier": "tier2"
+            },
+            "pValue": {
+              "value": 0.1211033323923297,
+              "tier": "tier2"
+            },
+            "df": {
+              "value": 2,
+              "tier": "exact"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

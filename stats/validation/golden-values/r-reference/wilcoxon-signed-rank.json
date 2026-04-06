@@ -1,0 +1,38 @@
+{
+  "method": "wilcoxon-signed-rank",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::wilcox.test",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "before_after",
+      "source": "same as paired-t data",
+      "n": {
+        "pairs": 10
+      },
+      "cases": [
+        {
+          "description": "Wilcoxon signed-rank (paired, no exact, no correction)",
+          "rCode": "wilcox.test(before, after, paired=TRUE, exact=FALSE, correct=FALSE)",
+          "expected": {
+            "statistic": {
+              "value": 55,
+              "tier": "tier2"
+            },
+            "pValue": {
+              "value": 0.004780851001183843,
+              "tier": "tier2"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

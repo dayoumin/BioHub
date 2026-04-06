@@ -1,0 +1,53 @@
+{
+  "method": "chi-square-independence",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::chisq.test",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "contingency_table",
+      "source": "synthetic contingency table",
+      "data": {
+        "observedMatrix": [
+          [40, 30, 20, 10],
+          [15, 35, 25, 25],
+          [20, 20, 30, 30]
+        ]
+      },
+      "n": {
+        "total": 300
+      },
+      "cases": [
+        {
+          "description": "Chi-square independence test (no Yates correction)",
+          "rCode": "chisq.test(matrix, correct=FALSE)",
+          "expected": {
+            "chiSquare": {
+              "value": 30.117647058823529,
+              "tier": "tier2"
+            },
+            "pValue": {
+              "value": 3.733483991221997e-05,
+              "tier": "tier2"
+            },
+            "degreesOfFreedom": {
+              "value": 6,
+              "tier": "exact"
+            },
+            "cramersV": {
+              "value": 0.2240448134444816,
+              "tier": "tier2"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

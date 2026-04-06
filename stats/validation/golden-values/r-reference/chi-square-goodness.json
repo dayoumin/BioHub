@@ -1,0 +1,46 @@
+{
+  "method": "chi-square-goodness",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::chisq.test",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "frequency_distribution",
+      "source": "synthetic frequency data",
+      "data": {
+        "observed": [30, 25, 20, 15, 10],
+        "expectedProportions": [0.2, 0.2, 0.2, 0.2, 0.2]
+      },
+      "n": {
+        "total": 100
+      },
+      "cases": [
+        {
+          "description": "Chi-square goodness of fit (uniform expected)",
+          "rCode": "chisq.test(observed, p=rep(1/5, 5))",
+          "expected": {
+            "chiSquare": {
+              "value": 12.5,
+              "tier": "tier2"
+            },
+            "pValue": {
+              "value": 0.01399579248765089,
+              "tier": "tier2"
+            },
+            "df": {
+              "value": 4,
+              "tier": "exact"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

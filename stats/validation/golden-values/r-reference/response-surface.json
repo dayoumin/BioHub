@@ -1,0 +1,42 @@
+{
+  "method": "response-surface",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "rsm::rsm",
+    "packages": [
+      "rsm"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "ChemReact",
+      "source": "rsm::ChemReact",
+      "n": {
+        "total": 14
+      },
+      "cases": [
+        {
+          "description": "Response surface model (Yield ~ SO(Time, Temp))",
+          "rCode": "rsm::rsm(Yield ~ SO(Time, Temp), data=ChemReact)",
+          "expected": {
+            "rSquared": {
+              "value": 0.282593079264418,
+              "tier": "tier3"
+            },
+            "fStatistic": {
+              "value": 0.6302544814586749,
+              "tier": "tier2"
+            },
+            "pValue": {
+              "value": 0.6829524302651819,
+              "tier": "tier2"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

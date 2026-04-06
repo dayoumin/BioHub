@@ -1,0 +1,68 @@
+{
+  "method": "one-way-anova",
+  "layer": "L1+L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::aov",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "three_group_comparison",
+      "source": "synthetic three-group data",
+      "n": {
+        "g1": 10,
+        "g2": 10,
+        "g3": 10
+      },
+      "cases": [
+        {
+          "description": "One-way ANOVA (3 groups)",
+          "rCode": "summary(aov(value ~ group, data=d))",
+          "expected": {
+            "fStatistic": {
+              "value": 139.87982832618019,
+              "tier": "tier2"
+            },
+            "pValue": {
+              "value": 5.644617730340623e-15,
+              "tier": "tier2"
+            },
+            "dfBetween": {
+              "value": 2,
+              "tier": "exact"
+            },
+            "dfWithin": {
+              "value": 27,
+              "tier": "exact"
+            },
+            "etaSquared": {
+              "value": 0.9119832109129067,
+              "tier": "tier2"
+            },
+            "omegaSquared": {
+              "value": 0.9025213365314888,
+              "tier": "tier2"
+            },
+            "ssBetween": {
+              "value": 724.26666666666665,
+              "tier": "tier2"
+            },
+            "ssWithin": {
+              "value": 69.899999999999977,
+              "tier": "tier2"
+            },
+            "ssTotal": {
+              "value": 794.16666666666663,
+              "tier": "tier2"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

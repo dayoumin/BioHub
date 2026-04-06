@@ -1,0 +1,46 @@
+{
+  "method": "sign-test",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::binom.test",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "before_after_sign",
+      "source": "same as paired-t data",
+      "n": {
+        "pairs": 10
+      },
+      "cases": [
+        {
+          "description": "Sign test (before > after count, exact binomial)",
+          "rCode": "binom.test(sum(before > after), sum(before != after), p=0.5)",
+          "expected": {
+            "pValue": {
+              "value": 0.001953125,
+              "tier": "tier2"
+            },
+            "nPositive": {
+              "value": 10,
+              "tier": "exact"
+            },
+            "nNegative": {
+              "value": 0,
+              "tier": "exact"
+            },
+            "nTies": {
+              "value": 0,
+              "tier": "exact"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

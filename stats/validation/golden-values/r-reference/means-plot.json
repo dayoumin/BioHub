@@ -1,0 +1,86 @@
+{
+  "method": "means-plot",
+  "layer": "L2",
+  "referenceSource": {
+    "software": "R",
+    "function": "base::tapply + qt()",
+    "packages": [
+      "stats"
+    ]
+  },
+  "generatedAt": "2026-04-06",
+  "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
+  "datasets": [
+    {
+      "name": "iris_species_means",
+      "source": "R datasets::iris",
+      "n": {
+        "total": 150
+      },
+      "cases": [
+        {
+          "description": "Group means with 95% CI (Sepal.Length by Species)",
+          "rCode": "tapply(Sepal.Length, Species, mean); CI via t-distribution",
+          "expected": {
+            "groupMeans": {
+              "setosa": {
+                "value": 5.006,
+                "tier": "tier2"
+              },
+              "versicolor": {
+                "value": 5.936,
+                "tier": "tier2"
+              },
+              "virginica": {
+                "value": 6.588,
+                "tier": "tier2"
+              }
+            },
+            "groupCILower": {
+              "setosa": {
+                "value": 4.905823539299264,
+                "tier": "tier3"
+              },
+              "versicolor": {
+                "value": 5.789305783106826,
+                "tier": "tier3"
+              },
+              "virginica": {
+                "value": 6.407285019117503,
+                "tier": "tier3"
+              }
+            },
+            "groupCIUpper": {
+              "setosa": {
+                "value": 5.106176460700737,
+                "tier": "tier3"
+              },
+              "versicolor": {
+                "value": 6.082694216893174,
+                "tier": "tier3"
+              },
+              "virginica": {
+                "value": 6.768714980882497,
+                "tier": "tier3"
+              }
+            },
+            "groupN": {
+              "setosa": {
+                "value": 50,
+                "tier": "exact"
+              },
+              "versicolor": {
+                "value": 50,
+                "tier": "exact"
+              },
+              "virginica": {
+                "value": 50,
+                "tier": "exact"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
