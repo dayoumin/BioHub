@@ -30,8 +30,6 @@ import {
 import { STATISTICAL_METHOD_REQUIREMENTS } from '@/lib/statistics/variable-requirements'
 
 import {
-  METHOD_ID_MAPPING,
-  resolveMethodId,
   getCompatibilityForMethod
 } from '@/lib/statistics/data-method-compatibility'
 
@@ -1557,57 +1555,8 @@ describe('Edge Cases and Boundary Conditions', () => {
 // ============================================================================
 
 describe('ID Mapping Layer', () => {
-  describe('METHOD_ID_MAPPING', () => {
-    it('should map UI method IDs to requirements IDs', () => {
-      // T-tests
-      expect(METHOD_ID_MAPPING['t-test']).toBe('two-sample-t')
-      expect(METHOD_ID_MAPPING['paired-t']).toBe('paired-t')
-
-      // ANOVA
-      expect(METHOD_ID_MAPPING['anova']).toBe('one-way-anova')
-
-      // Non-parametric
-      expect(METHOD_ID_MAPPING['wilcoxon']).toBe('wilcoxon-signed-rank')
-      expect(METHOD_ID_MAPPING['mann-whitney']).toBe('mann-whitney')
-
-      // Correlation
-      expect(METHOD_ID_MAPPING['correlation']).toBe('pearson-correlation')
-
-      // Chi-square
-      expect(METHOD_ID_MAPPING['chi-square']).toBe('chi-square-independence')
-
-      // Descriptive
-      expect(METHOD_ID_MAPPING['descriptive']).toBe('descriptive-stats')
-    })
-
-    it('should include all common UI method IDs', () => {
-      const commonUIIds = [
-        't-test', 'paired-t', 'welch-t', 'one-sample-t',
-        'anova', 'mann-whitney', 'wilcoxon', 'kruskal-wallis',
-        'correlation', 'regression', 'chi-square', 'descriptive'
-      ]
-
-      for (const id of commonUIIds) {
-        expect(METHOD_ID_MAPPING[id]).toBeDefined()
-      }
-    })
-  })
-
-  describe('resolveMethodId', () => {
-    it('should resolve mapped IDs', () => {
-      expect(resolveMethodId('t-test')).toBe('two-sample-t')
-      expect(resolveMethodId('anova')).toBe('one-way-anova')
-      expect(resolveMethodId('wilcoxon')).toBe('wilcoxon-signed-rank')
-    })
-
-    it('should return input for unmapped IDs (identity mapping)', () => {
-      expect(resolveMethodId('two-sample-t')).toBe('two-sample-t')
-      expect(resolveMethodId('some-unknown-id')).toBe('some-unknown-id')
-    })
-  })
-
   describe('getCompatibilityForMethod', () => {
-    it('should find compatibility by UI method ID', () => {
+    it('should find compatibility by canonical method ID', () => {
       const data = createDataSummary({
         sampleSize: 50,
         continuousCount: 1,
@@ -1617,14 +1566,10 @@ describe('ID Mapping Layer', () => {
 
       const map = getStructuralCompatibilityMap(data)
 
-      // Direct lookup by requirements ID should work
-      const directResult = map.get('two-sample-t')
-      expect(directResult).toBeDefined()
-
-      // Lookup by UI ID should also work via getCompatibilityForMethod
-      const uiResult = getCompatibilityForMethod(map, 't-test')
-      expect(uiResult).toBeDefined()
-      expect(uiResult?.methodId).toBe('two-sample-t')
+      // Direct lookup by canonical ID
+      const result = getCompatibilityForMethod(map, 'two-sample-t')
+      expect(result).toBeDefined()
+      expect(result?.methodId).toBe('two-sample-t')
     })
 
     it('should return undefined for non-existent methods', () => {
@@ -1635,7 +1580,7 @@ describe('ID Mapping Layer', () => {
       expect(result).toBeUndefined()
     })
 
-    it('should resolve ANOVA compatibility correctly', () => {
+    it('should look up one-way-anova by canonical ID', () => {
       const data = createDataSummary({
         sampleSize: 50,
         continuousCount: 1,
@@ -1645,13 +1590,12 @@ describe('ID Mapping Layer', () => {
 
       const map = getStructuralCompatibilityMap(data)
 
-      // UI uses 'anova', requirements uses 'one-way-anova'
-      const result = getCompatibilityForMethod(map, 'anova')
+      const result = getCompatibilityForMethod(map, 'one-way-anova')
       expect(result).toBeDefined()
       expect(result?.status).toBe('compatible')
     })
 
-    it('should resolve Mann-Whitney compatibility correctly', () => {
+    it('should look up Mann-Whitney by canonical ID', () => {
       const data = createDataSummary({
         sampleSize: 30,
         continuousCount: 1,
@@ -1771,10 +1715,9 @@ describe('Integration: Recommendation with Compatibility Map', () => {
 
     const map = getStructuralCompatibilityMap(data)
 
-    // Recommender returns method with UI ID like 't-test'
-    const recommendedMethodId = 't-test'
+    // Recommender returns canonical ID 'two-sample-t'
+    const recommendedMethodId = 'two-sample-t'
 
-    // Lookup should work with getCompatibilityForMethod
     const compatibility = getCompatibilityForMethod(map, recommendedMethodId)
 
     expect(compatibility).toBeDefined()
@@ -1790,8 +1733,8 @@ describe('Integration: Recommendation with Compatibility Map', () => {
 
     const map = getStructuralCompatibilityMap(data)
 
-    // t-test recommended but data has no continuous variables
-    const compatibility = getCompatibilityForMethod(map, 't-test')
+    // two-sample-t recommended but data has no continuous variables
+    const compatibility = getCompatibilityForMethod(map, 'two-sample-t')
 
     expect(compatibility).toBeDefined()
     expect(compatibility?.status).toBe('incompatible')
@@ -1807,8 +1750,8 @@ describe('Integration: Recommendation with Compatibility Map', () => {
 
     const map = getStructuralCompatibilityMap(data)
 
-    // Both t-test and mann-whitney should be found
-    const tTest = getCompatibilityForMethod(map, 't-test')
+    // Both two-sample-t and mann-whitney should be found by canonical IDs
+    const tTest = getCompatibilityForMethod(map, 'two-sample-t')
     const mannWhitney = getCompatibilityForMethod(map, 'mann-whitney')
 
     expect(tTest).toBeDefined()
