@@ -26,12 +26,12 @@ describe('사용자 관점 UX 감사', () => {
       expect(topMethod('약 먹기 전후 체중 변화가 있는지 비교하고 싶어요')).toBe('paired-t')
     })
 
-    it('실험군 대조군 평균 비교 → t-test', () => {
-      expect(topMethod('실험군과 대조군의 평균을 비교하고 싶어요')).toBe('t-test')
+    it('실험군 대조군 평균 비교 → two-sample-t', () => {
+      expect(topMethod('실험군과 대조군의 평균을 비교하고 싶어요')).toBe('two-sample-t')
     })
 
-    it('A, B, C 세 그룹 차이 → anova', () => {
-      expect(topMethod('A, B, C 세 그룹의 차이를 보고 싶어요')).toBe('anova')
+    it('A, B, C 세 그룹 차이 → one-way-anova', () => {
+      expect(topMethod('A, B, C 세 그룹의 차이를 보고 싶어요')).toBe('one-way-anova')
     })
 
     it('같은 환자 3번 반복 측정 → repeated-measures-anova', () => {
@@ -46,10 +46,10 @@ describe('사용자 관점 UX 감사', () => {
       expect(result.clarification).toBeDefined()
     })
 
-    it('사전/사후 비모수 검정 → wilcoxon이 top 3에 포함 + clarification', () => {
+    it('사전/사후 비모수 검정 → wilcoxon-signed-rank이 top 3에 포함 + clarification', () => {
       const result = getRecommendations('사전/사후 비모수 검정')
       const methods = result.recommendations.map(r => r.methodId)
-      expect(methods).toContain('wilcoxon')
+      expect(methods).toContain('wilcoxon-signed-rank')
       expect(result.clarification).toBeDefined()
     })
   })
@@ -93,8 +93,8 @@ describe('사용자 관점 UX 감사', () => {
 
   // ─── 관계 분석 시나리오 ───
   describe('관계 분석 질문', () => {
-    it('키와 체중의 상관관계 → correlation', () => {
-      expect(topMethod('키와 체중의 상관관계를 보고 싶어요')).toBe('correlation')
+    it('키와 체중의 상관관계 → pearson-correlation', () => {
+      expect(topMethod('키와 체중의 상관관계를 보고 싶어요')).toBe('pearson-correlation')
     })
 
     it('성별과 합격 여부 연관성 (빈도표) → chi-square-independence', () => {
@@ -104,8 +104,8 @@ describe('사용자 관점 UX 감사', () => {
 
   // ─── 예측 시나리오 ───
   describe('예측 질문', () => {
-    it('회귀 분석으로 예측 → regression', () => {
-      expect(topMethod('회귀 분석으로 예측하고 싶어요')).toBe('regression')
+    it('회귀 분석으로 예측 → simple-regression', () => {
+      expect(topMethod('회귀 분석으로 예측하고 싶어요')).toBe('simple-regression')
     })
 
     it('합격/불합격 이분 분류 예측 → logistic-regression', () => {
@@ -119,8 +119,8 @@ describe('사용자 관점 UX 감사', () => {
       expect(topMethod('데이터가 정규분포인지 확인하고 싶어요')).toBe('normality-test')
     })
 
-    it('기본 기술통계 요약 → descriptive', () => {
-      expect(topMethod('기술통계 요약 보여주세요')).toBe('descriptive')
+    it('기본 기술통계 요약 → descriptive-stats', () => {
+      expect(topMethod('기술통계 요약 보여주세요')).toBe('descriptive-stats')
     })
   })
 
@@ -129,7 +129,7 @@ describe('사용자 관점 UX 감사', () => {
     it('시간에 따른 추세 변화 → 시계열 카테고리 내 메서드', () => {
       const methods = topMethods('시간에 따른 추세 변화를 분석하고 싶어요')
       expect(methods.length).toBeGreaterThanOrEqual(1)
-      const timeseriesMethods = ['arima', 'seasonal-decompose', 'stationarity-test', 'mann-kendall']
+      const timeseriesMethods = ['arima', 'seasonal-decompose', 'stationarity-test', 'mann-kendall-test']
       expect(timeseriesMethods).toContain(methods[0])
     })
   })
@@ -154,7 +154,7 @@ describe('사용자 관점 UX 감사', () => {
     })
 
     it('영어로 질문해도 동작', () => {
-      expect(topMethod('I want to compare two groups')).toBe('t-test')
+      expect(topMethod('I want to compare two groups')).toBe('two-sample-t')
     })
 
     it('한영 혼합 질문', () => {
