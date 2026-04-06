@@ -113,7 +113,7 @@ const _METHODS: Record<string, StatisticalMethodEntry> = {
     category: 'anova',
     koreanName: '일원분산분석 (ANOVA)',
     koreanDescription: '3개 이상 독립 그룹의 평균 차이 검정',
-    aliases: ['anova', 'one-way-anova', 'oneway-anova', 'welch-anova', 'welch-f'],
+    aliases: ['anova', 'oneway-anova', 'welch-anova', 'welch-f'],
     searchTerms: ['anova', 'one-way', 'oneway', 'welch'],
     isDataTool: false,
   },
@@ -201,7 +201,7 @@ const _METHODS: Record<string, StatisticalMethodEntry> = {
     category: 'nonparametric',
     koreanName: 'Wilcoxon 부호순위 검정',
     koreanDescription: '대응표본의 비모수 검정',
-    aliases: ['wilcoxon', 'wilcoxon-signed-rank', 'wilcoxon-test'],
+    aliases: ['wilcoxon', 'wilcoxon-test'],
     searchTerms: ['wilcoxon', 'signed-rank', 'paired-nonparametric'],
     isDataTool: false,
   },
@@ -297,7 +297,7 @@ const _METHODS: Record<string, StatisticalMethodEntry> = {
     category: 'nonparametric',
     koreanName: 'Kolmogorov-Smirnov 검정',
     koreanDescription: '두 분포 비교',
-    aliases: ['ks-test', 'kolmogorov-smirnov', 'ks-2samp'],
+    aliases: ['ks-test', 'ks-2samp'],
     searchTerms: ['ks', 'distribution-comparison'],
     isDataTool: false,
   },
@@ -323,9 +323,9 @@ const _METHODS: Record<string, StatisticalMethodEntry> = {
     name: 'Correlation Analysis',
     description: 'Pearson/Spearman correlation',
     category: 'correlation',
-    koreanName: 'Pearson 상관분석',
+    koreanName: '상관분석',
     koreanDescription: '두 연속형 변수의 선형 상관관계',
-    aliases: ['correlation', 'pearson', 'spearman', 'pearson-correlation', 'spearman-correlation'],
+    aliases: ['correlation', 'pearson', 'spearman', 'spearman-correlation'],
     searchTerms: ['pearson', 'spearman', 'correlation', 'linear-relationship'],
     isDataTool: false,
   },
@@ -377,7 +377,7 @@ const _METHODS: Record<string, StatisticalMethodEntry> = {
     category: 'regression',
     koreanName: '포아송 회귀',
     koreanDescription: '빈도/개수 데이터 예측',
-    aliases: ['poisson', 'poisson-regression'],
+    aliases: ['poisson'],
     searchTerms: ['poisson', 'count-data'],
     isDataTool: false,
   },
@@ -401,7 +401,7 @@ const _METHODS: Record<string, StatisticalMethodEntry> = {
     category: 'regression',
     koreanName: '단계적 회귀',
     koreanDescription: '자동 변수 선택 회귀',
-    aliases: ['stepwise', 'stepwise-regression', 'forward-selection', 'backward-elimination'],
+    aliases: ['stepwise', 'forward-selection', 'backward-elimination'],
     searchTerms: ['stepwise', 'forward', 'backward', 'variable-selection'],
     isDataTool: false,
   },
@@ -469,7 +469,7 @@ const _METHODS: Record<string, StatisticalMethodEntry> = {
     category: 'descriptive',
     koreanName: '기술통계량',
     koreanDescription: '평균, 표준편차, 분위수 등 요약',
-    aliases: ['descriptive', 'descriptive-stats', 'summary-statistics'],
+    aliases: ['descriptive', 'summary-statistics'],
     searchTerms: ['descriptive', 'summary', 'mean', 'median', 'std'],
     isDataTool: true,
   },
@@ -649,7 +649,7 @@ const _METHODS: Record<string, StatisticalMethodEntry> = {
     category: 'multivariate',
     koreanName: '판별 분석',
     koreanDescription: '그룹 분류',
-    aliases: ['discriminant', 'discriminant-analysis', 'lda', 'linear-discriminant'],
+    aliases: ['discriminant', 'lda', 'linear-discriminant'],
     searchTerms: ['discriminant', 'lda', 'classification'],
     isDataTool: false,
   },
@@ -677,7 +677,7 @@ const _METHODS: Record<string, StatisticalMethodEntry> = {
     category: 'psychometrics',
     koreanName: '신뢰도 분석',
     koreanDescription: 'Cronbach 알파, 내적 일관성',
-    aliases: ['reliability', 'reliability-analysis', 'cronbach-alpha'],
+    aliases: ['reliability', 'cronbach-alpha'],
     searchTerms: ['reliability', 'cronbach', 'internal-consistency'],
     isDataTool: false,
   },
@@ -689,7 +689,7 @@ const _METHODS: Record<string, StatisticalMethodEntry> = {
     category: 'nonparametric',
     koreanName: '비율 검정',
     koreanDescription: '단일/두 표본 비율 비교',
-    aliases: ['proportion-test', 'z-test-proportion', 'one-sample-proportion'],
+    aliases: ['proportion-test', 'z-test-proportion'],
     searchTerms: ['proportion', 'z-test', 'binomial-proportion'],
     isDataTool: false,
   },
@@ -724,9 +724,7 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodEntry> = new P
       if (typeof key === 'symbol') {
         return Reflect.get(target, key, receiver)
       }
-      if (key in target) return target[key]
-      const canonical = _aliasIndex.get(key)
-      return canonical ? target[canonical] : undefined
+      return getMethodByAlias(key) ?? undefined
     },
   },
 )
@@ -776,6 +774,7 @@ export function methodHasOwnPage(method: StatisticalMethodEntry): boolean {
 
 /**
  * Get method by ID or alias (backward-compat wrapper)
+ * @deprecated Use getMethodByAlias() or getMethod() instead. Will be removed in Phase 4.
  * @param idOrAlias - Method ID or alias
  * @returns StatisticalMethodEntry or null
  */

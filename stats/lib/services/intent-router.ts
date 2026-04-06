@@ -41,11 +41,9 @@ function buildMethodPatterns(): Map<string, RegExp> {
     }
     // ID 자체 (e.g., "t-test")
     terms.push(escapeRegex(id))
-    // aliases
-    if (method.aliases) {
-      for (const alias of method.aliases) {
-        terms.push(escapeRegex(alias))
-      }
+    // searchTerms (permanent) + aliases (migration compat)
+    for (const term of [...(method.searchTerms ?? []), ...(method.aliases ?? [])]) {
+      terms.push(escapeRegex(term))
     }
 
     if (terms.length > 0) {
