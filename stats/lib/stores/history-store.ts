@@ -402,7 +402,7 @@ export const useHistoryStore = create<HistoryState>()((set) => ({
 
     // === 마이그레이션 (sessionStorage → IndexedDB, 병합) ===
     try {
-      const sessionData = sessionStorage.getItem(SESSION_STORAGE_KEYS.analysis.cache)
+      const sessionData = sessionStorage.getItem(SESSION_STORAGE_KEYS.analysis.store)
       if (sessionData) {
         const parsed = JSON.parse(sessionData)
         const oldHistory = parsed?.state?.analysisHistory
@@ -418,7 +418,7 @@ export const useHistoryStore = create<HistoryState>()((set) => ({
           }
           if (idsAssigned) {
             parsed.state.analysisHistory = oldHistory
-            sessionStorage.setItem(SESSION_STORAGE_KEYS.analysis.cache, JSON.stringify(parsed))
+            sessionStorage.setItem(SESSION_STORAGE_KEYS.analysis.store, JSON.stringify(parsed))
           }
 
           const existingHistory = await getAllHistory()
@@ -460,7 +460,7 @@ export const useHistoryStore = create<HistoryState>()((set) => ({
           }
 
           delete parsed.state.analysisHistory
-          sessionStorage.setItem(SESSION_STORAGE_KEYS.analysis.cache, JSON.stringify(parsed))
+          sessionStorage.setItem(SESSION_STORAGE_KEYS.analysis.store, JSON.stringify(parsed))
         }
       }
     } catch (error) {

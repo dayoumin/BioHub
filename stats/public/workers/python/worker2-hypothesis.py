@@ -1760,7 +1760,7 @@ def poisson_regression(
     }
 
     # Interpretation
-    sig_vars = [c['variable'] for c in coefficients if c['p_value'] < 0.05 and c['variable'] != 'Intercept']
+    sig_vars = [c['variable'] for c in coefficients if c['pValue'] < 0.05 and c['variable'] != 'Intercept']
 
     if len(sig_vars) > 0:
         summary = f"{len(sig_vars)}개의 유의한 예측변수가 발견되었습니다 (p < 0.05)."
@@ -1770,9 +1770,9 @@ def poisson_regression(
     interpretation = {
         'summary': summary,
         'significantPredictors': sig_vars,
-        'modelQuality': '좋음' if model_fit['pseudo_r_squared_mcfadden'] > 0.2 else '보통' if model_fit['pseudo_r_squared_mcfadden'] > 0.1 else '낮음',
+        'modelQuality': '좋음' if model_fit['pseudoRSquaredMcfadden'] > 0.2 else '보통' if model_fit['pseudoRSquaredMcfadden'] > 0.1 else '낮음',
         'recommendations': [
-            f"모델 적합도 (McFadden R²): {model_fit['pseudo_r_squared_mcfadden']:.3f}",
+            f"모델 적합도 (McFadden R²): {model_fit['pseudoRSquaredMcfadden']:.3f}",
             f"과산포 비율: {dispersion_ratio:.2f} ({'정상' if dispersion_ratio < 1.5 else '과산포 의심'})",
             "유의한 변수들의 IRR을 확인하여 효과 크기를 해석하세요" if len(sig_vars) > 0 else "모델 재검토가 필요합니다"
         ]

@@ -92,6 +92,7 @@ export const SESSION_STORAGE_KEYS = {
     sequenceTransfer: 'biohub:sequence-transfer',
   },
   analysis: {
-    cache: 'analysis-storage',
+    store: 'analysis-storage',
+    cache: 'analysis-cache',
   },
 } as const

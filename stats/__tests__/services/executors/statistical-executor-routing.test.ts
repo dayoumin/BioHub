@@ -156,7 +156,7 @@ describe('StatisticalExecutor Routing', () => {
   // Category: correlation (THE BUG FIX TEST)
   // ============================================
   describe('Category: correlation', () => {
-    it('should route "pearson-correlation" to CorrelationExecutor', async () => {
+    it('should route "pearson-correlation" to correlation handler', async () => {
       const result = await executor.executeMethod(
         createMethod('pearson-correlation', 'Pearson', 'correlation'),
         mockData,
@@ -169,7 +169,7 @@ describe('StatisticalExecutor Routing', () => {
       expect(result.metadata.method).not.toContain('기술통계') // NOT descriptive!
     })
 
-    it('should route "spearman-correlation" to CorrelationExecutor', async () => {
+    it('should route "spearman-correlation" to correlation handler', async () => {
       const result = await executor.executeMethod(
         createMethod('spearman-correlation', 'Spearman', 'correlation'),
         mockData,
@@ -180,7 +180,7 @@ describe('StatisticalExecutor Routing', () => {
       expect(result.metadata.method).toBeDefined()
     })
 
-    it('should route "kendall-correlation" to CorrelationExecutor', async () => {
+    it('should route "kendall-correlation" to correlation handler', async () => {
       const result = await executor.executeMethod(
         createMethod('kendall-correlation', 'Kendall', 'correlation'),
         mockData,
@@ -191,7 +191,7 @@ describe('StatisticalExecutor Routing', () => {
       expect(result.metadata.method).toBeDefined()
     })
 
-    it('should route "partial-correlation" to CorrelationExecutor', async () => {
+    it('should route "partial-correlation" to correlation handler', async () => {
       const result = await executor.executeMethod(
         createMethod('partial-correlation', 'Partial', 'correlation'),
         mockData,

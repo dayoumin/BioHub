@@ -423,10 +423,12 @@ export class PyodideStatisticsService {
     await this.initialize()
     await this.core.ensureWorker2Loaded()
 
-    // Worker 2의 correlation_test를 3번 호출
-    const pearsonResult = await this.correlationTest(x, y, 'pearson')
-    const spearmanResult = await this.correlationTest(x, y, 'spearman')
-    const kendallResult = await this.correlationTest(x, y, 'kendall')
+    // Worker 2의 correlation_test를 병렬 호출
+    const [pearsonResult, spearmanResult, kendallResult] = await Promise.all([
+      this.correlationTest(x, y, 'pearson'),
+      this.correlationTest(x, y, 'spearman'),
+      this.correlationTest(x, y, 'kendall'),
+    ])
 
     return {
       pearson: {

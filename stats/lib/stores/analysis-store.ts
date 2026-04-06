@@ -19,6 +19,7 @@ import { DataCharacteristics } from '@/lib/statistics/data-type-detector'
 import { transformExecutorResult, isExecutorResult } from '@/lib/utils/result-transformer'
 import type { AnalysisResult as ExecutorResult } from '@/lib/services/executors/types'
 import { resetPreemptiveState } from '@/lib/services/preemptive-assumption-service'
+import { SESSION_STORAGE_KEYS } from '@/lib/constants/storage-keys'
 import { useModeStore } from './mode-store'
 import { useHistoryStore } from './history-store'
 import type { HistoryLoadResult, HistorySettingsResult } from './history-store'
@@ -337,7 +338,7 @@ export const useAnalysisStore = create<AnalysisState>()(
       },
     }),
     {
-      name: 'analysis-storage',
+      name: SESSION_STORAGE_KEYS.analysis.store,
       version: 3,
       migrate: (persistedState, version) => {
         const state = persistedState as Partial<AnalysisState>

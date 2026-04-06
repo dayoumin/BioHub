@@ -2,6 +2,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { generateSecureHash } from '@/lib/services/pyodide/pyodide-helper'
+import { SESSION_STORAGE_KEYS } from '@/lib/constants/storage-keys'
 
 interface CachedAnalysis {
   methodId: string
@@ -100,7 +101,7 @@ export const useAnalysisCacheStore = create<AnalysisCacheStore>()(
       }
     }),
     {
-      name: 'analysis-cache',
+      name: SESSION_STORAGE_KEYS.analysis.cache,
       storage: {
         getItem: (name) => {
           const str = sessionStorage.getItem(name)

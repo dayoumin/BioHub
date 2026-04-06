@@ -120,11 +120,15 @@ export function interpretRSquared(r2: number): string {
 
 export function interpretCorrelation(r: number): string {
   const absR = Math.abs(r)
-  let strength = ''
 
+  if (absR < 0.1) return '거의 없음'
+
+  let strength = ''
   if (absR < 0.3) strength = '약한'
-  else if (absR < 0.7) strength = '중간'
-  else strength = '강한'
+  else if (absR < 0.5) strength = '보통'
+  else if (absR < 0.7) strength = '강한'
+  else if (absR < 0.9) strength = '매우 강한'
+  else strength = '완전'
 
   const direction = r > 0 ? '양의' : '음의'
   return `${direction} ${strength} 상관관계`
