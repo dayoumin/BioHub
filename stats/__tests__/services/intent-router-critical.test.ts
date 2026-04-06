@@ -95,7 +95,7 @@ describe('Intent Router — 비판적 검토', () => {
       const result = await intentRouter.classify('두 집단 평균')
 
       expect(result.track).toBe('direct-analysis')
-      expect(result.method?.id).toBe('t-test')
+      expect(result.method?.id).toBe('two-sample-t')
     })
 
     it('LLM이 data-consultation 반환 → data-consultation', async () => {
@@ -211,7 +211,7 @@ describe('Intent Router — 비판적 검토', () => {
       const result = await intentRouter.classify('독립표본 t-검정을 해줘')
 
       expect(result.track).toBe('direct-analysis')
-      expect(result.method?.id).toBe('t-test')
+      expect(result.method?.id).toBe('two-sample-t')
     })
 
     // --- 한글 괄호 제거로 매칭 가능해진 경우 ---
@@ -221,21 +221,21 @@ describe('Intent Router — 비판적 검토', () => {
       const result = await intentRouter.classify('일원분산분석 해줘')
 
       expect(result.track).toBe('direct-analysis')
-      expect(result.method?.id).toBe('anova')
+      expect(result.method?.id).toBe('one-way-anova')
     })
 
     it('koreanName 전체 포함 "일원분산분석 (ANOVA)" → 여전히 매칭', async () => {
       const result = await intentRouter.classify('일원분산분석 (ANOVA) 해줘')
 
       expect(result.track).toBe('direct-analysis')
-      expect(result.method?.id).toBe('anova')
+      expect(result.method?.id).toBe('one-way-anova')
     })
 
     it('정확한 koreanName "선형 회귀" → regression', async () => {
       const result = await intentRouter.classify('선형 회귀 실행')
 
       expect(result.track).toBe('direct-analysis')
-      expect(result.method?.id).toBe('regression')
+      expect(result.method?.id).toBe('simple-regression')
     })
 
     // --- 여전히 매칭 안 되는 경우 (별도 alias 필요) ---
@@ -301,7 +301,7 @@ describe('Intent Router — 비판적 검토', () => {
 
       // Track 1이 우선 (메서드명 감지)
       expect(result.track).toBe('direct-analysis')
-      expect(result.method?.id).toBe('t-test')
+      expect(result.method?.id).toBe('two-sample-t')
     })
 
     it('Track 3 + Track 1 동시 매칭 → Track 3 우선', async () => {
@@ -314,7 +314,7 @@ describe('Intent Router — 비판적 검토', () => {
       const result = await intentRouter.classify('regression')
 
       expect(result.track).toBe('direct-analysis')
-      expect(result.method?.id).toBe('regression')
+      expect(result.method?.id).toBe('simple-regression')
     })
   })
 
@@ -339,21 +339,21 @@ describe('Intent Router — 비판적 검토', () => {
       const result = await intentRouter.classify(longInput)
 
       expect(result.track).toBe('direct-analysis')
-      expect(result.method?.id).toBe('t-test')
+      expect(result.method?.id).toBe('two-sample-t')
     })
 
     it('탭/개행 포함 입력 → trim 후 처리', async () => {
       const result = await intentRouter.classify('\n\t  t-test  \n\t')
 
       expect(result.track).toBe('direct-analysis')
-      expect(result.method?.id).toBe('t-test')
+      expect(result.method?.id).toBe('two-sample-t')
     })
 
     it('대소문자 혼합 → 정상 감지 (case insensitive)', async () => {
       const result = await intentRouter.classify('T-TEST 분석')
 
       expect(result.track).toBe('direct-analysis')
-      expect(result.method?.id).toBe('t-test')
+      expect(result.method?.id).toBe('two-sample-t')
     })
   })
 
@@ -363,14 +363,14 @@ describe('Intent Router — 비판적 검토', () => {
       const result = await intentRouter.classify('independent-t test 실행')
 
       expect(result.track).toBe('direct-analysis')
-      expect(result.method?.id).toBe('t-test')
+      expect(result.method?.id).toBe('two-sample-t')
     })
 
     it('alias "student-t" → t-test로 매핑', async () => {
       const result = await intentRouter.classify('student-t 해줘')
 
       expect(result.track).toBe('direct-analysis')
-      expect(result.method?.id).toBe('t-test')
+      expect(result.method?.id).toBe('two-sample-t')
     })
 
     it('paired-t 감지', async () => {
@@ -423,7 +423,7 @@ describe('Intent Router — 비판적 검토', () => {
       const result = await intentRouter.classify('무언가')
 
       expect(result.track).toBe('direct-analysis')
-      expect(result.method?.id).toBe('anova')
+      expect(result.method?.id).toBe('one-way-anova')
       expect(result.method?.name).toEqual(expect.any(String))
       expect(result.reasoning).toBe('ANOVA 적합')
     })
@@ -566,7 +566,7 @@ describe('Intent Router — 비판적 검토', () => {
       const result = await intentRouter.classify('일원분산분석')
 
       expect(result.track).toBe('direct-analysis')
-      expect(result.method?.id).toBe('anova')
+      expect(result.method?.id).toBe('one-way-anova')
     })
 
     it('"카이제곱 독립성 검정" (전체) → chi-square-independence 매칭', async () => {

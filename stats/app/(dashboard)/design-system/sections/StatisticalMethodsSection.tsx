@@ -36,7 +36,7 @@ import {
   getMethodByIdOrAlias,
   getMethodRoute,
   getAllMethods,
-  type StatisticalMethodWithAliases,
+  type StatisticalMethodEntry,
 } from '@/lib/constants/statistical-methods'
 
 // DecisionTree에서 지원하는 메서드 목록 (KOREAN_NAMES에서 추출)
@@ -505,17 +505,14 @@ function IdNamingRules() {
 function DecisionTreeCoverageTable() {
   const allMethods = useMemo(() => getAllMethods(), [])
 
-  // 독립 페이지가 있는 메서드만 필터링 (hasOwnPage !== false)
+  // 독립 페이지가 있는 메서드만 필터링 (id === pageId)
   const independentMethods = useMemo(() => {
-    return allMethods.filter(m => {
-      const full = STATISTICAL_METHODS[m.id]
-      return full?.hasOwnPage !== false
-    })
+    return allMethods.filter(m => m.id === m.pageId)
   }, [allMethods])
 
   // 카테고리별 그룹화
   const methodsByCategory = useMemo(() => {
-    const grouped: Record<string, StatisticalMethodWithAliases[]> = {}
+    const grouped: Record<string, StatisticalMethodEntry[]> = {}
     for (const method of independentMethods) {
       const cat = method.category
       if (!grouped[cat]) grouped[cat] = []
@@ -623,7 +620,7 @@ function DecisionTreeCoverageTable() {
                     {methods.map(method => {
                       globalIndex++
                       const isSupported = DECISION_TREE_SUPPORTED.has(method.id)
-                      const hasPage = method.hasOwnPage !== false
+                      const hasPage = method.id === method.pageId
 
                       return (
                         <TableRow key={method.id} className={!isSupported ? 'bg-red-50/50 dark:bg-red-950/10' : ''}>
@@ -753,7 +750,7 @@ export function StatisticalMethodsSection() {
             </div>
           </div>
           <div className="text-sm">
-            <p className="font-medium mb-2">Embedded Methods (hasOwnPage: false):</p>
+            <p className="font-medium mb-2">Embedded Methods (pageId !== id):</p>
             <div className="space-y-1 text-muted-foreground">
               <div className="flex items-center gap-2">
                 <code className="bg-muted px-1 rounded text-xs">paired-t</code>

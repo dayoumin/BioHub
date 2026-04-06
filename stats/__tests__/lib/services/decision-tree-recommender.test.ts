@@ -219,7 +219,7 @@ describe('DecisionTreeRecommender', () => {
         mockDataIndependent
       )
 
-      expect(result.method.id).toBe('t-test')
+      expect(result.method.id).toBe('two-sample-t')
       expect(result.method.name).toBe('독립표본 t-검정')
       expect(result.confidence).toBeGreaterThanOrEqual(0.85)
       expect(result.reasoning.some(r => r.includes('그룹'))).toBe(true)
@@ -299,7 +299,7 @@ describe('DecisionTreeRecommender', () => {
         mockDataPaired
       )
 
-      expect(result.method.id).toBe('wilcoxon')
+      expect(result.method.id).toBe('wilcoxon-signed-rank')
       expect(result.method.name).toBe('Wilcoxon 부호순위 검정')
       expect(result.confidence).toBeGreaterThanOrEqual(0.85)
       expect(result.reasoning.some(r => r.includes('대응표본'))).toBe(true)
@@ -319,7 +319,7 @@ describe('DecisionTreeRecommender', () => {
         mockData3Groups
       )
 
-      expect(result.method.id).toBe('anova')
+      expect(result.method.id).toBe('one-way-anova')
       expect(result.method.name).toContain('일원')
       expect(result.confidence).toBeGreaterThanOrEqual(0.85)
       expect(result.reasoning.some(r => r.includes('3개'))).toBe(true)
@@ -436,7 +436,7 @@ describe('DecisionTreeRecommender', () => {
         mockDataRelationship
       )
 
-      expect(result.method.id).toBe('correlation')
+      expect(result.method.id).toBe('pearson-correlation')
       expect(result.method.name).toBe('Pearson 상관분석')
       expect(result.confidence).toBeGreaterThanOrEqual(0.85)
       expect(result.reasoning.some(r => r.includes('정규성'))).toBe(true)
@@ -456,7 +456,7 @@ describe('DecisionTreeRecommender', () => {
         mockDataRelationship
       )
 
-      expect(result.method.id).toBe('correlation')
+      expect(result.method.id).toBe('pearson-correlation')
       expect(result.method.name).toBe('Spearman 상관분석')
       expect(result.confidence).toBeGreaterThanOrEqual(0.85)
       expect(result.reasoning.some(r => r.includes('정규성 미충족'))).toBe(true)
@@ -476,7 +476,7 @@ describe('DecisionTreeRecommender', () => {
         mockDataRelationship
       )
 
-      expect(result.method.id).toBe('correlation')
+      expect(result.method.id).toBe('pearson-correlation')
       expect(result.confidence).toBeGreaterThanOrEqual(0.85)
     })
 
@@ -520,7 +520,7 @@ describe('DecisionTreeRecommender', () => {
       )
 
       // Relationship 추천은 수치형 변수가 < 2일 때 descriptive-stats로 fallback
-      expect(result.method.id).toBe('descriptive')
+      expect(result.method.id).toBe('descriptive-stats')
       expect(result.confidence).toBeGreaterThan(0)
     })
   })
@@ -541,7 +541,7 @@ describe('DecisionTreeRecommender', () => {
         mockDataIndependent
       )
 
-      expect(result.method.id).toBe('descriptive')
+      expect(result.method.id).toBe('descriptive-stats')
       expect(result.method.name).toContain('기술통계')
       expect(result.confidence).toBeGreaterThanOrEqual(0.85)
       expect(result.reasoning.some(r => r.includes('분포') || r.includes('빈도'))).toBe(true)
@@ -564,7 +564,7 @@ describe('DecisionTreeRecommender', () => {
         mockDataIndependent
       )
 
-      expect(result.method.id).toBe('regression')
+      expect(result.method.id).toBe('simple-regression')
       expect(result.method.name).toContain('단순')
       expect(result.confidence).toBeGreaterThanOrEqual(0.85)
       expect(result.reasoning.some(r => r.includes('독립변수') || r.includes('회귀'))).toBe(true)

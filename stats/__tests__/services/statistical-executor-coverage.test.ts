@@ -9,22 +9,22 @@ import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 describe('StatisticalExecutor Method Coverage', () => {
   // 카테고리별로 executeMethod에서 라우팅되는 메서드들
   const EXECUTOR_SUPPORTED_CATEGORIES = {
-    't-test': ['t-test', 'welch-t', 'one-sample-t', 'paired-t'],
-    'anova': ['anova', 'two-way-anova', 'welch-anova', 'repeated-measures-anova', 'ancova', 'manova', 'mixed-model'],
+    't-test': ['two-sample-t', 'welch-t', 'one-sample-t', 'paired-t'],
+    'anova': ['one-way-anova', 'two-way-anova', 'repeated-measures-anova', 'ancova', 'manova', 'mixed-model'],
     'nonparametric': [
-      'mann-whitney', 'wilcoxon', 'kruskal-wallis', 'friedman', 'chi-square',
+      'mann-whitney', 'wilcoxon-signed-rank', 'kruskal-wallis', 'friedman',
       'sign-test', 'mcnemar', 'cochran-q', 'binomial-test', 'runs-test',
-      'ks-test', 'mood-median', 'proportion-test', 'non-parametric'
+      'kolmogorov-smirnov', 'mood-median', 'one-sample-proportion'
     ],
-    'correlation': ['correlation', 'partial-correlation'],
-    'regression': ['regression', 'logistic-regression', 'poisson', 'ordinal-regression', 'stepwise', 'dose-response', 'response-surface'],
+    'correlation': ['pearson-correlation', 'partial-correlation'],
+    'regression': ['simple-regression', 'logistic-regression', 'poisson-regression', 'ordinal-regression', 'stepwise-regression', 'dose-response', 'response-surface'],
     'chi-square': ['chi-square-goodness', 'chi-square-independence'],
-    'descriptive': ['descriptive', 'normality-test', 'explore-data', 'means-plot'],
-    'timeseries': ['arima', 'seasonal-decompose', 'stationarity-test', 'mann-kendall'],
+    'descriptive': ['descriptive-stats', 'normality-test', 'explore-data', 'means-plot'],
+    'timeseries': ['arima', 'seasonal-decompose', 'stationarity-test', 'mann-kendall-test'],
     'survival': ['kaplan-meier', 'cox-regression', 'roc-curve'],
-    'multivariate': ['pca', 'factor-analysis', 'cluster', 'discriminant'],
+    'multivariate': ['pca', 'factor-analysis', 'cluster', 'discriminant-analysis'],
     'design': ['power-analysis'],
-    'psychometrics': ['reliability']
+    'psychometrics': ['reliability-analysis']
   }
 
   describe('Category-Method Mapping', () => {
@@ -51,14 +51,14 @@ describe('StatisticalExecutor Method Coverage', () => {
       expect(method.category).toBe('design')
     })
 
-    it('비모수 검정 14개가 모두 매핑되어야 함', () => {
+    it('비모수 검정 12개가 모두 매핑되어야 함', () => {
       const nonparametricMethods = EXECUTOR_SUPPORTED_CATEGORIES.nonparametric
-      expect(nonparametricMethods.length).toBe(14)
+      expect(nonparametricMethods.length).toBe(12)
 
       const expectedMethods = [
-        'mann-whitney', 'wilcoxon', 'kruskal-wallis', 'friedman', 'chi-square',
+        'mann-whitney', 'wilcoxon-signed-rank', 'kruskal-wallis', 'friedman',
         'sign-test', 'mcnemar', 'cochran-q', 'binomial-test', 'runs-test',
-        'ks-test', 'mood-median', 'proportion-test'
+        'kolmogorov-smirnov', 'mood-median', 'one-sample-proportion'
       ]
 
       expectedMethods.forEach(method => {
@@ -74,7 +74,7 @@ describe('StatisticalExecutor Method Coverage', () => {
 
     it('다변량 분석에 discriminant가 포함되어야 함', () => {
       const multivariateMethods = EXECUTOR_SUPPORTED_CATEGORIES.multivariate
-      expect(multivariateMethods).toContain('discriminant')
+      expect(multivariateMethods).toContain('discriminant-analysis')
     })
   })
 
@@ -107,18 +107,18 @@ describe('StatisticalExecutor Method Coverage', () => {
   describe('Previously Failing Methods', () => {
     // 이전에 "지원되지 않는" 오류가 발생했던 메서드들
     const previouslyFailingMethods = [
-      'power-analysis',    // "지원되지 않는 다변량 분석"
-      'sign-test',         // "지원되지 않는 비모수 검정"
+      'power-analysis',          // "지원되지 않는 다변량 분석"
+      'sign-test',               // "지원되지 않는 비모수 검정"
       'mcnemar',
       'cochran-q',
       'binomial-test',
       'runs-test',
-      'ks-test',
+      'kolmogorov-smirnov',      // was 'ks-test'
       'mood-median',
-      'proportion-test',
-      'kaplan-meier',      // "생존 분석은 아직 구현되지 않았습니다"
+      'one-sample-proportion',   // was 'proportion-test'
+      'kaplan-meier',            // "생존 분석은 아직 구현되지 않았습니다"
       'cox-regression',
-      'discriminant'       // "지원되지 않는 다변량 분석"
+      'discriminant-analysis'    // was 'discriminant'
     ]
 
     previouslyFailingMethods.forEach(methodId => {

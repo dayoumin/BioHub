@@ -83,9 +83,12 @@ export function registerMethod(entry: MethodRegistration): void {
       name: entry.name,
       description: entry.description ?? '',
       category: entry.category,
-      aliases: entry.aliases,
-      koreanName: entry.koreanName,
-      koreanDescription: entry.koreanDescription,
+      pageId: entry.id,
+      aliases: entry.aliases ?? [],
+      koreanName: entry.koreanName ?? entry.name,
+      koreanDescription: entry.koreanDescription ?? entry.description ?? '',
+      searchTerms: [],
+      isDataTool: false,
     }
   }
 }

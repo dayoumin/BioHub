@@ -21,18 +21,18 @@ describe('cross-module consistency', () => {
     // statistical-methods의 핵심 카테고리별 대표 메서드가
     // variable-requirements에도 대응 항목이 있는지
     const categoryRepresentatives = [
-      { smId: 't-test', vrIds: ['two-sample-t', 'one-sample-t'] },
-      { smId: 'anova', vrIds: ['one-way-anova'] },
+      { smId: 'two-sample-t', vrIds: ['two-sample-t', 'one-sample-t'] },
+      { smId: 'one-way-anova', vrIds: ['one-way-anova'] },
       { smId: 'ancova', vrIds: ['ancova'] },
       { smId: 'mann-whitney', vrIds: ['mann-whitney'] },
-      { smId: 'correlation', vrIds: ['pearson-correlation', 'spearman-correlation'] },
-      { smId: 'regression', vrIds: ['simple-regression', 'multiple-regression'] },
+      { smId: 'pearson-correlation', vrIds: ['pearson-correlation', 'spearman-correlation'] },
+      { smId: 'simple-regression', vrIds: ['simple-regression', 'multiple-regression'] },
       { smId: 'chi-square-independence', vrIds: ['chi-square-independence'] },
       { smId: 'kaplan-meier', vrIds: ['kaplan-meier'] },
       { smId: 'cox-regression', vrIds: ['cox-regression'] },
       { smId: 'roc-curve', vrIds: ['roc-curve'] },
       { smId: 'pca', vrIds: ['pca'] },
-      { smId: 'descriptive', vrIds: ['descriptive-stats'] },
+      { smId: 'descriptive-stats', vrIds: ['descriptive-stats'] },
     ]
 
     it.each(categoryRepresentatives)(
@@ -159,7 +159,7 @@ describe('cross-module consistency', () => {
   describe('커버리지 수준', () => {
     it('statistical-methods의 독립 페이지 메서드 대부분이 variable-requirements에 대응', () => {
       const independentMethods = Object.values(STATISTICAL_METHODS).filter(
-        (m) => m.hasOwnPage !== false,
+        (m) => m.id === m.pageId,
       )
       const vrIds = new Set(STATISTICAL_METHOD_REQUIREMENTS.map((r) => r.id))
 

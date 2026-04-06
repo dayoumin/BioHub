@@ -48,18 +48,17 @@ interface MethodScore {
  */
 export const METHOD_KEYWORDS: Record<string, string[]> = {
   // --- 그룹 비교 (compare) ---
-  't-test': ['독립표본', '두 그룹', '두 집단', '실험군', '대조군', 'independent sample', 'two group'],
+  'two-sample-t': ['독립표본', '두 그룹', '두 집단', '실험군', '대조군', 'independent sample', 'two group'],
   'welch-t': ['등분산', '분산 다른', 'welch', 'unequal variance'],
   'one-sample-t': ['단일표본', '모집단 평균', 'one sample', 'population mean'],
   'paired-t': ['전후', '전/후', '사전사후', '사전/사후', '대응표본', 'paired', 'before after', 'pre post', 'matched'],
-  'anova': ['세 그룹', '3개 그룹', '세 집단', '여러 그룹', 'three group', 'multiple group'],
-  'welch-anova': ['등분산 없', 'welch anova'],
+  'one-way-anova': ['세 그룹', '3개 그룹', '세 집단', '여러 그룹', 'three group', 'multiple group', '등분산 없', 'welch anova'],
   'repeated-measures-anova': ['반복측정', '반복 측정', '여러 시점', 'repeated measure', 'within subject'],
   'ancova': ['공변량', '공분산분석', 'covariate', 'ancova'],
   'manova': ['다변량 분산', '여러 종속', 'manova', 'multiple dependent'],
   'mixed-model': ['혼합효과', '랜덤효과', '고정효과', 'mixed effect', 'random effect', 'hierarchical'],
   'mann-whitney': ['비모수 독립', '비모수 두', '비모수', '비정규', '정규분포 아닌', 'nonparametric', 'non-normal', 'mann-whitney'],
-  'wilcoxon': ['비모수 대응', '비모수 전후', '비모수 사전', '비모수 사후', '비모수', '부호순위', 'wilcoxon', 'signed rank'],
+  'wilcoxon-signed-rank': ['비모수 대응', '비모수 전후', '비모수 사전', '비모수 사후', '비모수', '부호순위', 'wilcoxon', 'signed rank'],
   'kruskal-wallis': ['비모수 세 그룹', '비모수 여러', 'kruskal'],
   'friedman': ['비모수 반복', 'friedman'],
   'sign-test': ['부호검정', 'sign test'],
@@ -67,36 +66,36 @@ export const METHOD_KEYWORDS: Record<string, string[]> = {
   'means-plot': ['평균 도표', '평균 그래프', '평균 플롯', 'means plot'],
 
   // --- 관계/연관성 (relationship) ---
-  'correlation': ['상관', '피어슨', '스피어만', 'pearson', 'spearman'],
+  'pearson-correlation': ['상관', '피어슨', '스피어만', 'pearson', 'spearman'],
   'partial-correlation': ['편상관', '통제 상관', 'partial correlation', 'controlling for'],
   'chi-square-independence': ['카이제곱', '독립성', '교차표', '빈도표', 'chi-square', 'cross tab', 'contingency'],
   'mcnemar': ['맥니마', '이분 대응', 'mcnemar'],
   'cochran-q': ['코크란', 'cochran'],
 
   // --- 예측 모델링 (prediction) ---
-  'regression': ['선형 회귀', '단순 회귀', '다중 회귀', 'linear regression', 'multiple regression'],
+  'simple-regression': ['선형 회귀', '단순 회귀', '다중 회귀', 'linear regression', 'multiple regression'],
   'logistic-regression': ['로지스틱', '이분 분류', '이항 분류', 'logistic', 'binary classification'],
-  'poisson': ['포아송', '빈도 데이터', '건수 데이터', 'poisson', 'count data'],
+  'poisson-regression': ['포아송', '빈도 데이터', '건수 데이터', 'poisson', 'count data'],
   'ordinal-regression': ['순서형 회귀', '서열 회귀', 'ordinal regression'],
-  'stepwise': ['단계적 회귀', '변수 선택', 'stepwise', 'variable selection'],
+  'stepwise-regression': ['단계적 회귀', '변수 선택', 'stepwise', 'variable selection'],
   'dose-response': ['용량 반응', 'dose response', 'dose-response'],
   'response-surface': ['반응 표면', 'response surface', 'rsm'],
 
   // --- 분포/기술통계 (descriptive) ---
-  'descriptive': ['기술통계', '요약 통계', 'descriptive', 'summary statistics'],
+  'descriptive-stats': ['기술통계', '요약 통계', 'descriptive', 'summary statistics'],
   'normality-test': ['정규성', '정규분포', '샤피로', 'normality', 'shapiro', 'normal distribution'],
   'explore-data': ['탐색적', '데이터 탐색', 'explore', 'eda'],
   'binomial-test': ['이항검정', '성공 확률', 'binomial test'],
   'runs-test': ['런 검정', '무작위성', 'runs test', 'randomness test'],
-  'ks-test': ['분포 적합', 'kolmogorov', 'ks test'],
+  'kolmogorov-smirnov': ['분포 적합', 'kolmogorov', 'ks test'],
   'chi-square-goodness': ['적합도 검정', '기대빈도', 'goodness of fit'],
-  'proportion-test': ['비율 검정', 'proportion test'],
+  'one-sample-proportion': ['비율 검정', 'proportion test'],
 
   // --- 시계열 (timeseries) ---
   'arima': ['arima', '자기회귀', '이동평균 모형', 'autoregressive'],
   'seasonal-decompose': ['계절 분해', '계절성', 'seasonal decompose'],
   'stationarity-test': ['정상성', '단위근', 'stationarity', 'unit root', 'adf'],
-  'mann-kendall': ['추세 검정', 'mann-kendall', 'trend test'],
+  'mann-kendall-test': ['추세 검정', 'mann-kendall', 'trend test'],
 
   // --- 생존 분석 (survival) ---
   'kaplan-meier': ['카플란', '생존 곡선', 'kaplan', 'survival curve'],
@@ -107,11 +106,11 @@ export const METHOD_KEYWORDS: Record<string, string[]> = {
   'pca': ['주성분', '차원 축소', 'pca', 'principal component'],
   'factor-analysis': ['요인 분석', '잠재 변수', 'factor analysis', 'latent'],
   'cluster': ['군집 분석', '클러스터', '그룹핑', 'cluster', 'k-means'],
-  'discriminant': ['판별 분석', '판별 함수', 'discriminant', 'lda'],
+  'discriminant-analysis': ['판별 분석', '판별 함수', 'discriminant', 'lda'],
 
   // --- 측정/설계 (tools) ---
   'power-analysis': ['검정력', '표본 크기', '표본수', 'power analysis', 'sample size'],
-  'reliability': ['신뢰도', '크론바흐', '알파 계수', 'reliability', 'cronbach'],
+  'reliability-analysis': ['신뢰도', '크론바흐', '알파 계수', 'reliability', 'cronbach'],
 }
 
 /**

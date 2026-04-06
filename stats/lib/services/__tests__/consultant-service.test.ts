@@ -51,9 +51,9 @@ describe('consultant-service', () => {
       expect(result.recommendations[0]?.methodId).toBe('paired-t')
     })
 
-    it('"독립표본 두 그룹 비교" → t-test가 1순위', () => {
+    it('"독립표본 두 그룹 비교" → two-sample-t가 1순위', () => {
       const result = getRecommendations('독립표본 두 그룹 비교')
-      expect(result.recommendations[0]?.methodId).toBe('t-test')
+      expect(result.recommendations[0]?.methodId).toBe('two-sample-t')
     })
 
     it('"반복측정 비교" → repeated-measures-anova가 1순위', () => {
@@ -61,14 +61,14 @@ describe('consultant-service', () => {
       expect(result.recommendations[0]?.methodId).toBe('repeated-measures-anova')
     })
 
-    it('"비모수 대응 비교" → wilcoxon이 1순위', () => {
+    it('"비모수 대응 비교" → wilcoxon-signed-rank이 1순위', () => {
       const result = getRecommendations('비모수 대응 비교')
-      expect(result.recommendations[0]?.methodId).toBe('wilcoxon')
+      expect(result.recommendations[0]?.methodId).toBe('wilcoxon-signed-rank')
     })
 
-    it('"상관 관계 분석" → correlation이 1순위', () => {
+    it('"상관 관계 분석" → pearson-correlation이 1순위', () => {
       const result = getRecommendations('상관 관계 분석')
-      expect(result.recommendations[0]?.methodId).toBe('correlation')
+      expect(result.recommendations[0]?.methodId).toBe('pearson-correlation')
     })
 
     it('"카이제곱 연관" → chi-square-independence가 1순위', () => {
@@ -93,18 +93,18 @@ describe('consultant-service', () => {
 
     it('2차 매칭 없으면 원래 순서 유지', () => {
       const result = getRecommendations('비교')
-      expect(result.recommendations[0]?.methodId).toBe('t-test')
+      expect(result.recommendations[0]?.methodId).toBe('two-sample-t')
     })
   })
 
   describe('동점 시 clarification 생성', () => {
     it('카테고리 내 동점 → 동점 메서드 전부 표시', () => {
-      // "비모수 비교" → mann-whitney("비모수"), wilcoxon("비모수") 둘 다 1점
+      // "비모수 비교" → mann-whitney("비모수"), wilcoxon-signed-rank("비모수") 둘 다 1점
       const result = getRecommendations('비모수 비교')
       expect(result.clarification).toBeDefined()
       const optionIds = result.clarification?.options.map(o => o.methodId) ?? []
       expect(optionIds).toContain('mann-whitney')
-      expect(optionIds).toContain('wilcoxon')
+      expect(optionIds).toContain('wilcoxon-signed-rank')
     })
 
     it('"전후 비교" → 1위 명확 → clarification 없음', () => {

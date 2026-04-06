@@ -5,13 +5,11 @@
  * Used by PurposeInputStep to show all available methods after purpose selection
  */
 
-import { STATISTICAL_METHODS, type StatisticalMethodWithAliases } from '@/lib/constants/statistical-methods'
+import { STATISTICAL_METHODS, type StatisticalMethodEntry } from '@/lib/constants/statistical-methods'
 import type { AnalysisPurpose, StatisticalMethod } from '@/types/analysis'
 
-// Filter out category overviews (hasOwnPage: false without parentPageId)
-const METHODS: StatisticalMethodWithAliases[] = Object.values(STATISTICAL_METHODS).filter(
-  m => m.hasOwnPage !== false || !!m.parentPageId
-)
+// All canonical entries are real methods (category overviews removed in SSOT refactoring)
+const METHODS: StatisticalMethodEntry[] = Object.values(STATISTICAL_METHODS)
 
 /**
  * Purpose -> Category mapping
@@ -178,5 +176,5 @@ export function getPopularMethods(): StatisticalMethod[] {
 
   return popularIds
     .map(id => STATISTICAL_METHODS[id])
-    .filter((m): m is StatisticalMethodWithAliases => m !== undefined)
+    .filter((m): m is StatisticalMethodEntry => m !== undefined)
 }

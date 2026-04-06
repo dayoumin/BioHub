@@ -62,7 +62,7 @@ describe('Intent Router', () => {
 
       expect(result.track).toBe('direct-analysis')
       expect(result.method).not.toBeNull()
-      expect(result.method?.id).toBe('t-test')
+      expect(result.method?.id).toBe('two-sample-t')
       expect(result.confidence).toBeGreaterThanOrEqual(0.8)
       expect(result.provider).toBe('keyword')
     })
@@ -86,7 +86,7 @@ describe('Intent Router', () => {
       const result = await intentRouter.classify('I want to run correlation')
 
       expect(result.track).toBe('direct-analysis')
-      expect(result.method?.id).toBe('correlation')
+      expect(result.method?.id).toBe('pearson-correlation')
     })
 
     // --- Track 2: 데이터 상담 ---
@@ -183,7 +183,7 @@ describe('Intent Router', () => {
       const result = await intentRouter.classify('두 그룹의 평균을 비교하고 싶어')
 
       expect(result.track).toBe('direct-analysis')
-      expect(result.method?.id).toBe('t-test')
+      expect(result.method?.id).toBe('two-sample-t')
       expect(result.confidence).toBe(0.85)
       expect(result.provider).toBe('llm')
     })

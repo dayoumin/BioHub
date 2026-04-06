@@ -57,7 +57,7 @@ function makeAiContext(overrides: Partial<AiRecommendationContext> = {}): AiReco
 
 function makeMinimalResult(overrides: Partial<AnalysisResult> = {}): AnalysisResult {
   return {
-    method: 't-test',
+    method: 'two-sample-t',
     statistic: 2.3,
     pValue: 0.03,
     interpretation: '유의한 차이가 있습니다.',
@@ -71,7 +71,7 @@ function makeHistoryRecord(overrides: Record<string, unknown> = {}) {
     timestamp: Date.now(),
     name: '이전 분석',
     purpose: '그룹 비교',
-    method: { id: 't-test', name: 't-검정', category: 't-test' },
+    method: { id: 'two-sample-t', name: 't-검정', category: 't-test' },
     dataFileName: 'data.csv',
     dataRowCount: 100,
     results: makeMinimalResult(),
@@ -257,7 +257,7 @@ describe('saveToHistory — aiRecommendation 포함/미포함', () => {
   it('lastAiRecommendation이 null이면 record.aiRecommendation도 null이다', async () => {
     act(() => {
       // results만 설정, AI 추천 없이 수동 분석
-      useAnalysisStore.getState().setResults(makeMinimalResult({ method: 'anova', pValue: 0.001 }))
+      useAnalysisStore.getState().setResults(makeMinimalResult({ method: 'one-way-anova', pValue: 0.001 }))
     })
 
     await act(async () => {
@@ -325,7 +325,7 @@ describe('saveToHistory — aiRecommendation 포함/미포함', () => {
 
     // 두 번째 분석 (수동)
     act(() => {
-      useAnalysisStore.getState().setResults(makeMinimalResult({ method: 'anova' }))
+      useAnalysisStore.getState().setResults(makeMinimalResult({ method: 'one-way-anova' }))
       useModeStore.getState().setLastAiRecommendation(null) // 수동 선택
     })
     await act(async () => {
@@ -418,7 +418,7 @@ describe('loadFromHistory / loadSettingsFromHistory — lastAiRecommendation 초
     // After: lastAiRecommendation은 null
     expect(useModeStore.getState().lastAiRecommendation).toBeNull()
     // 설정은 복원됨
-    expect(useAnalysisStore.getState().selectedMethod?.id).toBe('t-test')
+    expect(useAnalysisStore.getState().selectedMethod?.id).toBe('two-sample-t')
     // 결과는 비워짐 (재분석 목적)
     expect(useAnalysisStore.getState().results).toBeNull()
   })
@@ -427,10 +427,10 @@ describe('loadFromHistory / loadSettingsFromHistory — lastAiRecommendation 초
     act(() => {
       useAnalysisStore.setState({
         analysisPurpose: '이전 분석',
-        selectedMethod: { id: 't-test', name: 't-검정', description: 'desc', category: 't-test' },
+        selectedMethod: { id: 'two-sample-t', name: 't-검정', description: 'desc', category: 't-test' },
         variableMapping: { dependentVar: 'score', groupVar: 'group' },
         analysisOptions: { alpha: 0.01, showAssumptions: false, showEffectSize: false, testValue: 5 },
-        results: { pValue: 0.03, statistic: 2.1, method: 't-test', interpretation: '유의함' },
+        results: { pValue: 0.03, statistic: 2.1, method: 'two-sample-t', interpretation: '유의함' },
         currentStep: 4,
         completedSteps: [1, 2, 3, 4],
         uploadedFileName: 'history.csv',
