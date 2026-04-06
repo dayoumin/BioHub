@@ -12,6 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useTerminology } from '@/hooks/use-terminology'
 
 export interface ResultSummaryCardProps {
   /** Test name (e.g., "Sign Test", "Mann-Whitney U") */
@@ -66,6 +67,7 @@ export function ResultSummaryCard({
   className
 }: ResultSummaryCardProps) {
   const [copied, setCopied] = React.useState(false)
+  const t = useTerminology()
 
   const apaString = generateFullAPAString(statistic.name, statistic.value, statistic.df, pValue, effectSize)
 
@@ -89,8 +91,8 @@ export function ResultSummaryCard({
   // Default conclusion based on significance
   const displayConclusion = conclusion || (
     isSignificant
-      ? '귀무가설을 기각합니다 (통계적으로 유의미한 차이가 있습니다)'
-      : '귀무가설을 기각하지 못합니다 (통계적으로 유의미한 차이가 없습니다)'
+      ? t.results.conclusion.significant
+      : t.results.conclusion.notSignificant
   )
 
   if (compact) {

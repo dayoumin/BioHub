@@ -18,6 +18,7 @@ import {
 
 export interface ResultsHeroCardProps {
   statisticalResult: StatisticalResult
+  methodId?: string
   isSignificant: boolean
   assumptionsPassed: boolean
   resultTimestamp: Date
@@ -36,6 +37,7 @@ export interface ResultsHeroCardProps {
 
 export function ResultsHeroCard({
   statisticalResult,
+  methodId,
   isSignificant,
   assumptionsPassed,
   resultTimestamp,
@@ -45,12 +47,12 @@ export function ResultsHeroCard({
   prefersReducedMotion,
   t,
 }: ResultsHeroCardProps): React.ReactElement {
-  const methodEntry = STATISTICAL_METHODS[statisticalResult.testName] || null
-  const showBinaryConclusion = !methodEntry?.isDataTool && 
-    methodEntry?.category !== 'multivariate' && 
-    methodEntry?.category !== 'design' &&
-    methodEntry?.id !== 'arima' && 
-    methodEntry?.id !== 'seasonal-decompose'
+  const methodEntry = methodId ? STATISTICAL_METHODS[methodId] : (STATISTICAL_METHODS[statisticalResult.testName] || null)
+  const showBinaryConclusion = methodEntry ? (!methodEntry.isDataTool && 
+    methodEntry.category !== 'multivariate' && 
+    methodEntry.category !== 'design' &&
+    methodEntry.id !== 'arima' && 
+    methodEntry.id !== 'seasonal-decompose') : false
 
   // 비가설 검정의 경우 배경/아이콘 처리를 위한 변수
   const highlightAsSuccess = showBinaryConclusion ? isSignificant : true

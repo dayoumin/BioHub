@@ -888,6 +888,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         {/* ===== [Phase 0] Hero 컴팩트 바 ===== */}
         <ResultsHeroCard
           statisticalResult={statisticalResult}
+          methodId={selectedMethod?.id}
           isSignificant={isSignificant}
           assumptionsPassed={assumptionsPassed}
           resultTimestamp={resultTimestamp}

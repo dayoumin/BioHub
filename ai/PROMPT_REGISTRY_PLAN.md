@@ -70,8 +70,46 @@ d:/Projects/BioHub/ai/
 
 ---
 
-## 5. 다음 실행 단계 (Next Steps)
+## 5. Phase 0: 사전 조사 — 먼저 찾고, 그 다음에 만든다
 
-1. **프롬프트 템플릿 마크다운 작성**: `ai/prompts/` 폴더를 생성하고, 가장 빈도가 높을 `gen_results_stats.md`와 `review_factcheck.md` 초안을 파일로 생성해 봅니다.
-2. **기존 API 연동부 결합 테스트**: 프롬프트가 문자열로 조합되어 API `system_instruction`에 성공적으로 꽂히는지 테스트.
-3. **사용자 인터페이스(UX) 노출**: 분석 완료 후 사용자가 "학술 논문 모드" vs "요약 보고서 모드"를 버튼으로 고르면 해당 템플릿 파츠가 동적으로 전환되도록 UI 설계.
+> **원칙**: 프롬프트를 직접 만들기 전에, 이미 잘 만들어진 자원을 먼저 수집·평가한다. 바퀴를 재발명하지 않는다.
+
+### 5-1. 조사 대상 (Sources to Survey)
+
+#### A. ARIS 스킬 파일 직접 분석
+- ARIS 저장소의 `skills/` 폴더 내 각 `SKILL.md`를 열람하여 BioHub에 이식 가능한 것을 분류
+- 우선 확인 대상:
+  - `skills/research-pipeline/` — 논문 초안 생성 파이프라인 구조
+  - `skills/rebuttal/` — 논문 리뷰 대응 전략 (반박 프롬프트 구조 참고)
+  - `skills/semantic-scholar/` — 문헌 검색 프롬프트 설계
+  - `skills/meta-optimize/` — 프롬프트 자기 최적화 메커니즘
+
+#### B. 논문 작성 전용 프롬프트 라이브러리 조사
+- **Awesome Prompts / PromptBase** 등: 학술 논문 작성 특화 프롬프트 커뮤니티 자료
+- **Anthropic Cookbook / OpenAI Cookbook**: Anti-hallucination, 수치 재현 강제 등 신뢰성 가이드라인 예시
+- **Papers With Code**: LLM 기반 논문 자동화 관련 최신 arXiv 논문의 프롬프트 공개 자료
+- **Fabric (danielmiessler/fabric)**: 용도별 패턴 마크다운(PATTERN.md) 수백 개 — 학술 요약, 분석 리뷰 패턴 참고 가능
+
+#### C. 기존 BioHub 내부 프롬프트 현황 점검
+- `stats/lib/services/ai/prompts.ts` — 현재 분석 추천·결과 해석 프롬프트 원문 재확인
+- `ai/llm-integration.md` — 현재 가이드라인에서 이미 정의된 규칙 추출
+- Paper Package Assembly의 anti-hallucination 지시사항 (`docs/PLAN-PAPER-PACKAGE-ASSEMBLY.md`) 재검토
+
+### 5-2. 조사 결과 분류 기준
+
+각 사전 조사 결과를 아래 3가지로 분류하여 `ai/prompts/00_survey/` 폴더에 기록:
+
+| 분류 | 설명 | 처리 |
+|------|------|------|
+| **그대로 이식** | BioHub 요구사항에 바로 맞는 것 | `ai/prompts/` 하위로 복사 후 최소 수정 |
+| **참고 후 변형** | 구조나 아이디어는 좋지만 맥락이 다른 것 | 패턴만 차용하고 BioHub 맞춤 재작성 |
+| **불필요** | 일반적이거나 너무 다른 도메인 | 기록만 남기고 보류 |
+
+### 5-3. 사전 조사 완료 후 진행
+
+사전 조사가 끝난 뒤 다음 단계로 이동:
+
+1. **프롬프트 초안 작성**: 조사 결과를 반영하여 `gen_results_stats.md`, `review_factcheck.md` 초안 생성
+2. **기존 API 연동부 결합 테스트**: 프롬프트가 문자열로 조합되어 API `system_instruction`에 성공적으로 꽂히는지 테스트
+3. **UX 노출**: 분석 완료 후 "학술 논문 모드" vs "요약 보고서 모드" 전환 UI 설계
+
