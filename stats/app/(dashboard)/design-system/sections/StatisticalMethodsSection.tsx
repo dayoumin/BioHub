@@ -36,7 +36,7 @@ import {
   getMethodByIdOrAlias,
   getMethodRoute,
   getAllMethods,
-  type StatisticalMethodWithAliases,
+  type StatisticalMethodEntry,
 } from '@/lib/constants/statistical-methods'
 
 // DecisionTree에서 지원하는 메서드 목록 (KOREAN_NAMES에서 추출)
@@ -512,7 +512,7 @@ function DecisionTreeCoverageTable() {
 
   // 카테고리별 그룹화
   const methodsByCategory = useMemo(() => {
-    const grouped: Record<string, StatisticalMethodWithAliases[]> = {}
+    const grouped: Record<string, StatisticalMethodEntry[]> = {}
     for (const method of independentMethods) {
       const cat = method.category
       if (!grouped[cat]) grouped[cat] = []

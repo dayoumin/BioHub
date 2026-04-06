@@ -17,7 +17,7 @@ import {
   getMethodRoute,
   isValidMethodId,
   getKoreanName,
-  type StatisticalMethodWithAliases,
+  type StatisticalMethodEntry,
 } from '@/lib/constants/statistical-methods'
 
 // ============================================================================
@@ -131,7 +131,7 @@ describe('statistical-methods contract', () => {
     })
 
     it.each(
-      embeddedMethods.map((m) => [m.id, m] as [string, StatisticalMethodWithAliases])
+      embeddedMethods.map((m) => [m.id, m] as [string, StatisticalMethodEntry])
     )('%s: pageId가 유효한 페이지를 가리켜야 함', (_id, method) => {
       // pageId로 STATISTICAL_METHODS에서 조회 가능해야 함 (alias로라도)
       expect(STATISTICAL_METHODS[method.pageId]).toBeDefined()

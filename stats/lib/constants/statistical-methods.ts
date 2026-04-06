@@ -42,9 +42,6 @@ export interface StatisticalMethodEntry extends StatisticalMethod {
   isDataTool: boolean
 }
 
-/** @deprecated Use StatisticalMethodEntry instead */
-export type StatisticalMethodWithAliases = StatisticalMethodEntry
-
 // ============================================
 // Internal Registry (_METHODS)
 // ============================================
