@@ -699,9 +699,20 @@ const _METHODS: Record<string, StatisticalMethodEntry> = {
 const _aliasIndex = new Map<string, string>()
 for (const m of Object.values(_METHODS)) {
   for (const alias of m.aliases) {
-    // Only index aliases that are NOT canonical keys themselves
     if (!(alias in _METHODS)) {
       _aliasIndex.set(alias, m.id)
+    }
+  }
+}
+
+/**
+ * Register additional aliases at runtime (for dynamically registered methods).
+ * Called by method-registry.ts registerMethod() to keep alias index in sync.
+ */
+export function registerAliases(canonicalId: string, aliases: string[]): void {
+  for (const alias of aliases) {
+    if (alias !== canonicalId && !_METHODS[alias]) {
+      _aliasIndex.set(alias, canonicalId)
     }
   }
 }

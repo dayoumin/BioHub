@@ -26,8 +26,8 @@ interface ChiSquareSelectorProps extends VariableSelectorProps {
   methodId?: string
 }
 
-const GOODNESS_IDS = new Set(['chi-square-goodness', 'proportion-test'])
-const BINARY_ONLY_IDS = new Set(['mcnemar', 'proportion-test'])
+const GOODNESS_IDS = new Set(['chi-square-goodness', 'proportion-test', 'one-sample-proportion'])
+const BINARY_ONLY_IDS = new Set(['mcnemar', 'proportion-test', 'one-sample-proportion'])
 
 export function ChiSquareSelector({
   data,
@@ -113,7 +113,7 @@ export function ChiSquareSelector({
       if (rowVar && colVar && rowVar === colVar) errors.push('서로 다른 변수를 선택하세요')
     } else {
       if (!colVar) errors.push('검정 변수를 선택하세요')
-      if (methodId === 'proportion-test') {
+      if (BINARY_ONLY_IDS.has(methodId ?? '') && methodId !== 'mcnemar') {
         if (nullProportionNum === null || nullProportionNum <= 0 || nullProportionNum >= 1) {
           errors.push('귀무가설 비율은 0 초과 1 미만이어야 합니다')
         }
@@ -138,7 +138,7 @@ export function ChiSquareSelector({
       onComplete({
         dependentVar: colVar ?? undefined,
         // proportion-test: nullProportion을 string으로 전달 (VariableMapping index signature 준수)
-        ...(methodId === 'proportion-test' && nullProportionNum !== null && {
+        ...(BINARY_ONLY_IDS.has(methodId ?? '') && methodId !== 'mcnemar' && nullProportionNum !== null && {
           nullProportion: String(nullProportionNum)
         })
       })

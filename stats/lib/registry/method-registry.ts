@@ -1,5 +1,5 @@
 import type { SelectorType } from './selector-types'
-import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
+import { STATISTICAL_METHODS, registerAliases } from '@/lib/constants/statistical-methods'
 import type { StatisticalMethod } from '@/types/analysis'
 
 export interface MethodRequirements {
@@ -90,6 +90,11 @@ export function registerMethod(entry: MethodRegistration): void {
       searchTerms: [],
       isDataTool: false,
     }
+  }
+
+  // Sync alias index for dynamic registrations
+  if (entry.aliases?.length) {
+    registerAliases(entry.id, entry.aliases)
   }
 }
 

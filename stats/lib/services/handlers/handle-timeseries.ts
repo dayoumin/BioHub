@@ -35,7 +35,7 @@ export async function handleTimeSeries(method: StatisticalMethod, data: Prepared
   }
 
   // Mann-Kendall 추세 검정 — 전용 Worker 1 함수 사용 (Generated.MannKendallTestResult)
-  if (method.id === 'mann-kendall') {
+  if (method.id === 'mann-kendall' || method.id === 'mann-kendall-test') {
     const result = await pyodideStats.mannKendallTest(timeData)
     return {
       metadata: {

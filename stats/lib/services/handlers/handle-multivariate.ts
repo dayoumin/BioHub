@@ -105,7 +105,7 @@ export async function handleMultivariate(method: StatisticalMethod, data: Prepar
   }
 
   // Build result based on method type
-  if (method.id === 'discriminant') {
+  if (method.id === 'discriminant' || method.id === 'discriminant-analysis') {
     // LDA-specific result mapping
     const ldaAccuracy = result.accuracy || 0
     const ldaTotalVariance = result.totalVariance || 0
