@@ -48,7 +48,6 @@ export const PURPOSE_CATEGORIES: PurposeCategory[] = [
       'one-sample-t',
       'paired-t',
       'one-way-anova',
-      'welch-anova',
       'repeated-measures-anova',
       'ancova',
       'manova',
