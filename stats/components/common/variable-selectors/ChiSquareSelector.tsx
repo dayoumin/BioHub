@@ -28,6 +28,7 @@ interface ChiSquareSelectorProps extends VariableSelectorProps {
 
 const GOODNESS_IDS = new Set(['chi-square-goodness', 'proportion-test', 'one-sample-proportion'])
 const BINARY_ONLY_IDS = new Set(['mcnemar', 'proportion-test', 'one-sample-proportion'])
+const PROPORTION_IDS = new Set(['proportion-test', 'one-sample-proportion'])
 
 export function ChiSquareSelector({
   data,
@@ -63,7 +64,7 @@ export function ChiSquareSelector({
   const [colVar, setColVar] = useState<string | null>(
     toSingleVar(initialSelection?.dependentVar)
   )
-  // proportion-test 전용: 귀무가설 비율 p₀ (0.01 ~ 0.99)
+  // 비율검정 전용: 귀무가설 비율 p₀ (0.01 ~ 0.99)
   const [nullProportion, setNullProportion] = useState<string>('0.5')
 
   useEffect(() => {
@@ -283,7 +284,7 @@ export function ChiSquareSelector({
                 {colVar && <Badge variant="default" className="ml-auto">{colVar}</Badge>}
               </div>
               <CardDescription className="text-xs">
-                {methodId === 'proportion-test'
+                {PROPORTION_IDS.has(methodId ?? '')
                   ? '이진(Binary) 범주형 변수를 선택하세요'
                   : '관측 빈도를 검정할 범주형 변수를 선택하세요'}
               </CardDescription>
@@ -317,8 +318,8 @@ export function ChiSquareSelector({
             </CardContent>
           </Card>
 
-          {/* proportion-test 전용: 귀무가설 비율 입력 */}
-          {methodId === 'proportion-test' && (
+          {/* 비율검정 전용: 귀무가설 비율 입력 */}
+          {PROPORTION_IDS.has(methodId ?? '') && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">귀무가설 비율 (p₀)</CardTitle>
