@@ -95,7 +95,7 @@ npm test -- --watch __tests__/library-compliance/integration-flow.test.ts
   - [ ] Q 통계량 및 p-값 반환
   - [ ] 최소 3개 조건 검증
 
-- [ ] **Kaplan-Meier** (lifelines)
+- [ ] **Kaplan-Meier** (statsmodels SurvfuncRight + survdiff)
   - [ ] 생존 함수 단조 감소 확인
   - [ ] 중앙 생존 시간 계산
   - [ ] 검열 데이터 처리

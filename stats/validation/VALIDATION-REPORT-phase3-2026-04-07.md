@@ -221,7 +221,7 @@
 - **statsmodels**: `PHReg` 기본 `ties='breslow'` ([source](https://www.statsmodels.org/v0.14.1/generated/statsmodels.duration.hazard_regression.PHReg.html))
 - **R**: `coxph` 기본 `ties='efron'` ([survival docs](https://stat.ethz.ch/R-manual/R-devel/library/survival/html/coxph.html))
 - **수정**: `ties='efron'`으로 변경하여 R과 일치 — Efron이 학술적으로 더 정확 (Efron 1977, "Efficiency of Cox's likelihood function for censored data")
-- **lifelines**: Pyodide 미지원 (worker5 주석 확인). statsmodels PHReg가 Efron 지원하므로 문제 없음
+- **참고**: lifelines Pyodide 미지원. KM은 statsmodels SurvfuncRight + survdiff로 전환 완료. Cox는 statsmodels PHReg(Efron) 사용
 
 ### stationarity-test: ADF regression type
 

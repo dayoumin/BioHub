@@ -37,7 +37,7 @@ Python과 R이 **다른 알고리즘**을 사용하여 결과가 "일치"가 아
 | MANOVA (worker3) | worker3:832 | statsmodels | PASS | — |
 | MANOVA (worker2) | worker2:2081 | statsmodels + 수동 | PASS | dead code (TS→worker3), placeholder 제거 |
 | Mixed Model | worker2:1869 | statsmodels MixedLM | **수정됨** | BUG 3건 + ISSUE 3건 + Finding 2건 |
-| Kaplan-Meier (worker5) | worker5:159 | 자체 구현 | PASS | 완전한 hand-implementation |
+| Kaplan-Meier (worker5) | worker5:159 | statsmodels SurvfuncRight + survdiff | PASS | 자체 구현 → statsmodels 전환 완료 (LRE 15.0) |
 | Kaplan-Meier (worker4) | worker4:1426 | lifelines | PASS | CI 미반환 (worker5가 커버) |
 | Cochran Q | worker3:604 | statsmodels | PASS | — |
 | Mann-Kendall | worker1:361 | 자체 구현 | **수정됨** | tie correction 누락 수정 |
