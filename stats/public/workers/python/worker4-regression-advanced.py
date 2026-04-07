@@ -1482,10 +1482,11 @@ def cox_regression(times, events, covariateData, covariateNames):
     conf_int_df = result.conf_int()
     confidence_intervals = []
     if conf_int_df is not None:
-        for idx in range(len(conf_int_df)):
+        conf_int_arr = np.asarray(conf_int_df)
+        for idx in range(len(conf_int_arr)):
             confidence_intervals.append({
-                'lower': float(conf_int_df.iloc[idx, 0]),
-                'upper': float(conf_int_df.iloc[idx, 1])
+                'lower': float(conf_int_arr[idx, 0]),
+                'upper': float(conf_int_arr[idx, 1])
             })
 
     concordance = None

@@ -14,6 +14,11 @@
     {
       "name": "proportion_test",
       "source": "synthetic count data (different from binomial-test)",
+      "data": {
+        "successes": 72,
+        "total": 200,
+        "nullProportion": 0.4
+      },
       "n": {
         "successes": 72,
         "total": 200

@@ -452,7 +452,12 @@ def partial_correlation(
 
     df_residual = n - k - 2
 
-    r = corr_result.statistic
+    r = float(np.clip(corr_result.statistic, -1.0, 1.0))
+
+    # Compute p-value with correct df=n-k-2 (pearsonr uses df=n-2)
+    t_stat = r * np.sqrt(df_residual / (1 - r ** 2)) if abs(r) < 1 else np.inf
+    p_value = float(2 * stats.t.sf(np.abs(t_stat), df_residual)) if df_residual > 0 else 1.0
+
     z = np.arctanh(r)
     se = 1 / np.sqrt(df_residual - 1)
     z_crit = 1.96  # 95% confidence interval
@@ -464,7 +469,7 @@ def partial_correlation(
 
     return {
         'correlation': float(r),
-        'pValue': _safe_float(corr_result.pvalue),
+        'pValue': p_value,
         'df': int(df_residual),
         'nObservations': int(n),
         'confidenceInterval': {
@@ -1630,7 +1635,6 @@ def poisson_regression(
     """
     import pandas as pd
     import statsmodels.api as sm
-    from statsmodels.formula.api import poisson
     from scipy.stats import chi2
 
     # Convert to DataFrame
@@ -1646,8 +1650,8 @@ def poisson_regression(
     # Build formula: count ~ var1 + var2 + ...
     formula = f'{dependent_var} ~ {" + ".join(independent_vars)}'
 
-    # Fit Poisson model
-    model = poisson(formula, data=df_clean).fit()
+    # Fit Poisson model via GLM (GLMResults exposes deviance, pearson_chi2, etc.)
+    model = sm.GLM.from_formula(formula, data=df_clean, family=sm.families.Poisson()).fit()
 
     # Model info
     model_info = {
@@ -1656,19 +1660,20 @@ def poisson_regression(
         'distribution': 'Poisson',
         'nObservations': int(model.nobs),
         'nPredictors': len(independent_vars),
-        'convergence': model.mle_retvals['converged'],
-        'iterations': int(model.mle_retvals.get('iterations', 0)),
+        'convergence': bool(model.converged),
+        'iterations': int(getattr(model, 'fit_history', {}).get('iteration', 0)),
         'logLikelihood': float(model.llf)
     }
 
     # Coefficients
     coefficients = []
+    conf_int_df = model.conf_int()
     for var in model.params.index:
         coef = float(model.params[var])
         se = float(model.bse[var])
         z_val = float(model.tvalues[var])
         p_val = float(model.pvalues[var])
-        ci = model.conf_int().loc[var]
+        ci = conf_int_df.loc[var]
 
         # IRR (Incidence Rate Ratio) = exp(coefficient)
         exp_coef = np.exp(coef)
@@ -1694,8 +1699,8 @@ def poisson_regression(
         'pearsonChi2': float(model.pearson_chi2),
         'aic': float(model.aic),
         'bic': float(model.bic),
-        'pseudoRSquaredMcfadden': float(model.prsquared),
-        'pseudoRSquaredDeviance': 1 - (model.deviance / model.null_deviance),
+        'pseudoRSquaredMcfadden': float(1 - model.llf / model.llnull) if model.llnull != 0 else 0.0,
+        'pseudoRSquaredDeviance': float(1 - model.deviance / model.null_deviance) if model.null_deviance != 0 else 0.0,
         'dispersionParameter': float(model.scale)
     }
 
@@ -1739,7 +1744,7 @@ def poisson_regression(
         predicted_values.append({
             'observation': i + 1,
             'actualCount': float(df_clean[dependent_var].iloc[i]),
-            'predictedCount': float(predicted.iloc[i]),
+            'predictedCount': float(predicted[i]),
             'residual': float(residuals.iloc[i]),
             'pearsonResidual': float(pearson_resid.iloc[i]),
             'devianceResidual': float(deviance_resid.iloc[i])

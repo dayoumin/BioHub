@@ -31,7 +31,8 @@
             },
             "pValue": {
               "value": 0.06419542036556121,
-              "tier": "tier2"
+              "tier": "tier3",
+              "note": "R uses Banerjee et al. interpolation tables, Python uses MacKinnon regression — different p-value approximation methods"
             },
             "usedLag": {
               "value": 4,

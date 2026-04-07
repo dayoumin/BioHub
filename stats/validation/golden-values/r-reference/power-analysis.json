@@ -14,6 +14,25 @@
     {
       "name": "power_fixtures",
       "source": "parameter fixtures",
+      "data": {
+        "tTest": {
+          "d": 0.5,
+          "alpha": 0.05,
+          "power": 0.8
+        },
+        "anova": {
+          "k": 3,
+          "f": 0.25,
+          "alpha": 0.05,
+          "power": 0.8
+        },
+        "chiSquare": {
+          "w": 0.3,
+          "df": 2,
+          "alpha": 0.05,
+          "power": 0.8
+        }
+      },
       "cases": [
         {
           "description": "Power for two-sample t-test (d=0.5, alpha=0.05, power=0.8)",

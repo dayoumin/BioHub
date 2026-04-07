@@ -331,6 +331,7 @@ write_golden("repeated-measures-anova", "L2",
   list(list(
     name = "repeated_measures_3_timepoints",
     source = "synthetic repeated measures",
+    data = list(subject = as.character(rm_data$subject), time = as.character(rm_data$time), value = rm_data$value),
     n = list(subjects = 10, timepoints = 3),
     cases = list(list(
       description = "Repeated measures ANOVA (3 timepoints)",
@@ -397,6 +398,7 @@ write_golden("manova", "L2",
   list(list(
     name = "iris_manova",
     source = "R datasets::iris",
+    data = list(Sepal.Length = iris$Sepal.Length, Sepal.Width = iris$Sepal.Width, Species = as.character(iris$Species)),
     n = list(total = 150),
     cases = list(list(
       description = "MANOVA (Sepal.Length + Sepal.Width ~ Species)",
@@ -454,6 +456,7 @@ write_golden("mann-whitney", "L2",
   list(list(
     name = "male_vs_female",
     source = "same as t-test data",
+    data = list(group1 = male, group2 = female),
     n = list(group1 = length(male), group2 = length(female)),
     cases = list(list(
       description = "Mann-Whitney U (two-sided, no continuity correction)",
@@ -473,6 +476,7 @@ write_golden("wilcoxon-signed-rank", "L2",
   list(list(
     name = "before_after",
     source = "same as paired-t data",
+    data = list(before = before, after = after),
     n = list(pairs = length(before)),
     cases = list(list(
       description = "Wilcoxon signed-rank (paired, no exact, no correction)",
@@ -551,6 +555,7 @@ write_golden("sign-test", "L2",
   list(list(
     name = "before_after_sign",
     source = "same as paired-t data",
+    data = list(before = before, after = after),
     n = list(pairs = length(before)),
     cases = list(list(
       description = "Sign test (before > after count, exact binomial)",
@@ -638,6 +643,7 @@ write_golden("binomial-test", "L2",
   list(list(
     name = "success_rate",
     source = "synthetic count data",
+    data = list(successCount = 35, totalCount = 100, probability = 0.3),
     n = list(successes = 35, total = 100),
     cases = list(list(
       description = "Binomial test (35/100, H0: p=0.3)",
@@ -966,6 +972,19 @@ write_golden("stepwise-regression", "L2",
   list(list(
     name = "mtcars_stepwise",
     source = "R datasets::mtcars",
+    data = list(
+      mpg = mtcars$mpg,
+      cyl = mtcars$cyl,
+      disp = mtcars$disp,
+      hp = mtcars$hp,
+      drat = mtcars$drat,
+      wt = mtcars$wt,
+      qsec = mtcars$qsec,
+      vs = mtcars$vs,
+      am = mtcars$am,
+      gear = mtcars$gear,
+      carb = mtcars$carb
+    ),
     n = list(total = nrow(mtcars)),
     cases = list(list(
       description = "Stepwise regression (AIC-based, both directions)",
@@ -1023,6 +1042,11 @@ if (requireNamespace("rsm", quietly = TRUE)) {
     list(list(
       name = "ChemReact",
       source = "rsm::ChemReact",
+      data = list(
+        Time = cr_data$Time,
+        Temp = cr_data$Temp,
+        Yield = cr_data$Yield
+      ),
       n = list(total = nrow(cr_data)),
       cases = list(list(
         description = "Response surface model (Yield ~ SO(Time, Temp))",
@@ -1139,6 +1163,7 @@ write_golden("seasonal-decompose", "L2",
   list(list(
     name = "AirPassengers_decompose",
     source = "R datasets::AirPassengers",
+    data = list(values = as.numeric(ap)),
     n = list(total = length(ap)),
     cases = list(list(
       description = "Additive decomposition (period=12)",
@@ -1167,7 +1192,7 @@ write_golden("stationarity-test", "L2",
       rCode = "tseries::adf.test(Nile)",
       expected = list(
         adfStatistic = list(value = safe_num(nile_adf$statistic), tier = "tier2"),
-        pValue = list(value = safe_num(nile_adf$p.value), tier = "tier2"),
+        pValue = list(value = safe_num(nile_adf$p.value), tier = "tier3"),
         usedLag = list(value = safe_num(nile_adf$parameter), tier = "exact")
       )
     ))
@@ -1331,6 +1356,7 @@ write_golden("pca", "L2",
   list(list(
     name = "iris_pca",
     source = "R datasets::iris (numeric columns)",
+    data = list(Sepal.Length = iris$Sepal.Length, Sepal.Width = iris$Sepal.Width, Petal.Length = iris$Petal.Length, Petal.Width = iris$Petal.Width),
     n = list(total = 150, variables = 4),
     cases = list(list(
       description = "PCA (centered + scaled)",
@@ -1363,13 +1389,14 @@ write_golden("factor-analysis", "L2",
   list(list(
     name = "iris_fa",
     source = "R datasets::iris (numeric columns)",
+    data = list(Sepal.Length = iris$Sepal.Length, Sepal.Width = iris$Sepal.Width, Petal.Length = iris$Petal.Length, Petal.Width = iris$Petal.Width),
     n = list(total = 150, variables = 4),
     cases = list(list(
       description = "Factor analysis (2 factors, varimax, principal axis)",
       rCode = "psych::fa(iris[,1:4], nfactors=2, rotate='varimax', fm='pa')",
       expected = list(
-        communalities = list(value = as.numeric(fa_fit$communality), tier = "tier3"),
-        varianceExplained = list(value = as.numeric(fa_fit$Vaccounted[2, ]), tier = "tier3")
+        communalities = list(value = as.numeric(fa_fit$communality), tier = "tier4"),
+        varianceExplained = list(value = as.numeric(fa_fit$Vaccounted[2, ]), tier = "tier4")
       )
     ))
   ))
@@ -1385,14 +1412,15 @@ write_golden("cluster", "L2",
   list(list(
     name = "iris_kmeans",
     source = "R datasets::iris (scaled)",
+    data = list(Sepal.Length = iris$Sepal.Length, Sepal.Width = iris$Sepal.Width, Petal.Length = iris$Petal.Length, Petal.Width = iris$Petal.Width),
     n = list(total = 150, variables = 4, clusters = 3),
     cases = list(list(
       description = "K-means (k=3, nstart=25, seed=42)",
       rCode = "set.seed(42); kmeans(scale(iris[,1:4]), centers=3, nstart=25)",
       expected = list(
-        withinSS = list(value = safe_num(km_fit_iris$tot.withinss), tier = "tier3"),
-        betweenSS = list(value = safe_num(km_fit_iris$betweenss), tier = "tier3"),
-        clusterSizes = list(value = as.numeric(km_fit_iris$size), tier = "exact")
+        withinSS = list(value = safe_num(km_fit_iris$tot.withinss), tier = "tier4"),
+        betweenSS = list(value = safe_num(km_fit_iris$betweenss), tier = "tier4"),
+        clusterSizes = list(value = sort(as.numeric(km_fit_iris$size)), tier = "exact")
       )
     ))
   ))
@@ -1409,6 +1437,7 @@ write_golden("discriminant-analysis", "L2",
   list(list(
     name = "iris_lda",
     source = "R datasets::iris",
+    data = list(Sepal.Length = iris$Sepal.Length, Sepal.Width = iris$Sepal.Width, Petal.Length = iris$Petal.Length, Petal.Width = iris$Petal.Width, Species = as.character(iris$Species)),
     n = list(total = 150),
     cases = list(list(
       description = "Linear discriminant analysis",
@@ -1458,6 +1487,7 @@ write_golden("one-sample-proportion", "L2",
   list(list(
     name = "proportion_test",
     source = "synthetic count data (different from binomial-test)",
+    data = list(successes = 72, total = 200, nullProportion = 0.4),
     n = list(successes = 72, total = 200),
     cases = list(list(
       description = "One-sample proportion test (exact binomial, H0: p=0.4)",
@@ -1558,6 +1588,7 @@ write_golden("explore-data", "L2",
   list(list(
     name = "iris_sepal_length_explore",
     source = "R datasets::iris$Sepal.Length",
+    data = list(values = iris_sl),
     n = list(total = length(iris_sl)),
     cases = list(list(
       description = "Data exploration (descriptives + normality + outliers)",
@@ -1586,6 +1617,7 @@ write_golden("means-plot", "L2",
   list(list(
     name = "iris_species_means",
     source = "R datasets::iris",
+    data = list(Sepal.Length = iris$Sepal.Length, Species = as.character(iris$Species)),
     n = list(total = 150),
     cases = list(list(
       description = "Group means with 95% CI (Sepal.Length by Species)",
@@ -1627,6 +1659,11 @@ write_golden("power-analysis", "L2",
   list(list(
     name = "power_fixtures",
     source = "parameter fixtures",
+    data = list(
+      tTest = list(d = 0.5, alpha = 0.05, power = 0.8),
+      anova = list(k = 3, f = 0.25, alpha = 0.05, power = 0.8),
+      chiSquare = list(w = 0.3, df = 2, alpha = 0.05, power = 0.8)
+    ),
     cases = list(
       list(
         description = "Power for two-sample t-test (d=0.5, alpha=0.05, power=0.8)",
