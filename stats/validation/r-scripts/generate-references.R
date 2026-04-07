@@ -123,6 +123,7 @@ write_golden("two-sample-t", "L2",
   list(list(
     name = "male_vs_female_weight",
     source = "BioHub test-data equivalent",
+    data = list(group1 = male, group2 = female),
     n = list(group1 = length(male), group2 = length(female)),
     cases = list(list(
       description = "Student's t-test (equal variance assumed)",
@@ -151,6 +152,7 @@ write_golden("welch-t", "L2",
   list(list(
     name = "male_vs_female_weight_welch",
     source = "BioHub test-data equivalent",
+    data = list(group1 = male, group2 = female),
     n = list(group1 = length(male), group2 = length(female)),
     cases = list(list(
       description = "Welch's t-test (unequal variance)",
@@ -174,6 +176,7 @@ write_golden("one-sample-t", "L2",
   list(list(
     name = "one_sample_mu24",
     source = "synthetic data",
+    data = list(values = one_sample_data, popmean = 24),
     n = list(total = length(one_sample_data)),
     cases = list(list(
       description = "One-sample t-test (mu=24)",
@@ -198,6 +201,7 @@ write_golden("paired-t", "L2",
   list(list(
     name = "before_after_treatment",
     source = "synthetic paired data",
+    data = list(before = before, after = after),
     n = list(pairs = length(before)),
     cases = list(list(
       description = "Paired t-test (before vs after)",
@@ -244,6 +248,7 @@ write_golden("one-way-anova", "L1+L2",
   list(list(
     name = "three_group_comparison",
     source = "synthetic three-group data",
+    data = list(groups = list(g1, g2, g3)),
     n = list(g1 = 10, g2 = 10, g3 = 10),
     cases = list(list(
       description = "One-way ANOVA (3 groups)",
@@ -274,6 +279,11 @@ write_golden("two-way-anova", "L2",
   list(software = "R", `function` = "car::Anova", packages = list("car", "stats")),
   list(list(
     name = "ToothGrowth",
+    data = list(
+      value = tw_df$len,
+      factor1 = as.character(tw_df$supp),
+      factor2 = as.character(tw_df$dose)
+    ),
     source = "R datasets::ToothGrowth",
     n = list(total = nrow(tw_df)),
     cases = list(list(

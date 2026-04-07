@@ -1,0 +1,383 @@
+{
+  "runId": "2026-04-06T23:53:43.439Z",
+  "environment": {
+    "nodeVersion": "v22.22.2",
+    "pyodideVersion": "0.29.3",
+    "os": "win32 x64"
+  },
+  "tolerancePolicy": "tiered (exact/tier2/tier3/tier4)",
+  "summary": {
+    "totalMethods": 6,
+    "totalCases": 6,
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0,
+    "averageLRE": 14.786395280524326
+  },
+  "details": [
+    {
+      "method": "two-sample-t",
+      "dataset": "male_vs_female_weight",
+      "case": "Student's t-test (equal variance assumed)",
+      "status": "PASS",
+      "tier": "L2",
+      "fields": [
+        {
+          "path": "statistic",
+          "status": "PASS",
+          "certified": 7.694689845787828,
+          "actual": 7.694689845787818,
+          "lre": 14.896298217208004,
+          "tier": "tier2"
+        },
+        {
+          "path": "pValue",
+          "status": "PASS",
+          "certified": 2.209867680082458e-8,
+          "actual": 2.2098676800825144e-8,
+          "lre": 13.594257010689933,
+          "tier": "tier2"
+        },
+        {
+          "path": "cohensD",
+          "status": "PASS",
+          "certified": 2.80970346769596,
+          "actual": 2.809703467695957,
+          "lre": 14.956092226320102,
+          "tier": "tier2"
+        },
+        {
+          "path": "mean1",
+          "status": "PASS",
+          "certified": 45.266666666666666,
+          "actual": 45.266666666666666,
+          "lre": 15,
+          "tier": "tier2"
+        },
+        {
+          "path": "mean2",
+          "status": "PASS",
+          "certified": 39.82666666666667,
+          "actual": 39.826666666666675,
+          "lre": 15,
+          "tier": "tier2"
+        },
+        {
+          "path": "n1",
+          "status": "PASS",
+          "certified": 15,
+          "actual": 15,
+          "lre": 15,
+          "tier": "exact"
+        },
+        {
+          "path": "n2",
+          "status": "PASS",
+          "certified": 15,
+          "actual": 15,
+          "lre": 15,
+          "tier": "exact"
+        }
+      ],
+      "averageLRE": 14.77809249345972
+    },
+    {
+      "method": "welch-t",
+      "dataset": "male_vs_female_weight_welch",
+      "case": "Welch's t-test (unequal variance)",
+      "status": "PASS",
+      "tier": "L2",
+      "fields": [
+        {
+          "path": "statistic",
+          "status": "PASS",
+          "certified": 7.694689845787827,
+          "actual": 7.694689845787818,
+          "lre": 14.937690902366228,
+          "tier": "tier2"
+        },
+        {
+          "path": "pValue",
+          "status": "PASS",
+          "certified": 6.942313131511237e-8,
+          "actual": 6.942313131511387e-8,
+          "lre": 13.666705425513689,
+          "tier": "tier2"
+        },
+        {
+          "path": "n1",
+          "status": "PASS",
+          "certified": 15,
+          "actual": 15,
+          "lre": 15,
+          "tier": "exact"
+        },
+        {
+          "path": "n2",
+          "status": "PASS",
+          "certified": 15,
+          "actual": 15,
+          "lre": 15,
+          "tier": "exact"
+        }
+      ],
+      "averageLRE": 14.65109908196998
+    },
+    {
+      "method": "one-sample-t",
+      "dataset": "one_sample_mu24",
+      "case": "One-sample t-test (mu=24)",
+      "status": "PASS",
+      "tier": "L2",
+      "fields": [
+        {
+          "path": "statistic",
+          "status": "PASS",
+          "certified": 0.06375767130633248,
+          "actual": 0.06375767130633248,
+          "lre": 15,
+          "tier": "tier2"
+        },
+        {
+          "path": "pValue",
+          "status": "PASS",
+          "certified": 0.9505568135106218,
+          "actual": 0.9505568135106218,
+          "lre": 15,
+          "tier": "tier2"
+        },
+        {
+          "path": "sampleMean",
+          "status": "PASS",
+          "certified": 24.02,
+          "actual": 24.02,
+          "lre": 15,
+          "tier": "tier2"
+        },
+        {
+          "path": "n",
+          "status": "PASS",
+          "certified": 10,
+          "actual": 10,
+          "lre": 15,
+          "tier": "exact"
+        }
+      ],
+      "averageLRE": 15
+    },
+    {
+      "method": "paired-t",
+      "dataset": "before_after_treatment",
+      "case": "Paired t-test (before vs after)",
+      "status": "PASS",
+      "tier": "L2",
+      "fields": [
+        {
+          "path": "statistic",
+          "status": "PASS",
+          "certified": 18.272727272727273,
+          "actual": 18.272727272727273,
+          "lre": 15,
+          "tier": "tier2"
+        },
+        {
+          "path": "pValue",
+          "status": "PASS",
+          "certified": 2.01083419432917e-8,
+          "actual": 2.0108341943291704e-8,
+          "lre": 15,
+          "tier": "tier2"
+        },
+        {
+          "path": "meanDiff",
+          "status": "PASS",
+          "certified": 6.7,
+          "actual": 6.7,
+          "lre": 15,
+          "tier": "tier2"
+        },
+        {
+          "path": "nPairs",
+          "status": "PASS",
+          "certified": 10,
+          "actual": 10,
+          "lre": 15,
+          "tier": "exact"
+        }
+      ],
+      "averageLRE": 15
+    },
+    {
+      "method": "one-way-anova",
+      "dataset": "three_group_comparison",
+      "case": "One-way ANOVA (3 groups)",
+      "status": "PASS",
+      "tier": "L1+L2",
+      "fields": [
+        {
+          "path": "fStatistic",
+          "status": "PASS",
+          "certified": 139.8798283261802,
+          "actual": 139.8798283261803,
+          "lre": 15,
+          "tier": "tier2"
+        },
+        {
+          "path": "pValue",
+          "status": "PASS",
+          "certified": 5.644617730340623e-15,
+          "actual": 5.644617730340569e-15,
+          "lre": 14.015785011253094,
+          "tier": "tier2"
+        },
+        {
+          "path": "dfBetween",
+          "status": "PASS",
+          "certified": 2,
+          "actual": 2,
+          "lre": 15,
+          "tier": "exact"
+        },
+        {
+          "path": "dfWithin",
+          "status": "PASS",
+          "certified": 27,
+          "actual": 27,
+          "lre": 15,
+          "tier": "exact"
+        },
+        {
+          "path": "etaSquared",
+          "status": "PASS",
+          "certified": 0.9119832109129067,
+          "actual": 0.9119832109129067,
+          "lre": 15,
+          "tier": "tier2"
+        },
+        {
+          "path": "omegaSquared",
+          "status": "PASS",
+          "certified": 0.9025213365314888,
+          "actual": 0.9025213365314888,
+          "lre": 15,
+          "tier": "tier2"
+        },
+        {
+          "path": "ssBetween",
+          "status": "PASS",
+          "certified": 724.2666666666667,
+          "actual": 724.2666666666667,
+          "lre": 15,
+          "tier": "tier2"
+        },
+        {
+          "path": "ssWithin",
+          "status": "PASS",
+          "certified": 69.89999999999998,
+          "actual": 69.89999999999998,
+          "lre": 15,
+          "tier": "tier2"
+        },
+        {
+          "path": "ssTotal",
+          "status": "PASS",
+          "certified": 794.1666666666666,
+          "actual": 794.1666666666666,
+          "lre": 15,
+          "tier": "tier2"
+        }
+      ],
+      "averageLRE": 14.89064277902812
+    },
+    {
+      "method": "two-way-anova",
+      "dataset": "ToothGrowth",
+      "case": "Two-way ANOVA Type II (supp x dose)",
+      "status": "PASS",
+      "tier": "L2",
+      "fields": [
+        {
+          "path": "factor1.fStatistic",
+          "status": "PASS",
+          "certified": 15.571979452497247,
+          "actual": 15.571979452497162,
+          "lre": 14.26157237214673,
+          "tier": "tier2"
+        },
+        {
+          "path": "factor1.pValue",
+          "status": "PASS",
+          "certified": 0.0002311828097734242,
+          "actual": 0.00023118280977343247,
+          "lre": 13.44660541661368,
+          "tier": "tier2"
+        },
+        {
+          "path": "factor1.df",
+          "status": "PASS",
+          "certified": 1,
+          "actual": 1,
+          "lre": 15,
+          "tier": "exact"
+        },
+        {
+          "path": "factor2.fStatistic",
+          "status": "PASS",
+          "certified": 91.99996489286715,
+          "actual": 91.99996489286694,
+          "lre": 14.63507620310652,
+          "tier": "tier2"
+        },
+        {
+          "path": "factor2.pValue",
+          "status": "PASS",
+          "certified": 4.046291195992163e-18,
+          "actual": 4.046291195992346e-18,
+          "lre": 13.345608311088379,
+          "tier": "tier2"
+        },
+        {
+          "path": "factor2.df",
+          "status": "PASS",
+          "certified": 2,
+          "actual": 2,
+          "lre": 15,
+          "tier": "exact"
+        },
+        {
+          "path": "interaction.fStatistic",
+          "status": "PASS",
+          "certified": 4.106991094022526,
+          "actual": 4.10699109402254,
+          "lre": 14.460903561633684,
+          "tier": "tier2"
+        },
+        {
+          "path": "interaction.pValue",
+          "status": "PASS",
+          "certified": 0.02186026896479089,
+          "actual": 0.021860268964790572,
+          "lre": 13.835607422292574,
+          "tier": "tier2"
+        },
+        {
+          "path": "interaction.df",
+          "status": "PASS",
+          "certified": 2,
+          "actual": 2,
+          "lre": 15,
+          "tier": "exact"
+        },
+        {
+          "path": "residual.df",
+          "status": "PASS",
+          "certified": 54,
+          "actual": 54,
+          "lre": 15,
+          "tier": "exact"
+        }
+      ],
+      "averageLRE": 14.398537328688155
+    }
+  ]
+}

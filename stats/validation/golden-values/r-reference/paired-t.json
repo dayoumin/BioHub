@@ -8,12 +8,16 @@
       "stats"
     ]
   },
-  "generatedAt": "2026-04-06",
+  "generatedAt": "2026-04-07",
   "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
   "datasets": [
     {
       "name": "before_after_treatment",
       "source": "synthetic paired data",
+      "data": {
+        "before": [120, 115, 130, 125, 140, 118, 135, 122, 128, 133],
+        "after": [115, 110, 122, 118, 132, 112, 128, 116, 120, 126]
+      },
       "n": {
         "pairs": 10
       },

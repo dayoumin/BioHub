@@ -8,12 +8,19 @@
       "stats"
     ]
   },
-  "generatedAt": "2026-04-06",
+  "generatedAt": "2026-04-07",
   "rVersion": "R version 4.5.3 (2026-03-11 ucrt)",
   "datasets": [
     {
       "name": "three_group_comparison",
       "source": "synthetic three-group data",
+      "data": {
+        "groups": [
+          [23, 25, 24, 26, 27, 23, 24, 25, 28, 26],
+          [28, 30, 29, 31, 32, 30, 29, 31, 33, 30],
+          [35, 37, 36, 38, 39, 36, 35, 37, 40, 38]
+        ]
+      },
       "n": {
         "g1": 10,
         "g2": 10,

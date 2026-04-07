@@ -33,6 +33,7 @@
     "test:performance:watch": "vitest __tests__/performance/",
     "test:golden-values": "vitest run __tests__/workers/golden-values/python-calculation-accuracy.test.ts --reporter=verbose",
     "test:pyodide-golden": "node --experimental-vm-modules scripts/run-pyodide-golden-tests.mjs",
+    "test:validation": "node --experimental-vm-modules validation/scripts/run-validation.mjs",
     "test:effect-size-converter-pyodide": "node --experimental-vm-modules scripts/run-effect-size-converter-pyodide.mjs",
     "generate:vector-stores": "node scripts/rag/generate-metadata.js",
     "validate:statistics": "node scripts/statistics/validate-ui.js",
