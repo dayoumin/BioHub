@@ -695,16 +695,15 @@
       "category": "multivariate",
       "layer": "L2",
       "worker": "worker4-regression-advanced.py",
-      "pythonLib": "sklearn 1.4.0",
-      "pythonCall": "sklearn.decomposition.FactorAnalysis(n_components=k).fit(X)",
+      "pythonLib": "numpy (PAF+varimax custom)",
+      "pythonCall": "_principal_axis_factoring(corr, nFactors) + _varimax_rotation(loadings)",
       "rPackage": "psych",
-      "rCall": "psych::fa(X, nfactors=k, rotate='varimax')",
-      "knownDifferences": "rotation method, sign flips — compare communalities and variance explained",
-      "toleranceTier": "tier4",
+      "rCall": "psych::fa(X, nfactors=k, rotate='varimax', fm='pa')",
+      "knownDifferences": "Same PAF+varimax family, but implementation details differ (convergence, Heywood handling, varimax algorithm, eigensolver)",
+      "toleranceTier": "tier3",
       "outputFields": {
-        "loadings": "tier4",
         "communalities": "tier3",
-        "varianceExplained": "tier3"
+        "varianceExplained": "tier4"
       },
       "dataSource": "r-builtin",
       "dataFile": "datasets::ability.cov (psych)"

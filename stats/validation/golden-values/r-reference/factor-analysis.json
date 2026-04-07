@@ -32,12 +32,12 @@
             "communalities": {
               "value": [0.8803766481704202, 0.5368881221589274, 1.045671630579624, 0.8888195967592081],
               "tier": "tier3",
-              "note": "PAF + varimax — same algorithm as R, LAPACK eigensolver difference + Heywood case"
+              "note": "rotation-invariant — PAF implementation details differ across software"
             },
             "varianceExplained": {
               "value": [0.6337697556031909, 0.2041692438138537],
-              "tier": "tier3",
-              "note": "PAF + varimax — same algorithm as R, LAPACK eigensolver difference + Heywood case"
+              "tier": "tier4",
+              "note": "per-factor variance distribution depends on varimax implementation — informational"
             }
           }
         }

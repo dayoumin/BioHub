@@ -72,7 +72,7 @@ export const VALIDATION_METADATA: Readonly<Record<string, ValidationMeta>> = {
 
   // ── 다변량 (4) ─────────────────────────────────────────
   'pca':                     { pythonLib: 'sklearn 1.4.0',      lre:  7.9, isCustomImpl: false },
-  'factor-analysis':         { pythonLib: 'sklearn 1.4.0',      lre:  0.7, isCustomImpl: false },
+  'factor-analysis':         { pythonLib: 'numpy (PAF+varimax)', lre:  2.6, isCustomImpl: true },
   'cluster':                 { pythonLib: 'sklearn 1.4.0',      lre:  6.4, isCustomImpl: false },
   'discriminant-analysis':   { pythonLib: 'sklearn 1.4.0',      lre: 15.0, isCustomImpl: false },
 

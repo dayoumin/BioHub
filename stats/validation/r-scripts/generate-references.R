@@ -1404,8 +1404,10 @@ write_golden("factor-analysis", "L2",
       description = "Factor analysis (2 factors, varimax, principal axis)",
       rCode = "psych::fa(iris[,1:4], nfactors=2, rotate='varimax', fm='pa')",
       expected = list(
-        communalities = list(value = as.numeric(fa_fit$communality), tier = "tier4"),
-        varianceExplained = list(value = as.numeric(fa_fit$Vaccounted[2, ]), tier = "tier4")
+        communalities = list(value = as.numeric(fa_fit$communality), tier = "tier3",
+          note = "rotation-invariant — PAF implementation details differ across software"),
+        varianceExplained = list(value = as.numeric(fa_fit$Vaccounted[2, ]), tier = "tier4",
+          note = "per-factor variance distribution depends on varimax implementation — informational")
       )
     ))
   ))

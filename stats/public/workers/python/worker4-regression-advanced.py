@@ -871,7 +871,7 @@ def negative_binomial_regression(xMatrix, yValues):
 
 
 def _principal_axis_factoring(corr_matrix, n_factors, max_iter=50, tol=0.001):
-    """Principal Axis Factoring — matches R psych::fa(fm='pa', min.err=0.001)"""
+    """Principal Axis Factoring — matches R psych::fa(fm='pa', min.err=0.001)."""
     p = corr_matrix.shape[0]
 
     # Initial communalities: squared multiple correlations (SMC), clipped to [0,1]
@@ -964,6 +964,10 @@ def factor_analysis_method(data, nFactors=2, rotation='varimax', extraction='pri
 
     n_samples, n_variables = X.shape
 
+    if n_samples < 3:
+        raise ValueError(f'Factor analysis requires at least 3 observations (got {n_samples})')
+    if nFactors > n_variables:
+        raise ValueError(f'Cannot extract {nFactors} factors from {n_variables} variables')
     if n_samples < nFactors:
         raise ValueError(f'Number of samples ({n_samples}) must be >= nFactors ({nFactors})')
 
@@ -1051,10 +1055,19 @@ def factor_analysis_method(data, nFactors=2, rotation='varimax', extraction='pri
 
 # Legacy factor_analysis method (kept for compatibility) — delegates to factor_analysis_method
 def factor_analysis(dataMatrix, nFactors=2, rotation='varimax'):
-    result = factor_analysis_method(dataMatrix, nFactors=nFactors, rotation=rotation)
+    data = np.array(dataMatrix, dtype=float)
+    if data.ndim == 1:
+        data = data.reshape(-1, 1)
+    if data.shape[0] < 3:
+        raise ValueError("Factor analysis requires at least 3 observations")
+    if data.shape[1] < nFactors:
+        raise ValueError(f"Cannot extract {nFactors} factors from {data.shape[1]} variables")
+
+    result = factor_analysis_method(data, nFactors=nFactors, rotation=rotation)
     eigenvalues = result['eigenvalues']
-    total_var = sum(eigenvalues) if eigenvalues else 0.0
-    explained_variance_ratio = [ev / total_var for ev in eigenvalues] if total_var > 0 else [0.0] * nFactors
+    n_variables = data.shape[1]
+    # Ratio relative to total variance (= p for correlation matrix), not sum of extracted eigenvalues
+    explained_variance_ratio = [ev / n_variables for ev in eigenvalues] if n_variables > 0 else [0.0] * nFactors
     return {
         'loadings': result['factorLoadings'],
         'communalities': result['communalities'],

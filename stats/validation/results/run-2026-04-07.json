@@ -1,5 +1,5 @@
 {
-  "runId": "2026-04-07T06:08:23.817Z",
+  "runId": "2026-04-07T06:54:38.601Z",
   "environment": {
     "nodeVersion": "v22.22.2",
     "pyodideVersion": "0.29.3",
@@ -1340,7 +1340,7 @@
           "certified": "[2 elements]",
           "actual": "[2 elements]",
           "lre": 2.5071852014566733,
-          "tier": "tier3"
+          "tier": "tier4"
         }
       ],
       "averageLRE": 2.6216876045836957

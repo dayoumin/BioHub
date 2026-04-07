@@ -12,14 +12,35 @@ Python과 R이 **다른 알고리즘**을 사용하여 결과가 "일치"가 아
 
 | 메서드 | LRE | Python | R | 차이 원인 | 상태 |
 |--------|-----|--------|---|-----------|------|
-| `factor-analysis` | ~~0.69~~ → **2.6** | ~~sklearn MLE~~ → NumPy PAF | psych PA | 동일 알고리즘, LAPACK 고유값분해 차이 + Heywood case | **tier3 승격** |
+| `factor-analysis` | ~~0.69~~ → **2.6** | ~~sklearn MLE~~ → NumPy PAF | psych PA | 같은 PAF+varimax 계열, 구현 세부 차이 (수렴·Heywood·varimax·eigensolver) | **tier3 승격** |
 | `arima` | **4.72** | statsmodels | stats::arima | 최적화 초기값 + 옵티마이저 차이 | tier3 적절 ✅ |
 | `ordinal-regression` | **4.81** | statsmodels OrderedModel | MASS::polr | threshold 파라미터화 방식 차이 | tier3 적절 ✅ |
 | `dose-response` | 5.83 | scipy curve_fit | drc::drm | 비선형 옵티마이저 수렴 차이 | tier3 |
 | `cluster` | 6.45 | sklearn KMeans (Lloyd) | stats::kmeans (Hartigan-Wong) | k-means 변형 알고리즘 차이 | tier3 |
 
 ### 재검토 결과 (2026-04-07)
-- **`factor-analysis`**: sklearn MLE → NumPy PAF(Principal Axis Factoring) + varimax 자체 구현으로 전환. R `psych::fa(fm='pa')`와 동일 알고리즘. LRE 0.69→2.6. tier4→tier3 승격. 잔차(LRE 2.6)는 LAPACK 고유값분해 구현 차이 + Iris Petal.Length Heywood case(communality>1.0)로 인한 수치 불안정성.
+
+#### `factor-analysis` — sklearn MLE → NumPy PAF 자체 구현 (LRE 0.69 → 2.6)
+
+**왜 자체 구현인가**: BioHub는 브라우저(Pyodide)에서 실행되므로 R을 직접 호출할 수 없다. JASP/jamovi는 R `psych::fa()`를 그대로 호출하여 R과 완전 일치하지만, 우리 환경에서는 불가능. Python `factor_analyzer` 패키지(제3자)는 Pyodide 미지원이고, 지원되더라도 R과의 일치도가 오히려 더 낮다(아래 비교 참조). 따라서 PAF+varimax를 NumPy로 직접 구현.
+
+**구현 세부**: R `psych::fa(fm='pa')`와 같은 PAF+varimax 계열이지만, 수렴 기준, Heywood case 처리, varimax 알고리즘(Horst/Kaiser pairwise vs R의 GPArotation), eigensolver(NumPy eigh/dsyevd vs R eigen/dsyev)가 달라 수치 차이가 남음.
+
+**검증 전략**: communalities(회전 불변)를 tier3(abs<0.01)로 검증. varianceExplained(per-factor 분배)는 varimax 구현 의존성이 커서 tier4 정보성 지표로 분리.
+
+**삼자 교차 비교** (R 4.5.3, psych 2.6.3 기준):
+
+| 데이터셋 | 구현체 | communalities vs R | varExplained vs R |
+|----------|--------|-------------------|-------------------|
+| Iris (4v, 2f, Heywood) | **BioHub PAF** | LRE 2.7, diff 0.002 | LRE 2.5, diff 0.001 |
+| | factor_analyzer 0.5.1 | LRE 0.1, diff 0.454 | LRE 0.4, diff 0.078 |
+| mtcars (11v, 3f) | **BioHub PAF** | LRE 2.3, diff 0.005 | LRE 0.5, diff 0.099 |
+| | factor_analyzer 0.5.1 | LRE 0.9, diff 0.102 | LRE 0.1, diff 0.209 |
+
+**업계 현황**: PAF는 반복 알고리즘이라 소프트웨어 간 소수점 2~3자리 차이가 정상이며 알려진 현상. SPSS/SAS/Stata 간에도 동일한 수준의 차이 존재. JASP/jamovi는 R psych를 직접 호출하므로 R과 완전 일치하나, 이는 동일 엔진 사용이지 독립 검증이 아님.
+
+**결론**: BioHub의 LRE 2.6(소수점 2~3자리 일치)은 SPSS↔R 수준의 차이에 해당하며, 현재 검증 등급 tier3(communalities) + tier4(varianceExplained)은 이 현실을 반영.
+
 - **`arima`** (4.72): tier3 **적절**. LRE 4.72 = 유효숫자 5자리 일치. 두 소프트웨어 모두 CSS-ML 사용하나 옵티마이저 초기값/수렴 기준이 다름. ARIMA 계수의 소프트웨어 간 표준 오차 범위 내.
 - **`ordinal-regression`** (4.81): tier3 **적절**. LRE 4.81 = 유효숫자 5자리 일치. 카테고리 파라미터화 차이(R factor vs Python Categorical). 검증 스크립트에서 순서 명시로 정렬 차이 제거됨.
 
