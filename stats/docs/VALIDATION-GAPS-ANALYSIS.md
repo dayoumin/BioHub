@@ -25,20 +25,45 @@ Python과 R이 **다른 알고리즘**을 사용하여 결과가 "일치"가 아
 
 ---
 
-## 2. 자체 구현 메서드 — 1개 (우선순위 2)
+## 2. 자체 구현 메서드 공식 대조 — 완료 (2026-04-07)
 
 `method-target-matrix.json`에 "custom"으로 기재된 10개 중 **9개는 라이브러리 사용** 확인됨 (2026-04-07).
-- kaplan-meier: `statsmodels.duration.survfunc`으로 전환 완료
-- 8개: matrix.json 정정 완료 (pythonLib + pythonCall)
+자체 구현 포함 총 **10개 메서드(12개 구현체)** 교과서 공식 대조 완료.
 
-진짜 자체 구현은 **1개**뿐:
+### 감사 결과 요약
 
-### 자체 구현 (Pyodide 제약으로 불가피)
-| 메서드 | 대체 불가 라이브러리 | 구현 내용 | R 대비 정밀도 |
-|--------|---------------------|-----------|--------------|
-| `mann-kendall-test` | `pymannkendall` (Pyodide 미지원, 순수 Python 650줄 — 교과서 공식 수준) | S 통계량 + 연속성 보정 z-근사 + Sen's slope (τ는 `scipy.stats.kendalltau` 사용) | LRE 13.0 (R과 소수점 13자리 일치) |
+| 메서드 | 위치 | 접근 방식 | 핵심 공식 | 발견 |
+|--------|------|-----------|-----------|------|
+| MANOVA (worker3) | worker3:832 | statsmodels | PASS | — |
+| MANOVA (worker2) | worker2:2081 | statsmodels + 수동 | PASS | dead code (TS→worker3), placeholder 제거 |
+| Mixed Model | worker2:1869 | statsmodels MixedLM | **수정됨** | BUG 3건 + ISSUE 3건 + Finding 2건 |
+| Kaplan-Meier (worker5) | worker5:159 | 자체 구현 | PASS | 완전한 hand-implementation |
+| Kaplan-Meier (worker4) | worker4:1426 | lifelines | PASS | CI 미반환 (worker5가 커버) |
+| Cochran Q | worker3:604 | statsmodels | PASS | — |
+| Mann-Kendall | worker1:361 | 자체 구현 | **수정됨** | tie correction 누락 수정 |
+| Runs Test | worker3:552 | statsmodels | PASS | — |
+| Mood Median | worker3:633 | scipy | PASS | — |
+| Sign Test | worker3:518 | scipy | PASS | — |
+| McNemar | worker3:580 | statsmodels | PASS | — |
+| Cronbach α | worker1:219 | pingouin | PASS | item diagnostics 미구현 |
 
-### 완료된 조치
+### 수정 내역
+
+**mann-kendall** (worker1): `Var(S)` tie correction 항 추가 — `[n(n-1)(2n+5) - Σtₚ(tₚ-1)(2tₚ+5)]/18`
+
+**mixed-model** (worker2): 총 9건 수정
+- `dependentVar` → `dependent_var` (런타임 크래시)
+- `formula` → `fixed_formula`, `re_formula` 제거 (미정의 변수/파라미터)
+- `fitted = result.fittedvalues` 복원 (삭제된 참조)
+- REML AIC/BIC NaN → ML 재피팅 fallback
+- R² → Nakagawa & Schielzeth (2013) 분산 분해 (`ddof=1`)
+- Levene + `durbin_watson` 실제 계산 (플레이스홀더 제거)
+- `fixedEffects`에서 `Group Var` 제외 (`fe_params` 기준)
+- `pValue`/`fStatistic` 최상위 키 추가 (handle-anova.ts 계약)
+
+**manova** (worker2, dead code): canonical/discriminant 하드코딩 제거, assumptions 실제 계산
+
+### 기존 완료 조치
 - [x] `kaplan-meier` → `statsmodels.duration.survfunc.SurvfuncRight + survdiff`로 전환 (LRE 15.0 유지 확인)
 - [x] `method-target-matrix.json` 8개 메서드 pythonLib/pythonCall 정정
 - [x] `validation-metadata.ts` 생성 — 50개 메서드별 라이브러리/LRE 메타데이터

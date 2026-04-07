@@ -10,6 +10,7 @@
 - [ ] **Poisson / Ordinal Regression Model-level p-value 추가**: Model-level `llrPValue` 누락 문제 개선 보완 (`handle-regression.ts`).
 - [ ] `generated types` (`OrdinalLogisticResult`, `PoissonRegressionResult`)의 불완전한 명세 수정 및 `any` 타입 캐스팅 3곳 정리.
 - [ ] MANOVA 등에 남아있는 `|| 0`, 불필요한 삼항연산자 클리닝 및 타입 재설계.
+- [ ] **worker2 `manova()` dead code 정리**: TS는 worker3으로 라우팅 — worker2 버전 제거 또는 주석 표기
 
 ## 3. ResultsHeroCard 추가 예외 처리 (Optional)
 - [ ] ResultsStatsCards.tsx 내에서도 비가설검정 (PCA, 군집화 등)의 p-value 카드를 좀 더 자연스럽게 숨기거나 적절한 값으로 표시할 수 있도록 개선 여부 검토.
@@ -51,7 +52,7 @@
 - [x] **kaplan-meier → statsmodels 전환**: `SurvfuncRight + survdiff` 사용, R 대비 LRE 15.0 유지 확인
 - [x] **method-target-matrix.json 정정**: 9개 메서드의 pythonLib/pythonCall을 실제 라이브러리 호출로 수정
 - [x] **검증 메타데이터 UI 표시**: `validation-metadata.ts` + ResultsHeroCard 배지 (라이브러리명 + R 검증 완료)
-- [ ] **자체 구현 1개 공식 대조**: mann-kendall(S+z+Sen's slope, LRE 13.0) — 교과서 공식 수준, 현상 유지
+- [x] **자체 구현 10개 공식 대조 완료**: 12개 구현체 감사 — BUG 3건 + ISSUE 4건 + Finding 2건 수정 (mann-kendall tie correction, mixed-model 7건, manova placeholder 제거)
 - [x] **엣지케이스 추가**: 분산 0, n=1, 완전 분리, 다중공선성, 전체 결측, 빈 팩터 — 6개 추가 (12/12 PASS)
 - [ ] **NIST 확장**: Filip(다항회귀), Longley(다중공선성) 추가
 
