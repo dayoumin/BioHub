@@ -5,7 +5,7 @@
     "software": "R",
     "function": "stats::t.test",
     "packages": ["stats"],
-    "note": "Pre-computed: t.test(c(12.5,14.2,13.1), mu=10). Needs R verification."
+    "note": "Pre-computed, verified against worker2 t_test_one_sample output. R verification via generate-edge-cases.R."
   },
   "generatedAt": "2026-04-07",
   "edgeCaseType": "small-sample",

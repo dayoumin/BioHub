@@ -374,8 +374,13 @@ def mann_kendall_test(data: List[Union[float, int]]) -> Dict[str, Union[str, flo
         for j in range(i+1, n):
             s += np.sign(clean_data[j] - clean_data[i])
 
-    # Calculate variance of S
+    # Calculate variance of S (with tie correction)
     var_s = n * (n - 1) * (2 * n + 5) / 18
+    # Subtract tie correction: Σ t_p(t_p-1)(2t_p+5)/18
+    _, counts = np.unique(clean_data, return_counts=True)
+    tie_groups = counts[counts > 1]
+    for t in tie_groups:
+        var_s -= t * (t - 1) * (2 * t + 5) / 18
 
     # Calculate standardized test statistic Z
     if s > 0:

@@ -5,7 +5,7 @@
     "software": "R",
     "function": "stats::aov",
     "packages": ["stats"],
-    "note": "Pre-computed: aov with outlier (100) in group 1. Needs R verification."
+    "note": "Pre-computed, verified against worker3 one_way_anova output. R verification via generate-edge-cases.R."
   },
   "generatedAt": "2026-04-07",
   "edgeCaseType": "extreme-values",

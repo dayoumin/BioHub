@@ -1,0 +1,33 @@
+{
+  "method": "edge-regression-collinear",
+  "layer": "L3",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::lm",
+    "packages": ["stats"],
+    "note": "lm(y ~ x1 + x2) where x2=2*x1: R drops collinear variable (coefficient=NA). Python may raise LinAlgError."
+  },
+  "generatedAt": "2026-04-07",
+  "edgeCaseType": "multicollinearity",
+  "description": "Multiple regression with perfect multicollinearity (x2 = 2*x1). Singular design matrix → should error gracefully, not crash.",
+  "datasets": [
+    {
+      "name": "perfect_collinearity",
+      "source": "synthetic: x2 is exact linear function of x1",
+      "data": {
+        "x1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        "x2": [2, 4, 6, 8, 10, 12, 14, 16, 18, 20],
+        "y": [2.1, 4.3, 5.8, 8.2, 9.9, 12.1, 14.5, 15.8, 18.3, 20.1]
+      },
+      "n": { "total": 10, "predictors": 2 },
+      "cases": [
+        {
+          "description": "Multiple regression with perfect collinearity (should raise error, not crash)",
+          "rCode": "lm(y ~ x1 + x2)  # x2 = 2*x1, singular matrix",
+          "expectBehavior": "no_crash",
+          "expected": {}
+        }
+      ]
+    }
+  ]
+}

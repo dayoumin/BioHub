@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils'
 import type { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
+import { VALIDATION_METADATA } from '@/lib/constants/validation-metadata'
 import {
   heroRevealVariants,
 } from './results-helpers'
@@ -47,7 +48,9 @@ export function ResultsHeroCard({
   prefersReducedMotion,
   t,
 }: ResultsHeroCardProps): React.ReactElement {
-  const methodEntry = methodId ? STATISTICAL_METHODS[methodId] : (STATISTICAL_METHODS[statisticalResult.testName] || null)
+  const resolvedMethodId = methodId ?? statisticalResult.testName
+  const methodEntry = resolvedMethodId ? STATISTICAL_METHODS[resolvedMethodId] : null
+  const validationMeta = resolvedMethodId ? VALIDATION_METADATA[resolvedMethodId] : undefined
   const showBinaryConclusion = methodEntry ? (!methodEntry.isDataTool && 
     methodEntry.category !== 'multivariate' && 
     methodEntry.category !== 'design' &&
@@ -143,8 +146,8 @@ export function ResultsHeroCard({
             </Tooltip>
           </div>
 
-          {/* 2행: APA + 메타데이터 (간결) */}
-          {(apaFormat || uploadedFileName || uploadedData || statisticalResult.variables) && (
+          {/* 2행: APA + 메타데이터 + 검증 배지 (간결) */}
+          {(apaFormat || uploadedFileName || uploadedData || statisticalResult.variables || validationMeta) && (
             <div className="mt-3 pt-3 pb-1 bg-surface-container/30 -mx-5 px-5 rounded-b-xl flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
               {apaFormat && (
                 <>
@@ -162,6 +165,28 @@ export function ResultsHeroCard({
               )}
               {statisticalResult.variables && (
                 <span className="text-[11px] text-muted-foreground/50">{statisticalResult.variables.join(', ')}</span>
+              )}
+              {validationMeta && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-[10px] text-muted-foreground/40 cursor-help ml-auto flex-shrink-0">
+                      {validationMeta.isCustomImpl ? '자체 구현' : validationMeta.pythonLib}
+                      {' · R 검증 완료'}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs text-xs">
+                    <p>
+                      {validationMeta.isCustomImpl
+                        ? '자체 구현 (Pyodide 라이브러리 제약)'
+                        : `${validationMeta.pythonLib} 기반 계산`}
+                    </p>
+                    <p className="text-muted-foreground">
+                      {'R 교차검증 정밀도 LRE '}
+                      {validationMeta.lre.toFixed(1)}
+                      {' / 15.0'}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
           )}

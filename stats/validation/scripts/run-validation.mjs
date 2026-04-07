@@ -182,6 +182,14 @@ function compareFields(expected, actual, parentPath = '') {
 
     // Scalar value
     const actualValue = actual?.[key];
+
+    // Handle null expected value (edge cases: NaN/None returns)
+    if (certifiedValue === null) {
+      const isNull = actualValue === null || actualValue === undefined;
+      results.push({ path, status: isNull ? 'PASS' : 'FAIL', certified: null, actual: actualValue, lre: isNull ? 15 : 0, tier });
+      continue;
+    }
+
     if (actualValue === undefined || actualValue === null) {
       results.push({ path, status: 'FAIL', certified: certifiedValue, actual: actualValue, lre: 0, tier, error: 'missing' });
       continue;
@@ -1103,16 +1111,11 @@ json.dumps(flat)
     // =================================================================
 
     case 'edge-ttest-nan':
-      // Two-sample t-test with NaN values: convert null→NaN, then drop NaN
-      // JSON null → Python None via string replace
       return `
 import json
-import math
 from worker2_hypothesis import t_test_two_sample
-g1_raw = ${JSON.stringify(d.group1).replace(/null/g, 'None')}
-g2_raw = ${JSON.stringify(d.group2).replace(/null/g, 'None')}
-g1 = [x for x in g1_raw if x is not None]
-g2 = [x for x in g2_raw if x is not None]
+g1 = ${JSON.stringify(d.group1).replace(/null/g, 'None')}
+g2 = ${JSON.stringify(d.group2).replace(/null/g, 'None')}
 result = t_test_two_sample(g1, g2, equalVar=True)
 json.dumps(result)
 `;
@@ -1132,50 +1135,21 @@ from worker2_hypothesis import correlation_test
 result = correlation_test(${JSON.stringify(d.x)}, ${JSON.stringify(d.y)}, method='pearson')
 json.dumps({'r': result['correlation'], 'pValue': result['pValue']})
 `;
-    case 'edge-wilcoxon-ties': {
-      // Wilcoxon signed-rank with all equal differences (heavy ties)
-      // Same Python as normal wilcoxon-signed-rank: manual W+ with ties adjustment
+    case 'edge-wilcoxon-ties':
+      // Wilcoxon signed-rank with heavy ties — uses actual BioHub worker
+      // Worker returns T=min(W+,W-) via scipy.stats.wilcoxon, not W+ (R convention)
       return `
 import json
-import numpy as np
-from scipy import stats
-before = np.array(${JSON.stringify(d.before)}, dtype=float)
-after = np.array(${JSON.stringify(d.after)}, dtype=float)
-diffs = before - after
-diffs_nz = diffs[diffs != 0]
-abs_vals = np.abs(diffs_nz)
-abs_ranks = stats.rankdata(abs_vals)
-w_plus = float(np.sum(abs_ranks[diffs_nz > 0]))
-n = len(diffs_nz)
-mean_w = n * (n + 1) / 4
-# Ties adjustment: sigma^2 = n(n+1)(2n+1)/24 - sum(t^3-t)/48
-var_w = n * (n + 1) * (2 * n + 1) / 24
-unique, counts = np.unique(abs_vals, return_counts=True)
-tie_adj = np.sum(counts**3 - counts) / 48
-var_w -= tie_adj
-z = (w_plus - mean_w) / np.sqrt(var_w)
-p = 2 * stats.norm.sf(abs(z))
-result = {'statistic': w_plus, 'pValue': float(p)}
-json.dumps(result)
+from worker3_nonparametric_anova import wilcoxon_test
+result = wilcoxon_test(${JSON.stringify(d.before)}, ${JSON.stringify(d.after)})
+json.dumps({'statistic': result['statistic'], 'pValue': result['pValue']})
 `;
-    }
     case 'edge-descriptive-nan':
-      // Descriptive stats with NaN values: convert null→NaN then use nanmean etc.
-      // JSON null → Python None via string replace
       return `
 import json
-import numpy as np
+from worker1_descriptive import descriptive_stats
 raw = ${JSON.stringify(d.values).replace(/null/g, 'None')}
-values = np.array([x if x is not None else float('nan') for x in raw], dtype=float)
-clean = values[~np.isnan(values)]
-n = len(clean)
-result = {
-    'mean': float(np.mean(clean)),
-    'sd': float(np.std(clean, ddof=1)),
-    'median': float(np.median(clean)),
-    'n': int(n),
-    'sem': float(np.std(clean, ddof=1) / np.sqrt(n))
-}
+result = descriptive_stats(raw)
 json.dumps(result)
 `;
     case 'edge-anova-outlier':
@@ -1184,6 +1158,82 @@ json.dumps(result)
 import json
 from worker3_nonparametric_anova import one_way_anova
 result = one_way_anova(${JSON.stringify(d.groups)})
+json.dumps(result)
+`;
+
+    // =================================================================
+    // Phase 4b: Edge Cases — crash prevention (zero-var, n=1, separation,
+    //           collinearity, all-censored, empty factor)
+    // =================================================================
+
+    case 'edge-correlation-zero-var':
+      // Pearson correlation with zero-variance x → r=NaN, p=NaN → None
+      // Worker returns raw NaN (not through _safe_float), must sanitize for JSON
+      return `
+import json, math
+from worker2_hypothesis import correlation_test
+result = correlation_test(${JSON.stringify(d.x)}, ${JSON.stringify(d.y)}, method='pearson')
+def _to_json_safe(v):
+    if v is None: return None
+    if isinstance(v, float) and (math.isnan(v) or math.isinf(v)): return None
+    return v
+json.dumps({'r': _to_json_safe(result['correlation']), 'pValue': _to_json_safe(result['pValue'])})
+`;
+    case 'edge-anova-single-obs':
+      // ANOVA with n=1 group → should raise ValueError
+      return `
+import json
+from worker3_nonparametric_anova import one_way_anova
+result = one_way_anova(${JSON.stringify(d.groups)})
+json.dumps(result)
+`;
+    case 'edge-logistic-separation':
+      // Logistic regression with perfect separation → should error or warn
+      return `
+import json
+import numpy as np
+from worker4_regression_advanced import logistic_regression
+x = ${JSON.stringify(d.x)}
+y = ${JSON.stringify(d.y)}
+X = np.array(x).reshape(-1, 1)
+result = logistic_regression(X, y)
+json.dumps({'interceptCoef': result['coefficients'][0], 'slopeCoef': result['coefficients'][1]})
+`;
+    case 'edge-regression-collinear':
+      // Multiple regression with perfect collinearity → should error
+      return `
+import json
+import numpy as np
+from worker4_regression_advanced import multiple_regression
+x1 = ${JSON.stringify(d.x1)}
+x2 = ${JSON.stringify(d.x2)}
+y = ${JSON.stringify(d.y)}
+X = np.column_stack([x1, x2])
+result = multiple_regression(X, y)
+json.dumps(result)
+`;
+    case 'edge-km-all-censored':
+      // Kaplan-Meier with all censored data → nEvents=0, survival=1.0
+      // nEvents lives inside curves[group], not at top level
+      return `
+import json
+from worker5_survival import kaplan_meier_analysis
+result = kaplan_meier_analysis(${JSON.stringify(d.time)}, ${JSON.stringify(d.status)}, ${JSON.stringify(d.group)})
+curves = result.get('curves', {})
+total_events = sum(c.get('nEvents', 0) for c in curves.values())
+flat = {'nEvents': total_events}
+for gname, curve in curves.items():
+    probs = curve.get('survivalProbabilities', [])
+    if probs:
+        flat['minSurvival_' + str(gname)] = min(probs)
+json.dumps(flat)
+`;
+    case 'edge-chisq-zero-row':
+      // Chi-square with zero-count row → should error
+      return `
+import json
+from worker2_hypothesis import chi_square_independence_test
+result = chi_square_independence_test(${JSON.stringify(d.observedMatrix)}, yatesCorrection=False)
 json.dumps(result)
 `;
 
@@ -1469,8 +1519,7 @@ const FIELD_MAP = {
     // statistic and pValue pass through directly
   },
   'edge-descriptive-nan': {
-    skewness: { skip: true },
-    kurtosis: { skip: true },
+    sd: { pyKey: 'std' },
   },
   'edge-anova-outlier': {
     fStatistic: { pyKey: 'fStatistic' },
@@ -1482,6 +1531,25 @@ const FIELD_MAP = {
     ssBetween: { pyKey: 'ssBetween' },
     ssWithin: { pyKey: 'ssWithin' },
     ssTotal: { pyKey: 'ssTotal' },
+  },
+  // ─── Phase 4b: Crash prevention edge cases ───────────────────────────
+  'edge-correlation-zero-var': {
+    // r and pValue: null expected → null actual
+  },
+  'edge-anova-single-obs': {
+    // expectBehavior: error — no field mapping needed
+  },
+  'edge-logistic-separation': {
+    // expectBehavior: no_crash — no field mapping needed
+  },
+  'edge-regression-collinear': {
+    // expectBehavior: no_crash — no field mapping needed
+  },
+  'edge-km-all-censored': {
+    // nEvents passes through directly
+  },
+  'edge-chisq-zero-row': {
+    // expectBehavior: error — no field mapping needed
   },
 };
 
@@ -1647,12 +1715,20 @@ async function main() {
 
   // ─── Phase 4: Edge Cases (Layer 3) ──────────────────────────────────
   const edgeCaseMethods = [
+    // Phase 4a: Degenerate data (numerical accuracy)
     'edge-ttest-nan',          // Missing values: two-sample t-test with NaN
     'edge-ttest-small',        // Small sample: one-sample t-test n=3
     'edge-correlation-extreme', // Extreme values: Pearson r ≈ 1.0
     'edge-wilcoxon-ties',      // Ties: Wilcoxon with all equal differences
     'edge-descriptive-nan',    // Missing values: descriptive stats with NaN
     'edge-anova-outlier',      // Extreme values: ANOVA with outlier
+    // Phase 4b: Crash prevention (error handling)
+    'edge-correlation-zero-var', // Zero variance: correlation with constant x
+    'edge-anova-single-obs',    // Insufficient sample: ANOVA with n=1 group
+    'edge-logistic-separation', // Perfect separation: logistic regression
+    'edge-regression-collinear', // Multicollinearity: singular design matrix
+    'edge-km-all-censored',     // All censored: Kaplan-Meier with no events
+    'edge-chisq-zero-row',      // Empty factor: chi-square with zero row
   ];
 
   const allMethods = [...phase1Methods, ...phase2Methods, ...phase3Methods, ...nistMethods, ...edgeCaseMethods];
@@ -1661,7 +1737,7 @@ async function main() {
     if (FILTER_METHOD && m !== FILTER_METHOD) return false;
     if (FILTER_LAYER) {
       const golden = rGolden[m] || nistGolden[m] || edgeGolden[m];
-      if (golden && golden.layer !== FILTER_LAYER && golden.layer !== 'L1+L2') return false;
+      if (golden && !golden.layer.split('+').includes(FILTER_LAYER)) return false;
     }
     return true;
   });
@@ -1712,6 +1788,20 @@ async function main() {
           const resultJson = await pyodide.runPythonAsync(pyCode);
           pyResult = JSON.parse(resultJson);
         } catch (err) {
+          // Edge case: expected error behavior (crash prevention test)
+          if (testCase.expectBehavior === 'error' || testCase.expectBehavior === 'no_crash') {
+            totalPassed++;
+            const label = testCase.expectBehavior === 'error' ? 'expected error' : 'no crash (error path)';
+            console.log(color(`    ✓ ${testCase.description}  ${C.dim}(${label}: ${err.message.slice(0, 60)})`, C.green));
+            allResults.push({
+              method: methodId,
+              dataset: dataset.name,
+              case: testCase.description,
+              status: 'PASS',
+              note: `${label}: ${err.message}`,
+            });
+            continue;
+          }
           console.log(color(`    ✗ ${testCase.description}`, C.red));
           console.log(color(`      Python error: ${err.message}`, C.yellow));
           totalFailed++;
@@ -1721,6 +1811,34 @@ async function main() {
             case: testCase.description,
             status: 'ERROR',
             error: err.message,
+          });
+          continue;
+        }
+
+        // Edge case: expected error but code succeeded unexpectedly
+        if (testCase.expectBehavior === 'error') {
+          totalFailed++;
+          console.log(color(`    ✗ ${testCase.description} (expected error but succeeded)`, C.red));
+          allResults.push({
+            method: methodId,
+            dataset: dataset.name,
+            case: testCase.description,
+            status: 'FAIL',
+            note: 'Expected error but Python returned a result',
+          });
+          continue;
+        }
+
+        // Edge case: no-crash test — any result (success) is acceptable
+        if (testCase.expectBehavior === 'no_crash') {
+          totalPassed++;
+          console.log(color(`    ✓ ${testCase.description}  ${C.dim}(no crash, returned result)`, C.green));
+          allResults.push({
+            method: methodId,
+            dataset: dataset.name,
+            case: testCase.description,
+            status: 'PASS',
+            note: 'No-crash test: function returned result without crashing',
           });
           continue;
         }

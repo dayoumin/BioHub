@@ -46,6 +46,15 @@
 ### Phase 2 발견사항 (LRE 저조 — 실무 영향 없음)
 - [ ] mann-whitney LRE=8.0, ordinal LRE=4.8, dose-response LRE=5.8, pearson 편차 7.5~13.4
 
+### 검증 갭 분석 (상세: `stats/docs/VALIDATION-GAPS-ANALYSIS.md`)
+- [ ] **알고리즘 차이 재검토**: factor-analysis LRE 0.69, arima 4.72, ordinal 4.81 — tier 허용 적절성 확인
+- [x] **kaplan-meier → statsmodels 전환**: `SurvfuncRight + survdiff` 사용, R 대비 LRE 15.0 유지 확인
+- [x] **method-target-matrix.json 정정**: 9개 메서드의 pythonLib/pythonCall을 실제 라이브러리 호출로 수정
+- [x] **검증 메타데이터 UI 표시**: `validation-metadata.ts` + ResultsHeroCard 배지 (라이브러리명 + R 검증 완료)
+- [ ] **자체 구현 1개 공식 대조**: mann-kendall(S+z+Sen's slope, LRE 13.0) — 교과서 공식 수준, 현상 유지
+- [x] **엣지케이스 추가**: 분산 0, n=1, 완전 분리, 다중공선성, 전체 결측, 빈 팩터 — 6개 추가 (12/12 PASS)
+- [ ] **NIST 확장**: Filip(다항회귀), Longley(다중공선성) 추가
+
 ## 5. 다중 에이전트 및 사전 구축 프롬프트 설계 (Prompt Registry & Cross-Model Review)
 - [ ] **조립식 프롬프트 라이브러리(`ai/prompts`) 구축**: 논문 생성 파츠(Methods, Results 등), 문서 어조 파츠(Journal, Report), 검증 전용 파츠로 거대한 단일 프롬프트를 분할 (상세: `ai/PROMPT_REGISTRY_PLAN.md` 참조).
 - [ ] **섹션/목적별 전용 프롬프트 생성**: 통계 결과 수치형, 그래프 패턴, 생태학 분야별로 최적화된 프롬프트 템플릿 파일 생성 및 동작 테스트.

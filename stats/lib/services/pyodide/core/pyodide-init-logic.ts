@@ -153,7 +153,7 @@ export function getAdditionalPackages(workerNum: number): string[] {
     2: ['statsmodels', 'pandas'], // worker2-hypothesis.py (ANCOVA, partial correlation 등)
     3: ['statsmodels', 'pandas', 'scikit-learn'], // worker3-nonparametric-anova.py (KMeans, PCA, LDA, Factor Analysis)
     4: ['statsmodels', 'scikit-learn'], // worker4-regression-advanced.py (stepwise regression + cluster/factor)
-    5: ['scikit-learn'], // worker5-survival.py (KM scipy 직접 구현, ROC sklearn)
+    5: ['statsmodels', 'scikit-learn'], // worker5-survival.py (KM statsmodels SurvfuncRight, ROC sklearn)
     6: ['matplotlib', 'micropip'], // worker6-matplotlib.py (논문용 Export)
     7: [], // worker7-fisheries.py (수산학)
     8: ['scikit-learn'], // worker8-ecology.py (군집생태)

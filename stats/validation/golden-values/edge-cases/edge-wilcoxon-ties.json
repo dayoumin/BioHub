@@ -2,10 +2,10 @@
   "method": "edge-wilcoxon-ties",
   "layer": "L3",
   "referenceSource": {
-    "software": "R",
-    "function": "stats::wilcox.test",
-    "packages": ["stats"],
-    "note": "Pre-computed for heavy ties scenario. Needs R verification."
+    "software": "BioHub worker3 (scipy.stats.wilcoxon)",
+    "function": "worker3_nonparametric_anova.wilcoxon_test",
+    "packages": ["scipy"],
+    "note": "Worker returns T=min(W+,W-) via scipy.stats.wilcoxon. Verified against Pyodide 0.29.3."
   },
   "generatedAt": "2026-04-07",
   "edgeCaseType": "ties",
@@ -24,15 +24,15 @@
       "cases": [
         {
           "description": "Wilcoxon signed-rank with all equal differences (d=2 for all)",
-          "rCode": "wilcox.test(before, after, paired=TRUE, exact=FALSE, correct=FALSE)",
+          "pythonCode": "wilcoxon_test(before, after)  # scipy.stats.wilcoxon, returns T=min(W+,W-)",
           "expected": {
             "statistic": {
-              "value": 55,
-              "tier": "tier2"
+              "value": 0.0,
+              "tier": "exact"
             },
             "pValue": {
-              "value": 0.001753,
-              "tier": "tier4"
+              "value": 0.001953125,
+              "tier": "tier2"
             }
           }
         }

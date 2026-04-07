@@ -1,0 +1,31 @@
+{
+  "method": "edge-anova-single-obs",
+  "layer": "L3",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::aov",
+    "packages": ["stats"],
+    "note": "R handles n=1 groups (df_within reduced). BioHub worker requires n>=2 per group → ValueError expected."
+  },
+  "generatedAt": "2026-04-07",
+  "edgeCaseType": "insufficient-sample",
+  "description": "One-way ANOVA with one group having a single observation (n=1). Tests graceful error handling.",
+  "datasets": [
+    {
+      "name": "group3_single_obs",
+      "source": "synthetic: group 3 has only 1 observation",
+      "data": {
+        "groups": [[10, 12, 14, 11, 13], [20, 22, 24], [30]]
+      },
+      "n": { "g1": 5, "g2": 3, "g3": 1 },
+      "cases": [
+        {
+          "description": "ANOVA with n=1 group (should raise informative error, not crash)",
+          "rCode": "aov(value ~ group)  # group3 has n=1",
+          "expectBehavior": "error",
+          "expected": {}
+        }
+      ]
+    }
+  ]
+}

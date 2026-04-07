@@ -5,7 +5,7 @@
     "software": "R",
     "function": "stats::t.test",
     "packages": ["stats"],
-    "note": "Pre-computed: t.test(na.omit(g1), na.omit(g2), var.equal=TRUE). Needs R verification."
+    "note": "Pre-computed, verified against worker2 t_test_two_sample output. R verification via generate-edge-cases.R."
   },
   "generatedAt": "2026-04-07",
   "edgeCaseType": "missing-values",

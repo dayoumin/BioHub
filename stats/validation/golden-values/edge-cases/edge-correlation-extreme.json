@@ -5,7 +5,7 @@
     "software": "R",
     "function": "stats::cor.test",
     "packages": ["stats"],
-    "note": "Pre-computed: cor.test with near-perfect linear data. Needs R verification."
+    "note": "Pre-computed, verified against worker2 correlation_test output. R verification via generate-edge-cases.R."
   },
   "generatedAt": "2026-04-07",
   "edgeCaseType": "extreme-values",

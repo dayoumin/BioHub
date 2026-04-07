@@ -194,9 +194,9 @@ describe('Pyodide Init Logic - Real Function Tests', () => {
       expect(packages).toEqual(['statsmodels', 'scikit-learn'])
     })
 
-    it('should return scikit-learn for Worker 5', () => {
+    it('should return statsmodels and scikit-learn for Worker 5', () => {
       const packages = getAdditionalPackages(5)
-      expect(packages).toEqual(['scikit-learn'])
+      expect(packages).toEqual(['statsmodels', 'scikit-learn'])
     })
 
     it('should return empty array for invalid worker number', () => {

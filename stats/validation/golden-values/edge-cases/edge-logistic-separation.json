@@ -1,0 +1,32 @@
+{
+  "method": "edge-logistic-separation",
+  "layer": "L3",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::glm",
+    "packages": ["stats"],
+    "note": "glm(y~x, family=binomial) with perfect separation: R converges with warning, very large coefficients. MLE does not exist."
+  },
+  "generatedAt": "2026-04-07",
+  "edgeCaseType": "perfect-separation",
+  "description": "Logistic regression with perfect separation (x perfectly predicts y). MLE does not exist → coefficients should be very large or function should error gracefully.",
+  "datasets": [
+    {
+      "name": "perfect_separation",
+      "source": "synthetic: y=0 for x<=5, y=1 for x>5",
+      "data": {
+        "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        "y": [0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
+      },
+      "n": { "total": 10 },
+      "cases": [
+        {
+          "description": "Logistic regression with perfect separation (should not crash silently)",
+          "rCode": "glm(y ~ x, family=binomial)  # perfect separation",
+          "expectBehavior": "no_crash",
+          "expected": {}
+        }
+      ]
+    }
+  ]
+}

@@ -1964,24 +1964,37 @@ def mixed_model(
         'pValue': 0.0
     })
 
-    # Model Fit
+    # Model Fit (REML returns NaN for AIC/BIC — refit with ML)
     log_likelihood = float(result.llf)
-    aic = float(result.aic)
-    bic = float(result.bic)
+    aic_val = result.aic
+    bic_val = result.bic
+    if np.isnan(aic_val) or np.isnan(bic_val):
+        try:
+            ml_result = mixedlm(fixed_formula, df_clean, groups=df_clean[groups_var]).fit(reml=False)
+            aic_val = ml_result.aic
+            bic_val = ml_result.bic
+        except Exception:
+            aic_val = float('nan')
+            bic_val = float('nan')
+    aic = float(aic_val)
+    bic = float(bic_val)
 
     # ICC (Intraclass Correlation Coefficient)
     icc = random_var / total_var if total_var > 0 else 0
 
-    # Marginal and Conditional R-squared (approximation)
-    y = df_clean[dependentVar].values
-    y_mean = np.mean(y)
-    tss = np.sum((y - y_mean) ** 2)
-    fitted = result.fittedvalues
-    ess = np.sum((fitted - y_mean) ** 2)
-    marginal_r2 = ess / tss if tss > 0 else 0
+    # R-squared (Nakagawa & Schielzeth 2013): variance decomposition
+    # σ²_f = variance of fixed-effects predictions (Xβ̂)
+    y = df_clean[dependent_var].values
+    X = result.model.exog
+    beta = result.fe_params
+    fixed_pred = X @ beta
+    var_f = float(np.var(fixed_pred, ddof=1))
 
-    # Conditional R-squared includes random effects
-    conditional_r2 = marginal_r2 + icc * (1 - marginal_r2)
+    # Marginal R² = σ²_f / (σ²_f + σ²_u + σ²_ε)
+    total_var_nakagawa = var_f + random_var + residual_var
+    marginal_r2 = var_f / total_var_nakagawa if total_var_nakagawa > 0 else 0
+    # Conditional R² = (σ²_f + σ²_u) / (σ²_f + σ²_u + σ²_ε)
+    conditional_r2 = (var_f + random_var) / total_var_nakagawa if total_var_nakagawa > 0 else 0
 
     model_fit = {
         'logLikelihood': log_likelihood,
@@ -2002,6 +2015,22 @@ def mixed_model(
     else:
         shapiro_w, shapiro_p = 1.0, 1.0
 
+    # Homoscedasticity: Levene test on residuals by group
+    resid_groups = []
+    for g in df_clean[groups_var].unique():
+        group_resid = residuals[df_clean[groups_var] == g].values
+        if len(group_resid) >= 2:
+            resid_groups.append(group_resid)
+    if len(resid_groups) >= 2:
+        levene_stat, levene_p = levene(*resid_groups)
+    else:
+        levene_stat, levene_p = 0.0, 1.0
+
+    # Independence: Durbin-Watson statistic
+    from statsmodels.stats.stattools import durbin_watson
+    resid_arr = residuals.values if hasattr(residuals, 'values') else np.array(residuals)
+    dw = float(durbin_watson(resid_arr))
+
     residual_analysis = {
         'normality': {
             'shapiroW': float(shapiro_w),
@@ -2009,18 +2038,19 @@ def mixed_model(
             'assumptionMet': _safe_bool(shapiro_p > 0.05)
         },
         'homoscedasticity': {
-            'leveneStatistic': 0.0,  # Not easily available for mixed models
-            'pValue': 1.0,
-            'assumptionMet': True
+            'leveneStatistic': float(levene_stat),
+            'pValue': float(levene_p),
+            'assumptionMet': _safe_bool(levene_p > 0.05)
         },
         'independence': {
-            'durbinWatson': 2.0,  # Placeholder
-            'pValue': 0.5,
-            'assumptionMet': True
+            'durbinWatson': dw,
+            'pValue': None,
+            'assumptionMet': _safe_bool(1.5 < dw < 2.5)
         }
     }
 
     # Predicted Values (limited to 100)
+    fitted = result.fittedvalues
     max_pred = min(100, len(df_clean))
     predicted_values = []
     for i in range(max_pred):
@@ -2098,6 +2128,7 @@ def manova(
     from statsmodels.multivariate.manova import MANOVA
     from statsmodels.formula.api import ols
     from scipy import stats
+    from scipy.stats import shapiro
     import numpy as np
 
     # Convert to DataFrame
@@ -2164,27 +2195,8 @@ def manova(
             'meanSquare': float(ss_between / (len(df_clean[factor_vars[0]].unique()) - 1)),
             'fStatistic': float(anova_table.statistic),
             'pValue': float(anova_table.pvalue),
-            'etaSquared': float(eta_squared),
-            'observedPower': 0.8  # Placeholder
+            'etaSquared': float(eta_squared)
         })
-
-    # Canonical Analysis (simplified)
-    canonical_analysis = [{
-        'eigenvalue': 0.5,
-        'canonicalCorrelation': 0.6,
-        'wilksLambda': 0.64,
-        'fStatistic': 5.0,
-        'pValue': 0.01,
-        'proportionOfVariance': 0.75
-    }]
-
-    # Discriminant Functions (placeholder)
-    discriminant_functions = [{
-        'function': 1,
-        'coefficients': [{'variable': dv, 'coefficient': 0.5} for dv in dependent_vars],
-        'groupCentroids': [{'group': str(g), 'centroid': 0.0}
-                          for g in df_clean[factor_vars[0]].unique()]
-    }]
 
     # Descriptive Stats
     descriptive_stats = []
@@ -2273,40 +2285,47 @@ def manova(
                         'significant': adjusted_p < 0.05
                     })
 
-    # Assumptions
+    # Assumptions — compute real values where possible
+    # Univariate normality per group (Shapiro-Wilk)
+    unique_groups = df_clean[factor_vars[0]].unique()
+    group_masks = {g: df_clean[factor_vars[0]] == g for g in unique_groups}
+    normality_results = []
+    for dv in dependent_vars:
+        for group in unique_groups:
+            vals = df_clean.loc[group_masks[group], dv].values
+            if len(vals) >= 3:
+                w, p_norm = shapiro(vals)
+                normality_results.append({'variable': dv, 'group': str(group), 'shapiroW': float(w), 'pValue': float(p_norm)})
+    all_normal = all(r['pValue'] > 0.05 for r in normality_results) if normality_results else True
+
+    # Multicollinearity — correlation matrix of DVs
+    dv_corr = df_clean[dependent_vars].corr().values.tolist()
+    max_corr = 0.0
+    for i in range(len(dependent_vars)):
+        for j in range(i + 1, len(dependent_vars)):
+            max_corr = max(max_corr, abs(dv_corr[i][j]))
+
     assumptions = {
         'multivariateNormality': {
-            'test': 'Multivariate Normality',
-            'statistic': 0.98,
-            'pValue': 0.15,
-            'assumptionMet': True
+            'test': 'Shapiro-Wilk (per group)',
+            'details': normality_results,
+            'assumptionMet': all_normal
         },
-        'homogeneityOfCovariance': {
-            'boxM': 15.3,
-            'fStatistic': 2.1,
-            'pValue': 0.08,
-            'assumptionMet': True
-        },
-        'sphericity': None,  # Not applicable for MANOVA
-        'outliers': {
-            'method': 'Mahalanobis Distance',
-            'nOutliers': 0,
-            'outlierIndices': []
-        },
+        'homogeneityOfCovariance': None,
+        'sphericity': None,
+        'outliers': None,
         'multicollinearity': {
-            'correlationMatrix': [[1.0, 0.3], [0.3, 1.0]],
-            'maxCorrelation': 0.3,
-            'isAcceptable': True
+            'correlationMatrix': dv_corr,
+            'maxCorrelation': float(max_corr),
+            'isAcceptable': max_corr < 0.9
         }
     }
 
     return {
         'overallTests': overall_tests,
         'univariateTests': univariate_tests,
-        'canonicalAnalysis': canonical_analysis,
-        'discriminantFunctions': discriminant_functions,
         'descriptiveStats': descriptive_stats,
-        'postHoc': post_hoc[:100],  # Limit to 100
+        'postHoc': post_hoc[:100],
         'assumptions': assumptions
     }
 

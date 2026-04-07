@@ -1,0 +1,34 @@
+{
+  "method": "edge-km-all-censored",
+  "layer": "L3",
+  "referenceSource": {
+    "software": "R",
+    "function": "survival::survfit",
+    "packages": ["survival"],
+    "note": "survfit(Surv(time, event) ~ group) with all event=0: survival stays at 1.0, no median, nEvents=0."
+  },
+  "generatedAt": "2026-04-07",
+  "edgeCaseType": "all-censored",
+  "description": "Kaplan-Meier analysis where all observations are censored (no events). Survival probability should remain 1.0.",
+  "datasets": [
+    {
+      "name": "all_censored",
+      "source": "synthetic: 8 observations, all censored (event=0)",
+      "data": {
+        "time": [1, 3, 5, 7, 9, 12, 15, 20],
+        "status": [0, 0, 0, 0, 0, 0, 0, 0],
+        "group": [1, 1, 1, 1, 2, 2, 2, 2]
+      },
+      "n": { "total": 8, "events": 0 },
+      "cases": [
+        {
+          "description": "Kaplan-Meier with all censored data (survival should stay 1.0, nEvents=0)",
+          "rCode": "survfit(Surv(time, event) ~ group)  # all event=0",
+          "expected": {
+            "nEvents": { "value": 0, "tier": "exact" }
+          }
+        }
+      ]
+    }
+  ]
+}

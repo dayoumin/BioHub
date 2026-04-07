@@ -5,7 +5,7 @@
     "software": "R",
     "function": "base + psych",
     "packages": ["stats", "psych"],
-    "note": "Pre-computed: mean/sd/median on na.omit(values). Needs R verification."
+    "note": "Pre-computed: mean/sd/median on na.omit(values). Worker uses clean_array for NaN removal."
   },
   "generatedAt": "2026-04-07",
   "edgeCaseType": "missing-values",

@@ -1,0 +1,31 @@
+{
+  "method": "edge-chisq-zero-row",
+  "layer": "L3",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::chisq.test",
+    "packages": ["stats"],
+    "note": "chisq.test(matrix(c(10,0,20,0,15,0), nrow=2)): row of zeros → expected frequencies=0, chi-square=NaN. R returns NaN with warning."
+  },
+  "generatedAt": "2026-04-07",
+  "edgeCaseType": "empty-factor",
+  "description": "Chi-square independence test with an entire row of zeros (empty factor level). Expected frequencies become 0 → division by zero.",
+  "datasets": [
+    {
+      "name": "zero_row",
+      "source": "synthetic: row 2 has all zero counts",
+      "data": {
+        "observedMatrix": [[10, 20, 15], [0, 0, 0]]
+      },
+      "n": { "rows": 2, "cols": 3 },
+      "cases": [
+        {
+          "description": "Chi-square with zero-count row (should return NaN or error, not crash)",
+          "rCode": "chisq.test(matrix(c(10,0,20,0,15,0), nrow=2))",
+          "expectBehavior": "error",
+          "expected": {}
+        }
+      ]
+    }
+  ]
+}

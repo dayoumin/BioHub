@@ -1,0 +1,34 @@
+{
+  "method": "edge-correlation-zero-var",
+  "layer": "L3",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::cor.test",
+    "packages": ["stats"],
+    "note": "cor.test(c(5,5,5,5,5), c(1,2,3,4,5)) returns r=NA, p=NA. SD(x)=0 → division by zero."
+  },
+  "generatedAt": "2026-04-07",
+  "edgeCaseType": "zero-variance",
+  "description": "Pearson correlation with zero-variance x (all identical values). SD=0 causes division by zero in correlation formula.",
+  "datasets": [
+    {
+      "name": "constant_x",
+      "source": "synthetic: x is constant (all 5.0), y is normal",
+      "data": {
+        "x": [5, 5, 5, 5, 5],
+        "y": [1, 2, 3, 4, 5]
+      },
+      "n": { "total": 5 },
+      "cases": [
+        {
+          "description": "Pearson correlation with zero-variance x (should return null/NaN, not crash)",
+          "rCode": "cor.test(c(5,5,5,5,5), c(1,2,3,4,5), method='pearson')",
+          "expected": {
+            "r": { "value": null, "tier": "exact" },
+            "pValue": { "value": null, "tier": "exact" }
+          }
+        }
+      ]
+    }
+  ]
+}
