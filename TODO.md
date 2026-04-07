@@ -54,7 +54,7 @@
 - [x] **검증 메타데이터 UI 표시**: `validation-metadata.ts` + ResultsHeroCard 배지 (라이브러리명 + R 검증 완료)
 - [x] **자체 구현 10개 공식 대조 완료**: 12개 구현체 감사 — BUG 3건 + ISSUE 4건 + Finding 2건 수정 (mann-kendall tie correction, mixed-model 7건, manova placeholder 제거)
 - [x] **엣지케이스 추가**: 분산 0, n=1, 완전 분리, 다중공선성, 전체 결측, 빈 팩터 — 6개 추가 (12/12 PASS)
-- [ ] **NIST 확장**: Filip(다항회귀), Longley(다중공선성) 추가
+- [x] **NIST 확장**: Filip(다항회귀, LRE 7.7), Longley(다중공선성, LRE 12.3) 추가 — 6/6 PASS
 
 ## 5. 다중 에이전트 및 사전 구축 프롬프트 설계 (Prompt Registry & Cross-Model Review)
 - [ ] **조립식 프롬프트 라이브러리(`ai/prompts`) 구축**: 논문 생성 파츠(Methods, Results 등), 문서 어조 파츠(Journal, Report), 검증 전용 파츠로 거대한 단일 프롬프트를 분할 (상세: `ai/PROMPT_REGISTRY_PLAN.md` 참조).

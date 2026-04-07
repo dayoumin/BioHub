@@ -674,7 +674,7 @@ corr = np.corrcoef(X_scaled.T)
 p = corr.shape[0]
 n_factors = 2
 
-# PAF: initial communalities = SMC
+# PAF: initial communalities = SMC (clipped), iteration unclipped (Heywood OK)
 inv_c = np.linalg.inv(corr)
 h2 = np.clip(1.0 - 1.0 / np.diag(inv_c), 0.0, 1.0)
 for _ in range(50):
@@ -684,8 +684,8 @@ for _ in range(50):
     idx = np.argsort(evals)[::-1]
     evals = evals[idx]; evecs = evecs[:, idx]
     L = evecs[:, :n_factors] * np.sqrt(np.maximum(evals[:n_factors], 0.0))
-    h2_new = np.clip(np.sum(L**2, axis=1), 0.0, 1.0)
-    if np.max(np.abs(h2_new - h2)) < 1e-5:
+    h2_new = np.sum(L**2, axis=1)
+    if np.max(np.abs(h2_new - h2)) < 0.001:
         break
     h2 = h2_new
 

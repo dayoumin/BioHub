@@ -1,5 +1,5 @@
 {
-  "runId": "2026-04-07T05:15:14.304Z",
+  "runId": "2026-04-07T06:08:23.817Z",
   "environment": {
     "nodeVersion": "v22.22.2",
     "pyodideVersion": "0.29.3",
@@ -7,12 +7,12 @@
   },
   "tolerancePolicy": "tiered (exact/tier2/tier3/tier4)",
   "summary": {
-    "totalMethods": 66,
-    "totalCases": 71,
-    "passed": 71,
+    "totalMethods": 68,
+    "totalCases": 73,
+    "passed": 73,
     "failed": 0,
     "skipped": 0,
-    "averageLRE": 12.753612616735984
+    "averageLRE": 12.70433120916991
   },
   "details": [
     {
@@ -105,6 +105,30 @@
           "tier": "tier2"
         },
         {
+          "path": "cohensD",
+          "status": "PASS",
+          "certified": 2.80970346769596,
+          "actual": 2.809703467695957,
+          "lre": 14.956092226320102,
+          "tier": "tier2"
+        },
+        {
+          "path": "mean1",
+          "status": "PASS",
+          "certified": 45.266666666666666,
+          "actual": 45.266666666666666,
+          "lre": 15,
+          "tier": "tier2"
+        },
+        {
+          "path": "mean2",
+          "status": "PASS",
+          "certified": 39.82666666666667,
+          "actual": 39.826666666666675,
+          "lre": 15,
+          "tier": "tier2"
+        },
+        {
           "path": "n1",
           "status": "PASS",
           "certified": 15,
@@ -121,7 +145,7 @@
           "tier": "exact"
         }
       ],
-      "averageLRE": 14.65109908196998
+      "averageLRE": 14.79435550774286
     },
     {
       "method": "one-sample-t",
@@ -1307,19 +1331,19 @@
           "status": "PASS",
           "certified": "[4 elements]",
           "actual": "[4 elements]",
-          "lre": 0.9633955248957508,
-          "tier": "tier4"
+          "lre": 2.7361900077107175,
+          "tier": "tier3"
         },
         {
           "path": "varianceExplained",
           "status": "PASS",
           "certified": "[2 elements]",
           "actual": "[2 elements]",
-          "lre": 0.4262889134891014,
-          "tier": "tier4"
+          "lre": 2.5071852014566733,
+          "tier": "tier3"
         }
       ],
-      "averageLRE": 0.6948422191924261
+      "averageLRE": 2.6216876045836957
     },
     {
       "method": "cluster",
@@ -2476,6 +2500,202 @@
         }
       ],
       "averageLRE": 14.615626603762918
+    },
+    {
+      "method": "nist-filip-polynomial",
+      "dataset": "Filip",
+      "case": "Degree-10 polynomial regression certified values",
+      "status": "PASS",
+      "tier": "L1",
+      "fields": [
+        {
+          "path": "b0",
+          "status": "PASS",
+          "certified": -1467.4896142298,
+          "actual": -1467.4897291759034,
+          "lre": 7.106080782798752,
+          "tier": "tier3"
+        },
+        {
+          "path": "b1",
+          "status": "PASS",
+          "certified": -2772.17959193342,
+          "actual": -2772.179808630366,
+          "lre": 7.106968571056728,
+          "tier": "tier3"
+        },
+        {
+          "path": "b2",
+          "status": "PASS",
+          "certified": -2316.37108160893,
+          "actual": -2316.371262503617,
+          "lre": 7.107382323453775,
+          "tier": "tier3"
+        },
+        {
+          "path": "b3",
+          "status": "PASS",
+          "certified": -1127.97394098372,
+          "actual": -1127.9740290582968,
+          "lre": 7.107448501648387,
+          "tier": "tier3"
+        },
+        {
+          "path": "b4",
+          "status": "PASS",
+          "certified": -354.478233703349,
+          "actual": -354.4782614094029,
+          "lre": 7.107014898933319,
+          "tier": "tier3"
+        },
+        {
+          "path": "b5",
+          "status": "PASS",
+          "certified": -75.1242017393757,
+          "actual": -75.12420762570355,
+          "lre": 7.105935423649889,
+          "tier": "tier3"
+        },
+        {
+          "path": "b6",
+          "status": "PASS",
+          "certified": -10.8753180355343,
+          "actual": -10.875318891303188,
+          "lre": 7.1040854734116845,
+          "tier": "tier3"
+        },
+        {
+          "path": "b7",
+          "status": "PASS",
+          "certified": -1.06221498588947,
+          "actual": -1.0622150699979311,
+          "lre": 7.101372737367244,
+          "tier": "tier3"
+        },
+        {
+          "path": "b8",
+          "status": "PASS",
+          "certified": -0.0670191154593408,
+          "actual": -0.06701912081060404,
+          "lre": 7.097742376361608,
+          "tier": "tier3"
+        },
+        {
+          "path": "b9",
+          "status": "PASS",
+          "certified": -0.00246781078275479,
+          "actual": -0.002467810981884686,
+          "lre": 7.093175391145563,
+          "tier": "tier3"
+        },
+        {
+          "path": "b10",
+          "status": "PASS",
+          "certified": -0.0000402962525080404,
+          "actual": -0.00004029625580096647,
+          "lre": 7.087682678629561,
+          "tier": "tier3"
+        },
+        {
+          "path": "residualSD",
+          "status": "PASS",
+          "certified": 0.00334801051324544,
+          "actual": 0.003348010513761395,
+          "lre": 9.812174706466752,
+          "tier": "tier3"
+        },
+        {
+          "path": "rSquared",
+          "status": "PASS",
+          "certified": 0.99672741618562,
+          "actual": 0.9967274161846115,
+          "lre": 11.994889048860276,
+          "tier": "tier3"
+        }
+      ],
+      "averageLRE": 7.687073301060272
+    },
+    {
+      "method": "nist-longley-multicollinear",
+      "dataset": "Longley",
+      "case": "Multiple regression with multicollinearity certified values",
+      "status": "PASS",
+      "tier": "L1",
+      "fields": [
+        {
+          "path": "b0",
+          "status": "PASS",
+          "certified": -3482258.63459582,
+          "actual": -3482258.634597818,
+          "lre": 12.241333597332916,
+          "tier": "tier3"
+        },
+        {
+          "path": "b1",
+          "status": "PASS",
+          "certified": 15.0618722713733,
+          "actual": 15.061872271514568,
+          "lre": 11.027834148030177,
+          "tier": "tier3"
+        },
+        {
+          "path": "b2",
+          "status": "PASS",
+          "certified": -0.035819179292591,
+          "actual": -0.03581917929264833,
+          "lre": 11.795740193055435,
+          "tier": "tier3"
+        },
+        {
+          "path": "b3",
+          "status": "PASS",
+          "certified": -2.02022980381683,
+          "actual": -2.0202298038174518,
+          "lre": 12.51180251701411,
+          "tier": "tier3"
+        },
+        {
+          "path": "b4",
+          "status": "PASS",
+          "certified": -1.03322686717359,
+          "actual": -1.0332268671737297,
+          "lre": 12.869104819762986,
+          "tier": "tier3"
+        },
+        {
+          "path": "b5",
+          "status": "PASS",
+          "certified": -0.0511041056535807,
+          "actual": -0.051104105653674736,
+          "lre": 11.73516215218812,
+          "tier": "tier3"
+        },
+        {
+          "path": "b6",
+          "status": "PASS",
+          "certified": 1829.15146461355,
+          "actual": 1829.1514646145858,
+          "lre": 12.246925771610089,
+          "tier": "tier3"
+        },
+        {
+          "path": "residualSD",
+          "status": "PASS",
+          "certified": 304.854073561965,
+          "actual": 304.8540735620989,
+          "lre": 12.35723652568476,
+          "tier": "tier3"
+        },
+        {
+          "path": "rSquared",
+          "status": "PASS",
+          "certified": 0.995479004577296,
+          "actual": 0.9954790045772917,
+          "lre": 14.361557268017757,
+          "tier": "tier3"
+        }
+      ],
+      "averageLRE": 12.349632999188485
     },
     {
       "method": "edge-ttest-nan",

@@ -10,18 +10,18 @@
 
 Python과 R이 **다른 알고리즘**을 사용하여 결과가 "일치"가 아닌 "근사"인 메서드들.
 
-| 메서드 | LRE | Python | R | 차이 원인 |
-|--------|-----|--------|---|-----------|
-| `factor-analysis` | **0.69** | sklearn MLE | psych PA | 추정 알고리즘 자체가 다름 (tier4 PASS) |
-| `arima` | **4.72** | statsmodels | stats::arima | 최적화 초기값 + 옵티마이저 차이 |
-| `ordinal-regression` | **4.81** | statsmodels OrderedModel | MASS::polr | threshold 파라미터화 방식 차이 |
-| `dose-response` | 5.83 | scipy curve_fit | drc::drm | 비선형 옵티마이저 수렴 차이 |
-| `cluster` | 6.45 | sklearn KMeans (Lloyd) | stats::kmeans (Hartigan-Wong) | k-means 변형 알고리즘 차이 |
+| 메서드 | LRE | Python | R | 차이 원인 | 상태 |
+|--------|-----|--------|---|-----------|------|
+| `factor-analysis` | ~~0.69~~ → **2.6** | ~~sklearn MLE~~ → NumPy PAF | psych PA | 동일 알고리즘, LAPACK 고유값분해 차이 + Heywood case | **tier3 승격** |
+| `arima` | **4.72** | statsmodels | stats::arima | 최적화 초기값 + 옵티마이저 차이 | tier3 적절 ✅ |
+| `ordinal-regression` | **4.81** | statsmodels OrderedModel | MASS::polr | threshold 파라미터화 방식 차이 | tier3 적절 ✅ |
+| `dose-response` | 5.83 | scipy curve_fit | drc::drm | 비선형 옵티마이저 수렴 차이 | tier3 |
+| `cluster` | 6.45 | sklearn KMeans (Lloyd) | stats::kmeans (Hartigan-Wong) | k-means 변형 알고리즘 차이 | tier3 |
 
-### 확인 필요 사항
-- `factor-analysis` LRE 0.69 — 사용자에게 보이는 값이 R과 소수점 첫째 자리부터 다름. tier4 허용이 적절한지 재검토
-- `arima`, `ordinal-regression` — tier3 허용이 사용자 관점에서 충분한지 확인
-- 해당 메서드 결과 화면에 "알고리즘 차이로 인해 R/SPSS와 소폭 다를 수 있음" 안내 고려
+### 재검토 결과 (2026-04-07)
+- **`factor-analysis`**: sklearn MLE → NumPy PAF(Principal Axis Factoring) + varimax 자체 구현으로 전환. R `psych::fa(fm='pa')`와 동일 알고리즘. LRE 0.69→2.6. tier4→tier3 승격. 잔차(LRE 2.6)는 LAPACK 고유값분해 구현 차이 + Iris Petal.Length Heywood case(communality>1.0)로 인한 수치 불안정성.
+- **`arima`** (4.72): tier3 **적절**. LRE 4.72 = 유효숫자 5자리 일치. 두 소프트웨어 모두 CSS-ML 사용하나 옵티마이저 초기값/수렴 기준이 다름. ARIMA 계수의 소프트웨어 간 표준 오차 범위 내.
+- **`ordinal-regression`** (4.81): tier3 **적절**. LRE 4.81 = 유효숫자 5자리 일치. 카테고리 파라미터화 차이(R factor vs Python Categorical). 검증 스크립트에서 순서 명시로 정렬 차이 제거됨.
 
 ---
 

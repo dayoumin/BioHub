@@ -870,12 +870,92 @@ def negative_binomial_regression(xMatrix, yValues):
     }
 
 
+def _principal_axis_factoring(corr_matrix, n_factors, max_iter=50, tol=0.001):
+    """Principal Axis Factoring — matches R psych::fa(fm='pa', min.err=0.001)"""
+    p = corr_matrix.shape[0]
+
+    # Initial communalities: squared multiple correlations (SMC), clipped to [0,1]
+    try:
+        inv_corr = np.linalg.inv(corr_matrix)
+        h2 = np.clip(1.0 - 1.0 / np.diag(inv_corr), 0.0, 1.0)
+    except np.linalg.LinAlgError:
+        inv_corr = None
+        h2 = np.ones(p) * 0.5
+
+    h2_new = h2.copy()
+    loadings = np.zeros((p, n_factors))
+    eigenvalues = np.zeros(p)
+    for _ in range(max_iter):
+        R_reduced = corr_matrix.copy()
+        np.fill_diagonal(R_reduced, h2)
+
+        eigenvalues, eigenvectors = np.linalg.eigh(R_reduced)
+        eigenvalues = eigenvalues[::-1]
+        eigenvectors = eigenvectors[:, ::-1]
+
+        ev = np.maximum(eigenvalues[:n_factors], 0.0)
+        loadings = eigenvectors[:, :n_factors] * np.sqrt(ev)
+
+        # R does NOT clip during iteration — allows Heywood cases (h2 > 1)
+        h2_new = np.sum(loadings ** 2, axis=1)
+
+        if np.max(np.abs(h2_new - h2)) < tol:
+            break
+        h2 = h2_new
+
+    return loadings, eigenvalues[:n_factors], h2_new, inv_corr
+
+
+def _varimax_rotation(loadings, max_iter=100, tol=1e-5):
+    """Varimax rotation with Kaiser normalization — matches R stats::varimax()"""
+    A = loadings.copy()
+    p, k = A.shape
+
+    # Kaiser normalization
+    h = np.sqrt(np.sum(A ** 2, axis=1))
+    h[h == 0] = 1.0
+    A = A / h[:, np.newaxis]
+
+    rotation_matrix = np.eye(k)
+    d = 0.0
+
+    for _ in range(max_iter):
+        d_old = d
+        for i in range(k - 1):
+            for j in range(i + 1, k):
+                u = A[:, i] ** 2 - A[:, j] ** 2
+                v = 2.0 * A[:, i] * A[:, j]
+                a_val = np.sum(u)
+                b_val = np.sum(v)
+                c_val = np.sum(u ** 2 - v ** 2)
+                d_val = 2.0 * np.sum(u * v)
+                phi = np.arctan2(d_val - 2.0 * a_val * b_val / p,
+                                 c_val - (a_val ** 2 - b_val ** 2) / p) / 4.0
+                cos_p = np.cos(phi)
+                sin_p = np.sin(phi)
+                col_i = cos_p * A[:, i] + sin_p * A[:, j]
+                col_j = -sin_p * A[:, i] + cos_p * A[:, j]
+                A[:, i] = col_i
+                A[:, j] = col_j
+                r_i = cos_p * rotation_matrix[:, i] + sin_p * rotation_matrix[:, j]
+                r_j = -sin_p * rotation_matrix[:, i] + cos_p * rotation_matrix[:, j]
+                rotation_matrix[:, i] = r_i
+                rotation_matrix[:, j] = r_j
+
+        d = np.sum(np.sum(A ** 4, axis=0) - np.sum(A ** 2, axis=0) ** 2 / p)
+        if abs(d - d_old) < tol:
+            break
+
+    # Denormalize
+    A = A * h[:, np.newaxis]
+    return A, rotation_matrix
+
+
 def factor_analysis_method(data, nFactors=2, rotation='varimax', extraction='principal'):
     """
-    Comprehensive Factor Analysis with sklearn
-    Returns detailed factor metrics matching FactorAnalysisResult interface
+    Factor Analysis using Principal Axis Factoring (PAF) + Varimax rotation.
+    Matches R psych::fa(fm='pa', rotate='varimax').
     """
-    from sklearn.decomposition import FactorAnalysis
     from sklearn.preprocessing import StandardScaler
 
     X = np.array(data, dtype=float)
@@ -890,82 +970,57 @@ def factor_analysis_method(data, nFactors=2, rotation='varimax', extraction='pri
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
-    # Calculate KMO (Kaiser-Meyer-Olkin) measure
-    def calculate_kmo(data):
-        """Calculate KMO measure of sampling adequacy"""
-        corr_matrix = np.corrcoef(data.T)
-        inv_corr = np.linalg.inv(corr_matrix)
+    corr_matrix = np.corrcoef(X_scaled.T)
 
-        n_vars = corr_matrix.shape[0]
+    # Principal Axis Factoring (returns inv_corr computed for SMC — reuse for KMO)
+    loadings, _, _, inv_corr = _principal_axis_factoring(corr_matrix, nFactors)
 
-        # Calculate partial correlations
+    # KMO (reuses inv_corr from PAF — avoids redundant O(p^3) inversion)
+    def calculate_kmo(corr_mat, inv_c):
+        n_vars = corr_mat.shape[0]
         partial_corr = np.zeros((n_vars, n_vars))
         for i in range(n_vars):
             for j in range(n_vars):
                 if i != j:
-                    partial_corr[i, j] = -inv_corr[i, j] / np.sqrt(inv_corr[i, i] * inv_corr[j, j])
+                    partial_corr[i, j] = -inv_c[i, j] / np.sqrt(inv_c[i, i] * inv_c[j, j])
+        sum_sq_corr = np.sum(corr_mat ** 2) - n_vars
+        sum_sq_partial = np.sum(partial_corr ** 2)
+        return float(sum_sq_corr / (sum_sq_corr + sum_sq_partial)) if (sum_sq_corr + sum_sq_partial) > 0 else 0.0
 
-        # KMO for each variable and overall
-        sum_sq_corr = 0
-        sum_sq_partial = 0
-
-        for i in range(n_vars):
-            for j in range(n_vars):
-                if i != j:
-                    sum_sq_corr += corr_matrix[i, j] ** 2
-                    sum_sq_partial += partial_corr[i, j] ** 2
-
-        kmo_overall = sum_sq_corr / (sum_sq_corr + sum_sq_partial) if (sum_sq_corr + sum_sq_partial) > 0 else 0
-        return float(kmo_overall)
-
-    # Calculate Bartlett's test of sphericity
-    def calculate_bartlett(data):
-        """Bartlett's test of sphericity"""
-        n, p = data.shape
-        corr_matrix = np.corrcoef(data.T)
-
-        # Chi-square statistic
-        det = np.linalg.det(corr_matrix)
-        if det <= 0:
-            det = 1e-10
-
-        chi_square = -((n - 1) - (2 * p + 5) / 6) * np.log(det)
+    # Bartlett's test
+    def calculate_bartlett(corr_mat, n, p):
+        sign, logdet = np.linalg.slogdet(corr_mat)
+        if sign <= 0:
+            logdet = np.log(1e-10)
+        chi_square = -((n - 1) - (2 * p + 5) / 6) * logdet
         df = p * (p - 1) / 2
         p_value = 1 - stats.chi2.cdf(chi_square, df)
+        return {'statistic': float(chi_square), 'pValue': float(p_value), 'df': int(df), 'significant': p_value < 0.05}
 
-        return {
-            'statistic': float(chi_square),
-            'pValue': float(p_value),
-            'df': int(df),
-            'significant': p_value < 0.05
-        }
-
-    # Calculate KMO and Bartlett's test
     try:
-        kmo_value = calculate_kmo(X_scaled)
-        bartlett_result = calculate_bartlett(X_scaled)
+        kmo_value = calculate_kmo(corr_matrix, inv_corr) if inv_corr is not None else 0.5
+        bartlett_result = calculate_bartlett(corr_matrix, n_samples, n_variables)
     except Exception:
         kmo_value = 0.5
-        bartlett_result = {
-            'statistic': 0.0,
-            'pValue': 1.0,
-            'df': 0,
-            'significant': False
-        }
+        bartlett_result = {'statistic': 0.0, 'pValue': 1.0, 'df': 0, 'significant': False}
 
-    fa = FactorAnalysis(n_components=nFactors, random_state=42)
-    fa.fit(X_scaled)
-
-    loadings = fa.components_.T
+    # Varimax rotation (default)
+    if rotation == 'varimax' and nFactors > 1:
+        loadings, _ = _varimax_rotation(loadings)
 
     communalities = np.sum(loadings ** 2, axis=1).tolist()
     eigenvalues = np.sum(loadings ** 2, axis=0).tolist()
 
     total_variance = float(np.sum(eigenvalues))
-    variance_explained_pct = [float(ev / total_variance * 100) for ev in eigenvalues]
+    variance_explained_pct = [float(ev / total_variance * 100) for ev in eigenvalues] if total_variance > 0 else [0.0] * nFactors
     cumulative_variance = [float(np.sum(variance_explained_pct[:i+1])) for i in range(nFactors)]
 
-    factor_scores = fa.transform(X_scaled).tolist()
+    # Factor scores: regression method (R default) — scores = X @ R⁻¹ @ L
+    try:
+        weight_matrix = np.linalg.solve(corr_matrix, loadings)
+        factor_scores = (X_scaled @ weight_matrix).tolist()
+    except np.linalg.LinAlgError:
+        factor_scores = np.zeros((n_samples, nFactors)).tolist()
 
     variable_names = [f'Var{i+1}' for i in range(n_variables)]
     factor_names = [f'Factor{i+1}' for i in range(nFactors)]
@@ -994,35 +1049,18 @@ def factor_analysis_method(data, nFactors=2, rotation='varimax', extraction='pri
     }
 
 
-# Legacy factor_analysis method (kept for compatibility)
+# Legacy factor_analysis method (kept for compatibility) — delegates to factor_analysis_method
 def factor_analysis(dataMatrix, nFactors=2, rotation='varimax'):
-    from sklearn.decomposition import FactorAnalysis
-
-    data = np.array(dataMatrix)
-
-    if data.shape[0] < 3:
-        raise ValueError("Factor analysis requires at least 3 observations")
-
-    if data.shape[1] < nFactors:
-        raise ValueError(f"Cannot extract {nFactors} factors from {data.shape[1]} variables")
-
-    fa = FactorAnalysis(n_components=nFactors, random_state=42)
-    fa.fit(data)
-
-    loadings = fa.components_.T
-
-    communalities = np.sum(loadings ** 2, axis=1)
-
-    explained_variance = np.var(fa.transform(data), axis=0)
-    total_variance = np.sum(np.var(data, axis=0))
-    explained_variance_ratio = explained_variance / total_variance
-
+    result = factor_analysis_method(dataMatrix, nFactors=nFactors, rotation=rotation)
+    eigenvalues = result['eigenvalues']
+    total_var = sum(eigenvalues) if eigenvalues else 0.0
+    explained_variance_ratio = [ev / total_var for ev in eigenvalues] if total_var > 0 else [0.0] * nFactors
     return {
-        'loadings': loadings.tolist(),
-        'communalities': communalities.tolist(),
-        'explainedVariance': explained_variance.tolist(),
-        'explainedVarianceRatio': explained_variance_ratio.tolist(),
-        'totalVarianceExplained': float(np.sum(explained_variance_ratio)),
+        'loadings': result['factorLoadings'],
+        'communalities': result['communalities'],
+        'explainedVariance': eigenvalues,
+        'explainedVarianceRatio': explained_variance_ratio,
+        'totalVarianceExplained': float(sum(explained_variance_ratio)),
         'nFactors': int(nFactors)
     }
 
