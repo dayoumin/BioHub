@@ -1,9 +1,11 @@
 # BioHub 통계 UI/UX 고도화 & 리팩터링 잔여 작업
 
 ## 1. 시각화 및 UX 컴포넌트 고도화
+- [x] AI 해석의 요약 (결론 도출 근거) 정보를 결과 카드에 축약하여 노출 — Hero Card에 AI 요약 한 줄 인라인 (2026-04-07)
 - [ ] 분석 유형별(통계 메서드별) 기본 시각화 컴포넌트 매핑 일관성 확보
-- [ ] AI 해석의 요약 (결론 도출 근거) 정보를 결과 카드에 축약하여 노출 (Phase 3)
 - [ ] 사용자 언어(질문 기반)가 통계적 엄밀함을 해치는지 확인하고 문구 미세 조정 및 모니터링
+- [ ] **비가설검정 StatsCards 개선**: PCA/군집/요인/판별/검정력 → 메서드별 primaryMetrics 정의 + 조건부 카드 구성 (p-value 대신 분산설명률, 실루엣 등)
+- [ ] **ResultsActionStep 훅 추출**: useResultsExport, useResultsHistory, useResultsNavigation, usePaperDraft 분리 (1025줄 → 핸들러 로직 캡슐화)
 
 ## 2. StatisticalExecutor 마이그레이션 및 파서 버그 해결 (B2)
 - [x] **Poisson / Ordinal Regression Model-level p-value**: Worker + Handler 양쪽 `llrPValue`/`llrStatistic` 완전 구현 확인 (2026-04-07 검토)
@@ -29,7 +31,7 @@
 - [x] **FAIL 4건 → 55/55 PASS 달성**
   - `stationarity-test` LRE 5.7→10.3: 러너 `regression='c'`→`'ct'` (R adf.test는 constant+trend 포함)
   - `cox-regression` LRE 1.7→14.7: 러너 `PHReg(ties='efron')` 추가 (R coxph 기본값 Efron, statsmodels 기본값 Breslow 불일치)
-  - `factor-analysis` LRE 0.7 유지: golden tier3→tier4 (sklearn MLE vs R psych PA — 추정 알고리즘 자체가 다름)
+  - `factor-analysis` LRE 0.7→2.6: sklearn MLE→NumPy PAF 전환, comm tier3 + varExp tier4 (삼자 비교 완료)
   - `cluster` LRE 1.7→6.4: golden tier3→tier4 + clusterSizes 정렬 일치 (sklearn Lloyd vs R Hartigan-Wong)
 
 ### Phase 4 완료 — 65/65 PASS
@@ -48,7 +50,7 @@
 - [ ] mann-whitney LRE=8.0, ordinal LRE=4.8, dose-response LRE=5.8, pearson 편차 7.5~13.4
 
 ### 검증 갭 분석 (상세: `stats/docs/VALIDATION-GAPS-ANALYSIS.md`)
-- [ ] **알고리즘 차이 재검토**: factor-analysis LRE 0.69, arima 4.72, ordinal 4.81 — tier 허용 적절성 확인
+- [x] **알고리즘 차이 재검토**: factor-analysis sklearn MLE→NumPy PAF 전환 (LRE 0.69→2.6, tier3), arima 4.72·ordinal 4.81 tier3 적절 확인, 삼자 교차비교 문서화 완료
 - [x] **kaplan-meier → statsmodels 전환**: `SurvfuncRight + survdiff` 사용, R 대비 LRE 15.0 유지 확인
 - [x] **method-target-matrix.json 정정**: 9개 메서드의 pythonLib/pythonCall을 실제 라이브러리 호출로 수정
 - [x] **검증 메타데이터 UI 표시**: `validation-metadata.ts` + ResultsHeroCard 배지 (라이브러리명 + R 검증 완료)
@@ -56,7 +58,13 @@
 - [x] **엣지케이스 추가**: 분산 0, n=1, 완전 분리, 다중공선성, 전체 결측, 빈 팩터 — 6개 추가 (12/12 PASS)
 - [x] **NIST 확장**: Filip(다항회귀, LRE 7.7), Longley(다중공선성, LRE 12.3) 추가 — 6/6 PASS
 
-## 5. 다중 에이전트 및 사전 구축 프롬프트 설계 (Prompt Registry & Cross-Model Review)
+## 5. 차트 품질 점검 (UI 다듬기 완료 후)
+- [ ] 상세: [`stats/docs/CHART-REVIEW-CHECKLIST.md`](stats/docs/CHART-REVIEW-CHECKLIST.md)
+- [ ] L1: 컨버터 테스트 edge case 보강 (빈 데이터, NaN, 단일 포인트, 대용량)
+- [ ] L2: Analysis Flow 4개 + Graph Studio 12타입 시각 요소 수동 점검
+- [ ] L3: 색상 접근성, 다크모드, 반응형, 내보내기 공통 품질
+
+## 6. 다중 에이전트 및 사전 구축 프롬프트 설계 (Prompt Registry & Cross-Model Review)
 - [ ] **조립식 프롬프트 라이브러리(`ai/prompts`) 구축**: 논문 생성 파츠(Methods, Results 등), 문서 어조 파츠(Journal, Report), 검증 전용 파츠로 거대한 단일 프롬프트를 분할 (상세: `ai/PROMPT_REGISTRY_PLAN.md` 참조).
 - [ ] **섹션/목적별 전용 프롬프트 생성**: 통계 결과 수치형, 그래프 패턴, 생태학 분야별로 최적화된 프롬프트 템플릿 파일 생성 및 동작 테스트.
 - [ ] **자동 검증 파이프라인(Cross-Model Review) 기획**: 작성 전용 모델과 검수 전용 모델(오류체커, 팩트체커 역할)을 교차 투입해 체계적 확인이 가능하도록 UX 기획.

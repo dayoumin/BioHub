@@ -898,6 +898,7 @@ export const aquaculture: TerminologyDictionary = {
       retry: '다시 시도',
       defaultError: 'AI 해석 중 오류가 발생했습니다.',
       retryExhausted: 'AI 해석을 불러올 수 없습니다. 위의 통계 수치와 차트만으로도 결과를 확인할 수 있습니다.',
+      draftCta: '이 결과로 논문 초안을 작성해 보세요',
     },
     sections: {
       detailedResults: '상세 결과',
@@ -934,6 +935,7 @@ export const aquaculture: TerminologyDictionary = {
       exportWithOptions: '세부 옵션으로 내보내기',
       backToVariables: '변수 선택으로',
       changeMethod: '방법 변경',
+      moreActions: '더보기',
       resultsSummary: '결과 정리',
       viewSummary: '정리 보기',
     },
@@ -1009,6 +1011,12 @@ export const aquaculture: TerminologyDictionary = {
         title: '새 분석을 시작할까요?',
         description: '현재 데이터와 결과가 모두 초기화됩니다. 이 작업은 되돌릴 수 없습니다.',
         confirm: '새 분석 시작',
+        cancel: '취소',
+      },
+      changeMethod: {
+        title: '분석 방법을 변경할까요?',
+        description: '현재 결과가 삭제되고 방법 선택 단계로 이동합니다. 저장하지 않은 결과는 복구할 수 없습니다.',
+        confirm: '방법 변경',
         cancel: '취소',
       },
     },

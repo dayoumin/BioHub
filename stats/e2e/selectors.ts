@@ -115,7 +115,9 @@ export const S = {
   exportHtml: '[data-testid="export-html"]',
 
   // ===== Graph Studio (Smart Flow → 시각화 연계) =====
-  /** Smart Flow 결과 화면의 "Graph Studio" 이동 버튼 */
+  /** Smart Flow 결과 화면의 "더보기" overflow 드롭다운 트리거 */
+  moreActionsBtn: '[data-testid="more-actions-btn"]',
+  /** Smart Flow 결과 화면의 "Graph Studio" 이동 버튼 (더보기 드롭다운 내) */
   openGraphStudioBtn: '[data-testid="open-graph-studio-btn"]',
   /** Graph Studio 메인 차트 영역 */
   graphStudioChart: '[data-testid="graph-studio-chart"]',

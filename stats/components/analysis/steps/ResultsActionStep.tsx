@@ -116,8 +116,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   // AI 해석 (커스텀 훅으로 캡슐화)
   const interpretRecovery = useErrorRecovery({ maxRetries: 2 })
 
-  // 새 분석 시작 확인
+  // 확인 다이얼로그
   const [showNewAnalysisConfirm, setShowNewAnalysisConfirm] = useState(false)
+  const [showChangeMethodConfirm, setShowChangeMethodConfirm] = useState(false)
 
   // 후속 칩 사용 추적
   const [usedChips, setUsedChips] = useState<Set<string>>(new Set())
@@ -824,7 +825,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 variant={paperDraft ? 'secondary' : 'outline'}
                 size="sm"
                 onClick={handlePaperDraftToggle}
-                aria-label={t.results.buttons.resultsSummary}
+                aria-label={paperDraft ? t.results.buttons.viewSummary : t.results.buttons.resultsSummary}
                 className={cn("h-8 px-1.5 sm:px-2.5 shadow-sm", paperDraft && "text-primary")}
                 data-testid="paper-draft-btn"
               >
@@ -895,6 +896,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           apaFormat={apaFormat}
           uploadedFileName={uploadedFileName ?? null}
           uploadedData={uploadedData}
+          aiSummary={parsedInterpretation?.summary ?? null}
+          isInterpreting={isInterpreting}
           prefersReducedMotion={prefersReducedMotion}
           t={t}
         />
@@ -922,7 +925,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           t={t}
         />
 
-        {/* ===== [Phase 3] AI 해석 카드 ===== */}
+        {/* ===== [Phase 1+] AI 해석 카드 (Phase 1부터 스켈레톤 표시) ===== */}
         <AiInterpretationCard
           parsedInterpretation={parsedInterpretation}
           isInterpreting={isInterpreting}
@@ -932,8 +935,25 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           prefersReducedMotion={prefersReducedMotion}
           onReinterpret={handleReinterpretWithQAReset}
           containerRef={aiInterpretationRef}
+          phase={phase}
           t={t}
         />
+
+        {/* ===== 논문 초안 CTA (AI 해석 완료 & 아직 초안 미생성 시) ===== */}
+        {interpretation && !isInterpreting && !paperDraft && (phase >= 3 || prefersReducedMotion) && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-violet-50/40 dark:bg-violet-950/20">
+            <BookOpen className="w-4 h-4 text-violet-500 flex-shrink-0" />
+            <span className="text-sm text-muted-foreground flex-1">{t.results.ai.draftCta}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePaperDraftToggle}
+              className="text-xs h-7 px-3 shadow-sm"
+            >
+              {t.results.buttons.resultsSummary}
+            </Button>
+          </div>
+        )}
 
         {/* ===== [Phase 4] 후속 Q&A 카드 ===== */}
         <FollowUpQASection
@@ -955,7 +975,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         {/* ===== 액션 버튼 + 다이얼로그 ===== */}
         <ResultsActionButtons
           onBackToVariables={() => navigateToStep(3)}
-          onChangeMethod={handleChangeMethod}
           onOpenGraphStudio={handleOpenInGraphStudio}
           onReanalyze={handleReanalyze}
           onNewAnalysis={handleNewAnalysis}
@@ -963,6 +982,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           showNewAnalysisConfirm={showNewAnalysisConfirm}
           onShowNewAnalysisConfirmChange={setShowNewAnalysisConfirm}
           onNewAnalysisConfirm={handleNewAnalysisConfirm}
+          showChangeMethodConfirm={showChangeMethodConfirm}
+          onShowChangeMethodConfirmChange={setShowChangeMethodConfirm}
+          onChangeMethodConfirm={handleChangeMethod}
           exportDialogOpen={exportDialogOpen}
           onExportDialogOpenChange={setExportDialogOpen}
           exportFormat={exportFormat}

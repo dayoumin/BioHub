@@ -4,10 +4,17 @@ import {
   ArrowLeft,
   FileText,
   BarChart3,
+  MoreHorizontal,
   RefreshCw,
   RotateCcw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -34,16 +41,18 @@ import type { ExportFormat, ExportContentOptions } from '@/lib/services/export/e
 export interface ResultsActionButtonsProps {
   // 네비게이션
   onBackToVariables: () => void
-  onChangeMethod: () => void
   onOpenGraphStudio: () => void
   onReanalyze: () => void
   onNewAnalysis: () => void
   onSaveTemplate: () => void
 
-  // 새 분석 확인 다이얼로그
+  // 확인 다이얼로그
   showNewAnalysisConfirm: boolean
   onShowNewAnalysisConfirmChange: (open: boolean) => void
   onNewAnalysisConfirm: () => void
+  showChangeMethodConfirm: boolean
+  onShowChangeMethodConfirmChange: (open: boolean) => void
+  onChangeMethodConfirm: () => void
 
   // 내보내기 다이얼로그
   exportDialogOpen: boolean
@@ -62,12 +71,19 @@ export interface ResultsActionButtonsProps {
       buttons: {
         backToVariables: string
         changeMethod: string
+        moreActions: string
         saveTemplate: string
         reanalyze: string
         newAnalysis: string
       }
       confirm: {
         newAnalysis: {
+          title: string
+          description: string
+          cancel: string
+          confirm: string
+        }
+        changeMethod: {
           title: string
           description: string
           cancel: string
@@ -92,7 +108,6 @@ export interface ResultsActionButtonsProps {
 
 export function ResultsActionButtons({
   onBackToVariables,
-  onChangeMethod,
   onOpenGraphStudio,
   onReanalyze,
   onNewAnalysis,
@@ -100,6 +115,9 @@ export function ResultsActionButtons({
   showNewAnalysisConfirm,
   onShowNewAnalysisConfirmChange,
   onNewAnalysisConfirm,
+  showChangeMethodConfirm,
+  onShowChangeMethodConfirmChange,
+  onChangeMethodConfirm,
   exportDialogOpen,
   onExportDialogOpenChange,
   exportFormat,
@@ -114,69 +132,67 @@ export function ResultsActionButtons({
   return (
     <>
       {/* ===== 액션 버튼 ===== */}
-      <div className="flex items-center gap-2 flex-wrap pt-4 mt-2 bg-surface-container/20 -mx-1 px-1 rounded-xl" data-testid="action-buttons">
+      <div className="flex items-center gap-2 flex-wrap pt-4 pb-2 mt-2 bg-surface-container/30 -mx-1 px-3 rounded-xl" data-testid="action-buttons">
         <Button
           variant="ghost"
           size="sm"
           onClick={onBackToVariables}
-          className="text-muted-foreground hover:text-foreground text-xs h-8"
+          className="text-muted-foreground hover:text-foreground text-sm h-9"
         >
-          <ArrowLeft className="w-3 h-3 mr-1" />
+          <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
           {t.results.buttons.backToVariables}
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onChangeMethod}
-          className="text-muted-foreground hover:text-foreground text-xs h-8"
-          data-testid="change-method-btn"
-        >
-          <RefreshCw className="w-3 h-3 mr-1" />
-          {t.results.buttons.changeMethod}
         </Button>
 
         <div className="flex-1" />
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onSaveTemplate}
-          className="text-muted-foreground hover:text-foreground text-xs h-8"
-        >
-          <FileText className="w-3 h-3 mr-1" />
-          {t.results.buttons.saveTemplate}
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onOpenGraphStudio}
-          className="text-muted-foreground hover:text-foreground text-xs h-8"
-          data-testid="open-graph-studio-btn"
-        >
-          <BarChart3 className="w-3 h-3 mr-1" />
-          Graph Studio
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground text-sm h-9 px-2"
+              aria-label={t.results.buttons.moreActions}
+              data-testid="more-actions-btn"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onShowChangeMethodConfirmChange(true)} data-testid="change-method-btn">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              {t.results.buttons.changeMethod}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onSaveTemplate}>
+              <FileText className="w-4 h-4 mr-2" />
+              {t.results.buttons.saveTemplate}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onOpenGraphStudio} data-testid="open-graph-studio-btn">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Graph Studio
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-        <div className="w-px h-4 bg-surface-container-highest/50" />
+        <div className="w-px h-5 bg-surface-container-highest/50" />
 
         <Button
-          variant="ghost"
+          variant="secondary"
           size="sm"
           onClick={onReanalyze}
-          className="text-muted-foreground hover:text-foreground text-xs h-8"
+          className="text-sm h-9"
           data-testid="reanalysis-btn"
         >
-          <RefreshCw className="w-3 h-3 mr-1" />
+          <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
           {t.results.buttons.reanalyze}
         </Button>
         <Button
-          variant="outline"
+          variant="default"
           size="sm"
           onClick={onNewAnalysis}
-          className="text-xs h-8"
+          className="text-sm h-9"
           data-testid="new-analysis-btn"
         >
-          <RotateCcw className="w-3 h-3 mr-1" />
+          <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
           {t.results.buttons.newAnalysis}
         </Button>
       </div>
@@ -192,6 +208,22 @@ export function ResultsActionButtons({
             <AlertDialogCancel>{t.results.confirm.newAnalysis.cancel}</AlertDialogCancel>
             <AlertDialogAction onClick={onNewAnalysisConfirm}>
               {t.results.confirm.newAnalysis.confirm}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 방법 변경 확인 다이얼로그 */}
+      <AlertDialog open={showChangeMethodConfirm} onOpenChange={onShowChangeMethodConfirmChange}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t.results.confirm.changeMethod.title}</AlertDialogTitle>
+            <AlertDialogDescription>{t.results.confirm.changeMethod.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t.results.confirm.changeMethod.cancel}</AlertDialogCancel>
+            <AlertDialogAction onClick={onChangeMethodConfirm}>
+              {t.results.confirm.changeMethod.confirm}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

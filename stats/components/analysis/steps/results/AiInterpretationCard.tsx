@@ -7,6 +7,7 @@ import ReactMarkdown from 'react-markdown'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { proseBase } from '@/components/common/card-styles'
 import { parseDetailSections, type InterpretationSection, type SectionCategory } from '@/lib/services/ai/parse-interpretation-sections'
@@ -32,6 +33,8 @@ interface AiInterpretationCardProps {
   prefersReducedMotion: boolean
   onReinterpret: () => void
   containerRef: RefObject<HTMLDivElement | null>
+  /** 결과 Phase (0~4) — Phase 1부터 스켈레톤 표시 */
+  phase?: number
   t: TerminologyDictionary
 }
 
@@ -229,6 +232,7 @@ export function AiInterpretationCard({
   prefersReducedMotion,
   onReinterpret,
   containerRef,
+  phase = 4,
   t,
 }: AiInterpretationCardProps): React.ReactElement {
   // 상세 섹션 파싱
@@ -298,6 +302,32 @@ export function AiInterpretationCard({
   return (
     <div className="space-y-2" data-testid="ai-interpretation-section" ref={containerRef}>
       <AnimatePresence mode="wait">
+        {/* === 스켈레톤: Phase 1+ & 아직 스트리밍 시작 전 === */}
+        {(phase >= 1 && !prefersReducedMotion) && !isInterpreting && !parsedInterpretation && !interpretError && (
+          <motion.div
+            key="ai-skeleton"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.25 }}
+          >
+            <Card className="border-0 bg-surface-container-lowest shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
+              <CardContent className="py-5 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-violet-50/60 dark:bg-violet-900/20 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-4 h-4 text-violet-300 animate-pulse" />
+                  </div>
+                  <span className="text-sm text-muted-foreground/50 font-medium">{t.results.ai.loading}</span>
+                </div>
+                <div className="space-y-2 pl-11">
+                  <Skeleton className="h-3 w-3/4 bg-surface-container-high/40" />
+                  <Skeleton className="h-3 w-1/2 bg-surface-container-high/30" />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         {/* === 로딩 상태 === */}
         {isInterpreting && !parsedInterpretation && (
           <motion.div

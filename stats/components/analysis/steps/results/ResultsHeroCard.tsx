@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  Sparkles,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -26,6 +27,9 @@ export interface ResultsHeroCardProps {
   apaFormat: string | null
   uploadedFileName: string | null
   uploadedData: Record<string, unknown>[] | null
+  /** AI 해석 요약 한 줄 (스트리밍 완료 전에는 null) */
+  aiSummary: string | null
+  isInterpreting: boolean
   prefersReducedMotion: boolean
   t: {
     results: {
@@ -45,6 +49,8 @@ export function ResultsHeroCard({
   apaFormat,
   uploadedFileName,
   uploadedData,
+  aiSummary,
+  isInterpreting,
   prefersReducedMotion,
   t,
 }: ResultsHeroCardProps): React.ReactElement {
@@ -69,11 +75,9 @@ export function ResultsHeroCard({
     >
       <Card className={cn(
         "overflow-hidden rounded-xl border-0",
-        !assumptionsPassed
-          ? "bg-warning-bg/30 shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]"
-          : isSignificant || !showBinaryConclusion
-            ? "bg-surface-container-lowest shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]"
-            : "bg-surface-container-low shadow-[0_1px_2px_0_rgba(0,0,0,0.03)]"
+        isSignificant || !showBinaryConclusion
+          ? "bg-surface-container-lowest shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]"
+          : "bg-surface-container-low shadow-[0_1px_2px_0_rgba(0,0,0,0.03)]"
       )}>
         <CardContent className="py-4 px-5">
           <div className={cn(
@@ -99,6 +103,14 @@ export function ResultsHeroCard({
               }
             </p>
           </div>
+
+          {/* AI 요약 한 줄 (해석 완료 시) */}
+          {aiSummary && !isInterpreting && (
+            <p className="text-sm text-muted-foreground leading-relaxed mb-3 flex items-start gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-violet-400 flex-shrink-0 mt-0.5" />
+              <span className="line-clamp-2">{aiSummary}</span>
+            </p>
+          )}
 
           {/* 1행: 아이콘 + 메서드명 + 경고 배지 + 타임스탬프 */}
           <div className="flex items-center gap-3 flex-wrap">
@@ -151,20 +163,20 @@ export function ResultsHeroCard({
             <div className="mt-3 pt-3 pb-1 bg-surface-container/30 -mx-5 px-5 rounded-b-xl flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
               {apaFormat && (
                 <>
-                  <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/40 flex-shrink-0">APA</span>
-                  <code className="text-[11px] font-mono text-foreground/60">{apaFormat}</code>
+                  <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 flex-shrink-0">APA</span>
+                  <code className="text-xs font-mono text-foreground/70 select-all">{apaFormat}</code>
                 </>
               )}
               {uploadedFileName && (
-                <span className="text-[11px] text-muted-foreground/50">{uploadedFileName}</span>
+                <span className="text-xs text-muted-foreground/50">{uploadedFileName}</span>
               )}
               {uploadedData && (
-                <span className="text-[11px] text-muted-foreground/50">
+                <span className="text-xs text-muted-foreground/50">
                   {t.results.metadata.rowsCols(uploadedData.length, Object.keys(uploadedData[0] || {}).length)}
                 </span>
               )}
               {statisticalResult.variables && (
-                <span className="text-[11px] text-muted-foreground/50">{statisticalResult.variables.join(', ')}</span>
+                <span className="text-xs text-muted-foreground/50">{statisticalResult.variables.join(', ')}</span>
               )}
               {validationMeta && (
                 <Tooltip>

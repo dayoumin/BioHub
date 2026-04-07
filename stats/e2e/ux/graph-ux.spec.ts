@@ -144,13 +144,15 @@ test.describe('@phase4 @critical Graph Studio 첫 사용자', () => {
     await clickAnalysisRun(page)
     expect(await waitForResults(page, 120000)).toBe(true)
 
-    // Graph Studio 버튼 클릭
-    const gsBtn = page.locator(S.openGraphStudioBtn)
-    if (!(await gsBtn.isVisible({ timeout: 5000 }).catch(() => false))) {
-      log('TC-4B.1.3', 'SKIPPED: open-graph-studio-btn 미표시')
+    // 더보기 드롭다운 열기 → Graph Studio 클릭
+    const moreBtn = page.locator(S.moreActionsBtn)
+    if (!(await moreBtn.isVisible({ timeout: 5000 }).catch(() => false))) {
+      log('TC-4B.1.3', 'SKIPPED: more-actions-btn 미표시')
       test.skip()
       return
     }
+    await moreBtn.click()
+    const gsBtn = page.locator(S.openGraphStudioBtn)
 
     await gsBtn.click()
     await page.waitForTimeout(5000)

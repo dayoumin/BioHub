@@ -942,6 +942,7 @@ export interface ResultsText {
     retry: string
     defaultError: string
     retryExhausted: string
+    draftCta: string
   }
   /** 섹션 라벨 */
   sections: {
@@ -981,6 +982,7 @@ export interface ResultsText {
     exportWithOptions: string
     backToVariables: string
     changeMethod: string
+    moreActions: string
     resultsSummary: string
     viewSummary: string
   }
@@ -1053,6 +1055,12 @@ export interface ResultsText {
   /** 확인 다이얼로그 */
   confirm: {
     newAnalysis: {
+      title: string
+      description: string
+      confirm: string
+      cancel: string
+    }
+    changeMethod: {
       title: string
       description: string
       confirm: string

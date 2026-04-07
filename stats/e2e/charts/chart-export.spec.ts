@@ -44,8 +44,10 @@ test.describe('Phase 3.5: Chart Export', () => {
 
   test('TC-3.5.14: Graph Studio 이동 @important', async ({ page }) => {
     await runTTestAnalysis(page)
+    const moreBtn = page.locator(S.moreActionsBtn)
+    if (!await moreBtn.isVisible({ timeout: 5000 }).catch(() => false)) { test.skip(); return }
+    await moreBtn.click()
     const gsBtn = page.locator(S.openGraphStudioBtn)
-    if (!await gsBtn.isVisible({ timeout: 5000 }).catch(() => false)) { test.skip(); return }
     await gsBtn.click()
     await page.waitForURL(/graph-studio/, { timeout: 15_000 })
     await expect(page.locator(S.graphStudioPage)).toBeVisible({ timeout: 15_000 })
