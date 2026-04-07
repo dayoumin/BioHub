@@ -91,13 +91,13 @@
 
 ## 해결된 FAIL 4건 — 수정 상세
 
-### 1. stationarity-test: 버그 수정 (LRE 1.0 → 10.3)
+### 1. stationarity-test: 버그 수정 (LRE 5.7 → 10.3)
 
 **원인**: R `adf.test`는 항상 constant + trend (`regression='ct'`) 포함. 러너가 `regression='c'` (constant only)를 사용하여 다른 회귀 모델로 검정.
 
 **수정**: `run-validation.mjs`에서 `adfuller(..., regression='ct')` — adfStatistic LRE=15 (완벽 일치), pValue tier2→3 (R Banerjee 보간 vs Python MacKinnon 회귀 p-value 산출 방식 차이)
 
-### 2. cox-regression: 버그 수정 (LRE 1.5 → 14.7)
+### 2. cox-regression: 버그 수정 (LRE 1.7 → 14.7)
 
 **원인**: `statsmodels PHReg` 기본 ties='breslow', R `survival::coxph` 기본 ties='efron'. Breslow는 tied event times에서 Efron보다 부정확한 근사 (Efron 1977). 소규모 데이터(n=20)에서 ~2-4% 계수 차이 발생.
 
@@ -118,18 +118,20 @@
 
 ## Phase별 LRE 추이
 
-| 카테고리 | 메서드 수 | 평균 LRE | 해석 |
-|----------|----------|----------|------|
+| 카테고리 | 메서드/케이스 수 | 평균 LRE | 해석 |
+|----------|----------------|----------|------|
 | T-test (P1) | 4 | 14.9 | 닫힌 형태 해 |
-| ANOVA (P1) | 2 | 14.7 | 닫힌 형태 |
-| 비모수 (P2) | 8 | 13.4 | 순위 기반 |
-| 상관 (P2) | 5 cases | 12.0 | |
-| 회귀 (P2) | 7 | 8.8 | 최적화 기반 |
+| ANOVA (P1) | 2 | 14.6 | 닫힌 형태 |
+| 비모수 (P2) | 8 | 14.0 | 순위 기반 |
+| 상관 (P2) | 4 cases | 11.4 | |
+| 회귀 (P2) | 7 | 9.9 | 최적화 기반 |
+| 기술/기타 (P2) | 4 cases | 15.0 | KS + runs + binomial |
 | 카이제곱 (P3) | 2 | 15.0 | 닫힌 형태 |
-| ANOVA 확장 (P3) | 4 | 13.4 | |
+| ANOVA 확장 (P3) | 4 | 13.3 | |
 | 다변량 (P3) | 4 | 7.5 | factor 0.7 (tier4), cluster 6.4 (tier4) |
 | 시계열 (P3) | 4 | 10.7 | stationarity 10.3 (regression='ct' 수정) |
-| 데이터 도구 (P3) | 7 cases | 13.7 | |
+| 진단/기타 (P3) | 3 | 13.0 | normality + proportion + reliability |
+| 데이터 도구 (P3) | 6 cases | 13.1 | |
 
 ## 검증 환경
 
