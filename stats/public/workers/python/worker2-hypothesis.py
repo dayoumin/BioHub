@@ -436,8 +436,8 @@ def partial_correlation(
     n = len(df)
     k = len(controlIndices)
 
-    if n < k + 3:
-        raise ValueError(f"Sample size ({n}) must be greater than number of control variables ({k}) + 2")
+    if n < k + 4:
+        raise ValueError(f"Sample size ({n}) must be greater than number of control variables ({k}) + 3")
 
     control_cols = [f'control{i}' for i in range(k)]
     controls = sm.add_constant(df[control_cols])
@@ -1745,9 +1745,9 @@ def poisson_regression(
             'observation': i + 1,
             'actualCount': float(df_clean[dependent_var].iloc[i]),
             'predictedCount': float(predicted[i]),
-            'residual': float(residuals.iloc[i]),
-            'pearsonResidual': float(pearson_resid.iloc[i]),
-            'devianceResidual': float(deviance_resid.iloc[i])
+            'residual': float(residuals[i]),
+            'pearsonResidual': float(pearson_resid[i]),
+            'devianceResidual': float(deviance_resid[i])
         })
 
     # Goodness of fit

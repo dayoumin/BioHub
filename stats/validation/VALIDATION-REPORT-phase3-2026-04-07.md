@@ -103,7 +103,7 @@
 
 **수정**: `run-validation.mjs`에서 `PHReg(..., ties='efron')` 추가 — 계수/HR/p-value 모두 R과 완벽 일치 (LRE 14.7).
 
-### 3. cluster: 정렬 수정 + tier 조정 (LRE 1.8 → 6.4)
+### 3. cluster: 정렬 수정 + tier 조정 (LRE 1.7 → 6.4)
 
 **원인 1**: clusterSizes 정렬 불일치 — R golden `[50, 53, 47]` (cluster 순서) vs Python `sorted([47, 50, 53])`.
 **원인 2**: withinSS/betweenSS — sklearn Lloyd vs R Hartigan-Wong 수렴점 차이 (~0.7%).
