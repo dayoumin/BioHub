@@ -37,9 +37,9 @@
 - [ ] 최종 종합 보고서 (VALIDATION-REPORT.md)
 
 ### 인프라 / Worker 버그
-- [ ] **worker2 poisson_regression**: `PoissonResults.deviance` 속성 없음 → GLM 전환 필요
-- [ ] **worker2 partial_correlation pValue**: pearsonr df=n-2 → df=n-k-2 수정 필요
-- [ ] **worker4 cox_regression**: `conf_int().iloc` Pyodide에서 ndarray 반환 → `.iloc` 불가
+- [x] **worker2 poisson_regression**: GLM 전환 완료 + predicted/residuals ndarray 인덱싱 수정
+- [x] **worker2 partial_correlation pValue**: t-분포 df=n-k-2 직접 계산 + r clip + 최소 표본 k+4
+- [x] **worker4 cox_regression**: np.asarray() 정규화로 DataFrame/ndarray 통합 처리
 - [ ] **welch-t 필드 보강**: mean1, mean2, cohensD가 worker 미반환으로 skip 상태
 
 ### Phase 2 발견사항 (LRE 저조 — 실무 영향 없음)
