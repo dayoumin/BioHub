@@ -1277,15 +1277,16 @@ def arima_forecast(values, order=(1, 1, 1), nForecast=10):
 
     forecast_res = fitted.get_forecast(steps=int(nForecast))
     predicted = forecast_res.predicted_mean.tolist()
-    conf_int = forecast_res.conf_int()
-    lower = conf_int.iloc[:, 0].tolist() if hasattr(conf_int, "iloc") else [float(v[0]) for v in conf_int]
-    upper = conf_int.iloc[:, 1].tolist() if hasattr(conf_int, "iloc") else [float(v[1]) for v in conf_int]
+    conf_int_raw = forecast_res.conf_int()
+    conf_int_arr = np.asarray(conf_int_raw) if conf_int_raw is not None else None
+    lower = [float(v) for v in conf_int_arr[:, 0]] if conf_int_arr is not None else []
+    upper = [float(v) for v in conf_int_arr[:, 1]] if conf_int_arr is not None else []
 
     return {
         'forecast': [float(v) for v in predicted],
         'confidenceIntervals': {
-            'lower': [float(v) for v in lower],
-            'upper': [float(v) for v in upper]
+            'lower': lower,
+            'upper': upper
         },
         'aic': float(fitted.aic) if fitted.aic is not None else None,
         'bic': float(fitted.bic) if fitted.bic is not None else None
@@ -1310,15 +1311,16 @@ def sarima_forecast(values, order=(1, 1, 1), seasonalOrder=(1, 1, 1, 12), nForec
 
     forecast_res = fitted.get_forecast(steps=int(nForecast))
     predicted = forecast_res.predicted_mean.tolist()
-    conf_int = forecast_res.conf_int()
-    lower = conf_int.iloc[:, 0].tolist() if hasattr(conf_int, "iloc") else [float(v[0]) for v in conf_int]
-    upper = conf_int.iloc[:, 1].tolist() if hasattr(conf_int, "iloc") else [float(v[1]) for v in conf_int]
+    conf_int_raw = forecast_res.conf_int()
+    conf_int_arr = np.asarray(conf_int_raw) if conf_int_raw is not None else None
+    lower = [float(v) for v in conf_int_arr[:, 0]] if conf_int_arr is not None else []
+    upper = [float(v) for v in conf_int_arr[:, 1]] if conf_int_arr is not None else []
 
     return {
         'forecast': [float(v) for v in predicted],
         'confidenceIntervals': {
-            'lower': [float(v) for v in lower],
-            'upper': [float(v) for v in upper]
+            'lower': lower,
+            'upper': upper
         },
         'aic': float(fitted.aic) if fitted.aic is not None else None,
         'bic': float(fitted.bic) if fitted.bic is not None else None
@@ -1489,11 +1491,29 @@ def cox_regression(times, events, covariateData, covariateNames):
                 'upper': float(conf_int_arr[idx, 1])
             })
 
-    concordance = None
-    if hasattr(result, "concordance"):
-        concordance = float(result.concordance)
-    elif hasattr(result, "concordance_index"):
-        concordance = float(result.concordance_index)
+    # Harrell's C-index: fraction of concordant pairs among comparable pairs
+    linear_predictor = np.dot(df[covariateNames].values, result.params)
+    time_arr = np.array(times, dtype=float)
+    event_arr = np.array(events, dtype=int)
+    concordant = 0
+    discordant = 0
+    n_obs = len(time_arr)
+    for i in range(n_obs):
+        if event_arr[i] == 0:
+            continue
+        for j in range(n_obs):
+            if i == j:
+                continue
+            if time_arr[j] > time_arr[i]:
+                if linear_predictor[i] > linear_predictor[j]:
+                    concordant += 1
+                elif linear_predictor[i] < linear_predictor[j]:
+                    discordant += 1
+                else:
+                    concordant += 0.5
+                    discordant += 0.5
+    total_pairs = concordant + discordant
+    concordance = float(concordant / total_pairs) if total_pairs > 0 else None
 
     return {
         'coefficients': coefficients,

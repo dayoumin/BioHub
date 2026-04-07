@@ -411,7 +411,7 @@ export interface CoxRegressionResult extends BaseTestResult {
     pValue: number
     ci: [number, number]
   }>
-  concordance: number
+  concordance: number | null
   logLikelihood: number
   aic: number
   globalTest: {

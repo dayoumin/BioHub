@@ -150,19 +150,17 @@ vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
       }),
       arimaForecast: vi.fn().mockResolvedValue({
         forecast: [6, 7, 8],
-        confidenceIntervals: [
-          [5, 7],
-          [6, 8],
-          [7, 9],
-        ],
+        confidenceIntervals: {
+          lower: [5, 6, 7],
+          upper: [7, 8, 9],
+        },
       }),
       sarimaForecast: vi.fn().mockResolvedValue({
         forecast: [6, 7, 8],
-        confidenceIntervals: [
-          [5, 7],
-          [6, 8],
-          [7, 9],
-        ],
+        confidenceIntervals: {
+          lower: [5, 6, 7],
+          upper: [7, 8, 9],
+        },
       }),
       varModel: vi.fn().mockResolvedValue({
         coefficients: {},

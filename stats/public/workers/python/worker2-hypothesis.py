@@ -30,6 +30,27 @@ def _safe_bool(value: Union[bool, np.bool_]) -> bool:
         return bool(value)
 
 
+def _corr_t_pvalue(r: float, n: int, k: int = 0) -> tuple:
+    """
+    Convert correlation coefficient r to t-statistic and two-tailed p-value.
+
+    Args:
+        r: Correlation coefficient (-1 to 1)
+        n: Sample size
+        k: Number of control variables (0 for simple correlation)
+
+    Returns:
+        (t_stat, p_value) with df = n - k - 2
+    """
+    df = n - k - 2
+    if abs(r) < 1:
+        t_stat = r * np.sqrt(df / (1 - r ** 2))
+    else:
+        t_stat = np.inf
+    p_value = float(2 * stats.t.sf(np.abs(t_stat), df)) if df > 0 else 1.0
+    return t_stat, p_value
+
+
 def t_test_two_sample(
     group1: List[Union[float, int, None]],
     group2: List[Union[float, int, None]],
@@ -454,9 +475,7 @@ def partial_correlation(
 
     r = float(np.clip(corr_result.statistic, -1.0, 1.0))
 
-    # Compute p-value with correct df=n-k-2 (pearsonr uses df=n-2)
-    t_stat = r * np.sqrt(df_residual / (1 - r ** 2)) if abs(r) < 1 else np.inf
-    p_value = float(2 * stats.t.sf(np.abs(t_stat), df_residual)) if df_residual > 0 else 1.0
+    t_stat, p_value = _corr_t_pvalue(r, n, k)
 
     z = np.arctanh(r)
     se = 1 / np.sqrt(df_residual - 1)
@@ -680,27 +699,23 @@ def partial_correlation_analysis(data, analysisVars, controlVars=None):
 
     def compute_partial_corr(df, x, y, controls):
         """편상관계수 계산"""
+        n = len(df)
+        k = len(controls)
+
         if not controls:
             # 통제변수가 없으면 단순 상관
-            corr, p_val = stats.pearsonr(df[x], df[y])
-            n = len(df)
-            t_stat = corr * np.sqrt((n-2)/(1-corr**2)) if abs(corr) != 1 else np.inf
-            return corr, p_val, t_stat, n-2
+            corr, _ = stats.pearsonr(df[x], df[y])
+            t_stat, p_val = _corr_t_pvalue(float(corr), n, k=0)
+            return corr, p_val, t_stat, n - 2
 
         # 편상관 계산 (잔차 기반)
-        X_matrix = np.column_stack([df[controls].values, np.ones(len(df))])
+        X_matrix = np.column_stack([df[controls].values, np.ones(n)])
         x_resid = df[x] - X_matrix @ np.linalg.lstsq(X_matrix, df[x], rcond=None)[0]
         y_resid = df[y] - X_matrix @ np.linalg.lstsq(X_matrix, df[y], rcond=None)[0]
 
-        # 잔차 간 상관
-        corr, p_val = stats.pearsonr(x_resid, y_resid)
-        n = len(df)
-        df_val = n - len(controls) - 2
-
-        if abs(corr) != 1:
-            t_stat = corr * np.sqrt(df_val / (1 - corr**2))
-        else:
-            t_stat = np.inf
+        corr, _ = stats.pearsonr(x_resid, y_resid)
+        t_stat, p_val = _corr_t_pvalue(float(corr), n, k)
+        df_val = n - k - 2
 
         return corr, p_val, t_stat, df_val
 
@@ -1613,183 +1628,6 @@ def ancova_analysis(
         'postHoc': post_hoc,
         'assumptions': assumptions,
         'modelFit': model_fit,
-        'interpretation': interpretation
-    }
-
-
-def poisson_regression(
-    dependent_var: str,
-    independent_vars: List[str],
-    data: List[Dict[str, Union[str, float, int, None]]]
-) -> Dict[str, Any]:
-    """
-    Poisson Regression using statsmodels
-
-    Args:
-        dependent_var: 종속변수 (count data)
-        independent_vars: 독립변수 리스트
-        data: 데이터 리스트
-
-    Returns:
-        Poisson regression 결과
-    """
-    import pandas as pd
-    import statsmodels.api as sm
-    from scipy.stats import chi2
-
-    # Convert to DataFrame
-    df = pd.DataFrame(data)
-
-    # Clean data
-    required_vars = [dependent_var] + independent_vars
-    df_clean = df[required_vars].dropna()
-
-    if len(df_clean) < 10:
-        raise ValueError(f"Insufficient data: {len(df_clean)} rows")
-
-    # Build formula: count ~ var1 + var2 + ...
-    formula = f'{dependent_var} ~ {" + ".join(independent_vars)}'
-
-    # Fit Poisson model via GLM (GLMResults exposes deviance, pearson_chi2, etc.)
-    model = sm.GLM.from_formula(formula, data=df_clean, family=sm.families.Poisson()).fit()
-
-    # Model info
-    model_info = {
-        'modelType': 'Poisson Regression',
-        'linkFunction': 'log',
-        'distribution': 'Poisson',
-        'nObservations': int(model.nobs),
-        'nPredictors': len(independent_vars),
-        'convergence': bool(model.converged),
-        'iterations': int(getattr(model, 'fit_history', {}).get('iteration', 0)),
-        'logLikelihood': float(model.llf)
-    }
-
-    # Coefficients
-    coefficients = []
-    conf_int_df = model.conf_int()
-    for var in model.params.index:
-        coef = float(model.params[var])
-        se = float(model.bse[var])
-        z_val = float(model.tvalues[var])
-        p_val = float(model.pvalues[var])
-        ci = conf_int_df.loc[var]
-
-        # IRR (Incidence Rate Ratio) = exp(coefficient)
-        exp_coef = np.exp(coef)
-        irr_ci_lower = np.exp(ci[0])
-        irr_ci_upper = np.exp(ci[1])
-
-        coefficients.append({
-            'variable': var,
-            'coefficient': coef,
-            'stdError': se,
-            'zValue': z_val,
-            'pValue': p_val,
-            'ciLower': float(ci[0]),
-            'ciUpper': float(ci[1]),
-            'expCoefficient': float(exp_coef),
-            'irrCiLower': float(irr_ci_lower),
-            'irrCiUpper': float(irr_ci_upper)
-        })
-
-    # Model fit
-    model_fit = {
-        'deviance': float(model.deviance),
-        'pearsonChi2': float(model.pearson_chi2),
-        'aic': float(model.aic),
-        'bic': float(model.bic),
-        'pseudoRSquaredMcfadden': float(1 - model.llf / model.llnull) if model.llnull != 0 else 0.0,
-        'pseudoRSquaredDeviance': float(1 - model.deviance / model.null_deviance) if model.null_deviance != 0 else 0.0,
-        'dispersionParameter': float(model.scale)
-    }
-
-    # Assumptions
-    # 1. Overdispersion test (Deviance / df)
-    df_resid = model.df_resid
-    dispersion_ratio = model.deviance / df_resid if df_resid > 0 else 1.0
-    overdispersion_p = 1 - chi2.cdf(model.deviance, df_resid) if df_resid > 0 else 1.0
-
-    # 2. Durbin-Watson for independence
-    from statsmodels.stats.stattools import durbin_watson
-    dw_stat = durbin_watson(model.resid_response)
-
-    assumptions = {
-        'overdispersion': {
-            'testName': 'Deviance/DF Ratio',
-            'statistic': float(model.deviance),
-            'pValue': float(overdispersion_p),
-            'dispersionRatio': float(dispersion_ratio),
-            'assumptionMet': dispersion_ratio < 1.5  # Rule of thumb
-        },
-        'linearity': {
-            'testName': 'Link Test',
-            'pValue': 0.5,  # Placeholder
-            'assumptionMet': True
-        },
-        'independence': {
-            'durbinWatson': float(dw_stat),
-            'assumptionMet': 1.5 < dw_stat < 2.5
-        }
-    }
-
-    # Predicted values
-    predicted = model.predict()
-    residuals = model.resid_response
-    pearson_resid = model.resid_pearson
-    deviance_resid = model.resid_deviance
-
-    predicted_values = []
-    for i in range(min(len(df_clean), 100)):  # Limit to 100 rows
-        predicted_values.append({
-            'observation': i + 1,
-            'actualCount': float(df_clean[dependent_var].iloc[i]),
-            'predictedCount': float(predicted[i]),
-            'residual': float(residuals[i]),
-            'pearsonResidual': float(pearson_resid[i]),
-            'devianceResidual': float(deviance_resid[i])
-        })
-
-    # Goodness of fit
-    goodness_of_fit = {
-        'pearsonGof': {
-            'statistic': float(model.pearson_chi2),
-            'df': int(df_resid),
-            'pValue': float(1 - chi2.cdf(model.pearson_chi2, df_resid)) if df_resid > 0 else 1.0
-        },
-        'devianceGof': {
-            'statistic': float(model.deviance),
-            'df': int(df_resid),
-            'pValue': float(1 - chi2.cdf(model.deviance, df_resid)) if df_resid > 0 else 1.0
-        }
-    }
-
-    # Interpretation
-    sig_vars = [c['variable'] for c in coefficients if c['pValue'] < 0.05 and c['variable'] != 'Intercept']
-
-    if len(sig_vars) > 0:
-        summary = f"{len(sig_vars)}개의 유의한 예측변수가 발견되었습니다 (p < 0.05)."
-    else:
-        summary = "유의한 예측변수가 없습니다."
-
-    interpretation = {
-        'summary': summary,
-        'significantPredictors': sig_vars,
-        'modelQuality': '좋음' if model_fit['pseudoRSquaredMcfadden'] > 0.2 else '보통' if model_fit['pseudoRSquaredMcfadden'] > 0.1 else '낮음',
-        'recommendations': [
-            f"모델 적합도 (McFadden R²): {model_fit['pseudoRSquaredMcfadden']:.3f}",
-            f"과산포 비율: {dispersion_ratio:.2f} ({'정상' if dispersion_ratio < 1.5 else '과산포 의심'})",
-            "유의한 변수들의 IRR을 확인하여 효과 크기를 해석하세요" if len(sig_vars) > 0 else "모델 재검토가 필요합니다"
-        ]
-    }
-
-    return {
-        'modelInfo': model_info,
-        'coefficients': coefficients,
-        'modelFit': model_fit,
-        'assumptions': assumptions,
-        'predictedValues': predicted_values,
-        'goodnessOfFit': goodness_of_fit,
         'interpretation': interpretation
     }
 
