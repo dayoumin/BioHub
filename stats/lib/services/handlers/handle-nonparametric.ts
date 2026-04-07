@@ -3,8 +3,7 @@ import type { StatisticalMethod } from '@/types/analysis'
 import type { PreparedData, StatisticalExecutorResult } from '../statistical-executor'
 
 export async function handleNonparametric(method: StatisticalMethod, data: PreparedData): Promise<StatisticalExecutorResult> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let result: any
+  let result: { statistic: number; pvalue: number; df?: number; [key: string]: unknown }
   // proportion-test 전용 메타 (additionalInfo + visualizationData 빌드에 사용)
   let proportionTestMeta: {
     nullProportion: number

@@ -466,6 +466,7 @@ export interface VisualizationData {
 export interface AnalysisResult {
   method: string
   statistic: number
+  statisticName?: string
   pValue: number
   df?: number | [number, number]  // 자유도 ([df1, df2] for F-test)
   effectSize?: number | EffectSizeInfo  // 단순 숫자 또는 상세 정보

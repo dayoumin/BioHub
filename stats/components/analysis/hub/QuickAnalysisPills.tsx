@@ -25,11 +25,12 @@ import { focusRing } from '@/components/common'
 import { useTerminology } from '@/hooks/use-terminology'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import { STORAGE_KEYS } from '@/lib/constants/storage-keys'
+import { loadQuickMethods, saveQuickMethods } from '@/lib/utils/quick-methods-storage'
 
 // ===== Constants =====
 
 const STORAGE_KEY = STORAGE_KEYS.analysis.quickAnalysis
-const DEFAULT_QUICK_METHODS = ['t-test', 'anova', 'correlation', 'regression', 'chi-square']
+const DEFAULT_QUICK_METHODS = ['two-sample-t', 'one-way-anova', 'pearson-correlation', 'simple-regression', 'chi-square-independence']
 
 /** Runtime에 평가하여 registerMethod()로 추가된 메서드도 포함 */
 function buildMethodsByCategory(): Record<string, Array<{ id: string; name: string; description: string }>> {
@@ -43,33 +44,6 @@ function buildMethodsByCategory(): Record<string, Array<{ id: string; name: stri
     })
     return acc
   }, {} as Record<string, Array<{ id: string; name: string; description: string }>>)
-}
-
-// ===== Helpers =====
-
-function loadQuickMethods(): string[] {
-  if (typeof window === 'undefined') return DEFAULT_QUICK_METHODS
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed
-      }
-    }
-  } catch {
-    // ignore
-  }
-  return DEFAULT_QUICK_METHODS
-}
-
-function saveQuickMethods(methods: string[]): void {
-  if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(methods))
-  } catch {
-    // ignore
-  }
 }
 
 // ===== Props =====
@@ -87,7 +61,7 @@ export function QuickAnalysisPills({ onQuickAnalysis }: QuickAnalysisPillsProps)
 
   // localStorage는 useEffect에서 로드하여 hydration mismatch 방지
   useEffect(() => {
-    const saved = loadQuickMethods()
+    const saved = loadQuickMethods(STORAGE_KEY, DEFAULT_QUICK_METHODS)
     if (JSON.stringify(saved) !== JSON.stringify(DEFAULT_QUICK_METHODS)) {
       setQuickMethods(saved)
     }
@@ -114,7 +88,7 @@ export function QuickAnalysisPills({ onQuickAnalysis }: QuickAnalysisPillsProps)
 
   const handleSaveEdit = useCallback(() => {
     setQuickMethods(editingMethods)
-    saveQuickMethods(editingMethods)
+    saveQuickMethods(STORAGE_KEY, editingMethods)
     setShowEditDialog(false)
   }, [editingMethods])
 

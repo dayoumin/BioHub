@@ -171,7 +171,7 @@ describe('cross-module consistency', () => {
       }
 
       const coverage = matched / independentMethods.length
-      expect(coverage).toBeGreaterThan(0.3)
+      expect(coverage).toBeGreaterThan(0.7)
     })
   })
 })

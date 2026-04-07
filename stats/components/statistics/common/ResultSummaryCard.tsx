@@ -101,7 +101,7 @@ export function ResultSummaryCard({
         'transition-all duration-200',
         isSignificant
           ? 'border-stat-significant/30 bg-stat-significant/5'
-          : 'border-gray-200',
+          : 'border-border',
         className
       )}>
         <CardContent className="p-4">
@@ -128,7 +128,7 @@ export function ResultSummaryCard({
               )}
               {showCopyButton && (
                 <Button variant="ghost" size="icon" className="h-9 w-9 p-2" onClick={handleCopy}>
-                  {copied ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3" />}
+                  {copied ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
                 </Button>
               )}
             </div>
@@ -143,7 +143,7 @@ export function ResultSummaryCard({
       'transition-all duration-200',
       isSignificant
         ? 'border-stat-significant/30 bg-stat-significant/5'
-        : 'border-gray-200',
+        : 'border-border',
       className
     )}>
       <CardHeader className="pb-2">
@@ -162,7 +162,7 @@ export function ResultSummaryCard({
                 <TooltipTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCopy}>
                     {copied ? (
-                      <Check className="h-4 w-4 text-green-600" />
+                      <Check className="h-4 w-4 text-success" />
                     ) : (
                       <Copy className="h-4 w-4 text-muted-foreground" />
                     )}
@@ -181,7 +181,7 @@ export function ResultSummaryCard({
         {/* 3-column grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Column 1: Statistic */}
-          <div className="text-center p-3 bg-background rounded-lg border">
+          <div className="text-center p-3 bg-surface-container-low rounded-lg">
             <div className="text-xs text-muted-foreground mb-1">Statistic</div>
             <div className="text-xl font-bold">
               {statistic.name}{formatDf(statistic.df)} = {formatNumber(statistic.value, 3)}
@@ -189,7 +189,7 @@ export function ResultSummaryCard({
           </div>
 
           {/* Column 2: p-value */}
-          <div className="text-center p-3 bg-background rounded-lg border">
+          <div className="text-center p-3 bg-surface-container-low rounded-lg">
             <div className="text-xs text-muted-foreground mb-1">p-value</div>
             <div className="flex justify-center mt-1">
               <PValueBadge value={pValue} alpha={alpha} size="lg" />
@@ -197,7 +197,7 @@ export function ResultSummaryCard({
           </div>
 
           {/* Column 3: Effect size */}
-          <div className="text-center p-3 bg-background rounded-lg border">
+          <div className="text-center p-3 bg-surface-container-low rounded-lg">
             <div className="text-xs text-muted-foreground mb-1">Effect Size</div>
             {effectSize ? (
               <div>
@@ -221,7 +221,7 @@ export function ResultSummaryCard({
           'flex items-center gap-2 px-4 py-3 rounded-lg',
           isSignificant
             ? 'bg-stat-significant/10'
-            : 'bg-gray-100'
+            : 'bg-muted'
         )}>
           {isSignificant ? (
             <CheckCircle2 className="w-5 h-5 text-stat-significant flex-shrink-0" />
@@ -230,7 +230,7 @@ export function ResultSummaryCard({
           )}
           <span className={cn(
             'font-medium',
-            isSignificant ? 'text-stat-significant' : 'text-gray-600'
+            isSignificant ? 'text-stat-significant' : 'text-muted-foreground'
           )}>
             {displayConclusion}
           </span>

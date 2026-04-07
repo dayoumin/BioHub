@@ -246,6 +246,7 @@ export function transformExecutorResult(
   return {
     method: executorResult.metadata.method,
     statistic: mainResults.statistic,
+    statisticName: mainResults.statisticName,
     pValue: mainResults.pvalue,
     df: mainResults.df,
     effectSize,

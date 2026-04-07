@@ -3,6 +3,7 @@ import type { StatisticalMethod } from '@/types/analysis'
 import type { PreparedData, StatisticalExecutorResult } from '../statistical-executor'
 
 export async function handleMultivariate(method: StatisticalMethod, data: PreparedData): Promise<StatisticalExecutorResult> {
+  // PCA/Factor/Cluster/Discriminant 각각 다른 반환 타입 → union 정의 비용 > 이득
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let result: any
   const normalizeVarianceToRatio = (value: unknown): number => {

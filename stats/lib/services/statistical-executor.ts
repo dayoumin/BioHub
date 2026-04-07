@@ -87,6 +87,7 @@ export interface StatisticalExecutorResult {
   // 주 결과
   mainResults: {
     statistic: number
+    statisticName?: string
     pvalue: number
     df?: number | [number, number]
     significant: boolean

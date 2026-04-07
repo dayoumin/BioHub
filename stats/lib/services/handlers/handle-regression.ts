@@ -185,21 +185,14 @@ export async function handleRegression(
         throw new Error('회귀분석을 위한 독립변수가 필요합니다')
       }
 
-      // Amendment B: pyodideStats.regression() (deprecated) → linearRegression()
-      // Field mapping preserves undefined semantics:
-      //   fStatistic  → undefined (NOT linearRegression doesn't provide it)
-      //   tStatistic  → undefined (NOT slopeTValue — behavioral change prevention)
-      //   predictions → undefined (NOT fittedValues — behavioral change prevention)
-      // mainResults.statistic evaluates to 0 via: result.fStatistic ?? result.tStatistic ?? 0
       const regResult = await pyodideStats.linearRegression(firstIndependent, dependent)
       const result = {
         slope: regResult.slope,
         intercept: regResult.intercept,
         rSquared: regResult.rSquared,
-        pvalue: regResult.pValue,           // field rename only
-        fStatistic: undefined as number | undefined,  // preserve undefined (NOT any new field)
-        tStatistic: undefined as number | undefined,  // preserve undefined (NOT slopeTValue)
-        predictions: undefined as number[] | undefined,  // preserve undefined (NOT fittedValues)
+        pvalue: regResult.pValue,
+        tStatistic: regResult.slopeTValue,
+        predictions: regResult.fittedValues,
         df: regResult.nPairs - 2
       }
 
@@ -215,7 +208,8 @@ export async function handleRegression(
           }
         },
         mainResults: {
-          statistic: result.fStatistic ?? result.tStatistic ?? 0,
+          statistic: result.tStatistic ?? 0,
+          statisticName: 't',
           pvalue: result.pvalue,
           df: result.df,
           significant: result.pvalue < 0.05,

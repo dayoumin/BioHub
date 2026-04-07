@@ -31,6 +31,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { useHistoryStore } from '@/lib/stores/history-store'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
+import { loadQuickMethods, saveQuickMethods } from '@/lib/utils/quick-methods-storage'
 import { useTerminology } from '@/hooks/use-terminology'
 
 interface AnalysisHubProps {
@@ -55,68 +56,41 @@ interface QuickMethod {
 
 /** Default quick method names (fallback when terminology not available) */
 const QUICK_METHOD_DEFAULTS: Record<string, string> = {
-  't-test': 't-검정',
-  'anova': 'ANOVA',
-  'correlation': '상관분석',
-  'regression': '회귀분석',
-  'chi-square': '카이제곱',
-  'paired-t-test': '대응표본 t-검정',
+  'two-sample-t': 't-검정',
+  'one-way-anova': 'ANOVA',
+  'pearson-correlation': '상관분석',
+  'simple-regression': '회귀분석',
+  'chi-square-independence': '카이제곱 독립성',
+  'paired-t': '대응표본 t-검정',
   'mann-whitney': 'Mann-Whitney U',
-  'wilcoxon': 'Wilcoxon',
+  'wilcoxon-signed-rank': 'Wilcoxon',
   'kruskal-wallis': 'Kruskal-Wallis',
   'fisher-exact': 'Fisher 정확 검정',
 }
 
 const QUICK_METHOD_ICONS: Record<string, LucideIcon> = {
-  't-test': GitCompare,
-  'anova': BarChart3,
-  'correlation': TrendingUp,
-  'regression': LineChart,
-  'chi-square': PieChart,
-  'paired-t-test': GitCompare,
+  'two-sample-t': GitCompare,
+  'one-way-anova': BarChart3,
+  'pearson-correlation': TrendingUp,
+  'simple-regression': LineChart,
+  'chi-square-independence': PieChart,
+  'paired-t': GitCompare,
   'mann-whitney': BarChart3,
-  'wilcoxon': BarChart3,
+  'wilcoxon-signed-rank': BarChart3,
   'kruskal-wallis': BarChart3,
   'fisher-exact': PieChart,
 }
 
 const ALL_QUICK_METHOD_IDS = [
-  't-test', 'anova', 'correlation', 'regression', 'chi-square',
-  'paired-t-test', 'mann-whitney', 'wilcoxon', 'kruskal-wallis', 'fisher-exact',
+  'two-sample-t', 'one-way-anova', 'pearson-correlation', 'simple-regression', 'chi-square-independence',
+  'paired-t', 'mann-whitney', 'wilcoxon-signed-rank', 'kruskal-wallis', 'fisher-exact',
 ]
 
 // 기본 빠른 분석 방법 (첫 방문 시)
-const DEFAULT_QUICK_METHODS = ['t-test', 'anova', 'correlation', 'regression', 'chi-square']
+const DEFAULT_QUICK_METHODS = ['two-sample-t', 'one-way-anova', 'pearson-correlation', 'simple-regression', 'chi-square-independence']
 
 // LocalStorage 키
 const QUICK_METHODS_STORAGE_KEY = STORAGE_KEYS.analysis.quickMethods
-
-// LocalStorage에서 빠른 분석 방법 불러오기
-function loadQuickMethods(): string[] {
-  if (typeof window === 'undefined') return DEFAULT_QUICK_METHODS
-  try {
-    const saved = localStorage.getItem(QUICK_METHODS_STORAGE_KEY)
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed
-      }
-    }
-  } catch {
-    // ignore
-  }
-  return DEFAULT_QUICK_METHODS
-}
-
-// LocalStorage에 빠른 분석 방법 저장
-function saveQuickMethods(methods: string[]): void {
-  if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem(QUICK_METHODS_STORAGE_KEY, JSON.stringify(methods))
-  } catch {
-    // ignore
-  }
-}
 
 /**
  * Smart Flow 허브 페이지
@@ -141,7 +115,7 @@ export const AnalysisHub = memo(function AnalysisHub({
 
   // 초기 로드
   useEffect(() => {
-    setQuickMethods(loadQuickMethods())
+    setQuickMethods(loadQuickMethods(QUICK_METHODS_STORAGE_KEY, DEFAULT_QUICK_METHODS))
   }, [])
 
   // 편집 다이얼로그 열기
@@ -153,7 +127,7 @@ export const AnalysisHub = memo(function AnalysisHub({
   // 편집 저장
   const handleSaveEdit = () => {
     setQuickMethods(editingMethods)
-    saveQuickMethods(editingMethods)
+    saveQuickMethods(QUICK_METHODS_STORAGE_KEY, editingMethods)
     setShowEditDialog(false)
   }
 

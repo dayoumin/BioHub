@@ -918,6 +918,7 @@ export interface ResultsText {
     assumptionWarning: string
     significant: string
     notSignificant: string
+    analysisComplete: string
   }
   /** 통계량 카드 */
   statistics: {

@@ -12,6 +12,11 @@ export async function handleCorrelation(method: StatisticalMethod, data: Prepare
     throw new Error('상관분석을 위한 두 변수가 필요합니다')
   }
 
+  // 참조 비교: dependent 미지정 시 var1/var2 모두 independent[0]을 가리키는 구조적 버그 방어
+  if (var1 === var2) {
+    throw new Error('상관분석에는 서로 다른 두 변수가 필요합니다. 종속변수와 독립변수를 각각 선택하세요.')
+  }
+
   const methodId = method.id.toLowerCase()
 
   if (methodId === 'partial-correlation') {

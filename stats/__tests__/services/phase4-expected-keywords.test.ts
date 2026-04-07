@@ -76,8 +76,8 @@ describe('Phase 4 - expectedReasoningKeywords 기능', () => {
   describe('1. KeywordBasedRecommender 매핑', () => {
     it('18개 메서드의 키워드 매핑이 존재해야 함', () => {
       const methods = [
-        'independent-t-test',
-        'paired-t-test',
+        'two-sample-t',
+        'paired-t',
         'pearson-correlation',
         'spearman-correlation',
         'correlation',
@@ -94,7 +94,7 @@ describe('Phase 4 - expectedReasoningKeywords 기능', () => {
         'friedman',
         'chi-square',
         'descriptive-stats',
-        'time-series-analysis'
+        'arima'
       ]
 
       methods.forEach(methodId => {
@@ -104,8 +104,8 @@ describe('Phase 4 - expectedReasoningKeywords 기능', () => {
       })
     })
 
-    it('independent-t-test 키워드가 정확해야 함', () => {
-      const keywords = KeywordBasedRecommender.getExpectedReasoningKeywords('independent-t-test')
+    it('two-sample-t 키워드가 정확해야 함', () => {
+      const keywords = KeywordBasedRecommender.getExpectedReasoningKeywords('two-sample-t')
       expect(keywords).toEqual(['2개 그룹', '독립', '정규성', '등분산성'])
     })
 
@@ -135,8 +135,7 @@ describe('Phase 4 - expectedReasoningKeywords 기능', () => {
 
       expect(recommendation.method.id).toBe('two-sample-t')
       expect(recommendation.expectedReasoningKeywords).toBeDefined()
-      // two-sample-t는 METHOD_REASONING_KEYWORDS에 정의되지 않아 빈 배열 반환
-      expect(recommendation.expectedReasoningKeywords).toEqual([])
+      expect(recommendation.expectedReasoningKeywords).toEqual(['2개 그룹', '독립', '정규성', '등분산성'])
     })
 
     it('2-group compare (정규성 ✗) → mann-whitney', () => {

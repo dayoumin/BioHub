@@ -29,7 +29,7 @@ export interface ResultsHeroCardProps {
   t: {
     results: {
       sections: { caution: string }
-      conclusion: { assumptionWarning: string; significant: string; notSignificant: string }
+      conclusion: { assumptionWarning: string; significant: string; notSignificant: string; analysisComplete: string }
       metadata: { analysisTime: string; rowsCols: (rows: number, cols: number) => string }
     }
   }
@@ -89,7 +89,7 @@ export function ResultsHeroCard({
               {!assumptionsPassed
                 ? t.results.conclusion.assumptionWarning
                 : !showBinaryConclusion
-                  ? (statisticalResult.interpretation?.split('.')[0] || statisticalResult.description || 'Analysis complete')
+                  ? (statisticalResult.interpretation?.split('.')[0] || statisticalResult.description || t.results.conclusion.analysisComplete)
                   : isSignificant
                     ? t.results.conclusion.significant
                     : t.results.conclusion.notSignificant

@@ -74,8 +74,8 @@ const KEYWORD_PATTERNS: KeywordPattern[] = [
  * 추천 시 이 키워드들이 reasoning에 포함되어야 함
  */
 const METHOD_REASONING_KEYWORDS: Record<string, string[]> = {
-  'independent-t-test': ['2개 그룹', '독립', '정규성', '등분산성'],
-  'paired-t-test': ['대응표본', 'paired', '전후', '동일 대상'],
+  'two-sample-t': ['2개 그룹', '독립', '정규성', '등분산성'],
+  'paired-t': ['대응표본', 'paired', '전후', '동일 대상'],
   'pearson-correlation': ['상관', '선형', '정규성'],
   'spearman-correlation': ['상관', '순위', '비모수'],
   'correlation': ['상관', 'correlation', '선형', '관계'],
@@ -92,7 +92,7 @@ const METHOD_REASONING_KEYWORDS: Record<string, string[]> = {
   'friedman': ['비모수', '요인', 'factor'],
   'chi-square': ['범주형', '독립성', '카이제곱', '빈도'],
   'descriptive-stats': ['기술통계', '분포', '빈도'],
-  'time-series-analysis': ['시계열', '시간', '추세'],
+  'arima': ['시계열', '시간', '추세'],
 }
 
 export class KeywordBasedRecommender {

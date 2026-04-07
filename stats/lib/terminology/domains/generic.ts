@@ -875,6 +875,7 @@ export const generic: TerminologyDictionary = {
       assumptionWarning: '⚠️ Some assumptions not met — interpret with caution',
       significant: '✓ Statistically significant difference found',
       notSignificant: 'No statistically significant difference found',
+      analysisComplete: 'Analysis complete',
     },
     statistics: {
       statistic: 'Test Statistic',

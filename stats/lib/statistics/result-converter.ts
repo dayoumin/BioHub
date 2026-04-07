@@ -398,7 +398,7 @@ export function convertToStatisticalResult(
 
     // 주요 통계량
     statistic: result.statistic,
-    statisticName: getStatisticName(result.method),
+    statisticName: result.statisticName || getStatisticName(result.method),
     df: result.df,
     pValue: result.pValue,
     alpha: 0.05,

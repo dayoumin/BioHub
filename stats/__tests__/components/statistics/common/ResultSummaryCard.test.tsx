@@ -2,6 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { ResultSummaryCard, ResultSummaryInline } from '@/components/statistics/common/ResultSummaryCard'
 
+// Mock useTerminology (TerminologyProvider 없이 테스트)
+vi.mock('@/hooks/use-terminology', () => ({
+  useTerminology: () => ({
+    results: {
+      conclusion: {
+        significant: 'Reject null hypothesis',
+        notSignificant: 'Fail to reject null hypothesis',
+      },
+    },
+  }),
+}))
+
 // Mock clipboard API
 const mockWriteText = vi.fn(() => Promise.resolve())
 
@@ -326,7 +338,7 @@ describe('ResultSummaryCard', () => {
       )
 
       const card = container.firstChild
-      expect(card).toHaveClass('border-gray-200')
+      expect(card).toHaveClass('border-border')
     })
 
     it('applies custom className', () => {

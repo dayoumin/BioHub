@@ -876,6 +876,7 @@ export const aquaculture: TerminologyDictionary = {
       assumptionWarning: '⚠️ 일부 가정 미충족 - 결과 해석에 주의 필요',
       significant: '✓ 통계적으로 유의한 차이가 있습니다',
       notSignificant: '통계적으로 유의한 차이가 없습니다',
+      analysisComplete: '분석 완료',
     },
     statistics: {
       statistic: '통계량',

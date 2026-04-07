@@ -22,8 +22,8 @@ describe('method-id-unification contract', () => {
         if (m.isDataTool) continue
         if (!vrIds.has(m.id)) missing.push(m.id)
       }
-      // 신규 9개는 VR 미등록 허용 (점진 추가)
-      expect(missing.length).toBeLessThanOrEqual(10)
+      // VR 미등록 허용 상한 — 점진 추가 시 이 값을 줄일 것
+      expect(missing.length).toBeLessThanOrEqual(9)
     })
   })
 
@@ -78,7 +78,7 @@ describe('method-id-unification contract', () => {
   describe('id === pageId 일관성', () => {
     it('자체 페이지 메서드는 id === pageId', () => {
       const selfPage = methods.filter(m => m.id === m.pageId)
-      expect(selfPage.length).toBeGreaterThan(30)
+      expect(selfPage.length).toBeGreaterThanOrEqual(34)
     })
   })
 
