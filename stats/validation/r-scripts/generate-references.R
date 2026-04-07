@@ -147,6 +147,12 @@ write_golden("two-sample-t", "L2",
 
 # --- welch-t ---
 t_welch <- t.test(male, female)  # R default = Welch
+# Cohen's d with pooled SD (same formula as Python worker t_test_two_sample)
+cohens_d_welch <- {
+  n1 <- length(male); n2 <- length(female)
+  s_pooled <- sqrt(((n1 - 1) * var(male) + (n2 - 1) * var(female)) / (n1 + n2 - 2))
+  (mean(male) - mean(female)) / s_pooled
+}
 write_golden("welch-t", "L2",
   list(software = "R", `function` = "stats::t.test", packages = list("stats")),
   list(list(
@@ -161,6 +167,9 @@ write_golden("welch-t", "L2",
         tStatistic = list(value = safe_num(t_welch$statistic), tier = "tier2"),
         df = list(value = safe_num(t_welch$parameter), tier = "tier2"),
         pValue = list(value = safe_num(t_welch$p.value), tier = "tier2"),
+        cohensD = list(value = safe_num(cohens_d_welch), tier = "tier2"),
+        mean1 = list(value = safe_num(mean(male)), tier = "tier2"),
+        mean2 = list(value = safe_num(mean(female)), tier = "tier2"),
         n1 = list(value = length(male), tier = "exact"),
         n2 = list(value = length(female), tier = "exact")
       )
@@ -1787,6 +1796,66 @@ write_golden("nist-michelson-descriptive", "L1",
         mean = list(value = 299.852400000000, tier = "tier2"),
         sd = list(value = 0.0790105478190518, tier = "tier2"),
         n = list(value = 100, tier = "exact")
+      )
+    ))
+  )),
+  output_dir = nist_root
+)
+
+# --- NIST Filip (Degree-10 Polynomial Regression, Higher Difficulty) ---
+# Certified values from NIST StRD
+# https://www.itl.nist.gov/div898/strd/lls/data/Filip.shtml
+write_golden("nist-filip-polynomial", "L1",
+  list(software = "NIST StRD", `function` = "Certified values", packages = list()),
+  list(list(
+    name = "Filip",
+    source = "NIST StRD Linear Regression",
+    url = "https://www.itl.nist.gov/div898/strd/lls/data/Filip.shtml",
+    difficulty = "higher",
+    cases = list(list(
+      description = "Degree-10 polynomial regression certified values",
+      expected = list(
+        b0 = list(value = -1467.48961422980, tier = "tier3"),
+        b1 = list(value = -2772.17959193342, tier = "tier3"),
+        b2 = list(value = -2316.37108160893, tier = "tier3"),
+        b3 = list(value = -1127.97394098372, tier = "tier3"),
+        b4 = list(value = -354.478233703349, tier = "tier3"),
+        b5 = list(value = -75.1242017393757, tier = "tier3"),
+        b6 = list(value = -10.8753180355343, tier = "tier3"),
+        b7 = list(value = -1.06221498588947, tier = "tier3"),
+        b8 = list(value = -0.0670191154593408, tier = "tier3"),
+        b9 = list(value = -0.00246781078275479, tier = "tier3"),
+        b10 = list(value = -0.0000402962525080404, tier = "tier3"),
+        residualSD = list(value = 0.334801051324544e-02, tier = "tier3"),
+        rSquared = list(value = 0.996727416185620, tier = "tier3")
+      )
+    ))
+  )),
+  output_dir = nist_root
+)
+
+# --- NIST Longley (6-variable Multiple Regression, Higher Difficulty) ---
+# Certified values from NIST StRD
+# https://www.itl.nist.gov/div898/strd/lls/data/Longley.shtml
+write_golden("nist-longley-multicollinear", "L1",
+  list(software = "NIST StRD", `function` = "Certified values", packages = list()),
+  list(list(
+    name = "Longley",
+    source = "NIST StRD Linear Regression",
+    url = "https://www.itl.nist.gov/div898/strd/lls/data/Longley.shtml",
+    difficulty = "higher",
+    cases = list(list(
+      description = "Multiple regression with multicollinearity certified values",
+      expected = list(
+        b0 = list(value = -3482258.63459582, tier = "tier3"),
+        b1 = list(value = 15.0618722713733, tier = "tier3"),
+        b2 = list(value = -0.0358191792925910, tier = "tier3"),
+        b3 = list(value = -2.02022980381683, tier = "tier3"),
+        b4 = list(value = -1.03322686717359, tier = "tier3"),
+        b5 = list(value = -0.0511041056535807, tier = "tier3"),
+        b6 = list(value = 1829.15146461355, tier = "tier3"),
+        residualSD = list(value = 304.854073561965, tier = "tier3"),
+        rSquared = list(value = 0.995479004577296, tier = "tier3")
       )
     ))
   )),

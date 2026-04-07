@@ -6,11 +6,11 @@
 - [ ] 사용자 언어(질문 기반)가 통계적 엄밀함을 해치는지 확인하고 문구 미세 조정 및 모니터링
 
 ## 2. StatisticalExecutor 마이그레이션 및 파서 버그 해결 (B2)
-- [ ] **Stepwise Regression 결과 매핑 불일치 해결**: Handler는 `fStatistic`, `pValue`를 찾으나 Worker는 `pValues`(배열)을 반환하는 버그 우회/해결 필요.
-- [ ] **Poisson / Ordinal Regression Model-level p-value 추가**: Model-level `llrPValue` 누락 문제 개선 보완 (`handle-regression.ts`).
-- [ ] `generated types` (`OrdinalLogisticResult`, `PoissonRegressionResult`)의 불완전한 명세 수정 및 `any` 타입 캐스팅 3곳 정리.
-- [ ] MANOVA 등에 남아있는 `|| 0`, 불필요한 삼항연산자 클리닝 및 타입 재설계.
-- [ ] **worker2 `manova()` dead code 정리**: TS는 worker3으로 라우팅 — worker2 버전 제거 또는 주석 표기
+- [x] **Poisson / Ordinal Regression Model-level p-value**: Worker + Handler 양쪽 `llrPValue`/`llrStatistic` 완전 구현 확인 (2026-04-07 검토)
+- [x] **Stepwise Regression 결과 매핑**: 버그 아님 — Handler가 `fStatistic`/`fPValue` 정상 사용, 개별 `pValues` 배열은 rawResults로 전파 (2026-04-07 검토)
+- [x] **generated types 명세**: `OrdinalLogisticResult`, `PoissonRegressionResult` 타입 완전, any 1곳은 다중 반환타입 처리로 정당 (2026-04-07 검토)
+- [x] **MANOVA `|| 0` / 삼항연산자**: `|| 0`은 NaN→0 의도적 변환으로 정당, 삼항 1건 중복은 미미 (2026-04-07 검토)
+- [x] **worker2 `manova()` dead code 제거**: TS는 worker3으로 라우팅 — worker2 버전 220줄 제거 완료 (2026-04-07)
 
 ## 3. ResultsHeroCard 추가 예외 처리 (Optional)
 - [ ] ResultsStatsCards.tsx 내에서도 비가설검정 (PCA, 군집화 등)의 p-value 카드를 좀 더 자연스럽게 숨기거나 적절한 값으로 표시할 수 있도록 개선 여부 검토.
@@ -42,7 +42,7 @@
 - [x] **worker2 poisson_regression**: GLM 전환 완료 + predicted/residuals ndarray 인덱싱 수정
 - [x] **worker2 partial_correlation pValue**: t-분포 df=n-k-2 직접 계산 + r clip + 최소 표본 k+4
 - [x] **worker4 cox_regression**: np.asarray() 정규화로 DataFrame/ndarray 통합 처리
-- [ ] **welch-t 필드 보강**: mean1, mean2, cohensD가 worker 미반환으로 skip 상태
+- [x] **welch-t 검증 매핑 보강**: golden JSON + 필드 매핑에 cohensD/mean1/mean2 추가 (2026-04-07)
 
 ### Phase 2 발견사항 (LRE 저조 — 실무 영향 없음)
 - [ ] mann-whitney LRE=8.0, ordinal LRE=4.8, dose-response LRE=5.8, pearson 편차 7.5~13.4

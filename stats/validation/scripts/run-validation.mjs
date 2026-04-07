@@ -663,20 +663,51 @@ flat = {
 json.dumps(flat)
 `;
     case 'factor-analysis':
-      // sklearn FactorAnalysis uses MLE; R psych::fa(fm='pa') uses Principal Axis.
-      // Use sklearn on scaled data. Communalities/variance may differ from R — tier4 tolerance.
+      // PAF + varimax — matches R psych::fa(fm='pa', rotate='varimax')
       return `
 import json
 import numpy as np
-from sklearn.decomposition import FactorAnalysis
 from sklearn.preprocessing import StandardScaler
 X = np.column_stack([${JSON.stringify(d['Sepal.Length'])}, ${JSON.stringify(d['Sepal.Width'])}, ${JSON.stringify(d['Petal.Length'])}, ${JSON.stringify(d['Petal.Width'])}])
 X_scaled = StandardScaler().fit_transform(X)
-fa = FactorAnalysis(n_components=2, random_state=42)
-fa.fit(X_scaled)
-loadings = fa.components_.T
-communalities = np.sum(loadings**2, axis=1).tolist()
-var_explained = (np.sum(loadings**2, axis=0) / X_scaled.shape[1]).tolist()
+corr = np.corrcoef(X_scaled.T)
+p = corr.shape[0]
+n_factors = 2
+
+# PAF: initial communalities = SMC
+inv_c = np.linalg.inv(corr)
+h2 = np.clip(1.0 - 1.0 / np.diag(inv_c), 0.0, 1.0)
+for _ in range(50):
+    R_red = corr.copy()
+    np.fill_diagonal(R_red, h2)
+    evals, evecs = np.linalg.eigh(R_red)
+    idx = np.argsort(evals)[::-1]
+    evals = evals[idx]; evecs = evecs[:, idx]
+    L = evecs[:, :n_factors] * np.sqrt(np.maximum(evals[:n_factors], 0.0))
+    h2_new = np.clip(np.sum(L**2, axis=1), 0.0, 1.0)
+    if np.max(np.abs(h2_new - h2)) < 1e-5:
+        break
+    h2 = h2_new
+
+# Varimax with Kaiser normalization
+A = L.copy()
+h = np.sqrt(np.sum(A**2, axis=1)); h[h==0]=1.0
+A = A / h[:, None]
+for _ in range(100):
+    d_old = np.sum(np.sum(A**4,0) - np.sum(A**2,0)**2/p)
+    for i in range(n_factors-1):
+        for j in range(i+1, n_factors):
+            u = A[:,i]**2 - A[:,j]**2; v = 2*A[:,i]*A[:,j]
+            phi = np.arctan2(2*np.sum(u*v)-2*np.sum(u)*np.sum(v)/p,
+                             np.sum(u**2-v**2)-(np.sum(u)**2-np.sum(v)**2)/p)/4
+            c,s = np.cos(phi), np.sin(phi)
+            A[:,i], A[:,j] = c*A[:,i]+s*A[:,j], -s*A[:,i]+c*A[:,j]
+    if abs(np.sum(np.sum(A**4,0)-np.sum(A**2,0)**2/p) - d_old) < 1e-5:
+        break
+A = A * h[:, None]
+
+communalities = np.sum(A**2, axis=1).tolist()
+var_explained = (np.sum(A**2, axis=0) / p).tolist()
 flat = {'communalities': communalities, 'varianceExplained': var_explained}
 json.dumps(flat)
 `;
@@ -1325,6 +1356,63 @@ result = {
 }
 json.dumps(result)
 `;
+    case 'nist-filip-polynomial':
+      // Filip: degree-10 polynomial regression (Higher Difficulty)
+      // numpy.polynomial.polynomial.polyfit is numerically stable for high-degree polynomials
+      return `
+import json, numpy as np
+from numpy.polynomial import polynomial as P
+x = np.array(${JSON.stringify(d.x)})
+y = np.array(${JSON.stringify(d.y)})
+# polyfit returns coefficients [B0, B1, ..., B10] (low-to-high order)
+coeffs = P.polyfit(x, y, 10)
+# Evaluate fitted values using polyval
+y_pred = P.polyval(x, coeffs)
+resid = y - y_pred
+n = len(x)
+p = 11
+residual_sd = float(np.sqrt(np.sum(resid**2) / (n - p)))
+ss_res = float(np.sum(resid**2))
+ss_tot = float(np.sum((y - np.mean(y))**2))
+r_squared = 1.0 - ss_res / ss_tot
+result = {
+  'b0': float(coeffs[0]), 'b1': float(coeffs[1]), 'b2': float(coeffs[2]),
+  'b3': float(coeffs[3]), 'b4': float(coeffs[4]), 'b5': float(coeffs[5]),
+  'b6': float(coeffs[6]), 'b7': float(coeffs[7]), 'b8': float(coeffs[8]),
+  'b9': float(coeffs[9]), 'b10': float(coeffs[10]),
+  'residualSD': residual_sd, 'rSquared': float(r_squared)
+}
+json.dumps(result)
+`;
+    case 'nist-longley-multicollinear':
+      // Longley: 6-variable multiple regression with multicollinearity (Higher Difficulty)
+      return `
+import json, numpy as np
+y = np.array(${JSON.stringify(d.y)}, dtype=float)
+x1 = np.array(${JSON.stringify(d.x1)}, dtype=float)
+x2 = np.array(${JSON.stringify(d.x2)}, dtype=float)
+x3 = np.array(${JSON.stringify(d.x3)}, dtype=float)
+x4 = np.array(${JSON.stringify(d.x4)}, dtype=float)
+x5 = np.array(${JSON.stringify(d.x5)}, dtype=float)
+x6 = np.array(${JSON.stringify(d.x6)}, dtype=float)
+X = np.column_stack([np.ones(len(y)), x1, x2, x3, x4, x5, x6])
+coeffs, residuals_sum, rank, sv = np.linalg.lstsq(X, y, rcond=None)
+y_pred = X @ coeffs
+resid = y - y_pred
+n = len(y)
+p = 7
+residual_sd = float(np.sqrt(np.sum(resid**2) / (n - p)))
+ss_res = float(np.sum(resid**2))
+ss_tot = float(np.sum((y - np.mean(y))**2))
+r_squared = 1.0 - ss_res / ss_tot
+result = {
+  'b0': float(coeffs[0]), 'b1': float(coeffs[1]), 'b2': float(coeffs[2]),
+  'b3': float(coeffs[3]), 'b4': float(coeffs[4]), 'b5': float(coeffs[5]),
+  'b6': float(coeffs[6]),
+  'residualSD': residual_sd, 'rSquared': float(r_squared)
+}
+json.dumps(result)
+`;
 
     default:
       return null;
@@ -1390,6 +1478,9 @@ const FIELD_MAP = {
   'welch-t': {
     tStatistic: { pyKey: 'statistic' },
     pValue: { pyKey: 'pValue' },
+    cohensD: { pyKey: 'cohensD' },
+    mean1: { pyKey: 'mean1' },
+    mean2: { pyKey: 'mean2' },
     n1: { pyKey: 'n1' },
     n2: { pyKey: 'n2' },
     df: { skip: true }, // Welch df is fractional, Python doesn't return it
@@ -1711,6 +1802,7 @@ async function main() {
   const nistMethods = [
     'nist-norris-linear', 'nist-pontius-quadratic',
     'nist-atmwtag-anova', 'nist-michelson-descriptive',
+    'nist-filip-polynomial', 'nist-longley-multicollinear',
   ];
 
   // ─── Phase 4: Edge Cases (Layer 3) ──────────────────────────────────
