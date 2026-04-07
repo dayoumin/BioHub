@@ -133,6 +133,64 @@
 | 진단/기타 (P3) | 3 | 13.0 | normality + proportion + reliability |
 | 데이터 도구 (P3) | 6 cases | 13.1 | |
 
+## Library Version Reference (재현용)
+
+검증 재현을 위한 버전 고정 참조입니다. `/stable/` URL은 버전 변경 시 내용이 달라질 수 있으므로, 검증 시점의 버전을 명시합니다.
+
+### Python (Pyodide 0.29.3)
+
+| 라이브러리 | 버전 | 문서 |
+|-----------|------|------|
+| SciPy | 1.14.1 | [docs.scipy.org/doc/scipy-1.14.1](https://docs.scipy.org/doc/scipy-1.14.1/) |
+| statsmodels | 0.14.1 | [statsmodels.org/v0.14.1](https://www.statsmodels.org/v0.14.1/) |
+| scikit-learn | 1.4.0 | [scikit-learn.org/1.4](https://scikit-learn.org/1.4/) |
+| pandas | 2.2.0 | [pandas.pydata.org/docs/version/2.2.0](https://pandas.pydata.org/pandas-docs/version/2.2.0/) |
+| NumPy | 1.26.4 | [numpy.org/doc/1.26](https://numpy.org/doc/1.26/) |
+
+### R 4.5.3
+
+| 패키지 | CRAN | 비고 |
+|--------|------|------|
+| stats | built-in | [R docs](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/) |
+| car | [CRAN](https://cran.r-project.org/web/packages/car/index.html) | `Anova` (ANCOVA Type II) |
+| MASS | [CRAN](https://cran.r-project.org/web/packages/MASS/index.html) | `lda` (discriminant analysis) |
+| psych | [CRAN](https://cran.r-project.org/web/packages/psych/index.html) | `fa` (factor analysis), `alpha` (reliability) |
+| survival | [CRAN](https://cran.r-project.org/web/packages/survival/index.html) | `survfit`, `coxph` |
+| pROC | [CRAN](https://cran.r-project.org/web/packages/pROC/index.html) | `roc` (ROC curve) |
+| lme4 | [CRAN](https://cran.r-project.org/web/packages/lme4/index.html) | `lmer` (mixed model) |
+| tseries | [CRAN](https://cran.r-project.org/web/packages/tseries/index.html) | `adf.test` (stationarity) |
+| trend | [CRAN](https://cran.r-project.org/web/packages/trend/index.html) | `mk.test` (Mann-Kendall) |
+| pwr | [CRAN](https://cran.r-project.org/web/packages/pwr/index.html) | `pwr.*` (power analysis) |
+
+### 메서드별 함수 매핑
+
+| 메서드 | Python 함수 | R 함수 | 차이점 |
+|--------|------------|--------|--------|
+| `chi-square-goodness` | [`scipy.stats.chisquare`](https://docs.scipy.org/doc/scipy-1.14.1/reference/generated/scipy.stats.chisquare.html) | [`stats::chisq.test`](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/chisq.test.html) | 동일 알고리즘 |
+| `chi-square-independence` | [`scipy.stats.chi2_contingency`](https://docs.scipy.org/doc/scipy-1.14.1/reference/generated/scipy.stats.chi2_contingency.html) | [`stats::chisq.test`](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/chisq.test.html) | 동일 알고리즘 |
+| `pca` | [`sklearn.decomposition.PCA`](https://scikit-learn.org/1.4/modules/generated/sklearn.decomposition.PCA.html) | [`stats::prcomp`](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/prcomp.html) | 부호 반전 가능 (SVD convention) |
+| `factor-analysis` | [`sklearn.decomposition.FactorAnalysis`](https://scikit-learn.org/1.4/modules/generated/sklearn.decomposition.FactorAnalysis.html) | [`psych::fa(fm='pa')`](https://cran.r-project.org/web/packages/psych/index.html) | MLE vs PA (tier4) |
+| `cluster` | [`sklearn.cluster.KMeans`](https://scikit-learn.org/1.4/modules/generated/sklearn.cluster.KMeans.html) | [`stats::kmeans`](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/kmeans.html) | Lloyd vs Hartigan-Wong (tier4) |
+| `discriminant-analysis` | [`sklearn.discriminant_analysis.LinearDiscriminantAnalysis`](https://scikit-learn.org/1.4/modules/generated/sklearn.discriminant_analysis.LinearDiscriminantAnalysis.html) | [`MASS::lda`](https://cran.r-project.org/web/packages/MASS/index.html) | 동일 알고리즘 |
+| `kaplan-meier` | worker5 (custom) | [`survival::survfit`](https://cran.r-project.org/web/packages/survival/index.html) | 동일 알고리즘 |
+| `cox-regression` | [`statsmodels PHReg(ties='efron')`](https://www.statsmodels.org/v0.14.1/generated/statsmodels.duration.hazard_regression.PHReg.html) | [`survival::coxph`](https://cran.r-project.org/web/packages/survival/index.html) | 기본 ties: efron vs breslow — efron으로 통일 |
+| `roc-curve` | worker5 (custom) | [`pROC::roc`](https://cran.r-project.org/web/packages/pROC/index.html) | 동일 알고리즘 |
+| `arima` | [`statsmodels ARIMA`](https://www.statsmodels.org/v0.14.1/generated/statsmodels.tsa.arima.model.ARIMA.html) | [`stats::arima`](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/arima.html) | MLE 최적화 경로 차이 |
+| `seasonal-decompose` | [`statsmodels seasonal_decompose`](https://www.statsmodels.org/v0.14.1/generated/statsmodels.tsa.seasonal.seasonal_decompose.html) | [`stats::decompose`](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/decompose.html) | 동일 알고리즘 |
+| `stationarity-test` | [`statsmodels adfuller(regression='ct')`](https://www.statsmodels.org/v0.14.1/generated/statsmodels.tsa.stattools.adfuller.html) | [`tseries::adf.test`](https://cran.r-project.org/web/packages/tseries/index.html) | 기본 regression: 'c' vs 'ct' — 'ct'로 통일; pValue: MacKinnon vs Banerjee 보간 |
+| `mann-kendall-test` | worker1 (custom) | [`trend::mk.test`](https://cran.r-project.org/web/packages/trend/index.html) | 동일 알고리즘 |
+| `repeated-measures-anova` | [`statsmodels AnovaRM`](https://www.statsmodels.org/v0.14.1/generated/statsmodels.stats.anova.AnovaRM.html) | [`stats::aov + Error()`](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/aov.html) | 동일 알고리즘 |
+| `ancova` | [`statsmodels OLS + anova_lm`](https://www.statsmodels.org/v0.14.1/generated/statsmodels.stats.anova.anova_lm.html) | [`car::Anova`](https://cran.r-project.org/web/packages/car/index.html) | 동일 알고리즘 (Type II SS) |
+| `manova` | [`statsmodels MANOVA`](https://www.statsmodels.org/v0.14.1/generated/statsmodels.multivariate.manova.MANOVA.html) | [`stats::manova`](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/manova.html) | 동일 알고리즘 (Pillai) |
+| `mixed-model` | [`statsmodels mixedlm`](https://www.statsmodels.org/v0.14.1/generated/statsmodels.regression.mixed_linear_model.MixedLM.html) | [`lme4::lmer`](https://cran.r-project.org/web/packages/lme4/index.html) | 추정 방법 차이 (statsmodels MLE vs lme4 REML) |
+| `normality-test` | [`scipy.stats.shapiro`](https://docs.scipy.org/doc/scipy-1.14.1/reference/generated/scipy.stats.shapiro.html) | [`stats::shapiro.test`](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/shapiro.test.html) | 동일 알고리즘 |
+| `one-sample-proportion` | [`scipy.stats.binomtest`](https://docs.scipy.org/doc/scipy-1.14.1/reference/generated/scipy.stats.binomtest.html) | [`stats::prop.test`](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/prop.test.html) | exact binomial vs chi-sq 근사 |
+| `reliability-analysis` | numpy (수동 Cronbach's alpha) | [`psych::alpha`](https://cran.r-project.org/web/packages/psych/index.html) | 동일 알고리즘 |
+| `descriptive-stats` | `numpy` / `scipy.stats` | `base::mean, sd` 등 | 동일 알고리즘 |
+| `explore-data` | [`scipy.stats.shapiro`](https://docs.scipy.org/doc/scipy-1.14.1/reference/generated/scipy.stats.shapiro.html) + `numpy` | [`stats::shapiro.test`](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/shapiro.test.html) + [`stats::quantile`](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/quantile.html) | 동일 알고리즘 |
+| `means-plot` | `scipy.stats` (수동) | `base::tapply` + `qt` | 동일 알고리즘 |
+| `power-analysis` | [`scipy.stats`](https://docs.scipy.org/doc/scipy-1.14.1/reference/stats.html) + [`scipy.optimize.brentq`](https://docs.scipy.org/doc/scipy-1.14.1/reference/generated/scipy.optimize.brentq.html) | [`pwr::pwr.*`](https://cran.r-project.org/web/packages/pwr/index.html) | 동일 알고리즘 (noncentrality parameter) |
+
 ## 검증 환경
 
 - **Pyodide 0.29.3** (SciPy 1.14.1, statsmodels 0.14.1, scikit-learn 1.4.0)
@@ -144,7 +202,7 @@
 
 ### factor-analysis: MLE vs Principal Axis Factoring
 
-- **sklearn**: `FactorAnalysis`는 EM 기반 Maximum Likelihood Estimation (MLE) 사용 ([sklearn docs](https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.FactorAnalysis.html))
+- **sklearn**: `FactorAnalysis`는 EM 기반 Maximum Likelihood Estimation (MLE) 사용 ([sklearn docs](https://scikit-learn.org/1.4/modules/generated/sklearn.decomposition.FactorAnalysis.html))
 - **R psych**: `fa(fm='pa')`는 Principal Axis Factoring — 반복적 communality 추정 ([psych docs](https://www.rdocumentation.org/packages/psych/topics/fa))
 - **학술 근거**: MLE와 PAF는 동일하게 유효한 추정 방법. MLE는 적합도 지수 제공 (chi-square, RMSEA), PAF는 분포 가정 불필요 (Tabachnick & Fidell 2019; Hair et al. 2019)
 - **차이 예상 범위**: communalities 10-20% 차이 — de Winter & Dodou (2012), "Factor recovery by PAF and ML", *J. Applied Statistics*, 39(4)
@@ -152,7 +210,7 @@
 
 ### cluster: Lloyd vs Hartigan-Wong
 
-- **sklearn**: `KMeans` 기본 `algorithm='lloyd'` — batch 재배정 후 centroid 갱신 ([sklearn docs](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.KMeans.html))
+- **sklearn**: `KMeans` 기본 `algorithm='lloyd'` — batch 재배정 후 centroid 갱신 ([sklearn docs](https://scikit-learn.org/1.4/modules/generated/sklearn.cluster.KMeans.html))
 - **R**: `kmeans` 기본 `algorithm='Hartigan-Wong'` — 개별 point 이동으로 finer-grained 최적화 ([R docs](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/kmeans.html))
 - **학술 근거**: Hartigan-Wong는 Lloyd보다 강한 local optimum 조건 (Hartigan & Wong 1979, *JRSS-C*, 28(1); Telgarsky & Vattani 2010)
 - **차이 예상 범위**: WCSS 0.1-2% 차이 — 다른 수렴점으로 수렴
@@ -160,14 +218,14 @@
 
 ### cox-regression: Breslow vs Efron ties
 
-- **statsmodels**: `PHReg` 기본 `ties='breslow'` ([source](https://www.statsmodels.org/stable/generated/statsmodels.duration.hazard_regression.PHReg.html))
+- **statsmodels**: `PHReg` 기본 `ties='breslow'` ([source](https://www.statsmodels.org/v0.14.1/generated/statsmodels.duration.hazard_regression.PHReg.html))
 - **R**: `coxph` 기본 `ties='efron'` ([survival docs](https://stat.ethz.ch/R-manual/R-devel/library/survival/html/coxph.html))
 - **수정**: `ties='efron'`으로 변경하여 R과 일치 — Efron이 학술적으로 더 정확 (Efron 1977, "Efficiency of Cox's likelihood function for censored data")
 - **lifelines**: Pyodide 미지원 (worker5 주석 확인). statsmodels PHReg가 Efron 지원하므로 문제 없음
 
 ### stationarity-test: ADF regression type
 
-- **statsmodels**: `adfuller` 기본 `regression='c'` (constant only) ([docs](https://www.statsmodels.org/stable/generated/statsmodels.tsa.stattools.adfuller.html))
+- **statsmodels**: `adfuller` 기본 `regression='c'` (constant only) ([docs](https://www.statsmodels.org/v0.14.1/generated/statsmodels.tsa.stattools.adfuller.html))
 - **R**: `adf.test` 항상 constant + trend (ct) 포함 — Δy_t = α + βt + γy_{t-1} + ... ([tseries docs](https://www.rdocumentation.org/packages/tseries/topics/adf.test))
 - **수정**: `regression='ct'`로 변경 → adfStatistic LRE=15 (완벽 일치)
 - **p-value 차이**: R은 Banerjee et al. (1993) 보간 테이블, Python은 MacKinnon (1994, 2010) 회귀 근사 → pValue tier3 적용 (LRE 0.9)

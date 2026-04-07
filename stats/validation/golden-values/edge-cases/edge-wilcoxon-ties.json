@@ -1,0 +1,42 @@
+{
+  "method": "edge-wilcoxon-ties",
+  "layer": "L3",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::wilcox.test",
+    "packages": ["stats"],
+    "note": "Pre-computed for heavy ties scenario. Needs R verification."
+  },
+  "generatedAt": "2026-04-07",
+  "edgeCaseType": "ties",
+  "description": "Wilcoxon signed-rank test with heavy ties in differences. Many equal differences stress the tie-correction formula.",
+  "datasets": [
+    {
+      "name": "heavy_ties",
+      "source": "synthetic: many equal differences",
+      "data": {
+        "before": [10, 12, 14, 16, 18, 20, 22, 24, 26, 28],
+        "after":  [ 8, 10, 12, 14, 16, 18, 20, 22, 24, 26]
+      },
+      "n": {
+        "pairs": 10
+      },
+      "cases": [
+        {
+          "description": "Wilcoxon signed-rank with all equal differences (d=2 for all)",
+          "rCode": "wilcox.test(before, after, paired=TRUE, exact=FALSE, correct=FALSE)",
+          "expected": {
+            "statistic": {
+              "value": 55,
+              "tier": "tier2"
+            },
+            "pValue": {
+              "value": 0.001753,
+              "tier": "tier4"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

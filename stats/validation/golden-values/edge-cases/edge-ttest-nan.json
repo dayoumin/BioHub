@@ -1,0 +1,61 @@
+{
+  "method": "edge-ttest-nan",
+  "layer": "L3",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::t.test",
+    "packages": ["stats"],
+    "note": "Pre-computed: t.test(na.omit(g1), na.omit(g2), var.equal=TRUE). Needs R verification."
+  },
+  "generatedAt": "2026-04-07",
+  "edgeCaseType": "missing-values",
+  "description": "Two-sample t-test with NaN values in both groups. R's t.test uses na.action=na.omit by default.",
+  "datasets": [
+    {
+      "name": "nan_in_both_groups",
+      "source": "synthetic data with NaN",
+      "data": {
+        "group1": [1.2, null, 3.4, 2.8, 4.1, null, 2.5, 3.9],
+        "group2": [2.1, 3.5, null, 4.2, 3.8, 2.9, null, 3.1]
+      },
+      "n": {
+        "group1_raw": 8,
+        "group2_raw": 8,
+        "group1_clean": 6,
+        "group2_clean": 6
+      },
+      "cases": [
+        {
+          "description": "Student's t-test with NaN values (should skip NaN)",
+          "rCode": "t.test(g1, g2, var.equal=TRUE)  # g1/g2 contain NA, R auto-removes",
+          "expected": {
+            "tStatistic": {
+              "value": -0.5341265900656921,
+              "tier": "tier3"
+            },
+            "pValue": {
+              "value": 0.6049,
+              "tier": "tier4"
+            },
+            "mean1": {
+              "value": 2.983333333333333,
+              "tier": "tier2"
+            },
+            "mean2": {
+              "value": 3.266666666666667,
+              "tier": "tier2"
+            },
+            "n1": {
+              "value": 6,
+              "tier": "exact"
+            },
+            "n2": {
+              "value": 6,
+              "tier": "exact"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

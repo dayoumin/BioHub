@@ -1,0 +1,50 @@
+{
+  "method": "edge-ttest-small",
+  "layer": "L3",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::t.test",
+    "packages": ["stats"],
+    "note": "Pre-computed: t.test(c(12.5,14.2,13.1), mu=10). Needs R verification."
+  },
+  "generatedAt": "2026-04-07",
+  "edgeCaseType": "small-sample",
+  "description": "One-sample t-test with n=3 (minimum practical sample). df=2, CI will be very wide.",
+  "datasets": [
+    {
+      "name": "three_observations",
+      "source": "synthetic minimal sample",
+      "data": {
+        "values": [12.5, 14.2, 13.1],
+        "popmean": 10
+      },
+      "n": {
+        "total": 3
+      },
+      "cases": [
+        {
+          "description": "One-sample t-test with n=3 (mu=10)",
+          "rCode": "t.test(c(12.5, 14.2, 13.1), mu=10)",
+          "expected": {
+            "tStatistic": {
+              "value": 6.562565395787765,
+              "tier": "tier2"
+            },
+            "pValue": {
+              "value": 0.02243,
+              "tier": "tier4"
+            },
+            "sampleMean": {
+              "value": 13.26666666666667,
+              "tier": "tier2"
+            },
+            "n": {
+              "value": 3,
+              "tier": "exact"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

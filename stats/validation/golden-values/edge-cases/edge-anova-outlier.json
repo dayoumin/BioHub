@@ -1,0 +1,67 @@
+{
+  "method": "edge-anova-outlier",
+  "layer": "L3",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::aov",
+    "packages": ["stats"],
+    "note": "Pre-computed: aov with outlier (100) in group 1. Needs R verification."
+  },
+  "generatedAt": "2026-04-07",
+  "edgeCaseType": "extreme-values",
+  "description": "One-way ANOVA with extreme outlier in one group. Tests robustness when one observation is far from the group mean.",
+  "datasets": [
+    {
+      "name": "outlier_in_group1",
+      "source": "synthetic: group1 has outlier value 100",
+      "data": {
+        "groups": [
+          [23, 25, 24, 26, 27, 23, 24, 25, 100, 26],
+          [28, 30, 29, 31, 32, 30, 29, 31, 33, 30],
+          [35, 37, 36, 38, 39, 36, 35, 37, 40, 38]
+        ]
+      },
+      "n": {
+        "g1": 10,
+        "g2": 10,
+        "g3": 10
+      },
+      "cases": [
+        {
+          "description": "One-way ANOVA with extreme outlier in group 1",
+          "rCode": "aov(value ~ group)  # group1 has outlier=100",
+          "expected": {
+            "fStatistic": {
+              "value": 0.6399254817488507,
+              "tier": "tier3"
+            },
+            "pValue": {
+              "value": 0.5350,
+              "tier": "tier4"
+            },
+            "dfBetween": {
+              "value": 2,
+              "tier": "exact"
+            },
+            "dfWithin": {
+              "value": 27,
+              "tier": "exact"
+            },
+            "etaSquared": {
+              "value": 0.04525663749606292,
+              "tier": "tier3"
+            },
+            "ssBetween": {
+              "value": 244.2666666666668,
+              "tier": "tier3"
+            },
+            "ssWithin": {
+              "value": 5153.1,
+              "tier": "tier3"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

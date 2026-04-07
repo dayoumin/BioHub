@@ -26,15 +26,16 @@
 - [x] R golden data 미포함 11개 수정 완료
 - [x] Phase 3 보고서: `VALIDATION-REPORT-phase3-2026-04-07.md`
 - [x] **FAIL 4건 → 55/55 PASS 달성**
-  - `stationarity-test` LRE 1.0→10.3: 러너 `regression='c'`→`'ct'` (R adf.test는 constant+trend 포함)
-  - `cox-regression` LRE 1.5→14.7: 러너 `PHReg(ties='efron')` 추가 (R coxph 기본값 Efron, statsmodels 기본값 Breslow 불일치)
+  - `stationarity-test` LRE 5.7→10.3: 러너 `regression='c'`→`'ct'` (R adf.test는 constant+trend 포함)
+  - `cox-regression` LRE 1.7→14.7: 러너 `PHReg(ties='efron')` 추가 (R coxph 기본값 Efron, statsmodels 기본값 Breslow 불일치)
   - `factor-analysis` LRE 0.7 유지: golden tier3→tier4 (sklearn MLE vs R psych PA — 추정 알고리즘 자체가 다름)
-  - `cluster` LRE 1.8→6.4: golden tier3→tier4 + clusterSizes 정렬 일치 (sklearn Lloyd vs R Hartigan-Wong)
+  - `cluster` LRE 1.7→6.4: golden tier3→tier4 + clusterSizes 정렬 일치 (sklearn Lloyd vs R Hartigan-Wong)
 
-### Phase 4 (미착수)
-- [ ] 엣지케이스 검증 (Layer 3): 결측값, 극단값, 소표본, 동점
-- [ ] NIST StRD 직접 검증 (Layer 1): fixture 준비 완료, 러너에 미연결
-- [ ] 최종 종합 보고서 (VALIDATION-REPORT.md)
+### Phase 4 완료 — 65/65 PASS
+- [x] **NIST StRD 직접 검증 (Layer 1)**: 4/4 PASS, LRE 10.3~14.6 — Norris, Pontius, AtmWtAg, Michelson (`run-phase4-2026-04-07.json`)
+- [x] **엣지케이스 검증 (Layer 3)**: 6/6 PASS — 결측값(NaN), 극단값(r≈1, 이상치), 소표본(n=3), 동점(전체 동순위)
+- [x] **공식문서 버전 고정 참조**: Phase 1~3 보고서에 Library Version Reference 섹션 추가 (버전 핀 URL)
+- [x] Phase 4 보고서: `VALIDATION-REPORT-phase4-2026-04-07.md`
 
 ### 인프라 / Worker 버그
 - [x] **worker2 poisson_regression**: GLM 전환 완료 + predicted/residuals ndarray 인덱싱 수정

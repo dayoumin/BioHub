@@ -3,7 +3,7 @@
 // BioHub Statistical Validation Runner
 // =============================================================================
 // Purpose: Cross-validate BioHub Pyodide results against R golden values
-// Usage:   pnpm test:validation [--method <id>] [--layer L1|L2] [--report]
+// Usage:   pnpm test:validation [--method <id>] [--layer L1|L2|L3] [--report]
 // Extends: Proven patterns from run-pyodide-golden-tests.mjs
 // =============================================================================
 
@@ -19,6 +19,7 @@ const STATS_ROOT = join(__dirname, '..', '..');
 const VALIDATION_ROOT = join(__dirname, '..');
 const R_REFERENCE_DIR = join(VALIDATION_ROOT, 'golden-values', 'r-reference');
 const NIST_DIR = join(VALIDATION_ROOT, 'golden-values', 'nist');
+const EDGE_CASES_DIR = join(VALIDATION_ROOT, 'golden-values', 'edge-cases');
 const RESULTS_DIR = join(VALIDATION_ROOT, 'results');
 const WORKERS_DIR = join(STATS_ROOT, 'public', 'workers', 'python');
 
@@ -1096,6 +1097,185 @@ json.dumps(flat)
 `;
     }
 
+    // =================================================================
+    // Phase 4: Edge Cases (Layer 3) — missing values, small samples,
+    //          extreme values, ties
+    // =================================================================
+
+    case 'edge-ttest-nan':
+      // Two-sample t-test with NaN values: convert null→NaN, then drop NaN
+      // JSON null → Python None via string replace
+      return `
+import json
+import math
+from worker2_hypothesis import t_test_two_sample
+g1_raw = ${JSON.stringify(d.group1).replace(/null/g, 'None')}
+g2_raw = ${JSON.stringify(d.group2).replace(/null/g, 'None')}
+g1 = [x for x in g1_raw if x is not None]
+g2 = [x for x in g2_raw if x is not None]
+result = t_test_two_sample(g1, g2, equalVar=True)
+json.dumps(result)
+`;
+    case 'edge-ttest-small':
+      // One-sample t-test with n=3
+      return `
+import json
+from worker2_hypothesis import t_test_one_sample
+result = t_test_one_sample(${JSON.stringify(d.values)}, popmean=${d.popmean})
+json.dumps(result)
+`;
+    case 'edge-correlation-extreme':
+      // Pearson correlation with near-perfect r (r≈1)
+      return `
+import json
+from worker2_hypothesis import correlation_test
+result = correlation_test(${JSON.stringify(d.x)}, ${JSON.stringify(d.y)}, method='pearson')
+json.dumps({'r': result['correlation'], 'pValue': result['pValue']})
+`;
+    case 'edge-wilcoxon-ties': {
+      // Wilcoxon signed-rank with all equal differences (heavy ties)
+      // Same Python as normal wilcoxon-signed-rank: manual W+ with ties adjustment
+      return `
+import json
+import numpy as np
+from scipy import stats
+before = np.array(${JSON.stringify(d.before)}, dtype=float)
+after = np.array(${JSON.stringify(d.after)}, dtype=float)
+diffs = before - after
+diffs_nz = diffs[diffs != 0]
+abs_vals = np.abs(diffs_nz)
+abs_ranks = stats.rankdata(abs_vals)
+w_plus = float(np.sum(abs_ranks[diffs_nz > 0]))
+n = len(diffs_nz)
+mean_w = n * (n + 1) / 4
+# Ties adjustment: sigma^2 = n(n+1)(2n+1)/24 - sum(t^3-t)/48
+var_w = n * (n + 1) * (2 * n + 1) / 24
+unique, counts = np.unique(abs_vals, return_counts=True)
+tie_adj = np.sum(counts**3 - counts) / 48
+var_w -= tie_adj
+z = (w_plus - mean_w) / np.sqrt(var_w)
+p = 2 * stats.norm.sf(abs(z))
+result = {'statistic': w_plus, 'pValue': float(p)}
+json.dumps(result)
+`;
+    }
+    case 'edge-descriptive-nan':
+      // Descriptive stats with NaN values: convert null→NaN then use nanmean etc.
+      // JSON null → Python None via string replace
+      return `
+import json
+import numpy as np
+raw = ${JSON.stringify(d.values).replace(/null/g, 'None')}
+values = np.array([x if x is not None else float('nan') for x in raw], dtype=float)
+clean = values[~np.isnan(values)]
+n = len(clean)
+result = {
+    'mean': float(np.mean(clean)),
+    'sd': float(np.std(clean, ddof=1)),
+    'median': float(np.median(clean)),
+    'n': int(n),
+    'sem': float(np.std(clean, ddof=1) / np.sqrt(n))
+}
+json.dumps(result)
+`;
+    case 'edge-anova-outlier':
+      // One-way ANOVA with extreme outlier — same code as normal ANOVA
+      return `
+import json
+from worker3_nonparametric_anova import one_way_anova
+result = one_way_anova(${JSON.stringify(d.groups)})
+json.dumps(result)
+`;
+
+    // ─── NIST StRD methods (Layer 1) ────────────────────────────────────
+    case 'nist-norris-linear':
+      return `
+import json, numpy as np
+from scipy import stats
+x = np.array(${JSON.stringify(d.x)})
+y = np.array(${JSON.stringify(d.y)})
+slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
+n = len(x)
+y_pred = intercept + slope * x
+residuals = y - y_pred
+residual_sd = np.sqrt(np.sum(residuals**2) / (n - 2))
+x_mean = np.mean(x)
+se_intercept = residual_sd * np.sqrt(1/n + x_mean**2 / np.sum((x - x_mean)**2))
+result = {
+  'intercept': float(intercept),
+  'slope': float(slope),
+  'sdIntercept': float(se_intercept),
+  'sdSlope': float(std_err),
+  'rSquared': float(r_value**2),
+  'residualSD': float(residual_sd)
+}
+json.dumps(result)
+`;
+    case 'nist-pontius-quadratic':
+      return `
+import json, numpy as np
+x = np.array(${JSON.stringify(d.x)}, dtype=float)
+y = np.array(${JSON.stringify(d.y)})
+X = np.column_stack([np.ones(len(x)), x, x**2])
+coeffs, residuals_sum, rank, sv = np.linalg.lstsq(X, y, rcond=None)
+b0, b1, b2 = coeffs
+y_pred = X @ coeffs
+resid = y - y_pred
+n = len(x)
+p = 3
+residual_sd = np.sqrt(np.sum(resid**2) / (n - p))
+XtX_inv = np.linalg.inv(X.T @ X)
+cov_matrix = residual_sd**2 * XtX_inv
+sd_b0 = np.sqrt(cov_matrix[0, 0])
+sd_b1 = np.sqrt(cov_matrix[1, 1])
+sd_b2 = np.sqrt(cov_matrix[2, 2])
+result = {
+  'b0': float(b0), 'b1': float(b1), 'b2': float(b2),
+  'sdB0': float(sd_b0), 'sdB1': float(sd_b1), 'sdB2': float(sd_b2),
+  'residualSD': float(residual_sd)
+}
+json.dumps(result)
+`;
+    case 'nist-atmwtag-anova':
+      return `
+import json, numpy as np
+from scipy import stats
+instrument = ${JSON.stringify(d.Instrument)}
+agwt = np.array(${JSON.stringify(d.AgWt)})
+groups = [agwt[np.array(instrument) == i] for i in sorted(set(instrument))]
+f_stat, p_val = stats.f_oneway(*groups)
+grand_mean = np.mean(agwt)
+n = len(agwt)
+k = len(groups)
+ss_between = sum(len(g) * (np.mean(g) - grand_mean)**2 for g in groups)
+ss_within = sum(np.sum((g - np.mean(g))**2) for g in groups)
+df_between = k - 1
+df_within = n - k
+ms_between = ss_between / df_between
+ms_within = ss_within / df_within
+r_squared = ss_between / (ss_between + ss_within)
+residual_sd = np.sqrt(ms_within)
+result = {
+  'dfBetween': int(df_between), 'dfWithin': int(df_within),
+  'fStatistic': float(f_stat),
+  'ssBetween': float(ss_between), 'ssWithin': float(ss_within),
+  'msBetween': float(ms_between), 'msWithin': float(ms_within),
+  'rSquared': float(r_squared), 'residualSD': float(residual_sd)
+}
+json.dumps(result)
+`;
+    case 'nist-michelson-descriptive':
+      return `
+import json, numpy as np
+values = np.array(${JSON.stringify(d.values)})
+result = {
+  'mean': float(np.mean(values)),
+  'sd': float(np.std(values, ddof=1)),
+  'n': int(len(values))
+}
+json.dumps(result)
+`;
+
     default:
       return null;
   }
@@ -1261,6 +1441,48 @@ const FIELD_MAP = {
     skewness: { skip: true },  // R e1071 vs scipy: different formulas
     kurtosis: { skip: true },  // R excess kurtosis vs scipy kurtosis
   },
+  // ─── Edge Cases (L3) ─────────────────────────────────────────────────
+  'edge-ttest-nan': {
+    tStatistic: { pyKey: 'statistic' },
+    pValue: { pyKey: 'pValue' },
+    mean1: { pyKey: 'mean1' },
+    mean2: { pyKey: 'mean2' },
+    n1: { pyKey: 'n1' },
+    n2: { pyKey: 'n2' },
+    cohensD: { skip: true },
+    df: { skip: true },
+    meanDiff: { skip: true },
+    ci95Lower: { skip: true },
+    ci95Upper: { skip: true },
+  },
+  'edge-ttest-small': {
+    tStatistic: { pyKey: 'statistic' },
+    pValue: { pyKey: 'pValue' },
+    sampleMean: { pyKey: 'sampleMean' },
+    n: { pyKey: 'n' },
+    df: { skip: true },
+  },
+  'edge-correlation-extreme': {
+    // r and pValue pass through directly (no remapping needed)
+  },
+  'edge-wilcoxon-ties': {
+    // statistic and pValue pass through directly
+  },
+  'edge-descriptive-nan': {
+    skewness: { skip: true },
+    kurtosis: { skip: true },
+  },
+  'edge-anova-outlier': {
+    fStatistic: { pyKey: 'fStatistic' },
+    pValue: { pyKey: 'pValue' },
+    dfBetween: { pyKey: 'dfBetween' },
+    dfWithin: { pyKey: 'dfWithin' },
+    etaSquared: { pyKey: 'etaSquared' },
+    omegaSquared: { pyKey: 'omegaSquared' },
+    ssBetween: { pyKey: 'ssBetween' },
+    ssWithin: { pyKey: 'ssWithin' },
+    ssTotal: { pyKey: 'ssTotal' },
+  },
 };
 
 // Remap R golden expected → Python key names for comparison
@@ -1329,8 +1551,10 @@ async function main() {
   console.log(color('📂 Loading golden values...', C.cyan));
   const rGolden = loadGoldenValues(R_REFERENCE_DIR);
   const nistGolden = loadGoldenValues(NIST_DIR);
+  const edgeGolden = existsSync(EDGE_CASES_DIR) ? loadGoldenValues(EDGE_CASES_DIR) : {};
   console.log(color(`  R reference: ${Object.keys(rGolden).length} methods`, C.green));
   console.log(color(`  NIST: ${Object.keys(nistGolden).length} datasets`, C.green));
+  console.log(color(`  Edge cases: ${Object.keys(edgeGolden).length} methods`, C.green));
   console.log();
 
   // ─── Load Pyodide ───────────────────────────────────────────────────────
@@ -1415,12 +1639,28 @@ async function main() {
     'descriptive-stats', 'explore-data', 'means-plot', 'power-analysis',
   ];
 
-  const allMethods = [...phase1Methods, ...phase2Methods, ...phase3Methods];
+  // ─── NIST StRD methods (Layer 1) ────────────────────────────────────
+  const nistMethods = [
+    'nist-norris-linear', 'nist-pontius-quadratic',
+    'nist-atmwtag-anova', 'nist-michelson-descriptive',
+  ];
+
+  // ─── Phase 4: Edge Cases (Layer 3) ──────────────────────────────────
+  const edgeCaseMethods = [
+    'edge-ttest-nan',          // Missing values: two-sample t-test with NaN
+    'edge-ttest-small',        // Small sample: one-sample t-test n=3
+    'edge-correlation-extreme', // Extreme values: Pearson r ≈ 1.0
+    'edge-wilcoxon-ties',      // Ties: Wilcoxon with all equal differences
+    'edge-descriptive-nan',    // Missing values: descriptive stats with NaN
+    'edge-anova-outlier',      // Extreme values: ANOVA with outlier
+  ];
+
+  const allMethods = [...phase1Methods, ...phase2Methods, ...phase3Methods, ...nistMethods, ...edgeCaseMethods];
 
   const methodsToRun = allMethods.filter(m => {
     if (FILTER_METHOD && m !== FILTER_METHOD) return false;
     if (FILTER_LAYER) {
-      const golden = rGolden[m];
+      const golden = rGolden[m] || nistGolden[m] || edgeGolden[m];
       if (golden && golden.layer !== FILTER_LAYER && golden.layer !== 'L1+L2') return false;
     }
     return true;
@@ -1428,7 +1668,7 @@ async function main() {
 
   // ─── Run validation ───────────────────────────────────────────────────
   console.log(divider());
-  console.log(color(`  Validating ${methodsToRun.length} methods (P1: ${phase1Methods.length}, P2: ${phase2Methods.length}, P3: ${phase3Methods.length})`, C.cyan + C.bold));
+  console.log(color(`  Validating ${methodsToRun.length} methods (P1: ${phase1Methods.length}, P2: ${phase2Methods.length}, P3: ${phase3Methods.length}, NIST: ${nistMethods.filter(m => methodsToRun.includes(m)).length}, Edge: ${edgeCaseMethods.filter(m => methodsToRun.includes(m)).length})`, C.cyan + C.bold));
   console.log(divider());
   console.log();
 
@@ -1438,7 +1678,7 @@ async function main() {
   let totalSkipped = 0;
 
   for (const methodId of methodsToRun) {
-    const golden = rGolden[methodId];
+    const golden = rGolden[methodId] || nistGolden[methodId] || edgeGolden[methodId];
     if (!golden) {
       console.log(color(`  ⊘ ${methodId} — no golden value`, C.yellow));
       totalSkipped++;

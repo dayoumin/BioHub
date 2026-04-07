@@ -1,0 +1,54 @@
+{
+  "method": "edge-descriptive-nan",
+  "layer": "L3",
+  "referenceSource": {
+    "software": "R",
+    "function": "base + psych",
+    "packages": ["stats", "psych"],
+    "note": "Pre-computed: mean/sd/median on na.omit(values). Needs R verification."
+  },
+  "generatedAt": "2026-04-07",
+  "edgeCaseType": "missing-values",
+  "description": "Descriptive statistics with NaN values scattered in data. Tests na.rm=TRUE behavior.",
+  "datasets": [
+    {
+      "name": "values_with_nan",
+      "source": "synthetic data with NaN",
+      "data": {
+        "values": [10.5, null, 15.2, 12.8, null, 18.1, 14.3, 11.9, null, 16.7]
+      },
+      "n": {
+        "raw": 10,
+        "clean": 7
+      },
+      "cases": [
+        {
+          "description": "Descriptive stats with NaN values (should exclude NaN)",
+          "rCode": "mean(x, na.rm=TRUE); sd(x, na.rm=TRUE); median(x, na.rm=TRUE)",
+          "expected": {
+            "mean": {
+              "value": 14.21428571428571,
+              "tier": "tier2"
+            },
+            "sd": {
+              "value": 2.6897512719138,
+              "tier": "tier2"
+            },
+            "median": {
+              "value": 14.3,
+              "tier": "tier2"
+            },
+            "n": {
+              "value": 7,
+              "tier": "exact"
+            },
+            "sem": {
+              "value": 1.016630422014798,
+              "tier": "tier2"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

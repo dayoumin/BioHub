@@ -1,0 +1,42 @@
+{
+  "method": "edge-correlation-extreme",
+  "layer": "L3",
+  "referenceSource": {
+    "software": "R",
+    "function": "stats::cor.test",
+    "packages": ["stats"],
+    "note": "Pre-computed: cor.test with near-perfect linear data. Needs R verification."
+  },
+  "generatedAt": "2026-04-07",
+  "edgeCaseType": "extreme-values",
+  "description": "Pearson correlation with near-perfect r (r≈1.0). Tests p-value underflow and numerical stability.",
+  "datasets": [
+    {
+      "name": "near_perfect_linear",
+      "source": "synthetic: y = 2.5x + 1 + tiny noise (±0.001)",
+      "data": {
+        "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        "y": [3.501, 6.0, 8.499, 11.001, 13.5, 15.999, 18.501, 21.0, 23.499, 26.001]
+      },
+      "n": {
+        "total": 10
+      },
+      "cases": [
+        {
+          "description": "Pearson correlation near-perfect (r ≈ 1.0)",
+          "rCode": "cor.test(x, y, method='pearson')",
+          "expected": {
+            "r": {
+              "value": 0.9999999933354402,
+              "tier": "tier3"
+            },
+            "pValue": {
+              "value": 0.0,
+              "tier": "tier4"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
