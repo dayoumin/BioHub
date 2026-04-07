@@ -1911,14 +1911,15 @@ def mixed_model(
     model = mixedlm(fixed_formula, df_clean, groups=df_clean[groups_var])
     result = model.fit(method='lbfgs', maxiter=500, reml=True)
 
-    # Fixed Effects
+    # Fixed Effects (fe_params only — excludes random-effect variance 'Group Var')
     fixed_effects_results = []
-    for i, param in enumerate(result.params.index):
-        coef = float(result.params[param])
+    ci_table = result.conf_int()
+    for param in result.fe_params.index:
+        coef = float(result.fe_params[param])
         se = float(result.bse[param])
         t_val = float(result.tvalues[param])
         p_val = float(result.pvalues[param])
-        ci = result.conf_int().iloc[i]
+        ci = ci_table.loc[param]
 
         fixed_effects_results.append({
             'effect': param,
@@ -2096,7 +2097,20 @@ def mixed_model(
         ]
     }
 
+    # Representative p-value / F-statistic for handle-anova.ts mainResults
+    # Use the most significant non-intercept fixed effect
+    non_intercept = [fe for fe in fixed_effects_results if fe['effect'] != 'Intercept']
+    if non_intercept:
+        best_fe = min(non_intercept, key=lambda fe: fe['pValue'])
+        repr_p = best_fe['pValue']
+        repr_f = best_fe['tValue'] ** 2  # t² approximates F(1, df)
+    else:
+        repr_p = 1.0
+        repr_f = 0.0
+
     return {
+        'pValue': repr_p,
+        'fStatistic': repr_f,
         'fixedEffects': fixed_effects_results,
         'randomEffects': random_effects_results,
         'varianceComponents': variance_components,
