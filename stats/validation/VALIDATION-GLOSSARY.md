@@ -2,6 +2,15 @@
 
 BioHub 통계 검증 시스템에서 사용하는 용어와 현재 검증 결과를 설명합니다.
 
+### 관련 문서
+
+| 문서 | 내용 |
+|------|------|
+| [STATISTICAL-VALIDATION-DESIGN.md](../../STATISTICAL-VALIDATION-DESIGN.md) | 검증 설계 전체 — R 선택 이유, 순환검증 문제, 3-Layer 설계, Tier 정책, 업계 사례 |
+| [REVIEW-VALIDATION-PHASE0.md](../../stats/docs/REVIEW-VALIDATION-PHASE0.md) | generate-references.R 실행 상세 (1,754줄, 12섹션, 50개 메서드 R↔Python 대응) |
+| [VALIDATION-GAPS-ANALYSIS.md](../../stats/docs/VALIDATION-GAPS-ANALYSIS.md) | 알고리즘 차이 분석 — factor-analysis, ARIMA, ordinal 등 5개 메서드 |
+| [VALIDATION-REPORT-phase4](VALIDATION-REPORT-phase4-2026-04-07.md) | 최종 검증 결과 보고서 (73/73 PASS) |
+
 ## 용어집
 
 ### NIST StRD (Statistical Reference Datasets)
