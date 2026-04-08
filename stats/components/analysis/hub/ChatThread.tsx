@@ -344,7 +344,7 @@ function DiagnosticReportCard({ report, onStart, onBrowse }: DiagnosticReportCar
         </div>
       )}
 
-      {/* 액션 버튼 */}
+      {/* 액션 버튼 — 추천 있을 때 */}
       {(onStart || onBrowse) && (
         <div className="flex gap-2 pt-1">
           {onStart && (
@@ -370,6 +370,13 @@ function DiagnosticReportCard({ report, onStart, onBrowse }: DiagnosticReportCar
             </Button>
           )}
         </div>
+      )}
+
+      {/* 추천 실패 시 안내 — 진단 결과는 있지만 액션 버튼이 없는 경우 */}
+      {!onStart && !onBrowse && (
+        <p className="text-muted-foreground pt-1">
+          추천 생성에 실패했습니다. 다시 질문하거나 분석 방법을 직접 선택해 주세요.
+        </p>
       )}
     </div>
   )

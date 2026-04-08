@@ -29,6 +29,7 @@ import { useHubChatStore, type HubChatMessage } from '@/lib/stores/hub-chat-stor
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
 import { useHubDataUpload } from '@/hooks/use-hub-data-upload'
+import { toast } from 'sonner'
 
 import { ChatInput } from './hub/ChatInput'
 import { ChatThread } from './hub/ChatThread'
@@ -316,11 +317,20 @@ export function ChatCentricHub({
 
   // "분석 시작하기" — 메시지의 report + 원본 AIRecommendation을 직접 받음
   const handleDiagnosticStart = useCallback((report: DiagnosticReport, recommendation: AIRecommendation) => {
+    // 새로고침 후 데이터가 소실된 경우 방어
+    if (!useAnalysisStore.getState().uploadedData) {
+      toast.error('데이터가 만료되었습니다. CSV를 다시 업로드해 주세요.')
+      return
+    }
     bridgeDiagnosticToSmartFlow(report, recommendation)
   }, [])
 
   // "다른 방법 찾아보기" — bridge 후 normal 트랙 → Step 2
   const handleAlternativeSearch = useCallback((report: DiagnosticReport, recommendation: AIRecommendation) => {
+    if (!useAnalysisStore.getState().uploadedData) {
+      toast.error('데이터가 만료되었습니다. CSV를 다시 업로드해 주세요.')
+      return
+    }
     bridgeDiagnosticToSmartFlow(report, recommendation)
     useModeStore.getState().setStepTrack('normal')
     useAnalysisStore.getState().addCompletedStep(1)
