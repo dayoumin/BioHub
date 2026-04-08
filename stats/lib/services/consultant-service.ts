@@ -19,7 +19,7 @@
  */
 
 import { PURPOSE_CATEGORIES } from '@/lib/constants/purpose-categories'
-import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
+import { STATISTICAL_METHODS, getKoreanDescription } from '@/lib/constants/statistical-methods'
 import type { MethodRecommendation, ConsultantResponse, ClarificationQuestion, ClarificationOption } from '@/types/analysis'
 
 interface CategoryScore {
@@ -121,7 +121,7 @@ export const METHOD_KEYWORDS: Record<string, string[]> = {
  */
 export function getRecommendations(
   message: string,
-  maxRecommendations = 3
+  maxRecommendations = 3,
 ): ConsultantResponse {
   const normalizedMessage = message.toLowerCase().trim()
 
@@ -197,7 +197,7 @@ export function getRecommendations(
   const recommendations: MethodRecommendation[] = []
   const usedMethodIds = new Set<string>()
 
-  for (const { categoryId, matchedKeywords } of scores) {
+  for (const { categoryId } of scores) {
     if (recommendations.length >= maxRecommendations) break
 
     const category = PURPOSE_CATEGORIES.find(c => c.id === categoryId)
@@ -206,7 +206,7 @@ export function getRecommendations(
     const methodScores = methodScoresPerCategory.get(categoryId)
     if (!methodScores) continue
 
-    for (const { methodId, matchedKeywords: methodKws } of methodScores) {
+    for (const { methodId } of methodScores) {
       if (recommendations.length >= maxRecommendations) break
       if (usedMethodIds.has(methodId)) continue
 
@@ -215,9 +215,9 @@ export function getRecommendations(
 
       usedMethodIds.add(methodId)
 
-      const allKws = [...matchedKeywords, ...methodKws]
-      const reason = allKws.length > 0
-        ? buildReason(category.label, allKws)
+      const desc = getKoreanDescription(methodId)
+      const reason = desc
+        ? `${desc} — ${category.label}`
         : `${category.label} 분야의 분석 방법입니다.`
 
       recommendations.push({
@@ -235,7 +235,7 @@ export function getRecommendations(
 
   const topCategory = PURPOSE_CATEGORIES.find(c => c.id === scores[0].categoryId)
   const summary = topCategory
-    ? `"${topCategory.label}" 분야의 분석 방법을 추천합니다.`
+    ? buildSummary(topCategory, recommendations)
     : undefined
 
   return { recommendations, summary, clarification }
@@ -292,11 +292,27 @@ function detectAmbiguity(
   return undefined
 }
 
-/** 추천 이유 텍스트 생성 */
-function buildReason(categoryLabel: string, matchedKeywords: string[]): string {
-  const unique = [...new Set(matchedKeywords)]
-  const keywordStr = unique.slice(0, 3).map(k => `"${k}"`).join(', ')
-  return `${categoryLabel} 분석 — 입력에서 ${keywordStr} 키워드가 감지되었습니다.`
+/** 한국어 조사 선택: 받침 유무에 따라 을/를 반환 */
+function eulReul(word: string): '을' | '를' {
+  const last = word.charCodeAt(word.length - 1)
+  if (last < 0xAC00 || last > 0xD7A3) return '를' // 한글 범위 밖 (영문 등)
+  return (last - 0xAC00) % 28 !== 0 ? '을' : '를'
+}
+
+/** 카테고리 + 추천 메서드 기반 요약 문구 생성 */
+function buildSummary(
+  category: { label: string; description: string },
+  recommendations: MethodRecommendation[],
+): string {
+  const topMethod = recommendations[0]
+  if (!topMethod) return `"${category.label}" 분야의 분석 방법을 추천합니다.`
+
+  const name = topMethod.koreanName
+  const methodList = recommendations.length > 1
+    ? `${name}${eulReul(name)} 포함한 ${recommendations.length}가지 방법`
+    : name
+
+  return `"${category.label}" 분야에서 ${methodList}${eulReul(methodList)} 추천합니다.\n${category.description}에 적합한 분석 방법입니다. 데이터를 업로드하면 더 정확한 추천을 받을 수 있습니다.`
 }
 
 /** 동점 메서드 목록에서 clarification 질문 생성 */

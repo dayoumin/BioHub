@@ -31,12 +31,12 @@ export function RecommendationCard({ recommendation, onSelect }: RecommendationC
       {/* 헤더: 뱃지 + 메서드명 */}
       <div className="flex items-center gap-2">
         {badge === 'recommended' ? (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
             <Star className="w-3 h-3" />
             추천
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
             <CircleDot className="w-3 h-3" />
             대안
           </span>
@@ -45,8 +45,8 @@ export function RecommendationCard({ recommendation, onSelect }: RecommendationC
 
       {/* 메서드명 */}
       <div>
-        <p className="text-sm font-semibold text-foreground">{koreanName}</p>
-        <p className="text-xs text-muted-foreground">{methodName}</p>
+        <p className="text-sm font-semibold text-foreground leading-snug">{koreanName}</p>
+        <p className="text-xs text-muted-foreground/70">{methodName}</p>
       </div>
 
       {/* 이유 */}
@@ -56,11 +56,11 @@ export function RecommendationCard({ recommendation, onSelect }: RecommendationC
       <Button
         variant="ghost"
         size="sm"
-        className="self-start gap-1 text-primary hover:text-primary hover:bg-primary/10 mt-1 h-7 px-2"
+        className="self-start gap-1 text-primary hover:text-primary hover:bg-primary/10 h-6 px-1.5 text-xs"
         onClick={handleClick}
       >
         이 분석 시작하기
-        <ArrowRight className="w-3.5 h-3.5" />
+        <ArrowRight className="w-3 h-3" />
       </Button>
     </div>
   )

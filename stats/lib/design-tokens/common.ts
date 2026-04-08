@@ -26,9 +26,9 @@ export const actionCardBase = cn(
 
 /** 추천 카드 (왼쪽 컬러 보더 + 호버 강조) */
 export const recommendationCardBase = cn(
-  'flex flex-col gap-2 p-4 rounded-2xl',
+  'flex flex-col gap-1.5 px-3 py-2.5 rounded-xl',
   'border border-border/60 bg-card',
-  'border-l-4 border-l-primary/40',
+  'border-l-2 border-l-primary/40',
   'transition-all duration-300',
   'hover:border-l-primary hover:border-border hover:shadow-sm hover:-translate-y-0.5',
   'group',

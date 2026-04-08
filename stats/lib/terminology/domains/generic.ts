@@ -475,7 +475,7 @@ export const generic: TerminologyDictionary = {
     },
     chatInput: {
       heading: 'What would you like to analyze?',
-      placeholder: 'Describe what you want to analyze...',
+      placeholder: 'e.g., "Compare means between two groups", "Analyze growth by diet type"',
       sendAriaLabel: 'Send',
       processingMessage: 'Figuring out the best approach...',
       uploadAriaLabel: 'Upload data file',

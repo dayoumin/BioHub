@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils'
 import { focusRing } from '@/components/common/card-styles'
 import { Button } from '@/components/ui/button'
 import { RecommendationCard } from '@/components/common/RecommendationCard'
-import { TypingIndicator } from '@/components/common/TypingIndicator'
+
 import { useHubChatStore, type HubChatMessage } from '@/lib/stores/hub-chat-store'
 import type { DiagnosticReport, MethodRecommendation, AIRecommendation } from '@/types/analysis'
 
@@ -93,7 +93,7 @@ export function ChatThread({
       {/* 메시지 스레드 */}
       <div
         ref={scrollRef}
-        className="max-h-[400px] overflow-y-auto space-y-3 scroll-smooth"
+        className="max-h-[560px] overflow-y-auto space-y-3 scroll-smooth"
         role="log"
         aria-label="대화 기록"
       >
@@ -122,14 +122,10 @@ export function ChatThread({
               <Bot className="w-4 h-4 text-primary" />
             </div>
             <div className="bg-muted/60 rounded-2xl rounded-tl-sm px-4 py-3">
-              {streamingStatus ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Activity className="w-3.5 h-3.5 animate-pulse text-primary" />
-                  {streamingStatus}
-                </div>
-              ) : (
-                <TypingIndicator size="sm" />
-              )}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Activity className="w-3.5 h-3.5 animate-pulse text-primary" />
+                {streamingStatus ?? '분석 방법을 찾고 있습니다...'}
+              </div>
             </div>
           </motion.div>
         )}
@@ -261,7 +257,7 @@ function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry, onDiag
 
         {/* 추천 카드 — 진단 카드가 있으면 중복이므로 숨김 */}
         {!diagnosticReport && recommendations && recommendations.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
             {recommendations.map((rec) => (
               <RecommendationCard
                 key={rec.methodId}
@@ -372,10 +368,10 @@ function DiagnosticReportCard({ report, onStart, onBrowse }: DiagnosticReportCar
         </div>
       )}
 
-      {/* 추천 실패 시 안내 — 진단 결과는 있지만 액션 버튼이 없는 경우 */}
+      {/* 추천 실패 시 안내 — 데이터는 정상이고 LLM 추천만 실패한 경우 */}
       {!onStart && !onBrowse && (
         <p className="text-muted-foreground pt-1">
-          추천 생성에 실패했습니다. 다시 질문하거나 분석 방법을 직접 선택해 주세요.
+          추천 생성에 실패했습니다. 다시 질문해 주세요.
         </p>
       )}
     </div>

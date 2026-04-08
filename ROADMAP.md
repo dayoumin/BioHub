@@ -173,6 +173,16 @@ Includes:
 - 연구동향 모니터링 (키워드 기반 트렌드 수집 + 알림)
 - broader literature automation
 
+향후 확장 (Horizon 3b — Research Automation Pipeline):
+
+- VLM 기반 차트 해석 → 후속 분석 자동 제안
+- Literature RAG: 분석 결과 기반 관련 논문 자동 매칭
+- 프로젝트 전체 결과 → AI-ready 패키지 → 논문 초안 자동 조립 (E-2 연결)
+- Claude Operon / Agent SDK 연동 가능성 (공개 시 검토)
+- 원칙: 검증된 메서드 조합 (새 코드 생성 아님), Semi-autonomous (전문가 감독 필수)
+
+배경 조사: [AI 연구 자동화 동향 (2026)](docs/RESEARCH-AI-SCIENTIST-2026.md)
+
 ### Stream 6. Data Sovereignty & Deployment Modes
 
 Goal:

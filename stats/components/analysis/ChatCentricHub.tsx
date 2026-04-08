@@ -18,7 +18,6 @@ import { useState, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { intentRouter } from '@/lib/services/intent-router'
-import { getRecommendations } from '@/lib/services/consultant-service'
 import { getHubAiResponse, getHubDiagnosticResponse, getHubDiagnosticResumeResponse } from '@/lib/services/hub-chat-service'
 import { bridgeDiagnosticToSmartFlow } from '@/lib/stores/store-orchestration'
 import { getKoreanName } from '@/lib/constants/statistical-methods'
@@ -60,16 +59,35 @@ const RESUME_FALLBACK_INTENT: ResolvedIntent = {
   reasoning: '', needsData: false, provider: 'keyword',
 }
 
-/** AIRecommendation → 추천 카드 배열 변환 */
+/** AIRecommendation → 추천 카드 배열 변환 (주 추천 + alternatives) */
 function mapRecommendationToCards(rec: AIRecommendation | null): MethodRecommendation[] | undefined {
   if (!rec?.method) return undefined
-  return [{
+
+  const cards: MethodRecommendation[] = [{
     methodId: rec.method.id,
     methodName: rec.method.name,
     koreanName: getKoreanName(rec.method.id) ?? rec.method.name,
     reason: rec.reasoning?.join(', ') ?? '',
     badge: 'recommended' as const,
   }]
+
+  // LLM이 제안한 대안도 카드로 추가 (primary와 중복 제거)
+  if (rec.alternatives?.length) {
+    const usedIds = new Set([rec.method.id])
+    for (const alt of rec.alternatives.slice(0, 2)) {
+      if (usedIds.has(alt.id)) continue
+      usedIds.add(alt.id)
+      cards.push({
+        methodId: alt.id,
+        methodName: alt.name,
+        koreanName: getKoreanName(alt.id) ?? alt.name,
+        reason: alt.description ?? '',
+        badge: 'alternative' as const,
+      })
+    }
+  }
+
+  return cards
 }
 
 /** 직전 assistant 메시지에서 미완료 DiagnosticReport 탐색 */
@@ -82,9 +100,6 @@ function findPendingDiagnosticReport(messages: HubChatMessage[]): DiagnosticRepo
   }
   return null
 }
-
-/** 추천 없음 시 "이동합니다" 메시지를 사용자가 읽을 시간 (ms) */
-const NAVIGATE_DELAY_MS = 1000
 
 // ===== Animation =====
 
@@ -222,46 +237,30 @@ export function ChatCentricHub({
             recommendations: mapRecommendationToCards(diagResponse.recommendation),
           })
         } else {
-          // === 데이터 없음: 키워드 기반 빠른 추천 ===
-          const response = getRecommendations(message)
+          // === 데이터 없음: LLM 상담사와 대화 ===
+          setStreamingStatus('분석 방향을 상담하고 있습니다...')
+          const aiResponse = await getHubAiResponse({
+            userMessage: message,
+            intent,
+            dataContext: null,
+            chatHistory: priorMessages,
+          })
+          setStreamingStatus(null)
           setStreaming(false)
 
-          if (response.recommendations.length > 0) {
-            const shouldSuggestUpload = !hasSeenUploadSuggestion
-            addMessage({
-              id: createMessageId(),
-              role: 'assistant',
-              content: response.summary ?? t.hub.intentMessages.recommendationFound,
-              timestamp: Date.now(),
-              intent,
-              recommendations: response.recommendations,
-              suggestUpload: shouldSuggestUpload,
-            })
+          const shouldSuggestUpload = !hasSeenUploadSuggestion
+          addMessage({
+            id: createMessageId(),
+            role: 'assistant',
+            content: aiResponse.content,
+            timestamp: Date.now(),
+            intent,
+            recommendations: mapRecommendationToCards(aiResponse.recommendation),
+            suggestUpload: shouldSuggestUpload,
+          })
 
-            if (shouldSuggestUpload) {
-              setHasSeenUploadSuggestion(true)
-            }
-
-            // clarification이 있으면 추가 메시지
-            if (response.clarification && response.clarification.options.length >= 2) {
-              addMessage({
-                id: createMessageId(),
-                role: 'assistant',
-                content: response.clarification.question,
-                timestamp: Date.now(),
-              })
-            }
-          } else {
-            // 추천 없음 → 메시지 먼저 표시, 1초 후 Step 1 이동
-            addMessage({
-              id: createMessageId(),
-              role: 'assistant',
-              content: t.hub.intentMessages.needsData,
-              timestamp: Date.now(),
-              intent,
-            })
-            await new Promise<void>((resolve) => setTimeout(resolve, NAVIGATE_DELAY_MS))
-            onIntentResolved(intent, message)
+          if (shouldSuggestUpload) {
+            setHasSeenUploadSuggestion(true)
           }
         }
       } else {

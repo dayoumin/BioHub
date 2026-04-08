@@ -476,7 +476,7 @@ export const aquaculture: TerminologyDictionary = {
     },
     chatInput: {
       heading: '무엇을 분석하고 싶으신가요?',
-      placeholder: '분석하고 싶은 내용을 입력하세요...',
+      placeholder: '예: "두 그룹의 평균을 비교하고 싶어", "사료에 따른 성장 차이 분석"',
       sendAriaLabel: '보내기',
       processingMessage: '최적 분석 방향을 파악하고 있습니다...',
       uploadAriaLabel: '데이터 파일 업로드',
