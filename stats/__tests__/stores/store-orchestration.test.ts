@@ -17,8 +17,9 @@ import {
   startFreshAnalysisSession,
   loadAndRestoreHistory,
   bridgeHubDataToGraphStudio,
+  bridgeDiagnosticToSmartFlow,
 } from '@/lib/stores/store-orchestration'
-import type { AnalysisResult, ValidationResults, ColumnStatistics } from '@/types/analysis'
+import type { AnalysisResult, ValidationResults, ColumnStatistics, DiagnosticReport, AIRecommendation, StatisticalMethod } from '@/types/analysis'
 
 // ===== 공통 픽스처 =====
 
@@ -355,6 +356,156 @@ describe('store-orchestration', () => {
       expect(dataPackage?.columns[0].name).toBe('val')
       // inferColumnMeta가 숫자 값에서 quantitative으로 추론하는지 검증
       expect(dataPackage?.columns[0].type).toBe('quantitative')
+    })
+  })
+
+  // ===== bridgeDiagnosticToSmartFlow =====
+
+  describe('bridgeDiagnosticToSmartFlow', () => {
+    const mockMethod: StatisticalMethod = {
+      id: 'one-way-anova',
+      name: 'One-Way ANOVA',
+      category: 'anova',
+    } as StatisticalMethod
+
+    const mockReport: DiagnosticReport = {
+      uploadNonce: 1,
+      basicStats: { totalRows: 120, numericSummaries: [] },
+      assumptions: {
+        normality: {
+          groups: [
+            { groupName: 'A', statistic: 0.98, pValue: 0.45, passed: true },
+            { groupName: 'B', statistic: 0.95, pValue: 0.12, passed: true },
+          ],
+          overallPassed: true,
+          testMethod: 'shapiro-wilk',
+        },
+        homogeneity: { levene: { statistic: 1.2, pValue: 0.34, equalVariance: true } },
+      },
+      variableAssignments: { dependent: ['생산량'], factor: ['사료종류'] },
+      pendingClarification: null,
+    }
+
+    const mockRecommendation: AIRecommendation = {
+      method: mockMethod,
+      confidence: 0.9,
+      reasoning: ['정규성 충족', '등분산 충족'],
+      assumptions: [],
+      suggestedSettings: { alpha: 0.01, postHoc: 'tukey', alternative: 'two-sided' },
+    }
+
+    function setupHubData(): void {
+      const vr = makeValidation([makeColStat({ name: '생산량' }), makeColStat({ name: '사료종류', type: 'categorical' })])
+      useAnalysisStore.getState().setUploadedData([{ 생산량: 10, 사료종류: 'A' }])
+      useAnalysisStore.getState().setUploadedFile(new File([''], 'test.csv'))
+      useHubChatStore.getState().setDataContext({
+        fileName: 'test.csv',
+        totalRows: 120,
+        columnCount: 2,
+        numericColumns: ['생산량'],
+        categoricalColumns: ['사료종류'],
+        validationResults: vr,
+      })
+    }
+
+    it('suggestedSettings가 analysis-store에 전달된다', () => {
+      setupHubData()
+
+      act(() => {
+        bridgeDiagnosticToSmartFlow(mockReport, mockRecommendation)
+      })
+
+      const { suggestedSettings } = useAnalysisStore.getState()
+      expect(suggestedSettings).toEqual({ alpha: 0.01, postHoc: 'tukey', alternative: 'two-sided' })
+    })
+
+    it('selectedMethod가 설정된다', () => {
+      setupHubData()
+
+      act(() => {
+        bridgeDiagnosticToSmartFlow(mockReport, mockRecommendation)
+      })
+
+      expect(useAnalysisStore.getState().selectedMethod?.id).toBe('one-way-anova')
+    })
+
+    it('stepTrack이 diagnostic으로 설정된다', () => {
+      setupHubData()
+
+      act(() => {
+        bridgeDiagnosticToSmartFlow(mockReport, mockRecommendation)
+      })
+
+      expect(useModeStore.getState().stepTrack).toBe('diagnostic')
+      expect(useModeStore.getState().showHub).toBe(false)
+    })
+
+    it('assumptionResults가 설정된다 (setValidationResults null화 이후에도 복원)', () => {
+      setupHubData()
+
+      act(() => {
+        bridgeDiagnosticToSmartFlow(mockReport, mockRecommendation)
+      })
+
+      const { assumptionResults } = useAnalysisStore.getState()
+      expect(assumptionResults).not.toBeNull()
+      expect(assumptionResults?.normality?.shapiroWilk?.pValue).toBe(0.12) // min(0.45, 0.12)
+      expect(assumptionResults?.homogeneity?.levene?.equalVariance).toBe(true)
+    })
+
+    it('diagnosticReport가 저장된다', () => {
+      setupHubData()
+
+      act(() => {
+        bridgeDiagnosticToSmartFlow(mockReport, mockRecommendation)
+      })
+
+      expect(useAnalysisStore.getState().diagnosticReport).toBe(mockReport)
+    })
+
+    it('uploadedData가 resetSession 이후에도 복원된다', () => {
+      setupHubData()
+      expect(useAnalysisStore.getState().uploadedData).toHaveLength(1)
+
+      act(() => {
+        bridgeDiagnosticToSmartFlow(mockReport, mockRecommendation)
+      })
+
+      expect(useAnalysisStore.getState().uploadedData).toHaveLength(1)
+      expect(useAnalysisStore.getState().uploadedFileName).toBe('test.csv')
+    })
+
+    it('dataContext가 복원된다', () => {
+      setupHubData()
+
+      act(() => {
+        bridgeDiagnosticToSmartFlow(mockReport, mockRecommendation)
+      })
+
+      expect(useHubChatStore.getState().dataContext).not.toBeNull()
+      expect(useHubChatStore.getState().dataContext?.fileName).toBe('test.csv')
+    })
+
+    it('detectedVariables가 설정된다', () => {
+      setupHubData()
+
+      act(() => {
+        bridgeDiagnosticToSmartFlow(mockReport, mockRecommendation)
+      })
+
+      const { detectedVariables } = useAnalysisStore.getState()
+      expect(detectedVariables).not.toBeNull()
+    })
+
+    it('suggestedSettings 없는 recommendation은 null로 유지', () => {
+      setupHubData()
+      const noSettings: AIRecommendation = { ...mockRecommendation, suggestedSettings: undefined }
+
+      act(() => {
+        bridgeDiagnosticToSmartFlow(mockReport, noSettings)
+      })
+
+      expect(useAnalysisStore.getState().suggestedSettings).toBeNull()
     })
   })
 })
