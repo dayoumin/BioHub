@@ -69,12 +69,12 @@ export async function runDiagnosticPipeline(
   const { userMessage, data, validationResults, uploadNonce } = input
 
   // ── 1. 기초통계 추출 (동기) ──
-  onStatus?.('데이터 진단 중...')
+  onStatus?.('데이터 살펴보는 중...')
   const basicStats = extractBasicStats(validationResults)
 
   // ── 2. LLM 변수 탐지 + Pyodide pre-warm 병렬 ──
   // Pyodide 초기화(~2s cold)는 LLM 호출(~1-3s)과 독립이므로 동시 시작
-  onStatus?.('변수 역할 분석 중...')
+  onStatus?.('변수 역할 파악 중...')
   // fire-and-forget: Pyodide 초기화를 LLM 호출과 병렬로 시작 (cold start ~2s 절감)
   void ensurePyodideReady('DiagnosticPipeline pre-warm')
 
@@ -96,7 +96,7 @@ export async function runDiagnosticPipeline(
   }
 
   // ── 3. 가정 검정 (pre-warm된 Pyodide 사용) ──
-  onStatus?.('가정 검정 실행 중...')
+  onStatus?.('데이터 특성 확인 중...')
   const assumptions = await runDiagnosticAssumptions(
     detectionResult.variableAssignments!,
     data,
@@ -125,7 +125,7 @@ export async function resumeDiagnosticPipeline(
   validationResults: ValidationResults,
   onStatus?: DiagnosticStatusCallback,
 ): Promise<DiagnosticReport> {
-  onStatus?.('답변 분석 중...')
+  onStatus?.('선택하신 변수 확인 중...')
 
   // 사용자 답변에서 변수명 매칭
   const newAssignments = resolveVariableFromAnswer(
@@ -169,7 +169,7 @@ export async function resumeDiagnosticPipeline(
     }
   }
 
-  onStatus?.('가정 검정 실행 중...')
+  onStatus?.('데이터 특성 확인 중...')
   const assumptions = await runDiagnosticAssumptions(
     merged,
     data,

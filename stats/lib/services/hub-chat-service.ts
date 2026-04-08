@@ -171,7 +171,7 @@ export async function getHubDiagnosticResponse(
   }
 
   // ── LLM 2차 호출 ──
-  onStatus?.('추천 생성 중...')
+  onStatus?.('최적 분석 방법 찾는 중...')
   try {
     const { content, recommendation } = await callRecommenderWithDiagnosticContext(
       userMessage, chatHistory, dataContext, report, intent,
@@ -215,7 +215,7 @@ export async function getHubDiagnosticResumeResponse(
   }
 
   // 해결됨 → LLM 2차 호출
-  onStatus?.('추천 생성 중...')
+  onStatus?.('최적 분석 방법 찾는 중...')
   try {
     const { content, recommendation } = await callRecommenderWithDiagnosticContext(
       userAnswer, chatHistory, dataContext, report, intent,

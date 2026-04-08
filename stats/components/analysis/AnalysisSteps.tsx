@@ -192,7 +192,7 @@ export function AnalysisSteps({ isHubVisible, onBackToHub }: AnalysisStepsProps)
                 t={{
                   ...t.analysis.modeBanners.quickAnalysis,
                   badge: 'AI 진단 기반 분석',
-                  description: '진단 결과를 기반으로 분석을 준비합니다. 데이터를 확인한 후 변수 선택 단계로 진행합니다.',
+                  description: '진단 결과를 기반으로 분석을 준비합니다. 데이터를 확인한 후 하단의 다음 버튼을 눌러 변수 선택으로 이동하세요.',
                 }}
               />
             )}

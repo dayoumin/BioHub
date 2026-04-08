@@ -259,8 +259,8 @@ function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry, onDiag
           </div>
         )}
 
-        {/* 추천 카드 (인라인) */}
-        {recommendations && recommendations.length > 0 && (
+        {/* 추천 카드 — 진단 카드가 있으면 중복이므로 숨김 */}
+        {!diagnosticReport && recommendations && recommendations.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {recommendations.map((rec) => (
               <RecommendationCard
@@ -349,9 +349,9 @@ function DiagnosticReportCard({ report, onStart, onBrowse }: DiagnosticReportCar
         <div className="flex gap-2 pt-1">
           {onStart && (
             <Button
-              variant="ghost"
+              variant="default"
               size="sm"
-              className="h-7 px-2 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10"
+              className="h-8 px-3 text-xs gap-1.5"
               onClick={onStart}
             >
               분석 시작하기
@@ -360,9 +360,9 @@ function DiagnosticReportCard({ report, onStart, onBrowse }: DiagnosticReportCar
           )}
           {onBrowse && (
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="h-7 px-2 text-xs gap-1 text-muted-foreground"
+              className="h-8 px-3 text-xs gap-1.5"
               onClick={onBrowse}
             >
               <List className="w-3.5 h-3.5" />
