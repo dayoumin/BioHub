@@ -232,12 +232,12 @@ function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry, onDiag
           )}
         </div>
 
-        {/* 진단 리포트 카드 */}
+        {/* 진단 리포트 카드 — 추천이 있을 때만 액션 버튼 표시 (LLM 실패 시 버튼 숨김) */}
         {diagnosticReport && !diagnosticReport.pendingClarification && (
           <DiagnosticReportCard
             report={diagnosticReport}
-            onStart={onDiagnosticStart}
-            onBrowse={onAlternativeSearch}
+            onStart={recommendations?.length ? onDiagnosticStart : undefined}
+            onBrowse={recommendations?.length ? onAlternativeSearch : undefined}
           />
         )}
 
