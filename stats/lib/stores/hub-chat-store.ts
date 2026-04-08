@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import type { ValidationResults, MethodRecommendation, ResolvedIntent } from '@/types/analysis'
+import type { ValidationResults, MethodRecommendation, ResolvedIntent, DiagnosticReport } from '@/types/analysis'
 
 // ===== Types =====
 
@@ -18,6 +18,8 @@ export interface HubChatMessage {
   isError?: boolean
   /** 데이터 없을 때 업로드 유도 표시 여부 */
   suggestUpload?: boolean
+  /** Diagnostic Pipeline 리포트 (진단 카드 렌더링용) */
+  diagnosticReport?: DiagnosticReport
 }
 
 /** 허브에 로드된 데이터 컨텍스트 */
@@ -39,6 +41,8 @@ interface HubChatState {
   messages: HubChatMessage[]
   dataContext: HubDataContext | null
   isStreaming: boolean
+  /** Diagnostic Pipeline 단계별 진행 메시지 (null = 비활성) */
+  streamingStatus: string | null
   /** 업로드 유도를 이미 1회 표시했는지 */
   hasSeenUploadSuggestion: boolean
 
@@ -49,6 +53,7 @@ interface HubChatState {
   clearAll: () => void
   setDataContext: (ctx: HubDataContext | null) => void
   setStreaming: (v: boolean) => void
+  setStreamingStatus: (status: string | null) => void
   setHasSeenUploadSuggestion: (v: boolean) => void
 }
 
@@ -56,6 +61,7 @@ const initialState = {
   messages: [] as HubChatMessage[],
   dataContext: null as HubDataContext | null,
   isStreaming: false,
+  streamingStatus: null as string | null,
   hasSeenUploadSuggestion: false,
 }
 
@@ -83,6 +89,10 @@ export const useHubChatStore = create<HubChatState>()(
       setDataContext: (ctx) => set({ dataContext: ctx }),
 
       setStreaming: (v) => set({ isStreaming: v }),
+
+      setStreamingStatus: (status) => set((state) =>
+        state.streamingStatus === status ? state : { streamingStatus: status }
+      ),
 
       setHasSeenUploadSuggestion: (v) => set({ hasSeenUploadSuggestion: v }),
     }),

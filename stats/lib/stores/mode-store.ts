@@ -10,7 +10,7 @@ import type { AiRecommendationContext } from '@/lib/utils/storage-types'
  */
 
 /** Step 네비게이션 흐름 트랙 */
-export type StepTrack = 'normal' | 'quick' | 'reanalysis'
+export type StepTrack = 'normal' | 'quick' | 'reanalysis' | 'diagnostic'
 
 export interface ModeState {
   stepTrack: StepTrack

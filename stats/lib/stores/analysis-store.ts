@@ -11,6 +11,7 @@ import {
   AnalysisOptions,
   DEFAULT_ANALYSIS_OPTIONS,
   AIRecommendation,
+  DiagnosticReport,
 } from '@/types/analysis'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import { DataCharacteristics } from '@/lib/statistics/data-type-detector'
@@ -87,6 +88,9 @@ interface AnalysisState {
   // 사용자 분석 옵션 (Step 3 → Step 4)
   analysisOptions: AnalysisOptions
 
+  // Hub Diagnostic Pipeline 결과 (Step 4 AI 해석 참조 + 가정 검정 재사용)
+  diagnosticReport: DiagnosticReport | null
+
   // 분석 결과
   results: AnalysisResult | null
 
@@ -115,6 +119,7 @@ interface AnalysisState {
   setDetectedVariables: (vars: DetectedVariables | null) => void
   setSuggestedSettings: (settings: SuggestedSettings | null) => void
   setAnalysisOptions: (options: Partial<AnalysisOptions>) => void
+  setDiagnosticReport: (report: DiagnosticReport | null) => void
   setResults: (results: AnalysisResult | null) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
@@ -153,6 +158,7 @@ const initialState = {
   detectedVariables: null as DetectedVariables | null,
   suggestedSettings: null as SuggestedSettings | null,
   analysisOptions: { ...DEFAULT_ANALYSIS_OPTIONS },
+  diagnosticReport: null as DiagnosticReport | null,
   results: null as AnalysisResult | null,
   isLoading: false,
   error: null as string | null,
@@ -214,6 +220,7 @@ export const useAnalysisStore = create<AnalysisState>()(
       })),
       setDetectedVariables: (vars) => set({ detectedVariables: vars }),
       setSuggestedSettings: (settings) => set({ suggestedSettings: settings }),
+      setDiagnosticReport: (report) => set({ diagnosticReport: report }),
       setAnalysisOptions: (options) => set((state) => ({
         analysisOptions: { ...state.analysisOptions, ...options },
       })),

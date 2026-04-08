@@ -410,6 +410,84 @@ export interface StatisticalAssumptions {
   testedVariable?: string
 }
 
+// ─── Diagnostic Pipeline 타입 ───────────────────────────────────
+
+/**
+ * 진단 전용 가정 검정 결과 — 모든 그룹의 개별 결과를 보존.
+ *
+ * 기존 StatisticalAssumptions는 group1/group2만 표현하고 3+그룹에서 min(p)로 접지만,
+ * 진단 리포트는 "왜 이 방법인지" 투명하게 보여주는 것이 목표이므로
+ * 모든 그룹의 개별 Shapiro-Wilk 결과를 보존한다.
+ */
+export interface DiagnosticAssumptions {
+  normality: {
+    /** 개별 그룹 결과 (ANOVA 3개 이상 그룹 지원) */
+    groups: Array<{
+      groupName: string
+      statistic: number
+      pValue: number
+      passed: boolean
+    }>
+    /** 전체 판정: 모든 그룹이 정규 → true */
+    overallPassed: boolean
+    testMethod: 'shapiro-wilk' | 'kolmogorov-smirnov'
+  }
+  homogeneity: {
+    levene: {
+      statistic: number
+      pValue: number
+      equalVariance: boolean
+    }
+  } | null
+}
+
+/**
+ * Hub Diagnostic Pipeline 리포트.
+ *
+ * ChatCentricHub에서 데이터 + 분석 요청 시 자동 실행되어
+ * 기초통계/정규성/등분산 진단을 구조화하여 사용자에게 보여준다.
+ */
+export interface DiagnosticReport {
+  /** 업로드 nonce — 업로드마다 단조 증가. 새 데이터 감지용 */
+  uploadNonce: number
+  /** 기초통계 요약 */
+  basicStats: {
+    totalRows: number
+    groups?: Array<{ name: string; count: number }>
+    numericSummaries: Array<{
+      column: string
+      mean: number
+      std: number
+      min: number
+      max: number
+    }>
+    /** 컬럼 전체 분포의 정규성 (참고용, 분석 판단 근거 아님) */
+    columnNormality?: Array<{
+      column: string
+      pValue: number
+      passed: boolean
+    }>
+  }
+  /** 가정 검정 결과 — 변수 탐지 후 실행 (분석 판단 근거) */
+  assumptions: DiagnosticAssumptions | null
+  /** LLM이 탐지한 변수 역할 */
+  variableAssignments: AIRecommendation['variableAssignments'] | null
+  /** 사용자에게 물어야 할 질문 (변수 미탐지 시) */
+  pendingClarification: {
+    /** 사용자에게 표시할 질문 */
+    question: string
+    /** 어떤 역할이 비어 있는지 (variableAssignments 키와 동일) */
+    missingRoles: Array<'dependent' | 'independent' | 'factor' | 'covariate' | 'within' | 'between' | 'event' | 'time'>
+    /** 선택지로 제시할 컬럼 목록 */
+    candidateColumns: Array<{
+      column: string
+      type: 'numeric' | 'categorical'
+      uniqueValues?: number
+      sampleGroups?: string[]
+    }>
+  } | null
+}
+
 /**
  * 효과크기 정보
  */
