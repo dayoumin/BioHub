@@ -245,3 +245,44 @@ export function getSystemPromptIntentRouter(): string {
 
 ${getMethodListBlock()}`
 }
+
+// ============================================
+// 5. 변수 탐지기 (Variable Detector) — Diagnostic Pipeline 1차 호출
+// ============================================
+
+/**
+ * 변수 탐지 프롬프트: 데이터 요약 + 사용자 의도에서 변수 역할을 추출.
+ * Diagnostic Pipeline의 경량 1차 LLM 호출에 사용.
+ */
+export function getSystemPromptVariableDetector(): string {
+    return `당신은 데이터 변수 탐지기입니다.
+사용자의 분석 의도와 데이터 요약을 보고, 종속변수/독립변수/그룹변수 역할을 판단하세요.
+
+## 규칙
+- 데이터 요약에 나열된 실제 컬럼명만 사용하세요.
+- 존재하지 않는 컬럼명을 만들지 마세요.
+- 의도가 모호하면 variableAssignments를 null로 하세요.
+
+## 응답 형식
+반드시 아래 JSON만 출력하세요 (설명 텍스트 없이):
+
+\`\`\`json
+{
+  "variableAssignments": {
+    "dependent": ["컬럼명"],
+    "independent": ["컬럼명"],
+    "factor": ["컬럼명"],
+    "covariate": ["컬럼명"]
+  },
+  "clarificationNeeded": null
+}
+\`\`\`
+
+의도가 모호하면:
+\`\`\`json
+{
+  "variableAssignments": null,
+  "clarificationNeeded": "사용자에게 물을 질문 (한국어)"
+}
+\`\`\``
+}

@@ -1,0 +1,558 @@
+/**
+ * Diagnostic Pipeline — Hub 채팅 진단 오케스트레이터
+ *
+ * 데이터 + 분석 요청 시 기초통계/변수탐지/가정검정을 순차 실행하여
+ * DiagnosticReport를 구성한다.
+ *
+ * 단계:
+ *   1. 기초통계 추출 (validationResults 가공)
+ *   2. LLM 변수 탐지 (경량 1차 호출)
+ *   3. 가정 검정 (Worker 3 or Worker 1 — 모든 그룹 보존)
+ *   4. DiagnosticReport 조합
+ *
+ * 기존 runAssumptionTests()를 수정하지 않고,
+ * Worker 결과를 DiagnosticAssumptions로 직접 매핑하여 3+그룹을 보존.
+ */
+
+import type {
+  AIRecommendation,
+  DataRow,
+  ValidationResults,
+  ColumnStatistics,
+  DiagnosticAssumptions,
+  DiagnosticReport,
+  StatisticalAssumptions,
+} from '@/types/analysis'
+import type { HubChatMessage } from '@/lib/stores/hub-chat-store'
+import type { WorkerNumber } from '@/lib/constants/methods-registry.types'
+import type { WorkerMethodParam } from '@/lib/services/pyodide/core/pyodide-core.service'
+import { openRouterRecommender } from './recommenders/openrouter-recommender'
+import { getSystemPromptVariableDetector } from './ai/prompts'
+import { buildDataContextMarkdown } from './ai/data-context-builder'
+import { extractGroupedNumericData } from '@/lib/utils/grouped-data'
+import { raceWithTimeout } from '@/lib/utils/promise-utils'
+import { logger } from '@/lib/utils/logger'
+
+// ===== Worker 응답 타입 (assumption-testing-service와 동일) =====
+
+interface TestAssumptionsWorkerResult {
+  normality: {
+    shapiroWilk: Array<{
+      group: number
+      statistic: number | null
+      pValue: number | null
+      passed: boolean | null
+      warning?: string
+    }>
+    passed: boolean
+    interpretation: string
+  }
+  homogeneity: {
+    levene: { statistic: number; pValue: number }
+    passed: boolean
+    interpretation: string
+  }
+}
+
+interface NormalityWorkerResult {
+  statistic: number
+  pValue: number
+  isNormal: boolean
+}
+
+// ===== Types =====
+
+export interface DiagnosticPipelineInput {
+  userMessage: string
+  data: readonly DataRow[]
+  validationResults: ValidationResults
+  chatHistory: HubChatMessage[]
+  /** analysis-store의 uploadNonce (데이터 버전 식별) */
+  uploadNonce: number
+}
+
+/** 상태 콜백: Pipeline 진행 단계를 UI에 알림 */
+export type DiagnosticStatusCallback = (status: string) => void
+
+// ===== Constants =====
+
+const MIN_GROUP_SIZE = 3
+const WORKER_TIMEOUT_MS = 10_000
+
+// ===== Main Functions =====
+
+/**
+ * 전체 Diagnostic Pipeline 실행.
+ *
+ * @param input - 사용자 메시지 + 데이터 + 검증 결과
+ * @param onStatus - 진행 상태 콜백 (UI 표시용)
+ * @returns DiagnosticReport
+ */
+export async function runDiagnosticPipeline(
+  input: DiagnosticPipelineInput,
+  onStatus?: DiagnosticStatusCallback,
+): Promise<DiagnosticReport> {
+  const { userMessage, data, validationResults, chatHistory, uploadNonce } = input
+
+  // ── 1. 기초통계 추출 (동기) ──
+  onStatus?.('데이터 진단 중...')
+  const basicStats = extractBasicStats(validationResults)
+
+  // ── 2. LLM 변수 탐지 + Pyodide pre-warm 병렬 ──
+  // Pyodide 초기화(~2s cold)는 LLM 호출(~1-3s)과 독립이므로 동시 시작
+  onStatus?.('변수 역할 분석 중...')
+  const pyodidePrewarm = import('@/lib/services/pyodide/core/pyodide-core.service')
+    .then(m => { const p = m.PyodideCoreService.getInstance(); if (!p.isInitialized()) return p.initialize().then(() => p); return p })
+    .catch(() => null)
+
+  const detectionResult = await detectVariables(userMessage, validationResults)
+
+  if (!detectionResult.variableAssignments) {
+    return {
+      uploadNonce,
+      basicStats,
+      assumptions: null,
+      variableAssignments: null,
+      pendingClarification: buildPendingClarification(
+        detectionResult.clarificationNeeded ?? '어떤 변수를 비교 기준으로 사용할까요?',
+        detectionResult.variableAssignments,
+        validationResults,
+      ),
+    }
+  }
+
+  // ── 3. 가정 검정 (pre-warm된 Pyodide 사용) ──
+  onStatus?.('가정 검정 실행 중...')
+  const assumptions = await runDiagnosticAssumptions(
+    detectionResult.variableAssignments,
+    data,
+    validationResults,
+  )
+
+  // ── 4. DiagnosticReport 조합 ──
+  return {
+    uploadNonce,
+    basicStats,
+    assumptions,
+    variableAssignments: detectionResult.variableAssignments,
+    pendingClarification: null,
+  }
+}
+
+/**
+ * pendingClarification에 대한 사용자 답변으로 파이프라인 재개.
+ *
+ * 기존 report의 basicStats를 재사용하고, 변수 탐지 + 가정 검정만 재실행.
+ */
+export async function resumeDiagnosticPipeline(
+  previousReport: DiagnosticReport,
+  userAnswer: string,
+  data: readonly DataRow[],
+  validationResults: ValidationResults,
+  onStatus?: DiagnosticStatusCallback,
+): Promise<DiagnosticReport> {
+  onStatus?.('답변 분석 중...')
+
+  // 사용자 답변에서 변수명 매칭
+  const variableAssignments = resolveVariableFromAnswer(
+    userAnswer,
+    previousReport.pendingClarification,
+  )
+
+  if (!variableAssignments) {
+    // 매칭 실패 → 다시 질문
+    return {
+      ...previousReport,
+      pendingClarification: buildPendingClarification(
+        '죄송합니다. 변수명을 정확히 파악하지 못했어요. 아래 목록에서 선택해 주세요.',
+        null,
+        validationResults,
+      ),
+    }
+  }
+
+  onStatus?.('가정 검정 실행 중...')
+  const assumptions = await runDiagnosticAssumptions(
+    variableAssignments,
+    data,
+    validationResults,
+  )
+
+  return {
+    ...previousReport,
+    assumptions,
+    variableAssignments,
+    pendingClarification: null,
+  }
+}
+
+// ===== DiagnosticAssumptions → StatisticalAssumptions 변환 =====
+
+/**
+ * DiagnosticAssumptions → StatisticalAssumptions 변환.
+ *
+ * Step 4 실행에서 기존 타입이 필요할 때 사용.
+ * 3+그룹은 첫 2그룹만 group1/group2에 매핑하고, 전체 passed는 min(p)로 판정.
+ */
+export function toStatisticalAssumptions(da: DiagnosticAssumptions): StatisticalAssumptions {
+  const groups = da.normality.groups
+  const pValues = groups.map(g => g.pValue)
+  const minPValue = pValues.length > 0 ? Math.min(...pValues) : undefined
+
+  const result: StatisticalAssumptions = {
+    normality: {
+      shapiroWilk: {
+        statistic: groups[0]?.statistic,
+        pValue: minPValue,
+        isNormal: da.normality.overallPassed,
+      },
+      ...(groups[0] && {
+        group1: {
+          statistic: groups[0].statistic,
+          pValue: groups[0].pValue,
+          isNormal: groups[0].passed,
+          interpretation: groups[0].groupName,
+        },
+      }),
+      ...(groups[1] && {
+        group2: {
+          statistic: groups[1].statistic,
+          pValue: groups[1].pValue,
+          isNormal: groups[1].passed,
+          interpretation: groups[1].groupName,
+        },
+      }),
+    },
+    homogeneity: da.homogeneity
+      ? {
+          levene: {
+            statistic: da.homogeneity.levene.statistic,
+            pValue: da.homogeneity.levene.pValue,
+            equalVariance: da.homogeneity.levene.equalVariance,
+          },
+        }
+      : undefined,
+  }
+
+  return result
+}
+
+// ===== Internal: 기초통계 추출 =====
+
+function extractBasicStats(vr: ValidationResults): DiagnosticReport['basicStats'] {
+  const columns = vr.columns ?? []
+
+  const numericSummaries = columns
+    .filter((c): c is ColumnStatistics & { type: 'numeric' } => c.type === 'numeric')
+    .map(c => ({
+      column: c.name,
+      mean: c.mean ?? 0,
+      std: c.std ?? 0,
+      min: c.min ?? 0,
+      max: c.max ?? 0,
+    }))
+
+  // 그룹 정보: 범주형 변수 중 고유값이 2~30인 것 (그룹 변수 후보)
+  const categoricalCols = columns.filter(c => c.type === 'categorical')
+  const groupCandidates = categoricalCols
+    .filter(c => c.uniqueValues != null && c.uniqueValues >= 2 && c.uniqueValues <= 30)
+  const groups = groupCandidates.length > 0
+    ? groupCandidates[0].topCategories?.map(tc => ({ name: String(tc.value), count: tc.count }))
+    : undefined
+
+  // 컬럼별 정규성 (enrichment 완료된 경우)
+  const columnNormality = columns
+    .filter(c => c.normality != null)
+    .map(c => ({
+      column: c.name,
+      pValue: c.normality!.pValue,
+      passed: c.normality!.isNormal,
+    }))
+
+  return {
+    totalRows: vr.totalRows ?? 0,
+    groups,
+    numericSummaries,
+    ...(columnNormality.length > 0 && { columnNormality }),
+  }
+}
+
+// ===== Internal: LLM 변수 탐지 =====
+
+interface VariableDetectionResult {
+  variableAssignments: AIRecommendation['variableAssignments'] | null
+  clarificationNeeded: string | null
+}
+
+async function detectVariables(
+  userMessage: string,
+  validationResults: ValidationResults,
+): Promise<VariableDetectionResult> {
+  const systemPrompt = getSystemPromptVariableDetector()
+  const dataContext = buildDataContextMarkdown(validationResults)
+  const userPrompt = `${dataContext}\n\n## 사용자 요청\n${userMessage}`
+
+  try {
+    const rawResponse = await openRouterRecommender.generateRawText(
+      systemPrompt,
+      userPrompt,
+      { temperature: 0.1, maxTokens: 500 },
+    )
+
+    if (!rawResponse) {
+      return { variableAssignments: null, clarificationNeeded: '변수 역할을 자동으로 탐지하지 못했습니다.' }
+    }
+
+    return parseVariableDetectionResponse(rawResponse, validationResults)
+  } catch (error) {
+    logger.error('[DiagnosticPipeline] Variable detection failed', { error })
+    return { variableAssignments: null, clarificationNeeded: 'AI 변수 탐지 중 오류가 발생했습니다. 아래에서 직접 선택해 주세요.' }
+  }
+}
+
+function parseVariableDetectionResponse(
+  raw: string,
+  validationResults: ValidationResults,
+): VariableDetectionResult {
+  // JSON 블록 추출
+  const jsonMatch = raw.match(/```json\s*([\s\S]*?)```/) ?? raw.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) {
+    return { variableAssignments: null, clarificationNeeded: null }
+  }
+
+  try {
+    const jsonStr = jsonMatch[1] ?? jsonMatch[0]
+    const parsed = JSON.parse(jsonStr) as {
+      variableAssignments?: AIRecommendation['variableAssignments']
+      clarificationNeeded?: string | null
+    }
+
+    if (parsed.clarificationNeeded) {
+      return { variableAssignments: null, clarificationNeeded: parsed.clarificationNeeded }
+    }
+
+    if (!parsed.variableAssignments) {
+      return { variableAssignments: null, clarificationNeeded: null }
+    }
+
+    // 컬럼명 존재 여부 검증 (hallucination 방지)
+    const columnNames = new Set((validationResults.columns ?? []).map(c => c.name))
+    const va = parsed.variableAssignments
+    const validated: AIRecommendation['variableAssignments'] = {}
+
+    for (const [role, cols] of Object.entries(va)) {
+      if (!Array.isArray(cols)) continue
+      const validCols = cols.filter(c => columnNames.has(c))
+      if (validCols.length > 0) {
+        (validated as Record<string, string[]>)[role] = validCols
+      }
+    }
+
+    const hasAnyRole = Object.values(validated).some(v => Array.isArray(v) && v.length > 0)
+    return {
+      variableAssignments: hasAnyRole ? validated : null,
+      clarificationNeeded: hasAnyRole ? null : '데이터에서 해당 변수를 찾지 못했습니다.',
+    }
+  } catch {
+    return { variableAssignments: null, clarificationNeeded: null }
+  }
+}
+
+// ===== Internal: pendingClarification 구성 =====
+
+/** 기본 필수 역할: LLM이 아무것도 감지하지 못했을 때 사용 */
+const DEFAULT_REQUIRED_ROLES = ['dependent', 'factor'] as const
+type VariableRole = DiagnosticReport['pendingClarification'] extends { missingRoles: Array<infer R> } | null ? R : string
+
+function buildPendingClarification(
+  question: string,
+  partialAssignments: AIRecommendation['variableAssignments'] | null,
+  validationResults: ValidationResults,
+): DiagnosticReport['pendingClarification'] {
+  const columns = validationResults.columns ?? []
+
+  // 이미 감지된 역할을 제외하고 누락된 역할만 계산
+  const detectedRoles = new Set(
+    Object.entries(partialAssignments ?? {})
+      .filter(([, cols]) => Array.isArray(cols) && cols.length > 0)
+      .map(([role]) => role)
+  )
+  const missingRoles = (DEFAULT_REQUIRED_ROLES.filter(r => !detectedRoles.has(r)) as VariableRole[])
+
+  const candidateColumns = columns
+    .filter(c => !c.idDetection?.isId)
+    .slice(0, 15)
+    .map(c => ({
+      column: c.name,
+      type: (c.type === 'numeric' ? 'numeric' : 'categorical') as 'numeric' | 'categorical',
+      uniqueValues: c.uniqueValues,
+      ...(c.type === 'categorical' && c.topCategories && {
+        sampleGroups: c.topCategories.slice(0, 5).map(tc => String(tc.value)),
+      }),
+    }))
+
+  return {
+    question,
+    missingRoles: missingRoles.length > 0 ? missingRoles : [...DEFAULT_REQUIRED_ROLES] as VariableRole[],
+    candidateColumns,
+  }
+}
+
+// ===== Internal: resume 시 변수명 매칭 =====
+
+function resolveVariableFromAnswer(
+  userAnswer: string,
+  pending: DiagnosticReport['pendingClarification'],
+): AIRecommendation['variableAssignments'] | null {
+  if (!pending) return null
+
+  const answer = userAnswer.trim()
+  const candidates = pending.candidateColumns
+
+  // 정확 매칭: 컬럼명 전체가 답변에 포함 (단어 경계 기반, substring 오매칭 방지)
+  const matched = candidates.filter(c => {
+    // 정확한 컬럼명 매칭 — "age" 가 "page"와 매칭되지 않도록
+    const escaped = c.column.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const pattern = new RegExp(`(?:^|[\\s,."'()\\[\\]])${escaped}(?:$|[\\s,."'()\\[\\]])`, 'i')
+    return pattern.test(answer) || answer === c.column
+  })
+
+  if (matched.length === 0) return null
+
+  // 매칭된 컬럼들의 타입에 따라 역할 분배
+  const result: AIRecommendation['variableAssignments'] = {}
+  for (const col of matched) {
+    if (col.type === 'categorical') {
+      if (!result.factor) result.factor = []
+      result.factor.push(col.column)
+    } else {
+      if (!result.dependent) result.dependent = []
+      result.dependent.push(col.column)
+    }
+  }
+  return result
+}
+
+// ===== Internal: 가정 검정 (Worker 직접 매핑) =====
+
+async function runDiagnosticAssumptions(
+  variableAssignments: AIRecommendation['variableAssignments'],
+  data: readonly DataRow[],
+  validationResults: ValidationResults,
+): Promise<DiagnosticAssumptions | null> {
+  if (!variableAssignments || data.length < MIN_GROUP_SIZE) return null
+
+  try {
+    const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
+    const pyodide = PyodideCoreService.getInstance()
+
+    if (!pyodide.isInitialized()) {
+      try {
+        await pyodide.initialize()
+      } catch {
+        logger.warn('[DiagnosticPipeline] Pyodide initialization failed, skipping assumptions')
+        return null
+      }
+    }
+
+    // 그룹 변수 결정: factor > independent > between (assumption-testing-service와 동일)
+    const groupVarName = variableAssignments.factor?.[0]
+      ?? variableAssignments.independent?.[0]
+      ?? variableAssignments.between?.[0]
+
+    const dependentVarName = variableAssignments.dependent?.[0]
+    if (!dependentVarName) return null
+
+    const depColumn = validationResults.columns?.find(c => c.name === dependentVarName)
+    if (!depColumn || depColumn.type !== 'numeric') return null
+
+    if (groupVarName) {
+      return await runGroupedDiagnostic(pyodide, data, dependentVarName, groupVarName)
+    }
+    return await runSingleDiagnostic(pyodide, data, dependentVarName)
+  } catch (error) {
+    logger.error('[DiagnosticPipeline] Assumption testing failed', { error })
+    return null
+  }
+}
+
+async function runGroupedDiagnostic(
+  pyodide: { callWorkerMethod: <T>(worker: WorkerNumber, method: string, params: Record<string, WorkerMethodParam>) => Promise<T> },
+  data: readonly DataRow[],
+  dependentVar: string,
+  groupVar: string,
+): Promise<DiagnosticAssumptions | null> {
+  const groupMap = extractGroupedNumericData(data, dependentVar, groupVar)
+  const entries = [...groupMap.entries()]
+  const validEntries = entries.filter(([, values]) => values.length >= MIN_GROUP_SIZE)
+
+  if (validEntries.length < 2) return null
+
+  const validGroups = validEntries.map(([, values]) => values)
+  const validKeys = validEntries.map(([key]) => key)
+
+  const result = await raceWithTimeout(
+    pyodide.callWorkerMethod<TestAssumptionsWorkerResult>(3, 'test_assumptions', { groups: validGroups }),
+    WORKER_TIMEOUT_MS,
+    'Diagnostic assumption test timeout',
+  )
+
+  // Worker 결과를 DiagnosticAssumptions로 직접 매핑 — 모든 그룹 보존
+  const groups = result.normality.shapiroWilk.map((sw, i) => ({
+    groupName: validKeys[i] ?? `Group ${i + 1}`,
+    statistic: sw.statistic ?? 0,
+    pValue: sw.pValue ?? 1,
+    passed: sw.passed ?? false,
+  }))
+
+  return {
+    normality: {
+      groups,
+      overallPassed: result.normality.passed,
+      testMethod: 'shapiro-wilk',
+    },
+    homogeneity: {
+      levene: {
+        statistic: result.homogeneity.levene.statistic,
+        pValue: result.homogeneity.levene.pValue,
+        equalVariance: result.homogeneity.passed,
+      },
+    },
+  }
+}
+
+async function runSingleDiagnostic(
+  pyodide: { callWorkerMethod: <T>(worker: WorkerNumber, method: string, params: Record<string, WorkerMethodParam>) => Promise<T> },
+  data: readonly DataRow[],
+  dependentVar: string,
+): Promise<DiagnosticAssumptions | null> {
+  const values: number[] = []
+  for (const row of data) {
+    const val = row[dependentVar]
+    if (val === null || val === undefined || val === '') continue
+    const num = typeof val === 'number' ? val : Number(val)
+    if (!Number.isNaN(num) && Number.isFinite(num)) values.push(num)
+  }
+
+  if (values.length < MIN_GROUP_SIZE) return null
+
+  const result = await raceWithTimeout(
+    pyodide.callWorkerMethod<NormalityWorkerResult>(1, 'normality_test', { data: values, alpha: 0.05 }),
+    WORKER_TIMEOUT_MS,
+    'Diagnostic normality test timeout',
+  )
+
+  return {
+    normality: {
+      groups: [{
+        groupName: '전체',
+        statistic: result.statistic,
+        pValue: result.pValue,
+        passed: result.isNormal,
+      }],
+      overallPassed: result.isNormal,
+      testMethod: 'shapiro-wilk',
+    },
+    homogeneity: null,
+  }
+}

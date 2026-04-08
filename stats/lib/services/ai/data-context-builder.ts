@@ -13,6 +13,7 @@ import type {
   ValidationResults,
   ColumnStatistics,
   StatisticalAssumptions,
+  DiagnosticReport,
   AnalysisTrack,
 } from '@/types/analysis'
 
@@ -98,6 +99,65 @@ export function buildAssumptionContextMarkdown(assumptionResults: StatisticalAss
   if (parts.length === 0) return '## 통계적 가정 검정\n(가정 검정 결과 없음)'
 
   return `## 통계적 가정 검정 결과\n${parts.join('\n')}`
+}
+
+/**
+ * DiagnosticReport → LLM 2차 호출용 마크다운.
+ *
+ * LLM이 진단 결과를 인용하여 추천 근거를 설명할 수 있도록
+ * 기초통계 + 가정 검정 결과를 구조화된 마크다운으로 변환.
+ */
+export function buildDiagnosticReportMarkdown(report: DiagnosticReport): string {
+  const parts: string[] = ['## 데이터 진단 리포트']
+
+  // 기초통계
+  const bs = report.basicStats
+  parts.push(`\n### 기초통계\n- 표본 크기: ${bs.totalRows}행`)
+
+  if (bs.groups?.length) {
+    parts.push(`- 그룹: ${bs.groups.map(g => `${g.name}(n=${g.count})`).join(', ')}`)
+  }
+
+  if (bs.numericSummaries.length > 0) {
+    parts.push('\n### 수치형 변수 요약')
+    for (const s of bs.numericSummaries.slice(0, 10)) {
+      parts.push(`- ${s.column}: M=${s.mean.toFixed(2)}, SD=${s.std.toFixed(2)}, 범위 ${s.min.toFixed(2)}~${s.max.toFixed(2)}`)
+    }
+  }
+
+  // 가정 검정
+  if (report.assumptions) {
+    const a = report.assumptions
+    parts.push('\n### 가정 검정 결과')
+
+    // 정규성 — 모든 그룹 표시
+    parts.push(`\n**정규성 (${a.normality.testMethod})**: ${a.normality.overallPassed ? '충족' : '미충족'}`)
+    for (const g of a.normality.groups) {
+      parts.push(`  - ${g.groupName}: p=${g.pValue.toFixed(4)} → ${g.passed ? '정규' : '비정규'}`)
+    }
+
+    // 등분산
+    if (a.homogeneity) {
+      const lev = a.homogeneity.levene
+      parts.push(`\n**등분산성 (Levene)**: ${lev.equalVariance ? '충족' : '미충족'} (p=${lev.pValue.toFixed(4)})`)
+    }
+  }
+
+  // 변수 배정
+  if (report.variableAssignments) {
+    parts.push('\n### 탐지된 변수 역할')
+    const va = report.variableAssignments
+    if (va.dependent?.length) parts.push(`- 종속변수: ${va.dependent.join(', ')}`)
+    if (va.factor?.length) parts.push(`- 그룹변수: ${va.factor.join(', ')}`)
+    if (va.independent?.length) parts.push(`- 독립변수: ${va.independent.join(', ')}`)
+    if (va.covariate?.length) parts.push(`- 공변량: ${va.covariate.join(', ')}`)
+    if (va.within?.length) parts.push(`- 피험자내 변수: ${va.within.join(', ')}`)
+    if (va.between?.length) parts.push(`- 피험자간 변수: ${va.between.join(', ')}`)
+    if (va.event?.length) parts.push(`- 사건 변수: ${va.event.join(', ')}`)
+    if (va.time?.length) parts.push(`- 시간 변수: ${va.time.join(', ')}`)
+  }
+
+  return parts.join('\n')
 }
 
 // ===== 내부 헬퍼 =====
