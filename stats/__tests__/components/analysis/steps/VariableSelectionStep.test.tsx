@@ -140,10 +140,7 @@ describe('VariableSelectionStep', () => {
   describe('SELECTOR_MAP 커버리지', () => {
 
     const autoMethodIds = [
-      'repeated-measures-anova', 'manova', 'mixed-model',
-      'arima', 'seasonal-decompose', 'stationarity-test',
-      'kaplan-meier', 'cox-regression', 'roc-curve',
-      'discriminant', 'power-analysis', 'friedman',
+      'power-analysis',
     ]
 
     const chiSquareMethodIds = [
@@ -160,9 +157,14 @@ describe('VariableSelectionStep', () => {
       'ordinal-regression', 'stepwise', 'dose-response', 'response-surface',
       'descriptive', 'normality-test', 'explore-data', 'means-plot',
       'mann-kendall', 'pca', 'factor-analysis', 'cluster', 'reliability',
+      // TD-2: auto → 전용 SelectorType 이전
+      'repeated-measures-anova', 'manova', 'mixed-model',
+      'arima', 'seasonal-decompose', 'stationarity-test',
+      'kaplan-meier', 'cox-regression', 'roc-curve',
+      'discriminant', 'friedman',
     ]
 
-    it('auto 메서드 12개 → AutoConfirmSelector 렌더', () => {
+    it('auto 메서드 1개 → AutoConfirmSelector 렌더', () => {
       for (const id of autoMethodIds) {
         storeState = {
           ...defaultStoreState,
@@ -260,17 +262,29 @@ describe('VariableSelectionStep', () => {
   // =========================================================================
   describe('auto-confirm 메서드', () => {
 
-    it('kaplan-meier → AutoConfirmSelector 렌더', () => {
-      renderWithMethod('kaplan-meier')
+    it('power-analysis → AutoConfirmSelector 렌더', () => {
+      renderWithMethod('power-analysis')
       expect(screen.getByTestId('auto-confirm-selector')).toBeDefined()
     })
 
     it('AutoConfirmSelector에서 분석 시작 클릭 시 goToNextStep 호출', () => {
-      renderWithMethod('arima')
+      renderWithMethod('power-analysis')
       fireEvent.click(screen.getByTestId('run-analysis-btn'))
       // existingMapping=null → updateVariableMappingWithInvalidation 호출
       expect(mockUpdateVariableMappingWithInvalidation).toHaveBeenCalled()
       expect(mockGoToNextStep).toHaveBeenCalled()
+    })
+
+    it('kaplan-meier → UnifiedVariableSelector 렌더 (TD-2 이전)', () => {
+      renderWithMethod('kaplan-meier')
+      expect(screen.getByTestId('unified-variable-selector')).toBeDefined()
+      expect(capturedSelectorType).toBe('survival')
+    })
+
+    it('arima → UnifiedVariableSelector 렌더 (TD-2 이전)', () => {
+      renderWithMethod('arima')
+      expect(screen.getByTestId('unified-variable-selector')).toBeDefined()
+      expect(capturedSelectorType).toBe('time-series')
     })
   })
 

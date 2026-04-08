@@ -199,6 +199,73 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         result.dependentVar = detectedVariables.dependentCandidate
         break
 
+      case 'repeated-measures':
+        if (detectedVariables.numericVars?.length) {
+          result.variables = detectedVariables.numericVars
+        }
+        if (detectedVariables.groupVariable) {
+          result.groupVar = detectedVariables.groupVariable
+        }
+        break
+
+      case 'manova':
+        if (detectedVariables.numericVars?.length) {
+          result.variables = detectedVariables.numericVars
+        }
+        if (detectedVariables.groupVariable) {
+          result.groupVar = detectedVariables.groupVariable
+        }
+        break
+
+      case 'survival':
+        result.timeVar = detectedVariables.dependentCandidate
+        if (detectedVariables.eventVariable) {
+          result.event = detectedVariables.eventVariable
+        }
+        if (detectedVariables.groupVariable) {
+          result.groupVar = detectedVariables.groupVariable
+        }
+        if (detectedVariables.independentVars?.length) {
+          result.independentVar = detectedVariables.independentVars.join(',')
+        }
+        break
+
+      case 'time-series':
+        result.dependentVar = detectedVariables.dependentCandidate
+        // Time might be detected as an independent categorical/date variable
+        if (detectedVariables.independentVars?.length) {
+          result.timeVar = detectedVariables.independentVars[0]
+        }
+        break
+
+      case 'mixed-model':
+        result.dependentVar = detectedVariables.dependentCandidate
+        if (detectedVariables.factors?.length) {
+          result.groupVar = detectedVariables.factors.join(',')
+        } else if (detectedVariables.groupVariable) {
+          result.groupVar = detectedVariables.groupVariable
+        }
+        break
+
+      case 'discriminant':
+        result.dependentVar = detectedVariables.groupVariable || detectedVariables.dependentCandidate
+        if (detectedVariables.independentVars?.length) {
+          result.independentVar = detectedVariables.independentVars.join(',')
+        } else if (detectedVariables.numericVars?.length) {
+          const target = result.dependentVar
+          const predictors = detectedVariables.numericVars.filter(v => v !== target)
+          if (predictors.length) {
+            result.independentVar = predictors.join(',')
+          }
+        }
+        break
+
+      case 'roc-curve':
+        // state(실제 클래스) → dependentVar, test(예측 점수) → independentVar
+        result.dependentVar = detectedVariables.eventVariable || detectedVariables.groupVariable
+        result.independentVar = detectedVariables.dependentCandidate
+        break
+
       case 'auto':
         result.dependentVar = detectedVariables.dependentCandidate
         if (detectedVariables.independentVars?.length) {

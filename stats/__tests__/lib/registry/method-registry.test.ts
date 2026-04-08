@@ -33,11 +33,17 @@ describe('Method Registry', () => {
       ['logistic-regression', 'multiple-regression'],
       ['chi-square', 'chi-square'],
       ['chi-square-independence', 'chi-square'],
-      ['friedman', 'auto'],
-      ['repeated-measures-anova', 'auto'],
-      ['arima', 'auto'],
-      ['kaplan-meier', 'auto'],
+      ['friedman', 'repeated-measures'],
+      ['repeated-measures-anova', 'repeated-measures'],
+      ['arima', 'time-series'],
+      ['kaplan-meier', 'survival'],
       ['power-analysis', 'auto'],
+      ['manova', 'manova'],
+      ['mixed-model', 'mixed-model'],
+      ['cox-regression', 'survival'],
+      ['discriminant', 'discriminant'],
+      ['seasonal-decompose', 'time-series'],
+      ['stationarity-test', 'time-series'],
     ]
 
     it.each(primaryMappings)('maps %s to %s', (methodId, expectedType) => {
@@ -49,7 +55,7 @@ describe('Method Registry', () => {
       ['anova', 'group-comparison'],
       ['regression', 'multiple-regression'],
       ['cluster', 'correlation'],
-      ['roc-curve', 'auto'],
+      ['roc-curve', 'roc-curve'],
     ]
 
     it.each(legacyMappings)('maps legacy id %s to %s', (methodId, expectedType) => {

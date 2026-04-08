@@ -23,6 +23,9 @@ describe('getSlotConfigs', () => {
   const allTypes: SelectorType[] = [
     'group-comparison', 'correlation', 'multiple-regression',
     'paired', 'one-sample', 'chi-square', 'two-way-anova', 'default',
+    // TD-2: auto → 전용 SelectorType 이전
+    'repeated-measures', 'manova', 'survival',
+    'time-series', 'mixed-model', 'discriminant', 'roc-curve',
   ]
 
   it('모든 SelectorType에 대해 비어있지 않은 슬롯 배열 반환', () => {
@@ -91,6 +94,113 @@ describe('getSlotConfigs', () => {
     expect(factor?.maxCount).toBe(2)
   })
 
+  // ─── TD-2: 신규 7개 SelectorType 슬롯 검증 ───────────────────────────
+
+  it('repeated-measures: variables(연속, min2) + group?(범주)', () => {
+    const slots = getSlotConfigs('repeated-measures')
+    expect(slots).toHaveLength(2)
+    const vars = slots.find(s => s.id === 'variables')
+    expect(vars?.required).toBe(true)
+    expect(vars?.accepts).toEqual(['numeric'])
+    expect(vars?.multiple).toBe(true)
+    expect(vars?.minCount).toBe(2)
+    expect(vars?.mappingKey).toBe('variables')
+    const group = slots.find(s => s.id === 'group')
+    expect(group?.required).toBe(false)
+    expect(group?.accepts).toEqual(['categorical'])
+    expect(group?.mappingKey).toBe('groupVar')
+  })
+
+  it('manova: variables(연속, min2) + factor(범주)', () => {
+    const slots = getSlotConfigs('manova')
+    expect(slots).toHaveLength(2)
+    const vars = slots.find(s => s.id === 'variables')
+    expect(vars?.required).toBe(true)
+    expect(vars?.minCount).toBe(2)
+    expect(vars?.mappingKey).toBe('variables')
+    const factor = slots.find(s => s.id === 'factor')
+    expect(factor?.required).toBe(true)
+    expect(factor?.accepts).toEqual(['categorical'])
+    expect(factor?.mappingKey).toBe('groupVar')
+  })
+
+  it('survival: time(연속) + event(혼합) + factor?(범주) + covariate?(혼합, comma)', () => {
+    const slots = getSlotConfigs('survival')
+    expect(slots).toHaveLength(4)
+    const time = slots.find(s => s.id === 'time')
+    expect(time?.required).toBe(true)
+    expect(time?.accepts).toEqual(['numeric'])
+    expect(time?.mappingKey).toBe('timeVar')
+    const event = slots.find(s => s.id === 'event')
+    expect(event?.required).toBe(true)
+    expect(event?.accepts).toEqual(['categorical', 'numeric'])
+    expect(event?.mappingKey).toBe('event')
+    const factor = slots.find(s => s.id === 'factor')
+    expect(factor?.required).toBe(false)
+    expect(factor?.mappingKey).toBe('groupVar')
+    const cov = slots.find(s => s.id === 'covariate')
+    expect(cov?.required).toBe(false)
+    expect(cov?.multiple).toBe(true)
+    expect(cov?.multipleFormat).toBe('comma')
+    expect(cov?.mappingKey).toBe('independentVar')
+  })
+
+  it('time-series: dependent(연속) + time?(혼합)', () => {
+    const slots = getSlotConfigs('time-series')
+    expect(slots).toHaveLength(2)
+    const dep = slots.find(s => s.id === 'dependent')
+    expect(dep?.required).toBe(true)
+    expect(dep?.mappingKey).toBe('dependentVar')
+    const time = slots.find(s => s.id === 'time')
+    expect(time?.required).toBe(false)
+    expect(time?.mappingKey).toBe('timeVar')
+  })
+
+  it('mixed-model: dependent(연속) + fixed(혼합, comma) + random(범주, comma)', () => {
+    const slots = getSlotConfigs('mixed-model')
+    expect(slots).toHaveLength(3)
+    const dep = slots.find(s => s.id === 'dependent')
+    expect(dep?.required).toBe(true)
+    expect(dep?.mappingKey).toBe('dependentVar')
+    const fixed = slots.find(s => s.id === 'fixed')
+    expect(fixed?.required).toBe(true)
+    expect(fixed?.multiple).toBe(true)
+    expect(fixed?.multipleFormat).toBe('comma')
+    expect(fixed?.mappingKey).toBe('groupVar')
+    const random = slots.find(s => s.id === 'random')
+    expect(random?.required).toBe(true)
+    expect(random?.multiple).toBe(true)
+    expect(random?.multipleFormat).toBe('comma')
+    expect(random?.mappingKey).toBe('blocking')
+  })
+
+  it('discriminant: group(범주) + predictors(연속, comma)', () => {
+    const slots = getSlotConfigs('discriminant')
+    expect(slots).toHaveLength(2)
+    const group = slots.find(s => s.id === 'group')
+    expect(group?.required).toBe(true)
+    expect(group?.accepts).toEqual(['categorical'])
+    expect(group?.mappingKey).toBe('dependentVar')
+    const pred = slots.find(s => s.id === 'predictors')
+    expect(pred?.required).toBe(true)
+    expect(pred?.multiple).toBe(true)
+    expect(pred?.multipleFormat).toBe('comma')
+    expect(pred?.mappingKey).toBe('independentVar')
+  })
+
+  it('roc-curve: state(실제 클래스→dependentVar) + test(예측 점수→independentVar)', () => {
+    const slots = getSlotConfigs('roc-curve')
+    expect(slots).toHaveLength(2)
+    const state = slots.find(s => s.id === 'state')
+    expect(state?.required).toBe(true)
+    expect(state?.accepts).toEqual(['categorical', 'numeric'])
+    expect(state?.mappingKey).toBe('dependentVar')
+    const test = slots.find(s => s.id === 'test')
+    expect(test?.required).toBe(true)
+    expect(test?.accepts).toEqual(['numeric'])
+    expect(test?.mappingKey).toBe('independentVar')
+  })
+
   it('모든 슬롯에 id, label, colorScheme, mappingKey 존재', () => {
     for (const type of allTypes) {
       for (const slot of getSlotConfigs(type)) {
@@ -155,6 +265,47 @@ describe('buildMappingFromSlots', () => {
     }
     const mapping = buildMappingFromSlots(slots, assignments)
     expect(mapping.independentVar).toBe('x1,x2,x3')
+  })
+
+  // ─── TD-2: 신규 타입 빌드 매핑 검증 ───────────────────────────
+
+  it('survival: time + event + covariate(comma) → VariableMapping', () => {
+    const slots = getSlotConfigs('survival')
+    const assignments = {
+      time: ['duration'],
+      event: ['status'],
+      factor: ['group'],
+      covariate: ['age', 'stage'],
+    }
+    const mapping = buildMappingFromSlots(slots, assignments)
+    expect(mapping.timeVar).toBe('duration')
+    expect(mapping.event).toBe('status')
+    expect(mapping.groupVar).toBe('group')
+    expect(mapping.independentVar).toBe('age,stage')
+  })
+
+  it('mixed-model: dependent + fixed(comma) + random(comma) → VariableMapping', () => {
+    const slots = getSlotConfigs('mixed-model')
+    const assignments = {
+      dependent: ['weight'],
+      fixed: ['diet', 'age'],
+      random: ['site', 'batch'],
+    }
+    const mapping = buildMappingFromSlots(slots, assignments)
+    expect(mapping.dependentVar).toBe('weight')
+    expect(mapping.groupVar).toBe('diet,age')
+    expect(mapping.blocking).toBe('site,batch')
+  })
+
+  it('discriminant: group + predictors(comma) → VariableMapping', () => {
+    const slots = getSlotConfigs('discriminant')
+    const assignments = {
+      group: ['species'],
+      predictors: ['length', 'width', 'depth'],
+    }
+    const mapping = buildMappingFromSlots(slots, assignments)
+    expect(mapping.dependentVar).toBe('species')
+    expect(mapping.independentVar).toBe('length,width,depth')
   })
 
   it('빈 assignments → 빈 매핑', () => {

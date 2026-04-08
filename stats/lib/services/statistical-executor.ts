@@ -147,6 +147,62 @@ export interface StatisticalExecutorResult {
 }
 
 
+/**
+ * TD-2: 슬롯 출력 키 → executor/handler 기대 키 정규화
+ *
+ * 슬롯 UI는 사용자 친화적 mappingKey를 쓰지만 handler는 다른 키를 기대:
+ * - survival: timeVar → dependentVar (handler는 dependent에서 시간 변수 읽음)
+ * - repeated-measures: variables → within (handler는 within 배열 기대)
+ * - manova: variables → dependent (handler는 dependent 배열 기대)
+ */
+export function normalizeSlotMapping(
+  variables: Record<string, unknown>,
+  methodId: string
+): Record<string, unknown> {
+  const result = { ...variables }
+
+  switch (methodId) {
+    case 'kaplan-meier':
+    case 'cox-regression':
+      // survival: timeVar → dependent (handler는 variables.dependent에서 시간 읽음)
+      if (result.timeVar && !result.dependent && !result.dependentVar) {
+        result.dependentVar = result.timeVar
+        delete result.timeVar
+      }
+      // cox: independentVar가 comma-joined string이면 split
+      if (typeof result.independentVar === 'string' && result.independentVar.includes(',')) {
+        result.independentVar = (result.independentVar as string).split(',')
+      }
+      break
+
+    case 'repeated-measures-anova':
+      // repeated-measures: variables[] → within[] (handler는 within에서 반복측정 변수 읽음)
+      if (Array.isArray(result.variables) && !result.within) {
+        result.within = result.variables
+        delete result.variables
+      }
+      break
+
+    // friedman: variables[] 유지 — prepareData의 friedman 특수 분기가
+    // variablesArray → arrays.independent로 변환함 (line 451-456)
+
+    case 'manova':
+      // manova: variables[] → dependent[] (handler는 data.variables.dependent 직접 읽음)
+      if (Array.isArray(result.variables) && !result.dependent && !result.dependentVar) {
+        result.dependent = result.variables
+        delete result.variables
+      }
+      // manova: groupVar → group (handler는 data.variables.group 직접 읽음)
+      if (result.groupVar && !result.group) {
+        result.group = result.groupVar
+        delete result.groupVar
+      }
+      break
+  }
+
+  return result
+}
+
 export class StatisticalExecutor {
   private static instance: StatisticalExecutor
 
@@ -286,6 +342,11 @@ export class StatisticalExecutor {
     variables: Record<string, unknown>,
     method: StatisticalMethod
   ): PreparedData {
+    // TD-2: 슬롯 출력 → executor 기대 키 정규화
+    // slot-configs는 UI 친화적 키(timeVar, variables)를 쓰지만,
+    // handler는 다른 키(dependent, within)를 기대함
+    variables = normalizeSlotMapping(variables, method.id)
+
     // VariableMapping 호환 - 여러 네이밍 컨벤션 지원
     const getDependent = (): string[] => {
       const dep = variables.dependent || variables.dependentVar

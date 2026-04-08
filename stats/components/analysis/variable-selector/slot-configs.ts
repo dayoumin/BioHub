@@ -232,6 +232,211 @@ export function getSlotConfigs(selectorType: SelectorType): SlotConfig[] {
         },
       ]
 
+    case 'repeated-measures':
+      return [
+        {
+          id: 'variables',
+          label: '반복 측정 변수',
+          description: '반복해서 측정된 연속형 변수들 (개체내 요인)',
+          required: true,
+          accepts: ['numeric'],
+          multiple: true,
+          minCount: 2,
+          colorScheme: 'highlight',
+          mappingKey: 'variables',
+        },
+        {
+          id: 'group',
+          label: '그룹 변수',
+          description: '그룹을 나누는 범주형 변수 (개체간 요인)',
+          required: false,
+          accepts: ['categorical'],
+          multiple: false,
+          colorScheme: 'success',
+          mappingKey: 'groupVar',
+        },
+      ]
+
+    case 'manova':
+      return [
+        {
+          id: 'variables',
+          label: '종속 변수 (Y)',
+          description: '2개 이상의 다변량 종속 변수들',
+          required: true,
+          accepts: ['numeric'],
+          multiple: true,
+          minCount: 2,
+          colorScheme: 'info',
+          mappingKey: 'variables',
+        },
+        {
+          id: 'factor',
+          label: '그룹 변수 (X)',
+          description: '그룹을 나누는 범주형 변수',
+          required: true,
+          accepts: ['categorical'],
+          multiple: false,
+          colorScheme: 'success',
+          mappingKey: 'groupVar',
+        },
+      ]
+
+    case 'survival':
+      return [
+        {
+          id: 'time',
+          label: '시간 변수 (Time)',
+          description: '관찰 생존/추적 시간 (연속형)',
+          required: true,
+          accepts: ['numeric'],
+          multiple: false,
+          colorScheme: 'info',
+          mappingKey: 'timeVar',
+        },
+        {
+          id: 'event',
+          label: '사건 변수 (Event)',
+          description: '발생 여부를 나타내는 사건 변수',
+          required: true,
+          accepts: ['categorical', 'numeric'],
+          multiple: false,
+          colorScheme: 'highlight',
+          mappingKey: 'event',
+        },
+        {
+          id: 'factor',
+          label: '비교 그룹',
+          description: '생존 차이를 비교할 범주형 그룹 변수',
+          required: false,
+          accepts: ['categorical'],
+          multiple: false,
+          colorScheme: 'success',
+          mappingKey: 'groupVar',
+        },
+        {
+          id: 'covariate',
+          label: '예측 변수 (Cox 전용)',
+          description: '생존 위험에 영향을 미치는 다변량 공변량들',
+          required: false,
+          accepts: ['numeric', 'categorical'],
+          multiple: true,
+          colorScheme: 'muted',
+          mappingKey: 'independentVar',
+          multipleFormat: 'comma',
+        },
+      ]
+
+    case 'time-series':
+      return [
+        {
+          id: 'dependent',
+          label: '목표 변수 (Y)',
+          description: '시계열 분석을 수행할 주요 관심 변수',
+          required: true,
+          accepts: ['numeric'],
+          multiple: false,
+          colorScheme: 'info',
+          mappingKey: 'dependentVar',
+        },
+        {
+          id: 'time',
+          label: '시간/인덱스 변수',
+          description: '시점을 나타내는 변수',
+          required: false,
+          accepts: ['categorical', 'numeric'], // some are strings or dates treated as categorical
+          multiple: false,
+          colorScheme: 'success',
+          mappingKey: 'timeVar',
+        },
+      ]
+
+    case 'mixed-model':
+      return [
+        {
+          id: 'dependent',
+          label: '종속 변수 (Y)',
+          description: '분석하고자 하는 결과 변수',
+          required: true,
+          accepts: ['numeric'],
+          multiple: false,
+          colorScheme: 'info',
+          mappingKey: 'dependentVar',
+        },
+        {
+          id: 'fixed',
+          label: '고정 효과 변수',
+          description: '결과에 영향을 미치는 고정 요인',
+          required: true,
+          accepts: ['categorical', 'numeric'],
+          multiple: true,
+          colorScheme: 'success',
+          mappingKey: 'groupVar',
+          multipleFormat: 'comma',
+        },
+        {
+          id: 'random',
+          label: '무선 효과 변수',
+          description: '개체간/블록별 편차를 보정할 변수',
+          required: true,
+          accepts: ['categorical'],
+          multiple: true,
+          colorScheme: 'highlight',
+          mappingKey: 'blocking',
+          multipleFormat: 'comma',
+        },
+      ]
+
+    case 'discriminant':
+      return [
+        {
+          id: 'group',
+          label: '분류 변수 (Y)',
+          description: '예측할 대상이 되는 범주형 상태',
+          required: true,
+          accepts: ['categorical'],
+          multiple: false,
+          colorScheme: 'info',
+          mappingKey: 'dependentVar',
+        },
+        {
+          id: 'predictors',
+          label: '판별 변수 (X)',
+          description: '그룹 구분에 사용되는 연속형 예측 변수들',
+          required: true,
+          accepts: ['numeric'],
+          multiple: true,
+          minCount: 1,
+          colorScheme: 'highlight',
+          mappingKey: 'independentVar',
+          multipleFormat: 'comma',
+        },
+      ]
+
+    case 'roc-curve':
+      return [
+        {
+          id: 'state',
+          label: '상태 변수 (실제 클래스)',
+          description: '실제 양성/사건 발생 여부 (0/1 이진값)',
+          required: true,
+          accepts: ['categorical', 'numeric'],
+          multiple: false,
+          colorScheme: 'info',
+          mappingKey: 'dependentVar',
+        },
+        {
+          id: 'test',
+          label: '예측 점수 (연속형)',
+          description: '예측/검사 기준이 되는 연속형 변수',
+          required: true,
+          accepts: ['numeric'],
+          multiple: false,
+          colorScheme: 'highlight',
+          mappingKey: 'independentVar',
+        },
+      ]
+
     // 'auto' is handled by AutoConfirmSelector, not UnifiedVariableSelector
     case 'auto':
       return []
