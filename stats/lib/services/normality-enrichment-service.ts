@@ -11,6 +11,7 @@
 
 import type { ColumnStatistics, DataRow } from '@/types/analysis'
 import type { NormalityWorkerResult } from '@/lib/services/pyodide/worker-result-types'
+import { ensurePyodideReady } from '@/lib/services/pyodide/ensure-pyodide-ready'
 import { logger } from '@/lib/utils/logger'
 
 export interface NormalityEnrichmentResult {
@@ -52,18 +53,9 @@ export async function enrichWithNormality(
     return { enrichedColumns: [...columnStats], testedCount: 0, failedColumns: [] }
   }
 
-  // Pyodide lazy import (tree-shaking 친화)
-  const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
-  const pyodide = PyodideCoreService.getInstance()
-
-  // Pyodide 초기화 대기
-  if (!pyodide.isInitialized()) {
-    try {
-      await pyodide.initialize()
-    } catch (err) {
-      logger.warn('Normality enrichment: Pyodide initialization failed, skipping', { error: err })
-      return { enrichedColumns: [...columnStats], testedCount: 0, failedColumns: [] }
-    }
+  const pyodide = await ensurePyodideReady('Normality enrichment')
+  if (!pyodide) {
+    return { enrichedColumns: [...columnStats], testedCount: 0, failedColumns: [] }
   }
 
   const failedColumns: string[] = []

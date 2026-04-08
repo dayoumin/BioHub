@@ -16,6 +16,7 @@ import type {
   StatisticalAssumptions,
 } from '@/types/analysis'
 import type { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
+import { ensurePyodideReady } from '@/lib/services/pyodide/ensure-pyodide-ready'
 import { logger } from '@/lib/utils/logger'
 import { raceWithTimeout } from '@/lib/utils/promise-utils'
 import { extractGroupedNumericData } from '@/lib/utils/grouped-data'
@@ -46,18 +47,8 @@ export async function runAssumptionTests(
   }
 
   try {
-    // Pyodide lazy import
-    const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
-    const pyodide = PyodideCoreService.getInstance()
-
-    if (!pyodide.isInitialized()) {
-      try {
-        await pyodide.initialize()
-      } catch {
-        logger.warn('Assumption testing: Pyodide initialization failed, skipping')
-        return null
-      }
-    }
+    const pyodide = await ensurePyodideReady('Assumption testing')
+    if (!pyodide) return null
 
     // 그룹 변수 결정: factor > independent > between
     const groupVarName = resolveGroupVariable(variableAssignments)

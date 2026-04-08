@@ -25,12 +25,10 @@
 - ~~`TestAssumptionsWorkerResult` + `NormalityWorkerResult`가 3곳에 동일 정의~~
 - **해결**: `lib/services/pyodide/worker-result-types.ts`로 추출 완료
 
-### TD-4. Pyodide lazy init 패턴 중복 (3파일)
-- 동일 7줄 패턴 (dynamic import → getInstance → isInitialized → try init → warn):
-  - `assumption-testing-service.ts:79-88`
-  - `diagnostic-pipeline.ts` (pre-warm으로 완화됨)
-  - `normality-enrichment-service.ts:63-72`
-- **해결**: `ensurePyodideReady(): Promise<PyodideCoreService | null>` 헬퍼 추출
+### ~~TD-4. Pyodide lazy init 패턴 중복 (3파일)~~ ✅ 해결됨
+- ~~동일 7줄 패턴 (dynamic import → getInstance → isInitialized → try init → warn)~~
+- **해결**: `lib/services/pyodide/ensure-pyodide-ready.ts` → `ensurePyodideReady(caller)` 추출 완료
+- 적용: assumption-testing-service, diagnostic-pipeline (2곳), normality-enrichment-service
 
 ### ~~TD-5. JSON 추출 regex 분산 (5곳)~~ ✅ 해결됨
 - ~~LLM 응답에서 JSON 블록을 추출하는 regex가 5곳에 각각 구현~~

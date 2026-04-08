@@ -33,6 +33,7 @@ import { extractGroupedNumericData } from '@/lib/utils/grouped-data'
 import { raceWithTimeout } from '@/lib/utils/promise-utils'
 import { logger } from '@/lib/utils/logger'
 import { MIN_GROUP_SIZE, resolveGroupVariable } from '@/lib/constants/statistical-constants'
+import { ensurePyodideReady } from '@/lib/services/pyodide/ensure-pyodide-ready'
 import type { TestAssumptionsWorkerResult, NormalityWorkerResult } from '@/lib/services/pyodide/worker-result-types'
 
 // ===== Types =====
@@ -74,10 +75,8 @@ export async function runDiagnosticPipeline(
   // ── 2. LLM 변수 탐지 + Pyodide pre-warm 병렬 ──
   // Pyodide 초기화(~2s cold)는 LLM 호출(~1-3s)과 독립이므로 동시 시작
   onStatus?.('변수 역할 분석 중...')
-  // fire-and-forget: Pyodide 모듈 로드를 LLM 호출과 병렬로 시작 (cold start ~2s 절감)
-  void import('@/lib/services/pyodide/core/pyodide-core.service')
-    .then(m => { const p = m.PyodideCoreService.getInstance(); if (!p.isInitialized()) return p.initialize().then(() => p); return p })
-    .catch(() => null)
+  // fire-and-forget: Pyodide 초기화를 LLM 호출과 병렬로 시작 (cold start ~2s 절감)
+  void ensurePyodideReady('DiagnosticPipeline pre-warm')
 
   const detectionResult = await detectVariables(userMessage, validationResults)
 
@@ -524,17 +523,8 @@ async function runDiagnosticAssumptions(
   if (!variableAssignments || data.length < MIN_GROUP_SIZE) return null
 
   try {
-    const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
-    const pyodide = PyodideCoreService.getInstance()
-
-    if (!pyodide.isInitialized()) {
-      try {
-        await pyodide.initialize()
-      } catch {
-        logger.warn('[DiagnosticPipeline] Pyodide initialization failed, skipping assumptions')
-        return null
-      }
-    }
+    const pyodide = await ensurePyodideReady('DiagnosticPipeline assumptions')
+    if (!pyodide) return null
 
     // 그룹 변수 결정: factor > independent > between
     const groupVarName = resolveGroupVariable(variableAssignments)

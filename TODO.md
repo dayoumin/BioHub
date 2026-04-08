@@ -84,7 +84,7 @@
 - [ ] TD-2: auto 셀렉터 12개 메서드 변수 입력 UI 미완성
 
 ### 중간 (코드 품질)
-- [ ] TD-4: Pyodide lazy init 패턴 중복 3파일 → `ensurePyodideReady()` 헬퍼 추출
+- [x] TD-4: Pyodide lazy init 패턴 중복 → `ensurePyodideReady()` 추출
 
 ### 낮음
 - [ ] TD-8: goToPreviousStep() diagnostic 트랙에서 Step 2 skip 미인지
