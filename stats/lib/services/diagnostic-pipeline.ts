@@ -14,6 +14,7 @@
  * Worker 결과를 DiagnosticAssumptions로 직접 매핑하여 3+그룹을 보존.
  */
 
+import { extractJsonFromLlmResponse } from '@/lib/utils/json-extraction'
 import type {
   AIRecommendation,
   DataRow,
@@ -148,14 +149,21 @@ export async function resumeDiagnosticPipeline(
   // 기존 부분 탐지 결과와 병합 (기존 + 새 답변)
   const merged = mergeVariableAssignments(previousReport.variableAssignments, newAssignments)
 
-  // 병합 후 필수 역할 검증
+  // 병합 후 필수 역할 검증: dependent + group 변수 모두 필요
   const hasDep = (merged.dependent?.length ?? 0) > 0
-  if (!hasDep) {
+  const hasGroup = (merged.factor?.length ?? 0) > 0
+    || (merged.independent?.length ?? 0) > 0
+    || (merged.between?.length ?? 0) > 0
+
+  if (!hasDep || !hasGroup) {
+    const question = !hasDep
+      ? '비교할 측정값(종속변수)을 알려주세요.'
+      : '비교 기준(그룹 변수)을 알려주세요.'
     return {
       ...previousReport,
       variableAssignments: merged,
       pendingClarification: buildPendingClarification(
-        '비교할 측정값(종속변수)을 알려주세요.',
+        question,
         merged,
         validationResults,
       ),
@@ -310,14 +318,13 @@ export function parseVariableDetectionResponse(
   raw: string,
   validationResults: ValidationResults,
 ): VariableDetectionResult {
-  // JSON 블록 추출
-  const jsonMatch = raw.match(/```json\s*([\s\S]*?)```/) ?? raw.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) {
-    return { variableAssignments: null, clarificationNeeded: null }
+  // JSON 블록 추출 (balanced-brace)
+  const jsonStr = extractJsonFromLlmResponse(raw)
+  if (!jsonStr) {
+    return { variableAssignments: null, clarificationNeeded: 'AI 응답을 해석하지 못했습니다. 아래에서 직접 선택해 주세요.' }
   }
 
   try {
-    const jsonStr = jsonMatch[1] ?? jsonMatch[0]
     const parsed = JSON.parse(jsonStr) as {
       variableAssignments?: AIRecommendation['variableAssignments']
       clarificationNeeded?: string | null
@@ -349,25 +356,34 @@ export function parseVariableDetectionResponse(
       return { variableAssignments: null, clarificationNeeded: '데이터에서 해당 변수를 찾지 못했습니다.' }
     }
 
-    // 필수 역할 검증: dependent가 없으면 부분 탐지 → 추가 질문 필요
+    // 필수 역할 검증: dependent + group 변수 모두 있어야 완료
     const hasDep = (validated.dependent?.length ?? 0) > 0
     const hasGroup = (validated.factor?.length ?? 0) > 0
       || (validated.independent?.length ?? 0) > 0
       || (validated.between?.length ?? 0) > 0
 
-    if (!hasDep) {
-      // factor만 잡힌 경우 → dependent를 추가로 질문
+    if (!hasDep && !hasGroup) {
       return {
         variableAssignments: validated,
-        clarificationNeeded: hasGroup
-          ? '그룹 변수는 감지했지만, 비교할 측정값(종속변수)을 알려주세요.'
-          : '어떤 변수를 분석할지 알려주세요.',
+        clarificationNeeded: '어떤 변수를 분석할지 알려주세요.',
+      }
+    }
+    if (!hasDep) {
+      return {
+        variableAssignments: validated,
+        clarificationNeeded: '그룹 변수는 감지했지만, 비교할 측정값(종속변수)을 알려주세요.',
+      }
+    }
+    if (!hasGroup) {
+      return {
+        variableAssignments: validated,
+        clarificationNeeded: '측정값은 감지했지만, 비교 기준(그룹 변수)을 알려주세요.',
       }
     }
 
     return { variableAssignments: validated, clarificationNeeded: null }
   } catch {
-    return { variableAssignments: null, clarificationNeeded: null }
+    return { variableAssignments: null, clarificationNeeded: 'AI 응답 파싱에 실패했습니다. 아래에서 직접 선택해 주세요.' }
   }
 }
 

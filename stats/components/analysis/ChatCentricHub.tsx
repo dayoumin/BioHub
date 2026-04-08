@@ -21,9 +21,9 @@ import { intentRouter } from '@/lib/services/intent-router'
 import { getRecommendations } from '@/lib/services/consultant-service'
 import { getHubAiResponse, getHubDiagnosticResponse, getHubDiagnosticResumeResponse } from '@/lib/services/hub-chat-service'
 import { bridgeDiagnosticToSmartFlow } from '@/lib/stores/store-orchestration'
-import { getKoreanName } from '@/lib/constants/statistical-methods'
+import { getKoreanName, STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import { logger } from '@/lib/utils/logger'
-import type { ResolvedIntent, DiagnosticReport, AIRecommendation } from '@/types/analysis'
+import type { ResolvedIntent, DiagnosticReport, AIRecommendation, MethodRecommendation, StatisticalMethod } from '@/types/analysis'
 import { useTerminology } from '@/hooks/use-terminology'
 import { useHubChatStore, type HubChatMessage } from '@/lib/stores/hub-chat-store'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
@@ -50,7 +50,6 @@ interface ChatCentricHubProps {
 // ===== Helpers =====
 
 import { generateId } from '@/lib/utils/generate-id'
-import type { MethodRecommendation } from '@/types/analysis'
 
 const createMessageId = (): string => generateId('msg')
 
@@ -120,9 +119,7 @@ export function ChatCentricHub({
   const isProcessingRef = useRef(false)
   const [externalValue, setExternalValue] = useState<string | undefined>(undefined)
 
-  // 마지막 diagnostic 응답 보존 — "분석 시작" 버튼 클릭 시 bridge에 필요
-  // recommendation이 null일 수 있음 (LLM 2차 실패 시)
-  const lastDiagnosticRef = useRef<{ report: DiagnosticReport; recommendation: AIRecommendation | null } | null>(null)
+  // lastDiagnosticRef 제거 — 액션 버튼이 메시지 단위로 report/recommendation을 직접 전달
 
   const addMessage = useHubChatStore((s) => s.addMessage)
   const clearMessages = useHubChatStore((s) => s.clearMessages)
@@ -185,10 +182,6 @@ export function ChatCentricHub({
           diagnosticReport: resumeResponse.diagnosticReport,
           recommendations: mapRecommendationToCards(resumeResponse.recommendation),
         })
-        lastDiagnosticRef.current = {
-          report: resumeResponse.diagnosticReport,
-          recommendation: resumeResponse.recommendation,
-        }
         return
       }
 
@@ -225,10 +218,6 @@ export function ChatCentricHub({
             diagnosticReport: diagResponse.diagnosticReport,
             recommendations: mapRecommendationToCards(diagResponse.recommendation),
           })
-          lastDiagnosticRef.current = {
-            report: diagResponse.diagnosticReport,
-            recommendation: diagResponse.recommendation,
-          }
         } else {
           // === 데이터 없음: 키워드 기반 빠른 추천 ===
           const response = getRecommendations(message)
@@ -323,25 +312,24 @@ export function ChatCentricHub({
     setExternalValue(undefined)
   }, [])
 
-  // "분석 시작하기" → bridgeDiagnosticToSmartFlow → Step 1 → Step 3
-  const handleDiagnosticStart = useCallback(() => {
-    const last = lastDiagnosticRef.current
-    if (!last || !last.recommendation) return
-    bridgeDiagnosticToSmartFlow(last.report, last.recommendation)
+  // "분석 시작하기" — 메시지의 report + recommendations를 직접 받음 (전역 ref 불필요)
+  const handleDiagnosticStart = useCallback((report: DiagnosticReport, recommendations: MethodRecommendation[]) => {
+    const rec = recommendations[0]
+    if (!rec) return
+    // MethodRecommendation → AIRecommendation 역변환은 불필요 — bridge는 method만 필요
+    const method = STATISTICAL_METHODS[rec.methodId]
+    if (!method) return
+    bridgeDiagnosticToSmartFlow(report, { method, confidence: 1, reasoning: [], assumptions: [] })
   }, [])
 
-  // "다른 방법 찾아보기" → bridge + normal 트랙 → Step 2
-  const handleAlternativeSearch = useCallback(() => {
-    const last = lastDiagnosticRef.current
-    if (!last || !last.recommendation) return
-    bridgeDiagnosticToSmartFlow(last.report, last.recommendation)
-    // bridge가 'diagnostic' 설정 → 'normal'로 전환하여 Step 2 표시
-    const modeState = useModeStore.getState()
-    modeState.setStepTrack('normal')
-    // Step 1 완료 표시 + Step 2로 직접 이동 (데이터 이미 확인됨)
-    const analysisState = useAnalysisStore.getState()
-    analysisState.addCompletedStep(1)
-    analysisState.navigateToStep(2)
+  // "다른 방법 찾아보기" — 메시지의 report를 직접 받음
+  const handleAlternativeSearch = useCallback((report: DiagnosticReport, recommendations: MethodRecommendation[]) => {
+    const rec = recommendations[0]
+    const method = rec ? STATISTICAL_METHODS[rec.methodId] : undefined
+    bridgeDiagnosticToSmartFlow(report, { method: method ?? null as unknown as StatisticalMethod, confidence: 0, reasoning: [], assumptions: [] })
+    useModeStore.getState().setStepTrack('normal')
+    useAnalysisStore.getState().addCompletedStep(1)
+    useAnalysisStore.getState().navigateToStep(2)
   }, [])
 
   // 새 대화 초기화

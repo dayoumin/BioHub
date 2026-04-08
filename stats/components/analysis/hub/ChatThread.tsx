@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button'
 import { RecommendationCard } from '@/components/common/RecommendationCard'
 import { TypingIndicator } from '@/components/common/TypingIndicator'
 import { useHubChatStore, type HubChatMessage } from '@/lib/stores/hub-chat-store'
-import type { DiagnosticReport } from '@/types/analysis'
+import type { DiagnosticReport, MethodRecommendation } from '@/types/analysis'
 
 // ===== Props =====
 
@@ -31,10 +31,10 @@ interface ChatThreadProps {
   onClearChat?: () => void
   /** 에러 메시지 재시도 — errorMessageId 이전의 마지막 user 메시지 재전송 */
   onRetry?: (errorMessageId: string) => void
-  /** "분석 시작하기" 클릭 → bridgeDiagnosticToSmartFlow (Phase D에서 연결) */
-  onDiagnosticStart?: () => void
-  /** "다른 방법 찾아보기" 클릭 → Step 2로 이동 */
-  onAlternativeSearch?: () => void
+  /** "분석 시작하기" 클릭 — 해당 메시지의 report + recommendation 전달 */
+  onDiagnosticStart?: (report: DiagnosticReport, recommendations: MethodRecommendation[]) => void
+  /** "다른 방법 찾아보기" 클릭 — 해당 메시지의 report + recommendation 전달 */
+  onAlternativeSearch?: (report: DiagnosticReport, recommendations: MethodRecommendation[]) => void
 }
 
 // ===== Animation =====
@@ -145,8 +145,8 @@ interface MessageBubbleProps {
   onMethodSelect: (methodId: string) => void
   onUploadClick?: () => void
   onRetry?: (errorMessageId: string) => void
-  onDiagnosticStart?: () => void
-  onAlternativeSearch?: () => void
+  onDiagnosticStart?: (report: DiagnosticReport, recommendations: MethodRecommendation[]) => void
+  onAlternativeSearch?: (report: DiagnosticReport, recommendations: MethodRecommendation[]) => void
 }
 
 function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry, onDiagnosticStart, onAlternativeSearch }: MessageBubbleProps) {
@@ -236,8 +236,12 @@ function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry, onDiag
         {diagnosticReport && !diagnosticReport.pendingClarification && (
           <DiagnosticReportCard
             report={diagnosticReport}
-            onStart={recommendations?.length ? onDiagnosticStart : undefined}
-            onBrowse={recommendations?.length ? onAlternativeSearch : undefined}
+            onStart={recommendations?.length && onDiagnosticStart
+              ? () => onDiagnosticStart(diagnosticReport, recommendations)
+              : undefined}
+            onBrowse={recommendations?.length && onAlternativeSearch
+              ? () => onAlternativeSearch(diagnosticReport, recommendations)
+              : undefined}
           />
         )}
 

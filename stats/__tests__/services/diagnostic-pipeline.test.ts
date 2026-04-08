@@ -96,6 +96,14 @@ describe('parseVariableDetectionResponse', () => {
     expect(result.clarificationNeeded).toContain('종속변수')
   })
 
+  it('dependent만 있고 factor 없으면 부분 탐지 + clarification 반환', () => {
+    const raw = '```json\n{"variableAssignments":{"dependent":["생산량"]},"clarificationNeeded":null}\n```'
+    const result = parseVariableDetectionResponse(raw, mockValidationResults)
+
+    expect(result.variableAssignments).toEqual({ dependent: ['생산량'] })
+    expect(result.clarificationNeeded).toContain('그룹 변수')
+  })
+
   it('존재하지 않는 컬럼명은 필터링한다 (hallucination 방지)', () => {
     const raw = '```json\n{"variableAssignments":{"dependent":["없는컬럼","생산량"],"factor":["사료종류"]}}\n```'
     const result = parseVariableDetectionResponse(raw, mockValidationResults)
@@ -120,9 +128,10 @@ describe('parseVariableDetectionResponse', () => {
     expect(result.clarificationNeeded).toBe('어떤 변수를 비교하고 싶으세요?')
   })
 
-  it('잘못된 JSON은 null 반환', () => {
+  it('잘못된 JSON은 clarificationNeeded와 함께 반환 (성공 경로로 빠지지 않음)', () => {
     const result = parseVariableDetectionResponse('not json at all', mockValidationResults)
     expect(result.variableAssignments).toBeNull()
+    expect(result.clarificationNeeded).toBeTruthy() // null이 아님 — 반드시 질문 생성
   })
 })
 
