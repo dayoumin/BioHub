@@ -121,7 +121,8 @@ export function ChatCentricHub({
   const [externalValue, setExternalValue] = useState<string | undefined>(undefined)
 
   // 마지막 diagnostic 응답 보존 — "분석 시작" 버튼 클릭 시 bridge에 필요
-  const lastDiagnosticRef = useRef<{ report: DiagnosticReport; recommendation: AIRecommendation } | null>(null)
+  // recommendation이 null일 수 있음 (LLM 2차 실패 시)
+  const lastDiagnosticRef = useRef<{ report: DiagnosticReport; recommendation: AIRecommendation | null } | null>(null)
 
   const addMessage = useHubChatStore((s) => s.addMessage)
   const clearMessages = useHubChatStore((s) => s.clearMessages)
@@ -184,8 +185,9 @@ export function ChatCentricHub({
           diagnosticReport: resumeResponse.diagnosticReport,
           recommendations: mapRecommendationToCards(resumeResponse.recommendation),
         })
-        if (resumeResponse.recommendation) {
-          lastDiagnosticRef.current = { report: resumeResponse.diagnosticReport, recommendation: resumeResponse.recommendation }
+        lastDiagnosticRef.current = {
+          report: resumeResponse.diagnosticReport,
+          recommendation: resumeResponse.recommendation,
         }
         return
       }
@@ -223,8 +225,9 @@ export function ChatCentricHub({
             diagnosticReport: diagResponse.diagnosticReport,
             recommendations: mapRecommendationToCards(diagResponse.recommendation),
           })
-          if (diagResponse.recommendation) {
-            lastDiagnosticRef.current = { report: diagResponse.diagnosticReport, recommendation: diagResponse.recommendation }
+          lastDiagnosticRef.current = {
+            report: diagResponse.diagnosticReport,
+            recommendation: diagResponse.recommendation,
           }
         } else {
           // === 데이터 없음: 키워드 기반 빠른 추천 ===
@@ -304,6 +307,7 @@ export function ChatCentricHub({
       // 에러 시 원래 입력 복원 — 사용자가 다시 타이핑하지 않아도 됨
       setExternalValue(message)
     } finally {
+      setStreamingStatus(null)
       setStreaming(false)
       isProcessingRef.current = false
       setIsProcessing(false)
@@ -322,16 +326,22 @@ export function ChatCentricHub({
   // "분석 시작하기" → bridgeDiagnosticToSmartFlow → Step 1 → Step 3
   const handleDiagnosticStart = useCallback(() => {
     const last = lastDiagnosticRef.current
-    if (!last) return
+    if (!last || !last.recommendation) return
     bridgeDiagnosticToSmartFlow(last.report, last.recommendation)
   }, [])
 
   // "다른 방법 찾아보기" → bridge + normal 트랙 → Step 2
   const handleAlternativeSearch = useCallback(() => {
     const last = lastDiagnosticRef.current
-    if (!last) return
+    if (!last || !last.recommendation) return
     bridgeDiagnosticToSmartFlow(last.report, last.recommendation)
-    useModeStore.getState().setStepTrack('normal')
+    // bridge가 'diagnostic' 설정 → 'normal'로 전환하여 Step 2 표시
+    const modeState = useModeStore.getState()
+    modeState.setStepTrack('normal')
+    // Step 1 완료 표시 + Step 2로 직접 이동 (데이터 이미 확인됨)
+    const analysisState = useAnalysisStore.getState()
+    analysisState.addCompletedStep(1)
+    analysisState.navigateToStep(2)
   }, [])
 
   // 새 대화 초기화

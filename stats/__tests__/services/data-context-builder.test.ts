@@ -14,11 +14,12 @@ import { describe, it, expect } from 'vitest'
 import {
   buildDataContextMarkdown,
   buildAssumptionContextMarkdown,
+  buildDiagnosticReportMarkdown,
   buildVisualizationContext,
   buildConsultationContext,
   buildContextForIntent,
 } from '@/lib/services/ai/data-context-builder'
-import type { ValidationResults, ColumnStatistics, StatisticalAssumptions } from '@/types/analysis'
+import type { ValidationResults, ColumnStatistics, StatisticalAssumptions, DiagnosticReport } from '@/types/analysis'
 
 // ===== Helpers =====
 
@@ -312,5 +313,84 @@ describe('넓은 스키마 (25열) 토큰 제한', () => {
     const result = buildDataContextMarkdown(wideValidation)
     expect(result).toContain('num_0 (수치형)')
     expect(result).toContain('외 5개 변수 생략')
+  })
+})
+
+// ===== buildDiagnosticReportMarkdown =====
+
+describe('buildDiagnosticReportMarkdown', () => {
+  const fullReport: DiagnosticReport = {
+    uploadNonce: 1,
+    basicStats: {
+      totalRows: 120,
+      groups: [{ name: 'A', count: 40 }, { name: 'B', count: 40 }, { name: 'C', count: 40 }],
+      numericSummaries: [
+        { column: '생산량', mean: 45.2, std: 12.3, min: 10, max: 80 },
+      ],
+    },
+    assumptions: {
+      normality: {
+        groups: [
+          { groupName: 'A', statistic: 0.98, pValue: 0.45, passed: true },
+          { groupName: 'B', statistic: 0.95, pValue: 0.12, passed: true },
+        ],
+        overallPassed: true,
+        testMethod: 'shapiro-wilk',
+      },
+      homogeneity: { levene: { statistic: 1.23, pValue: 0.34, equalVariance: true } },
+    },
+    variableAssignments: { dependent: ['생산량'], factor: ['사료종류'] },
+    pendingClarification: null,
+  }
+
+  it('기초통계를 포함한다', () => {
+    const md = buildDiagnosticReportMarkdown(fullReport)
+    expect(md).toContain('120행')
+    expect(md).toContain('A(n=40)')
+    expect(md).toContain('M=45.20')
+  })
+
+  it('모든 그룹의 정규성 결과를 표시한다', () => {
+    const md = buildDiagnosticReportMarkdown(fullReport)
+    expect(md).toContain('shapiro-wilk')
+    expect(md).toContain('A: p=0.4500')
+    expect(md).toContain('B: p=0.1200')
+    expect(md).toContain('충족')
+  })
+
+  it('등분산 결과를 표시한다', () => {
+    const md = buildDiagnosticReportMarkdown(fullReport)
+    expect(md).toContain('Levene')
+    expect(md).toContain('0.3400')
+    expect(md).toContain('충족')
+  })
+
+  it('변수 역할을 표시한다', () => {
+    const md = buildDiagnosticReportMarkdown(fullReport)
+    expect(md).toContain('종속변수: 생산량')
+    expect(md).toContain('그룹변수: 사료종류')
+  })
+
+  it('assumptions가 null이면 가정 검정 섹션 없음', () => {
+    const noAssumptions: DiagnosticReport = { ...fullReport, assumptions: null }
+    const md = buildDiagnosticReportMarkdown(noAssumptions)
+    expect(md).not.toContain('가정 검정 결과')
+    expect(md).toContain('120행') // 기초통계는 있음
+  })
+
+  it('variableAssignments가 null이면 변수 역할 섹션 없음', () => {
+    const noVars: DiagnosticReport = { ...fullReport, variableAssignments: null }
+    const md = buildDiagnosticReportMarkdown(noVars)
+    expect(md).not.toContain('탐지된 변수 역할')
+  })
+
+  it('homogeneity가 null이면 등분산 섹션 없음', () => {
+    const noHomogeneity: DiagnosticReport = {
+      ...fullReport,
+      assumptions: { ...fullReport.assumptions!, homogeneity: null },
+    }
+    const md = buildDiagnosticReportMarkdown(noHomogeneity)
+    expect(md).toContain('shapiro-wilk') // 정규성은 있음
+    expect(md).not.toContain('Levene')
   })
 })

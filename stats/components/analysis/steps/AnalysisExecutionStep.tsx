@@ -79,6 +79,7 @@ export function AnalysisExecutionStep({
 
   // Store에서 필요한 데이터만 개별 selector로 구독 (불필요한 리렌더링 방지)
   const uploadedData = useAnalysisStore(state => state.uploadedData)
+  const existingAssumptionResults = useAnalysisStore(state => state.assumptionResults)
   const setAssumptionResults = useAnalysisStore(state => state.setAssumptionResults)
   const suggestedSettings = useAnalysisStore(state => state.suggestedSettings)
   const analysisOptions = useAnalysisStore(state => state.analysisOptions)
@@ -159,27 +160,34 @@ export function AnalysisExecutionStep({
       setCompletedStages(prev => [...prev, 'preprocess'])
       updateStage('assumptions', 35)
 
-      // Stage 3: 가정 검정 — 선행 결과 우선, 없으면 직접 실행
+      // Stage 3: 가정 검정 — 기존 결과(diagnostic bridge) > 선행 결과 > 직접 실행
       {
         addLog(logs.normalityTestStart)
         let assumptionResult: Awaited<ReturnType<typeof awaitPreemptiveAssumptions>> = null
-        try {
-          assumptionResult = await awaitPreemptiveAssumptions()
-        } catch (err) {
-          logger.error('선행 가정 검정 대기 실패', { error: err, method: selectedMethod?.id })
-        }
 
-        if (assumptionResult) {
-          logger.info('선행 가정 검정 결과 사용', { testedVariable: assumptionResult.testedVariable })
-        } else if (variableMapping) {
-          try {
-            assumptionResult = await executeAssumptionTests(variableMapping, uploadedData)
-          } catch (err) {
-            logger.error('가정 검정 실행 실패', { error: err, method: selectedMethod?.id })
-          }
-          if (!assumptionResult) addLog(logs.assumptionSkipped)
+        // Diagnostic Pipeline에서 이미 실행된 가정 검정 결과가 있으면 재사용
+        if (existingAssumptionResults) {
+          assumptionResult = existingAssumptionResults
+          logger.info('기존 가정 검정 결과 재사용 (diagnostic pipeline)', { testedVariable: assumptionResult.testedVariable })
         } else {
-          addLog(logs.assumptionSkipped)
+          try {
+            assumptionResult = await awaitPreemptiveAssumptions()
+          } catch (err) {
+            logger.error('선행 가정 검정 대기 실패', { error: err, method: selectedMethod?.id })
+          }
+
+          if (assumptionResult) {
+            logger.info('선행 가정 검정 결과 사용', { testedVariable: assumptionResult.testedVariable })
+          } else if (variableMapping) {
+            try {
+              assumptionResult = await executeAssumptionTests(variableMapping, uploadedData)
+            } catch (err) {
+              logger.error('가정 검정 실행 실패', { error: err, method: selectedMethod?.id })
+            }
+            if (!assumptionResult) addLog(logs.assumptionSkipped)
+          } else {
+            addLog(logs.assumptionSkipped)
+          }
         }
 
         setAssumptionResults(assumptionResult)

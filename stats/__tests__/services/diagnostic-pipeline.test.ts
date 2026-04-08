@@ -288,4 +288,14 @@ describe('toStatisticalAssumptions', () => {
     const result = toStatisticalAssumptions(noHomogeneity)
     expect(result.homogeneity).toBeUndefined()
   })
+
+  it('groups가 빈 배열이면 normality/homogeneity 모두 undefined', () => {
+    const emptyGroups: DiagnosticAssumptions = {
+      normality: { groups: [], overallPassed: false, testMethod: 'shapiro-wilk' },
+      homogeneity: null,
+    }
+    const result = toStatisticalAssumptions(emptyGroups)
+    expect(result.normality).toBeUndefined()
+    expect(result.homogeneity).toBeUndefined()
+  })
 })

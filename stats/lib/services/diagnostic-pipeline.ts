@@ -23,7 +23,6 @@ import type {
   DiagnosticReport,
   StatisticalAssumptions,
 } from '@/types/analysis'
-import type { HubChatMessage } from '@/lib/stores/hub-chat-store'
 import type { WorkerNumber } from '@/lib/constants/methods-registry.types'
 import type { WorkerMethodParam } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { openRouterRecommender } from './recommenders/openrouter-recommender'
@@ -41,7 +40,6 @@ export interface DiagnosticPipelineInput {
   userMessage: string
   data: readonly DataRow[]
   validationResults: ValidationResults
-  chatHistory: HubChatMessage[]
   /** analysis-store의 uploadNonce (데이터 버전 식별) */
   uploadNonce: number
 }
@@ -66,7 +64,7 @@ export async function runDiagnosticPipeline(
   input: DiagnosticPipelineInput,
   onStatus?: DiagnosticStatusCallback,
 ): Promise<DiagnosticReport> {
-  const { userMessage, data, validationResults, chatHistory, uploadNonce } = input
+  const { userMessage, data, validationResults, uploadNonce } = input
 
   // ── 1. 기초통계 추출 (동기) ──
   onStatus?.('데이터 진단 중...')
@@ -75,7 +73,8 @@ export async function runDiagnosticPipeline(
   // ── 2. LLM 변수 탐지 + Pyodide pre-warm 병렬 ──
   // Pyodide 초기화(~2s cold)는 LLM 호출(~1-3s)과 독립이므로 동시 시작
   onStatus?.('변수 역할 분석 중...')
-  const pyodidePrewarm = import('@/lib/services/pyodide/core/pyodide-core.service')
+  // fire-and-forget: Pyodide 모듈 로드를 LLM 호출과 병렬로 시작 (cold start ~2s 절감)
+  void import('@/lib/services/pyodide/core/pyodide-core.service')
     .then(m => { const p = m.PyodideCoreService.getInstance(); if (!p.isInitialized()) return p.initialize().then(() => p); return p })
     .catch(() => null)
 
@@ -188,8 +187,11 @@ export async function resumeDiagnosticPipeline(
  */
 export function toStatisticalAssumptions(da: DiagnosticAssumptions): StatisticalAssumptions {
   const groups = da.normality.groups
+  if (groups.length === 0) {
+    return { normality: undefined, homogeneity: undefined }
+  }
   const pValues = groups.map(g => g.pValue)
-  const minPValue = pValues.length > 0 ? Math.min(...pValues) : undefined
+  const minPValue = Math.min(...pValues)
 
   const result: StatisticalAssumptions = {
     normality: {

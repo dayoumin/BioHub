@@ -156,7 +156,6 @@ export async function getHubDiagnosticResponse(
     userMessage,
     data,
     validationResults: dataContext.validationResults,
-    chatHistory,
     uploadNonce,
   }
 
