@@ -1,9 +1,10 @@
 import { pyodideStats } from '../pyodide/pyodide-statistics'
-import type { StatisticalMethod } from '@/types/analysis'
+import type { StatisticalMethod, SuggestedSettings } from '@/types/analysis'
 import type { PreparedData, StatisticalExecutorResult } from '../statistical-executor'
 import { calculateCohensD, interpretCohensD } from './shared-helpers'
 
-export async function handleTTest(method: StatisticalMethod, data: PreparedData): Promise<StatisticalExecutorResult> {
+export async function handleTTest(method: StatisticalMethod, data: PreparedData, settings?: SuggestedSettings | null): Promise<StatisticalExecutorResult> {
+  const alternative = settings?.alternative
   // 일표본 t-검정 분기
   if (method.id === 'one-sample-t' || method.id === 'one-sample-t-test') {
     const values = data.arrays.dependent || data.arrays.independent?.[0] || []
@@ -14,7 +15,7 @@ export async function handleTTest(method: StatisticalMethod, data: PreparedData)
     if (isNaN(testValue)) {
       throw new Error('기준값(μ₀)이 유효한 숫자가 아닙니다')
     }
-    const result = await pyodideStats.tTestOneSample(values, testValue)
+    const result = await pyodideStats.tTestOneSample(values, testValue, alternative)
 
     // Cohen's d = (mean - mu) / sd
     const mean = values.reduce((s, v) => s + v, 0) / values.length
@@ -104,7 +105,8 @@ export async function handleTTest(method: StatisticalMethod, data: PreparedData)
   const isWelch = method.id === 'welch-t'
   const result = await pyodideStats.tTest(group1, group2, {
     paired: method.id === 'paired-t',
-    equalVar: !isWelch // Welch t-검정은 등분산 가정하지 않음
+    equalVar: !isWelch, // Welch t-검정은 등분산 가정하지 않음
+    alternative
   })
 
   const cohensD = calculateCohensD(group1, group2)

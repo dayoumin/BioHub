@@ -450,8 +450,8 @@ export class PyodideStatisticsService {
   /**
    * 이표본 t-검정 (Two-Sample t-Test) - Worker 2
    */
-  async tTestTwoSample(group1: number[], group2: number[], equalVar: boolean = true): Promise<Generated.TTestTwoSampleResult & { df: number; meanDiff: number }> {
-    const result = await Generated.tTestTwoSample(group1, group2, equalVar)
+  async tTestTwoSample(group1: number[], group2: number[], equalVar: boolean = true, alternative?: 'two-sided' | 'less' | 'greater'): Promise<Generated.TTestTwoSampleResult & { df: number; meanDiff: number }> {
+    const result = await Generated.tTestTwoSample(group1, group2, equalVar, alternative)
     assertWorkerResultFields(result, ['statistic', 'pValue', 'n1', 'n2', 'mean1', 'mean2'], 't_test_two_sample')
     return {
       ...result,
@@ -463,8 +463,8 @@ export class PyodideStatisticsService {
   /**
    * 대응표본 t-검정 (Paired t-Test) - Worker 2
    */
-  async tTestPaired(values1: number[], values2: number[]): Promise<Generated.TTestPairedResult & { df: number }> {
-    const result = await Generated.tTestPaired(values1, values2)
+  async tTestPaired(values1: number[], values2: number[], alternative?: 'two-sided' | 'less' | 'greater'): Promise<Generated.TTestPairedResult & { df: number }> {
+    const result = await Generated.tTestPaired(values1, values2, alternative)
     assertWorkerResultFields(result, ['statistic', 'pValue', 'nPairs'], 't_test_paired')
     return {
       ...result,
@@ -483,8 +483,8 @@ export class PyodideStatisticsService {
   /**
    * 일표본 t-검정 (One-Sample t-Test) - Worker 2
    */
-  async tTestOneSample(data: number[], popmean: number = 0): Promise<Generated.TTestOneSampleResult & { df: number }> {
-    const result = await Generated.tTestOneSample(data, popmean)
+  async tTestOneSample(data: number[], popmean: number = 0, alternative?: 'two-sided' | 'less' | 'greater'): Promise<Generated.TTestOneSampleResult & { df: number }> {
+    const result = await Generated.tTestOneSample(data, popmean, alternative)
     assertWorkerResultFields(result, ['statistic', 'pValue', 'sampleMean', 'n'], 't_test_one_sample')
     return {
       ...result,
@@ -557,22 +557,23 @@ export class PyodideStatisticsService {
     confidenceInterval?: { lower: number; upper: number }
   }> {
     // Worker 2 호출로 간소화
+    const alt = options.alternative
     if (options.type === 'one-sample' || (group2.length === 0 && options.mu !== undefined)) {
-      const result = await this.tTestOneSample(group1, options.mu ?? 0)
+      const result = await this.tTestOneSample(group1, options.mu ?? 0, alt)
       return {
         statistic: result.statistic,
         pValue: result.pValue,
         df: result.df
       }
     } else if (options.paired) {
-      const result = await this.tTestPaired(group1, group2)
+      const result = await this.tTestPaired(group1, group2, alt)
       return {
         statistic: result.statistic,
         pValue: result.pValue,
         df: result.df
       }
     } else {
-      const result = await this.tTestTwoSample(group1, group2, options.equalVar !== false)
+      const result = await this.tTestTwoSample(group1, group2, options.equalVar !== false, alt)
       return {
         statistic: result.statistic,
         pValue: result.pValue,

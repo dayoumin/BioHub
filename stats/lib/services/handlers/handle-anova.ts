@@ -6,14 +6,62 @@
  */
 
 import { pyodideStats } from '../pyodide/pyodide-statistics'
-import type { StatisticalMethod } from '@/types/analysis'
+import type { StatisticalMethod, SuggestedSettings } from '@/types/analysis'
 import type { PreparedData, StatisticalExecutorResult } from '../statistical-executor'
 import { interpretEtaSquared, normalizePostHocComparisons } from './shared-helpers'
 import { logger } from '../../utils/logger'
 
+/** 사후검정 메서드별 실행기 */
+type PostHocRunner = (groups: number[][], groupNames: string[]) => Promise<{
+  comparisons: ReturnType<typeof normalizePostHocComparisons>
+  method: string
+}>
+
+function createPostHocRunners(preferredMethod?: string): PostHocRunner[] {
+  const gamesHowell: PostHocRunner = async (groups, groupNames) => {
+    const r = await pyodideStats.gamesHowellTest(groups, groupNames)
+    return { comparisons: normalizePostHocComparisons(r?.comparisons), method: 'games-howell' }
+  }
+  const tukey: PostHocRunner = async (groups) => {
+    const r = await pyodideStats.tukeyHSDWorker(groups)
+    return { comparisons: normalizePostHocComparisons(r?.comparisons), method: 'tukey' }
+  }
+  const bonferroni: PostHocRunner = async (groups, groupNames) => {
+    const r = await pyodideStats.performBonferroni(groups, groupNames)
+    return { comparisons: normalizePostHocComparisons(r.comparisons), method: 'bonferroni' }
+  }
+  const scheffe: PostHocRunner = async (groups) => {
+    const r = await pyodideStats.scheffeTestWorker(groups)
+    return { comparisons: normalizePostHocComparisons(r?.comparisons), method: 'scheffe' }
+  }
+
+  const runners: Record<string, PostHocRunner> = {
+    'games-howell': gamesHowell,
+    tukey,
+    bonferroni,
+    scheffe,
+  }
+
+  // 기본 순서: Games-Howell → Tukey → Bonferroni
+  const defaultOrder: PostHocRunner[] = [gamesHowell, tukey, bonferroni]
+
+  if (!preferredMethod) return defaultOrder
+
+  const normalized = preferredMethod.toLowerCase().replace(/[\s_]/g, '-')
+  const preferred = runners[normalized]
+  if (!preferred) {
+    logger.warn(`알 수 없는 사후검정 방법: ${preferredMethod}, 기본 순서 사용`)
+    return defaultOrder
+  }
+
+  // 선호 방법을 맨 앞에, 나머지 fallback 유지
+  return [preferred, ...defaultOrder.filter(r => r !== preferred)]
+}
+
 export async function handleANOVA(
   method: StatisticalMethod,
-  data: PreparedData
+  data: PreparedData,
+  settings?: SuggestedSettings | null
 ): Promise<StatisticalExecutorResult> {
   // Two-way ANOVA는 별도 처리
   if (method.id === 'two-way-anova') {
@@ -531,34 +579,19 @@ export async function handleANOVA(
     type: method.id === 'two-way-anova' ? 'two-way' : 'one-way'
   })
 
-  // 유의한 경우 사후검정
-  // Games-Howell: 이분산 가정 (등분산 가정 불필요) - 더 robust
-  // Tukey HSD: 등분산 가정 (fallback)
+  // 유의한 경우 사후검정 (settings.postHoc로 선호 방법 지정 가능)
   let postHoc: ReturnType<typeof normalizePostHocComparisons> | undefined
   let postHocMethod: string | undefined
   if (result.pValue < 0.05 && groups.length > 2) {
-    try {
-      // Games-Howell 사용 (이분산에 robust)
-      const ghResult = await pyodideStats.gamesHowellTest(groups, groupNames)
-      postHoc = normalizePostHocComparisons(ghResult?.comparisons)
-      postHocMethod = 'games-howell'
-    } catch (ghError) {
-      logger.warn('Games-Howell 사후검정 실패, Tukey HSD로 시도합니다', ghError)
+    const runners = createPostHocRunners(settings?.postHoc)
+    for (const runner of runners) {
       try {
-        const tukeyResult = await pyodideStats.tukeyHSDWorker(groups)
-        postHoc = normalizePostHocComparisons(tukeyResult?.comparisons)
-        postHocMethod = 'tukey'
-      } catch (tukeyError) {
-        logger.warn('Tukey HSD 사후검정 실패, Bonferroni로 시도합니다', tukeyError)
-        try {
-          const bonferroniResult = await pyodideStats.performBonferroni(groups, groupNames)
-          postHoc = normalizePostHocComparisons(bonferroniResult.comparisons)
-          postHocMethod = 'bonferroni'
-        } catch (bonferroniError) {
-          logger.warn('Bonferroni 사후검정도 실패, 사후검정 없이 진행합니다', bonferroniError)
-          postHoc = undefined
-          postHocMethod = undefined
-        }
+        const r = await runner(groups, groupNames)
+        postHoc = r.comparisons
+        postHocMethod = r.method
+        break
+      } catch (err) {
+        logger.warn('사후검정 실패, 다음 방법으로 시도합니다', err)
       }
     }
   }

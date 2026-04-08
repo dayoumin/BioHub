@@ -234,7 +234,8 @@
         "params": [
           "group1",
           "group2",
-          "equalVar?"
+          "equalVar?",
+          "alternative?"
         ],
         "returns": [
           "statistic",
@@ -252,7 +253,8 @@
       "t_test_paired": {
         "params": [
           "values1",
-          "values2"
+          "values2",
+          "alternative?"
         ],
         "returns": [
           "statistic",
@@ -265,7 +267,8 @@
       "t_test_one_sample": {
         "params": [
           "data",
-          "popmean?"
+          "popmean?",
+          "alternative?"
         ],
         "returns": [
           "statistic",

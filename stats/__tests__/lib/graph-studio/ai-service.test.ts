@@ -135,7 +135,7 @@ describe('editChart', () => {
     mockGenerateRawText.mockResolvedValue('죄송합니다, 요청을 처리할 수 없습니다.');
 
     const req = buildAiEditRequest(makeChartSpec(), 'msg');
-    await expect(editChart(req)).rejects.toThrow('JSON 파싱 실패');
+    await expect(editChart(req)).rejects.toThrow('JSON을 찾을 수 없습니다');
   });
 
   it('patches 필드 누락(스키마 불통과) → Error throw', async () => {

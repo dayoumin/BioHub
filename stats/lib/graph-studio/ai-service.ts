@@ -8,6 +8,7 @@
  */
 
 import { openRouterRecommender } from '@/lib/services/recommenders/openrouter-recommender';
+import { extractJsonFromLlmResponse } from '@/lib/utils/json-extraction';
 import { aiEditResponseSchema } from './chart-spec-schema';
 import type { AiEditRequest, AiEditResponse } from '@/types/graph-studio';
 
@@ -133,43 +134,6 @@ ${colLines}
 ${request.userMessage}`;
 }
 
-// ─── JSON 추출 헬퍼 ────────────────────────────────────────
-
-/**
- * 코드 블록 제거 후 첫 번째 완전한 JSON 객체 추출.
- * AI가 규칙을 어기고 \`\`\`json ... \`\`\` 으로 감싼 경우에도 처리.
- */
-function extractJson(raw: string): string {
-  const trimmed = raw.trim();
-
-  // 코드 블록 우선
-  const codeBlock = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  if (codeBlock?.[1]) return codeBlock[1].trim();
-
-  // 중괄호 밸런싱으로 첫 번째 완전한 JSON 추출
-  const start = trimmed.indexOf('{');
-  if (start === -1) return trimmed;
-
-  let depth = 0;
-  let inString = false;
-  let escape = false;
-
-  for (let i = start; i < trimmed.length; i++) {
-    const ch = trimmed[i];
-    if (escape) { escape = false; continue; }
-    if (ch === '\\' && inString) { escape = true; continue; }
-    if (ch === '"') { inString = !inString; continue; }
-    if (inString) continue;
-    if (ch === '{') depth++;
-    else if (ch === '}') {
-      depth--;
-      if (depth === 0) return trimmed.slice(start, i + 1);
-    }
-  }
-
-  return trimmed;
-}
-
 // ─── Readonly 경로 방어 ────────────────────────────────────
 
 /**
@@ -283,7 +247,13 @@ export async function editChart(request: AiEditRequest): Promise<AiEditResponse>
     );
   }
 
-  const jsonStr = extractJson(rawText);
+  const jsonStr = extractJsonFromLlmResponse(rawText);
+  if (!jsonStr) {
+    throw new AiServiceError(
+      `AI 응답에서 JSON을 찾을 수 없습니다.\n응답 미리보기: ${rawText.slice(0, 200)}`,
+      'PARSE_FAILED',
+    );
+  }
 
   let parsed: unknown;
   try {

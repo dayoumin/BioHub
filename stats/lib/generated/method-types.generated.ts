@@ -476,24 +476,24 @@ export interface ResponseSurfaceAnalysisResult {
  * 독립표본 t-검정
  * @worker Worker 2
  */
-export async function tTestTwoSample(group1: number[], group2: number[], equalVar?: boolean): Promise<TTestTwoSampleResult> {
-  return callWorkerMethod<TTestTwoSampleResult>(2, 't_test_two_sample', { group1, group2, equalVar })
+export async function tTestTwoSample(group1: number[], group2: number[], equalVar?: boolean, alternative?: 'two-sided' | 'less' | 'greater'): Promise<TTestTwoSampleResult> {
+  return callWorkerMethod<TTestTwoSampleResult>(2, 't_test_two_sample', { group1, group2, equalVar, alternative })
 }
 
 /**
  * 대응표본 t-검정
  * @worker Worker 2
  */
-export async function tTestPaired(values1: number[], values2: number[]): Promise<TTestPairedResult> {
-  return callWorkerMethod<TTestPairedResult>(2, 't_test_paired', { values1, values2 })
+export async function tTestPaired(values1: number[], values2: number[], alternative?: 'two-sided' | 'less' | 'greater'): Promise<TTestPairedResult> {
+  return callWorkerMethod<TTestPairedResult>(2, 't_test_paired', { values1, values2, alternative })
 }
 
 /**
  * 일표본 t-검정
  * @worker Worker 2
  */
-export async function tTestOneSample(data: number[] | number[][], popmean?: number): Promise<TTestOneSampleResult> {
-  return callWorkerMethod<TTestOneSampleResult>(2, 't_test_one_sample', { data, popmean })
+export async function tTestOneSample(data: number[] | number[][], popmean?: number, alternative?: 'two-sided' | 'less' | 'greater'): Promise<TTestOneSampleResult> {
+  return callWorkerMethod<TTestOneSampleResult>(2, 't_test_one_sample', { data, popmean, alternative })
 }
 
 /**

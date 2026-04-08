@@ -45,6 +45,7 @@ import type {
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import { openRouterRecommender } from './openrouter-recommender'
 import { ollamaRecommender } from './ollama-recommender'
+import { extractJsonFromLlmResponse } from '@/lib/utils/json-extraction'
 import { logger } from '@/lib/utils/logger'
 import { useSettingsStore } from '@/lib/stores/settings-store'
 import {
@@ -412,14 +413,8 @@ const VALID_TRACKS: ReadonlySet<AnalysisTrack> = new Set([
  */
 export function parseIntentResponse(response: string): IntentClassification | null {
   try {
-    // 1. JSON 추출: ```json 블록 우선, 없으면 직접 JSON
-    const codeBlockMatch = response.match(/```json\s*([\s\S]*?)\s*```/)
-    let jsonStr = codeBlockMatch ? codeBlockMatch[1] : null
-
-    if (!jsonStr) {
-      const jsonMatch = response.match(/\{[\s\S]*\}/)
-      jsonStr = jsonMatch ? jsonMatch[0] : null
-    }
+    // 1. JSON 추출 (balanced-brace — 공통 유틸)
+    const jsonStr = extractJsonFromLlmResponse(response)
 
     if (!jsonStr) {
       logger.warn('[parseIntentResponse] No JSON found in response')

@@ -201,11 +201,10 @@ export function AnalysisExecutionStep({
       // Stage 4: 주 분석 실행
       addLog(logs.methodExecuting(selectedMethod.name))
 
-      // 실제 적용되는 설정만 로그에 표시 (현재 alpha만 지원)
+      // 적용되는 설정 로그 표시
       if (suggestedSettings) {
         const appliedAlpha = suggestedSettings.alpha ?? 0.05
         addLog(logs.aiSettingsApplied(appliedAlpha))
-        // postHoc, alternative는 아직 미지원 — 추천만 표시
         if (suggestedSettings.postHoc) {
           addLog(logs.aiPostHoc(suggestedSettings.postHoc))
         }

@@ -168,9 +168,9 @@ export class StatisticalExecutor {
    *   - groupVar/group: 그룹변수
    *   - 기타 고급 변수 역할 지원
    * @param settings - LLM 추천 분석 설정 (선택)
-   *   - alpha: 유의수준 (기본 0.05) — 현재 적용됨
-   *   - postHoc: 사후검정 방법 — 향후 지원 예정
-   *   - alternative: 검정 방향 — 향후 지원 예정
+   *   - alpha: 유의수준 (기본 0.05)
+   *   - postHoc: 사후검정 방법 (tukey, games-howell, bonferroni, scheffe)
+   *   - alternative: 검정 방향 (two-sided, less, greater) — t-test 계열
    */
   async executeMethod(
     method: StatisticalMethod,
@@ -204,10 +204,10 @@ export class StatisticalExecutor {
           result = await handleDescriptive(method, preparedData)
           break
         case 't-test':
-          result = await handleTTest(method, preparedData)
+          result = await handleTTest(method, preparedData, settings)
           break
         case 'anova':
-          result = await handleANOVA(method, preparedData)
+          result = await handleANOVA(method, preparedData, settings)
           break
         case 'regression':
           result = await handleRegression(method, preparedData)

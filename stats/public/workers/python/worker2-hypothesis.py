@@ -54,7 +54,8 @@ def _corr_t_pvalue(r: float, n: int, k: int = 0) -> tuple:
 def t_test_two_sample(
     group1: List[Union[float, int, None]],
     group2: List[Union[float, int, None]],
-    equalVar: bool = True
+    equalVar: bool = True,
+    alternative: str = 'two-sided'
 ) -> Dict[str, Union[float, int, None]]:
     group1 = clean_array(group1)
     group2 = clean_array(group2)
@@ -62,7 +63,7 @@ def t_test_two_sample(
     if len(group1) < 2 or len(group2) < 2:
         raise ValueError("Each group must have at least 2 observations")
 
-    statistic, p_value = stats.ttest_ind(group1, group2, equal_var=equalVar)
+    statistic, p_value = stats.ttest_ind(group1, group2, equal_var=equalVar, alternative=alternative)
 
     # Calculate Cohen's d manually to avoid heavy pingouin dependency
     n1, n2 = len(group1), len(group2)
@@ -92,14 +93,15 @@ def t_test_two_sample(
 
 def t_test_paired(
     values1: List[Union[float, int, None]],
-    values2: List[Union[float, int, None]]
+    values2: List[Union[float, int, None]],
+    alternative: str = 'two-sided'
 ) -> Dict[str, Union[float, int, None]]:
     values1, values2 = clean_paired_arrays(values1, values2)
 
     if len(values1) < 2:
         raise ValueError("Paired test requires at least 2 valid pairs")
 
-    statistic, p_value = stats.ttest_rel(values1, values2)
+    statistic, p_value = stats.ttest_rel(values1, values2, alternative=alternative)
     mean_diff = np.mean(values1 - values2)
 
     return {
@@ -112,14 +114,15 @@ def t_test_paired(
 
 def t_test_one_sample(
     data: List[Union[float, int, None]],
-    popmean: float = 0
+    popmean: float = 0,
+    alternative: str = 'two-sided'
 ) -> Dict[str, Union[float, None]]:
     clean_data = clean_array(data)
 
     if len(clean_data) < 2:
         raise ValueError("One-sample t-test requires at least 2 observations")
 
-    statistic, p_value = stats.ttest_1samp(clean_data, popmean)
+    statistic, p_value = stats.ttest_1samp(clean_data, popmean, alternative=alternative)
 
     return {
         'statistic': _safe_float(statistic),

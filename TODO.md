@@ -68,3 +68,24 @@
 - [ ] **조립식 프롬프트 라이브러리(`ai/prompts`) 구축**: 논문 생성 파츠(Methods, Results 등), 문서 어조 파츠(Journal, Report), 검증 전용 파츠로 거대한 단일 프롬프트를 분할 (상세: `ai/PROMPT_REGISTRY_PLAN.md` 참조).
 - [ ] **섹션/목적별 전용 프롬프트 생성**: 통계 결과 수치형, 그래프 패턴, 생태학 분야별로 최적화된 프롬프트 템플릿 파일 생성 및 동작 테스트.
 - [ ] **자동 검증 파이프라인(Cross-Model Review) 기획**: 작성 전용 모델과 검수 전용 모델(오류체커, 팩트체커 역할)을 교차 투입해 체계적 확인이 가능하도록 UX 기획.
+
+## 7. Diagnostic Pipeline 기술 부채 (기능·런타임 영향 없음)
+
+상세: [`stats/docs/superpowers/specs/diagnostic-pipeline-tech-debt.md`](stats/docs/superpowers/specs/diagnostic-pipeline-tech-debt.md)
+
+### 완료
+- [x] TD-3: Worker 응답 타입 중복 → `worker-result-types.ts` 추출 (`9ce2689e`)
+- [x] TD-6: MIN_GROUP_SIZE 상수 중복 → `statistical-constants.ts` 추출 (`9ce2689e`)
+- [x] TD-7: 그룹 변수 해결 로직 중복 → `resolveGroupVariable()` 추출 (`9ce2689e`)
+- [x] TD-1: suggestedSettings → handler 전달 (Phase E) — alternative/postHoc 지원
+- [x] TD-5: JSON 추출 regex 통합 → `lib/utils/json-extraction.ts`
+
+### 높음
+- [ ] TD-2: auto 셀렉터 12개 메서드 변수 입력 UI 미완성
+
+### 중간 (코드 품질)
+- [ ] TD-4: Pyodide lazy init 패턴 중복 3파일 → `ensurePyodideReady()` 헬퍼 추출
+
+### 낮음
+- [ ] TD-8: goToPreviousStep() diagnostic 트랙에서 Step 2 skip 미인지
+- [ ] TD-9: experiment-design 트랙 빈 껍데기 → Consultant 모드 흡수 검토

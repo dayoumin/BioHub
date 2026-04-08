@@ -7,11 +7,10 @@
 
 ## 높음 (기능 영향)
 
-### TD-1. suggestedSettings → Handler 전달 (Phase E)
-- **현황**: `suggestedSettings.postHoc`와 `.alternative`가 analysis-store에 저장되지만 handler에 전달 안 됨
-- **원인**: handler 함수 시그니처에 settings 파라미터 자체가 없음
-- **범위**: `AnalysisExecutionStep.tsx` (mergedOptions) + `statistical-executor.ts` (switch → handler 전달) + 각 handler 시그니처 변경
-- **관련 파일**: `handle-t-test.ts` (alternative), `handle-anova.ts` (postHoc)
+### ~~TD-1. suggestedSettings → Handler 전달 (Phase E)~~ ✅ 해결됨
+- ~~`suggestedSettings.postHoc`와 `.alternative`가 analysis-store에 저장되지만 handler에 전달 안 됨~~
+- **해결**: `statistical-executor.ts` switch → settings 전달, `handle-t-test.ts` alternative 지원, `handle-anova.ts` postHoc 선호 방법 지원
+- Python Worker(`worker2-hypothesis.py`)에도 `alternative` 파라미터 추가 (SciPy 네이티브)
 
 ### TD-2. auto 셀렉터 12개 메서드 변수 입력 UI
 - **현황**: friedman, MANOVA, survival 등 `auto` 셀렉터 타입은 슬롯이 비어 있어 프리필 불완전
@@ -33,12 +32,10 @@
   - `normality-enrichment-service.ts:63-72`
 - **해결**: `ensurePyodideReady(): Promise<PyodideCoreService | null>` 헬퍼 추출
 
-### TD-5. JSON 추출 regex 분산 (5곳)
-- LLM 응답에서 JSON 블록을 추출하는 regex가 5곳에 각각 구현:
-  - `diagnostic-pipeline.ts` (가장 약한 버전)
-  - `openrouter-recommender.ts` (`extractBalancedJson` — 가장 강건)
-  - `ollama-recommender.ts`, `llm-recommender.ts`, `ai-service.ts`
-- **해결**: `lib/utils/json-extraction.ts`로 추출, balanced-brace 방식 통합
+### ~~TD-5. JSON 추출 regex 분산 (5곳)~~ ✅ 해결됨
+- ~~LLM 응답에서 JSON 블록을 추출하는 regex가 5곳에 각각 구현~~
+- **해결**: `lib/utils/json-extraction.ts`로 추출 완료 — `extractJsonFromLlmResponse()` (코드블록 + balanced-brace)
+- 적용: diagnostic-pipeline, openrouter-recommender, llm-recommender, ai-service (ollama는 별도 유지)
 
 ### ~~TD-6. MIN_GROUP_SIZE = 3 상수 중복~~ ✅ 해결됨
 - ~~3곳에 동일 값 정의: diagnostic-pipeline, assumption-testing-service, use-levene-test~~

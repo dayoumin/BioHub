@@ -22,6 +22,7 @@ import {
   getMethodByIdOrAlias,
   getKoreanName
 } from '@/lib/constants/statistical-methods'
+import { extractJsonFromLlmResponse } from '@/lib/utils/json-extraction'
 import { logger } from '@/lib/utils/logger'
 import { getSystemPromptConsultant } from '../ai/prompts'
 import { buildDataContextMarkdown, buildAssumptionContextMarkdown } from '../ai/data-context-builder'
@@ -439,40 +440,6 @@ export class OpenRouterRecommender {
   }
 
   /**
-   * Fix 2-E: 중괄호 밸런싱으로 첫 번째 완전한 JSON 객체 추출
-   * greedy regex 대신 사용하여 다중 JSON 시 파싱 실패 방지
-   */
-  private extractBalancedJson(content: string): string | null {
-    const start = content.indexOf('{')
-    if (start === -1) return null
-
-    let depth = 0
-    let inString = false
-    let escape = false
-
-    for (let i = start; i < content.length; i++) {
-      const ch = content[i]
-
-      if (escape) { escape = false; continue }
-      if (ch === '\\' && inString) { escape = true; continue }
-      if (ch === '"') { inString = !inString; continue }
-      if (inString) continue
-
-      if (ch === '{') depth++
-      else if (ch === '}') {
-        depth--
-        if (depth === 0) {
-          return content.substring(start, i + 1)
-        }
-      }
-    }
-
-    // R2-E: 밸런싱 실패 = 불완전 JSON → null 반환 (다음 모델로 fallback)
-    // greedy 매칭은 garbage 포함 가능하므로 사용하지 않음
-    return null
-  }
-
-  /**
    * 사용자 프롬프트 구성 (데이터 컨텍스트 + 질문)
    */
   private buildUserPrompt(
@@ -518,7 +485,7 @@ ${userInput}`
     }
 
     // Fix 2-E: 밸런싱된 JSON 추출 사용 (greedy 매칭 방지)
-    const jsonStr = this.extractBalancedJson(content)
+    const jsonStr = extractJsonFromLlmResponse(content)
     if (jsonStr) {
       const beforeJson = content.substring(0, content.indexOf(jsonStr)).trim()
       return beforeJson || ''
@@ -532,14 +499,8 @@ ${userInput}`
    */
   private parseResponse(content: string): AIRecommendation | null {
     try {
-      // 코드 블록에서 JSON 추출
-      const codeBlockMatch = content.match(/```json\s*([\s\S]*?)\s*```/)
-      let jsonStr = codeBlockMatch ? codeBlockMatch[1] : null
-
-      // Fix 2-E: 코드 블록 없으면 중괄호 밸런싱으로 JSON 추출 (greedy 매칭 방지)
-      if (!jsonStr) {
-        jsonStr = this.extractBalancedJson(content)
-      }
+      // 코드블록 + balanced-brace 통합 추출
+      const jsonStr = extractJsonFromLlmResponse(content)
 
       if (!jsonStr) {
         logger.error('[OpenRouter] No JSON found in response')
