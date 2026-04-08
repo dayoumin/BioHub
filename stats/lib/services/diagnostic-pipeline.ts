@@ -81,14 +81,15 @@ export async function runDiagnosticPipeline(
 
   const detectionResult = await detectVariables(userMessage, validationResults)
 
-  if (!detectionResult.variableAssignments) {
+  // 완전 미탐지 또는 부분 탐지 (필수 역할 부족) → 추가 질문
+  if (detectionResult.clarificationNeeded) {
     return {
       uploadNonce,
       basicStats,
       assumptions: null,
-      variableAssignments: null,
+      variableAssignments: detectionResult.variableAssignments, // 부분 탐지 결과 보존
       pendingClarification: buildPendingClarification(
-        detectionResult.clarificationNeeded ?? '어떤 변수를 비교 기준으로 사용할까요?',
+        detectionResult.clarificationNeeded,
         detectionResult.variableAssignments,
         validationResults,
       ),
@@ -98,7 +99,7 @@ export async function runDiagnosticPipeline(
   // ── 3. 가정 검정 (pre-warm된 Pyodide 사용) ──
   onStatus?.('가정 검정 실행 중...')
   const assumptions = await runDiagnosticAssumptions(
-    detectionResult.variableAssignments,
+    detectionResult.variableAssignments!,
     data,
     validationResults,
   )
@@ -108,7 +109,7 @@ export async function runDiagnosticPipeline(
     uploadNonce,
     basicStats,
     assumptions,
-    variableAssignments: detectionResult.variableAssignments,
+    variableAssignments: detectionResult.variableAssignments!,
     pendingClarification: null,
   }
 }
@@ -128,18 +129,35 @@ export async function resumeDiagnosticPipeline(
   onStatus?.('답변 분석 중...')
 
   // 사용자 답변에서 변수명 매칭
-  const variableAssignments = resolveVariableFromAnswer(
+  const newAssignments = resolveVariableFromAnswer(
     userAnswer,
     previousReport.pendingClarification,
+    validationResults,
   )
 
-  if (!variableAssignments) {
-    // 매칭 실패 → 다시 질문
+  if (!newAssignments) {
     return {
       ...previousReport,
       pendingClarification: buildPendingClarification(
         '죄송합니다. 변수명을 정확히 파악하지 못했어요. 아래 목록에서 선택해 주세요.',
-        null,
+        previousReport.variableAssignments,
+        validationResults,
+      ),
+    }
+  }
+
+  // 기존 부분 탐지 결과와 병합 (기존 + 새 답변)
+  const merged = mergeVariableAssignments(previousReport.variableAssignments, newAssignments)
+
+  // 병합 후 필수 역할 검증
+  const hasDep = (merged.dependent?.length ?? 0) > 0
+  if (!hasDep) {
+    return {
+      ...previousReport,
+      variableAssignments: merged,
+      pendingClarification: buildPendingClarification(
+        '비교할 측정값(종속변수)을 알려주세요.',
+        merged,
         validationResults,
       ),
     }
@@ -147,7 +165,7 @@ export async function resumeDiagnosticPipeline(
 
   onStatus?.('가정 검정 실행 중...')
   const assumptions = await runDiagnosticAssumptions(
-    variableAssignments,
+    merged,
     data,
     validationResults,
   )
@@ -155,7 +173,7 @@ export async function resumeDiagnosticPipeline(
   return {
     ...previousReport,
     assumptions,
-    variableAssignments,
+    variableAssignments: merged,
     pendingClarification: null,
   }
 }
@@ -323,10 +341,27 @@ function parseVariableDetectionResponse(
     }
 
     const hasAnyRole = Object.values(validated).some(v => Array.isArray(v) && v.length > 0)
-    return {
-      variableAssignments: hasAnyRole ? validated : null,
-      clarificationNeeded: hasAnyRole ? null : '데이터에서 해당 변수를 찾지 못했습니다.',
+    if (!hasAnyRole) {
+      return { variableAssignments: null, clarificationNeeded: '데이터에서 해당 변수를 찾지 못했습니다.' }
     }
+
+    // 필수 역할 검증: dependent가 없으면 부분 탐지 → 추가 질문 필요
+    const hasDep = (validated.dependent?.length ?? 0) > 0
+    const hasGroup = (validated.factor?.length ?? 0) > 0
+      || (validated.independent?.length ?? 0) > 0
+      || (validated.between?.length ?? 0) > 0
+
+    if (!hasDep) {
+      // factor만 잡힌 경우 → dependent를 추가로 질문
+      return {
+        variableAssignments: validated,
+        clarificationNeeded: hasGroup
+          ? '그룹 변수는 감지했지만, 비교할 측정값(종속변수)을 알려주세요.'
+          : '어떤 변수를 분석할지 알려주세요.',
+      }
+    }
+
+    return { variableAssignments: validated, clarificationNeeded: null }
   } catch {
     return { variableAssignments: null, clarificationNeeded: null }
   }
@@ -372,28 +407,77 @@ function buildPendingClarification(
   }
 }
 
+// ===== Internal: 변수 배정 병합 =====
+
+/** 기존 부분 탐지 + 새 답변 결과를 병합. 새 답변이 기존 역할을 덮어쓰지 않음. */
+function mergeVariableAssignments(
+  existing: AIRecommendation['variableAssignments'] | null,
+  incoming: NonNullable<AIRecommendation['variableAssignments']>,
+): NonNullable<AIRecommendation['variableAssignments']> {
+  const merged: Record<string, string[]> = {}
+
+  // 기존 역할 복사
+  if (existing) {
+    for (const [role, cols] of Object.entries(existing)) {
+      if (Array.isArray(cols) && cols.length > 0) {
+        merged[role] = [...cols]
+      }
+    }
+  }
+
+  // 새 역할 추가 (기존에 없는 역할만)
+  for (const [role, cols] of Object.entries(incoming)) {
+    if (Array.isArray(cols) && cols.length > 0 && !merged[role]) {
+      merged[role] = [...cols]
+    }
+  }
+
+  return merged as NonNullable<AIRecommendation['variableAssignments']>
+}
+
 // ===== Internal: resume 시 변수명 매칭 =====
 
+/**
+ * resume 시 사용자 답변에서 변수명 매칭.
+ *
+ * candidateColumns(최대 15개)뿐 아니라 validationResults의 전체 컬럼에서도
+ * 매칭을 시도하여, 넓은 스키마에서 15번째 이후 컬럼도 찾을 수 있다.
+ */
 function resolveVariableFromAnswer(
   userAnswer: string,
   pending: DiagnosticReport['pendingClarification'],
+  validationResults?: ValidationResults,
 ): AIRecommendation['variableAssignments'] | null {
   if (!pending) return null
 
   const answer = userAnswer.trim()
-  const candidates = pending.candidateColumns
 
-  // 정확 매칭: 컬럼명 전체가 답변에 포함 (단어 경계 기반, substring 오매칭 방지)
-  const matched = candidates.filter(c => {
-    // 정확한 컬럼명 매칭 — "age" 가 "page"와 매칭되지 않도록
-    const escaped = c.column.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  // 후보 = pendingClarification.candidateColumns + 전체 컬럼 (중복 제거)
+  const candidateSet = new Map<string, 'numeric' | 'categorical'>()
+  for (const c of pending.candidateColumns) {
+    candidateSet.set(c.column, c.type)
+  }
+  // 전체 컬럼에서 candidateColumns에 없는 것 추가 (15개 제한 우회)
+  if (validationResults?.columns) {
+    for (const c of validationResults.columns) {
+      if (!candidateSet.has(c.name) && !c.idDetection?.isId) {
+        candidateSet.set(c.name, c.type === 'numeric' ? 'numeric' : 'categorical')
+      }
+    }
+  }
+
+  // 정확 매칭: 컬럼명 전체가 답변에 포함 (단어 경계 기반)
+  const matched: Array<{ column: string; type: 'numeric' | 'categorical' }> = []
+  for (const [colName, colType] of candidateSet) {
+    const escaped = colName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const pattern = new RegExp(`(?:^|[\\s,."'()\\[\\]])${escaped}(?:$|[\\s,."'()\\[\\]])`, 'i')
-    return pattern.test(answer) || answer === c.column
-  })
+    if (pattern.test(answer) || answer === colName) {
+      matched.push({ column: colName, type: colType })
+    }
+  }
 
   if (matched.length === 0) return null
 
-  // 매칭된 컬럼들의 타입에 따라 역할 분배
   const result: AIRecommendation['variableAssignments'] = {}
   for (const col of matched) {
     if (col.type === 'categorical') {
