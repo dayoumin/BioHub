@@ -1,4 +1,5 @@
 // Vitest 테스트 환경 설정
+import React from 'react'
 import { vi } from 'vitest'
 import '@testing-library/jest-dom/vitest'
 
@@ -187,7 +188,6 @@ vi.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
 vi.mock('react-markdown', () => {
   return {
     default: function ReactMarkdown({ children }: { children: React.ReactNode }) {
-      const React = require('react');
       return React.createElement('div', null, children);
     }
   };

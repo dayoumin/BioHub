@@ -1,8 +1,9 @@
 // Jest 테스트 환경 설정
+import React from 'react';
 import '@testing-library/jest-dom';
 
 // IndexedDB Mock (fake-indexeddb)
-require('fake-indexeddb/auto');
+import 'fake-indexeddb/auto';
 
 // structuredClone polyfill for fake-indexeddb
 // Node.js 22 has structuredClone, but we provide a global reference for jsdom
@@ -184,7 +185,7 @@ jest.mock('@/lib/services/pyodide/pyodide-statistics', () => ({
 // react-markdown mock (ESM 이슈 해결)
 jest.mock('react-markdown', () => {
   return function ReactMarkdown({ children }: { children: React.ReactNode }) {
-    return require('react').createElement('div', null, children);
+    return React.createElement('div', null, children);
   };
 });
 
