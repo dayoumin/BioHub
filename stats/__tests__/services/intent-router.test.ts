@@ -110,31 +110,30 @@ describe('Intent Router', () => {
       expect(result.track).toBe('data-consultation')
     })
 
-    // --- Track 3: 실험 설계 ---
-    it('표본 크기 → experiment-design', async () => {
+    // --- 실험 설계 키워드 → data-consultation 흡수 ---
+    it('표본 크기 → data-consultation (실험 설계 흡수)', async () => {
       const result = await intentRouter.classify('표본 크기 계산')
 
-      expect(result.track).toBe('experiment-design')
+      expect(result.track).toBe('data-consultation')
       expect(result.confidence).toBe(0.9)
-      expect(result.needsData).toBe(false)
     })
 
-    it('검정력 분석 → experiment-design', async () => {
+    it('검정력 분석 → data-consultation', async () => {
       const result = await intentRouter.classify('검정력 분석을 하고 싶어')
 
-      expect(result.track).toBe('experiment-design')
+      expect(result.track).toBe('data-consultation')
     })
 
-    it('sample size → experiment-design', async () => {
+    it('sample size → data-consultation', async () => {
       const result = await intentRouter.classify('What sample size do I need?')
 
-      expect(result.track).toBe('experiment-design')
+      expect(result.track).toBe('data-consultation')
     })
 
-    it('실험 설계 → experiment-design', async () => {
+    it('실험 설계 → data-consultation', async () => {
       const result = await intentRouter.classify('실험 설계를 도와주세요')
 
-      expect(result.track).toBe('experiment-design')
+      expect(result.track).toBe('data-consultation')
     })
   })
 
@@ -239,11 +238,10 @@ describe('Intent Router', () => {
 
   // ===== 시나리오 5: 우선순위 검증 =====
   describe('분류 우선순위', () => {
-    it('실험 설계 키워드가 메서드명보다 우선 (예: "t-test 표본 크기")', async () => {
+    it('실험 설계 키워드가 메서드명보다 우선 → data-consultation', async () => {
       const result = await intentRouter.classify('t-test 표본 크기 계산')
 
-      // Track 3이 Track 1보다 우선
-      expect(result.track).toBe('experiment-design')
+      expect(result.track).toBe('data-consultation')
     })
 
     it('높은 confidence 키워드 → LLM 호출 안 함', async () => {

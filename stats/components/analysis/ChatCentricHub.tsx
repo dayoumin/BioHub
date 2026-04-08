@@ -265,15 +265,12 @@ export function ChatCentricHub({
           }
         }
       } else {
-        // direct-analysis / experiment-design / visualization: 확인 메시지 → 이동
+        // direct-analysis / visualization: 확인 메시지 → 이동
         let confirmMsg: string
         if (intent.track === 'direct-analysis' && intent.method) {
           confirmMsg = `${getKoreanName(intent.method.id) ?? intent.method.name} ${t.hub.intentMessages.startAnalysisSuffix}`
-        } else if (intent.track === 'visualization') {
-          confirmMsg = t.hub.intentMessages.graphStudio
         } else {
-          // experiment-design
-          confirmMsg = t.hub.intentMessages.experimentDesign
+          confirmMsg = t.hub.intentMessages.graphStudio
         }
         setStreaming(false)
         addMessage({

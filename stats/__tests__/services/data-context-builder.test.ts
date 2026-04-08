@@ -261,14 +261,8 @@ describe('buildContextForIntent', () => {
     expect(result).not.toContain('변수 상세 통계')
   })
 
-  it('experiment-design → buildConsultationContext (경량)', () => {
-    const result = buildContextForIntent('experiment-design', validation)
-    expect(result).toContain('데이터 개요')
-    expect(result).not.toContain('변수 상세 통계')
-  })
-
   it('null 데이터는 모든 track에서 안내 메시지 반환', () => {
-    const tracks = ['direct-analysis', 'data-consultation', 'visualization', 'experiment-design'] as const
+    const tracks = ['direct-analysis', 'data-consultation', 'visualization'] as const
     for (const track of tracks) {
       expect(buildContextForIntent(track, null)).toContain('데이터가 업로드되지 않았습니다')
     }

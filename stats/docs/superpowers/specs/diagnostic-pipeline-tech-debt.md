@@ -47,13 +47,13 @@
 
 ## 낮음 (개선)
 
-### TD-8. goToPreviousStep() Step 2 skip 미인지
-- Step 3에서 "이전" 누르면 Step 2로 이동 (diagnostic/quick 트랙에서는 Step 1이어야)
-- Phase D에서 `onBack` prop 커스터마이즈로 해결 예정
+### ~~TD-8. goToPreviousStep() Step 2 skip 미인지~~ ✅ 이미 해결됨
+- ~~Step 3에서 "이전" 누르면 Step 2로 이동~~
+- **해결**: Phase D에서 AnalysisSteps.tsx의 VariableSelectionStep onBack에 diagnostic/quick 트랙 분기 구현 완료
 
-### TD-9. experiment-design 트랙 빈 껍데기
-- Intent Router에 트랙 있지만 실제 기능 없음
-- Consultant 모드에서 power-analysis 추천으로 흡수 검토
+### ~~TD-9. experiment-design 트랙 빈 껍데기~~ ✅ 해결됨
+- ~~Intent Router에 트랙 있지만 실제 기능 없음~~
+- **해결**: experiment-design 트랙 삭제, data-consultation으로 흡수 (AI 상담에서 자연 처리)
 
 ---
 

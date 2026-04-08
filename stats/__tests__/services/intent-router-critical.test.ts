@@ -18,6 +18,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { AnalysisTrack } from '@/types/analysis'
 
 vi.mock('@/lib/services/recommenders/llm-recommender', () => ({
   llmRecommender: {
@@ -293,7 +294,7 @@ describe('Intent Router — 비판적 검토', () => {
     it('Track 3 + Track 2 동시 매칭 → Track 3 우선', async () => {
       const result = await intentRouter.classify('적절한 표본 크기 추천해줘')
 
-      expect(result.track).toBe('experiment-design')
+      expect(result.track).toBe('data-consultation')
     })
 
     it('Track 1 + Track 2 동시 매칭 — 메서드명 + 상담 키워드', async () => {
@@ -307,7 +308,7 @@ describe('Intent Router — 비판적 검토', () => {
     it('Track 3 + Track 1 동시 매칭 → Track 3 우선', async () => {
       const result = await intentRouter.classify('ANOVA 검정력 분석')
 
-      expect(result.track).toBe('experiment-design')
+      expect(result.track).toBe('data-consultation')
     })
 
     it('메서드명만 있고 상담 키워드 없음 → direct-analysis', async () => {
@@ -397,9 +398,9 @@ describe('Intent Router — 비판적 검토', () => {
 
   // ===== I. LLM classifyIntent() 응답별 처리 =====
   describe('I. LLM classifyIntent() 응답별 처리', () => {
-    it('LLM → experiment-design 분류 → experiment-design', async () => {
+    it('LLM → experiment-design 분류 → data-consultation 흡수', async () => {
       mockClassifyIntent.mockResolvedValue(createClassification({
-        track: 'experiment-design',
+        track: 'experiment-design' as AnalysisTrack,
         confidence: 0.9,
         methodId: null,
         reasoning: '실험 설계 관련',
@@ -407,8 +408,8 @@ describe('Intent Router — 비판적 검토', () => {
 
       const result = await intentRouter.classify('여러 그룹')
 
-      expect(result.track).toBe('experiment-design')
-      expect(result.needsData).toBe(false)
+      expect(result.track).toBe('data-consultation')
+      expect(result.needsData).toBe(true)
       expect(result.provider).toBe('llm')
     })
 
@@ -524,9 +525,10 @@ describe('Intent Router — 비판적 검토', () => {
 
   // ===== K. needsData 필드 검증 =====
   describe('K. needsData 필드 일관성', () => {
-    it('experiment-design → needsData=false', async () => {
+    it('실험 설계 키워드 → data-consultation, needsData=false', async () => {
       const result = await intentRouter.classify('표본 크기 계산')
 
+      expect(result.track).toBe('data-consultation')
       expect(result.needsData).toBe(false)
     })
 
@@ -548,15 +550,16 @@ describe('Intent Router — 비판적 검토', () => {
       expect(result.needsData).toBe(true)
     })
 
-    it('LLM experiment-design → needsData=false', async () => {
+    it('LLM experiment-design → data-consultation 흡수, needsData=true', async () => {
       mockClassifyIntent.mockResolvedValue(createClassification({
-        track: 'experiment-design',
+        track: 'experiment-design' as AnalysisTrack,
         confidence: 0.8,
       }))
 
       const result = await intentRouter.classify('아무거나')
 
-      expect(result.needsData).toBe(false)
+      expect(result.track).toBe('data-consultation')
+      expect(result.needsData).toBe(true)
     })
   })
 

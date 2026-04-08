@@ -402,7 +402,6 @@ export class LlmRecommender {
 const VALID_TRACKS: ReadonlySet<AnalysisTrack> = new Set([
   'direct-analysis',
   'data-consultation',
-  'experiment-design'
 ])
 
 /**

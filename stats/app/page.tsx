@@ -59,7 +59,6 @@ export default function HomePage() {
    * 여기에 도달하는 경우:
    * - data-consultation + 추천 없음 → Step 1 이동
    * - direct-analysis → Step 1 또는 quick analysis
-   * - experiment-design → Step 1 이동
    */
   const handleIntentResolved = useCallback((intent: ResolvedIntent, message: string) => {
     switch (intent.track) {
@@ -85,13 +84,7 @@ export default function HomePage() {
         navigateToStep(1)
         break
 
-      case 'experiment-design':
-        startFreshAnalysisSession()
-        setUserQuery(message)
-        toast.info(t.hub.experimentNotReady)
-        setShowHub(false)
-        navigateToStep(1)
-        break
+      // experiment-design 폐기 — data-consultation으로 흡수됨
 
       case 'visualization': {
         // 허브에 업로드된 데이터가 있으면 Graph Studio로 전달 후 이동

@@ -4,8 +4,7 @@
  * Strategy: 키워드 우선 (1ms 이내), LLM fallback (애매한 경우)
  *
  * Track 1: direct-analysis — 특정 통계 방법을 이미 알고 바로 실행
- * Track 2: data-consultation — 데이터를 넣고 AI와 상담
- * Track 3: experiment-design — 실험 설계, 표본 크기, 검정력 분석
+ * Track 2: data-consultation — 데이터를 넣고 AI와 상담 (실험 설계/표본 크기 포함)
  */
 
 import { STATISTICAL_METHODS, getKoreanName } from '@/lib/constants/statistical-methods'
@@ -162,14 +161,14 @@ class IntentRouterService {
    * 키워드 기반 즉시 분류
    */
   private classifyByKeyword(input: string): ResolvedIntent | null {
-    // Track 3: 실험 설계 (최우선 체크 — 고유한 키워드)
+    // 실험 설계 키워드 → data-consultation으로 흡수 (AI 상담에서 자연 처리)
     for (const pattern of EXPERIMENT_DESIGN_PATTERNS) {
       if (pattern.test(input)) {
         return {
-          track: 'experiment-design',
+          track: 'data-consultation',
           confidence: 0.9,
           method: null,
-          reasoning: '실험 설계 관련 키워드 감지',
+          reasoning: '실험 설계 관련 → AI 상담으로 처리',
           needsData: false,
           provider: 'keyword'
         }
@@ -269,16 +268,17 @@ class IntentRouterService {
       : null
 
     // 방어: direct-analysis인데 method가 null이면 data-consultation으로 교정
-    const track = (classification.track === 'direct-analysis' && !method)
-      ? 'data-consultation' as AnalysisTrack
-      : classification.track
+    // experiment-design → data-consultation 흡수 (별도 트랙 폐기)
+    let track: AnalysisTrack = classification.track
+    if (track === 'direct-analysis' && !method) track = 'data-consultation'
+    if ((track as string) === 'experiment-design') track = 'data-consultation'
 
     return {
       track,
       confidence: classification.confidence,
       method,
       reasoning: classification.reasoning,
-      needsData: track !== 'experiment-design',
+      needsData: true,
       provider: 'llm'
     }
   }
@@ -289,7 +289,7 @@ class IntentRouterService {
       confidence: 0.5,
       method: null,
       reasoning: '기본 경로',
-      needsData: track !== 'experiment-design',
+      needsData: true,
       provider: 'keyword'
     }
   }

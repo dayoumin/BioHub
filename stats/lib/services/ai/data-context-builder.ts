@@ -245,8 +245,6 @@ export function buildContextForIntent(
       return buildDataContextMarkdown(validationResults)
     case 'visualization':
       return buildVisualizationContext(validationResults)
-    case 'experiment-design':
-      return buildConsultationContext(validationResults)
     default:
       return buildConsultationContext(validationResults)
   }

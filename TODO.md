@@ -87,5 +87,5 @@
 - [x] TD-4: Pyodide lazy init 패턴 중복 → `ensurePyodideReady()` 추출
 
 ### 낮음
-- [ ] TD-8: goToPreviousStep() diagnostic 트랙에서 Step 2 skip 미인지
-- [ ] TD-9: experiment-design 트랙 빈 껍데기 → Consultant 모드 흡수 검토
+- [x] TD-8: goToPreviousStep() — Phase D에서 이미 해결됨
+- [x] TD-9: experiment-design 트랙 → data-consultation 흡수 완료
