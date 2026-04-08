@@ -231,7 +231,8 @@ export function toStatisticalAssumptions(da: DiagnosticAssumptions): Statistical
 
 // ===== Internal: 기초통계 추출 =====
 
-function extractBasicStats(vr: ValidationResults): DiagnosticReport['basicStats'] {
+/** @internal 테스트용 export */
+export function extractBasicStats(vr: ValidationResults): DiagnosticReport['basicStats'] {
   const columns = vr.columns ?? []
 
   const numericSummaries = columns
@@ -302,7 +303,8 @@ async function detectVariables(
   }
 }
 
-function parseVariableDetectionResponse(
+/** @internal 테스트용 export */
+export function parseVariableDetectionResponse(
   raw: string,
   validationResults: ValidationResults,
 ): VariableDetectionResult {
@@ -373,7 +375,8 @@ function parseVariableDetectionResponse(
 const DEFAULT_REQUIRED_ROLES = ['dependent', 'factor'] as const
 type VariableRole = DiagnosticReport['pendingClarification'] extends { missingRoles: Array<infer R> } | null ? R : string
 
-function buildPendingClarification(
+/** @internal 테스트용 export */
+export function buildPendingClarification(
   question: string,
   partialAssignments: AIRecommendation['variableAssignments'] | null,
   validationResults: ValidationResults,
@@ -409,8 +412,8 @@ function buildPendingClarification(
 
 // ===== Internal: 변수 배정 병합 =====
 
-/** 기존 부분 탐지 + 새 답변 결과를 병합. 새 답변이 기존 역할을 덮어쓰지 않음. */
-function mergeVariableAssignments(
+/** @internal 기존 부분 탐지 + 새 답변 결과를 병합. 새 답변이 기존 역할을 덮어쓰지 않음. */
+export function mergeVariableAssignments(
   existing: AIRecommendation['variableAssignments'] | null,
   incoming: NonNullable<AIRecommendation['variableAssignments']>,
 ): NonNullable<AIRecommendation['variableAssignments']> {
@@ -438,12 +441,12 @@ function mergeVariableAssignments(
 // ===== Internal: resume 시 변수명 매칭 =====
 
 /**
- * resume 시 사용자 답변에서 변수명 매칭.
+ * @internal resume 시 사용자 답변에서 변수명 매칭.
  *
  * candidateColumns(최대 15개)뿐 아니라 validationResults의 전체 컬럼에서도
  * 매칭을 시도하여, 넓은 스키마에서 15번째 이후 컬럼도 찾을 수 있다.
  */
-function resolveVariableFromAnswer(
+export function resolveVariableFromAnswer(
   userAnswer: string,
   pending: DiagnosticReport['pendingClarification'],
   validationResults?: ValidationResults,
@@ -466,12 +469,14 @@ function resolveVariableFromAnswer(
     }
   }
 
-  // 정확 매칭: 컬럼명 전체가 답변에 포함 (단어 경계 기반)
+  // 정확 매칭: 컬럼명 전체가 답변에 포함
+  // 한국어 조사(을/를/로/별/이/가/은/는/의/에서 등)도 허용
+  const KO_PARTICLE = '(?:[을를로별이가은는의에서와과도만까지부터]|으로)?'
   const matched: Array<{ column: string; type: 'numeric' | 'categorical' }> = []
   for (const [colName, colType] of candidateSet) {
     const escaped = colName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const pattern = new RegExp(`(?:^|[\\s,."'()\\[\\]])${escaped}(?:$|[\\s,."'()\\[\\]])`, 'i')
-    if (pattern.test(answer) || answer === colName) {
+    const pattern = new RegExp(`(?:^|[\\s,."'()\\[\\]])${escaped}${KO_PARTICLE}(?:$|[\\s,."'()\\[\\]])`, 'i')
+    if (pattern.test(` ${answer} `) || answer === colName) {
       matched.push({ column: colName, type: colType })
     }
   }
