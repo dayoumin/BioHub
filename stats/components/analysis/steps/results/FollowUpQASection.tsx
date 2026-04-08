@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { proseBase } from '@/components/common/card-styles'
+import { AI_ACCENT } from '@/lib/design-tokens/analysis'
 import { sectionRevealVariants } from './results-helpers'
 import type { ChatMessage } from '@/lib/types/chat'
 import type { TerminologyDictionary } from '@/lib/terminology/terminology-types'
@@ -72,13 +73,13 @@ export function FollowUpQASection({
                     'px-3 py-2.5 rounded-lg text-sm',
                     msg.role === 'user'
                       ? 'bg-surface-container/60 ml-6'
-                      : 'bg-violet-50/50 dark:bg-violet-950/20'
+                      : AI_ACCENT.surface
                   )}
                 >
                   {msg.role === 'user' ? (
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">{t.results.followUp.userLabel}</p>
                   ) : (
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-500 dark:text-violet-400 mb-1 flex items-center gap-1">
+                    <p className={cn('text-[10px] font-semibold uppercase tracking-wider mb-1 flex items-center gap-1', AI_ACCENT.icon)}>
                       <Sparkles className="w-2.5 h-2.5" /> {t.results.followUp.aiLabel}
                     </p>
                   )}
@@ -86,7 +87,7 @@ export function FollowUpQASection({
                     <ReactMarkdown>{msg.content}</ReactMarkdown>
                   </div>
                   {msg.role === 'assistant' && isFollowUpStreaming && idx === followUpMessages.length - 1 && (
-                    <span className="inline-block w-1.5 h-3.5 bg-violet-500 animate-pulse ml-0.5 align-text-bottom" />
+                    <span className={cn('inline-block w-1.5 h-3.5 animate-pulse ml-0.5 align-text-bottom', AI_ACCENT.cursor)} />
                   )}
                 </div>
               ))}

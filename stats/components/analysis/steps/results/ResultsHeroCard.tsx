@@ -17,6 +17,7 @@ import { VALIDATION_METADATA } from '@/lib/constants/validation-metadata'
 import {
   heroRevealVariants,
 } from './results-helpers'
+import type { TerminologyDictionary } from '@/lib/terminology/terminology-types'
 
 export interface ResultsHeroCardProps {
   statisticalResult: StatisticalResult
@@ -31,13 +32,7 @@ export interface ResultsHeroCardProps {
   aiSummary: string | null
   isInterpreting: boolean
   prefersReducedMotion: boolean
-  t: {
-    results: {
-      sections: { caution: string }
-      conclusion: { assumptionWarning: string; significant: string; notSignificant: string; analysisComplete: string }
-      metadata: { analysisTime: string; rowsCols: (rows: number, cols: number) => string }
-    }
-  }
+  t: Pick<TerminologyDictionary, 'results'>
 }
 
 export function ResultsHeroCard({

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import {
   ArrowLeft,
   FileText,
@@ -19,16 +20,6 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -36,23 +27,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { ConfirmAlertDialog } from '@/components/common/ConfirmAlertDialog'
 import type { ExportFormat, ExportContentOptions } from '@/lib/services/export/export-types'
+import type { TerminologyDictionary } from '@/lib/terminology/terminology-types'
 
 export interface ResultsActionButtonsProps {
-  // 네비게이션
   onBackToVariables: () => void
   onOpenGraphStudio: () => void
   onReanalyze: () => void
-  onNewAnalysis: () => void
-  onSaveTemplate: () => void
-
-  // 확인 다이얼로그
-  showNewAnalysisConfirm: boolean
-  onShowNewAnalysisConfirmChange: (open: boolean) => void
   onNewAnalysisConfirm: () => void
-  showChangeMethodConfirm: boolean
-  onShowChangeMethodConfirmChange: (open: boolean) => void
   onChangeMethodConfirm: () => void
+  onSaveTemplate: () => void
 
   // 내보내기 다이얼로그
   exportDialogOpen: boolean
@@ -65,59 +50,16 @@ export interface ResultsActionButtonsProps {
   isExporting: boolean
   hasUploadedData: boolean
 
-  // terminology
-  t: {
-    results: {
-      buttons: {
-        backToVariables: string
-        changeMethod: string
-        moreActions: string
-        saveTemplate: string
-        reanalyze: string
-        newAnalysis: string
-      }
-      confirm: {
-        newAnalysis: {
-          title: string
-          description: string
-          cancel: string
-          confirm: string
-        }
-        changeMethod: {
-          title: string
-          description: string
-          cancel: string
-          confirm: string
-        }
-      }
-      exportDialog: {
-        title: string
-        description: string
-        formatLabel: string
-        contentLabel: string
-        includeInterpretation: string
-        includeRawData: string
-        includeMethodology: string
-        includeReferences: string
-        cancel: string
-        confirm: string
-      }
-    }
-  }
+  t: Pick<TerminologyDictionary, 'results'>
 }
 
 export function ResultsActionButtons({
   onBackToVariables,
   onOpenGraphStudio,
   onReanalyze,
-  onNewAnalysis,
-  onSaveTemplate,
-  showNewAnalysisConfirm,
-  onShowNewAnalysisConfirmChange,
   onNewAnalysisConfirm,
-  showChangeMethodConfirm,
-  onShowChangeMethodConfirmChange,
   onChangeMethodConfirm,
+  onSaveTemplate,
   exportDialogOpen,
   onExportDialogOpenChange,
   exportFormat,
@@ -129,6 +71,9 @@ export function ResultsActionButtons({
   hasUploadedData,
   t,
 }: ResultsActionButtonsProps): React.ReactElement {
+  const [showNewAnalysisConfirm, setShowNewAnalysisConfirm] = useState(false)
+  const [showChangeMethodConfirm, setShowChangeMethodConfirm] = useState(false)
+
   return (
     <>
       {/* ===== 액션 버튼 ===== */}
@@ -158,7 +103,7 @@ export function ResultsActionButtons({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onShowChangeMethodConfirmChange(true)} data-testid="change-method-btn">
+            <DropdownMenuItem onClick={() => setShowChangeMethodConfirm(true)} data-testid="change-method-btn">
               <RefreshCw className="w-4 h-4 mr-2" />
               {t.results.buttons.changeMethod}
             </DropdownMenuItem>
@@ -188,7 +133,7 @@ export function ResultsActionButtons({
         <Button
           variant="default"
           size="sm"
-          onClick={onNewAnalysis}
+          onClick={() => setShowNewAnalysisConfirm(true)}
           className="text-sm h-9"
           data-testid="new-analysis-btn"
         >
@@ -197,37 +142,27 @@ export function ResultsActionButtons({
         </Button>
       </div>
 
-      {/* 새 분석 시작 확인 다이얼로그 */}
-      <AlertDialog open={showNewAnalysisConfirm} onOpenChange={onShowNewAnalysisConfirmChange}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t.results.confirm.newAnalysis.title}</AlertDialogTitle>
-            <AlertDialogDescription>{t.results.confirm.newAnalysis.description}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t.results.confirm.newAnalysis.cancel}</AlertDialogCancel>
-            <AlertDialogAction onClick={onNewAnalysisConfirm}>
-              {t.results.confirm.newAnalysis.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* 새 분석 시작 확인 */}
+      <ConfirmAlertDialog
+        open={showNewAnalysisConfirm}
+        onOpenChange={setShowNewAnalysisConfirm}
+        title={t.results.confirm.newAnalysis.title}
+        description={t.results.confirm.newAnalysis.description}
+        cancelLabel={t.results.confirm.newAnalysis.cancel}
+        confirmLabel={t.results.confirm.newAnalysis.confirm}
+        onConfirm={onNewAnalysisConfirm}
+      />
 
-      {/* 방법 변경 확인 다이얼로그 */}
-      <AlertDialog open={showChangeMethodConfirm} onOpenChange={onShowChangeMethodConfirmChange}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t.results.confirm.changeMethod.title}</AlertDialogTitle>
-            <AlertDialogDescription>{t.results.confirm.changeMethod.description}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t.results.confirm.changeMethod.cancel}</AlertDialogCancel>
-            <AlertDialogAction onClick={onChangeMethodConfirm}>
-              {t.results.confirm.changeMethod.confirm}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* 방법 변경 확인 */}
+      <ConfirmAlertDialog
+        open={showChangeMethodConfirm}
+        onOpenChange={setShowChangeMethodConfirm}
+        title={t.results.confirm.changeMethod.title}
+        description={t.results.confirm.changeMethod.description}
+        cancelLabel={t.results.confirm.changeMethod.cancel}
+        confirmLabel={t.results.confirm.changeMethod.confirm}
+        onConfirm={onChangeMethodConfirm}
+      />
 
       {/* 내보내기 옵션 다이얼로그 */}
       <Dialog open={exportDialogOpen} onOpenChange={onExportDialogOpenChange}>

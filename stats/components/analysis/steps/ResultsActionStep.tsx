@@ -50,6 +50,7 @@ import { splitInterpretation, generateSummaryText } from '@/lib/services/export/
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
 import { TemplateSaveModal } from '@/components/analysis/TemplateSaveModal'
 import { cn } from '@/lib/utils'
+import { AI_ACCENT } from '@/lib/design-tokens/analysis'
 import { StepHeader } from '@/components/analysis/common'
 import { AssumptionTestsSection } from '@/components/analysis/steps/exploration/AssumptionTestsSection'
 import { ResultsHeroCard, ResultsStatsCards, ResultsChartsSection, ResultsActionButtons, AiInterpretationCard, FollowUpQASection } from '@/components/analysis/steps/results'
@@ -116,9 +117,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   // AI 해석 (커스텀 훅으로 캡슐화)
   const interpretRecovery = useErrorRecovery({ maxRetries: 2 })
 
-  // 확인 다이얼로그
-  const [showNewAnalysisConfirm, setShowNewAnalysisConfirm] = useState(false)
-  const [showChangeMethodConfirm, setShowChangeMethodConfirm] = useState(false)
+  // 확인 다이얼로그 — ResultsActionButtons 내부에서 관리
 
   // 후속 칩 사용 추적
   const [usedChips, setUsedChips] = useState<Set<string>>(new Set())
@@ -533,10 +532,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     })
   }, [setUploadedData, setUploadedFile, setValidationResults, setResults, setStepTrack, navigateToStep, clearInterpretationGuard, selectedMethod, t])
 
-  const handleNewAnalysis = useCallback(() => {
-    setShowNewAnalysisConfirm(true)
-  }, [])
-
   const handleNewAnalysisConfirm = useCallback(async () => {
     try {
       await startNewAnalysis()
@@ -941,8 +936,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
         {/* ===== 논문 초안 CTA (AI 해석 완료 & 아직 초안 미생성 시) ===== */}
         {interpretation && !isInterpreting && !paperDraft && (phase >= 3 || prefersReducedMotion) && (
-          <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-violet-50/40 dark:bg-violet-950/20">
-            <BookOpen className="w-4 h-4 text-violet-500 flex-shrink-0" />
+          <div className={cn('flex items-center gap-3 px-4 py-3 rounded-lg', AI_ACCENT.surface)}>
+            <BookOpen className={cn('w-4 h-4 flex-shrink-0', AI_ACCENT.icon)} />
             <span className="text-sm text-muted-foreground flex-1">{t.results.ai.draftCta}</span>
             <Button
               variant="outline"
@@ -977,14 +972,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           onBackToVariables={() => navigateToStep(3)}
           onOpenGraphStudio={handleOpenInGraphStudio}
           onReanalyze={handleReanalyze}
-          onNewAnalysis={handleNewAnalysis}
-          onSaveTemplate={() => setTemplateModalOpen(true)}
-          showNewAnalysisConfirm={showNewAnalysisConfirm}
-          onShowNewAnalysisConfirmChange={setShowNewAnalysisConfirm}
           onNewAnalysisConfirm={handleNewAnalysisConfirm}
-          showChangeMethodConfirm={showChangeMethodConfirm}
-          onShowChangeMethodConfirmChange={setShowChangeMethodConfirm}
           onChangeMethodConfirm={handleChangeMethod}
+          onSaveTemplate={() => setTemplateModalOpen(true)}
           exportDialogOpen={exportDialogOpen}
           onExportDialogOpenChange={setExportDialogOpen}
           exportFormat={exportFormat}

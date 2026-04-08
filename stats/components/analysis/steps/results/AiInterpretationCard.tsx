@@ -1,6 +1,6 @@
 'use client'
 
-import { type RefObject, memo, useCallback, useMemo, useRef, useState } from 'react'
+import { type RefObject, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, RefreshCw, AlertCircle, AlertTriangle, ArrowRight, ChevronDown, List } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { proseBase } from '@/components/common/card-styles'
+import { AI_ACCENT } from '@/lib/design-tokens/analysis'
 import { parseDetailSections, type InterpretationSection, type SectionCategory } from '@/lib/services/ai/parse-interpretation-sections'
 import { getSectionIcon } from './ai-section-config'
 import type { TerminologyDictionary } from '@/lib/terminology/terminology-types'
@@ -43,7 +44,7 @@ interface AiInterpretationCardProps {
 // ============================================
 
 function StreamingCursor(): React.ReactElement {
-  return <span className="inline-block w-1.5 h-4 bg-violet-500 animate-pulse ml-0.5 align-text-bottom" />
+  return <span className={cn('inline-block w-1.5 h-4 animate-pulse ml-0.5 align-text-bottom', AI_ACCENT.cursor)} />
 }
 
 // ============================================
@@ -58,7 +59,7 @@ const SummaryBlock = memo(function SummaryBlock({
   showCursor: boolean
 }): React.ReactElement {
   return (
-    <div className="bg-violet-50/60 dark:bg-violet-950/20 rounded-lg p-4">
+    <div className={cn(AI_ACCENT.surfaceStrong, 'rounded-lg p-4')}>
       <div className={cn(proseBase, 'text-sm leading-relaxed')}>
         <ReactMarkdown>{summary}</ReactMarkdown>
         {showCursor && <StreamingCursor />}
@@ -95,7 +96,7 @@ function SectionPill({
         'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
         'transition-all duration-150',
         isActive
-          ? 'bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 shadow-[0_1px_2px_0_rgba(0,0,0,0.05)]'
+          ? cn(AI_ACCENT.pillActiveBg, AI_ACCENT.label, 'shadow-[0_1px_2px_0_rgba(0,0,0,0.05)]')
           : 'bg-surface-container/60 text-muted-foreground hover:bg-surface-container-high/60',
       )}
     >
@@ -201,12 +202,12 @@ function ActionCallout({
       initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
-      className="rounded-lg border-0 bg-violet-50/40 dark:bg-violet-950/20 p-4"
+      className={cn('rounded-lg border-0 p-4', AI_ACCENT.surface)}
     >
       <div className="flex items-start gap-2">
-        <ArrowRight className="w-4 h-4 text-violet-500 flex-shrink-0 mt-0.5" />
+        <ArrowRight className={cn('w-4 h-4 flex-shrink-0 mt-0.5', AI_ACCENT.icon)} />
         <div className="flex-1 min-w-0">
-          <span className="text-xs font-semibold text-violet-600 dark:text-violet-400 uppercase tracking-wider">
+          <span className={cn('text-xs font-semibold uppercase tracking-wider', AI_ACCENT.labelSecondary)}>
             {section.label}
           </span>
           <div className={cn(proseBase, 'text-sm leading-relaxed mt-0.5')}>
@@ -251,29 +252,35 @@ export function AiInterpretationCard({
   // pill 탐색 상태
   const [activeSection, setActiveSection] = useState<string | null>(null)
   const [showAll, setShowAll] = useState(false)
-  const detailRef = useRef(parsedInterpretation?.detail)
-  const autoSelectPending = useRef(true)
   // 사용자가 pill/전체보기를 직접 조작했으면 자동 선택을 억제
   const userInteracted = useRef(false)
+  const prevDetailRef = useRef<string | null>(null)
 
-  // detail 변경 시: 스트리밍 중에는 autoSelect만 유지, 완료/전환 시 UI 리셋
-  if (detailRef.current !== parsedInterpretation?.detail) {
-    detailRef.current = parsedInterpretation?.detail
-    if (!isInterpreting) {
-      // 재해석 완료 또는 히스토리 전환 → 전면 리셋
-      if (activeSection !== null) setActiveSection(null)
-      if (showAll) setShowAll(false)
-      autoSelectPending.current = true
+  // detail 변경 또는 스트리밍 완료 시 pill 자동 선택
+  const detail = parsedInterpretation?.detail ?? null
+  useEffect(() => {
+    // detail 변경 여부를 먼저 판정 — 스트리밍 중에도 추적해야
+    // 완료 시점에 "동일 detail" 판정이 올바르게 동작함
+    const detailChanged = prevDetailRef.current !== detail
+    prevDetailRef.current = detail
+
+    if (isInterpreting) return // 스트리밍 중에는 UI 건드리지 않음
+
+    // detail이 바뀐 경우(히스토리 전환·재해석 완료)만 userInteracted 리셋
+    // 스트리밍 완료(isInterpreting만 변경, detail 동일)에서는 사용자 선택 유지
+    if (detailChanged) {
       userInteracted.current = false
     }
-    // 스트리밍 중에는 pill 상태·userInteracted를 건드리지 않음
-  }
 
-  // 스트리밍 완료 또는 히스토리 복원 → 첫 detail 섹션 자동 선택 (사용자 조작 없었을 때만)
-  if (autoSelectPending.current && !userInteracted.current && !isInterpreting && detailSections.length > 0) {
-    setActiveSection(detailSections[0].key)
-    autoSelectPending.current = false
-  }
+    if (userInteracted.current) return // 사용자가 직접 선택 → 유지
+
+    if (detailSections.length > 0) {
+      setActiveSection(detailSections[0].key)
+    } else {
+      setActiveSection(null)
+    }
+    setShowAll(false)
+  }, [detail, isInterpreting]) // eslint-disable-line react-hooks/exhaustive-deps -- detailSections는 detail에서 파생
 
   // 선택된 섹션 찾기
   const selectedSection = useMemo(
@@ -283,14 +290,12 @@ export function AiInterpretationCard({
 
   const handlePillClick = useCallback((key: string): void => {
     userInteracted.current = true
-    autoSelectPending.current = false
     setActiveSection(prev => prev === key ? null : key)
     setShowAll(false)
   }, [])
 
   const handleShowAll = useCallback((): void => {
     userInteracted.current = true
-    autoSelectPending.current = false
     setShowAll(prev => !prev)
     setActiveSection(null)
   }, [])
@@ -308,14 +313,14 @@ export function AiInterpretationCard({
             key="ai-skeleton"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.25 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
           >
             <Card className="border-0 bg-surface-container-lowest shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
               <CardContent className="py-5 space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-violet-50/60 dark:bg-violet-900/20 flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="w-4 h-4 text-violet-300 animate-pulse" />
+                  <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', AI_ACCENT.iconBgSubtle)}>
+                    <Sparkles className="w-4 h-4 text-violet-300 animate-pulse" /> {/* skeleton: 의도적으로 연한 색 유지 */}
                   </div>
                   <span className="text-sm text-muted-foreground/50 font-medium">{t.results.ai.loading}</span>
                 </div>
@@ -334,15 +339,15 @@ export function AiInterpretationCard({
             key="ai-loading"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.2 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
           >
             <Card className="border-0 bg-surface-container-lowest shadow-[0_1px_3px_0_rgba(0,0,0,0.04)]">
               <CardContent className="py-5 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-violet-50 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="w-4 h-4 text-violet-500 animate-pulse" />
+                <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', AI_ACCENT.iconBg)}>
+                  <Sparkles className={cn('w-4 h-4 animate-pulse', AI_ACCENT.icon)} />
                 </div>
-                <span className="text-sm text-violet-700 dark:text-violet-300 font-medium">{t.results.ai.loading}</span>
+                <span className={cn('text-sm font-medium', AI_ACCENT.label)}>{t.results.ai.loading}</span>
               </CardContent>
             </Card>
           </motion.div>
@@ -361,10 +366,10 @@ export function AiInterpretationCard({
               <CardHeader className="pb-2 pt-5 px-5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-md bg-violet-50 dark:bg-violet-900/40 flex items-center justify-center">
-                      <Sparkles className="w-3.5 h-3.5 text-violet-500" />
+                    <div className={cn('w-6 h-6 rounded-md flex items-center justify-center', AI_ACCENT.iconBg)}>
+                      <Sparkles className={cn('w-3.5 h-3.5', AI_ACCENT.icon)} />
                     </div>
-                    <span className="text-sm font-semibold text-violet-700 dark:text-violet-300">{t.results.ai.label}</span>
+                    <span className={cn('text-sm font-semibold', AI_ACCENT.label)}>{t.results.ai.label}</span>
                     {interpretationModel && interpretationModel !== 'unknown' && (
                       <span className="text-[10px] text-muted-foreground/40 font-mono hidden sm:inline">{interpretationModel}</span>
                     )}
@@ -404,7 +409,7 @@ export function AiInterpretationCard({
                       aria-expanded={showAll}
                       className={cn(
                         'text-xs h-6 px-2 gap-1 ml-auto',
-                        showAll && 'text-violet-600 dark:text-violet-400',
+                        showAll && AI_ACCENT.labelSecondary,
                       )}
                     >
                       <List className="w-3 h-3" />

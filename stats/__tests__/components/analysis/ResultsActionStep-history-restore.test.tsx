@@ -154,6 +154,7 @@ vi.mock('@/hooks/use-terminology', () => ({
       },
       confirm: {
         newAnalysis: { title: '', description: '', confirm: '', cancel: '' },
+        changeMethod: { title: '', description: '', confirm: '', cancel: '' },
       },
     },
   }),

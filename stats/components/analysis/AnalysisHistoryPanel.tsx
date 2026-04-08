@@ -48,16 +48,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { useTerminology } from '@/hooks/use-terminology'
 import { focusRing } from '@/lib/design-tokens/common'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+import { ConfirmAlertDialog } from '@/components/common/ConfirmAlertDialog'
 import { cn } from '@/lib/utils'
 import { ExportService } from '@/lib/services/export/export-service'
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
@@ -513,46 +504,28 @@ export function AnalysisHistoryPanel({ onClose }: AnalysisHistoryPanelProps) {
         ))}
       </div>
 
-      {/* 개별 삭제 확인 다이얼로그 */}
-      <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t.history.dialogs.deleteTitle}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t.history.dialogs.deleteDescription}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t.history.buttons.cancel}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
-            >
-              {t.history.buttons.delete}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* 개별 삭제 확인 */}
+      <ConfirmAlertDialog
+        open={!!deleteConfirmId}
+        onOpenChange={() => setDeleteConfirmId(null)}
+        title={t.history.dialogs.deleteTitle}
+        description={t.history.dialogs.deleteDescription}
+        cancelLabel={t.history.buttons.cancel}
+        confirmLabel={t.history.buttons.delete}
+        onConfirm={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+      />
 
-      {/* 전체 삭제 확인 다이얼로그 */}
-      <AlertDialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t.history.dialogs.clearTitle}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t.history.dialogs.clearDescription(analysisHistory.length)}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t.history.buttons.cancel}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleClearAll}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {t.history.buttons.clearAll}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* 전체 삭제 확인 */}
+      <ConfirmAlertDialog
+        open={showClearConfirm}
+        onOpenChange={setShowClearConfirm}
+        title={t.history.dialogs.clearTitle}
+        description={t.history.dialogs.clearDescription(analysisHistory.length)}
+        cancelLabel={t.history.buttons.cancel}
+        confirmLabel={t.history.buttons.clearAll}
+        onConfirm={handleClearAll}
+        destructive
+      />
 
       {/* 현재 분석 저장 다이얼로그 */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>

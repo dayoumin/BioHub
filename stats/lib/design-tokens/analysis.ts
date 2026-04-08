@@ -66,6 +66,33 @@ export const SURFACE = {
   subtle: { bg: 'bg-muted/50', border: 'border-border/50' },
 } as const
 
+/**
+ * AI 해석 영역 (violet) 공통 토큰
+ *
+ * AiInterpretationCard, CTA 배너, FollowUpQA 등
+ * AI 관련 UI에서 반복되는 violet 색상을 중앙 관리.
+ */
+export const AI_ACCENT = {
+  /** 콜아웃/CTA 배너 배경 (연한) */
+  surface: 'bg-violet-50/40 dark:bg-violet-950/20',
+  /** 요약 히어로 블록 배경 (진한) */
+  surfaceStrong: 'bg-violet-50/60 dark:bg-violet-950/20',
+  /** 아이콘 컨테이너 배경 */
+  iconBg: 'bg-violet-50 dark:bg-violet-900/40',
+  /** 스켈레톤/로딩 아이콘 배경 (연한) */
+  iconBgSubtle: 'bg-violet-50/60 dark:bg-violet-900/20',
+  /** 아이콘 색상 */
+  icon: 'text-violet-500',
+  /** 스트리밍 커서 */
+  cursor: 'bg-violet-500',
+  /** 주 라벨 (헤더, 로딩 텍스트) */
+  label: 'text-violet-700 dark:text-violet-300',
+  /** 보조 라벨 (액션 섹션) */
+  labelSecondary: 'text-violet-600 dark:text-violet-400',
+  /** 활성 pill 배경 */
+  pillActiveBg: 'bg-violet-100 dark:bg-violet-900/40',
+} as const
+
 export const STEP_STYLES = {
   cardHeaderBg: 'bg-muted/10',
   spaciousPadding: 'p-4',

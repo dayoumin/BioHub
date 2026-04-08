@@ -24,16 +24,7 @@ import {
   LineChart,
   ScatterChart,
 } from 'lucide-react'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+import { ConfirmAlertDialog } from '@/components/common/ConfirmAlertDialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -268,23 +259,16 @@ export function QuickAccessBar({ onHistoryClick, onHistoryDelete }: QuickAccessB
         </div>
       )}
 
-      {/* 삭제 확인 다이얼로그 */}
-      <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t.history.dialogs.deleteTitle}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t.history.dialogs.deleteDescription}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t.history.buttons.cancel}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm}>
-              {t.history.buttons.delete}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* 삭제 확인 */}
+      <ConfirmAlertDialog
+        open={!!deleteConfirmId}
+        onOpenChange={() => setDeleteConfirmId(null)}
+        title={t.history.dialogs.deleteTitle}
+        description={t.history.dialogs.deleteDescription}
+        cancelLabel={t.history.buttons.cancel}
+        confirmLabel={t.history.buttons.delete}
+        onConfirm={handleDeleteConfirm}
+      />
     </motion.div>
   )
 }

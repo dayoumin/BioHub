@@ -154,6 +154,11 @@ vi.mock('@/hooks/use-terminology', () => ({
           description: '현재 데이터와 결과가 모두 초기화됩니다. 이 작업은 되돌릴 수 없습니다.',
           confirm: '새 분석 시작', cancel: '취소',
         },
+        changeMethod: {
+          title: '분석 방법을 변경할까요?',
+          description: '현재 결과가 초기화되고 방법 선택 단계로 돌아갑니다.',
+          confirm: '방법 변경', cancel: '취소',
+        },
       },
     },
   }),
