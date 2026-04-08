@@ -3,7 +3,7 @@
  *
  * Verifies end-to-end that legacy SM IDs resolve to canonical entries
  * through every resolution path: Proxy, getMethodByAlias, getMethodByIdOrAlias,
- * handler routing, ChiSquareSelector mode, IndexedDB deserialization,
+ * ChiSquareSelector mode, IndexedDB deserialization,
  * dynamic registration, and enumeration integrity.
  */
 
@@ -92,129 +92,10 @@ describe('Scenario A: Legacy ID → Canonical Resolution (all 16 demoted SM IDs)
 })
 
 // ============================================
-// Scenario B: Handler Routing Simulation
+// Scenario B: ChiSquareSelector Mode Detection
 // ============================================
 
-describe('Scenario B: Handler routing — canonical ID matches handler case/if conditions', () => {
-  describe('handle-timeseries.ts: mann-kendall-test routing', () => {
-    it('canonical "mann-kendall-test" matches the Mann-Kendall branch condition', () => {
-      // From handle-timeseries.ts line 38:
-      //   if (method.id === 'mann-kendall' || method.id === 'mann-kendall-test')
-      const canonicalId = 'mann-kendall-test'
-      const matchesBranch =
-        canonicalId === 'mann-kendall' || canonicalId === 'mann-kendall-test'
-      expect(matchesBranch).toBe(true)
-    })
-
-    it('legacy alias "mann-kendall" also matches the branch condition', () => {
-      const legacyId = 'mann-kendall'
-      const matchesBranch =
-        legacyId === 'mann-kendall' || legacyId === 'mann-kendall-test'
-      expect(matchesBranch).toBe(true)
-    })
-
-    it('canonical ID resolves before hitting the handler (alias → canonical)', () => {
-      const method = getMethodByAlias('mann-kendall')
-      expect(method).not.toBeNull()
-      expect(method!.id).toBe('mann-kendall-test')
-      // Both the resolved canonical ID and the legacy alias are accepted by the handler
-      const matchesBranch =
-        method!.id === 'mann-kendall' || method!.id === 'mann-kendall-test'
-      expect(matchesBranch).toBe(true)
-    })
-  })
-
-  describe('handle-multivariate.ts: discriminant-analysis routing', () => {
-    it('canonical "discriminant-analysis" matches the LDA branch', () => {
-      // From handle-multivariate.ts line 48:
-      //   case 'discriminant':
-      //   case 'discriminant-analysis':
-      const canonicalId = 'discriminant-analysis'
-      const matchesBranch =
-        canonicalId === 'discriminant' || canonicalId === 'discriminant-analysis'
-      expect(matchesBranch).toBe(true)
-    })
-
-    it('legacy alias "discriminant" also matches the LDA branch', () => {
-      const legacyId = 'discriminant'
-      const matchesBranch =
-        legacyId === 'discriminant' || legacyId === 'discriminant-analysis'
-      expect(matchesBranch).toBe(true)
-    })
-
-    it('post-LDA result mapping also handles both IDs', () => {
-      // From handle-multivariate.ts line 108:
-      //   if (method.id === 'discriminant' || method.id === 'discriminant-analysis')
-      const canonicalId = 'discriminant-analysis'
-      const resultBranch =
-        canonicalId === 'discriminant' || canonicalId === 'discriminant-analysis'
-      expect(resultBranch).toBe(true)
-    })
-  })
-
-  describe('handle-nonparametric.ts: wilcoxon-signed-rank routing', () => {
-    it('canonical "wilcoxon-signed-rank" matches the Wilcoxon branch', () => {
-      // From handle-nonparametric.ts line 44-45:
-      //   case 'wilcoxon':
-      //   case 'wilcoxon-signed-rank':
-      const canonicalId = 'wilcoxon-signed-rank'
-      const matchesBranch =
-        canonicalId === 'wilcoxon' || canonicalId === 'wilcoxon-signed-rank'
-      expect(matchesBranch).toBe(true)
-    })
-
-    it('legacy alias "wilcoxon" also matches the Wilcoxon branch', () => {
-      const legacyId = 'wilcoxon'
-      const matchesBranch =
-        legacyId === 'wilcoxon' || legacyId === 'wilcoxon-signed-rank'
-      expect(matchesBranch).toBe(true)
-    })
-  })
-
-  describe('handle-nonparametric.ts: ks-test / kolmogorov-smirnov routing', () => {
-    it('canonical "kolmogorov-smirnov" matches the K-S branch', () => {
-      // From handle-nonparametric.ts line 170-171:
-      //   case 'ks-test':
-      //   case 'kolmogorov-smirnov':
-      const canonicalId = 'kolmogorov-smirnov'
-      const matchesBranch =
-        canonicalId === 'ks-test' || canonicalId === 'kolmogorov-smirnov'
-      expect(matchesBranch).toBe(true)
-    })
-
-    it('legacy alias "ks-test" also matches the K-S branch', () => {
-      const legacyId = 'ks-test'
-      const matchesBranch =
-        legacyId === 'ks-test' || legacyId === 'kolmogorov-smirnov'
-      expect(matchesBranch).toBe(true)
-    })
-  })
-
-  describe('handle-nonparametric.ts: proportion-test / one-sample-proportion routing', () => {
-    it('canonical "one-sample-proportion" matches the proportion branch', () => {
-      // From handle-nonparametric.ts line 213-214:
-      //   case 'proportion-test':
-      //   case 'one-sample-proportion':
-      const canonicalId = 'one-sample-proportion'
-      const matchesBranch =
-        canonicalId === 'proportion-test' || canonicalId === 'one-sample-proportion'
-      expect(matchesBranch).toBe(true)
-    })
-
-    it('legacy alias "proportion-test" also matches the proportion branch', () => {
-      const legacyId = 'proportion-test'
-      const matchesBranch =
-        legacyId === 'proportion-test' || legacyId === 'one-sample-proportion'
-      expect(matchesBranch).toBe(true)
-    })
-  })
-})
-
-// ============================================
-// Scenario C: ChiSquareSelector Mode Detection
-// ============================================
-
-describe('Scenario C: ChiSquareSelector mode detection logic', () => {
+describe('Scenario B: ChiSquareSelector mode detection logic', () => {
   // Recreate the module-level constants from ChiSquareSelector.tsx
   // (they are not exported, so we test the same derivation logic)
   const GOODNESS_IDS = new Set([
@@ -265,10 +146,10 @@ describe('Scenario C: ChiSquareSelector mode detection logic', () => {
 })
 
 // ============================================
-// Scenario D: IndexedDB Deserialization Simulation
+// Scenario C: IndexedDB Deserialization Simulation
 // ============================================
 
-describe('Scenario D: IndexedDB deserialization — stored legacy IDs resolve to canonical', () => {
+describe('Scenario C: IndexedDB deserialization — stored legacy IDs resolve to canonical', () => {
   interface MockStoredRecord {
     id: string
     method: { id: string; name: string }
@@ -323,10 +204,10 @@ describe('Scenario D: IndexedDB deserialization — stored legacy IDs resolve to
 })
 
 // ============================================
-// Scenario E: Dynamic Registration Alias Sync
+// Scenario D: Dynamic Registration Alias Sync
 // ============================================
 
-describe('Scenario E: Dynamic registration alias sync', () => {
+describe('Scenario D: Dynamic registration alias sync', () => {
   const TEST_PREFIX = '_test-dynamic-'
   const TEST_METHOD_ID = `${TEST_PREFIX}method`
   const TEST_ALIAS = `${TEST_PREFIX}alias`
@@ -395,10 +276,10 @@ describe('Scenario E: Dynamic registration alias sync', () => {
 })
 
 // ============================================
-// Scenario F: Enumeration Returns Only Canonical Keys
+// Scenario E: Enumeration Returns Only Canonical Keys
 // ============================================
 
-describe('Scenario F: Enumeration returns only canonical keys', () => {
+describe('Scenario E: Enumeration returns only canonical keys', () => {
   const LEGACY_SM_IDS = [
     't-test',
     'anova',
