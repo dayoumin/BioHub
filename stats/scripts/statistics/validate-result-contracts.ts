@@ -214,7 +214,7 @@ function main(): void {
   if (!bonferroniRegistry) {
     errors.push('[bonferroni] registry method not found: bonferroni_correction')
   } else {
-    const requiredUtilityReturns = ['adjustedPValues', 'significantResults', 'correctedAlpha']
+    const requiredUtilityReturns = ['originalPValues', 'correctedPValues', 'adjustedAlpha', 'nComparisons', 'significant']
     for (const field of requiredUtilityReturns) {
       if (!bonferroniRegistry.returns.includes(field)) {
         errors.push(`[bonferroni] missing utility return field: ${field}`)
