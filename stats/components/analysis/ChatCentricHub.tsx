@@ -21,9 +21,9 @@ import { intentRouter } from '@/lib/services/intent-router'
 import { getRecommendations } from '@/lib/services/consultant-service'
 import { getHubAiResponse, getHubDiagnosticResponse, getHubDiagnosticResumeResponse } from '@/lib/services/hub-chat-service'
 import { bridgeDiagnosticToSmartFlow } from '@/lib/stores/store-orchestration'
-import { getKoreanName, STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
+import { getKoreanName } from '@/lib/constants/statistical-methods'
 import { logger } from '@/lib/utils/logger'
-import type { ResolvedIntent, DiagnosticReport, AIRecommendation, MethodRecommendation, StatisticalMethod } from '@/types/analysis'
+import type { ResolvedIntent, DiagnosticReport, AIRecommendation, MethodRecommendation } from '@/types/analysis'
 import { useTerminology } from '@/hooks/use-terminology'
 import { useHubChatStore, type HubChatMessage } from '@/lib/stores/hub-chat-store'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
@@ -180,6 +180,7 @@ export function ChatCentricHub({
           content: resumeResponse.content,
           timestamp: Date.now(),
           diagnosticReport: resumeResponse.diagnosticReport,
+          diagnosticRecommendation: resumeResponse.recommendation ?? undefined,
           recommendations: mapRecommendationToCards(resumeResponse.recommendation),
         })
         return
@@ -216,6 +217,7 @@ export function ChatCentricHub({
             timestamp: Date.now(),
             intent,
             diagnosticReport: diagResponse.diagnosticReport,
+            diagnosticRecommendation: diagResponse.recommendation ?? undefined,
             recommendations: mapRecommendationToCards(diagResponse.recommendation),
           })
         } else {
@@ -312,21 +314,14 @@ export function ChatCentricHub({
     setExternalValue(undefined)
   }, [])
 
-  // "분석 시작하기" — 메시지의 report + recommendations를 직접 받음 (전역 ref 불필요)
-  const handleDiagnosticStart = useCallback((report: DiagnosticReport, recommendations: MethodRecommendation[]) => {
-    const rec = recommendations[0]
-    if (!rec) return
-    // MethodRecommendation → AIRecommendation 역변환은 불필요 — bridge는 method만 필요
-    const method = STATISTICAL_METHODS[rec.methodId]
-    if (!method) return
-    bridgeDiagnosticToSmartFlow(report, { method, confidence: 1, reasoning: [], assumptions: [] })
+  // "분석 시작하기" — 메시지의 report + 원본 AIRecommendation을 직접 받음
+  const handleDiagnosticStart = useCallback((report: DiagnosticReport, recommendation: AIRecommendation) => {
+    bridgeDiagnosticToSmartFlow(report, recommendation)
   }, [])
 
-  // "다른 방법 찾아보기" — 메시지의 report를 직접 받음
-  const handleAlternativeSearch = useCallback((report: DiagnosticReport, recommendations: MethodRecommendation[]) => {
-    const rec = recommendations[0]
-    const method = rec ? STATISTICAL_METHODS[rec.methodId] : undefined
-    bridgeDiagnosticToSmartFlow(report, { method: method ?? null as unknown as StatisticalMethod, confidence: 0, reasoning: [], assumptions: [] })
+  // "다른 방법 찾아보기" — bridge 후 normal 트랙 → Step 2
+  const handleAlternativeSearch = useCallback((report: DiagnosticReport, recommendation: AIRecommendation) => {
+    bridgeDiagnosticToSmartFlow(report, recommendation)
     useModeStore.getState().setStepTrack('normal')
     useAnalysisStore.getState().addCompletedStep(1)
     useAnalysisStore.getState().navigateToStep(2)

@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button'
 import { RecommendationCard } from '@/components/common/RecommendationCard'
 import { TypingIndicator } from '@/components/common/TypingIndicator'
 import { useHubChatStore, type HubChatMessage } from '@/lib/stores/hub-chat-store'
-import type { DiagnosticReport, MethodRecommendation } from '@/types/analysis'
+import type { DiagnosticReport, MethodRecommendation, AIRecommendation } from '@/types/analysis'
 
 // ===== Props =====
 
@@ -31,10 +31,10 @@ interface ChatThreadProps {
   onClearChat?: () => void
   /** 에러 메시지 재시도 — errorMessageId 이전의 마지막 user 메시지 재전송 */
   onRetry?: (errorMessageId: string) => void
-  /** "분석 시작하기" 클릭 — 해당 메시지의 report + recommendation 전달 */
-  onDiagnosticStart?: (report: DiagnosticReport, recommendations: MethodRecommendation[]) => void
-  /** "다른 방법 찾아보기" 클릭 — 해당 메시지의 report + recommendation 전달 */
-  onAlternativeSearch?: (report: DiagnosticReport, recommendations: MethodRecommendation[]) => void
+  /** "분석 시작하기" 클릭 — 해당 메시지의 report + 원본 AIRecommendation 전달 */
+  onDiagnosticStart?: (report: DiagnosticReport, recommendation: AIRecommendation) => void
+  /** "다른 방법 찾아보기" 클릭 — 해당 메시지의 report + 원본 AIRecommendation 전달 */
+  onAlternativeSearch?: (report: DiagnosticReport, recommendation: AIRecommendation) => void
 }
 
 // ===== Animation =====
@@ -145,12 +145,12 @@ interface MessageBubbleProps {
   onMethodSelect: (methodId: string) => void
   onUploadClick?: () => void
   onRetry?: (errorMessageId: string) => void
-  onDiagnosticStart?: (report: DiagnosticReport, recommendations: MethodRecommendation[]) => void
-  onAlternativeSearch?: (report: DiagnosticReport, recommendations: MethodRecommendation[]) => void
+  onDiagnosticStart?: (report: DiagnosticReport, recommendation: AIRecommendation) => void
+  onAlternativeSearch?: (report: DiagnosticReport, recommendation: AIRecommendation) => void
 }
 
 function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry, onDiagnosticStart, onAlternativeSearch }: MessageBubbleProps) {
-  const { role, content, recommendations, isError, suggestUpload, diagnosticReport } = message
+  const { role, content, recommendations, isError, suggestUpload, diagnosticReport, diagnosticRecommendation } = message
 
   // System 메시지: 중앙 배치, 컴팩트
   if (role === 'system') {
@@ -232,15 +232,15 @@ function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry, onDiag
           )}
         </div>
 
-        {/* 진단 리포트 카드 — 추천이 있을 때만 액션 버튼 표시 (LLM 실패 시 버튼 숨김) */}
+        {/* 진단 리포트 카드 — 원본 AIRecommendation이 있을 때만 액션 버튼 표시 */}
         {diagnosticReport && !diagnosticReport.pendingClarification && (
           <DiagnosticReportCard
             report={diagnosticReport}
-            onStart={recommendations?.length && onDiagnosticStart
-              ? () => onDiagnosticStart(diagnosticReport, recommendations)
+            onStart={diagnosticRecommendation && onDiagnosticStart
+              ? () => onDiagnosticStart(diagnosticReport, diagnosticRecommendation)
               : undefined}
-            onBrowse={recommendations?.length && onAlternativeSearch
-              ? () => onAlternativeSearch(diagnosticReport, recommendations)
+            onBrowse={diagnosticRecommendation && onAlternativeSearch
+              ? () => onAlternativeSearch(diagnosticReport, diagnosticRecommendation)
               : undefined}
           />
         )}

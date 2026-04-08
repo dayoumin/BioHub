@@ -335,7 +335,7 @@ export function parseVariableDetectionResponse(
     }
 
     if (!parsed.variableAssignments) {
-      return { variableAssignments: null, clarificationNeeded: null }
+      return { variableAssignments: null, clarificationNeeded: 'AI가 변수 역할을 판단하지 못했습니다. 아래에서 직접 선택해 주세요.' }
     }
 
     // 컬럼명 존재 여부 검증 (hallucination 방지)

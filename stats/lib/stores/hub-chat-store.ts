@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import type { ValidationResults, MethodRecommendation, ResolvedIntent, DiagnosticReport } from '@/types/analysis'
+import type { ValidationResults, MethodRecommendation, ResolvedIntent, DiagnosticReport, AIRecommendation } from '@/types/analysis'
 
 // ===== Types =====
 
@@ -20,6 +20,8 @@ export interface HubChatMessage {
   suggestUpload?: boolean
   /** Diagnostic Pipeline 리포트 (진단 카드 렌더링용) */
   diagnosticReport?: DiagnosticReport
+  /** 원본 AI 추천 (bridge에서 suggestedSettings 등 전체 정보 필요) */
+  diagnosticRecommendation?: AIRecommendation
 }
 
 /** 허브에 로드된 데이터 컨텍스트 */
