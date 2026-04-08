@@ -20,12 +20,14 @@ import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { intentRouter } from '@/lib/services/intent-router'
 import { getRecommendations } from '@/lib/services/consultant-service'
 import { getHubAiResponse, getHubDiagnosticResponse, getHubDiagnosticResumeResponse } from '@/lib/services/hub-chat-service'
+import { bridgeDiagnosticToSmartFlow } from '@/lib/stores/store-orchestration'
 import { getKoreanName } from '@/lib/constants/statistical-methods'
 import { logger } from '@/lib/utils/logger'
 import type { ResolvedIntent, DiagnosticReport, AIRecommendation } from '@/types/analysis'
 import { useTerminology } from '@/hooks/use-terminology'
 import { useHubChatStore, type HubChatMessage } from '@/lib/stores/hub-chat-store'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { useModeStore } from '@/lib/stores/mode-store'
 import { useHubDataUpload } from '@/hooks/use-hub-data-upload'
 
 import { ChatInput } from './hub/ChatInput'
@@ -118,6 +120,9 @@ export function ChatCentricHub({
   const isProcessingRef = useRef(false)
   const [externalValue, setExternalValue] = useState<string | undefined>(undefined)
 
+  // 마지막 diagnostic 응답 보존 — "분석 시작" 버튼 클릭 시 bridge에 필요
+  const lastDiagnosticRef = useRef<{ report: DiagnosticReport; recommendation: AIRecommendation } | null>(null)
+
   const addMessage = useHubChatStore((s) => s.addMessage)
   const clearMessages = useHubChatStore((s) => s.clearMessages)
   const hasSeenUploadSuggestion = useHubChatStore((s) => s.hasSeenUploadSuggestion)
@@ -179,6 +184,9 @@ export function ChatCentricHub({
           diagnosticReport: resumeResponse.diagnosticReport,
           recommendations: mapRecommendationToCards(resumeResponse.recommendation),
         })
+        if (resumeResponse.recommendation) {
+          lastDiagnosticRef.current = { report: resumeResponse.diagnosticReport, recommendation: resumeResponse.recommendation }
+        }
         return
       }
 
@@ -215,6 +223,9 @@ export function ChatCentricHub({
             diagnosticReport: diagResponse.diagnosticReport,
             recommendations: mapRecommendationToCards(diagResponse.recommendation),
           })
+          if (diagResponse.recommendation) {
+            lastDiagnosticRef.current = { report: diagResponse.diagnosticReport, recommendation: diagResponse.recommendation }
+          }
         } else {
           // === 데이터 없음: 키워드 기반 빠른 추천 ===
           const response = getRecommendations(message)
@@ -308,6 +319,21 @@ export function ChatCentricHub({
     setExternalValue(undefined)
   }, [])
 
+  // "분석 시작하기" → bridgeDiagnosticToSmartFlow → Step 1 → Step 3
+  const handleDiagnosticStart = useCallback(() => {
+    const last = lastDiagnosticRef.current
+    if (!last) return
+    bridgeDiagnosticToSmartFlow(last.report, last.recommendation)
+  }, [])
+
+  // "다른 방법 찾아보기" → bridge + normal 트랙 → Step 2
+  const handleAlternativeSearch = useCallback(() => {
+    const last = lastDiagnosticRef.current
+    if (!last) return
+    bridgeDiagnosticToSmartFlow(last.report, last.recommendation)
+    useModeStore.getState().setStepTrack('normal')
+  }, [])
+
   // 새 대화 초기화
   const handleClearChat = useCallback(() => {
     clearMessages()
@@ -353,6 +379,8 @@ export function ChatCentricHub({
               onUploadClick={onUploadClick}
               onClearChat={handleClearChat}
               onRetry={handleRetry}
+              onDiagnosticStart={handleDiagnosticStart}
+              onAlternativeSearch={handleAlternativeSearch}
             />
 
             {/* DataContextBadge — 데이터 로드됨 표시 */}

@@ -17,7 +17,7 @@ import {
 
 // ===== Test Fixtures =====
 
-const mockValidationResults: ValidationResults = {
+const mockValidationResults = {
   isValid: true,
   totalRows: 120,
   columnCount: 4,
@@ -44,8 +44,7 @@ const mockValidationResults: ValidationResults = {
       idDetection: { isId: true, reason: 'sequential' },
     },
   ] as unknown as ValidationResults['columns'],
-  columnStats: undefined as unknown as ValidationResults['columnStats'],
-}
+} as unknown as ValidationResults
 
 // ===== extractBasicStats =====
 

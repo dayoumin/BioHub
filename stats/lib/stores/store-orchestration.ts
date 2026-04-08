@@ -11,8 +11,11 @@ import { useHistoryStore } from './history-store'
 import { useHubChatStore } from './hub-chat-store'
 import { useGraphStudioStore } from './graph-studio-store'
 import { inferColumnMeta } from '@/lib/graph-studio/chart-spec-utils'
+import { extractDetectedVariables } from '@/lib/services/variable-detection-service'
+import { toStatisticalAssumptions } from '@/lib/services/diagnostic-pipeline'
 import type { HistorySnapshot, HistoryLoadResult } from './history-store'
 import type { DataPackage, ColumnMeta } from '@/types/graph-studio'
+import type { AIRecommendation, DiagnosticReport } from '@/types/analysis'
 
 /** analysis-store + mode-store에서 HistorySnapshot을 조립 */
 export function buildHistorySnapshot(): HistorySnapshot {
@@ -101,6 +104,66 @@ export function bridgeHubDataToGraphStudio(): boolean {
   useGraphStudioStore.getState().loadDataOnly(pkg)
   useGraphStudioStore.getState().disconnectProject()
   return true
+}
+
+/**
+ * Hub Diagnostic Pipeline 결과를 SmartFlow 스토어에 브리지.
+ *
+ * 초기화 순서: 스냅샷 → reset → 복원 (resetSession이 모든 상태를 지우므로).
+ */
+export function bridgeDiagnosticToSmartFlow(
+  report: DiagnosticReport,
+  recommendation: AIRecommendation,
+): void {
+  // ── 0. Hub 데이터 스냅샷 (초기화 전에 캡처) ──
+  const hubData = useHubChatStore.getState().dataContext
+  const rawData = useAnalysisStore.getState().uploadedData
+  const rawFile = useAnalysisStore.getState().uploadedFile
+
+  // ── 1. 세션 초기화 ──
+  startFreshAnalysisSession()
+
+  const analysisStore = useAnalysisStore.getState()
+  const modeStore = useModeStore.getState()
+
+  // ── 2. 데이터 복원 ──
+  if (rawData) analysisStore.setUploadedData(rawData)
+  if (rawFile) analysisStore.setUploadedFile(rawFile)
+  if (hubData) {
+    analysisStore.setUploadedFileName(hubData.fileName)
+    analysisStore.setValidationResults(hubData.validationResults)
+    useHubChatStore.getState().setDataContext(hubData)
+  }
+
+  // ── 3. 메서드 설정 ──
+  if (recommendation.method) {
+    analysisStore.setSelectedMethod(recommendation.method)
+  }
+
+  // ── 4. 변수 탐지 결과 → detectedVariables (Step 3 프리필) ──
+  if (report.variableAssignments && recommendation.method) {
+    const detected = extractDetectedVariables(
+      recommendation.method.id,
+      hubData?.validationResults ?? null,
+      { ...recommendation, variableAssignments: report.variableAssignments },
+    )
+    analysisStore.setDetectedVariables(detected)
+  }
+
+  // ── 5. 설정 전달 ──
+  if (recommendation.suggestedSettings) {
+    analysisStore.setSuggestedSettings(recommendation.suggestedSettings)
+  }
+
+  // ── 6. 진단 리포트 + 가정 검정 보존 ──
+  analysisStore.setDiagnosticReport(report)
+  if (report.assumptions) {
+    analysisStore.setAssumptionResults(toStatisticalAssumptions(report.assumptions))
+  }
+
+  // ── 7. 트랙 설정 ──
+  modeStore.setStepTrack('diagnostic')
+  modeStore.setShowHub(false)
 }
 
 /** 히스토리 로드 → analysis-store 복원 → mode 정규화 (3-step 패턴 통합) */

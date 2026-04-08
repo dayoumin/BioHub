@@ -101,6 +101,9 @@ export function useAnalysisHandlers(
     useHistoryStore.getState().loadHistoryFromDB().catch(console.error)
   }, [])
 
+  // Step 2 skip 판정 (quick + diagnostic 트랙)
+  const skipStep2 = stepTrack === 'quick' || stepTrack === 'diagnostic'
+
   // Steps configuration
   const steps = useMemo(() => {
     const sl = t.analysis.stepShortLabels
@@ -111,12 +114,12 @@ export function useAnalysisHandlers(
       { id: 4, label: sl.analysis },
     ].map((step) => ({
       ...step,
-      completed: (stepTrack === 'quick' && step.id === 2)
+      completed: (skipStep2 && step.id === 2)
         ? true
         : completedSteps.includes(step.id),
-      skipped: stepTrack === 'quick' && step.id === 2,
+      skipped: skipStep2 && step.id === 2,
     }))
-  }, [completedSteps, stepTrack, t])
+  }, [completedSteps, skipStep2, t])
 
   // === Handlers ===
 
@@ -128,16 +131,16 @@ export function useAnalysisHandlers(
     }
   }, [canNavigateToStep, navigateToStep])
 
-  // U1-2: Quick 전진 점프 — 중간 단계 사전 마킹
+  // U1-2: Quick/Diagnostic 전진 점프 — 중간 단계 사전 마킹
   const handleStep1Next = useCallback(() => {
-    if (stepTrack === 'quick' && selectedMethod) {
+    if (skipStep2 && selectedMethod) {
       addCompletedStep(1)
       addCompletedStep(2)
       navigateToStep(3)
     } else {
       goToNextStep()
     }
-  }, [stepTrack, selectedMethod, addCompletedStep, navigateToStep, goToNextStep])
+  }, [skipStep2, selectedMethod, addCompletedStep, navigateToStep, goToNextStep])
 
   /** 메서드 ID → quickAnalysis 모드 진입. 성공 시 true 반환 */
   const startQuickAnalysis = useCallback((methodId: string): boolean => {
@@ -159,13 +162,13 @@ export function useAnalysisHandlers(
   const nextStepLabel = useMemo(() => {
     const nav = t.analysis.floatingNav
     switch (currentStep) {
-      case 1: return stepTrack === 'quick' ? nav.toVariables : nav.toMethod
+      case 1: return skipStep2 ? nav.toVariables : nav.toMethod
       case 2: return nav.toVariables
       case 3: return nav.toExecution
       case 4: return nav.runAnalysis
       default: return nav.defaultNext
     }
-  }, [currentStep, stepTrack, t])
+  }, [currentStep, skipStep2, t])
 
   const handleFloatingNext = useCallback(() => {
     handleStep1Next()

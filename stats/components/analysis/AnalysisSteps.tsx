@@ -181,6 +181,22 @@ export function AnalysisSteps({ isHubVisible, onBackToHub }: AnalysisStepsProps)
               />
             )}
 
+            {stepTrack === 'diagnostic' && selectedMethod && (
+              <QuickAnalysisBanner
+                method={selectedMethod}
+                onNormalMode={() => setStepTrack('normal')}
+                onChangeMethod={() => {
+                  setStepTrack('normal')
+                  navigateToStep(2)
+                }}
+                t={{
+                  ...t.analysis.modeBanners.quickAnalysis,
+                  badge: 'AI 진단 기반 분석',
+                  description: '진단 결과를 기반으로 분석을 준비합니다. 데이터를 확인한 후 변수 선택 단계로 진행합니다.',
+                }}
+              />
+            )}
+
             {stepTrack === 'quick' && selectedMethod && (
               <QuickAnalysisBanner
                 method={selectedMethod}
@@ -217,21 +233,39 @@ export function AnalysisSteps({ isHubVisible, onBackToHub }: AnalysisStepsProps)
           </motion.div>
         )}
 
-        {/* ===== Step 2: Purpose Input ===== */}
+        {/* ===== Step 2: Purpose Input (diagnostic/quick 트랙에서 건너뜀) ===== */}
         {currentStep === 2 && (
           <motion.div key="step2" {...motionProps}>
-            <PurposeInputStep
-              onPurposeSubmit={handlePurposeSubmit}
-              validationResults={validationResults}
-              data={uploadedData}
-            />
+            {(stepTrack === 'quick' || stepTrack === 'diagnostic') ? (
+              // 방어적 리다이렉트 — 정상 흐름에서는 도달하지 않음
+              <InlineError
+                message="Step 2는 현재 트랙에서 건너뛰는 단계입니다."
+                onRetry={() => navigateToStep(3)}
+                retryLabel="변수 선택으로 이동"
+              />
+            ) : (
+              <PurposeInputStep
+                onPurposeSubmit={handlePurposeSubmit}
+                validationResults={validationResults}
+                data={uploadedData}
+              />
+            )}
           </motion.div>
         )}
 
         {/* ===== Step 3: Variable Selection ===== */}
         {currentStep === 3 && (
           <motion.div key="step3" {...motionProps}>
-            <VariableSelectionStep onBack={goToPreviousStep} />
+            <VariableSelectionStep
+              onBack={() => {
+                // diagnostic/quick 트랙에서는 Step 2를 건너뛰고 Step 1로
+                if (stepTrack === 'quick' || stepTrack === 'diagnostic') {
+                  navigateToStep(1)
+                } else {
+                  goToPreviousStep()
+                }
+              }}
+            />
           </motion.div>
         )}
 
