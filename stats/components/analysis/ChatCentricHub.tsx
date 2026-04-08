@@ -19,12 +19,13 @@ import { motion } from 'framer-motion'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { intentRouter } from '@/lib/services/intent-router'
 import { getRecommendations } from '@/lib/services/consultant-service'
-import { getHubAiResponse } from '@/lib/services/hub-chat-service'
+import { getHubAiResponse, getHubDiagnosticResponse, getHubDiagnosticResumeResponse } from '@/lib/services/hub-chat-service'
 import { getKoreanName } from '@/lib/constants/statistical-methods'
 import { logger } from '@/lib/utils/logger'
-import type { ResolvedIntent } from '@/types/analysis'
+import type { ResolvedIntent, DiagnosticReport, AIRecommendation } from '@/types/analysis'
 import { useTerminology } from '@/hooks/use-terminology'
-import { useHubChatStore } from '@/lib/stores/hub-chat-store'
+import { useHubChatStore, type HubChatMessage } from '@/lib/stores/hub-chat-store'
+import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useHubDataUpload } from '@/hooks/use-hub-data-upload'
 
 import { ChatInput } from './hub/ChatInput'
@@ -47,8 +48,38 @@ interface ChatCentricHubProps {
 // ===== Helpers =====
 
 import { generateId } from '@/lib/utils/generate-id'
+import type { MethodRecommendation } from '@/types/analysis'
 
 const createMessageId = (): string => generateId('msg')
+
+/** resume 시 사용하는 기본 intent (실제 intent는 파이프라인에 이미 내장) */
+const RESUME_FALLBACK_INTENT: ResolvedIntent = {
+  track: 'data-consultation', confidence: 1, method: null,
+  reasoning: '', needsData: false, provider: 'keyword',
+}
+
+/** AIRecommendation → 추천 카드 배열 변환 */
+function mapRecommendationToCards(rec: AIRecommendation | null): MethodRecommendation[] | undefined {
+  if (!rec?.method) return undefined
+  return [{
+    methodId: rec.method.id,
+    methodName: rec.method.name,
+    koreanName: getKoreanName(rec.method.id) ?? rec.method.name,
+    reason: rec.reasoning?.join(', ') ?? '',
+    badge: 'recommended' as const,
+  }]
+}
+
+/** 직전 assistant 메시지에서 미완료 DiagnosticReport 탐색 */
+function findPendingDiagnosticReport(messages: HubChatMessage[]): DiagnosticReport | null {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i]
+    if (msg.role === 'assistant' && msg.diagnosticReport?.pendingClarification) {
+      return msg.diagnosticReport
+    }
+  }
+  return null
+}
 
 /** 추천 없음 시 "이동합니다" 메시지를 사용자가 읽을 시간 (ms) */
 const NAVIGATE_DELAY_MS = 1000
@@ -97,13 +128,14 @@ export function ChatCentricHub({
   // 인라인 데이터 업로드
   const { handleFileSelected, clearDataContext } = useHubDataUpload()
 
-  // 채팅 입력 제출 → Intent Router 분류 → 트랙별 처리
+  const setStreamingStatus = useHubChatStore((s) => s.setStreamingStatus)
+
+  // 채팅 입력 제출 → resume 감지 → Intent Router 분류 → 트랙별 처리
   const handleChatSubmit = useCallback(async (message: string) => {
     if (isProcessingRef.current) return
     isProcessingRef.current = true
     setIsProcessing(true)
 
-    // 1. user 메시지 저장 전 히스토리 스냅샷 (addMessage 후엔 현재 메시지가 포함되어 LLM에 중복 전달됨)
     const priorMessages = useHubChatStore.getState().messages
 
     addMessage({
@@ -115,6 +147,42 @@ export function ChatCentricHub({
 
     try {
       setStreaming(true)
+
+      // ── [1단계] Resume 감지 (intentRouter 호출 전, deterministic) ──
+      const pendingReport = findPendingDiagnosticReport(priorMessages)
+      const uploadNonce = useAnalysisStore.getState().uploadNonce
+      const uploadedData = useAnalysisStore.getState().uploadedData
+
+      if (pendingReport && dataContext && pendingReport.uploadNonce === uploadNonce) {
+        // Resume: pendingClarification에 대한 답변
+        const statusCb = (status: string): void => { setStreamingStatus(status) }
+        const resumeResponse = await getHubDiagnosticResumeResponse(
+          pendingReport,
+          message,
+          {
+            intent: RESUME_FALLBACK_INTENT,
+            dataContext,
+            chatHistory: priorMessages,
+            data: uploadedData ?? [],
+            uploadNonce,
+            onStatus: statusCb,
+          },
+        )
+        setStreamingStatus(null)
+        setStreaming(false)
+
+        addMessage({
+          id: createMessageId(),
+          role: 'assistant',
+          content: resumeResponse.content,
+          timestamp: Date.now(),
+          diagnosticReport: resumeResponse.diagnosticReport,
+          recommendations: mapRecommendationToCards(resumeResponse.recommendation),
+        })
+        return
+      }
+
+      // ── [2단계] Intent Router 분류 ──
       const intent = await intentRouter.classify(message)
       logger.debug('[ChatCentricHub] Intent resolved', {
         track: intent.track,
@@ -124,29 +192,28 @@ export function ChatCentricHub({
 
       if (intent.track === 'data-consultation') {
         if (dataContext) {
-          // === 데이터 있음: LLM 기반 정밀 추천 ===
-          const aiResponse = await getHubAiResponse({
+          // === 데이터 있음: Diagnostic Pipeline ===
+          const statusCb = (status: string): void => { setStreamingStatus(status) }
+          const diagResponse = await getHubDiagnosticResponse({
             userMessage: message,
             intent,
             dataContext,
             chatHistory: priorMessages,
+            data: uploadedData ?? [],
+            uploadNonce,
+            onStatus: statusCb,
           })
+          setStreamingStatus(null)
           setStreaming(false)
 
           addMessage({
             id: createMessageId(),
             role: 'assistant',
-            content: aiResponse.content,
+            content: diagResponse.content,
             timestamp: Date.now(),
             intent,
-            // AI가 추천한 메서드가 있으면 카드로 표시
-            recommendations: aiResponse.recommendation?.method ? [{
-              methodId: aiResponse.recommendation.method.id,
-              methodName: aiResponse.recommendation.method.name,
-              koreanName: getKoreanName(aiResponse.recommendation.method.id) ?? aiResponse.recommendation.method.name,
-              reason: aiResponse.recommendation.reasoning?.join(', ') ?? '',
-              badge: 'recommended' as const,
-            }] : undefined,
+            diagnosticReport: diagResponse.diagnosticReport,
+            recommendations: mapRecommendationToCards(diagResponse.recommendation),
           })
         } else {
           // === 데이터 없음: 키워드 기반 빠른 추천 ===
@@ -230,7 +297,7 @@ export function ChatCentricHub({
       isProcessingRef.current = false
       setIsProcessing(false)
     }
-  }, [onIntentResolved, addMessage, setStreaming, dataContext, hasSeenUploadSuggestion, setHasSeenUploadSuggestion])
+  }, [onIntentResolved, addMessage, setStreaming, setStreamingStatus, dataContext, hasSeenUploadSuggestion, setHasSeenUploadSuggestion])
 
   // 표본 크기 계산기 "분석 시작" CTA → ChatInput 주입
   const handleStartAnalysis = useCallback((example: string) => {

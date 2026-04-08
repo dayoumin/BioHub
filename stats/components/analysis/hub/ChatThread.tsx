@@ -11,13 +11,14 @@
 
 import { useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bot, User, AlertCircle, RefreshCw, Upload, Trash2 } from 'lucide-react'
+import { Bot, User, AlertCircle, RefreshCw, Upload, Trash2, Activity, ArrowRight, List } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { focusRing } from '@/components/common/card-styles'
 import { Button } from '@/components/ui/button'
 import { RecommendationCard } from '@/components/common/RecommendationCard'
 import { TypingIndicator } from '@/components/common/TypingIndicator'
 import { useHubChatStore, type HubChatMessage } from '@/lib/stores/hub-chat-store'
+import type { DiagnosticReport } from '@/types/analysis'
 
 // ===== Props =====
 
@@ -30,6 +31,10 @@ interface ChatThreadProps {
   onClearChat?: () => void
   /** 에러 메시지 재시도 — errorMessageId 이전의 마지막 user 메시지 재전송 */
   onRetry?: (errorMessageId: string) => void
+  /** "분석 시작하기" 클릭 → bridgeDiagnosticToSmartFlow (Phase D에서 연결) */
+  onDiagnosticStart?: () => void
+  /** "다른 방법 찾아보기" 클릭 → Step 2로 이동 */
+  onAlternativeSearch?: () => void
 }
 
 // ===== Animation =====
@@ -47,9 +52,12 @@ export function ChatThread({
   onUploadClick,
   onClearChat,
   onRetry,
+  onDiagnosticStart,
+  onAlternativeSearch,
 }: ChatThreadProps) {
   const messages = useHubChatStore((s) => s.messages)
   const isStreaming = useHubChatStore((s) => s.isStreaming)
+  const streamingStatus = useHubChatStore((s) => s.streamingStatus)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // 새 메시지 추가 시 자동 스크롤
@@ -97,6 +105,8 @@ export function ChatThread({
               onMethodSelect={onMethodSelect}
               onUploadClick={onUploadClick}
               onRetry={onRetry}
+              onDiagnosticStart={onDiagnosticStart}
+              onAlternativeSearch={onAlternativeSearch}
             />
           ))}
         </AnimatePresence>
@@ -112,7 +122,14 @@ export function ChatThread({
               <Bot className="w-4 h-4 text-primary" />
             </div>
             <div className="bg-muted/60 rounded-2xl rounded-tl-sm px-4 py-3">
-              <TypingIndicator size="sm" />
+              {streamingStatus ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Activity className="w-3.5 h-3.5 animate-pulse text-primary" />
+                  {streamingStatus}
+                </div>
+              ) : (
+                <TypingIndicator size="sm" />
+              )}
             </div>
           </motion.div>
         )}
@@ -128,10 +145,12 @@ interface MessageBubbleProps {
   onMethodSelect: (methodId: string) => void
   onUploadClick?: () => void
   onRetry?: (errorMessageId: string) => void
+  onDiagnosticStart?: () => void
+  onAlternativeSearch?: () => void
 }
 
-function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry }: MessageBubbleProps) {
-  const { role, content, recommendations, isError, suggestUpload } = message
+function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry, onDiagnosticStart, onAlternativeSearch }: MessageBubbleProps) {
+  const { role, content, recommendations, isError, suggestUpload, diagnosticReport } = message
 
   // System 메시지: 중앙 배치, 컴팩트
   if (role === 'system') {
@@ -213,6 +232,29 @@ function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry }: Mess
           )}
         </div>
 
+        {/* 진단 리포트 카드 */}
+        {diagnosticReport && !diagnosticReport.pendingClarification && (
+          <DiagnosticReportCard
+            report={diagnosticReport}
+            onStart={onDiagnosticStart}
+            onBrowse={onAlternativeSearch}
+          />
+        )}
+
+        {/* pendingClarification 선택지 */}
+        {diagnosticReport?.pendingClarification && (
+          <div className="bg-muted/40 rounded-xl p-3 space-y-1.5">
+            {diagnosticReport.pendingClarification.candidateColumns.slice(0, 8).map(col => (
+              <div key={col.column} className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">[{col.column}]</span>
+                {' '}{col.type === 'categorical' ? '범주형' : '수치형'}
+                {col.uniqueValues != null && ` · ${col.uniqueValues}개 고유값`}
+                {col.sampleGroups?.length ? ` (${col.sampleGroups.join(', ')})` : ''}
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* 추천 카드 (인라인) */}
         {recommendations && recommendations.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -244,5 +286,87 @@ function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry }: Mess
         )}
       </div>
     </motion.div>
+  )
+}
+
+// ===== Diagnostic Report Card =====
+
+interface DiagnosticReportCardProps {
+  report: DiagnosticReport
+  onStart?: () => void
+  onBrowse?: () => void
+}
+
+function DiagnosticReportCard({ report, onStart, onBrowse }: DiagnosticReportCardProps) {
+  const { basicStats, assumptions } = report
+
+  return (
+    <div className="bg-muted/40 rounded-xl p-3 space-y-2 text-xs">
+      <div className="flex items-center gap-1.5 text-muted-foreground font-medium">
+        <Activity className="w-3.5 h-3.5 text-primary" />
+        데이터 진단 결과
+      </div>
+
+      {/* 기초통계 */}
+      <div className="text-muted-foreground">
+        {basicStats.totalRows}행
+        {basicStats.groups?.length ? ` · ${basicStats.groups.length}개 그룹 (${basicStats.groups.map(g => g.name).join(', ')})` : ''}
+        {basicStats.numericSummaries.length > 0 && ` · 수치변수 ${basicStats.numericSummaries.length}개`}
+      </div>
+
+      {/* 가정 검정 */}
+      {assumptions && (
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className={assumptions.normality.overallPassed ? 'stat-significant' : 'stat-non-significant'}>
+              정규성: {assumptions.normality.overallPassed ? '충족' : '미충족'}
+            </span>
+            {assumptions.normality.groups.length <= 4 && (
+              <span className="text-muted-foreground">
+                ({assumptions.normality.groups.map(g => `${g.groupName} p=${g.pValue.toFixed(3)}`).join(', ')})
+              </span>
+            )}
+          </div>
+          {assumptions.homogeneity && (
+            <div>
+              <span className={assumptions.homogeneity.levene.equalVariance ? 'stat-significant' : 'stat-non-significant'}>
+                등분산: {assumptions.homogeneity.levene.equalVariance ? '충족' : '미충족'}
+              </span>
+              <span className="text-muted-foreground ml-1">
+                (Levene p={assumptions.homogeneity.levene.pValue.toFixed(3)})
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 액션 버튼 */}
+      {(onStart || onBrowse) && (
+        <div className="flex gap-2 pt-1">
+          {onStart && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10"
+              onClick={onStart}
+            >
+              분석 시작하기
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Button>
+          )}
+          {onBrowse && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs gap-1 text-muted-foreground"
+              onClick={onBrowse}
+            >
+              <List className="w-3.5 h-3.5" />
+              다른 방법 찾아보기
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
