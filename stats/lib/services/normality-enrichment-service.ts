@@ -10,15 +10,8 @@
  */
 
 import type { ColumnStatistics, DataRow } from '@/types/analysis'
+import type { NormalityWorkerResult } from '@/lib/services/pyodide/worker-result-types'
 import { logger } from '@/lib/utils/logger'
-
-// ===== Types =====
-
-interface NormalityResult {
-  statistic: number
-  pValue: number
-  isNormal: boolean
-}
 
 export interface NormalityEnrichmentResult {
   /** normality가 추가된 새 columnStats 배열 (원본 미변이) */
@@ -95,7 +88,7 @@ export async function enrichWithNormality(
         ? randomSample(values, MAX_SAMPLE_SIZE)
         : values
 
-      const result = await pyodide.callWorkerMethod<NormalityResult>(
+      const result = await pyodide.callWorkerMethod<NormalityWorkerResult>(
         1,
         'normality_test',
         { data: sampleData, alpha: 0.05 }

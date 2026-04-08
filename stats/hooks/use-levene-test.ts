@@ -14,6 +14,7 @@ import { logger } from '@/lib/utils/logger'
 import { extractGroupedNumericData } from '@/lib/utils/grouped-data'
 import { raceWithTimeout } from '@/lib/utils/promise-utils'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { MIN_GROUP_SIZE } from '@/lib/constants/statistical-constants'
 
 // ── Types ──
 
@@ -49,9 +50,6 @@ export interface UseLeveneTestReturn {
 /** 그룹 변수 후보: unique 값 2~10 */
 const MIN_GROUPS = 2
 const MAX_GROUPS = 10
-
-/** 그룹당 최소 관측치 */
-const MIN_GROUP_SIZE = 3
 
 const TIMEOUT_MS = 15_000
 

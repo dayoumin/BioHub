@@ -19,40 +19,11 @@ import type { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-cor
 import { logger } from '@/lib/utils/logger'
 import { raceWithTimeout } from '@/lib/utils/promise-utils'
 import { extractGroupedNumericData } from '@/lib/utils/grouped-data'
-
-// ===== Worker 3 응답 타입 =====
-
-interface TestAssumptionsWorkerResult {
-  normality: {
-    shapiroWilk: Array<{
-      group: number
-      statistic: number | null
-      pValue: number | null
-      passed: boolean | null
-      warning?: string
-    }>
-    passed: boolean
-    interpretation: string
-  }
-  homogeneity: {
-    levene: {
-      statistic: number
-      pValue: number
-    }
-    passed: boolean
-    interpretation: string
-  }
-}
-
-interface NormalityWorkerResult {
-  statistic: number
-  pValue: number
-  isNormal: boolean
-}
+import { MIN_GROUP_SIZE, resolveGroupVariable } from '@/lib/constants/statistical-constants'
+import type { TestAssumptionsWorkerResult, NormalityWorkerResult } from '@/lib/services/pyodide/worker-result-types'
 
 // ===== Constants =====
 
-const MIN_GROUP_SIZE = 3
 const TIMEOUT_MS = 10_000
 
 // ===== Main Function =====
@@ -89,9 +60,7 @@ export async function runAssumptionTests(
     }
 
     // 그룹 변수 결정: factor > independent > between
-    const groupVarName = variableAssignments.factor?.[0]
-      ?? variableAssignments.independent?.[0]
-      ?? variableAssignments.between?.[0]
+    const groupVarName = resolveGroupVariable(variableAssignments)
 
     // 종속 변수 결정: dependent > first numeric not in group
     const dependentVarName = variableAssignments.dependent?.[0]

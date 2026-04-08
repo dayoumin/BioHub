@@ -32,33 +32,8 @@ import { buildDataContextMarkdown } from './ai/data-context-builder'
 import { extractGroupedNumericData } from '@/lib/utils/grouped-data'
 import { raceWithTimeout } from '@/lib/utils/promise-utils'
 import { logger } from '@/lib/utils/logger'
-
-// ===== Worker 응답 타입 (assumption-testing-service와 동일) =====
-
-interface TestAssumptionsWorkerResult {
-  normality: {
-    shapiroWilk: Array<{
-      group: number
-      statistic: number | null
-      pValue: number | null
-      passed: boolean | null
-      warning?: string
-    }>
-    passed: boolean
-    interpretation: string
-  }
-  homogeneity: {
-    levene: { statistic: number; pValue: number }
-    passed: boolean
-    interpretation: string
-  }
-}
-
-interface NormalityWorkerResult {
-  statistic: number
-  pValue: number
-  isNormal: boolean
-}
+import { MIN_GROUP_SIZE, resolveGroupVariable } from '@/lib/constants/statistical-constants'
+import type { TestAssumptionsWorkerResult, NormalityWorkerResult } from '@/lib/services/pyodide/worker-result-types'
 
 // ===== Types =====
 
@@ -76,7 +51,6 @@ export type DiagnosticStatusCallback = (status: string) => void
 
 // ===== Constants =====
 
-const MIN_GROUP_SIZE = 3
 const WORKER_TIMEOUT_MS = 10_000
 
 // ===== Main Functions =====
@@ -455,10 +429,8 @@ async function runDiagnosticAssumptions(
       }
     }
 
-    // 그룹 변수 결정: factor > independent > between (assumption-testing-service와 동일)
-    const groupVarName = variableAssignments.factor?.[0]
-      ?? variableAssignments.independent?.[0]
-      ?? variableAssignments.between?.[0]
+    // 그룹 변수 결정: factor > independent > between
+    const groupVarName = resolveGroupVariable(variableAssignments)
 
     const dependentVarName = variableAssignments.dependent?.[0]
     if (!dependentVarName) return null

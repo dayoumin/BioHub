@@ -22,12 +22,9 @@
 
 ## 중간 (코드 품질)
 
-### TD-3. Worker 응답 타입 중복 (3파일)
-- `TestAssumptionsWorkerResult` + `NormalityWorkerResult`가 아래 3곳에 동일 정의:
-  - `lib/services/assumption-testing-service.ts:25-50`
-  - `lib/services/diagnostic-pipeline.ts:38-61`
-  - `lib/services/normality-enrichment-service.ts:17-21` (NormalityResult)
-- **해결**: `lib/services/pyodide/worker-result-types.ts`로 추출
+### ~~TD-3. Worker 응답 타입 중복 (3파일)~~ ✅ 해결됨
+- ~~`TestAssumptionsWorkerResult` + `NormalityWorkerResult`가 3곳에 동일 정의~~
+- **해결**: `lib/services/pyodide/worker-result-types.ts`로 추출 완료
 
 ### TD-4. Pyodide lazy init 패턴 중복 (3파일)
 - 동일 7줄 패턴 (dynamic import → getInstance → isInitialized → try init → warn):
@@ -43,15 +40,13 @@
   - `ollama-recommender.ts`, `llm-recommender.ts`, `ai-service.ts`
 - **해결**: `lib/utils/json-extraction.ts`로 추출, balanced-brace 방식 통합
 
-### TD-6. MIN_GROUP_SIZE = 3 상수 중복
-- 3곳에 동일 값 정의: diagnostic-pipeline, assumption-testing-service, use-levene-test
-- **해결**: `lib/constants/statistical-constants.ts`로 추출
+### ~~TD-6. MIN_GROUP_SIZE = 3 상수 중복~~ ✅ 해결됨
+- ~~3곳에 동일 값 정의: diagnostic-pipeline, assumption-testing-service, use-levene-test~~
+- **해결**: `lib/constants/statistical-constants.ts`로 추출 완료
 
-### TD-7. 그룹 변수 해결 로직 중복
-- `factor?.[0] ?? independent?.[0] ?? between?.[0]` 패턴이 2곳:
-  - `assumption-testing-service.ts:92`
-  - `diagnostic-pipeline.ts`
-- **해결**: `resolveGroupVariable(va)` 헬퍼 추출
+### ~~TD-7. 그룹 변수 해결 로직 중복~~ ✅ 해결됨
+- ~~`factor?.[0] ?? independent?.[0] ?? between?.[0]` 패턴이 2곳~~
+- **해결**: `resolveGroupVariable()` → `lib/constants/statistical-constants.ts`로 추출 완료
 
 ---
 
