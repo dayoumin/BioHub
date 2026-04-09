@@ -357,9 +357,10 @@ function checkSampleSize(
 function checkAssumptions(
   assumptions: AssumptionResults,
   method: StatisticalMethodRequirements
-): { passed: boolean; warnings: string[]; violations: string[] } {
+): { passed: boolean; warnings: string[]; violations: string[]; violatedAssumptions: Set<string> } {
   const warnings: string[] = []
   const violations: string[] = []
+  const violatedAssumptions = new Set<string>()
 
   for (const assumption of method.assumptions) {
     switch (assumption) {
@@ -368,6 +369,7 @@ function checkAssumptions(
       case '다변량 정규성':
         if (assumptions.normality === false) {
           violations.push('정규성 가정 위반')
+          violatedAssumptions.add('정규성')
           warnings.push('정규성 검정 실패: 비모수 방법 권장')
         } else if (assumptions.normality === 'unknown') {
           warnings.push('정규성 검정 필요')
@@ -592,7 +594,8 @@ function checkAssumptions(
   return {
     passed: true, // Assumptions don't cause hard incompatibility
     warnings,
-    violations
+    violations,
+    violatedAssumptions,
   }
 }
 
@@ -845,6 +848,16 @@ export function getCompatibilityMap(
 // Helper Functions
 // ============================================================================
 
+/** 모수 → 비모수 대안 매핑 (메서드 ID 기반) */
+const PARAMETRIC_TO_NONPARAMETRIC: Record<string, string> = {
+  'two-sample-t': 'mann-whitney',
+  'welch-t': 'mann-whitney',
+  'paired-t': 'wilcoxon-signed-rank',
+  'one-way-anova': 'kruskal-wallis',
+  'repeated-measures-anova': 'friedman',
+  'pearson-correlation': 'spearman-correlation',
+}
+
 /**
  * Find alternative methods when primary method is incompatible
  */
@@ -855,19 +868,9 @@ function findAlternatives(
 ): string[] {
   const alternatives: string[] = []
 
-  // Parametric → Non-parametric alternatives
-  const parametricToNonparametric: Record<string, string> = {
-    'two-sample-t': 'mann-whitney',
-    'welch-t': 'mann-whitney',
-    'paired-t': 'wilcoxon-signed-rank',
-    'one-way-anova': 'kruskal-wallis',
-    'repeated-measures-anova': 'friedman',
-    'pearson-correlation': 'spearman-correlation'
-  }
-
-  if (parametricToNonparametric[methodId]) {
+  if (PARAMETRIC_TO_NONPARAMETRIC[methodId]) {
     const altMethod = STATISTICAL_METHOD_REQUIREMENTS.find(
-      m => m.id === parametricToNonparametric[methodId]
+      m => m.id === PARAMETRIC_TO_NONPARAMETRIC[methodId]
     )
     if (altMethod) {
       const altResult = checkMethodCompatibility(dataSummary, assumptions, altMethod)
@@ -883,6 +886,11 @@ function findAlternatives(
   }
 
   return alternatives
+}
+
+/** 가정 위반 시 비모수 대안 ID 반환 (없으면 null) */
+function getNonparametricAlternative(methodId: string): string | null {
+  return PARAMETRIC_TO_NONPARAMETRIC[methodId] ?? null
 }
 
 /**
@@ -1491,12 +1499,18 @@ export function mergeAssumptionResults(
     const assumptionCheck = checkAssumptions(assumptions, method)
 
     if (assumptionCheck.warnings.length > 0) {
+      const altId = assumptionCheck.violatedAssumptions.has('정규성')
+        ? getNonparametricAlternative(methodId)
+        : null
+      const alternatives = altId ? [altId] : undefined
+
       // Add assumption warnings to structurally compatible method
       mergedMap.set(methodId, {
         ...structuralResult,
         status: 'warning',
         reasons: [...structuralResult.reasons, ...assumptionCheck.warnings],
         assumptionViolations: assumptionCheck.violations,
+        alternatives,
         // Recalculate score with assumption penalties
         score: Math.max(0, (structuralResult.score ?? 100) - assumptionCheck.violations.length * 10)
       })

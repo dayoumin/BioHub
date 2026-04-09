@@ -93,7 +93,7 @@ describe('parseVariableDetectionResponse', () => {
     const result = parseVariableDetectionResponse(raw, mockValidationResults)
 
     expect(result.variableAssignments).toEqual({ factor: ['사료종류'] })
-    expect(result.clarificationNeeded).toContain('종속변수')
+    expect(result.clarificationNeeded).toContain('비교할 값을 선택해 주세요')
   })
 
   it('dependent만 있고 factor 없으면 부분 탐지 + clarification 반환', () => {
@@ -101,7 +101,7 @@ describe('parseVariableDetectionResponse', () => {
     const result = parseVariableDetectionResponse(raw, mockValidationResults)
 
     expect(result.variableAssignments).toEqual({ dependent: ['생산량'] })
-    expect(result.clarificationNeeded).toContain('그룹 변수')
+    expect(result.clarificationNeeded).toContain('어떤 기준으로 비교할까요')
   })
 
   it('존재하지 않는 컬럼명은 필터링한다 (hallucination 방지)', () => {

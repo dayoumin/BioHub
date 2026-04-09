@@ -15,6 +15,7 @@ import { useTerminology } from '@/hooks/use-terminology'
 import { useMethodCompatibility } from '@/hooks/use-method-compatibility'
 import type { CompatibilityResult, CompatibilityStatus } from '@/lib/statistics/data-method-compatibility'
 import { getCompatibilityForMethod } from '@/lib/statistics/data-method-compatibility'
+import { getKoreanName } from '@/lib/constants/statistical-methods'
 import { EmptyState } from '@/components/common/EmptyState'
 
 interface MethodGroup {
@@ -199,13 +200,15 @@ export const MethodBrowser = memo(function MethodBrowser({
     canUse: boolean
     warnings: string[]
     status: CompatibilityStatus
+    alternatives?: string[]
   } => {
     const compat = getCompatibility(method.id)
     if (compat) {
       return {
         canUse: compat.status !== 'incompatible',
         warnings: compat.reasons,
-        status: compat.status
+        status: compat.status,
+        alternatives: compat.alternatives,
       }
     }
 
@@ -518,7 +521,7 @@ function MethodDetailPanel({
   method: StatisticalMethod
   isSelected: boolean
   isRecommended: boolean
-  requirements: { canUse: boolean; warnings: string[]; status: CompatibilityStatus }
+  requirements: { canUse: boolean; warnings: string[]; status: CompatibilityStatus; alternatives?: string[] }
   categoryLabel: string
   dataProfile?: { totalRows: number; numericVars: number; categoricalVars: number }
   onSelect: () => void
@@ -636,6 +639,17 @@ function MethodDetailPanel({
                 </li>
               ))}
             </ul>
+            {/* 비모수 대안 추천 */}
+            {requirements.alternatives && requirements.alternatives.length > 0 && (
+              <div className="mt-2 pt-1.5 rounded bg-amber-100/50 dark:bg-amber-900/20 px-2 py-1.5">
+                <span className="text-xs font-medium text-amber-800 dark:text-amber-300">
+                  대안:{' '}
+                  {requirements.alternatives
+                    .map((altId) => getKoreanName(altId) ?? altId)
+                    .join(', ')}
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>

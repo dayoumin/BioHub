@@ -5,14 +5,19 @@
  *
  * 수동 메서드 선택 전용. AI 추천은 허브 채팅이 담당.
  * 기존 MethodBrowser를 래핑하여 StepHeader + 선택 확정 버튼 제공.
+ *
+ * 정규성 기반 가이드:
+ * Step 1의 컬럼별 정규성 결과를 요약 배너로 표시.
+ * 비정규 변수가 과반이면 비모수 검정 추천 안내.
  */
 
 import { useState, useMemo, useCallback } from 'react'
-import { ArrowRight, ArrowLeft, Search } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Search, AlertTriangle, CheckCircle2, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { getAllMethodsGrouped } from '@/lib/statistics/method-catalog'
 import { getKoreanName } from '@/lib/constants/statistical-methods'
+import { getNormalitySummary } from '@/hooks/use-method-compatibility'
 import { StepHeader } from '@/components/analysis/common'
 import { MethodBrowser } from './purpose/MethodBrowser'
 import type { StatisticalMethod } from '@/types/analysis'
@@ -41,6 +46,14 @@ export function MethodBrowserStep({ onMethodConfirm, onBack }: MethodBrowserStep
     }
   }, [validationResults])
 
+  const assumptionResults = useAnalysisStore((s) => s.assumptionResults)
+
+  // Step 3 확정 결과가 있으면 배너 숨김 (카드에 정확한 결과가 표시됨)
+  const normalitySummary = useMemo(() => {
+    if (assumptionResults) return null
+    return getNormalitySummary(validationResults?.columnStats ?? validationResults?.columns)
+  }, [validationResults, assumptionResults])
+
   const recommendedMethodId = cachedAiRecommendation?.method?.id
 
   const handleMethodSelect = useCallback((method: StatisticalMethod) => {
@@ -61,6 +74,32 @@ export function MethodBrowserStep({ onMethodConfirm, onBack }: MethodBrowserStep
         </Button>
         <StepHeader icon={Search} title="분석 방법 선택" />
       </div>
+
+      {/* 정규성 탐색적 힌트 배너 — assumptionResults 없을 때만 표시 */}
+      {normalitySummary && (
+        <div className={`flex items-start gap-3 rounded-lg px-4 py-3 text-sm ${
+          !normalitySummary.mostlyNormal
+            ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-100'
+            : 'bg-muted/50 text-muted-foreground'
+        }`}>
+          {!normalitySummary.mostlyNormal
+            ? <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+            : <Info className="w-4 h-4 mt-0.5 shrink-0" />
+          }
+          <div>
+            <span className="font-medium">
+              데이터 참고: 수치 변수 {normalitySummary.testedCount}개 중{' '}
+              {normalitySummary.normalCount}개 정규분포
+            </span>
+            {!normalitySummary.mostlyNormal && (
+              <p className="mt-1 text-xs opacity-80">
+                비정규 변수가 많습니다. 비모수 검정(Mann-Whitney, Kruskal-Wallis 등)을 고려하세요.
+                변수 선택 후 정확한 가정 검정이 실행됩니다.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       <MethodBrowser
         methodGroups={methodGroups}

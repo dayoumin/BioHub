@@ -4,12 +4,17 @@
  * validationResults → 구조적 호환성 Map 파생
  * assumptionResults 병합 시 가정검정 반영
  * validationResults null → null 반환
+ * 탐색적 정규성 기반 가이드 (deriveNormalityFromColumns / getNormalitySummary)
  */
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
-import { useMethodCompatibility } from '@/hooks/use-method-compatibility'
+import {
+  useMethodCompatibility,
+  deriveNormalityFromColumns,
+  getNormalitySummary,
+} from '@/hooks/use-method-compatibility'
 import type { ValidationResults, ColumnStatistics } from '@/types/analysis'
 
 function makeColumnStats(overrides?: Partial<ColumnStatistics>): ColumnStatistics {
@@ -161,5 +166,162 @@ describe('useMethodCompatibility', () => {
     // 둘 다 Map이지만 가정검정 병합 후 다를 수 있음
     expect(mapBefore).not.toBeNull()
     expect(mapAfter).not.toBeNull()
+  })
+
+  it('columnStats 정규성 결과만으로는 메서드 호환성 warning이 발생하지 않는다', () => {
+    // 탐색적 정규성은 배너 힌트용이지 호환성 엔진 입력이 아님
+    const cols = [
+      makeColumnStats({ name: 'group', type: 'categorical', uniqueValues: 2 }),
+      makeColumnStats({
+        name: 'value',
+        type: 'numeric',
+        normality: { statistic: 0.8, pValue: 0.01, isNormal: false, testName: 'shapiro-wilk' },
+      }),
+    ]
+
+    act(() => {
+      useAnalysisStore.getState().setValidationResults(makeValidation(cols))
+    })
+
+    const { result } = renderHook(() => useMethodCompatibility())
+    const map = result.current!
+
+    // assumptionResults 없으면 → 구조적 호환성만 판정, 정규성 경고 없음
+    const tTest = map.get('two-sample-t')
+    if (tTest && tTest.status !== 'incompatible') {
+      expect(tTest.status).toBe('compatible')
+      expect(tTest.assumptionViolations).toBeUndefined()
+    }
+  })
+
+  it('정규 데이터에서도 등분산성 미검정 경고가 발생하지 않는다', () => {
+    // Finding 2: 탐색적 경로 제거로 homogeneity: unknown → "등분산성 검정 필요" 방지
+    const cols = [
+      makeColumnStats({ name: 'group', type: 'categorical', uniqueValues: 2 }),
+      makeColumnStats({
+        name: 'value',
+        type: 'numeric',
+        normality: { statistic: 0.98, pValue: 0.5, isNormal: true, testName: 'shapiro-wilk' },
+      }),
+    ]
+
+    act(() => {
+      useAnalysisStore.getState().setValidationResults(makeValidation(cols))
+    })
+
+    const { result } = renderHook(() => useMethodCompatibility())
+    const map = result.current!
+
+    const tTest = map.get('two-sample-t')
+    if (tTest && tTest.status !== 'incompatible') {
+      expect(tTest.status).toBe('compatible')
+      expect(tTest.reasons).toHaveLength(0)
+    }
+  })
+})
+
+describe('deriveNormalityFromColumns', () => {
+  it('columnStats가 없으면 null 반환', () => {
+    expect(deriveNormalityFromColumns(undefined)).toBeNull()
+    expect(deriveNormalityFromColumns([])).toBeNull()
+  })
+
+  it('정규성 검정이 아직 안 된 경우 null 반환', () => {
+    const cols = [makeColumnStats({ name: 'x', type: 'numeric' })]
+    expect(deriveNormalityFromColumns(cols)).toBeNull()
+  })
+
+  it('과반수 정규이면 normality=true (summarizeNormality.mostlyNormal 위임)', () => {
+    const cols = [
+      makeColumnStats({
+        name: 'a', normality: { statistic: 0.98, pValue: 0.5, isNormal: true, testName: 'shapiro-wilk' },
+      }),
+      makeColumnStats({
+        name: 'b', normality: { statistic: 0.97, pValue: 0.4, isNormal: true, testName: 'shapiro-wilk' },
+      }),
+      makeColumnStats({
+        name: 'c', normality: { statistic: 0.7, pValue: 0.001, isNormal: false, testName: 'shapiro-wilk' },
+      }),
+    ]
+
+    const result = deriveNormalityFromColumns(cols)
+    expect(result).not.toBeNull()
+    expect(result!.normality).toBe(true)
+  })
+
+  it('과반수 비정규이면 normality=false', () => {
+    const cols = [
+      makeColumnStats({
+        name: 'a', normality: { statistic: 0.7, pValue: 0.001, isNormal: false, testName: 'shapiro-wilk' },
+      }),
+      makeColumnStats({
+        name: 'b', normality: { statistic: 0.75, pValue: 0.01, isNormal: false, testName: 'shapiro-wilk' },
+      }),
+      makeColumnStats({
+        name: 'c', normality: { statistic: 0.98, pValue: 0.5, isNormal: true, testName: 'shapiro-wilk' },
+      }),
+    ]
+
+    const result = deriveNormalityFromColumns(cols)
+    expect(result).not.toBeNull()
+    expect(result!.normality).toBe(false)
+  })
+
+  it('범주형 변수는 정규성 판단에서 제외', () => {
+    const cols = [
+      makeColumnStats({ name: 'group', type: 'categorical' }),
+      makeColumnStats({
+        name: 'val', normality: { statistic: 0.7, pValue: 0.001, isNormal: false, testName: 'shapiro-wilk' },
+      }),
+    ]
+
+    const result = deriveNormalityFromColumns(cols)
+    expect(result).not.toBeNull()
+    expect(result!.normality).toBe(false)
+  })
+})
+
+describe('getNormalitySummary', () => {
+  it('columnStats가 없으면 null 반환', () => {
+    expect(getNormalitySummary(undefined)).toBeNull()
+  })
+
+  it('정규성 검정이 없으면 null 반환', () => {
+    const cols = [makeColumnStats({ name: 'x' })]
+    expect(getNormalitySummary(cols)).toBeNull()
+  })
+
+  it('정규/비정규 카운트를 정확히 집계한다', () => {
+    const cols = [
+      makeColumnStats({
+        name: 'a', normality: { statistic: 0.98, pValue: 0.5, isNormal: true, testName: 'shapiro-wilk' },
+      }),
+      makeColumnStats({
+        name: 'b', normality: { statistic: 0.7, pValue: 0.001, isNormal: false, testName: 'shapiro-wilk' },
+      }),
+      makeColumnStats({
+        name: 'c', normality: { statistic: 0.75, pValue: 0.01, isNormal: false, testName: 'shapiro-wilk' },
+      }),
+    ]
+
+    const summary = getNormalitySummary(cols)!
+    expect(summary.testedCount).toBe(3)
+    expect(summary.normalCount).toBe(1)
+    expect(summary.mostlyNormal).toBe(false)
+  })
+
+  it('모두 정규이면 mostlyNormal=true', () => {
+    const cols = [
+      makeColumnStats({
+        name: 'a', normality: { statistic: 0.98, pValue: 0.5, isNormal: true, testName: 'shapiro-wilk' },
+      }),
+      makeColumnStats({
+        name: 'b', normality: { statistic: 0.97, pValue: 0.4, isNormal: true, testName: 'shapiro-wilk' },
+      }),
+    ]
+
+    const summary = getNormalitySummary(cols)!
+    expect(summary.mostlyNormal).toBe(true)
+    expect(summary.normalCount).toBe(2)
   })
 })
