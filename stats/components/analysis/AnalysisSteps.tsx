@@ -18,6 +18,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { DataExplorationStep } from '@/components/analysis/steps/DataExplorationStep'
 import { VariableSelectionStep } from '@/components/analysis/steps/VariableSelectionStep'
 import { AnalysisExecutionStep } from '@/components/analysis/steps/AnalysisExecutionStep'
+import { MethodBrowserStep } from '@/components/analysis/steps/MethodBrowserStep'
+import { extractDetectedVariables } from '@/lib/services/variable-detection-service'
 import { ReanalysisPanel } from '@/components/analysis/ReanalysisPanel'
 import { ReanalysisBanner, QuickAnalysisBanner } from '@/components/analysis/steps/Step1ModeBanners'
 import { InlineError } from '@/components/common/InlineError'
@@ -30,10 +32,6 @@ function StepLoadingFallback(): React.ReactElement {
   )
 }
 
-const PurposeInputStep = dynamic(
-  () => import('@/components/analysis/steps/PurposeInputStep').then(m => ({ default: m.PurposeInputStep })),
-  { ssr: false, loading: StepLoadingFallback }
-)
 
 const ResultsActionStep = dynamic(
   () => import('@/components/analysis/steps/ResultsActionStep').then(m => ({ default: m.ResultsActionStep })),
@@ -89,7 +87,6 @@ export function AnalysisSteps({ isHubVisible, onBackToHub }: AnalysisStepsProps)
     results,
     isLoading,
     error,
-    setAnalysisPurpose,
     setSelectedMethod,
     setResults,
     setError,
@@ -133,20 +130,23 @@ export function AnalysisSteps({ isHubVisible, onBackToHub }: AnalysisStepsProps)
 
   // ─── 인라인 핸들러 (이전 useAnalysisHandlers에서 이동) ───
 
-  const handlePurposeSubmit = useCallback((purpose: string, method: StatisticalMethod) => {
-    setAnalysisPurpose(purpose)
+  const handleMethodConfirm = useCallback((method: StatisticalMethod) => {
     setSelectedMethod(method)
-
     useAnalysisStore.getState().setVariableMapping(null)
     useAnalysisStore.getState().setDetectedVariables(null)
 
-    if (!uploadedData || uploadedData.length === 0) {
-      setStepTrack('quick')
-      navigateToStep(1)
-    } else {
-      goToNextStep()
+    // 추천 컨텍스트가 있으면 변수 탐지 + 설정 적용
+    const recCtx = useAnalysisStore.getState().cachedAiRecommendation
+    if (validationResults) {
+      const detected = extractDetectedVariables(method.id, validationResults, recCtx)
+      useAnalysisStore.getState().setDetectedVariables(detected)
     }
-  }, [setAnalysisPurpose, setSelectedMethod, goToNextStep, uploadedData, setStepTrack, navigateToStep])
+    if (recCtx?.suggestedSettings) {
+      useAnalysisStore.getState().setSuggestedSettings(recCtx.suggestedSettings)
+    }
+
+    goToNextStep()
+  }, [setSelectedMethod, goToNextStep, validationResults])
 
   const handleAnalysisComplete = useCallback((analysisResults: AnalysisResult) => {
     setResults(analysisResults)
@@ -236,13 +236,12 @@ export function AnalysisSteps({ isHubVisible, onBackToHub }: AnalysisStepsProps)
           </motion.div>
         )}
 
-        {/* ===== Step 2: Purpose Input — quick/diagnostic에서도 도달 시 메서드 선택 표시 ===== */}
+        {/* ===== Step 2: Method Browser ===== */}
         {currentStep === 2 && (
           <motion.div key="step2" {...motionProps}>
-            <PurposeInputStep
-              onPurposeSubmit={handlePurposeSubmit}
-              validationResults={validationResults}
-              data={uploadedData}
+            <MethodBrowserStep
+              onMethodConfirm={handleMethodConfirm}
+              onBack={() => navigateToStep(1)}
             />
           </motion.div>
         )}

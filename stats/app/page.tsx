@@ -27,8 +27,6 @@ export default function HomePage() {
   const {
     showHub,
     setShowHub,
-    setPurposeInputMode,
-    setUserQuery,
   } = useModeStore()
 
   const handlers = useAnalysisHandlers(showHub)
@@ -55,39 +53,26 @@ export default function HomePage() {
   /**
    * Intent resolved — ChatCentricHub에서 호출
    *
-   * data-consultation은 이제 허브 내부(ChatThread)에서 처리.
+   * data-consultation은 허브 내부(ChatThread)에서 처리하므로 여기 도달하지 않음.
    * 여기에 도달하는 경우:
-   * - data-consultation + 추천 없음 → Step 1 이동
-   * - direct-analysis → Step 1 또는 quick analysis
+   * - direct-analysis + 메서드 확정 → quick analysis
+   * - direct-analysis + 메서드 미확정 → Step 1 (데이터 업로드 후 Step 2 브라우저)
+   * - visualization → Graph Studio 이동
    */
   const handleIntentResolved = useCallback((intent: ResolvedIntent, message: string) => {
     switch (intent.track) {
       case 'direct-analysis':
+        startFreshAnalysisSession()
         if (intent.method) {
-          startFreshAnalysisSession()
           startQuickAnalysis(intent.method.id)
-          setShowHub(false)
         } else {
-          startFreshAnalysisSession()
-          setUserQuery(message)
-          setPurposeInputMode('ai')
-          setShowHub(false)
+          // 메서드 미확정 → 데이터 업로드부터 시작 (Step 2 브라우저에서 선택)
           navigateToStep(1)
         }
-        break
-
-      case 'data-consultation':
-        // 추천 없음 → Step 1 이동 (추천 있으면 허브 ChatThread에서 표시)
-        startFreshAnalysisSession()
-        setUserQuery(message)
         setShowHub(false)
-        navigateToStep(1)
         break
-
-      // experiment-design 폐기 — data-consultation으로 흡수됨
 
       case 'visualization': {
-        // 허브에 업로드된 데이터가 있으면 Graph Studio로 전달 후 이동
         const bridged = bridgeHubDataToGraphStudio()
         if (!bridged) {
           toast.info(TOAST.navigation.graphStudioOpened)
@@ -96,7 +81,7 @@ export default function HomePage() {
         break
       }
     }
-  }, [startQuickAnalysis, navigateToStep, setShowHub, setPurposeInputMode, setUserQuery, t, router])
+  }, [startQuickAnalysis, navigateToStep, setShowHub, router])
 
   const handleQuickAnalysis = useCallback((methodId: string) => {
     startFreshAnalysisSession()

@@ -148,10 +148,11 @@ export function bridgeDiagnosticToSmartFlow(
     useHubChatStore.getState().setDataContext(hubData)
   }
 
-  // ── 3. 메서드 설정 ──
+  // ── 3. 메서드 설정 + 추천 컨텍스트 보존 ──
   if (recommendation.method) {
     analysisStore.setSelectedMethod(recommendation.method)
   }
+  analysisStore.setCachedAiRecommendation(recommendation)
 
   // ── 4. 변수 탐지 결과 → detectedVariables (Step 3 프리필) ──
   if (report.variableAssignments && recommendation.method) {
