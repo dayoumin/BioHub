@@ -20,6 +20,7 @@ import { StatisticalExecutor } from '@/lib/services/executors'
 import type { StatisticalExecutorResult as ExecutorResult } from '@/lib/services/executors'
 import { pyodideStats } from '@/lib/services/pyodide/pyodide-statistics'
 import { transformExecutorResult } from '@/lib/utils/result-transformer'
+import { getUserFriendlyErrorMessage } from '@/lib/constants/error-messages'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { awaitPreemptiveAssumptions, executeAssumptionTests } from '@/lib/services/preemptive-assumption-service'
 import { StepHeader, StatusIndicator, CollapsibleSection } from '@/components/analysis/common'
@@ -69,13 +70,14 @@ export function AnalysisExecutionStep({
   const [completedStages, setCompletedStages] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const cancelledRef = useRef(false)
-  const autoNextTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [isCancelled, setIsCancelled] = useState(false)
   const [executionLog, setExecutionLog] = useState<string[]>([])
   const [showDetailedLog, setShowDetailedLog] = useState(false)
   const [estimatedTime, setEstimatedTime] = useState(5) // 초 단위
   const [analysisResult, setAnalysisResult] = useState<ExecutorResult | null>(null)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [assumptionSkipped, setAssumptionSkipped] = useState(false)
+  const analysisStartTimeRef = useRef(0)
 
   // Store에서 필요한 데이터만 개별 selector로 구독 (불필요한 리렌더링 방지)
   const uploadedData = useAnalysisStore(state => state.uploadedData)
@@ -123,6 +125,7 @@ export function AnalysisExecutionStep({
     try {
       const executor = StatisticalExecutor.getInstance()
       const startTime = Date.now()
+      analysisStartTimeRef.current = startTime
 
       // Stage 1: 환경 준비
       updateStage('prepare', 5)
@@ -184,9 +187,13 @@ export function AnalysisExecutionStep({
             } catch (err) {
               logger.error('가정 검정 실행 실패', { error: err, method: selectedMethod?.id })
             }
-            if (!assumptionResult) addLog(logs.assumptionSkipped)
+            if (!assumptionResult) {
+              addLog(logs.assumptionSkipped)
+              setAssumptionSkipped(true)
+            }
           } else {
             addLog(logs.assumptionSkipped)
+            setAssumptionSkipped(true)
           }
         }
 
@@ -268,15 +275,15 @@ export function AnalysisExecutionStep({
         onAnalysisComplete(transformedResult)
       }
 
-      // 다음 단계로 자동 이동 (2초 후) — cleanup은 useEffect에서 처리
-      autoNextTimerRef.current = setTimeout(() => {
-        if (onNext) onNext()
-      }, 2000)
+      // M7: 자동 전환 제거 — 사용자가 "결과 보기" 클릭으로 진행
 
     } catch (err) {
       logger.error('분석 실행 오류', err)
-      setError(err instanceof Error ? err.message : t.analysis.execution.unknownError)
-      addLog(logs.errorPrefix(err instanceof Error ? err.message : t.analysis.execution.unknownError))
+      const friendlyMsg = err instanceof Error
+        ? getUserFriendlyErrorMessage(err)
+        : t.analysis.execution.unknownError
+      setError(friendlyMsg)
+      addLog(logs.errorPrefix(friendlyMsg))
     }
   }, [uploadedData, selectedMethod, variableMapping, suggestedSettings, updateStage, addLog, onAnalysisComplete, onNext, t, executionStages, logs])
 
@@ -318,12 +325,6 @@ export function AnalysisExecutionStep({
     else setEstimatedTime(120)
   }, [uploadedData])
 
-  // 언마운트 시 자동 이동 타이머 정리
-  useEffect(() => {
-    return () => {
-      if (autoNextTimerRef.current) clearTimeout(autoNextTimerRef.current)
-    }
-  }, [])
 
   return (
     <div className="space-y-6" data-testid="analysis-execution-step">
@@ -369,10 +370,30 @@ export function AnalysisExecutionStep({
         </Alert>
       )}
 
+      {/* C1: 가정 검정 건너뜀 경고 */}
+      {assumptionSkipped && !error && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {logs.assumptionSkippedWarning}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* 메인 진행 상황 */}
       {progress === 100 ? (
-        /* 완료 시: 성공 배너 (green 패턴) */
-        <StatusIndicator status="success" title={t.analysis.statusMessages.analysisComplete} />
+        /* 완료: 성공 메시지 + 결과 보기 버튼 */
+        <Card>
+          <CardContent className="py-8 text-center space-y-4">
+            <StatusIndicator status="success" title={t.analysis.statusMessages.analysisComplete} />
+            {onNext && (
+              <Button size="lg" className="gap-2" onClick={onNext}>
+                <CheckCircle2 className="w-4 h-4" />
+                결과 보기
+              </Button>
+            )}
+          </CardContent>
+        </Card>
       ) : (
         /* 진행 중: Card 래핑 프로그레스 UI */
         <Card>
@@ -392,7 +413,11 @@ export function AnalysisExecutionStep({
                 <Progress value={progress} className="h-3" />
                 <div className="flex justify-between text-sm text-muted-foreground mt-2">
                   <span>{progress}%</span>
-                  <span>{t.analysis.execution.estimatedTimeRemaining(Math.ceil(estimatedTime * (100 - progress) / 100))}</span>
+                  <span>{t.analysis.execution.estimatedTimeRemaining(
+                    progress > 5 && analysisStartTimeRef.current
+                      ? Math.max(1, Math.ceil(((Date.now() - analysisStartTimeRef.current) / 1000) * (100 - progress) / progress))
+                      : Math.ceil(estimatedTime * (100 - progress) / 100)
+                  )}</span>
                 </div>
               </div>
 

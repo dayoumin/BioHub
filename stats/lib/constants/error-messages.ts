@@ -30,6 +30,13 @@ export const ERROR_MESSAGES: Record<string, string> = {
   // Pyodide 관련
   'Pyodide initialization failed': '통계 엔진을 불러오는 중 오류가 발생했습니다. 페이지를 새로고침해주세요.',
   'Python execution error': '통계 계산 중 오류가 발생했습니다. 다시 시도해주세요.',
+  'NameError': '분석에 필요한 변수를 찾을 수 없습니다. 변수 선택을 확인해주세요.',
+  'ValueError': '데이터 값이 분석 조건에 맞지 않습니다. 데이터를 확인해주세요.',
+  'TypeError': '데이터 타입이 올바르지 않습니다. 수치형/범주형 변수를 확인해주세요.',
+  'ZeroDivisionError': '0으로 나눌 수 없습니다. 데이터에 상수 변수가 없는지 확인해주세요.',
+  'MemoryError': '데이터가 너무 커서 메모리가 부족합니다. 데이터 크기를 줄여주세요.',
+  'LinAlgError': '행렬 계산 오류입니다. 변수 간 완전한 상관(다중공선성)이 있는지 확인해주세요.',
+  'ConvergenceWarning': '분석이 수렴하지 않았습니다. 데이터를 확인하거나 다른 분석 방법을 시도해주세요.',
 
   // 네트워크 관련
   'Network error': '네트워크 연결에 문제가 있습니다. 인터넷 연결을 확인해주세요.',

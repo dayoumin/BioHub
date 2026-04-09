@@ -45,8 +45,16 @@ export function FollowUpQASection({
   onChipUsed,
   t,
 }: FollowUpQASectionProps) {
+  // 해석 미완료 시 대기 플레이스홀더 표시
   if (!(phase >= 4 || prefersReducedMotion) || !interpretation || isInterpreting) {
-    return null
+    // phase >= 1이면 플레이스홀더, 아니면 숨김
+    if (phase < 1) return null
+    return (
+      <div className="flex items-center gap-2 rounded-lg px-4 py-3 bg-muted/40 text-muted-foreground text-sm">
+        <MessageCircle className="w-4 h-4 shrink-0" />
+        <span>{t.results.followUp.waitingPlaceholder}</span>
+      </div>
+    )
   }
 
   return (

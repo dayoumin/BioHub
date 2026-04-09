@@ -863,16 +863,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           }
         />
 
-        {/* ===== 가정 검정 결과 (Step 4 store 기반) — executor result에 assumptions가 없을 때만 표시 */}
-        {assumptionResults && !statisticalResult?.assumptions?.length && (
-          <AssumptionTestsSection
-            assumptionResults={assumptionResults}
-            isLoading={false}
-            visibility="secondary"
-            testedVariable={assumptionResults.testedVariable}
-          />
-        )}
-
         {/* ===== [Phase 0] Hero 컴팩트 바 ===== */}
         <ResultsHeroCard
           statisticalResult={statisticalResult}
@@ -888,6 +878,16 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           prefersReducedMotion={prefersReducedMotion}
           t={t}
         />
+
+        {/* ===== 가정 검정 상세 (Hero 아래 통합 배치) ===== */}
+        {assumptionResults && !statisticalResult?.assumptions?.length && (
+          <AssumptionTestsSection
+            assumptionResults={assumptionResults}
+            isLoading={false}
+            visibility="secondary"
+            testedVariable={assumptionResults.testedVariable}
+          />
+        )}
 
         {/* ===== [Phase 1] 수치 카드 4개 (stagger + count-up) ===== */}
         <ResultsStatsCards

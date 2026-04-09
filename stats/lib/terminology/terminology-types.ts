@@ -168,6 +168,8 @@ export interface ExecutionLogsText {
   homogeneityTestDone: (p: string) => string
   homogeneityTestFailed: string
   assumptionSkipped: string
+  /** 가정검정 건너뜀 — 사용자 대면 경고 (로그 메시지와 별도) */
+  assumptionSkippedWarning: string
   methodExecuting: (name: string) => string
   aiSettingsApplied: (alpha: number) => string
   aiPostHoc: (method: string) => string
@@ -916,6 +918,8 @@ export interface ResultsText {
   /** 핵심 결론 */
   conclusion: {
     assumptionWarning: string
+    /** 가정 검정이 실행되지 않았을 때 결과 화면 경고 */
+    assumptionNotTested: string
     significant: string
     notSignificant: string
     analysisComplete: string
@@ -1048,6 +1052,8 @@ export interface ResultsText {
     userLabel: string
     aiLabel: string
     placeholder: string
+    /** AI 해석 완료 전 Q&A 영역 대기 메시지 */
+    waitingPlaceholder: string
     errorMessage: string
     changeMethod: string
     chips: Array<{ label: string; prompt: string }>

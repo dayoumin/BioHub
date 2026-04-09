@@ -6,10 +6,13 @@ import {
   XCircle,
   AlertCircle,
   Sparkles,
+  Copy,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { TOAST } from '@/lib/constants/toast-messages'
 import { cn } from '@/lib/utils'
 import type { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
@@ -160,6 +163,17 @@ export function ResultsHeroCard({
                 <>
                   <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 flex-shrink-0">APA</span>
                   <code className="text-xs font-mono text-foreground/70 select-all">{apaFormat}</code>
+                  <button
+                    type="button"
+                    className="inline-flex items-center text-muted-foreground/40 hover:text-foreground/70 transition-colors"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(apaFormat)
+                      toast.success(TOAST.clipboard.copySuccess)
+                    }}
+                    aria-label="APA 복사"
+                  >
+                    <Copy className="w-3 h-3" />
+                  </button>
                 </>
               )}
               {uploadedFileName && (
