@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.34.0",
+  "version": "1.35.0",
   "lastUpdated": "2026-04-09",
   "sources": [
     "stats/__tests__/",
@@ -33,6 +33,19 @@
             "mock",
             "defineProperty",
             "storage"
+          ]
+        },
+        {
+          "name": "업로드 플로우 시나리오 테스트",
+          "purpose": "hook 단에서 quick/diagnostic 업로드 흐름과 store 전이를 한 번에 검증",
+          "code": "import { describe, it, expect, vi, beforeEach } from 'vitest';\nimport { renderHook, act } from '@testing-library/react';\nimport { useDataUpload } from '@/hooks/use-data-upload';\nimport { useAnalysisStore } from '@/lib/stores/analysis-store';\nimport { useHubChatStore } from '@/lib/stores/hub-chat-store';\nimport { useModeStore } from '@/lib/stores/mode-store';\n\nbeforeEach(() => {\n  act(() => {\n    useAnalysisStore.getState().reset();\n    useModeStore.getState().resetMode();\n    useHubChatStore.getState().clearAll();\n  });\n});\n\ndescribe('useDataUpload scenarios', () => {\n  it('diagnostic 상태에서 파일 교체 시 stale 상태를 비운다', async () => {\n    act(() => {\n      useModeStore.getState().setStepTrack('diagnostic');\n      useAnalysisStore.setState({ selectedMethod: { id: 't-test' } as never, diagnosticReport: { summary: 'stale' } as never });\n    });\n\n    const { result } = renderHook(() => useDataUpload());\n    await act(async () => {\n      await result.current.handleUploadComplete(new File(['a,b'], 'replacement.csv'), [{ weight: '70', group: 'A' }]);\n    });\n\n    expect(useModeStore.getState().stepTrack).toBe('normal');\n    expect(useAnalysisStore.getState().selectedMethod).toBeNull();\n    expect(useAnalysisStore.getState().diagnosticReport).toBeNull();\n    expect(useHubChatStore.getState().dataContext?.fileName).toBe('replacement.csv');\n  });\n});",
+          "keywords": [
+            "renderHook",
+            "useDataUpload",
+            "diagnostic",
+            "quick",
+            "hub-data-context",
+            "state transition"
           ]
         }
       ]
@@ -72,6 +85,18 @@
             "mockResolvedValue",
             "mockRejectedValue",
             "waitFor"
+          ]
+        },
+        {
+          "name": "Step 재진입 CTA 시나리오 테스트",
+          "purpose": "Step 컴포넌트에서 AI 추천 복귀 CTA와 최종 확인 액션을 사용자 이벤트 기준으로 검증",
+          "code": "import { render, screen, fireEvent } from '@testing-library/react';\nimport { describe, it, expect, vi } from 'vitest';\nimport { MethodBrowserStep } from '@/components/analysis/steps/MethodBrowserStep';\n\nvi.mock('@/components/analysis/steps/purpose/MethodBrowser', () => ({\n  MethodBrowser: ({ onMethodSelect }: { onMethodSelect: (method: { id: string; name: string; category: string }) => void }) => (\n    <button type=\"button\" onClick={() => onMethodSelect({ id: 't-test', name: '독립표본 t-검정', category: 't-test' })}>\n      브라우저에서 메서드 선택\n    </button>\n  ),\n}));\n\ndescribe('MethodBrowserStep scenarios', () => {\n  it('Step 2에서 AI 추천으로 다시 돌아갈 수 있다', () => {\n    const onAskAiRecommendation = vi.fn();\n    render(<MethodBrowserStep onMethodConfirm={vi.fn()} onBack={vi.fn()} onAskAiRecommendation={onAskAiRecommendation} />);\n\n    fireEvent.click(screen.getByRole('button', { name: 'AI 추천 받기' }));\n    expect(onAskAiRecommendation).toHaveBeenCalledTimes(1);\n  });\n});",
+          "keywords": [
+            "MethodBrowserStep",
+            "AI 추천 받기",
+            "fireEvent",
+            "CTA",
+            "scenario"
           ]
         }
       ]
