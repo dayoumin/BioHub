@@ -312,7 +312,10 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     if (!selectedMethod || selectorType === 'auto') return false
     const slots = getSlotConfigs(selectorType)
     const requiredSlots = slots.filter(s => s.required)
-    return requiredSlots.some(slot => !initialSelection[slot.mappingKey])
+    return requiredSlots.some(slot => {
+      const v = initialSelection[slot.mappingKey]
+      return v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)
+    })
   }, [selectedMethod, selectorType, initialSelection])
 
   // No data check
