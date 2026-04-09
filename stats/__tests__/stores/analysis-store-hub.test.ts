@@ -1,11 +1,8 @@
 /**
- * Smart Flow Store - Hub & InputMode 테스트
+ * analysis-store + mode-store 통합 테스트
  *
- * 테스트 시나리오:
- * 1. purposeInputMode 초기값 및 setter
- * 2. Hub 핸들러 시뮬레이션 (AI vs Browse)
- * 3. resetMode가 purposeInputMode를 리셋하는지
- * 4. 빠른 분석 모드 + 재분석 모드 조합
+ * 허브 → Step 흐름 시뮬레이션.
+ * PurposeInputStep 제거 후 업데이트: purposeInputMode/userQuery 삭제됨.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest'
@@ -13,78 +10,16 @@ import { act } from '@testing-library/react'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
 
-describe('Smart Flow Store - Hub & InputMode', () => {
+describe('analysis-store + mode-store 통합', () => {
   beforeEach(() => {
-    // 각 테스트 전에 store 리셋
     act(() => {
       useAnalysisStore.getState().reset()
       useModeStore.getState().resetMode()
     })
   })
 
-  // ===== 시나리오 1: purposeInputMode 기본 동작 =====
-  describe('purposeInputMode 기본 동작', () => {
-    it('초기값은 "ai"이다', () => {
-      const state = useModeStore.getState()
-      expect(state.purposeInputMode).toBe('ai')
-    })
-
-    it('setPurposeInputMode로 "browse"로 변경할 수 있다', () => {
-      act(() => {
-        useModeStore.getState().setPurposeInputMode('browse')
-      })
-
-      expect(useModeStore.getState().purposeInputMode).toBe('browse')
-    })
-
-    it('setPurposeInputMode로 다시 "ai"로 변경할 수 있다', () => {
-      act(() => {
-        useModeStore.getState().setPurposeInputMode('browse')
-        useModeStore.getState().setPurposeInputMode('ai')
-      })
-
-      expect(useModeStore.getState().purposeInputMode).toBe('ai')
-    })
-  })
-
-  // ===== 시나리오 2: Hub 핸들러 시뮬레이션 =====
+  // ===== 시나리오 1: Hub 핸들러 시뮬레이션 =====
   describe('Hub 핸들러 시뮬레이션', () => {
-    it('handleStartWithAI: showHub=false, purposeInputMode="ai", step=2', () => {
-      act(() => {
-        const mode = useModeStore.getState()
-        const store = useAnalysisStore.getState()
-        mode.setShowHub(false)
-        mode.setStepTrack('normal')
-        mode.setPurposeInputMode('ai')
-        store.addCompletedStep(1)
-        store.setCurrentStep(2)
-      })
-
-      const mode = useModeStore.getState()
-      const store = useAnalysisStore.getState()
-      expect(mode.showHub).toBe(false)
-      expect(mode.purposeInputMode).toBe('ai')
-      expect(store.currentStep).toBe(2)
-    })
-
-    it('handleStartWithMethod: showHub=false, purposeInputMode="browse", step=2', () => {
-      act(() => {
-        const mode = useModeStore.getState()
-        const store = useAnalysisStore.getState()
-        mode.setShowHub(false)
-        mode.setStepTrack('normal')
-        mode.setPurposeInputMode('browse')
-        store.addCompletedStep(1)
-        store.setCurrentStep(2)
-      })
-
-      const mode = useModeStore.getState()
-      const store = useAnalysisStore.getState()
-      expect(mode.showHub).toBe(false)
-      expect(mode.purposeInputMode).toBe('browse')
-      expect(store.currentStep).toBe(2)
-    })
-
     it('handleStartWithData: showHub=false, step=1, stepTrack=normal', () => {
       act(() => {
         const mode = useModeStore.getState()
@@ -127,21 +62,8 @@ describe('Smart Flow Store - Hub & InputMode', () => {
     })
   })
 
-  // ===== 시나리오 3: resetMode 테스트 =====
+  // ===== 시나리오 2: resetMode 테스트 =====
   describe('resetMode', () => {
-    it('resetMode가 purposeInputMode를 "ai"로 리셋한다', () => {
-      act(() => {
-        useModeStore.getState().setPurposeInputMode('browse')
-      })
-      expect(useModeStore.getState().purposeInputMode).toBe('browse')
-
-      act(() => {
-        useModeStore.getState().resetMode()
-      })
-
-      expect(useModeStore.getState().purposeInputMode).toBe('ai')
-    })
-
     it('resetMode가 showHub를 true로 리셋한다', () => {
       act(() => {
         useModeStore.getState().setShowHub(false)
@@ -170,7 +92,7 @@ describe('Smart Flow Store - Hub & InputMode', () => {
     })
   })
 
-  // ===== 시나리오 4: 재분석 모드 =====
+  // ===== 시나리오 3: 재분석 모드 =====
   describe('재분석 모드', () => {
     it('handleReanalyze 시뮬레이션: stepTrack=reanalysis, step=1, data 초기화', () => {
       act(() => {
@@ -226,7 +148,7 @@ describe('Smart Flow Store - Hub & InputMode', () => {
     })
   })
 
-  // ===== 시나리오 5: 빠른 분석 후 Step 건너뛰기 =====
+  // ===== 시나리오 4: 빠른 분석 Step 건너뛰기 =====
   describe('빠른 분석 Step 건너뛰기', () => {
     it('stepTrack=quick이면 Step 1 → Step 3 이동 가능', () => {
       const mockMethod = {
@@ -242,16 +164,14 @@ describe('Smart Flow Store - Hub & InputMode', () => {
         useModeStore.getState().setStepTrack('quick')
         store.setCurrentStep(1)
         store.addCompletedStep(1)
-        store.addCompletedStep(2) // U1-1: 전진 점프 전 중간 단계 마킹 필요
+        store.addCompletedStep(2)
       })
 
       act(() => {
         useAnalysisStore.getState().navigateToStep(3)
       })
 
-      const store = useAnalysisStore.getState()
-      expect(useModeStore.getState().stepTrack).toBe('quick')
-      expect(store.selectedMethod?.id).toBe('correlation')
+      expect(useAnalysisStore.getState().currentStep).toBe(3)
     })
   })
 })

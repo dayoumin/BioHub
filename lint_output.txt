@@ -1,0 +1,1174 @@
+stats                                    | ?뎉ARN??The field "resolutions" was found in D:\Projects\BioHub\stats/package.json. This will not take effect. You should configure "resolutions" at the root of the workspace instead.
+stats                                    | ?뎉ARN??The field "pnpm.overrides" was found in D:\Projects\BioHub\stats/package.json. This will not take effect. You should configure "pnpm.overrides" at the root of the workspace instead.
+
+> stats@0.1.0 lint D:\Projects\BioHub\stats
+> eslint
+
+
+D:\Projects\BioHub\stats\app\(dashboard)\data-tools\cross-tabulation\page.tsx
+  44:1  warning  '@/lib/services/pyodide/core/pyodide-worker.enum' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\app\(dashboard)\data-tools\effect-size-converter\page.tsx
+  22:1  warning  '@/lib/services/pyodide/core/pyodide-core.service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  23:1  warning  '@/lib/services/pyodide/core/pyodide-worker.enum' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import   no-restricted-imports
+
+D:\Projects\BioHub\stats\app\(dashboard)\settings\page.tsx
+  14:1  warning  '@/lib/services/storage-service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\app\genetics\barcoding\BarcodingContent.tsx
+  10:1  warning  '@/lib/genetics/decision-engine' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import    no-restricted-imports
+  11:1  warning  '@/lib/genetics/decision-engine' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import    no-restricted-imports
+  12:1  warning  '@/lib/genetics/example-sequences' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+  13:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import   no-restricted-imports
+  18:1  warning  '@/lib/genetics/sequence-transfer' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\app\genetics\blast\BlastSearchContent.tsx
+  10:1  warning  '@/lib/genetics/blast-utils' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import        no-restricted-imports
+  16:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import   no-restricted-imports
+  21:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import   no-restricted-imports
+  22:1  warning  '@/lib/genetics/sequence-transfer' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\app\genetics\bold-id\BoldIdContent.tsx
+  15:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import   no-restricted-imports
+  20:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import   no-restricted-imports
+  21:1  warning  '@/lib/genetics/sequence-transfer' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\app\genetics\genbank\GenBankContent.tsx
+   7:1  warning  '@/lib/genetics/sequence-transfer' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+  10:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import   no-restricted-imports
+
+D:\Projects\BioHub\stats\app\genetics\page.tsx
+  7:1  warning  '@/lib/bio-tools/bio-tool-registry' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\app\genetics\phylogeny\PhylogenyContent.tsx
+   5:1  warning  '@/lib/genetics/multi-fasta-parser' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import                no-restricted-imports
+   8:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import                  no-restricted-imports
+  13:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import                  no-restricted-imports
+  15:1  warning  '@/lib/services/pyodide/core/pyodide-worker.enum' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\app\genetics\protein\ProteinContent.tsx
+    6:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import                  no-restricted-imports
+   11:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import                  no-restricted-imports
+   12:1  warning  '@/lib/genetics/sequence-transfer' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import                 no-restricted-imports
+   13:1  warning  '@/lib/genetics/validate-sequence' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import                 no-restricted-imports
+   15:1  warning  '@/lib/services/pyodide/core/pyodide-worker.enum' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  322:3  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+
+D:\Projects\BioHub\stats\app\genetics\seq-stats\SeqStatsContent.tsx
+   6:1  warning  '@/lib/genetics/multi-fasta-parser' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+   7:1  warning  '@/lib/genetics/seq-stats-engine' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import    no-restricted-imports
+  10:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import    no-restricted-imports
+  15:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import    no-restricted-imports
+
+D:\Projects\BioHub\stats\app\genetics\similarity\SimilarityContent.tsx
+   5:1  warning  '@/lib/genetics/multi-fasta-parser' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import                no-restricted-imports
+   8:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import                  no-restricted-imports
+  13:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import                  no-restricted-imports
+  15:1  warning  '@/lib/services/pyodide/core/pyodide-worker.enum' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\app\genetics\translation\TranslationContent.tsx
+   14:1  warning  '@/lib/services/pyodide/core/pyodide-worker.enum' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+   15:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import                  no-restricted-imports
+   18:1  warning  '@/lib/genetics/sequence-transfer' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import                 no-restricted-imports
+   25:1  warning  '@/lib/design-tokens/common' import is restricted from being used by a pattern. Use '@/lib/design-tokens' barrel export instead of direct file import                  no-restricted-imports
+  791:3  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+
+D:\Projects\BioHub\stats\app\graph-studio\GraphStudioContent.tsx
+  16:1  warning  '@/lib/graph-studio/project-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import         no-restricted-imports
+  24:1  warning  '@/lib/graph-studio/export-utils' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import            no-restricted-imports
+  25:1  warning  '@/lib/graph-studio/chart-snapshot-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+  26:1  warning  '@/lib/graph-studio/chart-snapshot-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+  99:6  warning  React Hook useCallback has a missing dependency: 'chartSpec'. Either include it or remove the dependency array                                                       react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\app\literature\LiteratureSearchContent.tsx
+  23:1  warning  '@/lib/research/citation-types' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import    no-restricted-imports
+  24:1  warning  '@/lib/research/citation-types' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import    no-restricted-imports
+  25:1  warning  '@/lib/research/citation-storage' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\app\page.tsx
+  99:6  warning  React Hook useCallback has an unnecessary dependency: 't'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\app\projects\page.tsx
+   29:1  warning  '@/lib/research/project-storage' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+  316:6  warning  React Hook useMemo has an unnecessary dependency: 'projects'. Either exclude it or remove the dependency array                                        react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\analysis\AnalysisHistoryPanel.tsx
+   50:1  warning  '@/lib/design-tokens/common' import is restricted from being used by a pattern. Use '@/lib/design-tokens' barrel export instead of direct file import       no-restricted-imports
+   53:1  warning  '@/lib/services/export/export-service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+   55:1  warning  '@/lib/services/export/export-types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import    no-restricted-imports
+   91:7  warning  Expected an assignment or function call and instead saw an expression                                                                                       @typescript-eslint/no-unused-expressions
+  105:5  warning  'loadFromHistory' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\analysis\AnalysisHistorySidebar.tsx
+  176:5  warning  React Hook useCallback has missing dependencies: 't.history.labels.moreActions' and 't.history.tooltips.reanalyze'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\analysis\AnalysisHub.tsx
+  11:3  warning  'ArrowRight' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\analysis\AnalysisSteps.tsx
+  206:19  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+
+D:\Projects\BioHub\stats\components\analysis\ChatCentricHub.tsx
+   20:1   warning  '@/lib/services/intent-router' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import                                                                                                                                                                 no-restricted-imports
+   21:1   warning  '@/lib/services/consultant-service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import                                                                                                                                                            no-restricted-imports
+   22:1   warning  '@/lib/services/hub-chat-service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import                                                                                                                                                              no-restricted-imports
+   22:10  warning  'getHubAiResponse' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+  304:6   warning  React Hook useCallback has missing dependencies: 't.hub.intentMessages.classificationError', 't.hub.intentMessages.graphStudio', 't.hub.intentMessages.needsData', 't.hub.intentMessages.recommendationFound', and 't.hub.intentMessages.startAnalysisSuffix'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\analysis\ExportDropdown.tsx
+  13:1  warning  '@/lib/services/export/export-service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import    no-restricted-imports
+  14:1  warning  '@/lib/services/export/export-types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import      no-restricted-imports
+  17:1  warning  '@/lib/terminology/terminology-types' import is restricted from being used by a pattern. Use '@/lib/terminology' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\analysis\TemplateManagePanel.tsx
+  187:9  warning  'getSortLabel' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\analysis\common\style-constants.ts
+  2:1  warning  '@/lib/design-tokens/analysis' import is restricted from being used by a pattern. Use '@/lib/design-tokens' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\analysis\hub\ChatThread.tsx
+  21:33  warning  'MethodRecommendation' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\analysis\hub\QuickAccessBar.tsx
+  45:1  warning  '@/lib/graph-studio/project-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import      no-restricted-imports
+  47:1  warning  '@/lib/graph-studio/chart-spec-defaults' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\analysis\steps\AnalysisExecutionStep.tsx
+   19:1  warning  '@/lib/services/executors' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import                                                                      no-restricted-imports
+   20:1  warning  '@/lib/services/executors' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import                                                                      no-restricted-imports
+   21:1  warning  '@/lib/services/pyodide/pyodide-statistics' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import                                                     no-restricted-imports
+   24:1  warning  '@/lib/services/preemptive-assumption-service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import                                                  no-restricted-imports
+   50:3  warning  'canGoNext' is defined but never used. Allowed unused args must match /^_/u                                                                                                                                         @typescript-eslint/no-unused-vars
+   51:3  warning  'canGoPrevious' is defined but never used. Allowed unused args must match /^_/u                                                                                                                                     @typescript-eslint/no-unused-vars
+  112:6  warning  React Hook useCallback has a missing dependency: 'logs'. Either include it or remove the dependency array                                                                                                           react-hooks/exhaustive-deps
+  281:6  warning  React Hook useCallback has missing dependencies: 'analysisOptions.alpha', 'analysisOptions.testValue', 'existingAssumptionResults', and 'setAssumptionResults'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  310:6  warning  React Hook useEffect has a missing dependency: 'variableMapping'. Either include it or remove the dependency array                                                                                                  react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\analysis\steps\DataUploadStep.tsx
+  17:1  warning  '@/lib/services/data-validation-service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  18:1  warning  '@/lib/services/large-file-processor' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import     no-restricted-imports
+  19:1  warning  '@/lib/services/excel-processor' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import          no-restricted-imports
+  47:3  warning  'onNext' is defined but never used. Allowed unused args must match /^_/u                                                                                      @typescript-eslint/no-unused-vars
+  48:3  warning  'canGoNext' is defined but never used. Allowed unused args must match /^_/u                                                                                   @typescript-eslint/no-unused-vars
+  49:3  warning  'currentStep' is defined but never used. Allowed unused args must match /^_/u                                                                                 @typescript-eslint/no-unused-vars
+  50:3  warning  'totalSteps' is defined but never used. Allowed unused args must match /^_/u                                                                                  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\analysis\steps\DraftContextEditor.tsx
+   20:1  warning  '@/lib/services/paper-draft/paper-types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  119:9  warning  'primaryCols' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                        @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\analysis\steps\PaperDraftPanel.tsx
+    9:1  warning  '@/lib/services/paper-draft/paper-types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import                                                                                                                             no-restricted-imports
+  246:7  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+D:\Projects\BioHub\stats\components\analysis\steps\PurposeInputStep.tsx
+   16:1   warning  '@/lib/services/recommenders/decision-tree-recommender' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+   17:1   warning  '@/lib/services/recommenders/llm-recommender' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import            no-restricted-imports
+   42:1   warning  '@/lib/services/pyodide/prefetch-worker' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import                 no-restricted-imports
+   45:1   warning  '@/lib/services/variable-detection-service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import              no-restricted-imports
+  169:23  warning  'setIsAnalyzing' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                    @typescript-eslint/no-unused-vars
+  170:22  warning  'setAiProgress' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                                     @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\analysis\steps\ResultsActionStep.tsx
+   30:3  warning  'Dialog' is defined but never used. Allowed unused vars must match /^_/u                                                                                          @typescript-eslint/no-unused-vars
+   31:3  warning  'DialogContent' is defined but never used. Allowed unused vars must match /^_/u                                                                                   @typescript-eslint/no-unused-vars
+   32:3  warning  'DialogDescription' is defined but never used. Allowed unused vars must match /^_/u                                                                               @typescript-eslint/no-unused-vars
+   33:3  warning  'DialogFooter' is defined but never used. Allowed unused vars must match /^_/u                                                                                    @typescript-eslint/no-unused-vars
+   34:3  warning  'DialogHeader' is defined but never used. Allowed unused vars must match /^_/u                                                                                    @typescript-eslint/no-unused-vars
+   35:3  warning  'DialogTitle' is defined but never used. Allowed unused vars must match /^_/u                                                                                     @typescript-eslint/no-unused-vars
+   44:1  warning  '@/lib/services/data-management' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import              no-restricted-imports
+   45:1  warning  '@/lib/services/export/export-service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import        no-restricted-imports
+   46:1  warning  '@/lib/services/export/export-types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import          no-restricted-imports
+   47:1  warning  '@/lib/services/export/code-export' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import           no-restricted-imports
+   48:1  warning  '@/lib/services/export/code-template-types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import   no-restricted-imports
+   49:1  warning  '@/lib/services/export/export-data-builder' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import   no-restricted-imports
+   53:1  warning  '@/lib/design-tokens/analysis' import is restricted from being used by a pattern. Use '@/lib/design-tokens' barrel export instead of direct file import           no-restricted-imports
+   65:1  warning  '@/lib/graph-studio/analysis-adapter' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import     no-restricted-imports
+   66:1  warning  '@/lib/graph-studio/chart-spec-utils' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import     no-restricted-imports
+   67:1  warning  '@/lib/graph-studio/chart-spec-defaults' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+   70:1  warning  '@/lib/services/paper-draft' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import                  no-restricted-imports
+   71:1  warning  '@/lib/services/paper-draft' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import                  no-restricted-imports
+  269:6  warning  React Hook useEffect has missing dependencies: 'interpretRecovery' and 'resetFollowUp'. Either include them or remove the dependency array                        react-hooks/exhaustive-deps
+  278:6  warning  React Hook useEffect has a missing dependency: 'setFollowUpMessages'. Either include it or remove the dependency array                                            react-hooks/exhaustive-deps
+  636:6  warning  React Hook useCallback has a missing dependency: 't.analysis.emptyStates.dataRequired'. Either include it or remove the dependency array                          react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\analysis\steps\VariableSelectionStep.tsx
+  25:1  warning  '@/lib/services/preemptive-assumption-service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\analysis\steps\purpose\AutoRecommendationConfirm.tsx
+  34:1  warning  '@/lib/services/recommenders/llm-recommender' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\analysis\steps\purpose\CategorySelector.tsx
+  18:33  warning  'CategoryDefinition' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\analysis\steps\purpose\DecisionTree.ts
+  17:1  warning  '@/lib/terminology/terminology-types' import is restricted from being used by a pattern. Use '@/lib/terminology' barrel export instead of direct file import    no-restricted-imports
+  24:1  warning  '@/lib/terminology/domains/aquaculture' import is restricted from being used by a pattern. Use '@/lib/terminology' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\analysis\steps\purpose\FlowStateMachine.ts
+  25:1  warning  '@/lib/terminology/terminology-types' import is restricted from being used by a pattern. Use '@/lib/terminology' barrel export instead of direct file import    no-restricted-imports
+  27:1  warning  '@/lib/terminology/domains/aquaculture' import is restricted from being used by a pattern. Use '@/lib/terminology' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\analysis\steps\purpose\MethodSelector.tsx
+  9:29  warning  'FitScoreBadge' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\analysis\steps\purpose\NaturalLanguageInput.tsx
+  39:1  warning  '@/lib/services/recommenders/llm-recommender' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  73:3  warning  'responseText' is defined but never used. Allowed unused args must match /^_/u                                                                                     @typescript-eslint/no-unused-vars
+  83:3  warning  'provider' is defined but never used. Allowed unused args must match /^_/u                                                                                         @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\analysis\steps\purpose\QuestionCard.tsx
+  26:9  warning  'isAutoSelected' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\analysis\steps\purpose\QuestionFlow.tsx
+  57:9  warning  'allAnswered' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\analysis\steps\purpose\RecommendationResult.tsx
+  23:3  warning  'ChevronUp' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\analysis\steps\purpose\SubcategorySelector.tsx
+  19:33  warning  'CategoryDefinition' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\analysis\steps\purpose\auto-answer.ts
+  12:1  warning  '@/lib/terminology/terminology-types' import is restricted from being used by a pattern. Use '@/lib/terminology' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\analysis\steps\results\AiInterpretationCard.tsx
+  13:1  warning  '@/lib/design-tokens/analysis' import is restricted from being used by a pattern. Use '@/lib/design-tokens' barrel export instead of direct file import                no-restricted-imports
+  14:1  warning  '@/lib/services/ai/parse-interpretation-sections' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  16:1  warning  '@/lib/terminology/terminology-types' import is restricted from being used by a pattern. Use '@/lib/terminology' barrel export instead of direct file import           no-restricted-imports
+
+D:\Projects\BioHub\stats\components\analysis\steps\results\FollowUpQASection.tsx
+  12:1  warning  '@/lib/design-tokens/analysis' import is restricted from being used by a pattern. Use '@/lib/design-tokens' barrel export instead of direct file import       no-restricted-imports
+  15:1  warning  '@/lib/terminology/terminology-types' import is restricted from being used by a pattern. Use '@/lib/terminology' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\analysis\steps\results\MethodSpecificResults.tsx
+  7:1  warning  '@/lib/terminology/terminology-types' import is restricted from being used by a pattern. Use '@/lib/terminology' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\analysis\steps\results\ResultsActionButtons.tsx
+  31:1  warning  '@/lib/services/export/export-types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import      no-restricted-imports
+  32:1  warning  '@/lib/terminology/terminology-types' import is restricted from being used by a pattern. Use '@/lib/terminology' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\analysis\steps\results\ResultsHeroCard.tsx
+  20:1  warning  '@/lib/terminology/terminology-types' import is restricted from being used by a pattern. Use '@/lib/terminology' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\analysis\steps\results\ResultsStatsCards.tsx
+  8:1  warning  '@/lib/terminology/terminology-types' import is restricted from being used by a pattern. Use '@/lib/terminology' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\analysis\steps\results\results-helpers.ts
+  6:1  warning  '@/lib/terminology/terminology-types' import is restricted from being used by a pattern. Use '@/lib/terminology' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\analysis\steps\validation\charts\ColumnDetailModal.tsx
+   77:6  warning  React Hook useMemo has an unnecessary dependency: 'resolvedTheme'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+  112:6  warning  React Hook useMemo has an unnecessary dependency: 'resolvedTheme'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+  134:6  warning  React Hook useMemo has an unnecessary dependency: 'resolvedTheme'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\analysis\steps\validation\charts\CorrelationHeatmap.tsx
+  26:9  warning  'vs' is assigned a value but never used. Allowed unused vars must match /^_/u                                        @typescript-eslint/no-unused-vars
+  92:6  warning  React Hook useMemo has an unnecessary dependency: 'resolvedTheme'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\analysis\steps\validation\components\AssumptionResultsPanel.tsx
+  19:1  warning  '@/lib/terminology/terminology-types' import is restricted from being used by a pattern. Use '@/lib/terminology' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\analysis\steps\validation\hooks\useNormalityTest.ts
+  13:1  warning  '@/lib/services/pyodide/pyodide-statistics' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\analysis\steps\validation\summary\DataSummaryCard.tsx
+  6:48  warning  'Info' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\analysis\steps\validation\utils\correlationUtils.ts
+  95:44  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projects\BioHub\stats\components\analysis\variable-selector\UnifiedVariableSelector.tsx
+  29:1  warning  '@/lib/services/variable-type-detector' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\analysis\variable-selector\slot-configs.ts
+  44:1  warning  '@/lib/registry/selector-types' import is restricted from being used by a pattern. Use '@/lib/registry' barrel export instead of direct file import  no-restricted-imports
+  45:1  warning  '@/lib/registry/selector-types' import is restricted from being used by a pattern. Use '@/lib/registry' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\analysis\visualization\FitScoreIndicator.tsx
+  6:1  warning  '@/lib/terminology/terminology-types' import is restricted from being used by a pattern. Use '@/lib/terminology' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\bio-tools\BioResultsHeader.tsx
+  8:1  warning  '@/lib/bio-tools/bio-export-csv' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import  no-restricted-imports
+  9:1  warning  '@/lib/bio-tools/bio-export-csv' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\bio-tools\BioToolCard.tsx
+  8:1  warning  '@/lib/bio-tools/bio-tool-registry' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import   no-restricted-imports
+  9:1  warning  '@/lib/bio-tools/pinned-tools-store' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\bio-tools\BioToolIntro.tsx
+  6:1  warning  '@/lib/bio-tools/bio-tool-registry' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\bio-tools\BioToolSidebar.tsx
+  16:1  warning  '@/lib/bio-tools/bio-tool-history' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\bio-tools\BioToolWorkspace.tsx
+  8:1  warning  '@/lib/bio-tools/bio-tool-metadata' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import  no-restricted-imports
+  9:1  warning  '@/lib/bio-tools/bio-tool-history' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import   no-restricted-imports
+
+D:\Projects\BioHub\stats\components\bio-tools\BioToolsHub.tsx
+  12:1  warning  '@/lib/bio-tools/bio-tool-registry' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import   no-restricted-imports
+  18:1  warning  '@/lib/bio-tools/pinned-tools-store' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import  no-restricted-imports
+  19:1  warning  '@/lib/bio-tools/bio-tool-history' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import    no-restricted-imports
+
+D:\Projects\BioHub\stats\components\bio-tools\bio-styles.ts
+  2:1  warning  '@/lib/design-tokens/bio' import is restricted from being used by a pattern. Use '@/lib/design-tokens' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\bio-tools\tools\AlphaDiversityTool.tsx
+  13:1  warning  '@/lib/bio-tools/bio-export-tables' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\bio-tools\tools\BetaDiversityTool.tsx
+  15:1  warning  '@/lib/bio-tools/bio-export-tables' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\bio-tools\tools\ConditionFactorTool.tsx
+   12:1  warning  '@/lib/services/pyodide/core/pyodide-worker.enum' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+   14:1  warning  '@/lib/bio-tools/bio-chart-colors' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import                no-restricted-imports
+   15:1  warning  '@/lib/bio-tools/fisheries-columns' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import               no-restricted-imports
+   21:1  warning  '@/lib/bio-tools/bio-export-tables' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import               no-restricted-imports
+   23:1  warning  '@/lib/graph-studio/analysis-adapter' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import          no-restricted-imports
+  140:6  warning  React Hook useMemo has an unnecessary dependency: 'resolvedTheme'. Either exclude it or remove the dependency array                                                    react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\bio-tools\tools\FstTool.tsx
+   4:1  warning  '@/lib/bio-tools/parse-numeric-cell' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import              no-restricted-imports
+  12:1  warning  '@/lib/services/pyodide/core/pyodide-worker.enum' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  14:1  warning  '@/lib/bio-tools/genetics-columns' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import                no-restricted-imports
+  15:1  warning  '@/lib/bio-tools/fst-long-format' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import                 no-restricted-imports
+  19:1  warning  '@/lib/bio-tools/bio-export-tables' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import               no-restricted-imports
+
+D:\Projects\BioHub\stats\components\bio-tools\tools\HardyWeinbergTool.tsx
+   4:1  warning  '@/lib/bio-tools/parse-numeric-cell' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import              no-restricted-imports
+  13:1  warning  '@/lib/services/pyodide/core/pyodide-worker.enum' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  15:1  warning  '@/lib/bio-tools/genetics-columns' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import                no-restricted-imports
+  19:1  warning  '@/lib/bio-tools/bio-export-tables' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import               no-restricted-imports
+
+D:\Projects\BioHub\stats\components\bio-tools\tools\IccTool.tsx
+  11:1  warning  '@/lib/services/pyodide/core/pyodide-worker.enum' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  19:1  warning  '@/lib/bio-tools/bio-export-tables' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import               no-restricted-imports
+
+D:\Projects\BioHub\stats\components\bio-tools\tools\LengthWeightTool.tsx
+   13:1  warning  '@/lib/services/pyodide/core/pyodide-worker.enum' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+   16:1  warning  '@/lib/bio-tools/fisheries-columns' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import               no-restricted-imports
+   22:1  warning  '@/lib/bio-tools/bio-export-tables' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import               no-restricted-imports
+   24:1  warning  '@/lib/graph-studio/analysis-adapter' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import          no-restricted-imports
+  136:6  warning  React Hook useMemo has an unnecessary dependency: 'resolvedTheme'. Either exclude it or remove the dependency array                                                    react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\bio-tools\tools\MantelTestTool.tsx
+  13:1  warning  '@/lib/bio-tools/bio-export-tables' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import                no-restricted-imports
+  17:1  warning  '@/lib/services/pyodide/core/pyodide-core.service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  18:1  warning  '@/lib/services/pyodide/core/pyodide-worker.enum' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import   no-restricted-imports
+
+D:\Projects\BioHub\stats\components\bio-tools\tools\MetaAnalysisTool.tsx
+  11:1  warning  '@/lib/services/pyodide/core/pyodide-worker.enum' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  20:1  warning  '@/lib/bio-tools/bio-export-tables' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import               no-restricted-imports
+  22:1  warning  '@/lib/graph-studio/analysis-adapter' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import          no-restricted-imports
+
+D:\Projects\BioHub\stats\components\bio-tools\tools\NmdsTool.tsx
+   14:1  warning  '@/lib/bio-tools/bio-export-tables' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import                no-restricted-imports
+   18:1  warning  '@/lib/services/pyodide/core/pyodide-core.service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+   19:1  warning  '@/lib/services/pyodide/core/pyodide-worker.enum' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import   no-restricted-imports
+   21:1  warning  '@/lib/graph-studio/analysis-adapter' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import           no-restricted-imports
+  138:6  warning  React Hook useMemo has an unnecessary dependency: 'resolvedTheme'. Either exclude it or remove the dependency array                                                     react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\bio-tools\tools\PermanovaTool.tsx
+  13:1  warning  '@/lib/bio-tools/bio-export-tables' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import                no-restricted-imports
+  17:1  warning  '@/lib/services/pyodide/core/pyodide-core.service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  18:1  warning  '@/lib/services/pyodide/core/pyodide-worker.enum' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import   no-restricted-imports
+
+D:\Projects\BioHub\stats\components\bio-tools\tools\RarefactionTool.tsx
+  14:1  warning  '@/lib/bio-tools/bio-export-tables' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import       no-restricted-imports
+  18:1  warning  '@/lib/graph-studio/analysis-adapter' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+  77:6  warning  React Hook useMemo has an unnecessary dependency: 'resolvedTheme'. Either exclude it or remove the dependency array                                            react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\bio-tools\tools\RocAucTool.tsx
+   11:1  warning  '@/lib/services/pyodide/core/pyodide-worker.enum' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+   19:1  warning  '@/lib/bio-tools/bio-export-tables' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import               no-restricted-imports
+   21:1  warning  '@/lib/graph-studio/analysis-adapter' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import          no-restricted-imports
+  140:6  warning  React Hook useMemo has an unnecessary dependency: 'resolvedTheme'. Either exclude it or remove the dependency array                                                    react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\bio-tools\tools\SurvivalTool.tsx
+   11:1  warning  '@/lib/services/pyodide/core/pyodide-worker.enum' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+   20:1  warning  '@/lib/bio-tools/bio-export-tables' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import               no-restricted-imports
+   22:1  warning  '@/lib/graph-studio/analysis-adapter' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import          no-restricted-imports
+  147:6  warning  React Hook useMemo has an unnecessary dependency: 'resolvedTheme'. Either exclude it or remove the dependency array                                                    react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\bio-tools\tools\VbgfTool.tsx
+   11:1  warning  '@/lib/services/pyodide/core/pyodide-worker.enum' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+   14:1  warning  '@/lib/bio-tools/fisheries-columns' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import               no-restricted-imports
+   20:1  warning  '@/lib/bio-tools/bio-export-tables' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import               no-restricted-imports
+   22:1  warning  '@/lib/graph-studio/analysis-adapter' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import          no-restricted-imports
+  122:6  warning  React Hook useMemo has an unnecessary dependency: 'resolvedTheme'. Either exclude it or remove the dependency array                                                    react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\bio-tools\tools\types.ts
+  1:1  warning  '@/lib/bio-tools/bio-tool-registry' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import  no-restricted-imports
+  2:1  warning  '@/lib/bio-tools/bio-tool-history' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import   no-restricted-imports
+
+D:\Projects\BioHub\stats\components\charts\BarChartWithCI.tsx
+   82:3  warning  'orientation' is assigned a value but never used. Allowed unused args must match /^_/u                               @typescript-eslint/no-unused-vars
+  170:6  warning  React Hook useMemo has an unnecessary dependency: 'resolvedTheme'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+  191:6  warning  React Hook useMemo has an unnecessary dependency: 'resolvedTheme'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\charts\boxplot.tsx
+   27:59  warning  'statTooltip' is defined but never used. Allowed unused vars must match /^_/u           @typescript-eslint/no-unused-vars
+  199:3   warning  'orientation' is assigned a value but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\charts\histogram.tsx
+  200:6  warning  React Hook useMemo has an unnecessary dependency: 'resolvedTheme'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\charts\scatterplot.tsx
+  147:6  warning  React Hook useMemo has an unnecessary dependency: 'resolvedTheme'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\common\VariableSelectorToggle.tsx
+  30:1  warning  '@/lib/services/variable-type-detector' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\common\analysis\AIAnalysisProgress.tsx
+  72:21  warning  'isPending' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\common\card-styles.ts
+  2:1  warning  '@/lib/design-tokens/common' import is restricted from being used by a pattern. Use '@/lib/design-tokens' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\common\variable-selectors\ChiSquareSelector.tsx
+  20:1  warning  '@/lib/services/variable-type-detector' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\common\variable-selectors\CorrelationSelector.tsx
+  17:1  warning  '@/lib/services/variable-type-detector' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\common\variable-selectors\GroupComparisonSelector.tsx
+   20:1  warning  '@/lib/services/variable-type-detector' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  128:6  warning  React Hook useMemo has a missing dependency: 't.validation'. Either include it or remove the dependency array                                                react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\common\variable-selectors\MultipleRegressionSelector.tsx
+  18:1  warning  '@/lib/services/variable-type-detector' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\common\variable-selectors\OneSampleSelector.tsx
+  14:29  warning  'CardHeader' is defined but never used. Allowed unused vars must match /^_/u                                                                                 @typescript-eslint/no-unused-vars
+  14:41  warning  'CardTitle' is defined but never used. Allowed unused vars must match /^_/u                                                                                  @typescript-eslint/no-unused-vars
+  14:52  warning  'CardDescription' is defined but never used. Allowed unused vars must match /^_/u                                                                            @typescript-eslint/no-unused-vars
+  22:1   warning  '@/lib/services/variable-type-detector' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\common\variable-selectors\PairedSelector.tsx
+  19:1  warning  '@/lib/services/variable-type-detector' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\common\variable-selectors\TwoWayAnovaSelector.tsx
+  18:1  warning  '@/lib/services/variable-type-detector' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\design-system\analysis-category.tsx
+    6:1  warning  '@/lib/design-system/theme-provider' import is restricted from being used by a pattern. Use '@/lib/design-system' barrel export instead of direct file import  no-restricted-imports
+  111:3  warning  'tooltip' is defined but never used. Allowed unused args must match /^_/u                                                                                      @typescript-eslint/no-unused-vars
+  112:3  warning  'whenToUse' is defined but never used. Allowed unused args must match /^_/u                                                                                    @typescript-eslint/no-unused-vars
+  113:3  warning  'example' is defined but never used. Allowed unused args must match /^_/u                                                                                      @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\design-system\themed-tabs.tsx
+  6:1  warning  '@/lib/design-system/theme-provider' import is restricted from being used by a pattern. Use '@/lib/design-system' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\genetics\BlastProgressUI.tsx
+  3:1  warning  '@/lib/genetics/abortable-sleep' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\genetics\BlastRunner.tsx
+   5:1  warning  '@/lib/genetics/validate-sequence' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+   6:1  warning  '@/lib/genetics/blast-utils' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import        no-restricted-imports
+  10:1  warning  '@/lib/genetics/blast-utils' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import        no-restricted-imports
+  11:1  warning  '@/lib/genetics/blast-utils' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import        no-restricted-imports
+
+D:\Projects\BioHub\stats\components\genetics\BlastSearchInput.tsx
+  8:1  warning  '@/lib/genetics/validate-sequence' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\genetics\BoldResultView.tsx
+   6:1  warning  '@/lib/genetics/sequence-transfer' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+  89:3  warning  'db' is defined but never used. Allowed unused args must match /^_/u                                                                                    @typescript-eslint/no-unused-vars
+  90:3  warning  'searchMode' is defined but never used. Allowed unused args must match /^_/u                                                                            @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\genetics\BoldRunner.tsx
+  5:1  warning  '@/lib/genetics/validate-sequence' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+  6:1  warning  '@/lib/genetics/bold-utils' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import         no-restricted-imports
+  7:1  warning  '@/lib/genetics/bold-utils' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import         no-restricted-imports
+
+D:\Projects\BioHub\stats\components\genetics\GeneticsHistorySidebar.tsx
+  17:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+  21:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\genetics\MultiSequenceInput.tsx
+   7:1  warning  '@/lib/genetics/multi-fasta-parser' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import                                                 no-restricted-imports
+  52:9  warning  The 'displayParsed' conditional could make the dependencies of useMemo Hook (at line 57) change on every render. To fix this, wrap the initialization of 'displayParsed' in its own useMemo() Hook      react-hooks/exhaustive-deps
+  52:9  warning  The 'displayParsed' conditional could make the dependencies of useCallback Hook (at line 86) change on every render. To fix this, wrap the initialization of 'displayParsed' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\genetics\PhylogenyResult.tsx
+   8:1  warning  '@/lib/genetics/newick-parser' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+  25:3  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+
+D:\Projects\BioHub\stats\components\genetics\ResultView.tsx
+  8:1  warning  '@/lib/genetics/decision-engine' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import    no-restricted-imports
+  9:1  warning  '@/lib/genetics/sequence-transfer' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\genetics\SeqStatsResult.tsx
+   9:1  warning  '@/lib/genetics/seq-stats-engine' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+  74:7  warning  React Hook useMemo has missing dependencies: 'bases' and 'colors'. Either include them or remove the dependency array                                  react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\genetics\SequenceInput.tsx
+  7:1  warning  '@/lib/genetics/validate-sequence' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+  8:1  warning  '@/lib/genetics/example-sequences' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\genetics\SimilarityResult.tsx
+  20:3   warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+  84:11  warning  'n' is assigned a value but never used. Allowed unused vars must match /^_/u                    @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\graph-studio\AiPanel.tsx
+  15:1  warning  '@/lib/graph-studio/use-ai-chat' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import       no-restricted-imports
+  35:1  warning  '@/lib/graph-studio/use-ai-chat' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import       no-restricted-imports
+  36:1  warning  '@/lib/graph-studio/ai-patch-summary' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\graph-studio\ChartPreview.tsx
+  25:1  warning  '@/lib/graph-studio/chart-data-guard' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+  27:1  warning  '@/lib/graph-studio/chart-spec-utils' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\graph-studio\ChartSetupPanel.tsx
+   16:1  warning  '@/lib/graph-studio/chart-spec-utils' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import                                       no-restricted-imports
+   17:1  warning  '@/lib/graph-studio/chart-spec-defaults' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import                                    no-restricted-imports
+   18:1  warning  '@/lib/graph-studio/chart-icons' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import                                            no-restricted-imports
+   19:1  warning  '@/lib/graph-studio/style-template-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import                                 no-restricted-imports
+   32:1  warning  '@/lib/graph-studio/style-template-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import                                 no-restricted-imports
+  104:9  warning  The 'columns' logical expression could make the dependencies of useMemo Hook (at line 110) change on every render. To fix this, wrap the initialization of 'columns' in its own useMemo() Hook      react-hooks/exhaustive-deps
+  104:9  warning  The 'columns' logical expression could make the dependencies of useMemo Hook (at line 120) change on every render. To fix this, wrap the initialization of 'columns' in its own useMemo() Hook      react-hooks/exhaustive-deps
+  104:9  warning  The 'columns' logical expression could make the dependencies of useMemo Hook (at line 123) change on every render. To fix this, wrap the initialization of 'columns' in its own useMemo() Hook      react-hooks/exhaustive-deps
+  104:9  warning  The 'columns' logical expression could make the dependencies of useCallback Hook (at line 179) change on every render. To fix this, wrap the initialization of 'columns' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  104:9  warning  The 'columns' logical expression could make the dependencies of useCallback Hook (at line 224) change on every render. To fix this, wrap the initialization of 'columns' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\graph-studio\DataUploadPanel.tsx
+  31:1  warning  '@/lib/graph-studio/chart-spec-utils' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import        no-restricted-imports
+  33:1  warning  '@/lib/graph-studio/file-parser' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import             no-restricted-imports
+  34:1  warning  '@/lib/graph-studio/chart-data-guard' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import        no-restricted-imports
+  37:1  warning  '@/lib/graph-studio/project-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import         no-restricted-imports
+  38:1  warning  '@/lib/graph-studio/style-template-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+  39:1  warning  '@/lib/graph-studio/chart-icons' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import             no-restricted-imports
+  43:1  warning  '@/lib/graph-studio/style-template-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\graph-studio\GraphStudioHeader.tsx
+  11:1  warning  '@/lib/graph-studio/chart-spec-defaults' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\graph-studio\LeftDataPanel.tsx
+  13:1  warning  '@/lib/graph-studio/chart-spec-utils' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import     no-restricted-imports
+  14:1  warning  '@/lib/graph-studio/chart-spec-defaults' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+  16:1  warning  '@/lib/graph-studio/file-parser' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import          no-restricted-imports
+  17:1  warning  '@/lib/graph-studio/chart-data-guard' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import     no-restricted-imports
+
+D:\Projects\BioHub\stats\components\graph-studio\panels\AnnotationTab.tsx
+  43:9  warning  The 'annotations' logical expression could make the dependencies of useCallback Hook (at line 52) change on every render. To fix this, wrap the initialization of 'annotations' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  43:9  warning  The 'annotations' logical expression could make the dependencies of useCallback Hook (at line 67) change on every render. To fix this, wrap the initialization of 'annotations' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  43:9  warning  The 'annotations' logical expression could make the dependencies of useCallback Hook (at line 84) change on every render. To fix this, wrap the initialization of 'annotations' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\graph-studio\panels\DataTab.tsx
+  33:1  warning  '@/lib/graph-studio/useDataTabLogic' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+  42:1  warning  '@/lib/graph-studio/chart-icons' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import      no-restricted-imports
+
+D:\Projects\BioHub\stats\components\graph-studio\panels\ExportDialog.tsx
+  37:1    warning  '@/lib/graph-studio/use-matplotlib-export' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+  61:1    warning  '@/lib/graph-studio/matplotlib-compat' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import      no-restricted-imports
+  97:140  warning  'clearMplWarnings' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                         @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\graph-studio\panels\StyleTab.tsx
+  12:1  warning  '@/lib/graph-studio/useStyleTabLogic' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import        no-restricted-imports
+  17:1  warning  '@/lib/graph-studio/style-template-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\home\data-analysis-flow.tsx
+   47:54  warning  'dataInfo' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+   48:72  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  105:47  warning  'onAnalysisComplete' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  111:58  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+
+D:\Projects\BioHub\stats\components\home\smart-analysis-hero.tsx
+  7:10  warning  'Dialog' is defined but never used. Allowed unused vars must match /^_/u             @typescript-eslint/no-unused-vars
+  7:18  warning  'DialogContent' is defined but never used. Allowed unused vars must match /^_/u      @typescript-eslint/no-unused-vars
+  7:33  warning  'DialogDescription' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  7:52  warning  'DialogHeader' is defined but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
+  7:66  warning  'DialogTitle' is defined but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\layout\app-sidebar.tsx
+   39:1  warning  '@/lib/research/project-storage' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+  105:6  warning  React Hook useMemo has a missing dependency: 'availableProjects.length'. Either include it or remove the dependency array                             react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\layout\settings-modal.tsx
+  18:1  warning  '@/lib/services/storage-service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\papers\DocumentAssemblyDialog.tsx
+  13:1  warning  '@/lib/research/document-preset-registry' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import    no-restricted-imports
+  14:1  warning  '@/lib/research/document-assembler' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import          no-restricted-imports
+  15:1  warning  '@/lib/research/document-blueprint-storage' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+  16:1  warning  '@/lib/research/project-storage' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import             no-restricted-imports
+  18:1  warning  '@/lib/graph-studio/project-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import     no-restricted-imports
+  19:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import            no-restricted-imports
+  20:1  warning  '@/lib/research/document-blueprint-types' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import    no-restricted-imports
+
+D:\Projects\BioHub\stats\components\papers\DocumentEditor.tsx
+    3:52  warning  'useMemo' is defined but never used. Allowed unused vars must match /^_/u                                                                                        @typescript-eslint/no-unused-vars
+    9:1   warning  '@/lib/research/document-blueprint-storage' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+   13:1   warning  '@/lib/research/document-assembler' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import          no-restricted-imports
+   14:1   warning  '@/lib/research/project-storage' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import             no-restricted-imports
+   16:1   warning  '@/lib/graph-studio/project-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import     no-restricted-imports
+   17:1   warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import            no-restricted-imports
+   18:1   warning  '@/lib/research/document-blueprint-types' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import    no-restricted-imports
+   19:1   warning  '@/lib/research/document-blueprint-types' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import    no-restricted-imports
+   22:1   warning  '@/lib/research/citation-types' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import              no-restricted-imports
+   23:1   warning  '@/lib/research/citation-storage' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import            no-restricted-imports
+   31:10  warning  'cn' is defined but never used. Allowed unused vars must match /^_/u                                                                                             @typescript-eslint/no-unused-vars
+  168:6   warning  React Hook useCallback has a missing dependency: 'activeSectionId'. Either include it or remove the dependency array                                             react-hooks/exhaustive-deps
+  196:6   warning  React Hook useEffect has a missing dependency: 'flushSerialize'. Either include it or remove the dependency array                                                react-hooks/exhaustive-deps
+  338:6   warning  React Hook useCallback has a missing dependency: 'editor.tf'. Either include it or remove the dependency array                                                   react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\papers\DocumentExportBar.tsx
+   7:1  warning  '@/lib/services/export/export-data-builder' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import   no-restricted-imports
+   8:1  warning  '@/lib/services/export/document-docx-export' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+   9:1  warning  '@/lib/services/export/document-hwpx-export' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  10:1  warning  '@/lib/research/document-blueprint-types' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import     no-restricted-imports
+
+D:\Projects\BioHub\stats\components\papers\DocumentSectionList.tsx
+  28:1  warning  '@/lib/research/document-blueprint-types' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\papers\MaterialPalette.tsx
+   7:10  warning  'Button' is defined but never used. Allowed unused vars must match /^_/u                                                                                      @typescript-eslint/no-unused-vars
+   9:1   warning  '@/lib/research/project-storage' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import          no-restricted-imports
+  10:1   warning  '@/lib/graph-studio/project-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+  13:1   warning  '@/lib/research/citation-types' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import           no-restricted-imports
+  14:1   warning  '@/lib/research/citation-apa-formatter' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import   no-restricted-imports
+
+D:\Projects\BioHub\stats\components\papers\PackageBuilder.tsx
+  10:1  warning  '@/lib/research/paper-package-storage' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import    no-restricted-imports
+  11:1  warning  '@/lib/research/paper-package-assembler' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+  12:1  warning  '@/lib/research/paper-package-types' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import      no-restricted-imports
+  18:1  warning  '@/lib/research/paper-package-types' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import      no-restricted-imports
+  26:1  warning  '@/lib/research/paper-package-assembler' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+  28:1  warning  '@/lib/research/project-storage' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import          no-restricted-imports
+  29:1  warning  '@/lib/graph-studio/project-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\papers\PackagePreview.tsx
+  8:1  warning  '@/lib/research/paper-package-types' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\papers\PapersHub.tsx
+  11:29  warning  'CardDescription' is defined but never used. Allowed unused vars must match /^_/u                                                                                @typescript-eslint/no-unused-vars
+  11:46  warning  'CardHeader' is defined but never used. Allowed unused vars must match /^_/u                                                                                     @typescript-eslint/no-unused-vars
+  11:58  warning  'CardTitle' is defined but never used. Allowed unused vars must match /^_/u                                                                                      @typescript-eslint/no-unused-vars
+  17:1   warning  '@/lib/research/document-blueprint-storage' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+  18:1   warning  '@/lib/research/document-preset-registry' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import    no-restricted-imports
+  19:1   warning  '@/lib/research/document-blueprint-types' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import    no-restricted-imports
+
+D:\Projects\BioHub\stats\components\papers\__tests__\equation-element.test.tsx
+   8:26  warning  'fireEvent' is defined but never used. Allowed unused vars must match /^_/u                                  @typescript-eslint/no-unused-vars
+  29:10  warning  React Hook useEffect has a missing dependency: 'katexRef'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\components\projects\EntityBrowser.tsx
+  16:1  warning  '@/lib/research/entity-tab-registry' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+  22:1  warning  '@/lib/research/entity-resolver' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import      no-restricted-imports
+
+D:\Projects\BioHub\stats\components\projects\EntityListItem.tsx
+  7:1  warning  '@/lib/research/entity-tab-registry' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+  8:1  warning  '@/lib/research/entity-resolver' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import      no-restricted-imports
+
+D:\Projects\BioHub\stats\components\projects\ProjectDetailContent.tsx
+   6:1   warning  '@/lib/research/project-storage' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+   7:1   warning  '@/lib/research/entity-resolver' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+   8:1   warning  '@/lib/research/entity-loader' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import    no-restricted-imports
+   9:1   warning  '@/lib/research/entity-resolver' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+  30:10  warning  'refs' is assigned a value but never used. Allowed unused vars must match /^_/u                                                                       @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\projects\ReportComposer.tsx
+  14:1  warning  '@/lib/research/entity-resolver' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+  15:1  warning  '@/lib/research/report-export' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import    no-restricted-imports
+
+D:\Projects\BioHub\stats\components\projects\TabSettingsDialog.tsx
+  13:1  warning  '@/lib/research/entity-tab-registry' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+  18:1  warning  '@/lib/research/entity-tab-registry' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\providers\PyodidePreloader.tsx
+  22:1  warning  '@/lib/services/pyodide/core/pyodide-core.service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  23:1  warning  '@/lib/services/pyodide/pyodide-statistics' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import         no-restricted-imports
+
+D:\Projects\BioHub\stats\components\providers\PyodideProvider.tsx
+  4:1  warning  '@/lib/services/pyodide/pyodide-statistics' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import         no-restricted-imports
+  5:1  warning  '@/lib/services/pyodide/pyodide-helper' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import             no-restricted-imports
+  6:1  warning  '@/lib/services/pyodide/core/pyodide-core.service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\pyodide\PyodideLoadingIndicator.tsx
+  14:1  warning  '@/lib/services/pyodide/core/pyodide-core.service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\pyodide\pyodide-loading-modal.tsx
+  13:1  warning  '@/lib/services/pyodide/core/pyodide-core.service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\statistics\common\AssumptionTestCard.tsx
+  65:3  warning  'testType' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\statistics\common\DataPreviewPanel.tsx
+  41:3  warning  'fileName' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\statistics\common\DataTableViewer.tsx
+  48:10  warning  'cn' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\statistics\common\EasyExplanation.tsx
+  18:5  warning  'testType' is defined but never used. Allowed unused args must match /^_/u        @typescript-eslint/no-unused-vars
+  19:5  warning  'alpha' is assigned a value but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\statistics\common\EffectSizeCard.tsx
+  2:29  warning  'CardDescription' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\statistics\common\NextStepsCard.tsx
+  17:5  warning  'testType' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\statistics\common\ResultActionButtons.tsx
+   33:3   warning  'Mail' is defined but never used. Allowed unused vars must match /^_/u                                       @typescript-eslint/no-unused-vars
+   40:3   warning  'BarChart' is defined but never used. Allowed unused vars must match /^_/u                                   @typescript-eslint/no-unused-vars
+   42:3   warning  'Clipboard' is defined but never used. Allowed unused vars must match /^_/u                                  @typescript-eslint/no-unused-vars
+   43:3   warning  'Link2' is defined but never used. Allowed unused vars must match /^_/u                                      @typescript-eslint/no-unused-vars
+   44:3   warning  'MessageSquare' is defined but never used. Allowed unused vars must match /^_/u                              @typescript-eslint/no-unused-vars
+   46:3   warning  'FilePlus' is defined but never used. Allowed unused vars must match /^_/u                                   @typescript-eslint/no-unused-vars
+   97:3   warning  'resultId' is defined but never used. Allowed unused args must match /^_/u                                   @typescript-eslint/no-unused-vars
+  220:17  warning  Image elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+
+D:\Projects\BioHub\stats\components\statistics\common\StatisticsTable.tsx
+  18:3  warning  'TrendingUp' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+  19:3  warning  'TrendingDown' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  20:3  warning  'Minus' is defined but never used. Allowed unused vars must match /^_/u         @typescript-eslint/no-unused-vars
+  23:3  warning  'Filter' is defined but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\statistics\common\TestStatisticDisplay.tsx
+  193:3  warning  'alpha' is assigned a value but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\statistics\common\__tests__\StatisticsTable.test.tsx
+    3:37  warning  'waitFor' is defined but never used. Allowed unused vars must match /^_/u            @typescript-eslint/no-unused-vars
+    4:8   warning  'userEvent' is defined but never used. Allowed unused vars must match /^_/u          @typescript-eslint/no-unused-vars
+  204:15  warning  'rerender' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\statistics\layouts\ThreePanelLayout.tsx
+  58:3  warning  'enableResize' is assigned a value but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\ui\breadcrumb.tsx
+  12:6  warning  'className' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\variable-selection\VariableSelectorBadges.tsx
+  53:3  warning  'multiSelect' is assigned a value but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\variable-selection\VariableSelectorModern.tsx
+  20:3   warning  'useDraggable' is defined but never used. Allowed unused vars must match /^_/u                                                                               @typescript-eslint/no-unused-vars
+  21:3   warning  'useDroppable' is defined but never used. Allowed unused vars must match /^_/u                                                                               @typescript-eslint/no-unused-vars
+  27:10  warning  'CSS' is defined but never used. Allowed unused vars must match /^_/u                                                                                        @typescript-eslint/no-unused-vars
+  33:3   warning  'VariableRequirement' is defined but never used. Allowed unused vars must match /^_/u                                                                        @typescript-eslint/no-unused-vars
+  35:1   warning  '@/lib/services/variable-type-detector' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\variable-selection\VariableSelectorPanel.tsx
+  29:3   warning  'Trash2' is defined but never used. Allowed unused vars must match /^_/u                     @typescript-eslint/no-unused-vars
+  99:10  warning  'selectedVariable' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\variable-selection\draggable\DraggableVariable.tsx
+  21:1  warning  '@/lib/services/variable-type-detector' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\variable-selection\draggable\__tests__\DraggableVariable.test.tsx
+  4:1  warning  '@/lib/services/variable-type-detector' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\components\visualizations\plotly-chart-renderer.tsx
+  41:3  warning  'onDownload' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\components\visualizations\pyodide-chart-panel.tsx
+    8:10  warning  'Tabs' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+    8:16  warning  'TabsContent' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+    8:29  warning  'TabsList' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+    8:39  warning  'TabsTrigger' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+   11:3   warning  'LineChart' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+   24:3   warning  'loadPyodideRuntime' is defined but never used. Allowed unused vars must match /^_/u                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+  222:19  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  392:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+D:\Projects\BioHub\stats\components\visualizations\pyodide-plotly-chart-panel.tsx
+   11:3   warning  'LineChart' is defined but never used. Allowed unused vars must match /^_/u           @typescript-eslint/no-unused-vars
+   26:3   warning  'loadPyodideRuntime' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   40:46  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+   84:21  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  279:19  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+
+D:\Projects\BioHub\stats\hooks\use-analysis-handlers.ts
+  160:6  warning  React Hook useMemo has unnecessary dependencies: 'selectedMethod', 'uploadedData', 'uploadedFileName', 'validationResults', and 'variableMapping'. Either exclude them or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\Projects\BioHub\stats\hooks\use-bio-tool-analysis.ts
+   9:1  warning  '@/lib/services/pyodide/core/pyodide-core.service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  10:1  warning  '@/lib/services/pyodide/core/pyodide-worker.enum' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import   no-restricted-imports
+  13:1  warning  '@/lib/bio-tools/bio-tool-history' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import                 no-restricted-imports
+
+D:\Projects\BioHub\stats\hooks\use-blast-execution.ts
+  3:1  warning  '@/lib/genetics/abortable-sleep' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+  4:1  warning  '@/lib/genetics/blast-utils' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import      no-restricted-imports
+
+D:\Projects\BioHub\stats\hooks\use-bold-execution.ts
+   9:1  warning  '@/lib/genetics/abortable-sleep' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+  10:1  warning  '@/lib/genetics/bold-utils' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import       no-restricted-imports
+
+D:\Projects\BioHub\stats\hooks\use-data-upload.ts
+  16:1  warning  '@/lib/services/data-validation-service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import       no-restricted-imports
+  18:1  warning  '@/lib/services/variable-detection-service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import    no-restricted-imports
+  20:1  warning  '@/lib/services/normality-enrichment-service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\hooks\use-follow-up-qa.ts
+  7:1  warning  '@/lib/services/result-interpreter' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\hooks\use-hub-data-upload.ts
+  21:1   warning  '@/lib/services/data-validation-service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import       no-restricted-imports
+  22:1   warning  '@/lib/services/normality-enrichment-service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  25:24  warning  'ColumnStatistics' is defined but never used. Allowed unused vars must match /^_/u                                                                                 @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\hooks\use-interpretation.ts
+  17:1  warning  '@/lib/services/result-interpreter' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\hooks\use-levene-test.ts
+  16:1  warning  '@/lib/services/pyodide/core/pyodide-worker.enum' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\hooks\use-open-in-graph-studio.ts
+  4:1  warning  '@/lib/graph-studio/chart-spec-defaults' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\hooks\use-pyodide-service.ts
+   5:40  warning  Unexpected any. Specify a different type                                                 @typescript-eslint/no-explicit-any
+  12:21  warning  'setIsLoading' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  13:17  warning  'setError' is assigned a value but never used. Allowed unused vars must match /^_/u      @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\hooks\use-statistics-worker.ts
+    7:1   warning  '@/lib/services/worker-manager' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  100:24  warning  Unexpected any. Specify a different type                                                                                                             @typescript-eslint/no-explicit-any
+  264:24  warning  Unexpected any. Specify a different type                                                                                                             @typescript-eslint/no-explicit-any
+
+D:\Projects\BioHub\stats\hooks\use-terminology.ts
+  24:1  warning  '@/lib/terminology/terminology-context' import is restricted from being used by a pattern. Use '@/lib/terminology' barrel export instead of direct file import  no-restricted-imports
+  25:1  warning  '@/lib/terminology/terminology-types' import is restricted from being used by a pattern. Use '@/lib/terminology' barrel export instead of direct file import    no-restricted-imports
+
+D:\Projects\BioHub\stats\jest.setup.ts
+    5:1   error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+  187:12  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+D:\Projects\BioHub\stats\lib\bio-tools\bio-tool-history.ts
+  8:1  warning  '@/lib/research/project-storage' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\chart-validators.ts
+  6:6  warning  'NumericValue' is defined but never used. Allowed unused vars must match /^_/u      @typescript-eslint/no-unused-vars
+  7:6  warning  'CategoricalValue' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\charts\echarts-stat-utils.ts
+  9:1  warning  '@/lib/graph-studio/chart-spec-defaults' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\cleanup-utils.ts
+  115:38  warning  Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+  148:24  warning  Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+  201:3   warning  'effect' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  202:3   warning  'deps' is defined but never used. Allowed unused args must match /^_/u    @typescript-eslint/no-unused-vars
+  267:20  warning  Unexpected any. Specify a different type                                  @typescript-eslint/no-explicit-any
+
+D:\Projects\BioHub\stats\lib\data-processing.ts
+  405:54  warning  'colIndex' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\data-validation.ts
+    1:22  warning  'ERROR_MESSAGES' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+   20:24  warning  Unexpected any. Specify a different type                                          @typescript-eslint/no-explicit-any
+  117:56  warning  Unexpected any. Specify a different type                                          @typescript-eslint/no-explicit-any
+  150:57  warning  Unexpected any. Specify a different type                                          @typescript-eslint/no-explicit-any
+  183:24  warning  Unexpected any. Specify a different type                                          @typescript-eslint/no-explicit-any
+
+D:\Projects\BioHub\stats\lib\design-tokens\status.ts
+  12:3  warning  'Circle' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+  13:3  warning  'Square' is defined but never used. Allowed unused vars must match /^_/u    @typescript-eslint/no-unused-vars
+  14:3  warning  'Triangle' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  15:3  warning  'Diamond' is defined but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\generated\method-types.generated.ts
+   8:1  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unused-vars')
+  10:1  warning  '@/lib/services/pyodide/core/pyodide-core.service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\genetics\analysis-history.ts
+  3:1  warning  '@/lib/genetics/decision-engine' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import         no-restricted-imports
+  4:1  warning  '@/lib/research/project-storage' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import         no-restricted-imports
+  8:1  warning  '@/lib/genetics/genetics-history-cloud' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\genetics\blast-utils.ts
+  4:1  warning  '@/lib/genetics/abortable-sleep' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+  5:1  warning  '@/lib/genetics/abortable-sleep' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\genetics\bold-utils.ts
+  4:1  warning  '@/lib/genetics/abortable-sleep' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\genetics\genetics-history-cloud.ts
+  1:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\genetics\seq-stats-engine.ts
+  1:1  warning  '@/lib/genetics/multi-fasta-parser' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\graph-studio\ai-service.ts
+  10:1  warning  '@/lib/services/recommenders/openrouter-recommender' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\graph-studio\analysis-adapter.ts
+  410:9  warning  'n' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\graph-studio\converters\bar.ts
+  9:3  warning  'toNumber' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\graph-studio\converters\heatmap.ts
+  13:15  warning  'StyleConfig' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\graph-studio\file-parser.ts
+  10:1  warning  '@/lib/graph-studio/chart-spec-utils' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\graph-studio\project-storage.ts
+  20:1  warning  '@/lib/research/project-storage' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\graph-studio\use-ai-chat.ts
+  21:1  warning  '@/lib/graph-studio/chart-spec-utils' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+  22:1  warning  '@/lib/graph-studio/ai-service' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import        no-restricted-imports
+  23:1  warning  '@/lib/graph-studio/ai-patch-summary' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+  24:1  warning  '@/lib/graph-studio/ai-patch-summary' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\graph-studio\use-matplotlib-export.ts
+  10:1  warning  '@/lib/services/matplotlib-export.service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\graph-studio\useDataTabLogic.ts
+  10:1  warning  '@/lib/graph-studio/chart-spec-defaults' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+  11:1  warning  '@/lib/graph-studio/chart-spec-utils' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import     no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\graph-studio\useStyleTabLogic.ts
+  10:1  warning  '@/lib/graph-studio/chart-spec-defaults' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\help\help-search.ts
+  6:15  warning  'HelpItem' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\interpretation\engine.ts
+  1234:11  warning  'zScore' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\plotly-config.ts
+   70:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   81:10  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  130:78  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  131:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projects\BioHub\stats\lib\pyodide-plotly-visualizations.ts
+   27:9   warning  Unexpected any. Specify a different type                                          @typescript-eslint/no-explicit-any
+   28:11  warning  Unexpected any. Specify a different type                                          @typescript-eslint/no-explicit-any
+   29:12  warning  Unexpected any. Specify a different type                                          @typescript-eslint/no-explicit-any
+   44:36  warning  Unexpected any. Specify a different type                                          @typescript-eslint/no-explicit-any
+  118:36  warning  Unexpected any. Specify a different type                                          @typescript-eslint/no-explicit-any
+  185:36  warning  Unexpected any. Specify a different type                                          @typescript-eslint/no-explicit-any
+  282:36  warning  Unexpected any. Specify a different type                                          @typescript-eslint/no-explicit-any
+  343:36  warning  Unexpected any. Specify a different type                                          @typescript-eslint/no-explicit-any
+  407:36  warning  Unexpected any. Specify a different type                                          @typescript-eslint/no-explicit-any
+  468:3   warning  'title' is assigned a value but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  472:36  warning  Unexpected any. Specify a different type                                          @typescript-eslint/no-explicit-any
+
+D:\Projects\BioHub\stats\lib\pyodide-visualizations.ts
+   34:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   93:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  156:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  211:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  257:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  309:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  379:39  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projects\BioHub\stats\lib\rag\__tests__\rag-integration.test.ts
+   10:44  warning  'afterEach' is defined but never used. Allowed unused vars must match /^_/u              @typescript-eslint/no-unused-vars
+   11:22  warning  'queryRAG' is defined but never used. Allowed unused vars must match /^_/u               @typescript-eslint/no-unused-vars
+  159:13  warning  'expectedPath' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  211:13  warning  'time1' is assigned a value but never used. Allowed unused vars must match /^_/u         @typescript-eslint/no-unused-vars
+  221:13  warning  'time2' is assigned a value but never used. Allowed unused vars must match /^_/u         @typescript-eslint/no-unused-vars
+  327:11  warning  'context' is assigned a value but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\rag\__tests__\rag-service.test.ts
+   15:3   warning  'queryRAG' is defined but never used. Allowed unused vars must match /^_/u          @typescript-eslint/no-unused-vars
+   20:33  warning  'RAGProviderType' is defined but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+   81:13  warning  'config' is assigned a value but never used. Allowed unused vars must match /^_/u   @typescript-eslint/no-unused-vars
+  149:13  warning  'service' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\rag\hooks\use-rag-assistant.ts
+  46:19  warning  'autoInit' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\rag\providers\base-provider.ts
+  154:13  warning  'answer' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  180:21  warning  'document' is defined but never used. Allowed unused args must match /^_/u         @typescript-eslint/no-unused-vars
+  187:21  warning  'docId' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+  194:24  warning  'docId' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+  194:39  warning  'updates' is defined but never used. Allowed unused args must match /^_/u          @typescript-eslint/no-unused-vars
+  201:24  warning  'docId' is defined but never used. Allowed unused args must match /^_/u            @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\rag\providers\ollama-provider.ts
+    32:8   warning  'SqlJsExecResult' is defined but never used. Allowed unused vars must match /^_/u               @typescript-eslint/no-unused-vars
+    57:16  warning  'loadSqlJs' is defined but never used. Allowed unused vars must match /^_/u                     @typescript-eslint/no-unused-vars
+   133:16  warning  Unexpected any. Specify a different type                                                        @typescript-eslint/no-explicit-any
+  1160:15  warning  'generationStartTime' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\rag\services\ollama-model-service.ts
+  12:8  warning  'OllamaModel' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\rag\utils\__tests__\chunking.test.ts
+  12:8  warning  'ChunkOptions' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\rag\utils\absurd-sql.d.ts
+   8:21  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   8:35  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  30:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  69:13  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projects\BioHub\stats\lib\research\__tests__\document-assembler.test.ts
+  12:1  warning  '@/lib/services/paper-draft/paper-types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\research\__tests__\document-blueprint-types.test.ts
+  13:1  warning  '@/lib/services/paper-draft/paper-types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\research\citation-storage.ts
+  11:10  warning  'txPut' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\research\document-assembler.ts
+  81:49  warning  'language' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\research\document-blueprint-types.ts
+  8:1  warning  '@/lib/services/paper-draft/paper-types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\research\entity-loader.ts
+  19:1  warning  '@/lib/graph-studio/project-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import     no-restricted-imports
+  20:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import            no-restricted-imports
+  21:1  warning  '@/lib/bio-tools/bio-tool-history' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import          no-restricted-imports
+  22:1  warning  '@/lib/research/document-blueprint-storage' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\research\entity-resolver.ts
+  17:1  warning  '@/lib/research/entity-tab-registry' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\services\assumption-testing-service.ts
+  18:1  warning  '@/lib/services/pyodide/core/pyodide-core.service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  19:1  warning  '@/lib/services/pyodide/ensure-pyodide-ready' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import       no-restricted-imports
+  24:1  warning  '@/lib/services/pyodide/worker-result-types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import        no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\services\data-management.ts
+  14:1  warning  '@/lib/services/pyodide/core/pyodide-core.service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\services\data-validation-service.ts
+    2:1   warning  '@/lib/services/variable-type-detector' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+   52:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u                                                                             @typescript-eslint/no-unused-vars
+  351:52  warning  'purpose' is defined but never used. Allowed unused args must match /^_/u                                                                                    @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\services\diagnostic-pipeline.ts
+  28:1  warning  '@/lib/services/pyodide/core/pyodide-core.service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  36:1  warning  '@/lib/services/pyodide/ensure-pyodide-ready' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import       no-restricted-imports
+  37:1  warning  '@/lib/services/pyodide/worker-result-types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import        no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\services\excel-processor.ts
+  161:61  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  162:61  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  254:38  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projects\BioHub\stats\lib\services\executors\types.ts
+  95:11  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  96:15  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projects\BioHub\stats\lib\services\export\assumption-utils.ts
+  9:1  warning  '@/lib/services/paper-draft/paper-types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\services\export\code-templates\chi-square.ts
+  8:32  warning  'safePy' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\services\export\document-docx-export.ts
+   8:1  warning  '@/lib/research/document-blueprint-types' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import        no-restricted-imports
+  13:1  warning  '@/lib/graph-studio/chart-snapshot-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+  14:1  warning  '@/lib/graph-studio/chart-snapshot-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\services\export\document-hwpx-export.ts
+  12:1  warning  '@/lib/research/document-blueprint-types' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import        no-restricted-imports
+  16:1  warning  '@/lib/graph-studio/chart-snapshot-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+  17:1  warning  '@/lib/graph-studio/chart-snapshot-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\services\export\docx-export.ts
+  174:34  warning  'Table' is assigned a value but only used as a type. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\services\intent-router.ts
+  12:1  warning  '@/lib/services/recommenders/llm-recommender' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\services\large-file-processor.ts
+  35:38  warning  Unexpected any. Specify a different type                                              @typescript-eslint/no-explicit-any
+  82:7   warning  'totalRows' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\services\matplotlib-export.service.ts
+  17:1  warning  '@/lib/services/pyodide/core/pyodide-core.service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  18:1  warning  '@/lib/services/pyodide/core/pyodide-core.service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  19:1  warning  '@/lib/graph-studio/export-utils' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import               no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\services\normality-enrichment-service.ts
+  13:1  warning  '@/lib/services/pyodide/worker-result-types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import   no-restricted-imports
+  14:1  warning  '@/lib/services/pyodide/ensure-pyodide-ready' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\services\paper-draft\__tests__\paper-draft-service.test.ts
+  14:1  warning  '@/lib/services/export/export-types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\services\paper-draft\__tests__\paper-templates.test.ts
+  15:1  warning  '@/lib/services/export/assumption-utils' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\services\paper-draft\paper-draft-service.ts
+   9:1  warning  '@/lib/services/export/export-types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import      no-restricted-imports
+  10:1  warning  '@/lib/services/export/assumption-utils' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\services\pyodide\ensure-pyodide-ready.ts
+  8:1  warning  '@/lib/services/pyodide/core/pyodide-core.service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\services\recommenders\decision-tree-recommender.ts
+   33:36  warning  'DataSummary' is defined but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+  615:5   warning  'variableSelection' is defined but never used. Allowed unused args must match /^_/u  @typescript-eslint/no-unused-vars
+  811:22  warning  Unexpected any. Specify a different type                                             @typescript-eslint/no-explicit-any
+
+D:\Projects\BioHub\stats\lib\services\recommenders\ollama-recommender.ts
+  398:54  warning  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+  403:50  warning  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+  408:54  warning  Unexpected any. Specify a different type                                      @typescript-eslint/no-explicit-any
+  493:18  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+  883:18  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u  @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\services\recommenders\openrouter-recommender.ts
+  21:3  warning  'STATISTICAL_METHODS' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  23:3  warning  'getKoreanName' is defined but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\lib\stores\analysis-cache-store.ts
+  4:1  warning  '@/lib/services/pyodide/pyodide-helper' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\stores\analysis-store.ts
+  21:1  warning  '@/lib/services/executors/types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import                no-restricted-imports
+  22:1  warning  '@/lib/services/preemptive-assumption-service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\stores\graph-studio-store.ts
+  17:1  warning  '@/lib/graph-studio/chart-spec-utils' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import        no-restricted-imports
+  18:1  warning  '@/lib/graph-studio/project-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import         no-restricted-imports
+  23:1  warning  '@/lib/graph-studio/chart-snapshot-storage' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import  no-restricted-imports
+  24:1  warning  '@/lib/research/project-storage' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import                 no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\stores\history-store.ts
+  15:1  warning  '@/lib/services/executors/types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import          no-restricted-imports
+  26:1  warning  '@/lib/services/paper-draft/paper-types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  27:1  warning  '@/lib/research/evidence-factory' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import         no-restricted-imports
+  28:1  warning  '@/lib/research/project-storage' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import          no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\stores\research-project-store.ts
+  4:1  warning  '@/lib/research/project-storage' import is restricted from being used by a pattern. Use '@/lib/research' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\stores\store-orchestration.ts
+  13:1  warning  '@/lib/graph-studio/chart-spec-utils' import is restricted from being used by a pattern. Use '@/lib/graph-studio' barrel export instead of direct file import    no-restricted-imports
+  14:1  warning  '@/lib/services/variable-detection-service' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+  15:1  warning  '@/lib/services/diagnostic-pipeline' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import         no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\utils\history-adapters.ts
+  10:1  warning  '@/lib/genetics/analysis-history' import is restricted from being used by a pattern. Use '@/lib/genetics' barrel export instead of direct file import    no-restricted-imports
+  11:1  warning  '@/lib/bio-tools/bio-tool-history' import is restricted from being used by a pattern. Use '@/lib/bio-tools' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\utils\result-transformer.ts
+  13:1  warning  '@/lib/services/executors/types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import       no-restricted-imports
+  14:1  warning  '@/lib/services/statistical-executor' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\lib\utils\storage-types.ts
+  10:1  warning  '@/lib/services/paper-draft/paper-types' import is restricted from being used by a pattern. Use '@/lib/services' barrel export instead of direct file import  no-restricted-imports
+
+D:\Projects\BioHub\stats\types\pyodide.d.ts
+  21:20  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\Projects\BioHub\stats\validation\scripts\run-validation.mjs
+    49:7   warning  'GENERATE_REPORT' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  1679:10  warning  'getNestedValue' is defined but never used. Allowed unused vars must match /^_/u            @typescript-eslint/no-unused-vars
+  1860:15  warning  'caseLabel' is assigned a value but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+
+D:\Projects\BioHub\stats\vitest.setup.ts
+  190:21  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+??651 problems (3 errors, 648 warnings)
+  0 errors and 5 warnings potentially fixable with the `--fix` option.
+
+D:\Projects\BioHub\stats:
+?덭RR_PNPM_RECURSIVE_RUN_FIRST_FAIL??stats@0.1.0 lint: `eslint`
+Exit status 1

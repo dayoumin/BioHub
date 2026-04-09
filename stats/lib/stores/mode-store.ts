@@ -44,6 +44,9 @@ export const useModeStore = create<ModeState>()(
     {
       name: 'analysis-mode-storage',
       storage: createJSONStorage(() => sessionStorage),
+      // stepTrack/showHub는 refresh 시 불일치 위험, lastAiRecommendation은 대형 객체
+      // → persist 대상 없음 (모두 initialState로 시작)
+      partialize: () => ({}),
     }
   )
 )

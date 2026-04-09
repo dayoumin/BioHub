@@ -87,7 +87,6 @@ export function AnalysisSteps({ isHubVisible, onBackToHub }: AnalysisStepsProps)
     results,
     isLoading,
     error,
-    setSelectedMethod,
     setResults,
     setError,
     addCompletedStep,
@@ -131,22 +130,22 @@ export function AnalysisSteps({ isHubVisible, onBackToHub }: AnalysisStepsProps)
   // ─── 인라인 핸들러 (이전 useAnalysisHandlers에서 이동) ───
 
   const handleMethodConfirm = useCallback((method: StatisticalMethod) => {
-    setSelectedMethod(method)
-    useAnalysisStore.getState().setVariableMapping(null)
-    useAnalysisStore.getState().setDetectedVariables(null)
+    const store = useAnalysisStore.getState()
+    const recCtx = store.cachedAiRecommendation
+    const detected = validationResults
+      ? extractDetectedVariables(method.id, validationResults, recCtx)
+      : null
 
-    // 추천 컨텍스트가 있으면 변수 탐지 + 설정 적용
-    const recCtx = useAnalysisStore.getState().cachedAiRecommendation
-    if (validationResults) {
-      const detected = extractDetectedVariables(method.id, validationResults, recCtx)
-      useAnalysisStore.getState().setDetectedVariables(detected)
-    }
-    if (recCtx?.suggestedSettings) {
-      useAnalysisStore.getState().setSuggestedSettings(recCtx.suggestedSettings)
-    }
+    // 단일 set()으로 배치 업데이트 — 리렌더 1회
+    useAnalysisStore.setState({
+      selectedMethod: method,
+      variableMapping: null,
+      detectedVariables: detected,
+      suggestedSettings: recCtx?.suggestedSettings ?? null,
+    })
 
     goToNextStep()
-  }, [setSelectedMethod, goToNextStep, validationResults])
+  }, [goToNextStep, validationResults])
 
   const handleAnalysisComplete = useCallback((analysisResults: AnalysisResult) => {
     setResults(analysisResults)

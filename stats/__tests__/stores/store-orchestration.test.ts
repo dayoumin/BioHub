@@ -140,7 +140,6 @@ describe('store-orchestration', () => {
     it('mode-store도 리셋된다', () => {
       act(() => {
         useModeStore.getState().setStepTrack('quick')
-        useModeStore.getState().setUserQuery('테스트 질문')
         useModeStore.getState().setLastAiRecommendation({
           userQuery: 'test', confidence: 0.8, reasoning: [], provider: 'openrouter', alternatives: [],
         })
@@ -148,9 +147,7 @@ describe('store-orchestration', () => {
 
       act(() => { startFreshAnalysisSession() })
 
-      // resetSession() → useModeStore.resetMode() 연쇄 호출 확인
       expect(useModeStore.getState().stepTrack).toBe('normal')
-      expect(useModeStore.getState().userQuery).toBeNull()
       expect(useModeStore.getState().lastAiRecommendation).toBeNull()
     })
   })

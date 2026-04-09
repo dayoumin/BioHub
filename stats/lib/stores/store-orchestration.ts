@@ -16,21 +16,34 @@ import { toStatisticalAssumptions } from '@/lib/services/diagnostic-pipeline'
 import type { HistorySnapshot, HistoryLoadResult } from './history-store'
 import type { DataPackage, ColumnMeta } from '@/types/graph-studio'
 import type { AIRecommendation, DiagnosticReport } from '@/types/analysis'
+import type { AiRecommendationContext } from '@/lib/utils/storage-types'
+
+/** AIRecommendation → 히스토리 저장용 AiRecommendationContext 변환 */
+function buildAiRecContext(rec: AIRecommendation | null): AiRecommendationContext | null {
+  if (!rec?.method) return null
+  return {
+    userQuery: rec.reasoning?.[0] ?? '',
+    confidence: rec.confidence ?? 0.8,
+    reasoning: rec.reasoning ?? [],
+    warnings: rec.warnings,
+    alternatives: rec.alternatives?.map(a => ({ id: a.id, name: a.name, description: a.description ?? '' })),
+    provider: 'openrouter' as const,
+  }
+}
 
 /** analysis-store + mode-store + hub-chat에서 HistorySnapshot을 조립 */
 export function buildHistorySnapshot(): HistorySnapshot {
   const state = useAnalysisStore.getState()
   const modeState = useModeStore.getState()
 
-  // analysisPurpose가 비어있으면 허브 대화의 마지막 AI 설명을 사용
+  // analysisPurpose 결정: 명시적 설정 > AI 추천 reasoning > 메서드명
   let purpose = state.analysisPurpose
   if (!purpose) {
-    const messages = useHubChatStore.getState().messages
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === 'assistant' && messages[i].content && !messages[i].isError) {
-        purpose = messages[i].content
-        break
-      }
+    const recCtx = buildAiRecContext(state.cachedAiRecommendation)
+    if (recCtx?.reasoning?.length) {
+      purpose = recCtx.reasoning.join('. ')
+    } else if (state.selectedMethod) {
+      purpose = state.selectedMethod.name
     }
   }
 
@@ -42,7 +55,7 @@ export function buildHistorySnapshot(): HistorySnapshot {
     uploadedDataLength: state.uploadedData?.length ?? 0,
     variableMapping: state.variableMapping,
     analysisOptions: state.analysisOptions,
-    lastAiRecommendation: modeState.lastAiRecommendation,
+    lastAiRecommendation: modeState.lastAiRecommendation ?? buildAiRecContext(state.cachedAiRecommendation),
   }
 }
 
