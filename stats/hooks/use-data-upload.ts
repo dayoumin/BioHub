@@ -58,6 +58,19 @@ export function useDataUpload(): UseDataUploadReturn {
 
       const currentAnalysis = useAnalysisStore.getState()
       const currentMode = useModeStore.getState()
+
+      const newColumns = new Set(Object.keys(data[0] ?? {}))
+      if (currentAnalysis.variableMapping) {
+        const allVars = Object.values(currentAnalysis.variableMapping)
+          .filter(Boolean)
+          .flatMap(v => Array.isArray(v) ? v : String(v).split(','))
+          .map(v => String(v).trim())
+        const hasInvalid = allVars.some(v => !newColumns.has(v))
+        if (hasInvalid) {
+          useAnalysisStore.getState().setVariableMapping(null)
+        }
+      }
+
       if (currentMode.stepTrack === 'reanalysis' && currentAnalysis.variableMapping) {
         const columns: ColumnInfo[] = detailedValidation.columnStats?.map(col => ({
           name: col.name,

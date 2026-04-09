@@ -17,13 +17,26 @@ import type { HistorySnapshot, HistoryLoadResult } from './history-store'
 import type { DataPackage, ColumnMeta } from '@/types/graph-studio'
 import type { AIRecommendation, DiagnosticReport } from '@/types/analysis'
 
-/** analysis-store + mode-store에서 HistorySnapshot을 조립 */
+/** analysis-store + mode-store + hub-chat에서 HistorySnapshot을 조립 */
 export function buildHistorySnapshot(): HistorySnapshot {
   const state = useAnalysisStore.getState()
   const modeState = useModeStore.getState()
+
+  // analysisPurpose가 비어있으면 허브 대화의 마지막 AI 설명을 사용
+  let purpose = state.analysisPurpose
+  if (!purpose) {
+    const messages = useHubChatStore.getState().messages
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'assistant' && messages[i].content && !messages[i].isError) {
+        purpose = messages[i].content
+        break
+      }
+    }
+  }
+
   return {
     results: state.results,
-    analysisPurpose: state.analysisPurpose,
+    analysisPurpose: purpose,
     selectedMethod: state.selectedMethod,
     uploadedFileName: state.uploadedFileName ?? null,
     uploadedDataLength: state.uploadedData?.length ?? 0,

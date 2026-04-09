@@ -150,7 +150,7 @@ export function ChatCentricHub({
   const setStreamingStatus = useHubChatStore((s) => s.setStreamingStatus)
 
   // 채팅 입력 제출 → resume 감지 → Intent Router 분류 → 트랙별 처리
-  const handleChatSubmit = useCallback(async (message: string) => {
+  const handleChatSubmit = useCallback(async (message: string, directAssignments?: NonNullable<AIRecommendation['variableAssignments']>) => {
     if (isProcessingRef.current) return
     isProcessingRef.current = true
     setIsProcessing(true)
@@ -185,6 +185,7 @@ export function ChatCentricHub({
             data: uploadedData ?? [],
             uploadNonce,
             onStatus: statusCb,
+            directAssignments,
           },
         )
         setStreamingStatus(null)
@@ -353,6 +354,20 @@ export function ChatCentricHub({
     void handleChatSubmit(lastUserMsg.content)
   }, [handleChatSubmit])
 
+  const handleClarificationCancel = useCallback(() => {
+    useHubChatStore.getState().patchLastClarification(null)
+  }, [])
+
+  const handleVariableConfirm = useCallback((assignments: NonNullable<AIRecommendation['variableAssignments']>) => {
+    // VariablePicker 확정 시 사용자 발화로 대신할 텍스트 구성
+    const deps = assignments.dependent?.join(', ') ?? ''
+    const groups = [...(assignments.factor || []), ...(assignments.independent || []), ...(assignments.between || [])].join(', ')
+    const pseudoMessage = groups ? `${deps} 값을 ${groups} 기준으로 분석해 주세요.` : `${deps} 값을 분석해 주세요.`
+    
+    // Resume pipeline directly
+    void handleChatSubmit(pseudoMessage, assignments)
+  }, [handleChatSubmit])
+
   // data-testid="hub-upload-card": E2E 호환용 마커 (컨테이너 가시성 감지).
   return (
     <motion.div
@@ -376,10 +391,13 @@ export function ChatCentricHub({
             <ChatThread
               onMethodSelect={onQuickAnalysis}
               onUploadClick={onUploadClick}
+              onFileSelected={handleFileSelected}
               onClearChat={handleClearChat}
               onRetry={handleRetry}
               onDiagnosticStart={handleDiagnosticStart}
               onAlternativeSearch={handleAlternativeSearch}
+              onVariableConfirm={handleVariableConfirm}
+              onClarificationCancel={handleClarificationCancel}
             />
 
             {/* DataContextBadge — 데이터 로드됨 표시 */}

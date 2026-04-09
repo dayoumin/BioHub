@@ -137,6 +137,9 @@ export function AnalysisSteps({ isHubVisible, onBackToHub }: AnalysisStepsProps)
     setAnalysisPurpose(purpose)
     setSelectedMethod(method)
 
+    useAnalysisStore.getState().setVariableMapping(null)
+    useAnalysisStore.getState().setDetectedVariables(null)
+
     if (!uploadedData || uploadedData.length === 0) {
       setStepTrack('quick')
       navigateToStep(1)

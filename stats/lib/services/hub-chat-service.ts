@@ -193,9 +193,11 @@ export async function getHubDiagnosticResponse(
 export async function getHubDiagnosticResumeResponse(
   previousReport: DiagnosticReport,
   userAnswer: string,
-  request: Omit<HubDiagnosticRequest, 'userMessage'>,
+  request: Omit<HubDiagnosticRequest, 'userMessage'> & {
+    directAssignments?: NonNullable<AIRecommendation['variableAssignments']>
+  },
 ): Promise<HubDiagnosticResponse> {
-  const { intent, dataContext, chatHistory, data, onStatus } = request
+  const { intent, dataContext, chatHistory, data, onStatus, directAssignments } = request
 
   const report = await resumeDiagnosticPipeline(
     previousReport,
@@ -203,6 +205,7 @@ export async function getHubDiagnosticResumeResponse(
     data,
     dataContext.validationResults,
     onStatus,
+    directAssignments,
   )
 
   // 여전히 미해결이면 다시 질문

@@ -27,7 +27,8 @@ export function AutoConfirmSelector({
   initialSelection,
   title,
   description,
-  className
+  className,
+  backLabel
 }: VariableSelectorProps) {
   const displayTitle = title ?? 'AI 감지 변수 확인'
   const displayDescription =
@@ -56,7 +57,7 @@ export function AutoConfirmSelector({
           {onBack && (
             <Button onClick={onBack} variant="outline" className="gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Back
+              {backLabel ?? 'Back'}
             </Button>
           )}
           <Button

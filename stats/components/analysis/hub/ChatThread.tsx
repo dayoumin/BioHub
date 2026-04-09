@@ -11,11 +11,12 @@
 
 import { useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bot, User, AlertCircle, RefreshCw, Upload, Trash2, Activity, ArrowRight, List } from 'lucide-react'
+import { Bot, User, AlertCircle, RefreshCw, Upload, SquarePen, Activity, ArrowRight, List } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { focusRing } from '@/components/common/card-styles'
 import { Button } from '@/components/ui/button'
 import { RecommendationCard } from '@/components/common/RecommendationCard'
+import { VariablePicker } from './VariablePicker'
 
 import { useHubChatStore, type HubChatMessage } from '@/lib/stores/hub-chat-store'
 import type { DiagnosticReport, MethodRecommendation, AIRecommendation } from '@/types/analysis'
@@ -25,8 +26,10 @@ import type { DiagnosticReport, MethodRecommendation, AIRecommendation } from '@
 interface ChatThreadProps {
   /** 추천 카드 클릭 → 분석 시작 */
   onMethodSelect: (methodId: string) => void
-  /** 업로드 유도 CTA 클릭 */
+  /** 업로드 유도 CTA 클릭 (fallback — Step 1 이동) */
   onUploadClick?: () => void
+  /** 인라인 파일 선택 시 (허브에서 바로 업로드) */
+  onFileSelected?: (file: File) => void
   /** 새 대화 시작 (대화 초기화) */
   onClearChat?: () => void
   /** 에러 메시지 재시도 — errorMessageId 이전의 마지막 user 메시지 재전송 */
@@ -35,6 +38,8 @@ interface ChatThreadProps {
   onDiagnosticStart?: (report: DiagnosticReport, recommendation: AIRecommendation) => void
   /** "다른 방법 찾아보기" 클릭 — 해당 메시지의 report + 원본 AIRecommendation 전달 */
   onAlternativeSearch?: (report: DiagnosticReport, recommendation: AIRecommendation) => void
+  onVariableConfirm?: (assignments: NonNullable<AIRecommendation['variableAssignments']>) => void
+  onClarificationCancel?: () => void
 }
 
 // ===== Animation =====
@@ -50,10 +55,13 @@ const bubbleVariants = {
 export function ChatThread({
   onMethodSelect,
   onUploadClick,
+  onFileSelected,
   onClearChat,
   onRetry,
   onDiagnosticStart,
   onAlternativeSearch,
+  onVariableConfirm,
+  onClarificationCancel,
 }: ChatThreadProps) {
   const messages = useHubChatStore((s) => s.messages)
   const isStreaming = useHubChatStore((s) => s.isStreaming)
@@ -84,7 +92,7 @@ export function ChatThread({
             onClick={handleClear}
             className="h-9 px-3 text-xs text-muted-foreground hover:text-foreground gap-1"
           >
-            <Trash2 className="w-3 h-3" />
+            <SquarePen className="w-3 h-3" />
             새 대화
           </Button>
         </div>
@@ -104,9 +112,12 @@ export function ChatThread({
               message={msg}
               onMethodSelect={onMethodSelect}
               onUploadClick={onUploadClick}
+              onFileSelected={onFileSelected}
               onRetry={onRetry}
               onDiagnosticStart={onDiagnosticStart}
               onAlternativeSearch={onAlternativeSearch}
+              onVariableConfirm={onVariableConfirm}
+              onClarificationCancel={onClarificationCancel}
             />
           ))}
         </AnimatePresence>
@@ -140,12 +151,25 @@ interface MessageBubbleProps {
   message: HubChatMessage
   onMethodSelect: (methodId: string) => void
   onUploadClick?: () => void
+  onFileSelected?: (file: File) => void
   onRetry?: (errorMessageId: string) => void
   onDiagnosticStart?: (report: DiagnosticReport, recommendation: AIRecommendation) => void
   onAlternativeSearch?: (report: DiagnosticReport, recommendation: AIRecommendation) => void
+  onVariableConfirm?: (assignments: NonNullable<AIRecommendation['variableAssignments']>) => void
+  onClarificationCancel?: () => void
 }
 
-function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry, onDiagnosticStart, onAlternativeSearch }: MessageBubbleProps) {
+function MessageBubble({
+  message,
+  onMethodSelect,
+  onUploadClick,
+  onFileSelected,
+  onRetry,
+  onDiagnosticStart,
+  onAlternativeSearch,
+  onVariableConfirm,
+  onClarificationCancel,
+}: MessageBubbleProps) {
   const { role, content, recommendations, isError, suggestUpload, diagnosticReport, diagnosticRecommendation } = message
 
   // System 메시지: 중앙 배치, 컴팩트
@@ -243,21 +267,18 @@ function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry, onDiag
 
         {/* pendingClarification 선택지 */}
         {diagnosticReport?.pendingClarification && (
-          <div className="bg-muted/40 rounded-xl p-3 space-y-1.5">
-            {diagnosticReport.pendingClarification.candidateColumns.slice(0, 8).map(col => (
-              <div key={col.column} className="text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">[{col.column}]</span>
-                {' '}{col.type === 'categorical' ? '범주형' : '수치형'}
-                {col.uniqueValues != null && ` · ${col.uniqueValues}개 고유값`}
-                {col.sampleGroups?.length ? ` (${col.sampleGroups.join(', ')})` : ''}
-              </div>
-            ))}
-          </div>
+          <VariablePicker
+            candidateColumns={diagnosticReport.pendingClarification.candidateColumns}
+            partialAssignments={diagnosticReport.variableAssignments ?? null}
+            missingRoles={diagnosticReport.pendingClarification.missingRoles}
+            onConfirm={onVariableConfirm!}
+            onCancel={onClarificationCancel!}
+          />
         )}
 
         {/* 추천 카드 — 진단 카드가 있으면 중복이므로 숨김 */}
         {!diagnosticReport && recommendations && recommendations.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
+          <div className="flex flex-col gap-1">
             {recommendations.map((rec) => (
               <RecommendationCard
                 key={rec.methodId}
@@ -268,21 +289,9 @@ function MessageBubble({ message, onMethodSelect, onUploadClick, onRetry, onDiag
           </div>
         )}
 
-        {/* 데이터 업로드 유도 CTA */}
-        {suggestUpload && onUploadClick && (
-          <button
-            onClick={onUploadClick}
-            className={cn(
-              'flex items-center gap-2 px-3 py-2 rounded-lg',
-              'border border-dashed border-primary/30 bg-primary/5',
-              'text-xs text-primary hover:bg-primary/10 transition-colors',
-              'w-full justify-center',
-              focusRing
-            )}
-          >
-            <Upload className="w-3.5 h-3.5" />
-            데이터를 업로드하면 더 정확한 분석을 추천해 드릴 수 있어요
-          </button>
+        {/* 데이터 업로드 유도 CTA — 인라인 파일 선택 우선, fallback은 Step 1 이동 */}
+        {suggestUpload && (onFileSelected || onUploadClick) && (
+          <UploadCta onFileSelected={onFileSelected} onUploadClick={onUploadClick} />
         )}
       </div>
     </motion.div>
@@ -375,5 +384,51 @@ function DiagnosticReportCard({ report, onStart, onBrowse }: DiagnosticReportCar
         </p>
       )}
     </div>
+  )
+}
+
+// ===== Upload CTA (inline file picker) =====
+
+function UploadCta({ onFileSelected, onUploadClick }: { onFileSelected?: (file: File) => void; onUploadClick?: () => void }) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleClick = useCallback(() => {
+    if (onFileSelected && fileInputRef.current) {
+      fileInputRef.current.click()
+    } else {
+      onUploadClick?.()
+    }
+  }, [onFileSelected, onUploadClick])
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && onFileSelected) onFileSelected(file)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }, [onFileSelected])
+
+  return (
+    <>
+      <button
+        onClick={handleClick}
+        className={cn(
+          'flex items-center gap-2 px-3 py-2 rounded-lg',
+          'border border-dashed border-primary/30 bg-primary/5',
+          'text-xs text-primary hover:bg-primary/10 transition-colors',
+          'w-full justify-center',
+          focusRing
+        )}
+      >
+        <Upload className="w-3.5 h-3.5" />
+        데이터를 업로드하면 더 정확한 분석을 추천해 드릴 수 있어요
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".csv"
+        onChange={handleFileChange}
+        className="hidden"
+        aria-hidden="true"
+      />
+    </>
   )
 }

@@ -13,13 +13,15 @@ import { logger } from '@/lib/utils/logger'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { AlertCircle, Settings2, Sparkles, Upload } from 'lucide-react'
+import { AlertCircle, Settings2, Sparkles, Upload, Info } from 'lucide-react'
 import { EmptyState } from '@/components/common/EmptyState'
 import { AutoConfirmSelector, ChiSquareSelector } from '@/components/common/variable-selectors'
 import { UnifiedVariableSelector } from '@/components/analysis/variable-selector/UnifiedVariableSelector'
 import type { SelectorType } from '@/components/analysis/variable-selector/slot-configs'
+import { getSlotConfigs } from '@/components/analysis/variable-selector/slot-configs'
 import { getSelectorType } from '@/lib/registry'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { useModeStore } from '@/lib/stores/mode-store'
 import { validateVariableMapping } from '@/lib/statistics/variable-mapping'
 import type { VariableMapping, ColumnInfo } from '@/lib/statistics/variable-mapping'
 import { startPreemptiveAssumptions } from '@/lib/services/preemptive-assumption-service'
@@ -65,8 +67,13 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     setVariableMapping,
     updateVariableMappingWithInvalidation,
     goToNextStep,
-    goToPreviousStep
+    goToPreviousStep,
+    navigateToStep
   } = useAnalysisStore()
+
+  const stepTrack = useModeStore(state => state.stepTrack)
+  const setStepTrack = useModeStore(state => state.setStepTrack)
+  const backLabel = (stepTrack === 'quick' || stepTrack === 'diagnostic') ? '데이터로 돌아가기' : t.analysis.layout.prevStep
 
   const [validationAlert, setValidationAlert] = useState<string | null>(null)
   const [optionsOpen, setOptionsOpen] = useState(false)
@@ -325,6 +332,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         <AutoConfirmSelector
           data={uploadedData}
           onBack={handleBack}
+          backLabel={backLabel}
           initialSelection={initialSelection}
           className="mt-4"
           onComplete={handleComplete}
@@ -340,6 +348,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           data={uploadedData}
           onComplete={handleComplete}
           onBack={handleBack}
+          backLabel={backLabel}
           initialSelection={initialSelection}
           className="mt-4"
           methodId={selectedMethod?.id}
@@ -354,6 +363,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         selectorType={selectorType}
         onComplete={handleComplete}
         onBack={handleBack}
+        backLabel={backLabel}
         initialSelection={initialSelection}
         className="mt-4"
       />
@@ -415,8 +425,45 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         </div>
       )}
 
+      {/* F1: Method Variable Guide (When !detectedVariables) */}
+      {!detectedVariables && selectedMethod && selectorType !== 'auto' && (
+        <div className="flex items-start gap-4 p-5 rounded-2xl bg-primary/5 border border-primary/10">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <Info className="h-4 w-4 text-primary" />
+          </div>
+          <div className="text-sm space-y-2">
+            <span className="font-semibold tracking-tight text-foreground">
+              {selectedMethod.name}
+            </span>
+            <ul className="list-disc pl-5 text-muted-foreground space-y-1">
+              {getSlotConfigs(selectorType).map(slot => (
+                <li key={slot.id}>
+                  <strong className="text-foreground font-medium">{slot.label}</strong>: {slot.description}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
       {/* Dynamic Selector */}
       {renderSelector()}
+
+      {/* F2: Option to change method if quick/diagnostic */}
+      {(stepTrack === 'quick' || stepTrack === 'diagnostic') && (
+        <div className="flex justify-start px-2 pb-2">
+          <Button 
+            variant="link" 
+            className="text-muted-foreground hover:text-primary px-0 h-auto font-normal text-sm"
+            onClick={() => {
+              setStepTrack('normal')
+              navigateToStep(2)
+            }}
+          >
+            다른 분석 방법 선택하기
+          </Button>
+        </div>
+      )}
 
       {/* Analysis Options — Axiom Slate: tonal bg, no border */}
       <div className="rounded-2xl bg-surface-container-low px-2 py-1">

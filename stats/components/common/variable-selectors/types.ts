@@ -16,6 +16,8 @@ export interface VariableSelectorProps {
   onBack?: () => void
   /** Pre-selected variables from AI recommendation */
   initialSelection?: Partial<VariableMapping>
+  /** Custom label for the back button */
+  backLabel?: string
   /** Custom title */
   title?: string
   /** Custom description */

@@ -24,13 +24,12 @@ export const actionCardBase = cn(
   'cursor-pointer group',
 )
 
-/** 추천 카드 (왼쪽 컬러 보더 + 호버 강조) */
+/** 추천 카드 (컴팩트 인라인 — 뱃지 + 메서드명 + 분석하기 버튼 한 줄) */
 export const recommendationCardBase = cn(
-  'flex flex-col gap-1.5 px-3 py-2.5 rounded-xl',
+  'flex items-center gap-2 px-3 py-2 rounded-lg',
   'border border-border/60 bg-card',
-  'border-l-2 border-l-primary/40',
-  'transition-all duration-300',
-  'hover:border-l-primary hover:border-border hover:shadow-sm hover:-translate-y-0.5',
+  'transition-all duration-200',
+  'hover:border-border hover:shadow-sm',
   'group',
 )
 

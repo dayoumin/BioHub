@@ -50,6 +50,7 @@ interface UnifiedVariableSelectorProps {
   onBack?: () => void
   initialSelection?: Partial<VariableMapping>
   className?: string
+  backLabel?: string
 }
 
 interface ColumnInfo {
@@ -272,6 +273,7 @@ export function UnifiedVariableSelector({
   onBack,
   initialSelection,
   className,
+  backLabel,
 }: UnifiedVariableSelectorProps) {
   // dnd-kit: 5px 이동 후에만 드래그 시작 → 클릭과 드래그 구분
   const sensors = useSensors(
@@ -525,7 +527,7 @@ export function UnifiedVariableSelector({
         {onBack ? (
           <Button variant="ghost" size="sm" onClick={onBack}>
             <ArrowLeft className="h-4 w-4 mr-1.5" />
-            이전 단계
+            {backLabel ?? '이전 단계'}
           </Button>
         ) : (
           <div />

@@ -353,13 +353,18 @@ export function AnalysisExecutionStep({
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="flex items-center justify-between gap-4">
-            <span>{error}</span>
-            {onPrevious && (
-              <Button variant="outline" size="sm" onClick={onPrevious} className="shrink-0">
-                {t.analysis.layout.prevStep}
+          <AlertDescription className="flex flex-col gap-2">
+            <div>{error}</div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={runAnalysis} className="shrink-0">
+                다시 시도
               </Button>
-            )}
+              {onPrevious && (
+                <Button variant="ghost" size="sm" onClick={onPrevious} className="shrink-0">
+                  변수 수정
+                </Button>
+              )}
+            </div>
           </AlertDescription>
         </Alert>
       )}

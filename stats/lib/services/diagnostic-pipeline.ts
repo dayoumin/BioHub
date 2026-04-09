@@ -124,11 +124,12 @@ export async function resumeDiagnosticPipeline(
   data: readonly DataRow[],
   validationResults: ValidationResults,
   onStatus?: DiagnosticStatusCallback,
+  directAssignments?: NonNullable<AIRecommendation['variableAssignments']>,
 ): Promise<DiagnosticReport> {
   onStatus?.('선택하신 변수 확인 중...')
 
-  // 사용자 답변에서 변수명 매칭
-  const newAssignments = resolveVariableFromAnswer(
+  // 직접 할당이 있으면 사용, 아니면 타이핑 응답 기반 매칭 (fallback)
+  const newAssignments = directAssignments ?? resolveVariableFromAnswer(
     userAnswer,
     previousReport.pendingClarification,
     validationResults,
@@ -138,7 +139,7 @@ export async function resumeDiagnosticPipeline(
     return {
       ...previousReport,
       pendingClarification: buildPendingClarification(
-        '죄송합니다. 변수명을 정확히 파악하지 못했어요. 아래 목록에서 선택해 주세요.',
+        '어떤 값을 비교하고 싶으신가요?',
         previousReport.variableAssignments,
         validationResults,
       ),
@@ -156,8 +157,8 @@ export async function resumeDiagnosticPipeline(
 
   if (!hasDep || !hasGroup) {
     const question = !hasDep
-      ? '비교할 측정값(종속변수)을 알려주세요.'
-      : '비교 기준(그룹 변수)을 알려주세요.'
+      ? '비교할 값을 선택해 주세요.'
+      : '어떤 기준으로 비교할까요?'
     return {
       ...previousReport,
       variableAssignments: merged,
@@ -364,19 +365,19 @@ export function parseVariableDetectionResponse(
     if (!hasDep && !hasGroup) {
       return {
         variableAssignments: validated,
-        clarificationNeeded: '어떤 변수를 분석할지 알려주세요.',
+        clarificationNeeded: '어떤 값을 비교하고 싶으신가요?',
       }
     }
     if (!hasDep) {
       return {
         variableAssignments: validated,
-        clarificationNeeded: '그룹 변수는 감지했지만, 비교할 측정값(종속변수)을 알려주세요.',
+        clarificationNeeded: '비교할 값을 선택해 주세요.',
       }
     }
     if (!hasGroup) {
       return {
         variableAssignments: validated,
-        clarificationNeeded: '측정값은 감지했지만, 비교 기준(그룹 변수)을 알려주세요.',
+        clarificationNeeded: '어떤 기준으로 비교할까요?',
       }
     }
 

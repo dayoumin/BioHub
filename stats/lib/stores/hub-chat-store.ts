@@ -57,6 +57,8 @@ interface HubChatState {
   setStreaming: (v: boolean) => void
   setStreamingStatus: (status: string | null) => void
   setHasSeenUploadSuggestion: (v: boolean) => void
+  /** 마지막 발송된 clarification 취소용 (VariablePicker에서 다시 질문하기 클릭) */
+  patchLastClarification: (pending: DiagnosticReport['pendingClarification'] | null) => void
 }
 
 const initialState = {
@@ -97,6 +99,24 @@ export const useHubChatStore = create<HubChatState>()(
       ),
 
       setHasSeenUploadSuggestion: (v) => set({ hasSeenUploadSuggestion: v }),
+
+      patchLastClarification: (pending) =>
+        set((state) => {
+          const messages = [...state.messages]
+          for (let i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].role === 'assistant' && messages[i].diagnosticReport?.pendingClarification) {
+              messages[i] = {
+                ...messages[i],
+                diagnosticReport: {
+                  ...messages[i].diagnosticReport!,
+                  pendingClarification: pending,
+                },
+              }
+              break
+            }
+          }
+          return { messages }
+        }),
     }),
     {
       name: 'hub-chat-storage',

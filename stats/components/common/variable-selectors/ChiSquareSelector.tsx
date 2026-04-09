@@ -38,7 +38,8 @@ export function ChiSquareSelector({
   title,
   description,
   className,
-  methodId
+  methodId,
+  backLabel
 }: ChiSquareSelectorProps) {
   const mode = GOODNESS_IDS.has(methodId ?? '') ? 'goodness' : 'independence'
 
@@ -170,7 +171,7 @@ export function ChiSquareSelector({
           {onBack && (
             <Button onClick={onBack} variant="outline" className="gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Back
+              {backLabel ?? 'Back'}
             </Button>
           )}
           <Button

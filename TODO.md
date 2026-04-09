@@ -7,6 +7,18 @@
 - [ ] **비가설검정 StatsCards 개선**: PCA/군집/요인/판별/검정력 → 메서드별 primaryMetrics 정의 + 조건부 카드 구성 (p-value 대신 분산설명률, 실루엣 등)
 - [ ] **ResultsActionStep 훅 추출**: useResultsExport, useResultsHistory, useResultsNavigation, usePaperDraft 분리 (1025줄 → 핸들러 로직 캡슐화)
 
+## 1.5. 허브 대화 히스토리 영구 저장 (향후)
+
+현재 허브 채팅은 sessionStorage에만 저장되어 탭을 닫으면 소멸.
+분석 결과 히스토리(IndexedDB)에는 `aiRecommendation.reasoning`만 저장됨.
+
+- [ ] **허브 대화 전문을 분석 히스토리에 연결**: saveToHistory 시 hubChatStore.messages 스냅샷을 AnalysisHistory에 포함
+- [ ] **히스토리 복원 시 허브 대화 복원**: loadFromHistory에서 대화 메시지도 ChatThread에 복원
+- [ ] **"왜 이 분석을 선택했나" 뷰**: 히스토리 상세에서 AI 상담 대화를 읽기 전용으로 표시
+
+용도: 방법론 근거 추적 (논문 작성), 재현성, 학습 참고.
+현재 최소 개선: `buildHistorySnapshot`에서 `analysisPurpose` 비어있으면 허브 마지막 AI 응답으로 대체 (완료).
+
 ## 2. StatisticalExecutor 마이그레이션 및 파서 버그 해결 (B2)
 - [x] **Poisson / Ordinal Regression Model-level p-value**: Worker + Handler 양쪽 `llrPValue`/`llrStatistic` 완전 구현 확인 (2026-04-07 검토)
 - [x] **Stepwise Regression 결과 매핑**: 버그 아님 — Handler가 `fStatistic`/`fPValue` 정상 사용, 개별 `pValues` 배열은 rawResults로 전파 (2026-04-07 검토)
