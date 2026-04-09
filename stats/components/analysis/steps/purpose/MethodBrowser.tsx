@@ -17,6 +17,7 @@ import type { CompatibilityResult, CompatibilityStatus } from '@/lib/statistics/
 import { getCompatibilityForMethod } from '@/lib/statistics/data-method-compatibility'
 import { getKoreanName } from '@/lib/constants/statistical-methods'
 import { EmptyState } from '@/components/common/EmptyState'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 
 interface MethodGroup {
   category: string
@@ -112,6 +113,12 @@ export const MethodBrowser = memo(function MethodBrowser({
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
   const [hoveredMethod, setHoveredMethod] = useState<StatisticalMethod | null>(null)
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window === 'undefined' || !window.matchMedia
+      ? true
+      : window.matchMedia('(min-width: 1024px)').matches
+  )
 
   // TD-10-D: 파생 훅에서 호환성 맵 가져오기
   const methodCompatibility = useMethodCompatibility()
@@ -127,6 +134,22 @@ export const MethodBrowser = memo(function MethodBrowser({
     const allCategories = new Set(methodGroups.map(g => g.category))
     setExpandedCategories(allCategories)
   }, [methodGroups])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return
+
+    const mediaQuery = window.matchMedia('(min-width: 1024px)')
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsDesktop(event.matches)
+      if (event.matches) {
+        setMobileDetailOpen(false)
+      }
+    }
+
+    setIsDesktop(mediaQuery.matches)
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  }, [])
 
   // Filter methods by search query and hide incompatible methods
   const filteredGroups = useMemo(() => {
@@ -249,6 +272,13 @@ export const MethodBrowser = memo(function MethodBrowser({
 
   // The method to show in detail panel (hovered > selected)
   const detailMethod = hoveredMethod || selectedMethod
+
+  const handleMethodCardClick = useCallback((method: StatisticalMethod) => {
+    onMethodSelect(method)
+    if (!isDesktop) {
+      setMobileDetailOpen(true)
+    }
+  }, [isDesktop, onMethodSelect])
 
   return (
     <div className="space-y-4">
@@ -379,7 +409,7 @@ export const MethodBrowser = memo(function MethodBrowser({
                         const methodButton = (
                           <button
                             key={method.id}
-                            onClick={() => onMethodSelect(method)}
+                            onClick={() => handleMethodCardClick(method)}
                             onMouseEnter={() => setHoveredMethod(method)}
                             onMouseLeave={() => setHoveredMethod(null)}
                             className={cn(
@@ -420,7 +450,7 @@ export const MethodBrowser = memo(function MethodBrowser({
                                     </Badge>
                                   )}
                                 </div>
-                                <p className="text-xs mt-1 line-clamp-1 text-muted-foreground">
+                                <p className="text-xs mt-1 line-clamp-2 text-muted-foreground">
                                   {method.description}
                                 </p>
                               </div>
@@ -504,6 +534,29 @@ export const MethodBrowser = memo(function MethodBrowser({
           </div>
         </div>
       </div>
+
+      <Sheet open={mobileDetailOpen && !isDesktop && !!selectedMethod} onOpenChange={setMobileDetailOpen}>
+        <SheetContent side="bottom" className="h-[85vh] overflow-y-auto lg:hidden">
+          <SheetHeader className="px-0 pb-3">
+            <SheetTitle>방법 상세</SheetTitle>
+            <SheetDescription>모바일에서는 선택한 방법의 요구 조건과 주의사항을 시트에서 확인할 수 있습니다.</SheetDescription>
+          </SheetHeader>
+          {selectedMethod && (
+            <MethodDetailPanel
+              method={selectedMethod}
+              isSelected={true}
+              isRecommended={selectedMethod.id === recommendedMethodId}
+              requirements={checkRequirements(selectedMethod)}
+              categoryLabel={CATEGORY_LABELS[selectedMethod.category] || selectedMethod.category}
+              dataProfile={dataProfile}
+              onSelect={() => {
+                onMethodSelect(selectedMethod)
+                setMobileDetailOpen(false)
+              }}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 })

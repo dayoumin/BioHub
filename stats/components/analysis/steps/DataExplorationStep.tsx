@@ -4,7 +4,7 @@ import { memo, useState, useMemo, useCallback, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ChartScatter, ListOrdered, ExternalLink, BarChart3, Flame, AlertTriangle, Lightbulb, Upload, FileText, Table2, TrendingUp, Maximize2, Loader2 } from 'lucide-react'
+import { ChartScatter, ListOrdered, ExternalLink, BarChart3, Flame, AlertTriangle, Lightbulb, Upload, FileText, Table2, TrendingUp, Maximize2, Loader2, CheckCircle2 } from 'lucide-react'
 import { ValidationResults, DataRow } from '@/types/analysis'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
@@ -30,6 +30,7 @@ import { SummaryCard, type CardId } from './exploration/SummaryCard'
 import { useLeveneTest } from '@/hooks/use-levene-test'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 /** 기초통계 미리보기에 표시할 최대 변수 수 */
 const MAX_PREVIEW_VARS = 5
@@ -387,26 +388,38 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           <span className="font-mono">{categoricalVariables.length}</span> {t.dataExploration.badgeBar.categorical}
         </Badge>
 
-        {/* 결측치 (있을 때만) */}
-        {missingCount > 0 && (
+        {/* 결측치 */}
+        {missingCount > 0 ? (
           <Badge variant="outline" className="text-xs gap-1 border-warning-border text-warning bg-warning-bg">
             {t.dataExploration.badgeBar.missing} <span className="font-mono">{missingCount}</span>
+          </Badge>
+        ) : (
+          <Badge variant="outline" className="text-xs gap-1 border-success-border text-success bg-success-bg">
+            <CheckCircle2 className="h-3 w-3" />
+            결측 없음 ✓
           </Badge>
         )}
 
         {/* 이상치 배지 (클릭 시 기술통계 탭으로) */}
         {totalOutlierCount > 0 && (
-          <Badge
-            variant="outline"
-            role="button"
-            tabIndex={0}
-            className="text-xs gap-1 border-error-border text-error bg-error-bg cursor-pointer hover:bg-error-bg/80 transition-colors"
-            onClick={() => setSelectedCard('descriptive')}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedCard('descriptive') } }}
-          >
-            <AlertTriangle className="h-3 w-3" />
-            {t.dataExploration.badgeBar.outlier} <span className="font-mono">{totalOutlierCount}</span>
-          </Badge>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  variant="outline"
+                  role="button"
+                  tabIndex={0}
+                  className="text-xs gap-1 border-error-border text-error bg-error-bg cursor-pointer hover:bg-error-bg/80 transition-colors"
+                  onClick={() => setSelectedCard('descriptive')}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedCard('descriptive') } }}
+                >
+                  <AlertTriangle className="h-3 w-3" />
+                  {t.dataExploration.badgeBar.outlier} <span className="font-mono">{totalOutlierCount}</span>
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>클릭하면 이상치가 있는 변수와 상세 통계를 바로 확인할 수 있습니다.</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
 
         {/* 데이터 교체 버튼 (우측 정렬) */}
@@ -481,6 +494,9 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           {levene.isLoading && <p>{t.dataExploration.summaryCards.homogeneityTesting}</p>}
           {levene.result && (
             <p>{levene.result.equalVariance ? t.dataExploration.summaryCards.homogeneityPass : t.dataExploration.summaryCards.homogeneityFail}</p>
+          )}
+          {!levene.isLoading && !levene.result && (
+            <p>{levene.groupCandidates.length > 0 ? '등분산성 검정 조건을 충족하지 못했습니다.' : '그룹 변수가 없어 등분산성 검정은 아직 실행되지 않았습니다.'}</p>
           )}
         </SummaryCard>
 
@@ -744,32 +760,39 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         )}
 
         {/* 등분산성 검정 (profile.assumptionTests로 가시성 제어) */}
-        {profile.assumptionTests !== 'hidden' && levene.groupCandidates.length > 0 && (
+        {profile.assumptionTests !== 'hidden' && (
           <Card className="border-border/40 shadow-sm">
             <CardContent className="py-4">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">등분산성 검정 (Levene)</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">그룹:</span>
-                  <Select value={levene.groupVariable ?? ''} onValueChange={levene.setGroupVariable}>
-                    <SelectTrigger className="h-7 w-[140px] text-xs" aria-label="등분산 검정 그룹 변수 선택">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {levene.groupCandidates.map(name => (
-                        <SelectItem key={name} value={name} className="text-xs">{name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {levene.groupCandidates.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">그룹:</span>
+                    <Select value={levene.groupVariable ?? ''} onValueChange={levene.setGroupVariable}>
+                      <SelectTrigger className="h-7 w-[140px] text-xs" aria-label="등분산 검정 그룹 변수 선택">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {levene.groupCandidates.map(name => (
+                          <SelectItem key={name} value={name} className="text-xs">{name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
-              {levene.isLoading && (
+              {levene.groupCandidates.length === 0 && (
+                <div className="rounded-lg border border-info-border bg-info-bg px-3 py-2.5 text-xs text-info">
+                  비교할 범주형 그룹 변수가 없어 Levene 등분산성 검정을 실행하지 않았습니다. 그룹 변수를 포함하는 분석에서는 Step 3에서 다시 확인됩니다.
+                </div>
+              )}
+              {levene.groupCandidates.length > 0 && levene.isLoading && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   등분산성 검정 중...
                 </div>
               )}
-              {levene.result && (
+              {levene.groupCandidates.length > 0 && levene.result && (
                 <div className="flex items-center gap-3">
                   <Badge variant={levene.result.equalVariance ? 'secondary' : 'destructive'} className="text-[11px] font-mono">
                     {levene.result.equalVariance ? '✓ 등분산' : '✗ 이분산'} p={levene.result.pValue.toFixed(3)}
@@ -781,7 +804,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                   </span>
                 </div>
               )}
-              {!levene.isLoading && !levene.result && (
+              {levene.groupCandidates.length > 0 && !levene.isLoading && !levene.result && (
                 <p className="text-xs text-muted-foreground">검정 불가 (그룹당 최소 3개 관측치 필요)</p>
               )}
             </CardContent>

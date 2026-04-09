@@ -21,7 +21,8 @@ export type {
   ValidationMessages,
   SuccessMessages,
   SelectorUIText,
-  StatisticalMethodTerminology
+  StatisticalMethodTerminology,
+  ResultsText,
 } from './terminology-types'
 
 // Domains

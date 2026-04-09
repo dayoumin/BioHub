@@ -213,11 +213,11 @@ export async function selectMethodDirect(
 
 /** confirm-method-btn 또는 floating/stepper로 Step 3 이동 */
 export async function goToVariableSelection(page: Page): Promise<void> {
-  const confirmBtn = page.locator(S.confirmMethodBtn)
+  const confirmBtn = page.getByRole('button', { name: /이 방법으로 진행|Use This|Use This Method/i })
   if (await confirmBtn.first().isVisible({ timeout: 3000 }).catch(() => false)) {
     if (await confirmBtn.first().isEnabled()) {
       await confirmBtn.first().click()
-      log('goToVar', 'confirm-method-btn 클릭')
+      log('goToVar', 'method confirm button 클릭')
       await page.waitForLoadState('networkidle')
       return
     }
@@ -509,103 +509,4 @@ export async function verifyStatisticalResults(page: Page): Promise<StatisticalR
     hasEffectSize,
     details: `card=${hasResultsCard}, stat=${hasStatistic}, p=${hasPValue}, effect=${hasEffectSize}`,
   }
-}
-
-// ========================================
-// LLM Mock & Selection
-// ========================================
-
-export async function mockOpenRouterAPI(
-  page: Page,
-  methodId: string,
-  methodName: string,
-): Promise<void> {
-  const mockRecommendation = JSON.stringify({
-    methodId,
-    methodName,
-    reasoning: [`데이터 분석 결과 ${methodName}이(가) 적합합니다.`],
-    confidence: 0.9,
-    variableAssignments: { dependent: ['value'], factor: ['group'] },
-    suggestedSettings: { alpha: 0.05 },
-    warnings: [],
-    alternatives: [
-      { id: 'mann-whitney', name: 'Mann-Whitney U 검정', description: '비모수 대안' },
-    ],
-  })
-
-  // LLM 응답처럼 설명 텍스트 + JSON 코드 블록 형태로 반환
-  // parseResponse()가 codeBlock 경로로 파싱하도록 함
-  const llmContent = `데이터 분석 결과 ${methodName}을(를) 추천합니다.\n\n\`\`\`json\n${mockRecommendation}\n\`\`\``
-
-  const jsonBody = JSON.stringify({
-    id: 'mock',
-    choices: [{ message: { content: llmContent } }],
-  })
-
-  // 앱은 프록시 경유 /api/ai 사용 (openrouter.ai 직접 호출 아님)
-  // /api/ai/models (health check) + /api/ai/chat/completions (추천 요청) 모두 가로챔
-  await page.route(/\/api\/ai\//, (route) => {
-    const url = route.request().url()
-    if (url.includes('/models')) {
-      route.fulfill({ status: 200, contentType: 'application/json', body: '{"data":[{"id":"test-model"}]}' })
-      return
-    }
-    route.fulfill({ status: 200, contentType: 'application/json', body: jsonBody })
-  })
-
-  // 레거시 호환: 직접 호출 경로도 가로챔
-  await page.route(/openrouter\.ai/, (route) => {
-    const url = route.request().url()
-    if (url.includes('/models')) {
-      route.fulfill({ status: 200, contentType: 'application/json', body: '{"data":[{"id":"test-model"}]}' })
-      return
-    }
-    route.fulfill({ status: 200, contentType: 'application/json', body: jsonBody })
-  })
-  log('mockAPI', `mocked: ${methodId} (routes: /api/ai + openrouter.ai)`)
-}
-
-export async function selectMethodViaLLM(page: Page, question: string): Promise<boolean> {
-  const aiTab = page.locator(S.filterAi)
-  if (await aiTab.isVisible({ timeout: 3000 }).catch(() => false)) {
-    const isActive = await aiTab.getAttribute('aria-checked')
-    if (isActive !== 'true') {
-      await aiTab.click()
-      log('selectLLM', 'filter-ai 클릭')
-      await page.waitForTimeout(300)
-    }
-  }
-
-  const chatInput = page.locator(S.aiChatInput)
-  if (await chatInput.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await chatInput.fill(question)
-    log('selectLLM', `질문: "${question}"`)
-  } else {
-    log('selectLLM', 'ai-chat-input not found')
-    return false
-  }
-
-  const submitBtn = page.locator(S.aiChatSubmit)
-  if ((await submitBtn.isVisible()) && (await submitBtn.isEnabled())) {
-    await submitBtn.click()
-    log('selectLLM', '전송')
-  } else {
-    log('selectLLM', 'submit not available')
-    return false
-  }
-
-  const recCard = page.locator(S.recommendationCard)
-  await recCard.waitFor({ state: 'visible', timeout: 30000 }).catch(() => {
-    log('selectLLM', 'recommendation-card timeout')
-  })
-  if (!(await recCard.isVisible().catch(() => false))) return false
-
-  const selectBtn = page.locator(S.selectRecommendedMethod)
-  if (await selectBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await selectBtn.click()
-    log('selectLLM', '추천 수락')
-    await page.waitForLoadState('networkidle')
-    return true
-  }
-  return false
 }

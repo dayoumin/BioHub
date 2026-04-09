@@ -6,7 +6,7 @@
  * - UI 텍스트/디자인이 바뀌어도 data-testid만 유지하면 테스트가 안 깨짐
  * - 텍스트 매칭은 "데이터에 의존하는 경우"(변수명, 메서드명)만 허용
  *
- * 태그: @phase1, @smoke, @critical, @important, @ai-mock
+ * 태그: @phase1, @smoke, @critical, @important
  * 실행: pnpm e2e --grep "@phase1"
  */
 
@@ -23,8 +23,6 @@ import {
   clickAnalysisRun,
   waitForResults,
   verifyStatisticalResults,
-  mockOpenRouterAPI,
-  selectMethodViaLLM,
 } from './helpers/flow-helpers'
 
 // baseURL은 playwright.config.ts에서 설정 (3000 포트)
@@ -178,9 +176,7 @@ test.describe('@phase1 @critical Step 2: 방법 선택', () => {
 
     await goToMethodSelection(page)
 
-    // 직접 선택 탭 확인
-    await expect(page.locator(S.filterBrowse)).toBeVisible({ timeout: 5000 })
-    await page.locator(S.filterBrowse).click()
+    // 현재 UI는 직접 선택 브라우저가 기본 표시
     await expect(page.locator(S.methodSearchInput)).toBeVisible({ timeout: 5000 })
 
     // 검색
@@ -192,64 +188,8 @@ test.describe('@phase1 @critical Step 2: 방법 선택', () => {
       await selectMethodDirect(page, '독립표본', /독립표본 t-검정/),
     ).toBe(true)
 
-    // 선택 확인 — either selected bar or final name visible
-    const selectedBar = page.locator(S.selectedMethodBar)
-    const finalName = page.locator(S.finalSelectedMethodName)
-    await expect(selectedBar.or(finalName).first()).toBeVisible({ timeout: 5000 })
-  })
-
-  test('TC-1.3.2: AI 추천 탭 → 질문 → 추천 수락 @ai-mock', async ({ page }) => {
-    await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
-    await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
-
-    await mockOpenRouterAPI(page, 't-test', '독립표본 t-검정')
-    await goToMethodSelection(page)
-
-    // AI 탭
-    await expect(page.locator(S.filterAi)).toBeVisible({ timeout: 5000 })
-    await page.locator(S.filterAi).click()
-    await expect(page.locator(S.aiChatInput)).toBeVisible({ timeout: 5000 })
-
-    // 질문 입력 & 전송
-    await expect(page.locator(S.aiChatInput)).toBeVisible({ timeout: 5000 })
-    await page.locator(S.aiChatInput).fill('두 그룹의 평균을 비교하고 싶어요')
-    await page.locator(S.aiChatSubmit).click()
-
-    // 추천 카드 대기
-    await expect(page.locator(S.recommendationCard)).toBeVisible({ timeout: 30000 })
-
-    // 수락
-    await expect(page.locator(S.selectRecommendedMethod)).toBeVisible({ timeout: 5000 })
-    await page.locator(S.selectRecommendedMethod).click()
-    await page.waitForLoadState('networkidle')
-  })
-
-  test('TC-1.3.5: 예시 프롬프트 클릭 @ai-mock', async ({ page }) => {
-    await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
-    await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
-
-    await goToMethodSelection(page)
-
-    // AI 탭
-    const aiTab = page.locator(S.filterAi)
-    if (await aiTab.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await aiTab.click()
-      await expect(page.locator(S.aiChatInput)).toBeVisible({ timeout: 5000 })
-    }
-
-    // 예시 프롬프트 영역 확인
-    const examplePrompts = page.locator(S.examplePrompts)
-    if (await examplePrompts.isVisible({ timeout: 5000 }).catch(() => false)) {
-      // 첫 번째 예시 프롬프트 버튼 클릭
-      const firstPrompt = examplePrompts.locator('button').first()
-      if (await firstPrompt.isVisible().catch(() => false)) {
-        await firstPrompt.click()
-        // ai-chat-input에 텍스트가 채워졌는지 확인
-        await expect(page.locator(S.aiChatInput)).not.toHaveValue('', { timeout: 5000 })
-      }
-    }
+    // 선택 확인 — 현재 UI는 하단 확정 바 버튼으로 노출
+    await expect(page.getByRole('button', { name: /이 방법으로 진행/ })).toBeVisible({ timeout: 5000 })
   })
 })
 
@@ -600,32 +540,5 @@ test.describe('@phase1 @critical @slow 추가 Variable Selectors', () => {
     log('regression', r.details)
     expect(r.hasStatistic).toBe(true)
     expect(r.hasPValue).toBe(true)
-  })
-})
-
-test.describe('@phase1 @critical @slow @ai-mock LLM 추천', () => {
-  test('독립표본 t-검정 (LLM 추천)', async ({ page }) => {
-    await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 't-test.csv')).toBe(true)
-    await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
-
-    await mockOpenRouterAPI(page, 't-test', '독립표본 t-검정')
-
-    await goToMethodSelection(page)
-    expect(
-      await selectMethodViaLLM(page, '두 그룹의 평균이 다른지 비교하고 싶어요'),
-    ).toBe(true)
-
-    await ensureVariablesOrSkip(page, 'llm-t-test', 'group', 'value')
-    await clickAnalysisRun(page)
-
-    expect(await waitForResults(page, 120000)).toBe(true)
-    const r = await verifyStatisticalResults(page)
-    log('llm-t-test', r.details)
-    expect(r.hasStatistic).toBe(true)
-    expect(r.hasPValue).toBe(true)
-
-    await expect(page.locator(S.resultsMainCard)).toBeVisible({ timeout: 5000 })
-    await expect(page.locator(S.actionButtons)).toBeVisible({ timeout: 5000 })
   })
 })

@@ -71,6 +71,7 @@ export function ResultsActionButtons({
   hasUploadedData,
   t,
 }: ResultsActionButtonsProps): React.ReactElement {
+  const [showBackConfirm, setShowBackConfirm] = useState(false)
   const [showNewAnalysisConfirm, setShowNewAnalysisConfirm] = useState(false)
   const [showChangeMethodConfirm, setShowChangeMethodConfirm] = useState(false)
 
@@ -81,7 +82,7 @@ export function ResultsActionButtons({
         <Button
           variant="ghost"
           size="sm"
-          onClick={onBackToVariables}
+          onClick={() => setShowBackConfirm(true)}
           className="text-muted-foreground hover:text-foreground text-sm h-9"
         >
           <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
@@ -141,6 +142,17 @@ export function ResultsActionButtons({
           {t.results.buttons.newAnalysis}
         </Button>
       </div>
+
+      {/* 변수 선택으로 돌아가기 확인 */}
+      <ConfirmAlertDialog
+        open={showBackConfirm}
+        onOpenChange={setShowBackConfirm}
+        title={t.results.confirm.backToVariables.title}
+        description={t.results.confirm.backToVariables.description}
+        cancelLabel={t.results.confirm.backToVariables.cancel}
+        confirmLabel={t.results.confirm.backToVariables.confirm}
+        onConfirm={onBackToVariables}
+      />
 
       {/* 새 분석 시작 확인 */}
       <ConfirmAlertDialog

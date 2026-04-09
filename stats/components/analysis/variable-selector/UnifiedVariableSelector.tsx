@@ -163,6 +163,7 @@ function RoleSlot({
   onRemove,
   onClickAssign,
   isActive,
+  hasValidationError,
 }: {
   slot: SlotConfig
   assignedVars: string[]
@@ -170,6 +171,7 @@ function RoleSlot({
   onRemove: (varName: string) => void
   onClickAssign: (slotId: string) => void
   isActive: boolean
+  hasValidationError: boolean
 }) {
   const { isOver, setNodeRef, active } = useDroppable({
     id: `slot-${slot.id}`,
@@ -194,6 +196,7 @@ function RoleSlot({
         isOver && canDrop && 'border-primary/60 bg-primary/5',
         isRejectDrop && 'border-destructive/60 bg-destructive/5',
         !isOver && assignedVars.length > 0 && `${colors.bg} border-solid ${colors.border}`,
+        !isOver && assignedVars.length === 0 && hasValidationError && 'border-destructive/30 bg-destructive/5',
         !isOver && isActive && assignedVars.length === 0 && 'border-primary/50 bg-primary/5 ring-1 ring-primary/20',
       )}
       data-testid={`slot-${slot.id}`}
@@ -257,7 +260,16 @@ function RoleSlot({
           className="w-full text-xs text-muted-foreground/60 py-1 hover:text-muted-foreground transition-colors"
           disabled={isFull || isMultipleFull}
         >
-          {isRejectDrop ? '이 타입은 배치할 수 없습니다' : '좌측에서 변수를 클릭하거나 드래그하세요'}
+          {isRejectDrop ? (
+            '이 타입은 배치할 수 없습니다'
+          ) : (
+            <div className="space-y-1">
+              <div className={cn('font-medium', hasValidationError && 'text-destructive')}>
+                {getEmptySlotHint(slot)}
+              </div>
+              <div className="text-[11px]">{slot.description}</div>
+            </div>
+          )}
         </button>
       )}
     </div>
@@ -313,6 +325,16 @@ export function UnifiedVariableSelector({
   const [activeSlotId, setActiveSlotId] = useState<string | null>(null)
   const [dragItem, setDragItem] = useState<{ name: string; type: AcceptedType } | null>(null)
   const [validationErrors, setValidationErrors] = useState<string[]>([])
+  const liveValidationErrors = useMemo(() => validateSlots(slots, assignments), [slots, assignments])
+  const slotValidationState = useMemo(() => {
+    const state = new Set<string>()
+    for (const slot of slots) {
+      if (liveValidationErrors.some(error => error.startsWith(slot.label))) {
+        state.add(slot.id)
+      }
+    }
+    return state
+  }, [slots, liveValidationErrors])
 
   // All assigned variable names (across all slots)
   const assignedSet = useMemo(() => {
@@ -448,8 +470,8 @@ export function UnifiedVariableSelector({
 
   // Check if ready
   const isValid = useMemo(() => {
-    return validateSlots(slots, assignments).length === 0
-  }, [slots, assignments])
+    return liveValidationErrors.length === 0
+  }, [liveValidationErrors])
 
   return (
     <div className={cn('space-y-4', className)} data-testid="unified-variable-selector">
@@ -501,6 +523,7 @@ export function UnifiedVariableSelector({
                 onRemove={(varName) => handleRemove(slot.id, varName)}
                 onClickAssign={handleSlotClick}
                 isActive={activeSlotId === slot.id}
+                hasValidationError={slotValidationState.has(slot.id)}
               />
             ))}
           </div>
@@ -592,4 +615,12 @@ function buildInitialAssignments(
   }
 
   return result
+}
+
+function getEmptySlotHint(slot: SlotConfig): string {
+  const typeLabel = slot.accepts.length === 1
+    ? slot.accepts[0] === 'numeric' ? '연속형 변수' : '범주형 변수'
+    : '연속형 또는 범주형 변수'
+
+  return `${typeLabel}를 클릭하거나 드래그하세요`
 }

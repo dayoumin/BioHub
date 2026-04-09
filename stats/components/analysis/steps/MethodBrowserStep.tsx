@@ -12,7 +12,7 @@
  */
 
 import { useState, useMemo, useCallback } from 'react'
-import { ArrowRight, ArrowLeft, Search, AlertTriangle, CheckCircle2, Info } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Search, AlertTriangle, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { getAllMethodsGrouped } from '@/lib/statistics/method-catalog'
@@ -69,8 +69,9 @@ export function MethodBrowserStep({ onMethodConfirm, onBack }: MethodBrowserStep
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBack}>
+        <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2.5" onClick={onBack}>
           <ArrowLeft className="w-4 h-4" />
+          이전 단계
         </Button>
         <StepHeader icon={Search} title="분석 방법 선택" />
       </div>
@@ -87,14 +88,16 @@ export function MethodBrowserStep({ onMethodConfirm, onBack }: MethodBrowserStep
             : <Info className="w-4 h-4 mt-0.5 shrink-0" />
           }
           <div>
-            <span className="font-medium">
-              데이터 참고: 수치 변수 {normalitySummary.testedCount}개 중{' '}
-              {normalitySummary.normalCount}개 정규분포
-            </span>
+            <p className="font-medium">탐색적 정규성 요약</p>
+            <p className="mt-1 text-xs opacity-80">
+              Step 1에서 본 분포 요약입니다. 변수 선택 후 정확한 가정 검정이 다시 실행됩니다.
+            </p>
+            <p className="mt-2">
+              수치 변수 {normalitySummary.testedCount}개 중 {normalitySummary.normalCount}개가 정규분포 경향을 보였습니다.
+            </p>
             {!normalitySummary.mostlyNormal && (
               <p className="mt-1 text-xs opacity-80">
-                비정규 변수가 많습니다. 비모수 검정(Mann-Whitney, Kruskal-Wallis 등)을 고려하세요.
-                변수 선택 후 정확한 가정 검정이 실행됩니다.
+                비정규 변수가 많아 비모수 검정(Mann-Whitney, Kruskal-Wallis 등)을 우선 검토하는 편이 안전합니다.
               </p>
             )}
           </div>

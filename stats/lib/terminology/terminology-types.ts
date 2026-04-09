@@ -975,6 +975,7 @@ export interface ResultsText {
     pdf: string
     copied: string
     copy: string
+    copyStatsTable: string
     saveTemplate: string
     reanalyze: string
     newAnalysis: string
@@ -1060,6 +1061,12 @@ export interface ResultsText {
   }
   /** 확인 다이얼로그 */
   confirm: {
+    backToVariables: {
+      title: string
+      description: string
+      confirm: string
+      cancel: string
+    }
     newAnalysis: {
       title: string
       description: string

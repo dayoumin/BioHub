@@ -925,6 +925,7 @@ export const generic: TerminologyDictionary = {
       pdf: 'PDF',
       copied: 'Copied',
       copy: 'Copy',
+      copyStatsTable: 'Copy Stats Table',
       saveTemplate: 'Save as Template',
       reanalyze: 'Reanalyze with New Data',
       newAnalysis: 'New Analysis',
@@ -1009,6 +1010,12 @@ export const generic: TerminologyDictionary = {
       ],
     },
     confirm: {
+      backToVariables: {
+        title: 'Return to variable selection?',
+        description: 'You will move back to variable selection. Current results stay visible until you run the analysis again with the new mapping.',
+        confirm: 'Go to variables',
+        cancel: 'Cancel',
+      },
       newAnalysis: {
         title: 'Start a new analysis?',
         description: 'All current data and results will be cleared. This cannot be undone.',

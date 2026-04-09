@@ -3,7 +3,7 @@
  *
  * Phase 1: 정상 플로우 (Happy Path) — KM 2그룹, KM 그룹 없음, ROC 진단, ROC 약한 분류기
  * Phase 2: 엣지 케이스 — 높은 중도절단, 3그룹, 최소 데이터, 완벽 분류기, 전체 사건
- * Phase 3: 에러 핸들링 + LLM — 데이터 부족, AI 추천
+ * Phase 3: 에러 핸들링 — 데이터 부족
  *
  * 설계 원칙: data-testid 기반 (e2e/selectors.ts의 S 레지스트리 사용)
  * 실행: npx playwright test e2e/survival-roc-e2e.spec.ts --headed
@@ -153,11 +153,11 @@ async function selectMethodDirect(page: Page, searchTerm: string, methodName: Re
 }
 
 async function goToVariableSelection(page: Page): Promise<void> {
-  const confirmBtn = page.locator(S.confirmMethodBtn)
+  const confirmBtn = page.getByRole('button', { name: /이 방법으로 진행|Use This|Use This Method/i })
   if (await confirmBtn.first().isVisible({ timeout: 3000 }).catch(() => false)) {
     if (await confirmBtn.first().isEnabled()) {
       await confirmBtn.first().click()
-      log('goToVar', 'confirm-method-btn 클릭')
+      log('goToVar', 'method confirm button 클릭')
       await page.waitForLoadState('networkidle')
       return
     }
@@ -283,81 +283,6 @@ async function waitForAutoConfirmOrManual(page: Page, tag: string): Promise<void
   }
   log(tag, '변수 수동 선택 필요 — 대기')
   await page.waitForLoadState('networkidle')
-}
-
-/** OpenRouter mock for LLM tests */
-async function mockOpenRouterAPI(page: Page, methodId: string, methodName: string): Promise<void> {
-  const mockRecommendation = JSON.stringify({
-    methodId,
-    methodName,
-    reasoning: [`데이터 분석 결과 ${methodName}이(가) 적합합니다.`],
-    confidence: 0.9,
-    variableAssignments: methodId === 'kaplan-meier'
-      ? { time: ['time'], event: ['status'], factor: ['group'] }
-      : { dependent: ['actual'], independent: ['score'] },
-    suggestedSettings: { alpha: 0.05 },
-    warnings: [],
-    alternatives: []
-  })
-
-  await page.route(/openrouter\.ai/, (route) => {
-    const url = route.request().url()
-    if (url.includes('/models')) {
-      route.fulfill({ status: 200, contentType: 'application/json', body: '{"data":[]}' })
-      return
-    }
-    const jsonBody = JSON.stringify({
-      id: 'mock',
-      choices: [{ message: { content: mockRecommendation } }]
-    })
-    route.fulfill({ status: 200, contentType: 'application/json', body: jsonBody })
-  })
-  log('mockAPI', `mocked: ${methodId}`)
-}
-
-async function selectMethodViaLLM(page: Page, question: string): Promise<boolean> {
-  const aiTab = page.locator(S.filterAi)
-  if (await aiTab.isVisible({ timeout: 3000 }).catch(() => false)) {
-    const isActive = await aiTab.getAttribute('aria-checked')
-    if (isActive !== 'true') {
-      await aiTab.click()
-      log('selectLLM', 'filter-ai 클릭')
-      await page.waitForTimeout(300)
-    }
-  }
-
-  const chatInput = page.locator(S.aiChatInput)
-  if (await chatInput.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await chatInput.fill(question)
-    log('selectLLM', `질문: "${question}"`)
-  } else {
-    log('selectLLM', 'ai-chat-input not found')
-    return false
-  }
-
-  const submitBtn = page.locator(S.aiChatSubmit)
-  if (await submitBtn.isVisible() && await submitBtn.isEnabled()) {
-    await submitBtn.click()
-    log('selectLLM', '전송')
-  } else {
-    log('selectLLM', 'submit not available')
-    return false
-  }
-
-  const recCard = page.locator(S.recommendationCard)
-  await recCard.waitFor({ state: 'visible', timeout: 30000 }).catch(() => {
-    log('selectLLM', 'recommendation-card timeout')
-  })
-  if (!await recCard.isVisible().catch(() => false)) return false
-
-  const selectBtn = page.locator(S.selectRecommendedMethod)
-  if (await selectBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-    await selectBtn.click()
-    log('selectLLM', '추천 수락')
-    await page.waitForLoadState('networkidle')
-    return true
-  }
-  return false
 }
 
 // ========================================
@@ -567,7 +492,7 @@ test.describe('KM/ROC E2E - Phase 2: 엣지 케이스', () => {
 // Phase 3: 에러 핸들링 + LLM 연동
 // ========================================
 
-test.describe('KM/ROC E2E - Phase 3: 에러 핸들링 + LLM', () => {
+test.describe('KM/ROC E2E - Phase 3: 에러 핸들링', () => {
 
   test('3-1 KM 데이터 부족 (<10행): 에러 메시지 또는 경고 표시', async ({ page }) => {
     await navigateToUploadStep(page)
@@ -626,47 +551,4 @@ test.describe('KM/ROC E2E - Phase 3: 에러 핸들링 + LLM', () => {
     await page.screenshot({ path: 'e2e/results/screenshots/roc-too-small-result.png', fullPage: true })
   })
 
-  test('3-3 KM via LLM 추천: AI가 Kaplan-Meier 추천 → 분석 완료', async ({ page }) => {
-    await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'survival.csv')).toBe(true)
-    await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
-
-    await mockOpenRouterAPI(page, 'kaplan-meier', 'Kaplan-Meier 생존분석')
-
-    await goToMethodSelection(page)
-    expect(await selectMethodViaLLM(page, '두 치료군의 생존율을 비교하고 싶어요')).toBe(true)
-
-    await waitForAutoConfirmOrManual(page, 'llm-km')
-    await clickAnalysisRun(page)
-
-    expect(await waitForResults(page, 120000)).toBe(true)
-    const r = await verifyKMResults(page)
-    log('llm-km', r.details)
-    expect(r.hasResultsCard).toBe(true)
-    expect(r.hasSurvivalInfo).toBe(true)
-
-    await page.screenshot({ path: 'e2e/results/screenshots/llm-km-result.png', fullPage: true })
-  })
-
-  test('3-4 ROC via LLM 추천: AI가 ROC 곡선 추천 → 분석 완료', async ({ page }) => {
-    await navigateToUploadStep(page)
-    expect(await uploadCSV(page, 'roc-diagnostic.csv')).toBe(true)
-    await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
-
-    await mockOpenRouterAPI(page, 'roc-curve', 'ROC 곡선 분석')
-
-    await goToMethodSelection(page)
-    expect(await selectMethodViaLLM(page, '진단 모델의 정확도를 ROC 곡선으로 평가하고 싶어요')).toBe(true)
-
-    await waitForAutoConfirmOrManual(page, 'llm-roc')
-    await clickAnalysisRun(page)
-
-    expect(await waitForResults(page, 120000)).toBe(true)
-    const r = await verifyROCResults(page)
-    log('llm-roc', r.details)
-    expect(r.hasResultsCard).toBe(true)
-    expect(r.hasAUC).toBe(true)
-
-    await page.screenshot({ path: 'e2e/results/screenshots/llm-roc-result.png', fullPage: true })
-  })
 })

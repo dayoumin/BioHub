@@ -926,6 +926,7 @@ export const aquaculture: TerminologyDictionary = {
       pdf: 'PDF',
       copied: '복사됨',
       copy: '복사',
+      copyStatsTable: '통계표 복사',
       saveTemplate: '템플릿으로 저장',
       reanalyze: '다른 데이터로 재분석',
       newAnalysis: '새 분석 시작',
@@ -1010,6 +1011,12 @@ export const aquaculture: TerminologyDictionary = {
       ],
     },
     confirm: {
+      backToVariables: {
+        title: '변수 선택 단계로 돌아갈까요?',
+        description: '현재 결과 화면을 나가면 변수 선택 단계로 이동합니다. 결과는 유지되지만 다시 분석하기 전까지는 새 변수 설정이 반영되지 않습니다.',
+        confirm: '변수 선택으로 이동',
+        cancel: '취소',
+      },
       newAnalysis: {
         title: '새 분석을 시작할까요?',
         description: '현재 데이터와 결과가 모두 초기화됩니다. 이 작업은 되돌릴 수 없습니다.',

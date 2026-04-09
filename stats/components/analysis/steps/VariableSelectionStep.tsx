@@ -436,6 +436,15 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         </div>
       )}
 
+      {!detectedVariables && !existingMapping && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            자동 변수 감지에 실패했습니다. 아래 슬롯에서 분석에 필요한 변수를 직접 선택해주세요.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* F1: Method Variable Guide — 필수 슬롯이 프리필되지 않았을 때 표시 */}
       {needsVariableGuide && (
         <div className="flex items-start gap-4 p-5 rounded-2xl bg-primary/5 border border-primary/10">

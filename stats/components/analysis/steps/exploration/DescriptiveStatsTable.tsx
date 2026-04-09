@@ -1,7 +1,8 @@
 'use client'
 
-import { memo, useMemo } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import { AlertTriangle, Lightbulb } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -22,6 +23,7 @@ export const DescriptiveStatsTable = memo(function DescriptiveStatsTable({
   onOpenOutlierModal
 }: DescriptiveStatsTableProps) {
   const t = useTerminology()
+  const [showAdvancedColumns, setShowAdvancedColumns] = useState(false)
 
   // 이상치가 있는 변수 목록 (배너용)
   const varsWithOutliers = useMemo(
@@ -55,6 +57,21 @@ export const DescriptiveStatsTable = memo(function DescriptiveStatsTable({
       )}
 
       {/* 기초 통계량 테이블 */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-xs text-muted-foreground">
+          기본 8개 지표를 먼저 보여줍니다. {showAdvancedColumns ? 'Q1/Q3, 왜도, 첨도, 정규성까지 표시 중입니다.' : '필요하면 추가 지표를 펼쳐 보세요.'}
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setShowAdvancedColumns(prev => !prev)}
+          className="h-8 shrink-0 text-xs"
+        >
+          {showAdvancedColumns ? '필수 지표만 보기' : '전체 13개 지표 보기'}
+        </Button>
+      </div>
+
       <div className="overflow-x-auto max-h-[400px] border border-border/40 rounded-xl">
         <table className="w-full text-sm border-collapse">
           <thead className="sticky top-0 bg-muted/60 backdrop-blur-md z-10">
@@ -66,39 +83,43 @@ export const DescriptiveStatsTable = memo(function DescriptiveStatsTable({
               <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.median}</th>
               <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.min}</th>
               <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.max}</th>
-              <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="underline decoration-dotted cursor-help">Q1</span>
-                    </TooltipTrigger>
-                    <TooltipContent>{t.dataExploration.headers.q1Tooltip}</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </th>
-              <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="underline decoration-dotted cursor-help">Q3</span>
-                    </TooltipTrigger>
-                    <TooltipContent>{t.dataExploration.headers.q3Tooltip}</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </th>
-              <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.skewness}</th>
-              <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.kurtosis}</th>
               <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.outliers}</th>
-              <th scope="col" className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="underline decoration-dotted cursor-help">{t.dataExploration.normality.title.split(' (')[0]}</span>
-                    </TooltipTrigger>
-                    <TooltipContent>{t.dataExploration.normality.title}</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </th>
+              {showAdvancedColumns && (
+                <>
+                  <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="underline decoration-dotted cursor-help">Q1</span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t.dataExploration.headers.q1Tooltip}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </th>
+                  <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="underline decoration-dotted cursor-help">Q3</span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t.dataExploration.headers.q3Tooltip}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </th>
+                  <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.skewness}</th>
+                  <th scope="col" className="text-right px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">{t.dataExploration.headers.kurtosis}</th>
+                  <th scope="col" className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="underline decoration-dotted cursor-help">{t.dataExploration.normality.title.split(' (')[0]}</span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t.dataExploration.normality.title}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-border/20">
@@ -114,16 +135,6 @@ export const DescriptiveStatsTable = memo(function DescriptiveStatsTable({
                   <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{formatStat(col.median)}</td>
                   <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{formatStat(col.min)}</td>
                   <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{formatStat(col.max)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{formatStat(col.q1)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{formatStat(col.q3)}</td>
-                  <td className={cn("px-3 py-2.5 text-right font-mono text-xs tabular-nums", skewWarning && "text-warning font-semibold")}>
-                    {formatStat(col.skewness)}
-                    {skewWarning && <AlertTriangle className="h-3 w-3 inline ml-0.5" />}
-                  </td>
-                  <td className={cn("px-3 py-2.5 text-right font-mono text-xs tabular-nums", kurtWarning && "text-warning font-semibold")}>
-                    {formatStat(col.kurtosis)}
-                    {kurtWarning && <AlertTriangle className="h-3 w-3 inline ml-0.5" />}
-                  </td>
                   <td className="px-3 py-2.5 text-right">
                     {col.outlierCount > 0 ? (
                       <Badge
@@ -137,29 +148,43 @@ export const DescriptiveStatsTable = memo(function DescriptiveStatsTable({
                       <span className="text-muted-foreground/40">-</span>
                     )}
                   </td>
-                  <td className="px-3 py-2.5 text-center">
-                    {col.normality ? (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Badge
-                              variant={col.normality.isNormal ? 'default' : 'destructive'}
-                              className="text-[10px] font-mono cursor-help"
-                            >
-                              {col.normality.isNormal ? '✓' : '✗'} p={col.normality.pValue.toFixed(3)}
-                            </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {col.normality.isNormal
-                              ? t.dataExploration.normality.normalInterpretation
-                              : t.dataExploration.normality.nonNormalInterpretation}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    ) : (
-                      <span className="text-muted-foreground/40">-</span>
-                    )}
-                  </td>
+                  {showAdvancedColumns && (
+                    <>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{formatStat(col.q1)}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs tabular-nums">{formatStat(col.q3)}</td>
+                      <td className={cn("px-3 py-2.5 text-right font-mono text-xs tabular-nums", skewWarning && "text-warning font-semibold")}>
+                        {formatStat(col.skewness)}
+                        {skewWarning && <AlertTriangle className="h-3 w-3 inline ml-0.5" />}
+                      </td>
+                      <td className={cn("px-3 py-2.5 text-right font-mono text-xs tabular-nums", kurtWarning && "text-warning font-semibold")}>
+                        {formatStat(col.kurtosis)}
+                        {kurtWarning && <AlertTriangle className="h-3 w-3 inline ml-0.5" />}
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
+                        {col.normality ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant={col.normality.isNormal ? 'default' : 'destructive'}
+                                  className="text-[10px] font-mono cursor-help"
+                                >
+                                  {col.normality.isNormal ? '✓' : '✗'} p={col.normality.pValue.toFixed(3)}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {col.normality.isNormal
+                                  ? t.dataExploration.normality.normalInterpretation
+                                  : t.dataExploration.normality.nonNormalInterpretation}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <span className="text-muted-foreground/40">-</span>
+                        )}
+                      </td>
+                    </>
+                  )}
                 </tr>
               )
             })}

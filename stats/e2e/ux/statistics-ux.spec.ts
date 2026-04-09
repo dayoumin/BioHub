@@ -3,7 +3,7 @@
  *
  * 실제 사용자 시나리오 기반 — 첫 방문, 연속 분석, 에러 복구, 내보내기
  *
- * 태그: @phase4, @critical, @important, @ai-mock
+ * 태그: @phase4, @critical, @important
  * 실행: pnpm e2e --grep "@phase4"
  */
 
@@ -20,8 +20,6 @@ import {
   clickAnalysisRun,
   waitForResults,
   verifyStatisticalResults,
-  mockOpenRouterAPI,
-  selectMethodViaLLM,
 } from '../helpers/flow-helpers'
 
 test.setTimeout(180_000)
@@ -31,7 +29,7 @@ test.setTimeout(180_000)
 // ========================================
 
 test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
-  test('TC-4A.1.1: 완전 초보 — AI 추천으로 분석 → DOCX 내보내기 @ai-mock', async ({ page }) => {
+  test('TC-4A.1.1: 완전 초보 — 직접 선택으로 분석 → DOCX 내보내기', async ({ page }) => {
     // 1. Hub → 데이터 업로드 Step으로 이동
     // hub-upload-btn을 사용해야 함 (hub-upload-card는 전체 Hub 컨테이너이므로 클릭 시 QuickAnalysisPill 오발동)
     await navigateToUploadStep(page)
@@ -40,30 +38,18 @@ test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
     expect(await uploadCSV(page, 't-test.csv')).toBe(true)
     await expect(page.locator(S.dataProfileSummary)).toBeVisible({ timeout: 15000 })
 
-    // 3. 다음 단계로 이동 (다음 버튼이 보여야 함)
-    const nextBtn = page.locator(S.floatingNextBtn)
-    await expect(nextBtn).toBeVisible({ timeout: 5000 })
-    await expect(nextBtn).toBeEnabled()
-
-    // 4. AI 추천 흐름
-    // mock을 먼저 설정 → Step 2 진입 시 auto-trigger가 mock 응답을 받음
-    await mockOpenRouterAPI(page, 't-test', '독립표본 t-검정')
+    // 3. 다음 단계로 이동
     await goToMethodSelection(page)
 
-    // Step 2 진입 시 auto-trigger가 자동으로 AI 추천 요청을 보냄
-    // mock이 t-test 추천을 반환 → recommendation card 표시 대기
-    // 수동 질문은 auto-trigger와의 race condition 방지를 위해 생략
-    await expect(page.locator(S.recommendationCard)).toBeVisible({ timeout: 30000 })
+    // 4. 직접 선택으로 방법 확정
+    expect(await selectMethodDirect(page, '독립표본', /독립표본 t-검정/)).toBe(true)
+    await goToVariableSelection(page)
 
-    // 5. 추천 수락
-    await page.locator(S.selectRecommendedMethod).click()
-    await page.waitForLoadState('networkidle')
-
-    // 6. 변수 자동 할당 → 분석 실행
+    // 5. 변수 자동 할당 → 분석 실행
     await ensureVariablesOrSkip(page, 'TC-4A.1.1', 'group', 'value')
     await clickAnalysisRun(page)
 
-    // 7. 결과 확인
+    // 6. 결과 확인
     expect(await waitForResults(page, 120000)).toBe(true)
     const r = await verifyStatisticalResults(page)
     expect(r.hasStatistic).toBe(true)
@@ -75,7 +61,7 @@ test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
       bodyText.includes('유의') || bodyText.includes('결과') || bodyText.includes('해석')
     expect(hasKoreanInterpretation).toBe(true)
 
-    // 8. 내보내기 → DOCX
+    // 7. 내보내기 → DOCX
     const exportDD = page.locator(S.exportDropdown)
     if (await exportDD.isVisible({ timeout: 5000 }).catch(() => false)) {
       await exportDD.click()
@@ -102,7 +88,6 @@ test.describe('@phase4 @critical 첫 방문 사용자 시나리오', () => {
 
     // 2. 직접 선택 → 대응표본 t-검정
     await goToMethodSelection(page)
-    await page.locator(S.filterBrowse).click()
     await page.locator(S.methodSearchInput).waitFor({ state: 'visible', timeout: 5000 })
     expect(
       await selectMethodDirect(page, '대응표본', /대응표본.*t.*검정|paired.*t/i),
