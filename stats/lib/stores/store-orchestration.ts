@@ -15,18 +15,20 @@ import { extractDetectedVariables } from '@/lib/services/variable-detection-serv
 import { toStatisticalAssumptions } from '@/lib/services/diagnostic-pipeline'
 import type { HistorySnapshot, HistoryLoadResult } from './history-store'
 import type { DataPackage, ColumnMeta } from '@/types/graph-studio'
-import type { AIRecommendation, DiagnosticReport } from '@/types/analysis'
+import type { AIRecommendation, DiagnosticReport, StatisticalMethod, ValidationResults } from '@/types/analysis'
 import type { AiRecommendationContext } from '@/lib/utils/storage-types'
 
 /** AIRecommendation → 히스토리 저장용 AiRecommendationContext 변환 */
 function buildAiRecContext(rec: AIRecommendation | null): AiRecommendationContext | null {
   if (!rec?.method) return null
 
-  // userQuery: 허브 채팅의 마지막 user 메시지에서 추출
-  const messages = useHubChatStore.getState().messages
-  let userQuery = ''
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === 'user') { userQuery = messages[i].content; break }
+  let userQuery = rec.userQuery?.trim() ?? ''
+  if (!userQuery) {
+    // fallback: 허브 채팅의 마지막 user 메시지에서 추출
+    const messages = useHubChatStore.getState().messages
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') { userQuery = messages[i].content; break }
+    }
   }
 
   return {
@@ -37,6 +39,40 @@ function buildAiRecContext(rec: AIRecommendation | null): AiRecommendationContex
     alternatives: rec.alternatives?.map(a => ({ id: a.id, name: a.name, description: a.description ?? '' })),
     provider: 'openrouter',
   }
+}
+
+/** 수동 메서드 브라우징 진입 전 stale diagnostic 상태 정리 */
+export function prepareManualMethodBrowsing(): void {
+  const analysisStore = useAnalysisStore.getState()
+  analysisStore.setAssumptionResults(null)
+  analysisStore.setSuggestedSettings(null)
+  analysisStore.setDiagnosticReport(null)
+  useModeStore.getState().setStepTrack('normal')
+}
+
+/** Step 2 메서드 확정 — AI 추천과 수동 선택을 구분해 관련 상태를 정리 */
+export function confirmMethodSelection(
+  method: StatisticalMethod,
+  validationResults: ValidationResults | null,
+): void {
+  const { cachedAiRecommendation } = useAnalysisStore.getState()
+  const matchedAiRecommendation = cachedAiRecommendation?.method?.id === method.id
+    ? cachedAiRecommendation
+    : null
+
+  const detectedVariables = validationResults
+    ? extractDetectedVariables(method.id, validationResults, matchedAiRecommendation)
+    : null
+
+  useAnalysisStore.setState({
+    selectedMethod: method,
+    variableMapping: null,
+    detectedVariables,
+    cachedAiRecommendation: matchedAiRecommendation,
+    suggestedSettings: matchedAiRecommendation?.suggestedSettings ?? null,
+    assumptionResults: null,
+    diagnosticReport: null,
+  })
 }
 
 /** analysis-store + mode-store + hub-chat에서 HistorySnapshot을 조립 */
@@ -170,24 +206,27 @@ export function bridgeDiagnosticToSmartFlow(
   }
 
   // ── 3. 메서드 설정 + 추천 컨텍스트 보존 ──
+  const recommendationWithQuery = report.originUserMessage
+    ? { ...recommendation, userQuery: report.originUserMessage }
+    : recommendation
   if (recommendation.method) {
     analysisStore.setSelectedMethod(recommendation.method)
   }
-  analysisStore.setCachedAiRecommendation(recommendation)
+  analysisStore.setCachedAiRecommendation(recommendationWithQuery)
 
   // ── 4. 변수 탐지 결과 → detectedVariables (Step 3 프리필) ──
   if (report.variableAssignments && recommendation.method) {
     const detected = extractDetectedVariables(
       recommendation.method.id,
       hubData?.validationResults ?? null,
-      { ...recommendation, variableAssignments: report.variableAssignments },
+      { ...recommendationWithQuery, variableAssignments: report.variableAssignments },
     )
     analysisStore.setDetectedVariables(detected)
   }
 
   // ── 5. 설정 전달 ──
-  if (recommendation.suggestedSettings) {
-    analysisStore.setSuggestedSettings(recommendation.suggestedSettings)
+  if (recommendationWithQuery.suggestedSettings) {
+    analysisStore.setSuggestedSettings(recommendationWithQuery.suggestedSettings)
   }
 
   // ── 6. 진단 리포트 + 가정 검정 보존 ──

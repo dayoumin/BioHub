@@ -159,6 +159,8 @@ export interface VariableSelection {
  * AI 추천 결과
  */
 export interface AIRecommendation {
+  /** 원문 사용자 질문 (히스토리/근거 저장용 내부 메타데이터) */
+  userQuery?: string
   /** 추천 방법 */
   method: StatisticalMethod
   /** 신뢰도 (0-1 범위, LLM 반환값 그대로. UI에서 Math.round(confidence * 100)으로 표시) */
@@ -448,6 +450,8 @@ export interface DiagnosticAssumptions {
  * 기초통계/정규성/등분산 진단을 구조화하여 사용자에게 보여준다.
  */
 export interface DiagnosticReport {
+  /** clarification 전의 원문 사용자 질문 */
+  originUserMessage?: string
   /** 업로드 nonce — 업로드마다 단조 증가. 새 데이터 감지용 */
   uploadNonce: number
   /** 기초통계 요약 */

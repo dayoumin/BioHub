@@ -83,6 +83,7 @@ export async function runDiagnosticPipeline(
   // 완전 미탐지 또는 부분 탐지 (필수 역할 부족) → 추가 질문
   if (detectionResult.clarificationNeeded) {
     return {
+      originUserMessage: userMessage,
       uploadNonce,
       basicStats,
       assumptions: null,
@@ -105,6 +106,7 @@ export async function runDiagnosticPipeline(
 
   // ── 4. DiagnosticReport 조합 ──
   return {
+    originUserMessage: userMessage,
     uploadNonce,
     basicStats,
     assumptions,
@@ -138,6 +140,7 @@ export async function resumeDiagnosticPipeline(
   if (!newAssignments) {
     return {
       ...previousReport,
+      originUserMessage: previousReport.originUserMessage ?? userAnswer,
       pendingClarification: buildPendingClarification(
         '어떤 값을 비교하고 싶으신가요?',
         previousReport.variableAssignments,
@@ -161,6 +164,7 @@ export async function resumeDiagnosticPipeline(
       : '어떤 기준으로 비교할까요?'
     return {
       ...previousReport,
+      originUserMessage: previousReport.originUserMessage ?? userAnswer,
       variableAssignments: merged,
       pendingClarification: buildPendingClarification(
         question,
@@ -179,6 +183,7 @@ export async function resumeDiagnosticPipeline(
 
   return {
     ...previousReport,
+    originUserMessage: previousReport.originUserMessage ?? userAnswer,
     assumptions,
     variableAssignments: merged,
     pendingClarification: null,

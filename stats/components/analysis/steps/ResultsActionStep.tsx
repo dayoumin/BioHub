@@ -27,20 +27,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { TooltipProvider } from '@/components/ui/tooltip'
+  TooltipProvider,
+} from '@/components/ui/tooltip'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { AnalysisResult } from '@/types/analysis'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useHistoryStore } from '@/lib/stores/history-store'
 import { useModeStore } from '@/lib/stores/mode-store'
-import { buildHistorySnapshot } from '@/lib/stores/store-orchestration'
+import { buildHistorySnapshot, prepareManualMethodBrowsing } from '@/lib/stores/store-orchestration'
 import { startNewAnalysis } from '@/lib/services/data-management'
 import { ExportService } from '@/lib/services/export/export-service'
 import type { ExportFormat, ExportContext, ExportContentOptions } from '@/lib/services/export/export-types'
@@ -147,7 +141,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     setUploadedFile,
     setValidationResults,
     setResults,
-    setAssumptionResults,
     setVariableMapping,
     pruneCompletedStepsFrom,
     setCurrentStep,
@@ -547,12 +540,11 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   // setCurrentStep 직접 사용: navigateToStep → saveCurrentStepData가 pruned step 4를 다시 추가하는 문제 방지
   const handleChangeMethod = useCallback(() => {
     setResults(null)
-    setAssumptionResults(null)
     setVariableMapping(null)
     pruneCompletedStepsFrom(3)  // Step 3,4 완료 상태 제거
-    setStepTrack('normal')      // quick/reanalysis 모드 누수 방지
+    prepareManualMethodBrowsing()
     setCurrentStep(2)
-  }, [setResults, setAssumptionResults, setVariableMapping, pruneCompletedStepsFrom, setStepTrack, setCurrentStep])
+  }, [setResults, setVariableMapping, pruneCompletedStepsFrom, setCurrentStep])
 
   // Graph Studio 연결 — DataPackage 빌드 후 이동
   const handleOpenInGraphStudio = useCallback(() => {

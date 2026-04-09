@@ -19,14 +19,13 @@ import { motion } from 'framer-motion'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { intentRouter } from '@/lib/services/intent-router'
 import { getHubAiResponse, getHubDiagnosticResponse, getHubDiagnosticResumeResponse } from '@/lib/services/hub-chat-service'
-import { bridgeDiagnosticToSmartFlow } from '@/lib/stores/store-orchestration'
+import { bridgeDiagnosticToSmartFlow, prepareManualMethodBrowsing } from '@/lib/stores/store-orchestration'
 import { getKoreanName } from '@/lib/constants/statistical-methods'
 import { logger } from '@/lib/utils/logger'
 import type { ResolvedIntent, DiagnosticReport, AIRecommendation, MethodRecommendation } from '@/types/analysis'
 import { useTerminology } from '@/hooks/use-terminology'
 import { useHubChatStore, type HubChatMessage } from '@/lib/stores/hub-chat-store'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
-import { useModeStore } from '@/lib/stores/mode-store'
 import { useHubDataUpload } from '@/hooks/use-hub-data-upload'
 import { toast } from 'sonner'
 
@@ -301,7 +300,7 @@ export function ChatCentricHub({
       isProcessingRef.current = false
       setIsProcessing(false)
     }
-  }, [onIntentResolved, addMessage, setStreaming, setStreamingStatus, dataContext, hasSeenUploadSuggestion, setHasSeenUploadSuggestion])
+  }, [onIntentResolved, addMessage, setStreaming, setStreamingStatus, dataContext, hasSeenUploadSuggestion, setHasSeenUploadSuggestion, t])
 
   // 표본 크기 계산기 "분석 시작" CTA → ChatInput 주입
   const handleStartAnalysis = useCallback((example: string) => {
@@ -329,7 +328,7 @@ export function ChatCentricHub({
       return
     }
     bridgeDiagnosticToSmartFlow(report, recommendation)
-    useModeStore.getState().setStepTrack('normal')
+    prepareManualMethodBrowsing()
     useAnalysisStore.getState().addCompletedStep(1)
     useAnalysisStore.getState().navigateToStep(2)
   }, [])

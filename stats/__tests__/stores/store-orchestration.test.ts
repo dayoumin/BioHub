@@ -18,6 +18,8 @@ import {
   loadAndRestoreHistory,
   bridgeHubDataToGraphStudio,
   bridgeDiagnosticToSmartFlow,
+  prepareManualMethodBrowsing,
+  confirmMethodSelection,
 } from '@/lib/stores/store-orchestration'
 import type { AnalysisResult, ValidationResults, ColumnStatistics, DiagnosticReport, AIRecommendation, StatisticalMethod } from '@/types/analysis'
 
@@ -117,6 +119,33 @@ describe('store-orchestration', () => {
     it('uploadedData가 null이면 uploadedDataLength는 0이다', () => {
       const snapshot = buildHistorySnapshot()
       expect(snapshot.uploadedDataLength).toBe(0)
+    })
+
+    it('cachedAiRecommendation.userQuery가 있으면 마지막 hub user 메시지보다 우선한다', () => {
+      act(() => {
+        useHubChatStore.getState().addMessage({
+          id: 'msg-1',
+          role: 'user',
+          content: '보정용 의사 문장입니다.',
+          timestamp: Date.now(),
+        })
+        useAnalysisStore.getState().setCachedAiRecommendation({
+          userQuery: '원래 사용자가 한 질문',
+          method: {
+            id: 't-test',
+            name: 'Independent t-Test',
+            description: '두 독립 그룹의 평균 비교',
+            category: 't-test',
+          },
+          confidence: 0.9,
+          reasoning: ['두 그룹 평균 비교'],
+          assumptions: [],
+        })
+      })
+
+      const snapshot = buildHistorySnapshot()
+
+      expect(snapshot.lastAiRecommendation?.userQuery).toBe('원래 사용자가 한 질문')
     })
   })
 
@@ -366,6 +395,7 @@ describe('store-orchestration', () => {
     } as StatisticalMethod
 
     const mockReport: DiagnosticReport = {
+      originUserMessage: '사료 종류별 생산량 차이를 보고 싶어요',
       uploadNonce: 1,
       basicStats: { totalRows: 120, numericSummaries: [] },
       assumptions: {
@@ -503,6 +533,154 @@ describe('store-orchestration', () => {
       })
 
       expect(useAnalysisStore.getState().suggestedSettings).toBeNull()
+    })
+
+    it('originUserMessage가 있으면 저장용 AI provenance에 원문 질문이 보존된다', () => {
+      setupHubData()
+
+      act(() => {
+        useHubChatStore.getState().addMessage({
+          id: 'msg-origin',
+          role: 'user',
+          content: '생산량을 사료종류 기준으로 분석해 주세요.',
+          timestamp: Date.now(),
+        })
+        useHubChatStore.getState().addMessage({
+          id: 'msg-pseudo',
+          role: 'user',
+          content: '생산량 값을 사료종류 기준으로 분석해 주세요.',
+          timestamp: Date.now() + 1,
+        })
+        bridgeDiagnosticToSmartFlow(mockReport, mockRecommendation)
+      })
+
+      const snapshot = buildHistorySnapshot()
+      expect(snapshot.lastAiRecommendation?.userQuery).toBe('사료 종류별 생산량 차이를 보고 싶어요')
+    })
+  })
+
+  // ===== prepareManualMethodBrowsing =====
+
+  describe('prepareManualMethodBrowsing()', () => {
+    it('수동 메서드 탐색 전 stale diagnostic 상태를 정리한다', () => {
+      act(() => {
+        useModeStore.getState().setStepTrack('diagnostic')
+        useAnalysisStore.getState().setAssumptionResults({ normality: { shapiroWilk: { isNormal: true } } } as never)
+        useAnalysisStore.getState().setSuggestedSettings({ alpha: 0.01 })
+        useAnalysisStore.getState().setDiagnosticReport({
+          uploadNonce: 1,
+          basicStats: { totalRows: 10, numericSummaries: [] },
+          assumptions: null,
+          variableAssignments: null,
+          pendingClarification: null,
+        })
+        useAnalysisStore.getState().setCachedAiRecommendation({
+          userQuery: '원래 질문',
+          method: {
+            id: 't-test',
+            name: 'Independent t-Test',
+            description: '두 독립 그룹의 평균 비교',
+            category: 't-test',
+          },
+          confidence: 0.8,
+          reasoning: ['두 그룹 비교'],
+          assumptions: [],
+        })
+      })
+
+      act(() => {
+        prepareManualMethodBrowsing()
+      })
+
+      expect(useModeStore.getState().stepTrack).toBe('normal')
+      expect(useAnalysisStore.getState().assumptionResults).toBeNull()
+      expect(useAnalysisStore.getState().suggestedSettings).toBeNull()
+      expect(useAnalysisStore.getState().diagnosticReport).toBeNull()
+      expect(useAnalysisStore.getState().cachedAiRecommendation?.userQuery).toBe('원래 질문')
+    })
+  })
+
+  // ===== confirmMethodSelection =====
+
+  describe('confirmMethodSelection()', () => {
+    const mockMethod: StatisticalMethod = {
+      id: 'one-way-anova',
+      name: 'One-Way ANOVA',
+      category: 'anova',
+    } as StatisticalMethod
+
+    const alternativeMethod: StatisticalMethod = {
+      id: 'kruskal-wallis',
+      name: 'Kruskal-Wallis Test',
+      category: 'nonparametric',
+    } as StatisticalMethod
+
+    const vr = makeValidation([
+      makeColStat({ name: '생산량' }),
+      makeColStat({ name: '사료종류', type: 'categorical', numericCount: 0, textCount: 50 }),
+    ])
+
+    const matchedRecommendation: AIRecommendation = {
+      userQuery: '사료 종류별 생산량 차이를 보고 싶어요',
+      method: mockMethod,
+      confidence: 0.9,
+      reasoning: ['정규성 충족'],
+      assumptions: [],
+      variableAssignments: { dependent: ['생산량'], factor: ['사료종류'] },
+      suggestedSettings: { alpha: 0.01, postHoc: 'tukey' },
+    }
+
+    it('AI 추천과 다른 메서드를 고르면 stale AI 설정과 provenance를 제거한다', () => {
+      act(() => {
+        useAnalysisStore.getState().setCachedAiRecommendation(matchedRecommendation)
+        useAnalysisStore.getState().setAssumptionResults({ normality: { shapiroWilk: { isNormal: true } } } as never)
+        useAnalysisStore.getState().setSuggestedSettings({ alpha: 0.01, postHoc: 'tukey' })
+        useAnalysisStore.getState().setDiagnosticReport({
+          uploadNonce: 1,
+          basicStats: { totalRows: 10, numericSummaries: [] },
+          assumptions: null,
+          variableAssignments: matchedRecommendation.variableAssignments ?? null,
+          pendingClarification: null,
+        })
+      })
+
+      act(() => {
+        confirmMethodSelection(alternativeMethod, vr)
+      })
+
+      const state = useAnalysisStore.getState()
+      expect(state.selectedMethod?.id).toBe('kruskal-wallis')
+      expect(state.cachedAiRecommendation).toBeNull()
+      expect(state.suggestedSettings).toBeNull()
+      expect(state.assumptionResults).toBeNull()
+      expect(state.diagnosticReport).toBeNull()
+    })
+
+    it('AI 추천과 같은 메서드를 고르면 추천 설정은 유지하되 stale diagnostic 결과는 제거한다', () => {
+      act(() => {
+        useAnalysisStore.getState().setCachedAiRecommendation(matchedRecommendation)
+        useAnalysisStore.getState().setAssumptionResults({ normality: { shapiroWilk: { isNormal: true } } } as never)
+        useAnalysisStore.getState().setSuggestedSettings({ alpha: 0.01, postHoc: 'tukey' })
+        useAnalysisStore.getState().setDiagnosticReport({
+          uploadNonce: 1,
+          basicStats: { totalRows: 10, numericSummaries: [] },
+          assumptions: null,
+          variableAssignments: matchedRecommendation.variableAssignments ?? null,
+          pendingClarification: null,
+        })
+      })
+
+      act(() => {
+        confirmMethodSelection(mockMethod, vr)
+      })
+
+      const state = useAnalysisStore.getState()
+      expect(state.selectedMethod?.id).toBe('one-way-anova')
+      expect(state.cachedAiRecommendation?.userQuery).toBe('사료 종류별 생산량 차이를 보고 싶어요')
+      expect(state.suggestedSettings).toEqual({ alpha: 0.01, postHoc: 'tukey' })
+      expect(state.detectedVariables?.dependentCandidate).toBe('생산량')
+      expect(state.assumptionResults).toBeNull()
+      expect(state.diagnosticReport).toBeNull()
     })
   })
 })

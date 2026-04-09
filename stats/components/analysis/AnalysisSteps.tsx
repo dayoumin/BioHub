@@ -19,7 +19,6 @@ import { DataExplorationStep } from '@/components/analysis/steps/DataExploration
 import { VariableSelectionStep } from '@/components/analysis/steps/VariableSelectionStep'
 import { AnalysisExecutionStep } from '@/components/analysis/steps/AnalysisExecutionStep'
 import { MethodBrowserStep } from '@/components/analysis/steps/MethodBrowserStep'
-import { extractDetectedVariables } from '@/lib/services/variable-detection-service'
 import { ReanalysisPanel } from '@/components/analysis/ReanalysisPanel'
 import { ReanalysisBanner, QuickAnalysisBanner } from '@/components/analysis/steps/Step1ModeBanners'
 import { InlineError } from '@/components/common/InlineError'
@@ -42,6 +41,7 @@ import { useDataUpload } from '@/hooks/use-data-upload'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
+import { confirmMethodSelection, prepareManualMethodBrowsing } from '@/lib/stores/store-orchestration'
 import type { StatisticalMethod, AnalysisResult } from '@/types/analysis'
 
 /** Step 전환 애니메이션 variants */
@@ -130,20 +130,7 @@ export function AnalysisSteps({ isHubVisible, onBackToHub }: AnalysisStepsProps)
   // ─── 인라인 핸들러 (이전 useAnalysisHandlers에서 이동) ───
 
   const handleMethodConfirm = useCallback((method: StatisticalMethod) => {
-    const store = useAnalysisStore.getState()
-    const recCtx = store.cachedAiRecommendation
-    const detected = validationResults
-      ? extractDetectedVariables(method.id, validationResults, recCtx)
-      : null
-
-    // 단일 set()으로 배치 업데이트 — 리렌더 1회
-    useAnalysisStore.setState({
-      selectedMethod: method,
-      variableMapping: null,
-      detectedVariables: detected,
-      suggestedSettings: recCtx?.suggestedSettings ?? null,
-    })
-
+    confirmMethodSelection(method, validationResults)
     goToNextStep()
   }, [goToNextStep, validationResults])
 
@@ -188,7 +175,8 @@ export function AnalysisSteps({ isHubVisible, onBackToHub }: AnalysisStepsProps)
                 method={selectedMethod}
                 onNormalMode={() => setStepTrack('normal')}
                 onChangeMethod={() => {
-                  setStepTrack('normal')
+                  prepareManualMethodBrowsing()
+                  addCompletedStep(1)
                   navigateToStep(2)
                 }}
                 t={{
@@ -204,8 +192,13 @@ export function AnalysisSteps({ isHubVisible, onBackToHub }: AnalysisStepsProps)
                 method={selectedMethod}
                 onNormalMode={() => setStepTrack('normal')}
                 onChangeMethod={() => {
-                  setStepTrack('normal')
-                  onBackToHub ? onBackToHub() : navigateToStep(2)
+                  prepareManualMethodBrowsing()
+                  if (onBackToHub) {
+                    onBackToHub()
+                    return
+                  }
+                  addCompletedStep(1)
+                  navigateToStep(2)
                 }}
                 t={t.analysis.modeBanners.quickAnalysis}
               />

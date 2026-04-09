@@ -16,6 +16,7 @@ import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
 import type { StepTrack } from '@/lib/stores/mode-store'
 import { useHistoryStore } from '@/lib/stores/history-store'
+import { prepareManualMethodBrowsing } from '@/lib/stores/store-orchestration'
 import { STATISTICAL_METHODS } from '@/lib/constants/statistical-methods'
 import { useTerminology } from '@/hooks/use-terminology'
 import type { AnalysisHistory } from '@/lib/stores/history-store'
@@ -127,11 +128,11 @@ export function useAnalysisHandlers(
     if (canNavigateToStep(stepId)) {
       startTransition(() => {
         // Step 2 클릭 = 메서드 변경 의도 → normal 모드로 전환
-        if (stepId === 2 && skipStep2) setStepTrack('normal')
+        if (stepId === 2 && skipStep2) prepareManualMethodBrowsing()
         navigateToStep(stepId)
       })
     }
-  }, [canNavigateToStep, navigateToStep, skipStep2, setStepTrack])
+  }, [canNavigateToStep, navigateToStep, skipStep2])
 
   // U1-2: Quick/Diagnostic 전진 점프 — 중간 단계 사전 마킹
   const handleStep1Next = useCallback(() => {

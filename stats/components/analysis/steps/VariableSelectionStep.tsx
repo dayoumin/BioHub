@@ -28,6 +28,7 @@ import { startPreemptiveAssumptions } from '@/lib/services/preemptive-assumption
 import { useTerminology } from '@/hooks/use-terminology'
 import { CollapsibleSection, StepHeader } from '@/components/analysis/common'
 import { AnalysisOptionsSection } from '@/components/analysis/variable-selector/AnalysisOptions'
+import { prepareManualMethodBrowsing } from '@/lib/stores/store-orchestration'
 
 /** U1-3: 비교용 정규화 — 키 정렬 + 배열 정렬 + null/undefined 제거 */
 function normalizeMapping(m: VariableMapping): Record<string, unknown> {
@@ -72,7 +73,6 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   } = useAnalysisStore()
 
   const stepTrack = useModeStore(state => state.stepTrack)
-  const setStepTrack = useModeStore(state => state.setStepTrack)
   const backLabel = (stepTrack === 'quick' || stepTrack === 'diagnostic') ? '데이터로 돌아가기' : t.analysis.layout.prevStep
 
   const [validationAlert, setValidationAlert] = useState<string | null>(null)
@@ -467,7 +467,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
             variant="link" 
             className="text-muted-foreground hover:text-primary px-0 h-auto font-normal text-sm"
             onClick={() => {
-              setStepTrack('normal')
+              prepareManualMethodBrowsing()
               navigateToStep(2)
             }}
           >
