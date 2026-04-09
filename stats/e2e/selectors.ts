@@ -43,20 +43,9 @@ export const S = {
   filterBrowse: '[data-testid="filter-browse"]',
   /** 메서드 검색 input */
   methodSearchInput: '[data-testid="method-search-input"]',
-  /** 선택된 메서드 표시 바 */
-  selectedMethodBar: '[data-testid="selected-method-bar"]',
-  finalSelectedMethodName: '[data-testid="final-selected-method-name"]',
-  /** "이 방법으로 분석하기" 확인 버튼 */
-  confirmMethodBtn: '[data-testid="confirm-method-btn"]',
-
   // ===== AI / LLM Recommendation =====
   aiChatInput: '[data-testid="ai-chat-input"]',
   aiChatSubmit: '[data-testid="ai-chat-submit"]',
-  recommendationCard: '[data-testid="recommendation-card"]',
-  selectRecommendedMethod: '[data-testid="select-recommended-method"]',
-  retryQuestion: '[data-testid="retry-question"]',
-  alternativesToggle: '[data-testid="alternatives-toggle"]',
-  examplePrompts: '[data-testid="example-prompts"]',
 
   // ===== Step Wrappers =====
   dataExplorationStep: '[data-testid="data-exploration-step"]',
@@ -186,6 +175,4 @@ export const S = {
   // ===== Smart Flow 추가 =====
   /** 결과 Q&A 팔로업 섹션 */
   followUpSection: '[data-testid="follow-up-section"]',
-  /** AI 채팅 스레드 */
-  chatThread: '[data-testid="chat-thread"]',
 } as const
