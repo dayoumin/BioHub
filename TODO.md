@@ -1,103 +1,131 @@
-# BioHub 통계 UI/UX 고도화 & 리팩터링 잔여 작업
+﻿# BioHub ?듦퀎 UI/UX 怨좊룄??& 由ы뙥?곕쭅 ?붿뿬 ?묒뾽
 
-## 1. 시각화 및 UX 컴포넌트 고도화
-- [x] AI 해석의 요약 (결론 도출 근거) 정보를 결과 카드에 축약하여 노출 — Hero Card에 AI 요약 한 줄 인라인 (2026-04-07)
-- [ ] 분석 유형별(통계 메서드별) 기본 시각화 컴포넌트 매핑 일관성 확보
-- [ ] 사용자 언어(질문 기반)가 통계적 엄밀함을 해치는지 확인하고 문구 미세 조정 및 모니터링
-- [ ] **비가설검정 StatsCards 개선**: PCA/군집/요인/판별/검정력 → 메서드별 primaryMetrics 정의 + 조건부 카드 구성 (p-value 대신 분산설명률, 실루엣 등)
-- [ ] **ResultsActionStep 훅 추출**: useResultsExport, useResultsHistory, useResultsNavigation, usePaperDraft 분리 (1025줄 → 핸들러 로직 캡슐화)
+## 1. ?쒓컖??諛?UX 而댄룷?뚰듃 怨좊룄??
+- [x] AI ?댁꽍???붿빟 (寃곕줎 ?꾩텧 洹쇨굅) ?뺣낫瑜?寃곌낵 移대뱶??異뺤빟?섏뿬 ?몄텧 ??Hero Card??AI ?붿빟 ??以??몃씪??(2026-04-07)
+- [ ] 遺꾩꽍 ?좏삎蹂??듦퀎 硫붿꽌?쒕퀎) 湲곕낯 ?쒓컖??而댄룷?뚰듃 留ㅽ븨 ?쇨????뺣낫
+- [ ] ?ъ슜???몄뼱(吏덈Ц 湲곕컲)媛 ?듦퀎???꾨??⑥쓣 ?댁튂?붿? ?뺤씤?섍퀬 臾멸뎄 誘몄꽭 議곗젙 諛?紐⑤땲?곕쭅
+- [ ] **鍮꾧??ㅺ???StatsCards 媛쒖꽑**: PCA/援곗쭛/?붿씤/?먮퀎/寃?뺣젰 ??硫붿꽌?쒕퀎 primaryMetrics ?뺤쓽 + 議곌굔遺 移대뱶 援ъ꽦 (p-value ???遺꾩궛?ㅻ챸瑜? ?ㅻ（????
+- [ ] **ResultsActionStep ??異붿텧**: useResultsExport, useResultsHistory, useResultsNavigation, usePaperDraft 遺꾨━ (1025以????몃뱾??濡쒖쭅 罹≪뒓??
 
-## 1.5. 허브 대화 히스토리 영구 저장 (향후)
+## 1.5. ?덈툕 ????덉뒪?좊━ ?곴뎄 ???(?ν썑)
 
-현재 허브 채팅은 sessionStorage에만 저장되어 탭을 닫으면 소멸.
-분석 결과 히스토리(IndexedDB)에는 `aiRecommendation.reasoning`만 저장됨.
+?꾩옱 ?덈툕 梨꾪똿? sessionStorage?먮쭔 ??λ릺????쓣 ?レ쑝硫??뚮㈇.
+遺꾩꽍 寃곌낵 ?덉뒪?좊━(IndexedDB)?먮뒗 `aiRecommendation.reasoning`留???λ맖.
 
-- [ ] **허브 대화 전문을 분석 히스토리에 연결**: saveToHistory 시 hubChatStore.messages 스냅샷을 AnalysisHistory에 포함
-- [ ] **히스토리 복원 시 허브 대화 복원**: loadFromHistory에서 대화 메시지도 ChatThread에 복원
-- [ ] **"왜 이 분석을 선택했나" 뷰**: 히스토리 상세에서 AI 상담 대화를 읽기 전용으로 표시
+- [ ] **?덈툕 ????꾨Ц??遺꾩꽍 ?덉뒪?좊━???곌껐**: saveToHistory ??hubChatStore.messages ?ㅻ깄?룹쓣 AnalysisHistory???ы븿
+- [ ] **?덉뒪?좊━ 蹂듭썝 ???덈툕 ???蹂듭썝**: loadFromHistory?먯꽌 ???硫붿떆吏??ChatThread??蹂듭썝
+- [ ] **"????遺꾩꽍???좏깮?덈굹" 酉?*: ?덉뒪?좊━ ?곸꽭?먯꽌 AI ?곷떞 ??붾? ?쎄린 ?꾩슜?쇰줈 ?쒖떆
 
-용도: 방법론 근거 추적 (논문 작성), 재현성, 학습 참고.
-현재 최소 개선: `buildHistorySnapshot`에서 `analysisPurpose` 비어있으면 허브 마지막 AI 응답으로 대체 (완료).
+?⑸룄: 諛⑸쾿濡?洹쇨굅 異붿쟻 (?쇰Ц ?묒꽦), ?ы쁽?? ?숈뒿 李멸퀬.
+?꾩옱 理쒖냼 媛쒖꽑: `buildHistorySnapshot`?먯꽌 `analysisPurpose` 鍮꾩뼱?덉쑝硫??덈툕 留덉?留?AI ?묐떟?쇰줈 ?泥?(?꾨즺).
 
-## 2. StatisticalExecutor 마이그레이션 및 파서 버그 해결 (B2)
-- [x] **Poisson / Ordinal Regression Model-level p-value**: Worker + Handler 양쪽 `llrPValue`/`llrStatistic` 완전 구현 확인 (2026-04-07 검토)
-- [x] **Stepwise Regression 결과 매핑**: 버그 아님 — Handler가 `fStatistic`/`fPValue` 정상 사용, 개별 `pValues` 배열은 rawResults로 전파 (2026-04-07 검토)
-- [x] **generated types 명세**: `OrdinalLogisticResult`, `PoissonRegressionResult` 타입 완전, any 1곳은 다중 반환타입 처리로 정당 (2026-04-07 검토)
-- [x] **MANOVA `|| 0` / 삼항연산자**: `|| 0`은 NaN→0 의도적 변환으로 정당, 삼항 1건 중복은 미미 (2026-04-07 검토)
-- [x] **worker2 `manova()` dead code 제거**: TS는 worker3으로 라우팅 — worker2 버전 220줄 제거 완료 (2026-04-07)
+## 2. StatisticalExecutor 留덉씠洹몃젅?댁뀡 諛??뚯꽌 踰꾧렇 ?닿껐 (B2)
+- [x] **Poisson / Ordinal Regression Model-level p-value**: Worker + Handler ?묒そ `llrPValue`/`llrStatistic` ?꾩쟾 援ы쁽 ?뺤씤 (2026-04-07 寃??
+- [x] **Stepwise Regression 寃곌낵 留ㅽ븨**: 踰꾧렇 ?꾨떂 ??Handler媛 `fStatistic`/`fPValue` ?뺤긽 ?ъ슜, 媛쒕퀎 `pValues` 諛곗뿴? rawResults濡??꾪뙆 (2026-04-07 寃??
+- [x] **generated types 紐낆꽭**: `OrdinalLogisticResult`, `PoissonRegressionResult` ????꾩쟾, any 1怨녹? ?ㅼ쨷 諛섑솚???泥섎━濡??뺣떦 (2026-04-07 寃??
+- [x] **MANOVA `|| 0` / ?쇳빆?곗궛??*: `|| 0`? NaN?? ?섎룄??蹂?섏쑝濡??뺣떦, ?쇳빆 1嫄?以묐났? 誘몃? (2026-04-07 寃??
+- [x] **worker2 `manova()` dead code ?쒓굅**: TS??worker3?쇰줈 ?쇱슦????worker2 踰꾩쟾 220以??쒓굅 ?꾨즺 (2026-04-07)
 
-## 3. ResultsHeroCard 추가 예외 처리 (Optional)
-- [ ] ResultsStatsCards.tsx 내에서도 비가설검정 (PCA, 군집화 등)의 p-value 카드를 좀 더 자연스럽게 숨기거나 적절한 값으로 표시할 수 있도록 개선 여부 검토.
+## 3. ResultsHeroCard 異붽? ?덉쇅 泥섎━ (Optional)
+- [ ] ResultsStatsCards.tsx ?댁뿉?쒕룄 鍮꾧??ㅺ???(PCA, 援곗쭛??????p-value 移대뱶瑜?醫 ???먯뿰?ㅻ읇寃??④린嫄곕굹 ?곸젅??媛믪쑝濡??쒖떆?????덈룄濡?媛쒖꽑 ?щ? 寃??
 
 ## 4. Statistical Validation
 
-### 완료
+### ?꾨즺
 - [x] **Phase 1**: T-test 4 + ANOVA 2 = 6/6 PASS, LRE 14.8 (`run-phase1-2026-04-06.json`)
-- [x] **Phase 2**: 비모수 + 상관 + 회귀 = 26개 메서드 29/29 PASS, LRE 12.97 (`run-phase2-2026-04-07.json`)
-- [x] **Phase 1 보고서 검증**: 업계 벤치마크 수치 교차검증 완료, Stata ANOVA 3건 + 출처 3건 수정
+- [x] **Phase 2**: 鍮꾨え??+ ?곴? + ?뚭? = 26媛?硫붿꽌??29/29 PASS, LRE 12.97 (`run-phase2-2026-04-07.json`)
+- [x] **Phase 1 蹂닿퀬??寃利?*: ?낃퀎 踰ㅼ튂留덊겕 ?섏튂 援먯감寃利??꾨즺, Stata ANOVA 3嫄?+ 異쒖쿂 3嫄??섏젙
 
-### Phase 3 완료 (24개 메서드) — 55/55 PASS
-- [x] **Phase 3**: 카이제곱 + 다변량 + 생존/시계열 + 데이터 도구 = **55/55 PASS**, LRE 12.6 (`run-phase3-final-2026-04-07.json`)
-- [x] R golden data 미포함 11개 수정 완료
-- [x] Phase 3 보고서: `VALIDATION-REPORT-phase3-2026-04-07.md`
-- [x] **FAIL 4건 → 55/55 PASS 달성**
-  - `stationarity-test` LRE 5.7→10.3: 러너 `regression='c'`→`'ct'` (R adf.test는 constant+trend 포함)
-  - `cox-regression` LRE 1.7→14.7: 러너 `PHReg(ties='efron')` 추가 (R coxph 기본값 Efron, statsmodels 기본값 Breslow 불일치)
-  - `factor-analysis` LRE 0.7→2.6: sklearn MLE→NumPy PAF 전환, comm tier3 + varExp tier4 (삼자 비교 완료)
-  - `cluster` LRE 1.7→6.4: golden tier3→tier4 + clusterSizes 정렬 일치 (sklearn Lloyd vs R Hartigan-Wong)
+### Phase 3 ?꾨즺 (24媛?硫붿꽌?? ??55/55 PASS
+- [x] **Phase 3**: 移댁씠?쒓낢 + ?ㅻ???+ ?앹〈/?쒓퀎??+ ?곗씠???꾧뎄 = **55/55 PASS**, LRE 12.6 (`run-phase3-final-2026-04-07.json`)
+- [x] R golden data 誘명룷??11媛??섏젙 ?꾨즺
+- [x] Phase 3 蹂닿퀬?? `VALIDATION-REPORT-phase3-2026-04-07.md`
+- [x] **FAIL 4嫄???55/55 PASS ?ъ꽦**
+  - `stationarity-test` LRE 5.7??0.3: ?щ꼫 `regression='c'`??'ct'` (R adf.test??constant+trend ?ы븿)
+  - `cox-regression` LRE 1.7??4.7: ?щ꼫 `PHReg(ties='efron')` 異붽? (R coxph 湲곕낯媛?Efron, statsmodels 湲곕낯媛?Breslow 遺덉씪移?
+  - `factor-analysis` LRE 0.7??.6: sklearn MLE?묿umPy PAF ?꾪솚, comm tier3 + varExp tier4 (?쇱옄 鍮꾧탳 ?꾨즺)
+  - `cluster` LRE 1.7??.4: golden tier3?뭪ier4 + clusterSizes ?뺣젹 ?쇱튂 (sklearn Lloyd vs R Hartigan-Wong)
 
-### Phase 4 완료 — 65/65 PASS
-- [x] **NIST StRD 직접 검증 (Layer 1)**: 4/4 PASS, LRE 10.3~14.6 — Norris, Pontius, AtmWtAg, Michelson (`run-phase4-2026-04-07.json`)
-- [x] **엣지케이스 검증 (Layer 3)**: 6/6 PASS — 결측값(NaN), 극단값(r≈1, 이상치), 소표본(n=3), 동점(전체 동순위)
-- [x] **공식문서 버전 고정 참조**: Phase 1~3 보고서에 Library Version Reference 섹션 추가 (버전 핀 URL)
-- [x] Phase 4 보고서: `VALIDATION-REPORT-phase4-2026-04-07.md`
+### Phase 4 ?꾨즺 ??65/65 PASS
+- [x] **NIST StRD 吏곸젒 寃利?(Layer 1)**: 4/4 PASS, LRE 10.3~14.6 ??Norris, Pontius, AtmWtAg, Michelson (`run-phase4-2026-04-07.json`)
+- [x] **?ｌ?耳?댁뒪 寃利?(Layer 3)**: 6/6 PASS ??寃곗륫媛?NaN), 洹밸떒媛?r??, ?댁긽移?, ?뚰몴蹂?n=3), ?숈젏(?꾩껜 ?숈닚??
+- [x] **怨듭떇臾몄꽌 踰꾩쟾 怨좎젙 李몄“**: Phase 1~3 蹂닿퀬?쒖뿉 Library Version Reference ?뱀뀡 異붽? (踰꾩쟾 ? URL)
+- [x] Phase 4 蹂닿퀬?? `VALIDATION-REPORT-phase4-2026-04-07.md`
 
-### 인프라 / Worker 버그
-- [x] **worker2 poisson_regression**: GLM 전환 완료 + predicted/residuals ndarray 인덱싱 수정
-- [x] **worker2 partial_correlation pValue**: t-분포 df=n-k-2 직접 계산 + r clip + 최소 표본 k+4
-- [x] **worker4 cox_regression**: np.asarray() 정규화로 DataFrame/ndarray 통합 처리
-- [x] **welch-t 검증 매핑 보강**: golden JSON + 필드 매핑에 cohensD/mean1/mean2 추가 (2026-04-07)
+### ?명봽??/ Worker 踰꾧렇
+- [x] **worker2 poisson_regression**: GLM ?꾪솚 ?꾨즺 + predicted/residuals ndarray ?몃뜳???섏젙
+- [x] **worker2 partial_correlation pValue**: t-遺꾪룷 df=n-k-2 吏곸젒 怨꾩궛 + r clip + 理쒖냼 ?쒕낯 k+4
+- [x] **worker4 cox_regression**: np.asarray() ?뺢퇋?붾줈 DataFrame/ndarray ?듯빀 泥섎━
+- [x] **welch-t 寃利?留ㅽ븨 蹂닿컯**: golden JSON + ?꾨뱶 留ㅽ븨??cohensD/mean1/mean2 異붽? (2026-04-07)
 
-### Phase 2 발견사항 (LRE 저조 — 실무 영향 없음)
-- [ ] mann-whitney LRE=8.0, ordinal LRE=4.8, dose-response LRE=5.8, pearson 편차 7.5~13.4
+### Phase 2 諛쒓껄?ы빆 (LRE ?議????ㅻТ ?곹뼢 ?놁쓬)
+- [ ] mann-whitney LRE=8.0, ordinal LRE=4.8, dose-response LRE=5.8, pearson ?몄감 7.5~13.4
 
-### 검증 갭 분석 (상세: `stats/docs/VALIDATION-GAPS-ANALYSIS.md`)
-- [x] **알고리즘 차이 재검토**: factor-analysis sklearn MLE→NumPy PAF 전환 (LRE 0.69→2.6, tier3), arima 4.72·ordinal 4.81 tier3 적절 확인, 삼자 교차비교 문서화 완료
-- [x] **kaplan-meier → statsmodels 전환**: `SurvfuncRight + survdiff` 사용, R 대비 LRE 15.0 유지 확인
-- [x] **method-target-matrix.json 정정**: 9개 메서드의 pythonLib/pythonCall을 실제 라이브러리 호출로 수정
-- [x] **검증 메타데이터 UI 표시**: `validation-metadata.ts` + ResultsHeroCard 배지 (라이브러리명 + R 검증 완료)
-- [x] **자체 구현 10개 공식 대조 완료**: 12개 구현체 감사 — BUG 3건 + ISSUE 4건 + Finding 2건 수정 (mann-kendall tie correction, mixed-model 7건, manova placeholder 제거)
-- [x] **엣지케이스 추가**: 분산 0, n=1, 완전 분리, 다중공선성, 전체 결측, 빈 팩터 — 6개 추가 (12/12 PASS)
-- [x] **NIST 확장**: Filip(다항회귀, LRE 7.7), Longley(다중공선성, LRE 12.3) 추가 — 6/6 PASS
+### 寃利?媛?遺꾩꽍 (?곸꽭: `stats/docs/VALIDATION-GAPS-ANALYSIS.md`)
+- [x] **?뚭퀬由ъ쬁 李⑥씠 ?ш???*: factor-analysis sklearn MLE?묿umPy PAF ?꾪솚 (LRE 0.69??.6, tier3), arima 4.72쨌ordinal 4.81 tier3 ?곸젅 ?뺤씤, ?쇱옄 援먯감鍮꾧탳 臾몄꽌???꾨즺
+- [x] **kaplan-meier ??statsmodels ?꾪솚**: `SurvfuncRight + survdiff` ?ъ슜, R ?鍮?LRE 15.0 ?좎? ?뺤씤
+- [x] **method-target-matrix.json ?뺤젙**: 9媛?硫붿꽌?쒖쓽 pythonLib/pythonCall???ㅼ젣 ?쇱씠釉뚮윭由??몄텧濡??섏젙
+- [x] **寃利?硫뷀??곗씠??UI ?쒖떆**: `validation-metadata.ts` + ResultsHeroCard 諛곗? (?쇱씠釉뚮윭由щ챸 + R 寃利??꾨즺)
+- [x] **?먯껜 援ы쁽 10媛?怨듭떇 ?議??꾨즺**: 12媛?援ы쁽泥?媛먯궗 ??BUG 3嫄?+ ISSUE 4嫄?+ Finding 2嫄??섏젙 (mann-kendall tie correction, mixed-model 7嫄? manova placeholder ?쒓굅)
+- [x] **?ｌ?耳?댁뒪 異붽?**: 遺꾩궛 0, n=1, ?꾩쟾 遺꾨━, ?ㅼ쨷怨듭꽑?? ?꾩껜 寃곗륫, 鍮??⑺꽣 ??6媛?異붽? (12/12 PASS)
+- [x] **NIST ?뺤옣**: Filip(?ㅽ빆?뚭?, LRE 7.7), Longley(?ㅼ쨷怨듭꽑?? LRE 12.3) 異붽? ??6/6 PASS
 
-## 5. 차트 품질 점검 (UI 다듬기 완료 후)
-- [ ] 상세: [`stats/docs/CHART-REVIEW-CHECKLIST.md`](stats/docs/CHART-REVIEW-CHECKLIST.md)
-- [ ] L1: 컨버터 테스트 edge case 보강 (빈 데이터, NaN, 단일 포인트, 대용량)
-- [ ] L2: Analysis Flow 4개 + Graph Studio 12타입 시각 요소 수동 점검
-- [ ] L3: 색상 접근성, 다크모드, 반응형, 내보내기 공통 품질
+## 5. 李⑦듃 ?덉쭏 ?먭? (UI ?ㅻ벉湲??꾨즺 ??
+- [ ] ?곸꽭: [`stats/docs/CHART-REVIEW-CHECKLIST.md`](stats/docs/CHART-REVIEW-CHECKLIST.md)
+- [ ] L1: 而⑤쾭???뚯뒪??edge case 蹂닿컯 (鍮??곗씠?? NaN, ?⑥씪 ?ъ씤?? ??⑸웾)
+- [ ] L2: Analysis Flow 4媛?+ Graph Studio 12????쒓컖 ?붿냼 ?섎룞 ?먭?
+- [ ] L3: ?됱긽 ?묎렐?? ?ㅽ겕紐⑤뱶, 諛섏쓳?? ?대낫?닿린 怨듯넻 ?덉쭏
 
-## 6. 다중 에이전트 및 사전 구축 프롬프트 설계 (Prompt Registry & Cross-Model Review)
-- [ ] **조립식 프롬프트 라이브러리(`ai/prompts`) 구축**: 논문 생성 파츠(Methods, Results 등), 문서 어조 파츠(Journal, Report), 검증 전용 파츠로 거대한 단일 프롬프트를 분할 (상세: `ai/PROMPT_REGISTRY_PLAN.md` 참조).
-- [ ] **섹션/목적별 전용 프롬프트 생성**: 통계 결과 수치형, 그래프 패턴, 생태학 분야별로 최적화된 프롬프트 템플릿 파일 생성 및 동작 테스트.
-- [ ] **자동 검증 파이프라인(Cross-Model Review) 기획**: 작성 전용 모델과 검수 전용 모델(오류체커, 팩트체커 역할)을 교차 투입해 체계적 확인이 가능하도록 UX 기획.
+## 6. ?ㅼ쨷 ?먯씠?꾪듃 諛??ъ쟾 援ъ텞 ?꾨＼?꾪듃 ?ㅺ퀎 (Prompt Registry & Cross-Model Review)
+- [ ] **議곕┰???꾨＼?꾪듃 ?쇱씠釉뚮윭由?`ai/prompts`) 援ъ텞**: ?쇰Ц ?앹꽦 ?뚯툩(Methods, Results ??, 臾몄꽌 ?댁“ ?뚯툩(Journal, Report), 寃利??꾩슜 ?뚯툩濡?嫄곕????⑥씪 ?꾨＼?꾪듃瑜?遺꾪븷 (?곸꽭: `ai/PROMPT_REGISTRY_PLAN.md` 李몄“).
+- [ ] **?뱀뀡/紐⑹쟻蹂??꾩슜 ?꾨＼?꾪듃 ?앹꽦**: ?듦퀎 寃곌낵 ?섏튂?? 洹몃옒???⑦꽩, ?앺깭??遺꾩빞蹂꾨줈 理쒖쟻?붾맂 ?꾨＼?꾪듃 ?쒗뵆由??뚯씪 ?앹꽦 諛??숈옉 ?뚯뒪??
+- [ ] **?먮룞 寃利??뚯씠?꾨씪??Cross-Model Review) 湲고쉷**: ?묒꽦 ?꾩슜 紐⑤뜽怨?寃???꾩슜 紐⑤뜽(?ㅻ쪟泥댁빱, ?⑺듃泥댁빱 ??븷)??援먯감 ?ъ엯??泥닿퀎???뺤씤??媛?ν븯?꾨줉 UX 湲고쉷.
 
-## 7. Diagnostic Pipeline 기술 부채 (기능·런타임 영향 없음)
+## 7. Diagnostic Pipeline 湲곗닠 遺梨?(湲곕뒫쨌?고????곹뼢 ?놁쓬)
 
-상세: [`stats/docs/superpowers/specs/diagnostic-pipeline-tech-debt.md`](stats/docs/superpowers/specs/diagnostic-pipeline-tech-debt.md)
+?곸꽭: [`stats/docs/superpowers/specs/diagnostic-pipeline-tech-debt.md`](stats/docs/superpowers/specs/diagnostic-pipeline-tech-debt.md)
 
-### 완료
-- [x] TD-3: Worker 응답 타입 중복 → `worker-result-types.ts` 추출 (`9ce2689e`)
-- [x] TD-6: MIN_GROUP_SIZE 상수 중복 → `statistical-constants.ts` 추출 (`9ce2689e`)
-- [x] TD-7: 그룹 변수 해결 로직 중복 → `resolveGroupVariable()` 추출 (`9ce2689e`)
-- [x] TD-1: suggestedSettings → handler 전달 (Phase E) — alternative/postHoc 지원
-- [x] TD-5: JSON 추출 regex 통합 → `lib/utils/json-extraction.ts`
+### ?꾨즺
+- [x] TD-3: Worker ?묐떟 ???以묐났 ??`worker-result-types.ts` 異붿텧 (`9ce2689e`)
+- [x] TD-6: MIN_GROUP_SIZE ?곸닔 以묐났 ??`statistical-constants.ts` 異붿텧 (`9ce2689e`)
+- [x] TD-7: 洹몃９ 蹂???닿껐 濡쒖쭅 以묐났 ??`resolveGroupVariable()` 異붿텧 (`9ce2689e`)
+- [x] TD-1: suggestedSettings ??handler ?꾨떖 (Phase E) ??alternative/postHoc 吏??
+- [x] TD-5: JSON 異붿텧 regex ?듯빀 ??`lib/utils/json-extraction.ts`
 
-### 높음
-- [ ] TD-2: auto 셀렉터 12개 메서드 변수 입력 UI 미완성
+### ?믪쓬
+- [ ] TD-2: auto ??됲꽣 12媛?硫붿꽌??蹂???낅젰 UI 誘몄셿??
 
-### 중간 (코드 품질)
-- [x] TD-4: Pyodide lazy init 패턴 중복 → `ensurePyodideReady()` 추출
+### 以묎컙 (肄붾뱶 ?덉쭏)
+- [x] TD-4: Pyodide lazy init ?⑦꽩 以묐났 ??`ensurePyodideReady()` 異붿텧
 
-### 낮음
-- [x] TD-8: goToPreviousStep() — Phase D에서 이미 해결됨
-- [x] TD-9: experiment-design 트랙 → data-consultation 흡수 완료
+### ??쓬
+- [x] TD-8: goToPreviousStep() ??Phase D?먯꽌 ?대? ?닿껐??
+- [x] TD-9: experiment-design ?몃옓 ??data-consultation ?≪닔 ?꾨즺
+- [x] TD-9: experiment-design ?紐껋삌 ??data-consultation ??る땾 ?袁⑥┷
+
+## 8. Smart Flow Step 3 怨듯넻 UX ?꾩냽 ?묒뾽 (2026-04-09)
+
+### ?꾩옱 ?꾨즺
+- [x] chi-square 怨꾩뿴, mcnemar, proportion-test瑜?怨듯넻 `UnifiedVariableSelector`濡??듯빀
+- [x] `variable-requirements` 湲곕컲 ?щ’/?곹빀???듭뀡 ?⑤꼸 1李?諛섏쁺
+- [x] `analysisOptions.methodSettings` 湲곕컲 怨듯넻 ?듭뀡 ????ㅽ뻾 寃쎈줈 ?곌껐
+- [x] Step 3 ??`MethodGuidancePanel` 異붽?
+
+### ?ㅼ쓬 ?곗꽑?쒖쐞
+- [ ] Step 3 ??/?? ?? ??? ???? ??? ??? ???
+- [ ] mismatch ???? `?? ???? ??` CTA ??
+- [ ] `AutoConfirmSelector` ?? ?? ?? ??
+- [ ] handler ???? `methodSettings` ?? ??? ??
+- [ ] Step 4 ?? ??? ?? ??? ??(`alternative`, `postHoc`, `ciMethod` ?) ??
+- [ ] `variable-requirements`? `notes` / `dataFormat` ?? ?? ??
+
+### ?? ??
+- [ ] `pnpm exec tsc --noEmit` ?? ?? ??
+  - [ ] `stats/__tests__/hooks/use-data-upload-scenarios.test.ts:91`
+
+### ?? ??
+- [ ] `stats/docs/plans/2026-04-09-common-variable-assignment-ux-spec.md`
+- [ ] `stats/components/analysis/variable-selector/UnifiedVariableSelector.tsx`
+- [ ] `stats/components/analysis/variable-selector/AnalysisOptions.tsx`
+- [ ] `stats/components/analysis/steps/VariableSelectionStep.tsx`
+- [ ] `stats/components/analysis/steps/AnalysisExecutionStep.tsx`

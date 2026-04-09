@@ -235,12 +235,19 @@ export interface AnalysisOptions {
   showEffectSize: boolean
   /** 일표본 검정 기준값 μ₀ (one-sample-t 전용) */
   testValue?: number
+  nullProportion?: number
+  alternative?: 'two-sided' | 'less' | 'greater'
+  ciMethod?: string
+  methodSettings?: Record<string, string | number | boolean>
 }
 
 export const DEFAULT_ANALYSIS_OPTIONS: AnalysisOptions = {
   alpha: 0.05,
   showAssumptions: true,
   showEffectSize: true,
+  nullProportion: 0.5,
+  alternative: 'two-sided',
+  methodSettings: {},
 }
 
 // ===== Chat-First Hub Types =====

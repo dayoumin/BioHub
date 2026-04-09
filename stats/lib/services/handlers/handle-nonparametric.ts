@@ -1,8 +1,12 @@
 import { pyodideStats } from '../pyodide/pyodide-statistics'
-import type { StatisticalMethod } from '@/types/analysis'
+import type { StatisticalMethod, SuggestedSettings } from '@/types/analysis'
 import type { PreparedData, StatisticalExecutorResult } from '../statistical-executor'
 
-export async function handleNonparametric(method: StatisticalMethod, data: PreparedData): Promise<StatisticalExecutorResult> {
+export async function handleNonparametric(
+  method: StatisticalMethod,
+  data: PreparedData,
+  settings?: SuggestedSettings | null
+): Promise<StatisticalExecutorResult> {
   let result: { statistic: number; pvalue: number; df?: number; [key: string]: unknown }
   // proportion-test 전용 메타 (additionalInfo + visualizationData 빌드에 사용)
   let proportionTestMeta: {
@@ -98,9 +102,10 @@ export async function handleNonparametric(method: StatisticalMethod, data: Prepa
       // 2x2 분할표: 미리 구성된 값 또는 independentVar/dependentVar에서 자동 구성
       let contingencyTable = data.arrays.contingencyTable
       if (!contingencyTable) {
-        // ChiSquareSelector가 보내는 independentVar/dependentVar로 교차표 구성
-        const rowCol = data.variables.independentVar ?? data.variables.independent
-        const colCol = data.variables.dependentVar ?? data.variables.dependent
+        // Common selector가 보내는 independentVar/dependentVar 또는 variables[]로 교차표 구성
+        const variablePair = Array.isArray(data.variables.variables) ? data.variables.variables : []
+        const rowCol = data.variables.independentVar ?? data.variables.independent ?? variablePair[0]
+        const colCol = data.variables.dependentVar ?? data.variables.dependent ?? variablePair[1]
         if (rowCol && colCol && data.data.length > 0) {
           const rowName = Array.isArray(rowCol) ? String(rowCol[0]) : String(rowCol)
           const colName = Array.isArray(colCol) ? String(colCol[0]) : String(colCol)
@@ -211,6 +216,8 @@ export async function handleNonparametric(method: StatisticalMethod, data: Prepa
     }
     case 'proportion-test':
     case 'one-sample-proportion': {
+      const alternative = settings?.alternative
+      const alpha = settings?.alpha
       // successCount: 명시적 숫자 값 우선, 없으면 dependentVar에서 자동 계산
       const parsedSuccessCount = Number(data.variables?.successCount)
       let successCount = Number.isFinite(parsedSuccessCount) ? parsedSuccessCount : undefined
@@ -254,7 +261,9 @@ export async function handleNonparametric(method: StatisticalMethod, data: Prepa
       const propResult = await pyodideStats.oneSampleProportionTest(
         successCount ?? 0,
         totalCount,
-        nullProportion
+        nullProportion,
+        alternative,
+        alpha
       )
       result = {
         statistic: propResult.zStatistic,

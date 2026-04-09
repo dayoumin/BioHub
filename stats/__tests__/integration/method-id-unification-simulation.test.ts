@@ -3,7 +3,7 @@
  *
  * Verifies end-to-end that legacy SM IDs resolve to canonical entries
  * through every resolution path: Proxy, getMethodByAlias, getMethodByIdOrAlias,
- * ChiSquareSelector mode, IndexedDB deserialization,
+ * common chi-square family classification, IndexedDB deserialization,
  * dynamic registration, and enumeration integrity.
  */
 
@@ -92,12 +92,12 @@ describe('Scenario A: Legacy ID → Canonical Resolution (all 16 demoted SM IDs)
 })
 
 // ============================================
-// Scenario B: ChiSquareSelector Mode Detection
+// Scenario B: Chi-square Family Classification
 // ============================================
 
-describe('Scenario B: ChiSquareSelector mode detection logic', () => {
-  // Recreate the module-level constants from ChiSquareSelector.tsx
-  // (they are not exported, so we test the same derivation logic)
+describe('Scenario B: chi-square family classification logic', () => {
+  // Legacy chi-square family IDs that used to drive the dedicated selector.
+  // The common selector still relies on the same family split.
   const GOODNESS_IDS = new Set([
     'chi-square-goodness',
     'proportion-test',

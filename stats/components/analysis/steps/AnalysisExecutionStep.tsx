@@ -228,7 +228,14 @@ export function AnalysisExecutionStep({
       // User overrides take precedence (e.g., alpha, testValue)
       const mergedSettings = {
         ...suggestedSettings,
+        ...(analysisOptions.methodSettings ?? {}),
         alpha: analysisOptions.alpha,
+        ...(analysisOptions.alternative !== undefined
+          ? { alternative: analysisOptions.alternative }
+          : {}),
+        ...(analysisOptions.ciMethod !== undefined
+          ? { ciMethod: analysisOptions.ciMethod }
+          : {}),
       }
       const mergedVariables = {
         ...(variableMapping ?? {}),
@@ -236,6 +243,12 @@ export function AnalysisExecutionStep({
         ...(analysisOptions.testValue !== undefined
           ? { testValue: String(analysisOptions.testValue) }
           : {}),
+        ...(
+          (selectedMethod.id === 'proportion-test' || selectedMethod.id === 'one-sample-proportion')
+            && analysisOptions.nullProportion !== undefined
+            ? { nullProportion: String(analysisOptions.nullProportion) }
+            : {}
+        ),
       }
 
       const result = await executor.executeMethod(
@@ -302,6 +315,10 @@ export function AnalysisExecutionStep({
     suggestedSettings,
     analysisOptions.alpha,
     analysisOptions.testValue,
+    analysisOptions.nullProportion,
+    analysisOptions.alternative,
+    analysisOptions.ciMethod,
+    analysisOptions.methodSettings,
     existingAssumptionResults,
     setAssumptionResults,
     updateStage,

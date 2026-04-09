@@ -1,19 +1,23 @@
 import { pyodideStats } from '../pyodide/pyodide-statistics'
-import type { StatisticalMethod } from '@/types/analysis'
+import type { StatisticalMethod, SuggestedSettings } from '@/types/analysis'
 import type { PreparedData, StatisticalExecutorResult } from '../statistical-executor'
 import { interpretCohensD } from './shared-helpers'
 
-export async function handleDesign(method: StatisticalMethod, data: PreparedData): Promise<StatisticalExecutorResult> {
+export async function handleDesign(
+  method: StatisticalMethod,
+  data: PreparedData,
+  settings?: SuggestedSettings | null
+): Promise<StatisticalExecutorResult> {
   switch (method.id) {
     case 'power-analysis': {
       // pyodideStats 래퍼 사용
-      const testType = (data.variables?.testType as string) || 't-test'
-      const analysisType = (data.variables?.analysisType as string) || 'a-priori'
-      const alpha = (data.variables?.alpha as number) || 0.05
-      const power = (data.variables?.power as number) || 0.8
-      const effectSize = (data.variables?.effectSize as number) || 0.5
+      const testType = (settings?.testType as string) || (data.variables?.testType as string) || 't-test'
+      const analysisType = (settings?.analysisType as string) || (data.variables?.analysisType as string) || 'a-priori'
+      const alpha = (settings?.alpha as number) || (data.variables?.alpha as number) || 0.05
+      const power = (settings?.power as number) || (data.variables?.power as number) || 0.8
+      const effectSize = (settings?.effectSize as number) || (data.variables?.effectSize as number) || 0.5
       const sampleSize = data.totalN || 30
-      const sides = (data.variables?.sides as string) || 'two-sided'
+      const sides = (settings?.sides as string) || (data.variables?.sides as string) || 'two-sided'
 
       const result = await pyodideStats.powerAnalysis(
         testType as 't-test' | 'anova' | 'correlation' | 'chi-square' | 'regression',

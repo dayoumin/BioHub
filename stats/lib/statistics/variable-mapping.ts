@@ -519,6 +519,38 @@ export function validateVariableMapping(
 ): { isValid: boolean; errors: string[] } {
   const errors: string[] = []
 
+  if (method.id === 'mcnemar') {
+    const hasPairedVariables = Array.isArray(mapping.variables) && mapping.variables.length >= 2
+    const hasExplicitPair = !!mapping.independentVar && !!mapping.dependentVar
+
+    if (!hasPairedVariables && !hasExplicitPair) {
+      errors.push('McNemar 검정을 위해 대응되는 이진 변수 2개를 선택해 주세요')
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    }
+  }
+
+  if (method.id === 'proportion-test' || method.id === 'one-sample-proportion') {
+    if (!mapping.dependentVar) {
+      errors.push('비율 검정을 위해 이진 변수 1개를 선택해 주세요')
+    }
+
+    if (mapping.nullProportion !== undefined) {
+      const parsed = Number(mapping.nullProportion)
+      if (!Number.isFinite(parsed) || parsed <= 0 || parsed >= 1) {
+        errors.push('귀무가설 비율은 0보다 크고 1보다 작은 값이어야 합니다')
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    }
+  }
+
   // 필수 변수 확인
   switch (method.category) {
     case 't-test':

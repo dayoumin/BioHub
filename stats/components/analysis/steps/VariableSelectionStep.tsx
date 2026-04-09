@@ -15,13 +15,14 @@ import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, Settings2, Sparkles, Upload, Info } from 'lucide-react'
 import { EmptyState } from '@/components/common/EmptyState'
-import { AutoConfirmSelector, ChiSquareSelector } from '@/components/common/variable-selectors'
+import { AutoConfirmSelector } from '@/components/common/variable-selectors'
 import { UnifiedVariableSelector } from '@/components/analysis/variable-selector/UnifiedVariableSelector'
 import type { SelectorType } from '@/components/analysis/variable-selector/slot-configs'
 import { getSlotConfigs } from '@/components/analysis/variable-selector/slot-configs'
 import { getSelectorType } from '@/lib/registry'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
+import { getMethodRequirements } from '@/lib/statistics/variable-requirements'
 import { validateVariableMapping } from '@/lib/statistics/variable-mapping'
 import type { VariableMapping, ColumnInfo } from '@/lib/statistics/variable-mapping'
 import { startPreemptiveAssumptions } from '@/lib/services'
@@ -65,6 +66,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     detectedVariables,
     variableMapping: existingMapping,
     validationResults,
+    analysisOptions,
     setVariableMapping,
     updateVariableMappingWithInvalidation,
     goToNextStep,
@@ -77,6 +79,11 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
   const [validationAlert, setValidationAlert] = useState<string | null>(null)
   const [optionsOpen, setOptionsOpen] = useState(false)
+
+  const methodRequirements = useMemo(
+    () => (selectedMethod?.id ? getMethodRequirements(selectedMethod.id) : undefined),
+    [selectedMethod?.id]
+  )
 
   // Determine selector type
   // Special case: one-way-anova/anova + AI detected 2+ factors → two-way-anova
@@ -111,7 +118,16 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     setValidationAlert(null)
 
     if (selectedMethod && columnInfo.length > 0) {
-      const validation = validateVariableMapping(selectedMethod, mapping, columnInfo)
+      const mappingForValidation = (
+        selectedMethod.id === 'proportion-test' || selectedMethod.id === 'one-sample-proportion'
+      )
+        ? {
+            ...mapping,
+            nullProportion: String(analysisOptions.nullProportion ?? 0.5),
+          }
+        : mapping
+
+      const validation = validateVariableMapping(selectedMethod, mappingForValidation, columnInfo)
       if (!validation.isValid) {
         logger.warn('[VariableSelection] Validation errors', { errors: validation.errors })
         setValidationAlert(validation.errors.join(' / '))
@@ -139,7 +155,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     } else {
       goToNextStep()
     }
-  }, [selectedMethod, columnInfo, existingMapping, uploadedData, setVariableMapping, updateVariableMappingWithInvalidation, onComplete, goToNextStep])
+  }, [selectedMethod, columnInfo, existingMapping, uploadedData, analysisOptions.nullProportion, setVariableMapping, updateVariableMappingWithInvalidation, onComplete, goToNextStep])
 
   const handleBack = useCallback(() => {
     if (onBack) {
@@ -318,6 +334,23 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     })
   }, [selectedMethod, selectorType, initialSelection])
 
+  const mismatchHint = useMemo(() => {
+    if (!selectedMethod || selectorType !== 'group-comparison' || !detectedVariables) return undefined
+
+    const isIndependentComparisonMethod = ['t-test', 'two-sample-t', 'welch-t', 'mann-whitney'].includes(selectedMethod.id)
+    if (!isIndependentComparisonMethod) return undefined
+
+    if (detectedVariables.pairedVars?.length === 2 && !detectedVariables.groupVariable) {
+      return {
+        title: '현재 데이터는 대응 비교 구조에 더 가깝습니다',
+        message: `선택된 데이터는 ${detectedVariables.pairedVars.join(', ')}처럼 같은 대상의 전후 측정값으로 보입니다. 독립 집단 비교보다 대응표본 t-검정을 먼저 검토하는 편이 안전합니다.`,
+        actionLabel: '대응표본 t-검정 또는 Wilcoxon 검정을 검토해보세요.',
+      }
+    }
+
+    return undefined
+  }, [selectedMethod, selectorType, detectedVariables])
+
   // No data check
   if (!uploadedData || uploadedData.length === 0) {
     return (
@@ -351,22 +384,6 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
       )
     }
 
-    // Chi-square family: fallback to ChiSquareSelector
-    // (goodness/proportion need 1-var mode + nullProportion; mcnemar needs binary filter)
-    if (selectorType === 'chi-square') {
-      return (
-        <ChiSquareSelector
-          data={uploadedData}
-          onComplete={handleComplete}
-          onBack={handleBack}
-          backLabel={backLabel}
-          initialSelection={initialSelection}
-          className="mt-4"
-          methodId={selectedMethod?.id}
-        />
-      )
-    }
-
     // All other selector types use UnifiedVariableSelector
     return (
       <UnifiedVariableSelector
@@ -377,6 +394,9 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         backLabel={backLabel}
         initialSelection={initialSelection}
         className="mt-4"
+        methodId={selectedMethod?.id}
+        methodName={selectedMethod?.name}
+        mismatchHint={mismatchHint}
       />
     )
   }
@@ -495,7 +515,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           data-testid="analysis-options-section"
         >
           <AnalysisOptionsSection
-            showTestValue={selectorType === 'one-sample'}
+            methodRequirements={methodRequirements}
             className="px-3 py-3"
           />
         </CollapsibleSection>

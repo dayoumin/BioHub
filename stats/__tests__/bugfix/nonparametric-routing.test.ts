@@ -171,11 +171,13 @@ describe('StatisticalExecutor: 비모수 라우팅 시뮬레이션', () => {
       expect(mock.chiSquareIndependenceTest).not.toHaveBeenCalled()
       expect(mock.chiSquareGoodnessTest).not.toHaveBeenCalled()
 
-      // 인자: (successCount, totalCount, nullProportion)
-      const [successCount, totalCount, nullProportion] = mock.oneSampleProportionTest.mock.calls[0]
+      // 인자: (successCount, totalCount, nullProportion, alternative, alpha)
+      const [successCount, totalCount, nullProportion, alternative, alpha] = mock.oneSampleProportionTest.mock.calls[0]
       expect(typeof successCount).toBe('number')
       expect(typeof totalCount).toBe('number')
       expect(nullProportion).toBe(0.5)
+      expect(alternative).toBeUndefined()
+      expect(alpha).toBeUndefined()
     })
   })
 

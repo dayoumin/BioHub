@@ -1,11 +1,8 @@
 /**
  * Chi-square validation regression test
  *
- * Simulates the actual data flow:
- * ChiSquareSelector → handleComplete → validateVariableMapping
- *
- * Verifies that the validation function correctly handles
- * the mapping format produced by ChiSquareSelector for each mode.
+ * Simulates the actual data flow from the common Step 3 selector into
+ * validateVariableMapping for chi-square family methods.
  */
 import { describe, it, expect } from 'vitest'
 import { validateVariableMapping } from '@/lib/statistics/variable-mapping'
@@ -127,10 +124,10 @@ describe('chi-square validateVariableMapping', () => {
     })
   })
 
-  describe('ChiSquareSelector 실제 출력 시뮬레이션', () => {
+  describe('공통 selector 출력 시뮬레이션', () => {
 
     it('independence 모드: { independentVar, dependentVar } → valid', () => {
-      // ChiSquareSelector.tsx:135-136 의 실제 출력 형식
+      // Common selector independence mapping format
       for (const id of ['chi-square', 'chi-square-independence', 'mcnemar']) {
         const mapping = { independentVar: 'gender', dependentVar: 'treatment' }
         const result = validateVariableMapping(makeMethod(id), mapping, dummyColumns)
@@ -139,7 +136,7 @@ describe('chi-square validateVariableMapping', () => {
     })
 
     it('goodness 모드: { dependentVar } → valid', () => {
-      // ChiSquareSelector.tsx:137-144 의 실제 출력 형식
+      // Common selector goodness mapping format
       const mapping = { dependentVar: 'gender' }
       const result = validateVariableMapping(makeMethod('chi-square-goodness'), mapping, dummyColumns)
       expect(result.isValid).toBe(true)
@@ -164,9 +161,8 @@ describe('chi-square validateVariableMapping', () => {
     })
   })
 
-  describe('slot-configs dead code 인지', () => {
-    // slot-configs.ts의 'chi-square' case는 VariableSelectionStep에서 도달 불가 (ChiSquareSelector로 라우팅)
-    // 이 테스트는 buildMappingFromSlots가 만드는 형식이 validation과 불일치함을 증명
+  describe('slot-configs chi-square mapping compatibility', () => {
+    // Common selector now uses slot-configs / method requirements for the chi-square family.
     it('slot-configs chi-square 출력 형식은 independence validation과 호환됨', () => {
       // slot-configs가 만드는 형식: { independentVar: '...', dependentVar: '...' }
       // 이건 independence mode validation과 일치 — 만약 누군가 fallback을 제거해도 independence는 동작
@@ -183,5 +179,57 @@ describe('chi-square validateVariableMapping', () => {
       // goodness는 dependentVar만 체크 → independentVar가 있어도 valid (문제는 UI가 불필요한 2번째 변수를 요구하는 것)
       expect(result.isValid).toBe(true)
     })
+  })
+})
+
+describe('mcnemar validation with unified selector mapping', () => {
+  it('accepts variables array when the method category is nonparametric', () => {
+    const result = validateVariableMapping(
+      {
+        id: 'mcnemar',
+        name: 'mcnemar',
+        description: '',
+        category: 'nonparametric',
+      } as StatisticalMethod,
+      { variables: ['gender', 'outcome'] },
+      dummyColumns
+    )
+
+    expect(result.isValid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+})
+
+describe('one-sample proportion validation with common options', () => {
+  it('accepts dependentVar for a nonparametric one-sample proportion method', () => {
+    const result = validateVariableMapping(
+      {
+        id: 'one-sample-proportion',
+        name: 'one-sample-proportion',
+        description: '',
+        category: 'nonparametric',
+      } as StatisticalMethod,
+      { dependentVar: 'outcome' },
+      dummyColumns
+    )
+
+    expect(result.isValid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+
+  it('rejects invalid nullProportion values', () => {
+    const result = validateVariableMapping(
+      {
+        id: 'proportion-test',
+        name: 'proportion-test',
+        description: '',
+        category: 'nonparametric',
+      } as StatisticalMethod,
+      { dependentVar: 'outcome', nullProportion: '1.2' },
+      dummyColumns
+    )
+
+    expect(result.isValid).toBe(false)
+    expect(result.errors[0]).toContain('1')
   })
 })

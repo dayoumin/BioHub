@@ -297,7 +297,7 @@ export class StatisticalExecutor {
           result = await handleCorrelation(method, preparedData)
           break
         case 'nonparametric':
-          result = await handleNonparametric(method, preparedData)
+          result = await handleNonparametric(method, preparedData, settings)
           break
         case 'chi-square':
           result = await handleChiSquare(method, preparedData)
@@ -315,7 +315,7 @@ export class StatisticalExecutor {
           result = await handleSurvival(method, preparedData)
           break
         case 'design':
-          result = await handleDesign(method, preparedData)
+          result = await handleDesign(method, preparedData, settings)
           break
         default:
           throw new Error(`지원되지 않는 분석 카테고리: ${category}`)

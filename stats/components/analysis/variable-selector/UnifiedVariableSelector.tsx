@@ -1,13 +1,5 @@
 'use client'
 
-/**
- * UnifiedVariableSelector — 통합 변수 선택 컴포넌트
- *
- * STITCH 시안 기반: 좌(변수 풀) + 우(역할 슬롯) 2-column 레이아웃.
- * 클릭 기본 + @dnd-kit 드래그&드롭 향상.
- * SelectorType별 슬롯 구성은 slot-configs.ts에서 가져옴.
- */
-
 import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import {
   DndContext,
@@ -24,10 +16,15 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { AlertCircle, GripVertical, X, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { AlertCircle, GripVertical, X, ArrowRight, ArrowLeft, CheckCircle2, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { analyzeDataset } from '@/lib/services'
 import { isRecord } from '@/lib/utils/type-guards'
+import {
+  getMethodRequirements,
+  type StatisticalMethodRequirements,
+  type VariableRequirement,
+} from '@/lib/statistics/variable-requirements'
 import {
   getSlotConfigs,
   toAcceptedType,
@@ -40,8 +37,16 @@ import {
 } from './slot-configs'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import { LiveDataSummary } from './LiveDataSummary'
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+import {
+  buildSlotsFromMethodRequirements,
+  buildMethodFitState,
+  buildVariableCandidates,
+  decorateSlotsWithMethodRequirements,
+  type MethodFitState,
+  type MethodMismatchHint,
+  type SelectorColumnInfo,
+  type VariableCandidate,
+} from './method-fit'
 
 interface UnifiedVariableSelectorProps {
   data: Record<string, unknown>[]
@@ -51,15 +56,10 @@ interface UnifiedVariableSelectorProps {
   initialSelection?: Partial<VariableMapping>
   className?: string
   backLabel?: string
+  methodId?: string
+  methodName?: string
+  mismatchHint?: MethodMismatchHint
 }
-
-interface ColumnInfo {
-  name: string
-  type: AcceptedType
-  uniqueCount: number
-}
-
-// ─── Color map ────────────────────────────────────────────────────────────────
 
 const COLOR_MAP = {
   info: {
@@ -92,22 +92,18 @@ const COLOR_MAP = {
   },
 } as const
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-/** Draggable variable chip in the pool */
 function PoolVariable({
-  column,
-  isAssigned,
+  candidate,
   onClick,
 }: {
-  column: ColumnInfo
-  isAssigned: boolean
+  candidate: VariableCandidate
   onClick: () => void
 }) {
+  const { column, status, isSelectable } = candidate
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `pool-${column.name}`,
     data: { columnName: column.name, columnType: column.type },
-    disabled: isAssigned,
+    disabled: status === 'assigned' || !isSelectable,
   })
 
   return (
@@ -115,37 +111,57 @@ function PoolVariable({
       ref={setNodeRef}
       onClick={onClick}
       className={cn(
-        'flex items-center gap-2 w-full px-3 py-2 rounded-lg text-left text-sm',
-        'border transition-all duration-150',
-        isAssigned
-          ? 'cursor-pointer border-transparent bg-muted/30 opacity-60 hover:opacity-80 hover:bg-muted/50'
-          : 'cursor-pointer border-border/50 hover:border-primary/40 hover:bg-accent/50 active:scale-[0.98]',
+        'flex w-full items-start gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-all duration-150',
+        status === 'assigned'
+          ? 'cursor-pointer border-transparent bg-muted/30 opacity-75 hover:opacity-90 hover:bg-muted/50'
+          : status === 'invalid'
+            ? 'cursor-pointer border-destructive/20 bg-destructive/5 opacity-75 hover:bg-destructive/10'
+            : status === 'recommended'
+              ? 'cursor-pointer border-primary/40 bg-primary/5 hover:border-primary/60 hover:bg-primary/10 active:scale-[0.98]'
+              : 'cursor-pointer border-border/50 hover:border-primary/40 hover:bg-accent/50 active:scale-[0.98]',
         isDragging && 'opacity-50',
       )}
       data-testid={`pool-var-${column.name}`}
-      {...(isAssigned ? {} : { ...attributes, ...listeners })}
+      {...((status === 'assigned' || !isSelectable) ? {} : { ...attributes, ...listeners })}
     >
-      <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50 flex-shrink-0" />
-      <span className="truncate flex-1 font-medium">{column.name}</span>
-      <Badge
-        variant="outline"
-        className={cn(
-          'text-[10px] px-1.5 py-0 flex-shrink-0',
-          column.type === 'numeric'
-            ? 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-800'
-            : 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800',
-        )}
-      >
-        {column.type === 'numeric' ? '연속형' : '범주형'}
-      </Badge>
+      <GripVertical className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/50" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className="truncate font-medium">{column.name}</span>
+          <Badge
+            variant="outline"
+            className={cn(
+              'text-[10px] px-1.5 py-0',
+              column.type === 'numeric'
+                ? 'border-blue-200 bg-blue-50 text-blue-600 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400'
+                : 'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400',
+            )}
+          >
+            {column.type === 'numeric' ? '연속형' : '범주형'}
+          </Badge>
+          <Badge
+            variant="outline"
+            className={cn(
+              'text-[10px] px-1.5 py-0',
+              status === 'recommended' && 'border-primary/30 bg-primary/10 text-primary',
+              status === 'valid' && 'border-emerald-200 bg-emerald-50 text-emerald-700',
+              status === 'assigned' && 'border-border/50 bg-muted text-muted-foreground',
+              status === 'caution' && 'border-amber-300 bg-amber-50 text-amber-700',
+              status === 'invalid' && 'border-destructive/30 bg-destructive/10 text-destructive',
+            )}
+          >
+            {status === 'recommended' ? '추천' : status === 'valid' ? '가능' : status === 'assigned' ? '배정됨' : status === 'caution' ? '주의' : '불가'}
+          </Badge>
+        </div>
+        <p className="mt-1 truncate text-[11px] text-muted-foreground">{candidate.reason}</p>
+      </div>
     </button>
   )
 }
 
-/** Drag overlay chip (follows cursor) */
 function DragOverlayChip({ name, type }: { name: string; type: AcceptedType }) {
   return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-primary/50 bg-background shadow-lg text-sm">
+    <div className="flex items-center gap-2 rounded-lg border border-primary/50 bg-background px-3 py-2 text-sm shadow-lg">
       <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50" />
       <span className="font-medium">{name}</span>
       <Badge variant="outline" className="text-[10px] px-1.5 py-0">
@@ -155,7 +171,6 @@ function DragOverlayChip({ name, type }: { name: string; type: AcceptedType }) {
   )
 }
 
-/** Droppable role slot */
 function RoleSlot({
   slot,
   assignedVars,
@@ -167,7 +182,7 @@ function RoleSlot({
 }: {
   slot: SlotConfig
   assignedVars: string[]
-  columns: ColumnInfo[]
+  columns: SelectorColumnInfo[]
   onRemove: (varName: string) => void
   onClickAssign: (slotId: string) => void
   isActive: boolean
@@ -179,10 +194,6 @@ function RoleSlot({
   })
 
   const colors = COLOR_MAP[slot.colorScheme]
-  const isFull = !slot.multiple && assignedVars.length >= 1
-  const isMultipleFull = slot.multiple && slot.maxCount !== undefined && assignedVars.length >= slot.maxCount
-
-  // Check if the dragged item's type is accepted
   const activeType = active?.data?.current?.columnType as AcceptedType | undefined
   const canDrop = activeType ? isTypeAccepted(slot, activeType) : true
   const isRejectDrop = isOver && !canDrop
@@ -192,7 +203,7 @@ function RoleSlot({
     <div
       ref={setNodeRef}
       className={cn(
-        'rounded-lg border-2 border-dashed p-3 transition-all duration-150 min-h-[56px]',
+        'min-h-[64px] rounded-lg border-2 border-dashed p-3 transition-all duration-150',
         colors.dashed,
         isOver && canDrop && 'border-primary/60 bg-primary/5',
         isRejectDrop && 'border-destructive/60 bg-destructive/5',
@@ -202,19 +213,18 @@ function RoleSlot({
       )}
       data-testid={`slot-${slot.id}`}
     >
-      {/* Slot header */}
-      <div className="flex items-center justify-between mb-1.5">
+      <div className="mb-1.5 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <span className={cn('text-xs font-semibold', colors.text)}>{slot.label}</span>
-          {slot.required ? (
-            <Badge variant="outline" className="text-[9px] px-1 py-0 border-destructive/30 text-destructive">
-              필수
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="text-[9px] px-1 py-0">
-              선택
-            </Badge>
-          )}
+          <Badge
+            variant="outline"
+            className={cn(
+              'text-[9px] px-1 py-0',
+              slot.required ? 'border-destructive/30 text-destructive' : '',
+            )}
+          >
+            {slot.required ? '필수' : '선택'}
+          </Badge>
         </div>
         {slot.multiple && slot.maxCount && (
           <span className="text-[10px] text-muted-foreground">
@@ -223,7 +233,6 @@ function RoleSlot({
         )}
       </div>
 
-      {/* Assigned variable chips */}
       {assignedVars.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
           {assignedVars.map(varName => {
@@ -232,20 +241,23 @@ function RoleSlot({
               <div
                 key={varName}
                 className={cn(
-                  'flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium',
+                  'flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium',
                   colors.chip,
                 )}
                 data-testid={`chip-${varName}`}
               >
                 <span>{varName}</span>
                 {col && (
-                  <span className="opacity-60 text-[10px]">
+                  <span className="text-[10px] opacity-60">
                     {col.type === 'numeric' ? '연속형' : '범주형'}
                   </span>
                 )}
                 <button
-                  onClick={(e) => { e.stopPropagation(); onRemove(varName) }}
-                  className="ml-0.5 rounded-full p-0.5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    onRemove(varName)
+                  }}
+                  className="ml-0.5 rounded-full p-0.5 transition-colors hover:bg-black/10 dark:hover:bg-white/10"
                   aria-label={`${varName} 제거`}
                   data-testid={`remove-${varName}`}
                 >
@@ -258,11 +270,10 @@ function RoleSlot({
       ) : (
         <button
           onClick={() => onClickAssign(slot.id)}
-          className="w-full py-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
-          disabled={isFull || isMultipleFull}
+          className="w-full py-1 text-left text-xs text-muted-foreground/70 transition-colors hover:text-muted-foreground"
         >
           {isRejectDrop ? (
-            '이 타입은 배치할 수 없습니다'
+            '이 역할에는 맞지 않는 변수입니다.'
           ) : (
             <div className="space-y-1">
               <div className={cn('font-medium', hasValidationError && 'text-destructive')}>
@@ -279,7 +290,173 @@ function RoleSlot({
   )
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+function MethodFitBanner({
+  fitState,
+  methodName,
+}: {
+  fitState: MethodFitState
+  methodName?: string
+}) {
+  const tone = {
+    ready: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+    partial: 'border-amber-200 bg-amber-50 text-amber-900',
+    blocked: 'border-destructive/20 bg-destructive/5 text-foreground',
+    mismatch: 'border-primary/20 bg-primary/5 text-foreground',
+  }[fitState.status]
+
+  const icon = fitState.status === 'ready'
+    ? <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-700" />
+    : fitState.status === 'partial'
+      ? <Info className="mt-0.5 h-4 w-4 text-amber-700" />
+      : <AlertCircle className="mt-0.5 h-4 w-4 text-destructive" />
+
+  return (
+    <div className={cn('rounded-2xl border px-4 py-3 shadow-sm', tone)} data-testid="method-fit-banner">
+      <div className="flex items-start gap-3">
+        {icon}
+        <div className="min-w-0">
+          <p className="text-sm font-semibold tracking-tight">
+            {methodName ? `${methodName} 설정 상태` : fitState.title}
+          </p>
+          <p className="mt-1 text-sm">{fitState.message}</p>
+          {fitState.actionLabel && (
+            <p className="mt-2 text-xs text-muted-foreground">{fitState.actionLabel}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function getRequirementTypeSummary(requirement: VariableRequirement) {
+  const variableCount = requirement.multiple
+    ? `${requirement.minCount ?? 1}${requirement.maxCount ? `-${requirement.maxCount}` : '+'} variables`
+    : '1 variable'
+  return `${variableCount} · ${requirement.types.join(', ')}`
+}
+
+function MethodGuidancePanel({
+  methodRequirements,
+}: {
+  methodRequirements?: StatisticalMethodRequirements
+}) {
+  if (!methodRequirements) return null
+
+  const previewColumns = methodRequirements.dataFormat?.columns?.slice(0, 4) ?? []
+  const previewNotes = methodRequirements.notes?.slice(0, 3) ?? []
+  const previewAssumptions = methodRequirements.assumptions.slice(0, 4)
+
+  return (
+    <div
+      className="rounded-2xl border border-border/40 bg-background px-4 py-4 shadow-[0px_6px_24px_rgba(25,28,30,0.04)]"
+      data-testid="method-guidance-panel"
+    >
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
+            Method Guide
+          </p>
+          <p className="mt-1 text-sm font-medium text-foreground">
+            {methodRequirements.description}
+          </p>
+          {methodRequirements.dataFormat && (
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              Data format: {methodRequirements.dataFormat.description}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="outline" className="text-[11px] font-medium">
+            Min n {methodRequirements.minSampleSize}
+          </Badge>
+          {methodRequirements.dataFormat?.type && (
+            <Badge variant="secondary" className="text-[11px] font-medium capitalize">
+              {methodRequirements.dataFormat.type} format
+            </Badge>
+          )}
+          <Badge variant="outline" className="text-[11px] font-medium">
+            Roles {methodRequirements.variables.length}
+          </Badge>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.95fr)_minmax(0,0.9fr)]">
+        <div className="rounded-xl border border-border/40 bg-surface-container-lowest p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Required roles
+          </p>
+          <div className="mt-2 space-y-2">
+            {methodRequirements.variables.map(requirement => (
+              <div key={`${requirement.role}-${requirement.label}`} className="rounded-lg border border-border/30 bg-background px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">{requirement.label}</span>
+                  <Badge variant={requirement.required ? 'default' : 'outline'} className="text-[10px]">
+                    {requirement.required ? 'Required' : 'Optional'}
+                  </Badge>
+                </div>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {getRequirementTypeSummary(requirement)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border/40 bg-surface-container-lowest p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Assumptions
+          </p>
+          {previewAssumptions.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {previewAssumptions.map(assumption => (
+                <Badge key={assumption} variant="outline" className="text-[10px]">
+                  {assumption}
+                </Badge>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-xs text-muted-foreground">No major assumptions listed for this method.</p>
+          )}
+          {previewNotes.length > 0 && (
+            <>
+              <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Notes
+              </p>
+              <ul className="mt-2 space-y-1 text-xs leading-relaxed text-muted-foreground">
+                {previewNotes.map(note => (
+                  <li key={note}>- {note}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-border/40 bg-surface-container-lowest p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Expected columns
+          </p>
+          {previewColumns.length > 0 ? (
+            <div className="mt-2 space-y-2">
+              {previewColumns.map(column => (
+                <div key={column.name} className="rounded-lg border border-border/30 bg-background px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground">{column.name}</span>
+                    {column.required && (
+                      <Badge variant="outline" className="text-[10px]">Required</Badge>
+                    )}
+                  </div>
+                  <p className="mt-1 text-[11px] text-muted-foreground">{column.description}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-xs text-muted-foreground">No example schema is attached to this method yet.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export function UnifiedVariableSelector({
   data,
@@ -289,37 +466,52 @@ export function UnifiedVariableSelector({
   initialSelection,
   className,
   backLabel,
+  methodId,
+  methodName,
+  mismatchHint,
 }: UnifiedVariableSelectorProps) {
-  // dnd-kit: 5px 이동 후에만 드래그 시작 → 클릭과 드래그 구분
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   )
 
-  const slots = useMemo(() => getSlotConfigs(selectorType), [selectorType])
+  const methodRequirements = useMemo(
+    () => (methodId ? getMethodRequirements(methodId) : undefined),
+    [methodId]
+  )
 
-  // Analyze dataset columns
-  const columns = useMemo((): ColumnInfo[] => {
+  const baseSlots = useMemo(
+    () => buildSlotsFromMethodRequirements(selectorType, methodRequirements) ?? getSlotConfigs(selectorType),
+    [selectorType, methodRequirements]
+  )
+  const slots = useMemo(
+    () => decorateSlotsWithMethodRequirements(baseSlots, methodRequirements),
+    [baseSlots, methodRequirements]
+  )
+
+  const columns = useMemo((): SelectorColumnInfo[] => {
     if (!data || data.length === 0) return []
     const safeData = data.filter(isRecord)
     if (safeData.length === 0) return []
+
     const analysis = analyzeDataset(safeData, { detectIdColumns: true })
     return analysis.columns
-      .filter(col => !col.idDetection?.isId)
-      .map(col => ({
-        name: col.name,
-        type: toAcceptedType(col.type),
-        uniqueCount: col.uniqueCount,
+      .filter(column => !column.idDetection?.isId)
+      .map(column => ({
+        name: column.name,
+        type: toAcceptedType(column.type),
+        rawType: column.type,
+        dataType: column.dataType,
+        uniqueCount: column.uniqueCount,
+        missingCount: column.missingCount,
+        nonMissingCount: column.totalCount - column.missingCount,
+        sampleValues: column.samples ?? safeData.slice(0, 20).map(row => row[column.name]),
       }))
   }, [data])
 
-  // Slot assignments: { slotId: [varName, ...] }
   const [assignments, setAssignments] = useState<Record<string, string[]>>(() =>
     buildInitialAssignments(slots, columns, initialSelection)
   )
 
-  // Sync assignments when initialSelection, slots, or columns change after mount
-  // (e.g., AI detection results arrive late, anova upgrades to two-way-anova, or data replaced)
-  // slots/columns are useMemo results — stable references unless selectorType/data changes
   useEffect(() => {
     if (columns.length === 0) return
     setAssignments(buildInitialAssignments(slots, columns, initialSelection))
@@ -328,6 +520,7 @@ export function UnifiedVariableSelector({
   const [activeSlotId, setActiveSlotId] = useState<string | null>(null)
   const [dragItem, setDragItem] = useState<{ name: string; type: AcceptedType } | null>(null)
   const [validationErrors, setValidationErrors] = useState<string[]>([])
+
   const liveValidationErrors = useMemo(() => validateSlots(slots, assignments), [slots, assignments])
   const slotValidationState = useMemo(() => {
     const state = new Set<string>()
@@ -339,37 +532,68 @@ export function UnifiedVariableSelector({
     return state
   }, [slots, liveValidationErrors])
 
-  // All assigned variable names (across all slots)
   const assignedSet = useMemo(() => {
     const set = new Set<string>()
     for (const vars of Object.values(assignments)) {
-      for (const v of vars) set.add(v)
+      for (const variable of vars) {
+        set.add(variable)
+      }
     }
     return set
   }, [assignments])
 
-  // Find first available slot for a given variable type
+  const focusedSlotId = useMemo(() => {
+    if (activeSlotId) return activeSlotId
+
+    const firstMissingRequired = slots.find(slot => {
+      if (!slot.required) return false
+      const assigned = assignments[slot.id] ?? []
+      if (assigned.length === 0) return true
+      return slot.minCount !== undefined && assigned.length < slot.minCount
+    })
+
+    return firstMissingRequired?.id ?? slots[0]?.id ?? null
+  }, [activeSlotId, assignments, slots])
+
+  const focusedSlot = useMemo(
+    () => slots.find(slot => slot.id === focusedSlotId) ?? null,
+    [focusedSlotId, slots]
+  )
+
+  const fitState = useMemo(() => buildMethodFitState({
+    slots,
+    assignments,
+    columns,
+    methodRequirements,
+    methodId,
+    mismatchHint,
+  }), [slots, assignments, columns, methodRequirements, methodId, mismatchHint])
+
+  const variableCandidates = useMemo(() => buildVariableCandidates({
+    columns,
+    slots,
+    assignments,
+    focusSlotId: focusedSlotId,
+    methodRequirements,
+    methodId,
+  }), [columns, slots, assignments, focusedSlotId, methodRequirements, methodId])
+
   const findTargetSlot = useCallback((varType: AcceptedType): SlotConfig | undefined => {
-    // If a slot is "active" (clicked), use that
-    if (activeSlotId) {
-      const slot = slots.find(s => s.id === activeSlotId)
-      if (slot && isTypeAccepted(slot, varType)) {
-        const assigned = assignments[slot.id] ?? []
-        const isFull = !slot.multiple && assigned.length >= 1
-        const isMultiFull = slot.multiple && slot.maxCount !== undefined && assigned.length >= slot.maxCount
-        if (!isFull && !isMultiFull) return slot
-      }
+    if (focusedSlot && isTypeAccepted(focusedSlot, varType)) {
+      const assigned = assignments[focusedSlot.id] ?? []
+      const isFull = !focusedSlot.multiple && assigned.length >= 1
+      const isMultiFull = focusedSlot.multiple && focusedSlot.maxCount !== undefined && assigned.length >= focusedSlot.maxCount
+      if (!isFull && !isMultiFull) return focusedSlot
     }
-    // Otherwise, find first empty required slot that accepts this type
+
     for (const slot of slots) {
       if (!isTypeAccepted(slot, varType)) continue
       const assigned = assignments[slot.id] ?? []
       if (!slot.multiple && assigned.length >= 1) continue
       if (slot.multiple && slot.maxCount !== undefined && assigned.length >= slot.maxCount) continue
-      // Prefer required slots first
       if (slot.required && assigned.length === 0) return slot
     }
-    // Then any slot with space
+
     for (const slot of slots) {
       if (!isTypeAccepted(slot, varType)) continue
       const assigned = assignments[slot.id] ?? []
@@ -377,18 +601,19 @@ export function UnifiedVariableSelector({
       if (slot.multiple && slot.maxCount !== undefined && assigned.length >= slot.maxCount) continue
       return slot
     }
-    return undefined
-  }, [slots, assignments, activeSlotId])
 
-  // Click to assign or unassign (toggle) a variable from pool
-  const handlePoolClick = useCallback((column: ColumnInfo) => {
-    // If already assigned → remove from its slot (toggle off)
+    return undefined
+  }, [focusedSlot, assignments, slots])
+
+  const handlePoolClick = useCallback((candidate: VariableCandidate) => {
+    const { column } = candidate
+
     if (assignedSet.has(column.name)) {
       setAssignments(prev => {
         const next = { ...prev }
         for (const slotId of Object.keys(next)) {
           if (next[slotId]?.includes(column.name)) {
-            next[slotId] = next[slotId].filter(v => v !== column.name)
+            next[slotId] = next[slotId].filter(value => value !== column.name)
             break
           }
         }
@@ -398,7 +623,12 @@ export function UnifiedVariableSelector({
       return
     }
 
-    // Otherwise assign to target slot
+    if (!candidate.isSelectable) {
+      setValidationErrors([candidate.reason])
+      if (focusedSlotId) setActiveSlotId(focusedSlotId)
+      return
+    }
+
     const targetSlot = findTargetSlot(column.type)
     if (!targetSlot) return
 
@@ -408,27 +638,24 @@ export function UnifiedVariableSelector({
     }))
     setActiveSlotId(null)
     setValidationErrors([])
-  }, [assignedSet, findTargetSlot])
+  }, [assignedSet, findTargetSlot, focusedSlotId])
 
-  // Click slot to make it the active target
   const handleSlotClick = useCallback((slotId: string) => {
     setActiveSlotId(prev => prev === slotId ? null : slotId)
   }, [])
 
-  // Remove a variable from a slot
   const handleRemove = useCallback((slotId: string, varName: string) => {
     setAssignments(prev => ({
       ...prev,
-      [slotId]: (prev[slotId] ?? []).filter(v => v !== varName),
+      [slotId]: (prev[slotId] ?? []).filter(value => value !== varName),
     }))
     setValidationErrors([])
   }, [])
 
-  // DnD handlers
   const handleDragStart = useCallback((event: DragStartEvent) => {
-    const data = event.active.data.current
-    if (!data || typeof data.columnName !== 'string' || typeof data.columnType !== 'string') return
-    setDragItem({ name: data.columnName, type: data.columnType as AcceptedType })
+    const payload = event.active.data.current
+    if (!payload || typeof payload.columnName !== 'string' || typeof payload.columnType !== 'string') return
+    setDragItem({ name: payload.columnName, type: payload.columnType as AcceptedType })
   }, [])
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
@@ -437,76 +664,78 @@ export function UnifiedVariableSelector({
     if (!over) return
 
     const slotId = over.data.current && typeof over.data.current.slotId === 'string'
-      ? over.data.current.slotId : undefined
+      ? over.data.current.slotId
+      : undefined
     if (!slotId) return
 
-    const data = active.data.current
-    if (!data || typeof data.columnName !== 'string' || typeof data.columnType !== 'string') return
-    const columnName = data.columnName
-    const columnType = data.columnType as AcceptedType
+    const payload = active.data.current
+    if (!payload || typeof payload.columnName !== 'string' || typeof payload.columnType !== 'string') return
 
-    const slot = slots.find(s => s.id === slotId)
-    if (!slot || !isTypeAccepted(slot, columnType)) return
+    const slot = slots.find(item => item.id === slotId)
+    if (!slot || !isTypeAccepted(slot, payload.columnType as AcceptedType)) return
 
     const assigned = assignments[slotId] ?? []
     if (!slot.multiple && assigned.length >= 1) return
     if (slot.multiple && slot.maxCount !== undefined && assigned.length >= slot.maxCount) return
-    if (assignedSet.has(columnName)) return
+    if (assignedSet.has(payload.columnName)) return
+
+    const candidate = variableCandidates.find(item => item.column.name === payload.columnName)
+    if (!candidate?.isSelectable) return
 
     setAssignments(prev => ({
       ...prev,
-      [slotId]: [...(prev[slotId] ?? []), columnName],
+      [slotId]: [...(prev[slotId] ?? []), payload.columnName],
     }))
     setValidationErrors([])
-  }, [slots, assignments, assignedSet])
+  }, [slots, assignments, assignedSet, variableCandidates])
 
-  // Submit
   const handleSubmit = useCallback(() => {
     const errors = validateSlots(slots, assignments)
     if (errors.length > 0) {
       setValidationErrors(errors)
       return
     }
+
+    if (fitState.status !== 'ready') {
+      setValidationErrors([fitState.message])
+      return
+    }
+
     const mapping = buildMappingFromSlots(slots, assignments)
     onComplete(mapping)
-  }, [slots, assignments, onComplete])
+  }, [slots, assignments, fitState, onComplete])
 
-  // Check if ready
-  const isValid = useMemo(() => {
-    return liveValidationErrors.length === 0
-  }, [liveValidationErrors])
-
-  const requiredSlotCount = useMemo(
-    () => slots.filter(slot => slot.required).length,
-    [slots]
-  )
-
+  const isReady = fitState.status === 'ready' && liveValidationErrors.length === 0
+  const requiredSlotCount = useMemo(() => slots.filter(slot => slot.required).length, [slots])
   const completedRequiredSlotCount = useMemo(
     () => slots.filter(slot => slot.required && (assignments[slot.id] ?? []).length > 0).length,
     [slots, assignments]
   )
-
   const assignedVariableCount = useMemo(
     () => Object.values(assignments).reduce((sum, vars) => sum + vars.length, 0),
     [assignments]
   )
-
-  const remainingRequiredSlotCount = Math.max(requiredSlotCount - completedRequiredSlotCount, 0)
   const numericColumnCount = useMemo(
     () => columns.filter(column => column.type === 'numeric').length,
     [columns]
   )
   const categoricalColumnCount = columns.length - numericColumnCount
+  const recommendedCandidateCount = useMemo(
+    () => variableCandidates.filter(candidate => candidate.status === 'recommended').length,
+    [variableCandidates]
+  )
 
   return (
     <div className={cn('space-y-4', className)} data-testid="unified-variable-selector">
-      {/* Validation errors */}
       {validationErrors.length > 0 && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{validationErrors.join(' / ')}</AlertDescription>
         </Alert>
       )}
+
+      <MethodFitBanner fitState={fitState} methodName={methodName ?? methodRequirements?.name} />
+      <MethodGuidancePanel methodRequirements={methodRequirements} />
 
       <DndContext
         sensors={sensors}
@@ -523,36 +752,35 @@ export function UnifiedVariableSelector({
               <p className="text-sm font-semibold tracking-tight text-foreground">
                 역할 슬롯을 먼저 채우세요
               </p>
-              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                슬롯을 클릭한 다음 변수를 누르거나 드래그해서 배정할 수 있습니다.
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                슬롯을 클릭하면 현재 역할에 맞는 변수만 먼저 정리됩니다. 드래그는 보조 기능으로만 사용할 수 있습니다.
               </p>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline" className="h-7 text-xs font-medium">
                 필수 슬롯 {completedRequiredSlotCount}/{requiredSlotCount}
               </Badge>
               <Badge variant="secondary" className="h-7 text-xs font-medium">
                 선택된 변수 {assignedVariableCount}개
               </Badge>
-              {remainingRequiredSlotCount > 0 && (
-                <Badge variant="outline" className="h-7 text-xs font-medium border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
-                  남은 필수 {remainingRequiredSlotCount}개
+              {recommendedCandidateCount > 0 && (
+                <Badge variant="outline" className="h-7 border-primary/20 bg-primary/5 text-xs font-medium text-primary">
+                  추천 후보 {recommendedCandidateCount}개
                 </Badge>
               )}
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.18fr)_minmax(320px,0.92fr)_240px] items-start">
-          {/* Left: Role Slots */}
-          <div className="order-1 space-y-3 rounded-2xl border border-border/40 bg-background p-4 shadow-[0px_6px_24px_rgba(25,28,30,0.04)] lg:order-1">
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1.18fr)_minmax(320px,0.92fr)_240px]">
+          <div className="order-1 space-y-3 rounded-2xl border border-border/40 bg-background p-4 shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
             <div className="flex items-start justify-between gap-3 px-1">
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   분석 역할
                 </h3>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  필수 슬롯부터 채우면 됩니다.
+                  필수 역할부터 채우면 시스템이 다음 추천 후보를 좁혀줍니다.
                 </p>
               </div>
               <Badge variant="outline" className="text-[11px] font-medium">
@@ -573,15 +801,17 @@ export function UnifiedVariableSelector({
             ))}
           </div>
 
-          {/* Center: Variable Pool */}
-          <div className="order-2 space-y-2 rounded-2xl border border-border/40 bg-background/80 p-4 shadow-[0px_6px_24px_rgba(25,28,30,0.04)] lg:order-2">
+          <div className="order-2 space-y-2 rounded-2xl border border-border/40 bg-background/80 p-4 shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
             <div className="flex items-start justify-between gap-3 px-1">
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   사용 가능한 변수
                 </h3>
                 <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <span>클릭 시 자동 배치</span>
+                  <span>현재 기준</span>
+                  <span className="rounded-full border border-border/50 bg-background px-2 py-0.5 font-medium text-foreground">
+                    {focusedSlot?.label ?? '역할 선택'}
+                  </span>
                   <span className="rounded-full border border-border/50 bg-background px-2 py-0.5">
                     연속형 {numericColumnCount}
                   </span>
@@ -594,24 +824,22 @@ export function UnifiedVariableSelector({
                 {columns.length}개
               </Badge>
             </div>
-            <div className="space-y-1 max-h-[280px] overflow-y-auto pr-1 lg:max-h-[500px]" data-testid="variable-pool">
-              {columns.map(col => (
+            <div className="space-y-1 overflow-y-auto pr-1 lg:max-h-[500px]" data-testid="variable-pool">
+              {variableCandidates.map(candidate => (
                 <PoolVariable
-                  key={col.name}
-                  column={col}
-                  isAssigned={assignedSet.has(col.name)}
-                  onClick={() => handlePoolClick(col)}
+                  key={candidate.column.name}
+                  candidate={candidate}
+                  onClick={() => handlePoolClick(candidate)}
                 />
               ))}
-              {columns.length === 0 && (
-                <p className="text-xs text-muted-foreground py-4 text-center">
-                  사용 가능한 변수가 없습니다
+              {variableCandidates.length === 0 && (
+                <p className="py-4 text-center text-xs text-muted-foreground">
+                  현재 역할에 사용할 수 있는 변수가 없습니다.
                 </p>
               )}
             </div>
           </div>
 
-          {/* Right: Live Data Summary */}
           <div className="hidden lg:order-3 lg:block lg:sticky lg:top-4">
             <LiveDataSummary
               data={data}
@@ -622,40 +850,34 @@ export function UnifiedVariableSelector({
           </div>
         </div>
 
-        {/* Drag overlay */}
         <DragOverlay>
           {dragItem && <DragOverlayChip name={dragItem.name} type={dragItem.type} />}
         </DragOverlay>
       </DndContext>
 
-      {/* Action buttons */}
       <div className="sticky bottom-0 z-10 -mx-1 rounded-2xl border border-border/40 bg-background/95 px-4 py-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               진행 상태
             </p>
-            <p className="mt-1 text-sm text-foreground">
-              {isValid
-                ? '필수 슬롯이 준비되었습니다. 분석을 실행할 수 있습니다.'
-                : `필수 슬롯 ${remainingRequiredSlotCount}개만 더 채우면 됩니다.`}
-            </p>
+            <p className="mt-1 text-sm text-foreground">{fitState.message}</p>
           </div>
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
             {onBack ? (
               <Button variant="outline" size="default" className="h-10 w-full sm:w-auto" onClick={onBack}>
-                <ArrowLeft className="h-4 w-4 mr-1.5" />
+                <ArrowLeft className="mr-1.5 h-4 w-4" />
                 {backLabel ?? '이전 단계'}
               </Button>
             ) : null}
             <Button
               onClick={handleSubmit}
               size="default"
-              disabled={!isValid}
+              disabled={!isReady}
               className="h-10 w-full gap-1.5 sm:w-auto"
               data-testid="variable-selection-next"
             >
-              {isValid && <CheckCircle2 className="h-3.5 w-3.5" />}
+              {isReady && <CheckCircle2 className="h-3.5 w-3.5" />}
               분석 실행으로 계속
               <ArrowRight className="h-4 w-4" />
             </Button>
@@ -666,15 +888,9 @@ export function UnifiedVariableSelector({
   )
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Build initial slot assignments from initialSelection (VariableMapping).
- * Maps each VariableMapping key back to the appropriate slot.
- */
 function buildInitialAssignments(
   slots: SlotConfig[],
-  columns: ColumnInfo[],
+  columns: SelectorColumnInfo[],
   initial?: Partial<VariableMapping>,
 ): Record<string, string[]> {
   const result: Record<string, string[]> = {}
@@ -684,28 +900,29 @@ function buildInitialAssignments(
 
   if (!initial || columns.length === 0) return result
 
-  const colNames = new Set(columns.map(c => c.name))
+  const columnNames = new Set(columns.map(column => column.name))
 
   for (const slot of slots) {
     const value = initial[slot.mappingKey]
     if (value === undefined || value === null) continue
 
     if (Array.isArray(value)) {
-      // Array input (e.g. variables: string[], covariate: string[])
-      result[slot.id] = value.filter(v => typeof v === 'string' && colNames.has(v))
-    } else if (typeof value === 'string') {
-      if (slot.multiple && slot.multipleFormat === 'comma') {
-        // Comma-separated string → split into array (e.g. groupVar, independentVar)
-        const parts = value.split(',').map(s => s.trim()).filter(s => colNames.has(s))
-        result[slot.id] = parts
-      } else if (slot.multiple) {
-        // Single string for a multiple-array slot → wrap in array
-        if (colNames.has(value)) result[slot.id] = [value]
-      } else {
-        if (colNames.has(value)) {
-          result[slot.id] = [value]
-        }
-      }
+      result[slot.id] = value.filter(variable => typeof variable === 'string' && columnNames.has(variable))
+      continue
+    }
+
+    if (typeof value !== 'string') continue
+
+    if (slot.multiple && slot.multipleFormat === 'comma') {
+      result[slot.id] = value
+        .split(',')
+        .map(part => part.trim())
+        .filter(part => columnNames.has(part))
+      continue
+    }
+
+    if (columnNames.has(value)) {
+      result[slot.id] = [value]
     }
   }
 
@@ -713,9 +930,5 @@ function buildInitialAssignments(
 }
 
 function getEmptySlotHint(slot: SlotConfig): string {
-  const typeLabel = slot.accepts.length === 1
-    ? slot.accepts[0] === 'numeric' ? '연속형 변수' : '범주형 변수'
-    : '연속형 또는 범주형 변수'
-
-  return `${typeLabel}를 클릭하거나 드래그하세요`
+  return `${slot.label}을(를) 클릭해서 채우세요`
 }

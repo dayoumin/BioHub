@@ -350,7 +350,7 @@ describe('StatisticalExecutor Routing', () => {
         { dependentVar: 'outcome', successCount: 0, nullProportion: '0.3' }
       )
 
-      expect(mockedStats.oneSampleProportionTest).toHaveBeenCalledWith(0, 4, 0.3)
+      expect(mockedStats.oneSampleProportionTest).toHaveBeenCalledWith(0, 4, 0.3, undefined, undefined)
     })
 
     it('should auto-detect positive label for proportion-test and expose successLabel', async () => {
@@ -368,7 +368,7 @@ describe('StatisticalExecutor Routing', () => {
         { dependentVar: 'outcome' }
       )
 
-      expect(mockedStats.oneSampleProportionTest).toHaveBeenCalledWith(3, 4, 0.5)
+      expect(mockedStats.oneSampleProportionTest).toHaveBeenCalledWith(3, 4, 0.5, undefined, undefined)
       expect((result.rawResults as { successLabel?: string }).successLabel).toBe('Yes')
       // interpretation에 successLabel 포함 여부 검증 (mock pValueExact=0.07 → not significant)
       expect(result.mainResults.interpretation).toContain('성공 기준: Yes')
@@ -445,6 +445,24 @@ describe('StatisticalExecutor Routing', () => {
       expect(result.additionalInfo.totalN).toBe(3)
     })
 
+    it('proportion-test: forwards alternative and alpha settings to oneSampleProportionTest', async () => {
+      const mockedStats = vi.mocked(pyodideStats)
+      const binaryData = [
+        { outcome: 'Yes' },
+        { outcome: 'No' },
+        { outcome: 'Yes' }
+      ]
+
+      await executor.executeMethod(
+        createMethod('proportion-test', 'Proportion Test', 'nonparametric'),
+        binaryData,
+        { dependentVar: 'outcome', nullProportion: '0.4' },
+        { alpha: 0.01, alternative: 'greater' }
+      )
+
+      expect(mockedStats.oneSampleProportionTest).toHaveBeenCalledWith(2, 3, 0.4, 'greater', 0.01)
+    })
+
     it('[ISSUE-3] proportion-test: missing dependentVar silently falls back to successCount=0', async () => {
       const mockedStats = vi.mocked(pyodideStats)
       // dependentVar 없음 → 자동 감지 실패 → successCount = undefined → ?? 0 (무음 폴백)
@@ -456,7 +474,7 @@ describe('StatisticalExecutor Routing', () => {
       )
       // 현재 동작: successCount=0으로 조용히 호출 (에러 없음)
       // 이상적으로는 '비율 검정을 위해 dependentVar를 지정해야 합니다' 에러를 던져야 함
-      expect(mockedStats.oneSampleProportionTest).toHaveBeenCalledWith(0, 2, 0.5)
+      expect(mockedStats.oneSampleProportionTest).toHaveBeenCalledWith(0, 2, 0.5, undefined, undefined)
     })
 
     it('[EDGE] proportion-test: non-keyword binary uses alphabetical-last as success', async () => {
@@ -473,7 +491,7 @@ describe('StatisticalExecutor Routing', () => {
         binaryData,
         { dependentVar: 'outcome' }
       )
-      expect(mockedStats.oneSampleProportionTest).toHaveBeenCalledWith(2, 3, 0.5)
+      expect(mockedStats.oneSampleProportionTest).toHaveBeenCalledWith(2, 3, 0.5, undefined, undefined)
       expect((result.rawResults as { successLabel?: string }).successLabel).toBe('pass')
       expect(result.mainResults.interpretation).toContain('성공 기준: pass')
     })
@@ -491,6 +509,24 @@ describe('StatisticalExecutor Routing', () => {
         createMethod('mcnemar', 'McNemar', 'nonparametric'),
         pairedBinaryData,
         { independentVar: 'before', dependentVar: 'after' }
+      )
+
+      expect(mockedStats.mcnemarTestWorker).toHaveBeenCalledWith([[1, 1], [1, 1]])
+    })
+
+    it('should build 2x2 contingency table from variables array for mcnemar', async () => {
+      const mockedStats = vi.mocked(pyodideStats)
+      const pairedBinaryData = [
+        { before: 'no', after: 'no' },
+        { before: 'no', after: 'yes' },
+        { before: 'yes', after: 'no' },
+        { before: 'yes', after: 'yes' }
+      ]
+
+      await executor.executeMethod(
+        createMethod('mcnemar', 'McNemar', 'nonparametric'),
+        pairedBinaryData,
+        { variables: ['before', 'after'] }
       )
 
       expect(mockedStats.mcnemarTestWorker).toHaveBeenCalledWith([[1, 1], [1, 1]])

@@ -154,7 +154,16 @@ type StoreState = {
   uploadedData: { score: number; gender: string }[] | null
   setAssumptionResults: typeof mockSetAssumptionResults
   suggestedSettings: Record<string, unknown> | null
-  analysisOptions: { alpha: number; showAssumptions: boolean; showEffectSize: boolean; testValue?: number }
+  analysisOptions: {
+    alpha: number
+    showAssumptions: boolean
+    showEffectSize: boolean
+    testValue?: number
+    nullProportion?: number
+    alternative?: 'two-sided' | 'less' | 'greater'
+    ciMethod?: string
+    methodSettings?: Record<string, string | number | boolean>
+  }
 }
 
 function makeStoreState(
@@ -168,7 +177,7 @@ function makeStoreState(
     ],
     setAssumptionResults: mockSetAssumptionResults,
     suggestedSettings: null,
-    analysisOptions: { alpha: 0.05, showAssumptions: true, showEffectSize: true },
+    analysisOptions: { alpha: 0.05, showAssumptions: true, showEffectSize: true, methodSettings: {} },
     ...overrides,
   }
 }
@@ -274,6 +283,84 @@ describe('AnalysisExecutionStep', () => {
       )
       await runAllTimers()
       expect(mockExecuteMethod).toHaveBeenCalledTimes(1)
+    })
+
+    it('proportion-test 실행 시 nullProportion을 variables에 병합한다', async () => {
+      storeState = {
+        ...makeStoreState(),
+        uploadedData: [
+          { score: 1, gender: 'Yes' },
+          { score: 0, gender: 'No' },
+        ],
+        analysisOptions: {
+          alpha: 0.05,
+          showAssumptions: true,
+          showEffectSize: true,
+          nullProportion: 0.3,
+          alternative: 'greater',
+          ciMethod: 'wilson',
+          methodSettings: {},
+        },
+      }
+
+      render(
+        <AnalysisExecutionStep
+          selectedMethod={{ id: 'proportion-test', name: 'Proportion Test', description: '', category: 'nonparametric' }}
+          variableMapping={{ dependentVar: 'gender' }}
+        />
+      )
+      await runAllTimers()
+
+      expect(mockExecuteMethod).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'proportion-test' }),
+        expect.any(Array),
+        expect.objectContaining({
+          dependentVar: 'gender',
+          nullProportion: '0.3',
+        }),
+        expect.objectContaining({
+          alpha: 0.05,
+          alternative: 'greater',
+          ciMethod: 'wilson',
+        })
+      )
+    })
+
+    it('methodSettings를 merged settings에 포함한다', async () => {
+      storeState = {
+        ...makeStoreState(),
+        analysisOptions: {
+          alpha: 0.05,
+          showAssumptions: true,
+          showEffectSize: true,
+          methodSettings: {
+            postHoc: 'games-howell',
+            welch: true,
+          },
+        },
+      }
+
+      render(
+        <AnalysisExecutionStep
+          selectedMethod={{ id: 'anova', name: 'ANOVA', description: '', category: 'anova' }}
+          variableMapping={{ dependentVar: 'score', groupVar: 'gender' }}
+        />
+      )
+      await runAllTimers()
+
+      expect(mockExecuteMethod).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'anova' }),
+        expect.any(Array),
+        expect.objectContaining({
+          dependentVar: 'score',
+          groupVar: 'gender',
+        }),
+        expect.objectContaining({
+          alpha: 0.05,
+          postHoc: 'games-howell',
+          welch: true,
+        })
+      )
     })
 
     it('event/timeVar AutoConfirm 스타일 → 분석 실행', async () => {
