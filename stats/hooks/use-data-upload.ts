@@ -18,6 +18,8 @@ import { checkVariableCompatibility, CompatibilityResult } from '@/lib/utils/var
 import { extractDetectedVariables } from '@/lib/services/variable-detection-service'
 import { TOAST } from '@/lib/constants/toast-messages'
 import { enrichWithNormality } from '@/lib/services/normality-enrichment-service'
+import { useHubChatStore } from '@/lib/stores/hub-chat-store'
+import { buildHubDataContext } from '@/lib/utils/hub-data-context'
 import { useTerminology } from '@/hooks/use-terminology'
 import type { ColumnInfo } from '@/lib/statistics/variable-mapping'
 import type { DataRow } from '@/types/analysis'
@@ -25,6 +27,28 @@ import type { DataRow } from '@/types/analysis'
 interface UseDataUploadReturn {
   handleUploadComplete: (file: File, data: DataRow[]) => Promise<void>
   reanalysisCompatibility: CompatibilityResult | null
+}
+
+export function buildQuickAdvanceState(completedSteps: number[]): {
+  completedSteps: number[]
+  currentStep: number
+} {
+  return {
+    completedSteps: [...new Set([...completedSteps, 1, 2])],
+    currentStep: 3,
+  }
+}
+
+export function createDiagnosticUploadResetPatch() {
+  return {
+    selectedMethod: null,
+    variableMapping: null,
+    cachedAiRecommendation: null,
+    detectedVariables: null,
+    suggestedSettings: null,
+    assumptionResults: null,
+    diagnosticReport: null,
+  }
 }
 
 export function useDataUpload(): UseDataUploadReturn {
@@ -55,6 +79,7 @@ export function useDataUpload(): UseDataUploadReturn {
       setUploadedData(data)
       const detailedValidation = DataValidationService.performValidation(data)
       setValidationResults(detailedValidation)
+      useHubChatStore.getState().setDataContext(buildHubDataContext(file.name, detailedValidation))
 
       const currentAnalysis = useAnalysisStore.getState()
       const currentMode = useModeStore.getState()
@@ -82,6 +107,11 @@ export function useDataUpload(): UseDataUploadReturn {
         setReanalysisCompatibility(compatibility)
       }
 
+      if (currentMode.stepTrack === 'diagnostic') {
+        useAnalysisStore.setState(createDiagnosticUploadResetPatch())
+        useModeStore.getState().setStepTrack('normal')
+      }
+
       // 비동기 정규성 검정 (fire-and-forget)
       if (detailedValidation.columnStats?.length) {
         const capturedNonce = useAnalysisStore.getState().uploadNonce
@@ -91,6 +121,10 @@ export function useDataUpload(): UseDataUploadReturn {
               const current = useAnalysisStore.getState()
               if (current.uploadNonce !== capturedNonce) return
               patchColumnNormality(enrichedColumns)
+              const updatedValidation = useAnalysisStore.getState().validationResults
+              if (updatedValidation) {
+                useHubChatStore.getState().setDataContext(buildHubDataContext(file.name, updatedValidation))
+              }
             }
           })
           .catch(() => { /* graceful degradation */ })
@@ -107,10 +141,7 @@ export function useDataUpload(): UseDataUploadReturn {
         toast.success(TOAST.data.uploadSuccess(file.name))
 
         // Step 1,2 완료 처리 + Step 3 이동을 단일 set으로 배치 (리렌더 1회)
-        useAnalysisStore.setState((state) => ({
-          completedSteps: [...new Set([...state.completedSteps, 1, 2])],
-          currentStep: 3,
-        }))
+        useAnalysisStore.setState((state) => buildQuickAdvanceState(state.completedSteps))
       }
     } catch (err) {
       setError(t.analysis.errors.uploadFailed((err as Error).message))

@@ -23,7 +23,7 @@ describe('method-id-unification contract', () => {
         if (!vrIds.has(m.id)) missing.push(m.id)
       }
       // VR 미등록 허용 상한 — 점진 추가 시 이 값을 줄일 것
-      expect(missing.length).toBeLessThanOrEqual(9)
+      expect(missing).toEqual([])
     })
   })
 

@@ -234,6 +234,7 @@ export function AnalysisSteps({ isHubVisible, onBackToHub }: AnalysisStepsProps)
             <MethodBrowserStep
               onMethodConfirm={handleMethodConfirm}
               onBack={() => navigateToStep(1)}
+              onAskAiRecommendation={onBackToHub}
             />
           </motion.div>
         )}

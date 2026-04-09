@@ -203,6 +203,7 @@ bootSelectorTypes([
   ['kaplan-meier', 'survival'],
   ['cox-regression', 'survival'],
   ['discriminant', 'discriminant'],
+  ['discriminant-analysis', 'discriminant'],
   ['power-analysis', 'auto'],
 
   ['t-test', 'group-comparison'],

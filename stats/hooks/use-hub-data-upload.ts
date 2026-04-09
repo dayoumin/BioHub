@@ -22,6 +22,7 @@ import { DataValidationService } from '@/lib/services/data-validation-service'
 import { enrichWithNormality } from '@/lib/services/normality-enrichment-service'
 import { raceWithTimeout } from '@/lib/utils/promise-utils'
 import { findCriticalParseError, parseWarningMessage } from '@/lib/utils/csv-parse-errors'
+import { buildHubDataContext } from '@/lib/utils/hub-data-context'
 import type { DataRow, ColumnStatistics } from '@/types/analysis'
 
 interface UseHubDataUploadReturn {
@@ -89,17 +90,7 @@ export function useHubDataUpload(): UseHubDataUploadReturn {
 
         // 3. 데이터 컨텍스트 빌드 + 저장
         const columns = validation.columns ?? []
-        const numericCols = columns.filter((c) => c.type === 'numeric')
-        const categoricalCols = columns.filter((c) => c.type === 'categorical')
-
-        setDataContext({
-          fileName: file.name,
-          totalRows: validation.totalRows,
-          columnCount: columns.length,
-          numericColumns: numericCols.map((c) => c.name),
-          categoricalColumns: categoricalCols.map((c) => c.name),
-          validationResults: validation,
-        })
+        setDataContext(buildHubDataContext(file.name, validation))
 
         // 4. system 메시지
         addMessage({
@@ -135,10 +126,9 @@ export function useHubDataUpload(): UseHubDataUploadReturn {
                 if (updatedValidation) {
                   const prevCtx = useHubChatStore.getState().dataContext
                   if (prevCtx) {
-                    useHubChatStore.getState().setDataContext({
-                      ...prevCtx,
-                      validationResults: updatedValidation,
-                    })
+                    useHubChatStore.getState().setDataContext(
+                      buildHubDataContext(prevCtx.fileName, updatedValidation),
+                    )
                   }
                 }
               }

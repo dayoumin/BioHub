@@ -71,6 +71,18 @@ describe('useAnalysisHandlers', () => {
       expect(step2?.skipped).toBe(true)
       expect(step2?.completed).toBe(true)
     })
+
+    it('diagnostic 모드도 Step 2가 skipped=true + completed=true', () => {
+      act(() => {
+        useModeStore.getState().setStepTrack('diagnostic')
+        useAnalysisStore.getState().setSelectedMethod(STATISTICAL_METHODS['two-sample-t'])
+      })
+      const { result } = renderHook(() => useAnalysisHandlers(false), { wrapper })
+
+      const step2 = result.current.steps.find(s => s.id === 2)
+      expect(step2?.skipped).toBe(true)
+      expect(step2?.completed).toBe(true)
+    })
   })
 
   describe('handleStepClick', () => {

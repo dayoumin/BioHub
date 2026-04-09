@@ -198,6 +198,31 @@ export function normalizeSlotMapping(
         delete result.groupVar
       }
       break
+
+    case 'mixed-model':
+      if (result.dependentVar && !result.dependent) {
+        result.dependent = [result.dependentVar]
+        delete result.dependentVar
+      }
+      if (typeof result.groupVar === 'string' && !result.independent) {
+        result.independent = result.groupVar.split(',').map((value) => value.trim()).filter(Boolean)
+        delete result.groupVar
+      }
+      if (typeof result.blocking === 'string') {
+        result.blocking = result.blocking.split(',').map((value) => value.trim()).filter(Boolean)
+      }
+      break
+
+    case 'discriminant':
+    case 'discriminant-analysis':
+      if (result.dependentVar && !result.group && !result.groupVar) {
+        result.groupVar = result.dependentVar
+        delete result.dependentVar
+      }
+      if (typeof result.independentVar === 'string' && result.independentVar.includes(',')) {
+        result.independentVar = result.independentVar.split(',').map((value) => value.trim()).filter(Boolean)
+      }
+      break
   }
 
   return result

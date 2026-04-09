@@ -48,6 +48,39 @@ const FILTER_METHOD = getArg('--method');
 const FILTER_LAYER = getArg('--layer');
 const GENERATE_REPORT = args.includes('--report');
 
+function buildRunStamp() {
+  return new Date().toISOString().replace(/[:.]/g, '-');
+}
+
+function buildMarkdownReport(snapshot, snapshotPath) {
+  const lines = [
+    '# Validation Run Report',
+    '',
+    `- Run ID: ${snapshot.runId}`,
+    `- Snapshot: ${snapshotPath}`,
+    `- Total methods: ${snapshot.summary.totalMethods}`,
+    `- Total cases: ${snapshot.summary.totalCases}`,
+    `- Passed: ${snapshot.summary.passed}`,
+    `- Failed: ${snapshot.summary.failed}`,
+    `- Skipped: ${snapshot.summary.skipped}`,
+    `- Average LRE: ${snapshot.summary.averageLRE.toFixed(1)}`,
+    '',
+  ];
+
+  const failedResults = snapshot.details.filter((result) => result.status === 'FAIL');
+  if (failedResults.length > 0) {
+    lines.push('## Failures', '');
+    for (const result of failedResults) {
+      const methodLabel = result.method ?? result.methodId ?? 'unknown-method';
+      const caseLabel = result.case ? ` / ${result.case}` : '';
+      lines.push(`- ${methodLabel}${caseLabel}: ${result.error || 'validation failure'}`);
+    }
+    lines.push('');
+  }
+
+  return `${lines.join('\n')}\n`;
+}
+
 // =============================================================================
 // TIER TOLERANCE POLICY (Design doc §2.2)
 // =============================================================================
@@ -2014,11 +2047,18 @@ async function main() {
     details: allResults,
   };
 
-  const snapshotPath = join(RESULTS_DIR, `run-${new Date().toISOString().slice(0, 10)}.json`);
+  const runStamp = buildRunStamp();
+  const snapshotPath = join(RESULTS_DIR, `run-${runStamp}.json`);
   writeFileSync(snapshotPath, JSON.stringify(snapshot, null, 2));
   console.log(color(`\n📄 Results saved: ${snapshotPath}`, C.dim));
 
   // ─── Exit ─────────────────────────────────────────────────────────────
+  if (GENERATE_REPORT) {
+    const reportPath = join(RESULTS_DIR, `run-${runStamp}.md`);
+    writeFileSync(reportPath, buildMarkdownReport(snapshot, snapshotPath));
+    console.log(color(`Report saved: ${reportPath}`, C.dim));
+  }
+
   process.exit(totalFailed > 0 ? 1 : 0);
 }
 

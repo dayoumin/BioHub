@@ -147,7 +147,7 @@ export default function HomePage() {
       )}
 
       {/* ===== Step 1-4 ===== */}
-      <AnalysisSteps isHubVisible={showHub} />
+      <AnalysisSteps isHubVisible={showHub} onBackToHub={handleBackToHub} />
     </AnalysisLayout>
   )
 }
