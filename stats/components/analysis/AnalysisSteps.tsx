@@ -236,23 +236,14 @@ export function AnalysisSteps({ isHubVisible, onBackToHub }: AnalysisStepsProps)
           </motion.div>
         )}
 
-        {/* ===== Step 2: Purpose Input (diagnostic/quick 트랙에서 건너뜀) ===== */}
+        {/* ===== Step 2: Purpose Input — quick/diagnostic에서도 도달 시 메서드 선택 표시 ===== */}
         {currentStep === 2 && (
           <motion.div key="step2" {...motionProps}>
-            {(stepTrack === 'quick' || stepTrack === 'diagnostic') ? (
-              // 방어적 리다이렉트 — 정상 흐름에서는 도달하지 않음
-              <InlineError
-                message="Step 2는 현재 트랙에서 건너뛰는 단계입니다."
-                onRetry={() => navigateToStep(3)}
-                retryLabel="변수 선택으로 이동"
-              />
-            ) : (
-              <PurposeInputStep
-                onPurposeSubmit={handlePurposeSubmit}
-                validationResults={validationResults}
-                data={uploadedData}
-              />
-            )}
+            <PurposeInputStep
+              onPurposeSubmit={handlePurposeSubmit}
+              validationResults={validationResults}
+              data={uploadedData}
+            />
           </motion.div>
         )}
 

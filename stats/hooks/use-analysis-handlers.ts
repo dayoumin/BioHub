@@ -125,11 +125,15 @@ export function useAnalysisHandlers(
 
   const handleStepClick = useCallback((stepId: number) => {
     if (canNavigateToStep(stepId)) {
+      // Step 2 클릭 = 메서드 변경 의도 → normal 모드로 전환
+      if (stepId === 2 && skipStep2) {
+        setStepTrack('normal')
+      }
       startTransition(() => {
         navigateToStep(stepId)
       })
     }
-  }, [canNavigateToStep, navigateToStep])
+  }, [canNavigateToStep, navigateToStep, skipStep2, setStepTrack])
 
   // U1-2: Quick/Diagnostic 전진 점프 — 중간 단계 사전 마킹
   const handleStep1Next = useCallback(() => {

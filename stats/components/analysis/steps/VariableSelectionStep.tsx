@@ -307,6 +307,14 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
     return result
   }, [existingMapping, detectedVariables, selectorType])
 
+  // F1: 필수 슬롯이 프리필되지 않았을 때 메서드별 가이드 표시
+  const needsVariableGuide = useMemo(() => {
+    if (!selectedMethod || selectorType === 'auto') return false
+    const slots = getSlotConfigs(selectorType)
+    const requiredSlots = slots.filter(s => s.required)
+    return requiredSlots.some(slot => !initialSelection[slot.mappingKey])
+  }, [selectedMethod, selectorType, initialSelection])
+
   // No data check
   if (!uploadedData || uploadedData.length === 0) {
     return (
@@ -425,15 +433,15 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         </div>
       )}
 
-      {/* F1: Method Variable Guide (When !detectedVariables) */}
-      {!detectedVariables && selectedMethod && selectorType !== 'auto' && (
+      {/* F1: Method Variable Guide — 필수 슬롯이 프리필되지 않았을 때 표시 */}
+      {needsVariableGuide && (
         <div className="flex items-start gap-4 p-5 rounded-2xl bg-primary/5 border border-primary/10">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
             <Info className="h-4 w-4 text-primary" />
           </div>
           <div className="text-sm space-y-2">
             <span className="font-semibold tracking-tight text-foreground">
-              {selectedMethod.name}
+              {selectedMethod?.name}
             </span>
             <ul className="list-disc pl-5 text-muted-foreground space-y-1">
               {getSlotConfigs(selectorType).map(slot => (
