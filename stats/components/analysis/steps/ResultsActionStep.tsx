@@ -35,16 +35,26 @@ import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useHistoryStore } from '@/lib/stores/history-store'
 import { useModeStore } from '@/lib/stores/mode-store'
 import { buildHistorySnapshot, prepareManualMethodBrowsing } from '@/lib/stores/store-orchestration'
-import { startNewAnalysis } from '@/lib/services/data-management'
-import { ExportService } from '@/lib/services/export/export-service'
-import type { ExportFormat, ExportContext, ExportContentOptions } from '@/lib/services/export/export-types'
-import { exportCodeFromAnalysis, isCodeExportAvailable } from '@/lib/services/export/code-export'
-import type { CodeLanguage } from '@/lib/services/export/code-template-types'
-import { splitInterpretation, generateSummaryText } from '@/lib/services/export/export-data-builder'
+import {
+  startNewAnalysis,
+  ExportService,
+  type ExportFormat,
+  type ExportContext,
+  type ExportContentOptions,
+  exportCodeFromAnalysis,
+  isCodeExportAvailable,
+  type CodeLanguage,
+  splitInterpretation,
+  generateSummaryText,
+  generatePaperDraft,
+  type PaperDraft,
+  type DiscussionState,
+  type DraftContext,
+} from '@/lib/services'
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
 import { TemplateSaveModal } from '@/components/analysis/TemplateSaveModal'
 import { cn } from '@/lib/utils'
-import { AI_ACCENT } from '@/lib/design-tokens/analysis'
+import { AI_ACCENT } from '@/lib/design-tokens'
 import { StepHeader } from '@/components/analysis/common'
 import { AssumptionTestsSection } from '@/components/analysis/steps/exploration/AssumptionTestsSection'
 import { ResultsHeroCard, ResultsStatsCards, ResultsChartsSection, ResultsActionButtons, AiInterpretationCard, FollowUpQASection } from '@/components/analysis/steps/results'
@@ -56,13 +66,19 @@ import { logger } from '@/lib/utils/logger'
 import { useRouter } from 'next/navigation'
 import { useGraphStudioStore } from '@/lib/stores/graph-studio-store'
 import { useResearchProjectStore, selectActiveProject } from '@/lib/stores/research-project-store'
-import { toAnalysisContext, buildKmCurveColumns, buildRocCurveColumns } from '@/lib/graph-studio/analysis-adapter'
-import { inferColumnMeta, suggestChartType, selectXYFields, applyAnalysisContext } from '@/lib/graph-studio/chart-spec-utils'
-import { createDefaultChartSpec, CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults'
+import {
+  toAnalysisContext,
+  buildKmCurveColumns,
+  buildRocCurveColumns,
+  inferColumnMeta,
+  suggestChartType,
+  selectXYFields,
+  applyAnalysisContext,
+  createDefaultChartSpec,
+  CHART_TYPE_HINTS,
+} from '@/lib/graph-studio'
 import type { DataPackage, ChartType } from '@/types/graph-studio'
 import type { KaplanMeierAnalysisResult, RocCurveAnalysisResult } from '@/lib/generated/method-types.generated'
-import { generatePaperDraft } from '@/lib/services/paper-draft'
-import type { PaperDraft, DiscussionState, DraftContext } from '@/lib/services/paper-draft'
 import { DraftContextEditor } from './DraftContextEditor'
 import dynamic from 'next/dynamic'
 
@@ -110,6 +126,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
   // AI 해석 (커스텀 훅으로 캡슐화)
   const interpretRecovery = useErrorRecovery({ maxRetries: 2 })
+  const resetInterpretRecovery = interpretRecovery.reset
+  const recordInterpretRetry = interpretRecovery.recordRetry
+  const isInterpretRetryExhausted = interpretRecovery.isExhausted
 
   // 확인 다이얼로그 — ResultsActionButtons 내부에서 관리
 
@@ -256,10 +275,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     hasSavedToHistoryRef.current = false
     setPaperDraft(null)
     setPaperDraftOpen(false)
-    interpretRecovery.reset()
+    resetInterpretRecovery()
     setLastDraftContext(undefined)
     setLastDraftOptions({ language: 'ko', postHocDisplay: 'significant-only' })
-  }, [currentHistoryId])
+  }, [currentHistoryId, resetFollowUp, resetInterpretRecovery])
 
   // 히스토리에서 로드된 후속 Q&A 대화 복원
   useEffect(() => {
@@ -268,7 +287,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       // 소비 후 store에서 제거 (재렌더링 시 중복 방지)
       useHistoryStore.getState().setLoadedInterpretationChat(null)
     }
-  }, [loadedInterpretationChat])
+  }, [loadedInterpretationChat, setFollowUpMessages])
 
   // 히스토리에서 로드된 논문 초안 복원 (context/options도 함께 복원 → 재생성/언어전환 가능)
   useEffect(() => {
@@ -625,16 +644,16 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     loadDataPackageWithSpec(pkg, finalSpec)
     disconnectProject() // 결과 가져오기는 새 작업 — 기존 프로젝트 덮어쓰기 방지
     router.push('/graph-studio')
-  }, [results, uploadedData, currentHistoryId, historyEntries, loadDataPackageWithSpec, disconnectProject, router])
+  }, [results, uploadedData, currentHistoryId, historyEntries, loadDataPackageWithSpec, disconnectProject, router, t])
 
   // 재해석 + Q&A 초기화 (소진 시 차단)
   const handleReinterpretWithQAReset = useCallback(() => {
-    if (interpretRecovery.isExhausted) return
-    interpretRecovery.recordRetry()
+    if (isInterpretRetryExhausted) return
+    recordInterpretRetry()
     resetFollowUp()
     setUsedChips(new Set())
     resetAndReinterpret()
-  }, [resetFollowUp, resetAndReinterpret, interpretRecovery])
+  }, [isInterpretRetryExhausted, recordInterpretRetry, resetFollowUp, resetAndReinterpret])
 
   const handlePaperDraftToggle = useCallback(() => {
     if (paperDraft) {
@@ -785,46 +804,35 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           title={t.analysis.stepTitles.results}
           badge={selectedMethod ? { label: selectedMethod.name } : undefined}
           action={
-            <div className="flex items-center gap-1 sm:gap-1.5">
+            <div className="flex items-center gap-2 rounded-xl border border-border/50 bg-surface-container-lowest px-2 py-1.5 shadow-[0px_4px_16px_rgba(25,28,30,0.04)]">
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={handleCopyResults}
                 aria-label={isCopied ? t.results.buttons.copied : t.results.buttons.copy}
-                className={cn("h-8 px-1.5 sm:px-2.5", isCopied && "text-primary")}
+                className={cn("h-9 px-3 gap-1.5 border-border/50 shadow-none", isCopied && "text-primary")}
               >
-                {isCopied ? <CheckCircle2 className="w-3.5 h-3.5 sm:mr-1" /> : <Copy className="w-3.5 h-3.5 sm:mr-1" />}
-                <span className="hidden sm:inline">{isCopied ? t.results.buttons.copied : t.results.buttons.copy}</span>
+                {isCopied ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{isCopied ? t.results.buttons.copied : t.results.buttons.copy}</span>
               </Button>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={handleSaveButtonClick}
                 disabled={isSaved || isSavingToHistory}
                 aria-label={isSaved ? t.results.buttons.saved : t.results.buttons.save}
-                className={cn("h-8 px-1.5 sm:px-2.5", isSaved && "text-success")}
+                className={cn("h-9 px-3 gap-1.5 border-border/50 shadow-none", isSaved && "text-success")}
                 data-testid="save-history-btn"
               >
-                {isSaved ? <CheckCircle2 className="w-3.5 h-3.5 sm:mr-1" /> : <Save className="w-3.5 h-3.5 sm:mr-1" />}
-                <span className="hidden sm:inline">{isSaved ? t.results.buttons.saved : t.results.buttons.save}</span>
+                {isSaved ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
+                <span>{isSaved ? t.results.buttons.saved : t.results.buttons.save}</span>
               </Button>
-              <Button
-                variant={paperDraft ? 'secondary' : 'outline'}
-                size="sm"
-                onClick={handlePaperDraftToggle}
-                aria-label={paperDraft ? t.results.buttons.viewSummary : t.results.buttons.resultsSummary}
-                className={cn("h-8 px-1.5 sm:px-2.5 shadow-sm", paperDraft && "text-primary")}
-                data-testid="paper-draft-btn"
-              >
-                <BookOpen className="w-3.5 h-3.5 sm:mr-1" />
-                <span className="hidden sm:inline">{paperDraft ? t.results.buttons.viewSummary : t.results.buttons.resultsSummary}</span>
-              </Button>
-              <div className="w-px h-4 bg-surface-container-highest/40 hidden sm:block" />
+              <div className="w-px h-5 bg-surface-container-highest/40" />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" disabled={isExporting} aria-label={t.results.buttons.export} className="h-8 px-1.5 sm:px-2.5 shadow-sm" data-testid="export-dropdown">
-                    <Download className="w-3.5 h-3.5 sm:mr-1" />
-                    <span className="hidden sm:inline">{isExporting ? t.results.buttons.exporting : t.results.buttons.export}</span>
+                  <Button variant="outline" size="sm" disabled={isExporting} aria-label={t.results.buttons.export} className="h-9 px-3 gap-1.5 border-border/50 shadow-none" data-testid="export-dropdown">
+                    <Download className="w-3.5 h-3.5" />
+                    <span>{isExporting ? t.results.buttons.exporting : t.results.buttons.export}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -924,23 +932,26 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           containerRef={aiInterpretationRef}
           phase={phase}
           t={t}
+          footerAction={
+            interpretation && !isInterpreting && (phase >= 3 || prefersReducedMotion) ? (
+              <div className={cn('flex items-center gap-3 px-4 py-3 rounded-lg', AI_ACCENT.surface)}>
+                <BookOpen className={cn('w-4 h-4 flex-shrink-0', AI_ACCENT.icon)} />
+                <span className="text-sm text-muted-foreground flex-1">
+                  {paperDraft ? t.results.buttons.viewSummary : t.results.ai.draftCta}
+                </span>
+                <Button
+                  variant={paperDraft ? 'secondary' : 'outline'}
+                  size="sm"
+                  onClick={handlePaperDraftToggle}
+                  className="text-xs h-8 px-3 shadow-sm"
+                  data-testid="paper-draft-btn"
+                >
+                  {paperDraft ? t.results.buttons.viewSummary : t.results.buttons.resultsSummary}
+                </Button>
+              </div>
+            ) : null
+          }
         />
-
-        {/* ===== 논문 초안 CTA (AI 해석 완료 & 아직 초안 미생성 시) ===== */}
-        {interpretation && !isInterpreting && !paperDraft && (phase >= 3 || prefersReducedMotion) && (
-          <div className={cn('flex items-center gap-3 px-4 py-3 rounded-lg', AI_ACCENT.surface)}>
-            <BookOpen className={cn('w-4 h-4 flex-shrink-0', AI_ACCENT.icon)} />
-            <span className="text-sm text-muted-foreground flex-1">{t.results.ai.draftCta}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePaperDraftToggle}
-              className="text-xs h-7 px-3 shadow-sm"
-            >
-              {t.results.buttons.resultsSummary}
-            </Button>
-          </div>
-        )}
 
         {/* ===== [Phase 4] 후속 Q&A 카드 ===== */}
         <FollowUpQASection

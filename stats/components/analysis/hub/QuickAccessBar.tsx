@@ -42,9 +42,8 @@ import {
   MAX_VISIBLE_PILLS,
   togglePinId,
 } from '@/lib/utils/pinned-history-storage'
-import { listProjects, deleteProjectCascade } from '@/lib/graph-studio/project-storage'
+import { listProjects, deleteProjectCascade, CHART_TYPE_HINTS } from '@/lib/graph-studio'
 import { EmptyState } from '@/components/common/EmptyState'
-import { CHART_TYPE_HINTS } from '@/lib/graph-studio/chart-spec-defaults'
 import type { ChartType } from '@/types/graph-studio'
 import { toast } from 'sonner'
 import { formatTimeAgo } from '@/lib/utils/format-time'
@@ -102,11 +101,12 @@ interface ActivityCard {
 interface QuickAccessBarProps {
   onHistoryClick: (historyId: string) => void
   onHistoryDelete: (historyId: string) => Promise<void>
+  showHeader?: boolean
 }
 
 // ===== Component =====
 
-export function QuickAccessBar({ onHistoryClick, onHistoryDelete }: QuickAccessBarProps) {
+export function QuickAccessBar({ onHistoryClick, onHistoryDelete, showHeader = true }: QuickAccessBarProps) {
   const t = useTerminology()
   const router = useRouter()
   const prefersReducedMotion = useReducedMotion()
@@ -232,9 +232,11 @@ export function QuickAccessBar({ onHistoryClick, onHistoryDelete }: QuickAccessB
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4, delay: 0.4 }}
     >
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-bold">{t.hub.cards.recentTitle}</h2>
-      </div>
+      {showHeader && (
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-bold">{t.hub.cards.recentTitle}</h2>
+        </div>
+      )}
 
       {visibleItems.length === 0 ? (
         <EmptyState
@@ -289,13 +291,13 @@ function ActivityCardItem({ card, t, onClick, onTogglePin, onDelete }: ActivityC
   return (
     <div
       className={cn(
-        'group flex items-center justify-between p-4 rounded-2xl',
-        'border bg-card',
-        'hover:shadow-sm active:scale-[0.98] transition-all duration-200 cursor-pointer',
-        card.isPinned && 'border-primary/20 bg-primary/[0.02]',
-        // 시각화 카드: 좌측 보라 악센트 라인
-        isViz ? 'border-l-[3px] border-l-violet-400/60 border-t-border border-r-border border-b-border'
-          : 'border-border',
+        'group flex items-start justify-between gap-4 rounded-2xl border p-4',
+        'bg-surface-container-lowest shadow-[0px_6px_20px_rgba(25,28,30,0.03)]',
+        'hover:shadow-[0px_10px_24px_rgba(25,28,30,0.06)] active:scale-[0.99] transition-all duration-200 cursor-pointer',
+        card.isPinned && 'border-primary/20 bg-primary/[0.03]',
+        isViz
+          ? 'border-l-[3px] border-l-violet-400/60 border-t-border/60 border-r-border/60 border-b-border/60'
+          : 'border-border/50',
       )}
       data-testid={`recent-activity-card-${card.id}`}
       onClick={onClick}
@@ -303,7 +305,7 @@ function ActivityCardItem({ card, t, onClick, onTogglePin, onDelete }: ActivityC
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }}
     >
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex min-w-0 items-start gap-3">
         {/* 상태 아이콘 — 통계 vs 시각화 */}
         {isViz ? (
           <VisualizationIcon chartType={card.chartType} />
@@ -313,34 +315,39 @@ function ActivityCardItem({ card, t, onClick, onTogglePin, onDelete }: ActivityC
 
         {/* 제목 + 메타 */}
         <div className="min-w-0">
-          <p className="font-semibold text-sm truncate">
+          <p className="font-semibold text-sm truncate text-foreground">
             {isViz ? card.name : (card.method?.name || card.name)}
-            {!isViz && card.dataFileName && (
-              <span className="font-normal text-muted-foreground"> — {card.dataFileName}</span>
-            )}
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          {!isViz && card.dataFileName && (
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {card.dataFileName}
+            </p>
+          )}
+          <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
             {isViz ? (
               <>
-                {t.hub.recentStatus.visualization}
-                <span className="mx-1">·</span>
-                <span className="text-violet-500 dark:text-violet-400">{card.chartTypeLabel}</span>
-                <span className="mx-1">·</span>
-                {card.timeAgo}
+                <span className="rounded-full border border-border/50 bg-muted/40 px-2 py-0.5">
+                  {t.hub.recentStatus.visualization}
+                </span>
+                <span className="rounded-full border border-border/50 bg-background px-2 py-0.5 text-foreground/75">
+                  {card.chartTypeLabel}
+                </span>
+                <span>{card.timeAgo}</span>
               </>
             ) : (
               <>
-                {card.hasResults ? t.hub.recentStatus.completed : t.hub.recentStatus.inProgress}
+                <span className="rounded-full border border-border/50 bg-muted/40 px-2 py-0.5">
+                  {card.hasResults ? t.hub.recentStatus.completed : t.hub.recentStatus.inProgress}
+                </span>
                 {card.pValue != null && (
-                  <>, <span className="font-mono text-[11px]">
+                  <span className="rounded-full border border-border/50 bg-background px-2 py-0.5 font-mono text-[11px] text-foreground/80">
                     p={card.pValue < 0.001 ? '<0.001' : card.pValue.toFixed(3)}
-                  </span></>
+                  </span>
                 )}
-                <span className="mx-1">·</span>
-                {card.timeAgo}
+                <span>{card.timeAgo}</span>
               </>
             )}
-          </p>
+          </div>
         </div>
       </div>
 
@@ -351,10 +358,10 @@ function ActivityCardItem({ card, t, onClick, onTogglePin, onDelete }: ActivityC
             type="button"
             onClick={(e) => e.stopPropagation()}
             className={cn(
-              'p-1.5 rounded-md text-muted-foreground/40',
+              'p-1.5 rounded-md text-muted-foreground/60',
               'hover:text-foreground hover:bg-accent',
-              'opacity-0 group-hover:opacity-100 transition-all',
-              `focus-visible:opacity-100 ${focusRing}`,
+              'transition-all',
+              `${focusRing}`,
             )}
             aria-label={t.history.labels.moreActions}
           >
@@ -387,13 +394,13 @@ function ActivityCardItem({ card, t, onClick, onTogglePin, onDelete }: ActivityC
 function StatisticsIcon({ hasResults }: { hasResults: boolean }) {
   if (hasResults) {
     return (
-      <div className="shrink-0 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 p-2 rounded-lg">
+      <div className="shrink-0 rounded-xl bg-emerald-100 p-2.5 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
         <CheckCircle2 className="w-4 h-4" />
       </div>
     )
   }
   return (
-    <div className="shrink-0 bg-primary/10 text-primary p-2 rounded-lg">
+    <div className="shrink-0 rounded-xl bg-primary/10 p-2.5 text-primary">
       <Loader2 className="w-4 h-4 animate-spin" />
     </div>
   )
@@ -402,7 +409,7 @@ function StatisticsIcon({ hasResults }: { hasResults: boolean }) {
 function VisualizationIcon({ chartType }: { chartType?: ChartType }) {
   const Icon = getChartIcon(chartType ?? 'bar')
   return (
-    <div className="shrink-0 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 p-2 rounded-lg">
+    <div className="shrink-0 rounded-xl bg-violet-100 p-2.5 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400">
       <Icon className="w-4 h-4" />
     </div>
   )

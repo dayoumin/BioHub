@@ -110,6 +110,7 @@ export const MethodBrowser = memo(function MethodBrowser({
   dataProfile
 }: MethodBrowserProps) {
   const t = useTerminology()
+  const selectButtonText = '선택하기'
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
   const [hoveredMethod, setHoveredMethod] = useState<StatisticalMethod | null>(null)
@@ -329,7 +330,7 @@ export const MethodBrowser = memo(function MethodBrowser({
                     {t.methodBrowser.selectedLabel}
                   </>
                 ) : (
-                  t.methodBrowser.useThisButton
+                  selectButtonText
                 )}
               </Button>
             </div>
@@ -338,14 +339,14 @@ export const MethodBrowser = memo(function MethodBrowser({
       })()}
 
       {/* Search and Filter Bar */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 rounded-xl border border-border/50 bg-surface-container-lowest p-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder={t.methodBrowser.searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 border-0 bg-transparent shadow-none focus-visible:ring-0"
             data-testid="method-search-input"
           />
         </div>
@@ -360,7 +361,7 @@ export const MethodBrowser = memo(function MethodBrowser({
       </div>
 
       {/* Method Count */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
+      <div className="flex items-center justify-between text-sm text-muted-foreground rounded-lg bg-muted/25 px-3 py-2">
         <span>
           {totalMethods}개 분석 방법
           {searchQuery && ` "${searchQuery}" 검색 결과`}
@@ -375,155 +376,157 @@ export const MethodBrowser = memo(function MethodBrowser({
       {/* Two-Column Layout: Method List + Detail Panel */}
       <div className="flex flex-col lg:flex-row gap-5">
         {/* Left: Method List */}
-        <ScrollArea className="h-[460px] flex-1 min-w-0">
-          <div className="space-y-3 pr-4">
-            {filteredGroups.map(group => (
-              <Collapsible
-                key={group.category}
-                open={expandedCategories.has(group.category)}
-                onOpenChange={() => toggleCategory(group.category)}
-              >
-                <CollapsibleTrigger className="flex items-center justify-between w-full p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center gap-2">
-                    {expandedCategories.has(group.category) ? (
-                      <ChevronDown className="w-4 h-4" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4" />
-                    )}
-                    <span className="font-medium">{group.categoryLabel}</span>
-                    <Badge variant="outline" className="text-xs">
-                      {group.methods.length}
-                    </Badge>
-                  </div>
-                </CollapsibleTrigger>
-
-                <CollapsibleContent>
-                  <div className="pl-6 pt-2 space-y-1">
-                    <TooltipProvider delayDuration={300}>
-                      {group.methods.map(method => {
-                        const isRecommended = method.id === recommendedMethodId
-                        const isSelected = selectedMethod?.id === method.id
-                        const requirements = checkRequirements(method)
-                        const hasWarnings = requirements.warnings.length > 0
-
-                        const methodButton = (
-                          <button
-                            key={method.id}
-                            onClick={() => handleMethodCardClick(method)}
-                            onMouseEnter={() => setHoveredMethod(method)}
-                            onMouseLeave={() => setHoveredMethod(null)}
-                            className={cn(
-                              selectableItemBase,
-                              "w-full",
-                              "hover:border-primary/50 hover:bg-accent/30",
-                              isSelected && "border-primary bg-primary/5 ring-2 ring-primary/20",
-                              isRecommended && !isSelected && "border-amber-300 bg-amber-50/50 dark:bg-amber-950/20",
-                              hasWarnings && "border-amber-200 dark:border-amber-800"
-                            )}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  {hasWarnings && (
-                                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-                                  )}
-                                  <span className={cn(
-                                    "font-medium text-sm",
-                                    isSelected && "text-primary"
-                                  )}>
-                                    {method.name}
-                                  </span>
-                                  {isRecommended && (
-                                    <Badge className="text-xs bg-amber-500 hover:bg-amber-600">
-                                      <Sparkles className="w-3 h-3 mr-1" />
-                                      AI
-                                    </Badge>
-                                  )}
-                                  {hasWarnings && (
-                                    <Badge variant="outline" className="text-xs border-amber-300 text-amber-600 bg-amber-50 dark:bg-amber-950/30">
-                                      {t.methodBrowser.compatibilityStatus.warning}
-                                    </Badge>
-                                  )}
-                                  {method.subcategory && (
-                                    <Badge variant="secondary" className="text-xs">
-                                      {method.subcategory}
-                                    </Badge>
-                                  )}
-                                </div>
-                                <p className="text-xs mt-1 line-clamp-2 text-muted-foreground">
-                                  {method.description}
-                                </p>
-                              </div>
-                              {isSelected && (
-                                <Check className="w-5 h-5 text-primary shrink-0" />
-                              )}
-                            </div>
-                          </button>
-                        )
-
-                        // Wrap with tooltip if there are warnings
-                        if (hasWarnings) {
-                          return (
-                            <Tooltip key={method.id}>
-                              <TooltipTrigger asChild>
-                                {methodButton}
-                              </TooltipTrigger>
-                              <TooltipContent side="left" className="max-w-xs">
-                                <div className="space-y-1">
-                                  <p className="font-medium text-sm">
-                                    {t.methodBrowser.tooltips.warning}
-                                  </p>
-                                  <ul className="text-xs space-y-0.5">
-                                    {requirements.warnings.map((w, i) => (
-                                      <li key={i} className="flex items-start gap-1">
-                                        <span className="text-muted-foreground">•</span>
-                                        <span>{w}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          )
-                        }
-
-                        return methodButton
-                      })}
-                    </TooltipProvider>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            ))}
-
-            {filteredGroups.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p>{t.methodBrowser.noResultsMessage(searchQuery)}</p>
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="text-primary hover:underline text-sm mt-2"
+        <div className="flex-1 min-w-0 rounded-2xl border border-border/50 bg-surface-container-lowest p-3 shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
+          <ScrollArea className="h-[500px]">
+            <div className="space-y-3 pr-4">
+              {filteredGroups.map(group => (
+                <Collapsible
+                  key={group.category}
+                  open={expandedCategories.has(group.category)}
+                  onOpenChange={() => toggleCategory(group.category)}
                 >
-                  {t.methodBrowser.clearSearchButton}
-                </button>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
+                  <CollapsibleTrigger className="flex items-center justify-between w-full rounded-xl border border-transparent px-3 py-2.5 hover:border-border/50 hover:bg-muted/40 transition-colors">
+                    <div className="flex items-center gap-2">
+                      {expandedCategories.has(group.category) ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4" />
+                      )}
+                      <span className="font-medium">{group.categoryLabel}</span>
+                      <Badge variant="outline" className="text-xs">
+                        {group.methods.length}
+                      </Badge>
+                    </div>
+                  </CollapsibleTrigger>
+
+                  <CollapsibleContent>
+                    <div className="pl-4 pt-2 space-y-2">
+                      <TooltipProvider delayDuration={300}>
+                        {group.methods.map(method => {
+                          const isRecommended = method.id === recommendedMethodId
+                          const isSelected = selectedMethod?.id === method.id
+                          const requirements = checkRequirements(method)
+                          const hasWarnings = requirements.warnings.length > 0
+
+                          const methodButton = (
+                            <button
+                              key={method.id}
+                              onClick={() => handleMethodCardClick(method)}
+                              onMouseEnter={() => setHoveredMethod(method)}
+                              onMouseLeave={() => setHoveredMethod(null)}
+                              className={cn(
+                                selectableItemBase,
+                                "w-full rounded-xl px-4 py-3",
+                                "hover:border-primary/50 hover:bg-accent/30",
+                                isSelected && "border-primary bg-primary/5 ring-2 ring-primary/20",
+                                isRecommended && !isSelected && "border-amber-300 bg-amber-50/50 dark:bg-amber-950/20",
+                                hasWarnings && "border-amber-200 dark:border-amber-800"
+                              )}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    {hasWarnings && (
+                                      <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                                    )}
+                                    <span className={cn(
+                                      "font-medium text-sm",
+                                      isSelected && "text-primary"
+                                    )}>
+                                      {method.name}
+                                    </span>
+                                    {isRecommended && (
+                                      <Badge className="text-xs bg-amber-500 hover:bg-amber-600">
+                                        <Sparkles className="w-3 h-3 mr-1" />
+                                        AI
+                                      </Badge>
+                                    )}
+                                    {hasWarnings && (
+                                      <Badge variant="outline" className="text-xs border-amber-300 text-amber-600 bg-amber-50 dark:bg-amber-950/30">
+                                        {t.methodBrowser.compatibilityStatus.warning}
+                                      </Badge>
+                                    )}
+                                    {method.subcategory && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        {method.subcategory}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-xs mt-1.5 line-clamp-2 text-muted-foreground leading-relaxed">
+                                    {method.description}
+                                  </p>
+                                </div>
+                                {isSelected && (
+                                  <Check className="w-5 h-5 text-primary shrink-0" />
+                                )}
+                              </div>
+                            </button>
+                          )
+
+                          if (hasWarnings) {
+                            return (
+                              <Tooltip key={method.id}>
+                                <TooltipTrigger asChild>
+                                  {methodButton}
+                                </TooltipTrigger>
+                                <TooltipContent side="left" className="max-w-xs">
+                                  <div className="space-y-1">
+                                    <p className="font-medium text-sm">
+                                      {t.methodBrowser.tooltips.warning}
+                                    </p>
+                                    <ul className="text-xs space-y-0.5">
+                                      {requirements.warnings.map((w, i) => (
+                                        <li key={i} className="flex items-start gap-1">
+                                          <span className="text-muted-foreground">•</span>
+                                          <span>{w}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            )
+                          }
+
+                          return methodButton
+                        })}
+                      </TooltipProvider>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              ))}
+
+              {filteredGroups.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>{t.methodBrowser.noResultsMessage(searchQuery)}</p>
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="text-primary hover:underline text-sm mt-2"
+                  >
+                    {t.methodBrowser.clearSearchButton}
+                  </button>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </div>
 
         {/* Right: Detail Panel */}
-        <div className="w-full lg:w-[320px] shrink-0 hidden lg:block">
+        <div className="w-full lg:w-[360px] shrink-0 hidden lg:block">
           <div className="sticky top-0">
             {detailMethod ? (
-              <MethodDetailPanel
-                method={detailMethod}
-                isSelected={selectedMethod?.id === detailMethod.id}
-                isRecommended={detailMethod.id === recommendedMethodId}
-                requirements={checkRequirements(detailMethod)}
-                categoryLabel={CATEGORY_LABELS[detailMethod.category] || detailMethod.category}
-                dataProfile={dataProfile}
-                onSelect={() => onMethodSelect(detailMethod)}
-              />
-            ) : (
+                <MethodDetailPanel
+                  method={detailMethod}
+                  isSelected={selectedMethod?.id === detailMethod.id}
+                  isRecommended={detailMethod.id === recommendedMethodId}
+                  requirements={checkRequirements(detailMethod)}
+                  categoryLabel={CATEGORY_LABELS[detailMethod.category] || detailMethod.category}
+                  dataProfile={dataProfile}
+                  selectButtonText={selectButtonText}
+                  onSelect={() => onMethodSelect(detailMethod)}
+                />
+              ) : (
               <EmptyState
                 icon={BookOpen}
                 title="분석 방법을 선택해 보세요"
@@ -542,16 +545,17 @@ export const MethodBrowser = memo(function MethodBrowser({
             <SheetDescription>모바일에서는 선택한 방법의 요구 조건과 주의사항을 시트에서 확인할 수 있습니다.</SheetDescription>
           </SheetHeader>
           {selectedMethod && (
-            <MethodDetailPanel
-              method={selectedMethod}
-              isSelected={true}
-              isRecommended={selectedMethod.id === recommendedMethodId}
-              requirements={checkRequirements(selectedMethod)}
-              categoryLabel={CATEGORY_LABELS[selectedMethod.category] || selectedMethod.category}
-              dataProfile={dataProfile}
-              onSelect={() => {
-                onMethodSelect(selectedMethod)
-                setMobileDetailOpen(false)
+              <MethodDetailPanel
+                method={selectedMethod}
+                isSelected={true}
+                isRecommended={selectedMethod.id === recommendedMethodId}
+                requirements={checkRequirements(selectedMethod)}
+                categoryLabel={CATEGORY_LABELS[selectedMethod.category] || selectedMethod.category}
+                dataProfile={dataProfile}
+                selectButtonText={selectButtonText}
+                onSelect={() => {
+                  onMethodSelect(selectedMethod)
+                  setMobileDetailOpen(false)
               }}
             />
           )}
@@ -569,6 +573,7 @@ function MethodDetailPanel({
   requirements,
   categoryLabel,
   dataProfile,
+  selectButtonText,
   onSelect
 }: {
   method: StatisticalMethod
@@ -577,6 +582,7 @@ function MethodDetailPanel({
   requirements: { canUse: boolean; warnings: string[]; status: CompatibilityStatus; alternatives?: string[] }
   categoryLabel: string
   dataProfile?: { totalRows: number; numericVars: number; categoricalVars: number }
+  selectButtonText: string
   onSelect: () => void
 }) {
   return (
@@ -720,7 +726,7 @@ function MethodDetailPanel({
               선택됨
             </>
           ) : (
-            '이 방법 사용'
+            selectButtonText
           )}
         </Button>
       </div>

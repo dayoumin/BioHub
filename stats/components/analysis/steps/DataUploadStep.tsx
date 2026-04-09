@@ -14,9 +14,7 @@ import { cn } from '@/lib/utils'
 import { focusRing } from '@/components/common/card-styles'
 import { formatTimeAgo } from '@/lib/utils/format-time'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
-import { DataValidationService, DATA_LIMITS } from '@/lib/services/data-validation-service'
-import { LargeFileProcessor, ProcessingProgress } from '@/lib/services/large-file-processor'
-import { ExcelProcessor, SheetInfo } from '@/lib/services/excel-processor'
+import { DataValidationService, DATA_LIMITS, LargeFileProcessor, ExcelProcessor } from '@/lib/services'
 import { DataRow } from '@/types/analysis'
 import {
   Select,
@@ -25,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import type { ProcessingProgress, SheetInfo } from '@/lib/services'
 
 import type { DataUploadStepProps } from '@/types/analysis-navigation'
 import { RefreshCw } from 'lucide-react'
@@ -44,10 +43,10 @@ const MAX_RECENT_FILES = 5
 
 export function DataUploadStep({
   onUploadComplete,
-  onNext,
-  canGoNext,
-  currentStep,
-  totalSteps,
+  onNext: _onNext,
+  canGoNext: _canGoNext,
+  currentStep: _currentStep,
+  totalSteps: _totalSteps,
   existingFileName,
   compact = false
 }: DataUploadStepProps & { existingFileName?: string; compact?: boolean }) {
@@ -367,118 +366,140 @@ export function DataUploadStep({
   const formatRelativeTime = (timestamp: number): string =>
     formatTimeAgo(timestamp, t.hub.timeAgo, 7)
 
+  const showRecentFiles = !uploadedFileName && recentFiles.length > 0
+  const showProcessingStatus = isUploading
+  const showStandaloneMemoryWarning = memoryWarning && !showProcessingStatus
+
   return (
-    <div className="space-y-8">
-      {/* 업로드 영역 — Axiom Slate: surface hierarchy + ghost border */}
-      {!uploadedFileName ? (
-        <div
-          {...getRootProps()}
-          className={cn(
-            'group relative rounded-2xl px-8 py-10 text-center transition-all duration-200',
-            'bg-surface-container-low',
-            'border-2 border-dashed',
-            isDragActive
-              ? 'border-primary/60 bg-primary/5 shadow-[0_0_0_4px_rgba(var(--primary-rgb,0,0,0),0.05)]'
-              : 'border-outline-variant/40 hover:border-primary/30',
-            isUploading && 'pointer-events-none opacity-50',
-            'cursor-pointer',
-          )}
-        >
-          <input {...getInputProps()} />
-          {/* Cloud upload icon in white circle with ambient shadow */}
-          <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-[0px_4px_16px_rgba(25,28,30,0.06)] group-hover:shadow-[0px_6px_20px_rgba(25,28,30,0.08)] transition-shadow duration-200">
-            <CloudUpload className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
-          </div>
-          <h3 className="text-base font-semibold tracking-tight text-foreground mb-1.5" aria-live="polite">
-            {isDragActive ? t.dataUpload.labels.dropHere : t.dataUpload.labels.dragOrClick}
-          </h3>
-          <p className="text-sm text-muted-foreground mb-5">{t.dataUpload.labels.fileSpecifications}</p>
-          <Button
-            size="sm"
-            className="shadow-sm"
-            disabled={isUploading}
-          >
-            {isUploading ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                {t.dataUpload.buttons.uploading}
-              </>
-            ) : (
-              t.dataUpload.buttons.selectFile
+    <div className="space-y-6">
+      <div className={cn('grid gap-5', !uploadedFileName && 'xl:grid-cols-[minmax(0,1fr)_320px]')}>
+        {/* 업로드 영역 — PC에서 메인 행동에 집중 */}
+        {!uploadedFileName ? (
+          <div
+            {...getRootProps()}
+            className={cn(
+              'group relative rounded-2xl px-8 py-12 text-center transition-all duration-200',
+              'bg-surface-container-low',
+              'border-2 border-dashed',
+              isDragActive
+                ? 'border-primary/60 bg-primary/5 shadow-[0_0_0_4px_rgba(var(--primary-rgb,0,0,0),0.05)]'
+                : 'border-outline-variant/40 hover:border-primary/30',
+              isUploading && 'pointer-events-none opacity-50',
+              'cursor-pointer',
             )}
-          </Button>
-        </div>
-      ) : (
-        <div className="rounded-xl p-4 flex items-center justify-between bg-surface-container-lowest shadow-[0px_4px_16px_rgba(25,28,30,0.04)] border border-outline-variant/15">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary/8 flex items-center justify-center">
-              <FileSpreadsheet className="h-4.5 w-4.5 text-primary" />
-            </div>
-            <span className="text-sm font-medium tracking-tight text-foreground">{uploadedFileName}</span>
-          </div>
-          <div {...getRootProps()}>
+          >
             <input {...getInputProps()} />
-            <Button variant="outline" size="sm" disabled={isUploading} className="border-outline-variant/20 shadow-none hover:bg-surface-container-low">
-              {t.dataUpload.buttons.changeFile}
+            <div className="mx-auto mb-5 w-16 h-16 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-[0px_6px_20px_rgba(25,28,30,0.06)] group-hover:shadow-[0px_8px_24px_rgba(25,28,30,0.08)] transition-shadow duration-200">
+              <CloudUpload className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
+            </div>
+            <h3 className="text-lg font-semibold tracking-tight text-foreground mb-2" aria-live="polite">
+              {isDragActive ? t.dataUpload.labels.dropHere : t.dataUpload.labels.dragOrClick}
+            </h3>
+            <p className="mx-auto max-w-xl text-sm text-muted-foreground leading-relaxed mb-6">
+              {t.dataUpload.labels.fileSpecifications}
+            </p>
+            <Button
+              size="default"
+              className="h-10 px-5 shadow-sm"
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  {t.dataUpload.buttons.uploading}
+                </>
+              ) : (
+                t.dataUpload.buttons.selectFile
+              )}
             </Button>
           </div>
-        </div>
-      )}
-
-      {/* 최근 업로드 파일 (업로드 전에만 표시) — Axiom Slate: no dividers, alternating bg */}
-      {!uploadedFileName && recentFiles.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              <Clock className="h-3 w-3" />
-              <span>{t.dataUpload.labels.recentFiles}</span>
+        ) : (
+          <div className="rounded-xl p-4 flex items-center justify-between bg-surface-container-lowest shadow-[0px_4px_16px_rgba(25,28,30,0.04)] border border-outline-variant/15">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-lg bg-primary/8 flex items-center justify-center flex-shrink-0">
+                <FileSpreadsheet className="h-4.5 w-4.5 text-primary" />
+              </div>
+              <span className="text-sm font-medium tracking-tight text-foreground truncate">{uploadedFileName}</span>
             </div>
-            <span className="text-xs text-muted-foreground/60">{t.dataUpload.labels.recentFilesClickHint}</span>
+            <div {...getRootProps()}>
+              <input {...getInputProps()} />
+              <Button variant="outline" size="sm" disabled={isUploading} className="border-outline-variant/20 shadow-none hover:bg-surface-container-low">
+                {t.dataUpload.buttons.changeFile}
+              </Button>
+            </div>
           </div>
-          <div className="rounded-xl overflow-hidden bg-surface-container-lowest shadow-[0px_4px_16px_rgba(25,28,30,0.04)]">
-            {recentFiles.map((file, idx) => (
-              <div
-                key={file.name}
-                role="button"
-                tabIndex={0}
-                className={cn(
-                  'group flex items-center justify-between px-4 py-3 transition-colors duration-150 cursor-pointer',
-                  idx % 2 === 0 ? 'bg-surface-container-lowest' : 'bg-surface-container-low/50',
-                  'hover:bg-surface-container-low',
-                  focusRing,
-                )}
-                onClick={() => open()}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open() } }}
-                title={t.dataUpload.labels.recentFileClickTitle}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center flex-shrink-0">
-                    <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
-                  </div>
+        )}
+
+        {!uploadedFileName && (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-border/50 bg-surface-container-lowest p-5 shadow-[0px_4px_16px_rgba(25,28,30,0.04)]">
+              <p className="text-xs text-muted-foreground leading-relaxed flex items-start gap-2.5">
+                <Lightbulb className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-muted-foreground/60" />
+                <span>{t.dataUpload.labels.helpText}</span>
+              </p>
+            </div>
+
+            {showRecentFiles && (
+              <div className="rounded-2xl border border-border/50 bg-surface-container-lowest shadow-[0px_4px_16px_rgba(25,28,30,0.04)] overflow-hidden">
+                <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-border/40">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate tracking-tight text-foreground">{file.name}</p>
-                    <p className="text-xs text-muted-foreground tabular-nums">
-                      {t.dataUpload.labels.fileMetadata(file.rows.toLocaleString(), formatFileSize(file.size), formatRelativeTime(file.uploadedAt))}
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      <Clock className="h-3 w-3" />
+                      <span>{t.dataUpload.labels.recentFiles}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground/70 leading-relaxed">
+                      {t.dataUpload.labels.recentFilesClickHint}
                     </p>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    removeRecentFile(file.name)
-                  }}
-                  aria-label={t.dataUpload.buttons.deleteRecentFile}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
+
+                <div className="max-h-[280px] overflow-y-auto">
+                  {recentFiles.map((file, idx) => (
+                    <div
+                      key={file.name}
+                      role="button"
+                      tabIndex={0}
+                      className={cn(
+                        'group flex items-center justify-between px-4 py-3 transition-colors duration-150 cursor-pointer',
+                        idx % 2 === 0 ? 'bg-surface-container-lowest' : 'bg-surface-container-low/40',
+                        'hover:bg-surface-container-low',
+                        focusRing,
+                      )}
+                      onClick={() => open()}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open() } }}
+                      title={t.dataUpload.labels.recentFileClickTitle}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center flex-shrink-0">
+                          <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate tracking-tight text-foreground">{file.name}</p>
+                          <p className="text-xs text-muted-foreground tabular-nums">
+                            {t.dataUpload.labels.fileMetadata(file.rows.toLocaleString(), formatFileSize(file.size), formatRelativeTime(file.uploadedAt))}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeRecentFile(file.name)
+                        }}
+                        aria-label={t.dataUpload.buttons.deleteRecentFile}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
+            )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Excel 시트 선택 UI — Axiom Slate: elevated card, no hard border */}
       {excelSheets && excelSheets.length > 1 && (
@@ -525,66 +546,89 @@ export function DataUploadStep({
         </Card>
       )}
 
-      {/* 진행률 표시 — Axiom Slate: surface card, tabular nums */}
-      {progress && isUploading && (
-        <div className="rounded-xl bg-surface-container-lowest p-5 shadow-[0px_4px_16px_rgba(25,28,30,0.04)] space-y-3">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground tabular-nums">
-              {t.dataUpload.labels.processing(progress.processedRows.toLocaleString(), progress.totalRows.toLocaleString())}
-            </span>
-            <span className="font-semibold text-foreground tabular-nums">{Math.round(progress.percentage)}%</span>
-          </div>
-          <Progress value={progress.percentage} className="h-1.5" />
-          {progress.estimatedTimeRemaining && progress.estimatedTimeRemaining > 0 && (
-            <p className="text-xs text-muted-foreground text-right tabular-nums">
-              {t.dataUpload.labels.estimatedTime(progress.estimatedTimeRemaining)}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* 메모리 경고 — Axiom Slate: tonal bg shift, no hard border */}
-      {memoryWarning && (
-        <div className="bg-warning-bg rounded-xl p-4 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-warning-muted">
-              {t.dataUpload.warnings.highMemoryTitle}
-            </p>
-            <p className="text-xs text-warning-muted leading-relaxed">
-              {t.dataUpload.warnings.highMemoryDescription}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* 에러 메시지 — Axiom Slate: tonal bg, no hard border */}
+      {/* 에러 메시지 */}
       {error && (
-        <div className="bg-destructive/8 rounded-xl p-4">
-          <p className="text-sm text-destructive">{error}</p>
-        </div>
+        <Card className="border-error-border/70 bg-destructive/8 shadow-[0px_4px_16px_rgba(25,28,30,0.04)]">
+          <CardContent className="px-4 py-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-destructive/10">
+                <AlertCircle className="h-4 w-4 text-destructive" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-semibold tracking-tight text-foreground">업로드를 완료하지 못했습니다</p>
+                <p className="text-sm text-destructive">{error}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* 대용량 파일 처리 중 메시지 — Axiom Slate: tonal bg, no hard border */}
-      {isUploading && !progress && (
-        <div className="bg-info-bg rounded-xl p-4">
-          <div className="flex items-center gap-2.5">
-            <Loader2 className="w-4 h-4 animate-spin text-info" />
-            <p className="text-sm text-info-muted">
-              {t.dataUpload.labels.analyzing}
-            </p>
-          </div>
-        </div>
+      {/* 업로드 상태 */}
+      {showProcessingStatus && (
+        <Card className="border-border/50 bg-surface-container-lowest shadow-[0px_4px_16px_rgba(25,28,30,0.04)]">
+          <CardContent className="px-5 py-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              </div>
+              <div className="min-w-0 flex-1 space-y-3">
+                <div>
+                  <p className="text-sm font-semibold tracking-tight text-foreground">파일을 처리하는 중입니다</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {progress ? t.dataUpload.labels.processing(progress.processedRows.toLocaleString(), progress.totalRows.toLocaleString()) : t.dataUpload.labels.analyzing}
+                  </p>
+                </div>
+
+                {progress ? (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-muted-foreground">진행률</span>
+                      <span className="font-semibold tabular-nums text-foreground">{Math.round(progress.percentage)}%</span>
+                    </div>
+                    <Progress value={progress.percentage} className="h-1.5" />
+                    {progress.estimatedTimeRemaining && progress.estimatedTimeRemaining > 0 && (
+                      <p className="text-xs text-muted-foreground tabular-nums">
+                        {t.dataUpload.labels.estimatedTime(progress.estimatedTimeRemaining)}
+                      </p>
+                    )}
+                  </div>
+                ) : null}
+
+                {memoryWarning && (
+                  <div className="rounded-xl border border-warning-border/60 bg-warning-bg/80 px-3.5 py-3">
+                    <div className="flex items-start gap-2.5">
+                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-foreground">{t.dataUpload.warnings.highMemoryTitle}</p>
+                        <p className="text-xs leading-relaxed text-warning-muted">
+                          {t.dataUpload.warnings.highMemoryDescription}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* 도움말 (업로드 전에만 표시) — Axiom Slate: tonal bg, no border */}
-      {!uploadedFileName && (
-        <div className="bg-surface-container-low rounded-xl p-4">
-          <p className="text-xs text-muted-foreground flex items-start gap-2.5 leading-relaxed">
-            <Lightbulb className="h-3.5 w-3.5 flex-shrink-0 mt-0.5 text-muted-foreground/60" />
-            <span>{t.dataUpload.labels.helpText}</span>
-          </p>
-        </div>
+      {showStandaloneMemoryWarning && (
+        <Card className="border-warning-border/70 bg-warning-bg/80 shadow-[0px_4px_16px_rgba(25,28,30,0.04)]">
+          <CardContent className="px-4 py-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-warning/10">
+                <AlertCircle className="h-4 w-4 text-warning" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-semibold tracking-tight text-foreground">{t.dataUpload.warnings.highMemoryTitle}</p>
+                <p className="text-xs leading-relaxed text-warning-muted">
+                  {t.dataUpload.warnings.highMemoryDescription}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   )

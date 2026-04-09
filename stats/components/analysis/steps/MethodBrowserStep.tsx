@@ -14,6 +14,8 @@
 import { useState, useMemo, useCallback } from 'react'
 import { ArrowRight, ArrowLeft, Search, AlertTriangle, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { getAllMethodsGrouped } from '@/lib/statistics/method-catalog'
 import { getKoreanName } from '@/lib/constants/statistical-methods'
@@ -67,41 +69,75 @@ export function MethodBrowserStep({ onMethodConfirm, onBack }: MethodBrowserStep
   }, [browsedMethod, onMethodConfirm])
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <Button variant="ghost" size="sm" className="h-8 gap-1.5 px-2.5" onClick={onBack}>
-          <ArrowLeft className="w-4 h-4" />
-          이전 단계
-        </Button>
-        <StepHeader icon={Search} title="분석 방법 선택" />
-      </div>
+    <div className="space-y-5">
+      <StepHeader
+        icon={Search}
+        title="분석 방법 선택"
+        action={
+          <Button variant="outline" size="sm" className="h-9 gap-1.5 px-3" onClick={onBack}>
+            <ArrowLeft className="w-4 h-4" />
+            이전 단계
+          </Button>
+        }
+      />
+
+      <Card className="border-border/50 bg-surface-container-lowest shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
+        <CardContent className="px-5 py-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
+                Step 2
+              </p>
+              <p className="mt-1 text-sm font-medium text-foreground">데이터에 맞는 분석 방법을 고르세요</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                방법을 선택한 뒤, 다음 단계에서 변수 역할을 지정합니다.
+              </p>
+            </div>
+            {dataProfile && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="secondary" className="font-mono tabular-nums">{dataProfile.totalRows} rows</Badge>
+                <Badge variant="outline" className="font-mono tabular-nums">{dataProfile.numericVars} numeric</Badge>
+                <Badge variant="outline" className="font-mono tabular-nums">{dataProfile.categoricalVars} categorical</Badge>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* 정규성 탐색적 힌트 배너 — assumptionResults 없을 때만 표시 */}
       {normalitySummary && (
-        <div className={`flex items-start gap-3 rounded-lg px-4 py-3 text-sm ${
+        <Card className={`shadow-[0px_6px_24px_rgba(25,28,30,0.04)] ${
           !normalitySummary.mostlyNormal
-            ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-100'
-            : 'bg-muted/50 text-muted-foreground'
+            ? 'border-warning-border/70 bg-warning-bg/80'
+            : 'border-border/50 bg-surface-container-lowest'
         }`}>
-          {!normalitySummary.mostlyNormal
-            ? <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
-            : <Info className="w-4 h-4 mt-0.5 shrink-0" />
-          }
-          <div>
-            <p className="font-medium">탐색적 정규성 요약</p>
-            <p className="mt-1 text-xs opacity-80">
-              Step 1에서 본 분포 요약입니다. 변수 선택 후 정확한 가정 검정이 다시 실행됩니다.
-            </p>
-            <p className="mt-2">
-              수치 변수 {normalitySummary.testedCount}개 중 {normalitySummary.normalCount}개가 정규분포 경향을 보였습니다.
-            </p>
-            {!normalitySummary.mostlyNormal && (
-              <p className="mt-1 text-xs opacity-80">
-                비정규 변수가 많아 비모수 검정(Mann-Whitney, Kruskal-Wallis 등)을 우선 검토하는 편이 안전합니다.
-              </p>
-            )}
-          </div>
-        </div>
+          <CardContent className="px-5 py-4">
+            <div className="flex items-start gap-3 text-sm">
+              <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                !normalitySummary.mostlyNormal ? 'bg-warning/10' : 'bg-muted'
+              }`}>
+                {!normalitySummary.mostlyNormal
+                  ? <AlertTriangle className="h-4 w-4 text-warning" />
+                  : <Info className="h-4 w-4 text-muted-foreground" />
+                }
+              </div>
+              <div>
+                <p className="font-semibold tracking-tight text-foreground">탐색적 정규성 요약</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Step 1에서 본 분포 요약입니다. 변수 선택 후 정확한 가정 검정이 다시 실행됩니다.
+                </p>
+                <p className="mt-2 text-muted-foreground">
+                  수치 변수 {normalitySummary.testedCount}개 중 {normalitySummary.normalCount}개가 정규분포 경향을 보였습니다.
+                </p>
+                {!normalitySummary.mostlyNormal && (
+                  <p className="mt-1 text-xs text-warning">
+                    비정규 변수가 많아 비모수 검정(Mann-Whitney, Kruskal-Wallis 등)을 우선 검토하는 편이 안전합니다.
+                  </p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       <MethodBrowser
@@ -114,16 +150,27 @@ export function MethodBrowserStep({ onMethodConfirm, onBack }: MethodBrowserStep
 
       {/* 선택 확정 바 */}
       {browsedMethod && (
-        <div className="sticky bottom-0 z-10 flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-card border border-border/60 shadow-sm">
-          <div className="text-sm">
-            <span className="text-muted-foreground">선택됨: </span>
-            <span className="font-medium text-foreground">{getKoreanName(browsedMethod.id) ?? browsedMethod.name}</span>
-          </div>
-          <Button size="sm" className="gap-1.5" onClick={handleConfirm}>
-            이 방법으로 진행
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Button>
-        </div>
+        <Card className="sticky bottom-3 z-10 border-border/60 bg-background/95 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <CardContent className="px-4 py-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  선택한 방법
+                </p>
+                <p className="mt-1 truncate text-sm font-semibold text-foreground">
+                  {getKoreanName(browsedMethod.id) ?? browsedMethod.name}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  다음 단계에서 분석에 사용할 변수를 확인하고 지정합니다.
+                </p>
+              </div>
+              <Button size="default" className="h-10 w-full gap-1.5 sm:w-auto sm:px-4" onClick={handleConfirm}>
+                변수 선택으로 계속
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   )

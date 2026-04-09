@@ -358,19 +358,19 @@ describe('MethodBrowser', () => {
       expect(selectButton).toBeInTheDocument()
     })
 
-    it('패널의 "이 방법 사용" 버튼 클릭 시 정확한 메서드 객체로 onMethodSelect가 호출된다', () => {
+    it('패널의 "선택하기" 버튼 클릭 시 정확한 메서드 객체로 onMethodSelect가 호출된다', () => {
       const mockSelect = vi.fn()
       renderBrowser({ onMethodSelect: mockSelect })
 
-      // hover 전: "이 방법 사용" 버튼 없음 (placeholder 상태)
-      expect(screen.queryByRole('button', { name: '이 방법 사용' })).not.toBeInTheDocument()
+      // hover 전: "선택하기" 버튼 없음 (placeholder 상태)
+      expect(screen.queryByRole('button', { name: '선택하기' })).not.toBeInTheDocument()
 
       // hover → 패널에 버튼 나타남
       const anovaButton = screen.getByText('일원분산분석').closest('button')
       expect(anovaButton).not.toBeNull()
       fireEvent.mouseEnter(anovaButton as HTMLElement)
 
-      const useButton = screen.getByRole('button', { name: '이 방법 사용' })
+      const useButton = screen.getByRole('button', { name: '선택하기' })
       fireEvent.click(useButton)
 
       // 정확한 메서드 객체로 호출됨

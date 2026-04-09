@@ -17,8 +17,8 @@
 import { useState, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
-import { intentRouter } from '@/lib/services/intent-router'
-import { getHubAiResponse, getHubDiagnosticResponse, getHubDiagnosticResumeResponse } from '@/lib/services/hub-chat-service'
+import { cn } from '@/lib/utils'
+import { intentRouter, getHubAiResponse, getHubDiagnosticResponse, getHubDiagnosticResumeResponse } from '@/lib/services'
 import { bridgeDiagnosticToSmartFlow, prepareManualMethodBrowsing } from '@/lib/stores/store-orchestration'
 import { getKoreanName } from '@/lib/constants/statistical-methods'
 import { logger } from '@/lib/utils/logger'
@@ -377,59 +377,106 @@ export function ChatCentricHub({
       {/* ====== Hero Section + ChatThread + ChatInput ====== */}
       <motion.div {...(prefersReducedMotion ? {} : { variants: itemVariants })}>
         <div className="py-8 lg:py-12">
-          <div className="flex flex-col items-center text-center">
+          <div className="mx-auto max-w-[1120px] rounded-[28px] border border-border/50 bg-surface-container-lowest px-6 py-10 shadow-[0px_16px_48px_rgba(25,28,30,0.05)] lg:px-10">
+            <div className="flex flex-col items-center text-center">
             {/* Heading */}
-            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight leading-tight mb-1">
-              {t.hub.hero.heading}
-            </h1>
-            <p className="text-lg text-muted-foreground mb-8">
-              {t.hub.hero.subheading}
-            </p>
+              <span className="mb-3 inline-flex items-center rounded-full border border-primary/15 bg-primary/[0.04] px-3 py-1 text-xs font-medium text-primary/80">
+                {t.hub.quickStart.newAnalysis}
+              </span>
+              <h1 className="text-3xl lg:text-4xl font-bold tracking-tight leading-tight mb-2">
+                {t.hub.hero.heading}
+              </h1>
+              <p className="text-lg text-muted-foreground mb-10">
+                {t.hub.hero.subheading}
+              </p>
 
-            {/* ChatThread — 대화 히스토리 (메시지 있을 때만) */}
-            <ChatThread
-              onMethodSelect={onQuickAnalysis}
-              onUploadClick={onUploadClick}
-              onFileSelected={handleFileSelected}
-              onClearChat={handleClearChat}
-              onRetry={handleRetry}
-              onDiagnosticStart={handleDiagnosticStart}
-              onAlternativeSearch={handleAlternativeSearch}
-              onVariableConfirm={handleVariableConfirm}
-              onClarificationCancel={handleClarificationCancel}
-            />
-
-            {/* DataContextBadge — 데이터 로드됨 표시 */}
-            <DataContextBadge onClear={clearDataContext} />
-
-            {/* ChatInput — centered, wider */}
-            <div className="w-full max-w-[680px]">
-              <ChatInput
-                onSubmit={handleChatSubmit}
-                isProcessing={isProcessing}
-                externalValue={externalValue}
-                onExternalValueConsumed={handleExternalValueConsumed}
+              {/* ChatThread — 대화 히스토리 (메시지 있을 때만) */}
+              <ChatThread
+                onMethodSelect={onQuickAnalysis}
                 onUploadClick={onUploadClick}
                 onFileSelected={handleFileSelected}
+                onClearChat={handleClearChat}
+                onRetry={handleRetry}
+                onDiagnosticStart={handleDiagnosticStart}
+                onAlternativeSearch={handleAlternativeSearch}
+                onVariableConfirm={handleVariableConfirm}
+                onClarificationCancel={handleClarificationCancel}
               />
-            </div>
 
-            {/* 빠른 분석 pills — 중앙 정렬 */}
-            <div className="mt-8">
-              <QuickAnalysisPills onQuickAnalysis={onQuickAnalysis} />
+              {/* DataContextBadge — 데이터 로드됨 표시 */}
+              <DataContextBadge onClear={clearDataContext} />
+
+              {/* ChatInput — centered, wider */}
+              <div className="w-full max-w-[720px]">
+                <ChatInput
+                  onSubmit={handleChatSubmit}
+                  isProcessing={isProcessing}
+                  externalValue={externalValue}
+                  onExternalValueConsumed={handleExternalValueConsumed}
+                  onUploadClick={onUploadClick}
+                  onFileSelected={handleFileSelected}
+                />
+              </div>
+
+              {/* 빠른 분석 pills — 주 입력 바로 아래의 보조 액션 */}
+              <div className="mt-7 rounded-2xl border border-border/40 bg-surface-container-low px-4 py-3.5">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground/70">
+                    자주 쓰는 분석
+                  </p>
+                  <span className="text-xs text-muted-foreground/70">
+                    바로 시작
+                  </span>
+                </div>
+                <QuickAnalysisPills onQuickAnalysis={onQuickAnalysis} />
+              </div>
             </div>
           </div>
         </div>
       </motion.div>
 
-      {/* 빠른 시작 그리드 */}
-      <TrackSuggestions onStartAnalysis={handleStartAnalysis} onUploadClick={onUploadClick} />
+      {/* 보조 진입 영역 */}
+      <motion.div
+        {...(prefersReducedMotion ? {} : { variants: itemVariants })}
+        className="grid gap-5 xl:grid-cols-[minmax(0,1.02fr)_minmax(360px,0.98fr)]"
+      >
+        <section className="rounded-2xl border border-border/50 bg-surface-container-lowest p-5 shadow-[0px_8px_24px_rgba(25,28,30,0.04)]">
+          <div className="mb-3 flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground/70">
+                보조 진입
+              </p>
+              <h2 className="mt-1 text-lg font-semibold">빠르게 시작하기</h2>
+            </div>
+            <p className="max-w-[220px] text-right text-sm text-muted-foreground">
+              채팅 없이 바로 실행할 작업만 모았습니다.
+            </p>
+          </div>
+          <TrackSuggestions onStartAnalysis={handleStartAnalysis} onUploadClick={onUploadClick} showHeader={false} />
+        </section>
 
-      {/* 최근 분석 히스토리 */}
-      <QuickAccessBar
-        onHistoryClick={onHistorySelect}
-        onHistoryDelete={onHistoryDelete}
-      />
+        <section className={cn(
+          'rounded-2xl border border-border/50 bg-surface-container-lowest p-5 shadow-[0px_8px_24px_rgba(25,28,30,0.04)]',
+          'min-h-[280px]',
+        )}>
+          <div className="mb-3 flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground/70">
+                최근 작업
+              </p>
+              <h2 className="mt-1 text-lg font-semibold">{t.hub.cards.recentTitle}</h2>
+            </div>
+            <p className="max-w-[220px] text-right text-sm text-muted-foreground">
+              최근 분석과 시각화를 이어서 열 수 있습니다.
+            </p>
+          </div>
+          <QuickAccessBar
+            onHistoryClick={onHistorySelect}
+            onHistoryDelete={onHistoryDelete}
+            showHeader={false}
+          />
+        </section>
+      </motion.div>
     </motion.div>
   )
 }

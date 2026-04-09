@@ -102,8 +102,8 @@ export function QuickAnalysisPills({ onQuickAnalysis }: QuickAnalysisPillsProps)
 
   return (
     <>
-      <div className="flex items-center justify-center gap-2 flex-wrap">
-        <span className="text-xs font-medium text-muted-foreground mr-0.5">
+      <div className="flex items-center justify-center gap-2.5 flex-wrap">
+        <span className="text-xs font-medium text-muted-foreground/80 mr-1">
           {t.hub.quickAnalysis.title}
         </span>
 
@@ -114,9 +114,9 @@ export function QuickAnalysisPills({ onQuickAnalysis }: QuickAnalysisPillsProps)
             data-testid={`quick-pill-${method.id}`}
             onClick={() => onQuickAnalysis(method.id)}
             className={cn(
-              'px-3.5 py-1.5 text-xs rounded-full',
-              'border border-border bg-muted/50',
-              'text-foreground/80 hover:text-primary hover:border-primary/40 hover:bg-primary/5',
+              'h-8 px-3.5 text-xs rounded-full',
+              'border border-border/50 bg-background',
+              'text-foreground/80 hover:text-primary hover:border-primary/35 hover:bg-primary/5',
               'transition-colors duration-150',
               focusRing
             )}
@@ -125,15 +125,18 @@ export function QuickAnalysisPills({ onQuickAnalysis }: QuickAnalysisPillsProps)
           </button>
         ))}
 
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           data-testid="quick-analysis-settings"
           onClick={handleOpenEdit}
-          className="p-1.5 text-muted-foreground/40 hover:text-muted-foreground transition-colors rounded-full hover:bg-accent"
+          className="h-8 px-3 gap-1.5 border-border/50 bg-background text-muted-foreground hover:text-foreground"
           title={t.hub.quickAnalysis.editTooltip}
         >
           <Settings2 className="w-3.5 h-3.5" />
-        </button>
+          <span>{t.hub.quickAnalysis.editButton}</span>
+        </Button>
       </div>
 
       {/* 편집 다이얼로그 */}

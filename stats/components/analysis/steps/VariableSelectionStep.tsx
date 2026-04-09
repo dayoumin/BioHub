@@ -24,7 +24,7 @@ import { useAnalysisStore } from '@/lib/stores/analysis-store'
 import { useModeStore } from '@/lib/stores/mode-store'
 import { validateVariableMapping } from '@/lib/statistics/variable-mapping'
 import type { VariableMapping, ColumnInfo } from '@/lib/statistics/variable-mapping'
-import { startPreemptiveAssumptions } from '@/lib/services/preemptive-assumption-service'
+import { startPreemptiveAssumptions } from '@/lib/services'
 import { useTerminology } from '@/hooks/use-terminology'
 import { CollapsibleSection, StepHeader } from '@/components/analysis/common'
 import { AnalysisOptionsSection } from '@/components/analysis/variable-selector/AnalysisOptions'
@@ -391,7 +391,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
       {/* Validation Alert (from variable mapping validation) */}
       {validationAlert && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="border-error-border/70 bg-error-bg/80 shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{validationAlert}</AlertDescription>
         </Alert>
@@ -399,7 +399,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
       {/* AI Detected Variables Info — Axiom Slate: tonal surface shift, no border */}
       {detectedVariables && (
-        <div className="flex items-start gap-4 p-5 rounded-2xl bg-surface-container-low">
+        <div className="flex items-start gap-4 rounded-2xl border border-border/50 bg-surface-container-lowest p-5 shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
           <div className="w-8 h-8 rounded-lg bg-secondary-container flex items-center justify-center flex-shrink-0 mt-0.5">
             <Sparkles className="h-4 w-4 text-on-secondary-container" />
           </div>
@@ -437,7 +437,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
       )}
 
       {!detectedVariables && !existingMapping && (
-        <Alert>
+        <Alert className="border-border/50 bg-surface-container-lowest shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
           <Info className="h-4 w-4" />
           <AlertDescription>
             자동 변수 감지에 실패했습니다. 아래 슬롯에서 분석에 필요한 변수를 직접 선택해주세요.
@@ -447,7 +447,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
       {/* F1: Method Variable Guide — 필수 슬롯이 프리필되지 않았을 때 표시 */}
       {needsVariableGuide && (
-        <div className="flex items-start gap-4 p-5 rounded-2xl bg-primary/5 border border-primary/10">
+        <div className="flex items-start gap-4 rounded-2xl border border-primary/15 bg-primary/5 p-5 shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
           <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
             <Info className="h-4 w-4 text-primary" />
           </div>
@@ -486,7 +486,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
       )}
 
       {/* Analysis Options — Axiom Slate: tonal bg, no border */}
-      <div className="rounded-2xl bg-surface-container-low px-2 py-1">
+      <div className="rounded-2xl border border-border/50 bg-surface-container-lowest px-2 py-1 shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
         <CollapsibleSection
           label={t.selectorUI.labels.analysisOptions}
           open={optionsOpen}

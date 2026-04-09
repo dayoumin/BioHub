@@ -27,6 +27,7 @@ export {
   inferColumnMeta,
   suggestChartType,
   selectXYFields,
+  applyAnalysisContext,
   autoCreateChartSpec,
   columnsToRows,
   createChartSpecFromDataPackage,
@@ -58,3 +59,10 @@ export type { DataSizeLevel } from './chart-data-guard';
 
 // AI 서비스
 export { editChart, buildAiEditRequest } from './ai-service';
+
+// 분석 결과 어댑터
+export {
+  toAnalysisContext,
+  buildKmCurveColumns,
+  buildRocCurveColumns,
+} from './analysis-adapter';

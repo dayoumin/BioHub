@@ -1,6 +1,6 @@
 'use client'
 
-import { type RefObject, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactNode, type RefObject, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, RefreshCw, AlertCircle, AlertTriangle, ArrowRight, ChevronDown, List } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
@@ -10,10 +10,10 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { proseBase } from '@/components/common/card-styles'
-import { AI_ACCENT } from '@/lib/design-tokens/analysis'
-import { parseDetailSections, type InterpretationSection, type SectionCategory } from '@/lib/services/ai/parse-interpretation-sections'
+import { AI_ACCENT } from '@/lib/design-tokens'
+import { parseDetailSections, type InterpretationSection, type SectionCategory } from '@/lib/services'
 import { getSectionIcon } from './ai-section-config'
-import type { TerminologyDictionary } from '@/lib/terminology/terminology-types'
+import type { TerminologyDictionary } from '@/lib/terminology'
 
 // ============================================
 // 타입
@@ -37,6 +37,7 @@ interface AiInterpretationCardProps {
   /** 결과 Phase (0~4) — Phase 1부터 스켈레톤 표시 */
   phase?: number
   t: TerminologyDictionary
+  footerAction?: ReactNode
 }
 
 // ============================================
@@ -235,6 +236,7 @@ export function AiInterpretationCard({
   containerRef,
   phase = 4,
   t,
+  footerAction,
 }: AiInterpretationCardProps): React.ReactElement {
   // 상세 섹션 파싱
   const sections = useMemo(
@@ -466,6 +468,12 @@ export function AiInterpretationCard({
                 {actionSections.map(section => (
                   <ActionCallout key={section.key} section={section} prefersReducedMotion={prefersReducedMotion} />
                 ))}
+
+                {footerAction && (
+                  <div className="pt-1">
+                    {footerAction}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>

@@ -170,10 +170,19 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
   // 빠른 분석 모드 힌트 (2곳에서 사용)
   const focusHintBanner = isQuickMode && profile.focusHint && data.length > 0 ? (
-    <div className="flex items-center gap-2 p-3 bg-info-bg rounded-lg border border-info-border text-sm">
-      <Lightbulb className="h-4 w-4 text-info flex-shrink-0" />
-      <span className="text-info">{profile.focusHint}</span>
-    </div>
+    <Card className="border-info-border/70 bg-info-bg/75 shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
+      <CardContent className="px-4 py-3">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-info/10">
+            <Lightbulb className="h-4 w-4 text-info" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold tracking-tight text-foreground">빠른 분석 힌트</p>
+            <p className="text-sm text-info">{profile.focusHint}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   ) : null
 
   // 데이터 미리보기 split (상단 5 + 하단 5)
@@ -257,55 +266,78 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         <StepHeader icon={ChartScatter} title={t.analysis.stepTitles.dataExploration} />
 
         {!isReplaceMode && (
-          <p className="text-sm text-muted-foreground">{t.dataExploration.empty.description}</p>
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]">
+            <Card className="border-border/50 bg-surface-container-lowest shadow-[0px_8px_32px_rgba(25,28,30,0.04)]">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">데이터 파일 업로드</CardTitle>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {t.dataExploration.empty.description}
+                </p>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {onUploadComplete && (
+                  <DataUploadStep
+                    onUploadComplete={onUploadComplete}
+                    existingFileName={existingFileName}
+                  />
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="space-y-4">
+              <Card className="border-border/40 bg-surface-container-lowest">
+                <CardContent className="p-4">
+                  <DataPrepGuide defaultCollapsed />
+                </CardContent>
+              </Card>
+
+              {recentTemplates.length > 0 && (
+                <Card className="border-border/40 bg-surface-container-lowest">
+                  <CardContent className="p-4">
+                    <TemplateSelector
+                      compact
+                      maxItems={3}
+                      onSelect={handleTemplateSelect}
+                      onViewAll={() => setTemplatePanelOpen(true)}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
         )}
 
         {/* 데이터 교체 모드 배너 */}
         {isReplaceMode && (
-          <Card className="border-info-border bg-info-bg">
-            <CardContent className="py-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Upload className="h-4 w-4 text-info" />
-                  <span className="text-sm font-medium text-info">
-                    {t.dataExploration.replaceMode.title}
-                  </span>
+          <>
+            <Card className="border-info-border bg-info-bg">
+              <CardContent className="py-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Upload className="h-4 w-4 text-info" />
+                    <span className="text-sm font-medium text-info">
+                      {t.dataExploration.replaceMode.title}
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsReplaceMode(false)}
+                    className="text-xs h-7"
+                  >
+                    {t.dataExploration.replaceMode.cancel}
+                  </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsReplaceMode(false)}
-                  className="text-xs h-7"
-                >
-                  {t.dataExploration.replaceMode.cancel}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
 
-        {onUploadComplete && (
-          <DataUploadStep
-            onUploadComplete={isReplaceMode ? handleReplaceUploadComplete : onUploadComplete}
-            existingFileName={existingFileName}
-          />
-        )}
-
-        {/* 데이터 준비 안내 */}
-        <DataPrepGuide defaultCollapsed />
-
-        {/* 템플릿 선택 영역 (저장된 템플릿이 있을 때만 표시) */}
-        {recentTemplates.length > 0 && (
-          <Card>
-            <CardContent className="py-4">
-              <TemplateSelector
-                compact
-                maxItems={3}
-                onSelect={handleTemplateSelect}
-                onViewAll={() => setTemplatePanelOpen(true)}
+            {onUploadComplete && (
+              <DataUploadStep
+                onUploadComplete={handleReplaceUploadComplete}
+                existingFileName={existingFileName}
               />
-            </CardContent>
-          </Card>
+            )}
+          </>
         )}
 
         <TemplateManagePanel
@@ -315,29 +347,33 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         />
 
         {/* 지원 기능 안내 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="p-4 bg-primary/5 border border-primary/15 rounded-xl hover:bg-primary/8 transition-colors duration-200">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
-              <ListOrdered className="h-4 w-4 text-primary" />
+        <Card className="border-border/40 bg-muted/20">
+          <CardContent className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="rounded-xl border border-primary/10 bg-background/80 p-4">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
+                  <ListOrdered className="h-4 w-4 text-primary" />
+                </div>
+                <h4 className="font-semibold text-sm tracking-tight">{t.dataExploration.features.descriptiveTitle}</h4>
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t.dataExploration.features.descriptiveDesc}</p>
+              </div>
+              <div className="rounded-xl border border-primary/10 bg-background/80 p-4">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
+                  <BarChart3 className="h-4 w-4 text-primary" />
+                </div>
+                <h4 className="font-semibold text-sm tracking-tight">{t.dataExploration.features.distributionTitle}</h4>
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t.dataExploration.features.distributionDesc}</p>
+              </div>
+              <div className="rounded-xl border border-primary/10 bg-background/80 p-4">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
+                  <Flame className="h-4 w-4 text-primary" />
+                </div>
+                <h4 className="font-semibold text-sm tracking-tight">{t.dataExploration.features.correlationTitle}</h4>
+                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t.dataExploration.features.correlationDesc}</p>
+              </div>
             </div>
-            <h4 className="font-semibold text-sm tracking-tight">{t.dataExploration.features.descriptiveTitle}</h4>
-            <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t.dataExploration.features.descriptiveDesc}</p>
-          </div>
-          <div className="p-4 bg-primary/5 border border-primary/15 rounded-xl hover:bg-primary/8 transition-colors duration-200">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
-              <BarChart3 className="h-4 w-4 text-primary" />
-            </div>
-            <h4 className="font-semibold text-sm tracking-tight">{t.dataExploration.features.distributionTitle}</h4>
-            <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t.dataExploration.features.distributionDesc}</p>
-          </div>
-          <div className="p-4 bg-primary/5 border border-primary/15 rounded-xl hover:bg-primary/8 transition-colors duration-200">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
-              <Flame className="h-4 w-4 text-primary" />
-            </div>
-            <h4 className="font-semibold text-sm tracking-tight">{t.dataExploration.features.correlationTitle}</h4>
-            <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">{t.dataExploration.features.correlationDesc}</p>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -355,96 +391,99 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       {focusHintBanner}
 
       {/* ── 컴팩트 요약 배지 바 ── */}
-      <div className="flex items-center gap-2 flex-wrap p-3 bg-muted/30 rounded-xl border border-border/40">
-        {/* 파일 정보 */}
-        <div className="flex items-center gap-2 mr-2">
-          <div className="p-1.5 rounded-md bg-primary/10">
-            <FileText className="h-3.5 w-3.5 text-primary" />
-          </div>
-          <span className="text-sm font-medium truncate max-w-[200px]">
-            {uploadedFile?.name || uploadedFileName || t.dataExploration.fallbackFileName}
-          </span>
-        </div>
+      <Card className="border-border/50 bg-surface-container-lowest shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
+        <CardContent className="px-5 py-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                  <FileText className="h-4 w-4 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
+                    데이터 개요
+                  </p>
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {uploadedFile?.name || uploadedFileName || t.dataExploration.fallbackFileName}
+                  </p>
+                </div>
+              </div>
+            </div>
 
-        {/* 구분선 */}
-        <div className="h-4 w-px bg-border/60" />
-
-        {/* 행/열 배지 */}
-        <Badge variant="secondary" className="text-xs font-mono tabular-nums gap-1">
-          {data.length} {t.dataExploration.badgeBar.rows}
-        </Badge>
-        <Badge variant="secondary" className="text-xs font-mono tabular-nums gap-1">
-          {columnCount} {t.dataExploration.badgeBar.cols}
-        </Badge>
-
-        {/* 구분선 */}
-        <div className="h-4 w-px bg-border/60" />
-
-        {/* 변수 타입 배지 */}
-        <Badge variant="outline" className="text-xs gap-1 border-info-border text-info bg-info-bg">
-          <span className="font-mono">{numericVariables.length}</span> {t.dataExploration.badgeBar.numeric}
-        </Badge>
-        <Badge variant="outline" className="text-xs gap-1 border-success-border text-success bg-success-bg">
-          <span className="font-mono">{categoricalVariables.length}</span> {t.dataExploration.badgeBar.categorical}
-        </Badge>
-
-        {/* 결측치 */}
-        {missingCount > 0 ? (
-          <Badge variant="outline" className="text-xs gap-1 border-warning-border text-warning bg-warning-bg">
-            {t.dataExploration.badgeBar.missing} <span className="font-mono">{missingCount}</span>
-          </Badge>
-        ) : (
-          <Badge variant="outline" className="text-xs gap-1 border-success-border text-success bg-success-bg">
-            <CheckCircle2 className="h-3 w-3" />
-            결측 없음 ✓
-          </Badge>
-        )}
-
-        {/* 이상치 배지 (클릭 시 기술통계 탭으로) */}
-        {totalOutlierCount > 0 && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge
-                  variant="outline"
-                  role="button"
-                  tabIndex={0}
-                  className="text-xs gap-1 border-error-border text-error bg-error-bg cursor-pointer hover:bg-error-bg/80 transition-colors"
-                  onClick={() => setSelectedCard('descriptive')}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedCard('descriptive') } }}
-                >
-                  <AlertTriangle className="h-3 w-3" />
-                  {t.dataExploration.badgeBar.outlier} <span className="font-mono">{totalOutlierCount}</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="secondary" className="text-xs font-mono tabular-nums gap-1">
+                {data.length} {t.dataExploration.badgeBar.rows}
+              </Badge>
+              <Badge variant="secondary" className="text-xs font-mono tabular-nums gap-1">
+                {columnCount} {t.dataExploration.badgeBar.cols}
+              </Badge>
+              <Badge variant="outline" className="text-xs gap-1 border-info-border text-info bg-info-bg">
+                <span className="font-mono">{numericVariables.length}</span> {t.dataExploration.badgeBar.numeric}
+              </Badge>
+              <Badge variant="outline" className="text-xs gap-1 border-success-border text-success bg-success-bg">
+                <span className="font-mono">{categoricalVariables.length}</span> {t.dataExploration.badgeBar.categorical}
+              </Badge>
+              {missingCount > 0 ? (
+                <Badge variant="outline" className="text-xs gap-1 border-warning-border text-warning bg-warning-bg">
+                  {t.dataExploration.badgeBar.missing} <span className="font-mono">{missingCount}</span>
                 </Badge>
-              </TooltipTrigger>
-              <TooltipContent>클릭하면 이상치가 있는 변수와 상세 통계를 바로 확인할 수 있습니다.</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-
-        {/* 데이터 교체 버튼 (우측 정렬) */}
-        {onUploadComplete && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsReplaceMode(true)}
-            className="ml-auto gap-1.5 h-7 text-xs text-muted-foreground hover:text-foreground"
-            data-testid="replace-data-button"
-          >
-            <Upload className="w-3 h-3" />
-            {t.dataExploration.replaceMode.button}
-          </Button>
-        )}
-      </div>
+              ) : (
+                <Badge variant="outline" className="text-xs gap-1 border-success-border text-success bg-success-bg">
+                  <CheckCircle2 className="h-3 w-3" />
+                  결측 없음 ✓
+                </Badge>
+              )}
+              {totalOutlierCount > 0 && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        variant="outline"
+                        role="button"
+                        tabIndex={0}
+                        className="text-xs gap-1 border-error-border text-error bg-error-bg cursor-pointer hover:bg-error-bg/80 transition-colors"
+                        onClick={() => setSelectedCard('descriptive')}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedCard('descriptive') } }}
+                      >
+                        <AlertTriangle className="h-3 w-3" />
+                        {t.dataExploration.badgeBar.outlier} <span className="font-mono">{totalOutlierCount}</span>
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>클릭하면 이상치가 있는 변수와 상세 통계를 바로 확인할 수 있습니다.</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              {onUploadComplete && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsReplaceMode(true)}
+                  className="gap-1.5 h-7 text-xs text-muted-foreground hover:text-foreground"
+                  data-testid="replace-data-button"
+                >
+                  <Upload className="w-3 h-3" />
+                  {t.dataExploration.replaceMode.button}
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* 수치형 변수 부족 경고 */}
       {fewNumericVarsWarning && (
-        <Card className="border-warning-border bg-warning-bg">
-          <CardContent className="py-4">
-            <div className="text-center text-muted-foreground text-sm">
-              <p>{t.dataExploration.warnings.correlationRequires}</p>
-              <p className="mt-1">{t.dataExploration.warnings.currentStatus(numericVariables.length, categoricalVariables.length)}</p>
-              <p className="mt-1">{t.dataExploration.warnings.nextStepHint}</p>
+        <Card className="border-warning-border/70 bg-warning-bg/80 shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
+          <CardContent className="px-5 py-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-warning/10">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+              </div>
+              <div className="space-y-1.5 text-sm text-muted-foreground">
+                <p className="font-semibold tracking-tight text-foreground">상관 분석 카드는 아직 제한적으로 보입니다</p>
+                <p>{t.dataExploration.warnings.correlationRequires}</p>
+                <p>{t.dataExploration.warnings.currentStatus(numericVariables.length, categoricalVariables.length)}</p>
+                <p>{t.dataExploration.warnings.nextStepHint}</p>
+              </div>
             </div>
           </CardContent>
         </Card>

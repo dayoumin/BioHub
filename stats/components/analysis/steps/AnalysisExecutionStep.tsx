@@ -16,13 +16,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { StatisticalExecutor } from '@/lib/services/executors'
-import type { StatisticalExecutorResult as ExecutorResult } from '@/lib/services/executors'
-import { pyodideStats } from '@/lib/services/pyodide/pyodide-statistics'
+import {
+  StatisticalExecutor,
+  type StatisticalExecutorResult as ExecutorResult,
+  pyodideStats,
+  awaitPreemptiveAssumptions,
+  executeAssumptionTests,
+} from '@/lib/services'
 import { transformExecutorResult } from '@/lib/utils/result-transformer'
 import { getUserFriendlyErrorMessage } from '@/lib/constants/error-messages'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
-import { awaitPreemptiveAssumptions, executeAssumptionTests } from '@/lib/services/preemptive-assumption-service'
 import { StepHeader, StatusIndicator, CollapsibleSection } from '@/components/analysis/common'
 import { logger } from '@/lib/utils/logger'
 import type { AnalysisExecutionStepProps } from '@/types/analysis-navigation'
@@ -48,8 +51,8 @@ export function AnalysisExecutionStep({
   onAnalysisComplete,
   onNext,
   onPrevious,
-  canGoNext,
-  canGoPrevious
+  canGoNext: _canGoNext,
+  canGoPrevious: _canGoPrevious
 }: AnalysisExecutionStepProps) {
   // Terminology System
   const t = useTerminology()
@@ -78,6 +81,7 @@ export function AnalysisExecutionStep({
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [assumptionSkipped, setAssumptionSkipped] = useState(false)
   const analysisStartTimeRef = useRef(0)
+  const autoNextTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Store에서 필요한 데이터만 개별 selector로 구독 (불필요한 리렌더링 방지)
   const uploadedData = useAnalysisStore(state => state.uploadedData)
@@ -99,7 +103,7 @@ export function AnalysisExecutionStep({
     })
     setExecutionLog(prev => [...prev, `[${timestamp}] ${message}`])
     logger.info(message)
-  }, [logs.locale])
+  }, [logs])
 
   /**
    * 진행 단계 업데이트
@@ -111,7 +115,7 @@ export function AnalysisExecutionStep({
       setProgress(progressValue)
       addLog(logs.stageStart(stage.label))
     }
-  }, [addLog, executionStages])
+  }, [addLog, executionStages, logs])
 
   /**
    * 분석 실행 함수
@@ -275,17 +279,38 @@ export function AnalysisExecutionStep({
         onAnalysisComplete(transformedResult)
       }
 
-      // M7: 자동 전환 제거 — 사용자가 "결과 보기" 클릭으로 진행
+      if (onNext) {
+        if (autoNextTimeoutRef.current) clearTimeout(autoNextTimeoutRef.current)
+        autoNextTimeoutRef.current = setTimeout(() => {
+          onNext()
+          autoNextTimeoutRef.current = null
+        }, 2000)
+      }
 
     } catch (err) {
       logger.error('분석 실행 오류', err)
       const friendlyMsg = err instanceof Error
-        ? getUserFriendlyErrorMessage(err)
+        ? (err.message || getUserFriendlyErrorMessage(err))
         : t.analysis.execution.unknownError
       setError(friendlyMsg)
       addLog(logs.errorPrefix(friendlyMsg))
     }
-  }, [uploadedData, selectedMethod, variableMapping, suggestedSettings, updateStage, addLog, onAnalysisComplete, onNext, t, executionStages, logs])
+  }, [
+    uploadedData,
+    selectedMethod,
+    variableMapping,
+    suggestedSettings,
+    analysisOptions.alpha,
+    analysisOptions.testValue,
+    existingAssumptionResults,
+    setAssumptionResults,
+    updateStage,
+    addLog,
+    onAnalysisComplete,
+    onNext,
+    t,
+    logs,
+  ])
 
   /**
    * 취소 처리
@@ -306,6 +331,17 @@ export function AnalysisExecutionStep({
       )
   )
 
+  const mappedVariableCount = useMemo(() => {
+    if (!variableMapping) return 0
+    return Object.values(variableMapping).reduce((sum, value) => {
+      if (Array.isArray(value)) return sum + value.length
+      if (typeof value === 'string') {
+        return sum + value.split(',').map(v => v.trim()).filter(Boolean).length
+      }
+      return sum
+    }, 0)
+  }, [variableMapping])
+
   // 컴포넌트 마운트 시 분석 실행 (variableMapping이 유효할 때만)
   useEffect(() => {
     if (!isCancelled && !analysisResult && hasValidMapping) {
@@ -314,7 +350,7 @@ export function AnalysisExecutionStep({
     } else if (!hasValidMapping && !analysisResult) {
       logger.warn('Waiting for valid variableMapping', { variableMapping })
     }
-  }, [isCancelled, analysisResult, hasValidMapping, runAnalysis])
+  }, [isCancelled, analysisResult, hasValidMapping, runAnalysis, variableMapping])
 
   // 예상 시간 업데이트
   useEffect(() => {
@@ -324,6 +360,15 @@ export function AnalysisExecutionStep({
     else if (dataSize < 100000) setEstimatedTime(60)
     else setEstimatedTime(120)
   }, [uploadedData])
+
+  useEffect(() => {
+    return () => {
+      if (autoNextTimeoutRef.current) {
+        clearTimeout(autoNextTimeoutRef.current)
+        autoNextTimeoutRef.current = null
+      }
+    }
+  }, [])
 
 
   return (
@@ -335,9 +380,38 @@ export function AnalysisExecutionStep({
           badge={selectedMethod ? { label: selectedMethod.name } : undefined}
         />
 
+      {selectedMethod && hasValidMapping && (
+        <Card className="border-border/50 bg-surface-container-lowest shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
+          <CardContent className="px-5 py-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
+                  Step 4
+                </p>
+                <p className="mt-1 text-sm font-medium text-foreground">분석 설정을 확인하고 실행 중입니다</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  선택한 방법과 변수 구성을 기준으로 결과를 계산하고 있습니다.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="rounded-lg border border-border/50 bg-muted/25 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                  표본 {uploadedData?.length ?? 0}
+                </div>
+                <div className="rounded-lg border border-border/50 bg-muted/25 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                  변수 {mappedVariableCount}개
+                </div>
+                <div className="rounded-lg border border-border/50 bg-muted/25 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+                  alpha {analysisOptions.alpha}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* 변수 매핑 미완료 경고 */}
       {!hasValidMapping && !error && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="border-error-border/70 bg-error-bg/80 shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="flex items-center justify-between gap-4">
             <span>{t.analysis.execution.dataRequired}</span>
@@ -352,7 +426,7 @@ export function AnalysisExecutionStep({
 
       {/* 오류 표시 */}
       {error && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="border-error-border/70 bg-error-bg/80 shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="flex flex-col gap-2">
             <div>{error}</div>
@@ -372,7 +446,7 @@ export function AnalysisExecutionStep({
 
       {/* C1: 가정 검정 건너뜀 경고 */}
       {assumptionSkipped && !error && (
-        <Alert>
+        <Alert className="border-warning-border/70 bg-warning-bg/80 shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             {logs.assumptionSkippedWarning}
@@ -383,11 +457,11 @@ export function AnalysisExecutionStep({
       {/* 메인 진행 상황 */}
       {progress === 100 ? (
         /* 완료: 성공 메시지 + 결과 보기 버튼 */
-        <Card>
+        <Card className="border-border/50 bg-surface-container-lowest shadow-[0px_8px_28px_rgba(25,28,30,0.05)]">
           <CardContent className="py-8 text-center space-y-4">
             <StatusIndicator status="success" title={t.analysis.statusMessages.analysisComplete} />
             {onNext && (
-              <Button size="lg" className="gap-2" onClick={onNext}>
+              <Button size="lg" className="h-11 gap-2 px-5" onClick={onNext}>
                 <CheckCircle2 className="w-4 h-4" />
                 결과 보기
               </Button>
@@ -396,20 +470,33 @@ export function AnalysisExecutionStep({
         </Card>
       ) : (
         /* 진행 중: Card 래핑 프로그레스 UI */
-        <Card>
-          <CardContent className="pt-8 pb-6">
-            <div className="text-center">
-              <div className="mb-6">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-4">
-                  <BarChart3 className="w-7 h-7 text-primary" />
+        <Card className="border-border/50 bg-surface-container-lowest shadow-[0px_8px_28px_rgba(25,28,30,0.05)]">
+          <CardContent className="pt-7 pb-6">
+            <div className="space-y-7">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="text-center lg:text-left">
+                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/10 mb-4">
+                    <BarChart3 className="w-7 h-7 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">{t.analysis.execution.runningTitle}</h3>
+                  <p className="text-muted-foreground">{currentStage.message}</p>
                 </div>
-
-                <h3 className="text-xl font-semibold mb-2">{t.analysis.execution.runningTitle}</h3>
-                <p className="text-muted-foreground">{currentStage.message}</p>
+                {!error && (
+                  <div className="flex justify-center lg:justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowCancelDialog(true)}
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      {t.analysis.execution.cancelButton}
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* 진행률 바 */}
-              <div className="max-w-2xl mx-auto mb-6">
+              <div className="max-w-3xl">
                 <Progress value={progress} className="h-3" />
                 <div className="flex justify-between text-sm text-muted-foreground mt-2">
                   <span>{progress}%</span>
@@ -422,7 +509,8 @@ export function AnalysisExecutionStep({
               </div>
 
               {/* 단계별 진행 상황 */}
-              <div className="max-w-md mx-auto text-left space-y-3">
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
+                <div className="text-left space-y-3">
                 {executionStages.map((stage) => {
                   const isCompleted = completedStages.includes(stage.id)
                   const isCurrent = currentStage.id === stage.id && !isCompleted
@@ -446,21 +534,25 @@ export function AnalysisExecutionStep({
                     </div>
                   )
                 })}
-              </div>
-
-              {/* 취소 버튼 */}
-              {!error && (
-                <div className="flex justify-center gap-3 mt-6">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowCancelDialog(true)}
-                  >
-                    <X className="w-4 h-4 mr-2" />
-                    {t.analysis.execution.cancelButton}
-                  </Button>
                 </div>
-              )}
+                <div className="rounded-2xl border border-border/40 bg-muted/20 px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    현재 상태
+                  </p>
+                  <p className="mt-2 text-sm text-foreground">{currentStage.label}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    진행 로그는 아래에서 확인할 수 있습니다.
+                  </p>
+                  <div className="mt-3 flex items-center gap-2 flex-wrap">
+                    <div className="rounded-md border border-border/50 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                      완료 단계 {completedStages.length}/{executionStages.length}
+                    </div>
+                    <div className="rounded-md border border-border/50 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                      예상 {estimatedTime}s
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

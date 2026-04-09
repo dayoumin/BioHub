@@ -26,7 +26,7 @@ import { SampleSizeModal } from './SampleSizeModal'
 
 // ===== 섹션 아이덴티티 뱃지 스타일 상수 (렌더마다 객체 재생성 방지) =====
 
-const BADGE_BASE = 'absolute bottom-2 right-2 text-[10px] font-medium px-1.5 py-0.5 rounded-full'
+const BADGE_BASE = 'inline-flex items-center rounded-full px-2 py-1 text-[10px] font-medium'
 const BADGE_MUTED = cn(BADGE_BASE, 'bg-muted text-muted-foreground')
 const BADGE_ANALYSIS_STYLE = {
   background: 'color-mix(in oklch, var(--section-accent-analysis) 12%, transparent)',
@@ -42,11 +42,12 @@ const BADGE_GRAPH_STYLE = {
 interface TrackSuggestionsProps {
   onStartAnalysis?: (example: string) => void
   onUploadClick?: () => void
+  showHeader?: boolean
 }
 
 // ===== Component =====
 
-export function TrackSuggestions({ onStartAnalysis, onUploadClick }: TrackSuggestionsProps) {
+export function TrackSuggestions({ onStartAnalysis, onUploadClick, showHeader = true }: TrackSuggestionsProps) {
   const t = useTerminology()
   const prefersReducedMotion = useReducedMotion()
   const [sampleSizeOpen, setSampleSizeOpen] = useState(false)
@@ -62,9 +63,9 @@ export function TrackSuggestions({ onStartAnalysis, onUploadClick }: TrackSugges
   return (
     <>
       <div>
-        <h2 className="text-lg font-bold mb-3">{t.hub.quickStart.title}</h2>
+        {showHeader && <h2 className="text-lg font-bold mb-3">{t.hub.quickStart.title}</h2>}
         <motion.div
-          className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3"
+          className="grid grid-cols-2 md:grid-cols-4 gap-3"
           initial={prefersReducedMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
@@ -74,16 +75,21 @@ export function TrackSuggestions({ onStartAnalysis, onUploadClick }: TrackSugges
             type="button"
             onClick={onUploadClick}
             data-testid="hub-upload-btn"
-            className={actionCardBase}
+            className={cn(actionCardBase, 'min-h-[128px] items-start justify-between px-4 py-4')}
             initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.3 }}
           >
-            <div className={iconContainerPrimary}>
-              <Upload className="w-5 h-5" aria-hidden="true" />
+            <div className="flex w-full items-start justify-between gap-3">
+              <div className={iconContainerPrimary}>
+                <Upload className="w-5 h-5" aria-hidden="true" />
+              </div>
+              <span className={BADGE_BASE} style={BADGE_ANALYSIS_STYLE}>{t.hub.quickStart.badges.analysis}</span>
             </div>
-            <span className="font-medium text-sm">{t.hub.quickStart.uploadData}</span>
-            <span className={BADGE_BASE} style={BADGE_ANALYSIS_STYLE}>{t.hub.quickStart.badges.analysis}</span>
+            <div className="w-full text-left">
+              <span className="block font-medium text-sm">{t.hub.quickStart.uploadData}</span>
+              <span className="mt-1 block text-xs text-muted-foreground">분석에 필요한 데이터를 불러옵니다.</span>
+            </div>
           </motion.button>
 
           {/* 표본 크기 계산기 */}
@@ -91,16 +97,21 @@ export function TrackSuggestions({ onStartAnalysis, onUploadClick }: TrackSugges
             type="button"
             onClick={handleOpenSampleSize}
             data-testid="hub-sample-size-card"
-            className={actionCardBase}
+            className={cn(actionCardBase, 'min-h-[128px] items-start justify-between px-4 py-4')}
             initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.38 }}
           >
-            <div className={iconContainerMuted}>
-              <Calculator className="w-5 h-5" aria-hidden="true" />
+            <div className="flex w-full items-start justify-between gap-3">
+              <div className={iconContainerMuted}>
+                <Calculator className="w-5 h-5" aria-hidden="true" />
+              </div>
+              <span className={BADGE_MUTED}>{t.hub.quickStart.badges.tool}</span>
             </div>
-            <span className="font-medium text-sm">{t.hub.quickStart.sampleSize}</span>
-            <span className={BADGE_MUTED}>{t.hub.quickStart.badges.tool}</span>
+            <div className="w-full text-left">
+              <span className="block font-medium text-sm">{t.hub.quickStart.sampleSize}</span>
+              <span className="mt-1 block text-xs text-muted-foreground">실험 설계 전 필요한 표본 수를 계산합니다.</span>
+            </div>
           </motion.button>
 
           {/* 데이터 시각화 */}
@@ -113,13 +124,18 @@ export function TrackSuggestions({ onStartAnalysis, onUploadClick }: TrackSugges
             <Link
               href="/graph-studio"
               data-testid="hub-visualization-card"
-              className={cn(actionCardBase, 'h-full')}
+              className={cn(actionCardBase, 'h-full min-h-[128px] items-start justify-between px-4 py-4')}
             >
-              <div className={iconContainerMuted}>
-                <BarChart2 className="w-5 h-5" aria-hidden="true" />
+              <div className="flex w-full items-start justify-between gap-3">
+                <div className={iconContainerMuted}>
+                  <BarChart2 className="w-5 h-5" aria-hidden="true" />
+                </div>
+                <span className={BADGE_BASE} style={BADGE_GRAPH_STYLE}>Graph Studio</span>
               </div>
-              <span className="font-medium text-sm">{t.hub.quickStart.visualization}</span>
-              <span className={BADGE_BASE} style={BADGE_GRAPH_STYLE}>Graph Studio</span>
+              <div className="w-full text-left">
+                <span className="block font-medium text-sm">{t.hub.quickStart.visualization}</span>
+                <span className="mt-1 block text-xs text-muted-foreground">데이터를 차트로 빠르게 탐색하고 편집합니다.</span>
+              </div>
             </Link>
           </motion.div>
 
@@ -133,13 +149,18 @@ export function TrackSuggestions({ onStartAnalysis, onUploadClick }: TrackSugges
             <Link
               href="/bio-tools"
               data-testid="hub-biotools-card"
-              className={cn(actionCardBase, 'h-full')}
+              className={cn(actionCardBase, 'h-full min-h-[128px] items-start justify-between px-4 py-4')}
             >
-              <div className={iconContainerMuted}>
-                <FlaskConical className="w-5 h-5" aria-hidden="true" />
+              <div className="flex w-full items-start justify-between gap-3">
+                <div className={iconContainerMuted}>
+                  <FlaskConical className="w-5 h-5" aria-hidden="true" />
+                </div>
+                <span className={BADGE_MUTED}>Bio-Tools</span>
               </div>
-              <span className="font-medium text-sm">{t.hub.quickStart.bioTools}</span>
-              <span className={BADGE_MUTED}>Bio-Tools</span>
+              <div className="w-full text-left">
+                <span className="block font-medium text-sm">{t.hub.quickStart.bioTools}</span>
+                <span className="mt-1 block text-xs text-muted-foreground">분석 전후에 쓰는 보조 생물정보 도구를 엽니다.</span>
+              </div>
             </Link>
           </motion.div>
         </motion.div>

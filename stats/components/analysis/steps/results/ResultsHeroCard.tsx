@@ -20,7 +20,7 @@ import { VALIDATION_METADATA } from '@/lib/constants/validation-metadata'
 import {
   heroRevealVariants,
 } from './results-helpers'
-import type { TerminologyDictionary } from '@/lib/terminology/terminology-types'
+import type { TerminologyDictionary } from '@/lib/terminology'
 
 export interface ResultsHeroCardProps {
   statisticalResult: StatisticalResult
@@ -60,6 +60,9 @@ export function ResultsHeroCard({
     methodEntry.category !== 'design' &&
     methodEntry.id !== 'arima' && 
     methodEntry.id !== 'seasonal-decompose') : false
+  const uploadedColumnCount = uploadedData?.[0] ? Object.keys(uploadedData[0]).length : 0
+  const variablePreview = statisticalResult.variables?.slice(0, 4) ?? []
+  const remainingVariableCount = Math.max((statisticalResult.variables?.length ?? 0) - variablePreview.length, 0)
 
   // 비가설 검정의 경우 배경/아이콘 처리를 위한 변수
   const highlightAsSuccess = showBinaryConclusion ? isSignificant : true
@@ -105,7 +108,7 @@ export function ResultsHeroCard({
           {/* AI 요약 한 줄 (해석 완료 시) */}
           {aiSummary && !isInterpreting && (
             <p className="text-sm text-muted-foreground leading-relaxed mb-3 flex items-start gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-violet-400 flex-shrink-0 mt-0.5" />
+              <Sparkles className="w-3.5 h-3.5 text-primary flex-shrink-0 mt-0.5" />
               <span className="line-clamp-2">{aiSummary}</span>
             </p>
           )}
@@ -126,7 +129,12 @@ export function ResultsHeroCard({
               )}
             </div>
 
-            <span className="text-sm font-semibold truncate">{statisticalResult.testName}</span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                분석 방법
+              </p>
+              <p className="truncate text-sm font-semibold text-foreground">{statisticalResult.testName}</p>
+            </div>
 
             {/* 가정 미충족 경고 배지 */}
             {!assumptionsPassed && (
@@ -156,59 +164,106 @@ export function ResultsHeroCard({
             </Tooltip>
           </div>
 
-          {/* 2행: APA + 메타데이터 + 검증 배지 (간결) */}
+          {/* 2행: APA + 메타데이터 */}
           {(apaFormat || uploadedFileName || uploadedData || statisticalResult.variables || validationMeta) && (
-            <div className="mt-3 pt-3 pb-1 bg-surface-container/30 -mx-5 px-5 rounded-b-xl flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+            <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
               {apaFormat && (
-                <>
-                  <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 flex-shrink-0">APA</span>
-                  <code className="text-xs font-mono text-foreground/70 select-all">{apaFormat}</code>
-                  <button
-                    type="button"
-                    className="inline-flex items-center text-muted-foreground/40 hover:text-foreground/70 transition-colors"
-                    onClick={() => {
-                      void navigator.clipboard.writeText(apaFormat)
-                      toast.success(TOAST.clipboard.copySuccess)
-                    }}
-                    aria-label="APA 복사"
-                  >
-                    <Copy className="w-3 h-3" />
-                  </button>
-                </>
+                <div className="rounded-xl border border-border/40 bg-surface-container/30 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">APA</span>
+                    <button
+                      type="button"
+                      className="inline-flex items-center text-muted-foreground/40 hover:text-foreground/70 transition-colors"
+                      onClick={() => {
+                        void navigator.clipboard.writeText(apaFormat)
+                        toast.success(TOAST.clipboard.copySuccess)
+                      }}
+                      aria-label="APA 복사"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <code className="mt-2 block text-xs leading-relaxed font-mono text-foreground/75 select-all break-words">
+                    {apaFormat}
+                  </code>
+                </div>
               )}
-              {uploadedFileName && (
-                <span className="text-xs text-muted-foreground/50">{uploadedFileName}</span>
-              )}
-              {uploadedData && (
-                <span className="text-xs text-muted-foreground/50">
-                  {t.results.metadata.rowsCols(uploadedData.length, Object.keys(uploadedData[0] || {}).length)}
-                </span>
-              )}
-              {statisticalResult.variables && (
-                <span className="text-xs text-muted-foreground/50">{statisticalResult.variables.join(', ')}</span>
-              )}
-              {validationMeta && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-[10px] text-muted-foreground/40 cursor-help ml-auto flex-shrink-0">
-                      {validationMeta.isCustomImpl ? '자체 구현' : validationMeta.pythonLib}
-                      {' · R 검증 완료'}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs text-xs">
-                    <p>
-                      {validationMeta.isCustomImpl
-                        ? '자체 구현 (Pyodide 라이브러리 제약)'
-                        : `${validationMeta.pythonLib} 기반 계산`}
+
+              <div className="rounded-xl border border-border/40 bg-surface-container/20 px-4 py-3 space-y-2.5">
+                {(uploadedFileName || uploadedData) && (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {uploadedFileName && (
+                      <div className="rounded-lg border border-border/40 bg-background/70 px-3 py-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                          파일
+                        </p>
+                        <p className="mt-1 text-sm text-foreground/80 break-all">{uploadedFileName}</p>
+                      </div>
+                    )}
+
+                    {uploadedData && (
+                      <div className="rounded-lg border border-border/40 bg-background/70 px-3 py-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                          데이터 크기
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {t.results.metadata.rowsCols(uploadedData.length, uploadedColumnCount)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {statisticalResult.variables && statisticalResult.variables.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                      변수
                     </p>
-                    <p className="text-muted-foreground">
-                      {'R 교차검증 정밀도 LRE '}
-                      {validationMeta.lre.toFixed(1)}
-                      {' / 15.0'}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
+                    <div
+                      className="flex flex-wrap gap-1.5"
+                      title={statisticalResult.variables.join(', ')}
+                    >
+                      {variablePreview.map((variable) => (
+                        <Badge key={variable} variant="outline" className="bg-background/70 text-[11px] font-normal">
+                          {variable}
+                        </Badge>
+                      ))}
+                      {remainingVariableCount > 0 && (
+                        <Badge variant="outline" className="bg-background/70 text-[11px] font-normal">
+                          +{remainingVariableCount}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {validationMeta && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="inline-flex items-center gap-2 text-[11px] text-muted-foreground/70 cursor-help">
+                        <Badge variant="outline" className="border-border/50 bg-background/70 text-[11px] font-normal">
+                          {validationMeta.isCustomImpl ? '자체 구현' : validationMeta.pythonLib}
+                        </Badge>
+                        <Badge variant="outline" className="border-border/50 bg-background/70 text-[11px] font-normal">
+                          R 검증 완료
+                        </Badge>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs text-xs">
+                      <p>
+                        {validationMeta.isCustomImpl
+                          ? '자체 구현 (Pyodide 라이브러리 제약)'
+                          : `${validationMeta.pythonLib} 기반 계산`}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {'R 교차검증 정밀도 LRE '}
+                        {validationMeta.lre.toFixed(1)}
+                        {' / 15.0'}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
             </div>
           )}
         </CardContent>

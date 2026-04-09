@@ -38,16 +38,22 @@ export function StepHeader({
   className
 }: StepHeaderProps) {
   return (
-    <div className={cn("flex items-center gap-3", className)}>
-      <Icon className="h-5 w-5 text-primary" />
-      <h2 className="text-xl font-semibold">{title}</h2>
-      {badge && (
-        <Badge variant={badge.variant || 'secondary'}>
-          {badge.label}
-        </Badge>
-      )}
+    <div className={cn("flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between", className)}>
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/8 flex-shrink-0">
+          <Icon className="h-5 w-5 text-primary" />
+        </div>
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
+          {badge && (
+            <Badge variant={badge.variant || 'secondary'}>
+              {badge.label}
+            </Badge>
+          )}
+        </div>
+      </div>
       {action && (
-        <div className="ml-auto flex-shrink-0">{action}</div>
+        <div className="flex items-center flex-shrink-0">{action}</div>
       )}
     </div>
   )

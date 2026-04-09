@@ -28,8 +28,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ConfirmAlertDialog } from '@/components/common/ConfirmAlertDialog'
-import type { ExportFormat, ExportContentOptions } from '@/lib/services/export/export-types'
-import type { TerminologyDictionary } from '@/lib/terminology/terminology-types'
+import type { ExportFormat, ExportContentOptions } from '@/lib/services'
+import type { TerminologyDictionary } from '@/lib/terminology'
 
 export interface ResultsActionButtonsProps {
   onBackToVariables: () => void
@@ -71,97 +71,133 @@ export function ResultsActionButtons({
   hasUploadedData,
   t,
 }: ResultsActionButtonsProps): React.ReactElement {
-  const [showBackConfirm, setShowBackConfirm] = useState(false)
   const [showNewAnalysisConfirm, setShowNewAnalysisConfirm] = useState(false)
   const [showChangeMethodConfirm, setShowChangeMethodConfirm] = useState(false)
+  const newAnalysisConfirm = t.results.confirm?.newAnalysis ?? {
+    title: t.results.buttons.newAnalysis,
+    description: '',
+    cancel: '취소',
+    confirm: t.results.buttons.newAnalysis,
+  }
+  const changeMethodConfirm = t.results.confirm?.changeMethod ?? {
+    title: t.results.buttons.changeMethod,
+    description: '',
+    cancel: '취소',
+    confirm: t.results.buttons.changeMethod,
+  }
 
   return (
     <>
       {/* ===== 액션 버튼 ===== */}
-      <div className="flex items-center gap-2 flex-wrap pt-4 pb-2 mt-2 bg-surface-container/30 -mx-1 px-3 rounded-xl" data-testid="action-buttons">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowBackConfirm(true)}
-          className="text-muted-foreground hover:text-foreground text-sm h-9"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
-          {t.results.buttons.backToVariables}
-        </Button>
+      <div className="mt-2 rounded-2xl border border-border/50 bg-surface-container-lowest px-4 py-4 shadow-[0px_8px_24px_rgba(25,28,30,0.04)]" data-testid="action-buttons">
+        <div className="space-y-4">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground">다음 작업</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              지금 결과를 다듬을지, 새 분석 흐름을 시작할지 선택할 수 있습니다.
+            </p>
+          </div>
 
-        <div className="flex-1" />
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
+            <div className="rounded-xl border border-border/50 bg-background/70 px-4 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
+                현재 결과 이어서
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                같은 데이터와 방법을 유지한 채 변수나 설정을 조정합니다.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onBackToVariables}
+                  className="h-10 px-4 border-border/50"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
+                  {t.results.buttons.backToVariables}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={onReanalyze}
+                  className="h-10 px-4"
+                  data-testid="reanalysis-btn"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                  {t.results.buttons.reanalyze}
+                </Button>
+              </div>
+            </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-foreground text-sm h-9 px-2"
-              aria-label={t.results.buttons.moreActions}
-              data-testid="more-actions-btn"
-            >
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setShowChangeMethodConfirm(true)} data-testid="change-method-btn">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              {t.results.buttons.changeMethod}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onSaveTemplate}>
-              <FileText className="w-4 h-4 mr-2" />
-              {t.results.buttons.saveTemplate}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onOpenGraphStudio} data-testid="open-graph-studio-btn">
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Graph Studio
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <div className="rounded-xl border border-primary/15 bg-primary/5 px-4 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary/75">
+                새 흐름 시작
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                현재 결과와 분리해서 새 데이터나 새 분석 목적부터 다시 시작합니다.
+              </p>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setShowNewAnalysisConfirm(true)}
+                className="mt-4 h-10 w-full px-4"
+                data-testid="new-analysis-btn"
+              >
+                <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+                {t.results.buttons.newAnalysis}
+              </Button>
+            </div>
+          </div>
 
-        <div className="w-px h-5 bg-surface-container-highest/50" />
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-background/70 px-4 py-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">보조 도구</p>
+              <p className="mt-1 text-sm font-medium text-foreground">추가 작업</p>
+              <p className="text-xs text-muted-foreground">
+                방법 변경, 템플릿 저장, Graph Studio 이동
+              </p>
+            </div>
 
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={onReanalyze}
-          className="text-sm h-9"
-          data-testid="reanalysis-btn"
-        >
-          <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-          {t.results.buttons.reanalyze}
-        </Button>
-        <Button
-          variant="default"
-          size="sm"
-          onClick={() => setShowNewAnalysisConfirm(true)}
-          className="text-sm h-9"
-          data-testid="new-analysis-btn"
-        >
-          <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
-          {t.results.buttons.newAnalysis}
-        </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-10 px-4 border-border/50"
+                  aria-label={t.results.buttons.moreActions}
+                  data-testid="more-actions-btn"
+                >
+                  <MoreHorizontal className="w-4 h-4 mr-1.5" />
+                  <span>{t.results.buttons.moreActions}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setShowChangeMethodConfirm(true)} data-testid="change-method-btn">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  {t.results.buttons.changeMethod}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onSaveTemplate}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  {t.results.buttons.saveTemplate}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onOpenGraphStudio} data-testid="open-graph-studio-btn">
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Graph Studio
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
       </div>
-
-      {/* 변수 선택으로 돌아가기 확인 */}
-      <ConfirmAlertDialog
-        open={showBackConfirm}
-        onOpenChange={setShowBackConfirm}
-        title={t.results.confirm.backToVariables.title}
-        description={t.results.confirm.backToVariables.description}
-        cancelLabel={t.results.confirm.backToVariables.cancel}
-        confirmLabel={t.results.confirm.backToVariables.confirm}
-        onConfirm={onBackToVariables}
-      />
 
       {/* 새 분석 시작 확인 */}
       <ConfirmAlertDialog
         open={showNewAnalysisConfirm}
         onOpenChange={setShowNewAnalysisConfirm}
-        title={t.results.confirm.newAnalysis.title}
-        description={t.results.confirm.newAnalysis.description}
-        cancelLabel={t.results.confirm.newAnalysis.cancel}
-        confirmLabel={t.results.confirm.newAnalysis.confirm}
+        title={newAnalysisConfirm.title}
+        description={newAnalysisConfirm.description}
+        cancelLabel={newAnalysisConfirm.cancel}
+        confirmLabel={newAnalysisConfirm.confirm}
         onConfirm={onNewAnalysisConfirm}
       />
 
@@ -169,10 +205,10 @@ export function ResultsActionButtons({
       <ConfirmAlertDialog
         open={showChangeMethodConfirm}
         onOpenChange={setShowChangeMethodConfirm}
-        title={t.results.confirm.changeMethod.title}
-        description={t.results.confirm.changeMethod.description}
-        cancelLabel={t.results.confirm.changeMethod.cancel}
-        confirmLabel={t.results.confirm.changeMethod.confirm}
+        title={changeMethodConfirm.title}
+        description={changeMethodConfirm.description}
+        cancelLabel={changeMethodConfirm.cancel}
+        confirmLabel={changeMethodConfirm.confirm}
         onConfirm={onChangeMethodConfirm}
       />
 

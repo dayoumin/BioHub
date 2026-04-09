@@ -26,7 +26,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, GripVertical, X, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { analyzeDataset } from '@/lib/services/variable-type-detector'
+import { analyzeDataset } from '@/lib/services'
 import { isRecord } from '@/lib/utils/type-guards'
 import {
   getSlotConfigs,
@@ -186,6 +186,7 @@ function RoleSlot({
   const activeType = active?.data?.current?.columnType as AcceptedType | undefined
   const canDrop = activeType ? isTypeAccepted(slot, activeType) : true
   const isRejectDrop = isOver && !canDrop
+  const showExpandedHelp = isActive || hasValidationError
 
   return (
     <div
@@ -257,7 +258,7 @@ function RoleSlot({
       ) : (
         <button
           onClick={() => onClickAssign(slot.id)}
-          className="w-full text-xs text-muted-foreground/60 py-1 hover:text-muted-foreground transition-colors"
+          className="w-full py-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
           disabled={isFull || isMultipleFull}
         >
           {isRejectDrop ? (
@@ -267,7 +268,9 @@ function RoleSlot({
               <div className={cn('font-medium', hasValidationError && 'text-destructive')}>
                 {getEmptySlotHint(slot)}
               </div>
-              <div className="text-[11px]">{slot.description}</div>
+              {showExpandedHelp && (
+                <div className="text-[11px] leading-relaxed">{slot.description}</div>
+              )}
             </div>
           )}
         </button>
@@ -473,6 +476,28 @@ export function UnifiedVariableSelector({
     return liveValidationErrors.length === 0
   }, [liveValidationErrors])
 
+  const requiredSlotCount = useMemo(
+    () => slots.filter(slot => slot.required).length,
+    [slots]
+  )
+
+  const completedRequiredSlotCount = useMemo(
+    () => slots.filter(slot => slot.required && (assignments[slot.id] ?? []).length > 0).length,
+    [slots, assignments]
+  )
+
+  const assignedVariableCount = useMemo(
+    () => Object.values(assignments).reduce((sum, vars) => sum + vars.length, 0),
+    [assignments]
+  )
+
+  const remainingRequiredSlotCount = Math.max(requiredSlotCount - completedRequiredSlotCount, 0)
+  const numericColumnCount = useMemo(
+    () => columns.filter(column => column.type === 'numeric').length,
+    [columns]
+  )
+  const categoricalColumnCount = columns.length - numericColumnCount
+
   return (
     <div className={cn('space-y-4', className)} data-testid="unified-variable-selector">
       {/* Validation errors */}
@@ -489,13 +514,87 @@ export function UnifiedVariableSelector({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-[1fr_1.2fr] lg:grid-cols-[1fr_1.2fr_200px] gap-4 items-start">
-          {/* Left: Variable Pool */}
-          <div className="space-y-1.5">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-2">
-              사용 가능한 변수
-            </h3>
-            <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1" data-testid="variable-pool">
+        <div className="rounded-2xl border border-border/40 bg-surface-container-low px-5 py-4 shadow-[0px_6px_24px_rgba(25,28,30,0.04)]">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
+                Step 3
+              </p>
+              <p className="text-sm font-semibold tracking-tight text-foreground">
+                역할 슬롯을 먼저 채우세요
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                슬롯을 클릭한 다음 변수를 누르거나 드래그해서 배정할 수 있습니다.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="outline" className="h-7 text-xs font-medium">
+                필수 슬롯 {completedRequiredSlotCount}/{requiredSlotCount}
+              </Badge>
+              <Badge variant="secondary" className="h-7 text-xs font-medium">
+                선택된 변수 {assignedVariableCount}개
+              </Badge>
+              {remainingRequiredSlotCount > 0 && (
+                <Badge variant="outline" className="h-7 text-xs font-medium border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300">
+                  남은 필수 {remainingRequiredSlotCount}개
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.18fr)_minmax(320px,0.92fr)_240px] items-start">
+          {/* Left: Role Slots */}
+          <div className="order-1 space-y-3 rounded-2xl border border-border/40 bg-background p-4 shadow-[0px_6px_24px_rgba(25,28,30,0.04)] lg:order-1">
+            <div className="flex items-start justify-between gap-3 px-1">
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  분석 역할
+                </h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  필수 슬롯부터 채우면 됩니다.
+                </p>
+              </div>
+              <Badge variant="outline" className="text-[11px] font-medium">
+                Main
+              </Badge>
+            </div>
+            {slots.map(slot => (
+              <RoleSlot
+                key={slot.id}
+                slot={slot}
+                assignedVars={assignments[slot.id] ?? []}
+                columns={columns}
+                onRemove={(varName) => handleRemove(slot.id, varName)}
+                onClickAssign={handleSlotClick}
+                isActive={activeSlotId === slot.id}
+                hasValidationError={slotValidationState.has(slot.id)}
+              />
+            ))}
+          </div>
+
+          {/* Center: Variable Pool */}
+          <div className="order-2 space-y-2 rounded-2xl border border-border/40 bg-background/80 p-4 shadow-[0px_6px_24px_rgba(25,28,30,0.04)] lg:order-2">
+            <div className="flex items-start justify-between gap-3 px-1">
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  사용 가능한 변수
+                </h3>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <span>클릭 시 자동 배치</span>
+                  <span className="rounded-full border border-border/50 bg-background px-2 py-0.5">
+                    연속형 {numericColumnCount}
+                  </span>
+                  <span className="rounded-full border border-border/50 bg-background px-2 py-0.5">
+                    범주형 {categoricalColumnCount}
+                  </span>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-[11px] font-medium">
+                {columns.length}개
+              </Badge>
+            </div>
+            <div className="space-y-1 max-h-[280px] overflow-y-auto pr-1 lg:max-h-[500px]" data-testid="variable-pool">
               {columns.map(col => (
                 <PoolVariable
                   key={col.name}
@@ -512,24 +611,8 @@ export function UnifiedVariableSelector({
             </div>
           </div>
 
-          {/* Center: Role Slots */}
-          <div className="space-y-3">
-            {slots.map(slot => (
-              <RoleSlot
-                key={slot.id}
-                slot={slot}
-                assignedVars={assignments[slot.id] ?? []}
-                columns={columns}
-                onRemove={(varName) => handleRemove(slot.id, varName)}
-                onClickAssign={handleSlotClick}
-                isActive={activeSlotId === slot.id}
-                hasValidationError={slotValidationState.has(slot.id)}
-              />
-            ))}
-          </div>
-
           {/* Right: Live Data Summary */}
-          <div className="hidden lg:block lg:sticky lg:top-4">
+          <div className="hidden lg:order-3 lg:block lg:sticky lg:top-4">
             <LiveDataSummary
               data={data}
               assignments={assignments}
@@ -546,26 +629,38 @@ export function UnifiedVariableSelector({
       </DndContext>
 
       {/* Action buttons */}
-      <div className="flex items-center justify-between pt-2 border-t border-border/30">
-        {onBack ? (
-          <Button variant="ghost" size="sm" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4 mr-1.5" />
-            {backLabel ?? '이전 단계'}
-          </Button>
-        ) : (
-          <div />
-        )}
-        <Button
-          onClick={handleSubmit}
-          size="sm"
-          disabled={!isValid}
-          className="gap-1.5"
-          data-testid="variable-selection-next"
-        >
-          {isValid && <CheckCircle2 className="h-3.5 w-3.5" />}
-          다음 단계
-          <ArrowRight className="h-4 w-4" />
-        </Button>
+      <div className="sticky bottom-0 z-10 -mx-1 rounded-2xl border border-border/40 bg-background/95 px-4 py-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              진행 상태
+            </p>
+            <p className="mt-1 text-sm text-foreground">
+              {isValid
+                ? '필수 슬롯이 준비되었습니다. 분석을 실행할 수 있습니다.'
+                : `필수 슬롯 ${remainingRequiredSlotCount}개만 더 채우면 됩니다.`}
+            </p>
+          </div>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+            {onBack ? (
+              <Button variant="outline" size="default" className="h-10 w-full sm:w-auto" onClick={onBack}>
+                <ArrowLeft className="h-4 w-4 mr-1.5" />
+                {backLabel ?? '이전 단계'}
+              </Button>
+            ) : null}
+            <Button
+              onClick={handleSubmit}
+              size="default"
+              disabled={!isValid}
+              className="h-10 w-full gap-1.5 sm:w-auto"
+              data-testid="variable-selection-next"
+            >
+              {isValid && <CheckCircle2 className="h-3.5 w-3.5" />}
+              분석 실행으로 계속
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   )
