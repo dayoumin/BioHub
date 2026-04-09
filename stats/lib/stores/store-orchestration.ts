@@ -21,13 +21,21 @@ import type { AiRecommendationContext } from '@/lib/utils/storage-types'
 /** AIRecommendation → 히스토리 저장용 AiRecommendationContext 변환 */
 function buildAiRecContext(rec: AIRecommendation | null): AiRecommendationContext | null {
   if (!rec?.method) return null
+
+  // userQuery: 허브 채팅의 마지막 user 메시지에서 추출
+  const messages = useHubChatStore.getState().messages
+  let userQuery = ''
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'user') { userQuery = messages[i].content; break }
+  }
+
   return {
-    userQuery: rec.reasoning?.[0] ?? '',
+    userQuery,
     confidence: rec.confidence ?? 0.8,
     reasoning: rec.reasoning ?? [],
     warnings: rec.warnings,
     alternatives: rec.alternatives?.map(a => ({ id: a.id, name: a.name, description: a.description ?? '' })),
-    provider: 'openrouter' as const,
+    provider: 'openrouter',
   }
 }
 
