@@ -603,7 +603,6 @@ export const generic: TerminologyDictionary = {
       'chi-square': 'Distribution Fit Test',
       'chi-square-goodness': 'Distribution Fit Test',
       'chi-square-independence': 'Categorical Association Test',
-      'paired-t-test': 'Before vs. After',
       'paired-t': 'Before vs. After',
       'mann-whitney': 'Compare Two Groups (Non-parametric)',
       'wilcoxon': 'Before vs. After (Non-parametric)',

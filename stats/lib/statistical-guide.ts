@@ -126,9 +126,9 @@ export class FileNamingSystem {
     
     const namingRules: Record<string, { prefix: string, category: FileNamingGuidance['category'] }> = {
       'descriptive': { prefix: '기본통계량', category: 'basic' },
-      'one-sample-t-test': { prefix: '일표본t검정', category: 'comparison' },
-      'two-sample-t-test': { prefix: '독립표본t검정', category: 'comparison' },
-      'paired-t-test': { prefix: '대응표본t검정', category: 'comparison' },
+      'one-sample-t': { prefix: '일표본t검정', category: 'comparison' },
+      'two-sample-t': { prefix: '독립표본t검정', category: 'comparison' },
+      'paired-t': { prefix: '대응표본t검정', category: 'comparison' },
       'one-way-anova': { prefix: '일원분산분석', category: 'comparison' },
       'correlation': { prefix: '피어슨상관분석', category: 'correlation' },
       'simple-regression': { prefix: '단순회귀분석', category: 'regression' },
@@ -162,9 +162,9 @@ export class FileNamingSystem {
   private static getAnalysisDescription(analysisType: string): string {
     const descriptions: Record<string, string> = {
       'descriptive': '데이터의 중심경향성과 분산을 요약한 기본 통계량',
-      'one-sample-t-test': '단일 표본의 평균이 특정 값과 다른지 검정',
-      'two-sample-t-test': '두 독립 그룹 간의 평균 차이 검정',
-      'paired-t-test': '동일 대상의 전후 측정값 차이 검정',
+      'one-sample-t': '단일 표본의 평균이 특정 값과 다른지 검정',
+      'two-sample-t': '두 독립 그룹 간의 평균 차이 검정',
+      'paired-t': '동일 대상의 전후 측정값 차이 검정',
       'one-way-anova': '세 개 이상 그룹 간의 평균 차이 검정',
       'correlation': '두 연속변수 간의 선형관계 강도와 방향 분석',
       'simple-regression': '한 변수로 다른 변수를 예측하는 모델 분석',

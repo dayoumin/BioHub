@@ -26,6 +26,9 @@ import {
 import { transformExecutorResult } from '@/lib/utils/result-transformer'
 import { getUserFriendlyErrorMessage } from '@/lib/constants/error-messages'
 import { useAnalysisStore } from '@/lib/stores/analysis-store'
+import { getMethodByIdOrAlias } from '@/lib/constants/statistical-methods'
+import { getMethodRequirements } from '@/lib/statistics/variable-requirements'
+import { buildAnalysisExecutionContext } from '@/lib/utils/analysis-execution'
 import { StepHeader, StatusIndicator, CollapsibleSection } from '@/components/analysis/common'
 import { logger } from '@/lib/utils/logger'
 import type { AnalysisExecutionStepProps } from '@/types/analysis-navigation'
@@ -34,6 +37,14 @@ import { useTerminology } from '@/hooks/use-terminology'
 // Stage IDs (순서 고정)
 const STAGE_IDS = ['prepare', 'preprocess', 'assumptions', 'analysis', 'additional', 'finalize'] as const
 type StageId = typeof STAGE_IDS[number]
+
+const REDUNDANT_CANONICAL_ALIASES = new Set([
+  't-test',
+  'one-sample-t-test',
+  'paired-t-test',
+  'anova',
+  'welch-anova',
+])
 
 // 진행률 범위 정의
 const STAGE_RANGES: Record<StageId, [number, number]> = {
@@ -89,6 +100,44 @@ export function AnalysisExecutionStep({
   const setAssumptionResults = useAnalysisStore(state => state.setAssumptionResults)
   const suggestedSettings = useAnalysisStore(state => state.suggestedSettings)
   const analysisOptions = useAnalysisStore(state => state.analysisOptions)
+  const effectiveSelectedMethod = useMemo(() => {
+    if (!selectedMethod) return null
+
+    if (!REDUNDANT_CANONICAL_ALIASES.has(selectedMethod.id)) {
+      return selectedMethod
+    }
+
+    const canonical = getMethodByIdOrAlias(selectedMethod.id)
+    if (!canonical) return selectedMethod
+
+    return {
+      ...selectedMethod,
+      id: canonical.id,
+      category: canonical.category,
+      description: selectedMethod.description || canonical.description,
+    }
+  }, [selectedMethod])
+  const methodRequirements = useMemo(
+    () => (effectiveSelectedMethod?.id ? getMethodRequirements(effectiveSelectedMethod.id) : undefined),
+    [effectiveSelectedMethod?.id]
+  )
+  const {
+    effectiveExecutionSettings,
+    effectiveExecutionVariables,
+    executionSettingEntries,
+  } = useMemo(() => buildAnalysisExecutionContext({
+    analysisOptions,
+    methodRequirements,
+    selectedMethodId: effectiveSelectedMethod?.id,
+    suggestedSettings,
+    variableMapping,
+  }), [
+    analysisOptions,
+    methodRequirements,
+    effectiveSelectedMethod?.id,
+    suggestedSettings,
+    variableMapping,
+  ])
 
   /**
    * 로그 추가 함수
@@ -121,7 +170,7 @@ export function AnalysisExecutionStep({
    * 분석 실행 함수
    */
   const runAnalysis = useCallback(async () => {
-    if (!uploadedData || !selectedMethod) {
+    if (!uploadedData || !selectedMethod || !effectiveSelectedMethod) {
       setError(t.analysis.execution.dataRequired)
       return
     }
@@ -180,7 +229,7 @@ export function AnalysisExecutionStep({
           try {
             assumptionResult = await awaitPreemptiveAssumptions()
           } catch (err) {
-            logger.error('선행 가정 검정 대기 실패', { error: err, method: selectedMethod?.id })
+            logger.error('선행 가정 검정 대기 실패', { error: err, method: effectiveSelectedMethod.id })
           }
 
           if (assumptionResult) {
@@ -189,7 +238,7 @@ export function AnalysisExecutionStep({
             try {
               assumptionResult = await executeAssumptionTests(variableMapping, uploadedData)
             } catch (err) {
-              logger.error('가정 검정 실행 실패', { error: err, method: selectedMethod?.id })
+              logger.error('가정 검정 실행 실패', { error: err, method: effectiveSelectedMethod.id })
             }
             if (!assumptionResult) {
               addLog(logs.assumptionSkipped)
@@ -213,49 +262,19 @@ export function AnalysisExecutionStep({
       addLog(logs.methodExecuting(selectedMethod.name))
 
       // 적용되는 설정 로그 표시
-      if (suggestedSettings) {
-        const appliedAlpha = suggestedSettings.alpha ?? 0.05
-        addLog(logs.aiSettingsApplied(appliedAlpha))
-        if (suggestedSettings.postHoc) {
-          addLog(logs.aiPostHoc(suggestedSettings.postHoc))
-        }
-        if (suggestedSettings.alternative) {
-          addLog(logs.aiAlternative(suggestedSettings.alternative))
-        }
+      addLog(logs.aiSettingsApplied(Number(effectiveExecutionSettings.alpha ?? 0.05)))
+      if (typeof effectiveExecutionSettings.postHoc === 'string') {
+        addLog(logs.aiPostHoc(effectiveExecutionSettings.postHoc))
       }
-
-      // Merge user analysisOptions into AI suggestedSettings
-      // User overrides take precedence (e.g., alpha, testValue)
-      const mergedSettings = {
-        ...suggestedSettings,
-        ...(analysisOptions.methodSettings ?? {}),
-        alpha: analysisOptions.alpha,
-        ...(analysisOptions.alternative !== undefined
-          ? { alternative: analysisOptions.alternative }
-          : {}),
-        ...(analysisOptions.ciMethod !== undefined
-          ? { ciMethod: analysisOptions.ciMethod }
-          : {}),
-      }
-      const mergedVariables = {
-        ...(variableMapping ?? {}),
-        // testValue는 executor가 variables에서 읽음
-        ...(analysisOptions.testValue !== undefined
-          ? { testValue: String(analysisOptions.testValue) }
-          : {}),
-        ...(
-          (selectedMethod.id === 'proportion-test' || selectedMethod.id === 'one-sample-proportion')
-            && analysisOptions.nullProportion !== undefined
-            ? { nullProportion: String(analysisOptions.nullProportion) }
-            : {}
-        ),
+      if (typeof effectiveExecutionSettings.alternative === 'string') {
+        addLog(logs.aiAlternative(effectiveExecutionSettings.alternative))
       }
 
       const result = await executor.executeMethod(
-        selectedMethod,
+        effectiveSelectedMethod,
         uploadedData,
-        mergedVariables,
-        mergedSettings
+        effectiveExecutionVariables,
+        effectiveExecutionSettings
       )
 
       if (cancelledRef.current) return
@@ -310,15 +329,11 @@ export function AnalysisExecutionStep({
     }
   }, [
     uploadedData,
+    effectiveSelectedMethod,
     selectedMethod,
-    variableMapping,
-    suggestedSettings,
-    analysisOptions.alpha,
-    analysisOptions.testValue,
-    analysisOptions.nullProportion,
-    analysisOptions.alternative,
-    analysisOptions.ciMethod,
-    analysisOptions.methodSettings,
+    effectiveExecutionVariables,
+    effectiveExecutionSettings,
+    methodRequirements,
     existingAssumptionResults,
     setAssumptionResults,
     updateStage,
@@ -341,7 +356,8 @@ export function AnalysisExecutionStep({
   }, [addLog, logs, onPrevious])
 
   // variableMapping 유효성: 어떤 키든 값이 있으면 유효
-  const hasValidMapping = Boolean(
+  const methodAllowsEmptyMapping = (methodRequirements?.variables.length ?? -1) === 0
+  const hasValidMapping = methodAllowsEmptyMapping || Boolean(
     variableMapping &&
       Object.values(variableMapping).some(v =>
         v !== undefined && v !== null && (Array.isArray(v) ? v.length > 0 : v !== '')
@@ -417,9 +433,15 @@ export function AnalysisExecutionStep({
                 <div className="rounded-lg border border-border/50 bg-muted/25 px-3 py-1.5 text-xs font-medium text-muted-foreground">
                   변수 {mappedVariableCount}개
                 </div>
-                <div className="rounded-lg border border-border/50 bg-muted/25 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-                  alpha {analysisOptions.alpha}
-                </div>
+                {executionSettingEntries.map(entry => (
+                  <div
+                    key={entry.key}
+                    className="rounded-lg border border-border/50 bg-muted/25 px-3 py-1.5 text-xs font-medium text-muted-foreground"
+                    data-testid={`execution-setting-${entry.key}`}
+                  >
+                    {entry.label === entry.value ? entry.label : `${entry.label} ${entry.value}`}
+                  </div>
+                ))}
               </div>
             </div>
           </CardContent>

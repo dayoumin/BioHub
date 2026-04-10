@@ -3,10 +3,21 @@ import type { StatisticalMethod, SuggestedSettings } from '@/types/analysis'
 import type { PreparedData, StatisticalExecutorResult } from '../statistical-executor'
 import { calculateCohensD, interpretCohensD } from './shared-helpers'
 
+function parseBooleanSetting(value: unknown): boolean | undefined {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'string') {
+    if (value === 'true') return true
+    if (value === 'false') return false
+  }
+  return undefined
+}
+
 export async function handleTTest(method: StatisticalMethod, data: PreparedData, settings?: SuggestedSettings | null): Promise<StatisticalExecutorResult> {
   const alternative = settings?.alternative
+  const isOneSampleT = method.id === 'one-sample-t' || method.id === 'one-sample-t-test'
+  const isPairedT = method.id === 'paired-t' || method.id === 'paired-t-test'
   // 일표본 t-검정 분기
-  if (method.id === 'one-sample-t' || method.id === 'one-sample-t-test') {
+  if (isOneSampleT) {
     const values = data.arrays.dependent || data.arrays.independent?.[0] || []
     if (values.length < 2) {
       throw new Error('일표본 t-검정을 위해 최소 2개 이상의 관측치가 필요합니다')
@@ -101,11 +112,14 @@ export async function handleTTest(method: StatisticalMethod, data: PreparedData,
   }
 
   // Pyodide로 t-검정 실행
-  // Welch t-검정: equalVar = false, 일반 t-검정: equalVar = true
+  // Welch t-검정: always equalVar=false
+  // 두 집단 t-검정: methodSettings.equalVar가 있으면 우선 반영
   const isWelch = method.id === 'welch-t'
+  const equalVarSetting = parseBooleanSetting(settings?.equalVar)
+  const shouldUseEqualVariance = isWelch ? false : (equalVarSetting ?? true)
   const result = await pyodideStats.tTest(group1, group2, {
-    paired: method.id === 'paired-t',
-    equalVar: !isWelch, // Welch t-검정은 등분산 가정하지 않음
+    paired: isPairedT,
+    equalVar: shouldUseEqualVariance,
     alternative
   })
 

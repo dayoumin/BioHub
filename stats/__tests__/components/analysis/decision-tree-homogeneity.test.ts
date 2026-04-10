@@ -22,7 +22,7 @@ describe('DecisionTree - homogeneity 답변 반영', () => {
         }
       })
 
-      expect(result.method.id).toBe('independent-t')
+      expect(result.method.id).toBe('two-sample-t')
       expect(result.method.name).toBe('독립표본 t-검정')
 
       // reasoning에 등분산성 단계가 포함되어야 함
@@ -53,8 +53,8 @@ describe('DecisionTree - homogeneity 답변 반영', () => {
       const homogeneityStep = result.reasoning.find(r => r.step === '등분산성')
       expect(homogeneityStep?.description).toContain('등분산 미충족')
 
-      // 대안에 independent-t가 있어야 함
-      const indAlt = result.alternatives.find(a => a.method.id === 'independent-t')
+      // 대안에 two-sample-t가 있어야 함
+      const indAlt = result.alternatives.find(a => a.method.id === 'two-sample-t')
       expect(indAlt).toBeDefined()
     })
 
@@ -143,8 +143,8 @@ describe('DecisionTree - homogeneity 답변 반영', () => {
         }
       })
 
-      expect(result.method.id).toBe('welch-anova')
-      expect(result.method.name).toBe('일원분산분석 (ANOVA)')
+      expect(result.method.id).toBe('one-way-anova')
+      expect(result.method.name).toBe('Welch ANOVA')
 
       const homogeneityStep = result.reasoning.find(r => r.step === '등분산성')
       expect(homogeneityStep?.description).toContain('등분산 미충족')
@@ -161,7 +161,8 @@ describe('DecisionTree - homogeneity 답변 반영', () => {
         }
       })
 
-      expect(result.method.id).toBe('welch-anova')
+      expect(result.method.id).toBe('one-way-anova')
+      expect(result.method.name).toBe('Welch ANOVA')
 
       const homogeneityStep = result.reasoning.find(r => r.step === '등분산성')
       expect(homogeneityStep?.description).toContain('미확인')
@@ -218,7 +219,7 @@ describe('DecisionTree - homogeneity 답변 반영', () => {
         }
       })
 
-      expect(result.method.id).toBe('repeated-anova')
+      expect(result.method.id).toBe('repeated-measures-anova')
 
       const homogeneityStep = result.reasoning.find(r => r.step === '등분산성')
       expect(homogeneityStep).toBeUndefined()
@@ -311,7 +312,7 @@ describe('DecisionTree - homogeneity 답변 반영', () => {
       })
 
       const altIds = result.alternatives.map(a => a.method.id)
-      expect(altIds).toContain('independent-t')
+      expect(altIds).toContain('two-sample-t')
       expect(altIds).toContain('mann-whitney')
     })
   })

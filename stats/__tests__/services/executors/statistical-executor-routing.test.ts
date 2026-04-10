@@ -220,6 +220,26 @@ describe('StatisticalExecutor Routing', () => {
       expect(result.metadata.method).toBeDefined()
     })
 
+    it('should pass equalVar=false to tTest when method settings request Welch behavior', async () => {
+      const twoGroupData = mockData.filter(d => d.group === 'A' || d.group === 'B')
+
+      await executor.executeMethod(
+        createMethod('two-sample-t', 'Two Sample T-Test', 't-test'),
+        twoGroupData,
+        { groupVar: 'group', dependentVar: 'score' },
+        { equalVar: 'false' }
+      )
+
+      expect(pyodideStats.tTest).toHaveBeenCalledWith(
+        expect.any(Array),
+        expect.any(Array),
+        expect.objectContaining({
+          paired: false,
+          equalVar: false,
+        })
+      )
+    })
+
     it('should route "paired-t-test" correctly', async () => {
       const result = await executor.executeMethod(
         createMethod('paired-t-test', 'Paired t-test', 't-test'),
@@ -247,6 +267,63 @@ describe('StatisticalExecutor Routing', () => {
       expect(result.metadata.method).toBeDefined()
     })
 
+    it('should use Tukey as default postHoc for standard one-way-anova', async () => {
+      const mockedStats = vi.mocked(pyodideStats)
+
+      await executor.executeMethod(
+        createMethod('one-way-anova', 'One-way ANOVA', 'anova'),
+        mockData,
+        { groupVar: 'group', dependentVar: 'score' }
+      )
+
+      expect(mockedStats.anova).toHaveBeenCalledWith(
+        expect.any(Array),
+        expect.objectContaining({
+          type: 'one-way',
+          welch: false,
+        })
+      )
+      expect(mockedStats.tukeyHSDWorker).toHaveBeenCalled()
+      expect(mockedStats.gamesHowellTest).not.toHaveBeenCalled()
+    })
+
+    it('should forward welch=true and default to Games-Howell postHoc', async () => {
+      const mockedStats = vi.mocked(pyodideStats)
+
+      const result = await executor.executeMethod(
+        createMethod('one-way-anova', 'One-way ANOVA', 'anova'),
+        mockData,
+        { groupVar: 'group', dependentVar: 'score' },
+        { welch: true }
+      )
+
+      expect(mockedStats.anova).toHaveBeenCalledWith(
+        expect.any(Array),
+        expect.objectContaining({
+          type: 'one-way',
+          welch: true,
+        })
+      )
+      expect(mockedStats.gamesHowellTest).toHaveBeenCalled()
+      expect(mockedStats.tukeyHSDWorker).not.toHaveBeenCalled()
+      expect(result.metadata.methodName).toContain('Welch')
+      expect(result.additionalInfo.testVariant).toBe('welch')
+    })
+
+    it('should ignore incompatible tukey preference when welch=true', async () => {
+      const mockedStats = vi.mocked(pyodideStats)
+
+      await executor.executeMethod(
+        createMethod('one-way-anova', 'One-way ANOVA', 'anova'),
+        mockData,
+        { groupVar: 'group', dependentVar: 'score' },
+        { welch: true, postHoc: 'tukey' }
+      )
+
+      expect(mockedStats.gamesHowellTest).toHaveBeenCalled()
+      expect(mockedStats.tukeyHSDWorker).not.toHaveBeenCalled()
+    })
+
     it('should normalize games-howell postHoc fields for direct games-howell method', async () => {
       const mockedStats = vi.mocked(pyodideStats)
       mockedStats.gamesHowellTest.mockResolvedValueOnce({
@@ -270,9 +347,8 @@ describe('StatisticalExecutor Routing', () => {
       expect(postHoc[0]).not.toHaveProperty('pValue')
     })
 
-    it('should fallback to bonferroni when games-howell and tukey fail', async () => {
+    it('should fallback to bonferroni when tukey fails for standard ANOVA', async () => {
       const mockedStats = vi.mocked(pyodideStats)
-      mockedStats.gamesHowellTest.mockRejectedValueOnce(new Error('gh failed'))
       mockedStats.tukeyHSDWorker.mockRejectedValueOnce(new Error('tukey failed'))
       mockedStats.performBonferroni.mockResolvedValueOnce({
         comparisons: [
@@ -299,6 +375,7 @@ describe('StatisticalExecutor Routing', () => {
       )
 
       expect(mockedStats.performBonferroni).toHaveBeenCalled()
+      expect(mockedStats.gamesHowellTest).not.toHaveBeenCalled()
       const postHoc = result.additionalInfo.postHoc as unknown as Array<Record<string, unknown>>
       expect(postHoc).toHaveLength(1)
       expect(postHoc[0].pvalue).toBe(0.01)
@@ -463,18 +540,15 @@ describe('StatisticalExecutor Routing', () => {
       expect(mockedStats.oneSampleProportionTest).toHaveBeenCalledWith(2, 3, 0.4, 'greater', 0.01)
     })
 
-    it('[ISSUE-3] proportion-test: missing dependentVar silently falls back to successCount=0', async () => {
-      const mockedStats = vi.mocked(pyodideStats)
-      // dependentVar 없음 → 자동 감지 실패 → successCount = undefined → ?? 0 (무음 폴백)
+    it('[ISSUE-3] proportion-test: missing dependentVar throws a validation error', async () => {
       const binaryData = [{ x: 1 }, { x: 2 }]
-      await executor.executeMethod(
-        createMethod('proportion-test', 'Proportion Test', 'nonparametric'),
-        binaryData,
-        {} // dependentVar 없음
-      )
-      // 현재 동작: successCount=0으로 조용히 호출 (에러 없음)
-      // 이상적으로는 '비율 검정을 위해 dependentVar를 지정해야 합니다' 에러를 던져야 함
-      expect(mockedStats.oneSampleProportionTest).toHaveBeenCalledWith(0, 2, 0.5, undefined, undefined)
+      await expect(
+        executor.executeMethod(
+          createMethod('proportion-test', 'Proportion Test', 'nonparametric'),
+          binaryData,
+          {}
+        )
+      ).rejects.toThrow('비율 검정을 위해 이진 변수 1개를 선택하거나 successCount를 제공해 주세요.')
     })
 
     it('[EDGE] proportion-test: non-keyword binary uses alphabetical-last as success', async () => {
@@ -549,7 +623,7 @@ describe('StatisticalExecutor Routing', () => {
           { successCount: 7, probability: '0.5' }
         )
 
-        expect(mockedStats.binomialTestWorker).toHaveBeenCalledWith(7, 10, 0.5)
+        expect(mockedStats.binomialTestWorker).toHaveBeenCalledWith(7, 10, 0.5, undefined)
         expect(mockedStats.chiSquareIndependenceTest).not.toHaveBeenCalled()
       })
 

@@ -604,7 +604,6 @@ export const aquaculture: TerminologyDictionary = {
       'chi-square': '분포 적합성 검정',
       'chi-square-goodness': '분포 적합성 검정',
       'chi-square-independence': '범주형 연관성 검정',
-      'paired-t-test': '이전·이후 비교',
       'paired-t': '이전·이후 비교',
       'mann-whitney': '두 집단 차이 비교 (비모수)',
       'wilcoxon': '이전·이후 비교 (비모수)',

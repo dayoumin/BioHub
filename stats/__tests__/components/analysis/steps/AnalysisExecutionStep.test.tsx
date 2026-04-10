@@ -326,6 +326,63 @@ describe('AnalysisExecutionStep', () => {
       )
     })
 
+    it('사용자 설정이 비어 있으면 suggestedSettings.alternative를 유지한다', async () => {
+      storeState = makeStoreState({
+        suggestedSettings: { alternative: 'greater' },
+      })
+
+      render(
+        <AnalysisExecutionStep
+          selectedMethod={{ id: 'one-sample-t', name: 'One Sample T-Test', description: '', category: 't-test' }}
+          variableMapping={{ dependentVar: 'score' }}
+        />
+      )
+      await runAllTimers()
+
+      expect(mockExecuteMethod).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'one-sample-t' }),
+        expect.any(Array),
+        expect.objectContaining({ dependentVar: 'score' }),
+        expect.objectContaining({
+          alpha: 0.05,
+          alternative: 'greater',
+        })
+      )
+    })
+
+    it('store에 기본 alternative가 동기화되어 있어도 suggestedSettings.alternative를 유지한다', async () => {
+      storeState = {
+        ...makeStoreState({
+          suggestedSettings: { alternative: 'greater' },
+        }),
+        analysisOptions: {
+          alpha: 0.05,
+          showAssumptions: true,
+          showEffectSize: true,
+          alternative: 'two-sided',
+          methodSettings: {},
+        },
+      }
+
+      render(
+        <AnalysisExecutionStep
+          selectedMethod={{ id: 'one-sample-t', name: 'One Sample T-Test', description: '', category: 't-test' }}
+          variableMapping={{ dependentVar: 'score' }}
+        />
+      )
+      await runAllTimers()
+
+      expect(mockExecuteMethod).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'one-sample-t' }),
+        expect.any(Array),
+        expect.objectContaining({ dependentVar: 'score' }),
+        expect.objectContaining({
+          alpha: 0.05,
+          alternative: 'greater',
+        })
+      )
+    })
+
     it('methodSettings를 merged settings에 포함한다', async () => {
       storeState = {
         ...makeStoreState(),
@@ -349,7 +406,7 @@ describe('AnalysisExecutionStep', () => {
       await runAllTimers()
 
       expect(mockExecuteMethod).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'anova' }),
+        expect.objectContaining({ id: 'one-way-anova' }),
         expect.any(Array),
         expect.objectContaining({
           dependentVar: 'score',
@@ -361,6 +418,55 @@ describe('AnalysisExecutionStep', () => {
           welch: true,
         })
       )
+    })
+
+    it('legacy alias selectedMethod도 canonical ID로 executor에 전달한다', async () => {
+      render(
+        <AnalysisExecutionStep
+          selectedMethod={{ id: 't-test', name: 't-test (독립표본)', description: '', category: 't-test' }}
+          variableMapping={{ dependentVar: 'score', groupVar: 'gender' }}
+        />
+      )
+      await runAllTimers()
+
+      expect(mockExecuteMethod).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'two-sample-t' }),
+        expect.any(Array),
+        expect.objectContaining({
+          dependentVar: 'score',
+          groupVar: 'gender',
+        }),
+        expect.any(Object)
+      )
+    })
+
+    it('Step 4 카드에 실제 실행 설정 요약을 표시한다', () => {
+      storeState = {
+        ...makeStoreState(),
+        analysisOptions: {
+          alpha: 0.05,
+          showAssumptions: true,
+          showEffectSize: true,
+          alternative: 'greater',
+          methodSettings: {
+            postHoc: 'games-howell',
+            welch: true,
+          },
+        },
+      }
+
+      render(
+        <AnalysisExecutionStep
+          selectedMethod={{ id: 'one-way-anova', name: 'One-way ANOVA', description: '', category: 'anova' }}
+          variableMapping={{ dependentVar: 'score', groupVar: 'gender' }}
+        />
+      )
+
+      expect(screen.getByTestId('execution-setting-alpha')).toHaveTextContent('alpha 0.05')
+      expect(screen.getByTestId('execution-setting-postHoc')).toHaveTextContent('사후검정 방법 Games-Howell')
+      expect(screen.getByTestId('execution-setting-welch')).toHaveTextContent('Welch ANOVA')
+      expect(screen.getByTestId('execution-setting-showAssumptions')).toHaveTextContent('가정 검정 사용')
+      expect(screen.getByTestId('execution-setting-showEffectSize')).toHaveTextContent('효과크기 표시')
     })
 
     it('event/timeVar AutoConfirm 스타일 → 분석 실행', async () => {
@@ -383,6 +489,40 @@ describe('AnalysisExecutionStep', () => {
       )
       await runAllTimers()
       expect(mockExecuteMethod).toHaveBeenCalledTimes(1)
+    })
+
+    it('power-analysis는 빈 매핑이어도 분석 실행', async () => {
+      storeState = {
+        ...makeStoreState(),
+        analysisOptions: {
+          alpha: 0.05,
+          showAssumptions: true,
+          showEffectSize: true,
+          methodSettings: {
+            power: 0.8,
+            effectSize: 0.5,
+          },
+        },
+      }
+
+      render(
+        <AnalysisExecutionStep
+          selectedMethod={{ id: 'power-analysis', name: 'Power Analysis', description: '', category: 'design' }}
+          variableMapping={{}}
+        />
+      )
+      await runAllTimers()
+
+      expect(mockExecuteMethod).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'power-analysis' }),
+        expect.any(Array),
+        {},
+        expect.objectContaining({
+          alpha: 0.05,
+          power: 0.8,
+          effectSize: 0.5,
+        })
+      )
     })
   })
 

@@ -30,9 +30,12 @@ import { aquaculture } from '@/lib/terminology/domains/aquaculture'
 /**
  * 공통 ID로 메서드 조회 + 한글 이름 적용
  * @param idOrAlias - Method ID or alias
- * @param options - { useLegacyId: true } to preserve the input ID
+ * @param options - legacy ID 유지 또는 표시용 alias 지정
  */
-function getMethod(idOrAlias: string, options?: { useLegacyId?: boolean }): StatisticalMethod {
+function getMethod(
+  idOrAlias: string,
+  options?: { useLegacyId?: boolean; displayAliasId?: string }
+): StatisticalMethod {
   const method = getMethodByIdOrAlias(idOrAlias)
 
   if (!method) {
@@ -45,10 +48,12 @@ function getMethod(idOrAlias: string, options?: { useLegacyId?: boolean }): Stat
     }
   }
 
+  const displayId = options?.displayAliasId ?? method.id
+
   return {
     id: options?.useLegacyId ? idOrAlias : method.id,
-    name: getKoreanName(method.id),
-    description: getKoreanDescription(method.id),
+    name: getKoreanName(displayId),
+    description: getKoreanDescription(displayId),
     category: method.category
   }
 }
@@ -98,6 +103,7 @@ interface Alternative {
   id: string
   reason: string
   useLegacyId?: boolean
+  displayAliasId?: string
 }
 
 /**
@@ -113,14 +119,21 @@ function createResult(
   alternatives: Alternative[] = [],
   options?: {
     useLegacyId?: boolean
+    displayAliasId?: string
     warnings?: string[]
   }
 ): DecisionResult {
   return {
-    method: getMethod(methodId, options?.useLegacyId ? { useLegacyId: true } : undefined),
+    method: getMethod(methodId, {
+      useLegacyId: options?.useLegacyId,
+      displayAliasId: options?.displayAliasId,
+    }),
     reasoning,
     alternatives: alternatives.map(alt => ({
-      method: getMethod(alt.id, alt.useLegacyId ? { useLegacyId: true } : undefined),
+      method: getMethod(alt.id, {
+        useLegacyId: alt.useLegacyId,
+        displayAliasId: alt.displayAliasId,
+      }),
       reason: alt.reason
     })),
     ...(options?.warnings && { warnings: options.warnings })
@@ -221,7 +234,7 @@ function decideCompare_TwoGroups_Independent(
 
     if (homogeneity === 'yes') {
       reasoning.push(STEP_HOMOGENEITY(dt, 'yes', dt.descriptions.studentTTest))
-      return createResult('independent-t', reasoning, [
+      return createResult('two-sample-t', reasoning, [
         { id: 'welch-t', reason: dt.reasons.noEqualVarianceNeeded, useLegacyId: true },
         { id: 'mann-whitney', reason: dt.reasons.nonparametricAlternative, useLegacyId: true }
       ], { useLegacyId: true })
@@ -229,7 +242,7 @@ function decideCompare_TwoGroups_Independent(
 
     reasoning.push(STEP_HOMOGENEITY(dt, homogeneity))
     return createResult('welch-t', reasoning, [
-      { id: 'independent-t', reason: dt.reasons.equalVarianceConfirmed, useLegacyId: true },
+      { id: 'two-sample-t', reason: dt.reasons.equalVarianceConfirmed, useLegacyId: true },
       { id: 'mann-whitney', reason: dt.reasons.nonparametricAlternative, useLegacyId: true }
     ], { useLegacyId: true })
   }
@@ -260,14 +273,14 @@ function decideCompare_MultiGroups_Repeated(
 
   if (normality === 'yes') {
     reasoning.push(STEP_NORMALITY(dt, true))
-    return createResult('repeated-anova', reasoning, [
+    return createResult('repeated-measures-anova', reasoning, [
       { id: 'friedman', reason: dt.reasons.sphericityViolated, useLegacyId: true }
     ], { useLegacyId: true, warnings: [dt.warnings.sphericity] })
   }
 
   reasoning.push(STEP_NORMALITY(dt, false))
   return createResult('friedman', reasoning, [
-    { id: 'repeated-anova', reason: dt.reasons.robustN30, useLegacyId: true }
+    { id: 'repeated-measures-anova', reason: dt.reasons.robustN30, useLegacyId: true }
   ], { useLegacyId: true })
 }
 
@@ -285,7 +298,7 @@ function decideCompare_MultiGroups_Independent(
   if (design_type === 'mixed') {
     reasoning.push({ step: dt.steps.designType, description: dt.descriptions.mixedDesignMixedModel })
     return createResult('mixed-model', reasoning, [
-      { id: 'repeated-anova', reason: dt.reasons.simpleRepeatedMeasure, useLegacyId: true }
+      { id: 'repeated-measures-anova', reason: dt.reasons.simpleRepeatedMeasure, useLegacyId: true }
     ], { warnings: [dt.warnings.randomEffects] })
   }
 
@@ -311,16 +324,16 @@ function decideCompare_MultiGroups_Independent(
     if (homogeneity === 'yes') {
       reasoning.push(STEP_HOMOGENEITY(dt, 'yes', dt.descriptions.oneWayANOVA))
       return createResult('one-way-anova', reasoning, [
-        { id: 'welch-anova', reason: dt.reasons.noEqualVarianceNeeded, useLegacyId: true },
+        { id: 'one-way-anova', reason: dt.reasons.noEqualVarianceNeeded, displayAliasId: 'welch-anova' },
         { id: 'kruskal-wallis', reason: dt.reasons.nonparametricAlternative, useLegacyId: true }
       ], { useLegacyId: true })
     }
 
     reasoning.push(STEP_HOMOGENEITY(dt, homogeneity))
-    return createResult('welch-anova', reasoning, [
+    return createResult('one-way-anova', reasoning, [
       { id: 'one-way-anova', reason: dt.reasons.equalVarianceConfirmed, useLegacyId: true },
       { id: 'kruskal-wallis', reason: dt.reasons.nonparametricAlternative, useLegacyId: true }
-    ], { useLegacyId: true })
+    ], { useLegacyId: true, displayAliasId: 'welch-anova' })
   }
 
   reasoning.push(STEP_NORMALITY(dt, false))
@@ -335,7 +348,7 @@ function decideCompare_MultiGroups_Independent(
 
   return createResult('kruskal-wallis', reasoning, [
     { id: 'mood-median', reason: dt.reasons.medianComparisonPurpose },
-    { id: 'welch-anova', reason: dt.reasons.cltRobustNPerGroup30, useLegacyId: true }
+    { id: 'one-way-anova', reason: dt.reasons.cltRobustNPerGroup30, displayAliasId: 'welch-anova' }
   ], { useLegacyId: true })
 }
 
