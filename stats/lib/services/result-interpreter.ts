@@ -37,6 +37,9 @@ export function buildInterpretationPrompt(ctx: InterpretationContext): string {
 
   // 기본 정보
   parts.push(`## 분석 방법\n${results.method}`)
+  if (results.testVariant) {
+    parts.push(`- 실행 변형: ${results.testVariant === 'welch' ? 'Welch ANOVA' : results.testVariant}`)
+  }
 
   // 핵심 통계량
   parts.push(`## 핵심 결과`)

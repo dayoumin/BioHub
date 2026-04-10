@@ -245,6 +245,9 @@ export function transformExecutorResult(
 
   return {
     method: executorResult.metadata.method,
+    testVariant: typeof additionalInfo?.testVariant === 'string'
+      ? additionalInfo.testVariant
+      : undefined,
     statistic: mainResults.statistic,
     statisticName: mainResults.statisticName,
     pValue: mainResults.pvalue,

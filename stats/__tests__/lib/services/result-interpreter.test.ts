@@ -41,6 +41,11 @@ describe('buildInterpretationPrompt: 기본 구조', () => {
     expect(prompt).toContain('자유도(df): 29')
   })
 
+  it('testVariant가 있으면 실행 변형이 포함된다', () => {
+    const prompt = buildInterpretationPrompt(makeContext(makeResult({ testVariant: 'welch' })))
+    expect(prompt).toContain('실행 변형: Welch ANOVA')
+  })
+
   it('df가 undefined이면 자유도가 포함되지 않는다', () => {
     const prompt = buildInterpretationPrompt(makeContext(makeResult()))
     expect(prompt).not.toContain('자유도')

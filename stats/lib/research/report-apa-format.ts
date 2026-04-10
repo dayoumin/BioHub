@@ -23,6 +23,21 @@ import { extractNumber } from './entity-resolver'
 
 // ── 통계 분석 APA ──
 
+function extractDfPair(results: Record<string, unknown>): [number, number] | null {
+  const df1 = extractNumber(results, 'df1')
+  const df2 = extractNumber(results, 'df2')
+  if (df1 != null && df2 != null) return [df1, df2]
+
+  const df = results.df
+  if (Array.isArray(df) && df.length >= 2) {
+    const first = typeof df[0] === 'number' ? df[0] : Number(df[0])
+    const second = typeof df[1] === 'number' ? df[1] : Number(df[1])
+    if (Number.isFinite(first) && Number.isFinite(second)) return [first, second]
+  }
+
+  return null
+}
+
 function buildApaFallback(results: Record<string, unknown>): string {
   const pValue = extractNumber(results, 'pValue')
   const tStat = extractNumber(results, 'tStatistic')
@@ -30,16 +45,17 @@ function buildApaFallback(results: Record<string, unknown>): string {
   const chiSq = extractNumber(results, 'chiSquare')
   const corrCoef = extractNumber(results, 'correlationCoefficient')
   const df = extractNumber(results, 'df')
-  const df1 = extractNumber(results, 'df1')
-  const df2 = extractNumber(results, 'df2')
+  const dfPair = extractDfPair(results)
+  const testVariant = typeof results.testVariant === 'string' ? results.testVariant : undefined
 
   const lines: string[] = []
 
   // 주 통계량
   if (tStat != null && df != null && pValue != null) {
     lines.push(formatTTestResult(tStat, df, pValue))
-  } else if (fStat != null && df1 != null && df2 != null && pValue != null) {
-    lines.push(formatFTestResult(fStat, df1, df2, pValue))
+  } else if (fStat != null && dfPair && pValue != null) {
+    const fLine = formatFTestResult(fStat, dfPair[0], dfPair[1], pValue)
+    lines.push(testVariant === 'welch' ? `Welch ANOVA: ${fLine}` : fLine)
   } else if (chiSq != null && df != null && pValue != null) {
     lines.push(formatChiSquareResult(chiSq, df, pValue))
   } else if (corrCoef != null && pValue != null) {
